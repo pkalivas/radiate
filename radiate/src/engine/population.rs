@@ -70,8 +70,7 @@ impl<T, E, P> Population<T, E, P>
         P: Problem<T>
 {
 
-    /// This creates a base popuation with a generation which is randomly generated 
-    /// this serves as a jumping point for the rest of the evolution
+    /// base population
     pub fn new() -> Self {   
         Population {
             // define the number of members to participate in evolution and be injected into the current generation
@@ -165,7 +164,7 @@ impl<T, E, P> Population<T, E, P>
     pub fn run<F>(&mut self, runner: F) -> Result<(T, E), &'static str>
         where 
             F: Fn(&T, f64, i32) -> bool + Sized,
-            T: Genome<T, E> + Clone + Send + Sync + Debug + PartialEq,
+            T: Genome<T, E> + Clone + Send + Sync + PartialEq,
             P: Send + Sync,
             E: Clone
     {
@@ -175,7 +174,9 @@ impl<T, E, P> Population<T, E, P>
                 Some(result) => {
                     let (fit, top) = result;
                     if runner(&top, fit, index) {
-                        return Ok((top.clone(), (*self.environment.lock().unwrap()).clone()));
+                        let solution = top.clone();
+                        let env = (*self.environment.lock().unwrap()).clone();
+                        return Ok((solution, env));
                     }
                     index += 1;
                 },
@@ -207,8 +208,8 @@ impl<T, E, P> Population<T, E, P>
     /// 
     /// 1.) populate_gen - Create a generation object outsize of this scope and give it to the 
     ///                    population, return the popuolation back to the caller
-    /// 2.) populate_bas - as long as the popualtion size has already been set and the type T has 
-    ///                    implemented the base trait fn, this will generate a new base generation
+    /// 2.) populate_base - as long as the popualtion size has already been set and the type T has 
+    ///                     implemented the base trait fn, this will generate a new base generation
     /// 3.) populate_vec - Give the population a vec of type T and generate a new generation from it 
     ///                    then return the population back to the caller
     /// 4.) populate_clone - Take a base type T and create a population that is made up 
@@ -223,7 +224,7 @@ impl<T, E, P> Population<T, E, P>
     
     /// populate the populate with the base implementation of the genome 
     pub fn populate_base(mut self) -> Self 
-    where P: Send + Sync
+        where P: Send + Sync
     {
         self.curr_gen = Generation {
             members: (0..self.size)

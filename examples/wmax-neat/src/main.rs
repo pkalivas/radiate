@@ -9,7 +9,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut neat_env = default_neat_env();
     let starting_net = Neat::new().connect(2, 1, neat_env.get_mut_counter());
-    let solution = Population::<Neat, NeatEnvironment, NeatWeightMax>::new()
+    let (solution, environment) = Population::<Neat, NeatEnvironment, NeatWeightMax>::new()
         .constrain(neat_env)
         .size(250)
         .populate_clone(starting_net)
