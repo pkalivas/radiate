@@ -129,4 +129,7 @@ The initial generation in the population can be created in four different ways d
 3. **populate_vec** - Take a vec and populate the generation from the Genomes in the vec.
 4. **populate_clone** - Given a single Genome, clone it size times and create a generation from the clones.
 
+Because the engine is meant to evolve Genomes through speciation, the Config struct is meant to hold parameters for the speciation of the population, adjusting these will change the way the Genomes are split up within the population and thus drive the discovery of new Genomes through crossover and mutation.
+
+
 _examples of Evtree and NEAT can be found in ./examples using the xor problem to optimize the structures_ 
