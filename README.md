@@ -130,6 +130,12 @@ impl Problem<Neat> for NeatWeightMax {
     }
 }
 ```
+This comes right now with four examples, just run "cargo run --bin (desired example name)" to run any of them
+1. wmax-neat
+2. xor-evtree
+3. xor-neat
+4. xor-neat-backprop
+I'm going to add more examples soon, thinking about doing a Knapsack and nqueens example.
 
 ## Create a Population
 The initial generation in the population can be created in four different ways depending on the user's use case. The examples show different ways of using them.
