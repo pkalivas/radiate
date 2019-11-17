@@ -53,7 +53,7 @@ Population.run() will continue running until the evaluated function results in t
     pub fn run<F>(&mut self, runner: F) -> Result<(T, E), &'static str>
         where 
             F: Fn(&T, f64, i32) -> bool + Sized,
-            T: Genome<T, E> + Clone + Send + Sync + Debug + PartialEq,
+            T: Genome<T, E> + Clone + Send + Sync + PartialEq,
             P: Send + Sync,
             E: Clone
     {
@@ -122,5 +122,11 @@ impl Problem<Neat> for NeatWeightMax {
     }
 }
 ```
+
+The initial generation in the population can be created in four different ways depending on the user's use case. The examples show different ways of using them.
+1. **populate_gen** - Give the population an already constructed Generation struct. 
+2. **populate_base** - Create a generation of Genomes from the Genome's base function.
+3. **populate_vec** - Take a vec and populate the generation from the Genomes in the vec.
+4. **populate_clone** - Given a single Genome, clone it size times and create a generation from the clones.
 
 _examples of Evtree and NEAT can be found in ./examples using the xor problem to optimize the structures_ 
