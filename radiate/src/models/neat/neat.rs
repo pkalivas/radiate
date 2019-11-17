@@ -133,7 +133,7 @@ impl Neat {
                         let src_neuron = self.nodes.get(&curr_edge.src).unwrap();
                         let step = curr_node_error * Neuron::deactivate((**curr_node).activation, (**curr_node).curr_value.unwrap());
                         // add the weight step (gradient) * the currnet value to the weight to adjust the weight by the error
-                        curr_edge.weight += step * (**src_neuron).curr_value.unwrap();;
+                        curr_edge.weight += step * (**src_neuron).curr_value.unwrap();
                         errors.insert(curr_edge.src, curr_edge.weight * curr_node_error);
                         path.push(curr_edge.src);
                     }

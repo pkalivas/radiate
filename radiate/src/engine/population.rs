@@ -164,7 +164,7 @@ impl<T, E, P> Population<T, E, P>
     pub fn run<F>(&mut self, runner: F) -> Result<(T, E), &'static str>
         where 
             F: Fn(&T, f64, i32) -> bool + Sized,
-            T: Genome<T, E> + Clone + Send + Sync + PartialEq,
+            T: Genome<T, E> + Clone + Send + Sync + Debug + PartialEq,
             P: Send + Sync,
             E: Clone
     {
