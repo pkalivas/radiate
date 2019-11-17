@@ -143,6 +143,8 @@ pub enum Genocide {
     KillOldestSpecies(usize)
 }
 ```
+I find that keep top is probably the most useful, this is definitly an area which can be improved in the algorithm.
+
 
 
 _examples of Evtree and NEAT can be found in ./examples using the xor problem to optimize the structures_ 
