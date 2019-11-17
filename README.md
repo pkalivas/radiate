@@ -123,13 +123,26 @@ impl Problem<Neat> for NeatWeightMax {
 }
 ```
 
+### Create a Population
 The initial generation in the population can be created in four different ways depending on the user's use case. The examples show different ways of using them.
 1. **populate_gen** - Give the population an already constructed Generation struct. 
 2. **populate_base** - Create a generation of Genomes from the Genome's base function.
 3. **populate_vec** - Take a vec and populate the generation from the Genomes in the vec.
 4. **populate_clone** - Given a single Genome, clone it size times and create a generation from the clones.
 
+### Speciation
 Because the engine is meant to evolve Genomes through speciation, the Config struct is meant to hold parameters for the speciation of the population, adjusting these will change the way the Genomes are split up within the population and thus drive the discovery of new Genomes through crossover and mutation.
+
+### Genocide
+During evoltuion is can be common for either the population or specific species to become stagnat or stuck at a certain point in the problem space. To mend this, population allows the user to define a number of stagnant generations until a 'genocide' will occur. These genocide options can be found in genocide.rs and are simply ways to clean the population to give the Genome's an opportunity to breath and evolve down a new path in the problem space. 
+```rust
+pub enum Genocide {
+    KeepTop(usize),
+    KillWorst(f32),
+    KillRandom(f32),
+    KillOldestSpecies(usize)
+}
+```
 
 
 _examples of Evtree and NEAT can be found in ./examples using the xor problem to optimize the structures_ 
