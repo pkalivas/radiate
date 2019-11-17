@@ -3,7 +3,7 @@
 
 Radiate is a parallel genetic programming engine capable of evolving solutions for supervised, unsupervised, and general reinforcement learning problems. 
 
-Radiate follows the evolutionary algorithm found in NEAT (Neuroevolution of Augmented Topologies - http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf), but seperates the the evolutionary process from the graph datastructure allowing users to evolve any defined datastructure. NEAT describes an evolutionary algorithm which follows speciation through fitness sharing thus allowing species to optimize within their own niche. 
+Radiate follows the evolutionary algorithm found in [NEAT](http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) (Neuroevolution of Augmented Topologies), but seperates the the evolutionary process from the graph datastructure allowing users to evolve any defined datastructure. NEAT describes an evolutionary algorithm which follows speciation through fitness sharing thus allowing species to optimize within their own niche. 
 
 Radiate exposes three traits to the user which (dpending on the problem) must be implemented. 
 1. Genome
