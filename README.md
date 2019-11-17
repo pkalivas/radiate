@@ -76,6 +76,14 @@ Population.run() will continue running until the evaluated function results in t
 ```
 ## Example
 Quick example of optimizing the NEAT algorithm to find a graph where the sum of all edges is .0001 away from 100.
+To run this:
+```bash
+git clone https://github.com/pkalivas/radiate.git
+cd radiate
+cargo build --verbose && cargo run --bin wmax-neat
+```
+On my computer (Windows 10, x64-based, i7-7700 @ 4.20GHz, 32GB RAM) this finishes in about 15 seconds.
+
 ```rust
 extern crate radiate;
 
