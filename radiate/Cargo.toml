@@ -6,7 +6,7 @@ description = "Parallel and customizable genetic programming library"
 repository = "https://github.com/pkalivas/radiate"
 readme = "../README.md"
 categories = ["machine learning", "artificial intelligence", "algorithms", "data science"]
-keywords = ["radiate", "genetic", "machine learning", "artificial intelligence", "evolution"]
+keywords = ["radiate", "genetic", "ml", "ai", "machine", "learning", "artificial", "evolution"]
 edition = "2018"
 
 
