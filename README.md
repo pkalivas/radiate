@@ -15,9 +15,9 @@ Problem is what gives a genome it's fitness score. It requires two implemented f
 
 Radiate also comes with two models already built. Those being Evtree, and NEAT. Both come with default environments, however due to the amount of impact small changes can have on evolution, users might want to use different settings.
 
-**Evtree**  
+####        Evtree
 is a twist on decision trees where instead of using a certain split criteria like the gini index, each node in the tree has a collection of matrices and uses these matrices to decide which subtree to explore. This algorithm is something I created and although I'm sure it's been built before, I haven't found any papers or implementations of anything like it. It is a binary tree and is only good for classification right now. I currently have plans to make it a little more verbose through better matrix mutliplication, propagating inputs further through the tree, and possibly introducing multiple sub trees and regression - however these increase the compute time.   
-**NEAT**  
+####        NEAT
 is the algorithm described by Kenneth O. Stanley in the paper linked above. I've tried to follow the rules in the paper pretty well and have implemented some things I've found online as well such as historical marking control, and dynamic distance for speciation. The dynamic distance between species is available for any structure, however the speciation through historical markings described in the paper is only good for NEAT. Neat exposes a few different activation functions for one to choose from, but mutliple can be used at once and each new node will choose one randonly. This NEAT implementation also includes a backpropagation function which operates much like traditional neural networks which propagate the input error back through the network and adjust the weights. This alone is useless, however in pair with the evolution engine, can produce very nice and quick results. 
 
 ## Setup
@@ -74,7 +74,7 @@ Population.run() will continue running until the evaluated function results in t
         }
     }
 ```
-### Example
+## Example
 Quick example of optimizing the NEAT algorithm to find a graph where the sum of all edges is .0001 away from 100.
 ```rust
 extern crate radiate;
@@ -123,17 +123,17 @@ impl Problem<Neat> for NeatWeightMax {
 }
 ```
 
-### Create a Population
+## Create a Population
 The initial generation in the population can be created in four different ways depending on the user's use case. The examples show different ways of using them.
 1. **populate_gen** - Give the population an already constructed Generation struct. 
 2. **populate_base** - Create a generation of Genomes from the Genome's base function.
 3. **populate_vec** - Take a vec and populate the generation from the Genomes in the vec.
 4. **populate_clone** - Given a single Genome, clone it size times and create a generation from the clones.
 
-### Speciation
+## Speciation
 Because the engine is meant to evolve Genomes through speciation, the Config struct is meant to hold parameters for the speciation of the population, adjusting these will change the way the Genomes are split up within the population and thus drive the discovery of new Genomes through crossover and mutation.
 
-### Genocide
+## Genocide
 During evoltuion is can be common for either the population or specific species to become stagnat or stuck at a certain point in the problem space. To mend this, population allows the user to define a number of stagnant generations until a 'genocide' will occur. These genocide options can be found in genocide.rs and are simply ways to clean the population to give the Genome's an opportunity to breath and evolve down a new path in the problem space. 
 ```rust
 pub enum Genocide {
