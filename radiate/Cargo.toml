@@ -8,6 +8,7 @@ readme = "../README.md"
 categories = ["machine learning", "artificial intelligence", "algorithms", "data science"]
 keywords = ["radiate", "genetic", "learning", "artificial", "evolution"]
 edition = "2018"
+license = "MIT"
 
 
 [dependencies]
