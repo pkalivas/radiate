@@ -2,9 +2,13 @@
 name = "radiate"
 version = "1.0.0"
 authors = ["pkalivas <peterkalivas@gmail.com>"]
+description = "Parallel and customizable genetic programming library"
+repository = "https://github.com/pkalivas/radiate"
+readme = "../README.md"
+categories = ["machine learning", "artificial intelligence", "algorithms", "data science"]
+keywords = ["radiate", "genetic", "machine learning", "artificial intelligence", "evolution"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 rand="*"
