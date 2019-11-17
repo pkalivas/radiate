@@ -21,7 +21,61 @@ is a twist on decision trees where instead of using a certain split criteria lik
 is the algorithm described by Kenneth O. Stanley in the paper linked above. I've tried to follow the rules in the paper pretty well and have implemented some things I've found online as well such as historical marking control, and dynamic distance for speciation. The dynamic distance between species is available for any structure, however the speciation through historical markings described in the paper is only good for NEAT. Neat exposes a few different activation functions for one to choose from, but mutliple can be used at once and each new node will choose one randonly. This NEAT implementation also includes a backpropagation function which operates much like traditional neural networks which propagate the input error back through the network and adjust the weights. This alone is useless, however in pair with the evolution engine, can produce very nice and quick results. 
 
 ## Setup
-The population is pretty easy to set up assuming the all traits have been implemented. The population is a higher abstraction to keep track of varibales used during evoltuion but not needed within epoch - things like the problem, solution, to print to the screen, ect. The run() function must be the last function chained to the population because it takes a closure which when returns true, returns back the top Genome as it's initial type, and the environment. Here is a quick glance of setting up a problem and evolution engine to evolve the weights on a NEAT graph to equal 100. 
+The population is pretty easy to set up assuming the all traits have been implemented. The population is a higher abstraction to keep track of varibales used during evoltuion but not needed within epoch - things like the problem, solution, to print to the screen, ect. The run() function must be the last function chained to the population because it takes a closure which when returns true, returns back the top Genome as it's initial type, and the environment. 
+A new population is filled originally with default settings:
+```rust
+    pub fn new() -> Self {   
+        Population {
+            // define the number of members to participate in evolution and be injected into the current generation
+            size: 100,
+            // determin if the species should be aiming for a specific number of species by adjusting the distance threshold
+            dynamic_distance: false,
+            // debug_progress is only used to print out some information from each generation
+            // to the console during training to get a glimps into what is going on
+            debug_progress: false,
+            // create a new config to help the speciation of the population
+            config: Config::new(),
+            // create a new empty generation to be passed down through the population 
+            curr_gen: Generation::<T, E>::new(),
+            // keep track of fitness score stagnation through the population
+            stagnation: Stagnant::new(0, Vec::new()),
+            // Arc<Problem> so the problem can be sent between threads safely without duplicating the problem, 
+            // if the problem gets duplicated every time a supervised learning problem with a lot of data could take up a ton of memory
+            solve: Arc::new(P::empty()),
+            // create a new solver settings that will hold the specific settings for the defined solver 
+            // that will allow the structure to evolve through generations
+            environment: Arc::new(Mutex::new(E::default()))
+        }
+    }
+```
+Population.run() will continue running until the evaluated function results in true, thus it should always be the last function chained onto the population.
+```rust
+    pub fn run<F>(&mut self, runner: F) -> Result<(T, E), &'static str>
+        where 
+            F: Fn(&T, f64, i32) -> bool + Sized,
+            T: Genome<T, E> + Clone + Send + Sync + Debug + PartialEq,
+            P: Send + Sync,
+            E: Clone
+    {
+        let mut index = 0;
+        loop {
+            match self.train() {
+                Some(result) => {
+                    let (fit, top) = result;
+                    if runner(&top, fit, index) {
+                        let solution = top.clone();
+                        let env = (*self.environment.lock().unwrap()).clone();
+                        return Ok((solution, env));
+                    }
+                    index += 1;
+                },
+                None => return Err("Error Training")
+            }
+        }
+    }
+```
+### Example
+Quick example of optimizing the NEAT algorithm to find a graph where the sum of all edges is .0001 away from 100.
 ```rust
 extern crate radiate;
 
