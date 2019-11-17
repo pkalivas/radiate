@@ -1,6 +1,6 @@
 [package]
 name = "radiate"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["pkalivas <peterkalivas@gmail.com>"]
 edition = "2018"
 

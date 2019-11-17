@@ -124,7 +124,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "radiate"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "rand 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "rayon 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -239,14 +239,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "wmax-neat"
 version = "1.0.0"
 dependencies = [
- "radiate 0.1.0",
+ "radiate 1.0.0",
 ]
 
 [[package]]
 name = "xor-evtree"
 version = "1.0.0"
 dependencies = [
- "radiate 0.1.0",
+ "radiate 1.0.0",
  "simple-matrix 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -254,14 +254,14 @@ dependencies = [
 name = "xor-neat"
 version = "1.0.0"
 dependencies = [
- "radiate 0.1.0",
+ "radiate 1.0.0",
 ]
 
 [[package]]
 name = "xor-neat-backprop"
 version = "1.0.0"
 dependencies = [
- "radiate 0.1.0",
+ "radiate 1.0.0",
 ]
 
 [metadata]
