@@ -13,7 +13,7 @@ Environment represnts the evolutionary enviromnet for the genome, this means it 
 3. **Problem**  
 Problem is what gives a genome it's fitness score. It requires two implemented functions: empty and solve. Empty is required and should return a base problem (think new()). Solve takes a genome and returns that genome's fitness score, so this is where the analyzing of the current state of the genome occurs. Checkout the examples folder for a few examples of how this can be implemented.
 
-Radiate also comes with two models already built. Those being Evtree, and NEAT.
+Radiate also comes with two models already built. Those being Evtree, and NEAT. Both come with default environments, however due to the amount of impact small changes can have on evolution, users might want to use different settings.
 
 **Evtree**  
 is a twist on decision trees where instead of using a certain split criteria like the gini index, each node in the tree has a collection of matrices and uses these matrices to decide which subtree to explore. This algorithm is something I created and although I'm sure it's been built before, I haven't found any papers or implementations of anything like it. It is a binary tree and is only good for classification right now. I currently have plans to make it a little more verbose through better matrix mutliplication, propagating inputs further through the tree, and possibly introducing multiple sub trees and regression - however these increase the compute time.   
@@ -30,7 +30,7 @@ use radiate::prelude::*;
 fn main() -> Result<(), Box<dyn Error>> {
 
     let mut neat_env = default_neat_env();
-    let starting_net = Neat::new().connect(2, 1, neat_env.get_mut_counter());
+    let starting_net = Neat::base(&mut neat_env);
     let (solution, environment) = Population::<Neat, NeatEnvironment, NeatWeightMax>::new()
         .constrain(neat_env)
         .size(250)
