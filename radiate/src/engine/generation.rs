@@ -182,7 +182,10 @@ impl<T, E> Generation<T, E>
             E: Envionment + Sized + Send + Sync
     {   
         // generating new members in a biased way using rayon to parallize it
-        let mut new_members = self.get_top_members();
+        let mut new_members = self.species.par_iter()
+            .map(|x| x.lock().unwrap().fittest())
+            .collect::<Vec<_>>();
+        // crossover to fill the rest of the generation 
         new_members.extend((new_members.len() as i32..pop_size)
             .into_par_iter()
             .map(|_|{
@@ -262,19 +265,7 @@ impl<T, E> Generation<T, E>
     }
 
 
-
-    /// Get the top members from each species and return a vec of the cloned members
-    /// holding them
-    #[inline]
-    fn get_top_members(&self) -> Vec<Member<T>> {   
-        self.species
-            .par_iter()
-            .map(|x| x.lock().unwrap().fittest())
-            .collect::<Vec<_>>()
-    }
-
-
-
+    
     /// get the top member of the generations
     #[inline] 
     pub fn best_member(&self) -> Option<(f64, Arc<T>)>
