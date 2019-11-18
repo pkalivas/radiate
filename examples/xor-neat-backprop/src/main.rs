@@ -16,13 +16,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_output_size(1)
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
-        .set_weight_perturb(2.0)
+        .set_weight_perturb(1.5)
         .set_new_node_rate(0.03)
         .set_new_edge_rate(0.04)
         .set_reactivate(0.2)
         .set_c1(1.0)
         .set_c2(1.0)
-        .set_c3(0.005)
+        .set_c3(0.04)
         .set_activation_functions(vec![
             Activation::Sigmoid,
             Activation::Relu,
