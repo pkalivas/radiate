@@ -429,6 +429,7 @@ impl Neat {
         // check to see if this node has been created in the enviromnent before
         let new_node_incoming_edge: i32 = *(**new_node).incoming.keys().next().unwrap();
         let new_node_outgoing_edge: i32 = *(**new_node).outgoing.last().unwrap();
+
         // get the sending and receiving nodes because the new edges had new innovation 
         // numbers so the only way to check is by looking at the nodes themselves 
         // get the incoming and outoing edges of the new node and the stored node to replace the 
@@ -452,23 +453,29 @@ impl Neat {
                 let stored_outgoing_edge_key = ((*stored_node).innov, new_node_outgoing_neuron);
                 let stored_incoming_edge = env.global_edges.get(&stored_incoming_edge_key).unwrap().clone();
                 let stored_outgoing_edge = env.global_edges.get(&stored_outgoing_edge_key).unwrap().clone();
+
                 // get the actual incoming and outgoing neurons to replace the new node with the stored node 
                 let incoming_node = child.nodes.get(&new_node_incoming_neuron).unwrap();
                 let outgoing_node = child.nodes.get(&new_node_outgoing_neuron).unwrap();
+
                 // remove the pointers to the edges that are going to be removed 
                 (**incoming_node).outgoing.remove((**incoming_node).outgoing.iter().position(|&x| x == new_node_incoming_edge).unwrap());
                 (**incoming_node).outgoing.push(stored_incoming_edge.innov);
+
                 // replace the old edges with the stored edges from the global env
                 (**outgoing_node).incoming.remove(&new_node_outgoing_edge);
                 (**outgoing_node).incoming.insert(stored_outgoing_edge.innov, None);
+
                 // remove the new node and it's new edges from the child and replace it with the stored ones
                 child.nodes.remove(&(**new_node).innov);
                 child.edges.remove(&new_node_incoming_edge);
                 child.edges.remove(&new_node_outgoing_edge);
+
                 // insert the new node and it's new edges into the network inplace of the previous new node
                 child.nodes.insert((*stored_node).innov, stored_node);
                 child.edges.insert(stored_incoming_edge.innov, stored_incoming_edge);
-                child.edges.insert(stored_outgoing_edge.innov, stored_outgoing_edge);       
+                child.edges.insert(stored_outgoing_edge.innov, stored_outgoing_edge); 
+                      
                 // roll back the counter three because there are three innovation numbers that we didn't use 
                 env.subtract_count(3);    
             }

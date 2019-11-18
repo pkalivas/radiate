@@ -197,8 +197,7 @@ impl<T, E> Generation<T, E>
                 };
                 Arc::new(child)
             })
-            .collect::<Vec<_>>()
-        );
+            .collect::<Vec<_>>());
         // reset the species and passdown the new members to a new generation
         self.pass_down(new_members)
     }
