@@ -61,7 +61,6 @@ impl Genocide {
             T: Genome<T, E> + Send + Sync,
             E: Send + Sync
     {
-        println!("Kill Oldest Species");
         if generation.species.len() > num  {
             let to_remove = generation.species.len() - num; 
             generation.species
@@ -84,7 +83,6 @@ impl Genocide {
             T: Genome<T, E> + Send + Sync,
             E: Send + Sync
     {
-        println!("Kill Random.");
         generation.species
             .par_iter_mut()
             .map_init(|| rand::thread_rng(), |r, spec| {
@@ -113,7 +111,6 @@ impl Genocide {
             T: Genome<T, E> + Send + Sync,
             E: Send + Sync
     {
-        println!("Kill Worst");
         generation.species 
             .par_iter_mut()
             .map(|spec| {
@@ -140,7 +137,6 @@ impl Genocide {
             T: Genome<T, E> + Send + Sync,
             E: Send + Sync
     {
-        println!("Stagnation.");
         generation.species
             .sort_by(|a, b| {
                 let a_fit = a.lock().unwrap().get_total_adjusted_fitness();
