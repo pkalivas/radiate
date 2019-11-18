@@ -216,8 +216,7 @@ impl<T, E> Generation<T, E>
     #[inline]
     fn pick_parents(&self, inbreed_rate: f32) -> ((f64, Arc<T>), (f64, Arc<T>)) {
         let mut r = rand::thread_rng();
-        let species_one;
-        let species_two;
+        let (species_one, species_two);
         // get two species to pick from taking into account an inbreeding rate - an inbreed can happen without this 
         if r.gen::<f32>() < inbreed_rate {
             let temp = self.get_biased_random_species(&mut r).unwrap();
