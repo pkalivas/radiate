@@ -30,8 +30,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         .start_innov_counter();
         
     let mut starting_net = Neat::base(&mut neat_env);
-    let num_backprop = 200;
-    let num_evolve = 100;
+    let num_backprop = 100;
+    let num_evolve = 200;
     let xor = XOR::new();
 
     let solution = loop {
@@ -43,8 +43,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             .dynamic_distance(true)
             .configure(Config {
                 inbreed_rate: 0.001,
-                crossover_rate: 0.50,
-                distance: 3.0,
+                crossover_rate: 0.75,
+                distance: 0.5,
                 species_target: 10
             })
             .stagnation(15, vec![
