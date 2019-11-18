@@ -1,6 +1,6 @@
 [package]
 name = "radiate"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["pkalivas <peterkalivas@gmail.com>"]
 description = "Parallel and customizable genetic programming library"
 repository = "https://github.com/pkalivas/radiate"
