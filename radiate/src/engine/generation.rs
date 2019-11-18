@@ -135,40 +135,33 @@ impl<T, E> Generation<T, E>
     /// Speciation is the process of going through the members in the generation
     /// and assigning them species in which they belong to determined by a specific 
     /// distance between the member and the species mascot.
-    /// 
-    /// Type T must implement the distance trait to use this method.
     #[inline]
     pub fn speciate(&mut self, distance: f64, settings: &Arc<Mutex<E>>) {
         // Loop over the members mutably to find a species which this member belongs to
         for cont in self.members.iter_mut() {
-            // keep a found flag to determine if this member found a species 
-            // there is a lot of unwrapping of nested types here due to so many 
-            // reference counting pointers and mutexguards here due to threading
-            let mut found = false;
-            for spec in self.species.iter_mut() {
-                // if the member topology - species topology is less than the distance, this 
-                // member belongs to this species. Change the flag and break.
-                let mut temp_spec = spec.lock().unwrap();
-                if <T as Genome<T, E>>::distance(&*cont.member, &*temp_spec.mascot, settings) < distance {
-                    temp_spec.members.push(
-                        NicheMember(cont.fitness_score, Arc::downgrade(&cont.member))
-                    );
+            // see if this member belongs to a given species 
+            let mem_spec = self.species.iter_mut()
+                .find(|s| {
+                    let lock_spec = s.lock().unwrap();
+                    <T as Genome<T, E>>::distance(&*cont.member, &*lock_spec.mascot, settings) < distance
+                });
+            // if the member does belong to an existing species, add the two to each other 
+            // otherwise create a new species and add that to the species and the member 
+            match mem_spec {
+                Some(spec) => {
+                    let mut lock_spec = spec.lock().unwrap();
+                    lock_spec.members.push(NicheMember(cont.fitness_score, Arc::downgrade(&cont.member)));
                     cont.species = Some(Arc::downgrade(spec));
-                    found = true;
-                    break;
+                },
+                None => {
+                    let new_family = Arc::new(Mutex::new(Niche::new(&cont.member, cont.fitness_score)));
+                    cont.species = Some(Arc::downgrade(&new_family));
+                    self.species.push(new_family);
                 }
-            }
-            // if the species wasn't found, create a new one and add it to the generation and container
-            if !found {
-                let new_family = Arc::new(Mutex::new(Niche::new(&cont.member, cont.fitness_score)));
-                cont.species = Some(Arc::downgrade(&new_family));
-                self.species.push(new_family);
             }
         }
         // first filter out all species with have died out.
         // go through and set the total adjusted fitness for each species
-        // this isnt a super computationally expensive operation but it makes 
-        // sense to set it once instead of calculating it multiple times 
         self.species.retain(|x| Arc::weak_count(&x) > 0);
         for i in self.species.iter() {
             i.lock().unwrap().calculate_total_adjusted_fitness();
