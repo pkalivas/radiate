@@ -1,7 +1,7 @@
 
 ## Radiate
 Coming from Evoltuionary Radiation.
-> Evolutionary radiation is a rapid increase in the number of species with a common ancestor, characteried by great ecological and morphological diversity - Pascal Neige.
+> Evolutionary radiation is a rapid increase in the number of species with a common ancestor, characterized by great ecological and morphological diversity - Pascal Neige.
 
 Radiate is a parallel genetic programming engine capable of evolving solutions for supervised, unsupervised, and general reinforcement learning problems. 
 
