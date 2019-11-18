@@ -87,20 +87,27 @@ impl<T, E> Generation<T, E>
 
 
     /// passdown the previous generation's members and species to a new species
-    pub fn pass_down(&self, new_members: &[Member<T>], new_families: Vec<Family<T, E>>) -> Self {
-        Generation {
+    #[inline]
+    pub fn pass_down(&self, new_members: Vec<Member<T>>) -> Option<Self> {
+        Some(Generation {
             members: new_members
                 .into_par_iter()
                 .map(|x| {
                     Container {
-                        member: Arc::clone(x),
+                        member: Arc::clone(&x),
                         fitness_score: 0.0,
                         species: None
                     }
                 })
                 .collect(),
-            species: new_families
-        }
+            species: self.species
+                .par_iter()
+                .map(|spec| {
+                    spec.lock().unwrap().reset();
+                    Arc::clone(spec)
+                })
+                .collect()
+        })
     }
 
 
@@ -197,11 +204,8 @@ impl<T, E> Generation<T, E>
             })
             .collect::<Vec<_>>()
         );
-        // reset the species and get a new generation to return
-        let reset_species = self.reset_species();
-        let new_generation = self.pass_down(new_members.as_slice(), reset_species);
-        // return a new generation        
-        Some(new_generation)
+        // reset the species and passdown the new members to a new generation
+        self.pass_down(new_members)
     }
 
 
@@ -231,21 +235,6 @@ impl<T, E> Generation<T, E>
     }
 
 
-
-    /// reset the species for passing them down 
-    /// get a random new mascot from the species and increment the generations 
-    #[inline]
-    fn reset_species(&self) -> Vec<Family<T, E>>{
-        self.species
-            .par_iter()
-            .map(|spec| {
-                spec.lock().unwrap().reset();
-                Arc::clone(spec)
-            })
-            .collect()
-    }
-
-    
 
     /// get a biased random species from the population to get members from
     /// this gets a random species by getting the total adjusted fitness of the 
