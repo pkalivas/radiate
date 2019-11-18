@@ -13,7 +13,7 @@ pub mod genome {
     use std::marker::Sized;
     use std::sync::{Arc, Mutex};
 
-        pub trait Genome<T, E>
+    pub trait Genome<T, E>
         where
             T: ?Sized + Send + Sync,
             E: ?Sized + Send + Sync

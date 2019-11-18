@@ -153,6 +153,7 @@ impl Neat {
     }   
     
 
+
     /// Connect the inputs of the network to the outputs of the network for the first time 
     /// and return back a fully connected default network.
     #[inline]
@@ -476,6 +477,10 @@ impl Neat {
     }
 
 
+
+    /// Similar to neuron_control, this controls the edges of the graph in order to prevent 
+    /// unwanted population explosion due to incorrect historical markings of innovation numbers
+    /// that already exist within the population. This tends to tighten the number of species.
     #[inline]
     unsafe fn edge_control(child: &mut Neat, new_edge: Option<Edge>, env: &mut NeatEnvironment) {
         // if edge is None then we don't need to do anything

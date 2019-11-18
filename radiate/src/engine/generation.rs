@@ -86,7 +86,7 @@ impl<T, E> Generation<T, E>
 
 
 
-    /// passdown the previous generation's members and species to a new species
+    /// passdown the previous generation's members and species to a new generation
     #[inline]
     pub fn pass_down(&self, new_members: Vec<Member<T>>) -> Option<Self> {
         Some(Generation {
@@ -125,7 +125,6 @@ impl<T, E> Generation<T, E>
             .for_each_with(prob, |problem, cont| {
                 (*cont).fitness_score = problem.solve(&*cont.member);
             });
-
         // return the top member from the optimization as a tuple (f64, Arc<T>)
         self.best_member()
      }
@@ -235,7 +234,6 @@ impl<T, E> Generation<T, E>
     /// this gets a random species by getting the total adjusted fitness of the 
     /// entire population then finding a random number inside (0, total populatin fitness)
     /// then summing the individual species until they hit that random numer 
-    ///
     /// Statistically this allows for species with larger adjusted fitnesses to 
     /// have a greater change of being picked for breeding
     #[inline]

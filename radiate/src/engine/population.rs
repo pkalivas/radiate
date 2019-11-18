@@ -15,7 +15,8 @@ use super::{
 
 
 
-
+/// Keep track of the number of stagnant generations the population has had 
+/// if it reaches the target_stagnation, the vec of Genocides will be applied 
 struct Stagnant {
     target_stagnation: usize,
     current_stagnation: usize,
@@ -262,7 +263,7 @@ impl<T, E, P> Population<T, E, P>
     
     /// Given one type T which is a genome, create a population with clones of the original
     pub fn populate_clone(mut self, original: T) -> Self 
-    where T: Genome<T, E> + Clone 
+        where T: Genome<T, E> + Clone 
     {
         self.curr_gen = Generation {
             members: (0..self.size as usize)
