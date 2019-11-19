@@ -26,8 +26,7 @@ is a twist on decision trees where instead of using a certain split criteria lik
 is the algorithm described by Kenneth O. Stanley in the paper linked above. I've tried to follow the rules in the paper pretty well and have implemented some things I've found online as well such as historical marking control, and dynamic distance for speciation. The dynamic distance between species is available for any structure, however the speciation through historical markings described in the paper is only good for NEAT. Neat exposes a few different activation functions for one to choose from, but mutliple can be used at once and each new node will choose one randonly. This NEAT implementation also includes a backpropagation function which operates much like traditional neural networks which propagate the input error back through the network and adjust the weights. This alone is useless, however in pair with the evolution engine, can produce very nice and quick results. 
 
 ## Setup
-The population is pretty easy to set up assuming the all traits have been implemented. The population is a higher abstraction to keep track of varibales used during evoltuion but not needed within epoch - things like the problem, solution, to print to the screen, ect. The run() function must be the last function chained to the population because it takes a closure which when returns true, returns back the top Genome as it's initial type, and the environment. 
-A new population is filled originally with default settings:
+The population is pretty easy to set up assuming the all traits have been implemented. The population is a higher abstraction to keep track of varibales used during evoltuion but not needed within epoch - things like the problem, solution, to print to the screen, ect. A new population is filled originally with default settings:
 ```rust
 pub fn new() -> Self {   
     Population {
@@ -53,7 +52,7 @@ pub fn new() -> Self {
     }
 }
 ```
-Population.run() will continue running until the evaluated function results in true, thus it should always be the last function chained onto the population.
+The run() function must be the last function chained to the population because it takes a closure which when returns true, returns back the top Genome as it's initial type and the environment. 
 ```rust
 pub fn run<F>(&mut self, runner: F) -> Result<(T, E), &'static str>
     where 
