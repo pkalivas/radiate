@@ -200,17 +200,16 @@ impl Drop for NeuralNetwork {
 
 
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-//     #[test]
-//     fn test_feed_forward() {
-//         // TODO: make a better test this sucks 
-//         let input = vec![1.0, 0.5, 0.7, 1.0];
-//         let input_matrix = Matrix::from_iter(input.len(), 1, input);
-//         let network = NeuralNetwork::new(4).fill_random();
-//         let output = network.feed_forward(&input_matrix);
-//         assert!(output.to_vec().len() == 2, true);
-//     }
-// }
+    #[test]
+    fn test_feed_forward() {
+        let input = vec![1.0, 0.5, 0.7, 1.0];
+        let input_matrix = Matrix::from_iter(input.len(), 1, input);
+        let network = NeuralNetwork::new(4).fill_random();
+        let output = network.feed_forward(input_matrix);
+        assert!(output.to_vec().len() == 2, true);
+    }
+}
