@@ -1,12 +1,12 @@
 [package]
 name = "radiate"
-version = "1.0.1"
+version = "1.0.2"
 authors = ["pkalivas <peterkalivas@gmail.com>"]
 description = "Parallel and customizable genetic programming library"
 repository = "https://github.com/pkalivas/radiate"
 readme = "../README.md"
-categories = ["ml", "ai", "algorithms", "evolve", "genetic"]
-keywords = ["radiate", "genetic", "learning", "artificial", "evolution"]
+categories = ["science", "simulation", "algorithms", "evolve", "genetic"]
+keywords = ["search", "genetic", "learning", "artificial", "evolution"]
 edition = "2018"
 license = "MIT"
 
@@ -16,4 +16,3 @@ rand="0.7.2"
 simple-matrix="0.1.2"
 statrs="0.12.0"
 rayon="1.2.0"
-serde="*"
