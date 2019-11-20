@@ -115,8 +115,8 @@ impl Neat {
         let prediction = self.feed_forward(data).unwrap();
         let mut path = self.outputs.iter().map(|x| *x).collect::<Vec<_>>();
         let mut errors = HashMap::new();
-        for (output_innov, (answer, guess)) in self.outputs.iter().zip(targets.iter().zip(prediction.iter())) {
-            errors.insert(*output_innov, answer - guess);
+        for i in 0..self.outputs.len() {
+            errors.insert(self.outputs[i], targets[i] - prediction[i]);
         }
         // step through the network backwards and adjust the weights
         unsafe  {
