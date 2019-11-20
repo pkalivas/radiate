@@ -1,7 +1,7 @@
 1.) implement different way to:
     * Which members of the popoulation survive each generation?
         - Top from every species (current way of doing things)
-        - Top # from the entire popoulation
+        - Top # or % from the entire popoulation
         - only the best
         - species with greatest imrovement generation over generation
         ??
