@@ -1,0 +1,18 @@
+1.) implement different way to:
+    * Which members of the popoulation survive each generation?
+        - Top from every species (current way of doing things)
+        - Top # from the entire popoulation
+        - only the best
+        - species with greatest imrovement generation over generation
+        ??
+    * how to pick parents
+        - biased random from specific species (current way)
+        - only the survivers, whoever they are (above)
+        - only the best in each species allowed to reproduce
+        - pick one parent from one species then in another pick the one which is the most differnt (probably a large increase in compute time)
+
+2.) LSTM (Long Short Term Memory) neurons for NEAT
+
+3.) CTRNN (Continuous Time Recurrent Neural Network) neurons for NEAT
+
+4.) Would need to slightly edit or alter population controls (can still leave current options as default to prevent breaking builds)

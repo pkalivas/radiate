@@ -37,19 +37,11 @@ impl Genocide {
             E: Send + Sync
     {
         match self {
-            Self::KeepTop(gens) => {
-                 self.keep_top(generation, *gens);
-            },
-            Self::KillWorst(perc) => {
-                self.kill_species_bottom(generation, *perc);
-            },
-            Self::KillRandom(perc) => {
-                self.kill_random_genome(generation, *perc);
-            },
-            Self::KillOldestSpecies(num) => {
-                self.kill_oldest_species(generation, *num);
-            }
-        }
+            Self::KeepTop(gens) => self.keep_top(generation, *gens),
+            Self::KillWorst(perc) => self.kill_species_bottom(generation, *perc),
+            Self::KillRandom(perc) => self.kill_random_genome(generation, *perc),
+            Self::KillOldestSpecies(num) => self.kill_oldest_species(generation, *num)
+       }
     }
 
 
@@ -69,8 +61,7 @@ impl Genocide {
                     let b_age = b.lock().unwrap().age;
                     a_age.partial_cmp(&b_age).unwrap()
                 });
-            generation.species
-                .truncate(to_remove);
+            generation.species.truncate(to_remove);
         }
     }
 

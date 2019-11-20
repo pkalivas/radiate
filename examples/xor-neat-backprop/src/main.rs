@@ -30,8 +30,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         .start_innov_counter();
         
     let mut starting_net = Neat::base(&mut neat_env);
-    let num_backprop = 100;
-    let num_evolve = 200;
+    let num_backprop = 1000;
+    let num_evolve = 50;
     let xor = XOR::new();
 
     let solution = loop {
