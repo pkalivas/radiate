@@ -48,7 +48,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .run(|_, fit, num| {
             println!("Generation: {} score: {}", num, fit);
             let diff = 4.0 - fit;
-            (diff > 0.0 && diff < 0.01) || num == 150
+            (diff > 0.0 && diff < 0.01) || num == 500
         })?;
         
 
@@ -60,12 +60,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("Time in millis: {}", thread_time.elapsed().as_millis());
     xor.show(&solution);
     println!("Total: {}", total);
-    
-    for _ in 0..500 {
-        xor.backprop(&mut solution);
-    }
-    xor.show(&solution);
-    println!("total: {}", xor.solve(&solution));
+
     Ok(())
 }
 
