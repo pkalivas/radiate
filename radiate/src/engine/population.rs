@@ -11,6 +11,7 @@ use super::{
     problem::{Problem},
     environment::{Envionment},
     genocide::{Genocide},
+    survival::{SurvivalCriteria}
 };
 
 
@@ -57,7 +58,8 @@ pub struct Population<T, E, P>
     curr_gen: Generation<T, E>,
     stagnation: Stagnant,
     solve: Arc<P>,
-    environment: Arc<Mutex<E>>
+    environment: Arc<Mutex<E>>,
+    survivor_criteria: SurvivalCriteria
 }
 
 
@@ -92,7 +94,8 @@ impl<T, E, P> Population<T, E, P>
             solve: Arc::new(P::empty()),
             // create a new solver settings that will hold the specific settings for the defined solver 
             // that will allow the structure to evolve through generations
-            environment: Arc::new(Mutex::new(E::default()))
+            environment: Arc::new(Mutex::new(E::default())),
+            survivor_criteria: SurvivalCriteria::Fittest
         }
     }
 
@@ -119,7 +122,7 @@ impl<T, E, P> Population<T, E, P>
         // If debug is set to true, this is the place to show it before the new generation is 
         if self.debug_progress { self.show_progress(); }
         // create a new generation and return it
-        self.curr_gen = self.curr_gen.create_next_generation(self.size, self.config.clone(), &self.environment)?;
+        self.curr_gen = self.curr_gen.create_next_generation(self.size, self.survivor_criteria.clone(), self.config.clone(), &self.environment)?;
         // return the top member score and the member
         Some((top_member.0, (*top_member.1).clone()))
     }
@@ -328,6 +331,13 @@ impl<T, E, P> Population<T, E, P>
     /// debug determines what to display to the screen during evolution
     pub fn debug(mut self, d: bool) -> Self {
         self.debug_progress = d;
+        self
+    }
+
+    /// give the population a survival cirteria, if none is supplied then it 
+    /// defaults to the fittest genome from each species
+    pub fn survivor_criteria(mut self, survive: SurvivalCriteria) -> Self {
+        self.survivor_criteria = survive;
         self
     }
 

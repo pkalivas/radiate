@@ -2,6 +2,7 @@ pub mod population;
 pub mod generation;
 pub mod niche;
 pub mod genocide;
+pub mod survival;
 
 
 

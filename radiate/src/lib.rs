@@ -28,7 +28,8 @@ pub use engine::{
     niche::Niche,
     generation::Generation,
     genocide::Genocide,
-    environment::Envionment
+    environment::Envionment,
+    survival::SurvivalCriteria
 };
 
 

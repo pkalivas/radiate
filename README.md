@@ -114,8 +114,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             (100.0 - fit).abs() > 0.0 && (100.0 - fit).abs() < 0.0001
         })?;
     
-    println!("Solution");
-    println!("{:#?}", solution);
+    println!("Solution\n{:#?}", solution);
     
     Ok(())
 }

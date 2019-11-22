@@ -36,6 +36,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .populate_clone(starting_net)
         .debug(false)
         .dynamic_distance(true)
+        .survivor_criteria(SurvivalCriteria::TopPercent(0.2))
         .configure(Config {
             inbreed_rate: 0.001,
             crossover_rate: 0.50,

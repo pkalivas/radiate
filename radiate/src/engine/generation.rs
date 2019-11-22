@@ -10,7 +10,8 @@ use super::{
     genome::{Genome},
     problem::{Problem},
     environment::{Envionment},
-    population::{Config}
+    population::{Config},
+    survival::{SurvivalCriteria}
 };
 
 
@@ -27,11 +28,11 @@ pub type MemberWeak<T> = Weak<T>;
 /// A family is a wrapper for a species type which ownes the data it 
 /// holds. This is needed as there are many references to a species 
 /// throughout the program
-type Family<T, E> = Arc<Mutex<Niche<T, E>>>;
+pub type Family<T, E> = Arc<Mutex<Niche<T, E>>>;
 /// the FamilyWeak is meant to mimic the MemberWeak as it is a nonowning family
 /// type which allows for multiple bi-directional pointers to the same Niche 
 /// type in the same memory location
-type FamilyWeak<T, E> = Weak<Mutex<Niche<T, E>>>;
+pub type FamilyWeak<T, E> = Weak<Mutex<Niche<T, E>>>;
 
 
 
@@ -175,15 +176,16 @@ impl<T, E> Generation<T, E>
     /// fn from the genome trait, the more effecent that function is, the faster
     /// this function will be.
     #[inline]
-    pub fn create_next_generation(&mut self, pop_size: i32, config: Config, settings: &Arc<Mutex<E>>) -> Option<Self>
+    pub fn create_next_generation(&mut self, pop_size: i32, survival: SurvivalCriteria, config: Config, env: &Arc<Mutex<E>>) -> Option<Self>
         where 
             T: Sized + Clone,
             E: Envionment + Sized + Send + Sync
     {   
         // generating new members in a biased way using rayon to parallize it
-        let mut new_members = self.species.par_iter()
-            .map(|x| x.lock().unwrap().fittest())
-            .collect::<Vec<_>>();
+        let mut new_members = survival.pick_survivers(&mut self.members, &self.species)?;
+        // let mut new_members = self.species.par_iter()
+        //     .map(|x| x.lock().unwrap().fittest())
+        //     .collect::<Vec<_>>();
         // crossover to fill the rest of the generation 
         new_members.extend((new_members.len() as i32..pop_size)
             .into_par_iter()
@@ -191,9 +193,9 @@ impl<T, E> Generation<T, E>
                 // select two random species to crossover, with a chance of inbreeding then cross them over
                 let (one, two) = self.pick_parents(config.inbreed_rate);
                 let child = if one.0 > two.0 {
-                    <T as Genome<T, E>>::crossover(&*one.1, &*two.1, settings, config.crossover_rate).unwrap()
+                    <T as Genome<T, E>>::crossover(&*one.1, &*two.1, env, config.crossover_rate).unwrap()
                 } else {
-                    <T as Genome<T, E>>::crossover(&*two.1, &*one.1, settings, config.crossover_rate).unwrap()
+                    <T as Genome<T, E>>::crossover(&*two.1, &*one.1, env, config.crossover_rate).unwrap()
                 };
                 Arc::new(child)
             })
