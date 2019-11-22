@@ -52,7 +52,7 @@ pub fn new() -> Self {
         // determine which genomes will live on and passdown to the next generation
         survivor_criteria: SurvivalCriteria::Fittest,
         // determine how to pick parents to reproduce
-        parent_criteria: ParentalCriteria::BiasedRandom
+        parental_criteria: ParentalCriteria::BiasedRandom
     }
 }
 ```

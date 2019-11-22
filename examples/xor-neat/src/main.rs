@@ -37,7 +37,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .debug(true)
         .dynamic_distance(true)
         .survivor_criteria(SurvivalCriteria::Fittest)
-        .parent_criteria(ParentalCriteria::BestInSpecies)
+        .parental_criteria(ParentalCriteria::BestInSpecies)
         .configure(Config {
             inbreed_rate: 0.001,
             crossover_rate: 0.50,
