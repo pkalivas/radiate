@@ -96,7 +96,9 @@ impl<T, E, P> Population<T, E, P>
             // create a new solver settings that will hold the specific settings for the defined solver 
             // that will allow the structure to evolve through generations
             environment: Arc::new(Mutex::new(E::default())),
+            // determine which genomes will live on and passdown to the next generation
             survivor_criteria: SurvivalCriteria::Fittest,
+            // determine how to pick parents to reproduce
             parent_criteria: PickParents::BiasedRandom
         }
     }
