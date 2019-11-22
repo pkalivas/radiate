@@ -62,43 +62,10 @@ impl<T, E> Niche<T, E>
 
 
 
-    /// Get a biased random member from the species. By summing the fitness scores of the 
-    /// members, members with larger fitness scorese are statistically more likely to be picked
-    #[inline]
-    pub fn get_biased_random_member(&self, r: &mut ThreadRng) -> (f64, Member<T>) {
-        // declare a result which will panic! at the end of the function if there 
-        // is no member found, then get the species total fitness score
-        let total = self.get_total_adjusted_fitness();
-        let index = r.gen::<f64>() * total;
-        let (mut result, mut curr) = (None, 0.0);
-        // go through each member and see if it's adjusted fitness has pushed it over the edge
-        for member in self.members.iter() {
-            curr += member.0;
-            if curr >= index {
-                result = Some(member);
-                break
-            }
-        };
-        // either unwrap the result, or if the adjusted fitness of the species was all
-        // negative, just take the first member. If the fitness of the species is negative,
-        // the algorithm essentially preforms a random search for these biased functions 
-        // once the fitness is above 0, it will 'catch on' and start producing biased results
-        result.or_else(|| Some(&self.members[0]))
-            .and_then(|val| {
-                Some((val.0, val.1.clone()
-                    .upgrade()
-                    .unwrap_or_else(|| panic!("Failed to get random species member."))
-                ))
-            })
-            .unwrap()
-    }
-
-
-
     /// Get the top performing member from the species by their 
     /// associated fitness score. If None is returned meaning there is 
     /// no members in the species, panic!
-    pub fn fittest(&self) -> Member<T> {
+    pub fn fittest(&self) -> (f64, Member<T>) {
         let mut top: Option<&NicheMember<T>> = None;
         for i in self.members.iter() {
             if top.is_none() || i.0 > top.unwrap().0 {
@@ -107,7 +74,7 @@ impl<T, E> Niche<T, E>
         }
 
         match top {
-            Some(t) => Arc::clone(&t.1.upgrade().unwrap()),
+            Some(t) => (t.0, Arc::clone(&t.1.upgrade().unwrap())),
             None => panic!("Failed to get top species member.")
         }
     }

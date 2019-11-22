@@ -34,9 +34,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         .constrain(neat_env)
         .size(150)
         .populate_clone(starting_net)
-        .debug(false)
+        .debug(true)
         .dynamic_distance(true)
-        .survivor_criteria(SurvivalCriteria::TopPercent(0.2))
+        .survivor_criteria(SurvivalCriteria::Fittest)
+        .parent_criteria(PickParents::BestInSpecies)
         .configure(Config {
             inbreed_rate: 0.001,
             crossover_rate: 0.50,

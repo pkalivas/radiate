@@ -11,7 +11,7 @@ use super::{
     problem::{Problem},
     environment::{Envionment},
     genocide::{Genocide},
-    survival::{SurvivalCriteria}
+    survival::{SurvivalCriteria, PickParents}
 };
 
 
@@ -59,7 +59,8 @@ pub struct Population<T, E, P>
     stagnation: Stagnant,
     solve: Arc<P>,
     environment: Arc<Mutex<E>>,
-    survivor_criteria: SurvivalCriteria
+    survivor_criteria: SurvivalCriteria,
+    parent_criteria: PickParents
 }
 
 
@@ -95,7 +96,8 @@ impl<T, E, P> Population<T, E, P>
             // create a new solver settings that will hold the specific settings for the defined solver 
             // that will allow the structure to evolve through generations
             environment: Arc::new(Mutex::new(E::default())),
-            survivor_criteria: SurvivalCriteria::Fittest
+            survivor_criteria: SurvivalCriteria::Fittest,
+            parent_criteria: PickParents::BiasedRandom
         }
     }
 
@@ -122,7 +124,7 @@ impl<T, E, P> Population<T, E, P>
         // If debug is set to true, this is the place to show it before the new generation is 
         if self.debug_progress { self.show_progress(); }
         // create a new generation and return it
-        self.curr_gen = self.curr_gen.create_next_generation(self.size, self.survivor_criteria.clone(), self.config.clone(), &self.environment)?;
+        self.curr_gen = self.curr_gen.create_next_generation(self.size, self.survivor_criteria.clone(), self.parent_criteria.clone(), self.config.clone(), &self.environment)?;
         // return the top member score and the member
         Some((top_member.0, (*top_member.1).clone()))
     }
@@ -338,6 +340,13 @@ impl<T, E, P> Population<T, E, P>
     /// defaults to the fittest genome from each species
     pub fn survivor_criteria(mut self, survive: SurvivalCriteria) -> Self {
         self.survivor_criteria = survive;
+        self
+    }
+
+    /// give the population a way to pick the parents, if none is supplied 
+    /// then default to biasedrandom genomes 
+    pub fn parent_criteria(mut self, parents: PickParents) -> Self {
+        self.parent_criteria =parents;
         self
     }
 

@@ -11,7 +11,7 @@ use super::{
     problem::{Problem},
     environment::{Envionment},
     population::{Config},
-    survival::{SurvivalCriteria}
+    survival::{SurvivalCriteria, PickParents}
 };
 
 
@@ -176,19 +176,19 @@ impl<T, E> Generation<T, E>
     /// fn from the genome trait, the more effecent that function is, the faster
     /// this function will be.
     #[inline]
-    pub fn create_next_generation(&mut self, pop_size: i32, survival: SurvivalCriteria, config: Config, env: &Arc<Mutex<E>>) -> Option<Self>
+    pub fn create_next_generation(&mut self, pop_size: i32, survival: SurvivalCriteria, parents: PickParents, config: Config, env: &Arc<Mutex<E>>) -> Option<Self>
         where 
             T: Sized + Clone,
             E: Envionment + Sized + Send + Sync
     {   
         // generating new members in a biased way using rayon to parallize it
+        // then crossover to fill the rest of the generation 
         let mut new_members = survival.pick_survivers(&mut self.members, &self.species)?;
-        // crossover to fill the rest of the generation 
-        new_members.extend((new_members.len() as i32..pop_size)
+        let children = (new_members.len() as i32..pop_size)
             .into_par_iter()
             .map(|_|{
                 // select two random species to crossover, with a chance of inbreeding then cross them over
-                let (one, two) = self.pick_parents(config.inbreed_rate);
+                let (one, two) = parents.pick_parents(config.inbreed_rate, &self.species).unwrap();
                 let child = if one.0 > two.0 {
                     <T as Genome<T, E>>::crossover(&*one.1, &*two.1, env, config.crossover_rate).unwrap()
                 } else {
@@ -196,68 +196,10 @@ impl<T, E> Generation<T, E>
                 };
                 Arc::new(child)
             })
-            .collect::<Vec<_>>());
+            .collect::<Vec<_>>();
         // reset the species and passdown the new members to a new generation
+        new_members.extend(children);
         self.pass_down(new_members)
-    }
-
-
-
-    /// pick two parents to breed a child - these use biased random ways of picking 
-    /// parents and returns a tuple of tuples where the f64 is the parent's fitness,
-    /// and the type is the parent itself
-    #[inline]
-    fn pick_parents(&self, inbreed_rate: f32) -> ((f64, Arc<T>), (f64, Arc<T>)) {
-        let mut r = rand::thread_rng();
-        let (species_one, species_two);
-        // get two species to pick from taking into account an inbreeding rate - an inbreed can happen without this 
-        if r.gen::<f32>() < inbreed_rate {
-            let temp = self.get_biased_random_species(&mut r).unwrap();
-            species_one = Arc::clone(&temp);
-            species_two = temp;
-        } else {
-            species_one = self.get_biased_random_species(&mut r).unwrap();
-            species_two = self.get_biased_random_species(&mut r).unwrap();
-        }
-        // get two parents from the species, again the parent may be the same 
-        let parent_one = species_one.lock().unwrap().get_biased_random_member(&mut r);
-        let parent_two = species_two.lock().unwrap().get_biased_random_member(&mut r);
-        // return the parent tuples
-        (parent_one, parent_two)
-    }
-
-
-
-    /// get a biased random species from the population to get members from
-    /// this gets a random species by getting the total adjusted fitness of the 
-    /// entire population then finding a random number inside (0, total populatin fitness)
-    /// then summing the individual species until they hit that random numer 
-    /// Statistically this allows for species with larger adjusted fitnesses to 
-    /// have a greater change of being picked for breeding
-    #[inline]
-    fn get_biased_random_species(&self, r: &mut ThreadRng) -> Option<Family<T, E>> {
-        // set a result option to none, this will panic! if the result is still none
-        // at the end of the function. Then get the total poopulation fitness
-        let mut result = None;
-        let total = self.species.iter()
-            .fold(0.0, |sum, curr| {
-                sum + (*curr).lock().unwrap().get_total_adjusted_fitness()
-            });
-
-        // iterate through the species until the iterative sum is at or above the selected
-        // random adjusted fitness level
-        let mut curr = 0.0;
-        let index = r.gen::<f64>() * total;
-        for i in self.species.iter() {
-            curr += i.lock().ok()?.get_total_adjusted_fitness();
-            if curr >= index {
-                result = Some(Arc::clone(i));
-                break
-            }
-        }
-
-        // either return the result, or panic!
-        result.or_else(|| Some(Arc::clone(self.species.first()?)))
     }
 
 

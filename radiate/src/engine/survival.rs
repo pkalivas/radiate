@@ -2,9 +2,10 @@
 extern crate rayon;
 extern crate rand;
 
-use std::sync::{Arc, Weak, Mutex};
+use std::sync::{Arc};
 use rand::Rng;
 use rand::rngs::ThreadRng;
+use rand::seq::SliceRandom;
 use rayon::prelude::*;
 use super::generation::{Container, Family, Member};
 use super::genome::Genome;
@@ -48,11 +49,10 @@ pub enum SurvivalCriteria {
 /// BestInEachSpecies - only the best in each species are allowed to reproduce
 /// MostDifferent - Pick one parent, then find the parent most different from it (structurally) 
 ///                 and use that as the other parent. Note this could lead to large expansion in population
+#[derive(Debug, Clone)]
 pub enum PickParents {
     BiasedRandom,
-    OnlySurvivers,
-    BestInEachSpecies,
-    MostDifferent
+    BestInSpecies,
 }
 
 
@@ -71,7 +71,7 @@ impl SurvivalCriteria {
         match self {
             Self::Fittest => {
                 Some(families.par_iter()
-                    .map(|x| x.lock().unwrap().fittest())
+                    .map(|x| x.lock().unwrap().fittest().1)
                     .collect::<Vec<_>>())
             },
             Self::TopNumber(num) => {
@@ -108,18 +108,14 @@ impl SurvivalCriteria {
 
 
 
-// pub enum PickParents {
-//     BiasedRandom,
-//     OnlySurvivers,
-//     BestInEachSpecies,
-//     MostDifferent
-// }
 
-
-
+/// implement the pick parents
 impl PickParents {
 
-    pub fn pick_parents<T, E>(&self, inbreed_rate: f32, members: &mut Vec<Container<T, E>>, families: &mut Vec<Family<T, E>>) -> Option<((f64, Member<T>), (f64, Member<T>))> 
+
+    /// Find two parents to crossover and produce a child
+    #[inline]
+    pub fn pick_parents<T, E>(&self, inbreed_rate: f32, families: &Vec<Family<T, E>>) -> Option<((f64, Member<T>), (f64, Member<T>))> 
         where
             T: Genome<T, E> + Send + Sync + Clone,
             E: Send + Sync 
@@ -128,17 +124,13 @@ impl PickParents {
             Self::BiasedRandom => {
                 return Some(self.create_match(inbreed_rate, families))
             },
-            Self::OnlySurvivers => {
-
-            },
-            Self::BestInEachSpecies => {
-
-            },
-            Self::MostDifferent => {
-                
+            Self::BestInSpecies => {
+                let mut r = rand::thread_rng();
+                let child_one = families.choose(&mut r)?.lock().unwrap().fittest();
+                let child_two = families.choose(&mut r)?.lock().unwrap().fittest();
+                return Some((child_one, child_two))
             }
         }
-        None
     }
 
 
@@ -147,7 +139,7 @@ impl PickParents {
     /// parents and returns a tuple of tuples where the f64 is the parent's fitness,
     /// and the type is the parent itself
     #[inline]
-    fn create_match<T, E>(&self, inbreed_rate: f32, families: &mut Vec<Family<T, E>>) -> ((f64, Member<T>), (f64, Member<T>)) 
+    fn create_match<T, E>(&self, inbreed_rate: f32, families: &Vec<Family<T, E>>) -> ((f64, Member<T>), (f64, Member<T>)) 
         where
             T: Genome<T, E> + Send + Sync + Clone,
             E: Send + Sync
@@ -179,7 +171,7 @@ impl PickParents {
     /// Statistically this allows for species with larger adjusted fitnesses to 
     /// have a greater change of being picked for breeding
     #[inline]
-    fn get_biased_random_species<T, E>(&self, r: &mut ThreadRng, families: &mut Vec<Family<T, E>>) -> Option<Family<T, E>> 
+    fn get_biased_random_species<T, E>(&self, r: &mut ThreadRng, families: &Vec<Family<T, E>>) -> Option<Family<T, E>> 
         where 
             T: Genome<T, E> + Send + Sync + Clone,
             E: Send + Sync
