@@ -126,7 +126,7 @@ impl<T, E, P> Population<T, E, P>
         // If debug is set to true, this is the place to show it before the new generation is 
         if self.debug_progress { self.show_progress(); }
         // create a new generation and return it
-        self.curr_gen = self.curr_gen.create_next_generation(self.size, self.survivor_criteria.clone(), self.parent_criteria.clone(), self.config.clone(), &self.environment)?;
+        self.curr_gen = self.curr_gen.create_next_generation(self.size, self.config.clone(), &self.environment)?;
         // return the top member score and the member
         Some((top_member.0, (*top_member.1).clone()))
     }
@@ -236,17 +236,19 @@ impl<T, E, P> Population<T, E, P>
     {
         self.curr_gen = Generation {
             members: (0..self.size)
-            .into_par_iter()
-            .map(|_| {
-                let mut lock_set = self.environment.lock().unwrap();
-                Container {
-                    member: Arc::new(T::base(&mut lock_set)),
-                    fitness_score: 0.0,
-                    species: None
-                }    
-            })
-            .collect(),
+                .into_par_iter()
+                .map(|_| {
+                    let mut lock_set = self.environment.lock().unwrap();
+                    Container {
+                        member: Arc::new(T::base(&mut lock_set)),
+                        fitness_score: 0.0,
+                        species: None
+                    }    
+                })
+                .collect(),
             species: Vec::new(),
+            survival_criteria: SurvivalCriteria::Fittest,
+            parental_criteria: PickParents::BiasedRandom
         };
         self
     }
@@ -255,15 +257,17 @@ impl<T, E, P> Population<T, E, P>
     pub fn populate_vec(mut self, vals: Vec<T>) -> Self {
         self.curr_gen = Generation {
             members: vals.into_iter()
-            .map(|x| {
-                Container {
-                    member: Arc::new(x),
-                    fitness_score: 0.0,
-                    species: None
-                }
-            })
-            .collect(),
-            species: Vec::new()
+                .map(|x| {
+                    Container {
+                        member: Arc::new(x),
+                        fitness_score: 0.0,
+                        species: None
+                    }
+                })
+                .collect(),
+            species: Vec::new(),
+            survival_criteria: SurvivalCriteria::Fittest,
+            parental_criteria: PickParents::BiasedRandom
         };
         self
     }
@@ -274,16 +278,18 @@ impl<T, E, P> Population<T, E, P>
     {
         self.curr_gen = Generation {
             members: (0..self.size as usize)
-            .into_iter()
-            .map(|_| {
-                Container {
-                    member: Arc::new(original.clone()),
-                    fitness_score: 0.0,
-                    species: None
-                }
-            })
-            .collect(),
-            species: Vec::new()
+                .into_iter()
+                .map(|_| {
+                    Container {
+                        member: Arc::new(original.clone()),
+                        fitness_score: 0.0,
+                        species: None
+                    }
+                })
+                .collect(),
+            species: Vec::new(),
+            survival_criteria: SurvivalCriteria::Fittest,
+            parental_criteria: PickParents::BiasedRandom
         };
         self
     }

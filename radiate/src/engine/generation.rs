@@ -61,6 +61,8 @@ pub struct Generation<T, E>
 {
     pub members: Vec<Container<T, E>>,
     pub species: Vec<Family<T, E>>,
+    pub survival_criteria: SurvivalCriteria,
+    pub parental_criteria: PickParents
 }
 
 
@@ -80,6 +82,8 @@ impl<T, E> Generation<T, E>
         Generation {
             members: Vec::new(),
             species: Vec::new(),
+            survival_criteria: SurvivalCriteria::Fittest,
+            parental_criteria: PickParents::BiasedRandom
         }
     }
 
@@ -105,7 +109,9 @@ impl<T, E> Generation<T, E>
                     spec.lock().unwrap().reset();
                     Arc::clone(spec)
                 })
-                .collect()
+                .collect(),
+            survival_criteria: SurvivalCriteria::Fittest,
+            parental_criteria: PickParents::BiasedRandom
         })
     }
 
@@ -174,19 +180,19 @@ impl<T, E> Generation<T, E>
     /// fn from the genome trait, the more effecent that function is, the faster
     /// this function will be.
     #[inline]
-    pub fn create_next_generation(&mut self, pop_size: i32, survival: SurvivalCriteria, parents: PickParents, config: Config, env: &Arc<Mutex<E>>) -> Option<Self>
+    pub fn create_next_generation(&mut self, pop_size: i32, config: Config, env: &Arc<Mutex<E>>) -> Option<Self>
         where 
             T: Sized + Clone,
             E: Envionment + Sized + Send + Sync
     {   
         // generating new members in a biased way using rayon to parallize it
         // then crossover to fill the rest of the generation 
-        let mut new_members = survival.pick_survivers(&mut self.members, &self.species)?;
+        let mut new_members = self.survival_criteria.pick_survivers(&mut self.members, &self.species)?;
         let children = (new_members.len() as i32..pop_size)
             .into_par_iter()
             .map(|_|{
                 // select two random species to crossover, with a chance of inbreeding then cross them over
-                let (one, two) = parents.pick_parents(config.inbreed_rate, &self.species).unwrap();
+                let (one, two) = self.parental_criteria.pick_parents(config.inbreed_rate, &self.species).unwrap();
                 let child = if one.0 > two.0 {
                     <T as Genome<T, E>>::crossover(&*one.1, &*two.1, env, config.crossover_rate).unwrap()
                 } else {
