@@ -2,8 +2,6 @@
 extern crate rand;
 
 use std::sync::{Arc, Weak, Mutex};
-use rand::Rng;
-use rand::rngs::ThreadRng;
 use rayon::prelude::*;
 use super::niche::{Niche, NicheMember};
 use super::{

@@ -5,9 +5,7 @@ extern crate statrs;
 use std::mem;
 use std::sync::{Arc};
 use std::marker::PhantomData;
-use rand::Rng;
 use rand::prelude::SliceRandom;
-use rand::rngs::ThreadRng;
 use rayon::prelude::*;
 use statrs::statistics::{
     Mean, 
