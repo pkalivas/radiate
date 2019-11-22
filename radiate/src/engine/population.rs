@@ -11,7 +11,7 @@ use super::{
     problem::{Problem},
     environment::{Envionment},
     genocide::{Genocide},
-    survival::{SurvivalCriteria, PickParents}
+    survival::{SurvivalCriteria, ParentalCriteria}
 };
 
 
@@ -60,7 +60,7 @@ pub struct Population<T, E, P>
     solve: Arc<P>,
     environment: Arc<Mutex<E>>,
     survivor_criteria: SurvivalCriteria,
-    parent_criteria: PickParents
+    parent_criteria: ParentalCriteria
 }
 
 
@@ -99,7 +99,7 @@ impl<T, E, P> Population<T, E, P>
             // determine which genomes will live on and passdown to the next generation
             survivor_criteria: SurvivalCriteria::Fittest,
             // determine how to pick parents to reproduce
-            parent_criteria: PickParents::BiasedRandom
+            parent_criteria: ParentalCriteria::BiasedRandom
         }
     }
 
@@ -248,7 +248,7 @@ impl<T, E, P> Population<T, E, P>
                 .collect(),
             species: Vec::new(),
             survival_criteria: SurvivalCriteria::Fittest,
-            parental_criteria: PickParents::BiasedRandom
+            parental_criteria: ParentalCriteria::BiasedRandom
         };
         self
     }
@@ -267,7 +267,7 @@ impl<T, E, P> Population<T, E, P>
                 .collect(),
             species: Vec::new(),
             survival_criteria: SurvivalCriteria::Fittest,
-            parental_criteria: PickParents::BiasedRandom
+            parental_criteria: ParentalCriteria::BiasedRandom
         };
         self
     }
@@ -289,7 +289,7 @@ impl<T, E, P> Population<T, E, P>
                 .collect(),
             species: Vec::new(),
             survival_criteria: SurvivalCriteria::Fittest,
-            parental_criteria: PickParents::BiasedRandom
+            parental_criteria: ParentalCriteria::BiasedRandom
         };
         self
     }
@@ -353,7 +353,7 @@ impl<T, E, P> Population<T, E, P>
 
     /// give the population a way to pick the parents, if none is supplied 
     /// then default to biasedrandom genomes 
-    pub fn parent_criteria(mut self, parents: PickParents) -> Self {
+    pub fn parent_criteria(mut self, parents: ParentalCriteria) -> Self {
         self.parent_criteria =parents;
         self
     }

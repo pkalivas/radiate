@@ -9,7 +9,7 @@ use super::{
     problem::{Problem},
     environment::{Envionment},
     population::{Config},
-    survival::{SurvivalCriteria, PickParents}
+    survival::{SurvivalCriteria, ParentalCriteria}
 };
 
 
@@ -62,7 +62,7 @@ pub struct Generation<T, E>
     pub members: Vec<Container<T, E>>,
     pub species: Vec<Family<T, E>>,
     pub survival_criteria: SurvivalCriteria,
-    pub parental_criteria: PickParents
+    pub parental_criteria: ParentalCriteria
 }
 
 
@@ -83,7 +83,7 @@ impl<T, E> Generation<T, E>
             members: Vec::new(),
             species: Vec::new(),
             survival_criteria: SurvivalCriteria::Fittest,
-            parental_criteria: PickParents::BiasedRandom
+            parental_criteria: ParentalCriteria::BiasedRandom
         }
     }
 
@@ -110,8 +110,8 @@ impl<T, E> Generation<T, E>
                     Arc::clone(spec)
                 })
                 .collect(),
-            survival_criteria: SurvivalCriteria::Fittest,
-            parental_criteria: PickParents::BiasedRandom
+            survival_criteria: self.survival_criteria.clone(),
+            parental_criteria: self.parental_criteria.clone()
         })
     }
 
@@ -219,7 +219,7 @@ impl<T, E> Generation<T, E>
                 top = Some(i);
             }
         }
-
+        // return the best member of the generation
         match top {
             Some(t) => Some((t.fitness_score, Arc::clone(&t.member))),
             None => None

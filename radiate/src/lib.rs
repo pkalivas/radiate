@@ -30,7 +30,7 @@ pub use engine::{
     genocide::Genocide,
     environment::Envionment,
     survival::SurvivalCriteria,
-    survival::PickParents
+    survival::ParentalCriteria
 };
 
 

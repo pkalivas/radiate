@@ -50,7 +50,7 @@ pub enum SurvivalCriteria {
 /// MostDifferent - Pick one parent, then find the parent most different from it (structurally) 
 ///                 and use that as the other parent. Note this could lead to large expansion in population
 #[derive(Debug, Clone)]
-pub enum PickParents {
+pub enum ParentalCriteria {
     BiasedRandom,
     BestInSpecies,
 }
@@ -110,7 +110,7 @@ impl SurvivalCriteria {
 
 
 /// implement the pick parents
-impl PickParents {
+impl ParentalCriteria {
 
 
     /// Find two parents to crossover and produce a child
