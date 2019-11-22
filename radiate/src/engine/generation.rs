@@ -183,9 +183,6 @@ impl<T, E> Generation<T, E>
     {   
         // generating new members in a biased way using rayon to parallize it
         let mut new_members = survival.pick_survivers(&mut self.members, &self.species)?;
-        // let mut new_members = self.species.par_iter()
-        //     .map(|x| x.lock().unwrap().fittest())
-        //     .collect::<Vec<_>>();
         // crossover to fill the rest of the generation 
         new_members.extend((new_members.len() as i32..pop_size)
             .into_par_iter()

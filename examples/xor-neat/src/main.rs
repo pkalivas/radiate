@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .start_innov_counter();
 
     let starting_net = Neat::base(&mut neat_env);
-    let (mut solution, _) = Population::<Neat, NeatEnvironment, XOR>::new()
+    let (solution, _) = Population::<Neat, NeatEnvironment, XOR>::new()
         .constrain(neat_env)
         .size(150)
         .populate_clone(starting_net)
