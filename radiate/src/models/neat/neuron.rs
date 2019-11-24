@@ -84,6 +84,7 @@ impl Neuron {
     pub fn reset_node(&mut self) {
         self.prev_value = self.curr_value.clone();
         self.curr_value = None;
+        self.cell_state = None;
         for (_, val) in self.incoming.iter_mut() {
             *val = None;
         }
