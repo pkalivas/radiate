@@ -2,9 +2,10 @@
 
 use std::collections::HashMap;
 use super::counter::{Counter};
-use super::neurons::neuron::Neuron;
+use super::neuron::Neuron;
 use super::activation::Activation;
 use super::edge::{Edge};
+use super::nodetype::NodeType;
 
 use crate::engine::environment::{Envionment};
 
@@ -40,6 +41,7 @@ pub struct NeatEnvironment {
     pub input_size: Option<i32>,
     pub output_size: Option<i32>,
     pub activation_functions: Vec<Activation>,
+    pub node_types: Vec<NodeType>,
 
     // global variables for evolution
     pub innov_counter: Counter,
@@ -64,6 +66,7 @@ impl NeatEnvironment {
             input_size: None,
             output_size: None,
             activation_functions: vec![Activation::Sigmoid],
+            node_types: vec![NodeType::Dense],
             innov_counter: Counter::new(),
             global_edges: HashMap::new(),
             global_nodes: HashMap::new()
@@ -145,6 +148,12 @@ impl NeatEnvironment {
 
     pub fn set_activation_functions(mut self, funcs: Vec<Activation>) -> Self {
         self.activation_functions = funcs;
+        self
+    }
+
+
+    pub fn set_node_types(mut self, node_types: Vec<NodeType>) -> Self {
+        self.node_types = node_types;
         self
     }
 

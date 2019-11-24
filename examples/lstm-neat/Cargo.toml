@@ -1,0 +1,8 @@
+[package]
+name = "lstm-neat"
+description = "LSTM example for redox using NEAT."
+version = "1.0.0"
+authors = ["pkalivas <peterkalivas@gmail.com>"]
+
+[dependencies]
+radiate={path="../../radiate"}

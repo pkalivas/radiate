@@ -9,10 +9,9 @@ use std::sync::{Arc, Mutex};
 use rand::Rng;
 use rand::seq::SliceRandom;
 use super::layer::Layer;
+use super::nodetype::NodeType;
 use super::activation::Activation;
-use super::neurons::neuron::{
-    Neuron, 
-};
+use super::neuron::Neuron;
 use super::{
     edge::{Edge},
     counter::{Counter},
@@ -163,10 +162,10 @@ impl Neat {
             let innov = counter.next();
             let new_node;
             if i < num_in {
-                new_node = Neuron::new(innov, Layer::Input, Activation::Sigmoid).as_mut_ptr();
+                new_node = Neuron::new(innov, Layer::Input, NodeType::Dense, Activation::Sigmoid).as_mut_ptr();
                 self.inputs.push(innov);
             } else {
-                new_node = Neuron::new(innov, Layer::Output, Activation::Sigmoid).as_mut_ptr();
+                new_node = Neuron::new(innov, Layer::Output, NodeType::Dense, Activation::Sigmoid).as_mut_ptr();
                 self.outputs.push(innov);
             }
             self.nodes.insert(innov, new_node);
@@ -195,9 +194,9 @@ impl Neat {
     /// while the new weight is randomly chosen and put between the 
     /// old source node and the new node
     #[inline]
-    pub fn add_node(&mut self, counter: &mut Counter, activation: Activation) -> Option<*mut Neuron> {
+    pub fn add_node(&mut self, counter: &mut Counter, node_type: NodeType, activation: Activation) -> Option<*mut Neuron> {
         // create a new node to insert inbetween the sending and receiving nodes 
-        let new_node = Neuron::new(counter.next(), Layer::Hidden, activation).as_mut_ptr();
+        let new_node = Neuron::new(counter.next(), Layer::Hidden, node_type, activation).as_mut_ptr();
         // let mut r = rand::thread_rng();
         // get an edge to insert the node into
         // get the sending and receiving nodes from the edge
@@ -239,14 +238,14 @@ impl Neat {
             // get a valid sending neuron
             let sending = loop {
                 let temp = self.nodes.get(&self.random_node()).unwrap();
-                if (**temp).node_type != Layer::Output {
+                if (**temp).layer_type != Layer::Output {
                     break temp;
                 }
             };
             // get a vaild receiving neuron
             let receiving = loop {
                 let temp = self.nodes.get(&self.random_node()).unwrap();
-                if (**temp).node_type != Layer::Input {
+                if (**temp).layer_type != Layer::Input {
                     break temp;
                 }
             };
@@ -425,7 +424,7 @@ impl Neat {
     // be represented by the innovation numbers already created, not new ones. This is crutial 
     // for preventing wrongful population explosion due to incorrect historical markings
     #[inline]
-    unsafe fn neuron_control(child: &mut Neat, new_node: &*mut Neuron, env: &mut NeatEnvironment) -> Result<(), &'static str>{
+    unsafe fn neuron_control(child: &mut Neat, new_node: &*mut Neuron, env: &mut NeatEnvironment) -> Result<(), &'static str> {
         // check to see if this node has been created in the enviromnent before
         let new_node_incoming_edge: i32 = *(**new_node).incoming.keys().next().unwrap();
         let new_node_outgoing_edge: i32 = *(**new_node).outgoing.last().unwrap();
@@ -625,7 +624,8 @@ impl Genome<Neat, NeatEnvironment> for Neat {
                 }
                 if r.gen::<f32>() < set.new_node_rate? {
                     let act_func = *set.activation_functions.choose(&mut r)?;
-                    let new_node = result.add_node(set.get_mut_counter(), act_func)?;
+                    let node_type = *set.node_types.choose(&mut r)?;
+                    let new_node = result.add_node(set.get_mut_counter(), node_type, act_func)?;
                     Neat::neuron_control(&mut result, &new_node, &mut set).ok()?;
                 }
                 if r.gen::<f32>() < set.new_edge_rate? {

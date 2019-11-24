@@ -15,7 +15,8 @@ pub use models::{
     neat::{
         layer::Layer,
         activation::Activation,
-        neurons::neuron::Neuron,
+        nodetype::NodeType,
+        neuron::Neuron,
         edge::Edge,
         counter::Counter,
         neat::Neat,

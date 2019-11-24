@@ -2,8 +2,9 @@
 
 use std::collections::{HashMap};
 
-use super::super::layer::Layer;
-use super::super::activation::Activation;
+use super::layer::Layer;
+use super::activation::Activation;
+use super::nodetype::NodeType;
 
 
 /// Neuron represents a node in a nerual network graph. It holds
@@ -21,7 +22,9 @@ pub struct Neuron {
     pub innov: i32,
     pub curr_value: Option<f64>,
     pub prev_value: Option<f64>,
-    pub node_type: Layer,
+    pub cell_state: Option<f64>,
+    pub layer_type: Layer,
+    pub node_type: NodeType,
     pub activation: Activation,
     pub outgoing: Vec<i32>,
     pub incoming: HashMap<i32, Option<f64>>
@@ -34,11 +37,13 @@ impl Neuron {
 
     /// return a blank neuron with only a innov and node type, everything
     /// else is completely empty
-    pub fn new(innov: i32, node_type: Layer, activation: Activation) -> Self {
+    pub fn new(innov: i32, layer_type: Layer, node_type: NodeType, activation: Activation) -> Self {
         Neuron {
             innov,
             curr_value: None,
             prev_value: None,
+            cell_state: None,
+            layer_type,
             node_type,
             activation,
             outgoing: Vec::new(),
@@ -55,6 +60,7 @@ impl Neuron {
     }
 
 
+
     /// Activate the neuron by testing to see if first it can be activated,
     /// meaning it has gotten all its expected inputs, and if it does 
     /// activate the sum of those inputs and assign it to the value of the neuron
@@ -63,14 +69,9 @@ impl Neuron {
     pub fn is_ready(&mut self) -> bool {
         let can_activate = self.incoming.values().all(|x| x.is_some());
         if can_activate {
-            let mut total = 0.0;
-            for value in self.incoming.values() {
-                match value {
-                    Some(v) => total += v,
-                    None => panic!("failed to activate.")
-                }
-            }
-            self.curr_value = Some(self.activation.activate(total));
+            let (temp_cell_state, temp_curr_value) = self.node_type.activate(&self.incoming, &self.activation, &self.prev_value, &self.cell_state);
+            self.curr_value = temp_curr_value;
+            self.cell_state = temp_cell_state;
             return true;
         }
         false
@@ -99,6 +100,8 @@ impl Clone for Neuron {
             innov: self.innov,
             curr_value: None,
             prev_value: None,
+            cell_state: None,
+            layer_type: self.layer_type,
             node_type: self.node_type,
             activation: self.activation,
             outgoing: self.outgoing
