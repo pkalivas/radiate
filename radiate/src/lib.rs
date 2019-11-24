@@ -13,7 +13,9 @@ pub use models::{
         evenv::TreeEnvionment
     },
     neat::{
-        neuron::{Neuron, NodeType, Activation},
+        layer::Layer,
+        activation::Activation,
+        neurons::neuron::Neuron,
         edge::Edge,
         counter::Counter,
         neat::Neat,

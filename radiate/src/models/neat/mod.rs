@@ -1,7 +1,9 @@
-pub mod neuron;
+pub mod neurons;
 pub mod neat;
 pub mod edge;
 pub mod neatenv;
+pub mod layer;
+pub mod activation;
 
 
 /// keep track of innovation numbers for neat 

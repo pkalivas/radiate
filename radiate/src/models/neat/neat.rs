@@ -8,10 +8,10 @@ use std::collections::{HashMap};
 use std::sync::{Arc, Mutex};
 use rand::Rng;
 use rand::seq::SliceRandom;
-use super::neuron::{
+use super::layer::Layer;
+use super::activation::Activation;
+use super::neurons::neuron::{
     Neuron, 
-    NodeType,
-    Activation
 };
 use super::{
     edge::{Edge},
@@ -131,7 +131,7 @@ impl Neat {
                     // if the current edge is active, then it is contributing to the error and we need to adjust it
                     if curr_edge.active {
                         let src_neuron = self.nodes.get(&curr_edge.src).unwrap();
-                        let step = curr_node_error * Neuron::deactivate((**curr_node).activation, (**curr_node).curr_value.unwrap());
+                        let step = curr_node_error * (**curr_node).activation.deactivate((**curr_node).curr_value.unwrap());
                         // add the weight step (gradient) * the currnet value to the weight to adjust the weight by the error
                         curr_edge.weight += step * (**src_neuron).curr_value.unwrap();
                         errors.insert(curr_edge.src, curr_edge.weight * curr_node_error);
@@ -163,10 +163,10 @@ impl Neat {
             let innov = counter.next();
             let new_node;
             if i < num_in {
-                new_node = Neuron::new(innov, NodeType::Input, Activation::Sigmoid).as_mut_ptr();
+                new_node = Neuron::new(innov, Layer::Input, Activation::Sigmoid).as_mut_ptr();
                 self.inputs.push(innov);
             } else {
-                new_node = Neuron::new(innov, NodeType::Output, Activation::Sigmoid).as_mut_ptr();
+                new_node = Neuron::new(innov, Layer::Output, Activation::Sigmoid).as_mut_ptr();
                 self.outputs.push(innov);
             }
             self.nodes.insert(innov, new_node);
@@ -197,7 +197,7 @@ impl Neat {
     #[inline]
     pub fn add_node(&mut self, counter: &mut Counter, activation: Activation) -> Option<*mut Neuron> {
         // create a new node to insert inbetween the sending and receiving nodes 
-        let new_node = Neuron::new(counter.next(), NodeType::Hidden, activation).as_mut_ptr();
+        let new_node = Neuron::new(counter.next(), Layer::Hidden, activation).as_mut_ptr();
         // let mut r = rand::thread_rng();
         // get an edge to insert the node into
         // get the sending and receiving nodes from the edge
@@ -239,14 +239,14 @@ impl Neat {
             // get a valid sending neuron
             let sending = loop {
                 let temp = self.nodes.get(&self.random_node()).unwrap();
-                if (**temp).node_type != NodeType::Output {
+                if (**temp).node_type != Layer::Output {
                     break temp;
                 }
             };
             // get a vaild receiving neuron
             let receiving = loop {
                 let temp = self.nodes.get(&self.random_node()).unwrap();
-                if (**temp).node_type != NodeType::Input {
+                if (**temp).node_type != Layer::Input {
                     break temp;
                 }
             };

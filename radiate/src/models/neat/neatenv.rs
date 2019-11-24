@@ -2,7 +2,8 @@
 
 use std::collections::HashMap;
 use super::counter::{Counter};
-use super::neuron::{Neuron, Activation};
+use super::neurons::neuron::Neuron;
+use super::activation::Activation;
 use super::edge::{Edge};
 
 use crate::engine::environment::{Envionment};
