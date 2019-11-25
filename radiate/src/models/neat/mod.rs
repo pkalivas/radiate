@@ -4,8 +4,7 @@ pub mod edge;
 pub mod neatenv;
 pub mod activation;
 pub mod nodetype;
-pub mod neur;
-pub mod dense;
+
 
 /// A neural network is made up of an input layer, hidden layers, and an output layer
 pub mod layer {
