@@ -5,10 +5,10 @@ use std::sync::{Arc, Weak, Mutex};
 use rayon::prelude::*;
 use super::niche::{Niche, NicheMember};
 use super::{
-    genome::{Genome},
-    problem::{Problem},
-    environment::{Envionment},
-    population::{Config},
+    genome::Genome,
+    problem::Problem,
+    environment::Envionment,
+    population::Config,
     survival::{SurvivalCriteria, ParentalCriteria}
 };
 

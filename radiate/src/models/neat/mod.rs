@@ -2,9 +2,23 @@ pub mod neuron;
 pub mod neat;
 pub mod edge;
 pub mod neatenv;
-pub mod layer;
 pub mod activation;
 pub mod nodetype;
+
+
+/// A neural network is made up of an input layer, hidden layers, and an output layer
+pub mod layer {
+    /// Because NEAT isn't exactly a traditional neural network there are no 'layers'.
+    /// However there does need to be input nodes, hidden nodes, and output nodes.
+    #[derive(Debug, PartialEq, Clone, Copy)]
+    pub enum Layer {
+        Input,
+        Output,
+        Hidden,
+    }
+
+}
+
 
 
 /// keep track of innovation numbers for neat 
