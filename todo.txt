@@ -1,17 +1,17 @@
 1.) implement different way to:
     * Which members of the popoulation survive each generation?
-        - Top from every species (current way of doing things)
-        - Top # or % from the entire popoulation
+        - Top from every species -- DONE
+        - Top # or % from the entire popoulation -- DONE
         - only the best
         - species with greatest imrovement generation over generation
         ??
     * how to pick parents
-        - biased random from specific species (current way)
-        - only the survivers, whoever they are (above)
-        - only the best in each species allowed to reproduce
+        - biased random from specific species -- DONE
+        - only the survivers, whoever they are (above) 
+        - only the best in each species allowed to reproduce -- DONE
         - pick one parent from one species then in another pick the one which is the most differnt (probably a large increase in compute time)
 
-2.) LSTM (Long Short Term Memory) neurons for NEAT
+2.) LSTM (Long Short Term Memory) neurons for NEAT - currently in dev. Need to test and possibly do a better job with the archetecture? I want to be able to add more than one type of node to the network at once (for example have dense and lstm nodes in the same graph), but this would mean certain design implementations that are not exactly as solid as Id like. I want to use a trait for a neuron then implement that trait for different types of nodes, but I need to stay away from generics in NEAT in order to 1. keep things clean, and 2. keep things dynamic (maybe i want only one node type, not two or three).
 
 3.) CTRNN (Continuous Time Recurrent Neural Network) neurons for NEAT
 
