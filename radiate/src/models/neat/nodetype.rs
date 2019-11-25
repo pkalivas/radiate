@@ -12,6 +12,14 @@ pub enum NodeType {
 }
 
 
+//////////////////////////////
+/// I Don't like the current design of this...it feels lazy. There has got to be a more idomatic way to introduce mutliple nodes
+/// to the graph. I'm struggling to move past traditional oop in this sense.
+/// 
+/// Expect this to be changed or tweaked sometime within the next week-10 days. 
+/// Shouldn't effect any current use cases.
+//////////////////////////////
+
 
 /// implement the nodetype enum
 impl NodeType {
