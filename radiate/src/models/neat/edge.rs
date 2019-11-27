@@ -27,15 +27,4 @@ impl Edge {
         Edge { src, dst, innov, weight, active }
     }
 
-
-    /// deactivate the edge meaning it will not be used in feed forward
-    pub fn deactivate(&mut self) {
-        self.active = false;
-    }
-
-    /// activate the edge meaning it will be used in feed forward
-    pub fn activate(&mut self) {
-        self.active = true;
-    }
-
 }

@@ -207,7 +207,7 @@ impl Neat {
         // create two new edges that connect the src and the new node and the 
         // new node and dst, then disable the current edge 
         unsafe {
-            curr_edge.deactivate();
+            curr_edge.active = false;
             let incoming = Edge::new((**sending).innov, (*new_node).innov, counter.next(), 1.0, true);
             let outgoing = Edge::new((*new_node).innov, (**receiving).innov, counter.next(), curr_edge.weight, true);
             // remove the outgoing connection from the sending node
@@ -613,7 +613,7 @@ impl Genome<Neat, NeatEnvironment> for Neat {
                         if (!edge.active || !two.edges.get(innov)?.active) && r.gen::<f32>() < set.reactivate? {
                             (**result.nodes.get(&edge.src)?).outgoing.push(*innov);
                             (**result.nodes.get(&edge.dst)?).incoming.insert(*innov, None);
-                            edge.activate();
+                            edge.active = true;
                         }
                     }
                 }
