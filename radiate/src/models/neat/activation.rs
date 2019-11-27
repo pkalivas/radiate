@@ -23,10 +23,22 @@ impl Activation {
     pub fn activate(&self, x: f64) -> f64 {
         // match the given activation function then calculate it and return the result 
         match self {
-            Self::Sigmoid =>  1.0 / (1.0 + (-x * 4.9).exp()),
-            Self::Tahn => x.tanh(),
-            Self::Relu => if x > 0.0 { x } else { 0.0 },
-            Self::Linear(alpha) => alpha * x,
+            Self::Sigmoid => {
+                1.0 / (1.0 + (-x * 4.9).exp())
+            },
+            Self::Tahn => {
+                x.tanh()
+            },
+            Self::Relu => { 
+                if x > 0.0 { 
+                    x 
+                } else { 
+                    0.0 
+                }
+            },
+            Self::Linear(alpha) => {
+                alpha * x
+            },
             Self::LeakyRelu(alpha) => {
                 let a = alpha * x;
                 if a > x {
@@ -50,15 +62,21 @@ impl Activation {
     pub fn deactivate(&self, x: f64) -> f64 {
         // match the activation function, compute the derivative and return it 
         match self {
-            Self::Sigmoid => x * (1.0 - x),
-            Self::Tahn => 1.0 - (x).powf(2.0),
-            Self::Linear(alpha) => *alpha,
-                Self::Relu => {
-                    if x > 0.0 { 
-                        return 1.0;
-                    }
-                    0.0
-                },
+            Self::Sigmoid => {
+                x * (1.0 - x)
+            },
+            Self::Tahn => {
+                1.0 - (x).powf(2.0)
+            },
+            Self::Linear(alpha) => {
+                *alpha
+            },
+            Self::Relu => {
+                if x > 0.0 { 
+                    return 1.0;
+                }
+                0.0
+            },
             Self::ExpRelu(alpha) => {
                 if x > 0.0 {
                     return 1.0;

@@ -13,8 +13,7 @@ use super::nodetype::NodeType;
 
 
 #[derive(Debug)]
-pub struct Vertex 
-{
+pub struct Vertex {
     pub innov: i32,
     pub outgoing: Vec<i32>,
     pub incoming: HashMap<i32, Option<f64>>,
