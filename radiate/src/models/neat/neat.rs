@@ -4,21 +4,21 @@ use std::fmt;
 use std::mem;
 use std::ptr;
 use std::error::Error;
-use std::collections::{HashMap};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use rand::Rng;
 use rand::seq::SliceRandom;
 use super::layer::Layer;
 use super::nodetype::NodeType;
 use super::activation::Activation;
-use super::neuron::Neuron;
+use super::vertex::Vertex;
 use super::{
-    edge::{Edge},
-    counter::{Counter},
-    neatenv::{NeatEnvironment}
+    edge::Edge,
+    counter::Counter,
+    neatenv::NeatEnvironment
 };
 
-use crate::engine::genome::{Genome};
+use crate::engine::genome::Genome;
 
 
 
@@ -27,7 +27,7 @@ use crate::engine::genome::{Genome};
 pub struct Neat {
     pub inputs: Vec<i32>,
     pub outputs: Vec<i32>,
-    pub nodes: HashMap<i32, *mut Neuron>,
+    pub nodes: HashMap<i32, *mut Vertex>,
     pub edges: HashMap<i32, Edge>
 }
 
@@ -85,6 +85,7 @@ impl Neat {
                             // only activated nodes can be added to the path, so if it's activated
                             // add it to the path so the values can be propagated through the network
                             if (**receiving_node).is_ready() {
+                                (**receiving_node).activate();
                                 path.push((**receiving_node).innov);
                             }
                         }
@@ -130,7 +131,7 @@ impl Neat {
                     // if the current edge is active, then it is contributing to the error and we need to adjust it
                     if curr_edge.active {
                         let src_neuron = self.nodes.get(&curr_edge.src).unwrap();
-                        let step = curr_node_error * (**curr_node).activation.deactivate((**curr_node).curr_value.unwrap());
+                        let step = curr_node_error * (**curr_node).deactivate();
                         // add the weight step (gradient) * the currnet value to the weight to adjust the weight by the error
                         curr_edge.weight += step * (**src_neuron).curr_value.unwrap();
                         errors.insert(curr_edge.src, curr_edge.weight * curr_node_error);
@@ -147,7 +148,7 @@ impl Neat {
     #[inline]
     unsafe fn reset_neurons(&self) {
         for val in self.nodes.values() {
-            (**val).reset_node();
+            (**val).reset_neuron();
         }
     }   
     
@@ -162,10 +163,10 @@ impl Neat {
             let innov = counter.next();
             let new_node;
             if i < num_in {
-                new_node = Neuron::new(innov, Layer::Input, NodeType::Dense, Activation::Sigmoid).as_mut_ptr();
+                new_node = Vertex::new(innov, Layer::Input, NodeType::Dense, Activation::Sigmoid).as_mut_ptr();
                 self.inputs.push(innov);
             } else {
-                new_node = Neuron::new(innov, Layer::Output, NodeType::Dense, Activation::Sigmoid).as_mut_ptr();
+                new_node = Vertex::new(innov, Layer::Output, NodeType::Dense, Activation::Sigmoid).as_mut_ptr();
                 self.outputs.push(innov);
             }
             self.nodes.insert(innov, new_node);
@@ -194,9 +195,9 @@ impl Neat {
     /// while the new weight is randomly chosen and put between the 
     /// old source node and the new node
     #[inline]
-    pub fn add_node(&mut self, counter: &mut Counter, node_type: NodeType, activation: Activation) -> Option<*mut Neuron> {
+    pub fn add_node(&mut self, counter: &mut Counter, node_type: NodeType, activation: Activation) -> Option<*mut Vertex> {
         // create a new node to insert inbetween the sending and receiving nodes 
-        let new_node = Neuron::new(counter.next(), Layer::Hidden, node_type, activation).as_mut_ptr();
+        let new_node = Vertex::new(counter.next(), Layer::Hidden, node_type, activation).as_mut_ptr();
         // let mut r = rand::thread_rng();
         // get an edge to insert the node into
         // get the sending and receiving nodes from the edge
@@ -273,7 +274,7 @@ impl Neat {
     /// 3.) the desired connection would create a cycle in the graph
     /// if these are all false, then the connection can be made
     #[inline]
-    unsafe fn valid_connection(&self, sending: &*mut Neuron, receiving: &*mut Neuron) -> bool {
+    unsafe fn valid_connection(&self, sending: &*mut Vertex, receiving: &*mut Vertex) -> bool {
         if sending == receiving {
             return false
         } else if self.exists(sending, receiving) {
@@ -289,8 +290,8 @@ impl Neat {
     /// check to see if the connection to be made would create a cycle in the graph
     /// and therefore make it network invalid and unable to feed forward
     #[inline]
-    unsafe fn cyclical(&self, sending: &*mut Neuron, receiving: &*mut Neuron) -> bool {
-        // dfs stack which gets the receiving neurons outgoing connections
+    unsafe fn cyclical(&self, sending: &*mut Vertex, receiving: &*mut Vertex) -> bool {
+        // dfs stack which gets the receiving Vertex<dyn neurons> outgoing connections
         let mut stack = (**receiving).outgoing
             .iter()
             .map(|x| self.edges.get(x).unwrap().dst)
@@ -315,7 +316,7 @@ impl Neat {
     /// check if the desired connection already exists within he network, if it does then
     /// we should not be creating the connection.
     #[inline]
-    unsafe fn exists(&self, sending: &*mut Neuron, receiving: &*mut Neuron) -> bool {
+    unsafe fn exists(&self, sending: &*mut Vertex, receiving: &*mut Vertex) -> bool {
         for val in self.edges.values() {
             if val.src == (**sending).innov && val.dst == (**receiving).innov {
                 return true
@@ -418,13 +419,14 @@ impl Neat {
     }
 
 
+
     // if the new node has already been created in the same spot meaning an edge was deactivated
     // and replaced by two new edges connecting to a new node, but the evolutionary process 
     // has already created the same topological structure, then that node and those edges should
     // be represented by the innovation numbers already created, not new ones. This is crutial 
     // for preventing wrongful population explosion due to incorrect historical markings
     #[inline]
-    unsafe fn neuron_control(child: &mut Neat, new_node: &*mut Neuron, env: &mut NeatEnvironment) -> Result<(), &'static str> {
+    unsafe fn neuron_control(child: &mut Neat, new_node: &*mut Vertex, env: &mut NeatEnvironment) -> Result<(), &'static str> {
         // check to see if this node has been created in the enviromnent before
         let new_node_incoming_edge: i32 = *(**new_node).incoming.keys().next().unwrap();
         let new_node_outgoing_edge: i32 = *(**new_node).outgoing.last().unwrap();

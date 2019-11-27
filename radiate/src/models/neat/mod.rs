@@ -1,9 +1,24 @@
-pub mod neuron;
+// pub mod neuron;
 pub mod neat;
 pub mod edge;
 pub mod neatenv;
 pub mod activation;
-pub mod nodetype;
+pub mod vertex;
+pub mod neurons;
+
+
+
+pub mod nodetype {
+    /// Define a type of node to create - default is Dense which
+    /// is a normal feed forward neuron
+    #[derive(Debug, PartialEq, Clone, Copy)]
+    pub enum NodeType {
+        Dense,
+        LSTM,
+        Recurrent
+    }
+}
+
 
 
 /// A neural network is made up of an input layer, hidden layers, and an output layer

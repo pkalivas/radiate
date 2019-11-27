@@ -1,13 +1,13 @@
 
 
 use std::collections::HashMap;
-use super::counter::{Counter};
-use super::neuron::Neuron;
+use super::counter::Counter;
 use super::activation::Activation;
-use super::edge::{Edge};
+use super::edge::Edge;
 use super::nodetype::NodeType;
+use super::vertex::Vertex;
 
-use crate::engine::environment::{Envionment};
+use crate::engine::environment::Envionment;
 
 
 /// Configuation settings for the NeatAlgorithm 
@@ -46,7 +46,7 @@ pub struct NeatEnvironment {
     // global variables for evolution
     pub innov_counter: Counter,
     pub global_edges: HashMap<(i32, i32), Edge>,
-    pub global_nodes: HashMap<(i32, i32), Neuron>
+    pub global_nodes: HashMap<(i32, i32), Vertex>
 }
 
 
@@ -163,7 +163,7 @@ impl NeatEnvironment {
     }
 
 
-    pub fn get_mut_nodes(&mut self) -> &mut HashMap<(i32, i32), Neuron> {
+    pub fn get_mut_nodes(&mut self) -> &mut HashMap<(i32, i32), Vertex> {
         &mut self.global_nodes
     }
 

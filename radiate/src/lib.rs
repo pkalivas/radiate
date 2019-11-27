@@ -16,11 +16,12 @@ pub use models::{
         layer::Layer,
         activation::Activation,
         nodetype::NodeType,
-        neuron::Neuron,
+        // neuron::Neuron,
         edge::Edge,
         counter::Counter,
         neat::Neat,
         neatenv::NeatEnvironment,
+        neurons::neuron::Neuron
     }
 };
 
