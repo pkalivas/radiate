@@ -6,7 +6,7 @@ use std::fmt;
 use std::ptr;
 use std::mem;
 use std::marker::Sync;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 use rand::seq::SliceRandom;
 use rand::rngs::ThreadRng;
 use rand::Rng;
@@ -415,8 +415,8 @@ impl Genome<Evtree, TreeEnvionment> for Evtree {
     /// This function should attemp to produce a Evtree which is no higher than the 
     /// specified max height of a Evtree.
     #[inline]
-    fn crossover(one: &Evtree, two: &Evtree, settings: &Arc<Mutex<TreeEnvionment>>, crossover_rate: f32) -> Option<Evtree> {
-        let set = &*(*settings).lock().unwrap();
+    fn crossover(one: &Evtree, two: &Evtree, settings: &Arc<RwLock<TreeEnvionment>>, crossover_rate: f32) -> Option<Evtree> {
+        let set = &*(*settings).read().unwrap();
         // make a complete copy of the more fit tree and declare a random 
         // ThreadRng type to be used for random mutations
         let mut result = one.clone();
@@ -479,7 +479,7 @@ impl Genome<Evtree, TreeEnvionment> for Evtree {
     /// Generation to throw types it already has inside the function by 
     /// simplmy cloing them. This function will drop the references to
     /// the Self traits at the end of this function's scope 
-    fn distance(one: &Evtree, two: &Evtree, _settings: &Arc<Mutex<TreeEnvionment>>) -> f64 {
+    fn distance(one: &Evtree, two: &Evtree, _settings: &Arc<RwLock<TreeEnvionment>>) -> f64 {
         // return the abs value of the two tree's asymmetry
         (one.asymmetry() - two.asymmetry()).abs()
     }

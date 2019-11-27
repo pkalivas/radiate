@@ -12,7 +12,7 @@ pub mod genome {
     
     use super::environment::Envionment;
     use std::marker::Sized;
-    use std::sync::{Arc, Mutex};
+    use std::sync::{Arc, RwLock};
 
     pub trait Genome<T, E>
         where
@@ -24,7 +24,7 @@ pub mod genome {
         /// mutation using the config type, or through crossover 
         /// where parts of one type are given to parts of the other and that resulting
         /// type is returnd
-        fn crossover(one: &T, two: &T, env: &Arc<Mutex<E>>, crossover_rate: f32) -> Option<T> 
+        fn crossover(one: &T, two: &T, env: &Arc<RwLock<E>>, crossover_rate: f32) -> Option<T> 
             where 
                 T: Sized,
                 E: Envionment + Sized;
@@ -33,7 +33,7 @@ pub mod genome {
         /// This is needed to split the members in their respective species - essentially it is 
         /// a measure of how far away two types are from each other in a genetic 
         /// sense. Think of something like how similar humans are to dolphins, this is a way to quanitfy that.
-        fn distance(one: &T, two: &T, env: &Arc<Mutex<E>>) -> f64;
+        fn distance(one: &T, two: &T, env: &Arc<RwLock<E>>) -> f64;
         
         /// Genome needs to have a base implementation in order for one of the population options to be satisfied
         /// 

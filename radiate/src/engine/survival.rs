@@ -71,7 +71,7 @@ impl SurvivalCriteria {
         match self {
             Self::Fittest => {
                 Some(families.par_iter()
-                    .map(|x| x.lock().unwrap().fittest().1)
+                    .map(|x| x.read().unwrap().fittest().1)
                     .collect::<Vec<_>>())
             },
             Self::TopNumber(num) => {
@@ -126,8 +126,8 @@ impl ParentalCriteria {
             },
             Self::BestInSpecies => {
                 let mut r = rand::thread_rng();
-                let child_one = families.choose(&mut r)?.lock().unwrap().fittest();
-                let child_two = families.choose(&mut r)?.lock().unwrap().fittest();
+                let child_one = families.choose(&mut r)?.read().unwrap().fittest();
+                let child_two = families.choose(&mut r)?.read().unwrap().fittest();
                 return Some((child_one, child_two))
             }
         }
@@ -181,7 +181,7 @@ impl ParentalCriteria {
         let mut result = None;
         let total = families.iter()
             .fold(0.0, |sum, curr| {
-                sum + (*curr).lock().unwrap().get_total_adjusted_fitness()
+                sum + (*curr).read().unwrap().get_total_adjusted_fitness()
             });
 
         // iterate through the species until the iterative sum is at or above the selected
@@ -189,7 +189,7 @@ impl ParentalCriteria {
         let mut curr = 0.0;
         let index = r.gen::<f64>() * total;
         for i in families.iter() {
-            curr += i.lock().ok()?.get_total_adjusted_fitness();
+            curr += i.read().ok()?.get_total_adjusted_fitness();
             if curr >= index {
                 result = Some(Arc::clone(i));
                 break
@@ -211,7 +211,7 @@ impl ParentalCriteria {
     {
         // declare a result which will panic! at the end of the function if there 
         // is no member found, then get the species total fitness score
-        let species_lock = family.lock().unwrap();
+        let species_lock = family.read().unwrap();
         let total = species_lock.get_total_adjusted_fitness();
         let index = r.gen::<f64>() * total;
         let (mut result, mut curr) = (None, 0.0);

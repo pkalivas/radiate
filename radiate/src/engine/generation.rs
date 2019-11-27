@@ -1,7 +1,7 @@
 
 extern crate rand;
 
-use std::sync::{Arc, Weak, Mutex};
+use std::sync::{Arc, Weak, RwLock};
 use rayon::prelude::*;
 use super::niche::{Niche, NicheMember};
 use super::{
@@ -26,11 +26,11 @@ pub type MemberWeak<T> = Weak<T>;
 /// A family is a wrapper for a species type which ownes the data it 
 /// holds. This is needed as there are many references to a species 
 /// throughout the program
-pub type Family<T, E> = Arc<Mutex<Niche<T, E>>>;
+pub type Family<T, E> = Arc<RwLock<Niche<T, E>>>;
 /// the FamilyWeak is meant to mimic the MemberWeak as it is a nonowning family
 /// type which allows for multiple bi-directional pointers to the same Niche 
 /// type in the same memory location
-pub type FamilyWeak<T, E> = Weak<Mutex<Niche<T, E>>>;
+pub type FamilyWeak<T, E> = Weak<RwLock<Niche<T, E>>>;
 
 
 
@@ -106,7 +106,7 @@ impl<T, E> Generation<T, E>
             species: self.species
                 .par_iter()
                 .map(|spec| {
-                    spec.lock().unwrap().reset();
+                    spec.write().unwrap().reset();
                     Arc::clone(spec)
                 })
                 .collect(),
@@ -140,25 +140,25 @@ impl<T, E> Generation<T, E>
     /// and assigning them species in which they belong to determined by a specific 
     /// distance between the member and the species mascot.
     #[inline]
-    pub fn speciate(&mut self, distance: f64, settings: &Arc<Mutex<E>>) {
+    pub fn speciate(&mut self, distance: f64, settings: &Arc<RwLock<E>>) {
         // Loop over the members mutably to find a species which this member belongs to
         for cont in self.members.iter_mut() {
             // see if this member belongs to a given species 
             let mem_spec = self.species.iter()
                 .find(|s| {
-                    let lock_spec = s.lock().unwrap();
+                    let lock_spec = s.read().unwrap();
                     <T as Genome<T, E>>::distance(&*cont.member, &*lock_spec.mascot, settings) < distance
                 });
             // if the member does belong to an existing species, add the two to each other 
             // otherwise create a new species and add that to the species and the member 
             match mem_spec {
                 Some(spec) => {
-                    let mut lock_spec = spec.lock().unwrap();
+                    let mut lock_spec = spec.write().unwrap();
                     lock_spec.members.push(NicheMember(cont.fitness_score, Arc::downgrade(&cont.member)));
                     cont.species = Some(Arc::downgrade(spec));
                 },
                 None => {
-                    let new_family = Arc::new(Mutex::new(Niche::new(&cont.member, cont.fitness_score)));
+                    let new_family = Arc::new(RwLock::new(Niche::new(&cont.member, cont.fitness_score)));
                     cont.species = Some(Arc::downgrade(&new_family));
                     self.species.push(new_family);
                 }
@@ -168,7 +168,7 @@ impl<T, E> Generation<T, E>
         // go through and set the total adjusted fitness for each species
         self.species.retain(|x| Arc::weak_count(&x) > 0);
         for i in self.species.iter() {
-            i.lock().unwrap().calculate_total_adjusted_fitness();
+            i.write().unwrap().calculate_total_adjusted_fitness();
         }
     }
 
@@ -180,7 +180,7 @@ impl<T, E> Generation<T, E>
     /// fn from the genome trait, the more effecent that function is, the faster
     /// this function will be.
     #[inline]
-    pub fn create_next_generation(&mut self, pop_size: i32, config: Config, env: &Arc<Mutex<E>>) -> Option<Self>
+    pub fn create_next_generation(&mut self, pop_size: i32, config: Config, env: &Arc<RwLock<E>>) -> Option<Self>
         where 
             T: Sized + Clone,
             E: Envionment + Sized + Send + Sync

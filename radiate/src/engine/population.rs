@@ -1,6 +1,6 @@
 extern crate rayon;
 
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 use std::marker::Sync;
 use std::fmt::Debug;
 use std::cmp::PartialEq;
@@ -58,7 +58,7 @@ pub struct Population<T, E, P>
     curr_gen: Generation<T, E>,
     stagnation: Stagnant,
     solve: Arc<P>,
-    environment: Arc<Mutex<E>>,
+    environment: Arc<RwLock<E>>,
     survivor_criteria: SurvivalCriteria,
     parental_criteria: ParentalCriteria
 }
@@ -95,7 +95,7 @@ impl<T, E, P> Population<T, E, P>
             solve: Arc::new(P::empty()),
             // create a new solver settings that will hold the specific settings for the defined solver 
             // that will allow the structure to evolve through generations
-            environment: Arc::new(Mutex::new(E::default())),
+            environment: Arc::new(RwLock::new(E::default())),
             // determine which genomes will live on and passdown to the next generation
             survivor_criteria: SurvivalCriteria::Fittest,
             // determine how to pick parents to reproduce
@@ -183,7 +183,7 @@ impl<T, E, P> Population<T, E, P>
                     let (fit, top) = result;
                     if runner(&top, fit, index) {
                         let solution = top.clone();
-                        let env = (*self.environment.lock().unwrap()).clone();
+                        let env = (*self.environment.read().unwrap()).clone();
                         return Ok((solution, env));
                     }
                     index += 1;
@@ -200,7 +200,7 @@ impl<T, E, P> Population<T, E, P>
     fn show_progress(&self) {
         println!("\n");
         for i in self.curr_gen.species.iter() {
-            i.lock().unwrap().display_info();
+            i.read().unwrap().display_info();
         }
     }
     
@@ -238,7 +238,7 @@ impl<T, E, P> Population<T, E, P>
             members: (0..self.size)
                 .into_par_iter()
                 .map(|_| {
-                    let mut lock_set = self.environment.lock().unwrap();
+                    let mut lock_set = self.environment.write().unwrap();
                     Container {
                         member: Arc::new(T::base(&mut lock_set)),
                         fitness_score: 0.0,
@@ -296,7 +296,7 @@ impl<T, E, P> Population<T, E, P>
     
     /// Give solver settings to the population to evolve the strucutre defined 
     pub fn constrain(mut self, environment: E) -> Self {
-        self.environment = Arc::new(Mutex::new(environment));
+        self.environment = Arc::new(RwLock::new(environment));
         self
     }
     

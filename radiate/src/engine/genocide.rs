@@ -57,8 +57,8 @@ impl Genocide {
             let to_remove = generation.species.len() - num; 
             generation.species
                 .sort_by(|a, b| {
-                    let a_age = a.lock().unwrap().age;
-                    let b_age = b.lock().unwrap().age;
+                    let a_age = a.read().unwrap().age;
+                    let b_age = b.read().unwrap().age;
                     a_age.partial_cmp(&b_age).unwrap()
                 });
             generation.species.truncate(to_remove);
@@ -78,7 +78,7 @@ impl Genocide {
             .par_iter_mut()
             .map_init(|| rand::thread_rng(), |r, spec| {
                 let mut new_members = Vec::new();
-                for mem in spec.lock().unwrap().members.iter() {
+                for mem in spec.read().unwrap().members.iter() {
                     if r.gen::<f32>() > perc {
                         let solid_member = mem.1.upgrade().unwrap();
                         let copy_member = NicheMember(mem.0, Arc::downgrade(&solid_member));
@@ -86,7 +86,7 @@ impl Genocide {
                     }
                 }
                 if new_members.len() > 0 {
-                    spec.lock().unwrap().members = new_members;
+                    spec.write().unwrap().members = new_members;
                 }
             })
             .collect::<Vec<_>>();
@@ -105,14 +105,14 @@ impl Genocide {
         generation.species 
             .par_iter_mut()
             .map(|spec| {
-                let size = spec.lock().unwrap().members.len();
+                let size = spec.read().unwrap().members.len();
                 let num_to_remove = size as f32 * perc;
-                spec.lock().unwrap()
+                spec.write().unwrap()
                     .members
                     .sort_by(|a, b| {
                         b.0.partial_cmp(&a.0).unwrap()
                     });
-                spec.lock().unwrap()
+                spec.write().unwrap()
                     .members
                     .truncate(size - num_to_remove as usize);
             })
@@ -130,8 +130,8 @@ impl Genocide {
     {
         generation.species
             .sort_by(|a, b| {
-                let a_fit = a.lock().unwrap().get_total_adjusted_fitness();
-                let b_fit = b.lock().unwrap().get_total_adjusted_fitness();
+                let a_fit = a.write().unwrap().get_total_adjusted_fitness();
+                let b_fit = b.write().unwrap().get_total_adjusted_fitness();
                 b_fit.partial_cmp(&a_fit).unwrap()
             });
         generation.species.truncate(num);

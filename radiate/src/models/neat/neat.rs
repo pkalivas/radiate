@@ -5,7 +5,7 @@ use std::mem;
 use std::ptr;
 use std::error::Error;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 use rand::Rng;
 use rand::seq::SliceRandom;
 use super::layer::Layer;
@@ -587,8 +587,8 @@ impl fmt::Display for Neat {
 impl Genome<Neat, NeatEnvironment> for Neat {
 
     #[inline]
-    fn crossover(one: &Neat, two: &Neat, env: &Arc<Mutex<NeatEnvironment>>, crossover_rate: f32) -> Option<Neat> {
-        let mut set = (*env).lock().ok()?;
+    fn crossover(one: &Neat, two: &Neat, env: &Arc<RwLock<NeatEnvironment>>, crossover_rate: f32) -> Option<Neat> {
+        let mut set = (*env).write().ok()?;
         let mut r = rand::thread_rng();
         let mut result = (*one).clone();
 
@@ -644,7 +644,7 @@ impl Genome<Neat, NeatEnvironment> for Neat {
     }
 
 
-    fn distance(one: &Neat, two: &Neat, env: &Arc<Mutex<NeatEnvironment>>) -> f64 {
+    fn distance(one: &Neat, two: &Neat, env: &Arc<RwLock<NeatEnvironment>>) -> f64 {
         // keep track of the number of excess and disjoint genes and the
         // average weight of shared genes between the two networks 
         let (mut e, mut d) = (0.0, 0.0);
@@ -681,7 +681,7 @@ impl Genome<Neat, NeatEnvironment> for Neat {
         }
         // lock the env to get the comparing values from it  and make sure wc is greater than 0
         let wc = if wc == 0.0 { 1.0 } else { wc };
-        let lock_env = (*env).lock().unwrap();
+        let lock_env = (*env).read().unwrap();
         // return the distance between the two networks
         ((lock_env.c1.unwrap() * e) / big.edges.len() as f64) + ((lock_env.c2.unwrap() * d) / big.edges.len() as f64) + (lock_env.c3.unwrap() * (w / wc))
     }
