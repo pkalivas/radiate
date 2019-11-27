@@ -10,7 +10,7 @@ use rand::Rng;
 use rand::seq::SliceRandom;
 use super::layer::Layer;
 use super::nodetype::NodeType;
-use super::activation::Activation;
+use super::neurons::activation::Activation;
 use super::vertex::Vertex;
 use super::{
     edge::Edge,
@@ -33,7 +33,6 @@ pub struct Neat {
 
 
 
-/// implement the neuralnetwork
 impl Neat {
 
     

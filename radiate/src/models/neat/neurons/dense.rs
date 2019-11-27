@@ -1,7 +1,7 @@
 
 
 use std::collections::HashMap;
-use super::Activation;
+use super::activation::Activation;
 use super::neuron::Neuron;
 
 

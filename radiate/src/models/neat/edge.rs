@@ -19,10 +19,8 @@ pub struct Edge {
 }
 
 
-/// implement an edge 
 impl Edge {
 
-    /// return a new edge object
     pub fn new(src: i32, dst: i32, innov: i32, weight: f64, active: bool) -> Self {
         Edge { src, dst, innov, weight, active }
     }

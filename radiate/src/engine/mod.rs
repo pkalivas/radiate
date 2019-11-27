@@ -28,11 +28,13 @@ pub mod genome {
             where 
                 T: Sized,
                 E: Envionment + Sized;
-        /// This is a measure of a evolutionary types structure or topology - depending on what is being evolved.
+        
+                /// This is a measure of a evolutionary types structure or topology - depending on what is being evolved.
         /// This is needed to split the members in their respective species - essentially it is 
         /// a measure of how far away two types are from each other in a genetic 
         /// sense. Think of something like how similar humans are to dolphins, this is a way to quanitfy that.
         fn distance(one: &T, two: &T, env: &Arc<Mutex<E>>) -> f64;
+        
         /// Genome needs to have a base implementation in order for one of the population options to be satisfied
         /// 
         /// This can probably be iplemented in a generic way for default if the user doesn't want to 
@@ -51,6 +53,7 @@ pub mod genome {
 /// having the vairiables in the implementatino of this trait be readonly is preferred but isn't that big of a deal
 pub mod environment {
     pub trait Envionment {
+        
         /// Reset can be used to reset the enviromnet after a certain event occurs,
         /// if not this is an empty default implementation
         fn reset(&mut self) { }
@@ -73,7 +76,10 @@ pub mod problem {
 
     pub trait Problem<T> {
 
+        /// empty can be a new for Self, or some sort of default value,
+        /// just needed to create a population with base parameters 
         fn empty() -> Self;
+        
         /// Solve is what actually solves the problem , given a solver (the genome type)
         /// use the data in the type implementing the problem to sovle the problem and return
         /// the member's score. The result of this function is the member's fitness score 

@@ -14,14 +14,16 @@ pub use models::{
     },
     neat::{
         layer::Layer,
-        activation::Activation,
         nodetype::NodeType,
-        // neuron::Neuron,
         edge::Edge,
         counter::Counter,
         neat::Neat,
         neatenv::NeatEnvironment,
-        neurons::neuron::Neuron
+        neurons::{
+            neuron::Neuron,
+            activation::Activation,
+            dense::Dense
+        }
     }
 };
 

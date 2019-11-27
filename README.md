@@ -23,7 +23,29 @@ Radiate also comes with two models already built. Those being Evtree, and NEAT. 
 ### Evtree
 Is a twist on decision trees where instead of using a certain split criteria like the gini index, each node in the tree has a collection of matrices and uses these matrices to decide which subtree to explore. This algorithm is something I created and although I'm sure it's been built before, I haven't found any papers or implementations of anything like it. It is a binary tree and is only good for classification right now. I currently have plans to make it a little more verbose through better matrix mutliplication, propagating inputs further through the tree, and possibly introducing multiple sub trees and regression - however these increase the compute time.   
 ### NEAT
-Also known as Neuroevolution of Augmented Topologies, is the algorithm described by Kenneth O. Stanley in [this](http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) paper. I've tried to follow the rules in the paper pretty well and have implemented some things I've found online as well such as historical marking control, and dynamic distance for speciation. The dynamic distance between species is available for any structure, however the speciation through historical markings described in the paper is only good for NEAT. Neat exposes a few different activation functions for one to choose from, but mutliple can be used at once and each new node will choose one randonly. This NEAT implementation also includes a backpropagation function which operates much like traditional neural networks which propagate the input error back through the network and adjust the weights. This alone is useless, however in pair with the evolution engine, can produce very nice and quick results. 
+Also known as Neuroevolution of Augmented Topologies, is the algorithm described by Kenneth O. Stanley in [this](http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) paper. I've tried to follow the rules in the paper pretty well and have implemented some things I've found online as well such as historical marking control, and dynamic distance for speciation. The dynamic distance between species is available for any structure, however the speciation through historical markings described in the paper is only good for NEAT. Neat exposes a few different activation functions for one to choose from, but mutliple can be used at once and each new node will choose one randonly. This NEAT implementation also includes a backpropagation function which operates much like traditional neural networks which propagate the input error back through the network and adjust the weights. This alone is useless, however in pair with the evolution engine, can produce very nice and quick results. Neat exposese a few different options to the user through enums. These enums are mapped to easily extensable logic under the hood. Through the neat enviornment, users can customize which node type or combination of any of them, will be used to create the neat graph.
+
+Current state of node types: 
+```rust
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum NodeType {
+    Dense,      // implemented and the default
+    LSTM,       // coming soon
+    Recurrent   // coming soon
+}
+```
+All neural networks need nonlinear functions to represent complex datasets. Neat 
+allows users to specify which activation function a neuron will use through a customizable vec! in the neat enviornment. If more than one is specified, it will be randomly chosen when a neuron is created.
+```rust
+pub enum Activation {
+    Sigmoid,       // default
+    Tahn,
+    Relu,
+    LeakyRelu(f64),
+    ExpRelu(f64),
+    Linear(f64)   
+}
+```
 
 ## Setup
 The population is pretty easy to set up assuming the all traits have been implemented. The population is a higher abstraction to keep track of varibales used during evoltuion but not needed within epoch - things like the problem, solution, to print to the screen, ect. A new population is filled originally with default settings:

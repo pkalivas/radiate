@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 use super::counter::Counter;
-use super::activation::Activation;
+use super::neurons::activation::Activation;
 use super::edge::Edge;
 use super::nodetype::NodeType;
 use super::vertex::Vertex;

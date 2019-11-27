@@ -2,12 +2,12 @@
 
 use std::collections::HashMap;
 use super::layer::Layer;
+use super::neurons::activation::Activation;
+use super::nodetype::NodeType;
 use super::neurons::{
     neuron::Neuron,
     dense::Dense
 };
-use super::activation::Activation;
-use super::nodetype::NodeType;
 
 
 
@@ -29,7 +29,7 @@ pub struct Vertex {
 
 impl Vertex {
 
-    /// Return a new vertex 
+
     pub fn new(innov: i32, layer_type: Layer, node_type: NodeType, activation: Activation) -> Self {
         Vertex {
             innov,
