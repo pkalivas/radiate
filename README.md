@@ -27,7 +27,6 @@ Also known as Neuroevolution of Augmented Topologies, is the algorithm described
 
 Current state of node types: 
 ```rust
-#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum NodeType {
     Dense,      // implemented and the default
     LSTM,       // coming soon
