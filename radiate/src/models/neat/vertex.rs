@@ -11,12 +11,10 @@ use super::nodetype::NodeType;
 
 
 
-/// Vertex is meant to seperate the neuron logic from the node on the NEAT graph,
-/// a node on the NEAT graph only needs pointers to the edges around it and 
-/// the values being propagated through it. Some neurons like an LSTM require more 
-/// variables and different interal activation logic, so encapsulating that within
-/// a normal node on the graph would be misplaced. Because of this each vertex holds a 
-/// neuron which is a specific type of node which encapsulates the unique logic referenced above
+/// Vertex is a wrapper around a neuron providing only what is needed for a neuron to be added 
+/// to the NEAT graph, while the neuron encapsulates the neural network logic for the specific nodetype,
+/// Some neurons like an LSTM require more variables and different interal activation logic, 
+/// so encapsulating that within a normal node on the graph would be misplaced.
 #[derive(Debug)]
 pub struct Vertex {
     pub innov: i32,
