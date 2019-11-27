@@ -75,7 +75,7 @@ pub fn new() -> Self {
     }
 }
 ```
-The run() function must be the last function chained to the population because it takes a closure which when returns true, returns back the top Genome as it's initial type and the environment. 
+The run() function must be the last function chained to the population because it takes a closure which when returns true, returns back the top Genome as it's initial type and the environment. The closure given to run receives a borrowed type T which is a Genome, that genome's fitness, and the current epoch.
 ```rust
 pub fn run<F>(&mut self, runner: F) -> Result<(T, E), &'static str>
     where 
@@ -83,23 +83,6 @@ pub fn run<F>(&mut self, runner: F) -> Result<(T, E), &'static str>
         T: Genome<T, E> + Clone + Send + Sync + PartialEq,
         P: Send + Sync,
         E: Clone
-{
-    let mut index = 0;
-    loop {
-        match self.train() {
-            Some(result) => {
-                let (fit, top) = result;
-                if runner(&top, fit, index) {
-                    let solution = top.clone();
-                    let env = (*self.environment.lock().unwrap()).clone();
-                    return Ok((solution, env));
-                }
-                index += 1;
-            },
-            None => return Err("Error Training")
-        }
-    }
-}
 ```
 ## Example
 Quick example of optimizing the NEAT algorithm to find a graph where the sum of all edges is .0001 away from 100.
