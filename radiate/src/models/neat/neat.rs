@@ -22,7 +22,6 @@ use crate::engine::genome::Genome;
 
 
 
-/// Define a network graph structure of raw pointer neurons
 #[derive(Debug)]
 pub struct Neat {
     pub inputs: Vec<i32>,
@@ -36,10 +35,6 @@ pub struct Neat {
 impl Neat {
 
     
-    /// create a new empty neural network graph
-    /// this network is basically in charge of 
-    /// keeping track of the nodes in the network 
-    /// and their connections to each other
     pub fn new() -> Self {
         Neat {
             inputs: Vec::new(),

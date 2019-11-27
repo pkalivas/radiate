@@ -5,8 +5,7 @@ use super::activation::Activation;
 use super::neuron::Neuron;
 
 
-/// A dense neuron, meaning a basic feed forward neural network
-/// neuron. Impleming Neuron means it can be used in the network
+/// A dense neuron, meaning a basic feed forward neural network neuron.
 #[derive(Debug, Clone)]
 pub struct Dense {
     pub activation: Activation,
@@ -15,9 +14,6 @@ pub struct Dense {
 
 impl Dense {
 
-    /// This is a pretty simple neuron and all it's logic is encapsulated
-    /// in it's neuron implementation, so all it needs to know is it's 
-    /// activation function
     pub fn new(activation: Activation) -> Self {
         Dense { activation }
     }
@@ -26,6 +22,7 @@ impl Dense {
 
 
 
+/// Impleming Neuron means it can be used in the network
 impl Neuron for Dense {
 
     /// Dense doesn't need to reset anything outside of 
