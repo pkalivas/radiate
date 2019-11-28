@@ -5,5 +5,5 @@ members = [
     "examples/wmax-neat",
     "examples/xor-neat",
     "examples/xor-neat-backprop",
-    "examples/lstm-neat"
+    "examples/recurrent-neat"
 ]

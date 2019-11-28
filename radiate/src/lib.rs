@@ -16,6 +16,7 @@ pub use models::{
         layer::Layer,
         nodetype::NodeType,
         edge::Edge,
+        vertex::Vertex,
         counter::Counter,
         neat::Neat,
         neatenv::NeatEnvironment,

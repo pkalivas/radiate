@@ -17,14 +17,48 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
         .set_weight_perturb(1.6)
-        .set_new_node_rate(0.01)
-        .set_new_edge_rate(0.01)
+        .set_new_node_rate(0.00)
+        .set_new_edge_rate(0.00)
         .set_reactivate(0.2)
         .set_c1(1.0)
         .set_c2(1.0)
-        .set_c3(0.03)
-        .set_node_types(vec![NodeType::LSTM])
+        .set_c3(0.003)
+        .set_node_types(vec![NodeType::Recurrent])
         .start_innov_counter();
+
+    // make new network with nothing in it 
+    let mut starting_net = Neat::new();
+
+    // create the nodes in the network - to test a recurrent network we don't need any hidden nodes
+    let mut input_one = Vertex::new(neat_env.get_mut_counter().next(), Layer::Input, NodeType::Recurrent, Activation::Tahn);
+    starting_net.inputs.push(input_one.innov);
+    let mut input_two = Vertex::new(neat_env.get_mut_counter().next(), Layer::Input, NodeType::Recurrent, Activation::Tahn);
+    starting_net.inputs.push(input_two.innov);
+    let mut input_three = Vertex::new(neat_env.get_mut_counter().next(), Layer::Input, NodeType::Recurrent, Activation::Tahn);
+    starting_net.inputs.push(input_three.innov);
+    let mut output = Vertex::new(neat_env.get_mut_counter().next(), Layer::Output, NodeType::Recurrent, Activation::Sigmoid);
+    starting_net.outputs.push(output.innov);
+
+    // make the edges to connect the vertecies
+    let one_output = Edge::new(input_one.innov, output.innov, neat_env.get_mut_counter().next(), 0.5, true);
+    input_one.outgoing.push(one_output.innov);
+    output.incoming.insert(one_output.innov, None);
+    let two_output = Edge::new(input_two.innov, output.innov, neat_env.get_mut_counter().next(), 0.5, true);
+    input_two.outgoing.push(two_output.innov);
+    output.incoming.insert(two_output.innov, None);
+    let three_output = Edge::new(input_three.innov, output.innov, neat_env.get_mut_counter().next(), 0.5, true);
+    input_three.outgoing.push(three_output.innov);
+    output.incoming.insert(three_output.innov, None);
+
+    starting_net.nodes.insert(input_one.innov, input_one.as_mut_ptr());
+    starting_net.nodes.insert(input_two.innov, input_two.as_mut_ptr());
+    starting_net.nodes.insert(input_three.innov, input_three.as_mut_ptr());
+    starting_net.nodes.insert(output.innov, output.as_mut_ptr());
+    starting_net.edges.insert(one_output.innov, one_output);
+    starting_net.edges.insert(two_output.innov, two_output);
+    starting_net.edges.insert(three_output.innov, three_output);
+
+    println!("Created Network:\n {:#?}", starting_net);
 
 
     let starting_net = Neat::base(&mut neat_env);
@@ -34,8 +68,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         .populate_clone(starting_net)
         .debug(true)
         .dynamic_distance(true)
-        .survivor_criteria(SurvivalCriteria::Fittest)
-        .parental_criteria(ParentalCriteria::BestInSpecies)
         .configure(Config {
             inbreed_rate: 0.001,
             crossover_rate: 0.50,

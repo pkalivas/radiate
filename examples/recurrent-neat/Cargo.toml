@@ -1,6 +1,6 @@
 [package]
-name = "lstm-neat"
-description = "LSTM example for redox using NEAT."
+name = "recurrent-neat"
+description = "recurrent example for redox using NEAT."
 version = "1.0.0"
 authors = ["pkalivas <peterkalivas@gmail.com>"]
 
