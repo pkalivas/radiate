@@ -6,6 +6,16 @@ use std::time::Instant;
 use radiate::prelude::*;
 
 
+/// Dumb test:
+/// two inputs and one output
+/// given two inputs at each step, the desired output 
+/// at each step is the output for the column that was 
+/// two time steps ago
+/// 
+/// [0, 0, 1, 1, 0, (1), 0, 0]
+/// [0, 1, 0, 0, 1, (1), 0, 1]
+/// --------------------------
+/// [1, 0, 0, 0, 0, 0, 0, (1)]
 
 
 fn main() -> Result<(), Box<dyn Error>> {
