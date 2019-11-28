@@ -1,7 +1,6 @@
 pub mod neuron;
 pub mod dense;
-
-// use super::activation::Activation;
+pub mod recurrent;
 
 
 pub mod activation {
