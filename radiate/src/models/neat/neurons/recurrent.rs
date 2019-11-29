@@ -6,6 +6,7 @@ use rand::Rng;
 use super::activation::Activation;
 use super::neuron::Neuron;
 
+
 #[derive(Debug, Clone)]
 pub struct Recurrent {
     previous_values: HashMap<i32, f64>,

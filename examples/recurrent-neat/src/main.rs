@@ -27,13 +27,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
         .set_weight_perturb(1.6)
-        .set_new_node_rate(0.00)
-        .set_new_edge_rate(0.00)
+        .set_new_node_rate(0.02)
+        .set_new_edge_rate(0.03)
         .set_reactivate(0.2)
         .set_c1(1.0)
         .set_c2(1.0)
         .set_c3(0.003)
         .set_node_types(vec![NodeType::Recurrent])
+        .set_activation_functions(vec![Activation::Tahn])
         .start_innov_counter();
 
     // make new network with nothing in it 
@@ -46,7 +47,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     starting_net.inputs.push(input_two.innov);
     let mut input_three = Vertex::new(neat_env.get_mut_counter().next(), Layer::Input, NodeType::Recurrent, Activation::Tahn);
     starting_net.inputs.push(input_three.innov);
-    let mut output = Vertex::new(neat_env.get_mut_counter().next(), Layer::Output, NodeType::Recurrent, Activation::Sigmoid);
+    let mut output = Vertex::new(neat_env.get_mut_counter().next(), Layer::Output, NodeType::Dense, Activation::Sigmoid);
     starting_net.outputs.push(output.innov);
 
     // make the edges to connect the vertecies
@@ -72,7 +73,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 
     let starting_net = Neat::base(&mut neat_env);
-    let (solution, _) = Population::<Neat, NeatEnvironment, XOR>::new()
+    let (solution, _) = Population::<Neat, NeatEnvironment, AND>::new()
         .constrain(neat_env)
         .size(150)
         .populate_clone(starting_net)
@@ -90,17 +91,17 @@ fn main() -> Result<(), Box<dyn Error>> {
         .run(|_, fit, num| {
             println!("Generation: {} score: {}", num, fit);
             let diff = 4.0 - fit;
-            (diff > 0.0 && diff < 0.01) || num == 500
+            (diff > 0.0 && diff < 0.01) || num == 1500
         })?;
         
 
-    let xor = XOR::new();
-    let total = xor.solve(&solution);
+    let and_hist = AND::new();
+    let total = and_hist.solve(&solution);
 
     println!("Solution: {:#?}", solution);
     solution.see();
     println!("Time in millis: {}", thread_time.elapsed().as_millis());
-    xor.show(&solution);
+    and_hist.show(&solution);
     println!("Total: {}", total);
 
     Ok(())
@@ -111,27 +112,40 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 
 
+/// [0, 0, 1, 1, 0, (1), 0, 0]
+/// [0, 1, 0, 0, 1, (1), 0, 1]
+/// --------------------------
+/// [1, 0, 0, 0, 0, 0, 0, (1)]
+
 #[derive(Debug)]
-pub struct XOR {
+pub struct AND {
     inputs: Vec<Vec<f64>>,
     answers: Vec<Vec<f64>>
 }
 
 
 
-impl XOR {
+impl AND {
     pub fn new() -> Self {
-        XOR {
+        AND {
             inputs: vec![
                 vec![0.0, 0.0, 1.5],
-                vec![1.0, 1.0, 1.5],
+                vec![0.0, 1.0, 1.5],
                 vec![1.0, 0.0, 1.5],
+                vec![1.0, 0.0, 1.5],
+                vec![0.0, 1.0, 1.5],
+                vec![1.0, 1.0, 1.5],
+                vec![0.0, 0.0, 1.5],
                 vec![0.0, 1.0, 1.5],
             ],
             answers: vec![
-                vec![0.0],
-                vec![0.0],
                 vec![1.0],
+                vec![0.0],
+                vec![0.0],
+                vec![0.0],
+                vec![0.0],
+                vec![0.0],
+                vec![0.0],
                 vec![1.0],
             ]
         }
@@ -149,15 +163,15 @@ impl XOR {
 }
 
 
-unsafe impl Send for XOR {}
-unsafe impl Sync for XOR {}
+unsafe impl Send for AND {}
+unsafe impl Sync for AND {}
 
 
 
 
-impl Problem<Neat> for XOR {
+impl Problem<Neat> for AND {
 
-    fn empty() -> Self { XOR::new() }
+    fn empty() -> Self { AND::new() }
 
     fn solve(&self, model: &Neat) -> f64 {
         let mut total = 0.0;
