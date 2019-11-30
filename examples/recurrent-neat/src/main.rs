@@ -6,101 +6,75 @@ use std::time::Instant;
 use radiate::prelude::*;
 
 
-/// Dumb test:
-/// two inputs and one output
-/// given two inputs at each step, the desired output 
-/// at each step is the output for the column that was 
-/// two time steps ago
-/// 
-/// [0, 0, 1, 1, 0, (1), 0, 0]
-/// [0, 1, 0, 0, 1, (1), 0, 1]
-/// --------------------------
-/// [1, 0, 0, 0, 0, 0, 0, (1)]
 
 
 fn main() -> Result<(), Box<dyn Error>> {
 
     let thread_time = Instant::now();
     let mut neat_env = NeatEnvironment::new()
-        .set_input_size(3)
+        .set_input_size(1)
         .set_output_size(1)
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
         .set_weight_perturb(1.6)
-        .set_new_node_rate(0.00)
-        .set_new_edge_rate(0.00)
+        .set_new_node_rate(0.02)
+        .set_new_edge_rate(0.03)
         .set_reactivate(0.2)
         .set_c1(1.0)
         .set_c2(1.0)
         .set_c3(0.003)
         .set_node_types(vec![NodeType::Recurrent])
+        .set_activation_functions(vec![Activation::Tahn])
         .start_innov_counter();
 
-    // make new network with nothing in it 
-    let mut starting_net = Neat::new();
 
-    // create the nodes in the network - to test a recurrent network we don't need any hidden nodes
-    let mut input_one = Vertex::new(neat_env.get_mut_counter().next(), Layer::Input, NodeType::Recurrent, Activation::Tahn);
-    starting_net.inputs.push(input_one.innov);
-    let mut input_two = Vertex::new(neat_env.get_mut_counter().next(), Layer::Input, NodeType::Recurrent, Activation::Tahn);
-    starting_net.inputs.push(input_two.innov);
-    let mut input_three = Vertex::new(neat_env.get_mut_counter().next(), Layer::Input, NodeType::Recurrent, Activation::Tahn);
-    starting_net.inputs.push(input_three.innov);
-    let mut output = Vertex::new(neat_env.get_mut_counter().next(), Layer::Output, NodeType::Recurrent, Activation::Sigmoid);
-    starting_net.outputs.push(output.innov);
+    let mut starting_net = Neat::base(&mut neat_env);
+    let num_backprop = 500;
+    let num_evolve = 100;
+    let ism = ISM::new();
+    let mut epochs = 0;
+    
+    let solution = loop {
+        let (mut solution, env) = Population::<Neat, NeatEnvironment, ISM>::new()
+            .constrain(neat_env)
+            .size(150)
+            .populate_clone(starting_net)
+            .debug(true)
+            .dynamic_distance(true)
+            .configure(Config {
+                inbreed_rate: 0.001,
+                crossover_rate: 0.50,
+                distance: 4.0,
+                species_target: 8
+            })
+            .stagnation(15, vec![
+                Genocide::KeepTop(10)
+            ])
+            .run(|_, fit, num| {
+                println!("Generation: {} score: {}", num, fit);
+                num == num_evolve
+            })?;
 
-    // make the edges to connect the vertecies
-    let one_output = Edge::new(input_one.innov, output.innov, neat_env.get_mut_counter().next(), 0.5, true);
-    input_one.outgoing.push(one_output.innov);
-    output.incoming.insert(one_output.innov, None);
-    let two_output = Edge::new(input_two.innov, output.innov, neat_env.get_mut_counter().next(), 0.5, true);
-    input_two.outgoing.push(two_output.innov);
-    output.incoming.insert(two_output.innov, None);
-    let three_output = Edge::new(input_three.innov, output.innov, neat_env.get_mut_counter().next(), 0.5, true);
-    input_three.outgoing.push(three_output.innov);
-    output.incoming.insert(three_output.innov, None);
+            for _ in 0..num_backprop {
+                ism.backprop(&mut solution);
+            }
+            if epochs == 10 {
+                break solution;
+            }
+            starting_net = solution;
+            neat_env = env;
+            epochs += 1;
+        };            
 
-    starting_net.nodes.insert(input_one.innov, input_one.as_mut_ptr());
-    starting_net.nodes.insert(input_two.innov, input_two.as_mut_ptr());
-    starting_net.nodes.insert(input_three.innov, input_three.as_mut_ptr());
-    starting_net.nodes.insert(output.innov, output.as_mut_ptr());
-    starting_net.edges.insert(one_output.innov, one_output);
-    starting_net.edges.insert(two_output.innov, two_output);
-    starting_net.edges.insert(three_output.innov, three_output);
+    let ism = ISM::new();
+    println!("{:#?}", ism);
+    let total = ism.solve(&solution);
 
-    println!("Created Network:\n {:#?}", starting_net);
-
-
-    let starting_net = Neat::base(&mut neat_env);
-    let (solution, _) = Population::<Neat, NeatEnvironment, XOR>::new()
-        .constrain(neat_env)
-        .size(150)
-        .populate_clone(starting_net)
-        .debug(true)
-        .dynamic_distance(true)
-        .configure(Config {
-            inbreed_rate: 0.001,
-            crossover_rate: 0.50,
-            distance: 3.0,
-            species_target: 10
-        })
-        .stagnation(15, vec![
-            Genocide::KeepTop(5)
-        ])
-        .run(|_, fit, num| {
-            println!("Generation: {} score: {}", num, fit);
-            let diff = 4.0 - fit;
-            (diff > 0.0 && diff < 0.01) || num == 500
-        })?;
-        
-
-    let xor = XOR::new();
-    let total = xor.solve(&solution);
 
     println!("Solution: {:#?}", solution);
     solution.see();
     println!("Time in millis: {}", thread_time.elapsed().as_millis());
-    xor.show(&solution);
+    ism.show(&solution);
     println!("Total: {}", total);
 
     Ok(())
@@ -112,29 +86,136 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 
 #[derive(Debug)]
-pub struct XOR {
+pub struct ISM {
     inputs: Vec<Vec<f64>>,
     answers: Vec<Vec<f64>>
 }
 
 
 
-impl XOR {
+impl ISM {
     pub fn new() -> Self {
-        XOR {
+        ISM {
             inputs: vec![
-                vec![0.0, 0.0, 1.5],
-                vec![1.0, 1.0, 1.5],
-                vec![1.0, 0.0, 1.5],
-                vec![0.0, 1.0, 1.5],
+                vec![56.0],
+                vec![57.6],
+                vec![56.6],
+                vec![55.3],
+                vec![55.5],
+                vec![56.7],
+                vec![56.5],
+                vec![59.3],
+                vec![60.2],
+                vec![58.5],
+                vec![58.2],
+                vec![59.3],
+                vec![60.2],
+                vec![58.5],
+                vec![58.2],
+                vec![59.3],
+                vec![59.1],
+                vec![60.7],
+                vec![59.3],
+                vec![57.9],
+                vec![58.7],
+                vec![60.0],
+                vec![58.4],
+                vec![60.8],
+                vec![59.5],
+                vec![57.5],
+                vec![58.8],
+                vec![54.3],
+                vec![56.6],
+                vec![54.2],
+                vec![55.3],
+                vec![52.8],
+                vec![52.1],
+                vec![51.7],
+                vec![51.2],
+                vec![49.1],
+                vec![47.8],
             ],
             answers: vec![
-                vec![0.0],
-                vec![0.0],
-                vec![1.0],
-                vec![1.0],
+                vec![57.6],
+                vec![56.6],
+                vec![55.3],
+                vec![55.5],
+                vec![56.7],
+                vec![56.5],
+                vec![59.3],
+                vec![60.2],
+                vec![58.5],
+                vec![58.2],
+                vec![59.3],
+                vec![60.2],
+                vec![58.5],
+                vec![58.2],
+                vec![59.3],
+                vec![59.1],
+                vec![60.7],
+                vec![59.3],
+                vec![57.9],
+                vec![58.7],
+                vec![60.0],
+                vec![58.4],
+                vec![60.8],
+                vec![59.5],
+                vec![57.5],
+                vec![58.8],
+                vec![54.3],
+                vec![56.6],
+                vec![54.2],
+                vec![55.3],
+                vec![52.8],
+                vec![52.1],
+                vec![51.7],
+                vec![51.2],
+                vec![49.1],
+                vec![47.8],
+                vec![48.3]
             ]
+        }.normalize()
+    }
+
+
+    fn normalize(self) -> Self {
+        let inputs_min = ISM::minimum(&self.inputs);
+        let inputs_max = ISM::maximum(&self.inputs);
+        let output_min = ISM::minimum(&self.answers);
+        let output_max = ISM::maximum(&self.answers);
+
+        ISM {
+            inputs: self.inputs.iter()
+                .map(|x| {
+                    vec![(x[0] - inputs_min) / (inputs_max - inputs_min)]
+                })
+                .collect(),
+            answers: self.answers.iter()
+                .map(|x| {
+                    vec![(x[0] - output_min) / (output_max - output_min)]
+                })
+                .collect()
         }
+    }
+
+    fn minimum(nums: &Vec<Vec<f64>>) -> f64 {
+        nums.iter()
+            .fold(1000.0, |min, curr| {
+                if curr[0] < min {
+                    return curr[0]
+                }
+                min
+            })
+    }
+
+    fn maximum(nums: &Vec<Vec<f64>>) -> f64 {
+        nums.iter()
+            .fold(-1000.0, |max, curr| {
+                if curr[0] > max {
+                    return curr[0]
+                }
+                max
+            })
     }
 
 
@@ -146,28 +227,36 @@ impl XOR {
         }
     }
 
+    fn backprop(&self, model: &mut Neat) {
+        for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
+            model.backprop(i, o, 0.1);
+        }
+    }
+
 }
 
 
-unsafe impl Send for XOR {}
-unsafe impl Sync for XOR {}
+unsafe impl Send for ISM {}
+unsafe impl Sync for ISM {}
 
 
 
 
-impl Problem<Neat> for XOR {
+impl Problem<Neat> for ISM {
 
-    fn empty() -> Self { XOR::new() }
+    fn empty() -> Self { ISM::new() }
 
     fn solve(&self, model: &Neat) -> f64 {
         let mut total = 0.0;
+        let mut goal = 0.0;
         for (ins, outs) in self.inputs.iter().zip(self.answers.iter()) {
             match model.feed_forward(&ins) {
                 Ok(guess) => total += (guess[0] - outs[0]).powf(2.0),
                 Err(_) => panic!("Error in training NEAT")
             }
+            goal += outs[0];
         }
-        4.0 - total
+        goal - total
     }
 
 }
