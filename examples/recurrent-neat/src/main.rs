@@ -22,15 +22,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_reactivate(0.2)
         .set_c1(1.0)
         .set_c2(1.0)
-        .set_c3(0.003)
+        .set_c3(0.0003)
         .set_node_types(vec![NodeType::Recurrent])
         .set_activation_functions(vec![Activation::Tahn])
         .start_innov_counter();
 
 
     let mut starting_net = Neat::base(&mut neat_env);
-    let num_backprop = 500;
-    let num_evolve = 100;
+    let num_backprop = 100;
+    let num_evolve = 5000;
     let ism = ISM::new();
     let mut epochs = 0;
     
@@ -45,7 +45,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 inbreed_rate: 0.001,
                 crossover_rate: 0.50,
                 distance: 4.0,
-                species_target: 8
+                species_target: 10
             })
             .stagnation(15, vec![
                 Genocide::KeepTop(10)
@@ -58,7 +58,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             for _ in 0..num_backprop {
                 ism.backprop(&mut solution);
             }
-            if epochs == 10 {
+            if epochs == 0 {
                 break solution;
             }
             starting_net = solution;

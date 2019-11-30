@@ -29,6 +29,7 @@ impl Recurrent {
 /// I'm not sure if this works?
 /// https://peterroelants.github.io/posts/rnn-implementation-part01/
 /// https://medium.com/@vsadhak/disassembling-recurrent-neural-networks-695ce75dddf6
+/// https://github.com/evolvingstuff/RecurrentJava
 ///
 
 
