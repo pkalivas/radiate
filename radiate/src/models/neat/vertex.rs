@@ -7,7 +7,8 @@ use super::nodetype::NodeType;
 use super::neurons::{
     neuron::Neuron,
     dense::Dense,
-    recurrent::Recurrent
+    recurrent::Recurrent,
+    lstm::LSTM
 };
 
 
@@ -103,8 +104,9 @@ impl Vertex {
     fn neuron_factory(node_type: NodeType, activation: Activation) -> Box<dyn Neuron> {
         match node_type {
             NodeType::Dense => Box::new(Dense::new(activation)),
-            NodeType::LSTM => Box::new(Dense { activation }),
-            NodeType::Recurrent => Box::new(Recurrent::new(activation))
+            NodeType::LSTM => Box::new(LSTM::new(activation)),
+            NodeType::Recurrent => Box::new(Recurrent::new(activation)),
+            _ => Box::new(Dense::new(activation))
         }
     }
 

@@ -15,7 +15,9 @@ pub mod nodetype {
     pub enum NodeType {
         Dense,
         LSTM,
-        Recurrent
+        Recurrent,
+        RecurrentLayer,
+        LSTMLayer,
     }
 }
 

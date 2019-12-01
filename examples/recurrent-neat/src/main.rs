@@ -15,7 +15,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let thread_time = Instant::now();
     let mut neat_env = NeatEnvironment::new()
-        .set_input_size(1)
+        .set_input_size(5)
         .set_output_size(1)
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
@@ -60,7 +60,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         })?;
         
 
-    let ism = ISM::new(1);
+    let ism = ISM::new(5);
     println!("{:#?}", ism);
     let total = ism.solve(&solution);
 
@@ -73,6 +73,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     ism.write_data(&solution);
     Ok(())
 }
+
+
 
 
 
@@ -193,7 +195,7 @@ unsafe impl Sync for ISM {}
 
 impl Problem<Neat> for ISM {
 
-    fn empty() -> Self { ISM::new(1) }
+    fn empty() -> Self { ISM::new(5) }
 
     fn solve(&self, model: &Neat) -> f64 {
         let mut total = 0.0;

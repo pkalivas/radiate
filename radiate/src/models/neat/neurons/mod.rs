@@ -1,6 +1,7 @@
 pub mod neuron;
 pub mod dense;
 pub mod recurrent;
+pub mod lstm;
 
 
 pub mod activation {
