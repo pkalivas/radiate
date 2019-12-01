@@ -14,7 +14,9 @@ use std::fmt::{
 /// Vertex is needed for proper design
 pub trait Neuron: NeuronClone {
  
-    fn reset(&mut self);
+    fn reset(&mut self) {}
+
+    fn mutate(&mut self, should_edit: f32, size: f64) {}
  
     /// Each neuron also needs a method of activation. A dense neuron (simple feed forward layer) simply 
     /// has to sum the inputs and put that total through an activation function, but an LSTM neuron or 

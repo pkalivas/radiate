@@ -382,6 +382,12 @@ impl Neat {
                 edge.weight *= r.gen_range(-size, size);
             }
         }
+        // most nodes don't need to be mutated, but rnn and lstm might be
+        unsafe {
+            for (_, node) in self.nodes.iter() {
+                (**node).mutate(editable, size);
+            }
+        }
     }
 
 

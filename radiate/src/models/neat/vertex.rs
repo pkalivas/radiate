@@ -92,6 +92,10 @@ impl Vertex {
         self.neuron.reset();
     }
 
+    pub fn mutate(&mut self, editable: f32, size: f64) {
+        self.neuron.mutate(editable, size);
+    }
+
 
 
     /// given a nodetype and activation enum, return a boxed struct which implements the neuruon trait

@@ -1,5 +1,6 @@
 
 extern crate radiate;
+extern crate csv;
 
 use std::error::Error;
 use std::time::Instant;
@@ -12,59 +13,48 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let thread_time = Instant::now();
     let mut neat_env = NeatEnvironment::new()
-        .set_input_size(1)
+        .set_input_size(2)
         .set_output_size(1)
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
-        .set_weight_perturb(1.6)
-        .set_new_node_rate(0.02)
+        .set_weight_perturb(1.8)
+        .set_new_node_rate(0.04)
         .set_new_edge_rate(0.03)
         .set_reactivate(0.2)
         .set_c1(1.0)
         .set_c2(1.0)
-        .set_c3(0.0003)
-        .set_node_types(vec![NodeType::Recurrent])
-        .set_activation_functions(vec![Activation::Tahn])
+        .set_c3(0.003)
+        .set_node_types(vec![
+            NodeType::Recurrent,
+        ])
+        .set_activation_functions(vec![
+            Activation::Tahn,
+        ])
         .start_innov_counter();
 
 
-    let mut starting_net = Neat::base(&mut neat_env);
-    let num_backprop = 100;
-    let num_evolve = 5000;
-    let ism = ISM::new();
-    let mut epochs = 0;
-    
-    let solution = loop {
-        let (mut solution, env) = Population::<Neat, NeatEnvironment, ISM>::new()
-            .constrain(neat_env)
-            .size(150)
-            .populate_clone(starting_net)
-            .debug(true)
-            .dynamic_distance(true)
-            .configure(Config {
-                inbreed_rate: 0.001,
-                crossover_rate: 0.50,
-                distance: 4.0,
-                species_target: 10
-            })
-            .stagnation(15, vec![
-                Genocide::KeepTop(10)
-            ])
-            .run(|_, fit, num| {
-                println!("Generation: {} score: {}", num, fit);
-                num == num_evolve
-            })?;
-
-            for _ in 0..num_backprop {
-                ism.backprop(&mut solution);
-            }
-            if epochs == 0 {
-                break solution;
-            }
-            starting_net = solution;
-            neat_env = env;
-            epochs += 1;
-        };            
+    let starting_net = Neat::base(&mut neat_env);
+    let (solution, _) = Population::<Neat, NeatEnvironment, ISM>::new()
+        .constrain(neat_env)
+        .size(150)
+        .populate_clone(starting_net)
+        .debug(true)
+        .dynamic_distance(true)
+        .survivor_criteria(SurvivalCriteria::TopNumber(10))
+        .configure(Config {
+            inbreed_rate: 0.001,
+            crossover_rate: 0.50,
+            distance: 3.0,
+            species_target: 10
+        })
+        .stagnation(15, vec![
+            Genocide::KeepTop(10)
+        ])
+        .run(|_, fit, num| {
+            println!("Generation: {} score: {}", num, fit);
+            num == 1000
+        })?;
+        
 
     let ism = ISM::new();
     println!("{:#?}", ism);
@@ -77,18 +67,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     ism.show(&solution);
     println!("Total: {}", total);
 
+
     Ok(())
 }
 
 
 
-
-
-
-/// [0, 0, 1, 1, 0, (1), 0, 0]
-/// [0, 1, 0, 0, 1, (1), 0, 1]
-/// --------------------------
-/// [1, 0, 0, 0, 0, 0, 0, (1)]
 
 #[derive(Debug)]
 pub struct ISM {
@@ -100,85 +84,10 @@ pub struct ISM {
 
 impl ISM {
     pub fn new() -> Self {
+        let data = ISM::read_data().unwrap();
         ISM {
-            inputs: vec![
-                vec![56.0],
-                vec![57.6],
-                vec![56.6],
-                vec![55.3],
-                vec![55.5],
-                vec![56.7],
-                vec![56.5],
-                vec![59.3],
-                vec![60.2],
-                vec![58.5],
-                vec![58.2],
-                vec![59.3],
-                vec![60.2],
-                vec![58.5],
-                vec![58.2],
-                vec![59.3],
-                vec![59.1],
-                vec![60.7],
-                vec![59.3],
-                vec![57.9],
-                vec![58.7],
-                vec![60.0],
-                vec![58.4],
-                vec![60.8],
-                vec![59.5],
-                vec![57.5],
-                vec![58.8],
-                vec![54.3],
-                vec![56.6],
-                vec![54.2],
-                vec![55.3],
-                vec![52.8],
-                vec![52.1],
-                vec![51.7],
-                vec![51.2],
-                vec![49.1],
-                vec![47.8],
-            ],
-            answers: vec![
-                vec![57.6],
-                vec![56.6],
-                vec![55.3],
-                vec![55.5],
-                vec![56.7],
-                vec![56.5],
-                vec![59.3],
-                vec![60.2],
-                vec![58.5],
-                vec![58.2],
-                vec![59.3],
-                vec![60.2],
-                vec![58.5],
-                vec![58.2],
-                vec![59.3],
-                vec![59.1],
-                vec![60.7],
-                vec![59.3],
-                vec![57.9],
-                vec![58.7],
-                vec![60.0],
-                vec![58.4],
-                vec![60.8],
-                vec![59.5],
-                vec![57.5],
-                vec![58.8],
-                vec![54.3],
-                vec![56.6],
-                vec![54.2],
-                vec![55.3],
-                vec![52.8],
-                vec![52.1],
-                vec![51.7],
-                vec![51.2],
-                vec![49.1],
-                vec![47.8],
-                vec![48.3]
-            ]
+            inputs: data.0,
+            answers: data.1
         }.normalize()
     }
 
@@ -192,7 +101,7 @@ impl ISM {
         ISM {
             inputs: self.inputs.iter()
                 .map(|x| {
-                    vec![(x[0] - inputs_min) / (inputs_max - inputs_min)]
+                    vec![(x[0] - inputs_min) / (inputs_max - inputs_min), 1.0]
                 })
                 .collect(),
             answers: self.answers.iter()
@@ -224,11 +133,29 @@ impl ISM {
     }
 
 
+    fn read_data() -> Result<(Vec<Vec<f64>>, Vec<Vec<f64>>), Box<dyn Error>> {
+        let mut reader = csv::Reader::from_path("C:\\Users\\Peter\\Desktop\\software\\radiate\\examples\\recurrent-neat\\src\\ism.csv").unwrap();
+        let mut inputs = Vec::new();
+        let mut answers = Vec::new();
+        for result in reader.records() {
+            let temp = result.unwrap();
+            let val: f64 = temp.get(1).unwrap().parse().unwrap();
+            inputs.push(vec![val]);
+            answers.push(vec![val]);
+        }
+        inputs.reverse();
+        answers.reverse();
+        inputs.pop();
+        answers.remove(0);
+        Ok((inputs, answers))
+    }
+
+
     fn show(&self, model: &Neat) {
         println!("\n");
         for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
             let guess = model.feed_forward(&i).unwrap();
-            println!("Guess: {:.2?} Answer: {:.2}", guess, o[0]);
+            println!("Input: {:.2?} Answer: {:.2?} Guess: {:.2?}", i[0], o[0], guess);
         }
     }
 
@@ -253,15 +180,13 @@ impl Problem<Neat> for ISM {
 
     fn solve(&self, model: &Neat) -> f64 {
         let mut total = 0.0;
-        let mut goal = 0.0;
         for (ins, outs) in self.inputs.iter().zip(self.answers.iter()) {
             match model.feed_forward(&ins) {
                 Ok(guess) => total += (guess[0] - outs[0]).powf(2.0),
                 Err(_) => panic!("Error in training NEAT")
             }
-            goal += outs[0];
         }
-        goal - total
+        1.0 - ((1.0 / self.answers.len() as f64) * total)
     }
 
 }
