@@ -44,19 +44,19 @@ impl Neuron for Recurrent {
 
     fn mutate(&mut self, should_edit: f32, size: f64) {
         let mut r = rand::thread_rng();
-        self.hidden_weight = if r.gen::<f32>() < should_edit {
-                r.gen::<f64>()
-            } else {
-                self.hidden_weight * r.gen_range(-size, size)
-            };
+        if r.gen::<f32>() < should_edit {
+            self.hidden_weight = r.gen::<f64>()
+        } else {
+            self.hidden_weight *= r.gen_range(-size, size)
+        };
     }
 
 
     fn activate(&mut self, incoming: &HashMap<i32, Option<f64>>) -> f64 {
         let total = incoming.iter()
             .fold(0.0, |sum, (_, value)| {
-                sum + value.unwrap() + (self.hidden_input * self.hidden_weight)
-            });
+                sum + value.unwrap()
+            }) + (self.hidden_input * self.hidden_weight);
         self.hidden_input = self.activation.activate(total);
         self.hidden_input
     }

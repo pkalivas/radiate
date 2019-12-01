@@ -11,6 +11,8 @@ use radiate::prelude::*;
 
 fn main() -> Result<(), Box<dyn Error>> {
 
+
+
     let thread_time = Instant::now();
     let mut neat_env = NeatEnvironment::new()
         .set_input_size(1)
@@ -26,7 +28,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_c3(0.003)
         .set_node_types(vec![
             NodeType::Recurrent,
-            NodeType::Dense
+            // NodeType::Dense
         ])
         .set_activation_functions(vec![
             Activation::Tahn,
@@ -54,11 +56,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         ])
         .run(|_, fit, num| {
             println!("Generation: {} score: {}", num, fit);
-            num == 150
+            num == 50
         })?;
         
 
-    let ism = ISM::new();
+    let ism = ISM::new(1);
     println!("{:#?}", ism);
     let total = ism.solve(&solution);
 
@@ -84,8 +86,10 @@ pub struct ISM {
 
 
 impl ISM {
-    pub fn new() -> Self {
-        let data = ISM::read_data().unwrap();
+
+
+    pub fn new(back: usize) -> Self {
+        let data = ISM::read_data(back).unwrap();
         ISM {
             inputs: data.0,
             answers: data.1
@@ -103,6 +107,7 @@ impl ISM {
             })
     }
 
+
     fn maximum(nums: &Vec<Vec<f64>>) -> f64 {
         nums.iter()
             .fold(-1000.0, |max, curr| {
@@ -114,7 +119,7 @@ impl ISM {
     }
 
 
-    fn read_data() -> Result<(Vec<Vec<f64>>, Vec<Vec<f64>>), Box<dyn Error>> {
+    fn read_data(back: usize) -> Result<(Vec<Vec<f64>>, Vec<Vec<f64>>), Box<dyn Error>> {
         let mut reader = csv::Reader::from_path("C:\\Users\\Peter\\Desktop\\software\\radiate\\examples\\recurrent-neat\\src\\ism.csv").unwrap();
         let mut data = Vec::new();
         for result in reader.records() {
@@ -129,14 +134,25 @@ impl ISM {
                 vec![(x[0] - smallest) / (biggest - smallest)]
             })
             .collect();
-        
-        let mut answers = data.clone();
-        let mut inputs = data.clone();
-        inputs.reverse();
-        answers.reverse();
-        inputs.pop();
-        answers.remove(0);
-        Ok((inputs, answers))
+                           
+        let mut temp = data.iter().map(|x| x[0]).collect::<Vec<_>>();
+        temp.reverse();
+        Ok(ISM::layer(back, temp))
+    }
+
+
+    fn layer(back: usize, data: Vec<f64>) -> (Vec<Vec<f64>>, Vec<Vec<f64>>) {
+        let mut output = Vec::new();
+        let mut answer = Vec::new();
+        for i in 0..data.len() - back{
+            let mut temp = Vec::with_capacity(back);
+            for j in 0..back {
+                temp.push(data[i + j]);
+            }
+            answer.push(vec![data[i + back]]);
+            output.push(temp);
+        }
+        (output, answer)
     }
 
 
@@ -144,7 +160,7 @@ impl ISM {
         let mut writer = csv::Writer::from_path("C:\\Users\\Peter\\Desktop\\software\\radiate\\examples\\recurrent-neat\\src\\output.csv").unwrap();
         for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
             let guess = solution.feed_forward(&i).unwrap();
-            writer.write_record(&[i[0].to_string(), o[0].to_string(), guess[0].to_string()]);
+            writer.write_record(&[i[0].to_string(), o[0].to_string(), guess[0].to_string()]).unwrap();
         }
         writer.flush().unwrap();
     }
@@ -154,10 +170,12 @@ impl ISM {
         println!("\n");
         for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
             let guess = model.feed_forward(&i).unwrap();
-            println!("Input: {:.2?} Answer: {:.2?} Guess: {:.2?}", i[0], o[0], guess);
+            println!("Input: {:?} Answer: {:?} Guess: {:.2?}", i, o, guess);
         }
     }
+    
 
+    #[allow(dead_code)]
     fn backprop(&self, model: &mut Neat) {
         for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
             model.backprop(i, o, 0.1);
@@ -167,15 +185,15 @@ impl ISM {
 }
 
 
+
 unsafe impl Send for ISM {}
 unsafe impl Sync for ISM {}
 
 
 
-
 impl Problem<Neat> for ISM {
 
-    fn empty() -> Self { ISM::new() }
+    fn empty() -> Self { ISM::new(1) }
 
     fn solve(&self, model: &Neat) -> f64 {
         let mut total = 0.0;
