@@ -123,16 +123,16 @@ impl<T, E> Generation<T, E>
         where 
             T: Clone,
             P: Problem<T> + Send + Sync
-     {
-         // concurrently iterate the members and optimize them
-         self.members
+    {
+        // concurrently iterate the members and optimize them
+        self.members
             .par_iter_mut()
             .for_each_with(prob, |problem, cont| {
                 (*cont).fitness_score = problem.solve(&*cont.member);
             });
         // return the top member from the optimization as a tuple (f64, Arc<T>)
         self.best_member()
-     }
+    }
 
 
 
