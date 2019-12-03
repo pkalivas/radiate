@@ -6,16 +6,14 @@ use std::error::Error;
 use std::time::Instant;
 use radiate::prelude::*;
 
-
+/// this doesn't work but very close
 
 
 fn main() -> Result<(), Box<dyn Error>> {
 
-
-
     let thread_time = Instant::now();
     let mut neat_env = NeatEnvironment::new()
-        .set_input_size(5)
+        .set_input_size(1)
         .set_output_size(1)
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
@@ -28,7 +26,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_c3(0.003)
         .set_node_types(vec![
             NodeType::Recurrent,
-            // NodeType::Dense
         ])
         .set_activation_functions(vec![
             Activation::Tahn,
@@ -40,11 +37,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let starting_net = Neat::base(&mut neat_env);
     let (solution, _) = Population::<Neat, NeatEnvironment, ISM>::new()
         .constrain(neat_env)
-        .size(250)
+        .size(150)
         .populate_clone(starting_net)
         .debug(true)
         .dynamic_distance(true)
-        .survivor_criteria(SurvivalCriteria::TopNumber(10))
         .configure(Config {
             inbreed_rate: 0.001,
             crossover_rate: 0.50,
@@ -56,11 +52,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         ])
         .run(|_, fit, num| {
             println!("Generation: {} score: {}", num, fit);
-            num == 50
+            num == 200
         })?;
         
 
-    let ism = ISM::new(5);
+    let ism = ISM::new(1);
     println!("{:#?}", ism);
     let total = ism.solve(&solution);
 
@@ -70,7 +66,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("Time in millis: {}", thread_time.elapsed().as_millis());
     ism.show(&solution);
     println!("Total: {}", total);
-    ism.write_data(&solution);
+    // ism.write_data(&solution);
     Ok(())
 }
 
@@ -195,7 +191,7 @@ unsafe impl Sync for ISM {}
 
 impl Problem<Neat> for ISM {
 
-    fn empty() -> Self { ISM::new(5) }
+    fn empty() -> Self { ISM::new(1) }
 
     fn solve(&self, model: &Neat) -> f64 {
         let mut total = 0.0;
@@ -213,3 +209,72 @@ impl Problem<Neat> for ISM {
     
 }
 
+
+
+#[derive(Debug)]
+struct dumbsimple {
+    inputs: Vec<Vec<f64>>,
+    outputs: Vec<Vec<f64>>
+}
+
+impl dumbsimple {
+
+    fn new() -> Self {
+        dumbsimple {
+            inputs: vec![
+                vec![0.0],
+                vec![0.0],
+                vec![0.0],
+                vec![1.0],
+                vec![0.0],
+                vec![0.0],
+                vec![0.0],
+            ],
+            outputs: vec![
+                vec![0.0],
+                vec![0.0],
+                vec![1.0],
+                vec![0.0],
+                vec![0.0],
+                vec![0.0],
+                vec![1.0],
+            ]
+        }
+    }
+
+
+
+    fn show(&self, model: &Neat) {
+        println!("\n");
+        for (i, o) in self.inputs.iter().zip(self.outputs.iter()) {
+            let guess = model.feed_forward(&i).unwrap();
+            println!("Input: {:?} Answer: {:?} Guess: {:.2?}", i, o, guess);
+        }
+    }
+}
+
+
+unsafe impl Send for dumbsimple {}
+unsafe impl Sync for dumbsimple {}
+
+
+
+impl Problem<Neat> for dumbsimple {
+
+    fn empty() -> Self { dumbsimple::new() }
+
+    fn solve(&self, model: &Neat) -> f64 {
+        let mut total = 0.0;
+        let mut goal = 0.0;
+        for (ins, outs) in self.inputs.iter().zip(self.outputs.iter()) {
+            match model.feed_forward(&ins) {
+                Ok(guess) => total += (guess[0] - outs[0]).powf(2.0),
+                Err(_) => panic!("Error in training NEAT")
+            }
+            // goal += outs[0];
+        }
+        // 7.0 - total
+        1.0 - ((1.0 / self.outputs.len() as f64) * total)
+    }
+    
+}

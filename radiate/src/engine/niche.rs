@@ -63,7 +63,7 @@ impl<T, E> Niche<T, E>
     /// Get the top performing member from the species by their 
     /// associated fitness score. If None is returned meaning there is 
     /// no members in the species, panic!
-    pub fn fittest(&self) -> (f64, Member<T>) {
+    pub fn fittest(&self) -> (f64, Member<T>) where T: Clone{
         let mut top: Option<&NicheMember<T>> = None;
         for i in self.members.iter() {
             if top.is_none() || i.0 > top.unwrap().0 {
@@ -72,7 +72,7 @@ impl<T, E> Niche<T, E>
         }
 
         match top {
-            Some(t) => (t.0, Arc::clone(&t.1.upgrade().unwrap())),
+            Some(t) => (t.0, Arc::new((*t.1.upgrade().unwrap()).clone())),
             None => panic!("Failed to get top species member.")
         }
     }
@@ -83,16 +83,18 @@ impl<T, E> Niche<T, E>
     /// age by one, then setting the total adjusted species back to None,
     /// and clearing the members vec. Basically starting from scratch again but 
     /// need to incremement a few small things to keep track of the species
-    pub fn reset(&mut self) {
-        let new_mascot = self.members.choose(&mut rand::thread_rng());
+    pub fn reset(&mut self) where T: Clone {
+        let new_mascot = Some(Arc::new((*self.members.choose(&mut rand::thread_rng()).unwrap().1.upgrade().unwrap()).clone())); // fix this, this is gross
         match new_mascot {
             Some(member) => {
                 self.age += 1;
                 self.total_adjusted_fitness = None;
-                self.mascot = Arc::clone(&member.1
-                    .upgrade()
-                    .unwrap_or_else(|| panic!("Cannot set a nonexistent type to a mascot"))
-                );
+                // self.mascot = member;
+                self.mascot = self.fittest().1;
+                // self.mascot = Arc::clone(&member.1
+                //     .upgrade()
+                //     .unwrap_or_else(|| panic!("Cannot set a nonexistent type to a mascot"))
+                // );
                 self.members = Vec::new();
             }, 
             None => panic!("Failed to get new mascot")

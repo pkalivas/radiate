@@ -69,7 +69,7 @@ pub struct Population<T, E, P>
 /// implmenet the population
 impl<T, E, P> Population<T, E, P>
     where
-        T: Genome<T, E> + Send + Sync,
+        T: Genome<T, E> + Send + Sync + Clone,
         E: Envionment + Sized + Send + Sync + Default,
         P: Problem<T>
 {

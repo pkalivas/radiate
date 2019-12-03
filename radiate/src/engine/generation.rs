@@ -70,8 +70,8 @@ pub struct Generation<T, E>
 /// implement the generation
 impl<T, E> Generation<T, E> 
     where
-        T: Genome<T, E> + Send + Sync,
-        E: Send + Sync
+        T: Genome<T, E> + Send + Sync + Clone,
+        E: Envionment + Sized + Send + Sync
 {
 
     /// Create a new generation
@@ -120,9 +120,7 @@ impl<T, E> Generation<T, E>
     /// The optimization function
     #[inline]
     pub fn optimize<P>(&mut self, prob: Arc<P>) -> Option<(f64, Arc<T>)>
-        where 
-            T: Clone,
-            P: Problem<T> + Send + Sync
+        where P: Problem<T> + Send + Sync
     {
         // concurrently iterate the members and optimize them
         self.members
@@ -180,11 +178,7 @@ impl<T, E> Generation<T, E>
     /// fn from the genome trait, the more effecent that function is, the faster
     /// this function will be.
     #[inline]
-    pub fn create_next_generation(&mut self, pop_size: i32, config: Config, env: &Arc<RwLock<E>>) -> Option<Self>
-        where 
-            T: Sized + Clone,
-            E: Envionment + Sized + Send + Sync
-    {   
+    pub fn create_next_generation(&mut self, pop_size: i32, config: Config, env: &Arc<RwLock<E>>) -> Option<Self> {   
         // generating new members in a biased way using rayon to parallize it
         // then crossover to fill the rest of the generation 
         let mut new_members = self.survival_criteria.pick_survivers(&mut self.members, &self.species)?;
@@ -210,9 +204,7 @@ impl<T, E> Generation<T, E>
     
     /// get the top member of the generations
     #[inline] 
-    pub fn best_member(&self) -> Option<(f64, Arc<T>)>
-        where T: Genome<T, E> + Clone 
-    {
+    pub fn best_member(&self) -> Option<(f64, Arc<T>)> {
         let mut top: Option<&Container<T, E>> = None;
         for i in self.members.iter() {
             if top.is_none() || i.fitness_score > top?.fitness_score {
@@ -221,7 +213,7 @@ impl<T, E> Generation<T, E>
         }
         // return the best member of the generation
         match top {
-            Some(t) => Some((t.fitness_score, Arc::clone(&t.member))),
+            Some(t) => Some((t.fitness_score, Arc::new((*t.member).clone()))),
             None => None
         }
     }
