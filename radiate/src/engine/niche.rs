@@ -43,7 +43,7 @@ pub struct Niche<T, E> {
 /// Implement the species
 impl<T, E> Niche<T, E>
     where
-        T: Genome<T, E> + Send + Sync,
+        T: Genome<T, E> + Send + Sync + Clone,
         E: Send + Sync
 {
 
@@ -63,7 +63,7 @@ impl<T, E> Niche<T, E>
     /// Get the top performing member from the species by their 
     /// associated fitness score. If None is returned meaning there is 
     /// no members in the species, panic!
-    pub fn fittest(&self) -> (f64, Member<T>) where T: Clone{
+    pub fn fittest(&self) -> (f64, Member<T>) {
         let mut top: Option<&NicheMember<T>> = None;
         for i in self.members.iter() {
             if top.is_none() || i.0 > top.unwrap().0 {
@@ -83,18 +83,13 @@ impl<T, E> Niche<T, E>
     /// age by one, then setting the total adjusted species back to None,
     /// and clearing the members vec. Basically starting from scratch again but 
     /// need to incremement a few small things to keep track of the species
-    pub fn reset(&mut self) where T: Clone {
-        let new_mascot = Some(Arc::new((*self.members.choose(&mut rand::thread_rng()).unwrap().1.upgrade().unwrap()).clone())); // fix this, this is gross
+    pub fn reset(&mut self) {
+        let new_mascot = self.members.choose(&mut rand::thread_rng());
         match new_mascot {
             Some(member) => {
                 self.age += 1;
                 self.total_adjusted_fitness = None;
-                // self.mascot = member;
-                self.mascot = self.fittest().1;
-                // self.mascot = Arc::clone(&member.1
-                //     .upgrade()
-                //     .unwrap_or_else(|| panic!("Cannot set a nonexistent type to a mascot"))
-                // );
+                self.mascot = Arc::new((*member.1.upgrade().unwrap()).clone());
                 self.members = Vec::new();
             }, 
             None => panic!("Failed to get new mascot")

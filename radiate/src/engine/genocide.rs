@@ -33,7 +33,7 @@ impl Genocide {
     /// population by it.
     pub fn kill<T, E>(&self, generation: &mut Generation<T, E>)
         where 
-            T: Genome<T, E> + Send + Sync,
+            T: Genome<T, E> + Send + Sync + Clone,
             E: Send + Sync
     {
         match self {
@@ -125,7 +125,7 @@ impl Genocide {
     /// species from best-worst, then truncating the list to keep only the top num
     fn keep_top<T, E>(&self, generation: &mut Generation<T, E>, num: usize)
         where
-            T: Genome<T, E> + Send + Sync,
+            T: Genome<T, E> + Send + Sync + Clone,
             E: Send + Sync
     {
         generation.species
