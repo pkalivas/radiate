@@ -17,19 +17,18 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_output_size(1)
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
-        .set_weight_perturb(1.75)
-        .set_new_node_rate(0.03)
-        .set_new_edge_rate(0.04)
+        .set_weight_perturb(2.0)
+        .set_new_node_rate(0.2)
+        .set_new_edge_rate(0.2)
         .set_reactivate(0.2)
         .set_c1(1.0)
         .set_c2(1.0)
-        .set_c3(0.003)
+        .set_c3(0.0003)
         .set_node_types(vec![
             NodeType::Recurrent,
         ])
         .set_activation_functions(vec![
             Activation::Tahn,
-            Activation::Relu
         ])
         .start_innov_counter();
 
@@ -118,7 +117,8 @@ impl ISM {
 
 
     fn read_data(back: usize) -> Result<(Vec<Vec<f64>>, Vec<Vec<f64>>), Box<dyn Error>> {
-        let mut reader = csv::Reader::from_path("C:\\Users\\Peter\\Desktop\\software\\radiate\\examples\\recurrent-neat\\src\\ism.csv").unwrap();
+        // let mut reader = csv::Reader::from_path("C:\\Users\\Peter\\Desktop\\software\\radiate\\examples\\recurrent-neat\\src\\ism.csv").unwrap();
+        let mut reader = csv::Reader::from_path("C:\\Users\\pkalivas\\Desktop\\radiate\\examples\\recurrent-neat\\src\\ism.csv").unwrap();
         let mut data = Vec::new();
         for result in reader.records() {
             let temp = result.unwrap();
@@ -155,7 +155,8 @@ impl ISM {
 
 
     fn write_data(&self, solution: &Neat) {
-        let mut writer = csv::Writer::from_path("C:\\Users\\Peter\\Desktop\\software\\radiate\\examples\\recurrent-neat\\src\\output.csv").unwrap();
+        // let mut writer = csv::Writer::from_path("C:\\Users\\Peter\\Desktop\\software\\radiate\\examples\\recurrent-neat\\src\\output.csv").unwrap();
+        let mut writer = csv::Writer::from_path("C:\\Users\\pkalivas\\Desktop\\radiate\\examples\\recurrent-neat\\src\\ism.csv").unwrap();
         for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
             let guess = solution.feed_forward(&i).unwrap();
             writer.write_record(&[i[0].to_string(), o[0].to_string(), guess[0].to_string()]).unwrap();
