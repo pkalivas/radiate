@@ -81,18 +81,6 @@ impl Dense {
         layer
     }
 
-
-    
-    // pub fn as_ref<L: Layer>(&self) -> &L {
-    //     self.as_ref_any().downcast_ref::<L>().unwrap()
-    // }
-
-
-
-    // pub fn as_mut<L: Layer>(&mut self) -> &mut L {
-    //     self.as_mut_any().downcast_mut::<L>().unwrap()
-    // }
-
     
 
     /// reset all the neurons in the network so they can be fed forward again

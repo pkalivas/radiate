@@ -1,8 +1,0 @@
-[package]
-name = "wmax-neat"
-description = "XOR for redox using evtree."
-version = "1.0.0"
-authors = ["pkalivas <peterkalivas@gmail.com>"]
-
-[dependencies]
-radiate={path="../../radiate"}
