@@ -2,10 +2,10 @@
 
 use std::collections::HashMap;
 use super::counter::Counter;
-use super::neurons::activation::Activation;
+use super::activation::Activation;
 use super::edge::Edge;
-use super::nodetype::NodeType;
-use super::vertex::Vertex;
+use super::neurontype::NeuronType;
+use super::neuron::Neuron;
 
 use crate::engine::environment::Envionment;
 
@@ -41,12 +41,11 @@ pub struct NeatEnvironment {
     pub input_size: Option<i32>,
     pub output_size: Option<i32>,
     pub activation_functions: Vec<Activation>,
-    pub node_types: Vec<NodeType>,
 
     // global variables for evolution
     pub innov_counter: Counter,
     pub global_edges: HashMap<(i32, i32), Edge>,
-    pub global_nodes: HashMap<(i32, i32), Vertex>
+    pub global_nodes: HashMap<(i32, i32), Neuron>
 }
 
 
@@ -66,7 +65,6 @@ impl NeatEnvironment {
             input_size: None,
             output_size: None,
             activation_functions: vec![Activation::Sigmoid],
-            node_types: vec![NodeType::Dense],
             innov_counter: Counter::new(),
             global_edges: HashMap::new(),
             global_nodes: HashMap::new()
@@ -152,18 +150,13 @@ impl NeatEnvironment {
     }
 
 
-    pub fn set_node_types(mut self, node_types: Vec<NodeType>) -> Self {
-        self.node_types = node_types;
-        self
-    }
-
 
     pub fn get_mut_counter(&mut self) -> &mut Counter {
         &mut self.innov_counter
     }
 
 
-    pub fn get_mut_nodes(&mut self) -> &mut HashMap<(i32, i32), Vertex> {
+    pub fn get_mut_nodes(&mut self) -> &mut HashMap<(i32, i32), Neuron> {
         &mut self.global_nodes
     }
 

@@ -13,18 +13,18 @@ pub use models::{
         evenv::TreeEnvionment
     },
     neat::{
-        layer::Layer,
-        nodetype::NodeType,
+        layers::{
+            layer::Layer,
+            layertype::LayerType,
+            dense::Dense,
+        },
+        neurontype::NeuronType,
         edge::Edge,
-        vertex::Vertex,
+        neuron::Neuron,
         counter::Counter,
         neat::Neat,
         neatenv::NeatEnvironment,
-        neurons::{
-            neuron::Neuron,
-            activation::Activation,
-            dense::Dense
-        }
+        activation::Activation,
     }
 };
 
