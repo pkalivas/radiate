@@ -501,18 +501,18 @@ impl Layer for Dense {
             // step through the network backwards and adjust the weights
             while path.len() > 0 {
                 // get the current node and it's error 
-                let curr_node = self.nodes.get(&path.pop().unwrap()).unwrap();
+                let curr_node = self.nodes.get(&path.pop()?)?;
                 let curr_node_error = (**curr_node).error? * learning_rate;
                 // iterate through each of the incoming edes to this neuron and adjust it's weight
                 // and add it's error to the errros map
                 for incoming_edge_innov in (**curr_node).incoming.keys() {
-                    let curr_edge = self.edges.get_mut(incoming_edge_innov).unwrap();
+                    let curr_edge = self.edges.get_mut(incoming_edge_innov)?;
                     // if the current edge is active, then it is contributing to the error and we need to adjust it
                     if curr_edge.active {
-                        let src_neuron = self.nodes.get(&curr_edge.src).unwrap();
+                        let src_neuron = self.nodes.get(&curr_edge.src)?;
                         let step = curr_node_error * (**curr_node).deactivate();
                         // add the weight step (gradient) * the currnet value to the weight to adjust the weight by the error
-                        curr_edge.weight += step * (**src_neuron).value.unwrap();
+                        curr_edge.weight += step * (**src_neuron).value?;
                         (**src_neuron).error = Some(curr_edge.weight * curr_node_error);
                         path.push(curr_edge.src);
                     }

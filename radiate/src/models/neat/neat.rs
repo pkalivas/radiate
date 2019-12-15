@@ -91,6 +91,7 @@ impl Neat {
     }
 
 
+    
     /// create an append a simple dense layer onto the network
     #[inline]
     pub fn dense(mut self, size: i32, env: &mut NeatEnvironment, activation: Activation) -> Self {
