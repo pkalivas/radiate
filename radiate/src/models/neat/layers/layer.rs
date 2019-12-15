@@ -16,6 +16,8 @@ pub trait Mutate<L>
     fn mutate(child: &mut L, parent_one: &L, parent_two: &L, env: &Arc<RwLock<NeatEnvironment>>, crossover_rate: f32) 
         where 
             Self: Sized + Send + Sync;
+
+    fn distance(one: &L, two: &L, env: &Arc<RwLock<NeatEnvironment>>) -> f64;
 }
 
 
@@ -31,6 +33,8 @@ pub trait Layer: LayerClone + Any {
     fn as_mut_any(&mut self) -> &mut dyn Any;
 
     fn shape(&self) -> (usize, usize);
+
+    fn max_marker(&self) -> i32;
 
 }
 

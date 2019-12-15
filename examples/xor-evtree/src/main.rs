@@ -79,7 +79,7 @@ impl Problem<Evtree> for XOR {
 
     fn empty() -> Self { XOR::new() }
 
-    fn solve(&self, model: &Evtree) -> f64 {
+    fn solve(&self, model: &mut Evtree) -> f64 {
         let mut total = 0.0;
         for (ins, outs) in self.inputs.iter().zip(self.answers.iter()) {
             let temp_cpy: Vec<f64> = (0..ins.len()).map(|x| ins[x]).collect();

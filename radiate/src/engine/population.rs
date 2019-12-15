@@ -1,3 +1,4 @@
+
 extern crate rayon;
 
 use std::sync::{Arc, RwLock};
@@ -57,7 +58,7 @@ pub struct Population<T, E, P>
     config: Config,
     curr_gen: Generation<T, E>,
     stagnation: Stagnant,
-    solve: Arc<P>,
+    solve: Arc<RwLock<P>>,
     environment: Arc<RwLock<E>>,
     survivor_criteria: SurvivalCriteria,
     parental_criteria: ParentalCriteria
@@ -92,7 +93,7 @@ impl<T, E, P> Population<T, E, P>
             stagnation: Stagnant::new(0, Vec::new()),
             // Arc<Problem> so the problem can be sent between threads safely without duplicating the problem, 
             // if the problem gets duplicated every time a supervised learning problem with a lot of data could take up a ton of memory
-            solve: Arc::new(P::empty()),
+            solve: Arc::new(RwLock::new(P::empty())),
             // create a new solver settings that will hold the specific settings for the defined solver 
             // that will allow the structure to evolve through generations
             environment: Arc::new(RwLock::new(E::default())),
@@ -240,7 +241,7 @@ impl<T, E, P> Population<T, E, P>
                 .map(|_| {
                     let mut lock_set = self.environment.write().unwrap();
                     Container {
-                        member: Arc::new(T::base(&mut lock_set)),
+                        member: Arc::new(RwLock::new(T::base(&mut lock_set))),
                         fitness_score: 0.0,
                         species: None
                     }    
@@ -259,7 +260,7 @@ impl<T, E, P> Population<T, E, P>
             members: vals.into_iter()
                 .map(|x| {
                     Container {
-                        member: Arc::new(x),
+                        member: Arc::new(RwLock::new(x)),
                         fitness_score: 0.0,
                         species: None
                     }
@@ -281,7 +282,7 @@ impl<T, E, P> Population<T, E, P>
                 .into_iter()
                 .map(|_| {
                     Container {
-                        member: Arc::new(original.clone()),
+                        member: Arc::new(RwLock::new(original.clone())),
                         fitness_score: 0.0,
                         species: None
                     }
@@ -334,7 +335,7 @@ impl<T, E, P> Population<T, E, P>
     /// will not solve anything if this isn't set. This is really
     /// the most important arguemnt for the population
     pub fn impose(mut self, prob: P) -> Self {
-        self.solve = Arc::new(prob);
+        self.solve = Arc::new(RwLock::new(prob));
         self
     }
     

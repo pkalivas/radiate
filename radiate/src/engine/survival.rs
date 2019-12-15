@@ -2,7 +2,7 @@
 extern crate rayon;
 extern crate rand;
 
-use std::sync::{Arc};
+use std::sync::{Arc, RwLock};
 use rand::Rng;
 use rand::rngs::ThreadRng;
 use rand::seq::SliceRandom;
@@ -63,7 +63,7 @@ impl SurvivalCriteria {
 
     /// Based on the survival critera, given a vec of containers and families, pick who survives
     #[inline]
-    pub fn pick_survivers<T, E>(&self, members: &mut Vec<Container<T, E>>, families: &Vec<Family<T, E>>) -> Option<Vec<Arc<T>>>
+    pub fn pick_survivers<T, E>(&self, members: &mut Vec<Container<T, E>>, families: &Vec<Family<T, E>>) -> Option<Vec<Arc<RwLock<T>>>>
         where
             T: Genome<T, E> + Send + Sync + Clone,
             E: Send + Sync
@@ -89,7 +89,7 @@ impl SurvivalCriteria {
     /// TopNumer and TopPercent are basically the same so this function does the job of both of them,
     /// just convert the percent to a number before calling the function
     #[inline]
-    fn get_top_num<T, E>(num_to_keep: usize, members: &mut Vec<Container<T, E>>) -> Option<Vec<Arc<T>>>
+    fn get_top_num<T, E>(num_to_keep: usize, members: &mut Vec<Container<T, E>>) -> Option<Vec<Arc<RwLock<T>>>>
         where
             T: Genome<T, E> + Send + Sync + Clone,
             E: Send + Sync

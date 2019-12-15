@@ -3,7 +3,7 @@ extern crate rand;
 extern crate statrs;
 
 use std::mem;
-use std::sync::{Arc};
+use std::sync::{Arc, RwLock};
 use std::marker::PhantomData;
 use rand::prelude::SliceRandom;
 use rayon::prelude::*;
@@ -72,7 +72,7 @@ impl<T, E> Niche<T, E>
         }
 
         match top {
-            Some(t) => (t.0, Arc::new((*t.1.upgrade().unwrap()).clone())),
+            Some(t) => (t.0, Arc::new(RwLock::new((*t.1.upgrade().unwrap()).read().unwrap().clone()))),
             None => panic!("Failed to get top species member.")
         }
     }
@@ -89,7 +89,7 @@ impl<T, E> Niche<T, E>
             Some(member) => {
                 self.age += 1;
                 self.total_adjusted_fitness = None;
-                self.mascot = Arc::new((*member.1.upgrade().unwrap()).clone());
+                self.mascot = Arc::new(RwLock::new((*member.1.upgrade().unwrap()).read().unwrap().clone()));
                 self.members = Vec::new();
             }, 
             None => panic!("Failed to get new mascot")
@@ -145,3 +145,4 @@ impl<T, E> Niche<T, E>
     }
 
 }
+

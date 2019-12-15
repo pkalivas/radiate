@@ -83,6 +83,6 @@ pub mod problem {
         /// Solve is what actually solves the problem , given a solver (the genome type)
         /// use the data in the type implementing the problem to sovle the problem and return
         /// the member's score. The result of this function is the member's fitness score 
-        fn solve(&self, member: &T) -> f64;
+        fn solve(&self, member: &mut T) -> f64;
     }
 }

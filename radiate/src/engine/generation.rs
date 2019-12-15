@@ -1,4 +1,3 @@
-
 extern crate rand;
 
 use std::sync::{Arc, Weak, RwLock};
@@ -18,10 +17,10 @@ use super::{
 /// The member type is meant to represent a holder for 
 /// just the type T, where it has an owning reference counter
 /// then wrapped in a ref cell to allow for mutable borrowing of the Rc
-pub type Member<T> = Arc<T>;
+pub type Member<T> = Arc<RwLock<T>>;
 /// the MemberWeak is meant to be a Nonowning member type pointing to the 
 /// same memory space but not having the same owning ability of the data
-pub type MemberWeak<T> = Weak<T>;
+pub type MemberWeak<T> = Weak<RwLock<T>>;
 
 /// A family is a wrapper for a species type which ownes the data it 
 /// holds. This is needed as there are many references to a species 
@@ -119,14 +118,14 @@ impl<T, E> Generation<T, E>
 
     /// The optimization function
     #[inline]
-    pub fn optimize<P>(&mut self, prob: Arc<P>) -> Option<(f64, Arc<T>)>
+    pub fn optimize<P>(&mut self, prob: Arc<RwLock<P>>) -> Option<(f64, Arc<T>)>
         where P: Problem<T> + Send + Sync
     {
         // concurrently iterate the members and optimize them
         self.members
             .par_iter_mut()
             .for_each_with(prob, |problem, cont| {
-                (*cont).fitness_score = problem.solve(&*cont.member);
+                (*cont).fitness_score = problem.read().unwrap().solve(&mut *cont.member.write().unwrap());
             });
         // return the top member from the optimization as a tuple (f64, Arc<T>)
         self.best_member()
@@ -144,8 +143,7 @@ impl<T, E> Generation<T, E>
             // see if this member belongs to a given species 
             let mem_spec = self.species.iter()
                 .find(|s| {
-                    let lock_spec = s.read().unwrap();
-                    <T as Genome<T, E>>::distance(&*cont.member, &*lock_spec.mascot, settings) < distance
+                    <T as Genome<T, E>>::distance(&*cont.member.read().unwrap(), &*s.read().unwrap().mascot.read().unwrap(), settings) < distance
                 });
             // if the member does belong to an existing species, add the two to each other 
             // otherwise create a new species and add that to the species and the member 
@@ -188,11 +186,11 @@ impl<T, E> Generation<T, E>
                 // select two random species to crossover, with a chance of inbreeding then cross them over
                 let (one, two) = self.parental_criteria.pick_parents(config.inbreed_rate, &self.species).unwrap();
                 let child = if one.0 > two.0 {
-                    <T as Genome<T, E>>::crossover(&*one.1, &*two.1, env, config.crossover_rate).unwrap()
+                    <T as Genome<T, E>>::crossover(&*one.1.read().unwrap(), &*two.1.read().unwrap(), env, config.crossover_rate).unwrap()
                 } else {
-                    <T as Genome<T, E>>::crossover(&*two.1, &*one.1, env, config.crossover_rate).unwrap()
+                    <T as Genome<T, E>>::crossover(&*two.1.read().unwrap(), &*one.1.read().unwrap(), env, config.crossover_rate).unwrap()
                 };
-                Arc::new(child)
+                Arc::new(RwLock::new(child))
             })
             .collect::<Vec<_>>();
         // reset the species and passdown the new members to a new generation
@@ -213,7 +211,7 @@ impl<T, E> Generation<T, E>
         }
         // return the best member of the generation
         match top {
-            Some(t) => Some((t.fitness_score, Arc::new((*t.member).clone()))),
+            Some(t) => Some((t.fitness_score, Arc::new((*t.member).read().unwrap().clone()))),
             None => None
         }
     }

@@ -82,11 +82,19 @@ impl Dense {
     }
 
 
+    
+    // pub fn as_ref<L: Layer>(&self) -> &L {
+    //     self.as_ref_any().downcast_ref::<L>().unwrap()
+    // }
 
 
 
+    // pub fn as_mut<L: Layer>(&mut self) -> &mut L {
+    //     self.as_mut_any().downcast_mut::<L>().unwrap()
+    // }
 
     
+
     /// reset all the neurons in the network so they can be fed forward again
     #[inline]
     unsafe fn reset_neurons(&self) {
@@ -295,21 +303,6 @@ impl Dense {
                 edge.weight *= r.gen_range(-size, size);
             }
         }
-    }
-
-
-
-    /// find the max edge innovation number from the network for determing 
-    /// the genetic_structure of this network
-    #[inline]
-    fn max_marker(&self) -> i32 {
-        let mut result = None;
-        for key in self.edges.keys() {
-            if result.is_none() || key > result.unwrap() {
-                result = Some(key);
-            }
-        }
-        *result.unwrap_or_else(|| panic!("Failed to find max marker"))
     }
 
 
@@ -544,8 +537,116 @@ impl Layer for Dense {
         (self.inputs.len(), self.outputs.len())
     }
 
+    /// find the max edge innovation number from the network for determing 
+    /// the genetic_structure of this network
+    #[inline]
+    fn max_marker(&self) -> i32 {
+        let mut result = None;
+        for key in self.edges.keys() {
+            if result.is_none() || key > result.unwrap() {
+                result = Some(key);
+            }
+        }
+        *result.unwrap_or_else(|| panic!("Failed to find max marker"))
+    }
 
 }
+
+
+impl Mutate<Dense> for Dense
+    where Dense: Layer
+{
+    fn mutate(child: &mut  Dense, _: &Dense, parent_two: &Dense, env: &Arc<RwLock<NeatEnvironment>>, crossover_rate: f32) 
+        where Self: Sized + Send + Sync
+    {
+        unsafe {
+            let mut set = (*env).write().unwrap();
+            let mut r = rand::thread_rng();
+            if r.gen::<f32>() < crossover_rate {
+                for (innov, edge) in child.edges.iter_mut() {
+                    // if the edge is in both networks, then radnomly assign the weight to the edge
+                    if parent_two.edges.contains_key(innov) {
+                        if r.gen::<f32>() < 0.5 {
+                            edge.weight = parent_two.edges.get(innov).unwrap().weight;
+                        }
+                        // if the edge is deactivated in either network and a random number is less than the 
+                        // reactivate parameter, then reactiveate the edge and insert it back into the network
+                        if (!edge.active || !parent_two.edges.get(innov).unwrap().active) && r.gen::<f32>() < set.reactivate.unwrap() {
+                            (**child.nodes.get(&edge.src).unwrap()).outgoing.push(*innov);
+                            (**child.nodes.get(&edge.dst).unwrap()).incoming.insert(*innov, None);
+                            edge.active = true;
+                        }
+                    }
+                }
+            } else {
+                // if a random number is less than the edit_weights parameter, then edit the weights of the network edges
+                // add a possible new node to the network randomly 
+                // attempt to add a new edge to the network, there is a chance this operation will add no edge
+                if r.gen::<f32>() < set.weight_mutate_rate.unwrap() {
+                    child.edit_weights(set.edit_weights.unwrap(), set.weight_perturb.unwrap());
+                }
+                // if the layer is a dense pool then it can add nodes and connections to the layer as well
+                if child.layer_type == LayerType::DensePool {
+                    if r.gen::<f32>() < set.new_node_rate.unwrap() {
+                        let act_func = *set.activation_functions.choose(&mut r).unwrap();
+                        let new_node = child.add_node(set.get_mut_counter(), act_func).unwrap();
+                        Dense::neuron_control(child, &new_node, &mut set).ok().unwrap();
+                    }
+                    if r.gen::<f32>() < set.new_edge_rate.unwrap() {
+                        let new_edge = child.add_edge(set.get_mut_counter());
+                        Dense::edge_control(child, new_edge, &mut set);
+                    }
+                }
+            }
+        }
+    }
+
+
+
+    fn distance(one: &Dense, two: &Dense, env: &Arc<RwLock<NeatEnvironment>>) -> f64 {
+        // keep track of the number of excess and disjoint genes and the
+        // average weight of shared genes between the two networks 
+        // determin the largest network and it's max innovation number
+        // and store that and the smaller network and it's max innovation number
+        let (mut e, mut d) = (0.0, 0.0);
+        let (mut w, mut wc) = (0.0, 0.0);
+        let one_max = one.max_marker();
+        let two_max = two.max_marker();
+        let (big, small, small_innov) = if one_max > two_max { 
+            (one, two, two_max)
+        } else { 
+            (two, one, one_max)
+        };
+        // iterate through the larger network 
+        for (innov, edge) in big.edges.iter() {
+            // check if it's a sharred innvation number
+            if small.edges.contains_key(innov) {
+                w += (edge.weight - small.edges.get(innov).unwrap().weight).abs();
+                wc += 1.0;
+                continue;
+            }
+            if innov > &small_innov {
+                e += 1.0;
+            } else {
+                d += 1.0;
+            }
+        }
+        // disjoint genes can be found within both networks unlike excess, so we still need to 
+        // go through the smaller network and see if there are any disjoint genes in there as well
+        for innov in small.edges.keys() {
+            if !big.edges.contains_key(innov) {
+                d += 1.0;
+            }
+        }
+        // lock the env to get the comparing values from it  and make sure wc is greater than 0
+        let wc = if wc == 0.0 { 1.0 } else { wc };
+        let lock_env = (*env).read().unwrap();
+        // return the distance between the two networks
+        ((lock_env.c1.unwrap() * e) / big.edges.len() as f64) + ((lock_env.c2.unwrap() * d) / big.edges.len() as f64) + (lock_env.c3.unwrap() * (w / wc))
+    }
+}
+
+
 
 
 /// Implement clone for the neat neural network in order to facilitate 

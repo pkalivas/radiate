@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use super::counter::Counter;
 use super::activation::Activation;
 use super::edge::Edge;
-use super::neurontype::NeuronType;
 use super::neuron::Neuron;
 
 use crate::engine::environment::Envionment;
