@@ -65,25 +65,48 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 
     let xor = XOR::new();
-    let mut den = Dense::new(3, 1, LayerType::Dense, Activation::Sigmoid, neat_env.get_mut_counter());
-    den.add_node(neat_env.get_mut_counter(), Activation::Sigmoid);
-    den.add_edge(neat_env.get_mut_counter());
-    den.add_node(neat_env.get_mut_counter(), Activation::Sigmoid);
-    den.add_edge(neat_env.get_mut_counter());
-    den.add_node(neat_env.get_mut_counter(), Activation::Sigmoid);
-    den.add_edge(neat_env.get_mut_counter());
-    den.add_edge(neat_env.get_mut_counter());
-    den.add_edge(neat_env.get_mut_counter());
+    // let mut den = Dense::new(3, 1, LayerType::Dense, Activation::Sigmoid, neat_env.get_mut_counter());
+    // den.add_node(neat_env.get_mut_counter(), Activation::Sigmoid);
+    // den.add_edge(neat_env.get_mut_counter());
+    // den.add_node(neat_env.get_mut_counter(), Activation::Sigmoid);
+    // den.add_edge(neat_env.get_mut_counter());
+    // den.add_node(neat_env.get_mut_counter(), Activation::Sigmoid);
+    // den.add_edge(neat_env.get_mut_counter());
+    // den.add_edge(neat_env.get_mut_counter());
+    // den.add_edge(neat_env.get_mut_counter());
+    // den.add_node(neat_env.get_mut_counter(), Activation::Sigmoid);
+    // den.add_edge(neat_env.get_mut_counter());
+    // den.add_node(neat_env.get_mut_counter(), Activation::Sigmoid);
+    // den.add_edge(neat_env.get_mut_counter());
+    // den.add_node(neat_env.get_mut_counter(), Activation::Sigmoid);
+    // den.add_edge(neat_env.get_mut_counter());
+    // den.add_node(neat_env.get_mut_counter(), Activation::Sigmoid);
+    // den.add_edge(neat_env.get_mut_counter());
+    // den.add_node(neat_env.get_mut_counter(), Activation::Sigmoid);
+    // den.add_edge(neat_env.get_mut_counter());
+    // den.add_node(neat_env.get_mut_counter(), Activation::Sigmoid);
+    // den.add_edge(neat_env.get_mut_counter());
 
+    // for _ in 0..2500 {
+    //     xor.b(&mut den);
+    // }
+    // xor.s(&mut den);
 
+    let mut net = Neat::new()
+        .dense(7, &mut neat_env)
+        .dense(7, &mut neat_env)
+        .dense(1, &mut neat_env);
 
-    den.see();
+    // den.see();
     for _ in 0..5000 {
-        xor.b(&mut den);
-        // den.see();
-        // println!("\n\n\n");
+        xor.backprop(&mut net);
     }
-    xor.s(&mut den);
+    xor.show(&mut net);
+
+    // for layer in net.layers.iter() {
+    //     layer.see();
+    //     println!("\n");
+    // }
 
     Ok(())
 }
@@ -118,9 +141,9 @@ impl XOR {
 
     fn b(&self, model: &mut Dense) {
         for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
-            model.propagate(&i).unwrap();
-            model.backprop(o, 0.5);
-            // model.testb(i, o, 0.5);
+            let out = model.propagate(&i).unwrap();
+            let error = o.iter().zip(out.iter()).map(|(out, pred)| out - pred).collect();
+            model.backprop(&error, 0.5);
         }
     }
 
@@ -133,13 +156,19 @@ impl XOR {
     }
 
 
-    // fn show(&self, model: &Neat) {
-    //     println!("\n");
-    //     for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
-    //         let guess = model.feed_forward(&i).unwrap();
-    //         println!("Guess: {:.2?} Answer: {:.2}", guess, o[0]);
-    //     }
-    // }
+    fn backprop(&self, model: &mut Neat) {
+        for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
+            model.backprop(i, o, 0.5);
+        }
+    }
+
+    fn show(&self, model: &mut Neat) {
+        println!("\n");
+        for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
+            let guess = model.feed_forward(&i).unwrap();
+            println!("Guess: {:.2?} Answer: {:.2}", guess, o[0]);
+        }
+    }
 
 }
 

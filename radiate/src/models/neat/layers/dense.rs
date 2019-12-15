@@ -66,7 +66,7 @@ impl Dense {
             for j in layer.outputs.iter() {
                 let src = layer.nodes.get(i).unwrap();
                 let dst = layer.nodes.get(j).unwrap();
-                let new_edge = Edge::new(*i, *j, counter.next(), 1.0, true);
+                let new_edge = Edge::new(*i, *j, counter.next(), rand::thread_rng().gen::<f64>(), true);
                 unsafe { (**src).outgoing.push(new_edge.innov); }
                 unsafe { (**dst).incoming.insert(new_edge.innov, None); }
                 layer.edges.insert(new_edge.innov, new_edge);
@@ -419,96 +419,6 @@ impl Dense {
         }
     }
 
-    #[inline]
-    pub fn testb(&mut self, data: &Vec<f64>, targets: &Vec<f64>, learning_rate: f64) -> Option<Vec<f64>> {
-        // feed forward the input data to get the output in order to compute the error of the network
-        // create a dfs stack to step backwards through the network and compute the error of each neuron
-        // then insert that error in a hashmap to keep track of innov of the neuron and it's error 
-        // 
-        unsafe  {
-            let prediction = self.feed_forward(data);
-            let mut path = self.outputs.iter().map(|x| *x).collect::<Vec<_>>();
-            let mut errors = HashMap::new();
-            for i in 0..self.outputs.len() {
-                errors.insert(self.outputs[i], targets[i] - prediction[i]);
-            }
-            // step through the network backwards and adjust the weights
-            while path.len() > 0 {
-                // get the current node and it's error 
-                let curr_node = self.nodes.get(&path.pop().unwrap()).unwrap();
-                let curr_node_error = *errors.get(&(**curr_node).innov).unwrap() * learning_rate;
-                // iterate through each of the incoming edes to this neuron and adjust it's weight
-                // and add it's error to the errros map
-                for incoming_edge_innov in (**curr_node).incoming.keys() {
-                    let curr_edge = self.edges.get_mut(incoming_edge_innov).unwrap();
-                    // if the current edge is active, then it is contributing to the error and we need to adjust it
-                    if curr_edge.active {
-                        let src_neuron = self.nodes.get(&curr_edge.src).unwrap();
-                        let step = curr_node_error * (**curr_node).deactivate();
-                        // add the weight step (gradient) * the currnet value to the weight to adjust the weight by the error
-                        curr_edge.weight += step * (**src_neuron).value.unwrap();
-                        errors.insert(curr_edge.src, curr_edge.weight * curr_node_error);
-                        path.push(curr_edge.src);
-                    }
-                }
-            }
-            let mut output = Vec::with_capacity(self.inputs.len());
-            for innov in self.inputs.iter() {
-                output.push((**self.nodes.get(innov)?).error?);
-            }
-            Some(output)
-        }
-    }
-
-    #[inline]
-    pub fn feed_forward(&self, data: &Vec<f64>) -> Vec<f64> {
-        unsafe {
-            // reset the network by clearing the previous outputs from the neurons 
-            // this could be done more efficently if i didn't want to implement backprop
-            // or recurent nodes, however this must be done this way in order to allow for the 
-            // needed values for those algorithms to remain while they are needed 
-            // give the input data to the input neurons and return back 
-            // a stack to do a graph traversal to feed the inputs through the network
-            self.reset_neurons();
-            let mut path = self.give_inputs(data);
-            // while the path is still full, continue feeding forward 
-            // the data in the network, this is basically a dfs traversal
-            while path.len() > 0 {
-                // remove the top elemet to propagate it's value
-                let curr_node = self.nodes.get(&path.pop().unwrap()).unwrap();
-                // no node should be in the path if it's value has not been set 
-                // iterate through the current nodes outgoing connections 
-                // to get its value and give that value to it's connected node
-                if let Some(val) = (**curr_node).value {
-                    for edge_innov in (**curr_node).outgoing.iter() {
-                        // if the currnet edge is active in the network, we can propagate through it
-                        let curr_edge = self.edges.get(edge_innov).unwrap();
-                        if curr_edge.active {
-                            let receiving_node = self.nodes.get(&curr_edge.dst).unwrap();
-                            (**receiving_node).incoming.insert(curr_edge.innov, Some(val * curr_edge.weight));
-                            // if the node can be activated, activate it and store it's value
-                            // only activated nodes can be added to the path, so if it's activated
-                            // add it to the path so the values can be propagated through the network
-                            if (**receiving_node).is_ready() {
-                                (**receiving_node).activate();
-                                path.push((**receiving_node).innov);
-                            }
-                        }
-                    }
-                }
-            }
-            // once we've made it through the network, the outputs should all
-            // have calculated their values. Gather the values and return the vec
-            let mut network_output = Vec::with_capacity(self.outputs.len());
-            for innov in self.outputs.iter() {
-                let node_val = (**self.nodes.get(innov).unwrap()).value.unwrap();
-                network_output.push(node_val);
-            }
-            network_output
-        }
-    }
-
-
 
 }
 
@@ -516,6 +426,10 @@ impl Dense {
 
 
 impl Layer for Dense {
+
+    fn see(&self) {
+        self.see();
+    }
 
     /// Feed a vec of inputs through the network, will panic! if 
     /// the shapes of the values do not match or if something goes 
@@ -572,23 +486,24 @@ impl Layer for Dense {
     /// Backpropagation algorithm, transfer the error through the network and change the weights of the
     /// edges accordinly, this is pretty straight forward due to the design of the neat graph
     #[inline]
-    fn backprop(&mut self, targets: &Vec<f64>, learning_rate: f64) -> Option<Vec<f64>> {
+    fn backprop(&mut self, error: &Vec<f64>, learning_rate: f64) -> Option<Vec<f64>> {
         // feed forward the input data to get the output in order to compute the error of the network
         // create a dfs stack to step backwards through the network and compute the error of each neuron
         // then insert that error in a hashmap to keep track of innov of the neuron and it's error 
         // 
         unsafe  {
-            let mut path = self.outputs.iter().map(|x| *x).collect::<Vec<_>>();
-            let mut errors = HashMap::new();
-            for i in 0..self.outputs.len() {
-                errors.insert(self.outputs[i], targets[i] - (**self.nodes.get(&self.outputs[i])?).value?);
+            let mut path = Vec::new();
+            for (i, innov) in self.outputs.iter().enumerate() {
+                let node = self.nodes.get(innov)?;
+                (**node).error = Some(error[i]);
+                path.push(*innov);
             }
-            
+
             // step through the network backwards and adjust the weights
             while path.len() > 0 {
                 // get the current node and it's error 
                 let curr_node = self.nodes.get(&path.pop().unwrap()).unwrap();
-                let curr_node_error = *errors.get(&(**curr_node).innov).unwrap() * learning_rate;
+                let curr_node_error = (**curr_node).error? * learning_rate;
                 // iterate through each of the incoming edes to this neuron and adjust it's weight
                 // and add it's error to the errros map
                 for incoming_edge_innov in (**curr_node).incoming.keys() {
@@ -599,7 +514,7 @@ impl Layer for Dense {
                         let step = curr_node_error * (**curr_node).deactivate();
                         // add the weight step (gradient) * the currnet value to the weight to adjust the weight by the error
                         curr_edge.weight += step * (**src_neuron).value.unwrap();
-                        errors.insert(curr_edge.src, curr_edge.weight * curr_node_error);
+                        (**src_neuron).error = Some(curr_edge.weight * curr_node_error);
                         path.push(curr_edge.src);
                     }
                 }

@@ -1,27 +1,24 @@
 extern crate rand;
 
-use std::fmt;
-use std::mem;
-use std::ptr;
-use std::error::Error;
-use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use rand::Rng;
-use rand::seq::SliceRandom;
-use super::layers::layer::Layer;
-// use super::nodetype::NodeType;
-// use super::neurons::activation::Activation;
-// use super::vertex::Vertex;
 use super::{
-    edge::Edge,
-    counter::Counter,
-    neatenv::NeatEnvironment
+    neatenv::NeatEnvironment,
+    activation::Activation,
+    layers::{
+        layer::Layer,
+        dense::Dense,
+        layertype::LayerType,
+    }
 };
 
 use crate::engine::genome::Genome;
 
 
 
+/// Neat is a neural network consisting of layers
+/// the layers can be stacked together then the feed forward
+/// and backprop functions will take care of 'connecting them'
 #[derive(Debug)]
 pub struct Neat {
     pub layers: Vec<Box<dyn Layer>>
@@ -37,6 +34,88 @@ impl Neat {
             layers: Vec::new()
         }
     }
+
+    
+
+    /// feed forward a vec of data through the neat network 
+    #[inline]
+    pub fn feed_forward(&mut self, data: &Vec<f64>) -> Option<Vec<f64>> {
+        // keep two vec in order to transfer the data from one layer to another layer in the network
+        let mut data_transfer = data;
+        let mut temp;
+        for layer in self.layers.iter_mut() {
+            // println!("INPUT: {:?}", data_transfer);
+            temp = layer.propagate(data_transfer)?;
+            // println!("OUTPUT: {:?}", temp);
+            data_transfer = &temp;
+        }
+        // gather the output and return it as an option
+        let output = data_transfer
+            .iter()
+            .map(|x| *x)
+            .collect();
+        Some(output)
+    }
+
+    
+
+    /// backprop the the error of the network through each layer adjusting the weights
+    #[inline]
+    pub fn backprop(&mut self, data: &Vec<f64>, output: &Vec<f64>, learning_rate: f64) {
+        // feed forward the input data to set the outputs of each neuron in the network
+        let feed_out = self.feed_forward(data).unwrap();
+        // compute the original errors
+        let errors = &output.iter().zip(feed_out.iter())
+            .map(|(target, prediction)| target - prediction)
+            .collect::<Vec<_>>();
+        
+        // println!("INPUT: {:?}", data);
+        // println!("TARGET: {:?}", output);
+        // println!("OUTPUT: {:?}", feed_out);
+        // println!("ERRORS: {:?}", errors);
+        // similar to feed_forward, keep mutable vecs in order to transfer the error
+        // from the one layer back to the layer preceding it
+        let mut temp;
+        let mut data_transfer = errors;
+        for layer in self.layers.iter_mut().rev() {
+            temp = layer.backprop(data_transfer, learning_rate).unwrap();
+            // println!("TEMP: {:?}", temp);
+            data_transfer = &temp;
+        }
+        // println!("\n\n\n");
+    }
+
+
+
+    /// create and append a new dense pool layer onto the neat network
+    #[inline]
+    pub fn dense_pool(mut self, size: i32, env: &mut NeatEnvironment) -> Self {
+        let (input_size, output_size) = self.get_layer_sizes(size, env).unwrap();
+        self.layers.push(Box::new(Dense::new(input_size, output_size, LayerType::DensePool, Activation::Sigmoid, env.get_mut_counter())));
+        self
+    }
+
+
+    /// create an append a simple dense layer onto the network
+    #[inline]
+    pub fn dense(mut self, size: i32, env: &mut NeatEnvironment) -> Self {
+        let (input_size, output_size) = self.get_layer_sizes(size, env).unwrap();
+        self.layers.push(Box::new(Dense::new(input_size, output_size, LayerType::Dense, Activation::Sigmoid, env.get_mut_counter())));
+        self
+    }
+
+    
+
+    /// in order to more efficently give inputs to the network, this function simple 
+    /// finds the shape of the layer that should be created based on the desired size
+    #[inline]
+    fn get_layer_sizes(&self, size: i32, env: &mut NeatEnvironment) -> Option<(i32, i32)> {
+        if self.layers.len() == 0 {
+            return Some((env.input_size?, size))
+        } 
+        Some((self.layers.last()?.shape().1 as i32, size))
+    }
+
 
 
 }

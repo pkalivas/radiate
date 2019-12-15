@@ -31,6 +31,8 @@ pub trait Layer: LayerClone + Any {
     fn as_mut_any(&mut self) -> &mut dyn Any;
 
     fn shape(&self) -> (usize, usize);
+
+    fn see(&self);
 }
 
 
