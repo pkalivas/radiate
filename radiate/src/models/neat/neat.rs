@@ -44,9 +44,7 @@ impl Neat {
         let mut data_transfer = data;
         let mut temp;
         for layer in self.layers.iter_mut() {
-            // println!("INPUT: {:?}", data_transfer);
             temp = layer.propagate(data_transfer)?;
-            // println!("OUTPUT: {:?}", temp);
             data_transfer = &temp;
         }
         // gather the output and return it as an option
@@ -63,44 +61,41 @@ impl Neat {
     #[inline]
     pub fn backprop(&mut self, data: &Vec<f64>, output: &Vec<f64>, learning_rate: f64) {
         // feed forward the input data to set the outputs of each neuron in the network
-        let feed_out = self.feed_forward(data).unwrap();
         // compute the original errors
-        let errors = &output.iter().zip(feed_out.iter())
-            .map(|(target, prediction)| target - prediction)
+        let feed_out = self.feed_forward(data).unwrap();
+        let errors = &output
+            .iter()
+            .zip(feed_out.iter())
+            .map(|(target, prediction)| {
+                target - prediction
+            })
             .collect::<Vec<_>>();
-        
-        // println!("INPUT: {:?}", data);
-        // println!("TARGET: {:?}", output);
-        // println!("OUTPUT: {:?}", feed_out);
-        // println!("ERRORS: {:?}", errors);
         // similar to feed_forward, keep mutable vecs in order to transfer the error
         // from the one layer back to the layer preceding it
         let mut temp;
         let mut data_transfer = errors;
         for layer in self.layers.iter_mut().rev() {
             temp = layer.backprop(data_transfer, learning_rate).unwrap();
-            // println!("TEMP: {:?}", temp);
             data_transfer = &temp;
         }
-        // println!("\n\n\n");
     }
 
 
 
     /// create and append a new dense pool layer onto the neat network
     #[inline]
-    pub fn dense_pool(mut self, size: i32, env: &mut NeatEnvironment) -> Self {
+    pub fn dense_pool(mut self, size: i32, env: &mut NeatEnvironment, activation: Activation) -> Self {
         let (input_size, output_size) = self.get_layer_sizes(size, env).unwrap();
-        self.layers.push(Box::new(Dense::new(input_size, output_size, LayerType::DensePool, Activation::Sigmoid, env.get_mut_counter())));
+        self.layers.push(Box::new(Dense::new(input_size, output_size, LayerType::DensePool, activation, env.get_mut_counter())));
         self
     }
 
 
     /// create an append a simple dense layer onto the network
     #[inline]
-    pub fn dense(mut self, size: i32, env: &mut NeatEnvironment) -> Self {
+    pub fn dense(mut self, size: i32, env: &mut NeatEnvironment, activation: Activation) -> Self {
         let (input_size, output_size) = self.get_layer_sizes(size, env).unwrap();
-        self.layers.push(Box::new(Dense::new(input_size, output_size, LayerType::Dense, Activation::Sigmoid, env.get_mut_counter())));
+        self.layers.push(Box::new(Dense::new(input_size, output_size, LayerType::Dense, activation, env.get_mut_counter())));
         self
     }
 

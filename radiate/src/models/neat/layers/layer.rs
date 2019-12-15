@@ -32,7 +32,6 @@ pub trait Layer: LayerClone + Any {
 
     fn shape(&self) -> (usize, usize);
 
-    fn see(&self);
 }
 
 

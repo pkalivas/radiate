@@ -39,6 +39,9 @@ pub struct Dense {
 impl Dense {
 
     
+    /// create a new fully connected dense layer.
+    /// Each input is connected to each output with a randomly generated weight attached to the connection
+    #[inline]
     pub fn new(num_in: i32, num_out: i32, layer_type: LayerType, activation: Activation, counter: &mut Counter) -> Self {
         let mut layer = Dense {
             inputs: (0..num_in)
@@ -62,11 +65,13 @@ impl Dense {
             layer.nodes.insert(*innov, Neuron::new(*innov, NeuronType::Output, activation).as_mut_ptr());
         }
 
+        let mut r = rand::thread_rng();
         for i in layer.inputs.iter() {
             for j in layer.outputs.iter() {
                 let src = layer.nodes.get(i).unwrap();
                 let dst = layer.nodes.get(j).unwrap();
-                let new_edge = Edge::new(*i, *j, counter.next(), rand::thread_rng().gen::<f64>(), true);
+                let weight = r.gen::<f64>() * 2.0 - 1.0;
+                let new_edge = Edge::new(*i, *j, counter.next(), weight, true);
                 unsafe { (**src).outgoing.push(new_edge.innov); }
                 unsafe { (**dst).incoming.insert(new_edge.innov, None); }
                 layer.edges.insert(new_edge.innov, new_edge);
@@ -99,17 +104,16 @@ impl Dense {
     /// old source node and the new node
     #[inline]
     pub fn add_node(&mut self, counter: &mut Counter, activation: Activation) -> Option<*mut Neuron> {
-        // create a new node to insert inbetween the sending and receiving nodes 
-        let new_node = Neuron::new(counter.next(), NeuronType::Hidden, activation).as_mut_ptr();
-        // let mut r = rand::thread_rng();
-        // get an edge to insert the node into
-        // get the sending and receiving nodes from the edge
-        let curr_edge = self.edges.get_mut(&self.random_edge()).unwrap();
-        let sending = self.nodes.get(&curr_edge.src).unwrap();
-        let receiving = self.nodes.get(&curr_edge.dst).unwrap();
-        // create two new edges that connect the src and the new node and the 
-        // new node and dst, then disable the current edge 
         unsafe {
+            // create a new node to insert inbetween the sending and receiving nodes 
+            let new_node = Neuron::new(counter.next(), NeuronType::Hidden, activation).as_mut_ptr();
+            // get an edge to insert the node into
+            // get the sending and receiving nodes from the edge
+            let curr_edge = self.edges.get_mut(&self.random_edge()).unwrap();
+            let sending = self.nodes.get(&curr_edge.src).unwrap();
+            let receiving = self.nodes.get(&curr_edge.dst).unwrap();
+            // create two new edges that connect the src and the new node and the 
+            // new node and dst, then disable the current edge 
             curr_edge.active = false;
             let incoming = Edge::new((**sending).innov, (*new_node).innov, counter.next(), 1.0, true);
             let outgoing = Edge::new((*new_node).innov, (**receiving).innov, counter.next(), curr_edge.weight, true);
@@ -426,11 +430,6 @@ impl Dense {
 
 
 impl Layer for Dense {
-
-    fn see(&self) {
-        self.see();
-    }
-
     /// Feed a vec of inputs through the network, will panic! if 
     /// the shapes of the values do not match or if something goes 
     /// wrong within the feed forward process.

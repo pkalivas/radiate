@@ -1,7 +1,9 @@
 
+extern crate rand;
 
 use std::fmt;
 use std::collections::HashMap;
+use rand::Rng;
 use super::activation::Activation;
 use super::neurontype::NeuronType;
 
@@ -18,6 +20,7 @@ pub struct Neuron {
     pub incoming: HashMap<i32, Option<f64>>,
     pub value: Option<f64>,
     pub error: Option<f64>,
+    pub bias: f64,
     pub activation: Activation,
     pub neuron_type: NeuronType
 }
@@ -34,6 +37,7 @@ impl Neuron {
             incoming: HashMap::new(),
             value: None,
             error: None,
+            bias: rand::thread_rng().gen::<f64>(),
             activation,
             neuron_type,
         }
@@ -66,7 +70,7 @@ impl Neuron {
     pub fn activate(&mut self) {
         let total = self.incoming
             .values()
-            .fold(0.0, |sum, curr| {
+            .fold(self.bias, |sum, curr| {
                 match curr {
                     Some(x) => sum + x,
                     None => panic!("Cannot activate node.")
@@ -101,8 +105,8 @@ impl Neuron {
     }
 
 
-
 }
+
 
 
 impl Clone for Neuron {
@@ -119,6 +123,7 @@ impl Clone for Neuron {
                 .collect(),
             value: self.value.clone(),
             error: self.error.clone(),
+            bias: self.bias.clone(),
             activation: self.activation.clone(),
             neuron_type: self.neuron_type.clone(),
         }
