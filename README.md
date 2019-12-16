@@ -92,10 +92,9 @@ To run this:
 ```bash
 git clone https://github.com/pkalivas/radiate.git
 cd radiate
-cargo build --verbose && cargo run --bin wmax-neat
+cargo build --verbose && cargo run --bin xor-neat-backprop
 ```
 On my computer (Windows 10, x64-based, i7-7700 @ 4.20GHz, 32GB RAM) this finishes in about 15 seconds.
-
 ```rust
 extern crate radiate;
 

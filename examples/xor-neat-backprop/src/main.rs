@@ -52,7 +52,6 @@ impl XOR {
         }
     }
 
-
     fn backprop(&self, model: &mut Neat) {
         for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
             model.backprop(i, o, 0.3);
