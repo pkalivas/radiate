@@ -23,12 +23,14 @@ Radiate also comes with two models already built. Those being Evtree, and NEAT. 
 ### Evtree
 Is a twist on decision trees where instead of using a certain split criteria like the gini index, each node in the tree has a collection of matrices and uses these matrices to decide which subtree to explore. This algorithm is something I created and although I'm sure it's been built before, I haven't found any papers or implementations of anything like it. It is a binary tree and is only good for classification right now. I currently have plans to make it a little more verbose through better matrix mutliplication, propagating inputs further through the tree, and possibly introducing multiple sub trees and regression - however these increase the compute time.   
 ### NEAT
-Also known as Neuroevolution of Augmented Topologies, is the algorithm described by Kenneth O. Stanley in [this](http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) paper. I've tried to follow the rules in the paper pretty well and have implemented some things I've found online as well such as historical marking control, and dynamic distance for speciation. The dynamic distance between species is available for any structure, however the speciation through historical markings described in the paper is only good for NEAT. Neat exposes a few different activation functions for one to choose from, but mutliple can be used at once and each new node will choose one randonly. This NEAT implementation also includes a backpropagation function which operates much like traditional neural networks which propagate the input error back through the network and adjust the weights. This alone is useless, however in pair with the evolution engine, can produce very nice and quick results. Neat exposese a few different options to the user through enums. These enums are mapped to easily extensable logic under the hood. Through the neat enviornment, users can customize which node type or combination of any of them, will be used to create the neat graph. *Note these enums do not need to be explicitly defined and will default to Dense nodetype with a Sigmoid activation function.*
+Also known as Neuroevolution of Augmented Topologies, is the algorithm described by Kenneth O. Stanley in [this](http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) paper. This NEAT implementation also includes a backpropagation function which operates much like traditional neural networks which propagate the input error back through the network and adjust the weights. In pair with the evolution engine, can produce very nice and quick results. Neat exposese a few different options to the user through enums. These enums are mapped to easily extensable logic under the hood. NEAT lets the use define how the network will be constructed, whether that be in a traitional neural network fashion where layers are stacked next to each other or with evolutionary topolgies of the graph through as explained in the paper. This means NEAT can be used in an evolutionary sense, through forward propagation and back propagation, or any combination of the two. There are examples of both in /examples.
+Currently there are two available layers with more on the way.
 ```rust
-pub enum NodeType {
-    Dense,      // implemented and the default
-    LSTM,       // coming soon
-    Recurrent   // coming soon
+pub enum LayerType {
+    Dense,      // implemented - typical dense layer of a neural network with no ability to evolve its strucutre 
+    DensePool,  // implemented - the algorithm described in the paper meaning a fully functional neural network can be evolved through one dense pool layer
+    LSTM,       // in dev
+    Recurrent   // in dev
 }
 ```
 All neural networks need nonlinear functions to represent complex datasets. Neat 
@@ -139,11 +141,73 @@ impl Problem<Neat> for NeatWeightMax {
     }
 }
 ```
-This comes right now with four examples, just run "cargo run --bin (desired example name)" to run any of them
-1. **wmax-neat**
-2. **xor-evtree**
-3. **xor-neat**
-4. **xor-neat-backprop**
+Neat can also be constructed as a traditional neural network as such:
+```rust
+extern crate radiate;
+use std::error::Error;
+use radiate::prelude::*;
+
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let mut neat_env = NeatEnvironment::new()
+        .set_input_size(2)
+        .start_innov_counter();
+    let mut net = Neat::new()
+        .dense(7, &mut neat_env, Activation::Relu)
+        .dense(7, &mut neat_env, Activation::Relu)
+        .dense(1, &mut neat_env, Activation::Sigmoid);
+    
+    let xor = XOR::new();
+    for _ in 0..500 {
+        xor.backprop(&mut net);
+    }
+    xor.show(&mut net);
+    Ok(())
+}
+
+#[derive(Debug)]
+pub struct XOR {
+    inputs: Vec<Vec<f64>>,
+    answers: Vec<Vec<f64>>
+}
+
+impl XOR {
+    pub fn new() -> Self {
+        XOR {
+            inputs: vec![
+                vec![0.0, 0.0],
+                vec![1.0, 1.0],
+                vec![1.0, 0.0],
+                vec![0.0, 1.0],
+            ],
+            answers: vec![
+                vec![0.0],
+                vec![0.0],
+                vec![1.0],
+                vec![1.0],
+            ]
+        }
+    }
+
+    fn backprop(&self, model: &mut Neat) {
+        for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
+            model.backprop(i, o, 0.3);
+        }
+    }
+
+    fn show(&self, model: &mut Neat) {
+        println!("\n");
+        for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
+            let guess = model.feed_forward(&i).unwrap();
+            println!("Guess: {:.2?} Answer: {:.2}", guess, o[0]);
+        }
+    }
+}
+```
+This comes right now with three examples, just run "cargo run --bin (desired example name)" to run any of them
+1. **xor-evtree**
+2. **xor-neat**
+3. **xor-neat-backprop**
 
 I'm going to add more examples soon, thinking about doing a Knapsack and nqueens example.
 
