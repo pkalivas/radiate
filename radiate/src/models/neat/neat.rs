@@ -181,7 +181,6 @@ impl PartialEq for Neat {
 
 
 
-
 /// iplement genome for a neat network
 impl Genome<Neat, NeatEnvironment> for Neat {
 
