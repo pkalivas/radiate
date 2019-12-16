@@ -6,7 +6,7 @@ use super::{
     activation::Activation,
     layers::{
         layer::Layer,
-        layer::Mutate,
+        layer::Analyze,
         dense::Dense,
         layertype::LayerType,
     }
@@ -49,9 +49,7 @@ impl Neat {
 
     
     pub fn new() -> Self {
-        Neat {
-            layers: Vec::new()
-        }
+        Neat { layers: Vec::new() }
     }
 
     
@@ -82,7 +80,7 @@ impl Neat {
         // feed forward the input data to set the outputs of each neuron in the network
         // compute the original errors
         let feed_out = self.feed_forward(data).unwrap();
-        let errors = &output
+        let mut errors = &output
             .iter()
             .zip(feed_out.iter())
             .map(|(target, prediction)| {
@@ -92,10 +90,9 @@ impl Neat {
         // similar to feed_forward, keep mutable vecs in order to transfer the error
         // from the one layer back to the layer preceding it
         let mut temp;
-        let mut data_transfer = errors;
         for wrapper in self.layers.iter_mut().rev() {
-            temp = wrapper.layer.backprop(data_transfer, learning_rate).unwrap();
-            data_transfer = &temp;
+            temp = wrapper.layer.backprop(errors, learning_rate).unwrap();
+            errors = &temp;
         }
     }
 

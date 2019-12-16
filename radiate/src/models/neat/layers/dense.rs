@@ -11,7 +11,7 @@ use rand::seq::SliceRandom;
 use super::{
     layertype::LayerType,
     layer::Layer,
-    layer::Mutate
+    layer::Analyze
 };
 use super::super::{
     neuron::Neuron,
@@ -541,7 +541,7 @@ impl Layer for Dense {
 }
 
 
-impl Mutate<Dense> for Dense
+impl Analyze<Dense> for Dense
     where Dense: Layer
 {
     fn mutate(child: &mut  Dense, _: &Dense, parent_two: &Dense, env: &Arc<RwLock<NeatEnvironment>>, crossover_rate: f32) 

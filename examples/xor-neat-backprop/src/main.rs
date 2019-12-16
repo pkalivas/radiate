@@ -19,7 +19,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .dense(1, &mut neat_env, Activation::Sigmoid);
         
     let xor = XOR::new();
-    for _ in 0..500 {
+    for _ in 0..100 {
         xor.backprop(&mut net);
     }
     xor.show(&mut net);

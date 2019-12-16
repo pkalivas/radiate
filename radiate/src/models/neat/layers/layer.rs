@@ -10,7 +10,7 @@ use super::super::neatenv::NeatEnvironment;
 
 
 
-pub trait Mutate<L> 
+pub trait Analyze<L> 
     where L: Layer
 {
     fn mutate(child: &mut L, parent_one: &L, parent_two: &L, env: &Arc<RwLock<NeatEnvironment>>, crossover_rate: f32) 
@@ -41,9 +41,7 @@ pub trait Layer: LayerClone + Any {
 
 
 pub trait LayerClone {
-
     fn clone_box(&self) -> Box<dyn Layer>;
-
 }
 
 
@@ -68,7 +66,7 @@ impl Clone for Box<dyn Layer> {
 
 impl Debug for dyn Layer {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "Layer")
+        write!(f, "{:?}", self.as_ref_any())
     }
 }
 
