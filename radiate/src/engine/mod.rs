@@ -39,7 +39,7 @@ pub mod genome {
         /// 
         /// This can probably be iplemented in a generic way for default if the user doesn't want to 
         /// implement it for their problem. 
-        fn base(env: &mut E) -> T
+        fn base(_: &mut E) -> T
             where T: Sized
         {
             panic!("Base not implemented.");
