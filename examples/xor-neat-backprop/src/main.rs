@@ -24,8 +24,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     xor.show(&mut net);
 
-    println!("{:#?}", net);
-
 
     Ok(())
 }

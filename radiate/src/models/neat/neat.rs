@@ -6,7 +6,6 @@ use super::{
     activation::Activation,
     layers::{
         layer::Layer,
-        layer::Analyze,
         dense::Dense,
         layertype::LayerType,
     }
@@ -186,20 +185,26 @@ impl Genome<Neat, NeatEnvironment> for Neat {
 
     #[inline]
     fn crossover(one: &Neat, two: &Neat, env: &Arc<RwLock<NeatEnvironment>>, crossover_rate: f32) -> Option<Neat> {
-        let mut result = (*one).clone();
+        let mut result_layers = Vec::with_capacity(one.layers.len());
         // iterate through the layers of the network and cross them over with each other
-        for (i, wrapper) in result.layers.iter_mut().enumerate() {
-            let one_layer = &one.layers[i];
+        for (i, wrapper) in one.layers.iter().enumerate() {
             let two_layer = &two.layers[i];
 
-            match wrapper.layer_type {
+            let new_layer = match wrapper.layer_type {
                 LayerType::Dense | LayerType::DensePool => {
-                    Dense::mutate(wrapper.as_mut(), one_layer.as_ref(), two_layer.as_ref(), env, crossover_rate);
+                    Dense::crossover(wrapper.as_ref(), two_layer.as_ref(), env, crossover_rate)?
                 },
                 _ => panic!("Layer Type not implemented")
-            }
+            };
+
+            result_layers.push(LayerWrap {
+                layer_type: wrapper.layer_type,
+                layer: Box::new(new_layer)
+            });
         }
-        Some(result)
+        Some(Neat {
+            layers: result_layers
+        })
     }
 
 

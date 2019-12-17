@@ -1,26 +1,6 @@
 
 use std::any::Any;
-use std::sync::{Arc, RwLock};
 use std::fmt::Debug;
-use super::super::neatenv::NeatEnvironment;
-
-
-
-/// Analyze takes care of more granular operations for a layer where the type of the layer 
-/// is known and stored values within the layer must be used, hence the generic <L>
-pub trait Analyze<L> 
-    where L: Layer
-{   
-    /// Definine how to mutate a layer, the child layer is the only one allowed to be mutated and thus is the one 
-    /// which should be mutated. 
-    fn mutate(child: &mut L, parent_one: &L, parent_two: &L, env: &Arc<RwLock<NeatEnvironment>>, crossover_rate: f32) 
-        where 
-            Self: Sized + Send + Sync;
-
-    /// Because layers can be different in the same neural network, there needs to be a way to measure the historical
-    /// marking distance of a layer and know the type <L> and have access to its variables.
-    fn distance(one: &L, two: &L, env: &Arc<RwLock<NeatEnvironment>>) -> f64;
-}
 
 
 
