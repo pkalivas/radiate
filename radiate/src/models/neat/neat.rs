@@ -57,8 +57,8 @@ impl Neat {
     #[inline]
     pub fn feed_forward(&mut self, data: &Vec<f64>) -> Option<Vec<f64>> {
         // keep two vec in order to transfer the data from one layer to another layer in the network
-        let mut data_transfer = data;
         let mut temp;
+        let mut data_transfer = data;
         for wrapper in self.layers.iter_mut() {
             temp = wrapper.layer.propagate(data_transfer)?;
             data_transfer = &temp;
@@ -79,20 +79,22 @@ impl Neat {
         // feed forward the input data to set the outputs of each neuron in the network
         // compute the original errors
         let feed_out = self.feed_forward(data).unwrap();
-        let mut errors = &output
+        let errors = output
             .iter()
             .zip(feed_out.iter())
             .map(|(target, prediction)| {
                 target - prediction
             })
             .collect::<Vec<_>>();
+
         // similar to feed_forward, keep mutable vecs in order to transfer the error
         // from the one layer back to the layer preceding it
-        let mut temp;
-        for wrapper in self.layers.iter_mut().rev() {
-            temp = wrapper.layer.backprop(errors, learning_rate).unwrap();
-            errors = &temp;
-        }
+        self.layers
+            .iter_mut()
+            .rev()
+            .fold(errors, |res, curr| {
+                curr.layer.backprop(&res, learning_rate).unwrap()
+            });
     }
 
 

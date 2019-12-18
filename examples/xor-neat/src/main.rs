@@ -15,9 +15,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_output_size(1)
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
-        .set_weight_perturb(1.5)
-        .set_new_node_rate(0.03)
-        .set_new_edge_rate(0.04)
+        .set_weight_perturb(1.7)
+        .set_new_node_rate(0.01)
+        .set_new_edge_rate(0.01)
         .set_reactivate(0.2)
         .set_c1(1.0)
         .set_c2(1.0)
@@ -29,13 +29,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         .start_innov_counter();
         
     let starting_net = Neat::base(&mut neat_env);
-    let num_evolve = 1000;
+    let num_evolve = 5000;
     let xor = XOR::new();
 
 
     let (mut solution, _) = Population::<Neat, NeatEnvironment, XOR>::new()
         .constrain(neat_env)
-        .size(150)
+        .size(250)
         .populate_clone(starting_net)
         .debug(true)
         .dynamic_distance(true)
@@ -43,10 +43,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             inbreed_rate: 0.001,
             crossover_rate: 0.75,
             distance: 0.5,
-            species_target: 10
+            species_target: 20
         })
         .stagnation(15, vec![
-            Genocide::KeepTop(10)
+            Genocide::KillWorst(0.20)
         ])
         .run(|_, fit, num| {
             println!("Generation: {} score: {}", num, fit);

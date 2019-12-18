@@ -5,6 +5,7 @@ use std::fmt;
 use std::any::Any;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
+// use std::num::Float;
 use std::ptr;
 use rand::Rng;
 use rand::seq::SliceRandom;
@@ -64,7 +65,7 @@ impl Dense {
         for innov in layer.outputs.iter() {
             layer.nodes.insert(*innov, Neuron::new(*innov, NeuronType::Output, activation).as_mut_ptr());
         }
-
+        
         let mut r = rand::thread_rng();
         for i in layer.inputs.iter() {
             for j in layer.outputs.iter() {
