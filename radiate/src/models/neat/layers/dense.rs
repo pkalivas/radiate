@@ -5,7 +5,6 @@ use std::fmt;
 use std::any::Any;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
-// use std::num::Float;
 use std::ptr;
 use rand::Rng;
 use rand::seq::SliceRandom;

@@ -11,13 +11,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let thread_time = Instant::now();
     let mut neat_env = NeatEnvironment::new()
-        .set_input_size(3)
+        .set_input_size(2)
         .set_output_size(1)
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
-        .set_weight_perturb(1.7)
-        .set_new_node_rate(0.01)
-        .set_new_edge_rate(0.01)
+        .set_weight_perturb(1.5)
+        .set_new_node_rate(0.03)
+        .set_new_edge_rate(0.04)
         .set_reactivate(0.2)
         .set_c1(1.0)
         .set_c2(1.0)
@@ -35,7 +35,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let (mut solution, _) = Population::<Neat, NeatEnvironment, XOR>::new()
         .constrain(neat_env)
-        .size(250)
+        .size(200)
         .populate_clone(starting_net)
         .debug(true)
         .dynamic_distance(true)
@@ -46,7 +46,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             species_target: 20
         })
         .stagnation(15, vec![
-            Genocide::KillWorst(0.20)
+            Genocide::KillWorst(0.75)
         ])
         .run(|_, fit, num| {
             println!("Generation: {} score: {}", num, fit);
@@ -77,10 +77,10 @@ impl XOR {
     pub fn new() -> Self {
         XOR {
             inputs: vec![
-                vec![0.0, 0.0, 1.5],
-                vec![1.0, 1.0, 1.5],
-                vec![1.0, 0.0, 1.5],
-                vec![0.0, 1.0, 1.5],
+                vec![0.0, 0.0],
+                vec![1.0, 1.0],
+                vec![1.0, 0.0],
+                vec![0.0, 1.0],
             ],
             answers: vec![
                 vec![0.0],

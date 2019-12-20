@@ -4,6 +4,7 @@
 extern crate radiate;
 
 use std::error::Error;
+use std::time::Instant;
 use radiate::prelude::*;
 
 
@@ -12,7 +13,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut neat_env = NeatEnvironment::new()
         .set_input_size(2)
         .start_innov_counter();
-
+        
+    let thread_time = Instant::now();
     let mut net = Neat::new()
         .dense(7, &mut neat_env, Activation::Relu)
         .dense(7, &mut neat_env, Activation::Relu)
@@ -22,8 +24,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     for _ in 0..100 {
         xor.backprop(&mut net);
     }
-    xor.show(&mut net);
 
+    xor.show(&mut net);
+    println!("Time in millis: {}", thread_time.elapsed().as_millis());
 
     Ok(())
 }
