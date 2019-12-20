@@ -1,4 +1,5 @@
 extern crate rand;
+extern crate fasthash;
 
 use std::mem;
 use std::fmt;
@@ -8,6 +9,7 @@ use std::sync::{Arc, RwLock};
 use std::ptr;
 use rand::Rng;
 use rand::seq::SliceRandom;
+use fasthash::FastHasher;
 use super::{
     layertype::LayerType,
     layer::Layer,

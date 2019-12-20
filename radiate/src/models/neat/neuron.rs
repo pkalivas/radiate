@@ -1,9 +1,11 @@
 
 extern crate rand;
+extern crate fasthash;
 
 use std::fmt;
 use std::collections::HashMap;
 use rand::Rng;
+use fasthash::FastHasher;
 use super::activation::Activation;
 use super::neurontype::NeuronType;
 
