@@ -547,20 +547,20 @@ impl Genome<Dense, NeatEnvironment> for Dense
     fn crossover(child: &Dense, parent_two: &Dense, env: &Arc<RwLock<NeatEnvironment>>, crossover_rate: f32) -> Option<Dense> {
         let mut new_child = child.clone();
         unsafe {
-            let mut set = (*env).write().unwrap();
+            let mut set = (*env).write().ok()?;
             let mut r = rand::thread_rng();
             if r.gen::<f32>() < crossover_rate {
                 for (innov, edge) in new_child.edges.iter_mut() {
                     // if the edge is in both networks, then radnomly assign the weight to the edge
                     if parent_two.edges.contains_key(innov) {
                         if r.gen::<f32>() < 0.5 {
-                            edge.weight = parent_two.edges.get(innov).unwrap().weight;
+                            edge.weight = parent_two.edges.get(innov)?.weight;
                         }
                         // if the edge is deactivated in either network and a random number is less than the 
                         // reactivate parameter, then reactiveate the edge and insert it back into the network
-                        if (!edge.active || !parent_two.edges.get(innov).unwrap().active) && r.gen::<f32>() < set.reactivate.unwrap() {
-                            (**new_child.nodes.get(&edge.src).unwrap()).outgoing.push(*innov);
-                            (**new_child.nodes.get(&edge.dst).unwrap()).incoming.insert(*innov, None);
+                        if (!edge.active || !parent_two.edges.get(innov)?.active) && r.gen::<f32>() < set.reactivate? {
+                            (**new_child.nodes.get(&edge.src)?).outgoing.push(*innov);
+                            (**new_child.nodes.get(&edge.dst)?).incoming.insert(*innov, None);
                             edge.active = true;
                         }
                     }
@@ -569,17 +569,17 @@ impl Genome<Dense, NeatEnvironment> for Dense
                 // if a random number is less than the edit_weights parameter, then edit the weights of the network edges
                 // add a possible new node to the network randomly 
                 // attempt to add a new edge to the network, there is a chance this operation will add no edge
-                if r.gen::<f32>() < set.weight_mutate_rate.unwrap() {
-                    new_child.edit_weights(set.edit_weights.unwrap(), set.weight_perturb.unwrap());
+                if r.gen::<f32>() < set.weight_mutate_rate? {
+                    new_child.edit_weights(set.edit_weights?, set.weight_perturb?);
                 }
                 // if the layer is a dense pool then it can add nodes and connections to the layer as well
                 if new_child.layer_type == LayerType::DensePool {
-                    if r.gen::<f32>() < set.new_node_rate.unwrap() {
-                        let act_func = *set.activation_functions.choose(&mut r).unwrap();
-                        let new_node = new_child.add_node(set.get_mut_counter(), act_func).unwrap();
-                        Dense::neuron_control(&mut new_child, &new_node, &mut set).ok().unwrap();
+                    if r.gen::<f32>() < set.new_node_rate? {
+                        let act_func = *set.activation_functions.choose(&mut r)?;
+                        let new_node = new_child.add_node(set.get_mut_counter(), act_func)?;
+                        Dense::neuron_control(&mut new_child, &new_node, &mut set).ok()?;
                     }
-                    if r.gen::<f32>() < set.new_edge_rate.unwrap() {
+                    if r.gen::<f32>() < set.new_edge_rate? {
                         let new_edge = new_child.add_edge(set.get_mut_counter());
                         Dense::edge_control(&mut new_child, new_edge, &mut set);
                     }
