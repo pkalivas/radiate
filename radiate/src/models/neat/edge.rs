@@ -1,4 +1,7 @@
 
+extern crate uuid;
+
+use uuid::Uuid;
 
 
 /// Edge is a connection between two nodes in the graph
@@ -11,9 +14,9 @@
 /// while feeding data through the network
 #[derive(Debug, Clone, PartialEq)]
 pub struct Edge {
-    pub src: i32,
-    pub dst: i32, 
-    pub innov: i32,
+    pub src: Uuid,
+    pub dst: Uuid, 
+    pub innov: Uuid,
     pub weight: f64,
     pub active: bool
 }
@@ -21,7 +24,7 @@ pub struct Edge {
 
 impl Edge {
 
-    pub fn new(src: i32, dst: i32, innov: i32, weight: f64, active: bool) -> Self {
+    pub fn new(src: Uuid, dst: Uuid, innov: Uuid, weight: f64, active: bool) -> Self {
         Edge { src, dst, innov, weight, active }
     }
 

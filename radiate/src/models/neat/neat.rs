@@ -105,7 +105,7 @@ impl Neat {
         let (input_size, output_size) = self.get_layer_sizes(size, env).unwrap();
         let wrapper = LayerWrap {
             layer_type: LayerType::DensePool,
-            layer: Box::new(Dense::new(input_size, output_size, LayerType::DensePool, activation, env.get_mut_counter()))
+            layer: Box::new(Dense::new(input_size, output_size, LayerType::DensePool, activation))
         };
         self.layers.push(wrapper);
         self
@@ -119,7 +119,7 @@ impl Neat {
         let (input_size, output_size) = self.get_layer_sizes(size, env).unwrap();
         let wrapper = LayerWrap {
             layer_type: LayerType::Dense,
-            layer: Box::new(Dense::new(input_size, output_size, LayerType::Dense, activation, env.get_mut_counter()))
+            layer: Box::new(Dense::new(input_size, output_size, LayerType::Dense, activation))
         };
         self.layers.push(wrapper);
         self

@@ -15,7 +15,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_output_size(1)
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
-        .set_weight_perturb(1.5)
+        .set_weight_perturb(1.75)
         .set_new_node_rate(0.03)
         .set_new_edge_rate(0.04)
         .set_reactivate(0.2)
@@ -37,7 +37,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .constrain(neat_env)
         .size(200)
         .populate_clone(starting_net)
-        .debug(false)
+        .debug(true)
         .dynamic_distance(true)
         .configure(Config {
             inbreed_rate: 0.001,

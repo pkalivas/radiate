@@ -30,10 +30,6 @@ pub trait Layer: LayerClone + Any + Debug {
     /// so the user only needs the say the size of the output, not the input. That would be too redundant.
     fn shape(&self) -> (usize, usize);
 
-    /// Return the max innovation number of the connections in this layer. Used for measuring the
-    /// distance between layers of  the network through historical markings
-    fn max_marker(&self) -> i32;
-
 }
 
 
