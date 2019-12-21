@@ -43,10 +43,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             inbreed_rate: 0.001,
             crossover_rate: 0.75,
             distance: 0.5,
-            species_target: 20
+            species_target: 5
         })
         .stagnation(15, vec![
-            Genocide::KillWorst(0.75)
+            Genocide::KillWorst(0.9)
         ])
         .run(|_, fit, num| {
             println!("Generation: {} score: {}", num, fit);

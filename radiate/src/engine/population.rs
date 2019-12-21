@@ -155,12 +155,12 @@ impl<T, E, P> Population<T, E, P>
     /// dynamically adjust the distance of a popualtion 
     fn adjust_distance(&mut self) {
         if self.curr_gen.species.len() < self.config.species_target {
-            self.config.distance -= 0.5;
+            self.config.distance -= 0.1;
         } else if self.curr_gen.species.len() > self.config.species_target {
-            self.config.distance += 0.5;
+            self.config.distance += 0.1;
         }
-        if self.config.distance < 0.3 {
-            self.config.distance = 0.3;
+        if self.config.distance < 0.2 {
+            self.config.distance = 0.1;
         }
     }
 
