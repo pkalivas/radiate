@@ -524,7 +524,7 @@ impl Drop for Dense {
     fn drop(&mut self) { 
         unsafe {
             for (_, node) in self.nodes.iter() {
-                ptr::drop_in_place(*node);
+                drop(Box::from_raw(*node));
             }
         }
     }
