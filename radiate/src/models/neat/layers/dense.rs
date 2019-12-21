@@ -100,7 +100,7 @@ impl Dense {
     /// while the new weight is randomly chosen and put between the 
     /// old source node and the new node
     #[inline]
-    pub fn add_node(&mut self, activation: Activation) -> Option<*mut Neuron> {
+    pub fn add_node(&mut self, activation: Activation) {
         unsafe {
             // create a new node to insert inbetween the sending and receiving nodes 
             let new_node = Neuron::new(Uuid::new_v4(), NeuronType::Hidden, activation).as_mut_ptr();
@@ -127,7 +127,6 @@ impl Dense {
             self.edges.insert(incoming.innov, incoming);
             self.edges.insert(outgoing.innov, outgoing);
             self.nodes.insert((*new_node).innov, new_node);   
-            Some(new_node)
         }
     }
 
@@ -138,7 +137,7 @@ impl Dense {
     /// that the desired connection can be made. If it can be, make the connection
     /// with a weight of .5 in order to minimally impact the network 
     #[inline]
-    pub fn add_edge(&mut self) -> Option<Edge> {
+    pub fn add_edge(&mut self) {
         unsafe {
             // get a valid sending neuron
             let sending = loop {
@@ -162,11 +161,8 @@ impl Dense {
                 (**sending).outgoing.push(new_edge.innov);
                 (**receiving).incoming.insert(new_edge.innov, None);
                 // add the new edge to the network
-                let result = new_edge.clone();
                 self.edges.insert(new_edge.innov, new_edge);               
-                return Some(result)
             }
-            None
         }
     }
 
@@ -306,6 +302,8 @@ impl Dense {
             }
         }
     }
+
+
 
 
 }
@@ -466,7 +464,7 @@ impl Genome<Dense, NeatEnvironment> for Dense
                 if new_child.layer_type == LayerType::DensePool {
                     if r.gen::<f32>() < set.new_node_rate? {
                         let act_func = *set.activation_functions.choose(&mut r)?;
-                        new_child.add_node(act_func)?;
+                        new_child.add_node(act_func);
                     }
                     if r.gen::<f32>() < set.new_edge_rate? {
                         new_child.add_edge();
