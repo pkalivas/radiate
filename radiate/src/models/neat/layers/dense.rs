@@ -1,4 +1,5 @@
 extern crate rand;
+extern crate uuid;
 
 use std::mem;
 use std::fmt;
@@ -8,6 +9,7 @@ use std::sync::{Arc, RwLock};
 use std::ptr;
 use rand::Rng;
 use rand::seq::SliceRandom;
+use uuid::Uuid;
 use super::{
     layertype::LayerType,
     layer::Layer,
@@ -16,7 +18,6 @@ use super::super::{
     neuron::Neuron,
     edge::Edge,
     neatenv::NeatEnvironment,
-    counter::Counter,
     neurontype::NeuronType,
     activation::Activation
 };
@@ -26,10 +27,10 @@ use crate::Genome;
 
 #[derive(Debug)]
 pub struct Dense {
-    pub inputs: Vec<i32>,
-    pub outputs: Vec<i32>,
-    pub nodes: HashMap<i32, *mut Neuron>,
-    pub edges: HashMap<i32, Edge>,
+    pub inputs: Vec<Uuid>,
+    pub outputs: Vec<Uuid>,
+    pub nodes: HashMap<Uuid, *mut Neuron>,
+    pub edges: HashMap<Uuid, Edge>,
     pub layer_type: LayerType,
     pub activation: Activation
 }
@@ -42,15 +43,15 @@ impl Dense {
     /// create a new fully connected dense layer.
     /// Each input is connected to each output with a randomly generated weight attached to the connection
     #[inline]
-    pub fn new(num_in: i32, num_out: i32, layer_type: LayerType, activation: Activation, counter: &mut Counter) -> Self {
+    pub fn new(num_in: i32, num_out: i32, layer_type: LayerType, activation: Activation) -> Self {
         let mut layer = Dense {
             inputs: (0..num_in)
                 .into_iter()
-                .map(|_| counter.next())
+                .map(|_| Uuid::new_v4())
                 .collect(),
             outputs: (0..num_out)
                 .into_iter()
-                .map(|_| counter.next())
+                .map(|_| Uuid::new_v4())
                 .collect(),
             nodes: HashMap::new(),
             edges: HashMap::new(),
@@ -71,7 +72,7 @@ impl Dense {
                 let src = layer.nodes.get(i).unwrap();
                 let dst = layer.nodes.get(j).unwrap();
                 let weight = r.gen::<f64>() * 2.0 - 1.0;
-                let new_edge = Edge::new(*i, *j, counter.next(), weight, true);
+                let new_edge = Edge::new(*i, *j, Uuid::new_v4(), weight, true);
                 unsafe { (**src).outgoing.push(new_edge.innov); }
                 unsafe { (**dst).incoming.insert(new_edge.innov, None); }
                 layer.edges.insert(new_edge.innov, new_edge);
@@ -99,10 +100,10 @@ impl Dense {
     /// while the new weight is randomly chosen and put between the 
     /// old source node and the new node
     #[inline]
-    pub fn add_node(&mut self, counter: &mut Counter, activation: Activation) -> Option<*mut Neuron> {
+    pub fn add_node(&mut self, activation: Activation) {
         unsafe {
             // create a new node to insert inbetween the sending and receiving nodes 
-            let new_node = Neuron::new(counter.next(), NeuronType::Hidden, activation).as_mut_ptr();
+            let new_node = Neuron::new(Uuid::new_v4(), NeuronType::Hidden, activation).as_mut_ptr();
             // get an edge to insert the node into
             // get the sending and receiving nodes from the edge
             let curr_edge = self.edges.get_mut(&self.random_edge()).unwrap();
@@ -111,8 +112,8 @@ impl Dense {
             // create two new edges that connect the src and the new node and the 
             // new node and dst, then disable the current edge 
             curr_edge.active = false;
-            let incoming = Edge::new((**sending).innov, (*new_node).innov, counter.next(), 1.0, true);
-            let outgoing = Edge::new((*new_node).innov, (**receiving).innov, counter.next(), curr_edge.weight, true);
+            let incoming = Edge::new((**sending).innov, (*new_node).innov, Uuid::new_v4(), 1.0, true);
+            let outgoing = Edge::new((*new_node).innov, (**receiving).innov, Uuid::new_v4(), curr_edge.weight, true);
             // remove the outgoing connection from the sending node
             (**sending).outgoing.retain(|x| x != &(curr_edge.innov));
             (**receiving).incoming.remove(&curr_edge.innov);
@@ -126,7 +127,6 @@ impl Dense {
             self.edges.insert(incoming.innov, incoming);
             self.edges.insert(outgoing.innov, outgoing);
             self.nodes.insert((*new_node).innov, new_node);   
-            Some(new_node)
         }
     }
 
@@ -137,7 +137,7 @@ impl Dense {
     /// that the desired connection can be made. If it can be, make the connection
     /// with a weight of .5 in order to minimally impact the network 
     #[inline]
-    pub fn add_edge(&mut self, counter: &mut Counter) -> Option<Edge> {
+    pub fn add_edge(&mut self) {
         unsafe {
             // get a valid sending neuron
             let sending = loop {
@@ -157,15 +157,12 @@ impl Dense {
             if self.valid_connection(sending, receiving) {
                 // if the connection is valid, make it and wire the nodes to each
                 let mut r = rand::thread_rng();
-                let new_edge = Edge::new((**sending).innov, (**receiving).innov, counter.next(), r.gen::<f64>(), true);
+                let new_edge = Edge::new((**sending).innov, (**receiving).innov, Uuid::new_v4(), r.gen::<f64>(), true);
                 (**sending).outgoing.push(new_edge.innov);
                 (**receiving).incoming.insert(new_edge.innov, None);
                 // add the new edge to the network
-                let result = new_edge.clone();
                 self.edges.insert(new_edge.innov, new_edge);               
-                return Some(result)
             }
-            None
         }
     }
 
@@ -234,7 +231,7 @@ impl Dense {
     /// way to do this so this is a workaround. Returns the innovation number of the node
     /// in order to satisfy rust borrow rules
     #[inline]
-    fn random_node(&self) -> i32 {
+    fn random_node(&self) -> Uuid {
         let index = rand::thread_rng().gen_range(0, self.nodes.len());
         for (i, (innov, _)) in self.nodes.iter().enumerate() {
             if i == index {
@@ -250,7 +247,7 @@ impl Dense {
     /// way to do this so this is a workaround. Returns the innovatio number of the 
     /// edge in order to satisfy rust borrowing rules
     #[inline]
-    fn random_edge(&self) -> i32 {
+    fn random_edge(&self) -> Uuid {
         let index = rand::thread_rng().gen_range(0, self.edges.len());
         for (i, (innov, _)) in self.edges.iter().enumerate() {
             if i == index {
@@ -266,7 +263,7 @@ impl Dense {
     /// that holds the innovation numbers of the input nodes for a dfs traversal 
     /// to feed forward those inputs through the network
     #[inline]
-    unsafe fn give_inputs(&self, data: &Vec<f64>) -> Vec<i32> {
+    unsafe fn give_inputs(&self, data: &Vec<f64>) -> Vec<Uuid> {
         assert!(data.len() == self.inputs.len());
         self.inputs.iter().zip(data.iter())
             .map(|(node_innov, input)| {
@@ -307,102 +304,6 @@ impl Dense {
     }
 
 
-
-    // if the new node has already been created in the same spot meaning an edge was deactivated
-    // and replaced by two new edges connecting to a new node, but the evolutionary process 
-    // has already created the same topological structure, then that node and those edges should
-    // be represented by the innovation numbers already created, not new ones. This is crutial 
-    // for preventing wrongful population explosion due to incorrect historical markings
-    #[inline]
-    unsafe fn neuron_control(child: &mut Dense, new_node: &*mut Neuron, env: &mut NeatEnvironment) -> Result<(), &'static str> {
-        // check to see if this node has been created in the enviromnent before
-        let new_node_incoming_edge: i32 = *(**new_node).incoming.keys().next().unwrap();
-        let new_node_outgoing_edge: i32 = *(**new_node).outgoing.last().unwrap();
-
-        // get the sending and receiving nodes because the new edges had new innovation 
-        // numbers so the only way to check is by looking at the nodes themselves 
-        // get the incoming and outoing edges of the new node and the stored node to replace the 
-        // incoming edges dst and the outgoing edges src with the stored node's innovation
-        let new_node_incoming_neuron = child.edges.get_mut(&new_node_incoming_edge).unwrap().src;
-        let new_node_outgoing_neuron = child.edges.get_mut(&new_node_outgoing_edge).unwrap().dst;
-        let neuron_key = (new_node_incoming_neuron, new_node_outgoing_neuron);
-        // if the key is in the enviromnent, we know this mutation has been created before 
-        if !env.global_nodes.contains_key(&neuron_key) {
-            // add the new edges and nodes to the env
-            let incoming_edge_key = (new_node_incoming_neuron, (**new_node).innov);
-            let outgoing_edge_key = ((**new_node).innov, new_node_outgoing_neuron);
-            env.global_edges.insert(incoming_edge_key, child.edges.get(&new_node_incoming_edge).unwrap().clone());
-            env.global_edges.insert(outgoing_edge_key, child.edges.get(&new_node_outgoing_edge).unwrap().clone());
-            env.global_nodes.insert(neuron_key, (**new_node).clone());
-        } else if env.global_nodes.contains_key(&neuron_key) {
-            let stored_node = env.global_nodes.get(&neuron_key).unwrap().clone().as_mut_ptr();
-            if !child.nodes.contains_key(&(*stored_node).innov) {
-                // actually get the edges from the env
-                let stored_incoming_edge_key = (new_node_incoming_neuron, (*stored_node).innov);
-                let stored_outgoing_edge_key = ((*stored_node).innov, new_node_outgoing_neuron);
-                let stored_incoming_edge = env.global_edges.get(&stored_incoming_edge_key).unwrap().clone();
-                let stored_outgoing_edge = env.global_edges.get(&stored_outgoing_edge_key).unwrap().clone();
-
-                // get the actual incoming and outgoing neurons to replace the new node with the stored node 
-                let incoming_node = child.nodes.get(&new_node_incoming_neuron).unwrap();
-                let outgoing_node = child.nodes.get(&new_node_outgoing_neuron).unwrap();
-
-                // remove the pointers to the edges that are going to be removed 
-                (**incoming_node).outgoing.remove((**incoming_node).outgoing.iter().position(|&x| x == new_node_incoming_edge).unwrap());
-                (**incoming_node).outgoing.push(stored_incoming_edge.innov);
-
-                // replace the old edges with the stored edges from the global env
-                (**outgoing_node).incoming.remove(&new_node_outgoing_edge);
-                (**outgoing_node).incoming.insert(stored_outgoing_edge.innov, None);
-
-                // remove the new node and it's new edges from the child and replace it with the stored ones
-                child.nodes.remove(&(**new_node).innov);
-                child.edges.remove(&new_node_incoming_edge);
-                child.edges.remove(&new_node_outgoing_edge);
-
-                // insert the new node and it's new edges into the network inplace of the previous new node
-                child.nodes.insert((*stored_node).innov, stored_node);
-                child.edges.insert(stored_incoming_edge.innov, stored_incoming_edge);
-                child.edges.insert(stored_outgoing_edge.innov, stored_outgoing_edge); 
-                      
-                // roll back the counter three because there are three innovation numbers that we didn't use 
-                env.subtract_count(3);    
-            }
-        } 
-        Ok(())
-    }
-
-
-
-    /// Similar to neuron_control, this controls the edges of the graph in order to prevent 
-    /// unwanted population explosion due to incorrect historical markings of innovation numbers
-    /// that already exist within the population. This tends to tighten the number of species.
-    #[inline]
-    unsafe fn edge_control(child: &mut Dense, new_edge: Option<Edge>, env: &mut NeatEnvironment) {
-        // if edge is None then we don't need to do anything
-        if let Some(new_edge) = new_edge {
-            // make a key for the env global edges
-            let key = (new_edge.src, new_edge.dst);
-            // if the key is in the enviromnet already then it has already been created 
-            // and we need to replace the new edge in the child with the stored edge 
-            if env.global_edges.contains_key(&key) {
-                let stored_edge = env.global_edges.get(&key).unwrap();
-                let src_neuron = child.nodes.get(&stored_edge.src).unwrap();
-                let dst_neuron = child.nodes.get(&stored_edge.dst).unwrap();
-                // replace the src and dst node's pointers to the new edge with the stored edge
-                (**src_neuron).outgoing.remove((**src_neuron).outgoing.iter().position(|&x| x == new_edge.innov).unwrap());
-                (**dst_neuron).incoming.remove(&new_edge.innov);
-                // insert the stored edge into the src and dst neurons
-                (**src_neuron).outgoing.push(stored_edge.innov);
-                (**dst_neuron).incoming.insert(stored_edge.innov, None);
-                // remove the new edge and add the stored edge into the child
-                child.edges.remove(&new_edge.innov);
-                child.edges.insert(stored_edge.innov, stored_edge.clone());
-            } else {
-                env.global_edges.insert(key, new_edge.clone());
-            }
-        }
-    }
 
 
 }
@@ -525,19 +426,6 @@ impl Layer for Dense {
         (self.inputs.len(), self.outputs.len())
     }
 
-    /// find the max edge innovation number from the network for determing 
-    /// the genetic_structure of this network
-    #[inline]
-    fn max_marker(&self) -> i32 {
-        let mut result = None;
-        for key in self.edges.keys() {
-            if result.is_none() || key > result.unwrap() {
-                result = Some(key);
-            }
-        }
-        *result.unwrap_or_else(|| panic!("Failed to find max marker"))
-    }
-
 }
 
 
@@ -547,7 +435,7 @@ impl Genome<Dense, NeatEnvironment> for Dense
     fn crossover(child: &Dense, parent_two: &Dense, env: &Arc<RwLock<NeatEnvironment>>, crossover_rate: f32) -> Option<Dense> {
         let mut new_child = child.clone();
         unsafe {
-            let mut set = (*env).write().ok()?;
+            let set = (*env).read().ok()?;
             let mut r = rand::thread_rng();
             if r.gen::<f32>() < crossover_rate {
                 for (innov, edge) in new_child.edges.iter_mut() {
@@ -576,12 +464,10 @@ impl Genome<Dense, NeatEnvironment> for Dense
                 if new_child.layer_type == LayerType::DensePool {
                     if r.gen::<f32>() < set.new_node_rate? {
                         let act_func = *set.activation_functions.choose(&mut r)?;
-                        let new_node = new_child.add_node(set.get_mut_counter(), act_func)?;
-                        Dense::neuron_control(&mut new_child, &new_node, &mut set).ok()?;
+                        new_child.add_node(act_func);
                     }
                     if r.gen::<f32>() < set.new_edge_rate? {
-                        let new_edge = new_child.add_edge(set.get_mut_counter());
-                        Dense::edge_control(&mut new_child, new_edge, &mut set);
+                        new_child.add_edge();
                     }
                 }
             }
@@ -591,46 +477,16 @@ impl Genome<Dense, NeatEnvironment> for Dense
 
 
 
-    fn distance(one: &Dense, two: &Dense, env: &Arc<RwLock<NeatEnvironment>>) -> f64 {
-        // keep track of the number of excess and disjoint genes and the
-        // average weight of shared genes between the two networks 
-        // determin the largest network and it's max innovation number
-        // and store that and the smaller network and it's max innovation number
-        let (mut e, mut d) = (0.0, 0.0);
-        let (mut w, mut wc) = (0.0, 0.0);
-        let one_max = one.max_marker();
-        let two_max = two.max_marker();
-        let (big, small, small_innov) = if one_max > two_max { 
-            (one, two, two_max)
-        } else { 
-            (two, one, one_max)
-        };
-        // iterate through the larger network 
-        for (innov, edge) in big.edges.iter() {
-            // check if it's a sharred innvation number
-            if small.edges.contains_key(innov) {
-                w += (edge.weight - small.edges.get(innov).unwrap().weight).abs();
-                wc += 1.0;
-                continue;
-            }
-            if innov > &small_innov {
-                e += 1.0;
-            } else {
-                d += 1.0;
+    fn distance(one: &Dense, two: &Dense, _: &Arc<RwLock<NeatEnvironment>>) -> f64 {
+        let mut similar = 0.0;
+        for (innov, _) in one.edges.iter() {
+            if two.edges.contains_key(innov) {
+                similar += 1.0;
             }
         }
-        // disjoint genes can be found within both networks unlike excess, so we still need to 
-        // go through the smaller network and see if there are any disjoint genes in there as well
-        for innov in small.edges.keys() {
-            if !big.edges.contains_key(innov) {
-                d += 1.0;
-            }
-        }
-        // lock the env to get the comparing values from it  and make sure wc is greater than 0
-        let wc = if wc == 0.0 { 1.0 } else { wc };
-        let lock_env = (*env).read().unwrap();
-        // return the distance between the two networks
-        ((lock_env.c1.unwrap() * e) / big.edges.len() as f64) + ((lock_env.c2.unwrap() * d) / big.edges.len() as f64) + (lock_env.c3.unwrap() * (w / wc))
+        let one_score = similar / one.edges.len() as f64;
+        let two_score = similar / two.edges.len() as f64;
+        2.0 - (one_score + two_score)
     }
 }
 
@@ -668,7 +524,7 @@ impl Drop for Dense {
     fn drop(&mut self) { 
         unsafe {
             for (_, node) in self.nodes.iter() {
-                ptr::drop_in_place(*node);
+                drop(Box::from_raw(*node));
             }
         }
     }

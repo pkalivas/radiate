@@ -1,9 +1,11 @@
 
 extern crate rand;
+extern crate uuid;
 
 use std::fmt;
 use std::collections::HashMap;
 use rand::Rng;
+use uuid::Uuid;
 use super::activation::Activation;
 use super::neurontype::NeuronType;
 
@@ -15,9 +17,9 @@ use super::neurontype::NeuronType;
 /// Some neurons like an LSTM require more variables and different interal activation logic, 
 /// so encapsulating that within a normal node on the graph would be misplaced.
 pub struct Neuron {
-    pub innov: i32,
-    pub outgoing: Vec<i32>,
-    pub incoming: HashMap<i32, Option<f64>>,
+    pub innov: Uuid,
+    pub outgoing: Vec<Uuid>,
+    pub incoming: HashMap<Uuid, Option<f64>>,
     pub value: Option<f64>,
     pub error: Option<f64>,
     pub bias: f64,
@@ -30,7 +32,7 @@ pub struct Neuron {
 impl Neuron {
 
 
-    pub fn new(innov: i32, neuron_type: NeuronType, activation: Activation) -> Self {
+    pub fn new(innov: Uuid, neuron_type: NeuronType, activation: Activation) -> Self {
         Neuron {
             innov,
             outgoing: Vec::new(),
