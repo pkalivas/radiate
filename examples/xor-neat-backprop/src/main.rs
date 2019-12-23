@@ -9,16 +9,13 @@ use radiate::prelude::*;
 
 
 fn main() -> Result<(), Box<dyn Error>> {
-
-    let mut neat_env = NeatEnvironment::new()
-        .set_input_size(2)
-        .start_innov_counter();
-        
+       
     let thread_time = Instant::now();
     let mut net = Neat::new()
-        .dense(7, &mut neat_env, Activation::Relu)
-        .dense(7, &mut neat_env, Activation::Relu)
-        .dense(1, &mut neat_env, Activation::Sigmoid);
+        .input_size(2)
+        .dense(7, Activation::Relu)
+        .dense(7, Activation::Relu)
+        .dense(1, Activation::Sigmoid);
         
     let xor = XOR::new();
     for _ in 0..100 {

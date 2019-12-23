@@ -67,15 +67,15 @@ impl Dense {
         }
         
         let mut r = rand::thread_rng();
-        for i in layer.inputs.iter() {
-            for j in layer.outputs.iter() {
-                let src = layer.nodes.get(i).unwrap();
-                let dst = layer.nodes.get(j).unwrap();
-                let weight = r.gen::<f64>() * 2.0 - 1.0;
-                let new_edge = Edge::new(*i, *j, Uuid::new_v4(), weight, true);
-                unsafe { (**src).outgoing.push(new_edge.innov); }
-                unsafe { (**dst).incoming.insert(new_edge.innov, None); }
-                layer.edges.insert(new_edge.innov, new_edge);
+        unsafe {
+            for i in layer.inputs.iter() {
+                for j in layer.outputs.iter() {
+                    let weight = r.gen::<f64>() * 2.0 - 1.0;
+                    let new_edge = Edge::new(*i, *j, Uuid::new_v4(), weight, true);
+                    layer.nodes.get(i).map(|x| (**x).outgoing.push(new_edge.innov));
+                    layer.nodes.get(j).map(|x| (**x).incoming.insert(new_edge.innov, None));
+                    layer.edges.insert(new_edge.innov, new_edge);
+                }
             }
         }
 
@@ -381,6 +381,7 @@ impl Layer for Dense {
     }
 
 
+
     /// Backpropagation algorithm, transfer the error through the network and change the weights of the
     /// edges accordinly, this is pretty straight forward due to the design of the neat graph
     #[inline]
@@ -523,8 +524,14 @@ impl Genome<Dense, NeatEnvironment> for Dense
 impl Clone for Dense {
     fn clone(&self) -> Self {
         Dense {
-            inputs: self.inputs.iter().map(|x| *x).collect(),
-            outputs: self.outputs.iter().map(|x| *x).collect(),
+            inputs: self.inputs
+                .iter()
+                .map(|x| *x)
+                .collect(),
+            outputs: self.outputs
+                .iter() 
+                .map(|x| *x)    
+                .collect(),
             nodes: self.nodes.iter()
                 .map(|(key, val)| {
                     let node = unsafe { (**val).clone() };
