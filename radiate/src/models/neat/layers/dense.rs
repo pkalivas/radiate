@@ -24,6 +24,7 @@ use super::super::{
 use crate::Genome;
 
 
+
 #[derive(Debug)]
 pub struct Dense {
     pub inputs: Vec<Uuid>,
