@@ -121,7 +121,7 @@ impl Clone for Neuron {
                 .collect(),
             incoming: self.incoming
                 .iter()
-                .map(|(key, val)| (*key, *val))
+                .map(|(key, _)| (*key, None))
                 .collect(),
             value: self.value.clone(),
             error: self.error.clone(),

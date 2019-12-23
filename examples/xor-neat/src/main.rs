@@ -37,7 +37,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .constrain(neat_env)
         .size(200)
         .populate_clone(starting_net)
-        .debug(false)
+        .debug(true)
         .dynamic_distance(true)
         .configure(Config {
             inbreed_rate: 0.001,

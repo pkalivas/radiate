@@ -217,16 +217,19 @@ impl Genome<Neat, NeatEnvironment> for Neat {
         let mut result_layers = Vec::with_capacity(one.layers.len());
         // iterate through the layers of the network and cross them over with each other
         for (one_layer, two_layer) in one.layers.iter().zip(two.layers.iter()) {
-            let new_layer = match one_layer.layer_type {
+            let new_layer: Box<dyn Layer> = match one_layer.layer_type {
                 LayerType::Dense | LayerType::DensePool => {
-                    Dense::crossover(one_layer.as_ref(), two_layer.as_ref(), env, crossover_rate)?
+                    Box::new(Dense::crossover(one_layer.as_ref(), two_layer.as_ref(), env, crossover_rate)?)
+                },
+                LayerType::LSTM => {
+                    Box::new(LSTM::crossover(one_layer.as_ref(), two_layer.as_ref(), env, crossover_rate)?)
                 },
                 _ => panic!("Layer Type not implemented")
             };
 
             result_layers.push(LayerWrap {
                 layer_type: one_layer.layer_type,
-                layer: Box::new(new_layer)
+                layer: new_layer
             });
         }
         Some(Neat { layers: result_layers, input_size: one.input_size })
@@ -235,7 +238,7 @@ impl Genome<Neat, NeatEnvironment> for Neat {
 
 
     fn base(env: &mut NeatEnvironment) -> Neat {
-        Neat::new().dense_pool(env.output_size.unwrap(), Activation::Sigmoid)
+        Neat::new().input_size(env.input_size.unwrap()).dense_pool(env.output_size.unwrap(), Activation::Sigmoid)
     }
 
 
@@ -247,6 +250,9 @@ impl Genome<Neat, NeatEnvironment> for Neat {
                 LayerType::Dense | LayerType::DensePool => {
                     Dense::distance(layer_one.as_ref(), layer_two.as_ref(), env)
                 },
+                LayerType::LSTM => {
+                    LSTM::distance(layer_one.as_ref(), layer_two.as_ref(), env)
+                }
                 _ => panic!("Layer Type not implemented")
             };
         }

@@ -17,6 +17,7 @@ pub use models::{
             layer::Layer,
             layertype::LayerType,
             dense::Dense,
+            lstm::LSTM
         },
         neurontype::NeuronType,
         edge::Edge,
