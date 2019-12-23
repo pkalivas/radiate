@@ -16,7 +16,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_output_size(1)
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
-        .set_weight_perturb(1.5)
+        .set_weight_perturb(1.7)
         .set_new_node_rate(0.03)
         .set_new_edge_rate(0.04)
         .set_reactivate(0.2)
@@ -30,8 +30,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         .start_innov_counter();
         
     let starting_net = Neat::new()
-        .input_size(1)
-        .lstm(50, 1);
+        .input_size(2)
+        .lstm(20, 1);
 
     
     let num_evolve = 10;
@@ -56,7 +56,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         })?;
         
 
-        let ism = ISM::new(1);
+        let ism = ISM::new(2);
         println!("{:#?}", ism);
         let total = ism.solve(&mut solution);
     
@@ -187,7 +187,7 @@ unsafe impl Sync for ISM {}
 
 impl Problem<Neat> for ISM {
 
-    fn empty() -> Self { ISM::new(1) }
+    fn empty() -> Self { ISM::new(2) }
 
     fn solve(&self, model: &mut Neat) -> f64 {
         let mut total = 0.0;

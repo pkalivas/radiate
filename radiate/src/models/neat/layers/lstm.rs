@@ -17,7 +17,7 @@ use super::super::{
 
 use crate::Genome;
 
-
+// https://datascience.stackexchange.com/questions/19196/forget-layer-in-a-recurrent-neural-network-rnn
 
 #[derive(Debug)]
 pub struct LSTM {
@@ -51,12 +51,12 @@ impl LSTM {
                 .into_iter()
                 .map(|_| 0.0)
                 .collect(),
-            memory_gate: Dense::new(layer_size, layer_size, LayerType::Dense, Activation::Tahn),
-            forget_gate: Dense::new(input_size + layer_size, layer_size, LayerType::Dense, Activation::Sigmoid),
-            input_gate: Dense::new(input_size + layer_size, layer_size, LayerType::Dense, Activation::Sigmoid),
-            gated_gate: Dense::new(input_size + layer_size, layer_size, LayerType::Dense, Activation::Tahn),
-            output_gate: Dense::new(input_size + layer_size, layer_size, LayerType::Dense, Activation::Sigmoid),
-            output_layer: Dense::new(layer_size, output_size, LayerType::Dense, Activation::Sigmoid)
+            memory_gate: Dense::new(layer_size, layer_size, LayerType::DensePool, Activation::Tahn),
+            forget_gate: Dense::new(input_size + layer_size, layer_size, LayerType::DensePool, Activation::Sigmoid),
+            input_gate: Dense::new(input_size + layer_size, layer_size, LayerType::DensePool, Activation::Sigmoid),
+            gated_gate: Dense::new(input_size + layer_size, layer_size, LayerType::DensePool, Activation::Tahn),
+            output_gate: Dense::new(input_size + layer_size, layer_size, LayerType::DensePool, Activation::Sigmoid),
+            output_layer: Dense::new(layer_size, output_size, LayerType::DensePool, Activation::Sigmoid)
         }
     }
 
@@ -100,7 +100,7 @@ impl Layer for LSTM {
         Some(output)
     }
 
-    
+
 
     fn backprop(&mut self, errors: &Vec<f64>, learning_rate: f64) -> Option<Vec<f64>> {
 
