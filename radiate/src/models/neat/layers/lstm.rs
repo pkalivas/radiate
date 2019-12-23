@@ -19,12 +19,14 @@ use crate::Genome;
 pub struct LSTM {
     pub input_size: i32,
     pub output_size: i32,
-    pub hidden_states: Vec<Dense>,
-    pub hidden_cells: Vec<Dense>,
+    pub hidden_state: Vec<f64>,
+    pub memory_cell: Vec<f64>,
+    pub memory_gate: Dense,
     pub forget_gate: Dense,
     pub input_gate: Dense,
     pub gated_gate: Dense,
-    pub output_gate: Dense
+    pub output_gate: Dense,
+    pub output_layer: Dense
 }
 
 
@@ -35,12 +37,20 @@ impl LSTM {
         LSTM {
             input_size: input_size,
             output_size: output_size,
-            hidden_states: Vec::new(),
-            hidden_cells: Vec::new(),
-            forget_gate: Dense::new(input_size * 2, layer_size, LayerType::Dense, Activation::Sigmoid),
-            input_gate: Dense::new(input_size * 2, layer_size, LayerType::Dense, Activation::Sigmoid),
-            gated_gate: Dense::new(input_size * 2, layer_size, LayerType::Dense, Activation::Tahn),
-            output_gate: Dense::new(input_size * 2, layer_size, LayerType::Dense, Activation::Sigmoid)
+            hidden_state: (0..layer_size)
+                .into_iter()
+                .map(|_| 0.0)
+                .collect(),
+            memory_cell: (0..layer_size)
+                .into_iter()
+                .map(|_| 0.0)
+                .collect(),
+            memory_gate: Dense::new(layer_size, layer_size, LayerType::Dense, Activation::Tahn),
+            forget_gate: Dense::new(input_size + layer_size, layer_size, LayerType::Dense, Activation::Sigmoid),
+            input_gate: Dense::new(input_size + layer_size, layer_size, LayerType::Dense, Activation::Sigmoid),
+            gated_gate: Dense::new(input_size + layer_size, layer_size, LayerType::Dense, Activation::Tahn),
+            output_gate: Dense::new(input_size + layer_size, layer_size, LayerType::Dense, Activation::Sigmoid),
+            output_layer: Dense::new(layer_size, output_size, LayerType::Dense, Activation::Sigmoid)
         }
     }
 
@@ -52,8 +62,45 @@ impl LSTM {
 impl Layer for LSTM {
 
     fn propagate(&mut self, inputs: &Vec<f64>) -> Option<Vec<f64>> {
+        self.hidden_state.extend(inputs); 
+
+
+        println!("Forget ");
+        let forget_gate_result = self.forget_gate.propagate(&self.hidden_state)?;
+        println!("input");
+        let input_gate_result = self.input_gate.propagate(&self.hidden_state)?;
+        println!("gated");
+        let gated_gate_result = self.gated_gate.propagate(&self.hidden_state)?;
+        println!("output");
+        let output_gate_result = self.output_gate.propagate(&self.hidden_state)?;
+
+        let harrmond_input_gated = input_gate_result
+            .iter()
+            .zip(gated_gate_result.iter())
+            .map(|(i, g)| i * g)
+            .collect::<Vec<_>>();
+        let new_memory = forget_gate_result
+            .iter()
+            .zip(self.memory_cell.iter())
+            .enumerate()
+            .map(|(index, (f, m))| (f * m) + harrmond_input_gated[index])
+            .collect::<Vec<_>>();
+
+        println!("new mem: {:?}", new_memory);
+        let memory_gate_result = self.memory_gate.propagate(&new_memory)?;
+            println!("mem");
+        let new_hidden_state = output_gate_result
+            .iter()
+            .zip(memory_gate_result.iter())
+            .map(|(h, m)| h * m)
+            .collect::<Vec<_>>();
         
-        None
+        self.memory_cell = new_memory;
+        self.hidden_state = new_hidden_state;
+        println!("output");
+        let output = self.output_layer.propagate(&self.hidden_state)?;
+        
+        Some(output)
     }
 
     fn backprop(&mut self, errors: &Vec<f64>, learning_rate: f64) -> Option<Vec<f64>> {
@@ -89,18 +136,20 @@ impl Clone for LSTM {
         LSTM {
             input_size: self.input_size,
             output_size: self.output_size,
-            hidden_states: self.hidden_states
+            hidden_state: self.hidden_state
                 .iter()
                 .map(|x| x.clone())
                 .collect(),
-            hidden_cells: self.hidden_cells
+            memory_cell: self.memory_cell
                 .iter()
                 .map(|x| x.clone())
                 .collect(),
+            memory_gate: self.memory_gate.clone(),
             forget_gate: self.forget_gate.clone(),
             input_gate: self.input_gate.clone(),
             gated_gate: self.gated_gate.clone(),
-            output_gate: self.output_gate.clone()
+            output_gate: self.output_gate.clone(),
+            output_layer: self.output_layer.clone()
         }
 
     }

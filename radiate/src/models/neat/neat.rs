@@ -7,6 +7,7 @@ use super::{
     layers::{
         layer::Layer,
         dense::Dense,
+        lstm::LSTM,
         layertype::LayerType,
     }
 };
@@ -133,6 +134,18 @@ impl Neat {
         let wrapper = LayerWrap {
             layer_type: LayerType::Dense,
             layer: Box::new(Dense::new(input_size, output_size, LayerType::Dense, activation))
+        };
+        self.layers.push(wrapper);
+        self
+    }
+
+
+    
+    pub fn lstm(mut self, size: i32, output_size: i32) -> Self {
+        let (input_size, output_size) = self.get_layer_sizes(output_size).unwrap();
+        let wrapper = LayerWrap {
+            layer_type: LayerType::LSTM,
+            layer: Box::new(LSTM::new(input_size, size, output_size))
         };
         self.layers.push(wrapper);
         self

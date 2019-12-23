@@ -25,6 +25,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     xor.show(&mut net);
     println!("Time in millis: {}", thread_time.elapsed().as_millis());
 
+    let mut lstm = Neat::new()
+        .input_size(2)
+        .lstm(25, 2);
+
+    let output = lstm.feed_forward(&vec![1.0, 1.0]);
+    println!("otuput: {:?}", output);
+
     Ok(())
 }
 

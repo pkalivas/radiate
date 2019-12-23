@@ -94,6 +94,20 @@ impl Dense {
     
 
 
+    /// get the outputs from the layer in a vec form
+    #[inline]
+    pub fn get_outputs(&self) -> Option<Vec<f64>> {
+        let result = self.outputs
+            .iter()
+            .map(|x| {
+                unsafe { (**self.nodes.get(x).unwrap()).value.unwrap() }
+            })
+            .collect::<Vec<_>>();
+        Some(result)
+    }
+
+
+
     /// Add a node to the network by getting a random edge 
     /// and inserting the new node inbetween that edge's source
     /// and destination nodes. The old weight is pushed forward 
@@ -371,12 +385,7 @@ impl Layer for Dense {
             
             // once we've made it through the network, the outputs should all
             // have calculated their values. Gather the values and return the vec
-            let mut network_output = Vec::with_capacity(self.outputs.len());
-            for innov in self.outputs.iter() {
-                let node_val = (**self.nodes.get(innov)?).value?;
-                network_output.push(node_val);
-            }
-            Some(network_output)
+            self.get_outputs()
         }
     }
 
