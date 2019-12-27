@@ -10,7 +10,6 @@ pub mod layertype {
         DensePool,
         Dense,
         LSTM, 
-        Recurrent
     }
 
 }

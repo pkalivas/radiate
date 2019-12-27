@@ -6,4 +6,3 @@ authors = ["pkalivas <peterkalivas@gmail.com>"]
 
 [dependencies]
 radiate={path="../../radiate"}
-csv="*"

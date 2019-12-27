@@ -1,62 +1,84 @@
 
 extern crate rand;
 
-use std::mem;
 use std::fmt;
+use std::mem;
 use std::any::Any;
 use std::sync::{Arc, RwLock};
 use super::{
     layertype::LayerType,
     layer::Layer,
     dense::Dense,
-};
+};    
 use super::super::{
     activation::Activation,
     neatenv::NeatEnvironment
-};
+};    
 
 use crate::Genome;
 
-// https://datascience.stackexchange.com/questions/19196/forget-layer-in-a-recurrent-neural-network-rnn
+
+
 
 #[derive(Debug)]
 pub struct LSTM {
     pub input_size: i32,
+    pub memory_size: i32,
     pub output_size: i32,
-    pub layer_size: i32, 
-    pub hidden_state: Vec<f64>,
-    pub memory_cell: Vec<f64>,
-    pub memory_gate: Dense,
-    pub forget_gate: Dense,
-    pub input_gate: Dense,
-    pub gated_gate: Dense,
-    pub output_gate: Dense,
-    pub output_layer: Dense
+    pub current_memory: Vec<f64>,
+    pub current_output: Vec<f64>,
+    pub gate_forget: Dense,
+    pub gate_output: Dense,
+    pub gate_extract: Dense,
 }
 
 
 
+/// implement a simple LSTM layer that can be added to the neat network
 impl LSTM {
 
-    pub fn new(input_size: i32, layer_size: i32, output_size: i32) -> Self {
+
+    pub fn new(input_size: i32, memory_size: i32, output_size: i32) -> Self {        
+        let network_in_size = input_size + memory_size + output_size;
         LSTM {
             input_size,
+            memory_size,
             output_size,
-            layer_size,
-            hidden_state: (0..layer_size)
-                .into_iter()
-                .map(|_| 0.0)
-                .collect(),
-            memory_cell: (0..layer_size)
-                .into_iter()
-                .map(|_| 0.0)
-                .collect(),
-            memory_gate: Dense::new(layer_size, layer_size, LayerType::DensePool, Activation::Tahn),
-            forget_gate: Dense::new(input_size + layer_size, layer_size, LayerType::DensePool, Activation::Sigmoid),
-            input_gate: Dense::new(input_size + layer_size, layer_size, LayerType::DensePool, Activation::Sigmoid),
-            gated_gate: Dense::new(input_size + layer_size, layer_size, LayerType::DensePool, Activation::Tahn),
-            output_gate: Dense::new(input_size + layer_size, layer_size, LayerType::DensePool, Activation::Sigmoid),
-            output_layer: Dense::new(layer_size, output_size, LayerType::DensePool, Activation::Sigmoid)
+            current_memory: vec![0.0; memory_size as usize],
+            current_output: vec![0.0; output_size as usize],
+            gate_forget: Dense::new(network_in_size, memory_size, LayerType::DensePool, Activation::Sigmoid),
+            gate_output: Dense::new(network_in_size, output_size, LayerType::DensePool, Activation::Tahn),
+            gate_extract: Dense::new(network_in_size, memory_size, LayerType::DensePool, Activation::Tahn)
+        }
+    }
+
+
+
+    /// multiply two vectors element wise
+    #[inline]
+    pub fn element_multiply(one: &mut Vec<f64>, two: &Vec<f64>) {
+        for i in 0..one.len() {
+            one[i] *= two[i];
+        }
+    }
+
+
+
+    /// invert a vector that is already holding values between 0 and 1
+    #[inline]
+    pub fn element_invert(one: &mut Vec<f64>) {
+        for i in one.iter_mut() {
+            *i = 1.0 - *i;
+        }
+    }
+
+
+
+    /// add elements from vectors together element wise
+    #[inline]
+    pub fn element_add(one: &mut Vec<f64>, two: &Vec<f64>) {
+        for i in 0..one.len() {
+            one[i] += two[i];
         }
     }
 
@@ -64,42 +86,36 @@ impl LSTM {
 
 
 
-
+/// implement the layer trait for the lstm so it can be stored in the neat network
 impl Layer for LSTM {
 
+
+    /// implement the propagation function for the lstm layer 
+    #[inline]
     fn propagate(&mut self, inputs: &Vec<f64>) -> Option<Vec<f64>> {
-        self.hidden_state.extend(inputs); 
+        let mut concat_input_output = self.current_output.clone();
+        concat_input_output.extend(inputs);
 
-        let forget_gate_result = self.forget_gate.propagate(&self.hidden_state)?;
-        let input_gate_result = self.input_gate.propagate(&self.hidden_state)?;
-        let gated_gate_result = self.gated_gate.propagate(&self.hidden_state)?;
-        let output_gate_result = self.output_gate.propagate(&self.hidden_state)?;
+        let mut network_input = concat_input_output.clone();
+        network_input.extend(&self.current_memory);
 
-        let harrmond_input_gated = input_gate_result
-            .iter()
-            .zip(gated_gate_result.iter())
-            .map(|(i, g)| i * g)
-            .collect::<Vec<_>>();
-        let new_memory = forget_gate_result
-            .iter()
-            .zip(self.memory_cell.iter())
-            .enumerate()
-            .map(|(index, (f, m))| (f * m) + harrmond_input_gated[index])
-            .collect::<Vec<_>>();
+        // calculate memory updates
+        let mut forget = self.gate_forget.propagate(&network_input)?;
+        let mut memory = self.gate_extract.propagate(&network_input)?;
 
-        let memory_gate_result = self.memory_gate.propagate(&new_memory)?;
-        let new_hidden_state = output_gate_result
-            .iter()
-            .zip(memory_gate_result.iter())
-            .map(|(h, m)| h * m)
-            .collect::<Vec<_>>();
-        
-        self.memory_cell = new_memory;
-        self.hidden_state = new_hidden_state;
-        let output = self.output_layer.propagate(&self.hidden_state)?;        
-        Some(output)
+        // figure out what to forget from the current memory
+        LSTM::element_multiply(&mut self.current_memory, &forget);
+        LSTM::element_invert(&mut forget);
+        LSTM::element_multiply(&mut memory, &forget);
+        LSTM::element_add(&mut self.current_memory, &memory);
+
+        // add the new memory for the input to the output network of the layer
+        concat_input_output.extend(&self.current_memory);
+
+        // calculate the current output of the layer
+        self.current_output = self.gate_output.propagate(&concat_input_output)?;
+        Some(self.current_output.clone())
     }
-
 
 
     fn backprop(&mut self, errors: &Vec<f64>, learning_rate: f64) -> Option<Vec<f64>> {
@@ -128,73 +144,59 @@ impl Layer for LSTM {
 }
 
 
+/// Implement clone for the neat neural network in order to facilitate 
+/// proper crossover and mutation for the network
+impl Clone for LSTM {
 
-
-impl Genome<LSTM, NeatEnvironment> for LSTM
-    where LSTM: Layer
-{
-    fn crossover(child: &LSTM, parent_two: &LSTM, env: &Arc<RwLock<NeatEnvironment>>, crossover_rate: f32) -> Option<LSTM> {
-        let child = LSTM {
-            input_size: child.input_size,
-            output_size: child.output_size,
-            layer_size: child.layer_size,
-            hidden_state: (0..child.layer_size)
-                .into_iter()
-                .map(|_| 0.0)
-                .collect(),
-            memory_cell: (0..child.layer_size)
-                .into_iter()
-                .map(|_| 0.0)
-                .collect(),
-            memory_gate: Dense::crossover(&child.memory_gate, &parent_two.memory_gate, env, crossover_rate)?,
-            forget_gate: Dense::crossover(&child.forget_gate, &parent_two.forget_gate, env, crossover_rate)?,
-            input_gate: Dense::crossover(&child.input_gate, &parent_two.input_gate, env, crossover_rate)?,
-            gated_gate: Dense::crossover(&child.gated_gate, &parent_two.gated_gate, env, crossover_rate)?,
-            output_gate: Dense::crossover(&child.output_gate, &parent_two.output_gate, env, crossover_rate)?,
-            output_layer: Dense::crossover(&child.output_layer, &parent_two.output_layer, env, crossover_rate)?
-        };
-        Some(child)
-    }
-
-
-    fn distance(one: &LSTM, two: &LSTM, env: &Arc<RwLock<NeatEnvironment>>) -> f64 {
-        let mut result = 0.0;
-        result += Dense::distance(&one.memory_gate, &two.memory_gate, env);
-        result += Dense::distance(&one.forget_gate, &two.forget_gate, env);
-        result += Dense::distance(&one.input_gate, &two.input_gate, env);
-        result += Dense::distance(&one.gated_gate, &two.gated_gate, env);
-        result += Dense::distance(&one.output_gate, &two.output_gate, env);
-        result += Dense::distance(&one.output_layer, &two.output_layer, env);
-        result
+    #[inline]
+    fn clone(&self) -> Self {
+        LSTM {
+            input_size: self.input_size,
+            memory_size: self.memory_size,
+            output_size: self.output_size,
+            current_memory: vec![0.0; self.memory_size as usize],
+            current_output: vec![0.0; self.output_size as usize],
+            gate_forget: self.gate_forget.clone(),
+            gate_output: self.gate_output.clone(),
+            gate_extract: self.gate_extract.clone()
+        }
     }
 }
 
 
 
-/// Implement clone for the neat neural network in order to facilitate 
-/// proper crossover and mutation for the network
-impl Clone for LSTM {
-    fn clone(&self) -> Self {
-        LSTM {
-            input_size: self.input_size,
-            output_size: self.output_size,
-            layer_size: self.layer_size,
-            hidden_state: self.hidden_state
-                .iter()
-                .map(|_| 0.0)
-                .collect(),
-            memory_cell: self.memory_cell
-                .iter()
-                .map(|_| 0.0)
-                .collect(),
-            memory_gate: self.memory_gate.clone(),
-            forget_gate: self.forget_gate.clone(),
-            input_gate: self.input_gate.clone(),
-            gated_gate: self.gated_gate.clone(),
-            output_gate: self.output_gate.clone(),
-            output_layer: self.output_layer.clone()
-        }
 
+/// in order for the lstm layer to be evolved along with the rest of the network, Genome must be implemented 
+/// so that the layer can be crossed over and measured along with other lstm layers 
+impl Genome<LSTM, NeatEnvironment> for LSTM
+    where LSTM: Layer
+{
+
+    /// implement how to crossover two lstm layers 
+    #[inline]
+    fn crossover(child: &LSTM, parent_two: &LSTM, env: &Arc<RwLock<NeatEnvironment>>, crossover_rate: f32) -> Option<LSTM> {
+        let child = LSTM {
+            input_size: child.input_size,
+            memory_size: child.memory_size,
+            output_size: child.output_size,
+            current_memory: vec![0.0; child.memory_size as usize],
+            current_output: vec![0.0; child.output_size as usize],
+            gate_forget: Dense::crossover(&child.gate_forget, &parent_two.gate_forget, env, crossover_rate)?,
+            gate_output: Dense::crossover(&child.gate_output, &parent_two.gate_output, env, crossover_rate)?,
+            gate_extract: Dense::crossover(&child.gate_extract, &parent_two.gate_extract, env, crossover_rate)?
+        };
+        Some(child)
+    }
+
+
+    /// get the distance between two lstm layers of the network
+    #[inline]
+    fn distance(one: &LSTM, two: &LSTM, env: &Arc<RwLock<NeatEnvironment>>) -> f64 {
+        let mut result = 0.0;
+        result += Dense::distance(&one.gate_forget, &two.gate_forget, env);
+        result += Dense::distance(&one.gate_output, &two.gate_output, env);
+        result += Dense::distance(&one.gate_extract, &two.gate_extract, env);
+        result
     }
 }
 

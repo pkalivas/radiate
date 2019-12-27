@@ -514,11 +514,9 @@ impl Genome<Dense, NeatEnvironment> for Dense
 
     fn distance(one: &Dense, two: &Dense, _: &Arc<RwLock<NeatEnvironment>>) -> f64 {
         let mut similar = 0.0;
-        // let mut weight_diff = 0.0;
-        for (innov, edge) in one.edges.iter() {
+        for (innov, _) in one.edges.iter() {
             if two.edges.contains_key(innov) {
                 similar += 1.0;
-                // weight_diff += two.edges.get(innov).map(|x| (x.weight - edge.weight).abs()).unwrap();
             }
         }
         let one_score = similar / one.edges.len() as f64;

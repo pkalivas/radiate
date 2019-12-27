@@ -141,6 +141,8 @@ impl Neat {
 
 
     
+    /// create a new lstm layer and add it to the network
+    #[inline]
     pub fn lstm(mut self, size: i32, output_size: i32) -> Self {
         let (input_size, output_size) = self.get_layer_sizes(output_size).unwrap();
         let wrapper = LayerWrap {
@@ -163,9 +165,8 @@ impl Neat {
         Some((self.layers.last()?.layer.shape().1 as i32, size))
     }
 
-
-
 }
+
 
 
 /// Implement clone for the neat neural network in order to facilitate 
@@ -223,8 +224,7 @@ impl Genome<Neat, NeatEnvironment> for Neat {
                 },
                 LayerType::LSTM => {
                     Box::new(LSTM::crossover(one_layer.as_ref(), two_layer.as_ref(), env, crossover_rate)?)
-                },
-                _ => panic!("Layer Type not implemented")
+                }
             };
 
             result_layers.push(LayerWrap {
@@ -253,7 +253,6 @@ impl Genome<Neat, NeatEnvironment> for Neat {
                 LayerType::LSTM => {
                     LSTM::distance(layer_one.as_ref(), layer_two.as_ref(), env)
                 }
-                _ => panic!("Layer Type not implemented")
             };
         }
         total_distance

@@ -29,8 +29,7 @@ Currently there are two available layers with more on the way.
 pub enum LayerType {
     Dense,      // implemented - typical dense layer of a neural network with no ability to evolve its strucutre 
     DensePool,  // implemented - the algorithm described in the paper meaning a fully functional neural network can be evolved through one dense pool layer
-    LSTM,       // in dev
-    Recurrent   // in dev
+    LSTM,       // implemented for evolution, not backprop yet.
 }
 ```
 All neural networks need nonlinear functions to represent complex datasets. Neat 
@@ -105,7 +104,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let thread_time = Instant::now();
     let mut neat_env = NeatEnvironment::new()
-        .set_input_size(2)
+        .set_input_size(2)  // notice how input and output size must be defined in the environment when the base function is used for creation of the network
         .set_output_size(1)
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
@@ -113,15 +112,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_new_node_rate(0.03)
         .set_new_edge_rate(0.04)
         .set_reactivate(0.2)
-        .set_c1(1.0)
-        .set_c2(1.0)
-        .set_c3(0.04)
         .set_activation_functions(vec![
             Activation::Sigmoid,
             Activation::Relu,
-        ])
-        .start_innov_counter();
-        
+        ]);
+
     let starting_net = Neat::base(&mut neat_env);
     let num_evolve = 5000;
     let xor = XOR::new();
@@ -273,10 +268,11 @@ impl XOR {
     }
 }
 ```
-This comes right now with three examples, just run "cargo run --bin (desired example name)" to run any of them
+This comes right now with four examples, just run "cargo run --bin (desired example name)" to run any of them
 1. **xor-evtree**
 2. **xor-neat**
 3. **xor-neat-backprop**
+4. **lstm-neat**
 
 I'm going to add more examples soon, thinking about doing a Knapsack and nqueens example.
 
