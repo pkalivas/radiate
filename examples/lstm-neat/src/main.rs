@@ -52,9 +52,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         })?;
         
         println!("\nTime in millis: {}", thread_time.elapsed().as_millis());
-        let ism = MemoryTest::new();
-        ism.show(&mut solution);
-        println!("Total: {}", ism.solve(&mut solution));
+        MemoryTest::new().show(&mut solution);
         Ok(())
 }
  
