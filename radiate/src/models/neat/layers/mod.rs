@@ -3,6 +3,7 @@ pub mod dense;
 pub mod lstm;
 
 
+
 pub mod layertype {
 
     #[derive(Debug, PartialEq, Clone, Copy)]

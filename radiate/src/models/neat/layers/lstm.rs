@@ -18,6 +18,8 @@ use super::super::{
 use crate::Genome;
 
 
+// backprop :
+// https://blog.aidangomez.ca/2016/04/17/Backpropogating-an-LSTM-A-Numerical-Example/
 
 
 #[derive(Debug)]
@@ -120,7 +122,21 @@ impl Layer for LSTM {
 
     fn backprop(&mut self, errors: &Vec<f64>, learning_rate: f64) -> Option<Vec<f64>> {
 
-        None
+        let output_error = self.gate_output.backprop(&errors, learning_rate)?;
+        let forget_error = self.gate_forget.backprop(&output_error, learning_rate)?;
+        let extract_error = self.gate_extract.backprop(&output_error, learning_rate)?;
+
+        let mut one = forget_error[self.current_output.len()..(*self.current_output).len() + self.input_size as usize].to_vec();
+        let two = &extract_error[self.current_output.len()..(*self.current_output).len() + self.input_size as usize];
+
+        for (i, j) in one.iter_mut().zip(two.iter()) {
+            *i += *j;
+        }
+        // println!("Forget: {:#?}", forget_error);
+        // println!("\n\nExtract: {:#?}", extract_error);
+        // println!("\n\npass on: {:#?}", one);
+
+        Some(one)
     }
 
 

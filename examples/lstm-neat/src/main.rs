@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let starting_net = Neat::new()
         .input_size(1)
-        .lstm(6, 6)
+        .lstm(3, 3)
         .dense_pool(1, Activation::Sigmoid);
 
     
@@ -53,6 +53,21 @@ fn main() -> Result<(), Box<dyn Error>> {
         
         println!("\nTime in millis: {}", thread_time.elapsed().as_millis());
         MemoryTest::new().show(&mut solution);
+
+        // let mut test_net = Neat::new()
+        //     .input_size(1)
+        //     .lstm(5, 5)
+        //     .dense_pool(1, Activation::Sigmoid);
+        
+        // let m = MemoryTest::new();
+
+        // println!("\n\n\n");
+        // for _ in 0..500 {
+        //     m.backprop(&mut test_net);
+        // }
+        // m.show(&mut test_net);
+
+
         Ok(())
 }
  
@@ -92,6 +107,12 @@ impl MemoryTest {
         for (i, o) in self.input.iter().zip(self.output.iter()) {
             let guess = model.feed_forward(&i).unwrap();
             println!("Input: {:?}, Output: {:?}, Guess: {:.2}", i, o, guess[0]);
+        }
+    }
+
+    pub fn backprop(&self, model: &mut Neat) {
+        for (i, o) in self.input.iter().zip(self.output.iter()) {
+            model.backprop(i, o, 0.1);
         }
     }
 }
