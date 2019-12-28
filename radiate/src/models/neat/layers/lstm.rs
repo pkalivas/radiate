@@ -9,6 +9,7 @@ use super::{
     layertype::LayerType,
     layer::Layer,
     dense::Dense,
+    vectorops
 };    
 use super::super::{
     activation::Activation,
@@ -55,36 +56,8 @@ impl LSTM {
     }
 
 
-
-    /// multiply two vectors element wise
-    #[inline]
-    pub fn element_multiply(one: &mut Vec<f64>, two: &Vec<f64>) {
-        for i in 0..one.len() {
-            one[i] *= two[i];
-        }
-    }
-
-
-
-    /// invert a vector that is already holding values between 0 and 1
-    #[inline]
-    pub fn element_invert(one: &mut Vec<f64>) {
-        for i in one.iter_mut() {
-            *i = 1.0 - *i;
-        }
-    }
-
-
-
-    /// add elements from vectors together element wise
-    #[inline]
-    pub fn element_add(one: &mut Vec<f64>, two: &Vec<f64>) {
-        for i in 0..one.len() {
-            one[i] += two[i];
-        }
-    }
-
 }
+
 
 
 
@@ -106,10 +79,10 @@ impl Layer for LSTM {
         let mut memory = self.gate_extract.propagate(&network_input)?;
 
         // figure out what to forget from the current memory
-        LSTM::element_multiply(&mut self.current_memory, &forget);
-        LSTM::element_invert(&mut forget);
-        LSTM::element_multiply(&mut memory, &forget);
-        LSTM::element_add(&mut self.current_memory, &memory);
+        vectorops::element_multiply(&mut self.current_memory, &forget);
+        vectorops::element_invert(&mut forget);
+        vectorops::element_multiply(&mut memory, &forget);
+        vectorops::element_add(&mut self.current_memory, &memory);
 
         // add the new memory for the input to the output network of the layer
         concat_input_output.extend(&self.current_memory);

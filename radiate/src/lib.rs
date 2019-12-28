@@ -71,9 +71,5 @@ pub fn default_neat_env() -> NeatEnvironment {
         .set_new_node_rate(0.03)
         .set_new_edge_rate(0.04)
         .set_reactivate(0.25)
-        .set_c1(1.0)
-        .set_c2(1.0)
-        .set_c3(0.4)
         .set_activation_functions(vec![Activation::Sigmoid])
-        .start_innov_counter()
 }

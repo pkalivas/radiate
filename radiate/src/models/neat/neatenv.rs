@@ -1,10 +1,5 @@
 
-
-use std::collections::HashMap;
-use super::counter::Counter;
 use super::activation::Activation;
-use super::edge::Edge;
-use super::neuron::Neuron;
 
 use crate::engine::environment::Envionment;
 
@@ -17,12 +12,6 @@ use crate::engine::environment::Envionment;
 /// new_edge_rate: the probability of adding a new edge to the network
 /// edit_weights: the probability of weights in the network being edited or just left alone
 /// reactivate: the probability of reactivating a connection between two neurons 
-/// 
-/// The C variables are used to measure the distance of networks
-/// c1: excess nodes weight
-/// c2: disjoint nodes weight
-/// c3: Common node weight average weight
-
 
 
 #[derive(Debug, Clone)]
@@ -34,17 +23,9 @@ pub struct NeatEnvironment {
     pub new_edge_rate: Option<f32>,
     pub edit_weights: Option<f32>,
     pub reactivate: Option<f32>,
-    pub c1: Option<f64>,
-    pub c2: Option<f64>,
-    pub c3: Option<f64>,
     pub input_size: Option<i32>,
     pub output_size: Option<i32>,
     pub activation_functions: Vec<Activation>,
-
-    // global variables for evolution
-    pub innov_counter: Counter,
-    pub global_edges: HashMap<(i32, i32), Edge>,
-    pub global_nodes: HashMap<(i32, i32), Neuron>
 }
 
 
@@ -58,15 +39,9 @@ impl NeatEnvironment {
             new_edge_rate: None,
             edit_weights: None,
             reactivate: None,
-            c1: None,
-            c2: None,
-            c3: None,
             input_size: None,
             output_size: None,
             activation_functions: vec![Activation::Sigmoid],
-            innov_counter: Counter::new(),
-            global_edges: HashMap::new(),
-            global_nodes: HashMap::new()
         }
     }
 
@@ -107,24 +82,6 @@ impl NeatEnvironment {
     }
 
 
-    pub fn set_c1(mut self, num: f64) -> Self {
-        self.c1 = Some(num);
-        self
-    }
-
-
-    pub fn set_c2(mut self, num: f64) -> Self {
-        self.c2 = Some(num);
-        self
-    }
-
-
-    pub fn set_c3(mut self, num: f64) -> Self {
-        self.c3 = Some(num);
-        self
-    }
-
-
     pub fn set_input_size(mut self, num: i32) -> Self {
         self.input_size = Some(num);
         self
@@ -137,37 +94,11 @@ impl NeatEnvironment {
     }
 
 
-    pub fn start_innov_counter(mut self) -> Self {
-        self.innov_counter = Counter::new();
-        self
-    }
-
-
     pub fn set_activation_functions(mut self, funcs: Vec<Activation>) -> Self {
         self.activation_functions = funcs;
         self
     }
 
-
-
-    pub fn get_mut_counter(&mut self) -> &mut Counter {
-        &mut self.innov_counter
-    }
-
-
-    pub fn get_mut_nodes(&mut self) -> &mut HashMap<(i32, i32), Neuron> {
-        &mut self.global_nodes
-    }
-
-
-    pub fn get_mut_edges(&mut self) -> &mut HashMap<(i32, i32), Edge> {
-        &mut self.global_edges
-    }
-
-    
-    pub fn subtract_count(&mut self, num: i32) {
-        self.innov_counter.roll_back(num);
-    }
 
 }
 
@@ -184,11 +115,4 @@ impl Default for NeatEnvironment {
 
 
 
-impl Envionment for NeatEnvironment {
-
-    fn reset(&mut self) {
-        self.global_edges = HashMap::new();
-        self.global_nodes = HashMap::new();
-    }
-
-}
+impl Envionment for NeatEnvironment {}
