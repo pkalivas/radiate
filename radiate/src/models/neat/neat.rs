@@ -68,7 +68,7 @@ impl Neat {
 
     /// feed forward a vec of data through the neat network 
     #[inline]
-    pub fn feed_forward(&mut self, data: &Vec<f64>) -> Option<Vec<f64>> {
+    pub fn feed_forward(&mut self, data: &Vec<f32>) -> Option<Vec<f32>> {
         assert!(data.len() as i32 == self.input_size);
         // keep two vec in order to transfer the data from one layer to another layer in the network
         let mut temp;
@@ -89,7 +89,7 @@ impl Neat {
 
     /// backprop the the error of the network through each layer adjusting the weights
     #[inline]
-    pub fn backprop(&mut self, data: &Vec<f64>, output: &Vec<f64>, learning_rate: f64) {
+    pub fn backprop(&mut self, data: &Vec<f32>, output: &Vec<f32>, learning_rate: f32, update_weights: bool) {
         // feed forward the input data to set the outputs of each neuron in the network
         // compute the original errors
         let feed_out = self.feed_forward(data).unwrap();
@@ -107,7 +107,7 @@ impl Neat {
             .iter_mut()
             .rev()
             .fold(errors, |res, curr| {
-                curr.layer.backward(&res, learning_rate).unwrap()
+                curr.layer.backward(&res, learning_rate, update_weights).unwrap()
             });
     }
 
@@ -243,7 +243,7 @@ impl Genome<Neat, NeatEnvironment> for Neat {
 
 
 
-    fn distance(one: &Neat, two: &Neat, env: &Arc<RwLock<NeatEnvironment>>) -> f64 {
+    fn distance(one: &Neat, two: &Neat, env: &Arc<RwLock<NeatEnvironment>>) -> f32 {
         let mut total_distance = 0.0;
         for (layer_one, layer_two) in one.layers.iter().zip(two.layers.iter()) {
             total_distance += match layer_one.layer_type {

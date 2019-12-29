@@ -29,8 +29,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 #[derive(Debug)]
 pub struct XOR {
-    inputs: Vec<Vec<f64>>,
-    answers: Vec<Vec<f64>>
+    inputs: Vec<Vec<f32>>,
+    answers: Vec<Vec<f32>>
 }
 
 impl XOR {
@@ -53,7 +53,7 @@ impl XOR {
 
     fn backprop(&self, model: &mut Neat) {
         for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
-            model.backprop(i, o, 0.3);
+            model.backprop(i, o, 0.3, true);
         }
     }
 

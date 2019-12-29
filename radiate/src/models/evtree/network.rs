@@ -1,6 +1,6 @@
 extern crate simple_matrix;
 
-use std::f64::consts::E as Eul;
+use std::f32::consts::E as Eul;
 use rand::Rng;
 use rand::rngs::ThreadRng;
 use simple_matrix::Matrix;
@@ -12,8 +12,8 @@ use simple_matrix::Matrix;
 /// of a predetermined size (input_size). 
 #[derive(Debug, Clone)]
 pub struct NeuralNetwork {
-    pub weights: Vec<Matrix<f64>>,
-    pub biases: Vec<Matrix<f64>>,
+    pub weights: Vec<Matrix<f32>>,
+    pub biases: Vec<Matrix<f32>>,
     input_size: i32,
 }
 
@@ -52,22 +52,22 @@ impl NeuralNetwork {
 
 
     /// Edit the weights randomly of the matrix objects within the network
-    /// pub fn edit_weights(&mut self, layer_rate: f32, weight_mutate: f32, weight_transform: f64) {
+    /// pub fn edit_weights(&mut self, layer_rate: f32, weight_mutate: f32, weight_transform: f32) {
     #[inline]
-    pub fn edit_weights(&mut self, weight_mutate: f32, weight_transform: f64, layer_mutate: f32) {
+    pub fn edit_weights(&mut self, weight_mutate: f32, weight_transform: f32, layer_mutate: f32) {
         // create a closure to apply to each the weights and the biases
         // which randomly transforms the given weight be a given weight transform amount 
         // or uniformly changed.
         // need to create a new rand thread_rng because during concurrent weight editing, there is a change
-        // the network's self random will try to generage both an f32 and an f64 at the same time
+        // the network's self random will try to generage both an f32 and an f32 at the same time
         // resulting in a program wide panic! that unwinds the stack.
         let mut temp_rand = rand::thread_rng();
-        let transform = |x: &mut f64| {
+        let transform = |x: &mut f32| {
             let mut r = rand::thread_rng();
             if r.gen::<f32>() < weight_mutate {
                 *x *= r.gen_range(-weight_transform, weight_transform);
             } else {
-                *x = r.gen::<f64>();
+                *x = r.gen::<f32>();
             }
         };
 
@@ -86,7 +86,7 @@ impl NeuralNetwork {
     /// of at least one. Return a tuble containin the vec of weights represented by a simple 
     /// matrix and a vec of biases represeted by a simple matrix as well.
     #[inline]    
-    pub fn generate_random_network(&mut self) -> (Vec<Matrix<f64>>, Vec<Matrix<f64>>) {
+    pub fn generate_random_network(&mut self) -> (Vec<Matrix<f32>>, Vec<Matrix<f32>>) {
         // initialize the vecs and keep track of the previous size so the matrix mutiplication
         // matches correctly https://www.mathsisfun.com/algebra/matrix-multiplying.html
         // Then create a list of layer sizes in range (1, 4], with sizes (1, 32]
@@ -100,7 +100,7 @@ impl NeuralNetwork {
         // loop through each layer size to create a network layer, keep the size of the last layer
         for layer in sizes {
 
-            // get a vector of randomly generated f64 values with size layer * previous_size
+            // get a vector of randomly generated f32 values with size layer * previous_size
             // then create a matrix out of each returned value 
             let (weight_data, biase_data) = self.rand_layer_nums(layer, previous_size, &mut r);
             let curr_weight = Matrix::from_iter(layer, previous_size, weight_data);
@@ -124,12 +124,12 @@ impl NeuralNetwork {
 
 
 
-    /// feed forward a matrix through the neural network and output a matrix<f64>
+    /// feed forward a matrix through the neural network and output a matrix<f32>
     /// if the input shape does not fit matrix multiplication rules, method will Panic!
     /// Note: the input matrix must already by transmuted to where the input rows 
     /// should equal the first layer's column -> dot product
     #[inline]
-    pub fn feed_forward(&self, mut input: Matrix<f64>) -> Matrix<f64> {
+    pub fn feed_forward(&self, mut input: Matrix<f32>) -> Matrix<f32> {
         for (weight, bias) in self.weights.iter().zip(self.biases.iter()) {
             let mut layer_output = &(weight * &input) + bias;
             layer_output.apply_mut(|x| *x = NeuralNetwork::sigmoid(x));
@@ -140,13 +140,13 @@ impl NeuralNetwork {
 
 
 
-    /// Create two lists with randomly generated f64 values represetnting the weights
+    /// Create two lists with randomly generated f32 values represetnting the weights
     /// and biases of the neural network. Return them in a tuple
     #[inline]    
-    fn rand_layer_nums(&mut self, rows: usize, cols: usize, r: &mut ThreadRng) -> (Vec<f64>, Vec<f64>) {
+    fn rand_layer_nums(&mut self, rows: usize, cols: usize, r: &mut ThreadRng) -> (Vec<f32>, Vec<f32>) {
         (
             (0..(rows * cols))
-                .map(|_| r.gen::<f64>())
+                .map(|_| r.gen::<f32>())
                 .collect::<Vec<_>>(),
             (0..rows)
                 .map(|_| 1.0)
@@ -159,8 +159,8 @@ impl NeuralNetwork {
     /// Compute the sum of the weights of the neural network
     /// pretty simple.
     #[inline]
-    pub fn weight_sum(&self) -> f64 {
-        let mut total: f64 = 0.0;
+    pub fn weight_sum(&self) -> f32 {
+        let mut total: f32 = 0.0;
         for weight in self.weights.iter() {
             weight.apply(|x| total += *x);
         }
@@ -171,7 +171,7 @@ impl NeuralNetwork {
 
     /// Sigmoid function for as an activation function for the nerual network between layers
     #[allow(dead_code)]
-    fn sigmoid(x: &f64) -> f64 {
+    fn sigmoid(x: &f32) -> f32 {
         1.0 / (1.0 + Eul.powf(*x * -1.0))
     }
 

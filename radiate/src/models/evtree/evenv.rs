@@ -28,7 +28,7 @@ pub struct TreeEnvionment {
     pub shuffle_rate: Option<f32>,
     pub layer_mutate_rate: Option<f32>,
     pub weight_mutate_rate: Option<f32>,
-    pub weight_transform_rate: Option<f64>,
+    pub weight_transform_rate: Option<f32>,
 }
 
 
@@ -195,13 +195,13 @@ impl TreeEnvionment {
 
 
     #[allow(dead_code)]
-    pub fn set_weight_transform_rate(mut self, rate: f64) -> Self {
+    pub fn set_weight_transform_rate(mut self, rate: f32) -> Self {
         self.weight_transform_rate = Some(rate);
         self
     }
 
     #[allow(dead_code)]
-    pub fn get_weight_transform_rate(&self) -> f64 {
+    pub fn get_weight_transform_rate(&self) -> f32 {
         self.weight_transform_rate.unwrap_or_else(|| panic!("Weight transform rate not set"))
     }
 

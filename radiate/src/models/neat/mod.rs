@@ -9,7 +9,7 @@ pub mod layers;
 
 pub mod activation {
         
-    use std::f64::consts::E as Eul;
+    use std::f32::consts::E as Eul;
 
     /// Varius activation functions for a neuron, must be specified at creation
     #[derive(Debug, PartialEq, Clone, Copy)]
@@ -17,9 +17,9 @@ pub mod activation {
         Sigmoid,
         Tahn,
         Relu,
-        LeakyRelu(f64),
-        ExpRelu(f64),
-        Linear(f64)   
+        LeakyRelu(f32),
+        ExpRelu(f32),
+        Linear(f32)   
     }
 
 
@@ -28,7 +28,7 @@ pub mod activation {
         /// Generic activation functions for an neural network - note for a few
         /// of these an alpha parameter is needed when first assining the function
         #[inline]
-        pub fn activate(&self, x: f64) -> f64 {
+        pub fn activate(&self, x: f32) -> f32 {
             match self {
                 Self::Sigmoid => {
                     1.0 / (1.0 + (-x * 4.9).exp())
@@ -66,7 +66,7 @@ pub mod activation {
 
         /// Deactivation functions for the activation neurons 
         #[inline]
-        pub fn deactivate(&self, x: f64) -> f64 {
+        pub fn deactivate(&self, x: f32) -> f32 {
             match self {
                 Self::Sigmoid => {
                     x * (1.0 - x)
@@ -114,34 +114,4 @@ pub mod neurontype {
         Hidden,
     }
 
-}
-
-
-
-/// keep track of innovation numbers for neat 
-/// this thing doesn't deserve it's own file its too small
-pub mod counter {
-        
-    #[derive(Debug, Clone)]
-    pub struct Counter {
-        num: i32
-    }
-
-    impl Counter {
-        pub fn new() -> Self {
-            Counter {
-                num: 0
-            }
-        }
-
-        pub fn next(&mut self) -> i32 {
-            let result = self.num;
-            self.num += 1;
-            result
-        }
-
-        pub fn roll_back(&mut self, num: i32) {
-            self.num -= num;
-        }
-    }
 }

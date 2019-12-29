@@ -18,7 +18,7 @@ use crate::engine::environment::Envionment;
 pub struct NeatEnvironment {
     // base settings for evolution
     pub weight_mutate_rate: Option<f32>,
-    pub weight_perturb: Option<f64>,
+    pub weight_perturb: Option<f32>,
     pub new_node_rate: Option<f32>,
     pub new_edge_rate: Option<f32>,
     pub edit_weights: Option<f32>,
@@ -52,7 +52,7 @@ impl NeatEnvironment {
     }
 
 
-    pub fn set_weight_perturb(mut self, num: f64) -> Self {
+    pub fn set_weight_perturb(mut self, num: f32) -> Self {
         self.weight_perturb = Some(num);
         self
     }

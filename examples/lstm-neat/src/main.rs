@@ -29,7 +29,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .dense_pool(1, Activation::Sigmoid);
 
     
-    let num_evolve = 5;
+    let num_evolve = 500;
     let (mut solution, _) = Population::<Neat, NeatEnvironment, MemoryTest>::new()
         .constrain(neat_env)
         .size(100)
@@ -76,8 +76,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 #[derive(Debug)]
 pub struct MemoryTest {
-    input: Vec<Vec<f64>>,
-    output: Vec<Vec<f64>>
+    input: Vec<Vec<f32>>,
+    output: Vec<Vec<f32>>
 }
 
 impl MemoryTest {
@@ -113,7 +113,7 @@ impl MemoryTest {
 
     pub fn backprop(&self, model: &mut Neat) {
         for (i, o) in self.input.iter().zip(self.output.iter()) {
-            model.backprop(i, o, 0.3);
+            model.backprop(i, o, 0.3, true);
         }
     }
 }
@@ -127,7 +127,7 @@ impl Problem<Neat> for MemoryTest {
 
     fn empty() -> Self { MemoryTest::new() }
     
-    fn solve(&self, model: &mut Neat) -> f64 {
+    fn solve(&self, model: &mut Neat) -> f32 {
         let mut total = 0.0;
         for (ins, outs) in self.input.iter().zip(self.output.iter()) {
             match model.feed_forward(&ins) {
@@ -135,7 +135,7 @@ impl Problem<Neat> for MemoryTest {
                 None => panic!("Error in training NEAT")
             }
         }
-        total /= self.input.len() as f64;
+        total /= self.input.len() as f32;
         1.0 - total
     }
 }

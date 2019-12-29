@@ -115,7 +115,7 @@ impl ParentalCriteria {
 
     /// Find two parents to crossover and produce a child
     #[inline]
-    pub fn pick_parents<T, E>(&self, inbreed_rate: f32, families: &Vec<Family<T, E>>) -> Option<((f64, Member<T>), (f64, Member<T>))> 
+    pub fn pick_parents<T, E>(&self, inbreed_rate: f32, families: &Vec<Family<T, E>>) -> Option<((f32, Member<T>), (f32, Member<T>))> 
         where
             T: Genome<T, E> + Send + Sync + Clone,
             E: Send + Sync 
@@ -136,10 +136,10 @@ impl ParentalCriteria {
 
 
     /// pick two parents to breed a child - these use biased random ways of picking 
-    /// parents and returns a tuple of tuples where the f64 is the parent's fitness,
+    /// parents and returns a tuple of tuples where the f32 is the parent's fitness,
     /// and the type is the parent itself
     #[inline]
-    fn create_match<T, E>(&self, inbreed_rate: f32, families: &Vec<Family<T, E>>) -> ((f64, Member<T>), (f64, Member<T>)) 
+    fn create_match<T, E>(&self, inbreed_rate: f32, families: &Vec<Family<T, E>>) -> ((f32, Member<T>), (f32, Member<T>)) 
         where
             T: Genome<T, E> + Send + Sync + Clone,
             E: Send + Sync
@@ -187,7 +187,7 @@ impl ParentalCriteria {
         // iterate through the species until the iterative sum is at or above the selected
         // random adjusted fitness level
         let mut curr = 0.0;
-        let index = r.gen::<f64>() * total;
+        let index = r.gen::<f32>() * total;
         for i in families.iter() {
             curr += i.read().ok()?.get_total_adjusted_fitness();
             if curr >= index {
@@ -204,7 +204,7 @@ impl ParentalCriteria {
     /// Get a biased random member from the species. By summing the fitness scores of the 
     /// members, members with larger fitness scorese are statistically more likely to be picked
     #[inline]
-    pub fn get_biased_random_member<T, E>(&self, r: &mut ThreadRng, family: &Family<T, E>) -> (f64, Member<T>)
+    pub fn get_biased_random_member<T, E>(&self, r: &mut ThreadRng, family: &Family<T, E>) -> (f32, Member<T>)
         where
             T: Genome<T, E> + Send + Sync + Clone,
             E: Send + Sync
@@ -213,7 +213,7 @@ impl ParentalCriteria {
         // is no member found, then get the species total fitness score
         let species_lock = family.read().unwrap();
         let total = species_lock.get_total_adjusted_fitness();
-        let index = r.gen::<f64>() * total;
+        let index = r.gen::<f32>() * total;
         let (mut result, mut curr) = (None, 0.0);
         // go through each member and see if it's adjusted fitness has pushed it over the edge
         for member in species_lock.members.iter() {

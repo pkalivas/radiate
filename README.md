@@ -39,9 +39,9 @@ pub enum Activation {
     Sigmoid,       // default
     Tahn,
     Relu,
-    LeakyRelu(f64),
-    ExpRelu(f64),
-    Linear(f64)   
+    LeakyRelu(f32),
+    ExpRelu(f32),
+    Linear(f32)   
 }
 ```
 
@@ -80,7 +80,7 @@ The run() function must be the last function chained to the population because i
 ```rust
 pub fn run<F>(&mut self, runner: F) -> Result<(T, E), &'static str>
     where 
-        F: Fn(&T, f64, i32) -> bool + Sized,
+        F: Fn(&T, f32, i32) -> bool + Sized,
         T: Genome<T, E> + Clone + Send + Sync + PartialEq,
         P: Send + Sync,
         E: Clone
@@ -152,8 +152,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 #[derive(Debug)]
 pub struct XOR {
-    inputs: Vec<Vec<f64>>,
-    answers: Vec<Vec<f64>>
+    inputs: Vec<Vec<f32>>,
+    answers: Vec<Vec<f32>>
 }
 
 impl XOR {
@@ -191,7 +191,7 @@ impl Problem<Neat> for XOR {
 
     fn empty() -> Self { XOR::new() }
 
-    fn solve(&self, model: &mut Neat) -> f64 {
+    fn solve(&self, model: &mut Neat) -> f32 {
         let mut total = 0.0;
         for (ins, outs) in self.inputs.iter().zip(self.answers.iter()) {
             match model.feed_forward(&ins) {
@@ -231,8 +231,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 #[derive(Debug)]
 pub struct XOR {
-    inputs: Vec<Vec<f64>>,
-    answers: Vec<Vec<f64>>
+    inputs: Vec<Vec<f32>>,
+    answers: Vec<Vec<f32>>
 }
 
 impl XOR {

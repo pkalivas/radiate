@@ -285,7 +285,7 @@ impl Evtree {
     /// Go through each of the nodes in the tree and randomly mutate 
     /// the weights and biases within the network 
     #[inline]    
-    pub fn edit_random_node_networks(&mut self, weight_mutate: f32, weight_transform: f64, layer_mutate: f32) {
+    pub fn edit_random_node_networks(&mut self, weight_mutate: f32, weight_transform: f32, layer_mutate: f32) {
         for node in self.iter_mut() {
             node.neural_network.edit_weights(weight_mutate, weight_transform, layer_mutate);
         }
@@ -298,17 +298,17 @@ impl Evtree {
     /// weight sum of the tree and putting it through the sine 
     /// function to compress the number between (-1, 1)
     #[inline]
-    pub fn asymmetry(&self) -> f64 {
-        let mut total: f64 = 0.0;
+    pub fn asymmetry(&self) -> f32 {
+        let mut total: f32 = 0.0;
         for node in self.in_order_iter() {
-            total += node.height() as f64 * node.neural_network.weight_sum();
+            total += node.height() as f32 * node.neural_network.weight_sum();
         }
         total.sin()
     }
 
 
 
-    pub fn propagate(&self, inputs: Matrix<f64>) -> u8 {
+    pub fn propagate(&self, inputs: Matrix<f32>) -> u8 {
         unsafe {
             let mut curr_node = self.root;
             loop {
@@ -479,7 +479,7 @@ impl Genome<Evtree, TreeEnvionment> for Evtree {
     /// Generation to throw types it already has inside the function by 
     /// simplmy cloing them. This function will drop the references to
     /// the Self traits at the end of this function's scope 
-    fn distance(one: &Evtree, two: &Evtree, _settings: &Arc<RwLock<TreeEnvionment>>) -> f64 {
+    fn distance(one: &Evtree, two: &Evtree, _settings: &Arc<RwLock<TreeEnvionment>>) -> f32 {
         // return the abs value of the two tree's asymmetry
         (one.asymmetry() - two.asymmetry()).abs()
     }

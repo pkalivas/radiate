@@ -43,7 +43,7 @@ pub struct Container<T, E>
         E: Send + Sync
 {
     pub member: Member<T>,
-    pub fitness_score: f64,
+    pub fitness_score: f32,
     pub species: Option<FamilyWeak<T, E>>
 }
 
@@ -118,7 +118,7 @@ impl<T, E> Generation<T, E>
 
     /// The optimization function
     #[inline]
-    pub fn optimize<P>(&mut self, prob: Arc<RwLock<P>>) -> Option<(f64, Arc<T>)>
+    pub fn optimize<P>(&mut self, prob: Arc<RwLock<P>>) -> Option<(f32, Arc<T>)>
         where P: Problem<T> + Send + Sync
     {
         // concurrently iterate the members and optimize them
@@ -127,7 +127,7 @@ impl<T, E> Generation<T, E>
             .for_each_with(prob, |problem, cont| {
                 (*cont).fitness_score = problem.read().unwrap().solve(&mut *cont.member.write().unwrap());
             });
-        // return the top member from the optimization as a tuple (f64, Arc<T>)
+        // return the top member from the optimization as a tuple (f32, Arc<T>)
         self.best_member()
     }
 
@@ -137,7 +137,7 @@ impl<T, E> Generation<T, E>
     /// and assigning them species in which they belong to determined by a specific 
     /// distance between the member and the species mascot.
     #[inline]
-    pub fn speciate(&mut self, distance: f64, settings: &Arc<RwLock<E>>) {
+    pub fn speciate(&mut self, distance: f32, settings: &Arc<RwLock<E>>) {
         // Loop over the members mutably to find a species which this member belongs to
         for cont in self.members.iter_mut() {
             // see if this member belongs to a given species 
@@ -202,7 +202,7 @@ impl<T, E> Generation<T, E>
     
     /// get the top member of the generations
     #[inline] 
-    pub fn best_member(&self) -> Option<(f64, Arc<T>)> {
+    pub fn best_member(&self) -> Option<(f32, Arc<T>)> {
         let mut top: Option<&Container<T, E>> = None;
         for i in self.members.iter() {
             if top.is_none() || i.fitness_score > top?.fitness_score {

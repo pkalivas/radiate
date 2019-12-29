@@ -19,10 +19,10 @@ use super::neurontype::NeuronType;
 pub struct Neuron {
     pub innov: Uuid,
     pub outgoing: Vec<Uuid>,
-    pub incoming: HashMap<Uuid, Option<f64>>,
-    pub value: Option<f64>,
-    pub error: Option<f64>,
-    pub bias: f64,
+    pub incoming: HashMap<Uuid, Option<f32>>,
+    pub value: Option<f32>,
+    pub error: Option<f32>,
+    pub bias: f32,
     pub activation: Activation,
     pub neuron_type: NeuronType
 }
@@ -39,7 +39,7 @@ impl Neuron {
             incoming: HashMap::new(),
             value: None,
             error: None,
-            bias: rand::thread_rng().gen::<f64>(),
+            bias: rand::thread_rng().gen::<f32>(),
             activation,
             neuron_type,
         }
@@ -86,7 +86,7 @@ impl Neuron {
     /// deactivate this node by calling the underlying neuron's logic to compute
     /// the gradient of the original output value 
     #[inline]
-    pub fn deactivate(&mut self) -> f64 {
+    pub fn deactivate(&mut self) -> f32 {
         match self.value {
             Some(val) => self.activation.deactivate(val),
             None => panic!("Failed to deactivate neuron.")

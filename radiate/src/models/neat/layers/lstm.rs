@@ -33,8 +33,8 @@ pub struct LSTM {
     pub input_size: i32,
     pub memory_size: i32,
     pub output_size: i32,
-    pub current_memory: Vec<f64>,
-    pub current_output: Vec<f64>,
+    pub current_memory: Vec<f32>,
+    pub current_output: Vec<f32>,
     pub gate_forget: Dense,
     pub gate_output: Dense,
     pub gate_extract: Dense,
@@ -72,7 +72,7 @@ impl Layer for LSTM {
 
     /// implement the propagation function for the lstm layer 
     #[inline]
-    fn forward(&mut self, inputs: &Vec<f64>) -> Option<Vec<f64>> {
+    fn forward(&mut self, inputs: &Vec<f32>) -> Option<Vec<f32>> {
         let mut concat_input_output = self.current_output.clone();
         concat_input_output.extend(inputs);
 
@@ -98,8 +98,8 @@ impl Layer for LSTM {
     }
 
 
-    fn backward(&mut self, errors: &Vec<f64>, learning_rate: f64) -> Option<Vec<f64>> {
-        let output_error = self.gate_output.backward(&errors, learning_rate)?;
+    fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32, update_weights: bool) -> Option<Vec<f32>> {
+        let output_error = self.gate_output.backward(&errors, learning_rate, update_weights)?;
         // let delta_mem = self.current_memory
         //     .iter()
         //     .zip(output_error.iter())
@@ -116,8 +116,8 @@ impl Layer for LSTM {
             })
             .collect::<Vec<_>>();
         
-        let forget_error = self.gate_forget.backward(&delta_out, learning_rate)?;
-        let memory_error = self.gate_extract.backward(&delta_out, learning_rate)?;
+        let forget_error = self.gate_forget.backward(&delta_out, learning_rate, update_weights)?;
+        let memory_error = self.gate_extract.backward(&delta_out, learning_rate, update_weights)?;
 
         
         Some(errors.clone())
@@ -191,7 +191,7 @@ impl Genome<LSTM, NeatEnvironment> for LSTM
 
     /// get the distance between two lstm layers of the network
     #[inline]
-    fn distance(one: &LSTM, two: &LSTM, env: &Arc<RwLock<NeatEnvironment>>) -> f64 {
+    fn distance(one: &LSTM, two: &LSTM, env: &Arc<RwLock<NeatEnvironment>>) -> f32 {
         let mut result = 0.0;
         result += Dense::distance(&one.gate_forget, &two.gate_forget, env);
         result += Dense::distance(&one.gate_output, &two.gate_output, env);

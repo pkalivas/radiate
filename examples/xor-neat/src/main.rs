@@ -63,8 +63,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 #[derive(Debug)]
 pub struct XOR {
-    inputs: Vec<Vec<f64>>,
-    answers: Vec<Vec<f64>>
+    inputs: Vec<Vec<f32>>,
+    answers: Vec<Vec<f32>>
 }
 
 
@@ -110,7 +110,7 @@ impl Problem<Neat> for XOR {
 
     fn empty() -> Self { XOR::new() }
 
-    fn solve(&self, model: &mut Neat) -> f64 {
+    fn solve(&self, model: &mut Neat) -> f32 {
         let mut total = 0.0;
         for (ins, outs) in self.inputs.iter().zip(self.answers.iter()) {
             match model.feed_forward(&ins) {

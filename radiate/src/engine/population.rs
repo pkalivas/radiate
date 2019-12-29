@@ -22,7 +22,7 @@ use super::{
 struct Stagnant {
     target_stagnation: usize,
     current_stagnation: usize,
-    previous_top_score: f64,
+    previous_top_score: f32,
     cleaners: Vec<Genocide>
 }
 
@@ -36,7 +36,7 @@ struct Stagnant {
 pub struct Config {
     pub inbreed_rate: f32,
     pub crossover_rate: f32,
-    pub distance: f64,
+    pub distance: f32,
     pub species_target: usize
 }
 
@@ -111,7 +111,7 @@ impl<T, E, P> Population<T, E, P>
     /// crossover into the next generation which will be set to the 
     /// new current generation
     #[inline]
-    pub fn train(&mut self) -> Option<(f64, T)>
+    pub fn train(&mut self) -> Option<(f32, T)>
         where 
             T: Genome<T, E> + Clone + Send + Sync + Debug + PartialEq,
             P: Send + Sync
@@ -136,7 +136,7 @@ impl<T, E, P> Population<T, E, P>
 
     /// Check to see if the population is stagnant or not, if it is 
     /// then go ahead and clean the population 
-    fn manage_stagnation(&mut self, curr_top_score: f64) {
+    fn manage_stagnation(&mut self, curr_top_score: f32) {
         if self.stagnation.target_stagnation == self.stagnation.current_stagnation {
             for cleaner in self.stagnation.cleaners.iter() {
                 cleaner.kill(&mut self.curr_gen);
@@ -172,7 +172,7 @@ impl<T, E, P> Population<T, E, P>
     /// This function will continue until this function returns a true value 
     pub fn run<F>(&mut self, runner: F) -> Result<(T, E), &'static str>
         where 
-            F: Fn(&T, f64, i32) -> bool + Sized,
+            F: Fn(&T, f32, i32) -> bool + Sized,
             T: Genome<T, E> + Clone + Send + Sync + Debug + PartialEq,
             P: Send + Sync,
             E: Clone

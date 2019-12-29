@@ -33,7 +33,7 @@ pub mod genome {
         /// This is needed to split the members in their respective species - essentially it is 
         /// a measure of how far away two types are from each other in a genetic 
         /// sense. Think of something like how similar humans are to dolphins, this is a way to quanitfy that.
-        fn distance(one: &T, two: &T, env: &Arc<RwLock<E>>) -> f64;
+        fn distance(one: &T, two: &T, env: &Arc<RwLock<E>>) -> f32;
         
         /// Genome needs to have a base implementation in order for one of the population options to be satisfied
         /// 
@@ -87,6 +87,6 @@ pub mod problem {
         /// Solve is what actually solves the problem , given a solver (the genome type)
         /// use the data in the type implementing the problem to sovle the problem and return
         /// the member's score. The result of this function is the member's fitness score 
-        fn solve(&self, member: &mut T) -> f64;
+        fn solve(&self, member: &mut T) -> f32;
     }
 }

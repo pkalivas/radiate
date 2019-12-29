@@ -70,7 +70,7 @@ impl Dense {
         unsafe {
             for i in layer.inputs.iter() {
                 for j in layer.outputs.iter() {
-                    let weight = r.gen::<f64>() * 2.0 - 1.0;
+                    let weight = r.gen::<f32>() * 2.0 - 1.0;
                     let new_edge = Edge::new(*i, *j, Uuid::new_v4(), weight, true);
                     layer.nodes.get(i).map(|x| (**x).outgoing.push(new_edge.innov));
                     layer.nodes.get(j).map(|x| (**x).incoming.insert(new_edge.innov, None));
@@ -96,7 +96,7 @@ impl Dense {
 
     /// get the outputs from the layer in a vec form
     #[inline]
-    pub fn get_outputs(&self) -> Option<Vec<f64>> {
+    pub fn get_outputs(&self) -> Option<Vec<f32>> {
         let result = self.outputs
             .iter()
             .map(|x| {
@@ -179,7 +179,7 @@ impl Dense {
                
                 // if the connection is valid, make it and wire the nodes to each
                 let mut r = rand::thread_rng();
-                let new_edge = Edge::new((**sending).innov, (**receiving).innov, Uuid::new_v4(), r.gen::<f64>(), true);
+                let new_edge = Edge::new((**sending).innov, (**receiving).innov, Uuid::new_v4(), r.gen::<f32>(), true);
                 (**sending).outgoing.push(new_edge.innov);
                 (**receiving).incoming.insert(new_edge.innov, None);
             
@@ -288,7 +288,7 @@ impl Dense {
     /// that holds the innovation numbers of the input nodes for a dfs traversal 
     /// to feed forward those inputs through the network
     #[inline]
-    unsafe fn give_inputs(&self, data: &Vec<f64>) -> Vec<Uuid> {
+    unsafe fn give_inputs(&self, data: &Vec<f32>) -> Vec<Uuid> {
         assert!(data.len() == self.inputs.len());
         self.inputs.iter().zip(data.iter())
             .map(|(node_innov, input)| {
@@ -304,11 +304,11 @@ impl Dense {
     /// Edit the weights in the network randomly by either uniformly perturbing
     /// them, or giving them an entire new weight all together
     #[inline]
-    fn edit_weights(&mut self, editable: f32, size: f64) {
+    fn edit_weights(&mut self, editable: f32, size: f32) {
         let mut r = rand::thread_rng();
         for (_, edge) in self.edges.iter_mut() {
             if r.gen::<f32>() < editable {
-                edge.weight = r.gen::<f64>();
+                edge.weight = r.gen::<f32>();
             } else {
                 edge.weight *= r.gen_range(-size, size);
             }
@@ -341,7 +341,7 @@ impl Layer for Dense {
     /// the shapes of the values do not match or if something goes 
     /// wrong within the feed forward process.
     #[inline]
-    fn forward(&mut self, data: &Vec<f64>) -> Option<Vec<f64>> {
+    fn forward(&mut self, data: &Vec<f32>) -> Option<Vec<f32>> {
         unsafe {
             // reset the network by clearing the previous outputs from the neurons 
             // this could be done more efficently if i didn't want to implement backprop
@@ -394,7 +394,7 @@ impl Layer for Dense {
     /// Backpropagation algorithm, transfer the error through the network and change the weights of the
     /// edges accordinly, this is pretty straight forward due to the design of the neat graph
     #[inline]
-    fn backward(&mut self, error: &Vec<f64>, learning_rate: f64) -> Option<Vec<f64>> {
+    fn backward(&mut self, error: &Vec<f32>, learning_rate: f32, update_weights: bool) -> Option<Vec<f32>> {
         // feed forward the input data to get the output in order to compute the error of the network
         // create a dfs stack to step backwards through the network and compute the error of each neuron
         // then insert that error in a hashmap to keep track of innov of the neuron and it's error 
@@ -425,7 +425,7 @@ impl Layer for Dense {
                         let step = curr_node_error * (**curr_node).deactivate();
               
                         // add the weight step (gradient) * the currnet value to the weight to adjust the weight by the error
-                        curr_edge.weight += step * (**src_neuron).value?;
+                        curr_edge.update(step * (**src_neuron).value?, true);
                         (**src_neuron).error = Some(curr_edge.weight * curr_node_error);
                         path.push(curr_edge.src);
                     }
@@ -512,15 +512,15 @@ impl Genome<Dense, NeatEnvironment> for Dense
 
 
 
-    fn distance(one: &Dense, two: &Dense, _: &Arc<RwLock<NeatEnvironment>>) -> f64 {
+    fn distance(one: &Dense, two: &Dense, _: &Arc<RwLock<NeatEnvironment>>) -> f32 {
         let mut similar = 0.0;
         for (innov, _) in one.edges.iter() {
             if two.edges.contains_key(innov) {
                 similar += 1.0;
             }
         }
-        let one_score = similar / one.edges.len() as f64;
-        let two_score = similar / two.edges.len() as f64;
+        let one_score = similar / one.edges.len() as f32;
+        let two_score = similar / two.edges.len() as f32;
         (2.0 - (one_score + two_score)) 
     }
 }

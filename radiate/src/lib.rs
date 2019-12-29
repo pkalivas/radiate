@@ -22,7 +22,6 @@ pub use models::{
         neurontype::NeuronType,
         edge::Edge,
         neuron::Neuron,
-        counter::Counter,
         neat::Neat,
         neatenv::NeatEnvironment,
         activation::Activation,

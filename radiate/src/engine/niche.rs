@@ -1,16 +1,11 @@
 
 extern crate rand;
-extern crate statrs;
 
 use std::mem;
 use std::sync::{Arc, RwLock};
 use std::marker::PhantomData;
 use rand::prelude::SliceRandom;
 use rayon::prelude::*;
-use statrs::statistics::{
-    Mean, 
-    Variance, 
-};
 
 use super::generation::{Member, MemberWeak};
 use super::genome::{Genome};
@@ -21,7 +16,7 @@ use super::genome::{Genome};
 /// Species member tuple struct to keep track of members and their fitness scores
 /// for each species, this decision was made to favor runtime over memory 
 #[derive(Debug, Clone)]
-pub struct NicheMember<T>(pub f64, pub MemberWeak<T>);
+pub struct NicheMember<T>(pub f32, pub MemberWeak<T>);
 
 
 /// A species is meant to keep track of fitness scores of eachof it's members,
@@ -33,7 +28,7 @@ pub struct Niche<T, E> {
     pub mascot: Member<T>,
     pub members: Vec<NicheMember<T>>,
     pub age: i32,
-    pub total_adjusted_fitness: Option<f64>,
+    pub total_adjusted_fitness: Option<f32>,
     phantom: PhantomData<E>
 }
 
@@ -48,7 +43,7 @@ impl<T, E> Niche<T, E>
 {
 
     // Create a new species with a mascot (weak member pointer)
-    pub fn new(mascot: &Member<T>, mascot_fitness: f64) -> Self {
+    pub fn new(mascot: &Member<T>, mascot_fitness: f32) -> Self {
         Niche {
             mascot: Arc::clone(mascot),
             members: vec![NicheMember(mascot_fitness, Arc::downgrade(mascot))],
@@ -63,7 +58,7 @@ impl<T, E> Niche<T, E>
     /// Get the top performing member from the species by their 
     /// associated fitness score. If None is returned meaning there is 
     /// no members in the species, panic!
-    pub fn fittest(&self) -> (f64, Member<T>) {
+    pub fn fittest(&self) -> (f32, Member<T>) {
         let mut top: Option<&NicheMember<T>> = None;
         for i in self.members.iter() {
             if top.is_none() || i.0 > top.unwrap().0 {
@@ -102,7 +97,7 @@ impl<T, E> Niche<T, E>
     // it makes sense to just calcuate this once then retreive the the value 
     // instead of calculate it every time it's needed. Its a quick and simple operation
     pub fn calculate_total_adjusted_fitness(&mut self) {
-        let length = self.members.len() as f64;
+        let length = self.members.len() as f32;
         self.total_adjusted_fitness = Some(
             self.members
                 .par_iter_mut()
@@ -118,7 +113,7 @@ impl<T, E> Niche<T, E>
 
     /// Get the total adjusted fitness score of the species 
     /// by summing up all the fitness scores of each member 
-    pub fn get_total_adjusted_fitness(&self) -> f64 {
+    pub fn get_total_adjusted_fitness(&self) -> f32 {
         match self.total_adjusted_fitness {
             Some(fit) => fit,
             None => panic!("Total adjusted fitness for this species was not set")
@@ -128,19 +123,12 @@ impl<T, E> Niche<T, E>
 
 
     pub fn display_info(&self) {
-        let address: u64 = unsafe { mem::transmute(self) };
-        let scores = self.members
-            .par_iter()
-            .map(|x| x.0)
-            .collect::<Vec<_>>();
-            
-        println!("Species: {} gens( {} ) members( {} ) fit( {:.3} ) mean( {:.3} ) var( {:.5} )",
+        let address: u64 = unsafe { mem::transmute(self) };            
+        println!("Species: {} gens( {} ) members( {} ) adj fit( {:.3} )",
             address,
             self.age,
             self.members.len(),
             self.total_adjusted_fitness.unwrap(),
-            scores.mean(),
-            if self.members.len() > 1 { scores.variance() } else { 0.0 }
         );
     }
 

@@ -43,8 +43,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 #[derive(Debug)]
 pub struct XOR {
-    inputs: Vec<Vec<f64>>,
-    answers: Vec<Vec<f64>>
+    inputs: Vec<Vec<f32>>,
+    answers: Vec<Vec<f32>>
 }
 
 
@@ -79,13 +79,13 @@ impl Problem<Evtree> for XOR {
 
     fn empty() -> Self { XOR::new() }
 
-    fn solve(&self, model: &mut Evtree) -> f64 {
+    fn solve(&self, model: &mut Evtree) -> f32 {
         let mut total = 0.0;
         for (ins, outs) in self.inputs.iter().zip(self.answers.iter()) {
-            let temp_cpy: Vec<f64> = (0..ins.len()).map(|x| ins[x]).collect();
+            let temp_cpy: Vec<f32> = (0..ins.len()).map(|x| ins[x]).collect();
             let curr_input = Matrix::from_iter(ins.len(), 1, temp_cpy);
             let model_output = (model).propagate(curr_input);
-            if model_output as f64 == outs[0] {
+            if model_output as f32 == outs[0] {
                 total += 1.0;
             }
         }
