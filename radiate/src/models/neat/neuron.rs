@@ -21,7 +21,7 @@ pub struct Neuron {
     pub outgoing: Vec<Uuid>,
     pub incoming: HashMap<Uuid, Option<f32>>,
     pub value: Option<f32>,
-    pub error: Option<f32>,
+    pub error: f32,
     pub bias: f32,
     pub activation: Activation,
     pub neuron_type: NeuronType
@@ -38,7 +38,7 @@ impl Neuron {
             outgoing: Vec::new(),
             incoming: HashMap::new(),
             value: None,
-            error: None,
+            error: 0.0,
             bias: rand::thread_rng().gen::<f32>(),
             activation,
             neuron_type,
@@ -100,7 +100,7 @@ impl Neuron {
     #[inline]
     pub fn reset_neuron(&mut self) {
         self.value = None;
-        self.error = None;
+        self.error = 0.0;
         for (_, val) in self.incoming.iter_mut() {
             *val = None;
         }

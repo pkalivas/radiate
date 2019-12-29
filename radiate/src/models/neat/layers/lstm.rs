@@ -24,7 +24,7 @@ use crate::Genome;
 // https://github.com/bobisme/rustrnn/blob/master/src/main.rs
 // 
 // to implement :
-// https://imgur.com/gallery/D2fhy
+// https://github.com/wagenaartje/neataptic/blob/master/src/architecture/architect.js
 
 
 

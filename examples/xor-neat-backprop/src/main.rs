@@ -18,7 +18,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .dense(1, Activation::Sigmoid);
         
     let xor = XOR::new();
-    for _ in 0..100 {
+    for _ in 0..200 {
         xor.backprop(&mut net);
     }
 

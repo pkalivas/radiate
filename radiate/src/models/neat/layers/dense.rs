@@ -403,7 +403,7 @@ impl Layer for Dense {
             let mut path = Vec::new();
             for (i, innov) in self.outputs.iter().enumerate() {
                 let node = self.nodes.get(innov)?;
-                (**node).error = Some(error[i]);
+                (**node).error = error[i];
                 path.push(*innov);
             }
 
@@ -412,7 +412,7 @@ impl Layer for Dense {
               
                 // get the current node and it's error 
                 let curr_node = self.nodes.get(&path.pop()?)?;
-                let curr_node_error = (**curr_node).error? * learning_rate;
+                let curr_node_error = (**curr_node).error * learning_rate;
               
                 // iterate through each of the incoming edes to this neuron and adjust it's weight
                 // and add it's error to the errros map
@@ -425,15 +425,15 @@ impl Layer for Dense {
                         let step = curr_node_error * (**curr_node).deactivate();
               
                         // add the weight step (gradient) * the currnet value to the weight to adjust the weight by the error
-                        curr_edge.update(step * (**src_neuron).value?, true);
-                        (**src_neuron).error = Some(curr_edge.weight * curr_node_error);
+                        curr_edge.update(step * (**src_neuron).value?, update_weights);
+                        (**src_neuron).error += curr_edge.weight * curr_node_error;
                         path.push(curr_edge.src);
                     }
                 }
             }
             let mut output = Vec::with_capacity(self.inputs.len());
             for innov in self.inputs.iter() {
-                output.push((**self.nodes.get(innov)?).error?);
+                output.push((**self.nodes.get(innov)?).error);
             }
             Some(output)
         }
