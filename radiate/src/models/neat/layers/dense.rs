@@ -341,7 +341,7 @@ impl Layer for Dense {
     /// the shapes of the values do not match or if something goes 
     /// wrong within the feed forward process.
     #[inline]
-    fn propagate(&mut self, data: &Vec<f64>) -> Option<Vec<f64>> {
+    fn forward(&mut self, data: &Vec<f64>) -> Option<Vec<f64>> {
         unsafe {
             // reset the network by clearing the previous outputs from the neurons 
             // this could be done more efficently if i didn't want to implement backprop
@@ -394,7 +394,7 @@ impl Layer for Dense {
     /// Backpropagation algorithm, transfer the error through the network and change the weights of the
     /// edges accordinly, this is pretty straight forward due to the design of the neat graph
     #[inline]
-    fn backprop(&mut self, error: &Vec<f64>, learning_rate: f64) -> Option<Vec<f64>> {
+    fn backward(&mut self, error: &Vec<f64>, learning_rate: f64) -> Option<Vec<f64>> {
         // feed forward the input data to get the output in order to compute the error of the network
         // create a dfs stack to step backwards through the network and compute the error of each neuron
         // then insert that error in a hashmap to keep track of innov of the neuron and it's error 

@@ -20,9 +20,11 @@ pub mod vectorops {
         /// multiply two vectors element wise
         #[inline]
         pub fn element_multiply(one: &mut Vec<f64>, two: &Vec<f64>) {
-            for i in 0..one.len() {
-                one[i] *= two[i];
-            }
+            one.iter_mut()
+                .zip(two.iter())
+                .for_each(|(a, b)| {
+                    *a *= b
+                });
         }
     
     
@@ -30,9 +32,8 @@ pub mod vectorops {
         /// invert a vector that is already holding values between 0 and 1
         #[inline]
         pub fn element_invert(one: &mut Vec<f64>) {
-            for i in one.iter_mut() {
-                *i = 1.0 - *i;
-            }
+            one.iter_mut()
+                .for_each(|a| *a = 1.0 - *a);
         }
     
     
@@ -40,9 +41,11 @@ pub mod vectorops {
         /// add elements from vectors together element wise
         #[inline]
         pub fn element_add(one: &mut Vec<f64>, two: &Vec<f64>) {
-            for i in 0..one.len() {
-                one[i] += two[i];
-            }
+            one.iter_mut()
+                .zip(two.iter())
+                .for_each(|(a, b)| {
+                    *a += b
+                });
         }
 
 }

@@ -74,7 +74,7 @@ impl Neat {
         let mut temp;
         let mut data_transfer = data;
         for wrapper in self.layers.iter_mut() {
-            temp = wrapper.layer.propagate(data_transfer)?;
+            temp = wrapper.layer.forward(data_transfer)?;
             data_transfer = &temp;
         }
         // gather the output and return it as an option
@@ -107,7 +107,7 @@ impl Neat {
             .iter_mut()
             .rev()
             .fold(errors, |res, curr| {
-                curr.layer.backprop(&res, learning_rate).unwrap()
+                curr.layer.backward(&res, learning_rate).unwrap()
             });
     }
 

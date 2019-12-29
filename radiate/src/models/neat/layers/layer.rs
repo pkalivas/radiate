@@ -13,12 +13,12 @@ pub trait Layer: LayerClone + Any + Debug {
     /// propagate an input vec through this layer. This is done differently 
     /// depending on the type of layer, just the same as backpropagation is.
     /// Return the output as a vec 
-    fn propagate(&mut self, inputs: &Vec<f64>) -> Option<Vec<f64>>;
+    fn forward(&mut self, inputs: &Vec<f64>) -> Option<Vec<f64>>;
 
     /// Take the errors of the feed forward and backpropagate them through the network
     /// to adjust the weights of the connections between the neurons. Return the error 
     /// of the input neurons from this layer - needed to transfer error from layer to layer
-    fn backprop(&mut self, errors: &Vec<f64>, learning_rate: f64) -> Option<Vec<f64>>;
+    fn backward(&mut self, errors: &Vec<f64>, learning_rate: f64) -> Option<Vec<f64>>;
 
     /// Get a reference to the underlying type without generics in order to downcast to a concrete type
     fn as_ref_any(&self) -> &dyn Any;

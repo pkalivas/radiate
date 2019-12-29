@@ -29,7 +29,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .dense_pool(1, Activation::Sigmoid);
 
     
-    let num_evolve = 500;
+    let num_evolve = 5;
     let (mut solution, _) = Population::<Neat, NeatEnvironment, MemoryTest>::new()
         .constrain(neat_env)
         .size(100)
@@ -58,6 +58,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         //     .input_size(1)
         //     .lstm(5, 5)
         //     .dense_pool(1, Activation::Sigmoid);
+
         
         // let m = MemoryTest::new();
 
@@ -112,7 +113,7 @@ impl MemoryTest {
 
     pub fn backprop(&self, model: &mut Neat) {
         for (i, o) in self.input.iter().zip(self.output.iter()) {
-            model.backprop(i, o, 0.1);
+            model.backprop(i, o, 0.3);
         }
     }
 }

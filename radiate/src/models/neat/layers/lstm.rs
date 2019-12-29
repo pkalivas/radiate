@@ -21,6 +21,11 @@ use crate::Genome;
 
 // backprop :
 // https://blog.aidangomez.ca/2016/04/17/Backpropogating-an-LSTM-A-Numerical-Example/
+// https://github.com/bobisme/rustrnn/blob/master/src/main.rs
+// 
+// to implement :
+// https://imgur.com/gallery/D2fhy
+
 
 
 #[derive(Debug)]
@@ -51,7 +56,7 @@ impl LSTM {
             current_output: vec![0.0; output_size as usize],
             gate_forget: Dense::new(network_in_size, memory_size, LayerType::DensePool, Activation::Sigmoid),
             gate_output: Dense::new(network_in_size, output_size, LayerType::DensePool, Activation::Tahn),
-            gate_extract: Dense::new(network_in_size, memory_size, LayerType::DensePool, Activation::Tahn)
+            gate_extract: Dense::new(network_in_size, memory_size, LayerType::DensePool, Activation::Tahn),
         }
     }
 
@@ -67,7 +72,7 @@ impl Layer for LSTM {
 
     /// implement the propagation function for the lstm layer 
     #[inline]
-    fn propagate(&mut self, inputs: &Vec<f64>) -> Option<Vec<f64>> {
+    fn forward(&mut self, inputs: &Vec<f64>) -> Option<Vec<f64>> {
         let mut concat_input_output = self.current_output.clone();
         concat_input_output.extend(inputs);
 
@@ -75,8 +80,8 @@ impl Layer for LSTM {
         network_input.extend(&self.current_memory);
 
         // calculate memory updates
-        let mut forget = self.gate_forget.propagate(&network_input)?;
-        let mut memory = self.gate_extract.propagate(&network_input)?;
+        let mut forget = self.gate_forget.forward(&network_input)?;
+        let mut memory = self.gate_extract.forward(&network_input)?;
 
         // figure out what to forget from the current memory
         vectorops::element_multiply(&mut self.current_memory, &forget);
@@ -88,28 +93,34 @@ impl Layer for LSTM {
         concat_input_output.extend(&self.current_memory);
 
         // calculate the current output of the layer
-        self.current_output = self.gate_output.propagate(&concat_input_output)?;
+        self.current_output = self.gate_output.forward(&concat_input_output)?;
         Some(self.current_output.clone())
     }
 
 
-    fn backprop(&mut self, errors: &Vec<f64>, learning_rate: f64) -> Option<Vec<f64>> {
+    fn backward(&mut self, errors: &Vec<f64>, learning_rate: f64) -> Option<Vec<f64>> {
+        let output_error = self.gate_output.backward(&errors, learning_rate)?;
+        // let delta_mem = self.current_memory
+        //     .iter()
+        //     .zip(output_error.iter())
+        //     .map(|(a, b)| {
+        //         a * b
+        //     })
+        //     .collect::<Vec<_>>();
 
-        let output_error = self.gate_output.backprop(&errors, learning_rate)?;
-        let forget_error = self.gate_forget.backprop(&output_error, learning_rate)?;
-        let extract_error = self.gate_extract.backprop(&output_error, learning_rate)?;
+        let delta_out = errors
+            .iter()
+            .zip(output_error.iter())
+            .map(|(a, b)| {
+                a * b
+            })
+            .collect::<Vec<_>>();
+        
+        let forget_error = self.gate_forget.backward(&delta_out, learning_rate)?;
+        let memory_error = self.gate_extract.backward(&delta_out, learning_rate)?;
 
-        let mut one = forget_error[self.current_output.len()..(*self.current_output).len() + self.input_size as usize].to_vec();
-        let two = &extract_error[self.current_output.len()..(*self.current_output).len() + self.input_size as usize];
-
-        for (i, j) in one.iter_mut().zip(two.iter()) {
-            *i += *j;
-        }
-        // println!("Forget: {:#?}", forget_error);
-        // println!("\n\nExtract: {:#?}", extract_error);
-        // println!("\n\npass on: {:#?}", one);
-
-        Some(one)
+        
+        Some(errors.clone())
     }
 
 
@@ -147,7 +158,7 @@ impl Clone for LSTM {
             current_output: vec![0.0; self.output_size as usize],
             gate_forget: self.gate_forget.clone(),
             gate_output: self.gate_output.clone(),
-            gate_extract: self.gate_extract.clone()
+            gate_extract: self.gate_extract.clone(),
         }
     }
 }
@@ -172,7 +183,7 @@ impl Genome<LSTM, NeatEnvironment> for LSTM
             current_output: vec![0.0; child.output_size as usize],
             gate_forget: Dense::crossover(&child.gate_forget, &parent_two.gate_forget, env, crossover_rate)?,
             gate_output: Dense::crossover(&child.gate_output, &parent_two.gate_output, env, crossover_rate)?,
-            gate_extract: Dense::crossover(&child.gate_extract, &parent_two.gate_extract, env, crossover_rate)?
+            gate_extract: Dense::crossover(&child.gate_extract, &parent_two.gate_extract, env, crossover_rate)?,
         };
         Some(child)
     }
