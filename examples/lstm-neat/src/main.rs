@@ -56,14 +56,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         // let mut test_net = Neat::new()
         //     .input_size(1)
-        //     .lstm(5, 5)
+        //     .lstm(6, 6)
         //     .dense_pool(1, Activation::Sigmoid);
 
         
         // let m = MemoryTest::new();
 
         // println!("\n\n\n");
-        // for _ in 0..500 {
+        // for _ in 0..5000 {
         //     m.backprop(&mut test_net);
         // }
         // m.show(&mut test_net);
@@ -113,7 +113,7 @@ impl MemoryTest {
 
     pub fn backprop(&self, model: &mut Neat) {
         for (i, o) in self.input.iter().zip(self.output.iter()) {
-            model.backprop(i, o, 0.3, true);
+            model.backprop(i, o, 0.05, true);
         }
     }
 }

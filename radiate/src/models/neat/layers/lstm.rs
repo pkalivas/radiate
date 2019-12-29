@@ -13,7 +13,7 @@ use super::{
 };    
 use super::super::{
     activation::Activation,
-    neatenv::NeatEnvironment
+    neatenv::NeatEnvironment,
 };    
 
 use crate::Genome;
@@ -25,14 +25,16 @@ use crate::Genome;
 // 
 // to implement :
 // https://github.com/wagenaartje/neataptic/blob/master/src/architecture/architect.js
+// https://github.com/cazala/synaptic/tree/master/src
+
 
 
 
 #[derive(Debug)]
 pub struct LSTM {
-    pub input_size: i32,
-    pub memory_size: i32,
-    pub output_size: i32,
+    pub input_size: u32,
+    pub memory_size: u32,
+    pub output_size: u32,
     pub current_memory: Vec<f32>,
     pub current_output: Vec<f32>,
     pub gate_forget: Dense,
@@ -46,7 +48,7 @@ pub struct LSTM {
 impl LSTM {
 
 
-    pub fn new(input_size: i32, memory_size: i32, output_size: i32) -> Self {        
+    pub fn new(input_size: u32, memory_size: u32, output_size: u32) -> Self {        
         let network_in_size = input_size + memory_size + output_size;
         LSTM {
             input_size,
@@ -108,16 +110,16 @@ impl Layer for LSTM {
         //     })
         //     .collect::<Vec<_>>();
 
-        let delta_out = errors
-            .iter()
-            .zip(output_error.iter())
-            .map(|(a, b)| {
-                a * b
-            })
-            .collect::<Vec<_>>();
+        // let delta_out = errors
+        //     .iter()
+        //     .zip(output_error.iter())
+        //     .map(|(a, b)| {
+        //         a * b
+        //     })
+        //     .collect::<Vec<_>>();
         
-        let forget_error = self.gate_forget.backward(&delta_out, learning_rate, update_weights)?;
-        let memory_error = self.gate_extract.backward(&delta_out, learning_rate, update_weights)?;
+        self.gate_forget.backward(&output_error, learning_rate, update_weights)?;
+        self.gate_extract.backward(&output_error, learning_rate, update_weights)?;
 
         
         Some(errors.clone())

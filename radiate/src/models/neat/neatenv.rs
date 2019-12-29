@@ -23,8 +23,8 @@ pub struct NeatEnvironment {
     pub new_edge_rate: Option<f32>,
     pub edit_weights: Option<f32>,
     pub reactivate: Option<f32>,
-    pub input_size: Option<i32>,
-    pub output_size: Option<i32>,
+    pub input_size: Option<u32>,
+    pub output_size: Option<u32>,
     pub activation_functions: Vec<Activation>,
 }
 
@@ -82,13 +82,13 @@ impl NeatEnvironment {
     }
 
 
-    pub fn set_input_size(mut self, num: i32) -> Self {
+    pub fn set_input_size(mut self, num: u32) -> Self {
         self.input_size = Some(num);
         self
     }
 
 
-    pub fn set_output_size(mut self, num: i32) -> Self {
+    pub fn set_output_size(mut self, num: u32) -> Self {
         self.output_size = Some(num);
         self
     }

@@ -41,7 +41,7 @@ impl LayerWrap {
 #[derive(Debug)]
 pub struct Neat {
     pub layers: Vec<LayerWrap>,
-    pub input_size: i32
+    pub input_size: u32
 }
 
 
@@ -59,7 +59,7 @@ impl Neat {
 
 
     /// set the input size for the network 
-    pub fn input_size(mut self, input_size: i32) -> Self {
+    pub fn input_size(mut self, input_size: u32) -> Self {
         self.input_size = input_size;
         self
     }
@@ -69,7 +69,7 @@ impl Neat {
     /// feed forward a vec of data through the neat network 
     #[inline]
     pub fn feed_forward(&mut self, data: &Vec<f32>) -> Option<Vec<f32>> {
-        assert!(data.len() as i32 == self.input_size);
+        assert!(data.len() as u32 == self.input_size);
         // keep two vec in order to transfer the data from one layer to another layer in the network
         let mut temp;
         let mut data_transfer = data;
@@ -115,7 +115,7 @@ impl Neat {
 
     /// create and append a new dense pool layer onto the neat network
     #[inline]
-    pub fn dense_pool(mut self, size: i32, activation: Activation) -> Self {
+    pub fn dense_pool(mut self, size: u32, activation: Activation) -> Self {
         let (input_size, output_size) = self.get_layer_sizes(size).unwrap();
         let wrapper = LayerWrap {
             layer_type: LayerType::DensePool,
@@ -129,7 +129,7 @@ impl Neat {
 
     /// create an append a simple dense layer onto the network
     #[inline]
-    pub fn dense(mut self, size: i32, activation: Activation) -> Self {
+    pub fn dense(mut self, size: u32, activation: Activation) -> Self {
         let (input_size, output_size) = self.get_layer_sizes(size).unwrap();
         let wrapper = LayerWrap {
             layer_type: LayerType::Dense,
@@ -143,7 +143,7 @@ impl Neat {
     
     /// create a new lstm layer and add it to the network
     #[inline]
-    pub fn lstm(mut self, size: i32, output_size: i32) -> Self {
+    pub fn lstm(mut self, size: u32, output_size: u32) -> Self {
         let (input_size, output_size) = self.get_layer_sizes(output_size).unwrap();
         let wrapper = LayerWrap {
             layer_type: LayerType::LSTM,
@@ -158,11 +158,11 @@ impl Neat {
     /// in order to more efficently give inputs to the network, this function simple 
     /// finds the shape of the layer that should be created based on the desired size
     #[inline]
-    fn get_layer_sizes(&self, size: i32) -> Option<(i32, i32)> {
+    fn get_layer_sizes(&self, size: u32) -> Option<(u32, u32)> {
         if self.layers.len() == 0 {
             return Some((self.input_size, size))
         } 
-        Some((self.layers.last()?.layer.shape().1 as i32, size))
+        Some((self.layers.last()?.layer.shape().1 as u32, size))
     }
 
 }

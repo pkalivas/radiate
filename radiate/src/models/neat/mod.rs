@@ -112,6 +112,8 @@ pub mod neurontype {
         Input,
         Output,
         Hidden,
+        DeepOut,
+        DeepIn,
     }
 
 }

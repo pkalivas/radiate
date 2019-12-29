@@ -43,7 +43,7 @@ impl Dense {
     /// create a new fully connected dense layer.
     /// Each input is connected to each output with a randomly generated weight attached to the connection
     #[inline]
-    pub fn new(num_in: i32, num_out: i32, layer_type: LayerType, activation: Activation) -> Self {
+    pub fn new(num_in: u32, num_out: u32, layer_type: LayerType, activation: Activation) -> Self {
         let mut layer = Dense {
             inputs: (0..num_in)
                 .into_iter()
@@ -82,7 +82,7 @@ impl Dense {
         layer
     }
 
-    
+
 
     /// reset all the neurons in the network so they can be fed forward again
     #[inline]
@@ -162,14 +162,14 @@ impl Dense {
             // get a valid sending neuron
             let sending = loop {
                 let temp = self.nodes.get(&self.random_node()).unwrap();
-                if (**temp).neuron_type != NeuronType::Output {
+                if (**temp).neuron_type != NeuronType::Output && (**temp).neuron_type != NeuronType::DeepOut {
                     break temp;
                 }
             };
             // get a vaild receiving neuron
             let receiving = loop {
                 let temp = self.nodes.get(&self.random_node()).unwrap();
-                if (**temp).neuron_type != NeuronType::Input {
+                if (**temp).neuron_type != NeuronType::Input && (**temp).neuron_type != NeuronType::DeepIn {
                     break temp;
                 }
             };
@@ -541,13 +541,15 @@ impl Clone for Dense {
                 .iter() 
                 .map(|x| *x)    
                 .collect(),
-            nodes: self.nodes.iter()
+            nodes: self.nodes
+                .iter()
                 .map(|(key, val)| {
                     let node = unsafe { (**val).clone() };
                     (*key, node.as_mut_ptr())
                 })
                 .collect(),
-            edges: self.edges.iter()
+            edges: self.edges
+                .iter()
                 .map(|(key, val)| {
                     (*key, val.clone())
                 })
