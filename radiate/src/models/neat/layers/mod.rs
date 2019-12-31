@@ -19,6 +19,8 @@ pub mod layertype {
 
 pub mod vectorops {
 
+        use super::super::activation::Activation;
+
         /// multiply two vectors element wise
         #[inline]
         pub fn element_multiply(one: &mut Vec<f32>, two: &Vec<f32>) {
@@ -47,6 +49,15 @@ pub mod vectorops {
                 .zip(two.iter())
                 .for_each(|(a, b)| {
                     *a += b
+                });
+        }
+
+
+        #[inline]
+        pub fn element_squeeze(one: &mut Vec<f32>, func: Activation) {
+            one.iter_mut()
+                .for_each(|x| {
+                    *x = func.activate(*x)
                 });
         }
 

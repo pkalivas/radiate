@@ -47,7 +47,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .run(|_, fit, num| {
             println!("Generation: {} score: {}", num, fit);
             let diff = 1.0 - fit;
-            num == num_evolve || (diff > 0.0 && diff < 0.001)
+            num == num_evolve || (diff > 0.0 && diff < 0.01)
         })?;
         
         println!("\nTime in millis: {}", thread_time.elapsed().as_millis());
@@ -55,14 +55,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         // let mut test_net = Neat::new()
         //     .input_size(1)
-        //     .lstm(6, 6)
-        //     .dense_pool(1, Activation::Sigmoid);
+        //     .lstm(6, 1);
+        //     // .dense_pool(1, Activation::Sigmoid);
 
         
         // let m = MemoryTest::new();
 
         // println!("\n\n\n");
-        // for _ in 0..5000 {
+        // for _ in 0..500 {
         //     m.backprop(&mut test_net);
         // }
         // m.show(&mut test_net);
@@ -112,7 +112,7 @@ impl MemoryTest {
 
     pub fn backprop(&self, model: &mut Neat) {
         for (i, o) in self.input.iter().zip(self.output.iter()) {
-            model.backprop(i, o, 0.05, true);
+            model.backprop(i, o, 0.3, true);
         }
     }
 }

@@ -89,8 +89,61 @@ impl Layer for LSTM {
 
 
     fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32, update_weights: bool) -> Option<Vec<f32>> {
+        
+        // simple backpropagation without respect to the state and forget output at t+1
+        let mut previous_state = self.memory.last()?.clone();
+        let previous_previous_state = self.memory.get(self.memory.len() - 2)?;
+        let mut state_derivative = self.output_gate.get_outputs()?;
 
-        None
+        // state derivative
+        let state_gate_error = self.state_gate.backward(&previous_state, learning_rate, update_weights)?;
+        vectorops::element_multiply(&mut state_derivative, &errors);
+        vectorops::element_multiply(&mut state_derivative, &state_gate_error);
+
+        // activation gate derivative
+        let mut activation_gate_derivative = self.input_gate.get_outputs()?;
+        let mut activation_gate_output = self.activation_gate.get_outputs()?;
+        activation_gate_output.iter_mut().for_each(|x| *x = *x * *x);
+        vectorops::element_multiply(&mut activation_gate_derivative, &state_derivative);
+        vectorops::element_invert(&mut activation_gate_output);
+        vectorops::element_multiply(&mut activation_gate_derivative, &activation_gate_output);
+
+        // input gate derivative
+        let mut input_gate_derivative = self.activation_gate.get_outputs()?;
+        let mut input_gate_output = self.input_gate.get_outputs()?;
+        vectorops::element_multiply(&mut input_gate_derivative, &state_derivative);
+        vectorops::element_multiply(&mut input_gate_derivative, &input_gate_output);
+        vectorops::element_invert(&mut input_gate_output);
+        vectorops::element_multiply(&mut input_gate_derivative, &input_gate_output);
+
+        // forget gate derivative
+        let mut forget_gate_derivative = self.forget_gate.get_outputs()?;
+        vectorops::element_invert(&mut forget_gate_derivative);
+        vectorops::element_multiply(&mut forget_gate_derivative, &previous_previous_state);
+        vectorops::element_multiply(&mut forget_gate_derivative, &previous_state);
+        vectorops::element_multiply(&mut forget_gate_derivative, &self.forget_gate.get_outputs()?);
+
+        // output gate derivative 
+        let mut output_gate_derivative = self.output_gate.get_outputs()?;
+        vectorops::element_invert(&mut output_gate_derivative);
+        vectorops::element_multiply(&mut output_gate_derivative, &errors);
+        vectorops::element_multiply(&mut output_gate_derivative, &self.output_gate.get_outputs()?);
+        vectorops::element_squeeze(&mut previous_state, Activation::Tahn);
+        vectorops::element_multiply(&mut output_gate_derivative, &previous_state);
+
+        // i think this is wrong from here down, need to finsih by calculating the input error and multipying it 
+        // by the error of the input found here
+        // : https://medium.com/@aidangomez/let-s-do-this-f9b699de31d9
+        let mut activation_error = self.activation_gate.backward(&activation_gate_derivative, learning_rate, update_weights)?;
+        let input_error = self.input_gate.backward(&input_gate_derivative, learning_rate, update_weights)?;
+        let forget_error = self.forget_gate.backward(&forget_gate_derivative, learning_rate, update_weights)?;
+        let output_error = self.output_gate.backward(&output_gate_derivative, learning_rate, update_weights)?;
+
+        vectorops::element_multiply(&mut activation_error, &input_error);
+        vectorops::element_multiply(&mut activation_error, &forget_error);
+        vectorops::element_multiply(&mut activation_error, &output_error);
+        
+        Some(activation_error)
     }
 
 
