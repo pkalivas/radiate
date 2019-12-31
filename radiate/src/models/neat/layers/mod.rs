@@ -1,6 +1,7 @@
 pub mod layer;
 pub mod dense;
 pub mod lstm;
+pub mod gru;
 
 
 pub mod layertype {
@@ -10,6 +11,7 @@ pub mod layertype {
         DensePool,
         Dense,
         LSTM, 
+        GRU
     }
 }
 

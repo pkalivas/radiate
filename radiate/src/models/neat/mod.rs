@@ -111,9 +111,7 @@ pub mod neurontype {
     pub enum NeuronType {
         Input,
         Output,
-        Hidden,
-        DeepOut,
-        DeepIn,
+        Hidden
     }
 
 }

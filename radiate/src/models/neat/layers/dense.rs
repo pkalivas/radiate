@@ -162,14 +162,14 @@ impl Dense {
             // get a valid sending neuron
             let sending = loop {
                 let temp = self.nodes.get(&self.random_node()).unwrap();
-                if (**temp).neuron_type != NeuronType::Output && (**temp).neuron_type != NeuronType::DeepOut {
+                if (**temp).neuron_type != NeuronType::Output {
                     break temp;
                 }
             };
             // get a vaild receiving neuron
             let receiving = loop {
                 let temp = self.nodes.get(&self.random_node()).unwrap();
-                if (**temp).neuron_type != NeuronType::Input && (**temp).neuron_type != NeuronType::DeepIn {
+                if (**temp).neuron_type != NeuronType::Input {
                     break temp;
                 }
             };

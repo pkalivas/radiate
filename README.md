@@ -30,6 +30,7 @@ pub enum LayerType {
     Dense,      // implemented - typical dense layer of a neural network with no ability to evolve its strucutre 
     DensePool,  // implemented - the algorithm described in the paper meaning a fully functional neural network can be evolved through one dense pool layer
     LSTM,       // implemented for evolution, not backprop yet.
+    GRU         // imiplemented for evolution, bot backprop yet.
 }
 ```
 All neural networks need nonlinear functions to represent complex datasets. Neat 

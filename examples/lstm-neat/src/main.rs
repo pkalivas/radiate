@@ -48,7 +48,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .run(|_, fit, num| {
             println!("Generation: {} score: {}", num, fit);
             let diff = 1.0 - fit;
-            num == num_evolve || (diff > 0.0 && diff < 0.0001)
+            num == num_evolve || (diff > 0.0 && diff < 0.001)
         })?;
         
         println!("\nTime in millis: {}", thread_time.elapsed().as_millis());
