@@ -21,8 +21,6 @@ pub struct Neuron {
     pub outgoing: Vec<Uuid>,
     pub incoming: HashMap<Uuid, Option<f32>>,
     pub value: Option<f32>,
-    pub state: Option<f32>,
-    pub previous_state: Option<f32>,
     pub error: f32,
     pub bias: f32,
     pub activation: Activation,
@@ -40,8 +38,6 @@ impl Neuron {
             outgoing: Vec::new(),
             incoming: HashMap::new(),
             value: None,
-            state: None,
-            previous_state: None,
             error: 0.0,
             bias: rand::thread_rng().gen::<f32>(),
             activation,
@@ -82,8 +78,6 @@ impl Neuron {
                     None => panic!("Cannot activate node.")
                 }
             });
-        self.previous_state = self.state.clone();
-        self.state = Some(total);
         self.value = Some(self.activation.activate(total));
     }
 
@@ -105,7 +99,6 @@ impl Neuron {
     /// but on top of that each neuron might need to do more interanally
     #[inline]
     pub fn reset_neuron(&mut self) {
-        self.value = None;
         self.error = 0.0;
         for (_, val) in self.incoming.iter_mut() {
             *val = None;
@@ -130,8 +123,6 @@ impl Clone for Neuron {
                 .map(|(key, _)| (*key, None))
                 .collect(),
             value: self.value.clone(),
-            state: self.state.clone(),
-            previous_state: self.previous_state.clone(),
             error: self.error.clone(),
             bias: self.bias.clone(),
             activation: self.activation.clone(),

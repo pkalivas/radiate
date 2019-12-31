@@ -29,6 +29,7 @@ pub struct LSTM {
     pub output_size: u32,
     pub memory: Vec<Vec<f32>>,
     pub output: Vec<Vec<f32>>,
+    pub total_error: Vec<f32>,
     pub activation_gate: Dense,
     pub state_gate: Dense,
     pub input_gate: Dense,
@@ -47,6 +48,7 @@ impl LSTM {
             output_size,
             memory: vec![vec![0.0; cell_size as usize]],
             output: vec![vec![0.0; output_size as usize]],
+            total_error: vec![0.0; output_size as usize],
             activation_gate: Dense::new(cell_input, cell_size, LayerType::DensePool, Activation::Tahn),
             state_gate: Dense::new(cell_size, output_size, LayerType::DensePool, Activation::Tahn),
             input_gate: Dense::new(cell_input, cell_size, LayerType::DensePool, Activation::Sigmoid),
@@ -90,6 +92,9 @@ impl Layer for LSTM {
 
     fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32, update_weights: bool) -> Option<Vec<f32>> {
         
+        // add the error to the total error
+        vectorops::element_add(&mut self.total_error, &errors);
+
         // simple backpropagation without respect to the state and forget output at t+1
         let mut previous_state = self.memory.last()?.clone();
         let previous_previous_state = self.memory.get(self.memory.len() - 2)?;
@@ -134,6 +139,7 @@ impl Layer for LSTM {
         // i think this is wrong from here down, need to finsih by calculating the input error and multipying it 
         // by the error of the input found here
         // : https://medium.com/@aidangomez/let-s-do-this-f9b699de31d9
+        // : https://github.com/nicodjimenez/lstm/blob/master/lstm.py
         let mut activation_error = self.activation_gate.backward(&activation_gate_derivative, learning_rate, update_weights)?;
         let input_error = self.input_gate.backward(&input_gate_derivative, learning_rate, update_weights)?;
         let forget_error = self.forget_gate.backward(&forget_gate_derivative, learning_rate, update_weights)?;
@@ -178,6 +184,7 @@ impl Clone for LSTM {
             output_size: self.output_size,
             memory: vec![vec![0.0; self.cell_size as usize]],
             output: vec![vec![0.0; self.output_size as usize]],
+            total_error: vec![0.0; self.output_size as usize],
             activation_gate: self.activation_gate.clone(),
             state_gate: self.state_gate.clone(), 
             input_gate: self.input_gate.clone(), 
@@ -205,6 +212,7 @@ impl Genome<LSTM, NeatEnvironment> for LSTM
             output_size: child.output_size,
             memory: vec![vec![0.0; child.cell_size as usize]],
             output: vec![vec![0.0; child.output_size as usize]],
+            total_error: vec![0.0; child.output_size as usize],
             activation_gate: Dense::crossover(&child.activation_gate, &parent_two.activation_gate, env, crossover_rate)?,
             state_gate: Dense::crossover(&child.state_gate, &parent_two.state_gate, env, crossover_rate)?,
             input_gate: Dense::crossover(&child.input_gate, &parent_two.input_gate, env, crossover_rate)?,

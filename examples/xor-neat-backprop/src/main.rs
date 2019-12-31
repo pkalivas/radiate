@@ -22,6 +22,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         xor.backprop(&mut net);
     }
 
+    println!("{:#?}", net);
     xor.show(&mut net);
     println!("Time in millis: {}", thread_time.elapsed().as_millis());
     Ok(())
