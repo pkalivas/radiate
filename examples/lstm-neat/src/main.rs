@@ -25,8 +25,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let starting_net = Neat::new()
         .input_size(1)
-        .lstm(3, 3)
-        .dense_pool(1, Activation::Sigmoid);
+        .lstm(4, 1);
 
     
     let num_evolve = 500;
