@@ -394,7 +394,7 @@ impl Layer for Dense {
     /// Backpropagation algorithm, transfer the error through the network and change the weights of the
     /// edges accordinly, this is pretty straight forward due to the design of the neat graph
     #[inline]
-    fn backward(&mut self, error: &Vec<f32>, learning_rate: f32, update_weights: bool) -> Option<Vec<f32>> {
+    fn backward(&mut self, error: &Vec<f32>, learning_rate: f32) -> Option<Vec<f32>> {
         // feed forward the input data to get the output in order to compute the error of the network
         // create a dfs stack to step backwards through the network and compute the error of each neuron
         // then insert that error in a hashmap to keep track of innov of the neuron and it's error 
@@ -425,7 +425,7 @@ impl Layer for Dense {
                         let step = curr_node_error * (**curr_node).deactivate();
               
                         // add the weight step (gradient) * the currnet value to the weight to adjust the weight by the error
-                        curr_edge.update(step * (**src_neuron).value?, update_weights);
+                        curr_edge.weight += step * (**src_neuron).value?;
                         (**src_neuron).error += curr_edge.weight * curr_node_error;
                         path.push(curr_edge.src);
                     }

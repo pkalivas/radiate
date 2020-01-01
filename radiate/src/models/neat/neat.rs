@@ -80,9 +80,9 @@ impl Neat {
             for (index, (input, target)) in inputs.iter().zip(targets.iter()).enumerate() {
                 let network_output = self.feed_forward(input).ok_or("Error in network feed forward")?;
                 if index % batch_size == 0 {
-                    self.backward(&network_output, &target, rate, true);
+                    self.backward(&network_output, &target, rate);
                 } else {
-                    self.backward(&network_output, &target, rate, false);
+                    self.backward(&network_output, &target, rate);
                 }
             }
         }
@@ -93,7 +93,7 @@ impl Neat {
 
     /// backprop the the error of the network through each layer adjusting the weights
     #[inline]
-    pub fn backward(&mut self, network_output: &Vec<f32>, target: &Vec<f32>, learning_rate: f32, update_weights: bool) {
+    pub fn backward(&mut self, network_output: &Vec<f32>, target: &Vec<f32>, learning_rate: f32) {
         // pass back the errors from this output layer through the network to update either the optimizer of the weights of the network
         self.layers
             .iter_mut()
@@ -103,7 +103,7 @@ impl Neat {
                     .zip(network_output.iter())
                     .map(|(tar, pre)| tar - pre)
                     .collect(), |res, curr| {
-                curr.layer.backward(&res, learning_rate, update_weights).unwrap()
+                curr.layer.backward(&res, learning_rate).unwrap()
             });
     }
     
@@ -170,9 +170,9 @@ impl Neat {
             .rev()
             .fold(errors, |res, curr| {
                 if curr.layer_type == LayerType::LSTM && !update_weights {
-                    curr.layer.backward(&res, learning_rate, false).unwrap()
+                    curr.layer.backward(&res, learning_rate).unwrap()
                 } else {
-                    curr.layer.backward(&res, learning_rate, true).unwrap()
+                    curr.layer.backward(&res, learning_rate).unwrap()
                 }
             });
     }
