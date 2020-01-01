@@ -24,6 +24,7 @@ pub mod vectorops {
         /// multiply two vectors element wise
         #[inline]
         pub fn element_multiply(one: &mut Vec<f32>, two: &Vec<f32>) {
+            assert!(one.len() == two.len());
             one.iter_mut()
                 .zip(two.iter())
                 .for_each(|(a, b)| {
@@ -45,6 +46,7 @@ pub mod vectorops {
         /// add elements from vectors together element wise
         #[inline]
         pub fn element_add(one: &mut Vec<f32>, two: &Vec<f32>) {
+            assert!(one.len() == two.len());
             one.iter_mut()
                 .zip(two.iter())
                 .for_each(|(a, b)| {
@@ -54,11 +56,22 @@ pub mod vectorops {
 
 
         #[inline]
-        pub fn element_squeeze(one: &mut Vec<f32>, func: Activation) {
-            one.iter_mut()
-                .for_each(|x| {
-                    *x = func.activate(*x)
-                });
+        pub fn element_activate(one: &Vec<f32>, func: Activation) -> Vec<f32> {
+            one.iter()
+                .map(|x| {
+                    func.activate(*x)
+                })
+                .collect()
+        }
+
+
+        #[inline]
+        pub fn element_deactivate(one: &Vec<f32>, func: Activation) -> Vec<f32> {
+            one.iter()
+                .map(|x| {
+                    func.deactivate(*x)
+                })
+                .collect()
         }
 
 }

@@ -1,5 +1,6 @@
 extern crate rand;
 
+use std::error::Error;
 use std::sync::{Arc, RwLock};
 use super::{
     neatenv::NeatEnvironment,
@@ -65,6 +66,66 @@ impl Neat {
         self
     }
 
+
+
+    /// train the network
+    #[inline]
+    pub fn train(&mut self, inputs: Vec<Vec<f32>>, targets: Vec<Vec<f32>>, iters: usize, rate: f32, batch_size: usize) -> Result<(), Box<dyn Error>> {
+        // make sure the data actually can be fed through
+        assert!(inputs.len() == targets.len(), "Input and target data are different sizes");
+        assert!(inputs[0].len() as u32 == self.input_size, "Input size is different than network input size");
+        
+        // feed the input data through the network then back prop it back through to edit the weights of the layers
+        for _ in 1..iters + 1 {
+            for (index, (input, target)) in inputs.iter().zip(targets.iter()).enumerate() {
+                let network_output = self.feed_forward(input).ok_or("Error in network feed forward")?;
+                if index % batch_size == 0 {
+                    self.backward(&network_output, &target, rate, true);
+                } else {
+                    self.backward(&network_output, &target, rate, false);
+                }
+            }
+        }
+        Ok(())
+    }
+
+
+
+    /// backprop the the error of the network through each layer adjusting the weights
+    #[inline]
+    pub fn backward(&mut self, network_output: &Vec<f32>, target: &Vec<f32>, learning_rate: f32, update_weights: bool) {
+        // pass back the errors from this output layer through the network to update either the optimizer of the weights of the network
+        self.layers
+            .iter_mut()
+            .rev()
+            .fold(target
+                    .iter()
+                    .zip(network_output.iter())
+                    .map(|(tar, pre)| tar - pre)
+                    .collect(), |res, curr| {
+                curr.layer.backward(&res, learning_rate, update_weights).unwrap()
+            });
+    }
+    
+
+
+    /// feed forward a vec of data through the neat network 
+    #[inline]
+    pub fn forward(&mut self, data: &Vec<f32>) -> Option<Vec<f32>> {
+        // keep two vec in order to transfer the data from one layer to another layer in the network
+        let mut temp;
+        let mut data_transfer = data;
+        for wrapper in self.layers.iter_mut() {
+            temp = wrapper.layer.forward(data_transfer)?;
+            data_transfer = &temp;
+        }
+        // gather the output and return it as an option
+        let output = data_transfer
+            .iter()
+            .map(|x| *x)
+            .collect();
+        Some(output)
+    }
     
 
     /// feed forward a vec of data through the neat network 
@@ -108,7 +169,11 @@ impl Neat {
             .iter_mut()
             .rev()
             .fold(errors, |res, curr| {
-                curr.layer.backward(&res, learning_rate, update_weights).unwrap()
+                if curr.layer_type == LayerType::LSTM && !update_weights {
+                    curr.layer.backward(&res, learning_rate, false).unwrap()
+                } else {
+                    curr.layer.backward(&res, learning_rate, true).unwrap()
+                }
             });
     }
 
