@@ -394,7 +394,7 @@ impl Layer for Dense {
     /// Backpropagation algorithm, transfer the error through the network and change the weights of the
     /// edges accordinly, this is pretty straight forward due to the design of the neat graph
     #[inline]
-    fn backward(&mut self, error: &Vec<f32>, learning_rate: f32) -> Option<Vec<f32>> {
+    fn backward(&mut self, error: &Vec<f32>, learning_rate: f32, update: bool) -> Option<Vec<f32>> {
         // feed forward the input data to get the output in order to compute the error of the network
         // create a dfs stack to step backwards through the network and compute the error of each neuron
         // then insert that error in a hashmap to keep track of innov of the neuron and it's error 
@@ -413,6 +413,7 @@ impl Layer for Dense {
                 // get the current node and it's error 
                 let curr_node = self.nodes.get(&path.pop()?)?;
                 let curr_node_error = (**curr_node).error * learning_rate;
+                let step = curr_node_error * (**curr_node).deactivate();
               
                 // iterate through each of the incoming edes to this neuron and adjust it's weight
                 // and add it's error to the errros map
@@ -422,10 +423,10 @@ impl Layer for Dense {
                     // if the current edge is active, then it is contributing to the error and we need to adjust it
                     if curr_edge.active {
                         let src_neuron = self.nodes.get(&curr_edge.src)?;
-                        let step = curr_node_error * (**curr_node).deactivate();
               
                         // add the weight step (gradient) * the currnet value to the weight to adjust the weight by the error
-                        curr_edge.weight += step * (**src_neuron).value?;
+                        let delta = step * (**src_neuron).value?;
+                        curr_edge.update(delta, update);
                         (**src_neuron).error += curr_edge.weight * curr_node_error;
                         path.push(curr_edge.src);
                     }

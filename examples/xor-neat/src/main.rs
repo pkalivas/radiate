@@ -91,7 +91,7 @@ impl XOR {
     fn show(&self, model: &mut Neat) {
         println!("\n");
         for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
-            let guess = model.feed_forward(&i).unwrap();
+            let guess = model.forward(&i).unwrap();
             println!("Guess: {:.2?} Answer: {:.2}", guess, o[0]);
         }
     }
@@ -113,7 +113,7 @@ impl Problem<Neat> for XOR {
     fn solve(&self, model: &mut Neat) -> f32 {
         let mut total = 0.0;
         for (ins, outs) in self.inputs.iter().zip(self.answers.iter()) {
-            match model.feed_forward(&ins) {
+            match model.forward(&ins) {
                 Some(guess) => total += (guess[0] - outs[0]).powf(2.0),
                 None => panic!("Error in training NEAT")
             }

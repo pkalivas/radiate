@@ -18,6 +18,7 @@ pub struct Edge {
     pub dst: Uuid, 
     pub innov: Uuid,
     pub weight: f32,
+    pub total_weight_delta: f32,
     pub active: bool
 }
 
@@ -30,7 +31,20 @@ impl Edge {
             dst, 
             innov, 
             weight, 
+            total_weight_delta: 0.0,
             active 
+        }
+    }
+
+
+
+    /// update the weight of this edge connection
+    #[inline]
+    pub fn update(&mut self, delta: f32, update: bool) {
+        self.total_weight_delta += delta;
+        if update {
+            self.weight += self.total_weight_delta;
+            self.total_weight_delta = 0.0;
         }
     }
 }

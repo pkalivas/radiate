@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let starting_net = Neat::new()
         .input_size(1)
-        .lstm(4, 4)
+        .lstm(4)
         .dense(1, Activation::Sigmoid);
 
     
@@ -54,21 +54,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("\nTime in millis: {}", thread_time.elapsed().as_millis());
         MemoryTest::new().show(&mut solution);
 
-        // let mut test_net = Neat::new()
-        //     .input_size(1)
-        //     .lstm(6, 6)
-        //     .dense_pool(1, Activation::Sigmoid);
+        let data = MemoryTest::new();
+        let mut test_net = Neat::new()
+            .input_size(1)
+            .lstm(6)
+            .dense(1, Activation::Sigmoid);
 
+        println!("\n");
+        test_net.train(&data.input, &data.output, 1, 0.05, 7)?;
+        data.show(&mut test_net);
         
-        // let m = MemoryTest::new();
-
-        // println!("\n\n\n");
-        // for _ in 0..2500 {
-        //     m.backprop(&mut test_net);
-        // }
-        // m.show(&mut test_net);
-
-
         Ok(())
 }
  
@@ -106,20 +101,20 @@ impl MemoryTest {
 
     pub fn show(&self, model: &mut Neat) {
         for (i, o) in self.input.iter().zip(self.output.iter()) {
-            let guess = model.feed_forward(&i).unwrap();
+            let guess = model.forward(&i).unwrap();
             println!("Input: {:?}, Output: {:?}, Guess: {:.2}", i, o, guess[0]);
         }
     }
 
-    pub fn backprop(&self, model: &mut Neat) {
-        for (index, (i, o)) in self.input.iter().zip(self.output.iter()).enumerate() {
-            if index == 6 {
-                model.backprop(i, o, 0.1, true);
-            } else {
-                model.backprop(i, o, 0.1, false);
-            }
-        }
-    }
+    // pub fn backprop(&self, model: &mut Neat) {
+    //     for (index, (i, o)) in self.input.iter().zip(self.output.iter()).enumerate() {
+    //         if index == 6 {
+    //             model.backprop(i, o, 0.1, true);
+    //         } else {
+    //             model.backprop(i, o, 0.1, false);
+    //         }
+    //     }
+    // }
 }
 
 
@@ -134,7 +129,7 @@ impl Problem<Neat> for MemoryTest {
     fn solve(&self, model: &mut Neat) -> f32 {
         let mut total = 0.0;
         for (ins, outs) in self.input.iter().zip(self.output.iter()) {
-            match model.feed_forward(&ins) {
+            match model.forward(&ins) {
                 Some(guess) => total += (guess[0] - outs[0]).powf(2.0),
                 None => panic!("Error in training NEAT")
             }

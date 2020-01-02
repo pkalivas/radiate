@@ -18,9 +18,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .dense(1, Activation::Sigmoid);
         
     let xor = XOR::new();
-    for _ in 0..200 {
-        xor.backprop(&mut net);
-    }
+    net.train(&xor.inputs, &xor.answers, 200, 0.3, 1)?;
 
     println!("{:#?}", net);
     xor.show(&mut net);
@@ -52,16 +50,11 @@ impl XOR {
         }
     }
 
-    fn backprop(&self, model: &mut Neat) {
-        for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
-            model.backprop(i, o, 0.3, true);
-        }
-    }
 
     fn show(&self, model: &mut Neat) {
         println!("\n");
         for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
-            let guess = model.feed_forward(&i).unwrap();
+            let guess = model.forward(&i).unwrap();
             println!("Guess: {:.2?} Answer: {:.2}", guess, o[0]);
         }
     }

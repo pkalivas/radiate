@@ -70,19 +70,19 @@ impl Neat {
 
     /// train the network
     #[inline]
-    pub fn train(&mut self, inputs: Vec<Vec<f32>>, targets: Vec<Vec<f32>>, iters: usize, rate: f32, batch_size: usize) -> Result<(), Box<dyn Error>> {
+    pub fn train(&mut self, inputs: &Vec<Vec<f32>>, targets: &Vec<Vec<f32>>, iters: usize, rate: f32, batch_size: usize) -> Result<(), Box<dyn Error>> {
         // make sure the data actually can be fed through
         assert!(inputs.len() == targets.len(), "Input and target data are different sizes");
         assert!(inputs[0].len() as u32 == self.input_size, "Input size is different than network input size");
         
         // feed the input data through the network then back prop it back through to edit the weights of the layers
-        for _ in 1..iters + 1 {
+        for _ in 0..iters {
             for (index, (input, target)) in inputs.iter().zip(targets.iter()).enumerate() {
-                let network_output = self.feed_forward(input).ok_or("Error in network feed forward")?;
-                if index % batch_size == 0 {
-                    self.backward(&network_output, &target, rate);
+                let network_output = self.forward(input).ok_or("Error in network feed forward")?;
+                if index == batch_size {
+                    self.backward(&network_output, &target, rate, true);
                 } else {
-                    self.backward(&network_output, &target, rate);
+                    self.backward(&network_output, &target, rate, false);
                 }
             }
         }
@@ -93,7 +93,7 @@ impl Neat {
 
     /// backprop the the error of the network through each layer adjusting the weights
     #[inline]
-    pub fn backward(&mut self, network_output: &Vec<f32>, target: &Vec<f32>, learning_rate: f32) {
+    pub fn backward(&mut self, network_output: &Vec<f32>, target: &Vec<f32>, learning_rate: f32, update: bool) {
         // pass back the errors from this output layer through the network to update either the optimizer of the weights of the network
         self.layers
             .iter_mut()
@@ -103,7 +103,7 @@ impl Neat {
                     .zip(network_output.iter())
                     .map(|(tar, pre)| tar - pre)
                     .collect(), |res, curr| {
-                curr.layer.backward(&res, learning_rate).unwrap()
+                curr.layer.backward(&res, learning_rate, update).unwrap()
             });
     }
     
@@ -125,57 +125,7 @@ impl Neat {
             .map(|x| *x)
             .collect();
         Some(output)
-    }
-    
-
-    /// feed forward a vec of data through the neat network 
-    #[inline]
-    pub fn feed_forward(&mut self, data: &Vec<f32>) -> Option<Vec<f32>> {
-        assert!(data.len() as u32 == self.input_size);
-        // keep two vec in order to transfer the data from one layer to another layer in the network
-        let mut temp;
-        let mut data_transfer = data;
-        for wrapper in self.layers.iter_mut() {
-            temp = wrapper.layer.forward(data_transfer)?;
-            data_transfer = &temp;
-        }
-        // gather the output and return it as an option
-        let output = data_transfer
-            .iter()
-            .map(|x| *x)
-            .collect();
-        Some(output)
-    }
-
-    
-
-    /// backprop the the error of the network through each layer adjusting the weights
-    #[inline]
-    pub fn backprop(&mut self, data: &Vec<f32>, output: &Vec<f32>, learning_rate: f32, update_weights: bool) {
-        // feed forward the input data to set the outputs of each neuron in the network
-        // compute the original errors
-        let feed_out = self.feed_forward(data).unwrap();
-        let errors = output
-            .iter()
-            .zip(feed_out.iter())
-            .map(|(target, prediction)| {
-                target - prediction
-            })
-            .collect::<Vec<_>>();
-
-        // similar to feed_forward, keep mutable vecs in order to transfer the error
-        // from the one layer back to the layer preceding it
-        self.layers
-            .iter_mut()
-            .rev()
-            .fold(errors, |res, curr| {
-                if curr.layer_type == LayerType::LSTM && !update_weights {
-                    curr.layer.backward(&res, learning_rate).unwrap()
-                } else {
-                    curr.layer.backward(&res, learning_rate).unwrap()
-                }
-            });
-    }
+    }    
 
 
 
@@ -209,11 +159,11 @@ impl Neat {
     
     /// create a new lstm layer and add it to the network
     #[inline]
-    pub fn lstm(mut self, size: u32, output_size: u32) -> Self {
-        let (input_size, output_size) = self.get_layer_sizes(output_size).unwrap();
+    pub fn lstm(mut self, size: u32) -> Self {
+        let (input_size, output_size) = self.get_layer_sizes(size).unwrap();
         let wrapper = LayerWrap {
             layer_type: LayerType::LSTM,
-            layer: Box::new(LSTM::new(input_size, size, output_size))
+            layer: Box::new(LSTM::new(input_size, output_size))
         };
         self.layers.push(wrapper);
         self
