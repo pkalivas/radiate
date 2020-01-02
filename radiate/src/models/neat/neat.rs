@@ -70,7 +70,7 @@ impl Neat {
 
     /// train the network
     #[inline]
-    pub fn train(&mut self, inputs: &Vec<Vec<f32>>, targets: &Vec<Vec<f32>>, iters: usize, rate: f32, batch_size: usize) -> Result<(), Box<dyn Error>> {
+    pub fn train(&mut self, inputs: &Vec<Vec<f32>>, targets: &Vec<Vec<f32>>, iters: usize, rate: f32, update_window: usize) -> Result<(), Box<dyn Error>> {
         // make sure the data actually can be fed through
         assert!(inputs.len() == targets.len(), "Input and target data are different sizes");
         assert!(inputs[0].len() as u32 == self.input_size, "Input size is different than network input size");
@@ -79,7 +79,7 @@ impl Neat {
         for _ in 0..iters {
             for (index, (input, target)) in inputs.iter().zip(targets.iter()).enumerate() {
                 let network_output = self.forward(input).ok_or("Error in network feed forward")?;
-                if index == batch_size {
+                if index + 1 % update_window == 0 {
                     self.backward(&network_output, &target, rate, true);
                 } else {
                     self.backward(&network_output, &target, rate, false);
