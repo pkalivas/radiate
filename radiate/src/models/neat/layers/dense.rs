@@ -366,10 +366,11 @@ impl Layer for Dense {
                     for edge_innov in (**curr_node).outgoing.iter() {
             
                         // if the currnet edge is active in the network, we can propagate through it
-                        let curr_edge = self.edges.get(edge_innov)?;
+                        let curr_edge = self.edges.get_mut(edge_innov)?;
                         if curr_edge.active {
                             let receiving_node = self.nodes.get(&curr_edge.dst)?;
-                            (**receiving_node).incoming.insert(curr_edge.innov, Some(val * curr_edge.weight));
+                            let activated_value = curr_edge.calculate(val);
+                            (**receiving_node).incoming.insert(curr_edge.innov, Some(activated_value));
             
                             // if the node can be activated, activate it and store it's value
                             // only activated nodes can be added to the path, so if it's activated
@@ -424,7 +425,8 @@ impl Layer for Dense {
                     if curr_edge.active {
                         let src_neuron = self.nodes.get(&curr_edge.src)?;
               
-                        // add the weight step (gradient) * the currnet value to the weight to adjust the weight by the error
+                        // add the weight step (gradient) * the currnet value to the weight to adjust the weight
+                        // then update the connection so it knows if it should update the weight, or store the delta
                         let delta = step * (**src_neuron).value?;
                         curr_edge.update(delta, update);
                         (**src_neuron).error += curr_edge.weight * curr_node_error;

@@ -147,7 +147,8 @@ impl Layer for LSTM {
     /// apply backpropagation through time 
     #[inline]
     fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32, update: bool) -> Option<Vec<f32>> {
-        // first iteration is coming directly from the output layer so the inputs are simple 
+        
+
         None
     }
 

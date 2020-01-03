@@ -103,6 +103,11 @@ impl MemoryTest {
             let guess = model.forward(&i).unwrap();
             println!("Input: {:?}, Output: {:?}, Guess: {:.2}", i, o, guess[0]);
         }
+        println!("\nTest next few inputs:");
+        println!("Input: {:?}, Expecting: {:?}, Guess: {:.2}", vec![1.0], vec![0.0], model.forward(&vec![1.0]).unwrap()[0]);
+        println!("Input: {:?}, Expecting: {:?}, Guess: {:.2}", vec![0.0], vec![0.0], model.forward(&vec![0.0]).unwrap()[0]);
+        println!("Input: {:?}, Expecting: {:?}, Guess: {:.2}", vec![0.0], vec![0.0], model.forward(&vec![0.0]).unwrap()[0]);
+        println!("Input: {:?}, Expecting: {:?}, Guess: {:.2}", vec![0.0], vec![1.0], model.forward(&vec![0.0]).unwrap()[0]);
     }
 
     // pub fn backprop(&self, model: &mut Neat) {

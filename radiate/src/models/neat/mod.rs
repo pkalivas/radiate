@@ -69,28 +69,28 @@ pub mod activation {
         pub fn deactivate(&self, x: f32) -> f32 {
             match self {
                 Self::Sigmoid => {
-                    x * (1.0 - x)
+                    self.activate(x) * (1.0 - self.activate(x))
                 },
                 Self::Tahn => {
-                    1.0 - (x).powf(2.0)
+                    1.0 - (self.activate(x)).powf(2.0)
                 },
                 Self::Linear(alpha) => {
                     *alpha
                 },
                 Self::Relu => {
-                    if x > 0.0 { 
+                    if self.activate(x) > 0.0 { 
                         return 1.0;
                     }
                     0.0
                 },
                 Self::ExpRelu(alpha) => {
-                    if x > 0.0 {
+                    if self.activate(x) > 0.0 {
                         return 1.0;
                     }
                     alpha * x.exp()
                 },
                 Self::LeakyRelu(alpha) => {
-                    if x > 0.0 { 
+                    if self.activate(x) > 0.0 { 
                         return 1.0;
                     } 
                     *alpha 

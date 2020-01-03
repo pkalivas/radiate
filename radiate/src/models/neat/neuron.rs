@@ -20,6 +20,7 @@ pub struct Neuron {
     pub innov: Uuid,
     pub outgoing: Vec<Uuid>,
     pub incoming: HashMap<Uuid, Option<f32>>,
+    pub state: f32,
     pub value: Option<f32>,
     pub error: f32,
     pub bias: f32,
@@ -37,6 +38,7 @@ impl Neuron {
             innov,
             outgoing: Vec::new(),
             incoming: HashMap::new(),
+            state: 0.0,
             value: None,
             error: 0.0,
             bias: rand::thread_rng().gen::<f32>(),
@@ -70,7 +72,7 @@ impl Neuron {
     /// given the hashmap of <incoming edge innov, Option<incoming Neuron output value>>
     #[inline]
     pub fn activate(&mut self) {
-        let total = self.incoming
+        self.state = self.incoming
             .values()
             .fold(self.bias, |sum, curr| {
                 match curr {
@@ -78,7 +80,7 @@ impl Neuron {
                     None => panic!("Cannot activate node.")
                 }
             });
-        self.value = Some(self.activation.activate(total));
+        self.value = Some(self.activation.activate(self.state));
     }
 
 
@@ -88,7 +90,7 @@ impl Neuron {
     #[inline]
     pub fn deactivate(&mut self) -> f32 {
         match self.value {
-            Some(val) => self.activation.deactivate(val),
+            Some(val) => self.activation.deactivate(self.state),
             None => panic!("Failed to deactivate neuron.")
         }
     }
@@ -122,8 +124,9 @@ impl Clone for Neuron {
                 .iter()
                 .map(|(key, _)| (*key, None))
                 .collect(),
-            value: self.value.clone(),
-            error: self.error.clone(),
+            state: 0.0,
+            value: None,
+            error: 0.0,
             bias: self.bias.clone(),
             activation: self.activation.clone(),
             neuron_type: self.neuron_type.clone(),
