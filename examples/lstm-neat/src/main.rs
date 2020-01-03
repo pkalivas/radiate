@@ -20,12 +20,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_activation_functions(vec![
             Activation::Sigmoid,
             Activation::Relu,
+            Activation::Tahn
         ]);
 
 
     let starting_net = Neat::new()
         .input_size(1)
-        .lstm(4, 1);
+        .lstm(3, 1);
 
     
     let num_evolve = 500;
@@ -53,14 +54,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("\nTime in millis: {}", thread_time.elapsed().as_millis());
         MemoryTest::new().show(&mut solution);
 
-        let data = MemoryTest::new();
-        let mut test_net = Neat::new()
-            .input_size(1)
-            .lstm(6, 1);
+        // let data = MemoryTest::new();
+        // let mut test_net = Neat::new()
+        //     .input_size(1)
+        //     .lstm(6, 1);
 
-        println!("\n");
-        test_net.train(&data.input, &data.output, 1, 0.05, 7)?;
-        data.show(&mut test_net);
+        // println!("\n");
+        // test_net.train(&data.input, &data.output, 1, 0.05, 7)?;
+        // data.show(&mut test_net);
         
         Ok(())
 }

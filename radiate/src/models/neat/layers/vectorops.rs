@@ -59,10 +59,8 @@ pub fn element_deactivate(one: &Vec<f32>, func: Activation) -> Vec<f32> {
 
 #[inline]
 pub fn memory_derivative(current_output: &Vec<f32>, previous_output: &Vec<f32>, previous_memory: &Vec<f32>) -> Vec<f32> {
-    assert!(
-        current_output.len() == previous_output.len() && current_output.len() == previous_memory.len(),
-        "Memory Derivative vector shapes do not mathc"
-    );
+    assert!(current_output.len() == previous_output.len(), "Memory Derivative vector shapes do not match (curr out == prev out)");
+    assert!(current_output.len() == previous_memory.len(), "Memory Derivative vector shapes do not match (curr out == prev mem)");
     current_output
         .iter()
         .zip(previous_output
