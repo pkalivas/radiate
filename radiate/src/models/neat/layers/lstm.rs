@@ -31,7 +31,6 @@ pub struct LSTMState {
     pub memory_states: Vec<Vec<f32>>,
     pub output_states: Vec<Vec<f32>>,
     pub outputs: Vec<Vec<f32>>,
-    pub targets: Vec<Vec<f32>>
 }
 
 
@@ -48,11 +47,10 @@ impl LSTMState {
             memory_states: Vec::new(),
             output_states: Vec::new(),
             outputs: Vec::new(),
-            targets: Vec::new()
         }
     }
 
-    pub fn update(&mut self, c_input: Vec<f32>, fg: Vec<f32>, ig: Vec<f32>, sg: Vec<f32>, og: Vec<f32>, mem_state: Vec<f32>, out_state: Vec<f32>, output: Vec<f32>, target: Vec<f32>) {
+    pub fn update(&mut self, c_input: Vec<f32>, fg: Vec<f32>, ig: Vec<f32>, sg: Vec<f32>, og: Vec<f32>, mem_state: Vec<f32>, out_state: Vec<f32>, output: Vec<f32>) {
         self.concat_input.push(c_input);
         self.f_gate_output.push(fg);
         self.i_gate_output.push(ig);
@@ -61,7 +59,6 @@ impl LSTMState {
         self.memory_states.push(mem_state);
         self.output_states.push(out_state);
         self.outputs.push(output);
-        self.targets.push(target);
         self.size += 1;
     }
 
@@ -74,8 +71,8 @@ impl LSTMState {
 pub struct LSTM {
     pub input_size: u32,
     pub memory_size: u32,
-    pub memory: Vec<Vec<f32>>,
-    pub output: Vec<Vec<f32>>,
+    pub memory: Vec<f32>,
+    pub output: Vec<f32>,
     pub lstm_state: LSTMState,
     pub state_gate: Dense,
     pub input_gate: Dense,
@@ -92,14 +89,14 @@ impl LSTM {
         LSTM {
             input_size,
             memory_size,
-            memory: vec![vec![0.0; memory_size as usize]],
-            output: vec![vec![0.0; memory_size as usize]],
+            memory: vec![0.0; memory_size as usize],
+            output: vec![0.0; memory_size as usize],
             lstm_state: LSTMState::new(),
             state_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Tahn),
             input_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
             forget_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
             output_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
-            hidden_out: Dense::new(memory_size, output_size, LayerType::DensePool, Activation::Sigmoid)
+            hidden_out: Dense::new(memory_size, output_size, LayerType::Dense, Activation::Sigmoid)
         }
     }
 
@@ -113,8 +110,8 @@ impl Layer for LSTM {
     #[inline]
     fn forward(&mut self, inputs: &Vec<f32>) -> Option<Vec<f32>> {
         // get the previous state and output and create the input to the layer
-        let mut previous_state = self.memory.last()?.clone();
-        let mut previous_output = self.output.last()?.clone();
+        let mut previous_state = &mut self.memory;
+        let mut previous_output = self.output.clone();
         previous_output.extend(inputs);
 
         // get all the gate outputs 
@@ -133,13 +130,17 @@ impl Layer for LSTM {
         vectorops::element_add(&mut previous_state, &current_state);
         vectorops::element_multiply(&mut current_output, &vectorops::element_activate(&previous_state, Activation::Tahn));
 
+        // compute the output of the layer
+        let layer_out = self.hidden_out.forward(&current_output)?;
+        
+        // update the state parameters - can this be sped up?
+        self.lstm_state.update(previous_output, forget_output, input_output, state_output, output_output, previous_state.clone(), current_output.clone(), layer_out.clone());
+        
         // keep track of the memory and the current output and the current state
-        self.memory.push(previous_state.clone());
-        self.output.push(current_output.clone());
-
+        self.output = current_output;
 
         // return the output of the layer
-        Some(current_output)
+        Some(layer_out)
     }
 
 
@@ -179,8 +180,8 @@ impl Clone for LSTM {
         LSTM {
             input_size: self.input_size,
             memory_size: self.memory_size,
-            memory: vec![vec![0.0; self.memory_size as usize]],
-            output: vec![vec![0.0; self.memory_size as usize]],
+            memory: vec![0.0; self.memory_size as usize],
+            output: vec![0.0; self.memory_size as usize],
             lstm_state: LSTMState::new(),
             state_gate: self.state_gate.clone(), 
             input_gate: self.input_gate.clone(), 
@@ -206,8 +207,8 @@ impl Genome<LSTM, NeatEnvironment> for LSTM
         let child = LSTM {
             input_size: child.input_size,
             memory_size: child.memory_size,
-            memory: vec![vec![0.0; child.memory_size as usize]],
-            output: vec![vec![0.0; child.memory_size as usize]],
+            memory: vec![0.0; child.memory_size as usize],
+            output: vec![0.0; child.memory_size as usize],
             lstm_state: LSTMState::new(),
             state_gate: Dense::crossover(&child.state_gate, &parent_two.state_gate, env, crossover_rate)?,
             input_gate: Dense::crossover(&child.input_gate, &parent_two.input_gate, env, crossover_rate)?,
@@ -227,7 +228,7 @@ impl Genome<LSTM, NeatEnvironment> for LSTM
         result += Dense::distance(&one.input_gate, &two.input_gate, env);
         result += Dense::distance(&one.forget_gate, &two.forget_gate, env);
         result += Dense::distance(&one.output_gate, &two.output_gate, env);
-        result += Dense::distance(&one.hidden_out, &two.hidden_out, env);
+        // result += Dense::distance(&one.hidden_out, &two.hidden_out, env);
         result
     }
 }
