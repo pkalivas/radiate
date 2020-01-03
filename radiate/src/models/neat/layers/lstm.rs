@@ -20,6 +20,55 @@ use crate::Genome;
 
 
 
+#[derive(Debug)]
+pub struct LSTMState {
+    pub size: usize,
+    pub concat_input: Vec<Vec<f32>>,
+    pub f_gate_output: Vec<Vec<f32>>,
+    pub i_gate_output: Vec<Vec<f32>>,
+    pub s_gate_output: Vec<Vec<f32>>,
+    pub o_gate_output: Vec<Vec<f32>>,
+    pub memory_states: Vec<Vec<f32>>,
+    pub output_states: Vec<Vec<f32>>,
+    pub outputs: Vec<Vec<f32>>,
+    pub targets: Vec<Vec<f32>>
+}
+
+
+impl LSTMState {
+
+    pub fn new() -> Self {
+        LSTMState {
+            size: 0,
+            concat_input: Vec::new(),
+            f_gate_output: Vec::new(),
+            i_gate_output: Vec::new(),
+            s_gate_output: Vec::new(),
+            o_gate_output: Vec::new(),
+            memory_states: Vec::new(),
+            output_states: Vec::new(),
+            outputs: Vec::new(),
+            targets: Vec::new()
+        }
+    }
+
+    pub fn update(&mut self, c_input: Vec<f32>, fg: Vec<f32>, ig: Vec<f32>, sg: Vec<f32>, og: Vec<f32>, mem_state: Vec<f32>, out_state: Vec<f32>, output: Vec<f32>, target: Vec<f32>) {
+        self.concat_input.push(c_input);
+        self.f_gate_output.push(fg);
+        self.i_gate_output.push(ig);
+        self.s_gate_output.push(sg);
+        self.o_gate_output.push(og);
+        self.memory_states.push(mem_state);
+        self.output_states.push(out_state);
+        self.outputs.push(output);
+        self.targets.push(target);
+        self.size += 1;
+    }
+
+}
+
+
+
 
 #[derive(Debug)]
 pub struct LSTM {
@@ -27,6 +76,7 @@ pub struct LSTM {
     pub memory_size: u32,
     pub memory: Vec<Vec<f32>>,
     pub output: Vec<Vec<f32>>,
+    pub lstm_state: LSTMState,
     pub state_gate: Dense,
     pub input_gate: Dense,
     pub forget_gate: Dense,
@@ -43,6 +93,7 @@ impl LSTM {
             memory_size,
             memory: vec![vec![0.0; memory_size as usize]],
             output: vec![vec![0.0; memory_size as usize]],
+            lstm_state: LSTMState::new(),
             state_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Tahn),
             input_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
             forget_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
@@ -127,6 +178,7 @@ impl Clone for LSTM {
             memory_size: self.memory_size,
             memory: vec![vec![0.0; self.memory_size as usize]],
             output: vec![vec![0.0; self.memory_size as usize]],
+            lstm_state: LSTMState::new(),
             state_gate: self.state_gate.clone(), 
             input_gate: self.input_gate.clone(), 
             forget_gate: self.forget_gate.clone(), 
@@ -152,6 +204,7 @@ impl Genome<LSTM, NeatEnvironment> for LSTM
             memory_size: child.memory_size,
             memory: vec![vec![0.0; child.memory_size as usize]],
             output: vec![vec![0.0; child.memory_size as usize]],
+            lstm_state: LSTMState::new(),
             state_gate: Dense::crossover(&child.state_gate, &parent_two.state_gate, env, crossover_rate)?,
             input_gate: Dense::crossover(&child.input_gate, &parent_two.input_gate, env, crossover_rate)?,
             forget_gate: Dense::crossover(&child.forget_gate, &parent_two.forget_gate, env, crossover_rate)?,
