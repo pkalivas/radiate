@@ -80,13 +80,14 @@ pub struct LSTM {
     pub state_gate: Dense,
     pub input_gate: Dense,
     pub forget_gate: Dense,
-    pub output_gate: Dense
+    pub output_gate: Dense,
+    pub hidden_out: Dense
 }
 
 
 impl LSTM {
 
-    pub fn new(input_size: u32, memory_size: u32) -> Self {
+    pub fn new(input_size: u32, memory_size: u32, output_size: u32) -> Self {
         let cell_input = input_size + memory_size;
         LSTM {
             input_size,
@@ -97,7 +98,8 @@ impl LSTM {
             state_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Tahn),
             input_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
             forget_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
-            output_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid)
+            output_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
+            hidden_out: Dense::new(memory_size, output_size, LayerType::DensePool, Activation::Sigmoid)
         }
     }
 
@@ -134,6 +136,7 @@ impl Layer for LSTM {
         // keep track of the memory and the current output and the current state
         self.memory.push(previous_state.clone());
         self.output.push(current_output.clone());
+
 
         // return the output of the layer
         Some(current_output)
@@ -182,7 +185,8 @@ impl Clone for LSTM {
             state_gate: self.state_gate.clone(), 
             input_gate: self.input_gate.clone(), 
             forget_gate: self.forget_gate.clone(), 
-            output_gate: self.output_gate.clone()
+            output_gate: self.output_gate.clone(),
+            hidden_out: self.hidden_out.clone()
         }
     }
 }
@@ -209,6 +213,7 @@ impl Genome<LSTM, NeatEnvironment> for LSTM
             input_gate: Dense::crossover(&child.input_gate, &parent_two.input_gate, env, crossover_rate)?,
             forget_gate: Dense::crossover(&child.forget_gate, &parent_two.forget_gate, env, crossover_rate)?,
             output_gate: Dense::crossover(&child.output_gate, &parent_two.output_gate, env, crossover_rate)?,
+            hidden_out: Dense::crossover(&child.hidden_out, &parent_two.hidden_out, env, crossover_rate)?
         };
         Some(child)
     }
@@ -222,6 +227,7 @@ impl Genome<LSTM, NeatEnvironment> for LSTM
         result += Dense::distance(&one.input_gate, &two.input_gate, env);
         result += Dense::distance(&one.forget_gate, &two.forget_gate, env);
         result += Dense::distance(&one.output_gate, &two.output_gate, env);
+        result += Dense::distance(&one.hidden_out, &two.hidden_out, env);
         result
     }
 }

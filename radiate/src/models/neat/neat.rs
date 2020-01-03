@@ -159,11 +159,11 @@ impl Neat {
     
     /// create a new lstm layer and add it to the network
     #[inline]
-    pub fn lstm(mut self, size: u32) -> Self {
-        let (input_size, output_size) = self.get_layer_sizes(size).unwrap();
+    pub fn lstm(mut self, size: u32, output_size: u32) -> Self {
+        let (input_size, output_size) = self.get_layer_sizes(output_size).unwrap();
         let wrapper = LayerWrap {
             layer_type: LayerType::LSTM,
-            layer: Box::new(LSTM::new(input_size, output_size))
+            layer: Box::new(LSTM::new(input_size, size, output_size))
         };
         self.layers.push(wrapper);
         self

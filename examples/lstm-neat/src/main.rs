@@ -25,8 +25,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let starting_net = Neat::new()
         .input_size(1)
-        .lstm(4)
-        .dense(1, Activation::Sigmoid);
+        .lstm(4, 1);
 
     
     let num_evolve = 500;
@@ -57,8 +56,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let data = MemoryTest::new();
         let mut test_net = Neat::new()
             .input_size(1)
-            .lstm(6)
-            .dense(1, Activation::Sigmoid);
+            .lstm(6, 1);
 
         println!("\n");
         test_net.train(&data.input, &data.output, 1, 0.05, 7)?;
