@@ -330,11 +330,6 @@ impl Dense {
     }
 
 
-    pub fn deactivate_trace(&self, neuron_id: Uuid, act: Activation) -> f32 {
-        act.deactivate(self.trace_states.neuron_state(neuron_id))
-    }
-
-
 }
 
 
@@ -431,7 +426,7 @@ impl Layer for Dense {
                 let curr_node = self.nodes.get(&path.pop()?)?;
                 let curr_node_error = (**curr_node).error * learning_rate;
                 let step = match trace {
-                    true => curr_node_error * self.deactivate_trace((**curr_node).innov, (**curr_node).activation),
+                    true => curr_node_error * (**curr_node).activation.deactivate(self.trace_states.neuron_state((**curr_node).innov)),
                     false => curr_node_error * (**curr_node).deactivate()
                 };
                 // let step = curr_node_error * (**curr_node).deactivate(); // deactivate the value at the tracer index if trace is needed
@@ -447,7 +442,11 @@ impl Layer for Dense {
               
                         // add the weight step (gradient) * the currnet value to the weight to adjust the weight
                         // then update the connection so it knows if it should update the weight, or store the delta
-                        let delta = step * (**src_neuron).value; // get the value from time step t if trace is needed
+                        let delta = match trace {
+                            true => step * (**src_neuron).activation.activate(self.trace_states.neuron_state((**src_neuron).innov)),
+                            false => step * (**src_neuron).value
+                        };
+                        // let delta = step * (**src_neuron).value; // get the value from time step t if trace is needed
                         curr_edge.update(delta, update);
                         (**src_neuron).error += curr_edge.weight * curr_node_error;
                         path.push(curr_edge.src);
