@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         ]);
         
     let starting_net = Neat::base(&mut neat_env);
-    let num_evolve = 5000;
+    let num_evolve = 1000;
     let xor = XOR::new();
 
 

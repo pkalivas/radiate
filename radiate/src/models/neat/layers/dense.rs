@@ -100,7 +100,7 @@ impl Dense {
         let result = self.outputs
             .iter()
             .map(|x| {
-                unsafe { (**self.nodes.get(x).unwrap()).value.unwrap() }
+                unsafe { (**self.nodes.get(x).unwrap()).value }
             })
             .collect::<Vec<_>>();
         Some(result)
@@ -293,7 +293,7 @@ impl Dense {
         self.inputs.iter().zip(data.iter())
             .map(|(node_innov, input)| {
                 let node = self.nodes.get(node_innov).unwrap();
-                (**node).value = Some(*input);
+                (**node).value = *input;
                 (**node).innov
             })
             .collect()
@@ -316,21 +316,6 @@ impl Dense {
     }
 
 
-
-    pub fn see(&self) {
-        unsafe { 
-            for node in self.nodes.values() {
-                println!("{:?}", **node);
-            }
-            for edge in self.edges.values() {
-                println!("{:?}", edge);
-            }
-        }
-    }
-
-
-
-
 }
 
 
@@ -341,7 +326,7 @@ impl Layer for Dense {
     /// the shapes of the values do not match or if something goes 
     /// wrong within the feed forward process.
     #[inline]
-    fn forward(&mut self, data: &Vec<f32>) -> Option<Vec<f32>> {
+    fn forward(&mut self, data: &Vec<f32>, trace: bool) -> Option<Vec<f32>> {
         unsafe {
             // reset the network by clearing the previous outputs from the neurons 
             // this could be done more efficently if i didn't want to implement backprop
@@ -358,27 +343,26 @@ impl Layer for Dense {
             
                 // remove the top elemet to propagate it's value
                 let curr_node = self.nodes.get(&path.pop()?)?;
+                let val = (**curr_node).value;
             
                 // no node should be in the path if it's value has not been set 
                 // iterate through the current nodes outgoing connections 
                 // to get its value and give that value to it's connected node
-                if let Some(val) = (**curr_node).value {
-                    for edge_innov in (**curr_node).outgoing.iter() {
-            
-                        // if the currnet edge is active in the network, we can propagate through it
-                        let curr_edge = self.edges.get_mut(edge_innov)?;
-                        if curr_edge.active {
-                            let receiving_node = self.nodes.get(&curr_edge.dst)?;
-                            let activated_value = curr_edge.calculate(val);
-                            (**receiving_node).incoming.insert(curr_edge.innov, Some(activated_value));
-            
-                            // if the node can be activated, activate it and store it's value
-                            // only activated nodes can be added to the path, so if it's activated
-                            // add it to the path so the values can be propagated through the network
-                            if (**receiving_node).is_ready() {
-                                (**receiving_node).activate();
-                                path.push((**receiving_node).innov);
-                            }
+                for edge_innov in (**curr_node).outgoing.iter() {
+        
+                    // if the currnet edge is active in the network, we can propagate through it
+                    let curr_edge = self.edges.get_mut(edge_innov)?;
+                    if curr_edge.active {
+                        let receiving_node = self.nodes.get(&curr_edge.dst)?;
+                        let activated_value = curr_edge.calculate(val, trace);
+                        (**receiving_node).incoming.insert(curr_edge.innov, Some(activated_value));
+        
+                        // if the node can be activated, activate it and store it's value
+                        // only activated nodes can be added to the path, so if it's activated
+                        // add it to the path so the values can be propagated through the network
+                        if (**receiving_node).is_ready() {
+                            (**receiving_node).activate(trace);
+                            path.push((**receiving_node).innov);
                         }
                     }
                 }
@@ -427,7 +411,7 @@ impl Layer for Dense {
               
                         // add the weight step (gradient) * the currnet value to the weight to adjust the weight
                         // then update the connection so it knows if it should update the weight, or store the delta
-                        let delta = step * (**src_neuron).value?;
+                        let delta = step * (**src_neuron).value;
                         curr_edge.update(delta, update);
                         (**src_neuron).error += curr_edge.weight * curr_node_error;
                         path.push(curr_edge.src);

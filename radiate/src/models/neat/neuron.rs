@@ -18,12 +18,13 @@ use super::neurontype::NeuronType;
 /// so encapsulating that within a normal node on the graph would be misplaced.
 pub struct Neuron {
     pub innov: Uuid,
+    pub trace_states: Vec<f32>,
     pub outgoing: Vec<Uuid>,
     pub incoming: HashMap<Uuid, Option<f32>>,
-    pub state: f32,
-    pub value: Option<f32>,
-    pub error: f32,
     pub bias: f32,
+    pub value: f32,
+    pub state: f32,
+    pub error: f32,
     pub activation: Activation,
     pub neuron_type: NeuronType
 }
@@ -36,12 +37,13 @@ impl Neuron {
     pub fn new(innov: Uuid, neuron_type: NeuronType, activation: Activation) -> Self {
         Neuron {
             innov,
+            trace_states: Vec::new(),
             outgoing: Vec::new(),
             incoming: HashMap::new(),
-            state: 0.0,
-            value: None,
-            error: 0.0,
             bias: rand::thread_rng().gen::<f32>(),
+            value: 0.0,
+            state: 0.0,
+            error: 0.0,
             activation,
             neuron_type,
         }
@@ -71,7 +73,7 @@ impl Neuron {
     /// activate this node by calling the underlying neuron's logic for activation
     /// given the hashmap of <incoming edge innov, Option<incoming Neuron output value>>
     #[inline]
-    pub fn activate(&mut self) {
+    pub fn activate(&mut self, trace: bool) {
         self.state = self.incoming
             .values()
             .fold(self.bias, |sum, curr| {
@@ -80,7 +82,10 @@ impl Neuron {
                     None => panic!("Cannot activate node.")
                 }
             });
-        self.value = Some(self.activation.activate(self.state));
+        if trace {
+            self.trace_states.push(self.state);
+        }
+        self.value = self.activation.activate(self.state);
     }
 
 
@@ -89,10 +94,7 @@ impl Neuron {
     /// the gradient of the original output value 
     #[inline]
     pub fn deactivate(&mut self) -> f32 {
-        match self.value {
-            Some(val) => self.activation.deactivate(self.state),
-            None => panic!("Failed to deactivate neuron.")
-        }
+        self.activation.deactivate(self.state)
     }
 
 
@@ -116,6 +118,7 @@ impl Clone for Neuron {
     fn clone(&self) -> Self { 
         Neuron {
             innov: self.innov,
+            trace_states: Vec::new(),
             outgoing: self.outgoing
                 .iter()
                 .map(|x| *x)
@@ -125,7 +128,7 @@ impl Clone for Neuron {
                 .map(|(key, _)| (*key, None))
                 .collect(),
             state: 0.0,
-            value: None,
+            value: 0.0,
             error: 0.0,
             bias: self.bias.clone(),
             activation: self.activation.clone(),

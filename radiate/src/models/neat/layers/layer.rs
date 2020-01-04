@@ -12,8 +12,10 @@ pub trait Layer: LayerClone + Any + Debug {
     
     /// propagate an input vec through this layer. This is done differently 
     /// depending on the type of layer, just the same as backpropagation is.
+    /// if the layer is just being evolved, it needs to not keep track of the 
+    /// meta data within because there is no need for the network  to backprop after
     /// Return the output as a vec 
-    fn forward(&mut self, inputs: &Vec<f32>) -> Option<Vec<f32>>;
+    fn forward(&mut self, inputs: &Vec<f32>, trace: bool) -> Option<Vec<f32>>;
 
     /// Take the errors of the feed forward and backpropagate them through the network
     /// to adjust the weights of the connections between the neurons. Return the error 

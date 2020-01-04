@@ -65,7 +65,7 @@ impl Layer for GRU {
 
     /// implement the propagation function for the GRU layer 
     #[inline]
-    fn forward(&mut self, inputs: &Vec<f32>) -> Option<Vec<f32>> {
+    fn forward(&mut self, inputs: &Vec<f32>, trace: bool) -> Option<Vec<f32>> {
         let mut concat_input_output = self.current_output.clone();
         concat_input_output.extend(inputs);
 
@@ -73,8 +73,8 @@ impl Layer for GRU {
         network_input.extend(&self.current_memory);
 
         // calculate memory updates
-        let mut forget = self.gate_forget.forward(&network_input)?;
-        let mut memory = self.gate_extract.forward(&network_input)?;
+        let mut forget = self.gate_forget.forward(&network_input, trace)?;
+        let mut memory = self.gate_extract.forward(&network_input, trace)?;
 
         // figure out what to forget from the current memory
         vectorops::element_multiply(&mut self.current_memory, &forget);
@@ -86,7 +86,7 @@ impl Layer for GRU {
         concat_input_output.extend(&self.current_memory);
 
         // calculate the current output of the layer
-        self.current_output = self.gate_output.forward(&concat_input_output)?;
+        self.current_output = self.gate_output.forward(&concat_input_output, trace)?;
         Some(self.current_output.clone())
     }
 

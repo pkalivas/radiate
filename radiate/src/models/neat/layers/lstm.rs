@@ -31,26 +31,28 @@ pub struct LSTMState {
     pub memory_states: Vec<Vec<f32>>,
     pub output_states: Vec<Vec<f32>>,
     pub outputs: Vec<Vec<f32>>,
+    pub errors: Vec<Vec<f32>>
 }
 
 
 impl LSTMState {
 
-    pub fn new() -> Self {
+    pub fn new(memory_size: u32) -> Self {
         LSTMState {
-            size: 0,
+            size: 1,
             concat_input: Vec::new(),
             f_gate_output: Vec::new(),
             i_gate_output: Vec::new(),
             s_gate_output: Vec::new(),
             o_gate_output: Vec::new(),
-            memory_states: Vec::new(),
-            output_states: Vec::new(),
+            memory_states: vec![vec![0.0; memory_size as usize]],
+            output_states: vec![vec![0.0; memory_size as usize]],
             outputs: Vec::new(),
+            errors: Vec::new()
         }
     }
 
-    pub fn update(&mut self, c_input: Vec<f32>, fg: Vec<f32>, ig: Vec<f32>, sg: Vec<f32>, og: Vec<f32>, mem_state: Vec<f32>, out_state: Vec<f32>, output: Vec<f32>) {
+    pub fn update_forward(&mut self, c_input: Vec<f32>, fg: Vec<f32>, ig: Vec<f32>, sg: Vec<f32>, og: Vec<f32>, mem_state: Vec<f32>, out_state: Vec<f32>, output: Vec<f32>) {
         self.concat_input.push(c_input);
         self.f_gate_output.push(fg);
         self.i_gate_output.push(ig);
@@ -61,6 +63,12 @@ impl LSTMState {
         self.outputs.push(output);
         self.size += 1;
     }
+
+    pub fn update_backward(&mut self, errors: Vec<f32>) {
+        self.errors.push(errors);
+    }
+
+
 
 }
 
@@ -91,7 +99,7 @@ impl LSTM {
             memory_size,
             memory: vec![0.0; memory_size as usize],
             output: vec![0.0; memory_size as usize],
-            lstm_state: LSTMState::new(),
+            lstm_state: LSTMState::new(memory_size),
             state_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Tahn),
             input_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
             forget_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
@@ -99,6 +107,30 @@ impl LSTM {
             hidden_out: Dense::new(memory_size, output_size, LayerType::Dense, Activation::Sigmoid)
         }
     }
+
+
+    pub fn step_back(&mut self, l_rate: f32, update: bool, index: usize) -> Option<Vec<f32>> {
+        // get the previous memory and the current error
+        let prev_memory = self.lstm_state.memory_states.get(index - 1)?;
+        let curr_output = self.lstm_state.output_states.get(index);
+        let curr_error = self.lstm_state.errors.get(index)?;
+
+        // compute and store the total delta for the hidden to output gate 
+        // compute the derivative of the hidden state and output gate
+        let mut d_hidden_out = self.hidden_out.backward(&curr_error, l_rate, update)?;
+        vectorops::element_add(&mut d_hidden_out, self.lstm_state.output_states.get(index + 1)?);
+        
+        // output derivative 
+        let mut c_act = vectorops::element_activate(self.lstm_state.memory_states.get(index)?, Activation::Tahn);
+        vectorops::element_multiply(&mut c_act, &d_hidden_out);
+        vectorops::element_multiply(&mut c_act, &vectorops::element_deactivate(self.lstm_state.output_states.get(index)?, self.output_gate.activation));
+
+        // need to update for each time step need to make another method in neuron for getting just the current inputs for 
+        // the node and the current time step
+
+        None
+    }
+
 
 }
 
@@ -108,17 +140,17 @@ impl Layer for LSTM {
 
 
     #[inline]
-    fn forward(&mut self, inputs: &Vec<f32>) -> Option<Vec<f32>> {
+    fn forward(&mut self, inputs: &Vec<f32>, trace: bool) -> Option<Vec<f32>> {
         // get the previous state and output and create the input to the layer
         let mut previous_state = &mut self.memory;
         let mut previous_output = self.output.clone();
         previous_output.extend(inputs);
 
         // get all the gate outputs 
-        let forget_output = self.forget_gate.forward(&previous_output)?;
-        let state_output = self.state_gate.forward(&previous_output)?;
-        let input_output = self.input_gate.forward(&previous_output)?;
-        let output_output = self.output_gate.forward(&previous_output)?;
+        let forget_output = self.forget_gate.forward(&previous_output, trace)?;
+        let state_output = self.state_gate.forward(&previous_output, trace)?;
+        let input_output = self.input_gate.forward(&previous_output, trace)?;
+        let output_output = self.output_gate.forward(&previous_output, trace)?;
 
         // current memory and output need to be mutable but we also want to save that data for bptt
         let mut current_state = state_output.clone();
@@ -131,10 +163,10 @@ impl Layer for LSTM {
         vectorops::element_multiply(&mut current_output, &vectorops::element_activate(&previous_state, Activation::Tahn));
 
         // compute the output of the layer
-        let layer_out = self.hidden_out.forward(&current_output)?;
+        let layer_out = self.hidden_out.forward(&current_output, trace)?;
         
         // update the state parameters - can this be sped up?
-        self.lstm_state.update(previous_output, forget_output, input_output, state_output, output_output, previous_state.clone(), current_output.clone(), layer_out.clone());
+        self.lstm_state.update_forward(previous_output, forget_output, input_output, state_output, output_output, previous_state.clone(), current_output.clone(), layer_out.clone());
         
         // keep track of the memory and the current output and the current state
         self.output = current_output;
@@ -147,7 +179,22 @@ impl Layer for LSTM {
     /// apply backpropagation through time 
     #[inline]
     fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32, update: bool) -> Option<Vec<f32>> {
-        
+        // regardless of if the network needs to be updated, the error needs to be stored
+        self.lstm_state.update_backward(errors.clone());
+
+        // backpropagation throught time if update is true
+        if update {
+            // need next states as well, but the first iteration they will be 0
+            self.lstm_state.output_states.push(vec![0.0; self.memory_size as usize]);
+            self.lstm_state.memory_states.push(vec![0.0; self.memory_size as usize]);
+
+            // leave room for one last backward step to update all the weights and step backward once
+            for i in (self.lstm_state.size..0).rev() {
+                
+                let idkyet = self.step_back(learning_rate, false, i)?;
+
+            }
+        }
 
         None
     }
@@ -183,7 +230,7 @@ impl Clone for LSTM {
             memory_size: self.memory_size,
             memory: vec![0.0; self.memory_size as usize],
             output: vec![0.0; self.memory_size as usize],
-            lstm_state: LSTMState::new(),
+            lstm_state: LSTMState::new(self.memory_size),
             state_gate: self.state_gate.clone(), 
             input_gate: self.input_gate.clone(), 
             forget_gate: self.forget_gate.clone(), 
@@ -210,7 +257,7 @@ impl Genome<LSTM, NeatEnvironment> for LSTM
             memory_size: child.memory_size,
             memory: vec![0.0; child.memory_size as usize],
             output: vec![0.0; child.memory_size as usize],
-            lstm_state: LSTMState::new(),
+            lstm_state: LSTMState::new(child.memory_size),
             state_gate: Dense::crossover(&child.state_gate, &parent_two.state_gate, env, crossover_rate)?,
             input_gate: Dense::crossover(&child.input_gate, &parent_two.input_gate, env, crossover_rate)?,
             forget_gate: Dense::crossover(&child.forget_gate, &parent_two.forget_gate, env, crossover_rate)?,

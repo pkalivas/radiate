@@ -43,7 +43,8 @@ impl LayerWrap {
 #[derive(Debug)]
 pub struct Neat {
     pub layers: Vec<LayerWrap>,
-    pub input_size: u32
+    pub input_size: u32,
+    pub trace: bool
 }
 
 
@@ -54,7 +55,8 @@ impl Neat {
     pub fn new() -> Self {
         Neat { 
             layers: Vec::new(),
-            input_size: 0
+            input_size: 0,
+            trace: false
         }
     }
 
@@ -116,7 +118,7 @@ impl Neat {
         let mut temp;
         let mut data_transfer = data;
         for wrapper in self.layers.iter_mut() {
-            temp = wrapper.layer.forward(data_transfer)?;
+            temp = wrapper.layer.forward(data_transfer, self.trace)?;
             data_transfer = &temp;
         }
         // gather the output and return it as an option
@@ -195,6 +197,7 @@ impl Neat {
         Some((self.layers.last()?.layer.shape().1 as u32, size))
     }
 
+
 }
 
 
@@ -213,7 +216,8 @@ impl Clone for Neat {
                     }
                 })
                 .collect(),
-            input_size: self.input_size
+            input_size: self.input_size,
+            trace: self.trace
         }
     }
 }
@@ -265,7 +269,12 @@ impl Genome<Neat, NeatEnvironment> for Neat {
                 layer: new_layer
             });
         }
-        Some(Neat { layers: result_layers, input_size: one.input_size })
+        // return the new child network
+        Some(Neat { 
+            layers: result_layers, 
+            input_size: one.input_size, 
+            trace: one.trace 
+        })
     }
 
 
@@ -275,7 +284,7 @@ impl Genome<Neat, NeatEnvironment> for Neat {
     }
 
 
-
+    #[inline]
     fn distance(one: &Neat, two: &Neat, env: &Arc<RwLock<NeatEnvironment>>) -> f32 {
         let mut total_distance = 0.0;
         for (layer_one, layer_two) in one.layers.iter().zip(two.layers.iter()) {
