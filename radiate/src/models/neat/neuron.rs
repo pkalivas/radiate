@@ -122,11 +122,6 @@ impl Neuron {
     }
 
 
-    pub fn deactivate_trace(&self, value: f32) -> f32 {
-        self.activation.deactivate(value)
-    }
-
-
 
     /// each Neuron has a base layer of reset which needs to happen 
     /// but on top of that each neuron might need to do more interanally
