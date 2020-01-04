@@ -110,7 +110,6 @@ impl LSTM {
 
 
     fn set_trace_index(&mut self, index: usize) {
-        // println!("SETTING INDEX: {:?}", index);
         self.state_gate.set_trace(index);
         self.input_gate.set_trace(index);
         self.forget_gate.set_trace(index);
@@ -130,7 +129,7 @@ impl LSTM {
 
     pub fn step_back(&mut self, l_rate: f32, trace: bool, update: bool, index: usize) -> Option<Vec<f32>> {
         // get the previous memory and the current error
-        self.set_trace_index(index);
+        self.set_trace_index(index - 1);
         let curr_memory = self.lstm_state.memory_states.get(index)?;
         let curr_error = self.lstm_state.errors.get(index)?;
 
@@ -180,6 +179,8 @@ impl LSTM {
         vectorops::element_multiply(&mut d_f_gate, &d_memory);
         vectorops::element_multiply(&mut d_f_gate, &act_forget);
         let f_gate_error = self.forget_gate.backward(&d_f_gate, l_rate, trace, update)?;
+
+        println!("{:#?}", self);
 
 
         //-------- compute the error of th entire layer --------//
@@ -250,16 +251,18 @@ impl Layer for LSTM {
             // need next states as well, but the first iteration they will be 0
             self.lstm_state.output_states.push(vec![0.0; self.memory_size as usize]);
             self.lstm_state.memory_states.push(vec![0.0; self.memory_size as usize]);
+            
+            // println!("{:#?}\n\n", self);
 
             // leave room for one last backward step to update all the weights and step backward once
             for i in (2..self.lstm_state.size).rev() {
-                // println!("{:?}", i);
+                // println!("Backprop {:?}", i);
                 self.step_back(learning_rate, trace, false, i);
             }
             let result = self.step_back(learning_rate, trace, true, 1);
-            // println!("{:#?}", self);
             self.lstm_state = LSTMState::new(self.memory_size);
             self.reset_traces();
+            // println!("{:#?}\n\n", self);
             return result
         }
         Some(errors.clone())

@@ -57,10 +57,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         let data = MemoryTest::new();
         let mut test_net = Neat::new()
             .input_size(1)
-            .lstm(6, 1);
+            .lstm(2, 1);
 
         println!("\n");
-        test_net.train(&data.input, &data.output, 5000, 0.05, 7)?;
+        test_net.train(&data.input, &data.output, 1, 0.1, 7)?;
         data.show(&mut test_net);
         
         Ok(())

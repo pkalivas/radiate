@@ -11,34 +11,6 @@ use super::neurontype::NeuronType;
 
 
 
-#[derive(Debug)]
-pub struct Tracer {
-    pub states: Vec<f32>,
-    pub index: usize
-}
-
-
-impl Tracer {
-
-    pub fn new() -> Self {
-        Tracer {
-            states: Vec::new(),
-            index: 0
-        }
-    }
-
-    pub fn set_index(&mut self, new_index: usize) {
-        assert!(new_index <= self.states.len(), "New index is greater than the length of the states");
-        self.index = new_index;
-    }
-
-    pub fn update(&mut self, new_state: f32) {
-        self.states.push(new_state);
-        self.index += 1;
-    }
-
-}
-
 
 
 /// Neuron is a wrapper around a neuron providing only what is needed for a neuron to be added 

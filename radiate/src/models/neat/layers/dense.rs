@@ -440,6 +440,9 @@ impl Layer for Dense {
                     true => curr_node_error * (**curr_node).activation.deactivate(self.trace_states.neuron_state((**curr_node).innov)),
                     false => curr_node_error * (**curr_node).deactivate()
                 };
+                if (**curr_node).neuron_type != NeuronType::Input {
+                    (**curr_node).error = 0.0;
+                }
                 // let step = curr_node_error * (**curr_node).deactivate(); // deactivate the value at the tracer index if trace is needed
               
                 // iterate through each of the incoming edes to this neuron and adjust it's weight
@@ -466,7 +469,9 @@ impl Layer for Dense {
             }
             let mut output = Vec::with_capacity(self.inputs.len());
             for innov in self.inputs.iter() {
-                output.push((**self.nodes.get(innov)?).error);
+                let mut temp = &mut (**self.nodes.get_mut(innov)?);
+                output.push(temp.error);
+                temp.error = 0.0;
             }
             Some(output)
         }

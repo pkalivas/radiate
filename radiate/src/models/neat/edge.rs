@@ -19,7 +19,6 @@ pub struct Edge {
     pub innov: Uuid,
     pub weight: f32,
     pub total_weight_delta: f32,
-    pub states: Vec<f32>,
     pub active: bool
 }
 
@@ -33,7 +32,6 @@ impl Edge {
             innov, 
             weight, 
             total_weight_delta: 0.0,
-            states: Vec::new(),
             active 
         }
     }
@@ -47,7 +45,6 @@ impl Edge {
         if update {
             self.weight += self.total_weight_delta;
             self.total_weight_delta = 0.0;
-            self.states = Vec::with_capacity(self.states.len());
         }
     }
 
@@ -55,10 +52,6 @@ impl Edge {
     /// calculate the eligibility of this connection and store it for time series predictions
     #[inline]
     pub fn calculate(&mut self, val: f32, trace: bool) -> f32 {
-        let result = val * self.weight;
-        if trace {
-            self.states.push(result);
-        }
-        result
+        val * self.weight
 	}
 }
