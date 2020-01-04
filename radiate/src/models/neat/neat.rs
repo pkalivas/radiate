@@ -76,16 +76,23 @@ impl Neat {
         // make sure the data actually can be fed through
         assert!(inputs.len() == targets.len(), "Input and target data are different sizes");
         assert!(inputs[0].len() as u32 == self.input_size, "Input size is different than network input size");
+
+        self.trace = self.layers
+            .iter()
+            .any(|x| x.layer_type == LayerType::LSTM);
         
         // feed the input data through the network then back prop it back through to edit the weights of the layers
         for _ in 0..iters {
-            for (index, (input, target)) in inputs.iter().zip(targets.iter()).enumerate() {
+            let mut index = 1;
+            for (input, target) in inputs.iter().zip(targets.iter()) {
                 let network_output = self.forward(input).ok_or("Error in network feed forward")?;
-                if index + 1 % update_window == 0 {
+                if index == update_window {
                     self.backward(&network_output, &target, rate, true);
+                    index = 0;
                 } else {
                     self.backward(&network_output, &target, rate, false);
                 }
+                index += 1;
             }
         }
         Ok(())

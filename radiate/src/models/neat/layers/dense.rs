@@ -90,10 +90,8 @@ impl Dense {
     /// set the historical states to use during backpropagation
     /// this should really only be used for backpropagation through
     /// time, layers like lstm and gru will use this for training
-    /// this is really meant to be be chained with a backward() call
-    pub fn at_trace(mut self, trace_index: usize) -> Self {
+    pub fn set_trace(&mut self, trace_index: usize) {
         self.trace_states.set_index(trace_index);
-        self
     }
 
 
@@ -302,15 +300,28 @@ impl Dense {
     /// that holds the innovation numbers of the input nodes for a dfs traversal 
     /// to feed forward those inputs through the network
     #[inline]
-    unsafe fn give_inputs(&self, data: &Vec<f32>) -> Vec<Uuid> {
+    unsafe fn give_inputs(&mut self, data: &Vec<f32>, trace: bool) -> Vec<Uuid> {
         assert!(data.len() == self.inputs.len());
-        self.inputs.iter().zip(data.iter())
-            .map(|(node_innov, input)| {
-                let node = self.nodes.get(node_innov).unwrap();
-                (**node).value = *input;
-                (**node).innov
-            })
-            .collect()
+        let mut ids = Vec::with_capacity(self.inputs.len());
+        for (node_innov, input) in self.inputs.iter().zip(data.iter()) {
+            let node = self.nodes.get(node_innov).unwrap();
+            if trace {
+                self.trace_states.update_neuron((**node).innov, *input);
+            }
+            (**node).value = *input;
+            ids.push((**node).innov);
+        }
+        ids
+        // self.inputs.iter().zip(data.iter())
+        //     .map(|(node_innov, input)| {
+        //         let node = self.nodes.get(node_innov).unwrap();
+        //         if trace {
+        //             self.trace_states.update_neuron((**node).innov, *input);
+        //         }
+        //         (**node).value = *input;
+        //         (**node).innov
+        //     })
+        //     .collect()
     }
 
 
@@ -349,7 +360,7 @@ impl Layer for Dense {
             // give the input data to the input neurons and return back 
             // a stack to do a graph traversal to feed the inputs through the network
             self.reset_neurons();
-            let mut path = self.give_inputs(data);
+            let mut path = self.give_inputs(data, trace);
 
             // while the path is still full, continue feeding forward 
             // the data in the network, this is basically a dfs traversal

@@ -109,26 +109,89 @@ impl LSTM {
     }
 
 
+    fn set_trace_index(&mut self, index: usize) {
+        // println!("SETTING INDEX: {:?}", index);
+        self.state_gate.set_trace(index);
+        self.input_gate.set_trace(index);
+        self.forget_gate.set_trace(index);
+        self.output_gate.set_trace(index);
+        self.hidden_out.set_trace(index);
+    }
+
+
+    fn reset_traces(&mut self) {
+        self.state_gate.trace_states.reset();
+        self.input_gate.trace_states.reset();
+        self.forget_gate.trace_states.reset();
+        self.output_gate.trace_states.reset();
+        self.hidden_out.trace_states.reset();
+    }
+
+
     pub fn step_back(&mut self, l_rate: f32, trace: bool, update: bool, index: usize) -> Option<Vec<f32>> {
         // get the previous memory and the current error
-        let prev_memory = self.lstm_state.memory_states.get(index - 1)?;
-        let curr_output = self.lstm_state.output_states.get(index);
+        self.set_trace_index(index);
+        let curr_memory = self.lstm_state.memory_states.get(index)?;
         let curr_error = self.lstm_state.errors.get(index)?;
 
-        // compute and store the total delta for the hidden to output gate 
-        // compute the derivative of the hidden state and output gate
-        let mut d_hidden_out = self.hidden_out.backward(&curr_error, l_rate, trace, update)?;
-        vectorops::element_add(&mut d_hidden_out, self.lstm_state.output_states.get(index + 1)?);
+
+        //-------- compute the derivative of the hidden layer to output and feed it backward to get hidden layer error -------//
+        // derivative of the hidden to output gate of the layer.
+        let mut h_out_error = self.hidden_out.backward(&curr_error, l_rate, trace, update)?;
+        vectorops::element_add(&mut h_out_error, self.lstm_state.output_states.get(index + 1)?);
         
+
+        //-------- compute the derivative of the output gate and feed it backward to get the output gate error --------//
         // output derivative 
-        let mut c_act = vectorops::element_activate(self.lstm_state.memory_states.get(index)?, Activation::Tahn);
-        vectorops::element_multiply(&mut c_act, &d_hidden_out);
-        vectorops::element_multiply(&mut c_act, &vectorops::element_deactivate(self.lstm_state.output_states.get(index)?, self.output_gate.activation));
+        let mut d_o_gate = vectorops::element_deactivate(&curr_memory, Activation::Tahn);
+        vectorops::element_multiply(&mut d_o_gate, &h_out_error);
+        let o_gate_direction = vectorops::element_deactivate(self.lstm_state.o_gate_output.get(index)?, self.output_gate.activation);
+        vectorops::element_multiply(&mut d_o_gate, &o_gate_direction);
+        let o_gate_error = self.output_gate.backward(&d_o_gate, l_rate, trace, update)?;
 
-        // need to update for each time step need to make another method in neuron for getting just the current inputs for 
-        // the node and the current time step
 
-        None
+        //-------- compute the derivative of the memory and state gate --------//
+        // memory and state gate derivate and error
+        let mut d_memory = h_out_error.clone();
+        let memory_error = self.lstm_state.memory_states.get(index + 1)?.clone();
+        let act_memory = vectorops::element_activate(&curr_memory, Activation::Tahn);
+        vectorops::element_multiply(&mut d_memory, self.lstm_state.o_gate_output.get(index)?);
+        vectorops::element_multiply(&mut d_memory, &vectorops::element_deactivate(&act_memory, Activation::Tahn));
+        vectorops::element_add(&mut d_memory, &memory_error);
+
+        let mut d_s_gate = self.lstm_state.i_gate_output.get(index)?.clone();
+        let act_state = vectorops::element_deactivate(self.lstm_state.s_gate_output.get(index)?, self.state_gate.activation);
+        vectorops::element_multiply(&mut d_s_gate, &d_memory);
+        vectorops::element_multiply(&mut d_s_gate, &act_state);
+        let s_gate_error = self.state_gate.backward(&d_s_gate, l_rate, trace, update)?;
+
+
+        //-------- compute the derivative of the input gate --------//
+        let mut d_i_gate = self.lstm_state.s_gate_output.get(index)?.clone();
+        let act_input = vectorops::element_deactivate(self.lstm_state.i_gate_output.get(index)?, self.input_gate.activation);
+        vectorops::element_multiply(&mut d_i_gate, &d_memory);
+        vectorops::element_multiply(&mut d_i_gate, &act_input);
+        let i_gate_error = self.input_gate.backward(&d_i_gate, l_rate, trace, update)?;
+
+
+        //-------- compute the derivative of the forget gate --------//
+        let mut d_f_gate = self.lstm_state.memory_states.get(index - 1)?.clone();
+        let act_forget = vectorops::element_activate(self.lstm_state.f_gate_output.get(index)?, self.input_gate.activation);
+        vectorops::element_multiply(&mut d_f_gate, &d_memory);
+        vectorops::element_multiply(&mut d_f_gate, &act_forget);
+        let f_gate_error = self.forget_gate.backward(&d_f_gate, l_rate, trace, update)?;
+
+
+        //-------- compute the error of th entire layer --------//
+        let mut step_error = vec![0.0; self.input_size as usize + self.memory_size as usize];
+        vectorops::element_add(&mut step_error, &o_gate_error);
+        vectorops::element_add(&mut step_error, &s_gate_error);
+        vectorops::element_add(&mut step_error, &i_gate_error);
+        vectorops::element_add(&mut step_error, &f_gate_error);
+
+        // get the result 
+        let out = step_error[self.memory_size as usize..].to_vec();
+        Some(out)
     }
 
 
@@ -189,14 +252,17 @@ impl Layer for LSTM {
             self.lstm_state.memory_states.push(vec![0.0; self.memory_size as usize]);
 
             // leave room for one last backward step to update all the weights and step backward once
-            for i in (self.lstm_state.size..0).rev() {
-                
-                let idkyet = self.step_back(learning_rate, trace, false, i)?;
-
+            for i in (2..self.lstm_state.size).rev() {
+                // println!("{:?}", i);
+                self.step_back(learning_rate, trace, false, i);
             }
+            let result = self.step_back(learning_rate, trace, true, 1);
+            // println!("{:#?}", self);
+            self.lstm_state = LSTMState::new(self.memory_size);
+            self.reset_traces();
+            return result
         }
-
-        None
+        Some(errors.clone())
     }
 
 

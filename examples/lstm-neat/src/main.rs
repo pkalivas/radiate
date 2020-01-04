@@ -29,7 +29,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .lstm(3, 1);
 
     
-    let num_evolve = 500;
+    let num_evolve = 0;
     let (mut solution, _) = Population::<Neat, NeatEnvironment, MemoryTest>::new()
         .constrain(neat_env)
         .size(100)
@@ -54,14 +54,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("\nTime in millis: {}", thread_time.elapsed().as_millis());
         MemoryTest::new().show(&mut solution);
 
-        // let data = MemoryTest::new();
-        // let mut test_net = Neat::new()
-        //     .input_size(1)
-        //     .lstm(6, 1);
+        let data = MemoryTest::new();
+        let mut test_net = Neat::new()
+            .input_size(1)
+            .lstm(6, 1);
 
-        // println!("\n");
-        // test_net.train(&data.input, &data.output, 1, 0.05, 7)?;
-        // data.show(&mut test_net);
+        println!("\n");
+        test_net.train(&data.input, &data.output, 5000, 0.05, 7)?;
+        data.show(&mut test_net);
         
         Ok(())
 }
