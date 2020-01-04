@@ -91,8 +91,8 @@ impl Layer for GRU {
     }
 
 
-    fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32, update: bool) -> Option<Vec<f32>> {
-        let output_error = self.gate_output.backward(&errors, learning_rate, update)?;
+    fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32, trace: bool, update: bool) -> Option<Vec<f32>> {
+        let output_error = self.gate_output.backward(&errors, learning_rate, trace, update)?;
         // let delta_mem = self.current_memory
         //     .iter()
         //     .zip(output_error.iter())
@@ -109,8 +109,8 @@ impl Layer for GRU {
         //     })
         //     .collect::<Vec<_>>();
         
-        self.gate_forget.backward(&output_error, learning_rate, update)?;
-        self.gate_extract.backward(&output_error, learning_rate, update)?;
+        self.gate_forget.backward(&output_error, learning_rate, trace, update)?;
+        self.gate_extract.backward(&output_error, learning_rate, trace, update)?;
 
         
         Some(errors.clone())

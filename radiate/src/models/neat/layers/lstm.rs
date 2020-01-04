@@ -109,7 +109,7 @@ impl LSTM {
     }
 
 
-    pub fn step_back(&mut self, l_rate: f32, update: bool, index: usize) -> Option<Vec<f32>> {
+    pub fn step_back(&mut self, l_rate: f32, trace: bool, update: bool, index: usize) -> Option<Vec<f32>> {
         // get the previous memory and the current error
         let prev_memory = self.lstm_state.memory_states.get(index - 1)?;
         let curr_output = self.lstm_state.output_states.get(index);
@@ -117,7 +117,7 @@ impl LSTM {
 
         // compute and store the total delta for the hidden to output gate 
         // compute the derivative of the hidden state and output gate
-        let mut d_hidden_out = self.hidden_out.backward(&curr_error, l_rate, update)?;
+        let mut d_hidden_out = self.hidden_out.backward(&curr_error, l_rate, trace, update)?;
         vectorops::element_add(&mut d_hidden_out, self.lstm_state.output_states.get(index + 1)?);
         
         // output derivative 
@@ -178,7 +178,7 @@ impl Layer for LSTM {
 
     /// apply backpropagation through time 
     #[inline]
-    fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32, update: bool) -> Option<Vec<f32>> {
+    fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32, trace: bool, update: bool) -> Option<Vec<f32>> {
         // regardless of if the network needs to be updated, the error needs to be stored
         self.lstm_state.update_backward(errors.clone());
 
@@ -191,7 +191,7 @@ impl Layer for LSTM {
             // leave room for one last backward step to update all the weights and step backward once
             for i in (self.lstm_state.size..0).rev() {
                 
-                let idkyet = self.step_back(learning_rate, false, i)?;
+                let idkyet = self.step_back(learning_rate, trace, false, i)?;
 
             }
         }

@@ -11,6 +11,35 @@ use super::neurontype::NeuronType;
 
 
 
+#[derive(Debug)]
+pub struct Tracer {
+    pub states: Vec<f32>,
+    pub index: usize
+}
+
+
+impl Tracer {
+
+    pub fn new() -> Self {
+        Tracer {
+            states: Vec::new(),
+            index: 0
+        }
+    }
+
+    pub fn set_index(&mut self, new_index: usize) {
+        assert!(new_index <= self.states.len(), "New index is greater than the length of the states");
+        self.index = new_index;
+    }
+
+    pub fn update(&mut self, new_state: f32) {
+        self.states.push(new_state);
+        self.index += 1;
+    }
+
+}
+
+
 
 /// Neuron is a wrapper around a neuron providing only what is needed for a neuron to be added 
 /// to the NEAT graph, while the neuron encapsulates the neural network logic for the specific nodetype,
@@ -18,7 +47,6 @@ use super::neurontype::NeuronType;
 /// so encapsulating that within a normal node on the graph would be misplaced.
 pub struct Neuron {
     pub innov: Uuid,
-    pub trace_states: Vec<f32>,
     pub outgoing: Vec<Uuid>,
     pub incoming: HashMap<Uuid, Option<f32>>,
     pub bias: f32,
@@ -37,7 +65,6 @@ impl Neuron {
     pub fn new(innov: Uuid, neuron_type: NeuronType, activation: Activation) -> Self {
         Neuron {
             innov,
-            trace_states: Vec::new(),
             outgoing: Vec::new(),
             incoming: HashMap::new(),
             bias: rand::thread_rng().gen::<f32>(),
@@ -73,7 +100,7 @@ impl Neuron {
     /// activate this node by calling the underlying neuron's logic for activation
     /// given the hashmap of <incoming edge innov, Option<incoming Neuron output value>>
     #[inline]
-    pub fn activate(&mut self, trace: bool) {
+    pub fn activate(&mut self) {
         self.state = self.incoming
             .values()
             .fold(self.bias, |sum, curr| {
@@ -82,9 +109,6 @@ impl Neuron {
                     None => panic!("Cannot activate node.")
                 }
             });
-        if trace {
-            self.trace_states.push(self.state);
-        }
         self.value = self.activation.activate(self.state);
     }
 
@@ -93,8 +117,13 @@ impl Neuron {
     /// deactivate this node by calling the underlying neuron's logic to compute
     /// the gradient of the original output value 
     #[inline]
-    pub fn deactivate(&mut self) -> f32 {
+    pub fn deactivate(&self) -> f32 {
         self.activation.deactivate(self.state)
+    }
+
+
+    pub fn deactivate_trace(&self, value: f32) -> f32 {
+        self.activation.deactivate(value)
     }
 
 
@@ -118,7 +147,6 @@ impl Clone for Neuron {
     fn clone(&self) -> Self { 
         Neuron {
             innov: self.innov,
-            trace_states: Vec::new(),
             outgoing: self.outgoing
                 .iter()
                 .map(|x| *x)

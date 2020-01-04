@@ -97,6 +97,7 @@ impl Neat {
     #[inline]
     pub fn backward(&mut self, network_output: &Vec<f32>, target: &Vec<f32>, learning_rate: f32, update: bool) {
         // pass back the errors from this output layer through the network to update either the optimizer of the weights of the network
+        let remember = self.trace;
         self.layers
             .iter_mut()
             .rev()
@@ -105,7 +106,7 @@ impl Neat {
                     .zip(network_output.iter())
                     .map(|(tar, pre)| tar - pre)
                     .collect(), |res, curr| {
-                curr.layer.backward(&res, learning_rate, update).unwrap()
+                curr.layer.backward(&res, learning_rate, remember, update).unwrap()
             });
     }
     

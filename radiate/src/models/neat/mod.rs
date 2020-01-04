@@ -4,6 +4,7 @@ pub mod edge;
 pub mod neatenv;
 pub mod neuron;
 pub mod layers;
+pub mod tracer;
 
 
 
