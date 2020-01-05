@@ -18,6 +18,7 @@ pub mod activation {
         Sigmoid,
         Tahn,
         Relu,
+        Softmax,
         LeakyRelu(f32),
         ExpRelu(f32),
         Linear(f32)   
@@ -59,7 +60,9 @@ pub mod activation {
                         return x;
                     }
                     alpha * (Eul.powf(x) - 1.0)
-                }
+                },
+                _ => panic!("Cannot activate single neuron")
+
             }
         }
 
@@ -96,6 +99,7 @@ pub mod activation {
                     } 
                     *alpha 
                 },
+                _ => panic!("Cannot deactivate single neuron")
             }
         }
     }

@@ -8,9 +8,9 @@ use uuid::Uuid;
 #[derive(Debug)]
 pub struct Tracer {
     pub neuron_states: HashMap<Uuid, Vec<f32>>,
-    pub edge_states: HashMap<Uuid, Vec<f32>>,
+    pub neuron_activation: HashMap<Uuid, Vec<f32>>,
+    pub neuron_derivative: HashMap<Uuid, Vec<f32>>,
     pub max_neuron_index: usize,
-    pub max_edge_index: usize,
     pub index: usize,
 }
 
@@ -21,9 +21,9 @@ impl Tracer {
     pub fn new() -> Self {
         Tracer {
             neuron_states: HashMap::new(),
-            edge_states: HashMap::new(),
+            neuron_activation: HashMap::new(),
+            neuron_derivative: HashMap::new(),        
             max_neuron_index: 0,
-            max_edge_index: 0,
             index: 0,
         }
     }
@@ -37,12 +37,13 @@ impl Tracer {
 
     pub fn reset(&mut self) {
         self.neuron_states = HashMap::new();
-        self.edge_states = HashMap::new();
+        self.neuron_activation = HashMap::new();
+        self.neuron_derivative = HashMap::new();
         self.index = 0;        
     }
 
 
-    pub fn update_neuron(&mut self, neuron_id: Uuid, neuron_state: f32) {
+    pub fn update_neuron_state(&mut self, neuron_id: Uuid, neuron_state: f32) {
         if self.neuron_states.contains_key(&neuron_id) {
             let states = self.neuron_states.get_mut(&neuron_id).unwrap();
             states.push(neuron_state);
@@ -57,17 +58,26 @@ impl Tracer {
     }
 
 
-    pub fn update_edge(&mut self, edge_id: Uuid, edge_state: f32) {
-        if self.edge_states.contains_key(&edge_id) {
-            let states = self.edge_states.get_mut(&edge_id).unwrap();
-            states.push(edge_state);
-            if states.len() > self.max_edge_index {
-                self.max_edge_index += 1;
-            }
+    pub fn update_neuron_activation(&mut self, neuron_id: Uuid, neuron_value: f32) {
+        if self.neuron_activation.contains_key(&neuron_id) {
+            let states = self.neuron_activation.get_mut(&neuron_id).unwrap();
+            states.push(neuron_value);
         } else {
-            let mut temp = Vec::with_capacity(self.max_edge_index);
-            temp.push(edge_state);
-            self.edge_states.insert(edge_id, temp);
+            let mut temp = Vec::with_capacity(self.max_neuron_index);
+            temp.push(neuron_value);
+            self.neuron_activation.insert(neuron_id, temp);
+        }
+    }
+
+
+    pub fn update_neuron_derivative(&mut self, neuron_id: Uuid, neuron_d: f32) {
+        if self.neuron_derivative.contains_key(&neuron_id) {
+            let states = self.neuron_derivative.get_mut(&neuron_id).unwrap();
+            states.push(neuron_d);
+        } else {
+            let mut temp = Vec::with_capacity(self.max_neuron_index);
+            temp.push(neuron_d);
+            self.neuron_derivative.insert(neuron_id, temp);
         }
     }
 
@@ -80,11 +90,21 @@ impl Tracer {
     }
 
 
-    pub fn edge_state(&self, edge_id: Uuid) -> f32 {
-        if !self.edge_states.contains_key(&edge_id) {
-            panic!("Tracer edge state doesn't contain uuid: {:?}", edge_id);
+    pub fn neuron_activation(&self, neuron_id: Uuid) -> f32 {
+        if !self.neuron_activation.contains_key(&neuron_id) {
+            panic!("Tracer neuron state doesn't contain uuid: {:?}", neuron_id);
         }
-        self.edge_states.get(&edge_id).unwrap()[self.index]
+        self.neuron_activation.get(&neuron_id).unwrap()[self.index]
     }
+
+
+    pub fn neuron_derivative(&self, neuron_id: Uuid) -> f32 {
+        if !self.neuron_derivative.contains_key(&neuron_id) {
+            panic!("Tracer neuron state doesn't contain uuid: {:?}", neuron_id);
+        }
+        self.neuron_derivative.get(&neuron_id).unwrap()[self.index]
+    }
+
+
 
 }

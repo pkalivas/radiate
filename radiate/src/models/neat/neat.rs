@@ -11,6 +11,7 @@ use super::{
         lstm::LSTM,
         gru::GRU,
         layertype::LayerType,
+        vectorops
     }
 };
 
@@ -87,6 +88,7 @@ impl Neat {
             println!("{:?}", i);
             for (input, target) in inputs.iter().zip(targets.iter()) {
                 let network_output = self.forward(input).ok_or("Error in network feed forward")?;
+                println!("Input: {:?}, Output: {:?}, Guess: {:?}", input, target, network_output);
                 if index == update_window {
                     self.backward(&network_output, &target, rate, true);
                     index = 0;
@@ -95,6 +97,7 @@ impl Neat {
                 }
                 index += 1;
             }
+            println!("\n");
         }
         Ok(())
     }
@@ -106,14 +109,16 @@ impl Neat {
     pub fn backward(&mut self, network_output: &Vec<f32>, target: &Vec<f32>, learning_rate: f32, update: bool) {
         // pass back the errors from this output layer through the network to update either the optimizer of the weights of the network
         let remember = self.trace;
+        let err = if self.layers.last().unwrap().layer_type == LayerType::LSTM {
+            // vectorops::d_softmax(network_output)
+            vectorops::subtract(target, network_output)
+        } else {
+            vectorops::subtract(target, network_output)
+        };
         self.layers
             .iter_mut()
             .rev()
-            .fold(target
-                    .iter()
-                    .zip(network_output.iter())
-                    .map(|(tar, pre)| tar - pre)
-                    .collect(), |res, curr| {
+            .fold(err, |res, curr| {
                 curr.layer.backward(&res, learning_rate, remember, update).unwrap()
             });
     }

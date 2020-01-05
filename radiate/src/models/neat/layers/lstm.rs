@@ -19,68 +19,66 @@ use super::super::{
 use crate::Genome;
 
 
-// https://wiseodd.github.io/techblog/2016/08/12/lstm-backprop/
 
 
+/// LSTM State is meant to be a 'snapshot' of the outputs for each
+/// gate at each time step. The rest of the time-step memories are held in tracers
 #[derive(Debug)]
 pub struct LSTMState {
     pub size: usize,
-    pub concat_input: Vec<Vec<f32>>,
     pub f_gate_output: Vec<Vec<f32>>,
     pub i_gate_output: Vec<Vec<f32>>,
     pub s_gate_output: Vec<Vec<f32>>,
     pub o_gate_output: Vec<Vec<f32>>,
     pub memory_states: Vec<Vec<f32>>,
-    pub hidden_states: Vec<Vec<f32>>,
-    pub outputs: Vec<Vec<f32>>,
     pub errors: Vec<Vec<f32>>,
     pub d_prev_memory: Vec<Vec<f32>>,
     pub d_prev_hidden: Vec<Vec<f32>>
 }
 
 
+
 impl LSTMState {
+
 
     pub fn new() -> Self {
         LSTMState {
             size: 0,
-            concat_input: Vec::new(),
             f_gate_output: Vec::new(),
             i_gate_output: Vec::new(),
             s_gate_output: Vec::new(),
             o_gate_output: Vec::new(),
             memory_states: Vec::new(),
-            hidden_states: Vec::new(),
-            outputs: Vec::new(),
             errors: Vec::new(),
             d_prev_memory: Vec::new(),
             d_prev_hidden: Vec::new()
         }
     }
 
-    pub fn update_forward(&mut self, c_input: Vec<f32>, fg: Vec<f32>, ig: Vec<f32>, sg: Vec<f32>, og: Vec<f32>, mem_state: Vec<f32>, out_state: Vec<f32>, output: Vec<f32>) {
-        self.concat_input.push(c_input);
+
+    /// add the gate outputs to the state for this time step
+    pub fn update_forward(&mut self, fg: Vec<f32>, ig: Vec<f32>, sg: Vec<f32>, og: Vec<f32>, mem_state: Vec<f32>) {
         self.f_gate_output.push(fg);
         self.i_gate_output.push(ig);
         self.s_gate_output.push(sg);
         self.o_gate_output.push(og);
         self.memory_states.push(mem_state);
-        self.hidden_states.push(out_state);
-        self.outputs.push(output);
         self.size += 1;
     }
 
+
+    /// each backward step the errors need to be updated with the current errors
     pub fn update_backward(&mut self, errors: Vec<f32>) {
         self.errors.push(errors);
     }
-
-
 
 }
 
 
 
 
+/// LSTM is a long-short term memory cell represented by a collection of Dense layers and two
+/// distinct memory vectors which get updated and travel 'through time'
 #[derive(Debug)]
 pub struct LSTM {
     pub input_size: u32,
@@ -96,7 +94,9 @@ pub struct LSTM {
 }
 
 
+
 impl LSTM {
+
 
     pub fn new(input_size: u32, memory_size: u32, output_size: u32) -> Self {
         let cell_input = input_size + memory_size;
@@ -115,6 +115,9 @@ impl LSTM {
     }
 
 
+
+    /// each dense layer can collect meta data through it's time steps (current state, activated state, and derivative)
+    /// but to use the historical meta data, the tracer has to know which index to look at (which time period is current)
     fn set_trace_index(&mut self, index: usize) {
         self.g_gate.set_trace(index);
         self.i_gate.set_trace(index);
@@ -124,6 +127,10 @@ impl LSTM {
     }
 
 
+
+    /// After backprop has happened, the historical meta data needs to be reset so that 
+    /// during the next backprop, the index between the historical steps and the tracer meta
+    /// data is the same.
     fn reset_traces(&mut self) {
         self.g_gate.trace_states.reset();
         self.i_gate.trace_states.reset();
@@ -131,27 +138,29 @@ impl LSTM {
         self.o_gate.trace_states.reset();
         self.v_gate.trace_states.reset();
         self.states = LSTMState::new();
+        self.memory = vec![0.0; self.memory_size as usize];
+        self.hidden = vec![0.0; self.memory_size as usize];
     }
 
 
-    pub fn step_back(&mut self, l_rate: f32, trace: bool, update: bool, index: usize) -> Option<Vec<f32>> {
+
+    /// Preform one step backwards for the layer. Set the tracer historical meta data to look at the current
+    /// index, and use that data to compute the gradient steps for eachweight in each gated network. 
+    /// If update is true, the gates will take the accumulated gradient steps, and add them to their respecive weight values
+    #[inline]
+    pub fn step_back(&mut self, l_rate: f32, update: bool, index: usize) -> Option<Vec<f32>> {
         // get the previous memory and the current error
         self.set_trace_index(index);
+
+        // get the derivative of the cell and hidden state from the previous step as well as the previous memory state
         let dh_next = self.states.d_prev_hidden.last()?;
         let dc_next = self.states.d_prev_memory.last()?;
-        let c_old = if index as i32 - 1 < 0 {
-            vec![0.0_f32; self.memory_size as usize]
-        } else {
-            self.states.memory_states.get(index)?.clone()
-        };
-
+        let c_old = self.states.memory_states.get(index)?.clone();
+        
 
         // compute the hidden to output gradient
-        // dWy = h.T @ dy
-        let dWy = vectorops::product(self.states.outputs.get(index)?, self.states.errors.get(index)?);
-        // self.v_gate.backward(self.states.errors.get(index)?, l_rate, trace, update);
-
-        let mut dh = self.v_gate.backward(self.states.errors.get(index)?, l_rate, trace, update)?;
+        // dh = error @ Wy.T + dh_next
+        let mut dh = self.v_gate.backward(self.states.errors.get(index)?, l_rate, true, update)?;
         vectorops::element_multiply(&mut dh, &dh_next);
 
 
@@ -191,10 +200,11 @@ impl LSTM {
         let mut dhc = vectorops::product(self.states.i_gate_output.get(index)?, &dc);
         vectorops::element_multiply(&mut dhc, &vectorops::element_deactivate(self.states.s_gate_output.get(index)?, self.g_gate.activation));
 
-        let f_error = self.f_gate.backward(&dhf, l_rate, trace, update)?;
-        let i_error = self.i_gate.backward(&dhi, l_rate, trace, update)?;
-        let g_error = self.g_gate.backward(&dhc, l_rate, trace, update)?;
-        let o_error = self.o_gate.backward(&dho, l_rate, trace, update)?;
+        // update all the weights for the gates given their derivatives
+        let f_error = self.f_gate.backward(&dhf, l_rate, true, update)?;
+        let i_error = self.i_gate.backward(&dhi, l_rate, true, update)?;
+        let g_error = self.g_gate.backward(&dhc, l_rate, true, update)?;
+        let o_error = self.o_gate.backward(&dho, l_rate, true, update)?;
 
         // As X was used in multiple gates, the gradient must be accumulated here     
         // dX = dXo + dXc + dXi + dXf
@@ -214,6 +224,7 @@ impl LSTM {
         self.states.d_prev_hidden.push(dh_next);
         self.states.d_prev_memory.push(dc_next);
 
+        // return the error of the input given to the layer
         Some(dx[self.memory_size as usize..].to_vec())
     }
 
@@ -248,17 +259,14 @@ impl Layer for LSTM {
         vectorops::element_add(&mut self.memory, &current_state);
         vectorops::element_multiply(&mut current_output, &vectorops::element_activate(&self.memory, Activation::Tahn));
 
-        // compute the output of the layer
-        let layer_out = self.v_gate.forward(&current_output, trace)?;
-        
-        // update the state parameters - can this be sped up?
-        self.states.update_forward(hidden_input, f_output, i_output, g_output, o_output, self.memory.clone(), current_output.clone(), layer_out.clone());
-        
         // keep track of the memory and the current output and the current state
         self.hidden = current_output;
-
+        
+        // update the state parameters - can this be sped up?
+        self.states.update_forward(f_output, i_output, g_output, o_output, self.memory.clone());
+        
         // return the output of the layer
-        Some(layer_out)
+        self.v_gate.forward(&self.hidden, trace)
     }
 
 
@@ -267,19 +275,19 @@ impl Layer for LSTM {
     fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32, trace: bool, update: bool) -> Option<Vec<f32>> {
         // regardless of if the network needs to be updated, the error needs to be stored
         self.states.update_backward(errors.clone());
-
+    
         // backpropagation throught time if update is true
         if update {
+
             // need next states as well, but the first iteration they will be 0
             self.states.d_prev_memory.push(vec![0.0; self.memory_size as usize]);      
             self.states.d_prev_hidden.push(vec![0.0; self.memory_size as usize]);          
 
             // leave room for one last backward step to update all the weights and step backward once
             for i in (1..self.states.size).rev() {
-                self.step_back(learning_rate, trace, false, i);
+                self.step_back(learning_rate, false, i);
             }
-
-            let result = self.step_back(learning_rate, trace, true, 0);
+            let result = self.step_back(learning_rate, true, 0);
             self.reset_traces();
             return Some(result?);
         }

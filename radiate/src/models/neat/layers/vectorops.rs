@@ -65,3 +65,34 @@ pub fn product(one: &Vec<f32>, two: &Vec<f32>) -> Vec<f32> {
         .map(|(o, t)| o * t)
         .collect::<Vec<_>>()
 }
+
+
+#[inline]
+pub fn subtract(one: &Vec<f32>, two: &Vec<f32>) -> Vec<f32> {
+    assert!(one.len() == two.len(), "Subtract lengths do not match");
+    one.iter()
+        .zip(two.iter())
+        .map(|(tar, pre)| tar - pre)
+        .collect::<Vec<_>>()
+}
+
+
+#[inline]
+pub fn softmax(one: &Vec<f32>) -> Vec<f32> {
+    let ex = one   
+        .iter()
+        .map(|x| x.exp())
+        .collect::<Vec<_>>();
+    let sum = ex.iter().sum::<f32>();
+    ex.iter()
+        .map(|x| x / sum)
+        .collect()
+}
+
+
+#[inline]
+pub fn d_softmax(one: &Vec<f32>) -> Vec<f32> {
+    one.iter()
+        .map(|x| x - 1.0)
+        .collect()
+}

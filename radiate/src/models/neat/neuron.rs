@@ -23,6 +23,7 @@ pub struct Neuron {
     pub incoming: HashMap<Uuid, Option<f32>>,
     pub bias: f32,
     pub value: f32,
+    pub d_value: f32,
     pub state: f32,
     pub error: f32,
     pub activation: Activation,
@@ -41,6 +42,7 @@ impl Neuron {
             incoming: HashMap::new(),
             bias: rand::thread_rng().gen::<f32>(),
             value: 0.0,
+            d_value: 0.0,
             state: 0.0,
             error: 0.0,
             activation,
@@ -81,7 +83,10 @@ impl Neuron {
                     None => panic!("Cannot activate node.")
                 }
             });
-        self.value = self.activation.activate(self.state);
+        if self.activation != Activation::Softmax {
+            self.value = self.activation.activate(self.state);
+            self.d_value = self.activation.deactivate(self.state);
+        }
     }
 
 
@@ -124,6 +129,7 @@ impl Clone for Neuron {
                 .collect(),
             state: 0.0,
             value: 0.0,
+            d_value: 0.0,
             error: 0.0,
             bias: self.bias.clone(),
             activation: self.activation.clone(),

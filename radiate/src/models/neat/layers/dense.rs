@@ -12,6 +12,7 @@ use uuid::Uuid;
 use super::{
     layertype::LayerType,
     layer::Layer,
+    vectorops
 };
 use super::super::{
     neuron::Neuron,
@@ -300,28 +301,15 @@ impl Dense {
     /// that holds the innovation numbers of the input nodes for a dfs traversal 
     /// to feed forward those inputs through the network
     #[inline]
-    unsafe fn give_inputs(&mut self, data: &Vec<f32>, trace: bool) -> Vec<Uuid> {
+    unsafe fn give_inputs(&mut self, data: &Vec<f32>) -> Vec<Uuid> {
         assert!(data.len() == self.inputs.len());
         let mut ids = Vec::with_capacity(self.inputs.len());
         for (node_innov, input) in self.inputs.iter().zip(data.iter()) {
             let node = self.nodes.get(node_innov).unwrap();
-            if trace {
-                self.trace_states.update_neuron((**node).innov, *input);
-            }
             (**node).value = *input;
             ids.push((**node).innov);
         }
         ids
-        // self.inputs.iter().zip(data.iter())
-        //     .map(|(node_innov, input)| {
-        //         let node = self.nodes.get(node_innov).unwrap();
-        //         if trace {
-        //             self.trace_states.update_neuron((**node).innov, *input);
-        //         }
-        //         (**node).value = *input;
-        //         (**node).innov
-        //     })
-        //     .collect()
     }
 
 
@@ -337,6 +325,55 @@ impl Dense {
             } else {
                 edge.weight *= r.gen_range(-size, size);
             }
+        }
+    }
+
+
+    pub fn get_output_states(&self) -> Vec<f32> {
+        self.outputs
+            .iter()
+            .map(|x| {
+                unsafe {
+                    let output_neuron = self.nodes.get(x).unwrap();
+                    (**output_neuron).state
+                }
+            })
+            .collect::<Vec<_>>()
+    }
+
+
+    pub fn set_output_values(&mut self) {
+        let vals = self.get_output_states();
+        let (act, d_act) = match self.activation {
+            Activation::Softmax => {
+                let act = vectorops::softmax(&vals);
+                let d_act = vectorops::d_softmax(&act);
+                (act, d_act)
+            },
+            _ => {
+                let act = vectorops::element_activate(&vals, self.activation);
+                let d_act = vectorops::element_deactivate(&vals, self.activation);
+                (act, d_act)
+            }
+        };
+        for (i, neuron_id) in self.outputs.iter().enumerate() {
+            unsafe {
+                let curr_neuron = self.nodes.get(neuron_id).unwrap();
+                (**curr_neuron).value = act[i];
+                (**curr_neuron).d_value = d_act[i];
+            }
+        }
+    }
+
+
+    pub fn update_traces(&mut self) {
+        unsafe {
+            for (n_id, n_ptr) in self.nodes.iter() {
+                self.trace_states.update_neuron_state(*n_id, (**n_ptr).state);
+                self.trace_states.update_neuron_activation(*n_id, (**n_ptr).value);
+                self.trace_states.update_neuron_derivative(*n_id, (**n_ptr).d_value);
+            }
+            self.trace_states.index += 1;
         }
     }
 
@@ -360,7 +397,7 @@ impl Layer for Dense {
             // give the input data to the input neurons and return back 
             // a stack to do a graph traversal to feed the inputs through the network
             self.reset_neurons();
-            let mut path = self.give_inputs(data, trace);
+            let mut path = self.give_inputs(data);
 
             // while the path is still full, continue feeding forward 
             // the data in the network, this is basically a dfs traversal
@@ -381,13 +418,6 @@ impl Layer for Dense {
                         let receiving_node = self.nodes.get(&curr_edge.dst)?;
                         let activated_value = curr_edge.calculate(val, trace);
                         (**receiving_node).incoming.insert(curr_edge.innov, Some(activated_value));
-
-                        // if trace is true, we want to remember the calculated value throughout time
-                        // and we also want to increase the index so that we are always at the most recent time step
-                        if trace {
-                            self.trace_states.update_edge(curr_edge.innov, activated_value);
-                            self.trace_states.index += 1;
-                        }
         
                         // if the node can be activated, activate it and store it's value
                         // only activated nodes can be added to the path, so if it's activated
@@ -395,13 +425,6 @@ impl Layer for Dense {
                         if (**receiving_node).is_ready() {
                             (**receiving_node).activate();
                             path.push((**receiving_node).innov);
-                            
-                            // if trace is set to true, we want to remember the values from this forward pass through time
-                            // trace states for edges and neurons need to be updated every time, but the edges can be updated
-                            // with output the neuron being updated, so we have to do this only when the neuron is ready
-                            if trace {
-                                self.trace_states.update_neuron((**receiving_node).innov, (**receiving_node).state);
-                            }
                         }
                     }
                 }
@@ -409,6 +432,10 @@ impl Layer for Dense {
             
             // once we've made it through the network, the outputs should all
             // have calculated their values. Gather the values and return the vec
+            self.set_output_values();
+            if trace {
+                self.update_traces();
+            }
             self.get_outputs()
         }
     }
@@ -437,13 +464,9 @@ impl Layer for Dense {
                 let curr_node = self.nodes.get(&path.pop()?)?;
                 let curr_node_error = (**curr_node).error * learning_rate;
                 let step = match trace {
-                    true => curr_node_error * (**curr_node).activation.deactivate(self.trace_states.neuron_state((**curr_node).innov)),
-                    false => curr_node_error * (**curr_node).deactivate()
+                    true => curr_node_error * self.trace_states.neuron_derivative((**curr_node).innov),
+                    false => curr_node_error * (**curr_node).d_value
                 };
-                if (**curr_node).neuron_type != NeuronType::Input {
-                    (**curr_node).error = 0.0;
-                }
-                // let step = curr_node_error * (**curr_node).deactivate(); // deactivate the value at the tracer index if trace is needed
               
                 // iterate through each of the incoming edes to this neuron and adjust it's weight
                 // and add it's error to the errros map
@@ -457,7 +480,7 @@ impl Layer for Dense {
                         // add the weight step (gradient) * the currnet value to the weight to adjust the weight
                         // then update the connection so it knows if it should update the weight, or store the delta
                         let delta = match trace {
-                            true => step * (**src_neuron).activation.activate(self.trace_states.neuron_state((**src_neuron).innov)),
+                            true => step * self.trace_states.neuron_activation((**src_neuron).innov),
                             false => step * (**src_neuron).value
                         };
                         // let delta = step * (**src_neuron).value; // get the value from time step t if trace is needed
@@ -469,10 +492,9 @@ impl Layer for Dense {
             }
             let mut output = Vec::with_capacity(self.inputs.len());
             for innov in self.inputs.iter() {
-                let mut temp = &mut (**self.nodes.get_mut(innov)?);
-                output.push(temp.error);
-                temp.error = 0.0;
+                output.push((**self.nodes.get_mut(innov)?).error);
             }
+            self.reset_neurons();
             Some(output)
         }
     }

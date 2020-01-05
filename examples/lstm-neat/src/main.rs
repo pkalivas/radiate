@@ -57,10 +57,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         let data = MemoryTest::new();
         let mut test_net = Neat::new()
             .input_size(1)
-            .lstm(5, 1);
+            .lstm(6, 1);
 
         println!("\n");
-        test_net.train(&data.input, &data.output, 500, 0.3, 7)?;
+        test_net.train(&data.input, &data.output, 500, 1.0, 7)?;
         data.show(&mut test_net);
         
         Ok(())
@@ -101,24 +101,14 @@ impl MemoryTest {
     pub fn show(&self, model: &mut Neat) {
         for (i, o) in self.input.iter().zip(self.output.iter()) {
             let guess = model.forward(&i).unwrap();
-            println!("Input: {:?}, Output: {:?}, Guess: {:.2}", i, o, guess[0]);
+            println!("Input: {:?}, Output: {:?}, Guess: {:?}", i, o, guess);
         }
         println!("\nTest next few inputs:");
-        println!("Input: {:?}, Expecting: {:?}, Guess: {:.2}", vec![1.0], vec![0.0], model.forward(&vec![1.0]).unwrap()[0]);
-        println!("Input: {:?}, Expecting: {:?}, Guess: {:.2}", vec![0.0], vec![0.0], model.forward(&vec![0.0]).unwrap()[0]);
-        println!("Input: {:?}, Expecting: {:?}, Guess: {:.2}", vec![0.0], vec![0.0], model.forward(&vec![0.0]).unwrap()[0]);
-        println!("Input: {:?}, Expecting: {:?}, Guess: {:.2}", vec![0.0], vec![1.0], model.forward(&vec![0.0]).unwrap()[0]);
+        println!("Input: {:?}, Expecting: {:?}, Guess: {:?}", vec![1.0], vec![0.0], model.forward(&vec![1.0]).unwrap());
+        println!("Input: {:?}, Expecting: {:?}, Guess: {:?}", vec![0.0], vec![0.0], model.forward(&vec![0.0]).unwrap());
+        println!("Input: {:?}, Expecting: {:?}, Guess: {:?}", vec![0.0], vec![0.0], model.forward(&vec![0.0]).unwrap());
+        println!("Input: {:?}, Expecting: {:?}, Guess: {:?}", vec![0.0], vec![1.0], model.forward(&vec![0.0]).unwrap());
     }
-
-    // pub fn backprop(&self, model: &mut Neat) {
-    //     for (index, (i, o)) in self.input.iter().zip(self.output.iter()).enumerate() {
-    //         if index == 6 {
-    //             model.backprop(i, o, 0.1, true);
-    //         } else {
-    //             model.backprop(i, o, 0.1, false);
-    //         }
-    //     }
-    // }
 }
 
 
