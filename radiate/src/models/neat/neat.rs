@@ -82,8 +82,9 @@ impl Neat {
             .any(|x| x.layer_type == LayerType::LSTM);
         
         // feed the input data through the network then back prop it back through to edit the weights of the layers
-        for _ in 0..iters {
+        for i in 0..iters {
             let mut index = 1;
+            println!("{:?}", i);
             for (input, target) in inputs.iter().zip(targets.iter()) {
                 let network_output = self.forward(input).ok_or("Error in network feed forward")?;
                 if index == update_window {

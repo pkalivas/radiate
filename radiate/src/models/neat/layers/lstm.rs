@@ -133,19 +133,22 @@ impl LSTM {
 
     pub fn step_back(&mut self, l_rate: f32, trace: bool, update: bool, index: usize) -> Option<Vec<f32>> {
         // get the previous memory and the current error
-        self.set_trace_index(index - 1);
+        self.set_trace_index(index);
         let curr_memory = self.lstm_state.memory_states.get(index)?;
         let curr_error = self.lstm_state.errors.get(index)?;
 
         //-------- compute the derivative of the hidden layer to output and feed it backward to get hidden layer error -------//
         // derivative of the hidden to output gate of the layer.
+        let mut t = vec![0.0; curr_error.len()];
+        vectorops::element_add(&mut t, &curr_error);
+        vectorops::element_multiply(&mut t, self.lstm_state.outputs.get(index)?);
         let mut h_out_error = self.hidden_out.backward(&curr_error, l_rate, trace, update)?;
-        vectorops::element_add(&mut h_out_error, self.lstm_state.d_prev_out.last()?);
+        // vectorops::element_add(&mut h_out_error, self.lstm_state.d_prev_out.last()?);
         
 
         //-------- compute the derivative of the output gate and feed it backward to get the output gate error --------//
         // output derivative 
-        let mut d_o_gate = vectorops::element_deactivate(&curr_memory, Activation::Tahn);
+        let mut d_o_gate = vectorops::element_deactivate(&h_out_error, Activation::Tahn);
         vectorops::element_multiply(&mut d_o_gate, &h_out_error);
         let o_gate_direction = vectorops::element_deactivate(self.lstm_state.o_gate_output.get(index)?, self.output_gate.activation);
         vectorops::element_multiply(&mut d_o_gate, &o_gate_direction);
@@ -164,8 +167,8 @@ impl LSTM {
 
         let mut d_s_gate = self.lstm_state.i_gate_output.get(index)?.clone();
         let act_state = vectorops::element_deactivate(self.lstm_state.s_gate_output.get(index)?, self.state_gate.activation);
-        vectorops::element_multiply(&mut d_s_gate, &d_prev_mem);
-        vectorops::element_multiply(&mut d_s_gate, &act_state);
+        // vectorops::element_multiply(&mut d_s_gate, &d_prev_mem);
+        // vectorops::element_multiply(&mut d_s_gate, &act_state);
         let s_gate_error = self.state_gate.backward(&d_s_gate, l_rate, trace, update)?;
 
 
