@@ -31,7 +31,9 @@ pub struct LSTMState {
     pub memory_states: Vec<Vec<f32>>,
     pub output_states: Vec<Vec<f32>>,
     pub outputs: Vec<Vec<f32>>,
-    pub errors: Vec<Vec<f32>>
+    pub errors: Vec<Vec<f32>>,
+    pub d_prev_mem: Vec<Vec<f32>>,
+    pub d_prev_out: Vec<Vec<f32>>
 }
 
 
@@ -48,7 +50,9 @@ impl LSTMState {
             memory_states: vec![vec![0.0; memory_size as usize]],
             output_states: vec![vec![0.0; memory_size as usize]],
             outputs: Vec::new(),
-            errors: Vec::new()
+            errors: Vec::new(),
+            d_prev_mem: Vec::new(),
+            d_prev_out: Vec::new()
         }
     }
 
@@ -133,11 +137,10 @@ impl LSTM {
         let curr_memory = self.lstm_state.memory_states.get(index)?;
         let curr_error = self.lstm_state.errors.get(index)?;
 
-
         //-------- compute the derivative of the hidden layer to output and feed it backward to get hidden layer error -------//
         // derivative of the hidden to output gate of the layer.
         let mut h_out_error = self.hidden_out.backward(&curr_error, l_rate, trace, update)?;
-        vectorops::element_add(&mut h_out_error, self.lstm_state.output_states.get(index + 1)?);
+        vectorops::element_add(&mut h_out_error, self.lstm_state.d_prev_out.last()?);
         
 
         //-------- compute the derivative of the output gate and feed it backward to get the output gate error --------//
@@ -151,16 +154,17 @@ impl LSTM {
 
         //-------- compute the derivative of the memory and state gate --------//
         // memory and state gate derivate and error
-        let mut d_memory = h_out_error.clone();
-        let memory_error = self.lstm_state.memory_states.get(index + 1)?.clone();
+        // let mut d_memory = h_out_error.clone();
+        // let memory_error = self.lstm_state.memory_states.get(index + 1)?.clone();
+        let mut d_prev_mem = self.lstm_state.d_prev_mem.last()?.clone();
         let act_memory = vectorops::element_activate(&curr_memory, Activation::Tahn);
-        vectorops::element_multiply(&mut d_memory, self.lstm_state.o_gate_output.get(index)?);
-        vectorops::element_multiply(&mut d_memory, &vectorops::element_deactivate(&act_memory, Activation::Tahn));
-        vectorops::element_add(&mut d_memory, &memory_error);
+        vectorops::element_multiply(&mut d_prev_mem, self.lstm_state.o_gate_output.get(index)?);
+        vectorops::element_multiply(&mut d_prev_mem, &vectorops::element_deactivate(&act_memory, Activation::Tahn));
+        // vectorops::element_add(&mut d_memory, &d_prev_mem);
 
         let mut d_s_gate = self.lstm_state.i_gate_output.get(index)?.clone();
         let act_state = vectorops::element_deactivate(self.lstm_state.s_gate_output.get(index)?, self.state_gate.activation);
-        vectorops::element_multiply(&mut d_s_gate, &d_memory);
+        vectorops::element_multiply(&mut d_s_gate, &d_prev_mem);
         vectorops::element_multiply(&mut d_s_gate, &act_state);
         let s_gate_error = self.state_gate.backward(&d_s_gate, l_rate, trace, update)?;
 
@@ -168,19 +172,18 @@ impl LSTM {
         //-------- compute the derivative of the input gate --------//
         let mut d_i_gate = self.lstm_state.s_gate_output.get(index)?.clone();
         let act_input = vectorops::element_deactivate(self.lstm_state.i_gate_output.get(index)?, self.input_gate.activation);
-        vectorops::element_multiply(&mut d_i_gate, &d_memory);
+        vectorops::element_multiply(&mut d_i_gate, &d_prev_mem);
         vectorops::element_multiply(&mut d_i_gate, &act_input);
         let i_gate_error = self.input_gate.backward(&d_i_gate, l_rate, trace, update)?;
 
 
         //-------- compute the derivative of the forget gate --------//
         let mut d_f_gate = self.lstm_state.memory_states.get(index - 1)?.clone();
+        // let mut d_f_gate = self.lstm_state.d_prev_mem.last()?.clone();
         let act_forget = vectorops::element_activate(self.lstm_state.f_gate_output.get(index)?, self.input_gate.activation);
-        vectorops::element_multiply(&mut d_f_gate, &d_memory);
+        vectorops::element_multiply(&mut d_f_gate, &d_prev_mem);
         vectorops::element_multiply(&mut d_f_gate, &act_forget);
         let f_gate_error = self.forget_gate.backward(&d_f_gate, l_rate, trace, update)?;
-
-        println!("{:#?}", self);
 
 
         //-------- compute the error of th entire layer --------//
@@ -189,6 +192,10 @@ impl LSTM {
         vectorops::element_add(&mut step_error, &s_gate_error);
         vectorops::element_add(&mut step_error, &i_gate_error);
         vectorops::element_add(&mut step_error, &f_gate_error);
+
+        vectorops::element_multiply(&mut d_prev_mem, self.lstm_state.f_gate_output.get(index)?);
+        self.lstm_state.d_prev_mem.push(d_prev_mem);
+        self.lstm_state.d_prev_out.push(step_error[self.input_size as usize..].to_vec());
 
         // get the result 
         let out = step_error[self.memory_size as usize..].to_vec();
@@ -250,20 +257,20 @@ impl Layer for LSTM {
         if update {
             // need next states as well, but the first iteration they will be 0
             self.lstm_state.output_states.push(vec![0.0; self.memory_size as usize]);
-            self.lstm_state.memory_states.push(vec![0.0; self.memory_size as usize]);
-            
+            self.lstm_state.memory_states.push(vec![0.0; self.memory_size as usize]);  
+            self.lstm_state.d_prev_mem.push(vec![0.0; self.memory_size as usize]);      
+            self.lstm_state.d_prev_out.push(vec![0.0; self.memory_size as usize]);          
+
             // println!("{:#?}\n\n", self);
 
             // leave room for one last backward step to update all the weights and step backward once
             for i in (2..self.lstm_state.size).rev() {
-                // println!("Backprop {:?}", i);
                 self.step_back(learning_rate, trace, false, i);
             }
             let result = self.step_back(learning_rate, trace, true, 1);
             self.lstm_state = LSTMState::new(self.memory_size);
             self.reset_traces();
-            // println!("{:#?}\n\n", self);
-            return result
+            return Some(result?);
         }
         Some(errors.clone())
     }
