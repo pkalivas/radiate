@@ -148,7 +148,7 @@ impl LSTM {
 
         // compute the hidden to output gradient
         // dWy = h.T @ dy
-        // let dWy = vectorops::product(self.states.hidden_states.get(index)?, self.states.errors.get(index)?);
+        let dWy = vectorops::product(self.states.outputs.get(index)?, self.states.errors.get(index)?);
         // self.v_gate.backward(self.states.errors.get(index)?, l_rate, trace, update);
 
         let mut dh = self.v_gate.backward(self.states.errors.get(index)?, l_rate, trace, update)?;
@@ -197,26 +197,24 @@ impl LSTM {
         let o_error = self.o_gate.backward(&dho, l_rate, trace, update)?;
 
         // As X was used in multiple gates, the gradient must be accumulated here     
-        //      dX = dXo + dXc + dXi + dXf
+        // dX = dXo + dXc + dXi + dXf
+        let mut dx = vec![0.0; (self.input_size + self.memory_size) as usize];
+        vectorops::element_add(&mut dx, &f_error);
+        vectorops::element_add(&mut dx, &i_error);
+        vectorops::element_add(&mut dx, &g_error);
+        vectorops::element_add(&mut dx, &o_error);
+        
         // Split the concatenated X, so that we get our gradient of h_old     
-        //      dh_next = dX[:, :H]
-        // Gradient for c_old in c = hf * c_old + hi * hc     
-        //      dc_next = hf * dc
-
-        // add up the error of the input from the gates
-        let mut dX = vec![0.0; (self.input_size + self.memory_size) as usize];
-        vectorops::element_add(&mut dX, &f_error);
-        vectorops::element_add(&mut dX, &i_error);
-        vectorops::element_add(&mut dX, &g_error);
-        vectorops::element_add(&mut dX, &o_error);
-
-        let dh_next = dX[..self.memory_size as usize].to_vec();
+        // dh_next = dx[:, :H]
+        let dh_next = dx[..self.memory_size as usize].to_vec();
         let dc_next = vectorops::product(self.states.f_gate_output.get(index)?, &dc);
-
+        
+        // Gradient for c_old in c = hf * c_old + hi * hc     
+        // dc_next = hf * dc
         self.states.d_prev_hidden.push(dh_next);
         self.states.d_prev_memory.push(dc_next);
 
-        Some(dX[self.memory_size as usize..].to_vec())
+        Some(dx[self.memory_size as usize..].to_vec())
     }
 
 
