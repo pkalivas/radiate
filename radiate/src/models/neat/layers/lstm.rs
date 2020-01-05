@@ -116,6 +116,24 @@ impl LSTM {
 
 
 
+    pub fn new_with_tracer(input_size: u32, memory_size: u32, output_size: u32) -> Self {
+        let cell_input = input_size + memory_size;
+        LSTM {
+            input_size,
+            memory_size,
+            memory: vec![0.0; memory_size as usize],
+            hidden: vec![0.0; memory_size as usize],
+            states: LSTMState::new(),
+            g_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Tahn).add_tracer(),
+            i_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid).add_tracer(),
+            f_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid).add_tracer(),
+            o_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid).add_tracer(),
+            v_gate: Dense::new(memory_size, output_size, LayerType::Dense, Activation::Sigmoid).add_tracer()
+        }
+    }
+
+
+
     /// each dense layer can collect meta data through it's time steps (current state, activated state, and derivative)
     /// but to use the historical meta data, the tracer has to know which index to look at (which time period is current)
     fn set_trace_index(&mut self, index: usize) {
@@ -132,11 +150,11 @@ impl LSTM {
     /// during the next backprop, the index between the historical steps and the tracer meta
     /// data is the same.
     fn reset_traces(&mut self) {
-        self.g_gate.trace_states.reset();
-        self.i_gate.trace_states.reset();
-        self.f_gate.trace_states.reset();
-        self.o_gate.trace_states.reset();
-        self.v_gate.trace_states.reset();
+        self.g_gate.reset_tracer();
+        self.i_gate.reset_tracer();
+        self.f_gate.reset_tracer();
+        self.o_gate.reset_tracer();
+        self.v_gate.reset_tracer();
         self.states = LSTMState::new();
         self.memory = vec![0.0; self.memory_size as usize];
         self.hidden = vec![0.0; self.memory_size as usize];
@@ -160,7 +178,7 @@ impl LSTM {
 
         // compute the hidden to output gradient
         // dh = error @ Wy.T + dh_next
-        let mut dh = self.v_gate.backward(self.states.errors.get(index)?, l_rate, true, update)?;
+        let mut dh = self.v_gate.backward(self.states.errors.get(index)?, l_rate, update)?;
         vectorops::element_multiply(&mut dh, &dh_next);
 
 
@@ -201,10 +219,10 @@ impl LSTM {
         vectorops::element_multiply(&mut dhc, &vectorops::element_deactivate(self.states.s_gate_output.get(index)?, self.g_gate.activation));
 
         // update all the weights for the gates given their derivatives
-        let f_error = self.f_gate.backward(&dhf, l_rate, true, update)?;
-        let i_error = self.i_gate.backward(&dhi, l_rate, true, update)?;
-        let g_error = self.g_gate.backward(&dhc, l_rate, true, update)?;
-        let o_error = self.o_gate.backward(&dho, l_rate, true, update)?;
+        let f_error = self.f_gate.backward(&dhf, l_rate, update)?;
+        let i_error = self.i_gate.backward(&dhi, l_rate, update)?;
+        let g_error = self.g_gate.backward(&dhc, l_rate, update)?;
+        let o_error = self.o_gate.backward(&dho, l_rate, update)?;
 
         // As X was used in multiple gates, the gradient must be accumulated here     
         // dX = dXo + dXc + dXi + dXf
@@ -228,8 +246,8 @@ impl LSTM {
         Some(dx[self.memory_size as usize..].to_vec())
     }
 
-
 }
+
 
 
 
@@ -237,17 +255,17 @@ impl Layer for LSTM {
 
 
     #[inline]
-    fn forward(&mut self, inputs: &Vec<f32>, trace: bool) -> Option<Vec<f32>> {
+    fn forward(&mut self, inputs: &Vec<f32>) -> Option<Vec<f32>> {
         // get the previous state and output and create the input to the layer
         // let mut previous_state = &mut self.memory;
         let mut hidden_input = self.hidden.clone();
         hidden_input.extend(inputs);
 
         // get all the gate outputs 
-        let f_output = self.f_gate.forward(&hidden_input, trace)?;
-        let i_output = self.i_gate.forward(&hidden_input, trace)?;
-        let o_output = self.o_gate.forward(&hidden_input, trace)?;
-        let g_output = self.g_gate.forward(&hidden_input, trace)?;
+        let f_output = self.f_gate.forward(&hidden_input)?;
+        let i_output = self.i_gate.forward(&hidden_input)?;
+        let o_output = self.o_gate.forward(&hidden_input)?;
+        let g_output = self.g_gate.forward(&hidden_input)?;
 
         // current memory and output need to be mutable but we also want to save that data for bptt
         let mut current_state = g_output.clone();
@@ -266,13 +284,14 @@ impl Layer for LSTM {
         self.states.update_forward(f_output, i_output, g_output, o_output, self.memory.clone());
         
         // return the output of the layer
-        self.v_gate.forward(&self.hidden, trace)
+        self.v_gate.forward(&self.hidden)
     }
+
 
 
     /// apply backpropagation through time 
     #[inline]
-    fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32, trace: bool, update: bool) -> Option<Vec<f32>> {
+    fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32, update: bool) -> Option<Vec<f32>> {
         // regardless of if the network needs to be updated, the error needs to be stored
         self.states.update_backward(errors.clone());
     

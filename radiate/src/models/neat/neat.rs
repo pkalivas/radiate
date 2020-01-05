@@ -70,6 +70,13 @@ impl Neat {
     }
 
 
+    /// set the trace to true to remember meta data throughout training
+    pub fn trace(mut self) -> Self {
+        self.trace = true;
+        self
+    }
+
+
 
     /// train the network
     #[inline]
@@ -77,10 +84,6 @@ impl Neat {
         // make sure the data actually can be fed through
         assert!(inputs.len() == targets.len(), "Input and target data are different sizes");
         assert!(inputs[0].len() as u32 == self.input_size, "Input size is different than network input size");
-
-        self.trace = self.layers
-            .iter()
-            .any(|x| x.layer_type == LayerType::LSTM);
         
         // feed the input data through the network then back prop it back through to edit the weights of the layers
         for i in 0..iters {
@@ -88,7 +91,6 @@ impl Neat {
             println!("{:?}", i);
             for (input, target) in inputs.iter().zip(targets.iter()) {
                 let network_output = self.forward(input).ok_or("Error in network feed forward")?;
-                println!("Input: {:?}, Output: {:?}, Guess: {:?}", input, target, network_output);
                 if index == update_window {
                     self.backward(&network_output, &target, rate, true);
                     index = 0;
@@ -97,7 +99,6 @@ impl Neat {
                 }
                 index += 1;
             }
-            println!("\n");
         }
         Ok(())
     }
@@ -108,18 +109,11 @@ impl Neat {
     #[inline]
     pub fn backward(&mut self, network_output: &Vec<f32>, target: &Vec<f32>, learning_rate: f32, update: bool) {
         // pass back the errors from this output layer through the network to update either the optimizer of the weights of the network
-        let remember = self.trace;
-        let err = if self.layers.last().unwrap().layer_type == LayerType::LSTM {
-            // vectorops::d_softmax(network_output)
-            vectorops::subtract(target, network_output)
-        } else {
-            vectorops::subtract(target, network_output)
-        };
         self.layers
             .iter_mut()
             .rev()
-            .fold(err, |res, curr| {
-                curr.layer.backward(&res, learning_rate, remember, update).unwrap()
+            .fold(vectorops::subtract(target, network_output), |res, curr| {
+                curr.layer.backward(&res, learning_rate, update).unwrap()
             });
     }
     
@@ -132,7 +126,7 @@ impl Neat {
         let mut temp;
         let mut data_transfer = data;
         for wrapper in self.layers.iter_mut() {
-            temp = wrapper.layer.forward(data_transfer, self.trace)?;
+            temp = wrapper.layer.forward(data_transfer)?;
             data_transfer = &temp;
         }
         // gather the output and return it as an option
@@ -149,9 +143,19 @@ impl Neat {
     #[inline]
     pub fn dense_pool(mut self, size: u32, activation: Activation) -> Self {
         let (input_size, output_size) = self.get_layer_sizes(size).unwrap();
-        let wrapper = LayerWrap {
-            layer_type: LayerType::DensePool,
-            layer: Box::new(Dense::new(input_size, output_size, LayerType::DensePool, activation))
+        let wrapper =  match self.trace {
+            true => {
+                LayerWrap {
+                    layer_type: LayerType::DensePool,
+                    layer: Box::new(Dense::new(input_size, output_size, LayerType::DensePool, activation).add_tracer())
+                }
+            },
+            false => {
+                LayerWrap {
+                    layer_type: LayerType::DensePool,
+                    layer: Box::new(Dense::new(input_size, output_size, LayerType::DensePool, activation))
+                }
+            }
         };
         self.layers.push(wrapper);
         self
@@ -163,9 +167,19 @@ impl Neat {
     #[inline]
     pub fn dense(mut self, size: u32, activation: Activation) -> Self {
         let (input_size, output_size) = self.get_layer_sizes(size).unwrap();
-        let wrapper = LayerWrap {
-            layer_type: LayerType::Dense,
-            layer: Box::new(Dense::new(input_size, output_size, LayerType::Dense, activation))
+        let wrapper =  match self.trace {
+            true => {
+                LayerWrap {
+                    layer_type: LayerType::Dense,
+                    layer: Box::new(Dense::new(input_size, output_size, LayerType::Dense, activation).add_tracer())
+                }
+            },
+            false => {
+                LayerWrap {
+                    layer_type: LayerType::Dense,
+                    layer: Box::new(Dense::new(input_size, output_size, LayerType::Dense, activation))
+                }
+            }
         };
         self.layers.push(wrapper);
         self
@@ -177,9 +191,19 @@ impl Neat {
     #[inline]
     pub fn lstm(mut self, size: u32, output_size: u32) -> Self {
         let (input_size, output_size) = self.get_layer_sizes(output_size).unwrap();
-        let wrapper = LayerWrap {
-            layer_type: LayerType::LSTM,
-            layer: Box::new(LSTM::new(input_size, size, output_size))
+        let wrapper = match self.trace {
+            true => {
+                LayerWrap {
+                    layer_type: LayerType::LSTM,
+                    layer: Box::new(LSTM::new_with_tracer(input_size, size, output_size))
+                }   
+            },
+            false => {
+                LayerWrap {
+                    layer_type: LayerType::LSTM,
+                    layer: Box::new(LSTM::new(input_size, size, output_size))
+                }
+            }
         };
         self.layers.push(wrapper);
         self

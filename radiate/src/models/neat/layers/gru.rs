@@ -65,7 +65,7 @@ impl Layer for GRU {
 
     /// implement the propagation function for the GRU layer 
     #[inline]
-    fn forward(&mut self, inputs: &Vec<f32>, trace: bool) -> Option<Vec<f32>> {
+    fn forward(&mut self, inputs: &Vec<f32>) -> Option<Vec<f32>> {
         let mut concat_input_output = self.current_output.clone();
         concat_input_output.extend(inputs);
 
@@ -73,8 +73,8 @@ impl Layer for GRU {
         network_input.extend(&self.current_memory);
 
         // calculate memory updates
-        let mut forget = self.gate_forget.forward(&network_input, trace)?;
-        let mut memory = self.gate_extract.forward(&network_input, trace)?;
+        let mut forget = self.gate_forget.forward(&network_input)?;
+        let mut memory = self.gate_extract.forward(&network_input)?;
 
         // figure out what to forget from the current memory
         vectorops::element_multiply(&mut self.current_memory, &forget);
@@ -86,13 +86,13 @@ impl Layer for GRU {
         concat_input_output.extend(&self.current_memory);
 
         // calculate the current output of the layer
-        self.current_output = self.gate_output.forward(&concat_input_output, trace)?;
+        self.current_output = self.gate_output.forward(&concat_input_output)?;
         Some(self.current_output.clone())
     }
 
 
-    fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32, trace: bool, update: bool) -> Option<Vec<f32>> {
-        let output_error = self.gate_output.backward(&errors, learning_rate, trace, update)?;
+    fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32, update: bool) -> Option<Vec<f32>> {
+        let output_error = self.gate_output.backward(&errors, learning_rate, update)?;
         // let delta_mem = self.current_memory
         //     .iter()
         //     .zip(output_error.iter())
@@ -109,8 +109,8 @@ impl Layer for GRU {
         //     })
         //     .collect::<Vec<_>>();
         
-        self.gate_forget.backward(&output_error, learning_rate, trace, update)?;
-        self.gate_extract.backward(&output_error, learning_rate, trace, update)?;
+        self.gate_forget.backward(&output_error, learning_rate, update)?;
+        self.gate_extract.backward(&output_error, learning_rate, update)?;
 
         
         Some(errors.clone())

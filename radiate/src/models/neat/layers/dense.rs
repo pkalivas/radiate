@@ -33,7 +33,7 @@ pub struct Dense {
     pub outputs: Vec<Uuid>,
     pub nodes: HashMap<Uuid, *mut Neuron>,
     pub edges: HashMap<Uuid, Edge>,
-    pub trace_states: Tracer,
+    pub trace_states: Option<Tracer>,
     pub layer_type: LayerType,
     pub activation: Activation
 }
@@ -58,7 +58,7 @@ impl Dense {
                 .collect(),
             nodes: HashMap::new(),
             edges: HashMap::new(),
-            trace_states: Tracer::new(), 
+            trace_states: None, 
             layer_type,
             activation
         };
@@ -88,11 +88,32 @@ impl Dense {
 
 
 
+    /// add a tracer to the layer to keep track of historical meta data
+    pub fn add_tracer(mut self) -> Self {
+        self.trace_states = Some(Tracer::new());
+        self
+    }
+
+
+
     /// set the historical states to use during backpropagation
     /// this should really only be used for backpropagation through
     /// time, layers like lstm and gru will use this for training
     pub fn set_trace(&mut self, trace_index: usize) {
-        self.trace_states.set_index(trace_index);
+        match &mut self.trace_states {
+            Some(tracer) => tracer.set_index(trace_index),
+            None => panic!("Cannot set trace index on None tracer_states")
+        }
+    }
+
+
+
+    /// reset the layer's tracer to erase the historical meta data
+    pub fn reset_tracer(&mut self) {
+        match &mut self.trace_states {
+            Some(tracer) => tracer.reset(),
+            None => panic!("Cannot rest None tracer")
+        }
     }
 
 
@@ -329,6 +350,10 @@ impl Dense {
     }
 
 
+
+    /// get the states of the output neurons. This allows softmax and other specific actions to 
+    /// be taken where knowledge of more than just the immediate neuron's state must be known
+    #[inline]
     pub fn get_output_states(&self) -> Vec<f32> {
         self.outputs
             .iter()
@@ -342,6 +367,10 @@ impl Dense {
     }
 
 
+
+    /// Because the output neurons might need to be seen togehter, this must be called to 
+    /// set their values before finishing the feed forward function
+    #[inline]
     pub fn set_output_values(&mut self) {
         let vals = self.get_output_states();
         let (act, d_act) = match self.activation {
@@ -366,14 +395,18 @@ impl Dense {
     }
 
 
+
+    /// take a snapshot of the neuron's values at this time step if trace is enabled
+    #[inline]
     pub fn update_traces(&mut self) {
-        unsafe {
-            for (n_id, n_ptr) in self.nodes.iter() {
-                self.trace_states.update_neuron_state(*n_id, (**n_ptr).state);
-                self.trace_states.update_neuron_activation(*n_id, (**n_ptr).value);
-                self.trace_states.update_neuron_derivative(*n_id, (**n_ptr).d_value);
+        if let Some(tracer) = &mut self.trace_states {
+            unsafe {
+                for (n_id, n_ptr) in self.nodes.iter() {
+                    tracer.update_neuron_activation(*n_id, (**n_ptr).value);
+                    tracer.update_neuron_derivative(*n_id, (**n_ptr).d_value);
+                }
+                tracer.index += 1;
             }
-            self.trace_states.index += 1;
         }
     }
 
@@ -383,12 +416,13 @@ impl Dense {
 
 
 
+
 impl Layer for Dense {
     /// Feed a vec of inputs through the network, will panic! if 
     /// the shapes of the values do not match or if something goes 
     /// wrong within the feed forward process.
     #[inline]
-    fn forward(&mut self, data: &Vec<f32>, trace: bool) -> Option<Vec<f32>> {
+    fn forward(&mut self, data: &Vec<f32>) -> Option<Vec<f32>> {
         unsafe {
             // reset the network by clearing the previous outputs from the neurons 
             // this could be done more efficently if i didn't want to implement backprop
@@ -416,7 +450,7 @@ impl Layer for Dense {
                     let curr_edge = self.edges.get_mut(edge_innov)?;
                     if curr_edge.active {
                         let receiving_node = self.nodes.get(&curr_edge.dst)?;
-                        let activated_value = curr_edge.calculate(val, trace);
+                        let activated_value = curr_edge.calculate(val);
                         (**receiving_node).incoming.insert(curr_edge.innov, Some(activated_value));
         
                         // if the node can be activated, activate it and store it's value
@@ -433,9 +467,7 @@ impl Layer for Dense {
             // once we've made it through the network, the outputs should all
             // have calculated their values. Gather the values and return the vec
             self.set_output_values();
-            if trace {
-                self.update_traces();
-            }
+            self.update_traces();
             self.get_outputs()
         }
     }
@@ -445,7 +477,7 @@ impl Layer for Dense {
     /// Backpropagation algorithm, transfer the error through the network and change the weights of the
     /// edges accordinly, this is pretty straight forward due to the design of the neat graph
     #[inline]
-    fn backward(&mut self, error: &Vec<f32>, learning_rate: f32, trace: bool, update: bool) -> Option<Vec<f32>> {
+    fn backward(&mut self, error: &Vec<f32>, learning_rate: f32, update: bool) -> Option<Vec<f32>> {
         // feed forward the input data to get the output in order to compute the error of the network
         // create a dfs stack to step backwards through the network and compute the error of each neuron
         // then insert that error in a hashmap to keep track of innov of the neuron and it's error 
@@ -463,9 +495,9 @@ impl Layer for Dense {
                 // get the current node and it's error 
                 let curr_node = self.nodes.get(&path.pop()?)?;
                 let curr_node_error = (**curr_node).error * learning_rate;
-                let step = match trace {
-                    true => curr_node_error * self.trace_states.neuron_derivative((**curr_node).innov),
-                    false => curr_node_error * (**curr_node).d_value
+                let step = match &self.trace_states {
+                    Some(tracer) => curr_node_error * tracer.neuron_derivative((**curr_node).innov),
+                    None => curr_node_error * (**curr_node).d_value
                 };
               
                 // iterate through each of the incoming edes to this neuron and adjust it's weight
@@ -479,9 +511,9 @@ impl Layer for Dense {
               
                         // add the weight step (gradient) * the currnet value to the weight to adjust the weight
                         // then update the connection so it knows if it should update the weight, or store the delta
-                        let delta = match trace {
-                            true => step * self.trace_states.neuron_activation((**src_neuron).innov),
-                            false => step * (**src_neuron).value
+                        let delta = match &self.trace_states {
+                            Some(tracer) => step * tracer.neuron_activation((**src_neuron).innov),
+                            None => step * (**src_neuron).value
                         };
                         // let delta = step * (**src_neuron).value; // get the value from time step t if trace is needed
                         curr_edge.update(delta, update);
@@ -614,7 +646,7 @@ impl Clone for Dense {
                     (*key, val.clone())
                 })
                 .collect(),
-            trace_states: Tracer::new(),
+            trace_states: self.trace_states.clone(),
             layer_type: self.layer_type.clone(),
             activation: self.activation.clone()
         }

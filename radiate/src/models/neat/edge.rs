@@ -51,7 +51,7 @@ impl Edge {
 
     /// calculate the eligibility of this connection and store it for time series predictions
     #[inline]
-    pub fn calculate(&mut self, val: f32, trace: bool) -> f32 {
+    pub fn calculate(&mut self, val: f32) -> f32 {
         val * self.weight
 	}
 }
