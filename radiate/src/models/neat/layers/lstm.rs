@@ -19,6 +19,8 @@ use super::super::{
 use crate::Genome;
 
 
+// https://wiseodd.github.io/techblog/2016/08/12/lstm-backprop/
+
 
 #[derive(Debug)]
 pub struct LSTMState {
@@ -29,30 +31,30 @@ pub struct LSTMState {
     pub s_gate_output: Vec<Vec<f32>>,
     pub o_gate_output: Vec<Vec<f32>>,
     pub memory_states: Vec<Vec<f32>>,
-    pub output_states: Vec<Vec<f32>>,
+    pub hidden_states: Vec<Vec<f32>>,
     pub outputs: Vec<Vec<f32>>,
     pub errors: Vec<Vec<f32>>,
-    pub d_prev_mem: Vec<Vec<f32>>,
-    pub d_prev_out: Vec<Vec<f32>>
+    pub d_prev_memory: Vec<Vec<f32>>,
+    pub d_prev_hidden: Vec<Vec<f32>>
 }
 
 
 impl LSTMState {
 
-    pub fn new(memory_size: u32) -> Self {
+    pub fn new() -> Self {
         LSTMState {
-            size: 1,
+            size: 0,
             concat_input: Vec::new(),
             f_gate_output: Vec::new(),
             i_gate_output: Vec::new(),
             s_gate_output: Vec::new(),
             o_gate_output: Vec::new(),
-            memory_states: vec![vec![0.0; memory_size as usize]],
-            output_states: vec![vec![0.0; memory_size as usize]],
+            memory_states: Vec::new(),
+            hidden_states: Vec::new(),
             outputs: Vec::new(),
             errors: Vec::new(),
-            d_prev_mem: Vec::new(),
-            d_prev_out: Vec::new()
+            d_prev_memory: Vec::new(),
+            d_prev_hidden: Vec::new()
         }
     }
 
@@ -63,7 +65,7 @@ impl LSTMState {
         self.s_gate_output.push(sg);
         self.o_gate_output.push(og);
         self.memory_states.push(mem_state);
-        self.output_states.push(out_state);
+        self.hidden_states.push(out_state);
         self.outputs.push(output);
         self.size += 1;
     }
@@ -84,13 +86,13 @@ pub struct LSTM {
     pub input_size: u32,
     pub memory_size: u32,
     pub memory: Vec<f32>,
-    pub output: Vec<f32>,
-    pub lstm_state: LSTMState,
-    pub state_gate: Dense,
-    pub input_gate: Dense,
-    pub forget_gate: Dense,
-    pub output_gate: Dense,
-    pub hidden_out: Dense
+    pub hidden: Vec<f32>,
+    pub states: LSTMState,
+    pub g_gate: Dense,
+    pub i_gate: Dense,
+    pub f_gate: Dense,
+    pub o_gate: Dense,
+    pub v_gate: Dense
 }
 
 
@@ -102,107 +104,119 @@ impl LSTM {
             input_size,
             memory_size,
             memory: vec![0.0; memory_size as usize],
-            output: vec![0.0; memory_size as usize],
-            lstm_state: LSTMState::new(memory_size),
-            state_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Tahn),
-            input_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
-            forget_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
-            output_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
-            hidden_out: Dense::new(memory_size, output_size, LayerType::Dense, Activation::Sigmoid)
+            hidden: vec![0.0; memory_size as usize],
+            states: LSTMState::new(),
+            g_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Tahn),
+            i_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
+            f_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
+            o_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
+            v_gate: Dense::new(memory_size, output_size, LayerType::Dense, Activation::Sigmoid)
         }
     }
 
 
     fn set_trace_index(&mut self, index: usize) {
-        self.state_gate.set_trace(index);
-        self.input_gate.set_trace(index);
-        self.forget_gate.set_trace(index);
-        self.output_gate.set_trace(index);
-        self.hidden_out.set_trace(index);
+        self.g_gate.set_trace(index);
+        self.i_gate.set_trace(index);
+        self.f_gate.set_trace(index);
+        self.o_gate.set_trace(index);
+        self.v_gate.set_trace(index);
     }
 
 
     fn reset_traces(&mut self) {
-        self.state_gate.trace_states.reset();
-        self.input_gate.trace_states.reset();
-        self.forget_gate.trace_states.reset();
-        self.output_gate.trace_states.reset();
-        self.hidden_out.trace_states.reset();
+        self.g_gate.trace_states.reset();
+        self.i_gate.trace_states.reset();
+        self.f_gate.trace_states.reset();
+        self.o_gate.trace_states.reset();
+        self.v_gate.trace_states.reset();
+        self.states = LSTMState::new();
     }
 
 
     pub fn step_back(&mut self, l_rate: f32, trace: bool, update: bool, index: usize) -> Option<Vec<f32>> {
         // get the previous memory and the current error
         self.set_trace_index(index);
-        let curr_memory = self.lstm_state.memory_states.get(index)?;
-        let curr_error = self.lstm_state.errors.get(index)?;
+        let dh_next = self.states.d_prev_hidden.last()?;
+        let dc_next = self.states.d_prev_memory.last()?;
+        let c_old = if index as i32 - 1 < 0 {
+            vec![0.0_f32; self.memory_size as usize]
+        } else {
+            self.states.memory_states.get(index)?.clone()
+        };
 
-        //-------- compute the derivative of the hidden layer to output and feed it backward to get hidden layer error -------//
-        // derivative of the hidden to output gate of the layer.
-        let mut t = vec![0.0; curr_error.len()];
-        vectorops::element_add(&mut t, &curr_error);
-        vectorops::element_multiply(&mut t, self.lstm_state.outputs.get(index)?);
-        let mut h_out_error = self.hidden_out.backward(&curr_error, l_rate, trace, update)?;
-        // vectorops::element_add(&mut h_out_error, self.lstm_state.d_prev_out.last()?);
+
+        // compute the hidden to output gradient
+        // dWy = h.T @ dy
+        // let dWy = vectorops::product(self.states.hidden_states.get(index)?, self.states.errors.get(index)?);
+        // self.v_gate.backward(self.states.errors.get(index)?, l_rate, trace, update);
+
+        let mut dh = self.v_gate.backward(self.states.errors.get(index)?, l_rate, trace, update)?;
+        vectorops::element_multiply(&mut dh, &dh_next);
+
+
+        // Gradient for ho in h = ho * tanh(c)     
+        //dho = tanh(c) * dh
+        //dho = dsigmoid(ho) * dho
+        let mut dho = vectorops::element_activate(self.states.memory_states.get(index)?, Activation::Tahn);
+        vectorops::element_multiply(&mut dho, &dh);
+        vectorops::element_multiply(&mut dho, &vectorops::element_deactivate(self.states.o_gate_output.get(index)?, self.o_gate.activation));
         
 
-        //-------- compute the derivative of the output gate and feed it backward to get the output gate error --------//
-        // output derivative 
-        let mut d_o_gate = vectorops::element_deactivate(&h_out_error, Activation::Tahn);
-        vectorops::element_multiply(&mut d_o_gate, &h_out_error);
-        let o_gate_direction = vectorops::element_deactivate(self.lstm_state.o_gate_output.get(index)?, self.output_gate.activation);
-        vectorops::element_multiply(&mut d_o_gate, &o_gate_direction);
-        let o_gate_error = self.output_gate.backward(&d_o_gate, l_rate, trace, update)?;
+        // Gradient for c in h = ho * tanh(c), note we're adding dc_next here     
+        // dc = ho * dh * dtanh(c)
+        // dc = dc + dc_next
+        let mut dc = vectorops::product(self.states.o_gate_output.get(index)?, &dh);
+        vectorops::element_multiply(&mut dc, &vectorops::element_deactivate(self.states.memory_states.get(index)?, Activation::Tahn));
+        vectorops::element_add(&mut dc, &dc_next);
 
 
-        //-------- compute the derivative of the memory and state gate --------//
-        // memory and state gate derivate and error
-        // let mut d_memory = h_out_error.clone();
-        // let memory_error = self.lstm_state.memory_states.get(index + 1)?.clone();
-        let mut d_prev_mem = self.lstm_state.d_prev_mem.last()?.clone();
-        let act_memory = vectorops::element_activate(&curr_memory, Activation::Tahn);
-        vectorops::element_multiply(&mut d_prev_mem, self.lstm_state.o_gate_output.get(index)?);
-        vectorops::element_multiply(&mut d_prev_mem, &vectorops::element_deactivate(&act_memory, Activation::Tahn));
-        // vectorops::element_add(&mut d_memory, &d_prev_mem);
-
-        let mut d_s_gate = self.lstm_state.i_gate_output.get(index)?.clone();
-        let act_state = vectorops::element_deactivate(self.lstm_state.s_gate_output.get(index)?, self.state_gate.activation);
-        // vectorops::element_multiply(&mut d_s_gate, &d_prev_mem);
-        // vectorops::element_multiply(&mut d_s_gate, &act_state);
-        let s_gate_error = self.state_gate.backward(&d_s_gate, l_rate, trace, update)?;
+        // Gradient for hf in c = hf * c_old + hi * hc    
+        // dhf = c_old * dc
+        // dhf = dsigmoid(hf) * dhf
+        let mut dhf = vectorops::product(&c_old, &dc);
+        vectorops::element_multiply(&mut dhf, &vectorops::element_deactivate(self.states.f_gate_output.get(index)?, self.f_gate.activation));
 
 
-        //-------- compute the derivative of the input gate --------//
-        let mut d_i_gate = self.lstm_state.s_gate_output.get(index)?.clone();
-        let act_input = vectorops::element_deactivate(self.lstm_state.i_gate_output.get(index)?, self.input_gate.activation);
-        vectorops::element_multiply(&mut d_i_gate, &d_prev_mem);
-        vectorops::element_multiply(&mut d_i_gate, &act_input);
-        let i_gate_error = self.input_gate.backward(&d_i_gate, l_rate, trace, update)?;
+        // Gradient for hi in c = hf * c_old + hi * hc     
+        // dhi = hc * dc
+        // dhi = dsigmoid(hi) * dhi
+        let mut dhi = vectorops::product(self.states.s_gate_output.get(index)?, &dc);
+        vectorops::element_multiply(&mut dhi, &vectorops::element_deactivate(self.states.i_gate_output.get(index)?, self.i_gate.activation));
 
 
-        //-------- compute the derivative of the forget gate --------//
-        let mut d_f_gate = self.lstm_state.memory_states.get(index - 1)?.clone();
-        // let mut d_f_gate = self.lstm_state.d_prev_mem.last()?.clone();
-        let act_forget = vectorops::element_activate(self.lstm_state.f_gate_output.get(index)?, self.input_gate.activation);
-        vectorops::element_multiply(&mut d_f_gate, &d_prev_mem);
-        vectorops::element_multiply(&mut d_f_gate, &act_forget);
-        let f_gate_error = self.forget_gate.backward(&d_f_gate, l_rate, trace, update)?;
+        // Gradient for hc in c = hf * c_old + hi * hc     
+        // dhc = hi * dc
+        // dhc = dtanh(hc) * dhc
+        let mut dhc = vectorops::product(self.states.i_gate_output.get(index)?, &dc);
+        vectorops::element_multiply(&mut dhc, &vectorops::element_deactivate(self.states.s_gate_output.get(index)?, self.g_gate.activation));
 
+        let f_error = self.f_gate.backward(&dhf, l_rate, trace, update)?;
+        let i_error = self.i_gate.backward(&dhi, l_rate, trace, update)?;
+        let g_error = self.g_gate.backward(&dhc, l_rate, trace, update)?;
+        let o_error = self.o_gate.backward(&dho, l_rate, trace, update)?;
 
-        //-------- compute the error of th entire layer --------//
-        let mut step_error = vec![0.0; self.input_size as usize + self.memory_size as usize];
-        vectorops::element_add(&mut step_error, &o_gate_error);
-        vectorops::element_add(&mut step_error, &s_gate_error);
-        vectorops::element_add(&mut step_error, &i_gate_error);
-        vectorops::element_add(&mut step_error, &f_gate_error);
+        // As X was used in multiple gates, the gradient must be accumulated here     
+        //      dX = dXo + dXc + dXi + dXf
+        // Split the concatenated X, so that we get our gradient of h_old     
+        //      dh_next = dX[:, :H]
+        // Gradient for c_old in c = hf * c_old + hi * hc     
+        //      dc_next = hf * dc
 
-        vectorops::element_multiply(&mut d_prev_mem, self.lstm_state.f_gate_output.get(index)?);
-        self.lstm_state.d_prev_mem.push(d_prev_mem);
-        self.lstm_state.d_prev_out.push(step_error[self.input_size as usize..].to_vec());
+        // add up the error of the input from the gates
+        let mut dX = vec![0.0; (self.input_size + self.memory_size) as usize];
+        vectorops::element_add(&mut dX, &f_error);
+        vectorops::element_add(&mut dX, &i_error);
+        vectorops::element_add(&mut dX, &g_error);
+        vectorops::element_add(&mut dX, &o_error);
 
-        // get the result 
-        let out = step_error[self.memory_size as usize..].to_vec();
-        Some(out)
+        let dh_next = dX[..self.memory_size as usize].to_vec();
+        let dc_next = vectorops::product(self.states.f_gate_output.get(index)?, &dc);
+
+        self.states.d_prev_hidden.push(dh_next);
+        self.states.d_prev_memory.push(dc_next);
+
+        Some(dX[self.memory_size as usize..].to_vec())
     }
 
 
@@ -216,34 +230,34 @@ impl Layer for LSTM {
     #[inline]
     fn forward(&mut self, inputs: &Vec<f32>, trace: bool) -> Option<Vec<f32>> {
         // get the previous state and output and create the input to the layer
-        let mut previous_state = &mut self.memory;
-        let mut previous_output = self.output.clone();
-        previous_output.extend(inputs);
+        // let mut previous_state = &mut self.memory;
+        let mut hidden_input = self.hidden.clone();
+        hidden_input.extend(inputs);
 
         // get all the gate outputs 
-        let forget_output = self.forget_gate.forward(&previous_output, trace)?;
-        let state_output = self.state_gate.forward(&previous_output, trace)?;
-        let input_output = self.input_gate.forward(&previous_output, trace)?;
-        let output_output = self.output_gate.forward(&previous_output, trace)?;
+        let f_output = self.f_gate.forward(&hidden_input, trace)?;
+        let i_output = self.i_gate.forward(&hidden_input, trace)?;
+        let o_output = self.o_gate.forward(&hidden_input, trace)?;
+        let g_output = self.g_gate.forward(&hidden_input, trace)?;
 
         // current memory and output need to be mutable but we also want to save that data for bptt
-        let mut current_state = state_output.clone();
-        let mut current_output = output_output.clone();
+        let mut current_state = g_output.clone();
+        let mut current_output = o_output.clone();
 
         // update the current state 
-        vectorops::element_multiply(&mut previous_state, &forget_output);
-        vectorops::element_multiply(&mut current_state, &input_output);
-        vectorops::element_add(&mut previous_state, &current_state);
-        vectorops::element_multiply(&mut current_output, &vectorops::element_activate(&previous_state, Activation::Tahn));
+        vectorops::element_multiply(&mut self.memory, &f_output);
+        vectorops::element_multiply(&mut current_state, &i_output);
+        vectorops::element_add(&mut self.memory, &current_state);
+        vectorops::element_multiply(&mut current_output, &vectorops::element_activate(&self.memory, Activation::Tahn));
 
         // compute the output of the layer
-        let layer_out = self.hidden_out.forward(&current_output, trace)?;
+        let layer_out = self.v_gate.forward(&current_output, trace)?;
         
         // update the state parameters - can this be sped up?
-        self.lstm_state.update_forward(previous_output, forget_output, input_output, state_output, output_output, previous_state.clone(), current_output.clone(), layer_out.clone());
+        self.states.update_forward(hidden_input, f_output, i_output, g_output, o_output, self.memory.clone(), current_output.clone(), layer_out.clone());
         
         // keep track of the memory and the current output and the current state
-        self.output = current_output;
+        self.hidden = current_output;
 
         // return the output of the layer
         Some(layer_out)
@@ -254,24 +268,20 @@ impl Layer for LSTM {
     #[inline]
     fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32, trace: bool, update: bool) -> Option<Vec<f32>> {
         // regardless of if the network needs to be updated, the error needs to be stored
-        self.lstm_state.update_backward(errors.clone());
+        self.states.update_backward(errors.clone());
 
         // backpropagation throught time if update is true
         if update {
             // need next states as well, but the first iteration they will be 0
-            self.lstm_state.output_states.push(vec![0.0; self.memory_size as usize]);
-            self.lstm_state.memory_states.push(vec![0.0; self.memory_size as usize]);  
-            self.lstm_state.d_prev_mem.push(vec![0.0; self.memory_size as usize]);      
-            self.lstm_state.d_prev_out.push(vec![0.0; self.memory_size as usize]);          
-
-            // println!("{:#?}\n\n", self);
+            self.states.d_prev_memory.push(vec![0.0; self.memory_size as usize]);      
+            self.states.d_prev_hidden.push(vec![0.0; self.memory_size as usize]);          
 
             // leave room for one last backward step to update all the weights and step backward once
-            for i in (2..self.lstm_state.size).rev() {
+            for i in (1..self.states.size).rev() {
                 self.step_back(learning_rate, trace, false, i);
             }
-            let result = self.step_back(learning_rate, trace, true, 1);
-            self.lstm_state = LSTMState::new(self.memory_size);
+
+            let result = self.step_back(learning_rate, trace, true, 0);
             self.reset_traces();
             return Some(result?);
         }
@@ -308,13 +318,13 @@ impl Clone for LSTM {
             input_size: self.input_size,
             memory_size: self.memory_size,
             memory: vec![0.0; self.memory_size as usize],
-            output: vec![0.0; self.memory_size as usize],
-            lstm_state: LSTMState::new(self.memory_size),
-            state_gate: self.state_gate.clone(), 
-            input_gate: self.input_gate.clone(), 
-            forget_gate: self.forget_gate.clone(), 
-            output_gate: self.output_gate.clone(),
-            hidden_out: self.hidden_out.clone()
+            hidden: vec![0.0; self.memory_size as usize],
+            states: LSTMState::new(),
+            g_gate: self.g_gate.clone(), 
+            i_gate: self.i_gate.clone(), 
+            f_gate: self.f_gate.clone(), 
+            o_gate: self.o_gate.clone(),
+            v_gate: self.v_gate.clone()
         }
     }
 }
@@ -335,13 +345,13 @@ impl Genome<LSTM, NeatEnvironment> for LSTM
             input_size: child.input_size,
             memory_size: child.memory_size,
             memory: vec![0.0; child.memory_size as usize],
-            output: vec![0.0; child.memory_size as usize],
-            lstm_state: LSTMState::new(child.memory_size),
-            state_gate: Dense::crossover(&child.state_gate, &parent_two.state_gate, env, crossover_rate)?,
-            input_gate: Dense::crossover(&child.input_gate, &parent_two.input_gate, env, crossover_rate)?,
-            forget_gate: Dense::crossover(&child.forget_gate, &parent_two.forget_gate, env, crossover_rate)?,
-            output_gate: Dense::crossover(&child.output_gate, &parent_two.output_gate, env, crossover_rate)?,
-            hidden_out: Dense::crossover(&child.hidden_out, &parent_two.hidden_out, env, crossover_rate)?
+            hidden: vec![0.0; child.memory_size as usize],
+            states: LSTMState::new(),
+            g_gate: Dense::crossover(&child.g_gate, &parent_two.g_gate, env, crossover_rate)?,
+            i_gate: Dense::crossover(&child.i_gate, &parent_two.i_gate, env, crossover_rate)?,
+            f_gate: Dense::crossover(&child.f_gate, &parent_two.f_gate, env, crossover_rate)?,
+            o_gate: Dense::crossover(&child.o_gate, &parent_two.o_gate, env, crossover_rate)?,
+            v_gate: Dense::crossover(&child.v_gate, &parent_two.v_gate, env, crossover_rate)?
         };
         Some(child)
     }
@@ -351,11 +361,11 @@ impl Genome<LSTM, NeatEnvironment> for LSTM
     #[inline]
     fn distance(one: &LSTM, two: &LSTM, env: &Arc<RwLock<NeatEnvironment>>) -> f32 {
         let mut result = 0.0;
-        result += Dense::distance(&one.state_gate, &two.state_gate, env);
-        result += Dense::distance(&one.input_gate, &two.input_gate, env);
-        result += Dense::distance(&one.forget_gate, &two.forget_gate, env);
-        result += Dense::distance(&one.output_gate, &two.output_gate, env);
-        // result += Dense::distance(&one.hidden_out, &two.hidden_out, env);
+        result += Dense::distance(&one.g_gate, &two.g_gate, env);
+        result += Dense::distance(&one.i_gate, &two.i_gate, env);
+        result += Dense::distance(&one.f_gate, &two.f_gate, env);
+        result += Dense::distance(&one.o_gate, &two.o_gate, env);
+        // result += Dense::distance(&one.v_gate, &two.v_gate, env);
         result
     }
 }
