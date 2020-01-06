@@ -503,9 +503,8 @@ impl Layer for Dense {
 
 
     fn reset(&mut self) {
-        match &mut self.trace_states {
-            Some(tracer) => tracer.reset(),
-            None => panic!("Cannot rest None tracer")
+        if let Some(tracer) = &mut self.trace_states {
+            tracer.reset();
         }
         unsafe { self.reset_neurons(); }
     }
