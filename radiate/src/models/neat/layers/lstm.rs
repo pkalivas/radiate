@@ -25,7 +25,6 @@ use crate::Genome;
 /// gate at each time step. The rest of the time-step memories are held in tracers
 #[derive(Debug)]
 pub struct LSTMState {
-    pub index: usize,
     pub f_gate_output: Vec<Vec<f32>>,
     pub i_gate_output: Vec<Vec<f32>>,
     pub s_gate_output: Vec<Vec<f32>>,
@@ -42,7 +41,6 @@ impl LSTMState {
 
     pub fn new() -> Self {
         LSTMState {
-            index: 0,
             f_gate_output: Vec::new(),
             i_gate_output: Vec::new(),
             s_gate_output: Vec::new(),
@@ -61,7 +59,6 @@ impl LSTMState {
         self.s_gate_output.push(sg);
         self.o_gate_output.push(og);
         self.memory_states.push(mem_state);
-        self.index += 1;
     }
 }
 
@@ -113,11 +110,18 @@ impl LSTM {
     /// index, and use that data to compute the gradient steps for eachweight in each gated network. 
     /// If update is true, the gates will take the accumulated gradient steps, and add them to their respecive weight values
     #[inline]
-    pub fn step_back(&mut self, errors: &Vec<f32>, l_rate: f32, index: usize) -> Option<Vec<f32>> {
+    pub fn step_back(&mut self, errors: &Vec<f32>, l_rate: f32) -> Option<Vec<f32>> {
         // get the derivative of the cell and hidden state from the previous step as well as the previous memory state
         let dh_next = self.states.d_prev_hidden.clone()?;
         let dc_next = self.states.d_prev_memory.clone()?;
-        let c_old = self.states.memory_states.get(index)?.clone();
+
+        // unpack the current gate outputs 
+        let c_old = self.states.memory_states.pop()?;
+        let g_curr = self.states.s_gate_output.pop()?;
+        let i_curr = self.states.i_gate_output.pop()?;
+        let f_curr = self.states.f_gate_output.pop()?;
+        let o_curr = self.states.o_gate_output.pop()?;
+
         
         // compute the hidden to output gradient
         // dh = error @ Wy.T + dh_next
@@ -127,34 +131,34 @@ impl LSTM {
         // Gradient for ho in h = ho * tanh(c)     
         //dho = tanh(c) * dh
         //dho = dsigmoid(ho) * dho
-        let mut dho = vectorops::element_activate(self.states.memory_states.get(index)?, Activation::Tahn);
+        let mut dho = vectorops::element_activate(&c_old, Activation::Tahn);
         vectorops::element_multiply(&mut dho, &dh);
-        vectorops::element_multiply(&mut dho, &vectorops::element_deactivate(self.states.o_gate_output.get(index)?, self.o_gate.activation));
+        vectorops::element_multiply(&mut dho, &vectorops::element_deactivate(&o_curr, self.o_gate.activation));
         
         // Gradient for c in h = ho * tanh(c), note we're adding dc_next here     
         // dc = ho * dh * dtanh(c)
         // dc = dc + dc_next
-        let mut dc = vectorops::product(self.states.o_gate_output.get(index)?, &dh);
-        vectorops::element_multiply(&mut dc, &vectorops::element_deactivate(self.states.memory_states.get(index)?, Activation::Tahn));
+        let mut dc = vectorops::product(&o_curr, &dh);
+        vectorops::element_multiply(&mut dc, &vectorops::element_deactivate(&c_old, Activation::Tahn));
         vectorops::element_add(&mut dc, &dc_next);
 
         // Gradient for hf in c = hf * c_old + hi * hc    
         // dhf = c_old * dc
         // dhf = dsigmoid(hf) * dhf
         let mut dhf = vectorops::product(&c_old, &dc);
-        vectorops::element_multiply(&mut dhf, &vectorops::element_deactivate(self.states.f_gate_output.get(index)?, self.f_gate.activation));
+        vectorops::element_multiply(&mut dhf, &vectorops::element_deactivate(&f_curr, self.f_gate.activation));
 
         // Gradient for hi in c = hf * c_old + hi * hc     
         // dhi = hc * dc
         // dhi = dsigmoid(hi) * dhi
-        let mut dhi = vectorops::product(self.states.s_gate_output.get(index)?, &dc);
-        vectorops::element_multiply(&mut dhi, &vectorops::element_deactivate(self.states.i_gate_output.get(index)?, self.i_gate.activation));
+        let mut dhi = vectorops::product(&g_curr, &dc);
+        vectorops::element_multiply(&mut dhi, &vectorops::element_deactivate(&i_curr, self.i_gate.activation));
 
         // Gradient for hc in c = hf * c_old + hi * hc     
         // dhc = hi * dc
         // dhc = dtanh(hc) * dhc
-        let mut dhc = vectorops::product(self.states.i_gate_output.get(index)?, &dc);
-        vectorops::element_multiply(&mut dhc, &vectorops::element_deactivate(self.states.s_gate_output.get(index)?, self.g_gate.activation));
+        let mut dhc = vectorops::product(&i_curr, &dc);
+        vectorops::element_multiply(&mut dhc, &vectorops::element_deactivate(&g_curr, self.g_gate.activation));
 
         // all the weights for the gates given their derivatives
         let f_error = self.f_gate.backward(&dhf, l_rate)?;
@@ -173,7 +177,7 @@ impl LSTM {
         // Split the concatenated X, so that we get our gradient of h_old     
         // dh_next = dx[:, :H]
         let dh_next = dx[..self.memory_size as usize].to_vec();
-        let dc_next = vectorops::product(self.states.f_gate_output.get(index)?, &dc);
+        let dc_next = vectorops::product(&f_curr, &dc);
         
         // Gradient for c_old in c = hf * c_old + hi * hc     
         // dc_next = hf * dc
@@ -235,7 +239,7 @@ impl Layer for LSTM {
         }
 
         // preform the step back for this iteration
-        self.step_back(errors, learning_rate, self.states.index)
+        self.step_back(errors, learning_rate)
     }
 
 
@@ -281,7 +285,6 @@ impl Layer for LSTM {
         self.f_gate.set_trace_index(index);
         self.o_gate.set_trace_index(index);
         self.v_gate.set_trace_index(index);
-        self.states.index = index;
     }
 
 

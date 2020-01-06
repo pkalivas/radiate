@@ -74,6 +74,22 @@ impl Tracer {
     }
 
 
+    // pub fn pop_a_neuron(&mut self, id: &Uuid) -> Option<f32> {
+    //     if !self.neuron_activation.contains_key(id) {
+    //         panic!("Tracer neuron activation doesn't contain uuid: {:?}", id);  
+	// 	}
+    //     self.neuron_activation.get_mut(id)?.pop()
+    // }
+
+
+    // pub fn pop_d_neuron(&mut self, id: &Uuid) -> Option<f32> {
+    //     if !self.neuron_derivative.contains_key(id) {
+    //         panic!("Tracer neuron derivative doesn't contain uuid: {:?}", id);
+    //     }
+    //     self.neuron_derivative.get_mut(id)?.pop()
+    // }
+
+
 
     pub fn neuron_activation(&self, neuron_id: Uuid) -> f32 {
         if !self.neuron_activation.contains_key(&neuron_id) {
