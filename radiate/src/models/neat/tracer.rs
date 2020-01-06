@@ -33,6 +33,11 @@ impl Tracer {
     }
 
 
+    pub fn incremnt_tracer(&mut self) {
+        self.index += 1;
+    }
+
+
     pub fn reset(&mut self) {
         self.neuron_activation = HashMap::new();
         self.neuron_derivative = HashMap::new();

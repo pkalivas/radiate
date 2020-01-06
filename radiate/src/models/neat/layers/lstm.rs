@@ -25,7 +25,7 @@ use crate::Genome;
 /// gate at each time step. The rest of the time-step memories are held in tracers
 #[derive(Debug)]
 pub struct LSTMState {
-    pub size: usize,
+    pub index: usize,
     pub f_gate_output: Vec<Vec<f32>>,
     pub i_gate_output: Vec<Vec<f32>>,
     pub s_gate_output: Vec<Vec<f32>>,
@@ -43,7 +43,7 @@ impl LSTMState {
 
     pub fn new() -> Self {
         LSTMState {
-            size: 0,
+            index: 0,
             f_gate_output: Vec::new(),
             i_gate_output: Vec::new(),
             s_gate_output: Vec::new(),
@@ -63,7 +63,7 @@ impl LSTMState {
         self.s_gate_output.push(sg);
         self.o_gate_output.push(og);
         self.memory_states.push(mem_state);
-        self.size += 1;
+        self.index += 1;
     }
 
 
@@ -83,6 +83,7 @@ impl LSTMState {
 pub struct LSTM {
     pub input_size: u32,
     pub memory_size: u32,
+    pub output_size: u32,
     pub memory: Vec<f32>,
     pub hidden: Vec<f32>,
     pub states: LSTMState,
@@ -103,6 +104,7 @@ impl LSTM {
         LSTM {
             input_size,
             memory_size,
+            output_size,
             memory: vec![0.0; memory_size as usize],
             hidden: vec![0.0; memory_size as usize],
             states: LSTMState::new(),
@@ -116,37 +118,20 @@ impl LSTM {
 
 
 
-    /// each dense layer can collect meta data through it's time steps (current state, activated state, and derivative)
-    /// but to use the historical meta data, the tracer has to know which index to look at (which time period is current)
-    fn set_trace_index(&mut self, index: usize) {
-        self.g_gate.set_trace(index);
-        self.i_gate.set_trace(index);
-        self.f_gate.set_trace(index);
-        self.o_gate.set_trace(index);
-        self.v_gate.set_trace(index);
-    }
-
-
-
     /// Preform one step backwards for the layer. Set the tracer historical meta data to look at the current
     /// index, and use that data to compute the gradient steps for eachweight in each gated network. 
     /// If update is true, the gates will take the accumulated gradient steps, and add them to their respecive weight values
     #[inline]
-    pub fn step_back(&mut self, l_rate: f32, update: bool, index: usize) -> Option<Vec<f32>> {
-        // get the previous memory and the current error
-        self.set_trace_index(index);
-
+    pub fn step_back(&mut self, errors: &Vec<f32>, l_rate: f32, index: usize) -> Option<Vec<f32>> {
         // get the derivative of the cell and hidden state from the previous step as well as the previous memory state
         let dh_next = self.states.d_prev_hidden.last()?;
         let dc_next = self.states.d_prev_memory.last()?;
         let c_old = self.states.memory_states.get(index)?.clone();
         
-
         // compute the hidden to output gradient
         // dh = error @ Wy.T + dh_next
-        let mut dh = self.v_gate.backward(self.states.errors.get(index)?, l_rate, update)?;
+        let mut dh = self.v_gate.backward(errors, l_rate)?;
         vectorops::element_multiply(&mut dh, &dh_next);
-
 
         // Gradient for ho in h = ho * tanh(c)     
         //dho = tanh(c) * dh
@@ -155,7 +140,6 @@ impl LSTM {
         vectorops::element_multiply(&mut dho, &dh);
         vectorops::element_multiply(&mut dho, &vectorops::element_deactivate(self.states.o_gate_output.get(index)?, self.o_gate.activation));
         
-
         // Gradient for c in h = ho * tanh(c), note we're adding dc_next here     
         // dc = ho * dh * dtanh(c)
         // dc = dc + dc_next
@@ -163,13 +147,11 @@ impl LSTM {
         vectorops::element_multiply(&mut dc, &vectorops::element_deactivate(self.states.memory_states.get(index)?, Activation::Tahn));
         vectorops::element_add(&mut dc, &dc_next);
 
-
         // Gradient for hf in c = hf * c_old + hi * hc    
         // dhf = c_old * dc
         // dhf = dsigmoid(hf) * dhf
         let mut dhf = vectorops::product(&c_old, &dc);
         vectorops::element_multiply(&mut dhf, &vectorops::element_deactivate(self.states.f_gate_output.get(index)?, self.f_gate.activation));
-
 
         // Gradient for hi in c = hf * c_old + hi * hc     
         // dhi = hc * dc
@@ -177,18 +159,17 @@ impl LSTM {
         let mut dhi = vectorops::product(self.states.s_gate_output.get(index)?, &dc);
         vectorops::element_multiply(&mut dhi, &vectorops::element_deactivate(self.states.i_gate_output.get(index)?, self.i_gate.activation));
 
-
         // Gradient for hc in c = hf * c_old + hi * hc     
         // dhc = hi * dc
         // dhc = dtanh(hc) * dhc
         let mut dhc = vectorops::product(self.states.i_gate_output.get(index)?, &dc);
         vectorops::element_multiply(&mut dhc, &vectorops::element_deactivate(self.states.s_gate_output.get(index)?, self.g_gate.activation));
 
-        // update all the weights for the gates given their derivatives
-        let f_error = self.f_gate.backward(&dhf, l_rate, update)?;
-        let i_error = self.i_gate.backward(&dhi, l_rate, update)?;
-        let g_error = self.g_gate.backward(&dhc, l_rate, update)?;
-        let o_error = self.o_gate.backward(&dho, l_rate, update)?;
+        // all the weights for the gates given their derivatives
+        let f_error = self.f_gate.backward(&dhf, l_rate)?;
+        let i_error = self.i_gate.backward(&dhi, l_rate)?;
+        let g_error = self.g_gate.backward(&dhc, l_rate)?;
+        let o_error = self.o_gate.backward(&dho, l_rate)?;
 
         // As X was used in multiple gates, the gradient must be accumulated here     
         // dX = dXo + dXc + dXi + dXf
@@ -256,22 +237,12 @@ impl Layer for LSTM {
 
     /// apply backpropagation through time 
     #[inline]
-    fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32, update: bool) -> Option<Vec<f32>> {
-        // regardless of if the network needs to be updated, the error needs to be stored
-        self.states.update_backward(errors.clone());
-        if update {
-            self.states.d_prev_memory.push(vec![0.0; self.memory_size as usize]);      
-            self.states.d_prev_hidden.push(vec![0.0; self.memory_size as usize]);          
+    fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32) -> Option<Vec<f32>> {
+        self.states.d_prev_memory.push(vec![0.0; self.memory_size as usize]);      
+        self.states.d_prev_hidden.push(vec![0.0; self.memory_size as usize]);          
 
-            // leave room for one last backward step to update all the weights and step backward once
-            for i in (1..self.states.size).rev() {
-                self.step_back(learning_rate, false, i);
-            }
-            let result = self.step_back(learning_rate, true, 0);
-            self.reset();
-            return Some(result?);
-        }
-        Some(errors.clone())
+        self.step_back(errors, learning_rate, self.states.index)
+
     }
 
 
@@ -307,6 +278,18 @@ impl Layer for LSTM {
 
 
 
+    fn set_trace_index(&mut self, index: usize) { 
+        self.g_gate.set_trace_index(index);
+        self.i_gate.set_trace_index(index);
+        self.f_gate.set_trace_index(index);
+        self.o_gate.set_trace_index(index);
+        self.v_gate.set_trace_index(index);
+        self.states.index = index;
+    }
+
+
+
+
     fn as_ref_any(&self) -> &dyn Any
         where Self: Sized + 'static
     {
@@ -324,7 +307,7 @@ impl Layer for LSTM {
 
 
     fn shape(&self) -> (usize, usize) {
-        (self.input_size as usize, self.memory_size as usize)
+        (self.input_size as usize, self.output_size as usize)
     }
 }
 
@@ -338,6 +321,7 @@ impl Clone for LSTM {
         LSTM {
             input_size: self.input_size,
             memory_size: self.memory_size,
+            output_size: self.output_size,
             memory: vec![0.0; self.memory_size as usize],
             hidden: vec![0.0; self.memory_size as usize],
             states: LSTMState::new(),
@@ -365,6 +349,7 @@ impl Genome<LSTM, NeatEnvironment> for LSTM
         let child = LSTM {
             input_size: child.input_size,
             memory_size: child.memory_size,
+            output_size: child.output_size,
             memory: vec![0.0; child.memory_size as usize],
             hidden: vec![0.0; child.memory_size as usize],
             states: LSTMState::new(),

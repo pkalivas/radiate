@@ -20,7 +20,7 @@ pub trait Layer: LayerClone + Any + Debug {
     /// Take the errors of the feed forward and backpropagate them through the network
     /// to adjust the weights of the connections between the neurons. Return the error 
     /// of the input neurons from this layer - needed to transfer error from layer to layer
-    fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32, update: bool) -> Option<Vec<f32>>;
+    fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32) -> Option<Vec<f32>>;
 
     /// Get a reference to the underlying type without generics in order to downcast to a concrete type
     fn as_ref_any(&self) -> &dyn Any;
@@ -35,9 +35,15 @@ pub trait Layer: LayerClone + Any + Debug {
     /// reset the layer, not a nessesary implementation
     fn reset(&mut self) { }
 
+    // add tracers to keep track of meta data for historical back propagation
     fn add_tracer(&mut self) { }
 
+    /// remove the tracer from a layer so that it can be evolved without keeping grack of data
     fn remove_tracer(&mut self) { }
+
+    /// during backprop, the meta data needs to be accesed somehow and 
+    /// that is set through an index of the current layer 
+    fn set_trace_index(&mut self, index: usize) { }
 
 }
 

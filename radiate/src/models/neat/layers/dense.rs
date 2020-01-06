@@ -88,18 +88,6 @@ impl Dense {
 
 
 
-    /// set the historical states to use during backpropagation
-    /// this should really only be used for backpropagation through
-    /// time, layers like lstm and gru will use this for training
-    pub fn set_trace(&mut self, trace_index: usize) {
-        match &mut self.trace_states {
-            Some(tracer) => tracer.set_index(trace_index),
-            None => panic!("Cannot set trace index on None tracer_states")
-        }
-    }
-
-
-
     /// reset all the neurons in the network so they can be fed forward again
     #[inline]
     unsafe fn reset_neurons(&self) {
@@ -459,7 +447,7 @@ impl Layer for Dense {
     /// Backpropagation algorithm, transfer the error through the network and change the weights of the
     /// edges accordinly, this is pretty straight forward due to the design of the neat graph
     #[inline]
-    fn backward(&mut self, error: &Vec<f32>, learning_rate: f32, update: bool) -> Option<Vec<f32>> {
+    fn backward(&mut self, error: &Vec<f32>, learning_rate: f32) -> Option<Vec<f32>> {
         // feed forward the input data to get the output in order to compute the error of the network
         // create a dfs stack to step backwards through the network and compute the error of each neuron
         // then insert that error in a hashmap to keep track of innov of the neuron and it's error 
@@ -498,7 +486,7 @@ impl Layer for Dense {
                             None => step * (**src_neuron).value
                         };
                         // let delta = step * (**src_neuron).value; // get the value from time step t if trace is needed
-                        curr_edge.update(delta, update);
+                        curr_edge.update(delta, true);
                         (**src_neuron).error += curr_edge.weight * curr_node_error;
                         path.push(curr_edge.src);
                     }
@@ -533,7 +521,15 @@ impl Layer for Dense {
     fn remove_tracer(&mut self) {
         self.trace_states = None;
     }
-    
+
+
+    fn set_trace_index(&mut self, index: usize) { 
+        match &mut self.trace_states {
+            Some(tracer) => tracer.set_index(index),
+            None => panic!("Cannot set trace index on None tracer_states")
+        }
+    }
+
 
     
     fn as_ref_any(&self) -> &dyn Any
@@ -542,17 +538,20 @@ impl Layer for Dense {
         self
     }
 
+
     fn as_mut_any(&mut self) -> &mut dyn Any
         where Self: Sized + 'static
     {
         self
     }
 
+
     fn shape(&self) -> (usize, usize) {
         (self.inputs.len(), self.outputs.len())
     }
 
 }
+
 
 
 impl Genome<Dense, NeatEnvironment> for Dense
