@@ -46,7 +46,7 @@ impl Tracer {
 
 
 
-    pub fn update_neuron_activation(&mut self, neuron_id: Uuid, neuron_value: f32) {
+    pub fn update_neuron_activation(&mut self, neuron_id: &Uuid, neuron_value: f32) {
         if self.neuron_activation.contains_key(&neuron_id) {
             let states = self.neuron_activation.get_mut(&neuron_id).unwrap();
             states.push(neuron_value);
@@ -56,20 +56,20 @@ impl Tracer {
         } else {
             let mut temp = Vec::with_capacity(self.max_neuron_index);
             temp.push(neuron_value);
-            self.neuron_activation.insert(neuron_id, temp);
+            self.neuron_activation.insert(*neuron_id, temp);
         }
     }
 
 
 
-    pub fn update_neuron_derivative(&mut self, neuron_id: Uuid, neuron_d: f32) {
+    pub fn update_neuron_derivative(&mut self, neuron_id: &Uuid, neuron_d: f32) {
         if self.neuron_derivative.contains_key(&neuron_id) {
             let states = self.neuron_derivative.get_mut(&neuron_id).unwrap();
             states.push(neuron_d);
         } else {
             let mut temp = Vec::with_capacity(self.max_neuron_index);
             temp.push(neuron_d);
-            self.neuron_derivative.insert(neuron_id, temp);
+            self.neuron_derivative.insert(*neuron_id, temp);
         }
     }
 

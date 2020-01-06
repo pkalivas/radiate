@@ -98,8 +98,7 @@ impl Neat {
             println!("{:?}", i);
             for j in 0..inputs.len() {
                 count += 1;
-                let net_out = self.forward(&inputs[j]).ok_or("Error in network feed forward")?;
-                pass_out.push(net_out);
+                pass_out.push(self.forward(&inputs[j]).ok_or("Error in network feed forward")?);
                 pass_tar.push(targets[j].clone());
                 if count == update_window {
                     count = 0;

@@ -31,7 +31,6 @@ pub struct LSTMState {
     pub s_gate_output: Vec<Vec<f32>>,
     pub o_gate_output: Vec<Vec<f32>>,
     pub memory_states: Vec<Vec<f32>>,
-    pub errors: Vec<Vec<f32>>,
     pub d_prev_memory: Vec<Vec<f32>>,
     pub d_prev_hidden: Vec<Vec<f32>>
 }
@@ -49,7 +48,6 @@ impl LSTMState {
             s_gate_output: Vec::new(),
             o_gate_output: Vec::new(),
             memory_states: Vec::new(),
-            errors: Vec::new(),
             d_prev_memory: Vec::new(),
             d_prev_hidden: Vec::new()
         }
@@ -234,12 +232,13 @@ impl Layer for LSTM {
         self.states.d_prev_memory.push(vec![0.0; self.memory_size as usize]);      
         self.states.d_prev_hidden.push(vec![0.0; self.memory_size as usize]);          
 
+        // preform the step back for this iteration
         self.step_back(errors, learning_rate, self.states.index)
-
     }
 
 
 
+    /// reset the lstm network by clearing the tracer and the states as well as the memory and hidden state
     fn reset(&mut self) {
         self.g_gate.reset();
         self.i_gate.reset();
@@ -252,6 +251,8 @@ impl Layer for LSTM {
     }
 
 
+
+    /// add tracers to all the gates in the layer 
     fn add_tracer(&mut self) {
         self.g_gate.add_tracer();
         self.i_gate.add_tracer();
@@ -261,6 +262,7 @@ impl Layer for LSTM {
     }
 
 
+    /// remove the tracers from all the gates in the layer
     fn remove_tracer(&mut self) {
         self.g_gate.remove_tracer();
         self.i_gate.remove_tracer();
@@ -270,7 +272,7 @@ impl Layer for LSTM {
     }
 
 
-
+    /// set the index of the state so the backprop is looking at the same layer iteration
     fn set_trace_index(&mut self, index: usize) { 
         self.g_gate.set_trace_index(index);
         self.i_gate.set_trace_index(index);

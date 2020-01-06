@@ -372,8 +372,8 @@ impl Dense {
         if let Some(tracer) = &mut self.trace_states {
             unsafe {
                 for (n_id, n_ptr) in self.nodes.iter() {
-                    tracer.update_neuron_activation(*n_id, (**n_ptr).value);
-                    tracer.update_neuron_derivative(*n_id, (**n_ptr).d_value);
+                    tracer.update_neuron_activation(n_id, (**n_ptr).value);
+                    tracer.update_neuron_derivative(n_id, (**n_ptr).d_value);
                 }
                 tracer.index += 1;
             }
@@ -485,7 +485,7 @@ impl Layer for Dense {
                             Some(tracer) => step * tracer.neuron_activation((**src_neuron).innov),
                             None => step * (**src_neuron).value
                         };
-                        // let delta = step * (**src_neuron).value; // get the value from time step t if trace is needed
+
                         curr_edge.update(delta, true);
                         (**src_neuron).error += curr_edge.weight * curr_node_error;
                         path.push(curr_edge.src);
@@ -496,7 +496,6 @@ impl Layer for Dense {
             for innov in self.inputs.iter() {
                 output.push((**self.nodes.get_mut(innov)?).error);
             }
-            self.reset_neurons();
             Some(output)
         }
     }
