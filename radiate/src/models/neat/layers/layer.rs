@@ -43,7 +43,7 @@ pub trait Layer: LayerClone + Any + Debug {
 
     /// during backprop, the meta data needs to be accesed somehow and 
     /// that is set through an index of the current layer 
-    fn set_trace_index(&mut self, index: usize) { }
+    fn set_trace_index(&mut self, _: usize) { }
 
 }
 

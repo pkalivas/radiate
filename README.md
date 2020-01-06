@@ -29,7 +29,7 @@ Currently there are two available layers with more on the way.
 pub enum LayerType {
     Dense,      // implemented - typical dense layer of a neural network with no ability to evolve its strucutre 
     DensePool,  // implemented - the algorithm described in the paper meaning a fully functional neural network can be evolved through one dense pool layer
-    LSTM,       // implemented for evolution, not backprop yet.
+    LSTM,       // implemented - uses dense pool for evoution and traditional backpropagation through time for training.
     GRU         // imiplemented for evolution, bot backprop yet.
 }
 ```
@@ -40,6 +40,7 @@ pub enum Activation {
     Sigmoid,       // default
     Tahn,
     Relu,
+    Softmax,
     LeakyRelu(f32),
     ExpRelu(f32),
     Linear(f32)   
