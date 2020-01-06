@@ -44,8 +44,7 @@ impl LayerWrap {
 #[derive(Debug)]
 pub struct Neat {
     pub layers: Vec<LayerWrap>,
-    pub input_size: u32,
-    pub trace: bool
+    pub input_size: u32
 }
 
 
@@ -56,8 +55,7 @@ impl Neat {
     pub fn new() -> Self {
         Neat { 
             layers: Vec::new(),
-            input_size: 0,
-            trace: false
+            input_size: 0
         }
     }
 
@@ -242,8 +240,7 @@ impl Clone for Neat {
                     }
                 })
                 .collect(),
-            input_size: self.input_size,
-            trace: self.trace
+            input_size: self.input_size
         }
     }
 }
@@ -299,7 +296,6 @@ impl Genome<Neat, NeatEnvironment> for Neat {
         Some(Neat { 
             layers: result_layers, 
             input_size: one.input_size, 
-            trace: one.trace 
         })
     }
 
