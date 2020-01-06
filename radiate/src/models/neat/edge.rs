@@ -18,7 +18,6 @@ pub struct Edge {
     pub dst: Uuid, 
     pub innov: Uuid,
     pub weight: f32,
-    pub total_weight_delta: f32,
     pub active: bool
 }
 
@@ -31,7 +30,6 @@ impl Edge {
             dst, 
             innov, 
             weight, 
-            total_weight_delta: 0.0,
             active 
         }
     }
