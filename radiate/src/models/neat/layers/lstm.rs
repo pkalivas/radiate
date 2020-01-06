@@ -65,13 +65,6 @@ impl LSTMState {
         self.memory_states.push(mem_state);
         self.index += 1;
     }
-
-
-    /// each backward step the errors need to be updated with the current errors
-    pub fn update_backward(&mut self, errors: Vec<f32>) {
-        self.errors.push(errors);
-    }
-
 }
 
 
