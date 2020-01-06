@@ -110,25 +110,7 @@ impl LSTM {
             i_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
             f_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
             o_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
-            v_gate: Dense::new(memory_size, output_size, LayerType::Dense, Activation::Sigmoid)
-        }
-    }
-
-
-
-    pub fn new_with_tracer(input_size: u32, memory_size: u32, output_size: u32) -> Self {
-        let cell_input = input_size + memory_size;
-        LSTM {
-            input_size,
-            memory_size,
-            memory: vec![0.0; memory_size as usize],
-            hidden: vec![0.0; memory_size as usize],
-            states: LSTMState::new(),
-            g_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Tahn).add_tracer(),
-            i_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid).add_tracer(),
-            f_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid).add_tracer(),
-            o_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid).add_tracer(),
-            v_gate: Dense::new(memory_size, output_size, LayerType::Dense, Activation::Sigmoid).add_tracer()
+            v_gate: Dense::new(memory_size, output_size, LayerType::DensePool, Activation::Sigmoid)
         }
     }
 
@@ -142,22 +124,6 @@ impl LSTM {
         self.f_gate.set_trace(index);
         self.o_gate.set_trace(index);
         self.v_gate.set_trace(index);
-    }
-
-
-
-    /// After backprop has happened, the historical meta data needs to be reset so that 
-    /// during the next backprop, the index between the historical steps and the tracer meta
-    /// data is the same.
-    fn reset_traces(&mut self) {
-        self.g_gate.reset_tracer();
-        self.i_gate.reset_tracer();
-        self.f_gate.reset_tracer();
-        self.o_gate.reset_tracer();
-        self.v_gate.reset_tracer();
-        self.states = LSTMState::new();
-        self.memory = vec![0.0; self.memory_size as usize];
-        self.hidden = vec![0.0; self.memory_size as usize];
     }
 
 
@@ -277,13 +243,12 @@ impl Layer for LSTM {
         vectorops::element_add(&mut self.memory, &current_state);
         vectorops::element_multiply(&mut current_output, &vectorops::element_activate(&self.memory, Activation::Tahn));
 
-        // keep track of the memory and the current output and the current state
-        self.hidden = current_output;
-        
         // update the state parameters - can this be sped up?
         self.states.update_forward(f_output, i_output, g_output, o_output, self.memory.clone());
         
         // return the output of the layer
+        // keep track of the memory and the current output and the current state
+        self.hidden = current_output;
         self.v_gate.forward(&self.hidden)
     }
 
@@ -294,11 +259,7 @@ impl Layer for LSTM {
     fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32, update: bool) -> Option<Vec<f32>> {
         // regardless of if the network needs to be updated, the error needs to be stored
         self.states.update_backward(errors.clone());
-    
-        // backpropagation throught time if update is true
         if update {
-
-            // need next states as well, but the first iteration they will be 0
             self.states.d_prev_memory.push(vec![0.0; self.memory_size as usize]);      
             self.states.d_prev_hidden.push(vec![0.0; self.memory_size as usize]);          
 
@@ -307,11 +268,43 @@ impl Layer for LSTM {
                 self.step_back(learning_rate, false, i);
             }
             let result = self.step_back(learning_rate, true, 0);
-            self.reset_traces();
+            self.reset();
             return Some(result?);
         }
         Some(errors.clone())
     }
+
+
+
+    fn reset(&mut self) {
+        self.g_gate.reset();
+        self.i_gate.reset();
+        self.f_gate.reset();
+        self.o_gate.reset();
+        self.v_gate.reset();
+        self.states = LSTMState::new();
+        self.memory = vec![0.0; self.memory_size as usize];
+        self.hidden = vec![0.0; self.memory_size as usize];
+    }
+
+
+    fn add_tracer(&mut self) {
+        self.g_gate.add_tracer();
+        self.i_gate.add_tracer();
+        self.f_gate.add_tracer();
+        self.o_gate.add_tracer();
+        self.v_gate.add_tracer();
+    }
+
+
+    fn remove_tracer(&mut self) {
+        self.g_gate.remove_tracer();
+        self.i_gate.remove_tracer();
+        self.f_gate.remove_tracer();
+        self.o_gate.remove_tracer();
+        self.v_gate.remove_tracer();
+    }
+
 
 
     fn as_ref_any(&self) -> &dyn Any
@@ -321,11 +314,14 @@ impl Layer for LSTM {
     }
 
 
+
     fn as_mut_any(&mut self) -> &mut dyn Any
         where Self: Sized + 'static
     {
         self
     }
+
+
 
     fn shape(&self) -> (usize, usize) {
         (self.input_size as usize, self.memory_size as usize)
@@ -390,7 +386,7 @@ impl Genome<LSTM, NeatEnvironment> for LSTM
         result += Dense::distance(&one.i_gate, &two.i_gate, env);
         result += Dense::distance(&one.f_gate, &two.f_gate, env);
         result += Dense::distance(&one.o_gate, &two.o_gate, env);
-        // result += Dense::distance(&one.v_gate, &two.v_gate, env);
+        result += Dense::distance(&one.v_gate, &two.v_gate, env);
         result
     }
 }

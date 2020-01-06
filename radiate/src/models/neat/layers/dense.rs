@@ -88,14 +88,6 @@ impl Dense {
 
 
 
-    /// add a tracer to the layer to keep track of historical meta data
-    pub fn add_tracer(mut self) -> Self {
-        self.trace_states = Some(Tracer::new());
-        self
-    }
-
-
-
     /// set the historical states to use during backpropagation
     /// this should really only be used for backpropagation through
     /// time, layers like lstm and gru will use this for training
@@ -103,16 +95,6 @@ impl Dense {
         match &mut self.trace_states {
             Some(tracer) => tracer.set_index(trace_index),
             None => panic!("Cannot set trace index on None tracer_states")
-        }
-    }
-
-
-
-    /// reset the layer's tracer to erase the historical meta data
-    pub fn reset_tracer(&mut self) {
-        match &mut self.trace_states {
-            Some(tracer) => tracer.reset(),
-            None => panic!("Cannot rest None tracer")
         }
     }
 
@@ -531,6 +513,27 @@ impl Layer for Dense {
         }
     }
 
+
+
+    fn reset(&mut self) {
+        match &mut self.trace_states {
+            Some(tracer) => tracer.reset(),
+            None => panic!("Cannot rest None tracer")
+        }
+        unsafe { self.reset_neurons(); }
+    }
+
+
+    /// add a tracer to the layer to keep track of historical meta data
+    fn add_tracer(&mut self) {
+        self.trace_states = Some(Tracer::new());
+    }
+
+
+    fn remove_tracer(&mut self) {
+        self.trace_states = None;
+    }
+    
 
     
     fn as_ref_any(&self) -> &dyn Any

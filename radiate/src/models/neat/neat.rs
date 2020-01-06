@@ -77,6 +77,21 @@ impl Neat {
     }
 
 
+    /// reset the layers on the network
+    pub fn reset(&mut self) {
+        for l in self.layers.iter_mut() {
+            l.layer.reset();
+        }
+    }
+
+
+    pub fn add_tracers(&mut self) {
+        for l in self.layers.iter_mut() {
+            l.layer.add_tracer();
+        }
+    }
+
+
 
     /// train the network
     #[inline]
@@ -145,9 +160,11 @@ impl Neat {
         let (input_size, output_size) = self.get_layer_sizes(size).unwrap();
         let wrapper =  match self.trace {
             true => {
+                let mut dense = Dense::new(input_size, output_size, LayerType::DensePool, activation);
+                dense.add_tracer();
                 LayerWrap {
                     layer_type: LayerType::DensePool,
-                    layer: Box::new(Dense::new(input_size, output_size, LayerType::DensePool, activation).add_tracer())
+                    layer: Box::new(dense)
                 }
             },
             false => {
@@ -169,9 +186,11 @@ impl Neat {
         let (input_size, output_size) = self.get_layer_sizes(size).unwrap();
         let wrapper =  match self.trace {
             true => {
+                let mut dense = Dense::new(input_size, output_size, LayerType::Dense, activation);
+                dense.add_tracer();
                 LayerWrap {
                     layer_type: LayerType::Dense,
-                    layer: Box::new(Dense::new(input_size, output_size, LayerType::Dense, activation).add_tracer())
+                    layer: Box::new(dense)
                 }
             },
             false => {
@@ -193,9 +212,11 @@ impl Neat {
         let (input_size, output_size) = self.get_layer_sizes(output_size).unwrap();
         let wrapper = match self.trace {
             true => {
+                let mut lstm = LSTM::new(input_size, size, output_size);
+                lstm.add_tracer();
                 LayerWrap {
                     layer_type: LayerType::LSTM,
-                    layer: Box::new(LSTM::new_with_tracer(input_size, size, output_size))
+                    layer: Box::new(lstm)
                 }   
             },
             false => {

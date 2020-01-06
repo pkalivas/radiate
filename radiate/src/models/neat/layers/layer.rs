@@ -32,6 +32,13 @@ pub trait Layer: LayerClone + Any + Debug {
     /// so the user only needs the say the size of the output, not the input. That would be too redundant.
     fn shape(&self) -> (usize, usize);
 
+    /// reset the layer, not a nessesary implementation
+    fn reset(&mut self) { }
+
+    fn add_tracer(&mut self) { }
+
+    fn remove_tracer(&mut self) { }
+
 }
 
 
