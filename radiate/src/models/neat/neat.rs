@@ -118,6 +118,7 @@ impl Neat {
         Ok(())
     }
 
+    
 
     /// backpropagate the network, will move throgh time if needed
     #[inline]
