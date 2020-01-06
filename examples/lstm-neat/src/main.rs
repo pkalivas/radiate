@@ -53,7 +53,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let data = MemoryTest::new();
         data.show(&mut solution);
         
-        solution.train(&data.input, &data.output, 200, 1.0, 7)?;
+        solution.train(&data.input, &data.output, 200, 0.3, 7)?;
         data.show(&mut solution);
         
         solution.reset();

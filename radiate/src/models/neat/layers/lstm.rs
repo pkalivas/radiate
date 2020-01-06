@@ -31,8 +31,8 @@ pub struct LSTMState {
     pub s_gate_output: Vec<Vec<f32>>,
     pub o_gate_output: Vec<Vec<f32>>,
     pub memory_states: Vec<Vec<f32>>,
-    pub d_prev_memory: Vec<Vec<f32>>,
-    pub d_prev_hidden: Vec<Vec<f32>>
+    pub d_prev_memory: Option<Vec<f32>>,
+    pub d_prev_hidden: Option<Vec<f32>>
 }
 
 
@@ -48,8 +48,8 @@ impl LSTMState {
             s_gate_output: Vec::new(),
             o_gate_output: Vec::new(),
             memory_states: Vec::new(),
-            d_prev_memory: Vec::new(),
-            d_prev_hidden: Vec::new()
+            d_prev_memory: None,
+            d_prev_hidden: None
         }
     }
 
@@ -115,8 +115,8 @@ impl LSTM {
     #[inline]
     pub fn step_back(&mut self, errors: &Vec<f32>, l_rate: f32, index: usize) -> Option<Vec<f32>> {
         // get the derivative of the cell and hidden state from the previous step as well as the previous memory state
-        let dh_next = self.states.d_prev_hidden.last()?;
-        let dc_next = self.states.d_prev_memory.last()?;
+        let dh_next = self.states.d_prev_hidden.clone()?;
+        let dc_next = self.states.d_prev_memory.clone()?;
         let c_old = self.states.memory_states.get(index)?.clone();
         
         // compute the hidden to output gradient
@@ -177,8 +177,8 @@ impl LSTM {
         
         // Gradient for c_old in c = hf * c_old + hi * hc     
         // dc_next = hf * dc
-        self.states.d_prev_hidden.push(dh_next);
-        self.states.d_prev_memory.push(dc_next);
+        self.states.d_prev_hidden = Some(dh_next);
+        self.states.d_prev_memory = Some(dc_next);
 
         // return the error of the input given to the layer
         Some(dx[self.memory_size as usize..].to_vec())
@@ -229,8 +229,10 @@ impl Layer for LSTM {
     /// apply backpropagation through time 
     #[inline]
     fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32) -> Option<Vec<f32>> {
-        self.states.d_prev_memory.push(vec![0.0; self.memory_size as usize]);      
-        self.states.d_prev_hidden.push(vec![0.0; self.memory_size as usize]);          
+        if self.states.d_prev_hidden.is_none() && self.states.d_prev_memory.is_none() {
+            self.states.d_prev_memory = Some(vec![0.0; self.memory_size as usize]);      
+            self.states.d_prev_hidden = Some(vec![0.0; self.memory_size as usize]);          
+        }
 
         // preform the step back for this iteration
         self.step_back(errors, learning_rate, self.states.index)
