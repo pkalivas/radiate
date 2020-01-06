@@ -33,11 +33,6 @@ impl Tracer {
     }
 
 
-    pub fn incremnt_tracer(&mut self) {
-        self.index += 1;
-    }
-
-
     pub fn reset(&mut self) {
         self.neuron_activation = HashMap::new();
         self.neuron_derivative = HashMap::new();
@@ -74,28 +69,12 @@ impl Tracer {
     }
 
 
-    // pub fn pop_a_neuron(&mut self, id: &Uuid) -> Option<f32> {
-    //     if !self.neuron_activation.contains_key(id) {
-    //         panic!("Tracer neuron activation doesn't contain uuid: {:?}", id);  
-	// 	}
-    //     self.neuron_activation.get_mut(id)?.pop()
-    // }
-
-
-    // pub fn pop_d_neuron(&mut self, id: &Uuid) -> Option<f32> {
-    //     if !self.neuron_derivative.contains_key(id) {
-    //         panic!("Tracer neuron derivative doesn't contain uuid: {:?}", id);
-    //     }
-    //     self.neuron_derivative.get_mut(id)?.pop()
-    // }
-
-
 
     pub fn neuron_activation(&self, neuron_id: Uuid) -> f32 {
         if !self.neuron_activation.contains_key(&neuron_id) {
             panic!("Tracer neuron state doesn't contain uuid: {:?}", neuron_id);
         }
-        self.neuron_activation.get(&neuron_id).unwrap()[self.index]
+        self.neuron_activation.get(&neuron_id).unwrap()[self.index - 1]
     }
 
 
@@ -103,7 +82,7 @@ impl Tracer {
         if !self.neuron_derivative.contains_key(&neuron_id) {
             panic!("Tracer neuron state doesn't contain uuid: {:?}", neuron_id);
         }
-        self.neuron_derivative.get(&neuron_id).unwrap()[self.index]
+        self.neuron_derivative.get(&neuron_id).unwrap()[self.index - 1]
     }
 
 

@@ -20,41 +20,41 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_activation_functions(vec![
             Activation::Sigmoid,
             Activation::Relu,
-            Activation::Tahn
         ]);
 
 
     let starting_net = Neat::new()
         .input_size(1)
-        .lstm(7, 1);
+        .lstm(1, 1);
     
-    let num_evolve = 20;
+    let num_evolve = 50;
     let (mut solution, _) = Population::<Neat, NeatEnvironment, MemoryTest>::new()
         .constrain(neat_env)
         .size(100)
         .populate_clone(starting_net)
         .debug(true)
         .dynamic_distance(true)
+        .stagnation(15, vec![Genocide::KillWorst(0.9)])
         .configure(Config {
             inbreed_rate: 0.001,
             crossover_rate: 0.75,
             distance: 0.5,
             species_target: 5
         })
-        .stagnation(15, vec![
-            Genocide::KillWorst(0.9)
-        ])
         .run(|_, fit, num| {
             println!("Generation: {} score: {}", num, fit);
-            let diff = 1.0 - fit;
-            num == num_evolve || (diff > 0.0 && diff < 0.01)
+            num == num_evolve
         })?;
         
+
         let data = MemoryTest::new();
         data.show(&mut solution);
         
-        solution.train(&data.input, &data.output, 200, 0.3, 7)?;
+
+        solution.train(&data.input, &data.output, 200, 0.5, 7)?;
+        println!("{:#?}", solution);
         data.show(&mut solution);
+        
         
         solution.reset();
         println!("Score: {:?}", data.solve(&mut solution));

@@ -219,8 +219,10 @@ impl Layer for LSTM {
         vectorops::element_add(&mut self.memory, &current_state);
         vectorops::element_multiply(&mut current_output, &vectorops::element_activate(&self.memory, Activation::Tahn));
 
-        // update the state parameters - can this be sped up?
-        self.states.update_forward(f_output, i_output, g_output, o_output, self.memory.clone());
+        // update the state parameters only if the gates are traceable and the data needs to be collected
+        // if let Some(_) = &self.f_gate.trace_states {
+            self.states.update_forward(f_output, i_output, g_output, o_output, self.memory.clone());
+        // }
         
         // return the output of the layer
         // keep track of the memory and the current output and the current state
@@ -276,17 +278,6 @@ impl Layer for LSTM {
         self.o_gate.remove_tracer();
         self.v_gate.remove_tracer();
     }
-
-
-    /// set the index of the state so the backprop is looking at the same layer iteration
-    fn set_trace_index(&mut self, index: usize) { 
-        self.g_gate.set_trace_index(index);
-        self.i_gate.set_trace_index(index);
-        self.f_gate.set_trace_index(index);
-        self.o_gate.set_trace_index(index);
-        self.v_gate.set_trace_index(index);
-    }
-
 
 
 

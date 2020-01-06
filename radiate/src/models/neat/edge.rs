@@ -40,12 +40,8 @@ impl Edge {
 
     /// update the weight of this edge connection
     #[inline]
-    pub fn update(&mut self, delta: f32, update: bool) {
-        self.total_weight_delta += delta;
-        if update {
-            self.weight += self.total_weight_delta;
-            self.total_weight_delta = 0.0;
-        }
+    pub fn update(&mut self, delta: f32) {
+        self.weight += delta;
     }
 
 

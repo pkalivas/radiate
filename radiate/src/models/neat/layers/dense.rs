@@ -486,12 +486,19 @@ impl Layer for Dense {
                             None => step * (**src_neuron).value
                         };
 
-                        curr_edge.update(delta, true);
+                        curr_edge.update(delta);
                         (**src_neuron).error += curr_edge.weight * curr_node_error;
                         path.push(curr_edge.src);
                     }
                 }
             }
+
+            // deduct the backprop index 
+            if let Some(tracer) = &mut self.trace_states {
+                tracer.index -= 1;
+            }
+
+            // gather and return the output of the backwards pass
             let mut output = Vec::with_capacity(self.inputs.len());
             for innov in self.inputs.iter() {
                 output.push((**self.nodes.get_mut(innov)?).error);
@@ -518,14 +525,6 @@ impl Layer for Dense {
 
     fn remove_tracer(&mut self) {
         self.trace_states = None;
-    }
-
-
-    fn set_trace_index(&mut self, index: usize) { 
-        match &mut self.trace_states {
-            Some(tracer) => tracer.set_index(index),
-            None => panic!("Cannot set trace index on None tracer_states")
-        }
     }
 
 

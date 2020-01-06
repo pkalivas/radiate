@@ -41,10 +41,6 @@ pub trait Layer: LayerClone + Any + Debug {
     /// remove the tracer from a layer so that it can be evolved without keeping grack of data
     fn remove_tracer(&mut self) { }
 
-    /// during backprop, the meta data needs to be accesed somehow and 
-    /// that is set through an index of the current layer 
-    fn set_trace_index(&mut self, _: usize) { }
-
 }
 
 

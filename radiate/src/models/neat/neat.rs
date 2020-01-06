@@ -125,7 +125,6 @@ impl Neat {
                 .iter_mut()
                 .rev()
                 .fold(vectorops::subtract(&net_targets[i], &net_outs[i]), |res, curr| {
-                    curr.layer.set_trace_index(i);
                     curr.layer.backward(&res, rate).unwrap()
                 });
         }
@@ -145,11 +144,7 @@ impl Neat {
             data_transfer = &temp;
         }
         // gather the output and return it as an option
-        let output = data_transfer
-            .iter()
-            .map(|x| *x)
-            .collect();
-        Some(output)
+        Some(data_transfer.iter().map(|x| *x).collect())
     }    
 
 
