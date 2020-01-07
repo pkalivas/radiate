@@ -220,9 +220,9 @@ impl Layer for LSTM {
         vectorops::element_multiply(&mut current_output, &vectorops::element_activate(&self.memory, Activation::Tahn));
 
         // update the state parameters only if the gates are traceable and the data needs to be collected
-        // if let Some(_) = &self.f_gate.trace_states {
+        if let Some(_) = &self.f_gate.trace_states {
             self.states.update_forward(f_output, i_output, g_output, o_output, self.memory.clone());
-        // }
+        }
         
         // return the output of the layer
         // keep track of the memory and the current output and the current state
