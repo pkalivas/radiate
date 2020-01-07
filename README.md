@@ -222,11 +222,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         .dense(1, Activation::Sigmoid);
         
     let xor = XOR::new();
-    for _ in 0..100 {
-        xor.backprop(&mut net);
-    }
-
+    net.train(&xor.inputs, &xor.answers, 100, 0.3, 1);
     xor.show(&mut net);
+
     println!("Time in millis: {}", thread_time.elapsed().as_millis());
     Ok(())
 }
@@ -252,12 +250,6 @@ impl XOR {
                 vec![1.0],
                 vec![1.0],
             ]
-        }
-    }
-
-    fn backprop(&self, model: &mut Neat) {
-        for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
-            model.backprop(i, o, 0.3);
         }
     }
 

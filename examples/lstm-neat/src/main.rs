@@ -66,6 +66,7 @@ fn main() -> Result<(), Box<dyn Error>> {
  
 
 
+
 #[derive(Debug)]
 pub struct MemoryTest {
     input: Vec<Vec<f32>>,
@@ -95,6 +96,8 @@ impl MemoryTest {
             ]
         }
     }
+
+
 
     pub fn show(&self, model: &mut Neat) {
         for (i, o) in self.input.iter().zip(self.output.iter()) {
@@ -151,9 +154,6 @@ impl Problem<Neat> for MemoryTest {
                 None => panic!("Error in training NEAT")
             }
         }
-        println!("{:#?}", model);
-        use std::process;
-        process::exit(0);
         total /= self.input.len() as f32;
         1.0 - total
     }
