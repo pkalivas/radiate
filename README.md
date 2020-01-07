@@ -39,7 +39,7 @@ pub enum Activation {
     Sigmoid,       // default
     Tahn,
     Relu,
-    Softmax,
+    Softmax,       // will only be used on output neurons of a layer
     LeakyRelu(f32),
     ExpRelu(f32),
     Linear(f32)   
