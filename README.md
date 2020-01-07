@@ -27,10 +27,9 @@ Also known as Neuroevolution of Augmented Topologies, is the algorithm described
 Currently there are two available layers with more on the way.
 ```rust
 pub enum LayerType {
-    Dense,      // implemented - typical dense layer of a neural network with no ability to evolve its strucutre 
-    DensePool,  // implemented - the algorithm described in the paper meaning a fully functional neural network can be evolved through one dense pool layer
-    LSTM,       // implemented - uses dense pool for evoution and traditional backpropagation through time for training.
-    GRU         // imiplemented for evolution, bot backprop yet.
+    Dense,      // typical dense layer of a neural network with no ability to evolve its strucutre 
+    DensePool,  // the algorithm described in the paper meaning a fully functional neural network can be evolved through one dense pool layer
+    LSTM,       // uses dense pool for evoution and traditional backpropagation through time for training.
 }
 ```
 All neural networks need nonlinear functions to represent complex datasets. Neat 

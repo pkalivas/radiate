@@ -9,7 +9,6 @@ use super::{
         layer::Layer,
         dense::Dense,
         lstm::LSTM,
-        gru::GRU,
         layertype::LayerType,
         vectorops
     }
@@ -189,20 +188,6 @@ impl Neat {
         self
     }
 
-
-
-    /// create a new lstm layer and add it to the network
-    #[inline]
-    pub fn gru(mut self, size: u32, output_size: u32) -> Self {
-        let (input_size, output_size) = self.get_layer_sizes(output_size).unwrap();
-        let wrapper = LayerWrap {
-            layer_type: LayerType::GRU,
-            layer: Box::new(GRU::new(input_size, size, output_size))
-        };
-        self.layers.push(wrapper);
-        self
-    }
-
     
 
     /// in order to more efficently give inputs to the network, this function simple 
@@ -275,9 +260,6 @@ impl Genome<Neat, NeatEnvironment> for Neat {
                 },
                 LayerType::LSTM => {
                     Box::new(LSTM::crossover(one_layer.as_ref(), two_layer.as_ref(), env, crossover_rate)?)
-                },
-                LayerType::GRU => {
-                    Box::new(GRU::crossover(one_layer.as_ref(), two_layer.as_ref(), env, crossover_rate)?)
                 }
             };
 
@@ -310,9 +292,6 @@ impl Genome<Neat, NeatEnvironment> for Neat {
                 },
                 LayerType::LSTM => {
                     LSTM::distance(layer_one.as_ref(), layer_two.as_ref(), env)
-                },
-                LayerType::GRU => {
-                    GRU::distance(layer_one.as_ref(), layer_two.as_ref(), env)
                 }
             };
         }
