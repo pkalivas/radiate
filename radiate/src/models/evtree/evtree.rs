@@ -382,7 +382,7 @@ impl Drop for Evtree {
                 if (&*curr_node).has_right_child() {
                     stack.push((&*curr_node).right_child);
                 }
-                ptr::drop_in_place(curr_node);
+                drop(Box::from_raw(curr_node));
             }
         }
     }
