@@ -14,8 +14,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
         .set_weight_perturb(1.7)
-        .set_new_node_rate(0.03)
-        .set_new_edge_rate(0.04)
+        .set_new_node_rate(0.05)
+        .set_new_edge_rate(0.05)
         .set_reactivate(0.2)
         .set_activation_functions(vec![
             Activation::Sigmoid,
@@ -25,10 +25,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let starting_net = Neat::new()
         .input_size(1)
-        .lstm(2, 2)
-        .dense_pool(1, Activation::Sigmoid);        
+        .lstm(1, 1);
 
-    let num_evolve = 100;
+    let num_evolve = 75;
     let (mut solution, _) = Population::<Neat, NeatEnvironment, MemoryTest>::new()
         .constrain(neat_env)
         .size(100)

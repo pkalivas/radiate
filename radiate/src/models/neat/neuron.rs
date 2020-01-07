@@ -71,6 +71,7 @@ impl Neuron {
 
 
     
+    /// 𝜎(Σ(w * i) + b)
     /// activate this node by calling the underlying neuron's logic for activation
     /// given the hashmap of <incoming edge innov, Option<incoming Neuron output value>>
     #[inline]
