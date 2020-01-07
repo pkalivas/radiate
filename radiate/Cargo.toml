@@ -1,6 +1,6 @@
 [package]
 name = "radiate"
-version = "1.0.6"
+version = "1.0.7"
 authors = ["pkalivas <peterkalivas@gmail.com>"]
 description = "Parallel genetic programming engine capable of evolving solutions for supervised, unsupervised, and general reinforcement learning problems"
 repository = "https://github.com/pkalivas/radiate"

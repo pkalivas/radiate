@@ -94,7 +94,7 @@ git clone https://github.com/pkalivas/radiate.git
 cd radiate
 cargo build --verbose && cargo run --bin xor-neat-backprop
 ```
-On my computer (Windows 10, x64-based, i7-7700 @ 4.20GHz, 32GB RAM) this finishes in about 6 seconds.
+On my computer (Windows 10, x64-based, i7-7700 @ 4.20GHz, 32GB RAM) this finishes in about 3 seconds.
 ```rust
 extern crate radiate;
 use std::error::Error;
@@ -116,9 +116,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             Activation::Relu,
         ]);
 
+    // this can also be solved fine with just one lstm layer of memory size 1 and output size 1
     let starting_net = Neat::new()
         .input_size(1)
-        .lstm(1, 1);    // first number is the size of the memory, second is the size of the output
+        .lstm(2, 2)                         // first number is the size of the memory, second is the size of the output
+        .dense(1, Actiavtion::Sigmoid);     // Activation is the activation of the output neurons
     
     let num_evolve = 100;
     let (mut solution, _) = Population::<Neat, NeatEnvironment, MemoryTest>::new()
@@ -212,63 +214,6 @@ impl Problem<Neat> for MemoryTest {
         }
         total /= self.input.len() as f32;
         1.0 - total
-    }
-}
-```
-Neat can also be constructed as a traditional neural network as such:
-```rust
-extern crate radiate;
-use std::error::Error;
-use std::time::Instant;
-use radiate::prelude::*;
-
-fn main() -> Result<(), Box<dyn Error>> {
-       
-    let thread_time = Instant::now();
-    let mut net = Neat::new()
-        .input_size(2)
-        .dense(7, Activation::Relu)     // number is the size of the output of the layer
-        .dense(7, Activation::Relu)
-        .dense(1, Activation::Sigmoid);
-        
-    let xor = XOR::new();
-    net.train(&xor.inputs, &xor.answers, 100, 0.3, 1);
-    xor.show(&mut net);
-
-    println!("Time in millis: {}", thread_time.elapsed().as_millis());
-    Ok(())
-}
-
-#[derive(Debug)]
-pub struct XOR {
-    inputs: Vec<Vec<f32>>,
-    answers: Vec<Vec<f32>>
-}
-
-impl XOR {
-    pub fn new() -> Self {
-        XOR {
-            inputs: vec![
-                vec![0.0, 0.0],
-                vec![1.0, 1.0],
-                vec![1.0, 0.0],
-                vec![0.0, 1.0],
-            ],
-            answers: vec![
-                vec![0.0],
-                vec![0.0],
-                vec![1.0],
-                vec![1.0],
-            ]
-        }
-    }
-
-    fn show(&self, model: &mut Neat) {
-        println!("\n");
-        for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
-            let guess = model.feed_forward(&i).unwrap();
-            println!("Guess: {:.2?} Answer: {:.2}", guess, o[0]);
-        }
     }
 }
 ```

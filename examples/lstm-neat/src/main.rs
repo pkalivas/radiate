@@ -25,8 +25,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let starting_net = Neat::new()
         .input_size(1)
-        .lstm(1, 1);        
-    
+        .lstm(2, 2)
+        .dense_pool(1, Activation::Sigmoid);        
+
     let num_evolve = 100;
     let (mut solution, _) = Population::<Neat, NeatEnvironment, MemoryTest>::new()
         .constrain(neat_env)
