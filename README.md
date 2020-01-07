@@ -118,7 +118,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let starting_net = Neat::new()
         .input_size(1)
-        .lstm(1, 1);        
+        .lstm(1, 1);    // first number is the size of the memory, second is the size of the output
     
     let num_evolve = 100;
     let (mut solution, _) = Population::<Neat, NeatEnvironment, MemoryTest>::new()
@@ -227,7 +227,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let thread_time = Instant::now();
     let mut net = Neat::new()
         .input_size(2)
-        .dense(7, Activation::Relu)
+        .dense(7, Activation::Relu)     // number is the size of the output of the layer
         .dense(7, Activation::Relu)
         .dense(1, Activation::Sigmoid);
         
