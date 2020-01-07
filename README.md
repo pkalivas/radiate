@@ -87,14 +87,14 @@ pub fn run<F>(&mut self, runner: F) -> Result<(T, E), &'static str>
         E: Clone
 ```
 ## Example
-Quick example of optimizing the NEAT algorithm to find a graph where the sum of all edges is .0001 away from 100.
+Quick example of evolving an lstm network for a few generations then fine-tuning it with backpropagation. Uncommenting out freestyle() will let the trained model predict off of it's previous output and continue on as so.
 To run this:
 ```bash
 git clone https://github.com/pkalivas/radiate.git
 cd radiate
 cargo build --verbose && cargo run --bin xor-neat-backprop
 ```
-On my computer (Windows 10, x64-based, i7-7700 @ 4.20GHz, 32GB RAM) this finishes in about 15 seconds.
+On my computer (Windows 10, x64-based, i7-7700 @ 4.20GHz, 32GB RAM) this finishes in about 6 seconds.
 ```rust
 extern crate radiate;
 use std::error::Error;
@@ -180,11 +180,7 @@ impl MemoryTest {
 
     pub fn freestyle(&self, iters: usize, model: &mut Neat) {
         let round = |x| {
-            if x < 0.5 {
-                0.0
-            } else {
-                1.0
-            }
+            if x < 0.5 { 0.0 } else { 1.0 }
         };  
         let expec = vec![vec![0.0], vec![0.0], vec![0.0], vec![1.0]];
         let mut guess = round(model.forward(&vec![1.0]).unwrap()[0]);
