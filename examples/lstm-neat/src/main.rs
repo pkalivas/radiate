@@ -46,11 +46,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             num == num_evolve
         })?;
         
-        println!("{:#?}", solution);
         let data = MemoryTest::new();
-        data.show(&mut solution);
+        MemoryTest::new().show(&mut solution);
         
-
         solution.train(&data.input, &data.output, 200, 0.3, 7)?;
         println!("{:#?}", solution);
 
