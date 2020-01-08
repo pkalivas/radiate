@@ -9,6 +9,7 @@ use std::sync::{Arc, RwLock};
 use rand::Rng;
 use rand::seq::SliceRandom;
 use uuid::Uuid;
+
 use super::{
     layertype::LayerType,
     layer::Layer,

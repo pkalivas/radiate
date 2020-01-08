@@ -1,7 +1,9 @@
 extern crate rand;
+extern crate serde_json;
 
 use std::error::Error;
 use std::sync::{Arc, RwLock};
+
 use super::{
     neatenv::NeatEnvironment,
     activation::Activation,
@@ -15,6 +17,7 @@ use super::{
 };
 
 use crate::engine::genome::Genome;
+
 
 
 

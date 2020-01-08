@@ -15,4 +15,6 @@ license = "MIT"
 rand="0.7.2"
 simple-matrix="0.1.2"
 rayon="1.2.0"
-uuid = { version = "0.8", features = ["v4"] }
+uuid = { version = "0.8", features = ["serde", "v4"] }
+serde = {version ="1.0"}
+serde_json="*"

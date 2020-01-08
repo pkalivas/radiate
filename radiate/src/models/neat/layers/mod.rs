@@ -7,12 +7,14 @@ pub mod vectorops;
 
 pub mod layertype {
 
+
     #[derive(Debug, PartialEq, Clone, Copy)]
     pub enum LayerType {
         DensePool,
         Dense,
         LSTM 
     }
+
 }
 
 

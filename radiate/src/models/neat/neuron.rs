@@ -6,10 +6,9 @@ use std::fmt;
 use std::collections::HashMap;
 use rand::Rng;
 use uuid::Uuid;
+
 use super::activation::Activation;
 use super::neurontype::NeuronType;
-
-
 
 
 

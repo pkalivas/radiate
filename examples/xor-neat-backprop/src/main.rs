@@ -1,7 +1,7 @@
 
 
-
 extern crate radiate;
+extern crate serde_json;
 
 use std::error::Error;
 use std::time::Instant;
@@ -23,7 +23,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     
     println!("{:#?}", net);
     xor.show(&mut net);
+    println!("{}", serde_json::to_string_pretty(&net)?);
     println!("Time in millis: {}", final_time);
+
     Ok(())
 }
 
