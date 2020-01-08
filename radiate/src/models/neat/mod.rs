@@ -1,4 +1,3 @@
-// pub mod neuron;
 pub mod neat;
 pub mod edge;
 pub mod neatenv;
@@ -327,13 +326,13 @@ pub mod inputoutput {
         {
             let mut s = serializer.serialize_struct("Neuron", 10)?;
             s.serialize_field("innov", &self.innov)?;
-            s.serialize_field("outgoing", &self.outgoing)?;
-            s.serialize_field("incoming", &self.incoming)?;
             s.serialize_field("bias", &self.bias)?;
             s.serialize_field("value", &self.value)?;
             s.serialize_field("d_value", &self.d_value)?;
-            s.serialize_field("state", &self.state)?;
             s.serialize_field("error", &self.error)?;
+            s.serialize_field("state", &self.state)?;
+            s.serialize_field("outgoing", &self.outgoing)?;
+            s.serialize_field("incoming", &self.incoming)?;
             s.serialize_field("activation", &self.activation)?;
             s.serialize_field("neuron_type", &self.neuron_type)?;
             s.end()

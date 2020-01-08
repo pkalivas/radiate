@@ -52,6 +52,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         MemoryTest::new().show(&mut solution);
         
         solution.train(&data.input, &data.output, 200, 0.3, 7)?;
+        println!("{}", serde_json::to_string_pretty(&solution)?);
 
         // data.freestyle(12, &mut solution);
         data.show(&mut solution);
@@ -59,7 +60,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         solution.reset();
         println!("Score: {:?}", data.solve(&mut solution));
         println!("\nTime in millis: {}", thread_time.elapsed().as_millis());
-        // println!("{}", serde_json::to_string_pretty(&solution)?);
 
         Ok(())
 }
