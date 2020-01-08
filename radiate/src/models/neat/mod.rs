@@ -151,8 +151,13 @@ pub mod inputoutput {
         {
             let mut s = serializer.serialize_struct("Activation", 1)?;
             match self {
-                Self::Sigmoid => s.serialize_field("act", &1)?,
-                _ => s.serialize_field("act", &2)?
+                Self::Sigmoid => s.serialize_field("sigmoid", &1)?,
+                Self::Tahn => s.serialize_field("tahn", &1)?,
+                Self::Relu => s.serialize_field("tahn", &1)?,
+                Self::Softmax => s.serialize_field("softmax", &1)?,
+                Self::Linear(x) => s.serialize_field("linear", &x)?,
+                Self::LeakyRelu(x) => s.serialize_field("leakyrelu", &x)?,
+                Self::ExpRelu(x) => s.serialize_field("exprelu", &x)?,
             }
             s.end()
         }
@@ -167,15 +172,16 @@ pub mod inputoutput {
         {
             let mut s = serializer.serialize_struct("NeuronType", 1)?;
             match self {
-                Self::Input => s.serialize_field("type", &1)?,
-                _ => s.serialize_field("type", &2)?
+                Self::Input => s.serialize_field("type", &"Input")?,
+                Self::Hidden => s.serialize_field("type", &"Hidden")?,
+                Self::Output => s.serialize_field("type", &"Output")?,
             }
             s.end()
         }
     }
 
 
-    
+
     impl Serialize for LayerType {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where

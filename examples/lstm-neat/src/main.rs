@@ -29,7 +29,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .input_size(1)
         .lstm(1, 1);
 
-    let num_evolve = 75;
+    let num_evolve = 100;
     let (mut solution, _) = Population::<Neat, NeatEnvironment, MemoryTest>::new()
         .constrain(neat_env)
         .size(100)
@@ -52,16 +52,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         MemoryTest::new().show(&mut solution);
         
         solution.train(&data.input, &data.output, 200, 0.3, 7)?;
-        
+
         // data.freestyle(12, &mut solution);
         data.show(&mut solution);
     
         solution.reset();
         println!("Score: {:?}", data.solve(&mut solution));
         println!("\nTime in millis: {}", thread_time.elapsed().as_millis());
-        println!("{}", serde_json::to_string_pretty(&solution)?);
+        // println!("{}", serde_json::to_string_pretty(&solution)?);
 
-        
         Ok(())
 }
  
