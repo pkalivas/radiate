@@ -9,11 +9,10 @@ pub mod tracer;
 
 pub mod activation {
 
-
     use std::f32::consts::E as Eul;
 
     /// Varius activation functions for a neuron, must be specified at creation
-    #[derive(Debug, PartialEq, Clone, Copy)]
+    #[derive(Deserialize, Serialize, Debug, PartialEq, Clone, Copy)]
     pub enum Activation {
         Sigmoid,
         Tahn,
@@ -112,7 +111,7 @@ pub mod neurontype {
     
     /// Because NEAT isn't exactly a traditional neural network there are no 'layers'.
     /// However there does need to be input nodes, hidden nodes, and output nodes.
-    #[derive(Debug, PartialEq, Clone, Copy)]
+    #[derive(Deserialize, Serialize, Debug, PartialEq, Clone, Copy)]
     pub enum NeuronType {
         Input,
         Output,
@@ -128,6 +127,7 @@ pub mod neurontype {
 pub mod inputoutput {
 
     use serde::ser::{Serialize, SerializeStruct, Serializer};
+    use serde::de::{self, Deserialize, Deserializer, Visitor, SeqAccess, MapAccess};
     use serde_json::json;
 
     use super::neat::Neat;
@@ -143,41 +143,42 @@ pub mod inputoutput {
 
 
 
-    impl Serialize for Activation {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            let mut s = serializer.serialize_struct("Activation", 1)?;
-            match self {
-                Self::Sigmoid => s.serialize_field("sigmoid", &1)?,
-                Self::Tahn => s.serialize_field("tahn", &1)?,
-                Self::Relu => s.serialize_field("tahn", &1)?,
-                Self::Softmax => s.serialize_field("softmax", &1)?,
-                Self::Linear(x) => s.serialize_field("linear", &x)?,
-                Self::LeakyRelu(x) => s.serialize_field("leakyrelu", &x)?,
-                Self::ExpRelu(x) => s.serialize_field("exprelu", &x)?,
-            }
-            s.end()
-        }
-    }
+    /// serialize and deserialize the activation struct
+    // impl Serialize for Activation {
+    //     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    //     where
+    //         S: Serializer,
+    //     {
+    //         let mut s = serializer.serialize_struct("Activation", 1)?;
+    //         match self {
+    //             Self::Sigmoid => s.serialize_field("Sigmoid", &1)?,
+    //             Self::Tahn => s.serialize_field("Tahn", &1)?,
+    //             Self::Relu => s.serialize_field("Relu", &1)?,
+    //             Self::Softmax => s.serialize_field("Softmax", &1)?,
+    //             Self::Linear(x) => s.serialize_field("Linear", &x)?,
+    //             Self::LeakyRelu(x) => s.serialize_field("LeakyRelu", &x)?,
+    //             Self::ExpRelu(x) => s.serialize_field("ExpRelu", &x)?,
+    //         }
+    //         s.end()
+    //     }
+    // }
 
 
 
-    impl Serialize for NeuronType {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            let mut s = serializer.serialize_struct("NeuronType", 1)?;
-            match self {
-                Self::Input => s.serialize_field("type", &"Input")?,
-                Self::Hidden => s.serialize_field("type", &"Hidden")?,
-                Self::Output => s.serialize_field("type", &"Output")?,
-            }
-            s.end()
-        }
-    }
+    // impl Serialize for NeuronType {
+    //     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    //     where
+    //         S: Serializer,
+    //     {
+    //         let mut s = serializer.serialize_struct("NeuronType", 1)?;
+    //         match self {
+    //             Self::Input => s.serialize_field("type", &"Input")?,
+    //             Self::Hidden => s.serialize_field("type", &"Hidden")?,
+    //             Self::Output => s.serialize_field("type", &"Output")?,
+    //         }
+    //         s.end()
+    //     }
+    // }
 
 
 
@@ -319,25 +320,25 @@ pub mod inputoutput {
 
 
 
-    impl Serialize for Neuron {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            let mut s = serializer.serialize_struct("Neuron", 10)?;
-            s.serialize_field("innov", &self.innov)?;
-            s.serialize_field("bias", &self.bias)?;
-            s.serialize_field("value", &self.value)?;
-            s.serialize_field("d_value", &self.d_value)?;
-            s.serialize_field("error", &self.error)?;
-            s.serialize_field("state", &self.state)?;
-            s.serialize_field("outgoing", &self.outgoing)?;
-            s.serialize_field("incoming", &self.incoming)?;
-            s.serialize_field("activation", &self.activation)?;
-            s.serialize_field("neuron_type", &self.neuron_type)?;
-            s.end()
-        }
-    }
+    // impl Serialize for Neuron {
+    //     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    //     where
+    //         S: Serializer,
+    //     {
+    //         let mut s = serializer.serialize_struct("Neuron", 10)?;
+    //         s.serialize_field("innov", &self.innov)?;
+    //         s.serialize_field("bias", &self.bias)?;
+    //         s.serialize_field("value", &self.value)?;
+    //         s.serialize_field("d_value", &self.d_value)?;
+    //         s.serialize_field("error", &self.error)?;
+    //         s.serialize_field("state", &self.state)?;
+    //         s.serialize_field("outgoing", &self.outgoing)?;
+    //         s.serialize_field("incoming", &self.incoming)?;
+    //         s.serialize_field("activation", &self.activation)?;
+    //         s.serialize_field("neuron_type", &self.neuron_type)?;
+    //         s.end()
+    //     }
+    // }
 
     
 

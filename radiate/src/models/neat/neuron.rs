@@ -16,6 +16,7 @@ use super::neurontype::NeuronType;
 /// to the NEAT graph, while the neuron encapsulates the neural network logic for the specific nodetype,
 /// Some neurons like an LSTM require more variables and different interal activation logic, 
 /// so encapsulating that within a normal node on the graph would be misplaced.
+#[derive(Deserialize, Serialize)]
 pub struct Neuron {
     pub innov: Uuid,
     pub outgoing: Vec<Uuid>,

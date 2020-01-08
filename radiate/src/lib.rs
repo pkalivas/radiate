@@ -5,6 +5,9 @@ pub mod prelude;
 pub mod models;
 pub mod engine;
 
+#[macro_use]
+extern crate serde_derive;
+
 pub use models::{
     evtree::{
         evtree::Evtree,

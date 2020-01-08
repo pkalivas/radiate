@@ -8,3 +8,4 @@ authors = ["pkalivas <peterkalivas@gmail.com>"]
 radiate={path="../../radiate"}
 serde = "*"
 serde_json="*"
+uuid = { version = "0.8", features = ["serde", "v4"] }
