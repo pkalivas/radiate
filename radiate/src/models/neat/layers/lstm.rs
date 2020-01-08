@@ -23,7 +23,7 @@ use crate::Genome;
 
 /// LSTM State is meant to be a 'snapshot' of the outputs for each
 /// gate at each time step. The rest of the time-step memories are held in tracers
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct LSTMState {
     pub f_gate_output: Vec<Vec<f32>>,
     pub i_gate_output: Vec<Vec<f32>>,
@@ -67,7 +67,7 @@ impl LSTMState {
 
 /// LSTM is a long-short term memory cell represented by a collection of Dense layers and two
 /// distinct memory vectors which get updated and travel 'through time'
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct LSTM {
     pub input_size: u32,
     pub memory_size: u32,

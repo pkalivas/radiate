@@ -127,72 +127,13 @@ pub mod neurontype {
 pub mod inputoutput {
 
     use serde::ser::{Serialize, SerializeStruct, Serializer};
-    use serde::de::{self, Deserialize, Deserializer, Visitor, SeqAccess, MapAccess};
     use serde_json::json;
+    use std::collections::HashMap;
 
     use super::neat::Neat;
-    use super::tracer::Tracer;
-    use super::activation::Activation;
-    use super::neurontype::NeuronType;
     use super::layers::layertype::LayerType;
     use super::layers::dense::Dense;
     use super::layers::lstm::LSTM;
-    use super::layers::lstm::LSTMState;
-    use super::edge::Edge;
-    use super::neuron::Neuron;
-
-
-
-    /// serialize and deserialize the activation struct
-    // impl Serialize for Activation {
-    //     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    //     where
-    //         S: Serializer,
-    //     {
-    //         let mut s = serializer.serialize_struct("Activation", 1)?;
-    //         match self {
-    //             Self::Sigmoid => s.serialize_field("Sigmoid", &1)?,
-    //             Self::Tahn => s.serialize_field("Tahn", &1)?,
-    //             Self::Relu => s.serialize_field("Relu", &1)?,
-    //             Self::Softmax => s.serialize_field("Softmax", &1)?,
-    //             Self::Linear(x) => s.serialize_field("Linear", &x)?,
-    //             Self::LeakyRelu(x) => s.serialize_field("LeakyRelu", &x)?,
-    //             Self::ExpRelu(x) => s.serialize_field("ExpRelu", &x)?,
-    //         }
-    //         s.end()
-    //     }
-    // }
-
-
-
-    // impl Serialize for NeuronType {
-    //     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    //     where
-    //         S: Serializer,
-    //     {
-    //         let mut s = serializer.serialize_struct("NeuronType", 1)?;
-    //         match self {
-    //             Self::Input => s.serialize_field("type", &"Input")?,
-    //             Self::Hidden => s.serialize_field("type", &"Hidden")?,
-    //             Self::Output => s.serialize_field("type", &"Output")?,
-    //         }
-    //         s.end()
-    //     }
-    // }
-
-
-
-    impl Serialize for LayerType {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            let mut s = serializer.serialize_struct("LayerType", 1)?;
-            s.serialize_field("layer_type", &1)?;
-            s.end()
-        }
-    }
-
 
 
         
@@ -222,62 +163,6 @@ pub mod inputoutput {
     }
 
 
-    impl Serialize for Tracer {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            let mut s = serializer.serialize_struct("Tracer", 4)?;
-            s.serialize_field("neuron_activation", &self.neuron_activation)?;
-            s.serialize_field("neuron_derivative", &self.neuron_derivative)?;
-            s.serialize_field("max_neuron_index", &self.max_neuron_index)?;
-            s.serialize_field("index", &self.index)?;
-            s.end()
-        }
-    }
-
-    
-        
-    impl Serialize for LSTMState {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            let mut s = serializer.serialize_struct("LSTMState", 7)?;
-            s.serialize_field("f_gate_output", &self.f_gate_output)?;
-            s.serialize_field("i_gate_output", &self.i_gate_output)?;
-            s.serialize_field("s_gate_output", &self.s_gate_output)?;
-            s.serialize_field("o_gate_output", &self.o_gate_output)?;
-            s.serialize_field("memory_states", &self.memory_states)?;
-            s.serialize_field("d_prev_memory", &self.d_prev_memory)?;
-            s.serialize_field("d_prev_hidden", &self.d_prev_hidden)?;
-            s.end()
-        }
-    }
-
-
-    impl Serialize for LSTM {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            let mut s = serializer.serialize_struct("LSTMState", 11)?;
-            s.serialize_field("input_size", &self.input_size)?;
-            s.serialize_field("memory_size", &self.memory_size)?;
-            s.serialize_field("output_size", &self.output_size)?;
-            s.serialize_field("memory", &self.memory)?;
-            s.serialize_field("hidden", &self.hidden)?;
-            s.serialize_field("states", &self.states)?;
-            s.serialize_field("g_gate", &self.g_gate)?;
-            s.serialize_field("i_gate", &self.i_gate)?;
-            s.serialize_field("f_gate", &self.f_gate)?;
-            s.serialize_field("o_gate", &self.o_gate)?;
-            s.serialize_field("v_gate", &self.v_gate)?;
-            s.end()
-        }
-    }
-
-
         
     impl Serialize for Dense {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -288,7 +173,7 @@ pub mod inputoutput {
             let n = self.nodes
                 .iter()
                 .map(|x| (x.0, unsafe { (**x.1).clone() }) )
-                .collect::<Vec<_>>();
+                .collect::<HashMap<_, _>>();
             s.serialize_field("inputs", &self.inputs)?;
             s.serialize_field("outputs", &self.outputs)?;
             s.serialize_field("nodes", &n)?;
@@ -298,47 +183,6 @@ pub mod inputoutput {
             s.end()
         }
     }
-
-
-
-           
-    impl Serialize for Edge {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            let mut s = serializer.serialize_struct("Edge", 5)?;
-            s.serialize_field("src", &self.src)?;
-            s.serialize_field("dst", &self.dst)?;
-            s.serialize_field("innov", &self.innov)?;
-            s.serialize_field("weight", &self.weight)?;
-            s.serialize_field("active", &self.active)?;
-            s.end()
-        }
-    }
-
-
-
-
-    // impl Serialize for Neuron {
-    //     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    //     where
-    //         S: Serializer,
-    //     {
-    //         let mut s = serializer.serialize_struct("Neuron", 10)?;
-    //         s.serialize_field("innov", &self.innov)?;
-    //         s.serialize_field("bias", &self.bias)?;
-    //         s.serialize_field("value", &self.value)?;
-    //         s.serialize_field("d_value", &self.d_value)?;
-    //         s.serialize_field("error", &self.error)?;
-    //         s.serialize_field("state", &self.state)?;
-    //         s.serialize_field("outgoing", &self.outgoing)?;
-    //         s.serialize_field("incoming", &self.incoming)?;
-    //         s.serialize_field("activation", &self.activation)?;
-    //         s.serialize_field("neuron_type", &self.neuron_type)?;
-    //         s.end()
-    //     }
-    // }
 
     
 

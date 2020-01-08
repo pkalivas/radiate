@@ -7,10 +7,7 @@ use std::fs::File;
 use std::error::Error;
 use std::time::Instant;
 use radiate::prelude::*;
-use uuid::Uuid;
-use std::path::Path;
 
-/// something is wrong with the deserialization of the neuron - it is missing the bias and d_value and a few other variables but not all of them
 
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -65,14 +62,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("Score: {:?}", data.solve(&mut solution));
         println!("\nTime in millis: {}", thread_time.elapsed().as_millis());
 
-        serde_json::to_writer_pretty(&File::create("network.json")?, &solution)?;
-        let n = Neuron::new(Uuid::new_v4(), NeuronType::Hidden, Activation::Sigmoid);
-        serde_json::to_writer_pretty(&File::create("node.json")?, &n)?;
+        solution.save("network.json")?;
 
-        let json_file_path = Path::new("node.json");
-        let json_file = File::open(json_file_path).expect("file not found");
-        let d: Neuron = serde_json::from_reader(json_file).expect("error while reading json");
-        println!("Deserialized Neuron: \n{:#?}", d);
+        // let json_file_path = Path::new("node.json");
+        // let json_file = File::open(json_file_path).expect("file not found");
+        // let d: Neuron = serde_json::from_reader(json_file).expect("error while reading json");
+        // println!("Deserialized Neuron: \n{:#?}", d);
 
         Ok(())
 }

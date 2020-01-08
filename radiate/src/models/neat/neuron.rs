@@ -16,7 +16,7 @@ use super::neurontype::NeuronType;
 /// to the NEAT graph, while the neuron encapsulates the neural network logic for the specific nodetype,
 /// Some neurons like an LSTM require more variables and different interal activation logic, 
 /// so encapsulating that within a normal node on the graph would be misplaced.
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct Neuron {
     pub innov: Uuid,
     pub outgoing: Vec<Uuid>,
@@ -143,34 +143,5 @@ impl Clone for Neuron {
 impl PartialEq for Neuron {
     fn eq(&self, other: &Self) -> bool {
         self.innov == other.innov
-    }
-}
-
-
-impl fmt::Debug for Neuron {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-
-        let mut income = self.incoming
-            .iter()
-            .map(|x| format!("\n\t\t{} val -> {:?},", x.0, x.1))
-            .collect::<Vec<_>>()
-            .join("");
-        let mut outcome = self.outgoing
-            .iter()
-            .map(|x| {
-                format!("\n\t\t{},", x)
-            })
-            .collect::<Vec<_>>()
-            .join("");   
-
-        if self.incoming.len() > 0 {
-            income.push_str("\n\t");
-        }
-        if self.outgoing.len() > 0 {
-            outcome.push_str("\n\t");
-        }
-
-        write!(f, "{}\n\tinnov: {}\n\tvalue: {:?}\n\terror: {:?}\n\toutgoing: [{}]\n\tincoming: [{}]\n\ttype: {:?}\n\tactivation: {:?}\n{}",
-            "{", self.innov, self.value, self.error, outcome, income, self.neuron_type, self.activation, "}") 
     }
 }

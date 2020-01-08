@@ -1,6 +1,7 @@
 extern crate rand;
 extern crate serde_json;
 
+use std::fs::File;
 use std::error::Error;
 use std::sync::{Arc, RwLock};
 
@@ -201,6 +202,14 @@ impl Neat {
             return Some((self.input_size, size))
         } 
         Some((self.layers.last()?.layer.shape().1 as u32, size))
+    }
+
+
+    
+    /// dumy model saver file to export the model to json
+    pub fn save(&self, file_path: &str) -> Result<(), Box<dyn Error>> {
+        serde_json::to_writer_pretty(&File::create(file_path)?, &self)?;
+        Ok(())
     }
 
 

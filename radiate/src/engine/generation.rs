@@ -141,7 +141,8 @@ impl<T, E> Generation<T, E>
         // Loop over the members mutably to find a species which this member belongs to
         for cont in self.members.iter_mut() {
             // see if this member belongs to a given species 
-            let mem_spec = self.species.iter()
+            let mem_spec = self.species
+                .iter()
                 .find(|s| {
                     <T as Genome<T, E>>::distance(&*cont.member.read().unwrap(), &*s.read().unwrap().mascot.read().unwrap(), settings) < distance
                 });

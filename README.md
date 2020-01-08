@@ -146,6 +146,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         solution.train(&data.input, &data.output, 200, 0.3, 7)?;
         println!("{:#?}", solution);
 
+        // write the saved model to a json file
+        solution.save("lstm_network.json")?;
+
         // data.freestyle(12, &mut solution);
         data.show(&mut solution);
     

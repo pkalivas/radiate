@@ -12,7 +12,7 @@ use uuid::Uuid;
 /// weight is the weight of the connection
 /// active keeps track of if this edge is active or not, meaning it will be used 
 /// while feeding data through the network
-#[derive(Deserialize, Debug, Clone, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct Edge {
     pub src: Uuid,
     pub dst: Uuid, 

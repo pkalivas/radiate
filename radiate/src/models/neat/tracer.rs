@@ -10,7 +10,7 @@ use uuid::Uuid;
 /// Tracer keeps track of historical metadata for neurons to keep track
 /// of their activated values and derivatives so backpropagation (through time)
 /// is available for batch processing and weight updates
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Tracer {
     pub neuron_activation: HashMap<Uuid, Vec<f32>>,
     pub neuron_derivative: HashMap<Uuid, Vec<f32>>,

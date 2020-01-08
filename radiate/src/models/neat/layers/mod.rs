@@ -8,7 +8,7 @@ pub mod vectorops;
 pub mod layertype {
 
 
-    #[derive(Deserialize, Debug, PartialEq, Clone, Copy)]
+    #[derive(Deserialize, Serialize, Debug, PartialEq, Clone, Copy)]
     pub enum LayerType {
         DensePool,
         Dense,
