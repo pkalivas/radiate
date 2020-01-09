@@ -4,5 +4,6 @@ members = [
     "examples/xor-evtree",
     "examples/xor-neat",
     "examples/xor-neat-backprop",
-    "examples/lstm-neat"
+    "examples/lstm-neat",
+    "examples/ism"
 ]

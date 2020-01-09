@@ -2,7 +2,6 @@
 extern crate rand;
 extern crate uuid;
 
-use std::fmt;
 use std::collections::HashMap;
 use rand::Rng;
 use uuid::Uuid;

@@ -72,6 +72,7 @@ pub struct LSTM {
     pub input_size: u32,
     pub memory_size: u32,
     pub output_size: u32,
+    pub activation: Activation,
     pub memory: Vec<f32>,
     pub hidden: Vec<f32>,
     pub states: LSTMState,
@@ -87,12 +88,13 @@ pub struct LSTM {
 impl LSTM {
 
 
-    pub fn new(input_size: u32, memory_size: u32, output_size: u32) -> Self {
+    pub fn new(input_size: u32, memory_size: u32, output_size: u32, activation: Activation) -> Self {
         let cell_input = input_size + memory_size;
         LSTM {
             input_size,
             memory_size,
             output_size,
+            activation,
             memory: vec![0.0; memory_size as usize],
             hidden: vec![0.0; memory_size as usize],
             states: LSTMState::new(),
@@ -313,6 +315,7 @@ impl Clone for LSTM {
             input_size: self.input_size,
             memory_size: self.memory_size,
             output_size: self.output_size,
+            activation: self.activation.clone(),
             memory: vec![0.0; self.memory_size as usize],
             hidden: vec![0.0; self.memory_size as usize],
             states: LSTMState::new(),
@@ -341,6 +344,7 @@ impl Genome<LSTM, NeatEnvironment> for LSTM
             input_size: child.input_size,
             memory_size: child.memory_size,
             output_size: child.output_size,
+            activation: child.activation,
             memory: vec![0.0; child.memory_size as usize],
             hidden: vec![0.0; child.memory_size as usize],
             states: LSTMState::new(),
