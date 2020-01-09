@@ -102,7 +102,7 @@ impl LSTM {
             i_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
             f_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
             o_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
-            v_gate: Dense::new(memory_size, output_size, LayerType::DensePool, Activation::Sigmoid)
+            v_gate: Dense::new(memory_size, output_size, LayerType::DensePool, activation)
         }
     }
 
