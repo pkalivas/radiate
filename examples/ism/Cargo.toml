@@ -1,0 +1,9 @@
+[package]
+name = "ism"
+description = "XOR for the neat algorithm."
+version = "1.0.0"
+authors = ["pkalivas <peterkalivas@gmail.com>"]
+
+[dependencies]
+radiate={path="../../radiate"}
+csv="*"
