@@ -110,6 +110,13 @@ impl Neat {
                     pass_tar = Vec::with_capacity(update_window);
                 }
             }
+            if pass_out.len() > 0 || pass_tar.len() > 0 {
+                count = 0;
+                self.backward(&pass_out, &pass_tar, rate);
+                pass_out = Vec::with_capacity(update_window);
+                pass_tar = Vec::with_capacity(update_window);
+            
+            }
         }
 
         // remove the tracers from the layers before finishing
