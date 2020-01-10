@@ -22,9 +22,10 @@ use crate::engine::genome::Genome;
 
 
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct LayerWrap {
     pub layer_type: LayerType,
+    #[serde(with = "serde_traitobject")]
     pub layer: Box<dyn Layer>
 }
 
@@ -44,7 +45,7 @@ impl LayerWrap {
 /// Neat is a neural network consisting of layers
 /// the layers can be stacked together then the feed forward
 /// and backprop functions will take care of 'connecting them'
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Neat {
     pub layers: Vec<LayerWrap>,
     pub input_size: u32
@@ -217,6 +218,13 @@ impl Neat {
     pub fn save(&self, file_path: &str) -> Result<(), Box<dyn Error>> {
         serde_json::to_writer_pretty(&File::create(file_path)?, &self)?;
         Ok(())
+    }
+
+
+
+    /// load in a saved neat model from a file path
+    pub fn load(file_path: &str) -> Result<Neat, Box<dyn Error>> {
+        Ok(serde_json::from_reader(File::open(file_path).expect("file not found")).expect("error while reading json"))
     }
 
 

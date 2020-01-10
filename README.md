@@ -3,6 +3,8 @@
 [![Build Status](https://travis-ci.com/pkalivas/radiate.svg?branch=master)](https://travis-ci.com/pkalivas/radiate)
 ![Crates.io](https://img.shields.io/crates/v/radiate)
 
+Note - Radiate version 1.0.8 is the last version viable on the stable toolchain for now. This is due to serialization and deserialization of trait objects which requires the nightly toolchain as of tody (1/10/2020)
+
 Coming from Evolutionary Radiation.
 > Evolutionary radiation is a rapid increase in the number of species with a common ancestor, characterized by great ecological and morphological diversity - Pascal Neige.
 

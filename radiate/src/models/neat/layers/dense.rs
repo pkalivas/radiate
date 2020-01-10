@@ -9,6 +9,8 @@ use std::sync::{Arc, RwLock};
 use rand::Rng;
 use rand::seq::SliceRandom;
 use uuid::Uuid;
+use serde::de::{self, Deserialize, Deserializer, Visitor, SeqAccess, MapAccess};
+use serde::ser::{Serialize, SerializeStruct, Serializer};
 
 use super::{
     layertype::LayerType,
@@ -697,5 +699,206 @@ impl fmt::Display for Dense {
         }
     }
 }
+
+
+
+/// manually implement serialize for dense because it uses raw pointrs so it cannot be 
+/// derived due to there being no way to serialie and deserailize raw pointers
+impl Serialize for Dense {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut s = serializer.serialize_struct("Dense", 7)?;
+        let n = self.nodes
+            .iter()
+            .map(|x| (x.0, unsafe { (**x.1).clone() }) )
+            .collect::<HashMap<_, _>>();
+        s.serialize_field("inputs", &self.inputs)?;
+        s.serialize_field("outputs", &self.outputs)?;
+        s.serialize_field("nodes", &n)?;
+        s.serialize_field("edges", &self.edges)?;
+        s.serialize_field("trace_states", &self.trace_states)?;
+        s.serialize_field("layer_type", &self.layer_type)?;
+        s.serialize_field("activation", &self.activation)?;
+        s.end()
+    }
+}
+
+
+
+/// implement deserialize for dense layer - because the layer uses raw pointers, this needs to be implemented manually 
+/// which is kinda a pain in the ass but this is the only  one that needs to be done manually - everything else is derived
+impl<'de> Deserialize<'de> for Dense {
+
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+
+        enum Field { Inputs, Outputs, Nodes, Edges, TraceStates, LayerType, Activation };
+
+
+        impl<'de> Deserialize<'de> for Field {
+            fn deserialize<D>(deserializer: D) -> Result<Field, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                struct FieldVisitor;
+
+                impl<'de> Visitor<'de> for FieldVisitor {
+                    type Value = Field;
+
+                    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                        formatter.write_str("`secs` or `nanos`")
+                    }
+
+                    fn visit_str<E>(self, value: &str) -> Result<Field, E>
+                    where
+                        E: de::Error,
+                    {
+                        match value {
+                            "inputs" => Ok(Field::Inputs),
+                            "outputs" => Ok(Field::Outputs),
+                            "nodes" => Ok(Field::Nodes),
+                            "edges" => Ok(Field::Edges),
+                            "trace_states" => Ok(Field::TraceStates),
+                            "layer_type" => Ok(Field::LayerType),
+                            "activation" => Ok(Field::Activation),
+                            _ => Err(de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+
+                deserializer.deserialize_identifier(FieldVisitor)
+            }
+        }
+
+        struct DenseVisitor;
+
+        impl<'de> Visitor<'de> for DenseVisitor {
+            type Value = Dense;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("struct Dense")
+            }
+
+            fn visit_seq<V>(self, mut seq: V) -> Result<Dense, V::Error>
+            where
+                V: SeqAccess<'de>,
+            {
+                let inputs = seq.next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                let outputs = seq.next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                let neurons: HashMap<Uuid, Neuron> = seq.next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                let edges = seq.next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                let trace_states = seq.next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                let layer_type = seq.next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                let activation = seq.next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                    
+
+                let nodes = neurons          
+                    .iter()
+                    .map(|(k, v)| {
+                        (k.clone(), v.clone().as_mut_ptr())
+                    })
+                    .collect::<HashMap<_, _>>();
+
+                let dense = Dense {
+                    inputs, outputs, nodes, edges, trace_states, layer_type, activation
+                };
+
+                Ok(dense)
+            }
+
+            fn visit_map<V>(self, mut map: V) -> Result<Dense, V::Error>
+            where
+                V: MapAccess<'de>,
+            {
+                let mut inputs = None;
+                let mut outputs = None;
+                let mut nodes = None;
+                let mut edges = None;
+                let mut trace_states = None;
+                let mut layer_type = None;
+                let mut activation = None;
+
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        Field::Inputs => {
+                            if inputs.is_some() {
+                                return Err(de::Error::duplicate_field("secs"));
+                            }
+                            inputs = Some(map.next_value()?);
+                        }
+                        Field::Outputs => {
+                            if outputs.is_some() {
+                                return Err(de::Error::duplicate_field("nanos"));
+                            }
+                            outputs = Some(map.next_value()?);
+                        },
+                        Field::Nodes => {
+                            if nodes.is_some() {
+                                return Err(de::Error::duplicate_field("nodes"));
+                            }
+                            let temp: HashMap<Uuid, Neuron> = map.next_value()?;
+                            nodes = Some(temp
+                                .iter()
+                                .map(|(k, v)| (k.clone(), v.clone().as_mut_ptr()))
+                                .collect::<HashMap<_, _>>());
+                        },
+                        Field::Edges => {
+                            if edges.is_some() {
+                                return Err(de::Error::duplicate_field("edges"));
+                            }
+                            edges = Some(map.next_value()?);
+                        },
+                        Field::TraceStates => {
+                            if trace_states.is_some() {
+                                return Err(de::Error::duplicate_field("nodes"));
+                            }
+                            trace_states = Some(map.next_value()?);
+                        },
+                        Field::LayerType => {
+                            if layer_type.is_some() {
+                                return Err(de::Error::duplicate_field("nodes"));
+                            }
+                            layer_type = Some(map.next_value()?);
+                        },
+                        Field::Activation => {
+                            if activation.is_some() {
+                                return Err(de::Error::duplicate_field("nodes"));
+                            }
+                            activation = Some(map.next_value()?);
+                        }
+                    }
+                }
+
+                let inputs = inputs.ok_or_else(|| de::Error::missing_field("secs"))?;
+                let outputs = outputs.ok_or_else(|| de::Error::missing_field("nanos"))?;
+                let nodes = nodes.ok_or_else(|| de::Error::missing_field("nodes"))?;
+                let edges = edges.ok_or_else(|| de::Error::missing_field("edges"))?;
+                let trace_states = trace_states.ok_or_else(|| de::Error::missing_field("trace_states"))?;
+                let layer_type = layer_type.ok_or_else(|| de::Error::missing_field("layer_type"))?;
+                let activation = activation.ok_or_else(|| de::Error::missing_field("activation"))?;
+
+                let dense = Dense {
+                    inputs, outputs, nodes, edges, trace_states, layer_type, activation 
+                };
+                Ok(dense)
+            }
+        }
+
+        const FIELDS: &'static [&'static str] = &["secs", "nanos"];
+        deserializer.deserialize_struct("Dense", FIELDS, DenseVisitor)
+    }
+}
+
 
 

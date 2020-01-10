@@ -19,3 +19,4 @@ uuid = { version = "0.8", features = ["serde", "v4"] }
 serde = {version ="1.0"}
 serde_json="*"
 serde_derive="*"
+serde_traitobject="*"

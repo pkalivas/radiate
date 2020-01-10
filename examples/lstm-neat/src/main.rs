@@ -3,7 +3,6 @@ extern crate radiate;
 extern crate serde_json;
 extern crate uuid;
 
-use std::fs::File;
 use std::error::Error;
 use std::time::Instant;
 use radiate::prelude::*;
@@ -56,18 +55,17 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("{}", serde_json::to_string_pretty(&solution)?);
 
         // data.freestyle(12, &mut solution);
+        solution.reset();
         data.show(&mut solution);
     
         solution.reset();
         println!("Score: {:?}", data.solve(&mut solution));
-        println!("\nTime in millis: {}", thread_time.elapsed().as_millis());
+        println!("\nTime in millis: {}\n", thread_time.elapsed().as_millis());
 
+        solution.reset();
         solution.save("network.json")?;
-
-        // let json_file_path = Path::new("node.json");
-        // let json_file = File::open(json_file_path).expect("file not found");
-        // let d: Neuron = serde_json::from_reader(json_file).expect("error while reading json");
-        // println!("Deserialized Neuron: \n{:#?}", d);
+        let mut net = Neat::load("network.json")?;
+        MemoryTest::new().show(&mut net);
 
         Ok(())
 }

@@ -67,7 +67,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     solution.reset();
     println!("\n\n");
     ism.freestyle(3, &mut solution);
-    // println!("Score: {:?}", ism.solve(&mut solution));
     
  
 

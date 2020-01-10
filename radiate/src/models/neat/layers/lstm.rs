@@ -67,7 +67,7 @@ impl LSTMState {
 
 /// LSTM is a long-short term memory cell represented by a collection of Dense layers and two
 /// distinct memory vectors which get updated and travel 'through time'
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct LSTM {
     pub input_size: u32,
     pub memory_size: u32,
