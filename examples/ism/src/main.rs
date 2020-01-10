@@ -29,17 +29,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         .input_size(1)
         .lstm(1, 1, Activation::Sigmoid);
 
+        
     let ism = ISM::new(1);
-    for (i, t) in ism.inputs.iter().zip(ism.answers.iter()) {
-        println!("{:?}, {:?}", i, t);
-    }
-
-
-
-    let num_evolve = 10;
+    let num_evolve = 25;
     let (mut solution, _) = Population::<Neat, NeatEnvironment, ISM>::new()
         .constrain(neat_env)
-        .size(100)
+        .size(200)
         .populate_clone(net)
         .debug(true)
         .dynamic_distance(true)
@@ -55,22 +50,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             num == num_evolve
         })?;
             
-    println!("Training");
+    println!("Training\n\n");
     solution.train(&ism.inputs, &ism.answers, 1500, 0.05, 100)?;
-    // solution.reset();
-    solution.reset();
     ism.show(&mut solution);
-    solution.reset();
-    println!("Score: {:?}", ism.solve(&mut solution));
-    solution.reset();
-    ism.write_data(&mut solution);
-    solution.reset();
-    println!("\n\n");
-    ism.freestyle(3, &mut solution);
-    
- 
+    ism.freestyle(3, &mut solution); 
 
-        Ok(())
+    Ok(())
 }
 
 
@@ -182,7 +167,6 @@ impl ISM {
             let guess = model.forward(i).unwrap();
             println!("Input: {:.2?} Answer: {:.2?} Guess: {:.2?}", self.de_norm(i[0]), self.de_norm(o[0]), self.de_norm(guess[0]));
         }
-        // println!("Input: {:.2?} Guess: {:.2?}", 47.2, self.de_norm(model.forward(&vec![0.49823323]).unwrap()[0]));
     }
 
 

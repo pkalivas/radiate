@@ -121,7 +121,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // this can also be solved fine with just one lstm layer of memory size 1 and output size 1
     let starting_net = Neat::new()
         .input_size(1)
-        .lstm(2, 2, Activation::Sigmoid)                         // first number is the size of the memory, second is the size of the output
+        .lstm(2, 2, Activation::Sigmoid)    // first number is the size of the memory, second is the size of the output
         .dense_pool(1, Activation::Sigmoid);// Activation is the activation of the output neurons
     
     let num_evolve = 100;
@@ -150,6 +150,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         // write the saved model to a json file
         solution.save("lstm_network.json")?;
+        // let mut network = Neat::load("lstm_network.json")?;   // load neural network back in as it was
 
         // data.freestyle(12, &mut solution);
         data.show(&mut solution);
