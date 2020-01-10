@@ -1,0 +1,444 @@
+{
+  "layers": [
+    {
+      "layer_type": "LSTM",
+      "layer": [
+        [
+          "22804a43-a49a-4ac2-940f-f2bfc23a534e",
+          3418092662576002085,
+          18446744073709525032
+        ],
+        9406376282277279827,
+        {
+          "input_size": 1,
+          "memory_size": 1,
+          "output_size": 1,
+          "activation": "Sigmoid",
+          "memory": [
+            0.0
+          ],
+          "hidden": [
+            0.0
+          ],
+          "states": {
+            "f_gate_output": [],
+            "i_gate_output": [],
+            "s_gate_output": [],
+            "o_gate_output": [],
+            "memory_states": [],
+            "d_prev_memory": null,
+            "d_prev_hidden": null
+          },
+          "g_gate": {
+            "inputs": [
+              "5307c2c1-7615-420d-84ad-064eb318a30e",
+              "b08b2841-274c-4a96-8425-80d331b7dcb8"
+            ],
+            "outputs": [
+              "e8ece851-ebb1-4de0-93d9-ff5f92a4da3c"
+            ],
+            "nodes": {
+              "e8ece851-ebb1-4de0-93d9-ff5f92a4da3c": {
+                "innov": "e8ece851-ebb1-4de0-93d9-ff5f92a4da3c",
+                "outgoing": [],
+                "incoming": {
+                  "90cb860c-c944-4ca9-866e-83b746476636": null,
+                  "e7d5b4d3-5d4d-449d-91f1-c78b5b6f8132": null,
+                  "c369f6f9-95ff-45c0-b732-5383d767620d": null
+                },
+                "bias": 0.9312452,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Tahn",
+                "neuron_type": "Output"
+              },
+              "05132864-d0c9-4878-92c7-b4ee04affbc5": {
+                "innov": "05132864-d0c9-4878-92c7-b4ee04affbc5",
+                "outgoing": [
+                  "e7d5b4d3-5d4d-449d-91f1-c78b5b6f8132"
+                ],
+                "incoming": {
+                  "8b8a35bb-7318-4449-b852-937b5b9e24df": null
+                },
+                "bias": 0.08556467,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Hidden"
+              },
+              "5307c2c1-7615-420d-84ad-064eb318a30e": {
+                "innov": "5307c2c1-7615-420d-84ad-064eb318a30e",
+                "outgoing": [
+                  "8b8a35bb-7318-4449-b852-937b5b9e24df",
+                  "90cb860c-c944-4ca9-866e-83b746476636"
+                ],
+                "incoming": {},
+                "bias": 0.80458164,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Tahn",
+                "neuron_type": "Input"
+              },
+              "b08b2841-274c-4a96-8425-80d331b7dcb8": {
+                "innov": "b08b2841-274c-4a96-8425-80d331b7dcb8",
+                "outgoing": [
+                  "c369f6f9-95ff-45c0-b732-5383d767620d"
+                ],
+                "incoming": {},
+                "bias": 0.77754986,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Tahn",
+                "neuron_type": "Input"
+              }
+            },
+            "edges": {
+              "90cb860c-c944-4ca9-866e-83b746476636": {
+                "src": "5307c2c1-7615-420d-84ad-064eb318a30e",
+                "dst": "e8ece851-ebb1-4de0-93d9-ff5f92a4da3c",
+                "innov": "90cb860c-c944-4ca9-866e-83b746476636",
+                "weight": -0.29177767,
+                "active": true
+              },
+              "c369f6f9-95ff-45c0-b732-5383d767620d": {
+                "src": "b08b2841-274c-4a96-8425-80d331b7dcb8",
+                "dst": "e8ece851-ebb1-4de0-93d9-ff5f92a4da3c",
+                "innov": "c369f6f9-95ff-45c0-b732-5383d767620d",
+                "weight": -0.6276511,
+                "active": true
+              },
+              "8b8a35bb-7318-4449-b852-937b5b9e24df": {
+                "src": "5307c2c1-7615-420d-84ad-064eb318a30e",
+                "dst": "05132864-d0c9-4878-92c7-b4ee04affbc5",
+                "innov": "8b8a35bb-7318-4449-b852-937b5b9e24df",
+                "weight": -0.45900726,
+                "active": true
+              },
+              "e7d5b4d3-5d4d-449d-91f1-c78b5b6f8132": {
+                "src": "05132864-d0c9-4878-92c7-b4ee04affbc5",
+                "dst": "e8ece851-ebb1-4de0-93d9-ff5f92a4da3c",
+                "innov": "e7d5b4d3-5d4d-449d-91f1-c78b5b6f8132",
+                "weight": -0.39862642,
+                "active": true
+              }
+            },
+            "trace_states": null,
+            "layer_type": "DensePool",
+            "activation": "Tahn"
+          },
+          "i_gate": {
+            "inputs": [
+              "975e0a19-083b-426d-b622-d7baa38f7b9e",
+              "d2155d2d-4261-4aae-8a37-23dc3725afda"
+            ],
+            "outputs": [
+              "fd216c22-2785-460e-8b7d-b79cf9cadafa"
+            ],
+            "nodes": {
+              "fd216c22-2785-460e-8b7d-b79cf9cadafa": {
+                "innov": "fd216c22-2785-460e-8b7d-b79cf9cadafa",
+                "outgoing": [],
+                "incoming": {
+                  "6d01268a-1b4a-47ef-b31e-41826d4e104e": null,
+                  "662f22f5-17a8-4918-b8c6-cef3a90c86ed": null
+                },
+                "bias": 0.12991786,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Output"
+              },
+              "975e0a19-083b-426d-b622-d7baa38f7b9e": {
+                "innov": "975e0a19-083b-426d-b622-d7baa38f7b9e",
+                "outgoing": [
+                  "662f22f5-17a8-4918-b8c6-cef3a90c86ed",
+                  "662f22f5-17a8-4918-b8c6-cef3a90c86ed"
+                ],
+                "incoming": {},
+                "bias": 0.3685131,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Input"
+              },
+              "d2155d2d-4261-4aae-8a37-23dc3725afda": {
+                "innov": "d2155d2d-4261-4aae-8a37-23dc3725afda",
+                "outgoing": [
+                  "6d01268a-1b4a-47ef-b31e-41826d4e104e"
+                ],
+                "incoming": {},
+                "bias": 0.94518185,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Input"
+              }
+            },
+            "edges": {
+              "662f22f5-17a8-4918-b8c6-cef3a90c86ed": {
+                "src": "975e0a19-083b-426d-b622-d7baa38f7b9e",
+                "dst": "fd216c22-2785-460e-8b7d-b79cf9cadafa",
+                "innov": "662f22f5-17a8-4918-b8c6-cef3a90c86ed",
+                "weight": 0.11012751,
+                "active": true
+              },
+              "6d01268a-1b4a-47ef-b31e-41826d4e104e": {
+                "src": "d2155d2d-4261-4aae-8a37-23dc3725afda",
+                "dst": "fd216c22-2785-460e-8b7d-b79cf9cadafa",
+                "innov": "6d01268a-1b4a-47ef-b31e-41826d4e104e",
+                "weight": -0.10514297,
+                "active": true
+              }
+            },
+            "trace_states": null,
+            "layer_type": "DensePool",
+            "activation": "Sigmoid"
+          },
+          "f_gate": {
+            "inputs": [
+              "e5d72559-52f7-49f8-ad93-054616c24a78",
+              "f0266442-1faf-45a3-8658-5c76d87753fc"
+            ],
+            "outputs": [
+              "7d1772da-97ab-4f7a-a656-ec62b11a6d5e"
+            ],
+            "nodes": {
+              "f0266442-1faf-45a3-8658-5c76d87753fc": {
+                "innov": "f0266442-1faf-45a3-8658-5c76d87753fc",
+                "outgoing": [
+                  "857e5729-439b-4eb3-8656-14bfeef0c653"
+                ],
+                "incoming": {},
+                "bias": 0.23503596,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Input"
+              },
+              "7d1772da-97ab-4f7a-a656-ec62b11a6d5e": {
+                "innov": "7d1772da-97ab-4f7a-a656-ec62b11a6d5e",
+                "outgoing": [],
+                "incoming": {
+                  "857e5729-439b-4eb3-8656-14bfeef0c653": null,
+                  "b4206c3d-5131-4010-88db-b5fa6af5610a": null
+                },
+                "bias": 0.23020023,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Output"
+              },
+              "e5d72559-52f7-49f8-ad93-054616c24a78": {
+                "innov": "e5d72559-52f7-49f8-ad93-054616c24a78",
+                "outgoing": [
+                  "b4206c3d-5131-4010-88db-b5fa6af5610a"
+                ],
+                "incoming": {},
+                "bias": 0.28583354,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Input"
+              }
+            },
+            "edges": {
+              "b4206c3d-5131-4010-88db-b5fa6af5610a": {
+                "src": "e5d72559-52f7-49f8-ad93-054616c24a78",
+                "dst": "7d1772da-97ab-4f7a-a656-ec62b11a6d5e",
+                "innov": "b4206c3d-5131-4010-88db-b5fa6af5610a",
+                "weight": 0.005378434,
+                "active": true
+              },
+              "857e5729-439b-4eb3-8656-14bfeef0c653": {
+                "src": "f0266442-1faf-45a3-8658-5c76d87753fc",
+                "dst": "7d1772da-97ab-4f7a-a656-ec62b11a6d5e",
+                "innov": "857e5729-439b-4eb3-8656-14bfeef0c653",
+                "weight": -1.0985435,
+                "active": true
+              }
+            },
+            "trace_states": null,
+            "layer_type": "DensePool",
+            "activation": "Sigmoid"
+          },
+          "o_gate": {
+            "inputs": [
+              "da95b11f-29f8-4394-af29-f7689bdb5043",
+              "3c5c5692-cfc6-4c14-a6dd-9ea009162d6f"
+            ],
+            "outputs": [
+              "71e0252e-55c2-4800-933c-d12c6af5c039"
+            ],
+            "nodes": {
+              "da95b11f-29f8-4394-af29-f7689bdb5043": {
+                "innov": "da95b11f-29f8-4394-af29-f7689bdb5043",
+                "outgoing": [
+                  "416d6335-0363-4f21-bccc-797006609fd4"
+                ],
+                "incoming": {},
+                "bias": 0.8588592,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Input"
+              },
+              "71e0252e-55c2-4800-933c-d12c6af5c039": {
+                "innov": "71e0252e-55c2-4800-933c-d12c6af5c039",
+                "outgoing": [],
+                "incoming": {
+                  "5c3ea133-c6b3-4d58-af3e-47553250641e": null,
+                  "416d6335-0363-4f21-bccc-797006609fd4": null
+                },
+                "bias": 0.5752077,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Output"
+              },
+              "3c5c5692-cfc6-4c14-a6dd-9ea009162d6f": {
+                "innov": "3c5c5692-cfc6-4c14-a6dd-9ea009162d6f",
+                "outgoing": [
+                  "5c3ea133-c6b3-4d58-af3e-47553250641e"
+                ],
+                "incoming": {},
+                "bias": 0.9026347,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Input"
+              }
+            },
+            "edges": {
+              "416d6335-0363-4f21-bccc-797006609fd4": {
+                "src": "da95b11f-29f8-4394-af29-f7689bdb5043",
+                "dst": "71e0252e-55c2-4800-933c-d12c6af5c039",
+                "innov": "416d6335-0363-4f21-bccc-797006609fd4",
+                "weight": -4.47801,
+                "active": true
+              },
+              "5c3ea133-c6b3-4d58-af3e-47553250641e": {
+                "src": "3c5c5692-cfc6-4c14-a6dd-9ea009162d6f",
+                "dst": "71e0252e-55c2-4800-933c-d12c6af5c039",
+                "innov": "5c3ea133-c6b3-4d58-af3e-47553250641e",
+                "weight": 0.706506,
+                "active": true
+              }
+            },
+            "trace_states": null,
+            "layer_type": "DensePool",
+            "activation": "Sigmoid"
+          },
+          "v_gate": {
+            "inputs": [
+              "e6124e31-c4db-4cc2-aeb0-9025cd096756"
+            ],
+            "outputs": [
+              "c195e7f9-fe1a-410c-a5ef-e43e3edb76b8"
+            ],
+            "nodes": {
+              "8ddf0189-df50-43fc-af4c-3e1f399eb06b": {
+                "innov": "8ddf0189-df50-43fc-af4c-3e1f399eb06b",
+                "outgoing": [
+                  "0cb9fbdf-669c-407a-8a66-a687d3fa1cf9"
+                ],
+                "incoming": {
+                  "1046ee88-ffb3-42c2-b17f-1dddde80ba9e": null
+                },
+                "bias": 0.9224374,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Hidden"
+              },
+              "e6124e31-c4db-4cc2-aeb0-9025cd096756": {
+                "innov": "e6124e31-c4db-4cc2-aeb0-9025cd096756",
+                "outgoing": [
+                  "1046ee88-ffb3-42c2-b17f-1dddde80ba9e",
+                  "9098c5c8-b2a3-4bf5-9429-c938cfce3e39"
+                ],
+                "incoming": {},
+                "bias": 0.7746597,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Input"
+              },
+              "c195e7f9-fe1a-410c-a5ef-e43e3edb76b8": {
+                "innov": "c195e7f9-fe1a-410c-a5ef-e43e3edb76b8",
+                "outgoing": [],
+                "incoming": {
+                  "9098c5c8-b2a3-4bf5-9429-c938cfce3e39": null,
+                  "0cb9fbdf-669c-407a-8a66-a687d3fa1cf9": null
+                },
+                "bias": 0.10336566,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Output"
+              }
+            },
+            "edges": {
+              "9098c5c8-b2a3-4bf5-9429-c938cfce3e39": {
+                "src": "e6124e31-c4db-4cc2-aeb0-9025cd096756",
+                "dst": "c195e7f9-fe1a-410c-a5ef-e43e3edb76b8",
+                "innov": "9098c5c8-b2a3-4bf5-9429-c938cfce3e39",
+                "weight": 1.2867392,
+                "active": true
+              },
+              "0cb9fbdf-669c-407a-8a66-a687d3fa1cf9": {
+                "src": "8ddf0189-df50-43fc-af4c-3e1f399eb06b",
+                "dst": "c195e7f9-fe1a-410c-a5ef-e43e3edb76b8",
+                "innov": "0cb9fbdf-669c-407a-8a66-a687d3fa1cf9",
+                "weight": -0.6996412,
+                "active": true
+              },
+              "1046ee88-ffb3-42c2-b17f-1dddde80ba9e": {
+                "src": "e6124e31-c4db-4cc2-aeb0-9025cd096756",
+                "dst": "8ddf0189-df50-43fc-af4c-3e1f399eb06b",
+                "innov": "1046ee88-ffb3-42c2-b17f-1dddde80ba9e",
+                "weight": -1.8750471,
+                "active": true
+              }
+            },
+            "trace_states": null,
+            "layer_type": "DensePool",
+            "activation": "Sigmoid"
+          }
+        }
+      ]
+    }
+  ],
+  "input_size": 1
+}
