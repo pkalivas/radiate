@@ -29,7 +29,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut net = Neat::new()
         .input_size(1)
-        .lstm(3, 1, Activation::Sigmoid);
+        .lstm(1, 1, Activation::Sigmoid);
 
         
     let ism = ISM::new(1);
@@ -54,11 +54,14 @@ fn main() -> Result<(), Box<dyn Error>> {
             
     solution.reset();
     ism.show(&mut solution);
-    solution.reset();
+
     println!("Training\n\n");
-    solution.train(&ism.inputs, &ism.answers, 50, 0.001, ism.inputs.len())?;
+    solution.reset();
+    solution.train(&ism.inputs, &ism.answers, 5000, 0.003, ism.inputs.len())?;
+
     solution.reset();
     ism.show(&mut solution);
+
     solution.reset();
     println!("{:?}", ism.solve(&mut solution));
     // ism.freestyle(3, &mut solution); 
@@ -126,7 +129,7 @@ impl ISM {
 
 
     fn read_data(back: usize) -> Self {
-        let mut reader = csv::Reader::from_path("/Users/peterkalivas/Desktop/software/radiate/examples/ism/src/ism_input.csv").unwrap();
+        let mut reader = csv::Reader::from_path("C:/Users/pkalivas/Desktop/radiate/examples/ism/src/ism_input.csv").unwrap();
         let mut data = Vec::new();
         for result in reader.records() {
             let temp = result.unwrap();
@@ -155,7 +158,7 @@ impl ISM {
 
 
     fn write_data(&self, solution: &mut Neat) {
-        let mut writer = csv::Writer::from_path("/Users/peterkalivas/Desktop/software/radiate/examples/ism/src/ism.csv").unwrap();
+        let mut writer = csv::Writer::from_path("C:/Users/pkalivas/Desktop/radiate/examples/ism/src/ism.csv").unwrap();
         for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
             let guess = solution.forward(i).unwrap();
             writer.write_record(&[self.de_norm(i[0]).to_string(), self.de_norm(o[0]).to_string(), self.de_norm(guess[0]).to_string()]).unwrap();

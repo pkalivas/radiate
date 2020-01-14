@@ -455,12 +455,15 @@ impl Layer for Dense {
         // create a dfs stack to step backwards through the network and compute the error of each neuron
         // then insert that error in a hashmap to keep track of innov of the neuron and it's error 
         unsafe  {
-            let mut path = Vec::new();
-            for (i, innov) in self.outputs.iter().enumerate() {
-                let node = self.nodes.get(innov)?;
-                (**node).error = error[i];
-                path.push(*innov);
-            }
+            let mut path = self.outputs
+                .iter()
+                .enumerate()
+                .map(|(index, innov)| {
+                    let node = self.nodes.get(innov).unwrap();
+                    (**node).error = error[index];
+                    *innov
+                })
+                .collect::<Vec<_>>();
 
             // step through the network backwards and adjust the weights
             while path.len() > 0 {
