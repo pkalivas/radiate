@@ -22,8 +22,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_activation_functions(vec![
             Activation::Sigmoid,
             Activation::Relu,
-            Activation::LeakyRelu(0.02),
-            Activation::Tahn
         ]);
 
 

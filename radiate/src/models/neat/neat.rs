@@ -101,7 +101,9 @@ impl Neat {
         assert!(inputs[0].len() as u32 == self.input_size, "Input size is different than network input size");
 
         // add tracers to the layers during training to keep track of meta data for backprop
-        self.layers.iter_mut().for_each(|x| x.layer.add_tracer());
+        if update_window > 1 {
+            self.layers.iter_mut().for_each(|x| x.layer.add_tracer());
+        }
         
         // feed the input data through the network then back prop it back through to edit the weights of the layers
         let mut pass_out = Vec::with_capacity(update_window);

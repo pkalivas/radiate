@@ -470,14 +470,10 @@ impl Layer for Dense {
               
                 // get the current node and it's error 
                 let curr_node = self.nodes.get(&path.pop()?)?;
-                let curr_node_error = (**curr_node).error * learning_rate;
-                if (**curr_node).neuron_type != NeuronType::Output {
-                    (**curr_node).error = 0.0;
-                }
                 let step = match &self.trace_states {
-                    Some(tracer) => curr_node_error * tracer.neuron_derivative((**curr_node).innov),
-                    None => curr_node_error * (**curr_node).d_value
-                };
+                    Some(tracer) => (**curr_node).error * tracer.neuron_derivative((**curr_node).innov),
+                    None => (**curr_node).error * (**curr_node).d_value
+                } * learning_rate;
               
                 // iterate through each of the incoming edes to this neuron and adjust it's weight
                 // and add it's error to the errros map
@@ -496,9 +492,14 @@ impl Layer for Dense {
                         };
 
                         curr_edge.update(delta);
-                        (**src_neuron).error += curr_edge.weight * curr_node_error;
+                        (**src_neuron).error += curr_edge.weight * (**curr_node).error;
                         path.push(curr_edge.src);
                     }
+                }
+                
+                // reset the nodes error if it isnt an input node 
+                if (**curr_node).neuron_type != NeuronType::Input {
+                    (**curr_node).error = 0.0;
                 }
             }
 

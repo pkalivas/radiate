@@ -6,7 +6,9 @@
 ## Versions
 **1.0.9** - **As of 1/10/2020 all versions after 1.0.9 require the nightly toolchain** Added serialization and deserialization to NEAT model through serde integration - serializing trait objects requires nightly crates for now.
 
-**1.1.0** - Fixed bug in NEAT model which sometimes resulted in faulty backpropagation for LSTM layers. Added ground work to use different optimizers, will be added fully in 1.1.1.
+**1.1.0** - Fixed bug in NEAT model which sometimes resulted in faulty backpropagation for LSTM layers. Added ground work to use different optimizers, will be added fully in 1.1.2.
+
+**1.1.1** - Fixed dumb bug in NEAT which was causing a error in backprop.
 
 Coming from Evolutionary Radiation.
 > Evolutionary radiation is a rapid increase in the number of species with a common ancestor, characterized by great ecological and morphological diversity - Pascal Neige.

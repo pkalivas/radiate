@@ -18,12 +18,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         .dense(1, Activation::Sigmoid);
         
     let xor = XOR::new();
-    net.train(&xor.inputs, &xor.answers, 200, 0.3, 1)?;
+    net.train(&xor.inputs, &xor.answers, 200, 0.1, 1)?;
     let final_time = thread_time.elapsed().as_millis();
     
     println!("{:#?}", net);
     xor.show(&mut net);
-    println!("{}", serde_json::to_string_pretty(&net)?);
     println!("Time in millis: {}", final_time);
 
     Ok(())
