@@ -3,7 +3,10 @@
 [![Build Status](https://travis-ci.com/pkalivas/radiate.svg?branch=master)](https://travis-ci.com/pkalivas/radiate)
 ![Crates.io](https://img.shields.io/crates/v/radiate)
 
-Note - Radiate version 1.0.8 is the last version viable on the stable toolchain for now. This is due to serialization and deserialization of trait objects which requires the nightly toolchain as of tody (1/10/2020)
+## Versions
+**1.0.9** - **As of 1/10/2020 all versions after 1.0.9 require the nightly toolchain** Added serialization and deserialization to NEAT model through serde integration - serializing trait objects requires nightly crates for now.
+
+**1.1.0** - Fixed bug in NEAT model which sometimes resulted in faulty backpropagation for LSTM layers. Added ground work to use different optimizers, will be added fully in 1.1.1.
 
 Coming from Evolutionary Radiation.
 > Evolutionary radiation is a rapid increase in the number of species with a common ancestor, characterized by great ecological and morphological diversity - Pascal Neige.
@@ -253,7 +256,3 @@ pub enum Genocide {
 ```
 This is definitly an area which can be improved in the algorithm.
 
-## Versions
-**1.0.9** - **As of 1/10/2020 all versions after 1.0.9 require the nightly toolchain** Added serialization and deserialization to NEAT model through serde integration.
-
-**1.1.0** - Fixed bug in NEAT model which sometimes resulted in faulty backpropagation for LSTM layers. Added ground work to use different optimizers, will be added fully in 1.1.1.
