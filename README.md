@@ -255,4 +255,5 @@ This is definitly an area which can be improved in the algorithm.
 
 ## Versions
 **1.0.9** - **As of 1/10/2020 all versions after 1.0.9 require the nightly toolchain** Added serialization and deserialization to NEAT model through serde integration.
+
 **1.1.0** - Fixed bug in NEAT model which sometimes resulted in faulty backpropagation for LSTM layers. Added ground work to use different optimizers, will be added fully in 1.1.1.
