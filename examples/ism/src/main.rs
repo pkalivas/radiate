@@ -16,8 +16,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
         .set_weight_perturb(1.5)
-        .set_new_node_rate(0.5)
-        .set_new_edge_rate(0.5)
+        .set_new_node_rate(0.04)
+        .set_new_edge_rate(0.04)
         .set_reactivate(0.2)
         .set_activation_functions(vec![
             Activation::Sigmoid,
@@ -26,12 +26,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 
     let mut net = Neat::new()
-        .input_size(1)
-        .lstm(1, 1, Activation::Sigmoid);
+        .input_size(3)
+        .lstm(3, 1, Activation::Sigmoid);
 
         
-    let ism = ISM::new(1);
-    let num_evolve = 10;
+    let ism = ISM::new(3);
+    let num_evolve = 150;
     let (mut solution, _) = Population::<Neat, NeatEnvironment, ISM>::new()
         .constrain(neat_env)
         .size(100)
@@ -55,13 +55,15 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!("Training\n\n");
     solution.reset();
-    solution.train(&ism.inputs, &ism.answers, 5000, 0.003, ism.inputs.len())?;
+    // solution.train(&ism.inputs, &ism.answers, 100, 0.005, ism.inputs.len())?;
 
     solution.reset();
     ism.show(&mut solution);
 
     solution.reset();
     println!("{:?}", ism.solve(&mut solution));
+    solution.reset();
+    ism.write_data(&mut solution);
     // ism.freestyle(3, &mut solution); 
 
     Ok(())
@@ -100,6 +102,8 @@ impl ISM {
             answer.push(vec![data[i + back]]);
             output.push(temp);
         }
+        // output.reverse();
+        // answer.reverse();
         (output, answer)
     }
 
@@ -144,6 +148,7 @@ impl ISM {
                            
         let mut temp = data.iter().map(|x| x[0]).collect::<Vec<_>>();
         temp.reverse();
+        // data.reverse();
         let (o, a) = ISM::layer(back, temp);
         ISM {
             min_v: smallest,
@@ -159,7 +164,7 @@ impl ISM {
         let mut writer = csv::Writer::from_path("C:/Users/pkalivas/Desktop/radiate/examples/ism/src/ism.csv").unwrap();
         for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
             let guess = solution.forward(i).unwrap();
-            writer.write_record(&[self.de_norm(i[0]).to_string(), self.de_norm(o[0]).to_string(), self.de_norm(guess[0]).to_string()]).unwrap();
+            writer.write_record(&[i[i.len() - 1].to_string(), o[0].to_string(), guess[0].to_string()]).unwrap();
         }
         writer.flush().unwrap();
     }
@@ -206,17 +211,23 @@ unsafe impl Sync for ISM {}
 
 impl Problem<Neat> for ISM {
 
-    fn empty() -> Self { ISM::new(1) }
+    fn empty() -> Self { ISM::new(3) }
 
     fn solve(&self, model: &mut Neat) -> f32 {
         let mut total = 0.0;
+        // for i in 0..self.inputs.len() - 2 {
+        //     match model.forward(&self.inputs[i]) {
+        //         Some(guess) => total += (guess[0] - self.inputs[i + 1][0]).powf(2.0),
+        //         None => panic!("asdf")
+        //     }
+        // }
         for (ins, outs) in self.inputs.iter().zip(self.answers.iter()) {
             match model.forward(&ins) {
                 Some(guess) => total += (guess[0] - outs[0]).powf(2.0),
                 None => panic!("Error in training NEAT")
             }
         }
-        1.0 - ((1.0 / self.answers.len() as f32) * total)
+        1.0 - ((1.0 / (self.answers.len()) as f32) * total)
     }
     
 }

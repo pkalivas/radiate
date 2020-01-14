@@ -503,21 +503,23 @@ impl Layer for Dense {
                 }
             }
 
-            // deduct the backprop index 
-            if let Some(tracer) = &mut self.trace_states {
-                tracer.index -= 1;
-            }
-
             // gather and return the output of the backwards pass
             let output = self.inputs
                 .iter()
                 .map(|x| {
                     let neuron = self.nodes.get(x).unwrap();
-                    let error = (**neuron).error;
+                    let error = match &self.trace_states {
+                        Some(tracer) => (**neuron).error * tracer.neuron_activation((**neuron).innov),
+                        None => (**neuron).error * (**neuron).value
+                    };
                     (**neuron).error = 0.0;
                     error
                 })
                 .collect();
+            // deduct the backprop index 
+            if let Some(tracer) = &mut self.trace_states {
+                tracer.index -= 1;
+            }
             Some(output)
         }
     }

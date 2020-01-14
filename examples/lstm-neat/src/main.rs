@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let data = MemoryTest::new();
         MemoryTest::new().show(&mut solution);
         
-        solution.train(&data.input, &data.output, 200, 0.3, 2)?;
+        // solution.train(&data.input, &data.output, 200, 0.3, 2)?;
         println!("{}", serde_json::to_string_pretty(&solution)?);
 
         // data.freestyle(12, &mut solution);
