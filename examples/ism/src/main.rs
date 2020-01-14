@@ -7,6 +7,8 @@ use std::error::Error;
 use radiate::prelude::*;
 
 
+// adam optimizer: https://gluon.mxnet.io/chapter06_optimization/adam-scratch.html
+
 
 fn main() -> Result<(), Box<dyn Error>> {
 
@@ -14,8 +16,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
         .set_weight_perturb(1.5)
-        .set_new_node_rate(0.05)
-        .set_new_edge_rate(0.05)
+        .set_new_node_rate(0.5)
+        .set_new_edge_rate(0.5)
         .set_reactivate(0.2)
         .set_activation_functions(vec![
             Activation::Sigmoid,
@@ -27,11 +29,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut net = Neat::new()
         .input_size(1)
-        .lstm(5, 1, Activation::Sigmoid);
+        .lstm(3, 1, Activation::Sigmoid);
 
         
     let ism = ISM::new(1);
-    let num_evolve = 0;
+    let num_evolve = 2;
     let (mut solution, _) = Population::<Neat, NeatEnvironment, ISM>::new()
         .constrain(neat_env)
         .size(100)
@@ -54,7 +56,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     ism.show(&mut solution);
     solution.reset();
     println!("Training\n\n");
-    solution.train(&ism.inputs, &ism.answers, 100, 0.001, ism.inputs.len())?;
+    solution.train(&ism.inputs, &ism.answers, 200, 0.001, ism.inputs.len())?;
     solution.reset();
     ism.show(&mut solution);
     solution.reset();
