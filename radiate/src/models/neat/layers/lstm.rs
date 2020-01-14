@@ -128,7 +128,7 @@ impl LSTM {
         // compute the hidden to output gradient
         // dh = error @ Wy.T + dh_next
         let mut dh = self.v_gate.backward(errors, l_rate)?;
-        vectorops::element_multiply(&mut dh, &dh_next);
+        vectorops::element_add(&mut dh, &dh_next);
 
         // Gradient for ho in h = ho * tanh(c)     
         //dho = tanh(c) * dh

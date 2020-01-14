@@ -468,6 +468,9 @@ impl Layer for Dense {
                 // get the current node and it's error 
                 let curr_node = self.nodes.get(&path.pop()?)?;
                 let curr_node_error = (**curr_node).error * learning_rate;
+                if (**curr_node).neuron_type != NeuronType::Output {
+                    (**curr_node).error = 0.0;
+                }
                 let step = match &self.trace_states {
                     Some(tracer) => curr_node_error * tracer.neuron_derivative((**curr_node).innov),
                     None => curr_node_error * (**curr_node).d_value
@@ -502,10 +505,15 @@ impl Layer for Dense {
             }
 
             // gather and return the output of the backwards pass
-            let mut output = Vec::with_capacity(self.inputs.len());
-            for innov in self.inputs.iter() {
-                output.push((**self.nodes.get_mut(innov)?).error);
-            }
+            let output = self.inputs
+                .iter()
+                .map(|x| {
+                    let neuron = self.nodes.get(x).unwrap();
+                    let error = (**neuron).error;
+                    (**neuron).error = 0.0;
+                    error
+                })
+                .collect();
             Some(output)
         }
     }

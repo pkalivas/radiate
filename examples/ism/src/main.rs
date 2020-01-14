@@ -13,7 +13,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let neat_env = NeatEnvironment::new()
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
-        .set_weight_perturb(2.0)
+        .set_weight_perturb(1.5)
         .set_new_node_rate(0.05)
         .set_new_edge_rate(0.05)
         .set_reactivate(0.2)
@@ -27,14 +27,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut net = Neat::new()
         .input_size(1)
-        .lstm(1, 1, Activation::Sigmoid);
+        .lstm(5, 1, Activation::Sigmoid);
 
         
     let ism = ISM::new(1);
-    let num_evolve = 25;
+    let num_evolve = 0;
     let (mut solution, _) = Population::<Neat, NeatEnvironment, ISM>::new()
         .constrain(neat_env)
-        .size(200)
+        .size(100)
         .populate_clone(net)
         .debug(true)
         .dynamic_distance(true)
@@ -50,10 +50,16 @@ fn main() -> Result<(), Box<dyn Error>> {
             num == num_evolve
         })?;
             
-    println!("Training\n\n");
-    solution.train(&ism.inputs, &ism.answers, 1500, 0.05, 100)?;
+    solution.reset();
     ism.show(&mut solution);
-    ism.freestyle(3, &mut solution); 
+    solution.reset();
+    println!("Training\n\n");
+    solution.train(&ism.inputs, &ism.answers, 100, 0.001, ism.inputs.len())?;
+    solution.reset();
+    ism.show(&mut solution);
+    solution.reset();
+    println!("{:?}", ism.solve(&mut solution));
+    // ism.freestyle(3, &mut solution); 
 
     Ok(())
 }
