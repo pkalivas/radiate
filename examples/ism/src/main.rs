@@ -33,7 +33,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         
     let ism = ISM::new(1);
-    let num_evolve = 2;
+    let num_evolve = 10;
     let (mut solution, _) = Population::<Neat, NeatEnvironment, ISM>::new()
         .constrain(neat_env)
         .size(100)
@@ -56,7 +56,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     ism.show(&mut solution);
     solution.reset();
     println!("Training\n\n");
-    solution.train(&ism.inputs, &ism.answers, 200, 0.001, ism.inputs.len())?;
+    solution.train(&ism.inputs, &ism.answers, 50, 0.001, ism.inputs.len())?;
     solution.reset();
     ism.show(&mut solution);
     solution.reset();

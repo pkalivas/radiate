@@ -8,6 +8,7 @@ use std::sync::{Arc, RwLock};
 use super::{
     neatenv::NeatEnvironment,
     activation::Activation,
+    optimizer::Optimizer,
     layers::{
         layer::Layer,
         dense::Dense,
@@ -48,7 +49,8 @@ impl LayerWrap {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Neat {
     pub layers: Vec<LayerWrap>,
-    pub input_size: u32
+    pub input_size: u32,
+    pub optimizer: Optimizer
 }
 
 
@@ -59,7 +61,8 @@ impl Neat {
     pub fn new() -> Self {
         Neat { 
             layers: Vec::new(),
-            input_size: 0
+            input_size: 0,
+            optimizer: Optimizer::SGD(0.1)
         }
     }
 
@@ -68,6 +71,14 @@ impl Neat {
     /// set the input size for the network 
     pub fn input_size(mut self, input_size: u32) -> Self {
         self.input_size = input_size;
+        self
+    }
+
+
+
+    /// add an optimizer to the network
+    pub fn optimizer(mut self, opt: Optimizer) -> Self {
+        self.optimizer = opt;
         self
     }
 
@@ -246,7 +257,8 @@ impl Clone for Neat {
                     }
                 })
                 .collect(),
-            input_size: self.input_size
+            input_size: self.input_size,
+            optimizer: self.optimizer.clone()
         }
     }
 }
@@ -299,6 +311,7 @@ impl Genome<Neat, NeatEnvironment> for Neat {
         Some(Neat { 
             layers: result_layers, 
             input_size: one.input_size, 
+            optimizer: one.optimizer.clone()
         })
     }
 
