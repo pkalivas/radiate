@@ -31,7 +31,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         
     let ism = ISM::new(3);
-    let num_evolve = 150;
+    let num_evolve = 30;
     let (mut solution, _) = Population::<Neat, NeatEnvironment, ISM>::new()
         .constrain(neat_env)
         .size(100)
@@ -55,7 +55,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!("Training\n\n");
     solution.reset();
-    // solution.train(&ism.inputs, &ism.answers, 100, 0.005, ism.inputs.len())?;
+    solution.train(&ism.inputs, &ism.answers, 200, 0.005, ism.inputs.len())?;
 
     solution.reset();
     ism.show(&mut solution);
@@ -131,7 +131,7 @@ impl ISM {
 
 
     fn read_data(back: usize) -> Self {
-        let mut reader = csv::Reader::from_path("C:/Users/pkalivas/Desktop/radiate/examples/ism/src/ism_input.csv").unwrap();
+        let mut reader = csv::Reader::from_path("C:/Users/peter/Desktop/software/radiate/examples/ism/src/ism_input.csv").unwrap();
         let mut data = Vec::new();
         for result in reader.records() {
             let temp = result.unwrap();
@@ -140,11 +140,35 @@ impl ISM {
         }
         let smallest = ISM::minimum(&data);
         let biggest = ISM::maximum(&data);
+        // let total = data.iter().map(|x| x[0]).collect::<Vec<_>>().iter().sum::<f32>();
+
+        // let mean = total / data.len() as f32;
+
+        // let mut t = data
+        //     .iter()
+        //     .map(|x| (x[0] - mean).powf(2.0))
+        //     .collect::<Vec<_>>()
+        //     .iter()
+        //     .sum::<f32>();
+        // t = (1.0 / data.len() as f32) * t;
+        // t = t.sqrt();
+
+        // data = data.iter()
+        //     .map(|x| vec![((x[0] - mean) / t)])
+        //     .collect::<Vec<_>>();
+
+        // let s = ISM::minimum(&data);
+        // data = data.iter()
+        //     .map(|x| vec![x[0] + s])
+        //     .collect::<Vec<_>>();
+        // let smallest = ISM::minimum(&data);
+        // let biggest = ISM::maximum(&data);
         data = data.iter()
             .map(|x| {
                 vec![(x[0] - smallest) / (biggest - smallest)]
             })
             .collect();
+                   
                            
         let mut temp = data.iter().map(|x| x[0]).collect::<Vec<_>>();
         temp.reverse();
@@ -161,7 +185,7 @@ impl ISM {
 
 
     fn write_data(&self, solution: &mut Neat) {
-        let mut writer = csv::Writer::from_path("C:/Users/pkalivas/Desktop/radiate/examples/ism/src/ism.csv").unwrap();
+        let mut writer = csv::Writer::from_path("C:/Users/peter/Desktop/software/radiate/examples/ism/src/ism.csv").unwrap();
         for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
             let guess = solution.forward(i).unwrap();
             writer.write_record(&[i[i.len() - 1].to_string(), o[0].to_string(), guess[0].to_string()]).unwrap();
@@ -179,7 +203,7 @@ impl ISM {
         println!("\n");
         for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
             let guess = model.forward(i).unwrap();
-            println!("Input: {:.2?} Answer: {:.2?} Guess: {:.2?}", self.de_norm(i[0]), self.de_norm(o[0]), self.de_norm(guess[0]));
+            println!("Input: {:.2?} Answer: {:.2?} Guess: {:.2?}", i[0], o[0], guess[0]);
         }
     }
 
