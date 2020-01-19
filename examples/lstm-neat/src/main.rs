@@ -16,8 +16,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
         .set_weight_perturb(1.7)
-        .set_new_node_rate(0.05)
-        .set_new_edge_rate(0.05)
+        .set_new_node_rate(0.04)
+        .set_new_edge_rate(0.04)
         .set_reactivate(0.2)
         .set_activation_functions(vec![
             Activation::Sigmoid,
@@ -27,9 +27,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let starting_net = Neat::new()
         .input_size(1)
-        .lstm(1, 1, Activation::Sigmoid);
+        .lstm(5, 1, Activation::Sigmoid);
 
-    let num_evolve = 100;
+    let num_evolve = 0;
     let (mut solution, _) = Population::<Neat, NeatEnvironment, MemoryTest>::new()
         .constrain(neat_env)
         .size(100)
@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let data = MemoryTest::new();
         MemoryTest::new().show(&mut solution);
         
-        // solution.train(&data.input, &data.output, 200, 0.3, 2)?;
+        solution.train(&data.input, &data.output, 1000, 0.3, MemoryTest::new().output.len())?;
         println!("{}", serde_json::to_string_pretty(&solution)?);
 
         // data.freestyle(12, &mut solution);

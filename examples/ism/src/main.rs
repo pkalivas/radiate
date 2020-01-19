@@ -26,18 +26,18 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 
     let net = Neat::new()
-        .input_size(6)
-        .lstm(50, 1, Activation::Sigmoid);
+        .input_size(1)
+        .lstm(5, 1, Activation::Sigmoid);
         // .dense_pool(1, Activation::Sigmoid);
         // .gru(5, 5)
         // .dense_pool(1, Activation::Sigmoid);
 
         
-    let ism = ISM::new(6);
-    let num_evolve = 100;
+    let ism = ISM::new(1);
+    let num_evolve = 10;
     let (mut solution, _) = Population::<Neat, NeatEnvironment, ISM>::new()
         .constrain(neat_env)
-        .size(50)
+        .size(100)
         .populate_clone(net)
         .debug(true)
         .dynamic_distance(true)
@@ -58,8 +58,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!("Training\n\n");
     solution.reset();
-    // solution.train(&ism.inputs, &ism.answers, 10, 0.003, ism.inputs.len())?;
-
+    println!("{:#?}", solution);
+    solution.train(&ism.inputs, &ism.answers, 500, 0.0003, ism.inputs.len())?;
+    println!("{:#?}", solution);
     solution.reset();
     ism.show(&mut solution);
 
@@ -219,7 +220,7 @@ unsafe impl Sync for ISM {}
 
 impl Problem<Neat> for ISM {
 
-    fn empty() -> Self { ISM::new(6) }
+    fn empty() -> Self { ISM::new(1) }
 
     fn solve(&self, model: &mut Neat) -> f32 {
         let mut total = 0.0;
@@ -229,6 +230,7 @@ impl Problem<Neat> for ISM {
                 None => panic!("Error in training NEAT")
             }
         }
+        model.reset();
         1.0 - ((1.0 / (self.answers.len()) as f32) * total)
     }
     

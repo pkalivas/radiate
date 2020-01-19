@@ -152,6 +152,7 @@ impl Neat {
                 .fold(vectorops::subtract(&net_targets[i], &net_outs[i]), |res, curr| {
                     curr.layer.backward(&res, rate).unwrap()
                 });
+            // println!("ITER: {:?}\n\n{:#?}", i, self);
         }
         self.reset();
     }

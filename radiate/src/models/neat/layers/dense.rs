@@ -320,6 +320,15 @@ impl Dense {
                 edge.weight *= r.gen_range(-size, size);
             }
         }
+        for node in self.nodes.values() {
+            unsafe {
+                if r.gen::<f32>() < editable {
+                    (**node).bias = r.gen::<f32>();
+                } else {
+                    (**node).bias *= r.gen_range(-size, size);
+                }
+            }
+        }
     }
 
 
@@ -490,8 +499,8 @@ impl Layer for Dense {
                             None => step * (**src_neuron).value
                         };
 
-                        curr_edge.update(delta);
                         (**src_neuron).error += curr_edge.weight * (**curr_node).error;
+                        curr_edge.update(delta);
                         path.push(curr_edge.src);
                     }
                 }
