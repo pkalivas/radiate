@@ -23,6 +23,7 @@ pub use models::{
             lstm::LSTM
         },
         neurontype::NeuronType,
+        loss::Loss,
         edge::Edge,
         neuron::Neuron,
         neat::Neat,

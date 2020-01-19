@@ -27,6 +27,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let starting_net = Neat::new()
         .input_size(1)
+        .batch_size(MemoryTest::new().output.len())
         .lstm(5, 1, Activation::Sigmoid);
 
     let num_evolve = 0;
@@ -51,7 +52,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let data = MemoryTest::new();
         MemoryTest::new().show(&mut solution);
         
-        solution.train(&data.input, &data.output, 1000, 0.3, MemoryTest::new().output.len())?;
+        solution.train(&data.input, &data.output, 1000, 0.3, true, Loss::Diff)?;
         println!("{}", serde_json::to_string_pretty(&solution)?);
 
         // data.freestyle(12, &mut solution);

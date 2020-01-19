@@ -4,11 +4,11 @@
       "layer_type": "LSTM",
       "layer": [
         [
-          "e4774583-74cc-491c-b451-775cff7f585d",
-          16249082315406124872,
-          18446744073709511688
+          "2324d6db-95bc-4fd8-a721-ab4f38f7de34",
+          11913567879462567178,
+          18446744073709527856
         ],
-        12639662130785023957,
+        967223716621211906,
         {
           "input_size": 1,
           "memory_size": 5,
@@ -39,32 +39,32 @@
           },
           "g_gate": {
             "inputs": [
-              "457dd87a-969b-477a-8e53-02070704bc5f",
-              "191367fc-9419-4b79-b7a6-fedcc08b0f2f",
-              "ba4c6bfc-96cf-4783-a3fa-d61e997bfc83",
-              "b5f15254-b67a-44f2-b2aa-2d178e5e19b0",
-              "57668dca-1a60-4d6f-aa5f-88dcc4867b5d",
-              "10dce07f-46e5-4503-afbf-1a9bcd0857a3"
+              "67adfbb8-51b1-4e51-aa98-868a20c0e0ce",
+              "be729493-84b6-46c1-be70-97ea130ef8e1",
+              "fcf39ca8-d38c-4390-b84a-700c76e4e487",
+              "1d790aaa-dcc7-4cfb-a742-19e783830130",
+              "48e55515-6d6c-49cc-9154-c6a4cf728fdb",
+              "ba9c044c-3978-43e4-b7e1-8a7e31d84b39"
             ],
             "outputs": [
-              "c52abe9e-156b-4979-bde6-31dfce7eac2d",
-              "3e510b5b-c243-47e6-b85a-59dacdd4be73",
-              "597516d0-ee0b-4c2c-b3a8-556b0fd95e5c",
-              "92befb01-c3b6-4539-acb5-51e9701089db",
-              "aaa73039-5aea-4023-9695-26f19897c660"
+              "e7b457cb-5305-4a4d-8774-85ae34976b22",
+              "9e60ebce-09e9-406b-8ec0-6ab144a4637f",
+              "4c4a5e2b-a29d-41f5-8f1e-6da3cdf29338",
+              "cfe84859-0354-4d45-b325-db8da81878ae",
+              "69888f75-23b4-45ba-ba6e-bdca96b89a12"
             ],
             "nodes": {
-              "57668dca-1a60-4d6f-aa5f-88dcc4867b5d": {
-                "innov": "57668dca-1a60-4d6f-aa5f-88dcc4867b5d",
+              "48e55515-6d6c-49cc-9154-c6a4cf728fdb": {
+                "innov": "48e55515-6d6c-49cc-9154-c6a4cf728fdb",
                 "outgoing": [
-                  "d27e31aa-f9ef-4c9f-b014-0146462b14f0",
-                  "e2fe933d-f685-4a40-95f0-50c42862ebda",
-                  "4505af32-e173-400c-bbd8-6544301fd068",
-                  "605409be-1281-4cef-8108-1c3d99610363",
-                  "a34c02e9-be24-41bd-bfda-36d5025457cf"
+                  "9f4a1b4e-e8af-49da-9425-20c2f7036ee6",
+                  "45c8e9e5-f3d6-45c4-8863-1c70e71c0569",
+                  "38f73005-8e3c-4e75-a62e-94d7659e4580",
+                  "116bb272-5ea4-47a3-9fa2-7e9d201f80f8",
+                  "6b725c25-4295-4ae0-b276-18ddde45ceeb"
                 ],
                 "incoming": {},
-                "bias": 0.72427964,
+                "bias": 0.38831025,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -72,54 +72,18 @@
                 "activation": "Tahn",
                 "neuron_type": "Input"
               },
-              "457dd87a-969b-477a-8e53-02070704bc5f": {
-                "innov": "457dd87a-969b-477a-8e53-02070704bc5f",
-                "outgoing": [
-                  "415f4861-4480-4d09-9695-505d84454423",
-                  "a0915ffa-1d3f-40e8-88a7-1d1c2a6121bb",
-                  "808431cc-1ea7-4250-9912-99df120559c2",
-                  "8373a750-b36e-448e-a943-1e4b0cdfcbfd",
-                  "ebf9f91f-6251-4652-97b2-2f91e4fc5ed1"
-                ],
-                "incoming": {},
-                "bias": 0.4630841,
-                "value": 0.0,
-                "d_value": 0.0,
-                "state": 0.0,
-                "error": 0.0,
-                "activation": "Tahn",
-                "neuron_type": "Input"
-              },
-              "191367fc-9419-4b79-b7a6-fedcc08b0f2f": {
-                "innov": "191367fc-9419-4b79-b7a6-fedcc08b0f2f",
-                "outgoing": [
-                  "46ddf055-2c0f-4e86-b1f4-59100eee1c2b",
-                  "13832e4b-ed7f-4d6d-a547-d92d56fb1cb2",
-                  "5a66c3cb-0f9e-43f4-ba16-a85604be0bcb",
-                  "37c07d4b-b790-40cd-b198-4277c9aec6a7",
-                  "3fd29d73-6e96-4996-b24b-c74c6c3ba33d"
-                ],
-                "incoming": {},
-                "bias": 0.3671919,
-                "value": 0.0,
-                "d_value": 0.0,
-                "state": 0.0,
-                "error": 0.0,
-                "activation": "Tahn",
-                "neuron_type": "Input"
-              },
-              "c52abe9e-156b-4979-bde6-31dfce7eac2d": {
-                "innov": "c52abe9e-156b-4979-bde6-31dfce7eac2d",
+              "4c4a5e2b-a29d-41f5-8f1e-6da3cdf29338": {
+                "innov": "4c4a5e2b-a29d-41f5-8f1e-6da3cdf29338",
                 "outgoing": [],
                 "incoming": {
-                  "46ddf055-2c0f-4e86-b1f4-59100eee1c2b": null,
-                  "7d579580-b1b1-470b-a979-50384cbc8f0b": null,
-                  "3b602513-af3c-4707-adc5-f0349f2a4727": null,
-                  "177ba358-95ed-46cb-8301-3a2ea5c4e341": null,
-                  "415f4861-4480-4d09-9695-505d84454423": null,
-                  "d27e31aa-f9ef-4c9f-b014-0146462b14f0": null
+                  "6d332d0f-3b60-4320-8487-ccec27672dbf": null,
+                  "f98e0a18-dba7-49d1-ab3d-d212c0abf5c8": null,
+                  "be04c059-ab22-40ad-8679-cb7b5c377ff1": null,
+                  "7f5db122-b5fc-405b-9006-944103e60fef": null,
+                  "5f44b270-3dd5-4d1d-a90f-4d881c133b9b": null,
+                  "38f73005-8e3c-4e75-a62e-94d7659e4580": null
                 },
-                "bias": 0.24635898,
+                "bias": 0.64213306,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -127,17 +91,17 @@
                 "activation": "Tahn",
                 "neuron_type": "Output"
               },
-              "10dce07f-46e5-4503-afbf-1a9bcd0857a3": {
-                "innov": "10dce07f-46e5-4503-afbf-1a9bcd0857a3",
+              "be729493-84b6-46c1-be70-97ea130ef8e1": {
+                "innov": "be729493-84b6-46c1-be70-97ea130ef8e1",
                 "outgoing": [
-                  "177ba358-95ed-46cb-8301-3a2ea5c4e341",
-                  "8fcb8a95-dcd0-46ad-a85e-b78274338714",
-                  "dd1e21c6-7d6e-4bd5-a230-a2161e107789",
-                  "f7b7578e-21b0-4180-93a8-04a572fb7dc9",
-                  "ccb03c41-85ae-4dd9-b6a4-7591111e381e"
+                  "a12673b0-7b68-4bec-ae07-b7d88741e490",
+                  "a384ae25-34fb-4996-a279-4ed998865fdf",
+                  "7f5db122-b5fc-405b-9006-944103e60fef",
+                  "37d5cc76-df69-4029-b1ed-3bfa1e6efbb6",
+                  "5df1c21b-a8ca-4b90-908e-6efa69656b48"
                 ],
                 "incoming": {},
-                "bias": 0.7131882,
+                "bias": 0.9824457,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -145,17 +109,74 @@
                 "activation": "Tahn",
                 "neuron_type": "Input"
               },
-              "ba4c6bfc-96cf-4783-a3fa-d61e997bfc83": {
-                "innov": "ba4c6bfc-96cf-4783-a3fa-d61e997bfc83",
+              "e7b457cb-5305-4a4d-8774-85ae34976b22": {
+                "innov": "e7b457cb-5305-4a4d-8774-85ae34976b22",
+                "outgoing": [],
+                "incoming": {
+                  "0d7d4f94-8ed9-485a-9a45-4f1b046035b2": null,
+                  "bb5d517c-af55-4a6b-8562-ec1e8c944148": null,
+                  "9f4a1b4e-e8af-49da-9425-20c2f7036ee6": null,
+                  "b8f10ca8-aff0-430f-b20c-444ec5ce7c74": null,
+                  "a12673b0-7b68-4bec-ae07-b7d88741e490": null,
+                  "9cea21b2-5f49-4438-ae59-e259a6f63532": null
+                },
+                "bias": 0.99643093,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Tahn",
+                "neuron_type": "Output"
+              },
+              "69888f75-23b4-45ba-ba6e-bdca96b89a12": {
+                "innov": "69888f75-23b4-45ba-ba6e-bdca96b89a12",
+                "outgoing": [],
+                "incoming": {
+                  "96beea8e-3e4f-437b-8247-0ba8b9c95bbd": null,
+                  "22c0417c-18a1-4179-8899-3fd6af7cbc4d": null,
+                  "6b725c25-4295-4ae0-b276-18ddde45ceeb": null,
+                  "3e5d8d2f-cf84-4b75-b2ec-b7c5e3cfd490": null,
+                  "934fe538-0341-4128-93a2-072b46ddefa1": null,
+                  "5df1c21b-a8ca-4b90-908e-6efa69656b48": null
+                },
+                "bias": 0.574015,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Tahn",
+                "neuron_type": "Output"
+              },
+              "cfe84859-0354-4d45-b325-db8da81878ae": {
+                "innov": "cfe84859-0354-4d45-b325-db8da81878ae",
+                "outgoing": [],
+                "incoming": {
+                  "6babce30-aff7-490e-9a47-b8d5f4b2a999": null,
+                  "37d5cc76-df69-4029-b1ed-3bfa1e6efbb6": null,
+                  "ef6c1000-b21a-4052-9b49-9ea030687041": null,
+                  "2d163a79-dba9-467e-bbd2-2538b3c73aea": null,
+                  "116bb272-5ea4-47a3-9fa2-7e9d201f80f8": null,
+                  "4d48f80c-4d35-4f3a-a257-f19eb063731d": null
+                },
+                "bias": 0.74725336,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Tahn",
+                "neuron_type": "Output"
+              },
+              "ba9c044c-3978-43e4-b7e1-8a7e31d84b39": {
+                "innov": "ba9c044c-3978-43e4-b7e1-8a7e31d84b39",
                 "outgoing": [
-                  "3b602513-af3c-4707-adc5-f0349f2a4727",
-                  "9a6bc229-82f0-4c25-92e2-8052d913a68b",
-                  "340a706c-029d-492a-8858-b0ad93c29f02",
-                  "8dd95ce0-83ec-4b6a-bf10-05cb1da62cc6",
-                  "0f9164c2-e29f-49ec-a563-a214c6ebe581"
+                  "b8f10ca8-aff0-430f-b20c-444ec5ce7c74",
+                  "e893cdc2-44a9-43e9-a12c-6c6a8ae162c3",
+                  "5f44b270-3dd5-4d1d-a90f-4d881c133b9b",
+                  "6babce30-aff7-490e-9a47-b8d5f4b2a999",
+                  "934fe538-0341-4128-93a2-072b46ddefa1"
                 ],
                 "incoming": {},
-                "bias": 0.21526527,
+                "bias": 0.7712478,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -163,36 +184,17 @@
                 "activation": "Tahn",
                 "neuron_type": "Input"
               },
-              "3e510b5b-c243-47e6-b85a-59dacdd4be73": {
-                "innov": "3e510b5b-c243-47e6-b85a-59dacdd4be73",
-                "outgoing": [],
-                "incoming": {
-                  "9a6bc229-82f0-4c25-92e2-8052d913a68b": null,
-                  "13832e4b-ed7f-4d6d-a547-d92d56fb1cb2": null,
-                  "8fcb8a95-dcd0-46ad-a85e-b78274338714": null,
-                  "e2fe933d-f685-4a40-95f0-50c42862ebda": null,
-                  "a0915ffa-1d3f-40e8-88a7-1d1c2a6121bb": null,
-                  "a198e6e0-0c86-4a88-9304-787e2bd003e0": null
-                },
-                "bias": 1.8283958,
-                "value": 0.0,
-                "d_value": 0.0,
-                "state": 0.0,
-                "error": 0.0,
-                "activation": "Tahn",
-                "neuron_type": "Output"
-              },
-              "b5f15254-b67a-44f2-b2aa-2d178e5e19b0": {
-                "innov": "b5f15254-b67a-44f2-b2aa-2d178e5e19b0",
+              "1d790aaa-dcc7-4cfb-a742-19e783830130": {
+                "innov": "1d790aaa-dcc7-4cfb-a742-19e783830130",
                 "outgoing": [
-                  "7d579580-b1b1-470b-a979-50384cbc8f0b",
-                  "a198e6e0-0c86-4a88-9304-787e2bd003e0",
-                  "da4172c1-b493-4808-8c98-81c35d4c2e2f",
-                  "7c1e1ff1-1384-4fd1-b429-6c51b3a53151",
-                  "e781152f-2691-4f83-9885-43affa96ee5e"
+                  "9cea21b2-5f49-4438-ae59-e259a6f63532",
+                  "fd0820b0-ad7b-4264-90bb-40f14cd9e2b3",
+                  "6d332d0f-3b60-4320-8487-ccec27672dbf",
+                  "4d48f80c-4d35-4f3a-a257-f19eb063731d",
+                  "96beea8e-3e4f-437b-8247-0ba8b9c95bbd"
                 ],
                 "incoming": {},
-                "bias": 0.56340593,
+                "bias": 0.6461755,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -200,18 +202,36 @@
                 "activation": "Tahn",
                 "neuron_type": "Input"
               },
-              "92befb01-c3b6-4539-acb5-51e9701089db": {
-                "innov": "92befb01-c3b6-4539-acb5-51e9701089db",
+              "fcf39ca8-d38c-4390-b84a-700c76e4e487": {
+                "innov": "fcf39ca8-d38c-4390-b84a-700c76e4e487",
+                "outgoing": [
+                  "bb5d517c-af55-4a6b-8562-ec1e8c944148",
+                  "ce20e6a9-7ff7-433a-800d-e2e823c03e25",
+                  "f98e0a18-dba7-49d1-ab3d-d212c0abf5c8",
+                  "ef6c1000-b21a-4052-9b49-9ea030687041",
+                  "22c0417c-18a1-4179-8899-3fd6af7cbc4d"
+                ],
+                "incoming": {},
+                "bias": 0.13652372,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Tahn",
+                "neuron_type": "Input"
+              },
+              "9e60ebce-09e9-406b-8ec0-6ab144a4637f": {
+                "innov": "9e60ebce-09e9-406b-8ec0-6ab144a4637f",
                 "outgoing": [],
                 "incoming": {
-                  "8dd95ce0-83ec-4b6a-bf10-05cb1da62cc6": null,
-                  "7c1e1ff1-1384-4fd1-b429-6c51b3a53151": null,
-                  "8373a750-b36e-448e-a943-1e4b0cdfcbfd": null,
-                  "f7b7578e-21b0-4180-93a8-04a572fb7dc9": null,
-                  "37c07d4b-b790-40cd-b198-4277c9aec6a7": null,
-                  "605409be-1281-4cef-8108-1c3d99610363": null
+                  "78c2d15e-8f8d-4d4c-b926-846c50535e2b": null,
+                  "a384ae25-34fb-4996-a279-4ed998865fdf": null,
+                  "fd0820b0-ad7b-4264-90bb-40f14cd9e2b3": null,
+                  "e893cdc2-44a9-43e9-a12c-6c6a8ae162c3": null,
+                  "45c8e9e5-f3d6-45c4-8863-1c70e71c0569": null,
+                  "ce20e6a9-7ff7-433a-800d-e2e823c03e25": null
                 },
-                "bias": 3.103971,
+                "bias": -0.08213833,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -219,254 +239,234 @@
                 "activation": "Tahn",
                 "neuron_type": "Output"
               },
-              "597516d0-ee0b-4c2c-b3a8-556b0fd95e5c": {
-                "innov": "597516d0-ee0b-4c2c-b3a8-556b0fd95e5c",
-                "outgoing": [],
-                "incoming": {
-                  "5a66c3cb-0f9e-43f4-ba16-a85604be0bcb": null,
-                  "dd1e21c6-7d6e-4bd5-a230-a2161e107789": null,
-                  "4505af32-e173-400c-bbd8-6544301fd068": null,
-                  "da4172c1-b493-4808-8c98-81c35d4c2e2f": null,
-                  "340a706c-029d-492a-8858-b0ad93c29f02": null,
-                  "808431cc-1ea7-4250-9912-99df120559c2": null
-                },
-                "bias": 0.26995963,
+              "67adfbb8-51b1-4e51-aa98-868a20c0e0ce": {
+                "innov": "67adfbb8-51b1-4e51-aa98-868a20c0e0ce",
+                "outgoing": [
+                  "0d7d4f94-8ed9-485a-9a45-4f1b046035b2",
+                  "78c2d15e-8f8d-4d4c-b926-846c50535e2b",
+                  "be04c059-ab22-40ad-8679-cb7b5c377ff1",
+                  "2d163a79-dba9-467e-bbd2-2538b3c73aea",
+                  "3e5d8d2f-cf84-4b75-b2ec-b7c5e3cfd490"
+                ],
+                "incoming": {},
+                "bias": 0.52528614,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
                 "error": 0.0,
                 "activation": "Tahn",
-                "neuron_type": "Output"
-              },
-              "aaa73039-5aea-4023-9695-26f19897c660": {
-                "innov": "aaa73039-5aea-4023-9695-26f19897c660",
-                "outgoing": [],
-                "incoming": {
-                  "0f9164c2-e29f-49ec-a563-a214c6ebe581": null,
-                  "ccb03c41-85ae-4dd9-b6a4-7591111e381e": null,
-                  "e781152f-2691-4f83-9885-43affa96ee5e": null,
-                  "ebf9f91f-6251-4652-97b2-2f91e4fc5ed1": null,
-                  "3fd29d73-6e96-4996-b24b-c74c6c3ba33d": null,
-                  "a34c02e9-be24-41bd-bfda-36d5025457cf": null
-                },
-                "bias": -0.032396354,
-                "value": 0.0,
-                "d_value": 0.0,
-                "state": 0.0,
-                "error": 0.0,
-                "activation": "Tahn",
-                "neuron_type": "Output"
+                "neuron_type": "Input"
               }
             },
             "edges": {
-              "3b602513-af3c-4707-adc5-f0349f2a4727": {
-                "src": "ba4c6bfc-96cf-4783-a3fa-d61e997bfc83",
-                "dst": "c52abe9e-156b-4979-bde6-31dfce7eac2d",
-                "innov": "3b602513-af3c-4707-adc5-f0349f2a4727",
-                "weight": 0.30367962,
+              "e893cdc2-44a9-43e9-a12c-6c6a8ae162c3": {
+                "src": "ba9c044c-3978-43e4-b7e1-8a7e31d84b39",
+                "dst": "9e60ebce-09e9-406b-8ec0-6ab144a4637f",
+                "innov": "e893cdc2-44a9-43e9-a12c-6c6a8ae162c3",
+                "weight": -0.61620015,
                 "active": true
               },
-              "37c07d4b-b790-40cd-b198-4277c9aec6a7": {
-                "src": "191367fc-9419-4b79-b7a6-fedcc08b0f2f",
-                "dst": "92befb01-c3b6-4539-acb5-51e9701089db",
-                "innov": "37c07d4b-b790-40cd-b198-4277c9aec6a7",
-                "weight": 0.9817769,
+              "a384ae25-34fb-4996-a279-4ed998865fdf": {
+                "src": "be729493-84b6-46c1-be70-97ea130ef8e1",
+                "dst": "9e60ebce-09e9-406b-8ec0-6ab144a4637f",
+                "innov": "a384ae25-34fb-4996-a279-4ed998865fdf",
+                "weight": -0.21040097,
                 "active": true
               },
-              "8fcb8a95-dcd0-46ad-a85e-b78274338714": {
-                "src": "10dce07f-46e5-4503-afbf-1a9bcd0857a3",
-                "dst": "3e510b5b-c243-47e6-b85a-59dacdd4be73",
-                "innov": "8fcb8a95-dcd0-46ad-a85e-b78274338714",
-                "weight": -0.64638823,
+              "45c8e9e5-f3d6-45c4-8863-1c70e71c0569": {
+                "src": "48e55515-6d6c-49cc-9154-c6a4cf728fdb",
+                "dst": "9e60ebce-09e9-406b-8ec0-6ab144a4637f",
+                "innov": "45c8e9e5-f3d6-45c4-8863-1c70e71c0569",
+                "weight": -0.93770593,
                 "active": true
               },
-              "8373a750-b36e-448e-a943-1e4b0cdfcbfd": {
-                "src": "457dd87a-969b-477a-8e53-02070704bc5f",
-                "dst": "92befb01-c3b6-4539-acb5-51e9701089db",
-                "innov": "8373a750-b36e-448e-a943-1e4b0cdfcbfd",
-                "weight": -0.34056723,
+              "22c0417c-18a1-4179-8899-3fd6af7cbc4d": {
+                "src": "fcf39ca8-d38c-4390-b84a-700c76e4e487",
+                "dst": "69888f75-23b4-45ba-ba6e-bdca96b89a12",
+                "innov": "22c0417c-18a1-4179-8899-3fd6af7cbc4d",
+                "weight": -0.8459307,
                 "active": true
               },
-              "e2fe933d-f685-4a40-95f0-50c42862ebda": {
-                "src": "57668dca-1a60-4d6f-aa5f-88dcc4867b5d",
-                "dst": "3e510b5b-c243-47e6-b85a-59dacdd4be73",
-                "innov": "e2fe933d-f685-4a40-95f0-50c42862ebda",
-                "weight": 0.7912313,
+              "6babce30-aff7-490e-9a47-b8d5f4b2a999": {
+                "src": "ba9c044c-3978-43e4-b7e1-8a7e31d84b39",
+                "dst": "cfe84859-0354-4d45-b325-db8da81878ae",
+                "innov": "6babce30-aff7-490e-9a47-b8d5f4b2a999",
+                "weight": -0.05170262,
                 "active": true
               },
-              "808431cc-1ea7-4250-9912-99df120559c2": {
-                "src": "457dd87a-969b-477a-8e53-02070704bc5f",
-                "dst": "597516d0-ee0b-4c2c-b3a8-556b0fd95e5c",
-                "innov": "808431cc-1ea7-4250-9912-99df120559c2",
-                "weight": 0.7694786,
+              "ef6c1000-b21a-4052-9b49-9ea030687041": {
+                "src": "fcf39ca8-d38c-4390-b84a-700c76e4e487",
+                "dst": "cfe84859-0354-4d45-b325-db8da81878ae",
+                "innov": "ef6c1000-b21a-4052-9b49-9ea030687041",
+                "weight": 0.96920276,
                 "active": true
               },
-              "9a6bc229-82f0-4c25-92e2-8052d913a68b": {
-                "src": "ba4c6bfc-96cf-4783-a3fa-d61e997bfc83",
-                "dst": "3e510b5b-c243-47e6-b85a-59dacdd4be73",
-                "innov": "9a6bc229-82f0-4c25-92e2-8052d913a68b",
-                "weight": 0.0924795,
+              "3e5d8d2f-cf84-4b75-b2ec-b7c5e3cfd490": {
+                "src": "67adfbb8-51b1-4e51-aa98-868a20c0e0ce",
+                "dst": "69888f75-23b4-45ba-ba6e-bdca96b89a12",
+                "innov": "3e5d8d2f-cf84-4b75-b2ec-b7c5e3cfd490",
+                "weight": 0.32877225,
                 "active": true
               },
-              "0f9164c2-e29f-49ec-a563-a214c6ebe581": {
-                "src": "ba4c6bfc-96cf-4783-a3fa-d61e997bfc83",
-                "dst": "aaa73039-5aea-4023-9695-26f19897c660",
-                "innov": "0f9164c2-e29f-49ec-a563-a214c6ebe581",
-                "weight": -0.5821947,
+              "934fe538-0341-4128-93a2-072b46ddefa1": {
+                "src": "ba9c044c-3978-43e4-b7e1-8a7e31d84b39",
+                "dst": "69888f75-23b4-45ba-ba6e-bdca96b89a12",
+                "innov": "934fe538-0341-4128-93a2-072b46ddefa1",
+                "weight": 0.5911029,
                 "active": true
               },
-              "e781152f-2691-4f83-9885-43affa96ee5e": {
-                "src": "b5f15254-b67a-44f2-b2aa-2d178e5e19b0",
-                "dst": "aaa73039-5aea-4023-9695-26f19897c660",
-                "innov": "e781152f-2691-4f83-9885-43affa96ee5e",
-                "weight": 0.89224446,
+              "2d163a79-dba9-467e-bbd2-2538b3c73aea": {
+                "src": "67adfbb8-51b1-4e51-aa98-868a20c0e0ce",
+                "dst": "cfe84859-0354-4d45-b325-db8da81878ae",
+                "innov": "2d163a79-dba9-467e-bbd2-2538b3c73aea",
+                "weight": -0.83649135,
                 "active": true
               },
-              "5a66c3cb-0f9e-43f4-ba16-a85604be0bcb": {
-                "src": "191367fc-9419-4b79-b7a6-fedcc08b0f2f",
-                "dst": "597516d0-ee0b-4c2c-b3a8-556b0fd95e5c",
-                "innov": "5a66c3cb-0f9e-43f4-ba16-a85604be0bcb",
-                "weight": -0.69102997,
+              "7f5db122-b5fc-405b-9006-944103e60fef": {
+                "src": "be729493-84b6-46c1-be70-97ea130ef8e1",
+                "dst": "4c4a5e2b-a29d-41f5-8f1e-6da3cdf29338",
+                "innov": "7f5db122-b5fc-405b-9006-944103e60fef",
+                "weight": 0.63259006,
                 "active": true
               },
-              "dd1e21c6-7d6e-4bd5-a230-a2161e107789": {
-                "src": "10dce07f-46e5-4503-afbf-1a9bcd0857a3",
-                "dst": "597516d0-ee0b-4c2c-b3a8-556b0fd95e5c",
-                "innov": "dd1e21c6-7d6e-4bd5-a230-a2161e107789",
-                "weight": 1.0132576,
+              "9f4a1b4e-e8af-49da-9425-20c2f7036ee6": {
+                "src": "48e55515-6d6c-49cc-9154-c6a4cf728fdb",
+                "dst": "e7b457cb-5305-4a4d-8774-85ae34976b22",
+                "innov": "9f4a1b4e-e8af-49da-9425-20c2f7036ee6",
+                "weight": 0.71420324,
                 "active": true
               },
-              "a0915ffa-1d3f-40e8-88a7-1d1c2a6121bb": {
-                "src": "457dd87a-969b-477a-8e53-02070704bc5f",
-                "dst": "3e510b5b-c243-47e6-b85a-59dacdd4be73",
-                "innov": "a0915ffa-1d3f-40e8-88a7-1d1c2a6121bb",
-                "weight": -0.025728164,
+              "ce20e6a9-7ff7-433a-800d-e2e823c03e25": {
+                "src": "fcf39ca8-d38c-4390-b84a-700c76e4e487",
+                "dst": "9e60ebce-09e9-406b-8ec0-6ab144a4637f",
+                "innov": "ce20e6a9-7ff7-433a-800d-e2e823c03e25",
+                "weight": 0.030491726,
                 "active": true
               },
-              "f7b7578e-21b0-4180-93a8-04a572fb7dc9": {
-                "src": "10dce07f-46e5-4503-afbf-1a9bcd0857a3",
-                "dst": "92befb01-c3b6-4539-acb5-51e9701089db",
-                "innov": "f7b7578e-21b0-4180-93a8-04a572fb7dc9",
-                "weight": 0.34903026,
+              "0d7d4f94-8ed9-485a-9a45-4f1b046035b2": {
+                "src": "67adfbb8-51b1-4e51-aa98-868a20c0e0ce",
+                "dst": "e7b457cb-5305-4a4d-8774-85ae34976b22",
+                "innov": "0d7d4f94-8ed9-485a-9a45-4f1b046035b2",
+                "weight": -0.8342172,
                 "active": true
               },
-              "da4172c1-b493-4808-8c98-81c35d4c2e2f": {
-                "src": "b5f15254-b67a-44f2-b2aa-2d178e5e19b0",
-                "dst": "597516d0-ee0b-4c2c-b3a8-556b0fd95e5c",
-                "innov": "da4172c1-b493-4808-8c98-81c35d4c2e2f",
-                "weight": 0.5720173,
+              "38f73005-8e3c-4e75-a62e-94d7659e4580": {
+                "src": "48e55515-6d6c-49cc-9154-c6a4cf728fdb",
+                "dst": "4c4a5e2b-a29d-41f5-8f1e-6da3cdf29338",
+                "innov": "38f73005-8e3c-4e75-a62e-94d7659e4580",
+                "weight": 0.024615038,
                 "active": true
               },
-              "a198e6e0-0c86-4a88-9304-787e2bd003e0": {
-                "src": "b5f15254-b67a-44f2-b2aa-2d178e5e19b0",
-                "dst": "3e510b5b-c243-47e6-b85a-59dacdd4be73",
-                "innov": "a198e6e0-0c86-4a88-9304-787e2bd003e0",
-                "weight": 0.7962357,
+              "116bb272-5ea4-47a3-9fa2-7e9d201f80f8": {
+                "src": "48e55515-6d6c-49cc-9154-c6a4cf728fdb",
+                "dst": "cfe84859-0354-4d45-b325-db8da81878ae",
+                "innov": "116bb272-5ea4-47a3-9fa2-7e9d201f80f8",
+                "weight": 0.69536346,
                 "active": true
               },
-              "7c1e1ff1-1384-4fd1-b429-6c51b3a53151": {
-                "src": "b5f15254-b67a-44f2-b2aa-2d178e5e19b0",
-                "dst": "92befb01-c3b6-4539-acb5-51e9701089db",
-                "innov": "7c1e1ff1-1384-4fd1-b429-6c51b3a53151",
-                "weight": -0.8380929,
+              "be04c059-ab22-40ad-8679-cb7b5c377ff1": {
+                "src": "67adfbb8-51b1-4e51-aa98-868a20c0e0ce",
+                "dst": "4c4a5e2b-a29d-41f5-8f1e-6da3cdf29338",
+                "innov": "be04c059-ab22-40ad-8679-cb7b5c377ff1",
+                "weight": 0.2334955,
                 "active": true
               },
-              "605409be-1281-4cef-8108-1c3d99610363": {
-                "src": "57668dca-1a60-4d6f-aa5f-88dcc4867b5d",
-                "dst": "92befb01-c3b6-4539-acb5-51e9701089db",
-                "innov": "605409be-1281-4cef-8108-1c3d99610363",
-                "weight": 0.5470835,
+              "37d5cc76-df69-4029-b1ed-3bfa1e6efbb6": {
+                "src": "be729493-84b6-46c1-be70-97ea130ef8e1",
+                "dst": "cfe84859-0354-4d45-b325-db8da81878ae",
+                "innov": "37d5cc76-df69-4029-b1ed-3bfa1e6efbb6",
+                "weight": 0.5797991,
                 "active": true
               },
-              "ccb03c41-85ae-4dd9-b6a4-7591111e381e": {
-                "src": "10dce07f-46e5-4503-afbf-1a9bcd0857a3",
-                "dst": "aaa73039-5aea-4023-9695-26f19897c660",
-                "innov": "ccb03c41-85ae-4dd9-b6a4-7591111e381e",
-                "weight": -1.0510118,
+              "b8f10ca8-aff0-430f-b20c-444ec5ce7c74": {
+                "src": "ba9c044c-3978-43e4-b7e1-8a7e31d84b39",
+                "dst": "e7b457cb-5305-4a4d-8774-85ae34976b22",
+                "innov": "b8f10ca8-aff0-430f-b20c-444ec5ce7c74",
+                "weight": 0.51506263,
                 "active": true
               },
-              "3fd29d73-6e96-4996-b24b-c74c6c3ba33d": {
-                "src": "191367fc-9419-4b79-b7a6-fedcc08b0f2f",
-                "dst": "aaa73039-5aea-4023-9695-26f19897c660",
-                "innov": "3fd29d73-6e96-4996-b24b-c74c6c3ba33d",
-                "weight": 0.31743562,
+              "fd0820b0-ad7b-4264-90bb-40f14cd9e2b3": {
+                "src": "1d790aaa-dcc7-4cfb-a742-19e783830130",
+                "dst": "9e60ebce-09e9-406b-8ec0-6ab144a4637f",
+                "innov": "fd0820b0-ad7b-4264-90bb-40f14cd9e2b3",
+                "weight": 0.5763838,
                 "active": true
               },
-              "a34c02e9-be24-41bd-bfda-36d5025457cf": {
-                "src": "57668dca-1a60-4d6f-aa5f-88dcc4867b5d",
-                "dst": "aaa73039-5aea-4023-9695-26f19897c660",
-                "innov": "a34c02e9-be24-41bd-bfda-36d5025457cf",
-                "weight": -1.1727321,
+              "bb5d517c-af55-4a6b-8562-ec1e8c944148": {
+                "src": "fcf39ca8-d38c-4390-b84a-700c76e4e487",
+                "dst": "e7b457cb-5305-4a4d-8774-85ae34976b22",
+                "innov": "bb5d517c-af55-4a6b-8562-ec1e8c944148",
+                "weight": 0.5895903,
                 "active": true
               },
-              "d27e31aa-f9ef-4c9f-b014-0146462b14f0": {
-                "src": "57668dca-1a60-4d6f-aa5f-88dcc4867b5d",
-                "dst": "c52abe9e-156b-4979-bde6-31dfce7eac2d",
-                "innov": "d27e31aa-f9ef-4c9f-b014-0146462b14f0",
-                "weight": -0.5070781,
+              "4d48f80c-4d35-4f3a-a257-f19eb063731d": {
+                "src": "1d790aaa-dcc7-4cfb-a742-19e783830130",
+                "dst": "cfe84859-0354-4d45-b325-db8da81878ae",
+                "innov": "4d48f80c-4d35-4f3a-a257-f19eb063731d",
+                "weight": -0.16107629,
                 "active": true
               },
-              "177ba358-95ed-46cb-8301-3a2ea5c4e341": {
-                "src": "10dce07f-46e5-4503-afbf-1a9bcd0857a3",
-                "dst": "c52abe9e-156b-4979-bde6-31dfce7eac2d",
-                "innov": "177ba358-95ed-46cb-8301-3a2ea5c4e341",
-                "weight": -1.3512725,
+              "6d332d0f-3b60-4320-8487-ccec27672dbf": {
+                "src": "1d790aaa-dcc7-4cfb-a742-19e783830130",
+                "dst": "4c4a5e2b-a29d-41f5-8f1e-6da3cdf29338",
+                "innov": "6d332d0f-3b60-4320-8487-ccec27672dbf",
+                "weight": 0.45315465,
                 "active": true
               },
-              "4505af32-e173-400c-bbd8-6544301fd068": {
-                "src": "57668dca-1a60-4d6f-aa5f-88dcc4867b5d",
-                "dst": "597516d0-ee0b-4c2c-b3a8-556b0fd95e5c",
-                "innov": "4505af32-e173-400c-bbd8-6544301fd068",
-                "weight": 0.1703461,
+              "9cea21b2-5f49-4438-ae59-e259a6f63532": {
+                "src": "1d790aaa-dcc7-4cfb-a742-19e783830130",
+                "dst": "e7b457cb-5305-4a4d-8774-85ae34976b22",
+                "innov": "9cea21b2-5f49-4438-ae59-e259a6f63532",
+                "weight": 1.0000218,
                 "active": true
               },
-              "ebf9f91f-6251-4652-97b2-2f91e4fc5ed1": {
-                "src": "457dd87a-969b-477a-8e53-02070704bc5f",
-                "dst": "aaa73039-5aea-4023-9695-26f19897c660",
-                "innov": "ebf9f91f-6251-4652-97b2-2f91e4fc5ed1",
-                "weight": 1.526733,
+              "a12673b0-7b68-4bec-ae07-b7d88741e490": {
+                "src": "be729493-84b6-46c1-be70-97ea130ef8e1",
+                "dst": "e7b457cb-5305-4a4d-8774-85ae34976b22",
+                "innov": "a12673b0-7b68-4bec-ae07-b7d88741e490",
+                "weight": -0.7506594,
                 "active": true
               },
-              "7d579580-b1b1-470b-a979-50384cbc8f0b": {
-                "src": "b5f15254-b67a-44f2-b2aa-2d178e5e19b0",
-                "dst": "c52abe9e-156b-4979-bde6-31dfce7eac2d",
-                "innov": "7d579580-b1b1-470b-a979-50384cbc8f0b",
-                "weight": -0.027013952,
+              "f98e0a18-dba7-49d1-ab3d-d212c0abf5c8": {
+                "src": "fcf39ca8-d38c-4390-b84a-700c76e4e487",
+                "dst": "4c4a5e2b-a29d-41f5-8f1e-6da3cdf29338",
+                "innov": "f98e0a18-dba7-49d1-ab3d-d212c0abf5c8",
+                "weight": 0.52852666,
                 "active": true
               },
-              "46ddf055-2c0f-4e86-b1f4-59100eee1c2b": {
-                "src": "191367fc-9419-4b79-b7a6-fedcc08b0f2f",
-                "dst": "c52abe9e-156b-4979-bde6-31dfce7eac2d",
-                "innov": "46ddf055-2c0f-4e86-b1f4-59100eee1c2b",
-                "weight": -0.155277,
+              "5df1c21b-a8ca-4b90-908e-6efa69656b48": {
+                "src": "be729493-84b6-46c1-be70-97ea130ef8e1",
+                "dst": "69888f75-23b4-45ba-ba6e-bdca96b89a12",
+                "innov": "5df1c21b-a8ca-4b90-908e-6efa69656b48",
+                "weight": 0.1628175,
                 "active": true
               },
-              "8dd95ce0-83ec-4b6a-bf10-05cb1da62cc6": {
-                "src": "ba4c6bfc-96cf-4783-a3fa-d61e997bfc83",
-                "dst": "92befb01-c3b6-4539-acb5-51e9701089db",
-                "innov": "8dd95ce0-83ec-4b6a-bf10-05cb1da62cc6",
-                "weight": -0.22261757,
+              "78c2d15e-8f8d-4d4c-b926-846c50535e2b": {
+                "src": "67adfbb8-51b1-4e51-aa98-868a20c0e0ce",
+                "dst": "9e60ebce-09e9-406b-8ec0-6ab144a4637f",
+                "innov": "78c2d15e-8f8d-4d4c-b926-846c50535e2b",
+                "weight": 0.18129648,
                 "active": true
               },
-              "415f4861-4480-4d09-9695-505d84454423": {
-                "src": "457dd87a-969b-477a-8e53-02070704bc5f",
-                "dst": "c52abe9e-156b-4979-bde6-31dfce7eac2d",
-                "innov": "415f4861-4480-4d09-9695-505d84454423",
-                "weight": 1.0056987,
+              "96beea8e-3e4f-437b-8247-0ba8b9c95bbd": {
+                "src": "1d790aaa-dcc7-4cfb-a742-19e783830130",
+                "dst": "69888f75-23b4-45ba-ba6e-bdca96b89a12",
+                "innov": "96beea8e-3e4f-437b-8247-0ba8b9c95bbd",
+                "weight": -0.0032184955,
                 "active": true
               },
-              "340a706c-029d-492a-8858-b0ad93c29f02": {
-                "src": "ba4c6bfc-96cf-4783-a3fa-d61e997bfc83",
-                "dst": "597516d0-ee0b-4c2c-b3a8-556b0fd95e5c",
-                "innov": "340a706c-029d-492a-8858-b0ad93c29f02",
-                "weight": -0.31844997,
+              "5f44b270-3dd5-4d1d-a90f-4d881c133b9b": {
+                "src": "ba9c044c-3978-43e4-b7e1-8a7e31d84b39",
+                "dst": "4c4a5e2b-a29d-41f5-8f1e-6da3cdf29338",
+                "innov": "5f44b270-3dd5-4d1d-a90f-4d881c133b9b",
+                "weight": -0.42253086,
                 "active": true
               },
-              "13832e4b-ed7f-4d6d-a547-d92d56fb1cb2": {
-                "src": "191367fc-9419-4b79-b7a6-fedcc08b0f2f",
-                "dst": "3e510b5b-c243-47e6-b85a-59dacdd4be73",
-                "innov": "13832e4b-ed7f-4d6d-a547-d92d56fb1cb2",
-                "weight": 0.67329097,
+              "6b725c25-4295-4ae0-b276-18ddde45ceeb": {
+                "src": "48e55515-6d6c-49cc-9154-c6a4cf728fdb",
+                "dst": "69888f75-23b4-45ba-ba6e-bdca96b89a12",
+                "innov": "6b725c25-4295-4ae0-b276-18ddde45ceeb",
+                "weight": -0.76060456,
                 "active": true
               }
             },
@@ -476,32 +476,32 @@
           },
           "i_gate": {
             "inputs": [
-              "8f9c8c81-75ae-4aff-b427-e2dd0151c101",
-              "3984325a-4f8e-4289-a40e-0e9055ebcbb6",
-              "017449ae-08d5-470e-9041-8b62d7dc3959",
-              "0f77b847-2b06-4982-a909-51f7605050fb",
-              "42728b80-6057-4060-be27-4a01e32b2c27",
-              "1632bc6a-e2e8-43eb-8952-c11bb5ff947c"
+              "4b3c49aa-2ff2-4c43-bf34-ddc1e7ed882d",
+              "89004d59-749e-4634-8ad7-fa378ec19361",
+              "e49799ae-95c6-4612-bf48-e1cd8ad152e0",
+              "bededa26-51c5-400c-97e1-a8b35631f461",
+              "f8f69806-74b2-43bb-8a0c-4fd594870893",
+              "dd8715f7-3e36-4025-9941-fc34cd8b7bc3"
             ],
             "outputs": [
-              "5d130bd0-65dc-4018-9efb-0adc94fcf7df",
-              "936cd1f9-b2e1-4a7e-85f4-075d912b1244",
-              "d51c78a8-49d4-4048-860c-e2af89c998a5",
-              "5e424be6-25b6-4459-bebb-bb68a5108811",
-              "51983bc7-8ee1-4aa9-9e7d-74808e96785d"
+              "35241077-48f1-4cf9-a022-9aaf5cd22d21",
+              "b1db80be-4ecf-42e9-9f77-9c9a3a988532",
+              "18426b6d-09d4-48f5-8103-ac02010a7fe5",
+              "de927254-5601-420e-ab73-a050762e879e",
+              "c2e4165a-d2b3-4c46-8c16-b5e8ba23aaba"
             ],
             "nodes": {
-              "0f77b847-2b06-4982-a909-51f7605050fb": {
-                "innov": "0f77b847-2b06-4982-a909-51f7605050fb",
+              "4b3c49aa-2ff2-4c43-bf34-ddc1e7ed882d": {
+                "innov": "4b3c49aa-2ff2-4c43-bf34-ddc1e7ed882d",
                 "outgoing": [
-                  "d1652d18-e641-4c46-9af0-0bfdc11fad71",
-                  "93706ae4-a15a-45a7-8dd8-d2ea3d0b558c",
-                  "dfefc419-c388-4efa-bcac-438515a724bc",
-                  "08d81779-ae03-4419-94c4-d2bc79da8ee0",
-                  "24e2a748-ecd4-44e7-95c4-431d79c37e4b"
+                  "f3ad0cd7-704a-4a13-a5d7-a5bcf0efbc5a",
+                  "fa685900-a8bb-4da7-8995-4de25980ddab",
+                  "c13fc513-6ab9-4835-b760-a77d24134458",
+                  "f2fb20d5-a7c9-4c44-bfaf-7f118cced7f4",
+                  "22f397e7-24e3-4756-99fe-0ed3bd605169"
                 ],
                 "incoming": {},
-                "bias": 0.34641492,
+                "bias": 0.2991451,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -509,18 +509,54 @@
                 "activation": "Sigmoid",
                 "neuron_type": "Input"
               },
-              "5d130bd0-65dc-4018-9efb-0adc94fcf7df": {
-                "innov": "5d130bd0-65dc-4018-9efb-0adc94fcf7df",
+              "dd8715f7-3e36-4025-9941-fc34cd8b7bc3": {
+                "innov": "dd8715f7-3e36-4025-9941-fc34cd8b7bc3",
+                "outgoing": [
+                  "be6ca060-a218-436a-948d-d6d23f34b7c5",
+                  "34793100-4d55-4f2e-a44f-f9eb8048ae1e",
+                  "3347426c-e8a6-4c7e-8d1e-a8364f523f11",
+                  "6c44a377-dc55-40d1-b904-e2eaa25e63d4",
+                  "1d93a04b-5a9a-4174-9a11-eea00f1a928b"
+                ],
+                "incoming": {},
+                "bias": 0.9502641,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Input"
+              },
+              "e49799ae-95c6-4612-bf48-e1cd8ad152e0": {
+                "innov": "e49799ae-95c6-4612-bf48-e1cd8ad152e0",
+                "outgoing": [
+                  "b673200d-00c4-4cf2-a98d-b1ee758ad5a5",
+                  "64c30c24-8ea3-4408-94fc-9e73ce151ed7",
+                  "a0c2ede0-8ca1-4bb6-a9da-6f5c73a12f32",
+                  "e00db358-8ebf-4f38-a572-3070168493cd",
+                  "3db58a87-f649-4e5e-bdbb-d3af90b08fe1"
+                ],
+                "incoming": {},
+                "bias": 0.37308472,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Input"
+              },
+              "35241077-48f1-4cf9-a022-9aaf5cd22d21": {
+                "innov": "35241077-48f1-4cf9-a022-9aaf5cd22d21",
                 "outgoing": [],
                 "incoming": {
-                  "3f460639-1726-4266-906f-5b25e7817cc0": null,
-                  "ea9049f6-f89a-4b6d-b8cb-faceb61a0e0f": null,
-                  "21dfe369-9a5b-4603-a80b-e7a7fc219b43": null,
-                  "d1652d18-e641-4c46-9af0-0bfdc11fad71": null,
-                  "f480f4d4-eacb-4668-bad0-09bb3edb310b": null,
-                  "5e196f9f-d54b-4963-9b1d-03cd2bbaec59": null
+                  "cd98c749-8ebb-463f-80b5-fe2d0e1b1fe5": null,
+                  "5b57ecca-4813-47f2-948b-07983f650e50": null,
+                  "8ae2d6b3-6f5e-40ff-b44a-ad44f773c241": null,
+                  "b673200d-00c4-4cf2-a98d-b1ee758ad5a5": null,
+                  "f3ad0cd7-704a-4a13-a5d7-a5bcf0efbc5a": null,
+                  "be6ca060-a218-436a-948d-d6d23f34b7c5": null
                 },
-                "bias": 0.8249345,
+                "bias": 0.51267725,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -528,17 +564,17 @@
                 "activation": "Sigmoid",
                 "neuron_type": "Output"
               },
-              "8f9c8c81-75ae-4aff-b427-e2dd0151c101": {
-                "innov": "8f9c8c81-75ae-4aff-b427-e2dd0151c101",
+              "f8f69806-74b2-43bb-8a0c-4fd594870893": {
+                "innov": "f8f69806-74b2-43bb-8a0c-4fd594870893",
                 "outgoing": [
-                  "21dfe369-9a5b-4603-a80b-e7a7fc219b43",
-                  "f07969e2-545a-49fa-80de-5016b8213518",
-                  "9734f34d-3774-46d5-98d5-5b32a6a8c923",
-                  "d4be21f9-1b36-44ff-afb6-73e297a09992",
-                  "d9c83417-b479-44f2-adea-f55196856bf8"
+                  "5b57ecca-4813-47f2-948b-07983f650e50",
+                  "69ced862-96a2-401c-9e44-74fb34c996a4",
+                  "cae878d8-8060-48eb-ad50-b61ee1208b8b",
+                  "ffee26d7-1d3f-4dc1-83dd-24c064eb5221",
+                  "178d265f-72c4-4ac4-8420-24b701984d38"
                 ],
                 "incoming": {},
-                "bias": 0.93248373,
+                "bias": 0.3438148,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -546,18 +582,18 @@
                 "activation": "Sigmoid",
                 "neuron_type": "Input"
               },
-              "d51c78a8-49d4-4048-860c-e2af89c998a5": {
-                "innov": "d51c78a8-49d4-4048-860c-e2af89c998a5",
+              "b1db80be-4ecf-42e9-9f77-9c9a3a988532": {
+                "innov": "b1db80be-4ecf-42e9-9f77-9c9a3a988532",
                 "outgoing": [],
                 "incoming": {
-                  "dfefc419-c388-4efa-bcac-438515a724bc": null,
-                  "5c2d60f0-19ef-4db7-b68a-fabd62748e74": null,
-                  "1bdb53f6-e743-41ff-ad1a-bdeff30b3758": null,
-                  "6eff79be-1bdc-46c7-9bd3-64103ee109d7": null,
-                  "9734f34d-3774-46d5-98d5-5b32a6a8c923": null,
-                  "93797e93-bcde-4cbf-bb65-d97acc5de33a": null
+                  "64c30c24-8ea3-4408-94fc-9e73ce151ed7": null,
+                  "69ced862-96a2-401c-9e44-74fb34c996a4": null,
+                  "34793100-4d55-4f2e-a44f-f9eb8048ae1e": null,
+                  "fa685900-a8bb-4da7-8995-4de25980ddab": null,
+                  "1df4a5b2-4d46-42fd-b4c8-29264f462f08": null,
+                  "645467e5-5740-41ba-a993-5300811d2636": null
                 },
-                "bias": 0.15724601,
+                "bias": 0.51475435,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -565,18 +601,54 @@
                 "activation": "Sigmoid",
                 "neuron_type": "Output"
               },
-              "51983bc7-8ee1-4aa9-9e7d-74808e96785d": {
-                "innov": "51983bc7-8ee1-4aa9-9e7d-74808e96785d",
+              "bededa26-51c5-400c-97e1-a8b35631f461": {
+                "innov": "bededa26-51c5-400c-97e1-a8b35631f461",
+                "outgoing": [
+                  "8ae2d6b3-6f5e-40ff-b44a-ad44f773c241",
+                  "645467e5-5740-41ba-a993-5300811d2636",
+                  "e48ec31c-bf64-4349-9075-d63e41d46dbc",
+                  "f3e28191-11bf-4480-b488-e97f6af7172e",
+                  "c723fe84-144f-4dd6-8db0-dcd57a5d7370"
+                ],
+                "incoming": {},
+                "bias": 0.67620826,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Input"
+              },
+              "89004d59-749e-4634-8ad7-fa378ec19361": {
+                "innov": "89004d59-749e-4634-8ad7-fa378ec19361",
+                "outgoing": [
+                  "cd98c749-8ebb-463f-80b5-fe2d0e1b1fe5",
+                  "1df4a5b2-4d46-42fd-b4c8-29264f462f08",
+                  "7edb9312-bf40-42a7-9ce9-2b531363524f",
+                  "102e3858-7a78-4d6d-a27e-b97a0f554bfa",
+                  "1e9549ee-54d7-42ae-b9c0-6ed40ab3a3f6"
+                ],
+                "incoming": {},
+                "bias": 0.7377636,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Input"
+              },
+              "c2e4165a-d2b3-4c46-8c16-b5e8ba23aaba": {
+                "innov": "c2e4165a-d2b3-4c46-8c16-b5e8ba23aaba",
                 "outgoing": [],
                 "incoming": {
-                  "d4477ffc-849f-4035-9803-c0fc4799fb53": null,
-                  "42099cfb-aaf4-4463-b49c-9cc00fbb196b": null,
-                  "d4f6d108-7f95-47a1-806b-260e1fc21c79": null,
-                  "8d46b082-2e3d-4f02-a07a-be126db52427": null,
-                  "24e2a748-ecd4-44e7-95c4-431d79c37e4b": null,
-                  "d9c83417-b479-44f2-adea-f55196856bf8": null
+                  "1e9549ee-54d7-42ae-b9c0-6ed40ab3a3f6": null,
+                  "c723fe84-144f-4dd6-8db0-dcd57a5d7370": null,
+                  "22f397e7-24e3-4756-99fe-0ed3bd605169": null,
+                  "3db58a87-f649-4e5e-bdbb-d3af90b08fe1": null,
+                  "1d93a04b-5a9a-4174-9a11-eea00f1a928b": null,
+                  "178d265f-72c4-4ac4-8420-24b701984d38": null
                 },
-                "bias": 0.9864316,
+                "bias": 0.84373015,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -584,18 +656,18 @@
                 "activation": "Sigmoid",
                 "neuron_type": "Output"
               },
-              "936cd1f9-b2e1-4a7e-85f4-075d912b1244": {
-                "innov": "936cd1f9-b2e1-4a7e-85f4-075d912b1244",
+              "18426b6d-09d4-48f5-8103-ac02010a7fe5": {
+                "innov": "18426b6d-09d4-48f5-8103-ac02010a7fe5",
                 "outgoing": [],
                 "incoming": {
-                  "93706ae4-a15a-45a7-8dd8-d2ea3d0b558c": null,
-                  "5942391f-c4e9-4a5e-9ea1-c19350d9870e": null,
-                  "6299f3b6-0e15-45bc-a298-db09d13650fc": null,
-                  "24595ad2-acfe-4437-968d-c525a13c67c7": null,
-                  "f07969e2-545a-49fa-80de-5016b8213518": null,
-                  "09d5ec5e-6fde-4a46-b197-edf7c589458f": null
+                  "e48ec31c-bf64-4349-9075-d63e41d46dbc": null,
+                  "a0c2ede0-8ca1-4bb6-a9da-6f5c73a12f32": null,
+                  "c13fc513-6ab9-4835-b760-a77d24134458": null,
+                  "7edb9312-bf40-42a7-9ce9-2b531363524f": null,
+                  "3347426c-e8a6-4c7e-8d1e-a8364f523f11": null,
+                  "cae878d8-8060-48eb-ad50-b61ee1208b8b": null
                 },
-                "bias": 0.88225365,
+                "bias": 0.9102876,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -603,90 +675,18 @@
                 "activation": "Sigmoid",
                 "neuron_type": "Output"
               },
-              "017449ae-08d5-470e-9041-8b62d7dc3959": {
-                "innov": "017449ae-08d5-470e-9041-8b62d7dc3959",
-                "outgoing": [
-                  "5e196f9f-d54b-4963-9b1d-03cd2bbaec59",
-                  "09d5ec5e-6fde-4a46-b197-edf7c589458f",
-                  "1bdb53f6-e743-41ff-ad1a-bdeff30b3758",
-                  "c7a007b6-4644-471b-96cc-3c4e9f1977ad",
-                  "d4f6d108-7f95-47a1-806b-260e1fc21c79"
-                ],
-                "incoming": {},
-                "bias": 0.78597665,
-                "value": 0.0,
-                "d_value": 0.0,
-                "state": 0.0,
-                "error": 0.0,
-                "activation": "Sigmoid",
-                "neuron_type": "Input"
-              },
-              "1632bc6a-e2e8-43eb-8952-c11bb5ff947c": {
-                "innov": "1632bc6a-e2e8-43eb-8952-c11bb5ff947c",
-                "outgoing": [
-                  "3f460639-1726-4266-906f-5b25e7817cc0",
-                  "6299f3b6-0e15-45bc-a298-db09d13650fc",
-                  "93797e93-bcde-4cbf-bb65-d97acc5de33a",
-                  "e46f7a67-eb65-4c49-a220-ccf39c500970",
-                  "42099cfb-aaf4-4463-b49c-9cc00fbb196b"
-                ],
-                "incoming": {},
-                "bias": 0.27225065,
-                "value": 0.0,
-                "d_value": 0.0,
-                "state": 0.0,
-                "error": 0.0,
-                "activation": "Sigmoid",
-                "neuron_type": "Input"
-              },
-              "42728b80-6057-4060-be27-4a01e32b2c27": {
-                "innov": "42728b80-6057-4060-be27-4a01e32b2c27",
-                "outgoing": [
-                  "f480f4d4-eacb-4668-bad0-09bb3edb310b",
-                  "24595ad2-acfe-4437-968d-c525a13c67c7",
-                  "5c2d60f0-19ef-4db7-b68a-fabd62748e74",
-                  "24bc6da8-7d8f-406f-b14f-cd01b70677a5",
-                  "8d46b082-2e3d-4f02-a07a-be126db52427"
-                ],
-                "incoming": {},
-                "bias": 0.3111477,
-                "value": 0.0,
-                "d_value": 0.0,
-                "state": 0.0,
-                "error": 0.0,
-                "activation": "Sigmoid",
-                "neuron_type": "Input"
-              },
-              "3984325a-4f8e-4289-a40e-0e9055ebcbb6": {
-                "innov": "3984325a-4f8e-4289-a40e-0e9055ebcbb6",
-                "outgoing": [
-                  "ea9049f6-f89a-4b6d-b8cb-faceb61a0e0f",
-                  "5942391f-c4e9-4a5e-9ea1-c19350d9870e",
-                  "6eff79be-1bdc-46c7-9bd3-64103ee109d7",
-                  "13a43f95-be9c-4333-bf91-f094b8799c03",
-                  "d4477ffc-849f-4035-9803-c0fc4799fb53"
-                ],
-                "incoming": {},
-                "bias": 0.228517,
-                "value": 0.0,
-                "d_value": 0.0,
-                "state": 0.0,
-                "error": 0.0,
-                "activation": "Sigmoid",
-                "neuron_type": "Input"
-              },
-              "5e424be6-25b6-4459-bebb-bb68a5108811": {
-                "innov": "5e424be6-25b6-4459-bebb-bb68a5108811",
+              "de927254-5601-420e-ab73-a050762e879e": {
+                "innov": "de927254-5601-420e-ab73-a050762e879e",
                 "outgoing": [],
                 "incoming": {
-                  "e46f7a67-eb65-4c49-a220-ccf39c500970": null,
-                  "13a43f95-be9c-4333-bf91-f094b8799c03": null,
-                  "c7a007b6-4644-471b-96cc-3c4e9f1977ad": null,
-                  "08d81779-ae03-4419-94c4-d2bc79da8ee0": null,
-                  "24bc6da8-7d8f-406f-b14f-cd01b70677a5": null,
-                  "d4be21f9-1b36-44ff-afb6-73e297a09992": null
+                  "f3e28191-11bf-4480-b488-e97f6af7172e": null,
+                  "e00db358-8ebf-4f38-a572-3070168493cd": null,
+                  "f2fb20d5-a7c9-4c44-bfaf-7f118cced7f4": null,
+                  "6c44a377-dc55-40d1-b904-e2eaa25e63d4": null,
+                  "ffee26d7-1d3f-4dc1-83dd-24c064eb5221": null,
+                  "102e3858-7a78-4d6d-a27e-b97a0f554bfa": null
                 },
-                "bias": 0.4199337,
+                "bias": 0.60593265,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -696,214 +696,214 @@
               }
             },
             "edges": {
-              "1bdb53f6-e743-41ff-ad1a-bdeff30b3758": {
-                "src": "017449ae-08d5-470e-9041-8b62d7dc3959",
-                "dst": "d51c78a8-49d4-4048-860c-e2af89c998a5",
-                "innov": "1bdb53f6-e743-41ff-ad1a-bdeff30b3758",
-                "weight": 0.18417054,
+              "8ae2d6b3-6f5e-40ff-b44a-ad44f773c241": {
+                "src": "bededa26-51c5-400c-97e1-a8b35631f461",
+                "dst": "35241077-48f1-4cf9-a022-9aaf5cd22d21",
+                "innov": "8ae2d6b3-6f5e-40ff-b44a-ad44f773c241",
+                "weight": -0.5333293,
                 "active": true
               },
-              "6eff79be-1bdc-46c7-9bd3-64103ee109d7": {
-                "src": "3984325a-4f8e-4289-a40e-0e9055ebcbb6",
-                "dst": "d51c78a8-49d4-4048-860c-e2af89c998a5",
-                "innov": "6eff79be-1bdc-46c7-9bd3-64103ee109d7",
-                "weight": 0.8794402,
+              "f3ad0cd7-704a-4a13-a5d7-a5bcf0efbc5a": {
+                "src": "4b3c49aa-2ff2-4c43-bf34-ddc1e7ed882d",
+                "dst": "35241077-48f1-4cf9-a022-9aaf5cd22d21",
+                "innov": "f3ad0cd7-704a-4a13-a5d7-a5bcf0efbc5a",
+                "weight": -0.9611916,
                 "active": true
               },
-              "6299f3b6-0e15-45bc-a298-db09d13650fc": {
-                "src": "1632bc6a-e2e8-43eb-8952-c11bb5ff947c",
-                "dst": "936cd1f9-b2e1-4a7e-85f4-075d912b1244",
-                "innov": "6299f3b6-0e15-45bc-a298-db09d13650fc",
-                "weight": -0.08677536,
+              "f2fb20d5-a7c9-4c44-bfaf-7f118cced7f4": {
+                "src": "4b3c49aa-2ff2-4c43-bf34-ddc1e7ed882d",
+                "dst": "de927254-5601-420e-ab73-a050762e879e",
+                "innov": "f2fb20d5-a7c9-4c44-bfaf-7f118cced7f4",
+                "weight": -0.38111913,
                 "active": true
               },
-              "5942391f-c4e9-4a5e-9ea1-c19350d9870e": {
-                "src": "3984325a-4f8e-4289-a40e-0e9055ebcbb6",
-                "dst": "936cd1f9-b2e1-4a7e-85f4-075d912b1244",
-                "innov": "5942391f-c4e9-4a5e-9ea1-c19350d9870e",
-                "weight": 0.34217492,
+              "102e3858-7a78-4d6d-a27e-b97a0f554bfa": {
+                "src": "89004d59-749e-4634-8ad7-fa378ec19361",
+                "dst": "de927254-5601-420e-ab73-a050762e879e",
+                "innov": "102e3858-7a78-4d6d-a27e-b97a0f554bfa",
+                "weight": 0.13062027,
                 "active": true
               },
-              "8d46b082-2e3d-4f02-a07a-be126db52427": {
-                "src": "42728b80-6057-4060-be27-4a01e32b2c27",
-                "dst": "51983bc7-8ee1-4aa9-9e7d-74808e96785d",
-                "innov": "8d46b082-2e3d-4f02-a07a-be126db52427",
-                "weight": -0.60437334,
+              "e48ec31c-bf64-4349-9075-d63e41d46dbc": {
+                "src": "bededa26-51c5-400c-97e1-a8b35631f461",
+                "dst": "18426b6d-09d4-48f5-8103-ac02010a7fe5",
+                "innov": "e48ec31c-bf64-4349-9075-d63e41d46dbc",
+                "weight": -0.5487902,
                 "active": true
               },
-              "d9c83417-b479-44f2-adea-f55196856bf8": {
-                "src": "8f9c8c81-75ae-4aff-b427-e2dd0151c101",
-                "dst": "51983bc7-8ee1-4aa9-9e7d-74808e96785d",
-                "innov": "d9c83417-b479-44f2-adea-f55196856bf8",
-                "weight": 0.6124982,
+              "3347426c-e8a6-4c7e-8d1e-a8364f523f11": {
+                "src": "dd8715f7-3e36-4025-9941-fc34cd8b7bc3",
+                "dst": "18426b6d-09d4-48f5-8103-ac02010a7fe5",
+                "innov": "3347426c-e8a6-4c7e-8d1e-a8364f523f11",
+                "weight": -0.19474095,
                 "active": true
               },
-              "9734f34d-3774-46d5-98d5-5b32a6a8c923": {
-                "src": "8f9c8c81-75ae-4aff-b427-e2dd0151c101",
-                "dst": "d51c78a8-49d4-4048-860c-e2af89c998a5",
-                "innov": "9734f34d-3774-46d5-98d5-5b32a6a8c923",
-                "weight": 0.310997,
+              "e00db358-8ebf-4f38-a572-3070168493cd": {
+                "src": "e49799ae-95c6-4612-bf48-e1cd8ad152e0",
+                "dst": "de927254-5601-420e-ab73-a050762e879e",
+                "innov": "e00db358-8ebf-4f38-a572-3070168493cd",
+                "weight": 0.53885245,
                 "active": true
               },
-              "42099cfb-aaf4-4463-b49c-9cc00fbb196b": {
-                "src": "1632bc6a-e2e8-43eb-8952-c11bb5ff947c",
-                "dst": "51983bc7-8ee1-4aa9-9e7d-74808e96785d",
-                "innov": "42099cfb-aaf4-4463-b49c-9cc00fbb196b",
-                "weight": -0.7585133,
+              "be6ca060-a218-436a-948d-d6d23f34b7c5": {
+                "src": "dd8715f7-3e36-4025-9941-fc34cd8b7bc3",
+                "dst": "35241077-48f1-4cf9-a022-9aaf5cd22d21",
+                "innov": "be6ca060-a218-436a-948d-d6d23f34b7c5",
+                "weight": 0.8881455,
                 "active": true
               },
-              "13a43f95-be9c-4333-bf91-f094b8799c03": {
-                "src": "3984325a-4f8e-4289-a40e-0e9055ebcbb6",
-                "dst": "5e424be6-25b6-4459-bebb-bb68a5108811",
-                "innov": "13a43f95-be9c-4333-bf91-f094b8799c03",
-                "weight": -0.7611738,
+              "b673200d-00c4-4cf2-a98d-b1ee758ad5a5": {
+                "src": "e49799ae-95c6-4612-bf48-e1cd8ad152e0",
+                "dst": "35241077-48f1-4cf9-a022-9aaf5cd22d21",
+                "innov": "b673200d-00c4-4cf2-a98d-b1ee758ad5a5",
+                "weight": -0.57995087,
                 "active": true
               },
-              "d4be21f9-1b36-44ff-afb6-73e297a09992": {
-                "src": "8f9c8c81-75ae-4aff-b427-e2dd0151c101",
-                "dst": "5e424be6-25b6-4459-bebb-bb68a5108811",
-                "innov": "d4be21f9-1b36-44ff-afb6-73e297a09992",
-                "weight": 0.2479466,
+              "7edb9312-bf40-42a7-9ce9-2b531363524f": {
+                "src": "89004d59-749e-4634-8ad7-fa378ec19361",
+                "dst": "18426b6d-09d4-48f5-8103-ac02010a7fe5",
+                "innov": "7edb9312-bf40-42a7-9ce9-2b531363524f",
+                "weight": 0.4737399,
                 "active": true
               },
-              "f07969e2-545a-49fa-80de-5016b8213518": {
-                "src": "8f9c8c81-75ae-4aff-b427-e2dd0151c101",
-                "dst": "936cd1f9-b2e1-4a7e-85f4-075d912b1244",
-                "innov": "f07969e2-545a-49fa-80de-5016b8213518",
-                "weight": 0.107196264,
+              "3db58a87-f649-4e5e-bdbb-d3af90b08fe1": {
+                "src": "e49799ae-95c6-4612-bf48-e1cd8ad152e0",
+                "dst": "c2e4165a-d2b3-4c46-8c16-b5e8ba23aaba",
+                "innov": "3db58a87-f649-4e5e-bdbb-d3af90b08fe1",
+                "weight": -0.7298029,
                 "active": true
               },
-              "5c2d60f0-19ef-4db7-b68a-fabd62748e74": {
-                "src": "42728b80-6057-4060-be27-4a01e32b2c27",
-                "dst": "d51c78a8-49d4-4048-860c-e2af89c998a5",
-                "innov": "5c2d60f0-19ef-4db7-b68a-fabd62748e74",
-                "weight": 0.14421128,
+              "cd98c749-8ebb-463f-80b5-fe2d0e1b1fe5": {
+                "src": "89004d59-749e-4634-8ad7-fa378ec19361",
+                "dst": "35241077-48f1-4cf9-a022-9aaf5cd22d21",
+                "innov": "cd98c749-8ebb-463f-80b5-fe2d0e1b1fe5",
+                "weight": -0.0279558,
                 "active": true
               },
-              "d4f6d108-7f95-47a1-806b-260e1fc21c79": {
-                "src": "017449ae-08d5-470e-9041-8b62d7dc3959",
-                "dst": "51983bc7-8ee1-4aa9-9e7d-74808e96785d",
-                "innov": "d4f6d108-7f95-47a1-806b-260e1fc21c79",
-                "weight": 0.38365227,
+              "fa685900-a8bb-4da7-8995-4de25980ddab": {
+                "src": "4b3c49aa-2ff2-4c43-bf34-ddc1e7ed882d",
+                "dst": "b1db80be-4ecf-42e9-9f77-9c9a3a988532",
+                "innov": "fa685900-a8bb-4da7-8995-4de25980ddab",
+                "weight": 0.74716026,
                 "active": true
               },
-              "dfefc419-c388-4efa-bcac-438515a724bc": {
-                "src": "0f77b847-2b06-4982-a909-51f7605050fb",
-                "dst": "d51c78a8-49d4-4048-860c-e2af89c998a5",
-                "innov": "dfefc419-c388-4efa-bcac-438515a724bc",
-                "weight": 0.13692087,
+              "34793100-4d55-4f2e-a44f-f9eb8048ae1e": {
+                "src": "dd8715f7-3e36-4025-9941-fc34cd8b7bc3",
+                "dst": "b1db80be-4ecf-42e9-9f77-9c9a3a988532",
+                "innov": "34793100-4d55-4f2e-a44f-f9eb8048ae1e",
+                "weight": -0.13701656,
                 "active": true
               },
-              "24bc6da8-7d8f-406f-b14f-cd01b70677a5": {
-                "src": "42728b80-6057-4060-be27-4a01e32b2c27",
-                "dst": "5e424be6-25b6-4459-bebb-bb68a5108811",
-                "innov": "24bc6da8-7d8f-406f-b14f-cd01b70677a5",
-                "weight": 0.8402683,
+              "1d93a04b-5a9a-4174-9a11-eea00f1a928b": {
+                "src": "dd8715f7-3e36-4025-9941-fc34cd8b7bc3",
+                "dst": "c2e4165a-d2b3-4c46-8c16-b5e8ba23aaba",
+                "innov": "1d93a04b-5a9a-4174-9a11-eea00f1a928b",
+                "weight": -0.22438279,
                 "active": true
               },
-              "08d81779-ae03-4419-94c4-d2bc79da8ee0": {
-                "src": "0f77b847-2b06-4982-a909-51f7605050fb",
-                "dst": "5e424be6-25b6-4459-bebb-bb68a5108811",
-                "innov": "08d81779-ae03-4419-94c4-d2bc79da8ee0",
-                "weight": 0.7744323,
+              "645467e5-5740-41ba-a993-5300811d2636": {
+                "src": "bededa26-51c5-400c-97e1-a8b35631f461",
+                "dst": "b1db80be-4ecf-42e9-9f77-9c9a3a988532",
+                "innov": "645467e5-5740-41ba-a993-5300811d2636",
+                "weight": 0.6263543,
                 "active": true
               },
-              "ea9049f6-f89a-4b6d-b8cb-faceb61a0e0f": {
-                "src": "3984325a-4f8e-4289-a40e-0e9055ebcbb6",
-                "dst": "5d130bd0-65dc-4018-9efb-0adc94fcf7df",
-                "innov": "ea9049f6-f89a-4b6d-b8cb-faceb61a0e0f",
-                "weight": 0.5353767,
+              "1df4a5b2-4d46-42fd-b4c8-29264f462f08": {
+                "src": "89004d59-749e-4634-8ad7-fa378ec19361",
+                "dst": "b1db80be-4ecf-42e9-9f77-9c9a3a988532",
+                "innov": "1df4a5b2-4d46-42fd-b4c8-29264f462f08",
+                "weight": -0.58072275,
                 "active": true
               },
-              "d4477ffc-849f-4035-9803-c0fc4799fb53": {
-                "src": "3984325a-4f8e-4289-a40e-0e9055ebcbb6",
-                "dst": "51983bc7-8ee1-4aa9-9e7d-74808e96785d",
-                "innov": "d4477ffc-849f-4035-9803-c0fc4799fb53",
-                "weight": -0.30024847,
+              "6c44a377-dc55-40d1-b904-e2eaa25e63d4": {
+                "src": "dd8715f7-3e36-4025-9941-fc34cd8b7bc3",
+                "dst": "de927254-5601-420e-ab73-a050762e879e",
+                "innov": "6c44a377-dc55-40d1-b904-e2eaa25e63d4",
+                "weight": 0.21326986,
                 "active": true
               },
-              "09d5ec5e-6fde-4a46-b197-edf7c589458f": {
-                "src": "017449ae-08d5-470e-9041-8b62d7dc3959",
-                "dst": "936cd1f9-b2e1-4a7e-85f4-075d912b1244",
-                "innov": "09d5ec5e-6fde-4a46-b197-edf7c589458f",
-                "weight": -0.42060918,
+              "ffee26d7-1d3f-4dc1-83dd-24c064eb5221": {
+                "src": "f8f69806-74b2-43bb-8a0c-4fd594870893",
+                "dst": "de927254-5601-420e-ab73-a050762e879e",
+                "innov": "ffee26d7-1d3f-4dc1-83dd-24c064eb5221",
+                "weight": -0.23752175,
                 "active": true
               },
-              "3f460639-1726-4266-906f-5b25e7817cc0": {
-                "src": "1632bc6a-e2e8-43eb-8952-c11bb5ff947c",
-                "dst": "5d130bd0-65dc-4018-9efb-0adc94fcf7df",
-                "innov": "3f460639-1726-4266-906f-5b25e7817cc0",
-                "weight": 0.51395315,
+              "5b57ecca-4813-47f2-948b-07983f650e50": {
+                "src": "f8f69806-74b2-43bb-8a0c-4fd594870893",
+                "dst": "35241077-48f1-4cf9-a022-9aaf5cd22d21",
+                "innov": "5b57ecca-4813-47f2-948b-07983f650e50",
+                "weight": 0.84464633,
                 "active": true
               },
-              "24595ad2-acfe-4437-968d-c525a13c67c7": {
-                "src": "42728b80-6057-4060-be27-4a01e32b2c27",
-                "dst": "936cd1f9-b2e1-4a7e-85f4-075d912b1244",
-                "innov": "24595ad2-acfe-4437-968d-c525a13c67c7",
-                "weight": -0.28162104,
+              "64c30c24-8ea3-4408-94fc-9e73ce151ed7": {
+                "src": "e49799ae-95c6-4612-bf48-e1cd8ad152e0",
+                "dst": "b1db80be-4ecf-42e9-9f77-9c9a3a988532",
+                "innov": "64c30c24-8ea3-4408-94fc-9e73ce151ed7",
+                "weight": -0.4952031,
                 "active": true
               },
-              "d1652d18-e641-4c46-9af0-0bfdc11fad71": {
-                "src": "0f77b847-2b06-4982-a909-51f7605050fb",
-                "dst": "5d130bd0-65dc-4018-9efb-0adc94fcf7df",
-                "innov": "d1652d18-e641-4c46-9af0-0bfdc11fad71",
-                "weight": 0.6698524,
+              "c723fe84-144f-4dd6-8db0-dcd57a5d7370": {
+                "src": "bededa26-51c5-400c-97e1-a8b35631f461",
+                "dst": "c2e4165a-d2b3-4c46-8c16-b5e8ba23aaba",
+                "innov": "c723fe84-144f-4dd6-8db0-dcd57a5d7370",
+                "weight": 0.6448957,
                 "active": true
               },
-              "5e196f9f-d54b-4963-9b1d-03cd2bbaec59": {
-                "src": "017449ae-08d5-470e-9041-8b62d7dc3959",
-                "dst": "5d130bd0-65dc-4018-9efb-0adc94fcf7df",
-                "innov": "5e196f9f-d54b-4963-9b1d-03cd2bbaec59",
-                "weight": 0.7787477,
+              "c13fc513-6ab9-4835-b760-a77d24134458": {
+                "src": "4b3c49aa-2ff2-4c43-bf34-ddc1e7ed882d",
+                "dst": "18426b6d-09d4-48f5-8103-ac02010a7fe5",
+                "innov": "c13fc513-6ab9-4835-b760-a77d24134458",
+                "weight": -0.9799818,
                 "active": true
               },
-              "e46f7a67-eb65-4c49-a220-ccf39c500970": {
-                "src": "1632bc6a-e2e8-43eb-8952-c11bb5ff947c",
-                "dst": "5e424be6-25b6-4459-bebb-bb68a5108811",
-                "innov": "e46f7a67-eb65-4c49-a220-ccf39c500970",
-                "weight": 0.8328944,
+              "a0c2ede0-8ca1-4bb6-a9da-6f5c73a12f32": {
+                "src": "e49799ae-95c6-4612-bf48-e1cd8ad152e0",
+                "dst": "18426b6d-09d4-48f5-8103-ac02010a7fe5",
+                "innov": "a0c2ede0-8ca1-4bb6-a9da-6f5c73a12f32",
+                "weight": 0.48192808,
                 "active": true
               },
-              "f480f4d4-eacb-4668-bad0-09bb3edb310b": {
-                "src": "42728b80-6057-4060-be27-4a01e32b2c27",
-                "dst": "5d130bd0-65dc-4018-9efb-0adc94fcf7df",
-                "innov": "f480f4d4-eacb-4668-bad0-09bb3edb310b",
-                "weight": -0.3565996,
+              "22f397e7-24e3-4756-99fe-0ed3bd605169": {
+                "src": "4b3c49aa-2ff2-4c43-bf34-ddc1e7ed882d",
+                "dst": "c2e4165a-d2b3-4c46-8c16-b5e8ba23aaba",
+                "innov": "22f397e7-24e3-4756-99fe-0ed3bd605169",
+                "weight": 0.9675798,
                 "active": true
               },
-              "93797e93-bcde-4cbf-bb65-d97acc5de33a": {
-                "src": "1632bc6a-e2e8-43eb-8952-c11bb5ff947c",
-                "dst": "d51c78a8-49d4-4048-860c-e2af89c998a5",
-                "innov": "93797e93-bcde-4cbf-bb65-d97acc5de33a",
-                "weight": 0.92079425,
+              "f3e28191-11bf-4480-b488-e97f6af7172e": {
+                "src": "bededa26-51c5-400c-97e1-a8b35631f461",
+                "dst": "de927254-5601-420e-ab73-a050762e879e",
+                "innov": "f3e28191-11bf-4480-b488-e97f6af7172e",
+                "weight": -0.67533386,
                 "active": true
               },
-              "21dfe369-9a5b-4603-a80b-e7a7fc219b43": {
-                "src": "8f9c8c81-75ae-4aff-b427-e2dd0151c101",
-                "dst": "5d130bd0-65dc-4018-9efb-0adc94fcf7df",
-                "innov": "21dfe369-9a5b-4603-a80b-e7a7fc219b43",
-                "weight": -0.7108466,
+              "69ced862-96a2-401c-9e44-74fb34c996a4": {
+                "src": "f8f69806-74b2-43bb-8a0c-4fd594870893",
+                "dst": "b1db80be-4ecf-42e9-9f77-9c9a3a988532",
+                "innov": "69ced862-96a2-401c-9e44-74fb34c996a4",
+                "weight": -0.56096464,
                 "active": true
               },
-              "24e2a748-ecd4-44e7-95c4-431d79c37e4b": {
-                "src": "0f77b847-2b06-4982-a909-51f7605050fb",
-                "dst": "51983bc7-8ee1-4aa9-9e7d-74808e96785d",
-                "innov": "24e2a748-ecd4-44e7-95c4-431d79c37e4b",
-                "weight": -0.10247253,
+              "1e9549ee-54d7-42ae-b9c0-6ed40ab3a3f6": {
+                "src": "89004d59-749e-4634-8ad7-fa378ec19361",
+                "dst": "c2e4165a-d2b3-4c46-8c16-b5e8ba23aaba",
+                "innov": "1e9549ee-54d7-42ae-b9c0-6ed40ab3a3f6",
+                "weight": -0.11751744,
                 "active": true
               },
-              "93706ae4-a15a-45a7-8dd8-d2ea3d0b558c": {
-                "src": "0f77b847-2b06-4982-a909-51f7605050fb",
-                "dst": "936cd1f9-b2e1-4a7e-85f4-075d912b1244",
-                "innov": "93706ae4-a15a-45a7-8dd8-d2ea3d0b558c",
-                "weight": 0.37353703,
+              "cae878d8-8060-48eb-ad50-b61ee1208b8b": {
+                "src": "f8f69806-74b2-43bb-8a0c-4fd594870893",
+                "dst": "18426b6d-09d4-48f5-8103-ac02010a7fe5",
+                "innov": "cae878d8-8060-48eb-ad50-b61ee1208b8b",
+                "weight": 0.3841674,
                 "active": true
               },
-              "c7a007b6-4644-471b-96cc-3c4e9f1977ad": {
-                "src": "017449ae-08d5-470e-9041-8b62d7dc3959",
-                "dst": "5e424be6-25b6-4459-bebb-bb68a5108811",
-                "innov": "c7a007b6-4644-471b-96cc-3c4e9f1977ad",
-                "weight": 0.6720608,
+              "178d265f-72c4-4ac4-8420-24b701984d38": {
+                "src": "f8f69806-74b2-43bb-8a0c-4fd594870893",
+                "dst": "c2e4165a-d2b3-4c46-8c16-b5e8ba23aaba",
+                "innov": "178d265f-72c4-4ac4-8420-24b701984d38",
+                "weight": -0.7561743,
                 "active": true
               }
             },
@@ -913,33 +913,51 @@
           },
           "f_gate": {
             "inputs": [
-              "0ecdefce-ae28-42bc-9d6b-3a110828915b",
-              "4dbb7136-89cc-46a0-8c36-5b9fdfa77796",
-              "85bd13e9-86d5-42d8-9238-db9d579fa2d5",
-              "62b274a7-5c9a-4cf3-96e3-b30d37d7b2ac",
-              "9024aa0d-486d-4b57-862f-255738139dc1",
-              "eeb17d1b-d660-4384-8875-ffb88ec317f7"
+              "b51e8ef9-7937-4071-9817-925875643382",
+              "670c4cb4-adf6-40ed-a62b-b6fe8d2d447b",
+              "730c43a9-2b08-4953-b7e4-29d083741617",
+              "f60932e2-5802-4394-8044-e7039f65de4b",
+              "4c88105a-fa59-46e1-b1f8-0f1c2179519b",
+              "41f2a2b6-30e8-403c-a8ea-ff71ea4fff2f"
             ],
             "outputs": [
-              "ba081a15-610e-4162-aea8-7d37987ff41d",
-              "73e456ae-4d6b-4fa6-95f9-e1a1968e8de5",
-              "c5fca541-e96c-428e-bc3a-8dd022ac1e5a",
-              "3f90f139-2256-49fa-9deb-62f5ca069e10",
-              "35ef5f76-a133-4ca4-98bf-01ad4ad4e2a4"
+              "86e65f20-f0cf-484a-8f79-6ffe5440f5c7",
+              "2b138c36-a1e5-4595-af37-52686c4bbf68",
+              "1779b604-acc9-406a-aad5-1475117d07d7",
+              "509b561b-7784-4335-97dd-b19ddb3e6d8f",
+              "f8a5e333-1574-491f-81de-ffea90b88b30"
             ],
             "nodes": {
-              "c5fca541-e96c-428e-bc3a-8dd022ac1e5a": {
-                "innov": "c5fca541-e96c-428e-bc3a-8dd022ac1e5a",
+              "b51e8ef9-7937-4071-9817-925875643382": {
+                "innov": "b51e8ef9-7937-4071-9817-925875643382",
+                "outgoing": [
+                  "30e8a51b-149b-47ad-88cd-12efcc7cea9d",
+                  "0315f31f-4234-4204-a856-0cc16f504476",
+                  "2d02ae46-da26-4c50-96f2-70cf43d2b609",
+                  "322455c3-6c52-4e80-b4ed-f55c9114fa51",
+                  "b5c2b68d-40df-439d-bdbd-8461081cedee"
+                ],
+                "incoming": {},
+                "bias": 0.17818111,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Input"
+              },
+              "2b138c36-a1e5-4595-af37-52686c4bbf68": {
+                "innov": "2b138c36-a1e5-4595-af37-52686c4bbf68",
                 "outgoing": [],
                 "incoming": {
-                  "331052c5-55da-4732-b6c7-a01a05ab523d": null,
-                  "45bda419-1dae-40d2-82b6-8daae6cd3c5d": null,
-                  "cc781e8f-d846-4454-8659-ebdf102a52d1": null,
-                  "c3bbe89d-f6ba-4039-8dd8-2b7c4263fa0e": null,
-                  "4e9ce3a0-fe8a-48da-92ee-8a87c13ce898": null,
-                  "09155621-b5b0-4202-bf99-de13c03ba099": null
+                  "d787c0ee-a063-473f-94bd-522d98033afe": null,
+                  "0315f31f-4234-4204-a856-0cc16f504476": null,
+                  "c4a8adfe-f96c-4b46-915c-1296e8d67887": null,
+                  "16f0165c-96e0-4ff3-8b8b-9ee036fb6d2e": null,
+                  "801eb3a9-39cd-4655-ac95-cae6ce0d1296": null,
+                  "cc06e376-0cc1-47e7-a323-714011bf3e16": null
                 },
-                "bias": 0.8322552,
+                "bias": 0.28224036,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -947,17 +965,17 @@
                 "activation": "Sigmoid",
                 "neuron_type": "Output"
               },
-              "62b274a7-5c9a-4cf3-96e3-b30d37d7b2ac": {
-                "innov": "62b274a7-5c9a-4cf3-96e3-b30d37d7b2ac",
+              "41f2a2b6-30e8-403c-a8ea-ff71ea4fff2f": {
+                "innov": "41f2a2b6-30e8-403c-a8ea-ff71ea4fff2f",
                 "outgoing": [
-                  "458fe030-dad0-4b4d-801f-c9145dd61dbc",
-                  "20a7986f-ea82-43ae-8663-ae93282198ed",
-                  "4e9ce3a0-fe8a-48da-92ee-8a87c13ce898",
-                  "b73411c9-478a-40a5-8923-7b6a6ff4a448",
-                  "961b31b8-0a20-495b-a90e-3f611f95e61c"
+                  "c091e635-041c-47cd-897e-061434267391",
+                  "d787c0ee-a063-473f-94bd-522d98033afe",
+                  "c85bb7da-68d6-475e-9cb4-22ca5a7f3462",
+                  "8b9deca5-52c1-4769-bf5b-7aa4eadd9b8d",
+                  "02f93552-8c1e-45d1-9704-5692794c8a18"
                 ],
                 "incoming": {},
-                "bias": 0.0894081,
+                "bias": 0.12902093,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -965,17 +983,17 @@
                 "activation": "Sigmoid",
                 "neuron_type": "Input"
               },
-              "4dbb7136-89cc-46a0-8c36-5b9fdfa77796": {
-                "innov": "4dbb7136-89cc-46a0-8c36-5b9fdfa77796",
+              "f60932e2-5802-4394-8044-e7039f65de4b": {
+                "innov": "f60932e2-5802-4394-8044-e7039f65de4b",
                 "outgoing": [
-                  "1f27898c-8901-43e6-9f2e-72cd902cf901",
-                  "5c5bde35-3fb9-4940-832d-594d72ffdae5",
-                  "c3bbe89d-f6ba-4039-8dd8-2b7c4263fa0e",
-                  "83dbcd27-3506-41ab-9769-ec97a5d27df7",
-                  "2c23e5e1-9134-45ed-8f51-648d34edcfa7"
+                  "fc15ca62-bea9-4427-8f5d-0d03f59f7b03",
+                  "16f0165c-96e0-4ff3-8b8b-9ee036fb6d2e",
+                  "451f5432-f0b6-4477-868d-827f403a0272",
+                  "d4d7c4c3-8ebd-485c-a9a5-3632c06d02d3",
+                  "31f6af41-2b21-4e57-ad8e-7d5d96d40f54"
                 ],
                 "incoming": {},
-                "bias": 0.33052337,
+                "bias": 0.15430748,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -983,36 +1001,18 @@
                 "activation": "Sigmoid",
                 "neuron_type": "Input"
               },
-              "9024aa0d-486d-4b57-862f-255738139dc1": {
-                "innov": "9024aa0d-486d-4b57-862f-255738139dc1",
-                "outgoing": [
-                  "d3fbe7fe-e845-4190-8882-5e3e446b9457",
-                  "89db815a-c217-43b1-b49d-918fd8314254",
-                  "09155621-b5b0-4202-bf99-de13c03ba099",
-                  "34a9f676-bacb-488c-bd9a-091b78411a64",
-                  "ca9088c4-898e-4466-8616-7b2820d282c1"
-                ],
-                "incoming": {},
-                "bias": 0.9151029,
-                "value": 0.0,
-                "d_value": 0.0,
-                "state": 0.0,
-                "error": 0.0,
-                "activation": "Sigmoid",
-                "neuron_type": "Input"
-              },
-              "35ef5f76-a133-4ca4-98bf-01ad4ad4e2a4": {
-                "innov": "35ef5f76-a133-4ca4-98bf-01ad4ad4e2a4",
+              "f8a5e333-1574-491f-81de-ffea90b88b30": {
+                "innov": "f8a5e333-1574-491f-81de-ffea90b88b30",
                 "outgoing": [],
                 "incoming": {
-                  "056cac44-427a-4818-b0e5-388067597cc9": null,
-                  "9e895fb3-b0e0-40a0-baeb-e52999a4a763": null,
-                  "961b31b8-0a20-495b-a90e-3f611f95e61c": null,
-                  "ca9088c4-898e-4466-8616-7b2820d282c1": null,
-                  "2c23e5e1-9134-45ed-8f51-648d34edcfa7": null,
-                  "2150f8a3-afa6-4662-b133-88f7be56b670": null
+                  "31f6af41-2b21-4e57-ad8e-7d5d96d40f54": null,
+                  "939f1721-c7cf-4233-b03c-2536527c59b1": null,
+                  "b83c6b39-d77b-4bc2-b859-9ff71e0644da": null,
+                  "b5c2b68d-40df-439d-bdbd-8461081cedee": null,
+                  "b458142d-8abd-44b5-8051-32e4b93d4ce6": null,
+                  "02f93552-8c1e-45d1-9704-5692794c8a18": null
                 },
-                "bias": 0.4855963,
+                "bias": 0.3306807,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -1020,72 +1020,18 @@
                 "activation": "Sigmoid",
                 "neuron_type": "Output"
               },
-              "0ecdefce-ae28-42bc-9d6b-3a110828915b": {
-                "innov": "0ecdefce-ae28-42bc-9d6b-3a110828915b",
-                "outgoing": [
-                  "cf384fe2-e815-44a1-9eb9-2e1e3bd58fb7",
-                  "44d2655b-8f47-4a5c-9c13-047b3c297285",
-                  "cc781e8f-d846-4454-8659-ebdf102a52d1",
-                  "668b6b37-0866-4077-9653-eb7fbbb586f4",
-                  "2150f8a3-afa6-4662-b133-88f7be56b670"
-                ],
-                "incoming": {},
-                "bias": 0.37101012,
-                "value": 0.0,
-                "d_value": 0.0,
-                "state": 0.0,
-                "error": 0.0,
-                "activation": "Sigmoid",
-                "neuron_type": "Input"
-              },
-              "85bd13e9-86d5-42d8-9238-db9d579fa2d5": {
-                "innov": "85bd13e9-86d5-42d8-9238-db9d579fa2d5",
-                "outgoing": [
-                  "884a2d0c-6be9-4fa2-8057-f76ddb49e40a",
-                  "2a07e561-4a13-460c-91cb-7449fc972c85",
-                  "331052c5-55da-4732-b6c7-a01a05ab523d",
-                  "0c4cbf4f-447f-4003-8cea-1d78d440bb54",
-                  "056cac44-427a-4818-b0e5-388067597cc9"
-                ],
-                "incoming": {},
-                "bias": 0.5396137,
-                "value": 0.0,
-                "d_value": 0.0,
-                "state": 0.0,
-                "error": 0.0,
-                "activation": "Sigmoid",
-                "neuron_type": "Input"
-              },
-              "eeb17d1b-d660-4384-8875-ffb88ec317f7": {
-                "innov": "eeb17d1b-d660-4384-8875-ffb88ec317f7",
-                "outgoing": [
-                  "236ffa1c-9f6e-4974-ac11-bbad066a5cf5",
-                  "b4854843-d3e6-4c70-856a-382e6c2a2d84",
-                  "45bda419-1dae-40d2-82b6-8daae6cd3c5d",
-                  "9a9238c0-1a67-484d-98a1-6dc49a8f2479",
-                  "9e895fb3-b0e0-40a0-baeb-e52999a4a763"
-                ],
-                "incoming": {},
-                "bias": 0.11818057,
-                "value": 0.0,
-                "d_value": 0.0,
-                "state": 0.0,
-                "error": 0.0,
-                "activation": "Sigmoid",
-                "neuron_type": "Input"
-              },
-              "ba081a15-610e-4162-aea8-7d37987ff41d": {
-                "innov": "ba081a15-610e-4162-aea8-7d37987ff41d",
+              "86e65f20-f0cf-484a-8f79-6ffe5440f5c7": {
+                "innov": "86e65f20-f0cf-484a-8f79-6ffe5440f5c7",
                 "outgoing": [],
                 "incoming": {
-                  "236ffa1c-9f6e-4974-ac11-bbad066a5cf5": null,
-                  "d3fbe7fe-e845-4190-8882-5e3e446b9457": null,
-                  "1f27898c-8901-43e6-9f2e-72cd902cf901": null,
-                  "cf384fe2-e815-44a1-9eb9-2e1e3bd58fb7": null,
-                  "884a2d0c-6be9-4fa2-8057-f76ddb49e40a": null,
-                  "458fe030-dad0-4b4d-801f-c9145dd61dbc": null
+                  "99c9b644-0eed-4b47-bb1f-2cf279131e5a": null,
+                  "c80422d4-eb9b-45a9-aedd-9f6bf2c0f481": null,
+                  "858f74f5-9a59-4d57-a87e-013b9e02a972": null,
+                  "fc15ca62-bea9-4427-8f5d-0d03f59f7b03": null,
+                  "30e8a51b-149b-47ad-88cd-12efcc7cea9d": null,
+                  "c091e635-041c-47cd-897e-061434267391": null
                 },
-                "bias": 0.7346616,
+                "bias": 0.44809338,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -1093,18 +1039,36 @@
                 "activation": "Sigmoid",
                 "neuron_type": "Output"
               },
-              "73e456ae-4d6b-4fa6-95f9-e1a1968e8de5": {
-                "innov": "73e456ae-4d6b-4fa6-95f9-e1a1968e8de5",
+              "730c43a9-2b08-4953-b7e4-29d083741617": {
+                "innov": "730c43a9-2b08-4953-b7e4-29d083741617",
+                "outgoing": [
+                  "c80422d4-eb9b-45a9-aedd-9f6bf2c0f481",
+                  "cc06e376-0cc1-47e7-a323-714011bf3e16",
+                  "d1375c35-6bd5-4d00-9668-57b99be5f454",
+                  "24cfa36c-dfa7-4b32-8256-525ec2a011ba",
+                  "b83c6b39-d77b-4bc2-b859-9ff71e0644da"
+                ],
+                "incoming": {},
+                "bias": 0.20639884,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Input"
+              },
+              "509b561b-7784-4335-97dd-b19ddb3e6d8f": {
+                "innov": "509b561b-7784-4335-97dd-b19ddb3e6d8f",
                 "outgoing": [],
                 "incoming": {
-                  "20a7986f-ea82-43ae-8663-ae93282198ed": null,
-                  "2a07e561-4a13-460c-91cb-7449fc972c85": null,
-                  "89db815a-c217-43b1-b49d-918fd8314254": null,
-                  "5c5bde35-3fb9-4940-832d-594d72ffdae5": null,
-                  "b4854843-d3e6-4c70-856a-382e6c2a2d84": null,
-                  "44d2655b-8f47-4a5c-9c13-047b3c297285": null
+                  "24cfa36c-dfa7-4b32-8256-525ec2a011ba": null,
+                  "d4d7c4c3-8ebd-485c-a9a5-3632c06d02d3": null,
+                  "322455c3-6c52-4e80-b4ed-f55c9114fa51": null,
+                  "debbf827-205c-412a-af70-cfdc75f2abfb": null,
+                  "8b299f7f-bc69-4017-b4ca-b513eacce9b2": null,
+                  "8b9deca5-52c1-4769-bf5b-7aa4eadd9b8d": null
                 },
-                "bias": 0.83207154,
+                "bias": 0.5213372,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -1112,235 +1076,271 @@
                 "activation": "Sigmoid",
                 "neuron_type": "Output"
               },
-              "3f90f139-2256-49fa-9deb-62f5ca069e10": {
-                "innov": "3f90f139-2256-49fa-9deb-62f5ca069e10",
+              "1779b604-acc9-406a-aad5-1475117d07d7": {
+                "innov": "1779b604-acc9-406a-aad5-1475117d07d7",
                 "outgoing": [],
                 "incoming": {
-                  "668b6b37-0866-4077-9653-eb7fbbb586f4": null,
-                  "34a9f676-bacb-488c-bd9a-091b78411a64": null,
-                  "b73411c9-478a-40a5-8923-7b6a6ff4a448": null,
-                  "0c4cbf4f-447f-4003-8cea-1d78d440bb54": null,
-                  "9a9238c0-1a67-484d-98a1-6dc49a8f2479": null,
-                  "83dbcd27-3506-41ab-9769-ec97a5d27df7": null
+                  "d1375c35-6bd5-4d00-9668-57b99be5f454": null,
+                  "2d02ae46-da26-4c50-96f2-70cf43d2b609": null,
+                  "451f5432-f0b6-4477-868d-827f403a0272": null,
+                  "698f0112-9cbd-4ce1-a263-9da5530248f9": null,
+                  "33c2329d-8033-4a57-8a8c-57bff99e8832": null,
+                  "c85bb7da-68d6-475e-9cb4-22ca5a7f3462": null
                 },
-                "bias": 1.1033583,
+                "bias": 0.00896119,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
                 "error": 0.0,
                 "activation": "Sigmoid",
                 "neuron_type": "Output"
+              },
+              "670c4cb4-adf6-40ed-a62b-b6fe8d2d447b": {
+                "innov": "670c4cb4-adf6-40ed-a62b-b6fe8d2d447b",
+                "outgoing": [
+                  "99c9b644-0eed-4b47-bb1f-2cf279131e5a",
+                  "c4a8adfe-f96c-4b46-915c-1296e8d67887",
+                  "698f0112-9cbd-4ce1-a263-9da5530248f9",
+                  "debbf827-205c-412a-af70-cfdc75f2abfb",
+                  "939f1721-c7cf-4233-b03c-2536527c59b1"
+                ],
+                "incoming": {},
+                "bias": 0.04260701,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Input"
+              },
+              "4c88105a-fa59-46e1-b1f8-0f1c2179519b": {
+                "innov": "4c88105a-fa59-46e1-b1f8-0f1c2179519b",
+                "outgoing": [
+                  "858f74f5-9a59-4d57-a87e-013b9e02a972",
+                  "801eb3a9-39cd-4655-ac95-cae6ce0d1296",
+                  "33c2329d-8033-4a57-8a8c-57bff99e8832",
+                  "8b299f7f-bc69-4017-b4ca-b513eacce9b2",
+                  "b458142d-8abd-44b5-8051-32e4b93d4ce6"
+                ],
+                "incoming": {},
+                "bias": 0.43626004,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Input"
               }
             },
             "edges": {
-              "d3fbe7fe-e845-4190-8882-5e3e446b9457": {
-                "src": "9024aa0d-486d-4b57-862f-255738139dc1",
-                "dst": "ba081a15-610e-4162-aea8-7d37987ff41d",
-                "innov": "d3fbe7fe-e845-4190-8882-5e3e446b9457",
-                "weight": -0.5787139,
+              "2d02ae46-da26-4c50-96f2-70cf43d2b609": {
+                "src": "b51e8ef9-7937-4071-9817-925875643382",
+                "dst": "1779b604-acc9-406a-aad5-1475117d07d7",
+                "innov": "2d02ae46-da26-4c50-96f2-70cf43d2b609",
+                "weight": 0.27864456,
                 "active": true
               },
-              "cc781e8f-d846-4454-8659-ebdf102a52d1": {
-                "src": "0ecdefce-ae28-42bc-9d6b-3a110828915b",
-                "dst": "c5fca541-e96c-428e-bc3a-8dd022ac1e5a",
-                "innov": "cc781e8f-d846-4454-8659-ebdf102a52d1",
-                "weight": 0.5945924,
+              "c85bb7da-68d6-475e-9cb4-22ca5a7f3462": {
+                "src": "41f2a2b6-30e8-403c-a8ea-ff71ea4fff2f",
+                "dst": "1779b604-acc9-406a-aad5-1475117d07d7",
+                "innov": "c85bb7da-68d6-475e-9cb4-22ca5a7f3462",
+                "weight": 0.85284126,
                 "active": true
               },
-              "2150f8a3-afa6-4662-b133-88f7be56b670": {
-                "src": "0ecdefce-ae28-42bc-9d6b-3a110828915b",
-                "dst": "35ef5f76-a133-4ca4-98bf-01ad4ad4e2a4",
-                "innov": "2150f8a3-afa6-4662-b133-88f7be56b670",
-                "weight": -0.59433347,
+              "99c9b644-0eed-4b47-bb1f-2cf279131e5a": {
+                "src": "670c4cb4-adf6-40ed-a62b-b6fe8d2d447b",
+                "dst": "86e65f20-f0cf-484a-8f79-6ffe5440f5c7",
+                "innov": "99c9b644-0eed-4b47-bb1f-2cf279131e5a",
+                "weight": 0.81515664,
                 "active": true
               },
-              "9a9238c0-1a67-484d-98a1-6dc49a8f2479": {
-                "src": "eeb17d1b-d660-4384-8875-ffb88ec317f7",
-                "dst": "3f90f139-2256-49fa-9deb-62f5ca069e10",
-                "innov": "9a9238c0-1a67-484d-98a1-6dc49a8f2479",
-                "weight": -0.9437754,
+              "8b9deca5-52c1-4769-bf5b-7aa4eadd9b8d": {
+                "src": "41f2a2b6-30e8-403c-a8ea-ff71ea4fff2f",
+                "dst": "509b561b-7784-4335-97dd-b19ddb3e6d8f",
+                "innov": "8b9deca5-52c1-4769-bf5b-7aa4eadd9b8d",
+                "weight": -0.10422855,
                 "active": true
               },
-              "5c5bde35-3fb9-4940-832d-594d72ffdae5": {
-                "src": "4dbb7136-89cc-46a0-8c36-5b9fdfa77796",
-                "dst": "73e456ae-4d6b-4fa6-95f9-e1a1968e8de5",
-                "innov": "5c5bde35-3fb9-4940-832d-594d72ffdae5",
-                "weight": -0.08372079,
+              "31f6af41-2b21-4e57-ad8e-7d5d96d40f54": {
+                "src": "f60932e2-5802-4394-8044-e7039f65de4b",
+                "dst": "f8a5e333-1574-491f-81de-ffea90b88b30",
+                "innov": "31f6af41-2b21-4e57-ad8e-7d5d96d40f54",
+                "weight": -0.081286006,
                 "active": true
               },
-              "34a9f676-bacb-488c-bd9a-091b78411a64": {
-                "src": "9024aa0d-486d-4b57-862f-255738139dc1",
-                "dst": "3f90f139-2256-49fa-9deb-62f5ca069e10",
-                "innov": "34a9f676-bacb-488c-bd9a-091b78411a64",
-                "weight": -0.36257988,
+              "16f0165c-96e0-4ff3-8b8b-9ee036fb6d2e": {
+                "src": "f60932e2-5802-4394-8044-e7039f65de4b",
+                "dst": "2b138c36-a1e5-4595-af37-52686c4bbf68",
+                "innov": "16f0165c-96e0-4ff3-8b8b-9ee036fb6d2e",
+                "weight": -0.46222162,
                 "active": true
               },
-              "1f27898c-8901-43e6-9f2e-72cd902cf901": {
-                "src": "4dbb7136-89cc-46a0-8c36-5b9fdfa77796",
-                "dst": "ba081a15-610e-4162-aea8-7d37987ff41d",
-                "innov": "1f27898c-8901-43e6-9f2e-72cd902cf901",
-                "weight": 0.16756456,
+              "b83c6b39-d77b-4bc2-b859-9ff71e0644da": {
+                "src": "730c43a9-2b08-4953-b7e4-29d083741617",
+                "dst": "f8a5e333-1574-491f-81de-ffea90b88b30",
+                "innov": "b83c6b39-d77b-4bc2-b859-9ff71e0644da",
+                "weight": -0.49563697,
                 "active": true
               },
-              "2a07e561-4a13-460c-91cb-7449fc972c85": {
-                "src": "85bd13e9-86d5-42d8-9238-db9d579fa2d5",
-                "dst": "73e456ae-4d6b-4fa6-95f9-e1a1968e8de5",
-                "innov": "2a07e561-4a13-460c-91cb-7449fc972c85",
-                "weight": 0.5918759,
+              "b458142d-8abd-44b5-8051-32e4b93d4ce6": {
+                "src": "4c88105a-fa59-46e1-b1f8-0f1c2179519b",
+                "dst": "f8a5e333-1574-491f-81de-ffea90b88b30",
+                "innov": "b458142d-8abd-44b5-8051-32e4b93d4ce6",
+                "weight": 0.33662075,
                 "active": true
               },
-              "236ffa1c-9f6e-4974-ac11-bbad066a5cf5": {
-                "src": "eeb17d1b-d660-4384-8875-ffb88ec317f7",
-                "dst": "ba081a15-610e-4162-aea8-7d37987ff41d",
-                "innov": "236ffa1c-9f6e-4974-ac11-bbad066a5cf5",
-                "weight": -0.8933783,
+              "c80422d4-eb9b-45a9-aedd-9f6bf2c0f481": {
+                "src": "730c43a9-2b08-4953-b7e4-29d083741617",
+                "dst": "86e65f20-f0cf-484a-8f79-6ffe5440f5c7",
+                "innov": "c80422d4-eb9b-45a9-aedd-9f6bf2c0f481",
+                "weight": -0.72868437,
                 "active": true
               },
-              "09155621-b5b0-4202-bf99-de13c03ba099": {
-                "src": "9024aa0d-486d-4b57-862f-255738139dc1",
-                "dst": "c5fca541-e96c-428e-bc3a-8dd022ac1e5a",
-                "innov": "09155621-b5b0-4202-bf99-de13c03ba099",
-                "weight": -0.7120181,
+              "939f1721-c7cf-4233-b03c-2536527c59b1": {
+                "src": "670c4cb4-adf6-40ed-a62b-b6fe8d2d447b",
+                "dst": "f8a5e333-1574-491f-81de-ffea90b88b30",
+                "innov": "939f1721-c7cf-4233-b03c-2536527c59b1",
+                "weight": -0.12115683,
                 "active": true
               },
-              "89db815a-c217-43b1-b49d-918fd8314254": {
-                "src": "9024aa0d-486d-4b57-862f-255738139dc1",
-                "dst": "73e456ae-4d6b-4fa6-95f9-e1a1968e8de5",
-                "innov": "89db815a-c217-43b1-b49d-918fd8314254",
-                "weight": -0.6630458,
+              "322455c3-6c52-4e80-b4ed-f55c9114fa51": {
+                "src": "b51e8ef9-7937-4071-9817-925875643382",
+                "dst": "509b561b-7784-4335-97dd-b19ddb3e6d8f",
+                "innov": "322455c3-6c52-4e80-b4ed-f55c9114fa51",
+                "weight": -0.26610327,
                 "active": true
               },
-              "331052c5-55da-4732-b6c7-a01a05ab523d": {
-                "src": "85bd13e9-86d5-42d8-9238-db9d579fa2d5",
-                "dst": "c5fca541-e96c-428e-bc3a-8dd022ac1e5a",
-                "innov": "331052c5-55da-4732-b6c7-a01a05ab523d",
-                "weight": -0.33987275,
+              "451f5432-f0b6-4477-868d-827f403a0272": {
+                "src": "f60932e2-5802-4394-8044-e7039f65de4b",
+                "dst": "1779b604-acc9-406a-aad5-1475117d07d7",
+                "innov": "451f5432-f0b6-4477-868d-827f403a0272",
+                "weight": -0.50551844,
                 "active": true
               },
-              "458fe030-dad0-4b4d-801f-c9145dd61dbc": {
-                "src": "62b274a7-5c9a-4cf3-96e3-b30d37d7b2ac",
-                "dst": "ba081a15-610e-4162-aea8-7d37987ff41d",
-                "innov": "458fe030-dad0-4b4d-801f-c9145dd61dbc",
-                "weight": -0.8825208,
+              "8b299f7f-bc69-4017-b4ca-b513eacce9b2": {
+                "src": "4c88105a-fa59-46e1-b1f8-0f1c2179519b",
+                "dst": "509b561b-7784-4335-97dd-b19ddb3e6d8f",
+                "innov": "8b299f7f-bc69-4017-b4ca-b513eacce9b2",
+                "weight": 0.24772967,
                 "active": true
               },
-              "83dbcd27-3506-41ab-9769-ec97a5d27df7": {
-                "src": "4dbb7136-89cc-46a0-8c36-5b9fdfa77796",
-                "dst": "3f90f139-2256-49fa-9deb-62f5ca069e10",
-                "innov": "83dbcd27-3506-41ab-9769-ec97a5d27df7",
-                "weight": -0.24296248,
+              "c4a8adfe-f96c-4b46-915c-1296e8d67887": {
+                "src": "670c4cb4-adf6-40ed-a62b-b6fe8d2d447b",
+                "dst": "2b138c36-a1e5-4595-af37-52686c4bbf68",
+                "innov": "c4a8adfe-f96c-4b46-915c-1296e8d67887",
+                "weight": 0.84300524,
                 "active": true
               },
-              "b4854843-d3e6-4c70-856a-382e6c2a2d84": {
-                "src": "eeb17d1b-d660-4384-8875-ffb88ec317f7",
-                "dst": "73e456ae-4d6b-4fa6-95f9-e1a1968e8de5",
-                "innov": "b4854843-d3e6-4c70-856a-382e6c2a2d84",
-                "weight": -0.88485,
+              "698f0112-9cbd-4ce1-a263-9da5530248f9": {
+                "src": "670c4cb4-adf6-40ed-a62b-b6fe8d2d447b",
+                "dst": "1779b604-acc9-406a-aad5-1475117d07d7",
+                "innov": "698f0112-9cbd-4ce1-a263-9da5530248f9",
+                "weight": 0.5515513,
                 "active": true
               },
-              "9e895fb3-b0e0-40a0-baeb-e52999a4a763": {
-                "src": "eeb17d1b-d660-4384-8875-ffb88ec317f7",
-                "dst": "35ef5f76-a133-4ca4-98bf-01ad4ad4e2a4",
-                "innov": "9e895fb3-b0e0-40a0-baeb-e52999a4a763",
-                "weight": 0.51813996,
+              "c091e635-041c-47cd-897e-061434267391": {
+                "src": "41f2a2b6-30e8-403c-a8ea-ff71ea4fff2f",
+                "dst": "86e65f20-f0cf-484a-8f79-6ffe5440f5c7",
+                "innov": "c091e635-041c-47cd-897e-061434267391",
+                "weight": 0.16592844,
                 "active": true
               },
-              "c3bbe89d-f6ba-4039-8dd8-2b7c4263fa0e": {
-                "src": "4dbb7136-89cc-46a0-8c36-5b9fdfa77796",
-                "dst": "c5fca541-e96c-428e-bc3a-8dd022ac1e5a",
-                "innov": "c3bbe89d-f6ba-4039-8dd8-2b7c4263fa0e",
-                "weight": 0.20465274,
+              "d4d7c4c3-8ebd-485c-a9a5-3632c06d02d3": {
+                "src": "f60932e2-5802-4394-8044-e7039f65de4b",
+                "dst": "509b561b-7784-4335-97dd-b19ddb3e6d8f",
+                "innov": "d4d7c4c3-8ebd-485c-a9a5-3632c06d02d3",
+                "weight": 0.5910498,
                 "active": true
               },
-              "2c23e5e1-9134-45ed-8f51-648d34edcfa7": {
-                "src": "4dbb7136-89cc-46a0-8c36-5b9fdfa77796",
-                "dst": "35ef5f76-a133-4ca4-98bf-01ad4ad4e2a4",
-                "innov": "2c23e5e1-9134-45ed-8f51-648d34edcfa7",
-                "weight": -0.9464659,
+              "02f93552-8c1e-45d1-9704-5692794c8a18": {
+                "src": "41f2a2b6-30e8-403c-a8ea-ff71ea4fff2f",
+                "dst": "f8a5e333-1574-491f-81de-ffea90b88b30",
+                "innov": "02f93552-8c1e-45d1-9704-5692794c8a18",
+                "weight": -0.65547514,
                 "active": true
               },
-              "884a2d0c-6be9-4fa2-8057-f76ddb49e40a": {
-                "src": "85bd13e9-86d5-42d8-9238-db9d579fa2d5",
-                "dst": "ba081a15-610e-4162-aea8-7d37987ff41d",
-                "innov": "884a2d0c-6be9-4fa2-8057-f76ddb49e40a",
-                "weight": 0.82161224,
+              "33c2329d-8033-4a57-8a8c-57bff99e8832": {
+                "src": "4c88105a-fa59-46e1-b1f8-0f1c2179519b",
+                "dst": "1779b604-acc9-406a-aad5-1475117d07d7",
+                "innov": "33c2329d-8033-4a57-8a8c-57bff99e8832",
+                "weight": -0.7635027,
                 "active": true
               },
-              "056cac44-427a-4818-b0e5-388067597cc9": {
-                "src": "85bd13e9-86d5-42d8-9238-db9d579fa2d5",
-                "dst": "35ef5f76-a133-4ca4-98bf-01ad4ad4e2a4",
-                "innov": "056cac44-427a-4818-b0e5-388067597cc9",
-                "weight": 0.84185565,
+              "d1375c35-6bd5-4d00-9668-57b99be5f454": {
+                "src": "730c43a9-2b08-4953-b7e4-29d083741617",
+                "dst": "1779b604-acc9-406a-aad5-1475117d07d7",
+                "innov": "d1375c35-6bd5-4d00-9668-57b99be5f454",
+                "weight": 0.038198348,
                 "active": true
               },
-              "45bda419-1dae-40d2-82b6-8daae6cd3c5d": {
-                "src": "eeb17d1b-d660-4384-8875-ffb88ec317f7",
-                "dst": "c5fca541-e96c-428e-bc3a-8dd022ac1e5a",
-                "innov": "45bda419-1dae-40d2-82b6-8daae6cd3c5d",
-                "weight": 0.76298064,
+              "24cfa36c-dfa7-4b32-8256-525ec2a011ba": {
+                "src": "730c43a9-2b08-4953-b7e4-29d083741617",
+                "dst": "509b561b-7784-4335-97dd-b19ddb3e6d8f",
+                "innov": "24cfa36c-dfa7-4b32-8256-525ec2a011ba",
+                "weight": 0.54979855,
                 "active": true
               },
-              "ca9088c4-898e-4466-8616-7b2820d282c1": {
-                "src": "9024aa0d-486d-4b57-862f-255738139dc1",
-                "dst": "35ef5f76-a133-4ca4-98bf-01ad4ad4e2a4",
-                "innov": "ca9088c4-898e-4466-8616-7b2820d282c1",
-                "weight": -0.038130943,
+              "b5c2b68d-40df-439d-bdbd-8461081cedee": {
+                "src": "b51e8ef9-7937-4071-9817-925875643382",
+                "dst": "f8a5e333-1574-491f-81de-ffea90b88b30",
+                "innov": "b5c2b68d-40df-439d-bdbd-8461081cedee",
+                "weight": 0.09684273,
                 "active": true
               },
-              "20a7986f-ea82-43ae-8663-ae93282198ed": {
-                "src": "62b274a7-5c9a-4cf3-96e3-b30d37d7b2ac",
-                "dst": "73e456ae-4d6b-4fa6-95f9-e1a1968e8de5",
-                "innov": "20a7986f-ea82-43ae-8663-ae93282198ed",
-                "weight": 0.37006092,
+              "fc15ca62-bea9-4427-8f5d-0d03f59f7b03": {
+                "src": "f60932e2-5802-4394-8044-e7039f65de4b",
+                "dst": "86e65f20-f0cf-484a-8f79-6ffe5440f5c7",
+                "innov": "fc15ca62-bea9-4427-8f5d-0d03f59f7b03",
+                "weight": 0.2184744,
                 "active": true
               },
-              "cf384fe2-e815-44a1-9eb9-2e1e3bd58fb7": {
-                "src": "0ecdefce-ae28-42bc-9d6b-3a110828915b",
-                "dst": "ba081a15-610e-4162-aea8-7d37987ff41d",
-                "innov": "cf384fe2-e815-44a1-9eb9-2e1e3bd58fb7",
-                "weight": 0.28288868,
+              "0315f31f-4234-4204-a856-0cc16f504476": {
+                "src": "b51e8ef9-7937-4071-9817-925875643382",
+                "dst": "2b138c36-a1e5-4595-af37-52686c4bbf68",
+                "innov": "0315f31f-4234-4204-a856-0cc16f504476",
+                "weight": -0.09965949,
                 "active": true
               },
-              "b73411c9-478a-40a5-8923-7b6a6ff4a448": {
-                "src": "62b274a7-5c9a-4cf3-96e3-b30d37d7b2ac",
-                "dst": "3f90f139-2256-49fa-9deb-62f5ca069e10",
-                "innov": "b73411c9-478a-40a5-8923-7b6a6ff4a448",
-                "weight": 0.6251497,
+              "debbf827-205c-412a-af70-cfdc75f2abfb": {
+                "src": "670c4cb4-adf6-40ed-a62b-b6fe8d2d447b",
+                "dst": "509b561b-7784-4335-97dd-b19ddb3e6d8f",
+                "innov": "debbf827-205c-412a-af70-cfdc75f2abfb",
+                "weight": -0.24541943,
                 "active": true
               },
-              "961b31b8-0a20-495b-a90e-3f611f95e61c": {
-                "src": "62b274a7-5c9a-4cf3-96e3-b30d37d7b2ac",
-                "dst": "35ef5f76-a133-4ca4-98bf-01ad4ad4e2a4",
-                "innov": "961b31b8-0a20-495b-a90e-3f611f95e61c",
-                "weight": 0.9853977,
+              "d787c0ee-a063-473f-94bd-522d98033afe": {
+                "src": "41f2a2b6-30e8-403c-a8ea-ff71ea4fff2f",
+                "dst": "2b138c36-a1e5-4595-af37-52686c4bbf68",
+                "innov": "d787c0ee-a063-473f-94bd-522d98033afe",
+                "weight": 0.20938319,
                 "active": true
               },
-              "44d2655b-8f47-4a5c-9c13-047b3c297285": {
-                "src": "0ecdefce-ae28-42bc-9d6b-3a110828915b",
-                "dst": "73e456ae-4d6b-4fa6-95f9-e1a1968e8de5",
-                "innov": "44d2655b-8f47-4a5c-9c13-047b3c297285",
-                "weight": -0.98316157,
+              "858f74f5-9a59-4d57-a87e-013b9e02a972": {
+                "src": "4c88105a-fa59-46e1-b1f8-0f1c2179519b",
+                "dst": "86e65f20-f0cf-484a-8f79-6ffe5440f5c7",
+                "innov": "858f74f5-9a59-4d57-a87e-013b9e02a972",
+                "weight": 0.10639332,
                 "active": true
               },
-              "668b6b37-0866-4077-9653-eb7fbbb586f4": {
-                "src": "0ecdefce-ae28-42bc-9d6b-3a110828915b",
-                "dst": "3f90f139-2256-49fa-9deb-62f5ca069e10",
-                "innov": "668b6b37-0866-4077-9653-eb7fbbb586f4",
-                "weight": -0.09285008,
+              "30e8a51b-149b-47ad-88cd-12efcc7cea9d": {
+                "src": "b51e8ef9-7937-4071-9817-925875643382",
+                "dst": "86e65f20-f0cf-484a-8f79-6ffe5440f5c7",
+                "innov": "30e8a51b-149b-47ad-88cd-12efcc7cea9d",
+                "weight": -0.1276361,
                 "active": true
               },
-              "4e9ce3a0-fe8a-48da-92ee-8a87c13ce898": {
-                "src": "62b274a7-5c9a-4cf3-96e3-b30d37d7b2ac",
-                "dst": "c5fca541-e96c-428e-bc3a-8dd022ac1e5a",
-                "innov": "4e9ce3a0-fe8a-48da-92ee-8a87c13ce898",
-                "weight": -0.95662767,
+              "cc06e376-0cc1-47e7-a323-714011bf3e16": {
+                "src": "730c43a9-2b08-4953-b7e4-29d083741617",
+                "dst": "2b138c36-a1e5-4595-af37-52686c4bbf68",
+                "innov": "cc06e376-0cc1-47e7-a323-714011bf3e16",
+                "weight": 0.33708358,
                 "active": true
               },
-              "0c4cbf4f-447f-4003-8cea-1d78d440bb54": {
-                "src": "85bd13e9-86d5-42d8-9238-db9d579fa2d5",
-                "dst": "3f90f139-2256-49fa-9deb-62f5ca069e10",
-                "innov": "0c4cbf4f-447f-4003-8cea-1d78d440bb54",
-                "weight": -0.30297855,
+              "801eb3a9-39cd-4655-ac95-cae6ce0d1296": {
+                "src": "4c88105a-fa59-46e1-b1f8-0f1c2179519b",
+                "dst": "2b138c36-a1e5-4595-af37-52686c4bbf68",
+                "innov": "801eb3a9-39cd-4655-ac95-cae6ce0d1296",
+                "weight": 0.4430777,
                 "active": true
               }
             },
@@ -1350,33 +1350,33 @@
           },
           "o_gate": {
             "inputs": [
-              "751be05d-5a76-4a4f-af10-b2646254fe73",
-              "86f90cfb-42e2-43c9-9b8a-5a256d0d5b19",
-              "797aecd2-abf5-40ea-abc0-fb5cb89b3e90",
-              "15e9856e-0f9e-4dd7-98ce-5dda2403d940",
-              "6244b947-f6ea-4a35-837e-d32360c3706a",
-              "0daef644-1c53-40ca-b175-85f6e957d24e"
+              "3431f912-a3eb-4097-bd88-b3eab10b07cc",
+              "57b7f2ee-d69f-4a06-8266-22bfc3bd4ea9",
+              "4fc6961f-e62d-48bd-9951-c1fbf910de6d",
+              "eee1ac2f-aa3c-4498-87ba-49a076fb7e36",
+              "1801060d-530a-41dd-8871-2e8f4ec6a9e3",
+              "3a4ab5bf-642c-4252-bf12-f185a63f9edd"
             ],
             "outputs": [
-              "a3db2e11-ce20-4470-a7ce-43f1b4b8c2f3",
-              "7e479018-4566-4262-b8e5-76340f8d417d",
-              "b811362c-fd8c-4380-8878-0e27acabbe90",
-              "f2366008-a30d-43dc-a965-8cc20dc92699",
-              "df5ce3bf-d8c0-4e3f-ba62-40e79fabe690"
+              "f8d8c2ac-6686-43e3-9c03-8a38c0166d33",
+              "368b11b5-8b38-4be0-a176-e1e44f11ee88",
+              "546854ca-5099-4bd3-8081-b80fd7870cc0",
+              "32921f59-77ea-43c4-a8fb-3497bfead8aa",
+              "66ee1f70-ca02-4eef-8e56-361fbc4cdea7"
             ],
             "nodes": {
-              "7e479018-4566-4262-b8e5-76340f8d417d": {
-                "innov": "7e479018-4566-4262-b8e5-76340f8d417d",
+              "32921f59-77ea-43c4-a8fb-3497bfead8aa": {
+                "innov": "32921f59-77ea-43c4-a8fb-3497bfead8aa",
                 "outgoing": [],
                 "incoming": {
-                  "20f49173-8a5a-4de9-9240-b66a8fbf230e": null,
-                  "fb780ac2-ed55-4578-9d2e-c0785724ad65": null,
-                  "f774ad4b-4eb0-4cf6-abc7-19948e836b2f": null,
-                  "977a2d37-9668-4477-92dc-8edbf32451a1": null,
-                  "baf66726-2dea-49aa-9228-93d629c1ffda": null,
-                  "5f843d39-e176-4324-8f7a-efe45afb31b4": null
+                  "4180a2f2-98fb-40a7-9193-301ac154641c": null,
+                  "d9bf8ebb-23ef-4a49-9857-4f23e0d3cf8c": null,
+                  "3fee7e99-cfc8-43b1-a8f8-84d242e32ef6": null,
+                  "db699a85-819a-4749-916e-e253879968ee": null,
+                  "10d16170-a1b6-4e1e-aa06-515b42262fcc": null,
+                  "90c85be9-54cf-47d9-a195-a66370a5ccf5": null
                 },
-                "bias": 0.38548678,
+                "bias": 0.2402309,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -1384,18 +1384,36 @@
                 "activation": "Sigmoid",
                 "neuron_type": "Output"
               },
-              "f2366008-a30d-43dc-a965-8cc20dc92699": {
-                "innov": "f2366008-a30d-43dc-a965-8cc20dc92699",
+              "3a4ab5bf-642c-4252-bf12-f185a63f9edd": {
+                "innov": "3a4ab5bf-642c-4252-bf12-f185a63f9edd",
+                "outgoing": [
+                  "4370f01b-1f73-4f8d-a8c1-76917ba4a5bf",
+                  "828d5f66-85e9-482d-b446-6bb6a9253254",
+                  "e65e2842-fc83-4fab-8f34-69923875dc30",
+                  "90c85be9-54cf-47d9-a195-a66370a5ccf5",
+                  "ac13d95c-c177-4acd-bb65-2bc355338582"
+                ],
+                "incoming": {},
+                "bias": 0.24972135,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Input"
+              },
+              "66ee1f70-ca02-4eef-8e56-361fbc4cdea7": {
+                "innov": "66ee1f70-ca02-4eef-8e56-361fbc4cdea7",
                 "outgoing": [],
                 "incoming": {
-                  "8916342d-0eb8-4b36-ac94-c8d16a9efd37": null,
-                  "35be0d47-c41b-4f50-b236-ab719d6091f0": null,
-                  "d03bedb9-cbc7-469e-9429-b15fdc62d8cf": null,
-                  "57a49ac5-96d2-49c7-98dd-ea391f700879": null,
-                  "da272c52-b92d-4ddf-8a81-f28060d45851": null,
-                  "53e37927-5810-4f67-a8ed-5f4a93fc5554": null
+                  "61591904-13c0-46cb-8928-ae259b4d85f7": null,
+                  "6687c2d3-9007-4896-a7a7-9d96327edc8a": null,
+                  "ac13d95c-c177-4acd-bb65-2bc355338582": null,
+                  "b56822b6-a90c-4821-944b-83fd0e88febd": null,
+                  "64b60178-adc1-436d-a917-03f7320eabee": null,
+                  "e2960604-aaab-426b-8852-8560a9f3ace5": null
                 },
-                "bias": -0.2410781,
+                "bias": 0.3411144,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -1403,18 +1421,36 @@
                 "activation": "Sigmoid",
                 "neuron_type": "Output"
               },
-              "b811362c-fd8c-4380-8878-0e27acabbe90": {
-                "innov": "b811362c-fd8c-4380-8878-0e27acabbe90",
+              "3431f912-a3eb-4097-bd88-b3eab10b07cc": {
+                "innov": "3431f912-a3eb-4097-bd88-b3eab10b07cc",
+                "outgoing": [
+                  "d2405bbf-2f06-4a79-8f0a-61a75a55d181",
+                  "0ebfcf32-dcdc-414f-84d3-8dad15c76340",
+                  "a82d55e5-61a1-47ec-95a7-e8cbd1be6d6b",
+                  "4180a2f2-98fb-40a7-9193-301ac154641c",
+                  "64b60178-adc1-436d-a917-03f7320eabee"
+                ],
+                "incoming": {},
+                "bias": 0.3206643,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Input"
+              },
+              "546854ca-5099-4bd3-8081-b80fd7870cc0": {
+                "innov": "546854ca-5099-4bd3-8081-b80fd7870cc0",
                 "outgoing": [],
                 "incoming": {
-                  "648a92a6-cdf5-4c74-b23f-bd4df2a761f0": null,
-                  "449639f0-cb1e-43d2-960d-72e8a403b6e1": null,
-                  "43db31fd-cabd-4fdd-9930-c77c3a7d6a13": null,
-                  "82924f07-30bf-4c55-9d00-d63a8a4ddc76": null,
-                  "939b762e-729b-47f0-ba2a-73999f51ef4e": null,
-                  "861eed70-b447-4458-bfb7-ba47d59e2460": null
+                  "ed2208f9-7e51-46d8-8a47-1d9158ff0744": null,
+                  "08671991-ffa3-4793-b7a3-fb843700a072": null,
+                  "fb9fd0d2-b431-424f-a1ee-6e7ca5bf0653": null,
+                  "a82d55e5-61a1-47ec-95a7-e8cbd1be6d6b": null,
+                  "e65e2842-fc83-4fab-8f34-69923875dc30": null,
+                  "b7680ff9-ad99-49d2-9693-2e166a11815f": null
                 },
-                "bias": 0.5824509,
+                "bias": 0.45229533,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -1422,18 +1458,36 @@
                 "activation": "Sigmoid",
                 "neuron_type": "Output"
               },
-              "a3db2e11-ce20-4470-a7ce-43f1b4b8c2f3": {
-                "innov": "a3db2e11-ce20-4470-a7ce-43f1b4b8c2f3",
+              "eee1ac2f-aa3c-4498-87ba-49a076fb7e36": {
+                "innov": "eee1ac2f-aa3c-4498-87ba-49a076fb7e36",
+                "outgoing": [
+                  "08eb9e55-3282-4f09-933a-89d8ae3689e5",
+                  "ec3c9622-9623-4f62-8353-7a6b62712592",
+                  "b7680ff9-ad99-49d2-9693-2e166a11815f",
+                  "d9bf8ebb-23ef-4a49-9857-4f23e0d3cf8c",
+                  "6687c2d3-9007-4896-a7a7-9d96327edc8a"
+                ],
+                "incoming": {},
+                "bias": 0.30646503,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Input"
+              },
+              "368b11b5-8b38-4be0-a176-e1e44f11ee88": {
+                "innov": "368b11b5-8b38-4be0-a176-e1e44f11ee88",
                 "outgoing": [],
                 "incoming": {
-                  "ce3cb014-b9b5-4093-8142-6e7da62631e8": null,
-                  "bdbb448f-cf78-4be4-a2fd-df5ac6927687": null,
-                  "1756f1bf-6e29-4284-b615-8bf289c108b3": null,
-                  "754cce74-8f2c-42c6-9b69-d53954b4de4a": null,
-                  "16ecb6a1-901f-4ebb-bddb-454c3301837e": null,
-                  "ab222f18-b85f-4649-a247-1a607328da3b": null
+                  "dee14b9c-ff61-4c78-87ab-c0dc9d8eefcc": null,
+                  "0ebfcf32-dcdc-414f-84d3-8dad15c76340": null,
+                  "93230065-3f95-4687-a8fd-0b0b87c4588b": null,
+                  "ec3c9622-9623-4f62-8353-7a6b62712592": null,
+                  "d7c4996c-c2eb-410e-ba67-bbcc563dcbd0": null,
+                  "828d5f66-85e9-482d-b446-6bb6a9253254": null
                 },
-                "bias": 0.95163643,
+                "bias": 0.8534582,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -1441,17 +1495,17 @@
                 "activation": "Sigmoid",
                 "neuron_type": "Output"
               },
-              "6244b947-f6ea-4a35-837e-d32360c3706a": {
-                "innov": "6244b947-f6ea-4a35-837e-d32360c3706a",
+              "4fc6961f-e62d-48bd-9951-c1fbf910de6d": {
+                "innov": "4fc6961f-e62d-48bd-9951-c1fbf910de6d",
                 "outgoing": [
-                  "ab222f18-b85f-4649-a247-1a607328da3b",
-                  "5f843d39-e176-4324-8f7a-efe45afb31b4",
-                  "939b762e-729b-47f0-ba2a-73999f51ef4e",
-                  "d03bedb9-cbc7-469e-9429-b15fdc62d8cf",
-                  "0cc1943e-7e72-4e94-a26e-275a82d0aca0"
+                  "b6c2b67a-9693-4e94-8fec-d9f89059a5f4",
+                  "dee14b9c-ff61-4c78-87ab-c0dc9d8eefcc",
+                  "08671991-ffa3-4793-b7a3-fb843700a072",
+                  "10d16170-a1b6-4e1e-aa06-515b42262fcc",
+                  "e2960604-aaab-426b-8852-8560a9f3ace5"
                 ],
                 "incoming": {},
-                "bias": 0.35053253,
+                "bias": 0.8042091,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -1459,90 +1513,18 @@
                 "activation": "Sigmoid",
                 "neuron_type": "Input"
               },
-              "797aecd2-abf5-40ea-abc0-fb5cb89b3e90": {
-                "innov": "797aecd2-abf5-40ea-abc0-fb5cb89b3e90",
-                "outgoing": [
-                  "16ecb6a1-901f-4ebb-bddb-454c3301837e",
-                  "977a2d37-9668-4477-92dc-8edbf32451a1",
-                  "861eed70-b447-4458-bfb7-ba47d59e2460",
-                  "57a49ac5-96d2-49c7-98dd-ea391f700879",
-                  "42f52407-463d-4dfe-a38f-3731ab203c72"
-                ],
-                "incoming": {},
-                "bias": 0.89715,
-                "value": 0.0,
-                "d_value": 0.0,
-                "state": 0.0,
-                "error": 0.0,
-                "activation": "Sigmoid",
-                "neuron_type": "Input"
-              },
-              "15e9856e-0f9e-4dd7-98ce-5dda2403d940": {
-                "innov": "15e9856e-0f9e-4dd7-98ce-5dda2403d940",
-                "outgoing": [
-                  "ce3cb014-b9b5-4093-8142-6e7da62631e8",
-                  "f774ad4b-4eb0-4cf6-abc7-19948e836b2f",
-                  "449639f0-cb1e-43d2-960d-72e8a403b6e1",
-                  "da272c52-b92d-4ddf-8a81-f28060d45851",
-                  "e3757727-d6a1-4457-8ddb-154dd905ee88"
-                ],
-                "incoming": {},
-                "bias": 0.054414034,
-                "value": 0.0,
-                "d_value": 0.0,
-                "state": 0.0,
-                "error": 0.0,
-                "activation": "Sigmoid",
-                "neuron_type": "Input"
-              },
-              "86f90cfb-42e2-43c9-9b8a-5a256d0d5b19": {
-                "innov": "86f90cfb-42e2-43c9-9b8a-5a256d0d5b19",
-                "outgoing": [
-                  "bdbb448f-cf78-4be4-a2fd-df5ac6927687",
-                  "baf66726-2dea-49aa-9228-93d629c1ffda",
-                  "648a92a6-cdf5-4c74-b23f-bd4df2a761f0",
-                  "53e37927-5810-4f67-a8ed-5f4a93fc5554",
-                  "d9c876c2-281c-4f0c-aded-9cc70b3d9450"
-                ],
-                "incoming": {},
-                "bias": 0.19333619,
-                "value": 0.0,
-                "d_value": 0.0,
-                "state": 0.0,
-                "error": 0.0,
-                "activation": "Sigmoid",
-                "neuron_type": "Input"
-              },
-              "751be05d-5a76-4a4f-af10-b2646254fe73": {
-                "innov": "751be05d-5a76-4a4f-af10-b2646254fe73",
-                "outgoing": [
-                  "1756f1bf-6e29-4284-b615-8bf289c108b3",
-                  "fb780ac2-ed55-4578-9d2e-c0785724ad65",
-                  "82924f07-30bf-4c55-9d00-d63a8a4ddc76",
-                  "35be0d47-c41b-4f50-b236-ab719d6091f0",
-                  "046fa3d3-a84e-4290-b5e3-7a1e3b029cd2"
-                ],
-                "incoming": {},
-                "bias": 0.3572299,
-                "value": 0.0,
-                "d_value": 0.0,
-                "state": 0.0,
-                "error": 0.0,
-                "activation": "Sigmoid",
-                "neuron_type": "Input"
-              },
-              "df5ce3bf-d8c0-4e3f-ba62-40e79fabe690": {
-                "innov": "df5ce3bf-d8c0-4e3f-ba62-40e79fabe690",
+              "f8d8c2ac-6686-43e3-9c03-8a38c0166d33": {
+                "innov": "f8d8c2ac-6686-43e3-9c03-8a38c0166d33",
                 "outgoing": [],
                 "incoming": {
-                  "0cc1943e-7e72-4e94-a26e-275a82d0aca0": null,
-                  "046fa3d3-a84e-4290-b5e3-7a1e3b029cd2": null,
-                  "c77d0734-d8d0-4c75-9447-3c50978afc97": null,
-                  "42f52407-463d-4dfe-a38f-3731ab203c72": null,
-                  "e3757727-d6a1-4457-8ddb-154dd905ee88": null,
-                  "d9c876c2-281c-4f0c-aded-9cc70b3d9450": null
+                  "0fd96add-c5f5-4599-a9f4-00ab59f2e246": null,
+                  "b6c2b67a-9693-4e94-8fec-d9f89059a5f4": null,
+                  "35e77614-1c9f-4db9-801d-df8135c92d27": null,
+                  "4370f01b-1f73-4f8d-a8c1-76917ba4a5bf": null,
+                  "08eb9e55-3282-4f09-933a-89d8ae3689e5": null,
+                  "d2405bbf-2f06-4a79-8f0a-61a75a55d181": null
                 },
-                "bias": 1.0235549,
+                "bias": 0.14183284,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -1550,17 +1532,35 @@
                 "activation": "Sigmoid",
                 "neuron_type": "Output"
               },
-              "0daef644-1c53-40ca-b175-85f6e957d24e": {
-                "innov": "0daef644-1c53-40ca-b175-85f6e957d24e",
+              "57b7f2ee-d69f-4a06-8266-22bfc3bd4ea9": {
+                "innov": "57b7f2ee-d69f-4a06-8266-22bfc3bd4ea9",
                 "outgoing": [
-                  "754cce74-8f2c-42c6-9b69-d53954b4de4a",
-                  "20f49173-8a5a-4de9-9240-b66a8fbf230e",
-                  "43db31fd-cabd-4fdd-9930-c77c3a7d6a13",
-                  "8916342d-0eb8-4b36-ac94-c8d16a9efd37",
-                  "c77d0734-d8d0-4c75-9447-3c50978afc97"
+                  "35e77614-1c9f-4db9-801d-df8135c92d27",
+                  "93230065-3f95-4687-a8fd-0b0b87c4588b",
+                  "fb9fd0d2-b431-424f-a1ee-6e7ca5bf0653",
+                  "3fee7e99-cfc8-43b1-a8f8-84d242e32ef6",
+                  "b56822b6-a90c-4821-944b-83fd0e88febd"
                 ],
                 "incoming": {},
-                "bias": 0.42205715,
+                "bias": 0.65708435,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Input"
+              },
+              "1801060d-530a-41dd-8871-2e8f4ec6a9e3": {
+                "innov": "1801060d-530a-41dd-8871-2e8f4ec6a9e3",
+                "outgoing": [
+                  "0fd96add-c5f5-4599-a9f4-00ab59f2e246",
+                  "d7c4996c-c2eb-410e-ba67-bbcc563dcbd0",
+                  "ed2208f9-7e51-46d8-8a47-1d9158ff0744",
+                  "db699a85-819a-4749-916e-e253879968ee",
+                  "61591904-13c0-46cb-8928-ae259b4d85f7"
+                ],
+                "incoming": {},
+                "bias": 0.6203326,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -1570,214 +1570,214 @@
               }
             },
             "edges": {
-              "16ecb6a1-901f-4ebb-bddb-454c3301837e": {
-                "src": "797aecd2-abf5-40ea-abc0-fb5cb89b3e90",
-                "dst": "a3db2e11-ce20-4470-a7ce-43f1b4b8c2f3",
-                "innov": "16ecb6a1-901f-4ebb-bddb-454c3301837e",
-                "weight": -0.43938282,
+              "b7680ff9-ad99-49d2-9693-2e166a11815f": {
+                "src": "eee1ac2f-aa3c-4498-87ba-49a076fb7e36",
+                "dst": "546854ca-5099-4bd3-8081-b80fd7870cc0",
+                "innov": "b7680ff9-ad99-49d2-9693-2e166a11815f",
+                "weight": 0.26494634,
                 "active": true
               },
-              "449639f0-cb1e-43d2-960d-72e8a403b6e1": {
-                "src": "15e9856e-0f9e-4dd7-98ce-5dda2403d940",
-                "dst": "b811362c-fd8c-4380-8878-0e27acabbe90",
-                "innov": "449639f0-cb1e-43d2-960d-72e8a403b6e1",
-                "weight": 0.22963694,
+              "3fee7e99-cfc8-43b1-a8f8-84d242e32ef6": {
+                "src": "57b7f2ee-d69f-4a06-8266-22bfc3bd4ea9",
+                "dst": "32921f59-77ea-43c4-a8fb-3497bfead8aa",
+                "innov": "3fee7e99-cfc8-43b1-a8f8-84d242e32ef6",
+                "weight": 0.14033628,
                 "active": true
               },
-              "53e37927-5810-4f67-a8ed-5f4a93fc5554": {
-                "src": "86f90cfb-42e2-43c9-9b8a-5a256d0d5b19",
-                "dst": "f2366008-a30d-43dc-a965-8cc20dc92699",
-                "innov": "53e37927-5810-4f67-a8ed-5f4a93fc5554",
-                "weight": 0.780624,
+              "4180a2f2-98fb-40a7-9193-301ac154641c": {
+                "src": "3431f912-a3eb-4097-bd88-b3eab10b07cc",
+                "dst": "32921f59-77ea-43c4-a8fb-3497bfead8aa",
+                "innov": "4180a2f2-98fb-40a7-9193-301ac154641c",
+                "weight": 0.70153916,
                 "active": true
               },
-              "754cce74-8f2c-42c6-9b69-d53954b4de4a": {
-                "src": "0daef644-1c53-40ca-b175-85f6e957d24e",
-                "dst": "a3db2e11-ce20-4470-a7ce-43f1b4b8c2f3",
-                "innov": "754cce74-8f2c-42c6-9b69-d53954b4de4a",
-                "weight": 0.8364043,
+              "a82d55e5-61a1-47ec-95a7-e8cbd1be6d6b": {
+                "src": "3431f912-a3eb-4097-bd88-b3eab10b07cc",
+                "dst": "546854ca-5099-4bd3-8081-b80fd7870cc0",
+                "innov": "a82d55e5-61a1-47ec-95a7-e8cbd1be6d6b",
+                "weight": 0.4559842,
                 "active": true
               },
-              "d03bedb9-cbc7-469e-9429-b15fdc62d8cf": {
-                "src": "6244b947-f6ea-4a35-837e-d32360c3706a",
-                "dst": "f2366008-a30d-43dc-a965-8cc20dc92699",
-                "innov": "d03bedb9-cbc7-469e-9429-b15fdc62d8cf",
-                "weight": -0.20828794,
+              "6687c2d3-9007-4896-a7a7-9d96327edc8a": {
+                "src": "eee1ac2f-aa3c-4498-87ba-49a076fb7e36",
+                "dst": "66ee1f70-ca02-4eef-8e56-361fbc4cdea7",
+                "innov": "6687c2d3-9007-4896-a7a7-9d96327edc8a",
+                "weight": 0.49734005,
                 "active": true
               },
-              "5f843d39-e176-4324-8f7a-efe45afb31b4": {
-                "src": "6244b947-f6ea-4a35-837e-d32360c3706a",
-                "dst": "7e479018-4566-4262-b8e5-76340f8d417d",
-                "innov": "5f843d39-e176-4324-8f7a-efe45afb31b4",
-                "weight": -0.6998942,
+              "fb9fd0d2-b431-424f-a1ee-6e7ca5bf0653": {
+                "src": "57b7f2ee-d69f-4a06-8266-22bfc3bd4ea9",
+                "dst": "546854ca-5099-4bd3-8081-b80fd7870cc0",
+                "innov": "fb9fd0d2-b431-424f-a1ee-6e7ca5bf0653",
+                "weight": 0.4194701,
                 "active": true
               },
-              "e3757727-d6a1-4457-8ddb-154dd905ee88": {
-                "src": "15e9856e-0f9e-4dd7-98ce-5dda2403d940",
-                "dst": "df5ce3bf-d8c0-4e3f-ba62-40e79fabe690",
-                "innov": "e3757727-d6a1-4457-8ddb-154dd905ee88",
-                "weight": -0.5363086,
+              "64b60178-adc1-436d-a917-03f7320eabee": {
+                "src": "3431f912-a3eb-4097-bd88-b3eab10b07cc",
+                "dst": "66ee1f70-ca02-4eef-8e56-361fbc4cdea7",
+                "innov": "64b60178-adc1-436d-a917-03f7320eabee",
+                "weight": 0.50614655,
                 "active": true
               },
-              "43db31fd-cabd-4fdd-9930-c77c3a7d6a13": {
-                "src": "0daef644-1c53-40ca-b175-85f6e957d24e",
-                "dst": "b811362c-fd8c-4380-8878-0e27acabbe90",
-                "innov": "43db31fd-cabd-4fdd-9930-c77c3a7d6a13",
-                "weight": -0.2403506,
+              "dee14b9c-ff61-4c78-87ab-c0dc9d8eefcc": {
+                "src": "4fc6961f-e62d-48bd-9951-c1fbf910de6d",
+                "dst": "368b11b5-8b38-4be0-a176-e1e44f11ee88",
+                "innov": "dee14b9c-ff61-4c78-87ab-c0dc9d8eefcc",
+                "weight": -0.84678537,
                 "active": true
               },
-              "8916342d-0eb8-4b36-ac94-c8d16a9efd37": {
-                "src": "0daef644-1c53-40ca-b175-85f6e957d24e",
-                "dst": "f2366008-a30d-43dc-a965-8cc20dc92699",
-                "innov": "8916342d-0eb8-4b36-ac94-c8d16a9efd37",
-                "weight": 0.65216464,
+              "ec3c9622-9623-4f62-8353-7a6b62712592": {
+                "src": "eee1ac2f-aa3c-4498-87ba-49a076fb7e36",
+                "dst": "368b11b5-8b38-4be0-a176-e1e44f11ee88",
+                "innov": "ec3c9622-9623-4f62-8353-7a6b62712592",
+                "weight": 0.82487965,
                 "active": true
               },
-              "648a92a6-cdf5-4c74-b23f-bd4df2a761f0": {
-                "src": "86f90cfb-42e2-43c9-9b8a-5a256d0d5b19",
-                "dst": "b811362c-fd8c-4380-8878-0e27acabbe90",
-                "innov": "648a92a6-cdf5-4c74-b23f-bd4df2a761f0",
-                "weight": 0.7334966,
+              "0ebfcf32-dcdc-414f-84d3-8dad15c76340": {
+                "src": "3431f912-a3eb-4097-bd88-b3eab10b07cc",
+                "dst": "368b11b5-8b38-4be0-a176-e1e44f11ee88",
+                "innov": "0ebfcf32-dcdc-414f-84d3-8dad15c76340",
+                "weight": 0.9059246,
                 "active": true
               },
-              "fb780ac2-ed55-4578-9d2e-c0785724ad65": {
-                "src": "751be05d-5a76-4a4f-af10-b2646254fe73",
-                "dst": "7e479018-4566-4262-b8e5-76340f8d417d",
-                "innov": "fb780ac2-ed55-4578-9d2e-c0785724ad65",
-                "weight": -0.5886272,
+              "61591904-13c0-46cb-8928-ae259b4d85f7": {
+                "src": "1801060d-530a-41dd-8871-2e8f4ec6a9e3",
+                "dst": "66ee1f70-ca02-4eef-8e56-361fbc4cdea7",
+                "innov": "61591904-13c0-46cb-8928-ae259b4d85f7",
+                "weight": 0.060333937,
                 "active": true
               },
-              "939b762e-729b-47f0-ba2a-73999f51ef4e": {
-                "src": "6244b947-f6ea-4a35-837e-d32360c3706a",
-                "dst": "b811362c-fd8c-4380-8878-0e27acabbe90",
-                "innov": "939b762e-729b-47f0-ba2a-73999f51ef4e",
-                "weight": 0.10397362,
+              "90c85be9-54cf-47d9-a195-a66370a5ccf5": {
+                "src": "3a4ab5bf-642c-4252-bf12-f185a63f9edd",
+                "dst": "32921f59-77ea-43c4-a8fb-3497bfead8aa",
+                "innov": "90c85be9-54cf-47d9-a195-a66370a5ccf5",
+                "weight": 0.5128973,
                 "active": true
               },
-              "baf66726-2dea-49aa-9228-93d629c1ffda": {
-                "src": "86f90cfb-42e2-43c9-9b8a-5a256d0d5b19",
-                "dst": "7e479018-4566-4262-b8e5-76340f8d417d",
-                "innov": "baf66726-2dea-49aa-9228-93d629c1ffda",
-                "weight": -0.773712,
+              "db699a85-819a-4749-916e-e253879968ee": {
+                "src": "1801060d-530a-41dd-8871-2e8f4ec6a9e3",
+                "dst": "32921f59-77ea-43c4-a8fb-3497bfead8aa",
+                "innov": "db699a85-819a-4749-916e-e253879968ee",
+                "weight": -0.90355885,
                 "active": true
               },
-              "f774ad4b-4eb0-4cf6-abc7-19948e836b2f": {
-                "src": "15e9856e-0f9e-4dd7-98ce-5dda2403d940",
-                "dst": "7e479018-4566-4262-b8e5-76340f8d417d",
-                "innov": "f774ad4b-4eb0-4cf6-abc7-19948e836b2f",
-                "weight": 0.43705174,
+              "4370f01b-1f73-4f8d-a8c1-76917ba4a5bf": {
+                "src": "3a4ab5bf-642c-4252-bf12-f185a63f9edd",
+                "dst": "f8d8c2ac-6686-43e3-9c03-8a38c0166d33",
+                "innov": "4370f01b-1f73-4f8d-a8c1-76917ba4a5bf",
+                "weight": 0.68198025,
                 "active": true
               },
-              "20f49173-8a5a-4de9-9240-b66a8fbf230e": {
-                "src": "0daef644-1c53-40ca-b175-85f6e957d24e",
-                "dst": "7e479018-4566-4262-b8e5-76340f8d417d",
-                "innov": "20f49173-8a5a-4de9-9240-b66a8fbf230e",
-                "weight": -0.53580225,
+              "e65e2842-fc83-4fab-8f34-69923875dc30": {
+                "src": "3a4ab5bf-642c-4252-bf12-f185a63f9edd",
+                "dst": "546854ca-5099-4bd3-8081-b80fd7870cc0",
+                "innov": "e65e2842-fc83-4fab-8f34-69923875dc30",
+                "weight": -0.38735327,
                 "active": true
               },
-              "bdbb448f-cf78-4be4-a2fd-df5ac6927687": {
-                "src": "86f90cfb-42e2-43c9-9b8a-5a256d0d5b19",
-                "dst": "a3db2e11-ce20-4470-a7ce-43f1b4b8c2f3",
-                "innov": "bdbb448f-cf78-4be4-a2fd-df5ac6927687",
-                "weight": 0.9549676,
+              "d7c4996c-c2eb-410e-ba67-bbcc563dcbd0": {
+                "src": "1801060d-530a-41dd-8871-2e8f4ec6a9e3",
+                "dst": "368b11b5-8b38-4be0-a176-e1e44f11ee88",
+                "innov": "d7c4996c-c2eb-410e-ba67-bbcc563dcbd0",
+                "weight": -0.7133219,
                 "active": true
               },
-              "1756f1bf-6e29-4284-b615-8bf289c108b3": {
-                "src": "751be05d-5a76-4a4f-af10-b2646254fe73",
-                "dst": "a3db2e11-ce20-4470-a7ce-43f1b4b8c2f3",
-                "innov": "1756f1bf-6e29-4284-b615-8bf289c108b3",
-                "weight": -0.32980955,
+              "b56822b6-a90c-4821-944b-83fd0e88febd": {
+                "src": "57b7f2ee-d69f-4a06-8266-22bfc3bd4ea9",
+                "dst": "66ee1f70-ca02-4eef-8e56-361fbc4cdea7",
+                "innov": "b56822b6-a90c-4821-944b-83fd0e88febd",
+                "weight": -0.8023045,
                 "active": true
               },
-              "ab222f18-b85f-4649-a247-1a607328da3b": {
-                "src": "6244b947-f6ea-4a35-837e-d32360c3706a",
-                "dst": "a3db2e11-ce20-4470-a7ce-43f1b4b8c2f3",
-                "innov": "ab222f18-b85f-4649-a247-1a607328da3b",
-                "weight": -0.85233253,
+              "d9bf8ebb-23ef-4a49-9857-4f23e0d3cf8c": {
+                "src": "eee1ac2f-aa3c-4498-87ba-49a076fb7e36",
+                "dst": "32921f59-77ea-43c4-a8fb-3497bfead8aa",
+                "innov": "d9bf8ebb-23ef-4a49-9857-4f23e0d3cf8c",
+                "weight": 0.5288556,
                 "active": true
               },
-              "57a49ac5-96d2-49c7-98dd-ea391f700879": {
-                "src": "797aecd2-abf5-40ea-abc0-fb5cb89b3e90",
-                "dst": "f2366008-a30d-43dc-a965-8cc20dc92699",
-                "innov": "57a49ac5-96d2-49c7-98dd-ea391f700879",
-                "weight": -0.7480586,
+              "93230065-3f95-4687-a8fd-0b0b87c4588b": {
+                "src": "57b7f2ee-d69f-4a06-8266-22bfc3bd4ea9",
+                "dst": "368b11b5-8b38-4be0-a176-e1e44f11ee88",
+                "innov": "93230065-3f95-4687-a8fd-0b0b87c4588b",
+                "weight": 0.76249075,
                 "active": true
               },
-              "046fa3d3-a84e-4290-b5e3-7a1e3b029cd2": {
-                "src": "751be05d-5a76-4a4f-af10-b2646254fe73",
-                "dst": "df5ce3bf-d8c0-4e3f-ba62-40e79fabe690",
-                "innov": "046fa3d3-a84e-4290-b5e3-7a1e3b029cd2",
-                "weight": -0.081019014,
+              "10d16170-a1b6-4e1e-aa06-515b42262fcc": {
+                "src": "4fc6961f-e62d-48bd-9951-c1fbf910de6d",
+                "dst": "32921f59-77ea-43c4-a8fb-3497bfead8aa",
+                "innov": "10d16170-a1b6-4e1e-aa06-515b42262fcc",
+                "weight": 0.75855726,
                 "active": true
               },
-              "42f52407-463d-4dfe-a38f-3731ab203c72": {
-                "src": "797aecd2-abf5-40ea-abc0-fb5cb89b3e90",
-                "dst": "df5ce3bf-d8c0-4e3f-ba62-40e79fabe690",
-                "innov": "42f52407-463d-4dfe-a38f-3731ab203c72",
-                "weight": -0.98756784,
+              "ac13d95c-c177-4acd-bb65-2bc355338582": {
+                "src": "3a4ab5bf-642c-4252-bf12-f185a63f9edd",
+                "dst": "66ee1f70-ca02-4eef-8e56-361fbc4cdea7",
+                "innov": "ac13d95c-c177-4acd-bb65-2bc355338582",
+                "weight": 0.0991757,
                 "active": true
               },
-              "c77d0734-d8d0-4c75-9447-3c50978afc97": {
-                "src": "0daef644-1c53-40ca-b175-85f6e957d24e",
-                "dst": "df5ce3bf-d8c0-4e3f-ba62-40e79fabe690",
-                "innov": "c77d0734-d8d0-4c75-9447-3c50978afc97",
-                "weight": 0.3274369,
+              "ed2208f9-7e51-46d8-8a47-1d9158ff0744": {
+                "src": "1801060d-530a-41dd-8871-2e8f4ec6a9e3",
+                "dst": "546854ca-5099-4bd3-8081-b80fd7870cc0",
+                "innov": "ed2208f9-7e51-46d8-8a47-1d9158ff0744",
+                "weight": -0.39479527,
                 "active": true
               },
-              "0cc1943e-7e72-4e94-a26e-275a82d0aca0": {
-                "src": "6244b947-f6ea-4a35-837e-d32360c3706a",
-                "dst": "df5ce3bf-d8c0-4e3f-ba62-40e79fabe690",
-                "innov": "0cc1943e-7e72-4e94-a26e-275a82d0aca0",
-                "weight": 0.9040258,
+              "0fd96add-c5f5-4599-a9f4-00ab59f2e246": {
+                "src": "1801060d-530a-41dd-8871-2e8f4ec6a9e3",
+                "dst": "f8d8c2ac-6686-43e3-9c03-8a38c0166d33",
+                "innov": "0fd96add-c5f5-4599-a9f4-00ab59f2e246",
+                "weight": -0.42293966,
                 "active": true
               },
-              "82924f07-30bf-4c55-9d00-d63a8a4ddc76": {
-                "src": "751be05d-5a76-4a4f-af10-b2646254fe73",
-                "dst": "b811362c-fd8c-4380-8878-0e27acabbe90",
-                "innov": "82924f07-30bf-4c55-9d00-d63a8a4ddc76",
-                "weight": 0.10896947,
+              "e2960604-aaab-426b-8852-8560a9f3ace5": {
+                "src": "4fc6961f-e62d-48bd-9951-c1fbf910de6d",
+                "dst": "66ee1f70-ca02-4eef-8e56-361fbc4cdea7",
+                "innov": "e2960604-aaab-426b-8852-8560a9f3ace5",
+                "weight": 0.4707847,
                 "active": true
               },
-              "35be0d47-c41b-4f50-b236-ab719d6091f0": {
-                "src": "751be05d-5a76-4a4f-af10-b2646254fe73",
-                "dst": "f2366008-a30d-43dc-a965-8cc20dc92699",
-                "innov": "35be0d47-c41b-4f50-b236-ab719d6091f0",
-                "weight": 0.3387307,
+              "b6c2b67a-9693-4e94-8fec-d9f89059a5f4": {
+                "src": "4fc6961f-e62d-48bd-9951-c1fbf910de6d",
+                "dst": "f8d8c2ac-6686-43e3-9c03-8a38c0166d33",
+                "innov": "b6c2b67a-9693-4e94-8fec-d9f89059a5f4",
+                "weight": 0.6188834,
                 "active": true
               },
-              "977a2d37-9668-4477-92dc-8edbf32451a1": {
-                "src": "797aecd2-abf5-40ea-abc0-fb5cb89b3e90",
-                "dst": "7e479018-4566-4262-b8e5-76340f8d417d",
-                "innov": "977a2d37-9668-4477-92dc-8edbf32451a1",
-                "weight": 0.9889108,
+              "828d5f66-85e9-482d-b446-6bb6a9253254": {
+                "src": "3a4ab5bf-642c-4252-bf12-f185a63f9edd",
+                "dst": "368b11b5-8b38-4be0-a176-e1e44f11ee88",
+                "innov": "828d5f66-85e9-482d-b446-6bb6a9253254",
+                "weight": -0.12083187,
                 "active": true
               },
-              "ce3cb014-b9b5-4093-8142-6e7da62631e8": {
-                "src": "15e9856e-0f9e-4dd7-98ce-5dda2403d940",
-                "dst": "a3db2e11-ce20-4470-a7ce-43f1b4b8c2f3",
-                "innov": "ce3cb014-b9b5-4093-8142-6e7da62631e8",
-                "weight": 0.29070136,
+              "d2405bbf-2f06-4a79-8f0a-61a75a55d181": {
+                "src": "3431f912-a3eb-4097-bd88-b3eab10b07cc",
+                "dst": "f8d8c2ac-6686-43e3-9c03-8a38c0166d33",
+                "innov": "d2405bbf-2f06-4a79-8f0a-61a75a55d181",
+                "weight": -0.8406007,
                 "active": true
               },
-              "da272c52-b92d-4ddf-8a81-f28060d45851": {
-                "src": "15e9856e-0f9e-4dd7-98ce-5dda2403d940",
-                "dst": "f2366008-a30d-43dc-a965-8cc20dc92699",
-                "innov": "da272c52-b92d-4ddf-8a81-f28060d45851",
-                "weight": -1.0180013,
+              "35e77614-1c9f-4db9-801d-df8135c92d27": {
+                "src": "57b7f2ee-d69f-4a06-8266-22bfc3bd4ea9",
+                "dst": "f8d8c2ac-6686-43e3-9c03-8a38c0166d33",
+                "innov": "35e77614-1c9f-4db9-801d-df8135c92d27",
+                "weight": 0.49695283,
                 "active": true
               },
-              "d9c876c2-281c-4f0c-aded-9cc70b3d9450": {
-                "src": "86f90cfb-42e2-43c9-9b8a-5a256d0d5b19",
-                "dst": "df5ce3bf-d8c0-4e3f-ba62-40e79fabe690",
-                "innov": "d9c876c2-281c-4f0c-aded-9cc70b3d9450",
-                "weight": -0.122112155,
+              "08eb9e55-3282-4f09-933a-89d8ae3689e5": {
+                "src": "eee1ac2f-aa3c-4498-87ba-49a076fb7e36",
+                "dst": "f8d8c2ac-6686-43e3-9c03-8a38c0166d33",
+                "innov": "08eb9e55-3282-4f09-933a-89d8ae3689e5",
+                "weight": 0.118646465,
                 "active": true
               },
-              "861eed70-b447-4458-bfb7-ba47d59e2460": {
-                "src": "797aecd2-abf5-40ea-abc0-fb5cb89b3e90",
-                "dst": "b811362c-fd8c-4380-8878-0e27acabbe90",
-                "innov": "861eed70-b447-4458-bfb7-ba47d59e2460",
-                "weight": -0.10452105,
+              "08671991-ffa3-4793-b7a3-fb843700a072": {
+                "src": "4fc6961f-e62d-48bd-9951-c1fbf910de6d",
+                "dst": "546854ca-5099-4bd3-8081-b80fd7870cc0",
+                "innov": "08671991-ffa3-4793-b7a3-fb843700a072",
+                "weight": 0.4795663,
                 "active": true
               }
             },
@@ -1787,23 +1787,23 @@
           },
           "v_gate": {
             "inputs": [
-              "aa74c94d-c424-4e98-a65b-22150a207ad2",
-              "92d2be2c-58e0-47d9-87e7-9abd73e6d67e",
-              "5bef4b0a-88b9-4643-9746-82925eb79d26",
-              "283c66b5-aeaf-47cd-8c9e-6d8e9da12f5a",
-              "b0314280-6384-4c6d-b8d2-5e32f6cd6492"
+              "0bad7ed0-4058-4473-9d11-5c27544f1872",
+              "e9fe951a-a160-4206-becd-d5272246e4dc",
+              "437f0bc8-2f47-4ddd-91a0-07163fbaff1e",
+              "58c75512-118e-403f-a23f-1f02cffd1f8d",
+              "33f3a0b3-191f-41f0-8cb5-0ec32699de1a"
             ],
             "outputs": [
-              "685cd16a-8a8b-4198-b54e-3297ef3112fc"
+              "f810e5db-d8a8-4eb1-969a-c6eca56c8d70"
             ],
             "nodes": {
-              "92d2be2c-58e0-47d9-87e7-9abd73e6d67e": {
-                "innov": "92d2be2c-58e0-47d9-87e7-9abd73e6d67e",
+              "e9fe951a-a160-4206-becd-d5272246e4dc": {
+                "innov": "e9fe951a-a160-4206-becd-d5272246e4dc",
                 "outgoing": [
-                  "3a8a9e1a-cb7a-44bf-8da8-fa4667d48ae2"
+                  "4a8c167d-a954-43cf-be57-024987446096"
                 ],
                 "incoming": {},
-                "bias": 0.545657,
+                "bias": 0.14917666,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -1811,13 +1811,13 @@
                 "activation": "Sigmoid",
                 "neuron_type": "Input"
               },
-              "283c66b5-aeaf-47cd-8c9e-6d8e9da12f5a": {
-                "innov": "283c66b5-aeaf-47cd-8c9e-6d8e9da12f5a",
+              "58c75512-118e-403f-a23f-1f02cffd1f8d": {
+                "innov": "58c75512-118e-403f-a23f-1f02cffd1f8d",
                 "outgoing": [
-                  "c5b73016-9bc6-4d15-807d-95c4acc860dd"
+                  "c66e5026-d7b4-4bb6-9be7-8d55220e33c1"
                 ],
                 "incoming": {},
-                "bias": 0.39472854,
+                "bias": 0.20768869,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -1825,13 +1825,13 @@
                 "activation": "Sigmoid",
                 "neuron_type": "Input"
               },
-              "b0314280-6384-4c6d-b8d2-5e32f6cd6492": {
-                "innov": "b0314280-6384-4c6d-b8d2-5e32f6cd6492",
+              "437f0bc8-2f47-4ddd-91a0-07163fbaff1e": {
+                "innov": "437f0bc8-2f47-4ddd-91a0-07163fbaff1e",
                 "outgoing": [
-                  "438392ce-ded9-4f3a-8cd2-22a4d93c0e0f"
+                  "1842c83c-4b54-406c-9e9b-eab9f50ccce3"
                 ],
                 "incoming": {},
-                "bias": 0.5965435,
+                "bias": 0.75314975,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -1839,17 +1839,31 @@
                 "activation": "Sigmoid",
                 "neuron_type": "Input"
               },
-              "685cd16a-8a8b-4198-b54e-3297ef3112fc": {
-                "innov": "685cd16a-8a8b-4198-b54e-3297ef3112fc",
+              "33f3a0b3-191f-41f0-8cb5-0ec32699de1a": {
+                "innov": "33f3a0b3-191f-41f0-8cb5-0ec32699de1a",
+                "outgoing": [
+                  "071f7f85-1b60-4369-82ab-2f4f77283abd"
+                ],
+                "incoming": {},
+                "bias": 0.06415427,
+                "value": 0.0,
+                "d_value": 0.0,
+                "state": 0.0,
+                "error": 0.0,
+                "activation": "Sigmoid",
+                "neuron_type": "Input"
+              },
+              "f810e5db-d8a8-4eb1-969a-c6eca56c8d70": {
+                "innov": "f810e5db-d8a8-4eb1-969a-c6eca56c8d70",
                 "outgoing": [],
                 "incoming": {
-                  "bb58f0e2-cf4d-4b8b-a1d2-c07d3a954ee1": null,
-                  "d79d93da-7e7b-45cf-8ecb-0ce934d98f25": null,
-                  "438392ce-ded9-4f3a-8cd2-22a4d93c0e0f": null,
-                  "c5b73016-9bc6-4d15-807d-95c4acc860dd": null,
-                  "3a8a9e1a-cb7a-44bf-8da8-fa4667d48ae2": null
+                  "4a8c167d-a954-43cf-be57-024987446096": null,
+                  "c66e5026-d7b4-4bb6-9be7-8d55220e33c1": null,
+                  "071f7f85-1b60-4369-82ab-2f4f77283abd": null,
+                  "1842c83c-4b54-406c-9e9b-eab9f50ccce3": null,
+                  "44220f9f-2924-4793-a263-581a55080577": null
                 },
-                "bias": -1.1166499,
+                "bias": -0.99172235,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -1857,27 +1871,13 @@
                 "activation": "Sigmoid",
                 "neuron_type": "Output"
               },
-              "aa74c94d-c424-4e98-a65b-22150a207ad2": {
-                "innov": "aa74c94d-c424-4e98-a65b-22150a207ad2",
+              "0bad7ed0-4058-4473-9d11-5c27544f1872": {
+                "innov": "0bad7ed0-4058-4473-9d11-5c27544f1872",
                 "outgoing": [
-                  "d79d93da-7e7b-45cf-8ecb-0ce934d98f25"
+                  "44220f9f-2924-4793-a263-581a55080577"
                 ],
                 "incoming": {},
-                "bias": 0.43281353,
-                "value": 0.0,
-                "d_value": 0.0,
-                "state": 0.0,
-                "error": 0.0,
-                "activation": "Sigmoid",
-                "neuron_type": "Input"
-              },
-              "5bef4b0a-88b9-4643-9746-82925eb79d26": {
-                "innov": "5bef4b0a-88b9-4643-9746-82925eb79d26",
-                "outgoing": [
-                  "bb58f0e2-cf4d-4b8b-a1d2-c07d3a954ee1"
-                ],
-                "incoming": {},
-                "bias": 0.41689038,
+                "bias": 0.36545247,
                 "value": 0.0,
                 "d_value": 0.0,
                 "state": 0.0,
@@ -1887,39 +1887,39 @@
               }
             },
             "edges": {
-              "c5b73016-9bc6-4d15-807d-95c4acc860dd": {
-                "src": "283c66b5-aeaf-47cd-8c9e-6d8e9da12f5a",
-                "dst": "685cd16a-8a8b-4198-b54e-3297ef3112fc",
-                "innov": "c5b73016-9bc6-4d15-807d-95c4acc860dd",
-                "weight": -1.706745,
+              "1842c83c-4b54-406c-9e9b-eab9f50ccce3": {
+                "src": "437f0bc8-2f47-4ddd-91a0-07163fbaff1e",
+                "dst": "f810e5db-d8a8-4eb1-969a-c6eca56c8d70",
+                "innov": "1842c83c-4b54-406c-9e9b-eab9f50ccce3",
+                "weight": 1.416703,
                 "active": true
               },
-              "d79d93da-7e7b-45cf-8ecb-0ce934d98f25": {
-                "src": "aa74c94d-c424-4e98-a65b-22150a207ad2",
-                "dst": "685cd16a-8a8b-4198-b54e-3297ef3112fc",
-                "innov": "d79d93da-7e7b-45cf-8ecb-0ce934d98f25",
-                "weight": 0.8705915,
+              "44220f9f-2924-4793-a263-581a55080577": {
+                "src": "0bad7ed0-4058-4473-9d11-5c27544f1872",
+                "dst": "f810e5db-d8a8-4eb1-969a-c6eca56c8d70",
+                "innov": "44220f9f-2924-4793-a263-581a55080577",
+                "weight": -0.56543326,
                 "active": true
               },
-              "3a8a9e1a-cb7a-44bf-8da8-fa4667d48ae2": {
-                "src": "92d2be2c-58e0-47d9-87e7-9abd73e6d67e",
-                "dst": "685cd16a-8a8b-4198-b54e-3297ef3112fc",
-                "innov": "3a8a9e1a-cb7a-44bf-8da8-fa4667d48ae2",
-                "weight": -0.58473957,
+              "4a8c167d-a954-43cf-be57-024987446096": {
+                "src": "e9fe951a-a160-4206-becd-d5272246e4dc",
+                "dst": "f810e5db-d8a8-4eb1-969a-c6eca56c8d70",
+                "innov": "4a8c167d-a954-43cf-be57-024987446096",
+                "weight": 0.23966704,
                 "active": true
               },
-              "bb58f0e2-cf4d-4b8b-a1d2-c07d3a954ee1": {
-                "src": "5bef4b0a-88b9-4643-9746-82925eb79d26",
-                "dst": "685cd16a-8a8b-4198-b54e-3297ef3112fc",
-                "innov": "bb58f0e2-cf4d-4b8b-a1d2-c07d3a954ee1",
-                "weight": 0.2744048,
+              "c66e5026-d7b4-4bb6-9be7-8d55220e33c1": {
+                "src": "58c75512-118e-403f-a23f-1f02cffd1f8d",
+                "dst": "f810e5db-d8a8-4eb1-969a-c6eca56c8d70",
+                "innov": "c66e5026-d7b4-4bb6-9be7-8d55220e33c1",
+                "weight": 0.09058425,
                 "active": true
               },
-              "438392ce-ded9-4f3a-8cd2-22a4d93c0e0f": {
-                "src": "b0314280-6384-4c6d-b8d2-5e32f6cd6492",
-                "dst": "685cd16a-8a8b-4198-b54e-3297ef3112fc",
-                "innov": "438392ce-ded9-4f3a-8cd2-22a4d93c0e0f",
-                "weight": 1.8003464,
+              "071f7f85-1b60-4369-82ab-2f4f77283abd": {
+                "src": "33f3a0b3-191f-41f0-8cb5-0ec32699de1a",
+                "dst": "f810e5db-d8a8-4eb1-969a-c6eca56c8d70",
+                "innov": "071f7f85-1b60-4369-82ab-2f4f77283abd",
+                "weight": -0.3872492,
                 "active": true
               }
             },
@@ -1932,7 +1932,5 @@
     }
   ],
   "input_size": 1,
-  "optimizer": {
-    "SGD": 0.1
-  }
+  "batch_size": 7
 }

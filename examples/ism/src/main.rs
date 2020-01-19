@@ -24,16 +24,17 @@ fn main() -> Result<(), Box<dyn Error>> {
             Activation::Relu,
         ]);
 
-
+        
+    let ism = ISM::new(1);
     let net = Neat::new()
         .input_size(1)
+        .batch_size(ism.answers.len())
         .lstm(5, 1, Activation::Sigmoid);
         // .dense_pool(1, Activation::Sigmoid);
         // .gru(5, 5)
         // .dense_pool(1, Activation::Sigmoid);
 
         
-    let ism = ISM::new(1);
     let num_evolve = 10;
     let (mut solution, _) = Population::<Neat, NeatEnvironment, ISM>::new()
         .constrain(neat_env)
@@ -59,7 +60,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("Training\n\n");
     solution.reset();
     println!("{:#?}", solution);
-    solution.train(&ism.inputs, &ism.answers, 500, 0.0003, ism.inputs.len())?;
+    solution.train(&ism.inputs, &ism.answers, 500, 0.0003, true, Loss::MSE)?;
     println!("{:#?}", solution);
     solution.reset();
     ism.show(&mut solution);

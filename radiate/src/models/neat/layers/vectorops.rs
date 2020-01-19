@@ -1,6 +1,8 @@
 
-use super::super::activation::Activation;
-
+use super::super::{
+    activation::Activation,
+    loss::Loss
+};
 
 
 /// multiply two vectors element wise
@@ -95,4 +97,30 @@ pub fn d_softmax(one: &Vec<f32>) -> Vec<f32> {
     one.iter()
         .map(|x| x - 1.0)
         .collect()
+}
+
+
+
+#[inline]
+pub fn loss(one: &Vec<f32>, two: &Vec<f32>, loss_fn: &Loss) -> (f32, Vec<f32>) {
+    match loss_fn {
+        Loss::Diff => {
+            let difference = subtract(one, two);
+            let total = difference.iter().sum::<f32>();
+            return (total, difference);
+        },
+        Loss::MSE => {
+            let mut squared_error = 0.0;
+            let errs = one.iter()
+                .zip(two.iter())
+                .map(|(i, j)| {
+                    let e = (i - j).powf(2.0);
+                    squared_error += e;
+                    e
+                })
+                .collect::<Vec<_>>();
+            return ((1.0 / one.len() as f32) * squared_error, errs);
+
+        }
+    }
 }

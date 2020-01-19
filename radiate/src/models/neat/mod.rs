@@ -7,6 +7,15 @@ pub mod tracer;
 
 
 
+pub mod loss {
+
+    pub enum Loss {
+        MSE,
+        Diff
+    }
+}
+
+
 pub mod activation {
 
     use std::f32::consts::E as Eul;

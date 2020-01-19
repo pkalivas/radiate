@@ -18,7 +18,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .dense(1, Activation::Sigmoid);
         
     let xor = XOR::new();
-    net.train(&xor.inputs, &xor.answers, 200, 0.1, 1)?;
+    net.train(&xor.inputs, &xor.answers, 200, 0.1, true, Loss::MSE)?;
     let final_time = thread_time.elapsed().as_millis();
     
     println!("{:#?}", net);

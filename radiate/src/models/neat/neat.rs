@@ -8,6 +8,7 @@ use std::sync::{Arc, RwLock};
 use super::{
     neatenv::NeatEnvironment,
     activation::Activation,
+    loss::Loss,
     layers::{
         layer::Layer,
         dense::Dense,
@@ -50,6 +51,7 @@ impl LayerWrap {
 pub struct Neat {
     pub layers: Vec<LayerWrap>,
     pub input_size: u32,
+    pub batch_size: usize
 }
 
 
@@ -61,6 +63,7 @@ impl Neat {
         Neat { 
             layers: Vec::new(),
             input_size: 0,
+            batch_size: 1
         }
     }
 
@@ -69,6 +72,14 @@ impl Neat {
     /// set the input size for the network 
     pub fn input_size(mut self, input_size: u32) -> Self {
         self.input_size = input_size;
+        self
+    }
+
+
+
+    /// set the batch size for the network
+    pub fn batch_size(mut self, batch_size: usize) -> Self {
+        self.batch_size = batch_size;
         self
     }
 
@@ -85,46 +96,53 @@ impl Neat {
 
     /// train the network
     #[inline]
-    pub fn train(&mut self, inputs: &Vec<Vec<f32>>, targets: &Vec<Vec<f32>>, iters: usize, rate: f32, update_window: usize) -> Result<(), Box<dyn Error>> {
+    pub fn train(&mut self, inputs: &Vec<Vec<f32>>, targets: &Vec<Vec<f32>>, iters: usize, rate: f32, verbose: bool, loss_fn: Loss) -> Result<(), Box<dyn Error>> {
         // make sure the data actually can be fed through
         assert!(inputs.len() == targets.len(), "Input and target data are different sizes");
         assert!(inputs[0].len() as u32 == self.input_size, "Input size is different than network input size");
 
         // add tracers to the layers during training to keep track of meta data for backprop
-        if update_window > 1 {
-            self.layers.iter_mut().for_each(|x| x.layer.add_tracer());
+        if self.batch_size > 1 {
+            self.layers
+                .iter_mut()
+                .for_each(|x| x.layer.add_tracer());
         }
         
         // feed the input data through the network then back prop it back through to edit the weights of the layers
-        let mut pass_out = Vec::with_capacity(update_window);
-        let mut pass_tar = Vec::with_capacity(update_window);
+        let mut pass_out = Vec::with_capacity(self.batch_size);
+        let mut pass_tar = Vec::with_capacity(self.batch_size);
         let mut count = 0;
+        let mut loss = 0.0;
 
         // iterate through the number of iterations and train the network
         for i in 0..iters {
-            println!("{:?}", i);
             for j in 0..inputs.len() {
                 count += 1;
                 pass_out.push(self.forward(&inputs[j]).ok_or("Error in network feed forward")?);
                 pass_tar.push(targets[j].clone());
-                if count == update_window {
+                if count == self.batch_size {
                     count = 0;
-                    self.backward(&pass_out, &pass_tar, rate);
-                    pass_out = Vec::with_capacity(update_window);
-                    pass_tar = Vec::with_capacity(update_window);
+                    loss += self.backward(&pass_out, &pass_tar, rate, &loss_fn);
+                    pass_out = Vec::with_capacity(self.batch_size);
+                    pass_tar = Vec::with_capacity(self.batch_size);
                 }
             }
             if pass_out.len() > 0 || pass_tar.len() > 0 {
                 count = 0;
-                self.backward(&pass_out, &pass_tar, rate);
-                pass_out = Vec::with_capacity(update_window);
-                pass_tar = Vec::with_capacity(update_window);
-            
+                loss += self.backward(&pass_out, &pass_tar, rate, &loss_fn);
+                pass_out = Vec::with_capacity(self.batch_size);
+                pass_tar = Vec::with_capacity(self.batch_size);
             }
+            if verbose {
+                println!("Iteration: {:?} loss: {:.8?}", i, loss.abs());
+            }
+            loss = 0.0;
         }
 
         // remove the tracers from the layers before finishing
-        self.layers.iter_mut().for_each(|x| x.layer.remove_tracer());
+        self.layers
+            .iter_mut()
+            .for_each(|x| x.layer.remove_tracer());
 
         Ok(())
     }
@@ -133,17 +151,20 @@ impl Neat {
 
     /// backpropagate the network, will move throgh time if needed
     #[inline]
-    pub fn backward(&mut self, net_outs: &Vec<Vec<f32>>, net_targets: &Vec<Vec<f32>>, rate: f32) {
+    pub fn backward(&mut self, net_outs: &Vec<Vec<f32>>, net_targets: &Vec<Vec<f32>>, rate: f32, loss_fn: &Loss) -> f32 {
+        let mut total_loss = 0.0;
         for i in (0..net_outs.len()).rev() {
+            let errors = vectorops::loss(&net_targets[i], &net_outs[i], &loss_fn);
+            total_loss += errors.0;
             self.layers
                 .iter_mut()
                 .rev()
-                .fold(vectorops::subtract(&net_targets[i], &net_outs[i]), |res, curr| {
+                .fold(errors.1, |res, curr| {
                     curr.layer.backward(&res, rate).unwrap()
                 });
-            // println!("ITER: {:?}\n\n{:#?}", i, self);
         }
         self.reset();
+        total_loss
     }
 
 
@@ -263,6 +284,7 @@ impl Clone for Neat {
                 })
                 .collect(),
             input_size: self.input_size,
+            batch_size: self.batch_size
         }
     }
 }
@@ -318,6 +340,7 @@ impl Genome<Neat, NeatEnvironment> for Neat {
         Some(Neat { 
             layers: result_layers, 
             input_size: one.input_size, 
+            batch_size: one.batch_size
         })
     }
 
