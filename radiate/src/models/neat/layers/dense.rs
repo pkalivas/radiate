@@ -412,7 +412,6 @@ impl Layer for Dense {
             
                 // remove the top elemet to propagate it's value
                 let curr_node = self.nodes.get(&path.pop()?)?;
-                let val = (**curr_node).value;
             
                 // no node should be in the path if it's value has not been set 
                 // iterate through the current nodes outgoing connections 
@@ -423,7 +422,7 @@ impl Layer for Dense {
                     let curr_edge = self.edges.get_mut(edge_innov)?;
                     if curr_edge.active {
                         let receiving_node = self.nodes.get(&curr_edge.dst)?;
-                        let activated_value = curr_edge.calculate(val);
+                        let activated_value = curr_edge.calculate((**curr_node).value);
                         (**receiving_node).incoming.insert(curr_edge.innov, Some(activated_value));
         
                         // if the node can be activated, activate it and store it's value
@@ -499,6 +498,7 @@ impl Layer for Dense {
                 
                 // reset the nodes error if it isnt an input node 
                 if (**curr_node).neuron_type != NeuronType::Input {
+                    (**curr_node).bias += learning_rate * (**curr_node).error;
                     (**curr_node).error = 0.0;
                 }
             }

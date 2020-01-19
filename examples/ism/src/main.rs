@@ -25,16 +25,19 @@ fn main() -> Result<(), Box<dyn Error>> {
         ]);
 
 
-    let mut net = Neat::new()
-        .input_size(3)
-        .lstm(3, 1, Activation::Sigmoid);
+    let net = Neat::new()
+        .input_size(6)
+        .lstm(50, 1, Activation::Sigmoid);
+        // .dense_pool(1, Activation::Sigmoid);
+        // .gru(5, 5)
+        // .dense_pool(1, Activation::Sigmoid);
 
         
-    let ism = ISM::new(3);
-    let num_evolve = 30;
+    let ism = ISM::new(6);
+    let num_evolve = 100;
     let (mut solution, _) = Population::<Neat, NeatEnvironment, ISM>::new()
         .constrain(neat_env)
-        .size(100)
+        .size(50)
         .populate_clone(net)
         .debug(true)
         .dynamic_distance(true)
@@ -43,7 +46,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             inbreed_rate: 0.001,
             crossover_rate: 0.75,
             distance: 0.5,
-            species_target: 5
+            species_target: 7
         })
         .run(|_, fit, num| {
             println!("Generation: {} score: {}", num, fit);
@@ -55,7 +58,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!("Training\n\n");
     solution.reset();
-    solution.train(&ism.inputs, &ism.answers, 200, 0.005, ism.inputs.len())?;
+    // solution.train(&ism.inputs, &ism.answers, 10, 0.003, ism.inputs.len())?;
 
     solution.reset();
     ism.show(&mut solution);
@@ -102,8 +105,6 @@ impl ISM {
             answer.push(vec![data[i + back]]);
             output.push(temp);
         }
-        // output.reverse();
-        // answer.reverse();
         (output, answer)
     }
 
@@ -140,36 +141,11 @@ impl ISM {
         }
         let smallest = ISM::minimum(&data);
         let biggest = ISM::maximum(&data);
-        // let total = data.iter().map(|x| x[0]).collect::<Vec<_>>().iter().sum::<f32>();
 
-        // let mean = total / data.len() as f32;
-
-        // let mut t = data
-        //     .iter()
-        //     .map(|x| (x[0] - mean).powf(2.0))
-        //     .collect::<Vec<_>>()
-        //     .iter()
-        //     .sum::<f32>();
-        // t = (1.0 / data.len() as f32) * t;
-        // t = t.sqrt();
-
-        // data = data.iter()
-        //     .map(|x| vec![((x[0] - mean) / t)])
-        //     .collect::<Vec<_>>();
-
-        // let s = ISM::minimum(&data);
-        // data = data.iter()
-        //     .map(|x| vec![x[0] + s])
-        //     .collect::<Vec<_>>();
-        // let smallest = ISM::minimum(&data);
-        // let biggest = ISM::maximum(&data);
         data = data.iter()
-            .map(|x| {
-                vec![(x[0] - smallest) / (biggest - smallest)]
-            })
+            .map(|x| vec![(x[0] - smallest) / (biggest - smallest)])
             .collect();
                    
-                           
         let mut temp = data.iter().map(|x| x[0]).collect::<Vec<_>>();
         temp.reverse();
         // data.reverse();
@@ -203,7 +179,15 @@ impl ISM {
         println!("\n");
         for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
             let guess = model.forward(i).unwrap();
-            println!("Input: {:.2?} Answer: {:.2?} Guess: {:.2?}", i[0], o[0], guess[0]);
+            println!("Input: {:.2?} Answer: {:.2?} Guess: {:.2?}", 
+                i.iter()
+                .map(|x| format!("{:.2?}", self.de_norm(*x)))
+                .collect::<Vec<_>>()
+                .join(" "),
+                // i[i.len() - 1], 
+                self.de_norm(o[0]), 
+                self.de_norm(guess[0])
+            );
         }
     }
 
@@ -235,16 +219,10 @@ unsafe impl Sync for ISM {}
 
 impl Problem<Neat> for ISM {
 
-    fn empty() -> Self { ISM::new(3) }
+    fn empty() -> Self { ISM::new(6) }
 
     fn solve(&self, model: &mut Neat) -> f32 {
         let mut total = 0.0;
-        // for i in 0..self.inputs.len() - 2 {
-        //     match model.forward(&self.inputs[i]) {
-        //         Some(guess) => total += (guess[0] - self.inputs[i + 1][0]).powf(2.0),
-        //         None => panic!("asdf")
-        //     }
-        // }
         for (ins, outs) in self.inputs.iter().zip(self.answers.iter()) {
             match model.forward(&ins) {
                 Some(guess) => total += (guess[0] - outs[0]).powf(2.0),

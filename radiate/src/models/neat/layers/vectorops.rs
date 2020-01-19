@@ -72,7 +72,7 @@ pub fn subtract(one: &Vec<f32>, two: &Vec<f32>) -> Vec<f32> {
     assert!(one.len() == two.len(), "Subtract lengths do not match");
     one.iter()
         .zip(two.iter())
-        .map(|(tar, pre)| tar - pre)
+        .map(|(tar, pre)| (tar - pre))
         .collect::<Vec<_>>()
 }
 

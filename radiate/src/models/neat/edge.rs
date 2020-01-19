@@ -47,5 +47,6 @@ impl Edge {
     #[inline]
     pub fn calculate(&mut self, val: f32) -> f32 {
         val * self.weight
-	}
+    }
+    
 }

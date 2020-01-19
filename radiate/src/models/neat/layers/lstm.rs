@@ -211,11 +211,6 @@ impl Layer for LSTM {
         let o_output = self.o_gate.forward(&hidden_input)?;
         let g_output = self.g_gate.forward(&hidden_input)?;
 
-        // update the state parameters only if the gates are traceable and the data needs to be collected
-        if let Some(_) = &self.f_gate.trace_states {
-            self.states.update_forward(f_output.clone(), i_output.clone(), g_output.clone(), o_output.clone(), self.memory.clone());
-        }
-
         // current memory and output need to be mutable but we also want to save that data for bptt
         let mut current_state = g_output.clone();
         let mut current_output = o_output.clone();
@@ -226,6 +221,10 @@ impl Layer for LSTM {
         vectorops::element_add(&mut self.memory, &current_state);
         vectorops::element_multiply(&mut current_output, &vectorops::element_activate(&self.memory, Activation::Tahn));
 
+        // update the state parameters only if the gates are traceable and the data needs to be collected
+        if let Some(_) = &self.f_gate.trace_states {
+            self.states.update_forward(f_output, i_output, g_output, o_output, self.memory.clone());
+        }        
         
         // return the output of the layer
         // keep track of the memory and the current output and the current state
