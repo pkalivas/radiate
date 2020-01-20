@@ -1,7 +1,8 @@
 
 ### Working with NEAT
 **Defining a neat instance**
-__Each Neat::new() defaults to no layers, batch size of one, and input size of 0 - basically it won't work without chaining layers to it__
+
+*Each Neat::new() defaults to no layers, batch size of one, and input size of 0 - basically it won't work without chaining layers to it*
 Define a new Neat network with an input size of one, batch size of 1, and a dense pool layer 
 ```rust
     let nerual_network = Neat::new()
@@ -45,7 +46,7 @@ pub enum Activation {
 }
 ```
 
-Examples on how to set up and run a NEAT network.
+Examples on how to set up and run a NEAT network to evolve then train.
 
 ```rust
 extern crate radiate;
