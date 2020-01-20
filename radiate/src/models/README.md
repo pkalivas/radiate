@@ -1,0 +1,149 @@
+
+Examples on how to set up and run a NEAT network.
+
+```rust
+extern crate radiate;
+extern crate serde_json;
+
+use std::error::Error;
+use std::time::Instant;
+use radiate::prelude::*;
+
+fn main() -> Result<(), Box<dyn Error>> {
+
+    // set up a timer just to see how long it takes. Then define a NEATEnviornment to give
+    // parameters to how the NEAT algorithm will be evolved. This controls how weights are edited,
+    // how neurons are added, how connections are added, and which activation functions to use in hidden neurons
+    let thread_time = Instant::now();
+    let neat_env = NeatEnvironment::new()
+        .set_weight_mutate_rate(0.8)        // 80% chance that the weights will be mutated, 20% change the weights will not be changed at all
+        .set_edit_weights(0.1)              // 10% change that a weight will be assigned a new random number, 90% change it will be mutated by +/- weight_perturb
+        .set_weight_perturb(1.7)            // if a weight is selected to be mutated, mutliply the original weight by +/- 1.7 (shouldn't be larger than 2.0)
+        .set_new_node_rate(0.4)             // if the layer is LSTM or dense_pool, 40% chance a new hidden neuron will be added
+        .set_new_edge_rate(0.4)             // if the layer is LSTM or dense_pool, 40% chance a new connection will be added between two random neurons with a random weight
+        .set_reactivate(0.2)                // if the layer is LSTM or dense_pool, 20% chance a deactivated connection will be reactivated
+        .set_activation_functions(vec![     // when new neurons are added, a random activation function is chosen from this list to give to the neuron
+            Activation::Sigmoid,
+            Activation::Relu,
+        ]);
+        
+    // the number of generations to evolve then the number of epochs to train
+    let num_evolve = 0;
+    let num_train = 1000;
+
+    // create a new problem and a new NEAT solver 
+    let data = MemoryTest::new();
+    let starting_net = Neat::new()
+        .input_size(1)                      // set the input size
+        .batch_size(data.output.len())      // set the number of forward passes before weights are updated
+        .lstm(10, 1, Activation::Sigmoid);  // give the network one LSTM layer with a memory size of 10 and output size of 1 with a output activation of sigmoid
+
+    // define and run a population to evolve the starting net
+    let (mut solution, _) = Population::<Neat, NeatEnvironment, MemoryTest>::new()
+        .constrain(neat_env)                                // give the population an environment to evolve in (evolutionary parameters defined above)
+        .size(100)                                          // population size of 100
+        .populate_clone(starting_net)                       // how to create the initial population (in this case, clone the starting_net 100 times)
+        .debug(true)                                        // will print the species and their adjusted fitness scores at the end of each generation
+        .dynamic_distance(true)                             // move the distance between networks to match the species_target specified below
+        .stagnation(15, vec![Genocide::KillWorst(0.9)])     // if the fitness score of the best member doesn't improve in 15 genertaions, kill the worst 90% of the population
+        .configure(Config {                                 //////////////// Configure the breeding parameters //////////////// 
+            inbreed_rate: 0.001,                            // 0.1% chance to breed two members of the same species 
+            crossover_rate: 0.75,                           // 75% chance two parents will be crossed over to create a child, 25% chance the most fit parent will be copied and mutated
+            distance: 0.5,                                  // initial distance between species, if dynamic distance is true, this will chance to fit the species target
+            species_target: 5                               // how many species you want, if dynaic distance is true, distance will move until this is met, if it is false, this might not work
+        })
+        .run(|_, fit, num| {                                // given the best member of the population, their fitness score, and the iteration number, return a bool. 
+            println!("Generation: {} score: {}", num, fit); //      if this returns true, evolution will stop and return the top member from the population and the enviornment 
+            num == num_evolve                               //      in this case, if the num equals the num_evolve, finish evoltuion
+        })?;
+        
+        // NEAT allows for traditional training of neural networks as well given the (input data, target data, learning rate, loss function, and a function)
+        // if the function (epoch number, epoch loss) returns true, finish training, otherwise continue
+        solution.train(&data.input, &data.output, 0.3, Loss::Diff, |iter, loss| {
+            let temp = format!("{:.4}", loss).parse::<f32>().unwrap().abs();
+            println!("epoch: {:?} loss: {:.6?}", iter, temp);
+            iter == num_train || (temp < 1_f32 && temp % 1.0 == 0.0)
+        })?;
+
+        // reset the NEAT network then show it 
+        solution.reset();
+        data.show(&mut solution);
+
+        // reset the NEAT network then show the score on the data with the time it took to solve the problem
+        solution.reset();
+        println!("Score: {:?}\nTime in millis: {}", data.solve(&mut solution), thread_time.elapsed().as_millis());
+        Ok(())
+}
+ 
+
+
+
+#[derive(Debug)]
+pub struct MemoryTest {
+    input: Vec<Vec<f32>>,
+    output: Vec<Vec<f32>>
+}
+
+impl MemoryTest {
+    pub fn new() -> Self {
+        MemoryTest {
+            input: vec![
+                vec![0.0],
+                vec![0.0],
+                vec![0.0],
+                vec![1.0],
+                vec![0.0],
+                vec![0.0],
+                vec![0.0],
+            ],
+            output: vec![
+                vec![0.0],
+                vec![0.0],
+                vec![1.0],
+                vec![0.0],
+                vec![0.0],
+                vec![0.0],
+                vec![1.0],
+            ]
+        }
+    }
+
+
+
+    pub fn show(&self, model: &mut Neat) {
+        for (i, o) in self.input.iter().zip(self.output.iter()) {
+            let guess = model.forward(&i).unwrap();
+            println!("Input: {:?}, Output: {:?}, Guess: {:.2}", i, o, guess[0]);
+        }
+        println!("\nTest next few inputs:");
+        println!("Input: {:?}, Expecting: {:?}, Guess: {:.2}", vec![1.0], vec![0.0], model.forward(&vec![1.0]).unwrap()[0]);
+        println!("Input: {:?}, Expecting: {:?}, Guess: {:.2}", vec![0.0], vec![0.0], model.forward(&vec![0.0]).unwrap()[0]);
+        println!("Input: {:?}, Expecting: {:?}, Guess: {:.2}", vec![0.0], vec![0.0], model.forward(&vec![0.0]).unwrap()[0]);
+        println!("Input: {:?}, Expecting: {:?}, Guess: {:.2}", vec![0.0], vec![1.0], model.forward(&vec![0.0]).unwrap()[0]);
+    }
+}
+
+
+unsafe impl Send for MemoryTest {}
+unsafe impl Sync for MemoryTest {}
+
+
+impl Problem<Neat> for MemoryTest {
+
+    fn empty() -> Self { MemoryTest::new() }
+    
+    fn solve(&self, model: &mut Neat) -> f32 {
+        let mut total = 0.0;
+        for (ins, outs) in self.input.iter().zip(self.output.iter()) {
+            match model.forward(&ins) {
+                Some(guess) => total += (guess[0] - outs[0]).powf(2.0),
+                None => panic!("Error in training NEAT")
+            }
+        }
+        model.reset();
+        total /= self.input.len() as f32;
+        1.0 - total
+    }
+}
+
+```
