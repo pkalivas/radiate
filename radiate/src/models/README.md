@@ -26,8 +26,10 @@ Define a new Neat network with multiple layers
         .dense_pool(1, Activation::Sigmoid);
 ```
 NEAT currently has three layer types that can be chained onto a neat instance. 
-**1.)** Dense - a normal dense layer of a neural network - not capable of evolving hidden neurons or other connections. Evolution instead only changes weights .
+**1.)** Dense - a normal dense layer of a neural network - not capable of evolving hidden neurons or other connections. Evolution instead only changes weights.
+
 **2.)** DensePool - the algorithm described in the paper, capable of evolving hidden neurons and connections between them as well as changing weights.
+
 **3.)** LSTM - a traditional long short term memory layer where each gate is a dense_pool network. Note - if the network is being evolved, the forward pass through an lstm is run syncronously, but if the network is being trained the forward pass and backward pass gated calculations are run in parallel which in my experience cuts training time in half.
 
 All neural networks need nonlinear functions to represent complex datasets. Neat allows users to specify which activation function a neuron will use through a customizable vec! in the neat enviornment.
