@@ -3,6 +3,7 @@
 **Defining a neat instance**
 
 *Each Neat::new() defaults to no layers, batch size of one, and input size of 0 - basically it won't work without chaining layers to it*
+
 Define a new Neat network with an input size of one, batch size of 1, and a dense pool layer 
 ```rust
     let nerual_network = Neat::new()
@@ -25,15 +26,11 @@ Define a new Neat network with multiple layers
         .dense_pool(1, Activation::Sigmoid);
 ```
 NEAT currently has three layer types that can be chained onto a neat instance. 
-```rust
-pub enum LayerType {
-    Dense,      // typical dense layer of a neural network with no ability to evolve its strucutre 
-    DensePool,  // the algorithm described in the paper meaning a fully functional neural network can be evolved through one dense pool layer
-    LSTM,       // uses dense pool for evoution and traditional backpropagation through time for training.
-}
-```
-All neural networks need nonlinear functions to represent complex datasets. Neat 
-allows users to specify which activation function a neuron will use through a customizable vec! in the neat enviornment.
+**1.)** Dense - a normal dense layer of a neural network - not capable of evolving hidden neurons or other connections. Evolution instead only changes weights .
+**2.)** DensePool - the algorithm described in the paper, capable of evolving hidden neurons and connections between them as well as changing weights.
+**3.)** LSTM - a traditional long short term memory layer where each gate is a dense_pool network. Note - if the network is being evolved, the forward pass through an lstm is run syncronously, but if the network is being trained the forward pass and backward pass gated calculations are run in parallel which in my experience cuts training time in half.
+
+All neural networks need nonlinear functions to represent complex datasets. Neat allows users to specify which activation function a neuron will use through a customizable vec! in the neat enviornment.
 ```rust
 pub enum Activation {
     Sigmoid,       // default
