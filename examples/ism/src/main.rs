@@ -23,14 +23,19 @@ fn main() -> Result<(), Box<dyn Error>> {
             Activation::Relu,
             Activation::Linear(1.0)
         ]);
+        
+    // evolve and train iterations 
+    let num_evolve = 50;
+    let num_train = 1000;
 
-    let ism = ISM::new(2);
+    // problem and solver
+    let ism = ISM::new(1);
     let net = Neat::new()
-        .input_size(2)
+        .input_size(1)
         .batch_size(ism.answers.len())
         .lstm(2, 1, Activation::Sigmoid);
        
-    let num_evolve = 50;
+    // evolve the solver to fit the problem
     let (mut solution, _) = Population::<Neat, NeatEnvironment, ISM>::new()
         .constrain(neat_env)
         .size(100)
@@ -49,8 +54,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             num == num_evolve
         })?;
             
-    solution.train(&ism.inputs, &ism.answers, 1000, 0.0005, true, Loss::Diff)?;
-
+    // traditional training of neural networks
+    solution.train(&ism.inputs, &ism.answers, 0.0003, Loss::Diff, |epoch, loss| {
+        let temp = format!("{:.3}", loss).parse::<f32>().unwrap().abs();
+        println!("epoch: {:?} loss: {:?}", epoch, temp);
+        epoch == num_train
+    })?;
+    
     solution.reset();
     println!("{:?}", ism.solve(&mut solution));
 
@@ -207,7 +217,7 @@ unsafe impl Sync for ISM {}
 
 impl Problem<Neat> for ISM {
 
-    fn empty() -> Self { ISM::new(2) }
+    fn empty() -> Self { ISM::new(1) }
 
     fn solve(&self, model: &mut Neat) -> f32 {
         let mut total = 0.0;

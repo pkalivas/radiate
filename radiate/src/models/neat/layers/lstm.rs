@@ -188,11 +188,6 @@ impl LSTM {
         vectorops::element_add(&mut self.memory, &current_state);
         vectorops::element_multiply(&mut current_output, &vectorops::element_activate(&self.memory, Activation::Tahn));
 
-        // update the state parameters only if the gates are traceable and the data needs to be collected
-        // if let Some(_) = &self.f_gate.read().unwrap().trace_states {
-        //     self.states.update_forward(f_output, i_output, g_output, o_output, self.memory.clone());
-        // }        
-        
         // return the output of the layer
         // keep track of the memory and the current output and the current state
         self.hidden = current_output;
@@ -293,9 +288,12 @@ impl LSTM {
 impl Layer for LSTM {
 
 
+    /// forward propagate inputs, if the model is being evolved don't spawn extra threads because
+    /// it slows down the process by about double the original time. If the model is being trained
+    /// traditionally, step forward asynconously by spawnin a thread for each individual gate 
+    /// which results in speeds about double as a synconous thread.
     #[inline]
     fn forward(&mut self, inputs: &Vec<f32>) -> Option<Vec<f32>> {
-        // get the previous state and output and create the input to the layer
         let is_evolving = if let Some(_) = self.f_gate.read().unwrap().trace_states {
                 false
             } else {
@@ -310,7 +308,7 @@ impl Layer for LSTM {
 
 
 
-    /// apply backpropagation through time 
+    /// apply backpropagation through time asyncronously because this is not done during evolution
     #[inline]
     fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32) -> Option<Vec<f32>> {
         if self.states.d_prev_hidden.is_none() && self.states.d_prev_memory.is_none() {

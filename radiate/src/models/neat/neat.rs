@@ -96,7 +96,9 @@ impl Neat {
 
     /// train the network
     #[inline]
-    pub fn train(&mut self, inputs: &Vec<Vec<f32>>, targets: &Vec<Vec<f32>>, iters: usize, rate: f32, verbose: bool, loss_fn: Loss) -> Result<(), Box<dyn Error>> {
+    pub fn train<F>(&mut self, inputs: &Vec<Vec<f32>>, targets: &Vec<Vec<f32>>, rate: f32, loss_fn: Loss, run: F) -> Result<(), Box<dyn Error>> 
+        where F: Fn(usize, f32) -> bool 
+    {
         // make sure the data actually can be fed through
         assert!(inputs.len() == targets.len(), "Input and target data are different sizes");
         assert!(inputs[0].len() as u32 == self.input_size, "Input size is different than network input size");
@@ -104,7 +106,7 @@ impl Neat {
         // feed the input data through the network then back prop it back through to edit the weights of the layers
         let mut pass_out = Vec::with_capacity(self.batch_size);
         let mut pass_tar = Vec::with_capacity(self.batch_size);
-        let (mut count, mut loss) = (0, 0.0);
+        let (mut epoch, mut count, mut loss) = (0, 0, 0.0);
         
         // add tracers to the layers during training to keep track of meta data for backprop
         if self.batch_size > 1 {
@@ -114,30 +116,25 @@ impl Neat {
         }
         
         // iterate through the number of iterations and train the network
-        for i in 0..iters {
+        loop {
             for j in 0..inputs.len() {
                 count += 1;
                 pass_out.push(self.forward(&inputs[j]).ok_or("Error in network feed forward")?);
                 pass_tar.push(targets[j].clone());
-                if count == self.batch_size {
+                if count == self.batch_size || j == inputs.len() - 1 {
                     count = 0;
                     loss += self.backward(&pass_out, &pass_tar, rate, &loss_fn);
                     pass_out = Vec::with_capacity(self.batch_size);
                     pass_tar = Vec::with_capacity(self.batch_size);
                 }
             }
-            if pass_out.len() > 0 || pass_tar.len() > 0 {
-                count = 0;
-                loss += self.backward(&pass_out, &pass_tar, rate, &loss_fn);
-                pass_out = Vec::with_capacity(self.batch_size);
-                pass_tar = Vec::with_capacity(self.batch_size);
+            if run(epoch, loss) {
+                break;
             }
-            if verbose {
-                println!("Iteration: {:?} loss: {:.8?}", i, loss.abs());
-            }
-            loss = 0.0;
+            epoch += 1;
+            loss = 0.0;            
         }
-
+ 
         // remove the tracers from the layers before finishing
         self.layers
             .iter_mut()

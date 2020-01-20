@@ -8,7 +8,6 @@ use std::time::Instant;
 use radiate::prelude::*;
 
 
-
 fn main() -> Result<(), Box<dyn Error>> {
 
     let thread_time = Instant::now();
@@ -24,13 +23,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             Activation::Relu,
         ]);
         
+    let num_evolve = 0;
+    let num_train = 1000;
+
     let data = MemoryTest::new();
     let starting_net = Neat::new()
         .input_size(1)
         .batch_size(data.output.len())
         .lstm(10, 1, Activation::Sigmoid);
 
-    let num_evolve = 0;
     let (mut solution, _) = Population::<Neat, NeatEnvironment, MemoryTest>::new()
         .constrain(neat_env)
         .size(100)
@@ -49,9 +50,14 @@ fn main() -> Result<(), Box<dyn Error>> {
             num == num_evolve
         })?;
         
-        solution.train(&data.input, &data.output, 1000, 0.3, true, Loss::Diff)?;
-        solution.reset();
+        solution.train(&data.input, &data.output, 0.3, Loss::Diff, |iter, loss| {
+            let temp = format!("{:.4}", loss).parse::<f32>().unwrap().abs();
+            println!("epoch: {:?} loss: {:.6?}", iter, temp);
+            iter == num_train || (temp < 1_f32 && temp % 1.0 == 0.0)
+        })?;
 
+        
+        solution.reset();
         data.show(&mut solution);
         solution.reset();
 

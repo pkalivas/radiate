@@ -18,11 +18,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         .dense(1, Activation::Sigmoid);
         
     let xor = XOR::new();
-    net.train(&xor.inputs, &xor.answers, 200, 0.1, true, Loss::Diff)?;
-    let final_time = thread_time.elapsed().as_millis();
+    let max_iter = 200;
+    net.train(&xor.inputs, &xor.answers, 0.1, Loss::Diff, |iter, loss| {
+        println!("epoch: {:?} loss: {:?}", iter, loss);
+        iter == max_iter
+    })?;
     
-    println!("{:#?}", net);
     xor.show(&mut net);
+
+    let final_time = thread_time.elapsed().as_millis();
     println!("Time in millis: {}", final_time);
 
     Ok(())
