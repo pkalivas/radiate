@@ -15,7 +15,7 @@ Define a new Neat network with an input of 3, batch of 5, and an lstm layer
     let neural_network = Neat::new()
         .input_size(3)
         .batch_size(5)
-        .lstm(10, 1, Activation::Softmax);      // (memory size, output size, output layer activation)
+        .lstm(10, 1, Activation::Sigmoid);      // (memory size, output size, output layer activation)
 ```
 Define a new Neat network with multiple layers 
 ```rust
@@ -26,6 +26,7 @@ Define a new Neat network with multiple layers
         .dense_pool(1, Activation::Sigmoid);
 ```
 NEAT currently has three layer types that can be chained onto a neat instance. 
+
 **1.)** Dense - a normal dense layer of a neural network - not capable of evolving hidden neurons or other connections. Evolution instead only changes weights.
 
 **2.)** DensePool - the algorithm described in the paper, capable of evolving hidden neurons and connections between them as well as changing weights.
@@ -35,10 +36,10 @@ NEAT currently has three layer types that can be chained onto a neat instance.
 All neural networks need nonlinear functions to represent complex datasets. Neat allows users to specify which activation function a neuron will use through a customizable vec! in the neat enviornment.
 ```rust
 pub enum Activation {
-    Sigmoid,       // default
+    Sigmoid,
     Tahn,
     Relu,
-    Softmax,       // will only be used on output neurons of a layer
+    Softmax,       // Cannot be used on hidden neurons
     LeakyRelu(f32),
     ExpRelu(f32),
     Linear(f32)   
@@ -115,9 +116,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         solution.reset();
         data.show(&mut solution);
 
-        // reset the NEAT network then show the score on the data with the time it took to solve the problem
-        solution.reset();
-        println!("Score: {:?}\nTime in millis: {}", data.solve(&mut solution), thread_time.elapsed().as_millis());
+        // reset the save and load the model
+        solution.save("C:/desktop/network.json")?;
+        let mut net = Neat::load("C:/desktop/network.json")?;
+
+        // show the score on the data with the time it took to solve the problem
+        println!("Score: {:?}\nTime in millis: {}", data.solve(&mut net), thread_time.elapsed().as_millis());
         Ok(())
 }
  
