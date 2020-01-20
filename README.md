@@ -4,7 +4,7 @@
 ![Crates.io](https://img.shields.io/crates/v/radiate)
 
 ## Versions
-**1.1.2** - For forward and backward passes of NEAT, gated propagation is now run in parallel which cuts training times in half. Changed the readme to be a full implementation of the engine which is a little more helpful for setting everything up. Added another readme file to radiate/src/models/ which gives examples of setting up a NEAT neural network.
+**1.1.2** - For forward and backward passes of NEAT, gated propagation in LSTM layers is now run in parallel which cuts training times in half. Changed the readme to be a full implementation of the engine which is a little more helpful for setting everything up. Added another readme file to radiate/src/models/ which gives examples of setting up a NEAT neural network.
 
 **1.1.1** - Fixed dumb bug in NEAT which was causing a error in backprop.
 
