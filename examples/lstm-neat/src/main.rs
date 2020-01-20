@@ -23,12 +23,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             Activation::Sigmoid,
             Activation::Relu,
         ]);
-
-
+        
+    let data = MemoryTest::new();
     let starting_net = Neat::new()
         .input_size(1)
         .batch_size(MemoryTest::new().output.len())
-        .lstm(5, 1, Activation::Sigmoid);
+        .lstm(3, 1, Activation::Sigmoid);
 
     let num_evolve = 0;
     let (mut solution, _) = Population::<Neat, NeatEnvironment, MemoryTest>::new()
@@ -49,25 +49,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             num == num_evolve
         })?;
         
-        let data = MemoryTest::new();
-        MemoryTest::new().show(&mut solution);
-        
-        solution.train(&data.input, &data.output, 1000, 0.3, true, Loss::Diff)?;
-        println!("{}", serde_json::to_string_pretty(&solution)?);
-
-        // data.freestyle(12, &mut solution);
+        solution.train(&data.input, &data.output, 1000, 0.1, true, Loss::Diff)?;
         solution.reset();
+
         data.show(&mut solution);
-    
         solution.reset();
-        println!("Score: {:?}", data.solve(&mut solution));
-        println!("\nTime in millis: {}\n", thread_time.elapsed().as_millis());
 
-        solution.reset();
-        solution.save("network.json")?;
-        let mut net = Neat::load("network.json")?;
-        MemoryTest::new().show(&mut net);
-
+        println!("Score: {:?}\nTime in millis: {}", data.solve(&mut solution), thread_time.elapsed().as_millis());
         Ok(())
 }
  
@@ -116,31 +104,6 @@ impl MemoryTest {
         println!("Input: {:?}, Expecting: {:?}, Guess: {:.2}", vec![0.0], vec![0.0], model.forward(&vec![0.0]).unwrap()[0]);
         println!("Input: {:?}, Expecting: {:?}, Guess: {:.2}", vec![0.0], vec![0.0], model.forward(&vec![0.0]).unwrap()[0]);
         println!("Input: {:?}, Expecting: {:?}, Guess: {:.2}", vec![0.0], vec![1.0], model.forward(&vec![0.0]).unwrap()[0]);
-    }
-
-
-
-    pub fn freestyle(&self, iters: usize, model: &mut Neat) {
-        println!("Freestyling");
-        let round = |x| {
-            if x < 0.5 {
-                0.0
-            } else {
-                1.0
-            }
-        };  
-        
-        let expec = vec![vec![0.0], vec![0.0], vec![0.0], vec![1.0]];
-        let mut guess = round(model.forward(&vec![1.0]).unwrap()[0]);
-        let mut counter: usize = 1;
-        println!("Input: {:?}, Expecting: {:?}, Guess: {:.2}", vec![1.0], vec![0.0], guess);
-        
-        for _ in 0..iters {
-            let temp = guess;
-            guess = round(model.forward(&vec![temp]).unwrap()[0]);
-            println!("Input: {:?}, Expecting: {:?}, Guess: {:.2}", temp, expec[counter % 4], guess);
-            counter += 1;
-        }
     }
 }
 

@@ -187,7 +187,7 @@ impl LSTM {
         self.states.d_prev_memory = Some(dc_next);
 
         // return the error of the input given to the layer
-        Some(dx[self.memory_size as usize..].to_vec())
+        Some(dx[..self.memory_size as usize].to_vec())
     }
 
 }

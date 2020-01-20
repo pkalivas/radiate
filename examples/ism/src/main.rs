@@ -7,7 +7,6 @@ use std::error::Error;
 use radiate::prelude::*;
 
 
-// adam optimizer: https://gluon.mxnet.io/chapter06_optimization/adam-scratch.html
 
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -30,6 +29,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .input_size(1)
         .batch_size(ism.answers.len())
         .lstm(5, 1, Activation::Sigmoid);
+
         // .dense_pool(1, Activation::Sigmoid);
         // .gru(5, 5)
         // .dense_pool(1, Activation::Sigmoid);

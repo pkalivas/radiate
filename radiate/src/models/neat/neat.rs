@@ -101,6 +101,11 @@ impl Neat {
         assert!(inputs.len() == targets.len(), "Input and target data are different sizes");
         assert!(inputs[0].len() as u32 == self.input_size, "Input size is different than network input size");
 
+        // feed the input data through the network then back prop it back through to edit the weights of the layers
+        let mut pass_out = Vec::with_capacity(self.batch_size);
+        let mut pass_tar = Vec::with_capacity(self.batch_size);
+        let (mut count, mut loss) = (0, 0.0);
+        
         // add tracers to the layers during training to keep track of meta data for backprop
         if self.batch_size > 1 {
             self.layers
@@ -108,12 +113,6 @@ impl Neat {
                 .for_each(|x| x.layer.add_tracer());
         }
         
-        // feed the input data through the network then back prop it back through to edit the weights of the layers
-        let mut pass_out = Vec::with_capacity(self.batch_size);
-        let mut pass_tar = Vec::with_capacity(self.batch_size);
-        let mut count = 0;
-        let mut loss = 0.0;
-
         // iterate through the number of iterations and train the network
         for i in 0..iters {
             for j in 0..inputs.len() {
