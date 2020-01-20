@@ -4,11 +4,9 @@
 ![Crates.io](https://img.shields.io/crates/v/radiate)
 
 ## Versions
-**1.0.9** - **As of 1/10/2020 all versions after 1.0.9 require the nightly toolchain** Added serialization and deserialization to NEAT model through serde integration - serializing trait objects requires nightly crates for now.
-
-**1.1.0** - Fixed bug in NEAT model which sometimes resulted in faulty backpropagation for LSTM layers. Added ground work to use different optimizers, will be added fully in 1.1.2.
-
 **1.1.1** - Fixed dumb bug in NEAT which was causing a error in backprop.
+
+**1.0.9** - **As of 1/10/2020 all versions after 1.0.9 require the nightly toolchain** Added serialization and deserialization to NEAT model through serde integration - serializing trait objects requires nightly crates for now.
 
 Coming from Evolutionary Radiation.
 > Evolutionary radiation is a rapid increase in the number of species with a common ancestor, characterized by great ecological and morphological diversity - Pascal Neige.
@@ -25,7 +23,7 @@ Environment represnts the evolutionary enviromnet for the genome, this means it 
 3. **Problem**  
 Problem is what gives a genome it's fitness score. It requires two implemented functions: empty and solve. Empty is required and should return a base problem (think new()). Solve takes a genome and returns that genome's fitness score, so this is where the analyzing of the current state of the genome occurs. Checkout the examples folder for a few examples of how this can be implemented.
 
-Radiate also comes with two models already built. Those being Evtree, and NEAT. Both come with default environments, however due to the amount of impact small changes can have on evolution, users might want to use different settings.
+Radiate also comes with two models already built. Those being Evtree, and NEAT.
 
 ### Evtree
 Is a twist on decision trees where instead of using a certain split criteria like the gini index, each node in the tree has a collection of matrices and uses these matrices to decide which subtree to explore. This algorithm is something I created and although I'm sure it's been built before, I haven't found any papers or implementations of anything like it. It is a binary tree and is only good for classification right now. I currently have plans to make it a little more verbose through better matrix mutliplication, propagating inputs further through the tree, and possibly introducing multiple sub trees and regression - however these increase the compute time.   
@@ -64,157 +62,211 @@ pub fn new() -> Self {
     }
 }
 ```
-The run() function must be the last function chained to the population because it takes a closure which when returns true, returns back the top Genome as it's initial type and the environment. The closure given to run receives a borrowed type T which is a Genome, that genome's fitness, and the current epoch.
-```rust
-pub fn run<F>(&mut self, runner: F) -> Result<(T, E), &'static str>
-    where 
-        F: Fn(&T, f32, i32) -> bool + Sized,
-        T: Genome<T, E> + Clone + Send + Sync + PartialEq,
-        P: Send + Sync,
-        E: Clone
-```
 ## Example
-Quick example of evolving an lstm network for a few generations then fine-tuning it with backpropagation. Uncommenting out freestyle() will let the trained model predict off of it's previous output and continue on as so.
+A quick and easy example of implementing all the needed traits and running the genetic engine to generate a string print "hello world!". There are examples of how to run a Neat neural network in radiate/src/models/. 
 To run this:
 ```bash
 git clone https://github.com/pkalivas/radiate.git
 cd radiate
-cargo build --verbose && cargo run --bin xor-neat-backprop
+cargo build --verbose && cargo run --bin helloworld
 ```
-On my computer (Windows 10, x64-based, i7-7700 @ 4.20GHz, 32GB RAM) this finishes in about 3 seconds.
+On my computer (Windows 10, x64-based, i7-7700 @ 4.20GHz, 32GB RAM) this finishes in about 1 second.
 ```rust
 extern crate radiate;
+extern crate rand;
+
 use std::error::Error;
 use std::time::Instant;
+use std::sync::{Arc, RwLock};
+use rand::Rng;
 use radiate::prelude::*;
 
 fn main() -> Result<(), Box<dyn Error>> {
-
     let thread_time = Instant::now();
-    let neat_env = NeatEnvironment::new()
-        .set_weight_mutate_rate(0.8)
-        .set_edit_weights(0.1)
-        .set_weight_perturb(1.7)
-        .set_new_node_rate(0.03)
-        .set_new_edge_rate(0.04)
-        .set_reactivate(0.2)
-        .set_activation_functions(vec![
-            Activation::Sigmoid,
-            Activation::Relu,
-        ]);
-
-    // this can also be solved fine with just one lstm layer of memory size 1 and output size 1
-    let starting_net = Neat::new()
-        .input_size(1)
-        .lstm(2, 2, Activation::Sigmoid)    // first number is the size of the memory, second is the size of the output
-        .dense_pool(1, Activation::Sigmoid);// Activation is the activation of the output neurons
-    
-    let num_evolve = 100;
-    let (mut solution, _) = Population::<Neat, NeatEnvironment, MemoryTest>::new()
-        .constrain(neat_env)
-        .size(100)
-        .populate_clone(starting_net)
-        .debug(true)
+    let (top, _) = Population::<Hello, HelloEnv, World>::new()
+        .size(200)
+        .populate_base()
         .dynamic_distance(true)
-        .stagnation(15, vec![Genocide::KillWorst(0.9)])
         .configure(Config {
             inbreed_rate: 0.001,
             crossover_rate: 0.75,
             distance: 0.5,
             species_target: 5
         })
-        .run(|_, fit, num| {
-            println!("Generation: {} score: {}", num, fit);
-            num == num_evolve
+        .stagnation(10, vec![
+            Genocide::KillWorst(0.9)
+        ])
+        .run(|model, fit, num| {
+            println!("Generation: {} score: {:.3?}\t{:?}", num, fit, model.as_string());
+            fit == 12.0 || num == 500
         })?;
         
-        let data = MemoryTest::new();
-        MemoryTest::new().show(&mut solution);
-        solution.train(&data.input, &data.output, 200, 0.3, 7)?;
-        println!("{:#?}", solution);
 
-        // write the saved model to a json file
-        solution.save("lstm_network.json")?;
-        // let mut network = Neat::load("lstm_network.json")?;   // load neural network back in as it was
-
-        // data.freestyle(12, &mut solution);
-        data.show(&mut solution);
-    
-        solution.reset();
-        println!("Score: {:?}\n\nTime in millis: {}", data.solve(&mut solution), thread_time.elapsed().as_millis());    
-        Ok(())
-}
- 
-#[derive(Debug)]
-pub struct MemoryTest {
-    input: Vec<Vec<f32>>,
-    output: Vec<Vec<f32>>
+    println!("\nTime in millis: {}, solution: {:?}", thread_time.elapsed().as_millis(), top.as_string());
+    Ok(())
 }
 
-impl MemoryTest {
+
+/// World is the problem to solve, Hello's data needs to match World's target
+pub struct World {
+    target: Vec<char>
+}
+
+impl World {
     pub fn new() -> Self {
-        MemoryTest {
-            input: vec![vec![0.0], vec![0.0], vec![0.0], vec![1.0], vec![0.0], vec![0.0], vec![0.0]],
-            output: vec![vec![0.0], vec![0.0], vec![1.0], vec![0.0], vec![0.0], vec![0.0], vec![1.0]]
-        }
-    }
-
-    pub fn show(&self, model: &mut Neat) {
-        for (i, o) in self.input.iter().zip(self.output.iter()) {
-            let guess = model.forward(&i).unwrap();
-            println!("Input: {:?}, Output: {:?}, Guess: {:.2}", i, o, guess[0]);
-        }
-        println!("\nTest next few inputs:");
-        println!("Input: {:?}, Expecting: {:?}, Guess: {:.2}", vec![1.0], vec![0.0], model.forward(&vec![1.0]).unwrap()[0]);
-        println!("Input: {:?}, Expecting: {:?}, Guess: {:.2}", vec![0.0], vec![0.0], model.forward(&vec![0.0]).unwrap()[0]);
-        println!("Input: {:?}, Expecting: {:?}, Guess: {:.2}", vec![0.0], vec![0.0], model.forward(&vec![0.0]).unwrap()[0]);
-        println!("Input: {:?}, Expecting: {:?}, Guess: {:.2}", vec![0.0], vec![1.0], model.forward(&vec![0.0]).unwrap()[0]);
-    }
-
-    pub fn freestyle(&self, iters: usize, model: &mut Neat) {
-        let round = |x| {
-            if x < 0.5 { 0.0 } else { 1.0 }
-        };  
-        let expec = vec![vec![0.0], vec![0.0], vec![0.0], vec![1.0]];
-        let mut guess = round(model.forward(&vec![1.0]).unwrap()[0]);
-        let mut counter: usize = 1;
-        println!("\nFreestyling with rounding\n\nInput: {:?}, Expecting: {:?}, Guess: {:.2}", vec![1.0], vec![0.0], guess);
-        for _ in 0..iters {
-            let temp = guess;
-            guess = round(model.forward(&vec![temp]).unwrap()[0]);
-            println!("Input: {:?}, Expecting: {:?}, Guess: {:.2}", temp, expec[counter % 4], guess);
-            counter += 1;
+        World {
+            target: vec!['h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd', '!']
         }
     }
 }
 
-unsafe impl Send for MemoryTest {}
-unsafe impl Sync for MemoryTest {}
+/// implement the problem trait for world so a Hello struct can solve world's target
+impl Problem<Hello> for World {
 
-impl Problem<Neat> for MemoryTest {
+    fn empty() -> Self { World::new() }
 
-    fn empty() -> Self { MemoryTest::new() }
-    
-    fn solve(&self, model: &mut Neat) -> f32 {
+    fn solve(&self, model: &mut Hello) -> f32 {
         let mut total = 0.0;
-        for (ins, outs) in self.input.iter().zip(self.output.iter()) {
-            match model.forward(&ins) {
-                Some(guess) => total += (guess[0] - outs[0]).powf(2.0),
-                None => panic!("Error in training NEAT")
+        for (index, letter) in self.target.iter().enumerate() {
+            if letter == &model.data[index] {
+                total += 1.0;
             }
         }
-        total /= self.input.len() as f32;
-        1.0 - total
+        total        
     }
 }
+
+/// Create an environment to get data from and assist in crossover for Hello types
+#[derive(Debug, Clone)]
+pub struct HelloEnv {
+    pub alph: Vec<char>,
+    pub swap_rate: f32
+}
+
+impl HelloEnv {
+    pub fn new() -> Self {
+        HelloEnv {
+            alph: vec!['!', ' ', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'], // now i know my abcs..
+            swap_rate: 0.5
+        }
+    }
+}
+
+/// implement Environment and default for the HelloEnv, Environment is there in case you want the environment to be dynamic
+impl Envionment for HelloEnv {}
+impl Default for HelloEnv {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Hello types are the solutions for World
+#[derive(Debug, Clone, PartialEq)]
+pub struct Hello {
+    pub data: Vec<char>
+}
+
+impl Hello {
+    pub fn new(alph: &Vec<char>) -> Self {
+        let mut r = rand::thread_rng();
+        Hello { data: (0..12).map(|_| alph[r.gen_range(0, alph.len())]).collect() }
+    }
+
+    pub fn as_string(&self) -> String {
+        self.data
+            .iter()
+            .map(|x| String::from(x.to_string()))
+            .collect::<Vec<_>>()
+            .join("")
+    }
+}
+
+/// needed to be put into threads (the engine is multithreaded)
+unsafe impl Send for Hello {}
+unsafe impl Sync for Hello {}
+
+/// implement genome for Hello
+impl Genome<Hello, HelloEnv> for Hello {
+
+    fn crossover(parent_one: &Hello, parent_two: &Hello, env: &Arc<RwLock<HelloEnv>>, crossover_rate: f32) -> Option<Hello> {
+        let mut r = rand::thread_rng();
+        let params = env.read().unwrap();
+        let mut new_data = Vec::new();
+        
+        if r.gen::<f32>() < crossover_rate {
+            for (one, two) in parent_one.data.iter().zip(parent_two.data.iter()) {
+                if one != two {
+                    new_data.push(*one);
+                } else {
+                    new_data.push(*two);
+                }
+            }
+        } else {
+            new_data = parent_one.data.clone();
+            if r.gen::<f32>() < params.swap_rate {
+                let swap_index = r.gen_range(0, new_data.len());
+                new_data[swap_index] = params.alph[r.gen_range(0, params.alph.len())];
+            }
+        }
+        Some(Hello { data: new_data })
+    }
+
+    fn distance(one: &Hello, two: &Hello, _: &Arc<RwLock<HelloEnv>>) -> f32 {
+        let mut total = 0;
+        let mut other = 0;
+        for (i, j) in one.data.iter().zip(two.data.iter()) {
+            if i == j {
+                total += 1;
+            } else {
+                other += 1;
+            }
+        }
+        (other + total) as f32 / total as f32
+    }
+
+    fn base(env: &mut HelloEnv) -> Hello {
+        Hello::new(&env.alph)
+    }
+}
+```
+Running this looks something like this when running in the cmd:
+```bash
+Generation: 100 score: 8.000    "!eulozworlde"
+Generation: 101 score: 8.000    "!eulozworlde"
+Generation: 102 score: 8.000    "!eulozworlde"
+Generation: 103 score: 8.000    "!eulozworlde"
+Generation: 104 score: 8.000    "!eulozworlde"
+Generation: 105 score: 9.000    "heulozworlde"
+Generation: 106 score: 9.000    "heulozworlde"
+Generation: 107 score: 9.000    "heulozworlde"
+Generation: 108 score: 9.000    "heulozworlde"
+Generation: 109 score: 9.000    "heulozworlde"
+Generation: 110 score: 9.000    "heulozworlde"
+Generation: 111 score: 9.000    "heulozworlde"
+Generation: 112 score: 10.000   "heulo worlde"
+Generation: 113 score: 10.000   "heulo worlde"
+Generation: 114 score: 10.000   "heulo worlde"
+Generation: 115 score: 10.000   "heulo worlde"
+Generation: 116 score: 10.000   "heulo worlde"
+Generation: 117 score: 10.000   "heulo worlde"
+Generation: 118 score: 10.000   "heulo worlde"
+Generation: 119 score: 10.000   "heulo worlde"
+Generation: 120 score: 11.000   "hello worlde"
+Generation: 121 score: 11.000   "hello worlde"
+Generation: 122 score: 11.000   "hello worlde"
+Generation: 123 score: 11.000   "hello worlde"
+Generation: 124 score: 11.000   "hello worlde"
+Generation: 125 score: 11.000   "hello worlde"
+Generation: 126 score: 12.000   "hello world!"
+
+Time in millis: 849, solution: "hello world!"
 ```
 This comes right now with four examples, just run "cargo run --bin (desired example name)" to run any of them
 1. **xor-evtree**
 2. **xor-neat**
 3. **xor-neat-backprop**
 4. **lstm-neat**
-
-I'm going to add more examples soon, thinking about doing a Knapsack and nqueens example.
+5. **helloworld**
 
 ## Create a Population
 The initial generation in the population can be created in four different ways depending on the user's use case. The examples show different ways of using them.

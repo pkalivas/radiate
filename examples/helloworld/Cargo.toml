@@ -1,0 +1,9 @@
+[package]
+name = "helloworld"
+description = "Evolving Hello World."
+version = "1.0.0"
+authors = ["pkalivas <peterkalivas@gmail.com>"]
+
+[dependencies]
+radiate={path="../../radiate"}
+rand="*"
