@@ -4,6 +4,8 @@
 ![Crates.io](https://img.shields.io/crates/v/radiate)
 
 ## Versions
+**1.1.2** - For forward and backward passes of NEAT, gated propagation is now run in parallel which cuts training times in half. Changed the readme to be a full implementation of the engine which is a little more helpful for setting everything up. Added another readme file to radiate/src/models/ which gives examples of setting up a NEAT neural network.
+
 **1.1.1** - Fixed dumb bug in NEAT which was causing a error in backprop.
 
 **1.0.9** - **As of 1/10/2020 all versions after 1.0.9 require the nightly toolchain** Added serialization and deserialization to NEAT model through serde integration - serializing trait objects requires nightly crates for now.
@@ -101,7 +103,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             fit == 12.0 || num == 500
         })?;
         
-
     println!("\nTime in millis: {}, solution: {:?}", thread_time.elapsed().as_millis(), top.as_string());
     Ok(())
 }
