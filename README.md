@@ -28,8 +28,8 @@ Radiate also comes with two models already built. Those being Evtree, and NEAT.
 ### Evtree
 Is a twist on decision trees where instead of using a certain split criteria like the gini index, each node in the tree has a collection of matrices and uses these matrices to decide which subtree to explore. This algorithm is something I created and although I'm sure it's been built before, I haven't found any papers or implementations of anything like it. It is a binary tree and is only good for classification right now. I currently have plans to make it a little more verbose through better matrix mutliplication, propagating inputs further through the tree, and possibly introducing multiple sub trees and regression - however these increase the compute time.   
 ### NEAT
-Also known as Neuroevolution of Augmented Topologies, is the algorithm described by Kenneth O. Stanley in [this](http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) paper. This NEAT implementation also includes a backpropagation function which operates much like traditional neural networks which propagate the input error back through the network and adjust the weights. In pair with the evolution engine, can produce very nice and quick results. Neat exposese a few different options to the user through enums. These enums are mapped to easily extensable logic under the hood. NEAT lets the use define how the network will be constructed, whether that be in a traitional neural network fashion where layers are stacked next to each other or with evolutionary topolgies of the graph through as explained in the paper. This means NEAT can be used in an evolutionary sense, through forward propagation and back propagation, or any combination of the two. There are examples of both in /examples.
-Currently there are two available layers with more on the way. **more color on Neat in radiate/src/models/**
+Also known as Neuroevolution of Augmented Topologies, is the algorithm described by Kenneth O. Stanley in [this](http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) paper. This NEAT implementation also includes a backpropagation function which operates much like traditional neural networks which propagate the input error back through the network to adjust the weights. In pair with the evolution engine, can produce very nice and quick results. NEAT lets the use define how the network will be constructed, whether that be in a traitional neural network fashion where layers are stacked next to each other or with evolutionary topolgies of the graph through as explained in the paper. This means NEAT can be used in an evolutionary sense, through forward propagation and back propagation, or any combination of the two. There are examples of both in /examples.
+ **more color on Neat in radiate/src/models/**
 
 ## Setup
 The population is pretty easy to set up assuming the all traits have been implemented. The population is a higher abstraction to keep track of varibales used during evoltuion but not needed within epoch - things like the problem, solution, to print to the screen, ect. A new population is filled originally with default settings:
@@ -70,7 +70,7 @@ git clone https://github.com/pkalivas/radiate.git
 cd radiate
 cargo build --verbose && cargo run --bin helloworld
 ```
-On my computer (Windows 10, x64-based, i7-7700 @ 4.20GHz, 32GB RAM) this finishes in about 1 second.
+On my computer (Windows 10, x64-based, i7-7700 @ 4.20GHz, 32GB RAM) this finishes in less than half a second.
 ```rust
 extern crate radiate;
 extern crate rand;
@@ -84,7 +84,7 @@ use radiate::prelude::*;
 fn main() -> Result<(), Box<dyn Error>> {
     let thread_time = Instant::now();
     let (top, _) = Population::<Hello, HelloEnv, World>::new()
-        .size(200)
+        .size(100)
         .populate_base()
         .dynamic_distance(true)
         .configure(Config {
@@ -105,12 +105,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("\nTime in millis: {}, solution: {:?}", thread_time.elapsed().as_millis(), top.as_string());
     Ok(())
 }
-
-
-/// World is the problem to solve, Hello's data needs to match World's target
-pub struct World {
-    target: Vec<char>
-}
+```
+Now create the problem which holds the target and actually scores the solvers. 
+Note the target data isn't being coppied for each solver.
+```rust
+pub struct World { target: Vec<char> }
 
 impl World {
     pub fn new() -> Self {
@@ -120,7 +119,6 @@ impl World {
     }
 }
 
-/// implement the problem trait for world so a Hello struct can solve world's target
 impl Problem<Hello> for World {
 
     fn empty() -> Self { World::new() }
@@ -135,8 +133,9 @@ impl Problem<Hello> for World {
         total        
     }
 }
-
-/// Create an environment to get data from and assist in crossover for Hello types
+```
+Now define an environment to hold global data for crossover and distance, things like record/stat keeping, crossover probabilities, really anything that is needed globally is held in this.
+```rust
 #[derive(Debug, Clone)]
 pub struct HelloEnv {
     pub alph: Vec<char>,
@@ -159,8 +158,9 @@ impl Default for HelloEnv {
         Self::new()
     }
 }
-
-/// Hello types are the solutions for World
+```
+Finally, define a solver. This is type 'Genome' in the evolutionary process and makes up the population of each generation.
+```rust
 #[derive(Debug, Clone, PartialEq)]
 pub struct Hello {
     pub data: Vec<char>
@@ -259,7 +259,7 @@ Generation: 124 score: 11.000   "hello worlde"
 Generation: 125 score: 11.000   "hello worlde"
 Generation: 126 score: 12.000   "hello world!"
 
-Time in millis: 849, solution: "hello world!"
+Time in millis: 349, solution: "hello world!"
 ```
 This comes right now with four examples, just run "cargo run --bin (desired example name)" to run any of them
 1. **xor-evtree**

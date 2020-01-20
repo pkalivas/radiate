@@ -16,7 +16,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     
     let thread_time = Instant::now();
     let (top, _) = Population::<Hello, HelloEnv, World>::new()
-        .size(200)
+        .size(100)
         .populate_base()
         .dynamic_distance(true)
         .configure(Config {
