@@ -32,26 +32,6 @@ Is a twist on decision trees where instead of using a certain split criteria lik
 ### NEAT
 Also known as Neuroevolution of Augmented Topologies, is the algorithm described by Kenneth O. Stanley in [this](http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) paper. This NEAT implementation also includes a backpropagation function which operates much like traditional neural networks which propagate the input error back through the network and adjust the weights. In pair with the evolution engine, can produce very nice and quick results. Neat exposese a few different options to the user through enums. These enums are mapped to easily extensable logic under the hood. NEAT lets the use define how the network will be constructed, whether that be in a traitional neural network fashion where layers are stacked next to each other or with evolutionary topolgies of the graph through as explained in the paper. This means NEAT can be used in an evolutionary sense, through forward propagation and back propagation, or any combination of the two. There are examples of both in /examples.
 Currently there are two available layers with more on the way.
-```rust
-pub enum LayerType {
-    Dense,      // typical dense layer of a neural network with no ability to evolve its strucutre 
-    DensePool,  // the algorithm described in the paper meaning a fully functional neural network can be evolved through one dense pool layer
-    LSTM,       // uses dense pool for evoution and traditional backpropagation through time for training.
-}
-```
-All neural networks need nonlinear functions to represent complex datasets. Neat 
-allows users to specify which activation function a neuron will use through a customizable vec! in the neat enviornment. If more than one is specified, it will be randomly chosen when a neuron is created.
-```rust
-pub enum Activation {
-    Sigmoid,       // default
-    Tahn,
-    Relu,
-    Softmax,       // will only be used on output neurons of a layer
-    LeakyRelu(f32),
-    ExpRelu(f32),
-    Linear(f32)   
-}
-```
 
 ## Setup
 The population is pretty easy to set up assuming the all traits have been implemented. The population is a higher abstraction to keep track of varibales used during evoltuion but not needed within epoch - things like the problem, solution, to print to the screen, ect. A new population is filled originally with default settings:

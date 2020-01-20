@@ -1,4 +1,50 @@
 
+### Working with NEAT
+**Defining a neat instance**
+__Each Neat::new() defaults to no layers, batch size of one, and input size of 0 - basically it won't work without chaining layers to it__
+Define a new Neat network with an input size of one, batch size of 1, and a dense pool layer 
+```rust
+    let nerual_network = Neat::new()
+        .input_size(1)
+        .dense_pool(1, Activation::Sigmoid);    // (output size, output layer activation)
+```
+Define a new Neat network with an input of 3, batch of 5, and an lstm layer
+```rust
+    let neural_network = Neat::new()
+        .input_size(3)
+        .batch_size(5)
+        .lstm(10, 1, Activation::Softmax);      // (memory size, output size, output layer activation)
+```
+Define a new Neat network with multiple layers 
+```rust
+    let neural_network = Neat::new()
+        .input_size(1)
+        .dense(5, Activation::Relu)
+        .dense(5, Activation::Tahn)
+        .dense_pool(1, Activation::Sigmoid);
+```
+NEAT currently has three layer types that can be chained onto a neat instance. 
+```rust
+pub enum LayerType {
+    Dense,      // typical dense layer of a neural network with no ability to evolve its strucutre 
+    DensePool,  // the algorithm described in the paper meaning a fully functional neural network can be evolved through one dense pool layer
+    LSTM,       // uses dense pool for evoution and traditional backpropagation through time for training.
+}
+```
+All neural networks need nonlinear functions to represent complex datasets. Neat 
+allows users to specify which activation function a neuron will use through a customizable vec! in the neat enviornment.
+```rust
+pub enum Activation {
+    Sigmoid,       // default
+    Tahn,
+    Relu,
+    Softmax,       // will only be used on output neurons of a layer
+    LeakyRelu(f32),
+    ExpRelu(f32),
+    Linear(f32)   
+}
+```
+
 Examples on how to set up and run a NEAT network.
 
 ```rust
@@ -61,7 +107,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         // if the function (epoch number, epoch loss) returns true, finish training, otherwise continue
         solution.train(&data.input, &data.output, 0.3, Loss::Diff, |iter, loss| {
             let temp = format!("{:.4}", loss).parse::<f32>().unwrap().abs();
-            println!("epoch: {:?} loss: {:.6?}", iter, temp);
+            println!("epoch: {:?} loss: {:.4?}", iter, temp);
             iter == num_train || (temp < 1_f32 && temp % 1.0 == 0.0)
         })?;
 
@@ -77,7 +123,8 @@ fn main() -> Result<(), Box<dyn Error>> {
  
 
 
-
+/// This is a dummy test to make sure the lstm layer can remember things throughout time
+/// the way it works is given 3 0's, the next output should be a 1
 #[derive(Debug)]
 pub struct MemoryTest {
     input: Vec<Vec<f32>>,
@@ -107,7 +154,6 @@ impl MemoryTest {
             ]
         }
     }
-
 
 
     pub fn show(&self, model: &mut Neat) {
@@ -145,5 +191,4 @@ impl Problem<Neat> for MemoryTest {
         1.0 - total
     }
 }
-
 ```
