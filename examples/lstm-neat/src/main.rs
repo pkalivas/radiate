@@ -16,8 +16,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
         .set_weight_perturb(1.7)
-        .set_new_node_rate(0.04)
-        .set_new_edge_rate(0.04)
+        .set_new_node_rate(0.4)
+        .set_new_edge_rate(0.4)
         .set_reactivate(0.2)
         .set_activation_functions(vec![
             Activation::Sigmoid,
@@ -27,8 +27,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let data = MemoryTest::new();
     let starting_net = Neat::new()
         .input_size(1)
-        .batch_size(MemoryTest::new().output.len())
-        .lstm(3, 1, Activation::Sigmoid);
+        .batch_size(data.output.len())
+        .lstm(10, 1, Activation::Sigmoid);
 
     let num_evolve = 0;
     let (mut solution, _) = Population::<Neat, NeatEnvironment, MemoryTest>::new()
@@ -49,7 +49,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             num == num_evolve
         })?;
         
-        solution.train(&data.input, &data.output, 1000, 0.1, true, Loss::Diff)?;
+        solution.train(&data.input, &data.output, 1000, 0.3, true, Loss::Diff)?;
         solution.reset();
 
         data.show(&mut solution);

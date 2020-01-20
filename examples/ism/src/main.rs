@@ -21,21 +21,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_activation_functions(vec![
             Activation::Sigmoid,
             Activation::Relu,
+            Activation::Linear(1.0)
         ]);
 
-        
-    let ism = ISM::new(1);
+    let ism = ISM::new(2);
     let net = Neat::new()
-        .input_size(1)
+        .input_size(2)
         .batch_size(ism.answers.len())
-        .lstm(5, 1, Activation::Sigmoid);
-
-        // .dense_pool(1, Activation::Sigmoid);
-        // .gru(5, 5)
-        // .dense_pool(1, Activation::Sigmoid);
-
-        
-    let num_evolve = 10;
+        .lstm(2, 1, Activation::Sigmoid);
+       
+    let num_evolve = 50;
     let (mut solution, _) = Population::<Neat, NeatEnvironment, ISM>::new()
         .constrain(neat_env)
         .size(100)
@@ -54,24 +49,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             num == num_evolve
         })?;
             
-    solution.reset();
-    ism.show(&mut solution);
-
-    println!("Training\n\n");
-    solution.reset();
-    println!("{:#?}", solution);
-    solution.train(&ism.inputs, &ism.answers, 500, 0.0003, true, Loss::MSE)?;
-    println!("{:#?}", solution);
-    solution.reset();
-    ism.show(&mut solution);
+    solution.train(&ism.inputs, &ism.answers, 1000, 0.0005, true, Loss::Diff)?;
 
     solution.reset();
     println!("{:?}", ism.solve(&mut solution));
+
     solution.reset();
     ism.write_data(&mut solution);
-    // ism.freestyle(3, &mut solution); 
 
-    Ok(())
+     Ok(())
 }
 
 
@@ -221,7 +207,7 @@ unsafe impl Sync for ISM {}
 
 impl Problem<Neat> for ISM {
 
-    fn empty() -> Self { ISM::new(1) }
+    fn empty() -> Self { ISM::new(2) }
 
     fn solve(&self, model: &mut Neat) -> f32 {
         let mut total = 0.0;

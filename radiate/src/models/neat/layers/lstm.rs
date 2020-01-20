@@ -5,6 +5,7 @@ use std::fmt;
 use std::mem;
 use std::any::Any;
 use std::sync::{Arc, RwLock};
+use std::thread;
 use super::{
     layertype::LayerType,
     layer::Layer,
@@ -76,11 +77,11 @@ pub struct LSTM {
     pub memory: Vec<f32>,
     pub hidden: Vec<f32>,
     pub states: LSTMState,
-    pub g_gate: Dense,
-    pub i_gate: Dense,
-    pub f_gate: Dense,
-    pub o_gate: Dense,
-    pub v_gate: Dense
+    pub g_gate: Arc<RwLock<Dense>>,
+    pub i_gate: Arc<RwLock<Dense>>,
+    pub f_gate: Arc<RwLock<Dense>>,
+    pub o_gate: Arc<RwLock<Dense>>,
+    pub v_gate: Arc<RwLock<Dense>>
 }
 
 
@@ -98,12 +99,104 @@ impl LSTM {
             memory: vec![0.0; memory_size as usize],
             hidden: vec![0.0; memory_size as usize],
             states: LSTMState::new(),
-            g_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Tahn),
-            i_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
-            f_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
-            o_gate: Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid),
-            v_gate: Dense::new(memory_size, output_size, LayerType::DensePool, activation)
+            g_gate: Arc::new(RwLock::new(Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Tahn))),
+            i_gate: Arc::new(RwLock::new(Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid))),
+            f_gate: Arc::new(RwLock::new(Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid))),
+            o_gate: Arc::new(RwLock::new(Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid))),
+            v_gate: Arc::new(RwLock::new(Dense::new(memory_size, output_size, LayerType::DensePool, activation)))
         }
+    }
+
+
+
+    /// feed forward with each forward propagation being executed in a seperate thread to speed up 
+    /// the forward pass if the network is NOT being evolved, if it is, there are already so many theads
+    /// working to optimize the entire population that extra threading is obsolute and might actually slow it down
+    #[inline]
+    pub fn step_forward_async(&mut self, inputs: &Vec<f32>) -> Option<Vec<f32>> {
+        // get the previous state and output and create the input to the layer
+        // let mut previous_state = &mut self.memory;
+        let mut hidden_input = self.hidden.clone();
+        hidden_input.extend(inputs);
+
+        // clone all the gates to prevent lifetime conflicts
+        let g_gate_clone = Arc::clone(&self.g_gate);
+        let o_gate_clone = Arc::clone(&self.o_gate);
+        let f_gate_clone = Arc::clone(&self.f_gate);
+        let i_gate_clone = Arc::clone(&self.i_gate);
+
+        // get all the gate outputs 
+        let hidden_async = Arc::new(hidden_input);
+        let g_input = Arc::clone(&hidden_async);
+        let o_input = Arc::clone(&hidden_async);
+        let f_input = Arc::clone(&hidden_async);
+        let i_input = Arc::clone(&hidden_async);
+
+        // spawn the threads 
+        let g_output = thread::spawn(move || { return g_gate_clone.write().unwrap().forward(&*g_input).unwrap(); });
+        let o_output = thread::spawn(move || { return o_gate_clone.write().unwrap().forward(&*o_input).unwrap(); });
+        let f_output = thread::spawn(move || { return f_gate_clone.write().unwrap().forward(&*f_input).unwrap(); });
+        let i_output = thread::spawn(move || { return i_gate_clone.write().unwrap().forward(&*i_input).unwrap(); });
+
+        // current memory and output need to be mutable but we also want to save that data for bptt
+        let mut curr_state = g_output.join().ok()?;
+        let mut curr_output = o_output.join().ok()?;
+        let f_curr = f_output.join().ok()?;
+        let i_curr = i_output.join().ok()?;
+
+        let g_out = curr_state.clone();
+        let o_out = curr_output.clone();
+
+        // update the current state 
+        vectorops::element_multiply(&mut self.memory, &f_curr);
+        vectorops::element_multiply(&mut curr_state, &i_curr);
+        vectorops::element_add(&mut self.memory, &curr_state);
+        vectorops::element_multiply(&mut curr_output, &vectorops::element_activate(&self.memory, Activation::Tahn));
+
+        // update the state parameters only if the gates are traceable and the data needs to be collected
+        self.states.update_forward(f_curr, i_curr, g_out, o_out, self.memory.clone());   
+        
+        // return the output of the layer
+        // keep track of the memory and the current output and the current state
+        self.hidden = curr_output;
+        self.v_gate.write().unwrap().forward(&self.hidden)
+    }
+
+
+
+    /// step forward syncronously
+    #[inline]
+    pub fn step_forward(&mut self, inputs: &Vec<f32>) -> Option<Vec<f32>> {
+        // get the previous state and output and create the input to the layer
+        // let mut previous_state = &mut self.memory;
+        let mut hidden_input = self.hidden.clone();
+        hidden_input.extend(inputs);
+
+        // get all the gate outputs 
+        let f_output = self.f_gate.write().unwrap().forward(&hidden_input)?;
+        let i_output = self.i_gate.write().unwrap().forward(&hidden_input)?;
+        let o_output = self.o_gate.write().unwrap().forward(&hidden_input)?;
+        let g_output = self.g_gate.write().unwrap().forward(&hidden_input)?;
+
+        // current memory and output need to be mutable but we also want to save that data for bptt
+        let mut current_state = g_output.clone();
+        let mut current_output = o_output.clone();
+
+        // update the current state 
+        vectorops::element_multiply(&mut self.memory, &f_output);
+        vectorops::element_multiply(&mut current_state, &i_output);
+        vectorops::element_add(&mut self.memory, &current_state);
+        vectorops::element_multiply(&mut current_output, &vectorops::element_activate(&self.memory, Activation::Tahn));
+
+        // update the state parameters only if the gates are traceable and the data needs to be collected
+        if let Some(_) = &self.f_gate.read().unwrap().trace_states {
+            self.states.update_forward(f_output, i_output, g_output, o_output, self.memory.clone());
+        }        
+        
+        // return the output of the layer
+        // keep track of the memory and the current output and the current state
+        self.hidden = current_output;
+        self.v_gate.write().unwrap().forward(&self.hidden)
     }
 
 
@@ -127,7 +220,7 @@ impl LSTM {
         
         // compute the hidden to output gradient
         // dh = error @ Wy.T + dh_next
-        let mut dh = self.v_gate.backward(errors, l_rate)?;
+        let mut dh = self.v_gate.write().unwrap().backward(errors, l_rate)?;
         vectorops::element_add(&mut dh, &dh_next);
 
         // Gradient for ho in h = ho * tanh(c)     
@@ -135,7 +228,9 @@ impl LSTM {
         //dho = dsigmoid(ho) * dho
         let mut dho = vectorops::element_activate(&c_old, Activation::Tahn);
         vectorops::element_multiply(&mut dho, &dh);
-        vectorops::element_multiply(&mut dho, &vectorops::element_deactivate(&o_curr, self.o_gate.activation));
+        vectorops::element_multiply(&mut dho, &vectorops::element_deactivate(&o_curr, self.o_gate.read().unwrap().activation));
+        let o_gate_clone = Arc::clone(&self.o_gate);
+        let o_handle = thread::spawn(move || { return o_gate_clone.write().unwrap().backward(&dho, l_rate).unwrap(); });
         
         // Gradient for c in h = ho * tanh(c), note we're adding dc_next here     
         // dc = ho * dh * dtanh(c)
@@ -148,33 +243,33 @@ impl LSTM {
         // dhf = c_old * dc
         // dhf = dsigmoid(hf) * dhf
         let mut dhf = vectorops::product(&c_old, &dc);
-        vectorops::element_multiply(&mut dhf, &vectorops::element_deactivate(&f_curr, self.f_gate.activation));
+        vectorops::element_multiply(&mut dhf, &vectorops::element_deactivate(&f_curr, self.f_gate.read().unwrap().activation));
+        let f_gate_clone = Arc::clone(&self.f_gate);
+        let f_handle = thread::spawn(move || { return f_gate_clone.write().unwrap().backward(&dhf, l_rate).unwrap(); });
 
         // Gradient for hi in c = hf * c_old + hi * hc     
         // dhi = hc * dc
         // dhi = dsigmoid(hi) * dhi
         let mut dhi = vectorops::product(&g_curr, &dc);
-        vectorops::element_multiply(&mut dhi, &vectorops::element_deactivate(&i_curr, self.i_gate.activation));
+        vectorops::element_multiply(&mut dhi, &vectorops::element_deactivate(&i_curr, self.i_gate.read().unwrap().activation));
+        let i_gate_clone = Arc::clone(&self.i_gate);
+        let i_handle = thread::spawn(move || { return i_gate_clone.write().unwrap().backward(&dhi, l_rate).unwrap(); });
 
         // Gradient for hc in c = hf * c_old + hi * hc     
         // dhc = hi * dc
         // dhc = dtanh(hc) * dhc
         let mut dhc = vectorops::product(&i_curr, &dc);
-        vectorops::element_multiply(&mut dhc, &vectorops::element_deactivate(&g_curr, self.g_gate.activation));
-
-        // all the weights for the gates given their derivatives
-        let f_error = self.f_gate.backward(&dhf, l_rate)?;
-        let i_error = self.i_gate.backward(&dhi, l_rate)?;
-        let g_error = self.g_gate.backward(&dhc, l_rate)?;
-        let o_error = self.o_gate.backward(&dho, l_rate)?;
+        vectorops::element_multiply(&mut dhc, &vectorops::element_deactivate(&g_curr, self.g_gate.read().unwrap().activation));
+        let g_gate_clone = Arc::clone(&self.g_gate);
+        let g_handle = thread::spawn(move || { return g_gate_clone.write().unwrap().backward(&dhc, l_rate).unwrap(); });
 
         // As X was used in multiple gates, the gradient must be accumulated here     
         // dX = dXo + dXc + dXi + dXf
         let mut dx = vec![0.0; (self.input_size + self.memory_size) as usize];
-        vectorops::element_add(&mut dx, &f_error);
-        vectorops::element_add(&mut dx, &i_error);
-        vectorops::element_add(&mut dx, &g_error);
-        vectorops::element_add(&mut dx, &o_error);
+        vectorops::element_add(&mut dx, &o_handle.join().ok()?);
+        vectorops::element_add(&mut dx, &f_handle.join().ok()?);
+        vectorops::element_add(&mut dx, &i_handle.join().ok()?);
+        vectorops::element_add(&mut dx, &g_handle.join().ok()?);
         
         // Split the concatenated X, so that we get our gradient of h_old     
         // dh_next = dx[:, :H]
@@ -187,7 +282,7 @@ impl LSTM {
         self.states.d_prev_memory = Some(dc_next);
 
         // return the error of the input given to the layer
-        Some(dx[..self.memory_size as usize].to_vec())
+        Some(dx[..self.input_size as usize].to_vec())
     }
 
 }
@@ -201,35 +296,45 @@ impl Layer for LSTM {
     #[inline]
     fn forward(&mut self, inputs: &Vec<f32>) -> Option<Vec<f32>> {
         // get the previous state and output and create the input to the layer
-        // let mut previous_state = &mut self.memory;
-        let mut hidden_input = self.hidden.clone();
-        hidden_input.extend(inputs);
+        let is_evolving = if let Some(_) = self.f_gate.read().unwrap().trace_states {
+                true
+            } else {
+                false
+            };
+        if is_evolving {
+            return self.step_forward(inputs);
+        } else {
+            return self.step_forward_async(inputs);
+        }
+        // self.step_forward_async(inputs)
+        // let mut hidden_input = self.hidden.clone();
+        // hidden_input.extend(inputs);
 
-        // get all the gate outputs 
-        let f_output = self.f_gate.forward(&hidden_input)?;
-        let i_output = self.i_gate.forward(&hidden_input)?;
-        let o_output = self.o_gate.forward(&hidden_input)?;
-        let g_output = self.g_gate.forward(&hidden_input)?;
+        // // get all the gate outputs 
+        // let f_output = self.f_gate.forward(&hidden_input)?;
+        // let i_output = self.i_gate.forward(&hidden_input)?;
+        // let o_output = self.o_gate.forward(&hidden_input)?;
+        // let g_output = self.g_gate.forward(&hidden_input)?;
 
-        // current memory and output need to be mutable but we also want to save that data for bptt
-        let mut current_state = g_output.clone();
-        let mut current_output = o_output.clone();
+        // // current memory and output need to be mutable but we also want to save that data for bptt
+        // let mut current_state = g_output.clone();
+        // let mut current_output = o_output.clone();
 
-        // update the current state 
-        vectorops::element_multiply(&mut self.memory, &f_output);
-        vectorops::element_multiply(&mut current_state, &i_output);
-        vectorops::element_add(&mut self.memory, &current_state);
-        vectorops::element_multiply(&mut current_output, &vectorops::element_activate(&self.memory, Activation::Tahn));
+        // // update the current state 
+        // vectorops::element_multiply(&mut self.memory, &f_output);
+        // vectorops::element_multiply(&mut current_state, &i_output);
+        // vectorops::element_add(&mut self.memory, &current_state);
+        // vectorops::element_multiply(&mut current_output, &vectorops::element_activate(&self.memory, Activation::Tahn));
 
-        // update the state parameters only if the gates are traceable and the data needs to be collected
-        if let Some(_) = &self.f_gate.trace_states {
-            self.states.update_forward(f_output, i_output, g_output, o_output, self.memory.clone());
-        }        
+        // // update the state parameters only if the gates are traceable and the data needs to be collected
+        // if let Some(_) = &self.f_gate.trace_states {
+        //     self.states.update_forward(f_output, i_output, g_output, o_output, self.memory.clone());
+        // }        
         
-        // return the output of the layer
-        // keep track of the memory and the current output and the current state
-        self.hidden = current_output;
-        self.v_gate.forward(&self.hidden)
+        // // return the output of the layer
+        // // keep track of the memory and the current output and the current state
+        // self.hidden = current_output;
+        // self.v_gate.forward(&self.hidden)
     }
 
 
@@ -250,11 +355,11 @@ impl Layer for LSTM {
 
     /// reset the lstm network by clearing the tracer and the states as well as the memory and hidden state
     fn reset(&mut self) {
-        self.g_gate.reset();
-        self.i_gate.reset();
-        self.f_gate.reset();
-        self.o_gate.reset();
-        self.v_gate.reset();
+        self.g_gate.write().unwrap().reset();
+        self.i_gate.write().unwrap().reset();
+        self.f_gate.write().unwrap().reset();
+        self.o_gate.write().unwrap().reset();
+        self.v_gate.write().unwrap().reset();
         self.states = LSTMState::new();
         self.memory = vec![0.0; self.memory_size as usize];
         self.hidden = vec![0.0; self.memory_size as usize];
@@ -262,23 +367,23 @@ impl Layer for LSTM {
 
 
 
-    /// add tracers to all the gates in the layer 
+    /// add tracers to all the gate.write().unwrap()s in the layer 
     fn add_tracer(&mut self) {
-        self.g_gate.add_tracer();
-        self.i_gate.add_tracer();
-        self.f_gate.add_tracer();
-        self.o_gate.add_tracer();
-        self.v_gate.add_tracer();
+        self.g_gate.write().unwrap().add_tracer();
+        self.i_gate.write().unwrap().add_tracer();
+        self.f_gate.write().unwrap().add_tracer();
+        self.o_gate.write().unwrap().add_tracer();
+        self.v_gate.write().unwrap().add_tracer();
     }
 
 
-    /// remove the tracers from all the gates in the layer
+    /// remove the tracers from all the gate.write().unwrap()s in the layer
     fn remove_tracer(&mut self) {
-        self.g_gate.remove_tracer();
-        self.i_gate.remove_tracer();
-        self.f_gate.remove_tracer();
-        self.o_gate.remove_tracer();
-        self.v_gate.remove_tracer();
+        self.g_gate.write().unwrap().remove_tracer();
+        self.i_gate.write().unwrap().remove_tracer();
+        self.f_gate.write().unwrap().remove_tracer();
+        self.o_gate.write().unwrap().remove_tracer();
+        self.v_gate.write().unwrap().remove_tracer();
     }
 
 
@@ -306,7 +411,7 @@ impl Layer for LSTM {
 
 
 /// Implement clone for the neat neural network in order to facilitate 
-/// proper crossover and mutation for the network
+/// proper crossover and mutation for the network  (*self.environment.read().unwrap()).clone();
 impl Clone for LSTM {
 
     #[inline]
@@ -319,11 +424,11 @@ impl Clone for LSTM {
             memory: vec![0.0; self.memory_size as usize],
             hidden: vec![0.0; self.memory_size as usize],
             states: LSTMState::new(),
-            g_gate: self.g_gate.clone(), 
-            i_gate: self.i_gate.clone(), 
-            f_gate: self.f_gate.clone(), 
-            o_gate: self.o_gate.clone(),
-            v_gate: self.v_gate.clone()
+            g_gate: Arc::new(RwLock::new((*self.g_gate.read().unwrap()).clone())), 
+            i_gate: Arc::new(RwLock::new((*self.i_gate.read().unwrap()).clone())), 
+            f_gate: Arc::new(RwLock::new((*self.f_gate.read().unwrap()).clone())), 
+            o_gate: Arc::new(RwLock::new((*self.o_gate.read().unwrap()).clone())),
+            v_gate: Arc::new(RwLock::new((*self.v_gate.read().unwrap()).clone()))
         }
     }
 }
@@ -348,11 +453,11 @@ impl Genome<LSTM, NeatEnvironment> for LSTM
             memory: vec![0.0; child.memory_size as usize],
             hidden: vec![0.0; child.memory_size as usize],
             states: LSTMState::new(),
-            g_gate: Dense::crossover(&child.g_gate, &parent_two.g_gate, env, crossover_rate)?,
-            i_gate: Dense::crossover(&child.i_gate, &parent_two.i_gate, env, crossover_rate)?,
-            f_gate: Dense::crossover(&child.f_gate, &parent_two.f_gate, env, crossover_rate)?,
-            o_gate: Dense::crossover(&child.o_gate, &parent_two.o_gate, env, crossover_rate)?,
-            v_gate: Dense::crossover(&child.v_gate, &parent_two.v_gate, env, crossover_rate)?
+            g_gate: Arc::new(RwLock::new(Dense::crossover(&child.g_gate.read().unwrap(), &parent_two.g_gate.read().unwrap(), env, crossover_rate)?)),
+            i_gate: Arc::new(RwLock::new(Dense::crossover(&child.i_gate.read().unwrap(), &parent_two.i_gate.read().unwrap(), env, crossover_rate)?)),
+            f_gate: Arc::new(RwLock::new(Dense::crossover(&child.f_gate.read().unwrap(), &parent_two.f_gate.read().unwrap(), env, crossover_rate)?)),
+            o_gate: Arc::new(RwLock::new(Dense::crossover(&child.o_gate.read().unwrap(), &parent_two.o_gate.read().unwrap(), env, crossover_rate)?)),
+            v_gate: Arc::new(RwLock::new(Dense::crossover(&child.v_gate.read().unwrap(), &parent_two.v_gate.read().unwrap(), env, crossover_rate)?)),
         };
         Some(child)
     }
@@ -362,11 +467,11 @@ impl Genome<LSTM, NeatEnvironment> for LSTM
     #[inline]
     fn distance(one: &LSTM, two: &LSTM, env: &Arc<RwLock<NeatEnvironment>>) -> f32 {
         let mut result = 0.0;
-        result += Dense::distance(&one.g_gate, &two.g_gate, env);
-        result += Dense::distance(&one.i_gate, &two.i_gate, env);
-        result += Dense::distance(&one.f_gate, &two.f_gate, env);
-        result += Dense::distance(&one.o_gate, &two.o_gate, env);
-        result += Dense::distance(&one.v_gate, &two.v_gate, env);
+        result += Dense::distance(&one.g_gate.read().unwrap(), &two.g_gate.read().unwrap(), env);
+        result += Dense::distance(&one.i_gate.read().unwrap(), &two.i_gate.read().unwrap(), env);
+        result += Dense::distance(&one.f_gate.read().unwrap(), &two.f_gate.read().unwrap(), env);
+        result += Dense::distance(&one.o_gate.read().unwrap(), &two.o_gate.read().unwrap(), env);
+        result += Dense::distance(&one.v_gate.read().unwrap(), &two.v_gate.read().unwrap(), env);
         result
     }
 }
