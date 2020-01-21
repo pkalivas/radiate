@@ -140,14 +140,12 @@ Now define an environment to hold global data for crossover and distance, things
 #[derive(Debug, Clone)]
 pub struct HelloEnv {
     pub alph: Vec<char>,
-    pub swap_rate: f32
 }
 
 impl HelloEnv {
     pub fn new() -> Self {
         HelloEnv {
             alph: vec!['!', ' ', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'], // now i know my abcs..
-            swap_rate: 0.5
         }
     }
 }
@@ -204,25 +202,20 @@ impl Genome<Hello, HelloEnv> for Hello {
             }
         } else {
             new_data = parent_one.data.clone();
-            if r.gen::<f32>() < params.swap_rate {
-                let swap_index = r.gen_range(0, new_data.len());
-                new_data[swap_index] = params.alph[r.gen_range(0, params.alph.len())];
-            }
+            let swap_index = r.gen_range(0, new_data.len());
+            new_data[swap_index] = params.alph[r.gen_range(0, params.alph.len())];
         }
         Some(Hello { data: new_data })
     }
 
     fn distance(one: &Hello, two: &Hello, _: &Arc<RwLock<HelloEnv>>) -> f32 {
-        let mut total = 0;
-        let mut other = 0;
+        let mut total = 0_f32;
         for (i, j) in one.data.iter().zip(two.data.iter()) {
             if i == j {
-                total += 1;
-            } else {
-                other += 1;
+                total += 1_f32;
             }
         }
-        (other + total) as f32 / total as f32
+        one.data.len() as f32 / total
     }
 
     fn base(env: &mut HelloEnv) -> Hello {
