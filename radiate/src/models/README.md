@@ -75,7 +75,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         ]);
         
     // the number of generations to evolve then the number of epochs to train
-    let num_evolve = 0;
+    let num_evolve = 20;
     let num_train = 1000;
 
     // create a new problem and a new NEAT solver 
