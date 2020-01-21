@@ -15,15 +15,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
         .set_weight_perturb(1.7)
-        .set_new_node_rate(0.4)
-        .set_new_edge_rate(0.4)
+        .set_new_node_rate(0.04)
+        .set_new_edge_rate(0.04)
         .set_reactivate(0.2)
         .set_activation_functions(vec![
             Activation::Sigmoid,
             Activation::Relu,
         ]);
         
-    let num_evolve = 0;
+    let num_evolve = 10;
     let num_train = 1000;
 
     let data = MemoryTest::new();

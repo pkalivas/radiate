@@ -294,16 +294,10 @@ impl Layer for LSTM {
     /// which results in speeds about double as a synconous thread.
     #[inline]
     fn forward(&mut self, inputs: &Vec<f32>) -> Option<Vec<f32>> {
-        let is_evolving = if let Some(_) = self.f_gate.read().unwrap().trace_states {
-                false
-            } else {
-                true
-            };
-        if is_evolving {
-            return self.step_forward(inputs);
-        } else {
+        if self.f_gate.read().map(|x| x.trace_states.is_some()).ok()? {
             return self.step_forward_async(inputs);
         }
+        self.step_forward(inputs)
     }
 
 
