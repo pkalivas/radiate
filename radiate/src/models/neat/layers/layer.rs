@@ -1,13 +1,14 @@
 
 use std::any::Any;
 use std::fmt::Debug;
+use serde_traitobject::{Serialize, Deserialize};
 
 
 /// Layer is a layer in the neural network. In order for 
 /// the network to be evolved, it must be able to be cloned which is where LayerClone
 /// comes in - allowing the Box<dyn Layer> to be cloned without knowing which type it 
 /// really is under the hood. Any allows for the underlying object to be downcast to a concrete type
-pub trait Layer: LayerClone + Any + Debug + serde_traitobject::Serialize + serde_traitobject::Deserialize {
+pub trait Layer: LayerClone + Any + Debug + Serialize + Deserialize {
     
     /// propagate an input vec through this layer. This is done differently 
     /// depending on the type of layer, just the same as backpropagation is.

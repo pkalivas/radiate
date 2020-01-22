@@ -225,7 +225,9 @@ impl LSTM {
         vectorops::element_multiply(&mut dho, &dh);
         vectorops::element_multiply(&mut dho, &vectorops::element_deactivate(&o_curr, self.o_gate.read().unwrap().activation));
         let o_gate_clone = Arc::clone(&self.o_gate);
-        let o_handle = thread::spawn(move || { return o_gate_clone.write().unwrap().backward(&dho, l_rate).unwrap(); });
+        let o_handle = thread::spawn(move || { 
+            return o_gate_clone.write().unwrap().backward(&dho, l_rate).unwrap(); 
+        });
         
         // Gradient for c in h = ho * tanh(c), note we're adding dc_next here     
         // dc = ho * dh * dtanh(c)
@@ -240,7 +242,9 @@ impl LSTM {
         let mut dhf = vectorops::product(&c_old, &dc);
         vectorops::element_multiply(&mut dhf, &vectorops::element_deactivate(&f_curr, self.f_gate.read().unwrap().activation));
         let f_gate_clone = Arc::clone(&self.f_gate);
-        let f_handle = thread::spawn(move || { return f_gate_clone.write().unwrap().backward(&dhf, l_rate).unwrap(); });
+        let f_handle = thread::spawn(move || { 
+            return f_gate_clone.write().unwrap().backward(&dhf, l_rate).unwrap(); 
+        });
 
         // Gradient for hi in c = hf * c_old + hi * hc     
         // dhi = hc * dc
@@ -248,7 +252,9 @@ impl LSTM {
         let mut dhi = vectorops::product(&g_curr, &dc);
         vectorops::element_multiply(&mut dhi, &vectorops::element_deactivate(&i_curr, self.i_gate.read().unwrap().activation));
         let i_gate_clone = Arc::clone(&self.i_gate);
-        let i_handle = thread::spawn(move || { return i_gate_clone.write().unwrap().backward(&dhi, l_rate).unwrap(); });
+        let i_handle = thread::spawn(move || { 
+            return i_gate_clone.write().unwrap().backward(&dhi, l_rate).unwrap(); 
+        });
 
         // Gradient for hc in c = hf * c_old + hi * hc     
         // dhc = hi * dc
@@ -256,7 +262,9 @@ impl LSTM {
         let mut dhc = vectorops::product(&i_curr, &dc);
         vectorops::element_multiply(&mut dhc, &vectorops::element_deactivate(&g_curr, self.g_gate.read().unwrap().activation));
         let g_gate_clone = Arc::clone(&self.g_gate);
-        let g_handle = thread::spawn(move || { return g_gate_clone.write().unwrap().backward(&dhc, l_rate).unwrap(); });
+        let g_handle = thread::spawn(move || { 
+            return g_gate_clone.write().unwrap().backward(&dhc, l_rate).unwrap(); 
+        });
 
         // As X was used in multiple gates, the gradient must be accumulated here     
         // dX = dXo + dXc + dXi + dXf
