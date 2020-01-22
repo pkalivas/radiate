@@ -13,22 +13,22 @@
 Coming from Evolutionary Radiation.
 > Evolutionary radiation is a rapid increase in the number of species with a common ancestor, characterized by great ecological and morphological diversity - Pascal Neige.
 
-Radiate is a parallel genetic programming engine capable of evolving solutions for supervised, unsupervised, and general reinforcement learning problems. 
+Radiate is a parallel genetic programming engine capable of evolving solutions to many problems as well as training learning algorithms.
 
 Radiate seperates the the evolutionary process from the object it is evolving, allowing users to evolve any defined structure. The algorithm follows an evolutionary process through speciation thus allowing the structures to optimize within their own niche. 
 
-Radiate exposes three traits to the user which (depending on the problem) must be implemented:
+Radiate exposes three traits to the user which must be implemented:
 1. **Genome**  
 Genome wraps the structure to be evolved and makes the user implement two nessesary functions and one optional. Distance and crossover must be implemented but base is optional (depending on how the user chooses to fill the population).
 2. **Environment**  
 Environment represnts the evolutionary enviromnet for the genome, this means it can contain simple statistics for the population's evoltuion, or parameters for crossing over and distance. Internally it is wrapped in a mutable threadsafe pointer so it is not intended to be shared for each genome, rather one per population. Environment requires no implementations of it's one function, however depending on the use case envionment exposes a function called reset which is intended to 'reset' the envionment.
 3. **Problem**  
-Problem is what gives a genome it's fitness score. It requires two implemented functions: empty and solve. Empty is required and should return a base problem (think new()). Solve takes a genome and returns that genome's fitness score, so this is where the analyzing of the current state of the genome occurs. Checkout the examples folder for a few examples of how this can be implemented.
+Problem is what gives a genome it's fitness score. It requires two implemented functions: empty and solve. Empty is required and should return a base problem (think new()). Solve takes a genome and returns that genome's fitness score, so this is where the analyzing of the current state of the genome occurs.
 
 Radiate also comes with two models already built. Those being Evtree, and NEAT.
 
 ### Evtree
-Is a twist on decision trees where instead of using a certain split criteria like the gini index, each node in the tree has a collection of matrices and uses these matrices to decide which subtree to explore. This algorithm is something I created and although I'm sure it's been built before, I haven't found any papers or implementations of anything like it. It is a binary tree and is only good for classification right now. I currently have plans to make it a little more verbose through better matrix mutliplication, propagating inputs further through the tree, and possibly introducing multiple sub trees and regression - however these increase the compute time.   
+Is a twist on decision trees where instead of using a certain split criteria like the gini index, each node in the tree has a collection of matrices and uses these matrices to decide which subtree to explore. This algorithm is something I created and although I'm sure it's been built before, I haven't found any papers or implementations of anything like it. It is a binary tree and is only good for classification right now. 
 ### NEAT
 Also known as Neuroevolution of Augmented Topologies, is the algorithm described by Kenneth O. Stanley in [this](http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) paper. This NEAT implementation also includes a backpropagation function which operates much like traditional neural networks which propagate the input error back through the network to adjust the weights. In pair with the evolution engine, can produce very nice and quick results. NEAT lets the use define how the network will be constructed, whether that be in a traitional neural network fashion where layers are stacked next to each other or with evolutionary topolgies of the graph through as explained in the paper. This means NEAT can be used in an evolutionary sense, through forward propagation and back propagation, or any combination of the two. There are examples of both in /examples.
  **more color on Neat in radiate/src/models/**
@@ -89,15 +89,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         .size(100)
         .populate_base()
         .dynamic_distance(true)
+        .stagnation(10, vec![Genocide::KillWorst(0.9)])
         .configure(Config {
             inbreed_rate: 0.001,
             crossover_rate: 0.75,
             distance: 0.5,
             species_target: 5
         })
-        .stagnation(10, vec![
-            Genocide::KillWorst(0.9)
-        ])
         .run(|model, fit, num| {
             println!("Generation: {} score: {:.3?}\t{:?}", num, fit, model.as_string());
             fit == 12.0 || num == 500
@@ -168,7 +166,11 @@ pub struct Hello {
 impl Hello {
     pub fn new(alph: &Vec<char>) -> Self {
         let mut r = rand::thread_rng();
-        Hello { data: (0..12).map(|_| alph[r.gen_range(0, alph.len())]).collect() }
+        Hello { 
+            data: (0..12)
+                .map(|_| alph[r.gen_range(0, alph.len())])
+                .collect() 
+        }
     }
 
     pub fn as_string(&self) -> String {
@@ -179,10 +181,6 @@ impl Hello {
             .join("")
     }
 }
-
-/// needed to be put into threads (the engine is multithreaded)
-unsafe impl Send for Hello {}
-unsafe impl Sync for Hello {}
 
 /// implement genome for Hello
 impl Genome<Hello, HelloEnv> for Hello {
