@@ -5,6 +5,7 @@ use std::error::Error;
 use std::time::Instant;
 use radiate::prelude::*;
 
+extern crate serde_json;
 
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -20,10 +21,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_new_edge_rate(0.04)
         .set_reactivate(0.2)
         .set_activation_functions(vec![
-            Activation::Sigmoid,
-            Activation::Relu,
+            Activation::LeakyRelu(0.02)
         ]);
-        
+
     let starting_net = Neat::base(&mut neat_env);
     let num_evolve = 1000;
     let xor = XOR::new();
@@ -50,7 +50,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             (diff > 0.0 && diff < 0.01) || num == num_evolve
         })?;
         
-
     println!("{:#?}", solution);
     xor.show(&mut solution);
     println!("total: {}", xor.solve(&mut solution));

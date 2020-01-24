@@ -29,7 +29,7 @@ use super::genome::Genome;
 /// Fittest - the default option, the top member from each species
 /// TopNumber - given a number, keep the top number regardless of species
 /// TopPercent - given a percent out of 100, keep the top percent regardless of species
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SurvivalCriteria {
     Fittest,
     TopNumber(usize),
@@ -49,7 +49,7 @@ pub enum SurvivalCriteria {
 /// BestInEachSpecies - only the best in each species are allowed to reproduce
 /// MostDifferent - Pick one parent, then find the parent most different from it (structurally) 
 ///                 and use that as the other parent. Note this could lead to large expansion in population
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ParentalCriteria {
     BiasedRandom,
     BestInSpecies,

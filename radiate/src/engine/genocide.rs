@@ -17,6 +17,7 @@ use super::niche::{NicheMember};
 /// Definine genocide struct to provide options
 /// of what to do when a population is stagnent,
 /// ie: how to clean the population
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Genocide {
     KeepTop(usize),
     KillWorst(f32),

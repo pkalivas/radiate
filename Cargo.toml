@@ -7,4 +7,5 @@ members = [
     "examples/lstm-neat",
     "examples/ism",
     "examples/helloworld",
+    "examples/neat-web"
 ]

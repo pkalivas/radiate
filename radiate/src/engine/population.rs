@@ -18,7 +18,8 @@ use super::{
 
 
 /// Keep track of the number of stagnant generations the population has had 
-/// if it reaches the target_stagnation, the vec of Genocides will be applied 
+/// if it reaches the target_stagnation, the vec of Genocides will be applied
+#[derive(Debug, Clone, Serialize, Deserialize)] 
 struct Stagnant {
     target_stagnation: usize,
     current_stagnation: usize,
@@ -32,7 +33,7 @@ struct Stagnant {
 /// in the algorithm, these are specific to genetic algorithms 
 /// which implement speciation between members of the population.
 /// It also leaves room for more paramters to be added in the future.
-#[derive(Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     pub inbreed_rate: f32,
     pub crossover_rate: f32,
@@ -379,7 +380,6 @@ impl Config {
         }
     }
 }
-
 
 
 
