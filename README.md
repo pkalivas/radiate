@@ -13,11 +13,9 @@
 Coming from Evolutionary Radiation.
 > Evolutionary radiation is a rapid increase in the number of species with a common ancestor, characterized by great ecological and morphological diversity - Pascal Neige.
 
-Radiate is a parallel genetic programming engine capable of evolving solutions to many problems as well as training learning algorithms.
+Radiate is a parallel genetic programming engine capable of evolving solutions to many problems as well as training learning algorithms. By seperating the the evolutionary process from the object being evolved, users can evolve any defined structure. The algorithm follows an evolutionary process through speciation which allows structures to optimize within their own niche. 
 
-Radiate seperates the the evolutionary process from the object it is evolving, allowing users to evolve any defined structure. The algorithm follows an evolutionary process through speciation thus allowing the structures to optimize within their own niche. 
-
-Radiate exposes three traits to the user which must be implemented:
+Radiate exposes three traits to the user which must be implemented (full simple implementation below):
 1. **Genome**  
 Genome wraps the structure to be evolved and makes the user implement two nessesary functions and one optional. Distance and crossover must be implemented but base is optional (depending on how the user chooses to fill the population).
 2. **Environment**  
@@ -185,9 +183,10 @@ impl Hello {
 /// implement genome for Hello
 impl Genome<Hello, HelloEnv> for Hello {
 
+    // the first parent is always going to be the most fit parent
     fn crossover(parent_one: &Hello, parent_two: &Hello, env: &Arc<RwLock<HelloEnv>>, crossover_rate: f32) -> Option<Hello> {
-        let mut r = rand::thread_rng();
         let params = env.read().unwrap();
+        let mut r = rand::thread_rng();
         let mut new_data = Vec::new();
         
         if r.gen::<f32>() < crossover_rate {
