@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         ]);
 
     let starting_net = Neat::base(&mut neat_env);
-    let num_evolve = 1000;
+    let num_evolve = 100;
     let xor = XOR::new();
 
 
@@ -54,6 +54,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     xor.show(&mut solution);
     println!("total: {}", xor.solve(&mut solution));
     println!("Time in millis: {}", thread_time.elapsed().as_millis());
+    solution.save("asdf.json")?;
+    let mut n = Neat::load("asdf.json")?;
+    println!("loaded in");
+    xor.show(&mut n);
     Ok(())
 }
 

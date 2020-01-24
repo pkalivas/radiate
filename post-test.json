@@ -1,0 +1,246 @@
+{
+  "env": {
+    "weight_mutate_rate": 0.8,
+    "weight_perturb": 1.75,
+    "new_node_rate": 0.03,
+    "new_edge_rate": 0.04,
+    "edit_weights": 0.1,
+    "reactivate": 0.2,
+    "input_size": 2,
+    "output_size": 1,
+    "activation_functions": [
+      {
+        "LeakyRelu": 0.02
+      }
+    ]
+  },
+  "train": {
+    "epochs": 100,
+    "learning_rate": 0.3
+  },
+  "neat": {
+    "layers": [
+      {
+        "layer_type": "DensePool",
+        "layer": {
+          "type": "Dense",
+          "inputs": [
+            "2e02c857-d35a-4732-838d-a774a001965b"
+          ],
+          "outputs": [
+            "e498938a-d2fb-4b68-baac-745df8541de9",
+            "f9bf5b06-7673-4c0e-8944-068dca4e0c55",
+            "67b59f1d-b602-45bc-999b-00cb8838adb7"
+          ],
+          "nodes": {
+            "e498938a-d2fb-4b68-baac-745df8541de9": {
+              "innov": "e498938a-d2fb-4b68-baac-745df8541de9",
+              "outgoing": [],
+              "incoming": {
+                "bdff062a-22bc-4051-90c9-4247868708bb": null
+              },
+              "bias": 0.175619,
+              "value": 0.0,
+              "d_value": 0.0,
+              "state": 0.0,
+              "error": 0.0,
+              "activation": "Sigmoid",
+              "neuron_type": "Output"
+            },
+            "f9bf5b06-7673-4c0e-8944-068dca4e0c55": {
+              "innov": "f9bf5b06-7673-4c0e-8944-068dca4e0c55",
+              "outgoing": [],
+              "incoming": {
+                "e264b50c-49e4-4a68-b439-853f9b5f040d": null
+              },
+              "bias": 0.32468837,
+              "value": 0.0,
+              "d_value": 0.0,
+              "state": 0.0,
+              "error": 0.0,
+              "activation": "Sigmoid",
+              "neuron_type": "Output"
+            },
+            "2e02c857-d35a-4732-838d-a774a001965b": {
+              "innov": "2e02c857-d35a-4732-838d-a774a001965b",
+              "outgoing": [
+                "bdff062a-22bc-4051-90c9-4247868708bb",
+                "e264b50c-49e4-4a68-b439-853f9b5f040d",
+                "b8d5f260-03b6-400b-94b2-bf8db7b26bf9"
+              ],
+              "incoming": {},
+              "bias": 0.2097587,
+              "value": 0.0,
+              "d_value": 0.0,
+              "state": 0.0,
+              "error": 0.0,
+              "activation": "Sigmoid",
+              "neuron_type": "Input"
+            },
+            "67b59f1d-b602-45bc-999b-00cb8838adb7": {
+              "innov": "67b59f1d-b602-45bc-999b-00cb8838adb7",
+              "outgoing": [],
+              "incoming": {
+                "b8d5f260-03b6-400b-94b2-bf8db7b26bf9": null
+              },
+              "bias": 0.87226653,
+              "value": 0.0,
+              "d_value": 0.0,
+              "state": 0.0,
+              "error": 0.0,
+              "activation": "Sigmoid",
+              "neuron_type": "Output"
+            }
+          },
+          "edges": {
+            "e264b50c-49e4-4a68-b439-853f9b5f040d": {
+              "src": "2e02c857-d35a-4732-838d-a774a001965b",
+              "dst": "f9bf5b06-7673-4c0e-8944-068dca4e0c55",
+              "innov": "e264b50c-49e4-4a68-b439-853f9b5f040d",
+              "weight": 0.49834263,
+              "active": true
+            },
+            "b8d5f260-03b6-400b-94b2-bf8db7b26bf9": {
+              "src": "2e02c857-d35a-4732-838d-a774a001965b",
+              "dst": "67b59f1d-b602-45bc-999b-00cb8838adb7",
+              "innov": "b8d5f260-03b6-400b-94b2-bf8db7b26bf9",
+              "weight": -0.67510664,
+              "active": true
+            },
+            "bdff062a-22bc-4051-90c9-4247868708bb": {
+              "src": "2e02c857-d35a-4732-838d-a774a001965b",
+              "dst": "e498938a-d2fb-4b68-baac-745df8541de9",
+              "innov": "bdff062a-22bc-4051-90c9-4247868708bb",
+              "weight": -0.7255714,
+              "active": true
+            }
+          },
+          "trace_states": null,
+          "layer_type": "DensePool",
+          "activation": "Sigmoid"
+        }
+      },
+      {
+        "layer_type": "Dense",
+        "layer": {
+          "type": "Dense",
+          "inputs": [
+            "04c13fa9-5687-414a-9445-839fe0295be5",
+            "274b8aab-6a07-494a-99dc-f37449903436",
+            "7be05500-a929-4610-be90-946f0d5d0752"
+          ],
+          "outputs": [
+            "3455e657-64af-423b-acea-8fd445d644da"
+          ],
+          "nodes": {
+            "7be05500-a929-4610-be90-946f0d5d0752": {
+              "innov": "7be05500-a929-4610-be90-946f0d5d0752",
+              "outgoing": [
+                "93eb994e-1e4e-4345-91cc-7b89d1e6cd68"
+              ],
+              "incoming": {},
+              "bias": 0.91206557,
+              "value": 0.0,
+              "d_value": 0.0,
+              "state": 0.0,
+              "error": 0.0,
+              "activation": "Sigmoid",
+              "neuron_type": "Input"
+            },
+            "04c13fa9-5687-414a-9445-839fe0295be5": {
+              "innov": "04c13fa9-5687-414a-9445-839fe0295be5",
+              "outgoing": [
+                "77a8d50c-531c-4c52-88d2-f66a6e2e014d"
+              ],
+              "incoming": {},
+              "bias": 0.68421805,
+              "value": 0.0,
+              "d_value": 0.0,
+              "state": 0.0,
+              "error": 0.0,
+              "activation": "Sigmoid",
+              "neuron_type": "Input"
+            },
+            "274b8aab-6a07-494a-99dc-f37449903436": {
+              "innov": "274b8aab-6a07-494a-99dc-f37449903436",
+              "outgoing": [
+                "cdc8b727-4306-4a6a-812a-cb564c6cd90a"
+              ],
+              "incoming": {},
+              "bias": 0.9766953,
+              "value": 0.0,
+              "d_value": 0.0,
+              "state": 0.0,
+              "error": 0.0,
+              "activation": "Sigmoid",
+              "neuron_type": "Input"
+            },
+            "3455e657-64af-423b-acea-8fd445d644da": {
+              "innov": "3455e657-64af-423b-acea-8fd445d644da",
+              "outgoing": [],
+              "incoming": {
+                "77a8d50c-531c-4c52-88d2-f66a6e2e014d": null,
+                "cdc8b727-4306-4a6a-812a-cb564c6cd90a": null,
+                "93eb994e-1e4e-4345-91cc-7b89d1e6cd68": null
+              },
+              "bias": 0.56869334,
+              "value": 0.0,
+              "d_value": 0.0,
+              "state": 0.0,
+              "error": 0.0,
+              "activation": "Sigmoid",
+              "neuron_type": "Output"
+            }
+          },
+          "edges": {
+            "93eb994e-1e4e-4345-91cc-7b89d1e6cd68": {
+              "src": "7be05500-a929-4610-be90-946f0d5d0752",
+              "dst": "3455e657-64af-423b-acea-8fd445d644da",
+              "innov": "93eb994e-1e4e-4345-91cc-7b89d1e6cd68",
+              "weight": -0.8197794,
+              "active": true
+            },
+            "cdc8b727-4306-4a6a-812a-cb564c6cd90a": {
+              "src": "274b8aab-6a07-494a-99dc-f37449903436",
+              "dst": "3455e657-64af-423b-acea-8fd445d644da",
+              "innov": "cdc8b727-4306-4a6a-812a-cb564c6cd90a",
+              "weight": 0.6219288,
+              "active": true
+            },
+            "77a8d50c-531c-4c52-88d2-f66a6e2e014d": {
+              "src": "04c13fa9-5687-414a-9445-839fe0295be5",
+              "dst": "3455e657-64af-423b-acea-8fd445d644da",
+              "innov": "77a8d50c-531c-4c52-88d2-f66a6e2e014d",
+              "weight": 0.41190684,
+              "active": true
+            }
+          },
+          "trace_states": null,
+          "layer_type": "Dense",
+          "activation": "Sigmoid"
+        }
+      }
+    ],
+    "input_size": 1,
+    "batch_size": 1
+  },
+  "population": {
+    "size": 100,
+    "dynamic_distance": true,
+    "debug_process": true,
+    "config": {
+      "inbreed_rate": 0.001,
+      "crossover_rate": 0.75,
+      "distance": 0.5,
+      "species_target": 5
+    },
+    "stagnation": 10,
+    "genocide": [
+      {
+        "KillWorst": 0.9
+      }
+    ],
+    "survival_criteria": "Fittest",
+    "parental_criteria": "BiasedRandom"
+  }
+}

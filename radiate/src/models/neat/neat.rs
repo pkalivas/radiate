@@ -26,7 +26,6 @@ use crate::engine::genome::Genome;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LayerWrap {
     pub layer_type: LayerType,
-    #[serde(with = "serde_traitobject")]
     pub layer: Box<dyn Layer>
 }
 

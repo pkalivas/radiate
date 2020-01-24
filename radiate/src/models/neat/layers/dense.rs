@@ -398,7 +398,7 @@ impl Dense {
 
 
 
-
+#[typetag::serde]
 impl Layer for Dense {
     /// Feed a vec of inputs through the network, will panic! if 
     /// the shapes of the values do not match or if something goes 

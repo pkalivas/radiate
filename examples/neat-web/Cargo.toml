@@ -10,7 +10,6 @@ radiate_web={path="../../radiate_web"}
 serde = {version ="1.0", features = ["rc"]}
 serde_json="1.0.44"
 serde_derive="1.0.104"
-serde_traitobject="0.2.4"
 rocket="0.4.2"
 
 

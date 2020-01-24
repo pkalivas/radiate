@@ -291,7 +291,7 @@ impl LSTM {
 
 
 
-
+#[typetag::serde]
 impl Layer for LSTM {
 
 
