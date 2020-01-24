@@ -115,7 +115,6 @@ impl LSTM {
     #[inline]
     pub fn step_forward_async(&mut self, inputs: &Vec<f32>) -> Option<Vec<f32>> {
         // get the previous state and output and create the input to the layer
-        // let mut previous_state = &mut self.memory;
         let mut hidden_input = self.hidden.clone();
         hidden_input.extend(inputs);
 

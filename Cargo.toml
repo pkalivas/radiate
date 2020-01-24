@@ -6,5 +6,6 @@ members = [
     "examples/xor-neat-backprop",
     "examples/lstm-neat",
     "examples/ism",
-    "examples/helloworld"
+    "examples/helloworld",
+    "web"
 ]

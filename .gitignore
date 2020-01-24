@@ -3,3 +3,5 @@ target/
 .pdb
 Cargo.lock
 radiate/.vs
+web/
+radiate/dtos

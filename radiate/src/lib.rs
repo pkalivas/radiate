@@ -4,6 +4,7 @@
 pub mod prelude;
 pub mod models;
 pub mod engine;
+pub mod dtos;
 
 #[macro_use]
 extern crate serde_derive;
@@ -30,6 +31,10 @@ pub use models::{
         neatenv::NeatEnvironment,
         activation::Activation,
     }
+};
+
+pub use dtos::{
+    neatenvdto::NeatEnvDto
 };
 
 pub use engine::{

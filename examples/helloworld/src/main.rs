@@ -111,8 +111,6 @@ impl Hello {
     }
 }
 
-unsafe impl Send for Hello {}
-unsafe impl Sync for Hello {}
 
 
 impl Genome<Hello, HelloEnv> for Hello {

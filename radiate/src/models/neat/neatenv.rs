@@ -14,7 +14,7 @@ use crate::engine::environment::Envionment;
 /// reactivate: the probability of reactivating a connection between two neurons 
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NeatEnvironment {
     // base settings for evolution
     pub weight_mutate_rate: Option<f32>,
