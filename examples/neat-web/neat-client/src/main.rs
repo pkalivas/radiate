@@ -48,7 +48,7 @@ async fn main() -> Result<(), reqwest::Error> {
     Ok(())
 }
 
-
+// https://api.rocket.rs/v0.5/rocket/local/struct.LocalRequest.html
 
 #[allow(dead_code)]
 fn generate_post_data() -> String {
