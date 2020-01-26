@@ -11,13 +11,14 @@ use radiate::engine::{
 
 #[derive(Debug, Clone, Serialize, Deserialize)] 
 pub struct NeatPopulationBuilder {
+    pub num_evolve: Option<i32>,
     pub size: Option<i32>,
     pub dynamic_distance: Option<bool>,
     pub debug_process: Option<bool>,
     pub config: Option<Config>,
     pub stagnation: Option<usize>,
     pub genocide: Option<Vec<Genocide>>,
-    pub survival_criteria: Option<SurvivalCriteria>,
+    pub survivor_criteria: Option<SurvivalCriteria>,
     pub parental_criteria: Option<ParentalCriteria>
 }
 
@@ -25,15 +26,21 @@ impl NeatPopulationBuilder {
 
     pub fn new() -> Self {
         NeatPopulationBuilder {
+            num_evolve: None,
             size: None,
             dynamic_distance: None,
             debug_process: None,
             config: None,
             stagnation: None,
             genocide: None,
-            survival_criteria: Some(SurvivalCriteria::Fittest),
+            survivor_criteria: Some(SurvivalCriteria::Fittest),
             parental_criteria: Some(ParentalCriteria::BiasedRandom)
         }
+    }
+
+    pub fn num_evolve(mut self, num: i32) -> Self{
+        self.num_evolve = Some(num);
+        self
     }
 
     pub fn size(mut self, size: i32) -> Self {
@@ -66,8 +73,8 @@ impl NeatPopulationBuilder {
         self
     }
 
-    pub fn survival_criteria(mut self, surv: SurvivalCriteria) -> Self {
-        self.survival_criteria = Some(surv);
+    pub fn survivor_criteria(mut self, surv: SurvivalCriteria) -> Self {
+        self.survivor_criteria = Some(surv);
         self
     }
 

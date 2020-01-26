@@ -24,7 +24,6 @@ pub struct RadiateDto {
     pub population: Option<NeatPopulationBuilder>
 }
 
-
 impl RadiateDto {
     
     pub fn new() -> Self {
@@ -57,7 +56,6 @@ impl RadiateDto {
     }
 
     pub fn to_json(&self) -> String {
-        // serde_json::to_writer_pretty(&File::create("file_path.json").unwrap(), &self).unwrap();
         serde_json::to_string_pretty(&self).unwrap()
     }
 }
