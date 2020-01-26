@@ -17,34 +17,21 @@ use radiate_web::prelude::*;
 use rocket::config::{Config as RConfig, Environment as REnv};
 use rocket_contrib::json::{Json, JsonValue};
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT, CONTENT_TYPE};
-
+use rocket::local::Client;
+use rocket::http::{ContentType, Cookie};
 
 
 #[tokio::main]
 async fn main() -> Result<(), reqwest::Error> {
     let data = generate_post_data();
-    let local_addr = IpAddr::from([0, 0, 0, 0]);
-    let client = reqwest::Client::builder()
-        .local_address(local_addr)
-        .build().unwrap();
 
-    let t = reqwest::Client::new()
-        .post("http://0.0.0.0:42069/")
-        .json(&json!(data))
-        .send()
-        .await?
-        .json()
-        .await?;
-    
-    println!("{:?}", t);
-
-
-    // let client = reqwest::Client::new();
-    // let res = client.post("http://0.0.0.0:69/")
-    //     .json(&data)
-    //     .send()
-    //     .await.unwrap();
-    //     println!("{:?}", res);
+    let client = reqwest::Client::new();
+    let mut headers = HeaderMap::new();
+    headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+    let res = client.post("http://0.0.0.0:42069/")
+        .headers(headers)
+        .body(data)
+        .send().await;
     Ok(())
 }
 
