@@ -8,6 +8,8 @@ categories = ["science", "simulation", "algorithms", "evolve", "genetic"]
 keywords = ["search", "genetic", "learning", "artificial", "evolution"]
 edition = "2018"
 description = "Train Radiate remotely"
+license = "MIT"
+
 
 
 
