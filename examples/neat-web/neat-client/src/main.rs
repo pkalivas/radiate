@@ -1,8 +1,6 @@
 
 #![feature(proc_macro_hygiene, decl_macro)]
 
-#[macro_use] extern crate rocket;
-#[macro_use] extern crate rocket_contrib;
 extern crate radiate;
 extern crate radiate_web;
 extern crate serde;
@@ -10,15 +8,9 @@ extern crate serde_json;
 extern crate serde_derive;
 extern crate reqwest;
 
-use std::net::IpAddr;
-use std::fs::File;
 use radiate::prelude::*;
 use radiate_web::prelude::*;
-use rocket::config::{Config as RConfig, Environment as REnv};
-use rocket_contrib::json::{Json, JsonValue};
-use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT, CONTENT_TYPE};
-use rocket::local::Client;
-use rocket::http::{ContentType, Cookie};
+use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 
 
 #[tokio::main]
