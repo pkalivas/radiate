@@ -4,6 +4,8 @@
 ![Crates.io](https://img.shields.io/crates/v/radiate)
 
 ## Versions
+**1.1.3** - Adding support for [Radiate Web](https://github.com/pkalivas/radiate/tree/master/radiate_web) so training Radiate can be done on a different machine.
+
 **1.1.2** - For forward and backward passes of NEAT, gated propagation in LSTM layers is now run in parallel which cuts training times in half. Changed the readme to be a full implementation of the engine which is a little more helpful for setting everything up. Added another readme file to radiate/src/models/ which gives examples of setting up a NEAT neural network.
 
 **1.1.1** - Fixed dumb bug in NEAT which was causing a error in backprop.
@@ -30,6 +32,8 @@ Is a twist on decision trees where instead of using a certain split criteria lik
 ### NEAT
 Also known as Neuroevolution of Augmented Topologies, is the algorithm described by Kenneth O. Stanley in [this](http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) paper. This NEAT implementation also includes a backpropagation function which operates much like traditional neural networks which propagate the input error back through the network to adjust the weights. In pair with the evolution engine, can produce very nice and quick results. NEAT lets the use define how the network will be constructed, whether that be in a traitional neural network fashion where layers are stacked next to each other or with evolutionary topolgies of the graph through as explained in the paper. This means NEAT can be used in an evolutionary sense, through forward propagation and back propagation, or any combination of the two. There are examples of both in /examples.
  **more color on Neat in radiate/src/models/**
+
+ Radiate also supports off-machine training where you can set up a problem to solve on one machine, then send the parameters to it from another through [Radiate Web](https://github.com/pkalivas/radiate/tree/master/radiate_web).
 
 ## Setup
 The population is pretty easy to set up assuming the all traits have been implemented. The population is a higher abstraction to keep track of varibales used during evoltuion but not needed within epoch - things like the problem, solution, to print to the screen, ect. A new population is filled originally with default settings:
