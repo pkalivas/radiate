@@ -11,7 +11,7 @@ extern crate reqwest;
 use radiate::prelude::*;
 use radiate_web::prelude::*;
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
-
+ 
 
 #[tokio::main]
 async fn main() -> Result<(), reqwest::Error> {
