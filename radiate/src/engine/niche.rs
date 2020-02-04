@@ -2,7 +2,6 @@
 extern crate rand;
 extern crate uuid;
 
-use std::mem;
 use std::sync::{Arc, RwLock};
 use std::marker::PhantomData;
 use uuid::Uuid;
