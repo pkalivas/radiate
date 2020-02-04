@@ -638,7 +638,7 @@ impl Genome<Dense, NeatEnvironment> for Dense
         }
         let one_score = similar / one.edges.len() as f32;
         let two_score = similar / two.edges.len() as f32;
-        (2.0 - (one_score + two_score)) 
+        2.0 - (one_score + two_score)
     }
 }
 
