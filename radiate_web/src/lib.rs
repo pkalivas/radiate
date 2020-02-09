@@ -8,6 +8,9 @@ pub mod web;
 pub use web::{
     dtos::{
         populationdto::NeatPopulationBuilder,
-        radiatedto::RadiateDto
+        radiatedto::{
+            RadiateDto,
+            TrainDto
+        }
     }
 };

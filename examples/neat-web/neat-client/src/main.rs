@@ -1,4 +1,3 @@
-
 #![feature(proc_macro_hygiene, decl_macro)]
 
 extern crate radiate;
@@ -7,12 +6,13 @@ extern crate serde;
 extern crate serde_json;
 extern crate serde_derive;
 extern crate reqwest;
+use std::fs::File;
 
 use radiate::prelude::*;
 use radiate_web::prelude::*;
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
  
-
+ 
 #[tokio::main]
 async fn main() -> Result<(), reqwest::Error> {
     let data = generate_post_data();
@@ -23,7 +23,7 @@ async fn main() -> Result<(), reqwest::Error> {
     let res = client.post("http://0.0.0.0:42069/")
         .headers(headers)
         .body(data)
-        .send().await;
+        .send().await;  
     Ok(())
 }
 
@@ -43,7 +43,8 @@ fn generate_post_data() -> String {
         .set_new_edge_rate(0.04)
         .set_reactivate(0.2)
         .set_activation_functions(vec![
-            Activation::LeakyRelu(0.02)
+            Activation::Relu,
+            Activation::Sigmoid
         ]);
 
     // build the neat network
@@ -76,5 +77,6 @@ fn generate_post_data() -> String {
             .to_json();
     
     // save to a file for testing via Postman
+    serde_json::to_writer_pretty(&File::create("temp.json").unwrap(), &radiate_dto).unwrap();
     radiate_dto
 }
