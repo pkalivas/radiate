@@ -1,22 +1,27 @@
 
 extern crate radiate;
 extern crate csv;
-
+extern crate rayon;
 
 use std::error::Error;
 use radiate::prelude::*;
+use rayon::prelude::*;
 
 
 
 
 fn main() -> Result<(), Box<dyn Error>> {
 
+    // set the number of threads to be used
+    rayon::ThreadPoolBuilder::new().num_threads(11).build_global().unwrap();
+
+    // definie the environment
     let neat_env = NeatEnvironment::new()
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
         .set_weight_perturb(1.5)
-        .set_new_node_rate(0.04)
-        .set_new_edge_rate(0.04)
+        .set_new_node_rate(0.08)
+        .set_new_edge_rate(0.08)
         .set_reactivate(0.2)
         .set_activation_functions(vec![
             Activation::Sigmoid,
@@ -26,14 +31,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         
     // evolve and train iterations 
     let num_evolve = 50;
-    let num_train = 1000;
+    let num_train = 500;
 
     // problem and solver
-    let ism = ISM::new(1);
+    let ism = ISM::new(3);
     let net = Neat::new()
-        .input_size(1)
+        .input_size(3)
         .batch_size(ism.answers.len())
-        .lstm(2, 1, Activation::Sigmoid);
+        .lstm(8, 1, Activation::Sigmoid);
        
     // evolve the solver to fit the problem
     let (mut solution, _) = Population::<Neat, NeatEnvironment, ISM>::new()
@@ -56,7 +61,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             
     // traditional training of neural networks
     solution.train(&ism.inputs, &ism.answers, 0.0003, Loss::Diff, |epoch, loss| {
-        let temp = format!("{:.3}", loss).parse::<f32>().unwrap().abs();
+        let temp = format!("{:.2}", loss).parse::<f32>().unwrap().abs();
         println!("epoch: {:?} loss: {:?}", epoch, temp);
         epoch == num_train
     })?;
@@ -130,7 +135,7 @@ impl ISM {
 
 
     fn read_data(back: usize) -> Self {
-        let mut reader = csv::Reader::from_path("C:/Users/peter/Desktop/software/radiate/examples/ism/src/ism_input.csv").unwrap();
+        let mut reader = csv::Reader::from_path("C:/Users/pkalivas/Desktop/radiate/examples/ism/src/ism_input.csv").unwrap();
         let mut data = Vec::new();
         for result in reader.records() {
             let temp = result.unwrap();
@@ -146,7 +151,6 @@ impl ISM {
                    
         let mut temp = data.iter().map(|x| x[0]).collect::<Vec<_>>();
         temp.reverse();
-        // data.reverse();
         let (o, a) = ISM::layer(back, temp);
         ISM {
             min_v: smallest,
@@ -159,10 +163,14 @@ impl ISM {
 
 
     fn write_data(&self, solution: &mut Neat) {
-        let mut writer = csv::Writer::from_path("C:/Users/peter/Desktop/software/radiate/examples/ism/src/ism.csv").unwrap();
+        let mut writer = csv::Writer::from_path("C:/Users/pkalivas/Desktop/radiate/examples/ism/src/ism.csv").unwrap();
         for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
             let guess = solution.forward(i).unwrap();
-            writer.write_record(&[i[i.len() - 1].to_string(), o[0].to_string(), guess[0].to_string()]).unwrap();
+            writer.write_record(&[
+                self.de_norm(i[i.len() - 1]).to_string(), 
+                self.de_norm(o[0]).to_string(), 
+                self.de_norm(guess[0]).to_string()
+            ]).unwrap();
         }
         writer.flush().unwrap();
     }
@@ -182,7 +190,6 @@ impl ISM {
                 .map(|x| format!("{:.2?}", self.de_norm(*x)))
                 .collect::<Vec<_>>()
                 .join(" "),
-                // i[i.len() - 1], 
                 self.de_norm(o[0]), 
                 self.de_norm(guess[0])
             );
@@ -217,7 +224,7 @@ unsafe impl Sync for ISM {}
 
 impl Problem<Neat> for ISM {
 
-    fn empty() -> Self { ISM::new(1) }
+    fn empty() -> Self { ISM::new(3) }
 
     fn solve(&self, model: &mut Neat) -> f32 {
         let mut total = 0.0;

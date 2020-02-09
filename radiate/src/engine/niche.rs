@@ -1,9 +1,10 @@
 
 extern crate rand;
+extern crate uuid;
 
-use std::mem;
 use std::sync::{Arc, RwLock};
 use std::marker::PhantomData;
+use uuid::Uuid;
 use rand::prelude::SliceRandom;
 use rayon::prelude::*;
 
@@ -29,6 +30,7 @@ pub struct Niche<T, E> {
     pub members: Vec<NicheMember<T>>,
     pub age: i32,
     pub total_adjusted_fitness: Option<f32>,
+    pub niche_id: Uuid,
     phantom: PhantomData<E>
 }
 
@@ -49,6 +51,7 @@ impl<T, E> Niche<T, E>
             members: vec![NicheMember(mascot_fitness, Arc::downgrade(mascot))],
             age: 0,
             total_adjusted_fitness: None,
+            niche_id: Uuid::new_v4(),
             phantom: PhantomData
         }
     }
@@ -123,9 +126,8 @@ impl<T, E> Niche<T, E>
 
 
     pub fn display_info(&self) {
-        let address: u64 = unsafe { mem::transmute(self) };            
         println!("Species: {} gens( {} ) members( {} ) adj fit( {:.3} )",
-            address,
+            self.niche_id,
             self.age,
             self.members.len(),
             self.total_adjusted_fitness.unwrap(),
