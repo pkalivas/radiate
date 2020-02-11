@@ -13,20 +13,19 @@ use rayon::prelude::*;
 fn main() -> Result<(), Box<dyn Error>> {
 
     // set the number of threads to be used
-    rayon::ThreadPoolBuilder::new().num_threads(11).build_global().unwrap();
+    rayon::ThreadPoolBuilder::new().num_threads(8).build_global().unwrap();
 
     // definie the environment
     let neat_env = NeatEnvironment::new()
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
         .set_weight_perturb(1.5)
-        .set_new_node_rate(0.08)
-        .set_new_edge_rate(0.08)
+        .set_new_node_rate(0.03)
+        .set_new_edge_rate(0.03)
         .set_reactivate(0.2)
         .set_activation_functions(vec![
             Activation::Sigmoid,
             Activation::Relu,
-            Activation::Linear(1.0)
         ]);
         
     // evolve and train iterations 
@@ -34,16 +33,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     let num_train = 500;
 
     // problem and solver
-    let ism = ISM::new(3);
+    let ism = ISM::new(32);
     let net = Neat::new()
-        .input_size(3)
+        .input_size(32)
         .batch_size(ism.answers.len())
-        .lstm(8, 1, Activation::Sigmoid);
+        .lstm(12, 1, Activation::Sigmoid);
        
     // evolve the solver to fit the problem
     let (mut solution, _) = Population::<Neat, NeatEnvironment, ISM>::new()
         .constrain(neat_env)
-        .size(100)
+        .size(50)
         .populate_clone(net)
         .debug(true)
         .dynamic_distance(true)
@@ -60,10 +59,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         })?;
             
     // traditional training of neural networks
-    solution.train(&ism.inputs, &ism.answers, 0.0003, Loss::Diff, |epoch, loss| {
-        let temp = format!("{:.2}", loss).parse::<f32>().unwrap().abs();
+    solution.train(&ism.inputs, &ism.answers, 0.00001, Loss::Diff, |epoch, loss| {
+        let temp = format!("{:.5}", loss).parse::<f32>().unwrap().abs();
         println!("epoch: {:?} loss: {:?}", epoch, temp);
-        epoch == num_train
+        epoch == num_train || temp < 0.01
     })?;
     
     solution.reset();
@@ -224,7 +223,7 @@ unsafe impl Sync for ISM {}
 
 impl Problem<Neat> for ISM {
 
-    fn empty() -> Self { ISM::new(3) }
+    fn empty() -> Self { ISM::new(32) }
 
     fn solve(&self, model: &mut Neat) -> f32 {
         let mut total = 0.0;

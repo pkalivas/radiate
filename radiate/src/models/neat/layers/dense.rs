@@ -227,7 +227,7 @@ impl Dense {
             .map(|x| self.edges.get(x).unwrap().dst)
             .collect::<Vec<_>>();
        
-            // while the stack still has nodes, continue
+        // while the stack still has nodes, continue
         while stack.len() > 0 {
             
             // if the current node is the same as the sending, this would cause a cycle

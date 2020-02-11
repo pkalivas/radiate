@@ -103,6 +103,7 @@ pub fn d_softmax(one: &Vec<f32>) -> Vec<f32> {
 
 #[inline]
 pub fn loss(one: &Vec<f32>, two: &Vec<f32>, loss_fn: &Loss) -> (f32, Vec<f32>) {
+    assert!(one.len() == two.len(), "Loss vector shape don't match");
     match loss_fn {
         Loss::Diff => {
             let difference = subtract(one, two);
