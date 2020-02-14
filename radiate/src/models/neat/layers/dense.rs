@@ -1,7 +1,6 @@
 extern crate rand;
 extern crate uuid;
 
-use std::mem;
 use std::fmt;
 use std::any::Any;
 use std::collections::HashMap;
