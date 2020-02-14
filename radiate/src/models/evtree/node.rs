@@ -264,8 +264,8 @@ unsafe impl Sync for Node {}
 /// implemented a display function for the node to display a simple representation of the node
 impl fmt::Display for Node {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let address: u64 = unsafe { mem::transmute(self) };
-        write!(f, "Node=[{}, {}]", address, self.output)
+        // let address: u64 = unsafe { mem::transmute(self) };
+        write!(f, "Node=[{}]", self.output)
     }
 }
 
@@ -276,10 +276,10 @@ impl fmt::Display for Node {
 impl fmt::Debug for Node {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         unsafe {
-            let address: u64 = mem::transmute(self);
-            let left: u64 = if self.has_left_child() { mem::transmute(&*self.left_child) } else { 0x64 };
-            let right: u64 = if self.has_right_child() { mem::transmute(&*self.right_child) } else { 0x64 };
-            write!(f, "Node=[{} L: {} R: {} pos: {}]", address, left, right, self.output)
+            // let address: u64 = mem::transmute(self);
+            // let left: u64 = if self.has_left_child() { mem::transmute(&*self.left_child) } else { 0x64 };
+            // let right: u64 = if self.has_right_child() { mem::transmute(&*self.right_child) } else { 0x64 };
+            write!(f, "Node=[{}]", self.output)
         }
     }
 }

@@ -6,7 +6,6 @@ extern crate serde;
 extern crate serde_json;
 extern crate serde_derive;
 extern crate reqwest;
-use std::fs::File;
 
 use radiate::prelude::*;
 use radiate_web::prelude::*;
@@ -75,8 +74,6 @@ fn generate_post_data() -> String {
             .neat(net)
             .population(population)
             .to_json();
-    
-    // save to a file for testing via Postman
-    serde_json::to_writer_pretty(&File::create("temp.json").unwrap(), &radiate_dto).unwrap();
+
     radiate_dto
 }

@@ -347,9 +347,9 @@ impl Evtree {
 impl fmt::Debug for Evtree {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         unsafe {
-            let address: u64 = mem::transmute(self);
-            let root: u64 = if self.root != ptr::null_mut() { mem::transmute(&*self.root) } else { 0x64 };
-            write!(f, "Tree=[{}, {}, {}]", address, root, self.size)
+            // let address: u64 = mem::transmute(self);
+            // let root: u64 = if self.root != ptr::null_mut() { mem::transmute(&*self.root) } else { 0x64 };
+            write!(f, "Tree=[{}]", self.size)
         }
     }
 }

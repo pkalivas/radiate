@@ -716,10 +716,7 @@ impl PartialEq for Dense {
 /// Simple override of display for neat to debug a little cleaner 
 impl fmt::Display for Dense {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        unsafe {
-            let address: u64 = mem::transmute(self);
-            write!(f, "Dense=[{}, {}, {}]", address, self.nodes.len(), self.edges.len())
-        }
+        write!(f, "Dense=[{}, {}]", self.nodes.len(), self.edges.len())
     }
 }
 

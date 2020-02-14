@@ -457,9 +457,6 @@ unsafe impl Sync for LSTM {}
 /// implement display for the LSTM layer of the network
 impl fmt::Display for LSTM {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        unsafe {
-            let address: u64 = mem::transmute(self);
-            write!(f, "LSTM=[{}]", address)
-        }
+        write!(f, "LSTM=[{}]", "LSTM")
     }
 }
