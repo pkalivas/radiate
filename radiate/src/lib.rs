@@ -20,7 +20,8 @@ pub use models::{
             layer::Layer,
             layertype::LayerType,
             dense::Dense,
-            lstm::LSTM
+            lstm::LSTM,
+            gru::GRU
         },
         neurontype::NeuronType,
         loss::Loss,
