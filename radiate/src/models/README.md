@@ -19,19 +19,25 @@ Define a new Neat network with an input of 3, batch of 5, and an lstm layer
 ```
 Define a new Neat network with multiple layers 
 ```rust
+// note - this network will panic! if traditional backpropagation is used 
+//        this is because backprop is not yet implemented for the gated 
+//        recurrent unit layer (gru) yet. It can be evolved though.
     let neural_network = Neat::new()
         .input_size(1)
         .dense(5, Activation::Relu)
         .dense(5, Activation::Tahn)
+        .gru(10, 10, Activation::Tahn)          // (memory size, output size, output layer activation)
         .dense_pool(1, Activation::Sigmoid);
 ```
-NEAT currently has three layer types that can be chained onto a neat instance. 
+NEAT currently has four layer types that can be chained onto a neat instance. 
 
 **1.)** Dense - a normal dense layer of a neural network - not capable of evolving hidden neurons or other connections. Evolution instead only changes weights.
 
 **2.)** DensePool - the algorithm described in the paper, capable of evolving hidden neurons and connections between them as well as changing weights.
 
 **3.)** LSTM - a traditional long short term memory layer where each gate is a dense_pool network. Note - if the network is being evolved, the forward pass through an lstm is run syncronously, but if the network is being trained the forward pass and backward pass gated calculations are run in parallel which in my experience cuts training time in half.
+
+**4.)** GRU - a simple gated recurrent unit layer. Like the lstm, this is made of multiple dense_pool networks which act as the gates. As of radiate v1.1.5 the gru is only viable for evoltuion and not for backpropagation, but implementing the backprop for gru is next on the todo list. This layer runs on a single thread.
 
 All neural networks need nonlinear functions to represent complex datasets. Neat allows users to specify which activation function a neuron will use through a customizable vec! in the neat enviornment.
 ```rust

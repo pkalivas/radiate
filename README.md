@@ -4,6 +4,8 @@
 ![Crates.io](https://img.shields.io/crates/v/radiate)
 
 ## Versions
+**1.1.5** - Added minimal support for GRU layer (Gated Recurrent Unit). GRU is only viable for evolution, NOT backprop, yet. Your program will panic! if a network with a gru layer is used during backprop, if a memory cell is needed for backprop purposes use the LSTM option for now. Also, cleaned up some code and optimized certain points to run a bit quicker. Evtree has been moved to it's own seperate crate called radiate_matrix_tree and is available on crates.io.
+
 **1.1.3** - Adding support for [Radiate Web](https://github.com/pkalivas/radiate/tree/master/radiate_web) so training Radiate can be done on a different machine.
 
 **1.1.2** - For forward and backward passes of NEAT, gated propagation in LSTM layers is now run in parallel which cuts training times in half. Changed the readme to be a full implementation of the engine which is a little more helpful for setting everything up. Added another readme file to radiate/src/models/ which gives examples of setting up a NEAT neural network.
@@ -25,10 +27,8 @@ Environment represnts the evolutionary enviromnet for the genome, this means it 
 3. **Problem**  
 Problem is what gives a genome it's fitness score. It requires two implemented functions: empty and solve. Empty is required and should return a base problem (think new()). Solve takes a genome and returns that genome's fitness score, so this is where the analyzing of the current state of the genome occurs.
 
-Radiate also comes with two models already built. Those being Evtree, and NEAT.
+Radiate also comes with one model already built and another available for use on crates. Those being radiate_matrix_tree and NEAT, radiate_matrix_tree is available on crates and NEAT comes prepackaged with radiate.
 
-### Evtree
-Is a twist on decision trees where instead of using a certain split criteria like the gini index, each node in the tree has a collection of matrices and uses these matrices to decide which subtree to explore. This algorithm is something I created and although I'm sure it's been built before, I haven't found any papers or implementations of anything like it. It is a binary tree and is only good for classification right now. 
 ### NEAT
 Also known as Neuroevolution of Augmented Topologies, is the algorithm described by Kenneth O. Stanley in [this](http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) paper. This NEAT implementation also includes a backpropagation function which operates much like traditional neural networks which propagate the input error back through the network to adjust the weights. In pair with the evolution engine, can produce very nice and quick results. NEAT lets the use define how the network will be constructed, whether that be in a traitional neural network fashion where layers are stacked next to each other or with evolutionary topolgies of the graph through as explained in the paper. This means NEAT can be used in an evolutionary sense, through forward propagation and back propagation, or any combination of the two. There are examples of both in /examples.
  **more color on Neat in radiate/src/models/**
@@ -257,11 +257,10 @@ Generation: 126 score: 12.000   "hello world!"
 Time in millis: 349, solution: "hello world!"
 ```
 This comes right now with four examples, just run "cargo run --bin (desired example name)" to run any of them
-1. **xor-evtree**
-2. **xor-neat**
-3. **xor-neat-backprop**
-4. **lstm-neat**
-5. **helloworld**
+1. **xor-neat**
+2. **xor-neat-backprop**
+3. **lstm-neat**
+4. **helloworld**
 
 ## Create a Population
 The initial generation in the population can be created in four different ways depending on the user's use case. The examples show different ways of using them.

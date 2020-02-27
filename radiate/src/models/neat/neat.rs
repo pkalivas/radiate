@@ -223,11 +223,11 @@ impl Neat {
 
 
     #[inline]
-    pub fn gru(mut self, size: u32, output_size: u32) -> Self {
+    pub fn gru(mut self, size: u32, output_size: u32, act: Activation) -> Self {
         let (input_size, output_size) = self.get_layer_sizes(output_size).unwrap();
         let wrapper = LayerWrap {
             layer_type: LayerType::GRU,
-            layer: Box::new(GRU::new(input_size, size, output_size))
+            layer: Box::new(GRU::new(input_size, size, output_size, act))
         };
         self.layers.push(wrapper);
         self

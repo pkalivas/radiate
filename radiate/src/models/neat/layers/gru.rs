@@ -28,9 +28,9 @@ pub struct GRU {
     pub output_size: u32,
     pub current_memory: Vec<f32>,
     pub current_output: Vec<f32>,
-    pub gate_forget: Dense,
-    pub gate_output: Dense,
-    pub gate_extract: Dense,
+    pub f_gate: Dense,
+    pub e_gate: Dense,
+    pub o_gate: Dense,
 }
 
 
@@ -39,7 +39,7 @@ pub struct GRU {
 impl GRU {
 
 
-    pub fn new(input_size: u32, memory_size: u32, output_size: u32) -> Self {        
+    pub fn new(input_size: u32, memory_size: u32, output_size: u32, act: Activation) -> Self {        
         let network_in_size = input_size + memory_size + output_size;
         GRU {
             input_size,
@@ -47,9 +47,9 @@ impl GRU {
             output_size,
             current_memory: vec![0.0; memory_size as usize],
             current_output: vec![0.0; output_size as usize],
-            gate_forget: Dense::new(network_in_size, memory_size, LayerType::DensePool, Activation::Sigmoid),
-            gate_output: Dense::new(network_in_size, output_size, LayerType::DensePool, Activation::Tahn),
-            gate_extract: Dense::new(network_in_size, memory_size, LayerType::DensePool, Activation::Tahn),
+            f_gate: Dense::new(network_in_size, memory_size, LayerType::DensePool, Activation::Sigmoid),
+            e_gate: Dense::new(network_in_size, memory_size, LayerType::DensePool, Activation::Tahn),
+            o_gate: Dense::new(network_in_size, output_size, LayerType::DensePool, act),
         }
     }
 
@@ -74,8 +74,8 @@ impl Layer for GRU {
         network_input.extend(&self.current_memory);
 
         // calculate memory updates
-        let mut forget = self.gate_forget.forward(&network_input)?;
-        let mut memory = self.gate_extract.forward(&network_input)?;
+        let mut forget = self.f_gate.forward(&network_input)?;
+        let mut memory = self.e_gate.forward(&network_input)?;
 
         // figure out what to forget from the current memory
         vectorops::element_multiply(&mut self.current_memory, &forget);
@@ -87,34 +87,35 @@ impl Layer for GRU {
         concat_input_output.extend(&self.current_memory);
 
         // calculate the current output of the layer
-        self.current_output = self.gate_output.forward(&concat_input_output)?;
+        self.current_output = self.o_gate.forward(&concat_input_output)?;
         Some(self.current_output.clone())
     }
 
 
     fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32) -> Option<Vec<f32>> {
-        let output_error = self.gate_output.backward(&errors, learning_rate)?;
-        // let delta_mem = self.current_memory
-        //     .iter()
-        //     .zip(output_error.iter())
-        //     .map(|(a, b)| {
-        //         a * b
-        //     })
-        //     .collect::<Vec<_>>();
+        panic!("Backprop for GRU is not implemented yet");
+        // let output_error = self.o_gate.backward(&errors, learning_rate)?;
+        // // let delta_mem = self.current_memory
+        // //     .iter()
+        // //     .zip(output_error.iter())
+        // //     .map(|(a, b)| {
+        // //         a * b
+        // //     })
+        // //     .collect::<Vec<_>>();
 
-        // let delta_out = errors
-        //     .iter()
-        //     .zip(output_error.iter())
-        //     .map(|(a, b)| {
-        //         a * b
-        //     })
-        //     .collect::<Vec<_>>();
+        // // let delta_out = errors
+        // //     .iter()
+        // //     .zip(output_error.iter())
+        // //     .map(|(a, b)| {
+        // //         a * b
+        // //     })
+        // //     .collect::<Vec<_>>();
         
-        self.gate_forget.backward(&output_error, learning_rate)?;
-        self.gate_extract.backward(&output_error, learning_rate)?;
+        // self.f_gate.backward(&output_error, learning_rate)?;
+        // self.e_gate.backward(&output_error, learning_rate)?;
 
         
-        Some(errors.clone())
+        // Some(errors.clone())
     }
 
 
@@ -150,9 +151,9 @@ impl Clone for GRU {
             output_size: self.output_size,
             current_memory: vec![0.0; self.memory_size as usize],
             current_output: vec![0.0; self.output_size as usize],
-            gate_forget: self.gate_forget.clone(),
-            gate_output: self.gate_output.clone(),
-            gate_extract: self.gate_extract.clone(),
+            f_gate: self.f_gate.clone(),
+            o_gate: self.o_gate.clone(),
+            e_gate: self.e_gate.clone(),
         }
     }
 }
@@ -175,9 +176,9 @@ impl Genome<GRU, NeatEnvironment> for GRU
             output_size: child.output_size,
             current_memory: vec![0.0; child.memory_size as usize],
             current_output: vec![0.0; child.output_size as usize],
-            gate_forget: Dense::crossover(&child.gate_forget, &parent_two.gate_forget, env, crossover_rate)?,
-            gate_output: Dense::crossover(&child.gate_output, &parent_two.gate_output, env, crossover_rate)?,
-            gate_extract: Dense::crossover(&child.gate_extract, &parent_two.gate_extract, env, crossover_rate)?,
+            f_gate: Dense::crossover(&child.f_gate, &parent_two.f_gate, env, crossover_rate)?,
+            o_gate: Dense::crossover(&child.o_gate, &parent_two.o_gate, env, crossover_rate)?,
+            e_gate: Dense::crossover(&child.e_gate, &parent_two.e_gate, env, crossover_rate)?,
         };
         Some(child)
     }
@@ -187,9 +188,9 @@ impl Genome<GRU, NeatEnvironment> for GRU
     #[inline]
     fn distance(one: &GRU, two: &GRU, env: &Arc<RwLock<NeatEnvironment>>) -> f32 {
         let mut result = 0.0;
-        result += Dense::distance(&one.gate_forget, &two.gate_forget, env);
-        result += Dense::distance(&one.gate_output, &two.gate_output, env);
-        result += Dense::distance(&one.gate_extract, &two.gate_extract, env);
+        result += Dense::distance(&one.f_gate, &two.f_gate, env);
+        result += Dense::distance(&one.o_gate, &two.o_gate, env);
+        result += Dense::distance(&one.e_gate, &two.e_gate, env);
         result
     }
 }

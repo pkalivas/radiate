@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "radiate",
-    "examples/xor-evtree",
+    "radiate_web",
     "examples/xor-neat",
     "examples/xor-neat-backprop",
     "examples/lstm-neat",

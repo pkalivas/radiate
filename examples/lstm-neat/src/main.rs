@@ -23,14 +23,16 @@ fn main() -> Result<(), Box<dyn Error>> {
             Activation::Relu,
         ]);
         
-    let num_evolve = 10;
+    let num_evolve = 50;
     let num_train = 1000;
 
     let data = MemoryTest::new();
     let starting_net = Neat::new()
         .input_size(1)
         .batch_size(data.output.len())
-        .lstm(10, 1, Activation::Sigmoid);
+        .gru(10, 5, Activation::Tahn)
+        .dense_pool(1, Activation::Sigmoid);
+        // .lstm(10, 1, Activation::Sigmoid);
 
     let (mut solution, _) = Population::<Neat, NeatEnvironment, MemoryTest>::new()
         .constrain(neat_env)
@@ -50,11 +52,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             num == num_evolve
         })?;
         
-        solution.train(&data.input, &data.output, 0.3, Loss::Diff, |iter, loss| {
-            let temp = format!("{:.4}", loss).parse::<f32>().unwrap().abs();
-            println!("epoch: {:?} loss: {:.6?}", iter, temp);
-            iter == num_train || (temp < 1_f32 && temp % 1.0 == 0.0)
-        })?;
+        // solution.train(&data.input, &data.output, 0.3, Loss::Diff, |iter, loss| {
+        //     let temp = format!("{:.4}", loss).parse::<f32>().unwrap().abs();
+        //     println!("epoch: {:?} loss: {:.6?}", iter, temp);
+        //     iter == num_train || (temp < 1_f32 && temp % 1.0 == 0.0)
+        // })?;
 
         
         solution.reset();
