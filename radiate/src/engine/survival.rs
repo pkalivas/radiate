@@ -179,17 +179,22 @@ impl ParentalCriteria {
         // set a result option to none, this will panic! if the result is still none
         // at the end of the function. Then get the total poopulation fitness
         let mut result = None;
-        let total = families.iter()
-            .fold(0.0, |sum, curr| {
-                sum + (*curr).read().unwrap().get_total_adjusted_fitness()
+        let total = families
+            .iter()
+            .fold((0.0, 0.0), |sum, curr| {
+                let adj_fit = (*curr).read().unwrap().get_total_adjusted_fitness();
+                if adj_fit < sum.0 {
+                    return (adj_fit, sum.1 + adj_fit)
+                }
+                (sum.0, sum.1 + adj_fit)
             });
 
         // iterate through the species until the iterative sum is at or above the selected
         // random adjusted fitness level
         let mut curr = 0.0;
-        let index = r.gen::<f32>() * total;
+        let index = r.gen::<f32>() * (total.0 + total.1);
         for i in families.iter() {
-            curr += i.read().ok()?.get_total_adjusted_fitness();
+            curr += i.read().ok()?.get_total_adjusted_fitness() + total.0;
             if curr >= index {
                 result = Some(Arc::clone(i));
                 break
@@ -213,11 +218,12 @@ impl ParentalCriteria {
         // is no member found, then get the species total fitness score
         let species_lock = family.read().unwrap();
         let total = species_lock.get_total_adjusted_fitness();
-        let index = r.gen::<f32>() * total;
+        let min_fitness = species_lock.min_fitness();
+        let index = r.gen::<f32>() * (total + min_fitness);
         let (mut result, mut curr) = (None, 0.0);
         // go through each member and see if it's adjusted fitness has pushed it over the edge
         for member in species_lock.members.iter() {
-            curr += member.0;
+            curr += member.0 + min_fitness;
             if curr >= index {
                 result = Some(member);
                 break
@@ -227,7 +233,8 @@ impl ParentalCriteria {
         // negative, just take the first member. If the fitness of the species is negative,
         // the algorithm essentially preforms a random search for these biased functions 
         // once the fitness is above 0, it will 'catch on' and start producing biased results
-        result.or_else(|| Some(&species_lock.members[0]))
+        result
+            .or_else(|| Some(&species_lock.members[0]))
             .and_then(|val| {
                 Some((val.0, val.1.clone()
                     .upgrade()

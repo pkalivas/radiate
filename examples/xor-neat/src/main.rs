@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         ]);
 
     let starting_net = Neat::base(&mut neat_env);
-    let num_evolve = 50;
+    let num_evolve = 1000;
     let xor = XOR::new();
 
 
@@ -121,7 +121,7 @@ impl Problem<Neat> for XOR {
                 None => panic!("Error in training NEAT")
             }
         }
-        4.0 - total
+        (4.0 - total)
     }
 
 }

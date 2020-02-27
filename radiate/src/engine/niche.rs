@@ -77,6 +77,21 @@ impl<T, E> Niche<T, E>
 
 
 
+    /// get the minimum fitness score from the niche 
+    #[inline]
+    pub fn min_fitness(&self) -> f32 {
+        self.members
+            .iter()
+            .fold(0.0, |small, curr| {
+                if curr.0 < small {
+                    return curr.0;
+                }
+                small
+            })
+    }
+
+
+
     /// Reset the species by getting a new random mascot and incrememnting the 
     /// age by one, then setting the total adjusted species back to None,
     /// and clearing the members vec. Basically starting from scratch again but 
