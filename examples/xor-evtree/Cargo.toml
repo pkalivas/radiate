@@ -1,0 +1,10 @@
+[package]
+name = "xor-evtree"
+description = "XOR for redox using evtree."
+version = "1.0.0"
+authors = ["pkalivas <peterkalivas@gmail.com>"]
+
+[dependencies]
+simple-matrix="*"
+radiate="1.1.5"
+radiate_matrix_tree={path="../../radiate_matrix_tree"}

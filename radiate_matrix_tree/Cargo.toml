@@ -1,20 +1,17 @@
 [package]
-name = "radiate_web"
-version = "0.1.12"
-authors = ["Peter Kalivas <peterkalivas@gmail.com>"]
+name = "radiate_matrix_tree"
+version = "1.0.0"
+authors = ["pkalivas <peterkalivas@gmail.com>"]
+description = "Matrix Tree model compatable with Radiate's evolutionary engine"
 repository = "https://github.com/pkalivas/radiate"
 readme = "README.md"
 categories = ["science", "simulation", "algorithms", "evolve", "genetic"]
 keywords = ["search", "genetic", "learning", "artificial", "evolution"]
 edition = "2018"
-description = "Train Radiate remotely"
 license = "MIT"
 
 
-
-
 [dependencies]
-radiate = "1.1.5"
-serde = {version ="1.0", features = ["rc"]}
-serde_json="1.0.44"
-serde_derive="1.0.104"
+radiate="1.1.5"
+rand="0.7.2"
+simple-matrix = "0.1.2"

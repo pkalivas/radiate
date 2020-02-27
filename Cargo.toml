@@ -2,10 +2,12 @@
 members = [
     "radiate",
     "radiate_web",
+    "radiate_matrix_tree",
     "examples/xor-neat",
     "examples/xor-neat-backprop",
     "examples/lstm-neat",
     "examples/ism",
+    "examples/xor-evtree",
     "examples/helloworld",
     "examples/neat-web/neat-server",
     "examples/neat-web/neat-client"
