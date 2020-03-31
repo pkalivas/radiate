@@ -23,14 +23,14 @@ fn main() -> Result<(), Box<dyn Error>> {
             Activation::Relu,
         ]);
         
-    let num_evolve = 50;
+    let num_evolve = 500;
     let num_train = 1000;
 
     let data = MemoryTest::new();
     let starting_net = Neat::new()
         .input_size(1)
         .batch_size(data.output.len())
-        .gru(10, 5, Activation::Tahn)
+        // .gru(10, 5, Activation::Tahn)
         .dense_pool(1, Activation::Sigmoid);
         // .lstm(10, 1, Activation::Sigmoid);
 
