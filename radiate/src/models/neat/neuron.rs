@@ -8,6 +8,44 @@ use uuid::Uuid;
 
 use super::activation::Activation;
 use super::neurontype::NeuronType;
+use super::direction::NeuronDirection;
+
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct Tracker {
+    pub current_value: f32,
+    pub current_dvalue: f32,
+    pub current_state: f32,
+    pub previous_activations: Vec<f32>,
+    pub previous_derivatives: Vec<f32>,
+    pub previous_states: Vec<f32>,
+    pub index: usize
+}
+
+
+impl Tracker {
+
+    pub fn new() -> Self {
+        Tracker {
+            current_value: 0.0,
+            current_dvalue: 0.0,
+            current_state: 0.0,
+            previous_activations: Vec::new(),
+            previous_derivatives: Vec::new(),
+            previous_states: Vec::new(),
+            index: 0
+        }
+    }
+
+
+    pub fn get_previous_state(&self) -> f32 {
+        if self.previous_states.is_empty() {
+            return 0.0
+        }
+        *self.previous_states.last().unwrap()
+    }
+
+}
 
 
 
@@ -20,14 +58,12 @@ pub struct Neuron {
     pub innov: Uuid,
     pub outgoing: Vec<Uuid>,
     pub incoming: HashMap<Uuid, Option<f32>>,
-    pub bias: f32,
-    pub value: f32,
-    pub previous_value: f32,
-    pub d_value: f32,
-    pub state: f32,
-    pub error: f32,
+    pub tracker: Tracker,
+    pub direction: NeuronDirection,
     pub activation: Activation,
-    pub neuron_type: NeuronType
+    pub neuron_type: NeuronType,
+    pub bias: f32,
+    pub error: f32,
 }
 
 
@@ -35,19 +71,17 @@ pub struct Neuron {
 impl Neuron {
 
 
-    pub fn new(innov: Uuid, neuron_type: NeuronType, activation: Activation) -> Self {
+    pub fn new(innov: Uuid, neuron_type: NeuronType, activation: Activation, direction: NeuronDirection) -> Self {
         Neuron {
             innov,
             outgoing: Vec::new(),
             incoming: HashMap::new(),
-            bias: rand::thread_rng().gen::<f32>(),
-            value: 0.0,
-            previous_value: 0.0,
-            d_value: 0.0,
-            state: 0.0,
-            error: 0.0,
+            tracker: Tracker::new(),
+            direction,
             activation,
             neuron_type,
+            bias: rand::thread_rng().gen::<f32>(),
+            error: 0.0,
         }
     }
 
@@ -71,13 +105,24 @@ impl Neuron {
     }
 
 
+
+    pub fn get_step(&self) -> f32 {
+        self.error * self.tracker.previous_derivatives[self.tracker.index - 1]
+    }
+
+
+    pub fn get_activation(&self) -> f32 {
+        self.tracker.previous_activations[self.tracker.index - 1]
+    }
+
+
     
     /// 𝜎(Σ(w * i) + b)
     /// activate this node by calling the underlying neuron's logic for activation
     /// given the hashmap of <incoming edge innov, Option<incoming Neuron output value>>
     #[inline]
     pub fn activate(&mut self) {
-        self.state = self.incoming
+        let state = self.incoming
             .values()
             .fold(self.bias, |sum, curr| {
                 match curr {
@@ -85,20 +130,25 @@ impl Neuron {
                     None => panic!("Cannot activate node.")
                 }
             });
+
         if self.activation != Activation::Softmax {
-            self.value = self.activation.activate(self.state + self.previous_value);
-            self.previous_value = self.state;
-            self.d_value = self.activation.deactivate(self.state);
+            match self.direction {
+                NeuronDirection::Forward => {
+                    self.tracker.current_value = self.activation.activate(state);
+                    self.tracker.current_dvalue = self.activation.deactivate(state);
+                },
+                NeuronDirection::Recurrent => {
+                    self.tracker.current_value = self.activation.activate(state + self.tracker.get_previous_state());
+                    self.tracker.current_dvalue = self.activation.deactivate(state + self.tracker.get_previous_state());
+                }
+            }
         }
-    }
 
-
-
-    /// deactivate this node by calling the underlying neuron's logic to compute
-    /// the gradient of the original output value 
-    #[inline]
-    pub fn deactivate(&self) -> f32 {
-        self.activation.deactivate(self.state)
+        self.tracker.previous_activations.push(self.tracker.current_value);
+        self.tracker.previous_derivatives.push(self.tracker.current_dvalue);
+        self.tracker.previous_states.push(self.tracker.current_state);
+        self.tracker.current_state = state;
+        self.tracker.index += 1;
     }
 
 
@@ -130,12 +180,10 @@ impl Clone for Neuron {
                 .iter()
                 .map(|(key, _)| (*key, None))
                 .collect(),
-            state: 0.0,
-            value: 0.0,
-            previous_value: 0.0,
-            d_value: 0.0,
-            error: 0.0,
+            tracker: Tracker::new(),
+            direction: self.direction,
             bias: self.bias.clone(),
+            error: 0.0,
             activation: self.activation.clone(),
             neuron_type: self.neuron_type.clone(),
         }

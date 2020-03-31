@@ -25,6 +25,7 @@ pub struct NeatEnvironment {
     pub reactivate: Option<f32>,
     pub input_size: Option<u32>,
     pub output_size: Option<u32>,
+    pub add_recurrent_rate: Option<f32>,
     pub activation_functions: Vec<Activation>,
 }
 
@@ -41,6 +42,7 @@ impl NeatEnvironment {
             reactivate: None,
             input_size: None,
             output_size: None,
+            add_recurrent_rate: None,
             activation_functions: vec![Activation::Sigmoid],
         }
     }
@@ -90,6 +92,12 @@ impl NeatEnvironment {
 
     pub fn set_output_size(mut self, num: u32) -> Self {
         self.output_size = Some(num);
+        self
+    }
+
+
+    pub fn set_recurrent_rate(mut self, num: f32) -> Self {
+        self.add_recurrent_rate = Some(num);
         self
     }
 
