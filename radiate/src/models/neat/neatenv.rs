@@ -38,7 +38,7 @@ impl NeatEnvironment {
             weight_perturb: None,
             new_node_rate: None,
             new_edge_rate: None,
-            recurrent_neuron_rate: None,
+            recurrent_neuron_rate: Some(0.0),
             edit_weights: None,
             reactivate: None,
             input_size: None,

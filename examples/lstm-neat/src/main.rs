@@ -17,20 +17,21 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_weight_perturb(1.7)
         .set_new_node_rate(0.04)
         .set_new_edge_rate(0.04)
+        .set_recurrent_neuron_rate(0.0)
         .set_reactivate(0.2)
         .set_activation_functions(vec![
             Activation::Sigmoid,
             Activation::Relu,
         ]);
         
-    let num_evolve = 50;
+    let num_evolve = 200;
     let num_train = 1000;
 
     let data = MemoryTest::new();
     let starting_net = Neat::new()
         .input_size(1)
         .batch_size(data.output.len())
-        .gru(10, 5, Activation::Tahn)
+        // .gru(10, 5, Activation::Tahn)
         .dense_pool(1, Activation::Sigmoid);
         // .lstm(10, 1, Activation::Sigmoid);
 
