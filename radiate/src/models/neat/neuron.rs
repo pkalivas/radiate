@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 use super::activation::Activation;
 use super::neurontype::NeuronType;
+use super::direction::NeuronDirection;
 
 
 
@@ -20,13 +21,15 @@ pub struct Neuron {
     pub innov: Uuid,
     pub outgoing: Vec<Uuid>,
     pub incoming: HashMap<Uuid, Option<f32>>,
-    pub bias: f32,
-    pub value: f32,
-    pub d_value: f32,
-    pub state: f32,
-    pub error: f32,
     pub activation: Activation,
-    pub neuron_type: NeuronType
+    pub direction: NeuronDirection,
+    pub neuron_type: NeuronType,
+    pub activated_value: f32,
+    pub deactivated_value: f32,
+    pub current_state: f32,
+    pub previous_state: f32,
+    pub error: f32,
+    pub bias: f32,
 }
 
 
@@ -34,18 +37,20 @@ pub struct Neuron {
 impl Neuron {
 
 
-    pub fn new(innov: Uuid, neuron_type: NeuronType, activation: Activation) -> Self {
+    pub fn new(innov: Uuid, neuron_type: NeuronType, activation: Activation, direction: NeuronDirection) -> Self {
         Neuron {
             innov,
             outgoing: Vec::new(),
             incoming: HashMap::new(),
-            bias: rand::thread_rng().gen::<f32>(),
-            value: 0.0,
-            d_value: 0.0,
-            state: 0.0,
-            error: 0.0,
             activation,
             neuron_type,
+            direction
+            activated_value: 0.0,
+            deactivated_value: 0.0,
+            current_state: 0.0,
+            previous_state: 0.0,
+            error: 0.0,
+            bias: rand::thread_rng().gen::<f32>(),
         }
     }
 
@@ -75,7 +80,7 @@ impl Neuron {
     /// given the hashmap of <incoming edge innov, Option<incoming Neuron output value>>
     #[inline]
     pub fn activate(&mut self) {
-        self.state = self.incoming
+        self.current_state = self.incoming
             .values()
             .fold(self.bias, |sum, curr| {
                 match curr {
@@ -84,20 +89,19 @@ impl Neuron {
                 }
             });
         if self.activation != Activation::Softmax {
-            self.value = self.activation.activate(self.state);
-            self.d_value = self.activation.deactivate(self.state);
+            match self.direction {
+                NeuronDirection::Forward => {
+                    self.activated_value = self.activation.activate(self.current_state);
+                    self.deactivated_value = self.activation.deactivate(self.current_state);
+                },
+                NeuronDirection::Recurrent => {
+                    self.activated_value = self.activation.activate(self.current_state + self.previous_state);
+                    self.deactivated_value = self.activation.deactivate(self.current_state + self.previous_state);
+                }
+            }
+            self.previous_state = self.current_state;
         }
     }
-
-
-
-    /// deactivate this node by calling the underlying neuron's logic to compute
-    /// the gradient of the original output value 
-    #[inline]
-    pub fn deactivate(&self) -> f32 {
-        self.activation.deactivate(self.state)
-    }
-
 
 
     /// each Neuron has a base layer of reset which needs to happen 
@@ -127,13 +131,15 @@ impl Clone for Neuron {
                 .iter()
                 .map(|(key, _)| (*key, None))
                 .collect(),
-            state: 0.0,
-            value: 0.0,
-            d_value: 0.0,
+            current_state: 0.0,
+            previous_state: 0.0,
+            activated_value: 0.0,
+            deactivated_value: 0.0,
             error: 0.0,
             bias: self.bias.clone(),
             activation: self.activation.clone(),
             neuron_type: self.neuron_type.clone(),
+            direction: self.direction.clone()
         }
     }
 }

@@ -22,7 +22,8 @@ use super::super::{
     tracer::Tracer,
     neatenv::NeatEnvironment,
     neurontype::NeuronType,
-    activation::Activation
+    activation::Activation,
+    direction::NeuronDirection
 };
 
 use crate::Genome;
@@ -66,10 +67,10 @@ impl Dense {
         };
 
         for innov in layer.inputs.iter() {
-            layer.nodes.insert(*innov, Neuron::new(*innov, NeuronType::Input, activation).as_mut_ptr());
+            layer.nodes.insert(*innov, Neuron::new(*innov, NeuronType::Input, activation, NeuronDirection::Forward).as_mut_ptr());
         }
         for innov in layer.outputs.iter() {
-            layer.nodes.insert(*innov, Neuron::new(*innov, NeuronType::Output, activation).as_mut_ptr());
+            layer.nodes.insert(*innov, Neuron::new(*innov, NeuronType::Output, activation, NeuronDirection::Forward).as_mut_ptr());
         }
         
         let mut r = rand::thread_rng();
@@ -106,7 +107,7 @@ impl Dense {
         let result = self.outputs
             .iter()
             .map(|x| {
-                unsafe { (**self.nodes.get(x).unwrap()).value }
+                unsafe { (**self.nodes.get(x).unwrap()).activated_value }
             })
             .collect::<Vec<_>>();
         Some(result)
@@ -120,10 +121,10 @@ impl Dense {
     /// while the new weight is randomly chosen and put between the 
     /// old source node and the new node
     #[inline]
-    pub fn add_node(&mut self, activation: Activation) {
+    pub fn add_node(&mut self, activation: Activation, direction: NeuronDirection) {
         unsafe {
             // create a new node to insert inbetween the sending and receiving nodes 
-            let new_node = Neuron::new(Uuid::new_v4(), NeuronType::Hidden, activation).as_mut_ptr();
+            let new_node = Neuron::new(Uuid::new_v4(), NeuronType::Hidden, activation, direction).as_mut_ptr();
 
             // get an edge to insert the node into
             // get the sending and receiving nodes from the edge
@@ -299,7 +300,7 @@ impl Dense {
         let mut ids = Vec::with_capacity(self.inputs.len());
         for (node_innov, input) in self.inputs.iter().zip(data.iter()) {
             let node = self.nodes.get(node_innov).unwrap();
-            (**node).value = *input;
+            (**node).activated_value = *input;
             ids.push((**node).innov);
         }
         ids
@@ -341,7 +342,7 @@ impl Dense {
             .map(|x| {
                 unsafe {
                     let output_neuron = self.nodes.get(x).unwrap();
-                    (**output_neuron).state
+                    (**output_neuron).current_state
                 }
             })
             .collect::<Vec<_>>()
@@ -369,8 +370,8 @@ impl Dense {
         for (i, neuron_id) in self.outputs.iter().enumerate() {
             unsafe {
                 let curr_neuron = self.nodes.get(neuron_id).unwrap();
-                (**curr_neuron).value = act[i];
-                (**curr_neuron).d_value = d_act[i];
+                (**curr_neuron).activated_value = act[i];
+                (**curr_neuron).deactivated_value = d_act[i];
             }
         }
     }
@@ -383,8 +384,8 @@ impl Dense {
         if let Some(tracer) = &mut self.trace_states {
             unsafe {
                 for (n_id, n_ptr) in self.nodes.iter() {
-                    tracer.update_neuron_activation(n_id, (**n_ptr).value);
-                    tracer.update_neuron_derivative(n_id, (**n_ptr).d_value);
+                    tracer.update_neuron_activation(n_id, (**n_ptr).activated_value);
+                    tracer.update_neuron_derivative(n_id, (**n_ptr).deactivated_value);
                 }
                 tracer.index += 1;
             }
@@ -430,7 +431,7 @@ impl Layer for Dense {
                     let curr_edge = self.edges.get_mut(edge_innov)?;
                     if curr_edge.active {
                         let receiving_node = self.nodes.get(&curr_edge.dst)?;
-                        let activated_value = curr_edge.calculate((**curr_node).value);
+                        let activated_value = curr_edge.calculate((**curr_node).activated_value);
                         (**receiving_node).incoming.insert(curr_edge.innov, Some(activated_value));
         
                         // if the node can be activated, activate it and store it's value
@@ -479,7 +480,7 @@ impl Layer for Dense {
                 let curr_node = self.nodes.get(&path.pop()?)?;
                 let step = match &self.trace_states {
                     Some(tracer) => (**curr_node).error * tracer.neuron_derivative((**curr_node).innov),
-                    None => (**curr_node).error * (**curr_node).d_value
+                    None => (**curr_node).error * (**curr_node).deactivated_value
                 } * learning_rate;
               
                 // iterate through each of the incoming edes to this neuron and adjust it's weight
@@ -495,7 +496,7 @@ impl Layer for Dense {
                         // then update the connection so it knows if it should update the weight, or store the delta
                         let delta = match &self.trace_states {
                             Some(tracer) => step * tracer.neuron_activation((**src_neuron).innov),
-                            None => step * (**src_neuron).value
+                            None => step * (**src_neuron).activated_value
                         };
 
                         (**src_neuron).error += curr_edge.weight * (**curr_node).error;
@@ -518,7 +519,7 @@ impl Layer for Dense {
                     let neuron = self.nodes.get(x).unwrap();
                     let error = match &self.trace_states {
                         Some(tracer) => (**neuron).error * tracer.neuron_activation((**neuron).innov),
-                        None => (**neuron).error * (**neuron).value
+                        None => (**neuron).error * (**neuron).activated_value
                     };
                     (**neuron).error = 0.0;
                     error
@@ -615,7 +616,11 @@ impl Genome<Dense, NeatEnvironment> for Dense
                 if new_child.layer_type == LayerType::DensePool {
                     if r.gen::<f32>() < set.new_node_rate? {
                         let act_func = *set.activation_functions.choose(&mut r)?;
-                        new_child.add_node(act_func);
+                        if r.gen::<f32>() < set.recurrent_neuron_rate? {
+                            new_child.add_node(act_func, NeuronDirection::Recurrent);
+                        } else {
+                            new_child.add_node(act_func, NeuronDirectino::Forward);
+                        }
                     }
                     if r.gen::<f32>() < set.new_edge_rate? {
                         new_child.add_edge();

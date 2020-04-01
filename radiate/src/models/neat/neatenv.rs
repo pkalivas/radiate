@@ -21,6 +21,7 @@ pub struct NeatEnvironment {
     pub weight_perturb: Option<f32>,
     pub new_node_rate: Option<f32>,
     pub new_edge_rate: Option<f32>,
+    pub recurrent_neuron_rate: Option<f32>,
     pub edit_weights: Option<f32>,
     pub reactivate: Option<f32>,
     pub input_size: Option<u32>,
@@ -37,6 +38,7 @@ impl NeatEnvironment {
             weight_perturb: None,
             new_node_rate: None,
             new_edge_rate: None,
+            recurrent_neuron_rate: None,
             edit_weights: None,
             reactivate: None,
             input_size: None,
@@ -60,6 +62,12 @@ impl NeatEnvironment {
 
     pub fn set_new_node_rate(mut self, num: f32) -> Self {
         self.new_node_rate = Some(num);
+        self
+    }
+
+
+    pub fn set_recurrent_neuron_rate(mut self, num: f32) -> Self {
+        self.recurrent_neuron_rate = Some(num);
         self
     }
 
