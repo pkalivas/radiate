@@ -15,16 +15,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
         .set_weight_perturb(1.7)
-        .set_new_node_rate(0.04)
-        .set_new_edge_rate(0.04)
-        .set_recurrent_neuron_rate(0.0)
+        .set_new_node_rate(0.14)
+        .set_new_edge_rate(0.14)
+        .set_recurrent_neuron_rate(1.0)
         .set_reactivate(0.2)
         .set_activation_functions(vec![
             Activation::Sigmoid,
             Activation::Relu,
         ]);
         
-    let num_evolve = 200;
+    let num_evolve = 500;
     let num_train = 1000;
 
     let data = MemoryTest::new();
@@ -53,10 +53,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             num == num_evolve
         })?;
         
-        // solution.train(&data.input, &data.output, 0.3, Loss::Diff, |iter, loss| {
-        //     let temp = format!("{:.4}", loss).parse::<f32>().unwrap().abs();
+        // solution.train(&data.input, &data.output, 0.01, Loss::Diff, |iter, loss| {
+        //     let temp = format!("{:.6}", loss).parse::<f32>().unwrap().abs();
         //     println!("epoch: {:?} loss: {:.6?}", iter, temp);
-        //     iter == num_train || (temp < 1_f32 && temp % 1.0 == 0.0)
+        //     iter == num_train // || (temp < 1_f32 && temp % 1.0 == 0.0)
         // })?;
 
         
