@@ -9,6 +9,7 @@ pub mod tracer;
 
 pub mod direction {
 
+    #[derive(Deserialize, Serialize, Debug, PartialEq, Clone, Copy)]
     pub enum NeuronDirection {
         Forward,
         Recurrent

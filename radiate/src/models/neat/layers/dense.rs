@@ -22,7 +22,8 @@ use super::super::{
     tracer::Tracer,
     neatenv::NeatEnvironment,
     neurontype::NeuronType,
-    activation::Activation
+    activation::Activation,
+    direction::NeuronDirection
 };
 
 use crate::Genome;
@@ -66,10 +67,10 @@ impl Dense {
         };
 
         for innov in layer.inputs.iter() {
-            layer.nodes.insert(*innov, Neuron::new(*innov, NeuronType::Input, activation).as_mut_ptr());
+            layer.nodes.insert(*innov, Neuron::new(*innov, NeuronType::Input, activation, NeuronDirection::Forward).as_mut_ptr());
         }
         for innov in layer.outputs.iter() {
-            layer.nodes.insert(*innov, Neuron::new(*innov, NeuronType::Output, activation).as_mut_ptr());
+            layer.nodes.insert(*innov, Neuron::new(*innov, NeuronType::Output, activation, NeuronDirection::Forward).as_mut_ptr());
         }
         
         let mut r = rand::thread_rng();
@@ -120,10 +121,10 @@ impl Dense {
     /// while the new weight is randomly chosen and put between the 
     /// old source node and the new node
     #[inline]
-    pub fn add_node(&mut self, activation: Activation) {
+    pub fn add_node(&mut self, activation: Activation, direction: NeuronDirection) {
         unsafe {
             // create a new node to insert inbetween the sending and receiving nodes 
-            let new_node = Neuron::new(Uuid::new_v4(), NeuronType::Hidden, activation).as_mut_ptr();
+            let new_node = Neuron::new(Uuid::new_v4(), NeuronType::Hidden, activation, direction).as_mut_ptr();
 
             // get an edge to insert the node into
             // get the sending and receiving nodes from the edge
@@ -615,7 +616,11 @@ impl Genome<Dense, NeatEnvironment> for Dense
                 if new_child.layer_type == LayerType::DensePool {
                     if r.gen::<f32>() < set.new_node_rate? {
                         let act_func = *set.activation_functions.choose(&mut r)?;
-                        new_child.add_node(act_func);
+                        if r.gen::<f32>() < set.recurrent_neuron_rate? {
+                            new_child.add_node(act_func, NeuronDirection::Recurrent);
+                        } else {
+                            new_child.add_node(act_func, NeuronDirectino::Forward);
+                        }
                     }
                     if r.gen::<f32>() < set.new_edge_rate? {
                         new_child.add_edge();

@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 use super::activation::Activation;
 use super::neurontype::NeuronType;
+use super::direction::NeuronDirection;
 
 
 
@@ -21,6 +22,7 @@ pub struct Neuron {
     pub outgoing: Vec<Uuid>,
     pub incoming: HashMap<Uuid, Option<f32>>,
     pub activation: Activation,
+    pub direction: NeuronDirection,
     pub neuron_type: NeuronType,
     pub activated_value: f32,
     pub deactivated_value: f32,
@@ -35,19 +37,20 @@ pub struct Neuron {
 impl Neuron {
 
 
-    pub fn new(innov: Uuid, neuron_type: NeuronType, activation: Activation) -> Self {
+    pub fn new(innov: Uuid, neuron_type: NeuronType, activation: Activation, direction: NeuronDirection) -> Self {
         Neuron {
             innov,
             outgoing: Vec::new(),
             incoming: HashMap::new(),
-            bias: rand::thread_rng().gen::<f32>(),
+            activation,
+            neuron_type,
+            direction
             activated_value: 0.0,
             deactivated_value: 0.0,
             current_state: 0.0,
             previous_state: 0.0,
             error: 0.0,
-            activation,
-            neuron_type,
+            bias: rand::thread_rng().gen::<f32>(),
         }
     }
 
@@ -86,8 +89,17 @@ impl Neuron {
                 }
             });
         if self.activation != Activation::Softmax {
-            self.activated_value = self.activation.activate(self.current_state);
-            self.deactivated_value = self.activation.deactivate(self.current_state);
+            match self.direction {
+                NeuronDirection::Forward => {
+                    self.activated_value = self.activation.activate(self.current_state);
+                    self.deactivated_value = self.activation.deactivate(self.current_state);
+                },
+                NeuronDirection::Recurrent => {
+                    self.activated_value = self.activation.activate(self.current_state + self.previous_state);
+                    self.deactivated_value = self.activation.deactivate(self.current_state + self.previous_state);
+                }
+            }
+            self.previous_state = self.current_state;
         }
     }
 
@@ -127,6 +139,7 @@ impl Clone for Neuron {
             bias: self.bias.clone(),
             activation: self.activation.clone(),
             neuron_type: self.neuron_type.clone(),
+            direction: self.direction.clone()
         }
     }
 }
