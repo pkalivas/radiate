@@ -44,7 +44,7 @@ impl Neuron {
             incoming: HashMap::new(),
             activation,
             neuron_type,
-            direction
+            direction,
             activated_value: 0.0,
             deactivated_value: 0.0,
             current_state: 0.0,

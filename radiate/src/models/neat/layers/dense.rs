@@ -619,7 +619,7 @@ impl Genome<Dense, NeatEnvironment> for Dense
                         if r.gen::<f32>() < set.recurrent_neuron_rate? {
                             new_child.add_node(act_func, NeuronDirection::Recurrent);
                         } else {
-                            new_child.add_node(act_func, NeuronDirectino::Forward);
+                            new_child.add_node(act_func, NeuronDirection::Forward);
                         }
                     }
                     if r.gen::<f32>() < set.new_edge_rate? {
