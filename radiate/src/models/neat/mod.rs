@@ -7,6 +7,17 @@ pub mod tracer;
 
 
 
+pub mod direction {
+
+    pub enum NeuronDirection {
+        Forward,
+        Recurrent
+    }
+
+}
+
+
+
 pub mod loss {
 
     pub enum Loss {
