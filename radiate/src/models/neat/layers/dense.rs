@@ -589,6 +589,8 @@ impl Genome<Dense, NeatEnvironment> for Dense
                 for (innov, edge) in new_child.edges.iter_mut() {
                     
                     // if the edge is in both networks, then radnomly assign the weight to the edge
+                    // because we are already looping over the most fit parent, we only need to change the 
+                    // weight to the second parent if nessesary.
                     if parent_two.edges.contains_key(innov) {
                         if r.gen::<f32>() < 0.5 {
                             edge.weight = parent_two.edges.get(innov)?.weight;
