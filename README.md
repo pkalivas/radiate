@@ -4,6 +4,8 @@
 ![Crates.io](https://img.shields.io/crates/v/radiate)
 
 ## Versions
+**1.1.52** - Added recurrent neurons for NEAT. Note - this is also only viable for evolution (I will focus on implementing backprop for recurrent neurons and GRU layers next - I'm working on some other projects that require recurrent evolution neurons as of now). This can be configured in the NeatEnvironment settings where the % change of adding a recurrent neuron can be added. 0.0 would mean no recurrent neurons are added, where 1.0 would mean every new neuron is recurrent. Example in radiate/src/models/.
+
 **1.1.5** - Added minimal support for GRU layer (Gated Recurrent Unit). GRU is only viable for evolution, NOT backprop, yet. Your program will panic! if a network with a gru layer is used during backprop, if a memory cell is needed for backprop purposes use the LSTM option for now. Also, cleaned up some code and optimized certain points to run a bit quicker. Evtree has been moved to it's own seperate crate called radiate_matrix_tree and is available on crates.io.
 
 **1.1.3** - Adding support for [Radiate Web](https://github.com/pkalivas/radiate/tree/master/radiate_web) so training Radiate can be done on a different machine.
