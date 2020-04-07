@@ -16,7 +16,6 @@ use crate::engine::environment::Envionment;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NeatEnvironment {
-    // base settings for evolution
     pub weight_mutate_rate: Option<f32>,
     pub weight_perturb: Option<f32>,
     pub new_node_rate: Option<f32>,

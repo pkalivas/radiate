@@ -73,6 +73,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_edit_weights(0.1)              // 10% change that a weight will be assigned a new random number, 90% change it will be mutated by +/- weight_perturb
         .set_weight_perturb(1.7)            // if a weight is selected to be mutated, mutliply the original weight by +/- 1.7 (shouldn't be larger than 2.0)
         .set_new_node_rate(0.4)             // if the layer is LSTM or dense_pool, 40% chance a new hidden neuron will be added
+        .set_recurrent_neuron_rate(1.0)     // *v1.1.52* for every new neuron added, the % chance is recurrent 1.0 meaning 100%, 0.0 meaning 0% (not compatable with backprop)
         .set_new_edge_rate(0.4)             // if the layer is LSTM or dense_pool, 40% chance a new connection will be added between two random neurons with a random weight
         .set_reactivate(0.2)                // if the layer is LSTM or dense_pool, 20% chance a deactivated connection will be reactivated
         .set_activation_functions(vec![     // when new neurons are added, a random activation function is chosen from this list to give to the neuron

@@ -24,8 +24,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             Activation::Relu,
         ]);
         
-    let num_evolve = 500;
-    let num_train = 1000;
+    let num_evolve = 200;
+    let num_train = 0;
 
     let data = MemoryTest::new();
     let starting_net = Neat::new()
@@ -53,11 +53,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             num == num_evolve
         })?;
         
-        // solution.train(&data.input, &data.output, 0.01, Loss::Diff, |iter, loss| {
-        //     let temp = format!("{:.6}", loss).parse::<f32>().unwrap().abs();
-        //     println!("epoch: {:?} loss: {:.6?}", iter, temp);
-        //     iter == num_train // || (temp < 1_f32 && temp % 1.0 == 0.0)
-        // })?;
+        solution.train(&data.input, &data.output, 0.01, Loss::Diff, |iter, loss| {
+            let temp = format!("{:.6}", loss).parse::<f32>().unwrap().abs();
+            println!("epoch: {:?} loss: {:.6?}", iter, temp);
+            iter == num_train || (temp < 1_f32 && temp % 1.0 == 0.0)
+        })?;
 
         
         solution.reset();
