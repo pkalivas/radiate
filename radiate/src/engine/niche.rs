@@ -105,7 +105,9 @@ impl<T, E> Niche<T, E>
             self.members
                 .par_iter_mut()
                 .map(|x| {
-                    x.0 = x.0 / length;
+                    if x.0 != 0.0 {
+                        x.0 = x.0 / length;
+                    }
                     x.0
                 })
                 .sum()
