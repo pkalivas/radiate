@@ -738,7 +738,7 @@ impl Serialize for Dense {
         let mut s = serializer.serialize_struct("Dense", 7)?;
         let n = self.nodes
             .iter()
-            .map(|x| (x.0, unsafe { (**x.1).clone() }) )
+            .map(|x| (x.0, unsafe { (**x.1).clone_with_values() }) )
             .collect::<HashMap<_, _>>();
         s.serialize_field("inputs", &self.inputs)?;
         s.serialize_field("outputs", &self.outputs)?;
@@ -832,7 +832,7 @@ impl<'de> Deserialize<'de> for Dense {
                 let nodes = neurons          
                     .iter()
                     .map(|(k, v)| {
-                        (k.clone(), v.clone().as_mut_ptr())
+                        (k.clone(), v.clone_with_values().as_mut_ptr())
                     })
                     .collect::<HashMap<_, _>>();
 
@@ -876,7 +876,7 @@ impl<'de> Deserialize<'de> for Dense {
                             let temp: HashMap<Uuid, Neuron> = map.next_value()?;
                             nodes = Some(temp
                                 .iter()
-                                .map(|(k, v)| (k.clone(), v.clone().as_mut_ptr()))
+                                .map(|(k, v)| (k.clone(), v.clone_with_values().as_mut_ptr()))
                                 .collect::<HashMap<_, _>>());
                         },
                         Field::Edges => {

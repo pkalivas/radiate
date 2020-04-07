@@ -115,6 +115,31 @@ impl Neuron {
     }
 
 
+    #[inline]
+    pub fn clone_with_values(&self) -> Self {
+        Neuron {
+            innov: self.innov,
+            outgoing: self.outgoing
+                .iter()
+                .map(|x| *x)
+                .collect(),
+            incoming: self.incoming
+                .iter()
+                .map(|(key, _)| (*key, None))
+                .collect(),
+            current_state: self.current_state.clone(),
+            previous_state: self.previous_state.clone(),
+            activated_value: self.activated_value.clone(),
+            deactivated_value: self.deactivated_value.clone(),
+            error: self.error.clone(),
+            bias: self.bias.clone(),
+            activation: self.activation.clone(),
+            neuron_type: self.neuron_type.clone(),
+            direction: self.direction.clone()
+        }
+    }
+
+
 }
 
 
