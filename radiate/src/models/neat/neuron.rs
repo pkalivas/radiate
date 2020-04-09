@@ -109,6 +109,10 @@ impl Neuron {
     #[inline]
     pub fn reset_neuron(&mut self) {
         self.error = 0.0;
+        self.activated_value = 0.0;
+        self.deactivated_value = 0.0;
+        self.current_state = 0.0;
+        self.previous_state = 0.0;
         for (_, val) in self.incoming.iter_mut() {
             *val = None;
         }
