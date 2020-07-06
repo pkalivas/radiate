@@ -181,10 +181,6 @@ impl MemoryTest {
 }
 
 
-unsafe impl Send for MemoryTest {}
-unsafe impl Sync for MemoryTest {}
-
-
 impl Problem<Neat> for MemoryTest {
 
     fn empty() -> Self { MemoryTest::new() }

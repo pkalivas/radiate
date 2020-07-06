@@ -346,11 +346,13 @@ impl Evtree {
 /// implemented a display function for the Tree just for easier debugging 
 impl fmt::Debug for Evtree {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        /*
         unsafe {
             // let address: u64 = mem::transmute(self);
             // let root: u64 = if self.root != ptr::null_mut() { mem::transmute(&*self.root) } else { 0x64 };
-            write!(f, "Tree=[{}]", self.size)
         }
+        */
+        write!(f, "Tree=[{}]", self.size)
     }
 }
 /// Return a new copy of the tree, calling deep copy from the root node and copying over

@@ -5,10 +5,6 @@ extern crate rayon;
 
 use std::error::Error;
 use radiate::prelude::*;
-use rayon::prelude::*;
-
-
-
 
 fn main() -> Result<(), Box<dyn Error>> {
 
@@ -180,6 +176,7 @@ impl ISM {
     }
 
 
+    #[allow(dead_code)]
     fn show(&self, model: &mut Neat) {
         println!("\n");
         for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
@@ -196,9 +193,10 @@ impl ISM {
     }
 
 
+    #[allow(dead_code)]
     fn freestyle(&self, num: usize, model: &mut Neat) {
         let mut guess = Vec::new();
-        for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
+        for (i, _o) in self.inputs.iter().zip(self.answers.iter()) {
             guess = model.forward(i).unwrap();
         }
 
@@ -213,12 +211,6 @@ impl ISM {
 
 
 }
-
-
-unsafe impl Send for ISM {}
-unsafe impl Sync for ISM {}
-
-
 
 
 impl Problem<Neat> for ISM {

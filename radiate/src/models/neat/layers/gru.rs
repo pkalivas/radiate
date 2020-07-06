@@ -92,7 +92,7 @@ impl Layer for GRU {
     }
 
 
-    fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32) -> Option<Vec<f32>> {
+    fn backward(&mut self, _errors: &Vec<f32>, _learning_rate: f32) -> Option<Vec<f32>> {
         panic!("Backprop for GRU is not implemented yet");
         // let output_error = self.o_gate.backward(&errors, learning_rate)?;
         // // let delta_mem = self.current_memory
@@ -201,8 +201,6 @@ impl Genome<GRU, NeatEnvironment> for GRU
 /// to do that from scratch, these "implmenetaions" will get rid 
 /// of the error and realistically they don't need to be implemneted for the
 /// program to work
-unsafe impl Send for GRU {}
-unsafe impl Sync for GRU {}
 /// implement display for the GRU layer of the network
 impl fmt::Display for GRU {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

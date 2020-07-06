@@ -1,9 +1,7 @@
 use rand::Rng;
 use std::ptr;
-use std::mem;
 use std::cmp::max;
 use std::fmt;
-use std::marker::Sync;
 
 use super::network::NeuralNetwork;
 
@@ -255,12 +253,6 @@ impl Drop for Node {
 
 
 
-unsafe impl Send for Node {}
-
-unsafe impl Sync for Node {}
-
-
-
 /// implemented a display function for the node to display a simple representation of the node
 impl fmt::Display for Node {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -275,12 +267,14 @@ impl fmt::Display for Node {
 /// make it easier to trace through a tree when a tree is displayed
 impl fmt::Debug for Node {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        /*
         unsafe {
             // let address: u64 = mem::transmute(self);
             // let left: u64 = if self.has_left_child() { mem::transmute(&*self.left_child) } else { 0x64 };
             // let right: u64 = if self.has_right_child() { mem::transmute(&*self.right_child) } else { 0x64 };
-            write!(f, "Node=[{}]", self.output)
         }
+        */
+        write!(f, "Node=[{}]", self.output)
     }
 }
 

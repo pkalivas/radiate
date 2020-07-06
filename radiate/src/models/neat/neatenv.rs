@@ -110,10 +110,6 @@ impl NeatEnvironment {
 }
 
 
-unsafe impl Send for NeatEnvironment {}
-unsafe impl Sync for NeatEnvironment {}
-
-
 impl Default for NeatEnvironment {
     fn default() -> Self {
         Self::new()

@@ -103,11 +103,6 @@ impl XOR {
 }
 
 
-unsafe impl Send for XOR {}
-unsafe impl Sync for XOR {}
-
-
-
 
 impl Problem<Neat> for XOR {
 

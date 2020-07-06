@@ -451,8 +451,6 @@ impl Genome<LSTM, NeatEnvironment> for LSTM
 /// to do that from scratch, these "implmenetaions" will get rid 
 /// of the error and realistically they don't need to be implemneted for the
 /// program to work
-unsafe impl Send for LSTM {}
-unsafe impl Sync for LSTM {}
 /// implement display for the LSTM layer of the network
 impl fmt::Display for LSTM {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

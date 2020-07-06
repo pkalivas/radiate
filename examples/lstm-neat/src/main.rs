@@ -25,7 +25,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         ]);
         
     let num_evolve = 200;
-    let num_train = 0;
 
     let data = MemoryTest::new();
     let starting_net = Neat::new()
@@ -53,6 +52,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             num == num_evolve
         })?;
         
+    //let num_train = 0;
         // solution.train(&data.input, &data.output, 0.01, Loss::Diff, |iter, loss| {
         //     let temp = format!("{:.6}", loss).parse::<f32>().unwrap().abs();
         //     println!("epoch: {:?} loss: {:.6?}", iter, temp);
@@ -115,10 +115,6 @@ impl MemoryTest {
         println!("Input: {:?}, Expecting: {:?}, Guess: {:.2}", vec![0.0], vec![1.0], model.forward(&vec![0.0]).unwrap()[0]);
     }
 }
-
-
-unsafe impl Send for MemoryTest {}
-unsafe impl Sync for MemoryTest {}
 
 
 impl Problem<Neat> for MemoryTest {

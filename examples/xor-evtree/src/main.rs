@@ -71,12 +71,6 @@ impl XOR {
 }
 
 
-unsafe impl Send for XOR {}
-unsafe impl Sync for XOR {}
-
-
-
-
 impl Problem<Evtree> for XOR {
 
     fn empty() -> Self { XOR::new() }
