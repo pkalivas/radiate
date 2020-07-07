@@ -130,7 +130,8 @@ impl ISM {
 
 
     fn read_data(back: usize) -> Self {
-        let mut reader = csv::Reader::from_path("C:/Users/pkalivas/Desktop/radiate/examples/ism/src/ism_input.csv").unwrap();
+        let csv_data = include_bytes!("ism_input.csv");
+        let mut reader = csv::Reader::from_reader(&csv_data[..]);
         let mut data = Vec::new();
         for result in reader.records() {
             let temp = result.unwrap();
@@ -158,7 +159,7 @@ impl ISM {
 
 
     fn write_data(&self, solution: &mut Neat) {
-        let mut writer = csv::Writer::from_path("C:/Users/pkalivas/Desktop/radiate/examples/ism/src/ism.csv").unwrap();
+        let mut writer = csv::Writer::from_path("ism.csv").unwrap();
         for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
             let guess = solution.forward(i).unwrap();
             writer.write_record(&[
