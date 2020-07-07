@@ -78,24 +78,11 @@ impl Evtree {
     }
 
     fn drop_root(&mut self) {
-        if self.root == ptr::null_mut() {
-            return;
+        if self.root != ptr::null_mut() {
+            let root = unsafe { Box::from_raw(self.root) };
+            self.root = ptr::null_mut();
+            drop(root)
         }
-        unsafe {
-            let mut stack = Vec::with_capacity(*self.len() as usize);
-            stack.push(self.root);
-            while stack.len() > 0 {
-                let curr_node = stack.pop().unwrap();
-                if (&*curr_node).has_left_child() {
-                    stack.push((&*curr_node).left_child);
-                }
-                if (&*curr_node).has_right_child() {
-                    stack.push((&*curr_node).right_child);
-                }
-                drop(Box::from_raw(curr_node));
-            }
-        }
-        self.root = ptr::null_mut();
     }
 
     /// return an in order iterator which 

@@ -209,7 +209,8 @@ impl Node {
     /// The returned node is owned by the caller
     pub fn take_left_child(&mut self) -> Option<Box<Node>> {
         if self.has_left_child() {
-            let child = unsafe { Box::from_raw(self.left_child) };
+            let mut child = unsafe { Box::from_raw(self.left_child) };
+            child.parent = ptr::null_mut();
             self.left_child = ptr::null_mut();
             Some(child)
         } else {
@@ -221,7 +222,8 @@ impl Node {
     /// The returned node is owned by the caller
     pub fn take_right_child(&mut self) -> Option<Box<Node>> {
         if self.has_right_child() {
-            let child = unsafe { Box::from_raw(self.right_child) };
+            let mut child = unsafe { Box::from_raw(self.right_child) };
+            child.parent = ptr::null_mut();
             self.right_child = ptr::null_mut();
             Some(child)
         } else {
@@ -379,7 +381,10 @@ impl Node {
 /// subree. These are made out of raw pointers so they need to be 
 /// dropped manually
 impl Drop for Node {
-    fn drop(&mut self) {  }
+    fn drop(&mut self) {
+        self.take_left_child();
+        self.take_right_child();
+    }
 }
 
 
