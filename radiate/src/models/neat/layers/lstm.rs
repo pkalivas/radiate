@@ -445,15 +445,10 @@ impl Genome<LSTM, NeatEnvironment> for LSTM
     }
 }
 
-/// These must be implemneted for the network or any type to be 
-/// used within seperate threads. Because implementing the functions 
-/// themselves is dangerious and unsafe and i'm not smart enough 
-/// to do that from scratch, these "implmenetaions" will get rid 
-/// of the error and realistically they don't need to be implemneted for the
-/// program to work
 /// implement display for the LSTM layer of the network
 impl fmt::Display for LSTM {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "LSTM=[{}]", "LSTM")
+        write!(f, "LSTM=[input={}, memory={}, output={}]",
+          self.input_size, self.memory_size, self.output_size)
     }
 }

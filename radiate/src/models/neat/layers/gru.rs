@@ -2,7 +2,6 @@
 extern crate rand;
 
 use std::fmt;
-use std::mem;
 use std::any::Any;
 use std::sync::{Arc, RwLock};
 use super::{
@@ -195,18 +194,10 @@ impl Genome<GRU, NeatEnvironment> for GRU
     }
 }
 
-/// These must be implemneted for the network or any type to be 
-/// used within seperate threads. Because implementing the functions 
-/// themselves is dangerious and unsafe and i'm not smart enough 
-/// to do that from scratch, these "implmenetaions" will get rid 
-/// of the error and realistically they don't need to be implemneted for the
-/// program to work
 /// implement display for the GRU layer of the network
 impl fmt::Display for GRU {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        unsafe {
-            let address: u64 = mem::transmute(self);
-            write!(f, "GRU=[{}]", address)
-        }
+        write!(f, "GRU=[input={}, memory={}, output={}]",
+          self.input_size, self.memory_size, self.output_size)
     }
 }
