@@ -25,6 +25,7 @@ pub struct Node {
 
 
 
+
 /// implement the node
 impl Node {
 
@@ -56,29 +57,37 @@ impl Node {
     }
 
 
+    /// Check if node 'is' the same as this node.
+    /// This just checks that the references are for the same 'Node'
+    pub fn is(&self, node: &Node) -> bool {
+        self as *const Node == node as *const Node
+    }
+
+    /// return true if this node is the left child, false if not
+    pub fn check_left_child(&self, node: &Node) -> bool {
+        match self.left_child_opt() {
+            Some(child) => child.is(node),
+            None => false,
+        }
+    }
+
+    /// return true if this node is the right child, false if not
+    pub fn check_right_child(&self, node: &Node) -> bool {
+        match self.right_child_opt() {
+            Some(child) => child.is(node),
+            None => false,
+        }
+    }
+
 
     /// return true if this node is the left child of it's parent, false if not
-    pub fn check_left_child(&self, node: &Node) -> bool {
-        if self.has_left_child() {
-           unsafe {
-               return *self.left_child == *node;
-           }
+    /// returns `None` if node doesn't have a parent.
+    pub fn is_left_child(&self) -> Option<bool> {
+        match self.parent_opt() {
+            Some(parent) => Some(parent.check_left_child(self)),
+            None => None,
         }
-        false
     }
-
-
-
-    /// return true if this node is the right child of it's parent, false if not
-    pub fn check_right_child(&self, node: &Node) -> bool {
-        if self.has_right_child() {
-            unsafe {
-                return *self.right_child == *node;
-            }
-        }
-        false
-    }
-
 
 
     /// return true if this node has no children, meaning it has no children.
@@ -110,16 +119,147 @@ impl Node {
     }
 
 
+    /// Safely set the left child node.
+    /// Will drop any old left child node.
+    pub fn set_left_child(&mut self, child: *mut Node) {
+        self.take_left_child(); // Drops old left child
+        if child != ptr::null_mut() {
+            self.left_child = child;
+            unsafe {
+                (*child).set_parent(self);
+            }
+        }
+    }
+
+    /// Safely set the right child node.
+    /// Will drop any old right child node.
+    pub fn set_right_child(&mut self, child: *mut Node) {
+        self.take_right_child(); // Drops old right child
+        if child != ptr::null_mut() {
+            self.right_child = child;
+            unsafe {
+                (*child).set_parent(self);
+            }
+        }
+    }
+
+    /// Safely set the node's parent.
+    /// If the node already has a parent, this node will be removed from it.
+    pub fn set_parent(&mut self, parent: *mut Node) {
+        self.remove_from_parent();
+        self.parent = parent;
+    }
+
+    /// Safely returns a mutable reference to this node's left child.
+    pub fn left_child_mut_opt(&self) -> Option<&mut Node> {
+        if self.has_left_child() {
+            Some(unsafe { &mut *self.left_child })
+        } else {
+            None
+        }
+    }
+
+    /// Safely returns a mutable reference to this node's right child.
+    pub fn right_child_mut_opt(&self) -> Option<&mut Node> {
+        if self.has_right_child() {
+            Some(unsafe { &mut *self.right_child })
+        } else {
+            None
+        }
+    }
+
+    /// Safely returns a mutable reference to this node's parent.
+    pub fn parent_mut_opt(&self) -> Option<&mut Node> {
+        if self.has_parent() {
+            Some(unsafe { &mut *self.parent })
+        } else {
+            None
+        }
+    }
+
+    /// Safely returns a reference to this node's left child.
+    pub fn left_child_opt(&self) -> Option<&Node> {
+        if self.has_left_child() {
+            Some(unsafe { &*self.left_child })
+        } else {
+            None
+        }
+    }
+
+    /// Safely returns a reference to this node's right child.
+    pub fn right_child_opt(&self) -> Option<&Node> {
+        if self.has_right_child() {
+            Some(unsafe { &*self.right_child })
+        } else {
+            None
+        }
+    }
+
+    /// Safely returns a reference to this node's parent.
+    pub fn parent_opt(&self) -> Option<&Node> {
+        if self.has_parent() {
+            Some(unsafe { &*self.parent })
+        } else {
+            None
+        }
+    }
+
+
+    /// Remove and return the left child node.
+    /// The returned node is owned by the caller
+    pub fn take_left_child(&mut self) -> Option<Box<Node>> {
+        if self.has_left_child() {
+            let child = unsafe { Box::from_raw(self.left_child) };
+            self.left_child = ptr::null_mut();
+            Some(child)
+        } else {
+            None
+        }
+    }
+
+    /// Remove and return the right child node.
+    /// The returned node is owned by the caller
+    pub fn take_right_child(&mut self) -> Option<Box<Node>> {
+        if self.has_right_child() {
+            let child = unsafe { Box::from_raw(self.right_child) };
+            self.right_child = ptr::null_mut();
+            Some(child)
+        } else {
+            None
+        }
+    }
+
+    /// Safely remove a child node.
+    fn remove_child(&mut self, child: *mut Node) {
+        let mut removed = false;
+        if child == self.left_child {
+            removed = true;
+            self.left_child = ptr::null_mut();
+        }
+        if child == self.right_child {
+            assert!(!removed, "Node set as both left child and right child.");
+            removed = true;
+            self.right_child = ptr::null_mut();
+        }
+        assert!(removed, "Node isn't a child of this node.");
+    }
+
+    /// Safely detach this node from it's parent.
+    pub fn remove_from_parent(&mut self) {
+        if self.has_parent() {
+            let parent = unsafe { &mut *self.parent };
+            self.parent = ptr::null_mut();
+            parent.remove_child(self);
+        }
+    }
 
     /// return the height of this node recursivley
     #[inline]    
     pub fn height(&self) -> i32 {
-        unsafe {
-            1 + max(
-                Some(&*self.left_child).map_or(0, |node| node.height()),
-                Some(&*self.right_child).map_or(0, |node| node.height())
-            )
-        }
+        1 + max(
+            self.left_child_opt().map_or(0, |node| node.height()),
+            self.right_child_opt().map_or(0, |node| node.height())
+        )
     }
 
 
@@ -128,11 +268,9 @@ impl Node {
     /// from the root of the tree, recrsive.
     #[inline]    
     pub fn depth(&self) -> i32 {
-        unsafe {
-            if !self.has_parent() {
-                return 0;
-            }
-            return 1 + (*self.parent).depth()
+        match self.parent_opt() {
+            Some(parent) => 1 + parent.depth(),
+            None => 0
         }
     }
 
@@ -143,11 +281,11 @@ impl Node {
     pub fn size(&self) -> i32 {
         let mut result = 1;
         if !self.is_leaf() {
-            if self.has_left_child() {
-                unsafe { result += (*self.left_child).size(); } 
+            if let Some(left_child) = self.left_child_opt() {
+                result += left_child.size();
             }
-            if self.has_right_child() {
-                unsafe { result += (*self.right_child).size(); }
+            if let Some(right_child) = self.right_child_opt() {
+                result += right_child.size();
             }
         }
         result
@@ -174,44 +312,40 @@ impl Node {
     /// deep copy this node and it's subnodes. Recursivley traverse the tree in order and 
     /// thin copy the current node, then assign it's surroudning pointers recrusivley.
     #[inline]    
-    pub fn deepcopy(&self) -> *mut Node {
-        unsafe {
-            let temp_copy = self.copy().as_mut_ptr();
-            if self.has_left_child() {
-                (*temp_copy).left_child = (*self.left_child).deepcopy();
-                (*(*temp_copy).left_child).parent = temp_copy;
-            }
-            if self.has_right_child() {
-                (*temp_copy).right_child = (*self.right_child).deepcopy();
-                (*(*temp_copy).right_child).parent = temp_copy;
-            }
-            temp_copy
+    pub fn deepcopy(&self) -> Box<Node> {
+        let mut temp_copy = Box::new(self.copy());
+        if let Some(child) = self.left_child_opt() {
+            let child = Box::into_raw(child.deepcopy());
+            temp_copy.set_left_child(child);
         }
+        if let Some(child) = self.right_child_opt() {
+            let child = Box::into_raw(child.deepcopy());
+            temp_copy.set_right_child(child);
+        }
+        temp_copy
     }
 
 
 
-    /// Unsafe function.
-    /// 
     /// Randomly insert a random node into the tree. Choose a boolean value randomly 
     /// and recurse the tree until a null_mut() pointer is found, then insert a new node.
-    pub unsafe fn insert_random(&mut self, input_size: i32, output_options: &Vec<i32>) {
+    pub fn insert_random(&mut self, input_size: i32, output_options: &Vec<i32>) {
         match rand::random() {
             true => {
-                if !self.has_left_child() {
-                    self.left_child = Node::new(input_size, output_options).as_mut_ptr();
-                    (*self.left_child).parent = self;
+                if let Some(child) = self.left_child_mut_opt() {
+                    child.insert_random(input_size, output_options);
+                } else {
+                    self.set_left_child(Node::new(input_size, output_options).as_mut_ptr());
                     return
                 }
-                (*self.left_child).insert_random(input_size, output_options);
             },
             false => {
-                if !self.has_right_child() {
-                    self.right_child = Node::new(input_size, output_options).as_mut_ptr();
-                    (*self.right_child).parent = self; 
+                if let Some(child) = self.right_child_mut_opt() {
+                    child.insert_random(input_size, output_options);
+                } else {
+                    self.set_right_child(Node::new(input_size, output_options).as_mut_ptr());
                     return
                 }
-                (*self.right_child).insert_random(input_size, output_options);
             }
         }
     }
@@ -222,18 +356,16 @@ impl Node {
     /// Useful for visualizing the strucutre of the tree and debugging.
     /// Level is the depth of the tree, at the root it should be 0.
     pub fn display(&self, level: i32) {
-        unsafe {
-            if self.left_child != ptr::null_mut() {
-                (*self.left_child).display(level + 1);
-            }
-            let tabs: String = (0..level)
-                .map(|_| "\t")
-                .collect::<Vec<_>>()
-                .join("");
-            println!("{}{:?}\n", tabs, self);
-            if self.right_child != ptr::null_mut() {
-                (*self.right_child).display(level + 1);
-            }
+        if let Some(child) = self.left_child_opt() {
+            child.display(level + 1);
+        }
+        let tabs: String = (0..level)
+            .map(|_| "\t")
+            .collect::<Vec<_>>()
+            .join("");
+        println!("{}{:?}\n", tabs, self);
+        if let Some(child) = self.right_child_opt() {
+            child.display(level + 1);
         }
     }
 
@@ -256,7 +388,6 @@ impl Drop for Node {
 /// implemented a display function for the node to display a simple representation of the node
 impl fmt::Display for Node {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // let address: u64 = unsafe { mem::transmute(self) };
         write!(f, "Node=[{}]", self.output)
     }
 }
@@ -267,14 +398,7 @@ impl fmt::Display for Node {
 /// make it easier to trace through a tree when a tree is displayed
 impl fmt::Debug for Node {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        /*
-        unsafe {
-            // let address: u64 = mem::transmute(self);
-            // let left: u64 = if self.has_left_child() { mem::transmute(&*self.left_child) } else { 0x64 };
-            // let right: u64 = if self.has_right_child() { mem::transmute(&*self.right_child) } else { 0x64 };
-        }
-        */
-        write!(f, "Node=[{}]", self.output)
+        write!(f, "Node[{:p}]={{parent = {:?}, left = {:?}, right = {:?}, output = {}}}",
+          self, self.parent, self.left_child, self.right_child, self.output)
     }
 }
-

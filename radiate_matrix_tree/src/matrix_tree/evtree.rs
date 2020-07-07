@@ -56,13 +56,56 @@ impl Evtree {
     }
 
 
+    fn root_mut_opt(&self) -> Option<&mut Node> {
+        if self.root != ptr::null_mut() {
+            Some(unsafe { &mut *self.root })
+        } else {
+            None
+        }
+    }
+
+    fn root_opt(&self) -> Option<&Node> {
+        if self.root != ptr::null_mut() {
+            Some(unsafe { &*self.root })
+        } else {
+            None
+        }
+    }
+
+    fn set_root(&mut self, root: *mut Node) {
+        self.drop_root();
+        self.root = root;
+    }
+
+    fn drop_root(&mut self) {
+        if self.root == ptr::null_mut() {
+            return;
+        }
+        unsafe {
+            let mut stack = Vec::with_capacity(*self.len() as usize);
+            stack.push(self.root);
+            while stack.len() > 0 {
+                let curr_node = stack.pop().unwrap();
+                if (&*curr_node).has_left_child() {
+                    stack.push((&*curr_node).left_child);
+                }
+                if (&*curr_node).has_right_child() {
+                    stack.push((&*curr_node).right_child);
+                }
+                drop(Box::from_raw(curr_node));
+            }
+        }
+        self.root = ptr::null_mut();
+    }
 
     /// return an in order iterator which 
     /// allows for the nodes in the tree to be
     /// mutatued while iterating
     pub fn iter_mut(&mut self) -> iterators::IterMut {
         let mut stack = Vec::new();
-        unsafe { stack.push(&mut *self.root); }
+        if let Some(root) = self.root_mut_opt() {
+            stack.push(root);
+        }
         iterators::IterMut { stack }
     }
 
@@ -74,7 +117,9 @@ impl Evtree {
     /// Each node that the iterator yields is a reference to a Node struct
     pub fn level_order_iter(&self) -> iterators::LevelOrderIterator {
         let mut stack = Vec::new();
-        unsafe { stack.push(&*self.root); }
+        if let Some(root) = self.root_opt() {
+            stack.push(root);
+        }
         iterators::LevelOrderIterator { stack }
     }
 
@@ -86,7 +131,9 @@ impl Evtree {
     /// Each node that the iterator yields is a reference to a Node struct
     pub fn in_order_iter(&self) -> iterators::InOrderIterator {
         let mut stack = Vec::new();
-        unsafe { stack.push(&*self.root); }
+        if let Some(root) = self.root_opt() {
+            stack.push(root);
+        }
         iterators::InOrderIterator { stack }
     }
 
@@ -98,11 +145,22 @@ impl Evtree {
     }
 
 
+    /// Update size from root node.
+    pub fn update_size(&mut self) {
+        self.size = match self.root_opt() {
+            Some(root) => root.size(),
+            None => 0,
+        };
+    }
+
 
     /// return the height of the tree from the root 
     #[inline]    
     pub fn height(&self) -> i32 {
-        unsafe { (&*self.root).height() }
+        match self.root_opt() {
+            Some(root) => root.height(),
+            None => 0,
+        }
     }
 
 
@@ -140,16 +198,15 @@ impl Evtree {
 
 
 
-    /// Insert a node to the tree randomly extracting away all of the unsafe code 
-    /// required to iterate through the tree and check for null raw mutable pointers
-    /// and increase the size by 1 each time.
+    /// Insert a node to the tree randomly and increase the size by 1 each time.
     pub fn insert_random(&mut self, input_size: i32, outputs: &Vec<i32>) {
-        if self.root == ptr::null_mut() {
-            self.root = Node::new(input_size, outputs).as_mut_ptr();
-        } else {
-            unsafe { 
-                (*self.root).insert_random(input_size, outputs); 
-            }
+        match self.root_mut_opt() {
+            Some(root) => {
+                root.insert_random(input_size, outputs);
+            },
+            None => {
+                self.root = Node::new(input_size, outputs).as_mut_ptr();
+            },
         }
         self.size += 1;
     }
@@ -162,7 +219,9 @@ impl Evtree {
         if self.root == ptr::null_mut() {
             panic!("The root node is ptr::null_mut()");
         }
-        unsafe { (*self.root).display(0); }
+        if let Some(root) = self.root_opt() {
+            root.display(0);
+        }
     }
 
 
@@ -176,10 +235,8 @@ impl Evtree {
         let node_bag = self.in_order_iter()
             .map(|x: &Node| x.copy().as_mut_ptr())
             .collect::<Vec<_>>();
-        self.root = self.make_tree(&node_bag[..], None)
-            .unwrap_or_else(|| panic!("Tree failed to balance"));
+        self.set_root(self.make_tree(&node_bag[..]));
     }
-
 
 
     /// Recursively build a balanced binary tree by splitting the size of the borrowed 
@@ -187,18 +244,17 @@ impl Evtree {
     /// the parent can be null (think root node). 
     /// Return an option of a raw mutable node pointer, if None then return up a ptr::null_mut()
     #[inline]    
-    fn make_tree(&self, bag: &[*mut Node], parent: Option<&*mut Node>) -> Option<*mut Node> {
+    fn make_tree(&self, bag: &[*mut Node]) -> *mut Node {
         if bag.len() == 0 {
-            return Some(ptr::null_mut());
+            return ptr::null_mut();
         }
         let midpoint = bag.len() / 2;
-        let curr_node = bag[midpoint];
-        unsafe {
-            (*curr_node).parent = if let Some(node) = parent { *node } else { ptr::null_mut() };  
-            (*curr_node).left_child = self.make_tree(&bag[..midpoint], Some(&curr_node))?;
-            (*curr_node).right_child = self.make_tree(&bag[midpoint + 1..], Some(&curr_node))?;
-        }            
-        Some(curr_node)
+        let curr_node = unsafe { &mut *bag[midpoint] };
+        // make sure it doesn't have a parent.
+        curr_node.remove_from_parent();
+        curr_node.set_left_child(self.make_tree(&bag[..midpoint]));
+        curr_node.set_right_child(self.make_tree(&bag[midpoint + 1..]));
+        curr_node
     }
 
 
@@ -236,24 +292,24 @@ impl Evtree {
 
     /// take in an index of the tree to swap with the pointer of another subtree
     /// by simply switching the pointers of the node at swap_index and the other_node pointer
-    fn replace(&mut self, swap_index: usize, other_node: *mut Node) {
+    fn replace(&mut self, swap_index: usize, mut other_node: Box<Node>) {
         let swap_node = self.get(swap_index);
-        unsafe {
-            if !swap_node.has_parent() {
-                (*other_node).parent = ptr::null_mut();
-                self.root = other_node;
-            } else {
-                let parent = &*(swap_node).parent;
+        match swap_node.parent_mut_opt() {
+            Some(parent) => {
                 if parent.check_left_child(swap_node) {
-                    (*other_node).parent = swap_node.parent;
-                    (*swap_node.parent).left_child = other_node;
+                    parent.set_left_child(Box::into_raw(other_node));
                 } else if parent.check_right_child(swap_node) {
-                    (*other_node).parent = swap_node.parent;
-                    (*swap_node.parent).right_child = other_node;
+                    parent.set_right_child(Box::into_raw(other_node));
+                } else {
+                    unreachable!("Invalid tree structure.  The node is not a child of it's parent.");
                 }
+            },
+            None => {
+                other_node.remove_from_parent();
+                self.set_root(Box::into_raw(other_node));
             }
-            self.size = (*self.root).size();
         }
+        self.update_size();
     }
 
 
@@ -276,8 +332,7 @@ impl Evtree {
             .map(|x: &Node| x.copy().as_mut_ptr())
             .collect::<Vec<_>>();
         node_list.shuffle(r);
-        self.root = self.make_tree(&node_list[..], None)
-            .unwrap_or_else(|| panic!("Make tree failed"));
+        self.set_root(self.make_tree(&node_list[..]));
     }
 
 
@@ -309,29 +364,32 @@ impl Evtree {
 
 
     pub fn propagate(&self, inputs: Matrix<f32>) -> u8 {
-        unsafe {
-            let mut curr_node = self.root;
-            loop {
-                let node_output = (*curr_node).neural_network.feed_forward(inputs.clone());
-                let (mut max_index, mut temp_value) = (0, None);
-                for i in 0..node_output.len() {
-                    if node_output[i] > node_output[max_index] || temp_value.is_none() {
-                        max_index = i;
-                        temp_value = Some(node_output[i]);
-                    }
+        let mut curr_node = self.root_opt()
+            .expect("No root node.");
+        loop {
+            let node_output = curr_node.neural_network.feed_forward(inputs.clone());
+            let (mut max_index, mut temp_value) = (0, None);
+            for i in 0..node_output.len() {
+                if node_output[i] > node_output[max_index] || temp_value.is_none() {
+                    max_index = i;
+                    temp_value = Some(node_output[i]);
                 }
+            }
 
-                if (&*curr_node).is_leaf() {
-                    return (&*curr_node).output;
-                } else if max_index == 0 && (&*curr_node).has_left_child() {
-                    curr_node = (&*curr_node).left_child;
-                } else if max_index == 0 && !(&*curr_node).has_left_child() {
-                    curr_node = (&*curr_node).right_child;
-                } else if max_index == 1 && (&*curr_node).has_right_child() {
-                    curr_node = (&*curr_node).right_child;
-                } else if max_index == 1 && !(&*curr_node).has_right_child() {
-                    curr_node = (&*curr_node).left_child;
-                } 
+            if curr_node.is_leaf() {
+                return curr_node.output;
+            } else {
+                let next_node = if max_index == 0 {
+                    curr_node.left_child_opt().or_else(|| {
+                        curr_node.right_child_opt()
+                    })
+                } else {
+                    curr_node.right_child_opt().or_else(|| {
+                        curr_node.left_child_opt()
+                    })
+                };
+                curr_node = next_node
+                    .expect("Non-leaf node doesn't have any children.");
             }
         }
     }
@@ -346,12 +404,6 @@ impl Evtree {
 /// implemented a display function for the Tree just for easier debugging 
 impl fmt::Debug for Evtree {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        /*
-        unsafe {
-            // let address: u64 = mem::transmute(self);
-            // let root: u64 = if self.root != ptr::null_mut() { mem::transmute(&*self.root) } else { 0x64 };
-        }
-        */
         write!(f, "Tree=[{}]", self.size)
     }
 }
@@ -361,8 +413,13 @@ impl fmt::Debug for Evtree {
 impl Clone for Evtree {
     #[inline]
     fn clone(&self) -> Evtree {
+        // Deep copy root node if any.
+        let root = match self.root_opt() {
+            Some(root) => Box::into_raw(root.deepcopy()),
+            None => ptr::null_mut(),
+        };
         Evtree {
-            root: unsafe { (&*self.root).deepcopy() },
+            root,
             size: self.size,
         }
     }
@@ -373,20 +430,7 @@ impl Clone for Evtree {
 /// This drop implementation will recursivley drop all nodes in the tree 
 impl Drop for Evtree {
     fn drop(&mut self) { 
-        unsafe {
-            let mut stack = Vec::with_capacity(*self.len() as usize);
-            stack.push(self.root);
-            while stack.len() > 0 {
-                let curr_node = stack.pop().unwrap();
-                if (&*curr_node).has_left_child() {
-                    stack.push((&*curr_node).left_child);
-                }
-                if (&*curr_node).has_right_child() {
-                    stack.push((&*curr_node).right_child);
-                }
-                drop(Box::from_raw(curr_node));
-            }
-        }
+        self.drop_root();
     }
 }
 /// These must be implemneted for the tree or any type to be 
@@ -397,6 +441,8 @@ impl Drop for Evtree {
 /// program to work
 unsafe impl Send for Evtree {}
 unsafe impl Sync for Evtree {}
+
+
 /// implement a function for getting a base default Evtree which is completetly empty
 /// There are multiple places within the struct implementation which will panic! if 
 /// this default Evtree is passed through it.
@@ -451,7 +497,7 @@ impl Genome<Evtree, TreeEnvionment> for Evtree {
             if r.gen::<f32>() < set.gut_rate? {
                 result.gut_random_node(&mut r);
             }
-            result.size = unsafe { (&*result.root).size() };
+            result.update_size();
         }
 
         // return the new tree
@@ -470,8 +516,7 @@ impl Genome<Evtree, TreeEnvionment> for Evtree {
             .collect::<Vec<_>>();
 
         result.size = nodes.len() as i32;
-        result.root = result.make_tree(&nodes[..], None)
-            .unwrap_or_else(|| panic!("failed to make default tree."));
+        result.set_root(result.make_tree(&nodes[..]));
         result
     }
 
