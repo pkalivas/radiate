@@ -89,11 +89,7 @@ impl Evtree {
     /// allows for the nodes in the tree to be
     /// mutatued while iterating
     pub fn iter_mut(&mut self) -> iterators::IterMut {
-        let mut stack = Vec::new();
-        if let Some(root) = self.root_mut_opt() {
-            stack.push(root);
-        }
-        iterators::IterMut { stack }
+        iterators::IterMut::new(self.root_mut_opt())
     }
 
 
@@ -103,11 +99,7 @@ impl Evtree {
     /// going from parent, to it's left child then it's right child.
     /// Each node that the iterator yields is a reference to a Node struct
     pub fn level_order_iter(&self) -> iterators::LevelOrderIterator {
-        let mut stack = Vec::new();
-        if let Some(root) = self.root_opt() {
-            stack.push(root);
-        }
-        iterators::LevelOrderIterator { stack }
+        iterators::LevelOrderIterator::new(self.root_opt())
     }
 
 
@@ -117,11 +109,7 @@ impl Evtree {
     /// with the root in the middle (assuming balanced)
     /// Each node that the iterator yields is a reference to a Node struct
     pub fn in_order_iter(&self) -> iterators::InOrderIterator {
-        let mut stack = Vec::new();
-        if let Some(root) = self.root_opt() {
-            stack.push(root);
-        }
-        iterators::InOrderIterator { stack }
+        iterators::InOrderIterator::new(self.root_opt())
     }
 
 

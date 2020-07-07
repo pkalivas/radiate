@@ -14,7 +14,7 @@ pub struct LevelOrderIterator<'a> {
 /// In order iterator for the tree. Keeps a vec to remember the current position 
 /// of the tree during iteration.
 pub struct InOrderIterator<'a> {
-    pub stack: Vec<&'a Node>,
+    pub next: Option<&'a Node>,
 }
 
 
@@ -27,6 +27,17 @@ pub struct IterMut<'a> {
 
 
 
+impl<'a> LevelOrderIterator<'a> {
+    pub fn new(root: Option<&'a Node>) -> Self {
+        let mut stack = Vec::new();
+        if let Some(root) = root {
+            stack.push(root);
+        }
+        Self { stack }
+    }
+}
+
+
 
 
 /// Implement the level order iterator, all iterators in Rust call the next function
@@ -37,19 +48,41 @@ impl<'a> Iterator for LevelOrderIterator<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let curr_node = self.stack.pop()?;
-        unsafe {
-            if curr_node.has_right_child() {
-                self.stack.push(&*curr_node.right_child); 
-            }
-            if curr_node.has_left_child() {
-                self.stack.push(&*curr_node.left_child);
-            }
+        if let Some(child) = curr_node.right_child_opt() {
+            self.stack.push(child);
         }
-        Some(curr_node)    
+        if let Some(child) = curr_node.left_child_opt() {
+            self.stack.push(child);
+        }
+        Some(curr_node)
     }
 }
 
 
+/// Find the left most node in the tree.
+fn left_most<'a>(node: Option<&'a Node>) -> Option<&'a Node> {
+    // The first node is the left most node in the tree.
+    match node {
+        Some(mut next) => {
+            // find left most node from the root.
+            while let Some(left) = next.left_child_opt() {
+                next = left;
+            }
+            Some(next)
+        },
+        None => None,
+    }
+}
+
+
+impl<'a> InOrderIterator<'a> {
+    pub fn new(root: Option<&'a Node>) -> Self {
+        // The first node is the left most node in the tree.
+        Self {
+            next: left_most(root),
+        }
+    }
+}
 
 
 /// Implement the in order iterator. Will call the next function and fall down the 
@@ -59,21 +92,57 @@ impl<'a> Iterator for InOrderIterator<'a> {
     type Item = &'a Node;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut curr_node = self.stack.pop();
-        unsafe {
-            while let Some(curr) = curr_node {
-                curr_node = Some(&*curr.left_child);
-                self.stack.push(&*curr);
+        // Save the current next node to be returned.
+        let curr_node = self.next;
+
+        // Find the new next node.
+        if let Some(mut node) = curr_node {
+            // Check if we can walk right.
+            if let Some(right) = node.right_child_opt() {
+                // walk fully left.
+                self.next = left_most(Some(right));
+                return curr_node;
             }
-            let res_node = self.stack.pop()?;
-            self.stack.push(&*res_node.right_child);
-            Some(res_node)
+
+            // walk up the tree.
+            loop {
+                // get parent.
+                match node.parent_opt() {
+                    None => {
+                        // No parent.  We are back at root node, finished.
+                        self.next = None;
+                        return curr_node;
+                    },
+                    Some(parent) => {
+                        // check if we are walking up from left-side
+                        if parent.check_left_child(node) {
+                            // The next node is the parent.
+                            self.next = Some(parent);
+                            return curr_node;
+                        }
+                        // when walking up from the right-side, keep going up.
+                        node = parent;
+                    },
+                }
+            }
         }
+        curr_node
     }
 }
 
 
 
+
+/// TODO: Try using non-stack algorithm.
+impl<'a> IterMut<'a> {
+    pub fn new(root: Option<&'a mut Node>) -> Self {
+        let mut stack = Vec::new();
+        if let Some(root) = root {
+            stack.push(root);
+        }
+        Self { stack }
+    }
+}
 
 /// implement an in order iterator with lifetime 'a 
 /// which allows for internal mutability of the 
@@ -84,15 +153,13 @@ impl<'a> Iterator for IterMut<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let mut curr_node = self.stack.pop();
-        unsafe {
-            while let Some(curr) = curr_node {
-                curr_node = Some(&mut *curr.left_child);
-                self.stack.push(&mut *curr);
-            }
-            let res_node = self.stack.pop()?;
-            self.stack.push(&mut *res_node.right_child);
-            Some(res_node)
+        while let Some(curr) = curr_node {
+            curr_node = Some(unsafe { &mut *curr.left_child });
+            self.stack.push(curr);
         }
+        let res_node = self.stack.pop()?;
+        self.stack.push(unsafe { &mut *res_node.right_child });
+        Some(res_node)
     }
 }
 
