@@ -34,22 +34,11 @@ use crate::Genome;
 pub struct Dense {
     pub inputs: Vec<Uuid>,
     pub outputs: Vec<Uuid>,
-    pub nodes: HashMap<Uuid, *mut Neuron>,
+    pub nodes: HashMap<Uuid, Neuron>,
     pub edges: HashMap<Uuid, Edge>,
     pub trace_states: Option<Tracer>,
     pub layer_type: LayerType,
     pub activation: Activation
-}
-
-
-/// Helper function.  Convert pointer to mutable reference.
-fn to_mut_ref(node: &*mut Neuron) -> &mut Neuron {
-    unsafe { &mut **node }
-}
-
-/// Helper function.  Convert pointer to reference.
-fn to_ref(node: &*mut Neuron) -> &Neuron {
-    unsafe { &**node }
 }
 
 
@@ -77,10 +66,10 @@ impl Dense {
         };
 
         for innov in layer.inputs.iter() {
-            layer.nodes.insert(*innov, Neuron::new(*innov, NeuronType::Input, activation, NeuronDirection::Forward).as_mut_ptr());
+            layer.nodes.insert(*innov, Neuron::new(*innov, NeuronType::Input, activation, NeuronDirection::Forward));
         }
         for innov in layer.outputs.iter() {
-            layer.nodes.insert(*innov, Neuron::new(*innov, NeuronType::Output, activation, NeuronDirection::Forward).as_mut_ptr());
+            layer.nodes.insert(*innov, Neuron::new(*innov, NeuronType::Output, activation, NeuronDirection::Forward));
         }
 
         let mut r = rand::thread_rng();
@@ -88,8 +77,8 @@ impl Dense {
             for j in layer.outputs.iter() {
                 let weight = r.gen::<f32>() * 2.0 - 1.0;
                 let new_edge = Edge::new(*i, *j, Uuid::new_v4(), weight, true);
-                layer.get_node_mut(i).map(|x| x.outgoing.push(new_edge.innov));
-                layer.get_node_mut(j).map(|x| x.incoming.insert(new_edge.innov, None));
+                layer.nodes.get_mut(i).map(|x| x.outgoing.push(new_edge.innov));
+                layer.nodes.get_mut(j).map(|x| x.incoming.insert(new_edge.innov, None));
                 layer.edges.insert(new_edge.innov, new_edge);
             }
         }
@@ -98,14 +87,18 @@ impl Dense {
     }
 
 
-    fn get_node_mut(&self, id: &Uuid) -> Option<&mut Neuron> {
-        self.nodes.get(&id).map(to_mut_ref)
+    /// This method is needed because we can't have multiple mutable
+    /// references to a HashMap.
+    #[inline]
+    fn link_nodes(&mut self, sending: &Uuid, receiving: &Uuid, edge: &Uuid) {
+        self.nodes.get_mut(sending).map(|x| x.outgoing.push(*edge));
+        self.nodes.get_mut(receiving).map(|x| x.incoming.insert(*edge, None));
     }
 
     /// reset all the neurons in the network so they can be fed forward again
     #[inline]
-    fn reset_neurons(&self) {
-        for val in self.nodes.values().map(to_mut_ref) {
+    fn reset_neurons(&mut self) {
+        for val in self.nodes.values_mut() {
             val.reset_neuron();
         }
     }
@@ -118,7 +111,7 @@ impl Dense {
         let result = self.outputs
             .iter()
             .map(|x| {
-                self.get_node_mut(x).unwrap().activated_value
+                self.nodes.get(x).unwrap().activated_value
             })
             .collect::<Vec<_>>();
         Some(result)
@@ -137,33 +130,43 @@ impl Dense {
         let mut new_node = Neuron::new(Uuid::new_v4(), NeuronType::Hidden, activation, direction);
 
         // get an edge to insert the node into
-        // get the sending and receiving nodes from the edge
-        let curr_edge = self.edges.get_mut(&self.random_edge()).unwrap();
-        let sending = self.nodes.get(&curr_edge.src).map(to_mut_ref).unwrap();
-        let receiving = self.nodes.get(&curr_edge.dst).map(to_mut_ref).unwrap();
+        let curr_edge = {
+          let edge = self.edges.get_mut(&self.random_edge()).unwrap();
+          // disable the edge
+          edge.active = false;
+          edge.clone()
+        };
 
         // create two new edges that connect the src and the new node and the 
         // new node and dst, then disable the current edge 
-        curr_edge.active = false;
-        let incoming = Edge::new(sending.innov, new_node.innov, Uuid::new_v4(), 1.0, true);
-        let outgoing = Edge::new(new_node.innov, receiving.innov, Uuid::new_v4(), curr_edge.weight, true);
+        let incoming = Edge::new(curr_edge.src, new_node.innov, Uuid::new_v4(), 1.0, true);
+        let outgoing = Edge::new(new_node.innov, curr_edge.dst, Uuid::new_v4(), curr_edge.weight, true);
 
-        // remove the outgoing connection from the sending node
-        sending.outgoing.retain(|x| x != &(curr_edge.innov));
-        receiving.incoming.remove(&curr_edge.innov);
+        // Update sending node.
+        {
+            let sending = self.nodes.get_mut(&curr_edge.src).unwrap();
+            // remove old edge to receiving node
+            sending.outgoing.retain(|x| x != &(curr_edge.innov));
 
-        // add the new values
-        sending.outgoing.push(incoming.innov);
-        receiving.incoming.insert(outgoing.innov, None);
+            // add new edge to new node.
+            sending.outgoing.push(incoming.innov);
+            new_node.incoming.insert(incoming.innov, None);
+        }
+        // Update receiving node.
+        {
+            let receiving = self.nodes.get_mut(&curr_edge.dst).unwrap();
+            // remove old edge from sending node.
+            receiving.incoming.remove(&curr_edge.innov);
 
-        // add the vlaues to the new node
-        new_node.outgoing.push(outgoing.innov);
-        new_node.incoming.insert(incoming.innov, None);
+            // add the new edge from new node.
+            new_node.outgoing.push(outgoing.innov);
+            receiving.incoming.insert(outgoing.innov, None);
+        }
 
         // add the new nodes and the new edges to the network
         self.edges.insert(incoming.innov, incoming);
         self.edges.insert(outgoing.innov, outgoing);
-        self.nodes.insert(new_node.innov, new_node.as_mut_ptr());
+        self.nodes.insert(new_node.innov, new_node);
     }
 
 
@@ -175,27 +178,16 @@ impl Dense {
     #[inline]
     pub fn add_edge(&mut self) {
         // get a valid sending neuron
-        let sending = loop {
-            let temp = self.get_node_mut(&self.random_node()).unwrap();
-            if temp.neuron_type != NeuronType::Output {
-                break temp;
-            }
-        };
+        let sending = self.random_node_not_of_type(NeuronType::Output);
         // get a vaild receiving neuron
-        let receiving = loop {
-            let temp = self.get_node_mut(&self.random_node()).unwrap();
-            if temp.neuron_type != NeuronType::Input {
-                break temp;
-            }
-        };
+        let receiving = self.random_node_not_of_type(NeuronType::Input);
 
         // determine if the connection to be made is valid 
         if self.valid_connection(sending, receiving) {
             // if the connection is valid, make it and wire the nodes to each
             let mut r = rand::thread_rng();
-            let new_edge = Edge::new(sending.innov, receiving.innov, Uuid::new_v4(), r.gen::<f32>(), true);
-            sending.outgoing.push(new_edge.innov);
-            receiving.incoming.insert(new_edge.innov, None);
+            let new_edge = Edge::new(sending, receiving, Uuid::new_v4(), r.gen::<f32>(), true);
+            self.link_nodes(&sending, &receiving, &new_edge.innov);
 
             // add the new edge to the network
             self.edges.insert(new_edge.innov, new_edge);
@@ -210,7 +202,7 @@ impl Dense {
     /// 3.) the desired connection would create a cycle in the graph
     /// if these are all false, then the connection can be made
     #[inline]
-    fn valid_connection(&self, sending: &Neuron, receiving: &Neuron) -> bool {
+    fn valid_connection(&self, sending: Uuid, receiving: Uuid) -> bool {
         if sending == receiving {
             return false
         } else if self.exists(sending, receiving) {
@@ -226,9 +218,10 @@ impl Dense {
     /// check to see if the connection to be made would create a cycle in the graph
     /// and therefore make it network invalid and unable to feed forward
     #[inline]
-    fn cyclical(&self, sending: &Neuron, receiving: &Neuron) -> bool {
+    fn cyclical(&self, sending: Uuid, receiving: Uuid) -> bool {
+        let recv_node = self.nodes.get(&receiving).unwrap();
         // dfs stack which gets the receiving Neuron<dyn neurons> outgoing connections
-        let mut stack = receiving.outgoing
+        let mut stack = recv_node.outgoing
             .iter()
             .map(|x| self.edges.get(x).unwrap().dst)
             .collect::<Vec<_>>();
@@ -237,8 +230,8 @@ impl Dense {
         while stack.len() > 0 {
             // if the current node is the same as the sending, this would cause a cycle
             // else add all the current node's outputs to the stack to search through
-            let curr = self.get_node_mut(&stack.pop().unwrap()).unwrap();
-            if curr == sending {
+            let curr = self.nodes.get(&stack.pop().unwrap()).unwrap();
+            if curr.innov == sending {
                 return true;
             }
             for i in curr.outgoing.iter() {
@@ -253,9 +246,9 @@ impl Dense {
     /// check if the desired connection already exists within he network, if it does then
     /// we should not be creating the connection.
     #[inline]
-    fn exists(&self, sending: &Neuron, receiving: &Neuron) -> bool {
+    fn exists(&self, sending: Uuid, receiving: Uuid) -> bool {
         for val in self.edges.values() {
-            if val.src == sending.innov && val.dst == receiving.innov {
+            if val.src == sending && val.dst == receiving {
                 return true
             }
         }
@@ -264,20 +257,25 @@ impl Dense {
 
 
 
-    /// get a random node from the network - the hashmap does not have a idomatic
-    /// way to do this so this is a workaround. Returns the innovation number of the node
-    /// in order to satisfy rust borrow rules
+    /// get a random node from the network
     #[inline]
-    fn random_node(&self) -> Uuid {
+    fn random_node(&self) -> &Neuron {
         let index = rand::thread_rng().gen_range(0, self.nodes.len());
-        for (i, (innov, _)) in self.nodes.iter().enumerate() {
-            if i == index {
-                return *innov;
-            }
-        }
-        panic!("Failed to get random node");
+        let node = self.nodes.values().nth(index)
+          .expect("Failed to get random node");
+        return node;
     }
 
+    /// get a random node from the network not of the specific type
+    #[inline]
+    fn random_node_not_of_type(&self, node_type: NeuronType) -> Uuid {
+        loop {
+            let node = self.random_node();
+            if node.neuron_type != node_type {
+                break node.innov;
+            }
+        }
+    }
 
 
     /// get a random connection from the network - hashmap does not have an idomatic
@@ -304,7 +302,7 @@ impl Dense {
         assert!(data.len() == self.inputs.len());
         let mut ids = Vec::with_capacity(self.inputs.len());
         for (node_innov, input) in self.inputs.iter().zip(data.iter()) {
-            let node = self.get_node_mut(node_innov).unwrap();
+            let node = self.nodes.get_mut(node_innov).unwrap();
             node.activated_value = *input;
             ids.push(node.innov);
         }
@@ -325,7 +323,7 @@ impl Dense {
                 edge.weight *= r.gen_range(-size, size);
             }
         }
-        for node in self.nodes.values().map(to_mut_ref) {
+        for node in self.nodes.values_mut() {
             if r.gen::<f32>() < editable {
                 node.bias = r.gen::<f32>();
             } else {
@@ -343,7 +341,7 @@ impl Dense {
         self.outputs
             .iter()
             .map(|x| {
-                let output_neuron = self.get_node_mut(x).unwrap();
+                let output_neuron = self.nodes.get(x).unwrap();
                 output_neuron.current_state
             })
             .collect::<Vec<_>>()
@@ -369,7 +367,7 @@ impl Dense {
             }
         };
         for (i, neuron_id) in self.outputs.iter().enumerate() {
-            let curr_neuron = self.get_node_mut(neuron_id).unwrap();
+            let curr_neuron = self.nodes.get_mut(neuron_id).unwrap();
             curr_neuron.activated_value = act[i];
             curr_neuron.deactivated_value = d_act[i];
         }
@@ -381,10 +379,9 @@ impl Dense {
     #[inline]
     pub fn update_traces(&mut self) {
         if let Some(tracer) = &mut self.trace_states {
-            for (n_id, n_ptr) in self.nodes.iter() {
-                let n = to_mut_ref(n_ptr);
-                tracer.update_neuron_activation(n_id, n.activated_value);
-                tracer.update_neuron_derivative(n_id, n.deactivated_value);
+            for (n_id, node) in self.nodes.iter() {
+                tracer.update_neuron_activation(n_id, node.activated_value);
+                tracer.update_neuron_derivative(n_id, node.deactivated_value);
             }
             tracer.index += 1;
         }
@@ -412,12 +409,15 @@ impl Layer for Dense {
         self.reset_neurons();
         let mut path = self.give_inputs(data);
 
+        // node_updates is used to split immutable & mutable code.
+        let mut node_updates = Vec::with_capacity(self.inputs.len());
+
         // while the path is still full, continue feeding forward 
         // the data in the network, this is basically a dfs traversal
         while path.len() > 0 {
 
             // remove the top elemet to propagate it's value
-            let curr_node = self.nodes.get(&path.pop()?).map(to_mut_ref)?;
+            let curr_node = self.nodes.get(&path.pop()?)?;
 
             // no node should be in the path if it's value has not been set 
             // iterate through the current nodes outgoing connections 
@@ -425,21 +425,28 @@ impl Layer for Dense {
             for edge_innov in curr_node.outgoing.iter() {
 
                 // if the currnet edge is active in the network, we can propagate through it
-                let curr_edge = self.edges.get_mut(edge_innov)?;
+                let curr_edge = self.edges.get(edge_innov)?;
                 if curr_edge.active {
-                    let receiving_node = self.nodes.get(&curr_edge.dst).map(to_mut_ref)?;
                     let activated_value = curr_edge.calculate(curr_node.activated_value);
-                    receiving_node.incoming.insert(curr_edge.innov, Some(activated_value));
-
-                    // if the node can be activated, activate it and store it's value
-                    // only activated nodes can be added to the path, so if it's activated
-                    // add it to the path so the values can be propagated through the network
-                    if receiving_node.is_ready() {
-                        receiving_node.activate();
-                        path.push(receiving_node.innov);
-                    }
+                    node_updates.push((curr_edge.dst, curr_edge.innov, activated_value));
                 }
             }
+
+            // apply pending node updates.
+            for &(dst, edge, value) in node_updates.iter() {
+                let receiving_node = self.nodes.get_mut(&dst)?;
+                receiving_node.incoming.insert(edge, Some(value));
+
+                // if the node can be activated, activate it and store it's value
+                // only activated nodes can be added to the path, so if it's activated
+                // add it to the path so the values can be propagated through the network
+                if receiving_node.is_ready() {
+                    receiving_node.activate();
+                    path.push(receiving_node.innov);
+                }
+            }
+            // clear node updates.
+            node_updates.clear();
         }
 
         // once we've made it through the network, the outputs should all
@@ -458,33 +465,48 @@ impl Layer for Dense {
         // feed forward the input data to get the output in order to compute the error of the network
         // create a dfs stack to step backwards through the network and compute the error of each neuron
         // then insert that error in a hashmap to keep track of innov of the neuron and it's error 
-            let mut path = self.outputs
-                .iter()
-                .enumerate()
-                .map(|(index, innov)| {
-                    let node = self.nodes.get(innov).map(to_mut_ref).unwrap();
-                    node.error = error[index];
-                    *innov
-                })
-                .collect::<Vec<_>>();
+        let mut path = Vec::with_capacity(self.inputs.len());
+        for (index, innov) in self.outputs.iter().enumerate() {
+            let node = self.nodes.get_mut(innov).unwrap();
+            node.error = error[index];
+            path.push(*innov);
+        }
+
+        // edge_updates is used to split immutable & mutable node access.
+        let mut edge_updates = Vec::with_capacity(self.inputs.len());
 
         // step through the network backwards and adjust the weights
         while path.len() > 0 {
             // get the current node and it's error 
-            let curr_node = self.nodes.get(&path.pop()?).map(to_mut_ref)?;
+            let curr_node = self.nodes.get_mut(&path.pop()?)?;
+            let curr_error = curr_node.error;
             let step = match &self.trace_states {
-                Some(tracer) => curr_node.error * tracer.neuron_derivative(curr_node.innov),
-                None => curr_node.error * curr_node.deactivated_value
+                Some(tracer) => curr_error * tracer.neuron_derivative(curr_node.innov),
+                None => curr_error * curr_node.deactivated_value
             } * learning_rate;
+
+            // reset the nodes error if it isnt an input node 
+            if curr_node.neuron_type != NeuronType::Input {
+                curr_node.bias += learning_rate * curr_error;
+                curr_node.error = 0.0;
+            }
 
             // iterate through each of the incoming edes to this neuron and adjust it's weight
             // and add it's error to the errros map
             for incoming_edge_innov in curr_node.incoming.keys() {
+                edge_updates.push(*incoming_edge_innov);
+            }
+
+            // apply pending edge updates.
+            for incoming_edge_innov in edge_updates.iter() {
                 let curr_edge = self.edges.get_mut(incoming_edge_innov)?;
 
                 // if the current edge is active, then it is contributing to the error and we need to adjust it
                 if curr_edge.active {
-                    let src_neuron = self.nodes.get(&curr_edge.src).map(to_mut_ref)?;
+                    path.push(curr_edge.src);
+
+                    let src_neuron = self.nodes.get_mut(&curr_edge.src)?;
+                    src_neuron.error += curr_edge.weight * curr_error;
 
                     // add the weight step (gradient) * the currnet value to the weight to adjust the weight
                     // then update the connection so it knows if it should update the weight, or store the delta
@@ -493,32 +515,25 @@ impl Layer for Dense {
                         None => step * src_neuron.activated_value
                     };
 
-                    src_neuron.error += curr_edge.weight * curr_node.error;
+                    // Update edge
                     curr_edge.update(delta);
-                    path.push(curr_edge.src);
                 }
             }
-
-            // reset the nodes error if it isnt an input node 
-            if curr_node.neuron_type != NeuronType::Input {
-                curr_node.bias += learning_rate * curr_node.error;
-                curr_node.error = 0.0;
-            }
+            // clear pending updates.
+            edge_updates.clear();
         }
 
         // gather and return the output of the backwards pass
-        let output = self.inputs
-            .iter()
-            .map(|x| {
-                let neuron = self.nodes.get(x).map(to_mut_ref).unwrap();
-                let error = match &self.trace_states {
-                    Some(tracer) => neuron.error * tracer.neuron_activation(neuron.innov),
-                    None => neuron.error * neuron.activated_value
-                };
-                neuron.error = 0.0;
-                error
-            })
-            .collect();
+        let mut output = Vec::with_capacity(self.inputs.len());
+        for x in self.inputs.iter() {
+            let neuron = self.nodes.get_mut(x).unwrap();
+            let error = match &self.trace_states {
+                Some(tracer) => neuron.error * tracer.neuron_activation(neuron.innov),
+                None => neuron.error * neuron.activated_value
+            };
+            neuron.error = 0.0;
+            output.push(error);
+        }
         // deduct the backprop index 
         if let Some(tracer) = &mut self.trace_states {
             tracer.index -= 1;
@@ -578,6 +593,7 @@ impl Genome<Dense, NeatEnvironment> for Dense
         let set = (*env).read().ok()?;
         let mut r = rand::thread_rng();
         if r.gen::<f32>() < crossover_rate {
+            let mut links = Vec::with_capacity(new_child.edges.len());
             for (innov, edge) in new_child.edges.iter_mut() {
                 // if the edge is in both networks, then radnomly assign the weight to the edge
                 // because we are already looping over the most fit parent, we only need to change the 
@@ -590,13 +606,13 @@ impl Genome<Dense, NeatEnvironment> for Dense
                     // if the edge is deactivated in either network and a random number is less than the 
                     // reactivate parameter, then reactiveate the edge and insert it back into the network
                     if (!edge.active || !parent_two.edges.get(innov)?.active) && r.gen::<f32>() < set.reactivate? {
-                        new_child.nodes.get(&edge.src).map(to_mut_ref)?
-                          .outgoing.push(*innov);
-                        new_child.nodes.get(&edge.dst).map(to_mut_ref)?
-                          .incoming.insert(*innov, None);
+                        links.push((edge.src, edge.dst, *innov));
                         edge.active = true;
                     }
                 }
+            }
+            for (src, dst, edge) in links.iter() {
+                new_child.link_nodes(src, dst, edge);
             }
         } else {
             // if a random number is less than the edit_weights parameter, then edit the weights of the network edges
@@ -658,8 +674,7 @@ impl Clone for Dense {
             nodes: self.nodes
                 .iter()
                 .map(|(key, val)| {
-                    let node = to_ref(val).clone();
-                    (*key, node.as_mut_ptr())
+                    (*key, val.clone())
                 })
                 .collect(),
             edges: self.edges
@@ -674,28 +689,6 @@ impl Clone for Dense {
         }
     }
 }
-
-/// Because the tree is made out of raw mutable pointers, if those pointers
-/// are not dropped, there is a severe memory leak, like possibly gigs of
-/// ram over only a few generations depending on the size of the generation
-/// This drop implementation will recursivley drop all nodes in the tree 
-impl Drop for Dense {
-    fn drop(&mut self) { 
-        for (_, node) in self.nodes.iter() {
-            drop(unsafe { Box::from_raw(*node)});
-        }
-    }
-}
-
-/// These must be implemneted for the network or any type to be 
-/// used within seperate threads. Because implementing the functions 
-/// themselves is dangerious and unsafe and i'm not smart enough 
-/// to do that from scratch, these "implmenetaions" will get rid 
-/// of the error and realistically they don't need to be implemneted for the
-/// program to work
-unsafe impl Send for Dense {}
-unsafe impl Sync for Dense {}
-
 
 /// Implement partialeq for neat because if neat itself is to be used as a problem,
 /// it must be able to compare one to another
@@ -731,7 +724,7 @@ impl Serialize for Dense {
         let mut s = serializer.serialize_struct("Dense", 7)?;
         let n = self.nodes
             .iter()
-            .map(|x| (x.0, to_ref(x.1).clone_with_values()) )
+            .map(|x| (x.0, x.1.clone_with_values()) )
             .collect::<HashMap<_, _>>();
         s.serialize_field("inputs", &self.inputs)?;
         s.serialize_field("outputs", &self.outputs)?;
@@ -824,7 +817,7 @@ impl<'de> Deserialize<'de> for Dense {
                 let nodes = neurons
                     .iter()
                     .map(|(k, v)| {
-                        (k.clone(), v.clone_with_values().as_mut_ptr())
+                        (k.clone(), v.clone_with_values())
                     })
                     .collect::<HashMap<_, _>>();
 
@@ -868,7 +861,7 @@ impl<'de> Deserialize<'de> for Dense {
                             let temp: HashMap<Uuid, Neuron> = map.next_value()?;
                             nodes = Some(temp
                                 .iter()
-                                .map(|(k, v)| (k.clone(), v.clone_with_values().as_mut_ptr()))
+                                .map(|(k, v)| (k.clone(), v.clone_with_values()))
                                 .collect::<HashMap<_, _>>());
                         },
                         Field::Edges => {
@@ -917,6 +910,4 @@ impl<'de> Deserialize<'de> for Dense {
         deserializer.deserialize_struct("Dense", FIELDS, DenseVisitor)
     }
 }
-
-
 
