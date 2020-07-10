@@ -1,11 +1,10 @@
 
 extern crate rand;
-extern crate uuid;
 
 use std::collections::HashMap;
 use rand::Rng;
-use uuid::Uuid;
 
+use super::id::*;
 use super::activation::Activation;
 use super::neurontype::NeuronType;
 use super::direction::NeuronDirection;
@@ -18,9 +17,9 @@ use super::direction::NeuronDirection;
 /// so encapsulating that within a normal node on the graph would be misplaced.
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Neuron {
-    pub innov: Uuid,
-    pub outgoing: Vec<Uuid>,
-    pub incoming: HashMap<Uuid, Option<f32>>,
+    pub innov: NeuronId,
+    pub outgoing: Vec<EdgeId>,
+    pub incoming: HashMap<EdgeId, Option<f32>>,
     pub activation: Activation,
     pub direction: NeuronDirection,
     pub neuron_type: NeuronType,
@@ -37,7 +36,7 @@ pub struct Neuron {
 impl Neuron {
 
 
-    pub fn new(innov: Uuid, neuron_type: NeuronType, activation: Activation, direction: NeuronDirection) -> Self {
+    pub fn new(innov: NeuronId, neuron_type: NeuronType, activation: Activation, direction: NeuronDirection) -> Self {
         Neuron {
             innov,
             outgoing: Vec::new(),

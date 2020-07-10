@@ -10,7 +10,6 @@ keywords = ["search", "genetic", "learning", "artificial", "evolution"]
 edition = "2018"
 license = "MIT"
 
-
 [dependencies]
 rand="0.7.2"
 rayon="1.2.0"
