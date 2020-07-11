@@ -180,7 +180,7 @@ impl Evtree {
                 root.insert_random(input_size, outputs);
             },
             None => {
-                self.root = Node::new(input_size, outputs).as_mut_ptr();
+                self.set_root(Node::new(input_size, outputs).as_mut_ptr());
             },
         }
         self.size += 1;
