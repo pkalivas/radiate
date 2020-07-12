@@ -3,19 +3,6 @@
 [![Build Status](https://travis-ci.com/pkalivas/radiate.svg?branch=master)](https://travis-ci.com/pkalivas/radiate)
 ![Crates.io](https://img.shields.io/crates/v/radiate)
 
-## Versions
-**1.1.52** - Added recurrent neurons for NEAT. Note - this is also only viable for evolution (I will focus on implementing backprop for recurrent neurons and GRU layers next - I'm working on some other projects that require recurrent evolution neurons as of now). This can be configured in the NeatEnvironment settings where the % change of adding a recurrent neuron can be added. 0.0 would mean no recurrent neurons are added, where 1.0 would mean every new neuron is recurrent. Example in radiate/src/models/.
-
-**1.1.5** - Added minimal support for GRU layer (Gated Recurrent Unit). GRU is only viable for evolution, NOT backprop, yet. Your program will panic! if a network with a gru layer is used during backprop, if a memory cell is needed for backprop purposes use the LSTM option for now. Also, cleaned up some code and optimized certain points to run a bit quicker. Evtree has been moved to it's own seperate crate called radiate_matrix_tree and is available on crates.io.
-
-**1.1.3** - Adding support for [Radiate Web](https://github.com/pkalivas/radiate/tree/master/radiate_web) so training Radiate can be done on a different machine.
-
-**1.1.2** - For forward and backward passes of NEAT, gated propagation in LSTM layers is now run in parallel which cuts training times in half. Changed the readme to be a full implementation of the engine which is a little more helpful for setting everything up. Added another readme file to radiate/src/models/ which gives examples of setting up a NEAT neural network.
-
-**1.1.1** - Fixed dumb bug in NEAT which was causing a error in backprop.
- 
-**1.0.9** - **As of 1/10/2020 all versions after 1.0.9 require the nightly toolchain** Added serialization and deserialization to NEAT model through serde integration - serializing trait objects requires nightly crates for now.
-
 Coming from Evolutionary Radiation.
 > Evolutionary radiation is a rapid increase in the number of species with a common ancestor, characterized by great ecological and morphological diversity - Pascal Neige.
 
@@ -285,4 +272,19 @@ pub enum Genocide {
 }
 ```
 This is definitly an area which can be improved in the algorithm.
+
+## Versions
+**1.1.55** - Removed unsafe code and fixed memory leak in evtree. Refactored Evtree to be generic, moving neural network logic to be separate. Cleaned up send/sync impls.
+
+**1.1.52** - Added recurrent neurons for NEAT. Note - this is also only viable for evolution (I will focus on implementing backprop for recurrent neurons and GRU layers next - I'm working on some other projects that require recurrent evolution neurons as of now). This can be configured in the NeatEnvironment settings where the % change of adding a recurrent neuron can be added. 0.0 would mean no recurrent neurons are added, where 1.0 would mean every new neuron is recurrent. Example in radiate/src/models/.
+
+**1.1.5** - Added minimal support for GRU layer (Gated Recurrent Unit). GRU is only viable for evolution, NOT backprop, yet. Your program will panic! if a network with a gru layer is used during backprop, if a memory cell is needed for backprop purposes use the LSTM option for now. Also, cleaned up some code and optimized certain points to run a bit quicker. Evtree has been moved to it's own seperate crate called radiate_matrix_tree and is available on crates.io.
+
+**1.1.3** - Adding support for [Radiate Web](https://github.com/pkalivas/radiate/tree/master/radiate_web) so training Radiate can be done on a different machine.
+
+**1.1.2** - For forward and backward passes of NEAT, gated propagation in LSTM layers is now run in parallel which cuts training times in half. Changed the readme to be a full implementation of the engine which is a little more helpful for setting everything up. Added another readme file to radiate/src/models/ which gives examples of setting up a NEAT neural network.
+
+**1.1.1** - Fixed dumb bug in NEAT which was causing a error in backprop.
+ 
+**1.0.9** - **As of 1/10/2020 all versions after 1.0.9 require the nightly toolchain** Added serialization and deserialization to NEAT model through serde integration - serializing trait objects requires nightly crates for now.
 
