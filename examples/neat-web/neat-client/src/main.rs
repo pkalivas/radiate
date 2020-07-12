@@ -19,7 +19,7 @@ async fn main() -> Result<(), reqwest::Error> {
     let client = reqwest::Client::new();
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-    let res = client.post("http://0.0.0.0:42069/")
+    let _res = client.post("http://0.0.0.0:42069/")
         .headers(headers)
         .body(data)
         .send().await;  

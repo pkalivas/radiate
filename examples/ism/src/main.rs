@@ -5,10 +5,6 @@ extern crate rayon;
 
 use std::error::Error;
 use radiate::prelude::*;
-use rayon::prelude::*;
-
-
-
 
 fn main() -> Result<(), Box<dyn Error>> {
 
@@ -134,7 +130,8 @@ impl ISM {
 
 
     fn read_data(back: usize) -> Self {
-        let mut reader = csv::Reader::from_path("C:/Users/pkalivas/Desktop/radiate/examples/ism/src/ism_input.csv").unwrap();
+        let csv_data = include_bytes!("ism_input.csv");
+        let mut reader = csv::Reader::from_reader(&csv_data[..]);
         let mut data = Vec::new();
         for result in reader.records() {
             let temp = result.unwrap();
@@ -162,7 +159,7 @@ impl ISM {
 
 
     fn write_data(&self, solution: &mut Neat) {
-        let mut writer = csv::Writer::from_path("C:/Users/pkalivas/Desktop/radiate/examples/ism/src/ism.csv").unwrap();
+        let mut writer = csv::Writer::from_path("ism.csv").unwrap();
         for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
             let guess = solution.forward(i).unwrap();
             writer.write_record(&[
@@ -180,6 +177,7 @@ impl ISM {
     }
 
 
+    #[allow(dead_code)]
     fn show(&self, model: &mut Neat) {
         println!("\n");
         for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
@@ -196,9 +194,10 @@ impl ISM {
     }
 
 
+    #[allow(dead_code)]
     fn freestyle(&self, num: usize, model: &mut Neat) {
         let mut guess = Vec::new();
-        for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
+        for (i, _o) in self.inputs.iter().zip(self.answers.iter()) {
             guess = model.forward(i).unwrap();
         }
 
@@ -213,12 +212,6 @@ impl ISM {
 
 
 }
-
-
-unsafe impl Send for ISM {}
-unsafe impl Sync for ISM {}
-
-
 
 
 impl Problem<Neat> for ISM {

@@ -284,14 +284,7 @@ impl Clone for Neat {
         }
     }
 }
-/// These must be implemneted for the network or any type to be 
-/// used within seperate threads. Because implementing the functions 
-/// themselves is dangerious and unsafe and i'm not smart enough 
-/// to do that from scratch, these "implmenetaions" will get rid 
-/// of the error and realistically they don't need to be implemneted for the
-/// program to work
-unsafe impl Send for Neat {}
-unsafe impl Sync for Neat {}
+
 /// Implement partialeq for neat because if neat itself is to be used as a problem,
 /// it must be able to compare one to another
 impl PartialEq for Neat {

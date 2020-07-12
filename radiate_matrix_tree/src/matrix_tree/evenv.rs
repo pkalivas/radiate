@@ -209,10 +209,6 @@ impl TreeEnvionment {
 }
 
 
-unsafe impl Send for TreeEnvionment {}
-unsafe impl Sync for TreeEnvionment {}
-
-
 impl Default for TreeEnvionment {
     fn default() -> Self {
         Self::new()
