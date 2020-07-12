@@ -4,7 +4,6 @@ extern crate simple_matrix;
 extern crate radiate;
 
 use std::fmt;
-use std::ptr;
 use std::marker::Sync;
 use std::sync::{Arc, RwLock};
 use rand::seq::SliceRandom;
@@ -13,7 +12,7 @@ use rand::Rng;
 use simple_matrix::Matrix;
 use super::{
     iterators,
-    node::Node, 
+    node::{Node, Link},
     network::NeuralNetwork, 
     evenv::TreeEnvionment
 };
@@ -28,14 +27,12 @@ use radiate::engine::genome::Genome;
 /// Each node within the tree has three pointers to its parent, left, and right child. 
 /// They also have a randomly generated neural network and an output option (classification).
 /// 
-/// This struct holds the root of the tree as a raw mutable pointer and thus this structure
-/// is enherintly unsafe, however most if not all of that funtionality is encapsulated within the 
-/// implementation. The tree also contains a size which represents the number of nodes in the tree,
+/// This struct holds the root of the tree. The tree also contains a size which represents the number of nodes in the tree,
 /// an input size which is the size of the input vector (1D), and is used to generate nodes alone with the 
 /// output options which is an owned vec of i32s represnting different outputs of the classification.
 #[derive(PartialEq)]
 pub struct Evtree {
-    root: *mut Node,
+    root: Link,
     size: i32,
 }
 
@@ -46,43 +43,31 @@ impl Evtree {
 
     /// Create a new default Tree given an input size and a vec of possible outputs 
     /// 
-    /// Returns the newly created Tree with a null raw mutable pointer as a root, a size of 
+    /// Returns the newly created Tree with no root node, a size of 
     /// 0 and an owned input_size and output_options.
     pub fn new() -> Self {
         Evtree {
-            root: ptr::null_mut(),
+            root: Link::None,
             size: 0,
         }
     }
 
 
-    fn root_mut_opt(&self) -> Option<&mut Node> {
-        if self.root != ptr::null_mut() {
-            Some(unsafe { &mut *self.root })
-        } else {
-            None
-        }
+    fn root_mut_opt(&mut self) -> Option<&mut Node> {
+        self.root.as_mut().map(|n| n.as_mut())
     }
 
     fn root_opt(&self) -> Option<&Node> {
-        if self.root != ptr::null_mut() {
-            Some(unsafe { &*self.root })
-        } else {
-            None
-        }
+        self.root.as_ref().map(|n| n.as_ref())
     }
 
-    fn set_root(&mut self, root: *mut Node) {
+    fn set_root(&mut self, root: Link) {
         self.drop_root();
         self.root = root;
     }
 
     fn drop_root(&mut self) {
-        if self.root != ptr::null_mut() {
-            let root = unsafe { Box::from_raw(self.root) };
-            self.root = ptr::null_mut();
-            drop(root)
-        }
+        self.root = Link::None;
     }
 
     /// return an in order iterator which 
@@ -180,7 +165,7 @@ impl Evtree {
                 root.insert_random(input_size, outputs);
             },
             None => {
-                self.set_root(Node::new(input_size, outputs).as_mut_ptr());
+                self.set_root(Some(Node::new(input_size, outputs)));
             },
         }
         self.size += 1;
@@ -189,13 +174,11 @@ impl Evtree {
 
 
     /// display the tree by calling the recursive display method within the node 
-    /// implementation at level 0. If the root is a null raw mutable pointer, panic!
+    /// implementation at level 0. If no root node, panic!
     pub fn display(&self) {
-        if self.root == ptr::null_mut() {
-            panic!("The root node is ptr::null_mut()");
-        }
-        if let Some(root) = self.root_opt() {
-            root.display(0);
+        match &self.root {
+            None => panic!("The no root node"),
+            Some(root) => root.display(0),
         }
     }
 
@@ -207,29 +190,33 @@ impl Evtree {
     /// Return an option in order to use '?' instead of 'unwrap()' in the 
     /// function body.
     pub fn balance(&mut self) {
-        let node_bag = self.in_order_iter()
-            .map(|x: &Node| x.copy().as_mut_ptr())
+        let mut node_bag = self.in_order_iter()
+            .map(|x: &Node| Some(x.copy()))
             .collect::<Vec<_>>();
-        self.set_root(self.make_tree(&node_bag[..]));
+        self.set_root(self.make_tree(&mut node_bag[..]));
     }
 
 
-    /// Recursively build a balanced binary tree by splitting the size of the borrowed 
-    /// slice of raw mutable node pointers and passing alone the parent as an option because 
-    /// the parent can be null (think root node). 
-    /// Return an option of a raw mutable node pointer, if None then return up a ptr::null_mut()
+    /// Recursively build a balanced binary tree by splitting the slice into left/right
+    /// sides at the middle node.
+    /// Return a `Link` to the middle node to be set as the child of a parent node or as the root node.
     #[inline]    
-    fn make_tree(&self, bag: &[*mut Node]) -> *mut Node {
-        if bag.len() == 0 {
-            return ptr::null_mut();
-        }
+    fn make_tree(&self, bag: &mut [Link]) -> Link {
         let midpoint = bag.len() / 2;
-        let curr_node = unsafe { &mut *bag[midpoint] };
-        // make sure it doesn't have a parent.
-        curr_node.remove_from_parent();
-        curr_node.set_left_child(self.make_tree(&bag[..midpoint]));
-        curr_node.set_right_child(self.make_tree(&bag[midpoint + 1..]));
-        curr_node
+        // split at midpoint
+        let (left, right) = bag.split_at_mut(midpoint);
+        // 'right' side has the node we need.
+        if let Some((node, right)) = right.split_first_mut() {
+            // take the node from the bag.  This replaces it with `None`
+            let mut curr_node = node.take().unwrap();
+            // make sure it doesn't have a parent.
+            curr_node.set_left_child(self.make_tree(left));
+            curr_node.set_right_child(self.make_tree(right));
+            Some(curr_node)
+        } else {
+            // bag is empty
+            return None;
+        }
     }
 
 
@@ -272,16 +259,16 @@ impl Evtree {
         match swap_node.parent_mut_opt() {
             Some(parent) => {
                 if parent.check_left_child(swap_node) {
-                    parent.set_left_child(Box::into_raw(other_node));
+                    parent.set_left_child(Some(other_node));
                 } else if parent.check_right_child(swap_node) {
-                    parent.set_right_child(Box::into_raw(other_node));
+                    parent.set_right_child(Some(other_node));
                 } else {
                     unreachable!("Invalid tree structure.  The node is not a child of it's parent.");
                 }
             },
             None => {
                 other_node.remove_from_parent();
-                self.set_root(Box::into_raw(other_node));
+                self.set_root(Some(other_node));
             }
         }
         self.update_size();
@@ -304,10 +291,10 @@ impl Evtree {
     #[inline]    
     pub fn shuffle_tree(&mut self, r: &mut ThreadRng) {
         let mut node_list = self.in_order_iter()
-            .map(|x: &Node| x.copy().as_mut_ptr())
+            .map(|x: &Node| Some(x.copy()))
             .collect::<Vec<_>>();
         node_list.shuffle(r);
-        self.set_root(self.make_tree(&node_list[..]));
+        self.set_root(self.make_tree(&mut node_list[..]));
     }
 
 
@@ -389,10 +376,7 @@ impl Clone for Evtree {
     #[inline]
     fn clone(&self) -> Evtree {
         // Deep copy root node if any.
-        let root = match self.root_opt() {
-            Some(root) => Box::into_raw(root.deepcopy()),
-            None => ptr::null_mut(),
-        };
+        let root = self.root_opt().map(|n| n.deepcopy());
         Evtree {
             root,
             size: self.size,
@@ -424,7 +408,7 @@ unsafe impl Sync for Evtree {}
 impl Default for Evtree {
     fn default() -> Evtree {
         Evtree {
-            root: ptr::null_mut(),
+            root: Link::None,
             size: 0
         }
     }
@@ -486,12 +470,12 @@ impl Genome<Evtree, TreeEnvionment> for Evtree {
     /// created through the tree settings given to it at its new() call
     fn base(settings: &mut TreeEnvionment) -> Evtree {
         let mut result = Evtree::new();
-        let nodes = (0..(2 * settings.get_max_height()) - 1)
-            .map(|_| Node::new(settings.get_input_size(), settings.get_outputs()).as_mut_ptr())
+        let mut nodes = (0..(2 * settings.get_max_height()) - 1)
+            .map(|_| Some(Node::new(settings.get_input_size(), settings.get_outputs())))
             .collect::<Vec<_>>();
 
         result.size = nodes.len() as i32;
-        result.set_root(result.make_tree(&nodes[..]));
+        result.set_root(result.make_tree(&mut nodes[..]));
         result
     }
 

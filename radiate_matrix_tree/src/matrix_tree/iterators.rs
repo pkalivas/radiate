@@ -22,7 +22,8 @@ pub struct InOrderIterator<'a> {
 /// Implement an in order iterator which allows for mutability of the 
 /// nodes inside the iterator
 pub struct IterMut<'a> {
-    pub stack: Vec<&'a mut Node>,
+    pub stack: Vec<Option<*mut Node>>,
+    phantom: std::marker::PhantomData<&'a Node>,
 }
 
 
@@ -137,10 +138,13 @@ impl<'a> Iterator for InOrderIterator<'a> {
 impl<'a> IterMut<'a> {
     pub fn new(root: Option<&'a mut Node>) -> Self {
         let mut stack = Vec::new();
-        if let Some(root) = root {
-            stack.push(root);
+        //if let Some(root) = root {
+            stack.push(root.map(|n| n as *mut Node));
+        //}
+        Self {
+            stack,
+            phantom: std::marker::PhantomData,
         }
-        Self { stack }
     }
 }
 
@@ -152,14 +156,17 @@ impl<'a> Iterator for IterMut<'a> {
     type Item = &'a mut Node;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut curr_node = self.stack.pop();
-        while let Some(curr) = curr_node {
-            curr_node = Some(unsafe { &mut *curr.left_child });
-            self.stack.push(curr);
+        if let Some(mut curr_node) = self.stack.pop() {
+            while let Some(curr) = curr_node {
+                curr_node = unsafe { &mut *curr }.left_child_mut_ptr_opt();
+                self.stack.push(Some(curr));
+            }
         }
-        let res_node = self.stack.pop()?;
-        self.stack.push(unsafe { &mut *res_node.right_child });
-        Some(res_node)
+        self.stack.pop()?.map(|res_node| {
+            let res_node = unsafe { &mut *res_node};
+            self.stack.push(res_node.right_child_mut_ptr_opt());
+            res_node
+        })
     }
 }
 

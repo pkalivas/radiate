@@ -7,6 +7,7 @@ use super::network::NeuralNetwork;
 
 
 
+pub type Link = Option<Box<Node>>;
 
 /// a Node struct to represent a bidirectional binary tree
 /// holding pointers to the parent and two children, the left and right child
@@ -15,9 +16,9 @@ use super::network::NeuralNetwork;
 /// node, meaning that if it is a leaf, it will return the output from a get output function
 #[derive(PartialEq)]
 pub struct Node {
-    pub parent: *mut Node,
-    pub left_child: *mut Node,
-    pub right_child: *mut Node,
+    parent: *mut Node,
+    left_child: Link,
+    right_child: Link,
     pub neural_network: NeuralNetwork,
     pub input_size: i32,
     pub output: u8
@@ -34,27 +35,19 @@ impl Node {
     /// From the list of output_options the node will choose an output,
     /// from the input_size the node will create a randomly generated 
     /// neural network.
-    pub fn new(input_size: i32, output_options: &Vec<i32>) -> Self {
+    pub fn new(input_size: i32, output_options: &Vec<i32>) -> Box<Self> {
         let mut r = rand::thread_rng();
         let output = output_options[r.gen_range(0, output_options.len())] as u8;
-        Node {
+        Box::new(Node {
             parent: ptr::null_mut(),
-            left_child: ptr::null_mut(),
-            right_child: ptr::null_mut(),
+            left_child: None,
+            right_child: None,
             neural_network: NeuralNetwork::new(input_size).fill_random(),
             input_size,
             output
-        }
+        })
     }
 
-
-
-    /// return a node as a raw mutable pointer to a node
-    /// this is a safe function however dereferencing the output is not
-    /// also creating a box and putting it into raw includes a small amount of overhead 
-    pub fn as_mut_ptr(self) -> *mut Node {
-        Box::into_raw(Box::new(self))
-    }
 
 
     /// Check if node 'is' the same as this node.
@@ -100,14 +93,14 @@ impl Node {
 
     /// return true if this node has a valid left child and is not pointing to a null pointer
     pub fn has_left_child(&self) -> bool {
-        self.left_child != ptr::null_mut()
+        self.left_child.is_some()
     }
 
 
 
     /// return true if this node has a valid right child and is not pointing to a null pointer 
     pub fn has_right_child(&self) -> bool {
-        self.right_child != ptr::null_mut()
+        self.right_child.is_some()
     }
 
 
@@ -115,31 +108,27 @@ impl Node {
     /// return true if this node has a parent, false if not. 
     /// If it does not, then this node is the root of the tree.
     pub fn has_parent(&self) -> bool {
-        self.parent != ptr::null_mut()
+        !self.parent.is_null()
     }
 
 
     /// Safely set the left child node.
     /// Will drop any old left child node.
-    pub fn set_left_child(&mut self, child: *mut Node) {
+    pub fn set_left_child(&mut self, child: Link) {
         self.take_left_child(); // Drops old left child
-        if child != ptr::null_mut() {
-            self.left_child = child;
-            unsafe {
-                (*child).set_parent(self);
-            }
+        if let Some(mut child) = child {
+            child.set_parent(self);
+            self.left_child = Some(child);
         }
     }
 
     /// Safely set the right child node.
     /// Will drop any old right child node.
-    pub fn set_right_child(&mut self, child: *mut Node) {
+    pub fn set_right_child(&mut self, child: Link) {
         self.take_right_child(); // Drops old right child
-        if child != ptr::null_mut() {
-            self.right_child = child;
-            unsafe {
-                (*child).set_parent(self);
-            }
+        if let Some(mut child) = child {
+            child.set_parent(self);
+            self.right_child = Some(child);
         }
     }
 
@@ -150,22 +139,24 @@ impl Node {
         self.parent = parent;
     }
 
+    /// Returns a raw mutable reference to this node's left child.
+    pub(crate) fn left_child_mut_ptr_opt(&mut self) -> Option<*mut Node> {
+        self.left_child.as_mut().map(|n| (&mut **n) as *mut Node)
+    }
+
+    /// Returns a raw mutable reference to this node's right child.
+    pub(crate) fn right_child_mut_ptr_opt(&mut self) -> Option<*mut Node> {
+        self.right_child.as_mut().map(|n| (&mut **n) as *mut Node)
+    }
+
     /// Safely returns a mutable reference to this node's left child.
-    pub fn left_child_mut_opt(&self) -> Option<&mut Node> {
-        if self.has_left_child() {
-            Some(unsafe { &mut *self.left_child })
-        } else {
-            None
-        }
+    pub fn left_child_mut_opt(&mut self) -> Option<&mut Node> {
+        self.left_child.as_mut().map(|n| &mut **n)
     }
 
     /// Safely returns a mutable reference to this node's right child.
-    pub fn right_child_mut_opt(&self) -> Option<&mut Node> {
-        if self.has_right_child() {
-            Some(unsafe { &mut *self.right_child })
-        } else {
-            None
-        }
+    pub fn right_child_mut_opt(&mut self) -> Option<&mut Node> {
+        self.right_child.as_mut().map(|n| &mut **n)
     }
 
     /// Safely returns a mutable reference to this node's parent.
@@ -179,20 +170,12 @@ impl Node {
 
     /// Safely returns a reference to this node's left child.
     pub fn left_child_opt(&self) -> Option<&Node> {
-        if self.has_left_child() {
-            Some(unsafe { &*self.left_child })
-        } else {
-            None
-        }
+        self.left_child.as_ref().map(|n| &**n)
     }
 
     /// Safely returns a reference to this node's right child.
     pub fn right_child_opt(&self) -> Option<&Node> {
-        if self.has_right_child() {
-            Some(unsafe { &*self.right_child })
-        } else {
-            None
-        }
+        self.right_child.as_ref().map(|n| &**n)
     }
 
     /// Safely returns a reference to this node's parent.
@@ -207,11 +190,9 @@ impl Node {
 
     /// Remove and return the left child node.
     /// The returned node is owned by the caller
-    pub fn take_left_child(&mut self) -> Option<Box<Node>> {
-        if self.has_left_child() {
-            let mut child = unsafe { Box::from_raw(self.left_child) };
+    pub fn take_left_child(&mut self) -> Link {
+        if let Some(mut child) = self.left_child.take() {
             child.parent = ptr::null_mut();
-            self.left_child = ptr::null_mut();
             Some(child)
         } else {
             None
@@ -220,11 +201,9 @@ impl Node {
 
     /// Remove and return the right child node.
     /// The returned node is owned by the caller
-    pub fn take_right_child(&mut self) -> Option<Box<Node>> {
-        if self.has_right_child() {
-            let mut child = unsafe { Box::from_raw(self.right_child) };
+    pub fn take_right_child(&mut self) -> Link {
+        if let Some(mut child) = self.right_child.take() {
             child.parent = ptr::null_mut();
-            self.right_child = ptr::null_mut();
             Some(child)
         } else {
             None
@@ -232,16 +211,16 @@ impl Node {
     }
 
     /// Safely remove a child node.
-    fn remove_child(&mut self, child: *mut Node) {
+    fn remove_child(&mut self, child: &Node) {
         let mut removed = false;
-        if child == self.left_child {
+        if Some(child) == self.left_child_opt() {
             removed = true;
-            self.left_child = ptr::null_mut();
+            self.left_child = None;
         }
-        if child == self.right_child {
+        if Some(child) == self.right_child_opt() {
             assert!(!removed, "Node set as both left child and right child.");
             removed = true;
-            self.right_child = ptr::null_mut();
+            self.right_child = None;
         }
         assert!(removed, "Node isn't a child of this node.");
     }
@@ -298,15 +277,15 @@ impl Node {
     /// Return a thin copy of this node, meaning keep all information besides the family pointers,
     /// these are nulled-out in order to avoid dangling or circular references.
     #[inline]
-    pub fn copy(&self) -> Node {
-        Node {
+    pub fn copy(&self) -> Box<Node> {
+        Box::new(Node {
             parent: ptr::null_mut(),
-            left_child: ptr::null_mut(),
-            right_child: ptr::null_mut(),
+            left_child: None,
+            right_child: None,
             neural_network: self.neural_network.clone(),
             input_size: self.input_size,
             output: self.output
-        }
+        })
     }
 
 
@@ -315,14 +294,14 @@ impl Node {
     /// thin copy the current node, then assign it's surroudning pointers recrusivley.
     #[inline]    
     pub fn deepcopy(&self) -> Box<Node> {
-        let mut temp_copy = Box::new(self.copy());
+        let mut temp_copy = self.copy();
         if let Some(child) = self.left_child_opt() {
-            let child = Box::into_raw(child.deepcopy());
-            temp_copy.set_left_child(child);
+            let child = child.deepcopy();
+            temp_copy.set_left_child(Some(child));
         }
         if let Some(child) = self.right_child_opt() {
-            let child = Box::into_raw(child.deepcopy());
-            temp_copy.set_right_child(child);
+            let child = child.deepcopy();
+            temp_copy.set_right_child(Some(child));
         }
         temp_copy
     }
@@ -337,7 +316,7 @@ impl Node {
                 if let Some(child) = self.left_child_mut_opt() {
                     child.insert_random(input_size, output_options);
                 } else {
-                    self.set_left_child(Node::new(input_size, output_options).as_mut_ptr());
+                    self.set_left_child(Some(Node::new(input_size, output_options)));
                     return
                 }
             },
@@ -345,7 +324,7 @@ impl Node {
                 if let Some(child) = self.right_child_mut_opt() {
                     child.insert_random(input_size, output_options);
                 } else {
-                    self.set_right_child(Node::new(input_size, output_options).as_mut_ptr());
+                    self.set_right_child(Some(Node::new(input_size, output_options)));
                     return
                 }
             }
