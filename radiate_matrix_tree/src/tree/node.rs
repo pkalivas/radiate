@@ -134,7 +134,7 @@ impl<T: Clone> Node<T> {
     }
 
     /// Safely returns a mutable reference to this node's parent.
-    pub fn parent_mut_opt(&self) -> Option<&mut Node<T>> {
+    pub fn parent_mut_opt(&mut self) -> Option<&mut Node<T>> {
         if self.has_parent() {
             Some(unsafe { &mut *self.parent })
         } else {

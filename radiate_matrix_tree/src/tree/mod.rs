@@ -230,21 +230,22 @@ impl<T: Clone> Tree<T> {
     pub(crate) fn replace(&mut self, swap_index: usize, mut other_node: Box<Node<T>>) {
         let swap_node = self.get_node_mut(swap_index)
           .expect("Index not found in tree.");
-        match swap_node.parent_mut_opt() {
-            Some(parent) => {
-                if parent.check_left_child(swap_node) {
+        match swap_node.is_left_child() {
+            Some(true) => {
+                if let Some(parent) = swap_node.parent_mut_opt() {
                     parent.set_left_child(Some(other_node));
-                } else if parent.check_right_child(swap_node) {
+                }
+            },
+            Some(false) => {
+                if let Some(parent) = swap_node.parent_mut_opt() {
                     parent.set_right_child(Some(other_node));
-                } else {
-                    unreachable!("Invalid tree structure.  The node is not a child of it's parent.");
                 }
             },
             None => {
                 other_node.remove_from_parent();
                 self.set_root(Some(other_node));
             }
-        }
+        };
         self.update_size();
     }
 
