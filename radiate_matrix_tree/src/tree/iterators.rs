@@ -5,31 +5,31 @@ use super::node::Node;
 
 /// Level order iterator struct to keep track of the current position of
 /// the iterator while iterating over the tree
-pub struct LevelOrderIterator<'a> {
-    pub stack: Vec<&'a Node>
+pub struct LevelOrderIterator<'a, T: Clone> {
+    pub stack: Vec<&'a Node<T>>
 }
 
 
 
 /// In order iterator for the tree. Keeps a vec to remember the current position 
 /// of the tree during iteration.
-pub struct InOrderIterator<'a> {
-    pub next: Option<&'a Node>,
+pub struct InOrderIterator<'a, T: Clone> {
+    pub next: Option<&'a Node<T>>,
 }
 
 
 
 /// Implement an in order iterator which allows for mutability of the 
 /// nodes inside the iterator
-pub struct IterMut<'a> {
-    pub stack: Vec<Option<*mut Node>>,
-    phantom: std::marker::PhantomData<&'a Node>,
+pub struct IterMut<'a, T: Clone> {
+    pub stack: Vec<Option<*mut Node<T>>>,
+    phantom: std::marker::PhantomData<&'a Node<T>>,
 }
 
 
 
-impl<'a> LevelOrderIterator<'a> {
-    pub fn new(root: Option<&'a Node>) -> Self {
+impl<'a, T: Clone> LevelOrderIterator<'a, T> {
+    pub fn new(root: Option<&'a Node<T>>) -> Self {
         let mut stack = Vec::new();
         if let Some(root) = root {
             stack.push(root);
@@ -44,8 +44,8 @@ impl<'a> LevelOrderIterator<'a> {
 /// Implement the level order iterator, all iterators in Rust call the next function
 /// and because it takes a mutable reference to self, the node which is yielded by 
 /// the iterator can be mutated during iteration, but will not free memory by being consumed.
-impl<'a> Iterator for LevelOrderIterator<'a> {
-    type Item = &'a Node;
+impl<'a, T: Clone> Iterator for LevelOrderIterator<'a, T> {
+    type Item = &'a Node<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let curr_node = self.stack.pop()?;
@@ -61,7 +61,7 @@ impl<'a> Iterator for LevelOrderIterator<'a> {
 
 
 /// Find the left most node in the tree.
-fn left_most<'a>(node: Option<&'a Node>) -> Option<&'a Node> {
+fn left_most<'a, T: Clone>(node: Option<&'a Node<T>>) -> Option<&'a Node<T>> {
     // The first node is the left most node in the tree.
     match node {
         Some(mut next) => {
@@ -76,8 +76,8 @@ fn left_most<'a>(node: Option<&'a Node>) -> Option<&'a Node> {
 }
 
 
-impl<'a> InOrderIterator<'a> {
-    pub fn new(root: Option<&'a Node>) -> Self {
+impl<'a, T: Clone> InOrderIterator<'a, T> {
+    pub fn new(root: Option<&'a Node<T>>) -> Self {
         // The first node is the left most node in the tree.
         Self {
             next: left_most(root),
@@ -89,8 +89,8 @@ impl<'a> InOrderIterator<'a> {
 /// Implement the in order iterator. Will call the next function and fall down the 
 /// left side of the tree till there is no left child, that is the yielded node.
 /// The add the right child and continue iterating.
-impl<'a> Iterator for InOrderIterator<'a> {
-    type Item = &'a Node;
+impl<'a, T: Clone> Iterator for InOrderIterator<'a, T> {
+    type Item = &'a Node<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         // Save the current next node to be returned.
@@ -135,11 +135,11 @@ impl<'a> Iterator for InOrderIterator<'a> {
 
 
 /// TODO: Try using non-stack algorithm.
-impl<'a> IterMut<'a> {
-    pub fn new(root: Option<&'a mut Node>) -> Self {
+impl<'a, T: Clone> IterMut<'a, T> {
+    pub fn new(root: Option<&'a mut Node<T>>) -> Self {
         let mut stack = Vec::new();
         //if let Some(root) = root {
-            stack.push(root.map(|n| n as *mut Node));
+            stack.push(root.map(|n| n as *mut Node<T>));
         //}
         Self {
             stack,
@@ -152,8 +152,8 @@ impl<'a> IterMut<'a> {
 /// which allows for internal mutability of the 
 /// nodes - same implementation as in_order_iter()
 /// but allows for mutation
-impl<'a> Iterator for IterMut<'a> {
-    type Item = &'a mut Node;
+impl<'a, T: Clone> Iterator for IterMut<'a, T> {
+    type Item = &'a mut Node<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(mut curr_node) = self.stack.pop() {
@@ -169,5 +169,3 @@ impl<'a> Iterator for IterMut<'a> {
         })
     }
 }
-
-

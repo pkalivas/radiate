@@ -1,63 +1,47 @@
-use rand::Rng;
+use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::cmp::max;
 use std::fmt;
 
-use super::network::NeuralNetwork;
-
-
-
-pub type Link = Option<Box<Node>>;
+pub type Link<T> = Option<Box<Node<T>>>;
 
 /// a Node struct to represent a bidirectional binary tree
 /// holding pointers to the parent and two children, the left and right child
-/// The node also holds an input size which is the expected size of the input vector 
-/// for the neural network held within the node. The output represetns the postion of the 
-/// node, meaning that if it is a leaf, it will return the output from a get output function
-#[derive(PartialEq)]
-pub struct Node {
-    parent: *mut Node,
-    left_child: Link,
-    right_child: Link,
-    pub neural_network: NeuralNetwork,
-    pub input_size: i32,
-    pub output: u8
+pub struct Node<T: Clone> {
+    elem: T,
+    parent: *mut Node<T>,
+    left_child: Link<T>,
+    right_child: Link<T>,
 }
 
-
-
-
 /// implement the node
-impl Node {
-
-    /// create a new node with a given input size and a list of possible output options 
-    /// 
-    /// From the list of output_options the node will choose an output,
-    /// from the input_size the node will create a randomly generated 
-    /// neural network.
-    pub fn new(input_size: i32, output_options: &Vec<i32>) -> Box<Self> {
-        let mut r = rand::thread_rng();
-        let output = output_options[r.gen_range(0, output_options.len())] as u8;
+impl<T: Clone> Node<T> {
+    /// create a new node.
+    pub fn new(elem: T) -> Box<Self> {
         Box::new(Node {
+            elem,
             parent: ptr::null_mut(),
             left_child: None,
             right_child: None,
-            neural_network: NeuralNetwork::new(input_size).fill_random(),
-            input_size,
-            output
         })
     }
 
+    pub fn get(&self) -> &T {
+        &self.elem
+    }
 
+    pub fn get_mut(&mut self) -> &mut T {
+        &mut self.elem
+    }
 
     /// Check if node 'is' the same as this node.
-    /// This just checks that the references are for the same 'Node'
-    pub fn is(&self, node: &Node) -> bool {
-        self as *const Node == node as *const Node
+    /// This just checks that the references are for the same 'Node<T>'
+    pub fn is(&self, node: &Node<T>) -> bool {
+        self as *const Node<T> == node as *const Node<T>
     }
 
     /// return true if this node is the left child, false if not
-    pub fn check_left_child(&self, node: &Node) -> bool {
+    pub fn check_left_child(&self, node: &Node<T>) -> bool {
         match self.left_child_opt() {
             Some(child) => child.is(node),
             None => false,
@@ -65,13 +49,12 @@ impl Node {
     }
 
     /// return true if this node is the right child, false if not
-    pub fn check_right_child(&self, node: &Node) -> bool {
+    pub fn check_right_child(&self, node: &Node<T>) -> bool {
         match self.right_child_opt() {
             Some(child) => child.is(node),
             None => false,
         }
     }
-
 
     /// return true if this node is the left child of it's parent, false if not
     /// returns `None` if node doesn't have a parent.
@@ -82,28 +65,20 @@ impl Node {
         }
     }
 
-
-    /// return true if this node has no children, meaning it has no children.
-    /// A node that is a leaf is the only node which can return an output.
+    /// return true if this node is a leaf node, meaning it has no children.
     pub fn is_leaf(&self) -> bool {
         !self.has_left_child() && !self.has_right_child()
     }
-
-
 
     /// return true if this node has a valid left child and is not pointing to a null pointer
     pub fn has_left_child(&self) -> bool {
         self.left_child.is_some()
     }
 
-
-
     /// return true if this node has a valid right child and is not pointing to a null pointer 
     pub fn has_right_child(&self) -> bool {
         self.right_child.is_some()
     }
-
-
 
     /// return true if this node has a parent, false if not. 
     /// If it does not, then this node is the root of the tree.
@@ -111,10 +86,9 @@ impl Node {
         !self.parent.is_null()
     }
 
-
     /// Safely set the left child node.
     /// Will drop any old left child node.
-    pub fn set_left_child(&mut self, child: Link) {
+    pub fn set_left_child(&mut self, child: Link<T>) {
         self.take_left_child(); // Drops old left child
         if let Some(mut child) = child {
             child.set_parent(self);
@@ -124,7 +98,7 @@ impl Node {
 
     /// Safely set the right child node.
     /// Will drop any old right child node.
-    pub fn set_right_child(&mut self, child: Link) {
+    pub fn set_right_child(&mut self, child: Link<T>) {
         self.take_right_child(); // Drops old right child
         if let Some(mut child) = child {
             child.set_parent(self);
@@ -134,33 +108,33 @@ impl Node {
 
     /// Safely set the node's parent.
     /// If the node already has a parent, this node will be removed from it.
-    pub fn set_parent(&mut self, parent: *mut Node) {
+    pub fn set_parent(&mut self, parent: *mut Node<T>) {
         self.remove_from_parent();
         self.parent = parent;
     }
 
     /// Returns a raw mutable reference to this node's left child.
-    pub(crate) fn left_child_mut_ptr_opt(&mut self) -> Option<*mut Node> {
-        self.left_child.as_mut().map(|n| (&mut **n) as *mut Node)
+    pub(crate) fn left_child_mut_ptr_opt(&mut self) -> Option<*mut Node<T>> {
+        self.left_child.as_mut().map(|n| (&mut **n) as *mut Node<T>)
     }
 
     /// Returns a raw mutable reference to this node's right child.
-    pub(crate) fn right_child_mut_ptr_opt(&mut self) -> Option<*mut Node> {
-        self.right_child.as_mut().map(|n| (&mut **n) as *mut Node)
+    pub(crate) fn right_child_mut_ptr_opt(&mut self) -> Option<*mut Node<T>> {
+        self.right_child.as_mut().map(|n| (&mut **n) as *mut Node<T>)
     }
 
     /// Safely returns a mutable reference to this node's left child.
-    pub fn left_child_mut_opt(&mut self) -> Option<&mut Node> {
+    pub fn left_child_mut_opt(&mut self) -> Option<&mut Node<T>> {
         self.left_child.as_mut().map(|n| &mut **n)
     }
 
     /// Safely returns a mutable reference to this node's right child.
-    pub fn right_child_mut_opt(&mut self) -> Option<&mut Node> {
+    pub fn right_child_mut_opt(&mut self) -> Option<&mut Node<T>> {
         self.right_child.as_mut().map(|n| &mut **n)
     }
 
     /// Safely returns a mutable reference to this node's parent.
-    pub fn parent_mut_opt(&self) -> Option<&mut Node> {
+    pub fn parent_mut_opt(&self) -> Option<&mut Node<T>> {
         if self.has_parent() {
             Some(unsafe { &mut *self.parent })
         } else {
@@ -169,17 +143,17 @@ impl Node {
     }
 
     /// Safely returns a reference to this node's left child.
-    pub fn left_child_opt(&self) -> Option<&Node> {
+    pub fn left_child_opt(&self) -> Option<&Node<T>> {
         self.left_child.as_ref().map(|n| &**n)
     }
 
     /// Safely returns a reference to this node's right child.
-    pub fn right_child_opt(&self) -> Option<&Node> {
+    pub fn right_child_opt(&self) -> Option<&Node<T>> {
         self.right_child.as_ref().map(|n| &**n)
     }
 
     /// Safely returns a reference to this node's parent.
-    pub fn parent_opt(&self) -> Option<&Node> {
+    pub fn parent_opt(&self) -> Option<&Node<T>> {
         if self.has_parent() {
             Some(unsafe { &*self.parent })
         } else {
@@ -187,10 +161,9 @@ impl Node {
         }
     }
 
-
     /// Remove and return the left child node.
     /// The returned node is owned by the caller
-    pub fn take_left_child(&mut self) -> Link {
+    pub fn take_left_child(&mut self) -> Link<T> {
         if let Some(mut child) = self.left_child.take() {
             child.parent = ptr::null_mut();
             Some(child)
@@ -201,7 +174,7 @@ impl Node {
 
     /// Remove and return the right child node.
     /// The returned node is owned by the caller
-    pub fn take_right_child(&mut self) -> Link {
+    pub fn take_right_child(&mut self) -> Link<T> {
         if let Some(mut child) = self.right_child.take() {
             child.parent = ptr::null_mut();
             Some(child)
@@ -211,7 +184,7 @@ impl Node {
     }
 
     /// Safely remove a child node.
-    fn remove_child(&mut self, child: &Node) {
+    fn remove_child(&mut self, child: &Node<T>) {
         let mut removed = false;
         if Some(child) == self.left_child_opt() {
             removed = true;
@@ -243,8 +216,6 @@ impl Node {
         )
     }
 
-
-
     /// return the depth of this node, meaning the number of levels down it is 
     /// from the root of the tree, recrsive.
     #[inline]    
@@ -254,8 +225,6 @@ impl Node {
             None => 0
         }
     }
-
-
 
     /// return the size of the subtree recrusivley. 
     #[inline]    
@@ -272,28 +241,22 @@ impl Node {
         result
     }
 
-
-   
     /// Return a thin copy of this node, meaning keep all information besides the family pointers,
     /// these are nulled-out in order to avoid dangling or circular references.
     #[inline]
-    pub fn copy(&self) -> Box<Node> {
+    pub fn copy(&self) -> Box<Node<T>> {
         Box::new(Node {
+            elem: self.elem.clone(),
             parent: ptr::null_mut(),
             left_child: None,
             right_child: None,
-            neural_network: self.neural_network.clone(),
-            input_size: self.input_size,
-            output: self.output
         })
     }
-
-
 
     /// deep copy this node and it's subnodes. Recursivley traverse the tree in order and 
     /// thin copy the current node, then assign it's surroudning pointers recrusivley.
     #[inline]    
-    pub fn deepcopy(&self) -> Box<Node> {
+    pub fn deepcopy(&self) -> Box<Node<T>> {
         let mut temp_copy = self.copy();
         if let Some(child) = self.left_child_opt() {
             let child = child.deepcopy();
@@ -306,32 +269,27 @@ impl Node {
         temp_copy
     }
 
-
-
-    /// Randomly insert a random node into the tree. Choose a boolean value randomly 
-    /// and recurse the tree until a null_mut() pointer is found, then insert a new node.
-    pub fn insert_random(&mut self, input_size: i32, output_options: &Vec<i32>) {
+    /// Randomly insert a node into the tree.
+    pub fn insert_random(&mut self, node: Box<Node<T>>) {
         match rand::random() {
             true => {
                 if let Some(child) = self.left_child_mut_opt() {
-                    child.insert_random(input_size, output_options);
+                    child.insert_random(node);
                 } else {
-                    self.set_left_child(Some(Node::new(input_size, output_options)));
+                    self.set_left_child(Some(node));
                     return
                 }
             },
             false => {
                 if let Some(child) = self.right_child_mut_opt() {
-                    child.insert_random(input_size, output_options);
+                    child.insert_random(node);
                 } else {
-                    self.set_right_child(Some(Node::new(input_size, output_options)));
+                    self.set_right_child(Some(node));
                     return
                 }
             }
         }
     }
-
-
 
     /// Recrusively display the node and it's subnodes 
     /// Useful for visualizing the strucutre of the tree and debugging.
@@ -349,40 +307,33 @@ impl Node {
             child.display(level + 1);
         }
     }
-
-
-
 }
 
+impl<T: Clone> Deref for Node<T> {
+    type Target = T;
 
-
-/// This will recursivley drop all nodes in this node's 
-/// subree. These are made out of raw pointers so they need to be 
-/// dropped manually
-impl Drop for Node {
-    fn drop(&mut self) {
-        self.take_left_child();
-        self.take_right_child();
+    fn deref(&self) -> &Self::Target {
+        &self.elem
     }
 }
 
-
-
-
-/// implemented a display function for the node to display a simple representation of the node
-impl fmt::Display for Node {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Node=[{}]", self.output)
+impl<T: Clone> DerefMut for Node<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.elem
     }
 }
 
-
+impl<T: Clone> PartialEq for Node<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self as *const Node<T> == other as *const Node<T>
+    }
+}
 
 /// implement debut for the node to give a little more information for the node and 
 /// make it easier to trace through a tree when a tree is displayed
-impl fmt::Debug for Node {
+impl<T: Clone> fmt::Debug for Node<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Node[{:p}]={{parent = {:?}, left = {:?}, right = {:?}, output = {}}}",
-          self, self.parent, self.left_child, self.right_child, self.output)
+        write!(f, "Node[{:p}]={{parent = {:?}, left = {:?}, right = {:?}}}",
+          self, self.parent, self.left_child, self.right_child)
     }
 }

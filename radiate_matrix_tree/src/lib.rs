@@ -1,17 +1,20 @@
 
 pub mod prelude;
+pub mod tree;
 pub mod matrix_tree;
 
-pub use matrix_tree::{
-    evtree::Evtree,
-    evenv::TreeEnvionment,
+pub use tree::{
     iterators::{
         InOrderIterator,
         LevelOrderIterator,
         IterMut
     },
+};
+
+pub use matrix_tree::{
+    evtree::Evtree,
+    evenv::TreeEnvionment,
     network::NeuralNetwork,
-    node::Node
 };
 
 /// get a default environment settings for evtree, these are very basic and 
