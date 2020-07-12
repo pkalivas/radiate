@@ -37,10 +37,10 @@ impl<T: Clone> Tree<T> {
     }
 
     /// build tree from node slice
-    pub fn from_slice(mut nodes: Vec<Option<T>>) -> Self {
+    pub fn from_slice(nodes: &mut [Option<T>]) -> Self {
         let mut tree = Self::new();
         tree.size = nodes.len() as i32;
-        tree.set_root(tree.make_tree(&mut nodes[..]));
+        tree.set_root(tree.make_tree(nodes));
         tree
     }
 
@@ -85,8 +85,8 @@ impl<T: Clone> Tree<T> {
     }
 
     /// the len of the tree is it's size, the numbr of nodes
-    pub fn len(&self) -> &i32 {
-        &self.size
+    pub fn len(&self) -> usize {
+        self.size as usize
     }
 
     /// Update size from root node.
@@ -197,9 +197,10 @@ impl<T: Clone> Tree<T> {
     #[inline]    
     pub fn get_biased_level<'a>(&'a self) -> Vec<&'a Node<T>> {
         let mut r = rand::thread_rng();
+        let height = self.height();
         let index = r.gen_range(0, self.len()) as usize;
         let levels = self.level_order_iter()
-            .map(|x: &Node<T>| self.height() - x.height())
+            .map(|x: &Node<T>| height - x.height())
             .collect::<Vec<_>>();
 
         // return a vec where the depth of a node is equal to 

@@ -1,64 +1,69 @@
-
-
 use super::node::Node;
 
-
-/// Level order iterator struct to keep track of the current position of
-/// the iterator while iterating over the tree
+/// Level order iterator struct.
+/// A stack is used to hold all nodes from the current level.
+/// When the stack is empty, try pushing the node of the next level.
 pub struct LevelOrderIterator<'a, T: Clone> {
-    pub stack: Vec<&'a Node<T>>
+    root: Option<&'a Node<T>>,
+    next_level: usize,
+    stack: Vec<&'a Node<T>>,
 }
-
-
-
-/// In order iterator for the tree. Keeps a vec to remember the current position 
-/// of the tree during iteration.
-pub struct InOrderIterator<'a, T: Clone> {
-    pub next: Option<&'a Node<T>>,
-}
-
-
-
-/// Implement an in order iterator which allows for mutability of the 
-/// nodes inside the iterator
-pub struct IterMut<'a, T: Clone> {
-    pub stack: Vec<Option<*mut Node<T>>>,
-    phantom: std::marker::PhantomData<&'a Node<T>>,
-}
-
-
 
 impl<'a, T: Clone> LevelOrderIterator<'a, T> {
     pub fn new(root: Option<&'a Node<T>>) -> Self {
-        let mut stack = Vec::new();
-        if let Some(root) = root {
-            stack.push(root);
+        let mut iter = Self {
+          root,
+          next_level: 0,
+          stack: Vec::new(),
+        };
+        // push first level
+        iter.push_next_level();
+        iter
+    }
+
+    /// Recurse down the stack until we reach the current level.
+    /// Push the nodes at that level
+    fn push_level(&mut self, root: Option<&'a Node<T>>, level: usize, curr: usize) {
+        if let Some(node) = root {
+            if level == curr {
+                self.stack.push(node);
+            } else {
+                self.push_level(node.right_child_opt(), level+1, curr);
+                self.push_level(node.left_child_opt(), level+1, curr);
+            }
         }
-        Self { stack }
+    }
+
+    /// Push all of the node at the current level.
+    fn push_next_level(&mut self) {
+        self.push_level(self.root, 0, self.next_level);
+        self.next_level += 1;
     }
 }
 
-
-
-
-/// Implement the level order iterator, all iterators in Rust call the next function
-/// and because it takes a mutable reference to self, the node which is yielded by 
-/// the iterator can be mutated during iteration, but will not free memory by being consumed.
+/// Implement the level order iterator.
 impl<'a, T: Clone> Iterator for LevelOrderIterator<'a, T> {
     type Item = &'a Node<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let curr_node = self.stack.pop()?;
-        if let Some(child) = curr_node.right_child_opt() {
-            self.stack.push(child);
-        }
-        if let Some(child) = curr_node.left_child_opt() {
-            self.stack.push(child);
-        }
-        Some(curr_node)
+        // pop next node for current level.
+        self.stack.pop().or_else(|| {
+            // current level is finished.  Push next level.
+            self.push_next_level();
+            // If the stack is still empty, then we are finished.
+            self.stack.pop()
+        })
     }
 }
 
+/// In order iterator for the tree.
+/// Since the nodes in the tree have parent references we can
+/// walk up and down the tree and don't need a stack.
+///
+/// See details of the algorithm here: https://stackoverflow.com/questions/12850889/in-order-iterator-for-binary-tree
+pub struct InOrderIterator<'a, T: Clone> {
+    next: Option<&'a Node<T>>,
+}
 
 /// Find the left most node in the tree.
 fn left_most<'a, T: Clone>(node: Option<&'a Node<T>>) -> Option<&'a Node<T>> {
@@ -75,7 +80,6 @@ fn left_most<'a, T: Clone>(node: Option<&'a Node<T>>) -> Option<&'a Node<T>> {
     }
 }
 
-
 impl<'a, T: Clone> InOrderIterator<'a, T> {
     pub fn new(root: Option<&'a Node<T>>) -> Self {
         // The first node is the left most node in the tree.
@@ -85,10 +89,7 @@ impl<'a, T: Clone> InOrderIterator<'a, T> {
     }
 }
 
-
-/// Implement the in order iterator. Will call the next function and fall down the 
-/// left side of the tree till there is no left child, that is the yielded node.
-/// The add the right child and continue iterating.
+/// Implement the in order iterator.
 impl<'a, T: Clone> Iterator for InOrderIterator<'a, T> {
     type Item = &'a Node<T>;
 
@@ -131,16 +132,18 @@ impl<'a, T: Clone> Iterator for InOrderIterator<'a, T> {
     }
 }
 
+/// Implement an in order iterator which allows for mutability of the
+/// nodes inside the iterator
+pub struct IterMut<'a, T: Clone> {
+    stack: Vec<Option<*mut Node<T>>>,
+    phantom: std::marker::PhantomData<&'a Node<T>>,
+}
 
-
-
-/// TODO: Try using non-stack algorithm.
 impl<'a, T: Clone> IterMut<'a, T> {
     pub fn new(root: Option<&'a mut Node<T>>) -> Self {
         let mut stack = Vec::new();
-        //if let Some(root) = root {
-            stack.push(root.map(|n| n as *mut Node<T>));
-        //}
+        // map mutable reference to raw pointer.
+        stack.push(root.map(|n| n as *mut Node<T>));
         Self {
             stack,
             phantom: std::marker::PhantomData,
@@ -148,10 +151,9 @@ impl<'a, T: Clone> IterMut<'a, T> {
     }
 }
 
-/// implement an in order iterator with lifetime 'a 
-/// which allows for internal mutability of the 
-/// nodes - same implementation as in_order_iter()
-/// but allows for mutation
+/// implement an in order iterator.
+/// We have to use raw pointers and unsafe because the borrow checker
+/// will not allow use to have more then one mutable reference to the same node.
 impl<'a, T: Clone> Iterator for IterMut<'a, T> {
     type Item = &'a mut Node<T>;
 
@@ -167,5 +169,98 @@ impl<'a, T: Clone> Iterator for IterMut<'a, T> {
             self.stack.push(res_node.right_child_mut_ptr_opt());
             res_node
         })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::tree::*;
+
+    #[test]
+    fn level_order_iter() {
+        //                     0
+        //              ______/ \______
+        //             /               \
+        //            1                 2
+        //        __/   \__          __/ \__
+        //       /         \        /       \
+        //      3           4      5         6
+        //     / \         / \    / \       / \
+        //    7   8       9  10  11  12   13  14
+        //
+        let mut nums = [7,3,8,1,9,4,10,0,11,5,12,2,13,6,14].iter().map(|n| Some(*n)).collect::<Vec<_>>();
+        let tree = Tree::from_slice(&mut nums[..]);
+
+        let root = tree.root_opt().expect("no root node");
+        assert_eq!(root.get(), &0);
+        let left = root.left_child_opt().expect("no left node");
+        assert_eq!(left.get(), &1);
+        let right = root.right_child_opt().expect("no right node");
+        assert_eq!(right.get(), &2);
+
+        for (i, n) in tree.level_order_iter().enumerate() {
+            println!(" - level order[{}] = {}", i, n.get());
+            assert_eq!(i, *n.get());
+        }
+
+        let mut iter = tree.level_order_iter().map(|n| n.get());
+        assert_eq!(iter.next(), Some(&0));
+        assert_eq!(iter.next(), Some(&1));
+        assert_eq!(iter.next(), Some(&2));
+        assert_eq!(iter.next(), Some(&3));
+        assert_eq!(iter.next(), Some(&4));
+        assert_eq!(iter.next(), Some(&5));
+        assert_eq!(iter.next(), Some(&6));
+    }
+
+    #[test]
+    fn in_order_iter() {
+        let mut nums = (0..10).map(|n| Some(n)).collect::<Vec<_>>();
+        let tree = Tree::from_slice(&mut nums[..]);
+        println!("tree = {:?}", tree);
+        for (i, n) in tree.in_order_iter().enumerate() {
+            println!(" - tree[{}] = {}", i, n.get());
+        }
+
+        assert_eq!(tree.len(), 10);
+
+        let mut iter = tree.in_order_iter().map(|n| &**n);
+        assert_eq!(iter.next(), Some(&0));
+        assert_eq!(iter.next(), Some(&1));
+        assert_eq!(iter.next(), Some(&2));
+        assert_eq!(iter.next(), Some(&3));
+    }
+
+    #[test]
+    fn iter_mut() {
+        let mut nums = (0..10).map(|n| Some(n)).collect::<Vec<_>>();
+        let mut tree = Tree::from_slice(&mut nums[..]);
+        println!("tree = {:?}", tree);
+        for (i, n) in tree.in_order_iter().enumerate() {
+            println!(" - tree[{}] = {}", i, n.get());
+        }
+
+        assert_eq!(tree.len(), 10);
+
+        let mut iter = tree.iter_mut().map(|n| n.get_mut());
+        assert_eq!(iter.next(), Some(&mut 0));
+        assert_eq!(iter.next(), Some(&mut 1));
+        assert_eq!(iter.next(), Some(&mut 2));
+        assert_eq!(iter.next(), Some(&mut 3));
+
+        for n in tree.iter_mut() {
+            *n.get_mut() *= 2;
+        }
+
+        println!("tree = {:?}", tree);
+        for (i, n) in tree.in_order_iter().enumerate() {
+            println!(" - tree[{}] = {}", i, n.get());
+        }
+
+        let mut iter = tree.iter_mut().map(|n| n.get_mut());
+        assert_eq!(iter.next(), Some(&mut 0));
+        assert_eq!(iter.next(), Some(&mut 2));
+        assert_eq!(iter.next(), Some(&mut 4));
+        assert_eq!(iter.next(), Some(&mut 6));
     }
 }

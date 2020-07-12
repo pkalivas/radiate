@@ -173,11 +173,11 @@ impl Genome<Evtree, TreeEnvionment> for Evtree {
     /// Get the base tree type and return a randomly generated base tree 
     /// created through the tree settings given to it at its new() call
     fn base(settings: &mut TreeEnvionment) -> Evtree {
-        let nodes = (0..(2 * settings.get_max_height()) - 1)
+        let mut nodes = (0..(2 * settings.get_max_height()) - 1)
             .map(|_| Some(NetNode::new(settings.get_input_size(), settings.get_outputs())))
             .collect::<Vec<_>>();
 
-        Evtree::from_slice(nodes)
+        Evtree::from_slice(&mut nodes[..])
     }
 
 
