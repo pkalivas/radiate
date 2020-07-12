@@ -62,7 +62,7 @@ impl Evtree {
     /// then give that node a new neural network.
     pub fn gut_random_node(&mut self, r: &mut ThreadRng) {
         let index = r.gen_range(0, self.len()) as usize;
-        let temp_node = self.get(index);
+        let temp_node = self.get_mut(index).unwrap();
         temp_node.neural_network = NeuralNetwork::new(temp_node.input_size);
     }
 

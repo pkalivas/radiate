@@ -106,20 +106,25 @@ impl<T: Clone> Tree<T> {
         }
     }
 
+    /// Get a node's element from the tree at a given index and return an option with
+    /// either the node's element in it, or none.
+    #[inline]
+    pub fn get(&self, index: usize) -> Option<&T> {
+        self.in_order_iter().nth(index).map(|n| n.get())
+    }
+
+    /// Get a node's element from the tree at a given index and return an option with
+    /// either the node's element in it, or none.
+    #[inline]
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
+        self.get_node_mut(index).map(|n| n.get_mut())
+    }
+
     /// Get a node from the tree at a given index and return an option with
-    /// either the node in it, or none. 
-    /// 
-    /// Panic! if the index is greater than the size of the tree.
-    #[inline]    
-    pub fn get(&mut self, index: usize) -> &mut Node<T> {
-        let mut temp: Option<&mut Node<T>> = None;
-        for (i, node) in self.iter_mut().enumerate() {
-            if i == index {
-                temp = Some(node);
-                break;
-            }
-        }
-        temp.unwrap_or_else(|| panic!("Index not found in tree."))
+    /// either the node in it, or none.
+    #[inline]
+    pub fn get_node_mut(&mut self, index: usize) -> Option<&mut Node<T>> {
+        self.iter_mut().nth(index)
     }
 
     /// Get the index of a given node in the tree
@@ -223,7 +228,8 @@ impl<T: Clone> Tree<T> {
     /// take in an index of the tree to swap with the pointer of another subtree
     /// by simply switching the pointers of the node at swap_index and the other_node pointer
     pub(crate) fn replace(&mut self, swap_index: usize, mut other_node: Box<Node<T>>) {
-        let swap_node = self.get(swap_index);
+        let swap_node = self.get_node_mut(swap_index)
+          .expect("Index not found in tree.");
         match swap_node.parent_mut_opt() {
             Some(parent) => {
                 if parent.check_left_child(swap_node) {
