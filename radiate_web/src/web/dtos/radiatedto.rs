@@ -7,14 +7,11 @@ use radiate::models::neat::{
 };
 use super::populationdto::NeatPopulationBuilder;
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)] 
 pub struct TrainDto {
     pub epochs: i32,
     pub learning_rate: f32
 }
-use std::fs::File;
-
 
 
 #[derive(Debug, Clone, Serialize, Deserialize)] 
@@ -57,7 +54,6 @@ impl RadiateDto {
     }
 
     pub fn to_json(&self) -> String {
-        serde_json::to_writer(&File::create("test.json").unwrap(), &self).unwrap();
         serde_json::to_string_pretty(&self).unwrap()
     }
 }
