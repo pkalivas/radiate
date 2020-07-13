@@ -10,7 +10,8 @@ pub use web::{
         populationdto::NeatPopulationBuilder,
         radiatedto::{
             RadiateDto,
-            TrainDto
+            TrainDto,
+            TrainingSetDto,
         }
     }
 };
