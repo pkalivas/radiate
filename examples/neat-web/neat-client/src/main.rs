@@ -7,30 +7,62 @@ extern crate serde_json;
 extern crate serde_derive;
 extern crate reqwest;
 
+use env_logger;
+
+use serde::Deserialize;
+
 use radiate::prelude::*;
 use radiate_web::prelude::*;
-use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
+
+use reqwest::Client;
  
- 
+#[derive(Debug, Default, Deserialize)]
+struct SimStatus {
+    status: String,
+    curr_gen: usize,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct AddSim {
+    id: String,
+}
+
+async fn get_sim_status(client: &Client, url: &str) -> Result<SimStatus, reqwest::Error> {
+    let status = client.get(url)
+        .send().await?
+        .json::<SimStatus>().await?;
+    println!("sim_status = {:?}", status);
+
+    Ok(status)
+}
+
 #[tokio::main]
 async fn main() -> Result<(), reqwest::Error> {
+    env_logger::init();
+
     let data = generate_post_data();
 
+    let base_url = "http://0.0.0.0:42069/simulations";
     let client = reqwest::Client::new();
-    let mut headers = HeaderMap::new();
-    headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-    let _res = client.post("http://0.0.0.0:42069/")
-        .headers(headers)
-        .body(data)
-        .send().await;  
+    let add_sim = client.post(base_url)
+        .json(&data)
+        .send().await?
+        .json::<AddSim>().await?;
+    println!("add_sim = {:?}", add_sim);
+
+    let status_url = format!("{}/{}", base_url, add_sim.id);
+
+    loop {
+        let status = get_sim_status(&client, &status_url).await?;
+        if status.status == "Finished" {
+            break;
+        }
+    }
+
     Ok(())
 }
 
-// https://api.rocket.rs/v0.5/rocket/local/struct.LocalRequest.html
-
-#[allow(dead_code)]
-fn generate_post_data() -> String {
-    
+fn generate_post_data() -> RadiateDto {
     // create an environment
     let neat_env = NeatEnvironment::new()
         .set_input_size(2)
@@ -67,13 +99,25 @@ fn generate_post_data() -> String {
             .stagnation(10)
             .genocide(vec![Genocide::KillWorst(0.9)]);
     
+    let inputs = vec![
+        vec![0.0, 0.0],
+        vec![1.0, 1.0],
+        vec![1.0, 0.0],
+        vec![0.0, 1.0],
+    ];
+    let answers = vec![
+        vec![0.0],
+        vec![0.0],
+        vec![1.0],
+        vec![1.0],
+    ];
     // put it all together
     let radiate_dto = RadiateDto::new()
             .env(neat_env)
             .train(100, 0.3)        // this has it's own DTO too (TrainDto), but it's small
+            .training_set(inputs, answers)
             .neat(net)
-            .population(population)
-            .to_json();
+            .population(population);
 
     radiate_dto
 }

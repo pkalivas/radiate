@@ -6,5 +6,5 @@ authors = ["pkalivas <peterkalivas@gmail.com>"]
 
 [dependencies]
 simple-matrix="*"
-radiate="1.1.5"
+radiate={path="../../radiate"}
 radiate_matrix_tree={path="../../radiate_matrix_tree"}
