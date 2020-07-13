@@ -115,7 +115,7 @@ impl Hello {
 
 impl Genome<Hello, HelloEnv> for Hello {
 
-    fn crossover(parent_one: &Hello, parent_two: &Hello, env: &Arc<RwLock<HelloEnv>>, crossover_rate: f32) -> Option<Hello> {
+    fn crossover(parent_one: &Hello, parent_two: &Hello, env: Arc<RwLock<HelloEnv>>, crossover_rate: f32) -> Option<Hello> {
         let params = env.read().unwrap();
         let mut r = rand::thread_rng();
         let mut new_data = Vec::new();
@@ -137,7 +137,7 @@ impl Genome<Hello, HelloEnv> for Hello {
     }
 
 
-    fn distance(one: &Hello, two: &Hello, _: &Arc<RwLock<HelloEnv>>) -> f32 {
+    fn distance(one: &Hello, two: &Hello, _: Arc<RwLock<HelloEnv>>) -> f32 {
         let mut total = 0_f32;
         for (i, j) in one.data.iter().zip(two.data.iter()) {
             if i == j {
