@@ -105,7 +105,10 @@ impl<T, E, P> Population<T, E, P>
         }
     }
 
-
+    /// Get mutable slice of current generation members.
+    pub fn members_mut(&mut self) -> &mut [Container<T, E>] {
+        self.curr_gen.members_mut()
+    }
 
     /// Each generation will be trained by a call to this function 
     /// resulting optimization of the current generation, up to a 
@@ -117,8 +120,19 @@ impl<T, E, P> Population<T, E, P>
             T: Genome<T, E> + Clone + Send + Sync + Debug + PartialEq,
             P: Send + Sync
     {
-        // optimize the population and return the top member 
-        let top_member = self.curr_gen.optimize(self.solve.clone())?;
+        // optimize the population 
+        self.curr_gen.optimize(self.solve.clone());
+        self.end_generation()
+    }
+
+    /// Handle end of generation calculations and create a new generation.
+    /// Returns the top member and their score.
+    pub fn end_generation(&mut self) -> Option<(f32, T)>
+        where 
+            T: Genome<T, E> + Clone + Send + Sync + Debug + PartialEq,
+            P: Send + Sync
+    {
+        let top_member = self.curr_gen.best_member()?;
         // adjust the distance of the population if needed
         if self.dynamic_distance { self.adjust_distance(); }
         // speciate the generation into niches then see if the population is stagnant
@@ -132,8 +146,6 @@ impl<T, E, P> Population<T, E, P>
         // return the top member score and the member
         Some((top_member.0, (*top_member.1).clone()))
     }
-
-    
 
     /// Check to see if the population is stagnant or not, if it is 
     /// then go ahead and clean the population 
@@ -151,8 +163,6 @@ impl<T, E, P> Population<T, E, P>
         self.stagnation.previous_top_score = curr_top_score;
     }
 
-
-
     /// dynamically adjust the distance of a popualtion 
     fn adjust_distance(&mut self) {
         if self.curr_gen.species.len() < self.config.species_target {
@@ -164,8 +174,6 @@ impl<T, E, P> Population<T, E, P>
             self.config.distance = 0.1;
         }
     }
-
-
 
     /// Run the population according to a user defined function, the inputs of which
     /// are a borrowed member which is the top member of the current generation, 
@@ -195,8 +203,6 @@ impl<T, E, P> Population<T, E, P>
         }
     }
 
-
-    
     /// if debug is set to true, this is what will print out 
     /// the training to the screen during optimization.
     fn show_progress(&self) {
@@ -205,8 +211,6 @@ impl<T, E, P> Population<T, E, P>
             i.read().unwrap().display_info();
         }
     }
-    
-
     
     /////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// configure all the settings for the population these all have default settings if they are not set ///
@@ -359,8 +363,6 @@ impl<T, E, P> Population<T, E, P>
         self.parental_criteria =parents;
         self
     }
-
-
 }
 
 
