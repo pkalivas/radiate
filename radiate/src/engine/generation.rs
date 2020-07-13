@@ -137,14 +137,14 @@ impl<T, E> Generation<T, E>
     /// and assigning them species in which they belong to determined by a specific 
     /// distance between the member and the species mascot.
     #[inline]
-    pub fn speciate(&mut self, distance: f32, settings: &Arc<RwLock<E>>) {
+    pub fn speciate(&mut self, distance: f32, settings: Arc<RwLock<E>>) {
         // Loop over the members mutably to find a species which this member belongs to
         for cont in self.members.iter_mut() {
             // see if this member belongs to a given species 
             let mem_spec = self.species
                 .iter()
                 .find(|s| {
-                    <T as Genome<T, E>>::distance(&*cont.member.read().unwrap(), &*s.read().unwrap().mascot.read().unwrap(), settings) < distance
+                    <T as Genome<T, E>>::distance(&*cont.member.read().unwrap(), &*s.read().unwrap().mascot.read().unwrap(), Arc::clone(&settings)) < distance
                 });
             // if the member does belong to an existing species, add the two to each other 
             // otherwise create a new species and add that to the species and the member 
@@ -177,7 +177,7 @@ impl<T, E> Generation<T, E>
     /// fn from the genome trait, the more effecent that function is, the faster
     /// this function will be.
     #[inline]
-    pub fn create_next_generation(&mut self, pop_size: i32, config: Config, env: &Arc<RwLock<E>>) -> Option<Self> {   
+    pub fn create_next_generation(&mut self, pop_size: i32, config: Config, env: Arc<RwLock<E>>) -> Option<Self> {   
         // generating new members in a biased way using rayon to parallize it
         // then crossover to fill the rest of the generation 
         let mut new_members = self.survival_criteria.pick_survivers(&mut self.members, &self.species)?;
@@ -187,9 +187,9 @@ impl<T, E> Generation<T, E>
                 // select two random species to crossover, with a chance of inbreeding then cross them over
                 let (one, two) = self.parental_criteria.pick_parents(config.inbreed_rate, &self.species).unwrap();
                 let child = if one.0 > two.0 {
-                    <T as Genome<T, E>>::crossover(&*one.1.read().unwrap(), &*two.1.read().unwrap(), env, config.crossover_rate).unwrap()
+                    <T as Genome<T, E>>::crossover(&*one.1.read().unwrap(), &*two.1.read().unwrap(), Arc::clone(&env), config.crossover_rate).unwrap()
                 } else {
-                    <T as Genome<T, E>>::crossover(&*two.1.read().unwrap(), &*one.1.read().unwrap(), env, config.crossover_rate).unwrap()
+                    <T as Genome<T, E>>::crossover(&*two.1.read().unwrap(), &*one.1.read().unwrap(), Arc::clone(&env), config.crossover_rate).unwrap()
                 };
                 Arc::new(RwLock::new(child))
             })

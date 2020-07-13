@@ -123,12 +123,12 @@ impl<T, E, P> Population<T, E, P>
         if self.dynamic_distance { self.adjust_distance(); }
         // speciate the generation into niches then see if the population is stagnant
         // if the population is stagnant, clean the population 
-        self.curr_gen.speciate(self.config.distance, &self.environment);
+        self.curr_gen.speciate(self.config.distance, Arc::clone(&self.environment));
         self.manage_stagnation(top_member.0);
         // If debug is set to true, this is the place to show it before the new generation is 
         if self.debug_progress { self.show_progress(); }
         // create a new generation and return it
-        self.curr_gen = self.curr_gen.create_next_generation(self.size, self.config.clone(), &self.environment)?;
+        self.curr_gen = self.curr_gen.create_next_generation(self.size, self.config.clone(), Arc::clone(&self.environment))?;
         // return the top member score and the member
         Some((top_member.0, (*top_member.1).clone()))
     }

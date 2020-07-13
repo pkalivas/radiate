@@ -168,16 +168,16 @@ impl Genome<GRU, NeatEnvironment> for GRU
 
     /// implement how to crossover two GRU layers 
     #[inline]
-    fn crossover(child: &GRU, parent_two: &GRU, env: &Arc<RwLock<NeatEnvironment>>, crossover_rate: f32) -> Option<GRU> {
+    fn crossover(child: &GRU, parent_two: &GRU, env: Arc<RwLock<NeatEnvironment>>, crossover_rate: f32) -> Option<GRU> {
         let child = GRU {
             input_size: child.input_size,
             memory_size: child.memory_size,
             output_size: child.output_size,
             current_memory: vec![0.0; child.memory_size as usize],
             current_output: vec![0.0; child.output_size as usize],
-            f_gate: Dense::crossover(&child.f_gate, &parent_two.f_gate, env, crossover_rate)?,
-            o_gate: Dense::crossover(&child.o_gate, &parent_two.o_gate, env, crossover_rate)?,
-            e_gate: Dense::crossover(&child.e_gate, &parent_two.e_gate, env, crossover_rate)?,
+            f_gate: Dense::crossover(&child.f_gate, &parent_two.f_gate, Arc::clone(&env), crossover_rate)?,
+            o_gate: Dense::crossover(&child.o_gate, &parent_two.o_gate, Arc::clone(&env), crossover_rate)?,
+            e_gate: Dense::crossover(&child.e_gate, &parent_two.e_gate, Arc::clone(&env), crossover_rate)?,
         };
         Some(child)
     }
@@ -185,11 +185,11 @@ impl Genome<GRU, NeatEnvironment> for GRU
 
     /// get the distance between two GRU layers of the network
     #[inline]
-    fn distance(one: &GRU, two: &GRU, env: &Arc<RwLock<NeatEnvironment>>) -> f32 {
+    fn distance(one: &GRU, two: &GRU, env: Arc<RwLock<NeatEnvironment>>) -> f32 {
         let mut result = 0.0;
-        result += Dense::distance(&one.f_gate, &two.f_gate, env);
-        result += Dense::distance(&one.o_gate, &two.o_gate, env);
-        result += Dense::distance(&one.e_gate, &two.e_gate, env);
+        result += Dense::distance(&one.f_gate, &two.f_gate, Arc::clone(&env));
+        result += Dense::distance(&one.o_gate, &two.o_gate, Arc::clone(&env));
+        result += Dense::distance(&one.e_gate, &two.e_gate, Arc::clone(&env));
         result
     }
 }

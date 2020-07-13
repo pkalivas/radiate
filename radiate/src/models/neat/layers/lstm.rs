@@ -413,7 +413,7 @@ impl Genome<LSTM, NeatEnvironment> for LSTM
 
     /// implement how to crossover two LSTM layers 
     #[inline]
-    fn crossover(child: &LSTM, parent_two: &LSTM, env: &Arc<RwLock<NeatEnvironment>>, crossover_rate: f32) -> Option<LSTM> {
+    fn crossover(child: &LSTM, parent_two: &LSTM, env: Arc<RwLock<NeatEnvironment>>, crossover_rate: f32) -> Option<LSTM> {
         let child = LSTM {
             input_size: child.input_size,
             memory_size: child.memory_size,
@@ -422,11 +422,11 @@ impl Genome<LSTM, NeatEnvironment> for LSTM
             memory: vec![0.0; child.memory_size as usize],
             hidden: vec![0.0; child.memory_size as usize],
             states: LSTMState::new(),
-            g_gate: Arc::new(RwLock::new(Dense::crossover(&child.g_gate.read().unwrap(), &parent_two.g_gate.read().unwrap(), env, crossover_rate)?)),
-            i_gate: Arc::new(RwLock::new(Dense::crossover(&child.i_gate.read().unwrap(), &parent_two.i_gate.read().unwrap(), env, crossover_rate)?)),
-            f_gate: Arc::new(RwLock::new(Dense::crossover(&child.f_gate.read().unwrap(), &parent_two.f_gate.read().unwrap(), env, crossover_rate)?)),
-            o_gate: Arc::new(RwLock::new(Dense::crossover(&child.o_gate.read().unwrap(), &parent_two.o_gate.read().unwrap(), env, crossover_rate)?)),
-            v_gate: Arc::new(RwLock::new(Dense::crossover(&child.v_gate.read().unwrap(), &parent_two.v_gate.read().unwrap(), env, crossover_rate)?)),
+            g_gate: Arc::new(RwLock::new(Dense::crossover(&child.g_gate.read().unwrap(), &parent_two.g_gate.read().unwrap(), Arc::clone(&env), crossover_rate)?)),
+            i_gate: Arc::new(RwLock::new(Dense::crossover(&child.i_gate.read().unwrap(), &parent_two.i_gate.read().unwrap(), Arc::clone(&env), crossover_rate)?)),
+            f_gate: Arc::new(RwLock::new(Dense::crossover(&child.f_gate.read().unwrap(), &parent_two.f_gate.read().unwrap(), Arc::clone(&env), crossover_rate)?)),
+            o_gate: Arc::new(RwLock::new(Dense::crossover(&child.o_gate.read().unwrap(), &parent_two.o_gate.read().unwrap(), Arc::clone(&env), crossover_rate)?)),
+            v_gate: Arc::new(RwLock::new(Dense::crossover(&child.v_gate.read().unwrap(), &parent_two.v_gate.read().unwrap(), Arc::clone(&env), crossover_rate)?)),
         };
         Some(child)
     }
@@ -434,13 +434,13 @@ impl Genome<LSTM, NeatEnvironment> for LSTM
 
     /// get the distance between two LSTM layers of the network
     #[inline]
-    fn distance(one: &LSTM, two: &LSTM, env: &Arc<RwLock<NeatEnvironment>>) -> f32 {
+    fn distance(one: &LSTM, two: &LSTM, env: Arc<RwLock<NeatEnvironment>>) -> f32 {
         let mut result = 0.0;
-        result += Dense::distance(&one.g_gate.read().unwrap(), &two.g_gate.read().unwrap(), env);
-        result += Dense::distance(&one.i_gate.read().unwrap(), &two.i_gate.read().unwrap(), env);
-        result += Dense::distance(&one.f_gate.read().unwrap(), &two.f_gate.read().unwrap(), env);
-        result += Dense::distance(&one.o_gate.read().unwrap(), &two.o_gate.read().unwrap(), env);
-        result += Dense::distance(&one.v_gate.read().unwrap(), &two.v_gate.read().unwrap(), env);
+        result += Dense::distance(&one.g_gate.read().unwrap(), &two.g_gate.read().unwrap(), Arc::clone(&env));
+        result += Dense::distance(&one.i_gate.read().unwrap(), &two.i_gate.read().unwrap(), Arc::clone(&env));
+        result += Dense::distance(&one.f_gate.read().unwrap(), &two.f_gate.read().unwrap(), Arc::clone(&env));
+        result += Dense::distance(&one.o_gate.read().unwrap(), &two.o_gate.read().unwrap(), Arc::clone(&env));
+        result += Dense::distance(&one.v_gate.read().unwrap(), &two.v_gate.read().unwrap(), Arc::clone(&env));
         result
     }
 }

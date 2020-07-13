@@ -304,19 +304,19 @@ impl PartialEq for Neat {
 impl Genome<Neat, NeatEnvironment> for Neat {
 
     #[inline]
-    fn crossover(one: &Neat, two: &Neat, env: &Arc<RwLock<NeatEnvironment>>, crossover_rate: f32) -> Option<Neat> {
+    fn crossover(one: &Neat, two: &Neat, env: Arc<RwLock<NeatEnvironment>>, crossover_rate: f32) -> Option<Neat> {
         let mut result_layers = Vec::with_capacity(one.layers.len());
         // iterate through the layers of the network and cross them over with each other
         for (one_layer, two_layer) in one.layers.iter().zip(two.layers.iter()) {
             let new_layer: Box<dyn Layer> = match one_layer.layer_type {
                 LayerType::Dense | LayerType::DensePool => {
-                    Box::new(Dense::crossover(one_layer.as_ref(), two_layer.as_ref(), env, crossover_rate)?)
+                    Box::new(Dense::crossover(one_layer.as_ref(), two_layer.as_ref(), Arc::clone(&env), crossover_rate)?)
                 },
                 LayerType::LSTM => {
-                    Box::new(LSTM::crossover(one_layer.as_ref(), two_layer.as_ref(), env, crossover_rate)?)
+                    Box::new(LSTM::crossover(one_layer.as_ref(), two_layer.as_ref(), Arc::clone(&env), crossover_rate)?)
                 },
                 LayerType::GRU => {
-                    Box::new(GRU::crossover(one_layer.as_ref(), two_layer.as_ref(), env, crossover_rate)?)
+                    Box::new(GRU::crossover(one_layer.as_ref(), two_layer.as_ref(), Arc::clone(&env), crossover_rate)?)
                 }
             };
 
@@ -341,18 +341,18 @@ impl Genome<Neat, NeatEnvironment> for Neat {
 
 
     #[inline]
-    fn distance(one: &Neat, two: &Neat, env: &Arc<RwLock<NeatEnvironment>>) -> f32 {
+    fn distance(one: &Neat, two: &Neat, env: Arc<RwLock<NeatEnvironment>>) -> f32 {
         let mut total_distance = 0.0;
         for (layer_one, layer_two) in one.layers.iter().zip(two.layers.iter()) {
             total_distance += match layer_one.layer_type {
                 LayerType::Dense | LayerType::DensePool => {
-                    Dense::distance(layer_one.as_ref(), layer_two.as_ref(), env)
+                    Dense::distance(layer_one.as_ref(), layer_two.as_ref(), Arc::clone(&env))
                 },
                 LayerType::LSTM => {
-                    LSTM::distance(layer_one.as_ref(), layer_two.as_ref(), env)
+                    LSTM::distance(layer_one.as_ref(), layer_two.as_ref(), Arc::clone(&env))
                 },
                 LayerType::GRU => {
-                    GRU::distance(layer_one.as_ref(), layer_two.as_ref(), env)
+                    GRU::distance(layer_one.as_ref(), layer_two.as_ref(), Arc::clone(&env))
                 }
             };
         }

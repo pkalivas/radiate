@@ -588,7 +588,7 @@ impl Layer for Dense {
 impl Genome<Dense, NeatEnvironment> for Dense
     where Dense: Layer
 {
-    fn crossover(child: &Dense, parent_two: &Dense, env: &Arc<RwLock<NeatEnvironment>>, crossover_rate: f32) -> Option<Dense> {
+    fn crossover(child: &Dense, parent_two: &Dense, env: Arc<RwLock<NeatEnvironment>>, crossover_rate: f32) -> Option<Dense> {
         let mut new_child = child.clone();
         let set = (*env).read().ok()?;
         let mut r = rand::thread_rng();
@@ -642,7 +642,7 @@ impl Genome<Dense, NeatEnvironment> for Dense
 
 
 
-    fn distance(one: &Dense, two: &Dense, _: &Arc<RwLock<NeatEnvironment>>) -> f32 {
+    fn distance(one: &Dense, two: &Dense, _: Arc<RwLock<NeatEnvironment>>) -> f32 {
         let mut similar = 0.0;
         for (innov, _) in one.edges.iter() {
             if two.edges.contains_key(innov) {
