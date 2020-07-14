@@ -58,6 +58,10 @@ impl<T, E> Container<T, E>
         &mut self.member
     }
 
+    pub fn update_member(&mut self, new_member: T) {
+        *self.member.write().unwrap() = new_member;
+    }
+
     pub fn set_fitness(&mut self, fitness: f32) {
         self.fitness_score = fitness;
     }
@@ -130,6 +134,16 @@ impl<T, E> Generation<T, E>
     /// Get mutable slice of current generation members.
     pub fn members_mut(&mut self) -> &mut [Container<T, E>] {
         &mut self.members
+    }
+
+    /// Get mutable member.
+    pub fn member_mut(&mut self, idx: usize) -> Option<&mut Container<T, E>> {
+        self.members.get_mut(idx)
+    }
+
+    /// Get immutable member.
+    pub fn member(&self, idx: usize) -> Option<&Container<T, E>> {
+        self.members.get(idx)
     }
 
     /// The optimization function

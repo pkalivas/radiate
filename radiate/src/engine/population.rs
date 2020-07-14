@@ -9,9 +9,9 @@ use rayon::prelude::*;
 use super::{
     generation::{Generation, Container},
     genome::Genome,
-    problem::{Problem},
-    environment::{Envionment},
-    genocide::{Genocide},
+    problem::Problem,
+    environment::Envionment,
+    genocide::Genocide,
     survival::{SurvivalCriteria, ParentalCriteria}
 };
 
@@ -108,6 +108,16 @@ impl<T, E, P> Population<T, E, P>
     /// Get mutable slice of current generation members.
     pub fn members_mut(&mut self) -> &mut [Container<T, E>] {
         self.curr_gen.members_mut()
+    }
+
+    /// Get mutable member.
+    pub fn member_mut(&mut self, idx: usize) -> Option<&mut Container<T, E>> {
+        self.curr_gen.member_mut(idx)
+    }
+
+    /// Get immutable member.
+    pub fn member(&self, idx: usize) -> Option<&Container<T, E>> {
+        self.curr_gen.member(idx)
     }
 
     /// Each generation will be trained by a call to this function 
@@ -299,13 +309,13 @@ impl<T, E, P> Population<T, E, P>
         };
         self
     }
-    
+
     /// Give solver settings to the population to evolve the strucutre defined 
     pub fn constrain(mut self, environment: E) -> Self {
         self.environment = Arc::new(RwLock::new(environment));
         self
     }
-    
+
     /// Set the size of the population, the population size
     /// will default to 100 if this isn't set which could be enough 
     /// depending on the problem being solved 
@@ -313,13 +323,18 @@ impl<T, E, P> Population<T, E, P>
         self.size = size;
         self
     }
-    
+
+    /// Get the size of the population. 
+    pub fn get_size(&self) -> i32 {
+        self.size
+    }
+
     /// set the dynamic distance bool
     pub fn dynamic_distance(mut self, opt: bool) -> Self {
         self.dynamic_distance = opt;
         self
     }
-    
+
     /// set the stagnation number of the population
     pub fn stagnation(mut self, stag: usize, cleaner: Vec<Genocide>) -> Self {
         self.stagnation = Stagnant::new(stag, cleaner);

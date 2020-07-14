@@ -33,7 +33,7 @@ pub use engine::{
     genome::Genome,
     problem::Problem,
     niche::Niche,
-    generation::Generation,
+    generation::*,
     genocide::Genocide,
     environment::Envionment,
     survival::SurvivalCriteria,
