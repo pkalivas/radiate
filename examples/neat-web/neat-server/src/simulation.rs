@@ -1,0 +1,520 @@
+extern crate radiate;
+extern crate radiate_web;
+extern crate serde;
+extern crate serde_derive;
+
+use std::time::{Duration, Instant};
+use std::sync::{RwLock, Arc};
+
+use serde::{Serialize, Deserialize};
+
+use uuid::Uuid;
+
+use radiate::prelude::*;
+use radiate_web::prelude::*;
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub struct TrainingSet {
+    inputs: Vec<Vec<f32>>,
+    answers: Vec<Vec<f32>>,
+}
+
+impl TrainingSet {
+    pub fn new() -> Self {
+        // Default to the XOR problem
+        Self {
+            inputs: vec![
+                vec![0.0, 0.0],
+                vec![1.0, 0.0],
+                vec![0.0, 1.0],
+                vec![1.0, 1.0],
+            ],
+            answers: vec![
+                vec![0.0],
+                vec![1.0],
+                vec![1.0],
+                vec![0.0],
+            ],
+        }
+    }
+
+    pub fn new_from(training_set: Option<TrainingSetDto>) -> Self {
+        training_set.map_or_else(Self::new, |set| {
+            Self {
+                inputs: set.inputs,
+                answers: set.answers,
+            }
+        })
+    }
+
+    fn show(&self, model: &mut Neat) {
+        println!("\n");
+        for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
+            let guess = model.forward(&i).unwrap();
+            println!("Guess: {:.2?} Answer: {:.2}", guess, o[0]);
+        }
+    }
+}
+
+impl Problem<Neat> for TrainingSet {
+    fn empty() -> Self { TrainingSet::new() }
+
+    fn solve(&self, model: &mut Neat) -> f32 {
+        let mut total = 0.0;
+        for (ins, outs) in self.inputs.iter().zip(self.answers.iter()) {
+            match model.forward(&ins) {
+                Some(guess) => total += (guess[0] - outs[0]).powf(2.0),
+                None => panic!("Error in training NEAT")
+            }
+        }
+        self.answers.len() as f32 - total
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub enum WorkTask {
+    CalFitness,
+    TrainBest,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum WorkStatus {
+    Queued,
+    Running(Instant),
+    Finished(Duration),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct GenWork {
+    pub task: WorkTask,
+    pub status: WorkStatus,
+    pub member_idx: Option<usize>,
+}
+
+impl GenWork {
+    pub fn new(task: WorkTask, member_idx: Option<usize>) -> Self {
+        Self {
+            task,
+            status: WorkStatus::Queued,
+            member_idx,
+        }
+    }
+
+    pub fn reset(&mut self) {
+        self.status = WorkStatus::Queued;
+    }
+}
+
+impl Default for GenWork {
+    fn default() -> Self {
+        Self::new(WorkTask::CalFitness, None)
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WorkJob {
+    pub id: usize,
+    pub sim_id: Uuid,
+    pub curr_gen: usize,
+    pub task: WorkTask,
+    pub member_idx: Option<usize>,
+    pub train: Option<TrainDto>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DoWork {
+    pub work: Option<(WorkJob, Neat)>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WorkResult {
+    pub id: usize,
+    pub curr_gen: usize,
+    pub task: WorkTask,
+    pub member: Option<Neat>,
+    pub fitness: Option<f32>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub enum Status {
+    Evolving,
+    Training,
+    Finished,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SimulationStatus {
+    pub status: Status,
+    pub curr_gen: usize,
+    pub curr_epoch: usize,
+}
+
+pub struct Simulation {
+    id: Uuid,
+
+    status: Status,
+    population: Population<Neat, NeatEnvironment, TrainingSet>,
+
+    // generation work queue
+    work: Vec<GenWork>,
+    work_queued: usize,
+    work_running: usize,
+    last_finished: Instant,
+    work_expire_timeout: Duration,
+
+    // generations (evolving)
+    curr_gen: usize,
+    num_gen: usize,
+
+    // training
+    curr_epoch: usize,
+    solution: Option<Neat>,
+
+    // Problem data.
+    train: TrainDto,
+    data: TrainingSet,
+}
+
+impl Simulation {
+    pub fn new_from(mut radiate: RadiateDto) -> Option<Self> {
+        let pop = radiate.population?;
+        let size = pop.size.unwrap_or(100);
+
+        // prepare work queue
+        let mut work = Vec::with_capacity(size as usize);
+        for i in 0..size as usize {
+            work.push(GenWork::new(WorkTask::CalFitness, Some(i)));
+        }
+
+        // take out the training variables
+        let train = radiate.train?;
+        let num_evolve = pop.num_evolve.unwrap_or(50);
+
+        // set up the population now that it has been recieved
+        let mut population = Population::<Neat, NeatEnvironment, TrainingSet>::new()
+            .size(size)
+            .configure(pop.config.unwrap_or_else(|| Config::new()))
+            .debug(pop.debug_process.unwrap_or(false))
+            .dynamic_distance(pop.dynamic_distance.unwrap_or(false));
+
+        let data = if let Some(set) = radiate.training_set.take() {
+            let data = TrainingSet::new_from(Some(set));
+            // TODO: Remove this once we have a custom `run()` loop
+            population = population.impose(data.clone());
+            data
+        } else {
+            TrainingSet::new()
+        };
+        if let Some(env) = radiate.env {
+            population = population.constrain(env);
+        }
+        if let Some(net) = radiate.neat {
+            population = population.populate_clone(net);
+        }
+        if let Some(stagnation) = pop.stagnation {
+            if let Some(genocide) = pop.genocide {
+                population = population.stagnation(stagnation, genocide);
+            }
+        }
+        if let Some(parental_criteria) = pop.parental_criteria {
+            population = population.parental_criteria(parental_criteria);
+        }
+        if let Some(survivor_criteria) = pop.survivor_criteria {
+            population = population.survivor_criteria(survivor_criteria);
+        }
+
+        Some(Self {
+            id: Uuid::new_v4(),
+            status: Status::Evolving,
+            population,
+
+            work,
+            work_queued: size as usize,
+            work_running: 0,
+            work_expire_timeout: Duration::from_secs(5),
+            last_finished: Instant::now(),
+
+            curr_gen: 0,
+            num_gen: num_evolve as usize,
+
+            curr_epoch: 0,
+            solution: None,
+
+            train,
+            data,
+        })
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn get_training_set(&self) -> &TrainingSet {
+        &self.data
+    }
+
+    pub fn get_status(&self) -> SimulationStatus {
+        SimulationStatus {
+          status: self.status,
+          curr_gen: self.curr_gen,
+          curr_epoch: self.curr_epoch,
+        }
+    }
+
+    pub fn member_mut(&mut self, idx: usize) -> Option<&mut Container<Neat, NeatEnvironment>> {
+        self.population.member_mut(idx)
+    }
+
+    pub fn member(&self, idx: usize) -> Option<&Container<Neat, NeatEnvironment>> {
+        self.population.member(idx)
+    }
+
+    pub fn work_member(&self, work: &WorkJob) -> Option<Arc<RwLock<Neat>>> {
+        match work.task {
+            WorkTask::CalFitness => {
+                if let Some(idx) = work.member_idx {
+                    self.member(idx).map(|cont| cont.member.clone())
+                } else {
+                    None
+                }
+            },
+            WorkTask::TrainBest => {
+                self.solution.clone().map(|top| Arc::new(RwLock::new(top)))
+            },
+        }
+    }
+
+    pub fn has_expired_work(&self) -> bool {
+        self.work_running > 0 &&
+          self.last_finished.elapsed() > self.work_expire_timeout
+    }
+
+    pub fn has_work(&self) -> bool {
+        if self.status == Status::Finished {
+            // simulation finished.  no work.
+            false
+        } else if self.work_queued > 0 {
+            // has queued work.
+            true
+        } else if self.has_expired_work() {
+            // no queued work.  has expired work units.
+            true
+        } else {
+            // no work available.
+            false
+        }
+    }
+
+    fn reset_work(&mut self) {
+        for work in self.work.iter_mut() {
+            work.reset();
+        }
+        self.work_queued = self.work.len();
+        self.work_running = 0;
+        self.last_finished = Instant::now();
+    }
+
+    /// check for end of generation.
+    fn finished_work(&mut self) {
+        // update number of running jobs.
+        self.work_running -= 1;
+        self.last_finished = Instant::now();
+        // check if all queued & running jobs have finished.
+        if self.work_running == 0 && self.work_queued == 0 {
+            self.reset_work();
+            match self.status {
+                Status::Evolving => {
+                    // handle end of generation calculations.
+                    self.end_generation();
+                },
+                Status::Training => {
+                    self.end_training();
+                },
+                _ => {
+                },
+            }
+        }
+    }
+
+    pub fn update_work(&mut self, result: WorkResult) {
+        // make sure the results are for the current generation.
+        if result.curr_gen != self.curr_gen {
+            // results for old generation.
+            return;
+        }
+
+        if let Some(work) = self.work.get_mut(result.id) {
+            // check if the results is for the correct task type.
+            if work.task != result.task {
+                // old results from generation, ignore.
+                return;
+            }
+            // check if work has already finished.
+            match work.status {
+                WorkStatus::Queued => {
+                    // re-scheduled?
+                },
+                WorkStatus::Running(start) => {
+                    work.status = WorkStatus::Finished(start.elapsed());
+                    match work.task {
+                        WorkTask::CalFitness => {
+                            // get member
+                            let member = work.member_idx
+                              .and_then(|idx| self.member_mut(idx));
+                            if let Some(member) = member {
+                                // update fitness
+                                if let Some(fitness) = result.fitness {
+                                    member.set_fitness(fitness);
+                                }
+                                // update member Genome
+                                if let Some(new_member) = result.member {
+                                    member.update_member(new_member);
+                                }
+                            }
+                        },
+                        WorkTask::TrainBest => {
+                            if let Some(new_member) = result.member {
+                                self.solution = Some(new_member);
+                            }
+                        },
+                    }
+                    // check if generation has finished.
+                    self.finished_work();
+                },
+                WorkStatus::Finished(_) => {
+                    // work has already finished.  Ignore old results.
+                },
+            }
+        }
+    }
+
+    fn work_to_job(&mut self, id: usize, work: GenWork) -> Option<WorkJob> {
+        let mut job = WorkJob {
+            id,
+            sim_id: self.id,
+            curr_gen: self.curr_gen,
+            task: work.task,
+            member_idx: work.member_idx,
+            train: None,
+        };
+        if job.task == WorkTask::TrainBest {
+            job.train = Some(self.train.clone());
+        }
+
+        Some(job)
+    }
+
+    pub fn get_work(&mut self) -> Option<WorkJob> {
+        if self.has_work() {
+            let work = self.get_queued_work().or_else(|| {
+                self.get_expired_work()
+            });
+            if let Some((id, work)) = work {
+                return self.work_to_job(id, work);
+            }
+        }
+        None
+    }
+
+    fn get_queued_work(&mut self) -> Option<(usize, GenWork)> {
+        // TODO: track index of next task to avoid looping.
+        for (id, work) in self.work.iter_mut().enumerate() {
+            if work.status == WorkStatus::Queued {
+                work.status = WorkStatus::Running(Instant::now());
+                self.work_queued -= 1;
+                self.work_running += 1;
+                return Some((id, *work));
+            }
+        }
+        return None;
+    }
+
+    /// Find an expired job.
+    fn get_expired_work(&mut self) -> Option<(usize, GenWork)> {
+        for (id, work) in self.work.iter_mut().enumerate() {
+            match work.status {
+                WorkStatus::Running(start) => {
+                    if start.elapsed() > self.work_expire_timeout {
+                        work.status = WorkStatus::Running(Instant::now());
+                        return Some((id, *work));
+                    }
+                },
+                _ => {
+                    // ignore finished and queued work.
+                },
+            }
+        }
+        return None;
+    }
+
+    /// Handle end of generation.
+    fn end_generation(&mut self) {
+        if let Some((fit , top)) = self.population.end_generation() {
+            println!("epoch: {} score: {}", self.curr_gen, fit);
+            if self.curr_gen == self.num_gen {
+                self.solution = Some(top);
+                self.start_training();
+            }
+            self.curr_gen += 1;
+        } else {
+            unreachable!("End generation failed.  This shouldn't be possible.");
+        }
+    }
+
+    /// Start training of best member.
+    fn start_training(&mut self) {
+        self.status = Status::Training;
+        self.work.clear();
+        self.work.push(GenWork::new(WorkTask::TrainBest, None));
+        self.work_queued = 1;
+    }
+
+    /// TODO remove.
+    fn step_gen(&mut self) {
+        // TODO: queue this work for a worker to run.
+        if self.curr_gen >= self.num_gen {
+            return;
+        }
+        // run a full generation.
+        for cont in self.population.members_mut().iter_mut() {
+            (*cont).fitness_score = self.data.solve(&mut *cont.member.write().unwrap());
+        }
+        self.end_generation();
+    }
+
+    fn step_train(&mut self) {
+        // TODO: queue this work for a worker to run.
+        if self.curr_epoch >= self.train.epochs as usize {
+            return;
+        }
+        // manually train the neural net
+        let num_train = self.train.epochs as usize;
+        let learning_rate = self.train.learning_rate;
+        if let Some(solution) = &mut self.solution {
+            solution.train(&self.data.inputs, &self.data.answers, learning_rate, Loss::Diff, |iter, _| {
+                iter == num_train
+            }).unwrap();
+
+            // show it
+            self.data.show(solution);
+        }
+        self.end_training();
+    }
+
+    fn end_training(&mut self) {
+        self.status = Status::Finished;
+        self.curr_epoch = self.train.epochs as usize;
+    }
+
+    pub fn run(&mut self) {
+        match self.status {
+            Status::Evolving => {
+                self.step_gen();
+            },
+            Status::Training => {
+                self.step_train();
+            },
+            _ => (),
+        }
+    }
+}

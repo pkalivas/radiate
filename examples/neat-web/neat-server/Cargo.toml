@@ -13,6 +13,9 @@ serde = {version ="1.0", features = ["rc"]}
 serde_json="1.0.44"
 serde_derive="1.0.104"
 rocket="0.4.5"
+reqwest = { version = "0.10", features = ["json"] }
+tokio = { version = "0.2", features = ["macros", "time"] }
+env_logger = "0.7.1"
 uuid="0.8.1"
 
 [dependencies.rocket_contrib]

@@ -7,6 +7,8 @@ extern crate serde_json;
 extern crate serde_derive;
 extern crate reqwest;
 
+use std::time::Duration;
+
 use env_logger;
 
 use serde::Deserialize;
@@ -14,6 +16,7 @@ use serde::Deserialize;
 use radiate::prelude::*;
 use radiate_web::prelude::*;
 
+use tokio::time::delay_for;
 use reqwest::Client;
  
 #[derive(Debug, Default, Deserialize)]
@@ -57,6 +60,7 @@ async fn main() -> Result<(), reqwest::Error> {
         if status.status == "Finished" {
             break;
         }
+        delay_for(Duration::from_millis(500)).await;
     }
 
     Ok(())
