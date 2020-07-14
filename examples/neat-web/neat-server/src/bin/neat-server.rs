@@ -38,27 +38,30 @@ impl SimStorage {
 
     pub fn add(&self, sim: Simulation) -> Option<Uuid> {
         let id = sim.id();
+        println!("Add new simulation: {}", id);
         self.simulations.write().unwrap().insert(id, Arc::new(RwLock::new(sim)));
         Some(id)
     }
 
-    fn encode_work(&self, sim: &mut Simulation) -> JsonValue {
+    fn encode_work(&self, sim: &mut Simulation) -> Option<JsonValue> {
         if let Some(work) = sim.get_work() {
             if let Some(member) = sim.work_member(&work) {
-                return json!({
+                return Some(json!({
                     "work": Some((work, member)),
-                });
+                }));
             } else {
                 unreachable!("This shouldn't happen.");
             }
         }
-        json!({})
+        None
     }
 
     pub fn get_work(&self) -> JsonValue {
         for sim in self.simulations.read().unwrap().values() {
             let mut sim = sim.write().unwrap();
-            return self.encode_work(&mut sim);
+            if let Some(work) = self.encode_work(&mut sim) {
+                return work;
+            }
         }
         json!({})
     }
@@ -67,10 +70,11 @@ impl SimStorage {
         let sim = self.get(&id);
         if let Some(sim) = sim {
             let mut sim = sim.write().unwrap();
-            self.encode_work(&mut sim)
-        } else {
-            json!({})
+            if let Some(work) = self.encode_work(&mut sim) {
+                return work;
+            }
         }
+        json!({})
     }
 }
 
