@@ -47,7 +47,14 @@ impl TrainingSet {
         })
     }
 
-    fn show(&self, model: &mut Neat) {
+    pub fn train(&self, train: &TrainDto, model: &mut Neat) {
+        let num_train = train.epochs as usize;
+        model.train(&self.inputs, &self.answers, train.learning_rate, Loss::Diff, |iter, _| {
+            iter == num_train
+        }).unwrap();
+    }
+
+    pub fn show(&self, model: &mut Neat) {
         println!("\n");
         for (i, o) in self.inputs.iter().zip(self.answers.iter()) {
             let guess = model.forward(&i).unwrap();
@@ -72,7 +79,7 @@ impl Problem<Neat> for TrainingSet {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub enum WorkTask {
+pub enum SimTaskType {
     CalFitness,
     TrainBest,
 }
@@ -85,14 +92,14 @@ pub enum WorkStatus {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct GenWork {
-    pub task: WorkTask,
+pub struct SimTask {
+    pub task: SimTaskType,
     pub status: WorkStatus,
     pub member_idx: Option<usize>,
 }
 
-impl GenWork {
-    pub fn new(task: WorkTask, member_idx: Option<usize>) -> Self {
+impl SimTask {
+    pub fn new(task: SimTaskType, member_idx: Option<usize>) -> Self {
         Self {
             task,
             status: WorkStatus::Queued,
@@ -105,32 +112,33 @@ impl GenWork {
     }
 }
 
-impl Default for GenWork {
+impl Default for SimTask {
     fn default() -> Self {
-        Self::new(WorkTask::CalFitness, None)
+        Self::new(SimTaskType::CalFitness, None)
     }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct WorkJob {
+pub struct WorkUnit {
     pub id: usize,
     pub sim_id: Uuid,
     pub curr_gen: usize,
-    pub task: WorkTask,
+    pub task: SimTaskType,
     pub member_idx: Option<usize>,
+    pub member: Option<Neat>,
     pub train: Option<TrainDto>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct DoWork {
-    pub work: Option<(WorkJob, Neat)>,
+pub struct GetWorkResp {
+    pub work: Option<WorkUnit>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct WorkResult {
+pub struct GetWorkResult {
     pub id: usize,
     pub curr_gen: usize,
-    pub task: WorkTask,
+    pub task: SimTaskType,
     pub member: Option<Neat>,
     pub fitness: Option<f32>,
 }
@@ -156,7 +164,7 @@ pub struct Simulation {
     population: Population<Neat, NeatEnvironment, TrainingSet>,
 
     // generation work queue
-    work: Vec<GenWork>,
+    work: Vec<SimTask>,
     work_queued: usize,
     work_running: usize,
     last_finished: Instant,
@@ -183,7 +191,7 @@ impl Simulation {
         // prepare work queue
         let mut work = Vec::with_capacity(size as usize);
         for i in 0..size as usize {
-            work.push(GenWork::new(WorkTask::CalFitness, Some(i)));
+            work.push(SimTask::new(SimTaskType::CalFitness, Some(i)));
         }
 
         // take out the training variables
@@ -269,16 +277,16 @@ impl Simulation {
         self.population.member(idx)
     }
 
-    pub fn work_member(&self, work: &WorkJob) -> Option<Arc<RwLock<Neat>>> {
+    pub fn work_member(&self, work: &WorkUnit) -> Option<Arc<RwLock<Neat>>> {
         match work.task {
-            WorkTask::CalFitness => {
+            SimTaskType::CalFitness => {
                 if let Some(idx) = work.member_idx {
                     self.member(idx).map(|cont| cont.member.clone())
                 } else {
                     None
                 }
             },
-            WorkTask::TrainBest => {
+            SimTaskType::TrainBest => {
                 self.solution.clone().map(|top| Arc::new(RwLock::new(top)))
             },
         }
@@ -336,7 +344,7 @@ impl Simulation {
         }
     }
 
-    pub fn update_work(&mut self, result: WorkResult) {
+    pub fn work_results(&mut self, result: GetWorkResult) {
         // make sure the results are for the current generation.
         if result.curr_gen != self.curr_gen {
             // results for old generation.
@@ -357,7 +365,7 @@ impl Simulation {
                 WorkStatus::Running(start) => {
                     work.status = WorkStatus::Finished(start.elapsed());
                     match work.task {
-                        WorkTask::CalFitness => {
+                        SimTaskType::CalFitness => {
                             // get member
                             let member = work.member_idx
                               .and_then(|idx| self.member_mut(idx));
@@ -372,7 +380,7 @@ impl Simulation {
                                 }
                             }
                         },
-                        WorkTask::TrainBest => {
+                        SimTaskType::TrainBest => {
                             if let Some(new_member) = result.member {
                                 self.solution = Some(new_member);
                             }
@@ -388,23 +396,32 @@ impl Simulation {
         }
     }
 
-    fn work_to_job(&mut self, id: usize, work: GenWork) -> Option<WorkJob> {
-        let mut job = WorkJob {
+    fn work_to_job(&mut self, id: usize, work: SimTask) -> Option<WorkUnit> {
+        let mut job = WorkUnit {
             id,
             sim_id: self.id,
             curr_gen: self.curr_gen,
             task: work.task,
             member_idx: work.member_idx,
+            member: None,
             train: None,
         };
-        if job.task == WorkTask::TrainBest {
-            job.train = Some(self.train.clone());
+        match job.task {
+            SimTaskType::CalFitness => {
+                if let Some(idx) = work.member_idx {
+                    job.member = self.member(idx).map(|cont| cont.member.read().unwrap().clone());
+                }
+            },
+            SimTaskType::TrainBest => {
+                job.member = self.solution.clone();
+                job.train = Some(self.train.clone());
+            },
         }
 
         Some(job)
     }
 
-    pub fn get_work(&mut self) -> Option<WorkJob> {
+    pub fn get_work(&mut self) -> Option<WorkUnit> {
         if self.has_work() {
             let work = self.get_queued_work().or_else(|| {
                 self.get_expired_work()
@@ -416,7 +433,7 @@ impl Simulation {
         None
     }
 
-    fn get_queued_work(&mut self) -> Option<(usize, GenWork)> {
+    fn get_queued_work(&mut self) -> Option<(usize, SimTask)> {
         // TODO: track index of next task to avoid looping.
         for (id, work) in self.work.iter_mut().enumerate() {
             if work.status == WorkStatus::Queued {
@@ -430,7 +447,7 @@ impl Simulation {
     }
 
     /// Find an expired job.
-    fn get_expired_work(&mut self) -> Option<(usize, GenWork)> {
+    fn get_expired_work(&mut self) -> Option<(usize, SimTask)> {
         for (id, work) in self.work.iter_mut().enumerate() {
             match work.status {
                 WorkStatus::Running(start) => {
@@ -465,56 +482,12 @@ impl Simulation {
     fn start_training(&mut self) {
         self.status = Status::Training;
         self.work.clear();
-        self.work.push(GenWork::new(WorkTask::TrainBest, None));
+        self.work.push(SimTask::new(SimTaskType::TrainBest, None));
         self.work_queued = 1;
-    }
-
-    /// TODO remove.
-    fn step_gen(&mut self) {
-        // TODO: queue this work for a worker to run.
-        if self.curr_gen >= self.num_gen {
-            return;
-        }
-        // run a full generation.
-        for cont in self.population.members_mut().iter_mut() {
-            (*cont).fitness_score = self.data.solve(&mut *cont.member.write().unwrap());
-        }
-        self.end_generation();
-    }
-
-    fn step_train(&mut self) {
-        // TODO: queue this work for a worker to run.
-        if self.curr_epoch >= self.train.epochs as usize {
-            return;
-        }
-        // manually train the neural net
-        let num_train = self.train.epochs as usize;
-        let learning_rate = self.train.learning_rate;
-        if let Some(solution) = &mut self.solution {
-            solution.train(&self.data.inputs, &self.data.answers, learning_rate, Loss::Diff, |iter, _| {
-                iter == num_train
-            }).unwrap();
-
-            // show it
-            self.data.show(solution);
-        }
-        self.end_training();
     }
 
     fn end_training(&mut self) {
         self.status = Status::Finished;
         self.curr_epoch = self.train.epochs as usize;
-    }
-
-    pub fn run(&mut self) {
-        match self.status {
-            Status::Evolving => {
-                self.step_gen();
-            },
-            Status::Training => {
-                self.step_train();
-            },
-            _ => (),
-        }
     }
 }

@@ -8,6 +8,9 @@ extern crate serde_derive;
 extern crate reqwest;
 
 use std::time::Duration;
+use std::io::{self, Write};
+
+use std::collections::{HashMap, hash_map::Entry};
 
 use uuid::Uuid;
 
@@ -15,40 +18,67 @@ use env_logger;
 
 use tokio::time::delay_for;
  
+use radiate_web::*;
 use radiate::prelude::*;
 use neat_server::*;
 
-async fn sim_get_data(base_url: &str, id: Uuid) -> Result<TrainingSet, reqwest::Error> {
-    let url = format!("{}/simulations/{}/training_set", base_url, id);
-    // Work around reqwest issue with "Connection: close", don't re-use client.
-    let client = reqwest::Client::new();
-    let training_set = client.get(&url)
-      .send().await?
-      .json::<TrainingSet>().await?;
-
-    Ok(training_set)
+fn flush() {
+  io::stdout().flush().ok().expect("Failed to flush stdout")
 }
 
-async fn update_work(base_url: &str, id: Uuid, work: &WorkJob, fitness: Option<f32>, member: Option<Neat>) -> Result<SimulationStatus, reqwest::Error> {
-    let result = WorkResult {
+#[derive(Debug, Default)]
+struct CacheSimData {
+    training_data: HashMap<Uuid, TrainingSet>,
+}
+
+impl CacheSimData {
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    pub async fn get_sim_data(&mut self, base_url: &str, id: Uuid) -> Result<&TrainingSet, reqwest::Error> {
+        let entry = self.training_data.entry(id);
+        // check cache.
+        match entry {
+            Entry::Occupied(val) => {
+                // got cached value.
+                Ok(val.into_mut())
+            },
+            Entry::Vacant(val) => {
+                let url = format!("{}/simulations/{}/training_set", base_url, id);
+                // Work around reqwest issue with "Connection: close", don't re-use client.
+                let client = reqwest::Client::new();
+                let data = client.get(&url)
+                  .send().await?
+                  .json::<TrainingSet>().await?;
+                Ok(val.insert(data))
+            },
+        }
+    }
+}
+
+async fn work_results(base_url: &str, id: Uuid, work: &mut WorkUnit, fitness: Option<f32>) -> Result<Option<WorkUnit>, reqwest::Error> {
+    let result = GetWorkResult {
         id: work.id,
         curr_gen: work.curr_gen,
         task: work.task,
-        member,
+        member: work.member.take(),
         fitness,
     };
-    let url = format!("{}/simulations/{}/update_work", base_url, id);
+    let url = format!("{}/simulations/{}/work_results?get_work=true", base_url, id);
     // Work around reqwest issue with "Connection: close", don't re-use client.
     let client = reqwest::Client::new();
-    let status = client.post(&url)
+
+    // upload work results and request more work
+    let resp = client.post(&url)
       .json(&result)
       .send().await?
-      .json::<SimulationStatus>().await?;
-    //println!("status = {:?}", status);
-    return Ok(status);
+      .json::<GetWorkResp>().await?;
+
+    Ok(resp.work)
 }
 
-async fn get_work(base_url: &str, id: Option<Uuid>) -> Result<Option<(WorkJob, Neat)>, reqwest::Error> {
+async fn get_work(base_url: &str, id: Option<Uuid>) -> Result<Option<WorkUnit>, reqwest::Error> {
     let url = if let Some(sim_id) = id {
         format!("{}/simulations/{}/get_work", base_url, sim_id)
     } else {
@@ -57,41 +87,57 @@ async fn get_work(base_url: &str, id: Option<Uuid>) -> Result<Option<(WorkJob, N
 
     // Work around reqwest issue with "Connection: close", don't re-use client.
     let client = reqwest::Client::new();
-    let work = client.get(&url)
+    let resp = client.get(&url)
       .send().await?
-      .json::<DoWork>().await?;
-    //println!("work = {:?}", work.work);
-    return Ok(work.work);
+      .json::<GetWorkResp>().await?;
+
+    Ok(resp.work)
 }
 
-async fn do_work(base_url: &str, work: (WorkJob, Neat)) -> Result<bool, reqwest::Error> {
-    // unwrap DoWork
-    let (mut work, mut member) = work;
+fn do_cal_fitness(work: &mut WorkUnit, data: &TrainingSet) -> Option<f32> {
+    if let Some(mut member) = work.member.take() {
+        Some(data.solve(&mut member))
+    } else {
+        None
+    }
+}
+
+fn do_training(work: &mut WorkUnit, data: &TrainingSet) {
+    let train = work.train.as_ref()
+        .unwrap_or(&TrainDto{ epochs: 100, learning_rate: 0.3});
+    if let Some(member) = &mut work.member {
+        data.train(&train, member);
+
+        // show it
+        data.show(member);
+    }
+}
+
+async fn do_work(cache: &mut CacheSimData, base_url: &str, mut work: WorkUnit) -> Result<bool, reqwest::Error> {
 
     // get problem data for simulation.
     let sim_id = work.sim_id;
     println!("start working on simulation: {}", sim_id);
-    let data = sim_get_data(base_url, sim_id).await?;
+    let data = cache.get_sim_data(base_url, sim_id).await?;
 
     loop {
-        let mut fitness = 0.0;
-        match work.task {
-            WorkTask::CalFitness => {
-                fitness = data.solve(&mut member);
+        let fitness = match work.task {
+            SimTaskType::CalFitness => {
+                do_cal_fitness(&mut work, &data)
             },
-            WorkTask::TrainBest => {
-                // TODO:
+            SimTaskType::TrainBest => {
+                do_training(&mut work, &data);
+                None
             },
-        }
+        };
 
-        // upload work results.
-        update_work(base_url, sim_id, &work, Some(fitness), Some(member)).await?;
-
-        // try getting more work for same simulation.
-        if let Some(new_work) = get_work(&base_url, Some(sim_id)).await? {
-            work = new_work.0;
-            member = new_work.1;
+        print!("*");
+        flush();
+        // upload work results and get more work.
+        if let Some(new_work) = work_results(base_url, sim_id, &mut work, fitness).await? {
+            work = new_work;
         } else {
+            println!();
             break;
         }
     }
@@ -103,13 +149,22 @@ async fn main() -> Result<(), reqwest::Error> {
     env_logger::init();
     let base_url = "http://0.0.0.0:42069";
 
+    let mut cache = CacheSimData::new();
+
+    let mut sleep_time = 200;
     loop {
         let work = get_work(&base_url, None).await?;
         if let Some(work) = work {
-            do_work(&base_url, work).await?;
+            // reset sleep time
+            sleep_time = 200;
+            do_work(&mut cache, &base_url, work).await?;
         } else {
             println!("no work sleep");
-            delay_for(Duration::from_millis(1000)).await;
+            delay_for(Duration::from_millis(sleep_time)).await;
+            // sleep longer if no work.
+            if sleep_time < 2000 {
+                sleep_time += 200;
+            }
         }
     }
 }

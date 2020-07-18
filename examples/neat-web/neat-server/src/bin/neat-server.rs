@@ -21,6 +21,12 @@ use rocket_contrib::json::{Json, JsonValue};
 
 use neat_server::*;
 
+fn work_to_json(work: Option<WorkUnit>) -> JsonValue {
+    json!(GetWorkResp {
+        work: work,
+    })
+}
+
 #[derive(Default)]
 struct SimStorage {
     simulations: RwLock<HashMap<Uuid, Arc<RwLock<Simulation>>>>,
@@ -43,38 +49,36 @@ impl SimStorage {
         Some(id)
     }
 
-    fn encode_work(&self, sim: &mut Simulation) -> Option<JsonValue> {
-        if let Some(work) = sim.get_work() {
-            if let Some(member) = sim.work_member(&work) {
-                return Some(json!({
-                    "work": Some((work, member)),
-                }));
+    pub fn get_work(&self, id: Option<&str>) -> JsonValue {
+        if let Some(id) = id {
+            // check simulation for more queued work
+            let sim = self.get(&id);
+            if let Some(sim) = sim {
+                let mut sim = sim.write().unwrap();
+                return work_to_json(sim.get_work());
+            }
+        } else {
+            // find simulation with queued work.
+            for sim in self.simulations.read().unwrap().values() {
+                let mut sim = sim.write().unwrap();
+                return work_to_json(sim.get_work());
+            }
+        }
+        work_to_json(None)
+    }
+
+    pub fn work_results(&self, id: &str, result: GetWorkResult, get_work: bool) -> Option<JsonValue> {
+        if let Some(sim) = self.get(&id) {
+            let mut sim = sim.write().unwrap();
+            sim.work_results(result);
+            if get_work {
+                Some(work_to_json(sim.get_work()))
             } else {
-                unreachable!("This shouldn't happen.");
+                Some(work_to_json(None))
             }
+        } else {
+            None
         }
-        None
-    }
-
-    pub fn get_work(&self) -> JsonValue {
-        for sim in self.simulations.read().unwrap().values() {
-            let mut sim = sim.write().unwrap();
-            if let Some(work) = self.encode_work(&mut sim) {
-                return work;
-            }
-        }
-        json!({})
-    }
-
-    pub fn sim_get_work(&self, id: &str) -> JsonValue {
-        let sim = self.get(&id);
-        if let Some(sim) = sim {
-            let mut sim = sim.write().unwrap();
-            if let Some(work) = self.encode_work(&mut sim) {
-                return work;
-            }
-        }
-        json!({})
     }
 }
 
@@ -95,7 +99,7 @@ fn main() {
             get_sim_status,
             get_sim_training_set,
             sim_get_work,
-            update_work,
+            work_results,
             new_sim,
         ])
         .manage(SimStorage::new())
@@ -105,12 +109,12 @@ fn main() {
 
 #[get("/get_work")]
 fn get_work(sims: State<SimStorage>) -> JsonValue {
-    sims.get_work()
+    sims.get_work(None)
 }
 
 #[get("/simulations/<id>/get_work")]
 fn sim_get_work(sims: State<SimStorage>, id: String) -> JsonValue {
-    sims.sim_get_work(&id)
+    sims.get_work(Some(&id))
 }
 
 #[get("/simulations/<id>")]
@@ -136,15 +140,9 @@ fn get_sim_training_set(sims: State<SimStorage>, id: String) -> Option<JsonValue
     }
 }
 
-#[post("/simulations/<id>/update_work", format = "json", data = "<result>")]
-fn update_work(sims: State<SimStorage>, id: String, result: Json<WorkResult>) -> Option<JsonValue> {
-    if let Some(sim) = sims.get(&id) {
-        let mut sim = sim.write().unwrap();
-        sim.update_work(result.0);
-        Some(json!(sim.get_status()))
-    } else {
-        None
-    }
+#[post("/simulations/<id>/work_results?<get_work>", format = "json", data = "<result>")]
+fn work_results(sims: State<SimStorage>, id: String, get_work: bool, result: Json<GetWorkResult>) -> Option<JsonValue> {
+    sims.work_results(&id, result.0, get_work)
 }
 
 #[post("/simulations", format = "json", data = "<radiate>")]
