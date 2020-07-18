@@ -98,6 +98,7 @@ fn main() {
             get_work,
             get_sim_status,
             get_sim_training_set,
+            get_solution,
             sim_get_work,
             work_results,
             new_sim,
@@ -121,10 +122,17 @@ fn sim_get_work(sims: State<SimStorage>, id: String) -> JsonValue {
 fn get_sim_status(sims: State<SimStorage>, id: String) -> Option<JsonValue> {
     if let Some(sim) = sims.get(&id) {
         let sim = sim.read().unwrap();
-        //let mut sim = sim.write().unwrap();
-        // TODO: remove
-        //sim.run();
         Some(json!(sim.get_status()))
+    } else {
+        None
+    }
+}
+
+#[get("/simulations/<id>/solution")]
+fn get_solution(sims: State<SimStorage>, id: String) -> Option<JsonValue> {
+    if let Some(sim) = sims.get(&id) {
+        let sim = sim.read().unwrap();
+        Some(json!(sim.get_solution()))
     } else {
         None
     }

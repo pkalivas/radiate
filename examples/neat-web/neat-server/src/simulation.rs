@@ -4,7 +4,6 @@ extern crate serde;
 extern crate serde_derive;
 
 use std::time::{Duration, Instant};
-use std::sync::{RwLock, Arc};
 
 use serde::{Serialize, Deserialize};
 
@@ -155,6 +154,7 @@ pub struct SimulationStatus {
     pub status: Status,
     pub curr_gen: usize,
     pub curr_epoch: usize,
+    pub solution: Option<Neat>,
 }
 
 pub struct Simulation {
@@ -262,11 +262,16 @@ impl Simulation {
     }
 
     pub fn get_status(&self) -> SimulationStatus {
-        SimulationStatus {
+        let mut status = SimulationStatus {
           status: self.status,
           curr_gen: self.curr_gen,
           curr_epoch: self.curr_epoch,
+          solution: None,
+        };
+        if self.status == Status::Finished {
+            status.solution = self.solution.clone();
         }
+        status
     }
 
     pub fn member_mut(&mut self, idx: usize) -> Option<&mut Container<Neat, NeatEnvironment>> {
@@ -277,19 +282,8 @@ impl Simulation {
         self.population.member(idx)
     }
 
-    pub fn work_member(&self, work: &WorkUnit) -> Option<Arc<RwLock<Neat>>> {
-        match work.task {
-            SimTaskType::CalFitness => {
-                if let Some(idx) = work.member_idx {
-                    self.member(idx).map(|cont| cont.member.clone())
-                } else {
-                    None
-                }
-            },
-            SimTaskType::TrainBest => {
-                self.solution.clone().map(|top| Arc::new(RwLock::new(top)))
-            },
-        }
+    pub fn get_solution(&self) -> Option<Neat> {
+        self.solution.clone()
     }
 
     pub fn has_expired_work(&self) -> bool {
@@ -488,6 +482,7 @@ impl Simulation {
 
     fn end_training(&mut self) {
         self.status = Status::Finished;
+        // TODO: allow workers to update training epoch
         self.curr_epoch = self.train.epochs as usize;
     }
 }
