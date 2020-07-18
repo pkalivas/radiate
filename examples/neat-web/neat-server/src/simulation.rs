@@ -189,6 +189,7 @@ pub struct Simulation {
 }
 
 impl Simulation {
+    /// build a simulation from a `RadiateDto`
     pub fn new_from(mut radiate: RadiateDto) -> Option<Self> {
         let pop = radiate.population?;
         let size = pop.size.unwrap_or(100);
@@ -261,14 +262,17 @@ impl Simulation {
         })
     }
 
+    /// simulation's uuid
     pub fn id(&self) -> Uuid {
         self.id
     }
 
+    /// get the simulation's training set.
     pub fn get_training_set(&self) -> &TrainingSet {
         &self.data
     }
 
+    /// Get the simulations current status
     pub fn get_status(&self) -> SimulationStatus {
         let mut status = SimulationStatus {
           status: self.status,
@@ -283,23 +287,28 @@ impl Simulation {
         status
     }
 
+    /// get a mutable refrence to a member in the current population
     pub fn member_mut(&mut self, idx: usize) -> Option<&mut Container<Neat, NeatEnvironment>> {
         self.population.member_mut(idx)
     }
 
+    /// get an immutable refrence to a member in the current population
     pub fn member(&self, idx: usize) -> Option<&Container<Neat, NeatEnvironment>> {
         self.population.member(idx)
     }
 
+    /// Get the simulation's solution
     pub fn get_solution(&self) -> Option<Neat> {
         self.solution.clone()
     }
 
+    /// check for expired work units
     pub fn has_expired_work(&self) -> bool {
         self.work_running > 0 &&
           self.last_finished.elapsed() > self.work_expire_timeout
     }
 
+    /// check if this simulation has work
     pub fn has_work(&self) -> bool {
         if self.status == Status::Finished {
             // simulation finished.  no work.
@@ -316,6 +325,7 @@ impl Simulation {
         }
     }
 
+    /// Prepare the work queue for the next generation.
     fn reset_work(&mut self) {
         for work in self.work.iter_mut() {
             work.reset();
@@ -347,6 +357,7 @@ impl Simulation {
         }
     }
 
+    /// handle the work results from a worker's WorkUnit.
     pub fn work_results(&mut self, result: GetWorkResult) {
         // make sure the results are for the current generation.
         if result.curr_gen != self.curr_gen {
@@ -399,6 +410,7 @@ impl Simulation {
         }
     }
 
+    /// Convert a simulation task into a WorkUnit.
     fn work_to_job(&mut self, id: usize, work: SimTask) -> Option<WorkUnit> {
         let mut job = WorkUnit {
             id,
@@ -424,6 +436,7 @@ impl Simulation {
         Some(job)
     }
 
+    /// Get a work unit for this simulation if there is queued or expired work.
     pub fn get_work(&mut self) -> Option<WorkUnit> {
         if self.has_work() {
             let work = self.get_queued_work().or_else(|| {
@@ -436,6 +449,7 @@ impl Simulation {
         None
     }
 
+    /// Find queued work.
     fn get_queued_work(&mut self) -> Option<(usize, SimTask)> {
         // TODO: track index of next task to avoid looping.
         for (id, work) in self.work.iter_mut().enumerate() {
@@ -504,6 +518,7 @@ impl Simulation {
         self.work_queued = 1;
     }
 
+    /// When training has finished the simulation is finished.
     fn end_training(&mut self) {
         self.status = Status::Finished;
         // TODO: allow workers to update training epoch
