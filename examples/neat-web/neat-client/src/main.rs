@@ -1,5 +1,3 @@
-#![feature(proc_macro_hygiene, decl_macro)]
-
 extern crate radiate;
 extern crate radiate_web;
 extern crate serde;
@@ -17,7 +15,6 @@ use radiate::prelude::*;
 use radiate_web::prelude::*;
 
 use tokio::time::delay_for;
-use reqwest::Client;
  
 #[derive(Debug, Default, Deserialize)]
 struct SimStatus {
@@ -30,7 +27,10 @@ struct AddSim {
     id: String,
 }
 
-async fn get_sim_status(client: &Client, url: &str) -> Result<SimStatus, reqwest::Error> {
+async fn get_sim_status(url: &str) -> Result<SimStatus, reqwest::Error> {
+    // Reqwest doesn't seem to handle "Connection: close" correctly.
+    // Don't re-use client.
+    let client = reqwest::Client::new();
     let status = client.get(url)
         .send().await?
         .json::<SimStatus>().await?;
@@ -56,7 +56,7 @@ async fn main() -> Result<(), reqwest::Error> {
     let status_url = format!("{}/{}", base_url, add_sim.id);
 
     loop {
-        let status = get_sim_status(&client, &status_url).await?;
+        let status = get_sim_status(&status_url).await?;
         if status.status == "Finished" {
             break;
         }

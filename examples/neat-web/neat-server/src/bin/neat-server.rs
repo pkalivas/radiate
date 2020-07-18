@@ -85,6 +85,7 @@ fn main() {
     let r_config = RConfig::build(REnv::Production)
         .address("0.0.0.0")
         .port(42069)
+        .keep_alive(0) // Rocket's keep-alive is broken.  Disable for now.
         .finalize()
         .unwrap();
 
