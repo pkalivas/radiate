@@ -8,5 +8,7 @@ members = [
     "examples/lstm-neat",
     "examples/ism",
     "examples/xor-evtree",
-    "examples/helloworld"
+    "examples/helloworld",
+		"examples/neat-web/neat-server",
+		"examples/neat-web/neat-client",
 ]
