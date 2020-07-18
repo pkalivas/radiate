@@ -12,6 +12,7 @@ use radiate::engine::{
 #[derive(Debug, Clone, Serialize, Deserialize)] 
 pub struct NeatPopulationBuilder {
     pub num_evolve: Option<i32>,
+    pub target_fitness: Option<f32>,
     pub size: Option<i32>,
     pub dynamic_distance: Option<bool>,
     pub debug_process: Option<bool>,
@@ -27,6 +28,7 @@ impl NeatPopulationBuilder {
     pub fn new() -> Self {
         NeatPopulationBuilder {
             num_evolve: None,
+            target_fitness: None,
             size: None,
             dynamic_distance: None,
             debug_process: None,
@@ -40,6 +42,11 @@ impl NeatPopulationBuilder {
 
     pub fn num_evolve(mut self, num: i32) -> Self{
         self.num_evolve = Some(num);
+        self
+    }
+
+    pub fn target_fitness(mut self, fitness: f32) -> Self{
+        self.target_fitness = Some(fitness);
         self
     }
 

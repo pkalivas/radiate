@@ -122,7 +122,8 @@ fn build_simulation(name: &str) -> Option<RadiateDto> {
 
     // build the population
     let population = NeatPopulationBuilder::new()
-            .num_evolve(100)
+            .num_evolve(500)
+            .target_fitness(3.8)
             .size(100)
             .dynamic_distance(true)
             .debug_process(true)

@@ -154,6 +154,7 @@ pub struct SimulationStatus {
     pub status: Status,
     pub curr_gen: usize,
     pub curr_epoch: usize,
+    pub curr_fitness: f32,
     pub solution: Option<Neat>,
 }
 
@@ -177,6 +178,10 @@ pub struct Simulation {
     // training
     curr_epoch: usize,
     solution: Option<Neat>,
+
+    // current best fitness score
+    curr_fitness: f32,
+    target_fitness: Option<f32>,
 
     // Problem data.
     train: TrainDto,
@@ -248,6 +253,9 @@ impl Simulation {
             curr_epoch: 0,
             solution: None,
 
+            curr_fitness: 0.0,
+            target_fitness: pop.target_fitness,
+
             train,
             data,
         })
@@ -266,6 +274,7 @@ impl Simulation {
           status: self.status,
           curr_gen: self.curr_gen,
           curr_epoch: self.curr_epoch,
+          curr_fitness: self.curr_fitness,
           solution: None,
         };
         if self.status == Status::Finished {
@@ -462,11 +471,26 @@ impl Simulation {
     fn end_generation(&mut self) {
         if let Some((fit , top)) = self.population.end_generation() {
             println!("epoch: {} score: {}", self.curr_gen, fit);
-            if self.curr_gen == self.num_gen {
+            self.curr_fitness = fit;
+            // check if we have reached the last generation.
+            let finished = if self.curr_gen == self.num_gen {
+                true
+            } else if let Some(target_fitness) = self.target_fitness {
+                // check if we have reached the target fitness
+                if fit > target_fitness {
+                    true
+                } else {
+                    false
+                }
+            } else {
+                false
+            };
+            if finished {
                 self.solution = Some(top);
                 self.start_training();
+            } else {
+                self.curr_gen += 1;
             }
-            self.curr_gen += 1;
         } else {
             unreachable!("End generation failed.  This shouldn't be possible.");
         }
