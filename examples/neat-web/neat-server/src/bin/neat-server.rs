@@ -61,7 +61,9 @@ impl SimStorage {
             // find simulation with queued work.
             for sim in self.simulations.read().unwrap().values() {
                 let mut sim = sim.write().unwrap();
-                return work_to_json(sim.get_work());
+                if let Some(work) = sim.get_work() {
+                    return work_to_json(Some(work));
+                }
             }
         }
         work_to_json(None)
