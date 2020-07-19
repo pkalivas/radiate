@@ -154,7 +154,8 @@ pub struct SimulationStatus {
     pub status: Status,
     pub curr_gen: usize,
     pub curr_epoch: usize,
-    pub curr_fitness: f32,
+    pub curr_fitness: Option<f32>,
+    pub last_gen_elapsed: Option<Duration>,
     pub solution: Option<Neat>,
 }
 
@@ -174,6 +175,8 @@ pub struct Simulation {
 
     // generations (evolving)
     curr_gen: usize,
+    curr_gen_start: Instant,
+    last_gen_elapsed: Option<Duration>,
     num_gen: usize,
 
     // training
@@ -181,7 +184,7 @@ pub struct Simulation {
     solution: Option<Neat>,
 
     // current best fitness score
-    curr_fitness: f32,
+    curr_fitness: Option<f32>,
     target_fitness: Option<f32>,
 
     // Problem data.
@@ -251,12 +254,14 @@ impl Simulation {
             last_finished: Instant::now(),
 
             curr_gen: 0,
+            curr_gen_start: Instant::now(),
+            last_gen_elapsed: None,
             num_gen: num_evolve as usize,
 
             curr_epoch: 0,
             solution: None,
 
-            curr_fitness: 0.0,
+            curr_fitness: None,
             target_fitness: pop.target_fitness,
 
             train,
@@ -280,6 +285,7 @@ impl Simulation {
           status: self.status,
           curr_gen: self.curr_gen,
           curr_epoch: self.curr_epoch,
+          last_gen_elapsed: self.last_gen_elapsed,
           curr_fitness: self.curr_fitness,
           solution: None,
         };
@@ -511,7 +517,12 @@ impl Simulation {
     fn end_generation(&mut self) {
         if let Some((fit , top)) = self.population.end_generation() {
             println!("epoch: {} score: {}", self.curr_gen, fit);
-            self.curr_fitness = fit;
+
+            // update generation stats.
+            self.curr_fitness = Some(fit);
+            self.last_gen_elapsed = Some(self.curr_gen_start.elapsed());
+            self.curr_gen_start = Instant::now();
+
             // check if we have reached the last generation.
             let finished = if self.curr_gen == self.num_gen {
                 true

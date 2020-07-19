@@ -22,6 +22,8 @@ use tokio::time::delay_for;
 struct SimStatus {
     status: String,
     curr_gen: usize,
+    curr_fitness: Option<f32>,
+    last_gen_elapsed: Option<Duration>,
     solution: Option<Neat>,
 }
 
@@ -37,7 +39,8 @@ async fn get_sim_status(url: &str) -> Result<SimStatus, reqwest::Error> {
     let status = client.get(url)
         .send().await?
         .json::<SimStatus>().await?;
-    println!("sim_status = {:?}, gen = {}", status.status, status.curr_gen);
+    println!("sim_status = {:?}, gen = {}, fit = {:?}, elapsed = {:?}",
+      status.status, status.curr_gen, status.curr_fitness, status.last_gen_elapsed);
 
     Ok(status)
 }
