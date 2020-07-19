@@ -168,6 +168,7 @@ pub struct Simulation {
     work: Vec<SimTask>,
     work_queued: usize,
     work_running: usize,
+    work_expired: usize,
     last_finished: Instant,
     work_expire_timeout: Duration,
 
@@ -245,6 +246,7 @@ impl Simulation {
             work,
             work_queued: size as usize,
             work_running: 0,
+            work_expired: 0,
             work_expire_timeout: Duration::from_secs(5),
             last_finished: Instant::now(),
 
@@ -304,8 +306,7 @@ impl Simulation {
 
     /// check for expired work units
     pub fn has_expired_work(&self) -> bool {
-        self.work_running > 0 &&
-          self.last_finished.elapsed() > self.work_expire_timeout
+        self.work_expired > 0
     }
 
     /// check if this simulation has work
@@ -440,10 +441,16 @@ impl Simulation {
     pub fn get_work(&mut self) -> Option<WorkUnit> {
         if self.has_work() {
             let work = self.get_queued_work().or_else(|| {
+                // get next expired work.
                 self.get_expired_work()
             });
             if let Some((id, work)) = work {
                 return self.work_to_job(id, work);
+            }
+        } else {
+            // check for expired work.
+            if self.work_running > self.work_expired {
+                self.find_expired_work();
             }
         }
         None
@@ -463,12 +470,31 @@ impl Simulation {
         return None;
     }
 
+    /// Update count of expired work.
+    fn find_expired_work(&mut self) {
+        let mut expired = 0;
+        for work in self.work.iter_mut() {
+            match work.status {
+                WorkStatus::Running(start) => {
+                    if start.elapsed() > self.work_expire_timeout {
+                        expired += 1;
+                    }
+                },
+                _ => {
+                    // ignore finished and queued work.
+                },
+            }
+        }
+        self.work_expired = expired;
+    }
+
     /// Find an expired job.
     fn get_expired_work(&mut self) -> Option<(usize, SimTask)> {
         for (id, work) in self.work.iter_mut().enumerate() {
             match work.status {
                 WorkStatus::Running(start) => {
                     if start.elapsed() > self.work_expire_timeout {
+                        self.work_expired -= 1;
                         work.status = WorkStatus::Running(Instant::now());
                         return Some((id, *work));
                     }
