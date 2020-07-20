@@ -1,6 +1,6 @@
 [package]
 name = "radiate_web"
-version = "0.1.12"
+version = "0.1.13"
 authors = ["Peter Kalivas <peterkalivas@gmail.com>"]
 repository = "https://github.com/pkalivas/radiate"
 readme = "README.md"
