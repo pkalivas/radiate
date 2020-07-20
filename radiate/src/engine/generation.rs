@@ -49,6 +49,25 @@ pub struct Container<T, E>
 }
 
 
+impl<T, E> Container<T, E>
+    where 
+        T: Genome<T, E> + Send + Sync,
+        E: Send + Sync
+{
+    pub fn get_member(&mut self) -> &mut Member<T> {
+        &mut self.member
+    }
+
+    pub fn update_member(&mut self, new_member: T) {
+        *self.member.write().unwrap() = new_member;
+    }
+
+    pub fn set_fitness(&mut self, fitness: f32) {
+        self.fitness_score = fitness;
+    }
+}
+
+
 
 /// A generation is meant to facilitate the speciation, crossover, and 
 /// reproduction of spececies and their types over the course of a single 
@@ -73,7 +92,6 @@ impl<T, E> Generation<T, E>
         T: Genome<T, E> + Send + Sync + Clone,
         E: Envionment + Sized + Send + Sync
 {
-
     /// Create a new generation
     /// 
     /// This creates a base default generation type with no 
@@ -86,8 +104,6 @@ impl<T, E> Generation<T, E>
             parental_criteria: ParentalCriteria::BiasedRandom
         }
     }
-
-
 
     /// passdown the previous generation's members and species to a new generation
     #[inline]
@@ -115,11 +131,24 @@ impl<T, E> Generation<T, E>
         })
     }
 
+    /// Get mutable slice of current generation members.
+    pub fn members_mut(&mut self) -> &mut [Container<T, E>] {
+        &mut self.members
+    }
 
+    /// Get mutable member.
+    pub fn member_mut(&mut self, idx: usize) -> Option<&mut Container<T, E>> {
+        self.members.get_mut(idx)
+    }
+
+    /// Get immutable member.
+    pub fn member(&self, idx: usize) -> Option<&Container<T, E>> {
+        self.members.get(idx)
+    }
 
     /// The optimization function
     #[inline]
-    pub fn optimize<P>(&mut self, prob: Arc<RwLock<P>>) -> Option<(f32, Arc<T>)>
+    pub fn optimize<P>(&mut self, prob: Arc<RwLock<P>>)
         where P: Problem<T> + Send + Sync
     {
         // concurrently iterate the members and optimize them
@@ -128,11 +157,7 @@ impl<T, E> Generation<T, E>
             .for_each_with(prob, |problem, cont| {
                 (*cont).fitness_score = problem.read().unwrap().solve(&mut *cont.member.write().unwrap());
             });
-        // return the top member from the optimization as a tuple (f32, Arc<T>)
-        self.best_member()
     }
-
-
 
     /// Speciation is the process of going through the members in the generation
     /// and assigning them species in which they belong to determined by a specific 
@@ -170,8 +195,6 @@ impl<T, E> Generation<T, E>
         }
     }
 
-
-
     /// Create the next generation and return a new generation struct with 
     /// new members, and reset species. This is how the generation moves from
     /// one to the next. This function also is the one which runs the crossover
@@ -200,8 +223,6 @@ impl<T, E> Generation<T, E>
         self.pass_down(new_members)
     }
 
-
-    
     /// get the top member of the generations
     #[inline] 
     pub fn best_member(&self) -> Option<(f32, Arc<T>)> {
@@ -217,6 +238,4 @@ impl<T, E> Generation<T, E>
             None => None
         }
     }
-
-
 }

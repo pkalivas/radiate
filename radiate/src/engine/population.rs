@@ -9,9 +9,9 @@ use rayon::prelude::*;
 use super::{
     generation::{Generation, Container},
     genome::Genome,
-    problem::{Problem},
-    environment::{Envionment},
-    genocide::{Genocide},
+    problem::Problem,
+    environment::Envionment,
+    genocide::Genocide,
     survival::{SurvivalCriteria, ParentalCriteria}
 };
 
@@ -105,7 +105,20 @@ impl<T, E, P> Population<T, E, P>
         }
     }
 
+    /// Get mutable slice of current generation members.
+    pub fn members_mut(&mut self) -> &mut [Container<T, E>] {
+        self.curr_gen.members_mut()
+    }
 
+    /// Get mutable member.
+    pub fn member_mut(&mut self, idx: usize) -> Option<&mut Container<T, E>> {
+        self.curr_gen.member_mut(idx)
+    }
+
+    /// Get immutable member.
+    pub fn member(&self, idx: usize) -> Option<&Container<T, E>> {
+        self.curr_gen.member(idx)
+    }
 
     /// Each generation will be trained by a call to this function 
     /// resulting optimization of the current generation, up to a 
@@ -117,8 +130,19 @@ impl<T, E, P> Population<T, E, P>
             T: Genome<T, E> + Clone + Send + Sync + Debug + PartialEq,
             P: Send + Sync
     {
-        // optimize the population and return the top member 
-        let top_member = self.curr_gen.optimize(self.solve.clone())?;
+        // optimize the population 
+        self.curr_gen.optimize(self.solve.clone());
+        self.end_generation()
+    }
+
+    /// Handle end of generation calculations and create a new generation.
+    /// Returns the top member and their score.
+    pub fn end_generation(&mut self) -> Option<(f32, T)>
+        where 
+            T: Genome<T, E> + Clone + Send + Sync + Debug + PartialEq,
+            P: Send + Sync
+    {
+        let top_member = self.curr_gen.best_member()?;
         // adjust the distance of the population if needed
         if self.dynamic_distance { self.adjust_distance(); }
         // speciate the generation into niches then see if the population is stagnant
@@ -132,8 +156,6 @@ impl<T, E, P> Population<T, E, P>
         // return the top member score and the member
         Some((top_member.0, (*top_member.1).clone()))
     }
-
-    
 
     /// Check to see if the population is stagnant or not, if it is 
     /// then go ahead and clean the population 
@@ -151,8 +173,6 @@ impl<T, E, P> Population<T, E, P>
         self.stagnation.previous_top_score = curr_top_score;
     }
 
-
-
     /// dynamically adjust the distance of a popualtion 
     fn adjust_distance(&mut self) {
         if self.curr_gen.species.len() < self.config.species_target {
@@ -164,8 +184,6 @@ impl<T, E, P> Population<T, E, P>
             self.config.distance = 0.1;
         }
     }
-
-
 
     /// Run the population according to a user defined function, the inputs of which
     /// are a borrowed member which is the top member of the current generation, 
@@ -195,8 +213,6 @@ impl<T, E, P> Population<T, E, P>
         }
     }
 
-
-    
     /// if debug is set to true, this is what will print out 
     /// the training to the screen during optimization.
     fn show_progress(&self) {
@@ -205,8 +221,6 @@ impl<T, E, P> Population<T, E, P>
             i.read().unwrap().display_info();
         }
     }
-    
-
     
     /////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// configure all the settings for the population these all have default settings if they are not set ///
@@ -295,13 +309,13 @@ impl<T, E, P> Population<T, E, P>
         };
         self
     }
-    
+
     /// Give solver settings to the population to evolve the strucutre defined 
     pub fn constrain(mut self, environment: E) -> Self {
         self.environment = Arc::new(RwLock::new(environment));
         self
     }
-    
+
     /// Set the size of the population, the population size
     /// will default to 100 if this isn't set which could be enough 
     /// depending on the problem being solved 
@@ -309,13 +323,18 @@ impl<T, E, P> Population<T, E, P>
         self.size = size;
         self
     }
-    
+
+    /// Get the size of the population. 
+    pub fn get_size(&self) -> i32 {
+        self.size
+    }
+
     /// set the dynamic distance bool
     pub fn dynamic_distance(mut self, opt: bool) -> Self {
         self.dynamic_distance = opt;
         self
     }
-    
+
     /// set the stagnation number of the population
     pub fn stagnation(mut self, stag: usize, cleaner: Vec<Genocide>) -> Self {
         self.stagnation = Stagnant::new(stag, cleaner);
@@ -359,8 +378,6 @@ impl<T, E, P> Population<T, E, P>
         self.parental_criteria =parents;
         self
     }
-
-
 }
 
 

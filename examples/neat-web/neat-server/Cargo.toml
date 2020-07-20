@@ -7,15 +7,19 @@ edition = "2018"
 
 
 [dependencies]
-radiate="1.1.41"
+radiate={path="../../../radiate"}
 radiate_web={path="../../../radiate_web"}
 serde = {version ="1.0", features = ["rc"]}
 serde_json="1.0.44"
 serde_derive="1.0.104"
-rocket="0.4.2"
-
+rocket="0.4.5"
+reqwest = { version = "0.10", features = ["json"] }
+tokio = { version = "0.2", features = ["full"] }
+env_logger = "0.7.1"
+uuid="0.8.1"
+anyhow = "1.0.31"
 
 [dependencies.rocket_contrib]
-version = "0.4.2"
+version = "0.4.5"
 default-features = false
-features = ["tera_templates", "json"]
+features = ["tera_templates", "json", "uuid"]
