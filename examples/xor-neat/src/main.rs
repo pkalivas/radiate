@@ -16,16 +16,18 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_output_size(1)
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
-        .set_weight_perturb(1.75)
-        .set_new_node_rate(0.03)
-        .set_new_edge_rate(0.04)
+        .set_weight_perturb(1.5)
+        .set_new_node_rate(0.08)
+        .set_new_edge_rate(0.08)
         .set_reactivate(0.2)
         .set_activation_functions(vec![
+            Activation::Sigmoid,
+            Activation::Relu,
             Activation::LeakyRelu(0.02)
         ]);
 
     let starting_net = Neat::base(&mut neat_env);
-    let num_evolve = 50;
+    let num_evolve = 250;
     let xor = XOR::new();
 
 

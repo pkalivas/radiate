@@ -69,7 +69,7 @@ pub struct HelloEnv {
 impl HelloEnv {
     pub fn new() -> Self {
         HelloEnv {
-            alph: vec!['!', ' ', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'], // now i know my abcs..
+            alph: vec!['!', ' ', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'],
         }
     }
 }
@@ -143,4 +143,3 @@ impl Genome<Hello, HelloEnv> for Hello {
         Hello::new(&env.alph)
     }
 }
-
