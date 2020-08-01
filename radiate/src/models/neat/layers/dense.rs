@@ -406,7 +406,10 @@ impl Layer for Dense {
 
         // once we've made it through the network, the outputs should all
         // have calculated their values. Gather the values and return the vec
-        self.set_output_values();
+        if self.activation == Activation::Softmax {
+            // Only need to re-process output neurons for Softmax activation.
+            self.set_output_values();
+        }
         self.update_traces();
         self.get_outputs()
     }
