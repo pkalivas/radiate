@@ -1,5 +1,7 @@
 
+use uuid::Uuid;
 use super::id::*;
+use super::neuron::*;
 
 /// Edge is a connection between two nodes in the graph
 /// 
@@ -11,27 +13,25 @@ use super::id::*;
 /// while feeding data through the network
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct Edge {
+    pub id: EdgeId,
+    pub innov: Uuid,
     pub src: NeuronId,
     pub dst: NeuronId,
-    pub innov: EdgeId,
     pub weight: f32,
     pub active: bool
 }
 
-
 impl Edge {
-
-    pub fn new(src: NeuronId, dst: NeuronId, innov: EdgeId, weight: f32, active: bool) -> Self {
-        Edge { 
-            src,    
-            dst, 
-            innov, 
-            weight, 
-            active 
+    pub fn new(id: EdgeId, src: NeuronId, dst: NeuronId, weight: f32, active: bool) -> Self {
+        Edge {
+            id,
+            src,
+            dst,
+            innov: Uuid::new_v4(),
+            weight,
+            active
         }
     }
-
-
 
     /// update the weight of this edge connection
     #[inline]
@@ -39,11 +39,22 @@ impl Edge {
         self.weight += delta;
     }
 
-
     /// calculate the eligibility of this connection and store it for time series predictions
     #[inline]
     pub fn calculate(&self, val: f32) -> f32 {
         val * self.weight
     }
-    
+
+    /// Link edge src/dst nodes
+    pub fn link_nodes(&self, nodes: &mut Vec<Neuron>) {
+        nodes.get_mut(self.src.index()).map(|x| x.add_outgoing(self.id));
+        nodes.get_mut(self.dst.index()).map(|x| x.add_incoming(self.id));
+    }
+
+    /// Disable edge and unlink the nodes.
+    pub fn disable(&mut self, nodes: &mut Vec<Neuron>) {
+        self.active = false;
+        nodes.get_mut(self.src.index()).map(|x| x.remove_outgoing(self.id));
+        nodes.get_mut(self.dst.index()).map(|x| x.remove_incoming(self.id));
+    }
 }

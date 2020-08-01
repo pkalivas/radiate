@@ -1,7 +1,6 @@
 
 extern crate rand;
 
-use std::collections::HashMap;
 use rand::Rng;
 
 use super::id::*;
@@ -9,19 +8,18 @@ use super::activation::Activation;
 use super::neurontype::NeuronType;
 use super::direction::NeuronDirection;
 
-
-
 /// Neuron is a wrapper around a neuron providing only what is needed for a neuron to be added 
 /// to the NEAT graph, while the neuron encapsulates the neural network logic for the specific nodetype,
 /// Some neurons like an LSTM require more variables and different interal activation logic, 
 /// so encapsulating that within a normal node on the graph would be misplaced.
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Neuron {
-    pub innov: NeuronId,
-    pub outgoing: Vec<EdgeId>,
-    pub incoming: HashMap<EdgeId, Option<f32>>,
-    pub activation: Activation,
-    pub direction: NeuronDirection,
+    pub id: NeuronId,
+    outgoing: Vec<EdgeId>,
+    incoming: Vec<EdgeId>,
+    incoming_pending: usize,
+    activation: Activation,
+    direction: NeuronDirection,
     pub neuron_type: NeuronType,
     pub activated_value: f32,
     pub deactivated_value: f32,
@@ -32,15 +30,13 @@ pub struct Neuron {
 }
 
 
-
 impl Neuron {
-
-
-    pub fn new(innov: NeuronId, neuron_type: NeuronType, activation: Activation, direction: NeuronDirection) -> Self {
+    pub fn new(id: NeuronId, neuron_type: NeuronType, activation: Activation, direction: NeuronDirection) -> Self {
         Neuron {
-            innov,
+            id,
             outgoing: Vec::new(),
-            incoming: HashMap::new(),
+            incoming: Vec::new(),
+            incoming_pending: 0,
             activation,
             neuron_type,
             direction,
@@ -53,40 +49,59 @@ impl Neuron {
         }
     }
 
-
-
-    /// Return this struct as a raw mutable pointer - consumes the struct
-    pub fn as_mut_ptr(self) -> *mut Neuron {
-        Box::into_raw(Box::new(self))
+    /// Add incoming edge
+    pub fn add_incoming(&mut self, edge: EdgeId) {
+        self.incoming.push(edge);
     }
 
+    /// Add outgoing edge
+    pub fn add_outgoing(&mut self, edge: EdgeId) {
+        self.outgoing.push(edge);
+    }
 
+    /// Remove incoming edge
+    pub fn remove_incoming(&mut self, edge: EdgeId) {
+        self.incoming.retain(|x| x != &edge);
+    }
+
+    /// Remove outgoing edge
+    pub fn remove_outgoing(&mut self, edge: EdgeId) {
+        self.outgoing.retain(|x| x != &edge);
+    }
+
+    /// Set incoming edge value
+    pub fn set_incoming(&mut self, _edge: EdgeId, val: Option<f32>) {
+        if let Some(val) = val {
+            if self.incoming_pending > 0 {
+                self.incoming_pending -= 1;
+                self.current_state += val;
+            }
+        }
+    }
+
+    /// Get incoming edge ids.
+    pub fn incoming_edges(&self) -> &[EdgeId] {
+        &self.incoming
+    }
+
+    /// Get outgoing edge ids.
+    pub fn outgoing_edges(&self) -> &[EdgeId] {
+        &self.outgoing
+    }
 
     /// figure out if this node can be calculated, meaning all of the 
     /// nodes pointing to it have given this node their output values.
     /// If they have, this node is ready to be activated
     #[inline]
-    pub fn is_ready(&mut self) -> bool {
-        self.incoming
-            .values()
-            .all(|x| x.is_some())
+    pub fn is_ready(&self) -> bool {
+        self.incoming_pending == 0
     }
 
 
-    
     /// 𝜎(Σ(w * i) + b)
     /// activate this node by calling the underlying neuron's logic for activation
-    /// given the hashmap of <incoming edge innov, Option<incoming Neuron output value>>
     #[inline]
     pub fn activate(&mut self) {
-        self.current_state = self.incoming
-            .values()
-            .fold(self.bias, |sum, curr| {
-                match curr {
-                    Some(x) => sum + x,
-                    None => panic!("Cannot activate node.")
-                }
-            });
         if self.activation != Activation::Softmax {
             match self.direction {
                 NeuronDirection::Forward => {
@@ -110,26 +125,19 @@ impl Neuron {
         self.error = 0.0;
         self.activated_value = 0.0;
         self.deactivated_value = 0.0;
-        self.current_state = 0.0;
+        self.current_state = self.bias;
         // self.previous_state = 0.0;
-        for (_, val) in self.incoming.iter_mut() {
-            *val = None;
-        }
+        self.incoming_pending = self.incoming.len();
     }
 
 
     #[inline]
     pub fn clone_with_values(&self) -> Self {
         Neuron {
-            innov: self.innov,
-            outgoing: self.outgoing
-                .iter()
-                .map(|x| *x)
-                .collect(),
-            incoming: self.incoming
-                .iter()
-                .map(|(key, _)| (*key, None))
-                .collect(),
+            id: self.id,
+            outgoing: self.outgoing.clone(),
+            incoming: self.incoming.clone(),
+            incoming_pending: self.incoming_pending,
             current_state: self.current_state.clone(),
             previous_state: self.previous_state.clone(),
             activated_value: self.activated_value.clone(),
@@ -141,24 +149,15 @@ impl Neuron {
             direction: self.direction.clone()
         }
     }
-
-
 }
-
-
 
 impl Clone for Neuron {
     fn clone(&self) -> Self { 
         Neuron {
-            innov: self.innov,
-            outgoing: self.outgoing
-                .iter()
-                .map(|x| *x)
-                .collect(),
-            incoming: self.incoming
-                .iter()
-                .map(|(key, _)| (*key, None))
-                .collect(),
+            id: self.id,
+            outgoing: self.outgoing.clone(),
+            incoming: self.incoming.clone(),
+            incoming_pending: 0,
             current_state: 0.0,
             previous_state: 0.0,
             activated_value: 0.0,
@@ -169,12 +168,5 @@ impl Clone for Neuron {
             neuron_type: self.neuron_type.clone(),
             direction: self.direction.clone()
         }
-    }
-}
-
-
-impl PartialEq for Neuron {
-    fn eq(&self, other: &Self) -> bool {
-        self.innov == other.innov
     }
 }
