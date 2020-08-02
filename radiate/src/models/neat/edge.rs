@@ -35,8 +35,8 @@ impl Edge {
 
     /// update the weight of this edge connection
     #[inline]
-    pub fn update(&mut self, delta: f32) {
-        self.weight += delta;
+    pub fn update(&mut self, delta: f32, nodes: &mut Vec<Neuron>) {
+        self.update_weight(self.weight + delta, nodes);
     }
 
     /// calculate the eligibility of this connection and store it for time series predictions
@@ -45,16 +45,33 @@ impl Edge {
         val * self.weight
     }
 
+    /// update weight
+    pub fn update_weight(&mut self, weight: f32, nodes: &mut Vec<Neuron>) {
+        self.weight = weight;
+        nodes.get_mut(self.dst.index()).map(|x| x.update_incoming(self));
+    }
+
     /// Link edge src/dst nodes
     pub fn link_nodes(&self, nodes: &mut Vec<Neuron>) {
         nodes.get_mut(self.src.index()).map(|x| x.add_outgoing(self.id));
-        nodes.get_mut(self.dst.index()).map(|x| x.add_incoming(self.id));
+        nodes.get_mut(self.dst.index()).map(|x| x.add_incoming(self));
+    }
+
+    /// Enable edge and link the nodes.
+    pub fn enable(&mut self, nodes: &mut Vec<Neuron>) {
+        if self.active {
+            // already active, nothing to do.
+            return;
+        }
+        self.active = true;
+        nodes.get_mut(self.src.index()).map(|x| x.add_outgoing(self.id));
+        nodes.get_mut(self.dst.index()).map(|x| x.add_incoming(self));
     }
 
     /// Disable edge and unlink the nodes.
     pub fn disable(&mut self, nodes: &mut Vec<Neuron>) {
         self.active = false;
         nodes.get_mut(self.src.index()).map(|x| x.remove_outgoing(self.id));
-        nodes.get_mut(self.dst.index()).map(|x| x.remove_incoming(self.id));
+        nodes.get_mut(self.dst.index()).map(|x| x.remove_incoming(self));
     }
 }

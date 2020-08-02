@@ -4,9 +4,28 @@ extern crate rand;
 use rand::Rng;
 
 use super::id::*;
+use super::edge::*;
 use super::activation::Activation;
 use super::neurontype::NeuronType;
 use super::direction::NeuronDirection;
+
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct NeuronLink {
+    pub id: EdgeId,
+    pub src: NeuronId,
+    pub weight: f32,
+}
+
+impl NeuronLink {
+    pub fn new(edge: &Edge) -> Self {
+        Self {
+            id: edge.id,
+            src: edge.src,
+            weight: edge.weight,
+        }
+    }
+}
 
 /// Neuron is a wrapper around a neuron providing only what is needed for a neuron to be added 
 /// to the NEAT graph, while the neuron encapsulates the neural network logic for the specific nodetype,
@@ -16,7 +35,7 @@ use super::direction::NeuronDirection;
 pub struct Neuron {
     pub id: NeuronId,
     outgoing: Vec<EdgeId>,
-    incoming: Vec<EdgeId>,
+    incoming: Vec<NeuronLink>,
     activation: Activation,
     direction: NeuronDirection,
     pub neuron_type: NeuronType,
@@ -48,8 +67,8 @@ impl Neuron {
     }
 
     /// Add incoming edge
-    pub fn add_incoming(&mut self, edge: EdgeId) {
-        self.incoming.push(edge);
+    pub fn add_incoming(&mut self, edge: &Edge) {
+        self.incoming.push(NeuronLink::new(edge));
     }
 
     /// Add outgoing edge
@@ -57,9 +76,16 @@ impl Neuron {
         self.outgoing.push(edge);
     }
 
+    /// Update incoming edge
+    pub fn update_incoming(&mut self, edge: &Edge) {
+        if let Some(link) = self.incoming.iter_mut().find(|x| x.id == edge.id) {
+            link.weight = edge.weight;
+        }
+    }
+
     /// Remove incoming edge
-    pub fn remove_incoming(&mut self, edge: EdgeId) {
-        self.incoming.retain(|x| x != &edge);
+    pub fn remove_incoming(&mut self, edge: &Edge) {
+        self.incoming.retain(|x| x.id != edge.id);
     }
 
     /// Remove outgoing edge
@@ -68,7 +94,7 @@ impl Neuron {
     }
 
     /// Get incoming edge ids.
-    pub fn incoming_edges(&self) -> &[EdgeId] {
+    pub fn incoming_edges(&self) -> &[NeuronLink] {
         &self.incoming
     }
 

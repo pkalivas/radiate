@@ -263,11 +263,12 @@ impl Dense {
     fn edit_weights(&mut self, editable: f32, size: f32) {
         let mut r = rand::thread_rng();
         for edge in self.edges.iter_mut() {
-            if r.gen::<f32>() < editable {
-                edge.weight = r.gen::<f32>();
+            let weight = if r.gen::<f32>() < editable {
+                r.gen::<f32>()
             } else {
-                edge.weight *= r.gen_range(-size, size);
-            }
+                edge.weight * r.gen_range(-size, size)
+            };
+            edge.update_weight(weight, &mut self.nodes);
         }
         for node in self.nodes.iter_mut() {
             if r.gen::<f32>() < editable {
@@ -336,31 +337,20 @@ enum NodeUpdate {
 }
 
 impl NodeUpdate {
-    pub fn process(edges: &Vec<Edge>, updates: &[NodeUpdate], node: &mut Neuron, output: Option<usize>) -> Self {
+    pub fn process(updates: &[NodeUpdate], node: &mut Neuron, output: Option<usize>) -> Self {
         let mut sum = node.bias;
         let mut pending_inputs = 0;
 
-        for edge_id in node.incoming_edges().iter() {
-            // get edge, make sure it is active
-            let edge = edges.get(edge_id.index())
-              .filter(|edge| edge.active);
-
-            match edge {
-                Some(edge) => {
-                    match updates.get(edge.src.index()) {
-                        Some(NodeUpdate::Activated{value, ..}) => {
-                            // calculate weighted value for this edge.
-                            sum += edge.calculate(*value);
-                        }
-                        _ => {
-                            // no NodeUpdate yet or still Pending.
-                            pending_inputs += 1;
-                        },
-                    }
-                },
-                None => {
-                    // Invalid edge (deactivated or missing)
+        for edge in node.incoming_edges().iter() {
+            match updates.get(edge.src.index()) {
+                Some(NodeUpdate::Activated{value, ..}) => {
+                    // calculate weighted value for this edge.
+                    sum += *value * edge.weight;
                 }
+                _ => {
+                    // no NodeUpdate yet or still Pending.
+                    pending_inputs += 1;
+                },
             }
         }
 
@@ -447,7 +437,7 @@ impl Layer for Dense {
                 },
                 NeuronType::Output => {
                     // try activating Output nodes.
-                    let update = NodeUpdate::process(&self.edges, &updates, node, Some(outputs.len()));
+                    let update = NodeUpdate::process(&updates, node, Some(outputs.len()));
                     if let Some((value, _)) = update.is_activated() {
                         // activated, push value.
                         outputs.push(value);
@@ -459,7 +449,7 @@ impl Layer for Dense {
                 },
                 NeuronType::Hidden => {
                     // try activating Output nodes.
-                    NodeUpdate::process(&self.edges, &updates, node, None)
+                    NodeUpdate::process(&updates, node, None)
                 },
             };
             // count pending updates
@@ -493,7 +483,7 @@ impl Layer for Dense {
                 if old_update.is_pending() {
                     let output_idx = old_update.output();
                     // try activating node
-                    let update = NodeUpdate::process(&self.edges, &updates, node, output_idx);
+                    let update = NodeUpdate::process(&updates, node, output_idx);
                     match update {
                         NodeUpdate::Pending{..} => {
                             // keep track of lowest pending idx.
@@ -574,8 +564,8 @@ impl Layer for Dense {
 
             // iterate through each of the incoming edes to this neuron and adjust it's weight
             // and add it's error to the errros map
-            for incoming_edge_id in curr_node.incoming_edges().iter() {
-                edge_updates.push(*incoming_edge_id);
+            for edge in curr_node.incoming_edges().iter() {
+                edge_updates.push(edge.id);
             }
 
             // apply pending edge updates.
@@ -597,7 +587,7 @@ impl Layer for Dense {
                     };
 
                     // Update edge
-                    curr_edge.update(delta);
+                    curr_edge.update(delta, &mut self.nodes);
                 }
             }
             // clear pending updates.
@@ -677,14 +667,13 @@ impl Genome<Dense, NeatEnvironment> for Dense
                 // weight to the second parent if nessesary.
                 if let Some(parent_edge) = parent_two.get_edge_by_innov(&edge.innov) {
                     if r.gen::<f32>() < 0.5 {
-                        edge.weight = parent_edge.weight;
+                        edge.update_weight(parent_edge.weight, &mut new_child.nodes);
                     }
 
                     // if the edge is deactivated in either network and a random number is less than the 
                     // reactivate parameter, then reactiveate the edge and insert it back into the network
                     if (!edge.active || !parent_edge.active) && r.gen::<f32>() < set.reactivate? {
-                        edge.link_nodes(&mut new_child.nodes);
-                        edge.active = true;
+                        edge.enable(&mut new_child.nodes);
                     }
                 }
             }
