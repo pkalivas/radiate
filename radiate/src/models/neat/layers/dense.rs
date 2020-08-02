@@ -258,23 +258,6 @@ impl Dense {
     }
 
 
-
-    /// give input data to the input nodes in the network and return a vec
-    /// that holds the innovation numbers of the input nodes for a dfs traversal 
-    /// to feed forward those inputs through the network
-    fn give_inputs(&mut self, data: &Vec<f32>) -> Vec<NeuronId> {
-        assert!(data.len() == self.inputs.len());
-        let mut ids = Vec::with_capacity(self.inputs.len());
-        for (node_id, input) in self.inputs.iter().zip(data.iter()) {
-            let node = self.nodes.get_mut(node_id.index()).unwrap();
-            node.activated_value = *input;
-            ids.push(*node_id);
-        }
-        ids
-    }
-
-
-
     /// Edit the weights in the network randomly by either uniformly perturbing
     /// them, or giving them an entire new weight all together
     fn edit_weights(&mut self, editable: f32, size: f32) {
@@ -296,7 +279,6 @@ impl Dense {
     }
 
 
-
     /// get the states of the output neurons. This allows softmax and other specific actions to 
     /// be taken where knowledge of more than just the immediate neuron's state must be known
     pub fn get_output_states(&self) -> Vec<f32> {
@@ -308,7 +290,6 @@ impl Dense {
             })
             .collect::<Vec<_>>()
     }
-
 
 
     /// Because the output neurons might need to be seen togehter, this must be called to 
@@ -348,6 +329,83 @@ impl Dense {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+enum NodeUpdate {
+    Pending{ pending_inputs: usize, sum: f32, output: Option<usize> },
+    Activated{ value: f32, output: Option<usize>},
+}
+
+impl NodeUpdate {
+    pub fn process(edges: &Vec<Edge>, updates: &[NodeUpdate], node: &mut Neuron, output: Option<usize>) -> Self {
+        let mut sum = node.bias;
+        let mut pending_inputs = 0;
+
+        for edge_id in node.incoming_edges().iter() {
+            // get edge, make sure it is active
+            let edge = edges.get(edge_id.index())
+              .filter(|edge| edge.active);
+
+            match edge {
+                Some(edge) => {
+                    match updates.get(edge.src.index()) {
+                        Some(NodeUpdate::Activated{value, ..}) => {
+                            // calculate weighted value for this edge.
+                            sum += edge.calculate(*value);
+                        }
+                        _ => {
+                            // no NodeUpdate yet or still Pending.
+                            pending_inputs += 1;
+                        },
+                    }
+                },
+                None => {
+                    // Invalid edge (deactivated or missing)
+                }
+            }
+        }
+
+        // if no pending inputs, then active the node.
+        if pending_inputs == 0 {
+            // pass sum into node and active it.
+            node.current_state = sum;
+            node.activate();
+
+            // mark this node as activated.
+            NodeUpdate::Activated{
+                value: node.activated_value,
+                output,
+            }
+        } else {
+            // node still has pending inputs.
+            NodeUpdate::Pending {
+                sum,
+                pending_inputs,
+                output,
+            }
+        }
+    }
+
+    pub fn is_pending(&self) -> bool {
+        match self {
+            NodeUpdate::Pending{..} => true,
+            _ => false,
+        }
+    }
+
+    pub fn output(&self) -> Option<usize> {
+        match *self {
+            NodeUpdate::Pending{output, ..} => output,
+            NodeUpdate::Activated{output, ..} => output,
+        }
+    }
+
+    pub fn is_activated(&self) -> Option<(f32, Option<usize>)> {
+        match *self {
+            NodeUpdate::Pending{..} => None,
+            NodeUpdate::Activated{value, output} => Some((value, output)),
+        }
+    }
+}
 
 #[typetag::serde]
 impl Layer for Dense {
@@ -355,53 +413,116 @@ impl Layer for Dense {
     /// the shapes of the values do not match or if something goes 
     /// wrong within the feed forward process.
     fn forward(&mut self, data: &Vec<f32>) -> Option<Vec<f32>> {
-        // reset the network by clearing the previous outputs from the neurons 
-        // this could be done more efficently if i didn't want to implement backprop
-        // or recurent nodes, however this must be done this way in order to allow for the 
-        // needed values for those algorithms to remain while they are needed 
-        // give the input data to the input neurons and return back 
-        // a stack to do a graph traversal to feed the inputs through the network
-        self.reset_neurons();
-        let mut path = self.give_inputs(data);
+        assert!(data.len() == self.inputs.len());
 
-        // node_updates is used to split immutable & mutable code.
-        let mut node_updates = Vec::with_capacity(self.inputs.len());
+        // keep track of outputs as they are calculated.
+        let mut outputs = Vec::with_capacity(self.outputs.len());
 
-        // while the path is still full, continue feeding forward 
-        // the data in the network, this is basically a dfs traversal
-        while let Some(node_id) = path.pop() {
+        let mut updates = Vec::with_capacity(self.nodes.len());
+        let mut pending_cnt = 0;
+        let mut lowest_pending_idx = self.nodes.len();
 
-            // remove the top elemet to propagate it's value
-            let curr_node = self.nodes.get(node_id.index())?;
+        // First phase:
+        // 1. reset all neurons
+        // 2. set inputs
+        // 3. try activating Output/Hidden nodes.
+        //
+        // If their are no Hidden nodes, then all node should be activated
+        // during this first pass.
+        let mut inputs = data.into_iter();
+        for node in self.nodes.iter_mut() {
+            // reset neuron
+            node.reset_neuron();
 
-            // no node should be in the path if it's value has not been set 
-            // iterate through the current nodes outgoing connections 
-            // to get its value and give that value to it's connected node
-            for edge_innov in curr_node.outgoing_edges().iter() {
+            // set inputs
+            let update = match node.neuron_type {
+                NeuronType::Input => {
+                    let value = *inputs.next().unwrap();
+                    node.activated_value = value;
+                    // active input node from input data.
+                    NodeUpdate::Activated{
+                        value,
+                        output: None,
+                    }
+                },
+                NeuronType::Output => {
+                    // try activating Output nodes.
+                    let update = NodeUpdate::process(&self.edges, &updates, node, Some(outputs.len()));
+                    if let Some((value, _)) = update.is_activated() {
+                        // activated, push value.
+                        outputs.push(value);
+                    } else {
+                        // still pending, push place-holder value.
+                        outputs.push(0.0);
+                    }
+                    update
+                },
+                NeuronType::Hidden => {
+                    // try activating Output nodes.
+                    NodeUpdate::process(&self.edges, &updates, node, None)
+                },
+            };
+            // count pending updates
+            if update.is_pending() {
+                let idx = updates.len();
+                if idx < lowest_pending_idx {
+                    lowest_pending_idx = idx;
+                }
+                pending_cnt += 1;
+            }
+            updates.push(update);
+        }
 
-                // if the currnet edge is active in the network, we can propagate through it
-                let curr_edge = self.edges.get(edge_innov.index())?;
-                if curr_edge.active {
-                    let activated_value = curr_edge.calculate(curr_node.activated_value);
-                    node_updates.push((curr_edge.dst, curr_edge.id, activated_value));
+        // Second phase:
+        // Loop until all nodes have been activated.
+        // This phase should only loop a few times (0 to node depth).
+        // If no progress (Pending -> Activated changes) is made for `max_tries`
+        // then return no data.
+        let mut max_tries = 10;
+        while pending_cnt > 0 {
+            let mut changes = 0;
+
+            // start from the first pending node (lowest pending idx)
+            let start_idx = lowest_pending_idx;
+            let end_idx = self.nodes.len();
+            lowest_pending_idx = end_idx;
+
+            for idx in start_idx..end_idx {
+                let node = self.nodes.get_mut(idx).unwrap();
+                let old_update = updates[idx];
+                if old_update.is_pending() {
+                    let output_idx = old_update.output();
+                    // try activating node
+                    let update = NodeUpdate::process(&self.edges, &updates, node, output_idx);
+                    match update {
+                        NodeUpdate::Pending{..} => {
+                            // keep track of lowest pending idx.
+                            if idx < lowest_pending_idx {
+                                lowest_pending_idx = idx;
+                            }
+                        },
+                        NodeUpdate::Activated{value, output} => {
+                            // check for activated output
+                            if let Some(out_idx) = output {
+                                // update activated output.
+                                outputs[out_idx] = value;
+                            }
+                            // node changed from Pending->Activated
+                            pending_cnt -= 1;
+                            changes += 1;
+                        },
+                    }
+                    updates[idx] = update;
                 }
             }
-
-            // apply pending node updates.
-            for &(dst, edge, value) in node_updates.iter() {
-                let receiving_node = self.nodes.get_mut(dst.index())?;
-                receiving_node.set_incoming(edge, Some(value));
-
-                // if the node can be activated, activate it and store it's value
-                // only activated nodes can be added to the path, so if it's activated
-                // add it to the path so the values can be propagated through the network
-                if receiving_node.is_ready() {
-                    receiving_node.activate();
-                    path.push(receiving_node.id);
+            // This is to avoid infinite looping on a bad network (cyclical links)
+            if changes == 0 {
+                max_tries -= 1;
+                if max_tries == 0 {
+                    // Abort and return NO DATA.
+                    return None;
                 }
             }
-            // clear node updates.
-            node_updates.clear();
         }
 
         // once we've made it through the network, the outputs should all
@@ -409,9 +530,13 @@ impl Layer for Dense {
         if self.activation == Activation::Softmax {
             // Only need to re-process output neurons for Softmax activation.
             self.set_output_values();
+
+            self.update_traces();
+            self.get_outputs()
+        } else {
+            self.update_traces();
+            Some(outputs)
         }
-        self.update_traces();
-        self.get_outputs()
     }
 
 
@@ -432,9 +557,9 @@ impl Layer for Dense {
         let mut edge_updates = Vec::with_capacity(self.inputs.len());
 
         // step through the network backwards and adjust the weights
-        while path.len() > 0 {
+        while let Some(node_id) = path.pop() {
             // get the current node and it's error 
-            let curr_node = self.nodes.get_mut(path.pop()?.index())?;
+            let curr_node = self.nodes.get_mut(node_id.index())?;
             let curr_error = curr_node.error;
             let step = match &self.trace_states {
                 Some(tracer) => curr_error * tracer.neuron_derivative(curr_node.id),

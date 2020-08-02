@@ -17,7 +17,6 @@ pub struct Neuron {
     pub id: NeuronId,
     outgoing: Vec<EdgeId>,
     incoming: Vec<EdgeId>,
-    incoming_pending: usize,
     activation: Activation,
     direction: NeuronDirection,
     pub neuron_type: NeuronType,
@@ -36,7 +35,6 @@ impl Neuron {
             id,
             outgoing: Vec::new(),
             incoming: Vec::new(),
-            incoming_pending: 0,
             activation,
             neuron_type,
             direction,
@@ -69,16 +67,6 @@ impl Neuron {
         self.outgoing.retain(|x| x != &edge);
     }
 
-    /// Set incoming edge value
-    pub fn set_incoming(&mut self, _edge: EdgeId, val: Option<f32>) {
-        if let Some(val) = val {
-            if self.incoming_pending > 0 {
-                self.incoming_pending -= 1;
-                self.current_state += val;
-            }
-        }
-    }
-
     /// Get incoming edge ids.
     pub fn incoming_edges(&self) -> &[EdgeId] {
         &self.incoming
@@ -88,15 +76,6 @@ impl Neuron {
     pub fn outgoing_edges(&self) -> &[EdgeId] {
         &self.outgoing
     }
-
-    /// figure out if this node can be calculated, meaning all of the 
-    /// nodes pointing to it have given this node their output values.
-    /// If they have, this node is ready to be activated
-    #[inline]
-    pub fn is_ready(&self) -> bool {
-        self.incoming_pending == 0
-    }
-
 
     /// 𝜎(Σ(w * i) + b)
     /// activate this node by calling the underlying neuron's logic for activation
@@ -127,7 +106,6 @@ impl Neuron {
         self.deactivated_value = 0.0;
         self.current_state = self.bias;
         // self.previous_state = 0.0;
-        self.incoming_pending = self.incoming.len();
     }
 
 
@@ -137,7 +115,6 @@ impl Neuron {
             id: self.id,
             outgoing: self.outgoing.clone(),
             incoming: self.incoming.clone(),
-            incoming_pending: self.incoming_pending,
             current_state: self.current_state.clone(),
             previous_state: self.previous_state.clone(),
             activated_value: self.activated_value.clone(),
@@ -157,7 +134,6 @@ impl Clone for Neuron {
             id: self.id,
             outgoing: self.outgoing.clone(),
             incoming: self.incoming.clone(),
-            incoming_pending: 0,
             current_state: 0.0,
             previous_state: 0.0,
             activated_value: 0.0,
