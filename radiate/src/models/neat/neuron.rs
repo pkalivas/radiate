@@ -77,9 +77,9 @@ impl Neuron {
     }
 
     /// Update incoming edge
-    pub fn update_incoming(&mut self, edge: &Edge) {
+    pub fn update_incoming(&mut self, edge: &Edge, weight: f32) {
         if let Some(link) = self.incoming.iter_mut().find(|x| x.id == edge.id) {
-            link.weight = edge.weight;
+            link.weight = weight;
         }
     }
 
@@ -130,8 +130,7 @@ impl Neuron {
         self.error = 0.0;
         self.activated_value = 0.0;
         self.deactivated_value = 0.0;
-        self.current_state = self.bias;
-        // self.previous_state = 0.0;
+        self.current_state = 0.0;
     }
 
 

@@ -37,7 +37,8 @@ pub struct Dense {
     pub edge_innov_map: HashMap<Uuid, EdgeId>,
     pub trace_states: Option<Tracer>,
     pub layer_type: LayerType,
-    pub activation: Activation
+    pub activation: Activation,
+    fast_mode: bool,
 }
 
 impl Dense {
@@ -52,7 +53,8 @@ impl Dense {
             edge_innov_map: HashMap::new(),
             trace_states: None, 
             layer_type,
-            activation
+            activation,
+            fast_mode: true,
         };
 
         let mut inputs = Vec::with_capacity(num_in as usize);
@@ -102,10 +104,10 @@ impl Dense {
         edge_id
     }
 
-    /// Disable an edge and unlink the nodes.
+    /// Disable an edge.
     fn disable_edge(&mut self, edge_id: EdgeId) {
         let edges = &mut self.edges;
-        // disable edge and unlink the nodes
+        // disable edge
         if let Some(edge) = edges.get_mut(edge_id.index()) {
           edge.disable(&mut self.nodes)
         }
@@ -145,6 +147,11 @@ impl Dense {
     /// while the new weight is randomly chosen and put between the 
     /// old source node and the new node
     pub fn add_node(&mut self, activation: Activation, direction: NeuronDirection) {
+        assert!(self.layer_type == LayerType::DensePool);
+
+        // Can't use fast mode with hidden nodes.
+        self.fast_mode = false;
+
         // create a new node to insert inbetween the sending and receiving nodes 
         let new_node_id = self.make_node(NeuronType::Hidden, activation, direction);
 
@@ -165,6 +172,11 @@ impl Dense {
     /// that the desired connection can be made. If it can be, make the connection
     /// with a weight of .5 in order to minimally impact the network 
     pub fn add_edge(&mut self) {
+        assert!(self.layer_type == LayerType::DensePool);
+
+        // Can't use fast mode with hidden nodes.
+        self.fast_mode = false;
+
         // get a valid sending neuron
         let sending = self.random_node_not_of_type(NeuronType::Output);
         // get a vaild receiving neuron
@@ -328,6 +340,55 @@ impl Dense {
             tracer.index += 1;
         }
     }
+
+
+    fn fast_forward(&mut self, data: &Vec<f32>) -> Option<Vec<f32>> {
+        let in_size = self.inputs.len();
+
+        // First phase: update input neurons
+        for (node, value) in self.nodes[0..in_size].iter_mut().zip(data.iter()) {
+            assert!(node.neuron_type == NeuronType::Input);
+            // reset neuron
+            node.reset_neuron();
+
+            // set inputs
+            node.activated_value = *value;
+        }
+
+        // keep track of outputs as they are calculated.
+        let mut outputs = Vec::with_capacity(self.outputs.len());
+
+        // Second phase: update output neurons
+        let end_idx = self.nodes.len();
+        for node in self.nodes[in_size..end_idx].iter_mut() {
+            assert!(node.neuron_type == NeuronType::Output);
+            // reset neuron
+            node.reset_neuron();
+
+            // (inputs[] * weights[]) + bias
+            node.current_state = node.incoming_edges().iter().zip(data.iter())
+              .fold(node.bias, |sum, (edge, value)| {
+                  sum + (value * edge.weight)
+              });
+            // set inputs
+            node.activate();
+
+            outputs.push(node.activated_value);
+        }
+
+        // once we've made it through the network, the outputs should all
+        // have calculated their values. Gather the values and return the vec
+        if self.activation == Activation::Softmax {
+            // Only need to re-process output neurons for Softmax activation.
+            self.set_output_values();
+
+            self.update_traces();
+            self.get_outputs()
+        } else {
+            self.update_traces();
+            Some(outputs)
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -404,6 +465,9 @@ impl Layer for Dense {
     /// wrong within the feed forward process.
     fn forward(&mut self, data: &Vec<f32>) -> Option<Vec<f32>> {
         assert!(data.len() == self.inputs.len());
+        if self.fast_mode {
+            return self.fast_forward(data);
+        }
 
         // keep track of outputs as they are calculated.
         let mut outputs = Vec::with_capacity(self.outputs.len());

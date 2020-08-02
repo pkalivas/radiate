@@ -48,7 +48,7 @@ impl Edge {
     /// update weight
     pub fn update_weight(&mut self, weight: f32, nodes: &mut Vec<Neuron>) {
         self.weight = weight;
-        nodes.get_mut(self.dst.index()).map(|x| x.update_incoming(self));
+        nodes.get_mut(self.dst.index()).map(|x| x.update_incoming(self, weight));
     }
 
     /// Link edge src/dst nodes
@@ -65,13 +65,17 @@ impl Edge {
         }
         self.active = true;
         nodes.get_mut(self.src.index()).map(|x| x.add_outgoing(self.id));
-        nodes.get_mut(self.dst.index()).map(|x| x.add_incoming(self));
+        // For dst node, just re-enable the weight.
+        // This allows for faster forward propagation.
+        nodes.get_mut(self.dst.index()).map(|x| x.update_incoming(self, self.weight));
     }
 
     /// Disable edge and unlink the nodes.
     pub fn disable(&mut self, nodes: &mut Vec<Neuron>) {
         self.active = false;
         nodes.get_mut(self.src.index()).map(|x| x.remove_outgoing(self.id));
-        nodes.get_mut(self.dst.index()).map(|x| x.remove_incoming(self));
+        // For dst node, just set the weight to zero.
+        // This allows for faster forward propagation.
+        nodes.get_mut(self.dst.index()).map(|x| x.update_incoming(self, 0.0));
     }
 }
