@@ -10,6 +10,12 @@ keywords = ["search", "genetic", "learning", "artificial", "evolution"]
 edition = "2018"
 license = "MIT"
 
+[features]
+# Use u16 for Neuron Ids (65536) and u32 for Edge Ids (4 Billion)
+small-ids = []
+# Use u8 for Neuron Ids (256) and u32 for Edge Ids (256 * 256 = 65536)
+tiny-ids = []
+
 [dependencies]
 rand="0.7.2"
 rayon="1.2.0"

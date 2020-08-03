@@ -149,6 +149,11 @@ impl Dense {
     pub fn add_node(&mut self, activation: Activation, direction: NeuronDirection) {
         assert!(self.layer_type == LayerType::DensePool);
 
+        // Restrict layer size to the maximum supported neurons.
+        if self.nodes.len() == NeuronId::MAX {
+            return;
+        }
+
         // Can't use fast mode with hidden nodes.
         self.fast_mode = false;
 
@@ -173,6 +178,11 @@ impl Dense {
     /// with a weight of .5 in order to minimally impact the network 
     pub fn add_edge(&mut self) {
         assert!(self.layer_type == LayerType::DensePool);
+
+        // Restrict layer size to the maximum supported edges.
+        if self.edges.len() == EdgeId::MAX {
+            return;
+        }
 
         // Can't use fast mode with hidden nodes.
         self.fast_mode = false;
