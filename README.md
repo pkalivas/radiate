@@ -274,6 +274,8 @@ pub enum Genocide {
 This is definitly an area which can be improved in the algorithm.
 
 ## Versions
+**1.5.57** - Major improvements to the Dense/DensePool layers. Before the improvement the benchmark takes about 1.5 minutes to run. With the improvements it finishes in about 1.5 seconds.
+
 **1.1.55** - Removed unsafe code and fixed memory leak in evtree. Refactored Evtree to be generic, moving neural network logic to be separate. Cleaned up send/sync impls.
 
 **1.1.52** - Added recurrent neurons for NEAT. Note - this is also only viable for evolution (I will focus on implementing backprop for recurrent neurons and GRU layers next - I'm working on some other projects that require recurrent evolution neurons as of now). This can be configured in the NeatEnvironment settings where the % change of adding a recurrent neuron can be added. 0.0 would mean no recurrent neurons are added, where 1.0 would mean every new neuron is recurrent. Example in radiate/src/models/.
