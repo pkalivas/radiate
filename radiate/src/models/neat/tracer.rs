@@ -1,10 +1,7 @@
 
-extern crate uuid;
-
 use std::collections::HashMap;
-use uuid::Uuid;
-    
 
+use super::id::*;
 
 
 /// Tracer keeps track of historical metadata for neurons to keep track
@@ -12,8 +9,8 @@ use uuid::Uuid;
 /// is available for batch processing and weight updates
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Tracer {
-    pub neuron_activation: HashMap<Uuid, Vec<f32>>,
-    pub neuron_derivative: HashMap<Uuid, Vec<f32>>,
+    pub neuron_activation: HashMap<NeuronId, Vec<f32>>,
+    pub neuron_derivative: HashMap<NeuronId, Vec<f32>>,
     pub max_neuron_index: usize,
     pub index: usize,
 }
@@ -44,7 +41,7 @@ impl Tracer {
 
 
     /// update a neuron and add it's activated value 𝜎(Σ(w * i) + b)
-    pub fn update_neuron_activation(&mut self, neuron_id: &Uuid, neuron_value: f32) {
+    pub fn update_neuron_activation(&mut self, neuron_id: &NeuronId, neuron_value: f32) {
         if self.neuron_activation.contains_key(&neuron_id) {
             let states = self.neuron_activation.get_mut(&neuron_id).unwrap();
             states.push(neuron_value);
@@ -64,7 +61,7 @@ impl Tracer {
 
 
     /// update a neruon and add it's derivative of it's activated value to the tracer 
-    pub fn update_neuron_derivative(&mut self, neuron_id: &Uuid, neuron_d: f32) {
+    pub fn update_neuron_derivative(&mut self, neuron_id: &NeuronId, neuron_d: f32) {
         if self.neuron_derivative.contains_key(&neuron_id) {
             let states = self.neuron_derivative.get_mut(&neuron_id).unwrap();
             states.push(neuron_d);
@@ -78,7 +75,7 @@ impl Tracer {
 
 
     /// return the activated value of a neuron at the current index 
-    pub fn neuron_activation(&self, neuron_id: Uuid) -> f32 {
+    pub fn neuron_activation(&self, neuron_id: NeuronId) -> f32 {
         if !self.neuron_activation.contains_key(&neuron_id) {
             panic!("Tracer neuron state doesn't contain uuid: {:?}", neuron_id);
         }
@@ -88,7 +85,7 @@ impl Tracer {
 
 
     /// return the derivative of a neuron at the current index 
-    pub fn neuron_derivative(&self, neuron_id: Uuid) -> f32 {
+    pub fn neuron_derivative(&self, neuron_id: NeuronId) -> f32 {
         if !self.neuron_derivative.contains_key(&neuron_id) {
             panic!("Tracer neuron state doesn't contain uuid: {:?}", neuron_id);
         }

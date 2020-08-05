@@ -175,7 +175,7 @@ impl Neat {
             data_transfer = &temp;
         }
         // gather the output and return it as an option
-        Some(data_transfer.iter().map(|x| *x).collect())
+        Some(data_transfer.clone())
     }    
 
 

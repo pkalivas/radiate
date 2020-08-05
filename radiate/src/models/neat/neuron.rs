@@ -1,16 +1,31 @@
 
 extern crate rand;
-extern crate uuid;
 
-use std::collections::HashMap;
 use rand::Rng;
-use uuid::Uuid;
 
+use super::id::*;
+use super::edge::*;
 use super::activation::Activation;
 use super::neurontype::NeuronType;
 use super::direction::NeuronDirection;
 
 
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct NeuronLink {
+    pub id: EdgeId,
+    pub src: NeuronId,
+    pub weight: f32,
+}
+
+impl NeuronLink {
+    pub fn new(edge: &Edge) -> Self {
+        Self {
+            id: edge.id,
+            src: edge.src,
+            weight: edge.weight,
+        }
+    }
+}
 
 /// Neuron is a wrapper around a neuron providing only what is needed for a neuron to be added 
 /// to the NEAT graph, while the neuron encapsulates the neural network logic for the specific nodetype,
@@ -18,11 +33,11 @@ use super::direction::NeuronDirection;
 /// so encapsulating that within a normal node on the graph would be misplaced.
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Neuron {
-    pub innov: Uuid,
-    pub outgoing: Vec<Uuid>,
-    pub incoming: HashMap<Uuid, Option<f32>>,
-    pub activation: Activation,
-    pub direction: NeuronDirection,
+    pub id: NeuronId,
+    outgoing: Vec<EdgeId>,
+    incoming: Vec<NeuronLink>,
+    activation: Activation,
+    direction: NeuronDirection,
     pub neuron_type: NeuronType,
     pub activated_value: f32,
     pub deactivated_value: f32,
@@ -33,15 +48,12 @@ pub struct Neuron {
 }
 
 
-
 impl Neuron {
-
-
-    pub fn new(innov: Uuid, neuron_type: NeuronType, activation: Activation, direction: NeuronDirection) -> Self {
+    pub fn new(id: NeuronId, neuron_type: NeuronType, activation: Activation, direction: NeuronDirection) -> Self {
         Neuron {
-            innov,
+            id,
             outgoing: Vec::new(),
-            incoming: HashMap::new(),
+            incoming: Vec::new(),
             activation,
             neuron_type,
             direction,
@@ -54,40 +66,47 @@ impl Neuron {
         }
     }
 
-
-
-    /// Return this struct as a raw mutable pointer - consumes the struct
-    pub fn as_mut_ptr(self) -> *mut Neuron {
-        Box::into_raw(Box::new(self))
+    /// Add incoming edge
+    pub fn add_incoming(&mut self, edge: &Edge) {
+        self.incoming.push(NeuronLink::new(edge));
     }
 
-
-
-    /// figure out if this node can be calculated, meaning all of the 
-    /// nodes pointing to it have given this node their output values.
-    /// If they have, this node is ready to be activated
-    #[inline]
-    pub fn is_ready(&mut self) -> bool {
-        self.incoming
-            .values()
-            .all(|x| x.is_some())
+    /// Add outgoing edge
+    pub fn add_outgoing(&mut self, edge: EdgeId) {
+        self.outgoing.push(edge);
     }
 
+    /// Update incoming edge
+    pub fn update_incoming(&mut self, edge: &Edge, weight: f32) {
+        if let Some(link) = self.incoming.iter_mut().find(|x| x.id == edge.id) {
+            link.weight = weight;
+        }
+    }
 
-    
+    /// Remove incoming edge
+    pub fn remove_incoming(&mut self, edge: &Edge) {
+        self.incoming.retain(|x| x.id != edge.id);
+    }
+
+    /// Remove outgoing edge
+    pub fn remove_outgoing(&mut self, edge: EdgeId) {
+        self.outgoing.retain(|x| x != &edge);
+    }
+
+    /// Get incoming edge ids.
+    pub fn incoming_edges(&self) -> &[NeuronLink] {
+        &self.incoming
+    }
+
+    /// Get outgoing edge ids.
+    pub fn outgoing_edges(&self) -> &[EdgeId] {
+        &self.outgoing
+    }
+
     /// 𝜎(Σ(w * i) + b)
     /// activate this node by calling the underlying neuron's logic for activation
-    /// given the hashmap of <incoming edge innov, Option<incoming Neuron output value>>
     #[inline]
     pub fn activate(&mut self) {
-        self.current_state = self.incoming
-            .values()
-            .fold(self.bias, |sum, curr| {
-                match curr {
-                    Some(x) => sum + x,
-                    None => panic!("Cannot activate node.")
-                }
-            });
         if self.activation != Activation::Softmax {
             match self.direction {
                 NeuronDirection::Forward => {
@@ -112,25 +131,15 @@ impl Neuron {
         self.activated_value = 0.0;
         self.deactivated_value = 0.0;
         self.current_state = 0.0;
-        // self.previous_state = 0.0;
-        for (_, val) in self.incoming.iter_mut() {
-            *val = None;
-        }
     }
 
 
     #[inline]
     pub fn clone_with_values(&self) -> Self {
         Neuron {
-            innov: self.innov,
-            outgoing: self.outgoing
-                .iter()
-                .map(|x| *x)
-                .collect(),
-            incoming: self.incoming
-                .iter()
-                .map(|(key, _)| (*key, None))
-                .collect(),
+            id: self.id,
+            outgoing: self.outgoing.clone(),
+            incoming: self.incoming.clone(),
             current_state: self.current_state.clone(),
             previous_state: self.previous_state.clone(),
             activated_value: self.activated_value.clone(),
@@ -142,24 +151,14 @@ impl Neuron {
             direction: self.direction.clone()
         }
     }
-
-
 }
-
-
 
 impl Clone for Neuron {
     fn clone(&self) -> Self { 
         Neuron {
-            innov: self.innov,
-            outgoing: self.outgoing
-                .iter()
-                .map(|x| *x)
-                .collect(),
-            incoming: self.incoming
-                .iter()
-                .map(|(key, _)| (*key, None))
-                .collect(),
+            id: self.id,
+            outgoing: self.outgoing.clone(),
+            incoming: self.incoming.clone(),
             current_state: 0.0,
             previous_state: 0.0,
             activated_value: 0.0,
@@ -170,12 +169,5 @@ impl Clone for Neuron {
             neuron_type: self.neuron_type.clone(),
             direction: self.direction.clone()
         }
-    }
-}
-
-
-impl PartialEq for Neuron {
-    fn eq(&self, other: &Self) -> bool {
-        self.innov == other.innov
     }
 }

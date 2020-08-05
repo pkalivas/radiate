@@ -56,9 +56,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             
     // traditional training of neural networks
     solution.train(&ism.inputs, &ism.answers, 0.00001, Loss::Diff, |epoch, loss| {
-        let temp = format!("{:.5}", loss).parse::<f32>().unwrap().abs();
-        println!("epoch: {:?} loss: {:?}", epoch, temp);
-        epoch == num_train || temp < 0.01
+        let loss = loss.abs();
+        println!("epoch: {:?} loss: {:.5?}", epoch, loss);
+        epoch == num_train || loss < 0.01
     })?;
     
     solution.reset();

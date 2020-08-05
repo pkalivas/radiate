@@ -1,8 +1,7 @@
 
-extern crate uuid;
-
 use uuid::Uuid;
-
+use super::id::*;
+use super::neuron::*;
 
 /// Edge is a connection between two nodes in the graph
 /// 
@@ -14,39 +13,69 @@ use uuid::Uuid;
 /// while feeding data through the network
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct Edge {
-    pub src: Uuid,
-    pub dst: Uuid, 
+    pub id: EdgeId,
     pub innov: Uuid,
+    pub src: NeuronId,
+    pub dst: NeuronId,
     pub weight: f32,
     pub active: bool
 }
 
-
 impl Edge {
-
-    pub fn new(src: Uuid, dst: Uuid, innov: Uuid, weight: f32, active: bool) -> Self {
-        Edge { 
-            src,    
-            dst, 
-            innov, 
-            weight, 
-            active 
+    pub fn new(id: EdgeId, src: NeuronId, dst: NeuronId, weight: f32, active: bool) -> Self {
+        Edge {
+            id,
+            src,
+            dst,
+            innov: Uuid::new_v4(),
+            weight,
+            active
         }
     }
 
-
-
     /// update the weight of this edge connection
     #[inline]
-    pub fn update(&mut self, delta: f32) {
-        self.weight += delta;
+    pub fn update(&mut self, delta: f32, nodes: &mut Vec<Neuron>) {
+        self.update_weight(self.weight + delta, nodes);
     }
-
 
     /// calculate the eligibility of this connection and store it for time series predictions
     #[inline]
     pub fn calculate(&self, val: f32) -> f32 {
         val * self.weight
     }
-    
+
+    /// update weight
+    pub fn update_weight(&mut self, weight: f32, nodes: &mut Vec<Neuron>) {
+        self.weight = weight;
+        nodes.get_mut(self.dst.index()).map(|x| x.update_incoming(self, weight));
+    }
+
+    /// Link edge src/dst nodes
+    pub fn link_nodes(&self, nodes: &mut Vec<Neuron>) {
+        nodes.get_mut(self.src.index()).map(|x| x.add_outgoing(self.id));
+        nodes.get_mut(self.dst.index()).map(|x| x.add_incoming(self));
+    }
+
+    /// Enable edge and link the nodes.
+    pub fn enable(&mut self, nodes: &mut Vec<Neuron>) {
+        if self.active {
+            // already active, nothing to do.
+            return;
+        }
+        self.active = true;
+        nodes.get_mut(self.src.index()).map(|x| x.add_outgoing(self.id));
+        // For dst node, just re-enable the weight.
+        // This allows for faster forward propagation.
+        nodes.get_mut(self.dst.index()).map(|x| x.update_incoming(self, self.weight));
+    }
+
+    /// Disable edge and unlink the nodes.
+    pub fn disable(&mut self, nodes: &mut Vec<Neuron>) {
+        self.active = false;
+        nodes.get_mut(self.src.index()).map(|x| x.remove_outgoing(self.id));
+        // For dst node, just set the weight to zero.
+        // This allows for faster forward propagation.
+        nodes.get_mut(self.dst.index()).map(|x| x.update_incoming(self, 0.0));
+    }
 }
