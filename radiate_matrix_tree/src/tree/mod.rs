@@ -16,7 +16,7 @@ pub use node::{Node, Link};
 /// 
 /// This struct holds the root of the tree. The tree also contains a size which represents the number of nodes in the tree,
 /// an input size which is the size of the input vector (1D), and is used to generate nodes alone with the 
-/// output options which is an owned vec of i32s represnting different outputs of the classification.
+/// output options which is an owned vec of i32s representing different outputs of the classification.
 #[derive(PartialEq)]
 pub struct Tree<T: Clone> {
     root: Link<T>,
@@ -63,7 +63,7 @@ impl<T: Clone> Tree<T> {
 
     /// return an in order iterator which 
     /// allows for the nodes in the tree to be
-    /// mutatued while iterating
+    /// mutated while iterating
     pub fn iter_mut(&mut self) -> iterators::IterMut<'_, T> {
         iterators::IterMut::new(self.root_mut_opt())
     }
@@ -249,7 +249,7 @@ impl<T: Clone> Tree<T> {
         self.update_size();
     }
 
-    /// Shuffel the tree by gathering a list of the nodes then shuffling the list
+    /// Shuffle the tree by gathering a list of the nodes then shuffling the list
     /// and then balancing the tree again from that list
     #[inline]    
     pub fn shuffle_tree(&mut self, r: &mut ThreadRng) {
@@ -269,7 +269,7 @@ impl<T: Clone> fmt::Debug for Tree<T> {
 }
 
 /// Return a new copy of the tree, calling deep copy from the root node and copying over
-/// the size, input size, and output options in the most effecient way.
+/// the size, input size, and output options in the most efficient way.
 impl<T: Clone> Clone for Tree<T> {
     #[inline]
     fn clone(&self) -> Self {
@@ -285,23 +285,23 @@ impl<T: Clone> Clone for Tree<T> {
 /// Because the tree is made out of raw mutable pointers, if those pointers
 /// are not dropped, there is a severe memory leak, like possibly gigs of
 /// ram over only a few generations depending on the size of the generation
-/// This drop implementation will recursivley drop all nodes in the tree 
+/// This drop implementation will recursively drop all nodes in the tree
 impl<T: Clone> Drop for Tree<T> {
     fn drop(&mut self) { 
         self.drop_root();
     }
 }
 
-/// These must be implemneted for the tree or any type to be 
-/// used within seperate threads. Because implementing the functions 
-/// themselves is dangerious and unsafe and i'm not smart enough 
-/// to do that from scratch, these "implmenetaions" will get rid 
-/// of the error and realistically they don't need to be implemneted for the
+/// These must be implemented for the tree or any type to be
+/// used within separate threads. Because implementing the functions
+/// themselves is dangerous and unsafe and i'm not smart enough
+/// to do that from scratch, these "implementations" will get rid
+/// of the error and realistically they don't need to be implemented for the
 /// program to work
 unsafe impl<T: Clone> Send for Tree<T> {}
 unsafe impl<T: Clone> Sync for Tree<T> {}
 
-/// implement a function for getting a base default Tree which is completetly empty
+/// implement a function for getting a base default Tree which is completely empty
 /// There are multiple places within the struct implementation which will panic! if 
 /// this default Tree is passed through it.
 impl<T: Clone> Default for Tree<T> {

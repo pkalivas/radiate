@@ -11,7 +11,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // set the number of threads to be used
     rayon::ThreadPoolBuilder::new().num_threads(8).build_global().unwrap();
 
-    // definie the environment
+    // define the environment
     let neat_env = NeatEnvironment::new()
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)

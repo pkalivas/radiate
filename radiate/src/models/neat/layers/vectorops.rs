@@ -5,7 +5,7 @@ use super::super::{
 };
 
 
-/// multiply two vectors element wise
+/// multiply two vectors element-wise
 #[inline]
 pub fn element_multiply(one: &mut Vec<f32>, two: &Vec<f32>) {
     assert!(one.len() == two.len(), "Element multiply vector shapes don't match");
@@ -27,7 +27,7 @@ pub fn element_invert(one: &mut Vec<f32>) {
 
 
 
-/// add elements from vectors together element wise
+/// add elements from vectors together element-wise
 #[inline]
 pub fn element_add(one: &mut Vec<f32>, two: &Vec<f32>) {
     assert!(one.len() == two.len(), "Element add vector shapes don't match");

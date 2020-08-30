@@ -1,11 +1,11 @@
 # Radiate Web
-Often trining deep learning alorithms is an expensive CPU/GPU action and with [Radiate](https://github.com/pkalivas/radiate) there is no exception. To aid in this problem, Radiate Web exposes a few data transfer objects to be able to build your learning algorithm remotely, then send it to another machine to train or test. This is a small extension that goes with [Radiate](https://github.com/pkalivas/radiate).
+Often, training deep learning algorithms is an expensive CPU/GPU operation and with [Radiate](https://github.com/pkalivas/radiate) this is no exception. To aid this problem, Radiate Web exposes a few data transfer objects to be able to build your learning algorithm remotely, then send it to another machine to train or test. This is a small extension that goes with [Radiate](https://github.com/pkalivas/radiate).
 
 ### Population Data Transfer Object (DTO)
 Simply build your transfer object to send over to your other machine by defining the parameters of a simple population. This does not allow you to define a few of the parameters, mainly the 'run' function which determines when to stop training and is required to be on the training machine. 
 
 ### Radiate Data Transfer Object
-Build a Radiate genetic algorithm with NEAT (Neuroeolution of Augmented Topologies) to send by encapuslating the rest of the training options and they're environment. 
+Build a Radiate genetic algorithm with NEAT (Neuroevolution of Augmented Topologies) to send by encapsulating the rest of the training options and their environment.
 
 ## Example
 This example code can be found [here](https://github.com/pkalivas/radiate/tree/master/examples/neat-web) which describes how the client and server are set up using [Rocket](https://rocket.rs/) and [Tokio](https://github.com/tokio-rs/tokio) to build a web service and handle the routing.

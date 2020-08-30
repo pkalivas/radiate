@@ -4,7 +4,7 @@ use super::activation::Activation;
 use crate::engine::environment::Envionment;
 
 
-/// Configuation settings for the NeatAlgorithm 
+/// Configuration settings for the NeatAlgorithm
 /// 
 /// weight_mutate_rate: the probability of uniformly perturbing a connection weight or assigning a new random value
 /// weight_perturb: the uniform range to perturb a weight by will go from negative num to pos (if you enter 5, it will pertub a weight randomly between -5 and 5)

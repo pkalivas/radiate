@@ -18,15 +18,15 @@ use super::{
 /// just the type T, where it has an owning reference counter
 /// then wrapped in a ref cell to allow for mutable borrowing of the Rc
 pub type Member<T> = Arc<RwLock<T>>;
-/// the MemberWeak is meant to be a Nonowning member type pointing to the 
+/// the MemberWeak is meant to be a non-owning member type pointing to the
 /// same memory space but not having the same owning ability of the data
 pub type MemberWeak<T> = Weak<RwLock<T>>;
 
-/// A family is a wrapper for a species type which ownes the data it 
+/// A family is a wrapper for a species type which owns the data it
 /// holds. This is needed as there are many references to a species 
 /// throughout the program
 pub type Family<T, E> = Arc<RwLock<Niche<T, E>>>;
-/// the FamilyWeak is meant to mimic the MemberWeak as it is a nonowning family
+/// the FamilyWeak is meant to mimic the MemberWeak as it is a non-owning family
 /// type which allows for multiple bi-directional pointers to the same Niche 
 /// type in the same memory location
 pub type FamilyWeak<T, E> = Weak<RwLock<Niche<T, E>>>;
@@ -70,8 +70,8 @@ impl<T, E> Container<T, E>
 
 
 /// A generation is meant to facilitate the speciation, crossover, and 
-/// reproduction of spececies and their types over the course of a single 
-/// genertion
+/// reproduction of species and their types over the course of a single
+/// generation
 #[derive(Debug)]
 pub struct Generation<T, E> 
     where
@@ -105,7 +105,7 @@ impl<T, E> Generation<T, E>
         }
     }
 
-    /// passdown the previous generation's members and species to a new generation
+    /// pass down the previous generation's members and species to a new generation
     #[inline]
     pub fn pass_down(&self, new_members: Vec<Member<T>>) -> Option<Self> {
         Some(Generation {
@@ -198,11 +198,11 @@ impl<T, E> Generation<T, E>
     /// Create the next generation and return a new generation struct with 
     /// new members, and reset species. This is how the generation moves from
     /// one to the next. This function also is the one which runs the crossover
-    /// fn from the genome trait, the more effecent that function is, the faster
+    /// fn from the genome trait, the more efficient that function is, the faster
     /// this function will be.
     #[inline]
     pub fn create_next_generation(&mut self, pop_size: i32, config: Config, env: Arc<RwLock<E>>) -> Option<Self> {   
-        // generating new members in a biased way using rayon to parallize it
+        // generating new members in a biased way using rayon to parallelize it
         // then crossover to fill the rest of the generation 
         let mut new_members = self.survival_criteria.pick_survivers(&mut self.members, &self.species)?;
         let children = (new_members.len() as i32..pop_size)
@@ -218,7 +218,7 @@ impl<T, E> Generation<T, E>
                 Arc::new(RwLock::new(child))
             })
             .collect::<Vec<_>>();
-        // reset the species and passdown the new members to a new generation
+        // reset the species and pass down the new members to a new generation
         new_members.extend(children);
         self.pass_down(new_members)
     }

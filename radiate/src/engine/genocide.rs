@@ -1,5 +1,5 @@
 /// Provide options for cleaning up the population or applying 
-/// some sort of natural selection over the population thorugh time
+/// some sort of natural selection over the population through time
 
 extern crate rayon;
 extern crate rand;  
@@ -14,8 +14,8 @@ use super::niche::{NicheMember};
 
 
 
-/// Definine genocide struct to provide options
-/// of what to do when a population is stagnent,
+/// Define genocide struct to provide options
+/// of what to do when a population is stagnant,
 /// ie: how to clean the population
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Genocide {
@@ -97,7 +97,7 @@ impl Genocide {
 
     /// Kill the bottom prec of each species in the generation. ie: if a species has 10 members 
     /// and the prec is .2, then the bottom two members of this generation will be removed
-    /// this function will run in parallel so it sould be fairly quick
+    /// this function will run in parallel so it should be fairly quick
     fn kill_species_bottom<T, E>(&self, generation: &mut Generation<T, E>, perc: f32)
         where 
             T: Genome<T, E> + Send + Sync,

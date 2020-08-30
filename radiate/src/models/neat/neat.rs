@@ -144,7 +144,7 @@ impl Neat {
 
     
 
-    /// backpropagate the network, will move throgh time if needed
+    /// backpropagate the network, will move through time if needed
     #[inline]
     pub fn backward(&mut self, net_outs: &Vec<Vec<f32>>, net_targets: &Vec<Vec<f32>>, rate: f32, loss_fn: &Loss) -> f32 {
         let mut total_loss = 0.0;
@@ -235,7 +235,7 @@ impl Neat {
 
     
 
-    /// in order to more efficently give inputs to the network, this function simple 
+    /// in order to more efficiently give inputs to the network, this function simple
     /// finds the shape of the layer that should be created based on the desired size
     #[inline]
     fn get_layer_sizes(&self, size: u32) -> Option<(u32, u32)> {
@@ -300,7 +300,7 @@ impl PartialEq for Neat {
 
 
 
-/// iplement genome for a neat network
+/// implement genome for a neat network
 impl Genome<Neat, NeatEnvironment> for Neat {
 
     #[inline]

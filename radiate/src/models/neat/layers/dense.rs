@@ -142,7 +142,7 @@ impl Dense {
     }
 
     /// Add a node to the network by getting a random edge 
-    /// and inserting the new node inbetween that edge's source
+    /// and inserting the new node in-between that edge's source
     /// and destination nodes. The old weight is pushed forward 
     /// while the new weight is randomly chosen and put between the 
     /// old source node and the new node
@@ -605,7 +605,7 @@ impl Layer for Dense {
 
 
     /// Backpropagation algorithm, transfer the error through the network and change the weights of the
-    /// edges accordinly, this is pretty straight forward due to the design of the neat graph
+    /// edges accordingly, this is pretty straightforward due to the design of the neat graph
     fn backward(&mut self, error: &Vec<f32>, learning_rate: f32) -> Option<Vec<f32>> {
         // feed forward the input data to get the output in order to compute the error of the network
         // create a dfs stack to step backwards through the network and compute the error of each neuron
@@ -630,14 +630,14 @@ impl Layer for Dense {
                 None => curr_error * curr_node.deactivated_value
             } * learning_rate;
 
-            // reset the nodes error if it isnt an input node 
+            // reset the nodes error if it isn't an input node
             if curr_node.neuron_type != NeuronType::Input {
                 curr_node.bias += learning_rate * curr_error;
                 curr_node.error = 0.0;
             }
 
-            // iterate through each of the incoming edes to this neuron and adjust it's weight
-            // and add it's error to the errros map
+            // iterate through each of the incoming edges to this neuron and adjust its weight
+            // and add its error to the errors map
             for edge in curr_node.incoming_edges().iter() {
                 edge_updates.push(edge.id);
             }
@@ -653,7 +653,7 @@ impl Layer for Dense {
                     let src_neuron = self.nodes.get_mut(curr_edge.src.index())?;
                     src_neuron.error += curr_edge.weight * curr_error;
 
-                    // add the weight step (gradient) * the currnet value to the weight to adjust the weight
+                    // add the weight step (gradient) * the current value to the weight to adjust the weight
                     // then update the connection so it knows if it should update the weight, or store the delta
                     let delta = match &self.trace_states {
                         Some(tracer) => step * tracer.neuron_activation(src_neuron.id),
@@ -736,16 +736,16 @@ impl Genome<Dense, NeatEnvironment> for Dense
         let mut r = rand::thread_rng();
         if r.gen::<f32>() < crossover_rate {
             for edge in new_child.edges.iter_mut() {
-                // if the edge is in both networks, then radnomly assign the weight to the edge
+                // if the edge is in both networks, then randomly assign the weight to the edge
                 // because we are already looping over the most fit parent, we only need to change the 
-                // weight to the second parent if nessesary.
+                // weight to the second parent if necessary.
                 if let Some(parent_edge) = parent_two.get_edge_by_innov(&edge.innov) {
                     if r.gen::<f32>() < 0.5 {
                         edge.update_weight(parent_edge.weight, &mut new_child.nodes);
                     }
 
                     // if the edge is deactivated in either network and a random number is less than the 
-                    // reactivate parameter, then reactiveate the edge and insert it back into the network
+                    // reactivate parameter, then reactivate the edge and insert it back into the network
                     if (!edge.active || !parent_edge.active) && r.gen::<f32>() < set.reactivate? {
                         edge.enable(&mut new_child.nodes);
                     }

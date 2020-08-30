@@ -60,7 +60,7 @@ impl Tracer {
 
 
 
-    /// update a neruon and add it's derivative of it's activated value to the tracer 
+    /// update a neuron and add it's derivative of it's activated value to the tracer
     pub fn update_neuron_derivative(&mut self, neuron_id: &NeuronId, neuron_d: f32) {
         if self.neuron_derivative.contains_key(&neuron_id) {
             let states = self.neuron_derivative.get_mut(&neuron_id).unwrap();
