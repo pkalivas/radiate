@@ -63,7 +63,7 @@ impl SurvivalCriteria {
 
     /// Based on the survival criteria, given a vec of containers and families, pick who survives
     #[inline]
-    pub fn pick_survivors<T, E>(&self, members: &mut Vec<Container<T, E>>, families: &Vec<Family<T, E>>) -> Option<Vec<Arc<RwLock<T>>>>
+    pub fn pick_survivors<T, E>(&self, members: &mut [Container<T, E>], families: &[Family<T, E>]) -> Option<Vec<Arc<RwLock<T>>>>
         where
             T: Genome<T, E> + Send + Sync + Clone,
             E: Send + Sync
@@ -87,7 +87,7 @@ impl SurvivalCriteria {
     #[deprecated = "Use `pick_survivors`"]
     #[doc(hidden)]
     #[inline]
-    pub fn pick_survivers<T, E>(&self, members: &mut Vec<Container<T, E>>, families: &Vec<Family<T, E>>) -> Option<Vec<Arc<RwLock<T>>>>
+    pub fn pick_survivers<T, E>(&self, members: &mut [Container<T, E>], families: &[Family<T, E>]) -> Option<Vec<Arc<RwLock<T>>>>
         where
             T: Genome<T, E> + Send + Sync + Clone,
             E: Send + Sync
@@ -100,12 +100,12 @@ impl SurvivalCriteria {
     /// TopNumber and TopPercent are basically the same so this function does the job of both of them,
     /// just convert the percent to a number before calling the function
     #[inline]
-    fn get_top_num<T, E>(num_to_keep: usize, members: &mut Vec<Container<T, E>>) -> Option<Vec<Arc<RwLock<T>>>>
+    fn get_top_num<T, E>(num_to_keep: usize, members: &mut [Container<T, E>]) -> Option<Vec<Arc<RwLock<T>>>>
         where
             T: Genome<T, E> + Send + Sync + Clone,
             E: Send + Sync
     {
-        members.as_mut_slice()
+        members
             .par_sort_by(|a, b| {
                 b.fitness_score.partial_cmp(&a.fitness_score).unwrap()
             });
@@ -126,7 +126,7 @@ impl ParentalCriteria {
 
     /// Find two parents to crossover and produce a child
     #[inline]
-    pub fn pick_parents<T, E>(&self, inbreed_rate: f32, families: &Vec<Family<T, E>>) -> Option<((f32, Member<T>), (f32, Member<T>))> 
+    pub fn pick_parents<T, E>(&self, inbreed_rate: f32, families: &[Family<T, E>]) -> Option<((f32, Member<T>), (f32, Member<T>))>
         where
             T: Genome<T, E> + Send + Sync + Clone,
             E: Send + Sync 
@@ -150,7 +150,7 @@ impl ParentalCriteria {
     /// parents and returns a tuple of tuples where the f32 is the parent's fitness,
     /// and the type is the parent itself
     #[inline]
-    fn create_match<T, E>(&self, inbreed_rate: f32, families: &Vec<Family<T, E>>) -> ((f32, Member<T>), (f32, Member<T>)) 
+    fn create_match<T, E>(&self, inbreed_rate: f32, families: &[Family<T, E>]) -> ((f32, Member<T>), (f32, Member<T>))
         where
             T: Genome<T, E> + Send + Sync + Clone,
             E: Send + Sync
@@ -182,7 +182,7 @@ impl ParentalCriteria {
     /// Statistically this allows for species with larger adjusted fitnesses to
     /// have a greater change of being picked for breeding
     #[inline]
-    fn get_biased_random_species<T, E>(&self, r: &mut ThreadRng, families: &Vec<Family<T, E>>) -> Option<Family<T, E>> 
+    fn get_biased_random_species<T, E>(&self, r: &mut ThreadRng, families: &[Family<T, E>]) -> Option<Family<T, E>>
         where 
             T: Genome<T, E> + Send + Sync + Clone,
             E: Send + Sync

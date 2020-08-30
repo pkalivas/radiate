@@ -112,7 +112,7 @@ impl LSTM {
     /// the forward pass if the network is NOT being evolved. If it is, there are already so many threads
     /// working to optimize the entire population that extra threading is unnecessary and might actually slow it down
     #[inline]
-    pub fn step_forward_async(&mut self, inputs: &Vec<f32>) -> Option<Vec<f32>> {
+    pub fn step_forward_async(&mut self, inputs: &[f32]) -> Option<Vec<f32>> {
         // get the previous state and output and create the input to the layer
         let mut hidden_input = self.hidden.clone();
         hidden_input.extend(inputs);
@@ -164,7 +164,7 @@ impl LSTM {
 
     /// step forward synchronously
     #[inline]
-    pub fn step_forward(&mut self, inputs: &Vec<f32>) -> Option<Vec<f32>> {
+    pub fn step_forward(&mut self, inputs: &[f32]) -> Option<Vec<f32>> {
         // get the previous state and output and create the input to the layer
         // let mut previous_state = &mut self.memory;
         let mut hidden_input = self.hidden.clone();

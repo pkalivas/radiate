@@ -107,7 +107,7 @@ impl ISM {
     }
 
 
-    fn minimum(nums: &Vec<Vec<f32>>) -> f32 {
+    fn minimum(nums: &[Vec<f32>]) -> f32 {
         nums.iter()
             .fold(1000.0, |min, curr| {
                 if curr[0] < min {
@@ -118,7 +118,7 @@ impl ISM {
     }
 
 
-    fn maximum(nums: &Vec<Vec<f32>>) -> f32 {
+    fn maximum(nums: &[Vec<f32>]) -> f32 {
         nums.iter()
             .fold(-1000.0, |max, curr| {
                 if curr[0] > max {

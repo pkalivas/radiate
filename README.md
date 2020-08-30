@@ -155,7 +155,7 @@ pub struct Hello {
 }
 
 impl Hello {
-    pub fn new(alph: &Vec<char>) -> Self {
+    pub fn new(alph: &[char]) -> Self {
         let mut r = rand::thread_rng();
         Hello { 
             data: (0..12)

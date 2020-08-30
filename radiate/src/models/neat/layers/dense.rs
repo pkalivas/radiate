@@ -352,7 +352,7 @@ impl Dense {
     }
 
 
-    fn fast_forward(&mut self, data: &Vec<f32>) -> Option<Vec<f32>> {
+    fn fast_forward(&mut self, data: &[f32]) -> Option<Vec<f32>> {
         let in_size = self.inputs.len();
 
         // First phase: update input neurons

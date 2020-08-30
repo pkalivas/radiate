@@ -7,7 +7,7 @@ use super::super::{
 
 /// multiply two vectors element-wise
 #[inline]
-pub fn element_multiply(one: &mut Vec<f32>, two: &Vec<f32>) {
+pub fn element_multiply(one: &mut [f32], two: &[f32]) {
     assert!(one.len() == two.len(), "Element multiply vector shapes don't match");
     one.iter_mut()
         .zip(two.iter())
@@ -20,7 +20,7 @@ pub fn element_multiply(one: &mut Vec<f32>, two: &Vec<f32>) {
 
 /// invert a vector that is already holding values between 0 and 1
 #[inline]
-pub fn element_invert(one: &mut Vec<f32>) {
+pub fn element_invert(one: &mut [f32]) {
     one.iter_mut()
         .for_each(|a| *a = 1.0 - *a);
 }
@@ -29,7 +29,7 @@ pub fn element_invert(one: &mut Vec<f32>) {
 
 /// add elements from vectors together element-wise
 #[inline]
-pub fn element_add(one: &mut Vec<f32>, two: &Vec<f32>) {
+pub fn element_add(one: &mut [f32], two: &[f32]) {
     assert!(one.len() == two.len(), "Element add vector shapes don't match");
     one.iter_mut()
         .zip(two.iter())
@@ -40,7 +40,7 @@ pub fn element_add(one: &mut Vec<f32>, two: &Vec<f32>) {
 
 
 #[inline]
-pub fn element_activate(one: &Vec<f32>, func: Activation) -> Vec<f32> {
+pub fn element_activate(one: &[f32], func: Activation) -> Vec<f32> {
     one.iter()
         .map(|x| {
             func.activate(*x)
@@ -50,7 +50,7 @@ pub fn element_activate(one: &Vec<f32>, func: Activation) -> Vec<f32> {
 
 
 #[inline]
-pub fn element_deactivate(one: &Vec<f32>, func: Activation) -> Vec<f32> {
+pub fn element_deactivate(one: &[f32], func: Activation) -> Vec<f32> {
     one.iter()
         .map(|x| {
             func.deactivate(*x)
@@ -60,7 +60,7 @@ pub fn element_deactivate(one: &Vec<f32>, func: Activation) -> Vec<f32> {
 
 
 #[inline]
-pub fn product(one: &Vec<f32>, two: &Vec<f32>) -> Vec<f32> {
+pub fn product(one: &[f32], two: &[f32]) -> Vec<f32> {
     assert!(one.len() == two.len(), "Product dimensions do not match");
     one.iter()
         .zip(two.iter())
@@ -70,7 +70,7 @@ pub fn product(one: &Vec<f32>, two: &Vec<f32>) -> Vec<f32> {
 
 
 #[inline]
-pub fn subtract(one: &Vec<f32>, two: &Vec<f32>) -> Vec<f32> {
+pub fn subtract(one: &[f32], two: &[f32]) -> Vec<f32> {
     assert!(one.len() == two.len(), "Subtract lengths do not match");
     one.iter()
         .zip(two.iter())
@@ -80,7 +80,7 @@ pub fn subtract(one: &Vec<f32>, two: &Vec<f32>) -> Vec<f32> {
 
 
 #[inline]
-pub fn softmax(one: &Vec<f32>) -> Vec<f32> {
+pub fn softmax(one: &[f32]) -> Vec<f32> {
     let ex = one   
         .iter()
         .map(|x| x.exp())
@@ -93,7 +93,7 @@ pub fn softmax(one: &Vec<f32>) -> Vec<f32> {
 
 
 #[inline]
-pub fn d_softmax(one: &Vec<f32>) -> Vec<f32> {
+pub fn d_softmax(one: &[f32]) -> Vec<f32> {
     one.iter()
         .map(|x| x - 1.0)
         .collect()
@@ -102,7 +102,7 @@ pub fn d_softmax(one: &Vec<f32>) -> Vec<f32> {
 
 
 #[inline]
-pub fn loss(one: &Vec<f32>, two: &Vec<f32>, loss_fn: &Loss) -> (f32, Vec<f32>) {
+pub fn loss(one: &[f32], two: &[f32], loss_fn: &Loss) -> (f32, Vec<f32>) {
     assert!(one.len() == two.len(), "Loss vector shape don't match");
     match loss_fn {
         Loss::Diff => {
