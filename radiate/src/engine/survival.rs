@@ -63,8 +63,7 @@ impl SurvivalCriteria {
 
     /// Based on the survival criteria, given a vec of containers and families, pick who survives
     #[inline]
-    // TODO: Fix name (survivors) and deprecate original
-    pub fn pick_survivers<T, E>(&self, members: &mut Vec<Container<T, E>>, families: &Vec<Family<T, E>>) -> Option<Vec<Arc<RwLock<T>>>>
+    pub fn pick_survivors<T, E>(&self, members: &mut Vec<Container<T, E>>, families: &Vec<Family<T, E>>) -> Option<Vec<Arc<RwLock<T>>>>
         where
             T: Genome<T, E> + Send + Sync + Clone,
             E: Send + Sync
@@ -83,6 +82,17 @@ impl SurvivalCriteria {
                 SurvivalCriteria::get_top_num(num_to_survive, members)
             }
         }
+    }
+
+    #[deprecated = "Use `pick_survivors`"]
+    #[doc(hidden)]
+    #[inline]
+    pub fn pick_survivers<T, E>(&self, members: &mut Vec<Container<T, E>>, families: &Vec<Family<T, E>>) -> Option<Vec<Arc<RwLock<T>>>>
+        where
+            T: Genome<T, E> + Send + Sync + Clone,
+            E: Send + Sync
+    {
+        self.pick_survivors(members, families)
     }
 
 

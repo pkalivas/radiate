@@ -20,8 +20,7 @@ pub use matrix_tree::{
 /// get a default environment settings for evtree, these are very basic and 
 /// are used to solve the xor problem. These are just settings to evolve the
 /// tree, more can be added or taken away depending on the desired problem to solve
-// TODO: Fix name, deprecate
-pub fn defualt_evtree_env() -> TreeEnvionment {
+pub fn default_evtree_env() -> TreeEnvionment {
     TreeEnvionment::new()
         .set_input_size(2)
         .set_outputs(vec![0, 1])
@@ -34,4 +33,10 @@ pub fn defualt_evtree_env() -> TreeEnvionment {
         .set_layer_mutate_rate(0.8)
         .set_weight_mutate_rate(0.8)
         .set_weight_transform_rate(5.0)
+}
+
+#[doc(hidden)]
+#[deprecated = "Use `default_evtree_env`"]
+pub fn defualt_evtree_env() -> TreeEnvionment {
+    default_evtree_env()
 }

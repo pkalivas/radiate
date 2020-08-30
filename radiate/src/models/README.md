@@ -25,8 +25,8 @@ Define a new Neat network with multiple layers
     let neural_network = Neat::new()
         .input_size(1)
         .dense(5, Activation::Relu)
-        .dense(5, Activation::Tahn)
-        .gru(10, 10, Activation::Tahn)          // (memory size, output size, output layer activation)
+        .dense(5, Activation::Tanh)
+        .gru(10, 10, Activation::Tanh)          // (memory size, output size, output layer activation)
         .dense_pool(1, Activation::Sigmoid);
 ```
 NEAT currently has four layer types that can be chained onto a neat instance. 
@@ -43,7 +43,7 @@ All neural networks need nonlinear functions to represent complex datasets. Neat
 ```rust
 pub enum Activation {
     Sigmoid,
-    Tahn,
+    Tanh,
     Relu,
     Softmax,       // Cannot be used on hidden neurons
     LeakyRelu(f32),

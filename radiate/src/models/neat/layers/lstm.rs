@@ -98,7 +98,7 @@ impl LSTM {
             memory: vec![0.0; memory_size as usize],
             hidden: vec![0.0; memory_size as usize],
             states: LSTMState::new(),
-            g_gate: Arc::new(RwLock::new(Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Tahn))),
+            g_gate: Arc::new(RwLock::new(Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Tanh))),
             i_gate: Arc::new(RwLock::new(Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid))),
             f_gate: Arc::new(RwLock::new(Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid))),
             o_gate: Arc::new(RwLock::new(Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid))),
@@ -149,7 +149,7 @@ impl LSTM {
         vectorops::element_multiply(&mut self.memory, &f_curr);
         vectorops::element_multiply(&mut curr_state, &i_curr);
         vectorops::element_add(&mut self.memory, &curr_state);
-        vectorops::element_multiply(&mut curr_output, &vectorops::element_activate(&self.memory, Activation::Tahn));
+        vectorops::element_multiply(&mut curr_output, &vectorops::element_activate(&self.memory, Activation::Tanh));
 
         // update the state parameters only if the gates are traceable and the data needs to be collected
         self.states.update_forward(f_curr, i_curr, g_out, o_out, self.memory.clone());   
@@ -184,7 +184,7 @@ impl LSTM {
         vectorops::element_multiply(&mut self.memory, &f_output);
         vectorops::element_multiply(&mut current_state, &i_output);
         vectorops::element_add(&mut self.memory, &current_state);
-        vectorops::element_multiply(&mut current_output, &vectorops::element_activate(&self.memory, Activation::Tahn));
+        vectorops::element_multiply(&mut current_output, &vectorops::element_activate(&self.memory, Activation::Tanh));
 
         // return the output of the layer
         // keep track of the memory and the current output and the current state
@@ -219,7 +219,7 @@ impl LSTM {
         // Gradient for ho in h = ho * tanh(c)     
         //dho = tanh(c) * dh
         //dho = dsigmoid(ho) * dho
-        let mut dho = vectorops::element_activate(&c_old, Activation::Tahn);
+        let mut dho = vectorops::element_activate(&c_old, Activation::Tanh);
         vectorops::element_multiply(&mut dho, &dh);
         vectorops::element_multiply(&mut dho, &vectorops::element_deactivate(&o_curr, self.o_gate.read().unwrap().activation));
         let o_gate_clone = Arc::clone(&self.o_gate);
@@ -231,7 +231,7 @@ impl LSTM {
         // dc = ho * dh * dtanh(c)
         // dc = dc + dc_next
         let mut dc = vectorops::product(&o_curr, &dh);
-        vectorops::element_multiply(&mut dc, &vectorops::element_deactivate(&c_old, Activation::Tahn));
+        vectorops::element_multiply(&mut dc, &vectorops::element_deactivate(&c_old, Activation::Tanh));
         vectorops::element_add(&mut dc, &dc_next);
 
         // Gradient for hf in c = hf * c_old + hi * hc    

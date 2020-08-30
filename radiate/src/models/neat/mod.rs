@@ -29,6 +29,7 @@ pub mod loss {
 }
 
 
+#[allow(deprecated)]
 pub mod activation {
 
     use std::f32::consts::E as Eul;
@@ -37,7 +38,9 @@ pub mod activation {
     #[derive(Deserialize, Serialize, Debug, PartialEq, Clone, Copy)]
     pub enum Activation {
         Sigmoid,
-        // TODO: Fix name and deprecate
+        Tanh,
+        #[doc(hidden)]
+        #[deprecated = "Use `Tanh`"]
         Tahn,
         Relu,
         Softmax,
@@ -57,7 +60,7 @@ pub mod activation {
                 Self::Sigmoid => {
                     1.0 / (1.0 + (-x * 4.9).exp())
                 },
-                Self::Tahn => {
+                Self::Tanh | Self::Tahn => {
                     x.tanh()
                 },
                 Self::Relu => { 
@@ -97,7 +100,7 @@ pub mod activation {
                 Self::Sigmoid => {
                     self.activate(x) * (1.0 - self.activate(x))
                 },
-                Self::Tahn => {
+                Self::Tanh | Self::Tahn => {
                     1.0 - (self.activate(x)).powf(2.0)
                 },
                 Self::Linear(alpha) => {

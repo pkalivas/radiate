@@ -204,7 +204,7 @@ impl<T, E> Generation<T, E>
     pub fn create_next_generation(&mut self, pop_size: i32, config: Config, env: Arc<RwLock<E>>) -> Option<Self> {   
         // generating new members in a biased way using rayon to parallelize it
         // then crossover to fill the rest of the generation 
-        let mut new_members = self.survival_criteria.pick_survivers(&mut self.members, &self.species)?;
+        let mut new_members = self.survival_criteria.pick_survivors(&mut self.members, &self.species)?;
         let children = (new_members.len() as i32..pop_size)
             .into_par_iter()
             .map(|_|{
