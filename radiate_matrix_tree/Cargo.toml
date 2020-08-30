@@ -2,7 +2,7 @@
 name = "radiate_matrix_tree"
 version = "1.0.2"
 authors = ["pkalivas <peterkalivas@gmail.com>"]
-description = "Matrix Tree model compatable with Radiate's evolutionary engine"
+description = "Matrix Tree model compatible with Radiate's evolutionary engine"
 repository = "https://github.com/pkalivas/radiate"
 readme = "README.md"
 categories = ["science", "simulation", "algorithms", "evolve", "genetic"]

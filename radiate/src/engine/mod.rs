@@ -7,7 +7,7 @@ pub mod survival;
 
 
 /// Genome is what will actually be evolved through the engine, 
-/// this is going to be whatever datastructure should be optimized
+/// this is going to be whatever data structure should be optimized
 pub mod genome {
     
     use super::environment::Envionment;
@@ -23,21 +23,21 @@ pub mod genome {
         /// a new type, this is done through some defined form of 
         /// mutation using the config type, or through crossover 
         /// where parts of one type are given to parts of the other and that resulting
-        /// type is returnd
+        /// type is returned
         fn crossover(one: &T, two: &T, env: Arc<RwLock<E>>, crossover_rate: f32) -> Option<T> 
             where 
                 T: Sized,
                 E: Envionment + Sized;
         
-                /// This is a measure of a evolutionary types structure or topology - depending on what is being evolved.
+        /// This is a measure of an evolutionary type's structure or topology - depending on what is being evolved.
         /// This is needed to split the members in their respective species - essentially it is 
         /// a measure of how far away two types are from each other in a genetic 
-        /// sense. Think of something like how similar humans are to dolphins, this is a way to quanitfy that.
+        /// sense. Think of something like how similar humans are to dolphins, this is a way to quantify that.
         fn distance(one: &T, two: &T, env: Arc<RwLock<E>>) -> f32;
         
         /// Genome needs to have a base implementation in order for one of the population options to be satisfied
         /// 
-        /// This can probably be iplemented in a generic way for default if the user doesn't want to 
+        /// This can probably be implemented in a generic way for default if the user doesn't want to
         /// implement it for their problem. 
         fn base(_: &mut E) -> T
             where T: Sized
@@ -51,14 +51,14 @@ pub mod genome {
 
 /// Environment represents overall settings for a genome, this can be statistics to be 
 /// tracked through evolution, or things like mutation rates or global counters. This is 
-/// injected into functions throughou the generational process so it is acessable globally as a
+/// injected into functions throughout the generational process so it is accessible globally as a
 /// center point for the evolution. Note - if this is to be used a mutable in crossover or mutation, 
 /// this will slow down the optimization process as it will have to be locked during the writing thus
-/// having the vairiables in the implementatino of this trait be readonly is preferred but isn't that big of a deal
+/// having the variables in the implementation of this trait be readonly is preferred but isn't that big of a deal
 pub mod environment {
     pub trait Envionment {
         
-        /// Reset can be used to reset the enviromnet after a certain event occurs,
+        /// Reset can be used to reset the environment after a certain event occurs,
         /// if not this is an empty default implementation
         fn reset(&mut self) { }
     
@@ -69,11 +69,11 @@ pub mod environment {
 
 /// Problem is the actual problem to be solved.
 /// This is wrapped in an Arc pointer due to the problem not wanting to be 
-/// coppied through threads. This was done intentially because I wanted to be able to 
+/// copied through threads. This was done intentionally because I wanted to be able to
 /// represent supervised, unsupervised, and general reinforcement learning problems. This
 /// means if you are using a supervised system and have a large dataset to analyze, if this 
 /// dataset is stored in the problem (as they should be), without an Arc pointer this large dataset would 
-/// be coppied multiple times and take up massive amounts of memory. The Arc allows us to keep only one version
+/// be copied multiple times and take up massive amounts of memory. The Arc allows us to keep only one version
 /// of the problem and share that between threads. Note - this means everything in the problem and all it's data
 /// is explicitly readonly 
 pub mod problem {
@@ -85,7 +85,7 @@ pub mod problem {
         fn empty() -> Self;
         
         /// Solve is what actually solves the problem , given a solver (the genome type)
-        /// use the data in the type implementing the problem to sovle the problem and return
+        /// use the data in the type implementing the problem to solve the problem and return
         /// the member's score. The result of this function is the member's fitness score 
         fn solve(&self, member: &mut T) -> f32;
     }

@@ -85,7 +85,7 @@ impl TreeEnvionment {
     }
 
     #[allow(dead_code)]
-    pub fn get_outputs(&self) -> &Vec<i32> {
+    pub fn get_outputs(&self) -> &[i32] {
         self.outputs.as_ref().unwrap_or_else(|| panic!("Outputs not set"))
     }
 

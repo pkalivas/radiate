@@ -29,10 +29,10 @@ struct Stagnant {
 
 
 /// This is just to keep track of a few parameters for 
-/// the population, this encapsulates a few arguments for speication 
+/// the population, this encapsulates a few arguments for speciation
 /// in the algorithm, these are specific to genetic algorithms 
 /// which implement speciation between members of the population.
-/// It also leaves room for more paramters to be added in the future.
+/// It also leaves room for more parameters to be added in the future.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     pub inbreed_rate: f32,
@@ -68,7 +68,7 @@ pub struct Population<T, E, P>
 
 
 
-/// implmenet the population
+/// implement the population
 impl<T, E, P> Population<T, E, P>
     where
         T: Genome<T, E> + Send + Sync + Clone,
@@ -84,7 +84,7 @@ impl<T, E, P> Population<T, E, P>
             // determin if the species should be aiming for a specific number of species by adjusting the distance threshold
             dynamic_distance: false,
             // debug_progress is only used to print out some information from each generation
-            // to the console during training to get a glimps into what is going on
+            // to the console during training to get a glimpse into what is going on
             debug_progress: false,
             // create a new config to help the speciation of the population
             config: Config::new(),
@@ -98,7 +98,7 @@ impl<T, E, P> Population<T, E, P>
             // create a new solver settings that will hold the specific settings for the defined solver 
             // that will allow the structure to evolve through generations
             environment: Arc::new(RwLock::new(E::default())),
-            // determine which genomes will live on and passdown to the next generation
+            // determine which genomes will live on and pass down to the next generation
             survivor_criteria: SurvivalCriteria::Fittest,
             // determine how to pick parents to reproduce
             parental_criteria: ParentalCriteria::BiasedRandom
@@ -157,7 +157,7 @@ impl<T, E, P> Population<T, E, P>
         Some((top_member.0, (*top_member.1).clone()))
     }
 
-    /// Check to see if the population is stagnant or not, if it is 
+    /// Check to see if the population is stagnant or not, if it is,
     /// then go ahead and clean the population 
     fn manage_stagnation(&mut self, curr_top_score: f32) {
         if self.stagnation.target_stagnation == self.stagnation.current_stagnation {
@@ -173,7 +173,7 @@ impl<T, E, P> Population<T, E, P>
         self.stagnation.previous_top_score = curr_top_score;
     }
 
-    /// dynamically adjust the distance of a popualtion 
+    /// dynamically adjust the distance of a population
     fn adjust_distance(&mut self) {
         if self.curr_gen.species.len() < self.config.species_target {
             self.config.distance -= 0.1;
@@ -224,15 +224,15 @@ impl<T, E, P> Population<T, E, P>
     
     /////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// configure all the settings for the population these all have default settings if they are not set ///
-    /// customly, however you might find those default settings do not satisfy the needs of your problem  ///
+    /// by hand, however you might find those default settings do not satisfy the needs of your problem   ///
     /////////////////////////////////////////////////////////////////////////////////////////////////////////
     
-    /// Set the beginning generation of the population by a generion object
+    /// Set the beginning generation of the population by a generation object
     /// this can be done in three ways all listed below.
     /// 
     /// 1.) populate_gen - Create a generation object outsize of this scope and give it to the 
-    ///                    population, return the popuolation back to the caller
-    /// 2.) populate_base - as long as the popualtion size has already been set and the type T has 
+    ///                    population, return the population back to the caller
+    /// 2.) populate_base - as long as the population size has already been set and the type T has
     ///                     implemented the base trait fn, this will generate a new base generation
     /// 3.) populate_vec - Give the population a vec of type T and generate a new generation from it 
     ///                    then return the population back to the caller
@@ -310,7 +310,7 @@ impl<T, E, P> Population<T, E, P>
         self
     }
 
-    /// Give solver settings to the population to evolve the strucutre defined 
+    /// Give solver settings to the population to evolve the structure defined
     pub fn constrain(mut self, environment: E) -> Self {
         self.environment = Arc::new(RwLock::new(environment));
         self
@@ -353,7 +353,7 @@ impl<T, E, P> Population<T, E, P>
     /// give the population a problem to solve. This 
     /// will default to an empty problem, meaning the population
     /// will not solve anything if this isn't set. This is really
-    /// the most important arguemnt for the population
+    /// the most important argument for the population
     pub fn impose(mut self, prob: P) -> Self {
         self.solve = Arc::new(RwLock::new(prob));
         self
@@ -365,7 +365,7 @@ impl<T, E, P> Population<T, E, P>
         self
     }
 
-    /// give the population a survival cirteria, if none is supplied then it 
+    /// give the population a survival criteria, if none is supplied then it
     /// defaults to the fittest genome from each species
     pub fn survivor_criteria(mut self, survive: SurvivalCriteria) -> Self {
         self.survivor_criteria = survive;
@@ -373,7 +373,7 @@ impl<T, E, P> Population<T, E, P>
     }
 
     /// give the population a way to pick the parents, if none is supplied 
-    /// then default to biasedrandom genomes 
+    /// then default to biased random genomes
     pub fn parental_criteria(mut self, parents: ParentalCriteria) -> Self {
         self.parental_criteria =parents;
         self

@@ -15,15 +15,15 @@ use super::genome::Genome;
 //////////////////////////////////////////////////////////////////////////////////////////
 /// Note these should not be directly exposed to the user as to avoid confusion with   ///
 /// too many knobs to turn to create a population. Instead, provide functions to add   ///
-/// them and defaults if they are not added. These are not nessesarily needed options, ///
+/// them and defaults if they are not added. These are not necessarily needed options, ///
 /// they are add-ons and really only for if you really want to test around with your   ///
-/// structure that is evolving, provides users with more options wich is always good   ///
+/// structure that is evolving, provides users with more options which is always good  ///
 //////////////////////////////////////////////////////////////////////////////////////////
 
 
 
 /// Implement a way to pick which way to pick those members who 
-/// survice each generation, in other words - pick who gets to stay, 
+/// survive each generation, in other words - pick who gets to stay,
 /// those who do not get to stay 'die off' and are replaced by the children
 /// 
 /// Fittest - the default option, the top member from each species
@@ -39,20 +39,20 @@ pub enum SurvivalCriteria {
 
 /// Implement a way to pick parents of children, in other words
 /// how is the rest of the population generation after those who 
-/// don't survice die out.
-/// 
-/// BiasedRandom - the default option, statistically pick more fit parents
-///                however allow for less fit parents to be picked as well. This is 
-///                kinda like putting the members in a species on a curve and randomly 
-///                picking from that distribution 
-/// OnlySurvivers - those who survive are only allowed to reproduce
-/// BestInEachSpecies - only the best in each species are allowed to reproduce
-/// MostDifferent - Pick one parent, then find the parent most different from it (structurally) 
-///                 and use that as the other parent. Note this could lead to large expansion in population
+/// don't survive die out.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ParentalCriteria {
+    /// The default option, statistically pick more fit parents
+    /// however allow for less fit parents to be picked as well. This is
+    /// kinda like putting the members in a species on a curve and randomly
+    /// picking from that distribution
     BiasedRandom,
+    /// Only the best in each species are allowed to reproduce
     BestInSpecies,
+    // Not implemented:
+    // OnlySurvivors - those who survive are only allowed to reproduce
+    // MostDifferent - Pick one parent, then find the parent most different from it (structurally)
+    //                 and use that as the other parent. Note this could lead to large expansion in population
 }
 
 
@@ -61,9 +61,9 @@ pub enum ParentalCriteria {
 impl SurvivalCriteria {
 
 
-    /// Based on the survival critera, given a vec of containers and families, pick who survives
+    /// Based on the survival criteria, given a vec of containers and families, pick who survives
     #[inline]
-    pub fn pick_survivers<T, E>(&self, members: &mut Vec<Container<T, E>>, families: &Vec<Family<T, E>>) -> Option<Vec<Arc<RwLock<T>>>>
+    pub fn pick_survivors<T, E>(&self, members: &mut [Container<T, E>], families: &[Family<T, E>]) -> Option<Vec<Arc<RwLock<T>>>>
         where
             T: Genome<T, E> + Send + Sync + Clone,
             E: Send + Sync
@@ -84,17 +84,28 @@ impl SurvivalCriteria {
         }
     }
 
-
-
-    /// TopNumer and TopPercent are basically the same so this function does the job of both of them,
-    /// just convert the percent to a number before calling the function
+    #[deprecated = "Use `pick_survivors`"]
+    #[doc(hidden)]
     #[inline]
-    fn get_top_num<T, E>(num_to_keep: usize, members: &mut Vec<Container<T, E>>) -> Option<Vec<Arc<RwLock<T>>>>
+    pub fn pick_survivers<T, E>(&self, members: &mut [Container<T, E>], families: &[Family<T, E>]) -> Option<Vec<Arc<RwLock<T>>>>
         where
             T: Genome<T, E> + Send + Sync + Clone,
             E: Send + Sync
     {
-        members.as_mut_slice()
+        self.pick_survivors(members, families)
+    }
+
+
+
+    /// TopNumber and TopPercent are basically the same so this function does the job of both of them,
+    /// just convert the percent to a number before calling the function
+    #[inline]
+    fn get_top_num<T, E>(num_to_keep: usize, members: &mut [Container<T, E>]) -> Option<Vec<Arc<RwLock<T>>>>
+        where
+            T: Genome<T, E> + Send + Sync + Clone,
+            E: Send + Sync
+    {
+        members
             .par_sort_by(|a, b| {
                 b.fitness_score.partial_cmp(&a.fitness_score).unwrap()
             });
@@ -109,13 +120,13 @@ impl SurvivalCriteria {
 
 
 
-/// implement the pick parents
+/// implement picking parents
 impl ParentalCriteria {
 
 
     /// Find two parents to crossover and produce a child
     #[inline]
-    pub fn pick_parents<T, E>(&self, inbreed_rate: f32, families: &Vec<Family<T, E>>) -> Option<((f32, Member<T>), (f32, Member<T>))> 
+    pub fn pick_parents<T, E>(&self, inbreed_rate: f32, families: &[Family<T, E>]) -> Option<((f32, Member<T>), (f32, Member<T>))>
         where
             T: Genome<T, E> + Send + Sync + Clone,
             E: Send + Sync 
@@ -139,7 +150,7 @@ impl ParentalCriteria {
     /// parents and returns a tuple of tuples where the f32 is the parent's fitness,
     /// and the type is the parent itself
     #[inline]
-    fn create_match<T, E>(&self, inbreed_rate: f32, families: &Vec<Family<T, E>>) -> ((f32, Member<T>), (f32, Member<T>)) 
+    fn create_match<T, E>(&self, inbreed_rate: f32, families: &[Family<T, E>]) -> ((f32, Member<T>), (f32, Member<T>))
         where
             T: Genome<T, E> + Send + Sync + Clone,
             E: Send + Sync
@@ -166,18 +177,18 @@ impl ParentalCriteria {
 
     /// get a biased random species from the population to get members from
     /// this gets a random species by getting the total adjusted fitness of the 
-    /// entire population then finding a random number inside (0, total populatin fitness)
-    /// then summing the individual species until they hit that random numer 
-    /// Statistically this allows for species with larger adjusted fitnesses to 
+    /// entire population then finding a random number inside (0, total population fitness)
+    /// then summing the individual species until they hit that random number
+    /// Statistically this allows for species with larger adjusted fitnesses to
     /// have a greater change of being picked for breeding
     #[inline]
-    fn get_biased_random_species<T, E>(&self, r: &mut ThreadRng, families: &Vec<Family<T, E>>) -> Option<Family<T, E>> 
+    fn get_biased_random_species<T, E>(&self, r: &mut ThreadRng, families: &[Family<T, E>]) -> Option<Family<T, E>>
         where 
             T: Genome<T, E> + Send + Sync + Clone,
             E: Send + Sync
     {
         // set a result option to none, this will panic! if the result is still none
-        // at the end of the function. Then get the total poopulation fitness
+        // at the end of the function. Then get the total population fitness
         let mut result = None;
         let total = families.iter()
             .fold(0.0, |sum, curr| {
@@ -202,7 +213,7 @@ impl ParentalCriteria {
 
 
     /// Get a biased random member from the species. By summing the fitness scores of the 
-    /// members, members with larger fitness scorese are statistically more likely to be picked
+    /// members, members with larger fitness scores are statistically more likely to be picked
     #[inline]
     pub fn get_biased_random_member<T, E>(&self, r: &mut ThreadRng, family: &Family<T, E>) -> (f32, Member<T>)
         where

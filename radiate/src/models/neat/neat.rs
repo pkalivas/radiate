@@ -95,7 +95,7 @@ impl Neat {
 
     /// train the network
     #[inline]
-    pub fn train<F>(&mut self, inputs: &Vec<Vec<f32>>, targets: &Vec<Vec<f32>>, rate: f32, loss_fn: Loss, run: F) -> Result<(), Box<dyn Error>> 
+    pub fn train<F>(&mut self, inputs: &[Vec<f32>], targets: &[Vec<f32>], rate: f32, loss_fn: Loss, run: F) -> Result<(), Box<dyn Error>>
         where F: Fn(usize, f32) -> bool 
     {
         // make sure the data actually can be fed through
@@ -144,9 +144,9 @@ impl Neat {
 
     
 
-    /// backpropagate the network, will move throgh time if needed
+    /// backpropagate the network, will move through time if needed
     #[inline]
-    pub fn backward(&mut self, net_outs: &Vec<Vec<f32>>, net_targets: &Vec<Vec<f32>>, rate: f32, loss_fn: &Loss) -> f32 {
+    pub fn backward(&mut self, net_outs: &[Vec<f32>], net_targets: &[Vec<f32>], rate: f32, loss_fn: &Loss) -> f32 {
         let mut total_loss = 0.0;
         for i in (0..net_outs.len()).rev() {
             let errors = vectorops::loss(&net_targets[i], &net_outs[i], &loss_fn);
@@ -175,7 +175,7 @@ impl Neat {
             data_transfer = &temp;
         }
         // gather the output and return it as an option
-        Some(data_transfer.clone())
+        Some(data_transfer.to_owned())
     }    
 
 
@@ -235,7 +235,7 @@ impl Neat {
 
     
 
-    /// in order to more efficently give inputs to the network, this function simple 
+    /// in order to more efficiently give inputs to the network, this function simple
     /// finds the shape of the layer that should be created based on the desired size
     #[inline]
     fn get_layer_sizes(&self, size: u32) -> Option<(u32, u32)> {
@@ -300,7 +300,7 @@ impl PartialEq for Neat {
 
 
 
-/// iplement genome for a neat network
+/// implement genome for a neat network
 impl Genome<Neat, NeatEnvironment> for Neat {
 
     #[inline]

@@ -207,7 +207,7 @@ impl<T: Clone> Node<T> {
         }
     }
 
-    /// return the height of this node recursivley
+    /// return the height of this node recursively
     #[inline]    
     pub fn height(&self) -> i32 {
         1 + max(
@@ -217,7 +217,7 @@ impl<T: Clone> Node<T> {
     }
 
     /// return the depth of this node, meaning the number of levels down it is 
-    /// from the root of the tree, recrsive.
+    /// from the root of the tree, recursively.
     #[inline]    
     pub fn depth(&self) -> i32 {
         match self.parent_opt() {
@@ -226,7 +226,7 @@ impl<T: Clone> Node<T> {
         }
     }
 
-    /// return the size of the subtree recrusivley. 
+    /// return the size of the subtree recursively.
     #[inline]    
     pub fn size(&self) -> i32 {
         let mut result = 1;
@@ -253,8 +253,8 @@ impl<T: Clone> Node<T> {
         })
     }
 
-    /// deep copy this node and it's subnodes. Recursivley traverse the tree in order and 
-    /// thin copy the current node, then assign it's surroudning pointers recrusivley.
+    /// deep copy this node and it's subnodes. Recursively traverse the tree in order and
+    /// thin copy the current node, then assign it's surrounding pointers recursively.
     #[inline]    
     pub fn deepcopy(&self) -> Box<Node<T>> {
         let mut temp_copy = self.copy();
@@ -291,8 +291,8 @@ impl<T: Clone> Node<T> {
         }
     }
 
-    /// Recrusively display the node and it's subnodes 
-    /// Useful for visualizing the strucutre of the tree and debugging.
+    /// Recursively display the node and it's subnodes
+    /// Useful for visualizing the structure of the tree and debugging.
     /// Level is the depth of the tree, at the root it should be 0.
     pub fn display(&self, level: i32) {
         if let Some(child) = self.left_child_opt() {
@@ -329,7 +329,7 @@ impl<T: Clone> PartialEq for Node<T> {
     }
 }
 
-/// implement debut for the node to give a little more information for the node and 
+/// implement `Debug` for the node to give a little more information for the node and
 /// make it easier to trace through a tree when a tree is displayed
 impl<T: Clone> fmt::Debug for Node<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

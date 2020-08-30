@@ -98,7 +98,7 @@ impl LSTM {
             memory: vec![0.0; memory_size as usize],
             hidden: vec![0.0; memory_size as usize],
             states: LSTMState::new(),
-            g_gate: Arc::new(RwLock::new(Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Tahn))),
+            g_gate: Arc::new(RwLock::new(Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Tanh))),
             i_gate: Arc::new(RwLock::new(Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid))),
             f_gate: Arc::new(RwLock::new(Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid))),
             o_gate: Arc::new(RwLock::new(Dense::new(cell_input, memory_size, LayerType::DensePool, Activation::Sigmoid))),
@@ -108,11 +108,11 @@ impl LSTM {
 
 
 
-    /// feed forward with each forward propagation being executed in a seperate thread to speed up 
-    /// the forward pass if the network is NOT being evolved, if it is, there are already so many theads
-    /// working to optimize the entire population that extra threading is obsolute and might actually slow it down
+    /// Feed forward with each forward propagation being executed in a separate thread to speed up
+    /// the forward pass if the network is NOT being evolved. If it is, there are already so many threads
+    /// working to optimize the entire population that extra threading is unnecessary and might actually slow it down
     #[inline]
-    pub fn step_forward_async(&mut self, inputs: &Vec<f32>) -> Option<Vec<f32>> {
+    pub fn step_forward_async(&mut self, inputs: &[f32]) -> Option<Vec<f32>> {
         // get the previous state and output and create the input to the layer
         let mut hidden_input = self.hidden.clone();
         hidden_input.extend(inputs);
@@ -149,7 +149,7 @@ impl LSTM {
         vectorops::element_multiply(&mut self.memory, &f_curr);
         vectorops::element_multiply(&mut curr_state, &i_curr);
         vectorops::element_add(&mut self.memory, &curr_state);
-        vectorops::element_multiply(&mut curr_output, &vectorops::element_activate(&self.memory, Activation::Tahn));
+        vectorops::element_multiply(&mut curr_output, &vectorops::element_activate(&self.memory, Activation::Tanh));
 
         // update the state parameters only if the gates are traceable and the data needs to be collected
         self.states.update_forward(f_curr, i_curr, g_out, o_out, self.memory.clone());   
@@ -162,9 +162,9 @@ impl LSTM {
 
 
 
-    /// step forward syncronously
+    /// step forward synchronously
     #[inline]
-    pub fn step_forward(&mut self, inputs: &Vec<f32>) -> Option<Vec<f32>> {
+    pub fn step_forward(&mut self, inputs: &[f32]) -> Option<Vec<f32>> {
         // get the previous state and output and create the input to the layer
         // let mut previous_state = &mut self.memory;
         let mut hidden_input = self.hidden.clone();
@@ -184,7 +184,7 @@ impl LSTM {
         vectorops::element_multiply(&mut self.memory, &f_output);
         vectorops::element_multiply(&mut current_state, &i_output);
         vectorops::element_add(&mut self.memory, &current_state);
-        vectorops::element_multiply(&mut current_output, &vectorops::element_activate(&self.memory, Activation::Tahn));
+        vectorops::element_multiply(&mut current_output, &vectorops::element_activate(&self.memory, Activation::Tanh));
 
         // return the output of the layer
         // keep track of the memory and the current output and the current state
@@ -195,8 +195,8 @@ impl LSTM {
 
 
     /// Preform one step backwards for the layer. Set the tracer historical meta data to look at the current
-    /// index, and use that data to compute the gradient steps for eachweight in each gated network. 
-    /// If update is true, the gates will take the accumulated gradient steps, and add them to their respecive weight values
+    /// index, and use that data to compute the gradient steps for each weight in each gated network.
+    /// If update is true, the gates will take the accumulated gradient steps, and add them to their respective weight values
     #[inline]
     pub fn step_back(&mut self, errors: &Vec<f32>, l_rate: f32) -> Option<Vec<f32>> {
         // get the derivative of the cell and hidden state from the previous step as well as the previous memory state
@@ -219,7 +219,7 @@ impl LSTM {
         // Gradient for ho in h = ho * tanh(c)     
         //dho = tanh(c) * dh
         //dho = dsigmoid(ho) * dho
-        let mut dho = vectorops::element_activate(&c_old, Activation::Tahn);
+        let mut dho = vectorops::element_activate(&c_old, Activation::Tanh);
         vectorops::element_multiply(&mut dho, &dh);
         vectorops::element_multiply(&mut dho, &vectorops::element_deactivate(&o_curr, self.o_gate.read().unwrap().activation));
         let o_gate_clone = Arc::clone(&self.o_gate);
@@ -231,7 +231,7 @@ impl LSTM {
         // dc = ho * dh * dtanh(c)
         // dc = dc + dc_next
         let mut dc = vectorops::product(&o_curr, &dh);
-        vectorops::element_multiply(&mut dc, &vectorops::element_deactivate(&c_old, Activation::Tahn));
+        vectorops::element_multiply(&mut dc, &vectorops::element_deactivate(&c_old, Activation::Tanh));
         vectorops::element_add(&mut dc, &dc_next);
 
         // Gradient for hf in c = hf * c_old + hi * hc    
@@ -296,8 +296,8 @@ impl Layer for LSTM {
 
     /// forward propagate inputs, if the model is being evolved don't spawn extra threads because
     /// it slows down the process by about double the original time. If the model is being trained
-    /// traditionally, step forward asynconously by spawnin a thread for each individual gate 
-    /// which results in speeds about double as a synconous thread.
+    /// traditionally, step forward asynchronously by spawning a thread for each individual gate
+    /// which results in speeds about double as a synchronous thread.
     #[inline]
     fn forward(&mut self, inputs: &Vec<f32>) -> Option<Vec<f32>> {
         if self.f_gate.read().map(|x| x.trace_states.is_some()).ok()? {
@@ -308,7 +308,7 @@ impl Layer for LSTM {
 
 
 
-    /// apply backpropagation through time asyncronously because this is not done during evolution
+    /// apply backpropagation through time asynchronously because this is not done during evolution
     #[inline]
     fn backward(&mut self, errors: &Vec<f32>, learning_rate: f32) -> Option<Vec<f32>> {
         if self.states.d_prev_hidden.is_none() && self.states.d_prev_memory.is_none() {

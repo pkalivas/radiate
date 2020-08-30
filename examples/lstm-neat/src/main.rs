@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let starting_net = Neat::new()
         .input_size(1)
         .batch_size(data.output.len())
-        // .gru(10, 5, Activation::Tahn)
+        // .gru(10, 5, Activation::Tanh)
         .dense_pool(1, Activation::Sigmoid);
         // .lstm(10, 1, Activation::Sigmoid);
 

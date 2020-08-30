@@ -32,13 +32,13 @@ pub trait Layer: LayerClone + Any + Debug + Send + Sync {
     /// so the user only needs the say the size of the output, not the input. That would be too redundant.
     fn shape(&self) -> (usize, usize);
 
-    /// reset the layer, not a nessesary implementation
+    /// reset the layer, not a necessary implementation
     fn reset(&mut self) { }
 
     // add tracers to keep track of meta data for historical back propagation
     fn add_tracer(&mut self) { }
 
-    /// remove the tracer from a layer so that it can be evolved without keeping grack of data
+    /// remove the tracer from a layer so that it can be evolved without keeping track of data
     fn remove_tracer(&mut self) { }
 
 }
@@ -67,7 +67,7 @@ impl<L> LayerClone for L
 
 
 /// required for the dyn layer to be Clone in order for 
-/// LayerClone to work, so impelement Clone for any Layer
+/// LayerClone to work, so implement Clone for any Layer
 impl Clone for Box<dyn Layer> {
     fn clone(&self) -> Box<dyn Layer> {
         self.clone_box()

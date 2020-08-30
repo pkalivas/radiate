@@ -47,7 +47,7 @@ impl GRU {
             current_memory: vec![0.0; memory_size as usize],
             current_output: vec![0.0; output_size as usize],
             f_gate: Dense::new(network_in_size, memory_size, LayerType::DensePool, Activation::Sigmoid),
-            e_gate: Dense::new(network_in_size, memory_size, LayerType::DensePool, Activation::Tahn),
+            e_gate: Dense::new(network_in_size, memory_size, LayerType::DensePool, Activation::Tanh),
             o_gate: Dense::new(network_in_size, output_size, LayerType::DensePool, act),
         }
     }

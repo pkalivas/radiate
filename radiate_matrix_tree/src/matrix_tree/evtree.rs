@@ -35,7 +35,7 @@ impl NetNode {
     /// From the list of output_options the node will choose an output,
     /// from the input_size the node will create a randomly generated 
     /// neural network.
-    pub fn new(input_size: i32, output_options: &Vec<i32>) -> Self {
+    pub fn new(input_size: i32, output_options: &[i32]) -> Self {
         let mut r = rand::thread_rng();
         let output = output_options[r.gen_range(0, output_options.len())] as u8;
         Self {

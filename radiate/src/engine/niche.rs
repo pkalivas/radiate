@@ -20,7 +20,7 @@ use super::genome::{Genome};
 pub struct NicheMember<T>(pub f32, pub MemberWeak<T>);
 
 
-/// A species is meant to keep track of fitness scores of eachof it's members,
+/// A species is meant to keep track of fitness scores of each of it's members,
 /// and a mascot. The mascot is the representation of the species by a Type 
 /// member in the population. It also holds the number of age it's been
 /// alive
@@ -77,10 +77,10 @@ impl<T, E> Niche<T, E>
 
 
 
-    /// Reset the species by getting a new random mascot and incrememnting the 
+    /// Reset the species by getting a new random mascot and incrementing the
     /// age by one, then setting the total adjusted species back to None,
     /// and clearing the members vec. Basically starting from scratch again but 
-    /// need to incremement a few small things to keep track of the species
+    /// need to increment a few small things to keep track of the species
     pub fn reset(&mut self) {
         let new_mascot = self.members.choose(&mut rand::thread_rng());
         match new_mascot {
@@ -96,8 +96,8 @@ impl<T, E> Niche<T, E>
 
 
 
-    // for species sizes which are large and populations holding mutliple species,
-    // it makes sense to just calcuate this once then retreive the the value 
+    // for species sizes which are large and populations holding multiple species,
+    // it makes sense to just calculate this once then retrieve the the value
     // instead of calculate it every time it's needed. Its a quick and simple operation
     pub fn calculate_total_adjusted_fitness(&mut self) {
         let length = self.members.len() as f32;

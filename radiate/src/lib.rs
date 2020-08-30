@@ -1,5 +1,5 @@
 
-/// Bring everything in the lib into scope
+// Bring everything in the lib into scope
 
 pub mod prelude;
 pub mod models;
@@ -41,8 +41,9 @@ pub use engine::{
 };
 
 
-/// Defualt enviornment for the neat algorithm as desribed in the papaer 
-/// these are very basic and are used to solve the xor problem for neat
+/// Default environment for the NEAT algorithm as described in the paper.
+///
+/// These are very basic and are used to solve the xor problem for NEAT.
 pub fn default_neat_env() -> NeatEnvironment {
     NeatEnvironment::new()
         .set_input_size(3)

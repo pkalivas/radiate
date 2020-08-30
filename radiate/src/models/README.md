@@ -25,8 +25,8 @@ Define a new Neat network with multiple layers
     let neural_network = Neat::new()
         .input_size(1)
         .dense(5, Activation::Relu)
-        .dense(5, Activation::Tahn)
-        .gru(10, 10, Activation::Tahn)          // (memory size, output size, output layer activation)
+        .dense(5, Activation::Tanh)
+        .gru(10, 10, Activation::Tanh)          // (memory size, output size, output layer activation)
         .dense_pool(1, Activation::Sigmoid);
 ```
 NEAT currently has four layer types that can be chained onto a neat instance. 
@@ -43,7 +43,7 @@ All neural networks need nonlinear functions to represent complex datasets. Neat
 ```rust
 pub enum Activation {
     Sigmoid,
-    Tahn,
+    Tanh,
     Relu,
     Softmax,       // Cannot be used on hidden neurons
     LeakyRelu(f32),
@@ -64,16 +64,16 @@ use radiate::prelude::*;
 
 fn main() -> Result<(), Box<dyn Error>> {
 
-    // set up a timer just to see how long it takes. Then define a NEATEnviornment to give
+    // set up a timer just to see how long it takes. Then define a NeatEnvironment to give
     // parameters to how the NEAT algorithm will be evolved. This controls how weights are edited,
     // how neurons are added, how connections are added, and which activation functions to use in hidden neurons
     let thread_time = Instant::now();
     let neat_env = NeatEnvironment::new()
         .set_weight_mutate_rate(0.8)        // 80% chance that the weights will be mutated, 20% change the weights will not be changed at all
         .set_edit_weights(0.1)              // 10% change that a weight will be assigned a new random number, 90% change it will be mutated by +/- weight_perturb
-        .set_weight_perturb(1.7)            // if a weight is selected to be mutated, mutliply the original weight by +/- 1.7 (shouldn't be larger than 2.0)
+        .set_weight_perturb(1.7)            // if a weight is selected to be mutated, multiply the original weight by +/- 1.7 (shouldn't be larger than 2.0)
         .set_new_node_rate(0.4)             // if the layer is LSTM or dense_pool, 40% chance a new hidden neuron will be added
-        .set_recurrent_neuron_rate(1.0)     // *v1.1.52* for every new neuron added, the % chance is recurrent 1.0 meaning 100%, 0.0 meaning 0% (not compatable with backprop)
+        .set_recurrent_neuron_rate(1.0)     // *v1.1.52* for every new neuron added, the % chance is recurrent 1.0 meaning 100%, 0.0 meaning 0% (not compatible with backprop)
         .set_new_edge_rate(0.4)             // if the layer is LSTM or dense_pool, 40% chance a new connection will be added between two random neurons with a random weight
         .set_reactivate(0.2)                // if the layer is LSTM or dense_pool, 20% chance a deactivated connection will be reactivated
         .set_activation_functions(vec![     // when new neurons are added, a random activation function is chosen from this list to give to the neuron

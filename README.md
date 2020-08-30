@@ -6,35 +6,35 @@
 Coming from Evolutionary Radiation.
 > Evolutionary radiation is a rapid increase in the number of species with a common ancestor, characterized by great ecological and morphological diversity - Pascal Neige.
 
-Radiate is a parallel genetic programming engine capable of evolving solutions to many problems as well as training learning algorithms. By seperating the the evolutionary process from the object being evolved, users can evolve any defined structure. The algorithm follows an evolutionary process through speciation which allows structures to optimize within their own niche. 
+Radiate is a parallel genetic programming engine capable of evolving solutions to many problems as well as training learning algorithms. By separating the the evolutionary process from the object being evolved, users can evolve any defined structure. The algorithm follows an evolutionary process through speciation which allows structures to optimize within their own niche.
 
 Radiate exposes three traits to the user which must be implemented (full simple implementation below):
 1. **Genome**  
-Genome wraps the structure to be evolved and makes the user implement two nessesary functions and one optional. Distance and crossover must be implemented but base is optional (depending on how the user chooses to fill the population).
+Genome wraps the structure to be evolved and makes the user implement two necessary functions and an optional one. Distance and crossover must be implemented but base is optional (depending on how the user chooses to fill the population).
 2. **Environment**  
-Environment represnts the evolutionary enviromnet for the genome, this means it can contain simple statistics for the population's evoltuion, or parameters for crossing over and distance. Internally it is wrapped in a mutable threadsafe pointer so it is not intended to be shared for each genome, rather one per population. Environment requires no implementations of it's one function, however depending on the use case envionment exposes a function called reset which is intended to 'reset' the envionment.
+Environment represents the evolutionary environment for the genome, which means it can contain simple statistics for the population's evolution, or parameters for crossover and distance. Internally it is wrapped in a mutable thread-safe pointer so it is not intended to be shared for each genome, but rather exist only once per population. Environment requires no implementations of its one function, however depending on the use case environment exposes a function called reset which is intended to 'reset' the environment.
 3. **Problem**  
-Problem is what gives a genome it's fitness score. It requires two implemented functions: empty and solve. Empty is required and should return a base problem (think new()). Solve takes a genome and returns that genome's fitness score, so this is where the analyzing of the current state of the genome occurs.
+Problem is what gives a genome its fitness score. It requires two implemented functions: empty and solve. Empty is required and should return a base problem (think new()). Solve takes a genome and returns that genome's fitness score, so this is where the analysis of the current state of the genome occurs.
 
-Radiate also comes with one model already built and another available for use on crates. Those being radiate_matrix_tree and NEAT, radiate_matrix_tree is available on crates and NEAT comes prepackaged with radiate.
+Radiate also comes with one model already built in and another one available for use on crates.io. Those being radiate_matrix_tree and NEAT, radiate_matrix_tree is available on crates.io and NEAT comes prepackaged with radiate.
 
 ### NEAT
-Also known as Neuroevolution of Augmented Topologies, is the algorithm described by Kenneth O. Stanley in [this](http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) paper. This NEAT implementation also includes a backpropagation function which operates much like traditional neural networks which propagate the input error back through the network to adjust the weights. In pair with the evolution engine, can produce very nice and quick results. NEAT lets the use define how the network will be constructed, whether that be in a traitional neural network fashion where layers are stacked next to each other or with evolutionary topolgies of the graph through as explained in the paper. This means NEAT can be used in an evolutionary sense, through forward propagation and back propagation, or any combination of the two. There are examples of both in /examples.
+Also known as Neuroevolution of Augmented Topologies, is the algorithm described by Kenneth O. Stanley in [this](http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) paper. This NEAT implementation also includes a backpropagation function which operates much like traditional neural networks which propagate the input error back through the network to adjust the weights. In pair with the evolution engine, this can produce very nice and quick results. NEAT lets the use define how the network will be constructed, whether that be in a traditional neural network fashion where layers are stacked next to each other or with evolutionary topologies as explained in the paper. This means NEAT can be used in an evolutionary sense, through forward propagation and back propagation, or any combination of the two. There are examples of both in /examples.
  **more color on Neat in radiate/src/models/**
 
  Radiate also supports off-machine training where you can set up a problem to solve on one machine, then send the parameters to it from another through [Radiate Web](https://github.com/pkalivas/radiate/tree/master/radiate_web).
 
 ## Setup
-The population is pretty easy to set up assuming the all traits have been implemented. The population is a higher abstraction to keep track of varibales used during evoltuion but not needed within epoch - things like the problem, solution, to print to the screen, ect. A new population is filled originally with default settings:
+The population is pretty easy to set up assuming the all traits have been implemented. The population is a higher abstraction to keep track of variables used during evolution but not needed within an epoch - things like the problem, solution, printing to the screen etc. A new population is filled initially with default settings:
 ```rust
 pub fn new() -> Self {   
     Population {
         // define the number of members to participate in evolution and be injected into the current generation
         size: 100,
-        // determin if the species should be aiming for a specific number of species by adjusting the distance threshold
+        // determine if the species should be aiming for a specific number of species by adjusting the distance threshold
         dynamic_distance: false,
         // debug_progress is only used to print out some information from each generation
-        // to the console during training to get a glimps into what is going on
+        // to the console during training to get a glimpse of what is going on
         debug_progress: false,
         // create a new config to help the speciation of the population
         config: Config::new(),
@@ -43,12 +43,12 @@ pub fn new() -> Self {
         // keep track of fitness score stagnation through the population
         stagnation: Stagnant::new(0, Vec::new()),
         // Arc<Problem> so the problem can be sent between threads safely without duplicating the problem, 
-        // if the problem gets duplicated every time a supervised learning problem with a lot of data could take up a ton of memory
+        // if the problem gets duplicated every time, a supervised learning problem with a lot of data could take up a large amount of memory
         solve: Arc::new(P::empty()),
-        // create a new solver settings that will hold the specific settings for the defined solver 
+        // create new solver settings which will hold the specific settings for the defined solver 
         // that will allow the structure to evolve through generations
         environment: Arc::new(RwLock::new(E::default())),
-        // determine which genomes will live on and passdown to the next generation
+        // determine which genomes will live on and pass down to the next generation
         survivor_criteria: SurvivalCriteria::Fittest,
         // determine how to pick parents to reproduce
         parental_criteria: ParentalCriteria::BiasedRandom
@@ -97,7 +97,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 ```
 Now create the problem which holds the target and actually scores the solvers. 
-Note the target data isn't being coppied for each solver.
+Note that the target data isn't being copied for each solver.
 ```rust
 pub struct World { target: Vec<char> }
 
@@ -139,7 +139,7 @@ impl HelloEnv {
     }
 }
 
-/// implement Environment and default for the HelloEnv, Environment is there in case you want the environment to be dynamic
+/// implement Environment and Default for the HelloEnv, Environment is there in case you want the environment to be dynamic
 impl Envionment for HelloEnv {}
 impl Default for HelloEnv {
     fn default() -> Self {
@@ -155,7 +155,7 @@ pub struct Hello {
 }
 
 impl Hello {
-    pub fn new(alph: &Vec<char>) -> Self {
+    pub fn new(alph: &[char]) -> Self {
         let mut r = rand::thread_rng();
         Hello { 
             data: (0..12)
@@ -213,7 +213,7 @@ impl Genome<Hello, HelloEnv> for Hello {
     }
 }
 ```
-Running this looks something like this when running in the cmd:
+The result looks something like this when running on the command line:
 ```bash
 Generation: 100 score: 8.000    "!eulozworlde"
 Generation: 101 score: 8.000    "!eulozworlde"
@@ -245,7 +245,7 @@ Generation: 126 score: 12.000   "hello world!"
 
 Time in millis: 349, solution: "hello world!"
 ```
-This comes right now with four examples, just run "cargo run --bin (desired example name)" to run any of them
+Right now there are four examples, just run "cargo run --bin (desired example name)" to run any of them
 1. **xor-neat**
 2. **xor-neat-backprop**
 3. **lstm-neat**
@@ -256,13 +256,13 @@ The initial generation in the population can be created in four different ways d
 1. **populate_gen** - Give the population an already constructed Generation struct. 
 2. **populate_base** - Create a generation of Genomes from the Genome's base function.
 3. **populate_vec** - Take a vec and populate the generation from the Genomes in the vec.
-4. **populate_clone** - Given a single Genome, clone it size times and create a generation from the clones.
+4. **populate_clone** - Given a single Genome, clone it `size` times and create a generation from the clones.
 
 ## Speciation
 Because the engine is meant to evolve Genomes through speciation, the Config struct is meant to hold parameters for the speciation of the population, adjusting these will change the way the Genomes are split up within the population and thus drive the discovery of new Genomes through crossover and mutation.
 
 ## Genocide
-During evolution it can be common for either the population or specific species to become stagnat or stuck at a certain point in the problem space. To mend this, population allows the user to define a number of stagnant generations until a 'genocide' will occur. These genocide options can be found in genocide.rs and are simply ways to clean the population to give the Genome's an opportunity to breath and evolve down a new path in the problem space. 
+During evolution it can be common for either the population or specific species to become stagnant or stuck at a certain point in the problem space. To break out of this, `population` allows the user to define a number of stagnant generations until a 'genocide' will occur. These genocide options can be found in genocide.rs and are simply ways to clean the population to give the genomes an opportunity to breathe and evolve down a new path in the problem space.
 ```rust
 pub enum Genocide {
     KeepTop(usize),
@@ -271,16 +271,16 @@ pub enum Genocide {
     KillOldestSpecies(usize)
 }
 ```
-This is definitly an area which can be improved in the algorithm.
+This is definitely an area which can be improved in the algorithm.
 
 ## Versions
-**1.5.57** - Major improvements to the Dense/DensePool layers. Before the improvement the benchmark takes about 1.5 minutes to run. With the improvements it finishes in about 1.5 seconds.
+**1.5.57** - Major improvements to the Dense/DensePool layers. Before the improvement the benchmark took about 1.5 minutes to run. With the improvements it finishes in about 1.5 seconds.
 
 **1.1.55** - Removed unsafe code and fixed memory leak in evtree. Refactored Evtree to be generic, moving neural network logic to be separate. Cleaned up send/sync impls.
 
 **1.1.52** - Added recurrent neurons for NEAT. Note - this is also only viable for evolution (I will focus on implementing backprop for recurrent neurons and GRU layers next - I'm working on some other projects that require recurrent evolution neurons as of now). This can be configured in the NeatEnvironment settings where the % change of adding a recurrent neuron can be added. 0.0 would mean no recurrent neurons are added, where 1.0 would mean every new neuron is recurrent. Example in radiate/src/models/.
 
-**1.1.5** - Added minimal support for GRU layer (Gated Recurrent Unit). GRU is only viable for evolution, NOT backprop, yet. Your program will panic! if a network with a gru layer is used during backprop, if a memory cell is needed for backprop purposes use the LSTM option for now. Also, cleaned up some code and optimized certain points to run a bit quicker. Evtree has been moved to it's own seperate crate called radiate_matrix_tree and is available on crates.io.
+**1.1.5** - Added minimal support for GRU layer (Gated Recurrent Unit). GRU is only viable for evolution, NOT backprop, yet. Your program will panic! if a network with a gru layer is used during backprop, if a memory cell is needed for backprop purposes use the LSTM option for now. Also, cleaned up some code and optimized certain points to run a bit quicker. Evtree has been moved to it's own separate crate called radiate_matrix_tree and is available on crates.io.
 
 **1.1.3** - Adding support for [Radiate Web](https://github.com/pkalivas/radiate/tree/master/radiate_web) so training Radiate can be done on a different machine.
 

@@ -7,14 +7,14 @@ use std::error::Error;
 use std::time::Instant;
 use simple_matrix::Matrix;
 use radiate::prelude::*;
-use radiate_matrix_tree::prelude::{Evtree, TreeEnvionment, defualt_evtree_env};
+use radiate_matrix_tree::prelude::{Evtree, TreeEnvionment, default_evtree_env};
 
 
 
 fn main() -> Result<(), Box<dyn Error>> {
 
     let thread_time = Instant::now();
-    let tree_env = defualt_evtree_env();        
+    let tree_env = default_evtree_env();
     Population::<Evtree, TreeEnvionment, XOR>::new()
         .impose(XOR::new())
         .constrain(tree_env)

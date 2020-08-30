@@ -11,7 +11,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // set the number of threads to be used
     rayon::ThreadPoolBuilder::new().num_threads(8).build_global().unwrap();
 
-    // definie the environment
+    // define the environment
     let neat_env = NeatEnvironment::new()
         .set_weight_mutate_rate(0.8)
         .set_edit_weights(0.1)
@@ -107,7 +107,7 @@ impl ISM {
     }
 
 
-    fn minimum(nums: &Vec<Vec<f32>>) -> f32 {
+    fn minimum(nums: &[Vec<f32>]) -> f32 {
         nums.iter()
             .fold(1000.0, |min, curr| {
                 if curr[0] < min {
@@ -118,7 +118,7 @@ impl ISM {
     }
 
 
-    fn maximum(nums: &Vec<Vec<f32>>) -> f32 {
+    fn maximum(nums: &[Vec<f32>]) -> f32 {
         nums.iter()
             .fold(-1000.0, |max, curr| {
                 if curr[0] > max {
