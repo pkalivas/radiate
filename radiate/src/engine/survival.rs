@@ -40,19 +40,19 @@ pub enum SurvivalCriteria {
 /// Implement a way to pick parents of children, in other words
 /// how is the rest of the population generation after those who 
 /// don't survive die out.
-/// 
-/// BiasedRandom - the default option, statistically pick more fit parents
-///                however allow for less fit parents to be picked as well. This is 
-///                kinda like putting the members in a species on a curve and randomly 
-///                picking from that distribution 
-/// OnlySurvivers - those who survive are only allowed to reproduce
-/// BestInEachSpecies - only the best in each species are allowed to reproduce
-/// MostDifferent - Pick one parent, then find the parent most different from it (structurally) 
-///                 and use that as the other parent. Note this could lead to large expansion in population
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ParentalCriteria {
+    /// The default option, statistically pick more fit parents
+    /// however allow for less fit parents to be picked as well. This is
+    /// kinda like putting the members in a species on a curve and randomly
+    /// picking from that distribution
     BiasedRandom,
+    /// Only the best in each species are allowed to reproduce
     BestInSpecies,
+    // Not implemented:
+    // OnlySurvivors - those who survive are only allowed to reproduce
+    // MostDifferent - Pick one parent, then find the parent most different from it (structurally)
+    //                 and use that as the other parent. Note this could lead to large expansion in population
 }
 
 
