@@ -15,6 +15,10 @@ license = "MIT"
 small-ids = []
 # Use u8 for Neuron Ids (256) and u32 for Edge Ids (256 * 256 = 65536)
 tiny-ids = []
+# Enable stdweb support (needed for uuid)
+stdweb = ["uuid/stdweb"]
+# Enable wasm-bindgen support
+wasm-bindgen = ["uuid/wasm-bindgen"]
 
 [dependencies]
 rand="0.7.2"
