@@ -135,8 +135,7 @@ fn run(radiate: Json<RadiateDto>) -> Option<JsonValue> {
     // create a new problem variable
     let xor = XOR::new();
 
-    // set up the population now that it has been rece need to install the Rust toolchain. We recommend using rustup. If you don't have Rust installed and would like extra guidance doing so, see the getting started section.
-Running Examples#ived
+    // set up the population
     let (mut solution, _) = Population::<Neat, NeatEnvironment, XOR>::new()
         .constrain(env)
         .populate_clone(net)
