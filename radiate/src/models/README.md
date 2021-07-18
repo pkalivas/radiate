@@ -6,7 +6,7 @@
 
 Define a new Neat network with an input size of one, batch size of 1, and a dense pool layer 
 ```rust
-    let nerual_network = Neat::new()
+    let neural_network = Neat::new()
         .input_size(1)
         .dense_pool(1, Activation::Sigmoid);    // (output size, output layer activation)
 ```
@@ -169,7 +169,7 @@ impl MemoryTest {
 
     pub fn show(&self, model: &mut Neat) {
         for (i, o) in self.input.iter().zip(self.output.iter()) {
-            let guess = model.forward(&i).unwrap();
+            let guess = model.forward(i).unwrap();
             println!("Input: {:?}, Output: {:?}, Guess: {:.2}", i, o, guess[0]);
         }
         println!("\nTest next few inputs:");
@@ -188,7 +188,7 @@ impl Problem<Neat> for MemoryTest {
     fn solve(&self, model: &mut Neat) -> f32 {
         let mut total = 0.0;
         for (ins, outs) in self.input.iter().zip(self.output.iter()) {
-            match model.forward(&ins) {
+            match model.forward(ins) {
                 Some(guess) => total += (guess[0] - outs[0]).powf(2.0),
                 None => panic!("Error in training NEAT")
             }
