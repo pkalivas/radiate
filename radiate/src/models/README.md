@@ -124,8 +124,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         data.show(&mut solution);
 
         // reset the save and load the model
-        solution.save("C:/desktop/network.json")?;
-        let mut net = Neat::load("C:/desktop/network.json")?;
+        solution.save("network.json")?;
+        let mut net = Neat::load("network.json")?;
 
         // show the score on the data with the time it took to solve the problem
         println!("Score: {:?}\nTime in millis: {}", data.solve(&mut net), thread_time.elapsed().as_millis());
