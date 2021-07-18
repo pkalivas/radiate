@@ -89,7 +89,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         })
         .run(|model, fit, num| {
             println!("Generation: {} score: {:.3?}\t{:?}", num, fit, model.as_string());
-            (fit == 12.0).abs() < 0.1 || num == 500
+            (fit - 12.0).abs() < 0.1 || num == 500
         })?;
         
     println!("\nTime in millis: {}, solution: {:?}", thread_time.elapsed().as_millis(), top.as_string());
