@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         ])
         .run(|model, fit, num| {
             println!("Generation: {} score: {:.3?}\t{:?}", num, fit, model.as_string());
-            fit == 12.0 || num == 500
+            (fit - 12.0).abs() < 0.1 || num == 500
         })?;
         
 
@@ -99,7 +99,7 @@ pub struct Hello {
 impl Hello {
     pub fn new(alph: &[char]) -> Self {
         let mut r = rand::thread_rng();
-        Hello { data: (0..12).map(|_| alph[r.gen_range(0, alph.len())]).collect() }
+        Hello { data: (0..12).map(|_| alph[r.gen_range(0..alph.len())]).collect() }
     }
 
     pub fn as_string(&self) -> String {
@@ -130,8 +130,8 @@ impl Genome<Hello, HelloEnv> for Hello {
             }
         } else {
             new_data = parent_one.data.clone();
-            let swap_index = r.gen_range(0, new_data.len());
-            new_data[swap_index] = params.alph[r.gen_range(0, params.alph.len())];
+            let swap_index = r.gen_range(0..new_data.len());
+            new_data[swap_index] = params.alph[r.gen_range(0..params.alph.len())];
         }
         Some(Hello { data: new_data })
     }

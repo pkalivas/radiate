@@ -28,9 +28,9 @@ use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 async fn main() -> Result<(), reqwest::Error> {
     let data = generate_post_data();                // generate the data to send
     let client = reqwest::Client::new();            // create the client object 
-    let mut headers = HeaderMap::new();             // add application/json to the headers because that is how NEAT is seaialized
+    let mut headers = HeaderMap::new();             // add application/json to the headers because that is how NEAT is serialized
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-    let res = client.post("http://0.0.0.0:42069/")  // listn on local host
+    let res = client.post("http://0.0.0.0:42069/")  // listen on local host
         .headers(headers)                           // add the headers then add data and send it
         .body(data)
         .send().await;
@@ -135,7 +135,7 @@ fn run(radiate: Json<RadiateDto>) -> Option<JsonValue> {
     // create a new problem variable
     let xor = XOR::new();
 
-    // set up the population now that it has been recieved
+    // set up the population
     let (mut solution, _) = Population::<Neat, NeatEnvironment, XOR>::new()
         .constrain(env)
         .populate_clone(net)
