@@ -1,21 +1,20 @@
+use rand::rngs::ThreadRng;
+use rand::seq::SliceRandom;
+use rand::Rng;
 use std::fmt;
 use std::marker::Sync;
-use rand::seq::SliceRandom;
-use rand::rngs::ThreadRng;
-use rand::Rng;
 
-pub mod node;
 pub mod iterators;
+pub mod node;
 
-pub use node::{Node, Link};
-
+pub use node::{Link, Node};
 
 /// A tree struct to encapsulate a bidirectional binary tree.AsMut
-/// 
-/// Each node within the tree has three pointers to its parent, left, and right child. 
-/// 
+///
+/// Each node within the tree has three pointers to its parent, left, and right child.
+///
 /// This struct holds the root of the tree. The tree also contains a size which represents the number of nodes in the tree,
-/// an input size which is the size of the input vector (1D), and is used to generate nodes alone with the 
+/// an input size which is the size of the input vector (1D), and is used to generate nodes alone with the
 /// output options which is an owned vec of i32s representing different outputs of the classification.
 #[derive(PartialEq)]
 pub struct Tree<T: Clone> {
@@ -25,9 +24,9 @@ pub struct Tree<T: Clone> {
 
 /// implement the tree
 impl<T: Clone> Tree<T> {
-    /// Create a new default Tree given an input size and a vec of possible outputs 
-    /// 
-    /// Returns the newly created Tree with no root node, a size of 
+    /// Create a new default Tree given an input size and a vec of possible outputs
+    ///
+    /// Returns the newly created Tree with no root node, a size of
     /// 0 and an owned input_size and output_options.
     pub fn new() -> Self {
         Tree {
@@ -61,7 +60,7 @@ impl<T: Clone> Tree<T> {
         self.root = None;
     }
 
-    /// return an in order iterator which 
+    /// return an in order iterator which
     /// allows for the nodes in the tree to be
     /// mutated while iterating
     pub fn iter_mut(&mut self) -> iterators::IterMut<'_, T> {
@@ -69,7 +68,7 @@ impl<T: Clone> Tree<T> {
     }
 
     /// Return a level order iterator
-    /// Iterators over the tree from top to bottom, 
+    /// Iterators over the tree from top to bottom,
     /// going from parent, to it's left child then it's right child.
     /// Each node that the iterator yields is a reference to a Node struct
     pub fn level_order_iter(&self) -> iterators::LevelOrderIterator<'_, T> {
@@ -97,8 +96,8 @@ impl<T: Clone> Tree<T> {
         };
     }
 
-    /// return the height of the tree from the root 
-    #[inline]    
+    /// return the height of the tree from the root
+    #[inline]
     pub fn height(&self) -> i32 {
         match self.root_opt() {
             Some(root) => root.height(),
@@ -128,7 +127,7 @@ impl<T: Clone> Tree<T> {
     }
 
     /// Get the index of a given node in the tree
-    #[inline]    
+    #[inline]
     pub fn index_of(&self, node: &Node<T>) -> usize {
         let mut temp: Option<usize> = None;
         for (index, curr) in self.in_order_iter().enumerate() {
@@ -146,15 +145,15 @@ impl<T: Clone> Tree<T> {
         match self.root_mut_opt() {
             Some(root) => {
                 root.insert_random(node);
-            },
+            }
             None => {
                 self.set_root(Some(node));
-            },
+            }
         }
         self.size += 1;
     }
 
-    /// display the tree by calling the recursive display method within the node 
+    /// display the tree by calling the recursive display method within the node
     /// implementation at level 0. If no root node, panic!
     pub fn display(&self) {
         match &self.root {
@@ -165,11 +164,12 @@ impl<T: Clone> Tree<T> {
 
     /// Balance the tree by thin copying each node then calling a private
     /// recursive function to build the tree structure.
-    /// 
-    /// Return an option in order to use '?' instead of 'unwrap()' in the 
+    ///
+    /// Return an option in order to use '?' instead of 'unwrap()' in the
     /// function body.
     pub fn balance(&mut self) {
-        let mut node_bag = self.in_order_iter()
+        let mut node_bag = self
+            .in_order_iter()
             .map(|x: &Node<T>| Some(x.get().clone()))
             .collect::<Vec<_>>();
         self.set_root(self.make_tree(&mut node_bag[..]));
@@ -178,7 +178,7 @@ impl<T: Clone> Tree<T> {
     /// Recursively build a balanced binary tree by splitting the slice into left/right
     /// sides at the middle node.
     /// Return a `Link` to the middle node to be set as the child of a parent node or as the root node.
-    #[inline]    
+    #[inline]
     fn make_tree(&self, bag: &mut [Option<T>]) -> Link<T> {
         let midpoint = bag.len() / 2;
         // split at midpoint
@@ -198,19 +198,20 @@ impl<T: Clone> Tree<T> {
     }
 
     /// get a vec of node references in a bised sense where
-    /// nodes at a lower level are favored 
-    #[inline]    
+    /// nodes at a lower level are favored
+    #[inline]
     pub fn get_biased_level<'a>(&'a self) -> Vec<&'a Node<T>> {
         let mut r = rand::thread_rng();
         let height = self.height();
         let index = r.gen_range(0, self.len()) as usize;
-        let levels = self.level_order_iter()
+        let levels = self
+            .level_order_iter()
             .map(|x: &Node<T>| height - x.height())
             .collect::<Vec<_>>();
 
-        // return a vec where the depth of a node is equal to 
+        // return a vec where the depth of a node is equal to
         // the biased level chosen. Order does not matter
-        // because there will be more numbers in the levels vec with 
+        // because there will be more numbers in the levels vec with
         // a lower depth inherintly due to tree structures
         self.in_order_iter()
             .filter(|x| x.depth() == levels[index])
@@ -228,19 +229,20 @@ impl<T: Clone> Tree<T> {
     /// take in an index of the tree to swap with the pointer of another subtree
     /// by simply switching the pointers of the node at swap_index and the other_node pointer
     pub(crate) fn replace(&mut self, swap_index: usize, mut other_node: Box<Node<T>>) {
-        let swap_node = self.get_node_mut(swap_index)
-          .expect("Index not found in tree.");
+        let swap_node = self
+            .get_node_mut(swap_index)
+            .expect("Index not found in tree.");
         match swap_node.is_left_child() {
             Some(true) => {
                 if let Some(parent) = swap_node.parent_mut_opt() {
                     parent.set_left_child(Some(other_node));
                 }
-            },
+            }
             Some(false) => {
                 if let Some(parent) = swap_node.parent_mut_opt() {
                     parent.set_right_child(Some(other_node));
                 }
-            },
+            }
             None => {
                 other_node.remove_from_parent();
                 self.set_root(Some(other_node));
@@ -251,9 +253,10 @@ impl<T: Clone> Tree<T> {
 
     /// Shuffle the tree by gathering a list of the nodes then shuffling the list
     /// and then balancing the tree again from that list
-    #[inline]    
+    #[inline]
     pub fn shuffle_tree(&mut self, r: &mut ThreadRng) {
-        let mut node_list = self.in_order_iter()
+        let mut node_list = self
+            .in_order_iter()
             .map(|x: &Node<T>| Some(x.get().clone()))
             .collect::<Vec<_>>();
         node_list.shuffle(r);
@@ -261,7 +264,7 @@ impl<T: Clone> Tree<T> {
     }
 }
 
-/// implemented a display function for the Tree just for easier debugging 
+/// implemented a display function for the Tree just for easier debugging
 impl<T: Clone> fmt::Debug for Tree<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Tree=[{}]", self.size)
@@ -287,7 +290,7 @@ impl<T: Clone> Clone for Tree<T> {
 /// ram over only a few generations depending on the size of the generation
 /// This drop implementation will recursively drop all nodes in the tree
 impl<T: Clone> Drop for Tree<T> {
-    fn drop(&mut self) { 
+    fn drop(&mut self) {
         self.drop_root();
     }
 }
@@ -302,13 +305,13 @@ unsafe impl<T: Clone> Send for Tree<T> {}
 unsafe impl<T: Clone> Sync for Tree<T> {}
 
 /// implement a function for getting a base default Tree which is completely empty
-/// There are multiple places within the struct implementation which will panic! if 
+/// There are multiple places within the struct implementation which will panic! if
 /// this default Tree is passed through it.
 impl<T: Clone> Default for Tree<T> {
     fn default() -> Self {
         Tree {
             root: None,
-            size: 0
+            size: 0,
         }
     }
 }

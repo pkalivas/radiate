@@ -1,4 +1,3 @@
-
 use std::fmt;
 
 #[cfg(feature = "tiny-ids")]
@@ -30,7 +29,10 @@ impl NeuronId {
 
     pub fn new(index: usize) -> Self {
         if index > Self::MAX as usize {
-            panic!("NeuronId too small, layer has more then {} neurons", Self::MAX);
+            panic!(
+                "NeuronId too small, layer has more then {} neurons",
+                Self::MAX
+            );
         }
         Self(index as NeuronIndex)
     }

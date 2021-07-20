@@ -1,16 +1,12 @@
-
 extern crate radiate;
 
-use radiate::models::neat::{
-    neatenv::NeatEnvironment,
-    neat::Neat,
-};
 use super::populationdto::NeatPopulationBuilder;
+use radiate::models::neat::{neat::Neat, neatenv::NeatEnvironment};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrainDto {
     pub epochs: i32,
-    pub learning_rate: f32
+    pub learning_rate: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,7 +25,6 @@ pub struct RadiateDto {
 }
 
 impl RadiateDto {
-    
     pub fn new() -> Self {
         RadiateDto {
             env: None,
@@ -46,7 +41,10 @@ impl RadiateDto {
     }
 
     pub fn train(mut self, epochs: i32, learning_rate: f32) -> Self {
-        self.train = Some(TrainDto { epochs, learning_rate });
+        self.train = Some(TrainDto {
+            epochs,
+            learning_rate,
+        });
         self
     }
 

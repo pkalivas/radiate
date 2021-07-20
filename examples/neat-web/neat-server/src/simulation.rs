@@ -5,7 +5,7 @@ extern crate serde_derive;
 
 use std::time::{Duration, Instant};
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use uuid::Uuid;
 
@@ -28,29 +28,28 @@ impl TrainingSet {
                 vec![0.0, 1.0],
                 vec![1.0, 1.0],
             ],
-            answers: vec![
-                vec![0.0],
-                vec![1.0],
-                vec![1.0],
-                vec![0.0],
-            ],
+            answers: vec![vec![0.0], vec![1.0], vec![1.0], vec![0.0]],
         }
     }
 
     pub fn new_from(training_set: Option<TrainingSetDto>) -> Self {
-        training_set.map_or_else(Self::new, |set| {
-            Self {
-                inputs: set.inputs,
-                answers: set.answers,
-            }
+        training_set.map_or_else(Self::new, |set| Self {
+            inputs: set.inputs,
+            answers: set.answers,
         })
     }
 
     pub fn train(&self, train: &TrainDto, model: &mut Neat) {
         let num_train = train.epochs as usize;
-        model.train(&self.inputs, &self.answers, train.learning_rate, Loss::Diff, |iter, _| {
-            iter == num_train
-        }).unwrap();
+        model
+            .train(
+                &self.inputs,
+                &self.answers,
+                train.learning_rate,
+                Loss::Diff,
+                |iter, _| iter == num_train,
+            )
+            .unwrap();
     }
 
     pub fn show(&self, model: &mut Neat) {
@@ -63,14 +62,16 @@ impl TrainingSet {
 }
 
 impl Problem<Neat> for TrainingSet {
-    fn empty() -> Self { TrainingSet::new() }
+    fn empty() -> Self {
+        TrainingSet::new()
+    }
 
     fn solve(&self, model: &mut Neat) -> f32 {
         let mut total = 0.0;
         for (ins, outs) in self.inputs.iter().zip(self.answers.iter()) {
             match model.forward(&ins) {
                 Some(guess) => total += (guess[0] - outs[0]).powf(2.0),
-                None => panic!("Error in training NEAT")
+                None => panic!("Error in training NEAT"),
             }
         }
         self.answers.len() as f32 - total
@@ -282,12 +283,12 @@ impl Simulation {
     /// Get the simulations current status
     pub fn get_status(&self) -> SimulationStatus {
         let mut status = SimulationStatus {
-          status: self.status,
-          curr_gen: self.curr_gen,
-          curr_epoch: self.curr_epoch,
-          last_gen_elapsed: self.last_gen_elapsed,
-          curr_fitness: self.curr_fitness,
-          solution: None,
+            status: self.status,
+            curr_gen: self.curr_gen,
+            curr_epoch: self.curr_epoch,
+            last_gen_elapsed: self.last_gen_elapsed,
+            curr_fitness: self.curr_fitness,
+            solution: None,
         };
         if self.status == Status::Finished {
             status.solution = self.solution.clone();
@@ -354,12 +355,11 @@ impl Simulation {
                 Status::Evolving => {
                     // handle end of generation calculations.
                     self.end_generation();
-                },
+                }
                 Status::Training => {
                     self.end_training();
-                },
-                _ => {
-                },
+                }
+                _ => {}
             }
         }
     }
@@ -382,14 +382,13 @@ impl Simulation {
             match work.status {
                 WorkStatus::Queued => {
                     // re-scheduled?
-                },
+                }
                 WorkStatus::Running(start) => {
                     work.status = WorkStatus::Finished(start.elapsed());
                     match work.task {
                         SimTaskType::CalFitness => {
                             // get member
-                            let member = work.member_idx
-                              .and_then(|idx| self.member_mut(idx));
+                            let member = work.member_idx.and_then(|idx| self.member_mut(idx));
                             if let Some(member) = member {
                                 // update fitness
                                 if let Some(fitness) = result.fitness {
@@ -400,19 +399,19 @@ impl Simulation {
                                     member.update_member(new_member);
                                 }
                             }
-                        },
+                        }
                         SimTaskType::TrainBest => {
                             if let Some(new_member) = result.member {
                                 self.solution = Some(new_member);
                             }
-                        },
+                        }
                     }
                     // check if generation has finished.
                     self.finished_work();
-                },
+                }
                 WorkStatus::Finished(_) => {
                     // work has already finished.  Ignore old results.
-                },
+                }
             }
         }
     }
@@ -431,13 +430,15 @@ impl Simulation {
         match job.task {
             SimTaskType::CalFitness => {
                 if let Some(idx) = work.member_idx {
-                    job.member = self.member(idx).map(|cont| cont.member.read().unwrap().clone());
+                    job.member = self
+                        .member(idx)
+                        .map(|cont| cont.member.read().unwrap().clone());
                 }
-            },
+            }
             SimTaskType::TrainBest => {
                 job.member = self.solution.clone();
                 job.train = Some(self.train.clone());
-            },
+            }
         }
 
         Some(job)
@@ -485,10 +486,10 @@ impl Simulation {
                     if start.elapsed() > self.work_expire_timeout {
                         expired += 1;
                     }
-                },
+                }
                 _ => {
                     // ignore finished and queued work.
-                },
+                }
             }
         }
         self.work_expired = expired;
@@ -504,10 +505,10 @@ impl Simulation {
                         work.status = WorkStatus::Running(Instant::now());
                         return Some((id, *work));
                     }
-                },
+                }
                 _ => {
                     // ignore finished and queued work.
-                },
+                }
             }
         }
         return None;
@@ -515,7 +516,7 @@ impl Simulation {
 
     /// Handle end of generation.
     fn end_generation(&mut self) {
-        if let Some((fit , top)) = self.population.end_generation() {
+        if let Some((fit, top)) = self.population.end_generation() {
             println!("epoch: {} score: {}", self.curr_gen, fit);
 
             // update generation stats.

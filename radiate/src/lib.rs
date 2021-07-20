@@ -1,45 +1,27 @@
-
 // Bring everything in the lib into scope
 
-pub mod prelude;
-pub mod models;
 pub mod engine;
+pub mod models;
+pub mod prelude;
 
 #[macro_use]
 extern crate serde_derive;
 
-pub use models::{
-    neat::{
-        layers::{
-            layer::Layer,
-            layertype::LayerType,
-            dense::Dense,
-            lstm::LSTM,
-            gru::GRU
-        },
-        neurontype::NeuronType,
-        loss::Loss,
-        edge::Edge,
-        neuron::Neuron,
-        neat::Neat,
-        neatenv::NeatEnvironment,
-        activation::Activation,
-    }
+pub use models::neat::{
+    activation::Activation,
+    edge::Edge,
+    layers::{dense::Dense, gru::GRU, layer::Layer, layertype::LayerType, lstm::LSTM},
+    loss::Loss,
+    neat::Neat,
+    neatenv::NeatEnvironment,
+    neuron::Neuron,
+    neurontype::NeuronType,
 };
-
 
 pub use engine::{
-    population::*,
-    genome::Genome,
-    problem::Problem,
-    niche::Niche,
-    generation::*,
-    genocide::Genocide,
-    environment::Envionment,
-    survival::SurvivalCriteria,
-    survival::ParentalCriteria
+    environment::Envionment, generation::*, genocide::Genocide, genome::Genome, niche::Niche,
+    population::*, problem::Problem, survival::ParentalCriteria, survival::SurvivalCriteria,
 };
-
 
 /// Default environment for the NEAT algorithm as described in the paper.
 ///

@@ -1,15 +1,10 @@
-
 extern crate radiate;
 
 use radiate::engine::{
-    population::Config,
-    survival::SurvivalCriteria,
-    survival::ParentalCriteria,
-    genocide::Genocide
+    genocide::Genocide, population::Config, survival::ParentalCriteria, survival::SurvivalCriteria,
 };
 
-
-#[derive(Debug, Clone, Serialize, Deserialize)] 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NeatPopulationBuilder {
     pub num_evolve: Option<i32>,
     pub target_fitness: Option<f32>,
@@ -20,11 +15,10 @@ pub struct NeatPopulationBuilder {
     pub stagnation: Option<usize>,
     pub genocide: Option<Vec<Genocide>>,
     pub survivor_criteria: Option<SurvivalCriteria>,
-    pub parental_criteria: Option<ParentalCriteria>
+    pub parental_criteria: Option<ParentalCriteria>,
 }
 
 impl NeatPopulationBuilder {
-
     pub fn new() -> Self {
         NeatPopulationBuilder {
             num_evolve: None,
@@ -36,16 +30,16 @@ impl NeatPopulationBuilder {
             stagnation: None,
             genocide: None,
             survivor_criteria: Some(SurvivalCriteria::Fittest),
-            parental_criteria: Some(ParentalCriteria::BiasedRandom)
+            parental_criteria: Some(ParentalCriteria::BiasedRandom),
         }
     }
 
-    pub fn num_evolve(mut self, num: i32) -> Self{
+    pub fn num_evolve(mut self, num: i32) -> Self {
         self.num_evolve = Some(num);
         self
     }
 
-    pub fn target_fitness(mut self, fitness: f32) -> Self{
+    pub fn target_fitness(mut self, fitness: f32) -> Self {
         self.target_fitness = Some(fitness);
         self
     }
@@ -89,5 +83,4 @@ impl NeatPopulationBuilder {
         self.parental_criteria = Some(par);
         self
     }
-    
 }

@@ -1,27 +1,22 @@
-
 extern crate rand;
 extern crate uuid;
 
-use std::sync::{Arc, RwLock};
-use std::marker::PhantomData;
-use uuid::Uuid;
 use rand::prelude::SliceRandom;
 use rayon::prelude::*;
+use std::marker::PhantomData;
+use std::sync::{Arc, RwLock};
+use uuid::Uuid;
 
 use super::generation::{Member, MemberWeak};
-use super::genome::{Genome};
-
-
-
+use super::genome::Genome;
 
 /// Species member tuple struct to keep track of members and their fitness scores
-/// for each species, this decision was made to favor runtime over memory 
+/// for each species, this decision was made to favor runtime over memory
 #[derive(Debug, Clone)]
 pub struct NicheMember<T>(pub f32, pub MemberWeak<T>);
 
-
 /// A species is meant to keep track of fitness scores of each of it's members,
-/// and a mascot. The mascot is the representation of the species by a Type 
+/// and a mascot. The mascot is the representation of the species by a Type
 /// member in the population. It also holds the number of age it's been
 /// alive
 #[derive(Debug, Clone)]
@@ -31,19 +26,15 @@ pub struct Niche<T, E> {
     pub age: i32,
     pub total_adjusted_fitness: Option<f32>,
     pub niche_id: Uuid,
-    phantom: PhantomData<E>
+    phantom: PhantomData<E>,
 }
-
-
-
 
 /// Implement the species
 impl<T, E> Niche<T, E>
-    where
-        T: Genome<T, E> + Send + Sync + Clone,
-        E: Send + Sync
+where
+    T: Genome<T, E> + Send + Sync + Clone,
+    E: Send + Sync,
 {
-
     // Create a new species with a mascot (weak member pointer)
     pub fn new(mascot: &Member<T>, mascot_fitness: f32) -> Self {
         Niche {
@@ -52,14 +43,12 @@ impl<T, E> Niche<T, E>
             age: 0,
             total_adjusted_fitness: None,
             niche_id: Uuid::new_v4(),
-            phantom: PhantomData
+            phantom: PhantomData,
         }
     }
 
-
-
-    /// Get the top performing member from the species by their 
-    /// associated fitness score. If None is returned meaning there is 
+    /// Get the top performing member from the species by their
+    /// associated fitness score. If None is returned meaning there is
     /// no members in the species, panic!
     pub fn fittest(&self) -> (f32, Member<T>) {
         let mut top: Option<&NicheMember<T>> = None;
@@ -70,16 +59,19 @@ impl<T, E> Niche<T, E>
         }
 
         match top {
-            Some(t) => (t.0, Arc::new(RwLock::new((*t.1.upgrade().unwrap()).read().unwrap().clone()))),
-            None => panic!("Failed to get top species member.")
+            Some(t) => (
+                t.0,
+                Arc::new(RwLock::new(
+                    (*t.1.upgrade().unwrap()).read().unwrap().clone(),
+                )),
+            ),
+            None => panic!("Failed to get top species member."),
         }
     }
 
-
-
     /// Reset the species by getting a new random mascot and incrementing the
     /// age by one, then setting the total adjusted species back to None,
-    /// and clearing the members vec. Basically starting from scratch again but 
+    /// and clearing the members vec. Basically starting from scratch again but
     /// need to increment a few small things to keep track of the species
     pub fn reset(&mut self) {
         let new_mascot = self.members.choose(&mut rand::thread_rng());
@@ -87,14 +79,14 @@ impl<T, E> Niche<T, E>
             Some(member) => {
                 self.age += 1;
                 self.total_adjusted_fitness = None;
-                self.mascot = Arc::new(RwLock::new((*member.1.upgrade().unwrap()).read().unwrap().clone()));
+                self.mascot = Arc::new(RwLock::new(
+                    (*member.1.upgrade().unwrap()).read().unwrap().clone(),
+                ));
                 self.members = Vec::new();
-            }, 
-            None => panic!("Failed to get new mascot")
+            }
+            None => panic!("Failed to get new mascot"),
         }
     }
-
-
 
     // for species sizes which are large and populations holding multiple species,
     // it makes sense to just calculate this once then retrieve the the value
@@ -106,35 +98,30 @@ impl<T, E> Niche<T, E>
                 .par_iter_mut()
                 .map(|x| {
                     if x.0 != 0.0 {
-                        x.0 = x.0 / length;
+                        x.0 /= length;
                     }
                     x.0
                 })
-                .sum()
+                .sum(),
         )
     }
 
-
-
-    /// Get the total adjusted fitness score of the species 
-    /// by summing up all the fitness scores of each member 
+    /// Get the total adjusted fitness score of the species
+    /// by summing up all the fitness scores of each member
     pub fn get_total_adjusted_fitness(&self) -> f32 {
         match self.total_adjusted_fitness {
             Some(fit) => fit,
-            None => panic!("Total adjusted fitness for this species was not set")
+            None => panic!("Total adjusted fitness for this species was not set"),
         }
     }
 
-
-
     pub fn display_info(&self) {
-        println!("Species: {} gens( {} ) members( {} ) adj fit( {:.3} )",
+        println!(
+            "Species: {} gens( {} ) members( {} ) adj fit( {:.3} )",
             self.niche_id,
             self.age,
             self.members.len(),
             self.total_adjusted_fitness.unwrap(),
         );
     }
-
 }
-

@@ -1,32 +1,21 @@
 extern crate rand;
 
-use std::fmt;
+use rand::seq::SliceRandom;
+use rand::Rng;
 use std::any::Any;
 use std::collections::HashMap;
+use std::fmt;
 use std::sync::{Arc, RwLock};
-use rand::Rng;
-use rand::seq::SliceRandom;
 
 use uuid::Uuid;
 
-use super::{
-    layertype::LayerType,
-    layer::Layer,
-    vectorops
-};
 use super::super::{
-    id::*,
-    neuron::*,
-    edge::*,
-    tracer::Tracer,
-    neatenv::NeatEnvironment,
-    neurontype::NeuronType,
-    activation::Activation,
-    direction::NeuronDirection
+    activation::Activation, direction::NeuronDirection, edge::*, id::*, neatenv::NeatEnvironment,
+    neuron::*, neurontype::NeuronType, tracer::Tracer,
 };
+use super::{layer::Layer, layertype::LayerType, vectorops};
 
 use crate::Genome;
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Dense {
@@ -51,7 +40,7 @@ impl Dense {
             nodes: vec![],
             edges: vec![],
             edge_innov_map: HashMap::new(),
-            trace_states: None, 
+            trace_states: None,
             layer_type,
             activation,
             fast_mode: true,
@@ -82,7 +71,12 @@ impl Dense {
     }
 
     /// Make a new node
-    fn make_node(&mut self, neuron_type: NeuronType, activation: Activation, direction: NeuronDirection) -> NeuronId {
+    fn make_node(
+        &mut self,
+        neuron_type: NeuronType,
+        activation: Activation,
+        direction: NeuronDirection,
+    ) -> NeuronId {
         let node_id = NeuronId::new(self.nodes.len());
         let node = Neuron::new(node_id, neuron_type, activation, direction);
         // Create a new node and add it to the node list.
@@ -109,13 +103,15 @@ impl Dense {
         let edges = &mut self.edges;
         // disable edge
         if let Some(edge) = edges.get_mut(edge_id.index()) {
-          edge.disable(&mut self.nodes)
+            edge.disable(&mut self.nodes)
         }
     }
 
     /// Get edge by innov
     pub fn get_edge_by_innov(&self, innov: &Uuid) -> Option<&Edge> {
-        self.edge_innov_map.get(innov).and_then(|edge_id| self.edges.get(edge_id.index()))
+        self.edge_innov_map
+            .get(innov)
+            .and_then(|edge_id| self.edges.get(edge_id.index()))
     }
 
     /// Check if this layer contains an edge.
@@ -132,19 +128,18 @@ impl Dense {
 
     /// get the outputs from the layer in a vec form
     pub fn get_outputs(&self) -> Option<Vec<f32>> {
-        let result = self.outputs
+        let result = self
+            .outputs
             .iter()
-            .map(|x| {
-                self.nodes.get(x.index()).unwrap().activated_value
-            })
+            .map(|x| self.nodes.get(x.index()).unwrap().activated_value)
             .collect::<Vec<_>>();
         Some(result)
     }
 
-    /// Add a node to the network by getting a random edge 
+    /// Add a node to the network by getting a random edge
     /// and inserting the new node in-between that edge's source
-    /// and destination nodes. The old weight is pushed forward 
-    /// while the new weight is randomly chosen and put between the 
+    /// and destination nodes. The old weight is pushed forward
+    /// while the new weight is randomly chosen and put between the
     /// old source node and the new node
     pub fn add_node(&mut self, activation: Activation, direction: NeuronDirection) {
         assert!(self.layer_type == LayerType::DensePool);
@@ -157,14 +152,14 @@ impl Dense {
         // Can't use fast mode with hidden nodes.
         self.fast_mode = false;
 
-        // create a new node to insert inbetween the sending and receiving nodes 
+        // create a new node to insert inbetween the sending and receiving nodes
         let new_node_id = self.make_node(NeuronType::Hidden, activation, direction);
 
         // get a random edge to insert the node into
         let curr_edge = self.random_edge().clone();
 
-        // create two new edges that connect the src and the new node and the 
-        // new node and dst, then disable the current edge 
+        // create two new edges that connect the src and the new node and the
+        // new node and dst, then disable the current edge
         self.make_edge(curr_edge.src, new_node_id, 1.0);
         self.make_edge(new_node_id, curr_edge.dst, curr_edge.weight);
 
@@ -172,10 +167,10 @@ impl Dense {
         self.disable_edge(curr_edge.id);
     }
 
-    /// add a connection to the network. Randomly get a sending node that cannot 
+    /// add a connection to the network. Randomly get a sending node that cannot
     /// be an output and a receiving node which is not an input node, the validate
     /// that the desired connection can be made. If it can be, make the connection
-    /// with a weight of .5 in order to minimally impact the network 
+    /// with a weight of .5 in order to minimally impact the network
     pub fn add_edge(&mut self) {
         assert!(self.layer_type == LayerType::DensePool);
 
@@ -192,7 +187,7 @@ impl Dense {
         // get a vaild receiving neuron
         let receiving = self.random_node_not_of_type(NeuronType::Input);
 
-        // determine if the connection to be made is valid 
+        // determine if the connection to be made is valid
         if self.valid_connection(sending, receiving) {
             // if the connection is valid, make it and wire the nodes to each
             let mut r = rand::thread_rng();
@@ -200,18 +195,18 @@ impl Dense {
         }
     }
 
-    /// Test whether the desired connection is valid or not by testing to see if 
+    /// Test whether the desired connection is valid or not by testing to see if
     /// 1.) it is recursive
     /// 2.) the connection already exists
     /// 3.) the desired connection would create a cycle in the graph
     /// if these are all false, then the connection can be made
     fn valid_connection(&self, sending: NeuronId, receiving: NeuronId) -> bool {
         if sending == receiving {
-            return false
+            return false;
         } else if self.exists(sending, receiving) {
-            return false
+            return false;
         } else if self.cyclical(sending, receiving) {
-            return false
+            return false;
         }
         true
     }
@@ -221,7 +216,8 @@ impl Dense {
     fn cyclical(&self, sending: NeuronId, receiving: NeuronId) -> bool {
         let recv_node = self.nodes.get(receiving.index()).unwrap();
         // dfs stack which gets the receiving Neuron<dyn neurons> outgoing connections
-        let mut stack = recv_node.outgoing_edges()
+        let mut stack = recv_node
+            .outgoing_edges()
             .iter()
             .map(|x| self.edges.get(x.index()).unwrap().dst.index())
             .collect::<Vec<_>>();
@@ -242,12 +238,12 @@ impl Dense {
         false
     }
 
-    /// check if the desired connection already exists within he network, if it does then
+    /// check if the desired connection already exists within the network, if it does then
     /// we should not be creating the connection.
     fn exists(&self, sending: NeuronId, receiving: NeuronId) -> bool {
         for val in self.edges.iter() {
             if val.src == sending && val.dst == receiving {
-                return true
+                return true;
             }
         }
         false
@@ -256,9 +252,8 @@ impl Dense {
     /// get a random node from the network
     fn random_node(&self) -> &Neuron {
         let index = rand::thread_rng().gen_range(0, self.nodes.len());
-        let node = self.nodes.get(index)
-            .expect("Failed to get random node");
-        return node;
+        let node = self.nodes.get(index).expect("Failed to get random node");
+        node
     }
 
     /// get a random node from the network not of the specific type
@@ -271,14 +266,11 @@ impl Dense {
         }
     }
 
-
     /// get a random connection from the network
     fn random_edge(&self) -> &Edge {
         let index = rand::thread_rng().gen_range(0, self.edges.len());
-        self.edges.get(index)
-            .expect("Failed to get random edge")
+        self.edges.get(index).expect("Failed to get random edge")
     }
-
 
     /// Edit the weights in the network randomly by either uniformly perturbing
     /// them, or giving them an entire new weight all together
@@ -301,8 +293,7 @@ impl Dense {
         }
     }
 
-
-    /// get the states of the output neurons. This allows softmax and other specific actions to 
+    /// get the states of the output neurons. This allows softmax and other specific actions to
     /// be taken where knowledge of more than just the immediate neuron's state must be known
     pub fn get_output_states(&self) -> Vec<f32> {
         self.outputs
@@ -314,8 +305,7 @@ impl Dense {
             .collect::<Vec<_>>()
     }
 
-
-    /// Because the output neurons might need to be seen togehter, this must be called to 
+    /// Because the output neurons might need to be seen togehter, this must be called to
     /// set their values before finishing the feed forward function
     pub fn set_output_values(&mut self) {
         let vals = self.get_output_states();
@@ -324,7 +314,7 @@ impl Dense {
                 let act = vectorops::softmax(&vals);
                 let d_act = vectorops::d_softmax(&act);
                 (act, d_act)
-            },
+            }
             _ => {
                 let act = vectorops::element_activate(&vals, self.activation);
                 let d_act = vectorops::element_deactivate(&vals, self.activation);
@@ -338,8 +328,6 @@ impl Dense {
         }
     }
 
-
-
     /// take a snapshot of the neuron's values at this time step if trace is enabled
     pub fn update_traces(&mut self) {
         if let Some(tracer) = &mut self.trace_states {
@@ -350,7 +338,6 @@ impl Dense {
             tracer.index += 1;
         }
     }
-
 
     fn fast_forward(&mut self, data: &[f32]) -> Option<Vec<f32>> {
         let in_size = self.inputs.len();
@@ -376,10 +363,11 @@ impl Dense {
             node.reset_neuron();
 
             // (inputs[] * weights[]) + bias
-            node.current_state = node.incoming_edges().iter().zip(data.iter())
-              .fold(node.bias, |sum, (edge, value)| {
-                  sum + (value * edge.weight)
-              });
+            node.current_state = node
+                .incoming_edges()
+                .iter()
+                .zip(data.iter())
+                .fold(node.bias, |sum, (edge, value)| sum + (value * edge.weight));
             // set inputs
             node.activate();
 
@@ -403,8 +391,15 @@ impl Dense {
 
 #[derive(Debug, Clone, Copy)]
 enum NodeUpdate {
-    Pending{ pending_inputs: usize, sum: f32, output: Option<usize> },
-    Activated{ value: f32, output: Option<usize>},
+    Pending {
+        pending_inputs: usize,
+        sum: f32,
+        output: Option<usize>,
+    },
+    Activated {
+        value: f32,
+        output: Option<usize>,
+    },
 }
 
 impl NodeUpdate {
@@ -414,14 +409,14 @@ impl NodeUpdate {
 
         for edge in node.incoming_edges().iter() {
             match updates.get(edge.src.index()) {
-                Some(NodeUpdate::Activated{value, ..}) => {
+                Some(NodeUpdate::Activated { value, .. }) => {
                     // calculate weighted value for this edge.
                     sum += *value * edge.weight;
                 }
                 _ => {
                     // no NodeUpdate yet or still Pending.
                     pending_inputs += 1;
-                },
+                }
             }
         }
 
@@ -432,7 +427,7 @@ impl NodeUpdate {
             node.activate();
 
             // mark this node as activated.
-            NodeUpdate::Activated{
+            NodeUpdate::Activated {
                 value: node.activated_value,
                 output,
             }
@@ -447,33 +442,30 @@ impl NodeUpdate {
     }
 
     pub fn is_pending(&self) -> bool {
-        match self {
-            NodeUpdate::Pending{..} => true,
-            _ => false,
-        }
+        matches!(self, NodeUpdate::Pending { .. })
     }
 
     pub fn output(&self) -> Option<usize> {
         match *self {
-            NodeUpdate::Pending{output, ..} => output,
-            NodeUpdate::Activated{output, ..} => output,
+            NodeUpdate::Pending { output, .. } => output,
+            NodeUpdate::Activated { output, .. } => output,
         }
     }
 
     pub fn is_activated(&self) -> Option<(f32, Option<usize>)> {
         match *self {
-            NodeUpdate::Pending{..} => None,
-            NodeUpdate::Activated{value, output} => Some((value, output)),
+            NodeUpdate::Pending { .. } => None,
+            NodeUpdate::Activated { value, output } => Some((value, output)),
         }
     }
 }
 
 #[typetag::serde]
 impl Layer for Dense {
-    /// Feed a vec of inputs through the network, will panic! if 
-    /// the shapes of the values do not match or if something goes 
+    /// Feed a vec of inputs through the network, will panic! if
+    /// the shapes of the values do not match or if something goes
     /// wrong within the feed forward process.
-    fn forward(&mut self, data: &Vec<f32>) -> Option<Vec<f32>> {
+    fn forward(&mut self, data: &[f32]) -> Option<Vec<f32>> {
         assert!(data.len() == self.inputs.len());
         if self.fast_mode {
             return self.fast_forward(data);
@@ -493,7 +485,7 @@ impl Layer for Dense {
         //
         // If their are no Hidden nodes, then all node should be activated
         // during this first pass.
-        let mut inputs = data.into_iter();
+        let mut inputs = data.iter();
         for node in self.nodes.iter_mut() {
             // reset neuron
             node.reset_neuron();
@@ -504,11 +496,11 @@ impl Layer for Dense {
                     let value = *inputs.next().unwrap();
                     node.activated_value = value;
                     // active input node from input data.
-                    NodeUpdate::Activated{
+                    NodeUpdate::Activated {
                         value,
                         output: None,
                     }
-                },
+                }
                 NeuronType::Output => {
                     // try activating Output nodes.
                     let update = NodeUpdate::process(&updates, node, Some(outputs.len()));
@@ -520,11 +512,11 @@ impl Layer for Dense {
                         outputs.push(0.0);
                     }
                     update
-                },
+                }
                 NeuronType::Hidden => {
                     // try activating Output nodes.
                     NodeUpdate::process(&updates, node, None)
-                },
+                }
             };
             // count pending updates
             if update.is_pending() {
@@ -559,13 +551,13 @@ impl Layer for Dense {
                     // try activating node
                     let update = NodeUpdate::process(&updates, node, output_idx);
                     match update {
-                        NodeUpdate::Pending{..} => {
+                        NodeUpdate::Pending { .. } => {
                             // keep track of lowest pending idx.
                             if idx < lowest_pending_idx {
                                 lowest_pending_idx = idx;
                             }
-                        },
-                        NodeUpdate::Activated{value, output} => {
+                        }
+                        NodeUpdate::Activated { value, output } => {
                             // check for activated output
                             if let Some(out_idx) = output {
                                 // update activated output.
@@ -574,7 +566,7 @@ impl Layer for Dense {
                             // node changed from Pending->Activated
                             pending_cnt -= 1;
                             changes += 1;
-                        },
+                        }
                     }
                     updates[idx] = update;
                 }
@@ -603,13 +595,12 @@ impl Layer for Dense {
         }
     }
 
-
     /// Backpropagation algorithm, transfer the error through the network and change the weights of the
     /// edges accordingly, this is pretty straightforward due to the design of the neat graph
-    fn backward(&mut self, error: &Vec<f32>, learning_rate: f32) -> Option<Vec<f32>> {
+    fn backward(&mut self, error: &[f32], learning_rate: f32) -> Option<Vec<f32>> {
         // feed forward the input data to get the output in order to compute the error of the network
         // create a dfs stack to step backwards through the network and compute the error of each neuron
-        // then insert that error in a hashmap to keep track of innov of the neuron and it's error 
+        // then insert that error in a hashmap to keep track of innov of the neuron and it's error
         let mut path = Vec::with_capacity(self.inputs.len());
         for (index, id) in self.outputs.iter().enumerate() {
             let node = self.nodes.get_mut(id.index()).unwrap();
@@ -622,12 +613,12 @@ impl Layer for Dense {
 
         // step through the network backwards and adjust the weights
         while let Some(node_id) = path.pop() {
-            // get the current node and it's error 
+            // get the current node and it's error
             let curr_node = self.nodes.get_mut(node_id.index())?;
             let curr_error = curr_node.error;
             let step = match &self.trace_states {
                 Some(tracer) => curr_error * tracer.neuron_derivative(curr_node.id),
-                None => curr_error * curr_node.deactivated_value
+                None => curr_error * curr_node.deactivated_value,
             } * learning_rate;
 
             // reset the nodes error if it isn't an input node
@@ -657,7 +648,7 @@ impl Layer for Dense {
                     // then update the connection so it knows if it should update the weight, or store the delta
                     let delta = match &self.trace_states {
                         Some(tracer) => step * tracer.neuron_activation(src_neuron.id),
-                        None => step * src_neuron.activated_value
+                        None => step * src_neuron.activated_value,
                     };
 
                     // Update edge
@@ -674,18 +665,17 @@ impl Layer for Dense {
             let neuron = self.nodes.get_mut(x.index()).unwrap();
             let error = match &self.trace_states {
                 Some(tracer) => neuron.error * tracer.neuron_activation(neuron.id),
-                None => neuron.error * neuron.activated_value
+                None => neuron.error * neuron.activated_value,
             };
             neuron.error = 0.0;
             output.push(error);
         }
-        // deduct the backprop index 
+        // deduct the backprop index
         if let Some(tracer) = &mut self.trace_states {
             tracer.index -= 1;
         }
         Some(output)
     }
-
 
     fn reset(&mut self) {
         if let Some(tracer) = &mut self.trace_states {
@@ -694,57 +684,58 @@ impl Layer for Dense {
         self.reset_neurons();
     }
 
-
     /// add a tracer to the layer to keep track of historical meta data
     fn add_tracer(&mut self) {
-        self.trace_states = Some(Tracer::new());
+        self.trace_states = Some(Tracer::default());
     }
-
 
     fn remove_tracer(&mut self) {
         self.trace_states = None;
     }
 
-
-
     fn as_ref_any(&self) -> &dyn Any
-        where Self: Sized + 'static
+    where
+        Self: Sized + 'static,
     {
         self
     }
-
 
     fn as_mut_any(&mut self) -> &mut dyn Any
-        where Self: Sized + 'static
+    where
+        Self: Sized + 'static,
     {
         self
     }
-
 
     fn shape(&self) -> (usize, usize) {
         (self.inputs.len(), self.outputs.len())
     }
 }
 
-
 impl Genome<Dense, NeatEnvironment> for Dense
-    where Dense: Layer
+where
+    Dense: Layer,
 {
-    fn crossover(child: &Dense, parent_two: &Dense, env: Arc<RwLock<NeatEnvironment>>, crossover_rate: f32) -> Option<Dense> {
+    fn crossover(
+        child: &Dense,
+        parent_two: &Dense,
+        env: Arc<RwLock<NeatEnvironment>>,
+        crossover_rate: f32,
+    ) -> Option<Dense> {
         let mut new_child = child.clone();
         let set = (*env).read().ok()?;
         let mut r = rand::thread_rng();
         if r.gen::<f32>() < crossover_rate {
             for edge in new_child.edges.iter_mut() {
                 // if the edge is in both networks, then randomly assign the weight to the edge
-                // because we are already looping over the most fit parent, we only need to change the 
+                // because we are already looping over the most fit parent, we only need to change the
                 // weight to the second parent if necessary.
                 if let Some(parent_edge) = parent_two.get_edge_by_innov(&edge.innov) {
                     if r.gen::<f32>() < 0.5 {
                         edge.update_weight(parent_edge.weight, &mut new_child.nodes);
                     }
 
-                    // if the edge is deactivated in either network and a random number is less than the 
+                    // if the edge is deactivated in either network and a random number is less than the
                     // reactivate parameter, then reactivate the edge and insert it back into the network
                     if (!edge.active || !parent_edge.active) && r.gen::<f32>() < set.reactivate? {
                         edge.enable(&mut new_child.nodes);
@@ -753,7 +744,7 @@ impl Genome<Dense, NeatEnvironment> for Dense
             }
         } else {
             // if a random number is less than the edit_weights parameter, then edit the weights of the network edges
-            // add a possible new node to the network randomly 
+            // add a possible new node to the network randomly
             // attempt to add a new edge to the network, there is a chance this operation will add no edge
             if r.gen::<f32>() < set.weight_mutate_rate? {
                 new_child.edit_weights(set.edit_weights?, set.weight_perturb?);
@@ -777,8 +768,6 @@ impl Genome<Dense, NeatEnvironment> for Dense
         Some(new_child)
     }
 
-
-
     fn distance(one: &Dense, two: &Dense, _: Arc<RwLock<NeatEnvironment>>) -> f32 {
         let mut similar = 0.0;
         for innov in one.edge_innov_map.keys() {
@@ -792,14 +781,13 @@ impl Genome<Dense, NeatEnvironment> for Dense
     }
 }
 
-
 /// Implement partialeq for neat because if neat itself is to be used as a problem,
 /// it must be able to compare one to another
 impl PartialEq for Dense {
     fn eq(&self, other: &Self) -> bool {
         if self.edges.len() != other.edges.len() || self.nodes.len() != other.nodes.len() {
             return false;
-        } 
+        }
         for (one, two) in self.edges.iter().zip(other.edges.iter()) {
             if one != two {
                 return false;
@@ -809,7 +797,7 @@ impl PartialEq for Dense {
     }
 }
 
-/// Simple override of display for neat to debug a little cleaner 
+/// Simple override of display for neat to debug a little cleaner
 impl fmt::Display for Dense {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Dense=[{}, {}]", self.nodes.len(), self.edges.len())

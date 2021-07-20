@@ -1,23 +1,12 @@
-
+pub mod matrix_tree;
 pub mod prelude;
 pub mod tree;
-pub mod matrix_tree;
 
-pub use tree::{
-    iterators::{
-        InOrderIterator,
-        LevelOrderIterator,
-        IterMut
-    },
-};
+pub use tree::iterators::{InOrderIterator, IterMut, LevelOrderIterator};
 
-pub use matrix_tree::{
-    evtree::Evtree,
-    evenv::TreeEnvionment,
-    network::NeuralNetwork,
-};
+pub use matrix_tree::{evenv::TreeEnvionment, evtree::Evtree, network::NeuralNetwork};
 
-/// get a default environment settings for evtree, these are very basic and 
+/// get a default environment settings for evtree, these are very basic and
 /// are used to solve the xor problem. These are just settings to evolve the
 /// tree, more can be added or taken away depending on the desired problem to solve
 pub fn default_evtree_env() -> TreeEnvionment {

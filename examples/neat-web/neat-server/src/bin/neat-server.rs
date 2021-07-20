@@ -1,30 +1,30 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 
-#[macro_use] extern crate rocket;
-#[macro_use] extern crate rocket_contrib;
+#[macro_use]
+extern crate rocket;
+#[macro_use]
+extern crate rocket_contrib;
 extern crate radiate;
 extern crate radiate_web;
 extern crate serde;
-extern crate serde_json;
 extern crate serde_derive;
+extern crate serde_json;
 
 use std::collections::HashMap;
-use std::sync::{RwLock, Arc};
+use std::sync::{Arc, RwLock};
 
 use uuid::Uuid;
 
 use radiate_web::prelude::*;
 
-use rocket::State;
 use rocket::config::{Config as RConfig, Environment as REnv};
+use rocket::State;
 use rocket_contrib::json::{Json, JsonValue};
 
 use neat_server::*;
 
 fn work_to_json(work: Option<WorkUnit>) -> JsonValue {
-    json!(GetWorkResp {
-        work: work,
-    })
+    json!(GetWorkResp { work: work })
 }
 
 #[derive(Default)]
@@ -45,7 +45,10 @@ impl SimStorage {
     pub fn add(&self, sim: Simulation) -> Option<Uuid> {
         let id = sim.id();
         println!("Add new simulation: {}", id);
-        self.simulations.write().unwrap().insert(id, Arc::new(RwLock::new(sim)));
+        self.simulations
+            .write()
+            .unwrap()
+            .insert(id, Arc::new(RwLock::new(sim)));
         Some(id)
     }
 
@@ -69,7 +72,12 @@ impl SimStorage {
         work_to_json(None)
     }
 
-    pub fn work_results(&self, id: &str, result: GetWorkResult, get_work: bool) -> Option<JsonValue> {
+    pub fn work_results(
+        &self,
+        id: &str,
+        result: GetWorkResult,
+        get_work: bool,
+    ) -> Option<JsonValue> {
         if let Some(sim) = self.get(&id) {
             let mut sim = sim.write().unwrap();
             sim.work_results(result);
@@ -84,7 +92,6 @@ impl SimStorage {
     }
 }
 
-
 fn main() {
     env_logger::init();
     // generate_post_data();
@@ -96,19 +103,21 @@ fn main() {
         .unwrap();
 
     rocket::custom(r_config)
-        .mount("/", routes![
-            get_work,
-            get_sim_status,
-            get_sim_training_set,
-            get_solution,
-            sim_get_work,
-            work_results,
-            new_sim,
-        ])
+        .mount(
+            "/",
+            routes![
+                get_work,
+                get_sim_status,
+                get_sim_training_set,
+                get_solution,
+                sim_get_work,
+                work_results,
+                new_sim,
+            ],
+        )
         .manage(SimStorage::new())
         .launch();
 }
-
 
 #[get("/get_work")]
 fn get_work(sims: State<SimStorage>) -> JsonValue {
@@ -150,8 +159,17 @@ fn get_sim_training_set(sims: State<SimStorage>, id: String) -> Option<JsonValue
     }
 }
 
-#[post("/simulations/<id>/work_results?<get_work>", format = "json", data = "<result>")]
-fn work_results(sims: State<SimStorage>, id: String, get_work: bool, result: Json<GetWorkResult>) -> Option<JsonValue> {
+#[post(
+    "/simulations/<id>/work_results?<get_work>",
+    format = "json",
+    data = "<result>"
+)]
+fn work_results(
+    sims: State<SimStorage>,
+    id: String,
+    get_work: bool,
+    result: Json<GetWorkResult>,
+) -> Option<JsonValue> {
     sims.work_results(&id, result.0, get_work)
 }
 
@@ -161,4 +179,3 @@ fn new_sim(sims: State<SimStorage>, radiate: Json<RadiateDto>) -> Option<JsonVal
     let id = sims.add(sim)?;
     Some(json!({ "id": format!("{}", id.to_hyphenated()) }))
 }
-

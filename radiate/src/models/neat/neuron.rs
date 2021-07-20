@@ -1,14 +1,12 @@
-
 extern crate rand;
 
 use rand::Rng;
 
-use super::id::*;
-use super::edge::*;
 use super::activation::Activation;
-use super::neurontype::NeuronType;
 use super::direction::NeuronDirection;
-
+use super::edge::*;
+use super::id::*;
+use super::neurontype::NeuronType;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct NeuronLink {
@@ -27,7 +25,7 @@ impl NeuronLink {
     }
 }
 
-/// Neuron is a wrapper around a neuron providing only what is needed for a neuron to be added 
+/// Neuron is a wrapper around a neuron providing only what is needed for a neuron to be added
 /// to the NEAT graph, while the neuron encapsulates the neural network logic for the specific node type,
 /// Some neurons like an LSTM require more variables and different internal activation logic,
 /// so encapsulating that within a normal node on the graph would be misplaced.
@@ -47,9 +45,13 @@ pub struct Neuron {
     pub bias: f32,
 }
 
-
 impl Neuron {
-    pub fn new(id: NeuronId, neuron_type: NeuronType, activation: Activation, direction: NeuronDirection) -> Self {
+    pub fn new(
+        id: NeuronId,
+        neuron_type: NeuronType,
+        activation: Activation,
+        direction: NeuronDirection,
+    ) -> Self {
         Neuron {
             id,
             outgoing: Vec::new(),
@@ -112,18 +114,21 @@ impl Neuron {
                 NeuronDirection::Forward => {
                     self.activated_value = self.activation.activate(self.current_state);
                     self.deactivated_value = self.activation.deactivate(self.current_state);
-                },
+                }
                 NeuronDirection::Recurrent => {
-                    self.activated_value = self.activation.activate(self.current_state + self.previous_state);
-                    self.deactivated_value = self.activation.deactivate(self.current_state + self.previous_state);
+                    self.activated_value = self
+                        .activation
+                        .activate(self.current_state + self.previous_state);
+                    self.deactivated_value = self
+                        .activation
+                        .deactivate(self.current_state + self.previous_state);
                 }
             }
             self.previous_state = self.current_state;
         }
     }
 
-
-    /// each Neuron has a base layer of reset which needs to happen 
+    /// each Neuron has a base layer of reset which needs to happen
     /// but on top of that each neuron might need to do more internally
     #[inline]
     pub fn reset_neuron(&mut self) {
@@ -133,29 +138,29 @@ impl Neuron {
         self.current_state = 0.0;
     }
 
-
     #[inline]
     pub fn clone_with_values(&self) -> Self {
         Neuron {
             id: self.id,
             outgoing: self.outgoing.clone(),
             incoming: self.incoming.clone(),
-            current_state: self.current_state.clone(),
-            previous_state: self.previous_state.clone(),
-            activated_value: self.activated_value.clone(),
-            deactivated_value: self.deactivated_value.clone(),
-            error: self.error.clone(),
-            bias: self.bias.clone(),
-            activation: self.activation.clone(),
-            neuron_type: self.neuron_type.clone(),
-            direction: self.direction.clone()
+            current_state: self.current_state,
+            previous_state: self.previous_state,
+            activated_value: self.activated_value,
+            deactivated_value: self.deactivated_value,
+            error: self.error,
+            bias: self.bias,
+            activation: self.activation,
+            neuron_type: self.neuron_type,
+            direction: self.direction,
         }
     }
 }
 
 impl Clone for Neuron {
-    fn clone(&self) -> Self { 
+    fn clone(&self) -> Self {
         Neuron {
+            // Cloning is not necessary on many types since they implement Copy
             id: self.id,
             outgoing: self.outgoing.clone(),
             incoming: self.incoming.clone(),
@@ -164,10 +169,10 @@ impl Clone for Neuron {
             activated_value: 0.0,
             deactivated_value: 0.0,
             error: 0.0,
-            bias: self.bias.clone(),
-            activation: self.activation.clone(),
-            neuron_type: self.neuron_type.clone(),
-            direction: self.direction.clone()
+            bias: self.bias,
+            activation: self.activation,
+            neuron_type: self.neuron_type,
+            direction: self.direction,
         }
     }
 }

@@ -12,9 +12,9 @@ pub struct LevelOrderIterator<'a, T: Clone> {
 impl<'a, T: Clone> LevelOrderIterator<'a, T> {
     pub fn new(root: Option<&'a Node<T>>) -> Self {
         let mut iter = Self {
-          root,
-          next_level: 0,
-          stack: Vec::new(),
+            root,
+            next_level: 0,
+            stack: Vec::new(),
         };
         // push first level
         iter.push_next_level();
@@ -28,8 +28,8 @@ impl<'a, T: Clone> LevelOrderIterator<'a, T> {
             if level == curr {
                 self.stack.push(node);
             } else {
-                self.push_level(node.right_child_opt(), level+1, curr);
-                self.push_level(node.left_child_opt(), level+1, curr);
+                self.push_level(node.right_child_opt(), level + 1, curr);
+                self.push_level(node.left_child_opt(), level + 1, curr);
             }
         }
     }
@@ -75,7 +75,7 @@ fn left_most<'a, T: Clone>(node: Option<&'a Node<T>>) -> Option<&'a Node<T>> {
                 next = left;
             }
             Some(next)
-        },
+        }
         None => None,
     }
 }
@@ -114,7 +114,7 @@ impl<'a, T: Clone> Iterator for InOrderIterator<'a, T> {
                         // No parent.  We are back at root node, finished.
                         self.next = None;
                         return curr_node;
-                    },
+                    }
                     Some(parent) => {
                         // check if we are walking up from left-side
                         if parent.check_left_child(node) {
@@ -124,7 +124,7 @@ impl<'a, T: Clone> Iterator for InOrderIterator<'a, T> {
                         }
                         // when walking up from the right-side, keep going up.
                         node = parent;
-                    },
+                    }
                 }
             }
         }
@@ -165,7 +165,7 @@ impl<'a, T: Clone> Iterator for IterMut<'a, T> {
             }
         }
         self.stack.pop()?.map(|res_node| {
-            let res_node = unsafe { &mut *res_node};
+            let res_node = unsafe { &mut *res_node };
             self.stack.push(res_node.right_child_mut_ptr_opt());
             res_node
         })
@@ -188,7 +188,10 @@ mod test {
         //     / \         / \    / \       / \
         //    7   8       9  10  11  12   13  14
         //
-        let mut nums = [7,3,8,1,9,4,10,0,11,5,12,2,13,6,14].iter().map(|n| Some(*n)).collect::<Vec<_>>();
+        let mut nums = [7, 3, 8, 1, 9, 4, 10, 0, 11, 5, 12, 2, 13, 6, 14]
+            .iter()
+            .map(|n| Some(*n))
+            .collect::<Vec<_>>();
         let tree = Tree::from_slice(&mut nums[..]);
 
         let root = tree.root_opt().expect("no root node");

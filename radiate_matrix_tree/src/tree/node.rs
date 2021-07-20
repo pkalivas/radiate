@@ -1,7 +1,7 @@
-use std::ops::{Deref, DerefMut};
-use std::ptr;
 use std::cmp::max;
 use std::fmt;
+use std::ops::{Deref, DerefMut};
+use std::ptr;
 
 pub type Link<T> = Option<Box<Node<T>>>;
 
@@ -75,12 +75,12 @@ impl<T: Clone> Node<T> {
         self.left_child.is_some()
     }
 
-    /// return true if this node has a valid right child and is not pointing to a null pointer 
+    /// return true if this node has a valid right child and is not pointing to a null pointer
     pub fn has_right_child(&self) -> bool {
         self.right_child.is_some()
     }
 
-    /// return true if this node has a parent, false if not. 
+    /// return true if this node has a parent, false if not.
     /// If it does not, then this node is the root of the tree.
     pub fn has_parent(&self) -> bool {
         !self.parent.is_null()
@@ -120,7 +120,9 @@ impl<T: Clone> Node<T> {
 
     /// Returns a raw mutable reference to this node's right child.
     pub(crate) fn right_child_mut_ptr_opt(&mut self) -> Option<*mut Node<T>> {
-        self.right_child.as_mut().map(|n| (&mut **n) as *mut Node<T>)
+        self.right_child
+            .as_mut()
+            .map(|n| (&mut **n) as *mut Node<T>)
     }
 
     /// Safely returns a mutable reference to this node's left child.
@@ -208,26 +210,26 @@ impl<T: Clone> Node<T> {
     }
 
     /// return the height of this node recursively
-    #[inline]    
+    #[inline]
     pub fn height(&self) -> i32 {
         1 + max(
             self.left_child_opt().map_or(0, |node| node.height()),
-            self.right_child_opt().map_or(0, |node| node.height())
+            self.right_child_opt().map_or(0, |node| node.height()),
         )
     }
 
-    /// return the depth of this node, meaning the number of levels down it is 
+    /// return the depth of this node, meaning the number of levels down it is
     /// from the root of the tree, recursively.
-    #[inline]    
+    #[inline]
     pub fn depth(&self) -> i32 {
         match self.parent_opt() {
             Some(parent) => 1 + parent.depth(),
-            None => 0
+            None => 0,
         }
     }
 
     /// return the size of the subtree recursively.
-    #[inline]    
+    #[inline]
     pub fn size(&self) -> i32 {
         let mut result = 1;
         if !self.is_leaf() {
@@ -255,7 +257,7 @@ impl<T: Clone> Node<T> {
 
     /// deep copy this node and it's subnodes. Recursively traverse the tree in order and
     /// thin copy the current node, then assign it's surrounding pointers recursively.
-    #[inline]    
+    #[inline]
     pub fn deepcopy(&self) -> Box<Node<T>> {
         let mut temp_copy = self.copy();
         if let Some(child) = self.left_child_opt() {
@@ -277,15 +279,15 @@ impl<T: Clone> Node<T> {
                     child.insert_random(node);
                 } else {
                     self.set_left_child(Some(node));
-                    return
+                    return;
                 }
-            },
+            }
             false => {
                 if let Some(child) = self.right_child_mut_opt() {
                     child.insert_random(node);
                 } else {
                     self.set_right_child(Some(node));
-                    return
+                    return;
                 }
             }
         }
@@ -298,10 +300,7 @@ impl<T: Clone> Node<T> {
         if let Some(child) = self.left_child_opt() {
             child.display(level + 1);
         }
-        let tabs: String = (0..level)
-            .map(|_| "\t")
-            .collect::<Vec<_>>()
-            .join("");
+        let tabs: String = (0..level).map(|_| "\t").collect::<Vec<_>>().join("");
         println!("{}{:?}\n", tabs, self);
         if let Some(child) = self.right_child_opt() {
             child.display(level + 1);
@@ -333,7 +332,10 @@ impl<T: Clone> PartialEq for Node<T> {
 /// make it easier to trace through a tree when a tree is displayed
 impl<T: Clone> fmt::Debug for Node<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Node[{:p}]={{parent = {:?}, left = {:?}, right = {:?}}}",
-          self, self.parent, self.left_child, self.right_child)
+        write!(
+            f,
+            "Node[{:p}]={{parent = {:?}, left = {:?}, right = {:?}}}",
+            self, self.parent, self.left_child, self.right_child
+        )
     }
 }
