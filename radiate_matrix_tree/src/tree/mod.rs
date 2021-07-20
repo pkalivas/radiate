@@ -212,7 +212,7 @@ impl<T: Clone> Tree<T> {
         // return a vec where the depth of a node is equal to
         // the biased level chosen. Order does not matter
         // because there will be more numbers in the levels vec with
-        // a lower depth inherintly due to tree structures
+        // a lower depth inherently due to tree structures
         self.in_order_iter()
             .filter(|x| x.depth() == levels[index])
             .collect::<Vec<_>>()

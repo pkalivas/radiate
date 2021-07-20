@@ -153,7 +153,7 @@ impl<'a, T: Clone> IterMut<'a, T> {
 
 /// implement an in order iterator.
 /// We have to use raw pointers and unsafe because the borrow checker
-/// will not allow use to have more then one mutable reference to the same node.
+/// will not allow use to have more than one mutable reference to the same node.
 impl<'a, T: Clone> Iterator for IterMut<'a, T> {
     type Item = &'a mut Node<T>;
 

@@ -6,7 +6,7 @@ use simple_matrix::Matrix;
 use std::f32::consts::E as Eul;
 
 /// The neural network struct is meant to represent a simple feed forward neural network
-/// with the ability to maniupate it's weights and biases, and feed forward a 1D vector
+/// with the ability to manipulate it's weights and biases, and feed forward a 1D vector
 /// of a predetermined size (input_size).
 #[derive(Debug, Clone)]
 pub struct NeuralNetwork {
@@ -15,13 +15,13 @@ pub struct NeuralNetwork {
     input_size: i32,
 }
 
-/// implement the nerual network
+/// implement the neural network
 impl NeuralNetwork {
     /// Create a new neural network
     ///
     /// This returns a completely empty neural network,
     /// to create a random network chain the 'fill_random()'
-    /// method ontop of this method call.
+    /// method on top of this method call.
     pub fn new(input_size: i32) -> Self {
         NeuralNetwork {
             weights: Vec::new(),
@@ -50,7 +50,7 @@ impl NeuralNetwork {
         // which randomly transforms the given weight be a given weight transform amount
         // or uniformly changed.
         // need to create a new rand thread_rng because during concurrent weight editing, there is a change
-        // the network's self random will try to generage both an f32 and an f32 at the same time
+        // the network's self random will try to generate both an f32 and an f32 at the same time
         // resulting in a program wide panic! that unwinds the stack.
         let mut temp_rand = rand::thread_rng();
         let transform = |x: &mut f32| {
@@ -72,11 +72,11 @@ impl NeuralNetwork {
     }
 
     /// Generate a random neural network with at least one hidden layer and each layer with a size
-    /// of at least one. Return a tuble containin the vec of weights represented by a simple
-    /// matrix and a vec of biases represeted by a simple matrix as well.
+    /// of at least one. Return a tuple containing the vec of weights represented by a simple
+    /// matrix and a vec of biases represented by a simple matrix as well.
     #[inline]
     pub fn generate_random_network(&mut self) -> (Vec<Matrix<f32>>, Vec<Matrix<f32>>) {
-        // initialize the vecs and keep track of the previous size so the matrix mutiplication
+        // initialize the vecs and keep track of the previous size so the matrix multiplication
         // matches correctly https://www.mathsisfun.com/algebra/matrix-multiplying.html
         // Then create a list of layer sizes in range (1, 4], with sizes (1, 32]
         let mut r = rand::thread_rng();
@@ -90,9 +90,9 @@ impl NeuralNetwork {
         for layer in sizes {
             // get a vector of randomly generated f32 values with size layer * previous_size
             // then create a matrix out of each returned value
-            let (weight_data, biase_data) = self.rand_layer_nums(layer, previous_size, &mut r);
+            let (weight_data, bias_data) = self.rand_layer_nums(layer, previous_size, &mut r);
             let curr_weight = Matrix::from_iter(layer, previous_size, weight_data);
-            let curr_bias = Matrix::from_iter(layer, 1, biase_data);
+            let curr_bias = Matrix::from_iter(layer, 1, bias_data);
 
             // add the matrices to the network then transfer the previous size
             weights.push(curr_weight);
@@ -100,11 +100,11 @@ impl NeuralNetwork {
             previous_size = layer;
         }
 
-        // get the random values for the output layer of the neural net, this is nessecary because
+        // get the random values for the output layer of the neural net, this is necessary because
         // the output will be of size 2, so we must make sure the network matches that shape
-        let (weight_data, biase_data) = self.rand_layer_nums(2, previous_size, &mut r);
+        let (weight_data, bias_data) = self.rand_layer_nums(2, previous_size, &mut r);
         weights.push(Matrix::from_iter(2, previous_size, weight_data));
-        biases.push(Matrix::from_iter(2, 1, biase_data));
+        biases.push(Matrix::from_iter(2, 1, bias_data));
 
         // return the weights and biases
         (weights, biases)
@@ -124,7 +124,7 @@ impl NeuralNetwork {
         input
     }
 
-    /// Create two lists with randomly generated f32 values represetnting the weights
+    /// Create two lists with randomly generated f32 values representing the weights
     /// and biases of the neural network. Return them in a tuple
     #[inline]
     fn rand_layer_nums(
@@ -152,16 +152,16 @@ impl NeuralNetwork {
         total
     }
 
-    /// Sigmoid function for as an activation function for the nerual network between layers
+    /// Sigmoid function for as an activation function for the neural network between layers
     #[allow(dead_code)]
     fn sigmoid(x: &f32) -> f32 {
         1.0 / (1.0 + Eul.powf(*x * -1.0))
     }
 }
 
-/// Override the partialeq trait for the neural network. This is needed because there is
-/// no impmenetation for partialeq for a ThreadRng which the nerual net ownes. Because
-/// that doesn't matter for a partialeq, this override only checks what is actually needed.
+/// Override the PartialEq trait for the neural network. This is needed because there is
+/// no implementation for PartialEq for a ThreadRng which the neural net owns. Because
+/// that doesn't matter for a PartialEq, this override only checks what is actually needed.
 /// Without this the program will not compile.
 impl PartialEq for NeuralNetwork {
     fn eq(&self, other: &Self) -> bool {
