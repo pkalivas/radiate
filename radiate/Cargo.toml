@@ -21,7 +21,7 @@ stdweb = ["uuid/stdweb"]
 wasm-bindgen = ["uuid/wasm-bindgen"]
 
 [dependencies]
-rand="0.7.2"
+rand="0.8.4"
 rayon="1.2.0"
 uuid = { version = "0.8", features = ["serde", "v4"] }
 serde = {version ="1.0", features = ["rc"]}

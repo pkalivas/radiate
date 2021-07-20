@@ -56,7 +56,7 @@ impl NeuralNetwork {
         let transform = |x: &mut f32| {
             let mut r = rand::thread_rng();
             if r.gen::<f32>() < weight_mutate {
-                *x *= r.gen_range(-weight_transform, weight_transform);
+                *x *= r.gen_range(-weight_transform..weight_transform);
             } else {
                 *x = r.gen::<f32>();
             }
@@ -82,8 +82,8 @@ impl NeuralNetwork {
         let mut r = rand::thread_rng();
         let (mut weights, mut biases) = (Vec::new(), Vec::new());
         let mut previous_size = self.input_size as usize;
-        let sizes = (0..r.gen_range(1, 4))
-            .map(|_| r.gen_range(1, 32))
+        let sizes = (0..r.gen_range(1..4))
+            .map(|_| r.gen_range(1..32))
             .collect::<Vec<_>>();
 
         // loop through each layer size to create a network layer, keep the size of the last layer
@@ -173,6 +173,7 @@ impl Drop for NeuralNetwork {
     fn drop(&mut self) {}
 }
 
+// TODO
 // #[cfg(test)]
 // mod tests {
 //     use super::*;

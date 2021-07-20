@@ -203,7 +203,7 @@ impl<T: Clone> Tree<T> {
     pub fn get_biased_level<'a>(&'a self) -> Vec<&'a Node<T>> {
         let mut r = rand::thread_rng();
         let height = self.height();
-        let index = r.gen_range(0, self.len()) as usize;
+        let index = r.gen_range(0..self.len()) as usize;
         let levels = self
             .level_order_iter()
             .map(|x: &Node<T>| height - x.height())
@@ -222,7 +222,7 @@ impl<T: Clone> Tree<T> {
     /// towards the bottom of the tree, then returning a reference to the chosen node
     pub fn get_biased_random_node<'a>(&'a self) -> &'a Node<T> {
         let mut nodes = self.get_biased_level();
-        let index = rand::thread_rng().gen_range(0, nodes.len());
+        let index = rand::thread_rng().gen_range(0..nodes.len());
         nodes.remove(index)
     }
 

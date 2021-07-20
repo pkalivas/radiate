@@ -13,5 +13,5 @@ license = "MIT"
 
 [dependencies]
 radiate={path="../radiate"}
-rand="0.7.2"
+rand="0.8.4"
 simple-matrix = "0.1.2"

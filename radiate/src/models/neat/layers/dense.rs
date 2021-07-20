@@ -251,7 +251,7 @@ impl Dense {
 
     /// get a random node from the network
     fn random_node(&self) -> &Neuron {
-        let index = rand::thread_rng().gen_range(0, self.nodes.len());
+        let index = rand::thread_rng().gen_range(0..self.nodes.len());
         let node = self.nodes.get(index).expect("Failed to get random node");
         node
     }
@@ -268,7 +268,7 @@ impl Dense {
 
     /// get a random connection from the network
     fn random_edge(&self) -> &Edge {
-        let index = rand::thread_rng().gen_range(0, self.edges.len());
+        let index = rand::thread_rng().gen_range(0..self.edges.len());
         self.edges.get(index).expect("Failed to get random edge")
     }
 
@@ -280,7 +280,7 @@ impl Dense {
             let weight = if r.gen::<f32>() < editable {
                 r.gen::<f32>()
             } else {
-                edge.weight * r.gen_range(-size, size)
+                edge.weight * r.gen_range(-size..size)
             };
             edge.update_weight(weight, &mut self.nodes);
         }
@@ -288,7 +288,7 @@ impl Dense {
             if r.gen::<f32>() < editable {
                 node.bias = r.gen::<f32>();
             } else {
-                node.bias *= r.gen_range(-size, size);
+                node.bias *= r.gen_range(-size..size);
             }
         }
     }

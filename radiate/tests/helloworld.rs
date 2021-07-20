@@ -96,7 +96,7 @@ impl Hello {
     pub fn new(alph: &[char]) -> Self {
         let mut r = rand::thread_rng();
         Hello {
-            data: (0..12).map(|_| alph[r.gen_range(0, alph.len())]).collect(),
+            data: (0..12).map(|_| alph[r.gen_range(0..alph.len())]).collect(),
         }
     }
 
@@ -130,8 +130,8 @@ impl Genome<Hello, HelloEnv> for Hello {
             }
         } else {
             new_data = parent_one.data.clone();
-            let swap_index = r.gen_range(0, new_data.len());
-            new_data[swap_index] = params.alph[r.gen_range(0, params.alph.len())];
+            let swap_index = r.gen_range(0..new_data.len());
+            new_data[swap_index] = params.alph[r.gen_range(0..params.alph.len())];
         }
         Some(Hello { data: new_data })
     }

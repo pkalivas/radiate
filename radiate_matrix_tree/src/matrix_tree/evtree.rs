@@ -33,7 +33,7 @@ impl NetNode {
     /// neural network.
     pub fn new(input_size: i32, output_options: &[i32]) -> Self {
         let mut r = rand::thread_rng();
-        let output = output_options[r.gen_range(0, output_options.len())] as u8;
+        let output = output_options[r.gen_range(0..output_options.len())] as u8;
         Self {
             neural_network: NeuralNetwork::new(input_size).fill_random(),
             input_size,
@@ -57,7 +57,7 @@ impl Evtree {
     /// Gut a random node from the tree. Get a random index from the tree
     /// then give that node a new neural network.
     pub fn gut_random_node(&mut self, r: &mut ThreadRng) {
-        let index = r.gen_range(0, self.len()) as usize;
+        let index = r.gen_range(0..self.len()) as usize;
         let temp_node = self.get_mut(index).unwrap();
         temp_node.neural_network = NeuralNetwork::new(temp_node.input_size);
     }
