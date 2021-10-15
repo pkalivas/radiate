@@ -6,7 +6,7 @@
 Coming from Evolutionary Radiation.
 > Evolutionary radiation is a rapid increase in the number of species with a common ancestor, characterized by great ecological and morphological diversity - Pascal Neige.
 
-Radiate is a parallel genetic programming engine capable of evolving solutions to many problems as well as training learning algorithms. By separating the the evolutionary process from the object being evolved, users can evolve any defined structure. The algorithm follows an evolutionary process through speciation which allows structures to optimize within their own niche.
+By separating the the evolutionary process from the object being evolved, users can evolve any defined structure. The algorithm follows an evolutionary process through speciation which allows structures to optimize within their own niche.
 
 Radiate exposes three traits to the user which must be implemented (full simple implementation below):
 1. **Genome**  
