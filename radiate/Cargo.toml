@@ -1,30 +1,14 @@
 [package]
 name = "radiate"
-version = "1.1.60"
+version = "0.3.0"
+edition = "2021"
 authors = ["pkalivas <peterkalivas@gmail.com>"]
-description = "A genetic programming engine which evolves solutions through paralleled speciation."
-repository = "https://github.com/pkalivas/radiate"
-readme = "../README.md"
-categories = ["science", "simulation", "algorithms", "evolve", "genetic"]
+description = "A Rust library for genetic algorithms and artificial evolution."
+repository = "https://github.com/pkalivas/radiate.rust"
+readme = "README.md"
+categories = ["science", "simulation", "algorithms"]
 keywords = ["search", "genetic", "learning", "artificial", "evolution"]
-edition = "2018"
 license = "MIT"
 
-[features]
-# Use u16 for Neuron Ids (65536) and u32 for Edge Ids (4 Billion)
-small-ids = []
-# Use u8 for Neuron Ids (256) and u32 for Edge Ids (256 * 256 = 65536)
-tiny-ids = []
-# Enable stdweb support (needed for uuid)
-stdweb = ["uuid/stdweb"]
-# Enable wasm-bindgen support
-wasm-bindgen = ["uuid/wasm-bindgen"]
-
 [dependencies]
-rand="0.7.2"
-rayon="1.2.0"
-uuid = { version = "0.8", features = ["serde", "v4"] }
-serde = {version ="1.0", features = ["rc"]}
-serde_json="1.0.44"
-serde_derive="1.0.104"
-typetag="0.1"
+rand = "0.8.5"

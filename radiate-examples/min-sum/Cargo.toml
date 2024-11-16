@@ -1,0 +1,7 @@
+[package]
+name = "min-sum"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+radiate = { path = "../../radiate" }

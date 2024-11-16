@@ -1,14 +1,12 @@
 [workspace]
 members = [
     "radiate",
-    "radiate_web",
-    "radiate_matrix_tree",
-    "examples/xor-neat",
-    "examples/xor-neat-backprop",
-    "examples/lstm-neat",
-    "examples/ism",
-    "examples/xor-evtree",
-    "examples/helloworld",
-	"examples/neat-web/neat-server",
-	"examples/neat-web/neat-client",
-]
+    "radiate-examples/min-sum",
+    "radiate-examples/string-evolver",
+    "radiate-extensions",
+    "radiate-examples/xor-graph",
+    "radiate-examples/knapsack",
+    "radiate-examples/regression-graph",
+    "radiate-examples/simple-memory-graph",
+    "radiate-examples/scalar"
+    , "radiate-examples/nqueens"]

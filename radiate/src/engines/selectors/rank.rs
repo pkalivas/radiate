@@ -1,0 +1,42 @@
+use rand::Rng;
+
+use crate::{Gene, Optimize, Population};
+
+use super::Select;
+
+pub struct Rank;
+
+impl Rank {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl<G: Gene<G, A>, A> Select<G, A> for Rank {
+    fn select(
+        &self,
+        population: &Population<G, A>,
+        _: &Optimize,
+        count: usize,
+    ) -> Population<G, A> {
+        let mut selected = Vec::with_capacity(count);
+        let mut rng = rand::thread_rng();
+
+        let total_rank = (population.len() * (population.len() + 1)) as f32 / 2.0;
+
+        for _ in 0..count {
+            let mut idx = rng.gen_range(0.0..total_rank);
+            let mut selected_idx = 0;
+            for individual in population.iter() {
+                idx -= (population.len() - selected_idx) as f32;
+                if idx <= 0.0 {
+                    selected.push(individual.clone());
+                    break;
+                }
+                selected_idx += 1;
+            }
+        }
+
+        Population::from_vec(selected)
+    }
+}
