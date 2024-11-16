@@ -1,8 +1,4 @@
-use radiate::engines::alterers::alter::Alterer;
-use radiate::engines::codexes::char_codex::CharCodex;
-use radiate::engines::genetic_engine::GeneticEngine;
-use radiate::engines::score::Score;
-use radiate::{Elite, Tournament};
+use radiate::*;
 
 fn main() {
     let target = "Chicago, IL";
