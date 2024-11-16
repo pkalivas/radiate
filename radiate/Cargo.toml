@@ -1,10 +1,10 @@
 [package]
 name = "radiate"
-version = "0.3.0"
+version = "1.2.0"
 edition = "2021"
 authors = ["pkalivas <peterkalivas@gmail.com>"]
 description = "A Rust library for genetic algorithms and artificial evolution."
-repository = "https://github.com/pkalivas/radiate.rust"
+repository = "https://github.com/pkalivas/radiate"
 readme = "README.md"
 categories = ["science", "simulation", "algorithms"]
 keywords = ["search", "genetic", "learning", "artificial", "evolution"]
