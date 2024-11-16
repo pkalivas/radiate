@@ -2,7 +2,7 @@
 mod tests {
 
     use radiate_extensions::*;
-    use radiate_rust::*;
+    use radiate::*;
 
     #[test]
     fn test_graph() {
