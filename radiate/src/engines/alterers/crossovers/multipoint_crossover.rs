@@ -66,9 +66,8 @@ where
         let min_points = std::cmp::min(self.num_points, DEFAULT_NUM_POINTS);
 
         let mut cross_count = 0;
-        let mut random = rand::thread_rng();
         let indexes = if min_points > 0 {
-            subset::subset(min_index, min_points, &mut random)
+            subset::subset(min_index, min_points)
         } else {
             Vec::new()
         };

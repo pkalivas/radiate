@@ -1,6 +1,7 @@
 use crate::engines::genome::chromosome::Chromosome;
 use crate::engines::genome::genes::gene::Gene;
 use crate::engines::genome::genotype::Genotype;
+use crate::RandomRegistry;
 
 pub trait Mutate<G, A>
 where
@@ -12,7 +13,7 @@ where
     fn mutate_genotype(&self, genotype: &mut Genotype<G, A>, range: i32) -> i32 {
         let mut count = 0;
         for chromosome in genotype.iter_mut() {
-            if rand::random::<i32>() < range {
+            if RandomRegistry::random::<i32>() < range {
                 count += self.mutate_chromosome(chromosome, range);
             }
         }
@@ -24,7 +25,7 @@ where
     fn mutate_chromosome(&self, chromosome: &mut Chromosome<G, A>, range: i32) -> i32 {
         let mut count = 0;
         for gene in chromosome.iter_mut() {
-            if rand::random::<i32>() < range {
+            if RandomRegistry::random::<i32>() < range {
                 *gene = self.mutate_gene(gene);
                 count += 1;
             }

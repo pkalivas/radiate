@@ -1,3 +1,5 @@
+use rand::distributions::Standard;
+
 use crate::engines::genome::chromosome::Chromosome;
 use crate::engines::genome::genes::gene::{BoundGene, Gene};
 use crate::engines::genome::genes::int_gene::IntGene;
@@ -6,7 +8,10 @@ use crate::Integer;
 
 use super::Codex;
 
-pub struct IntCodex<T: Integer<T>> {
+pub struct IntCodex<T: Integer<T>>
+where
+    Standard: rand::distributions::Distribution<T>,
+{
     pub num_chromosomes: usize,
     pub num_genes: usize,
     pub min: T,
@@ -15,7 +20,10 @@ pub struct IntCodex<T: Integer<T>> {
     pub upper_bound: T,
 }
 
-impl<T: Integer<T>> IntCodex<T> {
+impl<T: Integer<T>> IntCodex<T>
+where
+    Standard: rand::distributions::Distribution<T>,
+{
     pub fn new(num_chromosomes: usize, num_genes: usize, min: T, max: T) -> Self {
         IntCodex {
             num_chromosomes,
@@ -34,7 +42,10 @@ impl<T: Integer<T>> IntCodex<T> {
     }
 }
 
-impl<T: Integer<T>> Codex<IntGene<T>, T, Vec<Vec<T>>> for IntCodex<T> {
+impl<T: Integer<T>> Codex<IntGene<T>, T, Vec<Vec<T>>> for IntCodex<T>
+where
+    Standard: rand::distributions::Distribution<T>,
+{
     fn encode(&self) -> Genotype<IntGene<T>, T> {
         Genotype {
             chromosomes: (0..self.num_chromosomes)
