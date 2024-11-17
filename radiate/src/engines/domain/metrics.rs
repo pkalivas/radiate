@@ -5,6 +5,9 @@ use super::Statistic;
 pub const METRIC_SCORE: &str = "score";
 pub const METRIC_AGE: &str = "age";
 pub const METRIC_EVALUATE: &str = "evaluate";
+pub const METRIC_AGE_FILTER: &str = "age_filter";
+pub const METRIC_INVALID_FILTER: &str = "invalid_filter";
+pub const METRIC_UNIQUE: &str = "unique";
 
 #[derive(Default, Clone)]
 pub struct MetricSet {
@@ -18,7 +21,16 @@ impl MetricSet {
         }
     }
 
-    pub fn upsert(&mut self, metric: Metric) {
+    pub fn upsert(&mut self, name: &'static str, value: f32, time: Duration) {
+        if let Some(metric) = self.metrics.get_mut(name) {
+            metric.add(value, time);
+        } else {
+            self.add(Metric::new(name));
+            self.metrics.get_mut(name).unwrap().add(value, time);
+        }
+    }
+
+    pub fn upsert_metric(&mut self, metric: Metric) {
         if let Some(m) = self.metrics.get_mut(metric.name()) {
             m.add_value(metric.last_value());
             m.add_time(metric.last_time());
@@ -66,7 +78,7 @@ impl std::fmt::Debug for MetricSet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "MetricSet {{\n")?;
         for name in self.names() {
-            write!(f, "  {:?},\n", self.get(name).unwrap())?;
+            write!(f, "  \t{:?},\n", self.get(name).unwrap())?;
         }
         write!(f, "}}")
     }

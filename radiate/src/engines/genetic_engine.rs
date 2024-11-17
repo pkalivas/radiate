@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use crate::engines::alterers::alter::Alter;
@@ -12,7 +13,10 @@ use super::codexes::Codex;
 use super::engine_context::EngineContext;
 use super::genome::phenotype::Phenotype;
 use super::selectors::select::Select;
-use super::{Metric, MetricSet, ThreadPool, METRIC_AGE, METRIC_EVALUATE, METRIC_SCORE};
+use super::{
+    MetricSet, ThreadPool, METRIC_AGE, METRIC_AGE_FILTER, METRIC_EVALUATE, METRIC_INVALID_FILTER,
+    METRIC_SCORE, METRIC_UNIQUE,
+};
 
 pub struct GeneticEngine<'a, G, A, T>
 where
@@ -96,7 +100,11 @@ where
         optimize.sort(&mut handle.population);
     }
 
-    fn select_survivors(&self, population: &Population<G, A>, metrics: &mut MetricSet) -> Population<G, A> {
+    fn select_survivors(
+        &self,
+        population: &Population<G, A>,
+        metrics: &mut MetricSet,
+    ) -> Population<G, A> {
         let selector = self.survivor_selector();
         let count = self.survivor_count();
         let optimize = self.optimize();
@@ -104,15 +112,16 @@ where
         let timer = Timer::new();
         let result = selector.select(population, optimize, count);
 
-        let mut select_metric = Metric::new(selector.name());
-        select_metric.add(count as f32, timer.duration());
-        
-        metrics.upsert(select_metric);
+        metrics.upsert(selector.name(), count as f32, timer.duration());
 
         result
     }
 
-    fn select_offspring(&self, population: &Population<G, A>, metrics: &mut MetricSet) -> Population<G, A> {
+    fn select_offspring(
+        &self,
+        population: &Population<G, A>,
+        metrics: &mut MetricSet,
+    ) -> Population<G, A> {
         let selector = self.offspring_selector();
         let count = self.offspring_count();
         let optimize = self.optimize();
@@ -120,10 +129,7 @@ where
         let timer = Timer::new();
         let result = selector.select(population, optimize, count);
 
-        let mut select_metric = Metric::new(selector.name());
-        select_metric.add(count as f32, timer.duration());
-
-        metrics.upsert(select_metric);
+        metrics.upsert(selector.name(), count as f32, timer.duration());
 
         result
     }
@@ -134,7 +140,7 @@ where
 
         let alter_metrics = alterer.alter(population, optimize, generation);
         for metric in alter_metrics {
-            metrics.upsert(metric);
+            metrics.upsert_metric(metric);
         }
     }
 
@@ -157,14 +163,12 @@ where
             }
         }
 
-        let mut age_metric = Metric::new("Age Filter");
-        let mut invalid_metric = Metric::new("Invalid Filter");
-
-        age_metric.add(age_count as f32, timer.duration());
-        invalid_metric.add(invalid_count as f32, timer.duration());
-
-        metrics.upsert(age_metric);
-        metrics.upsert(invalid_metric);
+        metrics.upsert(METRIC_AGE_FILTER, age_count as f32, timer.duration());
+        metrics.upsert(
+            METRIC_INVALID_FILTER,
+            invalid_count as f32,
+            timer.duration(),
+        );
     }
 
     fn recombine(
@@ -205,15 +209,21 @@ where
     }
 
     fn add_metrics(&self, output: &mut EngineContext<G, A, T>) {
+        let mut unique = HashSet::new();
         for i in 0..output.population.len() {
             let phenotype = output.population.get(i);
 
             let age = phenotype.age(output.index);
-            let score = phenotype.score().as_ref().unwrap().as_float();
+            let score = phenotype.score().as_ref().unwrap();
 
             output.metrics.upsert_value(METRIC_AGE, age as f32);
-            output.metrics.upsert_value(METRIC_SCORE, score);
+            output.metrics.upsert_value(METRIC_SCORE, score.as_float());
+            unique.insert(score.clone());
         }
+
+        output
+            .metrics
+            .upsert_value(METRIC_UNIQUE, unique.len() as f32);
     }
 
     fn survivor_selector(&self) -> &dyn Select<G, A> {
