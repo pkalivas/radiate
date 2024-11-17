@@ -1,6 +1,10 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
 use super::Statistic;
+
+pub const METRIC_SCORE: &str = "score";
+pub const METRIC_AGE: &str = "age";
+pub const METRIC_EVALUATE: &str = "evaluate";
 
 #[derive(Default, Clone)]
 pub struct MetricSet {
@@ -20,6 +24,15 @@ impl MetricSet {
         } else {
             self.add(Metric::new(name));
             self.metrics.get_mut(name).unwrap().add(value);
+        }
+    }
+
+    pub fn upsert_time(&mut self, name: &'static str, value: Duration) {
+        if let Some(metric) = self.metrics.get_mut(name) {
+            metric.add_time(value);
+        } else {
+            self.add(Metric::new(name));
+            self.metrics.get_mut(name).unwrap().add_time(value);
         }
     }
 
@@ -54,6 +67,7 @@ impl std::fmt::Debug for MetricSet {
 pub struct Metric {
     pub name: &'static str,
     pub stats: Statistic,
+    pub time_stats: Statistic,
 }
 
 impl Metric {
@@ -61,6 +75,7 @@ impl Metric {
         Self {
             name,
             stats: Statistic::new(),
+            time_stats: Statistic::new(),
         }
     }
 
@@ -70,6 +85,10 @@ impl Metric {
 
     pub fn add(&mut self, value: f32) {
         self.stats.add(value);
+    }
+
+    pub fn add_time(&mut self, value: Duration) {
+        self.time_stats.add(value.as_secs_f32());
     }
 
     pub fn last_value(&self) -> f32 {
@@ -103,21 +122,46 @@ impl Metric {
     pub fn count(&self) -> i32 {
         self.stats.count()
     }
+
+
+    pub fn mean_time(&self) -> Duration {
+        if self.time_stats.count() == 0 {
+            return Duration::from_secs_f32(0.0);
+        }
+
+        Duration::from_secs_f32(self.time_stats.mean())
+    }
+
+    pub fn min_time(&self) -> Duration {
+        if self.time_stats.count() == 0 {
+            return Duration::from_secs_f32(0.0);
+        }
+
+        Duration::from_secs_f32(self.time_stats.min())
+    }
+
+    pub fn max_time(&self) -> Duration {
+        if self.time_stats.count() == 0 {
+            return Duration::from_secs_f32(0.0);
+        }
+
+        Duration::from_secs_f32(self.time_stats.max())
+    }
 }
 
 impl std::fmt::Debug for Metric {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Metric {{ name: {}, N: {}, μ: {:.3?}, s²: {:.3?}, σ: {:3?}, α^3: {:.3?}, ∨: {:.3?}, ∧: {:.3?} }}",
+            "Metric {{ {:<10} ∧: {:<10.3?}  ∨: {:<10.3?} μ: {:<10.3?} N: {:<10} :: ∧[{:<10?}] ∨[{:<10?}] μ[{:<10?}] }}",
             self.name(),
-            self.count(),
-            self.mean(),
-            self.variance(),
-            self.std_dev(),
-            self.skewness(),
+            self.max(),
             self.min(),
-            self.max()
+            self.mean(),
+            self.count(),
+            self.max_time(),
+            self.min_time(),
+            self.mean_time()
         )
     }
 }

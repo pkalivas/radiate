@@ -26,7 +26,7 @@ where
     }
 
     pub fn seconds(&self) -> f64 {
-        self.timer.elapsed().as_secs_f64()
+        self.timer.duration().as_secs_f64()
     }
 }
 
@@ -57,7 +57,8 @@ where
         write!(f, "  score: {:?},\n", self.score())?;
         write!(f, "  index: {:?},\n", self.index)?;
         write!(f, "  size: {:?},\n", self.population.len())?;
-        write!(f, "  duration: {:?},\n", self.timer.elapsed())?;
+        write!(f, "  duration: {:?},\n", self.timer.duration())?;
+        write!(f, "  metrics: {:?},\n", self.metrics)?;
         write!(f, "}}")
     }
 }

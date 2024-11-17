@@ -12,7 +12,7 @@ use super::codexes::Codex;
 use super::engine_context::EngineContext;
 use super::genome::phenotype::Phenotype;
 use super::selectors::select::Select;
-use super::{MetricSet, ThreadPool};
+use super::{MetricSet, ThreadPool, METRIC_AGE, METRIC_EVALUATE, METRIC_SCORE};
 
 pub struct GeneticEngine<'a, G, A, T>
 where
@@ -71,6 +71,7 @@ where
         let codex = self.codex();
         let optimize = self.optimize();
         let thread_pool = self.thread_pool();
+        let timer = Timer::new();
 
         let mut work_results = Vec::new();
         for idx in 0..handle.population.len() {
@@ -83,6 +84,9 @@ where
                 work_results.push(work);
             }
         }
+
+        handle.metrics.upsert(METRIC_EVALUATE, work_results.len() as f32);
+        handle.metrics.upsert_time(METRIC_EVALUATE, timer.duration());
 
         for work_result in work_results {
             let (idx, score) = work_result.result();
@@ -162,9 +166,21 @@ where
             output.best = codex.decode(&output.population.get(0).genotype());
         }
 
-        // output.metrics.upsert("score", output.score.as_ref().unwrap().as_float());
+        self.add_metrics(output);
 
         output.index += 1;
+    }
+
+    fn add_metrics(&self, output: &mut EngineContext<G, A, T>) {
+        for i in 0..output.population.len() {
+            let phenotype = output.population.get(i);
+            
+            let age = phenotype.age(output.index);
+            let score = phenotype.score().as_ref().unwrap().as_float();
+
+            output.metrics.upsert(METRIC_AGE, age as f32);
+            output.metrics.upsert(METRIC_SCORE, score);
+        }
     }
 
     fn survivor_selector(&self) -> &dyn Select<G, A> {

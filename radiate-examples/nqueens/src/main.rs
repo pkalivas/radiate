@@ -40,7 +40,7 @@ fn main() {
         output.score().as_usize() == 0
     });
 
-    println!("\nResult Queens Board ({:.3?}):", result.timer.elapsed());
+    println!("\nResult Queens Board ({:.3?}):", result.timer.duration());
 
     let board = &result.best[0];
     for i in 0..N_QUEENS {
