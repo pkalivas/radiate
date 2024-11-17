@@ -4,17 +4,17 @@ use crate::{Gene, Optimize, Population};
 
 use super::Select;
 
-pub struct Tournament {
+pub struct TournamentSelector {
     num: usize,
 }
 
-impl Tournament {
+impl TournamentSelector {
     pub fn new(num: usize) -> Self {
         Self { num }
     }
 }
 
-impl<G: Gene<G, A>, A> Select<G, A> for Tournament {
+impl<G: Gene<G, A>, A> Select<G, A> for TournamentSelector {
     fn select(
         &self,
         population: &Population<G, A>,

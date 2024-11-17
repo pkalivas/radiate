@@ -3,7 +3,7 @@ use radiate::engines::alterers::mutators::numeric_mutator::NumericMutator;
 use radiate::engines::codexes::int_codex::IntCodex;
 use radiate::engines::genetic_engine::GeneticEngine;
 use radiate::engines::score::Score;
-use radiate::{Elite, Tournament};
+use radiate::{EliteSelector, TournamentSelector};
 
 const MIN_SCORE: i32 = 0;
 
@@ -13,8 +13,8 @@ fn main() {
     let engine = GeneticEngine::from_codex(&codex)
         .population_size(150)
         .minimizing()
-        .offspring_selector(Elite::new())
-        .survivor_selector(Tournament::new(4))
+        .offspring_selector(EliteSelector::new())
+        .survivor_selector(TournamentSelector::new(4))
         .alterer(vec![
             Alterer::mutation(NumericMutator::new(0.01)),
             Alterer::UniformCrossover(0.5),
