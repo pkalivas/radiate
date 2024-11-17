@@ -10,7 +10,7 @@ use crate::engines::score::Score;
 
 use super::alterers::alter::Alterer;
 use super::codexes::Codex;
-use super::{Roulette, Select, ThreadPool, Tournament};
+use super::{RouletteSelector, Select, ThreadPool, TournamentSelector};
 
 pub struct GeneticEngineParams<'a, G, A, T>
 where
@@ -44,8 +44,8 @@ where
             offspring_fraction: 0.8,
             thread_pool: ThreadPool::new(1),
             optimize: Optimize::Maximize,
-            survivor_selector: Box::new(Tournament::new(3)),
-            offspring_selector: Box::new(Roulette::new()),
+            survivor_selector: Box::new(TournamentSelector::new(3)),
+            offspring_selector: Box::new(RouletteSelector::new()),
             alterer: None,
             codex: None,
             population: None,

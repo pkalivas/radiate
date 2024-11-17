@@ -4,15 +4,15 @@ use crate::{Gene, Optimize, Population};
 
 use super::Select;
 
-pub struct Rank;
+pub struct RankSelector;
 
-impl Rank {
+impl RankSelector {
     pub fn new() -> Self {
         Self
     }
 }
 
-impl<G: Gene<G, A>, A> Select<G, A> for Rank {
+impl<G: Gene<G, A>, A> Select<G, A> for RankSelector {
     fn select(
         &self,
         population: &Population<G, A>,

@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::ops::{Add, Mul, Sub};
 
 use num_traits::Float;
@@ -58,8 +59,8 @@ where
                         &name,
                         *arity,
                         random_value,
-                        supplier.clone(),
-                        operation.clone(),
+                        Arc::clone(supplier),
+                        Arc::clone(operation),
                     ))
                 } else {
                     let new_value = random_value + value.clone();
@@ -67,8 +68,8 @@ where
                         &name,
                         *arity,
                         new_value,
-                        supplier.clone(),
-                        operation.clone(),
+                        Arc::clone(supplier),
+                        Arc::clone(operation),
                     ))
                 }
             }

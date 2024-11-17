@@ -40,24 +40,15 @@ impl<G, A> Alterer<G, A>
 where
     G: Gene<G, A>,
 {
-    pub fn alterer<T>(alterer: T) -> Self
-    where
-        T: Alter<G, A> + 'static,
-    {
+    pub fn alterer<T: Alter<G, A> + 'static>(alterer: T) -> Self {
         Alterer::Alterer(Box::new(alterer))
     }
 
-    pub fn crossover<T>(crossover: T) -> Self
-    where
-        T: Crossover<G, A> + 'static,
-    {
+    pub fn crossover<T: Crossover<G, A> + 'static>(crossover: T) -> Self{
         Alterer::Crossover(Box::new(crossover))
     }
 
-    pub fn mutation<T>(mutation: T) -> Self
-    where
-        T: Mutate<G, A> + 'static,
-    {
+    pub fn mutation<T: Mutate<G, A> + 'static>(mutation: T) -> Self{
         Alterer::Mutation(Box::new(mutation))
     }
 }
