@@ -40,7 +40,7 @@ where
     T: Clone + PartialEq + Default,
 {
     pub fn new(factory: &'a NodeFactory<T>) -> Self {
-        NodeCollectionBuilder {
+        Self {
             factory,
             nodes: BTreeMap::new(),
             node_order: BTreeMap::new(),

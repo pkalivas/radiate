@@ -70,6 +70,8 @@ impl Drop for ThreadPool {
                 thread.join().unwrap();
             }
         }
+
+        assert!(!self.is_alive());
     }
 }
 
