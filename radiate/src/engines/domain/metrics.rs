@@ -1,4 +1,4 @@
-use std::{collections::HashMap, time::Duration};
+use std::{collections::BTreeMap, time::Duration};
 
 use super::Statistic;
 
@@ -11,13 +11,13 @@ pub const METRIC_UNIQUE: &str = "unique";
 
 #[derive(Default, Clone)]
 pub struct MetricSet {
-    metrics: HashMap<&'static str, Metric>,
+    metrics: BTreeMap<&'static str, Metric>,
 }
 
 impl MetricSet {
     pub fn new() -> Self {
         Self {
-            metrics: HashMap::new(),
+            metrics: BTreeMap::new(),
         }
     }
 
