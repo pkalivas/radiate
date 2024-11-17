@@ -12,6 +12,13 @@ impl<G, A> Population<G, A>
 where
     G: Gene<G, A>,
 {
+    pub fn new() -> Self {
+        Population {
+            individuals: Vec::new(),
+            is_sorted: false,
+        }
+    }
+
     pub fn get(&self, index: usize) -> &Phenotype<G, A> {
         self.individuals.get(index).expect("Index out of bounds")
     }

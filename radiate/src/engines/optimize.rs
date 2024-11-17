@@ -27,3 +27,18 @@ impl Optimize {
         }
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_optimize_is_better() {
+        assert!(Optimize::Minimize.is_better(&1, &2));
+        assert!(!Optimize::Minimize.is_better(&2, &1));
+        assert!(Optimize::Maximize.is_better(&2, &1));
+        assert!(!Optimize::Maximize.is_better(&1, &2));
+    }
+}

@@ -91,7 +91,7 @@ where
     }
 
     pub fn distinct_subset(limit: usize) -> Vec<usize> {
-        let mut subset = Vec::new();
+        let mut subset = Vec::with_capacity(NUM_PARENTS);
 
         while subset.len() < NUM_PARENTS {
             let index = rand::random::<usize>() % limit;

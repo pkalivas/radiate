@@ -2,9 +2,7 @@ use std::sync::LazyLock;
 
 use rand::random;
 
-use radiate::engines::codexes::subset_codex::SubSetCodex;
-use radiate::engines::genetic_engine::GeneticEngine;
-use radiate::engines::score::Score;
+use radiate::*;
 
 const KNAPSACK_SIZE: usize = 15;
 const MAX_EPOCHS: i32 = 50;
