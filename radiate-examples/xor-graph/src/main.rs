@@ -40,12 +40,6 @@ fn main() {
 }
 
 fn display(result: &EngineContext<Node<f32>, Ops<f32>, Graph<f32>>) {
-    for node in result.best.nodes.iter() {
-        println!("{:?}", node);
-    }
-
-    println!("{:?}", result.timer.duration());
-
     let mut reducer = GraphReducer::new(&result.best);
     for sample in get_sample_set().get_samples().iter() {
         let output = &reducer.reduce(&sample.1);
@@ -54,6 +48,8 @@ fn display(result: &EngineContext<Node<f32>, Ops<f32>, Graph<f32>>) {
             sample.1, sample.2, output
         );
     }
+
+    println!("{:?}", result)
 }
 
 fn get_sample_set() -> SampleSet<f32> {
