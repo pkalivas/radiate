@@ -5,7 +5,6 @@ const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
-    RandomRegistry::set_seed(1111);
     let factory = NodeFactory::<f32>::regression(1)
         .gates(vec![
             op::add(), 
@@ -19,7 +18,7 @@ fn main() {
 
     let engine = GeneticEngine::from_codex(&graph_codex)
         .minimizing()
-        .num_threads(1)
+        .num_threads(10)
         .alterer(vec![
             GraphCrossover::alterer(0.5, 0.5),
             OpMutator::alterer(factory.clone(), 0.01, 0.05),

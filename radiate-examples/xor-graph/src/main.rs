@@ -5,7 +5,6 @@ const MAX_INDEX: i32 = 500;
 const MIN_SCORE: f32 = 0.01;
 
 fn main() {
-    RandomRegistry::set_seed(1111222);
     let factory = NodeFactory::<f32>::regression(2).outputs(vec![op::sigmoid()]);
 
     let graph_codex = GraphCodex::from_shape(2, 1, &factory);

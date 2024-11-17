@@ -1,7 +1,5 @@
 use std::sync::LazyLock;
 
-use rand::random;
-
 use radiate::*;
 
 const KNAPSACK_SIZE: usize = 15;

@@ -34,7 +34,7 @@ where
     let nodes_are_weights =
         source_node.node_type == NodeType::Weight || target_node.node_type == NodeType::Weight;
 
-    return would_create_cycle && !nodes_are_weights && source != target;
+    would_create_cycle && !nodes_are_weights && source != target
 }
 
 #[inline]
@@ -70,7 +70,7 @@ where
         }
     }
 
-    return false;
+    false
 }
 
 pub fn is_locked<T>(node: &Node<T>) -> bool
@@ -120,7 +120,8 @@ where
         panic!("At least one node type must be specified.");
     }
 
-    let gene_node_type = RandomRegistry::choose(&node_types);
+    let gene_node_type_index = RandomRegistry::random::<usize>() % node_types.len();
+    let gene_node_type = node_types.get(gene_node_type_index).unwrap();
 
     let genes = match gene_node_type {
         NodeType::Input => collection
@@ -161,5 +162,5 @@ where
     }
 
     let index = RandomRegistry::random::<usize>() % genes.len();
-    return genes.get(index).unwrap();
+    genes.get(index).unwrap()
 }
