@@ -18,7 +18,16 @@ impl MetricSet {
         }
     }
 
-    pub fn upsert(&mut self, name: &'static str, value: f32) {
+    pub fn upsert(&mut self, metric: Metric) {
+        if let Some(m) = self.metrics.get_mut(metric.name()) {
+            m.add(metric.last_value());
+            m.add_time(metric.last_time());
+        } else {
+            self.metrics.insert(metric.name(), metric);
+        }
+    }
+
+    pub fn upsert_value(&mut self, name: &'static str, value: f32) {
         if let Some(metric) = self.metrics.get_mut(name) {
             metric.add(value);
         } else {
@@ -123,6 +132,10 @@ impl Metric {
         self.stats.count()
     }
 
+    pub fn last_time(&self) -> Duration {
+        Duration::from_secs_f32(self.time_stats.last_value())
+    }
+
     pub fn mean_time(&self) -> Duration {
         if self.time_stats.count() == 0 {
             return Duration::from_secs_f32(0.0);
@@ -152,7 +165,7 @@ impl std::fmt::Debug for Metric {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Metric {{ {:<10} ∧: {:<10.3?}  ∨: {:<10.3?} μ: {:<10.3?} N: {:<10} :: ∧[{:<10?}] ∨[{:<10?}] μ[{:<10?}] }}",
+            "Metric {{ {:<10} ∧: {:<7.3?}  ∨: {:<7.3?} μ: {:<7.3?} N: {:<7} :: ∧[{:<10?}] ∨[{:<10?}] μ[{:<10?}] }}",
             self.name(),
             self.max(),
             self.min(),

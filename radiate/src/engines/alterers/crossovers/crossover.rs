@@ -12,7 +12,12 @@ where
     fn cross_rate(&self) -> f32;
 
     #[inline]
-    fn cross(&self, population: &mut Population<G, A>, parent_indexes: &[usize], generation: i32) {
+    fn cross(
+        &self,
+        population: &mut Population<G, A>,
+        parent_indexes: &[usize],
+        generation: i32,
+    ) -> i32 {
         let index_one = parent_indexes[0];
         let index_two = parent_indexes[1];
 
@@ -25,6 +30,8 @@ where
             population.set(index_one, Phenotype::from_genotype(geno_one, generation));
             population.set(index_two, Phenotype::from_genotype(geno_two, generation));
         }
+
+        cross_count
     }
 
     #[inline]

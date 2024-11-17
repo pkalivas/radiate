@@ -27,68 +27,35 @@ where
         for alterer in alterers {
             match alterer {
                 Alterer::Mutator(rate) => {
-                    alterer_wraps.push(AlterWrap {
-                        rate,
-                        mutator: Some(Box::new(Mutator::new(rate))),
-                        crossover: None,
-                        alterer: None,
-                    });
+                    let mutator = Box::new(Mutator::new(rate));
+                    alterer_wraps.push(AlterWrap::from_mutator(mutator, rate))
                 }
                 Alterer::UniformCrossover(rate) => {
-                    alterer_wraps.push(AlterWrap {
-                        rate,
-                        mutator: None,
-                        crossover: Some(Box::new(UniformCrossover::new(rate))),
-                        alterer: None,
-                    });
+                    let crossover = Box::new(UniformCrossover::new(rate));
+                    alterer_wraps.push(AlterWrap::from_crossover(crossover, rate))
                 }
                 Alterer::SinglePointCrossover(rate) => {
-                    alterer_wraps.push(AlterWrap {
-                        rate,
-                        mutator: None,
-                        crossover: Some(Box::new(MultiPointCrossover::new(rate, 1))),
-                        alterer: None,
-                    });
+                    let crossover = Box::new(MultiPointCrossover::new(rate, 1));
+                    alterer_wraps.push(AlterWrap::from_crossover(crossover, rate))
                 }
                 Alterer::MultiPointCrossover(rate, num_points) => {
-                    alterer_wraps.push(AlterWrap {
-                        rate,
-                        mutator: None,
-                        crossover: Some(Box::new(MultiPointCrossover::new(rate, num_points))),
-                        alterer: None,
-                    });
+                    let crossover = Box::new(MultiPointCrossover::new(rate, num_points));
+                    alterer_wraps.push(AlterWrap::from_crossover(crossover, rate))
                 }
                 Alterer::SwapMutator(rate) => {
-                    alterer_wraps.push(AlterWrap {
-                        rate,
-                        mutator: Some(Box::new(SwapMutator::new(rate))),
-                        crossover: None,
-                        alterer: None,
-                    });
+                    let mutator = Box::new(SwapMutator::new(rate));
+                    alterer_wraps.push(AlterWrap::from_mutator(mutator, rate))
                 }
                 Alterer::Mutation(mutation) => {
-                    alterer_wraps.push(AlterWrap {
-                        rate: mutation.mutate_rate(),
-                        mutator: Some(mutation),
-                        crossover: None,
-                        alterer: None,
-                    });
+                    let rate = mutation.mutate_rate();
+                    alterer_wraps.push(AlterWrap::from_mutator(mutation, rate))
                 }
                 Alterer::Crossover(crossover) => {
-                    alterer_wraps.push(AlterWrap {
-                        rate: crossover.cross_rate(),
-                        mutator: None,
-                        crossover: Some(crossover),
-                        alterer: None,
-                    });
+                    let cross_rate = crossover.cross_rate();
+                    alterer_wraps.push(AlterWrap::from_crossover(crossover, cross_rate))
                 }
                 Alterer::Alterer(alterer) => {
-                    alterer_wraps.push(AlterWrap {
-                        rate: 1.0,
-                        mutator: None,
-                        crossover: None,
-                        alterer: Some(alterer),
-                    });
+                    alterer_wraps.push(AlterWrap::from_alterer(alterer, 1.0))
                 }
             }
         }

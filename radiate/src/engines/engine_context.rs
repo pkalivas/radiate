@@ -32,9 +32,9 @@ where
     }
 
     pub fn upsert_metric(&mut self, key: &'static str, value: f32, time: Option<Duration>) {
-        self.metrics.upsert(key, value);
+        self.metrics.upsert_value(key, value);
         if let Some(time) = time {
-            self.metrics.upsert(key, time.as_secs_f32());
+            self.metrics.upsert_time(key, time);
         }
     }
 }

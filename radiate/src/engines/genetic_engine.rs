@@ -85,16 +85,13 @@ where
             }
         }
 
-        handle.upsert_metric(
-            METRIC_EVALUATE,
-            work_results.len() as f32,
-            Some(timer.duration()),
-        );
-
+        let count = work_results.len() as f32;
         for work_result in work_results {
             let (idx, score) = work_result.result();
             handle.population.get_mut(idx).set_score(Some(score));
         }
+
+        handle.upsert_metric(METRIC_EVALUATE, count, Some(timer.duration()));
 
         optimize.sort(&mut handle.population);
     }
@@ -181,8 +178,8 @@ where
             let age = phenotype.age(output.index);
             let score = phenotype.score().as_ref().unwrap().as_float();
 
-            output.metrics.upsert(METRIC_AGE, age as f32);
-            output.metrics.upsert(METRIC_SCORE, score);
+            output.metrics.upsert_value(METRIC_AGE, age as f32);
+            output.metrics.upsert_value(METRIC_SCORE, score);
         }
     }
 
