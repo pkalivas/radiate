@@ -44,7 +44,7 @@ fn display(result: &EngineContext<Node<f32>, Ops<f32>, Graph<f32>>) {
         println!("{:?}", node);
     }
 
-    println!("{:?}", result.timer.elapsed());
+    println!("{:?}", result.timer.duration());
 
     let mut reducer = GraphReducer::new(&result.best);
     for sample in get_sample_set().get_samples().iter() {

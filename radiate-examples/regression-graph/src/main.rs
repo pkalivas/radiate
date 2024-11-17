@@ -46,7 +46,7 @@ fn display(result: &EngineContext<Node<f32>, Ops<f32>, Graph<f32>>) {
     for node in result.best.nodes.iter() {
         println!("{:?}", node);
     }
-    println!("{:?}", result.timer.elapsed());
+    println!("{:?}", result.timer.duration());
 
     let mut regression_accuracy = 0.0;
     let mut total = 0.0;
@@ -64,6 +64,7 @@ fn display(result: &EngineContext<Node<f32>, Ops<f32>, Graph<f32>>) {
     regression_accuracy = (total - regression_accuracy) / total;
 
     println!("Accuracy: {:.2?}", regression_accuracy);
+    println!("{:?}", result.metrics)
 }
 
 fn get_sample_set() -> SampleSet<f32> {
