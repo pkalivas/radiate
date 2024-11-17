@@ -3,6 +3,7 @@ use crate::engines::genome::population::Population;
 use crate::engines::schema::timer::Timer;
 
 use super::score::Score;
+use super::MetricSet;
 
 pub struct EngineContext<G, A, T>
 where
@@ -12,6 +13,7 @@ where
     pub best: T,
     pub index: i32,
     pub timer: Timer,
+    pub metrics: MetricSet,
     pub score: Option<Score>,
 }
 
@@ -39,6 +41,7 @@ where
             best: self.best.clone(),
             index: self.index,
             timer: self.timer.clone(),
+            metrics: self.metrics.clone(),
             score: self.score.clone(),
         }
     }

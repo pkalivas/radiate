@@ -33,6 +33,8 @@ fn main() {
         .build();
 
     let result = engine.run(|output| {
+        // let score_metrics = output.metrics.get("score").unwrap();
+        // println!("[ {:?} ]: {:.3} {:.3?} {:.3?}", output.index, score_metrics.max(), score_metrics.mean(), score_metrics.min());
         println!("[ {:?} ]: {:?}", output.index, output.score().as_float());
         output.score().as_float() < MIN_SCORE || output.seconds() > MAX_SECONDS
     });

@@ -12,7 +12,7 @@ use super::codexes::Codex;
 use super::engine_context::EngineContext;
 use super::genome::phenotype::Phenotype;
 use super::selectors::select::Select;
-use super::ThreadPool;
+use super::{MetricSet, ThreadPool};
 
 pub struct GeneticEngine<'a, G, A, T>
 where
@@ -162,6 +162,8 @@ where
             output.best = codex.decode(&output.population.get(0).genotype());
         }
 
+        output.metrics.upsert("score", output.score.as_ref().unwrap().as_float());
+
         output.index += 1;
     }
 
@@ -213,6 +215,7 @@ where
             best: self.codex().decode(&population.get(0).genotype()),
             index: 0,
             timer: Timer::new(),
+            metrics: MetricSet::new(),
             score: None,
         }
     }

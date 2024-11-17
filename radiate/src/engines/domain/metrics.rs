@@ -1,5 +1,46 @@
+use std::collections::HashMap;
+
 use super::Statistic;
 
+#[derive(Default, Clone)]
+pub struct MetricSet {
+    metrics: HashMap<&'static str, Metric>,
+}
+
+impl MetricSet {
+    pub fn new() -> Self {
+        Self {
+            metrics: HashMap::new(),
+        }
+    }
+
+    pub fn upsert(&mut self, name: &'static str, value: f32) {
+        if let Some(metric) = self.metrics.get_mut(name) {
+            metric.add(value);
+        } else {
+            self.add(Metric::new(name));
+            self.metrics.get_mut(name).unwrap().add(value);
+        }
+    }
+
+    pub fn add(&mut self, metric: Metric) {
+        self.metrics.insert(metric.name(), metric);
+    }
+
+    pub fn get(&self, name: &'static str) -> Option<&Metric> {
+        self.metrics.get(name)
+    }
+
+    pub fn get_mut(&mut self, name: &'static str) -> Option<&mut Metric> {
+        self.metrics.get_mut(name)
+    }
+
+    pub fn names(&self) -> Vec<&'static str> {
+        self.metrics.keys().copied().collect()
+    }
+}
+
+#[derive(Clone)]
 pub struct Metric {
     pub name: &'static str,
     pub stats: Statistic,
