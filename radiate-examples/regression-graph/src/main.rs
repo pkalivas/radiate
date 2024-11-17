@@ -20,8 +20,8 @@ fn main() {
             GraphMutator::alterer(
                 factory.clone(),
                 vec![
-                    NodeMutate::Forward(NodeType::Weight, 0.03),
-                    NodeMutate::Forward(NodeType::Aggregate, 0.03),
+                    NodeMutate::Forward(NodeType::Weight, 0.05),
+                    NodeMutate::Forward(NodeType::Aggregate, 0.02),
                     NodeMutate::Forward(NodeType::Gate, 0.03),
                 ],
             ),
