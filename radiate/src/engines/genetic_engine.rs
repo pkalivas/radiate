@@ -162,7 +162,7 @@ where
             output.best = codex.decode(&output.population.get(0).genotype());
         }
 
-        output.metrics.upsert("score", output.score.as_ref().unwrap().as_float());
+        // output.metrics.upsert("score", output.score.as_ref().unwrap().as_float());
 
         output.index += 1;
     }

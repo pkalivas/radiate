@@ -40,6 +40,16 @@ impl MetricSet {
     }
 }
 
+impl std::fmt::Debug for MetricSet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "MetricSet {{\n")?;
+        for name in self.names() {
+            write!(f, "  {:?},\n", self.get(name).unwrap())?;
+        }
+        write!(f, "}}")
+    }
+}
+
 #[derive(Clone)]
 pub struct Metric {
     pub name: &'static str,
@@ -92,6 +102,23 @@ impl Metric {
 
     pub fn count(&self) -> i32 {
         self.stats.count()
+    }
+}
+
+impl std::fmt::Debug for Metric {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Metric {{ name: {}, N: {}, μ: {:.3?}, s²: {:.3?}, σ: {:3?}, α^3: {:.3?}, ∨: {:.3?}, ∧: {:.3?} }}",
+            self.name(),
+            self.count(),
+            self.mean(),
+            self.variance(),
+            self.std_dev(),
+            self.skewness(),
+            self.min(),
+            self.max()
+        )
     }
 }
 
