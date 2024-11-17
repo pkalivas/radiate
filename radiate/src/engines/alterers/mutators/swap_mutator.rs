@@ -19,6 +19,10 @@ impl<G: Gene<G, A>, A> Mutate<G, A> for SwapMutator {
         self.rate
     }
 
+    fn name(&self) -> &'static str {
+        "SwapMutator"
+    }
+
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut Chromosome<G, A>, range: i32) -> i32 {
         let mut mutations = 0;

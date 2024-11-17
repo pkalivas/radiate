@@ -33,6 +33,10 @@ where
         self.rate
     }
 
+    fn name(&self) -> &'static str {
+        "Node Crossover"
+    }
+
     #[inline]
     fn cross_chromosomes(
         &self,

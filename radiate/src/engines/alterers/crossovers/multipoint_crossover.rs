@@ -56,6 +56,11 @@ where
         self.rate
     }
 
+    fn name(&self) -> &'static str {
+        let result = format!("MultiPointCrossover ({})", self.num_points);
+        Box::leak(result.into_boxed_str())
+    }
+
     #[inline]
     fn cross_chromosomes(
         &self,

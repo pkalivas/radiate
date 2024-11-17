@@ -11,6 +11,10 @@ impl RouletteSelector {
 }
 
 impl<G: Gene<G, A>, A> Select<G, A> for RouletteSelector {
+    fn name(&self) -> &'static str {
+        "Roulette Selector"
+    }
+
     fn select(
         &self,
         population: &Population<G, A>,

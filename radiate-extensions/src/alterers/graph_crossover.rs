@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use radiate::engines::alterers::Alter;
 use radiate::engines::genome::*;
 use radiate::engines::optimize::Optimize;
-use radiate::{Alterer, RandomRegistry};
+use radiate::{Alterer, Metric, RandomRegistry, Timer};
 
 use crate::architects::node_collections::*;
 use crate::architects::schema::node_types::NodeType;
@@ -116,9 +116,11 @@ where
         population: &mut Population<Node<T>, Ops<T>>,
         optimize: &Optimize,
         generation: i32,
-    ) {
+    ) -> Vec<Metric> {
         optimize.sort(population);
 
+        let timer = Timer::new();
+        let mut count = 0;
         let mut new_phenotypes = HashMap::new();
         for index in 0..population.len() {
             if RandomRegistry::random::<f32>() < self.crossover_rate
@@ -128,6 +130,7 @@ where
 
                 if let Some(phenotype) = self.cross(population, &parent_indexes, generation) {
                     new_phenotypes.insert(index, phenotype);
+                    count += 1;
                 }
             }
         }
@@ -135,5 +138,10 @@ where
         for (index, phenotype) in new_phenotypes.into_iter() {
             population.set(index, phenotype);
         }
+
+        let mut metric = Metric::new("Graph Crossover");
+        metric.add(count as f32, timer.duration());
+
+        vec![metric]
     }
 }

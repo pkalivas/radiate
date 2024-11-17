@@ -21,6 +21,10 @@ where
         self.rate
     }
 
+    fn name(&self) -> &'static str {
+        "NumericMutator"
+    }
+
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut Chromosome<G, A>, _: i32) -> i32 {
         let mut mutations = 0;

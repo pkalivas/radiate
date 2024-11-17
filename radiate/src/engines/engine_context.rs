@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::engines::genome::genes::gene::Gene;
 use crate::engines::genome::population::Population;
 use crate::engines::schema::timer::Timer;
@@ -27,6 +29,13 @@ where
 
     pub fn seconds(&self) -> f64 {
         self.timer.duration().as_secs_f64()
+    }
+
+    pub fn upsert_metric(&mut self, key: &'static str, value: f32, time: Option<Duration>) {
+        self.metrics.upsert_value(key, value);
+        if let Some(time) = time {
+            self.metrics.upsert_time(key, time);
+        }
     }
 }
 

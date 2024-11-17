@@ -9,6 +9,8 @@ where
 {
     fn mutate_rate(&self) -> f32;
 
+    fn name(&self) -> &'static str;
+
     #[inline]
     fn mutate_genotype(&self, genotype: &mut Genotype<G, A>, range: i32) -> i32 {
         let mut count = 0;

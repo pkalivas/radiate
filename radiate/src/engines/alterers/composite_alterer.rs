@@ -3,7 +3,7 @@ use crate::engines::genome::genes::gene::Gene;
 use crate::engines::genome::population::Population;
 use crate::engines::optimize::Optimize;
 use crate::engines::schema::subset;
-use crate::RandomRegistry;
+use crate::{Metric, RandomRegistry, Timer};
 
 use super::alter::{AlterWrap, Alterer};
 use super::crossovers::multipoint_crossover::MultiPointCrossover;
@@ -27,68 +27,35 @@ where
         for alterer in alterers {
             match alterer {
                 Alterer::Mutator(rate) => {
-                    alterer_wraps.push(AlterWrap {
-                        rate,
-                        mutator: Some(Box::new(Mutator::new(rate))),
-                        crossover: None,
-                        alterer: None,
-                    });
+                    let mutator = Box::new(Mutator::new(rate));
+                    alterer_wraps.push(AlterWrap::from_mutator(mutator, rate))
                 }
                 Alterer::UniformCrossover(rate) => {
-                    alterer_wraps.push(AlterWrap {
-                        rate,
-                        mutator: None,
-                        crossover: Some(Box::new(UniformCrossover::new(rate))),
-                        alterer: None,
-                    });
+                    let crossover = Box::new(UniformCrossover::new(rate));
+                    alterer_wraps.push(AlterWrap::from_crossover(crossover, rate))
                 }
                 Alterer::SinglePointCrossover(rate) => {
-                    alterer_wraps.push(AlterWrap {
-                        rate,
-                        mutator: None,
-                        crossover: Some(Box::new(MultiPointCrossover::new(rate, 1))),
-                        alterer: None,
-                    });
+                    let crossover = Box::new(MultiPointCrossover::new(rate, 1));
+                    alterer_wraps.push(AlterWrap::from_crossover(crossover, rate))
                 }
                 Alterer::MultiPointCrossover(rate, num_points) => {
-                    alterer_wraps.push(AlterWrap {
-                        rate,
-                        mutator: None,
-                        crossover: Some(Box::new(MultiPointCrossover::new(rate, num_points))),
-                        alterer: None,
-                    });
+                    let crossover = Box::new(MultiPointCrossover::new(rate, num_points));
+                    alterer_wraps.push(AlterWrap::from_crossover(crossover, rate))
                 }
                 Alterer::SwapMutator(rate) => {
-                    alterer_wraps.push(AlterWrap {
-                        rate,
-                        mutator: Some(Box::new(SwapMutator::new(rate))),
-                        crossover: None,
-                        alterer: None,
-                    });
+                    let mutator = Box::new(SwapMutator::new(rate));
+                    alterer_wraps.push(AlterWrap::from_mutator(mutator, rate))
                 }
                 Alterer::Mutation(mutation) => {
-                    alterer_wraps.push(AlterWrap {
-                        rate: mutation.mutate_rate(),
-                        mutator: Some(mutation),
-                        crossover: None,
-                        alterer: None,
-                    });
+                    let rate = mutation.mutate_rate();
+                    alterer_wraps.push(AlterWrap::from_mutator(mutation, rate))
                 }
                 Alterer::Crossover(crossover) => {
-                    alterer_wraps.push(AlterWrap {
-                        rate: crossover.cross_rate(),
-                        mutator: None,
-                        crossover: Some(crossover),
-                        alterer: None,
-                    });
+                    let cross_rate = crossover.cross_rate();
+                    alterer_wraps.push(AlterWrap::from_crossover(crossover, cross_rate))
                 }
                 Alterer::Alterer(alterer) => {
-                    alterer_wraps.push(AlterWrap {
-                        rate: 1.0,
-                        mutator: None,
-                        crossover: None,
-                        alterer: Some(alterer),
-                    });
+                    alterer_wraps.push(AlterWrap::from_alterer(alterer, 1.0))
                 }
             }
         }
@@ -104,10 +71,19 @@ where
     G: Gene<G, A>,
 {
     #[inline]
-    fn alter(&self, population: &mut Population<G, A>, optimize: &Optimize, generation: i32) {
+    fn alter(
+        &self,
+        population: &mut Population<G, A>,
+        optimize: &Optimize,
+        generation: i32,
+    ) -> Vec<Metric> {
         optimize.sort(population);
 
+        let mut metrics = Vec::new();
         for alterer in self.alterers.iter() {
+            let timer = Timer::new();
+            let mut count = 0;
+
             match alterer.mutator {
                 Some(ref mutator) => {
                     let probability = alterer.rate.powf(1.0 / 3.0);
@@ -124,9 +100,14 @@ where
                             if mutation_count > 0 {
                                 (*phenotype).generation = generation;
                                 (*phenotype).score = None;
+                                count += mutation_count;
                             }
                         }
                     }
+
+                    let mut mutate_metric = Metric::new(mutator.name());
+                    mutate_metric.add(count as f32, timer.duration());
+                    metrics.push(mutate_metric);
                 }
                 None => (),
             };
@@ -135,18 +116,27 @@ where
                     for i in 0..population.len() {
                         if RandomRegistry::random::<f32>() < alterer.rate {
                             let parent_indexes = subset::individual_indexes(i, population.len(), 2);
-                            crossover.cross(population, &parent_indexes, generation);
+                            count += crossover.cross(population, &parent_indexes, generation);
                         }
                     }
+
+                    let mut cross_metric = Metric::new(crossover.name());
+                    cross_metric.add(count as f32, timer.duration());
+                    metrics.push(cross_metric);
                 }
                 None => (),
             };
             match alterer.alterer {
                 Some(ref alterer) => {
-                    alterer.alter(population, optimize, generation);
+                    let alter_metrics = alterer.alter(population, optimize, generation);
+                    for metric in alter_metrics {
+                        metrics.push(metric);
+                    }
                 }
                 None => (),
             };
         }
+
+        metrics
     }
 }

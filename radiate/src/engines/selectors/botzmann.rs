@@ -13,6 +13,10 @@ impl BoltzmannSelector {
 }
 
 impl<G: Gene<G, A>, A> Select<G, A> for BoltzmannSelector {
+    fn name(&self) -> &'static str {
+        "Boltzmann Selector"
+    }
+
     fn select(
         &self,
         population: &Population<G, A>,

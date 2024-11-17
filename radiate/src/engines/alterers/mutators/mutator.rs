@@ -16,4 +16,8 @@ impl<G: Gene<G, A>, A> Mutate<G, A> for Mutator {
     fn mutate_rate(&self) -> f32 {
         self.rate
     }
+
+    fn name(&self) -> &'static str {
+        "Mutator"
+    }
 }

@@ -56,6 +56,10 @@ where
         self.rate
     }
 
+    fn name(&self) -> &'static str {
+        "OpMutator"
+    }
+
     #[inline]
     fn mutate_gene(&self, gene: &Node<T>) -> Node<T> {
         match gene.allele() {
