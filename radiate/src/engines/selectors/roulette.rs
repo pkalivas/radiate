@@ -1,6 +1,5 @@
-use rand::Rng;
 
-use crate::{Gene, Optimize, Population};
+use crate::{Gene, Optimize, Population, RandomRegistry};
 
 use super::Select;
 
@@ -21,7 +20,6 @@ impl<G: Gene<G, A>, A> Select<G, A> for RouletteSelector {
     ) -> Population<G, A> {
         let mut selected = Vec::with_capacity(count);
         let mut fitness_values = Vec::with_capacity(population.len());
-        let mut rng = rand::thread_rng();
 
         let total = population
             .iter()
@@ -47,7 +45,7 @@ impl<G: Gene<G, A>, A> Select<G, A> for RouletteSelector {
         let total_fitness = fitness_values.iter().sum::<f32>();
 
         for _ in 0..count {
-            let mut idx = rng.gen_range(0.0..total_fitness);
+            let mut idx = RandomRegistry::gen_range(0.0..total_fitness);
 
             for i in 0..fitness_values.len() {
                 idx -= fitness_values[i];

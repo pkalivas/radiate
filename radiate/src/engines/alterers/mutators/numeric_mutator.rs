@@ -1,8 +1,7 @@
-use rand::Rng;
-
 use crate::engines::alterers::mutators::mutate::Mutate;
 use crate::engines::genome::chromosome::Chromosome;
 use crate::engines::genome::genes::gene::NumericGene;
+use crate::RandomRegistry;
 
 pub struct NumericMutator {
     rate: f32,
@@ -24,13 +23,12 @@ where
 
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut Chromosome<G, A>, _: i32) -> i32 {
-        let mut random = rand::thread_rng();
         let mut mutations = 0;
 
         for gene in chromosome.iter_mut() {
-            if random.gen::<f32>() < self.rate {
+            if RandomRegistry::random::<f32>() < self.rate {
                 let new_instance = gene.new_instance();
-                let operator = random.gen_range(0..4);
+                let operator = RandomRegistry::gen_range(0..4);
 
                 mutations += 1;
 

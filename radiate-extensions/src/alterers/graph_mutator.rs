@@ -1,9 +1,7 @@
-use rand::{random, seq::SliceRandom};
-
 use radiate::engines::alterers::Alter;
 use radiate::engines::genome::*;
 use radiate::engines::optimize::Optimize;
-use radiate::Alterer;
+use radiate::{Alterer, RandomRegistry};
 
 use crate::architects::node_collections::*;
 use crate::architects::schema::node_types::NodeType;
@@ -322,17 +320,16 @@ where
 {
     #[inline]
     fn alter(&self, population: &mut Population<Node<T>, Ops<T>>, _: &Optimize, generation: i32) {
-        let mut rng = rand::thread_rng();
 
         for i in 0..population.len() {
-            let mutation = self.mutations.choose(&mut rng).unwrap();
+            let mutation = RandomRegistry::choose(&self.mutations);
 
-            if random::<f32>() > mutation.rate() {
+            if RandomRegistry::random::<f32>() > mutation.rate() {
                 continue;
             }
 
             let genotype = population.get(i).genotype();
-            let chromosome_index = rand::random::<usize>() % genotype.len();
+            let chromosome_index = RandomRegistry::random::<usize>() % genotype.len();
             let chromosome = genotype.get_chromosome(chromosome_index);
 
             let mutated_graph = if mutation.is_recurrent() {

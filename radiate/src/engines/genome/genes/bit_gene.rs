@@ -1,3 +1,5 @@
+use crate::RandomRegistry;
+
 use super::gene::{Gene, Valid};
 
 pub struct BitGene {
@@ -7,7 +9,7 @@ pub struct BitGene {
 impl BitGene {
     pub fn new() -> Self {
         Self {
-            allele: rand::random(),
+            allele: RandomRegistry::gen_range(0..2) == 1,
         }
     }
 }

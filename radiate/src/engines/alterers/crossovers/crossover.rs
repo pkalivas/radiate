@@ -3,6 +3,7 @@ use crate::engines::genome::genes::gene::Gene;
 use crate::engines::genome::genotype::Genotype;
 use crate::engines::genome::phenotype::Phenotype;
 use crate::engines::genome::population::Population;
+use crate::RandomRegistry;
 
 pub trait Crossover<G, A>
 where
@@ -28,8 +29,7 @@ where
 
     #[inline]
     fn cross_genotypes(&self, geno_one: &mut Genotype<G, A>, geno_two: &mut Genotype<G, A>) -> i32 {
-        let chromosome_index =
-            rand::random::<usize>() % std::cmp::min(geno_one.len(), geno_two.len());
+        let chromosome_index = RandomRegistry::random::<usize>() % std::cmp::min(geno_one.len(), geno_two.len());
 
         let mut chrom_one = geno_one.get_chromosome_mut(chromosome_index);
         let mut chrom_two = geno_two.get_chromosome_mut(chromosome_index);
@@ -47,7 +47,7 @@ where
         let mut cross_count = 0;
 
         for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
-            if rand::random::<f32>() < rate {
+            if RandomRegistry::random::<f32>() < rate {
                 let gene_one = chrom_one.get_gene(i);
                 let gene_two = chrom_two.get_gene(i);
 

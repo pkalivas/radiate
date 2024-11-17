@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use rand::seq::SliceRandom;
+use radiate::RandomRegistry;
 
 use crate::{
     architects::{node_collections::node::Node, schema::node_types::NodeType},
@@ -99,7 +99,6 @@ where
     }
 
     pub fn new_node(&self, index: usize, node_type: NodeType) -> Node<T> {
-        let mut rng = rand::thread_rng();
         if let Some(values) = self.node_values.get(&node_type) {
             match node_type {
                 NodeType::Input => {
@@ -108,7 +107,7 @@ where
                     return Node::new(index, node_type, value).set_arity(arity);
                 }
                 _ => {
-                    let value = values.choose(&mut rng).unwrap();
+                    let value = RandomRegistry::choose(&values);
                     let arity = value.arity();
                     return Node::new(index, node_type, value.new_instance()).set_arity(arity);
                 }

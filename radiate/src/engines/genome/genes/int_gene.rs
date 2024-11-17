@@ -1,11 +1,16 @@
-use rand::Rng;
+use rand::distributions::Standard;
+
+use crate::RandomRegistry;
 
 use super::{
     gene::{BoundGene, Gene, NumericGene, Valid},
     Integer,
 };
 
-pub struct IntGene<T: Integer<T>> {
+pub struct IntGene<T: Integer<T>>
+where
+    Standard: rand::distributions::Distribution<T>,
+{
     allele: T,
     min: T,
     max: T,
@@ -13,13 +18,15 @@ pub struct IntGene<T: Integer<T>> {
     lower_bound: T,
 }
 
-impl<T: Integer<T>> IntGene<T> {
+impl<T: Integer<T>> IntGene<T>
+where
+    Standard: rand::distributions::Distribution<T>,
+{
     pub fn new(min: T, max: T) -> Self {
         let (min, max) = if min > max { (max, min) } else { (min, max) };
-        let mut rand = rand::thread_rng();
 
         Self {
-            allele: rand.gen_range(min..max),
+            allele: RandomRegistry::gen_range(min..max),
             min,
             max,
             upper_bound: T::MAX,
@@ -28,15 +35,17 @@ impl<T: Integer<T>> IntGene<T> {
     }
 }
 
-impl<T: Integer<T>> Gene<IntGene<T>, T> for IntGene<T> {
+impl<T: Integer<T>> Gene<IntGene<T>, T> for IntGene<T>
+where
+    Standard: rand::distributions::Distribution<T>,
+{
     fn allele(&self) -> &T {
         &self.allele
     }
 
     fn new_instance(&self) -> IntGene<T> {
-        let mut rand = rand::thread_rng();
         IntGene {
-            allele: rand.gen_range(self.min..self.max),
+            allele: RandomRegistry::gen_range(self.min..self.max),
             min: self.min,
             max: self.max,
             upper_bound: self.upper_bound,
@@ -55,13 +64,19 @@ impl<T: Integer<T>> Gene<IntGene<T>, T> for IntGene<T> {
     }
 }
 
-impl<T: Integer<T>> Valid for IntGene<T> {
+impl<T: Integer<T>> Valid for IntGene<T>
+where
+    Standard: rand::distributions::Distribution<T>,
+{
     fn is_valid(&self) -> bool {
         self.allele >= self.min && self.allele <= self.max
     }
 }
 
-impl<T: Integer<T>> BoundGene<IntGene<T>, T> for IntGene<T> {
+impl<T: Integer<T>> BoundGene<IntGene<T>, T> for IntGene<T>
+where
+    Standard: rand::distributions::Distribution<T>,
+{
     fn upper_bound(&self) -> &T {
         &self.upper_bound
     }
@@ -79,7 +94,10 @@ impl<T: Integer<T>> BoundGene<IntGene<T>, T> for IntGene<T> {
     }
 }
 
-impl<T: Integer<T>> NumericGene<IntGene<T>, T> for IntGene<T> {
+impl<T: Integer<T>> NumericGene<IntGene<T>, T> for IntGene<T> 
+where
+    Standard: rand::distributions::Distribution<T>,
+{
     fn add(&self, other: &IntGene<T>) -> IntGene<T> {
         IntGene {
             allele: self.allele + other.allele,
@@ -121,7 +139,10 @@ impl<T: Integer<T>> NumericGene<IntGene<T>, T> for IntGene<T> {
     }
 }
 
-impl<T: Integer<T>> Clone for IntGene<T> {
+impl<T: Integer<T>> Clone for IntGene<T>
+where
+    Standard: rand::distributions::Distribution<T>,
+{
     fn clone(&self) -> Self {
         IntGene {
             allele: self.allele,
@@ -133,13 +154,19 @@ impl<T: Integer<T>> Clone for IntGene<T> {
     }
 }
 
-impl<T: Integer<T>> PartialEq for IntGene<T> {
+impl<T: Integer<T>> PartialEq for IntGene<T>
+where
+    Standard: rand::distributions::Distribution<T>,
+{
     fn eq(&self, other: &Self) -> bool {
         self.allele == other.allele
     }
 }
 
-impl<T: Integer<T>> std::fmt::Debug for IntGene<T> {
+impl<T: Integer<T>> std::fmt::Debug for IntGene<T>
+where
+    Standard: rand::distributions::Distribution<T>,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.allele)
     }
