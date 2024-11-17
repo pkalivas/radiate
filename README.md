@@ -7,7 +7,7 @@ Radiate is a powerful Rust library designed for implementing genetic algorithms 
 
 ### Features
 * **Genetic Algorithms**: Implement standard genetic algorithm operations such as selection, crossover, and mutation.
-* **Customizable Codexes**: Define how individuals are represented and manipulated within the population.
+* **Customizable Codexes**: Define how individuals are represented.
 * **Parallel Processing**: Utilize multi-threading capabilities to speed up the evolution process.
 * **Flexible Fitness Functions**: Easily define and integrate custom fitness functions to evaluate individuals.
 * **Extensible Architecture**: Add new features and algorithms with minimal effort. Check radiate-extensions.

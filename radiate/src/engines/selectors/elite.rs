@@ -2,15 +2,15 @@ use crate::{Gene, Optimize, Population};
 
 use super::Select;
 
-pub struct Elite;
+pub struct EliteSelector;
 
-impl Elite {
+impl EliteSelector {
     pub fn new() -> Self {
         Self
     }
 }
 
-impl<G: Gene<G, A>, A> Select<G, A> for Elite {
+impl<G: Gene<G, A>, A> Select<G, A> for EliteSelector {
     fn select(
         &self,
         population: &Population<G, A>,

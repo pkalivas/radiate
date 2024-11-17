@@ -4,17 +4,17 @@ use crate::{Gene, Optimize, Population};
 
 use super::Select;
 
-pub struct Boltzmann {
+pub struct BoltzmannSelector {
     temperature: f32,
 }
 
-impl Boltzmann {
+impl BoltzmannSelector {
     pub fn new(temperature: f32) -> Self {
         Self { temperature }
     }
 }
 
-impl<G: Gene<G, A>, A> Select<G, A> for Boltzmann {
+impl<G: Gene<G, A>, A> Select<G, A> for BoltzmannSelector {
     fn select(
         &self,
         population: &Population<G, A>,

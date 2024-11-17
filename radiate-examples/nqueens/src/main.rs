@@ -1,6 +1,6 @@
 use radiate::*;
 
-const N_QUEENS: usize = 10;
+const N_QUEENS: usize = 16;
 
 fn main() {
     let codex = IntCodex::<i8>::new(1, N_QUEENS, 0, N_QUEENS as i8);
@@ -8,7 +8,7 @@ fn main() {
     let engine = GeneticEngine::from_codex(&codex)
         .minimizing()
         .num_threads(10)
-        .offspring_selector(Boltzmann::new(4_f32))
+        .offspring_selector(RankSelector::new())
         .alterer(vec![
             Alterer::SinglePointCrossover(0.5),
             Alterer::Mutator(0.01),

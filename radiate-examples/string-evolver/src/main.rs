@@ -6,8 +6,8 @@ fn main() {
 
     let engine =
         GeneticEngine::from_codex(&codex)
-            .offspring_selector(Elite::new())
-            .survivor_selector(Tournament::new(3))
+            .offspring_selector(EliteSelector::new())
+            .survivor_selector(TournamentSelector::new(3))
             .alterer(vec![Alterer::Mutator(0.1), Alterer::UniformCrossover(0.5)])
             .fitness_fn(|genotype: String| {
                 Score::from_usize(genotype.chars().zip(target.chars()).fold(
