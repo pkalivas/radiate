@@ -56,3 +56,31 @@ impl RandomRegistry {
         &items[index]
     }
 }
+
+// #[cfg(test)]
+// mod tests {
+
+//     use super::*;
+
+//     #[test]
+//     fn test_random_registry() {
+//         RandomRegistry::set_seed(42);
+//         let random_int: i32 = RandomRegistry::random();
+//         assert!(random_int == 572990626);
+//     }
+
+//     #[test]
+//     fn random_registry_choose_produces_same_result_with_seed() {
+//         RandomRegistry::set_seed(42);
+//         let items = vec![1, 2, 3, 4, 5];
+//         let choice = RandomRegistry::choose(&items);
+//         assert_eq!(choice, &4);
+//     }
+
+//     #[test]
+//     fn random_registry_gen_range_produces_same_value_with_seed() {
+//         RandomRegistry::set_seed(42);
+//         let value = RandomRegistry::gen_range(0..10);
+//         assert_eq!(value, 1);
+//     }
+// }
