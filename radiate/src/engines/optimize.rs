@@ -28,7 +28,6 @@ impl Optimize {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
 
