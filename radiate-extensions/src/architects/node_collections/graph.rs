@@ -134,3 +134,16 @@ where
         Graph { nodes }
     }
 }
+
+impl<T> std::fmt::Debug for Graph<T>
+where
+    T: Clone + PartialEq + Default + std::fmt::Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Graph {{\n")?;
+        for node in self.get_nodes() {
+            write!(f, "  {:?},\n", node)?;
+        }
+        write!(f, "}}")
+    }
+}

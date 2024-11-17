@@ -58,6 +58,7 @@ where
         write!(f, "  index: {:?},\n", self.index)?;
         write!(f, "  size: {:?},\n", self.population.len())?;
         write!(f, "  duration: {:?},\n", self.timer.duration())?;
+        write!(f, "  metrics: {:?},\n", self.metrics)?;
         write!(f, "}}")
     }
 }
