@@ -1,7 +1,5 @@
 use std::sync::LazyLock;
 
-use rand::random;
-
 use radiate::*;
 
 const KNAPSACK_SIZE: usize = 15;
@@ -10,6 +8,7 @@ const MAX_EPOCHS: i32 = 50;
 static KNAPSACK: LazyLock<Knapsack> = LazyLock::new(|| Knapsack::new(KNAPSACK_SIZE));
 
 fn main() {
+    RandomRegistry::set_seed(12345);
     let codex = SubSetCodex::new(&KNAPSACK.items);
 
     let engine = GeneticEngine::from_codex(&codex)
@@ -111,7 +110,7 @@ impl Item {
 
     pub fn random_collection(size: usize) -> Vec<Item> {
         (0..size)
-            .map(|_| Item::new(random::<f32>() * 100.0, random::<f32>() * 100.0))
+            .map(|_| Item::new(RandomRegistry::random::<f32>() * 100.0, RandomRegistry::random::<f32>() * 100.0))
             .collect()
     }
 }

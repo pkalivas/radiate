@@ -1,6 +1,5 @@
-use rand::Rng;
 
-use crate::{Gene, Optimize, Population};
+use crate::{Gene, Optimize, Population, RandomRegistry};
 
 use super::Select;
 
@@ -21,13 +20,12 @@ impl<G: Gene<G, A>, A> Select<G, A> for TournamentSelector {
         _: &Optimize,
         count: usize,
     ) -> Population<G, A> {
-        let mut rng = rand::thread_rng();
         let mut selected = Vec::with_capacity(count);
 
         for _ in 0..count {
             let mut tournament = Vec::with_capacity(self.num);
             for _ in 0..self.num {
-                let idx = rng.gen_range(0..population.len());
+                let idx = RandomRegistry::gen_range(0..population.len());
                 tournament.push(idx);
             }
 

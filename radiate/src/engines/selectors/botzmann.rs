@@ -1,6 +1,5 @@
-use rand::Rng;
 
-use crate::{Gene, Optimize, Population};
+use crate::{Gene, Optimize, Population, RandomRegistry};
 
 use super::Select;
 
@@ -22,7 +21,6 @@ impl<G: Gene<G, A>, A> Select<G, A> for BoltzmannSelector {
         count: usize,
     ) -> Population<G, A> {
         let mut selected = Vec::with_capacity(count);
-        let mut rng = rand::thread_rng();
 
         let mut min = population.get(0).score().as_ref().unwrap().as_float();
         let mut max = min;
@@ -67,7 +65,7 @@ impl<G: Gene<G, A>, A> Select<G, A> for BoltzmannSelector {
         let total_fitness = result.iter().sum::<f32>();
 
         for _ in 0..count {
-            let mut idx = rng.gen_range(0.0..total_fitness);
+            let mut idx = RandomRegistry::gen_range(0.0..total_fitness);
 
             for i in 0..result.len() {
                 idx -= result[i];

@@ -4,8 +4,9 @@ use std::ops::{Add, Mul, Sub};
 use num_traits::Float;
 use radiate::engines::alterers::mutators::mutate::Mutate;
 use radiate::engines::genome::genes::gene::Gene;
-use radiate::Alterer;
-use rand::{distributions::Standard, prelude::Distribution, random};
+use radiate::{Alterer, RandomRegistry};
+use rand::distributions::uniform::SampleUniform;
+use rand::{distributions::Standard, prelude::Distribution};
 
 use crate::architects::node_collections::node::Node;
 use crate::architects::node_collections::node_factory::NodeFactory;
@@ -24,7 +25,7 @@ where
 impl<T> OpMutator<T>
 where
     Standard: Distribution<T>,
-    T: Clone + PartialEq + Default + Float + 'static,
+    T: Clone + PartialEq + Default + Float + SampleUniform + 'static,
 {
     pub fn alterer(
         factory: NodeFactory<T>,
@@ -41,7 +42,7 @@ where
 
 impl<T> Mutate<Node<T>, Ops<T>> for OpMutator<T>
 where
-    T: Clone + PartialEq + Default + Mul<Output = T> + Sub<Output = T> + Add<Output = T> + Float,
+    T: Clone + PartialEq + Default + Mul<Output = T> + Sub<Output = T> + Add<Output = T> + Float + SampleUniform,
     Standard: Distribution<T>,
 {
     fn mutate_rate(&self) -> f32 {
@@ -52,9 +53,9 @@ where
     fn mutate_gene(&self, gene: &Node<T>) -> Node<T> {
         match gene.allele() {
             Ops::MutableConst(name, arity, value, supplier, operation) => {
-                let random_value = random::<T>() * T::from(2).unwrap() - T::from(1).unwrap();
+                let random_value = RandomRegistry::random::<T>() * T::from(2).unwrap() - T::from(1).unwrap();
 
-                if random::<f32>() < self.replace_rate {
+                if RandomRegistry::random::<f32>() < self.replace_rate {
                     gene.from_allele(&Ops::MutableConst(
                         &name,
                         *arity,

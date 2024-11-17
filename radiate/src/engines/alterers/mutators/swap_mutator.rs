@@ -1,7 +1,6 @@
-use rand::Rng;
-
 use crate::engines::genome::chromosome::Chromosome;
 use crate::engines::genome::genes::gene::Gene;
+use crate::RandomRegistry;
 
 use super::mutate::Mutate;
 
@@ -22,12 +21,11 @@ impl<G: Gene<G, A>, A> Mutate<G, A> for SwapMutator {
 
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut Chromosome<G, A>, range: i32) -> i32 {
-        let mut random = rand::thread_rng();
         let mut mutations = 0;
 
         for i in 0..chromosome.len() {
-            if rand::random::<i32>() > range {
-                let swap_index = random.gen_range(0..chromosome.len());
+            if RandomRegistry::random::<i32>() > range {
+                let swap_index = RandomRegistry::gen_range(0..chromosome.len());
 
                 if swap_index == i {
                     continue;

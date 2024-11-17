@@ -1,3 +1,5 @@
+use crate::RandomRegistry;
+
 use super::gene::{Gene, Valid};
 
 const ALPHABET: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"$%&/()=?`{[]}\\+~*#';.:,-_<>|@^' ";
@@ -8,7 +10,7 @@ pub struct CharGene {
 
 impl CharGene {
     pub fn new() -> Self {
-        let index = rand::random::<usize>() % ALPHABET.len();
+        let index = RandomRegistry::random::<usize>() % ALPHABET.len();
         Self {
             allele: ALPHABET.chars().nth(index).unwrap(),
         }

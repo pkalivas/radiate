@@ -1,12 +1,12 @@
-use rand::{rngs::ThreadRng, Rng};
+
+use crate::RandomRegistry;
 
 pub fn individual_indexes(
-    random: &mut ThreadRng,
     index: usize,
     size: usize,
     order: usize,
 ) -> Vec<usize> {
-    let mut sub_set = subset(size as usize, order as usize, random);
+    let mut sub_set = subset(size as usize, order as usize);
     let mut i = 0;
     while sub_set[i] < index as i32 && i < sub_set.len() - 1 {
         i += 1;
@@ -18,7 +18,7 @@ pub fn individual_indexes(
     result
 }
 
-pub fn subset(n: usize, k: usize, random: &mut ThreadRng) -> Vec<i32> {
+pub fn subset(n: usize, k: usize) -> Vec<i32> {
     if k <= 0 {
         panic!("Subset size smaller or equal zero: {}", k);
     }
@@ -28,11 +28,11 @@ pub fn subset(n: usize, k: usize, random: &mut ThreadRng) -> Vec<i32> {
     }
 
     let mut sub = vec![0; k as usize];
-    next(n as i32, &mut sub, random);
+    next(n as i32, &mut sub);
     sub
 }
 
-fn next(num: i32, a: &mut Vec<i32>, random: &mut ThreadRng) {
+fn next(num: i32, a: &mut Vec<i32>) {
     let k = a.len() as i32;
 
     if k == num {
@@ -44,14 +44,14 @@ fn next(num: i32, a: &mut Vec<i32>, random: &mut ThreadRng) {
     }
 
     if k > num - k {
-        build_subset(num, a, random);
+        build_subset(num, a);
         invert(num, a);
     } else {
-        build_subset(num, a, random);
+        build_subset(num, a);
     }
 }
 
-fn build_subset(n: i32, sub: &mut Vec<i32>, random: &mut ThreadRng) {
+fn build_subset(n: i32, sub: &mut Vec<i32>) {
     let k = sub.len() as i32;
     check_subset(n, k);
 
@@ -70,7 +70,7 @@ fn build_subset(n: i32, sub: &mut Vec<i32>, random: &mut ThreadRng) {
     let mut ix;
     for _ in 0..k {
         loop {
-            ix = random.gen_range(1..n);
+            ix = RandomRegistry::gen_range(1..n);
             l = (ix * k - 1) / n;
             if sub[l as usize] < ix {
                 break;
@@ -114,7 +114,7 @@ fn build_subset(n: i32, sub: &mut Vec<i32>, random: &mut ThreadRng) {
             m = sub[l as usize - 1] * n / k - m0 + 1;
         }
 
-        ix = random.gen_range(m0..m0 + m - 1);
+        ix = RandomRegistry::gen_range(m0..m0 + m - 1);
 
         let mut i = l + 1;
         while i <= ir && ix >= sub[i as usize - 1] {
