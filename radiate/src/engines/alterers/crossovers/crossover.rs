@@ -11,6 +11,8 @@ where
 {
     fn cross_rate(&self) -> f32;
 
+    fn name(&self) -> &'static str;
+
     #[inline]
     fn cross(
         &self,

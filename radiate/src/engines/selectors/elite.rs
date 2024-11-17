@@ -11,6 +11,10 @@ impl EliteSelector {
 }
 
 impl<G: Gene<G, A>, A> Select<G, A> for EliteSelector {
+    fn name(&self) -> &'static str {
+        "Elite Selector"
+    }
+
     fn select(
         &self,
         population: &Population<G, A>,

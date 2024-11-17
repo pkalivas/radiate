@@ -1,6 +1,7 @@
 use crate::engines::genome::genes::gene::Gene;
 use crate::engines::genome::population::Population;
 use crate::engines::optimize::Optimize;
+use crate::Metric;
 
 use super::crossovers::crossover::Crossover;
 use super::mutators::mutate::Mutate;
@@ -9,7 +10,12 @@ pub trait Alter<G, A>
 where
     G: Gene<G, A>,
 {
-    fn alter(&self, population: &mut Population<G, A>, optimize: &Optimize, generation: i32);
+    fn alter(
+        &self,
+        population: &mut Population<G, A>,
+        optimize: &Optimize,
+        generation: i32,
+    ) -> Vec<Metric>;
 }
 
 pub enum Alterer<G, A>

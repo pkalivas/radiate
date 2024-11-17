@@ -3,7 +3,7 @@ use crate::engines::genome::genes::gene::Gene;
 use crate::engines::genome::population::Population;
 use crate::engines::optimize::Optimize;
 use crate::engines::schema::subset;
-use crate::RandomRegistry;
+use crate::{Metric, RandomRegistry, Timer};
 
 use super::alter::{AlterWrap, Alterer};
 use super::crossovers::multipoint_crossover::MultiPointCrossover;
@@ -71,10 +71,19 @@ where
     G: Gene<G, A>,
 {
     #[inline]
-    fn alter(&self, population: &mut Population<G, A>, optimize: &Optimize, generation: i32) {
+    fn alter(
+        &self,
+        population: &mut Population<G, A>,
+        optimize: &Optimize,
+        generation: i32,
+    ) -> Vec<Metric> {
         optimize.sort(population);
 
+        let mut metrics = Vec::new();
         for alterer in self.alterers.iter() {
+            let timer = Timer::new();
+            let mut count = 0;
+
             match alterer.mutator {
                 Some(ref mutator) => {
                     let probability = alterer.rate.powf(1.0 / 3.0);
@@ -91,9 +100,14 @@ where
                             if mutation_count > 0 {
                                 (*phenotype).generation = generation;
                                 (*phenotype).score = None;
+                                count += mutation_count;
                             }
                         }
                     }
+
+                    let mut mutate_metric = Metric::new(mutator.name());
+                    mutate_metric.add(count as f32, timer.duration());
+                    metrics.push(mutate_metric);
                 }
                 None => (),
             };
@@ -102,18 +116,27 @@ where
                     for i in 0..population.len() {
                         if RandomRegistry::random::<f32>() < alterer.rate {
                             let parent_indexes = subset::individual_indexes(i, population.len(), 2);
-                            crossover.cross(population, &parent_indexes, generation);
+                            count += crossover.cross(population, &parent_indexes, generation);
                         }
                     }
+
+                    let mut cross_metric = Metric::new(crossover.name());
+                    cross_metric.add(count as f32, timer.duration());
+                    metrics.push(cross_metric);
                 }
                 None => (),
             };
             match alterer.alterer {
                 Some(ref alterer) => {
-                    alterer.alter(population, optimize, generation);
+                    let alter_metrics = alterer.alter(population, optimize, generation);
+                    for metric in alter_metrics {
+                        metrics.push(metric);
+                    }
                 }
                 None => (),
             };
         }
+
+        metrics
     }
 }

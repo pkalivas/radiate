@@ -22,6 +22,10 @@ where
         self.rate
     }
 
+    fn name(&self) -> &'static str {
+        "Mean Crossover"
+    }
+
     fn cross_chromosomes(
         &self,
         chrom_one: &mut Chromosome<G, A>,

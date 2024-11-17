@@ -20,7 +20,7 @@ impl MetricSet {
 
     pub fn upsert(&mut self, metric: Metric) {
         if let Some(m) = self.metrics.get_mut(metric.name()) {
-            m.add(metric.last_value());
+            m.add_value(metric.last_value());
             m.add_time(metric.last_time());
         } else {
             self.metrics.insert(metric.name(), metric);
@@ -29,10 +29,10 @@ impl MetricSet {
 
     pub fn upsert_value(&mut self, name: &'static str, value: f32) {
         if let Some(metric) = self.metrics.get_mut(name) {
-            metric.add(value);
+            metric.add_value(value);
         } else {
             self.add(Metric::new(name));
-            self.metrics.get_mut(name).unwrap().add(value);
+            self.metrics.get_mut(name).unwrap().add_value(value);
         }
     }
 
@@ -92,7 +92,12 @@ impl Metric {
         self.name
     }
 
-    pub fn add(&mut self, value: f32) {
+    pub fn add(&mut self, value: f32, time: Duration) {
+        self.add_value(value);
+        self.add_time(time);
+    }
+
+    pub fn add_value(&mut self, value: f32) {
         self.stats.add(value);
     }
 
@@ -165,7 +170,7 @@ impl std::fmt::Debug for Metric {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Metric {{ {:<10} ∧: {:<7.3?}  ∨: {:<7.3?} μ: {:<7.3?} N: {:<7} :: ∧[{:<10?}] ∨[{:<10?}] μ[{:<10?}] }}",
+            "Metric {{ {:<15} -> ∧: {:<7.3?}  ∨: {:<7.3?} μ: {:<7.3?} N: {:<7} :: ∧[{:<10?}] ∨[{:<10?}] μ[{:<10?}] }}",
             self.name(),
             self.max(),
             self.min(),
@@ -185,11 +190,11 @@ mod tests {
     #[test]
     fn test_metric() {
         let mut metric = Metric::new("test");
-        metric.add(1.0);
-        metric.add(2.0);
-        metric.add(3.0);
-        metric.add(4.0);
-        metric.add(5.0);
+        metric.add_value(1.0);
+        metric.add_value(2.0);
+        metric.add_value(3.0);
+        metric.add_value(4.0);
+        metric.add_value(5.0);
 
         assert_eq!(metric.count(), 5);
         assert_eq!(metric.last_value(), 5.0);

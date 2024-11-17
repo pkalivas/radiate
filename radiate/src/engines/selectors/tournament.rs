@@ -13,6 +13,10 @@ impl TournamentSelector {
 }
 
 impl<G: Gene<G, A>, A> Select<G, A> for TournamentSelector {
+    fn name(&self) -> &'static str {
+        "Tournament Selector"
+    }
+
     fn select(
         &self,
         population: &Population<G, A>,

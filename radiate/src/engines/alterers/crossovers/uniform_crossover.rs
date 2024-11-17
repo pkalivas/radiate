@@ -15,4 +15,8 @@ impl<G: Gene<G, A>, A> Crossover<G, A> for UniformCrossover {
     fn cross_rate(&self) -> f32 {
         self.rate
     }
+
+    fn name(&self) -> &'static str {
+        "UniformCrossover"
+    }
 }

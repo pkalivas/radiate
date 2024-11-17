@@ -1,7 +1,7 @@
 use radiate::engines::alterers::Alter;
 use radiate::engines::genome::*;
 use radiate::engines::optimize::Optimize;
-use radiate::{Alterer, RandomRegistry};
+use radiate::{Alterer, Metric, RandomRegistry, Timer};
 
 use crate::architects::node_collections::*;
 use crate::architects::schema::node_types::NodeType;
@@ -319,7 +319,14 @@ where
     T: Clone + PartialEq + Default + 'static,
 {
     #[inline]
-    fn alter(&self, population: &mut Population<Node<T>, Ops<T>>, _: &Optimize, generation: i32) {
+    fn alter(
+        &self,
+        population: &mut Population<Node<T>, Ops<T>>,
+        _: &Optimize,
+        generation: i32,
+    ) -> Vec<Metric> {
+        let timer = Timer::new();
+        let mut count = 0;
         for i in 0..population.len() {
             let mutation = RandomRegistry::choose(&self.mutations);
 
@@ -348,10 +355,17 @@ where
 
                 let mut copied_genotype = genotype.clone();
 
+                count += 1;
+
                 copied_genotype
                     .set_chromosome(chromosome_index, Chromosome::from_genes(mutated_graph));
                 population.set(i, Phenotype::from_genotype(copied_genotype, generation));
             }
         }
+
+        let mut result = Metric::new("Graph Mutator");
+        result.add(count as f32, timer.duration());
+
+        vec![result]
     }
 }

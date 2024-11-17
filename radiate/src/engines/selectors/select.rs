@@ -6,6 +6,8 @@ pub trait Select<G, A>
 where
     G: Gene<G, A>,
 {
+    fn name(&self) -> &'static str;
+
     fn select(
         &self,
         population: &Population<G, A>,
