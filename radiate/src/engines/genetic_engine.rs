@@ -85,8 +85,11 @@ where
             }
         }
 
-        handle.metrics.upsert(METRIC_EVALUATE, work_results.len() as f32);
-        handle.metrics.upsert_time(METRIC_EVALUATE, timer.duration());
+        handle.upsert_metric(
+            METRIC_EVALUATE,
+            work_results.len() as f32,
+            Some(timer.duration()),
+        );
 
         for work_result in work_results {
             let (idx, score) = work_result.result();
@@ -174,7 +177,7 @@ where
     fn add_metrics(&self, output: &mut EngineContext<G, A, T>) {
         for i in 0..output.population.len() {
             let phenotype = output.population.get(i);
-            
+
             let age = phenotype.age(output.index);
             let score = phenotype.score().as_ref().unwrap().as_float();
 

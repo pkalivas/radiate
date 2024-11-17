@@ -123,7 +123,6 @@ impl Metric {
         self.stats.count()
     }
 
-
     pub fn mean_time(&self) -> Duration {
         if self.time_stats.count() == 0 {
             return Duration::from_secs_f32(0.0);
