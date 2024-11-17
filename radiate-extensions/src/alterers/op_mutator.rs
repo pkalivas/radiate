@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use std::ops::{Add, Mul, Sub};
+use std::sync::Arc;
 
 use num_traits::Float;
 use radiate::engines::alterers::mutators::mutate::Mutate;
@@ -42,7 +42,14 @@ where
 
 impl<T> Mutate<Node<T>, Ops<T>> for OpMutator<T>
 where
-    T: Clone + PartialEq + Default + Mul<Output = T> + Sub<Output = T> + Add<Output = T> + Float + SampleUniform,
+    T: Clone
+        + PartialEq
+        + Default
+        + Mul<Output = T>
+        + Sub<Output = T>
+        + Add<Output = T>
+        + Float
+        + SampleUniform,
     Standard: Distribution<T>,
 {
     fn mutate_rate(&self) -> f32 {
@@ -53,7 +60,8 @@ where
     fn mutate_gene(&self, gene: &Node<T>) -> Node<T> {
         match gene.allele() {
             Ops::MutableConst(name, arity, value, supplier, operation) => {
-                let random_value = RandomRegistry::random::<T>() * T::from(2).unwrap() - T::from(1).unwrap();
+                let random_value =
+                    RandomRegistry::random::<T>() * T::from(2).unwrap() - T::from(1).unwrap();
 
                 if RandomRegistry::random::<f32>() < self.replace_rate {
                     gene.from_allele(&Ops::MutableConst(

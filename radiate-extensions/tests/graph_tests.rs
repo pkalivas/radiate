@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
 
-    use radiate_extensions::*;
     use radiate::*;
+    use radiate_extensions::*;
 
     #[test]
     fn test_graph() {

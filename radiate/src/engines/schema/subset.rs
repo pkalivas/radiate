@@ -1,11 +1,6 @@
-
 use crate::RandomRegistry;
 
-pub fn individual_indexes(
-    index: usize,
-    size: usize,
-    order: usize,
-) -> Vec<usize> {
+pub fn individual_indexes(index: usize, size: usize, order: usize) -> Vec<usize> {
     let mut sub_set = subset(size as usize, order as usize);
     let mut i = 0;
     while sub_set[i] < index as i32 && i < sub_set.len() - 1 {

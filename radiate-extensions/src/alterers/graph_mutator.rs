@@ -320,7 +320,6 @@ where
 {
     #[inline]
     fn alter(&self, population: &mut Population<Node<T>, Ops<T>>, _: &Optimize, generation: i32) {
-
         for i in 0..population.len() {
             let mutation = RandomRegistry::choose(&self.mutations);
 

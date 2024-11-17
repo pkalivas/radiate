@@ -1,4 +1,3 @@
-
 use crate::{Gene, Optimize, Population, RandomRegistry};
 
 use super::Select;

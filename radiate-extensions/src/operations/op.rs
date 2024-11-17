@@ -4,7 +4,10 @@ use std::{
 };
 
 use radiate::RandomRegistry;
-use rand::{distributions::{uniform::SampleUniform, Standard}, prelude::Distribution};
+use rand::{
+    distributions::{uniform::SampleUniform, Standard},
+    prelude::Distribution,
+};
 
 use num_traits::{Float, NumCast};
 
@@ -382,7 +385,7 @@ pub fn min<T: Clone + PartialOrd>() -> Ops<T> {
 pub fn weight<T: Sub<Output = T> + Mul<Output = T> + Copy + Default + Float>() -> Ops<T>
 where
     Standard: Distribution<T>,
-    T: PartialOrd + NumCast + SampleUniform
+    T: PartialOrd + NumCast + SampleUniform,
 {
     let supplier = || RandomRegistry::random::<T>() - RandomRegistry::random::<T>();
     let operation = |inputs: &[T], weight: &T| clamp(inputs[0] * *weight);
