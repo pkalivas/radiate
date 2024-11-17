@@ -132,11 +132,9 @@ where
             };
             match alterer.crossover {
                 Some(ref crossover) => {
-
                     for i in 0..population.len() {
                         if RandomRegistry::random::<f32>() < alterer.rate {
-                            let parent_indexes =
-                                subset::individual_indexes(i, population.len(), 2);
+                            let parent_indexes = subset::individual_indexes(i, population.len(), 2);
                             crossover.cross(population, &parent_indexes, generation);
                         }
                     }

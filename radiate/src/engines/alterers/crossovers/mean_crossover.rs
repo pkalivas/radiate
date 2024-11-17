@@ -1,4 +1,3 @@
-
 use crate::Chromosome;
 use crate::NumericGene;
 use crate::RandomRegistry;

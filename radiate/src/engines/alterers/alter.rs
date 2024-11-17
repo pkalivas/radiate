@@ -44,11 +44,11 @@ where
         Alterer::Alterer(Box::new(alterer))
     }
 
-    pub fn crossover<T: Crossover<G, A> + 'static>(crossover: T) -> Self{
+    pub fn crossover<T: Crossover<G, A> + 'static>(crossover: T) -> Self {
         Alterer::Crossover(Box::new(crossover))
     }
 
-    pub fn mutation<T: Mutate<G, A> + 'static>(mutation: T) -> Self{
+    pub fn mutation<T: Mutate<G, A> + 'static>(mutation: T) -> Self {
         Alterer::Mutation(Box::new(mutation))
     }
 }

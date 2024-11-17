@@ -1,7 +1,7 @@
 use rand::distributions::Standard;
 use rand::{rngs::StdRng, Rng, SeedableRng};
-use std::sync::{Arc, Mutex};
 use std::sync::OnceLock;
+use std::sync::{Arc, Mutex};
 
 pub struct RandomRegistry {
     rng: Arc<Mutex<StdRng>>,

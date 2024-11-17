@@ -1,5 +1,5 @@
-use radiate_extensions::*;
 use radiate::*;
+use radiate_extensions::*;
 
 const MAX_INDEX: i32 = 500;
 const MIN_SCORE: f32 = 0.01;

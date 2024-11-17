@@ -110,7 +110,12 @@ impl Item {
 
     pub fn random_collection(size: usize) -> Vec<Item> {
         (0..size)
-            .map(|_| Item::new(RandomRegistry::random::<f32>() * 100.0, RandomRegistry::random::<f32>() * 100.0))
+            .map(|_| {
+                Item::new(
+                    RandomRegistry::random::<f32>() * 100.0,
+                    RandomRegistry::random::<f32>() * 100.0,
+                )
+            })
             .collect()
     }
 }

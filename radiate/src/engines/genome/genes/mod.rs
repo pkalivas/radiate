@@ -5,7 +5,10 @@ pub mod gene;
 pub mod generic_gene;
 pub mod int_gene;
 
-use rand::{distributions::{uniform::SampleUniform, Standard}, prelude::Distribution};
+use rand::{
+    distributions::{uniform::SampleUniform, Standard},
+    prelude::Distribution,
+};
 use std::{
     fmt::Debug,
     fmt::Display,
@@ -31,7 +34,8 @@ pub trait Integer<T>:
     + SampleUniform
     + Display
     + Default
-    where Standard: Distribution<T>
+where
+    Standard: Distribution<T>,
 {
     const MIN: T;
     const MAX: T;

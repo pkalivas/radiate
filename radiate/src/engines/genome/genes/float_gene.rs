@@ -1,4 +1,3 @@
-
 use crate::RandomRegistry;
 
 use super::gene::{BoundGene, Gene, NumericGene, Valid};

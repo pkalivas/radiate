@@ -94,7 +94,7 @@ where
     }
 }
 
-impl<T: Integer<T>> NumericGene<IntGene<T>, T> for IntGene<T> 
+impl<T: Integer<T>> NumericGene<IntGene<T>, T> for IntGene<T>
 where
     Standard: rand::distributions::Distribution<T>,
 {

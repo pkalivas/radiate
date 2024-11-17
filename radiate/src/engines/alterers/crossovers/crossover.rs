@@ -29,7 +29,8 @@ where
 
     #[inline]
     fn cross_genotypes(&self, geno_one: &mut Genotype<G, A>, geno_two: &mut Genotype<G, A>) -> i32 {
-        let chromosome_index = RandomRegistry::random::<usize>() % std::cmp::min(geno_one.len(), geno_two.len());
+        let chromosome_index =
+            RandomRegistry::random::<usize>() % std::cmp::min(geno_one.len(), geno_two.len());
 
         let mut chrom_one = geno_one.get_chromosome_mut(chromosome_index);
         let mut chrom_two = geno_two.get_chromosome_mut(chromosome_index);
