@@ -1,6 +1,6 @@
 use crate::engines::score::Score;
 
-use super::{genes::gene::Gene, genotype::Genotype};
+use super::{genes::gene::Gene, genotype::Genotype, Valid};
 
 pub struct Phenotype<G, A>
 where
@@ -41,6 +41,15 @@ where
 
     pub fn age(&self, generation: i32) -> i32 {
         generation - self.generation
+    }
+}
+
+impl<G, A> Valid for Phenotype<G, A>
+where
+    G: Gene<G, A>,
+{
+    fn is_valid(&self) -> bool {
+        self.genotype.is_valid()
     }
 }
 
