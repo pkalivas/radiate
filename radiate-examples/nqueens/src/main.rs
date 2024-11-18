@@ -12,7 +12,7 @@ fn main() {
         .num_threads(10)
         .offspring_selector(RankSelector::new())
         .alterer(vec![
-            Alterer::SinglePointCrossover(0.5),
+            Alterer::MultiPointCrossover(0.75, 2),
             Alterer::Mutator(0.01),
         ])
         .fitness_fn(|genotype: Vec<Vec<i8>>| {
