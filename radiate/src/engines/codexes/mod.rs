@@ -8,14 +8,12 @@ pub mod char_codex;
 pub mod float_codex;
 pub mod int_codex;
 pub mod subset_codex;
-pub mod fn_codex;
 
 pub use bit_codex::*;
 pub use char_codex::*;
 pub use float_codex::*;
 pub use int_codex::*;
 pub use subset_codex::*;
-pub use fn_codex::*;
 
 pub trait Codex<G, A, T>
 where
