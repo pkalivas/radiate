@@ -4,7 +4,7 @@ version = "0.1.1"
 edition = "2021"
 
 [dependencies]
-radiate = { path = "../radiate" }
+radiate = "1.2.2"
 uuid = { version = "1.10.0", features = ["v4"] }
 rand = "0.8.5"
 num-traits = "0.2.19"
