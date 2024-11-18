@@ -137,3 +137,55 @@ impl std::fmt::Debug for FloatGene {
         write!(f, "{}", self.allele)
     }
 }
+
+impl Into<FloatGene> for f32 {
+    fn into(self) -> FloatGene {
+        FloatGene {
+            allele: self,
+            min: f32::MIN,
+            max: f32::MAX,
+            upper_bound: f32::MAX,
+            lower_bound: f32::MIN,
+        }
+    }
+}
+
+impl Into<f32> for FloatGene {
+    fn into(self) -> f32 {
+        self.allele
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_new() {
+        let gene = FloatGene::new(0_f32, 1_f32);
+        assert!(gene.is_valid());
+    }
+
+    #[test]
+    fn test_into() {
+        let gene = FloatGene::new(0_f32, 1_f32);
+        let copy = gene.clone();
+        let allele: f32 = gene.into();
+        assert_eq!(allele, copy.allele);
+    }
+
+    #[test]
+    fn test_from() {
+        let gene = FloatGene::new(0_f32, 1_f32);
+        let copy = gene.clone();
+        assert_eq!(gene, copy);
+    }
+
+    #[test]
+    fn test_is_valid() {
+        let gene = FloatGene::new(0_f32, 1_f32).with_bounds(0.0, 1_f32);
+        assert!(gene.is_valid());
+        assert!(gene.allele >= 0_f32 && gene.allele <= 1_f32);
+    }
+}

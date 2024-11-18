@@ -92,3 +92,35 @@ where
         )
     }
 }
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+    use crate::engines::genome::chromosome::Chromosome;
+    use crate::engines::genome::genes::float_gene::FloatGene;
+
+    #[test]
+    fn test_from_genotype() {
+        let genotype =
+            Genotype::from_chromosomes(vec![Chromosome::from_genes(vec![FloatGene::new(
+                0_f32, 1_f32,
+            )])]);
+
+        let phenotype = Phenotype::from_genotype(genotype.clone(), 0);
+        assert_eq!(phenotype.genotype, genotype);
+        assert_eq!(phenotype.generation, 0);
+        assert_eq!(phenotype.score, None);
+    }
+
+    #[test]
+    fn test_age() {
+        let genotype =
+            Genotype::from_chromosomes(vec![Chromosome::from_genes(vec![FloatGene::new(
+                0_f32, 1_f32,
+            )])]);
+
+        let phenotype = Phenotype::from_genotype(genotype.clone(), 0);
+        assert_eq!(phenotype.age(10), 10);
+    }
+}

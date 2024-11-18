@@ -51,3 +51,49 @@ impl std::fmt::Debug for BitGene {
         write!(f, "{}", if self.allele { 1 } else { 0 })
     }
 }
+
+impl Into<BitGene> for bool {
+    fn into(self) -> BitGene {
+        BitGene { allele: self }
+    }
+}
+
+impl Into<bool> for BitGene {
+    fn into(self) -> bool {
+        self.allele
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+
+    #[test]
+    fn test_new() {
+        let gene = BitGene::new();
+        assert!(gene.allele == true || gene.allele == false);
+    }
+
+    #[test]
+    fn test_allele() {
+        let gene = BitGene::new();
+        assert!(gene.allele() == &gene.allele);
+    }
+
+    #[test]
+    fn test_into() {
+        let gene = BitGene::new();
+        let copy = gene.clone();
+        let allele: bool = gene.into();
+        assert!(allele == copy.allele);
+    }
+
+    #[test]
+    fn test_from() {
+        let gene = BitGene::new();
+        let copy = gene.clone();
+        let allele: BitGene = copy.into();
+        assert!(allele == gene);
+    }
+}
