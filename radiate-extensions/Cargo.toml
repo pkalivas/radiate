@@ -2,6 +2,13 @@
 name = "radiate-extensions"
 version = "0.1.1"
 edition = "2021"
+authors = ["pkalivas <peterkalivas@gmail.com>"]
+description = "Extensions for radiate. Genetic Programming implementations for graphs (neural networks) and regression analysis"
+repository = "https://github.com/pkalivas/radiate"
+readme = "../README.md"
+categories = ["science", "simulation", "algorithms"]
+keywords = ["search", "genetic", "learning", "artificial", "evolution"]
+license = "MIT"
 
 [dependencies]
 radiate = "1.2.2"
