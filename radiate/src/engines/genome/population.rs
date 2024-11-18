@@ -132,3 +132,16 @@ where
         write!(f, "]")
     }
 }
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+    use crate::engines::genome::genes::char_gene::CharGene;
+
+    #[test]
+    fn test_new() {
+        let population = Population::<CharGene, char>::new();
+        assert_eq!(population.len(), 0);
+    }
+}

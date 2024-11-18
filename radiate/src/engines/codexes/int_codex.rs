@@ -55,7 +55,7 @@ where
                         (0..self.num_genes)
                             .into_iter()
                             .map(|_| {
-                                IntGene::new(self.min, self.max)
+                                IntGene::from_min_max(self.min, self.max)
                                     .with_bounds(self.lower_bound, self.upper_bound)
                             })
                             .collect::<Vec<IntGene<T>>>(),

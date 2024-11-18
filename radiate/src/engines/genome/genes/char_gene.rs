@@ -52,3 +52,41 @@ impl std::fmt::Debug for CharGene {
         write!(f, "{}", self.allele)
     }
 }
+
+impl Into<CharGene> for char {
+    fn into(self) -> CharGene {
+        CharGene { allele: self }
+    }
+}
+
+impl Into<char> for CharGene {
+    fn into(self) -> char {
+        self.allele
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_new() {
+        let gene = CharGene::new();
+        assert!(ALPHABET.contains(gene.allele));
+    }
+
+    #[test]
+    fn test_allele() {
+        let gene = CharGene::new();
+        assert_eq!(gene.allele(), &gene.allele);
+    }
+
+    #[test]
+    fn test_into() {
+        let gene = CharGene::new();
+        let copy = gene.clone();
+        let allele: char = gene.into();
+        assert_eq!(allele, copy.allele);
+    }
+}

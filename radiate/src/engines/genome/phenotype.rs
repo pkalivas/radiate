@@ -1,6 +1,6 @@
 use crate::engines::score::Score;
 
-use super::{genes::gene::Gene, genotype::Genotype};
+use super::{genes::gene::Gene, genotype::Genotype, Valid};
 
 pub struct Phenotype<G, A>
 where
@@ -41,6 +41,15 @@ where
 
     pub fn age(&self, generation: i32) -> i32 {
         generation - self.generation
+    }
+}
+
+impl<G, A> Valid for Phenotype<G, A>
+where
+    G: Gene<G, A>,
+{
+    fn is_valid(&self) -> bool {
+        self.genotype.is_valid()
     }
 }
 
@@ -90,5 +99,37 @@ where
             "{:?}, generation: {:?}, score: {:?}",
             self.genotype, self.generation, self.score
         )
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+    use crate::engines::genome::chromosome::Chromosome;
+    use crate::engines::genome::genes::float_gene::FloatGene;
+
+    #[test]
+    fn test_from_genotype() {
+        let genotype =
+            Genotype::from_chromosomes(vec![Chromosome::from_genes(vec![FloatGene::new(
+                0_f32, 1_f32,
+            )])]);
+
+        let phenotype = Phenotype::from_genotype(genotype.clone(), 0);
+        assert_eq!(phenotype.genotype, genotype);
+        assert_eq!(phenotype.generation, 0);
+        assert_eq!(phenotype.score, None);
+    }
+
+    #[test]
+    fn test_age() {
+        let genotype =
+            Genotype::from_chromosomes(vec![Chromosome::from_genes(vec![FloatGene::new(
+                0_f32, 1_f32,
+            )])]);
+
+        let phenotype = Phenotype::from_genotype(genotype.clone(), 0);
+        assert_eq!(phenotype.age(10), 10);
     }
 }
