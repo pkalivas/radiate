@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use radiate::RandomRegistry;
+use radiate::RandomProvider;
 
 use crate::{
     architects::{node_collections::node::Node, schema::node_types::NodeType},
@@ -107,7 +107,7 @@ where
                     return Node::new(index, node_type, value).set_arity(arity);
                 }
                 _ => {
-                    let value = RandomRegistry::choose(&values);
+                    let value = RandomProvider::choose(&values);
                     let arity = value.arity();
                     return Node::new(index, node_type, value.new_instance()).set_arity(arity);
                 }

@@ -1,6 +1,6 @@
 use radiate::engines::alterers::Crossover;
 use radiate::engines::genome::*;
-use radiate::{Alterer, RandomRegistry};
+use radiate::{Alterer, RandomProvider};
 
 use crate::architects::node_collections::*;
 use crate::operations::op::Ops;
@@ -47,7 +47,7 @@ where
         let mut cross_count = 0;
 
         for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
-            if RandomRegistry::random::<f32>() < rate {
+            if RandomProvider::random::<f32>() < rate {
                 let gene_one = chrom_one.get_gene(i);
                 let gene_two = chrom_two.get_gene(i);
 

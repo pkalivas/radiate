@@ -38,7 +38,7 @@ where
     T: Clone + Send,
 {
     pub fn new() -> Self {
-        GeneticEngineParams {
+        Self {
             population_size: 100,
             max_age: 25,
             offspring_fraction: 0.8,

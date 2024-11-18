@@ -1,4 +1,4 @@
-use crate::RandomRegistry;
+use crate::RandomProvider;
 
 pub fn individual_indexes(index: usize, size: usize, order: usize) -> Vec<usize> {
     let mut sub_set = subset(size as usize, order as usize);
@@ -65,7 +65,7 @@ fn build_subset(n: i32, sub: &mut Vec<i32>) {
     let mut ix;
     for _ in 0..k {
         loop {
-            ix = RandomRegistry::gen_range(1..n);
+            ix = RandomProvider::gen_range(1..n);
             l = (ix * k - 1) / n;
             if sub[l as usize] < ix {
                 break;
@@ -109,7 +109,7 @@ fn build_subset(n: i32, sub: &mut Vec<i32>) {
             m = sub[l as usize - 1] * n / k - m0 + 1;
         }
 
-        ix = RandomRegistry::gen_range(m0..m0 + m - 1);
+        ix = RandomProvider::gen_range(m0..m0 + m - 1);
 
         let mut i = l + 1;
         while i <= ir && ix >= sub[i as usize - 1] {

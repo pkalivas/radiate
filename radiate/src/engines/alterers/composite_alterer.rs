@@ -3,7 +3,7 @@ use crate::engines::genome::genes::gene::Gene;
 use crate::engines::genome::population::Population;
 use crate::engines::optimize::Optimize;
 use crate::engines::schema::subset;
-use crate::{Metric, RandomRegistry, Timer};
+use crate::{Metric, RandomProvider, Timer};
 
 use super::alter::{AlterWrap, Alterer};
 use super::crossovers::multipoint_crossover::MultiPointCrossover;
@@ -92,7 +92,7 @@ where
                         + (std::i32::MIN as f32)) as i32;
 
                     for phenotype in population.iter_mut() {
-                        if RandomRegistry::random::<i32>() > range {
+                        if RandomProvider::random::<i32>() > range {
                             let mut genotype = phenotype.genotype_mut();
 
                             let mutation_count = mutator.mutate_genotype(&mut genotype, range);
@@ -114,7 +114,7 @@ where
             match alterer.crossover {
                 Some(ref crossover) => {
                     for i in 0..population.len() {
-                        if RandomRegistry::random::<f32>() < alterer.rate {
+                        if RandomProvider::random::<f32>() < alterer.rate {
                             let parent_indexes = subset::individual_indexes(i, population.len(), 2);
                             count += crossover.cross(population, &parent_indexes, generation);
                         }

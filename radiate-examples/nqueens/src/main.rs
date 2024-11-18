@@ -3,7 +3,7 @@ use radiate::*;
 const N_QUEENS: usize = 16;
 
 fn main() {
-    RandomRegistry::set_seed(1111);
+    RandomProvider::set_seed(1111);
 
     let codex = IntCodex::<i8>::new(1, N_QUEENS, 0, N_QUEENS as i8);
 
@@ -12,7 +12,7 @@ fn main() {
         .num_threads(10)
         .offspring_selector(RankSelector::new())
         .alterer(vec![
-            Alterer::SinglePointCrossover(0.5),
+            Alterer::MultiPointCrossover(0.75, 2),
             Alterer::Mutator(0.01),
         ])
         .fitness_fn(|genotype: Vec<Vec<i8>>| {

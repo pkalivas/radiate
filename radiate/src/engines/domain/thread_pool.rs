@@ -3,11 +3,11 @@ use std::{
     thread,
 };
 
-pub struct WorkResult<T> {
+pub struct Task<T> {
     reseiver: mpsc::Receiver<T>,
 }
 
-impl<T> WorkResult<T> {
+impl<T> Task<T> {
     pub fn result(&self) -> T {
         self.reseiver.recv().unwrap()
     }
@@ -31,7 +31,7 @@ impl ThreadPool {
         }
     }
 
-    pub fn submit<F>(&self, f: F)
+    pub fn execute<F>(&self, f: F)
     where
         F: FnOnce() + Send + 'static,
     {
@@ -39,19 +39,16 @@ impl ThreadPool {
         self.sender.send(Message::NewJob(job)).unwrap();
     }
 
-    pub fn process<F, T>(&self, f: F) -> WorkResult<T>
+    pub fn task<F, T>(&self, f: F) -> Task<T>
     where
         F: FnOnce() -> T + Send + 'static,
         T: Send + 'static,
     {
-        let (tx, rx) = mpsc::channel();
-        let job = Box::new(move || {
-            let result = f();
-            tx.send(result).unwrap();
-        });
-
+        let (tx, rx) = mpsc::sync_channel(1);
+        let job = Box::new(move || tx.send(f()).unwrap());
+        
         self.sender.send(Message::NewJob(job)).unwrap();
-        WorkResult { reseiver: rx }
+        Task { reseiver: rx }
     }
 
     pub fn is_alive(&self) -> bool {
@@ -124,7 +121,7 @@ mod tests {
 
         for _ in 0..8 {
             let counter = Arc::clone(&counter);
-            pool.submit(move || {
+            pool.execute(move || {
                 let mut num = counter.lock().unwrap();
                 *num += 1;
             });
@@ -140,7 +137,7 @@ mod tests {
         let pool = ThreadPool::new(4);
 
         for i in 0..8 {
-            pool.submit(move || {
+            pool.execute(move || {
                 let start_time = std::time::SystemTime::now();
                 println!("Job {} started.", i);
                 thread::sleep(std::time::Duration::from_secs(1));
@@ -156,7 +153,7 @@ mod tests {
 
         for i in 0..5 {
             let results = Arc::clone(&results);
-            pool.submit(move || {
+            pool.execute(move || {
                 results.lock().unwrap().push(i);
             });
         }
@@ -172,7 +169,7 @@ mod tests {
     fn test_thread_pool_process() {
         let pool = ThreadPool::new(4);
 
-        let results = pool.process(|| {
+        let results = pool.task(|| {
             let start_time = std::time::SystemTime::now();
             println!("Job started.");
             thread::sleep(std::time::Duration::from_secs(2));
@@ -194,7 +191,7 @@ mod tests {
         // Submit 20 jobs
         for i in 0..num_jobs {
             let tx = tx.clone();
-            pool.submit(move || {
+            pool.execute(move || {
                 thread::sleep(Duration::from_millis(100));
                 tx.send(i).unwrap();
             });

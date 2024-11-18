@@ -77,20 +77,20 @@ where
         let thread_pool = self.thread_pool();
         let timer = Timer::new();
 
-        let mut work_results = Vec::new();
+        let mut tasks = Vec::new();
         for idx in 0..handle.population.len() {
             let individual = handle.population.get(idx);
             if !individual.score().is_some() {
                 let fitness_fn = self.fitness_fn();
                 let decoded = codex.decode(individual.genotype());
-                let work = thread_pool.process(move || (idx, fitness_fn(decoded)));
+                let work = thread_pool.task(move || (idx, fitness_fn(decoded)));
 
-                work_results.push(work);
+                tasks.push(work);
             }
         }
 
-        let count = work_results.len() as f32;
-        for work_result in work_results {
+        let count = tasks.len() as f32;
+        for work_result in tasks {
             let (idx, score) = work_result.result();
             handle.population.get_mut(idx).set_score(Some(score));
         }

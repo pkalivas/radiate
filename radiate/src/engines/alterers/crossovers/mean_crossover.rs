@@ -1,6 +1,6 @@
 use crate::Chromosome;
 use crate::NumericGene;
-use crate::RandomRegistry;
+use crate::RandomProvider;
 
 use super::Crossover;
 
@@ -34,7 +34,7 @@ where
         let mut count = 0;
 
         for (gene_one, gene_two) in chrom_one.iter_mut().zip(chrom_two.iter()) {
-            if RandomRegistry::random::<f32>() < self.rate {
+            if RandomProvider::random::<f32>() < self.rate {
                 *gene_one = gene_one.mean(gene_two);
                 count += 1;
             }

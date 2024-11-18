@@ -1,7 +1,7 @@
 use radiate::engines::alterers::Alter;
 use radiate::engines::genome::*;
 use radiate::engines::optimize::Optimize;
-use radiate::{Alterer, Metric, RandomRegistry, Timer};
+use radiate::{Alterer, Metric, RandomProvider, Timer};
 
 use crate::architects::node_collections::*;
 use crate::architects::schema::node_types::NodeType;
@@ -328,14 +328,14 @@ where
         let timer = Timer::new();
         let mut count = 0;
         for i in 0..population.len() {
-            let mutation = RandomRegistry::choose(&self.mutations);
+            let mutation = RandomProvider::choose(&self.mutations);
 
-            if RandomRegistry::random::<f32>() > mutation.rate() {
+            if RandomProvider::random::<f32>() > mutation.rate() {
                 continue;
             }
 
             let genotype = population.get(i).genotype();
-            let chromosome_index = RandomRegistry::random::<usize>() % genotype.len();
+            let chromosome_index = RandomProvider::random::<usize>() % genotype.len();
             let chromosome = genotype.get_chromosome(chromosome_index);
 
             let mutated_graph = if mutation.is_recurrent() {

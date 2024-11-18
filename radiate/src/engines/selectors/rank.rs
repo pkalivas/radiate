@@ -1,6 +1,4 @@
-use crate::{Gene, Optimize, Population, RandomRegistry};
-
-use super::Select;
+use crate::{Gene, Optimize, Population, RandomProvider, Select};
 
 pub struct RankSelector;
 
@@ -26,7 +24,7 @@ impl<G: Gene<G, A>, A> Select<G, A> for RankSelector {
         let total_rank = (population.len() * (population.len() + 1)) as f32 / 2.0;
 
         for _ in 0..count {
-            let mut idx = RandomRegistry::gen_range(0.0..total_rank);
+            let mut idx = RandomProvider::gen_range(0.0..total_rank);
             let mut selected_idx = 0;
             for individual in population.iter() {
                 idx -= (population.len() - selected_idx) as f32;
