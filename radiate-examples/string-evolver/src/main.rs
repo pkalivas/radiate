@@ -1,7 +1,7 @@
 use radiate::*;
 
 fn main() {
-    let target = "Chicago, IL is the best city in the world!";
+    let target = "The Bean in Chciago is just a giant metal bean";
     let codex = CharCodex::new(1, target.len());
 
     let engine =

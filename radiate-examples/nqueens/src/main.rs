@@ -3,7 +3,7 @@ use radiate::*;
 const N_QUEENS: usize = 16;
 
 fn main() {
-    RandomRegistry::set_seed(1111);
+    RandomProvider::set_seed(1111);
 
     let codex = IntCodex::<i8>::new(1, N_QUEENS, 0, N_QUEENS as i8);
 

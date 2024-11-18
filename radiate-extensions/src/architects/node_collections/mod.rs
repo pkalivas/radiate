@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use radiate::RandomRegistry;
+use radiate::RandomProvider;
 
 use super::schema::node_types::NodeType;
 
@@ -120,7 +120,7 @@ where
         panic!("At least one node type must be specified.");
     }
 
-    let gene_node_type_index = RandomRegistry::random::<usize>() % node_types.len();
+    let gene_node_type_index = RandomProvider::random::<usize>() % node_types.len();
     let gene_node_type = node_types.get(gene_node_type_index).unwrap();
 
     let genes = match gene_node_type {
@@ -161,6 +161,6 @@ where
         );
     }
 
-    let index = RandomRegistry::random::<usize>() % genes.len();
+    let index = RandomProvider::random::<usize>() % genes.len();
     genes.get(index).unwrap()
 }

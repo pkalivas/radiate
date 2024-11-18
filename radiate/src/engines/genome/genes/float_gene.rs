@@ -1,4 +1,4 @@
-use crate::RandomRegistry;
+use crate::RandomProvider;
 
 use super::gene::{BoundGene, Gene, NumericGene, Valid};
 
@@ -13,7 +13,7 @@ pub struct FloatGene {
 impl FloatGene {
     pub fn new(min: f32, max: f32) -> Self {
         Self {
-            allele: RandomRegistry::random::<f32>() * (max - min) + min,
+            allele: RandomProvider::random::<f32>() * (max - min) + min,
             min,
             max,
             upper_bound: f32::MAX,
@@ -35,7 +35,7 @@ impl Gene<FloatGene, f32> for FloatGene {
 
     fn new_instance(&self) -> FloatGene {
         FloatGene {
-            allele: RandomRegistry::random::<f32>() * (self.max - self.min) + self.min,
+            allele: RandomProvider::random::<f32>() * (self.max - self.min) + self.min,
             min: self.min,
             max: self.max,
             upper_bound: self.upper_bound,

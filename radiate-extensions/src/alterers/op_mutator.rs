@@ -4,7 +4,7 @@ use std::sync::Arc;
 use num_traits::Float;
 use radiate::engines::alterers::mutators::mutate::Mutate;
 use radiate::engines::genome::genes::gene::Gene;
-use radiate::{Alterer, RandomRegistry};
+use radiate::{Alterer, RandomProvider};
 use rand::distributions::uniform::SampleUniform;
 use rand::{distributions::Standard, prelude::Distribution};
 
@@ -65,9 +65,9 @@ where
         match gene.allele() {
             Ops::MutableConst(name, arity, value, supplier, operation) => {
                 let random_value =
-                    RandomRegistry::random::<T>() * T::from(2).unwrap() - T::from(1).unwrap();
+                    RandomProvider::random::<T>() * T::from(2).unwrap() - T::from(1).unwrap();
 
-                if RandomRegistry::random::<f32>() < self.replace_rate {
+                if RandomProvider::random::<f32>() < self.replace_rate {
                     gene.from_allele(&Ops::MutableConst(
                         &name,
                         *arity,

@@ -1,4 +1,4 @@
-use crate::{Gene, Optimize, Population, RandomRegistry};
+use crate::{Gene, Optimize, Population, RandomProvider};
 
 use super::Select;
 
@@ -48,7 +48,7 @@ impl<G: Gene<G, A>, A> Select<G, A> for RouletteSelector {
         let total_fitness = fitness_values.iter().sum::<f32>();
 
         for _ in 0..count {
-            let mut idx = RandomRegistry::gen_range(0.0..total_fitness);
+            let mut idx = RandomProvider::gen_range(0.0..total_fitness);
 
             for i in 0..fitness_values.len() {
                 idx -= fitness_values[i];

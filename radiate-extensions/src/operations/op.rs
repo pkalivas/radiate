@@ -3,7 +3,7 @@ use std::{
     sync::Arc,
 };
 
-use radiate::RandomRegistry;
+use radiate::RandomProvider;
 use rand::{
     distributions::{uniform::SampleUniform, Standard},
     prelude::Distribution,
@@ -387,7 +387,7 @@ where
     Standard: Distribution<T>,
     T: PartialOrd + NumCast + SampleUniform,
 {
-    let supplier = || RandomRegistry::random::<T>() - RandomRegistry::random::<T>();
+    let supplier = || RandomProvider::random::<T>() - RandomProvider::random::<T>();
     let operation = |inputs: &[T], weight: &T| clamp(inputs[0] * *weight);
     Ops::MutableConst("w", 1, supplier(), Arc::new(supplier), Arc::new(operation))
 }

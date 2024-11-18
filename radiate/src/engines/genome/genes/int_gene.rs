@@ -1,6 +1,6 @@
 use rand::distributions::Standard;
 
-use crate::RandomRegistry;
+use crate::RandomProvider;
 
 use super::{
     gene::{BoundGene, Gene, NumericGene, Valid},
@@ -36,7 +36,7 @@ where
         let (min, max) = if min > max { (max, min) } else { (min, max) };
 
         Self {
-            allele: RandomRegistry::gen_range(min..max),
+            allele: RandomProvider::gen_range(min..max),
             min,
             max,
             upper_bound: T::MAX,
@@ -55,7 +55,7 @@ where
 
     fn new_instance(&self) -> IntGene<T> {
         IntGene {
-            allele: RandomRegistry::gen_range(self.min..self.max),
+            allele: RandomProvider::gen_range(self.min..self.max),
             min: self.min,
             max: self.max,
             upper_bound: self.upper_bound,

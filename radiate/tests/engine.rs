@@ -4,7 +4,7 @@ mod engine_tests {
     use radiate::*;
 
     #[test]
-    fn test_engine_can_minimize() {
+    fn engine_can_minimize() {
         let codex = IntCodex::new(1, 5, 0, 100);
 
         let engine = GeneticEngine::from_codex(&codex)
@@ -23,7 +23,7 @@ mod engine_tests {
     }
 
     #[test]
-    fn test_engine_can_maximize() {
+    fn engine_can_maximize() {
         let codex = IntCodex::new(1, 5, 0, 101);
 
         let engine = GeneticEngine::from_codex(&codex)
@@ -41,7 +41,7 @@ mod engine_tests {
     }
 
     #[test]
-    fn test_engine_evolves_towards_target() {
+    fn engine_evolves_towards_target() {
         let target = vec![1, 2, 3, 4, 5];
         let codex = IntCodex::new(1, target.len(), 0, 10);
 
@@ -64,7 +64,7 @@ mod engine_tests {
     }
 
     #[test]
-    fn test_population_initialization() {
+    fn population_initialization() {
         let codex = IntCodex::new(1, 5, 0, 100);
         let engine = GeneticEngine::from_codex(&codex)
             .population_size(150)

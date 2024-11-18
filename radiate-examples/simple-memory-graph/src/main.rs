@@ -7,7 +7,7 @@ const MIN_SCORE: f32 = 0.01;
 fn main() {
     let factory = NodeFactory::<f32>::regression(2).outputs(vec![op::sigmoid()]);
 
-    let graph_codex = GraphCodex::from_shape(1, 1, &factory).set_nodes(|arc, _| arc.lstm(1, 1, 1));
+    let graph_codex = GraphCodex::from_factory(&factory).set_nodes(|arc, _| arc.lstm(1, 1, 1));
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 

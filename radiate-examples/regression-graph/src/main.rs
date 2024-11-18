@@ -7,7 +7,7 @@ const MAX_SECONDS: f64 = 5.0;
 fn main() {
     let factory = NodeFactory::<f32>::regression(1).gates(vec![op::add(), op::sub(), op::mul()]);
 
-    let graph_codex = GraphCodex::from_shape(1, 1, &factory);
+    let graph_codex = GraphCodex::from_factory(&factory);
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 
@@ -75,5 +75,5 @@ fn get_sample_set() -> SampleSet<f32> {
 }
 
 fn compupute(x: f32) -> f32 {
-    return 4.0 * x.powf(3.0) - 3.0 * x.powf(2.0) + x;
+    4.0 * x.powf(3.0) - 3.0 * x.powf(2.0) + x
 }

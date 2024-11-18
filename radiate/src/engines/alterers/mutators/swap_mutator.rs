@@ -1,6 +1,6 @@
 use crate::engines::genome::chromosome::Chromosome;
 use crate::engines::genome::genes::gene::Gene;
-use crate::RandomRegistry;
+use crate::RandomProvider;
 
 use super::mutate::Mutate;
 
@@ -28,8 +28,8 @@ impl<G: Gene<G, A>, A> Mutate<G, A> for SwapMutator {
         let mut mutations = 0;
 
         for i in 0..chromosome.len() {
-            if RandomRegistry::random::<i32>() > range {
-                let swap_index = RandomRegistry::gen_range(0..chromosome.len());
+            if RandomProvider::random::<i32>() > range {
+                let swap_index = RandomProvider::gen_range(0..chromosome.len());
 
                 if swap_index == i {
                     continue;
