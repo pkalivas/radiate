@@ -1,11 +1,11 @@
 # <p align="center">Radiate</p>
 
-![master branch checks][br_ck] ![Crates.io][cl] 
-
+![master branch checks][br_ck] ![Crates.io][cl] ![Crates.io License][li]
 
 
 [cl]: https://img.shields.io/crates/v/radiate
 [br_ck]: https://img.shields.io/github/check-runs/pkalivas/radiate/master
+[li]: https://img.shields.io/crates/l/radiate
 
 
 
