@@ -44,7 +44,7 @@ radiate = "1.2.2"
 
 The implemenation of the ```GeneticEngine``` results in an extremely extensible and dynamic architecture. Mix and match any of these features together or add new features and algorithms with minimal effort. Check [radiate-extensions](https://github.com/pkalivas/radiate/tree/master/radiate-extensions) for additions.
 
-### Basic Usage
+## Basic Usage
 Evolve a string of characters to match the target (Chicago, IL)
 ```rust
 use radiate::*;
@@ -83,7 +83,7 @@ fn main() {
     println!("{:?}", result);
 }
 ```
-### Examples
+## Examples
 The radiate-examples directory contains several examples demonstrating the capabilities of the library, including:
 * **[Min-Sum](https://github.com/pkalivas/radiate/blob/master/radiate-examples/min-sum/src/main.rs)**: An example of minimizing a sum of integers.
 * **[N-Queens](https://github.com/pkalivas/radiate/blob/master/radiate-examples/nqueens/src/main.rs)**: A classic problem in which the goal is to place N queens on a chessboard such that no two queens threaten each other.
