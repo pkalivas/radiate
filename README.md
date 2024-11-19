@@ -65,7 +65,7 @@ fn main() {
     let codex = CharCodex::new(1, target.len());
 
     let engine = GeneticEngine::from_codex(&codex)
-        .offspring_selector(Roulette::new())
+        .offspring_selector(RouletteSelector::new())
         .survivor_selector(TournamentSelector::new(3))
         .alterer(vec![
             Alterer::Mutator(0.01),
