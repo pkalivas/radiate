@@ -1,9 +1,4 @@
-use radiate::engines::alterers::alter::Alterer;
-use radiate::engines::alterers::mutators::numeric_mutator::NumericMutator;
-use radiate::engines::codexes::int_codex::IntCodex;
-use radiate::engines::genetic_engine::GeneticEngine;
-use radiate::engines::score::Score;
-use radiate::{EliteSelector, TournamentSelector};
+use radiate::*;
 
 const MIN_SCORE: i32 = 0;
 
