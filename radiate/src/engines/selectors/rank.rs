@@ -19,6 +19,7 @@ impl<G: Gene<G, A>, A> Select<G, A> for RankSelector {
         _: &Optimize,
         count: usize,
     ) -> Population<G, A> {
+        // TODO: This is wrong, fix me.
         let mut selected = Vec::with_capacity(count);
 
         let total_rank = (population.len() * (population.len() + 1)) as f32 / 2.0;
