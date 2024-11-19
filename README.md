@@ -29,7 +29,7 @@ Large insperation for this library coming from other genetic algorithm libraries
       3. Numeric
 * **Customizable Codexes**: Define how individuals are represented.
   * Each ```Genotype``` can be thought of as a matrix of ```Genes```. Each row being a ```Chromosoome```. This means the decoding of a ```Genotype``` reults in a ```Vec<Vec<T>>```. For example, a ```Genotype``` of ```FloatGene``` decodes to ```Vec<Vec<f32>>```
-* **Parallel Processing**: The ```GeneticEngine``` has a thread pool which is pushes work to when applicable. Simply define the number of desired threads.
+* **Parallel Processing**: The ```GeneticEngine``` has a thread pool it pushes work to when applicable. Simply define the number of desired threads.
 * **Flexible Fitness Functions**: Easily define and integrate custom fitness functions to evaluate individuals. Each evaluation of the fitness function if evalued in a thread pool.
 
 The implemenation of the ```GeneticEngine``` results in an extremely extensible and dynamic architecture. Mix and match any of these features together or add new features and algorithms with minimal effort. Check [radiate-extensions](https://github.com/pkalivas/radiate/tree/master/radiate-extensions) for additions.
