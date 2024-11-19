@@ -53,7 +53,7 @@ radiate = "1.2.2"
 * **Parallel Processing**: The ```GeneticEngine``` has a thread pool it pushes work to when applicable. Simply define the number of desired threads.
 * **Flexible Fitness Functions**: Easily define and integrate custom fitness functions to evaluate individuals. Each evaluation of the fitness function if evalued in a thread pool.
 
-The implemenation of the ```GeneticEngine``` results in an extremely extensible and dynamic architecture. Mix and match any of these features together or add new features and algorithms with minimal effort. Check [radiate-extensions](https://github.com/pkalivas/radiate/tree/master/radiate-extensions) for additions.
+The implemenation of the ```GeneticEngine``` results in an extremely extensible and dynamic architecture. Mix and match any of these features together or add new features and algorithms with minimal effort. Check [radiate-extensions](https://github.com/pkalivas/radiate/tree/master/radiate-extensions) for extensions to the core library.
 
 ## Basic Usage
 Evolve a string of characters to match the target (Chicago, IL)
@@ -65,7 +65,7 @@ fn main() {
     let codex = CharCodex::new(1, target.len());
 
     let engine = GeneticEngine::from_codex(&codex)
-        .offspring_selector(RankSelector::new())
+        .offspring_selector(Roulette::new())
         .survivor_selector(TournamentSelector::new(3))
         .alterer(vec![
             Alterer::Mutator(0.01),
