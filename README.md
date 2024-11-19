@@ -1,11 +1,11 @@
 # <p align="center">Radiate</p>
 
-![Crates.io][cl]
+![master branch checks][br_ck] ![Crates.io][cl] 
 
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/pkalivas/radiate/rust.yaml)
 
 
 [cl]: https://img.shields.io/crates/v/radiate
+[br_ck]: https://img.shields.io/github/check-runs/pkalivas/radiate/master
 
 
 
