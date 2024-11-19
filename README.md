@@ -1,12 +1,13 @@
 # <p align="center">Radiate</p>
 
-[![Build Status][bsl]][bs] ![Crates.io][cl]
+![Crates.io][cl] ![test][gb]
 
-[bsl]: https://travis-ci.com/pkalivas/radiate.svg?branch=master
+---
+
 [cl]: https://img.shields.io/crates/v/radiate
 [bs]: https://travis-ci.com/pkalivas/radiate
 
-![test](https://github.com/pkalivas/radiate/actions/workflows/rust.yaml/badge.svg?event=push)
+[gb]: https://github.com/pkalivas/radiate/actions/workflows/rust.yaml/badge.svg
 
 
 
