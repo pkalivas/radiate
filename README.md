@@ -1,5 +1,12 @@
 # <p align="center">Radiate</p>
 
+[![Build Status][bsl]][bs] ![Crates.io][cl]
+
+[bsl]: https://travis-ci.com/pkalivas/radiate.svg?branch=master
+[cl]: https://img.shields.io/crates/v/radiate
+[bs]: https://travis-ci.com/pkalivas/radiate
+
+
 #### Major braeking changes as of 11/16/24 - v1.6.0. Readme as well as docs are still being put together and will improve. Check examples for current usages.
 
 ### A Rust Library for Genetic Algorithms and Artificial Evolution
@@ -15,8 +22,6 @@ Large insperation for this library coming from other genetic algorithm libraries
 
 ## Usage
 Add to cargo.toml
-
-![Crates.io](https://img.shields.io/crates/v/radiate)
 ```toml
 [dependencies]
 radiate = "1.2.2"
