@@ -83,6 +83,9 @@ fn main() {
     println!("{:?}", result);
 }
 ```
+## Workflow
+TODO - write out the general GA workflow provided by the library.
+
 ## Examples
 The radiate-examples directory contains several examples demonstrating the capabilities of the library, including:
 * **[Min-Sum](https://github.com/pkalivas/radiate/blob/master/radiate-examples/min-sum/src/main.rs)**: An example of minimizing a sum of integers.
