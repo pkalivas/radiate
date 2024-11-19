@@ -5,12 +5,19 @@
 
 Radiate is a powerful Rust library designed for implementing genetic algorithms and artificial evolution techniques. It provides a flexible framework for creating, evolving, and optimizing solutions to complex problems using principles inspired by natural selection and genetics. This library is suitable for researchers, developers, and enthusiasts interested in evolutionary computation and optimization.
 
+## Usage
+Add to cargo.toml
+```toml
+[dependencies]
+radiate = "1.2.2"
+```
+
 Large insperation for this library coming from other genetic algorithm libraries:
 [Jenetics](https://github.com/jenetics/jenetics): A Java implementatino of GAs.
 [genevo](https://github.com/innoave/genevo): Popular rust GA.
 [radiate_legacy](https://github.com/pkalivas/radiate.legacy): Previous implemenation of this library with direct encoding.
 
-### Features
+## Features
 * **Genetic Algorithms**: Implement standard genetic algorithm operations such as selection, crossover, and mutation.
   * [Selectors](https://en.wikipedia.org/wiki/Selection_(genetic_algorithm)#:~:text=Boltzmann%20selection,-In%20Boltzmann%20selection&text=The%20temperature%20is%20gradually%20lowered,the%20appropriate%20degree%20of%20diversity.):
       1. Boltzmann
