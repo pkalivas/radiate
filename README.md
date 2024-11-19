@@ -28,6 +28,8 @@ Large insperation for this library coming from other genetic algorithm libraries
       2. Swap 
       3. Numeric
 * **Customizable Codexes**: Define how individuals are represented.
+  * Each Genotype can be thought of as a matrix of Genes. Each row being a Chromosoome. This means the decoding of a genotype reults in a ```Vec<Vec<T>>```. 
+    * A Genotype of FloatGenes decodes to ```Vec<Vec<f32>>```
 * **Parallel Processing**: Utilize multi-threading capabilities to speed up the evolution process. Simply define the number of desired threads to process the fitness function on.
 * **Flexible Fitness Functions**: Easily define and integrate custom fitness functions to evaluate individuals.
 
