@@ -1,4 +1,6 @@
+
 <h1 align="center">Radiate</p>
+<img src="/docs/radiate.png" height=100>
 
 ![master branch checks][br_ck] ![Crates.io][cl] ![Crates.io License][li] ![Static badge][eg]
 
@@ -11,7 +13,7 @@
 [logo]: /docs/radiate.png 
 
 
-#### Major braeking changes as of 11/16/24 - v1.6.0. Readme as well as docs are still being put together and will improve. Check examples for current usages.
+### Readme as well as docs are under construction. Check examples for current usages.
 
 Radiate is a powerful Rust library designed for implementing genetic algorithms and artificial evolution techniques. It provides a flexible framework for creating, evolving, and optimizing solutions to complex problems using principles inspired by natural selection and genetics. This library is suitable for researchers, developers, and enthusiasts interested in evolutionary computation and optimization.
 
@@ -63,25 +65,25 @@ fn main() {
     let codex = CharCodex::new(1, target.len());
 
     let engine = GeneticEngine::from_codex(&codex)
-            .offspring_selector(RankSelector::new())
-            .survivor_selector(TournamentSelector::new(3))
-            .alterer(vec![
-                Alterer::Mutator(0.01),
-                Alterer::UniformCrossover(0.5)
-            ])
-            .fitness_fn(|genotype: String| {
-                Score::from_usize(genotype.chars().zip(target.chars()).fold(
-                    0,
-                    |acc, (geno, targ)| {
-                        if geno == targ {
-                            acc + 1
-                        } else {
-                            acc
-                        }
-                    },
-                ))
-            })
-            .build();
+        .offspring_selector(RankSelector::new())
+        .survivor_selector(TournamentSelector::new(3))
+        .alterer(vec![
+            Alterer::Mutator(0.01),
+            Alterer::UniformCrossover(0.5)
+        ])
+        .fitness_fn(|genotype: String| {
+            Score::from_usize(genotype.chars().zip(target.chars()).fold(
+                0,
+                |acc, (geno, targ)| {
+                    if geno == targ {
+                        acc + 1
+                    } else {
+                        acc
+                    }
+                },
+            ))
+        })
+        .build();
 
     let result = engine.run(|output| {
         println!("[ {:?} ]: {:?}", output.index, output.best);
