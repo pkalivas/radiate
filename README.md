@@ -28,9 +28,10 @@ Large insperation for this library coming from other genetic algorithm libraries
       2. Swap 
       3. Numeric
 * **Customizable Codexes**: Define how individuals are represented.
-* **Parallel Processing**: Utilize multi-threading capabilities to speed up the evolution process.
+* **Parallel Processing**: Utilize multi-threading capabilities to speed up the evolution process. Simply define the number of desired threads to process the fitness function on.
 * **Flexible Fitness Functions**: Easily define and integrate custom fitness functions to evaluate individuals.
-* **Extensible Architecture**: Add new features and algorithms with minimal effort. Check radiate-extensions.
+
+The implemenation of the genetic engine results in an extremely extensible and dynamic architecture. Mix and match any of these features togher or add new features and algorithms with minimal effort. Check radiate-extensions for additions.
 
 ### Basic Usage
 Evolve a string of characters to match the target (Chicago, IL)
