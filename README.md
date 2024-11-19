@@ -1,4 +1,6 @@
+
 <h1 align="center">Radiate</p>
+<img src="/docs/radiate.png" height=100>
 
 ![master branch checks][br_ck] ![Crates.io][cl] ![Crates.io License][li] ![Static badge][eg]
 
