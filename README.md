@@ -1,12 +1,9 @@
 # <p align="center">Radiate</p>
 
-![Crates.io][cl] ![test][gb]
-[![coverage](https://pages.github.com/user/repo/coverage.svg)](https://pages.github.com/user/repo/coverage)
+![Crates.io][cl]
 
 [cl]: https://img.shields.io/crates/v/radiate
 [bs]: https://travis-ci.com/pkalivas/radiate
-
-[gb]: https://github.com/pkalivas/radiate/actions/workflows/rust.yaml/badge.svg
 
 
 
