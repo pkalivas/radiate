@@ -34,7 +34,7 @@ where
     T: Clone + Send,
 {
     pub fn new(params: GeneticEngineParams<'a, G, A, T>) -> Self {
-        GeneticEngine { params }
+        Self { params }
     }
 
     pub fn from_codex(
@@ -77,7 +77,7 @@ where
         let thread_pool = self.thread_pool();
         let timer = Timer::new();
 
-        let mut tasks = Vec::new();
+        let mut work_results = Vec::new();
         for idx in 0..handle.population.len() {
             let individual = handle.population.get(idx);
             if !individual.score().is_some() {
@@ -85,12 +85,12 @@ where
                 let decoded = codex.decode(individual.genotype());
                 let work = thread_pool.task(move || (idx, fitness_fn(decoded)));
 
-                tasks.push(work);
+                work_results.push(work);
             }
         }
 
-        let count = tasks.len() as f32;
-        for work_result in tasks {
+        let count = work_results.len() as f32;
+        for work_result in work_results {
             let (idx, score) = work_result.result();
             handle.population.get_mut(idx).set_score(Some(score));
         }
