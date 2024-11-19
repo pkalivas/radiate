@@ -2,10 +2,10 @@
 
 ![Crates.io][cl]
 
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/pkalivas/radiate/Rust)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/pkalivas/radiate/rust.yaml)
+
 
 [cl]: https://img.shields.io/crates/v/radiate
-[bs]: https://travis-ci.com/pkalivas/radiate
 
 
 
