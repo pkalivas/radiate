@@ -1,4 +1,4 @@
-# Radiate
+# <p align="center">Radiate</p>
 
 #### Major braeking changes as of 11/16/24 - v1.6.0. Readme as well as docs are still being put together and will improve. Check examples for current usages.
 
@@ -15,6 +15,8 @@ Large insperation for this library coming from other genetic algorithm libraries
 
 ## Usage
 Add to cargo.toml
+
+![Crates.io](https://img.shields.io/crates/v/radiate)
 ```toml
 [dependencies]
 radiate = "1.2.2"
