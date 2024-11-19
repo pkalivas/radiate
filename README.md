@@ -29,7 +29,7 @@ Large insperation for this library coming from other genetic algorithm libraries
       3. Numeric
 * **Customizable Codexes**: Define how individuals are represented.
   * Each ```Genotype``` can be thought of as a matrix of ```Genes```. Each row being a ```Chromosoome```. This means the decoding of a ```Genotype``` reults in a ```Vec<Vec<T>>```. For example, a ```Genotype``` of ```FloatGene``` decodes to ```Vec<Vec<f32>>```
-* **Parallel Processing**: Utilize multi-threading capabilities to speed up the evolution process. Simply define the number of desired threads to process the fitness function on.
+* **Parallel Processing**: The ```GeneticEngine``` has a thread pool which is pushes work to when applicable. Simply define the number of desired threads.
 * **Flexible Fitness Functions**: Easily define and integrate custom fitness functions to evaluate individuals. Each evaluation of the fitness function if evalued in a thread pool.
 
 The implemenation of the ```GeneticEngine``` results in an extremely extensible and dynamic architecture. Mix and match any of these features together or add new features and algorithms with minimal effort. Check [radiate-extensions](https://github.com/pkalivas/radiate/tree/master/radiate-extensions) for additions.
@@ -44,9 +44,12 @@ fn main() {
     let codex = CharCodex::new(1, target.len());
 
     let engine = GeneticEngine::from_codex(&codex)
-            .offspring_selector(Elite::new())
-            .survivor_selector(Tournament::new(3))
-            .alterer(vec![Alterer::Mutator(0.1), Alterer::UniformCrossover(0.5)])
+            .offspring_selector(RankSelector::new())
+            .survivor_selector(TournamentSelector::new(3))
+            .alterer(vec![
+                Alterer::Mutator(0.01),
+                Alterer::UniformCrossover(0.5)
+            ])
             .fitness_fn(|genotype: String| {
                 Score::from_usize(genotype.chars().zip(target.chars()).fold(
                     0,
@@ -72,6 +75,9 @@ fn main() {
 ```
 ### Examples
 The radiate-examples directory contains several examples demonstrating the capabilities of the library, including:
-* **Min-Sum Problem**: An example of minimizing a sum of integers.
-* **N-Queens Problem**: A classic problem in which the goal is to place N queens on a chessboard such that no two queens threaten each other.
-* **Regression Graph**: An example of using genetic algorithms for regression analysis.
+* **[Min-Sum](https://github.com/pkalivas/radiate/blob/master/radiate-examples/min-sum/src/main.rs)**: An example of minimizing a sum of integers.
+* **[N-Queens](https://github.com/pkalivas/radiate/blob/master/radiate-examples/nqueens/src/main.rs)**: A classic problem in which the goal is to place N queens on a chessboard such that no two queens threaten each other.
+* **[Knapsack](https://github.com/pkalivas/radiate/blob/master/radiate-examples/knapsack/src/main.rs)**: Another classic problem for evolutionary algorithms.
+* **[Regression Graph](https://github.com/pkalivas/radiate/blob/master/radiate-examples/regression-graph/src/main.rs)**: Evolve a ```Graph<f32>``` (essentially a graph based neural network) for regression analysis.
+* **[Simple Memory Graph](https://github.com/pkalivas/radiate/blob/master/radiate-examples/simple-memory-graph/src/main.rs)**: Evolve a ```Graph<f32>``` (Neural Network) using recurrent connections for Neural Network based memory.
+* **[XOR Graph](https://github.com/pkalivas/radiate/blob/master/radiate-examples/xor-graph/src/main.rs)**: Evolve a ```Graph<f32>``` to solve the classic [XOR problem](https://dev.to/jbahire/demystifying-the-xor-problem-1blk).
