@@ -1,4 +1,4 @@
-<h1 align="center">Radiate <img align="right" height="50" src="/docs/radiate.png"></h1>
+<h1 align="center">Radiate <img justify="right" height="50" src="/docs/radiate.png"></h1>
 
 ![master branch checks][br_ck] ![Crates.io][cl] ![Crates.io License][li] ![Static badge][eg]
 
