@@ -6,6 +6,9 @@
 [cl]: https://img.shields.io/crates/v/radiate
 [bs]: https://travis-ci.com/pkalivas/radiate
 
+![test](https://github.com/pkalivas/radiate/actions/workflows/rust.yaml/badge.svg?event=push)
+
+
 
 #### Major braeking changes as of 11/16/24 - v1.6.0. Readme as well as docs are still being put together and will improve. Check examples for current usages.
 
