@@ -1,11 +1,12 @@
 # <p align="center">Radiate</p>
 
-![master branch checks][br_ck] ![Crates.io][cl] ![Crates.io License][li]
+![master branch checks][br_ck] ![Crates.io][cl] ![Crates.io License][li] ![Static badge][eg]
 
 
 [cl]: https://img.shields.io/crates/v/radiate
 [br_ck]: https://img.shields.io/github/check-runs/pkalivas/radiate/master
 [li]: https://img.shields.io/crates/l/radiate
+[eg]: https://img.shields.io/badge/Evolution-Genetics-green
 
 
 
