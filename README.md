@@ -1,12 +1,14 @@
-# <p align="center">Radiate</p>
+<h1 align="center">Radiate</p>
 
-![master branch checks][br_ck] ![Crates.io][cl] ![Crates.io License][li]
+![master branch checks][br_ck] ![Crates.io][cl] ![Crates.io License][li] ![Static badge][eg]
 
 
 [cl]: https://img.shields.io/crates/v/radiate
 [br_ck]: https://img.shields.io/github/check-runs/pkalivas/radiate/master
 [li]: https://img.shields.io/crates/l/radiate
+[eg]: https://img.shields.io/badge/Evolution-Genetics-green
 
+[logo]: /docs/radiate.png 
 
 
 #### Major braeking changes as of 11/16/24 - v1.6.0. Readme as well as docs are still being put together and will improve. Check examples for current usages.
