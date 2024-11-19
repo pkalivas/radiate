@@ -28,10 +28,11 @@ Large insperation for this library coming from other genetic algorithm libraries
       2. Swap 
       3. Numeric
 * **Customizable Codexes**: Define how individuals are represented.
+  * Each ```Genotype``` can be thought of as a matrix of ```Genes```. Each row being a ```Chromosoome```. This means the decoding of a ```Genotype``` reults in a ```Vec<Vec<T>>```. For example, a ```Genotype``` of ```FloatGene``` decodes to ```Vec<Vec<f32>>```
 * **Parallel Processing**: Utilize multi-threading capabilities to speed up the evolution process. Simply define the number of desired threads to process the fitness function on.
-* **Flexible Fitness Functions**: Easily define and integrate custom fitness functions to evaluate individuals.
+* **Flexible Fitness Functions**: Easily define and integrate custom fitness functions to evaluate individuals. Each evaluation of the fitness function if evalued in a thread pool.
 
-The implemenation of the genetic engine results in an extremely extensible and dynamic architecture. Mix and match any of these features togher or add new features and algorithms with minimal effort. Check radiate-extensions for additions.
+The implemenation of the ```GeneticEngine``` results in an extremely extensible and dynamic architecture. Mix and match any of these features together or add new features and algorithms with minimal effort. Check [radiate-extensions](https://github.com/pkalivas/radiate/tree/master/radiate-extensions) for additions.
 
 ### Basic Usage
 Evolve a string of characters to match the target (Chicago, IL)
