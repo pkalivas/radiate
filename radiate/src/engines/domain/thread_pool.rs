@@ -3,11 +3,11 @@ use std::{
     thread,
 };
 
-pub struct Task<T> {
+pub struct WorkResult<T> {
     reseiver: mpsc::Receiver<T>,
 }
 
-impl<T> Task<T> {
+impl<T> WorkResult<T> {
     pub fn result(&self) -> T {
         self.reseiver.recv().unwrap()
     }
@@ -39,7 +39,7 @@ impl ThreadPool {
         self.sender.send(Message::NewJob(job)).unwrap();
     }
 
-    pub fn task<F, T>(&self, f: F) -> Task<T>
+    pub fn task<F, T>(&self, f: F) -> WorkResult<T>
     where
         F: FnOnce() -> T + Send + 'static,
         T: Send + 'static,
@@ -48,7 +48,7 @@ impl ThreadPool {
         let job = Box::new(move || tx.send(f()).unwrap());
         
         self.sender.send(Message::NewJob(job)).unwrap();
-        Task { reseiver: rx }
+        WorkResult { reseiver: rx }
     }
 
     pub fn is_alive(&self) -> bool {

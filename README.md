@@ -2,16 +2,17 @@
 <h1 align="center">Radiate</p>
 <img src="/docs/radiate.png" height=100>
 
-![master branch checks][br_ck] ![Crates.io][cl] ![Crates.io License][li] ![Static badge][eg]
+![master branch checks][master_branch_checks] ![Crates.io][crates_link] ![Crates.io License][license] ![Static badge][static_evolution_badge]
 
 
-[cl]: https://img.shields.io/crates/v/radiate
-[br_ck]: https://img.shields.io/github/check-runs/pkalivas/radiate/master
-[li]: https://img.shields.io/crates/l/radiate
-[eg]: https://img.shields.io/badge/Evolution-Genetics-green
+[crates_link]: https://img.shields.io/crates/v/radiate
+[master_branch_checks]: https://img.shields.io/github/check-runs/pkalivas/radiate/master
+[license]: https://img.shields.io/crates/l/radiate
+[static_evolution_badge]: https://img.shields.io/badge/Evolution-Genetics-green
 
-[logo]: /docs/radiate.png 
-
+[jenetics_link]: https://github.com/jenetics/jenetics
+[genevo_link]: https://github.com/innoave/genevo
+[radiate_legacy]: https://github.com/pkalivas/radiate.legacy
 
 ### Readme as well as docs are under construction. Check examples for current usages.
 
@@ -20,9 +21,9 @@ Radiate is a powerful Rust library designed for implementing genetic algorithms 
 ---
 
 Large insperation for this library coming from other genetic algorithm libraries:
-[Jenetics](https://github.com/jenetics/jenetics): A Java implementatino of GAs.
-[genevo](https://github.com/innoave/genevo): Popular rust GA.
-[radiate_legacy](https://github.com/pkalivas/radiate.legacy): Previous implemenation of this library with direct encoding.
+[Jenetics][jenetics_link]: A Java implementatino of GAs.
+[genevo][genevo_link]: Popular rust GA.
+[radiate_legacy][radiate_legacy]: Previous implemenation of this library with direct encoding.
 
 ## Usage
 Add to cargo.toml
@@ -97,6 +98,12 @@ fn main() {
 ## Workflow
 TODO - write out the general GA workflow provided by the library.
 
+## Future Features
+* Multi-objective optimization ([pareto fronts](https://www.sciencedirect.com/topics/engineering/pareto-front#:~:text=The%20concept%20of%20Pareto%20front,solutions%20in%20the%20search%20space.))
+  * I have a plan and mental model of how to integrate this into the library - fundementals are already there. Will start when I have time probably within the next month or two (Dec 2024/Jan 2025)
+* [Genetic Programming through tree data structures](https://en.wikipedia.org/wiki/Gene_expression_programming#:~:text=In%20computer%20programming%2C%20gene%20expression,much%20like%20a%20living%20organism.)?
+  * Graphs are already implemented and working well so in theory trees (expression trees) should be a (somewhat) light lift.
+  
 ## Examples
 The radiate-examples directory contains several examples demonstrating the capabilities of the library, including:
 * **[Min-Sum](https://github.com/pkalivas/radiate/blob/master/radiate-examples/min-sum/src/main.rs)**: An example of minimizing a sum of integers.
