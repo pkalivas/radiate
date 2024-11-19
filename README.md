@@ -1,8 +1,7 @@
 # <p align="center">Radiate</p>
 
 ![Crates.io][cl] ![test][gb]
-
----
+[![coverage](https://pages.github.com/user/repo/coverage.svg)](https://pages.github.com/user/repo/coverage)
 
 [cl]: https://img.shields.io/crates/v/radiate
 [bs]: https://travis-ci.com/pkalivas/radiate

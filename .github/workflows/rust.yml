@@ -20,3 +20,8 @@ jobs:
       run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
+      - uses: pooi/coverage-badge@1.0.0
+        with:
+          token: ${{ secret.GITHUB_ACCESS_TOKEN }}
+          xml-test-report-path: ${SOURCE_PATH}/build/reports/kover/report.xml
+          html-test-report-path: ${SOURCE_PATH}/build/reports/kover/html
