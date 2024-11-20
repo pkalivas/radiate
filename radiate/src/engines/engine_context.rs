@@ -45,7 +45,7 @@ where
     T: Clone,
 {
     fn clone(&self) -> Self {
-        EngineContext {
+        Self {
             population: self.population.clone(),
             best: self.best.clone(),
             index: self.index,
