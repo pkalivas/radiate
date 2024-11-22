@@ -8,6 +8,12 @@ impl RankSelector {
     }
 }
 
+impl Default for RankSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<G: Gene<G, A>, A> Select<G, A> for RankSelector {
     fn name(&self) -> &'static str {
         "Rank Selector"

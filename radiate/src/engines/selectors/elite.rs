@@ -10,6 +10,12 @@ impl EliteSelector {
     }
 }
 
+impl Default for EliteSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<G: Gene<G, A>, A> Select<G, A> for EliteSelector {
     fn name(&self) -> &'static str {
         "Elite Selector"

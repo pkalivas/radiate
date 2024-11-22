@@ -70,8 +70,8 @@ impl<G: Gene<G, A>, A> Select<G, A> for BoltzmannSelector {
         for _ in 0..count {
             let mut idx = RandomProvider::gen_range(0.0..total_fitness);
 
-            for i in 0..result.len() {
-                idx -= result[i];
+            for (i, val) in result.iter().enumerate() {
+                idx -= val;
                 if idx <= 0.0 {
                     selected.push(population.get(i).clone());
                     break;
