@@ -27,7 +27,7 @@ where
     pub offspring_selector: Box<dyn Select<G, A>>,
     pub alterer: Option<CompositeAlterer<G, A>>,
     pub population: Option<Population<G, A>>,
-    pub codex: Option<Arc<&'a (dyn Codex<G, A, T> + Send + Sync)>>,
+    pub codex: Option<Arc<&'a dyn Codex<G, A, T>>>,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
 }
 
@@ -68,7 +68,7 @@ where
         self
     }
 
-    pub fn codex(mut self, codex: &'a (impl Codex<G, A, T> + Send + Sync)) -> Self {
+    pub fn codex(mut self, codex: &'a impl Codex<G, A, T>) -> Self {
         self.codex = Some(Arc::new(codex));
         self
     }

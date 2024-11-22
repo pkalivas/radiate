@@ -4,10 +4,6 @@ pub struct Score {
     pub values: Vec<f32>,
 }
 
-unsafe impl Send for Score {}
-
-unsafe impl Sync for Score {}
-
 impl Score {
     pub fn from_any(value: &dyn std::any::Any) -> Self {
         if let Some(value) = value.downcast_ref::<f32>() {

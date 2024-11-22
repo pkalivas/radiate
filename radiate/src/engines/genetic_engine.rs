@@ -34,7 +34,7 @@ where
     T: Clone + Send,
 {
     pub fn new(params: GeneticEngineParams<'a, G, A, T>) -> Self {
-        Self { params }
+        GeneticEngine { params }
     }
 
     pub fn from_codex(
@@ -238,7 +238,7 @@ where
         self.params.alterer.as_ref().unwrap()
     }
 
-    fn codex(&self) -> Arc<&'a (dyn Codex<G, A, T> + Send + Sync)> {
+    fn codex(&self) -> Arc<&'a dyn Codex<G, A, T>> {
         Arc::clone(self.params.codex.as_ref().unwrap())
     }
 
