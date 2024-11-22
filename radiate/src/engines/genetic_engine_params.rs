@@ -14,8 +14,7 @@ use super::{RouletteSelector, Select, ThreadPool, TournamentSelector};
 
 pub struct GeneticEngineParams<'a, G, A, T>
 where
-    G: Gene<G, A> + Send,
-    A: Send,
+    G: Gene<G, A>,
     T: Clone,
 {
     pub population_size: usize,
@@ -33,8 +32,7 @@ where
 
 impl<'a, G, A, T> GeneticEngineParams<'a, G, A, T>
 where
-    G: Gene<G, A> + Send,
-    A: Send,
+    G: Gene<G, A>,
     T: Clone + Send,
 {
     pub fn new() -> Self {

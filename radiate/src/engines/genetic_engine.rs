@@ -20,8 +20,7 @@ use super::{
 
 pub struct GeneticEngine<'a, G, A, T>
 where
-    G: Gene<G, A> + Send,
-    A: Send,
+    G: Gene<G, A>,
     T: Clone + Send + 'static,
 {
     pub params: GeneticEngineParams<'a, G, A, T>,
@@ -29,17 +28,14 @@ where
 
 impl<'a, G, A, T> GeneticEngine<'a, G, A, T>
 where
-    G: Gene<G, A> + Send,
-    A: Send,
+    G: Gene<G, A>,
     T: Clone + Send,
 {
     pub fn new(params: GeneticEngineParams<'a, G, A, T>) -> Self {
         GeneticEngine { params }
     }
 
-    pub fn from_codex(
-        codex: &'a (impl Codex<G, A, T> + Send + Sync),
-    ) -> GeneticEngineParams<G, A, T> {
+    pub fn from_codex(codex: &'a impl Codex<G, A, T>) -> GeneticEngineParams<G, A, T> {
         GeneticEngineParams::new().codex(codex)
     }
 
