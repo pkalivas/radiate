@@ -100,9 +100,6 @@ pub struct Item {
     pub value: f32,
 }
 
-unsafe impl Send for Item {}
-unsafe impl Sync for Item {}
-
 impl Item {
     pub fn new(weight: f32, value: f32) -> Self {
         Item { weight, value }
