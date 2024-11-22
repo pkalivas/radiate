@@ -55,7 +55,7 @@ use super::{
 ///    })
 ///   .build(); // Build the genetic engine.
 /// 
-/// // Run the genetic algorithm until the stopping condition is met.
+/// // Run the genetic algorithm until the score of the best individual is 0, then return the result.
 /// let result = engine.run(|output| output.score().as_int() == 0);
 /// ```
 ///
