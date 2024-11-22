@@ -8,6 +8,8 @@ pub struct WorkResult<T> {
 }
 
 impl<T> WorkResult<T> {
+    /// Get the result of the job.
+    /// Note: This method will block until the result is available.
     pub fn result(&self) -> T {
         self.reseiver.recv().unwrap()
     }
@@ -19,6 +21,9 @@ pub struct ThreadPool {
 }
 
 impl ThreadPool {
+    /// Basic thread pool implementation.
+    ///
+    /// Create a new ThreadPool with the given size.
     pub fn new(size: usize) -> Self {
         let (sender, receiver) = mpsc::channel();
         let receiver = Arc::new(Mutex::new(receiver));
@@ -31,6 +36,7 @@ impl ThreadPool {
         }
     }
 
+    /// Execute a job in the thread pool. This is a 'fire and forget' method.
     pub fn execute<F>(&self, f: F)
     where
         F: FnOnce() + Send + 'static,
@@ -39,6 +45,7 @@ impl ThreadPool {
         self.sender.send(Message::NewJob(job)).unwrap();
     }
 
+    /// Execute a job in the thread pool and return a WorkResult that can be used to get the result of the job.
     pub fn task<F, T>(&self, f: F) -> WorkResult<T>
     where
         F: FnOnce() -> T + Send + 'static,
@@ -84,6 +91,11 @@ struct Worker {
 }
 
 impl Worker {
+    /// Create a new Worker.
+    ///
+    /// The Worker will listen for incoming jobs on the given receiver.
+    /// When a job is received, it will be executed in a new thread and the
+    /// mutex will release allowing another job to be received from a different worker.
     fn new(receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Self {
         Self {
             thread: Some(thread::spawn(move || loop {
@@ -97,6 +109,8 @@ impl Worker {
         }
     }
 
+    /// Simple check if the worker is alive. The thread is 'taken' when the worker is dropped.
+    /// So if the thread is 'taken' the worker is no longer alive.
     pub fn is_alive(&self) -> bool {
         self.thread.is_some()
     }
