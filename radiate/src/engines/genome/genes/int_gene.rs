@@ -23,7 +23,7 @@ where
     Standard: rand::distributions::Distribution<T>,
 {
     pub fn new(allele: T) -> Self {
-        Self {
+        IntGene {
             allele,
             min: T::MIN,
             max: T::MAX,

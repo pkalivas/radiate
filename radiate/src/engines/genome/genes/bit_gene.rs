@@ -8,7 +8,7 @@ pub struct BitGene {
 
 impl BitGene {
     pub fn new() -> Self {
-        Self {
+        BitGene {
             allele: RandomProvider::gen_range(0..2) == 1,
         }
     }
