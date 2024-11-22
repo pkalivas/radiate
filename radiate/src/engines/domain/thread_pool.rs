@@ -46,7 +46,7 @@ impl ThreadPool {
     {
         let (tx, rx) = mpsc::sync_channel(1);
         let job = Box::new(move || tx.send(f()).unwrap());
-        
+
         self.sender.send(Message::NewJob(job)).unwrap();
         WorkResult { reseiver: rx }
     }

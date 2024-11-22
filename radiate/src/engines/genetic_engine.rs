@@ -35,9 +35,7 @@ where
         GeneticEngine { params }
     }
 
-    pub fn from_codex(
-        codex: &'a (impl Codex<G, A, T> + Send + Sync),
-    ) -> GeneticEngineParams<G, A, T> {
+    pub fn from_codex(codex: &'a impl Codex<G, A, T>) -> GeneticEngineParams<G, A, T> {
         GeneticEngineParams::new().codex(codex)
     }
 
