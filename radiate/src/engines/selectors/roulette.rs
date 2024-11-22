@@ -10,6 +10,12 @@ impl RouletteSelector {
     }
 }
 
+impl Default for RouletteSelector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<G: Gene<G, A>, A> Select<G, A> for RouletteSelector {
     fn name(&self) -> &'static str {
         "Roulette Selector"
@@ -50,8 +56,8 @@ impl<G: Gene<G, A>, A> Select<G, A> for RouletteSelector {
         for _ in 0..count {
             let mut idx = RandomProvider::gen_range(0.0..total_fitness);
 
-            for i in 0..fitness_values.len() {
-                idx -= fitness_values[i];
+            for (i, val) in fitness_values.iter().enumerate() {
+                idx -= val;
                 if idx <= 0.0 {
                     selected.push(population.get(i).clone());
                     break;
