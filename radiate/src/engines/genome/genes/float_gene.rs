@@ -2,6 +2,26 @@ use crate::RandomProvider;
 
 use super::gene::{BoundGene, Gene, NumericGene, Valid};
 
+/// A `Gene` that represents a floating point number.
+/// The `allele` is the in the case of the `FloatGene` a f32. The `min` and `max` values
+/// default to f32::MIN and f32::MAX respectively. The `min` and `max` values are used to
+/// generate a random number between the `min` and `max` values, which is the `allele` of the `FloatGene`.
+/// The `upper_bound` and `lower_bound` are used to set the bounds of the `FloatGene` when it is used
+/// in a `BoundGene` context (crossover or mutation). The `upper_bound` and `lower_bound` default to f32::MAX and f32::MIN respectively.
+/// 
+/// # Example
+/// ``` rust
+/// use radiate::*;
+/// 
+/// // Create a new FloatGene with a min value of 0 and a max value of 1 meaning the
+/// // allele will be a random number between 0 and 1.
+/// // The upper_bound and lower_bound are set to f32::MAX and f32::MIN respectively.
+/// let gene = FloatGene::new(0_f32, 1_f32);
+/// 
+/// // Create a new FloatGene with a min of 0 and a max of 1 and set the upper_bound
+/// // and lower_bound to 0 and 100 respectively.
+/// let gene = FloatGene::new(0_f32, 1_f32).with_bounds(100_f32, 0_f32);
+/// ```
 pub struct FloatGene {
     pub allele: f32,
     pub min: f32,
@@ -22,6 +42,11 @@ impl FloatGene {
     }
 }
 
+/// Implement the `Valid` trait for the `FloatGene`.
+/// 
+/// The `is_valid` method checks if the `allele` of the `FloatGene` is between the `min` and `max` values.
+/// The `GeneticEngine` will check the validity of the `Chromosome` and `Phenotype` and remove any 
+/// invalid individuals from the population, replacing them with new individuals at the given generation.
 impl Valid for FloatGene {
     fn is_valid(&self) -> bool {
         self.allele >= self.min && self.allele <= self.max
