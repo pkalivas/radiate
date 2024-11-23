@@ -7,6 +7,37 @@ use super::{
     Integer,
 };
 
+/// A `Gene` that represents an integer value. This gene just wraps an integer value and provides
+/// functionality for it to be used in a genetic algorithm. In this `Gene` implementation, the
+/// `allele` is the integer value itself, the min and max values are the minimum and maximum values
+/// that the integer can be generated from, and the upper and lower bounds are the upper and lower bounds the gene will
+/// be subject to during crossover and mutation. If the `allele` exceedes the bounds, the `Gene` will be considered invalid.
+/// 
+/// `IntGene` is generic over `T` - the type of integer. The `Integer` trait is implemented for `i8`, `i16`, `i32`, `i64`, and `i128`.
+/// 
+/// # Example
+/// ``` rust
+/// use radiate::*;
+/// 
+/// // Create a new IntGene with an allele of 5, the min value will be i32::MIN 
+/// // and the max value will be i32::MAX - same for the upper and lower bounds.
+/// let gene: IntGene<i32> = 5.into();
+/// 
+/// // Create the same gene, but with a different method
+/// let gene = IntGene::new(5);
+/// 
+/// // Create a gene, but with a min value of 0 and a max value of 10. In this case, 
+/// // the allele will be a random value between 0 and 10. The min and max values will
+/// // be set to 0 and 10, and the upper and lower bounds will be set to i32::MAX and i32::MIN.
+/// let gene = IntGene::from_min_max(0, 10);
+/// 
+/// // Create a gene with a min value of 0 and a max value of 10, but with upper and lower bounds of 10 and 0.
+/// // In this case, the allele will be a random value between 0 and 10, but the upper and lower bounds will be 10 and 0.
+/// let gene = IntGene::from_min_max(0, 10).with_bounds(10, 0);
+/// ```
+/// 
+/// # Type Parameters
+/// - `T`: The type of integer used in the gene.
 pub struct IntGene<T: Integer<T>>
 where
     Standard: rand::distributions::Distribution<T>,
@@ -22,6 +53,9 @@ impl<T: Integer<T>> IntGene<T>
 where
     Standard: rand::distributions::Distribution<T>,
 {
+    /// Create a new instance of the `IntGene` with the given allele. The min and max values will be set 
+    /// to the minimum and maximum values of the integer type `T`, and the upper and lower 
+    /// bounds will be set to the maximum and minimum values of the integer type `T`.
     pub fn new(allele: T) -> Self {
         IntGene {
             allele,
@@ -32,6 +66,8 @@ where
         }
     }
 
+    /// Create a new instance of the `IntGene` with a random allele between the given min and max values.
+    /// The upper and lower bounds will be set to the maximum and minimum values of the integer type `T`.
     pub fn from_min_max(min: T, max: T) -> Self {
         let (min, max) = if min > max { (max, min) } else { (min, max) };
 
@@ -45,6 +81,7 @@ where
     }
 }
 
+/// Implement the `Gene` trait for `IntGene`. This allows the `IntGene` to be used in a genetic algorithm.
 impl<T: Integer<T>> Gene<IntGene<T>, T> for IntGene<T>
 where
     Standard: rand::distributions::Distribution<T>,
@@ -53,6 +90,7 @@ where
         &self.allele
     }
 
+    /// Create a new instance of the `IntGene` with a random allele between the min and max values.
     fn new_instance(&self) -> IntGene<T> {
         IntGene {
             allele: RandomProvider::gen_range(self.min..self.max),
@@ -74,6 +112,10 @@ where
     }
 }
 
+/// Implement the `Valid` trait for `IntGene`. This allows the `IntGene` to be checked for validity.
+/// An `IntGene` is valid if the `allele` is between the `min` and `max` values.
+/// 
+/// Note: the bounds are used for crossover and mutation.
 impl<T: Integer<T>> Valid for IntGene<T>
 where
     Standard: rand::distributions::Distribution<T>,
