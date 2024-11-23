@@ -10,10 +10,13 @@ use super::gene::{Gene, Valid};
 /// ``` rust
 /// use radiate::*;
 /// 
+/// // Craete a new BitGene from the allele `true`.
+/// let gene: BitGene = true.into();
+/// 
 /// // Create a new BitGene with a random allele.
 /// let gene = BitGene::new();
 /// 
-/// // Get the allele of the BitGene.
+/// // Get the allele (bool) of the BitGene.
 /// let allele = gene.allele();
 /// 
 /// // Create a new BitGene from the allele.
@@ -47,6 +50,7 @@ impl Gene<BitGene, bool> for BitGene {
     }
 }
 
+/// Because a `BitGene` is either `true` or `false` it is always valid.
 impl Valid for BitGene {}
 
 impl Clone for BitGene {
