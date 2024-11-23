@@ -8,10 +8,14 @@ use super::{genes::gene::Gene, genotype::Genotype, Valid};
 /// * ```Generation``` - the generation in which the individual was created
 ///
 /// The ```Phenotype``` is a wrapper around the ```Genotype``` that adds additional information about the individual.
-/// In traditional (biological) genetics, a phenotype is the set of observable characteristics of an individual resulting 
-/// from the interaction of its genotype with the environment. As such, the ```Phenotype``` is the 'observable' part of the
+/// In traditional (biological) genetics, a phenotype is "the set of observable characteristics of an individual resulting 
+/// from the interaction of its genotype with the environment". As such, the ```Phenotype``` is the 'observable' part of the
 /// individual (```Genotype```) that is being evolved by the genetic algorithm, hense the ```Score``` and ```Generation``` fields.
 /// This allows the ```Phenotype``` to be sorted and compared based on the fitness (```Score```) of the individual (```Genotype```)
+/// 
+/// # Type Parameters
+/// - `G`: The type of gene used in the genetic algorithm, which must implement the `Gene` trait.
+/// - `A`: The type of the allele associated with the gene - the gene's "expression".
 pub struct Phenotype<G, A>
 where
     G: Gene<G, A>,
