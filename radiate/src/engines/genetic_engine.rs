@@ -18,10 +18,14 @@ use super::{
     METRIC_SCORE, METRIC_UNIQUE,
 };
 
-/// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
-/// It manages the evolutionary process, including selection, crossover, mutation,
-/// and fitness evaluation. The ```GeneticEngine``` is designed to be flexible and extensible, allowing users to
+/// The ```GeneticEngine``` is the core component of the Radiate library's genetic algorithm implementation.
+/// The engine is designed to be fast, flexible and extensible, allowing users to
 /// customize various aspects of the genetic algorithm to suit their specific needs.
+/// 
+/// Essentially, it is a high-level abstraction that orchestrates all aspects of the genetic algorithm. It is
+/// responsible for managing the population of individuals, evaluating the fitness of each individual,
+/// selecting the individuals that will survive to the next generation, and creating the next generation through
+/// crossover and mutation.
 /// 
 /// # Examples
 /// ``` rust
