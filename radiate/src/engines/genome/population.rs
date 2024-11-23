@@ -1,5 +1,18 @@
 use super::{genes::gene::Gene, phenotype::Phenotype};
 
+/// A ```Population``` is a collection of ```Phenotype``` instances. This struct is the core collection of individuals 
+/// being evolved by the ```GeneticEngine```. It can be thought of as a Vec of ```Phenotype```s and 
+/// is essentially a light wrapper around such a Vec. The ```Population``` struct, however, has some
+/// additional functionality that allows for sorting and iteration over the individuals in the population.
+/// 
+/// Note: Although the ```Population``` offers mut methods to mut the individuals in the population, the ```Population```
+/// itself offers no way to increase or decrease the number of individuals in the population. As such, the ```Population```
+/// should be thought of as an 'immutable' data structure. If you need to add or remove individuals from the population,
+/// you should create a new ```Population``` instance with the new individuals.
+/// 
+/// # Type Parameters
+/// - `G`: The type of gene used in the genetic algorithm, which must implement the `Gene` trait.
+/// - `A`: The type of the allele associated with the gene - the gene's "expression".
 pub struct Population<G, A>
 where
     G: Gene<G, A>,
@@ -12,6 +25,8 @@ impl<G, A> Population<G, A>
 where
     G: Gene<G, A>,
 {
+    /// Create a new instance of the Population. This will create a new instance with an 
+    /// empty list of individuals and the is_sorted flag set to false.
     pub fn new() -> Self {
         Population {
             individuals: Vec::new(),

@@ -18,7 +18,7 @@ use super::{
     METRIC_SCORE, METRIC_UNIQUE,
 };
 
-/// The `GeneticEngine` struct is the core component of the Radiate library's genetic algorithm implementation.
+/// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
 /// It manages the evolutionary process, including selection, crossover, mutation,
 /// and fitness evaluation. The ```GeneticEngine``` is designed to be flexible and extensible, allowing users to
 /// customize various aspects of the genetic algorithm to suit their specific needs.
