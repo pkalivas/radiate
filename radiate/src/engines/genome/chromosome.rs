@@ -1,5 +1,23 @@
 use super::genes::gene::Gene;
 
+/// The `Chromosome` struct represents a collection of `Gene` instances. The `Chromosome` is part of the
+/// genetic makeup of an individual. It is a collection of `Gene` instances, it is essentially a
+/// light wrapper around a Vec of `Gene`s. The `Chromosome` struct, however, has some additional
+/// functionality and terminology that aligns with the biological concept of a chromosome.
+/// 
+/// In traditional biological terms, a `Chromosome` is a long DNA molecule with part or all of the
+/// genetic material of an organism. The `Chromosome` is the 'genetic' part of the individual that is
+/// being evolved by the genetic algorithm.
+/// 
+/// We can think of a `Chromosome` as a Vec of structs which implement the `Gene` trait. For example,
+/// if we have a `Chromosome` with 3 `Gene`s, it is represented as follows:
+/// ```text
+/// Chromosome: [Gene, Gene, Gene]
+/// ```
+/// 
+/// # Type Parameters
+/// - `G`: The type of gene used in the genetic algorithm, which must implement the `Gene` trait.
+/// - `A`: The type of the allele associated with the gene - the gene's "expression".
 pub struct Chromosome<G, A>
 where
     G: Gene<G, A>,
@@ -12,6 +30,7 @@ impl<G, A> Chromosome<G, A>
 where
     G: Gene<G, A>,
 {
+    /// Create a new instance of the Chromosome with the given genes.
     pub fn from_genes(genes: Vec<G>) -> Self {
         Chromosome {
             genes,

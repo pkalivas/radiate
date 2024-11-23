@@ -8,7 +8,8 @@ use super::{genes::gene::Gene, phenotype::Phenotype};
 /// Note: Although the ```Population``` offers mut methods to mut the individuals in the population, the ```Population```
 /// itself offers no way to increase or decrease the number of individuals in the population. As such, the ```Population```
 /// should be thought of as an 'immutable' data structure. If you need to add or remove individuals from the population,
-/// you should create a new ```Population``` instance with the new individuals.
+/// you should create a new ```Population``` instance with the new individuals. To further facilitate this way of 
+/// thinking, the ```Population``` struct and everyhing it contains implements the ```Clone``` trait. 
 /// 
 /// # Type Parameters
 /// - `G`: The type of gene used in the genetic algorithm, which must implement the `Gene` trait.
@@ -38,6 +39,8 @@ where
         self.individuals.get(index).expect("Index out of bounds")
     }
 
+    /// Get a mutable reference to the individual at the given index. This will set the is_sorted flag to false
+    /// because we cannot guarantee that the individual's ```Score``` (fitness) has not changed.
     pub fn get_mut(&mut self, index: usize) -> &mut Phenotype<G, A> {
         self.is_sorted = false;
         self.individuals
@@ -45,6 +48,8 @@ where
             .expect("Index out of bounds")
     }
 
+    /// Set the individual at the given index. This will set the is_sorted flag to false
+    /// because we cannot guarantee that the individual is in the correct order.
     pub fn set(&mut self, index: usize, individual: Phenotype<G, A>) {
         self.individuals[index] = individual;
         self.is_sorted = false;
@@ -63,6 +68,7 @@ where
         self.individuals.len()
     }
 
+    /// Sort the individuals in the population using the given closure. This will set the is_sorted flag to true.
     pub fn sort_by<F>(&mut self, f: F)
     where
         F: FnMut(&Phenotype<G, A>, &Phenotype<G, A>) -> std::cmp::Ordering,
