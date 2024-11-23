@@ -2,17 +2,17 @@ use crate::engines::score::Score;
 
 use super::{genes::gene::Gene, genotype::Genotype, Valid};
 
-/// A ```Phenotype``` is a representation of an individual in the population. It contains:
-/// * ```Genotype``` - the genetic representation of the individual
-/// * ```Score``` - the score (fitness) of the individual as calculated by the fitness function
-/// * ```Generation``` - the generation in which the individual was created
+/// A `Phenotype` is a representation of an individual in the population. It contains:
+/// * `Genotype` - the genetic representation of the individual
+/// * `Score` - the score (fitness) of the individual as calculated by the fitness function
+/// * `Generation` - the generation in which the individual was created
 ///
-/// The ```Phenotype``` is a wrapper around the ```Genotype``` that adds additional information about the individual.
-/// In traditional (biological) genetics, a phenotype is "the set of observable characteristics of an individual resulting 
-/// from the interaction of its genotype with the environment". As such, the ```Phenotype``` is the 'observable' part of the
-/// individual (```Genotype```) that is being evolved by the genetic algorithm, hense the ```Score``` and ```Generation``` fields.
-/// This allows the ```Phenotype``` to be sorted and compared based on the fitness (```Score```) of the individual (```Genotype```)
-/// 
+/// The `Phenotype` is a wrapper around the `Genotype` that adds additional information about the individual.
+/// In traditional (biological) genetics, a phenotype is "the set of observable characteristics of an individual resulting
+/// from the interaction of its genotype with the environment". As such, the `Phenotype` is the 'observable' part of the
+/// individual (`Genotype`) that is being evolved by the genetic algorithm, hense the `Score` and `Generation` fields.
+/// This allows the `Phenotype` to be sorted and compared based on the fitness (`Score`) of the individual (`Genotype`)
+///
 /// # Type Parameters
 /// - `G`: The type of gene used in the genetic algorithm, which must implement the `Gene` trait.
 /// - `A`: The type of the allele associated with the gene - the gene's "expression".
@@ -54,7 +54,7 @@ where
         self.score = score;
     }
 
-    /// Get the age of the individual in generations. The age is calculated as the 
+    /// Get the age of the individual in generations. The age is calculated as the
     /// difference between the given generation and the generation in which the individual was created.
     pub fn age(&self, generation: i32) -> i32 {
         generation - self.generation

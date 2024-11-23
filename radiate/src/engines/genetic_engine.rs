@@ -18,25 +18,25 @@ use super::{
     METRIC_SCORE, METRIC_UNIQUE,
 };
 
-/// The ```GeneticEngine``` is the core component of the Radiate library's genetic algorithm implementation.
+/// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
 /// customize various aspects of the genetic algorithm to suit their specific needs.
-/// 
+///
 /// Essentially, it is a high-level abstraction that orchestrates all aspects of the genetic algorithm. It is
 /// responsible for managing the population of individuals, evaluating the fitness of each individual,
 /// selecting the individuals that will survive to the next generation, and creating the next generation through
 /// crossover and mutation.
-/// 
+///
 /// # Examples
 /// ``` rust
 /// use radiate::*;
-/// 
+///
 /// // Define a codex that encodes and decodes individuals in the population, in this case using floats.
 /// let codex = FloatCodex::new(1, 5, 0.0, 100.0);
-/// // This codex will encode Genotype instances with 1 Chromosome and 5 FloatGenes, 
+/// // This codex will encode Genotype instances with 1 Chromosome and 5 FloatGenes,
 /// // with random allels between 0.0 and 100.0. It will decode into a Vec<Vec<f32>>.
 /// // eg: [[1.0, 2.0, 3.0, 4.0, 5.0]]
-/// 
+///
 /// // Create a new instance of the genetic engine with the given codex.
 /// let engine = GeneticEngine::from_codex(&codex)
 ///     .minimizing()  // Minimize the fitness function.
@@ -58,7 +58,7 @@ use super::{
 ///         Score::from_f32(score)
 ///    })
 ///   .build(); // Build the genetic engine.
-/// 
+///
 /// // Run the genetic algorithm until the score of the best individual is 0, then return the result.
 /// let result = engine.run(|output| output.score().as_int() == 0);
 /// ```
@@ -86,7 +86,7 @@ where
         GeneticEngine { params }
     }
 
-    /// Initializes a ```GeneticEngineParams``` using the provided codex, which defines how individuals 
+    /// Initializes a ```GeneticEngineParams``` using the provided codex, which defines how individuals
     /// are represented in the population. Because the ```Codex``` is always needed, this
     /// is a convenience method that allows users to create a ```GeneticEngineParams``` instance
     /// which will then be 'built' resulting in a ```GeneticEngine``` instance.
@@ -129,7 +129,7 @@ where
     /// provided in the genetic engine parameters. The fitness function is a closure that takes
     /// a phenotype as input and returns a score. The score is then used to rank the individuals
     /// in the population.
-    /// 
+    ///
     /// Importantly, this method uses a thread pool to evaluate the fitness of each individual in
     /// parallel, which can significantly speed up the evaluation process for large populations.
     /// It will also only evaluate individuals that have not yet been scored, which saves time
@@ -169,7 +169,7 @@ where
     /// genetic engine parameters, which is typically a selection algorithm like tournament selection
     /// or roulette wheel selection. For example, if the population size is 100 and the offspring
     /// fraction is 0.8, then 20 individuals will be selected as survivors.
-    /// 
+    ///
     /// This method returns a new population containing only the selected survivors.
     fn select_survivors(
         &self,
@@ -195,7 +195,7 @@ where
     /// like tournament selection or roulette wheel selection. For example, if the population size is 100
     /// and the offspring fraction is 0.8, then 80 individuals will be selected as offspring which will
     /// be used to create the next generation through crossover and mutation.
-    /// 
+    ///
     /// This method returns a new population containing only the selected offspring.
     fn select_offspring(
         &self,
@@ -215,7 +215,7 @@ where
     }
 
     /// Alters the offspring population using the alterers specified in the genetic engine parameters.
-    /// The alterer in this case is going to be a ```CompositeAlterer``` and is responsible for applying 
+    /// The alterer in this case is going to be a ```CompositeAlterer``` and is responsible for applying
     /// the provided mutation and crossover operations to the offspring population.
     fn alter(&self, population: &mut Population<G, A>, metrics: &mut MetricSet, generation: i32) {
         let alterer = self.alterer();
@@ -231,7 +231,7 @@ where
     /// of an individual is determined by the 'max_age' parameter in the genetic engine parameters.
     /// If an individual's age exceeds this limit, it is replaced with a new individual. Similarly,
     /// if an individual is found to be invalid (i.e., its genotype is not valid, provided by the ```Valid``` trait),
-    /// it is replaced with a new individual. This method ensures that the population remains 
+    /// it is replaced with a new individual. This method ensures that the population remains
     /// healthy and that only valid individuals are allowed to reproduce or survive to the next generation.
     fn filter(&self, population: &mut Population<G, A>, metrics: &mut MetricSet, generation: i32) {
         let max_age = self.params.max_age;
@@ -261,7 +261,7 @@ where
     }
 
     /// Recombines the survivors and offspring populations to create the next generation. The survivors
-    /// are the individuals from the previous generation that will survive to the next generation, while the 
+    /// are the individuals from the previous generation that will survive to the next generation, while the
     /// offspring are the individuals that were selected from the previous generation then altered.
     /// This method combines the survivors and offspring populations into a single population that
     /// will be used in the next iteration of the genetic algorithm.
@@ -308,7 +308,7 @@ where
     /// Adds various metrics to the output context, including the age of individuals, the score of individuals,
     /// and the number of unique scores in the population. These metrics can be used to monitor the progress of
     /// the genetic algorithm and to identify potential issues or areas for improvement.
-    /// 
+    ///
     /// The age of an individual is the number of generations it has survived, while the score of an individual
     /// is a measure of its fitness. The number of unique scores in the population is a measure of diversity, with
     /// a higher number indicating a more diverse population.

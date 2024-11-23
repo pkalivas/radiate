@@ -1,8 +1,8 @@
 /// A `Valid` type is a type that can be checked for validity. This is used for checking if a gene
 /// or a chromosome is valid. For example, a gene that represents a number between 0 and 1 can be checked
 /// for validity by ensuring that the allele is between 0 and 1.
-/// 
-/// The `GeneticEngine` will check the validity of the `Chromosome` and `Phenotype` and remove any 
+///
+/// The `GeneticEngine` will check the validity of the `Chromosome` and `Phenotype` and remove any
 /// invalid individuals from the population, replacing them with new individuals at the given generation.
 pub trait Valid {
     fn is_valid(&self) -> bool {
@@ -12,8 +12,8 @@ pub trait Valid {
 
 /// A `Gene` is a single unit of information in a `Chromosome`.
 /// This is the most basic building block of this entire library.
-/// 
-/// Any type that implements this trait can be used as a gene in a chromosome, as such 
+///
+/// Any type that implements this trait can be used as a gene in a chromosome, as such
 /// it can be used in any genetic algorithm that uses this library.
 pub trait Gene<G, A>: Clone + PartialEq + Valid
 where

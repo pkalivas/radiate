@@ -10,15 +10,20 @@ use super::MetricSet;
 /// The context of the genetic engine. This struct contains the current state of the genetic engine
 /// at any given time. This includes:
 /// * current population
-/// * current best individual 
+/// * current best individual
 /// * current index - the number of generations that have passed
 /// * timer - the duration of time the engine has bee running
 /// * metrics - a set of metrics that are collected during the run
 /// * current best score - the score of the current best individual
-/// 
+///
 /// The EngineContext is passed to the user-defined closure that is executed each generation. The user
 /// can use the EngineContext to access the current state of the genetic engine and make decisions based
 /// on the current state on how to proceed.
+/// 
+/// # Type Parameters
+/// - `G`: The type of gene used in the genetic algorithm, which must implement the `Gene` trait.
+/// - `A`: The type of the allele associated with the gene - the gene's "expression".
+/// - `T`: The type of the best individual in the population.
 pub struct EngineContext<G, A, T>
 where
     G: Gene<G, A>,

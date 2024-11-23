@@ -4,19 +4,19 @@ use super::gene::{Gene, Valid};
 
 const ALPHABET: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"$%&/()=?`{[]}\\+~*#';.:,-_<>|@^' ";
 
-/// A gene that represents a single character. The `allele` is a `char` 
+/// A gene that represents a single character. The `allele` is a `char`
 /// that is randomly selected from the `ALPHABET` constant.
-/// 
+///
 /// # Example
 /// ``` rust
 /// use radiate::*;
-/// 
+///
 /// // Create a new CharGene with a random allele from the ALPHABET constant.
 /// let gene = CharGene::new();
-/// 
+///
 /// // Get the allele of the CharGene.
 /// let allele = gene.allele();
-/// 
+///
 /// // Create a new CharGene from the allele.
 /// let gene = gene.from_allele(allele);
 /// ```

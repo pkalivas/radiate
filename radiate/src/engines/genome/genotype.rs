@@ -1,21 +1,21 @@
 use super::{chromosome::Chromosome, genes::gene::Gene};
 
-/// The `Genotype` struct represents the genetic makeup of an individual. It is a collection of ```Chromosome``` instances, it is 
-/// essentially a light wrapper around a Vec of ```Chromosome```s. The ```Genotype``` struct, however, has some additional functionality
+/// The `Genotype` struct represents the genetic makeup of an individual. It is a collection of `Chromosome` instances, it is
+/// essentially a light wrapper around a Vec of `Chromosome`s. The `Genotype` struct, however, has some additional functionality
 /// and terminology that aligns with the biological concept of a genotype.
 /// In traditional biological terms, a `Genotype` is the set of genes in our DNA that determine a specific trait or set of traits.
-/// The ```Genotype``` is the 'genetic' part of the individual that is being evolved by the genetic algorithm.
-/// 
-/// We can think of a ```Genotype```  as a matrix of strucs which implement the ```Gene``` trait where each row is a ```Chromosome```.
-/// For example, if we have a ```Genotype``` with 2 ```Chromosome```s, each with 3 ```Gene```s, it is represented as follows:
+/// The `Genotype` is the 'genetic' part of the individual that is being evolved by the genetic algorithm.
+///
+/// We can think of a `Genotype`  as a matrix of strucs which implement the `Gene` trait where each row is a `Chromosome`.
+/// For example, if we have a `Genotype` with 2 `Chromosome`s, each with 3 `Gene`s, it is represented as follows:
 /// ```text
-/// Genotype: 
+/// Genotype:
 /// [
 ///     Chromosome: [Gene, Gene, Gene],
 ///     Chromosome: [Gene, Gene, Gene]
 /// ]
 /// ```
-/// 
+///
 /// # Type Parameters
 /// - `G`: The type of gene used in the genetic algorithm, which must implement the `Gene` trait.
 /// - `A`: The type of the allele associated with the gene - the gene's "expression".

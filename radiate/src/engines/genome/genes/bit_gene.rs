@@ -3,22 +3,22 @@ use crate::RandomProvider;
 use super::gene::{Gene, Valid};
 
 /// A gene that represents a single bit. The `allele` is a `bool` that is randomly assigned.
-/// The `allele` is either `true` or `false`. This is the simplest form of a gene and 
+/// The `allele` is either `true` or `false`. This is the simplest form of a gene and
 /// in traditional genetic algorithms is the the gene that is used to represent the individuals.
-/// 
+///
 /// # Example
 /// ``` rust
 /// use radiate::*;
-/// 
+///
 /// // Craete a new BitGene from the allele `true`.
 /// let gene: BitGene = true.into();
-/// 
+///
 /// // Create a new BitGene with a random allele.
 /// let gene = BitGene::new();
-/// 
+///
 /// // Get the allele (bool) of the BitGene.
 /// let allele = gene.allele();
-/// 
+///
 /// // Create a new BitGene from the allele.
 /// let gene = gene.from_allele(allele);
 /// ```

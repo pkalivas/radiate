@@ -5,6 +5,12 @@ use crate::engines::genome::genotype::Genotype;
 
 use super::Codex;
 
+/// A `Codex` for a `Genotype` of `FloatGenes`. The `encode` function creates a `Genotype` with `num_chromosomes` chromosomes
+/// and `num_genes` genes per chromosome. The `decode` function creates a `Vec<Vec<f32>>` from the `Genotype` where the inner `Vec`
+/// contains the alleles of the `FloatGenes` in the chromosome - the `f32` values.
+///
+/// The lower and upper bounds of the `FloatGenes` can be set with the `with_bounds` function.
+/// The default bounds are `f32::MIN` and `f32::MAX`.
 pub struct FloatCodex {
     pub num_chromosomes: usize,
     pub num_genes: usize,
@@ -15,6 +21,8 @@ pub struct FloatCodex {
 }
 
 impl FloatCodex {
+    /// Create a new `FloatCodex` with the given number of chromosomes, genes, min, and max values.
+    /// The f_32 values for each `FloatGene` will be randomly generated between the min and max values.
     pub fn new(num_chromosomes: usize, num_genes: usize, min: f32, max: f32) -> Self {
         FloatCodex {
             num_chromosomes,
@@ -26,12 +34,16 @@ impl FloatCodex {
         }
     }
 
+    /// Set the bounds of the `FloatGenes` in the `Genotype`. The default bounds are `f32::MIN` and `f32::MAX`.
     pub fn with_bounds(mut self, lower_bound: f32, upper_bound: f32) -> Self {
         self.lower_bound = lower_bound;
         self.upper_bound = upper_bound;
         self
     }
 
+    /// Create a new `FloatCodex` with a single chromosome and a single gene with the given min and max values.
+    /// The default bounds are `f32::MIN` and `f32::MAX`. This is useful for problems where the goal is to find
+    /// the best floating point number between the min and max values, like the Rastrigin function.
     pub fn scalar(min: f32, max: f32) -> Self {
         FloatCodex::new(1, 1, min, max)
     }
