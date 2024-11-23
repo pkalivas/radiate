@@ -86,10 +86,10 @@ where
         GeneticEngine { params }
     }
 
-    /// Initializes a ```GeneticEngineParams``` using the provided codex, which defines how individuals
-    /// are represented in the population. Because the ```Codex``` is always needed, this
-    /// is a convenience method that allows users to create a ```GeneticEngineParams``` instance
-    /// which will then be 'built' resulting in a ```GeneticEngine``` instance.
+    /// Initializes a `GeneticEngineParams` using the provided codex, which defines how individuals
+    /// are represented in the population. Because the `Codex` is always needed, this
+    /// is a convenience method that allows users to create a `GeneticEngineParams` instance
+    /// which will then be 'built' resulting in a `GeneticEngine` instance.
     pub fn from_codex(codex: &'a impl Codex<G, A, T>) -> GeneticEngineParams<G, A, T> {
         GeneticEngineParams::new().codex(codex)
     }
