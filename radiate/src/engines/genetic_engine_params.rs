@@ -14,12 +14,17 @@ use super::{RouletteSelector, Select, ThreadPool, TournamentSelector};
 
 /// Parameters for the genetic engine.
 /// This struct is used to configure the genetic engine before it is created.
+///
+/// When the `GeneticEngineParams`  calls the `build` method, it will create a new instance
+/// of the `GeneticEngine` with the given parameters. If any of the required parameters are not
+/// set, the `build` method will panic. At a minimum, the `codex` and `fitness_fn` must be set.
+/// The `GeneticEngineParams` struct is a builder pattern that allows you to set the parameters of
+/// the `GeneticEngine` in a fluent and functional way.
 /// 
-/// When the ```GeneticEngineParams```  calls the ```build``` method, it will create a new instance
-/// of the ```GeneticEngine``` with the given parameters. If any of the required parameters are not
-/// set, the ```build``` method will panic. At a minimum, the ```codex``` and ```fitness_fn``` must be set.
-/// The ```GeneticEngineParams``` struct is a builder pattern that allows you to set the parameters of 
-/// the ```GeneticEngine``` in a fluent and functional way.
+/// # Type Parameters
+/// - `G`: The type of gene used in the genetic algorithm, which must implement the `Gene` trait.
+/// - `A`: The type of the allele associated with the gene - the gene's "expression".
+/// - `T`: The type of the best individual in the population.
 pub struct GeneticEngineParams<'a, G, A, T>
 where
     G: Gene<G, A>,
@@ -47,7 +52,7 @@ where
     /// * population_size: 100
     /// * max_age: 25
     /// * offspring_fraction: 0.8
-    ///     * This is a value from 0..=1 that represents the fraction of 
+    ///     * This is a value from 0..=1 that represents the fraction of
     ///       population that will be replaced by offspring each generation.
     ///       For example, if the population size is 100 and the offspring_fraction is 0.8,
     ///       then 80 individuals will be replaced by offspring each generation.

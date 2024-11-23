@@ -5,6 +5,9 @@ use crate::engines::genome::genotype::Genotype;
 
 use super::Codex;
 
+/// A `Codex` for a `Genotype` of `CharGenes`. The `encode` function creates a `Genotype` with `num_chromosomes` chromosomes
+/// and `num_genes` genes per chromosome. The `decode` function creates a `String` from the `Genotype` where the `String`
+/// contains the alleles of the `CharGenes` in the chromosome.
 pub struct CharCodex {
     pub num_chromosomes: usize,
     pub num_genes: usize,
