@@ -22,6 +22,7 @@ use super::gene::{BoundGene, Gene, NumericGene, Valid};
 /// // and lower_bound to 0 and 100 respectively.
 /// let gene = FloatGene::new(0_f32, 1_f32).with_bounds(100_f32, 0_f32);
 /// ```
+///
 pub struct FloatGene {
     pub allele: f32,
     pub min: f32,

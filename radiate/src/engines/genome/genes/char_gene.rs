@@ -20,6 +20,7 @@ const ALPHABET: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRST
 /// // Create a new CharGene from the allele.
 /// let gene = gene.from_allele(allele);
 /// ```
+///
 pub struct CharGene {
     pub allele: char,
 }

@@ -38,6 +38,7 @@ use super::{
 ///
 /// # Type Parameters
 /// - `T`: The type of integer used in the gene.
+///
 pub struct IntGene<T: Integer<T>>
 where
     Standard: rand::distributions::Distribution<T>,

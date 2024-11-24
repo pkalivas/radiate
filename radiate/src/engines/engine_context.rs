@@ -19,11 +19,12 @@ use super::MetricSet;
 /// The EngineContext is passed to the user-defined closure that is executed each generation. The user
 /// can use the EngineContext to access the current state of the genetic engine and make decisions based
 /// on the current state on how to proceed.
-/// 
+///
 /// # Type Parameters
 /// - `G`: The type of gene used in the genetic algorithm, which must implement the `Gene` trait.
 /// - `A`: The type of the allele associated with the gene - the gene's "expression".
 /// - `T`: The type of the best individual in the population.
+/// 
 pub struct EngineContext<G, A, T>
 where
     G: Gene<G, A>,
