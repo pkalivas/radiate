@@ -81,6 +81,7 @@ pub use subset_codex::*;
 /// - `G`: The type of gene used in the genetic algorithm, which must implement the `Gene` trait.
 /// - `A`: The type of the allele associated with the gene - the gene's "expression".
 /// - `T`: The type of the Phenotype that is being optimized.
+///
 pub trait Codex<G, A, T>
 where
     G: Gene<G, A>,

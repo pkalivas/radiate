@@ -67,7 +67,7 @@ use super::{
 /// - `G`: The type of gene used in the genetic algorithm, which must implement the `Gene` trait.
 /// - `A`: The type of the allele associated with the gene - the gene's "expression".
 /// - `T`: The type of the phenotype produced by the genetic algorithm, which must be `Clone`, `Send`, and `'static`.
-/// 
+///
 pub struct GeneticEngine<'a, G, A, T>
 where
     G: Gene<G, A>,

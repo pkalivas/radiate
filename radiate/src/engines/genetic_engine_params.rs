@@ -25,7 +25,7 @@ use super::{RouletteSelector, Select, ThreadPool, TournamentSelector};
 /// - `G`: The type of gene used in the genetic algorithm, which must implement the `Gene` trait.
 /// - `A`: The type of the allele associated with the gene - the gene's "expression".
 /// - `T`: The type of the best individual in the population.
-/// 
+///
 pub struct GeneticEngineParams<'a, G, A, T>
 where
     G: Gene<G, A>,
