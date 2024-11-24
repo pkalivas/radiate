@@ -2,35 +2,42 @@ use std::collections::{HashSet, VecDeque};
 
 use radiate::engines::genome::genes::gene::Valid;
 
-use crate::architects::node_collections::node::Node;
+use crate::architects::node_collections::graph_node::GraphNode;
+use crate::NodeType;
+
+pub trait Node: Valid {
+    type Value;
+    fn node_type(&self) -> &NodeType;
+    fn value(&self) -> &Self::Value;
+}
 
 pub trait NodeCollection<C, T>: Valid
 where
     C: NodeCollection<C, T> + Default + Clone,
     T: Clone + PartialEq + Default,
 {
-    fn from_nodes(nodes: Vec<Node<T>>) -> Self;
+    fn from_nodes(nodes: Vec<GraphNode<T>>) -> Self;
 
-    fn get(&self, index: usize) -> Option<&Node<T>>;
-    fn get_mut(&mut self, index: usize) -> Option<&mut Node<T>>;
+    fn get(&self, index: usize) -> Option<&GraphNode<T>>;
+    fn get_mut(&mut self, index: usize) -> Option<&mut GraphNode<T>>;
 
-    fn get_nodes(&self) -> &[Node<T>];
-    fn get_nodes_mut(&mut self) -> &mut [Node<T>];
+    fn get_nodes(&self) -> &[GraphNode<T>];
+    fn get_nodes_mut(&mut self) -> &mut [GraphNode<T>];
 
     fn set_cycles(self, indecies: Vec<usize>) -> C;
 
-    fn add(&mut self, nodes: Vec<Node<T>>);
+    fn add(&mut self, nodes: Vec<GraphNode<T>>);
 
-    fn set(&mut self, index: usize, node: Node<T>) -> &mut Self {
+    fn set(&mut self, index: usize, node: GraphNode<T>) -> &mut Self {
         self.get_nodes_mut()[index] = node;
         self
     }
 
-    fn iter(&self) -> std::slice::Iter<Node<T>> {
+    fn iter(&self) -> std::slice::Iter<GraphNode<T>> {
         self.get_nodes().iter()
     }
 
-    fn iter_mut(&mut self) -> std::slice::IterMut<Node<T>> {
+    fn iter_mut(&mut self) -> std::slice::IterMut<GraphNode<T>> {
         self.get_nodes_mut().iter_mut()
     }
 
@@ -59,7 +66,7 @@ where
     }
 }
 
-pub fn get_cycles<T>(nodes: &[Node<T>], index: usize) -> Vec<usize>
+pub fn get_cycles<T>(nodes: &[GraphNode<T>], index: usize) -> Vec<usize>
 where
     T: Clone + PartialEq + Default,
 {

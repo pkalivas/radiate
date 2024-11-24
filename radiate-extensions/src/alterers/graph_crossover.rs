@@ -35,7 +35,7 @@ where
     pub fn alterer(
         crossover_rate: f32,
         crossover_parent_node_rate: f32,
-    ) -> Alterer<Node<T>, Ops<T>> {
+    ) -> Alterer<GraphNode<T>, Ops<T>> {
         Alterer::Alterer(Box::new(GraphCrossover::<T>::new(
             crossover_rate,
             crossover_parent_node_rate,
@@ -45,10 +45,10 @@ where
     #[inline]
     pub fn cross(
         &self,
-        population: &Population<Node<T>, Ops<T>>,
+        population: &Population<GraphNode<T>, Ops<T>>,
         indexes: &[usize],
         generation: i32,
-    ) -> Option<Phenotype<Node<T>, Ops<T>>> {
+    ) -> Option<Phenotype<GraphNode<T>, Ops<T>>> {
         let parent_one = population.get(indexes[0]);
         let parent_two = population.get(indexes[1]);
 
@@ -106,14 +106,14 @@ where
     }
 }
 
-impl<T> Alter<Node<T>, Ops<T>> for GraphCrossover<T>
+impl<T> Alter<GraphNode<T>, Ops<T>> for GraphCrossover<T>
 where
     T: Clone + PartialEq + Default + 'static,
 {
     #[inline]
     fn alter(
         &self,
-        population: &mut Population<Node<T>, Ops<T>>,
+        population: &mut Population<GraphNode<T>, Ops<T>>,
         optimize: &Optimize,
         generation: i32,
     ) -> Vec<Metric> {

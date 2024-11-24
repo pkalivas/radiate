@@ -13,7 +13,7 @@ where
     pub input_size: usize,
     pub output_size: usize,
     pub factory: &'a NodeFactory<T>,
-    pub nodes: Vec<Node<T>>,
+    pub nodes: Vec<GraphNode<T>>,
 }
 
 impl<'a, T> GraphCodex<'a, T>
@@ -29,12 +29,12 @@ where
             .acyclic(input_size, output_size)
             .iter()
             .map(|node| node.clone())
-            .collect::<Vec<Node<T>>>();
+            .collect::<Vec<GraphNode<T>>>();
 
         GraphCodex::from_nodes(nodes, factory)
     }
 
-    pub fn from_nodes(nodes: Vec<Node<T>>, factory: &'a NodeFactory<T>) -> Self {
+    pub fn from_nodes(nodes: Vec<GraphNode<T>>, factory: &'a NodeFactory<T>) -> Self {
         GraphCodex {
             input_size: nodes
                 .iter()
@@ -59,7 +59,7 @@ where
         self.nodes = graph
             .iter()
             .map(|node| node.clone())
-            .collect::<Vec<Node<T>>>();
+            .collect::<Vec<GraphNode<T>>>();
         self.input_size = graph
             .iter()
             .filter(|node| node.node_type == NodeType::Input)
@@ -72,11 +72,11 @@ where
     }
 }
 
-impl<'a, T> Codex<Node<T>, Ops<T>, Graph<T>> for GraphCodex<'a, T>
+impl<'a, T> Codex<GraphNode<T>, Ops<T>, Graph<T>> for GraphCodex<'a, T>
 where
     T: Clone + PartialEq + Default,
 {
-    fn encode(&self) -> Genotype<Node<T>, Ops<T>> {
+    fn encode(&self) -> Genotype<GraphNode<T>, Ops<T>> {
         Genotype {
             chromosomes: vec![Chromosome::from_genes(
                 self.nodes
@@ -90,12 +90,12 @@ where
 
                         node.clone()
                     })
-                    .collect::<Vec<Node<T>>>(),
+                    .collect::<Vec<GraphNode<T>>>(),
             )],
         }
     }
 
-    fn decode(&self, genotype: &Genotype<Node<T>, Ops<T>>) -> Graph<T> {
+    fn decode(&self, genotype: &Genotype<GraphNode<T>, Ops<T>>) -> Graph<T> {
         Graph::from_nodes(
             genotype
                 .iter()
@@ -103,7 +103,7 @@ where
                 .unwrap()
                 .iter()
                 .map(|node| node.clone())
-                .collect::<Vec<Node<T>>>(),
+                .collect::<Vec<GraphNode<T>>>(),
         )
     }
 }

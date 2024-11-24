@@ -1,5 +1,5 @@
-pub mod node;
+pub mod graph_node;
 pub mod tracer;
 
-pub use node::*;
+pub use graph_node::*;
 pub use tracer::*;

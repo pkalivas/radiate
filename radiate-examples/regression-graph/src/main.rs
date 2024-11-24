@@ -40,7 +40,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<Node<f32>, Ops<f32>, Graph<f32>>) {
+fn display(result: &EngineContext<GraphNode<f32>, Ops<f32>, Graph<f32>>) {
     let mut regression_accuracy = 0.0;
     let mut total = 0.0;
 

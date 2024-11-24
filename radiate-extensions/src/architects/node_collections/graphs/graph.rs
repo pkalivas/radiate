@@ -1,6 +1,6 @@
 use radiate::engines::genome::genes::gene::Valid;
 
-use crate::{architects::node_collections::node::Node, node_collection, Direction};
+use crate::{architects::node_collections::graph_node::GraphNode, node_collection, Direction};
 
 use super::{super::node_collection::NodeCollection, GraphIterator};
 
@@ -8,7 +8,7 @@ pub struct Graph<T>
 where
     T: Clone + PartialEq,
 {
-    pub nodes: Vec<Node<T>>,
+    pub nodes: Vec<GraphNode<T>>,
 }
 
 impl<T> Graph<T>
@@ -19,7 +19,7 @@ where
         Graph::default()
     }
 
-    pub fn topological_iter(&self) -> impl Iterator<Item = &Node<T>> {
+    pub fn topological_iter(&self) -> impl Iterator<Item = &GraphNode<T>> {
         GraphIterator::new(&self)
     }
 }
@@ -28,27 +28,27 @@ impl<T> NodeCollection<Graph<T>, T> for Graph<T>
 where
     T: Clone + PartialEq + Default,
 {
-    fn from_nodes(nodes: Vec<Node<T>>) -> Self {
-        Self { nodes }
+    fn from_nodes(nodes: Vec<GraphNode<T>>) -> Self {
+        Graph { nodes }
     }
 
-    fn get(&self, index: usize) -> Option<&Node<T>> {
+    fn get(&self, index: usize) -> Option<&GraphNode<T>> {
         self.nodes.get(index)
     }
 
-    fn get_mut(&mut self, index: usize) -> Option<&mut Node<T>> {
+    fn get_mut(&mut self, index: usize) -> Option<&mut GraphNode<T>> {
         self.nodes.get_mut(index)
     }
 
-    fn get_nodes(&self) -> &[Node<T>] {
+    fn get_nodes(&self) -> &[GraphNode<T>] {
         &self.nodes
     }
 
-    fn get_nodes_mut(&mut self) -> &mut [Node<T>] {
+    fn get_nodes_mut(&mut self) -> &mut [GraphNode<T>] {
         &mut self.nodes
     }
 
-    fn add(&mut self, nodes: Vec<Node<T>>) {
+    fn add(&mut self, nodes: Vec<GraphNode<T>>) {
         self.nodes.extend(nodes);
     }
 
@@ -99,7 +99,7 @@ where
             self.nodes
                 .iter()
                 .map(|node| node.clone())
-                .collect::<Vec<Node<T>>>(),
+                .collect::<Vec<GraphNode<T>>>(),
         )
     }
 }
@@ -117,19 +117,19 @@ impl<T> IntoIterator for Graph<T>
 where
     T: Clone + PartialEq + Default,
 {
-    type Item = Node<T>;
-    type IntoIter = std::vec::IntoIter<Node<T>>;
+    type Item = GraphNode<T>;
+    type IntoIter = std::vec::IntoIter<GraphNode<T>>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.nodes.into_iter()
     }
 }
 
-impl<T> FromIterator<Node<T>> for Graph<T>
+impl<T> FromIterator<GraphNode<T>> for Graph<T>
 where
     T: Clone + PartialEq + Default,
 {
-    fn from_iter<I: IntoIterator<Item = Node<T>>>(iter: I) -> Self {
+    fn from_iter<I: IntoIterator<Item = GraphNode<T>>>(iter: I) -> Self {
         let nodes = iter.into_iter().collect();
         Graph { nodes }
     }
