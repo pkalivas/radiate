@@ -8,7 +8,7 @@ use std::hash::Hash;
 ///
 /// Note: The reason it is a Vec is for multi-objective optimization problems. This allows for multiple
 /// fitness values to be returned from the fitness function.
-/// 
+///
 pub struct Score {
     pub values: Vec<f32>,
 }
