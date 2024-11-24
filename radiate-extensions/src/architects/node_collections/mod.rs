@@ -6,15 +6,13 @@ use super::schema::node_types::NodeType;
 
 pub mod codexes;
 pub mod factories;
-pub mod graph;
-pub mod iterators;
+pub mod graphs;
 pub mod node_collection;
 pub mod nodes;
 
 pub use codexes::*;
 pub use factories::*;
-pub use graph::*;
-pub use iterators::*;
+pub use graphs::*;
 pub use node_collection::*;
 pub use nodes::*;
 
