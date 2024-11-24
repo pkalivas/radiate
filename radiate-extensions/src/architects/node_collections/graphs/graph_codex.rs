@@ -25,7 +25,7 @@ where
     }
 
     pub fn from_shape(input_size: usize, output_size: usize, factory: &'a NodeFactory<T>) -> Self {
-        let nodes = Architect::<Graph<T>, T>::new(&factory)
+        let nodes = Architect::<Graph<T>, GraphNode<T>, T>::new(&factory)
             .acyclic(input_size, output_size)
             .iter()
             .map(|node| node.clone())
@@ -51,9 +51,9 @@ where
 
     pub fn set_nodes<F>(mut self, node_fn: F) -> Self
     where
-        F: Fn(&Architect<Graph<T>, T>, NodeCollectionBuilder<Graph<T>, T>) -> Graph<T>,
+        F: Fn(&Architect<Graph<T>, GraphNode<T>, T>, NodeCollectionBuilder<Graph<T>, GraphNode<T>, T>) -> Graph<T>,
     {
-        let graph = Architect::<Graph<T>, T>::new(&self.factory)
+        let graph = Architect::<Graph<T>, GraphNode<T>, T>::new(&self.factory)
             .build(|arc, builder| node_fn(arc, builder));
 
         self.nodes = graph

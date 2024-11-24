@@ -24,7 +24,7 @@ where
     }
 }
 
-impl<T> NodeCollection<Graph<T>, T> for Graph<T>
+impl<T> NodeCollection<Graph<T>, GraphNode<T>, T> for Graph<T>
 where
     T: Clone + PartialEq + Default,
 {

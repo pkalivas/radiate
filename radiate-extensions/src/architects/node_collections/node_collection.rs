@@ -7,13 +7,15 @@ use crate::NodeType;
 
 pub trait Node: Valid {
     type Value;
+
     fn node_type(&self) -> &NodeType;
     fn value(&self) -> &Self::Value;
 }
 
-pub trait NodeCollection<C, T>: Valid + Default + Clone
+pub trait NodeCollection<C, N, T>: Valid + Default + Clone
 where
-    C: NodeCollection<C, T> + Default + Clone,
+    C: NodeCollection<C, N, T>,
+    N: Node,
     T: Clone + PartialEq + Default,
 {
     fn from_nodes(nodes: Vec<GraphNode<T>>) -> Self;

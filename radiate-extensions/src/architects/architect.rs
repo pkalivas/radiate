@@ -6,15 +6,18 @@ use crate::architects::schema::node_types::NodeType;
 
 use crate::Graph;
 
-pub trait Arc<A, C, T>
+use super::Node;
+
+pub trait Arc<A, C, N, T>
 where
-    A: Arc<A, C, T>,
-    C: NodeCollection<C, T>,
+    A: Arc<A, C, N, T>,
+    C: NodeCollection<C, N, T>,
+    N: Node,
     T: Clone + PartialEq + Default,
 {
     fn build<F>(&self, build_fn: F) -> C
     where
-        F: FnOnce(&A, NodeCollectionBuilder<C, T>) -> C;
+        F: FnOnce(&A, NodeCollectionBuilder<C, N, T>) -> C;
 }
 
 pub struct GraphArc<'a, T>
@@ -24,13 +27,13 @@ where
     pub node_factory: &'a NodeFactory<T>,
 }
 
-impl<'a, T> Arc<GraphArc<'a, T>, Graph<T>, T> for GraphArc<'a, T>
+impl<'a, T> Arc<GraphArc<'a, T>, Graph<T>, GraphNode<T>, T> for GraphArc<'a, T>
 where
     T: Clone + PartialEq + Default,
 {
     fn build<F>(&self, build_fn: F) -> Graph<T>
     where
-        F: FnOnce(&GraphArc<'a, T>, NodeCollectionBuilder<Graph<T>, T>) -> Graph<T>,
+        F: FnOnce(&GraphArc<'a, T>, NodeCollectionBuilder<Graph<T>, GraphNode<T>, T>) -> Graph<T>,
     {
         build_fn(self, NodeCollectionBuilder::new(&self.node_factory))
     }
@@ -38,30 +41,34 @@ where
 
 
 
-pub struct Architect<'a, C, T>
+pub struct Architect<'a, C, N, T>
 where
-    C: NodeCollection<C, T>,
+    C: NodeCollection<C, N, T>,
+    N: Node,
     T: Clone + PartialEq + Default,
 {
     pub node_factory: &'a NodeFactory<T>,
     _phantom: std::marker::PhantomData<C>,
+    _phantom2: std::marker::PhantomData<N>,
 }
 
-impl<'a, C, T> Architect<'a, C, T>
+impl<'a, C, N, T> Architect<'a, C, N, T>
 where
-    C: NodeCollection<C, T>,
+    C: NodeCollection<C, N, T>,
+    N: Node,
     T: Clone + PartialEq + Default,
 {
     pub fn new(node_factory: &'a NodeFactory<T>) -> Self {
         Architect {
             node_factory,
             _phantom: std::marker::PhantomData,
+            _phantom2: std::marker::PhantomData,
         }
     }
 
     pub fn build<F>(&self, build_fn: F) -> C
     where
-        F: FnOnce(&Architect<C, T>, NodeCollectionBuilder<C, T>) -> C,
+        F: FnOnce(&Architect<C, N, T>, NodeCollectionBuilder<C, N, T>) -> C,
     {
         build_fn(self, NodeCollectionBuilder::new(&self.node_factory))
     }
@@ -98,7 +105,7 @@ where
     }
 
     pub fn acyclic(&self, input_size: usize, output_size: usize) -> Graph<T> {
-        Architect::<Graph<T>, T>::new(self.node_factory).build(|arc, builder| {
+        Architect::<Graph<T>, GraphNode<T>, T>::new(self.node_factory).build(|arc, builder| {
             builder
                 .all_to_all(&arc.input(input_size), &arc.output(output_size))
                 .build()
@@ -106,7 +113,7 @@ where
     }
 
     pub fn cyclic(&self, input_size: usize, output_size: usize) -> Graph<T> {
-        Architect::<Graph<T>, T>::new(self.node_factory).build(|arc, builder| {
+        Architect::<Graph<T>, GraphNode<T>, T>::new(self.node_factory).build(|arc, builder| {
             let input = arc.input(input_size);
             let aggregate = arc.aggregate(input_size);
             let link = arc.gate(input_size);
@@ -121,7 +128,7 @@ where
     }
 
     pub fn weighted_acyclic(&self, input_size: usize, output_size: usize) -> Graph<T> {
-        Architect::<Graph<T>, T>::new(self.node_factory).build(|arc, builder| {
+        Architect::<Graph<T>, GraphNode<T>, T>::new(self.node_factory).build(|arc, builder| {
             let input = arc.input(input_size);
             let output = arc.output(output_size);
             let weights = arc.weight(input_size * output_size);
@@ -139,7 +146,7 @@ where
         output_size: usize,
         memory_size: usize,
     ) -> Graph<T> {
-        Architect::<Graph<T>, T>::new(self.node_factory).build(|arc, builder| {
+        Architect::<Graph<T>, GraphNode<T>, T>::new(self.node_factory).build(|arc, builder| {
             let input = arc.input(input_size);
             let output = arc.output(output_size);
             let weights = arc.weight(input_size * memory_size);
@@ -161,7 +168,7 @@ where
         output_size: usize,
         num_heads: usize,
     ) -> Graph<T> {
-        Architect::<Graph<T>, T>::new(self.node_factory).build(|arc, builder| {
+        Architect::<Graph<T>, GraphNode<T>, T>::new(self.node_factory).build(|arc, builder| {
             let input = arc.input(input_size);
             let output = arc.output(output_size);
 
@@ -186,7 +193,7 @@ where
     }
 
     pub fn hopfield(&self, input_size: usize, output_size: usize) -> Graph<T> {
-        Architect::<Graph<T>, T>::new(self.node_factory).build(|arc, builder| {
+        Architect::<Graph<T>, GraphNode<T>, T>::new(self.node_factory).build(|arc, builder| {
             let input = arc.input(input_size);
             let output = arc.output(output_size);
             let aggregates = arc.aggregate(input_size);
@@ -202,7 +209,7 @@ where
     }
 
     pub fn lstm(&self, input_size: usize, output_size: usize, memory_size: usize) -> Graph<T> {
-        Architect::<Graph<T>, T>::new(self.node_factory).build(|arc, builder| {
+        Architect::<Graph<T>, GraphNode<T>, T>::new(self.node_factory).build(|arc, builder| {
             let input = arc.input(input_size);
             let output = arc.output(output_size);
 
@@ -264,7 +271,7 @@ where
     }
 
     pub fn gru(&self, input_size: usize, output_size: usize, memory_size: usize) -> Graph<T> {
-        Architect::<Graph<T>, T>::new(self.node_factory).build(|arc, builder| {
+        Architect::<Graph<T>, GraphNode<T>, T>::new(self.node_factory).build(|arc, builder| {
             let input = arc.input(input_size);
             let output = arc.output(output_size);
 
