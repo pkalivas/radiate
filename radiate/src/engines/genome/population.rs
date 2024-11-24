@@ -41,7 +41,7 @@ where
     }
 
     /// Get a mutable reference to the individual at the given index. This will set the is_sorted flag to false
-    /// because we cannot guarantee that the individual's ```Score``` (fitness) has not changed.
+    /// because we cannot guarantee that the individual's `Score` (fitness) has not changed.
     pub fn get_mut(&mut self, index: usize) -> &mut Phenotype<G, A> {
         self.is_sorted = false;
         self.individuals

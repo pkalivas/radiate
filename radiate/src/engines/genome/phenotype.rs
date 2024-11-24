@@ -30,7 +30,7 @@ impl<G, A> Phenotype<G, A>
 where
     G: Gene<G, A>,
 {
-    /// Create a new instance of the ```Phenotype``` with the given genotype and generation. The score is set to None.
+    /// Create a new instance of the `Phenotype` with the given genotype and generation. The score is set to None.
     pub fn from_genotype(genotype: Genotype<G, A>, generation: i32) -> Self {
         Phenotype {
             genotype,
@@ -62,8 +62,8 @@ where
     }
 }
 
-/// Implement the ```Valid``` trait for the ```Phenotype```. This allows the ```Phenotype``` to be checked for validity.
-/// A ```Phenotype``` is valid if the ```Genotype``` is valid. The ```GeneticEngine``` checks the validity of the ```Phenotype```
+/// Implement the `Valid` trait for the `Phenotype`. This allows the `Phenotype` to be checked for validity.
+/// A `Phenotype` is valid if the `Genotype` is valid. The `GeneticEngine` checks the validity of the `Phenotype`
 /// and will remove any invalid individuals from the population, replacing them with new individuals at the given generation.
 impl<G, A> Valid for Phenotype<G, A>
 where
@@ -101,8 +101,8 @@ where
     }
 }
 
-/// Implement the ```PartialOrd``` trait for the ```Phenotype```. This allows the ```Phenotype``` to be compared
-/// with other ```Phenotype``` instances. The comparison is based on the ```Score``` (fitness) of the ```Phenotype```.
+/// Implement the `PartialOrd` trait for the `Phenotype`. This allows the `Phenotype` to be compared
+/// with other `Phenotype` instances. The comparison is based on the `Score` (fitness) of the `Phenotype`.
 impl<G, A> PartialOrd for Phenotype<G, A>
 where
     G: Gene<G, A>,
