@@ -7,7 +7,7 @@ use crate::architects::schema::node_types::NodeType;
 
 use uuid::Uuid;
 
-pub enum ConnectTypes {
+enum ConnectTypes {
     OneToOne,
     OneToMany,
     ManyToOne,
@@ -16,7 +16,7 @@ pub enum ConnectTypes {
     ParentToChild,
 }
 
-pub struct NodeRelationship<'a> {
+struct NodeRelationship<'a> {
     pub source_id: &'a Uuid,
     pub target_id: &'a Uuid,
 }

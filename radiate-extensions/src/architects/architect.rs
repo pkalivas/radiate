@@ -4,11 +4,52 @@ use crate::architects::node_collections::node_collection::NodeCollection;
 use crate::architects::node_collections::node_factory::NodeFactory;
 use crate::architects::schema::node_types::NodeType;
 
-use super::Graph;
+use crate::Graph;
+
+// pub trait Arc<A, C, T>
+// where
+//     A: Arc<A, C, T>,
+//     C: NodeCollection<C, T> + Clone + Default,
+//     T: Clone + PartialEq + Default,
+// {
+//     fn build<F>(&self, build_fn: F) -> C
+//     where
+//         F: FnOnce(&A, NodeCollectionBuilder<C, T>) -> C;
+// }
+
+// pub struct GraphArc<'a, T>
+// where
+//     T: Clone + PartialEq + Default,
+// {
+//     pub node_factory: &'a NodeFactory<T>,
+// }
+
+// impl<'a, T> GraphArc<'a, T>
+// where
+//     T: Clone + PartialEq + Default,
+// {
+//     pub fn new(node_factory: &'a NodeFactory<T>) -> Self {
+//         GraphArc { node_factory }
+//     }
+// }
+
+// impl<'a, T> Arc<GraphArc<'a, T>, Graph<T>, T> for GraphArc<'a, T>
+// where
+//     T: Clone + PartialEq + Default,
+// {
+//     fn build<F>(&self, build_fn: F) -> Graph<T>
+//     where
+//         F: FnOnce(&GraphArc<'a, T>, NodeCollectionBuilder<Graph<T>, T>) -> Graph<T>,
+//     {
+//         build_fn(self, NodeCollectionBuilder::new(&self.node_factory))
+//     }
+// }
+
+
 
 pub struct Architect<'a, C, T>
 where
-    C: NodeCollection<C, T> + Clone + Default,
+    C: NodeCollection<C, T>,
     T: Clone + PartialEq + Default,
 {
     pub node_factory: &'a NodeFactory<T>,

@@ -48,10 +48,6 @@ where
         &mut self.nodes
     }
 
-    fn add(&mut self, nodes: Vec<GraphNode<T>>) {
-        self.nodes.extend(nodes);
-    }
-
     fn set_cycles(mut self, indecies: Vec<usize>) -> Graph<T> {
         if indecies.len() == 0 {
             let all_indices = self
@@ -78,6 +74,10 @@ where
         }
 
         self
+    }
+
+    fn add(&mut self, nodes: Vec<GraphNode<T>>) {
+        self.nodes.extend(nodes);
     }
 }
 

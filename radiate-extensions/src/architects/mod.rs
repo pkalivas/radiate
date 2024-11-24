@@ -1,7 +1,7 @@
-pub mod architect;
 pub mod node_collection_builder;
 pub mod node_collections;
 pub mod schema;
+pub mod architect;
 
 pub use architect::Architect;
 pub use node_collection_builder::NodeCollectionBuilder;

@@ -11,7 +11,7 @@ pub trait Node: Valid {
     fn value(&self) -> &Self::Value;
 }
 
-pub trait NodeCollection<C, T>: Valid
+pub trait NodeCollection<C, T>: Valid + Default + Clone
 where
     C: NodeCollection<C, T> + Default + Clone,
     T: Clone + PartialEq + Default,

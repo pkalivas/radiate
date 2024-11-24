@@ -4,13 +4,11 @@ use radiate::RandomProvider;
 
 use super::schema::node_types::NodeType;
 
-pub mod codexes;
 pub mod factories;
 pub mod graphs;
 pub mod node_collection;
 pub mod nodes;
 
-pub use codexes::*;
 pub use factories::*;
 pub use graphs::*;
 pub use node_collection::*;
