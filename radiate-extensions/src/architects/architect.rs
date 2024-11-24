@@ -8,7 +8,7 @@ use super::Graph;
 
 pub struct Architect<'a, C, T>
 where
-    C: NodeCollection<C, T> + Clone + Default,
+    C: NodeCollection<C, T>,
     T: Clone + PartialEq + Default,
 {
     pub node_factory: &'a NodeFactory<T>,
@@ -17,7 +17,7 @@ where
 
 impl<'a, C, T> Architect<'a, C, T>
 where
-    C: NodeCollection<C, T> + Clone + Default,
+    C: NodeCollection<C, T>,
     T: Clone + PartialEq + Default,
 {
     pub fn new(node_factory: &'a NodeFactory<T>) -> Self {
