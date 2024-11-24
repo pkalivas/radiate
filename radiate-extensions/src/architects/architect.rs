@@ -64,7 +64,12 @@ where
             .map(|i| self.node_factory.new_node(i, node_type))
             .collect::<Vec<Node<T>>>()
     }
+}
 
+impl<'a, T> Architect<'a, Graph<T>, T>
+where
+    T: Clone + PartialEq + Default,
+{
     pub fn acyclic(&self, input_size: usize, output_size: usize) -> Graph<T> {
         Architect::<Graph<T>, T>::new(self.node_factory).build(|arc, builder| {
             builder
