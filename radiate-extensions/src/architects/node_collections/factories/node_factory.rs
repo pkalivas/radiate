@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use radiate::RandomProvider;
 
 use crate::{
-    architects::{node_collections::node::Node, schema::node_types::NodeType},
+    architects::{node_collections::graph_node::GraphNode, schema::node_types::NodeType},
     operations::op::{self, Ops},
 };
 
@@ -98,23 +98,23 @@ where
         self.node_values.insert(node_type, values);
     }
 
-    pub fn new_node(&self, index: usize, node_type: NodeType) -> Node<T> {
+    pub fn new_node(&self, index: usize, node_type: NodeType) -> GraphNode<T> {
         if let Some(values) = self.node_values.get(&node_type) {
             match node_type {
                 NodeType::Input => {
                     let value = values[index % values.len()].clone();
                     let arity = value.arity();
-                    return Node::new(index, node_type, value).set_arity(arity);
+                    return GraphNode::new(index, node_type, value).set_arity(arity);
                 }
                 _ => {
                     let value = RandomProvider::choose(&values);
                     let arity = value.arity();
-                    return Node::new(index, node_type, value.new_instance()).set_arity(arity);
+                    return GraphNode::new(index, node_type, value.new_instance()).set_arity(arity);
                 }
             }
         }
 
-        Node::new(index, node_type, Ops::default())
+        GraphNode::new(index, node_type, Ops::default())
     }
 
     pub fn regression(input_size: usize) -> NodeFactory<f32> {

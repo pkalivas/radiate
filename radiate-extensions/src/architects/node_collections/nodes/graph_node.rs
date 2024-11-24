@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::architects::schema::{direction::Direction, node_types::NodeType};
 use crate::operations::op::Ops;
 
-pub struct Node<T>
+pub struct GraphNode<T>
 where
     T: Clone + PartialEq,
 {
@@ -20,7 +20,7 @@ where
     pub outgoing: HashSet<usize>,
 }
 
-impl<T> Node<T>
+impl<T> GraphNode<T>
 where
     T: Clone + PartialEq,
 {
@@ -86,7 +86,7 @@ where
     }
 }
 
-impl<T> Gene<Node<T>, Ops<T>> for Node<T>
+impl<T> Gene<GraphNode<T>, Ops<T>> for GraphNode<T>
 where
     T: Clone + PartialEq + Default,
 {
@@ -94,8 +94,8 @@ where
         &self.value
     }
 
-    fn new_instance(&self) -> Node<T> {
-        Node {
+    fn new_instance(&self) -> GraphNode<T> {
+        GraphNode {
             id: Uuid::new_v4(),
             index: self.index,
             arity: self.arity.clone(),
@@ -108,8 +108,8 @@ where
         }
     }
 
-    fn from_allele(&self, allele: &Ops<T>) -> Node<T> {
-        Node {
+    fn from_allele(&self, allele: &Ops<T>) -> GraphNode<T> {
+        GraphNode {
             id: Uuid::new_v4(),
             index: self.index,
             arity: self.arity.clone(),
@@ -123,7 +123,7 @@ where
     }
 }
 
-impl<T> Valid for Node<T>
+impl<T> Valid for GraphNode<T>
 where
     T: Clone + PartialEq,
 {
@@ -139,12 +139,12 @@ where
     }
 }
 
-impl<T> Clone for Node<T>
+impl<T> Clone for GraphNode<T>
 where
     T: Clone + PartialEq,
 {
     fn clone(&self) -> Self {
-        Node {
+        GraphNode {
             id: self.id.clone(),
             index: self.index.clone(),
             arity: self.arity.clone(),
@@ -158,7 +158,7 @@ where
     }
 }
 
-impl<T> PartialEq for Node<T>
+impl<T> PartialEq for GraphNode<T>
 where
     T: Clone + PartialEq,
 {
@@ -174,12 +174,12 @@ where
     }
 }
 
-impl<T> Default for Node<T>
+impl<T> Default for GraphNode<T>
 where
     T: Clone + PartialEq + Default,
 {
     fn default() -> Self {
-        Node {
+        GraphNode {
             id: Uuid::new_v4(),
             index: 0,
             arity: None,
@@ -193,7 +193,7 @@ where
     }
 }
 
-impl<T> std::fmt::Display for Node<T>
+impl<T> std::fmt::Display for GraphNode<T>
 where
     T: Clone + PartialEq,
 {
@@ -202,7 +202,7 @@ where
     }
 }
 
-impl<T> std::fmt::Debug for Node<T>
+impl<T> std::fmt::Debug for GraphNode<T>
 where
     T: Clone + PartialEq + std::fmt::Debug,
 {

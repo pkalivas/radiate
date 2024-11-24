@@ -1,6 +1,6 @@
 use crate::operations::op::Ops;
 
-use super::node::Node;
+use super::graph_node::GraphNode;
 
 pub struct Tracer<T>
 where
@@ -37,7 +37,7 @@ where
     }
 
     #[inline]
-    pub fn eval(&mut self, node: &Node<T>) {
+    pub fn eval(&mut self, node: &GraphNode<T>) {
         if self.pending_idx != self.input_size {
             panic!("Tracer is not ready to be evaluated.");
         }
