@@ -70,6 +70,37 @@ where
             .count();
         self
     }
+
+    pub fn input(&self, size: usize) -> Graph<T> {
+        self.new_collection(NodeType::Input, size)
+    }
+
+    pub fn output(&self, size: usize) -> Graph<T> {
+        self.new_collection(NodeType::Output, size)
+    }
+
+    pub fn gate(&self, size: usize) -> Graph<T> {
+        self.new_collection(NodeType::Gate, size)
+    }
+
+    pub fn aggregate(&self, size: usize) -> Graph<T> {
+        self.new_collection(NodeType::Aggregate, size)
+    }
+
+    pub fn weight(&self, size: usize) -> Graph<T> {
+        self.new_collection(NodeType::Weight, size)
+    }
+
+    fn new_collection(&self, node_type: NodeType, size: usize) -> Graph<T> {
+        let nodes = self.new_nodes(node_type, size);
+        Graph::from_nodes(nodes)
+    }
+
+    fn new_nodes(&self, node_type: NodeType, size: usize) -> Vec<GraphNode<T>> {
+        (0..size)
+            .map(|i| self.factory.new_node(i, node_type))
+            .collect::<Vec<GraphNode<T>>>()
+    }
 }
 
 impl<'a, T> Codex<GraphNode<T>, Ops<T>, Graph<T>> for GraphCodex<'a, T>

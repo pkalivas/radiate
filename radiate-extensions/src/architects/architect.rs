@@ -6,44 +6,35 @@ use crate::architects::schema::node_types::NodeType;
 
 use crate::Graph;
 
-// pub trait Arc<A, C, T>
-// where
-//     A: Arc<A, C, T>,
-//     C: NodeCollection<C, T> + Clone + Default,
-//     T: Clone + PartialEq + Default,
-// {
-//     fn build<F>(&self, build_fn: F) -> C
-//     where
-//         F: FnOnce(&A, NodeCollectionBuilder<C, T>) -> C;
-// }
+pub trait Arc<A, C, T>
+where
+    A: Arc<A, C, T>,
+    C: NodeCollection<C, T>,
+    T: Clone + PartialEq + Default,
+{
+    fn build<F>(&self, build_fn: F) -> C
+    where
+        F: FnOnce(&A, NodeCollectionBuilder<C, T>) -> C;
+}
 
-// pub struct GraphArc<'a, T>
-// where
-//     T: Clone + PartialEq + Default,
-// {
-//     pub node_factory: &'a NodeFactory<T>,
-// }
+pub struct GraphArc<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    pub node_factory: &'a NodeFactory<T>,
+}
 
-// impl<'a, T> GraphArc<'a, T>
-// where
-//     T: Clone + PartialEq + Default,
-// {
-//     pub fn new(node_factory: &'a NodeFactory<T>) -> Self {
-//         GraphArc { node_factory }
-//     }
-// }
-
-// impl<'a, T> Arc<GraphArc<'a, T>, Graph<T>, T> for GraphArc<'a, T>
-// where
-//     T: Clone + PartialEq + Default,
-// {
-//     fn build<F>(&self, build_fn: F) -> Graph<T>
-//     where
-//         F: FnOnce(&GraphArc<'a, T>, NodeCollectionBuilder<Graph<T>, T>) -> Graph<T>,
-//     {
-//         build_fn(self, NodeCollectionBuilder::new(&self.node_factory))
-//     }
-// }
+impl<'a, T> Arc<GraphArc<'a, T>, Graph<T>, T> for GraphArc<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    fn build<F>(&self, build_fn: F) -> Graph<T>
+    where
+        F: FnOnce(&GraphArc<'a, T>, NodeCollectionBuilder<Graph<T>, T>) -> Graph<T>,
+    {
+        build_fn(self, NodeCollectionBuilder::new(&self.node_factory))
+    }
+}
 
 
 
@@ -58,7 +49,7 @@ where
 
 impl<'a, C, T> Architect<'a, C, T>
 where
-    C: NodeCollection<C, T> + Clone + Default,
+    C: NodeCollection<C, T>,
     T: Clone + PartialEq + Default,
 {
     pub fn new(node_factory: &'a NodeFactory<T>) -> Self {
@@ -75,24 +66,24 @@ where
         build_fn(self, NodeCollectionBuilder::new(&self.node_factory))
     }
 
-    pub fn input(&self, siez: usize) -> C {
-        self.new_collection(NodeType::Input, siez)
+    pub fn input(&self, size: usize) -> C {
+        self.new_collection(NodeType::Input, size)
     }
 
-    pub fn output(&self, siez: usize) -> C {
-        self.new_collection(NodeType::Output, siez)
+    pub fn output(&self, size: usize) -> C {
+        self.new_collection(NodeType::Output, size)
     }
 
-    pub fn gate(&self, siez: usize) -> C {
-        self.new_collection(NodeType::Gate, siez)
+    pub fn gate(&self, size: usize) -> C {
+        self.new_collection(NodeType::Gate, size)
     }
 
-    pub fn aggregate(&self, siez: usize) -> C {
-        self.new_collection(NodeType::Aggregate, siez)
+    pub fn aggregate(&self, size: usize) -> C {
+        self.new_collection(NodeType::Aggregate, size)
     }
 
-    pub fn weight(&self, siez: usize) -> C {
-        self.new_collection(NodeType::Weight, siez)
+    pub fn weight(&self, size: usize) -> C {
+        self.new_collection(NodeType::Weight, size)
     }
 
     pub fn new_collection(&self, node_type: NodeType, size: usize) -> C {
