@@ -4,9 +4,9 @@ use radiate::engines::genome::genes::gene::Valid;
 
 use crate::architects::node_collections::node::Node;
 
-pub trait NodeCollection<C, T>: Valid
+pub trait NodeCollection<C, T>: Valid + Default + Clone
 where
-    C: NodeCollection<C, T> + Default + Clone,
+    C: NodeCollection<C, T>,
     T: Clone + PartialEq + Default,
 {
     fn from_nodes(nodes: Vec<Node<T>>) -> Self;
