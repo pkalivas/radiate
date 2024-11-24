@@ -135,6 +135,8 @@ where
             NodeType::Aggregate => !self.incoming.is_empty() && !self.outgoing.is_empty(),
             NodeType::Weight => self.incoming.len() == 1 && self.outgoing.len() == 1,
             NodeType::Link => self.incoming.len() == 1 && self.outgoing.len() > 0,
+            NodeType::Root => self.incoming.len() > 0 && self.outgoing.is_empty(),
+            NodeType::Leaf => self.outgoing.len() > 0 && self.incoming.is_empty(),
         }
     }
 }

@@ -37,6 +37,19 @@ where
         self
     }
 
+    pub fn roots(mut self, values: Vec<Ops<T>>) -> NodeFactory<T> {
+        self.add_node_values(NodeType::Root, values);
+        self
+    }
+
+    pub fn root_values(mut self, values: Vec<T>) -> NodeFactory<T> {
+        self.add_node_values(
+            NodeType::Root,
+            values.iter().map(|v| op::value(v.clone())).collect(),
+        );
+        self
+    }
+
     pub fn outputs(mut self, values: Vec<Ops<T>>) -> NodeFactory<T> {
         self.add_node_values(NodeType::Output, values);
         self
@@ -101,7 +114,7 @@ where
     pub fn new_node(&self, index: usize, node_type: NodeType) -> Node<T> {
         if let Some(values) = self.node_values.get(&node_type) {
             match node_type {
-                NodeType::Input => {
+                NodeType::Input | NodeType::Leaf => {
                     let value = values[index % values.len()].clone();
                     let arity = value.arity();
                     return Node::new(index, node_type, value).set_arity(arity);
@@ -118,12 +131,10 @@ where
     }
 
     pub fn regression(input_size: usize) -> NodeFactory<f32> {
+        let input_values = (0..input_size).map(|idx| op::var(idx)).collect::<Vec<Ops<f32>>>();
         NodeFactory::new()
-            .inputs(
-                (0..input_size)
-                    .map(|idx| op::var(idx))
-                    .collect::<Vec<Ops<f32>>>(),
-            )
+            .inputs(input_values)
+            // .leafs(input_values)
             .gates(vec![
                 op::add(),
                 op::sub(),
@@ -163,6 +174,7 @@ where
             ])
             .weights(vec![op::weight()])
             .outputs(vec![op::linear()])
+            .roots(vec![op::linear()])
     }
 }
 

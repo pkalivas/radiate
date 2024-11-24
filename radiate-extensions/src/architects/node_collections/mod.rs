@@ -146,6 +146,14 @@ where
             .iter()
             .filter(|node| node.node_type == NodeType::Aggregate)
             .collect::<Vec<&Node<T>>>(),
+        NodeType::Root => collection
+            .iter()
+            .filter(|node| node.node_type == NodeType::Root)
+            .collect::<Vec<&Node<T>>>(),
+        NodeType::Leaf => collection
+            .iter()
+            .filter(|node| node.node_type == NodeType::Leaf)
+            .collect::<Vec<&Node<T>>>(),
     };
 
     if genes.len() == 0 {
