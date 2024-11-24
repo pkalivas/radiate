@@ -1,5 +1,5 @@
 use crate::architects::node_collection_builder::NodeCollectionBuilder;
-use crate::architects::node_collections::graph_node::GraphNode;
+use crate::architects::node_collections::node::Node;
 use crate::architects::node_collections::node_collection::NodeCollection;
 use crate::architects::node_collections::node_factory::NodeFactory;
 use crate::architects::schema::node_types::NodeType;
@@ -59,10 +59,10 @@ where
         C::from_nodes(nodes)
     }
 
-    pub fn new_nodes(&self, node_type: NodeType, size: usize) -> Vec<GraphNode<T>> {
+    pub fn new_nodes(&self, node_type: NodeType, size: usize) -> Vec<Node<T>> {
         (0..size)
             .map(|i| self.node_factory.new_node(i, node_type))
-            .collect::<Vec<GraphNode<T>>>()
+            .collect::<Vec<Node<T>>>()
     }
 }
 

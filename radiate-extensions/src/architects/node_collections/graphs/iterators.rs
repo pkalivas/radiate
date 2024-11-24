@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use super::*;
-use crate::{GraphNode, NodeCollection, NodeType, Tracer};
+use crate::{Node, NodeCollection, NodeType, Tracer};
 
 /// `GraphIterator` is an iterator that traverses a `Graph` in sudo-topological order. I say
 /// "sudo-topological" because it is not a true topological order, but rather a topological order
@@ -36,7 +36,7 @@ impl<'a, T> Iterator for GraphIterator<'a, T>
 where
     T: Clone + PartialEq + Default,
 {
-    type Item = &'a GraphNode<T>;
+    type Item = &'a Node<T>;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
@@ -160,7 +160,7 @@ where
         self.outputs.clone()
     }
 
-    fn input_size(node: &GraphNode<T>) -> usize {
+    fn input_size(node: &Node<T>) -> usize {
         match node.node_type {
             NodeType::Input | NodeType::Link => 1,
             NodeType::Gate => node.value.arity() as usize,

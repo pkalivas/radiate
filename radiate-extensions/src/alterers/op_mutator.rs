@@ -8,7 +8,7 @@ use radiate::{Alterer, RandomProvider};
 use rand::distributions::uniform::SampleUniform;
 use rand::{distributions::Standard, prelude::Distribution};
 
-use crate::architects::node_collections::graph_node::GraphNode;
+use crate::architects::node_collections::node::Node;
 use crate::architects::node_collections::node_factory::NodeFactory;
 use crate::operations::op::Ops;
 
@@ -31,7 +31,7 @@ where
         factory: NodeFactory<T>,
         rate: f32,
         replace_rate: f32,
-    ) -> Alterer<GraphNode<T>, Ops<T>> {
+    ) -> Alterer<Node<T>, Ops<T>> {
         Alterer::Mutation(Box::new(Self {
             rate,
             replace_rate,
@@ -40,7 +40,7 @@ where
     }
 }
 
-impl<T> Mutate<GraphNode<T>, Ops<T>> for OpMutator<T>
+impl<T> Mutate<Node<T>, Ops<T>> for OpMutator<T>
 where
     T: Clone
         + PartialEq
@@ -61,7 +61,7 @@ where
     }
 
     #[inline]
-    fn mutate_gene(&self, gene: &GraphNode<T>) -> GraphNode<T> {
+    fn mutate_gene(&self, gene: &Node<T>) -> Node<T> {
         match gene.allele() {
             Ops::MutableConst(name, arity, value, supplier, operation) => {
                 let random_value =

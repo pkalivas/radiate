@@ -15,7 +15,7 @@ pub use node_collection::*;
 pub use nodes::*;
 
 #[inline]
-pub fn can_connect<T>(collection: &[GraphNode<T>], source: usize, target: usize, recurrent: bool) -> bool
+pub fn can_connect<T>(collection: &[Node<T>], source: usize, target: usize, recurrent: bool) -> bool
 where
     T: Clone + PartialEq + Default,
 {
@@ -34,7 +34,7 @@ where
 }
 
 #[inline]
-pub fn would_create_cycle<T>(collection: &[GraphNode<T>], source: usize, target: usize) -> bool
+pub fn would_create_cycle<T>(collection: &[Node<T>], source: usize, target: usize) -> bool
 where
     T: Clone + PartialEq + Default,
 {
@@ -69,7 +69,7 @@ where
     false
 }
 
-pub fn is_locked<T>(node: &GraphNode<T>) -> bool
+pub fn is_locked<T>(node: &Node<T>) -> bool
 where
     T: Clone + PartialEq + Default,
 {
@@ -84,7 +84,7 @@ where
 }
 
 #[inline]
-pub fn random_source_node<T>(collection: &[GraphNode<T>]) -> &GraphNode<T>
+pub fn random_source_node<T>(collection: &[Node<T>]) -> &Node<T>
 where
     T: Clone + PartialEq + Default,
 {
@@ -100,7 +100,7 @@ where
 }
 
 #[inline]
-pub fn random_target_node<T>(collection: &[GraphNode<T>]) -> &GraphNode<T>
+pub fn random_target_node<T>(collection: &[Node<T>]) -> &Node<T>
 where
     T: Clone + PartialEq + Default,
 {
@@ -108,7 +108,7 @@ where
 }
 
 #[inline]
-fn random_node_of_type<T>(collection: &[GraphNode<T>], node_types: Vec<NodeType>) -> &GraphNode<T>
+fn random_node_of_type<T>(collection: &[Node<T>], node_types: Vec<NodeType>) -> &Node<T>
 where
     T: Clone + PartialEq + Default,
 {
@@ -123,27 +123,27 @@ where
         NodeType::Input => collection
             .iter()
             .filter(|node| node.node_type == NodeType::Input)
-            .collect::<Vec<&GraphNode<T>>>(),
+            .collect::<Vec<&Node<T>>>(),
         NodeType::Weight => collection
             .iter()
             .filter(|node| node.node_type == NodeType::Weight)
-            .collect::<Vec<&GraphNode<T>>>(),
+            .collect::<Vec<&Node<T>>>(),
         NodeType::Gate => collection
             .iter()
             .filter(|node| node.node_type == NodeType::Gate)
-            .collect::<Vec<&GraphNode<T>>>(),
+            .collect::<Vec<&Node<T>>>(),
         NodeType::Output => collection
             .iter()
             .filter(|node| node.node_type == NodeType::Output)
-            .collect::<Vec<&GraphNode<T>>>(),
+            .collect::<Vec<&Node<T>>>(),
         NodeType::Link => collection
             .iter()
             .filter(|node| node.node_type == NodeType::Link)
-            .collect::<Vec<&GraphNode<T>>>(),
+            .collect::<Vec<&Node<T>>>(),
         NodeType::Aggregate => collection
             .iter()
             .filter(|node| node.node_type == NodeType::Aggregate)
-            .collect::<Vec<&GraphNode<T>>>(),
+            .collect::<Vec<&Node<T>>>(),
     };
 
     if genes.len() == 0 {

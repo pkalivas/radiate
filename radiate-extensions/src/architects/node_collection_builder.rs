@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::architects::node_collections::graph_node::GraphNode;
+use crate::architects::node_collections::node::Node;
 use crate::architects::node_collections::node_collection::NodeCollection;
 use crate::architects::node_collections::node_factory::NodeFactory;
 use crate::architects::schema::node_types::NodeType;
@@ -27,7 +27,7 @@ where
     T: Clone + PartialEq + Default,
 {
     pub factory: &'a NodeFactory<T>,
-    pub nodes: BTreeMap<&'a Uuid, &'a GraphNode<T>>,
+    pub nodes: BTreeMap<&'a Uuid, &'a Node<T>>,
     pub node_order: BTreeMap<usize, &'a Uuid>,
     pub relationships: Vec<NodeRelationship<'a>>,
     _phantom_c: std::marker::PhantomData<C>,
@@ -86,7 +86,7 @@ where
 
         for (idx, node_id) in self.node_order.iter() {
             let node = self.nodes.get(node_id).unwrap();
-            let new_node = GraphNode::new(*idx, *node.node_type(), node.value().clone());
+            let new_node = Node::new(*idx, *node.node_type(), node.value().clone());
 
             new_nodes.push(new_node);
             node_id_index_map.insert(node_id, *idx);
@@ -264,13 +264,13 @@ where
         }
     }
 
-    fn get_outputs(&self, collection: &'a C) -> Vec<&'a GraphNode<T>> {
+    fn get_outputs(&self, collection: &'a C) -> Vec<&'a Node<T>> {
         let outputs = collection
             .iter()
             .enumerate()
             .skip_while(|(_, node)| node.outgoing().len() > 0)
             .map(|(idx, _)| collection.get(idx).unwrap())
-            .collect::<Vec<&GraphNode<T>>>();
+            .collect::<Vec<&Node<T>>>();
 
         if outputs.len() > 0 {
             return outputs;
@@ -286,7 +286,7 @@ where
                         || node.node_type() == &NodeType::Aggregate)
             })
             .map(|(idx, _)| collection.get(idx).unwrap())
-            .collect::<Vec<&GraphNode<T>>>();
+            .collect::<Vec<&Node<T>>>();
 
         if recurrent_outputs.len() > 0 {
             return recurrent_outputs;
@@ -297,16 +297,16 @@ where
             .enumerate()
             .filter(|(_, node)| node.incoming().len() == 0)
             .map(|(idx, _)| collection.get(idx).unwrap())
-            .collect::<Vec<&GraphNode<T>>>()
+            .collect::<Vec<&Node<T>>>()
     }
 
-    fn get_inputs(&self, collection: &'a C) -> Vec<&'a GraphNode<T>> {
+    fn get_inputs(&self, collection: &'a C) -> Vec<&'a Node<T>> {
         let inputs = collection
             .iter()
             .enumerate()
             .take_while(|(_, node)| node.incoming().len() == 0)
             .map(|(idx, _)| collection.get(idx).unwrap())
-            .collect::<Vec<&GraphNode<T>>>();
+            .collect::<Vec<&Node<T>>>();
 
         if inputs.len() > 0 {
             return inputs;
@@ -321,7 +321,7 @@ where
                     && node.node_type() == &NodeType::Gate
             })
             .map(|(idx, _)| collection.get(idx).unwrap())
-            .collect::<Vec<&GraphNode<T>>>();
+            .collect::<Vec<&Node<T>>>();
 
         if recurrent_inputs.len() > 0 {
             return recurrent_inputs;
@@ -332,7 +332,7 @@ where
             .enumerate()
             .filter(|(_, node)| node.outgoing().len() == 0)
             .map(|(idx, _)| collection.get(idx).unwrap())
-            .collect::<Vec<&GraphNode<T>>>()
+            .collect::<Vec<&Node<T>>>()
     }
 
     fn repair(factory: &NodeFactory<T>, collection: &mut C) -> C {

@@ -40,7 +40,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<GraphNode<f32>, Ops<f32>, Graph<f32>>) {
+fn display(result: &EngineContext<Node<f32>, Ops<f32>, Graph<f32>>) {
     let mut reducer = GraphReducer::new(&result.best);
     for sample in get_sample_set().get_samples().iter() {
         let output = reducer.reduce(&sample.1);
