@@ -18,7 +18,7 @@ enum ConnectTypes {
     ParentToChild,
 }
 
-struct NodeRelationship<'a> {
+pub struct NodeRelationship<'a> {
     pub source_id: &'a Uuid,
     pub target_id: &'a Uuid,
 }
@@ -32,7 +32,7 @@ where
     pub factory: &'a NodeFactory<T>,
     pub nodes: BTreeMap<&'a Uuid, &'a N>,
     pub node_order: BTreeMap<usize, &'a Uuid>,
-    relationships: Vec<NodeRelationship<'a>>,
+    pub relationships: Vec<NodeRelationship<'a>>,
     _phantom_c: std::marker::PhantomData<C>,
     _phantom_t: std::marker::PhantomData<T>,
 }
@@ -85,33 +85,34 @@ where
     }
 
     pub fn build(self) -> C {
-        let mut new_nodes = Vec::new();
-        let mut node_id_index_map = BTreeMap::new();
+        unimplemented!()
+        // let mut new_nodes = Vec::new();
+        // let mut node_id_index_map = BTreeMap::new();
 
-        for (idx, node_id) in self.node_order.iter() {
-            let node = self.nodes.get(node_id).unwrap();
-            let new_node = GraphNode::new(*idx, *node.node_type(), node.value().clone());
+        // for (idx, node_id) in self.node_order.iter() {
+        //     let node = self.nodes.get(node_id).unwrap();
+        //     let new_node = GraphNode::new(*idx, *node.node_type(), node.value().clone());
 
-            new_nodes.push(new_node);
-            node_id_index_map.insert(node_id, *idx);
-        }
+        //     new_nodes.push(new_node);
+        //     node_id_index_map.insert(node_id, *idx);
+        // }
 
-        let mut new_collection = C::from_nodes(new_nodes);
-        for rel in self.relationships {
-            let source_idx = node_id_index_map.get(&rel.source_id).unwrap();
-            let target_idx = node_id_index_map.get(&rel.target_id).unwrap();
+        // let mut new_collection = C::from_nodes(new_nodes);
+        // for rel in self.relationships {
+        //     let source_idx = node_id_index_map.get(&rel.source_id).unwrap();
+        //     let target_idx = node_id_index_map.get(&rel.target_id).unwrap();
 
-            new_collection.attach(*source_idx, *target_idx);
-        }
+        //     new_collection.attach(*source_idx, *target_idx);
+        // }
 
-        let indecies = new_collection
-            .iter()
-            .map(|node| *node.index())
-            .collect::<Vec<usize>>();
-        NodeCollectionBuilder::<C, T>::repair(
-            &self.factory,
-            &mut new_collection.set_cycles(indecies),
-        )
+        // let indecies = new_collection
+        //     .iter()
+        //     .map(|node| *node.index())
+        //     .collect::<Vec<usize>>();
+        // NodeCollectionBuilder::<C, T>::repair(
+        //     &self.factory,
+        //     &mut new_collection.set_cycles(indecies),
+        // )
     }
 
     pub fn layer(&self, collections: Vec<&'a C>) -> Self {

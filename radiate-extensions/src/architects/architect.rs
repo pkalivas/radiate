@@ -17,7 +17,7 @@ where
 {
     fn build<F>(&self, build_fn: F) -> C
     where
-        F: FnOnce(&A, NodeCollectionBuilder<C, N, T>) -> C;
+        F: FnOnce(&A, &mut NodeCollectionBuilder<C, N, T>);
 }
 
 pub struct GraphArc<'a, T>
@@ -33,9 +33,12 @@ where
 {
     fn build<F>(&self, build_fn: F) -> Graph<T>
     where
-        F: FnOnce(&GraphArc<'a, T>, NodeCollectionBuilder<Graph<T>, GraphNode<T>, T>) -> Graph<T>,
+        F: FnOnce(&GraphArc<'a, T>, &mut NodeCollectionBuilder<Graph<T>, GraphNode<T>, T>),
     {
-        build_fn(self, NodeCollectionBuilder::new(&self.node_factory))
+        let mut builder = NodeCollectionBuilder::new(&self.node_factory);
+        build_fn(self, &mut builder);
+
+        builder.build()
     }
 }
 
