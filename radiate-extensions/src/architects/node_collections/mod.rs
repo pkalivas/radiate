@@ -6,11 +6,13 @@ use super::schema::node_types::NodeType;
 
 pub mod factories;
 pub mod graphs;
+pub mod trees;
 pub mod node_collection;
 pub mod nodes;
 
 pub use factories::*;
 pub use graphs::*;
+pub use trees::*;
 pub use node_collection::*;
 pub use nodes::*;
 
