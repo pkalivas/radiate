@@ -19,6 +19,7 @@ use super::{chromosome::Chromosome, genes::gene::Gene};
 /// # Type Parameters
 /// - `G`: The type of gene used in the genetic algorithm, which must implement the `Gene` trait.
 /// - `A`: The type of the allele associated with the gene - the gene's "expression".
+///
 pub struct Genotype<G, A>
 where
     G: Gene<G, A>,

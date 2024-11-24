@@ -20,11 +20,12 @@ use super::{RouletteSelector, Select, ThreadPool, TournamentSelector};
 /// set, the `build` method will panic. At a minimum, the `codex` and `fitness_fn` must be set.
 /// The `GeneticEngineParams` struct is a builder pattern that allows you to set the parameters of
 /// the `GeneticEngine` in a fluent and functional way.
-/// 
+///
 /// # Type Parameters
 /// - `G`: The type of gene used in the genetic algorithm, which must implement the `Gene` trait.
 /// - `A`: The type of the allele associated with the gene - the gene's "expression".
 /// - `T`: The type of the best individual in the population.
+/// 
 pub struct GeneticEngineParams<'a, G, A, T>
 where
     G: Gene<G, A>,
@@ -64,7 +65,7 @@ where
     /// * survivor_selector: TournamentSelector::new(3)
     /// * offspring_selector: RouletteSelector::new()
     pub fn new() -> Self {
-        Self {
+        GeneticEngineParams {
             population_size: 100,
             max_age: 25,
             offspring_fraction: 0.8,

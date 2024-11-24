@@ -22,6 +22,7 @@ use super::gene::{Gene, Valid};
 /// // Create a new BitGene from the allele.
 /// let gene = gene.from_allele(allele);
 /// ```
+///
 pub struct BitGene {
     allele: bool,
 }
