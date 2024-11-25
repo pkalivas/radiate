@@ -77,7 +77,7 @@ where
             Ops::MutableConst(name, arity, _, get_value, operation) => Ops::MutableConst(
                 name,
                 *arity,
-                get_value(),
+                get_value().clone(),
                 get_value.clone(),
                 operation.clone(),
             ),
