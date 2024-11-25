@@ -314,11 +314,11 @@ where
         let outputs = collection
             .iter()
             .enumerate()
-            .skip_while(|(_, node)| node.outgoing().len() > 0)
+            .skip_while(|(_, node)| !node.outgoing().is_empty())
             .map(|(idx, _)| collection.get(idx))
             .collect::<Vec<&Node<T>>>();
 
-        if outputs.len() > 0 {
+        if !outputs.is_empty() {
             return outputs;
         }
 
@@ -334,14 +334,14 @@ where
             .map(|(idx, _)| collection.get(idx))
             .collect::<Vec<&Node<T>>>();
 
-        if recurrent_outputs.len() > 0 {
+        if !recurrent_outputs.is_empty() {
             return recurrent_outputs;
         }
 
         collection
             .iter()
             .enumerate()
-            .filter(|(_, node)| node.incoming().len() == 0)
+            .filter(|(_, node)| node.incoming().is_empty())
             .map(|(idx, _)| collection.get(idx))
             .collect::<Vec<&Node<T>>>()
     }
@@ -350,11 +350,11 @@ where
         let inputs = collection
             .iter()
             .enumerate()
-            .take_while(|(_, node)| node.incoming().len() == 0)
+            .take_while(|(_, node)| node.incoming().is_empty())
             .map(|(idx, _)| collection.get(idx))
             .collect::<Vec<&Node<T>>>();
 
-        if inputs.len() > 0 {
+        if !inputs.is_empty() {
             return inputs;
         }
 
@@ -369,14 +369,14 @@ where
             .map(|(idx, _)| collection.get(idx))
             .collect::<Vec<&Node<T>>>();
 
-        if recurrent_inputs.len() > 0 {
+        if !recurrent_inputs.is_empty() {
             return recurrent_inputs;
         }
 
         collection
             .iter()
             .enumerate()
-            .filter(|(_, node)| node.outgoing().len() == 0)
+            .filter(|(_, node)| node.outgoing().is_empty())
             .map(|(idx, _)| collection.get(idx))
             .collect::<Vec<&Node<T>>>()
     }

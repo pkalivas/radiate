@@ -34,7 +34,7 @@ where
             graph,
             tracers: graph
                 .iter()
-                .map(|node| Tracer::new(GraphReducer::input_size(node)))
+                .map(|node| Tracer::new(input_size(node)))
                 .collect::<Vec<Tracer<T>>>(),
             order: Vec::with_capacity(graph.len()),
             outputs: vec![T::default(); output_size],
@@ -76,14 +76,6 @@ where
 
         self.outputs.clone()
     }
-
-    fn input_size(node: &Node<T>) -> usize {
-        match node.node_type {
-            NodeType::Input | NodeType::Link | NodeType::Leaf => 1,
-            NodeType::Gate => node.value.arity() as usize,
-            _ => node.incoming.len(),
-        }
-    }
 }
 
 
@@ -105,7 +97,7 @@ where
             nodes,
             tracers: nodes
                 .iter()
-                .map(|node| Tracer::new(TreeReducer::input_size(node)))
+                .map(|node| Tracer::new(input_size(node)))
                 .collect::<Vec<Tracer<T>>>(),
         }
     }
@@ -132,12 +124,16 @@ where
             vec![self.tracers[node.index].result.clone().unwrap()]
         }
     }
+}
 
-    fn input_size(node: &Node<T>) -> usize {
-        match node.node_type {
-            NodeType::Input | NodeType::Link | NodeType::Leaf => 1,
-            NodeType::Gate => node.value.arity() as usize,
-            _ => node.incoming.len(),
-        }
+
+fn input_size<T>(node: &Node<T>) -> usize
+where
+    T: Clone + PartialEq + Default,
+{
+    match node.node_type {
+        NodeType::Input | NodeType::Link | NodeType::Leaf => 1,
+        NodeType::Gate => node.value.arity() as usize,
+        _ => node.incoming.len(),
     }
 }

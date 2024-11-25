@@ -64,9 +64,9 @@ where
         let mut new_chromo_one = chromo_one.clone();
         let mut num_crosses = 0;
 
-        for indentity in 0..std::cmp::min(chromo_one.len(), chromo_two.len()) {
-            let node_one = chromo_one.get_gene(indentity);
-            let node_two = chromo_two.get_gene(indentity);
+        for i in 0..std::cmp::min(chromo_one.len(), chromo_two.len()) {
+            let node_one = chromo_one.get_gene(i);
+            let node_two = chromo_two.get_gene(i);
 
             if node_one.node_type != NodeType::Weight || node_two.node_type != NodeType::Weight {
                 continue;

@@ -121,7 +121,7 @@ where
     T: Clone + PartialEq + Default,
 {
     pub fn new(depth: usize, factory: &'a NodeFactory<T>) -> Self {
-        let nodes = Architect::<Tree<T>, T>::new(&factory)
+        let nodes = Architect::<Tree<T>, T>::new(factory)
             .tree(depth)
             .iter()
             .cloned()

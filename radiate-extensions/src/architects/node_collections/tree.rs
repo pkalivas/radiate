@@ -25,7 +25,6 @@ where
 
     pub fn sub_tree(&self, index: usize) -> Self {
         let nodes = BreadthFirstIterator::new(&self.nodes, index)
-            .map(|node| node)
             .collect::<Vec<&Node<T>>>();
 
         Tree::new(node_collection::reindex(0, nodes.as_slice()))
@@ -77,7 +76,7 @@ where
         let mut collection = self.clone();
 
         for node in collection.iter_mut() {
-            (*node).collection_type = Some(CollectionType::Tree);
+            node.collection_type = Some(CollectionType::Tree);
         }
 
         collection

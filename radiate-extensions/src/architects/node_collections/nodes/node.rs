@@ -84,9 +84,9 @@ where
             index: self.index,
             enabled: self.enabled,
             value: self.value.new_instance(),
-            direction: self.direction.clone(),
-            collection_type: self.collection_type.clone(),
-            node_type: self.node_type.clone(),
+            direction: self.direction,
+            collection_type: self.collection_type,
+            node_type: self.node_type,
             incoming: self.incoming.clone(),
             outgoing: self.outgoing.clone(),
         }
@@ -98,9 +98,9 @@ where
             index: self.index,
             value: allele.clone(),
             enabled: self.enabled,
-            collection_type: self.collection_type.clone(),
-            direction: self.direction.clone(),
-            node_type: self.node_type.clone(),
+            collection_type: self.collection_type,
+            direction: self.direction,
+            node_type: self.node_type,
             incoming: self.incoming.clone(),
             outgoing: self.outgoing.clone(),
         }
@@ -116,22 +116,22 @@ where
             if coll_type == &CollectionType::Graph {
                 return match self.node_type {
                     NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
-                    NodeType::Output => self.incoming.len() > 0,
+                    NodeType::Output => !self.incoming.is_empty(),
                     NodeType::Gate => self.incoming.len() == self.value.arity() as usize,
                     NodeType::Aggregate => !self.incoming.is_empty() && !self.outgoing.is_empty(),
                     NodeType::Weight => self.incoming.len() == 1 && self.outgoing.len() == 1,
-                    NodeType::Link => self.incoming.len() == 1 && self.outgoing.len() > 0,
-                    NodeType::Leaf => self.incoming.is_empty() && self.outgoing.len() > 0,
+                    NodeType::Link => self.incoming.len() == 1 && !self.outgoing.is_empty(),
+                    NodeType::Leaf => self.incoming.is_empty() && !self.outgoing.is_empty(),
                 };
             } else if coll_type == &CollectionType::Tree {
                 return match self.node_type {
                     NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
-                    NodeType::Output => self.incoming.len() > 0,
+                    NodeType::Output => !self.incoming.is_empty(),
                     NodeType::Gate => self.outgoing.len() == self.value.arity() as usize,
                     NodeType::Aggregate => !self.incoming.is_empty() && !self.outgoing.is_empty(),
                     NodeType::Weight => self.incoming.len() == 1 && self.outgoing.len() == 1,
-                    NodeType::Link => self.incoming.len() == 1 && self.outgoing.len() > 0,
-                    NodeType::Leaf => self.incoming.len() > 0 && self.outgoing.is_empty(),
+                    NodeType::Link => self.incoming.len() == 1 && !self.outgoing.is_empty(),
+                    NodeType::Leaf => !self.incoming.is_empty() && self.outgoing.is_empty(),
                 };
             }
         }
@@ -146,13 +146,13 @@ where
 {
     fn clone(&self) -> Self {
         Node {
-            id: self.id.clone(),
-            index: self.index.clone(),
+            id: self.id,
+            index: self.index,
             enabled: self.enabled,
             value: self.value.clone(),
-            collection_type: self.collection_type.clone(),
-            direction: self.direction.clone(),
-            node_type: self.node_type.clone(),
+            collection_type: self.collection_type,
+            direction: self.direction,
+            node_type: self.node_type,
             incoming: self.incoming.clone(),
             outgoing: self.outgoing.clone(),
         }
