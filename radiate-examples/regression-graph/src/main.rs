@@ -8,7 +8,7 @@ fn main() {
     RandomProvider::set_seed(12345);
     let factory = NodeFactory::<f32>::regression(1).gates(vec![op::add(), op::sub(), op::mul()]);
 
-    let graph_codex = GraphCodex::from_factory(&factory);
+    let graph_codex = TreeCodex::new(4, &factory);
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 
@@ -16,19 +16,19 @@ fn main() {
         .minimizing()
         .num_threads(10)
         .alterer(vec![
-            GraphCrossover::alterer(0.5, 0.5),
+            TreeCrossover::alterer(0.5),
             OpMutator::alterer(factory.clone(), 0.01, 0.05),
-            GraphMutator::alterer(
-                factory.clone(),
-                vec![
-                    NodeMutate::Forward(NodeType::Weight, 0.05),
-                    NodeMutate::Forward(NodeType::Aggregate, 0.02),
-                    NodeMutate::Forward(NodeType::Gate, 0.03),
-                ],
-            ),
+            // GraphMutator::alterer(
+            //     factory.clone(),
+            //     vec![
+            //         NodeMutate::Forward(NodeType::Weight, 0.05),
+            //         NodeMutate::Forward(NodeType::Aggregate, 0.02),
+            //         NodeMutate::Forward(NodeType::Gate, 0.03),
+            //     ],
+            // ),
         ])
-        .fitness_fn(move |genotype: Graph<f32>| {
-            let mut reducer = GraphReducer::new(&genotype);
+        .fitness_fn(move |genotype: Tree<f32>| {
+            let mut reducer = TreeReducer::new(&genotype);
             Score::from_f32(regression.error(|input| reducer.reduce(&input)))
         })
         .build();
@@ -39,13 +39,47 @@ fn main() {
     });
 
     display(&result);
+    // RandomProvider::set_seed(12345);
+    // let factory = NodeFactory::<f32>::regression(1).gates(vec![op::add(), op::sub(), op::mul()]);
+
+    // let graph_codex = GraphCodex::from_factory(&factory);
+
+    // let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
+
+    // let engine = GeneticEngine::from_codex(&graph_codex)
+    //     .minimizing()
+    //     .num_threads(10)
+    //     .alterer(vec![
+    //         GraphCrossover::alterer(0.5, 0.5),
+    //         OpMutator::alterer(factory.clone(), 0.01, 0.05),
+    //         GraphMutator::alterer(
+    //             factory.clone(),
+    //             vec![
+    //                 NodeMutate::Forward(NodeType::Weight, 0.05),
+    //                 NodeMutate::Forward(NodeType::Aggregate, 0.02),
+    //                 NodeMutate::Forward(NodeType::Gate, 0.03),
+    //             ],
+    //         ),
+    //     ])
+    //     .fitness_fn(move |genotype: Graph<f32>| {
+    //         let mut reducer = GraphReducer::new(&genotype);
+    //         Score::from_f32(regression.error(|input| reducer.reduce(&input)))
+    //     })
+    //     .build();
+
+    // let result = engine.run(|output| {
+    //     println!("[ {:?} ]: {:?}", output.index, output.score().as_float());
+    //     output.score().as_float() < MIN_SCORE || output.seconds() > MAX_SECONDS
+    // });
+
+    // display(&result);
 }
 
-fn display(result: &EngineContext<Node<f32>, Ops<f32>, Graph<f32>>) {
+fn display(result: &EngineContext<Node<f32>, Ops<f32>, Tree<f32>>) {
     let mut regression_accuracy = 0.0;
     let mut total = 0.0;
 
-    let mut reducer = GraphReducer::new(&result.best);
+    let mut reducer = TreeReducer::new(&result.best);
     for sample in get_sample_set().get_samples().iter() {
         let output = reducer.reduce(&sample.1);
 

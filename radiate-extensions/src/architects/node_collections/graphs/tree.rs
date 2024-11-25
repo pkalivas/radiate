@@ -1,6 +1,8 @@
 use radiate::Valid;
 
-use crate::{Node, NodeCollection, NodeFactory, NodeRepairs, NodeType};
+use crate::{node_collection, Node, NodeCollection, NodeFactory, NodeRepairs, NodeType};
+
+use super::BreadthFirstIterator;
 
 
 #[derive(Clone, PartialEq, Default)]
@@ -9,6 +11,26 @@ where
     T: Clone + PartialEq,
 {
     pub nodes: Vec<Node<T>>
+}
+
+impl<T> Tree<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    pub fn new(nodes: Vec<Node<T>>) -> Self {
+        Tree { nodes }
+    }
+
+    pub fn sub_tree(&self, index: usize) -> Self {
+        let nodes = BreadthFirstIterator::new(&self.nodes, index)
+            .map(|node| node.clone())
+            .collect::<Vec<Node<T>>>();
+
+        let temp = node_collection::reindex(0, &nodes);
+
+        Tree::new(temp)
+    }
+
 }
 
 impl<T> NodeCollection<T> for Tree<T>
@@ -68,5 +90,19 @@ where
 {
     fn is_valid(&self) -> bool {
         self.nodes.iter().all(|node| node.is_valid())
+    }
+}
+
+
+impl<T> std::fmt::Debug for Tree<T>
+where
+    T: Clone + PartialEq + Default + std::fmt::Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Graph {{\n")?;
+        for node in self.get_nodes() {
+            write!(f, "  {:?},\n", node)?;
+        }
+        write!(f, "}}")
     }
 }
