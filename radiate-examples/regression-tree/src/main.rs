@@ -4,9 +4,7 @@ use radiate_extensions::*;
 const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
 
-fn main() {
-    RandomProvider::set_seed(12345);
-    
+fn main() {    
     let factory = NodeFactory::<f32>::regression(1).gates(vec![op::add(), op::sub(), op::mul()]);
 
     let graph_codex = TreeCodex::new(3, &factory);
@@ -18,7 +16,7 @@ fn main() {
         .num_threads(10)
         .alterer(vec![
             TreeCrossover::alterer(0.5, 10),
-            OpMutator::alterer(factory.clone(), 0.001, 0.05),
+            NodeMutator::alterer(factory.clone(), 0.001, 0.05),
         ])
         .fitness_fn(move |genotype: Tree<f32>| {
             let mut reducer = TreeReducer::new(&genotype);
