@@ -7,6 +7,8 @@ use crate::architects::schema::node_types::NodeType;
 
 use uuid::Uuid;
 
+use super::NodeRepairs;
+
 pub enum ConnectTypes {
     OneToOne,
     OneToMany,
@@ -16,37 +18,35 @@ pub enum ConnectTypes {
     ParentToChild,
 }
 
-pub struct NodeRelationship<'a> {
+pub struct Relationship<'a> {
     pub source_id: &'a Uuid,
     pub target_id: &'a Uuid,
 }
 
 pub struct NodeCollectionBuilder<'a, C, T>
 where
-    C: NodeCollection<C, T> + Clone + Default,
+    C: NodeCollection<T> + NodeRepairs<T>,
     T: Clone + PartialEq + Default,
 {
     pub factory: &'a NodeFactory<T>,
     pub nodes: BTreeMap<&'a Uuid, &'a Node<T>>,
     pub node_order: BTreeMap<usize, &'a Uuid>,
-    pub relationships: Vec<NodeRelationship<'a>>,
+    pub relationships: Vec<Relationship<'a>>,
     _phantom_c: std::marker::PhantomData<C>,
-    _phantom_t: std::marker::PhantomData<T>,
 }
 
 impl<'a, C, T> NodeCollectionBuilder<'a, C, T>
 where
-    C: NodeCollection<C, T> + Clone + Default,
+    C: NodeCollection<T> + NodeRepairs<T>,
     T: Clone + PartialEq + Default,
 {
     pub fn new(factory: &'a NodeFactory<T>) -> Self {
-        Self {
+        NodeCollectionBuilder {
             factory,
             nodes: BTreeMap::new(),
             node_order: BTreeMap::new(),
             relationships: Vec::new(),
             _phantom_c: std::marker::PhantomData,
-            _phantom_t: std::marker::PhantomData,
         }
     }
 
@@ -86,7 +86,7 @@ where
 
         for (idx, node_id) in self.node_order.iter() {
             let node = self.nodes.get(node_id).unwrap();
-            let new_node = Node::new(*idx, *node.node_type(), node.value().clone());
+            let new_node = Node::new(*idx, node.node_type, node.value.clone());
 
             new_nodes.push(new_node);
             node_id_index_map.insert(node_id, *idx);
@@ -100,14 +100,7 @@ where
             new_collection.attach(*source_idx, *target_idx);
         }
 
-        let indecies = new_collection
-            .iter()
-            .map(|node| *node.index())
-            .collect::<Vec<usize>>();
-        NodeCollectionBuilder::<C, T>::repair(
-            &self.factory,
-            &mut new_collection.set_cycles(indecies),
-        )
+        new_collection.repair(&self.factory)
     }
 
     pub fn layer(&self, collections: Vec<&'a C>) -> Self {
@@ -142,19 +135,19 @@ where
 
     pub fn attach(&mut self, group: &'a C) {
         for node in group.iter() {
-            if !self.nodes.contains_key(node.id()) {
-                let node_id = node.id();
+            if !self.nodes.contains_key(&node.id) {
+                let node_id = &node.id;
 
                 self.nodes.insert(&node_id, node);
                 self.node_order.insert(self.node_order.len(), &node_id);
 
                 for outgoing in group
                     .iter()
-                    .filter(|item| node.outgoing().contains(item.index()))
+                    .filter(|item| node.outgoing().contains(&item.index))
                 {
-                    self.relationships.push(NodeRelationship {
-                        source_id: node.id(),
-                        target_id: outgoing.id(),
+                    self.relationships.push(Relationship {
+                        source_id: &node.id,
+                        target_id: &outgoing.id,
                     });
                 }
             }
@@ -170,9 +163,9 @@ where
         }
 
         for (one, two) in one_outputs.into_iter().zip(two_inputs.into_iter()) {
-            self.relationships.push(NodeRelationship {
-                source_id: one.id(),
-                target_id: two.id(),
+            self.relationships.push(Relationship {
+                source_id: &one.id,
+                target_id: &two.id,
             });
         }
     }
@@ -187,9 +180,9 @@ where
 
         for targets in two_inputs.chunks(one_outputs.len()) {
             for (source, target) in one_outputs.iter().zip(targets.iter()) {
-                self.relationships.push(NodeRelationship {
-                    source_id: source.id(),
-                    target_id: target.id(),
+                self.relationships.push(Relationship {
+                    source_id: &source.id,
+                    target_id: &target.id,
                 });
             }
         }
@@ -205,9 +198,9 @@ where
 
         for sources in one_outputs.chunks(two_inputs.len()) {
             for (source, target) in sources.iter().zip(two_inputs.iter()) {
-                self.relationships.push(NodeRelationship {
-                    source_id: source.id(),
-                    target_id: target.id(),
+                self.relationships.push(Relationship {
+                    source_id: &source.id,
+                    target_id: &target.id,
                 });
             }
         }
@@ -219,9 +212,9 @@ where
 
         for source in one_outputs {
             for target in two_inputs.iter() {
-                self.relationships.push(NodeRelationship {
-                    source_id: source.id(),
-                    target_id: target.id(),
+                self.relationships.push(Relationship {
+                    source_id: &source.id,
+                    target_id: &target.id,
                 });
             }
         }
@@ -236,13 +229,13 @@ where
         }
 
         for (one, two) in one_outputs.into_iter().zip(two_inputs.into_iter()) {
-            self.relationships.push(NodeRelationship {
-                source_id: one.id(),
-                target_id: two.id(),
+            self.relationships.push(Relationship {
+                source_id: &one.id,
+                target_id: &two.id,
             });
-            self.relationships.push(NodeRelationship {
-                source_id: two.id(),
-                target_id: one.id(),
+            self.relationships.push(Relationship {
+                source_id: &two.id,
+                target_id: &one.id,
             });
         }
     }
@@ -257,9 +250,9 @@ where
 
         let parent_node = one_outputs[0];
         for child_node in two_inputs {
-            self.relationships.push(NodeRelationship {
-                source_id: parent_node.id(),
-                target_id: child_node.id(),
+            self.relationships.push(Relationship {
+                source_id: &parent_node.id,
+                target_id: &child_node.id,
             });
         }
     }
@@ -333,24 +326,5 @@ where
             .filter(|(_, node)| node.outgoing().len() == 0)
             .map(|(idx, _)| collection.get(idx).unwrap())
             .collect::<Vec<&Node<T>>>()
-    }
-
-    fn repair(factory: &NodeFactory<T>, collection: &mut C) -> C {
-        for node in collection.iter_mut() {
-            let arity = node.incoming().len();
-            (*node).arity = Some(arity as u8);
-
-            let temp_node = factory.new_node(*node.index(), NodeType::Aggregate);
-
-            if node.node_type() == &NodeType::Output && node.outgoing().len() > 0 {
-                node.node_type = NodeType::Aggregate;
-                node.value = temp_node.value.clone();
-            } else if node.node_type() == &NodeType::Input && node.incoming().len() > 0 {
-                node.node_type = NodeType::Aggregate;
-                node.value = temp_node.value.clone();
-            }
-        }
-
-        collection.clone()
     }
 }

@@ -107,3 +107,64 @@ where
         )
     }
 }
+
+
+pub struct TreeCodex<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    pub factory: &'a NodeFactory<T>,
+    pub nodes: Vec<Node<T>>,
+}
+
+impl<'a, T> TreeCodex<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    pub fn new(depth: usize, factory: &'a NodeFactory<T>) -> Self {
+        let nodes = Architect::<Tree<T>, T>::new(&factory)
+            .tree(depth)
+            .iter()
+            .map(|node| node.clone())
+            .collect::<Vec<Node<T>>>();
+
+        TreeCodex { factory, nodes }
+    }
+}
+
+
+impl<'a, T> Codex<Node<T>, Ops<T>, Tree<T>> for TreeCodex<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    fn encode(&self) -> Genotype<Node<T>, Ops<T>> {
+        Genotype {
+            chromosomes: vec![Chromosome::from_genes(
+                self.nodes
+                    .iter()
+                    .map(|node| {
+                        let temp_node = self.factory.new_node(node.index, node.node_type);
+
+                        if temp_node.value.arity() == node.value.arity() {
+                            return node.from_allele(&temp_node.allele());
+                        }
+
+                        node.clone()
+                    })
+                    .collect::<Vec<Node<T>>>(),
+            )],
+        }
+    }
+
+    fn decode(&self, genotype: &Genotype<Node<T>, Ops<T>>) -> Tree<T> {
+        Tree::from_nodes(
+            genotype
+                .iter()
+                .next()
+                .unwrap()
+                .iter()
+                .map(|node| node.clone())
+                .collect::<Vec<Node<T>>>(),
+        )
+    }
+}

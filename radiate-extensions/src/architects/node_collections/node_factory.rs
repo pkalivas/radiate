@@ -19,21 +19,23 @@ where
     T: Clone + PartialEq + Default,
 {
     pub fn new() -> Self {
-        Self {
+        NodeFactory {
             node_values: HashMap::new(),
         }
     }
 
-    pub fn inputs(mut self, values: Vec<Ops<T>>) -> NodeFactory<T> {
-        self.add_node_values(NodeType::Input, values);
+    pub fn root(mut self, value: Ops<T>) -> NodeFactory<T> {
+        self.add_node_values(NodeType::Root, vec![value]);
         self
     }
 
-    pub fn input_values(mut self, values: Vec<T>) -> NodeFactory<T> {
-        self.add_node_values(
-            NodeType::Input,
-            values.iter().map(|v| op::value(v.clone())).collect(),
-        );
+    pub fn leafs(mut self, values: Vec<Ops<T>>) -> NodeFactory<T> {
+        self.add_node_values(NodeType::Leaf, values);
+        self
+    }
+
+    pub fn inputs(mut self, values: Vec<Ops<T>>) -> NodeFactory<T> {
+        self.add_node_values(NodeType::Input, values);
         self
     }
 
@@ -42,24 +44,8 @@ where
         self
     }
 
-    pub fn output_values(mut self, values: Vec<T>) -> NodeFactory<T> {
-        self.add_node_values(
-            NodeType::Output,
-            values.iter().map(|v| op::value(v.clone())).collect(),
-        );
-        self
-    }
-
     pub fn gates(mut self, values: Vec<Ops<T>>) -> NodeFactory<T> {
         self.add_node_values(NodeType::Gate, values);
-        self
-    }
-
-    pub fn gate_values(mut self, values: Vec<T>) -> NodeFactory<T> {
-        self.add_node_values(
-            NodeType::Gate,
-            values.iter().map(|v| op::value(v.clone())).collect(),
-        );
         self
     }
 
@@ -68,24 +54,8 @@ where
         self
     }
 
-    pub fn aggregate_values(mut self, values: Vec<T>) -> NodeFactory<T> {
-        self.add_node_values(
-            NodeType::Aggregate,
-            values.iter().map(|v| op::value(v.clone())).collect(),
-        );
-        self
-    }
-
     pub fn weights(mut self, values: Vec<Ops<T>>) -> NodeFactory<T> {
         self.add_node_values(NodeType::Weight, values);
-        self
-    }
-
-    pub fn weight_values(mut self, values: Vec<T>) -> NodeFactory<T> {
-        self.add_node_values(
-            NodeType::Weight,
-            values.iter().map(|v| op::value(v.clone())).collect(),
-        );
         self
     }
 
@@ -118,12 +88,12 @@ where
     }
 
     pub fn regression(input_size: usize) -> NodeFactory<f32> {
+        let inputs = (0..input_size)
+            .map(|idx| op::var(idx))
+            .collect::<Vec<Ops<f32>>>();
         NodeFactory::new()
-            .inputs(
-                (0..input_size)
-                    .map(|idx| op::var(idx))
-                    .collect::<Vec<Ops<f32>>>(),
-            )
+            .inputs(inputs.clone())
+            .leafs(inputs.clone())
             .gates(vec![
                 op::add(),
                 op::sub(),
@@ -163,6 +133,7 @@ where
             ])
             .weights(vec![op::weight()])
             .outputs(vec![op::linear()])
+            .root(op::linear())
     }
 }
 

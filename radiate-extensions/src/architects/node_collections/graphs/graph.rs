@@ -1,9 +1,12 @@
-use radiate::engines::genome::genes::gene::Valid;
+use radiate::Valid;
 
-use crate::{architects::node_collections::node::Node, node_collection, Direction};
+use crate::{node_collection, Direction, Node, NodeCollection, NodeFactory, NodeRepairs, NodeType};
 
-use super::{super::node_collection::NodeCollection, GraphIterator};
+use super::GraphIterator;
 
+
+
+#[derive(Clone, PartialEq, Default)]
 pub struct Graph<T>
 where
     T: Clone + PartialEq,
@@ -15,44 +18,11 @@ impl<T> Graph<T>
 where
     T: Clone + PartialEq + Default,
 {
-    pub fn new() -> Self {
-        Graph::default()
-    }
-
     pub fn topological_iter(&self) -> impl Iterator<Item = &Node<T>> {
         GraphIterator::new(&self)
     }
-}
 
-impl<T> NodeCollection<Graph<T>, T> for Graph<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    fn from_nodes(nodes: Vec<Node<T>>) -> Self {
-        Self { nodes }
-    }
-
-    fn get(&self, index: usize) -> Option<&Node<T>> {
-        self.nodes.get(index)
-    }
-
-    fn get_mut(&mut self, index: usize) -> Option<&mut Node<T>> {
-        self.nodes.get_mut(index)
-    }
-
-    fn get_nodes(&self) -> &[Node<T>] {
-        &self.nodes
-    }
-
-    fn get_nodes_mut(&mut self) -> &mut [Node<T>] {
-        &mut self.nodes
-    }
-
-    fn add(&mut self, nodes: Vec<Node<T>>) {
-        self.nodes.extend(nodes);
-    }
-
-    fn set_cycles(mut self, indecies: Vec<usize>) -> Graph<T> {
+    pub fn set_cycles(mut self, indecies: Vec<usize>) -> Graph<T> {
         if indecies.len() == 0 {
             let all_indices = self
                 .get_nodes()
@@ -81,35 +51,63 @@ where
     }
 }
 
+impl<T> NodeCollection<T> for Graph<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    fn from_nodes(nodes: Vec<Node<T>>) -> Self {
+        Self { nodes }
+    }
+
+    fn get(&self, index: usize) -> Option<&Node<T>> {
+        self.nodes.get(index)
+    }
+
+    fn get_mut(&mut self, index: usize) -> Option<&mut Node<T>> {
+        self.nodes.get_mut(index)
+    }
+
+    fn get_nodes(&self) -> &[Node<T>] {
+        &self.nodes
+    }
+
+    fn get_nodes_mut(&mut self) -> &mut [Node<T>] {
+        &mut self.nodes
+    }
+}
+
+impl<T> NodeRepairs<T> for Graph<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    fn repair(&mut self, factory: &NodeFactory<T>) -> Self {
+        let mut collection = self.clone().set_cycles(Vec::new());
+
+        for node in collection.iter_mut() {
+            let arity = node.incoming().len();
+            (*node).arity = Some(arity as u8);
+
+            let temp_node = factory.new_node(node.index, NodeType::Aggregate);
+
+            if node.node_type() == &NodeType::Output && node.outgoing().len() > 0 {
+                node.node_type = NodeType::Aggregate;
+                node.value = temp_node.value.clone();
+            } else if node.node_type() == &NodeType::Input && node.incoming().len() > 0 {
+                node.node_type = NodeType::Aggregate;
+                node.value = temp_node.value.clone();
+            }
+        }
+
+        collection
+    }
+}
+
 impl<T> Valid for Graph<T>
 where
     T: Clone + PartialEq + Default,
 {
     fn is_valid(&self) -> bool {
         self.nodes.iter().all(|node| node.is_valid())
-    }
-}
-
-impl<T> Clone for Graph<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    fn clone(&self) -> Self {
-        Graph::from_nodes(
-            self.nodes
-                .iter()
-                .map(|node| node.clone())
-                .collect::<Vec<Node<T>>>(),
-        )
-    }
-}
-
-impl<T> Default for Graph<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    fn default() -> Self {
-        Graph { nodes: Vec::new() }
     }
 }
 
@@ -122,16 +120,6 @@ where
 
     fn into_iter(self) -> Self::IntoIter {
         self.nodes.into_iter()
-    }
-}
-
-impl<T> FromIterator<Node<T>> for Graph<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    fn from_iter<I: IntoIterator<Item = Node<T>>>(iter: I) -> Self {
-        let nodes = iter.into_iter().collect();
-        Graph { nodes }
     }
 }
 
