@@ -165,10 +165,7 @@ where
         return false;
     }
 
-    match node.arity() {
-        Some(arity) => return node.incoming.len() == *arity as usize,
-        None => panic!("Node arity must be set before checking if it is locked."),
-    }
+    node.incoming.len() == node.arity() as usize
 }
 
 #[inline]

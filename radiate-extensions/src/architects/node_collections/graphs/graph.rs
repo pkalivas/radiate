@@ -7,6 +7,7 @@ use crate::{
 
 use super::{super::node_collection::NodeCollection, GraphIterator};
 
+#[derive(Clone, PartialEq, Default)]
 pub struct Graph<T>
 where
     T: Clone + PartialEq,
@@ -91,7 +92,7 @@ where
             let arity = node.incoming().len();
             (*node).arity = Some(arity as u8);
 
-            let temp_node = factory.new_node(*node.index(), NodeType::Aggregate);
+            let temp_node = factory.new_node(node.index, NodeType::Aggregate);
 
             if node.node_type() == &NodeType::Output && node.outgoing().len() > 0 {
                 node.node_type = NodeType::Aggregate;
@@ -115,29 +116,6 @@ where
     }
 }
 
-impl<T> Clone for Graph<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    fn clone(&self) -> Self {
-        Graph::from_nodes(
-            self.nodes
-                .iter()
-                .map(|node| node.clone())
-                .collect::<Vec<Node<T>>>(),
-        )
-    }
-}
-
-impl<T> Default for Graph<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    fn default() -> Self {
-        Graph { nodes: Vec::new() }
-    }
-}
-
 impl<T> IntoIterator for Graph<T>
 where
     T: Clone + PartialEq + Default,
@@ -147,16 +125,6 @@ where
 
     fn into_iter(self) -> Self::IntoIter {
         self.nodes.into_iter()
-    }
-}
-
-impl<T> FromIterator<Node<T>> for Graph<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    fn from_iter<I: IntoIterator<Item = Node<T>>>(iter: I) -> Self {
-        let nodes = iter.into_iter().collect();
-        Graph { nodes }
     }
 }
 
