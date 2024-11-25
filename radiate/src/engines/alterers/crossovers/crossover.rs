@@ -41,10 +41,10 @@ where
         let chromosome_index =
             RandomProvider::random::<usize>() % std::cmp::min(geno_one.len(), geno_two.len());
 
-        let mut chrom_one = geno_one.get_chromosome_mut(chromosome_index);
-        let mut chrom_two = geno_two.get_chromosome_mut(chromosome_index);
+        let chrom_one = geno_one.get_chromosome_mut(chromosome_index);
+        let chrom_two = geno_two.get_chromosome_mut(chromosome_index);
 
-        self.cross_chromosomes(&mut chrom_one, &mut chrom_two)
+        self.cross_chromosomes(chrom_one, chrom_two)
     }
 
     #[inline]

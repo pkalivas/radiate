@@ -6,6 +6,7 @@ use radiate::{Alterer, Metric, RandomProvider, Timer};
 use crate::architects::node_collections::*;
 use crate::architects::schema::node_types::NodeType;
 use crate::operations::op::Ops;
+use crate::schema::collection_type::CollectionType;
 
 pub enum NodeMutate {
     Forward(NodeType, f32),
@@ -92,8 +93,7 @@ where
             if is_locked(outgoing_node) {
                 let mut temp = Graph::from_nodes(
                     collection
-                        .iter()
-                        .map(|node| node.clone())
+                        .iter().cloned()
                         .chain(vec![new_source_edge, new_node])
                         .collect::<Vec<Node<T>>>(),
                 );
@@ -113,8 +113,7 @@ where
             } else {
                 let mut temp = Graph::from_nodes(
                     collection
-                        .iter()
-                        .map(|node| node.clone())
+                        .iter().cloned()
                         .chain(vec![new_source_edge, new_node, new_target_edge])
                         .collect::<Vec<Node<T>>>(),
                 );
@@ -138,8 +137,7 @@ where
 
         let mut temp = Graph::from_nodes(
             collection
-                .iter()
-                .map(|node| node.clone())
+                .iter().cloned()
                 .chain(vec![self.factory.new_node(collection.len(), *node_type)])
                 .collect::<Vec<Node<T>>>(),
         );
@@ -148,7 +146,7 @@ where
         temp.attach(collection.len(), target_node_index);
         temp.detach(source_node_index, target_node_index);
 
-        return self.repair_insert(temp, collection.len(), source_node, target_node, false);
+        self.repair_insert(temp, collection.len(), source_node, target_node, false)
     }
 
     #[inline]
@@ -189,8 +187,7 @@ where
             if is_locked(outgoing_node) {
                 let mut temp = Graph::from_nodes(
                     collection
-                        .iter()
-                        .map(|node| node.clone())
+                        .iter().cloned()
                         .chain(vec![new_source_edge, new_node, new_target_edge])
                         .collect::<Vec<Node<T>>>(),
                 );
@@ -214,7 +211,7 @@ where
                     let mut temp = Graph::from_nodes(
                         collection
                             .iter()
-                            .map(|node| node.clone())
+                            .cloned()
                             .chain(vec![
                                 new_source_edge,
                                 new_node,
@@ -242,7 +239,7 @@ where
                     let mut temp = Graph::from_nodes(
                         collection
                             .iter()
-                            .map(|node| node.clone())
+                            .cloned()
                             .chain(vec![new_source_edge, new_node, new_target_edge])
                             .collect::<Vec<Node<T>>>(),
                     );
@@ -268,7 +265,7 @@ where
         let mut temp = Graph::from_nodes(
             collection
                 .iter()
-                .map(|node| node.clone())
+                .cloned()
                 .chain(vec![self.factory.new_node(collection.len(), *node_type)])
                 .collect::<Vec<Node<T>>>(),
         );
@@ -277,7 +274,7 @@ where
         temp.attach(collection.len(), target_node_index);
         temp.detach(source_node_index, target_node_index);
 
-        return self.repair_insert(temp, collection.len(), source_node, target_node, true);
+        self.repair_insert(temp, collection.len(), source_node, target_node, true)
     }
 
     #[inline]
@@ -289,7 +286,7 @@ where
         target_node: &Node<T>,
         recurrent: bool,
     ) -> Option<Vec<Node<T>>> {
-        for _ in 0..collection.get(new_node_index).unwrap().arity() - 1 {
+        for _ in 0..collection.get(new_node_index).value.arity() - 1 {
             let other_source_node = random_source_node(collection.get_nodes());
             if can_connect(
                 collection.get_nodes(),
@@ -301,16 +298,20 @@ where
             }
         }
 
+        for node in collection.iter_mut() {
+            node.collection_type = Some(CollectionType::Graph);
+        }
+
         if !collection.is_valid() {
             return None;
         }
 
-        return Some(
+        Some(
             collection
                 .set_cycles(vec![source_node.index, target_node.index])
                 .into_iter()
                 .collect::<Vec<Node<T>>>(),
-        );
+        )
     }
 }
 

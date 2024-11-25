@@ -12,7 +12,7 @@ use crate::architects::node_collections::node::Node;
 use crate::architects::node_collections::node_factory::NodeFactory;
 use crate::operations::op::Ops;
 
-pub struct OpMutator<T>
+pub struct NodeMutator<T>
 where
     Standard: Distribution<T>,
     T: Clone + PartialEq + Default + Float,
@@ -22,11 +22,18 @@ where
     pub factory: NodeFactory<T>,
 }
 
-impl<T> OpMutator<T>
+impl<T> NodeMutator<T>
 where
     Standard: Distribution<T>,
     T: Clone + PartialEq + Default + Float + SampleUniform + 'static,
 {
+    pub fn new(rate: f32, replace_rate: f32, factory: NodeFactory<T>) -> Self {
+        Self {
+            rate,
+            replace_rate,
+            factory,
+        }
+    }
     pub fn alterer(
         factory: NodeFactory<T>,
         rate: f32,
@@ -40,7 +47,7 @@ where
     }
 }
 
-impl<T> Mutate<Node<T>, Ops<T>> for OpMutator<T>
+impl<T> Mutate<Node<T>, Ops<T>> for NodeMutator<T>
 where
     T: Clone
         + PartialEq
@@ -69,16 +76,16 @@ where
 
                 if RandomProvider::random::<f32>() < self.replace_rate {
                     gene.from_allele(&Ops::MutableConst(
-                        &name,
+                        name,
                         *arity,
                         random_value,
                         Arc::clone(supplier),
                         Arc::clone(operation),
                     ))
                 } else {
-                    let new_value = random_value + value.clone();
+                    let new_value = random_value + *value;
                     gene.from_allele(&Ops::MutableConst(
-                        &name,
+                        name,
                         *arity,
                         new_value,
                         Arc::clone(supplier),

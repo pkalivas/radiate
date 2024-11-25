@@ -94,11 +94,6 @@ where
         self
     }
 
-    pub fn insert_nodes(mut self, one: &'a [Node<T>]) -> Self {
-        self.attach(one);
-        self
-    }
-
     pub fn build(self) -> C {
         let mut index = 0;
         let mut new_nodes = Vec::new();
@@ -169,8 +164,8 @@ where
             if !self.nodes.contains_key(&node.id) {
                 let node_id = &node.id;
 
-                self.nodes.insert(&node_id, node);
-                self.node_order.insert(self.node_order.len(), &node_id);
+                self.nodes.insert(node_id, node);
+                self.node_order.insert(self.node_order.len(), node_id);
 
                 for outgoing in group
                     .iter()
@@ -206,7 +201,7 @@ where
 
         for (source, target) in source_to_removed.into_iter().zip(two_inputs.into_iter()) {
             self.relationships.push(Relationship {
-                source_id: &source.0,
+                source_id: source.0,
                 target_id: &target.id,
             });
         }
@@ -319,11 +314,11 @@ where
         let outputs = collection
             .iter()
             .enumerate()
-            .skip_while(|(_, node)| node.outgoing().len() > 0)
-            .map(|(idx, _)| collection.get(idx).unwrap())
+            .skip_while(|(_, node)| !node.outgoing().is_empty())
+            .map(|(idx, _)| collection.get(idx))
             .collect::<Vec<&Node<T>>>();
 
-        if outputs.len() > 0 {
+        if !outputs.is_empty() {
             return outputs;
         }
 
@@ -336,18 +331,18 @@ where
                     && (node.node_type() == &NodeType::Gate
                         || node.node_type() == &NodeType::Aggregate)
             })
-            .map(|(idx, _)| collection.get(idx).unwrap())
+            .map(|(idx, _)| collection.get(idx))
             .collect::<Vec<&Node<T>>>();
 
-        if recurrent_outputs.len() > 0 {
+        if !recurrent_outputs.is_empty() {
             return recurrent_outputs;
         }
 
         collection
             .iter()
             .enumerate()
-            .filter(|(_, node)| node.incoming().len() == 0)
-            .map(|(idx, _)| collection.get(idx).unwrap())
+            .filter(|(_, node)| node.incoming().is_empty())
+            .map(|(idx, _)| collection.get(idx))
             .collect::<Vec<&Node<T>>>()
     }
 
@@ -355,11 +350,11 @@ where
         let inputs = collection
             .iter()
             .enumerate()
-            .take_while(|(_, node)| node.incoming().len() == 0)
-            .map(|(idx, _)| collection.get(idx).unwrap())
+            .take_while(|(_, node)| node.incoming().is_empty())
+            .map(|(idx, _)| collection.get(idx))
             .collect::<Vec<&Node<T>>>();
 
-        if inputs.len() > 0 {
+        if !inputs.is_empty() {
             return inputs;
         }
 
@@ -371,18 +366,18 @@ where
                     && node.is_recurrent()
                     && node.node_type() == &NodeType::Gate
             })
-            .map(|(idx, _)| collection.get(idx).unwrap())
+            .map(|(idx, _)| collection.get(idx))
             .collect::<Vec<&Node<T>>>();
 
-        if recurrent_inputs.len() > 0 {
+        if !recurrent_inputs.is_empty() {
             return recurrent_inputs;
         }
 
         collection
             .iter()
             .enumerate()
-            .filter(|(_, node)| node.outgoing().len() == 0)
-            .map(|(idx, _)| collection.get(idx).unwrap())
+            .filter(|(_, node)| node.outgoing().is_empty())
+            .map(|(idx, _)| collection.get(idx))
             .collect::<Vec<&Node<T>>>()
     }
 }

@@ -4,7 +4,7 @@ use super::gene::{Gene, Valid};
 
 /// A gene that represents a single bit. The `allele` is a `bool` that is randomly assigned.
 /// The `allele` is either `true` or `false`. This is the simplest form of a gene and
-/// in traditional genetic algorithms is the the gene that is used to represent the individuals.
+/// in traditional genetic algorithms is the gene that is used to represent the individuals.
 ///
 /// # Example
 /// ``` rust
@@ -46,7 +46,7 @@ impl Gene<BitGene, bool> for BitGene {
 
     fn from_allele(&self, allele: &bool) -> BitGene {
         BitGene {
-            allele: allele.clone(),
+            allele: *allele
         }
     }
 }
@@ -74,15 +74,16 @@ impl std::fmt::Debug for BitGene {
     }
 }
 
-impl Into<BitGene> for bool {
-    fn into(self) -> BitGene {
-        BitGene { allele: self }
+impl From<BitGene> for bool {
+    fn from(gene: BitGene) -> bool {
+        gene.allele
     }
 }
-
-impl Into<bool> for BitGene {
-    fn into(self) -> bool {
-        self.allele
+impl From<bool> for BitGene {
+    fn from(allele: bool) -> BitGene {
+        BitGene {
+            allele
+        }
     }
 }
 

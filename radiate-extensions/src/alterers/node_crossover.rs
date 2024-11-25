@@ -51,7 +51,7 @@ where
                 let gene_one = chrom_one.get_gene(i);
                 let gene_two = chrom_two.get_gene(i);
 
-                if gene_one.arity() != gene_two.arity()
+                if gene_one.value.arity() != gene_two.value.arity()
                     || gene_one.node_type() != gene_two.node_type()
                 {
                     continue;

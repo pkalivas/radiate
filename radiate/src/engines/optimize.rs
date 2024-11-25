@@ -12,8 +12,8 @@ impl Optimize {
         G: Gene<G, A>,
     {
         match self {
-            Optimize::Minimize => population.sort_by(|a, b| a.partial_cmp(&b).unwrap()),
-            Optimize::Maximize => population.sort_by(|a, b| b.partial_cmp(&a).unwrap()),
+            Optimize::Minimize => population.sort_by(|a, b| a.partial_cmp(b).unwrap()),
+            Optimize::Maximize => population.sort_by(|a, b| b.partial_cmp(a).unwrap()),
         }
     }
 

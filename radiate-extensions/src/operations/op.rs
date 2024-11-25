@@ -176,7 +176,7 @@ pub fn add<T: Add<Output = T> + Clone + Float>() -> Ops<T> {
     Ops::Fn(
         "+",
         2,
-        Arc::new(|inputs: &[T]| clamp(inputs[0].clone() + inputs[1].clone())),
+        Arc::new(|inputs: &[T]| clamp(inputs[0] + inputs[1])),
     )
 }
 
@@ -184,7 +184,7 @@ pub fn sub<T: Sub<Output = T> + Clone + Float>() -> Ops<T> {
     Ops::Fn(
         "-",
         2,
-        Arc::new(|inputs: &[T]| clamp(inputs[0].clone() - inputs[1].clone())),
+        Arc::new(|inputs: &[T]| clamp(inputs[0] - inputs[1])),
     )
 }
 
@@ -192,7 +192,7 @@ pub fn mul<T: Mul<Output = T> + Clone + Float>() -> Ops<T> {
     Ops::Fn(
         "*",
         2,
-        Arc::new(|inputs: &[T]| clamp(inputs[0].clone() * inputs[1].clone())),
+        Arc::new(|inputs: &[T]| clamp(inputs[0] * inputs[1])),
     )
 }
 
@@ -204,7 +204,7 @@ pub fn div<T: Div<Output = T> + Clone + Float>() -> Ops<T> {
             let denom = if inputs[1] == T::from(0).unwrap() {
                 inputs[0] / T::from(1).unwrap()
             } else {
-                inputs[0].clone() / inputs[1].clone()
+                inputs[0] / inputs[1]
             };
 
             clamp(denom)
@@ -216,7 +216,7 @@ pub fn sum<T: Add<Output = T> + Clone + Default + Float>() -> Ops<T> {
     Ops::Fn(
         "sum",
         2,
-        Arc::new(|inputs: &[T]| clamp(inputs.iter().fold(T::default(), |acc, x| acc + x.clone()))),
+        Arc::new(|inputs: &[T]| clamp(inputs.iter().fold(T::default(), |acc, x| acc + *x))),
     )
 }
 
@@ -225,7 +225,7 @@ pub fn prod<T: Mul<Output = T> + Clone + Default + Float>() -> Ops<T> {
         "prod",
         2,
         Arc::new(|inputs: &[T]| {
-            let result = inputs.iter().fold(T::default(), |acc, x| acc * x.clone());
+            let result = inputs.iter().fold(T::default(), |acc, x| acc * *x);
 
             clamp(result)
         }),
@@ -233,14 +233,14 @@ pub fn prod<T: Mul<Output = T> + Clone + Default + Float>() -> Ops<T> {
 }
 
 pub fn neg<T: Neg<Output = T> + Clone + Default + Float>() -> Ops<T> {
-    Ops::Fn("neg", 1, Arc::new(|inputs: &[T]| clamp(-inputs[0].clone())))
+    Ops::Fn("neg", 1, Arc::new(|inputs: &[T]| clamp(-inputs[0])))
 }
 
 pub fn pow<T: Mul<Output = T> + Clone + Float>() -> Ops<T> {
     Ops::Fn(
         "pow",
         2,
-        Arc::new(|inputs: &[T]| clamp(inputs[0].clone() * inputs[1].clone())),
+        Arc::new(|inputs: &[T]| clamp(inputs[0] * inputs[1])),
     )
 }
 
@@ -248,7 +248,7 @@ pub fn sqrt<T: Mul<Output = T> + Clone + Float>() -> Ops<T> {
     Ops::Fn(
         "sqrt",
         1,
-        Arc::new(|inputs: &[T]| clamp(inputs[0].clone().sqrt())),
+        Arc::new(|inputs: &[T]| clamp(inputs[0].sqrt())),
     )
 }
 
@@ -256,7 +256,7 @@ pub fn abs<T: Clone + Float>() -> Ops<T> {
     Ops::Fn(
         "abs",
         1,
-        Arc::new(|inputs: &[T]| clamp(inputs[0].clone().abs())),
+        Arc::new(|inputs: &[T]| clamp(inputs[0].abs())),
     )
 }
 
@@ -264,7 +264,7 @@ pub fn exp<T: Clone + Float>() -> Ops<T> {
     Ops::Fn(
         "exp",
         1,
-        Arc::new(|inputs: &[T]| clamp(inputs[0].clone().exp())),
+        Arc::new(|inputs: &[T]| clamp(inputs[0].exp())),
     )
 }
 
@@ -272,7 +272,7 @@ pub fn log<T: Clone + Float>() -> Ops<T> {
     Ops::Fn(
         "log",
         1,
-        Arc::new(|inputs: &[T]| clamp(inputs[0].clone().ln())),
+        Arc::new(|inputs: &[T]| clamp(inputs[0].ln())),
     )
 }
 
@@ -280,7 +280,7 @@ pub fn sin<T: Clone + Float>() -> Ops<T> {
     Ops::Fn(
         "sin",
         1,
-        Arc::new(|inputs: &[T]| clamp(inputs[0].clone().sin())),
+        Arc::new(|inputs: &[T]| clamp(inputs[0].sin())),
     )
 }
 
@@ -288,7 +288,7 @@ pub fn cos<T: Clone + Float>() -> Ops<T> {
     Ops::Fn(
         "cos",
         1,
-        Arc::new(|inputs: &[T]| clamp(inputs[0].clone().cos())),
+        Arc::new(|inputs: &[T]| clamp(inputs[0].cos())),
     )
 }
 
@@ -296,7 +296,7 @@ pub fn tan<T: Clone + Float>() -> Ops<T> {
     Ops::Fn(
         "tan",
         1,
-        Arc::new(|inputs: &[T]| clamp(inputs[0].clone().tan())),
+        Arc::new(|inputs: &[T]| clamp(inputs[0].tan())),
     )
 }
 
@@ -304,7 +304,7 @@ pub fn ceil<T: Clone + Float>() -> Ops<T> {
     Ops::Fn(
         "ceil",
         1,
-        Arc::new(|inputs: &[T]| clamp(inputs[0].clone().ceil())),
+        Arc::new(|inputs: &[T]| clamp(inputs[0].ceil())),
     )
 }
 
@@ -312,7 +312,7 @@ pub fn floor<T: Clone + Float>() -> Ops<T> {
     Ops::Fn(
         "floor",
         1,
-        Arc::new(|inputs: &[T]| clamp(inputs[0].clone().floor())),
+        Arc::new(|inputs: &[T]| clamp(inputs[0].floor())),
     )
 }
 

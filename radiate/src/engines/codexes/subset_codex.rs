@@ -11,7 +11,7 @@ use super::Codex;
 ///
 /// A `SubSetCodex` is useful for problems like the Knapsack problem, where the goal is to find the best subset of items
 /// that fit in a knapsack. The `items` vector would contain the items that can be placed in the knapsack and the `Genotype`
-/// would contain `BitGenes` that represent whether or not the item is in the knapsack.
+/// would contain `BitGenes` that represent weather or not the item is in the knapsack.
 pub struct SubSetCodex<'a, T> {
     pub items: &'a Vec<T>,
 }

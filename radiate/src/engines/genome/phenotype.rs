@@ -81,10 +81,7 @@ where
     fn clone(&self) -> Self {
         Phenotype {
             genotype: self.genotype.clone(),
-            score: match &self.score {
-                Some(score) => Some(score.clone()),
-                None => None,
-            },
+            score: self.score.clone(),
             generation: self.generation,
         }
     }

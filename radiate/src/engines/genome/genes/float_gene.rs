@@ -164,21 +164,21 @@ impl std::fmt::Debug for FloatGene {
     }
 }
 
-impl Into<FloatGene> for f32 {
-    fn into(self) -> FloatGene {
+impl From<FloatGene> for f32 {
+    fn from(gene: FloatGene) -> f32 {
+        gene.allele
+    }
+}
+
+impl From<f32> for FloatGene {
+    fn from(allele: f32) -> Self {
         FloatGene {
-            allele: self,
+            allele,
             min: f32::MIN,
             max: f32::MAX,
             upper_bound: f32::MAX,
             lower_bound: f32::MIN,
         }
-    }
-}
-
-impl Into<f32> for FloatGene {
-    fn into(self) -> f32 {
-        self.allele
     }
 }
 

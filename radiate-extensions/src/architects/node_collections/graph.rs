@@ -20,11 +20,11 @@ where
     T: Clone + PartialEq + Default,
 {
     pub fn topological_iter(&self) -> impl Iterator<Item = &Node<T>> {
-        GraphIterator::new(&self)
+        GraphIterator::new(self)
     }
 
     pub fn set_cycles(mut self, indecies: Vec<usize>) -> Graph<T> {
-        if indecies.len() == 0 {
+        if indecies.is_empty() {
             let all_indices = self
                 .get_nodes()
                 .iter()
@@ -37,13 +37,13 @@ where
         for idx in indecies {
             let node_cycles = node_collection::get_cycles(self.get_nodes(), idx);
 
-            if node_cycles.len() == 0 {
-                let node = self.get_mut(idx).unwrap();
-                (*node).direction = Direction::Forward;
+            if node_cycles.is_empty() {
+                let node = self.get_mut(idx);
+                node.direction = Direction::Forward;
             } else {
                 for cycle_idx in node_cycles {
-                    let node = self.get_mut(cycle_idx).unwrap();
-                    (*node).direction = Direction::Backward;
+                    let node = self.get_mut(cycle_idx);
+                    node.direction = Direction::Backward;
                 }
             }
         }
@@ -57,15 +57,27 @@ where
     T: Clone + PartialEq + Default,
 {
     fn from_nodes(nodes: Vec<Node<T>>) -> Self {
-        Self { nodes }
+        Graph { nodes }
     }
 
-    fn get(&self, index: usize) -> Option<&Node<T>> {
-        self.nodes.get(index)
+    fn get(&self, index: usize) -> &Node<T> {
+        self.nodes.get(index).unwrap_or_else(|| {
+            panic!(
+                "Node index {} out of bounds. Graph has {} nodes.",
+                index,
+                self.nodes.len()
+            )
+        })
     }
 
-    fn get_mut(&mut self, index: usize) -> Option<&mut Node<T>> {
-        self.nodes.get_mut(index)
+    fn get_mut(&mut self, index: usize) -> &mut Node<T> {
+        let length = self.nodes.len();
+        self.nodes.get_mut(index).unwrap_or_else(|| {
+            panic!(
+                "Node index {} out of bounds. Graph has {} nodes.",
+                index, length
+            )
+        })
     }
 
     fn get_nodes(&self) -> &[Node<T>] {
@@ -85,17 +97,15 @@ where
         let mut collection = self.clone().set_cycles(Vec::new());
 
         for node in collection.iter_mut() {
-            let arity = node.incoming().len();
-            (*node).arity = Some(arity as u8);
-            (*node).collection_type = Some(CollectionType::Graph);
+            node.collection_type = Some(CollectionType::Graph);
 
             if let Some(factory) = factory {
                 let temp_node = factory.new_node(node.index, NodeType::Aggregate);
 
-                if node.node_type() == &NodeType::Output && node.outgoing().len() > 0 {
+                if node.node_type() == &NodeType::Output && !node.outgoing().is_empty() {
                     node.node_type = NodeType::Aggregate;
                     node.value = temp_node.value.clone();
-                } else if node.node_type() == &NodeType::Input && node.incoming().len() > 0 {
+                } else if node.node_type() == &NodeType::Input && !node.incoming().is_empty() {
                     node.node_type = NodeType::Aggregate;
                     node.value = temp_node.value.clone();
                 }

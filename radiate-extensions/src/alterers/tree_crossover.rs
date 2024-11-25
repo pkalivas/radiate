@@ -34,7 +34,7 @@ where
             + 1
     }
 
-    fn depth(&self, index: usize, nodes: &[Node<T>]) -> usize {
+    fn depth(&self,index: usize, nodes: &[Node<T>]) -> usize {
         nodes[index]
             .outgoing
             .iter()

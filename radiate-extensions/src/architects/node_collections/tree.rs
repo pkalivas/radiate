@@ -25,7 +25,6 @@ where
 
     pub fn sub_tree(&self, index: usize) -> Self {
         let nodes = BreadthFirstIterator::new(&self.nodes, index)
-            .map(|node| node)
             .collect::<Vec<&Node<T>>>();
 
         Tree::new(node_collection::reindex(0, nodes.as_slice()))
@@ -40,12 +39,24 @@ where
         Self { nodes }
     }
 
-    fn get(&self, index: usize) -> Option<&Node<T>> {
-        self.nodes.get(index)
+    fn get(&self, index: usize) -> &Node<T> {
+        self.nodes.get(index).unwrap_or_else(|| {
+            panic!(
+                "Node index {} out of bounds for tree with {} nodes",
+                index,
+                self.nodes.len()
+            )
+        })
     }
 
-    fn get_mut(&mut self, index: usize) -> Option<&mut Node<T>> {
-        self.nodes.get_mut(index)
+    fn get_mut(&mut self, index: usize) -> &mut Node<T> {
+        let length = self.nodes.len();
+        self.nodes.get_mut(index).unwrap_or_else(|| {
+            panic!(
+                "Node index {} out of bounds for tree with {} nodes",
+                index, length
+            )
+        })
     }
 
     fn get_nodes(&self) -> &[Node<T>] {
@@ -65,9 +76,7 @@ where
         let mut collection = self.clone();
 
         for node in collection.iter_mut() {
-            let arity = node.outgoing().len();
-            (*node).arity = Some(arity as u8);
-            (*node).collection_type = Some(CollectionType::Tree);
+            node.collection_type = Some(CollectionType::Tree);
         }
 
         collection

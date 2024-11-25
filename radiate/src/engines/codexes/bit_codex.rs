@@ -45,11 +45,9 @@ impl Codex<BitGene, bool, Vec<Vec<bool>>> for BitCodex {
     fn encode(&self) -> Genotype<BitGene, bool> {
         Genotype {
             chromosomes: (0..self.num_chromosomes)
-                .into_iter()
                 .map(|_| {
                     Chromosome::from_genes(
                         (0..self.num_genes)
-                            .into_iter()
                             .map(|_| BitGene::new())
                             .collect::<Vec<BitGene>>(),
                     )

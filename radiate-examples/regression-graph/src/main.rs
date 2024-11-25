@@ -6,6 +6,7 @@ const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
     RandomProvider::set_seed(12345);
+    
     let factory = NodeFactory::<f32>::regression(1).gates(vec![op::add(), op::sub(), op::mul()]);
 
     let graph_codex = GraphCodex::from_factory(&factory);
@@ -17,7 +18,7 @@ fn main() {
         .num_threads(10)
         .alterer(vec![
             GraphCrossover::alterer(0.5, 0.5),
-            OpMutator::alterer(factory.clone(), 0.01, 0.05),
+            NodeMutator::alterer(factory.clone(), 0.01, 0.05),
             GraphMutator::alterer(
                 factory.clone(),
                 vec![

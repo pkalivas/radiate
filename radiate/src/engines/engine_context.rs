@@ -12,7 +12,7 @@ use super::MetricSet;
 /// * current population
 /// * current best individual
 /// * current index - the number of generations that have passed
-/// * timer - the duration of time the engine has bee running
+/// * timer - the duration of time the engine has been running
 /// * metrics - a set of metrics that are collected during the run
 /// * current best score - the score of the current best individual
 ///

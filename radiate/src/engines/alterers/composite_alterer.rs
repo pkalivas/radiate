@@ -93,9 +93,9 @@ where
 
                     for phenotype in population.iter_mut() {
                         if RandomProvider::random::<i32>() > range {
-                            let mut genotype = phenotype.genotype_mut();
+                            let genotype = phenotype.genotype_mut();
 
-                            let mutation_count = mutator.mutate_genotype(&mut genotype, range);
+                            let mutation_count = mutator.mutate_genotype(genotype, range);
 
                             if mutation_count > 0 {
                                 (*phenotype).generation = generation;

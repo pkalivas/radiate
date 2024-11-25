@@ -56,11 +56,9 @@ where
     fn encode(&self) -> Genotype<IntGene<T>, T> {
         Genotype {
             chromosomes: (0..self.num_chromosomes)
-                .into_iter()
                 .map(|_| {
                     Chromosome::from_genes(
                         (0..self.num_genes)
-                            .into_iter()
                             .map(|_| {
                                 IntGene::from_min_max(self.min, self.max)
                                     .with_bounds(self.lower_bound, self.upper_bound)

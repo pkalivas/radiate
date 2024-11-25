@@ -7,7 +7,6 @@ use crate::engines::genome::phenotype::Phenotype;
 use crate::engines::genome::population::Population;
 use crate::engines::optimize::Optimize;
 use crate::engines::score::Score;
-
 use super::alterers::alter::Alterer;
 use super::codexes::Codex;
 use super::{RouletteSelector, Select, ThreadPool, TournamentSelector};
@@ -53,7 +52,7 @@ where
     /// * population_size: 100
     /// * max_age: 25
     /// * offspring_fraction: 0.8
-    ///     * This is a value from 0..=1 that represents the fraction of
+    ///     * This is a value from 0...=1 that represents the fraction of
     ///       population that will be replaced by offspring each generation.
     ///       For example, if the population size is 100 and the offspring_fraction is 0.8,
     ///       then 80 individuals will be replaced by offspring each generation.
@@ -93,7 +92,7 @@ where
     }
 
     /// Set the fraction of the population that will be replaced by offspring each generation.
-    /// Default is 0.8. This is a value from 0..=1 that represents the fraction of
+    /// Default is 0.8. This is a value from 0...=1 that represents the fraction of
     /// population that will be replaced by offspring each generation. The remainder will 'survive' to the next generation.
     pub fn offspring_fraction(mut self, offspring_fraction: f32) -> Self {
         self.offspring_fraction = offspring_fraction;
@@ -167,11 +166,11 @@ where
         self.build_population();
         self.build_alterer();
 
-        if !self.codex.is_some() {
+        if self.codex.is_none() {
             panic!("Codex not set");
         }
 
-        if !self.fitness_fn.is_some() {
+        if self.fitness_fn.is_none() {
             panic!("Fitness function not set");
         }
 

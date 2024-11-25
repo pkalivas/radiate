@@ -225,36 +225,6 @@ where
     }
 }
 
-impl Into<IntGene<i8>> for i8 {
-    fn into(self) -> IntGene<i8> {
-        IntGene::new(self)
-    }
-}
-
-impl Into<IntGene<i16>> for i16 {
-    fn into(self) -> IntGene<i16> {
-        IntGene::new(self)
-    }
-}
-
-impl Into<IntGene<i32>> for i32 {
-    fn into(self) -> IntGene<i32> {
-        IntGene::new(self)
-    }
-}
-
-impl Into<IntGene<i64>> for i64 {
-    fn into(self) -> IntGene<i64> {
-        IntGene::new(self)
-    }
-}
-
-impl Into<IntGene<i128>> for i128 {
-    fn into(self) -> IntGene<i128> {
-        IntGene::new(self)
-    }
-}
-
 impl From<IntGene<i8>> for i8 {
     fn from(gene: IntGene<i8>) -> Self {
         gene.allele
@@ -282,6 +252,36 @@ impl From<IntGene<i64>> for i64 {
 impl From<IntGene<i128>> for i128 {
     fn from(gene: IntGene<i128>) -> Self {
         gene.allele
+    }
+}
+
+impl From<i8> for IntGene<i8> {
+    fn from(allele: i8) -> Self {
+        IntGene::new(allele)
+    }
+}
+
+impl From<i16> for IntGene<i16> {
+    fn from(allele: i16) -> Self {
+        IntGene::new(allele)
+    }
+}
+
+impl From<i32> for IntGene<i32> {
+    fn from(allele: i32) -> Self {
+        IntGene::new(allele)
+    }
+}
+
+impl From<i64> for IntGene<i64> {
+    fn from(allele: i64) -> Self {
+        IntGene::new(allele)
+    }
+}
+
+impl From<i128> for IntGene<i128> {
+    fn from(allele: i128) -> Self {
+        IntGene::new(allele)
     }
 }
 

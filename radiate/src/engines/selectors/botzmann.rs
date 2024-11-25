@@ -42,8 +42,7 @@ impl<G: Gene<G, A>, A> Select<G, A> for BoltzmannSelector {
         if diff == 0.0 {
             return population
                 .iter()
-                .take(count)
-                .map(|individual| individual.clone())
+                .take(count).cloned()
                 .collect::<Population<G, A>>();
         }
 

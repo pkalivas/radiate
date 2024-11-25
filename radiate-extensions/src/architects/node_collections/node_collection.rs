@@ -19,8 +19,8 @@ where
 {
     fn from_nodes(nodes: Vec<Node<T>>) -> Self;
 
-    fn get(&self, index: usize) -> Option<&Node<T>>;
-    fn get_mut(&mut self, index: usize) -> Option<&mut Node<T>>;
+    fn get(&self, index: usize) -> &Node<T>;
+    fn get_mut(&mut self, index: usize) -> &mut Node<T>;
 
     fn get_nodes(&self) -> &[Node<T>];
     fn get_nodes_mut(&mut self) -> &mut [Node<T>];
@@ -40,6 +40,10 @@ where
 
     fn len(&self) -> usize {
         self.get_nodes().len()
+    }
+    
+    fn is_empty(&self) -> bool {
+        self.get_nodes().is_empty()
     }
 
     fn attach(&mut self, incoming: usize, outgoing: usize) -> &mut Self {
@@ -124,7 +128,7 @@ where
         .cloned()
         .collect::<VecDeque<usize>>();
 
-    while current.len() > 0 {
+    while !current.is_empty() {
         let current_index = current.pop_front().unwrap();
         let current_node = &nodes[current_index];
 
@@ -138,7 +142,7 @@ where
 
         seen.insert(current_index);
 
-        if current_node.incoming().len() != 0 {
+        if !current_node.incoming().is_empty() {
             path.push(current_index);
             for outgoing in current_node.incoming().iter() {
                 current.push_back(*outgoing);
@@ -157,7 +161,7 @@ where
     let source_node = &collection.get(source).unwrap();
     let target_node = &collection.get(target).unwrap();
 
-    if (source_node.outgoing.len() == 0 || source_node.is_recurrent()) && !recurrent {
+    if (source_node.outgoing.is_empty() || source_node.is_recurrent()) && !recurrent {
         return false;
     }
 
@@ -181,7 +185,7 @@ where
         .iter()
         .collect::<Vec<&usize>>();
 
-    while visited.len() != 0 {
+    while !visited.is_empty() {
         let node_index = visited.pop().unwrap();
 
         seen.insert(*node_index);
@@ -212,7 +216,7 @@ where
         return false;
     }
 
-    node.incoming.len() == node.arity() as usize
+    node.incoming.len() == node.value.arity() as usize
 }
 
 #[inline]
@@ -244,7 +248,7 @@ fn random_node_of_type<T>(collection: &[Node<T>], node_types: Vec<NodeType>) -> 
 where
     T: Clone + PartialEq + Default,
 {
-    if node_types.len() == 0 {
+    if node_types.is_empty() {
         panic!("At least one node type must be specified.");
     }
 
@@ -276,17 +280,13 @@ where
             .iter()
             .filter(|node| node.node_type == NodeType::Aggregate)
             .collect::<Vec<&Node<T>>>(),
-        NodeType::Root => collection
-            .iter()
-            .filter(|node| node.node_type == NodeType::Root)
-            .collect::<Vec<&Node<T>>>(),
         NodeType::Leaf => collection
             .iter()
             .filter(|node| node.node_type == NodeType::Leaf)
             .collect::<Vec<&Node<T>>>(),
     };
 
-    if genes.len() == 0 {
+    if genes.is_empty() {
         return random_node_of_type(
             collection,
             node_types
