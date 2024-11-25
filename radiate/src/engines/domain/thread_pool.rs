@@ -4,14 +4,14 @@ use std::{
 };
 
 pub struct WorkResult<T> {
-    reseiver: mpsc::Receiver<T>,
+    receiver: mpsc::Receiver<T>,
 }
 
 impl<T> WorkResult<T> {
     /// Get the result of the job.
     /// Note: This method will block until the result is available.
     pub fn result(&self) -> T {
-        self.reseiver.recv().unwrap()
+        self.receiver.recv().unwrap()
     }
 }
 
@@ -55,7 +55,7 @@ impl ThreadPool {
         let job = Box::new(move || tx.send(f()).unwrap());
 
         self.sender.send(Message::NewJob(job)).unwrap();
-        WorkResult { reseiver: rx }
+        WorkResult { receiver: rx }
     }
 
     pub fn is_alive(&self) -> bool {

@@ -1,6 +1,5 @@
-use crate::RandomProvider;
-
 use super::gene::{BoundGene, Gene, NumericGene, Valid};
+use crate::random_provider;
 
 /// A `Gene` that represents a floating point number.
 /// The `allele` is the in the case of the `FloatGene` a f32. The `min` and `max` values
@@ -34,7 +33,7 @@ pub struct FloatGene {
 impl FloatGene {
     pub fn new(min: f32, max: f32) -> Self {
         FloatGene {
-            allele: RandomProvider::random::<f32>() * (max - min) + min,
+            allele: random_provider::random::<f32>() * (max - min) + min,
             min,
             max,
             upper_bound: f32::MAX,
@@ -63,7 +62,7 @@ impl Gene for FloatGene {
 
     fn new_instance(&self) -> FloatGene {
         FloatGene {
-            allele: RandomProvider::random::<f32>() * (self.max - self.min) + self.min,
+            allele: random_provider::random::<f32>() * (self.max - self.min) + self.min,
             min: self.min,
             max: self.max,
             upper_bound: self.upper_bound,

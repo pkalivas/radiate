@@ -1,14 +1,14 @@
-use crate::engines::alterers::alter::Alter;
-use crate::engines::genome::population::Population;
-use crate::engines::optimize::Optimize;
-use crate::engines::schema::subset;
-use crate::{Chromosome, Metric, RandomProvider, Timer};
-
 use super::alter::{AlterWrap, Alterer};
 use super::crossovers::multipoint_crossover::MultiPointCrossover;
 use super::crossovers::uniform_crossover::UniformCrossover;
 use super::mutators::mutator::Mutator;
 use super::mutators::swap_mutator::SwapMutator;
+use crate::engines::alterers::alter::Alter;
+use crate::engines::domain::subset;
+use crate::engines::genome::population::Population;
+use crate::engines::optimize::Optimize;
+use crate::timer::Timer;
+use crate::{random_provider, Chromosome, Metric};
 
 pub struct CompositeAlterer<C: Chromosome> {
     alterers: Vec<AlterWrap<C>>,
@@ -74,57 +74,49 @@ impl<C: Chromosome> Alter<C> for CompositeAlterer<C> {
             let timer = Timer::new();
             let mut count = 0;
 
-            match alterer.mutator {
-                Some(ref mutator) => {
-                    let probability = alterer.rate.powf(1.0 / 3.0);
-                    let range = ((((std::i32::MAX as i64 - (std::i32::MIN as i64)) as f32)
-                        * probability)
-                        + (std::i32::MIN as f32)) as i32;
+            if let Some(ref mutator) = alterer.mutator {
+                let probability = alterer.rate.powf(1.0 / 3.0);
+                let range = ((((i32::MAX as i64 - (i32::MIN as i64)) as f32) * probability)
+                    + (i32::MIN as f32)) as i32;
 
-                    for phenotype in population.iter_mut() {
-                        if RandomProvider::random::<i32>() > range {
-                            let genotype = phenotype.genotype_mut();
+                for phenotype in population.iter_mut() {
+                    if random_provider::random::<i32>() > range {
+                        let genotype = phenotype.genotype_mut();
 
-                            let mutation_count = mutator.mutate_genotype(genotype, range);
+                        let mutation_count = mutator.mutate_genotype(genotype, range);
 
-                            if mutation_count > 0 {
-                                (*phenotype).generation = generation;
-                                (*phenotype).score = None;
-                                count += mutation_count;
-                            }
+                        if mutation_count > 0 {
+                            phenotype.generation = generation;
+                            phenotype.score = None;
+                            count += mutation_count;
                         }
                     }
-
-                    let mut mutate_metric = Metric::new(mutator.name());
-                    mutate_metric.add(count as f32, timer.duration());
-                    metrics.push(mutate_metric);
                 }
-                None => (),
-            };
-            match alterer.crossover {
-                Some(ref crossover) => {
-                    for i in 0..population.len() {
-                        if RandomProvider::random::<f32>() < alterer.rate {
-                            let parent_indexes = subset::individual_indexes(i, population.len(), 2);
-                            count += crossover.cross(population, &parent_indexes, generation);
-                        }
-                    }
 
-                    let mut cross_metric = Metric::new(crossover.name());
-                    cross_metric.add(count as f32, timer.duration());
-                    metrics.push(cross_metric);
-                }
-                None => (),
-            };
-            match alterer.alterer {
-                Some(ref alterer) => {
-                    let alter_metrics = alterer.alter(population, optimize, generation);
-                    for metric in alter_metrics {
-                        metrics.push(metric);
+                let mut new_metric = Metric::new_operations(mutator.name());
+                new_metric.add_value(count as f32);
+                new_metric.add_duration(timer.duration());
+
+                metrics.push(new_metric);
+            } else if let Some(ref crossover) = alterer.crossover {
+                for i in 0..population.len() {
+                    if random_provider::random::<f32>() < alterer.rate {
+                        let parent_indexes = subset::individual_indexes(i, population.len(), 2);
+                        count += crossover.cross(population, &parent_indexes, generation);
                     }
                 }
-                None => (),
-            };
+
+                let mut new_metric = Metric::new_operations(crossover.name());
+                new_metric.add_value(count as f32);
+                new_metric.add_duration(timer.duration());
+
+                metrics.push(new_metric);
+            } else if let Some(ref alterer) = alterer.alterer {
+                let alter_metrics = alterer.alter(population, optimize, generation);
+                for metric in alter_metrics {
+                    metrics.push(metric);
+                }
+            }
         }
 
         metrics

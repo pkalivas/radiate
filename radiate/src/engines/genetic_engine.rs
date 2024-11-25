@@ -1,21 +1,17 @@
 use crate::engines::alterers::alter::Alter;
+use crate::engines::domain::timer::Timer;
 use crate::engines::genetic_engine_params::GeneticEngineParams;
 use crate::engines::genome::population::Population;
 use crate::engines::optimize::Optimize;
-use crate::engines::schema::timer::Timer;
 use crate::engines::score::Score;
-use crate::Chromosome;
-use std::collections::HashSet;
+use crate::{metric_names, Chromosome, Metric};
 use std::sync::Arc;
 
 use super::codexes::Codex;
 use super::engine_output::EngineOutput;
 use super::genome::phenotype::Phenotype;
 use super::selectors::select::Select;
-use super::{
-    MetricSet, ThreadPool, METRIC_AGE, METRIC_AGE_FILTER, METRIC_EVALUATE, METRIC_INVALID_FILTER,
-    METRIC_SCORE, METRIC_UNIQUE,
-};
+use super::{MetricSet, ThreadPool};
 
 /// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -63,8 +59,7 @@ use super::{
 /// ```
 ///
 /// # Type Parameters
-/// - `G`: The type of gene used in the genetic algorithm, which must implement the `Gene` trait.
-/// - `A`: The type of the allele associated with the gene - the gene's "expression".
+/// - `C`: The type of the chromosome used in the genotype, which must implement the `Chromosome` trait.
 /// - `T`: The type of the phenotype produced by the genetic algorithm, which must be `Clone`, `Send`, and `static`.
 ///
 pub struct GeneticEngine<'a, C, T>
@@ -158,7 +153,9 @@ where
             handle.population.get_mut(idx).set_score(Some(score));
         }
 
-        handle.upsert_metric(METRIC_EVALUATE, count, Some(timer.duration()));
+        handle
+            .metrics
+            .upsert_operations(metric_names::EVALUATION, count, timer.duration());
 
         optimize.sort(&mut handle.population);
     }
@@ -183,7 +180,7 @@ where
         let timer = Timer::new();
         let result = selector.select(population, optimize, count);
 
-        metrics.upsert(selector.name(), count as f32, timer.duration());
+        metrics.upsert_operations(selector.name(), count as f32, timer.duration());
 
         result
     }
@@ -209,7 +206,7 @@ where
         let timer = Timer::new();
         let result = selector.select(population, optimize, count);
 
-        metrics.upsert(selector.name(), count as f32, timer.duration());
+        metrics.upsert_operations(selector.name(), count as f32, timer.duration());
 
         result
     }
@@ -223,7 +220,7 @@ where
 
         let alter_metrics = alterer.alter(population, optimize, generation);
         for metric in alter_metrics {
-            metrics.upsert_metric(metric);
+            metrics.upsert(metric);
         }
     }
 
@@ -252,9 +249,9 @@ where
             }
         }
 
-        metrics.upsert(METRIC_AGE_FILTER, age_count as f32, timer.duration());
-        metrics.upsert(
-            METRIC_INVALID_FILTER,
+        metrics.upsert_operations(metric_names::AGE_FILTER, age_count as f32, timer.duration());
+        metrics.upsert_operations(
+            metric_names::INVALID_FILTER,
             invalid_count as f32,
             timer.duration(),
         );
@@ -313,21 +310,40 @@ where
     /// is a measure of its fitness. The number of unique scores in the population is a measure of diversity, with
     /// a higher number indicating a more diverse population.
     fn add_metrics(&self, output: &mut EngineOutput<C, T>) {
-        let mut unique = HashSet::new();
+        let mut age_metric = Metric::new_value(metric_names::AGE);
+        let mut score_metric = Metric::new_value(metric_names::SCORE);
+        let mut size_values = Vec::with_capacity(output.population.len());
+        let mut unique = Vec::with_capacity(output.population.len());
+        
         for i in 0..output.population.len() {
             let phenotype = output.population.get(i);
 
             let age = phenotype.age(output.index);
             let score = phenotype.score().as_ref().unwrap();
+            let phenotype_size = phenotype
+                .genotype()
+                .iter()
+                .map(|chromosome| chromosome.len())
+                .sum::<usize>();
 
-            output.metrics.upsert_value(METRIC_AGE, age as f32);
-            output.metrics.upsert_value(METRIC_SCORE, score.as_float());
-            unique.insert(score.clone());
+            age_metric.add_value(age as f32);
+            score_metric.add_value(score.as_float());
+            unique.push(score.as_float());
+            size_values.push(phenotype_size as f32);
         }
 
-        output
-            .metrics
-            .upsert_value(METRIC_UNIQUE, unique.len() as f32);
+        unique.dedup();
+
+        let mut unique_metric = Metric::new_value(metric_names::UNIQUE);
+        let mut size_metric = Metric::new_distribution(metric_names::GENOME_SIZE);
+
+        unique_metric.add_value(unique.len() as f32);
+        size_metric.add_sequence(&size_values);
+
+        output.metrics.upsert(age_metric);
+        output.metrics.upsert(score_metric);
+        output.metrics.upsert(unique_metric);
+        output.metrics.upsert(size_metric);
     }
 
     /// Returns the survivor selector specified in the genetic engine parameters. The survivor selector is

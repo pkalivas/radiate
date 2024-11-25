@@ -1,24 +1,26 @@
 pub mod codex;
 pub mod graph;
 pub mod iterators;
-pub mod node_factory;
-pub mod tree;
-pub mod reducers;
 pub mod node;
+pub mod node_chromosome;
+pub mod node_factory;
+pub mod reducers;
+pub mod tree;
 
 pub use codex::*;
 pub use graph::*;
 pub use iterators::*;
-pub use node_factory::*;
 pub use node::*;
-pub use tree::*;
+pub use node_chromosome::*;
+pub use node_factory::*;
 pub use reducers::*;
+pub use tree::*;
 
 use std::collections::{HashSet, VecDeque};
 
-use radiate::{engines::genome::genes::gene::Valid, RandomProvider};
-
 use crate::NodeType;
+use radiate::engines::genome::genes::gene::Valid;
+use radiate::random_provider;
 
 pub trait NodeRepairs<T>: Valid + Default + Clone
 where
@@ -266,7 +268,7 @@ where
         panic!("At least one node type must be specified.");
     }
 
-    let gene_node_type_index = RandomProvider::random::<usize>() % node_types.len();
+    let gene_node_type_index = random_provider::random::<usize>() % node_types.len();
     let gene_node_type = node_types.get(gene_node_type_index).unwrap();
 
     let genes = match gene_node_type {
@@ -311,6 +313,6 @@ where
         );
     }
 
-    let index = RandomProvider::random::<usize>() % genes.len();
+    let index = random_provider::random::<usize>() % genes.len();
     genes.get(index).unwrap()
 }

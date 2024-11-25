@@ -1,8 +1,7 @@
-use crate::engines::genome::chromosome::Chromosome;
 use crate::engines::genome::genes::char_gene::CharGene;
 use crate::engines::genome::genes::gene::Gene;
 use crate::engines::genome::genotype::Genotype;
-use crate::CharChromosome;
+use crate::{CharChromosome, Chromosome};
 
 use super::Codex;
 

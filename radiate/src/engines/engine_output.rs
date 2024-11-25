@@ -1,6 +1,6 @@
 use crate::engines::genome::population::Population;
-use crate::engines::schema::timer::Timer;
-use crate::Chromosome;
+use crate::engines::domain::timer::Timer;
+use crate::{Chromosome, Metric};
 use std::time::Duration;
 
 use super::score::Score;
@@ -20,8 +20,7 @@ use super::MetricSet;
 /// on the current state on how to proceed.
 ///
 /// # Type Parameters
-/// - `G`: The type of gene used in the genetic algorithm, which must implement the `Gene` trait.
-/// - `A`: The type of the allele associated with the gene - the gene's "expression".
+/// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 /// - `T`: The type of the best individual in the population.
 ///
 pub struct EngineOutput<C, T>
@@ -51,11 +50,8 @@ where
     }
 
     /// Upsert (update or create) a metric with the given key and value. This is only used within the engine itself.
-    pub fn upsert_metric(&mut self, key: &'static str, value: f32, time: Option<Duration>) {
-        self.metrics.upsert_value(key, value);
-        if let Some(time) = time {
-            self.metrics.upsert_time(key, time);
-        }
+    pub fn upsert_metric(&mut self, metric: Metric) {
+        self.metrics.upsert(metric);
     }
 }
 

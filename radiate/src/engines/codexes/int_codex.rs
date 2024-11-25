@@ -1,10 +1,9 @@
 use rand::distributions::Standard;
 
-use crate::engines::genome::chromosome::Chromosome;
 use crate::engines::genome::genes::gene::{BoundGene, Gene};
 use crate::engines::genome::genes::int_gene::IntGene;
 use crate::engines::genome::genotype::Genotype;
-use crate::{IntChromosome, Integer};
+use crate::{Chromosome, IntChromosome, Integer};
 
 use super::Codex;
 

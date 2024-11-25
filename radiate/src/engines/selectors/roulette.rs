@@ -1,4 +1,4 @@
-use crate::{Chromosome, Optimize, Population, RandomProvider};
+use crate::{random_provider, Chromosome, Optimize, Population};
 
 use super::Select;
 
@@ -54,7 +54,7 @@ impl<C: Chromosome> Select<C> for RouletteSelector {
         let total_fitness = fitness_values.iter().sum::<f32>();
 
         for _ in 0..count {
-            let mut idx = RandomProvider::gen_range(0.0..total_fitness);
+            let mut idx = random_provider::gen_range(0.0..total_fitness);
 
             for (i, val) in fitness_values.iter().enumerate() {
                 idx -= val;

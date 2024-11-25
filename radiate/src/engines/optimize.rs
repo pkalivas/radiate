@@ -1,4 +1,4 @@
-use super::genome::{genes::gene::Gene, population::Population};
+use super::genome::population::Population;
 use crate::Chromosome;
 
 #[derive(Clone, Copy, Debug, PartialEq)]

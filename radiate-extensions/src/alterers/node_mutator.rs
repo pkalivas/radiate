@@ -4,14 +4,12 @@ use std::sync::Arc;
 use num_traits::Float;
 use radiate::engines::alterers::mutators::mutate::Mutate;
 use radiate::engines::genome::genes::gene::Gene;
-use radiate::{Alterer, RandomProvider};
+use radiate::{random_provider, Alterer, Chromosome};
 use rand::distributions::uniform::SampleUniform;
 use rand::{distributions::Standard, prelude::Distribution};
 
-use crate::architects::node_collections::node::Node;
-use crate::architects::node_collections::node_factory::NodeFactory;
-use crate::NodeChromosome;
 use crate::operations::op::Ops;
+use crate::NodeChromosome;
 
 pub struct NodeMutator<T>
 where
@@ -20,7 +18,7 @@ where
 {
     pub rate: f32,
     pub replace_rate: f32,
-    pub factory: NodeFactory<T>,
+    _marker: std::marker::PhantomData<T>,
 }
 
 impl<T> NodeMutator<T>
@@ -28,22 +26,18 @@ where
     Standard: Distribution<T>,
     T: Clone + PartialEq + Default + Float + SampleUniform + 'static,
 {
-    pub fn new(rate: f32, replace_rate: f32, factory: NodeFactory<T>) -> Self {
+    pub fn new(rate: f32, replace_rate: f32) -> Self {
         Self {
             rate,
             replace_rate,
-            factory,
+            _marker: std::marker::PhantomData,
         }
     }
-    pub fn alterer(
-        factory: NodeFactory<T>,
-        rate: f32,
-        replace_rate: f32,
-    ) -> Alterer<NodeChromosome<T>> {
+    pub fn alterer(rate: f32, replace_rate: f32) -> Alterer<NodeChromosome<T>> {
         Alterer::Mutation(Box::new(Self {
             rate,
             replace_rate,
-            factory,
+            _marker: std::marker::PhantomData,
         }))
     }
 }
@@ -69,39 +63,54 @@ where
     }
 
     #[inline]
-    fn mutate_gene(&self, gene: &Node<T>) -> Node<T> {
-        match gene.allele() {
-            Ops::MutableConst(name, arity, value, supplier, operation) => {
-                let random_value =
-                    RandomProvider::random::<T>() * T::from(2).unwrap() - T::from(1).unwrap();
+    fn mutate_chromosome(&self, chromosome: &mut NodeChromosome<T>, range: i32) -> i32 {
+        let mut count = 0;
 
-                if RandomProvider::random::<f32>() < self.replace_rate {
-                    gene.from_allele(&Ops::MutableConst(
-                        name,
-                        *arity,
-                        random_value,
-                        Arc::clone(supplier),
-                        Arc::clone(operation),
-                    ))
-                } else {
-                    let new_value = random_value + *value;
-                    gene.from_allele(&Ops::MutableConst(
-                        name,
-                        *arity,
-                        new_value,
-                        Arc::clone(supplier),
-                        Arc::clone(operation),
-                    ))
-                }
-            }
-            _ => {
-                let temp_node = self.factory.new_node(gene.index, gene.node_type);
-                if temp_node.value.arity() == gene.value.arity() {
-                    return gene.from_allele(temp_node.allele());
-                }
+        for i in 0..chromosome.len() {
+            if random_provider::random::<i32>() < range {
+                count += 1;
+                let temp_node = chromosome.new_node(i, chromosome.get_gene(i).node_type);
+                let current_node = chromosome.get_gene(i);
 
-                gene.clone()
+                match current_node.allele() {
+                    Ops::MutableConst(name, arity, value, supplier, operation) => {
+                        let random_value = random_provider::random::<T>() * T::from(2).unwrap()
+                            - T::from(1).unwrap();
+
+                        if random_provider::random::<f32>() < self.replace_rate {
+                            chromosome.set_gene(
+                                i,
+                                current_node.from_allele(&Ops::MutableConst(
+                                    name,
+                                    *arity,
+                                    random_value,
+                                    Arc::clone(supplier),
+                                    Arc::clone(operation),
+                                )),
+                            );
+                        } else {
+                            let new_value = random_value + *value;
+                            chromosome.set_gene(
+                                i,
+                                current_node.from_allele(&Ops::MutableConst(
+                                    name,
+                                    *arity,
+                                    new_value,
+                                    Arc::clone(supplier),
+                                    Arc::clone(operation),
+                                )),
+                            );
+                        }
+                    }
+                    _ => {
+                        if temp_node.value.arity() == current_node.value.arity() {
+                            chromosome.set_gene(i, current_node.from_allele(temp_node.allele()));
+                        }
+                    }
+                }
             }
         }
+
+        count
     }
 }

@@ -1,5 +1,4 @@
-use crate::RandomProvider;
-
+use crate::random_provider;
 use super::gene::{Gene, Valid};
 
 /// A gene that represents a single bit. The `allele` is a `bool` that is randomly assigned.
@@ -30,7 +29,7 @@ pub struct BitGene {
 impl BitGene {
     pub fn new() -> Self {
         BitGene {
-            allele: RandomProvider::gen_range(0..2) == 1,
+            allele: random_provider::gen_range(0..2) == 1,
         }
     }
 }

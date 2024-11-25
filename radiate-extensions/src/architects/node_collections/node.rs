@@ -2,60 +2,8 @@ use crate::architects::schema::{direction::Direction, node_types::NodeType};
 use crate::operations::op::Ops;
 use crate::schema::collection_type::CollectionType;
 use radiate::engines::genome::genes::gene::{Gene, Valid};
-use radiate::Chromosome;
 use std::collections::HashSet;
 use uuid::Uuid;
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct NodeChromosome<T>
-where
-    T: Clone + PartialEq,
-{
-    pub nodes: Vec<Node<T>>,
-}
-
-impl<T> Chromosome for NodeChromosome<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    type GeneType = Node<T>;
-
-    fn from_genes(genes: Vec<Node<T>>) -> Self {
-        NodeChromosome { nodes: genes }
-    }
-
-    fn get_gene(&self, index: usize) -> &Node<T> {
-        &self.nodes[index]
-    }
-
-    fn set_gene(&mut self, index: usize, gene: Node<T>) {
-        self.nodes[index] = gene;
-    }
-
-    fn get_genes(&self) -> &[Node<T>] {
-        &self.nodes
-    }
-
-    fn len(&self) -> usize {
-        self.nodes.len()
-    }
-
-    fn is_valid(&self) -> bool {
-        self.nodes.iter().all(|gene| gene.is_valid())
-    }
-
-    fn iter(&self) -> std::slice::Iter<Node<T>> {
-        self.nodes.iter()
-    }
-
-    fn iter_mut(&mut self) -> std::slice::IterMut<Node<T>> {
-        self.nodes.iter_mut()
-    }
-
-    fn is_empty(&self) -> bool {
-        self.nodes.is_empty()
-    }
-}
 
 pub struct Node<T>
 where

@@ -1,12 +1,12 @@
-use radiate::engines::alterers::Alter;
-use radiate::engines::genome::*;
-use radiate::engines::optimize::Optimize;
-use radiate::{Alterer, Metric, RandomProvider, Timer};
-
 use crate::architects::node_collections::*;
 use crate::architects::schema::node_types::NodeType;
 use crate::node::Node;
 use crate::schema::collection_type::CollectionType;
+use radiate::engines::alterers::Alter;
+use radiate::engines::genome::*;
+use radiate::engines::optimize::Optimize;
+use radiate::timer::Timer;
+use radiate::{random_provider, Alterer, Metric};
 
 pub enum NodeMutate {
     Forward(NodeType, f32),
@@ -40,23 +40,24 @@ pub struct GraphMutator<T>
 where
     T: Clone + PartialEq + Default,
 {
-    pub factory: NodeFactory<T>,
+    // pub factory: NodeFactory<T>,
     pub mutations: Vec<NodeMutate>,
+    _marker: std::marker::PhantomData<T>,
 }
 
 impl<T> GraphMutator<T>
 where
     T: Clone + PartialEq + Default + 'static,
 {
-    pub fn new(factory: NodeFactory<T>, mutations: Vec<NodeMutate>) -> Self {
-        Self { factory, mutations }
+    pub fn new(mutations: Vec<NodeMutate>) -> Self {
+        Self {
+            mutations,
+            _marker: std::marker::PhantomData,
+        }
     }
 
-    pub fn alterer(
-        factory: NodeFactory<T>,
-        mutations: Vec<NodeMutate>,
-    ) -> Alterer<NodeChromosome<T>> {
-        Alterer::Alterer(Box::new(GraphMutator::new(factory, mutations)))
+    pub fn alterer(mutations: Vec<NodeMutate>) -> Alterer<NodeChromosome<T>> {
+        Alterer::Alterer(Box::new(GraphMutator::new(mutations)))
     }
 
     #[inline]
@@ -64,6 +65,7 @@ where
         &self,
         collection: &[Node<T>],
         node_type: &NodeType,
+        factory: &NodeFactory<T>,
     ) -> Option<Vec<Node<T>>> {
         let source_node = random_source_node(collection);
         let target_node = random_target_node(collection);
@@ -82,13 +84,9 @@ where
                 .get(*source_node.outgoing.iter().next().unwrap())
                 .unwrap();
 
-            let new_source_edge = self
-                .factory
-                .new_node(new_source_edge_index, source_node.node_type);
-            let new_node = self.factory.new_node(new_node_index, *node_type);
-            let new_target_edge = self
-                .factory
-                .new_node(new_target_edge_index, source_node.node_type);
+            let new_source_edge = factory.new_node(new_source_edge_index, source_node.node_type);
+            let new_node = factory.new_node(new_node_index, *node_type);
+            let new_target_edge = factory.new_node(new_target_edge_index, source_node.node_type);
 
             if is_locked(outgoing_node) {
                 let mut temp = Graph::from_nodes(
@@ -141,7 +139,7 @@ where
             collection
                 .iter()
                 .cloned()
-                .chain(vec![self.factory.new_node(collection.len(), *node_type)])
+                .chain(vec![factory.new_node(collection.len(), *node_type)])
                 .collect::<Vec<Node<T>>>(),
         );
 
@@ -157,6 +155,7 @@ where
         &self,
         collection: &[Node<T>],
         node_type: &NodeType,
+        factory: &NodeFactory<T>,
     ) -> Option<Vec<Node<T>>> {
         let source_node = random_source_node(collection);
         let target_node = random_target_node(collection);
@@ -176,16 +175,10 @@ where
                 .get(*source_node.outgoing.iter().next().unwrap())
                 .unwrap();
 
-            let new_source_edge = self
-                .factory
-                .new_node(new_source_edge_index, source_node.node_type);
-            let new_node = self.factory.new_node(new_node_index, *node_type);
-            let new_target_edge = self
-                .factory
-                .new_node(new_target_edge_index, source_node.node_type);
-            let recurrent_edge = self
-                .factory
-                .new_node(recurrent_edge_index, source_node.node_type);
+            let new_source_edge = factory.new_node(new_source_edge_index, source_node.node_type);
+            let new_node = factory.new_node(new_node_index, *node_type);
+            let new_target_edge = factory.new_node(new_target_edge_index, source_node.node_type);
+            let recurrent_edge = factory.new_node(recurrent_edge_index, source_node.node_type);
 
             return if is_locked(outgoing_node) {
                 let mut temp = Graph::from_nodes(
@@ -250,7 +243,7 @@ where
             collection
                 .iter()
                 .cloned()
-                .chain(vec![self.factory.new_node(collection.len(), *node_type)])
+                .chain(vec![factory.new_node(collection.len(), *node_type)])
                 .collect::<Vec<Node<T>>>(),
         );
 
@@ -313,43 +306,50 @@ where
         let timer = Timer::new();
         let mut count = 0;
         for i in 0..population.len() {
-            let mutation = RandomProvider::choose(&self.mutations);
+            let mutation = random_provider::choose(&self.mutations);
 
-            if RandomProvider::random::<f32>() > mutation.rate() {
+            if random_provider::random::<f32>() > mutation.rate() {
                 continue;
             }
 
             let genotype = population.get(i).genotype();
-            let chromosome_index = RandomProvider::random::<usize>() % genotype.len();
+            let chromosome_index = random_provider::random::<usize>() % genotype.len();
             let chromosome = genotype.get_chromosome(chromosome_index);
 
-            let mutated_graph = if mutation.is_recurrent() {
-                self.insert_recurrent_node(&chromosome.nodes, &mutation.node_type())
-            } else {
-                self.insert_forward_node(&chromosome.nodes, &mutation.node_type())
-            };
+            if let Some(ref factory) = chromosome.factory {
+                let mutated_graph = if mutation.is_recurrent() {
+                    let node_fact = factory.borrow();
+                    self.insert_recurrent_node(&chromosome.nodes, &mutation.node_type(), &node_fact)
+                } else {
+                    let node_fact = factory.borrow();
+                    self.insert_forward_node(&chromosome.nodes, &mutation.node_type(), &node_fact)
+                };
 
-            if let Some(mutated_graph) = mutated_graph {
-                if !mutated_graph.iter().all(|node| node.is_valid()) {
-                    continue;
+                if let Some(mutated_graph) = mutated_graph {
+                    if !mutated_graph.iter().all(|node| node.is_valid()) {
+                        continue;
+                    }
+
+                    if mutated_graph.len() == chromosome.nodes.len() {
+                        continue;
+                    }
+
+                    let mut copied_genotype = genotype.clone();
+
+                    count += 1;
+
+                    copied_genotype.set_chromosome(
+                        chromosome_index,
+                        NodeChromosome::with_factory(mutated_graph, factory.clone()),
+                    );
+                    population.set(i, Phenotype::from_genotype(copied_genotype, generation));
                 }
-
-                if mutated_graph.len() == chromosome.nodes.len() {
-                    continue;
-                }
-
-                let mut copied_genotype = genotype.clone();
-
-                count += 1;
-
-                copied_genotype
-                    .set_chromosome(chromosome_index, Chromosome::from_genes(mutated_graph));
-                population.set(i, Phenotype::from_genotype(copied_genotype, generation));
             }
         }
 
-        let mut result = Metric::new("Graph Mutator");
-        result.add(count as f32, timer.duration());
+        let mut result = Metric::new_operations("Graph Mutator");
+        result.add_value(count as f32);
+        result.add_duration(timer.duration());
 
         vec![result]
     }

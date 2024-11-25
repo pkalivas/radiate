@@ -5,9 +5,7 @@ const MAX_INDEX: i32 = 500;
 const MIN_SCORE: f32 = 0.01;
 
 fn main() {
-    let factory = NodeFactory::<f32>::regression(2).outputs(vec![op::sigmoid()]);
-
-    let graph_codex = GraphCodex::from_shape(2, 1, &factory);
+    let graph_codex = GraphCodex::regression(2, 1).set_outputs(vec![op::sigmoid()]);
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 
@@ -15,19 +13,16 @@ fn main() {
         .minimizing()
         .alterer(vec![
             GraphCrossover::alterer(0.5, 0.5),
-            NodeMutator::alterer(factory.clone(), 0.01, 0.05),
-            GraphMutator::alterer(
-                factory.clone(),
-                vec![
-                    NodeMutate::Forward(NodeType::Weight, 0.05),
-                    NodeMutate::Forward(NodeType::Aggregate, 0.03),
-                    NodeMutate::Forward(NodeType::Gate, 0.03),
-                ],
-            ),
+            NodeMutator::alterer(0.01, 0.05),
+            GraphMutator::alterer(vec![
+                NodeMutate::Forward(NodeType::Weight, 0.05),
+                NodeMutate::Forward(NodeType::Aggregate, 0.03),
+                NodeMutate::Forward(NodeType::Gate, 0.03),
+            ]),
         ])
         .fitness_fn(move |genotype: Graph<f32>| {
             let mut reducer = GraphReducer::new(&genotype);
-            Score::from_f32(regression.error(|input| reducer.reduce(&input)))
+            Score::from_f32(regression.error(|input| reducer.reduce(input)))
         })
         .build();
 

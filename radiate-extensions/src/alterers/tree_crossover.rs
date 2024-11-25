@@ -1,4 +1,4 @@
-use radiate::{Alterer, Chromosome, Crossover, RandomProvider, Valid};
+use radiate::{random_provider, Alterer, Chromosome, Crossover, Valid};
 use uuid::Uuid;
 
 use crate::node::Node;
@@ -84,8 +84,8 @@ where
         chrom_one: &mut NodeChromosome<T>,
         chrom_two: &mut NodeChromosome<T>,
     ) -> i32 {
-        let swap_one_index = RandomProvider::random::<usize>() % chrom_one.len();
-        let swap_two_index = RandomProvider::random::<usize>() % chrom_two.len();
+        let swap_one_index = random_provider::random::<usize>() % chrom_one.len();
+        let swap_two_index = random_provider::random::<usize>() % chrom_two.len();
 
         if !self.can_cross(
             chrom_one.get_genes(),

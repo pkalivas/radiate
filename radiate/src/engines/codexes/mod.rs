@@ -1,4 +1,3 @@
-use super::genome::genes::gene::Gene;
 use super::genome::genotype::Genotype;
 use super::genome::phenotype::Phenotype;
 use super::genome::population::Population;

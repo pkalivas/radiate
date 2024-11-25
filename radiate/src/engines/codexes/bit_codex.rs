@@ -1,8 +1,7 @@
-use crate::engines::genome::chromosome::Chromosome;
 use crate::engines::genome::genes::bit_gene::BitGene;
 use crate::engines::genome::genes::gene::Gene;
 use crate::engines::genome::genotype::Genotype;
-use crate::BitChromosome;
+use crate::{BitChromosome, Chromosome};
 
 use super::Codex;
 

@@ -3,13 +3,13 @@ use std::{
     sync::Arc,
 };
 
-use radiate::RandomProvider;
 use rand::{
     distributions::{uniform::SampleUniform, Standard},
     prelude::Distribution,
 };
 
 use num_traits::{Float, NumCast};
+use radiate::random_provider;
 
 const MAX_VALUE: f32 = 1e+5_f32;
 const MIN_VALUE: f32 = -1e+5_f32;
@@ -245,67 +245,35 @@ pub fn pow<T: Mul<Output = T> + Clone + Float>() -> Ops<T> {
 }
 
 pub fn sqrt<T: Mul<Output = T> + Clone + Float>() -> Ops<T> {
-    Ops::Fn(
-        "sqrt",
-        1,
-        Arc::new(|inputs: &[T]| clamp(inputs[0].sqrt())),
-    )
+    Ops::Fn("sqrt", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].sqrt())))
 }
 
 pub fn abs<T: Clone + Float>() -> Ops<T> {
-    Ops::Fn(
-        "abs",
-        1,
-        Arc::new(|inputs: &[T]| clamp(inputs[0].abs())),
-    )
+    Ops::Fn("abs", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].abs())))
 }
 
 pub fn exp<T: Clone + Float>() -> Ops<T> {
-    Ops::Fn(
-        "exp",
-        1,
-        Arc::new(|inputs: &[T]| clamp(inputs[0].exp())),
-    )
+    Ops::Fn("exp", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].exp())))
 }
 
 pub fn log<T: Clone + Float>() -> Ops<T> {
-    Ops::Fn(
-        "log",
-        1,
-        Arc::new(|inputs: &[T]| clamp(inputs[0].ln())),
-    )
+    Ops::Fn("log", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].ln())))
 }
 
 pub fn sin<T: Clone + Float>() -> Ops<T> {
-    Ops::Fn(
-        "sin",
-        1,
-        Arc::new(|inputs: &[T]| clamp(inputs[0].sin())),
-    )
+    Ops::Fn("sin", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].sin())))
 }
 
 pub fn cos<T: Clone + Float>() -> Ops<T> {
-    Ops::Fn(
-        "cos",
-        1,
-        Arc::new(|inputs: &[T]| clamp(inputs[0].cos())),
-    )
+    Ops::Fn("cos", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].cos())))
 }
 
 pub fn tan<T: Clone + Float>() -> Ops<T> {
-    Ops::Fn(
-        "tan",
-        1,
-        Arc::new(|inputs: &[T]| clamp(inputs[0].tan())),
-    )
+    Ops::Fn("tan", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].tan())))
 }
 
 pub fn ceil<T: Clone + Float>() -> Ops<T> {
-    Ops::Fn(
-        "ceil",
-        1,
-        Arc::new(|inputs: &[T]| clamp(inputs[0].ceil())),
-    )
+    Ops::Fn("ceil", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].ceil())))
 }
 
 pub fn floor<T: Clone + Float>() -> Ops<T> {
@@ -387,7 +355,7 @@ where
     Standard: Distribution<T>,
     T: PartialOrd + NumCast + SampleUniform,
 {
-    let supplier = || RandomProvider::random::<T>() - RandomProvider::random::<T>();
+    let supplier = || random_provider::random::<T>() * T::from(2).unwrap() - T::from(1).unwrap();
     let operation = |inputs: &[T], weight: &T| clamp(inputs[0] * *weight);
     Ops::MutableConst("w", 1, supplier(), Arc::new(supplier), Arc::new(operation))
 }
@@ -491,4 +459,39 @@ pub fn softplus() -> Ops<f32> {
             clamp(result)
         }),
     )
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_ops() {
+        let op = add();
+        assert_eq!(op.name(), "+");
+        assert_eq!(op.arity(), 2);
+        assert_eq!(op.apply(&[1_f32, 2_f32]), 3_f32);
+        assert_eq!(op.new_instance(), op);
+    }
+
+    #[test]
+    fn test_random_seed_works() {
+        random_provider::seed_rng(42);
+
+        let op = weight::<f32>();
+        let op2 = weight::<f32>();
+
+        let o_one = match op {
+            Ops::MutableConst(_, _, value, _, _) => value,
+            _ => panic!("Expected MutableConst"),
+        };
+
+        let o_two = match op2 {
+            Ops::MutableConst(_, _, value, _, _) => value,
+            _ => panic!("Expected MutableConst"),
+        };
+
+        println!("o_one: {:?}", o_one);
+        println!("o_two: {:?}", o_two);
+    }
 }

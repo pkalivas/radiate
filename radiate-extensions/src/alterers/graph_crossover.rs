@@ -1,14 +1,12 @@
 use std::collections::HashMap;
 
+use crate::architects::schema::node_types::NodeType;
+use crate::NodeChromosome;
 use radiate::engines::alterers::Alter;
 use radiate::engines::genome::*;
 use radiate::engines::optimize::Optimize;
-use radiate::{Alterer, Metric, RandomProvider, Timer};
-
-use crate::architects::schema::node_types::NodeType;
-use crate::node::Node;
-use crate::operations::op::Ops;
-use crate::NodeChromosome;
+use radiate::timer::Timer;
+use radiate::{random_provider, Alterer, Metric};
 
 const NUM_PARENTS: usize = 2;
 
@@ -57,7 +55,7 @@ where
         let geno_two = parent_two.genotype();
 
         let chromo_index =
-            RandomProvider::random::<usize>() % std::cmp::min(geno_one.len(), geno_two.len());
+            random_provider::random::<usize>() % std::cmp::min(geno_one.len(), geno_two.len());
 
         let chromo_one = geno_one.get_chromosome(chromo_index);
         let chromo_two = geno_two.get_chromosome(chromo_index);
@@ -73,7 +71,7 @@ where
                 continue;
             }
 
-            if RandomProvider::random::<f32>() < self.crossover_parent_node_rate {
+            if random_provider::random::<f32>() < self.crossover_parent_node_rate {
                 new_chromo_one.set_gene(node_one.index, node_one.from_allele(node_two.allele()));
                 num_crosses += 1;
             }
@@ -95,7 +93,7 @@ where
         let mut subset = Vec::with_capacity(NUM_PARENTS);
 
         while subset.len() < NUM_PARENTS {
-            let index = RandomProvider::random::<usize>() % limit;
+            let index = random_provider::random::<usize>() % limit;
             if !subset.contains(&index) {
                 subset.push(index);
             }
@@ -123,7 +121,7 @@ where
         let mut count = 0;
         let mut new_phenotypes = HashMap::new();
         for index in 0..population.len() {
-            if RandomProvider::random::<f32>() < self.crossover_rate
+            if random_provider::random::<f32>() < self.crossover_rate
                 && population.len() > NUM_PARENTS
             {
                 let parent_indexes = GraphCrossover::<T>::distinct_subset(population.len());
@@ -139,8 +137,9 @@ where
             population.set(index, phenotype);
         }
 
-        let mut metric = Metric::new("Graph Crossover");
-        metric.add(count as f32, timer.duration());
+        let mut metric = Metric::new_operations("Graph Crossover");
+        metric.add_value(count as f32);
+        metric.add_duration(timer.duration());
 
         vec![metric]
     }

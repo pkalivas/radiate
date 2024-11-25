@@ -1,9 +1,7 @@
-pub mod metrics;
 pub mod random_provider;
-pub mod statistics;
+pub mod subset;
 pub mod thread_pool;
+pub mod timer;
 
-pub use metrics::*;
 pub use random_provider::*;
-pub use statistics::*;
 pub use thread_pool::*;

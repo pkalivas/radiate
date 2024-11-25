@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod tests {
-
     use radiate::*;
     use radiate_extensions::*;
 
@@ -69,8 +68,7 @@ mod tests {
             GraphCodex::from_factory(&factory).set_nodes(|arc, _| arc.weighted_acyclic(2, 2));
 
         let factory2 = NodeFactory::<f32>::regression(2);
-        let modifier =
-            GraphMutator::<f32>::new(factory2, vec![NodeMutate::Forward(NodeType::Weight, 0.5)]);
+        let modifier = GraphMutator::<f32>::new(vec![NodeMutate::Forward(NodeType::Weight, 0.5)]);
 
         let genotype = graph_codex.encode();
         let decoded = graph_codex.decode(&genotype);
@@ -81,7 +79,9 @@ mod tests {
 
         println!("\nModifing graph...\n");
 
-        if let Some(modified) = modifier.insert_forward_node(&decoded.nodes, &NodeType::Weight) {
+        if let Some(modified) =
+            modifier.insert_forward_node(&decoded.nodes, &NodeType::Weight, &factory2)
+        {
             for node in modified.iter() {
                 println!("{:?}", node);
             }

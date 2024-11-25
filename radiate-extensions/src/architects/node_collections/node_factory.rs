@@ -1,14 +1,12 @@
-use std::collections::HashMap;
-
-use radiate::RandomProvider;
-
 use crate::architects::node_collections::node::Node;
 use crate::{
     architects::schema::node_types::NodeType,
     operations::op::{self, Ops},
 };
+use radiate::random_provider;
+use std::collections::HashMap;
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, PartialEq, Debug)]
 pub struct NodeFactory<T>
 where
     T: Clone + PartialEq + Default,
@@ -73,7 +71,7 @@ where
                     Node::new(index, node_type, value)
                 }
                 _ => {
-                    let value = RandomProvider::choose(values);
+                    let value = random_provider::choose(values);
                     Node::new(index, node_type, value.new_instance())
                 }
             };

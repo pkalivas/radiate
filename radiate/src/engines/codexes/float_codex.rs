@@ -1,9 +1,8 @@
 use super::Codex;
-use crate::engines::genome::chromosome::Chromosome;
 use crate::engines::genome::genes::float_gene::FloatGene;
 use crate::engines::genome::genes::gene::{BoundGene, Gene};
 use crate::engines::genome::genotype::Genotype;
-use crate::FloatChromosome;
+use crate::{Chromosome, FloatChromosome};
 
 /// A `Codex` for a `Genotype` of `FloatGenes`. The `encode` function creates a `Genotype` with `num_chromosomes` chromosomes
 /// and `num_genes` genes per chromosome. The `decode` function creates a `Vec<Vec<f32>>` from the `Genotype` where the inner `Vec`

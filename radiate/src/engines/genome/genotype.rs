@@ -1,4 +1,4 @@
-use super::chromosome::Chromosome;
+use crate::Chromosome;
 
 /// The `Genotype` struct represents the genetic makeup of an individual. It is a collection of `Chromosome` instances, it is
 /// essentially a light wrapper around a Vec of `Chromosome`s. The `Genotype` struct, however, has some additional functionality
@@ -17,8 +17,7 @@ use super::chromosome::Chromosome;
 /// ```
 ///
 /// # Type Parameters
-/// - `G`: The type of gene used in the genetic algorithm, which must implement the `Gene` trait.
-/// - `A`: The type of the allele associated with the gene - the gene's "expression".
+/// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 ///
 
 #[derive(Clone, PartialEq, Debug)]
@@ -27,7 +26,6 @@ pub struct Genotype<C: Chromosome> {
 }
 
 impl<C: Chromosome> Genotype<C> {
-    /// Create a new instance of the Genotype with the given chromosomes.
     pub fn from_chromosomes(chromosomes: Vec<C>) -> Self {
         Genotype { chromosomes }
     }
@@ -61,91 +59,8 @@ impl<C: Chromosome> Genotype<C> {
     pub fn iter_mut(&mut self) -> std::slice::IterMut<C> {
         self.chromosomes.iter_mut()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.chromosomes.is_empty()
+    }
 }
-// impl<G, A> PartialEq for Genotype<G, A>
-// where
-//     G: Gene<G, A>,
-// {
-//     fn eq(&self, other: &Self) -> bool {
-//         self.chromosomes == other.chromosomes
-//     }
-// }
-//
-// impl<G, A> From<Genotype<G, A>> for Vec<Chromosome<G, A>>
-// where
-//     G: Gene<G, A>,
-// {
-//     fn from(value: Genotype<G, A>) -> Self {
-//         value.chromosomes
-//     }
-// }
-//
-// impl<G, A> From<Vec<Chromosome<G, A>>> for Genotype<G, A>
-// where
-//     G: Gene<G, A>,
-// {
-//     fn from(value: Vec<Chromosome<G, A>>) -> Self {
-//         Genotype { chromosomes: value }
-//     }
-// }
-//
-// impl<G, A> FromIterator<Chromosome<G, A>> for Genotype<G, A>
-// where
-//     G: Gene<G, A>,
-// {
-//     fn from_iter<I: IntoIterator<Item = Chromosome<G, A>>>(iter: I) -> Self {
-//         Genotype {
-//             chromosomes: iter.into_iter().collect(),
-//         }
-//     }
-// }
-//
-// impl<G, A> std::fmt::Debug for Genotype<G, A>
-// where
-//     G: Gene<G, A> + std::fmt::Debug,
-// {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "[")?;
-//         for chromosome in &self.chromosomes {
-//             write!(f, "{:?},\n ", chromosome)?;
-//         }
-//         write!(f, "]")
-//     }
-// }
-//
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use crate::engines::genome::genes::float_gene::FloatGene;
-//
-//     #[test]
-//     fn test_new() {
-//         let genotype = Genotype::from_chromosomes(vec![Chromosome::from_genes(vec![
-//             FloatGene::new(0_f32, 1_f32),
-//             FloatGene::new(0_f32, 1_f32),
-//         ])]);
-//
-//         assert!(genotype.is_valid());
-//     }
-//
-//     #[test]
-//     fn test_into() {
-//         let genotype = Genotype::from_chromosomes(vec![Chromosome::from_genes(vec![
-//             FloatGene::new(0_f32, 1_f32),
-//             FloatGene::new(0_f32, 1_f32),
-//         ])]);
-//
-//         let chromosomes: Vec<Chromosome<FloatGene, f32>> = genotype.into();
-//         assert_eq!(chromosomes.len(), 1);
-//     }
-//
-//     #[test]
-//     fn test_from_iter() {
-//         let chromosomes = vec![Chromosome::from_genes(vec![
-//             FloatGene::new(0_f32, 1_f32),
-//             FloatGene::new(0_f32, 1_f32),
-//         ])];
-//         let genotype: Genotype<FloatGene, f32> = chromosomes.into_iter().collect();
-//         assert_eq!(genotype.len(), 1);
-//     }
-// }

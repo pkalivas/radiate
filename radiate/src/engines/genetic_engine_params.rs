@@ -20,8 +20,7 @@ use std::sync::Arc;
 /// the `GeneticEngine` in a fluent and functional way.
 ///
 /// # Type Parameters
-/// - `G`: The type of gene used in the genetic algorithm, which must implement the `Gene` trait.
-/// - `A`: The type of the allele associated with the gene - the gene's "expression".
+/// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 /// - `T`: The type of the best individual in the population.
 ///
 pub struct GeneticEngineParams<'a, C, T>

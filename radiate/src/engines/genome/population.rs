@@ -1,4 +1,4 @@
-use super::{genes::gene::Gene, phenotype::Phenotype};
+use super::phenotype::Phenotype;
 use crate::Chromosome;
 use std::fmt::Debug;
 
@@ -14,9 +14,9 @@ use std::fmt::Debug;
 /// thinking, the `Population` struct and everyhing it contains implements the `Clone` trait.
 ///
 /// # Type Parameters
-/// - `G`: The type of gene used in the genetic algorithm, which must implement the `Gene` trait.
-/// - `A`: The type of the allele associated with the gene - the gene's "expression".
+/// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 ///
+#[derive(Clone)]
 pub struct Population<C: Chromosome> {
     pub individuals: Vec<Phenotype<C>>,
     pub is_sorted: bool,
@@ -99,6 +99,10 @@ impl<C: Chromosome> Population<C> {
             is_sorted: false,
         }
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.individuals.is_empty()
+    }
 }
 
 impl<C: Chromosome> Default for Population<C> {
@@ -126,24 +130,13 @@ impl<C: Chromosome> FromIterator<Phenotype<C>> for Population<C> {
     }
 }
 
-impl<C: Chromosome> Clone for Population<C> {
-    fn clone(&self) -> Self {
-        Population {
-            individuals: self.individuals.clone(),
-            is_sorted: self.is_sorted,
-        }
-    }
-}
-
-impl<C: Chromosome + Debug> std::fmt::Debug for Population<C> {
+impl<C: Chromosome + Debug> Debug for Population<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // write!(f, "[")?;
-        // for individual in &self.individuals {
-        //     write!(f, "{:?},\n ", individual)?;
-        // }
-        // write!(f, "]")
-
-        unimplemented!()
+        write!(f, "[")?;
+        for individual in &self.individuals {
+            write!(f, "{:?},\n ", individual)?;
+        }
+        write!(f, "]")
     }
 }
 

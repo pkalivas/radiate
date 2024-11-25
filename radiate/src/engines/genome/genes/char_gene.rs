@@ -1,4 +1,4 @@
-use crate::RandomProvider;
+use crate::random_provider;
 
 use super::gene::{Gene, Valid};
 
@@ -27,7 +27,7 @@ pub struct CharGene {
 
 impl CharGene {
     pub fn new() -> Self {
-        let index = RandomProvider::random::<usize>() % ALPHABET.len();
+        let index = random_provider::random::<usize>() % ALPHABET.len();
         CharGene {
             allele: ALPHABET.chars().nth(index).unwrap(),
         }

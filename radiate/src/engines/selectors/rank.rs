@@ -1,4 +1,4 @@
-use crate::{Chromosome, Optimize, Population, RandomProvider, Select};
+use crate::{random_provider, Chromosome, Optimize, Population, Select};
 
 pub struct RankSelector;
 
@@ -26,7 +26,7 @@ impl<C: Chromosome> Select<C> for RankSelector {
         let total_rank = (population.len() * (population.len() + 1)) as f32 / 2.0;
 
         for _ in 0..count {
-            let mut idx = RandomProvider::gen_range(0.0..total_rank);
+            let mut idx = random_provider::gen_range(0.0..total_rank);
             let mut selected_idx = 0;
             for individual in population.iter() {
                 idx -= (population.len() - selected_idx) as f32;
