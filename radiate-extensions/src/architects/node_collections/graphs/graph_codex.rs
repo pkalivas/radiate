@@ -85,7 +85,7 @@ where
                         let temp_node = self.factory.new_node(node.index, node.node_type);
 
                         if temp_node.value.arity() == node.value.arity() {
-                            node.from_allele(&temp_node.allele());
+                            return node.from_allele(&temp_node.allele());
                         }
 
                         node.clone()
