@@ -14,6 +14,7 @@
       <sourceFolder url="file://$MODULE_DIR$/radiate-extensions/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/radiate/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/radiate/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/radiate-examples/regression-tree/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/radiate/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>

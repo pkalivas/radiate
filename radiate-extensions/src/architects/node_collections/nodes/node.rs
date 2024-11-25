@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use crate::architects::schema::{direction::Direction, node_types::NodeType};
 use crate::operations::op::Ops;
+use crate::schema::collection_type::CollectionType;
 
 pub struct Node<T>
 where
@@ -13,6 +14,7 @@ where
     pub index: usize,
     pub value: Ops<T>,
     pub arity: Option<u8>,
+    pub collection_type: Option<CollectionType>,
     pub enabled: bool,
     pub node_type: NodeType,
     pub direction: Direction,
@@ -32,22 +34,19 @@ where
             arity: None,
             enabled: true,
             direction: Direction::Forward,
+            collection_type: None,
             node_type,
             incoming: HashSet::new(),
             outgoing: HashSet::new(),
         }
     }
 
-    pub fn id(&self) -> &Uuid {
-        &self.id
-    }
+    pub fn arity(&self) -> u8 {
+        if let Some(arity) = &self.arity {
+            return *arity;
+        }
 
-    pub fn index(&self) -> &usize {
-        &self.index
-    }
-
-    pub fn arity(&self) -> &Option<u8> {
-        &self.arity
+        self.value.arity()
     }
 
     pub fn node_type(&self) -> &NodeType {
@@ -102,6 +101,7 @@ where
             enabled: self.enabled,
             value: self.value.new_instance(),
             direction: self.direction.clone(),
+            collection_type: self.collection_type.clone(),
             node_type: self.node_type.clone(),
             incoming: self.incoming.clone(),
             outgoing: self.outgoing.clone(),
@@ -115,6 +115,7 @@ where
             arity: self.arity.clone(),
             value: allele.clone(),
             enabled: self.enabled,
+            collection_type: self.collection_type.clone(),
             direction: self.direction.clone(),
             node_type: self.node_type.clone(),
             incoming: self.incoming.clone(),
@@ -128,14 +129,33 @@ where
     T: Clone + PartialEq,
 {
     fn is_valid(&self) -> bool {
-        match self.node_type {
-            NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
-            NodeType::Output => self.incoming.len() > 0,
-            NodeType::Gate => self.incoming.len() == self.arity().unwrap() as usize,
-            NodeType::Aggregate => !self.incoming.is_empty() && !self.outgoing.is_empty(),
-            NodeType::Weight => self.incoming.len() == 1 && self.outgoing.len() == 1,
-            NodeType::Link => self.incoming.len() == 1 && self.outgoing.len() > 0,
+        if let Some(coll_type) = &self.collection_type {
+            if coll_type == &CollectionType::Graph {
+                return match self.node_type {
+                    NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
+                    NodeType::Output => self.incoming.len() > 0,
+                    NodeType::Gate => self.incoming.len() == self.arity() as usize,
+                    NodeType::Aggregate => !self.incoming.is_empty() && !self.outgoing.is_empty(),
+                    NodeType::Weight => self.incoming.len() == 1 && self.outgoing.len() == 1,
+                    NodeType::Link => self.incoming.len() == 1 && self.outgoing.len() > 0,
+                    NodeType::Root => self.incoming.len() > 0 && self.outgoing.is_empty(),
+                    NodeType::Leaf => self.incoming.is_empty() && self.outgoing.len() > 0,
+                };
+            } else if coll_type == &CollectionType::Tree {
+                return match self.node_type {
+                    NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
+                    NodeType::Output => self.incoming.len() > 0,
+                    NodeType::Gate => self.outgoing.len() == self.arity() as usize,
+                    NodeType::Aggregate => !self.incoming.is_empty() && !self.outgoing.is_empty(),
+                    NodeType::Weight => self.incoming.len() == 1 && self.outgoing.len() == 1,
+                    NodeType::Link => self.incoming.len() == 1 && self.outgoing.len() > 0,
+                    NodeType::Root => self.incoming.len() > 0 && self.outgoing.is_empty(),
+                    NodeType::Leaf => self.incoming.len() > 0 && self.outgoing.is_empty(),
+                };
+            }
         }
+
+        false
     }
 }
 
@@ -150,6 +170,7 @@ where
             arity: self.arity.clone(),
             enabled: self.enabled,
             value: self.value.clone(),
+            collection_type: self.collection_type.clone(),
             direction: self.direction.clone(),
             node_type: self.node_type.clone(),
             incoming: self.incoming.clone(),
@@ -187,6 +208,7 @@ where
             value: Ops::default(),
             direction: Direction::Forward,
             node_type: NodeType::Input,
+            collection_type: None,
             incoming: HashSet::new(),
             outgoing: HashSet::new(),
         }
@@ -220,8 +242,8 @@ where
             self.index,
             format!("{:?}", self.node_type)[..3].to_owned(),
             format!("{:?}", self.value).to_owned(),
-            self.is_valid(),
             self.enabled,
+            self.is_valid(),
             self.is_recurrent(),
             self.incoming.len(),
             self.outgoing.len(),
