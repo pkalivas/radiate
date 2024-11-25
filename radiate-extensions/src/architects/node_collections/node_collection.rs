@@ -63,8 +63,7 @@ where
     }
 }
 
-
-pub fn reindex<T>(index: usize, nodes: &[Node<T>]) -> Vec<Node<T>>
+pub fn reindex<T>(index: usize, nodes: &[&Node<T>]) -> Vec<Node<T>>
 where
     T: Clone + PartialEq + Default,
 {
@@ -75,7 +74,7 @@ where
             index: index + i,
             incoming: HashSet::new(),
             outgoing: HashSet::new(),
-            ..node.clone()
+            ..(*node).clone()
         })
         .collect::<Vec<Node<T>>>();
 
@@ -94,14 +93,18 @@ where
         for incoming in old_node.incoming.iter() {
             if let Some(old_index) = old_nodes.get(incoming) {
                 // let old_incoming = self.get(*old_index).unwrap();
-                new_node.incoming_mut().insert(ref_new_nodes[*old_index].index);
+                new_node
+                    .incoming_mut()
+                    .insert(ref_new_nodes[*old_index].index);
             }
         }
 
         for outgoing in old_node.outgoing.iter() {
             if let Some(old_index) = old_nodes.get(outgoing) {
                 // let old_outgoing = self.get(*old_index).unwrap();
-                new_node.outgoing_mut().insert(ref_new_nodes[*old_index].index);
+                new_node
+                    .outgoing_mut()
+                    .insert(ref_new_nodes[*old_index].index);
             }
         }
     }

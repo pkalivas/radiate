@@ -76,7 +76,7 @@ where
 }
 
 impl<'a, T> Architect<'a, Tree<T>, T>
-where 
+where
     T: Clone + PartialEq + Default,
 {
     pub fn tree(&self, depth: usize) -> Tree<T> {
@@ -95,14 +95,12 @@ where
         //     }
         // }
 
-
         // result
     }
 
     fn grow_tree(&self, parent: &Tree<T>, depth: usize) -> Tree<T> {
         if depth == 0 {
-            return Architect::<Tree<T>, T>::new(&self.node_factory)
-                .build(|arc, _| arc.leaf());
+            return Architect::<Tree<T>, T>::new(&self.node_factory).build(|arc, _| arc.leaf());
         }
 
         let mut builder = NodeCollectionBuilder::new(&self.node_factory);
@@ -110,7 +108,7 @@ where
         for _ in 0..parent.get_nodes().first().unwrap().arity() {
             let temp = Architect::<Tree<T>, T>::new(&self.node_factory)
                 .build(|arc, _| self.grow_tree(&arc.gate(1), depth - 1));
-            
+
             children.push(temp);
         }
 

@@ -1,50 +1,57 @@
-use std::collections::HashMap;
-use std::fmt::Debug;
+use radiate::{Alterer, Chromosome, Crossover, RandomProvider};
 use uuid::Uuid;
-use radiate::{Alterer, Chromosome, Crossover, Gene, RandomProvider, Valid};
 
-use crate::{node_collection, BreadthFirstIterator, Node, NodeCollectionBuilder, Ops, Tree};
-
+use crate::{Node, NodeCollectionBuilder, Ops, Tree};
 
 pub struct TreeCrossover<T>
 where
     T: Clone + PartialEq + Default + 'static,
 {
     pub rate: f32,
-    pub max_height: i32,
+    pub max_height: usize,
     _marker: std::marker::PhantomData<T>,
 }
 
 impl<T> TreeCrossover<T>
 where
-    T: Clone + PartialEq + Default + Debug + 'static,
+    T: Clone + PartialEq + Default + 'static,
 {
-    pub fn alterer(rate: f32) -> Alterer<Node<T>, Ops<T>> {
+    pub fn alterer(rate: f32, max_height: usize) -> Alterer<Node<T>, Ops<T>> {
         Alterer::Crossover(Box::new(Self {
             rate,
-            max_height: 10,
+            max_height,
             _marker: std::marker::PhantomData,
         }))
     }
 
-    fn level(&self, index: usize, nodes: &[Node<T>]) -> i32 {
-        nodes[index].incoming
+    fn level(&self, index: usize, nodes: &[Node<T>]) -> usize {
+        nodes[index]
+            .incoming
             .iter()
             .map(|i| self.level(*i, nodes))
             .max()
-            .unwrap_or(0) + 1   
+            .unwrap_or(0)
+            + 1
     }
 
-    fn depth(&self, index: usize, nodes: &[Node<T>]) -> i32 {
-        nodes[index].outgoing
+    fn depth(&self, index: usize, nodes: &[Node<T>]) -> usize {
+        nodes[index]
+            .outgoing
             .iter()
             .map(|i| self.depth(*i, nodes))
             .max()
-            .unwrap_or(0) + 1
+            .unwrap_or(0)
+            + 1
     }
 
-    fn can_cross(&self, one: &[Node<T>], two: &[Node<T>], one_index: usize, two_index: usize) -> bool {
-        if one_index <= 1 || two_index <= 1 {
+    fn can_cross(
+        &self,
+        one: &[Node<T>],
+        two: &[Node<T>],
+        one_index: usize,
+        two_index: usize,
+    ) -> bool {
+        if one_index < 1 || two_index < 1 {
             return false;
         }
 
@@ -60,7 +67,7 @@ where
 
 impl<T> Crossover<Node<T>, Ops<T>> for TreeCrossover<T>
 where
-    T: Clone + PartialEq + Default + Debug
+    T: Clone + PartialEq + Default,
 {
     fn cross_rate(&self) -> f32 {
         self.rate
@@ -79,7 +86,12 @@ where
         let swap_one_index = RandomProvider::random::<usize>() % chrom_one.len();
         let swap_two_index = RandomProvider::random::<usize>() % chrom_two.len();
 
-        if !self.can_cross(chrom_one.get_genes(), chrom_two.get_genes(), swap_one_index, swap_two_index) {
+        if !self.can_cross(
+            chrom_one.get_genes(),
+            chrom_two.get_genes(),
+            swap_one_index,
+            swap_two_index,
+        ) {
             return 0;
         }
 
@@ -97,12 +109,12 @@ where
         let one_sub_tree = tree_one.sub_tree(swap_one_index);
         let two_sub_tree = tree_two.sub_tree(swap_two_index);
 
-        let new_one_tree = NodeCollectionBuilder::new(&crate::NodeFactory { node_values: HashMap::new() })
+        let new_one_tree = NodeCollectionBuilder::default()
             .insert(&tree_one)
             .replace(&one_sub_tree, &two_sub_tree)
             .build();
 
-        let new_two_tree = NodeCollectionBuilder::new(&crate::NodeFactory { node_values: HashMap::new() })
+        let new_two_tree = NodeCollectionBuilder::default()
             .insert(&tree_two)
             .replace(&two_sub_tree, &one_sub_tree)
             .build();

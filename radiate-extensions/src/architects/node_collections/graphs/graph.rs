@@ -4,8 +4,6 @@ use crate::{node_collection, Direction, Node, NodeCollection, NodeFactory, NodeR
 
 use super::GraphIterator;
 
-
-
 #[derive(Clone, PartialEq, Default)]
 pub struct Graph<T>
 where

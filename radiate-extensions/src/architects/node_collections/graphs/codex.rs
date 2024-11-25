@@ -108,7 +108,6 @@ where
     }
 }
 
-
 pub struct TreeCodex<'a, T>
 where
     T: Clone + PartialEq + Default,
@@ -131,7 +130,6 @@ where
         TreeCodex { factory, nodes }
     }
 }
-
 
 impl<'a, T> Codex<Node<T>, Ops<T>, Tree<T>> for TreeCodex<'a, T>
 where

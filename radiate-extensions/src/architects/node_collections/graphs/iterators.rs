@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, process::Output};
+use std::collections::VecDeque;
 
 use super::*;
 use crate::{Node, NodeCollection, NodeType, Tracer};
@@ -20,7 +20,11 @@ where
         let mut queue = VecDeque::new();
         queue.push_back(index);
 
-        Self { nodes, index, queue }
+        Self {
+            nodes,
+            index,
+            queue,
+        }
     }
 }
 
@@ -220,7 +224,6 @@ where
     }
 }
 
-
 pub struct TreeReducer<'a, T>
 where
     T: Clone + PartialEq + Default,
@@ -254,10 +257,7 @@ where
 
     #[inline]
     pub fn reduce(&mut self, inputs: &[T]) -> Vec<T> {
-    
-        let res = self.eval_recurrent(0, inputs, &self.nodes.nodes);
-
-        res
+        self.eval_recurrent(0, inputs, &self.nodes.nodes)
     }
 
     fn eval_recurrent(&mut self, index: usize, input: &[T], nodes: &[Node<T>]) -> Vec<T> {

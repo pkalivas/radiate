@@ -2,21 +2,27 @@ use radiate::*;
 use radiate_extensions::*;
 
 const MIN_SCORE: f32 = 0.01;
-const MAX_SECONDS: f64 = 15.0;
+const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
     RandomProvider::set_seed(12345);
-    let factory = NodeFactory::<f32>::regression(1).gates(vec![op::add(), op::sub(), op::mul()]);
+    let factory = NodeFactory::<f32>::regression(1)
+        .gates(vec![op::add(), op::sub(), op::mul()])
+        .leafs(vec![
+            op::var(0),
+            // op::value(4_f32),
+            // op::value(3_f32),
+            // op::value(2_f32),
+        ]);
 
-    let graph_codex = TreeCodex::new(4, &factory);
+    let graph_codex = TreeCodex::new(3, &factory);
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 
     let engine = GeneticEngine::from_codex(&graph_codex)
         .minimizing()
-        .num_threads(10)
         .alterer(vec![
-            TreeCrossover::alterer(0.5),
+            TreeCrossover::alterer(0.5, 10),
             OpMutator::alterer(factory.clone(), 0.01, 0.05),
         ])
         .fitness_fn(move |genotype: Tree<f32>| {

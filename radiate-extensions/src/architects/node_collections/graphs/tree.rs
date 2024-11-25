@@ -1,16 +1,15 @@
 use radiate::Valid;
 
-use crate::{node_collection, Node, NodeCollection, NodeFactory, NodeRepairs, NodeType};
+use crate::{node_collection, Node, NodeCollection, NodeFactory, NodeRepairs};
 
 use super::BreadthFirstIterator;
 
-
 #[derive(Clone, PartialEq, Default)]
-pub struct Tree<T> 
-where 
+pub struct Tree<T>
+where
     T: Clone + PartialEq,
 {
-    pub nodes: Vec<Node<T>>
+    pub nodes: Vec<Node<T>>,
 }
 
 impl<T> Tree<T>
@@ -23,14 +22,11 @@ where
 
     pub fn sub_tree(&self, index: usize) -> Self {
         let nodes = BreadthFirstIterator::new(&self.nodes, index)
-            .map(|node| node.clone())
-            .collect::<Vec<Node<T>>>();
+            .map(|node| node)
+            .collect::<Vec<&Node<T>>>();
 
-        let temp = node_collection::reindex(0, &nodes);
-
-        Tree::new(temp)
+        Tree::new(node_collection::reindex(0, nodes.as_slice()))
     }
-
 }
 
 impl<T> NodeCollection<T> for Tree<T>
@@ -62,22 +58,12 @@ impl<T> NodeRepairs<T> for Tree<T>
 where
     T: Clone + PartialEq + Default,
 {
-    fn repair(&mut self, factory: &NodeFactory<T>) -> Self {
+    fn repair(&mut self, _: &NodeFactory<T>) -> Self {
         let mut collection = self.clone();
 
         for node in collection.iter_mut() {
-            let arity = node.incoming().len();
+            let arity = node.outgoing().len();
             (*node).arity = Some(arity as u8);
-
-            let temp_node = factory.new_node(node.index, NodeType::Aggregate);
-
-            if node.node_type() == &NodeType::Output && node.outgoing().len() > 0 {
-                node.node_type = NodeType::Aggregate;
-                node.value = temp_node.value.clone();
-            } else if node.node_type() == &NodeType::Input && node.incoming().len() > 0 {
-                node.node_type = NodeType::Aggregate;
-                node.value = temp_node.value.clone();
-            }
         }
 
         collection
@@ -93,13 +79,12 @@ where
     }
 }
 
-
 impl<T> std::fmt::Debug for Tree<T>
 where
     T: Clone + PartialEq + Default + std::fmt::Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Graph {{\n")?;
+        write!(f, "Tree {{\n")?;
         for node in self.get_nodes() {
             write!(f, "  {:?},\n", node)?;
         }

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod test {
 
-    use radiate::*;
+    // use radiate::*;
     use radiate_extensions::*;
 
     #[test]
@@ -21,7 +21,5 @@ mod test {
         // let factory = NodeFactory::<f32>::regression(1).gates(vec![op::add(), op::sub(), op::mul()]);
 
         // let tree_codex = TreeCodex::new(3, &factory);
-
-        
     }
 }

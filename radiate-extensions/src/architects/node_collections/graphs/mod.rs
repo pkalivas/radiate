@@ -5,5 +5,5 @@ pub mod tree;
 
 pub use codex::*;
 pub use graph::*;
-pub use tree::*;
 pub use iterators::*;
+pub use tree::*;
