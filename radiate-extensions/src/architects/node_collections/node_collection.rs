@@ -63,6 +63,7 @@ where
     }
 }
 
+#[inline]
 pub fn reindex<T>(index: usize, nodes: &[&Node<T>]) -> Vec<Node<T>>
 where
     T: Clone + PartialEq + Default,
