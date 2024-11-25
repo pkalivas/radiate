@@ -130,11 +130,7 @@ where
             new_collection.attach(*source_idx, *target_idx);
         }
 
-        if let Some(factory) = self.factory {
-            return new_collection.repair(factory);
-        }
-
-        new_collection
+        new_collection.repair(self.factory)
     }
 
     pub fn layer(&self, collections: Vec<&'a C>) -> Self {

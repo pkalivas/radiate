@@ -1,7 +1,8 @@
 use std::collections::VecDeque;
 
-use super::*;
 use crate::{Node, NodeCollection, NodeType, Tracer};
+
+use super::{Graph, Tree};
 
 pub struct BreadthFirstIterator<'a, T>
 where
@@ -230,8 +231,6 @@ where
 {
     pub nodes: &'a Tree<T>,
     pub tracers: Vec<Tracer<T>>,
-    pub order: Vec<usize>,
-    pub outputs: Vec<T>,
 }
 
 impl<'a, T> TreeReducer<'a, T>
@@ -239,19 +238,12 @@ where
     T: Clone + PartialEq + Default,
 {
     pub fn new(nodes: &'a Tree<T>) -> TreeReducer<'a, T> {
-        let output_size = nodes
-            .iter()
-            .filter(|node| node.node_type == NodeType::Output)
-            .count();
-
         TreeReducer {
             nodes,
             tracers: nodes
                 .iter()
                 .map(|node| Tracer::new(TreeReducer::input_size(node)))
                 .collect::<Vec<Tracer<T>>>(),
-            order: Vec::with_capacity(nodes.len()),
-            outputs: vec![T::default(); output_size],
         }
     }
 

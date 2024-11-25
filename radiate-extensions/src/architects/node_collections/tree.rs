@@ -1,6 +1,9 @@
 use radiate::Valid;
 
-use crate::{node_collection, Node, NodeCollection, NodeFactory, NodeRepairs};
+use crate::{
+    node_collection, schema::collection_type::CollectionType, Node, NodeCollection, NodeFactory,
+    NodeRepairs,
+};
 
 use super::BreadthFirstIterator;
 
@@ -58,12 +61,13 @@ impl<T> NodeRepairs<T> for Tree<T>
 where
     T: Clone + PartialEq + Default,
 {
-    fn repair(&mut self, _: &NodeFactory<T>) -> Self {
+    fn repair(&mut self, _: Option<&NodeFactory<T>>) -> Self {
         let mut collection = self.clone();
 
         for node in collection.iter_mut() {
             let arity = node.outgoing().len();
             (*node).arity = Some(arity as u8);
+            (*node).collection_type = Some(CollectionType::Tree);
         }
 
         collection

@@ -82,25 +82,11 @@ where
     pub fn tree(&self, depth: usize) -> Tree<T> {
         Architect::<Tree<T>, T>::new(&self.node_factory)
             .build(|arc, _| self.grow_tree(&arc.gate(1), depth))
-
-        // for node in result.get_nodes_mut() {
-
-        //     let temp_node = self.node_factory.new_node(*node.index(), NodeType::Input);
-
-        //     if node.outgoing().len() == 0 {
-        //         node.node_type = NodeType::Root;
-        //     } else if node.incoming().len() == 0 {
-        //         node.node_type = NodeType::Leaf;
-        //         node.value = temp_node.value.clone();
-        //     }
-        // }
-
-        // result
     }
 
     fn grow_tree(&self, parent: &Tree<T>, depth: usize) -> Tree<T> {
         if depth == 0 {
-            return Architect::<Tree<T>, T>::new(&self.node_factory).build(|arc, _| arc.leaf());
+            return self.leaf();
         }
 
         let mut builder = NodeCollectionBuilder::new(&self.node_factory);

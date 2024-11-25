@@ -21,9 +21,10 @@ fn main() {
 
     let engine = GeneticEngine::from_codex(&graph_codex)
         .minimizing()
+        .num_threads(10)
         .alterer(vec![
             TreeCrossover::alterer(0.5, 10),
-            OpMutator::alterer(factory.clone(), 0.01, 0.05),
+            OpMutator::alterer(factory.clone(), 0.001, 0.05),
         ])
         .fitness_fn(move |genotype: Tree<f32>| {
             let mut reducer = TreeReducer::new(&genotype);

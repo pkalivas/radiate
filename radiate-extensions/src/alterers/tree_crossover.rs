@@ -1,4 +1,4 @@
-use radiate::{Alterer, Chromosome, Crossover, RandomProvider};
+use radiate::{Alterer, Chromosome, Crossover, RandomProvider, Valid};
 use uuid::Uuid;
 
 use crate::{Node, NodeCollectionBuilder, Ops, Tree};
@@ -118,6 +118,10 @@ where
             .insert(&tree_two)
             .replace(&two_sub_tree, &one_sub_tree)
             .build();
+
+        if !new_one_tree.is_valid() || !new_two_tree.is_valid() {
+            panic!("Invalid tree after crossover.");
+        }
 
         chrom_one.genes = new_one_tree.nodes;
         chrom_two.genes = new_two_tree.nodes;
