@@ -66,6 +66,10 @@ where
     pub fn iter_mut(&mut self) -> std::slice::IterMut<G> {
         self.genes.iter_mut()
     }
+    
+    pub fn is_empty(&self) -> bool {
+        self.genes.is_empty()
+    }
 }
 
 impl<G, A> Clone for Chromosome<G, A>

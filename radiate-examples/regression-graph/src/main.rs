@@ -7,11 +7,11 @@ const MAX_SECONDS: f64 = 5.0;
 fn main() {
     RandomProvider::set_seed(12345);
 
-    let factory = NodeFactory::<f32>::regression(1).gates(vec![op::add(), op::sub(), op::mul()]);
-
     let graph_codex = GraphCodex::regression(1, 1)
         .set_outputs(vec![op::linear()])
         .set_gates(vec![op::add(), op::sub(), op::mul()]);
+    
+    let factory = graph_codex.get_factory();
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 
