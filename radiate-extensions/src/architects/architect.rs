@@ -4,7 +4,7 @@ use crate::architects::node_collections::node_collection::NodeCollection;
 use crate::architects::node_collections::node_factory::NodeFactory;
 use crate::architects::schema::node_types::NodeType;
 
-use super::Graph;
+use super::{Graph, NodeRepairs};
 
 pub struct Architect<'a, C, T>
 where
@@ -30,6 +30,7 @@ where
     pub fn build<F>(&self, build_fn: F) -> C
     where
         F: FnOnce(&Architect<C, T>, NodeCollectionBuilder<C, T>) -> C,
+        C: NodeRepairs<T>,
     {
         build_fn(self, NodeCollectionBuilder::new(&self.node_factory))
     }

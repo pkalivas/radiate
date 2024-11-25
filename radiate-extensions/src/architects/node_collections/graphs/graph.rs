@@ -1,6 +1,9 @@
 use radiate::engines::genome::genes::gene::Valid;
 
-use crate::{architects::node_collections::node::Node, node_collection, Direction};
+use crate::{
+    architects::node_collections::node::Node, node_collection, Direction, NodeFactory, NodeRepairs,
+    NodeType,
+};
 
 use super::{super::node_collection::NodeCollection, GraphIterator};
 
@@ -21,6 +24,34 @@ where
 
     pub fn topological_iter(&self) -> impl Iterator<Item = &Node<T>> {
         GraphIterator::new(&self)
+    }
+
+    pub fn set_cycles(mut self, indecies: Vec<usize>) -> Graph<T> {
+        if indecies.len() == 0 {
+            let all_indices = self
+                .get_nodes()
+                .iter()
+                .map(|node| node.index)
+                .collect::<Vec<usize>>();
+
+            return self.set_cycles(all_indices);
+        }
+
+        for idx in indecies {
+            let node_cycles = node_collection::get_cycles(self.get_nodes(), idx);
+
+            if node_cycles.len() == 0 {
+                let node = self.get_mut(idx).unwrap();
+                (*node).direction = Direction::Forward;
+            } else {
+                for cycle_idx in node_cycles {
+                    let node = self.get_mut(cycle_idx).unwrap();
+                    (*node).direction = Direction::Backward;
+                }
+            }
+        }
+
+        self
     }
 }
 
@@ -47,37 +78,31 @@ where
     fn get_nodes_mut(&mut self) -> &mut [Node<T>] {
         &mut self.nodes
     }
+}
 
-    fn add(&mut self, nodes: Vec<Node<T>>) {
-        self.nodes.extend(nodes);
-    }
+impl<T> NodeRepairs<T> for Graph<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    fn repair(&mut self, factory: &NodeFactory<T>) -> Self {
+        let mut collection = self.clone().set_cycles(Vec::new());
 
-    fn set_cycles(mut self, indecies: Vec<usize>) -> Graph<T> {
-        if indecies.len() == 0 {
-            let all_indices = self
-                .get_nodes()
-                .iter()
-                .map(|node| node.index)
-                .collect::<Vec<usize>>();
+        for node in collection.iter_mut() {
+            let arity = node.incoming().len();
+            (*node).arity = Some(arity as u8);
 
-            return self.set_cycles(all_indices);
-        }
+            let temp_node = factory.new_node(*node.index(), NodeType::Aggregate);
 
-        for idx in indecies {
-            let node_cycles = node_collection::get_cycles(self.get_nodes(), idx);
-
-            if node_cycles.len() == 0 {
-                let node = self.get_mut(idx).unwrap();
-                (*node).direction = Direction::Forward;
-            } else {
-                for cycle_idx in node_cycles {
-                    let node = self.get_mut(cycle_idx).unwrap();
-                    (*node).direction = Direction::Backward;
-                }
+            if node.node_type() == &NodeType::Output && node.outgoing().len() > 0 {
+                node.node_type = NodeType::Aggregate;
+                node.value = temp_node.value.clone();
+            } else if node.node_type() == &NodeType::Input && node.incoming().len() > 0 {
+                node.node_type = NodeType::Aggregate;
+                node.value = temp_node.value.clone();
             }
         }
 
-        self
+        collection
     }
 }
 

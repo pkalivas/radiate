@@ -7,6 +7,8 @@ use crate::architects::schema::node_types::NodeType;
 
 use uuid::Uuid;
 
+use super::NodeRepairs;
+
 pub enum ConnectTypes {
     OneToOne,
     OneToMany,
@@ -23,7 +25,7 @@ pub struct NodeRelationship<'a> {
 
 pub struct NodeCollectionBuilder<'a, C, T>
 where
-    C: NodeCollection<C, T> + Clone + Default,
+    C: NodeCollection<C, T> + NodeRepairs<T>,
     T: Clone + PartialEq + Default,
 {
     pub factory: &'a NodeFactory<T>,
@@ -36,11 +38,11 @@ where
 
 impl<'a, C, T> NodeCollectionBuilder<'a, C, T>
 where
-    C: NodeCollection<C, T> + Clone + Default,
+    C: NodeCollection<C, T> + NodeRepairs<T>,
     T: Clone + PartialEq + Default,
 {
     pub fn new(factory: &'a NodeFactory<T>) -> Self {
-        Self {
+        NodeCollectionBuilder {
             factory,
             nodes: BTreeMap::new(),
             node_order: BTreeMap::new(),
@@ -100,14 +102,7 @@ where
             new_collection.attach(*source_idx, *target_idx);
         }
 
-        let indecies = new_collection
-            .iter()
-            .map(|node| *node.index())
-            .collect::<Vec<usize>>();
-        NodeCollectionBuilder::<C, T>::repair(
-            &self.factory,
-            &mut new_collection.set_cycles(indecies),
-        )
+        new_collection.repair(&self.factory)
     }
 
     pub fn layer(&self, collections: Vec<&'a C>) -> Self {
@@ -333,24 +328,5 @@ where
             .filter(|(_, node)| node.outgoing().len() == 0)
             .map(|(idx, _)| collection.get(idx).unwrap())
             .collect::<Vec<&Node<T>>>()
-    }
-
-    fn repair(factory: &NodeFactory<T>, collection: &mut C) -> C {
-        for node in collection.iter_mut() {
-            let arity = node.incoming().len();
-            (*node).arity = Some(arity as u8);
-
-            let temp_node = factory.new_node(*node.index(), NodeType::Aggregate);
-
-            if node.node_type() == &NodeType::Output && node.outgoing().len() > 0 {
-                node.node_type = NodeType::Aggregate;
-                node.value = temp_node.value.clone();
-            } else if node.node_type() == &NodeType::Input && node.incoming().len() > 0 {
-                node.node_type = NodeType::Aggregate;
-                node.value = temp_node.value.clone();
-            }
-        }
-
-        collection.clone()
     }
 }
