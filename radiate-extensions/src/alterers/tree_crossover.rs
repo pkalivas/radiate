@@ -1,6 +1,6 @@
 use radiate::{Alterer, Chromosome, Crossover, Gene, RandomProvider};
 
-use crate::{Node, Ops, Tree};
+use crate::{node_collection, Node, Ops, Tree};
 
 
 pub struct TreeCrossover<T>
@@ -22,6 +22,36 @@ where
             max_height: 10,
             _marker: std::marker::PhantomData,
         }))
+    }
+
+    fn level(&self, index: usize, nodes: &[Node<T>]) -> i32 {
+        nodes[index].incoming
+            .iter()
+            .map(|i| self.level(*i, nodes))
+            .max()
+            .unwrap_or(0) + 1   
+    }
+
+    fn depth(&self, index: usize, nodes: &[Node<T>]) -> i32 {
+        nodes[index].outgoing
+            .iter()
+            .map(|i| self.depth(*i, nodes))
+            .max()
+            .unwrap_or(0) + 1
+    }
+
+    fn can_cross(&self, one: &[Node<T>], two: &[Node<T>], one_index: usize, two_index: usize) -> bool {
+        if one_index <= 1 || two_index <= 1 {
+            return false;
+        }
+
+        let one_depth = self.depth(one_index, one);
+        let two_depth = self.depth(two_index, two);
+
+        let one_height = self.level(one_index, one);
+        let two_height = self.level(two_index, two);
+
+        return one_height + two_depth <= self.max_height && two_height + one_depth <= self.max_height;
     }
 }
 
@@ -48,6 +78,14 @@ where
 
         let swap_one_index = RandomProvider::random::<usize>() % chrom_one.len();
         let swap_two_index = RandomProvider::random::<usize>() % chrom_two.len();
+
+        if !self.can_cross(chrom_one.get_genes(), chrom_two.get_genes(), swap_one_index, swap_two_index) {
+            return 0;
+        }
+
+        let one_nodes = node_collection::reindex(0, chrom_one.get_genes());
+        let two_nodes = node_collection::reindex(one_nodes.len(), chrom_two.get_genes());
+
 
 
         cross_count
