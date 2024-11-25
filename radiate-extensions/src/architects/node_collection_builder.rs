@@ -94,11 +94,6 @@ where
         self
     }
 
-    pub fn insert_nodes(mut self, one: &'a [Node<T>]) -> Self {
-        self.attach(one);
-        self
-    }
-
     pub fn build(self) -> C {
         let mut index = 0;
         let mut new_nodes = Vec::new();

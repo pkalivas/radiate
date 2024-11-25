@@ -7,7 +7,6 @@ use crate::engines::genome::phenotype::Phenotype;
 use crate::engines::genome::population::Population;
 use crate::engines::optimize::Optimize;
 use crate::engines::score::Score;
-
 use super::alterers::alter::Alterer;
 use super::codexes::Codex;
 use super::{RouletteSelector, Select, ThreadPool, TournamentSelector};

@@ -16,7 +16,7 @@ pub struct MetricSet {
 
 impl MetricSet {
     pub fn new() -> Self {
-        Self {
+        MetricSet {
             metrics: BTreeMap::new(),
         }
     }
