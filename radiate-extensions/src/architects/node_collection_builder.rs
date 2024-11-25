@@ -25,7 +25,7 @@ pub struct Relationship<'a> {
 
 pub struct NodeCollectionBuilder<'a, C, T>
 where
-    C: NodeCollection<C, T> + NodeRepairs<T>,
+    C: NodeCollection<T> + NodeRepairs<T>,
     T: Clone + PartialEq + Default,
 {
     pub factory: &'a NodeFactory<T>,
@@ -37,7 +37,7 @@ where
 
 impl<'a, C, T> NodeCollectionBuilder<'a, C, T>
 where
-    C: NodeCollection<C, T> + NodeRepairs<T>,
+    C: NodeCollection<T> + NodeRepairs<T>,
     T: Clone + PartialEq + Default,
 {
     pub fn new(factory: &'a NodeFactory<T>) -> Self {

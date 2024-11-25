@@ -52,7 +52,7 @@ where
     }
 }
 
-impl<T> NodeCollection<Graph<T>, T> for Graph<T>
+impl<T> NodeCollection<T> for Graph<T>
 where
     T: Clone + PartialEq + Default,
 {

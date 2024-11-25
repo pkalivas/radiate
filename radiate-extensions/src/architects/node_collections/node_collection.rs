@@ -13,9 +13,8 @@ where
     fn repair(&mut self, factory: &NodeFactory<T>) -> Self;
 }
 
-pub trait NodeCollection<C, T>: Valid + Default + Clone
+pub trait NodeCollection<T>: Valid + Default + Clone
 where
-    C: NodeCollection<C, T>,
     T: Clone + PartialEq + Default,
 {
     fn from_nodes(nodes: Vec<Node<T>>) -> Self;
