@@ -39,8 +39,8 @@ impl MultiPointCrossover {
             let temp = chrom_one.get_gene(start + i);
             let other_gene = chrom_two.get_gene(other_start + i);
 
-            let new_gene_one = temp.from_allele(&other_gene.allele());
-            let new_gene_two = other_gene.from_allele(&temp.allele());
+            let new_gene_one = temp.from_allele(other_gene.allele());
+            let new_gene_two = other_gene.from_allele(temp.allele());
 
             chrom_one.set_gene(start + i, new_gene_one);
             chrom_two.set_gene(other_start + i, new_gene_two);

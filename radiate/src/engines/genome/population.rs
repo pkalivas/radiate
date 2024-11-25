@@ -105,6 +105,15 @@ where
     }
 }
 
+impl<G, A> Default for Population<G, A>
+where
+    G: Gene<G, A>,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<G, A> IntoIterator for Population<G, A>
 where
     G: Gene<G, A>,

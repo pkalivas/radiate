@@ -77,8 +77,6 @@ where
         let mut collection = self.clone();
 
         for node in collection.iter_mut() {
-            let arity = node.outgoing().len();
-            (*node).arity = Some(arity as u8);
             (*node).collection_type = Some(CollectionType::Tree);
         }
 

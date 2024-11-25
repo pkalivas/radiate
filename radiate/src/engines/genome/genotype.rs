@@ -87,25 +87,25 @@ where
     }
 }
 
-impl<G, A> Into<Genotype<G, A>> for Vec<Chromosome<G, A>>
+impl<G, A> From<Genotype<G, A>> for Vec<Chromosome<G, A>>
 where
     G: Gene<G, A>,
 {
-    fn into(self) -> Genotype<G, A> {
-        Genotype { chromosomes: self }
+    fn from(value: Genotype<G, A>) -> Self {
+        value.chromosomes
     }
 }
 
-impl<G, A> Into<Vec<Chromosome<G, A>>> for Genotype<G, A>
+impl<G, A> From<Vec<Chromosome<G, A>>> for Genotype<G, A>
 where
     G: Gene<G, A>,
 {
-    fn into(self) -> Vec<Chromosome<G, A>> {
-        self.chromosomes
+    fn from(value: Vec<Chromosome<G, A>>) -> Self {
+        Genotype { chromosomes: value }
     }
 }
 
-impl<G, A> std::iter::FromIterator<Chromosome<G, A>> for Genotype<G, A>
+impl<G, A> FromIterator<Chromosome<G, A>> for Genotype<G, A>
 where
     G: Gene<G, A>,
 {

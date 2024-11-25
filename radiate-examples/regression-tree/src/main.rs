@@ -20,7 +20,7 @@ fn main() {
         ])
         .fitness_fn(move |genotype: Tree<f32>| {
             let mut reducer = TreeReducer::new(&genotype);
-            Score::from_f32(regression.error(|input| reducer.reduce(&input)))
+            Score::from_f32(regression.error(|input| reducer.reduce(input)))
         })
         .build();
 

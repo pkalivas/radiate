@@ -66,7 +66,7 @@ where
                 }
             }
 
-            self.tracers[node.index].eval(&node);
+            self.tracers[node.index].eval(node);
 
             if node.node_type == NodeType::Output {
                 self.outputs[output_index] = self.tracers[node.index].result.clone().unwrap();
@@ -120,16 +120,16 @@ where
 
         if node.node_type == NodeType::Input || node.node_type == NodeType::Leaf {
             self.tracers[node.index].add_input(input[0].clone());
-            self.tracers[node.index].eval(&node);
-            return vec![self.tracers[node.index].result.clone().unwrap()];
+            self.tracers[node.index].eval(node);
+            vec![self.tracers[node.index].result.clone().unwrap()]
         } else {
             for incoming in &node.outgoing {
                 let arg = self.eval_recurrent(*incoming, input, nodes);
                 self.tracers[node.index].add_input(arg[0].clone());
             }
 
-            self.tracers[node.index].eval(&node);
-            return vec![self.tracers[node.index].result.clone().unwrap()];
+            self.tracers[node.index].eval(node);
+            vec![self.tracers[node.index].result.clone().unwrap()]
         }
     }
 

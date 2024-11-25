@@ -32,7 +32,7 @@ where
         F: FnOnce(&Architect<C, T>, NodeCollectionBuilder<C, T>) -> C,
         C: NodeRepairs<T>,
     {
-        build_fn(self, NodeCollectionBuilder::new(&self.node_factory))
+        build_fn(self, NodeCollectionBuilder::new(self.node_factory))
     }
 
     pub fn leaf(&self) -> C {
@@ -76,7 +76,7 @@ where
     T: Clone + PartialEq + Default,
 {
     pub fn tree(&self, depth: usize) -> Tree<T> {
-        Architect::<Tree<T>, T>::new(&self.node_factory)
+        Architect::<Tree<T>, T>::new(self.node_factory)
             .build(|arc, _| self.grow_tree(&arc.gate(1), depth))
     }
 
@@ -85,17 +85,17 @@ where
             return self.leaf();
         }
 
-        let mut builder = NodeCollectionBuilder::new(&self.node_factory);
+        let mut builder = NodeCollectionBuilder::new(self.node_factory);
         let mut children = Vec::new();
-        for _ in 0..parent.get_nodes().first().unwrap().arity() {
-            let temp = Architect::<Tree<T>, T>::new(&self.node_factory)
+        for _ in 0..parent.get_nodes().first().unwrap().value.arity() {
+            let temp = Architect::<Tree<T>, T>::new(self.node_factory)
                 .build(|arc, _| self.grow_tree(&arc.gate(1), depth - 1));
 
             children.push(temp);
         }
 
         for child in children.iter() {
-            builder = builder.parent_to_child(parent, &child);
+            builder = builder.parent_to_child(parent, child);
         }
 
         builder.build()
@@ -304,7 +304,7 @@ where
                 .one_to_many(&candidate_hidden_add_gate, &hidden_to_reset_weights)
                 .one_to_many(&candidate_hidden_add_gate, &hidden_to_update_weights)
                 .many_to_one(&input_to_reset_weights, &reset_gate)
-                .many_to_one(&hidden_to_reset_weights, &&reset_gate)
+                .many_to_one(&hidden_to_reset_weights, &reset_gate)
                 .many_to_one(&input_to_update_weights, &update_gate)
                 .many_to_one(&hidden_to_update_weights, &update_gate)
                 .one_to_one(&reset_gate, &hidden_reset_gate)

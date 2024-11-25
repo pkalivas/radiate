@@ -70,15 +70,15 @@ impl std::fmt::Debug for CharGene {
     }
 }
 
-impl Into<CharGene> for char {
-    fn into(self) -> CharGene {
-        CharGene { allele: self }
+impl From<CharGene> for char {
+    fn from(gene: CharGene) -> char {
+        gene.allele
     }
 }
 
-impl Into<char> for CharGene {
-    fn into(self) -> char {
-        self.allele
+impl From<char> for CharGene {
+    fn from(allele: char) -> Self {
+        CharGene { allele }
     }
 }
 

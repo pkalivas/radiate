@@ -20,7 +20,7 @@ where
     T: Clone + PartialEq + Default,
 {
     pub fn topological_iter(&self) -> impl Iterator<Item = &Node<T>> {
-        GraphIterator::new(&self)
+        GraphIterator::new(self)
     }
 
     pub fn set_cycles(mut self, indecies: Vec<usize>) -> Graph<T> {
@@ -97,8 +97,6 @@ where
         let mut collection = self.clone().set_cycles(Vec::new());
 
         for node in collection.iter_mut() {
-            let arity = node.incoming().len();
-            (*node).arity = Some(arity as u8);
             (*node).collection_type = Some(CollectionType::Graph);
 
             if let Some(factory) = factory {

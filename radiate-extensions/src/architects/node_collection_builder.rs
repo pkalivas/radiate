@@ -164,8 +164,8 @@ where
             if !self.nodes.contains_key(&node.id) {
                 let node_id = &node.id;
 
-                self.nodes.insert(&node_id, node);
-                self.node_order.insert(self.node_order.len(), &node_id);
+                self.nodes.insert(node_id, node);
+                self.node_order.insert(self.node_order.len(), node_id);
 
                 for outgoing in group
                     .iter()
@@ -201,7 +201,7 @@ where
 
         for (source, target) in source_to_removed.into_iter().zip(two_inputs.into_iter()) {
             self.relationships.push(Relationship {
-                source_id: &source.0,
+                source_id: source.0,
                 target_id: &target.id,
             });
         }

@@ -13,7 +13,6 @@ where
     pub id: Uuid,
     pub index: usize,
     pub value: Ops<T>,
-    pub arity: Option<u8>,
     pub collection_type: Option<CollectionType>,
     pub enabled: bool,
     pub node_type: NodeType,
@@ -31,7 +30,6 @@ where
             id: Uuid::new_v4(),
             index,
             value,
-            arity: None,
             enabled: true,
             direction: Direction::Forward,
             collection_type: None,
@@ -39,14 +37,6 @@ where
             incoming: HashSet::new(),
             outgoing: HashSet::new(),
         }
-    }
-
-    pub fn arity(&self) -> u8 {
-        if let Some(arity) = &self.arity {
-            return *arity;
-        }
-
-        self.value.arity()
     }
 
     pub fn node_type(&self) -> &NodeType {
@@ -78,11 +68,6 @@ where
     pub fn outgoing_mut(&mut self) -> &mut HashSet<usize> {
         &mut self.outgoing
     }
-
-    pub fn set_arity(mut self, arity: u8) -> Self {
-        self.arity = Some(arity);
-        self
-    }
 }
 
 impl<T> Gene<Node<T>, Ops<T>> for Node<T>
@@ -97,7 +82,6 @@ where
         Node {
             id: Uuid::new_v4(),
             index: self.index,
-            arity: self.arity.clone(),
             enabled: self.enabled,
             value: self.value.new_instance(),
             direction: self.direction.clone(),
@@ -112,7 +96,6 @@ where
         Node {
             id: Uuid::new_v4(),
             index: self.index,
-            arity: self.arity.clone(),
             value: allele.clone(),
             enabled: self.enabled,
             collection_type: self.collection_type.clone(),
@@ -134,7 +117,7 @@ where
                 return match self.node_type {
                     NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
                     NodeType::Output => self.incoming.len() > 0,
-                    NodeType::Gate => self.incoming.len() == self.arity() as usize,
+                    NodeType::Gate => self.incoming.len() == self.value.arity() as usize,
                     NodeType::Aggregate => !self.incoming.is_empty() && !self.outgoing.is_empty(),
                     NodeType::Weight => self.incoming.len() == 1 && self.outgoing.len() == 1,
                     NodeType::Link => self.incoming.len() == 1 && self.outgoing.len() > 0,
@@ -144,7 +127,7 @@ where
                 return match self.node_type {
                     NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
                     NodeType::Output => self.incoming.len() > 0,
-                    NodeType::Gate => self.outgoing.len() == self.arity() as usize,
+                    NodeType::Gate => self.outgoing.len() == self.value.arity() as usize,
                     NodeType::Aggregate => !self.incoming.is_empty() && !self.outgoing.is_empty(),
                     NodeType::Weight => self.incoming.len() == 1 && self.outgoing.len() == 1,
                     NodeType::Link => self.incoming.len() == 1 && self.outgoing.len() > 0,
@@ -165,7 +148,6 @@ where
         Node {
             id: self.id.clone(),
             index: self.index.clone(),
-            arity: self.arity.clone(),
             enabled: self.enabled,
             value: self.value.clone(),
             collection_type: self.collection_type.clone(),
@@ -184,7 +166,6 @@ where
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
             && self.index == other.index
-            && self.arity == other.arity
             && self.value == other.value
             && self.direction == other.direction
             && self.node_type == other.node_type
@@ -201,7 +182,6 @@ where
         Node {
             id: Uuid::new_v4(),
             index: 0,
-            arity: None,
             enabled: true,
             value: Ops::default(),
             direction: Direction::Forward,

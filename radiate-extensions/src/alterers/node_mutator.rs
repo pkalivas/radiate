@@ -76,16 +76,16 @@ where
 
                 if RandomProvider::random::<f32>() < self.replace_rate {
                     gene.from_allele(&Ops::MutableConst(
-                        &name,
+                        name,
                         *arity,
                         random_value,
                         Arc::clone(supplier),
                         Arc::clone(operation),
                     ))
                 } else {
-                    let new_value = random_value + value.clone();
+                    let new_value = random_value + *value;
                     gene.from_allele(&Ops::MutableConst(
-                        &name,
+                        name,
                         *arity,
                         new_value,
                         Arc::clone(supplier),

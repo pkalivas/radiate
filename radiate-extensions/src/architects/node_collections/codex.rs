@@ -25,10 +25,10 @@ where
     }
 
     pub fn from_shape(input_size: usize, output_size: usize, factory: &'a NodeFactory<T>) -> Self {
-        let nodes = Architect::<Graph<T>, T>::new(&factory)
+        let nodes = Architect::<Graph<T>, T>::new(factory)
             .acyclic(input_size, output_size)
             .iter()
-            .map(|node| node.clone())
+            .cloned()
             .collect::<Vec<Node<T>>>();
 
         GraphCodex::from_nodes(nodes, factory)
@@ -53,12 +53,12 @@ where
     where
         F: Fn(&Architect<Graph<T>, T>, NodeCollectionBuilder<Graph<T>, T>) -> Graph<T>,
     {
-        let graph = Architect::<Graph<T>, T>::new(&self.factory)
+        let graph = Architect::<Graph<T>, T>::new(self.factory)
             .build(|arc, builder| node_fn(arc, builder));
 
         self.nodes = graph
             .iter()
-            .map(|node| node.clone())
+            .cloned()
             .collect::<Vec<Node<T>>>();
         self.input_size = graph
             .iter()
@@ -85,7 +85,7 @@ where
                         let temp_node = self.factory.new_node(node.index, node.node_type);
 
                         if temp_node.value.arity() == node.value.arity() {
-                            return node.from_allele(&temp_node.allele());
+                            return node.from_allele(temp_node.allele());
                         }
 
                         node.clone()
@@ -102,7 +102,7 @@ where
                 .next()
                 .unwrap()
                 .iter()
-                .map(|node| node.clone())
+                .cloned()
                 .collect::<Vec<Node<T>>>(),
         )
     }
@@ -124,7 +124,7 @@ where
         let nodes = Architect::<Tree<T>, T>::new(&factory)
             .tree(depth)
             .iter()
-            .map(|node| node.clone())
+            .cloned()
             .collect::<Vec<Node<T>>>();
 
         TreeCodex { factory, nodes }
@@ -144,7 +144,7 @@ where
                         let temp_node = self.factory.new_node(node.index, node.node_type);
 
                         if temp_node.value.arity() == node.value.arity() {
-                            return node.from_allele(&temp_node.allele());
+                            return node.from_allele(temp_node.allele());
                         }
 
                         node.clone()
@@ -161,7 +161,7 @@ where
                 .next()
                 .unwrap()
                 .iter()
-                .map(|node| node.clone())
+                .cloned()
                 .collect::<Vec<Node<T>>>(),
         )
     }

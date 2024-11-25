@@ -29,8 +29,7 @@ impl<G: Gene<G, A>, A> Select<G, A> for EliteSelector {
     ) -> Population<G, A> {
         population
             .iter()
-            .take(count)
-            .map(|phenotype| phenotype.clone())
+            .take(count).cloned()
             .collect()
     }
 }

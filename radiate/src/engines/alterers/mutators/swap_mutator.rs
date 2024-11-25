@@ -40,7 +40,7 @@ impl<G: Gene<G, A>, A> Mutate<G, A> for SwapMutator {
                 let curr_gene = chromosome.get_gene(i);
                 let swap_gene = chromosome.get_gene(swap_index);
 
-                chromosome.set_gene(i, curr_gene.from_allele(&swap_gene.allele()));
+                chromosome.set_gene(i, curr_gene.from_allele(swap_gene.allele()));
             }
         }
 

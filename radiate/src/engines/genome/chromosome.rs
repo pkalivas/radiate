@@ -95,28 +95,28 @@ where
     }
 }
 
-impl<G, A> Into<Chromosome<G, A>> for Vec<G>
+impl<G, A> From<Chromosome<G, A>> for Vec<G>
 where
     G: Gene<G, A>,
 {
-    fn into(self) -> Chromosome<G, A> {
+    fn from(value: Chromosome<G, A>) -> Self {
+        value.genes
+    }
+}
+
+impl<G, A> From<Vec<G>> for Chromosome<G, A>
+where
+    G: Gene<G, A>,
+{
+    fn from(value: Vec<G>) -> Self {
         Chromosome {
-            genes: self,
+            genes: value,
             _allele: std::marker::PhantomData,
         }
     }
 }
 
-impl<G, A> Into<Vec<G>> for Chromosome<G, A>
-where
-    G: Gene<G, A>,
-{
-    fn into(self) -> Vec<G> {
-        self.genes
-    }
-}
-
-impl<G, A> std::iter::FromIterator<G> for Chromosome<G, A>
+impl<G, A> FromIterator<G> for Chromosome<G, A>
 where
     G: Gene<G, A>,
 {

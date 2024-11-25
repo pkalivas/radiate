@@ -44,7 +44,7 @@ use super::{
 ///     .max_age(15) // Set the maximum age of an individual to 15 generations before it is replaced with a new individual.
 ///     .offspring_fraction(0.5) // Set the fraction of the population that will be replaced by offspring each generation.
 ///     .num_threads(4) // Set the number of threads to use in the thread pool for parallel fitness evaluation.
-///     .offspring_selector(BoltzmannSelector::new(4_f32)) // Use boltzmann selection selection to select offspring.
+///     .offspring_selector(BoltzmannSelector::new(4_f32)) // Use boltzmann selection to select offspring.
 ///     .survivor_selector(TournamentSelector::new(3)) // Use tournament selection to select survivors.
 ///     .alterer(vec![                                      
 ///         Alterer::mutation(NumericMutator::new(0.01)), // Specific mutator for numeric values.
@@ -66,7 +66,7 @@ use super::{
 /// # Type Parameters
 /// - `G`: The type of gene used in the genetic algorithm, which must implement the `Gene` trait.
 /// - `A`: The type of the allele associated with the gene - the gene's "expression".
-/// - `T`: The type of the phenotype produced by the genetic algorithm, which must be `Clone`, `Send`, and `'static`.
+/// - `T`: The type of the phenotype produced by the genetic algorithm, which must be `Clone`, `Send`, and `static`.
 ///
 pub struct GeneticEngine<'a, G, A, T>
 where
@@ -274,7 +274,7 @@ where
     ) {
         handle.population = survivors
             .into_iter()
-            .chain(offspring.into_iter())
+            .chain(offspring)
             .collect::<Population<G, A>>();
     }
 
@@ -291,14 +291,14 @@ where
 
         if let Some(current_score) = &output.score {
             if let Some(best_score) = output.population.get(0).score() {
-                if optimize.is_better(best_score, &current_score) {
+                if optimize.is_better(best_score, current_score) {
                     output.score = Some(best_score.clone());
-                    output.best = codex.decode(&output.population.get(0).genotype());
+                    output.best = codex.decode(output.population.get(0).genotype());
                 }
             }
         } else {
             output.score = output.population.get(0).score().clone();
-            output.best = codex.decode(&output.population.get(0).genotype());
+            output.best = codex.decode(output.population.get(0).genotype());
         }
 
         self.add_metrics(output);
@@ -352,8 +352,8 @@ where
 
     /// Returns the codex specified in the genetic engine parameters. The codex is responsible for encoding and
     /// decoding individuals in the population, converting between the genotype and phenotype representations.
-    fn codex(&self) -> Arc<&'a dyn Codex<G, A, T>> {
-        Arc::clone(self.params.codex.as_ref().unwrap())
+    fn codex(&self) -> &'a dyn Codex<G, A, T> {
+        *Arc::clone(self.params.codex.as_ref().unwrap())
     }
 
     /// Returns the fitness function specified in the genetic engine parameters. The fitness function is a closure
@@ -397,7 +397,7 @@ where
 
         EngineContext {
             population: population.clone(),
-            best: self.codex().decode(&population.get(0).genotype()),
+            best: self.codex().decode(population.get(0).genotype()),
             index: 0,
             timer: Timer::new(),
             metrics: MetricSet::new(),

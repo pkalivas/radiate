@@ -1,7 +1,7 @@
 use crate::RandomProvider;
 
 pub fn individual_indexes(index: usize, size: usize, order: usize) -> Vec<usize> {
-    let mut sub_set = subset(size as usize, order as usize);
+    let mut sub_set = subset(size, order);
     let mut i = 0;
     while sub_set[i] < index as i32 && i < sub_set.len() - 1 {
         i += 1;
@@ -14,15 +14,11 @@ pub fn individual_indexes(index: usize, size: usize, order: usize) -> Vec<usize>
 }
 
 pub fn subset(n: usize, k: usize) -> Vec<i32> {
-    if k <= 0 {
-        panic!("Subset size smaller or equal zero: {}", k);
-    }
-
     if n < k {
         panic!("n smaller than k: {} < {}.", n, k);
     }
 
-    let mut sub = vec![0; k as usize];
+    let mut sub = vec![0; k];
     next(n as i32, &mut sub);
     sub
 }
@@ -46,7 +42,7 @@ fn next(num: i32, a: &mut Vec<i32>) {
     }
 }
 
-fn build_subset(n: i32, sub: &mut Vec<i32>) {
+fn build_subset(n: i32, sub: &mut [i32]) {
     let k = sub.len() as i32;
     check_subset(n, k);
 
@@ -148,7 +144,7 @@ fn invert(n: i32, a: &mut Vec<i32>) {
     }
 }
 
-fn index_of(a: &Vec<i32>, start: i32, value: i32) -> i32 {
+fn index_of(a: &[i32], start: i32, value: i32) -> i32 {
     for i in (0..=start).rev() {
         if a[i as usize] < value {
             return -1;

@@ -12,7 +12,7 @@ mod test {
         let graph = architect.tree(3);
 
         for node in graph.get_nodes() {
-            println!("{:?} ---- {:?}", node, node.arity);
+            println!("{:?} ---- {:?}", node, node.value.arity());
         }
     }
 
