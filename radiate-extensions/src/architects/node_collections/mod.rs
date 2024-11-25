@@ -1,9 +1,15 @@
-pub mod graphs;
+pub mod codex;
+pub mod graph;
+pub mod iterators;
 pub mod node_collection;
-pub mod nodes;
 pub mod node_factory;
+pub mod nodes;
+pub mod tree;
 
-pub use graphs::*;
+pub use codex::*;
+pub use graph::*;
+pub use iterators::*;
 pub use node_collection::*;
-pub use nodes::*;
 pub use node_factory::*;
+pub use nodes::*;
+pub use tree::*;

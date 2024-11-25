@@ -1,7 +1,63 @@
 use std::collections::VecDeque;
 
-use super::*;
 use crate::{Node, NodeCollection, NodeType, Tracer};
+
+use super::{Graph, Tree};
+
+pub struct BreadthFirstIterator<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    pub nodes: &'a [Node<T>],
+    pub index: usize,
+    pub queue: VecDeque<usize>,
+}
+
+impl<'a, T> BreadthFirstIterator<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    pub fn new(nodes: &'a [Node<T>], index: usize) -> Self {
+        let mut queue = VecDeque::new();
+        queue.push_back(index);
+
+        Self {
+            nodes,
+            index,
+            queue,
+        }
+    }
+}
+
+impl<'a, T> Iterator for BreadthFirstIterator<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    type Item = &'a Node<T>;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(index) = self.queue.pop_front() {
+            if let Some(node) = self.nodes.get(index) {
+                for outgoing in &node.outgoing {
+                    self.queue.push_back(*outgoing);
+                }
+
+                return Some(node);
+            }
+        }
+
+        None
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (0, Some(self.nodes.len()))
+    }
+
+    fn count(self) -> usize {
+        self.nodes.len()
+    }
+}
 
 /// `GraphIterator` is an iterator that traverses a `Graph` in sudo-topological order. I say
 /// "sudo-topological" because it is not a true topological order, but rather a topological order
@@ -162,7 +218,61 @@ where
 
     fn input_size(node: &Node<T>) -> usize {
         match node.node_type {
-            NodeType::Input | NodeType::Link => 1,
+            NodeType::Input | NodeType::Link | NodeType::Leaf => 1,
+            NodeType::Gate => node.value.arity() as usize,
+            _ => node.incoming.len(),
+        }
+    }
+}
+
+pub struct TreeReducer<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    pub nodes: &'a Tree<T>,
+    pub tracers: Vec<Tracer<T>>,
+}
+
+impl<'a, T> TreeReducer<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    pub fn new(nodes: &'a Tree<T>) -> TreeReducer<'a, T> {
+        TreeReducer {
+            nodes,
+            tracers: nodes
+                .iter()
+                .map(|node| Tracer::new(TreeReducer::input_size(node)))
+                .collect::<Vec<Tracer<T>>>(),
+        }
+    }
+
+    #[inline]
+    pub fn reduce(&mut self, inputs: &[T]) -> Vec<T> {
+        self.eval_recurrent(0, inputs, &self.nodes.nodes)
+    }
+
+    fn eval_recurrent(&mut self, index: usize, input: &[T], nodes: &[Node<T>]) -> Vec<T> {
+        let node = &nodes[index];
+
+        if node.node_type == NodeType::Input || node.node_type == NodeType::Leaf {
+            self.tracers[node.index].add_input(input[0].clone());
+            self.tracers[node.index].eval(&node);
+            return vec![self.tracers[node.index].result.clone().unwrap()];
+        } else {
+            for incoming in &node.outgoing {
+                let arg = self.eval_recurrent(*incoming, input, nodes);
+                self.tracers[node.index].add_input(arg[0].clone());
+            }
+
+            self.tracers[node.index].eval(&node);
+            return vec![self.tracers[node.index].result.clone().unwrap()];
+        }
+    }
+
+    fn input_size(node: &Node<T>) -> usize {
+        match node.node_type {
+            NodeType::Input | NodeType::Link | NodeType::Leaf => 1,
             NodeType::Gate => node.value.arity() as usize,
             _ => node.incoming.len(),
         }

@@ -7,5 +7,5 @@ pub enum NodeType {
     Weight,
     Link,
     Root,
-    Leaf
+    Leaf,
 }

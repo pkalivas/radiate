@@ -1,10 +1,11 @@
 use radiate::Valid;
 
-use crate::{node_collection, Direction, Node, NodeCollection, NodeFactory, NodeRepairs, NodeType};
+use crate::{
+    node_collection, schema::collection_type::CollectionType, Direction, Node, NodeCollection,
+    NodeFactory, NodeRepairs, NodeType,
+};
 
 use super::GraphIterator;
-
-
 
 #[derive(Clone, PartialEq, Default)]
 pub struct Graph<T>
@@ -80,21 +81,24 @@ impl<T> NodeRepairs<T> for Graph<T>
 where
     T: Clone + PartialEq + Default,
 {
-    fn repair(&mut self, factory: &NodeFactory<T>) -> Self {
+    fn repair(&mut self, factory: Option<&NodeFactory<T>>) -> Self {
         let mut collection = self.clone().set_cycles(Vec::new());
 
         for node in collection.iter_mut() {
             let arity = node.incoming().len();
             (*node).arity = Some(arity as u8);
+            (*node).collection_type = Some(CollectionType::Graph);
 
-            let temp_node = factory.new_node(node.index, NodeType::Aggregate);
+            if let Some(factory) = factory {
+                let temp_node = factory.new_node(node.index, NodeType::Aggregate);
 
-            if node.node_type() == &NodeType::Output && node.outgoing().len() > 0 {
-                node.node_type = NodeType::Aggregate;
-                node.value = temp_node.value.clone();
-            } else if node.node_type() == &NodeType::Input && node.incoming().len() > 0 {
-                node.node_type = NodeType::Aggregate;
-                node.value = temp_node.value.clone();
+                if node.node_type() == &NodeType::Output && node.outgoing().len() > 0 {
+                    node.node_type = NodeType::Aggregate;
+                    node.value = temp_node.value.clone();
+                } else if node.node_type() == &NodeType::Input && node.incoming().len() > 0 {
+                    node.node_type = NodeType::Aggregate;
+                    node.value = temp_node.value.clone();
+                }
             }
         }
 

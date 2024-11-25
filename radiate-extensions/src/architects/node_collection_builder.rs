@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 use crate::architects::node_collections::node::Node;
 use crate::architects::node_collections::node_collection::NodeCollection;
@@ -16,6 +16,7 @@ pub enum ConnectTypes {
     AllToAll,
     AllToAllSelf,
     ParentToChild,
+    Replace,
 }
 
 pub struct Relationship<'a> {
@@ -23,15 +24,17 @@ pub struct Relationship<'a> {
     pub target_id: &'a Uuid,
 }
 
+#[derive(Default)]
 pub struct NodeCollectionBuilder<'a, C, T>
 where
     C: NodeCollection<T> + NodeRepairs<T>,
     T: Clone + PartialEq + Default,
 {
-    pub factory: &'a NodeFactory<T>,
+    pub factory: Option<&'a NodeFactory<T>>,
     pub nodes: BTreeMap<&'a Uuid, &'a Node<T>>,
     pub node_order: BTreeMap<usize, &'a Uuid>,
     pub relationships: Vec<Relationship<'a>>,
+    pub removed: HashSet<&'a Uuid>,
     _phantom_c: std::marker::PhantomData<C>,
 }
 
@@ -42,10 +45,11 @@ where
 {
     pub fn new(factory: &'a NodeFactory<T>) -> Self {
         NodeCollectionBuilder {
-            factory,
+            factory: Some(factory),
             nodes: BTreeMap::new(),
             node_order: BTreeMap::new(),
             relationships: Vec::new(),
+            removed: HashSet::new(),
             _phantom_c: std::marker::PhantomData,
         }
     }
@@ -80,35 +84,61 @@ where
         self
     }
 
+    pub fn replace(mut self, one: &'a C, two: &'a C) -> Self {
+        self.connect(ConnectTypes::Replace, one, two);
+        self
+    }
+
+    pub fn insert(mut self, collection: &'a C) -> Self {
+        self.attach(collection.get_nodes());
+        self
+    }
+
+    pub fn insert_nodes(mut self, one: &'a [Node<T>]) -> Self {
+        self.attach(one);
+        self
+    }
+
     pub fn build(self) -> C {
+        let mut index = 0;
         let mut new_nodes = Vec::new();
         let mut node_id_index_map = BTreeMap::new();
 
-        for (idx, node_id) in self.node_order.iter() {
+        for (_, node_id) in self.node_order.iter() {
+            if self.removed.contains(node_id) {
+                continue;
+            }
+
             let node = self.nodes.get(node_id).unwrap();
-            let new_node = Node::new(*idx, node.node_type, node.value.clone());
+            let new_node = Node::new(index, node.node_type, node.value.clone());
 
             new_nodes.push(new_node);
-            node_id_index_map.insert(node_id, *idx);
+            node_id_index_map.insert(node_id, index);
+
+            index += 1;
         }
 
         let mut new_collection = C::from_nodes(new_nodes);
         for rel in self.relationships {
+            if self.removed.contains(rel.source_id) || self.removed.contains(rel.target_id) {
+                continue;
+            }
+
             let source_idx = node_id_index_map.get(&rel.source_id).unwrap();
             let target_idx = node_id_index_map.get(&rel.target_id).unwrap();
 
             new_collection.attach(*source_idx, *target_idx);
         }
 
-        new_collection.repair(&self.factory)
+        new_collection.repair(self.factory)
     }
 
     pub fn layer(&self, collections: Vec<&'a C>) -> Self {
-        let mut conn = NodeCollectionBuilder::new(&self.factory);
+        let mut conn = NodeCollectionBuilder::new(self.factory.unwrap());
         let mut previous = collections[0];
 
         for collection in collections.iter() {
-            conn.attach(*collection);
+            conn.attach((*collection).get_nodes());
         }
 
         for i in 1..collections.len() {
@@ -120,8 +150,8 @@ where
     }
 
     pub fn connect(&mut self, connection: ConnectTypes, one: &'a C, two: &'a C) {
-        self.attach(one);
-        self.attach(two);
+        self.attach(one.get_nodes());
+        self.attach(two.get_nodes());
 
         match connection {
             ConnectTypes::OneToOne => self.one_to_one_connect(one, two),
@@ -130,10 +160,11 @@ where
             ConnectTypes::AllToAll => self.all_to_all_connect(one, two),
             ConnectTypes::AllToAllSelf => self.all_to_all_self_connect(one, two),
             ConnectTypes::ParentToChild => self.parent_to_child_connect(one, two),
+            ConnectTypes::Replace => self.replace_connect(one, two),
         }
     }
 
-    pub fn attach(&mut self, group: &'a C) {
+    pub fn attach(&mut self, group: &'a [Node<T>]) {
         for node in group.iter() {
             if !self.nodes.contains_key(&node.id) {
                 let node_id = &node.id;
@@ -151,6 +182,33 @@ where
                     });
                 }
             }
+        }
+    }
+
+    fn replace_connect(&mut self, one: &'a C, two: &'a C) {
+        let two_inputs = self.get_inputs(two);
+        let one_inputs = self.get_inputs(one);
+
+        for node in one.iter() {
+            self.removed.insert(&node.id);
+        }
+
+        let source_to_removed = self
+            .relationships
+            .iter()
+            .filter(|rel| one_inputs.iter().any(|node| node.id == *rel.target_id))
+            .map(|rel| (rel.source_id, rel.target_id))
+            .collect::<Vec<(&Uuid, &Uuid)>>();
+
+        if source_to_removed.len() != two_inputs.len() {
+            panic!("Replace - OneGroup outputs must be the same length as TwoGroup inputs.");
+        }
+
+        for (source, target) in source_to_removed.into_iter().zip(two_inputs.into_iter()) {
+            self.relationships.push(Relationship {
+                source_id: &source.0,
+                target_id: &target.id,
+            });
         }
     }
 
