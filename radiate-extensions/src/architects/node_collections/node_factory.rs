@@ -19,7 +19,7 @@ where
     T: Clone + PartialEq + Default,
 {
     pub fn new() -> Self {
-        Self {
+        NodeFactory {
             node_values: HashMap::new(),
         }
     }
