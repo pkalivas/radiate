@@ -75,8 +75,7 @@ where
         self.nodes.get_mut(index).unwrap_or_else(|| {
             panic!(
                 "Node index {} out of bounds. Graph has {} nodes.",
-                index,
-                length
+                index, length
             )
         })
     }

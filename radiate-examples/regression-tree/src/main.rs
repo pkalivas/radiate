@@ -6,8 +6,8 @@ const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
     RandomProvider::set_seed(12345);
-    let factory = NodeFactory::<f32>::regression(1)
-        .gates(vec![op::add(), op::sub(), op::mul()]);
+    
+    let factory = NodeFactory::<f32>::regression(1).gates(vec![op::add(), op::sub(), op::mul()]);
 
     let graph_codex = TreeCodex::new(3, &factory);
 
