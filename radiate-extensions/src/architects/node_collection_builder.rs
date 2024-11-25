@@ -33,7 +33,6 @@ where
     pub node_order: BTreeMap<usize, &'a Uuid>,
     pub relationships: Vec<Relationship<'a>>,
     _phantom_c: std::marker::PhantomData<C>,
-    _phantom_t: std::marker::PhantomData<T>,
 }
 
 impl<'a, C, T> NodeCollectionBuilder<'a, C, T>
@@ -48,7 +47,6 @@ where
             node_order: BTreeMap::new(),
             relationships: Vec::new(),
             _phantom_c: std::marker::PhantomData,
-            _phantom_t: std::marker::PhantomData,
         }
     }
 

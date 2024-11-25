@@ -19,10 +19,6 @@ impl<T> Graph<T>
 where
     T: Clone + PartialEq + Default,
 {
-    pub fn new() -> Self {
-        Graph::default()
-    }
-
     pub fn topological_iter(&self) -> impl Iterator<Item = &Node<T>> {
         GraphIterator::new(&self)
     }
