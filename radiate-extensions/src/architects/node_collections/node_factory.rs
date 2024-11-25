@@ -2,8 +2,9 @@ use std::collections::HashMap;
 
 use radiate::RandomProvider;
 
+use crate::architects::node_collections::node::Node;
 use crate::{
-    architects::{node_collections::node::Node, schema::node_types::NodeType},
+    architects::schema::node_types::NodeType,
     operations::op::{self, Ops},
 };
 
@@ -75,16 +76,14 @@ where
                     let value = RandomProvider::choose(values);
                     Node::new(index, node_type, value.new_instance())
                 }
-            }
+            };
         }
 
         Node::new(index, node_type, Ops::default())
     }
 
     pub fn regression(input_size: usize) -> NodeFactory<f32> {
-        let inputs = (0..input_size)
-            .map(op::var)
-            .collect::<Vec<Ops<f32>>>();
+        let inputs = (0..input_size).map(op::var).collect::<Vec<Ops<f32>>>();
         NodeFactory::new()
             .inputs(inputs.clone())
             .leafs(inputs.clone())
@@ -129,4 +128,3 @@ where
             .outputs(vec![op::linear()])
     }
 }
-

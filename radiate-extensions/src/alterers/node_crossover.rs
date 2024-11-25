@@ -2,7 +2,7 @@ use radiate::engines::alterers::Crossover;
 use radiate::engines::genome::*;
 use radiate::{Alterer, RandomProvider};
 
-use crate::architects::node_collections::*;
+use crate::node::Node;
 use crate::operations::op::Ops;
 
 pub struct NodeCrossover<T>

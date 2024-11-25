@@ -4,27 +4,28 @@ use radiate::engines::genome::genes::gene::Gene;
 use radiate::engines::genome::genotype::Genotype;
 
 use crate::architects::*;
+use crate::node::Node;
 use crate::operations::op::Ops;
 
-pub struct GraphCodex<'a, T>
+pub struct GraphCodex<T>
 where
     T: Clone + PartialEq + Default,
 {
     pub input_size: usize,
     pub output_size: usize,
-    pub factory: &'a NodeFactory<T>,
+    pub factory: NodeFactory<T>,
     pub nodes: Vec<Node<T>>,
 }
 
-impl<'a, T> GraphCodex<'a, T>
+impl<T> GraphCodex<T>
 where
     T: Clone + PartialEq + Default,
 {
-    pub fn from_factory(factory: &'a NodeFactory<T>) -> Self {
+    pub fn from_factory(factory: &NodeFactory<T>) -> Self {
         GraphCodex::from_shape(1, 1, factory)
     }
 
-    pub fn from_shape(input_size: usize, output_size: usize, factory: &'a NodeFactory<T>) -> Self {
+    pub fn from_shape(input_size: usize, output_size: usize, factory: &NodeFactory<T>) -> Self {
         let nodes = Architect::<Graph<T>, T>::new(factory)
             .acyclic(input_size, output_size)
             .iter()
@@ -34,7 +35,7 @@ where
         GraphCodex::from_nodes(nodes, factory)
     }
 
-    pub fn from_nodes(nodes: Vec<Node<T>>, factory: &'a NodeFactory<T>) -> Self {
+    pub fn from_nodes(nodes: Vec<Node<T>>, factory: &NodeFactory<T>) -> Self {
         GraphCodex {
             input_size: nodes
                 .iter()
@@ -44,7 +45,7 @@ where
                 .iter()
                 .filter(|node| node.node_type == NodeType::Output)
                 .count(),
-            factory,
+            factory: factory.clone(),
             nodes,
         }
     }
@@ -53,13 +54,10 @@ where
     where
         F: Fn(&Architect<Graph<T>, T>, NodeCollectionBuilder<Graph<T>, T>) -> Graph<T>,
     {
-        let graph = Architect::<Graph<T>, T>::new(self.factory)
+        let graph = Architect::<Graph<T>, T>::new(&self.factory)
             .build(|arc, builder| node_fn(arc, builder));
 
-        self.nodes = graph
-            .iter()
-            .cloned()
-            .collect::<Vec<Node<T>>>();
+        self.nodes = graph.iter().cloned().collect::<Vec<Node<T>>>();
         self.input_size = graph
             .iter()
             .filter(|node| node.node_type == NodeType::Input)
@@ -70,9 +68,57 @@ where
             .count();
         self
     }
+
+    pub fn set_factory(mut self, factory: &NodeFactory<T>) -> Self {
+        self.factory = factory.clone();
+        self
+    }
+
+    pub fn set_gates(mut self, gates: Vec<Ops<T>>) -> Self {
+        self.factory.add_node_values(NodeType::Gate, gates);
+        self
+    }
+
+    pub fn set_weights(mut self, weights: Vec<Ops<T>>) -> Self {
+        self.factory.add_node_values(NodeType::Weight, weights);
+        self
+    }
+
+    pub fn set_aggregates(mut self, aggregates: Vec<Ops<T>>) -> Self {
+        self.factory
+            .add_node_values(NodeType::Aggregate, aggregates);
+        self
+    }
+
+    pub fn set_inputs(mut self, inputs: Vec<Ops<T>>) -> Self {
+        self.factory.add_node_values(NodeType::Input, inputs);
+        self
+    }
+
+    pub fn set_outputs(mut self, outputs: Vec<Ops<T>>) -> Self {
+        self.factory.add_node_values(NodeType::Output, outputs);
+        self
+    }
+
+    pub fn get_factory(&self) -> NodeFactory<T> {
+        self.factory.clone()
+    }
 }
 
-impl<'a, T> Codex<Node<T>, Ops<T>, Graph<T>> for GraphCodex<'a, T>
+impl GraphCodex<f32> {
+    pub fn regression(input_size: usize, output_size: usize) -> Self {
+        let factory = NodeFactory::<f32>::regression(input_size);
+        let nodes = Architect::<Graph<f32>, f32>::new(&factory)
+            .acyclic(input_size, output_size)
+            .iter()
+            .cloned()
+            .collect::<Vec<Node<f32>>>();
+
+        GraphCodex::<f32>::from_nodes(nodes, &factory)
+    }
+}
+
+impl<T> Codex<Node<T>, Ops<T>, Graph<T>> for GraphCodex<T>
 where
     T: Clone + PartialEq + Default,
 {

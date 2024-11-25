@@ -10,7 +10,7 @@ use crate::engines::schema::timer::Timer;
 use crate::engines::score::Score;
 
 use super::codexes::Codex;
-use super::engine_context::EngineContext;
+use super::engine_output::EngineOutput;
 use super::genome::phenotype::Phenotype;
 use super::selectors::select::Select;
 use super::{
@@ -98,9 +98,9 @@ where
     /// Executes the genetic algorithm. The algorithm continues until a specified
     /// stopping condition, 'limit', is met, such as reaching a target fitness score or
     /// exceeding a maximum number of generations. When 'limit' returns true, the algorithm stops.
-    pub fn run<F>(&self, limit: F) -> EngineContext<G, A, T>
+    pub fn run<F>(&self, limit: F) -> EngineOutput<G, A, T>
     where
-        F: Fn(&EngineContext<G, A, T>) -> bool,
+        F: Fn(&EngineOutput<G, A, T>) -> bool,
     {
         let mut ctx = self.start();
 
@@ -135,7 +135,7 @@ where
     /// parallel, which can significantly speed up the evaluation process for large populations.
     /// It will also only evaluate individuals that have not yet been scored, which saves time
     /// by avoiding redundant evaluations.
-    fn evaluate(&self, handle: &mut EngineContext<G, A, T>) {
+    fn evaluate(&self, handle: &mut EngineOutput<G, A, T>) {
         let codex = self.codex();
         let optimize = self.optimize();
         let thread_pool = self.thread_pool();
@@ -268,7 +268,7 @@ where
     /// will be used in the next iteration of the genetic algorithm.
     fn recombine(
         &self,
-        handle: &mut EngineContext<G, A, T>,
+        handle: &mut EngineOutput<G, A, T>,
         survivors: Population<G, A>,
         offspring: Population<G, A>,
     ) {
@@ -281,7 +281,7 @@ where
     /// Audits the current state of the genetic algorithm, updating the best individual found so far
     /// and calculating various metrics such as the age of individuals, the score of individuals, and the
     /// number of unique scores in the population. This method is called at the end of each generation.
-    fn audit(&self, output: &mut EngineContext<G, A, T>) {
+    fn audit(&self, output: &mut EngineOutput<G, A, T>) {
         let codex = self.codex();
         let optimize = self.optimize();
 
@@ -313,7 +313,7 @@ where
     /// The age of an individual is the number of generations it has survived, while the score of an individual
     /// is a measure of its fitness. The number of unique scores in the population is a measure of diversity, with
     /// a higher number indicating a more diverse population.
-    fn add_metrics(&self, output: &mut EngineContext<G, A, T>) {
+    fn add_metrics(&self, output: &mut EngineOutput<G, A, T>) {
         let mut unique = HashSet::new();
         for i in 0..output.population.len() {
             let phenotype = output.population.get(i);
@@ -392,10 +392,10 @@ where
     }
 
     /// Starts the genetic algorithm by initializing the population and returning the initial state of the genetic engine.
-    fn start(&self) -> EngineContext<G, A, T> {
+    fn start(&self) -> EngineOutput<G, A, T> {
         let population = self.population();
 
-        EngineContext {
+        EngineOutput {
             population: population.clone(),
             best: self.codex().decode(population.get(0).genotype()),
             index: 0,
@@ -406,7 +406,7 @@ where
     }
 
     /// Stops the genetic algorithm by stopping the timer and returning the final state of the genetic engine.
-    fn stop(&self, output: &mut EngineContext<G, A, T>) -> EngineContext<G, A, T> {
+    fn stop(&self, output: &mut EngineOutput<G, A, T>) -> EngineOutput<G, A, T> {
         output.timer.stop();
         output.clone()
     }

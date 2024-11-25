@@ -102,9 +102,7 @@ TODO - write out the general GA workflow provided by the library.
 ## Future Features
 * Multi-objective optimization ([pareto fronts](https://www.sciencedirect.com/topics/engineering/pareto-front#:~:text=The%20concept%20of%20Pareto%20front,solutions%20in%20the%20search%20space.))
   * I have a plan and mental model of how to integrate this into the library - fundementals are already there. Will start when I have time probably within the next month or two (Dec 2024/Jan 2025)
-* [Genetic Programming through tree data structures](https://en.wikipedia.org/wiki/Gene_expression_programming#:~:text=In%20computer%20programming%2C%20gene%20expression,much%20like%20a%20living%20organism.)?
-  * Graphs are already implemented and working well so in theory trees (expression trees) should be a (somewhat) light lift.
-  
+
 ## Examples
 The radiate-examples directory contains several examples demonstrating the capabilities of the library, including:
 * **[Min-Sum](https://github.com/pkalivas/radiate/blob/master/radiate-examples/min-sum/src/main.rs)**: An example of minimizing a sum of integers.

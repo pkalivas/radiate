@@ -1,6 +1,8 @@
 #[allow(dead_code)]
+#[derive(Debug, Clone, Default)]
 pub struct Sample<T>(pub usize, pub Vec<T>, pub Vec<T>);
 
+#[derive(Default)]
 pub struct SampleSet<T> {
     samples: Vec<Sample<T>>,
 }

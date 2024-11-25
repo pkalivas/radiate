@@ -94,7 +94,6 @@ where
     /// decode it to a new instance of `T`.
     fn spawn(&self, num: i32) -> Vec<T> {
         (0..num)
-            .into_iter()
             .map(|_| self.decode(&self.encode()))
             .collect::<Vec<T>>()
     }
@@ -102,7 +101,6 @@ where
     /// Spawn a new instance of `Genotype<G, A>` from the `Codex`. This will encode `num` a new `Genotype`s.
     fn spawn_genotypes(&self, num: i32) -> Vec<Genotype<G, A>> {
         (0..num)
-            .into_iter()
             .map(|_| self.encode())
             .collect::<Vec<Genotype<G, A>>>()
     }
@@ -110,7 +108,6 @@ where
     /// Spawn a new instance of `Population<G, A>` from the `Codex`. This will encode `num` a new `Genotype`s
     fn spawn_population(&self, num: i32) -> Population<G, A> {
         (0..num)
-            .into_iter()
             .map(|_| Phenotype::from_genotype(self.encode(), 0))
             .collect::<Population<G, A>>()
     }

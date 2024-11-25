@@ -1,7 +1,8 @@
 use radiate::{Alterer, Chromosome, Crossover, RandomProvider, Valid};
 use uuid::Uuid;
 
-use crate::{Node, NodeCollectionBuilder, Ops, Tree};
+use crate::node::Node;
+use crate::{NodeCollectionBuilder, Ops, Tree};
 
 pub struct TreeCrossover<T>
 where
@@ -24,21 +25,21 @@ where
         }))
     }
 
-    fn level(&self, index: usize, nodes: &[Node<T>]) -> usize {
+    fn level(index: usize, nodes: &[Node<T>]) -> usize {
         nodes[index]
             .incoming
             .iter()
-            .map(|i| self.level(*i, nodes))
+            .map(|i| TreeCrossover::level(*i, nodes))
             .max()
             .unwrap_or(0)
             + 1
     }
 
-    fn depth(&self,index: usize, nodes: &[Node<T>]) -> usize {
+    fn depth(index: usize, nodes: &[Node<T>]) -> usize {
         nodes[index]
             .outgoing
             .iter()
-            .map(|i| self.depth(*i, nodes))
+            .map(|i| TreeCrossover::depth(*i, nodes))
             .max()
             .unwrap_or(0)
             + 1
@@ -55,11 +56,11 @@ where
             return false;
         }
 
-        let one_depth = self.depth(one_index, one);
-        let two_depth = self.depth(two_index, two);
+        let one_depth = TreeCrossover::depth(one_index, one);
+        let two_depth = TreeCrossover::depth(two_index, two);
 
-        let one_height = self.level(one_index, one);
-        let two_height = self.level(two_index, two);
+        let one_height = TreeCrossover::level(one_index, one);
+        let two_height = TreeCrossover::level(two_index, two);
 
         one_height + two_depth <= self.max_height && two_height + one_depth <= self.max_height
     }

@@ -5,8 +5,8 @@ use radiate::engines::genome::*;
 use radiate::engines::optimize::Optimize;
 use radiate::{Alterer, Metric, RandomProvider, Timer};
 
-use crate::architects::node_collections::*;
 use crate::architects::schema::node_types::NodeType;
+use crate::node::Node;
 use crate::operations::op::Ops;
 
 const NUM_PARENTS: usize = 2;

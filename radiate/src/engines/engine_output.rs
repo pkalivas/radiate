@@ -25,7 +25,7 @@ use super::MetricSet;
 /// - `A`: The type of the allele associated with the gene - the gene's "expression".
 /// - `T`: The type of the best individual in the population.
 ///
-pub struct EngineContext<G, A, T>
+pub struct EngineOutput<G, A, T>
 where
     G: Gene<G, A>,
 {
@@ -37,7 +37,7 @@ where
     pub score: Option<Score>,
 }
 
-impl<G, A, T> EngineContext<G, A, T>
+impl<G, A, T> EngineOutput<G, A, T>
 where
     G: Gene<G, A>,
 {
@@ -60,7 +60,7 @@ where
     }
 }
 
-impl<G, A, T> Clone for EngineContext<G, A, T>
+impl<G, A, T> Clone for EngineOutput<G, A, T>
 where
     G: Gene<G, A>,
     T: Clone,
@@ -77,7 +77,7 @@ where
     }
 }
 
-impl<G, A, T: std::fmt::Debug> std::fmt::Debug for EngineContext<G, A, T>
+impl<G, A, T: std::fmt::Debug> std::fmt::Debug for EngineOutput<G, A, T>
 where
     G: Gene<G, A>,
 {

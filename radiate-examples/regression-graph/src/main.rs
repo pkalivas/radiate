@@ -6,10 +6,12 @@ const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
     RandomProvider::set_seed(12345);
-    
+
     let factory = NodeFactory::<f32>::regression(1).gates(vec![op::add(), op::sub(), op::mul()]);
 
-    let graph_codex = GraphCodex::from_factory(&factory);
+    let graph_codex = GraphCodex::regression(1, 1)
+        .set_outputs(vec![op::linear()])
+        .set_gates(vec![op::add(), op::sub(), op::mul()]);
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 
@@ -30,7 +32,7 @@ fn main() {
         ])
         .fitness_fn(move |genotype: Graph<f32>| {
             let mut reducer = GraphReducer::new(&genotype);
-            Score::from_f32(regression.error(|input| reducer.reduce(&input)))
+            Score::from_f32(regression.error(|input| reducer.reduce(input)))
         })
         .build();
 
@@ -42,7 +44,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<Node<f32>, Ops<f32>, Graph<f32>>) {
+fn display(result: &EngineOutput<Node<f32>, Ops<f32>, Graph<f32>>) {
     let mut regression_accuracy = 0.0;
     let mut total = 0.0;
 

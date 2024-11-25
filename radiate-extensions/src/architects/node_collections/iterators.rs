@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
-use crate::{Node, NodeCollection};
-
+use crate::NodeCollection;
+use crate::node::Node;
 use super::Graph;
 
 pub struct BreadthFirstIterator<'a, T>
