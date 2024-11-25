@@ -1,11 +1,10 @@
-use radiate::engines::genome::genes::gene::Valid;
+use radiate::Valid;
 
-use crate::{
-    architects::node_collections::node::Node, node_collection, Direction, NodeFactory, NodeRepairs,
-    NodeType,
-};
+use crate::{node_collection, Direction, Node, NodeCollection, NodeFactory, NodeRepairs, NodeType};
 
-use super::{super::node_collection::NodeCollection, GraphIterator};
+use super::GraphIterator;
+
+
 
 #[derive(Clone, PartialEq, Default)]
 pub struct Graph<T>

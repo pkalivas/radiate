@@ -29,24 +29,8 @@ where
         self
     }
 
-    pub fn input_values(mut self, values: Vec<T>) -> NodeFactory<T> {
-        self.add_node_values(
-            NodeType::Input,
-            values.iter().map(|v| op::value(v.clone())).collect(),
-        );
-        self
-    }
-
     pub fn outputs(mut self, values: Vec<Ops<T>>) -> NodeFactory<T> {
         self.add_node_values(NodeType::Output, values);
-        self
-    }
-
-    pub fn output_values(mut self, values: Vec<T>) -> NodeFactory<T> {
-        self.add_node_values(
-            NodeType::Output,
-            values.iter().map(|v| op::value(v.clone())).collect(),
-        );
         self
     }
 
@@ -55,37 +39,13 @@ where
         self
     }
 
-    pub fn gate_values(mut self, values: Vec<T>) -> NodeFactory<T> {
-        self.add_node_values(
-            NodeType::Gate,
-            values.iter().map(|v| op::value(v.clone())).collect(),
-        );
-        self
-    }
-
     pub fn aggregates(mut self, values: Vec<Ops<T>>) -> NodeFactory<T> {
         self.add_node_values(NodeType::Aggregate, values);
         self
     }
 
-    pub fn aggregate_values(mut self, values: Vec<T>) -> NodeFactory<T> {
-        self.add_node_values(
-            NodeType::Aggregate,
-            values.iter().map(|v| op::value(v.clone())).collect(),
-        );
-        self
-    }
-
     pub fn weights(mut self, values: Vec<Ops<T>>) -> NodeFactory<T> {
         self.add_node_values(NodeType::Weight, values);
-        self
-    }
-
-    pub fn weight_values(mut self, values: Vec<T>) -> NodeFactory<T> {
-        self.add_node_values(
-            NodeType::Weight,
-            values.iter().map(|v| op::value(v.clone())).collect(),
-        );
         self
     }
 
