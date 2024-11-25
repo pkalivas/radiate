@@ -24,6 +24,16 @@ where
         }
     }
 
+    pub fn root(mut self, value: Ops<T>) -> NodeFactory<T> {
+        self.add_node_values(NodeType::Root, vec![value]);
+        self
+    }
+
+    pub fn leafs(mut self, values: Vec<Ops<T>>) -> NodeFactory<T> {
+        self.add_node_values(NodeType::Leaf, values);
+        self
+    }
+
     pub fn inputs(mut self, values: Vec<Ops<T>>) -> NodeFactory<T> {
         self.add_node_values(NodeType::Input, values);
         self
@@ -78,12 +88,12 @@ where
     }
 
     pub fn regression(input_size: usize) -> NodeFactory<f32> {
+        let inputs = (0..input_size)
+            .map(|idx| op::var(idx))
+            .collect::<Vec<Ops<f32>>>();
         NodeFactory::new()
-            .inputs(
-                (0..input_size)
-                    .map(|idx| op::var(idx))
-                    .collect::<Vec<Ops<f32>>>(),
-            )
+            .inputs(inputs.clone())
+            .leafs(inputs.clone())
             .gates(vec![
                 op::add(),
                 op::sub(),
@@ -123,6 +133,7 @@ where
             ])
             .weights(vec![op::weight()])
             .outputs(vec![op::linear()])
+            .root(op::linear())
     }
 }
 

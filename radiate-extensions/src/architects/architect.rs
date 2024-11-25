@@ -4,7 +4,7 @@ use crate::architects::node_collections::node_collection::NodeCollection;
 use crate::architects::node_collections::node_factory::NodeFactory;
 use crate::architects::schema::node_types::NodeType;
 
-use super::{Graph, NodeRepairs};
+use super::{Graph, NodeRepairs, Tree};
 
 pub struct Architect<'a, C, T>
 where
@@ -33,6 +33,14 @@ where
         C: NodeRepairs<T>,
     {
         build_fn(self, NodeCollectionBuilder::new(&self.node_factory))
+    }
+
+    pub fn root(&self) -> C {
+        self.new_collection(NodeType::Root, 1)
+    }
+
+    pub fn leaf(&self) -> C {
+        self.new_collection(NodeType::Leaf, 1)
     }
 
     pub fn input(&self, siez: usize) -> C {
@@ -64,6 +72,53 @@ where
         (0..size)
             .map(|i| self.node_factory.new_node(i, node_type))
             .collect::<Vec<Node<T>>>()
+    }
+}
+
+impl<'a, T> Architect<'a, Tree<T>, T>
+where 
+    T: Clone + PartialEq + Default,
+{
+    pub fn tree(&self, depth: usize) -> Tree<T> {
+        Architect::<Tree<T>, T>::new(&self.node_factory)
+            .build(|arc, _| self.grow_tree(&arc.gate(1), depth))
+
+        // for node in result.get_nodes_mut() {
+
+        //     let temp_node = self.node_factory.new_node(*node.index(), NodeType::Input);
+
+        //     if node.outgoing().len() == 0 {
+        //         node.node_type = NodeType::Root;
+        //     } else if node.incoming().len() == 0 {
+        //         node.node_type = NodeType::Leaf;
+        //         node.value = temp_node.value.clone();
+        //     }
+        // }
+
+
+        // result
+    }
+
+    fn grow_tree(&self, parent: &Tree<T>, depth: usize) -> Tree<T> {
+        if depth == 0 {
+            return Architect::<Tree<T>, T>::new(&self.node_factory)
+                .build(|arc, _| arc.leaf());
+        }
+
+        let mut builder = NodeCollectionBuilder::new(&self.node_factory);
+        let mut children = Vec::new();
+        for _ in 0..parent.get_nodes().first().unwrap().arity() {
+            let temp = Architect::<Tree<T>, T>::new(&self.node_factory)
+                .build(|arc, _| self.grow_tree(&arc.gate(1), depth - 1));
+            
+            children.push(temp);
+        }
+
+        for child in children.iter() {
+            builder = builder.parent_to_child(parent, &child);
+        }
+
+        builder.build()
     }
 }
 

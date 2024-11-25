@@ -251,8 +251,8 @@ where
         let parent_node = one_outputs[0];
         for child_node in two_inputs {
             self.relationships.push(Relationship {
-                source_id: &parent_node.id,
-                target_id: &child_node.id,
+                source_id: &child_node.id,
+                target_id: &parent_node.id,
             });
         }
     }
