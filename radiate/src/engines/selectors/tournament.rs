@@ -1,4 +1,4 @@
-use crate::{Gene, Optimize, Population, RandomProvider};
+use crate::{Chromosome, Optimize, Population, RandomProvider};
 
 use super::Select;
 
@@ -12,17 +12,12 @@ impl TournamentSelector {
     }
 }
 
-impl<G: Gene<G, A>, A> Select<G, A> for TournamentSelector {
+impl<C: Chromosome> Select<C> for TournamentSelector {
     fn name(&self) -> &'static str {
         "Tournament Selector"
     }
 
-    fn select(
-        &self,
-        population: &Population<G, A>,
-        _: &Optimize,
-        count: usize,
-    ) -> Population<G, A> {
+    fn select(&self, population: &Population<C>, _: &Optimize, count: usize) -> Population<C> {
         let mut selected = Vec::with_capacity(count);
 
         for _ in 0..count {

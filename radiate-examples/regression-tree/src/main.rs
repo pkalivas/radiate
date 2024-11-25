@@ -32,7 +32,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineOutput<Node<f32>, Ops<f32>, Tree<f32>>) {
+fn display(result: &EngineOutput<NodeChromosome<f32>, Tree<f32>>) {
     let mut regression_accuracy = 0.0;
     let mut total = 0.0;
 

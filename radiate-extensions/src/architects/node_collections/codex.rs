@@ -118,13 +118,13 @@ impl GraphCodex<f32> {
     }
 }
 
-impl<T> Codex<Node<T>, Ops<T>, Graph<T>> for GraphCodex<T>
+impl<T> Codex<NodeChromosome<T>, Graph<T>> for GraphCodex<T>
 where
     T: Clone + PartialEq + Default,
 {
-    fn encode(&self) -> Genotype<Node<T>, Ops<T>> {
+    fn encode(&self) -> Genotype<NodeChromosome<T>> {
         Genotype {
-            chromosomes: vec![Chromosome::from_genes(
+            chromosomes: vec![NodeChromosome::from_genes(
                 self.nodes
                     .iter()
                     .map(|node| {
@@ -141,7 +141,7 @@ where
         }
     }
 
-    fn decode(&self, genotype: &Genotype<Node<T>, Ops<T>>) -> Graph<T> {
+    fn decode(&self, genotype: &Genotype<NodeChromosome<T>>) -> Graph<T> {
         Graph::from_nodes(
             genotype
                 .iter()
@@ -177,13 +177,13 @@ where
     }
 }
 
-impl<'a, T> Codex<Node<T>, Ops<T>, Tree<T>> for TreeCodex<'a, T>
+impl<'a, T> Codex<NodeChromosome<T>, Tree<T>> for TreeCodex<'a, T>
 where
     T: Clone + PartialEq + Default,
 {
-    fn encode(&self) -> Genotype<Node<T>, Ops<T>> {
+    fn encode(&self) -> Genotype<NodeChromosome<T>> {
         Genotype {
-            chromosomes: vec![Chromosome::from_genes(
+            chromosomes: vec![NodeChromosome::from_genes(
                 self.nodes
                     .iter()
                     .map(|node| {
@@ -200,7 +200,7 @@ where
         }
     }
 
-    fn decode(&self, genotype: &Genotype<Node<T>, Ops<T>>) -> Tree<T> {
+    fn decode(&self, genotype: &Genotype<NodeChromosome<T>>) -> Tree<T> {
         Tree::from_nodes(
             genotype
                 .iter()

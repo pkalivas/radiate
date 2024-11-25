@@ -1,5 +1,5 @@
 use crate::engines::alterers::crossovers::crossover::Crossover;
-use crate::engines::genome::genes::gene::Gene;
+use crate::Chromosome;
 
 pub struct UniformCrossover {
     pub rate: f32,
@@ -11,7 +11,7 @@ impl UniformCrossover {
     }
 }
 
-impl<G: Gene<G, A>, A> Crossover<G, A> for UniformCrossover {
+impl<C: Chromosome> Crossover<C> for UniformCrossover {
     fn cross_rate(&self) -> f32 {
         self.rate
     }

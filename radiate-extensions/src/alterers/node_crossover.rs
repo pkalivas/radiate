@@ -4,6 +4,7 @@ use radiate::{Alterer, RandomProvider};
 
 use crate::node::Node;
 use crate::operations::op::Ops;
+use crate::NodeChromosome;
 
 pub struct NodeCrossover<T>
 where
@@ -17,7 +18,7 @@ impl<T> NodeCrossover<T>
 where
     T: Clone + PartialEq + Default + 'static,
 {
-    pub fn alterer(rate: f32) -> Alterer<Node<T>, Ops<T>> {
+    pub fn alterer(rate: f32) -> Alterer<NodeChromosome<T>> {
         Alterer::Crossover(Box::new(Self {
             rate,
             _marker: std::marker::PhantomData,
@@ -25,7 +26,7 @@ where
     }
 }
 
-impl<T> Crossover<Node<T>, Ops<T>> for NodeCrossover<T>
+impl<T> Crossover<NodeChromosome<T>> for NodeCrossover<T>
 where
     T: Clone + PartialEq + Default,
 {
@@ -40,8 +41,8 @@ where
     #[inline]
     fn cross_chromosomes(
         &self,
-        chrom_one: &mut Chromosome<Node<T>, Ops<T>>,
-        chrom_two: &mut Chromosome<Node<T>, Ops<T>>,
+        chrom_one: &mut NodeChromosome<T>,
+        chrom_two: &mut NodeChromosome<T>,
     ) -> i32 {
         let rate = self.cross_rate();
         let mut cross_count = 0;

@@ -6,7 +6,6 @@ use radiate::{Alterer, Metric, RandomProvider, Timer};
 use crate::architects::node_collections::*;
 use crate::architects::schema::node_types::NodeType;
 use crate::node::Node;
-use crate::operations::op::Ops;
 use crate::schema::collection_type::CollectionType;
 
 pub enum NodeMutate {
@@ -56,7 +55,7 @@ where
     pub fn alterer(
         factory: NodeFactory<T>,
         mutations: Vec<NodeMutate>,
-    ) -> Alterer<Node<T>, Ops<T>> {
+    ) -> Alterer<NodeChromosome<T>> {
         Alterer::Alterer(Box::new(GraphMutator::new(factory, mutations)))
     }
 
@@ -94,7 +93,8 @@ where
             if is_locked(outgoing_node) {
                 let mut temp = Graph::from_nodes(
                     collection
-                        .iter().cloned()
+                        .iter()
+                        .cloned()
                         .chain(vec![new_source_edge, new_node])
                         .collect::<Vec<Node<T>>>(),
                 );
@@ -114,7 +114,8 @@ where
             } else {
                 let mut temp = Graph::from_nodes(
                     collection
-                        .iter().cloned()
+                        .iter()
+                        .cloned()
                         .chain(vec![new_source_edge, new_node, new_target_edge])
                         .collect::<Vec<Node<T>>>(),
                 );
@@ -138,7 +139,8 @@ where
 
         let mut temp = Graph::from_nodes(
             collection
-                .iter().cloned()
+                .iter()
+                .cloned()
                 .chain(vec![self.factory.new_node(collection.len(), *node_type)])
                 .collect::<Vec<Node<T>>>(),
         );
@@ -188,7 +190,8 @@ where
             return if is_locked(outgoing_node) {
                 let mut temp = Graph::from_nodes(
                     collection
-                        .iter().cloned()
+                        .iter()
+                        .cloned()
                         .chain(vec![new_source_edge, new_node, new_target_edge])
                         .collect::<Vec<Node<T>>>(),
                 );
@@ -200,13 +203,7 @@ where
                 temp.attach(new_target_edge_index, outgoing_node.index);
                 temp.detach(incoming_node.index, outgoing_node.index);
 
-                self.repair_insert(
-                    temp,
-                    new_node_index,
-                    incoming_node,
-                    outgoing_node,
-                    true,
-                )
+                self.repair_insert(temp, new_node_index, incoming_node, outgoing_node, true)
             } else if !source_node.is_recurrent() {
                 let mut temp = Graph::from_nodes(
                     collection
@@ -228,13 +225,7 @@ where
                 temp.attach(recurrent_edge_index, new_node_index);
                 temp.attach(new_node_index, recurrent_edge_index);
 
-                self.repair_insert(
-                    temp,
-                    new_node_index,
-                    incoming_node,
-                    outgoing_node,
-                    true,
-                )
+                self.repair_insert(temp, new_node_index, incoming_node, outgoing_node, true)
             } else {
                 let mut temp = Graph::from_nodes(
                     collection
@@ -249,14 +240,8 @@ where
                 temp.attach(new_node_index, new_target_edge_index);
                 temp.attach(new_target_edge_index, outgoing_node.index);
 
-                self.repair_insert(
-                    temp,
-                    new_node_index,
-                    incoming_node,
-                    outgoing_node,
-                    true,
-                )
-            }
+                self.repair_insert(temp, new_node_index, incoming_node, outgoing_node, true)
+            };
         } else if !can_connect(collection, source_node.index, target_node.index, true) {
             return None;
         }
@@ -314,14 +299,14 @@ where
     }
 }
 
-impl<T> Alter<Node<T>, Ops<T>> for GraphMutator<T>
+impl<T> Alter<NodeChromosome<T>> for GraphMutator<T>
 where
     T: Clone + PartialEq + Default + 'static,
 {
     #[inline]
     fn alter(
         &self,
-        population: &mut Population<Node<T>, Ops<T>>,
+        population: &mut Population<NodeChromosome<T>>,
         _: &Optimize,
         generation: i32,
     ) -> Vec<Metric> {
@@ -339,9 +324,9 @@ where
             let chromosome = genotype.get_chromosome(chromosome_index);
 
             let mutated_graph = if mutation.is_recurrent() {
-                self.insert_recurrent_node(&chromosome.genes, &mutation.node_type())
+                self.insert_recurrent_node(&chromosome.nodes, &mutation.node_type())
             } else {
-                self.insert_forward_node(&chromosome.genes, &mutation.node_type())
+                self.insert_forward_node(&chromosome.nodes, &mutation.node_type())
             };
 
             if let Some(mutated_graph) = mutated_graph {
@@ -349,7 +334,7 @@ where
                     continue;
                 }
 
-                if mutated_graph.len() == chromosome.genes.len() {
+                if mutated_graph.len() == chromosome.nodes.len() {
                     continue;
                 }
 

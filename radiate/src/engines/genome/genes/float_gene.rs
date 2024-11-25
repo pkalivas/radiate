@@ -54,7 +54,9 @@ impl Valid for FloatGene {
     }
 }
 
-impl Gene<FloatGene, f32> for FloatGene {
+impl Gene for FloatGene {
+    type Allele = f32;
+
     fn allele(&self) -> &f32 {
         &self.allele
     }
@@ -80,7 +82,7 @@ impl Gene<FloatGene, f32> for FloatGene {
     }
 }
 
-impl BoundGene<FloatGene, f32> for FloatGene {
+impl BoundGene for FloatGene {
     fn upper_bound(&self) -> &f32 {
         &self.upper_bound
     }
@@ -98,7 +100,7 @@ impl BoundGene<FloatGene, f32> for FloatGene {
     }
 }
 
-impl NumericGene<FloatGene, f32> for FloatGene {
+impl NumericGene for FloatGene {
     fn add(&self, other: &FloatGene) -> FloatGene {
         FloatGene {
             allele: self.allele + other.allele,
@@ -184,7 +186,6 @@ impl From<f32> for FloatGene {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]

@@ -10,6 +10,7 @@ use rand::{distributions::Standard, prelude::Distribution};
 
 use crate::architects::node_collections::node::Node;
 use crate::architects::node_collections::node_factory::NodeFactory;
+use crate::NodeChromosome;
 use crate::operations::op::Ops;
 
 pub struct NodeMutator<T>
@@ -38,7 +39,7 @@ where
         factory: NodeFactory<T>,
         rate: f32,
         replace_rate: f32,
-    ) -> Alterer<Node<T>, Ops<T>> {
+    ) -> Alterer<NodeChromosome<T>> {
         Alterer::Mutation(Box::new(Self {
             rate,
             replace_rate,
@@ -47,7 +48,7 @@ where
     }
 }
 
-impl<T> Mutate<Node<T>, Ops<T>> for NodeMutator<T>
+impl<T> Mutate<NodeChromosome<T>> for NodeMutator<T>
 where
     T: Clone
         + PartialEq

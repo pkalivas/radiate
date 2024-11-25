@@ -1,8 +1,7 @@
-use std::time::Duration;
-
-use crate::engines::genome::genes::gene::Gene;
 use crate::engines::genome::population::Population;
 use crate::engines::schema::timer::Timer;
+use crate::Chromosome;
+use std::time::Duration;
 
 use super::score::Score;
 use super::MetricSet;
@@ -25,11 +24,11 @@ use super::MetricSet;
 /// - `A`: The type of the allele associated with the gene - the gene's "expression".
 /// - `T`: The type of the best individual in the population.
 ///
-pub struct EngineOutput<G, A, T>
+pub struct EngineOutput<C, T>
 where
-    G: Gene<G, A>,
+    C: Chromosome,
 {
-    pub population: Population<G, A>,
+    pub population: Population<C>,
     pub best: T,
     pub index: i32,
     pub timer: Timer,
@@ -37,9 +36,9 @@ where
     pub score: Option<Score>,
 }
 
-impl<G, A, T> EngineOutput<G, A, T>
+impl<C, T> EngineOutput<C, T>
 where
-    G: Gene<G, A>,
+    C: Chromosome,
 {
     /// Get the current score of the best individual in the population.
     pub fn score(&self) -> &Score {
@@ -60,9 +59,9 @@ where
     }
 }
 
-impl<G, A, T> Clone for EngineOutput<G, A, T>
+impl<C, T> Clone for EngineOutput<C, T>
 where
-    G: Gene<G, A>,
+    C: Chromosome,
     T: Clone,
 {
     fn clone(&self) -> Self {
@@ -77,9 +76,9 @@ where
     }
 }
 
-impl<G, A, T: std::fmt::Debug> std::fmt::Debug for EngineOutput<G, A, T>
+impl<C, T: std::fmt::Debug> std::fmt::Debug for EngineOutput<C, T>
 where
-    G: Gene<G, A>,
+    C: Chromosome,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "EngineOutput {{\n")?;

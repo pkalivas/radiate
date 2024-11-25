@@ -1,4 +1,6 @@
 use super::genes::gene::Gene;
+use crate::{BitGene, CharGene, FloatGene, IntGene, Integer, Valid};
+use rand::distributions::Standard;
 
 /// The `Chromosome` struct represents a collection of `Gene` instances. The `Chromosome` is part of the
 /// genetic makeup of an individual. It is a collection of `Gene` instances, it is essentially a
@@ -19,142 +21,342 @@ use super::genes::gene::Gene;
 /// - `G`: The type of gene used in the genetic algorithm, which must implement the `Gene` trait.
 /// - `A`: The type of the allele associated with the gene - the gene's "expression".
 ///
-pub struct Chromosome<G, A>
-where
-    G: Gene<G, A>,
-{
-    pub genes: Vec<G>,
-    _allele: std::marker::PhantomData<A>,
+
+pub trait Chromosome: Clone + PartialEq {
+    type GeneType: Gene;
+
+    fn from_genes(genes: Vec<Self::GeneType>) -> Self;
+    fn get_gene(&self, index: usize) -> &Self::GeneType;
+    fn set_gene(&mut self, index: usize, gene: Self::GeneType);
+    fn get_genes(&self) -> &[Self::GeneType];
+    fn len(&self) -> usize;
+    fn is_valid(&self) -> bool;
+    fn iter(&self) -> std::slice::Iter<Self::GeneType>;
+    fn iter_mut(&mut self) -> std::slice::IterMut<Self::GeneType>;
+    fn is_empty(&self) -> bool;
 }
 
-impl<G, A> Chromosome<G, A>
-where
-    G: Gene<G, A>,
-{
-    /// Create a new instance of the Chromosome with the given genes.
-    pub fn from_genes(genes: Vec<G>) -> Self {
-        Chromosome {
-            genes,
-            _allele: std::marker::PhantomData,
-        }
+#[derive(Clone, PartialEq)]
+pub struct FloatChromosome {
+    pub genes: Vec<FloatGene>,
+}
+
+impl Chromosome for FloatChromosome {
+    type GeneType = FloatGene;
+
+    fn from_genes(genes: Vec<FloatGene>) -> Self {
+        FloatChromosome { genes }
     }
 
-    pub fn get_gene(&self, index: usize) -> &G {
+    fn get_gene(&self, index: usize) -> &FloatGene {
         &self.genes[index]
     }
 
-    pub fn set_gene(&mut self, index: usize, gene: G) {
+    fn set_gene(&mut self, index: usize, gene: FloatGene) {
         self.genes[index] = gene;
     }
 
-    pub fn get_genes(&self) -> &[G] {
+    fn get_genes(&self) -> &[FloatGene] {
         &self.genes
     }
 
-    pub fn len(&self) -> usize {
+    fn len(&self) -> usize {
         self.genes.len()
     }
 
-    pub fn is_valid(&self) -> bool {
+    fn is_valid(&self) -> bool {
         self.genes.iter().all(|gene| gene.is_valid())
     }
 
-    pub fn iter(&self) -> std::slice::Iter<G> {
+    fn iter(&self) -> std::slice::Iter<FloatGene> {
         self.genes.iter()
     }
 
-    pub fn iter_mut(&mut self) -> std::slice::IterMut<G> {
+    fn iter_mut(&mut self) -> std::slice::IterMut<FloatGene> {
         self.genes.iter_mut()
     }
-    
-    pub fn is_empty(&self) -> bool {
+
+    fn is_empty(&self) -> bool {
         self.genes.is_empty()
     }
 }
 
-impl<G, A> Clone for Chromosome<G, A>
+#[derive(Clone, PartialEq)]
+pub struct IntChromosome<I: Integer<I>>
 where
-    G: Gene<G, A>,
+    Standard: rand::distributions::Distribution<I>,
 {
-    fn clone(&self) -> Self {
-        Chromosome {
-            genes: self.genes.clone(),
-            _allele: std::marker::PhantomData,
-        }
-    }
+    pub genes: Vec<IntGene<I>>,
 }
 
-impl<G, A> PartialEq for Chromosome<G, A>
+impl<I: Integer<I>> Chromosome for IntChromosome<I>
 where
-    G: Gene<G, A>,
+    Standard: rand::distributions::Distribution<I>,
 {
-    fn eq(&self, other: &Self) -> bool {
-        for (a, b) in self.genes.iter().zip(other.genes.iter()) {
-            if a != b {
-                return false;
-            }
-        }
+    type GeneType = IntGene<I>;
 
-        true
+    fn from_genes(genes: Vec<IntGene<I>>) -> Self {
+        IntChromosome { genes }
+    }
+
+    fn get_gene(&self, index: usize) -> &IntGene<I> {
+        &self.genes[index]
+    }
+
+    fn set_gene(&mut self, index: usize, gene: IntGene<I>) {
+        self.genes[index] = gene;
+    }
+
+    fn get_genes(&self) -> &[IntGene<I>] {
+        &self.genes
+    }
+
+    fn len(&self) -> usize {
+        self.genes.len()
+    }
+
+    fn is_valid(&self) -> bool {
+        self.genes.iter().all(|gene| gene.is_valid())
+    }
+
+    fn iter(&self) -> std::slice::Iter<IntGene<I>> {
+        self.genes.iter()
+    }
+
+    fn iter_mut(&mut self) -> std::slice::IterMut<IntGene<I>> {
+        self.genes.iter_mut()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.genes.is_empty()
     }
 }
 
-impl<G, A> From<Chromosome<G, A>> for Vec<G>
-where
-    G: Gene<G, A>,
-{
-    fn from(value: Chromosome<G, A>) -> Self {
-        value.genes
+#[derive(Clone, PartialEq)]
+pub struct CharChromosome {
+    pub genes: Vec<CharGene>,
+}
+
+impl Chromosome for CharChromosome {
+    type GeneType = CharGene;
+
+    fn from_genes(genes: Vec<CharGene>) -> Self {
+        CharChromosome { genes }
+    }
+
+    fn get_gene(&self, index: usize) -> &CharGene {
+        &self.genes[index]
+    }
+
+    fn set_gene(&mut self, index: usize, gene: CharGene) {
+        self.genes[index] = gene;
+    }
+
+    fn get_genes(&self) -> &[CharGene] {
+        &self.genes
+    }
+
+    fn len(&self) -> usize {
+        self.genes.len()
+    }
+
+    fn is_valid(&self) -> bool {
+        self.genes.iter().all(|gene| gene.is_valid())
+    }
+
+    fn iter(&self) -> std::slice::Iter<CharGene> {
+        self.genes.iter()
+    }
+
+    fn iter_mut(&mut self) -> std::slice::IterMut<CharGene> {
+        self.genes.iter_mut()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.genes.is_empty()
     }
 }
 
-impl<G, A> From<Vec<G>> for Chromosome<G, A>
-where
-    G: Gene<G, A>,
-{
-    fn from(value: Vec<G>) -> Self {
-        Chromosome {
-            genes: value,
-            _allele: std::marker::PhantomData,
-        }
+#[derive(Clone, PartialEq)]
+pub struct BitChromosome {
+    pub genes: Vec<BitGene>,
+}
+
+impl Chromosome for BitChromosome {
+    type GeneType = BitGene;
+
+    fn from_genes(genes: Vec<BitGene>) -> Self {
+        BitChromosome { genes }
+    }
+
+    fn get_gene(&self, index: usize) -> &BitGene {
+        &self.genes[index]
+    }
+
+    fn set_gene(&mut self, index: usize, gene: BitGene) {
+        self.genes[index] = gene;
+    }
+
+    fn get_genes(&self) -> &[BitGene] {
+        &self.genes
+    }
+
+    fn len(&self) -> usize {
+        self.genes.len()
+    }
+
+    fn is_valid(&self) -> bool {
+        self.genes.iter().all(|gene| gene.is_valid())
+    }
+
+    fn iter(&self) -> std::slice::Iter<BitGene> {
+        self.genes.iter()
+    }
+
+    fn iter_mut(&mut self) -> std::slice::IterMut<BitGene> {
+        self.genes.iter_mut()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.genes.is_empty()
     }
 }
 
-impl<G, A> FromIterator<G> for Chromosome<G, A>
-where
-    G: Gene<G, A>,
-{
-    fn from_iter<I: IntoIterator<Item = G>>(iter: I) -> Self {
-        Chromosome {
-            genes: iter.into_iter().collect(),
-            _allele: std::marker::PhantomData,
-        }
-    }
-}
-
-impl<G, A> std::fmt::Debug for Chromosome<G, A>
-where
-    G: Gene<G, A> + std::fmt::Debug,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[")?;
-        for gene in &self.genes {
-            write!(f, "{:?}, ", gene)?;
-        }
-        write!(f, "]")
-    }
-}
-
-#[cfg(test)]
-mod test {
-
-    use super::super::genes::int_gene::IntGene;
-    use super::*;
-
-    #[test]
-    fn test_from_genes() {
-        let genes = vec![IntGene::new(0), IntGene::new(1)];
-        let chromosome = Chromosome::from_genes(genes.clone());
-        assert_eq!(chromosome.genes, genes);
-    }
-}
+// pub struct Chromosome<G, A>
+// where
+//     G: Gene<G, A>,
+// {
+//     pub genes: Vec<G>,
+//     _allele: std::marker::PhantomData<A>,
+// }
+//
+// impl<G, A> Chromosome<G, A>
+// where
+//     G: Gene<G, A>,
+// {
+//     /// Create a new instance of the Chromosome with the given genes.
+//     pub fn from_genes(genes: Vec<G>) -> Self {
+//         Chromosome {
+//             genes,
+//             _allele: std::marker::PhantomData,
+//         }
+//     }
+//
+//     pub fn get_gene(&self, index: usize) -> &G {
+//         &self.genes[index]
+//     }
+//
+//     pub fn set_gene(&mut self, index: usize, gene: G) {
+//         self.genes[index] = gene;
+//     }
+//
+//     pub fn get_genes(&self) -> &[G] {
+//         &self.genes
+//     }
+//
+//     pub fn len(&self) -> usize {
+//         self.genes.len()
+//     }
+//
+//     pub fn is_valid(&self) -> bool {
+//         self.genes.iter().all(|gene| gene.is_valid())
+//     }
+//
+//     pub fn iter(&self) -> std::slice::Iter<G> {
+//         self.genes.iter()
+//     }
+//
+//     pub fn iter_mut(&mut self) -> std::slice::IterMut<G> {
+//         self.genes.iter_mut()
+//     }
+//
+//     pub fn is_empty(&self) -> bool {
+//         self.genes.is_empty()
+//     }
+// }
+//
+// impl<G, A> Clone for Chromosome<G, A>
+// where
+//     G: Gene<G, A>,
+// {
+//     fn clone(&self) -> Self {
+//         Chromosome {
+//             genes: self.genes.clone(),
+//             _allele: std::marker::PhantomData,
+//         }
+//     }
+// }
+//
+// impl<G, A> PartialEq for Chromosome<G, A>
+// where
+//     G: Gene<G, A>,
+// {
+//     fn eq(&self, other: &Self) -> bool {
+//         for (a, b) in self.genes.iter().zip(other.genes.iter()) {
+//             if a != b {
+//                 return false;
+//             }
+//         }
+//
+//         true
+//     }
+// }
+//
+// impl<G, A> From<Chromosome<G, A>> for Vec<G>
+// where
+//     G: Gene<G, A>,
+// {
+//     fn from(value: Chromosome<G, A>) -> Self {
+//         value.genes
+//     }
+// }
+//
+// impl<G, A> From<Vec<G>> for Chromosome<G, A>
+// where
+//     G: Gene<G, A>,
+// {
+//     fn from(value: Vec<G>) -> Self {
+//         Chromosome {
+//             genes: value,
+//             _allele: std::marker::PhantomData,
+//         }
+//     }
+// }
+//
+// impl<G, A> FromIterator<G> for Chromosome<G, A>
+// where
+//     G: Gene<G, A>,
+// {
+//     fn from_iter<I: IntoIterator<Item = G>>(iter: I) -> Self {
+//         Chromosome {
+//             genes: iter.into_iter().collect(),
+//             _allele: std::marker::PhantomData,
+//         }
+//     }
+// }
+//
+// impl<G, A> std::fmt::Debug for Chromosome<G, A>
+// where
+//     G: Gene<G, A> + std::fmt::Debug,
+// {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         write!(f, "[")?;
+//         for gene in &self.genes {
+//             write!(f, "{:?}, ", gene)?;
+//         }
+//         write!(f, "]")
+//     }
+// }
+//
+// #[cfg(test)]
+// mod test {
+//     use super::super::genes::int_gene::IntGene;
+//     use super::*;
+//
+//     #[test]
+//     fn test_from_genes() {
+//         let genes = vec![IntGene::new(0), IntGene::new(1)];
+//         let chromosome = Chromosome::from_genes(genes.clone());
+//         assert_eq!(chromosome.genes, genes);
+//     }
+// }

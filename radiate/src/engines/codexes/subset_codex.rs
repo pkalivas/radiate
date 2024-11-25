@@ -1,6 +1,7 @@
 use crate::engines::genome::{
     chromosome::Chromosome, genes::bit_gene::BitGene, genes::gene::Gene, genotype::Genotype,
 };
+use crate::BitChromosome;
 
 use super::Codex;
 
@@ -22,10 +23,10 @@ impl<'a, T> SubSetCodex<'a, T> {
     }
 }
 
-impl<'a, T> Codex<BitGene, bool, Vec<&'a T>> for SubSetCodex<'a, T> {
-    fn encode(&self) -> Genotype<BitGene, bool> {
+impl<'a, T> Codex<BitChromosome, Vec<&'a T>> for SubSetCodex<'a, T> {
+    fn encode(&self) -> Genotype<BitChromosome> {
         Genotype {
-            chromosomes: vec![Chromosome::from_genes(
+            chromosomes: vec![BitChromosome::from_genes(
                 self.items
                     .iter()
                     .map(|_| BitGene::new())
@@ -34,7 +35,7 @@ impl<'a, T> Codex<BitGene, bool, Vec<&'a T>> for SubSetCodex<'a, T> {
         }
     }
 
-    fn decode(&self, genotype: &Genotype<BitGene, bool>) -> Vec<&'a T> {
+    fn decode(&self, genotype: &Genotype<BitChromosome>) -> Vec<&'a T> {
         let mut result = Vec::new();
         for (i, gene) in genotype.iter().next().unwrap().iter().enumerate() {
             if *gene.allele() {

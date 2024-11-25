@@ -10,7 +10,7 @@ fn main() {
     let graph_codex = GraphCodex::regression(1, 1)
         .set_outputs(vec![op::linear()])
         .set_gates(vec![op::add(), op::sub(), op::mul()]);
-    
+
     let factory = graph_codex.get_factory();
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
@@ -44,7 +44,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineOutput<Node<f32>, Ops<f32>, Graph<f32>>) {
+fn display(result: &EngineOutput<NodeChromosome<f32>, Graph<f32>>) {
     let mut regression_accuracy = 0.0;
     let mut total = 0.0;
 

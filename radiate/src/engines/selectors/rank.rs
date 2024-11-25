@@ -1,4 +1,4 @@
-use crate::{Gene, Optimize, Population, RandomProvider, Select};
+use crate::{Chromosome, Optimize, Population, RandomProvider, Select};
 
 pub struct RankSelector;
 
@@ -14,17 +14,12 @@ impl Default for RankSelector {
     }
 }
 
-impl<G: Gene<G, A>, A> Select<G, A> for RankSelector {
+impl<C: Chromosome> Select<C> for RankSelector {
     fn name(&self) -> &'static str {
         "Rank Selector"
     }
 
-    fn select(
-        &self,
-        population: &Population<G, A>,
-        _: &Optimize,
-        count: usize,
-    ) -> Population<G, A> {
+    fn select(&self, population: &Population<C>, _: &Optimize, count: usize) -> Population<C> {
         // TODO: This is wrong, fix me.
         let mut selected = Vec::with_capacity(count);
 

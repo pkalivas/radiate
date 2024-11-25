@@ -34,7 +34,9 @@ impl CharGene {
     }
 }
 
-impl Gene<CharGene, char> for CharGene {
+impl Gene for CharGene {
+    type Allele = char;
+
     fn allele(&self) -> &char {
         &self.allele
     }
@@ -84,7 +86,6 @@ impl From<char> for CharGene {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]

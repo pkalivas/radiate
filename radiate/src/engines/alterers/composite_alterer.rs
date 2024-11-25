@@ -1,9 +1,8 @@
 use crate::engines::alterers::alter::Alter;
-use crate::engines::genome::genes::gene::Gene;
 use crate::engines::genome::population::Population;
 use crate::engines::optimize::Optimize;
 use crate::engines::schema::subset;
-use crate::{Metric, RandomProvider, Timer};
+use crate::{Chromosome, Metric, RandomProvider, Timer};
 
 use super::alter::{AlterWrap, Alterer};
 use super::crossovers::multipoint_crossover::MultiPointCrossover;
@@ -11,18 +10,12 @@ use super::crossovers::uniform_crossover::UniformCrossover;
 use super::mutators::mutator::Mutator;
 use super::mutators::swap_mutator::SwapMutator;
 
-pub struct CompositeAlterer<G, A>
-where
-    G: Gene<G, A>,
-{
-    alterers: Vec<AlterWrap<G, A>>,
+pub struct CompositeAlterer<C: Chromosome> {
+    alterers: Vec<AlterWrap<C>>,
 }
 
-impl<G, A> CompositeAlterer<G, A>
-where
-    G: Gene<G, A>,
-{
-    pub fn new(alterers: Vec<Alterer<G, A>>) -> Self {
+impl<C: Chromosome> CompositeAlterer<C> {
+    pub fn new(alterers: Vec<Alterer<C>>) -> Self {
         let mut alterer_wraps = Vec::new();
         for alterer in alterers {
             match alterer {
@@ -66,14 +59,11 @@ where
     }
 }
 
-impl<G, A> Alter<G, A> for CompositeAlterer<G, A>
-where
-    G: Gene<G, A>,
-{
+impl<C: Chromosome> Alter<C> for CompositeAlterer<C> {
     #[inline]
     fn alter(
         &self,
-        population: &mut Population<G, A>,
+        population: &mut Population<C>,
         optimize: &Optimize,
         generation: i32,
     ) -> Vec<Metric> {

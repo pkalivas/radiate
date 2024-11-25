@@ -2,6 +2,7 @@ use crate::engines::genome::chromosome::Chromosome;
 use crate::engines::genome::genes::bit_gene::BitGene;
 use crate::engines::genome::genes::gene::Gene;
 use crate::engines::genome::genotype::Genotype;
+use crate::BitChromosome;
 
 use super::Codex;
 
@@ -41,22 +42,22 @@ impl BitCodex {
     }
 }
 
-impl Codex<BitGene, bool, Vec<Vec<bool>>> for BitCodex {
-    fn encode(&self) -> Genotype<BitGene, bool> {
+impl Codex<BitChromosome, Vec<Vec<bool>>> for BitCodex {
+    fn encode(&self) -> Genotype<BitChromosome> {
         Genotype {
             chromosomes: (0..self.num_chromosomes)
                 .map(|_| {
-                    Chromosome::from_genes(
+                    BitChromosome::from_genes(
                         (0..self.num_genes)
                             .map(|_| BitGene::new())
                             .collect::<Vec<BitGene>>(),
                     )
                 })
-                .collect::<Vec<Chromosome<BitGene, bool>>>(),
+                .collect::<Vec<BitChromosome>>(),
         }
     }
 
-    fn decode(&self, genotype: &Genotype<BitGene, bool>) -> Vec<Vec<bool>> {
+    fn decode(&self, genotype: &Genotype<BitChromosome>) -> Vec<Vec<bool>> {
         genotype
             .iter()
             .map(|chromosome| {

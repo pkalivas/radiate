@@ -8,6 +8,7 @@ use radiate::{Alterer, Metric, RandomProvider, Timer};
 use crate::architects::schema::node_types::NodeType;
 use crate::node::Node;
 use crate::operations::op::Ops;
+use crate::NodeChromosome;
 
 const NUM_PARENTS: usize = 2;
 
@@ -35,7 +36,7 @@ where
     pub fn alterer(
         crossover_rate: f32,
         crossover_parent_node_rate: f32,
-    ) -> Alterer<Node<T>, Ops<T>> {
+    ) -> Alterer<NodeChromosome<T>> {
         Alterer::Alterer(Box::new(GraphCrossover::<T>::new(
             crossover_rate,
             crossover_parent_node_rate,
@@ -45,10 +46,10 @@ where
     #[inline]
     pub fn cross(
         &self,
-        population: &Population<Node<T>, Ops<T>>,
+        population: &Population<NodeChromosome<T>>,
         indexes: &[usize],
         generation: i32,
-    ) -> Option<Phenotype<Node<T>, Ops<T>>> {
+    ) -> Option<Phenotype<NodeChromosome<T>>> {
         let parent_one = population.get(indexes[0]);
         let parent_two = population.get(indexes[1]);
 
@@ -105,14 +106,14 @@ where
     }
 }
 
-impl<T> Alter<Node<T>, Ops<T>> for GraphCrossover<T>
+impl<T> Alter<NodeChromosome<T>> for GraphCrossover<T>
 where
     T: Clone + PartialEq + Default + 'static,
 {
     #[inline]
     fn alter(
         &self,
-        population: &mut Population<Node<T>, Ops<T>>,
+        population: &mut Population<NodeChromosome<T>>,
         optimize: &Optimize,
         generation: i32,
     ) -> Vec<Metric> {

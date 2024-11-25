@@ -1,7 +1,7 @@
 use crate::engines::alterers::mutators::mutate::Mutate;
 use crate::engines::genome::chromosome::Chromosome;
 use crate::engines::genome::genes::gene::NumericGene;
-use crate::RandomProvider;
+use crate::{Gene, RandomProvider};
 
 pub struct NumericMutator {
     rate: f32,
@@ -13,9 +13,9 @@ impl NumericMutator {
     }
 }
 
-impl<G, A> Mutate<G, A> for NumericMutator
+impl<C: Chromosome> Mutate<C> for NumericMutator
 where
-    G: NumericGene<G, A>,
+    C::GeneType: NumericGene,
 {
     fn mutate_rate(&self) -> f32 {
         self.rate
@@ -26,7 +26,7 @@ where
     }
 
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut Chromosome<G, A>, _: i32) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut C, _: i32) -> i32 {
         let mut mutations = 0;
 
         for gene in chromosome.iter_mut() {

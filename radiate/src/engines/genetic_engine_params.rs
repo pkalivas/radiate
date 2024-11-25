@@ -1,15 +1,14 @@
-use std::sync::Arc;
-
+use super::alterers::alter::Alterer;
+use super::codexes::Codex;
+use super::{RouletteSelector, Select, ThreadPool, TournamentSelector};
 use crate::engines::alterers::composite_alterer::CompositeAlterer;
 use crate::engines::genetic_engine::GeneticEngine;
-use crate::engines::genome::genes::gene::Gene;
 use crate::engines::genome::phenotype::Phenotype;
 use crate::engines::genome::population::Population;
 use crate::engines::optimize::Optimize;
 use crate::engines::score::Score;
-use super::alterers::alter::Alterer;
-use super::codexes::Codex;
-use super::{RouletteSelector, Select, ThreadPool, TournamentSelector};
+use crate::Chromosome;
+use std::sync::Arc;
 
 /// Parameters for the genetic engine.
 /// This struct is used to configure the genetic engine before it is created.
@@ -25,9 +24,9 @@ use super::{RouletteSelector, Select, ThreadPool, TournamentSelector};
 /// - `A`: The type of the allele associated with the gene - the gene's "expression".
 /// - `T`: The type of the best individual in the population.
 ///
-pub struct GeneticEngineParams<'a, G, A, T>
+pub struct GeneticEngineParams<'a, C, T>
 where
-    G: Gene<G, A>,
+    C: Chromosome,
     T: Clone,
 {
     pub population_size: usize,
@@ -35,17 +34,17 @@ where
     pub offspring_fraction: f32,
     pub thread_pool: ThreadPool,
     pub optimize: Optimize,
-    pub survivor_selector: Box<dyn Select<G, A>>,
-    pub offspring_selector: Box<dyn Select<G, A>>,
-    pub alterer: Option<CompositeAlterer<G, A>>,
-    pub population: Option<Population<G, A>>,
-    pub codex: Option<Arc<&'a dyn Codex<G, A, T>>>,
+    pub survivor_selector: Box<dyn Select<C>>,
+    pub offspring_selector: Box<dyn Select<C>>,
+    pub alterer: Option<CompositeAlterer<C>>,
+    pub population: Option<Population<C>>,
+    pub codex: Option<Arc<&'a dyn Codex<C, T>>>,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
 }
 
-impl<'a, G, A, T> GeneticEngineParams<'a, G, A, T>
+impl<'a, C, T> GeneticEngineParams<'a, C, T>
 where
-    G: Gene<G, A>,
+    C: Chromosome,
     T: Clone + Send,
 {
     /// Create a new instance of the GeneticEngineParams. This will create a new instance with the following defaults:
@@ -100,14 +99,14 @@ where
     }
 
     /// Set the codex that will be used to encode and decode the genotype of the population.
-    pub fn codex(mut self, codex: &'a impl Codex<G, A, T>) -> Self {
+    pub fn codex(mut self, codex: &'a impl Codex<C, T>) -> Self {
         self.codex = Some(Arc::new(codex));
         self
     }
 
     /// Set the population of the genetic engine. This is useful if you want to provide a custom population.
     /// If this is not set, the genetic engine will create a new population of ```population_size``` using the codex.
-    pub fn population(mut self, population: Population<G, A>) -> Self {
+    pub fn population(mut self, population: Population<C>) -> Self {
         self.population = Some(population);
         self
     }
@@ -122,14 +121,14 @@ where
 
     /// Set the survivor selector of the genetic engine. This is the selector that will be used to select the survivors of the population.
     /// Default is TournamentSelector with a group size of 3.
-    pub fn survivor_selector<S: Select<G, A> + 'static>(mut self, selector: S) -> Self {
+    pub fn survivor_selector<S: Select<C> + 'static>(mut self, selector: S) -> Self {
         self.survivor_selector = Box::new(selector);
         self
     }
 
     /// Set the offspring selector of the genetic engine. This is the selector that will be used to select the offspring of the population.
     /// Default is RouletteSelector.
-    pub fn offspring_selector<S: Select<G, A> + 'static>(mut self, selector: S) -> Self {
+    pub fn offspring_selector<S: Select<C> + 'static>(mut self, selector: S) -> Self {
         self.offspring_selector = Box::new(selector);
         self
     }
@@ -137,7 +136,7 @@ where
     /// Set the alterer of the genetic engine. This is the alterer that will be used to alter the offspring of the population.
     /// The alterer is used to apply mutations and crossover operations to the offspring and will be used to create the next generation of the population.
     /// Note, the order of the alterers is important. The alterers will be applied in the order they are provided.
-    pub fn alterer(mut self, alterers: Vec<Alterer<G, A>>) -> Self {
+    pub fn alterer(mut self, alterers: Vec<Alterer<C>>) -> Self {
         self.alterer = Some(CompositeAlterer::new(alterers));
         self
     }
@@ -162,7 +161,7 @@ where
     }
 
     /// Build the genetic engine with the given parameters. This will create a new instance of the ```GeneticEngine``` with the given parameters.
-    pub fn build(mut self) -> GeneticEngine<'a, G, A, T> {
+    pub fn build(mut self) -> GeneticEngine<'a, C, T> {
         self.build_population();
         self.build_alterer();
 

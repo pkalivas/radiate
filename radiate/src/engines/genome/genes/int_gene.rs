@@ -83,10 +83,12 @@ where
 }
 
 /// Implement the `Gene` trait for `IntGene`. This allows the `IntGene` to be used in a genetic algorithm.
-impl<T: Integer<T>> Gene<IntGene<T>, T> for IntGene<T>
+impl<T: Integer<T>> Gene for IntGene<T>
 where
     Standard: rand::distributions::Distribution<T>,
 {
+    type Allele = T;
+
     fn allele(&self) -> &T {
         &self.allele
     }
@@ -126,7 +128,7 @@ where
     }
 }
 
-impl<T: Integer<T>> BoundGene<IntGene<T>, T> for IntGene<T>
+impl<T: Integer<T>> BoundGene for IntGene<T>
 where
     Standard: rand::distributions::Distribution<T>,
 {
@@ -147,7 +149,7 @@ where
     }
 }
 
-impl<T: Integer<T>> NumericGene<IntGene<T>, T> for IntGene<T>
+impl<T: Integer<T>> NumericGene for IntGene<T>
 where
     Standard: rand::distributions::Distribution<T>,
 {
@@ -287,7 +289,6 @@ impl From<i128> for IntGene<i128> {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]
