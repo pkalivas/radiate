@@ -19,8 +19,8 @@ where
 {
     fn from_nodes(nodes: Vec<Node<T>>) -> Self;
 
-    fn get(&self, index: usize) -> Option<&Node<T>>;
-    fn get_mut(&mut self, index: usize) -> Option<&mut Node<T>>;
+    fn get(&self, index: usize) -> &Node<T>;
+    fn get_mut(&mut self, index: usize) -> &mut Node<T>;
 
     fn get_nodes(&self) -> &[Node<T>];
     fn get_nodes_mut(&mut self) -> &mut [Node<T>];
@@ -275,10 +275,6 @@ where
         NodeType::Aggregate => collection
             .iter()
             .filter(|node| node.node_type == NodeType::Aggregate)
-            .collect::<Vec<&Node<T>>>(),
-        NodeType::Root => collection
-            .iter()
-            .filter(|node| node.node_type == NodeType::Root)
             .collect::<Vec<&Node<T>>>(),
         NodeType::Leaf => collection
             .iter()

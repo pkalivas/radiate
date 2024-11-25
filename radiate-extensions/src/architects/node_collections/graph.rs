@@ -38,11 +38,11 @@ where
             let node_cycles = node_collection::get_cycles(self.get_nodes(), idx);
 
             if node_cycles.len() == 0 {
-                let node = self.get_mut(idx).unwrap();
+                let node = self.get_mut(idx);
                 (*node).direction = Direction::Forward;
             } else {
                 for cycle_idx in node_cycles {
-                    let node = self.get_mut(cycle_idx).unwrap();
+                    let node = self.get_mut(cycle_idx);
                     (*node).direction = Direction::Backward;
                 }
             }
@@ -57,15 +57,28 @@ where
     T: Clone + PartialEq + Default,
 {
     fn from_nodes(nodes: Vec<Node<T>>) -> Self {
-        Self { nodes }
+        Graph { nodes }
     }
 
-    fn get(&self, index: usize) -> Option<&Node<T>> {
-        self.nodes.get(index)
+    fn get(&self, index: usize) -> &Node<T> {
+        self.nodes.get(index).unwrap_or_else(|| {
+            panic!(
+                "Node index {} out of bounds. Graph has {} nodes.",
+                index,
+                self.nodes.len()
+            )
+        })
     }
 
-    fn get_mut(&mut self, index: usize) -> Option<&mut Node<T>> {
-        self.nodes.get_mut(index)
+    fn get_mut(&mut self, index: usize) -> &mut Node<T> {
+        let length = self.nodes.len();
+        self.nodes.get_mut(index).unwrap_or_else(|| {
+            panic!(
+                "Node index {} out of bounds. Graph has {} nodes.",
+                index,
+                length
+            )
+        })
     }
 
     fn get_nodes(&self) -> &[Node<T>] {

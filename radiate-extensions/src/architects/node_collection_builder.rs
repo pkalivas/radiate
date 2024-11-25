@@ -320,7 +320,7 @@ where
             .iter()
             .enumerate()
             .skip_while(|(_, node)| node.outgoing().len() > 0)
-            .map(|(idx, _)| collection.get(idx).unwrap())
+            .map(|(idx, _)| collection.get(idx))
             .collect::<Vec<&Node<T>>>();
 
         if outputs.len() > 0 {
@@ -336,7 +336,7 @@ where
                     && (node.node_type() == &NodeType::Gate
                         || node.node_type() == &NodeType::Aggregate)
             })
-            .map(|(idx, _)| collection.get(idx).unwrap())
+            .map(|(idx, _)| collection.get(idx))
             .collect::<Vec<&Node<T>>>();
 
         if recurrent_outputs.len() > 0 {
@@ -347,7 +347,7 @@ where
             .iter()
             .enumerate()
             .filter(|(_, node)| node.incoming().len() == 0)
-            .map(|(idx, _)| collection.get(idx).unwrap())
+            .map(|(idx, _)| collection.get(idx))
             .collect::<Vec<&Node<T>>>()
     }
 
@@ -356,7 +356,7 @@ where
             .iter()
             .enumerate()
             .take_while(|(_, node)| node.incoming().len() == 0)
-            .map(|(idx, _)| collection.get(idx).unwrap())
+            .map(|(idx, _)| collection.get(idx))
             .collect::<Vec<&Node<T>>>();
 
         if inputs.len() > 0 {
@@ -371,7 +371,7 @@ where
                     && node.is_recurrent()
                     && node.node_type() == &NodeType::Gate
             })
-            .map(|(idx, _)| collection.get(idx).unwrap())
+            .map(|(idx, _)| collection.get(idx))
             .collect::<Vec<&Node<T>>>();
 
         if recurrent_inputs.len() > 0 {
@@ -382,7 +382,7 @@ where
             .iter()
             .enumerate()
             .filter(|(_, node)| node.outgoing().len() == 0)
-            .map(|(idx, _)| collection.get(idx).unwrap())
+            .map(|(idx, _)| collection.get(idx))
             .collect::<Vec<&Node<T>>>()
     }
 }

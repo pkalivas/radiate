@@ -35,10 +35,6 @@ where
         build_fn(self, NodeCollectionBuilder::new(&self.node_factory))
     }
 
-    pub fn root(&self) -> C {
-        self.new_collection(NodeType::Root, 1)
-    }
-
     pub fn leaf(&self) -> C {
         self.new_collection(NodeType::Leaf, 1)
     }

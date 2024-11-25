@@ -24,11 +24,6 @@ where
         }
     }
 
-    pub fn root(mut self, value: Ops<T>) -> NodeFactory<T> {
-        self.add_node_values(NodeType::Root, vec![value]);
-        self
-    }
-
     pub fn leafs(mut self, values: Vec<Ops<T>>) -> NodeFactory<T> {
         self.add_node_values(NodeType::Leaf, values);
         self
@@ -133,7 +128,6 @@ where
             ])
             .weights(vec![op::weight()])
             .outputs(vec![op::linear()])
-            .root(op::linear())
     }
 }
 

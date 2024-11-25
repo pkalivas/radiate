@@ -102,32 +102,27 @@ where
                 continue;
             }
 
-            if let Some(node) = self.graph.get(index) {
-                let mut degree = node.incoming.len();
-                for incoming_index in &node.incoming {
-                    if let Some(incoming_node) = self.graph.get(*incoming_index) {
-                        if self.completed[incoming_node.index] || incoming_node.is_recurrent() {
-                            degree -= 1;
-                        }
-                    }
+            let node = self.graph.get(index);
+            let mut degree = node.incoming.len();
+            for incoming_index in &node.incoming {
+                let incoming_node = self.graph.get(*incoming_index);
+                if self.completed[incoming_node.index] || incoming_node.is_recurrent() {
+                    degree -= 1;
                 }
+            }
 
-                if degree == 0 {
-                    self.completed[node.index] = true;
-                    self.index_queue.push_back(node.index);
-                } else {
-                    min_pending_index = std::cmp::min(min_pending_index, node.index);
-                }
+            if degree == 0 {
+                self.completed[node.index] = true;
+                self.index_queue.push_back(node.index);
+            } else {
+                min_pending_index = std::cmp::min(min_pending_index, node.index);
             }
         }
 
         self.pending_index = min_pending_index;
 
         if let Some(index) = self.index_queue.pop_front() {
-            return match self.graph.get(index) {
-                Some(node) => Some(node),
-                None => None,
-            };
+            return Some(self.graph.get(index));
         }
 
         None
@@ -191,25 +186,24 @@ where
 
         let mut output_index = 0;
         for index in &self.order {
-            if let Some(node) = self.graph.get(*index) {
-                if node.node_type == NodeType::Input {
-                    self.tracers[node.index].add_input(inputs[node.index].clone());
-                } else {
-                    for incoming in &node.incoming {
-                        let arg = self.tracers[*incoming]
-                            .result
-                            .clone()
-                            .unwrap_or_else(|| T::default());
-                        self.tracers[node.index].add_input(arg);
-                    }
+            let node = self.graph.get(*index);
+            if node.node_type == NodeType::Input {
+                self.tracers[node.index].add_input(inputs[node.index].clone());
+            } else {
+                for incoming in &node.incoming {
+                    let arg = self.tracers[*incoming]
+                        .result
+                        .clone()
+                        .unwrap_or_else(|| T::default());
+                    self.tracers[node.index].add_input(arg);
                 }
+            }
 
-                self.tracers[node.index].eval(&node);
+            self.tracers[node.index].eval(&node);
 
-                if node.node_type == NodeType::Output {
-                    self.outputs[output_index] = self.tracers[node.index].result.clone().unwrap();
-                    output_index += 1;
-                }
+            if node.node_type == NodeType::Output {
+                self.outputs[output_index] = self.tracers[node.index].result.clone().unwrap();
+                output_index += 1;
             }
         }
 
