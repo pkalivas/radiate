@@ -5,10 +5,11 @@ const MAX_INDEX: i32 = 500;
 const MIN_SCORE: f32 = 0.01;
 
 fn main() {
-    let factory = NodeFactory::<f32>::regression(2).outputs(vec![op::sigmoid()]);
-
-    let graph_codex = GraphCodex::from_factory(&factory).set_nodes(|arc, _| arc.lstm(1, 1, 1));
-
+    let graph_codex = GraphCodex::regression(1, 1)
+        .set_outputs(vec![op::sigmoid()])
+        .set_gates(vec![op::add(), op::sub(), op::mul()])
+        .set_nodes(|arc, _| arc.lstm(1, 1, 1));
+    
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 
     let engine = GeneticEngine::from_codex(&graph_codex)
@@ -16,15 +17,12 @@ fn main() {
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .alterer(vec![
             GraphCrossover::alterer(0.5, 0.5),
-            NodeMutator::alterer(factory.clone(), 0.01, 0.05),
-            GraphMutator::alterer(
-                factory.clone(),
-                vec![
-                    NodeMutate::Recurrent(NodeType::Weight, 0.05),
-                    NodeMutate::Recurrent(NodeType::Aggregate, 0.03),
-                    NodeMutate::Recurrent(NodeType::Gate, 0.03),
-                ],
-            ),
+            NodeMutator::alterer(0.01, 0.05),
+            GraphMutator::alterer(vec![
+                NodeMutate::Recurrent(NodeType::Weight, 0.05),
+                NodeMutate::Recurrent(NodeType::Aggregate, 0.03),
+                NodeMutate::Recurrent(NodeType::Gate, 0.03),
+            ]),
         ])
         .fitness_fn(move |genotype: Graph<f32>| {
             let mut reducer = GraphReducer::new(&genotype);
@@ -40,7 +38,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineOutput<Node<f32>, Ops<f32>, Graph<f32>>) {
+fn display(result: &EngineOutput<NodeChromosome<f32>, Graph<f32>>) {
     let mut reducer = GraphReducer::new(&result.best);
     for sample in get_sample_set().get_samples().iter() {
         let output = reducer.reduce(&sample.1);

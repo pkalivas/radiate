@@ -1,4 +1,3 @@
-use super::genome::genes::gene::Gene;
 use super::genome::genotype::Genotype;
 use super::genome::phenotype::Phenotype;
 use super::genome::population::Population;
@@ -9,6 +8,7 @@ pub mod float_codex;
 pub mod int_codex;
 pub mod subset_codex;
 
+use crate::Chromosome;
 pub use bit_codex::*;
 pub use char_codex::*;
 pub use float_codex::*;
@@ -82,13 +82,10 @@ pub use subset_codex::*;
 /// - `A`: The type of the allele associated with the gene - the gene's "expression".
 /// - `T`: The type of the Phenotype that is being optimized.
 ///
-pub trait Codex<G, A, T>
-where
-    G: Gene<G, A>,
-{
-    fn encode(&self) -> Genotype<G, A>;
+pub trait Codex<C: Chromosome, T> {
+    fn encode(&self) -> Genotype<C>;
 
-    fn decode(&self, genotype: &Genotype<G, A>) -> T;
+    fn decode(&self, genotype: &Genotype<C>) -> T;
 
     /// Spawn a new instance of `T` from the `Codex`. This will encode `num` new `Genotype`s and then
     /// decode it to a new instance of `T`.
@@ -99,16 +96,16 @@ where
     }
 
     /// Spawn a new instance of `Genotype<G, A>` from the `Codex`. This will encode `num` a new `Genotype`s.
-    fn spawn_genotypes(&self, num: i32) -> Vec<Genotype<G, A>> {
+    fn spawn_genotypes(&self, num: i32) -> Vec<Genotype<C>> {
         (0..num)
             .map(|_| self.encode())
-            .collect::<Vec<Genotype<G, A>>>()
+            .collect::<Vec<Genotype<C>>>()
     }
 
     /// Spawn a new instance of `Population<G, A>` from the `Codex`. This will encode `num` a new `Genotype`s
-    fn spawn_population(&self, num: i32) -> Population<G, A> {
+    fn spawn_population(&self, num: i32) -> Population<C> {
         (0..num)
             .map(|_| Phenotype::from_genotype(self.encode(), 0))
-            .collect::<Population<G, A>>()
+            .collect::<Population<C>>()
     }
 }

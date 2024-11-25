@@ -1,11 +1,9 @@
-use rand::distributions::Standard;
-
-use crate::RandomProvider;
-
 use super::{
     gene::{BoundGene, Gene, NumericGene, Valid},
     Integer,
 };
+use crate::random_provider;
+use rand::distributions::Standard;
 
 /// A `Gene` that represents an integer value. This gene just wraps an integer value and provides
 /// functionality for it to be used in a genetic algorithm. In this `Gene` implementation, the
@@ -73,7 +71,7 @@ where
         let (min, max) = if min > max { (max, min) } else { (min, max) };
 
         Self {
-            allele: RandomProvider::gen_range(min..max),
+            allele: random_provider::gen_range(min..max),
             min,
             max,
             upper_bound: T::MAX,
@@ -83,10 +81,12 @@ where
 }
 
 /// Implement the `Gene` trait for `IntGene`. This allows the `IntGene` to be used in a genetic algorithm.
-impl<T: Integer<T>> Gene<IntGene<T>, T> for IntGene<T>
+impl<T: Integer<T>> Gene for IntGene<T>
 where
     Standard: rand::distributions::Distribution<T>,
 {
+    type Allele = T;
+
     fn allele(&self) -> &T {
         &self.allele
     }
@@ -94,7 +94,7 @@ where
     /// Create a new instance of the `IntGene` with a random allele between the min and max values.
     fn new_instance(&self) -> IntGene<T> {
         IntGene {
-            allele: RandomProvider::gen_range(self.min..self.max),
+            allele: random_provider::gen_range(self.min..self.max),
             min: self.min,
             max: self.max,
             upper_bound: self.upper_bound,
@@ -126,7 +126,7 @@ where
     }
 }
 
-impl<T: Integer<T>> BoundGene<IntGene<T>, T> for IntGene<T>
+impl<T: Integer<T>> BoundGene for IntGene<T>
 where
     Standard: rand::distributions::Distribution<T>,
 {
@@ -147,7 +147,7 @@ where
     }
 }
 
-impl<T: Integer<T>> NumericGene<IntGene<T>, T> for IntGene<T>
+impl<T: Integer<T>> NumericGene for IntGene<T>
 where
     Standard: rand::distributions::Distribution<T>,
 {
@@ -287,7 +287,6 @@ impl From<i128> for IntGene<i128> {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]

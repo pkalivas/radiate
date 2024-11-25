@@ -1,10 +1,9 @@
-use radiate::engines::genome::genes::gene::{Gene, Valid};
-use std::collections::HashSet;
-use uuid::Uuid;
-
 use crate::architects::schema::{direction::Direction, node_types::NodeType};
 use crate::operations::op::Ops;
 use crate::schema::collection_type::CollectionType;
+use radiate::engines::genome::genes::gene::{Gene, Valid};
+use std::collections::HashSet;
+use uuid::Uuid;
 
 pub struct Node<T>
 where
@@ -70,10 +69,12 @@ where
     }
 }
 
-impl<T> Gene<Node<T>, Ops<T>> for Node<T>
+impl<T> Gene for Node<T>
 where
     T: Clone + PartialEq + Default,
 {
+    type Allele = Ops<T>;
+
     fn allele(&self) -> &Ops<T> {
         &self.value
     }

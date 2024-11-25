@@ -1,66 +1,53 @@
-use crate::engines::genome::genes::gene::Gene;
 use crate::engines::genome::population::Population;
 use crate::engines::optimize::Optimize;
-use crate::Metric;
+use crate::{Chromosome, Metric};
 
 use super::crossovers::crossover::Crossover;
 use super::mutators::mutate::Mutate;
 
-pub trait Alter<G, A>
-where
-    G: Gene<G, A>,
-{
+pub trait Alter<C: Chromosome> {
     fn alter(
         &self,
-        population: &mut Population<G, A>,
+        population: &mut Population<C>,
         optimize: &Optimize,
         generation: i32,
     ) -> Vec<Metric>;
 }
 
-pub enum Alterer<G, A>
-where
-    G: Gene<G, A>,
-{
+pub enum Alterer<C: Chromosome> {
     Mutator(f32),
     UniformCrossover(f32),
     MultiPointCrossover(f32, usize),
     SinglePointCrossover(f32),
     SwapMutator(f32),
-    Mutation(Box<dyn Mutate<G, A>>),
-    Crossover(Box<dyn Crossover<G, A>>),
-    Alterer(Box<dyn Alter<G, A>>),
+    Mutation(Box<dyn Mutate<C>>),
+    Crossover(Box<dyn Crossover<C>>),
+    Alterer(Box<dyn Alter<C>>),
 }
 
-impl<G, A> Alterer<G, A>
-where
-    G: Gene<G, A>,
-{
-    pub fn alterer<T: Alter<G, A> + 'static>(alterer: T) -> Self {
+impl<C: Chromosome> Alterer<C> {
+    pub fn alterer<T: Alter<C> + 'static>(alterer: T) -> Self {
         Alterer::Alterer(Box::new(alterer))
     }
 
-    pub fn crossover<T: Crossover<G, A> + 'static>(crossover: T) -> Self {
+    pub fn crossover<T: Crossover<C> + 'static>(crossover: T) -> Self {
         Alterer::Crossover(Box::new(crossover))
     }
 
-    pub fn mutation<T: Mutate<G, A> + 'static>(mutation: T) -> Self {
+    pub fn mutation<T: Mutate<C> + 'static>(mutation: T) -> Self {
         Alterer::Mutation(Box::new(mutation))
     }
 }
 
-pub struct AlterWrap<G, A>
-where
-    G: Gene<G, A>,
-{
+pub struct AlterWrap<C: Chromosome> {
     pub rate: f32,
-    pub mutator: Option<Box<dyn Mutate<G, A>>>,
-    pub crossover: Option<Box<dyn Crossover<G, A>>>,
-    pub alterer: Option<Box<dyn Alter<G, A>>>,
+    pub mutator: Option<Box<dyn Mutate<C>>>,
+    pub crossover: Option<Box<dyn Crossover<C>>>,
+    pub alterer: Option<Box<dyn Alter<C>>>,
 }
 
-impl<G: Gene<G, A>, A> AlterWrap<G, A> {
-    pub fn from_mutator(mutator: Box<dyn Mutate<G, A>>, rate: f32) -> Self {
+impl<C: Chromosome> AlterWrap<C> {
+    pub fn from_mutator(mutator: Box<dyn Mutate<C>>, rate: f32) -> Self {
         Self {
             rate,
             mutator: Some(mutator),
@@ -69,7 +56,7 @@ impl<G: Gene<G, A>, A> AlterWrap<G, A> {
         }
     }
 
-    pub fn from_crossover(crossover: Box<dyn Crossover<G, A>>, rate: f32) -> Self {
+    pub fn from_crossover(crossover: Box<dyn Crossover<C>>, rate: f32) -> Self {
         Self {
             rate,
             mutator: None,
@@ -78,7 +65,7 @@ impl<G: Gene<G, A>, A> AlterWrap<G, A> {
         }
     }
 
-    pub fn from_alterer(alterer: Box<dyn Alter<G, A>>, rate: f32) -> Self {
+    pub fn from_alterer(alterer: Box<dyn Alter<C>>, rate: f32) -> Self {
         Self {
             rate,
             mutator: None,

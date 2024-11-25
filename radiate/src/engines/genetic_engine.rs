@@ -1,22 +1,17 @@
-use std::collections::HashSet;
-use std::sync::Arc;
-
 use crate::engines::alterers::alter::Alter;
+use crate::engines::domain::timer::Timer;
 use crate::engines::genetic_engine_params::GeneticEngineParams;
-use crate::engines::genome::genes::gene::Gene;
 use crate::engines::genome::population::Population;
 use crate::engines::optimize::Optimize;
-use crate::engines::schema::timer::Timer;
 use crate::engines::score::Score;
+use crate::{metric_names, Chromosome, Metric};
+use std::sync::Arc;
 
 use super::codexes::Codex;
 use super::engine_output::EngineOutput;
 use super::genome::phenotype::Phenotype;
 use super::selectors::select::Select;
-use super::{
-    MetricSet, ThreadPool, METRIC_AGE, METRIC_AGE_FILTER, METRIC_EVALUATE, METRIC_INVALID_FILTER,
-    METRIC_SCORE, METRIC_UNIQUE,
-};
+use super::{MetricSet, ThreadPool};
 
 /// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -64,26 +59,25 @@ use super::{
 /// ```
 ///
 /// # Type Parameters
-/// - `G`: The type of gene used in the genetic algorithm, which must implement the `Gene` trait.
-/// - `A`: The type of the allele associated with the gene - the gene's "expression".
+/// - `C`: The type of the chromosome used in the genotype, which must implement the `Chromosome` trait.
 /// - `T`: The type of the phenotype produced by the genetic algorithm, which must be `Clone`, `Send`, and `static`.
 ///
-pub struct GeneticEngine<'a, G, A, T>
+pub struct GeneticEngine<'a, C, T>
 where
-    G: Gene<G, A>,
+    C: Chromosome,
     T: Clone + Send + 'static,
 {
-    pub params: GeneticEngineParams<'a, G, A, T>,
+    pub params: GeneticEngineParams<'a, C, T>,
 }
 
-impl<'a, G, A, T> GeneticEngine<'a, G, A, T>
+impl<'a, C, T> GeneticEngine<'a, C, T>
 where
-    G: Gene<G, A>,
+    C: Chromosome,
     T: Clone + Send,
 {
     /// Create a new instance of the `GeneticEngine` struct with the given parameters.
     /// - `params`: An instance of `GeneticEngineParams` that holds configuration parameters for the genetic engine.
-    pub fn new(params: GeneticEngineParams<'a, G, A, T>) -> Self {
+    pub fn new(params: GeneticEngineParams<'a, C, T>) -> Self {
         GeneticEngine { params }
     }
 
@@ -91,16 +85,16 @@ where
     /// are represented in the population. Because the `Codex` is always needed, this
     /// is a convenience method that allows users to create a `GeneticEngineParams` instance
     /// which will then be 'built' resulting in a `GeneticEngine` instance.
-    pub fn from_codex(codex: &'a impl Codex<G, A, T>) -> GeneticEngineParams<G, A, T> {
+    pub fn from_codex(codex: &'a impl Codex<C, T>) -> GeneticEngineParams<C, T> {
         GeneticEngineParams::new().codex(codex)
     }
 
     /// Executes the genetic algorithm. The algorithm continues until a specified
     /// stopping condition, 'limit', is met, such as reaching a target fitness score or
     /// exceeding a maximum number of generations. When 'limit' returns true, the algorithm stops.
-    pub fn run<F>(&self, limit: F) -> EngineOutput<G, A, T>
+    pub fn run<F>(&self, limit: F) -> EngineOutput<C, T>
     where
-        F: Fn(&EngineOutput<G, A, T>) -> bool,
+        F: Fn(&EngineOutput<C, T>) -> bool,
     {
         let mut ctx = self.start();
 
@@ -135,7 +129,7 @@ where
     /// parallel, which can significantly speed up the evaluation process for large populations.
     /// It will also only evaluate individuals that have not yet been scored, which saves time
     /// by avoiding redundant evaluations.
-    fn evaluate(&self, handle: &mut EngineOutput<G, A, T>) {
+    fn evaluate(&self, handle: &mut EngineOutput<C, T>) {
         let codex = self.codex();
         let optimize = self.optimize();
         let thread_pool = self.thread_pool();
@@ -159,7 +153,9 @@ where
             handle.population.get_mut(idx).set_score(Some(score));
         }
 
-        handle.upsert_metric(METRIC_EVALUATE, count, Some(timer.duration()));
+        handle
+            .metrics
+            .upsert_operations(metric_names::EVALUATION, count, timer.duration());
 
         optimize.sort(&mut handle.population);
     }
@@ -174,9 +170,9 @@ where
     /// This method returns a new population containing only the selected survivors.
     fn select_survivors(
         &self,
-        population: &Population<G, A>,
+        population: &Population<C>,
         metrics: &mut MetricSet,
-    ) -> Population<G, A> {
+    ) -> Population<C> {
         let selector = self.survivor_selector();
         let count = self.survivor_count();
         let optimize = self.optimize();
@@ -184,7 +180,7 @@ where
         let timer = Timer::new();
         let result = selector.select(population, optimize, count);
 
-        metrics.upsert(selector.name(), count as f32, timer.duration());
+        metrics.upsert_operations(selector.name(), count as f32, timer.duration());
 
         result
     }
@@ -200,9 +196,9 @@ where
     /// This method returns a new population containing only the selected offspring.
     fn select_offspring(
         &self,
-        population: &Population<G, A>,
+        population: &Population<C>,
         metrics: &mut MetricSet,
-    ) -> Population<G, A> {
+    ) -> Population<C> {
         let selector = self.offspring_selector();
         let count = self.offspring_count();
         let optimize = self.optimize();
@@ -210,7 +206,7 @@ where
         let timer = Timer::new();
         let result = selector.select(population, optimize, count);
 
-        metrics.upsert(selector.name(), count as f32, timer.duration());
+        metrics.upsert_operations(selector.name(), count as f32, timer.duration());
 
         result
     }
@@ -218,13 +214,13 @@ where
     /// Alters the offspring population using the alterers specified in the genetic engine parameters.
     /// The alterer in this case is going to be a ```CompositeAlterer``` and is responsible for applying
     /// the provided mutation and crossover operations to the offspring population.
-    fn alter(&self, population: &mut Population<G, A>, metrics: &mut MetricSet, generation: i32) {
+    fn alter(&self, population: &mut Population<C>, metrics: &mut MetricSet, generation: i32) {
         let alterer = self.alterer();
         let optimize = self.optimize();
 
         let alter_metrics = alterer.alter(population, optimize, generation);
         for metric in alter_metrics {
-            metrics.upsert_metric(metric);
+            metrics.upsert(metric);
         }
     }
 
@@ -234,7 +230,7 @@ where
     /// if an individual is found to be invalid (i.e., its genotype is not valid, provided by the ```Valid``` trait),
     /// it is replaced with a new individual. This method ensures that the population remains
     /// healthy and that only valid individuals are allowed to reproduce or survive to the next generation.
-    fn filter(&self, population: &mut Population<G, A>, metrics: &mut MetricSet, generation: i32) {
+    fn filter(&self, population: &mut Population<C>, metrics: &mut MetricSet, generation: i32) {
         let max_age = self.params.max_age;
         let codex = self.codex();
 
@@ -253,9 +249,9 @@ where
             }
         }
 
-        metrics.upsert(METRIC_AGE_FILTER, age_count as f32, timer.duration());
-        metrics.upsert(
-            METRIC_INVALID_FILTER,
+        metrics.upsert_operations(metric_names::AGE_FILTER, age_count as f32, timer.duration());
+        metrics.upsert_operations(
+            metric_names::INVALID_FILTER,
             invalid_count as f32,
             timer.duration(),
         );
@@ -268,20 +264,20 @@ where
     /// will be used in the next iteration of the genetic algorithm.
     fn recombine(
         &self,
-        handle: &mut EngineOutput<G, A, T>,
-        survivors: Population<G, A>,
-        offspring: Population<G, A>,
+        handle: &mut EngineOutput<C, T>,
+        survivors: Population<C>,
+        offspring: Population<C>,
     ) {
         handle.population = survivors
             .into_iter()
             .chain(offspring)
-            .collect::<Population<G, A>>();
+            .collect::<Population<C>>();
     }
 
     /// Audits the current state of the genetic algorithm, updating the best individual found so far
     /// and calculating various metrics such as the age of individuals, the score of individuals, and the
     /// number of unique scores in the population. This method is called at the end of each generation.
-    fn audit(&self, output: &mut EngineOutput<G, A, T>) {
+    fn audit(&self, output: &mut EngineOutput<C, T>) {
         let codex = self.codex();
         let optimize = self.optimize();
 
@@ -313,46 +309,65 @@ where
     /// The age of an individual is the number of generations it has survived, while the score of an individual
     /// is a measure of its fitness. The number of unique scores in the population is a measure of diversity, with
     /// a higher number indicating a more diverse population.
-    fn add_metrics(&self, output: &mut EngineOutput<G, A, T>) {
-        let mut unique = HashSet::new();
+    fn add_metrics(&self, output: &mut EngineOutput<C, T>) {
+        let mut age_metric = Metric::new_value(metric_names::AGE);
+        let mut score_metric = Metric::new_value(metric_names::SCORE);
+        let mut size_values = Vec::with_capacity(output.population.len());
+        let mut unique = Vec::with_capacity(output.population.len());
+        
         for i in 0..output.population.len() {
             let phenotype = output.population.get(i);
 
             let age = phenotype.age(output.index);
             let score = phenotype.score().as_ref().unwrap();
+            let phenotype_size = phenotype
+                .genotype()
+                .iter()
+                .map(|chromosome| chromosome.len())
+                .sum::<usize>();
 
-            output.metrics.upsert_value(METRIC_AGE, age as f32);
-            output.metrics.upsert_value(METRIC_SCORE, score.as_float());
-            unique.insert(score.clone());
+            age_metric.add_value(age as f32);
+            score_metric.add_value(score.as_float());
+            unique.push(score.as_float());
+            size_values.push(phenotype_size as f32);
         }
 
-        output
-            .metrics
-            .upsert_value(METRIC_UNIQUE, unique.len() as f32);
+        unique.dedup();
+
+        let mut unique_metric = Metric::new_value(metric_names::UNIQUE);
+        let mut size_metric = Metric::new_distribution(metric_names::GENOME_SIZE);
+
+        unique_metric.add_value(unique.len() as f32);
+        size_metric.add_sequence(&size_values);
+
+        output.metrics.upsert(age_metric);
+        output.metrics.upsert(score_metric);
+        output.metrics.upsert(unique_metric);
+        output.metrics.upsert(size_metric);
     }
 
     /// Returns the survivor selector specified in the genetic engine parameters. The survivor selector is
     /// responsible for selecting the individuals that will survive to the next generation.
-    fn survivor_selector(&self) -> &dyn Select<G, A> {
+    fn survivor_selector(&self) -> &dyn Select<C> {
         self.params.survivor_selector.as_ref()
     }
 
     /// Returns the offspring selector specified in the genetic engine parameters. The offspring selector is
     /// responsible for selecting the offspring that will be used to create the next generation through crossover
     /// and mutation.
-    fn offspring_selector(&self) -> &dyn Select<G, A> {
+    fn offspring_selector(&self) -> &dyn Select<C> {
         self.params.offspring_selector.as_ref()
     }
 
     /// Returns the alterer specified in the genetic engine parameters. The alterer is responsible for applying
     /// the provided mutation and crossover operations to the offspring population.
-    fn alterer(&self) -> &impl Alter<G, A> {
+    fn alterer(&self) -> &impl Alter<C> {
         self.params.alterer.as_ref().unwrap()
     }
 
     /// Returns the codex specified in the genetic engine parameters. The codex is responsible for encoding and
     /// decoding individuals in the population, converting between the genotype and phenotype representations.
-    fn codex(&self) -> &'a dyn Codex<G, A, T> {
+    fn codex(&self) -> &'a dyn Codex<C, T> {
         *Arc::clone(self.params.codex.as_ref().unwrap())
     }
 
@@ -363,7 +378,7 @@ where
     }
 
     /// Returns the population specified in the genetic engine parameters. This is only called at the start of the genetic algorithm.
-    fn population(&self) -> &Population<G, A> {
+    fn population(&self) -> &Population<C> {
         self.params.population.as_ref().unwrap()
     }
 
@@ -392,7 +407,7 @@ where
     }
 
     /// Starts the genetic algorithm by initializing the population and returning the initial state of the genetic engine.
-    fn start(&self) -> EngineOutput<G, A, T> {
+    fn start(&self) -> EngineOutput<C, T> {
         let population = self.population();
 
         EngineOutput {
@@ -406,7 +421,7 @@ where
     }
 
     /// Stops the genetic algorithm by stopping the timer and returning the final state of the genetic engine.
-    fn stop(&self, output: &mut EngineOutput<G, A, T>) -> EngineOutput<G, A, T> {
+    fn stop(&self, output: &mut EngineOutput<C, T>) -> EngineOutput<C, T> {
         output.timer.stop();
         output.clone()
     }

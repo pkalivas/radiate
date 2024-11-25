@@ -1,4 +1,6 @@
-use super::{genes::gene::Gene, phenotype::Phenotype};
+use super::phenotype::Phenotype;
+use crate::Chromosome;
+use std::fmt::Debug;
 
 /// A `Population` is a collection of `Phenotype` instances. This struct is the core collection of individuals
 /// being evolved by the `GeneticEngine`. It can be thought of as a Vec of `Phenotype`s and
@@ -12,21 +14,15 @@ use super::{genes::gene::Gene, phenotype::Phenotype};
 /// thinking, the `Population` struct and everyhing it contains implements the `Clone` trait.
 ///
 /// # Type Parameters
-/// - `G`: The type of gene used in the genetic algorithm, which must implement the `Gene` trait.
-/// - `A`: The type of the allele associated with the gene - the gene's "expression".
+/// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 ///
-pub struct Population<G, A>
-where
-    G: Gene<G, A>,
-{
-    pub individuals: Vec<Phenotype<G, A>>,
+#[derive(Clone)]
+pub struct Population<C: Chromosome> {
+    pub individuals: Vec<Phenotype<C>>,
     pub is_sorted: bool,
 }
 
-impl<G, A> Population<G, A>
-where
-    G: Gene<G, A>,
-{
+impl<C: Chromosome> Population<C> {
     /// Create a new instance of the Population. This will create a new instance with an
     /// empty list of individuals and the is_sorted flag set to false.
     pub fn new() -> Self {
@@ -36,13 +32,13 @@ where
         }
     }
 
-    pub fn get(&self, index: usize) -> &Phenotype<G, A> {
+    pub fn get(&self, index: usize) -> &Phenotype<C> {
         self.individuals.get(index).expect("Index out of bounds")
     }
 
     /// Get a mutable reference to the individual at the given index. This will set the is_sorted flag to false
     /// because we cannot guarantee that the individual's `Score` (fitness) has not changed.
-    pub fn get_mut(&mut self, index: usize) -> &mut Phenotype<G, A> {
+    pub fn get_mut(&mut self, index: usize) -> &mut Phenotype<C> {
         self.is_sorted = false;
         self.individuals
             .get_mut(index)
@@ -51,16 +47,16 @@ where
 
     /// Set the individual at the given index. This will set the is_sorted flag to false
     /// because we cannot guarantee that the individual is in the correct order.
-    pub fn set(&mut self, index: usize, individual: Phenotype<G, A>) {
+    pub fn set(&mut self, index: usize, individual: Phenotype<C>) {
         self.individuals[index] = individual;
         self.is_sorted = false;
     }
 
-    pub fn iter(&self) -> std::slice::Iter<Phenotype<G, A>> {
+    pub fn iter(&self) -> std::slice::Iter<Phenotype<C>> {
         self.individuals.iter()
     }
 
-    pub fn iter_mut(&mut self) -> std::slice::IterMut<Phenotype<G, A>> {
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<Phenotype<C>> {
         self.is_sorted = false;
         self.individuals.iter_mut()
     }
@@ -72,7 +68,7 @@ where
     /// Sort the individuals in the population using the given closure. This will set the is_sorted flag to true.
     pub fn sort_by<F>(&mut self, f: F)
     where
-        F: FnMut(&Phenotype<G, A>, &Phenotype<G, A>) -> std::cmp::Ordering,
+        F: FnMut(&Phenotype<C>, &Phenotype<C>) -> std::cmp::Ordering,
     {
         if self.is_sorted {
             return;
@@ -82,7 +78,7 @@ where
         self.is_sorted = true;
     }
 
-    pub fn from_vec(individuals: Vec<Phenotype<G, A>>) -> Self {
+    pub fn from_vec(individuals: Vec<Phenotype<C>>) -> Self {
         Population {
             individuals,
             is_sorted: false,
@@ -91,7 +87,7 @@ where
 
     pub fn from_fn<F>(size: usize, f: F) -> Self
     where
-        F: Fn() -> Phenotype<G, A>,
+        F: Fn() -> Phenotype<C>,
     {
         let mut individuals = Vec::with_capacity(size);
         for _ in 0..size {
@@ -103,34 +99,29 @@ where
             is_sorted: false,
         }
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.individuals.is_empty()
+    }
 }
 
-impl<G, A> Default for Population<G, A>
-where
-    G: Gene<G, A>,
-{
+impl<C: Chromosome> Default for Population<C> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<G, A> IntoIterator for Population<G, A>
-where
-    G: Gene<G, A>,
-{
-    type Item = Phenotype<G, A>;
-    type IntoIter = std::vec::IntoIter<Phenotype<G, A>>;
+impl<C: Chromosome> IntoIterator for Population<C> {
+    type Item = Phenotype<C>;
+    type IntoIter = std::vec::IntoIter<Phenotype<C>>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.individuals.into_iter()
     }
 }
 
-impl<G, A> FromIterator<Phenotype<G, A>> for Population<G, A>
-where
-    G: Gene<G, A>,
-{
-    fn from_iter<I: IntoIterator<Item = Phenotype<G, A>>>(iter: I) -> Self {
+impl<C: Chromosome> FromIterator<Phenotype<C>> for Population<C> {
+    fn from_iter<I: IntoIterator<Item = Phenotype<C>>>(iter: I) -> Self {
         let individuals = iter.into_iter().collect();
         Population {
             individuals,
@@ -139,22 +130,7 @@ where
     }
 }
 
-impl<G, A> Clone for Population<G, A>
-where
-    G: Gene<G, A>,
-{
-    fn clone(&self) -> Self {
-        Population {
-            individuals: self.individuals.clone(),
-            is_sorted: self.is_sorted,
-        }
-    }
-}
-
-impl<G, A> std::fmt::Debug for Population<G, A>
-where
-    G: Gene<G, A> + std::fmt::Debug,
-{
+impl<C: Chromosome + Debug> Debug for Population<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "[")?;
         for individual in &self.individuals {
@@ -166,13 +142,12 @@ where
 
 #[cfg(test)]
 mod test {
-
     use super::*;
-    use crate::engines::genome::genes::char_gene::CharGene;
+    use crate::CharChromosome;
 
     #[test]
     fn test_new() {
-        let population = Population::<CharGene, char>::new();
+        let population = Population::<CharChromosome>::new();
         assert_eq!(population.len(), 0);
     }
 }

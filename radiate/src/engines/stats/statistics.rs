@@ -8,14 +8,6 @@ pub struct Adder {
 }
 
 impl Adder {
-    pub fn new() -> Self {
-        Self {
-            compensation: 0_f32,
-            simple_sum: 0_f32,
-            sum: 0_f32,
-        }
-    }
-
     pub fn value(&self) -> f32 {
         let result = self.sum + self.compensation;
         if result.is_nan() {
@@ -35,6 +27,16 @@ impl Adder {
     }
 }
 
+impl Default for Adder {
+    fn default() -> Self {
+        Adder {
+            compensation: 0_f32,
+            simple_sum: 0_f32,
+            sum: 0_f32,
+        }
+    }
+}
+
 #[derive(PartialEq, Clone)]
 pub struct Statistic {
     m1: Adder,
@@ -49,20 +51,6 @@ pub struct Statistic {
 }
 
 impl Statistic {
-    pub fn new() -> Self {
-        Self {
-            m1: Adder::new(),
-            m2: Adder::new(),
-            m3: Adder::new(),
-            m4: Adder::new(),
-            sum: Adder::new(),
-            count: 0,
-            last_value: f32::NAN,
-            max: f32::MIN,
-            min: f32::MAX,
-        }
-    }
-
     pub fn last_value(&self) -> f32 {
         self.last_value
     }
@@ -119,6 +107,26 @@ impl Statistic {
 
         value
     }
+    
+    pub fn kurtosis(&self) -> f32 {
+        let mut value = f32::NAN;
+        if self.count >= 4 {
+            let temp = self.m2.value() / self.count as f32 - 1_f32;
+            if temp < 10e-10_f32 {
+                value = 0_f32;
+            } else {
+                value = self.count as f32 * (self.count as f32 + 1_f32)
+                    * self.m4.value()
+                    / ((self.count as f32 - 1_f32)
+                        * (self.count as f32 - 2_f32)
+                        * (self.count as f32 - 3_f32)
+                        * temp
+                        * temp)
+            }
+        }
+
+        value
+    }
 
     pub fn add(&mut self, value: f32) {
         self.count += 1;
@@ -144,6 +152,34 @@ impl Statistic {
         self.min = if value < self.min { value } else { self.min };
         self.sum.add(value);
     }
+    
+    pub fn clear(&mut self) {
+        self.m1 = Adder::default();
+        self.m2 = Adder::default();
+        self.m3 = Adder::default();
+        self.m4 = Adder::default();
+        self.sum = Adder::default();
+        self.count = 0;
+        self.last_value = 0_f32;
+        self.max = f32::MIN;
+        self.min = f32::MAX;
+    }
+}
+
+impl Default for Statistic {
+    fn default() -> Self {
+        Statistic {
+            m1: Adder::default(),
+            m2: Adder::default(),
+            m3: Adder::default(),
+            m4: Adder::default(),
+            sum: Adder::default(),
+            count: 0,
+            last_value: 0_f32,
+            max: f32::MIN,
+            min: f32::MAX,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -152,7 +188,7 @@ mod tests {
 
     #[test]
     fn test_adder() {
-        let mut adder = Adder::new();
+        let mut adder = Adder::default();
         adder.add(1_f32);
         adder.add(2_f32);
         adder.add(3_f32);
@@ -164,7 +200,7 @@ mod tests {
 
     #[test]
     fn test_statistic() {
-        let mut statistic = Statistic::new();
+        let mut statistic = Statistic::default();
         statistic.add(1_f32);
         statistic.add(2_f32);
         statistic.add(3_f32);

@@ -1,14 +1,10 @@
-use crate::engines::genome::chromosome::Chromosome;
 use crate::engines::genome::genes::gene::Gene;
 use crate::engines::genome::genotype::Genotype;
 use crate::engines::genome::phenotype::Phenotype;
 use crate::engines::genome::population::Population;
-use crate::RandomProvider;
+use crate::{random_provider, Chromosome};
 
-pub trait Crossover<G, A>
-where
-    G: Gene<G, A>,
-{
+pub trait Crossover<C: Chromosome> {
     fn cross_rate(&self) -> f32;
 
     fn name(&self) -> &'static str;
@@ -16,7 +12,7 @@ where
     #[inline]
     fn cross(
         &self,
-        population: &mut Population<G, A>,
+        population: &mut Population<C>,
         parent_indexes: &[usize],
         generation: i32,
     ) -> i32 {
@@ -37,9 +33,9 @@ where
     }
 
     #[inline]
-    fn cross_genotypes(&self, geno_one: &mut Genotype<G, A>, geno_two: &mut Genotype<G, A>) -> i32 {
+    fn cross_genotypes(&self, geno_one: &mut Genotype<C>, geno_two: &mut Genotype<C>) -> i32 {
         let chromosome_index =
-            RandomProvider::random::<usize>() % std::cmp::min(geno_one.len(), geno_two.len());
+            random_provider::random::<usize>() % std::cmp::min(geno_one.len(), geno_two.len());
 
         let chrom_one = geno_one.get_chromosome_mut(chromosome_index);
         let chrom_two = geno_two.get_chromosome_mut(chromosome_index);
@@ -48,16 +44,12 @@ where
     }
 
     #[inline]
-    fn cross_chromosomes(
-        &self,
-        chrom_one: &mut Chromosome<G, A>,
-        chrom_two: &mut Chromosome<G, A>,
-    ) -> i32 {
+    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C) -> i32 {
         let rate = self.cross_rate();
         let mut cross_count = 0;
 
         for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
-            if RandomProvider::random::<f32>() < rate {
+            if random_provider::random::<f32>() < rate {
                 let gene_one = chrom_one.get_gene(i);
                 let gene_two = chrom_two.get_gene(i);
 

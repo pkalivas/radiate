@@ -5,13 +5,12 @@ const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
-    RandomProvider::set_seed(12345);
+    
+    seed_rng(12345);
 
     let graph_codex = GraphCodex::regression(1, 1)
         .set_outputs(vec![op::linear()])
         .set_gates(vec![op::add(), op::sub(), op::mul()]);
-    
-    let factory = graph_codex.get_factory();
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 
@@ -20,15 +19,12 @@ fn main() {
         .num_threads(10)
         .alterer(vec![
             GraphCrossover::alterer(0.5, 0.5),
-            NodeMutator::alterer(factory.clone(), 0.01, 0.05),
-            GraphMutator::alterer(
-                factory.clone(),
-                vec![
-                    NodeMutate::Forward(NodeType::Weight, 0.05),
-                    NodeMutate::Forward(NodeType::Aggregate, 0.02),
-                    NodeMutate::Forward(NodeType::Gate, 0.03),
-                ],
-            ),
+            NodeMutator::alterer(0.01, 0.05),
+            GraphMutator::alterer(vec![
+                NodeMutate::Forward(NodeType::Weight, 0.05),
+                NodeMutate::Forward(NodeType::Aggregate, 0.02),
+                NodeMutate::Forward(NodeType::Gate, 0.03),
+            ]),
         ])
         .fitness_fn(move |genotype: Graph<f32>| {
             let mut reducer = GraphReducer::new(&genotype);
@@ -44,7 +40,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineOutput<Node<f32>, Ops<f32>, Graph<f32>>) {
+fn display(result: &EngineOutput<NodeChromosome<f32>, Graph<f32>>) {
     let mut regression_accuracy = 0.0;
     let mut total = 0.0;
 

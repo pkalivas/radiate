@@ -5,9 +5,7 @@ const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
-    let factory = NodeFactory::<f32>::regression(1).gates(vec![op::add(), op::sub(), op::mul()]);
-
-    let graph_codex = TreeCodex::new(3, &factory);
+    let graph_codex = TreeCodex::regression(1, 3).set_gates(vec![op::add(), op::sub(), op::mul()]);
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 
@@ -16,7 +14,7 @@ fn main() {
         .num_threads(10)
         .alterer(vec![
             TreeCrossover::alterer(0.5, 10),
-            NodeMutator::alterer(factory.clone(), 0.001, 0.05),
+            NodeMutator::alterer(0.01, 0.05),
         ])
         .fitness_fn(move |genotype: Tree<f32>| {
             let mut reducer = TreeReducer::new(&genotype);
@@ -32,7 +30,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineOutput<Node<f32>, Ops<f32>, Tree<f32>>) {
+fn display(result: &EngineOutput<NodeChromosome<f32>, Tree<f32>>) {
     let mut regression_accuracy = 0.0;
     let mut total = 0.0;
 

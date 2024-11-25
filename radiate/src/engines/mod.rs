@@ -6,9 +6,9 @@ pub mod genetic_engine;
 pub mod genetic_engine_params;
 pub mod genome;
 pub mod optimize;
-pub mod schema;
 pub mod score;
 pub mod selectors;
+pub mod stats;
 
 pub use alterers::*;
 pub use codexes::*;
@@ -18,6 +18,6 @@ pub use genetic_engine::*;
 pub use genetic_engine_params::*;
 pub use genome::*;
 pub use optimize::*;
-pub use schema::*;
 pub use score::*;
 pub use selectors::*;
+pub use stats::*;

@@ -1,17 +1,13 @@
-use crate::engines::genome::genes::gene::Gene;
 use crate::engines::genome::population::Population;
-use crate::Optimize;
+use crate::{Chromosome, Optimize};
 
-pub trait Select<G, A>
-where
-    G: Gene<G, A>,
-{
+pub trait Select<C: Chromosome> {
     fn name(&self) -> &'static str;
 
     fn select(
         &self,
-        population: &Population<G, A>,
+        population: &Population<C>,
         optimize: &Optimize,
         count: usize,
-    ) -> Population<G, A>;
+    ) -> Population<C>;
 }

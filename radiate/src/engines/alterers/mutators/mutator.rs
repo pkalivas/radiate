@@ -1,4 +1,4 @@
-use crate::engines::genome::genes::gene::Gene;
+use crate::Chromosome;
 
 use super::mutate::Mutate;
 
@@ -12,7 +12,7 @@ impl Mutator {
     }
 }
 
-impl<G: Gene<G, A>, A> Mutate<G, A> for Mutator {
+impl<C: Chromosome> Mutate<C> for Mutator {
     fn mutate_rate(&self) -> f32 {
         self.rate
     }

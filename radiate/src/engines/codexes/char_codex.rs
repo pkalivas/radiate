@@ -1,7 +1,7 @@
-use crate::engines::genome::chromosome::Chromosome;
 use crate::engines::genome::genes::char_gene::CharGene;
 use crate::engines::genome::genes::gene::Gene;
 use crate::engines::genome::genotype::Genotype;
+use crate::{CharChromosome, Chromosome};
 
 use super::Codex;
 
@@ -22,22 +22,22 @@ impl CharCodex {
     }
 }
 
-impl Codex<CharGene, char, String> for CharCodex {
-    fn encode(&self) -> Genotype<CharGene, char> {
+impl Codex<CharChromosome, String> for CharCodex {
+    fn encode(&self) -> Genotype<CharChromosome> {
         Genotype {
             chromosomes: (0..self.num_chromosomes)
                 .map(|_| {
-                    Chromosome::from_genes(
+                    CharChromosome::from_genes(
                         (0..self.num_genes)
                             .map(|_| CharGene::new())
                             .collect::<Vec<CharGene>>(),
                     )
                 })
-                .collect::<Vec<Chromosome<CharGene, char>>>(),
+                .collect::<Vec<CharChromosome>>(),
         }
     }
 
-    fn decode(&self, genotype: &Genotype<CharGene, char>) -> String {
+    fn decode(&self, genotype: &Genotype<CharChromosome>) -> String {
         genotype
             .iter()
             .map(|chromosome| {

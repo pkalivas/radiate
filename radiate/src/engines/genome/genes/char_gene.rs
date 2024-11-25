@@ -1,4 +1,4 @@
-use crate::RandomProvider;
+use crate::random_provider;
 
 use super::gene::{Gene, Valid};
 
@@ -27,14 +27,16 @@ pub struct CharGene {
 
 impl CharGene {
     pub fn new() -> Self {
-        let index = RandomProvider::random::<usize>() % ALPHABET.len();
+        let index = random_provider::random::<usize>() % ALPHABET.len();
         CharGene {
             allele: ALPHABET.chars().nth(index).unwrap(),
         }
     }
 }
 
-impl Gene<CharGene, char> for CharGene {
+impl Gene for CharGene {
+    type Allele = char;
+
     fn allele(&self) -> &char {
         &self.allele
     }
@@ -84,7 +86,6 @@ impl From<char> for CharGene {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]
