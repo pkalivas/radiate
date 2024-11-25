@@ -1,6 +1,6 @@
 use crate::architects::node_collection_builder::NodeCollectionBuilder;
 use crate::architects::node_collections::node::Node;
-use crate::architects::node_collections::node_collection::NodeCollection;
+use crate::architects::node_collections::NodeCollection;
 use crate::architects::node_collections::node_factory::NodeFactory;
 use crate::architects::schema::node_types::NodeType;
 
@@ -39,24 +39,24 @@ where
         self.new_collection(NodeType::Leaf, 1)
     }
 
-    pub fn input(&self, siez: usize) -> C {
-        self.new_collection(NodeType::Input, siez)
+    pub fn input(&self, size: usize) -> C {
+        self.new_collection(NodeType::Input, size)
     }
 
-    pub fn output(&self, siez: usize) -> C {
-        self.new_collection(NodeType::Output, siez)
+    pub fn output(&self, size: usize) -> C {
+        self.new_collection(NodeType::Output, size)
     }
 
-    pub fn gate(&self, siez: usize) -> C {
-        self.new_collection(NodeType::Gate, siez)
+    pub fn gate(&self, size: usize) -> C {
+        self.new_collection(NodeType::Gate, size)
     }
 
-    pub fn aggregate(&self, siez: usize) -> C {
-        self.new_collection(NodeType::Aggregate, siez)
+    pub fn aggregate(&self, size: usize) -> C {
+        self.new_collection(NodeType::Aggregate, size)
     }
 
-    pub fn weight(&self, siez: usize) -> C {
-        self.new_collection(NodeType::Weight, siez)
+    pub fn weight(&self, size: usize) -> C {
+        self.new_collection(NodeType::Weight, size)
     }
 
     pub fn new_collection(&self, node_type: NodeType, size: usize) -> C {

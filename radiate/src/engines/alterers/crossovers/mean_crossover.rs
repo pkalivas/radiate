@@ -1,6 +1,5 @@
-use crate::Chromosome;
 use crate::NumericGene;
-use crate::RandomProvider;
+use crate::{random_provider, Chromosome};
 
 use super::Crossover;
 
@@ -14,9 +13,9 @@ impl MeanCrossover {
     }
 }
 
-impl<G, A> Crossover<G, A> for MeanCrossover
+impl<C: Chromosome> Crossover<C> for MeanCrossover
 where
-    G: NumericGene<G, A>,
+    C::GeneType: NumericGene,
 {
     fn cross_rate(&self) -> f32 {
         self.rate
@@ -26,15 +25,11 @@ where
         "Mean Crossover"
     }
 
-    fn cross_chromosomes(
-        &self,
-        chrom_one: &mut Chromosome<G, A>,
-        chrom_two: &mut Chromosome<G, A>,
-    ) -> i32 {
+    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C) -> i32 {
         let mut count = 0;
 
         for (gene_one, gene_two) in chrom_one.iter_mut().zip(chrom_two.iter()) {
-            if RandomProvider::random::<f32>() < self.rate {
+            if random_provider::random::<f32>() < self.rate {
                 *gene_one = gene_one.mean(gene_two);
                 count += 1;
             }

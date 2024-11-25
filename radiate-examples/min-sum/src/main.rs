@@ -16,7 +16,7 @@ fn main() {
         ])
         .fitness_fn(|genotype: Vec<Vec<i32>>| {
             Score::from_int(genotype.iter().fold(0, |acc, chromosome| {
-                acc + chromosome.iter().fold(0, |acc, gene| acc + gene)
+                acc + chromosome.iter().sum::<i32>()
             }))
         })
         .build();

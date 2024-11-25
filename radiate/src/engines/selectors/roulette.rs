@@ -1,4 +1,4 @@
-use crate::{Gene, Optimize, Population, RandomProvider};
+use crate::{random_provider, Chromosome, Optimize, Population};
 
 use super::Select;
 
@@ -16,17 +16,17 @@ impl Default for RouletteSelector {
     }
 }
 
-impl<G: Gene<G, A>, A> Select<G, A> for RouletteSelector {
+impl<C: Chromosome> Select<C> for RouletteSelector {
     fn name(&self) -> &'static str {
         "Roulette Selector"
     }
 
     fn select(
         &self,
-        population: &Population<G, A>,
+        population: &Population<C>,
         optimize: &Optimize,
         count: usize,
-    ) -> Population<G, A> {
+    ) -> Population<C> {
         let mut selected = Vec::with_capacity(count);
         let mut fitness_values = Vec::with_capacity(population.len());
 
@@ -54,7 +54,7 @@ impl<G: Gene<G, A>, A> Select<G, A> for RouletteSelector {
         let total_fitness = fitness_values.iter().sum::<f32>();
 
         for _ in 0..count {
-            let mut idx = RandomProvider::gen_range(0.0..total_fitness);
+            let mut idx = random_provider::gen_range(0.0..total_fitness);
 
             for (i, val) in fitness_values.iter().enumerate() {
                 idx -= val;

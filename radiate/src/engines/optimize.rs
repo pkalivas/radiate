@@ -1,4 +1,5 @@
-use super::genome::{genes::gene::Gene, population::Population};
+use super::genome::population::Population;
+use crate::Chromosome;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Optimize {
@@ -7,10 +8,7 @@ pub enum Optimize {
 }
 
 impl Optimize {
-    pub fn sort<G, A>(&self, population: &mut Population<G, A>)
-    where
-        G: Gene<G, A>,
-    {
+    pub fn sort<C: Chromosome>(&self, population: &mut Population<C>) {
         match self {
             Optimize::Minimize => population.sort_by(|a, b| a.partial_cmp(b).unwrap()),
             Optimize::Maximize => population.sort_by(|a, b| b.partial_cmp(a).unwrap()),
@@ -30,7 +28,6 @@ impl Optimize {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]

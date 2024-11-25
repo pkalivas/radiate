@@ -1,7 +1,8 @@
-use radiate::{Alterer, Chromosome, Crossover, RandomProvider, Valid};
+use radiate::{random_provider, Alterer, Chromosome, Crossover, Valid};
 use uuid::Uuid;
 
-use crate::{Node, NodeCollectionBuilder, Ops, Tree};
+use crate::node::Node;
+use crate::{NodeChromosome, NodeCollectionBuilder, Tree};
 
 pub struct TreeCrossover<T>
 where
@@ -16,7 +17,7 @@ impl<T> TreeCrossover<T>
 where
     T: Clone + PartialEq + Default + 'static,
 {
-    pub fn alterer(rate: f32, max_height: usize) -> Alterer<Node<T>, Ops<T>> {
+    pub fn alterer(rate: f32, max_height: usize) -> Alterer<NodeChromosome<T>> {
         Alterer::Crossover(Box::new(Self {
             rate,
             max_height,
@@ -24,21 +25,21 @@ where
         }))
     }
 
-    fn level(&self, index: usize, nodes: &[Node<T>]) -> usize {
+    fn level(index: usize, nodes: &[Node<T>]) -> usize {
         nodes[index]
             .incoming
             .iter()
-            .map(|i| self.level(*i, nodes))
+            .map(|i| TreeCrossover::level(*i, nodes))
             .max()
             .unwrap_or(0)
             + 1
     }
 
-    fn depth(&self,index: usize, nodes: &[Node<T>]) -> usize {
+    fn depth(index: usize, nodes: &[Node<T>]) -> usize {
         nodes[index]
             .outgoing
             .iter()
-            .map(|i| self.depth(*i, nodes))
+            .map(|i| TreeCrossover::depth(*i, nodes))
             .max()
             .unwrap_or(0)
             + 1
@@ -55,17 +56,17 @@ where
             return false;
         }
 
-        let one_depth = self.depth(one_index, one);
-        let two_depth = self.depth(two_index, two);
+        let one_depth = TreeCrossover::depth(one_index, one);
+        let two_depth = TreeCrossover::depth(two_index, two);
 
-        let one_height = self.level(one_index, one);
-        let two_height = self.level(two_index, two);
+        let one_height = TreeCrossover::level(one_index, one);
+        let two_height = TreeCrossover::level(two_index, two);
 
         one_height + two_depth <= self.max_height && two_height + one_depth <= self.max_height
     }
 }
 
-impl<T> Crossover<Node<T>, Ops<T>> for TreeCrossover<T>
+impl<T> Crossover<NodeChromosome<T>> for TreeCrossover<T>
 where
     T: Clone + PartialEq + Default,
 {
@@ -80,11 +81,11 @@ where
     #[inline]
     fn cross_chromosomes(
         &self,
-        chrom_one: &mut Chromosome<Node<T>, Ops<T>>,
-        chrom_two: &mut Chromosome<Node<T>, Ops<T>>,
+        chrom_one: &mut NodeChromosome<T>,
+        chrom_two: &mut NodeChromosome<T>,
     ) -> i32 {
-        let swap_one_index = RandomProvider::random::<usize>() % chrom_one.len();
-        let swap_two_index = RandomProvider::random::<usize>() % chrom_two.len();
+        let swap_one_index = random_provider::random::<usize>() % chrom_one.len();
+        let swap_two_index = random_provider::random::<usize>() % chrom_two.len();
 
         if !self.can_cross(
             chrom_one.get_genes(),
@@ -123,8 +124,8 @@ where
             panic!("Invalid tree after crossover.");
         }
 
-        chrom_one.genes = new_one_tree.nodes;
-        chrom_two.genes = new_two_tree.nodes;
+        chrom_one.nodes = new_one_tree.nodes;
+        chrom_two.nodes = new_two_tree.nodes;
 
         2
     }

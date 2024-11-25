@@ -1,6 +1,5 @@
-use crate::engines::genome::chromosome::Chromosome;
 use crate::engines::genome::genes::gene::Gene;
-use crate::RandomProvider;
+use crate::{random_provider, Chromosome};
 
 use super::mutate::Mutate;
 
@@ -14,7 +13,7 @@ impl SwapMutator {
     }
 }
 
-impl<G: Gene<G, A>, A> Mutate<G, A> for SwapMutator {
+impl<C: Chromosome> Mutate<C> for SwapMutator {
     fn mutate_rate(&self) -> f32 {
         self.rate
     }
@@ -24,12 +23,12 @@ impl<G: Gene<G, A>, A> Mutate<G, A> for SwapMutator {
     }
 
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut Chromosome<G, A>, range: i32) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut C, range: i32) -> i32 {
         let mut mutations = 0;
 
         for i in 0..chromosome.len() {
-            if RandomProvider::random::<i32>() > range {
-                let swap_index = RandomProvider::gen_range(0..chromosome.len());
+            if random_provider::random::<i32>() > range {
+                let swap_index = random_provider::gen_range(0..chromosome.len());
 
                 if swap_index == i {
                     continue;

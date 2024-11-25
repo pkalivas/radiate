@@ -11,7 +11,7 @@ mod engine_tests {
             .minimizing()
             .fitness_fn(|genotype: Vec<Vec<i32>>| {
                 Score::from_int(genotype.iter().fold(0, |acc, chromosome| {
-                    acc + chromosome.iter().fold(0, |acc, gene| acc + gene)
+                    acc + chromosome.iter().sum::<i32>()
                 }))
             })
             .build();
@@ -19,7 +19,7 @@ mod engine_tests {
         let result = engine.run(|output| output.score().as_int() == 0);
 
         let best = result.best.first().unwrap();
-        assert_eq!(best.iter().fold(0, |acc, gene| acc + gene), 0);
+        assert_eq!(best.iter().sum::<i32>(), 0);
     }
 
     #[test]
@@ -29,7 +29,7 @@ mod engine_tests {
         let engine = GeneticEngine::from_codex(&codex)
             .fitness_fn(|genotype: Vec<Vec<i32>>| {
                 Score::from_int(genotype.iter().fold(0, |acc, chromosome| {
-                    acc + chromosome.iter().fold(0, |acc, gene| acc + gene)
+                    acc + chromosome.iter().sum::<i32>()
                 }))
             })
             .build();
@@ -37,7 +37,7 @@ mod engine_tests {
         let result = engine.run(|output| output.score().as_int() == 500);
 
         let best = result.best.first().unwrap();
-        assert_eq!(best.iter().fold(0, |acc, gene| acc + gene), 500);
+        assert_eq!(best.iter().sum::<i32>(), 500);
     }
 
     #[test]

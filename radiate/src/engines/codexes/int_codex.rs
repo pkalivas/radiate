@@ -1,10 +1,9 @@
 use rand::distributions::Standard;
 
-use crate::engines::genome::chromosome::Chromosome;
 use crate::engines::genome::genes::gene::{BoundGene, Gene};
 use crate::engines::genome::genes::int_gene::IntGene;
 use crate::engines::genome::genotype::Genotype;
-use crate::Integer;
+use crate::{Chromosome, IntChromosome, Integer};
 
 use super::Codex;
 
@@ -49,15 +48,15 @@ where
     }
 }
 
-impl<T: Integer<T>> Codex<IntGene<T>, T, Vec<Vec<T>>> for IntCodex<T>
+impl<T: Integer<T>> Codex<IntChromosome<T>, Vec<Vec<T>>> for IntCodex<T>
 where
     Standard: rand::distributions::Distribution<T>,
 {
-    fn encode(&self) -> Genotype<IntGene<T>, T> {
+    fn encode(&self) -> Genotype<IntChromosome<T>> {
         Genotype {
             chromosomes: (0..self.num_chromosomes)
                 .map(|_| {
-                    Chromosome::from_genes(
+                    IntChromosome::from_genes(
                         (0..self.num_genes)
                             .map(|_| {
                                 IntGene::from_min_max(self.min, self.max)
@@ -66,11 +65,11 @@ where
                             .collect::<Vec<IntGene<T>>>(),
                     )
                 })
-                .collect::<Vec<Chromosome<IntGene<T>, T>>>(),
+                .collect::<Vec<IntChromosome<T>>>(),
         }
     }
 
-    fn decode(&self, genotype: &Genotype<IntGene<T>, T>) -> Vec<Vec<T>> {
+    fn decode(&self, genotype: &Genotype<IntChromosome<T>>) -> Vec<Vec<T>> {
         genotype
             .iter()
             .map(|chromosome| {

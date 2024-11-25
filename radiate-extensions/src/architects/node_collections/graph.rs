@@ -1,11 +1,11 @@
 use radiate::Valid;
 
+use super::GraphIterator;
+use crate::node::Node;
 use crate::{
-    node_collection, schema::collection_type::CollectionType, Direction, Node, NodeCollection,
+    node_collections, schema::collection_type::CollectionType, Direction, NodeCollection,
     NodeFactory, NodeRepairs, NodeType,
 };
-
-use super::GraphIterator;
 
 #[derive(Clone, PartialEq, Default)]
 pub struct Graph<T>
@@ -35,7 +35,7 @@ where
         }
 
         for idx in indecies {
-            let node_cycles = node_collection::get_cycles(self.get_nodes(), idx);
+            let node_cycles = node_collections::get_cycles(self.get_nodes(), idx);
 
             if node_cycles.is_empty() {
                 let node = self.get_mut(idx);

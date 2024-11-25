@@ -1,4 +1,4 @@
-use crate::{Gene, Optimize, Population, RandomProvider};
+use crate::{random_provider, Chromosome, Optimize, Population};
 
 use super::Select;
 
@@ -12,17 +12,17 @@ impl BoltzmannSelector {
     }
 }
 
-impl<G: Gene<G, A>, A> Select<G, A> for BoltzmannSelector {
+impl<C: Chromosome> Select<C> for BoltzmannSelector {
     fn name(&self) -> &'static str {
         "Boltzmann Selector"
     }
 
     fn select(
         &self,
-        population: &Population<G, A>,
+        population: &Population<C>,
         optimize: &Optimize,
         count: usize,
-    ) -> Population<G, A> {
+    ) -> Population<C> {
         let mut selected = Vec::with_capacity(count);
 
         let mut min = population.get(0).score().as_ref().unwrap().as_float();
@@ -42,8 +42,9 @@ impl<G: Gene<G, A>, A> Select<G, A> for BoltzmannSelector {
         if diff == 0.0 {
             return population
                 .iter()
-                .take(count).cloned()
-                .collect::<Population<G, A>>();
+                .take(count)
+                .cloned()
+                .collect::<Population<C>>();
         }
 
         let mut result = Vec::with_capacity(population.len());
@@ -67,7 +68,7 @@ impl<G: Gene<G, A>, A> Select<G, A> for BoltzmannSelector {
         let total_fitness = result.iter().sum::<f32>();
 
         for _ in 0..count {
-            let mut idx = RandomProvider::gen_range(0.0..total_fitness);
+            let mut idx = random_provider::gen_range(0.0..total_fitness);
 
             for (i, val) in result.iter().enumerate() {
                 idx -= val;

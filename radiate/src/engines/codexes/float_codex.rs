@@ -1,9 +1,8 @@
-use crate::engines::genome::chromosome::Chromosome;
+use super::Codex;
 use crate::engines::genome::genes::float_gene::FloatGene;
 use crate::engines::genome::genes::gene::{BoundGene, Gene};
 use crate::engines::genome::genotype::Genotype;
-
-use super::Codex;
+use crate::{Chromosome, FloatChromosome};
 
 /// A `Codex` for a `Genotype` of `FloatGenes`. The `encode` function creates a `Genotype` with `num_chromosomes` chromosomes
 /// and `num_genes` genes per chromosome. The `decode` function creates a `Vec<Vec<f32>>` from the `Genotype` where the inner `Vec`
@@ -49,12 +48,12 @@ impl FloatCodex {
     }
 }
 
-impl Codex<FloatGene, f32, Vec<Vec<f32>>> for FloatCodex {
-    fn encode(&self) -> Genotype<FloatGene, f32> {
+impl Codex<FloatChromosome, Vec<Vec<f32>>> for FloatCodex {
+    fn encode(&self) -> Genotype<FloatChromosome> {
         Genotype {
             chromosomes: (0..self.num_chromosomes)
                 .map(|_| {
-                    Chromosome::from_genes(
+                    FloatChromosome::from_genes(
                         (0..self.num_genes)
                             .map(|_| {
                                 FloatGene::new(self.min, self.max)
@@ -63,11 +62,11 @@ impl Codex<FloatGene, f32, Vec<Vec<f32>>> for FloatCodex {
                             .collect::<Vec<FloatGene>>(),
                     )
                 })
-                .collect::<Vec<Chromosome<FloatGene, f32>>>(),
+                .collect::<Vec<FloatChromosome>>(),
         }
     }
 
-    fn decode(&self, genotype: &Genotype<FloatGene, f32>) -> Vec<Vec<f32>> {
+    fn decode(&self, genotype: &Genotype<FloatChromosome>) -> Vec<Vec<f32>> {
         genotype
             .iter()
             .map(|chromosome| {

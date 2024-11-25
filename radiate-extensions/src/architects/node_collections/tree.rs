@@ -1,10 +1,10 @@
 use radiate::Valid;
 
 use crate::{
-    node_collection, schema::collection_type::CollectionType, Node, NodeCollection, NodeFactory,
+    node_collections, schema::collection_type::CollectionType, NodeCollection, NodeFactory,
     NodeRepairs,
 };
-
+use crate::node::Node;
 use super::BreadthFirstIterator;
 
 #[derive(Clone, PartialEq, Default)]
@@ -27,7 +27,7 @@ where
         let nodes = BreadthFirstIterator::new(&self.nodes, index)
             .collect::<Vec<&Node<T>>>();
 
-        Tree::new(node_collection::reindex(0, nodes.as_slice()))
+        Tree::new(node_collections::reindex(0, nodes.as_slice()))
     }
 }
 

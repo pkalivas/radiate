@@ -37,7 +37,7 @@ impl ErrorFunction {
                     let output = eval_func(&sample.1);
 
                     for i in 0..sample.2.len() {
-                        let diff = sample.2[i].clone() - output[i].clone();
+                        let diff = sample.2[i] - output[i];
                         sum += diff * diff;
                     }
                 }
@@ -50,7 +50,7 @@ impl ErrorFunction {
                     let output = eval_func(&sample.1);
 
                     for i in 0..sample.2.len() {
-                        let diff = sample.2[i].clone() - output[i].clone();
+                        let diff = sample.2[i] - output[i];
                         sum += diff;
                     }
                 }
@@ -64,7 +64,7 @@ impl ErrorFunction {
                     let output = eval_func(&sample.1);
 
                     for i in 0..sample.2.len() {
-                        sum += sample.2[i].clone() * output[i].clone().ln();
+                        sum += sample.2[i] * output[i].ln();
                     }
                 }
 
@@ -76,7 +76,7 @@ impl ErrorFunction {
                     let output = eval_func(&sample.1);
 
                     for i in 0..sample.2.len() {
-                        sum += (sample.2[i].clone() - output[i].clone()).abs();
+                        sum += (sample.2[i] - output[i]).abs();
                     }
                 }
 

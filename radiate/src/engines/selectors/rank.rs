@@ -1,4 +1,4 @@
-use crate::{Gene, Optimize, Population, RandomProvider, Select};
+use crate::{random_provider, Chromosome, Optimize, Population, Select};
 
 pub struct RankSelector;
 
@@ -14,24 +14,19 @@ impl Default for RankSelector {
     }
 }
 
-impl<G: Gene<G, A>, A> Select<G, A> for RankSelector {
+impl<C: Chromosome> Select<C> for RankSelector {
     fn name(&self) -> &'static str {
         "Rank Selector"
     }
 
-    fn select(
-        &self,
-        population: &Population<G, A>,
-        _: &Optimize,
-        count: usize,
-    ) -> Population<G, A> {
+    fn select(&self, population: &Population<C>, _: &Optimize, count: usize) -> Population<C> {
         // TODO: This is wrong, fix me.
         let mut selected = Vec::with_capacity(count);
 
         let total_rank = (population.len() * (population.len() + 1)) as f32 / 2.0;
 
         for _ in 0..count {
-            let mut idx = RandomProvider::gen_range(0.0..total_rank);
+            let mut idx = random_provider::gen_range(0.0..total_rank);
             let mut selected_idx = 0;
             for individual in population.iter() {
                 idx -= (population.len() - selected_idx) as f32;
