@@ -4,7 +4,6 @@ use super::{
 };
 use crate::random_provider;
 use rand::distributions::Standard;
-use std::ops::{Add, Div, Mul, Sub};
 
 /// A `Gene` that represents an integer value. This gene just wraps an integer value and provides
 /// functionality for it to be used in a genetic algorithm. In this `Gene` implementation, the

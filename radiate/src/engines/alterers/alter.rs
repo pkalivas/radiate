@@ -36,14 +36,18 @@ impl<C: Chromosome> Alterer<C> {
     }
 }
 
-pub struct AlterWrap<C: Chromosome> {
+pub trait IntoAlterOperation<C: Chromosome> {
+    fn into_alter_operation(self) -> AlterOperation<C>;
+}
+
+pub struct AlterOperation<C: Chromosome> {
     pub rate: f32,
     pub mutator: Option<Box<dyn Mutate<C>>>,
     pub crossover: Option<Box<dyn Crossover<C>>>,
     pub alterer: Option<Box<dyn Alter<C>>>,
 }
 
-impl<C: Chromosome> AlterWrap<C> {
+impl<C: Chromosome> AlterOperation<C> {
     pub fn from_mutator(mutator: Box<dyn Mutate<C>>, rate: f32) -> Self {
         Self {
             rate,

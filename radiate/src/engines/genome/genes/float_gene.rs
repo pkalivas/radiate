@@ -1,6 +1,5 @@
 use super::gene::{BoundGene, Gene, NumericGene, Valid};
 use crate::random_provider;
-use std::ops::{Add, Div, Mul, Sub};
 
 /// A `Gene` that represents a floating point number.
 /// The `allele` is the in the case of the `FloatGene` a f32. The `min` and `max` values

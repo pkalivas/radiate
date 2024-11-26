@@ -1,4 +1,4 @@
-use crate::{random_provider, Chromosome, Crossover, FloatGene, Gene, NumericGene};
+use crate::{random_provider, Chromosome, Crossover, FloatGene, Gene};
 
 pub struct IntermediateCrossover {
     rate: f32,

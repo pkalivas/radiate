@@ -1,4 +1,4 @@
-use super::alter::{AlterWrap, Alterer};
+use super::alter::{AlterOperation, Alterer};
 use super::crossovers::multipoint_crossover::MultiPointCrossover;
 use super::crossovers::uniform_crossover::UniformCrossover;
 use super::mutators::swap_mutator::SwapMutator;
@@ -11,7 +11,7 @@ use crate::timer::Timer;
 use crate::{random_provider, Chromosome, Metric};
 
 pub struct CompositeAlterer<C: Chromosome> {
-    alterers: Vec<AlterWrap<C>>,
+    alterers: Vec<AlterOperation<C>>,
 }
 
 impl<C: Chromosome> CompositeAlterer<C> {
@@ -21,34 +21,34 @@ impl<C: Chromosome> CompositeAlterer<C> {
             match alterer {
                 Alterer::UniformMutator(rate) => {
                     let mutator = Box::new(UniformMutator::new(rate));
-                    alterer_wraps.push(AlterWrap::from_mutator(mutator, rate))
+                    alterer_wraps.push(AlterOperation::from_mutator(mutator, rate))
                 }
                 Alterer::UniformCrossover(rate) => {
                     let crossover = Box::new(UniformCrossover::new(rate));
-                    alterer_wraps.push(AlterWrap::from_crossover(crossover, rate))
+                    alterer_wraps.push(AlterOperation::from_crossover(crossover, rate))
                 }
                 Alterer::SinglePointCrossover(rate) => {
                     let crossover = Box::new(MultiPointCrossover::new(rate, 1));
-                    alterer_wraps.push(AlterWrap::from_crossover(crossover, rate))
+                    alterer_wraps.push(AlterOperation::from_crossover(crossover, rate))
                 }
                 Alterer::MultiPointCrossover(rate, num_points) => {
                     let crossover = Box::new(MultiPointCrossover::new(rate, num_points));
-                    alterer_wraps.push(AlterWrap::from_crossover(crossover, rate))
+                    alterer_wraps.push(AlterOperation::from_crossover(crossover, rate))
                 }
                 Alterer::SwapMutator(rate) => {
                     let mutator = Box::new(SwapMutator::new(rate));
-                    alterer_wraps.push(AlterWrap::from_mutator(mutator, rate))
+                    alterer_wraps.push(AlterOperation::from_mutator(mutator, rate))
                 }
                 Alterer::Mutation(mutation) => {
                     let rate = mutation.mutate_rate();
-                    alterer_wraps.push(AlterWrap::from_mutator(mutation, rate))
+                    alterer_wraps.push(AlterOperation::from_mutator(mutation, rate))
                 }
                 Alterer::Crossover(crossover) => {
                     let cross_rate = crossover.cross_rate();
-                    alterer_wraps.push(AlterWrap::from_crossover(crossover, cross_rate))
+                    alterer_wraps.push(AlterOperation::from_crossover(crossover, cross_rate))
                 }
                 Alterer::Alterer(alterer) => {
-                    alterer_wraps.push(AlterWrap::from_alterer(alterer, 1.0))
+                    alterer_wraps.push(AlterOperation::from_alterer(alterer, 1.0))
                 }
             }
         }

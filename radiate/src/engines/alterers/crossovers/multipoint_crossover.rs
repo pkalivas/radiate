@@ -1,7 +1,5 @@
 use crate::{random_provider, Chromosome, Crossover};
 
-const DEFAULT_NUM_POINTS: usize = 2;
-
 pub struct MultiPointCrossover {
     pub num_points: usize,
     pub rate: f32,

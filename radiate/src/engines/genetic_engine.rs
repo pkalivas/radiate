@@ -4,13 +4,12 @@ use crate::engines::genetic_engine_params::GeneticEngineParams;
 use crate::engines::genome::population::Population;
 use crate::engines::optimize::Optimize;
 use crate::engines::score::Score;
-use crate::{metric_names, Chromosome, Metric, Valid};
+use crate::{metric_names, Chromosome, Metric, Select, Valid};
 use std::sync::Arc;
 
 use super::codexes::Codex;
 use super::engine_output::EngineOutput;
 use super::genome::phenotype::Phenotype;
-use super::selectors::select::Select;
 use super::{MetricSet, ThreadPool};
 
 /// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.

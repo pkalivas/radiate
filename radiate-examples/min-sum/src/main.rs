@@ -15,9 +15,11 @@ fn main() {
             Alterer::UniformCrossover(0.5),
         ])
         .fitness_fn(|genotype: Vec<Vec<i32>>| {
-            Score::from_int(genotype.iter().fold(0, |acc, chromosome| {
-                acc + chromosome.iter().sum::<i32>()
-            }))
+            Score::from_int(
+                genotype
+                    .iter()
+                    .fold(0, |acc, chromosome| acc + chromosome.iter().sum::<i32>()),
+            )
         })
         .build();
 

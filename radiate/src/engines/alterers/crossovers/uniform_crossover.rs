@@ -1,4 +1,4 @@
-use crate::{Chromosome, Crossover};
+use crate::{Alterer, Chromosome, Crossover};
 
 pub struct UniformCrossover {
     pub rate: f32,

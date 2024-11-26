@@ -1,3 +1,4 @@
+
 #[macro_export]
 macro_rules! add_impl {
     ($($t:ty),*) => {
@@ -128,29 +129,6 @@ macro_rules! impl_integer {
 
                 fn from_i32(value: i32) -> $t {
                     value as $t
-                }
-            }
-        )*
-    };
-}
-
-#[macro_export]
-macro_rules! impl_gene {
-    ($($t:ty),*) => {
-        $(
-            impl Gene for $t {
-                type Allele = <$t as Gene>::Allele;
-
-                fn allele(&self) -> &<$t as Gene>::Allele {
-                    &self.allele
-                }
-
-                fn new_instance(&self) -> $t {
-                    <$t as Gene>::new()
-                }
-
-                fn from_allele(&self, allele: &<$t as Gene>::Allele) -> $t {
-                    Self { allele: *allele }
                 }
             }
         )*

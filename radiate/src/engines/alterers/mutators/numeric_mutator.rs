@@ -51,7 +51,7 @@ where
                 let new_gene = NumericMutator::mutate_gene(curr_gene);
 
                 chromosome.set_gene(i, new_gene);
-                mutations += 1; 
+                mutations += 1;
             }
         }
 

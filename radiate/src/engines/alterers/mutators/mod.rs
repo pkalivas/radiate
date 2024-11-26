@@ -3,16 +3,17 @@ pub mod numeric_mutator;
 pub mod swap_mutator;
 pub mod uniform_mutator;
 
+pub use gaussian_mutator::GaussianMutator;
 pub use numeric_mutator::NumericMutator;
 pub use swap_mutator::SwapMutator;
 pub use uniform_mutator::UniformMutator;
-pub use gaussian_mutator::GaussianMutator;
 
 use crate::engines::genome::genes::gene::Gene;
 use crate::engines::genome::genotype::Genotype;
-use crate::{random_provider, Chromosome};
+use crate::{random_provider, AlterOperation, Chromosome};
 
 pub trait Mutate<C: Chromosome> {
+
     fn mutate_rate(&self) -> f32;
 
     fn name(&self) -> &'static str;
