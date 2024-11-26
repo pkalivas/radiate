@@ -20,10 +20,7 @@ impl GaussianMutator {
     }
 }
 
-impl<C: Chromosome<GeneType = FloatGene>> Mutate<C> for GaussianMutator
-// where
-// C::GeneType: NumericGene,
-{
+impl<C: Chromosome<GeneType = FloatGene>> Mutate<C> for GaussianMutator {
     fn mutate_rate(&self) -> f32 {
         self.rate
     }
@@ -40,7 +37,7 @@ impl<C: Chromosome<GeneType = FloatGene>> Mutate<C> for GaussianMutator
         let std_dev = (max - min) * 0.25;
         let value = *gene.allele() as f64;
 
-        let gaussian = random_provider::gauss(value, std_dev);
+        let gaussian = random_provider::gaussian(value, std_dev);
 
         let allele = GaussianMutator::clamp(gaussian, min, max) as f32;
         gene.from_allele(&allele)

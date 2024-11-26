@@ -91,7 +91,7 @@ fn build_subset(n: i32, sub: &mut [i32]) {
         let ids = sub[ip as usize - 1] - (l - 1) * n / k;
         sub[ip as usize - 1] = 0;
         sub[is_ as usize - 1] = l;
-        is_ = is_ - ids;
+        is_ -= ids;
     }
 
     let mut ir = 0;
@@ -105,13 +105,14 @@ fn build_subset(n: i32, sub: &mut [i32]) {
             m = sub[l as usize - 1] * n / k - m0 + 1;
         }
         
+        // TODO: Check if this is correct
         ix = random_provider::gen_range(m0..m0 + m - 1);
 
         let mut i = l + 1;
         while i <= ir && ix >= sub[i as usize - 1] {
-            ix = ix + 1;
+            ix += 1;
             sub[i as usize - 2] = sub[i as usize - 1];
-            i = i + 1;
+            i += 1;
         }
 
         sub[i as usize - 2] = ix;

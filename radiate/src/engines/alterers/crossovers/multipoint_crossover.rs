@@ -1,6 +1,4 @@
-use crate::engines::domain::subset;
-use crate::engines::genome::genes::gene::Gene;
-use crate::{Chromosome, Crossover};
+use crate::{random_provider, Chromosome, Crossover};
 
 const DEFAULT_NUM_POINTS: usize = 2;
 
@@ -12,38 +10,6 @@ pub struct MultiPointCrossover {
 impl MultiPointCrossover {
     pub fn new(rate: f32, num_points: usize) -> Self {
         Self { num_points, rate }
-    }
-
-    #[inline]
-    pub fn swap<C: Chromosome>(
-        chrom_one: &mut C,
-        start: usize,
-        end: usize,
-        chrom_two: &mut C,
-        other_start: usize,
-    ) {
-        if other_start + (end - start) > chrom_one.len() {
-            panic!(
-                "Invalid index range: [{}, {})",
-                other_start,
-                other_start + (end - start)
-            );
-        }
-
-        if start >= end {
-            return;
-        }
-
-        for i in (end - start..0).rev() {
-            let temp = chrom_one.get_gene(start + i);
-            let other_gene = chrom_two.get_gene(other_start + i);
-
-            let new_gene_one = temp.from_allele(other_gene.allele());
-            let new_gene_two = other_gene.from_allele(temp.allele());
-
-            chrom_one.set_gene(start + i, new_gene_one);
-            chrom_two.set_gene(other_start + i, new_gene_two);
-        }
     }
 }
 
@@ -59,37 +25,54 @@ impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
 
     #[inline]
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C) -> i32 {
-        let min_index = std::cmp::min(chrom_one.len(), chrom_two.len());
-        let min_points = std::cmp::min(self.num_points, DEFAULT_NUM_POINTS);
+        let length = std::cmp::min(chrom_one.len(), chrom_two.len());
 
-        let mut cross_count = 0;
-        let indexes = if min_points > 0 {
-            subset::subset(min_index, min_points)
+        if length < 2 {
+            return 0;
+        }
+
+        let mut crossover_points: Vec<usize> = (1..length).collect();
+        random_provider::shuffle(&mut crossover_points);
+        let num_points = 2;
+        let selected_points = &crossover_points[..num_points];
+
+        let mut sorted_points = selected_points.to_vec();
+        sorted_points.sort();
+
+        let mut offspring_one = Vec::with_capacity(length);
+        let mut offspring_two = Vec::with_capacity(length);
+
+        let mut current_parent = 1;
+        let mut last_point = 0;
+
+        for &point in &sorted_points {
+            if current_parent == 1 {
+                offspring_one.extend_from_slice(&chrom_one.get_genes()[last_point..point]);
+                offspring_two.extend_from_slice(&chrom_two.get_genes()[last_point..point]);
+            } else {
+                offspring_one.extend_from_slice(&chrom_two.get_genes()[last_point..point]);
+                offspring_two.extend_from_slice(&chrom_one.get_genes()[last_point..point]);
+            }
+
+            current_parent = 3 - current_parent;
+            last_point = point;
+        }
+
+        if current_parent == 1 {
+            offspring_one.extend_from_slice(&chrom_one.get_genes()[last_point..]);
+            offspring_two.extend_from_slice(&chrom_two.get_genes()[last_point..]);
         } else {
-            Vec::new()
-        };
-
-        for i in 0..indexes.len() - 1 {
-            let start = indexes[i] as usize;
-            let end = indexes[i + 1] as usize;
-
-            MultiPointCrossover::swap(chrom_one, start, end, chrom_two, start);
-            cross_count += 1;
+            offspring_one.extend_from_slice(&chrom_two.get_genes()[last_point..]);
+            offspring_two.extend_from_slice(&chrom_one.get_genes()[last_point..]);
         }
 
-        if indexes.len() % 2 == 1 {
-            let index = indexes[indexes.len() - 1] as usize;
-
-            cross_count += 1;
-            MultiPointCrossover::swap(
-                chrom_one,
-                index,
-                std::cmp::min(chrom_one.len(), chrom_two.len()),
-                chrom_two,
-                index,
-            );
+        for i in 0..length {
+            let gene_one = &offspring_one[i];
+            let gene_two = &offspring_two[i];
+            chrom_one.set_gene(i, gene_one.clone());
+            chrom_two.set_gene(i, gene_two.clone());
         }
 
-        cross_count
+        num_points as i32
     }
 }

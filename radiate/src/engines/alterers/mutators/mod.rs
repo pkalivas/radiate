@@ -6,6 +6,7 @@ pub mod uniform_mutator;
 pub use numeric_mutator::NumericMutator;
 pub use swap_mutator::SwapMutator;
 pub use uniform_mutator::UniformMutator;
+pub use gaussian_mutator::GaussianMutator;
 
 use crate::engines::genome::genes::gene::Gene;
 use crate::engines::genome::genotype::Genotype;

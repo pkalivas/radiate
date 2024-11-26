@@ -12,17 +12,7 @@ pub struct FloatChromosome {
 }
 
 impl FloatChromosome {
-    /// Create a new `FloatChromosome` from a `Range<i32>`. This will create a `FloatGene` for each value in the range.
-    pub fn from_range(range: Range<i32>) -> Self {
-        let mut genes = Vec::new();
-        for _ in range.start..range.end {
-            genes.push(FloatGene::new(range.start as f32, range.end as f32));
-        }
-
-        FloatChromosome { genes }
-    }
-
-    pub fn normalize(&mut self) {
+    pub fn normalize(mut self) -> Self {
         let mut sum = 0.0;
         for gene in &self.genes {
             sum += gene.allele;
@@ -31,6 +21,30 @@ impl FloatChromosome {
         for gene in &mut self.genes {
             gene.allele /= sum;
         }
+
+        self
+    }
+
+    pub fn standardize(mut self) -> Self {
+        let mut sum = 0.0;
+        for gene in &self.genes {
+            sum += gene.allele;
+        }
+
+        let mean = sum / self.genes.len() as f32;
+
+        let mut variance = 0.0;
+        for gene in &self.genes {
+            variance += (gene.allele - mean).powi(2);
+        }
+
+        let std_dev = (variance / self.genes.len() as f32).sqrt();
+
+        for gene in &mut self.genes {
+            gene.allele = (gene.allele - mean) / std_dev;
+        }
+
+        self
     }
 }
 
@@ -57,6 +71,17 @@ impl Chromosome for FloatChromosome {
 impl Valid for FloatChromosome {
     fn is_valid(&self) -> bool {
         self.genes.iter().all(|gene| gene.is_valid())
+    }
+}
+
+impl From<Range<i32>> for FloatChromosome {
+    fn from(range: Range<i32>) -> Self {
+        let mut genes = Vec::new();
+        for _ in range.start..range.end {
+            genes.push(FloatGene::new(range.start as f32, range.end as f32));
+        }
+
+        FloatChromosome { genes }
     }
 }
 
