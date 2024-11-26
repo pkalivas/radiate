@@ -142,7 +142,7 @@ mod tests {
         }
 
         // Give threads some time to finish processing
-        thread::sleep(std::time::Duration::from_secs(1));
+        thread::sleep(Duration::from_secs(1));
         assert_eq!(*counter.lock().unwrap(), 8);
     }
 
@@ -154,7 +154,7 @@ mod tests {
             pool.execute(move || {
                 let start_time = std::time::SystemTime::now();
                 println!("Job {} started.", i);
-                thread::sleep(std::time::Duration::from_secs(1));
+                thread::sleep(Duration::from_secs(1));
                 println!("Job {} finished in {:?}.", i, start_time.elapsed().unwrap());
             });
         }
@@ -173,7 +173,7 @@ mod tests {
         }
 
         // Give threads some time to finish processing
-        thread::sleep(std::time::Duration::from_secs(1));
+        thread::sleep(Duration::from_secs(1));
         let mut results = results.lock().unwrap();
         results.sort(); // Order may not be guaranteed
         assert_eq!(*results, vec![0, 1, 2, 3, 4]);
@@ -186,7 +186,7 @@ mod tests {
         let results = pool.task(|| {
             let start_time = std::time::SystemTime::now();
             println!("Job started.");
-            thread::sleep(std::time::Duration::from_secs(2));
+            thread::sleep(Duration::from_secs(2));
             println!("Job finished in {:?}.", start_time.elapsed().unwrap());
             42
         });

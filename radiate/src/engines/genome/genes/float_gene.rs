@@ -100,6 +100,14 @@ impl BoundGene for FloatGene {
 }
 
 impl NumericGene for FloatGene {
+    fn min(&self) -> &Self::Allele {
+        &self.min
+    }
+
+    fn max(&self) -> &Self::Allele {
+        &self.max
+    }
+
     fn add(&self, other: &FloatGene) -> FloatGene {
         FloatGene {
             allele: self.allele + other.allele,

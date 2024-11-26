@@ -5,7 +5,6 @@ const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
-    
     let graph_codex = GraphCodex::regression(1, 1)
         .set_outputs(vec![op::linear()])
         .set_gates(vec![op::add(), op::sub(), op::mul()]);
@@ -15,6 +14,7 @@ fn main() {
     let engine = GeneticEngine::from_codex(&graph_codex)
         .minimizing()
         .num_threads(10)
+        .offspring_selector(RankSelector::new())
         .alterer(vec![
             GraphCrossover::alterer(0.5, 0.5),
             NodeMutator::alterer(0.01, 0.05),

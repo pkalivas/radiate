@@ -1,6 +1,5 @@
-use crate::engines::alterers::mutators::mutate::Mutate;
 use crate::engines::genome::genes::gene::NumericGene;
-use crate::{random_provider, Chromosome, Gene};
+use crate::{random_provider, Chromosome, Gene, Mutate};
 
 pub struct NumericMutator {
     rate: f32,

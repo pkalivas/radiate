@@ -1,7 +1,7 @@
 use crate::engines::genome::genes::gene::Gene;
 use crate::{random_provider, Chromosome};
 
-use super::mutate::Mutate;
+use super::Mutate;
 
 pub struct SwapMutator {
     rate: f32,
@@ -9,7 +9,7 @@ pub struct SwapMutator {
 
 impl SwapMutator {
     pub fn new(rate: f32) -> Self {
-        Self { rate }
+        SwapMutator { rate }
     }
 }
 

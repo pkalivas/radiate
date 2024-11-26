@@ -192,7 +192,7 @@ where
     fn build_alterer(&mut self) {
         if self.alterer.is_none() {
             self.alterer = Some(CompositeAlterer::new(vec![
-                Alterer::Mutator(0.001),
+                Alterer::UniformMutator(0.001),
                 Alterer::UniformCrossover(0.5),
             ]));
         }

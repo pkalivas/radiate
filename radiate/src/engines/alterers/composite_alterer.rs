@@ -1,8 +1,8 @@
 use super::alter::{AlterWrap, Alterer};
 use super::crossovers::multipoint_crossover::MultiPointCrossover;
 use super::crossovers::uniform_crossover::UniformCrossover;
-use super::mutators::mutator::Mutator;
 use super::mutators::swap_mutator::SwapMutator;
+use super::mutators::uniform_mutator::UniformMutator;
 use crate::engines::alterers::alter::Alter;
 use crate::engines::domain::subset;
 use crate::engines::genome::population::Population;
@@ -19,8 +19,8 @@ impl<C: Chromosome> CompositeAlterer<C> {
         let mut alterer_wraps = Vec::new();
         for alterer in alterers {
             match alterer {
-                Alterer::Mutator(rate) => {
-                    let mutator = Box::new(Mutator::new(rate));
+                Alterer::UniformMutator(rate) => {
+                    let mutator = Box::new(UniformMutator::new(rate));
                     alterer_wraps.push(AlterWrap::from_mutator(mutator, rate))
                 }
                 Alterer::UniformCrossover(rate) => {

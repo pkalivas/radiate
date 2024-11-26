@@ -190,6 +190,14 @@ where
             ..*self
         }
     }
+
+    fn min(&self) -> &T {
+        &self.min
+    }
+
+    fn max(&self) -> &T {
+        &self.max
+    }
 }
 
 impl<T: Integer<T>> Clone for IntGene<T>

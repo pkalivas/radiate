@@ -1,7 +1,6 @@
-use crate::engines::alterers::crossovers::crossover::Crossover;
 use crate::engines::domain::subset;
 use crate::engines::genome::genes::gene::Gene;
-use crate::Chromosome;
+use crate::{Chromosome, Crossover};
 
 const DEFAULT_NUM_POINTS: usize = 2;
 

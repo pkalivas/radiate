@@ -1,9 +1,6 @@
 use crate::engines::genome::population::Population;
 use crate::engines::optimize::Optimize;
-use crate::{Chromosome, Metric};
-
-use super::crossovers::crossover::Crossover;
-use super::mutators::mutate::Mutate;
+use crate::{Chromosome, Crossover, Metric, Mutate};
 
 pub trait Alter<C: Chromosome> {
     fn alter(
@@ -15,7 +12,7 @@ pub trait Alter<C: Chromosome> {
 }
 
 pub enum Alterer<C: Chromosome> {
-    Mutator(f32),
+    UniformMutator(f32),
     UniformCrossover(f32),
     MultiPointCrossover(f32, usize),
     SinglePointCrossover(f32),

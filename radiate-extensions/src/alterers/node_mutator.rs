@@ -2,9 +2,8 @@ use std::ops::{Add, Mul, Sub};
 use std::sync::Arc;
 
 use num_traits::Float;
-use radiate::engines::alterers::mutators::mutate::Mutate;
 use radiate::engines::genome::genes::gene::Gene;
-use radiate::{random_provider, Alterer, Chromosome};
+use radiate::{random_provider, Alterer, Chromosome, Mutate};
 use rand::distributions::uniform::SampleUniform;
 use rand::{distributions::Standard, prelude::Distribution};
 

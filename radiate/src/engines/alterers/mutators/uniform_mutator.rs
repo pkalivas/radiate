@@ -1,23 +1,23 @@
 use crate::Chromosome;
 
-use super::mutate::Mutate;
+use super::Mutate;
 
-pub struct Mutator {
+pub struct UniformMutator {
     pub rate: f32,
 }
 
-impl Mutator {
+impl UniformMutator {
     pub fn new(rate: f32) -> Self {
-        Self { rate }
+        UniformMutator { rate }
     }
 }
 
-impl<C: Chromosome> Mutate<C> for Mutator {
+impl<C: Chromosome> Mutate<C> for UniformMutator {
     fn mutate_rate(&self) -> f32 {
         self.rate
     }
 
     fn name(&self) -> &'static str {
-        "Mutator"
+        "UniformMutator"
     }
 }

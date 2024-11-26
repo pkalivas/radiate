@@ -29,37 +29,16 @@ use crate::{Chromosome, Codex, Genotype};
 ///                 .collect::<Vec<i8>>()
 ///         });
 ///
-///     let engine = GeneticEngine::from_codex(&codex)
-///         .minimizing()
-///         .num_threads(10)
-///         .offspring_selector(RouletteSelector::new())
-///         .alterer(vec![
-///             Alterer::MultiPointCrossover(0.75, 2),
-///             Alterer::Mutator(0.01),
-///         ])
-///         .fitness_fn(|genotype: Vec<i8>| {
-///             let queens = &genotype;
-///             let mut score = 0;
-///
-///             for i in 0..N_QUEENS {
-///                 for j in (i + 1)..N_QUEENS {
-///                     if queens[i] == queens[j] {
-///                         score += 1;
-///                     }
-///                     if (i as i8 - j as i8).abs() == (queens[i] - queens[j]).abs() {
-///                         score += 1;
-///                     }
-///                 }
-///             }
-///
-///             Score::from_usize(score)
-///         })
-///         .build();
-///
-///     let result = engine.run(|output| output.score().as_usize() == 0);
+///     // encode and decode
+///     let genotype = codex.encode(); // Genotype<IntChromosome<i8>>
+///     let decoded = codex.decode(&genotype); // Vec<i8>
 /// }
 /// ```
-/// 
+/// # Type Parameters
+/// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
+/// - `T`: The type that the genotype will be decoded to.
+///
+#[derive(Default)]
 pub struct FnCodex<C: Chromosome, T> {
     pub encoder: Option<Box<dyn Fn() -> Genotype<C>>>,
     pub decoder: Option<Box<dyn Fn(&Genotype<C>) -> T>>,

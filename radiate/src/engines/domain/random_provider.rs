@@ -1,5 +1,5 @@
-use rand::distributions::Standard;
 use rand::distributions::{uniform::SampleUniform, Distribution};
+use rand::distributions::{Standard, Uniform};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::sync::Mutex;
 
@@ -33,5 +33,15 @@ pub fn choose<T>(items: &[T]) -> &T {
     RNG.with(|rng| {
         let index = rng.lock().unwrap().gen_range(0..items.len());
         &items[index]
+    })
+}
+
+pub fn gauss(mean: f64, std_dev: f64) -> f64 {
+    RNG.with(|rng| {
+        let x = rng.lock().unwrap().sample(Uniform::new(0.0, 1.0));
+        let y = rng.lock().unwrap().sample(Uniform::new(0.0, 1.0));
+        let z = (mean + std_dev * (2.0 * x - 1.0) * (2.0 * std_dev * y).sqrt()).abs();
+
+        z
     })
 }
