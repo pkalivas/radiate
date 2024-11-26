@@ -104,7 +104,7 @@ fn build_subset(n: i32, sub: &mut [i32]) {
             m0 = 1 + (sub[l as usize - 1] - 1) * n / k;
             m = sub[l as usize - 1] * n / k - m0 + 1;
         }
-
+        
         ix = random_provider::gen_range(m0..m0 + m - 1);
 
         let mut i = l + 1;

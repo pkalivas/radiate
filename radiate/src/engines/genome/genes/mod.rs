@@ -14,6 +14,8 @@ use std::{
     ops::{Add, Div, Mul, Sub},
 };
 
+use radiate_macros::{add_impl, div_impl, impl_integer, mul_impl, sub_impl};
+
 pub use bit_gene::*;
 pub use char_gene::*;
 pub use float_gene::*;
@@ -42,43 +44,38 @@ where
 }
 
 // Implement Integer for i8, i16, i32, i64, and i128
-impl Integer<i8> for i8 {
-    const MIN: i8 = i8::MIN;
-    const MAX: i8 = i8::MAX;
+impl_integer!(i8, i16, i32, i64, i128);
 
-    fn from_i32(value: i32) -> i8 {
-        value as i8
-    }
-}
-impl Integer<i16> for i16 {
-    const MIN: i16 = i16::MIN;
-    const MAX: i16 = i16::MAX;
-
-    fn from_i32(value: i32) -> i16 {
-        value as i16
-    }
-}
-impl Integer<i32> for i32 {
-    const MIN: i32 = i32::MIN;
-    const MAX: i32 = i32::MAX;
-
-    fn from_i32(value: i32) -> i32 {
-        value
-    }
-}
-impl Integer<i64> for i64 {
-    const MIN: i64 = i64::MIN;
-    const MAX: i64 = i64::MAX;
-
-    fn from_i32(value: i32) -> i64 {
-        value as i64
-    }
-}
-impl Integer<i128> for i128 {
-    const MIN: i128 = i128::MIN;
-    const MAX: i128 = i128::MAX;
-
-    fn from_i32(value: i32) -> i128 {
-        value as i128
-    }
-}
+// Implement Add, Sub, Mul, and Div for FloatGene and IntGene<i8>, IntGene<i16>, IntGene<i32>, IntGene<i64>, and IntGene<i128>
+add_impl!(
+    FloatGene,
+    IntGene<i8>,
+    IntGene<i16>,
+    IntGene<i32>,
+    IntGene<i64>,
+    IntGene<i128>
+);
+sub_impl!(
+    FloatGene,
+    IntGene<i8>,
+    IntGene<i16>,
+    IntGene<i32>,
+    IntGene<i64>,
+    IntGene<i128>
+);
+mul_impl!(
+    FloatGene,
+    IntGene<i8>,
+    IntGene<i16>,
+    IntGene<i32>,
+    IntGene<i64>,
+    IntGene<i128>
+);
+div_impl!(
+    FloatGene,
+    IntGene<i8>,
+    IntGene<i16>,
+    IntGene<i32>,
+    IntGene<i64>,
+    IntGene<i128>
+);

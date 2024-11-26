@@ -21,8 +21,8 @@ impl GaussianMutator {
 }
 
 impl<C: Chromosome<GeneType = FloatGene>> Mutate<C> for GaussianMutator
-where
-    C::GeneType: NumericGene,
+// where
+// C::GeneType: NumericGene,
 {
     fn mutate_rate(&self) -> f32 {
         self.rate

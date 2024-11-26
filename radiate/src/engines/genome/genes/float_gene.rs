@@ -1,5 +1,6 @@
 use super::gene::{BoundGene, Gene, NumericGene, Valid};
 use crate::random_provider;
+use std::ops::{Add, Div, Mul, Sub};
 
 /// A `Gene` that represents a floating point number.
 /// The `allele` is the in the case of the `FloatGene` a f32. The `min` and `max` values
@@ -22,6 +23,7 @@ use crate::random_provider;
 /// let gene = FloatGene::new(0_f32, 1_f32).with_bounds(100_f32, 0_f32);
 /// ```
 ///
+#[derive(Clone, PartialEq)]
 pub struct FloatGene {
     pub allele: f32,
     pub min: f32,
@@ -108,62 +110,11 @@ impl NumericGene for FloatGene {
         &self.max
     }
 
-    fn add(&self, other: &FloatGene) -> FloatGene {
-        FloatGene {
-            allele: self.allele + other.allele,
-            ..*self
-        }
-    }
-
-    fn sub(&self, other: &FloatGene) -> FloatGene {
-        FloatGene {
-            allele: self.allele - other.allele,
-            ..*self
-        }
-    }
-
-    fn mul(&self, other: &FloatGene) -> FloatGene {
-        FloatGene {
-            allele: self.allele * other.allele,
-            ..*self
-        }
-    }
-
-    fn div(&self, other: &FloatGene) -> FloatGene {
-        let other_allele = match other.allele() == &0_f32 {
-            true => 1_f32,
-            false => *other.allele(),
-        };
-
-        FloatGene {
-            allele: self.allele / other_allele,
-            ..*self
-        }
-    }
-
     fn mean(&self, other: &FloatGene) -> FloatGene {
         FloatGene {
             allele: (self.allele + other.allele) / 2_f32,
             ..*self
         }
-    }
-}
-
-impl Clone for FloatGene {
-    fn clone(&self) -> Self {
-        FloatGene {
-            allele: self.allele,
-            min: self.min,
-            max: self.max,
-            upper_bound: self.upper_bound,
-            lower_bound: self.lower_bound,
-        }
-    }
-}
-
-impl PartialEq for FloatGene {
-    fn eq(&self, other: &Self) -> bool {
-        self.allele == other.allele && self.min == other.min && self.max == other.max
     }
 }
 
