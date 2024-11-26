@@ -2,11 +2,11 @@ use crate::architects::node_collections::*;
 use crate::architects::schema::node_types::NodeType;
 use crate::node::Node;
 use crate::schema::collection_type::CollectionType;
+use radiate::alter::AlterType;
 use radiate::engines::alterers::Alter;
 use radiate::engines::genome::*;
-use radiate::engines::optimize::Optimize;
 use radiate::timer::Timer;
-use radiate::{random_provider, Alterer, Metric};
+use radiate::{random_provider, Metric, Objective};
 
 pub enum NodeMutate {
     Forward(NodeType, f32),
@@ -40,7 +40,6 @@ pub struct GraphMutator<T>
 where
     T: Clone + PartialEq + Default,
 {
-    // pub factory: NodeFactory<T>,
     pub mutations: Vec<NodeMutate>,
     _marker: std::marker::PhantomData<T>,
 }
@@ -54,10 +53,6 @@ where
             mutations,
             _marker: std::marker::PhantomData,
         }
-    }
-
-    pub fn alterer(mutations: Vec<NodeMutate>) -> Alterer<NodeChromosome<T>> {
-        Alterer::Alterer(Box::new(GraphMutator::new(mutations)))
     }
 
     #[inline]
@@ -296,11 +291,23 @@ impl<T> Alter<NodeChromosome<T>> for GraphMutator<T>
 where
     T: Clone + PartialEq + Default + 'static,
 {
+    fn name(&self) -> &'static str {
+        "GraphMutator"
+    }
+
+    fn rate(&self) -> f32 {
+        1.0
+    }
+
+    fn alter_type(&self) -> AlterType {
+        AlterType::Alterer
+    }
+
     #[inline]
     fn alter(
         &self,
         population: &mut Population<NodeChromosome<T>>,
-        _: &Optimize,
+        _: &Objective,
         generation: i32,
     ) -> Vec<Metric> {
         let timer = Timer::new();

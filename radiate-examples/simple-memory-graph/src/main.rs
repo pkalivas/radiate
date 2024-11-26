@@ -9,21 +9,21 @@ fn main() {
         .set_outputs(vec![op::sigmoid()])
         .set_gates(vec![op::add(), op::sub(), op::mul()])
         .set_nodes(|arc, _| arc.lstm(1, 1, 1));
-    
+
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 
     let engine = GeneticEngine::from_codex(&graph_codex)
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4_f32))
-        .alterer(vec![
-            GraphCrossover::alterer(0.5, 0.5),
-            NodeMutator::alterer(0.01, 0.05),
-            GraphMutator::alterer(vec![
+        .alterer(alters!(
+            GraphCrossover::new(0.5, 0.5),
+            NodeMutator::new(0.01, 0.05),
+            GraphMutator::new(vec![
                 NodeMutate::Recurrent(NodeType::Weight, 0.05),
                 NodeMutate::Recurrent(NodeType::Aggregate, 0.03),
                 NodeMutate::Recurrent(NodeType::Gate, 0.03),
             ]),
-        ])
+        ))
         .fitness_fn(move |genotype: Graph<f32>| {
             let mut reducer = GraphReducer::new(&genotype);
             Score::from_f32(regression.error(|input| reducer.reduce(&input)))

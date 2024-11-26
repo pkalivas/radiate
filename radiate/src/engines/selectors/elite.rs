@@ -1,4 +1,4 @@
-use crate::{Chromosome, Optimize, Population};
+use crate::{Chromosome, Objective, Optimize, Population};
 
 use super::Select;
 
@@ -21,7 +21,7 @@ impl<C: Chromosome> Select<C> for EliteSelector {
         "Elite Selector"
     }
 
-    fn select(&self, population: &Population<C>, _: &Optimize, count: usize) -> Population<C> {
+    fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {
         population.iter().take(count).cloned().collect()
     }
 }

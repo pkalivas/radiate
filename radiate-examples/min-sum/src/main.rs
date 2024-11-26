@@ -10,10 +10,10 @@ fn main() {
         .minimizing()
         .offspring_selector(EliteSelector::new())
         .survivor_selector(TournamentSelector::new(4))
-        .alterer(vec![
-            Alterer::mutation(NumericMutator::new(0.01)),
-            Alterer::UniformCrossover(0.5),
-        ])
+        .alterer(alters!(
+            NumericMutator::new(0.01),
+            UniformCrossover::new(0.5),
+        ))
         .fitness_fn(|genotype: Vec<Vec<i32>>| {
             Score::from_int(
                 genotype

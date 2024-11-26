@@ -1,4 +1,4 @@
-use crate::{random_provider, Chromosome, Optimize, Population};
+use crate::{random_provider, Chromosome, Objective, Population};
 
 use super::Select;
 
@@ -17,7 +17,7 @@ impl<C: Chromosome> Select<C> for TournamentSelector {
         "Tournament Selector"
     }
 
-    fn select(&self, population: &Population<C>, _: &Optimize, count: usize) -> Population<C> {
+    fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {
         let mut selected = Vec::with_capacity(count);
 
         for _ in 0..count {

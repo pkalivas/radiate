@@ -14,8 +14,7 @@ use std::{
     ops::{Add, Div, Mul, Sub},
 };
 
-use radiate_macros::{add_impl, div_impl, impl_integer, mul_impl, sub_impl};
-
+use crate::{add_impl, div_impl, impl_integer, mul_impl, sub_impl};
 pub use bit_gene::*;
 pub use char_gene::*;
 pub use float_gene::*;

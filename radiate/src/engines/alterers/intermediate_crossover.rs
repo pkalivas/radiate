@@ -1,4 +1,5 @@
-use crate::{random_provider, Chromosome, Crossover, FloatGene, Gene};
+use crate::alter::AlterType;
+use crate::{random_provider, Alter, Chromosome, FloatGene, Gene};
 
 pub struct IntermediateCrossover {
     rate: f32,
@@ -11,13 +12,16 @@ impl IntermediateCrossover {
     }
 }
 
-impl<C: Chromosome<GeneType = FloatGene>> Crossover<C> for IntermediateCrossover {
-    fn cross_rate(&self) -> f32 {
+impl<C: Chromosome<GeneType = FloatGene>> Alter<C> for IntermediateCrossover {
+    fn name(&self) -> &'static str {
+        "IntermediateCrossover"
+    }
+    fn rate(&self) -> f32 {
         self.rate
     }
 
-    fn name(&self) -> &'static str {
-        "IntermediateCrossover"
+    fn alter_type(&self) -> AlterType {
+        AlterType::Crossover
     }
 
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C) -> i32 {

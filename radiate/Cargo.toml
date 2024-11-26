@@ -11,5 +11,4 @@ keywords = ["search", "genetic", "learning", "artificial", "evolution"]
 license = "MIT"
 
 [dependencies]
-radiate-macros = { path = "../radiate-macros" }
 rand = "0.8.5"

@@ -1,8 +1,8 @@
-use radiate::{random_provider, Alterer, Chromosome, Crossover, Valid};
-use uuid::Uuid;
-
 use crate::node::Node;
 use crate::{NodeChromosome, NodeCollectionBuilder, Tree};
+use radiate::alter::AlterType;
+use radiate::{random_provider, Alter, Chromosome, Valid};
+use uuid::Uuid;
 
 pub struct TreeCrossover<T>
 where
@@ -17,12 +17,12 @@ impl<T> TreeCrossover<T>
 where
     T: Clone + PartialEq + Default + 'static,
 {
-    pub fn alterer(rate: f32, max_height: usize) -> Alterer<NodeChromosome<T>> {
-        Alterer::Crossover(Box::new(Self {
+    pub fn new(rate: f32, max_height: usize) -> Self {
+        Self {
             rate,
             max_height,
             _marker: std::marker::PhantomData,
-        }))
+        }
     }
 
     fn level(index: usize, nodes: &[Node<T>]) -> usize {
@@ -66,16 +66,20 @@ where
     }
 }
 
-impl<T> Crossover<NodeChromosome<T>> for TreeCrossover<T>
+impl<T> Alter<NodeChromosome<T>> for TreeCrossover<T>
 where
     T: Clone + PartialEq + Default,
 {
-    fn cross_rate(&self) -> f32 {
+    fn name(&self) -> &'static str {
+        "Tree Crossover"
+    }
+
+    fn rate(&self) -> f32 {
         self.rate
     }
 
-    fn name(&self) -> &'static str {
-        "Tree Crossover"
+    fn alter_type(&self) -> AlterType {
+        AlterType::Crossover
     }
 
     #[inline]

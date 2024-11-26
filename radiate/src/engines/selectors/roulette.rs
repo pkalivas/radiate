@@ -1,4 +1,4 @@
-use crate::{random_provider, Chromosome, Optimize, Population};
+use crate::{random_provider, Chromosome, Objective, Optimize, Population};
 
 use super::Select;
 
@@ -24,7 +24,7 @@ impl<C: Chromosome> Select<C> for RouletteSelector {
     fn select(
         &self,
         population: &Population<C>,
-        optimize: &Optimize,
+        objective: &Objective,
         count: usize,
     ) -> Population<C> {
         let mut selected = Vec::with_capacity(count);
@@ -47,8 +47,13 @@ impl<C: Chromosome> Select<C> for RouletteSelector {
             fitness_values.push(score / total);
         }
 
-        if optimize == &Optimize::Minimize {
-            fitness_values.reverse();
+        match objective {
+            Objective::Single(opt) => {
+                if opt == &Optimize::Minimize {
+                    fitness_values.reverse();
+                }
+            }
+            Objective::Multi(_) => {}
         }
 
         let total_fitness = fitness_values.iter().sum::<f32>();

@@ -1,4 +1,3 @@
-
 #[macro_export]
 macro_rules! add_impl {
     ($($t:ty),*) => {
@@ -132,5 +131,18 @@ macro_rules! impl_integer {
                 }
             }
         )*
+    };
+}
+
+#[macro_export]
+macro_rules! alters {
+    ($($struct_instance:expr),* $(,)?) => {
+        {
+            let mut vec: Vec<Box<dyn Alter<_>>> = Vec::new();
+            $(
+                vec.push(Box::new($struct_instance));
+            )*
+            vec
+        }
     };
 }

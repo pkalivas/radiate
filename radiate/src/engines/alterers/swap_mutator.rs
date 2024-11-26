@@ -1,7 +1,6 @@
+use crate::alter::AlterType;
 use crate::engines::genome::genes::gene::Gene;
-use crate::{random_provider, Chromosome};
-
-use super::Mutate;
+use crate::{random_provider, Alter, Chromosome};
 
 pub struct SwapMutator {
     rate: f32,
@@ -13,13 +12,17 @@ impl SwapMutator {
     }
 }
 
-impl<C: Chromosome> Mutate<C> for SwapMutator {
-    fn mutate_rate(&self) -> f32 {
+impl<C: Chromosome> Alter<C> for SwapMutator {
+    fn name(&self) -> &'static str {
+        "SwapMutator"
+    }
+
+    fn rate(&self) -> f32 {
         self.rate
     }
 
-    fn name(&self) -> &'static str {
-        "SwapMutator"
+    fn alter_type(&self) -> AlterType {
+        AlterType::Mutator
     }
 
     #[inline]

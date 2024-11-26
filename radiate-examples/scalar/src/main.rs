@@ -6,10 +6,7 @@ fn main() {
     let codex = FloatCodex::scalar(0.0, 2.0 * std::f32::consts::PI);
 
     let engine = GeneticEngine::from_codex(&codex)
-        .alterer(vec![
-            Alterer::mutation(NumericMutator::new(0.01)),
-            Alterer::crossover(MeanCrossover::new(0.5)),
-        ])
+        .alterer(alters![NumericMutator::new(0.01), MeanCrossover::new(0.5)])
         .fitness_fn(|genotype: Vec<Vec<f32>>| {
             let value = genotype.first().unwrap().first().unwrap();
             Score::from_f32(fitness(*value))

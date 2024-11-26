@@ -1,4 +1,5 @@
-use crate::{random_provider, Chromosome, Gene, Mutate};
+use crate::alter::AlterType;
+use crate::{random_provider, Alter, Chromosome, Gene};
 use std::ops::{Add, Div, Mul, Sub};
 
 pub struct NumericMutator {
@@ -27,19 +28,22 @@ impl NumericMutator {
     }
 }
 
-impl<C: Chromosome> Mutate<C> for NumericMutator
+impl<C: Chromosome> Alter<C> for NumericMutator
 where
     C::GeneType: Add<Output = C::GeneType>
         + Sub<Output = C::GeneType>
         + Mul<Output = C::GeneType>
         + Div<Output = C::GeneType>,
 {
-    fn mutate_rate(&self) -> f32 {
+    fn name(&self) -> &'static str {
+        "NumericMutator"
+    }
+    fn rate(&self) -> f32 {
         self.rate
     }
 
-    fn name(&self) -> &'static str {
-        "NumericMutator"
+    fn alter_type(&self) -> AlterType {
+        AlterType::Mutator
     }
 
     #[inline]

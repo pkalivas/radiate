@@ -1,6 +1,42 @@
 use super::genome::population::Population;
 use crate::Chromosome;
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum Objective {
+    Single(Optimize),
+    Multi(Vec<Optimize>),
+}
+
+impl Objective {
+    pub fn sort<C: Chromosome>(&self, population: &mut Population<C>) {
+        match self {
+            Objective::Single(opt) => opt.sort(population),
+            Objective::Multi(opts) => {
+                for &opt in opts {
+                    opt.sort(population);
+                }
+            }
+        }
+    }
+
+    pub fn is_better<T>(&self, a: &T, b: &T) -> bool
+    where
+        T: PartialOrd,
+    {
+        match self {
+            Objective::Single(opt) => opt.is_better(a, b),
+            Objective::Multi(opts) => {
+                for &opt in opts {
+                    if !opt.is_better(a, b) {
+                        return false;
+                    }
+                }
+                true
+            }
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Optimize {
     Minimize,
