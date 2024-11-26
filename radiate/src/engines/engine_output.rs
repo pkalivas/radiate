@@ -1,7 +1,6 @@
-use crate::engines::genome::population::Population;
 use crate::engines::domain::timer::Timer;
+use crate::engines::genome::population::Population;
 use crate::{Chromosome, Metric};
-use std::time::Duration;
 
 use super::score::Score;
 use super::MetricSet;

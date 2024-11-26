@@ -1,5 +1,5 @@
-use crate::random_provider;
 use super::gene::{Gene, Valid};
+use crate::random_provider;
 
 /// A gene that represents a single bit. The `allele` is a `bool` that is randomly assigned.
 /// The `allele` is either `true` or `false`. This is the simplest form of a gene and
@@ -22,6 +22,7 @@ use super::gene::{Gene, Valid};
 /// let gene = gene.from_allele(allele);
 /// ```
 ///
+#[derive(Clone, PartialEq)]
 pub struct BitGene {
     allele: bool,
 }
@@ -53,17 +54,9 @@ impl Gene for BitGene {
 /// Because a `BitGene` is either `true` or `false` it is always valid.
 impl Valid for BitGene {}
 
-impl Clone for BitGene {
-    fn clone(&self) -> Self {
-        BitGene {
-            allele: self.allele,
-        }
-    }
-}
-
-impl PartialEq for BitGene {
-    fn eq(&self, other: &Self) -> bool {
-        self.allele == other.allele
+impl Default for BitGene {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

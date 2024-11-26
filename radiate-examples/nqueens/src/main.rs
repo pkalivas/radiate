@@ -10,7 +10,7 @@ fn main() {
     let engine = GeneticEngine::from_codex(&codex)
         .minimizing()
         .num_threads(10)
-        .offspring_selector(RankSelector::new())
+        .offspring_selector(RouletteSelector::new())
         .alterer(vec![
             Alterer::MultiPointCrossover(0.75, 2),
             Alterer::Mutator(0.01),

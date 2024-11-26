@@ -5,6 +5,7 @@ use super::genome::population::Population;
 pub mod bit_codex;
 pub mod char_codex;
 pub mod float_codex;
+pub mod fn_codex;
 pub mod int_codex;
 pub mod subset_codex;
 
@@ -12,13 +13,14 @@ use crate::Chromosome;
 pub use bit_codex::*;
 pub use char_codex::*;
 pub use float_codex::*;
+pub use fn_codex::*;
 pub use int_codex::*;
 pub use subset_codex::*;
 
 /// The `Codex` is a core concept in Radiate, as it allows for the encoding and decoding from
 /// a `Genotype` to the type `T` (commonly called Phenotype in biology) that is being optimized.
 ///
-/// In order to have a vaid `GeneticEngine`, a `Codex` must be supplied. In a sense, the encoding is the
+/// In order to have a valid `GeneticEngine`, a `Codex` must be supplied. In a sense, the encoding is the
 /// 'domain language' of the `GeneticEngine`. It is the way that the `GeneticEngine` interacts with the
 /// problem space. The `Codex` is responsible for converting to and from this 'domain language'.
 ///
@@ -38,15 +40,15 @@ pub use subset_codex::*;
 /// // Implement the Codex trait for the NQueensCodex. The `encode` function creates a `Genotype`
 /// // with a single chromosome of `size` genes. The `decode` function creates a `NQueens` from the
 /// // `Genotype`.
-/// impl Codex<IntGene<i32>, i32, NQueens> for NQueensCodex {
-///     fn encode(&self) -> Genotype<IntGene<i32>, i32> {
+/// impl Codex<IntChromosome<i32>, NQueens> for NQueensCodex {
+///     fn encode(&self) -> Genotype<IntChromosome<i32>> {
 ///         let genes = (0..self.size).map(|_| IntGene::from_min_max(0, self.size)).collect();
-///         let chromosomes = vec![Chromosome::from_genes(genes)];
+///         let chromosomes = vec![IntChromosome::from_genes(genes)];
 ///         Genotype::from_chromosomes(chromosomes)
 ///     }
 ///
-///     fn decode(&self, genotype: &Genotype<IntGene<i32>, i32>) -> NQueens {
-///         NQueens(genotype.chromosomes[0].genes.iter().map(|g| *g.allele()).collect())
+///     fn decode(&self, genotype: &Genotype<IntChromosome<i32>>) -> NQueens {
+///         NQueens(genotype.chromosomes[0].iter().map(|g| *g.allele()).collect())
 ///     }
 /// }
 ///
@@ -58,7 +60,7 @@ pub use subset_codex::*;
 /// // The alleles will be random values between 0 and 5. It will look something like:
 /// // Genotype {
 /// //     chromosomes: [
-/// //         Chromosome {
+/// //         IntChromosome<i32> {
 /// //             genes: [
 /// //                 IntGene { allele: 3, min: 0, max: 5, ... },
 /// //                 IntGene { allele: 7, min: 0, max: 5, ... },
@@ -78,9 +80,8 @@ pub use subset_codex::*;
 /// ```
 ///
 /// # Type Parameters
-/// - `G`: The type of gene used in the genetic algorithm, which must implement the `Gene` trait.
-/// - `A`: The type of the allele associated with the gene - the gene's "expression".
-/// - `T`: The type of the Phenotype that is being optimized.
+/// - `C`: The type of the Chromosome that is being optimized - the 'problem space'.
+/// - `T`: The type of the Phenotype that is being optimized the expression of the 'problem space'.
 ///
 pub trait Codex<C: Chromosome, T> {
     fn encode(&self) -> Genotype<C>;

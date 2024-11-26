@@ -11,7 +11,7 @@ use std::fmt::Debug;
 /// itself offers no way to increase or decrease the number of individuals in the population. As such, the `Population`
 /// should be thought of as an 'immutable' data structure. If you need to add or remove individuals from the population,
 /// you should create a new `Population` instance with the new individuals. To further facilitate this way of
-/// thinking, the `Population` struct and everyhing it contains implements the `Clone` trait.
+/// thinking, the `Population` struct and everything it contains implements the `Clone` trait.
 ///
 /// # Type Parameters
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.

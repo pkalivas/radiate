@@ -40,7 +40,7 @@ Add to cargo.toml
 
 ```toml
 [dependencies]
-radiate = "1.2.2"
+radiate = "1.2.3"
 ```
 
 ## Features

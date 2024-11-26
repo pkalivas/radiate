@@ -1,5 +1,6 @@
 use crate::{CharGene, Chromosome, Valid};
 
+/// A `Chromosome` that contains `CharGenes`.
 #[derive(Clone, PartialEq)]
 pub struct CharChromosome {
     pub genes: Vec<CharGene>,

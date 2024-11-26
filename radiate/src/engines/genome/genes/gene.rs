@@ -15,8 +15,47 @@ pub trait Valid {
 ///
 /// Any type that implements this trait can be used as a gene in a chromosome, as such
 /// it can be used in any genetic algorithm that uses this library.
+///
+/// # Example
+/// ```
+/// use radiate::*;
+///
+/// // A simple gene that represents a number.
+/// #[derive(Clone, Debug, PartialEq)]
+/// struct MyGene {
+///    allele: f32,
+/// }
+///
+/// // Implement the Gene trait for the NumberGene.
+/// impl Gene for MyGene {
+///     type Allele = f32;
+///
+///     fn allele(&self) -> &Self::Allele {
+///         &self.allele
+///     }
+///
+///     fn new_instance(&self) -> Self {
+///        MyGene { allele: 0.0 }
+///     }
+///
+///    fn from_allele(&self, allele: &Self::Allele) -> Self {
+///       MyGene { allele: *allele }
+///     }
+/// }
+///
+/// // You must also implement the `Valid` trait for the gene.
+/// // This is used to check if the gene is valid. For example, a gene that represents a number between 0 and 1.
+/// // The default implementation of the `Valid` trait is to return true.
+/// impl Valid for MyGene {
+///    fn is_valid(&self) -> bool {
+///      self.allele >= 0.0 && self.allele <= 1.0
+///   }
+/// }
+/// ```
+///
 pub trait Gene: Clone + PartialEq + Valid {
     type Allele;
+
     /// Get the `allele` of the `Gene`. This is the value that the `Gene` represents or "expresses".
     fn allele(&self) -> &Self::Allele;
 
@@ -36,7 +75,7 @@ pub trait BoundGene: Gene {
 }
 
 /// A gene that represents a number. This gene can be used to represent any type of number, including
-/// integers, floats, etc. Usefull for using numeric mutations or crossover operations on numeric genes.
+/// integers, floats, etc. Useful for using numeric mutations or crossover operations on numeric genes.
 pub trait NumericGene: BoundGene {
     fn add(&self, other: &Self) -> Self;
     fn sub(&self, other: &Self) -> Self;

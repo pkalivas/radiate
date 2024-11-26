@@ -11,7 +11,7 @@ use super::{genotype::Genotype, Valid};
 /// The `Phenotype` is a wrapper around the `Genotype` that adds additional information about the individual.
 /// In traditional (biological) genetics, a phenotype is "the set of observable characteristics of an individual resulting
 /// from the interaction of its genotype with the environment". As such, the `Phenotype` is the 'observable' part of the
-/// individual (`Genotype`) that is being evolved by the genetic algorithm, hense the `Score` and `Generation` fields.
+/// individual (`Genotype`) that is being evolved by the genetic algorithm, hence the `Score` and `Generation` fields.
 /// This allows the `Phenotype` to be sorted and compared based on the fitness (`Score`) of the individual (`Genotype`)
 ///
 /// # Type Parameters

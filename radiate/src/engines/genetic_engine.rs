@@ -4,7 +4,7 @@ use crate::engines::genetic_engine_params::GeneticEngineParams;
 use crate::engines::genome::population::Population;
 use crate::engines::optimize::Optimize;
 use crate::engines::score::Score;
-use crate::{metric_names, Chromosome, Metric};
+use crate::{metric_names, Chromosome, Metric, Valid};
 use std::sync::Arc;
 
 use super::codexes::Codex;
@@ -314,7 +314,7 @@ where
         let mut score_metric = Metric::new_value(metric_names::SCORE);
         let mut size_values = Vec::with_capacity(output.population.len());
         let mut unique = Vec::with_capacity(output.population.len());
-        
+
         for i in 0..output.population.len() {
             let phenotype = output.population.get(i);
 

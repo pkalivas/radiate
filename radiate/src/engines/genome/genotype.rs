@@ -1,4 +1,4 @@
-use crate::Chromosome;
+use crate::{Chromosome, Valid};
 
 /// The `Genotype` struct represents the genetic makeup of an individual. It is a collection of `Chromosome` instances, it is
 /// essentially a light wrapper around a Vec of `Chromosome`s. The `Genotype` struct, however, has some additional functionality
@@ -19,7 +19,6 @@ use crate::Chromosome;
 /// # Type Parameters
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 ///
-
 #[derive(Clone, PartialEq, Debug)]
 pub struct Genotype<C: Chromosome> {
     pub chromosomes: Vec<C>,
@@ -46,12 +45,6 @@ impl<C: Chromosome> Genotype<C> {
         self.chromosomes.len()
     }
 
-    pub fn is_valid(&self) -> bool {
-        self.chromosomes
-            .iter()
-            .all(|chromosome| chromosome.is_valid())
-    }
-
     pub fn iter(&self) -> std::slice::Iter<C> {
         self.chromosomes.iter()
     }
@@ -62,5 +55,13 @@ impl<C: Chromosome> Genotype<C> {
 
     pub fn is_empty(&self) -> bool {
         self.chromosomes.is_empty()
+    }
+}
+
+impl<C: Chromosome> Valid for Genotype<C> {
+    fn is_valid(&self) -> bool {
+        self.chromosomes
+            .iter()
+            .all(|chromosome| chromosome.is_valid())
     }
 }

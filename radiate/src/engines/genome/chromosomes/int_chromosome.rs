@@ -1,6 +1,8 @@
 use crate::{Chromosome, IntGene, Integer, Valid};
 use rand::distributions::Standard;
 
+/// A `Chromosome` that contains `IntGenes`.
+/// 
 #[derive(Clone, PartialEq)]
 pub struct IntChromosome<I: Integer<I>>
 where
