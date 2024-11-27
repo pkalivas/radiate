@@ -5,8 +5,9 @@ use crate::schema::collection_type::CollectionType;
 use radiate::alter::AlterType;
 use radiate::engines::alterers::Alter;
 use radiate::engines::genome::*;
+use radiate::objectives::Objective;
 use radiate::timer::Timer;
-use radiate::{random_provider, Metric, Objective};
+use radiate::{random_provider, Metric};
 
 pub enum NodeMutate {
     Forward(NodeType, f32),

@@ -5,8 +5,9 @@ use crate::NodeChromosome;
 use radiate::alter::AlterType;
 use radiate::engines::alterers::Alter;
 use radiate::engines::genome::*;
+use radiate::objectives::Objective;
 use radiate::timer::Timer;
-use radiate::{random_provider, Metric, Objective};
+use radiate::{random_provider, Metric};
 
 const NUM_PARENTS: usize = 2;
 
@@ -109,6 +110,7 @@ where
     fn alter_type(&self) -> AlterType {
         AlterType::Alterer
     }
+
     #[inline]
     fn alter(
         &self,

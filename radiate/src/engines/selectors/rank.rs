@@ -1,4 +1,5 @@
-use crate::{random_provider, Chromosome, Objective, Population, Select};
+use crate::objectives::Objective;
+use crate::{random_provider, Chromosome, Population, Select};
 
 // In rank selection, the selection probability does not depend directly on the fitness, but on
 // the fitness rank of an individual within the population. This puts large fitness differences

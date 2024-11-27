@@ -1,6 +1,6 @@
-use crate::{random_provider, Chromosome, Objective, Optimize, Population};
-
 use super::Select;
+use crate::objectives::{Objective, Optimize};
+use crate::{random_provider, Chromosome, Population};
 
 pub struct BoltzmannSelector {
     temperature: f32,

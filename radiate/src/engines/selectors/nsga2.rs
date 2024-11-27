@@ -1,4 +1,5 @@
-use crate::{pareto, Chromosome, Objective, Population, Score, Select};
+use crate::objectives::{pareto, Objective};
+use crate::{Chromosome, Population, Select};
 
 pub struct NSGA2Selector;
 
@@ -19,26 +20,35 @@ impl<C: Chromosome> Select<C> for NSGA2Selector {
         objective: &Objective,
         count: usize,
     ) -> Population<C> {
-        let fitness_index_lookup = population
+        let scores = population
             .iter()
-            .enumerate()
-            .map(|(i, individual)| (individual.score().as_ref().unwrap().clone(), i))
-            .collect::<Vec<(Score, usize)>>();
+            .map(|individual| individual.score().as_ref().unwrap().clone())
+            .collect::<Vec<_>>();
 
-        let mut scores = fitness_index_lookup
+        let ranks = pareto::rank(&scores, objective);
+        let distances = pareto::crowding_distance(&scores, objective);
+
+        let mut indices: Vec<usize> = (0..population.len()).collect();
+
+        indices.sort_by(|&a, &b| {
+            let a_rank = ranks[a];
+            let b_rank = ranks[b];
+            let a_distance = distances[a];
+            let b_distance = distances[b];
+
+            if a_rank < b_rank || (a_rank == b_rank && a_distance > b_distance) {
+                std::cmp::Ordering::Less
+            } else if b_rank < a_rank || (b_rank == a_rank && b_distance > a_distance) {
+                std::cmp::Ordering::Greater
+            } else {
+                std::cmp::Ordering::Equal
+            }
+        });
+
+        indices
             .iter()
-            .map(|(score, _)| score.clone())
-            .collect::<Vec<Score>>();
-
-        pareto::crowding_distance_sort(&mut scores, objective);
-
-        let mut selected_population = Vec::with_capacity(count);
-        let mut i = 0;
-        while selected_population.len() < count {
-            selected_population.push(population.get(fitness_index_lookup[i].1).clone());
-            i += 1;
-        }
-
-        Population::from_vec(selected_population)
+            .take(count)
+            .map(|&i| population.get(i).clone())
+            .collect::<Population<C>>()
     }
 }

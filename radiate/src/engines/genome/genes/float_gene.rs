@@ -50,7 +50,7 @@ impl FloatGene {
 /// invalid individuals from the population, replacing them with new individuals at the given generation.
 impl Valid for FloatGene {
     fn is_valid(&self) -> bool {
-        self.allele >= self.min && self.allele <= self.max
+        self.allele >= self.lower_bound && self.allele <= self.upper_bound
     }
 }
 
@@ -91,7 +91,7 @@ impl BoundGene for FloatGene {
         &self.lower_bound
     }
 
-    fn with_bounds(self, upper_bound: f32, lower_bound: f32) -> FloatGene {
+    fn with_bounds(self, lower_bound: f32, upper_bound: f32) -> FloatGene {
         FloatGene {
             upper_bound,
             lower_bound,

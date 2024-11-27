@@ -1,6 +1,6 @@
-use crate::{random_provider, Chromosome, Objective, Population};
-
 use super::Select;
+use crate::objectives::Objective;
+use crate::{random_provider, Chromosome, Population};
 
 pub struct TournamentSelector {
     num: usize,

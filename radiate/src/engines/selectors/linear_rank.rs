@@ -1,4 +1,5 @@
-use crate::{random_provider, Chromosome, Objective, Optimize, Population, Select};
+use crate::objectives::{Objective, Optimize};
+use crate::{random_provider, Chromosome, Population, Select};
 
 pub struct LinearRankSelector {
     selection_pressure: f32,

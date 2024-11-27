@@ -64,6 +64,10 @@ impl<C: Chromosome> Population<C> {
     pub fn len(&self) -> usize {
         self.individuals.len()
     }
+    
+    pub fn swap(&mut self, a: usize, b: usize) {
+        self.individuals.swap(a, b);
+    }   
 
     /// Sort the individuals in the population using the given closure. This will set the is_sorted flag to true.
     pub fn sort_by<F>(&mut self, f: F)

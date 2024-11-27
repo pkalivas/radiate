@@ -3,11 +3,11 @@ use super::{RouletteSelector, Select, ThreadPool, TournamentSelector};
 use crate::engines::genetic_engine::GeneticEngine;
 use crate::engines::genome::phenotype::Phenotype;
 use crate::engines::genome::population::Population;
-use crate::engines::optimize::Optimize;
 use crate::engines::score::Score;
+use crate::objectives::{Objective, Optimize};
 use crate::uniform_crossover::UniformCrossover;
 use crate::uniform_mutator::UniformMutator;
-use crate::{Alter, Chromosome, Objective};
+use crate::{Alter, Chromosome};
 use std::sync::Arc;
 
 /// Parameters for the genetic engine.
@@ -30,6 +30,8 @@ where
 {
     pub population_size: usize,
     pub max_age: i32,
+    pub min_front_size: usize,
+    pub max_front_size: usize,
     pub offspring_fraction: f32,
     pub thread_pool: ThreadPool,
     pub objective: Objective,
@@ -66,6 +68,8 @@ where
             population_size: 100,
             max_age: 25,
             offspring_fraction: 0.8,
+            min_front_size: 1000,
+            max_front_size: 1500,
             thread_pool: ThreadPool::new(1),
             objective: Objective::Single(Optimize::Maximize),
             survivor_selector: Box::new(TournamentSelector::new(3)),
@@ -150,6 +154,17 @@ where
     /// Set the optimization goal of the genetic engine to maximize the fitness function.
     pub fn maximizing(mut self) -> Self {
         self.objective = Objective::Single(Optimize::Maximize);
+        self
+    }
+
+    pub fn multi_objective(mut self, objectives: Vec<Optimize>) -> Self {
+        self.objective = Objective::Multi(objectives);
+        self
+    }
+
+    pub fn front_size(mut self, min_size: usize, max_size: usize) -> Self {
+        self.min_front_size = min_size;
+        self.max_front_size = max_size;
         self
     }
 

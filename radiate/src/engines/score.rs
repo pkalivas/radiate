@@ -9,6 +9,7 @@ use std::hash::Hash;
 /// Note: The reason it is a Vec is for multi-objective optimization problems. This allows for multiple
 /// fitness values to be returned from the fitness function.
 ///
+
 pub struct Score {
     pub values: Vec<f32>,
 }
@@ -66,7 +67,7 @@ impl Score {
 
     pub fn as_float(&self) -> f32 {
         if self.values.len() > 1 {
-            panic!("Score has multiple values, cannot be converted to float")
+            // panic!("Score has multiple values, cannot be converted to float")
         }
 
         self.values[0]
@@ -122,8 +123,6 @@ impl std::fmt::Debug for Score {
         write!(f, "{:?}", self.values)
     }
 }
-
-impl Eq for Score {}
 
 impl Hash for Score {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

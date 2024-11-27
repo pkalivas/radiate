@@ -10,4 +10,4 @@ members = [
     "radiate-examples/simple-memory-graph",
     "radiate-examples/scalar",
     "radiate-examples/nqueens"
-    , "radiate-examples/regression-tree", "radiate-examples/simple-nn"]
+    , "radiate-examples/regression-tree", "radiate-examples/simple-nn", "radiate-examples/TSP", "radiate-examples/DTLZ"]

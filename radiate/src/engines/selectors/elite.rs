@@ -1,6 +1,6 @@
-use crate::{Chromosome, Objective, Optimize, Population};
-
 use super::Select;
+use crate::objectives::Objective;
+use crate::{Chromosome, Population};
 
 pub struct EliteSelector;
 

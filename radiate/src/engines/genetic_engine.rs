@@ -1,15 +1,15 @@
+use super::codexes::Codex;
+use super::engine_output::EngineOutput;
+use super::genome::phenotype::Phenotype;
+use super::{MetricSet, ThreadPool};
 use crate::engines::alterers::alter::Alter;
 use crate::engines::domain::timer::Timer;
 use crate::engines::genetic_engine_params::GeneticEngineParams;
 use crate::engines::genome::population::Population;
 use crate::engines::score::Score;
-use crate::{metric_names, Chromosome, Metric, Objective, Select, Valid};
+use crate::objectives::{Front, Objective};
+use crate::{metric_names, Chromosome, Metric, Select, Valid};
 use std::sync::Arc;
-
-use super::codexes::Codex;
-use super::engine_output::EngineOutput;
-use super::genome::phenotype::Phenotype;
-use super::{MetricSet, ThreadPool};
 
 /// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -216,6 +216,8 @@ where
         let alterer = self.alterer();
         let objective = self.objective();
 
+        objective.sort(population);
+
         for alterer in alterer {
             let alter_metrics = alterer.alter(population, objective, generation);
             for metric in alter_metrics {
@@ -282,7 +284,7 @@ where
         let optimize = self.objective();
 
         if !output.population.is_sorted {
-            self.objective().sort(&mut output.population);
+            optimize.sort(&mut output.population);
         }
 
         if let Some(current_score) = &output.score {
@@ -297,9 +299,39 @@ where
             output.best = codex.decode(output.population.get(0).genotype());
         }
 
-        self.add_metrics(output);
+        self.update_front(output);
+        self.update_metrics(output);
 
         output.index += 1;
+    }
+
+    fn update_front(&self, output: &mut EngineOutput<C, T>) {
+        let objective = self.objective();
+        let thread_pool = self.thread_pool();
+
+        if let Objective::Multi(_) = objective {
+            let scores = output
+                .population
+                .iter()
+                .map(|individual| individual.score().as_ref().unwrap().clone())
+                .collect::<Vec<Score>>();
+
+            // thread_pool.execute();
+
+            output.front.update_front(&scores);
+            return;
+        }
+        let timer = Timer::new();
+        let scores = output
+            .population
+            .iter()
+            .map(|individual| individual.score().as_ref().unwrap().clone())
+            .collect::<Vec<Score>>();
+
+        output.front.update_front(&scores);
+        output
+            .metrics
+            .upsert_operations("metric_names::FRONT", 1.0, timer.duration());
     }
 
     /// Adds various metrics to the output context, including the age of individuals, the score of individuals,
@@ -309,7 +341,7 @@ where
     /// The age of an individual is the number of generations it has survived, while the score of an individual
     /// is a measure of its fitness. The number of unique scores in the population is a measure of diversity, with
     /// a higher number indicating a more diverse population.
-    fn add_metrics(&self, output: &mut EngineOutput<C, T>) {
+    fn update_metrics(&self, output: &mut EngineOutput<C, T>) {
         let mut age_metric = Metric::new_value(metric_names::AGE);
         let mut score_metric = Metric::new_value(metric_names::SCORE);
         let mut size_values = Vec::with_capacity(output.population.len());
@@ -417,6 +449,11 @@ where
             timer: Timer::new(),
             metrics: MetricSet::new(),
             score: None,
+            front: Front::new(
+                self.params.min_front_size,
+                self.params.max_front_size,
+                self.objective().clone(),
+            ),
         }
     }
 
