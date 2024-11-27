@@ -57,8 +57,8 @@ pub fn rank<C: Chromosome>(population: &Population<C>, objective: &Objective) ->
 
     for i in 0..population.len() {
         for j in (i + 1)..population.len() {
-            let score_one = population[i].score_as_ref();
-            let score_two = population[j].score_as_ref();
+            let score_one = population[i].score().unwrap();
+            let score_two = population[j].score().unwrap();
             if dominance(score_one, score_two, objective) {
                 dominance_matrix[i][j] = 1;
                 dominance_matrix[j][i] = -1;

@@ -29,7 +29,7 @@ impl<C: Chromosome> Select<C> for TournamentSelector {
 
             tournament.sort();
 
-            selected.push(population.get(tournament[0]).clone());
+            selected.push(population[tournament[0]].clone());
         }
 
         Population::from_vec(selected)

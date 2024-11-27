@@ -64,7 +64,7 @@ impl<C: Chromosome> Select<C> for RouletteSelector {
             for (i, val) in fitness_values.iter().enumerate() {
                 idx -= val;
                 if idx <= 0.0 {
-                    selected.push(population.get(i).clone());
+                    selected.push(population[i].clone());
                     break;
                 }
             }

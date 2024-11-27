@@ -44,7 +44,7 @@ impl<C: Chromosome> Select<C> for RankSelector {
                 r -= probabilities[i];
                 i += 1;
             }
-            selected.push(population.get(i).clone());
+            selected.push(population[i].clone());
         }
 
         selected.into_iter().collect()

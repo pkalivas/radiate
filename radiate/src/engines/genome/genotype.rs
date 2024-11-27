@@ -28,19 +28,7 @@ impl<C: Chromosome> Genotype<C> {
     pub fn from_chromosomes(chromosomes: Vec<C>) -> Self {
         Genotype { chromosomes }
     }
-
-    pub fn get_chromosome_mut(&mut self, index: usize) -> &mut C {
-        &mut self.chromosomes[index]
-    }
-
-    pub fn get_chromosome(&self, index: usize) -> &C {
-        &self.chromosomes[index]
-    }
-
-    pub fn set_chromosome(&mut self, index: usize, chromosome: C) {
-        self.chromosomes[index] = chromosome;
-    }
-
+    
     pub fn len(&self) -> usize {
         self.chromosomes.len()
     }
@@ -63,5 +51,19 @@ impl<C: Chromosome> Valid for Genotype<C> {
         self.chromosomes
             .iter()
             .all(|chromosome| chromosome.is_valid())
+    }
+}
+
+impl<C: Chromosome> std::ops::Index<usize> for Genotype<C> {
+    type Output = C;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.chromosomes[index]
+    }
+}
+
+impl<C: Chromosome> std::ops::IndexMut<usize> for Genotype<C> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.chromosomes[index]
     }
 }

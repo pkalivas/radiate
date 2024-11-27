@@ -41,15 +41,10 @@ impl<C: Chromosome> Phenotype<C> {
         &mut self.genotype
     }
 
-    pub fn score(&self) -> &Option<Score> {
-        &self.score
-    }
-
-    pub fn score_as_ref(&self) -> &Score {
-        if let Some(score) = &self.score {
-            score
-        } else {
-            panic!("Phenotype has no score - cannot return reference");
+    pub fn score(&self) -> Option<&Score> {
+        match &self.score {
+            Some(score) => Some(score),
+            None => None,
         }
     }
 
@@ -72,7 +67,6 @@ impl<C: Chromosome> Valid for Phenotype<C> {
         self.genotype.is_valid()
     }
 }
-
 
 /// Implement the `PartialOrd` trait for the `Phenotype`. This allows the `Phenotype` to be compared
 /// with other `Phenotype` instances. The comparison is based on the `Score` (fitness) of the `Phenotype`.

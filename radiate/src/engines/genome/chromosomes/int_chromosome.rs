@@ -2,7 +2,7 @@ use crate::{Chromosome, IntGene, Integer, Valid};
 use rand::distributions::Standard;
 
 /// A `Chromosome` that contains `IntGenes`.
-/// 
+///
 #[derive(Clone, PartialEq)]
 pub struct IntChromosome<I: Integer<I>>
 where
@@ -19,10 +19,6 @@ where
 
     fn from_genes(genes: Vec<IntGene<I>>) -> Self {
         IntChromosome { genes }
-    }
-
-    fn set_gene(&mut self, index: usize, gene: IntGene<I>) {
-        self.genes[index] = gene;
     }
 
     fn get_genes(&self) -> &[IntGene<I>] {

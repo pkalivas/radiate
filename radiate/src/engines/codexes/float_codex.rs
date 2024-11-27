@@ -28,8 +28,8 @@ impl FloatCodex {
             num_genes,
             min,
             max,
-            lower_bound: f32::MIN,
-            upper_bound: f32::MAX,
+            lower_bound: min,
+            upper_bound: max,
         }
     }
 

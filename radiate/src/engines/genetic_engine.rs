@@ -136,7 +136,7 @@ where
 
         let mut work_results = Vec::new();
         for idx in 0..handle.population.len() {
-            let individual = handle.population.get(idx);
+            let individual = &handle.population[idx];
             if !individual.score().is_some() {
                 let fitness_fn = self.fitness_fn();
                 let decoded = codex.decode(individual.genotype());
@@ -149,7 +149,7 @@ where
         let count = work_results.len() as f32;
         for work_result in work_results {
             let (idx, score) = work_result.result();
-            handle.population.get_mut(idx).set_score(Some(score));
+            handle.population[idx].set_score(Some(score));
         }
 
         handle
@@ -241,13 +241,13 @@ where
         let mut age_count = 0;
         let mut invalid_count = 0;
         for i in 0..population.len() {
-            let phenotype = population.get(i);
+            let phenotype = &population[i];
 
             if phenotype.age(generation) > max_age {
-                population.set(i, Phenotype::from_genotype(codex.encode(), generation));
+                population[i] = Phenotype::from_genotype(codex.encode(), generation);
                 age_count += 1;
             } else if !phenotype.genotype().is_valid() {
-                population.set(i, Phenotype::from_genotype(codex.encode(), generation));
+                population[i] = Phenotype::from_genotype(codex.encode(), generation);
                 invalid_count += 1;
             }
         }
@@ -289,15 +289,15 @@ where
         }
 
         if let Some(current_score) = &output.score {
-            if let Some(best_score) = output.population.get(0).score() {
+            if let Some(best_score) = output.population[0].score() {
                 if optimize.is_better(best_score, current_score) {
                     output.score = Some(best_score.clone());
-                    output.best = codex.decode(output.population.get(0).genotype());
+                    output.best = codex.decode(output.population[0].genotype());
                 }
             }
         } else {
-            output.score = output.population.get(0).score().clone();
-            output.best = codex.decode(output.population.get(0).genotype());
+            output.score = output.population[0].score().cloned();
+            output.best = codex.decode(output.population[0].genotype());
         }
 
         self.update_front(output);
@@ -315,7 +315,7 @@ where
             let scores = output
                 .population
                 .iter()
-                .map(|individual| individual.score_as_ref().clone())
+                .map(|individual| individual.score().unwrap().clone())
                 .collect::<Vec<Score>>();
 
             let front = Arc::clone(&output.front);
@@ -343,10 +343,10 @@ where
         let mut unique = Vec::with_capacity(output.population.len());
 
         for i in 0..output.population.len() {
-            let phenotype = output.population.get(i);
+            let phenotype = &output.population[i];
 
             let age = phenotype.age(output.index);
-            let score = phenotype.score().as_ref().unwrap();
+            let score = phenotype.score().unwrap();
             let phenotype_size = phenotype
                 .genotype()
                 .iter()
@@ -439,7 +439,7 @@ where
 
         EngineOutput {
             population: population.clone(),
-            best: self.codex().decode(population.get(0).genotype()),
+            best: self.codex().decode(population[0].genotype()),
             index: 0,
             timer: Timer::new(),
             metrics: MetricSet::new(),

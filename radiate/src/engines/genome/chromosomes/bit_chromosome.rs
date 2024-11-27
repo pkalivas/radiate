@@ -15,10 +15,6 @@ impl Chromosome for BitChromosome {
         BitChromosome { genes }
     }
 
-    fn set_gene(&mut self, index: usize, gene: BitGene) {
-        self.genes[index] = gene;
-    }
-
     fn get_genes(&self) -> &[BitGene] {
         &self.genes
     }

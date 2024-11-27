@@ -28,10 +28,6 @@ impl<A: PartialEq + Clone> Chromosome for PermutationChromosome<A> {
         PermutationChromosome { genes, alleles }
     }
 
-    fn set_gene(&mut self, index: usize, gene: PermutationGene<A>) {
-        self.genes[index] = gene;
-    }
-
     fn get_genes(&self) -> &[PermutationGene<A>] {
         &self.genes
     }

@@ -320,9 +320,9 @@ where
                 continue;
             }
 
-            let genotype = population.get(i).genotype();
+            let genotype = population[i].genotype();
             let chromosome_index = random_provider::random::<usize>() % genotype.len();
-            let chromosome = genotype.get_chromosome(chromosome_index);
+            let chromosome = &genotype[chromosome_index];
 
             if let Some(ref factory) = chromosome.factory {
                 let mutated_graph = if mutation.is_recurrent() {
@@ -346,11 +346,9 @@ where
 
                     count += 1;
 
-                    copied_genotype.set_chromosome(
-                        chromosome_index,
-                        NodeChromosome::with_factory(mutated_graph, factory.clone()),
-                    );
-                    population.set(i, Phenotype::from_genotype(copied_genotype, generation));
+                    copied_genotype[chromosome_index] =
+                        NodeChromosome::with_factory(mutated_graph, factory.clone());
+                    population[i] = Phenotype::from_genotype(copied_genotype, generation);
                 }
             }
         }

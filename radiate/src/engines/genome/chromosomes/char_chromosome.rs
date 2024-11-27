@@ -13,10 +13,6 @@ impl Chromosome for CharChromosome {
         CharChromosome { genes }
     }
 
-    fn set_gene(&mut self, index: usize, gene: CharGene) {
-        self.genes[index] = gene;
-    }
-
     fn get_genes(&self) -> &[CharGene] {
         &self.genes
     }
