@@ -1,13 +1,13 @@
-use super::alterers::alter::Alterer;
 use super::codexes::Codex;
 use super::{RouletteSelector, Select, ThreadPool, TournamentSelector};
-use crate::engines::alterers::composite_alterer::CompositeAlterer;
 use crate::engines::genetic_engine::GeneticEngine;
 use crate::engines::genome::phenotype::Phenotype;
 use crate::engines::genome::population::Population;
-use crate::engines::optimize::Optimize;
 use crate::engines::score::Score;
-use crate::Chromosome;
+use crate::objectives::{Objective, Optimize};
+use crate::uniform_crossover::UniformCrossover;
+use crate::uniform_mutator::UniformMutator;
+use crate::{Alter, Chromosome};
 use std::sync::Arc;
 
 /// Parameters for the genetic engine.
@@ -30,12 +30,14 @@ where
 {
     pub population_size: usize,
     pub max_age: i32,
+    pub min_front_size: usize,
+    pub max_front_size: usize,
     pub offspring_fraction: f32,
     pub thread_pool: ThreadPool,
-    pub optimize: Optimize,
+    pub objective: Objective,
     pub survivor_selector: Box<dyn Select<C>>,
     pub offspring_selector: Box<dyn Select<C>>,
-    pub alterer: Option<CompositeAlterer<C>>,
+    pub alterers: Vec<Box<dyn Alter<C>>>,
     pub population: Option<Population<C>>,
     pub codex: Option<Arc<&'a dyn Codex<C, T>>>,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
@@ -66,11 +68,13 @@ where
             population_size: 100,
             max_age: 25,
             offspring_fraction: 0.8,
+            min_front_size: 1000,
+            max_front_size: 1500,
             thread_pool: ThreadPool::new(1),
-            optimize: Optimize::Maximize,
+            objective: Objective::Single(Optimize::Maximize),
             survivor_selector: Box::new(TournamentSelector::new(3)),
             offspring_selector: Box::new(RouletteSelector::new()),
-            alterer: None,
+            alterers: Vec::new(),
             codex: None,
             population: None,
             fitness_fn: None,
@@ -135,20 +139,32 @@ where
     /// Set the alterer of the genetic engine. This is the alterer that will be used to alter the offspring of the population.
     /// The alterer is used to apply mutations and crossover operations to the offspring and will be used to create the next generation of the population.
     /// Note, the order of the alterers is important. The alterers will be applied in the order they are provided.
-    pub fn alterer(mut self, alterers: Vec<Alterer<C>>) -> Self {
-        self.alterer = Some(CompositeAlterer::new(alterers));
+    // pub fn alterer(mut self, alterers: Vec<Box<dyn Alter<C>>>) -> Self {
+    pub fn alterer(mut self, alterers: Vec<Box<dyn Alter<C>>>) -> Self {
+        self.alterers = alterers;
         self
     }
 
     /// Set the optimization goal of the genetic engine to minimize the fitness function.
     pub fn minimizing(mut self) -> Self {
-        self.optimize = Optimize::Minimize;
+        self.objective = Objective::Single(Optimize::Minimize);
         self
     }
 
     /// Set the optimization goal of the genetic engine to maximize the fitness function.
     pub fn maximizing(mut self) -> Self {
-        self.optimize = Optimize::Maximize;
+        self.objective = Objective::Single(Optimize::Maximize);
+        self
+    }
+
+    pub fn multi_objective(mut self, objectives: Vec<Optimize>) -> Self {
+        self.objective = Objective::Multi(objectives);
+        self
+    }
+
+    pub fn front_size(mut self, min_size: usize, max_size: usize) -> Self {
+        self.min_front_size = min_size;
+        self.max_front_size = max_size;
         self
     }
 
@@ -190,11 +206,14 @@ where
 
     /// Build the alterer of the genetic engine. This will create a new alterer if the alterer is not set.
     fn build_alterer(&mut self) {
-        if self.alterer.is_none() {
-            self.alterer = Some(CompositeAlterer::new(vec![
-                Alterer::Mutator(0.001),
-                Alterer::UniformCrossover(0.5),
-            ]));
+        if !self.alterers.is_empty() {
+            return;
         }
+
+        let mutator = Box::new(UniformMutator::new(0.001));
+        let crossover = Box::new(UniformCrossover::new(0.5));
+
+        self.alterers.push(mutator);
+        self.alterers.push(crossover);
     }
 }

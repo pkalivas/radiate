@@ -12,10 +12,10 @@ fn main() {
     let engine = GeneticEngine::from_codex(&graph_codex)
         .minimizing()
         .num_threads(10)
-        .alterer(vec![
-            TreeCrossover::alterer(0.5, 10),
-            NodeMutator::alterer(0.01, 0.05),
-        ])
+        .alterer(alters!(
+            TreeCrossover::new(0.5, 10),
+            NodeMutator::new(0.01, 0.05),
+        ))
         .fitness_fn(move |genotype: Tree<f32>| {
             let mut reducer = TreeReducer::new(&genotype);
             Score::from_f32(regression.error(|input| reducer.reduce(input)))

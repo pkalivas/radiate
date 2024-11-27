@@ -37,17 +37,17 @@ use rand::distributions::Standard;
 /// # Type Parameters
 /// - `T`: The type of integer used in the gene.
 ///
+#[derive(Clone, PartialEq)]
 pub struct IntGene<T: Integer<T>>
 where
     Standard: rand::distributions::Distribution<T>,
 {
-    allele: T,
-    min: T,
-    max: T,
-    upper_bound: T,
-    lower_bound: T,
+    pub allele: T,
+    pub min: T,
+    pub max: T,
+    pub upper_bound: T,
+    pub lower_bound: T,
 }
-
 impl<T: Integer<T>> IntGene<T>
 where
     Standard: rand::distributions::Distribution<T>,
@@ -151,37 +151,12 @@ impl<T: Integer<T>> NumericGene for IntGene<T>
 where
     Standard: rand::distributions::Distribution<T>,
 {
-    fn add(&self, other: &IntGene<T>) -> IntGene<T> {
-        IntGene {
-            allele: self.allele + other.allele,
-            ..*self
-        }
+    fn min(&self) -> &T {
+        &self.min
     }
 
-    fn sub(&self, other: &IntGene<T>) -> IntGene<T> {
-        IntGene {
-            allele: self.allele - other.allele,
-            ..*self
-        }
-    }
-
-    fn mul(&self, other: &IntGene<T>) -> IntGene<T> {
-        IntGene {
-            allele: self.allele * other.allele,
-            ..*self
-        }
-    }
-
-    fn div(&self, other: &IntGene<T>) -> IntGene<T> {
-        let other_allele = match other.allele() == &T::from_i32(0) {
-            true => T::from_i32(1),
-            false => *other.allele(),
-        };
-
-        IntGene {
-            allele: self.allele / other_allele,
-            ..*self
-        }
+    fn max(&self) -> &T {
+        &self.max
     }
 
     fn mean(&self, other: &IntGene<T>) -> IntGene<T> {
@@ -189,30 +164,6 @@ where
             allele: (self.allele + other.allele) / T::from_i32(2),
             ..*self
         }
-    }
-}
-
-impl<T: Integer<T>> Clone for IntGene<T>
-where
-    Standard: rand::distributions::Distribution<T>,
-{
-    fn clone(&self) -> Self {
-        IntGene {
-            allele: self.allele,
-            min: self.min,
-            max: self.max,
-            upper_bound: self.upper_bound,
-            lower_bound: self.lower_bound,
-        }
-    }
-}
-
-impl<T: Integer<T>> PartialEq for IntGene<T>
-where
-    Standard: rand::distributions::Distribution<T>,
-{
-    fn eq(&self, other: &Self) -> bool {
-        self.allele == other.allele
     }
 }
 
@@ -325,38 +276,6 @@ mod tests {
     fn test_lower_bound() {
         let gene = IntGene::from_min_max(0, 10).with_bounds(10, 0);
         assert_eq!(*gene.lower_bound(), 0);
-    }
-
-    #[test]
-    fn test_add() {
-        let gene = IntGene::new(5);
-        let other = IntGene::new(5);
-        let new_gene = gene.add(&other);
-        assert_eq!(new_gene.allele, 10);
-    }
-
-    #[test]
-    fn test_sub() {
-        let gene = IntGene::new(5);
-        let other = IntGene::new(5);
-        let new_gene = gene.sub(&other);
-        assert_eq!(new_gene.allele, 0);
-    }
-
-    #[test]
-    fn test_mul() {
-        let gene = IntGene::new(5);
-        let other = IntGene::new(5);
-        let new_gene = gene.mul(&other);
-        assert_eq!(new_gene.allele, 25);
-    }
-
-    #[test]
-    fn test_div() {
-        let gene = IntGene::new(5);
-        let other = IntGene::new(5);
-        let new_gene = gene.div(&other);
-        assert_eq!(new_gene.allele, 1);
     }
 
     #[test]

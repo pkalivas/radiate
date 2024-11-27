@@ -11,10 +11,10 @@ fn main() {
 
     let engine = GeneticEngine::from_codex(&graph_codex)
         .minimizing()
-        .alterer(vec![
-            GraphCrossover::alterer(0.5, 0.5),
-            NodeMutator::alterer(0.01, 0.05),
-            GraphMutator::alterer(vec![
+        .alterer(alters![
+            GraphCrossover::new(0.5, 0.5),
+            NodeMutator::new(0.01, 0.05),
+            GraphMutator::new(vec![
                 NodeMutate::Forward(NodeType::Weight, 0.05),
                 NodeMutate::Forward(NodeType::Aggregate, 0.03),
                 NodeMutate::Forward(NodeType::Gate, 0.03),

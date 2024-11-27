@@ -1,6 +1,6 @@
-use crate::{random_provider, Chromosome, Optimize, Population};
-
 use super::Select;
+use crate::objectives::{Objective, Optimize};
+use crate::{random_provider, Chromosome, Population};
 
 pub struct BoltzmannSelector {
     temperature: f32,
@@ -20,7 +20,7 @@ impl<C: Chromosome> Select<C> for BoltzmannSelector {
     fn select(
         &self,
         population: &Population<C>,
-        optimize: &Optimize,
+        objective: &Objective,
         count: usize,
     ) -> Population<C> {
         let mut selected = Vec::with_capacity(count);
@@ -61,8 +61,13 @@ impl<C: Chromosome> Select<C> for BoltzmannSelector {
             result[i] /= total_fitness;
         }
 
-        if optimize == &Optimize::Minimize {
-            result.reverse();
+        match objective {
+            Objective::Single(opt) => {
+                if opt == &Optimize::Minimize {
+                    result.reverse();
+                }
+            }
+            Objective::Multi(_) => {}
         }
 
         let total_fitness = result.iter().sum::<f32>();
@@ -82,3 +87,32 @@ impl<C: Chromosome> Select<C> for BoltzmannSelector {
         Population::from_vec(selected)
     }
 }
+
+// fn select(
+//     &self,
+//     population: &Population<C>,
+//     _optimize: &Optimize,
+//     count: usize,
+// ) -> Population<C> {
+//     let mut boltzmann_fitnesses: Vec<f32> = population
+//         .iter()
+//         .map(|ind| (ind.fitness() / self.temperature).exp())
+//         .collect();
+//     let total_boltzmann_fitness: f32 = boltzmann_fitnesses.iter().sum();
+//
+//     let mut selected_population = Population::new();
+//     for _ in 0..count {
+//         let spin = random_provider::gen_range(0.0..total_boltzmann_fitness);
+//         let mut cumulative_fitness = 0.0;
+//
+//         for (i, individual) in population.iter().enumerate() {
+//             cumulative_fitness += boltzmann_fitnesses[i];
+//             if cumulative_fitness >= spin {
+//                 selected_population.add(individual.clone());
+//                 break;
+//             }
+//         }
+//     }
+//
+//     selected_population
+// }

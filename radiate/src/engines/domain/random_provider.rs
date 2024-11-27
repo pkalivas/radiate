@@ -1,6 +1,9 @@
-use rand::distributions::Standard;
 use rand::distributions::{uniform::SampleUniform, Distribution};
-use rand::{rngs::StdRng, Rng, SeedableRng};
+use rand::distributions::{Standard, Uniform};
+use rand::rngs::StdRng;
+use rand::seq::SliceRandom;
+use rand::Rng;
+use rand::SeedableRng;
 use std::sync::Mutex;
 
 thread_local! {
@@ -34,4 +37,16 @@ pub fn choose<T>(items: &[T]) -> &T {
         let index = rng.lock().unwrap().gen_range(0..items.len());
         &items[index]
     })
+}
+
+pub fn gaussian(mean: f64, std_dev: f64) -> f64 {
+    RNG.with(|rng| {
+        let x = rng.lock().unwrap().sample(Uniform::new(0.0, 1.0));
+        let y = rng.lock().unwrap().sample(Uniform::new(0.0, 1.0));
+        (mean + std_dev * (2.0 * x - 1.0) * (2.0 * std_dev * y).sqrt()).abs()
+    })
+}
+
+pub fn shuffle<T>(items: &mut [T]) {
+    RNG.with(|rng| items.shuffle(&mut *rng.lock().unwrap()));
 }

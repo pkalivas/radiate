@@ -77,9 +77,7 @@ pub trait BoundGene: Gene {
 /// A gene that represents a number. This gene can be used to represent any type of number, including
 /// integers, floats, etc. Useful for using numeric mutations or crossover operations on numeric genes.
 pub trait NumericGene: BoundGene {
-    fn add(&self, other: &Self) -> Self;
-    fn sub(&self, other: &Self) -> Self;
-    fn mul(&self, other: &Self) -> Self;
-    fn div(&self, other: &Self) -> Self;
+    fn min(&self) -> &Self::Allele;
+    fn max(&self) -> &Self::Allele;
     fn mean(&self, other: &Self) -> Self;
 }

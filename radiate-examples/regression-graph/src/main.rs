@@ -5,7 +5,6 @@ const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
-    
     let graph_codex = GraphCodex::regression(1, 1)
         .set_outputs(vec![op::linear()])
         .set_gates(vec![op::add(), op::sub(), op::mul()]);
@@ -15,15 +14,16 @@ fn main() {
     let engine = GeneticEngine::from_codex(&graph_codex)
         .minimizing()
         .num_threads(10)
-        .alterer(vec![
-            GraphCrossover::alterer(0.5, 0.5),
-            NodeMutator::alterer(0.01, 0.05),
-            GraphMutator::alterer(vec![
+        .offspring_selector(RouletteSelector::new())
+        .alterer(alters!(
+            GraphCrossover::new(0.5, 0.5),
+            NodeMutator::new(0.01, 0.05),
+            GraphMutator::new(vec![
                 NodeMutate::Forward(NodeType::Weight, 0.05),
                 NodeMutate::Forward(NodeType::Aggregate, 0.02),
                 NodeMutate::Forward(NodeType::Gate, 0.03),
             ]),
-        ])
+        ))
         .fitness_fn(move |genotype: Graph<f32>| {
             let mut reducer = GraphReducer::new(&genotype);
             Score::from_f32(regression.error(|input| reducer.reduce(input)))

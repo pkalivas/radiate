@@ -3,7 +3,7 @@ use radiate::*;
 const N_QUEENS: usize = 16;
 
 fn main() {
-    random_provider::seed_rng(1111);
+    seed_rng(111);
 
     let codex = IntCodex::<i8>::new(1, N_QUEENS, 0, N_QUEENS as i8);
 
@@ -11,10 +11,10 @@ fn main() {
         .minimizing()
         .num_threads(10)
         .offspring_selector(RouletteSelector::new())
-        .alterer(vec![
-            Alterer::MultiPointCrossover(0.75, 2),
-            Alterer::Mutator(0.01),
-        ])
+        .alterer(alters!(
+            MultiPointCrossover::new(0.75, 2),
+            UniformMutator::new(0.01)
+        ))
         .fitness_fn(|genotype: Vec<Vec<i8>>| {
             let queens = &genotype[0];
             let mut score = 0;

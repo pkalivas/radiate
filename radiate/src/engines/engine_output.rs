@@ -1,9 +1,10 @@
-use crate::engines::domain::timer::Timer;
-use crate::engines::genome::population::Population;
-use crate::{Chromosome, Metric};
-
 use super::score::Score;
 use super::MetricSet;
+use crate::engines::domain::timer::Timer;
+use crate::engines::genome::population::Population;
+use crate::objectives::Front;
+use crate::{Chromosome, Metric};
+use std::sync::{Arc, Mutex};
 
 /// The context of the genetic engine. This struct contains the current state of the genetic engine
 /// at any given time. This includes:
@@ -32,6 +33,7 @@ where
     pub timer: Timer,
     pub metrics: MetricSet,
     pub score: Option<Score>,
+    pub front: Arc<Mutex<Front>>,
 }
 
 impl<C, T> EngineOutput<C, T>
@@ -67,6 +69,7 @@ where
             timer: self.timer.clone(),
             metrics: self.metrics.clone(),
             score: self.score.clone(),
+            front: self.front.clone(),
         }
     }
 }

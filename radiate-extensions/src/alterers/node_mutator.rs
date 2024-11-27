@@ -1,15 +1,14 @@
 use std::ops::{Add, Mul, Sub};
 use std::sync::Arc;
 
-use num_traits::Float;
-use radiate::engines::alterers::mutators::mutate::Mutate;
-use radiate::engines::genome::genes::gene::Gene;
-use radiate::{random_provider, Alterer, Chromosome};
-use rand::distributions::uniform::SampleUniform;
-use rand::{distributions::Standard, prelude::Distribution};
-
 use crate::operations::op::Ops;
 use crate::NodeChromosome;
+use num_traits::Float;
+use radiate::alter::AlterType;
+use radiate::engines::genome::genes::gene::Gene;
+use radiate::{random_provider, Alter, Chromosome};
+use rand::distributions::uniform::SampleUniform;
+use rand::{distributions::Standard, prelude::Distribution};
 
 pub struct NodeMutator<T>
 where
@@ -33,16 +32,9 @@ where
             _marker: std::marker::PhantomData,
         }
     }
-    pub fn alterer(rate: f32, replace_rate: f32) -> Alterer<NodeChromosome<T>> {
-        Alterer::Mutation(Box::new(Self {
-            rate,
-            replace_rate,
-            _marker: std::marker::PhantomData,
-        }))
-    }
 }
 
-impl<T> Mutate<NodeChromosome<T>> for NodeMutator<T>
+impl<T> Alter<NodeChromosome<T>> for NodeMutator<T>
 where
     T: Clone
         + PartialEq
@@ -54,12 +46,16 @@ where
         + SampleUniform,
     Standard: Distribution<T>,
 {
-    fn mutate_rate(&self) -> f32 {
+    fn name(&self) -> &'static str {
+        "OpMutator"
+    }
+
+    fn rate(&self) -> f32 {
         self.rate
     }
 
-    fn name(&self) -> &'static str {
-        "OpMutator"
+    fn alter_type(&self) -> AlterType {
+        AlterType::Mutator
     }
 
     #[inline]

@@ -2,11 +2,12 @@ use std::collections::HashMap;
 
 use crate::architects::schema::node_types::NodeType;
 use crate::NodeChromosome;
+use radiate::alter::AlterType;
 use radiate::engines::alterers::Alter;
 use radiate::engines::genome::*;
-use radiate::engines::optimize::Optimize;
+use radiate::objectives::Objective;
 use radiate::timer::Timer;
-use radiate::{random_provider, Alterer, Metric};
+use radiate::{random_provider, Metric};
 
 const NUM_PARENTS: usize = 2;
 
@@ -29,16 +30,6 @@ where
             crossover_parent_node_rate,
             _marker: std::marker::PhantomData,
         }
-    }
-
-    pub fn alterer(
-        crossover_rate: f32,
-        crossover_parent_node_rate: f32,
-    ) -> Alterer<NodeChromosome<T>> {
-        Alterer::Alterer(Box::new(GraphCrossover::<T>::new(
-            crossover_rate,
-            crossover_parent_node_rate,
-        )))
     }
 
     #[inline]
@@ -108,14 +99,26 @@ impl<T> Alter<NodeChromosome<T>> for GraphCrossover<T>
 where
     T: Clone + PartialEq + Default + 'static,
 {
+    fn name(&self) -> &'static str {
+        "GraphCrossover"
+    }
+
+    fn rate(&self) -> f32 {
+        self.crossover_rate
+    }
+
+    fn alter_type(&self) -> AlterType {
+        AlterType::Alterer
+    }
+
     #[inline]
     fn alter(
         &self,
         population: &mut Population<NodeChromosome<T>>,
-        optimize: &Optimize,
+        objective: &Objective,
         generation: i32,
     ) -> Vec<Metric> {
-        optimize.sort(population);
+        objective.sort(population);
 
         let timer = Timer::new();
         let mut count = 0;

@@ -1,17 +1,15 @@
+use super::codexes::Codex;
+use super::engine_output::EngineOutput;
+use super::genome::phenotype::Phenotype;
+use super::{MetricSet, ThreadPool};
 use crate::engines::alterers::alter::Alter;
 use crate::engines::domain::timer::Timer;
 use crate::engines::genetic_engine_params::GeneticEngineParams;
 use crate::engines::genome::population::Population;
-use crate::engines::optimize::Optimize;
 use crate::engines::score::Score;
-use crate::{metric_names, Chromosome, Metric, Valid};
-use std::sync::Arc;
-
-use super::codexes::Codex;
-use super::engine_output::EngineOutput;
-use super::genome::phenotype::Phenotype;
-use super::selectors::select::Select;
-use super::{MetricSet, ThreadPool};
+use crate::objectives::{Front, Objective};
+use crate::{metric_names, Chromosome, Metric, Select, Valid};
+use std::sync::{Arc, Mutex};
 
 /// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -41,9 +39,9 @@ use super::{MetricSet, ThreadPool};
 ///     .num_threads(4) // Set the number of threads to use in the thread pool for parallel fitness evaluation.
 ///     .offspring_selector(BoltzmannSelector::new(4_f32)) // Use boltzmann selection to select offspring.
 ///     .survivor_selector(TournamentSelector::new(3)) // Use tournament selection to select survivors.
-///     .alterer(vec![                                      
-///         Alterer::mutation(NumericMutator::new(0.01)), // Specific mutator for numeric values.
-///         Alterer::crossover(MeanCrossover::new(0.5)) // Specific crossover operation for numeric values.
+///     .alterer(alters![
+///         NumericMutator::new(0.01), // Specific mutator for numeric values.
+///         MeanCrossover::new(0.5) // Specific crossover operation for numeric values.
 ///     ])
 ///     .fitness_fn(|genotype: Vec<Vec<f32>>| { // Define the fitness function to be minimized.
 ///         // Calculate the fitness score of the individual based on the decoded genotype.
@@ -131,7 +129,7 @@ where
     /// by avoiding redundant evaluations.
     fn evaluate(&self, handle: &mut EngineOutput<C, T>) {
         let codex = self.codex();
-        let optimize = self.optimize();
+        let objective = self.objective();
         let thread_pool = self.thread_pool();
         let timer = Timer::new();
 
@@ -157,7 +155,7 @@ where
             .metrics
             .upsert_operations(metric_names::EVALUATION, count, timer.duration());
 
-        optimize.sort(&mut handle.population);
+        objective.sort(&mut handle.population);
     }
 
     /// Selects the individuals that will survive to the next generation. The number of survivors
@@ -175,10 +173,10 @@ where
     ) -> Population<C> {
         let selector = self.survivor_selector();
         let count = self.survivor_count();
-        let optimize = self.optimize();
+        let objective = self.objective();
 
         let timer = Timer::new();
-        let result = selector.select(population, optimize, count);
+        let result = selector.select(population, objective, count);
 
         metrics.upsert_operations(selector.name(), count as f32, timer.duration());
 
@@ -201,10 +199,10 @@ where
     ) -> Population<C> {
         let selector = self.offspring_selector();
         let count = self.offspring_count();
-        let optimize = self.optimize();
+        let objective = self.objective();
 
         let timer = Timer::new();
-        let result = selector.select(population, optimize, count);
+        let result = selector.select(population, objective, count);
 
         metrics.upsert_operations(selector.name(), count as f32, timer.duration());
 
@@ -216,11 +214,15 @@ where
     /// the provided mutation and crossover operations to the offspring population.
     fn alter(&self, population: &mut Population<C>, metrics: &mut MetricSet, generation: i32) {
         let alterer = self.alterer();
-        let optimize = self.optimize();
+        let objective = self.objective();
 
-        let alter_metrics = alterer.alter(population, optimize, generation);
-        for metric in alter_metrics {
-            metrics.upsert(metric);
+        objective.sort(population);
+
+        for alterer in alterer {
+            let alter_metrics = alterer.alter(population, objective, generation);
+            for metric in alter_metrics {
+                metrics.upsert(metric);
+            }
         }
     }
 
@@ -279,10 +281,10 @@ where
     /// number of unique scores in the population. This method is called at the end of each generation.
     fn audit(&self, output: &mut EngineOutput<C, T>) {
         let codex = self.codex();
-        let optimize = self.optimize();
+        let optimize = self.objective();
 
         if !output.population.is_sorted {
-            self.optimize().sort(&mut output.population);
+            optimize.sort(&mut output.population);
         }
 
         if let Some(current_score) = &output.score {
@@ -297,9 +299,31 @@ where
             output.best = codex.decode(output.population.get(0).genotype());
         }
 
-        self.add_metrics(output);
+        self.update_front(output);
+        self.update_metrics(output);
 
         output.index += 1;
+    }
+
+    fn update_front(&self, output: &mut EngineOutput<C, T>) {
+        let objective = self.objective();
+        let thread_pool = self.thread_pool();
+
+        if let Objective::Multi(_) = objective {
+            let timer = Timer::new();
+            let scores = output
+                .population
+                .iter()
+                .map(|individual| individual.score().as_ref().unwrap().clone())
+                .collect::<Vec<Score>>();
+
+            let front = Arc::clone(&output.front);
+            thread_pool.execute(move || {
+                front.lock().unwrap().update_front(&scores);
+            });
+            
+            output.metrics.upsert_operations(metric_names::FRONT, 1.0, timer.duration());
+        }
     }
 
     /// Adds various metrics to the output context, including the age of individuals, the score of individuals,
@@ -309,7 +333,7 @@ where
     /// The age of an individual is the number of generations it has survived, while the score of an individual
     /// is a measure of its fitness. The number of unique scores in the population is a measure of diversity, with
     /// a higher number indicating a more diverse population.
-    fn add_metrics(&self, output: &mut EngineOutput<C, T>) {
+    fn update_metrics(&self, output: &mut EngineOutput<C, T>) {
         let mut age_metric = Metric::new_value(metric_names::AGE);
         let mut score_metric = Metric::new_value(metric_names::SCORE);
         let mut size_values = Vec::with_capacity(output.population.len());
@@ -361,8 +385,8 @@ where
 
     /// Returns the alterer specified in the genetic engine parameters. The alterer is responsible for applying
     /// the provided mutation and crossover operations to the offspring population.
-    fn alterer(&self) -> &impl Alter<C> {
-        self.params.alterer.as_ref().unwrap()
+    fn alterer(&self) -> &[Box<dyn Alter<C>>] {
+        &self.params.alterers
     }
 
     /// Returns the codex specified in the genetic engine parameters. The codex is responsible for encoding and
@@ -385,8 +409,8 @@ where
     /// Returns the optimize function specified in the genetic engine parameters. The optimize function is responsible
     /// for sorting the population based on the fitness of the individuals. This is typically done in descending order,
     /// with the best individuals at the front of the population.
-    fn optimize(&self) -> &Optimize {
-        &self.params.optimize
+    fn objective(&self) -> &Objective {
+        &self.params.objective
     }
 
     /// Returns the number of survivors in the population. This is calculated based on the population size and the offspring fraction.
@@ -417,6 +441,11 @@ where
             timer: Timer::new(),
             metrics: MetricSet::new(),
             score: None,
+            front: Arc::new(Mutex::new(Front::new(
+                self.params.min_front_size,
+                self.params.max_front_size,
+                self.objective().clone(),
+            ))),
         }
     }
 

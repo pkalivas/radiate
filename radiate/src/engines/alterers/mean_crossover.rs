@@ -1,7 +1,6 @@
-use crate::NumericGene;
+use crate::alter::AlterType;
 use crate::{random_provider, Chromosome};
-
-use super::Crossover;
+use crate::{Alter, NumericGene};
 
 pub struct MeanCrossover {
     pub rate: f32,
@@ -13,16 +12,20 @@ impl MeanCrossover {
     }
 }
 
-impl<C: Chromosome> Crossover<C> for MeanCrossover
+impl<C: Chromosome> Alter<C> for MeanCrossover
 where
     C::GeneType: NumericGene,
 {
-    fn cross_rate(&self) -> f32 {
+    fn name(&self) -> &'static str {
+        "Mean Crossover"
+    }
+
+    fn rate(&self) -> f32 {
         self.rate
     }
 
-    fn name(&self) -> &'static str {
-        "Mean Crossover"
+    fn alter_type(&self) -> AlterType {
+        AlterType::Crossover
     }
 
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C) -> i32 {

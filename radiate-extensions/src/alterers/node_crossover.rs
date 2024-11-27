@@ -1,8 +1,7 @@
-use radiate::engines::alterers::Crossover;
-use radiate::engines::genome::*;
-use radiate::{random_provider, Alterer};
-
 use crate::NodeChromosome;
+use radiate::alter::AlterType;
+use radiate::engines::genome::*;
+use radiate::{random_provider, Alter};
 
 pub struct NodeCrossover<T>
 where
@@ -16,24 +15,28 @@ impl<T> NodeCrossover<T>
 where
     T: Clone + PartialEq + Default + 'static,
 {
-    pub fn alterer(rate: f32) -> Alterer<NodeChromosome<T>> {
-        Alterer::Crossover(Box::new(Self {
+    pub fn new(rate: f32) -> Self {
+        Self {
             rate,
             _marker: std::marker::PhantomData,
-        }))
+        }
     }
 }
 
-impl<T> Crossover<NodeChromosome<T>> for NodeCrossover<T>
+impl<T> Alter<NodeChromosome<T>> for NodeCrossover<T>
 where
     T: Clone + PartialEq + Default,
 {
-    fn cross_rate(&self) -> f32 {
+    fn name(&self) -> &'static str {
+        "Node Crossover"
+    }
+
+    fn rate(&self) -> f32 {
         self.rate
     }
 
-    fn name(&self) -> &'static str {
-        "Node Crossover"
+    fn alter_type(&self) -> AlterType {
+        AlterType::Crossover
     }
 
     #[inline]
@@ -42,7 +45,7 @@ where
         chrom_one: &mut NodeChromosome<T>,
         chrom_two: &mut NodeChromosome<T>,
     ) -> i32 {
-        let rate = self.cross_rate();
+        let rate = self.rate();
         let mut cross_count = 0;
 
         for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
