@@ -2,11 +2,13 @@ pub mod bit_chromosome;
 pub mod char_chromosome;
 pub mod float_chromosome;
 pub mod int_chromosome;
+pub mod permutation_chromosome;
 
 pub use bit_chromosome::*;
 pub use char_chromosome::*;
 pub use float_chromosome::*;
 pub use int_chromosome::*;
+pub use permutation_chromosome::*;
 
 use super::genes::gene::Gene;
 use crate::Valid;

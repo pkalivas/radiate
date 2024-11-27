@@ -1,34 +1,9 @@
 use crate::random_provider;
 
-///1. individual_indexes Function:
-///     * Generates a sorted vector of unique indices for a given size and order, ensuring the specified index is included.
-///     * Calls the subset function to get a subset of indices.
-///     * Replaces an index in the subset with the specified index if it fits the criteria.
-///     * Sorts and returns the result.
-/// 
-/// 2. subset Function:
-///     * Generates a subset of indices of size k from a total of n elements.
-///     * Calls the next function to fill the subset.
-/// 3. next Function:
-///     * Fills the subset with indices.
-///     * If the subset size equals the total number of elements, it fills the subset with sequential indices.
-///     * Otherwise, it calls build_subset to generate the subset and invert if necessary.
-///     * build_subset Function:
-///     * Constructs a subset of indices using a random selection process.
-///     * Ensures the subset size and range are valid.
-///     * Initializes the subset with evenly spaced indices.
-///     * Adjusts the subset by randomly selecting indices and ensuring they are unique.
-///4. invert Function:
-///     * Inverts the subset to ensure all indices are unique and within the specified range.
-///     * Uses a helper vector to track used indices and fills the subset with the remaining indices.
-///5. index_of Function:
-///     * Finds the index of a value in a subset.
-///     * Returns the index if found, otherwise returns -1.
-///6. check_subset Function:
-///     *Validates the subset size and range.
-///     *Panics if the subset size is zero or if the total number of elements is smaller than the subset size.
-/// 
-
+/// * Generates a sorted vector of unique indices for a given size and order, ensuring the specified index is included.
+/// * Calls the subset function to get a subset of indices.
+/// * Replaces an index in the subset with the specified index if it fits the criteria.
+/// * Sorts and returns the result.
 pub fn individual_indexes(index: usize, size: usize, order: usize) -> Vec<usize> {
     let mut sub_set = subset(size, order);
     let mut i = 0;
@@ -43,6 +18,8 @@ pub fn individual_indexes(index: usize, size: usize, order: usize) -> Vec<usize>
     result
 }
 
+/// * Generates a subset of indices of size k from a total of n elements.
+/// * Calls the next function to fill the subset.
 pub fn subset(n: usize, k: usize) -> Vec<i32> {
     if n < k {
         panic!("n smaller than k: {} < {}.", n, k);
@@ -52,7 +29,15 @@ pub fn subset(n: usize, k: usize) -> Vec<i32> {
     sub
 }
 
-fn next(num: i32, a: &mut Vec<i32>) {
+/// * Fills the subset with indices.
+/// * If the subset size equals the total number of elements, it fills the subset with sequential indices.
+/// * Otherwise, it calls build_subset to generate the subset and invert if necessary.
+/// * build_subset Function:
+/// * Constructs a subset of indices using a random selection process.
+/// * Ensures the subset size and range are valid.
+/// * Initializes the subset with evenly spaced indices.
+/// * Adjusts the subset by randomly selecting indices and ensuring they are unique.
+fn next(num: i32, a: &mut [i32]) {
     let k = a.len() as i32;
     if k == num {
         for i in 0..k {
@@ -66,6 +51,8 @@ fn next(num: i32, a: &mut Vec<i32>) {
     }
 }
 
+/// * Inverts the subset to ensure all indices are unique and within the specified range.
+/// * Uses a helper vector to track used indices and fills the subset with the remaining indices.
 fn build_subset(n: i32, sub: &mut [i32]) {
     let k = sub.len() as i32;
     check_subset(n, k);
@@ -108,13 +95,11 @@ fn build_subset(n: i32, sub: &mut [i32]) {
         is_ -= ids;
     }
 
-    let mut ir = 0;
-    let mut m0 = 0;
     for ll in 1..=k {
         let l = k + 1 - ll;
         if sub[l as usize - 1] != 0 {
-            ir = l;
-            m0 = 1 + (sub[l as usize - 1] - 1) * n / k;
+            let ir = l;
+            let m0 = 1 + (sub[l as usize - 1] - 1) * n / k;
             let m = sub[l as usize - 1] * n / k - m0 + 1;
             let ix = random_provider::gen_range(m0..m0 + m - 1);
             let mut i = l + 1;
@@ -127,12 +112,14 @@ fn build_subset(n: i32, sub: &mut [i32]) {
     }
 }
 
-fn invert(n: i32, a: &mut Vec<i32>) {
+/// * Finds the index of a value in a subset.
+/// * Returns the index if found, otherwise returns -1.
+fn invert(n: i32, a: &mut [i32]) {
     let k = a.len() as i32;
     let mut v = n - 1;
     let j = n - k - 1;
     let mut ac = vec![0; k as usize];
-    ac.copy_from_slice(&a);
+    ac.copy_from_slice(a);
 
     for i in (0..k).rev() {
         while index_of(&ac, j, v) == -1 {

@@ -8,6 +8,7 @@ pub mod float_codex;
 pub mod fn_codex;
 pub mod int_codex;
 pub mod subset_codex;
+pub mod permutationCodex;
 
 use crate::Chromosome;
 pub use bit_codex::*;
@@ -16,6 +17,7 @@ pub use float_codex::*;
 pub use fn_codex::*;
 pub use int_codex::*;
 pub use subset_codex::*;
+pub use permutationCodex::*;
 
 /// The `Codex` is a core concept in Radiate, as it allows for the encoding and decoding from
 /// a `Genotype` to the type `T` (commonly called Phenotype in biology) that is being optimized.

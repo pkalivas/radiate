@@ -1,7 +1,8 @@
 use super::codexes::Codex;
 use super::engine_output::EngineOutput;
 use super::genome::phenotype::Phenotype;
-use super::{MetricSet, ThreadPool};
+use super::thread_pool::ThreadPool;
+use super::MetricSet;
 use crate::engines::alterers::alter::Alter;
 use crate::engines::domain::timer::Timer;
 use crate::engines::genetic_engine_params::GeneticEngineParams;
@@ -46,7 +47,7 @@ use std::sync::{Arc, Mutex};
 ///     .fitness_fn(|genotype: Vec<Vec<f32>>| { // Define the fitness function to be minimized.
 ///         // Calculate the fitness score of the individual based on the decoded genotype.
 ///         let score = genotype.iter().fold(0.0, |acc, chromosome| {
-///             acc + chromosome.iter().fold(0.0, |acc, gene| acc + gene)
+///             acc + chromosome.iter().sum::<f32>()
 ///         });
 ///         Score::from_f32(score)
 ///    })
@@ -314,7 +315,7 @@ where
             let scores = output
                 .population
                 .iter()
-                .map(|individual| individual.score().as_ref().unwrap().clone())
+                .map(|individual| individual.score_as_ref().clone())
                 .collect::<Vec<Score>>();
 
             let front = Arc::clone(&output.front);

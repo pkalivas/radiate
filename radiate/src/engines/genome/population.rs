@@ -1,5 +1,5 @@
 use super::phenotype::Phenotype;
-use crate::Chromosome;
+use crate::{Chromosome, Score};
 use std::fmt::Debug;
 
 /// A `Population` is a collection of `Phenotype` instances. This struct is the core collection of individuals
@@ -106,6 +106,10 @@ impl<C: Chromosome> Population<C> {
 
     pub fn is_empty(&self) -> bool {
         self.individuals.is_empty()
+    }
+
+    pub fn get_scores_ref(&self) -> Vec<&Score> {
+        self.individuals.iter().map(|i| i.score_as_ref()).collect()
     }
 }
 

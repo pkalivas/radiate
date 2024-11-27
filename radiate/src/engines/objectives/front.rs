@@ -3,6 +3,10 @@ use crate::Score;
 use itertools::Itertools;
 use std::cmp;
 
+/// A front is a collection of scores that are non-dominated with respect to each other.
+/// This is useful for multi-objective optimization problems where the goal is to find
+/// the best solutions that are not dominated by any other solution.
+/// This results in what is called the Pareto front.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Front {
     scores: Vec<Score>,
@@ -25,6 +29,9 @@ impl Front {
         &self.scores
     }
 
+    /// Update the front with a new set of scores. This will add the scores to the front
+    /// and filter out any dominated scores. If the front exceeds the maximum size, it will
+    /// filter out the least crowded scores.
     pub fn update_front(&mut self, scores: &[Score]) {
         for score in scores {
             self.add(score);

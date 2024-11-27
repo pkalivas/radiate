@@ -10,6 +10,13 @@ impl SwapMutator {
     pub fn new(rate: f32) -> Self {
         SwapMutator { rate }
     }
+
+    fn swap_genes<C: Chromosome>(chromosome: &mut C, i: usize, swap_index: usize) {
+        let curr_gene = chromosome.get_gene(i);
+        let swap_gene = chromosome.get_gene(swap_index);
+
+        chromosome.set_gene(i, curr_gene.from_allele(swap_gene.allele()));
+    }
 }
 
 impl<C: Chromosome> Alter<C> for SwapMutator {
@@ -37,12 +44,8 @@ impl<C: Chromosome> Alter<C> for SwapMutator {
                     continue;
                 }
 
+                chromosome.get_genes_mut().swap(i, swap_index);
                 mutations += 1;
-
-                let curr_gene = chromosome.get_gene(i);
-                let swap_gene = chromosome.get_gene(swap_index);
-
-                chromosome.set_gene(i, curr_gene.from_allele(swap_gene.allele()));
             }
         }
 

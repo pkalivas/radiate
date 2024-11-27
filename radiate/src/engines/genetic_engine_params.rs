@@ -1,5 +1,6 @@
 use super::codexes::Codex;
-use super::{RouletteSelector, Select, ThreadPool, TournamentSelector};
+use super::thread_pool::ThreadPool;
+use super::{RouletteSelector, Select, TournamentSelector};
 use crate::engines::genetic_engine::GeneticEngine;
 use crate::engines::genome::phenotype::Phenotype;
 use crate::engines::genome::population::Population;

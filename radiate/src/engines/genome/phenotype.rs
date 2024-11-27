@@ -45,6 +45,14 @@ impl<C: Chromosome> Phenotype<C> {
         &self.score
     }
 
+    pub fn score_as_ref(&self) -> &Score {
+        if let Some(score) = &self.score {
+            score
+        } else {
+            panic!("Phenotype has no score - cannot return reference");
+        }
+    }
+
     pub fn set_score(&mut self, score: Option<Score>) {
         self.score = score;
     }
