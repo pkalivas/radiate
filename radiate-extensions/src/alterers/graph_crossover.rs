@@ -39,8 +39,8 @@ where
         indexes: &[usize],
         generation: i32,
     ) -> Option<Phenotype<NodeChromosome<T>>> {
-        let parent_one = population.get(indexes[0]);
-        let parent_two = population.get(indexes[1]);
+        let parent_one = &population[indexes[0]];
+        let parent_two = &population[indexes[1]];
 
         let geno_one = parent_one.genotype();
         let geno_two = parent_two.genotype();
@@ -48,8 +48,8 @@ where
         let chromo_index =
             random_provider::random::<usize>() % std::cmp::min(geno_one.len(), geno_two.len());
 
-        let chromo_one = geno_one.get_chromosome(chromo_index);
-        let chromo_two = geno_two.get_chromosome(chromo_index);
+        let chromo_one = &geno_one[chromo_index];
+        let chromo_two = &geno_two[chromo_index];
 
         let mut new_chromo_one = chromo_one.clone();
         let mut num_crosses = 0;
@@ -137,7 +137,7 @@ where
         }
 
         for (index, phenotype) in new_phenotypes.into_iter() {
-            population.set(index, phenotype);
+            population[index] = phenotype;
         }
 
         let mut metric = Metric::new_operations("Graph Crossover");

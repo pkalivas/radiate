@@ -55,10 +55,6 @@ impl Chromosome for FloatChromosome {
         FloatChromosome { genes }
     }
 
-    fn set_gene(&mut self, index: usize, gene: FloatGene) {
-        self.genes[index] = gene;
-    }
-
     fn get_genes(&self) -> &[FloatGene] {
         &self.genes
     }

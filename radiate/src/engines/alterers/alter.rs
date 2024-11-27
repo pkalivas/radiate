@@ -105,14 +105,14 @@ pub trait Alter<C: Chromosome> {
         let index_one = parent_indexes[0];
         let index_two = parent_indexes[1];
 
-        let mut geno_one = population.get(index_one).genotype().clone();
-        let mut geno_two = population.get(index_two).genotype().clone();
+        let mut geno_one = population[index_one].genotype().clone();
+        let mut geno_two = population[index_two].genotype().clone();
 
         let cross_count = self.cross_genotypes(&mut geno_one, &mut geno_two);
 
         if cross_count > 0 {
-            population.set(index_one, Phenotype::from_genotype(geno_one, generation));
-            population.set(index_two, Phenotype::from_genotype(geno_two, generation));
+            population[index_one] = Phenotype::from_genotype(geno_one, generation);
+            population[index_two] = Phenotype::from_genotype(geno_two, generation);
         }
 
         cross_count
@@ -123,8 +123,8 @@ pub trait Alter<C: Chromosome> {
         let chromosome_index =
             random_provider::random::<usize>() % std::cmp::min(geno_one.len(), geno_two.len());
 
-        let chrom_one = geno_one.get_chromosome_mut(chromosome_index);
-        let chrom_two = geno_two.get_chromosome_mut(chromosome_index);
+        let chrom_one = &mut geno_one[chromosome_index];
+        let chrom_two = &mut geno_two[chromosome_index];
 
         self.cross_chromosomes(chrom_one, chrom_two)
     }

@@ -33,26 +33,6 @@ impl<C: Chromosome> Population<C> {
         }
     }
 
-    pub fn get(&self, index: usize) -> &Phenotype<C> {
-        self.individuals.get(index).expect("Index out of bounds")
-    }
-
-    /// Get a mutable reference to the individual at the given index. This will set the is_sorted flag to false
-    /// because we cannot guarantee that the individual's `Score` (fitness) has not changed.
-    pub fn get_mut(&mut self, index: usize) -> &mut Phenotype<C> {
-        self.is_sorted = false;
-        self.individuals
-            .get_mut(index)
-            .expect("Index out of bounds")
-    }
-
-    /// Set the individual at the given index. This will set the is_sorted flag to false
-    /// because we cannot guarantee that the individual is in the correct order.
-    pub fn set(&mut self, index: usize, individual: Phenotype<C>) {
-        self.individuals[index] = individual;
-        self.is_sorted = false;
-    }
-
     pub fn iter(&self) -> std::slice::Iter<Phenotype<C>> {
         self.individuals.iter()
     }
@@ -110,7 +90,10 @@ impl<C: Chromosome> Population<C> {
     }
 
     pub fn get_scores_ref(&self) -> Vec<&Score> {
-        self.individuals.iter().map(|i| i.score_as_ref()).collect()
+        self.individuals
+            .iter()
+            .filter_map(|i| i.score())
+            .collect::<Vec<_>>()
     }
 }
 
@@ -118,20 +101,14 @@ impl<C: Chromosome> Index<usize> for Population<C> {
     type Output = Phenotype<C>;
 
     fn index(&self, index: usize) -> &Self::Output {
-        self.get(index)
+        &self.individuals[index]
     }
 }
 
 impl<C: Chromosome> IndexMut<usize> for Population<C> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.is_sorted = false;
-        self.get_mut(index)
-    }
-}
-
-impl<C: Chromosome> Default for Population<C> {
-    fn default() -> Self {
-        Self::new()
+        &mut self.individuals[index]
     }
 }
 

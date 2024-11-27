@@ -50,10 +50,6 @@ where
         }
     }
 
-    fn set_gene(&mut self, index: usize, gene: Node<T>) {
-        self.nodes[index] = gene;
-    }
-
     fn get_genes(&self) -> &[Node<T>] {
         &self.nodes
     }

@@ -32,12 +32,15 @@ pub trait Chromosome: Clone + PartialEq + Valid {
     type GeneType: Gene;
 
     fn from_genes(genes: Vec<Self::GeneType>) -> Self;
-    fn set_gene(&mut self, index: usize, gene: Self::GeneType);
     fn get_genes(&self) -> &[Self::GeneType];
     fn get_genes_mut(&mut self) -> &mut [Self::GeneType];
 
     fn get_gene(&self, index: usize) -> &Self::GeneType {
         &self.get_genes()[index]
+    }
+
+    fn set_gene(&mut self, index: usize, gene: Self::GeneType) {
+        self.get_genes_mut()[index] = gene;
     }
 
     fn len(&self) -> usize {

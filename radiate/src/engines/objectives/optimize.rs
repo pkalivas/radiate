@@ -12,8 +12,8 @@ impl Objective {
         match self {
             Objective::Single(opt) => opt.sort(population),
             Objective::Multi(_) => population.sort_by(|a, b| {
-                let a = a.score_as_ref();
-                let b = b.score_as_ref();
+                let a = a.score().unwrap();
+                let b = b.score().unwrap();
                 self.dominance_cmp(&a.values, &b.values)
             }),
         }

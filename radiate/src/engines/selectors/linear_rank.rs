@@ -50,7 +50,7 @@ impl<C: Chromosome> Select<C> for LinearRankSelector {
             for (rank, _) in fitness_values.iter().enumerate() {
                 cumulative_rank += (rank + 1) as f32 * self.selection_pressure;
                 if cumulative_rank > target {
-                    selected_population.push(population.get(rank).clone());
+                    selected_population.push(population[rank].clone());
                     break;
                 }
             }
