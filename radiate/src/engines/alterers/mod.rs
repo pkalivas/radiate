@@ -12,6 +12,7 @@ pub mod scramble_mutator;
 pub mod bitflip_mutator;
 pub mod shuffle_crossover;
 pub mod simulated_binary;
+pub mod pmx_crossover;
 
 pub use alter::*;
 pub use gaussian_mutator::*;
@@ -27,3 +28,4 @@ pub use scramble_mutator::*;
 pub use bitflip_mutator::*;
 pub use shuffle_crossover::*;
 pub use simulated_binary::*;
+pub use pmx_crossover::*;

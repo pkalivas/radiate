@@ -1,6 +1,13 @@
 use crate::objectives::{Objective, Optimize};
 use crate::{Chromosome, Population, Score};
 
+/// Calculate the crowding distance for each score in a population.
+///
+/// The crowding distance is a measure of how close a score is to its neighbors
+/// in the objective space. Scores with a higher crowding distance are more
+/// desirable because they are more spread out. This is useful for selecting
+/// diverse solutions in a multi-objective optimization problem and is a
+/// key component of the NSGA-II algorithm.
 pub fn crowding_distance(scores: &[Score], objective: &Objective) -> Vec<f32> {
     let indices = scores
         .iter()
@@ -38,21 +45,36 @@ pub fn crowding_distance(scores: &[Score], objective: &Objective) -> Vec<f32> {
     result
 }
 
+/// Rank the population based on the NSGA-II algorithm. This assigns a rank to each
+/// individual in the population based on their dominance relationships with other
+/// individuals in the population. The result is a vector of ranks, where the rank
+/// of the individual at index `i` is `ranks[i]`.
 pub fn rank<C: Chromosome>(population: &Population<C>, objective: &Objective) -> Vec<usize> {
     let mut dominated_counts = vec![0; population.len()];
     let mut dominates = vec![Vec::new(); population.len()];
-    let mut fronts: Vec<Vec<usize>> = Vec::new();
     let mut current_front: Vec<usize> = Vec::new();
+    let mut dominance_matrix = vec![vec![0; population.len()]; population.len()];
 
-    // Calculate dominance relationships
+    for i in 0..population.len() {
+        for j in (i + 1)..population.len() {
+            let score_one = population[i].score_as_ref();
+            let score_two = population[j].score_as_ref();
+            if dominance(score_one, score_two, objective) {
+                dominance_matrix[i][j] = 1;
+                dominance_matrix[j][i] = -1;
+            } else if dominance(score_two, score_one, objective) {
+                dominance_matrix[i][j] = -1;
+                dominance_matrix[j][i] = 1;
+            }
+        }
+    }
+
     for i in 0..population.len() {
         for j in 0..population.len() {
             if i != j {
-                let score_one = population.get(i).score().as_ref().unwrap();
-                let score_two = population.get(j).score().as_ref().unwrap();
-                if dominance(score_one, score_two, objective) {
+                if dominance_matrix[i][j] == 1 {
                     dominates[i].push(j);
-                } else if dominance(score_two, score_one, objective) {
+                } else if dominance_matrix[i][j] == -1 {
                     dominated_counts[i] += 1;
                 }
             }
@@ -69,7 +91,6 @@ pub fn rank<C: Chromosome>(population: &Population<C>, objective: &Objective) ->
     let mut front_idx = 0;
 
     while !current_front.is_empty() {
-        fronts.push(current_front.clone());
         let mut next_front = Vec::new();
 
         for &p in &current_front {
@@ -89,6 +110,9 @@ pub fn rank<C: Chromosome>(population: &Population<C>, objective: &Objective) ->
 
     ranks
 }
+
+/// Determine if one score dominates another score. A score `a` dominates a score `b`
+/// if it is better in every objective and at least one objective is strictly better.
 pub fn dominance(score_a: &Score, score_b: &Score, objective: &Objective) -> bool {
     let mut better_in_any = false;
     for (a, b) in score_a.values.iter().zip(&score_b.values) {
@@ -133,6 +157,10 @@ pub fn dominance(score_a: &Score, score_b: &Score, objective: &Objective) -> boo
     }
     better_in_any
 }
+
+/// Calculate the Pareto front of a set of scores. The Pareto front is the set of
+/// scores that are not dominated by any other score in the set. This is useful
+/// for selecting the best solutions in a multi-objective optimization problem.
 pub fn pareto_front(scores: &[Score], objective: &Objective) -> Vec<Score> {
     let mut front = Vec::new();
     for score in scores {
@@ -150,6 +178,8 @@ pub fn pareto_front(scores: &[Score], objective: &Objective) -> Vec<Score> {
     front
 }
 
+/// Calculate the distance between two scores in the objective space. This is used
+/// to calculate the crowding distance for each score in a population.
 fn distance(one: &Score, two: &Score, objective: &Objective, index: usize) -> f32 {
     match objective {
         Objective::Single(opt) => distance_single(one, two, opt, index),

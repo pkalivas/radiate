@@ -1,5 +1,6 @@
 use crate::{Chromosome, Population};
 
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Objective {
     Single(Optimize),
@@ -11,8 +12,8 @@ impl Objective {
         match self {
             Objective::Single(opt) => opt.sort(population),
             Objective::Multi(_) => population.sort_by(|a, b| {
-                let a = a.score().as_ref().unwrap();
-                let b = b.score().as_ref().unwrap();
+                let a = a.score_as_ref();
+                let b = b.score_as_ref();
                 self.dominance_cmp(&a.values, &b.values)
             }),
         }
@@ -100,31 +101,3 @@ mod tests {
         assert!(!Optimize::Maximize.is_better(&1, &2));
     }
 }
-
-// let mut order = phenotype_index_pairs
-// .iter()
-// .map(|(i, _)| *i)
-// .collect::<Vec<_>>();
-//
-// phenotype_index_pairs.sort_by(|a, b| {
-// let a_rank = ranks[b.0];
-// let b_rank = ranks[a.0];
-// let a_distance = distances[b.0];
-// let b_distance = distances[a.0];
-//
-// if a_rank < b_rank || (a_rank == b_rank && a_distance > b_distance) {
-// std::cmp::Ordering::Greater
-// } else if b_rank < a_rank || (b_rank == a_rank && b_distance > a_distance) {
-// std::cmp::Ordering::Less
-// } else {
-// std::cmp::Ordering::Equal
-// }
-// });
-//
-// *population = Population {
-// individuals: phenotype_index_pairs
-// .iter()
-// .map(|(_, i)| i.clone())
-// .collect(),
-// is_sorted: true,
-// };

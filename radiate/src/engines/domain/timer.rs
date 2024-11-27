@@ -15,11 +15,6 @@ impl Timer {
         }
     }
 
-    pub fn start(&mut self) {
-        self.start = Instant::now();
-        self.end = Instant::now();
-    }
-
     pub fn stop(&mut self) {
         self.end = Instant::now();
         self.stopped = true;
