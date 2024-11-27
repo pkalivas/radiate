@@ -31,7 +31,7 @@ fn main() {
         output.index > 2500
     });
 
-    let front = result.front;
+    let front = result.front.lock().unwrap();
     println!("{:?}", result.metrics);
     write_front(&front);
 }

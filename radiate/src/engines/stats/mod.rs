@@ -17,4 +17,5 @@ pub mod metric_names {
     pub const INVALID_FILTER: &str = "Invalid Filter";
     pub const UNIQUE: &str = "Unique";
     pub const GENOME_SIZE: &str = "Genome Size";
+    pub const FRONT: &str = "Front";
 }

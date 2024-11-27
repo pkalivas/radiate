@@ -1,5 +1,5 @@
 use crate::objectives::{Objective, Optimize};
-use crate::Score;
+use crate::{Chromosome, Population, Score};
 
 pub fn crowding_distance(scores: &[Score], objective: &Objective) -> Vec<f32> {
     let indices = scores
@@ -38,20 +38,21 @@ pub fn crowding_distance(scores: &[Score], objective: &Objective) -> Vec<f32> {
     result
 }
 
-
-pub fn rank(scores: &[Score], objective: &Objective) -> Vec<usize> {
-    let mut dominated_counts = vec![0; scores.len()];
-    let mut dominates = vec![Vec::new(); scores.len()];
+pub fn rank<C: Chromosome>(population: &Population<C>, objective: &Objective) -> Vec<usize> {
+    let mut dominated_counts = vec![0; population.len()];
+    let mut dominates = vec![Vec::new(); population.len()];
     let mut fronts: Vec<Vec<usize>> = Vec::new();
     let mut current_front: Vec<usize> = Vec::new();
 
     // Calculate dominance relationships
-    for i in 0..scores.len() {
-        for j in 0..scores.len() {
+    for i in 0..population.len() {
+        for j in 0..population.len() {
             if i != j {
-                if dominance(&scores[i], &scores[j], objective) {
+                let score_one = population.get(i).score().as_ref().unwrap();
+                let score_two = population.get(j).score().as_ref().unwrap();
+                if dominance(score_one, score_two, objective) {
                     dominates[i].push(j);
-                } else if dominance(&scores[j], &scores[i], objective) {
+                } else if dominance(score_two, score_one, objective) {
                     dominated_counts[i] += 1;
                 }
             }
@@ -64,7 +65,7 @@ pub fn rank(scores: &[Score], objective: &Objective) -> Vec<usize> {
     }
 
     // Assign ranks based on fronts
-    let mut ranks = vec![0; scores.len()];
+    let mut ranks = vec![0; population.len()];
     let mut front_idx = 0;
 
     while !current_front.is_empty() {
@@ -88,16 +89,6 @@ pub fn rank(scores: &[Score], objective: &Objective) -> Vec<usize> {
 
     ranks
 }
-pub fn dominance_cmp(a: &Score, b: &Score, objective: &Objective) -> std::cmp::Ordering {
-    if dominance(a, b, objective) {
-        std::cmp::Ordering::Less
-    } else if dominance(b, a, objective) {
-        std::cmp::Ordering::Greater
-    } else {
-        std::cmp::Ordering::Greater
-    }
-}
-
 pub fn dominance(score_a: &Score, score_b: &Score, objective: &Objective) -> bool {
     let mut better_in_any = false;
     for (a, b) in score_a.values.iter().zip(&score_b.values) {

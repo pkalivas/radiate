@@ -25,7 +25,7 @@ impl<C: Chromosome> Select<C> for NSGA2Selector {
             .map(|individual| individual.score().as_ref().unwrap().clone())
             .collect::<Vec<_>>();
 
-        let ranks = pareto::rank(&scores, objective);
+        let ranks = pareto::rank(population, objective);
         let distances = pareto::crowding_distance(&scores, objective);
 
         let mut indices: Vec<usize> = (0..population.len()).collect();

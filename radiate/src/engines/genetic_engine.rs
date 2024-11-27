@@ -9,7 +9,7 @@ use crate::engines::genome::population::Population;
 use crate::engines::score::Score;
 use crate::objectives::{Front, Objective};
 use crate::{metric_names, Chromosome, Metric, Select, Valid};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 /// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -310,28 +310,20 @@ where
         let thread_pool = self.thread_pool();
 
         if let Objective::Multi(_) = objective {
+            let timer = Timer::new();
             let scores = output
                 .population
                 .iter()
                 .map(|individual| individual.score().as_ref().unwrap().clone())
                 .collect::<Vec<Score>>();
 
-            // thread_pool.execute();
-
-            output.front.update_front(&scores);
-            return;
+            let front = Arc::clone(&output.front);
+            thread_pool.execute(move || {
+                front.lock().unwrap().update_front(&scores);
+            });
+            
+            output.metrics.upsert_operations(metric_names::FRONT, 1.0, timer.duration());
         }
-        let timer = Timer::new();
-        let scores = output
-            .population
-            .iter()
-            .map(|individual| individual.score().as_ref().unwrap().clone())
-            .collect::<Vec<Score>>();
-
-        output.front.update_front(&scores);
-        output
-            .metrics
-            .upsert_operations("metric_names::FRONT", 1.0, timer.duration());
     }
 
     /// Adds various metrics to the output context, including the age of individuals, the score of individuals,
@@ -449,11 +441,11 @@ where
             timer: Timer::new(),
             metrics: MetricSet::new(),
             score: None,
-            front: Front::new(
+            front: Arc::new(Mutex::new(Front::new(
                 self.params.min_front_size,
                 self.params.max_front_size,
                 self.objective().clone(),
-            ),
+            ))),
         }
     }
 
