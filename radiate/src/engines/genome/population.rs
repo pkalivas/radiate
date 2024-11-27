@@ -1,6 +1,7 @@
 use super::phenotype::Phenotype;
 use crate::{Chromosome, Score};
 use std::fmt::Debug;
+use std::ops::{Index, IndexMut};
 
 /// A `Population` is a collection of `Phenotype` instances. This struct is the core collection of individuals
 /// being evolved by the `GeneticEngine`. It can be thought of as a Vec of `Phenotype`s and
@@ -64,10 +65,10 @@ impl<C: Chromosome> Population<C> {
     pub fn len(&self) -> usize {
         self.individuals.len()
     }
-    
+
     pub fn swap(&mut self, a: usize, b: usize) {
         self.individuals.swap(a, b);
-    }   
+    }
 
     /// Sort the individuals in the population using the given closure. This will set the is_sorted flag to true.
     pub fn sort_by<F>(&mut self, f: F)
@@ -110,6 +111,21 @@ impl<C: Chromosome> Population<C> {
 
     pub fn get_scores_ref(&self) -> Vec<&Score> {
         self.individuals.iter().map(|i| i.score_as_ref()).collect()
+    }
+}
+
+impl<C: Chromosome> Index<usize> for Population<C> {
+    type Output = Phenotype<C>;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        self.get(index)
+    }
+}
+
+impl<C: Chromosome> IndexMut<usize> for Population<C> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        self.is_sorted = false;
+        self.get_mut(index)
     }
 }
 

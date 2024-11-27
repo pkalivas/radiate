@@ -322,8 +322,10 @@ where
             thread_pool.execute(move || {
                 front.lock().unwrap().update_front(&scores);
             });
-            
-            output.metrics.upsert_operations(metric_names::FRONT, 1.0, timer.duration());
+
+            output
+                .metrics
+                .upsert_operations(metric_names::FRONT, 1.0, timer.duration());
         }
     }
 

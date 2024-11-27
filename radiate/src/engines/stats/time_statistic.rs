@@ -41,6 +41,10 @@ impl TimeStatistic {
         Duration::from_secs_f32(self.statistic.max())
     }
     
+    pub fn sum(&self) -> Duration {
+        Duration::from_secs_f32(self.statistic.sum())
+    }
+    
     pub fn clear(&mut self) {
         self.statistic.clear();
     }

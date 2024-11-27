@@ -74,6 +74,10 @@ impl Statistic {
             self.m1.value()
         }
     }
+    
+    pub fn sum(&self) -> f32 {
+        self.sum.value()
+    }
 
     pub fn variance(&self) -> f32 {
         let mut value = f32::NAN;

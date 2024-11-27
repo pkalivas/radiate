@@ -15,14 +15,13 @@ impl<A: PartialEq + Clone> PermutationCodex<A> {
 
 impl<A: PartialEq + Clone> Codex<PermutationChromosome<A>, Vec<A>> for PermutationCodex<A> {
     fn encode(&self) -> Genotype<PermutationChromosome<A>> {
-        let mut random_indexes: Vec<usize> = (0..self.alleles.len()).collect();
-        random_provider::shuffle(&mut random_indexes);
-        let genes = random_indexes
-            .iter()
-            .map(|i| PermutationGene::new(*i, Arc::clone(&self.alleles)))
-            .collect();
-        let chromosome = PermutationChromosome::new(genes, Arc::clone(&self.alleles));
-        Genotype::from_chromosomes(vec![chromosome])
+        Genotype::from_chromosomes(vec![PermutationChromosome {
+            genes: random_provider::indexes(self.alleles.len())
+                .iter()
+                .map(|i| PermutationGene::new(*i, Arc::clone(&self.alleles)))
+                .collect(),
+            alleles: Arc::clone(&self.alleles),
+        }])
     }
 
     fn decode(&self, genotype: &Genotype<PermutationChromosome<A>>) -> Vec<A> {

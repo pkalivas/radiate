@@ -50,3 +50,9 @@ pub fn gaussian(mean: f64, std_dev: f64) -> f64 {
 pub fn shuffle<T>(items: &mut [T]) {
     RNG.with(|rng| items.shuffle(&mut *rng.lock().unwrap()));
 }
+
+pub fn indexes(n: usize) -> Vec<usize> {
+    let mut indexes: Vec<usize> = (0..n).collect();
+    shuffle(&mut indexes);
+    indexes
+}

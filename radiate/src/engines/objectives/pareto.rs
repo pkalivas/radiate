@@ -2,11 +2,11 @@ use crate::objectives::{Objective, Optimize};
 use crate::{Chromosome, Population, Score};
 
 /// Calculate the crowding distance for each score in a population.
-/// 
-/// The crowding distance is a measure of how close a score is to its neighbors 
+///
+/// The crowding distance is a measure of how close a score is to its neighbors
 /// in the objective space. Scores with a higher crowding distance are more
 /// desirable because they are more spread out. This is useful for selecting
-/// diverse solutions in a multi-objective optimization problem and is a 
+/// diverse solutions in a multi-objective optimization problem and is a
 /// key component of the NSGA-II algorithm.
 pub fn crowding_distance(scores: &[Score], objective: &Objective) -> Vec<f32> {
     let indices = scores
@@ -52,18 +52,29 @@ pub fn crowding_distance(scores: &[Score], objective: &Objective) -> Vec<f32> {
 pub fn rank<C: Chromosome>(population: &Population<C>, objective: &Objective) -> Vec<usize> {
     let mut dominated_counts = vec![0; population.len()];
     let mut dominates = vec![Vec::new(); population.len()];
-    let mut fronts: Vec<Vec<usize>> = Vec::new();
     let mut current_front: Vec<usize> = Vec::new();
+    let mut dominance_matrix = vec![vec![0; population.len()]; population.len()];
 
-    // Calculate dominance relationships
+    for i in 0..population.len() {
+        for j in (i + 1)..population.len() {
+            let score_one = population[i].score_as_ref();
+            let score_two = population[j].score_as_ref();
+            if dominance(score_one, score_two, objective) {
+                dominance_matrix[i][j] = 1;
+                dominance_matrix[j][i] = -1;
+            } else if dominance(score_two, score_one, objective) {
+                dominance_matrix[i][j] = -1;
+                dominance_matrix[j][i] = 1;
+            }
+        }
+    }
+
     for i in 0..population.len() {
         for j in 0..population.len() {
             if i != j {
-                let score_one = population.get(i).score().as_ref().unwrap();
-                let score_two = population.get(j).score().as_ref().unwrap();
-                if dominance(score_one, score_two, objective) {
+                if dominance_matrix[i][j] == 1 {
                     dominates[i].push(j);
-                } else if dominance(score_two, score_one, objective) {
+                } else if dominance_matrix[i][j] == -1 {
                     dominated_counts[i] += 1;
                 }
             }
@@ -80,7 +91,6 @@ pub fn rank<C: Chromosome>(population: &Population<C>, objective: &Objective) ->
     let mut front_idx = 0;
 
     while !current_front.is_empty() {
-        fronts.push(current_front.clone());
         let mut next_front = Vec::new();
 
         for &p in &current_front {

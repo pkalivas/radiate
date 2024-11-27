@@ -20,7 +20,7 @@ fn main() {
             UniformMutator::new(1.0 / VARIABLES as f32)
         ))
         .fitness_fn(move |genotype: Vec<Vec<f32>>| {
-            let f = dtlz_7(genotype.first().unwrap().clone());
+            let f = dtlz_7(genotype.first().unwrap());
             Score::from_vec(f)
         })
         .build();
@@ -50,7 +50,7 @@ fn write_front(front: &Front) {
     }
 }
 
-pub fn dtlz_1(values: Vec<f32>) -> Vec<f32> {
+pub fn dtlz_1(values: &[f32]) -> Vec<f32> {
     let mut g = 0.0;
     for i in VARIABLES - K..VARIABLES {
         g += (values[i] - 0.5).powi(2) - (20.0 * std::f32::consts::PI * (values[i] - 0.5)).cos();
@@ -73,7 +73,7 @@ pub fn dtlz_1(values: Vec<f32>) -> Vec<f32> {
     f
 }
 
-pub fn dtlz_2(values: Vec<f32>) -> Vec<f32> {
+pub fn dtlz_2(values: &[f32]) -> Vec<f32> {
     let mut g = 0.0;
     for i in VARIABLES - K..VARIABLES {
         g += (values[i] - 0.5).powi(2) - (20.0 * std::f32::consts::PI * (values[i] - 0.5)).cos();
@@ -99,7 +99,7 @@ pub fn dtlz_2(values: Vec<f32>) -> Vec<f32> {
     f
 }
 
-pub fn dtlz_6(values: Vec<f32>) -> Vec<f32> {
+pub fn dtlz_6(values: &[f32]) -> Vec<f32> {
     let mut f = vec![0.0; OBJECTIVES];
     let k = VARIABLES - OBJECTIVES + 1;
 
@@ -127,7 +127,7 @@ pub fn dtlz_6(values: Vec<f32>) -> Vec<f32> {
     f
 }
 
-pub fn dtlz_7(values: Vec<f32>) -> Vec<f32> {
+pub fn dtlz_7(values: &[f32]) -> Vec<f32> {
     let mut g = [0.0; OBJECTIVES];
     let mut x = [0.0; VARIABLES - K + 1];
 

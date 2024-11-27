@@ -267,6 +267,14 @@ impl Metric {
             _ => None,
         }
     }
+    
+    pub fn time_sum(&self) -> Option<Duration> {
+        match self {
+            Metric::Time(_, stat) => Some(stat.sum()),
+            Metric::Operations(_, _, stat) => Some(stat.sum()),
+            _ => None,
+        }
+    }
 
     pub fn last_sequence(&self) -> Option<&Vec<f32>> {
         match self {
@@ -348,12 +356,13 @@ impl std::fmt::Debug for Metric {
             ),
             Metric::Time(name, stat) => write!(
                 f,
-                "Metric Time {{ {:<15} -> ∧: {:<7.3?}  ∨: {:<7.3?} μ: {:<7.3?} N: {:<7} }}",
+                "Metric Time {{ {:<15} -> ∧: {:<7.3?}  ∨: {:<7.3?} μ: {:<7.3?} N: {:<7} S: {:<7.3?} }}",
                 name,
                 stat.max(),
                 stat.min(),
                 stat.mean(),
-                stat.count()
+                stat.count(),
+                stat.sum()
             ),
             Metric::Distribution(name, dist) => write!(
                 f,
@@ -366,7 +375,7 @@ impl std::fmt::Debug for Metric {
             ),
             Metric::Operations(name, stat, time_stat) => write!(
                 f,
-                "Metric Oper. {{ {:<15} -> ∧: {:<7.3?}  ∨: {:<7.3?} μ: {:<7.3?} N: {:<7} :: ∧[{:<10?}] ∨[{:<10?}] μ[{:<10?}] }}",
+                "Metric Oper. {{ {:<15} -> ∧: {:<7.3?}  ∨: {:<7.3?} μ: {:<7.3?} N: {:<7} :: ∧[{:<10?}] ∨[{:<10?}] μ[{:<10?}] S[{:<10.3?}] }}",
                 name,
                 stat.max(),
                 stat.min(),
@@ -374,7 +383,8 @@ impl std::fmt::Debug for Metric {
                 stat.count(),
                 time_stat.max(),
                 time_stat.min(),
-                time_stat.mean()
+                time_stat.mean(),
+                time_stat.sum()
             ),
         }
     }

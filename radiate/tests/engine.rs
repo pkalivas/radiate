@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod engine_tests {
-
     use radiate::*;
 
     #[test]
@@ -10,9 +9,11 @@ mod engine_tests {
         let engine = GeneticEngine::from_codex(&codex)
             .minimizing()
             .fitness_fn(|genotype: Vec<Vec<i32>>| {
-                Score::from_int(genotype.iter().fold(0, |acc, chromosome| {
-                    acc + chromosome.iter().sum::<i32>()
-                }))
+                Score::from_int(
+                    genotype
+                        .iter()
+                        .fold(0, |acc, chromosome| acc + chromosome.iter().sum::<i32>()),
+                )
             })
             .build();
 
@@ -28,9 +29,11 @@ mod engine_tests {
 
         let engine = GeneticEngine::from_codex(&codex)
             .fitness_fn(|genotype: Vec<Vec<i32>>| {
-                Score::from_int(genotype.iter().fold(0, |acc, chromosome| {
-                    acc + chromosome.iter().sum::<i32>()
-                }))
+                Score::from_int(
+                    genotype
+                        .iter()
+                        .fold(0, |acc, chromosome| acc + chromosome.iter().sum::<i32>()),
+                )
             })
             .build();
 
@@ -42,7 +45,7 @@ mod engine_tests {
 
     #[test]
     fn engine_evolves_towards_target() {
-        let target = vec![1, 2, 3, 4, 5];
+        let target = [1, 2, 3, 4, 5];
         let codex = IntCodex::new(1, target.len(), 0, 10);
 
         let engine = GeneticEngine::from_codex(&codex)
