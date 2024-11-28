@@ -1,0 +1,30 @@
+site_name: Radiate
+# site_url: 
+theme:
+  favicon: assets/radiate.ico
+  logo: assets/radiate.png
+  name: material
+  features:
+    - navigation.sections
+    - navigation.collapsible
+    - toc.integrate
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.annotation
+    - content.code.copy
+  language: en
+  palette:
+    - scheme: default
+      toggle:
+        icon: material/toggle-switch-off-outline 
+        name: Switch to dark mode
+      primary: deep-orange
+      accent: light-green 
+    - scheme: slate 
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode    
+      primary: blue-grey
+      accent: blue
