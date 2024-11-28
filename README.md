@@ -22,6 +22,8 @@
 
 ### Readme as well as docs are under construction. Check examples for current usages.
 
+[docs](https://pkalivas.github.io/radiate/)
+
 Radiate is a powerful Rust library designed for implementing genetic algorithms and artificial evolution techniques. It
 provides a flexible framework for creating, evolving, and optimizing solutions to complex problems using principles
 inspired by natural selection and genetics. This library is suitable for researchers, developers, and enthusiasts
