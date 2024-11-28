@@ -1,5 +1,6 @@
 site_name: Radiate
-# site_url: 
+repo_url: http://github.com/pkalivas/radiate
+repo_name: radiate
 theme:
   favicon: assets/radiate.ico
   logo: assets/radiate.png
@@ -7,7 +8,8 @@ theme:
   features:
     - navigation.sections
     - navigation.collapsable
-    - toc.integrate
+    - navigation.footer
+    - toc.collapse
     - navigation.top
     - search.suggest
     - search.highlight
@@ -20,7 +22,7 @@ theme:
       toggle:
         icon: material/toggle-switch
         name: Switch to light mode    
-      primary: blue-grey
+      primary: black
       accent: blue
     - scheme: default
       toggle:
@@ -45,3 +47,14 @@ markdown_extensions:
   - pymdownx.details
   - pymdownx.superfences
   - abbr
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https:github.com/pkalivas/radiate
+  generator: 
+  
+
+
+    # - navigation.tabs
+    # - navigation.tabs.sticky
+    # - toc.integrate
