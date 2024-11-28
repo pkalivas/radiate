@@ -6,7 +6,7 @@ theme:
   name: material
   features:
     - navigation.sections
-    - navigation.collapsible
+    - navigation.collapsable
     - toc.integrate
     - navigation.top
     - search.suggest
@@ -16,15 +16,20 @@ theme:
     - content.code.copy
   language: en
   palette:
-    - scheme: default
-      toggle:
-        icon: material/toggle-switch-off-outline 
-        name: Switch to dark mode
-      primary: deep-orange
-      accent: light-green 
     - scheme: slate 
       toggle:
         icon: material/toggle-switch
         name: Switch to light mode    
       primary: blue-grey
       accent: blue
+    - scheme: default
+      toggle:
+        icon: material/toggle-switch-off-outline 
+        name: Switch to dark mode
+      primary: deep-orange
+      accent: light-green 
+markdown_extensions:
+  - attr_list
+  - md_in_html
+  - pymdownx.blocks.caption
+  - tables
