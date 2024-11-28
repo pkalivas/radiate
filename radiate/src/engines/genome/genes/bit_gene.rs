@@ -82,30 +82,27 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_new() {
-        let gene = BitGene::new();
-        assert!(gene.allele == true || gene.allele == false);
-    }
-
-    #[test]
-    fn test_allele() {
-        let gene = BitGene::new();
-        assert!(gene.allele() == &gene.allele);
-    }
-
-    #[test]
     fn test_into() {
         let gene = BitGene::new();
         let copy = gene.clone();
         let allele: bool = gene.into();
-        assert!(allele == copy.allele);
+        assert_eq!(allele, copy.allele);
     }
 
     #[test]
     fn test_from() {
         let gene = BitGene::new();
         let copy = gene.clone();
-        let allele: BitGene = copy.into();
-        assert!(allele == gene);
+        let allele: BitGene = copy;
+        assert_eq!(allele, gene);
+    }
+    
+    #[test]
+    fn test_from_allele() {
+        let gene = BitGene::new();
+        let copy = gene.clone();
+        let allele = gene.allele();
+        let new_gene = gene.from_allele(allele);
+        assert_eq!(new_gene, copy);
     }
 }

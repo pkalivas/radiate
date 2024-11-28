@@ -21,6 +21,7 @@ const ALPHABET: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRST
 /// let gene = gene.from_allele(allele);
 /// ```
 ///
+#[derive(Clone, PartialEq)]
 pub struct CharGene {
     pub allele: char,
 }
@@ -52,20 +53,6 @@ impl Gene for CharGene {
 
 impl Valid for CharGene {}
 
-impl Clone for CharGene {
-    fn clone(&self) -> Self {
-        CharGene {
-            allele: self.allele,
-        }
-    }
-}
-
-impl PartialEq for CharGene {
-    fn eq(&self, other: &Self) -> bool {
-        self.allele == other.allele
-    }
-}
-
 impl std::fmt::Debug for CharGene {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.allele)
@@ -95,16 +82,26 @@ mod tests {
     }
 
     #[test]
-    fn test_allele() {
-        let gene = CharGene::new();
-        assert_eq!(gene.allele(), &gene.allele);
-    }
-
-    #[test]
     fn test_into() {
         let gene = CharGene::new();
         let copy = gene.clone();
         let allele: char = gene.into();
         assert_eq!(allele, copy.allele);
+    }
+
+    #[test]
+    fn test_from() {
+        let allele = 'a';
+        let gene = CharGene::from(allele);
+        assert_eq!(gene.allele, allele);
+    }
+
+    #[test]
+    fn test_from_allele() {
+        let gene_one: CharGene = 'a'.into();
+        let gene_two: CharGene = 'b'.into();
+        let new_gene = gene_one.from_allele(&gene_two.allele);
+
+        assert_eq!(gene_two.allele, new_gene.allele);
     }
 }

@@ -1,5 +1,4 @@
 use crate::engines::genome::population::Population;
-use crate::objectives::Objective;
 use crate::timer::Timer;
 use crate::{random_provider, subset, Chromosome, Gene, Genotype, Metric, Phenotype};
 
@@ -14,7 +13,7 @@ pub trait Alter<C: Chromosome> {
     fn rate(&self) -> f32;
     fn alter_type(&self) -> AlterType;
 
-    fn alter(&self, population: &mut Population<C>, _: &Objective, generation: i32) -> Vec<Metric> {
+    fn alter(&self, population: &mut Population<C>, generation: i32) -> Vec<Metric> {
         let mut metrics = Vec::new();
         let timer = Timer::new();
         let mut count = 0;

@@ -5,7 +5,6 @@ use crate::NodeChromosome;
 use radiate::alter::AlterType;
 use radiate::engines::alterers::Alter;
 use radiate::engines::genome::*;
-use radiate::objectives::Objective;
 use radiate::timer::Timer;
 use radiate::{random_provider, Metric};
 
@@ -115,11 +114,8 @@ where
     fn alter(
         &self,
         population: &mut Population<NodeChromosome<T>>,
-        objective: &Objective,
         generation: i32,
     ) -> Vec<Metric> {
-        objective.sort(population);
-
         let timer = Timer::new();
         let mut count = 0;
         let mut new_phenotypes = HashMap::new();

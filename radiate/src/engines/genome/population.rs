@@ -17,7 +17,7 @@ use std::ops::{Index, IndexMut};
 /// # Type Parameters
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 ///
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Population<C: Chromosome> {
     pub individuals: Vec<Phenotype<C>>,
     pub is_sorted: bool,
@@ -97,6 +97,12 @@ impl<C: Chromosome> Population<C> {
     }
 }
 
+impl<C: Chromosome> AsRef<[Phenotype<C>]> for Population<C> {
+    fn as_ref(&self) -> &[Phenotype<C>] {
+        &self.individuals
+    }
+}
+
 impl<C: Chromosome> Index<usize> for Population<C> {
     type Output = Phenotype<C>;
 
@@ -144,11 +150,74 @@ impl<C: Chromosome + Debug> Debug for Population<C> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::CharChromosome;
+    use crate::objectives::Optimize;
+    use crate::{CharChromosome, FloatChromosome};
 
     #[test]
     fn test_new() {
         let population = Population::<CharChromosome>::new();
         assert_eq!(population.len(), 0);
+    }
+
+    #[test]
+    fn test_from_vec() {
+        let individuals = vec![
+            Phenotype::from_chromosomes(vec![CharChromosome::from("hello")], 0),
+            Phenotype::from_chromosomes(vec![CharChromosome::from("world")], 0),
+        ];
+
+        let population = Population::from_vec(individuals.clone());
+        assert_eq!(population.len(), individuals.len());
+    }
+
+    #[test]
+    fn test_from_fn() {
+        let population = Population::from_fn(10, || {
+            Phenotype::from_chromosomes(vec![CharChromosome::from("hello")], 0)
+        });
+
+        assert_eq!(population.len(), 10);
+
+        for individual in population.iter() {
+            assert_eq!(individual.genotype.len(), 1);
+            assert_eq!(individual.genotype.iter().next().unwrap().len(), 5);
+        }
+    }
+
+    #[test]
+    fn test_is_empty() {
+        let population = Population::<CharChromosome>::new();
+        assert!(population.is_empty());
+    }
+
+    #[test]
+    fn test_sort_by() {
+        let mut population = Population::from_fn(10, move || {
+            Phenotype::from_chromosomes(vec![FloatChromosome::from(0..10)], 0)
+        });
+
+        for i in 0..population.len() {
+            population[i].set_score(Some(Score::from_f32(i as f32)));
+        }
+
+        let mut minimize_population = population.clone();
+        let mut maximize_population = population.clone();
+
+        Optimize::Minimize.sort(&mut minimize_population);
+        Optimize::Maximize.sort(&mut maximize_population);
+
+        assert!(minimize_population.is_sorted);
+        assert!(maximize_population.is_sorted);
+
+        for i in 0..population.len() {
+            assert_eq!(
+                minimize_population[i].score().as_ref().unwrap().as_float(),
+                i as f32
+            );
+            assert_eq!(
+                maximize_population[i].score().as_ref().unwrap().as_float(),
+                (population.len() - i - 1) as f32
+            );
+        }
     }
 }

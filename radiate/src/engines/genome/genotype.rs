@@ -54,6 +54,12 @@ impl<C: Chromosome> Valid for Genotype<C> {
     }
 }
 
+impl<C: Chromosome> AsRef<[C]> for Genotype<C> {
+    fn as_ref(&self) -> &[C] {
+        &self.chromosomes
+    }
+}
+
 impl<C: Chromosome> std::ops::Index<usize> for Genotype<C> {
     type Output = C;
 

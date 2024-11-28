@@ -64,6 +64,15 @@ impl Objective {
     }
 }
 
+impl AsRef<[Optimize]> for Objective {
+    fn as_ref(&self) -> &[Optimize] {
+        match self {
+            Objective::Single(opt) => std::slice::from_ref(opt),
+            Objective::Multi(opts) => opts.as_slice(),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Optimize {
     Minimize,
@@ -71,6 +80,14 @@ pub enum Optimize {
 }
 
 impl Optimize {
+
+    pub fn other_sort<T: PartialOrd>(&self, population: &mut [T]) {
+        match self {
+            Optimize::Minimize => population.sort_by(|a, b| a.partial_cmp(b).unwrap()),
+            Optimize::Maximize => population.sort_by(|a, b| b.partial_cmp(a).unwrap()),
+        }
+    }
+
     pub fn sort<C: Chromosome>(&self, population: &mut Population<C>) {
         match self {
             Optimize::Minimize => population.sort_by(|a, b| a.partial_cmp(b).unwrap()),

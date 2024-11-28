@@ -7,8 +7,8 @@ pub mod char_codex;
 pub mod float_codex;
 pub mod fn_codex;
 pub mod int_codex;
-pub mod subset_codex;
 pub mod permutation_codex;
+pub mod subset_codex;
 
 use crate::Chromosome;
 pub use bit_codex::*;
@@ -16,8 +16,8 @@ pub use char_codex::*;
 pub use float_codex::*;
 pub use fn_codex::*;
 pub use int_codex::*;
-pub use subset_codex::*;
 pub use permutation_codex::*;
+pub use subset_codex::*;
 
 /// The `Codex` is a core concept in Radiate, as it allows for the encoding and decoding from
 /// a `Genotype` to the type `T` (commonly called Phenotype in biology) that is being optimized.
@@ -92,21 +92,21 @@ pub trait Codex<C: Chromosome, T> {
 
     /// Spawn a new instance of `T` from the `Codex`. This will encode `num` new `Genotype`s and then
     /// decode it to a new instance of `T`.
-    fn spawn(&self, num: i32) -> Vec<T> {
+    fn spawn(&self, num: usize) -> Vec<T> {
         (0..num)
             .map(|_| self.decode(&self.encode()))
             .collect::<Vec<T>>()
     }
 
     /// Spawn a new instance of `Genotype<G, A>` from the `Codex`. This will encode `num` a new `Genotype`s.
-    fn spawn_genotypes(&self, num: i32) -> Vec<Genotype<C>> {
+    fn spawn_genotypes(&self, num: usize) -> Vec<Genotype<C>> {
         (0..num)
             .map(|_| self.encode())
             .collect::<Vec<Genotype<C>>>()
     }
 
     /// Spawn a new instance of `Population<G, A>` from the `Codex`. This will encode `num` a new `Genotype`s
-    fn spawn_population(&self, num: i32) -> Population<C> {
+    fn spawn_population(&self, num: usize) -> Population<C> {
         (0..num)
             .map(|_| Phenotype::from_genotype(self.encode(), 0))
             .collect::<Population<C>>()

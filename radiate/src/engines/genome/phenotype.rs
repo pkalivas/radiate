@@ -32,6 +32,14 @@ impl<C: Chromosome> Phenotype<C> {
             generation,
         }
     }
+    
+    pub fn from_chromosomes(chromosomes: Vec<C>, generation: i32) -> Self {
+        Phenotype {
+            genotype: Genotype::from_chromosomes(chromosomes),
+            score: None,
+            generation,
+        }
+    }
 
     pub fn genotype(&self) -> &Genotype<C> {
         &self.genotype
@@ -65,6 +73,12 @@ impl<C: Chromosome> Phenotype<C> {
 impl<C: Chromosome> Valid for Phenotype<C> {
     fn is_valid(&self) -> bool {
         self.genotype.is_valid()
+    }
+}
+
+impl<C: Chromosome> AsRef<Score> for Phenotype<C> {
+    fn as_ref(&self) -> &Score {
+        self.score.as_ref().unwrap()
     }
 }
 

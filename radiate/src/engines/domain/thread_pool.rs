@@ -37,7 +37,7 @@ impl ThreadPool {
     }
 
     /// Execute a job in the thread pool. This is a 'fire and forget' method.
-    pub fn execute<F>(&self, f: F)
+    pub fn submit<F>(&self, f: F)
     where
         F: FnOnce() + Send + 'static,
     {
@@ -135,7 +135,7 @@ mod tests {
 
         for _ in 0..8 {
             let counter = Arc::clone(&counter);
-            pool.execute(move || {
+            pool.submit(move || {
                 let mut num = counter.lock().unwrap();
                 *num += 1;
             });
@@ -151,7 +151,7 @@ mod tests {
         let pool = ThreadPool::new(4);
 
         for i in 0..8 {
-            pool.execute(move || {
+            pool.submit(move || {
                 let start_time = std::time::SystemTime::now();
                 println!("Job {} started.", i);
                 thread::sleep(Duration::from_secs(1));
@@ -167,7 +167,7 @@ mod tests {
 
         for i in 0..5 {
             let results = Arc::clone(&results);
-            pool.execute(move || {
+            pool.submit(move || {
                 results.lock().unwrap().push(i);
             });
         }
@@ -205,7 +205,7 @@ mod tests {
         // Submit 20 jobs
         for i in 0..num_jobs {
             let tx = tx.clone();
-            pool.execute(move || {
+            pool.submit(move || {
                 thread::sleep(Duration::from_millis(100));
                 tx.send(i).unwrap();
             });
