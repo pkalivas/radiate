@@ -137,7 +137,7 @@ where
         let mut work_results = Vec::new();
         for idx in 0..handle.population.len() {
             let individual = &handle.population[idx];
-            if !individual.score().is_some() {
+            if individual.score().is_none() {
                 let fitness_fn = self.fitness_fn();
                 let decoded = codex.decode(individual.genotype());
                 let work = thread_pool.task(move || (idx, fitness_fn(decoded)));
@@ -220,7 +220,7 @@ where
         objective.sort(population);
 
         for alterer in alterer {
-            let alter_metrics = alterer.alter(population, objective, generation);
+            let alter_metrics = alterer.alter(population, generation);
             for metric in alter_metrics {
                 metrics.upsert(metric);
             }
@@ -306,6 +306,11 @@ where
         output.index += 1;
     }
 
+    /// Updates the front of the population using the scores of the individuals. The front is a collection
+    /// of individuals that are not dominated by any other individual in the population. This method is only
+    /// called if the objective is multi-objective, as the front is not relevant for single-objective optimization.
+    /// The front is updated in a separate thread to avoid blocking the main thread while the front is being calculated.
+    /// This can significantly speed up the calculation of the front for large populations.
     fn update_front(&self, output: &mut EngineOutput<C, T>) {
         let objective = self.objective();
         let thread_pool = self.thread_pool();
@@ -319,7 +324,7 @@ where
                 .collect::<Vec<Score>>();
 
             let front = Arc::clone(&output.front);
-            thread_pool.execute(move || {
+            thread_pool.submit(move || {
                 front.lock().unwrap().update_front(&scores);
             });
 

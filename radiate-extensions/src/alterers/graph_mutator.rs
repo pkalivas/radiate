@@ -5,7 +5,6 @@ use crate::schema::collection_type::CollectionType;
 use radiate::alter::AlterType;
 use radiate::engines::alterers::Alter;
 use radiate::engines::genome::*;
-use radiate::objectives::Objective;
 use radiate::timer::Timer;
 use radiate::{random_provider, Metric};
 
@@ -308,7 +307,6 @@ where
     fn alter(
         &self,
         population: &mut Population<NodeChromosome<T>>,
-        _: &Objective,
         generation: i32,
     ) -> Vec<Metric> {
         let timer = Timer::new();

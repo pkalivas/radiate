@@ -87,11 +87,11 @@ fn main() {
     let codex = CharCodex::new(1, target.len());
 
     let engine = GeneticEngine::from_codex(&codex)
-        .offspring_selector(RouletteSelector::new())
+        .offspring_selector(BoltzmannSelector::new(4_f32))
         .survivor_selector(TournamentSelector::new(3))
-        .alterer(vec![
-            Alterer::Mutator(0.01),
-            Alterer::UniformCrossover(0.5)
+        .alterer(alters![
+            UniformMutator::new(0.01),
+            UniformCrossover::new(0.5)
         ])
         .fitness_fn(|genotype: String| {
             Score::from_usize(genotype.chars().zip(target.chars()).fold(
@@ -120,13 +120,6 @@ fn main() {
 ## Workflow
 
 TODO - write out the general GA workflow provided by the library.
-
-## Future Features
-
-* Multi-objective
-  optimization ([pareto fronts](https://www.sciencedirect.com/topics/engineering/pareto-front#:~:text=The%20concept%20of%20Pareto%20front,solutions%20in%20the%20search%20space.))
-    * I have a plan and mental model of how to integrate this into the library - fundementals are already there. Will
-      start when I have time probably within the next month or two (Dec 2024/Jan 2025)
 
 ## Examples
 

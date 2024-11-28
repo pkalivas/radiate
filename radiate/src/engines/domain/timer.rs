@@ -1,5 +1,8 @@
 use std::time::Instant;
 
+/// A simple timer that can be used to measure the time it takes to perform
+/// an operation. The timer can be stopped and started, and the duration
+/// can be retrieved at any time.
 pub struct Timer {
     start: Instant,
     end: Instant,
