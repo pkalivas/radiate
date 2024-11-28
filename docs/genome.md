@@ -1,8 +1,5 @@
 As with any specialized library, the core components operate on their own domain language, Radiate is no exception. The domain language of Radiate can be called the Genome and includes the: `Population`, `Phenotype`, `Genotype`, `Chromosome`, `Gene`, and `Allele`. Each of these components is a building block of the genetic information that is used by the GeneticEngine. 
 
-<!-- Because there is such a specific domain language, there needs to be a way to convert between the domain language or 'problem space' and the 'solution space'. For example, if you are trying to evolve a list of floating-point numbers, the `GeneticEngine` needs to know how to interact with that list of numbers, but from our perspective, we are only interested in the real-world problem that the list of numbers represents.
-This is where the `Codex` comes in. The `Codex` is the component that converts between the domain language and the solution space. It defines how the genetic information in a `Genotype` is represented and manipulated, allowing the `GeneticEngine` to interact with the genetic information in a meaningful way. The `Codex` is responsible for defining the structure of the genetic information, the types of `Genes` and `Chromosomes` that are used, and the operations that can be performed on the genetic information. It is the "language" that the GeneticEngine uses to interact with the genetic information in the `Population`. -->
-
 ---
 
 ### Allele
@@ -44,10 +41,8 @@ For user defined `Chromosome` types, the `Chromosome` trait can be implemented.
 ### Genotype
 The `Genotype` is a collection of `Chromosomes` that represent the complete genetic makeup of an individual. A `Genotype` can be thought of as a "blueprint" for an individual that contains all of the genetic information necessary to fully express the traits and characteristics of that individual. Because the `Genotype` is a collection of `Chromosomes`, it can be used to represent complex genetic information that is composed of multiple parts. It can be thought of as a "matrix" of `Genes` where each row is a `Chromosome`. For example, a `Genotype` of `FloatChromosome`s can be thought of as a `Vec<Vec<f32>>` or a matrix of floating-point numbers.
 
-
-
 ### Phenotype
-The `Phenotype` is the expression of the genetic information contained in a `Genotype`. It is the "physical" representation of an individual that can be evaluated and evolved by the GeneticEngine. It wraps the `Genotype` and the fitness score of the individual, allowing the `GeneticEngine` to interpret and manipulate the genetic information in a meaningful way.
+In Radiate, the `Phenotype` is the primary interface between the GeneticEngine and the individuals that it is evolving. It is responsible for managing the genetic information of the individual, evaluating the fitness of the individual, and providing a way for the `GeneticEngine` to interact with the individual. The `Phenotype` is the "body" of the individual that the `GeneticEngine` is evolving, and it is the main data structure that the `GeneticEngine` operates on.
 
 ## Population
-The `Population` is a collection of `Phenotypes` that represents a group of individuals that are being evolved by the GeneticEngine. The `Population` is the main data structure that the GeneticEngine operates on, and it is responsible for managing the individuals in the population, evaluating their fitness, and evolving them over time. The `Population` is the "ecosystem" in which the genetic algorithm operates, and it is the primary interface between the GeneticEngine and the individuals that it is evolving.
+The `Population` is a collection of `Phenotypes` that represents a group of individuals that are being evolved by the `GeneticEngine`. The `Population` is the main data structure that the `GeneticEngine` operates on, and it is responsible for managing the individuals in the population, evaluating their fitness, and evolving them over time. The `Population` is the "ecosystem" in which the genetic algorithm operates, and it is the primary interface between the `GeneticEngine` and the individuals that it is evolving.
