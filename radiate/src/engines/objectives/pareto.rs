@@ -24,7 +24,7 @@ pub fn crowding_distance(scores: &[Score], objective: &Objective) -> Vec<f32> {
         let min = indices[distance_values[0].1];
         let max = indices[distance_values[distance_values.len() - 1].1];
 
-        let dm = distance(max.0, min.0, objective, i);
+        let dm = distance(max.0, min.0, objective.as_ref(), i);
 
         if dm == 0.0 {
             continue;
@@ -36,7 +36,7 @@ pub fn crowding_distance(scores: &[Score], objective: &Objective) -> Vec<f32> {
         for j in 1..distance_values.len() - 1 {
             let prev = indices[distance_values[j - 1].1];
             let next = indices[distance_values[j + 1].1];
-            let dp = distance(next.0, prev.0, objective, i);
+            let dp = distance(next.0, prev.0, objective.as_ref(), i);
 
             result[distance_values[j].1] += dp / dm;
         }
@@ -57,8 +57,8 @@ pub fn rank<C: Chromosome>(population: &Population<C>, objective: &Objective) ->
 
     for i in 0..population.len() {
         for j in (i + 1)..population.len() {
-            let score_one = population[i].score().unwrap();
-            let score_two = population[j].score().unwrap();
+            let score_one = &population[i].as_ref();
+            let score_two = &population[j].as_ref();
             if dominance(score_one, score_two, objective) {
                 dominance_matrix[i][j] = 1;
                 dominance_matrix[j][i] = -1;
@@ -113,9 +113,14 @@ pub fn rank<C: Chromosome>(population: &Population<C>, objective: &Objective) ->
 
 /// Determine if one score dominates another score. A score `a` dominates a score `b`
 /// if it is better in every objective and at least one objective is strictly better.
-pub fn dominance(score_a: &Score, score_b: &Score, objective: &Objective) -> bool {
+pub fn dominance<K: PartialOrd, T: AsRef<[K]>>(
+    score_a: T,
+    score_b: T,
+    objective: &Objective,
+) -> bool {
     let mut better_in_any = false;
-    for (a, b) in score_a.values.iter().zip(&score_b.values) {
+
+    for (a, b) in score_a.as_ref().iter().zip(score_b.as_ref().iter()) {
         match objective {
             Objective::Single(opt) => {
                 if opt == &Optimize::Minimize {
@@ -135,7 +140,7 @@ pub fn dominance(score_a: &Score, score_b: &Score, objective: &Objective) -> boo
                 }
             }
             Objective::Multi(opts) => {
-                for ((a, b), opt) in score_a.values.iter().zip(&score_b.values).zip(opts) {
+                for ((a, b), opt) in score_a.as_ref().iter().zip(score_b.as_ref()).zip(opts) {
                     if opt == &Optimize::Minimize {
                         if a > b {
                             return false;
@@ -161,7 +166,10 @@ pub fn dominance(score_a: &Score, score_b: &Score, objective: &Objective) -> boo
 /// Calculate the Pareto front of a set of scores. The Pareto front is the set of
 /// scores that are not dominated by any other score in the set. This is useful
 /// for selecting the best solutions in a multi-objective optimization problem.
-pub fn pareto_front(scores: &[Score], objective: &Objective) -> Vec<Score> {
+pub fn pareto_front<K: PartialOrd, T: AsRef<[K]> + Clone>(
+    scores: &[T],
+    objective: &Objective,
+) -> Vec<T> {
     let mut front = Vec::new();
     for score in scores {
         let mut dominated = false;
@@ -175,28 +183,32 @@ pub fn pareto_front(scores: &[Score], objective: &Objective) -> Vec<Score> {
             front.push(score.clone());
         }
     }
+
     front
 }
 
 /// Calculate the distance between two scores in the objective space. This is used
 /// to calculate the crowding distance for each score in a population.
-fn distance(one: &Score, two: &Score, objective: &Objective, index: usize) -> f32 {
-    match objective {
-        Objective::Single(opt) => distance_single(one, two, opt, index),
-        Objective::Multi(opts) => distance_multi(one, two, opts, index),
-    }
-}
-
-fn distance_single(one: &Score, two: &Score, opt: &Optimize, index: usize) -> f32 {
-    match opt {
-        Optimize::Minimize => one.values[index] - two.values[index],
-        Optimize::Maximize => two.values[index] - one.values[index],
-    }
-}
-
-fn distance_multi(one: &Score, two: &Score, opts: &[Optimize], index: usize) -> f32 {
+fn distance<K: PartialOrd, T: AsRef<[K]>>(one: T, two: T, opts: &[Optimize], index: usize) -> f32 {
     match opts[index] {
-        Optimize::Minimize => one.values[index] - two.values[index],
-        Optimize::Maximize => two.values[index] - one.values[index],
+        Optimize::Minimize => {
+            if one.as_ref()[index] > two.as_ref()[index] {
+                1.0
+            } else if one.as_ref()[index] < two.as_ref()[index] {
+                -1.0
+            } else {
+                0.0
+            }
+        }
+        Optimize::Maximize => {
+            if one.as_ref()[index] < two.as_ref()[index] {
+                1.0
+            } else if one.as_ref()[index] > two.as_ref()[index] {
+                -1.0
+            } else {
+                0.0
+            }
+        } // Optimize::Minimize => one.as_ref()[index] - two.as_ref()[index],
+          // Optimize::Maximize => two.as_ref()[index] - one.as_ref()[index],
     }
 }

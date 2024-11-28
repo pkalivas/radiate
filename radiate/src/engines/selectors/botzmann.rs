@@ -1,6 +1,7 @@
 use super::Select;
 use crate::objectives::{Objective, Optimize};
-use crate::{random_provider, Chromosome, Population};
+use crate::selectors::ProbabilityIterator;
+use crate::{Chromosome, Population};
 
 pub struct BoltzmannSelector {
     temperature: f32,
@@ -24,7 +25,6 @@ impl<C: Chromosome> Select<C> for BoltzmannSelector {
         count: usize,
     ) -> Population<C> {
         let mut selected = Vec::with_capacity(count);
-
         let mut min = population[0].score().as_ref().unwrap().as_float();
         let mut max = min;
 
@@ -38,7 +38,7 @@ impl<C: Chromosome> Select<C> for BoltzmannSelector {
             }
         }
 
-        let diff = max - min;
+        let diff = (max - min).abs();
         if diff == 0.0 {
             return population
                 .iter()
@@ -57,35 +57,19 @@ impl<C: Chromosome> Select<C> for BoltzmannSelector {
         }
 
         let total_fitness = result.iter().sum::<f32>();
-        for i in 0..result.len() {
-            result[i] /= total_fitness;
+        for fit in result.iter_mut() {
+            *fit /= total_fitness;
         }
 
-        match objective {
-            Objective::Single(opt) => {
-                if opt == &Optimize::Minimize {
-                    result.reverse();
-                }
+        if let Objective::Single(opt) = objective {
+            if opt == &Optimize::Minimize {
+                result.reverse();
             }
-            Objective::Multi(_) => {}
         }
 
-        let total_fitness = result.iter().sum::<f32>();
-
-        if total_fitness == 0.0 || total_fitness.is_nan() || total_fitness.is_infinite() {
-            panic!("Total fitness is 0.0");
-        }
-
-        for _ in 0..count {
-            let mut idx = random_provider::gen_range(0.0..total_fitness);
-
-            for (i, val) in result.iter().enumerate() {
-                idx -= val;
-                if idx <= 0.0 {
-                    selected.push(population[i].clone());
-                    break;
-                }
-            }
+        let prob_iter = ProbabilityIterator::new(&result, count);
+        for idx in prob_iter {
+            selected.push(population[idx].clone());
         }
 
         Population::from_vec(selected)

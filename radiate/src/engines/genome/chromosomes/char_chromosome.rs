@@ -27,3 +27,10 @@ impl Valid for CharChromosome {
         self.genes.iter().all(|gene| gene.is_valid())
     }
 }
+
+impl From<&'static str> for CharChromosome {
+    fn from(alleles: &'static str) -> Self {
+        let genes = alleles.chars().map(CharGene::from).collect();
+        CharChromosome { genes }
+    }
+}

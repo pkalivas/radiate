@@ -1,6 +1,7 @@
 use super::Select;
 use crate::objectives::{Objective, Optimize};
-use crate::{random_provider, Chromosome, Population};
+use crate::selectors::ProbabilityIterator;
+use crate::{Chromosome, Population};
 
 pub struct RouletteSelector;
 
@@ -56,20 +57,12 @@ impl<C: Chromosome> Select<C> for RouletteSelector {
             Objective::Multi(_) => {}
         }
 
-        let total_fitness = fitness_values.iter().sum::<f32>();
+        let probability_iter = ProbabilityIterator::new(&fitness_values, count);
 
-        for _ in 0..count {
-            let mut idx = random_provider::gen_range(0.0..total_fitness);
-
-            for (i, val) in fitness_values.iter().enumerate() {
-                idx -= val;
-                if idx <= 0.0 {
-                    selected.push(population[i].clone());
-                    break;
-                }
-            }
+        for idx in probability_iter {
+            selected.push(population[idx].clone());
         }
-
+        
         Population::from_vec(selected)
     }
 }

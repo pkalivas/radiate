@@ -32,6 +32,14 @@ impl<C: Chromosome> Phenotype<C> {
             generation,
         }
     }
+    
+    pub fn from_chromosomes(chromosomes: Vec<C>, generation: i32) -> Self {
+        Phenotype {
+            genotype: Genotype::from_chromosomes(chromosomes),
+            score: None,
+            generation,
+        }
+    }
 
     pub fn genotype(&self) -> &Genotype<C> {
         &self.genotype
