@@ -9,6 +9,7 @@ use std::hash::Hash;
 /// Note: The reason it is a Vec is for multi-objective optimization problems. This allows for multiple
 /// fitness values to be returned from the fitness function.
 ///
+#[derive(Clone, PartialEq)]
 pub struct Score {
     pub values: Vec<f32>,
 }
@@ -97,17 +98,9 @@ impl Score {
     }
 }
 
-impl Clone for Score {
-    fn clone(&self) -> Self {
-        Score {
-            values: self.values.clone(),
-        }
-    }
-}
-
-impl PartialEq for Score {
-    fn eq(&self, other: &Self) -> bool {
-        self.values == other.values
+impl AsRef<[f32]> for Score {
+    fn as_ref(&self) -> &[f32] {
+        &self.values
     }
 }
 

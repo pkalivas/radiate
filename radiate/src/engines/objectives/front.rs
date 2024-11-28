@@ -45,19 +45,21 @@ impl Front {
     fn add(&mut self, score: &Score) {
         let mut to_remove = Vec::new();
         let mut is_dominated = false;
-        let mut remove_dups = false;
+        let mut remove_duplicates = false;
 
         for existing_score in &self.scores {
             if pareto::dominance(score, existing_score, &self.objective) {
                 to_remove.push(existing_score.clone());
-            } else if pareto::dominance(existing_score, score, &self.objective) || existing_score == score {
+            } else if pareto::dominance(existing_score, score, &self.objective)
+                || existing_score == score
+            {
                 is_dominated = true;
-                remove_dups = true;
+                remove_duplicates = true;
                 break;
             }
         }
-        
-        if remove_dups {
+
+        if remove_duplicates {
             self.scores.retain(|x| !to_remove.contains(x));
         }
 

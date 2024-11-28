@@ -97,6 +97,12 @@ impl<C: Chromosome> Population<C> {
     }
 }
 
+impl<C: Chromosome> AsRef<[Phenotype<C>]> for Population<C> {
+    fn as_ref(&self) -> &[Phenotype<C>] {
+        &self.individuals
+    }
+}
+
 impl<C: Chromosome> Index<usize> for Population<C> {
     type Output = Phenotype<C>;
 

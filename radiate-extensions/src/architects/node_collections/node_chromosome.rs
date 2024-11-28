@@ -68,6 +68,26 @@ where
     }
 }
 
+impl<T> std::ops::Index<usize> for NodeChromosome<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    type Output = Node<T>;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.nodes[index]
+    }
+}
+
+impl<T> std::ops::IndexMut<usize> for NodeChromosome<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.nodes[index]
+    }
+}
+
 impl<T> PartialEq for NodeChromosome<T>
 where
     T: Clone + PartialEq + Default,

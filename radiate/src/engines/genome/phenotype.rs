@@ -68,6 +68,12 @@ impl<C: Chromosome> Valid for Phenotype<C> {
     }
 }
 
+impl<C: Chromosome> AsRef<Score> for Phenotype<C> {
+    fn as_ref(&self) -> &Score {
+        self.score.as_ref().unwrap()
+    }
+}
+
 /// Implement the `PartialOrd` trait for the `Phenotype`. This allows the `Phenotype` to be compared
 /// with other `Phenotype` instances. The comparison is based on the `Score` (fitness) of the `Phenotype`.
 impl<C: Chromosome> PartialOrd for Phenotype<C> {
