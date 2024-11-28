@@ -1,5 +1,5 @@
 <h1 align="center">Radiate</p>
-<img src="/docs/radiate.png" height="100">
+<img src="/docs/assets/radiate.png" height="100">
 
 ![master branch checks][master_branch_checks] ![Crates.io][crates_link] ![Crates.io License][license] ![Static badge][static_evolution_badge]
 

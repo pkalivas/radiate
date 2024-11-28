@@ -18,3 +18,18 @@ Through an intuitive, 'plug and play' style API, Radiate allows you to quickly t
 <figure markdown="span">
   ![Radiate](assets/radiate.png){ width="300" }
 </figure>
+
+<!-- 
+## Features
+
+- **Genetic Algorithm Operations**: The `GeneticEngine` implements standard genetic algorithm operations such as selection, crossover, and mutation.
+- **Custom Genome Representations**: Define how individuals are represented within your problem space using different codex implementations.
+- **Modular Design**: Mix and match different components such as selection strategies, crossover methods, and mutation techniques to suit your specific needs.
+- **Parallel Processing**: The `GeneticEngine` utilizes a thread pool for parallel evaluation of fitness functions and genetic operations. It can be configured to use multiple threads for faster execution.
+- **Flexible Fitness Functions**: Easily define and integrate custom fitness functions to evaluate individuals. Each evaluation of the fitness function is performed in the thread pool.
+- **Extensible Architecture**: The `GeneticEngine` is designed to be extensible, allowing users to add custom components like selection strategies, crossover methods, and mutation techniques with minimal effort.
+- **Multi-Objective Optimization**: Supports multi-objective optimization for problems with N-objective functions.
+- **Minimization and Maximization**: Supports both minimization and maximization problems by specifying the optimization goal in the fitness function.
+- **Metrics**: Tracks and provides various metrics on the evolution process and internal operations.
+
+## Parameters -->

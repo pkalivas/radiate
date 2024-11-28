@@ -15,6 +15,122 @@ Because Radiate has such a specific domain language, there needs to be a way to 
 
 In other words, the `Codex` is the bridge between the domain language of Radiate and the real-world problem that you are trying to solve. 
 
+Core library `Codex` implementations:
+
+| Codex | Chromosome | Gene | Real-World Representation |
+|-------|------------|------|---------------------------|
+| `BitCodex` | `BitChromosome` | `BitGene` | `Vec<Vec<bool>>` |
+| `CharCodex` | `CharChromosome` | `CharGene` | `Vec<Vec<char>>` |
+| `FloatCodex` | `FloatChromosome` | `FloatGene` | `Vec<Vec<f32>>` |
+| `IntCodex<I>` | `IntChromosome<I>` | `IntGene<I>` | `Vec<Vec<I>>` |
+| `PermutationCodex<A>` | `PermutationChromosome<A>` | `PermutationGene<A>` | `Vec<A>` |
+| `SubsetCodex<'a, T>` | `BitChromosome` | `BitGene` | `Vec<&'a T>` |
+| `FnCodex<C: Chromosome, T>` | `C` | `C::GeneType` | `T` |
+
+___
+## BitCodex
+```rust
+pub struct BitCodex {
+    pub num_chromosomes: usize,
+    pub num_genes: usize,
+}
+``` 
+
+* **Encodes**: `Genotype` of `BitChromosomes` with `BitGenes`
+* **Decodes**: `Vec<Vec<bool>>`
+
+When people traditionally think of genetic algorithms, they often think of binary strings. The `BitCodex` is a simple way to encode and decode a `Genotype` of binary strings so in essence, it is the most basic `Codex` implementation.
+
+___
+## CharCodex
+```rust
+pub struct CharCodex {
+    pub num_chromosomes: usize,
+    pub num_genes: usize,
+}
+```
+
+* **Encodes**: `Genotype` of `CharChromosomes` with `CharGenes`
+* **Decodes**: `Vec<Vec<char>>`
+
+___
+## FloatCodex
+```rust
+pub struct FloatCodex {
+    pub num_chromosomes: usize,
+    pub num_genes: usize,
+    pub min: f32,
+    pub max: f32,
+    pub lower_bound: f32,
+    pub upper_bound: f32,
+}
+```
+
+* **Encodes**: `Genotype` of `FloatChromosomes` with `FloatGenes`
+* **Decodes**: `Vec<Vec<f32>>`
+
+___
+## IntCodex
+```rust
+pub struct IntCodex<T: Integer<T>>
+where
+    Standard: rand::distributions::Distribution<T>,
+{
+    pub num_chromosomes: usize,
+    pub num_genes: usize,
+    pub min: T,
+    pub max: T,
+    pub lower_bound: T,
+    pub upper_bound: T,
+}
+```
+
+* **Encodes**: `Genotype` of `IntChromosome<T>` with `IntGene<T>`
+* **Decodes**: `Vec<Vec<T>>`
+  
+**Note**: `T` must implement the `Integer` trait. Integer is a trait in Radiate and is implemented for `i8`, `i16`, `i32`, `i64`, `i128`.
+
+___
+## PermutationCodex
+```rust
+pub struct PermutationCodex<A: PartialEq + Clone> {
+    pub alleles: Arc<Vec<A>>,
+}
+```
+
+* **Encodes**: `Genotype` of `PermutationChromosomes<A>` with `PermutationGene<A>`
+* **Decodes**: `Vec<A>`
+  
+Permutation problems are problems where the order of the elements in the solution is important. The Travelling Salesman Problem is a classic example of a permutation problem.
+
+___
+## SubsetCodex
+```rust
+pub struct SubSetCodex<'a, T> {
+    pub items: &'a Vec<T>,
+}
+```
+
+* **Encodes**: `Genotype` of `BitChromosome` with `BitGene`
+* **Decodes**: `Vec<&'a T>`
+
+The `SubsetCodex` is a specialized `Codex` that is used for subset selection problems. In subset selection problems, the goal is to select a subset of items from a larger set of items that maximizes some objective function. The Knapsack Problem is a classic example of a subset selection problem.
+
+___
+## FnCodex
+```rust
+pub struct FnCodex<C: Chromosome, T> {
+    pub encoder: Option<Box<dyn Fn() -> Genotype<C>>>,
+    pub decoder: Option<Box<dyn Fn(&Genotype<C>) -> T>>,
+}
+```
+
+* **Encodes**: `Genotype` of `C` with `C::GeneType`
+* **Decodes**: `T`
+
+The `FnCodex` is a generic `Codex` that allows you to define your own encoding and decoding functions. This is useful if you have a custom problem that doesn't fit into the other `Codex` implementations and don't want to create a new `Codex` implementation.
+
+___
 ## Defining a Codex
 The `Codex` trait is defined as follows where `C` is the `Chromosome` type and `T` is the real-world representaion. The `encode` method is a supplier function that simply returns a new `Genotype`, while the `decode` method takes a `Genotype` and converts it back into our real-world representation.
 
@@ -25,6 +141,7 @@ pub trait Codex<C: Chromosome, T> {
 }
 ```
 
+___
 ## Example
 Let's take a look at a simplified version of Raditate's built-in `FloatCodex` which encodes and decodes floating-point numbers. The `FloatCodex` takes in the number of chromosomes, number of genes per chromosome, the max allele value, and the min allele value. The `encode` method creates a new `Genotype` of `FloatChromosomes` with `FloatGenes` that have random alleles between the max and min. The `decode` method takes a `Genotype` and returns a `Vec<Vec<f32>>` of the gene values.
 

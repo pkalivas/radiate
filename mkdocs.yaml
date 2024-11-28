@@ -33,6 +33,7 @@ markdown_extensions:
   - md_in_html
   - pymdownx.blocks.caption
   - tables
+  - def_list
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
@@ -40,3 +41,7 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - abbr
