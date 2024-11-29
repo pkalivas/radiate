@@ -23,7 +23,7 @@ mod selector_tests {
 
         for i in 0..num {
             let original = population[i].score().as_ref().unwrap().as_float();
-            let selected = selected[i].score().as_ref().unwrap().as_float();
+            let selected = selected[i].score().as_ref().map(|va| va.as_float()).unwrap();
 
             assert_eq!(original, selected);
         }
