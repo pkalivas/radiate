@@ -9,6 +9,7 @@ readme = "../README.md"
 categories = ["science", "simulation", "algorithms"]
 keywords = ["search", "genetic", "learning", "artificial", "evolution"]
 license = "MIT"
+documentation = "https://pkalivas.github.io/radiate/"
 
 [dependencies]
 rand = "0.8.5"

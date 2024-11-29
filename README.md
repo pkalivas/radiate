@@ -40,15 +40,6 @@ Large insperation for this library coming from other genetic algorithm libraries
 [genevo][genevo_link]: Popular rust GA.
 [radiate_legacy][radiate_legacy]: Previous implemenation of this library with direct encoding.
 
-## Usage
-
-Add to cargo.toml
-
-```toml
-[dependencies]
-radiate = "1.2.3"
-```
-
 
 <!-- ## Examples
 
