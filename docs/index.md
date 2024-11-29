@@ -19,7 +19,7 @@
 ___
 Radiate is a powerful Rust library designed for implementing genetic algorithms and artificial evolution techniques. It
 provides a fast and flexible framework for creating, evolving, and optimizing solutions to complex problems using principles
-inspired by natural selection and genetics. With an intuitive, 'plug and play' style API, Radiate allows you to quickly test a multitude of evolutionary strategies and configurations, making it an ideal tool for both beginners and experienced practitioners in the field of evolutionary computation.
+inspired by natural selection and genetics. With an intuitive, 'plug and play' style API, Radiate allows you to quickly test a multitude of evolutionary strategies and configurations.
 
 <div class="grid cards" markdown>
     
