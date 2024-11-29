@@ -22,7 +22,7 @@ impl CharCodex {
     }
 }
 
-impl Codex<CharChromosome, String> for CharCodex {
+impl Codex<CharChromosome, Vec<Vec<char>>> for CharCodex {
     fn encode(&self) -> Genotype<CharChromosome> {
         Genotype {
             chromosomes: (0..self.num_chromosomes)
@@ -37,15 +37,15 @@ impl Codex<CharChromosome, String> for CharCodex {
         }
     }
 
-    fn decode(&self, genotype: &Genotype<CharChromosome>) -> String {
+    fn decode(&self, genotype: &Genotype<CharChromosome>) -> Vec<Vec<char>> {
         genotype
             .iter()
             .map(|chromosome| {
                 chromosome
                     .iter()
-                    .map(|gene| gene.allele())
-                    .collect::<String>()
+                    .map(|gene| *gene.allele())
+                    .collect::<Vec<char>>()
             })
-            .collect::<String>()
+            .collect::<Vec<Vec<char>>>()
     }
 }
