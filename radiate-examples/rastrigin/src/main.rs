@@ -1,4 +1,3 @@
-// Code for the main function of the rastrigin function example.
 use radiate::*;
 
 const MIN_SCORE: f32 = 0.00;
