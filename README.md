@@ -1,8 +1,10 @@
-<h1 align="center">Radiate</p>
-<img src="/docs/assets/radiate.png" height="100">
+<!-- <h1 text-align="center">Radiate</h1> -->
+<center>
+  <h1>Radiate</h1>
+  <img src="/docs/assets/radiate.png" height="100">
 
 ![master branch checks][master_branch_checks] ![Crates.io][crates_link] ![Crates.io License][license] ![Static badge][static_evolution_badge]
-
+</center>
 
 [crates_link]: https://img.shields.io/crates/v/radiate
 
@@ -21,7 +23,7 @@
 [radiate_legacy]: https://github.com/pkalivas/radiate.legacy
 
 
-[Documentation](https://pkalivas.github.io/radiate/)
+For more details check the [Documentation](https://pkalivas.github.io/radiate/)
 
 Radiate is a powerful Rust library designed for implementing genetic algorithms and artificial evolution techniques. It
 provides a flexible framework for creating, evolving, and optimizing solutions to complex problems using principles
