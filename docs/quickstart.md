@@ -3,7 +3,7 @@
 ## Configuration
 ```toml
 [dependencies]
-radiate = "1.2.3"
+radiate = "1.2.4"
 ```
 
 ## Core Implementations
