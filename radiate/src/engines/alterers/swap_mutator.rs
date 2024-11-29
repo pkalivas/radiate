@@ -25,11 +25,11 @@ impl<C: Chromosome> Alter<C> for SwapMutator {
     }
 
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut C, range: i32) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut C) -> i32 {
         let mut mutations = 0;
 
         for i in 0..chromosome.len() {
-            if random_provider::random::<i32>() > range {
+            if random_provider::random::<f32>() < self.rate {
                 let swap_index = random_provider::gen_range(0..chromosome.len());
 
                 if swap_index == i {

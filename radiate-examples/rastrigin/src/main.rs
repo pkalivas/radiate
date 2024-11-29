@@ -15,7 +15,7 @@ fn main() {
         .population_size(500)
         .alterer(alters!(
             UniformCrossover::new(0.5),
-            NumericMutator::new(0.01)
+            ArithmeticMutator::new(0.01)
         ))
         .fitness_fn(move |genotype: Vec<Vec<f32>>| {
             let mut value = A * N_GENES as f32;

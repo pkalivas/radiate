@@ -2,11 +2,11 @@ use crate::alter::AlterType;
 use crate::{random_provider, Alter, Chromosome, Gene};
 use std::ops::{Add, Div, Mul, Sub};
 
-pub struct NumericMutator {
+pub struct ArithmeticMutator {
     rate: f32,
 }
 
-impl NumericMutator {
+impl ArithmeticMutator {
     pub fn new(rate: f32) -> Self {
         Self { rate }
     }
@@ -28,7 +28,7 @@ impl NumericMutator {
     }
 }
 
-impl<C: Chromosome> Alter<C> for NumericMutator
+impl<C: Chromosome> Alter<C> for ArithmeticMutator
 where
     C::GeneType: Add<Output = C::GeneType>
         + Sub<Output = C::GeneType>
@@ -47,12 +47,12 @@ where
     }
 
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut C, _: i32) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut C) -> i32 {
         let mut mutations = 0;
         for i in 0..chromosome.len() {
             if random_provider::random::<f32>() < self.rate {
                 let curr_gene = chromosome.get_gene(i);
-                let new_gene = NumericMutator::mutate_gene(curr_gene);
+                let new_gene = ArithmeticMutator::mutate_gene(curr_gene);
 
                 chromosome.set_gene(i, new_gene);
                 mutations += 1;

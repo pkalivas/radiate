@@ -28,7 +28,7 @@ fn main() {
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .alterer(alters!(
             IntermediateCrossover::new(0.75, 0.1),
-            NumericMutator::new(0.01),
+            ArithmeticMutator::new(0.01),
         ))
         .fitness_fn(move |genotype: NeuralNet| genotype.error(&inputs, &target))
         .build();

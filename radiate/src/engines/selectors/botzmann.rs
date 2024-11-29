@@ -1,6 +1,6 @@
 use super::Select;
 use crate::objectives::{Objective, Optimize};
-use crate::selectors::ProbabilityIterator;
+use crate::selectors::ProbabilityWheelIterator;
 use crate::{Chromosome, Population};
 
 pub struct BoltzmannSelector {
@@ -28,7 +28,7 @@ impl<C: Chromosome> Select<C> for BoltzmannSelector {
         let mut min = population[0].score().as_ref().unwrap().as_float();
         let mut max = min;
 
-        // Find the min and max scores in the population for normalization
+        // Normalize the fitness values.
         for individual in population.iter() {
             let score = individual.score().as_ref().unwrap().as_float();
             if score < min {
@@ -66,14 +66,19 @@ impl<C: Chromosome> Select<C> for BoltzmannSelector {
         }
 
         // Reverse the probabilities if minimizing so that the lowest scores have the highest probability
-        if let Objective::Single(opt) = objective {
-            if opt == &Optimize::Minimize {
-                result.reverse();
+        match objective {
+            Objective::Single(opt) => {
+                if opt == &Optimize::Minimize {
+                    result.reverse();
+                }
+            }
+            Objective::Multi(_) => {
+                panic!("Multi-objective optimization is not supported by this selector.");
             }
         }
 
         // Select the individuals based on the probabilities
-        let prob_iter = ProbabilityIterator::new(&result, count);
+        let prob_iter = ProbabilityWheelIterator::new(&result, count);
         for idx in prob_iter {
             selected.push(population[idx].clone());
         }
