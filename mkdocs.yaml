@@ -3,22 +3,21 @@ repo_url: http://github.com/pkalivas/radiate
 repo_name: radiate
 nav:
   - Home: index.md
-  - Genome: genome/genome.md
-    # - Genome: genome/genome.md
-    # - Genes: genome/genes.md
+  - Genome: genome.md
   - Codex: codex.md
-  - Engine: engine.md
+  - Parameters: params.md
+  - Selectors: selectors.md
 theme:
   favicon: assets/radiate.ico
   logo: assets/radiate.png
   name: material
   features:
-    # - navigation.tabs
-    # - navigation.tabs.sticky
     - toc.integrate
     - navigation.sections
     - navigation.collapsable
     - navigation.footer
+    - navigation.paging
+    - navigation.expand
     - toc.collapse
     - navigation.top
     - search.suggest
