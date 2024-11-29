@@ -1,9 +1,9 @@
-<h1 style="text-align: center">Radiate</h1>
+<h1 align="center">Radiate</h1>
 <p align="center">
   <img src="/docs/assets/radiate.png" height="100">
 </p>
 
-<span style="text-align:center">
+<span align="center">
 
   ![master branch checks][master_branch_checks] ![Crates.io][crates_link] ![Crates.io License][license] ![Static badge][static_evolution_badge]
 
