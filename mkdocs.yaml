@@ -1,11 +1,21 @@
 site_name: Radiate
 repo_url: http://github.com/pkalivas/radiate
 repo_name: radiate
+nav:
+  - Home: index.md
+  - Genome: genome/genome.md
+    # - Genome: genome/genome.md
+    # - Genes: genome/genes.md
+  - Codex: codex.md
+  - Engine: engine.md
 theme:
   favicon: assets/radiate.ico
   logo: assets/radiate.png
   name: material
   features:
+    # - navigation.tabs
+    # - navigation.tabs.sticky
+    - toc.integrate
     - navigation.sections
     - navigation.collapsable
     - navigation.footer
@@ -42,11 +52,21 @@ markdown_extensions:
       pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  - pymdownx.superfences
   - admonition
   - pymdownx.details
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
   - abbr
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+extra_css:
+  - stylesheets/extra.css
 extra:
   social:
     - icon: fontawesome/brands/github
@@ -58,3 +78,4 @@ extra:
     # - navigation.tabs
     # - navigation.tabs.sticky
     # - toc.integrate
+    # https://github.com/squidfunk/mkdocs-material/blob/master/material/templates/.icons/fontawesome/regular/thumbs-up.svg
