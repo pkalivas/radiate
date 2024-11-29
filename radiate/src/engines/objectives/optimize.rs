@@ -118,3 +118,4 @@ mod tests {
         assert!(!Optimize::Maximize.is_better(&1, &2));
     }
 }
+

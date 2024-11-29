@@ -42,6 +42,8 @@ mod selector_tests {
     #[case(Box::new(TournamentSelector::new(3)), Optimize::Maximize, 80)]
     #[case(Box::new(RankSelector::new()), Optimize::Minimize, 80)]
     #[case(Box::new(RankSelector::new()), Optimize::Maximize, 80)]
+    #[case(Box::new(StochasticUniversalSamplingSelector::new()), Optimize::Minimize, 80)]
+    #[case(Box::new(StochasticUniversalSamplingSelector::new()), Optimize::Maximize, 80)]
     fn test_probability_selectors_better_than_random(
         #[case] selector: Box<dyn Select<FloatChromosome>>,
         #[case] optimize: Optimize,
@@ -60,6 +62,9 @@ mod selector_tests {
         for _ in 0..num_permutations {
             let selected = selector.select(&population, &objectives, count);
             let random_selected = monte_carlo_selector.select(&population, &objectives, count);
+
+            assert!(selected.len() == count);
+            assert!(random_selected.len() == count);
 
             let observed_metric = fitness_improvement_metric(&population, &selected, &objectives);
             let random_metric =
