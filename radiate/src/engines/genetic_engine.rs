@@ -230,7 +230,7 @@ where
     /// Filters the population to remove individuals that are too old or invalid. The maximum age
     /// of an individual is determined by the 'max_age' parameter in the genetic engine parameters.
     /// If an individual's age exceeds this limit, it is replaced with a new individual. Similarly,
-    /// if an individual is found to be invalid (i.e., its genotype is not valid, provided by the ```Valid``` trait),
+    /// if an individual is found to be invalid (i.e., its genotype is not valid, provided by the `valid` trait),
     /// it is replaced with a new individual. This method ensures that the population remains
     /// healthy and that only valid individuals are allowed to reproduce or survive to the next generation.
     fn filter(&self, population: &mut Population<C>, metrics: &mut MetricSet, generation: i32) {

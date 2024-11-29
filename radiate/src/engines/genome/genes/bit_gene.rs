@@ -19,7 +19,7 @@ use crate::random_provider;
 /// let allele = gene.allele();
 ///
 /// // Create a new BitGene from the allele.
-/// let gene = gene.from_allele(allele);
+/// let gene = gene.with_allele(allele);
 /// ```
 ///
 #[derive(Clone, PartialEq)]
@@ -46,7 +46,7 @@ impl Gene for BitGene {
         BitGene::new()
     }
 
-    fn from_allele(&self, allele: &bool) -> BitGene {
+    fn with_allele(&self, allele: &bool) -> BitGene {
         BitGene { allele: *allele }
     }
 }
@@ -96,13 +96,13 @@ mod test {
         let allele: BitGene = copy;
         assert_eq!(allele, gene);
     }
-    
+
     #[test]
     fn test_from_allele() {
         let gene = BitGene::new();
         let copy = gene.clone();
         let allele = gene.allele();
-        let new_gene = gene.from_allele(allele);
+        let new_gene = gene.with_allele(allele);
         assert_eq!(new_gene, copy);
     }
 }

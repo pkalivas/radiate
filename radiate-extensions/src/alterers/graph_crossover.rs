@@ -62,7 +62,7 @@ where
             }
 
             if random_provider::random::<f32>() < self.crossover_parent_node_rate {
-                new_chromo_one.set_gene(node_one.index, node_one.from_allele(node_two.allele()));
+                new_chromo_one.set_gene(node_one.index, node_one.with_allele(node_two.allele()));
                 num_crosses += 1;
             }
         }

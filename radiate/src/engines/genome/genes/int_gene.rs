@@ -102,7 +102,7 @@ where
         }
     }
 
-    fn from_allele(&self, allele: &T) -> IntGene<T> {
+    fn with_allele(&self, allele: &T) -> IntGene<T> {
         IntGene {
             allele: *allele,
             min: self.min,
@@ -256,7 +256,7 @@ mod tests {
     #[test]
     fn test_from_allele() {
         let gene = IntGene::new(5);
-        let new_gene = gene.from_allele(&5);
+        let new_gene = gene.with_allele(&5);
         assert_eq!(new_gene.allele, 5);
     }
 

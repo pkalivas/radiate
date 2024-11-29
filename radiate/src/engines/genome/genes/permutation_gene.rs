@@ -28,7 +28,7 @@ impl<A: PartialEq + Clone> Gene for PermutationGene<A> {
         }
     }
 
-    fn from_allele(&self, allele: &Self::Allele) -> Self {
+    fn with_allele(&self, allele: &Self::Allele) -> Self {
         let index = self.alleles.iter().position(|x| x == allele).unwrap();
         PermutationGene {
             index,

@@ -132,7 +132,7 @@ where
                 let temp_node = reader.new_node(node.index, node.node_type);
 
                 if temp_node.value.arity() == node.value.arity() {
-                    return node.from_allele(temp_node.allele());
+                    return node.with_allele(temp_node.allele());
                 }
 
                 node.clone()
@@ -229,7 +229,7 @@ where
                 let temp_node = reader.new_node(node.index, node.node_type);
 
                 if temp_node.value.arity() == node.value.arity() {
-                    return node.from_allele(temp_node.allele());
+                    return node.with_allele(temp_node.allele());
                 }
 
                 node.clone()

@@ -93,7 +93,7 @@ where
         }
     }
 
-    fn from_allele(&self, allele: &Ops<T>) -> Node<T> {
+    fn with_allele(&self, allele: &Ops<T>) -> Node<T> {
         Node {
             id: Uuid::new_v4(),
             index: self.index,

@@ -18,7 +18,7 @@ const ALPHABET: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRST
 /// let allele = gene.allele();
 ///
 /// // Create a new CharGene from the allele.
-/// let gene = gene.from_allele(allele);
+/// let gene = gene.with_allele(allele);
 /// ```
 ///
 #[derive(Clone, PartialEq)]
@@ -46,7 +46,7 @@ impl Gene for CharGene {
         CharGene::new()
     }
 
-    fn from_allele(&self, allele: &char) -> CharGene {
+    fn with_allele(&self, allele: &char) -> CharGene {
         CharGene { allele: *allele }
     }
 }
@@ -100,7 +100,7 @@ mod tests {
     fn test_from_allele() {
         let gene_one: CharGene = 'a'.into();
         let gene_two: CharGene = 'b'.into();
-        let new_gene = gene_one.from_allele(&gene_two.allele);
+        let new_gene = gene_one.with_allele(&gene_two.allele);
 
         assert_eq!(gene_two.allele, new_gene.allele);
     }

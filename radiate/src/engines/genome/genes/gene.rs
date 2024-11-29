@@ -38,7 +38,7 @@ pub trait Valid {
 ///        MyGene { allele: 0.0 }
 ///     }
 ///
-///    fn from_allele(&self, allele: &Self::Allele) -> Self {
+///    fn with_allele(&self, allele: &Self::Allele) -> Self {
 ///       MyGene { allele: *allele }
 ///     }
 /// }
@@ -63,7 +63,7 @@ pub trait Gene: Clone + PartialEq + Valid {
     fn new_instance(&self) -> Self;
 
     /// Create a new `Gene` with the given `allele`.
-    fn from_allele(&self, allele: &Self::Allele) -> Self;
+    fn with_allele(&self, allele: &Self::Allele) -> Self;
 }
 
 /// A `Gene` that has bounds. This is useful for genes that represent numbers or other values that have

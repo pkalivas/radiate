@@ -70,10 +70,10 @@ impl<C: Chromosome<GeneType = FloatGene>> Alter<C> for SimulatedBinaryCrossover 
                     *chrom_one.get_gene(i).min(),
                     *chrom_one.get_gene(i).max(),
                 );
-                
+
                 count += 1;
 
-                chrom_one.set_gene(i, chrom_one.get_gene(i).from_allele(&new_gene));
+                chrom_one.set_gene(i, chrom_one.get_gene(i).with_allele(&new_gene));
             }
         }
 
