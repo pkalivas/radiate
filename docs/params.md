@@ -1,10 +1,16 @@
 
 ___
-The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation. It orchestrates the entire evolutionary process, managing the population of individuals, evaluating their fitness, and applying genetic operations such as selection, crossover, and mutation to evolve solutions over generations.
-Its designed to be fast, flexible, and extensible, allowing users to customize various aspects of the genetic algorithm to suit their specific needs. It provides a high-level abstraction that simplifies the setup and execution of genetic algorithms.
+Configuring genetic algorithms can be a complex task, requiring careful consideration of various parameters and settings to achieve optimal performance. The `GeneticEngine` struct in Radiate provides a convenient way to configure all these parameters in a single place, making it easy to experiment with different settings and strategies.
 
-## Parameters
+The `GeneticEngine` will default as many parameters as it can, but it is recommended to set the parameters that are relevant to your problem space. To get the engine off the ground there are two required parameters:
+
+* [`codex`](codex.md)
+* `fitness_fn`
+
+Without these there is no way to represent the problem space and no way to evaluate the fitness of the individuals in the population.
+
 ___
+
 * `population_size`
 
     :   The number of individuals in the population. A larger population size can help the genetic algorithm explore a larger solution space but may require more computational resources.
@@ -111,7 +117,7 @@ ___
 * `codex`
 
     :   The codex that defines how individuals are represented in the genetic algorithm. The codex is responsible for encoding and decoding the genetic information of individuals, allowing the genetic algorithm to operate on the genetic information in a meaningful way.
-    ??? info "Required"
+    ???+ warning "Required"
 
         | Default | Type |
         |---------|------|
@@ -120,43 +126,8 @@ ___
 * `fitness_fn`
 
     :   The fitness function used to evaluate the fitness of individuals in the population. The fitness function takes a `Genotype` as input and returns a `Score` representing the fitness value of the individual. The genetic algorithm uses the fitness function to evaluate the quality of individuals and guide the evolutionary process.
-    ??? info "Required"
+    ???+ warning "Required"
 
         | Default | Type |
         |---------|------|
         | `None` | `Box<dyn Fn(T) -> Score + Send + Sync>` |
-
-## Setup
-
-The `GeneticEngine` allows you to build a parameter set it then uses during execution. The `GeneticEngineParams` struct is used to configure the genetic algorithm's behavior and parameters. You can customize various aspects of the genetic algorithm by setting the appropriate fields in the `GeneticEngineParams` struct.
-
-Here's an example of setting up a `GeneticEngine` with custom parameters:
-
-```rust
-use radiate::*;
-
-// Define the codex for the problem space - e.g., BitCodex for a vec of bits. This is 
-// always required.
-let codex = BitCodex::new(1, 8); // 1 chromosome with 8 genes
-
-let engine = GeneticEngine::from_codex(&codex)
-    .population_size(100)
-    .minimizing()
-    .max_age(50)
-    .offspring_fraction(0.5)
-    .num_threads(4)
-    .offspring_selector(RouletteSelector::new())
-    .survivor_selector(TournamentSelector::new(3))
-    .alterer(alters![
-        UniformMutator::new(0.01),
-        UniformCrossover::new(0.5)
-    ])
-    .fitness_fn(|genotype: Vec<Vec<bool>>| {
-        let sum: usize = genotype.iter().map(|chromosome| {
-            chromosome.iter().map(|gene| if *gene { 1 } else { 0 }).sum::<usize>()
-        }).sum();
-
-        Score::from_usize(sum)
-    })
-    .build();
-```
