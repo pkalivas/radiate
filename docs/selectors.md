@@ -53,7 +53,9 @@ let selector = EliteSelector::new();
 
 ## Tournament
 
-> Inputs: `usize` - The number of individuals to compete in each tournament.
+> Inputs
+> 
+>   * `num`: usize - The number of individuals to compete in each tournament.
 
 The `TournamentSelector` is a selection strategy that selects individuals from the population by holding a series of tournaments. In each tournament, a random subset of individuals is selected, and the fittest individual from that subset is chosen. This can help to maintain diversity in the population and prevent premature convergence by allowing weaker individuals to be selected occasionally.
 
@@ -81,7 +83,9 @@ let selector = RouletteSelector::new();
 
 ## Boltzmann
 
-> Inputs: `f32` - The temperature of the selection process.
+> Inputs
+> 
+>   * `temperature`: f32 - The temperature of the selection process.
 
 The `BoltzmannSelector` is a probabilistic selection strategy inspired by the Boltzmann distribution from statistical mechanics, where selection probabilities are scaled based on temperature. Temperature influences the balance between exploration and exploitation during the algorithm’s run.
 

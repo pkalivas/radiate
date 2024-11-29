@@ -41,7 +41,7 @@ use std::sync::{Arc, Mutex};
 ///     .offspring_selector(BoltzmannSelector::new(4_f32)) // Use boltzmann selection to select offspring.
 ///     .survivor_selector(TournamentSelector::new(3)) // Use tournament selection to select survivors.
 ///     .alterer(alters![
-///         NumericMutator::new(0.01), // Specific mutator for numeric values.
+///         ArithmeticMutator::new(0.01), // Specific mutator for numeric values.
 ///         MeanCrossover::new(0.5) // Specific crossover operation for numeric values.
 ///     ])
 ///     .fitness_fn(|genotype: Vec<Vec<f32>>| { // Define the fitness function to be minimized.

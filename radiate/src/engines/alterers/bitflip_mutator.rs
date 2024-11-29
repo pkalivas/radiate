@@ -33,7 +33,7 @@ where
 
         for gene in chromosome.iter_mut() {
             if random_provider::random::<f32>() < self.rate {
-                let bit_position = random_provider::gen_range(0..8); // Assuming 8 bits per gene
+                let bit_position = random_provider::gen_range(0..8);
                 let mask = C::GeneType::from(1 << bit_position);
                 *gene = gene.clone() ^ mask;
                 mutations += 1;

@@ -11,7 +11,7 @@ fn main() {
         .offspring_selector(EliteSelector::new())
         .survivor_selector(TournamentSelector::new(4))
         .alterer(alters!(
-            NumericMutator::new(0.01),
+            ArithmeticMutator::new(0.01),
             UniformCrossover::new(0.5),
         ))
         .fitness_fn(|genotype: Vec<Vec<i32>>| {
