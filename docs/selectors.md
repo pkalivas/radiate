@@ -62,7 +62,14 @@ let selector = TournamentSelector::new(3);
 
 ## Roulette
 
-The `RouletteSelector` is a selection strategy that selects individuals from the population based on their fitness values. The probability of an individual being selected is proportional to its fitness value, so fitter individuals are more likely to be chosen. This is an extremely popular selection strategy due to its simplicity and effectiveness. Due to 
+The `RouletteSelector` is a selection strategy that selects individuals from the population based on their fitness values. The probability of an individual being selected is proportional to its fitness value, so fitter individuals are more likely to be chosen. The probability of an individual being selected is
+
+$$
+p_{i}={\frac {f_{i}}{\Sigma _{j=1}^{N}f_{j}}}
+$$
+
+where $p_{i}$ is the probability of individual $i$ being selected, $f_{i}$ is the fitness value of individual $i$, and $N$ is the total number of individuals in the population.
+ This is an extremely popular selection strategy due to its simplicity and effectiveness. Due to 
 the random nature of the selection process, it can help to maintain diversity in the population and prevent premature convergence.
 
 Create a new `RouletteSelector`
@@ -84,6 +91,19 @@ Create a new `BoltzmannSelector` with a temperature of 0.1
 let selector = BoltzmannSelector::new(0.1);
 ```
 
+## NSGA-II
+
+The `NSGA2Selector` is a selection strategy used in multi-objective optimization problems. It is based on the Non-Dominated Sorting Genetic Algorithm II (NSGA-II) and selects individuals based on their Pareto dominance rank and crowding distance. The NSGA-II algorithm is designed to maintain a diverse set of solutions that represent the trade-offs between multiple conflicting objectives.
+
+* Individuals are first sorted into Pareto fronts based on their dominance relationships.
+* Individuals in the same front are then ranked based on their crowding distance, which measures the density of solutions around them.
+* Individuals with lower ranks and higher crowding distances are more likely to be selected.
+
+Create a new `NSGA2Selector`
+```rust
+let selector = NSGA2Selector::new();
+```
+
 ## Stochastic Universal Sampling
 
 Stochastic Universal Sampling (SUS) is a probabilistic selection technique used to ensure that selection is proportional to fitness, while maintaining diversity. Some consider it an improvement over roulette wheel selection, designed to reduce bias and randomness in the selection process by ensuring all individuals have a chance to be chosen, proportional to their fitness values.
@@ -100,3 +120,7 @@ Stochastic Universal Sampling (SUS) is a probabilistic selection technique used 
     * The wheel is spun once, and the pointers are placed on the wheel at random positions.
     * Individuals whose segments are intersected by the pointers are selected.
   
+Create a new `StochasticUniversalSamplingSelector`
+```rust
+let selector = StochasticUniversalSamplingSelector::new();
+```
