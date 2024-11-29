@@ -11,34 +11,160 @@ ___
 
  : Certain `Genes` have additional functionality that allows them to be manipulated in specific ways, such as the `FloatGene` and `IntGene<I>` which implement the `NumericGene` and  `BoundedGene` traits respectively. The `NumericGene` trait provides methods for performing arithmetic operations on the `Gene`, while the `BoundedGene` trait provides methods for clamping the value of the `Gene` to a specified range if genetic operations result in values outside of the desired range.
 
-: Core library `Gene` types:
+    !!! info "Core Library `Gene` Implementations"
 
-| Gene Type | Allele(s) | Description | Impls |
-|-----------|-----------|-------------| ------ |
-| `BinaryGene` | `bool` | Represents a single bit `true`/`false` | `Gene` |
-| `FloatGene` | `f32` | Represents a single floating-point number | `Gene`, `NumericGene`, `BoundedGene` |
-| `IntegerGene<I: Integer<I>>` | `i8`, `i16`, `i32`, `i64`, `i128` | Represents a single integer number | `Gene`, `NumericGene`, `BoundedGene` |
-| `CharGene` | `char` | Represents a single character | `Gene` |
-| `PermutationGene<A>` | `A` | Given a list of `A`, represents a single value of the list | `Gene` |
+        === "BitGene"
 
-For user defined `Gene` types, the `Gene` trait can be implemented.
+            ```rust
+            #[derive(Clone, PartialEq)]
+            pub struct BitGene {
+                allele: bool,
+            }
+            ```
+
+            * **Allele**: `bool`
+            * **Description**: Represents a single bit `true`/`false`
+            * **Implements**: `Gene`
+
+        === "FloatGene"
+
+            ```rust
+            #[derive(Clone, PartialEq)]
+            pub struct FloatGene {
+                pub allele: f32,
+                pub min: f32,
+                pub max: f32,
+                pub upper_bound: f32,
+                pub lower_bound: f32,
+            }
+            ```
+
+            * **Allele**: `f32`
+            * **Description**: Represents a single floating-point number
+            * **Implements**: `Gene`, `NumericGene`, `BoundedGene`
+
+        === "IntGene"
+
+            ```rust
+            #[derive(Clone, PartialEq)]
+            pub struct IntGene<T: Integer<T>>
+            where
+                Standard: rand::distributions::Distribution<T>,
+            {
+                pub allele: T,
+                pub min: T,
+                pub max: T,
+                pub upper_bound: T,
+                pub lower_bound: T,
+            }
+            ```
+
+            * **Allele**: `I` where `I` implements `Integer<I>`. `Integer` is a trait in Radiate and is implemented for `i8`, `i16`, `i32`, `i64`, `i128`.
+            * **Description**: Represents a single integer number
+            * **Implements**: `Gene`, `NumericGene`, `BoundedGene`
+    
+        === "CharGene"
+
+            ```rust
+            #[derive(Clone, PartialEq)]
+            pub struct CharGene {
+                pub allele: char,
+            }
+            ```
+
+            * **Allele**: `char`
+            * **Description**: Represents a single character
+            * **Implements**: `Gene`
+    
+        === "PermutationGene"
+
+            ```rust
+            #[derive(Debug, Clone, PartialEq)]
+            pub struct PermutationGene<A: PartialEq + Clone> {
+                pub index: usize,
+                pub alleles: Arc<Vec<A>>,
+            }
+            ```
+
+            * **Allele**: `A`
+            * **Description**: Given a list of `A`, represents a single value of the list
+            * **Implements**: `Gene`
+
+    User defined `Gene` types can be implemented by implementing the `Gene` trait.
+
 
 ___
 ### Chromosome
 : Each `Gene` is contained within a `Chromosome` and as such, each `Gene` has its own `Chromosome`.
 The `Chromosome` is a collection of `Genes` that represent a part or the whole of the genetic information of an individual. A `Chromosome` can be thought of as a "chunk" or vector of genetic information. For example, a `Chromosome` could represent a sequence of numbers, a string of characters, or a set of binary values among other things. The decision to a defined `Chromosome` for each `Gene` was made to allow for more flexibility in the genetic information that can be represented. 
 
-: Core library `Chromosome` types:
+    !!! info "Core library `Chromosome` implementations"
 
-| Chromosome Type | Gene Type | Description |
-|-----------------|-----------|-------------|
-| `BinaryChromosome` | `BinaryGene` | Represents a sequence of binary values |
-| `FloatChromosome` | `FloatGene` | Represents a sequence of floating-point numbers |
-| `IntegerChromosome<I: Integer<I>>` | `IntegerGene<I>` | Represents a sequence of integer numbers |
-| `CharChromosome` | `CharGene` | Represents a sequence of characters |
-| `PermutationChromosome<A>` | `PermutationGene<A>` | Represents a unique sequence of values from a list |
+        === "BitChromosome"
 
-For user defined `Chromosome` types, the `Chromosome` trait can be implemented.
+            ```rust
+            #[derive(Clone, PartialEq)]
+            pub struct BitChromosome {
+                pub genes: Vec<BitGene>,
+            }
+            ```
+
+            * **Gene Type**: `BitGene`
+            * **Description**: Represents a sequence of binary values
+
+        === "FloatChromosome"
+
+            ```rust
+            #[derive(Clone, PartialEq)]
+            pub struct FloatChromosome {
+                pub genes: Vec<FloatGene>,
+            }
+            ```
+
+            * **Gene Type**: `FloatGene`
+            * **Description**: Represents a sequence of floating-point numbers (f32)
+
+        === "IntChromosome"
+
+            ```rust
+            #[derive(Clone, PartialEq)]
+            pub struct IntChromosome<I: Integer<I>>
+            where
+                Standard: rand::distributions::Distribution<I>,
+            {
+                pub genes: Vec<IntGene<I>>,
+            } 
+            ```
+
+            * **Gene Type**: `IntGene<I>` where `I` implements `Integer<I>`. `Integer` is a trait in Radiate and is implemented for `i8`, `i16`, `i32`, `i64`, `i128`.
+            * **Description**: Represents a sequence of integer numbers
+
+        === "CharChromosome"
+
+            ```rust
+            #[derive(Clone, PartialEq)]
+            pub struct CharChromosome {
+                pub genes: Vec<CharGene>,
+            }
+            ```
+
+            * **Gene Type**: `CharGene`
+            * **Description**: Represents a sequence of characters
+
+        === "PermutationChromosome"
+
+            ```rust
+            #[derive(Debug, Clone, PartialEq)]
+            pub struct PermutationChromosome<A: PartialEq + Clone> {
+                pub genes: Vec<PermutationGene<A>>,
+                pub alleles: Arc<Vec<A>>,
+            }
+            ```
+
+            * **Gene Type**: `PermutationGene<A>`
+            * **Description**: Represents a sequence of unique values from a list of `A`.
+
+    For user defined `Chromosome` types, the `Chromosome` trait can be implemented.
 
 ___
 ### Genotype
