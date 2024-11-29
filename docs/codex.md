@@ -2,7 +2,6 @@
 Encoding and Decoding Genetic Information
 
 --- 
-
 <figure markdown="span">
   ![Codex](assets/super_man_codex.png){ width="300" }
 </figure>
