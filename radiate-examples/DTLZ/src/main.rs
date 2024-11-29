@@ -17,10 +17,10 @@ fn main() {
         .survivor_selector(NSGA2Selector::new())
         .alterer(alters!(
             SimulatedBinaryCrossover::new(1_f32, 1.0),
-            UniformMutator::new(1.0 / VARIABLES as f32)
+            UniformMutator::new(0.1_f32),
         ))
         .fitness_fn(move |genotype: Vec<Vec<f32>>| {
-            let f = dtlz_7(genotype.first().unwrap());
+            let f = dtlz_6(genotype.first().unwrap());
             Score::from_vec(f)
         })
         .build();
@@ -28,7 +28,7 @@ fn main() {
     let result = engine.run(move |output| {
         println!("[ {:?} ]: {:?}", output.index, output.score());
 
-        output.index > 2500
+        output.index > 1000
     });
 
     let front = result.front.lock().unwrap();
