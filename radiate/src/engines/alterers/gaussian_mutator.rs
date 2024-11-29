@@ -45,6 +45,6 @@ impl<C: Chromosome<GeneType = FloatGene>> Alter<C> for GaussianMutator {
         let gaussian = random_provider::gaussian(value, std_dev);
 
         let allele = GaussianMutator::clamp(gaussian, min, max) as f32;
-        gene.from_allele(&allele)
+        gene.with_allele(&allele)
     }
 }

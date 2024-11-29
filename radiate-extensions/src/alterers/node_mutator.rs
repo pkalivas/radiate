@@ -76,7 +76,7 @@ where
                         if random_provider::random::<f32>() < self.replace_rate {
                             chromosome.set_gene(
                                 i,
-                                current_node.from_allele(&Ops::MutableConst(
+                                current_node.with_allele(&Ops::MutableConst(
                                     name,
                                     *arity,
                                     random_value,
@@ -88,7 +88,7 @@ where
                             let new_value = random_value + *value;
                             chromosome.set_gene(
                                 i,
-                                current_node.from_allele(&Ops::MutableConst(
+                                current_node.with_allele(&Ops::MutableConst(
                                     name,
                                     *arity,
                                     new_value,
@@ -100,7 +100,7 @@ where
                     }
                     _ => {
                         if temp_node.value.arity() == current_node.value.arity() {
-                            chromosome.set_gene(i, current_node.from_allele(temp_node.allele()));
+                            chromosome.set_gene(i, current_node.with_allele(temp_node.allele()));
                         }
                     }
                 }

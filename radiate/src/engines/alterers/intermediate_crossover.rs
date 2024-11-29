@@ -38,7 +38,7 @@ impl<C: Chromosome<GeneType = FloatGene>> Alter<C> for IntermediateCrossover {
                 let alpha = random_provider::gen_range(0.0..self.alpha);
                 let allele = allele1 * alpha + allele2 * (1.0 - alpha);
 
-                let new_gene = gene_one.from_allele(&allele);
+                let new_gene = gene_one.with_allele(&allele);
 
                 chrom_one.set_gene(i, new_gene);
                 cross_count += 1;

@@ -59,8 +59,8 @@ where
                     continue;
                 }
 
-                let new_gene_one = gene_one.from_allele(gene_two.allele());
-                let new_gene_two = gene_two.from_allele(gene_one.allele());
+                let new_gene_one = gene_one.with_allele(gene_two.allele());
+                let new_gene_two = gene_two.with_allele(gene_one.allele());
 
                 chrom_one.set_gene(i, new_gene_one);
                 chrom_two.set_gene(i, new_gene_two);

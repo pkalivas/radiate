@@ -71,7 +71,7 @@ impl Gene for FloatGene {
         }
     }
 
-    fn from_allele(&self, allele: &f32) -> FloatGene {
+    fn with_allele(&self, allele: &f32) -> FloatGene {
         FloatGene {
             allele: *allele,
             min: self.min,
