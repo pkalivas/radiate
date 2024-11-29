@@ -30,7 +30,7 @@ In other words, the `Codex` is the bridge between the domain language of Radiate
         When people traditionally think of genetic algorithms, they often think of binary strings. The `BitCodex` is a simple way to encode and decode a `Genotype` of binary strings so in essence, it is the most basic `Codex` implementation.
 
         ```mermaid
-        classDiagram
+        classDiagram 
             class BitCodex {
                 num_chromosomes: usize
                 num_genes: usize
