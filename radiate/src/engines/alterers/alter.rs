@@ -107,7 +107,13 @@ pub trait Alter<C: Chromosome> {
         let mut geno_one = population[index_one].genotype().clone();
         let mut geno_two = population[index_two].genotype().clone();
 
-        let cross_count = self.cross_genotypes(&mut geno_one, &mut geno_two);
+        let chromosome_index =
+            random_provider::random::<usize>() % std::cmp::min(geno_one.len(), geno_two.len());
+
+        let chrom_one = &mut geno_one[chromosome_index];
+        let chrom_two = &mut geno_two[chromosome_index];
+
+        let cross_count = self.cross_chromosomes(chrom_one, chrom_two);
 
         if cross_count > 0 {
             population[index_one] = Phenotype::from_genotype(geno_one, generation);
@@ -115,17 +121,6 @@ pub trait Alter<C: Chromosome> {
         }
 
         cross_count
-    }
-
-    #[inline]
-    fn cross_genotypes(&self, geno_one: &mut Genotype<C>, geno_two: &mut Genotype<C>) -> i32 {
-        let chromosome_index =
-            random_provider::random::<usize>() % std::cmp::min(geno_one.len(), geno_two.len());
-
-        let chrom_one = &mut geno_one[chromosome_index];
-        let chrom_two = &mut geno_two[chromosome_index];
-
-        self.cross_chromosomes(chrom_one, chrom_two)
     }
 
     #[inline]

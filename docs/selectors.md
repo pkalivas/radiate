@@ -5,7 +5,9 @@ ___
 Selectors in a genetic algorith are responsible for selecting individuals from the population to create the
 next generation. Radiate does this in two ways, selecting for survivors and selecting for offspring. The
 survivors get passed directly down into the new generation, while the offspring are used to create new
-individuals through genetic operators like mutation and crossover. 
+individuals through genetic operators like mutation and crossover. The `Population<C>` is treated as a 
+distribution of individuals, and the selector is responsible for sampling from this distribution to create
+the next generation.
 
 The selection process is a critical part of the genetic algorithm, as it determines which individuals will
 be passed on to the next generation and which will be discarded. A majority of the time t
@@ -13,9 +15,9 @@ he selection process is based on the fitness of the individuals in the populatio
 
 Radiate defines a selector as:
 
-* `Population<C>` - The population of individuals to select from.
-* `Objective` - The optimization goal of the genetic algorithm.
-* `usize` - The number of individuals to select.
+* `population` - The population of individuals to select from.
+* `objective` - The optimization goal of the genetic algorithm.
+* `count` - The number of individuals to select.
 ```rust
 pub trait Select<C: Chromosome> {
     fn name(&self) -> &'static str;
@@ -23,7 +25,7 @@ pub trait Select<C: Chromosome> {
     fn select(
         &self,
         population: &Population<C>,
-        optimize: &Objective,
+        objective: &Objective,
         count: usize,
     ) -> Population<C>;
 }
@@ -83,8 +85,7 @@ let selector = RouletteSelector::new();
 
 The `BoltzmannSelector` is a probabilistic selection strategy inspired by the Boltzmann distribution from statistical mechanics, where selection probabilities are scaled based on temperature. Temperature influences the balance between exploration and exploitation during the algorithm’s run.
 
-* A high temperature will lead to a more exploratory selection process, where individuals are selected with a more uniform probability distribution.
-* A low temperature will lead to a more exploitative selection process, where fitter individuals are more likely to be selected.
+As the temperature decreases, the selection process becomes more deterministic, with fitter individuals being more likely to be selected. Conversely, as the temperature increases, the selection process becomes more random, with all individuals having an equal chance of being selected.
 
 Create a new `BoltzmannSelector` with a temperature of 0.1
 ```rust
@@ -107,8 +108,6 @@ let selector = NSGA2Selector::new();
 ## Stochastic Universal Sampling
 
 Stochastic Universal Sampling (SUS) is a probabilistic selection technique used to ensure that selection is proportional to fitness, while maintaining diversity. Some consider it an improvement over roulette wheel selection, designed to reduce bias and randomness in the selection process by ensuring all individuals have a chance to be chosen, proportional to their fitness values.
-
-### How it works
 
 1. Fitness Proportional Selection:
   	* Each individual in the population is assigned a segment of a virtual “roulette wheel,” where the size of the segment is proportional to the individual’s fitness.

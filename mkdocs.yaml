@@ -7,6 +7,7 @@ nav:
   - Codex: codex.md
   - Parameters: params.md
   - Selectors: selectors.md
+  - Alterers: alterers.md
 theme:
   favicon: assets/radiate.ico
   logo: assets/radiate.png
