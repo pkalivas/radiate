@@ -47,7 +47,7 @@ where
     }
 
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut C, _: i32) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut C) -> i32 {
         let mut mutations = 0;
         for i in 0..chromosome.len() {
             if random_provider::random::<f32>() < self.rate {

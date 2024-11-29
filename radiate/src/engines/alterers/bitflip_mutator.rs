@@ -28,11 +28,11 @@ where
     }
 
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut C, range: i32) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut C) -> i32 {
         let mut mutations = 0;
 
         for gene in chromosome.iter_mut() {
-            if random_provider::random::<i32>() < range {
+            if random_provider::random::<f32>() < self.rate {
                 let bit_position = random_provider::gen_range(0..8); // Assuming 8 bits per gene
                 let mask = C::GeneType::from(1 << bit_position);
                 *gene = gene.clone() ^ mask;

@@ -59,11 +59,11 @@ where
     }
 
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut NodeChromosome<T>, range: i32) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut NodeChromosome<T>) -> i32 {
         let mut count = 0;
 
         for i in 0..chromosome.len() {
-            if random_provider::random::<i32>() < range {
+            if random_provider::random::<f32>() < self.rate {
                 count += 1;
                 let temp_node = chromosome.new_node(i, chromosome.get_gene(i).node_type);
                 let current_node = chromosome.get_gene(i);

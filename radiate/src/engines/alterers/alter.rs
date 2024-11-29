@@ -20,21 +20,15 @@ pub trait Alter<C: Chromosome> {
 
         match self.alter_type() {
             AlterType::Mutator => {
-                let probability = self.rate().powf(1.0 / 3.0);
-                let range = ((((i32::MAX as i64 - (i32::MIN as i64)) as f32) * probability)
-                    + (i32::MIN as f32)) as i32;
-
                 for phenotype in population.iter_mut() {
-                    if random_provider::random::<i32>() > range {
-                        let genotype = phenotype.genotype_mut();
+                    let genotype = phenotype.genotype_mut();
 
-                        let mutation_count = self.mutate_genotype(genotype, range);
+                    let mutation_count = self.mutate_genotype(genotype);
 
-                        if mutation_count > 0 {
-                            phenotype.generation = generation;
-                            phenotype.score = None;
-                            count += mutation_count;
-                        }
+                    if mutation_count > 0 {
+                        phenotype.generation = generation;
+                        phenotype.score = None;
+                        count += mutation_count;
                     }
                 }
 
@@ -65,22 +59,20 @@ pub trait Alter<C: Chromosome> {
     }
 
     #[inline]
-    fn mutate_genotype(&self, genotype: &mut Genotype<C>, range: i32) -> i32 {
+    fn mutate_genotype(&self, genotype: &mut Genotype<C>) -> i32 {
         let mut count = 0;
         for chromosome in genotype.iter_mut() {
-            if random_provider::random::<i32>() < range {
-                count += self.mutate_chromosome(chromosome, range);
-            }
+            count += self.mutate_chromosome(chromosome);
         }
 
         count
     }
 
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut C, range: i32) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut C) -> i32 {
         let mut count = 0;
         for gene in chromosome.iter_mut() {
-            if random_provider::random::<i32>() < range {
+            if random_provider::random::<f32>() < self.rate() {
                 *gene = self.mutate_gene(gene);
                 count += 1;
             }
