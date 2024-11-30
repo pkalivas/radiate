@@ -51,7 +51,7 @@ where
 {
     /// Create a new instance of the GeneticEngineParams. This will create a new instance with the following defaults:
     /// * population_size: 100
-    /// * max_age: 25
+    /// * max_age: 20
     /// * offspring_fraction: 0.8
     ///     * This is a value from 0...=1 that represents the fraction of
     ///       population that will be replaced by offspring each generation.
@@ -67,7 +67,7 @@ where
     pub fn new() -> Self {
         GeneticEngineParams {
             population_size: 100,
-            max_age: 25,
+            max_age: 20,
             offspring_fraction: 0.8,
             min_front_size: 1000,
             max_front_size: 1500,
