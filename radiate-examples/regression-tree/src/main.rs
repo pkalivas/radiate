@@ -12,7 +12,7 @@ fn main() {
     let engine = GeneticEngine::from_codex(&graph_codex)
         .minimizing()
         .num_threads(10)
-        .alterer(alters!(
+        .alter(alters!(
             TreeCrossover::new(0.5, 10),
             NodeMutator::new(0.01, 0.05),
         ))

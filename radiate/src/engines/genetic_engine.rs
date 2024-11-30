@@ -40,7 +40,7 @@ use std::sync::{Arc, Mutex};
 ///     .num_threads(4) // Set the number of threads to use in the thread pool for parallel fitness evaluation.
 ///     .offspring_selector(BoltzmannSelector::new(4_f32)) // Use boltzmann selection to select offspring.
 ///     .survivor_selector(TournamentSelector::new(3)) // Use tournament selection to select survivors.
-///     .alterer(alters![
+///     .alter(alters![
 ///         ArithmeticMutator::new(0.01), // Specific mutator for numeric values.
 ///         MeanCrossover::new(0.5) // Specific crossover operation for numeric values.
 ///     ])
@@ -84,7 +84,7 @@ where
     /// are represented in the population. Because the `Codex` is always needed, this
     /// is a convenience method that allows users to create a `GeneticEngineParams` instance
     /// which will then be 'built' resulting in a `GeneticEngine` instance.
-    pub fn from_codex(codex: &'a impl Codex<C, T>) -> GeneticEngineParams<C, T> {
+    pub fn from_codex(codex: &'a impl Codex<C, T>) -> GeneticEngineParams<'a, C, T> {
         GeneticEngineParams::new().codex(codex)
     }
 

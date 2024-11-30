@@ -11,9 +11,9 @@ fn main() {
         .minimizing()
         .num_threads(10)
         .offspring_selector(RouletteSelector::new())
-        .alterer(alters!(
+        .alter(alters!(
             MultiPointCrossover::new(0.75, 2),
-            UniformMutator::new(0.01)
+            UniformMutator::new(0.05)
         ))
         .fitness_fn(|genotype: Vec<Vec<i8>>| {
             let queens = &genotype[0];

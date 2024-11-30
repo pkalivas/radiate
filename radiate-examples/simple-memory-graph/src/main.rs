@@ -15,7 +15,7 @@ fn main() {
     let engine = GeneticEngine::from_codex(&graph_codex)
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4_f32))
-        .alterer(alters!(
+        .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             NodeMutator::new(0.01, 0.05),
             GraphMutator::new(vec![

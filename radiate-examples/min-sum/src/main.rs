@@ -10,7 +10,7 @@ fn main() {
         .minimizing()
         .offspring_selector(EliteSelector::new())
         .survivor_selector(TournamentSelector::new(4))
-        .alterer(alters!(
+        .alter(alters!(
             ArithmeticMutator::new(0.01),
             UniformCrossover::new(0.5),
         ))

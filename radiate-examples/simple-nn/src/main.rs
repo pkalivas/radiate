@@ -26,7 +26,7 @@ fn main() {
         .population_size(100)
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4_f32))
-        .alterer(alters!(
+        .alter(alters!(
             IntermediateCrossover::new(0.75, 0.1),
             ArithmeticMutator::new(0.01),
         ))
