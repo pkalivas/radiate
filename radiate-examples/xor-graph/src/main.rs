@@ -11,7 +11,7 @@ fn main() {
 
     let engine = GeneticEngine::from_codex(&graph_codex)
         .minimizing()
-        .alterer(alters![
+        .alter(alters![
             GraphCrossover::new(0.5, 0.5),
             NodeMutator::new(0.1, 0.05),
             GraphMutator::new(vec![

@@ -1,7 +1,7 @@
 use crate::architects::node_collection_builder::NodeCollectionBuilder;
 use crate::architects::node_collections::node::Node;
-use crate::architects::node_collections::NodeCollection;
 use crate::architects::node_collections::node_factory::NodeFactory;
+use crate::architects::node_collections::NodeCollection;
 use crate::architects::schema::node_types::NodeType;
 
 use super::{Graph, NodeRepairs, Tree};
@@ -71,7 +71,7 @@ where
     }
 }
 
-impl<'a, T> Architect<'a, Tree<T>, T>
+impl<T> Architect<'_, Tree<T>, T>
 where
     T: Clone + PartialEq + Default,
 {
@@ -102,7 +102,7 @@ where
     }
 }
 
-impl<'a, T> Architect<'a, Graph<T>, T>
+impl<T> Architect<'_, Graph<T>, T>
 where
     T: Clone + PartialEq + Default,
 {

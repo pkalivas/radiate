@@ -15,7 +15,7 @@ fn main() {
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
         .offspring_selector(TournamentSelector::new(5))
         .survivor_selector(NSGA2Selector::new())
-        .alterer(alters!(
+        .alter(alters!(
             SimulatedBinaryCrossover::new(1_f32, 1.0),
             UniformMutator::new(0.1_f32),
         ))

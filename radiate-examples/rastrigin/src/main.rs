@@ -12,7 +12,7 @@ fn main() {
     let engine = GeneticEngine::from_codex(&codex)
         .minimizing()
         .population_size(500)
-        .alterer(alters!(
+        .alter(alters!(
             UniformCrossover::new(0.5),
             ArithmeticMutator::new(0.01)
         ))

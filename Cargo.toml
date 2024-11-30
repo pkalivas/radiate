@@ -8,7 +8,6 @@ members = [
     "radiate-examples/knapsack",
     "radiate-examples/regression-graph",
     "radiate-examples/simple-memory-graph",
-    "radiate-examples/scalar",
     "radiate-examples/nqueens",
     "radiate-examples/regression-tree",
     "radiate-examples/simple-nn",

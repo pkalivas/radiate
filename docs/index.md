@@ -45,6 +45,6 @@ inspired by natural selection and genetics. With an intuitive, 'plug and play' s
 
     ---
 
-    Out of the box support for a customizable genotypes and fitness functions, Radiate can be adapted to a wide range of problem domains, from single and multi optimization tasks to machine learning applications.
+    Out of the box support for a customizable genotypes and fitness functions, Radiate can be adapted to a wide range of problem domains, from single and multi optimization tasks to neuroevolution and machine learning applications.
 
 </div>

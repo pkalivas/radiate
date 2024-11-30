@@ -15,7 +15,7 @@ fn main() {
         .minimizing()
         .num_threads(10)
         .offspring_selector(RouletteSelector::new())
-        .alterer(alters!(
+        .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             NodeMutator::new(0.05, 0.05),
             GraphMutator::new(vec![

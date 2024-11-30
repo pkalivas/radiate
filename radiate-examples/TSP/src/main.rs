@@ -18,7 +18,7 @@ fn main() -> io::Result<()> {
     let engine = GeneticEngine::from_codex(&codex)
         .minimizing()
         .population_size(250)
-        .alterer(alters!(PMXCrossover::new(0.4), SwapMutator::new(0.15)))
+        .alter(alters!(PMXCrossover::new(0.4), SwapMutator::new(0.05)))
         .fitness_fn(move |genotype: Vec<usize>| {
             let mut total_distance = 0.0;
             for i in 0..genotype.len() {
@@ -37,7 +37,7 @@ fn main() -> io::Result<()> {
     });
 
     plot_tsp_solution(&result.best, &distance_points).unwrap();
-    
+
     println!("{:?}", result.metrics);
 
     Ok(())

@@ -141,7 +141,7 @@ where
     /// The alterer is used to apply mutations and crossover operations to the offspring and will be used to create the next generation of the population.
     /// Note, the order of the alterers is important. The alterers will be applied in the order they are provided.
     // pub fn alterer(mut self, alterers: Vec<Box<dyn Alter<C>>>) -> Self {
-    pub fn alterer(mut self, alterers: Vec<Box<dyn Alter<C>>>) -> Self {
+    pub fn alter(mut self, alterers: Vec<Box<dyn Alter<C>>>) -> Self {
         self.alterers = alterers;
         self
     }
