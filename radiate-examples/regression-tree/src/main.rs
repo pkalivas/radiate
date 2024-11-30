@@ -50,7 +50,7 @@ fn display(result: &EngineOutput<NodeChromosome<f32>, Tree<f32>>) {
     println!("{:?}", result)
 }
 
-fn get_sample_set() -> SampleSet<f32> {
+fn get_sample_set() -> DataSet<f32> {
     let mut inputs = Vec::new();
     let mut answers = Vec::new();
 
@@ -61,7 +61,7 @@ fn get_sample_set() -> SampleSet<f32> {
         answers.push(vec![compupute(input)]);
     }
 
-    SampleSet::from_vecs(inputs, answers)
+    DataSet::from_vecs(inputs, answers)
 }
 
 fn compupute(x: f32) -> f32 {

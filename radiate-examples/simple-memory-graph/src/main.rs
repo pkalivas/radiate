@@ -51,7 +51,7 @@ fn display(result: &EngineOutput<NodeChromosome<f32>, Graph<f32>>) {
     println!("{:?}", result)
 }
 
-fn get_sample_set() -> SampleSet<f32> {
+fn get_sample_set() -> DataSet<f32> {
     let inputs = vec![
         vec![0.0],
         vec![0.0],
@@ -72,5 +72,5 @@ fn get_sample_set() -> SampleSet<f32> {
         vec![1.0],
     ];
 
-    SampleSet::from_vecs(inputs, answers)
+    DataSet::from_vecs(inputs, answers)
 }

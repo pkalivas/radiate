@@ -63,3 +63,10 @@ impl<C: Chromosome> Select<C> for NSGA2Selector {
             .collect::<Population<C>>()
     }
 }
+
+
+impl Default for NSGA2Selector {
+    fn default() -> Self {
+        Self::new()
+    }
+}

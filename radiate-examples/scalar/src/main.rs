@@ -32,5 +32,5 @@ fn main() {
 // Min = -.938
 // Max = .938
 fn fitness(value: f32) -> f32 {
-    (0.5 + (value).sin()).cos() * (value).cos()
+    (0.5 + value.sin()).cos() * value.cos()
 }

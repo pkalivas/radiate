@@ -29,7 +29,7 @@ ___
 
         | Default | Type | Range |
         |---------|------|-------|
-        | 25 | usize | 1..=usize::MAX |
+        | 20 | usize | 1..=usize::MAX |
 
 * `offspring_fraction`
 

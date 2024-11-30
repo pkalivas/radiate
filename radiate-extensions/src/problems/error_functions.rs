@@ -2,7 +2,7 @@ use num_traits::cast::FromPrimitive;
 use num_traits::float::Float;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, Sub, SubAssign};
 
-use super::SampleSet;
+use super::DataSet;
 
 pub enum ErrorFunction {
     MSE,
@@ -12,7 +12,7 @@ pub enum ErrorFunction {
 }
 
 impl ErrorFunction {
-    pub fn calculate<T, F>(&self, samples: &SampleSet<T>, eval_func: &mut F) -> T
+    pub fn calculate<T, F>(&self, samples: &DataSet<T>, eval_func: &mut F) -> T
     where
         T: Clone
             + PartialEq
@@ -36,8 +36,8 @@ impl ErrorFunction {
                 for sample in samples.get_samples().iter() {
                     let output = eval_func(&sample.1);
 
-                    for i in 0..sample.2.len() {
-                        let diff = sample.2[i] - output[i];
+                    for (i, val) in output.iter().enumerate() {
+                        let diff = sample.2[i] - *val;
                         sum += diff * diff;
                     }
                 }

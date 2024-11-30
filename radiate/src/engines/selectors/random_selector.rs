@@ -2,15 +2,15 @@ use super::Select;
 use crate::objectives::Objective;
 use crate::{random_provider, Chromosome, Population};
 
-pub struct MonteCarloSelector;
+pub struct RandomSelector;
 
-impl MonteCarloSelector {
+impl RandomSelector {
     pub fn new() -> Self {
         Self
     }
 }
 
-impl<C: Chromosome> Select<C> for MonteCarloSelector {
+impl<C: Chromosome> Select<C> for RandomSelector {
     fn name(&self) -> &'static str {
         "Monte Carlo Selector"
     }
@@ -24,5 +24,11 @@ impl<C: Chromosome> Select<C> for MonteCarloSelector {
         }
 
         Population::from_vec(selected)
+    }
+}
+
+impl Default for RandomSelector {
+    fn default() -> Self {
+        Self::new()
     }
 }

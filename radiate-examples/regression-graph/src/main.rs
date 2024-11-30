@@ -58,7 +58,7 @@ fn display(result: &EngineOutput<NodeChromosome<f32>, Graph<f32>>) {
     println!("{:?}", result)
 }
 
-fn get_sample_set() -> SampleSet<f32> {
+fn get_sample_set() -> DataSet<f32> {
     let mut inputs = Vec::new();
     let mut answers = Vec::new();
 
@@ -66,12 +66,12 @@ fn get_sample_set() -> SampleSet<f32> {
     for _ in -10..10 {
         input += 0.1;
         inputs.push(vec![input]);
-        answers.push(vec![compupute(input)]);
+        answers.push(vec![compute(input)]);
     }
 
-    SampleSet::from_vecs(inputs, answers)
+    DataSet::from_vecs(inputs, answers)
 }
 
-fn compupute(x: f32) -> f32 {
+fn compute(x: f32) -> f32 {
     4.0 * x.powf(3.0) - 3.0 * x.powf(2.0) + x
 }
