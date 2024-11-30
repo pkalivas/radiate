@@ -351,7 +351,7 @@ where
             }
         }
 
-        let mut result = Metric::new_operations("Graph Mutator");
+        let mut result = Metric::new_operations(self.name());
         result.add_value(count as f32);
         result.add_duration(timer.duration());
 
