@@ -65,7 +65,7 @@ radiate-extensions = "0.1.2"
         let engine = GeneticEngine::from_codex(&codex)
             .offspring_selector(BoltzmannSelector::new(4_f32))
             .survivor_selector(TournamentSelector::new(3))
-            .alterer(alters![
+            .alter(alters![
                 UniformMutator::new(0.01),
                 UniformCrossover::new(0.5)
             ])
