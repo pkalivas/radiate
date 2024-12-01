@@ -84,12 +84,20 @@ where
 
     /// Set the population size of the genetic engine. Default is 100.
     pub fn population_size(mut self, population_size: usize) -> Self {
+        if population_size < 1 {
+            panic!("population_size must be greater than 0");
+        }
+        
         self.population_size = population_size;
         self
     }
 
     /// Set the maximum age of an individual in the population. Default is 25.
     pub fn max_age(mut self, max_age: i32) -> Self {
+        if max_age < 1 {
+            panic!("max_age must be greater than 0");
+        }
+
         self.max_age = max_age;
         self
     }
@@ -98,6 +106,10 @@ where
     /// Default is 0.8. This is a value from 0...=1 that represents the fraction of
     /// population that will be replaced by offspring each generation. The remainder will 'survive' to the next generation.
     pub fn offspring_fraction(mut self, offspring_fraction: f32) -> Self {
+        if offspring_fraction < 0.0 || offspring_fraction > 1.0 {
+            panic!("offspring_fraction must be between 0 and 1");
+        }
+
         self.offspring_fraction = offspring_fraction;
         self
     }

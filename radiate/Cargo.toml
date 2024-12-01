@@ -1,6 +1,6 @@
 [package]
 name = "radiate"
-version = "1.2.4"
+version = "1.2.5"
 edition = "2021"
 authors = ["pkalivas <peterkalivas@gmail.com>"]
 description = "A Rust library for genetic algorithms and artificial evolution."
