@@ -120,8 +120,7 @@ where
     }
 
     /// Evaluates the fitness of each individual in the population using the fitness function
-    /// provided in the genetic engine parameters. The fitness function is a closure that takes
-    /// a phenotype as input and returns a score. The score is then used to rank the individuals
+    /// provided in the genetic engine parameters. The score is then used to rank the individuals
     /// in the population.
     ///
     /// Importantly, this method uses a thread pool to evaluate the fitness of each individual in
@@ -378,67 +377,46 @@ where
         output.metrics.upsert(size_metric);
     }
 
-    /// Returns the survivor selector specified in the genetic engine parameters. The survivor selector is
-    /// responsible for selecting the individuals that will survive to the next generation.
     fn survivor_selector(&self) -> &dyn Select<C> {
         self.params.survivor_selector.as_ref()
     }
 
-    /// Returns the offspring selector specified in the genetic engine parameters. The offspring selector is
-    /// responsible for selecting the offspring that will be used to create the next generation through crossover
-    /// and mutation.
     fn offspring_selector(&self) -> &dyn Select<C> {
         self.params.offspring_selector.as_ref()
     }
 
-    /// Returns the alterer specified in the genetic engine parameters. The alterer is responsible for applying
-    /// the provided mutation and crossover operations to the offspring population.
     fn alterer(&self) -> &[Box<dyn Alter<C>>] {
         &self.params.alterers
     }
 
-    /// Returns the codex specified in the genetic engine parameters. The codex is responsible for encoding and
-    /// decoding individuals in the population, converting between the genotype and phenotype representations.
     fn codex(&self) -> &'a dyn Codex<C, T> {
         *Arc::clone(self.params.codex.as_ref().unwrap())
     }
 
-    /// Returns the fitness function specified in the genetic engine parameters. The fitness function is a closure
-    /// that takes a 'T' (the decoded Genotype) as input and returns a score. The score is used to rank the individuals in the population.
     fn fitness_fn(&self) -> Arc<dyn Fn(T) -> Score + Send + Sync> {
         Arc::clone(self.params.fitness_fn.as_ref().unwrap())
     }
 
-    /// Returns the population specified in the genetic engine parameters. This is only called at the start of the genetic algorithm.
     fn population(&self) -> &Population<C> {
         self.params.population.as_ref().unwrap()
     }
 
-    /// Returns the optimize function specified in the genetic engine parameters. The optimize function is responsible
-    /// for sorting the population based on the fitness of the individuals. This is typically done in descending order,
-    /// with the best individuals at the front of the population.
     fn objective(&self) -> &Objective {
         &self.params.objective
     }
 
-    /// Returns the number of survivors in the population. This is calculated based on the population size and the offspring fraction.
     fn survivor_count(&self) -> usize {
         self.params.population_size - self.offspring_count()
     }
 
-    /// Returns the number of offspring in the population. This is calculated based on the population size and the offspring fraction.
-    /// For example, if the population size is 100 and the offspring fraction is 0.8, then 80 individuals will be selected as offspring.
     fn offspring_count(&self) -> usize {
         (self.params.population_size as f32 * self.params.offspring_fraction) as usize
     }
 
-    /// Returns the thread pool specified in the genetic engine parameters. The thread pool is used to evaluate the fitness of
-    /// individuals in parallel, which can significantly speed up the evaluation process for large populations.
     fn thread_pool(&self) -> &ThreadPool {
         &self.params.thread_pool
     }
 
-    /// Starts the genetic algorithm by initializing the population and returning the initial state of the genetic engine.
     fn start(&self) -> EngineOutput<C, T> {
         let population = self.population();
 
@@ -457,7 +435,6 @@ where
         }
     }
 
-    /// Stops the genetic algorithm by stopping the timer and returning the final state of the genetic engine.
     fn stop(&self, output: &mut EngineOutput<C, T>) -> EngineOutput<C, T> {
         output.timer.stop();
         output.clone()
