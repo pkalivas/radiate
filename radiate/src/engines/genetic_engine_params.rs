@@ -69,8 +69,8 @@ where
             population_size: 100,
             max_age: 20,
             offspring_fraction: 0.8,
-            min_front_size: 1000,
-            max_front_size: 1500,
+            min_front_size: 800,
+            max_front_size: 900,
             thread_pool: ThreadPool::new(1),
             objective: Objective::Single(Optimize::Maximize),
             survivor_selector: Box::new(TournamentSelector::new(3)),
@@ -176,6 +176,16 @@ where
     }
 
     pub fn front_size(mut self, min_size: usize, max_size: usize) -> Self {
+        if min_size > max_size {
+            panic!("min_size must be less than or equal to max_size");
+        } else if min_size < 1 {
+            panic!("min_size must be greater than 0");
+        } else if max_size < 1 {
+            panic!("max_size must be greater than 0");
+        } else if max_size < min_size {
+            panic!("max_size must be greater than or equal to min_size");
+        } 
+
         self.min_front_size = min_size;
         self.max_front_size = max_size;
         self

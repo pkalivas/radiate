@@ -13,6 +13,7 @@ fn main() {
         .population_size(100)
         .num_threads(10)
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
+        .front_size(1000, 1100)
         .offspring_selector(TournamentSelector::new(5))
         .survivor_selector(NSGA2Selector::new())
         .alter(alters!(
@@ -20,7 +21,7 @@ fn main() {
             UniformMutator::new(0.1_f32),
         ))
         .fitness_fn(move |genotype: Vec<Vec<f32>>| {
-            let f = dtlz_6(genotype.first().unwrap());
+            let f = dtlz_7(genotype.first().unwrap());
             Score::from_vec(f)
         })
         .build();
