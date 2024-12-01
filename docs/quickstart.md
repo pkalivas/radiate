@@ -1,6 +1,7 @@
 
 Radiate is inspired from a multitude of other genetic algorithm libraries, all of which have their own unique features and capabilities. Some of the most notable inspirations include:
 
+* [carrot](https://github.com/liquidcarrot/carrot): An architecture-free neural network library built around neuroevolution built in javascript
 * [Genevo](https://github.com/innoave/genevo): A Rust library which provides building blocks to run simulations of optimization and search problems using genetic algorithms (GA).
 * [Sharpneat](https://github.com/colgreen/sharpneat): A C# library for evolutionary computation, primarily focused on neuroevolution and artificial neural networks
 * [Jenetics](https://jenetics.io): A Genetic Algorithm, Evolutionary Algorithm, Grammatical Evolution, Genetic Programming, and Multi-objective Optimization library, written in modern day Java
@@ -8,7 +9,7 @@ Radiate is inspired from a multitude of other genetic algorithm libraries, all o
 ## Configuration
 ```toml
 [dependencies]
-radiate = "1.2.4"
+radiate = "1.2.5"
 ```
 
 ## Core Implementations
@@ -35,6 +36,20 @@ Alterers
 Fitness Function
 
   * The fitness function evaluates how well an individual solves the problem at hand. It is a critical component that guides the evolutionary process by assigning scores to individuals based on their performance.
+
+## Extensions
+
+For genetic programming Radiate offers a separate crate called [radiate-extenions](https://crates.io/crates/radiate-extensions) which extend the core library with additional features. Mainly it provides a [genetic programming](https://en.wikipedia.org/wiki/Genetic_programming#:~:text=In%20artificial%20intelligence%2C%20genetic%20programming,to%20the%20population%20of%20programs.) - probems that are represented as Trees (Expression Trees) or Graphs (NeuroEvolution). These offer powerful ways to solve complex problems.
+
+```toml
+[dependencies]
+radiate-extensions = "0.1.2"
+```
+
+!!! note
+
+    I'm currently working on the docs for these. If you are interested in using it, please refer to the git repo's [exampless](https://github.com/pkalivas/radiate/tree/master/radiate-examples) which include examples of both Tree and Graph based genetic programming.
+
 
 ## Example
 
