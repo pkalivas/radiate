@@ -40,7 +40,7 @@ fn write_front(front: &Front) {
     let current_dir = std::env::current_dir().unwrap();
     let full_path = current_dir.join("radiate-examples/DTLZ/front.csv");
     let mut file = std::fs::File::create(full_path).unwrap();
-    write!(file, "f1,f2,f3,").unwrap();
+    write!(file, "x,y,z,").unwrap();
     writeln!(file).unwrap();
     for score in front.scores().iter() {
         for value in score.values.iter() {
