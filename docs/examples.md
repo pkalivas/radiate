@@ -21,7 +21,7 @@ comprehensive list of examples.
             .minimizing()
             .offspring_selector(EliteSelector::new())
             .survivor_selector(TournamentSelector::new(4))
-            .alterer(alters!(
+            .alter(alters!(
                 ArithmeticMutator::new(0.01),
                 UniformCrossover::new(0.5),
             ))
@@ -61,7 +61,7 @@ comprehensive list of examples.
             .minimizing()
             .num_threads(10)
             .offspring_selector(RouletteSelector::new())
-            .alterer(alters!(
+            .alter(alters!(
                 MultiPointCrossover::new(0.75, 2),
                 UniformMutator::new(0.01)
             ))
@@ -246,7 +246,7 @@ comprehensive list of examples.
         let engine = GeneticEngine::from_codex(&codex)
             .minimizing()
             .population_size(500)
-            .alterer(alters!(
+            .alter(alters!(
                 UniformCrossover::new(0.5),
                 ArithmeticMutator::new(0.01)
             ))
@@ -303,9 +303,9 @@ comprehensive list of examples.
             .population_size(100)
             .minimizing()
             .offspring_selector(BoltzmannSelector::new(4_f32))
-            .alterer(alters!(
+            .alter(alters!(
                 IntermediateCrossover::new(0.75, 0.1),
-                ArithmeticMutator::new(0.01),
+                ArithmeticMutator::new(0.05),
             ))
             .fitness_fn(move |genotype: NeuralNet| genotype.error(&inputs, &target))
             .build();
