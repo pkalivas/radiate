@@ -10,9 +10,9 @@ fn main() {
     let codex = FloatCodex::new(1, VARIABLES, 0_f32, 1_f32).with_bounds(0.0, 1.0);
 
     let engine = GeneticEngine::from_codex(&codex)
-        .population_size(100)
         .num_threads(10)
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
+        .front_size(1000, 1100)
         .offspring_selector(TournamentSelector::new(5))
         .survivor_selector(NSGA2Selector::new())
         .alter(alters!(
@@ -20,8 +20,7 @@ fn main() {
             UniformMutator::new(0.1_f32),
         ))
         .fitness_fn(move |genotype: Vec<Vec<f32>>| {
-            let f = dtlz_6(genotype.first().unwrap());
-            Score::from_vec(f)
+            Score::from_vec(dtlz_7(genotype.first().unwrap()))
         })
         .build();
 
@@ -40,7 +39,7 @@ fn write_front(front: &Front) {
     let current_dir = std::env::current_dir().unwrap();
     let full_path = current_dir.join("radiate-examples/DTLZ/front.csv");
     let mut file = std::fs::File::create(full_path).unwrap();
-    write!(file, "f1,f2,f3,").unwrap();
+    write!(file, "x,y,z,").unwrap();
     writeln!(file).unwrap();
     for score in front.scores().iter() {
         for value in score.values.iter() {

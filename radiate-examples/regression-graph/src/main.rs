@@ -17,7 +17,7 @@ fn main() {
         .offspring_selector(RouletteSelector::new())
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
-            NodeMutator::new(0.05, 0.05),
+            NodeMutator::new(0.07, 0.05),
             GraphMutator::new(vec![
                 NodeMutate::Forward(NodeType::Weight, 0.05),
                 NodeMutate::Forward(NodeType::Aggregate, 0.02),
