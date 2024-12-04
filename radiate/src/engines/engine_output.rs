@@ -14,6 +14,7 @@ use std::sync::{Arc, Mutex};
 /// * timer - the duration of time the engine has been running
 /// * metrics - a set of metrics that are collected during the run
 /// * current best score - the score of the current best individual
+/// * front - the current pareto front of the population (if multi-objective)
 ///
 /// The EngineContext is passed to the user-defined closure that is executed each generation. The user
 /// can use the EngineContext to access the current state of the genetic engine and make decisions based

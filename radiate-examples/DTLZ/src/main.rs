@@ -10,7 +10,6 @@ fn main() {
     let codex = FloatCodex::new(1, VARIABLES, 0_f32, 1_f32).with_bounds(0.0, 1.0);
 
     let engine = GeneticEngine::from_codex(&codex)
-        .population_size(100)
         .num_threads(10)
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
         .front_size(1000, 1100)
@@ -21,8 +20,7 @@ fn main() {
             UniformMutator::new(0.1_f32),
         ))
         .fitness_fn(move |genotype: Vec<Vec<f32>>| {
-            let f = dtlz_7(genotype.first().unwrap());
-            Score::from_vec(f)
+            Score::from_vec(dtlz_7(genotype.first().unwrap()))
         })
         .build();
 
