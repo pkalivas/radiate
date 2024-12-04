@@ -11,7 +11,7 @@ fn main() {
 
     let engine = GeneticEngine::from_codex(&graph_codex)
         .minimizing()
-        .alter(alters![
+        .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             NodeMutator::new(0.1, 0.05),
             GraphMutator::new(vec![
@@ -19,7 +19,7 @@ fn main() {
                 NodeMutate::Forward(NodeType::Aggregate, 0.03),
                 NodeMutate::Forward(NodeType::Gate, 0.03),
             ]),
-        ])
+        ))
         .fitness_fn(move |genotype: Graph<f32>| {
             let mut reducer = GraphReducer::new(&genotype);
             Score::from_f32(regression.error(|input| reducer.reduce(input)))
