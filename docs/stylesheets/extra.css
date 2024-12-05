@@ -5,4 +5,5 @@
 
 .right {
   float: right;
+  justify-self: end;
 }
