@@ -39,7 +39,6 @@ impl<C: Chromosome> Select<C> for NSGA2Selector {
 
         let mut indices: Vec<usize> = (0..population.len()).collect();
 
-        // Sort by rank and crowding distance - lower rank is better, higher distance is better.
         // This is commonly called "non-dominated sorting" in the NSGA-II algorithm.
         indices.sort_by(|&a, &b| {
             let a_rank = ranks[a];
@@ -63,7 +62,6 @@ impl<C: Chromosome> Select<C> for NSGA2Selector {
             .collect::<Population<C>>()
     }
 }
-
 
 impl Default for NSGA2Selector {
     fn default() -> Self {
