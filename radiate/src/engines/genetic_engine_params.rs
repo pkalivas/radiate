@@ -87,7 +87,7 @@ where
         if population_size < 1 {
             panic!("population_size must be greater than 0");
         }
-        
+
         self.population_size = population_size;
         self
     }
@@ -184,7 +184,7 @@ where
             panic!("max_size must be greater than 0");
         } else if max_size < min_size {
             panic!("max_size must be greater than or equal to min_size");
-        } 
+        }
 
         self.min_front_size = min_size;
         self.max_front_size = max_size;
