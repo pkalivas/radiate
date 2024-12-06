@@ -12,7 +12,7 @@ impl IntermediateCrossover {
     }
 }
 
-impl<C: Chromosome<GeneType = FloatGene>> Alter<C> for IntermediateCrossover {
+impl<C: Chromosome<Gene = FloatGene>> Alter<C> for IntermediateCrossover {
     fn name(&self) -> &'static str {
         "IntermediateCrossover"
     }

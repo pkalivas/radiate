@@ -14,7 +14,7 @@ impl MeanCrossover {
 
 impl<C: Chromosome> Alter<C> for MeanCrossover
 where
-    C::GeneType: NumericGene,
+    C::Gene: NumericGene,
 {
     fn name(&self) -> &'static str {
         "Mean Crossover"

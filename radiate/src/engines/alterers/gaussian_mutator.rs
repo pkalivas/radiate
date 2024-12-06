@@ -21,7 +21,7 @@ impl GaussianMutator {
     }
 }
 
-impl<C: Chromosome<GeneType = FloatGene>> Alter<C> for GaussianMutator {
+impl<C: Chromosome<Gene = FloatGene>> Alter<C> for GaussianMutator {
     fn name(&self) -> &'static str {
         "GaussianMutator"
     }
@@ -35,7 +35,7 @@ impl<C: Chromosome<GeneType = FloatGene>> Alter<C> for GaussianMutator {
     }
 
     #[inline]
-    fn mutate_gene(&self, gene: &C::GeneType) -> C::GeneType {
+    fn mutate_gene(&self, gene: &C::Gene) -> C::Gene {
         let min = *gene.min() as f64;
         let max = *gene.max() as f64;
 

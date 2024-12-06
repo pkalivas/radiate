@@ -15,7 +15,7 @@ impl<I: Integer<I>> Chromosome for IntChromosome<I>
 where
     Standard: rand::distributions::Distribution<I>,
 {
-    type GeneType = IntGene<I>;
+    type Gene = IntGene<I>;
 
     fn from_genes(genes: Vec<IntGene<I>>) -> Self {
         IntChromosome { genes }

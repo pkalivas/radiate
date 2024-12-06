@@ -13,7 +13,7 @@ impl BitFlipMutator {
 
 impl<C: Chromosome> Alter<C> for BitFlipMutator
 where
-    C::GeneType: Clone + std::ops::BitXor<Output = C::GeneType> + From<u8>,
+    C::Gene: Clone + std::ops::BitXor<Output = C::Gene> + From<u8>,
 {
     fn name(&self) -> &'static str {
         "BitFlipMutator"
@@ -34,7 +34,7 @@ where
         for gene in chromosome.iter_mut() {
             if random_provider::random::<f32>() < self.rate {
                 let bit_position = random_provider::gen_range(0..8);
-                let mask = C::GeneType::from(1 << bit_position);
+                let mask = C::Gene::from(1 << bit_position);
                 *gene = gene.clone() ^ mask;
                 mutations += 1;
             }

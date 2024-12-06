@@ -29,17 +29,17 @@ use crate::Valid;
 /// ```
 ///
 pub trait Chromosome: Clone + PartialEq + Valid {
-    type GeneType: Gene;
+    type Gene: Gene;
 
-    fn from_genes(genes: Vec<Self::GeneType>) -> Self;
-    fn get_genes(&self) -> &[Self::GeneType];
-    fn get_genes_mut(&mut self) -> &mut [Self::GeneType];
+    fn from_genes(genes: Vec<Self::Gene>) -> Self;
+    fn get_genes(&self) -> &[Self::Gene];
+    fn get_genes_mut(&mut self) -> &mut [Self::Gene];
 
-    fn get_gene(&self, index: usize) -> &Self::GeneType {
+    fn get_gene(&self, index: usize) -> &Self::Gene {
         &self.get_genes()[index]
     }
 
-    fn set_gene(&mut self, index: usize, gene: Self::GeneType) {
+    fn set_gene(&mut self, index: usize, gene: Self::Gene) {
         self.get_genes_mut()[index] = gene;
     }
 
@@ -47,11 +47,11 @@ pub trait Chromosome: Clone + PartialEq + Valid {
         self.get_genes().len()
     }
 
-    fn iter(&self) -> std::slice::Iter<Self::GeneType> {
+    fn iter(&self) -> std::slice::Iter<Self::Gene> {
         self.get_genes().iter()
     }
 
-    fn iter_mut(&mut self) -> std::slice::IterMut<Self::GeneType> {
+    fn iter_mut(&mut self) -> std::slice::IterMut<Self::Gene> {
         self.get_genes_mut().iter_mut()
     }
 

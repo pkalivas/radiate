@@ -17,7 +17,7 @@ impl<A: PartialEq + Clone> PermutationChromosome<A> {
 }
 
 impl<A: PartialEq + Clone> Chromosome for PermutationChromosome<A> {
-    type GeneType = PermutationGene<A>;
+    type Gene = PermutationGene<A>;
 
     fn from_genes(genes: Vec<PermutationGene<A>>) -> Self {
         let alleles = match genes.first() {

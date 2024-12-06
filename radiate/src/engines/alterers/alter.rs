@@ -82,7 +82,7 @@ pub trait Alter<C: Chromosome> {
     }
 
     #[inline]
-    fn mutate_gene(&self, gene: &C::GeneType) -> C::GeneType {
+    fn mutate_gene(&self, gene: &C::Gene) -> C::Gene {
         gene.new_instance()
     }
 

@@ -30,10 +30,10 @@ impl ArithmeticMutator {
 
 impl<C: Chromosome> Alter<C> for ArithmeticMutator
 where
-    C::GeneType: Add<Output = C::GeneType>
-        + Sub<Output = C::GeneType>
-        + Mul<Output = C::GeneType>
-        + Div<Output = C::GeneType>,
+    C::Gene: Add<Output = C::Gene>
+        + Sub<Output = C::Gene>
+        + Mul<Output = C::Gene>
+        + Div<Output = C::Gene>,
 {
     fn name(&self) -> &'static str {
         "NumericMutator"

@@ -41,7 +41,7 @@ impl<T> Chromosome for NodeChromosome<T>
 where
     T: Clone + PartialEq + Default,
 {
-    type GeneType = Node<T>;
+    type Gene = Node<T>;
 
     fn from_genes(genes: Vec<Node<T>>) -> Self {
         NodeChromosome {
