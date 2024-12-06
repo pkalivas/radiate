@@ -38,7 +38,9 @@ impl<C: Chromosome> Select<C> for StochasticUniversalSamplingSelector {
                     fitness_values.reverse();
                 }
             }
-            Objective::Multi(_) => {}
+            Objective::Multi(_) => {
+                panic!("Multi-objective optimization is not supported by this selector.");
+            }
         }
 
         let fitness_total = fitness_values.iter().sum::<f32>();
