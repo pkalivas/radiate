@@ -49,7 +49,7 @@ impl FloatChromosome {
 }
 
 impl Chromosome for FloatChromosome {
-    type GeneType = FloatGene;
+    type Gene = FloatGene;
 
     fn from_genes(genes: Vec<FloatGene>) -> Self {
         FloatChromosome { genes }

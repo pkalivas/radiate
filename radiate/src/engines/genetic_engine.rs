@@ -66,7 +66,7 @@ where
     C: Chromosome,
     T: Clone + Send + 'static,
 {
-    pub params: GeneticEngineParams<'a, C, T>,
+    params: GeneticEngineParams<'a, C, T>,
 }
 
 impl<'a, C, T> GeneticEngine<'a, C, T>

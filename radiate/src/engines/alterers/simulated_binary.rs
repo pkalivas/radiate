@@ -24,7 +24,7 @@ impl SimulatedBinaryCrossover {
     }
 }
 
-impl<C: Chromosome<GeneType = FloatGene>> Alter<C> for SimulatedBinaryCrossover {
+impl<C: Chromosome<Gene = FloatGene>> Alter<C> for SimulatedBinaryCrossover {
     fn name(&self) -> &'static str {
         "Simulated Binary Crossover"
     }

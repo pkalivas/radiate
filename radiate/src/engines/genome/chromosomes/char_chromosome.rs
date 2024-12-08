@@ -7,7 +7,7 @@ pub struct CharChromosome {
 }
 
 impl Chromosome for CharChromosome {
-    type GeneType = CharGene;
+    type Gene = CharGene;
 
     fn from_genes(genes: Vec<CharGene>) -> Self {
         CharChromosome { genes }

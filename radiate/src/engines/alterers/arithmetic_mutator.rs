@@ -2,12 +2,21 @@ use crate::alter::AlterType;
 use crate::{random_provider, Alter, Chromosome, Gene};
 use std::ops::{Add, Div, Mul, Sub};
 
+/// Arithmetic Mutator. Mutates genes by performing arithmetic operations on them.
+/// The ArithmeticMutator takes a rate parameter that determines the likelihood that
+/// a gene will be mutated. The ArithmeticMutator can perform addition, subtraction,
+/// multiplication, and division on genes.
+///
 pub struct ArithmeticMutator {
     rate: f32,
 }
 
 impl ArithmeticMutator {
     pub fn new(rate: f32) -> Self {
+        if rate < 0.0 || rate > 1.0 {
+            panic!("Rate must be between 0 and 1");
+        }
+
         Self { rate }
     }
 
@@ -30,10 +39,10 @@ impl ArithmeticMutator {
 
 impl<C: Chromosome> Alter<C> for ArithmeticMutator
 where
-    C::GeneType: Add<Output = C::GeneType>
-        + Sub<Output = C::GeneType>
-        + Mul<Output = C::GeneType>
-        + Div<Output = C::GeneType>,
+    C::Gene: Add<Output = C::Gene>
+        + Sub<Output = C::Gene>
+        + Mul<Output = C::Gene>
+        + Div<Output = C::Gene>,
 {
     fn name(&self) -> &'static str {
         "NumericMutator"
