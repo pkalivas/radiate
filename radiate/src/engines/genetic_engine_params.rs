@@ -4,7 +4,7 @@ use super::{RouletteSelector, Select, TournamentSelector};
 use crate::engines::genetic_engine::GeneticEngine;
 use crate::engines::genome::phenotype::Phenotype;
 use crate::engines::genome::population::Population;
-use crate::engines::score::Score;
+use crate::engines::objectives::Score;
 use crate::objectives::{Objective, Optimize};
 use crate::uniform_crossover::UniformCrossover;
 use crate::uniform_mutator::UniformMutator;

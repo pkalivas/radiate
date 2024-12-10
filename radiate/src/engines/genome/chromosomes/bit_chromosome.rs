@@ -1,7 +1,8 @@
 use crate::{BitGene, Chromosome, Valid};
 
 /// A `Chromosome` that contains `BitGenes`.
-/// A `BitChromosome` is a collection of `BitGenes` that represent the genetic material of an individual in the population.
+/// A `BitChromosome` is a collection of `BitGenes` that represent the genetic
+/// material of an individual in the population.
 ///
 #[derive(Clone, PartialEq)]
 pub struct BitChromosome {

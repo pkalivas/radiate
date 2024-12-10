@@ -1,5 +1,5 @@
 use super::codexes::Codex;
-use super::engine_output::EngineOutput;
+use super::engine_context::EngineContext;
 use super::genome::phenotype::Phenotype;
 use super::thread_pool::ThreadPool;
 use super::MetricSet;
@@ -7,7 +7,7 @@ use crate::engines::alterers::alter::Alter;
 use crate::engines::domain::timer::Timer;
 use crate::engines::genetic_engine_params::GeneticEngineParams;
 use crate::engines::genome::population::Population;
-use crate::engines::score::Score;
+use crate::engines::objectives::Score;
 use crate::objectives::{Front, Objective};
 use crate::{metric_names, Chromosome, Metric, Select, Valid};
 use std::sync::{Arc, Mutex};
@@ -91,9 +91,9 @@ where
     /// Executes the genetic algorithm. The algorithm continues until a specified
     /// stopping condition, 'limit', is met, such as reaching a target fitness score or
     /// exceeding a maximum number of generations. When 'limit' returns true, the algorithm stops.
-    pub fn run<F>(&self, limit: F) -> EngineOutput<C, T>
+    pub fn run<F>(&self, limit: F) -> EngineContext<C, T>
     where
-        F: Fn(&EngineOutput<C, T>) -> bool,
+        F: Fn(&EngineContext<C, T>) -> bool,
     {
         let mut ctx = self.start();
 
@@ -127,7 +127,7 @@ where
     /// parallel, which can significantly speed up the evaluation process for large populations.
     /// It will also only evaluate individuals that have not yet been scored, which saves time
     /// by avoiding redundant evaluations.
-    fn evaluate(&self, handle: &mut EngineOutput<C, T>) {
+    fn evaluate(&self, handle: &mut EngineContext<C, T>) {
         let codex = self.codex();
         let objective = self.objective();
         let thread_pool = self.thread_pool();
@@ -266,7 +266,7 @@ where
     /// will be used in the next iteration of the genetic algorithm.
     fn recombine(
         &self,
-        handle: &mut EngineOutput<C, T>,
+        handle: &mut EngineContext<C, T>,
         survivors: Population<C>,
         offspring: Population<C>,
     ) {
@@ -279,7 +279,7 @@ where
     /// Audits the current state of the genetic algorithm, updating the best individual found so far
     /// and calculating various metrics such as the age of individuals, the score of individuals, and the
     /// number of unique scores in the population. This method is called at the end of each generation.
-    fn audit(&self, output: &mut EngineOutput<C, T>) {
+    fn audit(&self, output: &mut EngineContext<C, T>) {
         let codex = self.codex();
         let optimize = self.objective();
 
@@ -310,7 +310,7 @@ where
     /// called if the objective is multi-objective, as the front is not relevant for single-objective optimization.
     /// The front is updated in a separate thread to avoid blocking the main thread while the front is being calculated.
     /// This can significantly speed up the calculation of the front for large populations.
-    fn update_front(&self, output: &mut EngineOutput<C, T>) {
+    fn update_front(&self, output: &mut EngineContext<C, T>) {
         let objective = self.objective();
         let thread_pool = self.thread_pool();
 
@@ -340,7 +340,7 @@ where
     /// The age of an individual is the number of generations it has survived, while the score of an individual
     /// is a measure of its fitness. The number of unique scores in the population is a measure of diversity, with
     /// a higher number indicating a more diverse population.
-    fn update_metrics(&self, output: &mut EngineOutput<C, T>) {
+    fn update_metrics(&self, output: &mut EngineContext<C, T>) {
         let mut age_metric = Metric::new_value(metric_names::AGE);
         let mut score_metric = Metric::new_value(metric_names::SCORE);
         let mut size_values = Vec::with_capacity(output.population.len());
@@ -417,10 +417,10 @@ where
         &self.params.thread_pool
     }
 
-    fn start(&self) -> EngineOutput<C, T> {
+    fn start(&self) -> EngineContext<C, T> {
         let population = self.population();
 
-        EngineOutput {
+        EngineContext {
             population: population.clone(),
             best: self.codex().decode(population[0].genotype()),
             index: 0,
@@ -435,7 +435,7 @@ where
         }
     }
 
-    fn stop(&self, output: &mut EngineOutput<C, T>) -> EngineOutput<C, T> {
+    fn stop(&self, output: &mut EngineContext<C, T>) -> EngineContext<C, T> {
         output.timer.stop();
         output.clone()
     }
