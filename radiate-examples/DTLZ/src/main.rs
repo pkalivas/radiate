@@ -1,6 +1,6 @@
+use plotly::{Plot, Scatter3D};
 use radiate::objectives::{Front, Optimize};
 use radiate::*;
-use std::io::Write;
 
 const VARIABLES: usize = 4;
 const OBJECTIVES: usize = 3;
@@ -25,28 +25,34 @@ fn main() {
         .build();
 
     let result = engine.run(move |output| {
-        println!("[ {:?} ]: {:?}", output.index, output.score());
+        println!("[ {:?} ]", output.index);
 
         output.index > 1000
     });
 
     let front = result.front.lock().unwrap();
     println!("{:?}", result.metrics);
-    write_front(&front);
+    plot_front(&front);
 }
 
-fn write_front(front: &Front) {
-    let current_dir = std::env::current_dir().unwrap();
-    let full_path = current_dir.join("radiate-examples/DTLZ/front.csv");
-    let mut file = std::fs::File::create(full_path).unwrap();
-    write!(file, "x,y,z,").unwrap();
-    writeln!(file).unwrap();
+fn plot_front(front: &Front) {
+    let mut x = vec![];
+    let mut y = vec![];
+    let mut z = vec![];
+
     for score in front.scores().iter() {
-        for value in score.values.iter() {
-            write!(file, "{},", value).unwrap();
-        }
-        writeln!(file).unwrap();
+        x.push(score.values[0]);
+        y.push(score.values[1]);
+        z.push(score.values[2]);
     }
+
+    let mut plot = Plot::new();
+    let trace = Scatter3D::new(x, y, z)
+        .name("Front")
+        .mode(plotly::common::Mode::Markers);
+
+    plot.add_trace(trace);
+    plot.show();
 }
 
 pub fn dtlz_1(values: &[f32]) -> Vec<f32> {

@@ -28,7 +28,7 @@ impl<C: Chromosome> Genotype<C> {
     pub fn from_chromosomes(chromosomes: Vec<C>) -> Self {
         Genotype { chromosomes }
     }
-    
+
     pub fn len(&self) -> usize {
         self.chromosomes.len()
     }

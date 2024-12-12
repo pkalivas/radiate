@@ -1,5 +1,5 @@
-use crate::objectives::{Objective, Optimize};
-use crate::{Chromosome, Population, Score};
+use crate::objectives::{Objective, Optimize, Score};
+use crate::{Chromosome, Population};
 
 /// Calculate the crowding distance for each score in a population.
 ///
@@ -208,7 +208,6 @@ fn distance<K: PartialOrd, T: AsRef<[K]>>(one: T, two: T, opts: &[Optimize], ind
             } else {
                 0.0
             }
-        } // Optimize::Minimize => one.as_ref()[index] - two.as_ref()[index],
-          // Optimize::Maximize => two.as_ref()[index] - one.as_ref()[index],
+        }
     }
 }

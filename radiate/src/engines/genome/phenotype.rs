@@ -1,4 +1,4 @@
-use crate::engines::score::Score;
+use crate::engines::objectives::Score;
 use crate::Chromosome;
 
 use super::{genotype::Genotype, Valid};
@@ -32,7 +32,7 @@ impl<C: Chromosome> Phenotype<C> {
             generation,
         }
     }
-    
+
     pub fn from_chromosomes(chromosomes: Vec<C>, generation: i32) -> Self {
         Phenotype {
             genotype: Genotype::from_chromosomes(chromosomes),

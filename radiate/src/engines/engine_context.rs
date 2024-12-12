@@ -1,4 +1,4 @@
-use super::score::Score;
+use super::objectives::Score;
 use super::MetricSet;
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
@@ -24,7 +24,7 @@ use std::sync::{Arc, Mutex};
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 /// - `T`: The type of the best individual in the population.
 ///
-pub struct EngineOutput<C, T>
+pub struct EngineContext<C, T>
 where
     C: Chromosome,
 {
@@ -37,7 +37,7 @@ where
     pub front: Arc<Mutex<Front>>,
 }
 
-impl<C, T> EngineOutput<C, T>
+impl<C, T> EngineContext<C, T>
 where
     C: Chromosome,
 {
@@ -57,7 +57,7 @@ where
     }
 }
 
-impl<C, T> Clone for EngineOutput<C, T>
+impl<C, T> Clone for EngineContext<C, T>
 where
     C: Chromosome,
     T: Clone,
@@ -75,7 +75,7 @@ where
     }
 }
 
-impl<C, T: std::fmt::Debug> std::fmt::Debug for EngineOutput<C, T>
+impl<C, T: std::fmt::Debug> std::fmt::Debug for EngineContext<C, T>
 where
     C: Chromosome,
 {

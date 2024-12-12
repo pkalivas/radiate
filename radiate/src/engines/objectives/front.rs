@@ -1,5 +1,4 @@
-use crate::objectives::{pareto, Objective};
-use crate::Score;
+use crate::objectives::{pareto, Objective, Score};
 use itertools::Itertools;
 use std::cmp;
 
