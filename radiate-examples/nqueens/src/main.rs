@@ -1,6 +1,6 @@
 use radiate::*;
 
-const N_QUEENS: usize = 16;
+const N_QUEENS: usize = 24;
 
 fn main() {
     seed_rng(111);

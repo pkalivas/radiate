@@ -2,11 +2,9 @@ use radiate::*;
 
 const MIN_SCORE: f32 = 0.0001;
 const MAX_INDEX: i32 = 500;
-const MAX_SECONDS: u64 = 20;
+const MAX_SECONDS: u64 = 1;
 
 fn main() {
-    seed_rng(1111);
-
     let inputs = vec![
         vec![0.0, 0.0],
         vec![1.0, 1.0],
@@ -23,12 +21,12 @@ fn main() {
     };
 
     let engine = GeneticEngine::from_codex(&codex)
-        .population_size(100)
         .minimizing()
+        .num_threads(4)
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .alter(alters!(
             IntermediateCrossover::new(0.75, 0.1),
-            ArithmeticMutator::new(0.01),
+            ArithmeticMutator::new(0.03),
         ))
         .fitness_fn(move |genotype: NeuralNet| genotype.error(&inputs, &target))
         .build();
@@ -40,6 +38,7 @@ fn main() {
             || output.timer.duration().as_secs() > MAX_SECONDS
     });
 
+    println!("Seconds: {:?}", result.seconds());
     println!("{:?}", result.metrics);
     let best = result.best;
     for (input, target) in codex.inputs.iter().zip(codex.target.iter()) {

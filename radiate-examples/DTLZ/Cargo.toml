@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 radiate = { path = "../../radiate" }
+plotly = "0.11"

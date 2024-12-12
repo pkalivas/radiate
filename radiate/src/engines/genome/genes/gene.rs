@@ -38,7 +38,7 @@ pub trait Valid {
 ///        MyGene { allele: 0.0 }
 ///     }
 ///
-///    fn with_allele(&self, allele: &Self::Allele) -> Self {
+///     fn with_allele(&self, allele: &Self::Allele) -> Self {
 ///       MyGene { allele: *allele }
 ///     }
 /// }
