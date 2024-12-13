@@ -111,7 +111,7 @@ In other words, the `Codex` is the bridge between the domain language of Radiate
         * **Encodes**: `Genotype` of `IntChromosome<T>` with `IntGene<T>`
         * **Decodes**: `Vec<Vec<T>>`
         
-        **Note**: `T` must implement the `Integer` trait. Integer is a trait in Radiate and is implemented for `i8`, `i16`, `i32`, `i64`, `i128`.
+        **Note**: `T` must implement the `Integer` trait. Integer is a trait in Radiate and is implemented for `i8`, `i16`, `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, `u128`.
         ```mermaid
         classDiagram
             class IntCodex~T~ {

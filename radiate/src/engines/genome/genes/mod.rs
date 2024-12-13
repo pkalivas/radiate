@@ -15,7 +15,7 @@ use std::{
     ops::{Add, Div, Mul, Sub},
 };
 
-use crate::{add_impl, div_impl, impl_integer, mul_impl, sub_impl};
+use crate::{add_impl, arithmetic_impl, div_impl, impl_integer, mul_impl, sub_impl};
 pub use bit_gene::*;
 pub use char_gene::*;
 pub use float_gene::*;
@@ -45,34 +45,10 @@ where
 }
 
 // Implement Integer for i8, i16, i32, i64, and i128
-impl_integer!(i8, i16, i32, i64, i128);
+impl_integer!(i8, i16, i32, i64, i128, u8, u16, u32, u64, u128);
 
 // Implement Add, Sub, Mul, and Div for FloatGene and IntGene<i8>, IntGene<i16>, IntGene<i32>, IntGene<i64>, and IntGene<i128>
-add_impl!(
-    FloatGene,
-    IntGene<i8>,
-    IntGene<i16>,
-    IntGene<i32>,
-    IntGene<i64>,
-    IntGene<i128>
-);
-sub_impl!(
-    FloatGene,
-    IntGene<i8>,
-    IntGene<i16>,
-    IntGene<i32>,
-    IntGene<i64>,
-    IntGene<i128>
-);
-mul_impl!(
-    FloatGene,
-    IntGene<i8>,
-    IntGene<i16>,
-    IntGene<i32>,
-    IntGene<i64>,
-    IntGene<i128>
-);
-div_impl!(
+arithmetic_impl!(
     FloatGene,
     IntGene<i8>,
     IntGene<i16>,

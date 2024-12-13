@@ -59,7 +59,7 @@ ___
             }
             ```
 
-            * **Allele**: `I` where `I` implements `Integer<I>`. `Integer` is a trait in Radiate and is implemented for `i8`, `i16`, `i32`, `i64`, `i128`.
+            * **Allele**: `I` where `I` implements `Integer<I>`. `Integer` is a trait in Radiate and is implemented for `i8`, `i16`, `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, `u128`.
             * **Description**: Represents a single integer number
             * **Implements**: `Gene`, `NumericGene`, `BoundedGene`
     
@@ -136,7 +136,7 @@ The `Chromosome` is a collection of `Genes` that represent a part or the whole o
             } 
             ```
 
-            * **Gene Type**: `IntGene<I>` where `I` implements `Integer<I>`. `Integer` is a trait in Radiate and is implemented for `i8`, `i16`, `i32`, `i64`, `i128`.
+            * **Gene Type**: `IntGene<I>` where `I` implements `Integer<I>`. `Integer` is a trait in Radiate and is implemented for `i8`, `i16`, `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, `u128`.
             * **Description**: Represents a sequence of integer numbers
 
         === "CharChromosome"

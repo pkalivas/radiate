@@ -119,6 +119,18 @@ macro_rules! div_impl {
 }
 
 #[macro_export]
+macro_rules! arithmetic_impl {
+    ($($t:ty),*) => {
+        $(
+            add_impl!($t);
+            sub_impl!($t);
+            mul_impl!($t);
+            div_impl!($t);
+        )*
+    };
+}
+
+#[macro_export]
 macro_rules! impl_integer {
     ($($t:ty),*) => {
         $(

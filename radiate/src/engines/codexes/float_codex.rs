@@ -78,3 +78,16 @@ impl Codex<FloatChromosome, Vec<Vec<f32>>> for FloatCodex {
             .collect::<Vec<Vec<f32>>>()
     }
 }
+
+impl Default for FloatCodex {
+    fn default() -> Self {
+        FloatCodex {
+            num_chromosomes: 1,
+            num_genes: 1,
+            min: f32::MIN,
+            max: f32::MAX,
+            lower_bound: f32::MIN,
+            upper_bound: f32::MAX,
+        }
+    }
+}

@@ -1,3 +1,5 @@
+use std::ops::{Index, IndexMut};
+
 use crate::{Chromosome, Valid};
 
 /// The `Genotype` struct represents the genetic makeup of an individual. It is a collection of `Chromosome` instances, it is
@@ -60,7 +62,7 @@ impl<C: Chromosome> AsRef<[C]> for Genotype<C> {
     }
 }
 
-impl<C: Chromosome> std::ops::Index<usize> for Genotype<C> {
+impl<C: Chromosome> Index<usize> for Genotype<C> {
     type Output = C;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -68,7 +70,7 @@ impl<C: Chromosome> std::ops::Index<usize> for Genotype<C> {
     }
 }
 
-impl<C: Chromosome> std::ops::IndexMut<usize> for Genotype<C> {
+impl<C: Chromosome> IndexMut<usize> for Genotype<C> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.chromosomes[index]
     }

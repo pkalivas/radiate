@@ -81,3 +81,19 @@ where
             .collect::<Vec<Vec<T>>>()
     }
 }
+
+impl<T: Integer<T>> Default for IntCodex<T>
+where
+    Standard: rand::distributions::Distribution<T>,
+{
+    fn default() -> Self {
+        IntCodex {
+            num_chromosomes: 1,
+            num_genes: 1,
+            min: T::MIN,
+            max: T::MAX,
+            lower_bound: T::MIN,
+            upper_bound: T::MAX,
+        }
+    }
+}
