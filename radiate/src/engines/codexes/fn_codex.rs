@@ -71,10 +71,18 @@ impl<C: Chromosome, T> FnCodex<C, T> {
 
 impl<C: Chromosome, T> Codex<C, T> for FnCodex<C, T> {
     fn encode(&self) -> Genotype<C> {
+        if self.encoder.is_none() {
+            panic!("Encoder function is not set");
+        }
+
         self.encoder.as_ref().unwrap()()
     }
 
     fn decode(&self, genotype: &Genotype<C>) -> T {
+        if self.decoder.is_none() {
+            panic!("Decoder function is not set");
+        }
+
         self.decoder.as_ref().unwrap()(genotype)
     }
 }
