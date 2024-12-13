@@ -56,10 +56,6 @@ pub struct NeuralNet {
 }
 
 impl NeuralNet {
-    pub fn new(layers: Vec<Vec<Vec<f32>>>) -> Self {
-        NeuralNet { layers }
-    }
-
     pub fn feed_forward(&self, input: Vec<f32>) -> Vec<f32> {
         let mut output = input;
 
