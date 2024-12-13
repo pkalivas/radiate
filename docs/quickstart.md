@@ -63,12 +63,7 @@ radiate-extensions = "0.1.2"
         let codex = CharCodex::new(1, target.len());
 
         let engine = GeneticEngine::from_codex(&codex)
-            .offspring_selector(BoltzmannSelector::new(4_f32))
-            .survivor_selector(TournamentSelector::new(3))
-            .alter(alters![
-                UniformMutator::new(0.01),
-                UniformCrossover::new(0.5)
-            ])
+            .offspring_selector(BoltzmannSelector::new(4_f32))  // optional
             .fitness_fn(|genotype: Vec<Vec<char>>| {
                 Score::from_usize(genotype.into_iter().flatten().zip(target.chars()).fold(
                     0,

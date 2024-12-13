@@ -233,7 +233,7 @@ where
             return;
         }
 
-        let mutator = Box::new(UniformMutator::new(0.001));
+        let mutator = Box::new(UniformMutator::new(0.1));
         let crossover = Box::new(UniformCrossover::new(0.5));
 
         self.alterers.push(mutator);

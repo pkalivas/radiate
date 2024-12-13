@@ -10,7 +10,7 @@ fn main() {
     let codex = FloatCodex::new(1, VARIABLES, 0_f32, 1_f32).with_bounds(0.0, 1.0);
 
     let engine = GeneticEngine::from_codex(&codex)
-        .num_threads(10)
+        .num_threads(4)
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
         .front_size(1000, 1100)
         .offspring_selector(TournamentSelector::new(5))
