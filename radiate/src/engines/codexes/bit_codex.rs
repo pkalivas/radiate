@@ -68,3 +68,12 @@ impl Codex<BitChromosome, Vec<Vec<bool>>> for BitCodex {
             .collect::<Vec<Vec<bool>>>()
     }
 }
+
+impl Default for BitCodex {
+    fn default() -> Self {
+        BitCodex {
+            num_chromosomes: 1,
+            num_genes: 1,
+        }
+    }
+}
