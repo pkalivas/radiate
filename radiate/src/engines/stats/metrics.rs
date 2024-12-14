@@ -267,7 +267,7 @@ impl Metric {
             _ => None,
         }
     }
-    
+
     pub fn time_sum(&self) -> Option<Duration> {
         match self {
             Metric::Time(_, stat) => Some(stat.sum()),

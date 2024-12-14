@@ -9,6 +9,7 @@ nav:
   - Parameters: params.md
   - Selectors: selectors.md
   - Alterers: alterers.md
+  - Metrics: metrics.md
   - Extensions: extensions.md
   - Examples: examples.md
 theme:
