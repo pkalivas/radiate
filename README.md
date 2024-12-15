@@ -18,8 +18,7 @@
 [genevo_link]: https://github.com/innoave/genevo
 [radiate_legacy]: https://github.com/pkalivas/radiate.legacy
  
-
-For more details check the [documentation](https://pkalivas.github.io/radiate/)
+For more details check radiate's [website](https://pkalivas.github.io/radiate/) or cargo [docs](https://docs.rs/radiate/latest/radiate/).
 
 Radiate is a powerful Rust library designed for implementing genetic algorithms and artificial evolution techniques. It
 provides a fast and flexible framework for creating, evolving, and optimizing solutions to complex problems using principles
