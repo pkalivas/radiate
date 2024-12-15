@@ -106,6 +106,41 @@ macro_rules! div_impl {
                                 ..self
                             }
                         }
+                    } else if std::any::TypeId::of::<$t>() == std::any::TypeId::of::<IntGene<u8>>() {
+                        if other.allele == 0 as <$t as Gene>::Allele {
+                            return Self {
+                                allele: self.allele / 1 as <$t as Gene>::Allele,
+                                ..self
+                            }
+                        }
+                    } else if std::any::TypeId::of::<$t>() == std::any::TypeId::of::<IntGene<u16>>() {
+                        if other.allele == 0 as <$t as Gene>::Allele {
+                            return Self {
+                                allele: self.allele / 1 as <$t as Gene>::Allele,
+                                ..self
+                            }
+                        }
+                    } else if std::any::TypeId::of::<$t>() == std::any::TypeId::of::<IntGene<u32>>() {
+                        if other.allele == 0 as <$t as Gene>::Allele {
+                            return Self {
+                                allele: self.allele / 1 as <$t as Gene>::Allele,
+                                ..self
+                            }
+                        }
+                    } else if std::any::TypeId::of::<$t>() == std::any::TypeId::of::<IntGene<u64>>() {
+                        if other.allele == 0 as <$t as Gene>::Allele {
+                            return Self {
+                                allele: self.allele / 1 as <$t as Gene>::Allele,
+                                ..self
+                            }
+                        }
+                    } else if std::any::TypeId::of::<$t>() == std::any::TypeId::of::<IntGene<u128>>() {
+                        if other.allele == 0 as <$t as Gene>::Allele {
+                            return Self {
+                                allele: self.allele / 1 as <$t as Gene>::Allele,
+                                ..self
+                            }
+                        }
                     }
 
                     Self {
