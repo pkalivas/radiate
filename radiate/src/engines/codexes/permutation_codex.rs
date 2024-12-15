@@ -2,7 +2,7 @@ use crate::{random_provider, Codex, Gene, Genotype, PermutationChromosome, Permu
 use std::sync::Arc;
 
 pub struct PermutationCodex<A: PartialEq + Clone> {
-    pub alleles: Arc<Vec<A>>,
+    alleles: Arc<Vec<A>>,
 }
 
 impl<A: PartialEq + Clone> PermutationCodex<A> {

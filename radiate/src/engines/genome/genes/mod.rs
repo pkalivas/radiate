@@ -54,5 +54,10 @@ arithmetic_impl!(
     IntGene<i16>,
     IntGene<i32>,
     IntGene<i64>,
-    IntGene<i128>
+    IntGene<i128>,
+    IntGene<u8>,
+    IntGene<u16>,
+    IntGene<u32>,
+    IntGene<u64>,
+    IntGene<u128>
 );
