@@ -11,7 +11,7 @@ use super::Codex;
 /// that fit in a knapsack. The `items` vector would contain the items that can be placed in the knapsack and the `Genotype`
 /// would contain `BitGenes` that represent weather or not the item is in the knapsack.
 pub struct SubSetCodex<'a, T> {
-    pub items: &'a Vec<T>,
+    items: &'a Vec<T>,
 }
 
 impl<'a, T> SubSetCodex<'a, T> {
