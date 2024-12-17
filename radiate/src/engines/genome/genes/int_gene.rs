@@ -176,6 +176,15 @@ where
     }
 }
 
+impl<T: Integer<T>> From<T> for IntGene<T>
+where
+    Standard: rand::distributions::Distribution<T>,
+{
+    fn from(allele: T) -> Self {
+        IntGene::new(allele)
+    }
+}
+
 impl From<IntGene<i8>> for i8 {
     fn from(gene: IntGene<i8>) -> Self {
         gene.allele
@@ -206,33 +215,33 @@ impl From<IntGene<i128>> for i128 {
     }
 }
 
-impl From<i8> for IntGene<i8> {
-    fn from(allele: i8) -> Self {
-        IntGene::new(allele)
+impl From<IntGene<u8>> for u8 {
+    fn from(gene: IntGene<u8>) -> Self {
+        gene.allele
     }
 }
 
-impl From<i16> for IntGene<i16> {
-    fn from(allele: i16) -> Self {
-        IntGene::new(allele)
+impl From<IntGene<u16>> for u16 {
+    fn from(gene: IntGene<u16>) -> Self {
+        gene.allele
     }
 }
 
-impl From<i32> for IntGene<i32> {
-    fn from(allele: i32) -> Self {
-        IntGene::new(allele)
+impl From<IntGene<u32>> for u32 {
+    fn from(gene: IntGene<u32>) -> Self {
+        gene.allele
     }
 }
 
-impl From<i64> for IntGene<i64> {
-    fn from(allele: i64) -> Self {
-        IntGene::new(allele)
+impl From<IntGene<u64>> for u64 {
+    fn from(gene: IntGene<u64>) -> Self {
+        gene.allele
     }
 }
 
-impl From<i128> for IntGene<i128> {
-    fn from(allele: i128) -> Self {
-        IntGene::new(allele)
+impl From<IntGene<u128>> for u128 {
+    fn from(gene: IntGene<u128>) -> Self {
+        gene.allele
     }
 }
 

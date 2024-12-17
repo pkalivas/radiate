@@ -53,6 +53,4 @@ fn main() {
         }
         println!();
     }
-
-    println!();
 }
