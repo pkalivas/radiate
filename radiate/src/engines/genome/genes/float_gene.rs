@@ -141,6 +141,18 @@ impl From<f32> for FloatGene {
     }
 }
 
+impl From<&f32> for FloatGene {
+    fn from(allele: &f32) -> Self {
+        FloatGene {
+            allele: *allele,
+            min: f32::MIN,
+            max: f32::MAX,
+            upper_bound: f32::MAX,
+            lower_bound: f32::MIN,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

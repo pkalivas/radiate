@@ -29,6 +29,8 @@ impl<A: PartialEq + Clone> Gene for PermutationGene<A> {
     }
 
     fn with_allele(&self, allele: &Self::Allele) -> Self {
+        // Find the index of the allele in the alleles vector - this implies that `self.alleles`
+        // is a set of unique values.
         let index = self.alleles.iter().position(|x| x == allele).unwrap();
         PermutationGene {
             index,

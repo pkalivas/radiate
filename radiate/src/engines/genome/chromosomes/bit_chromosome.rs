@@ -30,3 +30,10 @@ impl Valid for BitChromosome {
         self.genes.iter().all(|gene| gene.is_valid())
     }
 }
+
+impl From<&[bool]> for BitChromosome {
+    fn from(alleles: &[bool]) -> Self {
+        let genes = alleles.iter().map(BitGene::from).collect();
+        BitChromosome { genes }
+    }
+}

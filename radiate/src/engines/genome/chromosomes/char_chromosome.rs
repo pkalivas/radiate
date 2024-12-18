@@ -35,9 +35,9 @@ impl From<&'static str> for CharChromosome {
     }
 }
 
-impl From<Vec<char>> for CharChromosome {
-    fn from(alleles: Vec<char>) -> Self {
-        let genes = alleles.into_iter().map(CharGene::from).collect();
+impl From<&[char]> for CharChromosome {
+    fn from(alleles: &[char]) -> Self {
+        let genes = alleles.iter().map(CharGene::from).collect();
         CharChromosome { genes }
     }
 }

@@ -71,9 +71,16 @@ impl From<BitGene> for bool {
         gene.allele
     }
 }
+
 impl From<bool> for BitGene {
     fn from(allele: bool) -> BitGene {
         BitGene { allele }
+    }
+}
+
+impl From<&bool> for BitGene {
+    fn from(allele: &bool) -> BitGene {
+        BitGene { allele: *allele }
     }
 }
 

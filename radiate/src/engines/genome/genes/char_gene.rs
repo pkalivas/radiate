@@ -71,6 +71,12 @@ impl From<char> for CharGene {
     }
 }
 
+impl From<&char> for CharGene {
+    fn from(allele: &char) -> Self {
+        CharGene { allele: *allele }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -81,6 +81,13 @@ impl From<Range<i32>> for FloatChromosome {
     }
 }
 
+impl From<&[f32]> for FloatChromosome {
+    fn from(alleles: &[f32]) -> Self {
+        let genes = alleles.iter().map(FloatGene::from).collect();
+        FloatChromosome { genes }
+    }
+}
+
 impl Debug for FloatChromosome {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "FloatChromosome: [")?;
