@@ -28,8 +28,8 @@ use super::Codex;
 /// let bit_string: Vec<bool> = codex.decode(&genotype)[0].clone();
 /// ```
 pub struct BitCodex {
-    pub num_chromosomes: usize,
-    pub num_genes: usize,
+    num_chromosomes: usize,
+    num_genes: usize,
 }
 
 impl BitCodex {

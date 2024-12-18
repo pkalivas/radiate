@@ -38,3 +38,13 @@ where
         self.genes.iter().all(|gene| gene.is_valid())
     }
 }
+
+impl<T: Integer<T>> From<&[T]> for IntChromosome<T>
+where
+    Standard: rand::distributions::Distribution<T>,
+{
+    fn from(alleles: &[T]) -> Self {
+        let genes = alleles.iter().map(IntGene::from).collect();
+        IntChromosome { genes }
+    }
+}

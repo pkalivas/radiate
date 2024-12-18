@@ -185,6 +185,15 @@ where
     }
 }
 
+impl<T: Integer<T>> From<&T> for IntGene<T>
+where
+    Standard: rand::distributions::Distribution<T>,
+{
+    fn from(allele: &T) -> Self {
+        IntGene::new(*allele)
+    }
+}
+
 impl From<IntGene<i8>> for i8 {
     fn from(gene: IntGene<i8>) -> Self {
         gene.allele

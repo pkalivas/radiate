@@ -18,12 +18,12 @@ pub struct IntCodex<T: Integer<T>>
 where
     Standard: rand::distributions::Distribution<T>,
 {
-    pub num_chromosomes: usize,
-    pub num_genes: usize,
-    pub min: T,
-    pub max: T,
-    pub lower_bound: T,
-    pub upper_bound: T,
+    num_chromosomes: usize,
+    num_genes: usize,
+    min: T,
+    max: T,
+    lower_bound: T,
+    upper_bound: T,
 }
 
 impl<T: Integer<T>> IntCodex<T>

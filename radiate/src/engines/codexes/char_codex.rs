@@ -9,8 +9,8 @@ use super::Codex;
 /// and `num_genes` genes per chromosome. The `decode` function creates a `String` from the `Genotype` where the `String`
 /// contains the alleles of the `CharGenes` in the chromosome.
 pub struct CharCodex {
-    pub num_chromosomes: usize,
-    pub num_genes: usize,
+    num_chromosomes: usize,
+    num_genes: usize,
 }
 
 impl CharCodex {
