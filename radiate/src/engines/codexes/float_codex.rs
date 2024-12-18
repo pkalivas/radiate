@@ -11,12 +11,12 @@ use crate::{Chromosome, FloatChromosome};
 /// The lower and upper bounds of the `FloatGenes` can be set with the `with_bounds` function.
 /// The default bounds are `f32::MIN` and `f32::MAX`.
 pub struct FloatCodex {
-    pub num_chromosomes: usize,
-    pub num_genes: usize,
-    pub min: f32,
-    pub max: f32,
-    pub lower_bound: f32,
-    pub upper_bound: f32,
+    num_chromosomes: usize,
+    num_genes: usize,
+    min: f32,
+    max: f32,
+    lower_bound: f32,
+    upper_bound: f32,
 }
 
 impl FloatCodex {
