@@ -4,6 +4,7 @@ use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
 use crate::objectives::Front;
 use crate::{Chromosome, Metric};
+use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
 
 /// The context of the genetic engine. This struct contains the current state of the genetic engine
@@ -75,7 +76,7 @@ where
     }
 }
 
-impl<C, T: std::fmt::Debug> std::fmt::Debug for EngineContext<C, T>
+impl<C, T: Debug> Debug for EngineContext<C, T>
 where
     C: Chromosome,
 {
