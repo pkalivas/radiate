@@ -230,7 +230,6 @@ where
     /// if an individual is found to be invalid (i.e., its genotype is not valid, provided by the `valid` trait),
     /// it is replaced with a new individual. This method ensures that the population remains
     /// healthy and that only valid individuals are allowed to reproduce or survive to the next generation.
-    // fn filter(&self, population: &mut Population<C>, metrics: &mut MetricSet, generation: i32) {
     fn filter(&self, context: &mut EngineContext<C, T>) {
         let max_age = self.params.max_age;
         let codex = self.codex();
