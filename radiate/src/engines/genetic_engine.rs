@@ -100,16 +100,14 @@ where
         loop {
             self.evaluate(&mut ctx);
 
-            let mut survivors = self.select_survivors(&ctx.population, &mut ctx.metrics);
+            let survivors = self.select_survivors(&ctx.population, &mut ctx.metrics);
+
             let mut offspring = self.select_offspring(&ctx.population, &mut ctx.metrics);
-
             self.alter(&mut offspring, &mut ctx.metrics, ctx.index);
-
-            self.filter(&mut survivors, &mut ctx.metrics, ctx.index);
-            self.filter(&mut offspring, &mut ctx.metrics, ctx.index);
 
             self.recombine(&mut ctx, survivors, offspring);
 
+            self.filter(&mut ctx);
             self.evaluate(&mut ctx);
             self.audit(&mut ctx);
 
@@ -232,9 +230,13 @@ where
     /// if an individual is found to be invalid (i.e., its genotype is not valid, provided by the `valid` trait),
     /// it is replaced with a new individual. This method ensures that the population remains
     /// healthy and that only valid individuals are allowed to reproduce or survive to the next generation.
-    fn filter(&self, population: &mut Population<C>, metrics: &mut MetricSet, generation: i32) {
+    // fn filter(&self, population: &mut Population<C>, metrics: &mut MetricSet, generation: i32) {
+    fn filter(&self, context: &mut EngineContext<C, T>) {
         let max_age = self.params.max_age;
         let codex = self.codex();
+
+        let generation = context.index;
+        let population = &mut context.population;
 
         let timer = Timer::new();
         let mut age_count = 0;
@@ -251,8 +253,12 @@ where
             }
         }
 
-        metrics.upsert_operations(metric_names::AGE_FILTER, age_count as f32, timer.duration());
-        metrics.upsert_operations(
+        context.metrics.upsert_operations(
+            metric_names::AGE_FILTER,
+            age_count as f32,
+            timer.duration(),
+        );
+        context.metrics.upsert_operations(
             metric_names::INVALID_FILTER,
             invalid_count as f32,
             timer.duration(),
