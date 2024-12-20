@@ -48,6 +48,7 @@ impl<C: Chromosome> Population<C> {
     }
 
     pub fn swap(&mut self, a: usize, b: usize) {
+        self.is_sorted = false;
         self.individuals.swap(a, b);
     }
 
