@@ -231,7 +231,7 @@ where
     /// it is replaced with a new individual. This method ensures that the population remains
     /// healthy and that only valid individuals are allowed to reproduce or survive to the next generation.
     fn filter(&self, context: &mut EngineContext<C, T>) {
-        let max_age = self.params.max_age;
+        let max_age = self.max_age();
         let codex = self.codex();
 
         let generation = context.index;
@@ -416,6 +416,10 @@ where
 
     fn offspring_count(&self) -> usize {
         (self.params.population_size as f32 * self.params.offspring_fraction) as usize
+    }
+
+    fn max_age(&self) -> i32 {
+        self.params.max_age
     }
 
     fn thread_pool(&self) -> &ThreadPool {
