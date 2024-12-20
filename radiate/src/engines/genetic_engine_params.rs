@@ -121,7 +121,7 @@ where
     }
 
     /// Set the population of the genetic engine. This is useful if you want to provide a custom population.
-    /// If this is not set, the genetic engine will create a new population of ```population_size``` using the codex.
+    /// If this is not set, the genetic engine will create a new population of `population_size` using the codex.
     pub fn population(mut self, population: Population<C>) -> Self {
         self.population = Some(population);
         self
@@ -129,7 +129,7 @@ where
 
     /// Set the fitness function of the genetic engine. This is the function that will be used to evaluate the fitness of each individual in the population.
     /// This function should take a single argument of type T and return a Score. The Score is used to evaluate or rank the fitness of the individual.
-    /// This method is required and must be set before calling the ```build``` method.
+    /// This method is required and must be set before calling the `build` method.
     pub fn fitness_fn(mut self, fitness_func: impl Fn(T) -> Score + Send + Sync + 'static) -> Self {
         self.fitness_fn = Some(Arc::new(fitness_func));
         self
@@ -198,7 +198,7 @@ where
         self
     }
 
-    /// Build the genetic engine with the given parameters. This will create a new instance of the ```GeneticEngine``` with the given parameters.
+    /// Build the genetic engine with the given parameters. This will create a new instance of the `GeneticEngine` with the given parameters.
     pub fn build(mut self) -> GeneticEngine<'a, C, T> {
         self.build_population();
         self.build_alterer();

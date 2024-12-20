@@ -2,6 +2,14 @@ use std::{fmt::Debug, sync::Arc};
 
 use super::{Gene, Valid};
 
+/// The `PermutationGene` is a gene that represents a permutation of a set of alleles. The gene has an index
+/// that represents the position of the allele in the alleles vector. The alleles vector is a set of unique
+/// values. The gene is valid if the index is less than the length of the alleles vector. This gene is useful
+/// for representing permutations of values, such as the order of cities in a TSP problem.
+///
+/// # Type Parameters
+/// - `A`: The type of the alleles.
+///
 #[derive(Debug, Clone, PartialEq)]
 pub struct PermutationGene<A: PartialEq + Clone> {
     pub index: usize,
