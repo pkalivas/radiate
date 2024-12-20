@@ -65,6 +65,8 @@ impl ThreadPool {
     }
 }
 
+/// Drop implementation for ThreadPool. This will terminate all workers when the ThreadPool is dropped.
+/// We need to make sure that all workers are terminated before the ThreadPool is dropped.
 impl Drop for ThreadPool {
     fn drop(&mut self) {
         for _ in &self.workers {
@@ -81,13 +83,16 @@ impl Drop for ThreadPool {
     }
 }
 
+/// Job type that can be executed in the thread pool.
 type Job = Box<dyn FnOnce() + Send + 'static>;
 
+/// Message type that can be sent to the worker threads.
 enum Message {
     NewJob(Job),
     Terminate,
 }
 
+/// Worker struct that listens for incoming `Message`s and executes the `Job`s or terminates.
 struct Worker {
     thread: Option<thread::JoinHandle<()>>,
 }
