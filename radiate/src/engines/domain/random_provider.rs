@@ -6,13 +6,13 @@ use rand::Rng;
 use rand::SeedableRng;
 use std::sync::{Arc, Mutex, OnceLock};
 
-pub struct RandomProvider {
-    pub rng: Arc<Mutex<StdRng>>,
+struct RandomProvider {
+    rng: Arc<Mutex<StdRng>>,
 }
 
 impl RandomProvider {
     /// Returns the global instance of the registry.
-    pub fn global() -> &'static RandomProvider {
+    pub(self) fn global() -> &'static RandomProvider {
         static INSTANCE: OnceLock<RandomProvider> = OnceLock::new();
 
         INSTANCE.get_or_init(|| RandomProvider {
@@ -20,15 +20,27 @@ impl RandomProvider {
         })
     }
 
+    pub(self) fn replace_global(other: StdRng) {
+        let instance = RandomProvider::global();
+        let mut rng = instance.rng.lock().unwrap();
+        *rng = other;
+    }
+
+    pub(self) fn get_global() -> StdRng {
+        let instance = RandomProvider::global();
+        let rng = instance.rng.lock().unwrap();
+        rng.clone()
+    }
+
     /// Sets a new seed for the global RNG.
-    pub fn set_seed(seed: u64) {
+    pub(self) fn set_seed(seed: u64) {
         let instance = RandomProvider::global();
         let mut rng = instance.rng.lock().unwrap();
         *rng = StdRng::seed_from_u64(seed);
     }
 
     /// Generates a random number using the global RNG.
-    pub fn random<T>() -> T
+    pub(self) fn random<T>() -> T
     where
         T: rand::distributions::uniform::SampleUniform,
         Standard: Distribution<T>,
@@ -38,7 +50,7 @@ impl RandomProvider {
         rng.gen()
     }
 
-    pub fn gen_range<T>(range: std::ops::Range<T>) -> T
+    pub(self) fn gen_range<T>(range: std::ops::Range<T>) -> T
     where
         T: SampleUniform + PartialOrd,
         Standard: Distribution<T>,
@@ -46,15 +58,6 @@ impl RandomProvider {
         let instance = RandomProvider::global();
         let mut rng = instance.rng.lock().unwrap();
         rng.gen_range(range)
-    }
-
-    /// Executes a function with a temporary seeded RNG.
-    pub fn with_seed<F, T>(&self, seed: u64, func: F) -> T
-    where
-        F: FnOnce(&mut StdRng) -> T,
-    {
-        let mut temp_rng = StdRng::seed_from_u64(seed);
-        func(&mut temp_rng)
     }
 }
 
@@ -112,6 +115,17 @@ pub fn indexes(n: usize) -> Vec<usize> {
     let mut indexes: Vec<usize> = (0..n).collect();
     shuffle(&mut indexes);
     indexes
+}
+
+pub fn scoped_seed<F>(seed: u64, func: F)
+where
+    F: FnOnce(),
+{
+    let current_rng = RandomProvider::get_global();
+
+    RandomProvider::replace_global(StdRng::seed_from_u64(seed));
+    func();
+    RandomProvider::replace_global(current_rng);
 }
 
 #[cfg(test)]
