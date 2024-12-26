@@ -23,6 +23,8 @@ pub use steady_state::*;
 pub use stochastic_sampling::*;
 pub use tournament::*;
 
+use super::random_provider;
+
 /// A trait for selection algorithms. Selection algorithms are used to select
 /// individuals from a population to be used in the next generation. The
 /// selection process is (most of the time) based on the fitness of the individuals in the
@@ -88,7 +90,7 @@ impl<'a> Iterator for ProbabilityWheelIterator<'a> {
             return None;
         }
 
-        let mut value = rand::random::<f32>() * self.total;
+        let mut value = random_provider::random::<f32>() * self.total;
         let mut index = 0;
 
         // We iterate over the probabilities of the individuals in the population - the 'wheel'
