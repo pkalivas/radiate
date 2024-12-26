@@ -476,7 +476,7 @@ mod test {
 
     #[test]
     fn test_random_seed_works() {
-        random_provider::seed_rng(42);
+        random_provider::set_seed(42);
 
         let op = weight::<f32>();
         let op2 = weight::<f32>();

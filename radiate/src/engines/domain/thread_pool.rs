@@ -48,7 +48,7 @@ impl ThreadPool {
     }
 
     /// Execute a job in the thread pool and return a WorkResult that can be used to get the result of the job.
-    pub fn task<F, T>(&self, f: F) -> WorkResult<T>
+    pub fn submit_with_result<F, T>(&self, f: F) -> WorkResult<T>
     where
         F: FnOnce() -> T + Send + 'static,
         T: Send + 'static,
@@ -190,7 +190,7 @@ mod tests {
     fn test_thread_pool_process() {
         let pool = ThreadPool::new(4);
 
-        let results = pool.task(|| {
+        let results = pool.submit_with_result(|| {
             let start_time = std::time::SystemTime::now();
             println!("Job started.");
             thread::sleep(Duration::from_secs(2));

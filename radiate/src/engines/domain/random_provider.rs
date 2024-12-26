@@ -62,7 +62,7 @@ impl RandomProvider {
 }
 
 /// Seeds the thread-local random number generator with the given seed.
-pub fn seed_rng(seed: u64) {
+pub fn set_seed(seed: u64) {
     RandomProvider::set_seed(seed);
 }
 

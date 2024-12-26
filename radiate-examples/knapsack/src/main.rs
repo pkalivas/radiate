@@ -8,7 +8,7 @@ const MAX_EPOCHS: i32 = 50;
 static KNAPSACK: LazyLock<Knapsack> = LazyLock::new(|| Knapsack::new(KNAPSACK_SIZE));
 
 fn main() {
-    seed_rng(12345);
+    random_provider::set_seed(12345);
     let codex = SubSetCodex::new(&KNAPSACK.items);
 
     let engine = GeneticEngine::from_codex(&codex)

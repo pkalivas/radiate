@@ -7,7 +7,7 @@ mod random_tests {
     #[test]
     // #[ignore]
     fn random_seed_test() {
-        seed_rng(42);
+        random_provider::set_seed(42);
 
         let file_path = std::env::current_dir()
             .unwrap()
@@ -26,7 +26,7 @@ mod random_tests {
             .collect();
 
         for value in values_from_file {
-            let random_value = random::<f32>();
+            let random_value = random_provider::random::<f32>();
             assert_eq!(value, random_value);
         }
     }
