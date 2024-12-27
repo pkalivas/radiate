@@ -1,16 +1,17 @@
-use std::{cell::RefCell, rc::Rc};
-
+use crate::architects::schema::node_types::NodeType;
 use uuid::Uuid;
 
-use crate::{schema::collection_type::CollectionType, NodeBehavior, NodeType};
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use super::{NodeBehavior, NodeCell, RefNodeCell};
 
 pub struct TreeNode<T>
 where
     T: Clone + PartialEq + Default,
 {
-    pub id: Uuid,
-    pub value: T,
-    pub children: Vec<Rc<RefCell<TreeNode<T>>>>,
+    pub cell: RefNodeCell<T>,
+    pub children: Vec<TreeNode<T>>,
 }
 
 impl<T> TreeNode<T>
@@ -19,21 +20,20 @@ where
 {
     pub fn new(value: T) -> Self {
         Self {
-            id: Uuid::new_v4(),
-            value,
+            cell: Rc::new(RefCell::new(NodeCell::new(value))),
             children: Vec::new(),
         }
     }
 
     pub fn add_child(&mut self, child: TreeNode<T>) {
-        self.children.push(Rc::new(RefCell::new(child)));
+        self.children.push(child);
     }
 
-    pub fn children(&self) -> &[Rc<RefCell<TreeNode<T>>>] {
+    pub fn children(&self) -> &[TreeNode<T>] {
         &self.children
     }
 
-    pub fn children_mut(&mut self) -> &mut Vec<Rc<RefCell<TreeNode<T>>>> {
+    pub fn children_mut(&mut self) -> &mut [TreeNode<T>] {
         &mut self.children
     }
 
@@ -43,7 +43,7 @@ where
     {
         f(self);
         for child in &self.children {
-            child.borrow().traverse_pre_order(f);
+            child.traverse_pre_order(f);
         }
     }
 
@@ -52,38 +52,29 @@ where
         F: FnMut(&TreeNode<T>),
     {
         for child in &self.children {
-            child.borrow().traverse_post_order(f);
+            child.traverse_post_order(f);
         }
         f(self);
     }
 }
 
-impl<T> NodeBehavior<T> for TreeNode<T>
+impl<T> NodeBehavior for TreeNode<T>
 where
     T: Clone + PartialEq + Default,
 {
-    fn value(&self) -> &T {
-        &self.value
-    }
+    type Value = T;
+    type Node = TreeNode<T>;
 
-    fn node_type(&self) -> &NodeType {
+    fn node_type(&self) -> NodeType {
         if self.children.is_empty() {
-            &NodeType::Leaf
+            NodeType::Leaf
         } else {
-            &NodeType::Gate
+            NodeType::Gate
         }
     }
 
-    fn is_enabled(&self) -> bool {
-        true
-    }
-
     fn id(&self) -> Uuid {
-        self.id
-    }
-
-    fn collection_type(&self) -> CollectionType {
-        CollectionType::Tree
+        self.cell.borrow().id()
     }
 }
 
@@ -92,9 +83,9 @@ where
     T: Clone + PartialEq + Default,
 {
     fn clone(&self) -> Self {
-        let mut new_tree = TreeNode::new(self.value.clone());
+        let mut new_tree = TreeNode::new(self.cell.borrow().value().clone());
         for child in &self.children {
-            new_tree.add_child(child.borrow().clone());
+            new_tree.add_child(child.clone());
         }
         new_tree
     }

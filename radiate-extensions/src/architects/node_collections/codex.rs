@@ -157,99 +157,99 @@ where
     }
 }
 
-/// A codex for encoding and decoding a tree structure.
-///
-pub struct TreeCodex<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    pub factory: Rc<RefCell<NodeFactory<T>>>,
-    pub nodes: Vec<Node<T>>,
-}
+// /// A codex for encoding and decoding a tree structure.
+// ///
+// pub struct TreeCodex<T>
+// where
+//     T: Clone + PartialEq + Default,
+// {
+//     pub factory: Rc<RefCell<NodeFactory<T>>>,
+//     pub nodes: Vec<Node<T>>,
+// }
 
-impl<T> TreeCodex<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    pub fn new(depth: usize, factory: NodeFactory<T>) -> Self {
-        let nodes = Architect::<Tree<T>, T>::new(&factory)
-            .tree(depth)
-            .iter()
-            .cloned()
-            .collect::<Vec<Node<T>>>();
+// impl<T> TreeCodex<T>
+// where
+//     T: Clone + PartialEq + Default,
+// {
+//     pub fn new(depth: usize, factory: NodeFactory<T>) -> Self {
+//         let nodes = Architect::<Tree<T>, T>::new(&factory)
+//             .tree(depth)
+//             .iter()
+//             .cloned()
+//             .collect::<Vec<Node<T>>>();
 
-        TreeCodex {
-            factory: Rc::new(RefCell::new(factory)),
-            nodes,
-        }
-    }
+//         TreeCodex {
+//             factory: Rc::new(RefCell::new(factory)),
+//             nodes,
+//         }
+//     }
 
-    pub fn set_gates(self, gates: Vec<Ops<T>>) -> Self {
-        self.set_values(NodeType::Gate, gates);
-        self
-    }
+//     pub fn set_gates(self, gates: Vec<Ops<T>>) -> Self {
+//         self.set_values(NodeType::Gate, gates);
+//         self
+//     }
 
-    pub fn set_leafs(self, leafs: Vec<Ops<T>>) -> Self {
-        self.set_values(NodeType::Leaf, leafs);
-        self
-    }
+//     pub fn set_leafs(self, leafs: Vec<Ops<T>>) -> Self {
+//         self.set_values(NodeType::Leaf, leafs);
+//         self
+//     }
 
-    fn set_values(&self, node_type: NodeType, values: Vec<Ops<T>>) {
-        let mut factory = self.factory.borrow_mut();
-        factory.add_node_values(node_type, values);
-    }
-}
+//     fn set_values(&self, node_type: NodeType, values: Vec<Ops<T>>) {
+//         let mut factory = self.factory.borrow_mut();
+//         factory.add_node_values(node_type, values);
+//     }
+// }
 
-impl TreeCodex<f32> {
-    pub fn regression(input_size: usize, depth: usize) -> Self {
-        let factory = NodeFactory::<f32>::regression(input_size);
-        let nodes = Architect::<Tree<f32>, f32>::new(&factory)
-            .tree(depth)
-            .iter()
-            .cloned()
-            .collect::<Vec<Node<f32>>>();
+// impl TreeCodex<f32> {
+//     pub fn regression(input_size: usize, depth: usize) -> Self {
+//         let factory = NodeFactory::<f32>::regression(input_size);
+//         let nodes = Architect::<Tree<f32>, f32>::new(&factory)
+//             .tree(depth)
+//             .iter()
+//             .cloned()
+//             .collect::<Vec<Node<f32>>>();
 
-        TreeCodex::<f32> {
-            factory: Rc::new(RefCell::new(factory)),
-            nodes,
-        }
-    }
-}
+//         TreeCodex::<f32> {
+//             factory: Rc::new(RefCell::new(factory)),
+//             nodes,
+//         }
+//     }
+// }
 
-impl<T> Codex<NodeChromosome<T>, Tree<T>> for TreeCodex<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    fn encode(&self) -> Genotype<NodeChromosome<T>> {
-        let reader = self.factory.borrow();
-        let nodes = self
-            .nodes
-            .iter()
-            .map(|node| {
-                let temp_node = reader.new_node(node.index, node.node_type);
+// impl<T> Codex<NodeChromosome<T>, Tree<T>> for TreeCodex<T>
+// where
+//     T: Clone + PartialEq + Default,
+// {
+//     fn encode(&self) -> Genotype<NodeChromosome<T>> {
+//         let reader = self.factory.borrow();
+//         let nodes = self
+//             .nodes
+//             .iter()
+//             .map(|node| {
+//                 let temp_node = reader.new_node(node.index, node.node_type);
 
-                if temp_node.value.arity() == node.value.arity() {
-                    return node.with_allele(temp_node.allele());
-                }
+//                 if temp_node.value.arity() == node.value.arity() {
+//                     return node.with_allele(temp_node.allele());
+//                 }
 
-                node.clone()
-            })
-            .collect::<Vec<Node<T>>>();
+//                 node.clone()
+//             })
+//             .collect::<Vec<Node<T>>>();
 
-        Genotype {
-            chromosomes: vec![NodeChromosome::with_factory(nodes, self.factory.clone())],
-        }
-    }
+//         Genotype {
+//             chromosomes: vec![NodeChromosome::with_factory(nodes, self.factory.clone())],
+//         }
+//     }
 
-    fn decode(&self, genotype: &Genotype<NodeChromosome<T>>) -> Tree<T> {
-        Tree::from_nodes(
-            genotype
-                .iter()
-                .next()
-                .unwrap()
-                .iter()
-                .cloned()
-                .collect::<Vec<Node<T>>>(),
-        )
-    }
-}
+//     fn decode(&self, genotype: &Genotype<NodeChromosome<T>>) -> Tree<T> {
+//         Tree::from_nodes(
+//             genotype
+//                 .iter()
+//                 .next()
+//                 .unwrap()
+//                 .iter()
+//                 .cloned()
+//                 .collect::<Vec<Node<T>>>(),
+//         )
+//     }
+// }

@@ -5,6 +5,8 @@ use radiate::engines::genome::genes::gene::{Gene, Valid};
 use std::collections::HashSet;
 use uuid::Uuid;
 
+use super::NodeBehavior;
+
 pub struct Node<T>
 where
     T: Clone + PartialEq,
@@ -232,104 +234,3 @@ where
 }
 
 ////////////////////////
-
-pub trait NodeBehavior<T>
-where
-    T: Clone + PartialEq,
-{
-    fn value(&self) -> &T;
-    fn node_type(&self) -> &NodeType;
-    fn is_enabled(&self) -> bool;
-    fn id(&self) -> Uuid;
-    fn collection_type(&self) -> CollectionType;
-}
-
-pub struct GraphNode<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    pub id: Uuid,
-    pub index: usize,
-    pub value: T,
-    pub enabled: bool,
-    pub node_type: NodeType,
-    pub direction: Direction,
-    pub incoming: HashSet<usize>,
-    pub outgoing: HashSet<usize>,
-}
-
-impl<T> GraphNode<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    pub fn new(index: usize, node_type: NodeType, value: T) -> Self {
-        Self {
-            id: Uuid::new_v4(),
-            index,
-            value,
-            enabled: true,
-            direction: Direction::Forward,
-            node_type,
-            incoming: HashSet::new(),
-            outgoing: HashSet::new(),
-        }
-    }
-}
-
-impl<T> NodeBehavior<T> for GraphNode<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    fn value(&self) -> &T {
-        &self.value
-    }
-
-    fn node_type(&self) -> &NodeType {
-        &self.node_type
-    }
-
-    fn is_enabled(&self) -> bool {
-        self.enabled
-    }
-
-    fn id(&self) -> Uuid {
-        self.id
-    }
-
-    fn collection_type(&self) -> CollectionType {
-        CollectionType::Graph
-    }
-}
-
-impl<T> Clone for GraphNode<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    fn clone(&self) -> Self {
-        GraphNode {
-            id: self.id,
-            index: self.index,
-            enabled: self.enabled,
-            value: self.value.clone(),
-            direction: self.direction,
-            node_type: self.node_type,
-            incoming: self.incoming.clone(),
-            outgoing: self.outgoing.clone(),
-        }
-    }
-}
-
-impl<T> PartialEq for GraphNode<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-            && self.index == other.index
-            && self.value == other.value
-            && self.direction == other.direction
-            && self.node_type == other.node_type
-            && self.incoming == other.incoming
-            && self.outgoing == other.outgoing
-    }
-}

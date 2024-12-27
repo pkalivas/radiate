@@ -1,6 +1,8 @@
+use std::cell::RefCell;
 use std::collections::VecDeque;
+use std::rc::Rc;
 
-use super::Graph;
+use super::{Graph, Tree, TreeNode};
 use crate::node::Node;
 use crate::NodeCollection;
 
@@ -134,5 +136,91 @@ where
 
     fn count(self) -> usize {
         self.graph.len()
+    }
+}
+
+/// `TreeInOrderIterator` is an iterator that traverses a `TreeNode` in in-order. This iterator is
+/// used by the `TreeCrossover` alterer to traverse the nodes of a `TreeNode` in the correct order.
+pub struct TreeInOrderIter<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    stack: Vec<Option<&'a TreeNode<T>>>,
+}
+
+impl<'a, T> TreeInOrderIter<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    pub fn new(tree: &'a Tree<T>) -> Self {
+        let mut stack = Vec::new();
+        stack.push(tree.root());
+
+        Self { stack }
+    }
+}
+
+impl<'a, T> Iterator for TreeInOrderIter<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    type Item = &'a TreeNode<T>;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(Some(node)) = self.stack.pop() {
+            if node.children().is_empty() {
+                return Some(node);
+            }
+
+            self.stack.push(None);
+            for child in node.children().iter().rev() {
+                self.stack.push(Some(child));
+            }
+        }
+
+        None
+    }
+}
+
+pub struct TreeInorderIterMut<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    stack: Vec<Option<&'a mut TreeNode<T>>>,
+}
+
+impl<'a, T> TreeInorderIterMut<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    pub fn new(tree: &'a mut Tree<T>) -> Self {
+        let mut stack = Vec::new();
+        stack.push(tree.root_mut());
+
+        Self { stack }
+    }
+}
+
+impl<'a, T> Iterator for TreeInorderIterMut<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    type Item = &'a mut TreeNode<T>;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(Some(node)) = self.stack.pop() {
+            if node.children_mut().is_empty() {
+                return Some(node);
+            }
+
+            self.stack.push(None);
+            for child in node.children_mut().iter_mut().rev() {
+                self.stack.push(Some(child));
+            }
+        }
+
+        None
     }
 }

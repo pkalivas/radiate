@@ -4,9 +4,9 @@ pub mod iterators;
 pub mod node;
 pub mod node_chromosome;
 pub mod node_factory;
+pub mod nodes;
 pub mod reducers;
 pub mod tree;
-pub mod trees;
 
 pub use codex::*;
 pub use graph::*;
@@ -14,9 +14,9 @@ pub use iterators::*;
 pub use node::*;
 pub use node_chromosome::*;
 pub use node_factory::*;
+pub use nodes::*;
 pub use reducers::*;
 pub use tree::*;
-pub use trees::*;
 
 use std::collections::{HashSet, VecDeque};
 
@@ -31,13 +31,14 @@ where
     fn repair(&mut self, factory: Option<&NodeFactory<T>>) -> Self;
 }
 
-pub trait NodeCollectionTwo<T>: Default + Clone + Valid
-where
-    T: Clone + PartialEq + Default,
-{
-    type Node: NodeBehavior<T>;
+pub trait NodeCollectionTwo: Default + Clone + Valid {
+    type Node: NodeBehavior;
 
     fn from_nodes(nodes: Vec<Self::Node>) -> Self;
+    fn get(&self, index: usize) -> &Self::Node;
+    fn get_mut(&mut self, index: usize) -> &mut Self::Node;
+    fn iter(&self) -> impl Iterator<Item = &Self::Node>;
+    fn iter_mut(&mut self) -> impl Iterator<Item = &mut Self::Node>;
 }
 
 pub trait NodeCollection<T>: Valid + Default + Clone

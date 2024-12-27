@@ -108,28 +108,28 @@ where
             node.id = Uuid::new_v4();
         }
 
-        let tree_one = Tree::new(chrom_one.get_genes().to_vec());
-        let tree_two = Tree::new(chrom_two.get_genes().to_vec());
+        // let tree_one = Tree::new(chrom_one.get_genes().to_vec());
+        // let tree_two = Tree::new(chrom_two.get_genes().to_vec());
 
-        let one_sub_tree = tree_one.sub_tree(swap_one_index);
-        let two_sub_tree = tree_two.sub_tree(swap_two_index);
+        // let one_sub_tree = tree_one.sub_tree(swap_one_index);
+        // let two_sub_tree = tree_two.sub_tree(swap_two_index);
 
-        let new_one_tree = NodeCollectionBuilder::default()
-            .insert(&tree_one)
-            .replace(&one_sub_tree, &two_sub_tree)
-            .build();
+        // let new_one_tree = NodeCollectionBuilder::default()
+        //     .insert(&tree_one)
+        //     .replace(&one_sub_tree, &two_sub_tree)
+        //     .build();
 
-        let new_two_tree = NodeCollectionBuilder::default()
-            .insert(&tree_two)
-            .replace(&two_sub_tree, &one_sub_tree)
-            .build();
+        // let new_two_tree = NodeCollectionBuilder::default()
+        //     .insert(&tree_two)
+        //     .replace(&two_sub_tree, &one_sub_tree)
+        //     .build();
 
-        if !new_one_tree.is_valid() || !new_two_tree.is_valid() {
-            panic!("Invalid tree after crossover.");
-        }
+        // if !new_one_tree.is_valid() || !new_two_tree.is_valid() {
+        //     panic!("Invalid tree after crossover.");
+        // }
 
-        chrom_one.nodes = new_one_tree.nodes;
-        chrom_two.nodes = new_two_tree.nodes;
+        // chrom_one.nodes = new_one_tree.nodes;
+        // chrom_two.nodes = new_two_tree.nodes;
 
         2
     }
