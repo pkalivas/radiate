@@ -1,7 +1,3 @@
-// pub enum GeneNode<T> {
-//     Graph(GraphNode<T>),
-//     Tree(TreeNode<T>),
-// }
 //
 // impl<T> GeneNode<T>
 // where

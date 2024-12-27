@@ -1,6 +1,4 @@
-use std::cell::RefCell;
 use std::collections::VecDeque;
-use std::rc::Rc;
 
 use super::{Graph, Tree, TreeNode};
 use crate::node::Node;
@@ -195,8 +193,7 @@ where
     T: Clone + PartialEq + Default,
 {
     pub fn new(tree: &'a mut Tree<T>) -> Self {
-        let mut stack = Vec::new();
-        stack.push(tree.root_mut());
+        let stack = vec![tree.root_mut()];
 
         Self { stack }
     }
@@ -216,6 +213,130 @@ where
             }
 
             self.stack.push(None);
+            for child in node.children_mut().iter_mut().rev() {
+                self.stack.push(Some(child));
+            }
+        }
+
+        None
+    }
+}
+
+pub struct TreePostOrderIter<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    stack: Vec<Option<&'a TreeNode<T>>>,
+}
+
+impl<'a, T> TreePostOrderIter<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    pub fn new(tree: &'a Tree<T>) -> Self {
+        let mut stack = Vec::new();
+        stack.push(tree.root());
+
+        Self { stack }
+    }
+}
+
+impl<'a, T> Iterator for TreePostOrderIter<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    type Item = &'a TreeNode<T>;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(Some(node)) = self.stack.pop() {
+            if node.children().is_empty() {
+                return Some(node);
+            }
+
+            for child in node.children().iter().rev() {
+                self.stack.push(Some(child));
+            }
+
+            self.stack.push(Some(node));
+        }
+
+        None
+    }
+}
+
+pub struct TreePreOrderIter<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    stack: Vec<Option<&'a TreeNode<T>>>,
+}
+
+impl<'a, T> TreePreOrderIter<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    pub fn new(tree: &'a Tree<T>) -> Self {
+        let mut stack = Vec::new();
+        stack.push(tree.root());
+
+        Self { stack }
+    }
+}
+
+impl<'a, T> Iterator for TreePreOrderIter<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    type Item = &'a TreeNode<T>;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(Some(node)) = self.stack.pop() {
+            if node.children().is_empty() {
+                return Some(node);
+            }
+
+            for child in node.children().iter().rev() {
+                self.stack.push(Some(child));
+            }
+        }
+
+        None
+    }
+}
+
+pub struct TreePreOrderIterMut<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    stack: Vec<Option<&'a mut TreeNode<T>>>,
+}
+
+impl<'a, T> TreePreOrderIterMut<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    pub fn new(tree: &'a mut Tree<T>) -> Self {
+        let stack = vec![tree.root_mut()];
+
+        Self { stack }
+    }
+}
+
+impl<'a, T> Iterator for TreePreOrderIterMut<'a, T>
+where
+    T: Clone + PartialEq + Default,
+{
+    type Item = &'a mut TreeNode<T>;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(Some(node)) = self.stack.pop() {
+            if node.children_mut().is_empty() {
+                return Some(node);
+            }
+
             for child in node.children_mut().iter_mut().rev() {
                 self.stack.push(Some(child));
             }

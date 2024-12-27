@@ -36,6 +36,18 @@ where
         TreeInorderIterMut::new(self)
     }
 
+    pub fn pre_order_iter(&self) -> impl Iterator<Item = &TreeNode<T>> {
+        TreePreOrderIter::new(self)
+    }
+
+    pub fn pre_order_iter_mut(&mut self) -> impl Iterator<Item = &mut TreeNode<T>> {
+        TreePreOrderIterMut::new(self)
+    }
+
+    pub fn post_order_iter(&self) -> impl Iterator<Item = &TreeNode<T>> {
+        TreePostOrderIter::new(self)
+    }
+
     pub fn root(&self) -> Option<&TreeNode<T>> {
         self.root.as_ref()
     }
@@ -283,7 +295,7 @@ mod test {
 
     #[test]
     fn test_tree_two_depth() {
-        let root = TreeNode::<Expr<f32>>::new(expr::add());
+        let root = TreeNode::<f32>::new(expr::add());
         let tree = Tree::new(root);
 
         assert_eq!(tree.depth(), 1);
@@ -291,8 +303,8 @@ mod test {
 
     #[test]
     fn test_tree_two_depth_two() {
-        let mut root = TreeNode::<Expr<f32>>::new(expr::add());
-        let child = TreeNode::<Expr<f32>>::new(expr::add());
+        let mut root = TreeNode::<f32>::new(expr::add());
+        let child = TreeNode::<f32>::new(expr::add());
         root.add_child(child);
 
         let tree = Tree::new(root);
@@ -310,7 +322,7 @@ mod test {
             let mut children = Vec::new();
             for _ in 0..CHILDREN {
                 let value = random_provider::random::<usize>() % values.len();
-                let child = TreeNode::new(values[value]);
+                let child = TreeNode::new(Expr::Value(values[value]));
                 children.push(child);
             }
             children
@@ -327,7 +339,7 @@ mod test {
         const DEPTH: usize = 3;
         let node_factory = NodeFactory::<f32>::regression(3);
 
-        let tree = Tree::with_depth(DEPTH, |depth, parent: Option<&TreeNode<Expr<f32>>>| {
+        let tree = Tree::with_depth(DEPTH, |depth, parent: Option<&TreeNode<f32>>| {
             let mut children = Vec::new();
             if let Some(parent) = parent {
                 for _ in 0..parent.value().arity() {

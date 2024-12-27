@@ -1,5 +1,6 @@
 pub mod codex;
 pub mod graph;
+pub mod graphs;
 pub mod iterators;
 pub mod node;
 pub mod node_chromosome;

@@ -1,6 +1,6 @@
 use crate::architects::node_collections::node::Node;
 use crate::architects::node_collections::nodes::expr::{self, Expr};
-use crate::{architects::schema::node_types::NodeType, NodeBehavior};
+use crate::{architects::schema::node_types::NodeType, Arity, NodeBehavior, NodeCell};
 use radiate::random_provider;
 use std::collections::HashMap;
 
@@ -87,6 +87,43 @@ where
         }
 
         Node::new(index, node_type, Expr::default())
+    }
+
+    pub fn new_cell(&self, index: usize, node_type: NodeType) -> NodeCell<T> {
+        if let Some(values) = self.node_values.get(&node_type) {
+            return match node_type {
+                NodeType::Input => {
+                    let value = values[index % values.len()].clone();
+                    let arity = match value.arity() {
+                        0 => Arity::Nullary,
+                        1 => Arity::Unary,
+                        2 => Arity::Binary,
+                        3 => Arity::Ternary,
+                        _ => Arity::Nary,
+                    };
+
+                    NodeCell::new(value)
+                        .with_arity(arity)
+                        .with_node_type(node_type)
+                }
+                _ => {
+                    let value = random_provider::choose(values);
+                    let arity = match value.arity() {
+                        0 => Arity::Nullary,
+                        1 => Arity::Unary,
+                        2 => Arity::Binary,
+                        3 => Arity::Ternary,
+                        _ => Arity::Nary,
+                    };
+
+                    NodeCell::new(value.new_instance())
+                        .with_arity(arity)
+                        .with_node_type(node_type)
+                }
+            };
+        }
+
+        NodeCell::new(Expr::default())
     }
 
     pub fn regression(input_size: usize) -> NodeFactory<f32> {

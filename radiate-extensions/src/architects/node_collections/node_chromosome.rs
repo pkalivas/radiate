@@ -1,8 +1,43 @@
-use crate::{Node, NodeFactory, NodeType};
+use crate::{FlatNode, Node, NodeFactory, NodeType};
 use radiate::{Chromosome, Valid};
 use std::cell::RefCell;
 use std::ops::{Index, IndexMut};
 use std::rc::Rc;
+
+pub struct GraphChromosome<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    pub nodes: Vec<FlatNode<T>>,
+    pub factory: Option<Rc<RefCell<NodeFactory<T>>>>,
+}
+
+impl<T> GraphChromosome<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    pub fn new(nodes: Vec<FlatNode<T>>) -> Self {
+        GraphChromosome {
+            nodes,
+            factory: None,
+        }
+    }
+
+    pub fn with_factory(nodes: Vec<FlatNode<T>>, factory: Rc<RefCell<NodeFactory<T>>>) -> Self {
+        GraphChromosome {
+            nodes,
+            factory: Some(factory),
+        }
+    }
+
+    pub fn new_node(&self, index: usize, node_type: NodeType) -> FlatNode<T> {
+        let factory = self.factory.as_ref().unwrap();
+        let factory = factory.borrow();
+        let new_cell = factory.new_cell(index, node_type);
+
+        FlatNode::from_cell(new_cell, index)
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct NodeChromosome<T>
