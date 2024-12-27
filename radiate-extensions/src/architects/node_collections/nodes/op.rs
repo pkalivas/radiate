@@ -106,10 +106,7 @@ where
     }
 }
 
-impl<T> PartialEq for Ops<T>
-where
-    T: Clone,
-{
+impl<T> PartialEq for Ops<T> {
     fn eq(&self, other: &Self) -> bool {
         self.name() == other.name()
     }
@@ -168,11 +165,11 @@ where
     }
 }
 
-pub fn value<T: Clone>(value: T) -> Ops<T> {
+pub fn value<T>(value: T) -> Ops<T> {
     Ops::Value(value)
 }
 
-pub fn add<T: Add<Output = T> + Clone + Float>() -> Ops<T> {
+pub fn add<T: Add<Output = T> + Float>() -> Ops<T> {
     Ops::Fn(
         "+",
         2,

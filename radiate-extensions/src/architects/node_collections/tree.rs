@@ -263,13 +263,13 @@ where
         ) -> std::fmt::Result {
             writeln!(f, "{:indent$}{}", "", node.cell.value(), indent = depth * 2)?;
             for child in node.children() {
-                print_node(&child, f, depth + 1)?;
+                print_node(child, f, depth + 1)?;
             }
             Ok(())
         }
 
         if let Some(root) = self.root.as_ref() {
-            print_node(&root, f, 0)
+            print_node(root, f, 0)
         } else {
             Ok(())
         }
@@ -333,12 +333,12 @@ mod test {
                 for _ in 0..parent.cell.value().arity() {
                     if depth == 1 {
                         let leafs = &node_factory.node_values[&NodeType::Leaf];
-                        let value = random_provider::choose(&leafs);
+                        let value = random_provider::choose(leafs);
                         let child = TreeNode::new(value.clone());
                         children.push(child);
                     } else {
                         let gates = &node_factory.node_values[&NodeType::Gate];
-                        let value = random_provider::choose(&gates);
+                        let value = random_provider::choose(gates);
                         let child = TreeNode::new(value.clone());
                         children.push(child);
                     }

@@ -4,7 +4,7 @@ use super::GraphIterator;
 use crate::node::Node;
 use crate::{
     node_collections, schema::collection_type::CollectionType, Direction, NodeCollection,
-    OpNodeFactory, NodeRepairs, NodeType,
+    NodeRepairs, NodeType, OpNodeFactory,
 };
 
 #[derive(Clone, PartialEq, Default)]
@@ -48,6 +48,26 @@ where
             }
         }
 
+        self
+    }
+
+    fn attach(&mut self, incoming: usize, outgoing: usize) -> &mut Self {
+        self.get_nodes_mut()[incoming]
+            .outgoing_mut()
+            .insert(outgoing);
+        self.get_nodes_mut()[outgoing]
+            .incoming_mut()
+            .insert(incoming);
+        self
+    }
+
+    fn detach(&mut self, incoming: usize, outgoing: usize) -> &mut Self {
+        self.get_nodes_mut()[incoming]
+            .outgoing_mut()
+            .remove(&outgoing);
+        self.get_nodes_mut()[outgoing]
+            .incoming_mut()
+            .remove(&incoming);
         self
     }
 }

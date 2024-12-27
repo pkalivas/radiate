@@ -1,6 +1,6 @@
+use crate::architects::node_collections::nodes::op::Ops;
 use crate::architects::*;
 use crate::node::Node;
-use crate::operations::op::Ops;
 use radiate::engines::codexes::Codex;
 use radiate::engines::genome::genes::gene::Gene;
 use radiate::engines::genome::genotype::Genotype;

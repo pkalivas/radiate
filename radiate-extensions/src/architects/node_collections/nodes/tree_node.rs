@@ -17,7 +17,7 @@ where
 {
     pub fn new(value: T) -> Self {
         Self {
-            cell: NodeCell::new(value, None),
+            cell: NodeCell::new(value),
             children: Vec::new(),
         }
     }

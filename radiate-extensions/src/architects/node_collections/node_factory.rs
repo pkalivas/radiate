@@ -1,9 +1,6 @@
 use crate::architects::node_collections::node::Node;
-use crate::{
-    architects::schema::node_types::NodeType,
-    operations::op::{self, Ops},
-    NodeBehavior,
-};
+use crate::architects::node_collections::nodes::op::{self, Ops};
+use crate::{architects::schema::node_types::NodeType, NodeBehavior};
 use radiate::random_provider;
 use std::collections::HashMap;
 

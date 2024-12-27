@@ -1,5 +1,5 @@
+use crate::architects::node_collections::nodes::op::Ops;
 use crate::architects::schema::{direction::Direction, node_types::NodeType};
-use crate::operations::op::Ops;
 use crate::schema::collection_type::CollectionType;
 use radiate::engines::genome::genes::gene::{Gene, Valid};
 use std::collections::HashSet;

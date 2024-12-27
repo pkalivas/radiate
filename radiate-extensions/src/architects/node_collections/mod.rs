@@ -1,5 +1,4 @@
 pub mod codex;
-pub mod factories;
 pub mod graph;
 pub mod iterators;
 pub mod node;
@@ -10,7 +9,6 @@ pub mod reducers;
 pub mod tree;
 
 pub use codex::*;
-pub use factories::*;
 pub use graph::*;
 pub use iterators::*;
 pub use node::*;
