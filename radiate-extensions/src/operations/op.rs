@@ -15,8 +15,6 @@ const MAX_VALUE: f32 = 1e+5_f32;
 const MIN_VALUE: f32 = -1e+5_f32;
 
 pub enum Ops<T>
-where
-    T: Clone,
 {
     Fn(&'static str, u8, Arc<dyn Fn(&[T]) -> T>),
     Value(T),
