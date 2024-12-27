@@ -31,6 +31,15 @@ where
     fn repair(&mut self, factory: Option<&NodeFactory<T>>) -> Self;
 }
 
+pub trait NodeCollectionTwo<T>: Default + Clone + Valid
+where
+    T: Clone + PartialEq + Default,
+{
+    type Node: NodeBehavior<T>;
+
+    fn from_nodes(nodes: Vec<Self::Node>) -> Self;
+}
+
 pub trait NodeCollection<T>: Valid + Default + Clone
 where
     T: Clone + PartialEq + Default,

@@ -1,3 +1,4 @@
+pub mod iterators;
 pub mod tree_node;
 
 pub use tree_node::*;
@@ -14,16 +15,26 @@ use std::rc::Rc;
 /// - `T`: The type of the value stored in each node.
 ///
 #[derive(Default)]
-pub struct TreeTwo<T: Clone + PartialEq + Default> {
+pub struct TreeTwo<T>
+where
+    T: Clone + PartialEq + Default,
+{
     root: Option<Rc<RefCell<TreeNode<T>>>>,
 }
 
-impl<T: Clone + PartialEq + Default> TreeTwo<T> {
+impl<T> TreeTwo<T>
+where
+    T: Clone + PartialEq + Default,
+{
     /// Creates a new tree with the given root node.
     pub fn new(root: TreeNode<T>) -> Self {
         TreeTwo {
             root: Some(Rc::new(RefCell::new(root))),
         }
+    }
+
+    pub fn in_order_iter(&self) -> iterators::TreeInOrderIterator<T> {
+        iterators::TreeInOrderIterator::new(self.root.as_ref().unwrap().clone())
     }
 
     /// Get the depth of the tree. The depth of a tree is the length of the longest
@@ -138,7 +149,30 @@ impl<T: Clone + PartialEq + Default> TreeTwo<T> {
     }
 }
 
-impl<T: Clone + PartialEq + Default> Clone for TreeTwo<T> {
+impl<T> NodeCollectionTwo<T> for TreeTwo<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    type Node = TreeNode<T>;
+
+    fn from_nodes(nodes: Vec<TreeNode<T>>) -> Self {
+        TreeTwo::new(nodes.iter().next().unwrap().clone())
+    }
+}
+
+impl<T> Valid for TreeTwo<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    fn is_valid(&self) -> bool {
+        true
+    }
+}
+
+impl<T> Clone for TreeTwo<T>
+where
+    T: Clone + PartialEq + Default,
+{
     fn clone(&self) -> Self {
         TreeTwo {
             root: self
@@ -149,7 +183,19 @@ impl<T: Clone + PartialEq + Default> Clone for TreeTwo<T> {
     }
 }
 
-impl<T: Clone + PartialEq + Default + Display> Display for TreeTwo<T> {
+impl<T> From<TreeNode<T>> for TreeTwo<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    fn from(node: TreeNode<T>) -> Self {
+        TreeTwo::new(node)
+    }
+}
+
+impl<T> Display for TreeTwo<T>
+where
+    T: Clone + PartialEq + Default + Display,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         fn print_node<T: Clone + PartialEq + Default + Display>(
             node: &TreeNode<T>,
