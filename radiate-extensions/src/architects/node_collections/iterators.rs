@@ -1,8 +1,8 @@
 use std::collections::VecDeque;
 
-use crate::NodeCollection;
-use crate::node::Node;
 use super::Graph;
+use crate::node::Node;
+use crate::NodeCollection;
 
 pub struct BreadthFirstIterator<'a, T>
 where

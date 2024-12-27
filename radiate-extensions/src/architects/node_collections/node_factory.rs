@@ -126,3 +126,14 @@ where
             .outputs(vec![op::linear()])
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new() {
+        let factory: NodeFactory<Ops<f32>> = NodeFactory::new();
+        assert!(factory.node_values.is_empty());
+    }
+}

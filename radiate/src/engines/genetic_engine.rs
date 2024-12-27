@@ -137,7 +137,7 @@ where
             if individual.score().is_none() {
                 let fitness_fn = self.fitness_fn();
                 let decoded = codex.decode(individual.genotype());
-                let work = thread_pool.task(move || (idx, fitness_fn(decoded)));
+                let work = thread_pool.submit_with_result(move || (idx, fitness_fn(decoded)));
 
                 work_results.push(work);
             }

@@ -1,6 +1,7 @@
 use crate::{Node, NodeFactory, NodeType};
 use radiate::{Chromosome, Valid};
 use std::cell::RefCell;
+use std::ops::{Index, IndexMut};
 use std::rc::Rc;
 
 #[derive(Clone, Debug)]
@@ -68,7 +69,7 @@ where
     }
 }
 
-impl<T> std::ops::Index<usize> for NodeChromosome<T>
+impl<T> Index<usize> for NodeChromosome<T>
 where
     T: Clone + PartialEq + Default,
 {
@@ -79,7 +80,7 @@ where
     }
 }
 
-impl<T> std::ops::IndexMut<usize> for NodeChromosome<T>
+impl<T> IndexMut<usize> for NodeChromosome<T>
 where
     T: Clone + PartialEq + Default,
 {

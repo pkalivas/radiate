@@ -1,9 +1,9 @@
 use radiate::*;
 
-const N_QUEENS: usize = 24;
+const N_QUEENS: usize = 32;
 
 fn main() {
-    seed_rng(42069);
+    random_provider::set_seed(42);
 
     let codex = IntCodex::<i8>::new(1, N_QUEENS, 0, N_QUEENS as i8);
 
