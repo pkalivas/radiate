@@ -50,11 +50,11 @@ where
     type Node = GraphNode<T>;
 
     fn node_type(&self) -> NodeType {
-        self.cell.node().borrow().node_type()
+        self.cell.node().node_type()
     }
 
     fn id(&self) -> Uuid {
-        self.cell.node().borrow().id()
+        self.cell.node().id()
     }
 }
 

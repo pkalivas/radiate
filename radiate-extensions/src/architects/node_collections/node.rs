@@ -5,8 +5,6 @@ use radiate::engines::genome::genes::gene::{Gene, Valid};
 use std::collections::HashSet;
 use uuid::Uuid;
 
-use super::NodeBehavior;
-
 pub struct Node<T>
 where
     T: Clone + PartialEq,
@@ -125,6 +123,7 @@ where
                     NodeType::Weight => self.incoming.len() == 1 && self.outgoing.len() == 1,
                     NodeType::Link => self.incoming.len() == 1 && !self.outgoing.is_empty(),
                     NodeType::Leaf => self.incoming.is_empty() && !self.outgoing.is_empty(),
+                    NodeType::Unknown => true,
                 };
             } else if coll_type == &CollectionType::Tree {
                 return match self.node_type {
@@ -135,6 +134,7 @@ where
                     NodeType::Weight => self.incoming.len() == 1 && self.outgoing.len() == 1,
                     NodeType::Link => self.incoming.len() == 1 && !self.outgoing.is_empty(),
                     NodeType::Leaf => !self.incoming.is_empty() && self.outgoing.is_empty(),
+                    NodeType::Unknown => true,
                 };
             }
         }

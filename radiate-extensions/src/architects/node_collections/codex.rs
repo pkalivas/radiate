@@ -14,7 +14,7 @@ where
 {
     pub input_size: usize,
     pub output_size: usize,
-    pub factory: Rc<RefCell<NodeFactory<T>>>,
+    pub factory: Rc<RefCell<OpNodeFactory<T>>>,
     pub nodes: Vec<Node<T>>,
 }
 
@@ -22,11 +22,11 @@ impl<T> GraphCodex<T>
 where
     T: Clone + PartialEq + Default,
 {
-    pub fn from_factory(factory: &NodeFactory<T>) -> Self {
+    pub fn from_factory(factory: &OpNodeFactory<T>) -> Self {
         GraphCodex::from_shape(1, 1, factory)
     }
 
-    pub fn from_shape(input_size: usize, output_size: usize, factory: &NodeFactory<T>) -> Self {
+    pub fn from_shape(input_size: usize, output_size: usize, factory: &OpNodeFactory<T>) -> Self {
         let nodes = Architect::<Graph<T>, T>::new(factory)
             .acyclic(input_size, output_size)
             .iter()
@@ -36,7 +36,7 @@ where
         GraphCodex::from_nodes(nodes, factory)
     }
 
-    pub fn from_nodes(nodes: Vec<Node<T>>, factory: &NodeFactory<T>) -> Self {
+    pub fn from_nodes(nodes: Vec<Node<T>>, factory: &OpNodeFactory<T>) -> Self {
         GraphCodex {
             input_size: nodes
                 .iter()
@@ -70,7 +70,7 @@ where
         self
     }
 
-    pub fn set_factory(mut self, factory: &NodeFactory<T>) -> Self {
+    pub fn set_factory(mut self, factory: &OpNodeFactory<T>) -> Self {
         self.factory = Rc::new(RefCell::new(factory.clone()));
         self
     }
@@ -108,7 +108,7 @@ where
 
 impl GraphCodex<f32> {
     pub fn regression(input_size: usize, output_size: usize) -> Self {
-        let factory = NodeFactory::<f32>::regression(input_size);
+        let factory = OpNodeFactory::<f32>::regression(input_size);
         let nodes = Architect::<Graph<f32>, f32>::new(&factory)
             .acyclic(input_size, output_size)
             .iter()

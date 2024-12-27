@@ -2,59 +2,71 @@ use crate::architects::node_collections::node::Node;
 use crate::{
     architects::schema::node_types::NodeType,
     operations::op::{self, Ops},
+    NodeBehavior,
 };
 use radiate::random_provider;
 use std::collections::HashMap;
 
+pub enum SupplierRule {
+    Indexed(usize, NodeType),
+    Typed(NodeType),
+    Random,
+}
+
+pub trait NodeSupplier {
+    type Node: NodeBehavior;
+    fn new_node(&self, rule: SupplierRule) -> Self::Node;
+}
+
 #[derive(Clone, Default, PartialEq, Debug)]
-pub struct NodeFactory<T>
+pub struct OpNodeFactory<T>
 where
     T: Clone + PartialEq + Default,
 {
     pub node_values: HashMap<NodeType, Vec<Ops<T>>>,
 }
 
-impl<T> NodeFactory<T>
+impl<T> OpNodeFactory<T>
 where
     T: Clone + PartialEq + Default,
 {
     pub fn new() -> Self {
-        NodeFactory {
+        OpNodeFactory {
             node_values: HashMap::new(),
         }
     }
 
-    pub fn leafs(mut self, values: Vec<Ops<T>>) -> NodeFactory<T> {
+    pub fn leafs(mut self, values: Vec<Ops<T>>) -> OpNodeFactory<T> {
         self.add_node_values(NodeType::Leaf, values);
         self
     }
 
-    pub fn inputs(mut self, values: Vec<Ops<T>>) -> NodeFactory<T> {
+    pub fn inputs(mut self, values: Vec<Ops<T>>) -> OpNodeFactory<T> {
         self.add_node_values(NodeType::Input, values);
         self
     }
 
-    pub fn outputs(mut self, values: Vec<Ops<T>>) -> NodeFactory<T> {
+    pub fn outputs(mut self, values: Vec<Ops<T>>) -> OpNodeFactory<T> {
         self.add_node_values(NodeType::Output, values);
         self
     }
 
-    pub fn gates(mut self, values: Vec<Ops<T>>) -> NodeFactory<T> {
+    pub fn gates(mut self, values: Vec<Ops<T>>) -> OpNodeFactory<T> {
         self.add_node_values(NodeType::Gate, values);
         self
     }
 
-    pub fn aggregates(mut self, values: Vec<Ops<T>>) -> NodeFactory<T> {
+    pub fn aggregates(mut self, values: Vec<Ops<T>>) -> OpNodeFactory<T> {
         self.add_node_values(NodeType::Aggregate, values);
         self
     }
 
-    pub fn weights(mut self, values: Vec<Ops<T>>) -> NodeFactory<T> {
+    pub fn weights(mut self, values: Vec<Ops<T>>) -> OpNodeFactory<T> {
         self.add_node_values(NodeType::Weight, values);
         self
     }
 
-    pub fn set_values(mut self, node_type: NodeType, values: Vec<Ops<T>>) -> NodeFactory<T> {
+    pub fn set_values(mut self, node_type: NodeType, values: Vec<Ops<T>>) -> OpNodeFactory<T> {
         self.add_node_values(node_type, values);
         self
     }
@@ -80,9 +92,9 @@ where
         Node::new(index, node_type, Ops::default())
     }
 
-    pub fn regression(input_size: usize) -> NodeFactory<f32> {
+    pub fn regression(input_size: usize) -> OpNodeFactory<f32> {
         let inputs = (0..input_size).map(op::var).collect::<Vec<Ops<f32>>>();
-        NodeFactory::new()
+        OpNodeFactory::new()
             .inputs(inputs.clone())
             .leafs(inputs.clone())
             .gates(vec![
@@ -133,7 +145,7 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let factory: NodeFactory<Ops<f32>> = NodeFactory::new();
+        let factory: OpNodeFactory<Ops<f32>> = OpNodeFactory::new();
         assert!(factory.node_values.is_empty());
     }
 }

@@ -29,11 +29,11 @@ where
     }
 
     pub fn in_order_iter(&self) -> impl Iterator<Item = &TreeNode<T>> {
-        iterators::TreeInOrderIter::new(self)
+        TreeInOrderIter::new(self)
     }
 
     pub fn in_order_iter_mut(&mut self) -> impl Iterator<Item = &mut TreeNode<T>> {
-        iterators::TreeInorderIterMut::new(self)
+        TreeInorderIterMut::new(self)
     }
 
     pub fn root(&self) -> Option<&TreeNode<T>> {
@@ -54,16 +54,13 @@ where
                 1 + node
                     .children()
                     .iter()
-                    .map(|child| calc_depth(&child))
+                    .map(|child| calc_depth(child))
                     .max()
                     .unwrap_or(0)
             }
         }
 
-        self.root
-            .as_ref()
-            .map(|root| calc_depth(&root))
-            .unwrap_or(0)
+        self.root.as_ref().map(|root| calc_depth(root)).unwrap_or(0)
     }
 
     /// Get the size of the tree. The size of a tree is the number of nodes in the tree.
@@ -72,14 +69,14 @@ where
             1 + node
                 .children()
                 .iter()
-                .map(|child| calc_size(&child))
+                .map(|child| calc_size(child))
                 .sum::<usize>()
         }
 
-        self.root.as_ref().map(|root| calc_size(&root)).unwrap_or(0)
+        self.root.as_ref().map(|root| calc_size(root)).unwrap_or(0)
     }
 
-    /// Given a target node id, return the sub tree rooted at the target node.
+    /// Given a target node id, return the subtree rooted at the target node.
     pub fn sub_tree(&self, target_id: Uuid) -> Option<Tree<T>> {
         fn find_node<T: Clone + PartialEq + Default>(
             node: &TreeNode<T>,
@@ -89,7 +86,7 @@ where
                 return Some(node.clone());
             }
             for child in node.children() {
-                if let Some(found) = find_node(&child, target_id) {
+                if let Some(found) = find_node(child, target_id) {
                     return Some(found);
                 }
             }
@@ -98,7 +95,7 @@ where
 
         self.root
             .as_ref()
-            .and_then(|root| find_node(&root, target_id).map(|node| Tree::new(node)))
+            .and_then(|root| find_node(root, target_id).map(|node| Tree::new(node)))
     }
 
     pub fn swap_sub_tree(&mut self, target_id: Uuid, new_sub_tree: TreeNode<T>) {
@@ -160,7 +157,7 @@ where
     type Node = TreeNode<T>;
 
     fn from_nodes(nodes: Vec<TreeNode<T>>) -> Self {
-        Tree::new(nodes.iter().next().unwrap().clone())
+        Tree::new(nodes.first().unwrap().clone())
     }
 
     fn get(&self, index: usize) -> &Self::Node {
@@ -240,7 +237,7 @@ where
 {
     fn clone(&self) -> Self {
         Tree {
-            root: self.root.as_ref().map(|root| root.clone()),
+            root: self.root.clone(),
         }
     }
 }
@@ -264,13 +261,7 @@ where
             f: &mut std::fmt::Formatter<'_>,
             depth: usize,
         ) -> std::fmt::Result {
-            writeln!(
-                f,
-                "{:indent$}{}",
-                "",
-                node.cell.borrow().value(),
-                indent = depth * 2
-            )?;
+            writeln!(f, "{:indent$}{}", "", node.cell.value(), indent = depth * 2)?;
             for child in node.children() {
                 print_node(&child, f, depth + 1)?;
             }
@@ -287,7 +278,6 @@ where
 
 #[cfg(test)]
 mod test {
-
     use super::*;
     use crate::*;
 
@@ -335,12 +325,12 @@ mod test {
     #[test]
     fn test_tree_two_sub_tree() {
         const DEPTH: usize = 3;
-        let node_factory = NodeFactory::<f32>::regression(3);
+        let node_factory = OpNodeFactory::<f32>::regression(3);
 
         let tree = Tree::with_depth(DEPTH, |depth, parent: Option<&TreeNode<Ops<f32>>>| {
             let mut children = Vec::new();
             if let Some(parent) = parent {
-                for _ in 0..parent.cell.borrow().value().arity() {
+                for _ in 0..parent.cell.value().arity() {
                     if depth == 1 {
                         let leafs = &node_factory.node_values[&NodeType::Leaf];
                         let value = random_provider::choose(&leafs);

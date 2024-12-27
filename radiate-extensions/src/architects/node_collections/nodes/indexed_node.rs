@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::NodeType;
 
-use super::{NodeBehavior, NodeSequce, RefNodeCell};
+use super::{NodeBehavior, NodeCell, NodeCellSequence};
 
 /// A node that is indexed in a collection of nodes.
 /// This is useful for creating a graph of nodes where each node can be referenced by its index.
@@ -17,13 +17,13 @@ use super::{NodeBehavior, NodeSequce, RefNodeCell};
 ///
 pub struct IndexedNode<T> {
     index: usize,
-    nodes: NodeSequce<T>,
+    nodes: NodeCellSequence<T>,
     incoming: HashSet<usize>,
     outgoing: HashSet<usize>,
 }
 
 impl<T> IndexedNode<T> {
-    pub fn new(index: usize, nodes: NodeSequce<T>) -> Self {
+    pub fn new(index: usize, nodes: NodeCellSequence<T>) -> Self {
         Self {
             index,
             nodes,
@@ -52,8 +52,12 @@ impl<T> IndexedNode<T> {
         &mut self.outgoing
     }
 
-    pub fn node(&self) -> RefNodeCell<T> {
-        self.nodes.lock().unwrap()[self.index].clone()
+    pub fn node(&self) -> &NodeCell<T> {
+        &self.nodes[self.index]
+    }
+
+    pub fn nodes(&self) -> NodeCellSequence<T> {
+        Arc::clone(&self.nodes)
     }
 }
 
@@ -65,11 +69,11 @@ where
     type Node = N;
 
     fn node_type(&self) -> NodeType {
-        self.node().borrow().node_type()
+        self.node().node_type()
     }
 
     fn id(&self) -> Uuid {
-        self.node().borrow().id()
+        self.node().id()
     }
 }
 
@@ -84,13 +88,17 @@ impl<T> Clone for IndexedNode<T> {
     }
 }
 
-impl<T> PartialEq for IndexedNode<T> {
+impl<T> PartialEq for IndexedNode<T>
+where
+    T: PartialEq,
+{
     fn eq(&self, other: &Self) -> bool {
         let self_node = self.node();
         let other_node = other.node();
 
         self.index == other.index
-            && self_node.borrow().node_type() == other_node.borrow().node_type()
-            && self_node.borrow().id() == other_node.borrow().id()
+            && self_node == other_node
+            && self.incoming == other.incoming
+            && self.outgoing == other.outgoing
     }
 }

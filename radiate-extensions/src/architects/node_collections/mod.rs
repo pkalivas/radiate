@@ -1,4 +1,5 @@
 pub mod codex;
+pub mod factories;
 pub mod graph;
 pub mod iterators;
 pub mod node;
@@ -9,6 +10,7 @@ pub mod reducers;
 pub mod tree;
 
 pub use codex::*;
+pub use factories::*;
 pub use graph::*;
 pub use iterators::*;
 pub use node::*;
@@ -28,7 +30,7 @@ pub trait NodeRepairs<T>: Valid + Default + Clone
 where
     T: Clone + PartialEq + Default,
 {
-    fn repair(&mut self, factory: Option<&NodeFactory<T>>) -> Self;
+    fn repair(&mut self, factory: Option<&OpNodeFactory<T>>) -> Self;
 }
 
 pub trait NodeCollectionTwo: Default + Clone + Valid {
@@ -311,6 +313,10 @@ where
         NodeType::Leaf => collection
             .iter()
             .filter(|node| node.node_type == NodeType::Leaf)
+            .collect::<Vec<&Node<T>>>(),
+        NodeType::Unknown => collection
+            .iter()
+            .filter(|node| node.node_type == NodeType::Unknown)
             .collect::<Vec<&Node<T>>>(),
     };
 
