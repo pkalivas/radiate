@@ -1,11 +1,11 @@
 use radiate::Valid;
 
+use super::BreadthFirstIterator;
+use crate::node::Node;
 use crate::{
     node_collections, schema::collection_type::CollectionType, NodeCollection, NodeFactory,
     NodeRepairs,
 };
-use crate::node::Node;
-use super::BreadthFirstIterator;
 
 #[derive(Clone, PartialEq, Default)]
 pub struct Tree<T>
@@ -24,8 +24,7 @@ where
     }
 
     pub fn sub_tree(&self, index: usize) -> Self {
-        let nodes = BreadthFirstIterator::new(&self.nodes, index)
-            .collect::<Vec<&Node<T>>>();
+        let nodes = BreadthFirstIterator::new(&self.nodes, index).collect::<Vec<&Node<T>>>();
 
         Tree::new(node_collections::reindex(0, nodes.as_slice()))
     }
