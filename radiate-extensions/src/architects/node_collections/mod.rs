@@ -6,6 +6,7 @@ pub mod node_chromosome;
 pub mod node_factory;
 pub mod reducers;
 pub mod tree;
+pub mod trees;
 
 pub use codex::*;
 pub use graph::*;
@@ -15,6 +16,7 @@ pub use node_chromosome::*;
 pub use node_factory::*;
 pub use reducers::*;
 pub use tree::*;
+pub use trees::*;
 
 use std::collections::{HashSet, VecDeque};
 
