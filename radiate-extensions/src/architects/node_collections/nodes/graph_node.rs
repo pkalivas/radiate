@@ -1,29 +1,34 @@
-use std::collections::HashSet;
-use uuid::Uuid;
-
-use crate::{Direction, NodeCell, NodeType};
-
-use super::NodeBehavior;
+use crate::{Direction, FlatNodeCell};
 
 pub struct GraphNode<T> {
-    cell: NodeCell<T>,
-    index: usize,
+    cell: FlatNodeCell<T>,
     enabled: bool,
     direction: Direction,
-    incoming: HashSet<usize>,
-    outgoing: HashSet<usize>,
 }
 
 impl<T> GraphNode<T> {
     pub fn new(index: usize, value: T) -> Self {
         Self {
-            cell: NodeCell::new(value),
-            index,
+            cell: FlatNodeCell::new(index, value),
             enabled: true,
             direction: Direction::Forward,
-            incoming: HashSet::new(),
-            outgoing: HashSet::new(),
         }
+    }
+
+    pub fn cell(&self) -> &FlatNodeCell<T> {
+        &self.cell
+    }
+
+    pub fn cell_mut(&mut self) -> &mut FlatNodeCell<T> {
+        &mut self.cell
+    }
+
+    pub fn enabled(&self) -> bool {
+        self.enabled
+    }
+
+    pub fn direction(&self) -> Direction {
+        self.direction
     }
 
     pub fn set_enabled(&mut self, enabled: bool) {
@@ -35,25 +40,25 @@ impl<T> GraphNode<T> {
     }
 }
 
-impl<T> NodeBehavior for GraphNode<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    type Value = T;
-    type Node = GraphNode<T>;
-
-    fn node_type(&self) -> NodeType {
-        self.cell.node_type()
-    }
-
-    fn id(&self) -> Uuid {
-        self.cell.id()
-    }
-
-    fn value(&self) -> &Self::Value {
-        self.cell.value()
-    }
-}
+// impl<T> NodeBehavior for GraphNode<T>
+// where
+//     T: Clone + PartialEq + Default,
+// {
+//     type Value = T;
+//     type Node = GraphNode<T>;
+//
+//     fn node_type(&self) -> NodeType {
+//         self.cell.node_type()
+//     }
+//
+//     fn id(&self) -> Uuid {
+//         self.cell.id()
+//     }
+//
+//     fn value(&self) -> &Self::Value {
+//         self.cell.value()
+//     }
+// }
 
 impl<T> Clone for GraphNode<T>
 where
@@ -62,11 +67,8 @@ where
     fn clone(&self) -> Self {
         Self {
             cell: self.cell.clone(),
-            index: self.index,
             enabled: self.enabled,
             direction: self.direction,
-            incoming: self.incoming.clone(),
-            outgoing: self.outgoing.clone(),
         }
     }
 }

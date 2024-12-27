@@ -1,21 +1,15 @@
 use super::NodeBehavior;
 use crate::architects::schema::node_types::NodeType;
-use crate::NodeCell;
+use crate::{NodeCell, NodeSchema};
 use uuid::Uuid;
 
-pub struct TreeNode<T>
-where
-    T: Clone + PartialEq + Default,
-{
+pub struct TreeNode<T> {
     id: Uuid,
     value: NodeCell<T>,
     children: Vec<TreeNode<T>>,
 }
 
-impl<T> TreeNode<T>
-where
-    T: Clone + PartialEq + Default,
-{
+impl<T> TreeNode<T> {
     pub fn new(value: T) -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -30,6 +24,10 @@ where
             value,
             children: Vec::new(),
         }
+    }
+
+    pub fn cell(&self) -> &NodeCell<T> {
+        &self.value
     }
 
     pub fn add_child(&mut self, child: TreeNode<T>) {
@@ -91,7 +89,7 @@ where
 
 impl<T> Clone for TreeNode<T>
 where
-    T: Clone + PartialEq + Default,
+    T: Clone,
 {
     fn clone(&self) -> Self {
         let mut new_tree = TreeNode::with_schema(self.value.clone());
@@ -99,5 +97,17 @@ where
             new_tree.add_child(child.clone());
         }
         new_tree
+    }
+}
+
+
+impl<T> PartialEq for TreeNode<T>
+where
+    T: Clone + PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+            && self.value == other.value
+            && self.children == other.children
     }
 }
