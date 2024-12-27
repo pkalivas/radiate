@@ -1,6 +1,6 @@
 use crate::architects::node_collection_builder::NodeCollectionBuilder;
 use crate::architects::node_collections::node::Node;
-use crate::architects::node_collections::node_factory::OpNodeFactory;
+use crate::architects::node_collections::node_factory::NodeFactory;
 use crate::architects::node_collections::NodeCollection;
 use crate::architects::schema::node_types::NodeType;
 
@@ -11,7 +11,7 @@ where
     C: NodeCollection<T>,
     T: Clone + PartialEq + Default,
 {
-    pub node_factory: &'a OpNodeFactory<T>,
+    pub node_factory: &'a NodeFactory<T>,
     _phantom: std::marker::PhantomData<C>,
 }
 
@@ -20,7 +20,7 @@ where
     C: NodeCollection<T>,
     T: Clone + PartialEq + Default,
 {
-    pub fn new(node_factory: &'a OpNodeFactory<T>) -> Self {
+    pub fn new(node_factory: &'a NodeFactory<T>) -> Self {
         Architect {
             node_factory,
             _phantom: std::marker::PhantomData,

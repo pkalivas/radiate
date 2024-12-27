@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashSet};
 
 use crate::architects::node_collections::node::Node;
-use crate::architects::node_collections::node_factory::OpNodeFactory;
+use crate::architects::node_collections::node_factory::NodeFactory;
 use crate::architects::node_collections::NodeCollection;
 use crate::architects::schema::node_types::NodeType;
 
@@ -30,7 +30,7 @@ where
     C: NodeCollection<T> + NodeRepairs<T>,
     T: Clone + PartialEq + Default,
 {
-    pub factory: Option<&'a OpNodeFactory<T>>,
+    pub factory: Option<&'a NodeFactory<T>>,
     pub nodes: BTreeMap<&'a Uuid, &'a Node<T>>,
     pub node_order: BTreeMap<usize, &'a Uuid>,
     pub relationships: Vec<Relationship<'a>>,
@@ -43,7 +43,7 @@ where
     C: NodeCollection<T> + NodeRepairs<T>,
     T: Clone + PartialEq + Default,
 {
-    pub fn new(factory: &'a OpNodeFactory<T>) -> Self {
+    pub fn new(factory: &'a NodeFactory<T>) -> Self {
         NodeCollectionBuilder {
             factory: Some(factory),
             nodes: BTreeMap::new(),

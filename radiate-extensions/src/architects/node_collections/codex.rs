@@ -1,4 +1,4 @@
-use crate::architects::node_collections::nodes::op::Ops;
+use crate::architects::node_collections::nodes::expr::Expr;
 use crate::architects::*;
 use crate::node::Node;
 use radiate::engines::codexes::Codex;
@@ -14,7 +14,7 @@ where
 {
     pub input_size: usize,
     pub output_size: usize,
-    pub factory: Rc<RefCell<OpNodeFactory<T>>>,
+    pub factory: Rc<RefCell<NodeFactory<T>>>,
     pub nodes: Vec<Node<T>>,
 }
 
@@ -22,11 +22,11 @@ impl<T> GraphCodex<T>
 where
     T: Clone + PartialEq + Default,
 {
-    pub fn from_factory(factory: &OpNodeFactory<T>) -> Self {
+    pub fn from_factory(factory: &NodeFactory<T>) -> Self {
         GraphCodex::from_shape(1, 1, factory)
     }
 
-    pub fn from_shape(input_size: usize, output_size: usize, factory: &OpNodeFactory<T>) -> Self {
+    pub fn from_shape(input_size: usize, output_size: usize, factory: &NodeFactory<T>) -> Self {
         let nodes = Architect::<Graph<T>, T>::new(factory)
             .acyclic(input_size, output_size)
             .iter()
@@ -36,7 +36,7 @@ where
         GraphCodex::from_nodes(nodes, factory)
     }
 
-    pub fn from_nodes(nodes: Vec<Node<T>>, factory: &OpNodeFactory<T>) -> Self {
+    pub fn from_nodes(nodes: Vec<Node<T>>, factory: &NodeFactory<T>) -> Self {
         GraphCodex {
             input_size: nodes
                 .iter()
@@ -70,37 +70,37 @@ where
         self
     }
 
-    pub fn set_factory(mut self, factory: &OpNodeFactory<T>) -> Self {
+    pub fn set_factory(mut self, factory: &NodeFactory<T>) -> Self {
         self.factory = Rc::new(RefCell::new(factory.clone()));
         self
     }
 
-    pub fn set_gates(self, gates: Vec<Ops<T>>) -> Self {
+    pub fn set_gates(self, gates: Vec<Expr<T>>) -> Self {
         self.set_values(NodeType::Gate, gates);
         self
     }
 
-    pub fn set_weights(self, weights: Vec<Ops<T>>) -> Self {
+    pub fn set_weights(self, weights: Vec<Expr<T>>) -> Self {
         self.set_values(NodeType::Weight, weights);
         self
     }
 
-    pub fn set_aggregates(self, aggregates: Vec<Ops<T>>) -> Self {
+    pub fn set_aggregates(self, aggregates: Vec<Expr<T>>) -> Self {
         self.set_values(NodeType::Aggregate, aggregates);
         self
     }
 
-    pub fn set_inputs(self, inputs: Vec<Ops<T>>) -> Self {
+    pub fn set_inputs(self, inputs: Vec<Expr<T>>) -> Self {
         self.set_values(NodeType::Input, inputs);
         self
     }
 
-    pub fn set_outputs(self, outputs: Vec<Ops<T>>) -> Self {
+    pub fn set_outputs(self, outputs: Vec<Expr<T>>) -> Self {
         self.set_values(NodeType::Output, outputs);
         self
     }
 
-    fn set_values(&self, node_type: NodeType, values: Vec<Ops<T>>) {
+    fn set_values(&self, node_type: NodeType, values: Vec<Expr<T>>) {
         let mut factory = self.factory.borrow_mut();
         factory.add_node_values(node_type, values);
     }
@@ -108,7 +108,7 @@ where
 
 impl GraphCodex<f32> {
     pub fn regression(input_size: usize, output_size: usize) -> Self {
-        let factory = OpNodeFactory::<f32>::regression(input_size);
+        let factory = NodeFactory::<f32>::regression(input_size);
         let nodes = Architect::<Graph<f32>, f32>::new(&factory)
             .acyclic(input_size, output_size)
             .iter()

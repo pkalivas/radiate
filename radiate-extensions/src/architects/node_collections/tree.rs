@@ -283,7 +283,7 @@ mod test {
 
     #[test]
     fn test_tree_two_depth() {
-        let root = TreeNode::<Ops<f32>>::new(op::add());
+        let root = TreeNode::<Expr<f32>>::new(expr::add());
         let tree = Tree::new(root);
 
         assert_eq!(tree.depth(), 1);
@@ -291,8 +291,8 @@ mod test {
 
     #[test]
     fn test_tree_two_depth_two() {
-        let mut root = TreeNode::<Ops<f32>>::new(op::add());
-        let child = TreeNode::<Ops<f32>>::new(op::add());
+        let mut root = TreeNode::<Expr<f32>>::new(expr::add());
+        let child = TreeNode::<Expr<f32>>::new(expr::add());
         root.add_child(child);
 
         let tree = Tree::new(root);
@@ -325,9 +325,9 @@ mod test {
     #[test]
     fn test_tree_two_sub_tree() {
         const DEPTH: usize = 3;
-        let node_factory = OpNodeFactory::<f32>::regression(3);
+        let node_factory = NodeFactory::<f32>::regression(3);
 
-        let tree = Tree::with_depth(DEPTH, |depth, parent: Option<&TreeNode<Ops<f32>>>| {
+        let tree = Tree::with_depth(DEPTH, |depth, parent: Option<&TreeNode<Expr<f32>>>| {
             let mut children = Vec::new();
             if let Some(parent) = parent {
                 for _ in 0..parent.cell.value().arity() {

@@ -60,7 +60,7 @@ where
         &self,
         collection: &[Node<T>],
         node_type: &NodeType,
-        factory: &OpNodeFactory<T>,
+        factory: &NodeFactory<T>,
     ) -> Option<Vec<Node<T>>> {
         let source_node = random_source_node(collection);
         let target_node = random_target_node(collection);
@@ -150,7 +150,7 @@ where
         &self,
         collection: &[Node<T>],
         node_type: &NodeType,
-        factory: &OpNodeFactory<T>,
+        factory: &NodeFactory<T>,
     ) -> Option<Vec<Node<T>>> {
         let source_node = random_source_node(collection);
         let target_node = random_target_node(collection);

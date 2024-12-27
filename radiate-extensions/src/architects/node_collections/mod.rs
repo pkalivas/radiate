@@ -28,7 +28,7 @@ pub trait NodeRepairs<T>: Valid + Default + Clone
 where
     T: Clone + PartialEq + Default,
 {
-    fn repair(&mut self, factory: Option<&OpNodeFactory<T>>) -> Self;
+    fn repair(&mut self, factory: Option<&NodeFactory<T>>) -> Self;
 }
 
 pub trait NodeCollectionTwo: Default + Clone + Valid {

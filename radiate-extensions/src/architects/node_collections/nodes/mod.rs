@@ -6,19 +6,13 @@ pub mod expr;
 pub mod gene_node;
 pub mod graph_node;
 pub mod indexed_node;
-pub mod op;
-pub mod schema;
 pub mod tree_node;
-pub mod values;
 
 pub use expr::*;
 pub use gene_node::*;
 pub use graph_node::*;
 pub use indexed_node::*;
-pub use op::*;
-pub use schema::*;
 pub use tree_node::*;
-pub use values::*;
 
 use crate::NodeType;
 

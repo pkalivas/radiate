@@ -62,6 +62,8 @@ where
     fn new_instance(&self) -> Self {
         let node_type = self.inner.node().node_type();
         let values = self.factory.borrow().get(&node_type).unwrap();
+        
+        
 
         todo!()
     }

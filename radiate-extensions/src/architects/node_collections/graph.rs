@@ -4,7 +4,7 @@ use super::GraphIterator;
 use crate::node::Node;
 use crate::{
     node_collections, schema::collection_type::CollectionType, Direction, NodeCollection,
-    NodeRepairs, NodeType, OpNodeFactory,
+    NodeFactory, NodeRepairs, NodeType,
 };
 
 #[derive(Clone, PartialEq, Default)]
@@ -113,7 +113,7 @@ impl<T> NodeRepairs<T> for Graph<T>
 where
     T: Clone + PartialEq + Default,
 {
-    fn repair(&mut self, factory: Option<&OpNodeFactory<T>>) -> Self {
+    fn repair(&mut self, factory: Option<&NodeFactory<T>>) -> Self {
         let mut collection = self.clone().set_cycles(Vec::new());
 
         for node in collection.iter_mut() {
