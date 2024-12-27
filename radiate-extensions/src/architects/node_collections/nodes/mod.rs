@@ -5,15 +5,15 @@ use uuid::Uuid;
 
 pub mod expr;
 pub mod gene_node;
-pub mod flat_node;
+pub mod indexed_node;
 pub mod tree_node;
 
 pub use expr::*;
 pub use gene_node::*;
-pub use flat_node::*;
+pub use indexed_node::*;
 pub use tree_node::*;
 
-use crate::NodeType;
+use crate::{Direction, NodeType};
 
 pub trait NodeBehavior {
     type Value;
@@ -40,8 +40,9 @@ pub struct NodeCell<T> {
     pub value: Expr<T>,
     pub id: Uuid,
     pub arity: Option<Arity>,
+    pub enabled: bool,
+    pub direction: Direction,
     pub node_type: NodeType,
-    pub permutations: NodePermutations<T>,
 }
 
 impl<T> NodeCell<T> {
@@ -49,9 +50,10 @@ impl<T> NodeCell<T> {
         Self {
             value,
             arity: None,
+            enabled: true,
+            direction: Direction::Forward,
             id: Uuid::new_v4(),
             node_type: NodeType::Unknown,
-            permutations: None,
         }
     }
 
@@ -69,27 +71,13 @@ impl<T> NodeCell<T> {
     where
         T: Clone,
     {
-        if let Some(permutations) = &self.permutations {
-            let perms = permutations.borrow();
-            let values = perms.deref();
-            let idx = rand::random::<usize>() % values.len();
-            let value = values[idx].clone();
-
-            NodeCell {
-                value,
-                id: Uuid::new_v4(),
-                arity: self.arity.clone(),
-                node_type: self.node_type,
-                permutations: Some(Arc::clone(permutations)),
-            }
-        } else {
-            NodeCell {
-                value: self.value.clone(),
-                id: Uuid::new_v4(),
-                arity: self.arity.clone(),
-                node_type: self.node_type,
-                permutations: self.permutations.clone(),
-            }
+        NodeCell {
+            value: self.value.clone(),
+            id: Uuid::new_v4(),
+            arity: self.arity.clone(),
+            node_type: self.node_type,
+            enabled: self.enabled,
+            direction: self.direction,
         }
     }
 
