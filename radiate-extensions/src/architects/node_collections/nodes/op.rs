@@ -14,10 +14,7 @@ use radiate::random_provider;
 const MAX_VALUE: f32 = 1e+5_f32;
 const MIN_VALUE: f32 = -1e+5_f32;
 
-pub enum Ops<T>
-where
-    T: Clone,
-{
+pub enum Ops<T> {
     Fn(&'static str, u8, Arc<dyn Fn(&[T]) -> T>),
     Value(T),
     Var(String, usize),
@@ -34,10 +31,7 @@ where
 unsafe impl Send for Ops<f32> {}
 unsafe impl Sync for Ops<f32> {}
 
-impl<T> Ops<T>
-where
-    T: Clone,
-{
+impl<T> Ops<T> {
     pub fn name(&self) -> &str {
         match self {
             Ops::Fn(name, _, _) => name,
@@ -58,7 +52,10 @@ where
         }
     }
 
-    pub fn apply(&self, inputs: &[T]) -> T {
+    pub fn apply(&self, inputs: &[T]) -> T
+    where
+        T: Clone,
+    {
         match self {
             Ops::Fn(_, _, op) => op(inputs),
             Ops::Value(value) => value.clone(),
@@ -68,7 +65,10 @@ where
         }
     }
 
-    pub fn new_instance(&self) -> Ops<T> {
+    pub fn new_instance(&self) -> Ops<T>
+    where
+        T: Clone,
+    {
         match self {
             Ops::Fn(name, arity, op) => Ops::Fn(name, *arity, op.clone()),
             Ops::Value(value) => Ops::Value(value.clone()),
