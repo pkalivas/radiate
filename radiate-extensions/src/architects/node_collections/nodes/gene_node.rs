@@ -1,50 +1,37 @@
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::rc::Rc;
-
 use radiate::{Gene, Valid};
+use std::collections::HashSet;
 
-use crate::{NodeBehavior, NodeType};
+use crate::NodeBehavior;
+use crate::NodeCell;
 
-use super::IndexedNode;
-
-#[derive(PartialEq)]
 pub struct GeneNode<T> {
-    inner: IndexedNode<T>,
-    factory: Rc<RefCell<HashMap<NodeType, Vec<T>>>>,
+    index: usize,
+    cell: NodeCell<T>,
+    incoming: HashSet<usize>,
+    outgoing: HashSet<usize>,
 }
 
-impl<T> GeneNode<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    pub fn new(inner: IndexedNode<T>, factory: Rc<RefCell<HashMap<NodeType, Vec<T>>>>) -> Self {
-        Self { inner, factory }
-    }
-
-    pub fn inner(&self) -> &IndexedNode<T> {
-        &self.inner
-    }
-
-    pub fn inner_mut(&mut self) -> &mut IndexedNode<T> {
-        &mut self.inner
-    }
-
-    pub fn factory(&self) -> Rc<RefCell<HashMap<NodeType, Vec<T>>>> {
-        self.factory.clone()
+impl<T> GeneNode<T> {
+    pub fn new(index: usize, value: T) -> Self {
+        Self {
+            index,
+            cell: NodeCell::new(value),
+            incoming: HashSet::new(),
+            outgoing: HashSet::new(),
+        }
     }
 }
 
 impl<T> Clone for GeneNode<T>
 where
-    T: Clone + PartialEq + Default,
+    T: Clone,
 {
     fn clone(&self) -> Self {
-        let new_inner = self.inner.clone();
-
         Self {
-            inner: new_inner,
-            factory: self.factory.clone(),
+            index: self.index,
+            cell: self.cell.clone(),
+            incoming: self.incoming.clone(),
+            outgoing: self.outgoing.clone(),
         }
     }
 }
@@ -56,20 +43,25 @@ where
     type Allele = T;
 
     fn allele(&self) -> &Self::Allele {
-        self.inner.node().value()
+        self.cell.value()
     }
 
     fn new_instance(&self) -> Self {
-        let node_type = self.inner.node().node_type();
-        let values = self.factory.borrow().get(&node_type).unwrap();
-
-
-
-        todo!()
+        Self {
+            index: self.index,
+            cell: self.cell.new_instance(),
+            incoming: self.incoming.clone(),
+            outgoing: self.outgoing.clone(),
+        }
     }
 
     fn with_allele(&self, allele: &Self::Allele) -> Self {
-        todo!()
+        Self {
+            index: self.index,
+            cell: self.cell.clone().with_value(allele.clone()),
+            incoming: self.incoming.clone(),
+            outgoing: self.outgoing.clone(),
+        }
     }
 }
 
@@ -79,5 +71,16 @@ where
 {
     fn is_valid(&self) -> bool {
         todo!()
+    }
+}
+
+impl<T> PartialEq for GeneNode<T>
+where
+    T: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.cell == other.cell
+            && self.incoming == other.incoming
+            && self.outgoing == other.outgoing
     }
 }

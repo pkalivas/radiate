@@ -1,36 +1,29 @@
+use std::collections::HashSet;
 use uuid::Uuid;
 
-use crate::{Direction, IndexedNode, NodeType};
+use crate::{Direction, NodeCell, NodeType};
 
 use super::NodeBehavior;
 
-pub struct GraphNode<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    cell: IndexedNode<T>,
+pub struct GraphNode<T> {
+    cell: NodeCell<T>,
+    index: usize,
     enabled: bool,
     direction: Direction,
+    incoming: HashSet<usize>,
+    outgoing: HashSet<usize>,
 }
 
-impl<T> GraphNode<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    pub fn new(cell: IndexedNode<T>) -> Self {
+impl<T> GraphNode<T> {
+    pub fn new(index: usize, value: T) -> Self {
         Self {
-            cell,
+            cell: NodeCell::new(value),
+            index,
             enabled: true,
             direction: Direction::Forward,
+            incoming: HashSet::new(),
+            outgoing: HashSet::new(),
         }
-    }
-
-    pub fn cell(&self) -> &IndexedNode<T> {
-        &self.cell
-    }
-
-    pub fn cell_mut(&mut self) -> &mut IndexedNode<T> {
-        &mut self.cell
     }
 
     pub fn set_enabled(&mut self, enabled: bool) {
@@ -50,30 +43,37 @@ where
     type Node = GraphNode<T>;
 
     fn node_type(&self) -> NodeType {
-        self.cell.node().node_type()
+        self.cell.node_type()
     }
 
     fn id(&self) -> Uuid {
-        self.cell.node().id()
+        self.cell.id()
+    }
+
+    fn value(&self) -> &Self::Value {
+        self.cell.value()
     }
 }
 
 impl<T> Clone for GraphNode<T>
 where
-    T: Clone + PartialEq + Default,
+    T: Clone,
 {
     fn clone(&self) -> Self {
         Self {
             cell: self.cell.clone(),
+            index: self.index,
             enabled: self.enabled,
             direction: self.direction,
+            incoming: self.incoming.clone(),
+            outgoing: self.outgoing.clone(),
         }
     }
 }
 
 impl<T> PartialEq for GraphNode<T>
 where
-    T: Clone + PartialEq + Default,
+    T: PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
         self.cell == other.cell

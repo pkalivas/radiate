@@ -48,7 +48,7 @@ where
     /// path from the root node to a leaf node.
     pub fn depth(&self) -> usize {
         fn calc_depth<T: Clone + PartialEq + Default>(node: &TreeNode<T>) -> usize {
-            if node.children.is_empty() {
+            if node.children().is_empty() {
                 1
             } else {
                 1 + node
@@ -261,7 +261,7 @@ where
             f: &mut std::fmt::Formatter<'_>,
             depth: usize,
         ) -> std::fmt::Result {
-            writeln!(f, "{:indent$}{}", "", node.cell.value(), indent = depth * 2)?;
+            writeln!(f, "{:indent$}{}", "", node.value(), indent = depth * 2)?;
             for child in node.children() {
                 print_node(child, f, depth + 1)?;
             }
@@ -330,7 +330,7 @@ mod test {
         let tree = Tree::with_depth(DEPTH, |depth, parent: Option<&TreeNode<Expr<f32>>>| {
             let mut children = Vec::new();
             if let Some(parent) = parent {
-                for _ in 0..parent.cell.value().arity() {
+                for _ in 0..parent.value().arity() {
                     if depth == 1 {
                         let leafs = &node_factory.node_values[&NodeType::Leaf];
                         let value = random_provider::choose(leafs);
