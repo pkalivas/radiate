@@ -1,4 +1,4 @@
-use crate::{Node, NodeType, NodeFactory};
+use crate::{Node, NodeFactory, NodeType};
 use radiate::{Chromosome, Valid};
 use std::cell::RefCell;
 use std::ops::{Index, IndexMut};
