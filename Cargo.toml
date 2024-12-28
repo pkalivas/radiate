@@ -13,5 +13,5 @@ members = [
     "radiate-examples/simple-nn",
     "radiate-examples/TSP",
     "radiate-examples/DTLZ",
-    "radiate-examples/rastrigin"
-]
+    "radiate-examples/rastrigin",
+    "radiate-benchmarks"]

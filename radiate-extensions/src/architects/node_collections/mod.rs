@@ -22,9 +22,9 @@ use crate::NodeType;
 use radiate::engines::genome::genes::gene::Valid;
 use radiate::random_provider;
 
-pub trait NodeRepairs<T>: Valid + Default + Clone
+pub trait NodeRepairs<T>
 where
-    T: Clone + PartialEq + Default,
+    T: Clone,
 {
     fn repair(&mut self, factory: Option<&NodeFactory<T>>) -> Self;
 }

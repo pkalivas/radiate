@@ -1,6 +1,6 @@
+use crate::architects::cells::expr::Expr;
 use crate::architects::*;
 use crate::node::Node;
-use crate::operations::op::Ops;
 use radiate::engines::codexes::Codex;
 use radiate::engines::genome::genes::gene::Gene;
 use radiate::engines::genome::genotype::Genotype;
@@ -75,32 +75,32 @@ where
         self
     }
 
-    pub fn set_gates(self, gates: Vec<Ops<T>>) -> Self {
+    pub fn set_gates(self, gates: Vec<Expr<T>>) -> Self {
         self.set_values(NodeType::Gate, gates);
         self
     }
 
-    pub fn set_weights(self, weights: Vec<Ops<T>>) -> Self {
+    pub fn set_weights(self, weights: Vec<Expr<T>>) -> Self {
         self.set_values(NodeType::Weight, weights);
         self
     }
 
-    pub fn set_aggregates(self, aggregates: Vec<Ops<T>>) -> Self {
+    pub fn set_aggregates(self, aggregates: Vec<Expr<T>>) -> Self {
         self.set_values(NodeType::Aggregate, aggregates);
         self
     }
 
-    pub fn set_inputs(self, inputs: Vec<Ops<T>>) -> Self {
+    pub fn set_inputs(self, inputs: Vec<Expr<T>>) -> Self {
         self.set_values(NodeType::Input, inputs);
         self
     }
 
-    pub fn set_outputs(self, outputs: Vec<Ops<T>>) -> Self {
+    pub fn set_outputs(self, outputs: Vec<Expr<T>>) -> Self {
         self.set_values(NodeType::Output, outputs);
         self
     }
 
-    fn set_values(&self, node_type: NodeType, values: Vec<Ops<T>>) {
+    fn set_values(&self, node_type: NodeType, values: Vec<Expr<T>>) {
         let mut factory = self.factory.borrow_mut();
         factory.add_node_values(node_type, values);
     }
@@ -184,17 +184,17 @@ where
         }
     }
 
-    pub fn set_gates(self, gates: Vec<Ops<T>>) -> Self {
+    pub fn set_gates(self, gates: Vec<Expr<T>>) -> Self {
         self.set_values(NodeType::Gate, gates);
         self
     }
 
-    pub fn set_leafs(self, leafs: Vec<Ops<T>>) -> Self {
+    pub fn set_leafs(self, leafs: Vec<Expr<T>>) -> Self {
         self.set_values(NodeType::Leaf, leafs);
         self
     }
 
-    fn set_values(&self, node_type: NodeType, values: Vec<Ops<T>>) {
+    fn set_values(&self, node_type: NodeType, values: Vec<Expr<T>>) {
         let mut factory = self.factory.borrow_mut();
         factory.add_node_values(node_type, values);
     }

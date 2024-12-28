@@ -1,7 +1,7 @@
 use std::ops::{Add, Mul, Sub};
 use std::sync::Arc;
 
-use crate::operations::op::Ops;
+use crate::architects::cells::expr::Expr;
 use crate::NodeChromosome;
 use num_traits::Float;
 use radiate::alter::AlterType;
@@ -69,14 +69,14 @@ where
                 let current_node = chromosome.get_gene(i);
 
                 match current_node.allele() {
-                    Ops::MutableConst(name, arity, value, supplier, operation) => {
+                    Expr::MutableConst(name, arity, value, supplier, operation) => {
                         let random_value = random_provider::random::<T>() * T::from(2).unwrap()
                             - T::from(1).unwrap();
 
                         if random_provider::random::<f32>() < self.replace_rate {
                             chromosome.set_gene(
                                 i,
-                                current_node.with_allele(&Ops::MutableConst(
+                                current_node.with_allele(&Expr::MutableConst(
                                     name,
                                     *arity,
                                     random_value,
@@ -88,7 +88,7 @@ where
                             let new_value = random_value + *value;
                             chromosome.set_gene(
                                 i,
-                                current_node.with_allele(&Ops::MutableConst(
+                                current_node.with_allele(&Expr::MutableConst(
                                     name,
                                     *arity,
                                     new_value,

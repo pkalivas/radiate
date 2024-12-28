@@ -1,0 +1,15 @@
+[package]
+name = "radiate-benchmarks"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+radiate = { path = "../radiate" }
+radiate-extensions = { path = "../radiate-extensions" }
+
+[dev-dependencies]
+divan = "0.1.17"
+
+[[bench]]
+name = "engines"
+harness = false

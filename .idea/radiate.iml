@@ -20,6 +20,8 @@
       <sourceFolder url="file://$MODULE_DIR$/radiate-examples/DTLZ/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/radiate-examples/TSP/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/radiate-examples/rastrigin/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/radiate-benchmarks/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/radiate-benchmarks/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/radiate/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>

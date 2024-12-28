@@ -3,27 +3,17 @@ use radiate::alter::AlterType;
 use radiate::engines::genome::*;
 use radiate::{random_provider, Alter};
 
-pub struct NodeCrossover<T>
-where
-    T: Clone + PartialEq + Default + 'static,
-{
+pub struct NodeCrossover {
     pub rate: f32,
-    _marker: std::marker::PhantomData<T>,
 }
 
-impl<T> NodeCrossover<T>
-where
-    T: Clone + PartialEq + Default + 'static,
-{
+impl NodeCrossover {
     pub fn new(rate: f32) -> Self {
-        Self {
-            rate,
-            _marker: std::marker::PhantomData,
-        }
+        Self { rate }
     }
 }
 
-impl<T> Alter<NodeChromosome<T>> for NodeCrossover<T>
+impl<T> Alter<NodeChromosome<T>> for NodeCrossover
 where
     T: Clone + PartialEq + Default,
 {
@@ -45,7 +35,7 @@ where
         chrom_one: &mut NodeChromosome<T>,
         chrom_two: &mut NodeChromosome<T>,
     ) -> i32 {
-        let rate = self.rate();
+        let rate = self.rate;
         let mut cross_count = 0;
 
         for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {

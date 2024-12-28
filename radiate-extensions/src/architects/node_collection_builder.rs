@@ -16,7 +16,6 @@ pub enum ConnectTypes {
     AllToAll,
     AllToAllSelf,
     ParentToChild,
-    Replace,
 }
 
 pub struct Relationship<'a> {
@@ -81,11 +80,6 @@ where
 
     pub fn parent_to_child(mut self, one: &'a C, two: &'a C) -> Self {
         self.connect(ConnectTypes::ParentToChild, one, two);
-        self
-    }
-
-    pub fn replace(mut self, one: &'a C, two: &'a C) -> Self {
-        self.connect(ConnectTypes::Replace, one, two);
         self
     }
 
@@ -155,7 +149,6 @@ where
             ConnectTypes::AllToAll => self.all_to_all_connect(one, two),
             ConnectTypes::AllToAllSelf => self.all_to_all_self_connect(one, two),
             ConnectTypes::ParentToChild => self.parent_to_child_connect(one, two),
-            ConnectTypes::Replace => self.replace_connect(one, two),
         }
     }
 
@@ -177,33 +170,6 @@ where
                     });
                 }
             }
-        }
-    }
-
-    fn replace_connect(&mut self, one: &'a C, two: &'a C) {
-        let two_inputs = self.get_inputs(two);
-        let one_inputs = self.get_inputs(one);
-
-        for node in one.iter() {
-            self.removed.insert(&node.id);
-        }
-
-        let source_to_removed = self
-            .relationships
-            .iter()
-            .filter(|rel| one_inputs.iter().any(|node| node.id == *rel.target_id))
-            .map(|rel| (rel.source_id, rel.target_id))
-            .collect::<Vec<(&Uuid, &Uuid)>>();
-
-        if source_to_removed.len() != two_inputs.len() {
-            panic!("Replace - OneGroup outputs must be the same length as TwoGroup inputs.");
-        }
-
-        for (source, target) in source_to_removed.into_iter().zip(two_inputs.into_iter()) {
-            self.relationships.push(Relationship {
-                source_id: source.0,
-                target_id: &target.id,
-            });
         }
     }
 

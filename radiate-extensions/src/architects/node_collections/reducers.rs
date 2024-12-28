@@ -1,6 +1,7 @@
 use super::{Graph, Tree};
 use crate::node::Node;
-use crate::{NodeCollection, NodeType, Ops};
+use crate::expr::Expr;
+use crate::{NodeCollection, NodeType};
 
 /// `GraphReducer` is a struct that is used to evaluate a `Graph` of `Node`s. It uses the `GraphIterator`
 /// to traverse the `Graph` in a sudo-topological order and evaluate the nodes in the correct order.
@@ -168,11 +169,11 @@ where
 
         self.previous_result = self.result.clone();
         self.result = match &node.value {
-            Ops::Value(ref value) => Some(value.clone()),
-            Ops::Const(_, ref value) => Some(value.clone()),
-            Ops::Fn(_, _, ref fn_ptr) => Some(fn_ptr(&self.args)),
-            Ops::MutableConst(_, _, ref val, _, fn_ptr) => Some(fn_ptr(&self.args, val)),
-            Ops::Var(_, _) => Some(self.args[0].clone()),
+            Expr::Value(ref value) => Some(value.clone()),
+            Expr::Const(_, ref value) => Some(value.clone()),
+            Expr::Fn(_, _, ref fn_ptr) => Some(fn_ptr(&self.args)),
+            Expr::MutableConst(_, _, ref val, _, fn_ptr) => Some(fn_ptr(&self.args, val)),
+            Expr::Var(_, _) => Some(self.args[0].clone()),
         };
 
         self.pending_idx = 0;
