@@ -1,12 +1,8 @@
-pub enum Arity {
-    Nullary,
-    Unary,
-    Binary,
-    Ternary,
-    Nary(usize),
-    Free,
-}
+use crate::{Direction, Expr};
 
+#[derive(Clone, PartialEq)]
 pub struct NodeCell<T> {
-    pub value: T,
+    pub value: Expr<T>,
+    pub enabled: bool,
+    pub direction: Direction,
 }

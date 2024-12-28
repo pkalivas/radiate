@@ -1,5 +1,5 @@
+use crate::architects::cells::expr::Expr;
 use crate::architects::schema::{direction::Direction, node_types::NodeType};
-use crate::operations::op::Ops;
 use crate::schema::collection_type::CollectionType;
 use radiate::engines::genome::genes::gene::{Gene, Valid};
 use std::collections::HashSet;
@@ -8,7 +8,7 @@ use uuid::Uuid;
 pub struct Node<T> {
     pub id: Uuid,
     pub index: usize,
-    pub value: Ops<T>,
+    pub value: Expr<T>,
     pub collection_type: Option<CollectionType>,
     pub enabled: bool,
     pub node_type: NodeType,
@@ -18,7 +18,7 @@ pub struct Node<T> {
 }
 
 impl<T> Node<T> {
-    pub fn new(index: usize, node_type: NodeType, value: Ops<T>) -> Self {
+    pub fn new(index: usize, node_type: NodeType, value: Expr<T>) -> Self {
         Self {
             id: Uuid::new_v4(),
             index,
@@ -36,7 +36,7 @@ impl<T> Node<T> {
         &self.node_type
     }
 
-    pub fn value(&self) -> &Ops<T> {
+    pub fn value(&self) -> &Expr<T> {
         &self.value
     }
 
@@ -67,9 +67,9 @@ impl<T> Gene for Node<T>
 where
     T: Clone + PartialEq + Default,
 {
-    type Allele = Ops<T>;
+    type Allele = Expr<T>;
 
-    fn allele(&self) -> &Ops<T> {
+    fn allele(&self) -> &Expr<T> {
         &self.value
     }
 
@@ -87,7 +87,7 @@ where
         }
     }
 
-    fn with_allele(&self, allele: &Ops<T>) -> Node<T> {
+    fn with_allele(&self, allele: &Expr<T>) -> Node<T> {
         Node {
             id: Uuid::new_v4(),
             index: self.index,
@@ -178,7 +178,7 @@ where
             id: Uuid::new_v4(),
             index: 0,
             enabled: true,
-            value: Ops::default(),
+            value: Expr::default(),
             direction: Direction::Forward,
             node_type: NodeType::Input,
             collection_type: None,

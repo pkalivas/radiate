@@ -14,7 +14,7 @@ use radiate::random_provider;
 const MAX_VALUE: f32 = 1e+5_f32;
 const MIN_VALUE: f32 = -1e+5_f32;
 
-pub enum Ops<T> {
+pub enum Expr<T> {
     Fn(&'static str, u8, Arc<dyn Fn(&[T]) -> T>),
     Value(T),
     Var(String, usize),
@@ -28,50 +28,50 @@ pub enum Ops<T> {
     ),
 }
 
-unsafe impl Send for Ops<f32> {}
-unsafe impl Sync for Ops<f32> {}
+unsafe impl Send for Expr<f32> {}
+unsafe impl Sync for Expr<f32> {}
 
-impl<T> Ops<T>
+impl<T> Expr<T>
 where
     T: Clone,
 {
     pub fn name(&self) -> &str {
         match self {
-            Ops::Fn(name, _, _) => name,
-            Ops::Value(_) => "value",
-            Ops::Var(name, _) => name,
-            Ops::Const(name, _) => name,
-            Ops::MutableConst(name, _, _, _, _) => name,
+            Expr::Fn(name, _, _) => name,
+            Expr::Value(_) => "value",
+            Expr::Var(name, _) => name,
+            Expr::Const(name, _) => name,
+            Expr::MutableConst(name, _, _, _, _) => name,
         }
     }
 
     pub fn arity(&self) -> u8 {
         match self {
-            Ops::Fn(_, arity, _) => *arity,
-            Ops::Value(_) => 0,
-            Ops::Var(_, _) => 0,
-            Ops::Const(_, _) => 0,
-            Ops::MutableConst(_, arity, _, _, _) => *arity,
+            Expr::Fn(_, arity, _) => *arity,
+            Expr::Value(_) => 0,
+            Expr::Var(_, _) => 0,
+            Expr::Const(_, _) => 0,
+            Expr::MutableConst(_, arity, _, _, _) => *arity,
         }
     }
 
     pub fn apply(&self, inputs: &[T]) -> T {
         match self {
-            Ops::Fn(_, _, op) => op(inputs),
-            Ops::Value(value) => value.clone(),
-            Ops::Var(_, index) => inputs[*index].clone(),
-            Ops::Const(_, value) => value.clone(),
-            Ops::MutableConst(_, _, value, _, operation) => operation(inputs, value),
+            Expr::Fn(_, _, op) => op(inputs),
+            Expr::Value(value) => value.clone(),
+            Expr::Var(_, index) => inputs[*index].clone(),
+            Expr::Const(_, value) => value.clone(),
+            Expr::MutableConst(_, _, value, _, operation) => operation(inputs, value),
         }
     }
 
-    pub fn new_instance(&self) -> Ops<T> {
+    pub fn new_instance(&self) -> Expr<T> {
         match self {
-            Ops::Fn(name, arity, op) => Ops::Fn(name, *arity, op.clone()),
-            Ops::Value(value) => Ops::Value(value.clone()),
-            Ops::Var(name, index) => Ops::Var(name.clone(), *index),
-            Ops::Const(name, value) => Ops::Const(name, value.clone()),
-            Ops::MutableConst(name, arity, _, get_value, operation) => Ops::MutableConst(
+            Expr::Fn(name, arity, op) => Expr::Fn(name, *arity, op.clone()),
+            Expr::Value(value) => Expr::Value(value.clone()),
+            Expr::Var(name, index) => Expr::Var(name.clone(), *index),
+            Expr::Const(name, value) => Expr::Const(name, value.clone()),
+            Expr::MutableConst(name, arity, _, get_value, operation) => Expr::MutableConst(
                 name,
                 *arity,
                 get_value().clone(),
@@ -82,17 +82,17 @@ where
     }
 }
 
-impl<T> Clone for Ops<T>
+impl<T> Clone for Expr<T>
 where
     T: Clone,
 {
     fn clone(&self) -> Self {
         match self {
-            Ops::Fn(name, arity, op) => Ops::Fn(name, *arity, op.clone()),
-            Ops::Value(value) => Ops::Value(value.clone()),
-            Ops::Var(name, index) => Ops::Var(name.clone(), *index),
-            Ops::Const(name, value) => Ops::Const(name, value.clone()),
-            Ops::MutableConst(name, arity, value, get_value, operation) => Ops::MutableConst(
+            Expr::Fn(name, arity, op) => Expr::Fn(name, *arity, op.clone()),
+            Expr::Value(value) => Expr::Value(value.clone()),
+            Expr::Var(name, index) => Expr::Var(name.clone(), *index),
+            Expr::Const(name, value) => Expr::Const(name, value.clone()),
+            Expr::MutableConst(name, arity, value, get_value, operation) => Expr::MutableConst(
                 name,
                 *arity,
                 value.clone(),
@@ -103,16 +103,32 @@ where
     }
 }
 
-impl<T> PartialEq for Ops<T>
+impl<T> PartialEq for Expr<T>
 where
-    T: Clone,
+    T: PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
-        self.name() == other.name()
+        match (self, other) {
+            (Expr::Fn(name, arity, _), Expr::Fn(other_name, other_arity, _)) => {
+                name == other_name && arity == other_arity
+            }
+            (Expr::Value(value), Expr::Value(other_value)) => value == other_value,
+            (Expr::Var(name, index), Expr::Var(other_name, other_index)) => {
+                name == other_name && index == other_index
+            }
+            (Expr::Const(name, value), Expr::Const(other_name, other_value)) => {
+                name == other_name && value == other_value
+            }
+            (
+                Expr::MutableConst(name, arity, value, _, _),
+                Expr::MutableConst(other_name, other_arity, other_value, _, _),
+            ) => name == other_name && arity == other_arity && value == other_value,
+            _ => false,
+        }
     }
 }
 
-impl<T> std::fmt::Display for Ops<T>
+impl<T> std::fmt::Display for Expr<T>
 where
     T: Clone,
 {
@@ -121,26 +137,26 @@ where
     }
 }
 
-impl<T> Default for Ops<T>
+impl<T> Default for Expr<T>
 where
     T: Clone + Default,
 {
     fn default() -> Self {
-        Ops::Const("default", T::default())
+        Expr::Const("default", T::default())
     }
 }
 
-impl<T> std::fmt::Debug for Ops<T>
+impl<T> std::fmt::Debug for Expr<T>
 where
     T: Clone + std::fmt::Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Ops::Fn(name, _, _) => write!(f, "Fn: {}", name),
-            Ops::Value(value) => write!(f, "Val: {:?}", value),
-            Ops::Var(name, index) => write!(f, "Var: {}({})", name, index),
-            Ops::Const(name, value) => write!(f, "C: {}({:?})", name, value),
-            Ops::MutableConst(name, _, value, _, _) => write!(f, "{}({:.2?})", name, value),
+            Expr::Fn(name, _, _) => write!(f, "Fn: {}", name),
+            Expr::Value(value) => write!(f, "Val: {:?}", value),
+            Expr::Var(name, index) => write!(f, "Var: {}({})", name, index),
+            Expr::Const(name, value) => write!(f, "C: {}({:?})", name, value),
+            Expr::MutableConst(name, _, value, _, _) => write!(f, "{}({:.2?})", name, value),
         }
     }
 }
@@ -165,36 +181,36 @@ where
     }
 }
 
-pub fn value<T: Clone>(value: T) -> Ops<T> {
-    Ops::Value(value)
+pub fn value<T: Clone>(value: T) -> Expr<T> {
+    Expr::Value(value)
 }
 
-pub fn add<T: Add<Output = T> + Clone + Float>() -> Ops<T> {
-    Ops::Fn(
+pub fn add<T: Add<Output = T> + Clone + Float>() -> Expr<T> {
+    Expr::Fn(
         "+",
         2,
         Arc::new(|inputs: &[T]| clamp(inputs[0] + inputs[1])),
     )
 }
 
-pub fn sub<T: Sub<Output = T> + Clone + Float>() -> Ops<T> {
-    Ops::Fn(
+pub fn sub<T: Sub<Output = T> + Clone + Float>() -> Expr<T> {
+    Expr::Fn(
         "-",
         2,
         Arc::new(|inputs: &[T]| clamp(inputs[0] - inputs[1])),
     )
 }
 
-pub fn mul<T: Mul<Output = T> + Clone + Float>() -> Ops<T> {
-    Ops::Fn(
+pub fn mul<T: Mul<Output = T> + Clone + Float>() -> Expr<T> {
+    Expr::Fn(
         "*",
         2,
         Arc::new(|inputs: &[T]| clamp(inputs[0] * inputs[1])),
     )
 }
 
-pub fn div<T: Div<Output = T> + Clone + Float>() -> Ops<T> {
-    Ops::Fn(
+pub fn div<T: Div<Output = T> + Clone + Float>() -> Expr<T> {
+    Expr::Fn(
         "/",
         2,
         Arc::new(|inputs: &[T]| {
@@ -209,16 +225,16 @@ pub fn div<T: Div<Output = T> + Clone + Float>() -> Ops<T> {
     )
 }
 
-pub fn sum<T: Add<Output = T> + Clone + Default + Float>() -> Ops<T> {
-    Ops::Fn(
+pub fn sum<T: Add<Output = T> + Clone + Default + Float>() -> Expr<T> {
+    Expr::Fn(
         "sum",
         2,
         Arc::new(|inputs: &[T]| clamp(inputs.iter().fold(T::default(), |acc, x| acc + *x))),
     )
 }
 
-pub fn prod<T: Mul<Output = T> + Clone + Default + Float>() -> Ops<T> {
-    Ops::Fn(
+pub fn prod<T: Mul<Output = T> + Clone + Default + Float>() -> Expr<T> {
+    Expr::Fn(
         "prod",
         2,
         Arc::new(|inputs: &[T]| {
@@ -229,60 +245,60 @@ pub fn prod<T: Mul<Output = T> + Clone + Default + Float>() -> Ops<T> {
     )
 }
 
-pub fn neg<T: Neg<Output = T> + Clone + Default + Float>() -> Ops<T> {
-    Ops::Fn("neg", 1, Arc::new(|inputs: &[T]| clamp(-inputs[0])))
+pub fn neg<T: Neg<Output = T> + Clone + Default + Float>() -> Expr<T> {
+    Expr::Fn("neg", 1, Arc::new(|inputs: &[T]| clamp(-inputs[0])))
 }
 
-pub fn pow<T: Mul<Output = T> + Clone + Float>() -> Ops<T> {
-    Ops::Fn(
+pub fn pow<T: Mul<Output = T> + Clone + Float>() -> Expr<T> {
+    Expr::Fn(
         "pow",
         2,
         Arc::new(|inputs: &[T]| clamp(inputs[0] * inputs[1])),
     )
 }
 
-pub fn sqrt<T: Mul<Output = T> + Clone + Float>() -> Ops<T> {
-    Ops::Fn("sqrt", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].sqrt())))
+pub fn sqrt<T: Mul<Output = T> + Clone + Float>() -> Expr<T> {
+    Expr::Fn("sqrt", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].sqrt())))
 }
 
-pub fn abs<T: Clone + Float>() -> Ops<T> {
-    Ops::Fn("abs", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].abs())))
+pub fn abs<T: Clone + Float>() -> Expr<T> {
+    Expr::Fn("abs", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].abs())))
 }
 
-pub fn exp<T: Clone + Float>() -> Ops<T> {
-    Ops::Fn("exp", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].exp())))
+pub fn exp<T: Clone + Float>() -> Expr<T> {
+    Expr::Fn("exp", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].exp())))
 }
 
-pub fn log<T: Clone + Float>() -> Ops<T> {
-    Ops::Fn("log", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].ln())))
+pub fn log<T: Clone + Float>() -> Expr<T> {
+    Expr::Fn("log", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].ln())))
 }
 
-pub fn sin<T: Clone + Float>() -> Ops<T> {
-    Ops::Fn("sin", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].sin())))
+pub fn sin<T: Clone + Float>() -> Expr<T> {
+    Expr::Fn("sin", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].sin())))
 }
 
-pub fn cos<T: Clone + Float>() -> Ops<T> {
-    Ops::Fn("cos", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].cos())))
+pub fn cos<T: Clone + Float>() -> Expr<T> {
+    Expr::Fn("cos", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].cos())))
 }
 
-pub fn tan<T: Clone + Float>() -> Ops<T> {
-    Ops::Fn("tan", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].tan())))
+pub fn tan<T: Clone + Float>() -> Expr<T> {
+    Expr::Fn("tan", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].tan())))
 }
 
-pub fn ceil<T: Clone + Float>() -> Ops<T> {
-    Ops::Fn("ceil", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].ceil())))
+pub fn ceil<T: Clone + Float>() -> Expr<T> {
+    Expr::Fn("ceil", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].ceil())))
 }
 
-pub fn floor<T: Clone + Float>() -> Ops<T> {
-    Ops::Fn(
+pub fn floor<T: Clone + Float>() -> Expr<T> {
+    Expr::Fn(
         "floor",
         1,
         Arc::new(|inputs: &[T]| clamp(inputs[0].floor())),
     )
 }
 
-pub fn gt<T: Clone + PartialEq + PartialOrd>() -> Ops<T> {
-    Ops::Fn(
+pub fn gt<T: Clone + PartialEq + PartialOrd>() -> Expr<T> {
+    Expr::Fn(
         ">",
         2,
         Arc::new(|inputs: &[T]| {
@@ -295,8 +311,8 @@ pub fn gt<T: Clone + PartialEq + PartialOrd>() -> Ops<T> {
     )
 }
 
-pub fn lt<T: Clone + PartialEq + PartialOrd>() -> Ops<T> {
-    Ops::Fn(
+pub fn lt<T: Clone + PartialEq + PartialOrd>() -> Expr<T> {
+    Expr::Fn(
         "<",
         2,
         Arc::new(|inputs: &[T]| {
@@ -309,8 +325,8 @@ pub fn lt<T: Clone + PartialEq + PartialOrd>() -> Ops<T> {
     )
 }
 
-pub fn max<T: Clone + PartialOrd>() -> Ops<T> {
-    Ops::Fn(
+pub fn max<T: Clone + PartialOrd>() -> Expr<T> {
+    Expr::Fn(
         "max",
         2,
         Arc::new(|inputs: &[T]| {
@@ -328,8 +344,8 @@ pub fn max<T: Clone + PartialOrd>() -> Ops<T> {
     )
 }
 
-pub fn min<T: Clone + PartialOrd>() -> Ops<T> {
-    Ops::Fn(
+pub fn min<T: Clone + PartialOrd>() -> Expr<T> {
+    Expr::Fn(
         "min",
         2,
         Arc::new(|inputs: &[T]| {
@@ -347,23 +363,23 @@ pub fn min<T: Clone + PartialOrd>() -> Ops<T> {
     )
 }
 
-pub fn weight<T: Sub<Output = T> + Mul<Output = T> + Copy + Default + Float>() -> Ops<T>
+pub fn weight<T: Sub<Output = T> + Mul<Output = T> + Copy + Default + Float>() -> Expr<T>
 where
     Standard: Distribution<T>,
     T: PartialOrd + NumCast + SampleUniform,
 {
     let supplier = || random_provider::random::<T>() * T::from(2).unwrap() - T::from(1).unwrap();
     let operation = |inputs: &[T], weight: &T| clamp(inputs[0] * *weight);
-    Ops::MutableConst("w", 1, supplier(), Arc::new(supplier), Arc::new(operation))
+    Expr::MutableConst("w", 1, supplier(), Arc::new(supplier), Arc::new(operation))
 }
 
-pub fn var<T: Clone>(index: usize) -> Ops<T> {
+pub fn var<T: Clone>(index: usize) -> Expr<T> {
     let var_name = format!("x{}", index);
-    Ops::Var(var_name, index)
+    Expr::Var(var_name, index)
 }
 
-pub fn sigmoid() -> Ops<f32> {
-    Ops::Fn(
+pub fn sigmoid() -> Expr<f32> {
+    Expr::Fn(
         "sigmoid",
         1,
         Arc::new(|inputs: &[f32]| {
@@ -374,8 +390,8 @@ pub fn sigmoid() -> Ops<f32> {
     )
 }
 
-pub fn relu() -> Ops<f32> {
-    Ops::Fn(
+pub fn relu() -> Expr<f32> {
+    Expr::Fn(
         "relu",
         1,
         Arc::new(|inputs: &[f32]| {
@@ -390,8 +406,8 @@ pub fn relu() -> Ops<f32> {
     )
 }
 
-pub fn tanh() -> Ops<f32> {
-    Ops::Fn(
+pub fn tanh() -> Expr<f32> {
+    Expr::Fn(
         "tanh",
         1,
         Arc::new(|inputs: &[f32]| {
@@ -402,8 +418,8 @@ pub fn tanh() -> Ops<f32> {
     )
 }
 
-pub fn linear() -> Ops<f32> {
-    Ops::Fn(
+pub fn linear() -> Expr<f32> {
+    Expr::Fn(
         "linear",
         1,
         Arc::new(|inputs: &[f32]| {
@@ -414,8 +430,8 @@ pub fn linear() -> Ops<f32> {
     )
 }
 
-pub fn mish() -> Ops<f32> {
-    Ops::Fn(
+pub fn mish() -> Expr<f32> {
+    Expr::Fn(
         "mish",
         1,
         Arc::new(|inputs: &[f32]| {
@@ -432,8 +448,8 @@ pub fn mish() -> Ops<f32> {
     )
 }
 
-pub fn leaky_relu() -> Ops<f32> {
-    Ops::Fn(
+pub fn leaky_relu() -> Expr<f32> {
+    Expr::Fn(
         "l_relu",
         1,
         Arc::new(|inputs: &[f32]| {
@@ -445,8 +461,8 @@ pub fn leaky_relu() -> Ops<f32> {
     )
 }
 
-pub fn softplus() -> Ops<f32> {
-    Ops::Fn(
+pub fn softplus() -> Expr<f32> {
+    Expr::Fn(
         "soft_plus",
         1,
         Arc::new(|inputs: &[f32]| {
@@ -479,12 +495,12 @@ mod test {
         let op2 = weight::<f32>();
 
         let o_one = match op {
-            Ops::MutableConst(_, _, value, _, _) => value,
+            Expr::MutableConst(_, _, value, _, _) => value,
             _ => panic!("Expected MutableConst"),
         };
 
         let o_two = match op2 {
-            Ops::MutableConst(_, _, value, _, _) => value,
+            Expr::MutableConst(_, _, value, _, _) => value,
             _ => panic!("Expected MutableConst"),
         };
 

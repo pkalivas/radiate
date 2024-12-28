@@ -1,11 +1,12 @@
 use radiate::*;
+use radiate_extensions::architects::cells::expr;
 use radiate_extensions::*;
 
 const MAX_INDEX: i32 = 500;
 const MIN_SCORE: f32 = 0.01;
 
 fn main() {
-    let graph_codex = GraphCodex::regression(2, 1).set_outputs(vec![op::sigmoid()]);
+    let graph_codex = GraphCodex::regression(2, 1).set_outputs(vec![expr::sigmoid()]);
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 

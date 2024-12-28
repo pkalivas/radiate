@@ -5,6 +5,7 @@ pub mod node_collections;
 pub mod schema;
 
 pub use architect::Architect;
+pub use cells::*;
 pub use node_collection_builder::NodeCollectionBuilder;
 
 pub use schema::direction::Direction;

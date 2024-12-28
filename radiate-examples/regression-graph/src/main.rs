@@ -1,4 +1,5 @@
 use radiate::*;
+use radiate_extensions::architects::cells::expr;
 use radiate_extensions::*;
 
 const MIN_SCORE: f32 = 0.01;
@@ -6,8 +7,8 @@ const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
     let graph_codex = GraphCodex::regression(1, 1)
-        .set_outputs(vec![op::linear()])
-        .set_gates(vec![op::add(), op::sub(), op::mul()]);
+        .set_outputs(vec![expr::linear()])
+        .set_gates(vec![expr::add(), expr::sub(), expr::mul()]);
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 
