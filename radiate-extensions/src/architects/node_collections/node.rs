@@ -21,6 +21,14 @@ impl<T> NodeTwo<T> {
             node_type,
         }
     }
+
+    pub fn collection_type(&self) -> &CollectionType {
+        match &self.inner {
+            NodeCell::Tree(_) => &CollectionType::Tree,
+            NodeCell::FlatTree(_) => &CollectionType::Tree,
+            NodeCell::Graph(_) => &CollectionType::Graph,
+        }
+    }
 }
 
 impl<T> Gene for NodeTwo<T>

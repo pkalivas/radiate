@@ -3,9 +3,8 @@ pub mod expr;
 use std::collections::HashSet;
 
 pub use expr::*;
-use radiate::{Gene, Valid};
 
-use super::{Direction, NodeType};
+use super::Direction;
 
 #[derive(Clone, PartialEq)]
 pub struct ValueCell<T> {

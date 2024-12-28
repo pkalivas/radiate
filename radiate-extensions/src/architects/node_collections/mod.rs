@@ -4,7 +4,6 @@ pub mod iterators;
 pub mod node;
 pub mod node_chromosome;
 pub mod node_factory;
-pub mod node_set;
 pub mod reducers;
 pub mod tree;
 
