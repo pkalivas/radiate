@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use std::ops::{Index, IndexMut};
 use std::rc::Rc;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct NodeChromosome<T>
 where
     T: Clone + PartialEq + Default,
@@ -95,5 +95,18 @@ where
 {
     fn eq(&self, other: &Self) -> bool {
         self.nodes == other.nodes
+    }
+}
+
+impl<T> std::fmt::Debug for NodeChromosome<T>
+where
+    T: Clone + PartialEq + Default + std::fmt::Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Graph {{\n")?;
+        for node in self.get_genes() {
+            write!(f, "  {:?},\n", node)?;
+        }
+        write!(f, "}}")
     }
 }

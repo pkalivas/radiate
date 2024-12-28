@@ -5,10 +5,7 @@ use radiate::engines::genome::genes::gene::{Gene, Valid};
 use std::collections::HashSet;
 use uuid::Uuid;
 
-pub struct Node<T>
-where
-    T: Clone + PartialEq,
-{
+pub struct Node<T> {
     pub id: Uuid,
     pub index: usize,
     pub value: Ops<T>,
@@ -20,10 +17,7 @@ where
     pub outgoing: HashSet<usize>,
 }
 
-impl<T> Node<T>
-where
-    T: Clone + PartialEq,
-{
+impl<T> Node<T> {
     pub fn new(index: usize, node_type: NodeType, value: Ops<T>) -> Self {
         Self {
             id: Uuid::new_v4(),

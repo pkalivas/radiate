@@ -1,3 +1,4 @@
+use radiate::random_provider::set_seed;
 use radiate::*;
 use radiate_extensions::*;
 
@@ -5,6 +6,7 @@ const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
+    set_seed(200);
     let graph_codex = TreeCodex::regression(1, 3).set_gates(vec![op::add(), op::sub(), op::mul()]);
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
@@ -14,7 +16,7 @@ fn main() {
         .num_threads(10)
         .alter(alters!(
             TreeCrossover::new(0.5, 10),
-            NodeMutator::new(0.01, 0.05),
+            NodeMutator::new(0.1, 0.05),
         ))
         .fitness_fn(move |genotype: Tree<f32>| {
             let mut reducer = TreeReducer::new(&genotype);
