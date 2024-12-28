@@ -45,7 +45,7 @@ where
         + Div<Output = C::Gene>,
 {
     fn name(&self) -> &'static str {
-        "NumericMutator"
+        "ArithmeticMutator"
     }
     fn rate(&self) -> f32 {
         self.rate

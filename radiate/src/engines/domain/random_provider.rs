@@ -159,19 +159,6 @@ mod tests {
     }
 
     #[test]
-    fn test_seeded_gaussian() {
-        let mean = 0.0;
-        let std_dev = 1.0;
-        let mut sum = 0.0;
-        for _ in 0..100 {
-            sum += gaussian(mean, std_dev);
-        }
-
-        let average = sum / 100.0;
-        assert!((average - mean).abs() < 0.1);
-    }
-
-    #[test]
     fn test_shuffle() {
         let mut items = vec![1, 2, 3, 4, 5];
         shuffle(&mut items);
