@@ -18,7 +18,7 @@ fn main() {
         .num_threads(10)
         .alter(alters!(
             TreeCrossover::new(0.5, 10),
-            NodeMutator::new(0.1, 0.05),
+            NodeMutator::new(0.01, 0.05),
         ))
         .fitness_fn(move |genotype: Tree<f32>| {
             let mut reducer = TreeReducer::new(&genotype);
