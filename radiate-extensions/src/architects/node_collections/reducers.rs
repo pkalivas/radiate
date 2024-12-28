@@ -14,7 +14,7 @@ impl<T: Clone> Reduce<T> for Tree<T> {
     type Input = Vec<T>;
     type Output = T;
 
-    fn reduce(&mut self, input: &Self::Input) -> T {
+    fn reduce(&mut self, input: &Self::Input) -> Self::Output {
         let result = self.root_mut().map(|root| root.reduce(input));
         result.unwrap_or_else(|| panic!("Tree has no root node."))
     }
@@ -119,52 +119,6 @@ where
         self.outputs.clone()
     }
 }
-
-// pub struct TreeReducer<'a, T>
-// where
-//     T: Clone + PartialEq + Default,
-// {
-//     nodes: &'a Tree<T>,
-//     tracers: Vec<Tracer<T>>,
-// }
-
-// impl<'a, T> TreeReducer<'a, T>
-// where
-//     T: Clone + PartialEq + Default,
-// {
-//     pub fn new(nodes: &'a Tree<T>) -> TreeReducer<'a, T> {
-//         TreeReducer {
-//             nodes,
-//             tracers: nodes
-//                 .iter()
-//                 .map(|node| Tracer::new(input_size(node)))
-//                 .collect::<Vec<Tracer<T>>>(),
-//         }
-//     }
-
-//     #[inline]
-//     pub fn reduce(&mut self, inputs: &[T]) -> Vec<T> {
-//         self.eval_recurrent(0, inputs, &self.nodes.nodes)
-//     }
-
-//     fn eval_recurrent(&mut self, index: usize, input: &[T], nodes: &[Node<T>]) -> Vec<T> {
-//         let node = &nodes[index];
-
-//         if node.node_type == NodeType::Input || node.node_type == NodeType::Leaf {
-//             self.tracers[node.index].add_input(input[0].clone());
-//             self.tracers[node.index].eval(node);
-//             vec![self.tracers[node.index].result.clone().unwrap()]
-//         } else {
-//             for incoming in &node.outgoing {
-//                 let arg = self.eval_recurrent(*incoming, input, nodes);
-//                 self.tracers[node.index].add_input(arg[0].clone());
-//             }
-
-//             self.tracers[node.index].eval(node);
-//             vec![self.tracers[node.index].result.clone().unwrap()]
-//         }
-//     }
-// }
 
 struct Tracer<T>
 where

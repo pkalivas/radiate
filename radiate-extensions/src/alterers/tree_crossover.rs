@@ -102,27 +102,7 @@ where
             return 0;
         }
 
-        // if one_size > self.max_height || two_size > self.max_height {
-        //     return 0;
-        // }
-
-        // let prev_one = one_node.clone();
-        // let prev_two = two_node.clone();
-
         one_node.swap_subtrees(&mut two_node, one_rand_index, two_rand_index);
-
-        // if one_node.size() > self.max_height || two_node.size() > self.max_height {
-        //     *one_node = prev_one;
-        //     *two_node = prev_two;
-        //     return 0;
-        // }
-
-        // chrom_one.nodes = new_one_nodes;
-        // chrom_two.nodes = new_two_nodes;
-
-        // if !chrom_one.is_valid() || !chrom_two.is_valid() {
-        //     panic!("Invalid tree after crossover.");
-        // }
 
         2
     }
