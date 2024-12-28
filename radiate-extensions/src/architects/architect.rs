@@ -1,10 +1,68 @@
+use super::{Graph, NodeRepairs};
 use crate::architects::node_collection_builder::NodeCollectionBuilder;
 use crate::architects::node_collections::node::Node;
 use crate::architects::node_collections::node_factory::NodeFactory;
 use crate::architects::node_collections::NodeCollection;
 use crate::architects::schema::node_types::NodeType;
+use crate::expr::Expr;
+use crate::{NodeCell, Tree, TreeNode};
+use radiate::random_provider;
 
-use super::{Graph, NodeRepairs, Tree};
+pub trait Archit {
+    type Output;
+    fn build(&self) -> Self::Output;
+}
+
+pub struct TreeArchit<T: Clone> {
+    gates: Vec<Expr<T>>,
+    leafs: Vec<Expr<T>>,
+    depth: usize,
+}
+
+impl<T: Clone> TreeArchit<T> {
+    pub fn new(depth: usize) -> Self {
+        TreeArchit {
+            gates: Vec::new(),
+            leafs: Vec::new(),
+            depth,
+        }
+    }
+
+    pub fn gates(mut self, gates: Vec<Expr<T>>) -> Self {
+        self.gates = gates;
+        self
+    }
+
+    pub fn leafs(mut self, leafs: Vec<Expr<T>>) -> Self {
+        self.leafs = leafs;
+        self
+    }
+
+    fn grow_tree(&self, depth: usize) -> TreeNode<T> {
+        if depth == 0 {
+            let leaf = random_provider::choose(&self.leafs);
+            return TreeNode::new(NodeCell::new(leaf.new_instance(), NodeType::Leaf));
+        }
+
+        let gate = random_provider::choose(&self.gates);
+        let mut parent = TreeNode::new(NodeCell::new(gate.new_instance(), NodeType::Gate));
+        for _ in 0..parent.cell.value.arity() {
+            let temp = self.grow_tree(depth - 1);
+            parent.add_child(temp);
+        }
+
+        parent
+    }
+}
+
+impl<T: Clone> Archit for TreeArchit<T> {
+    type Output = Tree<T>;
+
+    fn build(&self) -> Self::Output {
+        let root = self.grow_tree(self.depth);
+        Tree::new(root)
+    }
+}
 
 pub struct Architect<'a, C, T>
 where
@@ -323,5 +381,22 @@ where
                 .many_to_one(&output_weights, &output)
                 .build()
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::expr;
+
+    #[test]
+    fn test_tree_archit() {
+        let tree_archit = TreeArchit::<f32>::new(3)
+            .gates(vec![expr::add(), expr::sub()])
+            .leafs(vec![expr::var(0), expr::var(1)]);
+        let tree = tree_archit.build();
+        let size = tree.root().map(|n| n.size()).unwrap_or(0);
+        
+        assert_eq!(size, 15);
     }
 }

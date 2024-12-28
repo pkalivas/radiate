@@ -42,6 +42,14 @@ impl<T> TreeNode<T> {
             children: Some(children),
         }
     }
+    
+    pub fn add_child(&mut self, child: TreeNode<T>) {
+        if let Some(children) = self.children.as_mut() {
+            children.push(child);
+        } else {
+            self.children = Some(vec![child]);
+        }
+    }
 
     pub fn children(&self) -> Option<&Vec<TreeNode<T>>> {
         self.children.as_ref()
@@ -49,6 +57,14 @@ impl<T> TreeNode<T> {
 
     pub fn children_mut(&mut self) -> Option<&mut Vec<TreeNode<T>>> {
         self.children.as_mut()
+    }
+    
+    pub fn size(&self) -> usize {
+        if let Some(children) = self.children.as_ref() {
+            children.iter().fold(1, |acc, child| acc + child.size())
+        } else {
+            1
+        }
     }
 }
 
