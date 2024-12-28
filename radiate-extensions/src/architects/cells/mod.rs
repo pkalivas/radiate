@@ -1,13 +1,9 @@
 pub mod expr;
-pub mod graph_cell;
-pub mod tree_cell;
-pub mod value;
 
 use std::{collections::HashSet, rc::Rc};
 
 pub use expr::*;
 use radiate::{Gene, Valid};
-pub use value::*;
 
 use super::{Direction, NodeType};
 
