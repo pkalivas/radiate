@@ -1,4 +1,5 @@
 pub mod architect;
+pub mod cells;
 pub mod node_collection_builder;
 pub mod node_collections;
 pub mod schema;
