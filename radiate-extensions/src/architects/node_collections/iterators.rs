@@ -1,8 +1,40 @@
+use super::Graph;
+use crate::NodeCollection;
+use crate::{node::Node, TreeNode};
 use std::collections::VecDeque;
 
-use super::Graph;
-use crate::node::Node;
-use crate::NodeCollection;
+pub struct BreadthFirstTreeIterator<'a, T> {
+    root: &'a TreeNode<T>,
+    queue: VecDeque<&'a TreeNode<T>>,
+}
+
+impl<'a, T> BreadthFirstTreeIterator<'a, T> {
+    pub fn new(root: &'a TreeNode<T>) -> Self {
+        let mut queue = VecDeque::new();
+        queue.push_back(root);
+
+        Self { root, queue }
+    }
+}
+
+impl<'a, T> Iterator for BreadthFirstTreeIterator<'a, T> {
+    type Item = &'a TreeNode<T>;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(node) = self.queue.pop_front() {
+            if let Some(children) = &node.children {
+                for child in children {
+                    self.queue.push_back(child);
+                }
+            }
+
+            return Some(node);
+        }
+
+        None
+    }
+}
 
 pub struct BreadthFirstIterator<'a, T>
 where

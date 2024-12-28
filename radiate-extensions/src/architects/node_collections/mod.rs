@@ -33,24 +33,25 @@ pub trait NodeCollection<T>: Valid + Default + Clone
 where
     T: Clone + PartialEq + Default,
 {
-    fn from_nodes(nodes: Vec<Node<T>>) -> Self;
+    type Node;
+    fn from_nodes(nodes: Vec<Self::Node>) -> Self;
 
-    fn get(&self, index: usize) -> &Node<T>;
-    fn get_mut(&mut self, index: usize) -> &mut Node<T>;
+    fn get(&self, index: usize) -> &Self::Node;
+    fn get_mut(&mut self, index: usize) -> &mut Self::Node;
 
-    fn get_nodes(&self) -> &[Node<T>];
-    fn get_nodes_mut(&mut self) -> &mut [Node<T>];
+    fn get_nodes(&self) -> &[Self::Node];
+    fn get_nodes_mut(&mut self) -> &mut [Self::Node];
 
-    fn set(&mut self, index: usize, node: Node<T>) -> &mut Self {
+    fn set(&mut self, index: usize, node: Self::Node) -> &mut Self {
         self.get_nodes_mut()[index] = node;
         self
     }
 
-    fn iter(&self) -> std::slice::Iter<Node<T>> {
+    fn iter(&self) -> std::slice::Iter<Self::Node> {
         self.get_nodes().iter()
     }
 
-    fn iter_mut(&mut self) -> std::slice::IterMut<Node<T>> {
+    fn iter_mut(&mut self) -> std::slice::IterMut<Self::Node> {
         self.get_nodes_mut().iter_mut()
     }
 
@@ -62,25 +63,25 @@ where
         self.get_nodes().is_empty()
     }
 
-    fn attach(&mut self, incoming: usize, outgoing: usize) -> &mut Self {
-        self.get_nodes_mut()[incoming]
-            .outgoing_mut()
-            .insert(outgoing);
-        self.get_nodes_mut()[outgoing]
-            .incoming_mut()
-            .insert(incoming);
-        self
-    }
+    // fn attach(&mut self, incoming: usize, outgoing: usize) -> &mut Self {
+    //     self.get_nodes_mut()[incoming]
+    //         .outgoing_mut()
+    //         .insert(outgoing);
+    //     self.get_nodes_mut()[outgoing]
+    //         .incoming_mut()
+    //         .insert(incoming);
+    //     self
+    // }
 
-    fn detach(&mut self, incoming: usize, outgoing: usize) -> &mut Self {
-        self.get_nodes_mut()[incoming]
-            .outgoing_mut()
-            .remove(&outgoing);
-        self.get_nodes_mut()[outgoing]
-            .incoming_mut()
-            .remove(&incoming);
-        self
-    }
+    // fn detach(&mut self, incoming: usize, outgoing: usize) -> &mut Self {
+    //     self.get_nodes_mut()[incoming]
+    //         .outgoing_mut()
+    //         .remove(&outgoing);
+    //     self.get_nodes_mut()[outgoing]
+    //         .incoming_mut()
+    //         .remove(&incoming);
+    //     self
+    // }
 }
 
 #[inline]

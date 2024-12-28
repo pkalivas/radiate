@@ -3,3 +3,9 @@ pub enum Direction {
     Forward,
     Backward,
 }
+
+impl Default for Direction {
+    fn default() -> Self {
+        Direction::Forward
+    }
+}

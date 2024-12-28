@@ -93,7 +93,7 @@ impl<T> AsMut<ValueCell<T>> for IndexedCell<T> {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Default)]
 pub struct TreeCell<T> {
     pub inner: Option<ValueCell<T>>,
     pub children: Option<Vec<TreeCell<T>>>,
@@ -136,7 +136,7 @@ impl<T> AsMut<ValueCell<T>> for TreeCell<T> {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Default)]
 pub struct GraphCell<T> {
     pub inner: IndexedCell<T>,
     pub enabled: bool,
@@ -165,7 +165,7 @@ impl<T> AsMut<ValueCell<T>> for GraphCell<T> {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Default)]
 pub enum NodeCell<T> {
     Tree(TreeCell<T>),
     FlatTree(IndexedCell<T>),
