@@ -71,36 +71,36 @@ where
     }
 }
 
-impl<T> Architect<'_, Tree<T>, T>
-where
-    T: Clone + PartialEq + Default,
-{
-    pub fn tree(&self, depth: usize) -> Tree<T> {
-        Architect::<Tree<T>, T>::new(self.node_factory)
-            .build(|arc, _| self.grow_tree(&arc.gate(1), depth))
-    }
+// impl<T> Architect<'_, Tree<T>, T>
+// where
+//     T: Clone + PartialEq + Default,
+// {
+//     pub fn tree(&self, depth: usize) -> Tree<T> {
+//         Architect::<Tree<T>, T>::new(self.node_factory)
+//             .build(|arc, _| self.grow_tree(&arc.gate(1), depth))
+//     }
 
-    fn grow_tree(&self, parent: &Tree<T>, depth: usize) -> Tree<T> {
-        if depth == 0 {
-            return self.leaf();
-        }
+//     fn grow_tree(&self, parent: &Tree<T>, depth: usize) -> Tree<T> {
+//         if depth == 0 {
+//             return self.leaf();
+//         }
 
-        let mut builder = NodeCollectionBuilder::new(self.node_factory);
-        let mut children = Vec::new();
-        for _ in 0..parent.get_nodes().first().unwrap().value.arity() {
-            let temp = Architect::<Tree<T>, T>::new(self.node_factory)
-                .build(|arc, _| self.grow_tree(&arc.gate(1), depth - 1));
+//         let mut builder = NodeCollectionBuilder::new(self.node_factory);
+//         let mut children = Vec::new();
+//         for _ in 0..parent.get_nodes().first().unwrap().value.arity() {
+//             let temp = Architect::<Tree<T>, T>::new(self.node_factory)
+//                 .build(|arc, _| self.grow_tree(&arc.gate(1), depth - 1));
 
-            children.push(temp);
-        }
+//             children.push(temp);
+//         }
 
-        for child in children.iter() {
-            builder = builder.parent_to_child(parent, child);
-        }
+//         for child in children.iter() {
+//             builder = builder.parent_to_child(parent, child);
+//         }
 
-        builder.build()
-    }
-}
+//         builder.build()
+//     }
+// }
 
 impl<T> Architect<'_, Graph<T>, T>
 where

@@ -131,10 +131,7 @@ where
     }
 }
 
-impl<T> std::fmt::Display for Expr<T>
-where
-    T: Clone,
-{
+impl<T> std::fmt::Display for Expr<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.name())
     }
@@ -151,7 +148,7 @@ where
 
 impl<T> std::fmt::Debug for Expr<T>
 where
-    T: Clone + std::fmt::Debug,
+    T: std::fmt::Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -186,6 +183,10 @@ where
 
 pub fn value<T: Clone>(value: T) -> Expr<T> {
     Expr::Value(value)
+}
+
+pub fn constant<T: Clone>(name: &'static str, value: T) -> Expr<T> {
+    Expr::Const(name, value)
 }
 
 pub fn add<T: Add<Output = T> + Clone + Float>() -> Expr<T> {
