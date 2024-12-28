@@ -1,8 +1,5 @@
-use super::{expr, Graph, GraphNode};
-use crate::architects::node_collection_builder::GraphBuilder;
-
 use crate::expr::Expr;
-use crate::{NodeCell, Tree, TreeNode};
+use crate::{Tree, TreeNode};
 use radiate::random_provider;
 
 pub trait Architect {
@@ -46,7 +43,7 @@ impl<T: Clone> TreeArchitect<T> {
                 random_provider::choose(&self.leafs).new_instance()
             };
 
-            return TreeNode::new(NodeCell::new(leaf));
+            return TreeNode::new(leaf);
         }
 
         let gate = if self.gates.is_empty() {
@@ -55,7 +52,7 @@ impl<T: Clone> TreeArchitect<T> {
             random_provider::choose(&self.gates).new_instance()
         };
 
-        let mut parent = TreeNode::new(NodeCell::new(gate));
+        let mut parent = TreeNode::new(gate);
         for _ in 0..*parent.cell.value.arity() {
             let temp = self.grow_tree(depth - 1);
             parent.add_child(temp);
@@ -74,123 +71,100 @@ impl<T: Clone + Default> Architect for TreeArchitect<T> {
     }
 }
 
-pub struct AcyclicGraphArchitect<T: Clone> {
-    input_size: usize,
-    output_size: usize,
-    operators: Vec<Expr<T>>,
-    output: Vec<Expr<T>>,
-}
-
-impl<T: Clone> AcyclicGraphArchitect<T> {
-    pub fn new(input_size: usize, output_size: usize) -> Self {
-        AcyclicGraphArchitect {
-            input_size,
-            output_size,
-            operators: Vec::new(),
-            output: Vec::new(),
-        }
-    }
-
-    pub fn operators(mut self, operators: Vec<Expr<T>>) -> Self {
-        self.operators = operators;
-        self
-    }
-
-    pub fn output(mut self, output: Vec<Expr<T>>) -> Self {
-        self.output = output;
-        self
-    }
-}
-
-impl<T: Clone + Default> Architect for AcyclicGraphArchitect<T> {
-    type Output = Graph<T>;
-
-    fn build(&self) -> Self::Output {
-        let node_builder = GraphBuilder::new();
-
-        let inputs = (0..self.input_size)
-            .map(|i| expr::var(i))
-            .enumerate()
-            .map(|(i, expr)| GraphNode::new(i, NodeCell::new(expr)))
-            .collect::<Vec<GraphNode<T>>>();
-
-        let outputs = (0..self.output_size)
-            .map(|_| random_provider::choose(&self.output).new_instance())
-            .enumerate()
-            .map(|(i, expr)| GraphNode::new(i, NodeCell::output(expr)))
-            .collect::<Vec<GraphNode<T>>>();
-
-        let graph_one = Graph::new(inputs);
-        let graph_two = Graph::new(outputs);
-
-        node_builder.all_to_all(&graph_one, &graph_two).build()
-    }
-}
-
-//     pub fn acyclic(&self, input_size: usize, output_size: usize) -> Graph<T> {
-//         Architect::<Graph<T>, T>::new(self.node_factory).build(|arc, builder| {
-//             builder
-//                 .all_to_all(&arc.input(input_size), &arc.output(output_size))
-//                 .build()
-//         })
+// pub struct AcyclicGraphArchitect<T: Clone> {
+//     input_size: usize,
+//     output_size: usize,
+//     operators: Vec<Expr<T>>,
+//     output: Vec<Expr<T>>,
+// }
+//
+// impl<T: Clone> AcyclicGraphArchitect<T> {
+//     pub fn new(input_size: usize, output_size: usize) -> Self {
+//         AcyclicGraphArchitect {
+//             input_size,
+//             output_size,
+//             operators: Vec::new(),
+//             output: Vec::new(),
+//         }
 //     }
+//
+//     pub fn operators(mut self, operators: Vec<Expr<T>>) -> Self {
+//         self.operators = operators;
+//         self
+//     }
+//
+//     pub fn output(mut self, output: Vec<Expr<T>>) -> Self {
+//         self.output = output;
+//         self
+//     }
+// }
+//
+// impl<T: Clone + Default> Architect for AcyclicGraphArchitect<T> {
+//     type Output = Graph<T>;
+//
+//     fn build(&self) -> Self::Output {
+//         let node_builder = GraphBuilder::new();
+//
+//         let inputs = (0..self.input_size)
+//             .map(|i| expr::var(i))
+//             .enumerate()
+//             .map(|(i, expr)| GraphNode::new(i, NodeCell::new(expr)))
+//             .collect::<Vec<GraphNode<T>>>();
+//
+//         let outputs = (0..self.output_size)
+//             .map(|_| random_provider::choose(&self.output).new_instance())
+//             .enumerate()
+//             .map(|(i, expr)| GraphNode::new(i, NodeCell::output(expr)))
+//             .collect::<Vec<GraphNode<T>>>();
+//
+//         let graph_one = Graph::new(inputs);
+//         let graph_two = Graph::new(outputs);
+//
+//         node_builder.all_to_all(&graph_one, &graph_two).build()
+//     }
+// }
 
-// pub struct Architect<'a, C, T>
+// pub struct Architt<C, T>
 // where
-//     C: NodeCollection<T>,
-//     T: Clone + PartialEq + Default,
+//     T: Clone,
 // {
-//     pub node_factory: &'a NodeFactory<T>,
+//     inputs: Vec<Expr<T>>,
+//     operators: Vec<Expr<T>>,
+//     output: Vec<Expr<T>>,
 //     _phantom: std::marker::PhantomData<C>,
 // }
 
-// impl<'a, C, T> Architect<'a, C, T>
+// impl<C, T> Architt<C, T>
 // where
-//     C: NodeCollection<T>,
 //     T: Clone + PartialEq + Default,
 // {
-//     pub fn new(node_factory: &'a NodeFactory<T>) -> Self {
-//         Architect {
-//             node_factory,
+//     pub fn new() -> Self {
+//         Architt {
+//             inputs: Vec::new(),
+//             operators: Vec::new(),
+//             output: Vec::new(),
 //             _phantom: std::marker::PhantomData,
 //         }
 //     }
 
-//     pub fn build<F>(&self, build_fn: F) -> C
-//     where
-//         F: FnOnce(&Architect<C, T>, NodeCollectionBuilder<C, T>) -> C,
-//         C: NodeRepairs<T>,
-//     {
-//         build_fn(self, NodeCollectionBuilder::new(self.node_factory))
-//     }
-
-//     pub fn leaf(&self) -> C {
-//         self.new_collection(NodeType::Leaf, 1)
-//     }
+//     // pub fn build<F>(&self, build_fn: F) -> C
+//     // where
+//     //     F: FnOnce(&Architect<C, T>, NodeCollectionBuilder<C, T>) -> C,
+//     //     C: NodeRepairs<T>,
+//     // {
+//     //     build_fn(self, NodeCollectionBuilder::new(self.node_factory))
+//     // }
 
 //     pub fn input(&self, size: usize) -> C {
 //         self.new_collection(NodeType::Input, size)
 //     }
 
+//     pub fn operation(&self, size: usize) -> C {
+//         self.new_collection(NodeType::Operation, size)
+//     }
+
 //     pub fn output(&self, size: usize) -> C {
 //         self.new_collection(NodeType::Output, size)
-//     }
-
-//     pub fn gate(&self, size: usize) -> C {
-//         self.new_collection(NodeType::Gate, size)
-//     }
-
-//     pub fn aggregate(&self, size: usize) -> C {
-//         self.new_collection(NodeType::Aggregate, size)
-//     }
-
-//     pub fn weight(&self, size: usize) -> C {
-//         self.new_collection(NodeType::Weight, size)
-//     }
-
-//     pub fn new_collection(&self, node_type: NodeType, size: usize) -> C {
-//         let nodes = self.new_nodes(node_type, size);
-//         C::from_nodes(nodes)
 //     }
 
 //     pub fn new_nodes(&self, node_type: NodeType, size: usize) -> Vec<Node<T>> {
@@ -440,3 +414,19 @@ impl<T: Clone + Default> Architect for AcyclicGraphArchitect<T> {
 //         assert_eq!(size, 15);
 //     }
 // }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_acyclic_graph() {
+        // let architect = AcyclicGraphArchitect::<f32>::new(2, 2)
+        //     .operators(vec![expr::add(), expr::sub()])
+        //     .output(vec![expr::linear()]);
+        //
+        // let graph = architect.build();
+        //
+        // for node in graph.nodes() {
+        //     println!("{:?}", node);
+        // }
+    }
+}

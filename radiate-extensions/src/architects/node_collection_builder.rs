@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 
+use super::{expr, Graph, GraphNode};
+use crate::{NodeCell, NodeFactory, Role};
+use radiate::random_provider;
 use uuid::Uuid;
-
-use super::{Graph, GraphNode};
 
 pub enum ConnectTypes {
     OneToOne,
@@ -17,11 +18,11 @@ pub struct Relationship<'a> {
     pub target_id: &'a Uuid,
 }
 
-#[derive(Default)]
 pub struct GraphBuilder<'a, T>
 where
-    T: Clone,
+    T: Clone + PartialEq + Default,
 {
+    pub factory: &'a NodeFactory<T>,
     pub nodes: BTreeMap<&'a Uuid, &'a GraphNode<T>>,
     pub node_order: BTreeMap<usize, &'a Uuid>,
     pub relationships: Vec<Relationship<'a>>,
@@ -29,14 +30,23 @@ where
 
 impl<'a, T> GraphBuilder<'a, T>
 where
-    T: Clone,
+    T: Clone + PartialEq + Default,
 {
-    pub fn new() -> Self {
+    pub fn new(factory: &'a NodeFactory<T>) -> Self {
         GraphBuilder {
+            factory,
             nodes: BTreeMap::new(),
             node_order: BTreeMap::new(),
             relationships: Vec::new(),
         }
+    }
+
+    pub fn acyclic(&self, input_size: usize, output_size: usize) -> Graph<T> {
+        let builder = GraphBuilder::new(self.factory);
+        let input = self.new_graph(input_size, Role::Provider);
+        let output = self.new_graph(output_size, Role::Output);
+
+        builder.one_to_one(&input, &output).build()
     }
 
     pub fn one_to_one(mut self, one: &'a Graph<T>, two: &'a Graph<T>) -> Self {
@@ -96,7 +106,7 @@ where
     }
 
     pub fn layer(&self, collections: Vec<&'a Graph<T>>) -> Self {
-        let mut conn = GraphBuilder::new();
+        let mut conn = GraphBuilder::new(&self.factory);
         let mut previous = collections[0];
 
         for collection in collections.iter() {
@@ -143,6 +153,28 @@ where
                 }
             }
         }
+    }
+
+    fn new_graph(&self, count: usize, role: Role) -> Graph<T> {
+        let mut nodes = Vec::with_capacity(count);
+
+        for i in 0..count {
+            let new_node = match role {
+                Role::Provider => GraphNode::new(i, NodeCell::provider(expr::var(i))),
+                Role::Output => {
+                    let val = random_provider::choose(self.factory.get_outputs());
+                    GraphNode::new(i, NodeCell::output(val.clone()))
+                }
+                Role::Internal => {
+                    let val = random_provider::choose(self.factory.get_operations());
+                    GraphNode::new(i, NodeCell::internal(val.clone()))
+                }
+            };
+
+            nodes.push(new_node);
+        }
+
+        Graph::new(nodes)
     }
 
     fn one_to_one_connect(&mut self, one: &'a Graph<T>, two: &'a Graph<T>) {

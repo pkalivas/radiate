@@ -113,7 +113,8 @@ where
     pub fn new_node(&self, index: usize, node_type: NodeType) -> Node<T> {
         let factory = self.factory.as_ref().unwrap();
         let factory = factory.borrow();
-        factory.new_node(index, node_type)
+        panic!("Not implemented")
+        // factory.new_node(index, node_type)
     }
 }
 

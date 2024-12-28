@@ -1,6 +1,5 @@
 use crate::architects::*;
 use crate::expr::Expr;
-use crate::node::Node;
 use architect::{Architect, TreeArchitect};
 use core::panic;
 use radiate::engines::codexes::Codex;
@@ -8,7 +7,6 @@ use radiate::engines::genome::genes::gene::Gene;
 use radiate::engines::genome::genotype::Genotype;
 use radiate::Chromosome;
 use std::cell::RefCell;
-use std::rc::Rc;
 use std::sync::Arc;
 
 // pub struct GraphCodex<T>
@@ -228,6 +226,119 @@ where
         Tree::new(nodes)
     }
 }
+
+pub struct GraphCodex<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    pub input_size: usize,
+    pub output_size: usize,
+    pub memory_size: usize,
+    pub node_factory: Arc<RefCell<NodeFactory<T>>>,
+    pub nodes: Vec<GraphNode<T>>,
+}
+
+impl<T> GraphCodex<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    pub fn set_gates(self, gates: Vec<Expr<T>>) -> Self {
+        self.node_factory.borrow_mut().gates(gates);
+        self
+    }
+
+    pub fn set_inputs(self, inputs: Vec<Expr<T>>) -> Self {
+        self.node_factory.borrow_mut().inputs(inputs);
+        self
+    }
+
+    pub fn set_outputs(self, outputs: Vec<Expr<T>>) -> Self {
+        self.node_factory.borrow_mut().outputs(outputs);
+        self
+    }
+}
+
+impl GraphCodex<f32> {
+    pub fn dense(input_size: usize, output_size: usize) -> Self {
+        let factory = NodeFactory::<f32>::regression(input_size);
+        let graph = GraphBuilder::new(&factory).acyclic(input_size, output_size);
+
+        GraphCodex {
+            input_size,
+            output_size,
+            memory_size: 0,
+            node_factory: Arc::new(RefCell::new(factory)),
+            nodes: graph.nodes().to_vec(),
+        }
+    }
+}
+
+impl<T> Codex<NodeChrom<GraphNode<T>>, Graph<T>> for GraphCodex<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    fn encode(&self) -> Genotype<NodeChrom<GraphNode<T>>> {
+        let nodes = self
+            .nodes
+            .iter()
+            .map(|node| node.new_instance())
+            .collect::<Vec<GraphNode<T>>>();
+
+        Genotype {
+            chromosomes: vec![NodeChrom::new(nodes)],
+        }
+    }
+
+    fn decode(&self, genotype: &Genotype<NodeChrom<GraphNode<T>>>) -> Graph<T> {
+        let nodes = genotype
+            .iter()
+            .next()
+            .unwrap()
+            .iter()
+            .cloned()
+            .collect::<Vec<GraphNode<T>>>();
+
+        Graph::new(nodes)
+    }
+}
+
+// impl<T> Codex<NodeChromosome<T>, Graph<T>> for GraphCodex<T>
+// where
+//     T: Clone + PartialEq + Default,
+// {
+//     fn encode(&self) -> Genotype<NodeChromosome<T>> {
+//         let reader = self.factory.borrow();
+//         let nodes = self
+//             .nodes
+//             .iter()
+//             .map(|node| {
+//                 let temp_node = reader.new_node(node.index, node.node_type);
+//
+//                 if temp_node.value.arity() == node.value.arity() {
+//                     return node.with_allele(temp_node.allele());
+//                 }
+//
+//                 node.clone()
+//             })
+//             .collect::<Vec<Node<T>>>();
+//
+//         Genotype {
+//             chromosomes: vec![NodeChromosome::with_factory(nodes, self.factory.clone())],
+//         }
+//     }
+//
+//     fn decode(&self, genotype: &Genotype<NodeChromosome<T>>) -> Graph<T> {
+//         Graph::from_nodes(
+//             genotype
+//                 .iter()
+//                 .next()
+//                 .unwrap()
+//                 .iter()
+//                 .cloned()
+//                 .collect::<Vec<Node<T>>>(),
+//         )
+//     }
+// }
 
 #[cfg(test)]
 mod tests {

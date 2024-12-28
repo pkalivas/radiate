@@ -1,8 +1,7 @@
 use std::collections::VecDeque;
 
 use super::{Graph, GraphNode};
-use crate::node::Node;
-use crate::{NodeCollection, Tree, TreeNode};
+use crate::{Tree, TreeNode};
 
 pub trait TreeIterator<T> {
     fn iter_pre_order(&self) -> PreOrderIterator<T>;

@@ -9,7 +9,7 @@ use uuid::Uuid;
 use super::expr::Arity;
 use super::TreeIterator;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Role {
     /// Terminal nodes provide values without inputs (constants, variables)
     Provider,
@@ -86,6 +86,12 @@ impl<T> NodeCell<T> {
             id: Uuid::new_v4(),
             value,
         }
+    }
+}
+
+impl<T> From<Expr<T>> for NodeCell<T> {
+    fn from(value: Expr<T>) -> Self {
+        NodeCell::new(value)
     }
 }
 
