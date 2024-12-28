@@ -163,7 +163,10 @@ where
 
     fn new_instance(&self) -> Self {
         TreeNode {
-            cell: self.cell.clone(),
+            cell: NodeCell {
+                value: self.cell.value.new_instance(),
+                ..self.cell.clone()
+            },
             children: self.children.as_ref().map(|children| {
                 children
                     .iter()
@@ -261,6 +264,58 @@ impl<T> AsRef<NodeCell<T>> for GraphNode<T> {
 impl<T> AsMut<NodeCell<T>> for GraphNode<T> {
     fn as_mut(&mut self) -> &mut NodeCell<T> {
         &mut self.cell
+    }
+}
+
+impl<T> Gene for GraphNode<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    type Allele = Expr<T>;
+
+    fn allele(&self) -> &Self::Allele {
+        &self.cell.value
+    }
+
+    fn new_instance(&self) -> Self {
+        GraphNode {
+            cell: NodeCell {
+                value: self.cell.value.new_instance(),
+                ..self.cell.clone()
+            },
+            index: self.index,
+            enabled: self.enabled,
+            direction: self.direction,
+            incoming: self.incoming.clone(),
+            outgoing: self.outgoing.clone(),
+        }
+    }
+
+    fn with_allele(&self, allele: &Self::Allele) -> Self {
+        GraphNode {
+            cell: NodeCell {
+                value: allele.clone(),
+                ..self.cell.clone()
+            },
+            index: self.index,
+            enabled: self.enabled,
+            direction: self.direction,
+            incoming: self.incoming.clone(),
+            outgoing: self.outgoing.clone(),
+        }
+    }
+}
+
+impl<T> Valid for GraphNode<T>
+where
+    T: Clone + PartialEq,
+{
+    fn is_valid(&self) -> bool {
+        match self.cell.value.arity() {
+            Arity::Zero => self.incoming.is_empty() && !self.outgoing.is_empty(),
+            Arity::Nary(n) => self.incoming.len() == n as usize && self.outgoing.len() > 0,
+            Arity::Any => true,
+        }
     }
 }
 
