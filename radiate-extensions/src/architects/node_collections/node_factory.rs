@@ -4,17 +4,14 @@ use crate::architects::schema::node_types::NodeType;
 use radiate::random_provider;
 use std::collections::HashMap;
 
-#[derive(Clone, Default, PartialEq, Debug)]
-pub struct NodeFactory<T>
-where
-    T: Clone + PartialEq + Default,
-{
+#[derive(Default, Clone, PartialEq, Debug)]
+pub struct NodeFactory<T: Clone> {
     pub node_values: HashMap<NodeType, Vec<Expr<T>>>,
 }
 
 impl<T> NodeFactory<T>
 where
-    T: Clone + PartialEq + Default,
+    T: Clone,
 {
     pub fn new() -> Self {
         NodeFactory {
@@ -61,7 +58,10 @@ where
         self.node_values.insert(node_type, values);
     }
 
-    pub fn new_node(&self, index: usize, node_type: NodeType) -> Node<T> {
+    pub fn new_node(&self, index: usize, node_type: NodeType) -> Node<T>
+    where
+        T: Default,
+    {
         if let Some(values) = self.node_values.get(&node_type) {
             return match node_type {
                 NodeType::Input => {

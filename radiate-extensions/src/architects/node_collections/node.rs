@@ -5,10 +5,6 @@ use radiate::engines::genome::genes::gene::{Gene, Valid};
 use std::collections::HashSet;
 use uuid::Uuid;
 
-////////////////////////////////////////
-/// OLD CODE
-/// ////////////////////////////////////////
-
 pub struct Node<T> {
     pub id: Uuid,
     pub index: usize,
@@ -141,7 +137,7 @@ where
 
 impl<T> Clone for Node<T>
 where
-    T: Clone + PartialEq,
+    T: Clone,
 {
     fn clone(&self) -> Self {
         Node {
@@ -160,7 +156,7 @@ where
 
 impl<T> PartialEq for Node<T>
 where
-    T: Clone + PartialEq,
+    T: PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
@@ -175,7 +171,7 @@ where
 
 impl<T> Default for Node<T>
 where
-    T: Clone + PartialEq + Default,
+    T: Default,
 {
     fn default() -> Self {
         Node {

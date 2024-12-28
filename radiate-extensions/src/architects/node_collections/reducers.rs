@@ -1,6 +1,6 @@
 use super::{Graph, Tree};
 use crate::node::Node;
-use crate::Expr;
+use crate::expr::Expr;
 use crate::{NodeCollection, NodeType};
 
 /// `GraphReducer` is a struct that is used to evaluate a `Graph` of `Node`s. It uses the `GraphIterator`

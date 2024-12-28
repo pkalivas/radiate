@@ -4,7 +4,6 @@ pub mod iterators;
 pub mod node;
 pub mod node_chromosome;
 pub mod node_factory;
-pub mod node_set;
 pub mod reducers;
 pub mod tree;
 
@@ -14,7 +13,6 @@ pub use iterators::*;
 pub use node::*;
 pub use node_chromosome::*;
 pub use node_factory::*;
-pub use node_set::*;
 pub use reducers::*;
 pub use tree::*;
 
@@ -24,9 +22,9 @@ use crate::NodeType;
 use radiate::engines::genome::genes::gene::Valid;
 use radiate::random_provider;
 
-pub trait NodeRepairs<T>: Valid + Default + Clone
+pub trait NodeRepairs<T>
 where
-    T: Clone + PartialEq + Default,
+    T: Clone,
 {
     fn repair(&mut self, factory: Option<&NodeFactory<T>>) -> Self;
 }

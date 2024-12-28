@@ -2,7 +2,7 @@ pub mod expr;
 
 use std::{collections::HashSet, rc::Rc};
 
-pub use expr::*;
+use expr::Expr;
 use radiate::{Gene, Valid};
 
 use super::{Direction, NodeType};

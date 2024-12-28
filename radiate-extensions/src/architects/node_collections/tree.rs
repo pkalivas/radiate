@@ -1,32 +1,16 @@
 use radiate::Valid;
 
-use super::BreadthFirstIterator;
 use crate::node::Node;
-use crate::{
-    node_collections, schema::collection_type::CollectionType, NodeCollection, NodeFactory,
-    NodeRepairs,
-};
+use crate::{schema::collection_type::CollectionType, NodeCollection, NodeFactory, NodeRepairs};
 
 #[derive(Clone, PartialEq, Default)]
-pub struct Tree<T>
-where
-    T: Clone + PartialEq,
-{
+pub struct Tree<T: PartialEq> {
     pub nodes: Vec<Node<T>>,
 }
 
-impl<T> Tree<T>
-where
-    T: Clone + PartialEq + Default,
-{
+impl<T: PartialEq> Tree<T> {
     pub fn new(nodes: Vec<Node<T>>) -> Self {
         Tree { nodes }
-    }
-
-    pub fn sub_tree(&self, index: usize) -> Self {
-        let nodes = BreadthFirstIterator::new(&self.nodes, index).collect::<Vec<&Node<T>>>();
-
-        Tree::new(node_collections::reindex(0, nodes.as_slice()))
     }
 }
 
