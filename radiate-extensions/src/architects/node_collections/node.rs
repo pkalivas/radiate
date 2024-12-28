@@ -1,9 +1,177 @@
-use crate::architects::cells::expr::Expr;
 use crate::architects::schema::{direction::Direction, node_types::NodeType};
+use crate::expr::Expr;
 use crate::schema::collection_type::CollectionType;
 use radiate::engines::genome::genes::gene::{Gene, Valid};
 use std::collections::HashSet;
 use uuid::Uuid;
+
+#[derive(Clone, PartialEq)]
+pub struct NodeCell<T> {
+    pub value: Expr<T>,
+    pub id: Uuid,
+    pub node_type: NodeType,
+}
+
+impl<T> NodeCell<T> {
+    pub fn new(value: Expr<T>, node_type: NodeType) -> Self {
+        NodeCell {
+            value,
+            id: Uuid::new_v4(),
+            node_type,
+        }
+    }
+}
+
+#[derive(PartialEq)]
+pub struct TreeNode<T> {
+    pub cell: NodeCell<T>,
+    pub children: Option<Vec<TreeNode<T>>>,
+}
+
+impl<T> TreeNode<T> {
+    pub fn new(cell: NodeCell<T>) -> Self {
+        TreeNode {
+            cell,
+            children: None,
+        }
+    }
+
+    pub fn with_children(cell: NodeCell<T>, children: Vec<TreeNode<T>>) -> Self {
+        TreeNode {
+            cell,
+            children: Some(children),
+        }
+    }
+
+    pub fn children(&self) -> Option<&Vec<TreeNode<T>>> {
+        self.children.as_ref()
+    }
+
+    pub fn children_mut(&mut self) -> Option<&mut Vec<TreeNode<T>>> {
+        self.children.as_mut()
+    }
+}
+
+impl<T> AsRef<NodeCell<T>> for TreeNode<T> {
+    fn as_ref(&self) -> &NodeCell<T> {
+        &self.cell
+    }
+}
+
+impl<T> AsMut<NodeCell<T>> for TreeNode<T> {
+    fn as_mut(&mut self) -> &mut NodeCell<T> {
+        &mut self.cell
+    }
+}
+
+impl<T: Clone> Clone for TreeNode<T> {
+    fn clone(&self) -> Self {
+        TreeNode {
+            cell: self.cell.clone(),
+            children: self.children.as_ref().map(|children| {
+                children
+                    .iter()
+                    .map(|child| child.clone())
+                    .collect::<Vec<TreeNode<T>>>()
+            }),
+        }
+    }
+}
+
+impl<T> Gene for TreeNode<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    type Allele = Expr<T>;
+
+    fn allele(&self) -> &Self::Allele {
+        &self.cell.value
+    }
+
+    fn new_instance(&self) -> Self {
+        TreeNode {
+            cell: self.cell.clone(),
+            children: self.children.as_ref().map(|children| {
+                children
+                    .iter()
+                    .map(|child| child.clone())
+                    .collect::<Vec<TreeNode<T>>>()
+            }),
+        }
+    }
+
+    fn with_allele(&self, allele: &Self::Allele) -> Self {
+        TreeNode {
+            cell: NodeCell {
+                value: allele.clone(),
+                ..self.cell.clone()
+            },
+            children: self.children.as_ref().map(|children| {
+                children
+                    .iter()
+                    .map(|child| child.clone())
+                    .collect::<Vec<TreeNode<T>>>()
+            }),
+        }
+    }
+}
+
+impl<T> Valid for TreeNode<T> {
+    fn is_valid(&self) -> bool {
+        todo!()
+    }
+}
+
+#[derive(Clone, PartialEq)]
+pub struct GraphNode<T> {
+    pub cell: NodeCell<T>,
+    pub enabled: bool,
+    pub direction: Direction,
+    pub index: usize,
+    pub incoming: HashSet<usize>,
+    pub outgoing: HashSet<usize>,
+}
+
+impl<T> GraphNode<T> {
+    pub fn new(index: usize, cell: NodeCell<T>) -> Self {
+        GraphNode {
+            cell,
+            index,
+            enabled: true,
+            direction: Direction::Forward,
+            incoming: HashSet::new(),
+            outgoing: HashSet::new(),
+        }
+    }
+
+    pub fn incoming(&self) -> &HashSet<usize> {
+        &self.incoming
+    }
+
+    pub fn outgoing(&self) -> &HashSet<usize> {
+        &self.outgoing
+    }
+
+    pub fn incoming_mut(&mut self) -> &mut HashSet<usize> {
+        &mut self.incoming
+    }
+
+    pub fn outgoing_mut(&mut self) -> &mut HashSet<usize> {
+        &mut self.outgoing
+    }
+}
+
+impl<T> AsRef<NodeCell<T>> for GraphNode<T> {
+    fn as_ref(&self) -> &NodeCell<T> {
+        &self.cell
+    }
+}
+
+impl<T> AsMut<NodeCell<T>> for GraphNode<T> {
+    fn as_mut(&mut self) -> &mut NodeCell<T> {
+        &mut self.cell
+    }
+}
 
 pub struct Node<T> {
     pub id: Uuid,

@@ -1,5 +1,6 @@
 pub mod chromosome;
 pub mod codex;
+pub mod expr;
 pub mod graph;
 pub mod iterators;
 pub mod node;
@@ -9,6 +10,7 @@ pub mod tree;
 
 pub use chromosome::*;
 pub use codex::*;
+use expr::Expr;
 pub use graph::*;
 pub use iterators::*;
 pub use node::*;

@@ -123,8 +123,7 @@ impl<'a, T> Iterator for BreadthFirstIterator<'a, T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::architects::cells::expr;
-    use crate::{NodeCell, NodeType};
+    use crate::{expr, NodeCell, NodeType};
 
     #[test]
     fn test_tree_traversal() {
