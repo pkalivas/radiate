@@ -1,4 +1,4 @@
-use crate::{Direction, Expr};
+use crate::{CellSchema, Direction, Expr};
 
 #[derive(Clone, PartialEq)]
 pub struct NodeCell<T> {
@@ -18,3 +18,24 @@ impl<T> NodeCell<T> {
         }
     }
 }
+
+impl<T> CellSchema for NodeCell<T> {
+    type ValueType = T;
+
+    fn value(&self) -> &Expr<Self::ValueType> {
+        &self.value
+    }
+
+    fn id(&self) -> &uuid::Uuid {
+        &self.id
+    }
+
+    fn enabled(&self) -> bool {
+        self.enabled
+    }
+
+    fn direction(&self) -> Direction {
+        self.direction
+    }
+}
+
