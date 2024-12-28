@@ -112,7 +112,7 @@ where
             children: self.children.as_ref().map(|children| {
                 children
                     .iter()
-                    .map(|child| child.clone())
+                    .map(|child| child.new_instance())
                     .collect::<Vec<TreeNode<T>>>()
             }),
         }

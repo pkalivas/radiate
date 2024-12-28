@@ -1,5 +1,6 @@
 use std::{
-    ops::{Add, Div, Mul, Neg, Sub},
+    fmt::Display,
+    ops::{Add, Deref, Div, Mul, Neg, Sub},
     sync::Arc,
 };
 
@@ -14,14 +15,41 @@ use radiate::random_provider;
 const MAX_VALUE: f32 = 1e+5_f32;
 const MIN_VALUE: f32 = -1e+5_f32;
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
+pub enum Arity {
+    Zero,
+    Nary(u8),
+    Any,
+}
+
+impl From<u8> for Arity {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => Arity::Zero,
+            n => Arity::Nary(n),
+        }
+    }
+}
+
+impl Deref for Arity {
+    type Target = u8;
+
+    fn deref(&self) -> &Self::Target {
+        match self {
+            Arity::Zero => &0,
+            Arity::Nary(n) => n,
+            Arity::Any => &0,
+        }
+    }
+}
+
 pub enum Expr<T> {
-    Fn(&'static str, u8, Arc<dyn Fn(&[T]) -> T>),
-    Value(T),
+    Fn(&'static str, Arity, Arc<dyn Fn(&[T]) -> T>),
     Var(String, usize),
     Const(&'static str, T),
     MutableConst(
         &'static str,
-        u8,
+        Arity,
         T,
         Arc<dyn Fn() -> T>,
         Arc<dyn Fn(&[T], &T) -> T>,
@@ -35,7 +63,6 @@ impl<T> Expr<T> {
     pub fn name(&self) -> &str {
         match self {
             Expr::Fn(name, _, _) => name,
-            Expr::Value(_) => "value",
             Expr::Var(name, _) => name,
             Expr::Const(name, _) => name,
             Expr::MutableConst(name, _, _, _, _) => name,
@@ -44,11 +71,10 @@ impl<T> Expr<T> {
 
     pub fn arity(&self) -> u8 {
         match self {
-            Expr::Fn(_, arity, _) => *arity,
-            Expr::Value(_) => 0,
+            Expr::Fn(_, arity, _) => **arity,
             Expr::Var(_, _) => 0,
             Expr::Const(_, _) => 0,
-            Expr::MutableConst(_, arity, _, _, _) => *arity,
+            Expr::MutableConst(_, arity, _, _, _) => **arity,
         }
     }
 
@@ -58,7 +84,6 @@ impl<T> Expr<T> {
     {
         match self {
             Expr::Fn(_, _, op) => op(inputs),
-            Expr::Value(value) => value.clone(),
             Expr::Var(_, index) => inputs[*index].clone(),
             Expr::Const(_, value) => value.clone(),
             Expr::MutableConst(_, _, value, _, operation) => operation(inputs, value),
@@ -71,7 +96,6 @@ impl<T> Expr<T> {
     {
         match self {
             Expr::Fn(name, arity, op) => Expr::Fn(name, *arity, op.clone()),
-            Expr::Value(value) => Expr::Value(value.clone()),
             Expr::Var(name, index) => Expr::Var(name.clone(), *index),
             Expr::Const(name, value) => Expr::Const(name, value.clone()),
             Expr::MutableConst(name, arity, _, get_value, operation) => Expr::MutableConst(
@@ -92,7 +116,6 @@ where
     fn clone(&self) -> Self {
         match self {
             Expr::Fn(name, arity, op) => Expr::Fn(name, *arity, op.clone()),
-            Expr::Value(value) => Expr::Value(value.clone()),
             Expr::Var(name, index) => Expr::Var(name.clone(), *index),
             Expr::Const(name, value) => Expr::Const(name, value.clone()),
             Expr::MutableConst(name, arity, value, get_value, operation) => Expr::MutableConst(
@@ -115,7 +138,6 @@ where
             (Expr::Fn(name, arity, _), Expr::Fn(other_name, other_arity, _)) => {
                 name == other_name && arity == other_arity
             }
-            (Expr::Value(value), Expr::Value(other_value)) => value == other_value,
             (Expr::Var(name, index), Expr::Var(other_name, other_index)) => {
                 name == other_name && index == other_index
             }
@@ -153,7 +175,6 @@ where
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Expr::Fn(name, _, _) => write!(f, "Fn: {}", name),
-            Expr::Value(value) => write!(f, "Val: {:?}", value),
             Expr::Var(name, index) => write!(f, "Var: {}({})", name, index),
             Expr::Const(name, value) => write!(f, "C: {}({:?})", name, value),
             Expr::MutableConst(name, _, value, _, _) => write!(f, "{}({:.2?})", name, value),
@@ -181,8 +202,9 @@ where
     }
 }
 
-pub fn value<T: Clone>(value: T) -> Expr<T> {
-    Expr::Value(value)
+pub fn value<T: Clone + Display>(value: T) -> Expr<T> {
+    let name = Box::leak(Box::new(format!("{}", value)));
+    Expr::Const(name, value)
 }
 
 pub fn constant<T: Clone>(name: &'static str, value: T) -> Expr<T> {
@@ -192,7 +214,7 @@ pub fn constant<T: Clone>(name: &'static str, value: T) -> Expr<T> {
 pub fn add<T: Add<Output = T> + Clone + Float>() -> Expr<T> {
     Expr::Fn(
         "+",
-        2,
+        2.into(),
         Arc::new(|inputs: &[T]| clamp(inputs[0] + inputs[1])),
     )
 }
@@ -200,7 +222,7 @@ pub fn add<T: Add<Output = T> + Clone + Float>() -> Expr<T> {
 pub fn sub<T: Sub<Output = T> + Clone + Float>() -> Expr<T> {
     Expr::Fn(
         "-",
-        2,
+        2.into(),
         Arc::new(|inputs: &[T]| clamp(inputs[0] - inputs[1])),
     )
 }
@@ -208,7 +230,7 @@ pub fn sub<T: Sub<Output = T> + Clone + Float>() -> Expr<T> {
 pub fn mul<T: Mul<Output = T> + Clone + Float>() -> Expr<T> {
     Expr::Fn(
         "*",
-        2,
+        2.into(),
         Arc::new(|inputs: &[T]| clamp(inputs[0] * inputs[1])),
     )
 }
@@ -216,7 +238,7 @@ pub fn mul<T: Mul<Output = T> + Clone + Float>() -> Expr<T> {
 pub fn div<T: Div<Output = T> + Clone + Float>() -> Expr<T> {
     Expr::Fn(
         "/",
-        2,
+        2.into(),
         Arc::new(|inputs: &[T]| {
             let denom = if inputs[1] == T::from(0).unwrap() {
                 inputs[0] / T::from(1).unwrap()
@@ -232,7 +254,7 @@ pub fn div<T: Div<Output = T> + Clone + Float>() -> Expr<T> {
 pub fn sum<T: Add<Output = T> + Clone + Default + Float>() -> Expr<T> {
     Expr::Fn(
         "sum",
-        2,
+        Arity::Any,
         Arc::new(|inputs: &[T]| clamp(inputs.iter().fold(T::default(), |acc, x| acc + *x))),
     )
 }
@@ -240,7 +262,7 @@ pub fn sum<T: Add<Output = T> + Clone + Default + Float>() -> Expr<T> {
 pub fn prod<T: Mul<Output = T> + Clone + Default + Float>() -> Expr<T> {
     Expr::Fn(
         "prod",
-        2,
+        Arity::Any,
         Arc::new(|inputs: &[T]| {
             let result = inputs.iter().fold(T::default(), |acc, x| acc * *x);
 
@@ -250,53 +272,85 @@ pub fn prod<T: Mul<Output = T> + Clone + Default + Float>() -> Expr<T> {
 }
 
 pub fn neg<T: Neg<Output = T> + Clone + Default + Float>() -> Expr<T> {
-    Expr::Fn("neg", 1, Arc::new(|inputs: &[T]| clamp(-inputs[0])))
+    Expr::Fn("neg", 1.into(), Arc::new(|inputs: &[T]| clamp(-inputs[0])))
 }
 
 pub fn pow<T: Mul<Output = T> + Clone + Float>() -> Expr<T> {
     Expr::Fn(
         "pow",
-        2,
+        2.into(),
         Arc::new(|inputs: &[T]| clamp(inputs[0] * inputs[1])),
     )
 }
 
 pub fn sqrt<T: Mul<Output = T> + Clone + Float>() -> Expr<T> {
-    Expr::Fn("sqrt", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].sqrt())))
+    Expr::Fn(
+        "sqrt",
+        1.into(),
+        Arc::new(|inputs: &[T]| clamp(inputs[0].sqrt())),
+    )
 }
 
 pub fn abs<T: Clone + Float>() -> Expr<T> {
-    Expr::Fn("abs", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].abs())))
+    Expr::Fn(
+        "abs",
+        1.into(),
+        Arc::new(|inputs: &[T]| clamp(inputs[0].abs())),
+    )
 }
 
 pub fn exp<T: Clone + Float>() -> Expr<T> {
-    Expr::Fn("exp", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].exp())))
+    Expr::Fn(
+        "exp",
+        1.into(),
+        Arc::new(|inputs: &[T]| clamp(inputs[0].exp())),
+    )
 }
 
 pub fn log<T: Clone + Float>() -> Expr<T> {
-    Expr::Fn("log", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].ln())))
+    Expr::Fn(
+        "log",
+        1.into(),
+        Arc::new(|inputs: &[T]| clamp(inputs[0].ln())),
+    )
 }
 
 pub fn sin<T: Clone + Float>() -> Expr<T> {
-    Expr::Fn("sin", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].sin())))
+    Expr::Fn(
+        "sin",
+        1.into(),
+        Arc::new(|inputs: &[T]| clamp(inputs[0].sin())),
+    )
 }
 
 pub fn cos<T: Clone + Float>() -> Expr<T> {
-    Expr::Fn("cos", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].cos())))
+    Expr::Fn(
+        "cos",
+        1.into(),
+        Arc::new(|inputs: &[T]| clamp(inputs[0].cos())),
+    )
 }
 
 pub fn tan<T: Clone + Float>() -> Expr<T> {
-    Expr::Fn("tan", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].tan())))
+    Expr::Fn(
+        "tan",
+        1.into(),
+        Arc::new(|inputs: &[T]| clamp(inputs[0].tan())),
+    )
 }
 
 pub fn ceil<T: Clone + Float>() -> Expr<T> {
-    Expr::Fn("ceil", 1, Arc::new(|inputs: &[T]| clamp(inputs[0].ceil())))
+    Expr::Fn(
+        "ceil",
+        1.into(),
+        Arc::new(|inputs: &[T]| clamp(inputs[0].ceil())),
+    )
 }
 
 pub fn floor<T: Clone + Float>() -> Expr<T> {
     Expr::Fn(
         "floor",
-        1,
+        1.into(),
         Arc::new(|inputs: &[T]| clamp(inputs[0].floor())),
     )
 }
@@ -304,7 +358,7 @@ pub fn floor<T: Clone + Float>() -> Expr<T> {
 pub fn gt<T: Clone + PartialEq + PartialOrd>() -> Expr<T> {
     Expr::Fn(
         ">",
-        2,
+        2.into(),
         Arc::new(|inputs: &[T]| {
             if inputs[0] > inputs[1] {
                 inputs[0].clone()
@@ -318,7 +372,7 @@ pub fn gt<T: Clone + PartialEq + PartialOrd>() -> Expr<T> {
 pub fn lt<T: Clone + PartialEq + PartialOrd>() -> Expr<T> {
     Expr::Fn(
         "<",
-        2,
+        2.into(),
         Arc::new(|inputs: &[T]| {
             if inputs[0] < inputs[1] {
                 inputs[0].clone()
@@ -332,7 +386,7 @@ pub fn lt<T: Clone + PartialEq + PartialOrd>() -> Expr<T> {
 pub fn max<T: Clone + PartialOrd>() -> Expr<T> {
     Expr::Fn(
         "max",
-        2,
+        Arity::Any,
         Arc::new(|inputs: &[T]| {
             inputs.iter().fold(
                 inputs[0].clone(),
@@ -351,7 +405,7 @@ pub fn max<T: Clone + PartialOrd>() -> Expr<T> {
 pub fn min<T: Clone + PartialOrd>() -> Expr<T> {
     Expr::Fn(
         "min",
-        2,
+        Arity::Any,
         Arc::new(|inputs: &[T]| {
             inputs.iter().fold(
                 inputs[0].clone(),
@@ -374,7 +428,13 @@ where
 {
     let supplier = || random_provider::random::<T>() * T::from(2).unwrap() - T::from(1).unwrap();
     let operation = |inputs: &[T], weight: &T| clamp(inputs[0] * *weight);
-    Expr::MutableConst("w", 1, supplier(), Arc::new(supplier), Arc::new(operation))
+    Expr::MutableConst(
+        "w",
+        1.into(),
+        supplier(),
+        Arc::new(supplier),
+        Arc::new(operation),
+    )
 }
 
 pub fn var<T: Clone>(index: usize) -> Expr<T> {
@@ -385,7 +445,7 @@ pub fn var<T: Clone>(index: usize) -> Expr<T> {
 pub fn sigmoid() -> Expr<f32> {
     Expr::Fn(
         "sigmoid",
-        1,
+        Arity::Any,
         Arc::new(|inputs: &[f32]| {
             let sum = inputs.iter().fold(0_f32, |acc, x| acc + x);
             let result = 1_f32 / (1_f32 + (-sum).exp());
@@ -397,7 +457,7 @@ pub fn sigmoid() -> Expr<f32> {
 pub fn relu() -> Expr<f32> {
     Expr::Fn(
         "relu",
-        1,
+        Arity::Any,
         Arc::new(|inputs: &[f32]| {
             let sum = inputs.iter().fold(0_f32, |acc, x| acc + x);
             let result = clamp(sum);
@@ -413,7 +473,7 @@ pub fn relu() -> Expr<f32> {
 pub fn tanh() -> Expr<f32> {
     Expr::Fn(
         "tanh",
-        1,
+        Arity::Any,
         Arc::new(|inputs: &[f32]| {
             let result = inputs.iter().fold(0_f32, |acc, x| acc + x).tanh();
 
@@ -425,7 +485,7 @@ pub fn tanh() -> Expr<f32> {
 pub fn linear() -> Expr<f32> {
     Expr::Fn(
         "linear",
-        1,
+        Arity::Any,
         Arc::new(|inputs: &[f32]| {
             let result = inputs.iter().fold(0_f32, |acc, x| acc + x);
 
@@ -437,7 +497,7 @@ pub fn linear() -> Expr<f32> {
 pub fn mish() -> Expr<f32> {
     Expr::Fn(
         "mish",
-        1,
+        Arity::Any,
         Arc::new(|inputs: &[f32]| {
             let result = inputs.iter().fold(0_f32, |acc, x| acc + x).tanh()
                 * (inputs
@@ -455,7 +515,7 @@ pub fn mish() -> Expr<f32> {
 pub fn leaky_relu() -> Expr<f32> {
     Expr::Fn(
         "l_relu",
-        1,
+        Arity::Any,
         Arc::new(|inputs: &[f32]| {
             let sum = inputs.iter().fold(0_f32, |acc, x| acc + x);
             let result = if sum > 0_f32 { sum } else { 0.01 * sum };
@@ -468,7 +528,7 @@ pub fn leaky_relu() -> Expr<f32> {
 pub fn softplus() -> Expr<f32> {
     Expr::Fn(
         "soft_plus",
-        1,
+        Arity::Any,
         Arc::new(|inputs: &[f32]| {
             let sum = inputs.iter().fold(0_f32, |acc, x| acc + x);
             let result = sum.exp().ln_1p();

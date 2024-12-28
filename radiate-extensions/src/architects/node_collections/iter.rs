@@ -275,7 +275,7 @@ mod tests {
         let pre_order: Vec<f32> = root
             .iter_pre_order()
             .map(|n| match &n.cell.value {
-                expr::Expr::Value(v) => *v,
+                expr::Expr::Const(_, v) => *v,
                 _ => panic!("Expected constant"),
             })
             .collect();
@@ -285,7 +285,7 @@ mod tests {
         let post_order: Vec<f32> = root
             .iter_post_order()
             .map(|n| match &n.cell.value {
-                expr::Expr::Value(v) => *v,
+                expr::Expr::Const(_, v) => *v,
                 _ => panic!("Expected constant"),
             })
             .collect();
@@ -295,7 +295,7 @@ mod tests {
         let bfs: Vec<f32> = root
             .iter_breadth_first()
             .map(|n| match &n.cell.value {
-                expr::Expr::Value(v) => *v,
+                expr::Expr::Const(_, v) => *v,
                 _ => panic!("Expected constant"),
             })
             .collect();

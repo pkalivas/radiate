@@ -169,7 +169,6 @@ where
 
         self.previous_result = self.result.clone();
         self.result = match &node.value {
-            Expr::Value(ref value) => Some(value.clone()),
             Expr::Const(_, ref value) => Some(value.clone()),
             Expr::Fn(_, _, ref fn_ptr) => Some(fn_ptr(&self.args)),
             Expr::MutableConst(_, _, ref val, _, fn_ptr) => Some(fn_ptr(&self.args, val)),
