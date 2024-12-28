@@ -1,69 +1,72 @@
 use crate::architects::cells::expr::{self, Expr};
 use crate::architects::node_collections::node::Node;
 use crate::architects::schema::node_types::NodeType;
-use crate::ValueCell;
+use crate::{IndexedCell, ValueCell};
 use radiate::random_provider;
 use std::collections::HashMap;
+use std::rc::Rc;
+
+type ValueStore<T> = HashMap<NodeType, Rc<Vec<Expr<T>>>>;
 
 #[derive(Clone, Default, PartialEq, Debug)]
-pub struct NodeFactory<T>
+pub struct ValueFactory<T>
 where
     T: Clone + PartialEq + Default,
 {
-    pub node_values: HashMap<NodeType, Vec<Expr<T>>>,
+    values: ValueStore<T>,
 }
 
-impl<T> NodeFactory<T>
+impl<T> ValueFactory<T>
 where
     T: Clone + PartialEq + Default,
 {
     pub fn new() -> Self {
-        NodeFactory {
-            node_values: HashMap::new(),
+        ValueFactory {
+            values: HashMap::new(),
         }
     }
 
-    pub fn leafs(mut self, values: Vec<Expr<T>>) -> NodeFactory<T> {
+    pub fn leafs(mut self, values: Vec<Expr<T>>) -> ValueFactory<T> {
         self.add_node_values(NodeType::Leaf, values);
         self
     }
 
-    pub fn inputs(mut self, values: Vec<Expr<T>>) -> NodeFactory<T> {
+    pub fn inputs(mut self, values: Vec<Expr<T>>) -> ValueFactory<T> {
         self.add_node_values(NodeType::Input, values);
         self
     }
 
-    pub fn outputs(mut self, values: Vec<Expr<T>>) -> NodeFactory<T> {
+    pub fn outputs(mut self, values: Vec<Expr<T>>) -> ValueFactory<T> {
         self.add_node_values(NodeType::Output, values);
         self
     }
 
-    pub fn gates(mut self, values: Vec<Expr<T>>) -> NodeFactory<T> {
+    pub fn gates(mut self, values: Vec<Expr<T>>) -> ValueFactory<T> {
         self.add_node_values(NodeType::Gate, values);
         self
     }
 
-    pub fn aggregates(mut self, values: Vec<Expr<T>>) -> NodeFactory<T> {
+    pub fn aggregates(mut self, values: Vec<Expr<T>>) -> ValueFactory<T> {
         self.add_node_values(NodeType::Aggregate, values);
         self
     }
 
-    pub fn weights(mut self, values: Vec<Expr<T>>) -> NodeFactory<T> {
+    pub fn weights(mut self, values: Vec<Expr<T>>) -> ValueFactory<T> {
         self.add_node_values(NodeType::Weight, values);
         self
     }
 
-    pub fn set_values(mut self, node_type: NodeType, values: Vec<Expr<T>>) -> NodeFactory<T> {
+    pub fn set_values(mut self, node_type: NodeType, values: Vec<Expr<T>>) -> ValueFactory<T> {
         self.add_node_values(node_type, values);
         self
     }
 
     pub fn add_node_values(&mut self, node_type: NodeType, values: Vec<Expr<T>>) {
-        self.node_values.insert(node_type, values);
+        self.values.insert(node_type, Rc::new(values));
     }
 
     pub fn new_node(&self, index: usize, node_type: NodeType) -> Node<T> {
-        if let Some(values) = self.node_values.get(&node_type) {
+        if let Some(values) = self.values.get(&node_type) {
             return match node_type {
                 NodeType::Input => {
                     let value = values[index % values.len()].clone();
@@ -79,9 +82,34 @@ where
         Node::new(index, node_type, Expr::default())
     }
 
-    pub fn regression(input_size: usize) -> NodeFactory<f32> {
+    pub fn new_value(&self, node_type: NodeType) -> ValueCell<T> {
+        if let Some(values) = self.values.get(&node_type) {
+            return random_provider::choose(values).new_instance().into();
+        }
+
+        ValueCell::default()
+    }
+
+    pub fn new_indexed(&self, index: usize, node_type: NodeType) -> IndexedCell<T> {
+        if let Some(values) = self.values.get(&node_type) {
+            match node_type {
+                NodeType::Input => {
+                    let value = values[index % values.len()].clone();
+                    return IndexedCell::new(value.into(), index);
+                }
+                _ => {
+                    let value = random_provider::choose(values);
+                    return IndexedCell::new(value.new_instance().into(), index);
+                }
+            }
+        }
+
+        IndexedCell::default()
+    }
+
+    pub fn regression(input_size: usize) -> ValueFactory<f32> {
         let inputs = (0..input_size).map(expr::var).collect::<Vec<Expr<f32>>>();
-        NodeFactory::new()
+        ValueFactory::new()
             .inputs(inputs.clone())
             .leafs(inputs.clone())
             .gates(vec![
@@ -132,7 +160,7 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let factory: NodeFactory<Expr<f32>> = NodeFactory::new();
-        assert!(factory.node_values.is_empty());
+        let factory: ValueFactory<Expr<f32>> = ValueFactory::new();
+        assert!(factory.values.is_empty());
     }
 }

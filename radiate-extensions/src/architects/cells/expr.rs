@@ -31,10 +31,7 @@ pub enum Expr<T> {
 unsafe impl Send for Expr<f32> {}
 unsafe impl Sync for Expr<f32> {}
 
-impl<T> Expr<T>
-where
-    T: Clone,
-{
+impl<T> Expr<T> {
     pub fn name(&self) -> &str {
         match self {
             Expr::Fn(name, _, _) => name,
@@ -55,7 +52,10 @@ where
         }
     }
 
-    pub fn apply(&self, inputs: &[T]) -> T {
+    pub fn apply(&self, inputs: &[T]) -> T
+    where
+        T: Clone,
+    {
         match self {
             Expr::Fn(_, _, op) => op(inputs),
             Expr::Value(value) => value.clone(),
@@ -65,7 +65,10 @@ where
         }
     }
 
-    pub fn new_instance(&self) -> Expr<T> {
+    pub fn new_instance(&self) -> Expr<T>
+    where
+        T: Clone,
+    {
         match self {
             Expr::Fn(name, arity, op) => Expr::Fn(name, *arity, op.clone()),
             Expr::Value(value) => Expr::Value(value.clone()),
@@ -128,10 +131,7 @@ where
     }
 }
 
-impl<T> std::fmt::Display for Expr<T>
-where
-    T: Clone,
-{
+impl<T> std::fmt::Display for Expr<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.name())
     }
@@ -139,7 +139,7 @@ where
 
 impl<T> Default for Expr<T>
 where
-    T: Clone + Default,
+    T: Default,
 {
     fn default() -> Self {
         Expr::Const("default", T::default())
@@ -148,7 +148,7 @@ where
 
 impl<T> std::fmt::Debug for Expr<T>
 where
-    T: Clone + std::fmt::Debug,
+    T: std::fmt::Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

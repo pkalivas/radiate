@@ -1,9 +1,130 @@
 use crate::architects::cells::expr::Expr;
 use crate::architects::schema::{direction::Direction, node_types::NodeType};
 use crate::schema::collection_type::CollectionType;
+use crate::{GraphCell, IndexedCell, NodeCell, TreeCell, ValueCell};
 use radiate::engines::genome::genes::gene::{Gene, Valid};
 use std::collections::HashSet;
 use uuid::Uuid;
+
+#[derive(Clone, PartialEq)]
+pub struct NodeTwo<T> {
+    pub inner: NodeCell<T>,
+    pub id: Uuid,
+    pub node_type: NodeType,
+}
+
+impl<T> NodeTwo<T> {
+    pub fn new(inner: NodeCell<T>, node_type: NodeType) -> Self {
+        NodeTwo {
+            inner,
+            id: Uuid::new_v4(),
+            node_type,
+        }
+    }
+}
+
+impl<T> Gene for NodeTwo<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    type Allele = Expr<T>;
+
+    fn allele(&self) -> &Expr<T> {
+        self.inner.as_ref().value()
+    }
+
+    fn new_instance(&self) -> Self {
+        NodeTwo {
+            inner: match &self.inner {
+                NodeCell::Tree(cell) => NodeCell::Tree(cell.clone()),
+                NodeCell::FlatTree(cell) => NodeCell::FlatTree(IndexedCell {
+                    inner: ValueCell::new(cell.inner.value.new_instance()),
+                    index: cell.index,
+                    incoming: cell.incoming.clone(),
+                    outgoing: cell.outgoing.clone(),
+                }),
+                NodeCell::Graph(cell) => NodeCell::Graph(GraphCell {
+                    inner: IndexedCell {
+                        inner: ValueCell::new(cell.inner.inner.value.new_instance()),
+                        index: cell.inner.index,
+                        incoming: cell.inner.incoming.clone(),
+                        outgoing: cell.inner.outgoing.clone(),
+                    },
+                    enabled: cell.enabled,
+                    direction: cell.direction,
+                }),
+            },
+            id: uuid::Uuid::new_v4(),
+            node_type: self.node_type,
+        }
+    }
+
+    fn with_allele(&self, allele: &Expr<T>) -> Self {
+        NodeTwo {
+            inner: match &self.inner {
+                NodeCell::Tree(cell) => NodeCell::Tree(TreeCell {
+                    inner: Some(ValueCell::new(allele.clone())),
+                    children: cell.children.clone(),
+                }),
+                NodeCell::FlatTree(cell) => NodeCell::FlatTree(IndexedCell {
+                    inner: ValueCell::new(allele.clone()),
+                    index: cell.index,
+                    incoming: cell.incoming.clone(),
+                    outgoing: cell.outgoing.clone(),
+                }),
+                NodeCell::Graph(cell) => NodeCell::Graph(GraphCell {
+                    inner: IndexedCell {
+                        inner: ValueCell::new(allele.clone()),
+                        index: cell.inner.index,
+                        incoming: cell.inner.incoming.clone(),
+                        outgoing: cell.inner.outgoing.clone(),
+                    },
+                    enabled: cell.enabled,
+                    direction: cell.direction,
+                }),
+            },
+            id: uuid::Uuid::new_v4(),
+            node_type: self.node_type,
+        }
+    }
+}
+
+impl<T> Valid for NodeTwo<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    fn is_valid(&self) -> bool {
+        match &self.inner {
+            NodeCell::Tree(_) => true,
+            NodeCell::FlatTree(cell) => match self.node_type {
+                NodeType::Input => cell.incoming.is_empty() && !cell.outgoing.is_empty(),
+                NodeType::Output => !cell.incoming.is_empty(),
+                NodeType::Gate => cell.outgoing.len() == cell.inner.value.arity() as usize,
+                NodeType::Aggregate => !cell.incoming.is_empty() && !cell.outgoing.is_empty(),
+                NodeType::Weight => cell.incoming.len() == 1 && cell.outgoing.len() == 1,
+                NodeType::Link => cell.incoming.len() == 1 && !cell.outgoing.is_empty(),
+                NodeType::Leaf => !cell.incoming.is_empty() && cell.outgoing.is_empty(),
+            },
+            NodeCell::Graph(cell) => match self.node_type {
+                NodeType::Input => {
+                    cell.inner.incoming.is_empty() && !cell.inner.outgoing.is_empty()
+                }
+                NodeType::Output => !cell.inner.incoming.is_empty(),
+                NodeType::Gate => {
+                    cell.inner.outgoing.len() == cell.inner.inner.value.arity() as usize
+                }
+                NodeType::Aggregate => {
+                    !cell.inner.incoming.is_empty() && !cell.inner.outgoing.is_empty()
+                }
+                NodeType::Weight => {
+                    cell.inner.incoming.len() == 1 && cell.inner.outgoing.len() == 1
+                }
+                NodeType::Link => cell.inner.incoming.len() == 1 && !cell.inner.outgoing.is_empty(),
+                NodeType::Leaf => cell.inner.incoming.is_empty() && !cell.inner.outgoing.is_empty(),
+            },
+        }
+    }
+}
 
 ////////////////////////////////////////
 /// OLD CODE

@@ -14,7 +14,6 @@ pub use iterators::*;
 pub use node::*;
 pub use node_chromosome::*;
 pub use node_factory::*;
-pub use node_set::*;
 pub use reducers::*;
 pub use tree::*;
 
