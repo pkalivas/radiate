@@ -1,17 +1,18 @@
+pub mod chromosome;
 pub mod codex;
+pub mod expr;
 pub mod graph;
-pub mod iterators;
+pub mod iter;
 pub mod node;
-pub mod node_chromosome;
 pub mod node_factory;
 pub mod reducers;
 pub mod tree;
 
+pub use chromosome::*;
 pub use codex::*;
 pub use graph::*;
-pub use iterators::*;
+pub use iter::*;
 pub use node::*;
-pub use node_chromosome::*;
 pub use node_factory::*;
 pub use reducers::*;
 pub use tree::*;
@@ -232,7 +233,7 @@ where
         return false;
     }
 
-    node.incoming.len() == node.value.arity() as usize
+    node.incoming.len() == *node.value.arity() as usize
 }
 
 #[inline]

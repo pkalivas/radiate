@@ -1,12 +1,15 @@
-use crate::architects::cells::expr::Expr;
 use crate::architects::*;
+use crate::expr::Expr;
 use crate::node::Node;
+use architect::{Archit, TreeArchit};
+use core::panic;
 use radiate::engines::codexes::Codex;
 use radiate::engines::genome::genes::gene::Gene;
 use radiate::engines::genome::genotype::Genotype;
 use radiate::Chromosome;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct GraphCodex<T>
 where
@@ -157,99 +160,185 @@ where
     }
 }
 
-/// A codex for encoding and decoding a tree structure.
-///
-pub struct TreeCodex<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    pub factory: Rc<RefCell<NodeFactory<T>>>,
-    pub nodes: Vec<Node<T>>,
+pub struct TreeCodex<T: Clone> {
+    architect: TreeArchit<T>,
+    constraint: Option<Arc<Box<dyn Fn(&TreeNode<T>) -> bool>>>,
 }
 
-impl<T> TreeCodex<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    pub fn new(depth: usize, factory: NodeFactory<T>) -> Self {
-        let nodes = Architect::<Tree<T>, T>::new(&factory)
-            .tree(depth)
-            .iter()
-            .cloned()
-            .collect::<Vec<Node<T>>>();
-
+impl<T: Clone + Default> TreeCodex<T> {
+    pub fn new(depth: usize) -> Self {
         TreeCodex {
-            factory: Rc::new(RefCell::new(factory)),
-            nodes,
+            architect: TreeArchit::new(depth),
+            constraint: None,
         }
     }
 
-    pub fn set_gates(self, gates: Vec<Expr<T>>) -> Self {
-        self.set_values(NodeType::Gate, gates);
+    pub fn constraint<F>(mut self, constraint: F) -> Self
+    where
+        F: Fn(&TreeNode<T>) -> bool + 'static,
+    {
+        self.constraint = Some(Arc::new(Box::new(constraint)));
         self
     }
 
-    pub fn set_leafs(self, leafs: Vec<Expr<T>>) -> Self {
-        self.set_values(NodeType::Leaf, leafs);
+    pub fn gates(mut self, gates: Vec<Expr<T>>) -> Self {
+        self.architect = self.architect.gates(gates);
         self
     }
 
-    fn set_values(&self, node_type: NodeType, values: Vec<Expr<T>>) {
-        let mut factory = self.factory.borrow_mut();
-        factory.add_node_values(node_type, values);
+    pub fn leafs(mut self, leafs: Vec<Expr<T>>) -> Self {
+        self.architect = self.architect.leafs(leafs);
+        self
     }
 }
 
-impl TreeCodex<f32> {
-    pub fn regression(input_size: usize, depth: usize) -> Self {
-        let factory = NodeFactory::<f32>::regression(input_size);
-        let nodes = Architect::<Tree<f32>, f32>::new(&factory)
-            .tree(depth)
-            .iter()
-            .cloned()
-            .collect::<Vec<Node<f32>>>();
-
-        TreeCodex::<f32> {
-            factory: Rc::new(RefCell::new(factory)),
-            nodes,
-        }
-    }
-}
-
-impl<T> Codex<NodeChromosome<T>, Tree<T>> for TreeCodex<T>
+impl<T> Codex<NodeChrom<TreeNode<T>>, Tree<T>> for TreeCodex<T>
 where
     T: Clone + PartialEq + Default,
 {
-    fn encode(&self) -> Genotype<NodeChromosome<T>> {
-        let reader = self.factory.borrow();
-        let nodes = self
-            .nodes
-            .iter()
-            .map(|node| {
-                let temp_node = reader.new_node(node.index, node.node_type);
+    fn encode(&self) -> Genotype<NodeChrom<TreeNode<T>>> {
+        let root = self.architect.build().root().take().unwrap().to_owned();
 
-                if temp_node.value.arity() == node.value.arity() {
-                    return node.with_allele(temp_node.allele());
-                }
-
-                node.clone()
-            })
-            .collect::<Vec<Node<T>>>();
+        if let Some(constraint) = &self.constraint {
+            if !constraint(&root) {
+                panic!("Root node does not meet constraint.");
+            }
+        }
 
         Genotype {
-            chromosomes: vec![NodeChromosome::with_factory(nodes, self.factory.clone())],
+            chromosomes: vec![NodeChrom::with_constraint(
+                vec![root],
+                self.constraint.clone(),
+            )],
         }
     }
 
-    fn decode(&self, genotype: &Genotype<NodeChromosome<T>>) -> Tree<T> {
-        Tree::from_nodes(
-            genotype
-                .iter()
-                .next()
-                .unwrap()
-                .iter()
-                .cloned()
-                .collect::<Vec<Node<T>>>(),
-        )
+    fn decode(&self, genotype: &Genotype<NodeChrom<TreeNode<T>>>) -> Tree<T> {
+        let nodes = genotype
+            .iter()
+            .next()
+            .unwrap()
+            .iter()
+            .cloned()
+            .collect::<Vec<TreeNode<T>>>()
+            .first()
+            .unwrap()
+            .to_owned();
+
+        Tree::new(nodes)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use radiate::engines::codexes::Codex;
+
+    #[test]
+    fn test_tree_codex() {
+        let codex = TreeCodex::<f32>::new(3)
+            .gates(vec![expr::add(), expr::sub(), expr::mul()])
+            .leafs(vec![expr::value(1.0), expr::value(2.0)]);
+        let genotype = codex.encode();
+        let tree = codex.decode(&genotype);
+
+        assert!(tree.root().is_some());
+    }
+}
+
+// /// A codex for encoding and decoding a tree structure.
+// ///
+// pub struct TreeCodex<T>
+// where
+//     T: Clone + PartialEq + Default,
+// {
+//     pub factory: Rc<RefCell<NodeFactory<T>>>,
+//     pub nodes: Vec<Node<T>>,
+// }
+
+// impl<T> TreeCodex<T>
+// where
+//     T: Clone + PartialEq + Default,
+// {
+//     pub fn new(depth: usize, factory: NodeFactory<T>) -> Self {
+//         let nodes = Architect::<Tree<T>, T>::new(&factory)
+//             .tree(depth)
+//             .iter()
+//             .cloned()
+//             .collect::<Vec<Node<T>>>();
+
+//         TreeCodex {
+//             factory: Rc::new(RefCell::new(factory)),
+//             nodes,
+//         }
+//     }
+
+//     pub fn set_gates(self, gates: Vec<Expr<T>>) -> Self {
+//         self.set_values(NodeType::Gate, gates);
+//         self
+//     }
+
+//     pub fn set_leafs(self, leafs: Vec<Expr<T>>) -> Self {
+//         self.set_values(NodeType::Leaf, leafs);
+//         self
+//     }
+
+//     fn set_values(&self, node_type: NodeType, values: Vec<Expr<T>>) {
+//         let mut factory = self.factory.borrow_mut();
+//         factory.add_node_values(node_type, values);
+//     }
+// }
+
+// impl TreeCodex<f32> {
+//     pub fn regression(input_size: usize, depth: usize) -> Self {
+//         let factory = NodeFactory::<f32>::regression(input_size);
+//         let nodes = Architect::<Tree<f32>, f32>::new(&factory)
+//             .tree(depth)
+//             .iter()
+//             .cloned()
+//             .collect::<Vec<Node<f32>>>();
+
+//         TreeCodex::<f32> {
+//             factory: Rc::new(RefCell::new(factory)),
+//             nodes,
+//         }
+//     }
+// }
+
+// impl<T> Codex<NodeChromosome<T>, Tree<T>> for TreeCodex<T>
+// where
+//     T: Clone + PartialEq + Default,
+// {
+//     fn encode(&self) -> Genotype<NodeChromosome<T>> {
+//         let reader = self.factory.borrow();
+//         let nodes = self
+//             .nodes
+//             .iter()
+//             .map(|node| {
+//                 let temp_node = reader.new_node(node.index, node.node_type);
+
+//                 if temp_node.value.arity() == node.value.arity() {
+//                     return node.with_allele(temp_node.allele());
+//                 }
+
+//                 node.clone()
+//             })
+//             .collect::<Vec<Node<T>>>();
+
+//         Genotype {
+//             chromosomes: vec![NodeChromosome::with_factory(nodes, self.factory.clone())],
+//         }
+//     }
+
+//     fn decode(&self, genotype: &Genotype<NodeChromosome<T>>) -> Tree<T> {
+//         Tree::from_nodes(
+//             genotype
+//                 .iter()
+//                 .next()
+//                 .unwrap()
+//                 .iter()
+//                 .cloned()
+//                 .collect::<Vec<Node<T>>>(),
+//         )
+//     }
+// }

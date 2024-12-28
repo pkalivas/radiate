@@ -1,6 +1,7 @@
-use crate::architects::cells::expr::{self, Expr};
 use crate::architects::node_collections::node::Node;
 use crate::architects::schema::node_types::NodeType;
+use crate::expr;
+use crate::expr::Expr;
 use radiate::random_provider;
 use std::collections::HashMap;
 
