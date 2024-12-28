@@ -1,16 +1,17 @@
+use crate::expr::Expr;
 use crate::node::Node;
 use crate::schema::collection_type::CollectionType;
-use crate::NodeChromosome;
+use crate::{NodeChrom, NodeChromosome, TreeNode};
 use radiate::alter::AlterType;
 use radiate::{random_provider, Alter, Chromosome, Valid};
 use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 use uuid::Uuid;
 
-struct TreeNode<T> {
-    node: Node<T>,
-    children: Vec<TreeNode<T>>,
-}
+// struct TreeNode<T> {
+//     node: Node<T>,
+//     children: Vec<TreeNode<T>>,
+// }
 
 pub struct TreeCrossover {
     pub rate: f32,
@@ -63,7 +64,7 @@ impl TreeCrossover {
     }
 }
 
-impl<T> Alter<NodeChromosome<T>> for TreeCrossover
+impl<T> Alter<NodeChrom<TreeNode<T>>> for TreeCrossover
 where
     T: Clone + PartialEq + Default + Debug,
 {
@@ -82,203 +83,267 @@ where
     #[inline]
     fn cross_chromosomes(
         &self,
-        chrom_one: &mut NodeChromosome<T>,
-        chrom_two: &mut NodeChromosome<T>,
+        chrom_one: &mut NodeChrom<TreeNode<T>>,
+        chrom_two: &mut NodeChrom<TreeNode<T>>,
     ) -> i32 {
         let swap_one_index = random_provider::random::<usize>() % chrom_one.len();
         let swap_two_index = random_provider::random::<usize>() % chrom_two.len();
 
-        if !self.can_cross(
-            chrom_one.get_genes(),
-            chrom_two.get_genes(),
-            swap_one_index,
-            swap_two_index,
-        ) {
+        let one_node = &mut chrom_one.get_genes_mut()[swap_one_index];
+        let mut two_node = &mut chrom_two.get_genes_mut()[swap_two_index];
+
+        let one_size = one_node.size();
+        let two_size = two_node.size();
+
+        let one_rand_index = random_provider::random::<usize>() % one_size;
+        let two_rand_index = random_provider::random::<usize>() % two_size;
+
+        if one_rand_index < 1 || two_rand_index < 1 {
             return 0;
         }
 
-        for node in chrom_one.iter_mut() {
-            node.id = Uuid::new_v4();
-        }
+        // if one_size > self.max_height || two_size > self.max_height {
+        //     return 0;
+        // }
 
-        for node in chrom_two.iter_mut() {
-            node.id = Uuid::new_v4();
-        }
+        // let prev_one = one_node.clone();
+        // let prev_two = two_node.clone();
 
-        let mut tree_1 = to_tree(chrom_one.get_genes());
-        let mut tree_2 = to_tree(chrom_two.get_genes());
+        one_node.swap_subtrees(&mut two_node, one_rand_index, two_rand_index);
 
-        swap_trees(&mut tree_1, &mut tree_2, swap_one_index, swap_two_index);
+        // if one_node.size() > self.max_height || two_node.size() > self.max_height {
+        //     *one_node = prev_one;
+        //     *two_node = prev_two;
+        //     return 0;
+        // }
 
-        let new_one_nodes = tree_to_nodes(&tree_1);
-        let new_two_nodes = tree_to_nodes(&tree_2);
+        // chrom_one.nodes = new_one_nodes;
+        // chrom_two.nodes = new_two_nodes;
 
-        chrom_one.nodes = new_one_nodes;
-        chrom_two.nodes = new_two_nodes;
-
-        if !chrom_one.is_valid() || !chrom_two.is_valid() {
-            panic!("Invalid tree after crossover.");
-        }
+        // if !chrom_one.is_valid() || !chrom_two.is_valid() {
+        //     panic!("Invalid tree after crossover.");
+        // }
 
         2
     }
 }
 
-fn to_tree<T>(nodes: &[Node<T>]) -> TreeNode<T>
-where
-    T: Clone + PartialEq + Default + Debug,
-{
-    let mut visited = HashSet::new();
-    to_tree_recursive(nodes, 0, &mut visited)
-}
+// impl<T> Alter<NodeChromosome<T>> for TreeCrossover
+// where
+//     T: Clone + PartialEq + Default + Debug,
+// {
+//     fn name(&self) -> &'static str {
+//         "Tree Crossover"
+//     }
 
-fn to_tree_recursive<T>(
-    nodes: &[Node<T>],
-    current_index: usize,
-    visited: &mut HashSet<usize>,
-) -> TreeNode<T>
-where
-    T: Clone + PartialEq + Default + Debug,
-{
-    if !visited.insert(current_index) {
-        panic!(
-            "Cycle detected in tree conversion at index {}",
-            current_index
-        );
-    }
+//     fn rate(&self) -> f32 {
+//         self.rate
+//     }
 
-    let node = &nodes[current_index];
-    let mut tree_node = TreeNode {
-        node: node.clone(),
-        children: Vec::new(),
-    };
+//     fn alter_type(&self) -> AlterType {
+//         AlterType::Crossover
+//     }
 
-    // Process children in sorted order for consistency
-    let mut child_indices: Vec<_> = node.outgoing.iter().copied().collect();
-    child_indices.sort_unstable();
+//     #[inline]
+//     fn cross_chromosomes(
+//         &self,
+//         chrom_one: &mut NodeChromosome<T>,
+//         chrom_two: &mut NodeChromosome<T>,
+//     ) -> i32 {
+//         let swap_one_index = random_provider::random::<usize>() % chrom_one.len();
+//         let swap_two_index = random_provider::random::<usize>() % chrom_two.len();
 
-    for child_index in child_indices {
-        if child_index >= nodes.len() {
-            panic!(
-                "Invalid child index {} for node {}",
-                child_index, current_index
-            );
-        }
-        if !visited.contains(&child_index) {
-            tree_node
-                .children
-                .push(to_tree_recursive(nodes, child_index, visited));
-        }
-    }
+//         if !self.can_cross(
+//             chrom_one.get_genes(),
+//             chrom_two.get_genes(),
+//             swap_one_index,
+//             swap_two_index,
+//         ) {
+//             return 0;
+//         }
 
-    tree_node
-}
+//         for node in chrom_one.iter_mut() {
+//             node.id = Uuid::new_v4();
+//         }
 
-fn get_node_queue<T>(root: &TreeNode<T>) -> Vec<&TreeNode<T>> {
-    let mut queue = Vec::new();
-    let mut stack = Vec::new();
+//         for node in chrom_two.iter_mut() {
+//             node.id = Uuid::new_v4();
+//         }
 
-    queue.push(root);
+//         let mut tree_1 = to_tree(chrom_one.get_genes());
+//         let mut tree_2 = to_tree(chrom_two.get_genes());
 
-    while let Some(node) = queue.pop() {
-        for child in node.children.iter() {
-            queue.push(child);
-        }
+//         swap_trees(&mut tree_1, &mut tree_2, swap_one_index, swap_two_index);
 
-        stack.push(node);
-    }
+//         let new_one_nodes = tree_to_nodes(&tree_1);
+//         let new_two_nodes = tree_to_nodes(&tree_2);
 
-    stack
-}
+//         chrom_one.nodes = new_one_nodes;
+//         chrom_two.nodes = new_two_nodes;
 
-fn tree_to_nodes<T>(root: &TreeNode<T>) -> Vec<Node<T>>
-where
-    T: Clone + PartialEq + Default + Debug,
-{
-    let node_map = get_node_queue(root);
+//         if !chrom_one.is_valid() || !chrom_two.is_valid() {
+//             panic!("Invalid tree after crossover.");
+//         }
 
-    let mut node_id_index_map = HashMap::new();
-    let mut tree_node_id_node_map = HashMap::new();
-    let mut nodes = Vec::new();
+//         2
+//     }
+// }
 
-    for (index, node) in node_map.iter().enumerate() {
-        node_id_index_map.insert(node.node.id, index);
-        tree_node_id_node_map.insert(node.node.id, node);
-        let mut new_node = Node::new(index, node.node.node_type, node.node.value.clone());
-        new_node.collection_type = Some(CollectionType::Tree);
-        nodes.push(new_node);
-    }
+// fn to_tree<T>(nodes: &[Node<T>]) -> TreeNode<T>
+// where
+//     T: Clone + PartialEq + Default + Debug,
+// {
+//     let mut visited = HashSet::new();
+//     to_tree_recursive(nodes, 0, &mut visited)
+// }
 
-    for (id, index) in node_id_index_map.iter() {
-        let tree_node = tree_node_id_node_map.get(id).unwrap();
-        for child in tree_node.children.iter() {
-            let child_index = node_id_index_map.get(&child.node.id).unwrap();
-            nodes[*index].outgoing.insert(*child_index);
-            nodes[*child_index].incoming.insert(*index);
-        }
-    }
+// fn to_tree_recursive<T>(
+//     nodes: &[Node<T>],
+//     current_index: usize,
+//     visited: &mut HashSet<usize>,
+// ) -> TreeNode<T>
+// where
+//     T: Clone + PartialEq + Default + Debug,
+// {
+//     if !visited.insert(current_index) {
+//         panic!(
+//             "Cycle detected in tree conversion at index {}",
+//             current_index
+//         );
+//     }
 
-    nodes
-}
+//     let node = &nodes[current_index];
+//     let mut tree_node = TreeNode {
+//         node: node.clone(),
+//         children: Vec::new(),
+//     };
 
-fn swap_trees<T>(one: &mut TreeNode<T>, two: &mut TreeNode<T>, one_idx: usize, two_idx: usize) {
-    // Get paths to target nodes
-    let one_path = get_path_to_node(one, one_idx);
-    let two_path = get_path_to_node(two, two_idx);
+//     // Process children in sorted order for consistency
+//     let mut child_indices: Vec<_> = node.outgoing.iter().copied().collect();
+//     child_indices.sort_unstable();
 
-    if one_path.len() < 2 || two_path.len() < 2 {
-        return;
-    }
+//     for child_index in child_indices {
+//         if child_index >= nodes.len() {
+//             panic!(
+//                 "Invalid child index {} for node {}",
+//                 child_index, current_index
+//             );
+//         }
+//         if !visited.contains(&child_index) {
+//             tree_node
+//                 .children
+//                 .push(to_tree_recursive(nodes, child_index, visited));
+//         }
+//     }
 
-    // Navigate to the nodes using indices
-    let mut one_current = one;
-    let mut two_current = two;
+//     tree_node
+// }
 
-    // Follow paths except for last index (which is the child we want to swap)
-    for &idx in one_path.iter().take(one_path.len() - 1) {
-        one_current = &mut one_current.children[idx];
-    }
+// fn get_node_queue<T>(root: &TreeNode<T>) -> Vec<&TreeNode<T>> {
+//     let mut queue = Vec::new();
+//     let mut stack = Vec::new();
 
-    for &idx in two_path.iter().take(two_path.len() - 1) {
-        two_current = &mut two_current.children[idx];
-    }
+//     queue.push(root);
 
-    // Get final child indices
-    let one_child_idx = *one_path.last().unwrap();
-    let two_child_idx = *two_path.last().unwrap();
+//     while let Some(node) = queue.pop() {
+//         for child in node.children.iter() {
+//             queue.push(child);
+//         }
 
-    // Perform the swap
-    std::mem::swap(
-        &mut one_current.children[one_child_idx],
-        &mut two_current.children[two_child_idx],
-    );
-}
+//         stack.push(node);
+//     }
 
-fn get_path_to_node<T>(root: &TreeNode<T>, target_idx: usize) -> Vec<usize> {
-    let mut path = Vec::new();
-    let mut current_idx = 0;
-    find_path_recursive(root, target_idx, &mut current_idx, &mut path);
-    path
-}
+//     stack
+// }
 
-fn find_path_recursive<T>(
-    node: &TreeNode<T>,
-    target_idx: usize,
-    current_idx: &mut usize,
-    path: &mut Vec<usize>,
-) -> bool {
-    if *current_idx == target_idx {
-        return true;
-    }
+// fn tree_to_nodes<T>(root: &TreeNode<T>) -> Vec<Node<T>>
+// where
+//     T: Clone + PartialEq + Default + Debug,
+// {
+//     let node_map = get_node_queue(root);
 
-    for (child_idx, _) in node.children.iter().enumerate() {
-        path.push(child_idx);
-        *current_idx += 1;
-        if find_path_recursive(&node.children[child_idx], target_idx, current_idx, path) {
-            return true;
-        }
-        path.pop();
-    }
+//     let mut node_id_index_map = HashMap::new();
+//     let mut tree_node_id_node_map = HashMap::new();
+//     let mut nodes = Vec::new();
 
-    false
-}
+//     for (index, node) in node_map.iter().enumerate() {
+//         node_id_index_map.insert(node.node.id, index);
+//         tree_node_id_node_map.insert(node.node.id, node);
+//         let mut new_node = Node::new(index, node.node.node_type, node.node.value.clone());
+//         new_node.collection_type = Some(CollectionType::Tree);
+//         nodes.push(new_node);
+//     }
+
+//     for (id, index) in node_id_index_map.iter() {
+//         let tree_node = tree_node_id_node_map.get(id).unwrap();
+//         for child in tree_node.children.iter() {
+//             let child_index = node_id_index_map.get(&child.node.id).unwrap();
+//             nodes[*index].outgoing.insert(*child_index);
+//             nodes[*child_index].incoming.insert(*index);
+//         }
+//     }
+
+//     nodes
+// }
+
+// fn swap_trees<T>(one: &mut TreeNode<T>, two: &mut TreeNode<T>, one_idx: usize, two_idx: usize) {
+//     // Get paths to target nodes
+//     let one_path = get_path_to_node(one, one_idx);
+//     let two_path = get_path_to_node(two, two_idx);
+
+//     if one_path.len() < 2 || two_path.len() < 2 {
+//         return;
+//     }
+
+//     // Navigate to the nodes using indices
+//     let mut one_current = one;
+//     let mut two_current = two;
+
+//     // Follow paths except for last index (which is the child we want to swap)
+//     for &idx in one_path.iter().take(one_path.len() - 1) {
+//         one_current = &mut one_current.children[idx];
+//     }
+
+//     for &idx in two_path.iter().take(two_path.len() - 1) {
+//         two_current = &mut two_current.children[idx];
+//     }
+
+//     // Get final child indices
+//     let one_child_idx = *one_path.last().unwrap();
+//     let two_child_idx = *two_path.last().unwrap();
+
+//     // Perform the swap
+//     std::mem::swap(
+//         &mut one_current.children[one_child_idx],
+//         &mut two_current.children[two_child_idx],
+//     );
+// }
+
+// fn get_path_to_node<T>(root: &TreeNode<T>, target_idx: usize) -> Vec<usize> {
+//     let mut path = Vec::new();
+//     let mut current_idx = 0;
+//     find_path_recursive(root, target_idx, &mut current_idx, &mut path);
+//     path
+// }
+
+// fn find_path_recursive<T>(
+//     node: &TreeNode<T>,
+//     target_idx: usize,
+//     current_idx: &mut usize,
+//     path: &mut Vec<usize>,
+// ) -> bool {
+//     if *current_idx == target_idx {
+//         return true;
+//     }
+
+//     for (child_idx, _) in node.children.iter().enumerate() {
+//         path.push(child_idx);
+//         *current_idx += 1;
+//         if find_path_recursive(&node.children[child_idx], target_idx, current_idx, path) {
+//             return true;
+//         }
+//         path.pop();
+//     }
+
+//     false
+// }

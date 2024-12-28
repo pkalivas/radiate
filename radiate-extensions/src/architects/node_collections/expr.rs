@@ -69,12 +69,12 @@ impl<T> Expr<T> {
         }
     }
 
-    pub fn arity(&self) -> u8 {
+    pub fn arity(&self) -> Arity {
         match self {
-            Expr::Fn(_, arity, _) => **arity,
-            Expr::Var(_, _) => 0,
-            Expr::Const(_, _) => 0,
-            Expr::MutableConst(_, arity, _, _, _) => **arity,
+            Expr::Fn(_, arity, _) => *arity,
+            Expr::Var(_, _) => Arity::Zero,
+            Expr::Const(_, _) => Arity::Zero,
+            Expr::MutableConst(_, arity, _, _, _) => *arity,
         }
     }
 
@@ -546,7 +546,7 @@ mod test {
     fn test_ops() {
         let op = add();
         assert_eq!(op.name(), "+");
-        assert_eq!(op.arity(), 2);
+        assert_eq!(op.arity(), Arity::Nary(2));
         assert_eq!(op.apply(&[1_f32, 2_f32]), 3_f32);
         assert_eq!(op.new_instance(), op);
     }

@@ -5,21 +5,20 @@ use radiate::engines::genome::genes::gene::{Gene, Valid};
 use std::collections::HashSet;
 use uuid::Uuid;
 
+use super::expr::Arity;
 use super::TreeIterator;
 
 #[derive(Clone, PartialEq)]
 pub struct NodeCell<T> {
     pub value: Expr<T>,
     pub id: Uuid,
-    pub node_type: NodeType,
 }
 
 impl<T> NodeCell<T> {
-    pub fn new(value: Expr<T>, node_type: NodeType) -> Self {
+    pub fn new(value: Expr<T>) -> Self {
         NodeCell {
             value,
             id: Uuid::new_v4(),
-            node_type,
         }
     }
 }
@@ -31,18 +30,28 @@ pub struct TreeNode<T> {
 }
 
 impl<T> TreeNode<T> {
-    pub fn new(cell: NodeCell<T>) -> Self {
+    pub fn new<C>(cell: C) -> Self
+    where
+        C: Into<NodeCell<T>>,
+    {
         TreeNode {
-            cell,
+            cell: cell.into(),
             children: None,
         }
     }
 
-    pub fn with_children(cell: NodeCell<T>, children: Vec<TreeNode<T>>) -> Self {
+    pub fn with_children<C>(cell: C, children: Vec<TreeNode<T>>) -> Self
+    where
+        C: Into<NodeCell<T>>,
+    {
         TreeNode {
-            cell,
+            cell: cell.into(),
             children: Some(children),
         }
+    }
+
+    pub fn is_leaf(&self) -> bool {
+        self.children.is_none()
     }
 
     pub fn add_child(&mut self, child: TreeNode<T>) {
@@ -67,6 +76,52 @@ impl<T> TreeNode<T> {
         } else {
             1
         }
+    }
+
+    pub fn swap_subtrees(&mut self, other: &mut TreeNode<T>, self_idx: usize, other_idx: usize) {
+        if let (Some(self_subtree), Some(other_subtree)) =
+            (self.get_mut(self_idx), other.get_mut(other_idx))
+        {
+            std::mem::swap(self_subtree, other_subtree);
+        }
+    }
+
+    pub fn get(&self, index: usize) -> Option<&TreeNode<T>> {
+        if index == 0 {
+            return Some(self);
+        }
+
+        if let Some(children) = self.children.as_ref() {
+            let mut count = 0;
+            for child in children {
+                let size = child.size();
+                if index <= count + size {
+                    return child.get(index - count - 1);
+                }
+                count += size;
+            }
+        }
+
+        None
+    }
+
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut TreeNode<T>> {
+        if index == 0 {
+            return Some(self);
+        }
+
+        if let Some(children) = self.children.as_mut() {
+            let mut count = 0;
+            for child in children {
+                let size = child.size();
+                if index <= count + size {
+                    return child.get_mut(index - count - 1);
+                }
+                count += size;
+            }
+        }
+
+        None
     }
 }
 
@@ -137,18 +192,20 @@ where
 impl<T> Valid for TreeNode<T> {
     fn is_valid(&self) -> bool {
         for node in self.iter_breadth_first() {
-            match node.cell.node_type {
-                NodeType::Gate => {
-                    if node.children.is_none() {
-                        return false;
-                    }
-                }
-                NodeType::Leaf => {
+            match node.cell.value.arity() {
+                Arity::Zero => {
                     if node.children.is_some() {
                         return false;
                     }
                 }
-                _ => return false,
+                Arity::Nary(n) => {
+                    if node.children.is_none()
+                        || node.children.as_ref().unwrap().len() != n as usize
+                    {
+                        return false;
+                    }
+                }
+                Arity::Any => {}
             }
         }
 
@@ -314,7 +371,7 @@ where
                 return match self.node_type {
                     NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
                     NodeType::Output => !self.incoming.is_empty(),
-                    NodeType::Gate => self.incoming.len() == self.value.arity() as usize,
+                    NodeType::Gate => self.incoming.len() == *self.value.arity() as usize,
                     NodeType::Aggregate => !self.incoming.is_empty() && !self.outgoing.is_empty(),
                     NodeType::Weight => self.incoming.len() == 1 && self.outgoing.len() == 1,
                     NodeType::Link => self.incoming.len() == 1 && !self.outgoing.is_empty(),
@@ -324,7 +381,7 @@ where
                 return match self.node_type {
                     NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
                     NodeType::Output => !self.incoming.is_empty(),
-                    NodeType::Gate => self.outgoing.len() == self.value.arity() as usize,
+                    NodeType::Gate => self.outgoing.len() == *self.value.arity() as usize,
                     NodeType::Aggregate => !self.incoming.is_empty() && !self.outgoing.is_empty(),
                     NodeType::Weight => self.incoming.len() == 1 && self.outgoing.len() == 1,
                     NodeType::Link => self.incoming.len() == 1 && !self.outgoing.is_empty(),

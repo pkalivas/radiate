@@ -3,35 +3,47 @@ use radiate::{Chromosome, Gene, Valid};
 use std::cell::RefCell;
 use std::ops::{Index, IndexMut};
 use std::rc::Rc;
+use std::sync::Arc;
 
-#[derive(Clone, PartialEq, Default)]
-pub struct NodeChrom<N, T>
+#[derive(Clone, Default)]
+pub struct NodeChrom<N>
 where
-    N: Gene<Allele = T>,
-    T: Clone + PartialEq + Default,
+    N: Gene,
 {
-    pub nodes: Vec<N>,
+    nodes: Vec<N>,
+    constraint: Option<Arc<Box<dyn Fn(&N) -> bool>>>,
 }
 
-impl<N, T> NodeChrom<N, T>
+impl<N> NodeChrom<N>
 where
-    N: Gene<Allele = T>,
-    T: Clone + PartialEq + Default,
+    N: Gene,
 {
     pub fn new(nodes: Vec<N>) -> Self {
-        NodeChrom { nodes }
+        NodeChrom {
+            nodes,
+            constraint: None,
+        }
+    }
+
+    pub fn with_constraint(
+        nodes: Vec<N>,
+        constraint: Option<Arc<Box<dyn Fn(&N) -> bool>>>,
+    ) -> Self {
+        NodeChrom { nodes, constraint }
     }
 }
 
-impl<N, T> Chromosome for NodeChrom<N, T>
+impl<N> Chromosome for NodeChrom<N>
 where
-    N: Gene<Allele = T>,
-    T: Clone + PartialEq + Default,
+    N: Gene,
 {
     type Gene = N;
 
     fn from_genes(genes: Vec<N>) -> Self {
-        NodeChrom { nodes: genes }
+        NodeChrom {
+            nodes: genes,
+            constraint: None,
+        }
     }
 
     fn get_genes(&self) -> &[N] {
@@ -43,13 +55,31 @@ where
     }
 }
 
-impl<N, T> Valid for NodeChrom<N, T>
+impl<N> Valid for NodeChrom<N>
 where
-    N: Gene<Allele = T>,
-    T: Clone + PartialEq + Default,
+    N: Gene,
 {
     fn is_valid(&self) -> bool {
-        self.nodes.iter().all(|gene| gene.is_valid())
+        for gene in &self.nodes {
+            if let Some(constraint) = &self.constraint {
+                if !constraint(gene) {
+                    return false;
+                }
+            } else if !gene.is_valid() {
+                return false;
+            }
+        }
+
+        true
+    }
+}
+
+impl<N> PartialEq for NodeChrom<N>
+where
+    N: Gene,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.nodes == other.nodes
     }
 }
 

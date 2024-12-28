@@ -248,7 +248,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{expr, NodeCell, NodeType, Tree};
+    use crate::{expr, NodeCell, Tree};
 
     #[test]
     fn test_tree_traversal() {
@@ -258,16 +258,14 @@ mod tests {
         //     2   3
         //    /
         //   4
-        let leaf = NodeCell::new(expr::value(4.0), NodeType::Leaf);
-        let node2 = TreeNode::with_children(
-            NodeCell::new(expr::value(2.0), NodeType::Gate),
-            vec![TreeNode::new(leaf)],
-        );
+        let leaf = NodeCell::new(expr::value(4.0));
+        let node2 =
+            TreeNode::with_children(NodeCell::new(expr::value(2.0)), vec![TreeNode::new(leaf)]);
 
-        let node3 = TreeNode::new(NodeCell::new(expr::value(3.0), NodeType::Leaf));
+        let node3 = TreeNode::new(NodeCell::new(expr::value(3.0)));
 
         let root = Tree::new(TreeNode::with_children(
-            NodeCell::new(expr::value(1.0), NodeType::Gate),
+            NodeCell::new(expr::value(1.0)),
             vec![node2, node3],
         ));
 

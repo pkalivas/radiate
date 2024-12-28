@@ -258,7 +258,8 @@ where
         target_node: &Node<T>,
         recurrent: bool,
     ) -> Option<Vec<Node<T>>> {
-        for _ in 0..collection.get(new_node_index).value.arity() - 1 {
+        let arity = *collection.get(new_node_index).value.arity();
+        for _ in 0..arity - 1 {
             let other_source_node = random_source_node(collection.get_nodes());
             if can_connect(
                 collection.get_nodes(),

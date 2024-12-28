@@ -49,7 +49,7 @@ impl<T: Clone> TreeArchit<T> {
                 random_provider::choose(&self.leafs).new_instance()
             };
 
-            return TreeNode::new(NodeCell::new(leaf, NodeType::Leaf));
+            return TreeNode::new(NodeCell::new(leaf));
         }
 
         let gate = if self.gates.is_empty() {
@@ -58,8 +58,8 @@ impl<T: Clone> TreeArchit<T> {
             random_provider::choose(&self.gates).new_instance()
         };
 
-        let mut parent = TreeNode::new(NodeCell::new(gate, NodeType::Gate));
-        for _ in 0..parent.cell.value.arity() {
+        let mut parent = TreeNode::new(NodeCell::new(gate));
+        for _ in 0..*parent.cell.value.arity() {
             let temp = self.grow_tree(depth - 1);
             parent.add_child(temp);
         }

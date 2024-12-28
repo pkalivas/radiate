@@ -233,7 +233,7 @@ where
         return false;
     }
 
-    node.incoming.len() == node.value.arity() as usize
+    node.incoming.len() == *node.value.arity() as usize
 }
 
 #[inline]

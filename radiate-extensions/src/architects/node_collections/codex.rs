@@ -9,6 +9,7 @@ use radiate::engines::genome::genotype::Genotype;
 use radiate::Chromosome;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct GraphCodex<T>
 where
@@ -161,54 +162,58 @@ where
 
 pub struct TreeCodex<T: Clone> {
     architect: TreeArchit<T>,
-    nodes: Vec<TreeNode<T>>,
+    constraint: Option<Arc<Box<dyn Fn(&TreeNode<T>) -> bool>>>,
 }
 
 impl<T: Clone + Default> TreeCodex<T> {
     pub fn new(depth: usize) -> Self {
         TreeCodex {
             architect: TreeArchit::new(depth),
-            nodes: Vec::new(),
+            constraint: None,
         }
     }
 
-    pub fn set_gates(mut self, gates: Vec<Expr<T>>) -> Self {
-        self.architect = self.architect.gates(gates);
-        let new_tree = self.architect.build();
-        let root = new_tree.root().take().unwrap();
-        self.nodes = vec![root.clone()];
+    pub fn constraint<F>(mut self, constraint: F) -> Self
+    where
+        F: Fn(&TreeNode<T>) -> bool + 'static,
+    {
+        self.constraint = Some(Arc::new(Box::new(constraint)));
         self
     }
 
-    pub fn set_leafs(mut self, leafs: Vec<Expr<T>>) -> Self {
+    pub fn gates(mut self, gates: Vec<Expr<T>>) -> Self {
+        self.architect = self.architect.gates(gates);
+        self
+    }
+
+    pub fn leafs(mut self, leafs: Vec<Expr<T>>) -> Self {
         self.architect = self.architect.leafs(leafs);
-        let new_tree = self.architect.build();
-        let root = new_tree.root().take().unwrap();
-        self.nodes = vec![root.clone()];
         self
     }
 }
 
-impl<T> Codex<NodeChrom<TreeNode<T>, Expr<T>>, Tree<T>> for TreeCodex<T>
+impl<T> Codex<NodeChrom<TreeNode<T>>, Tree<T>> for TreeCodex<T>
 where
     T: Clone + PartialEq + Default,
 {
-    fn encode(&self) -> Genotype<NodeChrom<TreeNode<T>, Expr<T>>> {
-        if self.nodes.is_empty() {
-            panic!("No nodes to encode");
+    fn encode(&self) -> Genotype<NodeChrom<TreeNode<T>>> {
+        let root = self.architect.build().root().take().unwrap().to_owned();
+
+        if let Some(constraint) = &self.constraint {
+            if !constraint(&root) {
+                panic!("Root node does not meet constraint.");
+            }
         }
-        let nodes = self
-            .nodes
-            .iter()
-            .map(|node| node.clone())
-            .collect::<Vec<TreeNode<T>>>();
 
         Genotype {
-            chromosomes: vec![NodeChrom::new(nodes)],
+            chromosomes: vec![NodeChrom::with_constraint(
+                vec![root],
+                self.constraint.clone(),
+            )],
         }
     }
 
-    fn decode(&self, genotype: &Genotype<NodeChrom<TreeNode<T>, Expr<T>>>) -> Tree<T> {
+    fn decode(&self, genotype: &Genotype<NodeChrom<TreeNode<T>>>) -> Tree<T> {
         let nodes = genotype
             .iter()
             .next()
@@ -232,13 +237,12 @@ mod tests {
     #[test]
     fn test_tree_codex() {
         let codex = TreeCodex::<f32>::new(3)
-            .set_gates(vec![expr::add(), expr::sub(), expr::mul()])
-            .set_leafs(vec![expr::value(1.0), expr::value(2.0)]);
+            .gates(vec![expr::add(), expr::sub(), expr::mul()])
+            .leafs(vec![expr::value(1.0), expr::value(2.0)]);
         let genotype = codex.encode();
         let tree = codex.decode(&genotype);
 
         assert!(tree.root().is_some());
-        assert!(tree.root().unwrap().cell.node_type == NodeType::Gate);
     }
 }
 
