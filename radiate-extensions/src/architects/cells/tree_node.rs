@@ -1,25 +1,24 @@
-use super::ValueCell;
+use super::NodeCell;
 
 #[derive(Clone, PartialEq)]
 pub struct TreeNode<T> {
-    pub inner: ValueCell<T>,
+    pub cell: NodeCell<T>,
     pub children: Option<Vec<TreeNode<T>>>,
 }
 
 impl<T> TreeNode<T> {
-    pub fn new(inner: ValueCell<T>) -> Self {
+    pub fn new(cell: NodeCell<T>) -> Self {
         TreeNode {
-            inner,
+            cell,
             children: None,
         }
     }
 
-    pub fn add_child(&mut self, child: TreeNode<T>) {
-        if self.children.is_none() {
-            self.children = Some(vec![]);
+    pub fn with_children(cell: NodeCell<T>, children: Vec<TreeNode<T>>) -> Self {
+        TreeNode {
+            cell,
+            children: Some(children),
         }
-
-        self.children.as_mut().unwrap().push(child);
     }
 
     pub fn children(&self) -> Option<&Vec<TreeNode<T>>> {
@@ -31,14 +30,14 @@ impl<T> TreeNode<T> {
     }
 }
 
-impl<T> AsRef<ValueCell<T>> for TreeNode<T> {
-    fn as_ref(&self) -> &ValueCell<T> {
-        self.inner.as_ref()
+impl<T> AsRef<NodeCell<T>> for TreeNode<T> {
+    fn as_ref(&self) -> &NodeCell<T> {
+        &self.cell
     }
 }
 
-impl<T> AsMut<ValueCell<T>> for TreeNode<T> {
-    fn as_mut(&mut self) -> &mut ValueCell<T> {
-        self.inner.as_mut()
+impl<T> AsMut<NodeCell<T>> for TreeNode<T> {
+    fn as_mut(&mut self) -> &mut NodeCell<T> {
+        &mut self.cell
     }
 }
