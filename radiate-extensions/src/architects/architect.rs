@@ -38,14 +38,27 @@ impl<T: Clone> TreeArchit<T> {
         self
     }
 
-    fn grow_tree(&self, depth: usize) -> TreeNode<T> {
+    fn grow_tree(&self, depth: usize) -> TreeNode<T>
+    where
+        T: Default,
+    {
         if depth == 0 {
-            let leaf = random_provider::choose(&self.leafs);
-            return TreeNode::new(NodeCell::new(leaf.new_instance(), NodeType::Leaf));
+            let leaf = if self.leafs.is_empty() {
+                Expr::default()
+            } else {
+                random_provider::choose(&self.leafs).new_instance()
+            };
+
+            return TreeNode::new(NodeCell::new(leaf, NodeType::Leaf));
         }
 
-        let gate = random_provider::choose(&self.gates);
-        let mut parent = TreeNode::new(NodeCell::new(gate.new_instance(), NodeType::Gate));
+        let gate = if self.gates.is_empty() {
+            Expr::default()
+        } else {
+            random_provider::choose(&self.gates).new_instance()
+        };
+
+        let mut parent = TreeNode::new(NodeCell::new(gate, NodeType::Gate));
         for _ in 0..parent.cell.value.arity() {
             let temp = self.grow_tree(depth - 1);
             parent.add_child(temp);
@@ -55,7 +68,7 @@ impl<T: Clone> TreeArchit<T> {
     }
 }
 
-impl<T: Clone> Archit for TreeArchit<T> {
+impl<T: Clone + Default> Archit for TreeArchit<T> {
     type Output = Tree<T>;
 
     fn build(&self) -> Self::Output {
@@ -396,7 +409,7 @@ mod tests {
             .leafs(vec![expr::var(0), expr::var(1)]);
         let tree = tree_archit.build();
         let size = tree.root().map(|n| n.size()).unwrap_or(0);
-        
+
         assert_eq!(size, 15);
     }
 }

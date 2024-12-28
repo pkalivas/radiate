@@ -5,6 +5,8 @@ use radiate::engines::genome::genes::gene::{Gene, Valid};
 use std::collections::HashSet;
 use uuid::Uuid;
 
+use super::TreeIterator;
+
 #[derive(Clone, PartialEq)]
 pub struct NodeCell<T> {
     pub value: Expr<T>,
@@ -42,7 +44,7 @@ impl<T> TreeNode<T> {
             children: Some(children),
         }
     }
-    
+
     pub fn add_child(&mut self, child: TreeNode<T>) {
         if let Some(children) = self.children.as_mut() {
             children.push(child);
@@ -58,7 +60,7 @@ impl<T> TreeNode<T> {
     pub fn children_mut(&mut self) -> Option<&mut Vec<TreeNode<T>>> {
         self.children.as_mut()
     }
-    
+
     pub fn size(&self) -> usize {
         if let Some(children) = self.children.as_ref() {
             children.iter().fold(1, |acc, child| acc + child.size())
@@ -134,7 +136,23 @@ where
 
 impl<T> Valid for TreeNode<T> {
     fn is_valid(&self) -> bool {
-        todo!()
+        for node in self.iter_breadth_first() {
+            match node.cell.node_type {
+                NodeType::Gate => {
+                    if node.children.is_none() {
+                        return false;
+                    }
+                }
+                NodeType::Leaf => {
+                    if node.children.is_some() {
+                        return false;
+                    }
+                }
+                _ => return false,
+            }
+        }
+
+        true
     }
 }
 

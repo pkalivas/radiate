@@ -1,6 +1,8 @@
 use crate::architects::*;
 use crate::expr::Expr;
 use crate::node::Node;
+use architect::{Archit, TreeArchit};
+use core::panic;
 use radiate::engines::codexes::Codex;
 use radiate::engines::genome::genes::gene::Gene;
 use radiate::engines::genome::genotype::Genotype;
@@ -154,6 +156,89 @@ where
                 .cloned()
                 .collect::<Vec<Node<T>>>(),
         )
+    }
+}
+
+pub struct TreeCodex<T: Clone> {
+    architect: TreeArchit<T>,
+    nodes: Vec<TreeNode<T>>,
+}
+
+impl<T: Clone + Default> TreeCodex<T> {
+    pub fn new(depth: usize) -> Self {
+        TreeCodex {
+            architect: TreeArchit::new(depth),
+            nodes: Vec::new(),
+        }
+    }
+
+    pub fn set_gates(mut self, gates: Vec<Expr<T>>) -> Self {
+        self.architect = self.architect.gates(gates);
+        let new_tree = self.architect.build();
+        let root = new_tree.root().take().unwrap();
+        self.nodes = vec![root.clone()];
+        self
+    }
+
+    pub fn set_leafs(mut self, leafs: Vec<Expr<T>>) -> Self {
+        self.architect = self.architect.leafs(leafs);
+        let new_tree = self.architect.build();
+        let root = new_tree.root().take().unwrap();
+        self.nodes = vec![root.clone()];
+        self
+    }
+}
+
+impl<T> Codex<NodeChrom<TreeNode<T>, Expr<T>>, Tree<T>> for TreeCodex<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    fn encode(&self) -> Genotype<NodeChrom<TreeNode<T>, Expr<T>>> {
+        if self.nodes.is_empty() {
+            panic!("No nodes to encode");
+        }
+        let nodes = self
+            .nodes
+            .iter()
+            .map(|node| node.clone())
+            .collect::<Vec<TreeNode<T>>>();
+
+        Genotype {
+            chromosomes: vec![NodeChrom::new(nodes)],
+        }
+    }
+
+    fn decode(&self, genotype: &Genotype<NodeChrom<TreeNode<T>, Expr<T>>>) -> Tree<T> {
+        let nodes = genotype
+            .iter()
+            .next()
+            .unwrap()
+            .iter()
+            .cloned()
+            .collect::<Vec<TreeNode<T>>>()
+            .first()
+            .unwrap()
+            .to_owned();
+
+        Tree::new(nodes)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use radiate::engines::codexes::Codex;
+
+    #[test]
+    fn test_tree_codex() {
+        let codex = TreeCodex::<f32>::new(3)
+            .set_gates(vec![expr::add(), expr::sub(), expr::mul()])
+            .set_leafs(vec![expr::value(1.0), expr::value(2.0)]);
+        let genotype = codex.encode();
+        let tree = codex.decode(&genotype);
+
+        assert!(tree.root().is_some());
+        assert!(tree.root().unwrap().cell.node_type == NodeType::Gate);
     }
 }
 

@@ -10,7 +10,6 @@ pub mod tree;
 
 pub use chromosome::*;
 pub use codex::*;
-use expr::Expr;
 pub use graph::*;
 pub use iter::*;
 pub use node::*;

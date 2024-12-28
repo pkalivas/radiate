@@ -1,8 +1,57 @@
 use crate::{Node, NodeFactory, NodeType};
-use radiate::{Chromosome, Valid};
+use radiate::{Chromosome, Gene, Valid};
 use std::cell::RefCell;
 use std::ops::{Index, IndexMut};
 use std::rc::Rc;
+
+#[derive(Clone, PartialEq, Default)]
+pub struct NodeChrom<N, T>
+where
+    N: Gene<Allele = T>,
+    T: Clone + PartialEq + Default,
+{
+    pub nodes: Vec<N>,
+}
+
+impl<N, T> NodeChrom<N, T>
+where
+    N: Gene<Allele = T>,
+    T: Clone + PartialEq + Default,
+{
+    pub fn new(nodes: Vec<N>) -> Self {
+        NodeChrom { nodes }
+    }
+}
+
+impl<N, T> Chromosome for NodeChrom<N, T>
+where
+    N: Gene<Allele = T>,
+    T: Clone + PartialEq + Default,
+{
+    type Gene = N;
+
+    fn from_genes(genes: Vec<N>) -> Self {
+        NodeChrom { nodes: genes }
+    }
+
+    fn get_genes(&self) -> &[N] {
+        &self.nodes
+    }
+
+    fn get_genes_mut(&mut self) -> &mut [N] {
+        &mut self.nodes
+    }
+}
+
+impl<N, T> Valid for NodeChrom<N, T>
+where
+    N: Gene<Allele = T>,
+    T: Clone + PartialEq + Default,
+{
+    fn is_valid(&self) -> bool {
+        self.nodes.iter().all(|gene| gene.is_valid())
+    }
+}
 
 #[derive(Clone)]
 pub struct NodeChromosome<T>
