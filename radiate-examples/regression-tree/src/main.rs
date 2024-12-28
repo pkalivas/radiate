@@ -1,5 +1,6 @@
 use radiate::random_provider::set_seed;
 use radiate::*;
+use radiate_extensions::architects::cells::expr;
 use radiate_extensions::*;
 
 const MIN_SCORE: f32 = 0.01;
@@ -7,7 +8,8 @@ const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
     set_seed(200);
-    let graph_codex = TreeCodex::regression(1, 3).set_gates(vec![op::add(), op::sub(), op::mul()]);
+    let graph_codex =
+        TreeCodex::regression(1, 3).set_gates(vec![expr::add(), expr::sub(), expr::mul()]);
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 
