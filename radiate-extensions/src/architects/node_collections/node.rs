@@ -1,9 +1,14 @@
 use crate::architects::cells::expr::Expr;
 use crate::architects::schema::{direction::Direction, node_types::NodeType};
 use crate::schema::collection_type::CollectionType;
+use crate::IndexedValue;
 use radiate::engines::genome::genes::gene::{Gene, Valid};
 use std::collections::HashSet;
 use uuid::Uuid;
+
+////////////////////////////////////////
+/// OLD CODE
+/// ////////////////////////////////////////
 
 pub struct Node<T> {
     pub id: Uuid,

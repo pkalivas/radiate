@@ -6,7 +6,9 @@ pub mod node_chromosome;
 pub mod node_factory;
 pub mod reducers;
 pub mod tree;
+pub mod node_set;
 
+pub use node_set::*;
 pub use codex::*;
 pub use graph::*;
 pub use iterators::*;
