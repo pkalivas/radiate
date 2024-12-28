@@ -8,17 +8,82 @@ use uuid::Uuid;
 use super::expr::Arity;
 use super::TreeIterator;
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Role {
+    /// Terminal nodes provide values without inputs (constants, variables)
+    Provider,
+    /// Internal nodes transform values (operations)
+    Internal,
+    /// Output nodes consume values (network outputs)
+    Output,
+}
+
+impl Role {
+    pub fn from_expr<T>(expr: &Expr<T>) -> Self {
+        match expr.arity() {
+            Arity::Zero => Role::Provider,
+            _ => Role::Internal, // Default to Internal, Output must be explicit
+        }
+    }
+
+    pub fn allows_incoming(&self) -> bool {
+        matches!(self, Role::Internal | Role::Output)
+    }
+
+    pub fn allows_outgoing(&self) -> bool {
+        matches!(self, Role::Provider | Role::Internal)
+    }
+}
+
 #[derive(Clone, PartialEq)]
 pub struct NodeCell<T> {
     pub value: Expr<T>,
     pub id: Uuid,
+    pub role: Role,
 }
 
 impl<T> NodeCell<T> {
     pub fn new(value: Expr<T>) -> Self {
         NodeCell {
-            value,
+            role: Role::from_expr(&value),
             id: Uuid::new_v4(),
+            value,
+        }
+    }
+
+    pub fn provider(value: Expr<T>) -> Self {
+        if Role::from_expr(&value) != Role::Provider {
+            panic!("NodeCell::provider() requires a provider role");
+        }
+
+        NodeCell {
+            role: Role::Provider,
+            id: Uuid::new_v4(),
+            value,
+        }
+    }
+
+    pub fn internal(value: Expr<T>) -> Self {
+        if Role::from_expr(&value) != Role::Internal {
+            panic!("NodeCell::internal() requires an internal role");
+        }
+
+        NodeCell {
+            role: Role::Internal,
+            id: Uuid::new_v4(),
+            value,
+        }
+    }
+
+    pub fn output(value: Expr<T>) -> Self {
+        if value.arity() == Arity::Zero {
+            panic!("NodeCell::output() requires a non-zero arity");
+        }
+
+        NodeCell {
+            role: Role::Output,
+            id: Uuid::new_v4(),
+            value,
         }
     }
 }
@@ -141,12 +206,7 @@ impl<T: Clone> Clone for TreeNode<T> {
     fn clone(&self) -> Self {
         TreeNode {
             cell: self.cell.clone(),
-            children: self.children.as_ref().map(|children| {
-                children
-                    .iter()
-                    .map(|child| child.clone())
-                    .collect::<Vec<TreeNode<T>>>()
-            }),
+            children: self.children.as_ref().map(|children| children.to_vec()),
         }
     }
 }
@@ -182,12 +242,7 @@ where
                 value: allele.clone(),
                 ..self.cell.clone()
             },
-            children: self.children.as_ref().map(|children| {
-                children
-                    .iter()
-                    .map(|child| child.clone())
-                    .collect::<Vec<TreeNode<T>>>()
-            }),
+            children: self.children.as_ref().map(|children| children.to_vec()),
         }
     }
 }
@@ -195,20 +250,24 @@ where
 impl<T> Valid for TreeNode<T> {
     fn is_valid(&self) -> bool {
         for node in self.iter_breadth_first() {
-            match node.cell.value.arity() {
-                Arity::Zero => {
+            match node.cell.role {
+                Role::Provider => {
                     if node.children.is_some() {
                         return false;
                     }
                 }
-                Arity::Nary(n) => {
-                    if node.children.is_none()
-                        || node.children.as_ref().unwrap().len() != n as usize
-                    {
+                Role::Internal => {
+                    if node.children.is_none() {
                         return false;
+                    } else if node.cell.value.arity() == Arity::Zero {
+                        return false;
+                    } else if let Arity::Nary(n) = node.cell.value.arity() {
+                        if node.children.as_ref().unwrap().len() != n as usize {
+                            return false;
+                        }
                     }
                 }
-                Arity::Any => {}
+                Role::Output => return false, // Outputs don't make sense in a tree
             }
         }
 
@@ -236,6 +295,12 @@ impl<T> GraphNode<T> {
             incoming: HashSet::new(),
             outgoing: HashSet::new(),
         }
+    }
+
+    pub fn is_recurrent(&self) -> bool {
+        self.direction == Direction::Backward
+            || self.incoming.contains(&self.index)
+            || self.outgoing.contains(&self.index)
     }
 
     pub fn incoming(&self) -> &HashSet<usize> {
@@ -311,10 +376,36 @@ where
     T: Clone + PartialEq,
 {
     fn is_valid(&self) -> bool {
-        match self.cell.value.arity() {
-            Arity::Zero => self.incoming.is_empty() && !self.outgoing.is_empty(),
-            Arity::Nary(n) => self.incoming.len() == n as usize && self.outgoing.len() > 0,
-            Arity::Any => true,
+        match self.cell.role {
+            Role::Provider => {
+                if let Arity::Zero = self.cell.value.arity() {
+                    self.incoming.is_empty() && !self.outgoing.is_empty()
+                } else {
+                    false
+                }
+            }
+            Role::Internal => {
+                if self.incoming.is_empty() || self.outgoing.is_empty() {
+                    return false;
+                } else if let Arity::Zero = self.cell.value.arity() {
+                    return false;
+                } else if let Arity::Nary(n) = self.cell.value.arity() {
+                    return self.incoming.len() == n as usize;
+                }
+
+                true
+            }
+            Role::Output => {
+                if self.incoming.is_empty() {
+                    return false;
+                } else if let Arity::Zero = self.cell.value.arity() {
+                    return false;
+                } else if let Arity::Nary(n) = self.cell.value.arity() {
+                    return self.incoming.len() == n as usize;
+                }
+
+                true
+            }
         }
     }
 }
