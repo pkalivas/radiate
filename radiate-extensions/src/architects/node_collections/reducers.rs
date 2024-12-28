@@ -1,4 +1,4 @@
-use super::{Graph, Tree};
+use super::{Graph, GraphIterator, GraphNode, Tree};
 use crate::expr::Expr;
 use crate::node::Node;
 use crate::{NodeCollection, NodeType, TreeNode};
@@ -52,29 +52,21 @@ impl<T: Clone> Reduce<T> for TreeNode<T> {
 /// On the first iteration it caches the order of nodes in the `Graph` and then uses that order to
 /// evaluate the nodes in the correct order. This is a massive performance improvement.
 ///
-pub struct GraphReducer<'a, T>
-where
-    T: Clone + PartialEq + Default,
-{
+pub struct GraphReducer<'a, T: Clone + Default> {
     graph: &'a Graph<T>,
     tracers: Vec<Tracer<T>>,
     order: Vec<usize>,
     outputs: Vec<T>,
 }
 
-impl<'a, T> GraphReducer<'a, T>
-where
-    T: Clone + PartialEq + Default,
-{
+impl<'a, T: Clone + Default> GraphReducer<'a, T> {
     pub fn new(graph: &'a Graph<T>) -> GraphReducer<'a, T> {
-        let output_size = graph
-            .iter()
-            .filter(|node| node.node_type == NodeType::Output)
-            .count();
+        let output_size = graph.nodes().iter().filter(|node| node.is_output()).count();
 
         GraphReducer {
             graph,
             tracers: graph
+                .nodes()
                 .iter()
                 .map(|node| Tracer::new(input_size(node)))
                 .collect::<Vec<Tracer<T>>>(),
@@ -88,7 +80,7 @@ where
         if self.order.is_empty() {
             self.order = self
                 .graph
-                .topological_iter()
+                .iter_topological()
                 .map(|node| node.index)
                 .collect();
         }
@@ -96,8 +88,8 @@ where
         let mut output_index = 0;
         for index in &self.order {
             let node = self.graph.get(*index);
-            if node.node_type == NodeType::Input {
-                self.tracers[node.index].add_input(inputs[node.index].clone());
+            if node.is_provider() {
+                self.tracers[node.index].add_input(node.cell.value.apply(inputs));
             } else {
                 for incoming in &node.incoming {
                     let arg = self.tracers[*incoming]
@@ -110,7 +102,7 @@ where
 
             self.tracers[node.index].eval(node);
 
-            if node.node_type == NodeType::Output {
+            if node.is_output() {
                 self.outputs[output_index] = self.tracers[node.index].result.clone().unwrap();
                 output_index += 1;
             }
@@ -120,10 +112,7 @@ where
     }
 }
 
-struct Tracer<T>
-where
-    T: Clone,
-{
+struct Tracer<T: Clone + Default> {
     pub input_size: usize,
     pub pending_idx: usize,
     pub args: Vec<T>,
@@ -131,10 +120,7 @@ where
     pub previous_result: Option<T>,
 }
 
-impl<T> Tracer<T>
-where
-    T: Clone + PartialEq + Default,
-{
+impl<T: Clone + Default> Tracer<T> {
     pub fn new(input_size: usize) -> Self {
         Tracer {
             input_size,
@@ -155,7 +141,7 @@ where
     }
 
     #[inline]
-    pub fn eval(&mut self, node: &Node<T>) {
+    pub fn eval(&mut self, node: &GraphNode<T>) {
         if self.pending_idx != self.input_size {
             panic!("Tracer is not ready to be evaluated.");
         }
@@ -164,28 +150,32 @@ where
             self.result = Some(T::default());
         }
 
-        self.previous_result = self.result.clone();
-        self.result = match &node.value {
-            Expr::Const(_, ref value) => Some(value.clone()),
-            Expr::Fn(_, _, ref fn_ptr) => Some(fn_ptr(&self.args)),
-            Expr::MutableConst(_, _, ref val, _, fn_ptr) => Some(fn_ptr(&self.args, val)),
-            Expr::Var(_, _) => Some(self.args[0].clone()),
-        };
+        self.result = Some(node.cell.value.apply(&self.args));
+
+        // self.result = match &node.value {
+        //     Expr::Const(_, ref value) => Some(value.clone()),
+        //     Expr::Fn(_, _, ref fn_ptr) => Some(fn_ptr(&self.args)),
+        //     Expr::MutableConst(_, _, ref val, _, fn_ptr) => Some(fn_ptr(&self.args, val)),
+        //     Expr::Var(_, _) => Some(self.args[0].clone()),
+        // };
 
         self.pending_idx = 0;
         self.args.clear();
     }
 }
 
-fn input_size<T>(node: &Node<T>) -> usize
-where
-    T: Clone + PartialEq + Default,
-{
-    match node.node_type {
-        NodeType::Input | NodeType::Link | NodeType::Leaf => 1,
-        NodeType::Gate => *node.value.arity() as usize,
-        _ => node.incoming.len(),
+fn input_size<T>(node: &GraphNode<T>) -> usize {
+    if node.is_provider() {
+        1
+    } else {
+        node.incoming.len()
     }
+
+    // match node.node_type {
+    //     NodeType::Input | NodeType::Link | NodeType::Leaf => 1,
+    //     NodeType::Gate => *node.value.arity() as usize,
+    //     _ => node.incoming.len(),
+    // }
 }
 
 #[cfg(test)]

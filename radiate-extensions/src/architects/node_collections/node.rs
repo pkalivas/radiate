@@ -3,6 +3,7 @@ use crate::expr::Expr;
 use crate::schema::collection_type::CollectionType;
 use radiate::engines::genome::genes::gene::{Gene, Valid};
 use std::collections::HashSet;
+use std::fmt::Debug;
 use uuid::Uuid;
 
 use super::expr::Arity;
@@ -297,6 +298,18 @@ impl<T> GraphNode<T> {
         }
     }
 
+    pub fn is_output(&self) -> bool {
+        self.cell.role == Role::Output
+    }
+
+    pub fn is_provider(&self) -> bool {
+        self.cell.role == Role::Provider
+    }
+
+    pub fn is_internal(&self) -> bool {
+        self.cell.role == Role::Internal
+    }
+
     pub fn is_recurrent(&self) -> bool {
         self.direction == Direction::Backward
             || self.incoming.contains(&self.index)
@@ -371,10 +384,7 @@ where
     }
 }
 
-impl<T> Valid for GraphNode<T>
-where
-    T: Clone + PartialEq,
-{
+impl<T> Valid for GraphNode<T> {
     fn is_valid(&self) -> bool {
         match self.cell.role {
             Role::Provider => {
@@ -407,6 +417,34 @@ where
                 true
             }
         }
+    }
+}
+
+impl<T> Debug for GraphNode<T>
+where
+    T: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let incoming = self
+            .incoming
+            .iter()
+            .map(|idx| idx.to_string())
+            .collect::<Vec<String>>()
+            .join(", ");
+
+        write!(
+            f,
+            "[{:<3}] {:>10?} :: {:<12} E: {:<5} V:{:<5} R:{:<5} {:<2} {:<2} < [{}]",
+            self.index,
+            format!("{:?}", self.cell.role)[..3].to_owned(),
+            format!("{:?}", self.cell.value).to_owned(),
+            self.enabled,
+            self.is_valid(),
+            self.is_recurrent(),
+            self.incoming.len(),
+            self.outgoing.len(),
+            incoming
+        )
     }
 }
 

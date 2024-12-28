@@ -22,46 +22,6 @@ impl TreeCrossover {
     pub fn new(rate: f32, max_height: usize) -> Self {
         Self { rate, max_height }
     }
-
-    fn level<T>(index: usize, nodes: &[Node<T>]) -> usize {
-        nodes[index]
-            .incoming
-            .iter()
-            .map(|i| TreeCrossover::level(*i, nodes))
-            .max()
-            .unwrap_or(0)
-            + 1
-    }
-
-    fn depth<T>(index: usize, nodes: &[Node<T>]) -> usize {
-        nodes[index]
-            .outgoing
-            .iter()
-            .map(|i| TreeCrossover::depth(*i, nodes))
-            .max()
-            .unwrap_or(0)
-            + 1
-    }
-
-    fn can_cross<T>(
-        &self,
-        one: &[Node<T>],
-        two: &[Node<T>],
-        one_index: usize,
-        two_index: usize,
-    ) -> bool {
-        if one_index < 1 || two_index < 1 {
-            return false;
-        }
-
-        let one_depth = TreeCrossover::depth(one_index, one);
-        let two_depth = TreeCrossover::depth(two_index, two);
-
-        let one_height = TreeCrossover::level(one_index, one);
-        let two_height = TreeCrossover::level(two_index, two);
-
-        one_height + two_depth <= self.max_height && two_height + one_depth <= self.max_height
-    }
 }
 
 impl<T> Alter<NodeChrom<TreeNode<T>>> for TreeCrossover
