@@ -355,7 +355,7 @@ where
 
 impl<T> Default for GraphNode<T>
 where
-    T: Default,
+    T: Default + Clone,
 {
     fn default() -> Self {
         GraphNode {

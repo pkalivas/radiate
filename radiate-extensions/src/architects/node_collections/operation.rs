@@ -189,10 +189,14 @@ impl<T> std::fmt::Display for Operation<T> {
 
 impl<T> Default for Operation<T>
 where
-    T: Default,
+    T: Default + Clone,
 {
     fn default() -> Self {
-        Operation::Const("default", T::default())
+        Operation::Fn(
+            "identity",
+            1.into(),
+            Arc::new(|inputs: &[T]| inputs[0].clone()),
+        )
     }
 }
 
