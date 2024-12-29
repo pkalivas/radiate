@@ -7,17 +7,11 @@ use crate::node::GraphNode;
 use crate::{Direction, NodeType};
 
 #[derive(Clone, PartialEq, Default)]
-pub struct Graph<T>
-where
-    T: Clone + PartialEq,
-{
-    pub nodes: Vec<GraphNode<T>>,
+pub struct Graph<T> {
+    nodes: Vec<GraphNode<T>>,
 }
 
-impl<T> Graph<T>
-where
-    T: Clone + PartialEq + Default,
-{
+impl<T> Graph<T> {
     pub fn new(nodes: Vec<GraphNode<T>>) -> Self {
         Graph { nodes }
     }
@@ -107,10 +101,7 @@ where
     }
 }
 
-impl<T> AsRef<[GraphNode<T>]> for Graph<T>
-where
-    T: Clone + PartialEq + Default,
-{
+impl<T> AsRef<[GraphNode<T>]> for Graph<T> {
     fn as_ref(&self) -> &[GraphNode<T>] {
         &self.nodes
     }

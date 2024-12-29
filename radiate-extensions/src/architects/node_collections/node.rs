@@ -6,6 +6,16 @@ use uuid::Uuid;
 use super::expr::Arity;
 use super::TreeIterator;
 
+pub trait Node<T> {
+    type Connection;
+    type NodeType;
+
+    fn value(&self) -> &Operation<T>;
+    fn node_type(&self) -> &Self::NodeType;
+    fn incoming(&self) -> Option<&[Self::Connection]>;
+    fn outgoing(&self) -> Option<&[Self::Connection]>;
+}
+
 #[derive(PartialEq)]
 pub struct TreeNode<T> {
     pub value: Operation<T>,

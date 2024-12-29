@@ -1,7 +1,7 @@
 use crate::architects::*;
 use crate::expr::Operation;
 use crate::node::GraphNode;
-use architect::{Archit, TreeArchit};
+use architect::{Architect, TreeArchitect};
 use core::panic;
 use radiate::engines::codexes::Codex;
 use radiate::engines::genome::genes::gene::Gene;
@@ -30,7 +30,7 @@ where
     }
 
     pub fn from_shape(input_size: usize, output_size: usize, factory: &NodeFactory<T>) -> Self {
-        let nodes = Architect::<T>::new(factory)
+        let nodes = GraphArchitect::<T>::new(factory)
             .acyclic(input_size, output_size)
             .iter()
             .cloned()
@@ -56,10 +56,10 @@ where
 
     pub fn set_nodes<F>(mut self, node_fn: F) -> Self
     where
-        F: Fn(&Architect<T>, GraphBuilder<T>) -> Graph<T>,
+        F: Fn(&GraphArchitect<T>, GraphBuilder<T>) -> Graph<T>,
     {
-        let graph =
-            Architect::<T>::new(&self.factory.borrow()).build(|arc, builder| node_fn(arc, builder));
+        let graph = GraphArchitect::<T>::new(&self.factory.borrow())
+            .build(|arc, builder| node_fn(arc, builder));
 
         self.nodes = graph.iter().cloned().collect::<Vec<GraphNode<T>>>();
         self.input_size = graph
@@ -112,7 +112,7 @@ where
 impl GraphCodex<f32> {
     pub fn regression(input_size: usize, output_size: usize) -> Self {
         let factory = NodeFactory::<f32>::regression(input_size);
-        let nodes = Architect::<f32>::new(&factory)
+        let nodes = GraphArchitect::<f32>::new(&factory)
             .acyclic(input_size, output_size)
             .iter()
             .cloned()
@@ -161,14 +161,14 @@ where
 }
 
 pub struct TreeCodex<T: Clone> {
-    architect: TreeArchit<T>,
+    architect: TreeArchitect<T>,
     constraint: Option<Arc<Box<dyn Fn(&TreeNode<T>) -> bool>>>,
 }
 
 impl<T: Clone + Default> TreeCodex<T> {
     pub fn new(depth: usize) -> Self {
         TreeCodex {
-            architect: TreeArchit::new(depth),
+            architect: TreeArchitect::new(depth),
             constraint: None,
         }
     }

@@ -25,7 +25,7 @@ mod tests {
     #[test]
     fn test_acyclic_graph() {
         let factory = NodeFactory::<f32>::regression(2);
-        let architect = Architect::<f32>::new(&factory);
+        let architect = GraphArchitect::<f32>::new(&factory);
 
         let graph = architect.weighted_cyclic(2, 2, 2);
 
@@ -59,32 +59,5 @@ mod tests {
         let output_two = reducer.reduce(&input_two);
 
         println!("{:?}", output_two);
-    }
-
-    #[test]
-    fn graph_can_modify() {
-        let factory = NodeFactory::<f32>::regression(2);
-        let graph_codex =
-            GraphCodex::from_factory(&factory).set_nodes(|arc, _| arc.weighted_acyclic(2, 2));
-
-        let factory2 = NodeFactory::<f32>::regression(2);
-        let modifier = GraphMutator::<f32>::new(vec![NodeMutate::Forward(NodeType::Weight, 0.5)]);
-
-        let genotype = graph_codex.encode();
-        let decoded = graph_codex.decode(&genotype);
-
-        for node in decoded.iter() {
-            println!("{:?}", node);
-        }
-
-        println!("\nModifing graph...\n");
-
-        if let Some(modified) =
-            modifier.insert_forward_node(&decoded.nodes, &NodeType::Weight, &factory2)
-        {
-            for node in modified.iter() {
-                println!("{:?}", node);
-            }
-        }
     }
 }

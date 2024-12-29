@@ -23,7 +23,7 @@ struct Relationship<'a> {
 #[derive(Default)]
 pub struct GraphBuilder<'a, T>
 where
-    T: Clone + PartialEq + Default,
+    T: Clone,
 {
     factory: Option<&'a NodeFactory<T>>,
     nodes: BTreeMap<&'a Uuid, &'a GraphNode<T>>,
@@ -33,7 +33,7 @@ where
 
 impl<'a, T> GraphBuilder<'a, T>
 where
-    T: Clone + PartialEq + Default,
+    T: Clone,
 {
     pub fn new(factory: &'a NodeFactory<T>) -> Self {
         GraphBuilder {
@@ -74,7 +74,10 @@ where
         self
     }
 
-    pub fn build(self) -> Graph<T> {
+    pub fn build(self) -> Graph<T>
+    where
+        T: Default,
+    {
         let mut new_nodes = Vec::new();
         let mut node_id_index_map = BTreeMap::new();
 
@@ -86,7 +89,7 @@ where
             node_id_index_map.insert(node_id, index);
         }
 
-        let mut new_collection = Graph { nodes: new_nodes };
+        let mut new_collection = Graph::new(new_nodes);
         for rel in self.relationships {
             let source_idx = node_id_index_map.get(&rel.source_id).unwrap();
             let target_idx = node_id_index_map.get(&rel.target_id).unwrap();

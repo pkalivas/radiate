@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use super::Graph;
 use crate::node::GraphNode;
-use crate::{ Tree, TreeNode};
+use crate::{Tree, TreeNode};
 
 pub trait TreeIterator<T> {
     fn iter_pre_order(&self) -> PreOrderIterator<T>;
@@ -172,20 +172,14 @@ where
 /// that allows for recurrent connections. This iterator is used by the `GraphReducer` to evaluate
 /// the nodes in a `Graph` in the correct order.
 ///
-pub struct GraphIterator<'a, T>
-where
-    T: Clone + PartialEq + Default,
-{
+pub struct GraphIterator<'a, T> {
     pub graph: &'a Graph<T>,
     pub completed: Vec<bool>,
     pub index_queue: VecDeque<usize>,
     pub pending_index: usize,
 }
 
-impl<'a, T> GraphIterator<'a, T>
-where
-    T: Clone + PartialEq + Default,
-{
+impl<'a, T> GraphIterator<'a, T> {
     pub fn new(graph: &'a Graph<T>) -> Self {
         Self {
             graph,
@@ -196,10 +190,7 @@ where
     }
 }
 
-impl<'a, T> Iterator for GraphIterator<'a, T>
-where
-    T: Clone + PartialEq + Default,
-{
+impl<'a, T> Iterator for GraphIterator<'a, T> {
     type Item = &'a GraphNode<T>;
 
     #[inline]
