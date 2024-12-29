@@ -4,7 +4,6 @@ pub mod graph;
 pub mod iter;
 pub mod node;
 pub mod node_factory;
-pub mod operation;
 pub mod reducers;
 pub mod tree;
 

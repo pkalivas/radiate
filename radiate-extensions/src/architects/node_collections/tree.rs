@@ -49,7 +49,7 @@ where
 mod test {
     use super::*;
 
-    use crate::operation;
+    use crate::ops::operation;
 
     #[test]
     fn test_tree() {

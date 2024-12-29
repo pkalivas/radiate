@@ -1,6 +1,7 @@
 use crate::architects::node_collections::node::GraphNode;
-use crate::operation::Operation;
-use crate::{operation, NodeType};
+use crate::ops::operation;
+use crate::ops::operation::Operation;
+use crate::NodeType;
 use radiate::random_provider;
 use std::collections::HashMap;
 

@@ -343,7 +343,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::builder::TreeBuilder;
-    use crate::operation;
+    use crate::ops::operation;
 
     #[test]
     fn test_tree_archit() {

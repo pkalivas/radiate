@@ -1,7 +1,7 @@
 use crate::architect::GraphArchitect;
 use crate::architects::*;
 use crate::node::GraphNode;
-use crate::operation::Operation;
+use crate::ops::operation::Operation;
 use core::panic;
 use radiate::engines::codexes::Codex;
 use radiate::engines::genome::genes::gene::Gene;
@@ -228,6 +228,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ops::operation;
     use radiate::engines::codexes::Codex;
 
     #[test]

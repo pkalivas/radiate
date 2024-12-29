@@ -1,6 +1,6 @@
 use super::{Graph, Tree};
 use crate::node::GraphNode;
-use crate::operation::Operation;
+use crate::ops::operation::Operation;
 use crate::{NodeType, TreeNode};
 
 pub trait Reduce<T> {
@@ -193,7 +193,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::operation::{self};
+    use crate::ops::operation::{self};
 
     use super::*;
 

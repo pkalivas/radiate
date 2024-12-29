@@ -239,7 +239,8 @@ impl<'a, T> Iterator for GraphIterator<'a, T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{operation, Tree};
+    use crate::ops::operation;
+    use crate::Tree;
 
     #[test]
     fn test_tree_traversal() {

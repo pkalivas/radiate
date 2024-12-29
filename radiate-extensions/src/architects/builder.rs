@@ -1,7 +1,8 @@
 use crate::architect::GraphArchitect;
-use crate::operation::Operation;
-use crate::{operation, Graph, GraphNode, NodeFactory, NodeType, Tree, TreeNode};
+use crate::ops::operation::Operation;
+use crate::{Graph, GraphNode, NodeFactory, NodeType, Tree, TreeNode};
 
+use crate::ops::operation;
 use radiate::random_provider;
 
 pub trait Generator {
@@ -424,11 +425,75 @@ impl GraphBuilder<f32> {
     }
 }
 
+pub enum GraphType {
+    Acyclic,
+    Cyclic,
+    WeightedAcyclic,
+    WeightedCyclic,
+    AttentionUnit,
+    Hopfield,
+    LSTM,
+    GRU,
+}
+
+pub struct GBTwo<T> {
+    input_size: usize,
+    output_size: usize,
+    memory_size: usize,
+    vertecies: Vec<Operation<T>>,
+    edges: Vec<Operation<T>>,
+    outputs: Vec<Operation<T>>,
+    graph_type: GraphType,
+}
+
+impl GBTwo<f32> {
+    pub fn dense(input_size: usize, output_size: usize) -> Self {
+        GBTwo {
+            input_size,
+            output_size,
+            memory_size: 0,
+            vertecies: vec![operation::linear()],
+            edges: vec![operation::weight(), operation::identity()],
+            outputs: vec![operation::linear()],
+            graph_type: GraphType::Acyclic,
+        }
+    }
+
+    pub fn with_memory(mut self, memory_size: usize) -> Self {
+        self.memory_size = memory_size;
+        self
+    }
+
+    pub fn with_vertices(mut self, vertecies: Vec<Operation<f32>>) -> Self {
+        self.vertecies = vertecies;
+        self
+    }
+
+    pub fn with_edges(mut self, edges: Vec<Operation<f32>>) -> Self {
+        self.edges = edges;
+        self
+    }
+
+    pub fn with_outputs(mut self, outputs: Vec<Operation<f32>>) -> Self {
+        self.outputs = outputs;
+        self
+    }
+
+    pub fn build(&self) -> Graph<f32> {
+        match self.graph_type {
+            GraphType::Acyclic => {
+                GraphBuilder::<f32>::dense(self.input_size, self.output_size, operation::linear())
+            }
+            _ => unimplemented!(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use radiate::Valid;
 
-    use crate::operation;
+    use crate::ops::operation;
 
     use super::*;
 

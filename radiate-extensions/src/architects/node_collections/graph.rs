@@ -3,9 +3,9 @@ use std::ops::{Index, IndexMut};
 
 use radiate::{random_provider, Chromosome, Valid};
 
-use super::operation::Arity;
 use super::GraphIterator;
 use crate::node::GraphNode;
+use crate::ops::operation::Arity;
 use crate::{Direction, NodeType};
 
 #[derive(Clone, PartialEq, Default)]
@@ -308,7 +308,7 @@ pub fn is_locked<T>(node: &GraphNode<T>) -> bool {
         return false;
     }
 
-    node.incoming.len() == *node.value.arity() as usize
+    node.incoming.len() == *node.value.arity()
 }
 
 #[inline]
