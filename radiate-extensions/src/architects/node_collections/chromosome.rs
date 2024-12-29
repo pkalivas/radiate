@@ -1,4 +1,4 @@
-use crate::{GraphNode, NodeFactory, NodeType};
+use crate::{GraphNode, NodeType, OpStore};
 use radiate::{Chromosome, Gene, Valid};
 use std::cell::RefCell;
 use std::ops::{Index, IndexMut};
@@ -89,7 +89,7 @@ where
     T: Clone + PartialEq + Default,
 {
     pub nodes: Vec<GraphNode<T>>,
-    pub factory: Option<Rc<RefCell<NodeFactory<T>>>>,
+    pub factory: Option<Rc<RefCell<OpStore<T>>>>,
 }
 
 impl<T> NodeChromosome<T>
@@ -103,7 +103,7 @@ where
         }
     }
 
-    pub fn with_factory(nodes: Vec<GraphNode<T>>, factory: Rc<RefCell<NodeFactory<T>>>) -> Self {
+    pub fn with_factory(nodes: Vec<GraphNode<T>>, factory: Rc<RefCell<OpStore<T>>>) -> Self {
         NodeChromosome {
             nodes,
             factory: Some(factory),

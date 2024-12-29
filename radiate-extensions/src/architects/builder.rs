@@ -1,6 +1,6 @@
 use crate::architect::GraphArchitect;
 use crate::operation::Operation;
-use crate::{operation, Graph, GraphNode, NodeFactory, NodeType, Tree, TreeNode};
+use crate::{operation, Graph, GraphNode, NodeType, OpStore, Tree, TreeNode};
 
 use radiate::random_provider;
 
@@ -77,11 +77,11 @@ where
 
 #[derive(Default)]
 pub struct GraphBuilder<T: Clone + Default> {
-    node_factory: NodeFactory<T>,
+    node_factory: OpStore<T>,
 }
 
 impl<T: Clone + Default> GraphBuilder<T> {
-    pub fn new(node_factory: &NodeFactory<T>) -> Self {
+    pub fn new(node_factory: &OpStore<T>) -> Self {
         GraphBuilder {
             node_factory: node_factory.clone(),
         }
@@ -110,26 +110,6 @@ impl<T: Clone + Default> GraphBuilder<T> {
         self.new_collection(NodeType::Edge, size)
     }
 
-    // pub fn gate(&self, size: usize) -> Graph<T> {
-    //     self.new_collection(NodeType::Gate, size)
-    // }
-
-    // pub fn aggregate(&self, size: usize) -> Graph<T> {
-    //     self.new_collection(NodeType::Aggregate, size)
-    // }
-
-    // pub fn weight(&self, size: usize) -> Graph<T> {
-    //     self.new_collection(NodeType::Weight, size)
-    // }
-
-    pub fn vertices(&self, size: usize) -> Graph<T> {
-        self.new_collection(NodeType::Vertex, size)
-    }
-
-    pub fn edges(&self, size: usize) -> Graph<T> {
-        self.new_collection(NodeType::Edge, size)
-    }
-
     pub fn new_collection(&self, node_type: NodeType, size: usize) -> Graph<T> {
         let nodes = self.new_nodes(node_type, size);
         Graph::new(nodes)
@@ -150,21 +130,6 @@ impl<T: Clone + Default> GraphBuilder<T> {
         self.set_values(NodeType::Output, outputs);
         self
     }
-
-    // pub fn with_gates(mut self, gates: Vec<Operation<T>>) -> Self {
-    //     self.set_values(NodeType::Gate, gates);
-    //     self
-    // }
-
-    // pub fn with_aggregates(mut self, aggregates: Vec<Operation<T>>) -> Self {
-    //     self.set_values(NodeType::Aggregate, aggregates);
-    //     self
-    // }
-
-    // pub fn with_weights(mut self, weights: Vec<Operation<T>>) -> Self {
-    //     self.set_values(NodeType::Weight, weights);
-    //     self
-    // }
 
     pub fn with_vertices(mut self, vertices: Vec<Operation<T>>) -> Self {
         self.set_values(NodeType::Vertex, vertices);
@@ -407,7 +372,7 @@ where
 
 impl GraphBuilder<f32> {
     pub fn dense(input_size: usize, output_size: usize, activation: Operation<f32>) -> Graph<f32> {
-        let factory = NodeFactory::new()
+        let factory = OpStore::new()
             .inputs((0..input_size).map(operation::var).collect())
             .edges(vec![operation::weight()])
             .outputs(vec![activation]);
@@ -430,7 +395,7 @@ impl GraphBuilder<f32> {
         memory_size: usize,
         activation: Operation<f32>,
     ) -> Graph<f32> {
-        let factory = NodeFactory::new()
+        let factory = OpStore::new()
             .inputs((0..input_size).map(operation::var).collect())
             .edges(vec![operation::weight()])
             .vertices(vec![activation.clone()])

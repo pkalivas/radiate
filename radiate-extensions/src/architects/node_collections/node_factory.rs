@@ -5,57 +5,37 @@ use radiate::random_provider;
 use std::collections::HashMap;
 
 #[derive(Default, Clone, PartialEq, Debug)]
-pub struct NodeFactory<T: Clone> {
+pub struct OpStore<T: Clone> {
     node_values: HashMap<NodeType, Vec<Operation<T>>>,
 }
 
-impl<T> NodeFactory<T>
+impl<T> OpStore<T>
 where
     T: Clone,
 {
     pub fn new() -> Self {
-        NodeFactory {
+        OpStore {
             node_values: HashMap::new(),
         }
     }
 
-    pub fn inputs(mut self, values: Vec<Operation<T>>) -> NodeFactory<T> {
+    pub fn inputs(mut self, values: Vec<Operation<T>>) -> OpStore<T> {
         self.add_node_values(NodeType::Input, values);
         self
     }
 
-    pub fn outputs(mut self, values: Vec<Operation<T>>) -> NodeFactory<T> {
+    pub fn outputs(mut self, values: Vec<Operation<T>>) -> OpStore<T> {
         self.add_node_values(NodeType::Output, values);
         self
     }
 
-    pub fn vertices(mut self, values: Vec<Operation<T>>) -> NodeFactory<T> {
+    pub fn vertices(mut self, values: Vec<Operation<T>>) -> OpStore<T> {
         self.add_node_values(NodeType::Vertex, values);
         self
     }
 
-    pub fn edges(mut self, values: Vec<Operation<T>>) -> NodeFactory<T> {
+    pub fn edges(mut self, values: Vec<Operation<T>>) -> OpStore<T> {
         self.add_node_values(NodeType::Edge, values);
-        self
-    }
-
-    // pub fn gates(mut self, values: Vec<Operation<T>>) -> NodeFactory<T> {
-    //     self.add_node_values(NodeType::Gate, values);
-    //     self
-    // }
-
-    // pub fn aggregates(mut self, values: Vec<Operation<T>>) -> NodeFactory<T> {
-    //     self.add_node_values(NodeType::Aggregate, values);
-    //     self
-    // }
-
-    // pub fn weights(mut self, values: Vec<Operation<T>>) -> NodeFactory<T> {
-    //     self.add_node_values(NodeType::Weight, values);
-    //     self
-    // }
-
-    pub fn set_values(mut self, node_type: NodeType, values: Vec<Operation<T>>) -> NodeFactory<T> {
-        self.add_node_values(node_type, values);
         self
     }
 
@@ -83,11 +63,11 @@ where
         GraphNode::new(index, node_type, Operation::default())
     }
 
-    pub fn regression(input_size: usize) -> NodeFactory<f32> {
+    pub fn regression(input_size: usize) -> OpStore<f32> {
         let inputs = (0..input_size)
             .map(operation::var)
             .collect::<Vec<Operation<f32>>>();
-        NodeFactory::new()
+        OpStore::new()
             .inputs(inputs.clone())
             .vertices(vec![
                 operation::add(),
@@ -135,7 +115,7 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let factory: NodeFactory<Operation<f32>> = NodeFactory::new();
+        let factory: OpStore<Operation<f32>> = OpStore::new();
         assert!(factory.node_values.is_empty());
     }
 }

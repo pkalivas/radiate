@@ -59,7 +59,7 @@ where
         &self,
         collection: &[GraphNode<T>],
         node_type: &NodeType,
-        factory: &NodeFactory<T>,
+        factory: &OpStore<T>,
     ) -> Option<Vec<GraphNode<T>>> {
         let source_node = random_source_node(collection);
         let target_node = random_target_node(collection);
@@ -149,7 +149,7 @@ where
         &self,
         collection: &[GraphNode<T>],
         node_type: &NodeType,
-        factory: &NodeFactory<T>,
+        factory: &OpStore<T>,
     ) -> Option<Vec<GraphNode<T>>> {
         let source_node = random_source_node(collection);
         let target_node = random_target_node(collection);

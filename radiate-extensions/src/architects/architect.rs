@@ -1,5 +1,5 @@
 use super::{Graph, GraphNode};
-use crate::architects::node_collections::node_factory::NodeFactory;
+use crate::architects::node_collections::node_factory::OpStore;
 use crate::NodeType;
 use std::collections::BTreeMap;
 use uuid::Uuid;
@@ -22,7 +22,7 @@ pub struct GraphArchitect<'a, T>
 where
     T: Clone,
 {
-    factory: Option<&'a NodeFactory<T>>,
+    factory: Option<&'a OpStore<T>>,
     nodes: BTreeMap<&'a Uuid, &'a GraphNode<T>>,
     node_order: BTreeMap<usize, &'a Uuid>,
     relationships: Vec<Relationship<'a>>,
@@ -32,7 +32,7 @@ impl<'a, T> GraphArchitect<'a, T>
 where
     T: Clone,
 {
-    pub fn new(factory: &'a NodeFactory<T>) -> Self {
+    pub fn new(factory: &'a OpStore<T>) -> Self {
         GraphArchitect {
             factory: Some(factory),
             nodes: BTreeMap::new(),
