@@ -1,6 +1,5 @@
-use super::{Graph, NodeRepairs};
+use super::{Graph, GraphNode, NodeRepairs};
 use crate::architects::node_collection_builder::NodeCollectionBuilder;
-use crate::architects::node_collections::node::Node;
 use crate::architects::node_collections::node_factory::NodeFactory;
 use crate::architects::node_collections::NodeCollection;
 use crate::architects::schema::node_types::NodeType;
@@ -135,43 +134,12 @@ where
         C::from_nodes(nodes)
     }
 
-    pub fn new_nodes(&self, node_type: NodeType, size: usize) -> Vec<Node<T>> {
+    pub fn new_nodes(&self, node_type: NodeType, size: usize) -> Vec<GraphNode<T>> {
         (0..size)
             .map(|i| self.node_factory.new_node(i, node_type))
-            .collect::<Vec<Node<T>>>()
+            .collect::<Vec<GraphNode<T>>>()
     }
 }
-
-// impl<T> Architect<'_, Tree<T>, T>
-// where
-//     T: Clone + PartialEq + Default,
-// {
-//     pub fn tree(&self, depth: usize) -> Tree<T> {
-//         Architect::<Tree<T>, T>::new(self.node_factory)
-//             .build(|arc, _| self.grow_tree(&arc.gate(1), depth))
-//     }
-
-//     fn grow_tree(&self, parent: &Tree<T>, depth: usize) -> Tree<T> {
-//         if depth == 0 {
-//             return self.leaf();
-//         }
-
-//         let mut builder = NodeCollectionBuilder::new(self.node_factory);
-//         let mut children = Vec::new();
-//         for _ in 0..parent.get_nodes().first().unwrap().value.arity() {
-//             let temp = Architect::<Tree<T>, T>::new(self.node_factory)
-//                 .build(|arc, _| self.grow_tree(&arc.gate(1), depth - 1));
-
-//             children.push(temp);
-//         }
-
-//         for child in children.iter() {
-//             builder = builder.parent_to_child(parent, child);
-//         }
-
-//         builder.build()
-//     }
-// }
 
 impl<T> Architect<'_, Graph<T>, T>
 where

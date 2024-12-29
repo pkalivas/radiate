@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, HashSet};
 
-use crate::architects::node_collections::node::Node;
+use crate::architects::node_collections::node::GraphNode;
 use crate::architects::node_collections::node_factory::NodeFactory;
 use crate::architects::node_collections::NodeCollection;
 use crate::architects::schema::node_types::NodeType;
@@ -30,7 +30,7 @@ where
     T: Clone + PartialEq + Default,
 {
     pub factory: Option<&'a NodeFactory<T>>,
-    pub nodes: BTreeMap<&'a Uuid, &'a Node<T>>,
+    pub nodes: BTreeMap<&'a Uuid, &'a GraphNode<T>>,
     pub node_order: BTreeMap<usize, &'a Uuid>,
     pub relationships: Vec<Relationship<'a>>,
     pub removed: HashSet<&'a Uuid>,
@@ -99,7 +99,7 @@ where
             }
 
             let node = self.nodes.get(node_id).unwrap();
-            let new_node = Node::new(index, node.node_type, node.value.clone());
+            let new_node = GraphNode::new(index, node.node_type, node.value.clone());
 
             new_nodes.push(new_node);
             node_id_index_map.insert(node_id, index);
@@ -152,7 +152,7 @@ where
         }
     }
 
-    pub fn attach(&mut self, group: &'a [Node<T>]) {
+    pub fn attach(&mut self, group: &'a [GraphNode<T>]) {
         for node in group.iter() {
             if !self.nodes.contains_key(&node.id) {
                 let node_id = &node.id;
@@ -276,13 +276,13 @@ where
         }
     }
 
-    fn get_outputs(&self, collection: &'a C) -> Vec<&'a Node<T>> {
+    fn get_outputs(&self, collection: &'a C) -> Vec<&'a GraphNode<T>> {
         let outputs = collection
             .iter()
             .enumerate()
             .skip_while(|(_, node)| !node.outgoing().is_empty())
             .map(|(idx, _)| collection.get(idx))
-            .collect::<Vec<&Node<T>>>();
+            .collect::<Vec<&GraphNode<T>>>();
 
         if !outputs.is_empty() {
             return outputs;
@@ -298,7 +298,7 @@ where
                         || node.node_type() == &NodeType::Aggregate)
             })
             .map(|(idx, _)| collection.get(idx))
-            .collect::<Vec<&Node<T>>>();
+            .collect::<Vec<&GraphNode<T>>>();
 
         if !recurrent_outputs.is_empty() {
             return recurrent_outputs;
@@ -309,16 +309,16 @@ where
             .enumerate()
             .filter(|(_, node)| node.incoming().is_empty())
             .map(|(idx, _)| collection.get(idx))
-            .collect::<Vec<&Node<T>>>()
+            .collect::<Vec<&GraphNode<T>>>()
     }
 
-    fn get_inputs(&self, collection: &'a C) -> Vec<&'a Node<T>> {
+    fn get_inputs(&self, collection: &'a C) -> Vec<&'a GraphNode<T>> {
         let inputs = collection
             .iter()
             .enumerate()
             .take_while(|(_, node)| node.incoming().is_empty())
             .map(|(idx, _)| collection.get(idx))
-            .collect::<Vec<&Node<T>>>();
+            .collect::<Vec<&GraphNode<T>>>();
 
         if !inputs.is_empty() {
             return inputs;
@@ -333,7 +333,7 @@ where
                     && node.node_type() == &NodeType::Gate
             })
             .map(|(idx, _)| collection.get(idx))
-            .collect::<Vec<&Node<T>>>();
+            .collect::<Vec<&GraphNode<T>>>();
 
         if !recurrent_inputs.is_empty() {
             return recurrent_inputs;
@@ -344,6 +344,6 @@ where
             .enumerate()
             .filter(|(_, node)| node.outgoing().is_empty())
             .map(|(idx, _)| collection.get(idx))
-            .collect::<Vec<&Node<T>>>()
+            .collect::<Vec<&GraphNode<T>>>()
     }
 }

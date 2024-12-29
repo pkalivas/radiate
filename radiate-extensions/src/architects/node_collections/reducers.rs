@@ -1,6 +1,6 @@
 use super::{Graph, Tree};
 use crate::expr::Operation;
-use crate::node::Node;
+use crate::node::GraphNode;
 use crate::{NodeCollection, NodeType, TreeNode};
 
 pub trait Reduce<T> {
@@ -155,7 +155,7 @@ where
     }
 
     #[inline]
-    pub fn eval(&mut self, node: &Node<T>) {
+    pub fn eval(&mut self, node: &GraphNode<T>) {
         if self.pending_idx != self.input_size {
             panic!("Tracer is not ready to be evaluated.");
         }
@@ -179,7 +179,7 @@ where
     }
 }
 
-fn input_size<T>(node: &Node<T>) -> usize
+fn input_size<T>(node: &GraphNode<T>) -> usize
 where
     T: Clone + PartialEq + Default,
 {

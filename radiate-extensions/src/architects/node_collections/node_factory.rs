@@ -1,4 +1,4 @@
-use crate::architects::node_collections::node::Node;
+use crate::architects::node_collections::node::GraphNode;
 use crate::architects::schema::node_types::NodeType;
 use crate::expr;
 use crate::expr::Operation;
@@ -59,7 +59,7 @@ where
         self.node_values.insert(node_type, values);
     }
 
-    pub fn new_node(&self, index: usize, node_type: NodeType) -> Node<T>
+    pub fn new_node(&self, index: usize, node_type: NodeType) -> GraphNode<T>
     where
         T: Default,
     {
@@ -67,20 +67,22 @@ where
             return match node_type {
                 NodeType::Input => {
                     let value = values[index % values.len()].clone();
-                    Node::new(index, node_type, value)
+                    GraphNode::new(index, node_type, value)
                 }
                 _ => {
                     let value = random_provider::choose(values);
-                    Node::new(index, node_type, value.new_instance())
+                    GraphNode::new(index, node_type, value.new_instance())
                 }
             };
         }
 
-        Node::new(index, node_type, Operation::default())
+        GraphNode::new(index, node_type, Operation::default())
     }
 
     pub fn regression(input_size: usize) -> NodeFactory<f32> {
-        let inputs = (0..input_size).map(expr::var).collect::<Vec<Operation<f32>>>();
+        let inputs = (0..input_size)
+            .map(expr::var)
+            .collect::<Vec<Operation<f32>>>();
         NodeFactory::new()
             .inputs(inputs.clone())
             .leafs(inputs.clone())

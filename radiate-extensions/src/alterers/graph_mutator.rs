@@ -1,6 +1,6 @@
 use crate::architects::node_collections::*;
 use crate::architects::schema::node_types::NodeType;
-use crate::node::Node;
+use crate::node::GraphNode;
 use crate::schema::collection_type::CollectionType;
 use radiate::alter::AlterType;
 use radiate::engines::alterers::Alter;
@@ -58,10 +58,10 @@ where
     #[inline]
     pub fn insert_forward_node(
         &self,
-        collection: &[Node<T>],
+        collection: &[GraphNode<T>],
         node_type: &NodeType,
         factory: &NodeFactory<T>,
-    ) -> Option<Vec<Node<T>>> {
+    ) -> Option<Vec<GraphNode<T>>> {
         let source_node = random_source_node(collection);
         let target_node = random_target_node(collection);
         let source_node_index = source_node.index;
@@ -89,7 +89,7 @@ where
                         .iter()
                         .cloned()
                         .chain(vec![new_source_edge, new_node])
-                        .collect::<Vec<Node<T>>>(),
+                        .collect::<Vec<GraphNode<T>>>(),
                 );
 
                 temp.attach(source_node_index, new_node_index);
@@ -110,7 +110,7 @@ where
                         .iter()
                         .cloned()
                         .chain(vec![new_source_edge, new_node, new_target_edge])
-                        .collect::<Vec<Node<T>>>(),
+                        .collect::<Vec<GraphNode<T>>>(),
                 );
 
                 temp.attach(source_node.index, new_source_edge_index);
@@ -135,7 +135,7 @@ where
                 .iter()
                 .cloned()
                 .chain(vec![factory.new_node(collection.len(), *node_type)])
-                .collect::<Vec<Node<T>>>(),
+                .collect::<Vec<GraphNode<T>>>(),
         );
 
         temp.attach(source_node_index, collection.len());
@@ -148,10 +148,10 @@ where
     #[inline]
     pub fn insert_recurrent_node(
         &self,
-        collection: &[Node<T>],
+        collection: &[GraphNode<T>],
         node_type: &NodeType,
         factory: &NodeFactory<T>,
-    ) -> Option<Vec<Node<T>>> {
+    ) -> Option<Vec<GraphNode<T>>> {
         let source_node = random_source_node(collection);
         let target_node = random_target_node(collection);
         let source_node_index = source_node.index;
@@ -181,7 +181,7 @@ where
                         .iter()
                         .cloned()
                         .chain(vec![new_source_edge, new_node, new_target_edge])
-                        .collect::<Vec<Node<T>>>(),
+                        .collect::<Vec<GraphNode<T>>>(),
                 );
 
                 temp.attach(incoming_node.index, new_node_index);
@@ -203,7 +203,7 @@ where
                             new_target_edge,
                             recurrent_edge,
                         ])
-                        .collect::<Vec<Node<T>>>(),
+                        .collect::<Vec<GraphNode<T>>>(),
                 );
 
                 temp.attach(incoming_node.index, new_source_edge_index);
@@ -220,7 +220,7 @@ where
                         .iter()
                         .cloned()
                         .chain(vec![new_source_edge, new_node, new_target_edge])
-                        .collect::<Vec<Node<T>>>(),
+                        .collect::<Vec<GraphNode<T>>>(),
                 );
 
                 temp.attach(incoming_node.index, new_source_edge_index);
@@ -239,7 +239,7 @@ where
                 .iter()
                 .cloned()
                 .chain(vec![factory.new_node(collection.len(), *node_type)])
-                .collect::<Vec<Node<T>>>(),
+                .collect::<Vec<GraphNode<T>>>(),
         );
 
         temp.attach(source_node_index, collection.len());
@@ -254,16 +254,16 @@ where
         &self,
         mut collection: Graph<T>,
         new_node_index: usize,
-        source_node: &Node<T>,
-        target_node: &Node<T>,
+        source_node: &GraphNode<T>,
+        target_node: &GraphNode<T>,
         recurrent: bool,
-    ) -> Option<Vec<Node<T>>> {
+    ) -> Option<Vec<GraphNode<T>>> {
         let node = collection.get(new_node_index);
         if *node.value.arity() == 0 {
             for node in collection.iter_mut() {
                 node.collection_type = Some(CollectionType::Graph);
             }
-            return Some(collection.into_iter().collect::<Vec<Node<T>>>());
+            return Some(collection.into_iter().collect::<Vec<GraphNode<T>>>());
         }
         let arity = *collection.get(new_node_index).value.arity();
         for _ in 0..arity - 1 {
@@ -290,7 +290,7 @@ where
             collection
                 .set_cycles(vec![source_node.index, target_node.index])
                 .into_iter()
-                .collect::<Vec<Node<T>>>(),
+                .collect::<Vec<GraphNode<T>>>(),
         )
     }
 }

@@ -1,7 +1,9 @@
-use radiate::Valid;
+use std::collections::{HashSet, VecDeque};
+
+use radiate::{random_provider, Valid};
 
 use super::GraphIterator;
-use crate::node::Node;
+use crate::node::GraphNode;
 use crate::{
     node_collections, schema::collection_type::CollectionType, Direction, NodeCollection,
     NodeFactory, NodeRepairs, NodeType,
@@ -12,14 +14,14 @@ pub struct Graph<T>
 where
     T: Clone + PartialEq,
 {
-    pub nodes: Vec<Node<T>>,
+    pub nodes: Vec<GraphNode<T>>,
 }
 
 impl<T> Graph<T>
 where
     T: Clone + PartialEq + Default,
 {
-    pub fn topological_iter(&self) -> impl Iterator<Item = &Node<T>> {
+    pub fn topological_iter(&self) -> impl Iterator<Item = &GraphNode<T>> {
         GraphIterator::new(self)
     }
 
@@ -56,11 +58,11 @@ impl<T> NodeCollection<T> for Graph<T>
 where
     T: Clone + PartialEq + Default,
 {
-    fn from_nodes(nodes: Vec<Node<T>>) -> Self {
+    fn from_nodes(nodes: Vec<GraphNode<T>>) -> Self {
         Graph { nodes }
     }
 
-    fn get(&self, index: usize) -> &Node<T> {
+    fn get(&self, index: usize) -> &GraphNode<T> {
         self.nodes.get(index).unwrap_or_else(|| {
             panic!(
                 "Node index {} out of bounds. Graph has {} nodes.",
@@ -70,7 +72,7 @@ where
         })
     }
 
-    fn get_mut(&mut self, index: usize) -> &mut Node<T> {
+    fn get_mut(&mut self, index: usize) -> &mut GraphNode<T> {
         let length = self.nodes.len();
         self.nodes.get_mut(index).unwrap_or_else(|| {
             panic!(
@@ -80,11 +82,11 @@ where
         })
     }
 
-    fn get_nodes(&self) -> &[Node<T>] {
+    fn get_nodes(&self) -> &[GraphNode<T>] {
         &self.nodes
     }
 
-    fn get_nodes_mut(&mut self) -> &mut [Node<T>] {
+    fn get_nodes_mut(&mut self) -> &mut [GraphNode<T>] {
         &mut self.nodes
     }
 }
@@ -129,8 +131,8 @@ impl<T> IntoIterator for Graph<T>
 where
     T: Clone + PartialEq + Default,
 {
-    type Item = Node<T>;
-    type IntoIter = std::vec::IntoIter<Node<T>>;
+    type Item = GraphNode<T>;
+    type IntoIter = std::vec::IntoIter<GraphNode<T>>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.nodes.into_iter()
@@ -148,4 +150,226 @@ where
         }
         write!(f, "}}")
     }
+}
+
+#[inline]
+pub fn reindex<T>(index: usize, nodes: &[&GraphNode<T>]) -> Vec<GraphNode<T>>
+where
+    T: Clone,
+{
+    let mut new_nodes = nodes
+        .iter()
+        .enumerate()
+        .map(|(i, node)| GraphNode {
+            index: index + i,
+            incoming: HashSet::new(),
+            outgoing: HashSet::new(),
+            ..(*node).clone()
+        })
+        .collect::<Vec<GraphNode<T>>>();
+
+    let ref_new_nodes = new_nodes.clone();
+
+    let old_nodes = nodes
+        .iter()
+        .enumerate()
+        .map(|(i, node)| (node.index, i))
+        .collect::<std::collections::BTreeMap<usize, usize>>();
+
+    for i in 0..nodes.len() {
+        let old_node = nodes.get(i).unwrap();
+        let new_node = &mut new_nodes[i];
+
+        for incoming in old_node.incoming.iter() {
+            if let Some(old_index) = old_nodes.get(incoming) {
+                new_node
+                    .incoming_mut()
+                    .insert(ref_new_nodes[*old_index].index);
+            }
+        }
+
+        for outgoing in old_node.outgoing.iter() {
+            if let Some(old_index) = old_nodes.get(outgoing) {
+                new_node
+                    .outgoing_mut()
+                    .insert(ref_new_nodes[*old_index].index);
+            }
+        }
+    }
+
+    new_nodes
+}
+
+#[inline]
+pub fn get_cycles<T>(nodes: &[GraphNode<T>], index: usize) -> Vec<usize> {
+    let mut path = Vec::new();
+    let mut seen = HashSet::new();
+    let mut current = nodes[index]
+        .incoming()
+        .iter()
+        .cloned()
+        .collect::<VecDeque<usize>>();
+
+    while !current.is_empty() {
+        let current_index = current.pop_front().unwrap();
+        let current_node = &nodes[current_index];
+
+        if seen.contains(&current_index) {
+            continue;
+        }
+
+        if current_index == index {
+            return path;
+        }
+
+        seen.insert(current_index);
+
+        if !current_node.incoming().is_empty() {
+            path.push(current_index);
+            for outgoing in current_node.incoming().iter() {
+                current.push_back(*outgoing);
+            }
+        }
+    }
+
+    Vec::new()
+}
+
+#[inline]
+pub fn can_connect<T>(
+    collection: &[GraphNode<T>],
+    source: usize,
+    target: usize,
+    recurrent: bool,
+) -> bool {
+    let source_node = &collection.get(source).unwrap();
+    let target_node = &collection.get(target).unwrap();
+
+    if (source_node.outgoing.is_empty() || source_node.is_recurrent()) && !recurrent {
+        return false;
+    }
+
+    let would_create_cycle = recurrent || !would_create_cycle(collection, source, target);
+    let nodes_are_weights =
+        source_node.node_type == NodeType::Weight || target_node.node_type == NodeType::Weight;
+
+    would_create_cycle && !nodes_are_weights && source != target
+}
+
+#[inline]
+pub fn would_create_cycle<T>(collection: &[GraphNode<T>], source: usize, target: usize) -> bool {
+    let mut seen = HashSet::new();
+    let mut visited = collection
+        .get(target)
+        .unwrap()
+        .outgoing
+        .iter()
+        .collect::<Vec<&usize>>();
+
+    while !visited.is_empty() {
+        let node_index = visited.pop().unwrap();
+
+        seen.insert(*node_index);
+
+        if *node_index == source {
+            return true;
+        }
+
+        for edge_index in collection
+            .get(*node_index)
+            .unwrap()
+            .outgoing
+            .iter()
+            .filter(|edge_index| !seen.contains(edge_index))
+        {
+            visited.push(edge_index);
+        }
+    }
+
+    false
+}
+
+pub fn is_locked<T>(node: &GraphNode<T>) -> bool {
+    if node.node_type == NodeType::Aggregate || node.node_type == NodeType::Output {
+        return false;
+    }
+
+    node.incoming.len() == *node.value.arity() as usize
+}
+
+#[inline]
+pub fn random_source_node<T>(collection: &[GraphNode<T>]) -> &GraphNode<T> {
+    random_node_of_type(
+        collection,
+        vec![
+            NodeType::Input,
+            NodeType::Gate,
+            NodeType::Aggregate,
+            NodeType::Link,
+        ],
+    )
+}
+
+#[inline]
+pub fn random_target_node<T>(collection: &[GraphNode<T>]) -> &GraphNode<T> {
+    random_node_of_type(collection, vec![NodeType::Output, NodeType::Aggregate])
+}
+
+#[inline]
+fn random_node_of_type<T>(collection: &[GraphNode<T>], node_types: Vec<NodeType>) -> &GraphNode<T> {
+    if node_types.is_empty() {
+        panic!("At least one node type must be specified.");
+    }
+
+    let gene_node_type_index = random_provider::random::<usize>() % node_types.len();
+    let gene_node_type = node_types.get(gene_node_type_index).unwrap();
+
+    let genes = match gene_node_type {
+        NodeType::Input => collection
+            .iter()
+            .filter(|node| node.node_type == NodeType::Input)
+            .collect::<Vec<&GraphNode<T>>>(),
+        NodeType::Weight => collection
+            .iter()
+            .filter(|node| node.node_type == NodeType::Weight)
+            .collect::<Vec<&GraphNode<T>>>(),
+        NodeType::Gate => collection
+            .iter()
+            .filter(|node| node.node_type == NodeType::Gate)
+            .collect::<Vec<&GraphNode<T>>>(),
+        NodeType::Output => collection
+            .iter()
+            .filter(|node| node.node_type == NodeType::Output)
+            .collect::<Vec<&GraphNode<T>>>(),
+        NodeType::Link => collection
+            .iter()
+            .filter(|node| node.node_type == NodeType::Link)
+            .collect::<Vec<&GraphNode<T>>>(),
+        NodeType::Aggregate => collection
+            .iter()
+            .filter(|node| node.node_type == NodeType::Aggregate)
+            .collect::<Vec<&GraphNode<T>>>(),
+        NodeType::Leaf => collection
+            .iter()
+            .filter(|node| node.node_type == NodeType::Leaf)
+            .collect::<Vec<&GraphNode<T>>>(),
+        NodeType::Unknown => collection
+            .iter()
+            .filter(|node| node.node_type == NodeType::Unknown)
+            .collect::<Vec<&GraphNode<T>>>(),
+    };
+
+    if genes.is_empty() {
+        return random_node_of_type(
+            collection,
+            node_types
+                .iter()
+                .filter(|nt| *nt != gene_node_type)
+                .cloned()
+                .collect(),
+        );
+    }
+
+    let index = random_provider::random::<usize>() % genes.len();
+    genes.get(index).unwrap()
 }

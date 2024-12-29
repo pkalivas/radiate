@@ -1,6 +1,6 @@
 use crate::architects::*;
 use crate::expr::Operation;
-use crate::node::Node;
+use crate::node::GraphNode;
 use architect::{Archit, TreeArchit};
 use core::panic;
 use radiate::engines::codexes::Codex;
@@ -18,7 +18,7 @@ where
     pub input_size: usize,
     pub output_size: usize,
     pub factory: Rc<RefCell<NodeFactory<T>>>,
-    pub nodes: Vec<Node<T>>,
+    pub nodes: Vec<GraphNode<T>>,
 }
 
 impl<T> GraphCodex<T>
@@ -34,12 +34,12 @@ where
             .acyclic(input_size, output_size)
             .iter()
             .cloned()
-            .collect::<Vec<Node<T>>>();
+            .collect::<Vec<GraphNode<T>>>();
 
         GraphCodex::from_nodes(nodes, factory)
     }
 
-    pub fn from_nodes(nodes: Vec<Node<T>>, factory: &NodeFactory<T>) -> Self {
+    pub fn from_nodes(nodes: Vec<GraphNode<T>>, factory: &NodeFactory<T>) -> Self {
         GraphCodex {
             input_size: nodes
                 .iter()
@@ -61,7 +61,7 @@ where
         let graph = Architect::<Graph<T>, T>::new(&self.factory.borrow())
             .build(|arc, builder| node_fn(arc, builder));
 
-        self.nodes = graph.iter().cloned().collect::<Vec<Node<T>>>();
+        self.nodes = graph.iter().cloned().collect::<Vec<GraphNode<T>>>();
         self.input_size = graph
             .iter()
             .filter(|node| node.node_type == NodeType::Input)
@@ -116,7 +116,7 @@ impl GraphCodex<f32> {
             .acyclic(input_size, output_size)
             .iter()
             .cloned()
-            .collect::<Vec<Node<f32>>>();
+            .collect::<Vec<GraphNode<f32>>>();
 
         GraphCodex::<f32>::from_nodes(nodes, &factory)
     }
@@ -140,7 +140,7 @@ where
 
                 node.clone()
             })
-            .collect::<Vec<Node<T>>>();
+            .collect::<Vec<GraphNode<T>>>();
 
         Genotype {
             chromosomes: vec![NodeChromosome::with_factory(nodes, self.factory.clone())],
@@ -155,7 +155,7 @@ where
                 .unwrap()
                 .iter()
                 .cloned()
-                .collect::<Vec<Node<T>>>(),
+                .collect::<Vec<GraphNode<T>>>(),
         )
     }
 }

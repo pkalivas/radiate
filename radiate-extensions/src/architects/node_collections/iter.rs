@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use super::Graph;
-use crate::node::Node;
+use crate::node::GraphNode;
 use crate::{NodeCollection, Tree, TreeNode};
 
 pub trait TreeIterator<T> {
@@ -116,7 +116,7 @@ pub struct BreadthFirstIterator<'a, T>
 where
     T: Clone + PartialEq + Default,
 {
-    pub nodes: &'a [Node<T>],
+    pub nodes: &'a [GraphNode<T>],
     pub index: usize,
     pub queue: VecDeque<usize>,
 }
@@ -125,7 +125,7 @@ impl<'a, T> BreadthFirstIterator<'a, T>
 where
     T: Clone + PartialEq + Default,
 {
-    pub fn new(nodes: &'a [Node<T>], index: usize) -> Self {
+    pub fn new(nodes: &'a [GraphNode<T>], index: usize) -> Self {
         let mut queue = VecDeque::new();
         queue.push_back(index);
 
@@ -141,7 +141,7 @@ impl<'a, T> Iterator for BreadthFirstIterator<'a, T>
 where
     T: Clone + PartialEq + Default,
 {
-    type Item = &'a Node<T>;
+    type Item = &'a GraphNode<T>;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
@@ -200,7 +200,7 @@ impl<'a, T> Iterator for GraphIterator<'a, T>
 where
     T: Clone + PartialEq + Default,
 {
-    type Item = &'a Node<T>;
+    type Item = &'a GraphNode<T>;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {

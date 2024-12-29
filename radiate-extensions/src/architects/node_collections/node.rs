@@ -177,96 +177,7 @@ impl<T> Valid for TreeNode<T> {
     }
 }
 
-// #[derive(Clone, PartialEq)]
-// pub struct GraphNode<T> {
-//     pub value: Expr<T>,
-//     pub id: Uuid,
-//     pub enabled: bool,
-//     pub direction: Direction,
-//     pub index: usize,
-//     pub incoming: HashSet<usize>,
-//     pub outgoing: HashSet<usize>,
-// }
-
-// impl<T> GraphNode<T> {
-//     pub fn new(index: usize, value: Expr<T>) -> Self {
-//         GraphNode {
-//             value,
-//             index,
-//             id: Uuid::new_v4(),
-//             enabled: true,
-//             direction: Direction::Forward,
-//             incoming: HashSet::new(),
-//             outgoing: HashSet::new(),
-//         }
-//     }
-
-//     pub fn incoming(&self) -> &HashSet<usize> {
-//         &self.incoming
-//     }
-
-//     pub fn outgoing(&self) -> &HashSet<usize> {
-//         &self.outgoing
-//     }
-
-//     pub fn incoming_mut(&mut self) -> &mut HashSet<usize> {
-//         &mut self.incoming
-//     }
-
-//     pub fn outgoing_mut(&mut self) -> &mut HashSet<usize> {
-//         &mut self.outgoing
-//     }
-// }
-
-// impl<T> Gene for GraphNode<T>
-// where
-//     T: Clone + PartialEq + Default,
-// {
-//     type Allele = Expr<T>;
-
-//     fn allele(&self) -> &Self::Allele {
-//         &self.value
-//     }
-
-//     fn new_instance(&self) -> Self {
-//         GraphNode {
-//             value: self.value.new_instance(),
-//             id: Uuid::new_v4(),
-//             index: self.index,
-//             enabled: self.enabled,
-//             direction: self.direction,
-//             incoming: self.incoming.clone(),
-//             outgoing: self.outgoing.clone(),
-//         }
-//     }
-
-//     fn with_allele(&self, allele: &Self::Allele) -> Self {
-//         GraphNode {
-//             value: allele.clone(),
-//             id: Uuid::new_v4(),
-//             index: self.index,
-//             enabled: self.enabled,
-//             direction: self.direction,
-//             incoming: self.incoming.clone(),
-//             outgoing: self.outgoing.clone(),
-//         }
-//     }
-// }
-
-// impl<T> Valid for GraphNode<T>
-// where
-//     T: Clone + PartialEq,
-// {
-//     fn is_valid(&self) -> bool {
-//         match self.value.arity() {
-//             Arity::Zero => self.incoming.is_empty() && !self.outgoing.is_empty(),
-//             Arity::Nary(n) => self.incoming.len() == n as usize && self.outgoing.len() > 0,
-//             Arity::Any => true,
-//         }
-//     }
-// }
-
-pub struct Node<T> {
+pub struct GraphNode<T> {
     pub id: Uuid,
     pub index: usize,
     pub value: Operation<T>,
@@ -278,7 +189,7 @@ pub struct Node<T> {
     pub outgoing: HashSet<usize>,
 }
 
-impl<T> Node<T> {
+impl<T> GraphNode<T> {
     pub fn new(index: usize, node_type: NodeType, value: Operation<T>) -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -324,7 +235,7 @@ impl<T> Node<T> {
     }
 }
 
-impl<T> Gene for Node<T>
+impl<T> Gene for GraphNode<T>
 where
     T: Clone + PartialEq + Default,
 {
@@ -334,8 +245,8 @@ where
         &self.value
     }
 
-    fn new_instance(&self) -> Node<T> {
-        Node {
+    fn new_instance(&self) -> GraphNode<T> {
+        GraphNode {
             id: Uuid::new_v4(),
             index: self.index,
             enabled: self.enabled,
@@ -348,8 +259,8 @@ where
         }
     }
 
-    fn with_allele(&self, allele: &Operation<T>) -> Node<T> {
-        Node {
+    fn with_allele(&self, allele: &Operation<T>) -> GraphNode<T> {
+        GraphNode {
             id: Uuid::new_v4(),
             index: self.index,
             value: allele.clone(),
@@ -363,7 +274,7 @@ where
     }
 }
 
-impl<T> Valid for Node<T>
+impl<T> Valid for GraphNode<T>
 where
     T: Clone + PartialEq,
 {
@@ -398,12 +309,12 @@ where
     }
 }
 
-impl<T> Clone for Node<T>
+impl<T> Clone for GraphNode<T>
 where
     T: Clone,
 {
     fn clone(&self) -> Self {
-        Node {
+        GraphNode {
             id: self.id,
             index: self.index,
             enabled: self.enabled,
@@ -417,7 +328,7 @@ where
     }
 }
 
-impl<T> PartialEq for Node<T>
+impl<T> PartialEq for GraphNode<T>
 where
     T: PartialEq,
 {
@@ -432,12 +343,12 @@ where
     }
 }
 
-impl<T> Default for Node<T>
+impl<T> Default for GraphNode<T>
 where
     T: Default,
 {
     fn default() -> Self {
-        Node {
+        GraphNode {
             id: Uuid::new_v4(),
             index: 0,
             enabled: true,
@@ -451,7 +362,7 @@ where
     }
 }
 
-impl<T> std::fmt::Display for Node<T>
+impl<T> std::fmt::Display for GraphNode<T>
 where
     T: Clone + PartialEq,
 {
@@ -460,7 +371,7 @@ where
     }
 }
 
-impl<T> std::fmt::Debug for Node<T>
+impl<T> std::fmt::Debug for GraphNode<T>
 where
     T: Clone + PartialEq + std::fmt::Debug,
 {

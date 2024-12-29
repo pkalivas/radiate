@@ -1,4 +1,4 @@
-use crate::{Node, NodeFactory, NodeType};
+use crate::{GraphNode, NodeFactory, NodeType};
 use radiate::{Chromosome, Gene, Valid};
 use std::cell::RefCell;
 use std::ops::{Index, IndexMut};
@@ -88,7 +88,7 @@ pub struct NodeChromosome<T>
 where
     T: Clone + PartialEq + Default,
 {
-    pub nodes: Vec<Node<T>>,
+    pub nodes: Vec<GraphNode<T>>,
     pub factory: Option<Rc<RefCell<NodeFactory<T>>>>,
 }
 
@@ -96,21 +96,21 @@ impl<T> NodeChromosome<T>
 where
     T: Clone + PartialEq + Default,
 {
-    pub fn new(nodes: Vec<Node<T>>) -> Self {
+    pub fn new(nodes: Vec<GraphNode<T>>) -> Self {
         NodeChromosome {
             nodes,
             factory: None,
         }
     }
 
-    pub fn with_factory(nodes: Vec<Node<T>>, factory: Rc<RefCell<NodeFactory<T>>>) -> Self {
+    pub fn with_factory(nodes: Vec<GraphNode<T>>, factory: Rc<RefCell<NodeFactory<T>>>) -> Self {
         NodeChromosome {
             nodes,
             factory: Some(factory),
         }
     }
 
-    pub fn new_node(&self, index: usize, node_type: NodeType) -> Node<T> {
+    pub fn new_node(&self, index: usize, node_type: NodeType) -> GraphNode<T> {
         let factory = self.factory.as_ref().unwrap();
         let factory = factory.borrow();
         factory.new_node(index, node_type)
@@ -121,20 +121,20 @@ impl<T> Chromosome for NodeChromosome<T>
 where
     T: Clone + PartialEq + Default,
 {
-    type Gene = Node<T>;
+    type Gene = GraphNode<T>;
 
-    fn from_genes(genes: Vec<Node<T>>) -> Self {
+    fn from_genes(genes: Vec<GraphNode<T>>) -> Self {
         NodeChromosome {
             nodes: genes,
             factory: None,
         }
     }
 
-    fn get_genes(&self) -> &[Node<T>] {
+    fn get_genes(&self) -> &[GraphNode<T>] {
         &self.nodes
     }
 
-    fn get_genes_mut(&mut self) -> &mut [Node<T>] {
+    fn get_genes_mut(&mut self) -> &mut [GraphNode<T>] {
         &mut self.nodes
     }
 }
@@ -152,7 +152,7 @@ impl<T> Index<usize> for NodeChromosome<T>
 where
     T: Clone + PartialEq + Default,
 {
-    type Output = Node<T>;
+    type Output = GraphNode<T>;
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.nodes[index]
