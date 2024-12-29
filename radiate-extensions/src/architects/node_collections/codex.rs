@@ -1,7 +1,6 @@
 use crate::architects::*;
 use crate::node::GraphNode;
 use crate::operation::Operation;
-use architect::{Architect, TreeArchitect};
 use core::panic;
 use radiate::engines::codexes::Codex;
 use radiate::engines::genome::genes::gene::Gene;
@@ -161,14 +160,14 @@ where
 }
 
 pub struct TreeCodex<T: Clone> {
-    architect: TreeArchitect<T>,
+    architect: TreeBuilder<T>,
     constraint: Option<Arc<Box<dyn Fn(&TreeNode<T>) -> bool>>>,
 }
 
 impl<T: Clone + Default> TreeCodex<T> {
     pub fn new(depth: usize) -> Self {
         TreeCodex {
-            architect: TreeArchitect::new(depth),
+            architect: TreeBuilder::new(depth),
             constraint: None,
         }
     }
@@ -182,12 +181,12 @@ impl<T: Clone + Default> TreeCodex<T> {
     }
 
     pub fn gates(mut self, gates: Vec<Operation<T>>) -> Self {
-        self.architect = self.architect.gates(gates);
+        self.architect = self.architect.with_gates(gates);
         self
     }
 
     pub fn leafs(mut self, leafs: Vec<Operation<T>>) -> Self {
-        self.architect = self.architect.leafs(leafs);
+        self.architect = self.architect.with_leafs(leafs);
         self
     }
 }
