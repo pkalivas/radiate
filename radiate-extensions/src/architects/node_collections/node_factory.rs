@@ -29,6 +29,16 @@ where
         self
     }
 
+    pub fn vertices(mut self, values: Vec<Operation<T>>) -> NodeFactory<T> {
+        self.add_node_values(NodeType::Vertex, values);
+        self
+    }
+
+    pub fn edges(mut self, values: Vec<Operation<T>>) -> NodeFactory<T> {
+        self.add_node_values(NodeType::Edge, values);
+        self
+    }
+
     pub fn gates(mut self, values: Vec<Operation<T>>) -> NodeFactory<T> {
         self.add_node_values(NodeType::Gate, values);
         self

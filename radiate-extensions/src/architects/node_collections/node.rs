@@ -178,6 +178,8 @@ pub enum NodeType {
     Gate,
     Aggregate,
     Weight,
+    Vertex,
+    Edge,
 }
 
 pub struct GraphNode<T> {
@@ -297,6 +299,22 @@ where
                 self.incoming.len() == 1
                     && self.outgoing.len() == 1
                     && self.value.arity() == Arity::Exact(1)
+            }
+            NodeType::Vertex => {
+                if self.value.arity() == Arity::Any {
+                    !self.incoming.is_empty() && !self.outgoing.is_empty()
+                } else if let Arity::Exact(n) = self.value.arity() {
+                    self.incoming.len() == n as usize && !self.outgoing.is_empty()
+                } else {
+                    self.incoming.is_empty() && !self.outgoing.is_empty()
+                }
+            }
+            NodeType::Edge => {
+                if self.value.arity() == Arity::Exact(1) {
+                    return self.incoming.len() == 1 && self.outgoing.len() == 1;
+                }
+
+                false
             }
         }
     }

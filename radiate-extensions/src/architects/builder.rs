@@ -1,6 +1,7 @@
 use crate::architect::GraphArchitect;
 use crate::operation::Operation;
-use crate::{Graph, GraphNode, NodeFactory, NodeType, Tree, TreeNode};
+use crate::{operation, Graph, GraphNode, NodeFactory, NodeType, Tree, TreeNode};
+
 use radiate::random_provider;
 
 pub struct TreeBuilder<T> {
@@ -113,6 +114,14 @@ impl<T: Clone + Default> GraphBuilder<T> {
         self.new_collection(NodeType::Weight, size)
     }
 
+    pub fn vertices(&self, size: usize) -> Graph<T> {
+        self.new_collection(NodeType::Vertex, size)
+    }
+
+    pub fn edges(&self, size: usize) -> Graph<T> {
+        self.new_collection(NodeType::Edge, size)
+    }
+
     pub fn new_collection(&self, node_type: NodeType, size: usize) -> Graph<T> {
         let nodes = self.new_nodes(node_type, size);
         Graph::new(nodes)
@@ -146,6 +155,16 @@ impl<T: Clone + Default> GraphBuilder<T> {
 
     pub fn with_weights(mut self, weights: Vec<Operation<T>>) -> Self {
         self.set_values(NodeType::Weight, weights);
+        self
+    }
+
+    pub fn with_vertices(mut self, vertices: Vec<Operation<T>>) -> Self {
+        self.set_values(NodeType::Vertex, vertices);
+        self
+    }
+
+    pub fn with_edges(mut self, edges: Vec<Operation<T>>) -> Self {
+        self.set_values(NodeType::Edge, edges);
         self
     }
 
@@ -378,8 +397,57 @@ where
     }
 }
 
+impl GraphBuilder<f32> {
+    pub fn dense(input_size: usize, output_size: usize, activation: Operation<f32>) -> Graph<f32> {
+        let factory = NodeFactory::new()
+            .inputs((0..input_size).map(operation::var).collect())
+            .weights(vec![operation::weight()])
+            .outputs(vec![activation]);
+
+        GraphBuilder::new(&factory).build(|arc, builder| {
+            let input = arc.input(input_size);
+            let output = arc.output(output_size);
+            let weights = arc.weight(input_size * output_size);
+
+            builder
+                .one_to_many(&input, &weights)
+                .many_to_one(&weights, &output)
+                .build()
+        })
+    }
+
+    pub fn recurrent(
+        input_size: usize,
+        output_size: usize,
+        memory_size: usize,
+        activation: Operation<f32>,
+    ) -> Graph<f32> {
+        let factory = NodeFactory::new()
+            .inputs((0..input_size).map(operation::var).collect())
+            .weights(vec![operation::weight()])
+            .aggregates(vec![activation.clone()])
+            .outputs(vec![activation]);
+
+        GraphBuilder::new(&factory).build(|arc, builder| {
+            let input = arc.input(input_size);
+            let output = arc.output(output_size);
+            let weights = arc.weight(input_size * memory_size);
+            let aggregate = arc.aggregate(memory_size);
+            let aggregate_weights = arc.weight(memory_size);
+
+            builder
+                .one_to_many(&input, &weights)
+                .many_to_one(&weights, &aggregate)
+                .one_to_one_self(&aggregate, &aggregate_weights)
+                .all_to_all(&aggregate, &output)
+                .build()
+        })
+    }
+}
+
 #[cfg(test)]
 mod test {
+    use radiate::Valid;
 
     use crate::operation;
 
@@ -405,5 +473,23 @@ mod test {
         let graph = builder.cyclic(2, 1);
 
         println!("{:?}", graph);
+    }
+
+    #[test]
+    fn graph_builder_dense_produces_valid_graph() {
+        let graph = GraphBuilder::<f32>::dense(2, 1, operation::linear());
+
+        assert!(graph.len() == 5);
+        assert!(graph.is_valid());
+    }
+
+    #[test]
+    fn graph_builder_recurrent_produces_valid_graph() {
+        let graph = GraphBuilder::<f32>::recurrent(2, 1, 3, operation::linear());
+
+        println!("{:?}", graph);
+
+        // assert!(graph.len() == 7);
+        // assert!(graph.is_valid());
     }
 }

@@ -2,6 +2,7 @@ use std::collections::{HashSet, VecDeque};
 
 use radiate::{random_provider, Valid};
 
+use super::operation::Arity;
 use super::GraphIterator;
 use crate::node::GraphNode;
 use crate::{Direction, NodeType};
@@ -279,7 +280,7 @@ pub fn would_create_cycle<T>(collection: &[GraphNode<T>], source: usize, target:
 }
 
 pub fn is_locked<T>(node: &GraphNode<T>) -> bool {
-    if node.node_type == NodeType::Aggregate || node.node_type == NodeType::Output {
+    if node.value.arity() == Arity::Any {
         return false;
     }
 
@@ -290,7 +291,12 @@ pub fn is_locked<T>(node: &GraphNode<T>) -> bool {
 pub fn random_source_node<T>(collection: &[GraphNode<T>]) -> &GraphNode<T> {
     random_node_of_type(
         collection,
-        vec![NodeType::Input, NodeType::Gate, NodeType::Aggregate],
+        vec![
+            NodeType::Input,
+            NodeType::Gate,
+            NodeType::Aggregate,
+            NodeType::Vertex,
+        ],
     )
 }
 
@@ -328,6 +334,14 @@ fn random_node_of_type<T>(collection: &[GraphNode<T>], node_types: Vec<NodeType>
         NodeType::Aggregate => collection
             .iter()
             .filter(|node| node.node_type == NodeType::Aggregate)
+            .collect::<Vec<&GraphNode<T>>>(),
+        NodeType::Vertex => collection
+            .iter()
+            .filter(|node| node.node_type == NodeType::Vertex)
+            .collect::<Vec<&GraphNode<T>>>(),
+        NodeType::Edge => collection
+            .iter()
+            .filter(|node| node.node_type == NodeType::Edge)
             .collect::<Vec<&GraphNode<T>>>(),
     };
 
