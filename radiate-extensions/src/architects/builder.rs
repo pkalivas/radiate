@@ -5,10 +5,9 @@ use crate::{Graph, GraphNode, NodeFactory, NodeType, Tree, TreeNode};
 use crate::ops::operation;
 use radiate::random_provider;
 
-pub trait Generator {
-    type Input;
+pub trait Builder {
     type Output;
-    fn generate(&self, input: Self::Input) -> Self::Output;
+    fn build(&self) -> Self::Output;
 }
 
 pub struct TreeBuilder<T> {
@@ -377,54 +376,6 @@ where
     }
 }
 
-impl GraphBuilder<f32> {
-    pub fn dense(input_size: usize, output_size: usize, activation: Operation<f32>) -> Graph<f32> {
-        let factory = NodeFactory::new()
-            .inputs((0..input_size).map(operation::var).collect())
-            .edges(vec![operation::weight()])
-            .outputs(vec![activation]);
-
-        GraphBuilder::new(&factory).build(|arc, builder| {
-            let input = arc.input(input_size);
-            let output = arc.output(output_size);
-            let weights = arc.edge(input_size * output_size);
-
-            builder
-                .one_to_many(&input, &weights)
-                .many_to_one(&weights, &output)
-                .build()
-        })
-    }
-
-    pub fn recurrent(
-        input_size: usize,
-        output_size: usize,
-        memory_size: usize,
-        activation: Operation<f32>,
-    ) -> Graph<f32> {
-        let factory = NodeFactory::new()
-            .inputs((0..input_size).map(operation::var).collect())
-            .edges(vec![operation::weight()])
-            .vertices(vec![activation.clone()])
-            .outputs(vec![activation]);
-
-        GraphBuilder::new(&factory).build(|arc, builder| {
-            let input = arc.input(input_size);
-            let output = arc.output(output_size);
-            let weights = arc.edge(input_size * memory_size);
-            let aggregate = arc.vertex(memory_size);
-            let aggregate_weights = arc.edge(memory_size);
-
-            builder
-                .one_to_many(&input, &weights)
-                .many_to_one(&weights, &aggregate)
-                .one_to_one_self(&aggregate, &aggregate_weights)
-                .all_to_all(&aggregate, &output)
-                .build()
-        })
-    }
-}
-
 pub enum GraphType {
     Acyclic,
     Cyclic,
@@ -436,7 +387,7 @@ pub enum GraphType {
     GRU,
 }
 
-pub struct GBTwo<T> {
+pub struct GraphSchema<T> {
     input_size: usize,
     output_size: usize,
     memory_size: usize,
@@ -446,9 +397,9 @@ pub struct GBTwo<T> {
     graph_type: GraphType,
 }
 
-impl GBTwo<f32> {
+impl GraphSchema<f32> {
     pub fn dense(input_size: usize, output_size: usize) -> Self {
-        GBTwo {
+        GraphSchema {
             input_size,
             output_size,
             memory_size: 0,
@@ -479,13 +430,106 @@ impl GBTwo<f32> {
         self
     }
 
-    pub fn build(&self) -> Graph<f32> {
+    pub fn input(&self, size: usize) -> Graph<f32> {
+        let nodes = (0..size)
+            .map(|i| GraphNode::new(i, NodeType::Input, operation::var(i)))
+            .collect::<Vec<GraphNode<f32>>>();
+
+        Graph::new(nodes)
+    }
+
+    pub fn output(&self, size: usize) -> Graph<f32> {
+        if self.outputs.is_empty() {
+            let nodes = (0..size)
+                .map(|i| GraphNode::new(i, NodeType::Output, operation::linear()))
+                .collect::<Vec<GraphNode<f32>>>();
+
+            return Graph::new(nodes);
+        } else {
+            let nodes = (0..size)
+                .map(|i| {
+                    GraphNode::new(
+                        i,
+                        NodeType::Output,
+                        random_provider::choose(&self.outputs).new_instance(),
+                    )
+                })
+                .collect::<Vec<GraphNode<f32>>>();
+
+            return Graph::new(nodes);
+        }
+    }
+
+    pub fn vertex(&self, size: usize) -> Graph<f32> {
+        if self.vertecies.is_empty() {
+            let nodes = (0..size)
+                .map(|i| GraphNode::new(i, NodeType::Vertex, operation::identity()))
+                .collect::<Vec<GraphNode<f32>>>();
+
+            return Graph::new(nodes);
+        } else {
+            let nodes = (0..size)
+                .map(|i| {
+                    GraphNode::new(
+                        i,
+                        NodeType::Vertex,
+                        random_provider::choose(&self.vertecies).new_instance(),
+                    )
+                })
+                .collect::<Vec<GraphNode<f32>>>();
+
+            return Graph::new(nodes);
+        }
+    }
+
+    pub fn edge(&self, size: usize) -> Graph<f32> {
+        if self.edges.is_empty() {
+            let nodes = (0..size)
+                .map(|i| GraphNode::new(i, NodeType::Edge, operation::identity()))
+                .collect::<Vec<GraphNode<f32>>>();
+
+            return Graph::new(nodes);
+        } else {
+            let nodes = (0..size)
+                .map(|i| {
+                    GraphNode::new(
+                        i,
+                        NodeType::Edge,
+                        random_provider::choose(&self.edges).new_instance(),
+                    )
+                })
+                .collect::<Vec<GraphNode<f32>>>();
+
+            return Graph::new(nodes);
+        }
+    }
+}
+
+impl Builder for GraphSchema<f32> {
+    type Output = Graph<f32>;
+
+    fn build(&self) -> Self::Output {
         match self.graph_type {
-            GraphType::Acyclic => {
-                GraphBuilder::<f32>::dense(self.input_size, self.output_size, operation::linear())
-            }
+            GraphType::Acyclic => AsyclicBuilder(self).build(),
             _ => unimplemented!(),
         }
+    }
+}
+
+struct AsyclicBuilder<'a, T>(&'a GraphSchema<T>);
+
+impl<'a> Builder for AsyclicBuilder<'a, f32> {
+    type Output = Graph<f32>;
+
+    fn build(&self) -> Self::Output {
+        let schema = &self.0;
+
+        let input = schema.input(schema.input_size);
+        let output = schema.output(schema.output_size);
+
+        let architect = GraphArchitect::default();
+
+        architect.all_to_all(&input, &output).build()
     }
 }
 
@@ -522,24 +566,8 @@ mod test {
 
         let graph = builder.cyclic(2, 1);
 
-        println!("{:?}", graph);
-    }
-
-    #[test]
-    fn graph_builder_dense_produces_valid_graph() {
-        let graph = GraphBuilder::<f32>::dense(2, 1, operation::linear());
-
-        assert!(graph.len() == 5);
-        assert!(graph.is_valid());
-    }
-
-    #[test]
-    fn graph_builder_recurrent_produces_valid_graph() {
-        let graph = GraphBuilder::<f32>::recurrent(2, 1, 3, operation::linear());
+        let other = GraphSchema::dense(2, 1).build();
 
         println!("{:?}", graph);
-
-        // assert!(graph.len() == 7);
-        // assert!(graph.is_valid());
     }
 }
