@@ -1,7 +1,7 @@
 use super::{Graph, Tree};
-use crate::expr::Expr;
-use crate::node::Node;
-use crate::{NodeCollection, NodeType, TreeNode};
+use crate::expr::Operation;
+use crate::node::GraphNode;
+use crate::{NodeType, TreeNode};
 
 pub trait Reduce<T> {
     type Input;
@@ -27,7 +27,7 @@ impl<T: Clone> Reduce<T> for TreeNode<T> {
     fn reduce(&mut self, input: &Self::Input) -> Self::Output {
         fn eval<T: Clone>(node: &TreeNode<T>, curr_input: &Vec<T>) -> T {
             if node.is_leaf() {
-                return node.cell.value.apply(&curr_input);
+                return node.value.apply(&curr_input);
             } else {
                 if let Some(children) = &node.children {
                     let mut inputs = Vec::with_capacity(children.len());
@@ -35,7 +35,7 @@ impl<T: Clone> Reduce<T> for TreeNode<T> {
                         inputs.push(eval(child, &curr_input));
                     }
 
-                    return node.cell.value.apply(&inputs);
+                    return node.value.apply(&inputs);
                 }
 
                 panic!("Node is not a leaf and has no children.");
@@ -155,7 +155,7 @@ where
     }
 
     #[inline]
-    pub fn eval(&mut self, node: &Node<T>) {
+    pub fn eval(&mut self, node: &GraphNode<T>) {
         if self.pending_idx != self.input_size {
             panic!("Tracer is not ready to be evaluated.");
         }
@@ -166,10 +166,12 @@ where
 
         self.previous_result = self.result.clone();
         self.result = match &node.value {
-            Expr::Const(_, ref value) => Some(value.clone()),
-            Expr::Fn(_, _, ref fn_ptr) => Some(fn_ptr(&self.args)),
-            Expr::MutableConst(_, _, ref val, _, fn_ptr) => Some(fn_ptr(&self.args, val)),
-            Expr::Var(_, _) => Some(self.args[0].clone()),
+            Operation::Const(_, ref value) => Some(value.clone()),
+            Operation::Fn(_, _, ref fn_ptr) => Some(fn_ptr(&self.args)),
+            Operation::Var(_, _) => Some(self.args[0].clone()),
+            Operation::MutableConst {
+                value, operation, ..
+            } => Some(operation(&self.args, value)),
         };
 
         self.pending_idx = 0;
@@ -177,12 +179,12 @@ where
     }
 }
 
-fn input_size<T>(node: &Node<T>) -> usize
+fn input_size<T>(node: &GraphNode<T>) -> usize
 where
     T: Clone + PartialEq + Default,
 {
     match node.node_type {
-        NodeType::Input | NodeType::Link | NodeType::Leaf => 1,
+        NodeType::Input => 1,
         NodeType::Gate => *node.value.arity() as usize,
         _ => node.incoming.len(),
     }
@@ -190,19 +192,16 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        expr::{self},
-        NodeCell,
-    };
+    use crate::expr::{self};
 
     use super::*;
 
     #[test]
     fn test_tree_reduce_simple() {
-        let mut root = TreeNode::new(NodeCell::new(expr::add()));
+        let mut root = TreeNode::new(expr::add());
 
-        root.add_child(TreeNode::new(NodeCell::new(expr::value(1.0))));
-        root.add_child(TreeNode::new(NodeCell::new(expr::value(2.0))));
+        root.add_child(TreeNode::new(expr::value(1.0)));
+        root.add_child(TreeNode::new(expr::value(2.0)));
 
         let result = root.reduce(&vec![]);
 
@@ -211,15 +210,15 @@ mod tests {
 
     #[test]
     fn test_tree_reduce_complex() {
-        let mut root = TreeNode::new(NodeCell::new(expr::add()));
+        let mut root = TreeNode::new(expr::add());
 
-        let mut left = TreeNode::new(NodeCell::new(expr::mul()));
-        left.add_child(TreeNode::new(NodeCell::new(expr::value(2.0))));
-        left.add_child(TreeNode::new(NodeCell::new(expr::value(3.0))));
+        let mut left = TreeNode::new(expr::mul());
+        left.add_child(TreeNode::new(expr::value(2.0)));
+        left.add_child(TreeNode::new(expr::value(3.0)));
 
-        let mut right = TreeNode::new(NodeCell::new(expr::add()));
-        right.add_child(TreeNode::new(NodeCell::new(expr::value(2.0))));
-        right.add_child(TreeNode::new(NodeCell::new(expr::var(0))));
+        let mut right = TreeNode::new(expr::add());
+        right.add_child(TreeNode::new(expr::value(2.0)));
+        right.add_child(TreeNode::new(expr::var(0)));
 
         root.add_child(left);
         root.add_child(right);

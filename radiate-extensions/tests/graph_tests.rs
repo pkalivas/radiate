@@ -25,7 +25,7 @@ mod tests {
     #[test]
     fn test_acyclic_graph() {
         let factory = NodeFactory::<f32>::regression(2);
-        let architect = Architect::<Graph<f32>, f32>::new(&factory);
+        let architect = Architect::<f32>::new(&factory);
 
         let graph = architect.weighted_cyclic(2, 2, 2);
 
