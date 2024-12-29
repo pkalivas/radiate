@@ -141,6 +141,7 @@ pub fn can_connect<T>(
     recurrent: bool,
 ) -> bool {
     let source_node = &collection.get(source).unwrap();
+    let target_node = &collection.get(target).unwrap();
 
     if (source_node.outgoing.is_empty() || source_node.is_recurrent()) && !recurrent {
         return false;
@@ -148,7 +149,7 @@ pub fn can_connect<T>(
 
     let would_create_cycle = recurrent || !would_create_cycle(collection, source, target);
 
-    would_create_cycle && source != target
+    would_create_cycle && source != target && !is_locked(&target_node)
 }
 
 #[inline]
