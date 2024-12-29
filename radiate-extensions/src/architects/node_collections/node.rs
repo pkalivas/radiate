@@ -291,7 +291,7 @@ where
                 if self.value.arity() == Arity::Any {
                     !self.incoming.is_empty() && !self.outgoing.is_empty()
                 } else if let Arity::Exact(n) = self.value.arity() {
-                    self.incoming.len() == n as usize && !self.outgoing.is_empty()
+                    self.incoming.len() == n && !self.outgoing.is_empty()
                 } else {
                     self.incoming.is_empty() && !self.outgoing.is_empty()
                 }

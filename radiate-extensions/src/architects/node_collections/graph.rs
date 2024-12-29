@@ -1,6 +1,7 @@
 use std::collections::{HashSet, VecDeque};
+use std::ops::{Index, IndexMut};
 
-use radiate::{random_provider, Valid};
+use radiate::{random_provider, Chromosome, Valid};
 
 use super::operation::Arity;
 use super::GraphIterator;
@@ -9,7 +10,7 @@ use crate::{Direction, NodeType};
 
 #[derive(Clone, PartialEq, Default)]
 pub struct Graph<T> {
-    nodes: Vec<GraphNode<T>>,
+    pub nodes: Vec<GraphNode<T>>,
 }
 
 impl<T> Graph<T> {
@@ -45,31 +46,15 @@ impl<T> Graph<T> {
         self.nodes.get(index).unwrap()
     }
 
-    pub fn get_nodes(&self) -> &[GraphNode<T>] {
-        &self.nodes
-    }
-
-    pub fn get_nodes_mut(&mut self) -> &mut [GraphNode<T>] {
-        &mut self.nodes
-    }
-
     pub fn attach(&mut self, incoming: usize, outgoing: usize) -> &mut Self {
-        self.get_nodes_mut()[incoming]
-            .outgoing_mut()
-            .insert(outgoing);
-        self.get_nodes_mut()[outgoing]
-            .incoming_mut()
-            .insert(incoming);
+        self.as_mut()[incoming].outgoing_mut().insert(outgoing);
+        self.as_mut()[outgoing].incoming_mut().insert(incoming);
         self
     }
 
     pub fn detach(&mut self, incoming: usize, outgoing: usize) -> &mut Self {
-        self.get_nodes_mut()[incoming]
-            .outgoing_mut()
-            .remove(&outgoing);
-        self.get_nodes_mut()[outgoing]
-            .incoming_mut()
-            .remove(&incoming);
+        self.as_mut()[incoming].outgoing_mut().remove(&outgoing);
+        self.as_mut()[outgoing].incoming_mut().remove(&incoming);
         self
     }
 
@@ -102,9 +87,48 @@ impl<T> Graph<T> {
     }
 }
 
+impl<T> Chromosome for Graph<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    type Gene = GraphNode<T>;
+
+    fn from_genes(genes: Vec<GraphNode<T>>) -> Self {
+        Graph { nodes: genes }
+    }
+
+    fn get_genes(&self) -> &[GraphNode<T>] {
+        &self.nodes
+    }
+
+    fn get_genes_mut(&mut self) -> &mut [GraphNode<T>] {
+        &mut self.nodes
+    }
+}
+
 impl<T> AsRef<[GraphNode<T>]> for Graph<T> {
     fn as_ref(&self) -> &[GraphNode<T>] {
         &self.nodes
+    }
+}
+
+impl<T> AsMut<[GraphNode<T>]> for Graph<T> {
+    fn as_mut(&mut self) -> &mut [GraphNode<T>] {
+        &mut self.nodes
+    }
+}
+
+impl<T> Index<usize> for Graph<T> {
+    type Output = GraphNode<T>;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        self.nodes.get(index).expect("Index out of bounds.")
+    }
+}
+
+impl<T> IndexMut<usize> for Graph<T> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        self.nodes.get_mut(index).expect("Index out of bounds.")
     }
 }
 
@@ -135,7 +159,7 @@ where
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Graph {{\n")?;
-        for node in self.get_nodes() {
+        for node in self.as_ref() {
             write!(f, "  {:?},\n", node)?;
         }
         write!(f, "}}")

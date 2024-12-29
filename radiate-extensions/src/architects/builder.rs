@@ -1,8 +1,14 @@
 use crate::architect::GraphArchitect;
 use crate::operation::Operation;
-use crate::{operation, Graph, GraphNode, NodeType, OpStore, Tree, TreeNode};
+use crate::{operation, Graph, GraphNode, NodeFactory, NodeType, Tree, TreeNode};
 
 use radiate::random_provider;
+
+pub trait Generator {
+    type Input;
+    type Output;
+    fn generate(&self, input: Self::Input) -> Self::Output;
+}
 
 pub struct TreeBuilder<T> {
     gates: Vec<Operation<T>>,
@@ -77,11 +83,11 @@ where
 
 #[derive(Default)]
 pub struct GraphBuilder<T: Clone + Default> {
-    node_factory: OpStore<T>,
+    node_factory: NodeFactory<T>,
 }
 
 impl<T: Clone + Default> GraphBuilder<T> {
-    pub fn new(node_factory: &OpStore<T>) -> Self {
+    pub fn new(node_factory: &NodeFactory<T>) -> Self {
         GraphBuilder {
             node_factory: node_factory.clone(),
         }
@@ -372,7 +378,7 @@ where
 
 impl GraphBuilder<f32> {
     pub fn dense(input_size: usize, output_size: usize, activation: Operation<f32>) -> Graph<f32> {
-        let factory = OpStore::new()
+        let factory = NodeFactory::new()
             .inputs((0..input_size).map(operation::var).collect())
             .edges(vec![operation::weight()])
             .outputs(vec![activation]);
@@ -395,7 +401,7 @@ impl GraphBuilder<f32> {
         memory_size: usize,
         activation: Operation<f32>,
     ) -> Graph<f32> {
-        let factory = OpStore::new()
+        let factory = NodeFactory::new()
             .inputs((0..input_size).map(operation::var).collect())
             .edges(vec![operation::weight()])
             .vertices(vec![activation.clone()])
@@ -428,13 +434,19 @@ mod test {
 
     #[test]
     fn graph_builder_simple_acyclic_f32() {
+        let factory = NodeFactory::new()
+            .inputs((0..2).map(operation::var).collect())
+            .vertices(vec![operation::linear()])
+            .outputs(vec![operation::linear()]);
+
+        // let node = factory.generate((0, NodeType::Vertex));
         let builder = GraphBuilder::<f32>::default()
             .with_inputs(vec![operation::var(0), operation::var(1)])
             .with_outputs(vec![operation::linear()]);
 
         let graph = builder.acyclic(2, 1);
 
-        assert_eq!(graph.get_nodes().len(), 3);
+        assert_eq!(graph.len(), 3);
     }
 
     #[test]

@@ -59,7 +59,7 @@ where
         &self,
         collection: &[GraphNode<T>],
         node_type: &NodeType,
-        factory: &OpStore<T>,
+        factory: &NodeFactory<T>,
     ) -> Option<Vec<GraphNode<T>>> {
         let source_node = random_source_node(collection);
         let target_node = random_target_node(collection);
@@ -149,7 +149,7 @@ where
         &self,
         collection: &[GraphNode<T>],
         node_type: &NodeType,
-        factory: &OpStore<T>,
+        factory: &NodeFactory<T>,
     ) -> Option<Vec<GraphNode<T>>> {
         let source_node = random_source_node(collection);
         let target_node = random_target_node(collection);
@@ -266,9 +266,9 @@ where
         }
         let arity = *collection.get(new_node_index).value.arity();
         for _ in 0..arity - 1 {
-            let other_source_node = random_source_node(collection.get_nodes());
+            let other_source_node = random_source_node(collection.as_ref());
             if can_connect(
-                collection.get_nodes(),
+                collection.as_ref(),
                 other_source_node.index,
                 new_node_index,
                 recurrent,
