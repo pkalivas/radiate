@@ -7,6 +7,13 @@ use super::Graph;
 use crate::NodeType;
 use uuid::Uuid;
 
+pub trait Builder<T> {
+    type Node;
+    type Collection;
+
+    fn build(self) -> Self::Collection;
+}
+
 enum ConnectTypes {
     OneToOne,
     OneToMany,

@@ -1,6 +1,6 @@
 use super::{Graph, Tree};
-use crate::expr::Operation;
 use crate::node::GraphNode;
+use crate::operation::Operation;
 use crate::{NodeType, TreeNode};
 
 pub trait Reduce<T> {
@@ -192,16 +192,16 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::expr::{self};
+    use crate::operation::{self};
 
     use super::*;
 
     #[test]
     fn test_tree_reduce_simple() {
-        let mut root = TreeNode::new(expr::add());
+        let mut root = TreeNode::new(operation::add());
 
-        root.add_child(TreeNode::new(expr::value(1.0)));
-        root.add_child(TreeNode::new(expr::value(2.0)));
+        root.add_child(TreeNode::new(operation::value(1.0)));
+        root.add_child(TreeNode::new(operation::value(2.0)));
 
         let result = root.reduce(&vec![]);
 
@@ -210,15 +210,15 @@ mod tests {
 
     #[test]
     fn test_tree_reduce_complex() {
-        let mut root = TreeNode::new(expr::add());
+        let mut root = TreeNode::new(operation::add());
 
-        let mut left = TreeNode::new(expr::mul());
-        left.add_child(TreeNode::new(expr::value(2.0)));
-        left.add_child(TreeNode::new(expr::value(3.0)));
+        let mut left = TreeNode::new(operation::mul());
+        left.add_child(TreeNode::new(operation::value(2.0)));
+        left.add_child(TreeNode::new(operation::value(3.0)));
 
-        let mut right = TreeNode::new(expr::add());
-        right.add_child(TreeNode::new(expr::value(2.0)));
-        right.add_child(TreeNode::new(expr::var(0)));
+        let mut right = TreeNode::new(operation::add());
+        right.add_child(TreeNode::new(operation::value(2.0)));
+        right.add_child(TreeNode::new(operation::var(0)));
 
         root.add_child(left);
         root.add_child(right);

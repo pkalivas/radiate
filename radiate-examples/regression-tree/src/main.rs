@@ -8,8 +8,8 @@ fn main() {
     // set_seed(200);
     let graph_codex = TreeCodex::new(3)
         .constraint(|node| node.size() < 30)
-        .gates(vec![expr::add(), expr::sub(), expr::mul()])
-        .leafs(vec![expr::var(0)]);
+        .gates(vec![operation::add(), operation::sub(), operation::mul()])
+        .leafs(vec![operation::var(0)]);
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 

@@ -6,8 +6,8 @@ const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
     let graph_codex = GraphCodex::regression(1, 1)
-        .set_outputs(vec![expr::linear()])
-        .set_gates(vec![expr::add(), expr::sub(), expr::mul()]);
+        .set_outputs(vec![operation::linear()])
+        .set_gates(vec![operation::add(), operation::sub(), operation::mul()]);
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 

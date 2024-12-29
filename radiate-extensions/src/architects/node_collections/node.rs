@@ -1,9 +1,9 @@
-use crate::expr::Operation;
+use crate::operation::Operation;
 use radiate::engines::genome::genes::gene::{Gene, Valid};
 use std::collections::HashSet;
 use uuid::Uuid;
 
-use super::expr::Arity;
+use super::operation::Arity;
 use super::TreeIterator;
 
 pub trait Node<T> {

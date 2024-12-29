@@ -1,7 +1,7 @@
 use std::ops::{Add, Mul, Sub};
 use std::sync::Arc;
 
-use crate::expr::Operation;
+use crate::operation::Operation;
 use crate::NodeChromosome;
 use num_traits::Float;
 use radiate::alter::AlterType;

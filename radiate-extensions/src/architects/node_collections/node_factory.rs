@@ -1,6 +1,6 @@
 use crate::architects::node_collections::node::GraphNode;
-use crate::expr::Operation;
-use crate::{expr, NodeType};
+use crate::operation::Operation;
+use crate::{operation, NodeType};
 use radiate::random_provider;
 use std::collections::HashMap;
 
@@ -75,49 +75,49 @@ where
 
     pub fn regression(input_size: usize) -> NodeFactory<f32> {
         let inputs = (0..input_size)
-            .map(expr::var)
+            .map(operation::var)
             .collect::<Vec<Operation<f32>>>();
         NodeFactory::new()
             .inputs(inputs.clone())
             .gates(vec![
-                expr::add(),
-                expr::sub(),
-                expr::mul(),
-                expr::div(),
-                expr::pow(),
-                expr::sqrt(),
-                expr::exp(),
-                expr::abs(),
-                expr::log(),
-                expr::sin(),
-                expr::cos(),
-                expr::tan(),
-                expr::sum(),
-                expr::prod(),
-                expr::max(),
-                expr::min(),
-                expr::ceil(),
-                expr::floor(),
-                expr::gt(),
-                expr::lt(),
+                operation::add(),
+                operation::sub(),
+                operation::mul(),
+                operation::div(),
+                operation::pow(),
+                operation::sqrt(),
+                operation::exp(),
+                operation::abs(),
+                operation::log(),
+                operation::sin(),
+                operation::cos(),
+                operation::tan(),
+                operation::sum(),
+                operation::prod(),
+                operation::max(),
+                operation::min(),
+                operation::ceil(),
+                operation::floor(),
+                operation::gt(),
+                operation::lt(),
             ])
             .aggregates(vec![
-                expr::sigmoid(),
-                expr::tanh(),
-                expr::relu(),
-                expr::linear(),
-                expr::sum(),
-                expr::prod(),
-                expr::max(),
-                expr::min(),
-                expr::mish(),
-                expr::leaky_relu(),
-                expr::softplus(),
-                expr::sum(),
-                expr::prod(),
+                operation::sigmoid(),
+                operation::tanh(),
+                operation::relu(),
+                operation::linear(),
+                operation::sum(),
+                operation::prod(),
+                operation::max(),
+                operation::min(),
+                operation::mish(),
+                operation::leaky_relu(),
+                operation::softplus(),
+                operation::sum(),
+                operation::prod(),
             ])
-            .weights(vec![expr::weight()])
-            .outputs(vec![expr::linear()])
+            .weights(vec![operation::weight()])
+            .outputs(vec![operation::linear()])
     }
 }
 

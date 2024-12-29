@@ -49,23 +49,23 @@ where
 mod test {
     use super::*;
 
-    use crate::expr;
+    use crate::operation;
 
     #[test]
     fn test_tree() {
         let mut tree_one = Tree::new(TreeNode::with_children(
-            expr::add(),
+            operation::add(),
             vec![
-                TreeNode::new(expr::value(1.0)),
-                TreeNode::new(expr::value(2.0)),
+                TreeNode::new(operation::value(1.0)),
+                TreeNode::new(operation::value(2.0)),
             ],
         ));
 
         let mut tree_two = Tree::new(TreeNode::with_children(
-            expr::mul(),
+            operation::mul(),
             vec![
-                TreeNode::new(expr::value(3.0)),
-                TreeNode::new(expr::value(4.0)),
+                TreeNode::new(operation::value(3.0)),
+                TreeNode::new(operation::value(4.0)),
             ],
         ));
 
@@ -76,7 +76,7 @@ mod test {
         let values_one: Vec<_> = tree_one
             .iter_breadth_first()
             .filter_map(|n| match &n.value {
-                expr::Operation::Const(_, v) => Some(*v),
+                operation::Operation::Const(_, v) => Some(*v),
                 _ => None,
             })
             .collect();

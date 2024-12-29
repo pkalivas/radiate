@@ -1,7 +1,7 @@
 use super::{Graph, GraphNode};
 use crate::architects::builder::GraphBuilder;
 use crate::architects::node_collections::node_factory::NodeFactory;
-use crate::expr::Operation;
+use crate::operation::Operation;
 use crate::{NodeType, Tree, TreeNode};
 use radiate::random_provider;
 
@@ -349,13 +349,13 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::expr;
+    use crate::operation;
 
     #[test]
     fn test_tree_archit() {
         let tree_archit = TreeArchitect::<f32>::new(3)
-            .gates(vec![expr::add(), expr::sub()])
-            .leafs(vec![expr::var(0), expr::var(1)]);
+            .gates(vec![operation::add(), operation::sub()])
+            .leafs(vec![operation::var(0), operation::var(1)]);
         let tree = tree_archit.build();
         let size = tree.root().map(|n| n.size()).unwrap_or(0);
 

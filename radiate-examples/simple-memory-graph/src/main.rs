@@ -6,8 +6,8 @@ const MIN_SCORE: f32 = 0.01;
 
 fn main() {
     let graph_codex = GraphCodex::regression(1, 1)
-        .set_outputs(vec![expr::sigmoid()])
-        .set_gates(vec![expr::add(), expr::sub(), expr::mul()])
+        .set_outputs(vec![operation::sigmoid()])
+        .set_gates(vec![operation::add(), operation::sub(), operation::mul()])
         .set_nodes(|arc, _| arc.lstm(1, 1, 1));
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);

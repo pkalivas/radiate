@@ -1,6 +1,6 @@
 use crate::architects::*;
-use crate::expr::Operation;
 use crate::node::GraphNode;
+use crate::operation::Operation;
 use architect::{Architect, TreeArchitect};
 use core::panic;
 use radiate::engines::codexes::Codex;
@@ -237,8 +237,8 @@ mod tests {
     #[test]
     fn test_tree_codex() {
         let codex = TreeCodex::<f32>::new(3)
-            .gates(vec![expr::add(), expr::sub(), expr::mul()])
-            .leafs(vec![expr::value(1.0), expr::value(2.0)]);
+            .gates(vec![operation::add(), operation::sub(), operation::mul()])
+            .leafs(vec![operation::value(1.0), operation::value(2.0)]);
         let genotype = codex.encode();
         let tree = codex.decode(&genotype);
 

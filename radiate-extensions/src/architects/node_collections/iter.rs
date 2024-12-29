@@ -239,7 +239,7 @@ impl<'a, T> Iterator for GraphIterator<'a, T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{expr, Tree};
+    use crate::{operation, Tree};
 
     #[test]
     fn test_tree_traversal() {
@@ -249,18 +249,21 @@ mod tests {
         //     2   3
         //    /
         //   4
-        let leaf = expr::value(4.0);
-        let node2 = TreeNode::with_children(expr::value(2.0), vec![TreeNode::new(leaf)]);
+        let leaf = operation::value(4.0);
+        let node2 = TreeNode::with_children(operation::value(2.0), vec![TreeNode::new(leaf)]);
 
-        let node3 = TreeNode::new(expr::value(3.0));
+        let node3 = TreeNode::new(operation::value(3.0));
 
-        let root = Tree::new(TreeNode::with_children(expr::add(), vec![node2, node3]));
+        let root = Tree::new(TreeNode::with_children(
+            operation::add(),
+            vec![node2, node3],
+        ));
 
         // Test pre-order
         let pre_order: Vec<f32> = root
             .iter_pre_order()
             .map(|n| match &n.value {
-                expr::Operation::Const(_, v) => *v,
+                operation::Operation::Const(_, v) => *v,
                 _ => panic!("Expected constant"),
             })
             .collect();
@@ -270,7 +273,7 @@ mod tests {
         let post_order: Vec<f32> = root
             .iter_post_order()
             .map(|n| match &n.value {
-                expr::Operation::Const(_, v) => *v,
+                operation::Operation::Const(_, v) => *v,
                 _ => panic!("Expected constant"),
             })
             .collect();
@@ -280,7 +283,7 @@ mod tests {
         let bfs: Vec<f32> = root
             .iter_breadth_first()
             .map(|n| match &n.value {
-                expr::Operation::Const(_, v) => *v,
+                operation::Operation::Const(_, v) => *v,
                 _ => panic!("Expected constant"),
             })
             .collect();

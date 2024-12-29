@@ -46,7 +46,7 @@ impl Deref for Arity {
 /// A generic operation type that can represent several kinds of “ops”.
 pub enum Operation<T> {
     /// 1) A stateless function operation:
-    ///    - A 'static str name (e.g., "Add", "Sigmoid")
+    ///    - A `&'static str` name (e.g., "Add", "Sigmoid")
     ///    - Arity (how many inputs it takes)
     ///    - Arc<dyn Fn(&[T]) -> T> for the actual function logic
     Fn(&'static str, Arity, Arc<dyn Fn(&[T]) -> T>),
@@ -58,12 +58,13 @@ pub enum Operation<T> {
     ///    - `&'static str` name
     ///    - `T` the actual constant value
     Const(&'static str, T),
-    /// 4) A “mutable const”:
-    ///    - `&'static str` name
-    ///    - `Arity` of how many inputs it might read
-    ///    - Current value of type `T`
-    ///    - An `Arc<dyn Fn() -> T>` for retrieving (or resetting) the value
-    ///    - An `Arc<dyn Fn(&[T], &T) -> T>` for updating or combining inputs & old value -> new value
+    /// 4) A `mutable const` is a constant that can change over time:
+    ///  # Arguments
+    /// - `&'static str` name
+    /// - `Arity` of how many inputs it might read
+    /// - Current value of type `T`
+    /// - An `Arc<dyn Fn() -> T>` for retrieving (or resetting) the value
+    /// - An `Arc<dyn Fn(&[T], &T) -> T>` for updating or combining inputs & old value -> new value
     ///
     ///    This suggests a node that can mutate its internal state over time, or
     ///    one that needs a special function to incorporate the inputs into the next state.
