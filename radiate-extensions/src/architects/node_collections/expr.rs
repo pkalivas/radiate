@@ -134,22 +134,23 @@ where
     T: PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Expr::Fn(name, arity, _), Expr::Fn(other_name, other_arity, _)) => {
-                name == other_name && arity == other_arity
-            }
-            (Expr::Var(name, index), Expr::Var(other_name, other_index)) => {
-                name == other_name && index == other_index
-            }
-            (Expr::Const(name, value), Expr::Const(other_name, other_value)) => {
-                name == other_name && value == other_value
-            }
-            (
-                Expr::MutableConst(name, arity, value, _, _),
-                Expr::MutableConst(other_name, other_arity, other_value, _, _),
-            ) => name == other_name && arity == other_arity && value == other_value,
-            _ => false,
-        }
+        self.name() == other.name()
+        // match (self, other) {
+        //     (Expr::Fn(name, arity, _), Expr::Fn(other_name, other_arity, _)) => {
+        //         name == other_name && arity == other_arity
+        //     }
+        //     (Expr::Var(name, index), Expr::Var(other_name, other_index)) => {
+        //         name == other_name && index == other_index
+        //     }
+        //     (Expr::Const(name, value), Expr::Const(other_name, other_value)) => {
+        //         name == other_name && value == other_value
+        //     }
+        //     (
+        //         Expr::MutableConst(name, arity, value, _, _),
+        //         Expr::MutableConst(other_name, other_arity, other_value, _, _),
+        //     ) => name == other_name && arity == other_arity && value == other_value,
+        //     _ => false,
+        // }
     }
 }
 
