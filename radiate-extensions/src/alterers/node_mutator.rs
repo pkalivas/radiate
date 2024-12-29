@@ -1,7 +1,7 @@
 use std::ops::{Add, Mul, Sub};
 use std::sync::Arc;
 
-use crate::expr::Expr;
+use crate::expr::Operation;
 use crate::NodeChromosome;
 use num_traits::Float;
 use radiate::alter::AlterType;
@@ -69,35 +69,42 @@ where
                 let current_node = chromosome.get_gene(i);
 
                 match current_node.allele() {
-                    Expr::MutableConst(name, arity, value, supplier, operation) => {
+                    Operation::MutableConst {
+                        name,
+                        arity,
+                        value,
+                        get_value,
+                        operation,
+                    } => {
                         let random_value = random_provider::random::<T>() * T::from(2).unwrap()
                             - T::from(1).unwrap();
 
                         if random_provider::random::<f32>() < self.replace_rate {
                             chromosome.set_gene(
                                 i,
-                                current_node.with_allele(&Expr::MutableConst(
+                                current_node.with_allele(&Operation::MutableConst {
                                     name,
-                                    *arity,
-                                    random_value,
-                                    Arc::clone(supplier),
-                                    Arc::clone(operation),
-                                )),
+                                    arity: *arity,
+                                    value: random_value,
+                                    get_value: Arc::clone(get_value),
+                                    operation: Arc::clone(operation),
+                                }),
                             );
                         } else {
                             let new_value = random_value + *value;
                             chromosome.set_gene(
                                 i,
-                                current_node.with_allele(&Expr::MutableConst(
+                                current_node.with_allele(&Operation::MutableConst {
                                     name,
-                                    *arity,
-                                    new_value,
-                                    Arc::clone(supplier),
-                                    Arc::clone(operation),
-                                )),
+                                    arity: *arity,
+                                    value: new_value,
+                                    get_value: Arc::clone(get_value),
+                                    operation: Arc::clone(operation),
+                                }),
                             );
                         }
                     }
+
                     _ => {
                         if temp_node.value.arity() == current_node.value.arity() {
                             chromosome.set_gene(i, current_node.with_allele(temp_node.allele()));

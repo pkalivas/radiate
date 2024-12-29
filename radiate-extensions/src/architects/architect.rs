@@ -4,7 +4,7 @@ use crate::architects::node_collections::node::Node;
 use crate::architects::node_collections::node_factory::NodeFactory;
 use crate::architects::node_collections::NodeCollection;
 use crate::architects::schema::node_types::NodeType;
-use crate::expr::Expr;
+use crate::expr::Operation;
 use crate::{Tree, TreeNode};
 use radiate::random_provider;
 
@@ -14,8 +14,8 @@ pub trait Archit {
 }
 
 pub struct TreeArchit<T: Clone> {
-    gates: Vec<Expr<T>>,
-    leafs: Vec<Expr<T>>,
+    gates: Vec<Operation<T>>,
+    leafs: Vec<Operation<T>>,
     depth: usize,
 }
 
@@ -28,12 +28,12 @@ impl<T: Clone> TreeArchit<T> {
         }
     }
 
-    pub fn gates(mut self, gates: Vec<Expr<T>>) -> Self {
+    pub fn gates(mut self, gates: Vec<Operation<T>>) -> Self {
         self.gates = gates;
         self
     }
 
-    pub fn leafs(mut self, leafs: Vec<Expr<T>>) -> Self {
+    pub fn leafs(mut self, leafs: Vec<Operation<T>>) -> Self {
         self.leafs = leafs;
         self
     }
@@ -44,7 +44,7 @@ impl<T: Clone> TreeArchit<T> {
     {
         if depth == 0 {
             let leaf = if self.leafs.is_empty() {
-                Expr::default()
+                Operation::default()
             } else {
                 random_provider::choose(&self.leafs).new_instance()
             };
@@ -53,7 +53,7 @@ impl<T: Clone> TreeArchit<T> {
         }
 
         let gate = if self.gates.is_empty() {
-            Expr::default()
+            Operation::default()
         } else {
             random_provider::choose(&self.gates).new_instance()
         };

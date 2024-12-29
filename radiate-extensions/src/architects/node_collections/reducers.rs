@@ -1,5 +1,5 @@
 use super::{Graph, Tree};
-use crate::expr::Expr;
+use crate::expr::Operation;
 use crate::node::Node;
 use crate::{NodeCollection, NodeType, TreeNode};
 
@@ -166,10 +166,12 @@ where
 
         self.previous_result = self.result.clone();
         self.result = match &node.value {
-            Expr::Const(_, ref value) => Some(value.clone()),
-            Expr::Fn(_, _, ref fn_ptr) => Some(fn_ptr(&self.args)),
-            Expr::MutableConst(_, _, ref val, _, fn_ptr) => Some(fn_ptr(&self.args, val)),
-            Expr::Var(_, _) => Some(self.args[0].clone()),
+            Operation::Const(_, ref value) => Some(value.clone()),
+            Operation::Fn(_, _, ref fn_ptr) => Some(fn_ptr(&self.args)),
+            Operation::Var(_, _) => Some(self.args[0].clone()),
+            Operation::MutableConst {
+                value, operation, ..
+            } => Some(operation(&self.args, value)),
         };
 
         self.pending_idx = 0;

@@ -1,5 +1,5 @@
 use crate::architects::schema::{direction::Direction, node_types::NodeType};
-use crate::expr::Expr;
+use crate::expr::Operation;
 use crate::schema::collection_type::CollectionType;
 use radiate::engines::genome::genes::gene::{Gene, Valid};
 use std::collections::HashSet;
@@ -10,19 +10,19 @@ use super::TreeIterator;
 
 #[derive(PartialEq)]
 pub struct TreeNode<T> {
-    pub value: Expr<T>,
+    pub value: Operation<T>,
     pub children: Option<Vec<TreeNode<T>>>,
 }
 
 impl<T> TreeNode<T> {
-    pub fn new(val: Expr<T>) -> Self {
+    pub fn new(val: Operation<T>) -> Self {
         TreeNode {
             value: val,
             children: None,
         }
     }
 
-    pub fn with_children(val: Expr<T>, children: Vec<TreeNode<T>>) -> Self {
+    pub fn with_children(val: Operation<T>, children: Vec<TreeNode<T>>) -> Self {
         TreeNode {
             value: val,
             children: Some(children),
@@ -122,7 +122,7 @@ impl<T> Gene for TreeNode<T>
 where
     T: Clone + PartialEq + Default,
 {
-    type Allele = Expr<T>;
+    type Allele = Operation<T>;
 
     fn allele(&self) -> &Self::Allele {
         &self.value
@@ -269,7 +269,7 @@ impl<T> Valid for TreeNode<T> {
 pub struct Node<T> {
     pub id: Uuid,
     pub index: usize,
-    pub value: Expr<T>,
+    pub value: Operation<T>,
     pub collection_type: Option<CollectionType>,
     pub enabled: bool,
     pub node_type: NodeType,
@@ -279,7 +279,7 @@ pub struct Node<T> {
 }
 
 impl<T> Node<T> {
-    pub fn new(index: usize, node_type: NodeType, value: Expr<T>) -> Self {
+    pub fn new(index: usize, node_type: NodeType, value: Operation<T>) -> Self {
         Self {
             id: Uuid::new_v4(),
             index,
@@ -297,7 +297,7 @@ impl<T> Node<T> {
         &self.node_type
     }
 
-    pub fn value(&self) -> &Expr<T> {
+    pub fn value(&self) -> &Operation<T> {
         &self.value
     }
 
@@ -328,9 +328,9 @@ impl<T> Gene for Node<T>
 where
     T: Clone + PartialEq + Default,
 {
-    type Allele = Expr<T>;
+    type Allele = Operation<T>;
 
-    fn allele(&self) -> &Expr<T> {
+    fn allele(&self) -> &Operation<T> {
         &self.value
     }
 
@@ -348,7 +348,7 @@ where
         }
     }
 
-    fn with_allele(&self, allele: &Expr<T>) -> Node<T> {
+    fn with_allele(&self, allele: &Operation<T>) -> Node<T> {
         Node {
             id: Uuid::new_v4(),
             index: self.index,
@@ -441,7 +441,7 @@ where
             id: Uuid::new_v4(),
             index: 0,
             enabled: true,
-            value: Expr::default(),
+            value: Operation::default(),
             direction: Direction::Forward,
             node_type: NodeType::Input,
             collection_type: None,

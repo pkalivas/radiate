@@ -2,7 +2,6 @@ use crate::architects::node_collections::*;
 use crate::architects::schema::node_types::NodeType;
 use crate::node::Node;
 use crate::schema::collection_type::CollectionType;
-use expr::Arity;
 use radiate::alter::AlterType;
 use radiate::engines::alterers::Alter;
 use radiate::engines::genome::*;

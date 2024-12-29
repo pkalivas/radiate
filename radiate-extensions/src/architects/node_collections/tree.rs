@@ -78,7 +78,7 @@ mod test {
         let values_one: Vec<_> = tree_one
             .iter_breadth_first()
             .filter_map(|n| match &n.value {
-                expr::Expr::Const(_, v) => Some(*v),
+                expr::Operation::Const(_, v) => Some(*v),
                 _ => None,
             })
             .collect();

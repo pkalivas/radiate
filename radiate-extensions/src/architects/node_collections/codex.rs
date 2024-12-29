@@ -1,5 +1,5 @@
 use crate::architects::*;
-use crate::expr::Expr;
+use crate::expr::Operation;
 use crate::node::Node;
 use architect::{Archit, TreeArchit};
 use core::panic;
@@ -78,32 +78,32 @@ where
         self
     }
 
-    pub fn set_gates(self, gates: Vec<Expr<T>>) -> Self {
+    pub fn set_gates(self, gates: Vec<Operation<T>>) -> Self {
         self.set_values(NodeType::Gate, gates);
         self
     }
 
-    pub fn set_weights(self, weights: Vec<Expr<T>>) -> Self {
+    pub fn set_weights(self, weights: Vec<Operation<T>>) -> Self {
         self.set_values(NodeType::Weight, weights);
         self
     }
 
-    pub fn set_aggregates(self, aggregates: Vec<Expr<T>>) -> Self {
+    pub fn set_aggregates(self, aggregates: Vec<Operation<T>>) -> Self {
         self.set_values(NodeType::Aggregate, aggregates);
         self
     }
 
-    pub fn set_inputs(self, inputs: Vec<Expr<T>>) -> Self {
+    pub fn set_inputs(self, inputs: Vec<Operation<T>>) -> Self {
         self.set_values(NodeType::Input, inputs);
         self
     }
 
-    pub fn set_outputs(self, outputs: Vec<Expr<T>>) -> Self {
+    pub fn set_outputs(self, outputs: Vec<Operation<T>>) -> Self {
         self.set_values(NodeType::Output, outputs);
         self
     }
 
-    fn set_values(&self, node_type: NodeType, values: Vec<Expr<T>>) {
+    fn set_values(&self, node_type: NodeType, values: Vec<Operation<T>>) {
         let mut factory = self.factory.borrow_mut();
         factory.add_node_values(node_type, values);
     }
@@ -181,12 +181,12 @@ impl<T: Clone + Default> TreeCodex<T> {
         self
     }
 
-    pub fn gates(mut self, gates: Vec<Expr<T>>) -> Self {
+    pub fn gates(mut self, gates: Vec<Operation<T>>) -> Self {
         self.architect = self.architect.gates(gates);
         self
     }
 
-    pub fn leafs(mut self, leafs: Vec<Expr<T>>) -> Self {
+    pub fn leafs(mut self, leafs: Vec<Operation<T>>) -> Self {
         self.architect = self.architect.leafs(leafs);
         self
     }
