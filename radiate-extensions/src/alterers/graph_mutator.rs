@@ -2,6 +2,7 @@ use crate::architects::node_collections::*;
 use crate::architects::schema::node_types::NodeType;
 use crate::node::Node;
 use crate::schema::collection_type::CollectionType;
+use expr::Arity;
 use radiate::alter::AlterType;
 use radiate::engines::alterers::Alter;
 use radiate::engines::genome::*;
@@ -258,6 +259,10 @@ where
         target_node: &Node<T>,
         recurrent: bool,
     ) -> Option<Vec<Node<T>>> {
+        let node = collection.get(new_node_index);
+        if node.value.arity() == Arity::Any {
+            return Some(collection.into_iter().collect::<Vec<Node<T>>>());
+        }
         let arity = *collection.get(new_node_index).value.arity();
         for _ in 0..arity - 1 {
             let other_source_node = random_source_node(collection.get_nodes());
