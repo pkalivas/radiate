@@ -70,7 +70,7 @@ where
         let new_node_index = collection.len() + 1;
         let new_target_edge_index = collection.len() + 2;
 
-        if source_node.node_type == NodeType::Weight && node_type != &NodeType::Weight {
+        if source_node.node_type == NodeType::Edge && node_type != &NodeType::Edge {
             let incoming_node = collection
                 .get(*source_node.incoming.iter().next().unwrap())
                 .unwrap();
@@ -161,7 +161,7 @@ where
         let new_target_edge_index = collection.len() + 2;
         let recurrent_edge_index = collection.len() + 3;
 
-        if source_node.node_type == NodeType::Weight && node_type != &NodeType::Weight {
+        if source_node.node_type == NodeType::Edge && node_type != &NodeType::Edge {
             let incoming_node = collection
                 .get(*source_node.incoming.iter().next().unwrap())
                 .unwrap();
@@ -259,9 +259,9 @@ where
     ) -> Option<Vec<GraphNode<T>>> {
         let node = collection.get(new_node_index);
         if *node.value.arity() == 0 {
-            if !collection.is_valid() {
-                return None;
-            }
+            // if !collection.is_valid() {
+            //     return None;
+            // }
             return Some(collection.into_iter().collect::<Vec<GraphNode<T>>>());
         }
         let arity = *collection.get(new_node_index).value.arity();

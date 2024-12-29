@@ -78,20 +78,30 @@ where
         self
     }
 
-    pub fn set_gates(self, gates: Vec<Operation<T>>) -> Self {
-        self.set_values(NodeType::Gate, gates);
+    pub fn set_vertices(self, vertices: Vec<Operation<T>>) -> Self {
+        self.set_values(NodeType::Vertex, vertices);
         self
     }
 
-    pub fn set_weights(self, weights: Vec<Operation<T>>) -> Self {
-        self.set_values(NodeType::Weight, weights);
+    pub fn set_edges(self, edges: Vec<Operation<T>>) -> Self {
+        self.set_values(NodeType::Edge, edges);
         self
     }
 
-    pub fn set_aggregates(self, aggregates: Vec<Operation<T>>) -> Self {
-        self.set_values(NodeType::Aggregate, aggregates);
-        self
-    }
+    // pub fn set_gates(self, gates: Vec<Operation<T>>) -> Self {
+    //     self.set_values(NodeType::Gate, gates);
+    //     self
+    // }
+
+    // pub fn set_weights(self, weights: Vec<Operation<T>>) -> Self {
+    //     self.set_values(NodeType::Weight, weights);
+    //     self
+    // }
+
+    // pub fn set_aggregates(self, aggregates: Vec<Operation<T>>) -> Self {
+    //     self.set_values(NodeType::Aggregate, aggregates);
+    //     self
+    // }
 
     pub fn set_inputs(self, inputs: Vec<Operation<T>>) -> Self {
         self.set_values(NodeType::Input, inputs);

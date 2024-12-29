@@ -192,11 +192,7 @@ where
     T: Default + Clone,
 {
     fn default() -> Self {
-        Operation::Fn(
-            "identity",
-            1.into(),
-            Arc::new(|inputs: &[T]| inputs[0].clone()),
-        )
+        Operation::Const("default", T::default())
     }
 }
 
@@ -467,6 +463,14 @@ where
         get_value: Arc::new(supplier),
         operation: Arc::new(operation),
     }
+}
+
+pub fn identity<T: Clone>() -> Operation<T> {
+    Operation::Fn(
+        "identity",
+        1.into(),
+        Arc::new(|inputs: &[T]| inputs[0].clone()),
+    )
 }
 
 pub fn var<T: Clone>(index: usize) -> Operation<T> {

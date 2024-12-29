@@ -39,20 +39,20 @@ where
         self
     }
 
-    pub fn gates(mut self, values: Vec<Operation<T>>) -> NodeFactory<T> {
-        self.add_node_values(NodeType::Gate, values);
-        self
-    }
+    // pub fn gates(mut self, values: Vec<Operation<T>>) -> NodeFactory<T> {
+    //     self.add_node_values(NodeType::Gate, values);
+    //     self
+    // }
 
-    pub fn aggregates(mut self, values: Vec<Operation<T>>) -> NodeFactory<T> {
-        self.add_node_values(NodeType::Aggregate, values);
-        self
-    }
+    // pub fn aggregates(mut self, values: Vec<Operation<T>>) -> NodeFactory<T> {
+    //     self.add_node_values(NodeType::Aggregate, values);
+    //     self
+    // }
 
-    pub fn weights(mut self, values: Vec<Operation<T>>) -> NodeFactory<T> {
-        self.add_node_values(NodeType::Weight, values);
-        self
-    }
+    // pub fn weights(mut self, values: Vec<Operation<T>>) -> NodeFactory<T> {
+    //     self.add_node_values(NodeType::Weight, values);
+    //     self
+    // }
 
     pub fn set_values(mut self, node_type: NodeType, values: Vec<Operation<T>>) -> NodeFactory<T> {
         self.add_node_values(node_type, values);
@@ -89,7 +89,7 @@ where
             .collect::<Vec<Operation<f32>>>();
         NodeFactory::new()
             .inputs(inputs.clone())
-            .gates(vec![
+            .vertices(vec![
                 operation::add(),
                 operation::sub(),
                 operation::mul(),
@@ -110,8 +110,6 @@ where
                 operation::floor(),
                 operation::gt(),
                 operation::lt(),
-            ])
-            .aggregates(vec![
                 operation::sigmoid(),
                 operation::tanh(),
                 operation::relu(),
@@ -126,7 +124,7 @@ where
                 operation::sum(),
                 operation::prod(),
             ])
-            .weights(vec![operation::weight()])
+            .edges(vec![operation::weight(), operation::identity()])
             .outputs(vec![operation::linear()])
     }
 }

@@ -98,18 +98,18 @@ where
 
         for node in collection.get_nodes_mut() {
             if let Some(factory) = self.factory {
-                let temp_node = factory.new_node(node.index, NodeType::Aggregate);
+                let temp_node = factory.new_node(node.index, NodeType::Vertex);
 
                 match node.node_type() {
                     NodeType::Input => {
                         if !node.incoming().is_empty() {
-                            node.node_type = NodeType::Aggregate;
+                            node.node_type = NodeType::Vertex;
                             node.value = temp_node.value.clone();
                         }
                     }
                     NodeType::Output => {
                         if !node.outgoing().is_empty() {
-                            node.node_type = NodeType::Aggregate;
+                            node.node_type = NodeType::Vertex;
                             node.value = temp_node.value.clone();
                         }
                     }
@@ -282,8 +282,8 @@ where
             .filter(|(_, node)| {
                 node.outgoing().len() == 1
                     && node.is_recurrent()
-                    && (node.node_type() == &NodeType::Gate
-                        || node.node_type() == &NodeType::Aggregate)
+                    && (node.node_type() == &NodeType::Vertex)
+                // || node.node_type() == &NodeType::Aggregate)
             })
             .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
             .collect::<Vec<&GraphNode<T>>>();
@@ -321,7 +321,7 @@ where
             .filter(|(_, node)| {
                 node.outgoing().len() == 1
                     && node.is_recurrent()
-                    && node.node_type() == &NodeType::Gate
+                    && node.node_type() == &NodeType::Vertex
             })
             .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
             .collect::<Vec<&GraphNode<T>>>();

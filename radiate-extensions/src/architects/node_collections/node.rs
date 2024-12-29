@@ -175,9 +175,9 @@ pub enum Direction {
 pub enum NodeType {
     Input,
     Output,
-    Gate,
-    Aggregate,
-    Weight,
+    // Gate,
+    // Aggregate,
+    // Weight,
     Vertex,
     Edge,
 }
@@ -287,19 +287,6 @@ where
                     && self.value.arity() == Arity::Zero
             }
             NodeType::Output => !self.incoming.is_empty() && self.value.arity() == Arity::Any,
-            NodeType::Gate => {
-                self.incoming.len() == *self.value.arity() as usize && !self.outgoing.is_empty()
-            }
-            NodeType::Aggregate => {
-                !self.incoming.is_empty()
-                    && !self.outgoing.is_empty()
-                    && self.value.arity() == Arity::Any
-            }
-            NodeType::Weight => {
-                self.incoming.len() == 1
-                    && self.outgoing.len() == 1
-                    && self.value.arity() == Arity::Exact(1)
-            }
             NodeType::Vertex => {
                 if self.value.arity() == Arity::Any {
                     !self.incoming.is_empty() && !self.outgoing.is_empty()

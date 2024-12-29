@@ -185,8 +185,9 @@ where
 {
     match node.node_type {
         NodeType::Input => 1,
-        NodeType::Gate => *node.value.arity() as usize,
         _ => node.incoming.len(),
+        // NodeType::Gate => *node.value.arity() as usize,
+        // _ => node.incoming.len(),
     }
 }
 

@@ -241,7 +241,7 @@ pub fn can_connect<T>(
 
     let would_create_cycle = recurrent || !would_create_cycle(collection, source, target);
     let nodes_are_weights =
-        source_node.node_type == NodeType::Weight || target_node.node_type == NodeType::Weight;
+        source_node.node_type == NodeType::Edge || target_node.node_type == NodeType::Edge;
 
     would_create_cycle && !nodes_are_weights && source != target
 }
@@ -289,20 +289,12 @@ pub fn is_locked<T>(node: &GraphNode<T>) -> bool {
 
 #[inline]
 pub fn random_source_node<T>(collection: &[GraphNode<T>]) -> &GraphNode<T> {
-    random_node_of_type(
-        collection,
-        vec![
-            NodeType::Input,
-            NodeType::Gate,
-            NodeType::Aggregate,
-            NodeType::Vertex,
-        ],
-    )
+    random_node_of_type(collection, vec![NodeType::Input, NodeType::Vertex])
 }
 
 #[inline]
 pub fn random_target_node<T>(collection: &[GraphNode<T>]) -> &GraphNode<T> {
-    random_node_of_type(collection, vec![NodeType::Output, NodeType::Aggregate])
+    random_node_of_type(collection, vec![NodeType::Output, NodeType::Vertex])
 }
 
 #[inline]
@@ -319,21 +311,9 @@ fn random_node_of_type<T>(collection: &[GraphNode<T>], node_types: Vec<NodeType>
             .iter()
             .filter(|node| node.node_type == NodeType::Input)
             .collect::<Vec<&GraphNode<T>>>(),
-        NodeType::Weight => collection
-            .iter()
-            .filter(|node| node.node_type == NodeType::Weight)
-            .collect::<Vec<&GraphNode<T>>>(),
-        NodeType::Gate => collection
-            .iter()
-            .filter(|node| node.node_type == NodeType::Gate)
-            .collect::<Vec<&GraphNode<T>>>(),
         NodeType::Output => collection
             .iter()
             .filter(|node| node.node_type == NodeType::Output)
-            .collect::<Vec<&GraphNode<T>>>(),
-        NodeType::Aggregate => collection
-            .iter()
-            .filter(|node| node.node_type == NodeType::Aggregate)
             .collect::<Vec<&GraphNode<T>>>(),
         NodeType::Vertex => collection
             .iter()

@@ -102,17 +102,25 @@ impl<T: Clone + Default> GraphBuilder<T> {
         self.new_collection(NodeType::Output, size)
     }
 
-    pub fn gate(&self, size: usize) -> Graph<T> {
-        self.new_collection(NodeType::Gate, size)
+    pub fn vertex(&self, size: usize) -> Graph<T> {
+        self.new_collection(NodeType::Vertex, size)
     }
 
-    pub fn aggregate(&self, size: usize) -> Graph<T> {
-        self.new_collection(NodeType::Aggregate, size)
+    pub fn edge(&self, size: usize) -> Graph<T> {
+        self.new_collection(NodeType::Edge, size)
     }
 
-    pub fn weight(&self, size: usize) -> Graph<T> {
-        self.new_collection(NodeType::Weight, size)
-    }
+    // pub fn gate(&self, size: usize) -> Graph<T> {
+    //     self.new_collection(NodeType::Gate, size)
+    // }
+
+    // pub fn aggregate(&self, size: usize) -> Graph<T> {
+    //     self.new_collection(NodeType::Aggregate, size)
+    // }
+
+    // pub fn weight(&self, size: usize) -> Graph<T> {
+    //     self.new_collection(NodeType::Weight, size)
+    // }
 
     pub fn vertices(&self, size: usize) -> Graph<T> {
         self.new_collection(NodeType::Vertex, size)
@@ -143,20 +151,20 @@ impl<T: Clone + Default> GraphBuilder<T> {
         self
     }
 
-    pub fn with_gates(mut self, gates: Vec<Operation<T>>) -> Self {
-        self.set_values(NodeType::Gate, gates);
-        self
-    }
+    // pub fn with_gates(mut self, gates: Vec<Operation<T>>) -> Self {
+    //     self.set_values(NodeType::Gate, gates);
+    //     self
+    // }
 
-    pub fn with_aggregates(mut self, aggregates: Vec<Operation<T>>) -> Self {
-        self.set_values(NodeType::Aggregate, aggregates);
-        self
-    }
+    // pub fn with_aggregates(mut self, aggregates: Vec<Operation<T>>) -> Self {
+    //     self.set_values(NodeType::Aggregate, aggregates);
+    //     self
+    // }
 
-    pub fn with_weights(mut self, weights: Vec<Operation<T>>) -> Self {
-        self.set_values(NodeType::Weight, weights);
-        self
-    }
+    // pub fn with_weights(mut self, weights: Vec<Operation<T>>) -> Self {
+    //     self.set_values(NodeType::Weight, weights);
+    //     self
+    // }
 
     pub fn with_vertices(mut self, vertices: Vec<Operation<T>>) -> Self {
         self.set_values(NodeType::Vertex, vertices);
@@ -188,8 +196,8 @@ where
     pub fn cyclic(&self, input_size: usize, output_size: usize) -> Graph<T> {
         GraphBuilder::<T>::new(&self.node_factory).build(|arc, builder| {
             let input = arc.input(input_size);
-            let aggregate = arc.aggregate(input_size);
-            let link = arc.gate(input_size);
+            let aggregate = arc.vertex(input_size);
+            let link = arc.vertex(input_size);
             let output = arc.output(output_size);
 
             builder
@@ -204,7 +212,7 @@ where
         GraphBuilder::<T>::new(&self.node_factory).build(|arc, builder| {
             let input = arc.input(input_size);
             let output = arc.output(output_size);
-            let weights = arc.weight(input_size * output_size);
+            let weights = arc.edge(input_size * output_size);
 
             builder
                 .one_to_many(&input, &weights)
@@ -222,9 +230,9 @@ where
         GraphBuilder::<T>::new(&self.node_factory).build(|arc, builder| {
             let input = arc.input(input_size);
             let output = arc.output(output_size);
-            let weights = arc.weight(input_size * memory_size);
-            let aggregate = arc.aggregate(memory_size);
-            let aggregate_weights = arc.weight(memory_size);
+            let weights = arc.edge(input_size * memory_size);
+            let aggregate = arc.vertex(memory_size);
+            let aggregate_weights = arc.edge(memory_size);
 
             builder
                 .one_to_many(&input, &weights)
@@ -245,12 +253,12 @@ where
             let input = arc.input(input_size);
             let output = arc.output(output_size);
 
-            let query_weights = arc.weight(input_size * num_heads);
-            let key_weights = arc.weight(input_size * num_heads);
-            let value_weights = arc.weight(input_size * num_heads);
+            let query_weights = arc.edge(input_size * num_heads);
+            let key_weights = arc.edge(input_size * num_heads);
+            let value_weights = arc.edge(input_size * num_heads);
 
-            let attention_scores = arc.new_collection(NodeType::Aggregate, num_heads);
-            let attention_aggreg = arc.new_collection(NodeType::Aggregate, num_heads);
+            let attention_scores = arc.new_collection(NodeType::Vertex, num_heads);
+            let attention_aggreg = arc.new_collection(NodeType::Vertex, num_heads);
 
             builder
                 .one_to_many(&input, &query_weights)
@@ -269,8 +277,8 @@ where
         GraphBuilder::<T>::new(&self.node_factory).build(|arc, builder| {
             let input = arc.input(input_size);
             let output = arc.output(output_size);
-            let aggregates = arc.aggregate(input_size);
-            let weights = arc.weight(input_size * output_size);
+            let aggregates = arc.vertex(input_size);
+            let weights = arc.edge(input_size * output_size);
 
             builder
                 .one_to_many(&input, &aggregates)
@@ -286,30 +294,30 @@ where
             let input = arc.input(input_size);
             let output = arc.output(output_size);
 
-            let input_to_forget_weights = arc.weight(input_size * memory_size);
-            let hidden_to_forget_weights = arc.weight(memory_size * memory_size);
+            let input_to_forget_weights = arc.edge(input_size * memory_size);
+            let hidden_to_forget_weights = arc.edge(memory_size * memory_size);
 
-            let input_to_input_weights = arc.weight(input_size * memory_size);
-            let hidden_to_input_weights = arc.weight(memory_size * memory_size);
+            let input_to_input_weights = arc.edge(input_size * memory_size);
+            let hidden_to_input_weights = arc.edge(memory_size * memory_size);
 
-            let input_to_candidate_weights = arc.weight(input_size * memory_size);
-            let hidden_to_candidate_weights = arc.weight(memory_size * memory_size);
+            let input_to_candidate_weights = arc.edge(input_size * memory_size);
+            let hidden_to_candidate_weights = arc.edge(memory_size * memory_size);
 
-            let input_to_output_weights = arc.weight(input_size * memory_size);
-            let hidden_to_output_weights = arc.weight(memory_size * memory_size);
+            let input_to_output_weights = arc.edge(input_size * memory_size);
+            let hidden_to_output_weights = arc.edge(memory_size * memory_size);
 
-            let output_weights = arc.weight(memory_size * output_size);
+            let output_weights = arc.edge(memory_size * output_size);
 
-            let forget_gate = arc.aggregate(memory_size);
-            let input_gate = arc.aggregate(memory_size);
-            let candidate_gate = arc.aggregate(memory_size);
-            let output_gate = arc.aggregate(memory_size);
+            let forget_gate = arc.vertex(memory_size);
+            let input_gate = arc.vertex(memory_size);
+            let candidate_gate = arc.vertex(memory_size);
+            let output_gate = arc.vertex(memory_size);
 
-            let input_candidate_mul_gate = arc.new_collection(NodeType::Aggregate, memory_size);
-            let forget_memory_mul_gate = arc.new_collection(NodeType::Aggregate, memory_size);
-            let memory_candidate_gate = arc.new_collection(NodeType::Aggregate, memory_size);
-            let output_tahn_mul_gate = arc.new_collection(NodeType::Aggregate, memory_size);
-            let tanh_gate = arc.new_collection(NodeType::Aggregate, memory_size);
+            let input_candidate_mul_gate = arc.new_collection(NodeType::Vertex, memory_size);
+            let forget_memory_mul_gate = arc.new_collection(NodeType::Vertex, memory_size);
+            let memory_candidate_gate = arc.new_collection(NodeType::Vertex, memory_size);
+            let output_tahn_mul_gate = arc.new_collection(NodeType::Vertex, memory_size);
+            let tanh_gate = arc.new_collection(NodeType::Vertex, memory_size);
 
             builder
                 .one_to_many(&input, &input_to_forget_weights)
@@ -348,25 +356,25 @@ where
             let input = arc.input(input_size);
             let output = arc.output(output_size);
 
-            let output_weights = arc.weight(memory_size * output_size);
+            let output_weights = arc.edge(memory_size * output_size);
 
-            let reset_gate = arc.aggregate(memory_size);
-            let update_gate = arc.aggregate(memory_size);
-            let candidate_gate = arc.aggregate(memory_size);
+            let reset_gate = arc.vertex(memory_size);
+            let update_gate = arc.vertex(memory_size);
+            let candidate_gate = arc.vertex(memory_size);
 
-            let input_to_reset_weights = arc.weight(input_size * memory_size);
-            let input_to_update_weights = arc.weight(input_size * memory_size);
-            let input_to_candidate_weights = arc.weight(input_size * memory_size);
+            let input_to_reset_weights = arc.edge(input_size * memory_size);
+            let input_to_update_weights = arc.edge(input_size * memory_size);
+            let input_to_candidate_weights = arc.edge(input_size * memory_size);
 
-            let hidden_to_reset_weights = arc.weight(memory_size * memory_size);
-            let hidden_to_update_weights = arc.weight(memory_size * memory_size);
-            let hidden_to_candidate_weights = arc.weight(memory_size * memory_size);
+            let hidden_to_reset_weights = arc.edge(memory_size * memory_size);
+            let hidden_to_update_weights = arc.edge(memory_size * memory_size);
+            let hidden_to_candidate_weights = arc.edge(memory_size * memory_size);
 
-            let hidden_reset_gate = arc.new_collection(NodeType::Aggregate, memory_size);
-            let update_candidate_mul_gate = arc.new_collection(NodeType::Aggregate, memory_size);
-            let invert_update_gate = arc.new_collection(NodeType::Aggregate, memory_size);
-            let hidden_invert_mul_gate = arc.new_collection(NodeType::Aggregate, memory_size);
-            let candidate_hidden_add_gate = arc.new_collection(NodeType::Aggregate, memory_size);
+            let hidden_reset_gate = arc.new_collection(NodeType::Vertex, memory_size);
+            let update_candidate_mul_gate = arc.new_collection(NodeType::Vertex, memory_size);
+            let invert_update_gate = arc.new_collection(NodeType::Vertex, memory_size);
+            let hidden_invert_mul_gate = arc.new_collection(NodeType::Vertex, memory_size);
+            let candidate_hidden_add_gate = arc.new_collection(NodeType::Vertex, memory_size);
 
             builder
                 .one_to_many(&input, &input_to_reset_weights)
@@ -401,13 +409,13 @@ impl GraphBuilder<f32> {
     pub fn dense(input_size: usize, output_size: usize, activation: Operation<f32>) -> Graph<f32> {
         let factory = NodeFactory::new()
             .inputs((0..input_size).map(operation::var).collect())
-            .weights(vec![operation::weight()])
+            .edges(vec![operation::weight()])
             .outputs(vec![activation]);
 
         GraphBuilder::new(&factory).build(|arc, builder| {
             let input = arc.input(input_size);
             let output = arc.output(output_size);
-            let weights = arc.weight(input_size * output_size);
+            let weights = arc.edge(input_size * output_size);
 
             builder
                 .one_to_many(&input, &weights)
@@ -424,16 +432,16 @@ impl GraphBuilder<f32> {
     ) -> Graph<f32> {
         let factory = NodeFactory::new()
             .inputs((0..input_size).map(operation::var).collect())
-            .weights(vec![operation::weight()])
-            .aggregates(vec![activation.clone()])
+            .edges(vec![operation::weight()])
+            .vertices(vec![activation.clone()])
             .outputs(vec![activation]);
 
         GraphBuilder::new(&factory).build(|arc, builder| {
             let input = arc.input(input_size);
             let output = arc.output(output_size);
-            let weights = arc.weight(input_size * memory_size);
-            let aggregate = arc.aggregate(memory_size);
-            let aggregate_weights = arc.weight(memory_size);
+            let weights = arc.edge(input_size * memory_size);
+            let aggregate = arc.vertex(memory_size);
+            let aggregate_weights = arc.edge(memory_size);
 
             builder
                 .one_to_many(&input, &weights)
