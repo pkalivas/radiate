@@ -6,16 +6,6 @@ use uuid::Uuid;
 use super::operation::Arity;
 use super::TreeIterator;
 
-pub trait Node<T> {
-    type Connection;
-    type NodeType;
-
-    fn value(&self) -> &Operation<T>;
-    fn node_type(&self) -> &Self::NodeType;
-    fn incoming(&self) -> Option<&[Self::Connection]>;
-    fn outgoing(&self) -> Option<&[Self::Connection]>;
-}
-
 #[derive(PartialEq)]
 pub struct TreeNode<T> {
     pub value: Operation<T>,
@@ -188,7 +178,6 @@ pub enum NodeType {
     Gate,
     Aggregate,
     Weight,
-    Unknown,
 }
 
 pub struct GraphNode<T> {
@@ -295,7 +284,6 @@ where
             NodeType::Gate => self.incoming.len() == *self.value.arity() as usize,
             NodeType::Aggregate => !self.incoming.is_empty() && !self.outgoing.is_empty(),
             NodeType::Weight => self.incoming.len() == 1 && self.outgoing.len() == 1,
-            NodeType::Unknown => true,
         }
     }
 }

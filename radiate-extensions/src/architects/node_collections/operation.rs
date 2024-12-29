@@ -53,7 +53,7 @@ pub enum Operation<T> {
     /// 2) A variable-like operation:
     ///    - `String` = a name or identifier
     ///    - `usize` = perhaps an index to retrieve from some external context
-    Var(String, usize),
+    Var(&'static str, usize),
     /// 3) A compile-time constant:
     ///    - `&'static str` name
     ///    - `T` the actual constant value
@@ -458,7 +458,7 @@ where
 }
 
 pub fn var<T: Clone>(index: usize) -> Operation<T> {
-    let var_name = format!("x{}", index);
+    let var_name = Box::leak(Box::new(format!("var_{}", index)));
     Operation::Var(var_name, index)
 }
 

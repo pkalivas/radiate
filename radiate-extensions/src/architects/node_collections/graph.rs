@@ -329,10 +329,6 @@ fn random_node_of_type<T>(collection: &[GraphNode<T>], node_types: Vec<NodeType>
             .iter()
             .filter(|node| node.node_type == NodeType::Aggregate)
             .collect::<Vec<&GraphNode<T>>>(),
-        NodeType::Unknown => collection
-            .iter()
-            .filter(|node| node.node_type == NodeType::Unknown)
-            .collect::<Vec<&GraphNode<T>>>(),
     };
 
     if genes.is_empty() {
