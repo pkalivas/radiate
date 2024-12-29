@@ -1,4 +1,3 @@
-use crate::architects::schema::{direction::Direction, node_types::NodeType};
 use crate::expr::Operation;
 use radiate::engines::genome::genes::gene::{Gene, Valid};
 use std::collections::HashSet;
@@ -107,12 +106,7 @@ impl<T: Clone> Clone for TreeNode<T> {
     fn clone(&self) -> Self {
         TreeNode {
             value: self.value.clone(),
-            children: self.children.as_ref().map(|children| {
-                children
-                    .iter()
-                    .map(|child| child.clone())
-                    .collect::<Vec<TreeNode<T>>>()
-            }),
+            children: self.children.as_ref().map(|children| children.to_vec()),
         }
     }
 }
@@ -142,12 +136,7 @@ where
     fn with_allele(&self, allele: &Self::Allele) -> Self {
         TreeNode {
             value: allele.clone(),
-            children: self.children.as_ref().map(|children| {
-                children
-                    .iter()
-                    .map(|child| child.clone())
-                    .collect::<Vec<TreeNode<T>>>()
-            }),
+            children: self.children.as_ref().map(|children| children.to_vec()),
         }
     }
 }
@@ -176,10 +165,26 @@ impl<T> Valid for TreeNode<T> {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Direction {
+    Forward,
+    Backward,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum NodeType {
+    Input,
+    Output,
+    Gate,
+    Aggregate,
+    Weight,
+    Unknown,
+}
+
 pub struct GraphNode<T> {
+    pub value: Operation<T>,
     pub id: Uuid,
     pub index: usize,
-    pub value: Operation<T>,
     pub enabled: bool,
     pub node_type: NodeType,
     pub direction: Direction,
@@ -274,14 +279,14 @@ where
     T: Clone + PartialEq,
 {
     fn is_valid(&self) -> bool {
-        return match self.node_type {
+        match self.node_type {
             NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
             NodeType::Output => !self.incoming.is_empty(),
             NodeType::Gate => self.incoming.len() == *self.value.arity() as usize,
             NodeType::Aggregate => !self.incoming.is_empty() && !self.outgoing.is_empty(),
             NodeType::Weight => self.incoming.len() == 1 && self.outgoing.len() == 1,
             NodeType::Unknown => true,
-        };
+        }
     }
 }
 

@@ -56,7 +56,7 @@ where
 
     pub fn set_nodes<F>(mut self, node_fn: F) -> Self
     where
-        F: Fn(&Architect<T>, NodeCollectionBuilder<T>) -> Graph<T>,
+        F: Fn(&Architect<T>, GraphBuilder<T>) -> Graph<T>,
     {
         let graph =
             Architect::<T>::new(&self.factory.borrow()).build(|arc, builder| node_fn(arc, builder));

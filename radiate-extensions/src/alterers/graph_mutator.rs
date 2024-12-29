@@ -1,5 +1,4 @@
 use crate::architects::node_collections::*;
-use crate::architects::schema::node_types::NodeType;
 use crate::node::GraphNode;
 
 use radiate::alter::AlterType;

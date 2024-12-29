@@ -1,9 +1,8 @@
 use super::{Graph, GraphNode};
-use crate::architects::node_collection_builder::NodeCollectionBuilder;
+use crate::architects::builder::GraphBuilder;
 use crate::architects::node_collections::node_factory::NodeFactory;
-use crate::architects::schema::node_types::NodeType;
 use crate::expr::Operation;
-use crate::{Tree, TreeNode};
+use crate::{NodeType, Tree, TreeNode};
 use radiate::random_provider;
 
 pub trait Archit {
@@ -92,9 +91,9 @@ where
 
     pub fn build<F>(&self, build_fn: F) -> Graph<T>
     where
-        F: FnOnce(&Architect<T>, NodeCollectionBuilder<T>) -> Graph<T>,
+        F: FnOnce(&Architect<T>, GraphBuilder<T>) -> Graph<T>,
     {
-        build_fn(self, NodeCollectionBuilder::new(self.node_factory))
+        build_fn(self, GraphBuilder::new(self.node_factory))
     }
 
     pub fn input(&self, size: usize) -> Graph<T> {

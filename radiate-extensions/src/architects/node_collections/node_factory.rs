@@ -1,13 +1,12 @@
 use crate::architects::node_collections::node::GraphNode;
-use crate::architects::schema::node_types::NodeType;
-use crate::expr;
 use crate::expr::Operation;
+use crate::{expr, NodeType};
 use radiate::random_provider;
 use std::collections::HashMap;
 
 #[derive(Default, Clone, PartialEq, Debug)]
 pub struct NodeFactory<T: Clone> {
-    pub node_values: HashMap<NodeType, Vec<Operation<T>>>,
+    node_values: HashMap<NodeType, Vec<Operation<T>>>,
 }
 
 impl<T> NodeFactory<T>

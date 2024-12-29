@@ -2,11 +2,10 @@ use std::collections::BTreeMap;
 
 use crate::architects::node_collections::node::GraphNode;
 use crate::architects::node_collections::node_factory::NodeFactory;
-use crate::architects::schema::node_types::NodeType;
-
-use uuid::Uuid;
 
 use super::Graph;
+use crate::NodeType;
+use uuid::Uuid;
 
 enum ConnectTypes {
     OneToOne,
@@ -22,7 +21,7 @@ struct Relationship<'a> {
 }
 
 #[derive(Default)]
-pub struct NodeCollectionBuilder<'a, T>
+pub struct GraphBuilder<'a, T>
 where
     T: Clone + PartialEq + Default,
 {
@@ -32,12 +31,12 @@ where
     relationships: Vec<Relationship<'a>>,
 }
 
-impl<'a, T> NodeCollectionBuilder<'a, T>
+impl<'a, T> GraphBuilder<'a, T>
 where
     T: Clone + PartialEq + Default,
 {
     pub fn new(factory: &'a NodeFactory<T>) -> Self {
-        NodeCollectionBuilder {
+        GraphBuilder {
             factory: Some(factory),
             nodes: BTreeMap::new(),
             node_order: BTreeMap::new(),
@@ -101,12 +100,20 @@ where
             if let Some(factory) = self.factory {
                 let temp_node = factory.new_node(node.index, NodeType::Aggregate);
 
-                if node.node_type() == &NodeType::Output && !node.outgoing().is_empty() {
-                    node.node_type = NodeType::Aggregate;
-                    node.value = temp_node.value.clone();
-                } else if node.node_type() == &NodeType::Input && !node.incoming().is_empty() {
-                    node.node_type = NodeType::Aggregate;
-                    node.value = temp_node.value.clone();
+                match node.node_type() {
+                    NodeType::Input => {
+                        if node.incoming().is_empty() {
+                            node.node_type = NodeType::Aggregate;
+                            node.value = temp_node.value.clone();
+                        }
+                    }
+                    NodeType::Output => {
+                        if node.outgoing().is_empty() {
+                            node.node_type = NodeType::Aggregate;
+                            node.value = temp_node.value.clone();
+                        }
+                    }
+                    _ => {}
                 }
             }
         }
@@ -115,7 +122,7 @@ where
     }
 
     pub fn layer<C: AsRef<[GraphNode<T>]>>(&self, collections: Vec<&'a C>) -> Self {
-        let mut conn = NodeCollectionBuilder::new(self.factory.unwrap());
+        let mut conn = GraphBuilder::new(self.factory.unwrap());
         let mut previous = collections[0];
 
         for collection in collections.iter() {
