@@ -102,9 +102,9 @@ where
                         if current_node.cell.role == Role::Internal {
                             let internals = chromosome.get_internals();
                             if let Some(vals) = internals {
-                                let temp_node = random_provider::choose(vals);
+                                let temp_node = random_provider::choose(vals).new_instance();
                                 if temp_node.arity() == current_node.cell.value.arity() {
-                                    chromosome.set_gene(i, current_node.with_allele(temp_node));
+                                    chromosome.set_gene(i, current_node.with_allele(&temp_node));
                                 }
                             }
                         }

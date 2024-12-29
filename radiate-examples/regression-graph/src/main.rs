@@ -1,81 +1,84 @@
+use radiate::*;
+use radiate_extensions::*;
+
+const MIN_SCORE: f32 = 0.01;
+const MAX_SECONDS: f64 = 5.0;
+
 fn main() {
-    println!("Hello, world!");
+    let graph_codex = GraphCodex::dense(1, 1)
+        .set_outputs(vec![expr::linear()])
+        .set_gates(vec![expr::add(), expr::sub(), expr::mul()]);
+
+    let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
+
+    let engine = GeneticEngine::from_codex(&graph_codex)
+        .minimizing()
+        .num_threads(10)
+        .offspring_selector(RouletteSelector::new())
+        .alter(alters!(
+            GraphCrossover::new(0.5, 0.1),
+            NodeMutator::new(0.07, 0.05),
+            GraphMutator::new(
+                vec![NodeMutate::Forward(0.03)],
+                vec![
+                    expr::weight(),
+                    expr::add(),
+                    expr::sub(),
+                    expr::mul(),
+                    expr::sigmoid(),
+                    expr::tanh(),
+                    expr::relu(),
+                ],
+            ),
+        ))
+        .fitness_fn(move |genotype: Graph<f32>| {
+            let mut reducer = GraphReducer::new(&genotype);
+            Score::from_f32(regression.error(|input| reducer.reduce(input)))
+        })
+        .build();
+
+    let result = engine.run(|output| {
+        println!("[ {:?} ]: {:?}", output.index, output.score().as_float());
+        output.score().as_float() < MIN_SCORE || output.seconds() > MAX_SECONDS
+    });
+
+    display(&result);
 }
 
-// use radiate::*;
-// use radiate_extensions::*;
+fn display(result: &EngineContext<NodeChrom<GraphNode<f32>>, Graph<f32>>) {
+    let mut regression_accuracy = 0.0;
+    let mut total = 0.0;
 
-// const MIN_SCORE: f32 = 0.01;
-// const MAX_SECONDS: f64 = 5.0;
+    let mut reducer = GraphReducer::new(&result.best);
+    for sample in get_sample_set().get_samples().iter() {
+        let output = reducer.reduce(&sample.1);
 
-// fn main() {
-//     let graph_codex = GraphCodex::regression(1, 1)
-//         .set_outputs(vec![expr::linear()])
-//         .set_gates(vec![expr::add(), expr::sub(), expr::mul()]);
+        total += sample.2[0].abs();
+        regression_accuracy += (sample.2[0] - output[0]).abs();
 
-//     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
+        println!("{:.2?} :: {:.2?}", sample.2[0], output[0]);
+    }
 
-//     let engine = GeneticEngine::from_codex(&graph_codex)
-//         .minimizing()
-//         .num_threads(10)
-//         .offspring_selector(RouletteSelector::new())
-//         .alter(alters!(
-//             GraphCrossover::new(0.5, 0.5),
-//             NodeMutator::new(0.07, 0.05),
-//             GraphMutator::new(vec![
-//                 NodeMutate::Forward(NodeType::Weight, 0.05),
-//                 NodeMutate::Forward(NodeType::Aggregate, 0.02),
-//                 NodeMutate::Forward(NodeType::Gate, 0.03),
-//             ]),
-//         ))
-//         .fitness_fn(move |genotype: Graph<f32>| {
-//             let mut reducer = GraphReducer::new(&genotype);
-//             Score::from_f32(regression.error(|input| reducer.reduce(input)))
-//         })
-//         .build();
+    regression_accuracy = (total - regression_accuracy) / total;
 
-//     let result = engine.run(|output| {
-//         println!("[ {:?} ]: {:?}", output.index, output.score().as_float());
-//         output.score().as_float() < MIN_SCORE || output.seconds() > MAX_SECONDS
-//     });
+    println!("Accuracy: {:.2?}", regression_accuracy);
+    println!("{:?}", result)
+}
 
-//     display(&result);
-// }
+fn get_sample_set() -> DataSet<f32> {
+    let mut inputs = Vec::new();
+    let mut answers = Vec::new();
 
-// fn display(result: &EngineContext<NodeChromosome<f32>, Graph<f32>>) {
-//     let mut regression_accuracy = 0.0;
-//     let mut total = 0.0;
+    let mut input = -1.0;
+    for _ in -10..10 {
+        input += 0.1;
+        inputs.push(vec![input]);
+        answers.push(vec![compute(input)]);
+    }
 
-//     let mut reducer = GraphReducer::new(&result.best);
-//     for sample in get_sample_set().get_samples().iter() {
-//         let output = reducer.reduce(&sample.1);
+    DataSet::from_vecs(inputs, answers)
+}
 
-//         total += sample.2[0].abs();
-//         regression_accuracy += (sample.2[0] - output[0]).abs();
-
-//         println!("{:.2?} :: {:.2?}", sample.2[0], output[0]);
-//     }
-
-//     regression_accuracy = (total - regression_accuracy) / total;
-
-//     println!("Accuracy: {:.2?}", regression_accuracy);
-//     println!("{:?}", result)
-// }
-
-// fn get_sample_set() -> DataSet<f32> {
-//     let mut inputs = Vec::new();
-//     let mut answers = Vec::new();
-
-//     let mut input = -1.0;
-//     for _ in -10..10 {
-//         input += 0.1;
-//         inputs.push(vec![input]);
-//         answers.push(vec![compute(input)]);
-//     }
-
-//     DataSet::from_vecs(inputs, answers)
-// }
-
-// fn compute(x: f32) -> f32 {
-//     4.0 * x.powf(3.0) - 3.0 * x.powf(2.0) + x
-// }
+fn compute(x: f32) -> f32 {
+    4.0 * x.powf(3.0) - 3.0 * x.powf(2.0) + x
+}

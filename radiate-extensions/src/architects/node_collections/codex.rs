@@ -5,7 +5,7 @@ use core::panic;
 use radiate::engines::codexes::Codex;
 use radiate::engines::genome::genes::gene::Gene;
 use radiate::engines::genome::genotype::Genotype;
-use radiate::Chromosome;
+use radiate::{random_provider, Chromosome};
 use std::cell::RefCell;
 use std::sync::Arc;
 
@@ -234,7 +234,9 @@ where
     pub input_size: usize,
     pub output_size: usize,
     pub memory_size: usize,
-    pub node_factory: Arc<RefCell<NodeFactory<T>>>,
+    pub providers: Arc<Box<Vec<Expr<T>>>>,
+    pub internal: Arc<Box<Vec<Expr<T>>>>,
+    pub outputs: Arc<Box<Vec<Expr<T>>>>,
     pub nodes: Vec<GraphNode<T>>,
 }
 
@@ -242,18 +244,19 @@ impl<T> GraphCodex<T>
 where
     T: Clone + PartialEq + Default,
 {
-    pub fn set_gates(self, gates: Vec<Expr<T>>) -> Self {
-        self.node_factory.borrow_mut().gates(gates);
+    pub fn set_gates(mut self, gates: Vec<Expr<T>>) -> Self {
+        self.internal = Arc::new(Box::new(gates));
         self
     }
 
-    pub fn set_inputs(self, inputs: Vec<Expr<T>>) -> Self {
-        self.node_factory.borrow_mut().inputs(inputs);
+    pub fn set_inputs(mut self, inputs: Vec<Expr<T>>) -> Self {
+        self.providers = Arc::new(Box::new(inputs));
+
         self
     }
 
-    pub fn set_outputs(self, outputs: Vec<Expr<T>>) -> Self {
-        self.node_factory.borrow_mut().outputs(outputs);
+    pub fn set_outputs(mut self, outputs: Vec<Expr<T>>) -> Self {
+        self.outputs = Arc::new(Box::new(outputs));
         self
     }
 }
@@ -272,7 +275,9 @@ impl GraphCodex<f32> {
             input_size,
             output_size,
             memory_size: 0,
-            node_factory: Arc::new(RefCell::new(factory)),
+            providers: Arc::new(Box::new(factory.get_inputs().clone())),
+            internal: Arc::new(Box::new(factory.get_operations().clone())),
+            outputs: Arc::new(Box::new(factory.get_outputs().clone())),
             nodes: graph.nodes().to_vec(),
         }
     }
@@ -286,11 +291,27 @@ where
         let nodes = self
             .nodes
             .iter()
-            .map(|node| node.new_instance())
+            .map(|node| {
+                if node.cell.role != Role::Internal {
+                    return node.clone();
+                }
+
+                let temp = random_provider::choose(self.internal.as_ref().as_ref()).new_instance();
+                if temp.arity() == node.cell.value.arity() {
+                    return node.with_allele(&temp);
+                }
+
+                node.clone()
+            })
             .collect::<Vec<GraphNode<T>>>();
 
+        let mut chrome = NodeChrom::new(nodes);
+        chrome.set_providers(Arc::clone(&self.providers));
+        chrome.set_internals(Arc::clone(&self.internal));
+        chrome.set_outputs(Arc::clone(&self.outputs));
+
         Genotype {
-            chromosomes: vec![NodeChrom::new(nodes)],
+            chromosomes: vec![chrome],
         }
     }
 

@@ -48,6 +48,18 @@ where
         }
     }
 
+    pub fn set_providers(&mut self, providers: Arc<Box<Vec<N::Allele>>>) {
+        self.providers = Some(Arc::clone(&providers));
+    }
+
+    pub fn set_internals(&mut self, internals: Arc<Box<Vec<N::Allele>>>) {
+        self.internals = Some(Arc::clone(&internals));
+    }
+
+    pub fn set_outputs(&mut self, outputs: Arc<Box<Vec<N::Allele>>>) {
+        self.outputs = Some(Arc::clone(&outputs));
+    }
+
     pub fn get_providers(&self) -> Option<&Vec<N::Allele>> {
         self.providers.as_ref().map(|p| p.as_ref().as_ref())
     }

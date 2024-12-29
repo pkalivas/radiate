@@ -57,9 +57,19 @@ where
             let node_one = chromo_one.get_gene(i);
             let node_two = chromo_two.get_gene(i);
 
-            if node_one.cell.value.arity() != node_two.cell.value.arity() {
+            if node_one.cell.value.name() != "w" {
                 continue;
             }
+
+            if node_two.cell.value.name() != "w" {
+                continue;
+            }
+
+            // if node_one.cell.value ==
+
+            // if node_one.cell.value.arity() != node_two.cell.value.arity() {
+            //     continue;
+            // }
 
             if random_provider::random::<f32>() < self.crossover_parent_node_rate {
                 new_chromo_one.set_gene(node_one.index, node_one.with_allele(node_two.allele()));
