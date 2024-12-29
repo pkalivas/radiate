@@ -259,6 +259,9 @@ where
     ) -> Option<Vec<GraphNode<T>>> {
         let node = collection.get(new_node_index);
         if *node.value.arity() == 0 {
+            if !collection.is_valid() {
+                return None;
+            }
             return Some(collection.into_iter().collect::<Vec<GraphNode<T>>>());
         }
         let arity = *collection.get(new_node_index).value.arity();

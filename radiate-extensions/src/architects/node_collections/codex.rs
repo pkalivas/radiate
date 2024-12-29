@@ -1,3 +1,4 @@
+use crate::architect::GraphArchitect;
 use crate::architects::*;
 use crate::node::GraphNode;
 use crate::operation::Operation;
@@ -29,7 +30,7 @@ where
     }
 
     pub fn from_shape(input_size: usize, output_size: usize, factory: &NodeFactory<T>) -> Self {
-        let nodes = GraphArchitect::<T>::new(factory)
+        let nodes = GraphBuilder::<T>::new(factory)
             .acyclic(input_size, output_size)
             .iter()
             .cloned()
@@ -55,9 +56,9 @@ where
 
     pub fn set_nodes<F>(mut self, node_fn: F) -> Self
     where
-        F: Fn(&GraphArchitect<T>, GraphBuilder<T>) -> Graph<T>,
+        F: Fn(&GraphBuilder<T>, GraphArchitect<T>) -> Graph<T>,
     {
-        let graph = GraphArchitect::<T>::new(&self.factory.borrow())
+        let graph = GraphBuilder::<T>::new(&self.factory.borrow())
             .build(|arc, builder| node_fn(arc, builder));
 
         self.nodes = graph.iter().cloned().collect::<Vec<GraphNode<T>>>();
@@ -111,7 +112,7 @@ where
 impl GraphCodex<f32> {
     pub fn regression(input_size: usize, output_size: usize) -> Self {
         let factory = NodeFactory::<f32>::regression(input_size);
-        let nodes = GraphArchitect::<f32>::new(&factory)
+        let nodes = GraphBuilder::<f32>::new(&factory)
             .acyclic(input_size, output_size)
             .iter()
             .cloned()
