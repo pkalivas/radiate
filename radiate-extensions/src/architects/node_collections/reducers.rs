@@ -1,7 +1,50 @@
 use super::{Graph, Tree};
-use crate::node::Node;
-use crate::expr::Expr;
-use crate::{NodeCollection, NodeType};
+use crate::expr::Operation;
+use crate::node::GraphNode;
+use crate::{NodeType, TreeNode};
+
+pub trait Reduce<T> {
+    type Input;
+    type Output;
+
+    fn reduce(&mut self, input: &Self::Input) -> Self::Output;
+}
+
+impl<T: Clone> Reduce<T> for Tree<T> {
+    type Input = Vec<T>;
+    type Output = T;
+
+    fn reduce(&mut self, input: &Self::Input) -> Self::Output {
+        let result = self.root_mut().map(|root| root.reduce(input));
+        result.unwrap_or_else(|| panic!("Tree has no root node."))
+    }
+}
+
+impl<T: Clone> Reduce<T> for TreeNode<T> {
+    type Input = Vec<T>;
+    type Output = T;
+
+    fn reduce(&mut self, input: &Self::Input) -> Self::Output {
+        fn eval<T: Clone>(node: &TreeNode<T>, curr_input: &Vec<T>) -> T {
+            if node.is_leaf() {
+                return node.value.apply(&curr_input);
+            } else {
+                if let Some(children) = &node.children {
+                    let mut inputs = Vec::with_capacity(children.len());
+                    for child in children {
+                        inputs.push(eval(child, &curr_input));
+                    }
+
+                    return node.value.apply(&inputs);
+                }
+
+                panic!("Node is not a leaf and has no children.");
+            }
+        }
+
+        eval(self, input)
+    }
+}
 
 /// `GraphReducer` is a struct that is used to evaluate a `Graph` of `Node`s. It uses the `GraphIterator`
 /// to traverse the `Graph` in a sudo-topological order and evaluate the nodes in the correct order.
@@ -77,52 +120,6 @@ where
     }
 }
 
-pub struct TreeReducer<'a, T>
-where
-    T: Clone + PartialEq + Default,
-{
-    nodes: &'a Tree<T>,
-    tracers: Vec<Tracer<T>>,
-}
-
-impl<'a, T> TreeReducer<'a, T>
-where
-    T: Clone + PartialEq + Default,
-{
-    pub fn new(nodes: &'a Tree<T>) -> TreeReducer<'a, T> {
-        TreeReducer {
-            nodes,
-            tracers: nodes
-                .iter()
-                .map(|node| Tracer::new(input_size(node)))
-                .collect::<Vec<Tracer<T>>>(),
-        }
-    }
-
-    #[inline]
-    pub fn reduce(&mut self, inputs: &[T]) -> Vec<T> {
-        self.eval_recurrent(0, inputs, &self.nodes.nodes)
-    }
-
-    fn eval_recurrent(&mut self, index: usize, input: &[T], nodes: &[Node<T>]) -> Vec<T> {
-        let node = &nodes[index];
-
-        if node.node_type == NodeType::Input || node.node_type == NodeType::Leaf {
-            self.tracers[node.index].add_input(input[0].clone());
-            self.tracers[node.index].eval(node);
-            vec![self.tracers[node.index].result.clone().unwrap()]
-        } else {
-            for incoming in &node.outgoing {
-                let arg = self.eval_recurrent(*incoming, input, nodes);
-                self.tracers[node.index].add_input(arg[0].clone());
-            }
-
-            self.tracers[node.index].eval(node);
-            vec![self.tracers[node.index].result.clone().unwrap()]
-        }
-    }
-}
-
 struct Tracer<T>
 where
     T: Clone,
@@ -158,7 +155,7 @@ where
     }
 
     #[inline]
-    pub fn eval(&mut self, node: &Node<T>) {
+    pub fn eval(&mut self, node: &GraphNode<T>) {
         if self.pending_idx != self.input_size {
             panic!("Tracer is not ready to be evaluated.");
         }
@@ -169,11 +166,12 @@ where
 
         self.previous_result = self.result.clone();
         self.result = match &node.value {
-            Expr::Value(ref value) => Some(value.clone()),
-            Expr::Const(_, ref value) => Some(value.clone()),
-            Expr::Fn(_, _, ref fn_ptr) => Some(fn_ptr(&self.args)),
-            Expr::MutableConst(_, _, ref val, _, fn_ptr) => Some(fn_ptr(&self.args, val)),
-            Expr::Var(_, _) => Some(self.args[0].clone()),
+            Operation::Const(_, ref value) => Some(value.clone()),
+            Operation::Fn(_, _, ref fn_ptr) => Some(fn_ptr(&self.args)),
+            Operation::Var(_, _) => Some(self.args[0].clone()),
+            Operation::MutableConst {
+                value, operation, ..
+            } => Some(operation(&self.args, value)),
         };
 
         self.pending_idx = 0;
@@ -181,13 +179,57 @@ where
     }
 }
 
-fn input_size<T>(node: &Node<T>) -> usize
+fn input_size<T>(node: &GraphNode<T>) -> usize
 where
     T: Clone + PartialEq + Default,
 {
     match node.node_type {
-        NodeType::Input | NodeType::Link | NodeType::Leaf => 1,
-        NodeType::Gate => node.value.arity() as usize,
+        NodeType::Input => 1,
+        NodeType::Gate => *node.value.arity() as usize,
         _ => node.incoming.len(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::expr::{self};
+
+    use super::*;
+
+    #[test]
+    fn test_tree_reduce_simple() {
+        let mut root = TreeNode::new(expr::add());
+
+        root.add_child(TreeNode::new(expr::value(1.0)));
+        root.add_child(TreeNode::new(expr::value(2.0)));
+
+        let result = root.reduce(&vec![]);
+
+        assert_eq!(result, 3.0);
+    }
+
+    #[test]
+    fn test_tree_reduce_complex() {
+        let mut root = TreeNode::new(expr::add());
+
+        let mut left = TreeNode::new(expr::mul());
+        left.add_child(TreeNode::new(expr::value(2.0)));
+        left.add_child(TreeNode::new(expr::value(3.0)));
+
+        let mut right = TreeNode::new(expr::add());
+        right.add_child(TreeNode::new(expr::value(2.0)));
+        right.add_child(TreeNode::new(expr::var(0)));
+
+        root.add_child(left);
+        root.add_child(right);
+
+        let result = root.reduce(&vec![1_f32]);
+        assert_eq!(result, 9.0);
+
+        let result = root.reduce(&vec![2_f32]);
+        assert_eq!(result, 10.0);
+
+        let result = root.reduce(&vec![3_f32]);
+        assert_eq!(result, 11.0);
     }
 }
