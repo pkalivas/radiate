@@ -260,7 +260,10 @@ where
         recurrent: bool,
     ) -> Option<Vec<Node<T>>> {
         let node = collection.get(new_node_index);
-        if node.value.arity() == Arity::Any {
+        if *node.value.arity() == 0 {
+            for node in collection.iter_mut() {
+                node.collection_type = Some(CollectionType::Graph);
+            }
             return Some(collection.into_iter().collect::<Vec<Node<T>>>());
         }
         let arity = *collection.get(new_node_index).value.arity();
