@@ -1,6 +1,7 @@
 use std::ops::{Add, Mul, Sub};
 use std::sync::Arc;
 
+use crate::expr::Expr;
 use crate::NodeChromosome;
 use num_traits::Float;
 use radiate::alter::AlterType;
@@ -8,7 +9,6 @@ use radiate::engines::genome::genes::gene::Gene;
 use radiate::{random_provider, Alter, Chromosome};
 use rand::distributions::uniform::SampleUniform;
 use rand::{distributions::Standard, prelude::Distribution};
-use crate::expr::Expr;
 
 pub struct NodeMutator<T>
 where
