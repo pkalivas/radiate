@@ -1,6 +1,6 @@
 use std::{
     fmt::Display,
-    ops::{Add, Deref, Div, Mul, Neg, Sub},
+    ops::{Add, Deref, Div, Mul, Neg, Range, Sub},
     sync::Arc,
 };
 
@@ -18,47 +18,69 @@ const MIN_VALUE: f32 = -1e+5_f32;
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum Arity {
     Zero,
-    Nary(u8),
+    Exact(usize),
+    Ranged(usize, usize),
     Any,
 }
 
-impl From<u8> for Arity {
-    fn from(value: u8) -> Self {
+impl From<usize> for Arity {
+    fn from(value: usize) -> Self {
         match value {
             0 => Arity::Zero,
-            n => Arity::Nary(n),
+            n => Arity::Exact(n),
         }
+    }
+}
+
+impl From<Range<usize>> for Arity {
+    fn from(range: Range<usize>) -> Self {
+        Arity::Ranged(range.start, range.end)
     }
 }
 
 impl Deref for Arity {
-    type Target = u8;
+    type Target = usize;
 
     fn deref(&self) -> &Self::Target {
         match self {
             Arity::Zero => &0,
-            Arity::Nary(n) => n,
+            Arity::Exact(n) => n,
             Arity::Any => &0,
+            Arity::Ranged(start, _) => start,
         }
     }
+}
+
+pub trait Op<T: Clone> {
+    fn name(&self) -> &str;
+    fn arity(&self) -> Arity;
+    fn apply(&self, inputs: &[T]) -> T;
+    fn new_instance(&self) -> Self;
 }
 
 /// A generic operation type that can represent several kinds of “ops”.
 pub enum Operation<T> {
     /// 1) A stateless function operation:
+    ///
+    /// # Arguments
     ///    - A `&'static str` name (e.g., "Add", "Sigmoid")
     ///    - Arity (how many inputs it takes)
     ///    - Arc<dyn Fn(&[T]) -> T> for the actual function logic
     Fn(&'static str, Arity, Arc<dyn Fn(&[T]) -> T>),
     /// 2) A variable-like operation:
+    ///
+    /// # Arguments
     ///    - `String` = a name or identifier
     ///    - `usize` = perhaps an index to retrieve from some external context
     Var(&'static str, usize),
-    /// 3) A compile-time constant:
+    /// 3) A compile-time constant: e.g., 1, 2, 3, etc.
+    ///
+    /// # Arguments
     ///    - `&'static str` name
     ///    - `T` the actual constant value
     Const(&'static str, T),
     /// 4) A `mutable const` is a constant that can change over time:
+    ///
     ///  # Arguments
     /// - `&'static str` name
     /// - `Arity` of how many inputs it might read
@@ -75,6 +97,12 @@ pub enum Operation<T> {
         get_value: Arc<dyn Fn() -> T>,
         operation: Arc<dyn Fn(&[T], &T) -> T>,
     },
+    /// 5) An aggregate operation: e.g., sum, prod, max, min etc.
+    ///
+    /// # Arguments
+    ///   - `&'static str` name
+    ///  - `Arc<dyn Fn(&[T]) -> T>` for the actual function logic
+    Aggregate(&'static str, Arc<dyn Fn(&[T]) -> T>),
 }
 
 unsafe impl Send for Operation<f32> {}
@@ -87,6 +115,7 @@ impl<T> Operation<T> {
             Operation::Var(name, _) => name,
             Operation::Const(name, _) => name,
             Operation::MutableConst { name, .. } => name,
+            Operation::Aggregate(name, _) => name,
         }
     }
 
@@ -96,6 +125,7 @@ impl<T> Operation<T> {
             Operation::Var(_, _) => Arity::Zero,
             Operation::Const(_, _) => Arity::Zero,
             Operation::MutableConst { arity, .. } => *arity,
+            Operation::Aggregate(_, _) => Arity::Any,
         }
     }
 
@@ -110,6 +140,7 @@ impl<T> Operation<T> {
             Operation::MutableConst {
                 value, operation, ..
             } => operation(inputs, value),
+            Operation::Aggregate(_, op) => op(inputs),
         }
     }
 
@@ -119,7 +150,7 @@ impl<T> Operation<T> {
     {
         match self {
             Operation::Fn(name, arity, op) => Operation::Fn(name, *arity, op.clone()),
-            Operation::Var(name, index) => Operation::Var(name.clone(), *index),
+            Operation::Var(name, index) => Operation::Var(name, *index),
             Operation::Const(name, value) => Operation::Const(name, value.clone()),
             Operation::MutableConst {
                 name,
@@ -134,6 +165,7 @@ impl<T> Operation<T> {
                 get_value: get_value.clone(),
                 operation: operation.clone(),
             },
+            Operation::Aggregate(name, op) => Operation::Aggregate(name, op.clone()),
         }
     }
 }
@@ -145,7 +177,7 @@ where
     fn clone(&self) -> Self {
         match self {
             Operation::Fn(name, arity, op) => Operation::Fn(name, *arity, op.clone()),
-            Operation::Var(name, index) => Operation::Var(name.clone(), *index),
+            Operation::Var(name, index) => Operation::Var(name, *index),
             Operation::Const(name, value) => Operation::Const(name, value.clone()),
             Operation::MutableConst {
                 name,
@@ -160,6 +192,7 @@ where
                 get_value: get_value.clone(),
                 operation: operation.clone(),
             },
+            Operation::Aggregate(name, op) => Operation::Aggregate(name, op.clone()),
         }
     }
 }
@@ -198,6 +231,7 @@ where
             Operation::Var(name, index) => write!(f, "Var: {}({})", name, index),
             Operation::Const(name, value) => write!(f, "C: {}({:?})", name, value),
             Operation::MutableConst { name, value, .. } => write!(f, "{}({:.2?})", name, value),
+            Operation::Aggregate(name, _) => write!(f, "Agg: {}", name),
         }
     }
 }
@@ -272,17 +306,15 @@ pub fn div<T: Div<Output = T> + Clone + Float>() -> Operation<T> {
 }
 
 pub fn sum<T: Add<Output = T> + Clone + Default + Float>() -> Operation<T> {
-    Operation::Fn(
+    Operation::Aggregate(
         "sum",
-        Arity::Any,
         Arc::new(|inputs: &[T]| clamp(inputs.iter().fold(T::default(), |acc, x| acc + *x))),
     )
 }
 
 pub fn prod<T: Mul<Output = T> + Clone + Default + Float>() -> Operation<T> {
-    Operation::Fn(
+    Operation::Aggregate(
         "prod",
-        Arity::Any,
         Arc::new(|inputs: &[T]| {
             let result = inputs.iter().fold(T::default(), |acc, x| acc * *x);
 
@@ -404,9 +436,8 @@ pub fn lt<T: Clone + PartialEq + PartialOrd>() -> Operation<T> {
 }
 
 pub fn max<T: Clone + PartialOrd>() -> Operation<T> {
-    Operation::Fn(
+    Operation::Aggregate(
         "max",
-        Arity::Any,
         Arc::new(|inputs: &[T]| {
             inputs.iter().fold(
                 inputs[0].clone(),
@@ -423,9 +454,8 @@ pub fn max<T: Clone + PartialOrd>() -> Operation<T> {
 }
 
 pub fn min<T: Clone + PartialOrd>() -> Operation<T> {
-    Operation::Fn(
+    Operation::Aggregate(
         "min",
-        Arity::Any,
         Arc::new(|inputs: &[T]| {
             inputs.iter().fold(
                 inputs[0].clone(),
@@ -463,9 +493,8 @@ pub fn var<T: Clone>(index: usize) -> Operation<T> {
 }
 
 pub fn sigmoid() -> Operation<f32> {
-    Operation::Fn(
+    Operation::Aggregate(
         "sigmoid",
-        Arity::Any,
         Arc::new(|inputs: &[f32]| {
             let sum = inputs.iter().fold(0_f32, |acc, x| acc + x);
             let result = 1_f32 / (1_f32 + (-sum).exp());
@@ -475,9 +504,8 @@ pub fn sigmoid() -> Operation<f32> {
 }
 
 pub fn relu() -> Operation<f32> {
-    Operation::Fn(
+    Operation::Aggregate(
         "relu",
-        Arity::Any,
         Arc::new(|inputs: &[f32]| {
             let sum = inputs.iter().fold(0_f32, |acc, x| acc + x);
             let result = clamp(sum);
@@ -491,9 +519,8 @@ pub fn relu() -> Operation<f32> {
 }
 
 pub fn tanh() -> Operation<f32> {
-    Operation::Fn(
+    Operation::Aggregate(
         "tanh",
-        Arity::Any,
         Arc::new(|inputs: &[f32]| {
             let result = inputs.iter().fold(0_f32, |acc, x| acc + x).tanh();
 
@@ -503,9 +530,8 @@ pub fn tanh() -> Operation<f32> {
 }
 
 pub fn linear() -> Operation<f32> {
-    Operation::Fn(
+    Operation::Aggregate(
         "linear",
-        Arity::Any,
         Arc::new(|inputs: &[f32]| {
             let result = inputs.iter().fold(0_f32, |acc, x| acc + x);
 
@@ -515,9 +541,8 @@ pub fn linear() -> Operation<f32> {
 }
 
 pub fn mish() -> Operation<f32> {
-    Operation::Fn(
+    Operation::Aggregate(
         "mish",
-        Arity::Any,
         Arc::new(|inputs: &[f32]| {
             let result = inputs.iter().fold(0_f32, |acc, x| acc + x).tanh()
                 * (inputs
@@ -533,9 +558,8 @@ pub fn mish() -> Operation<f32> {
 }
 
 pub fn leaky_relu() -> Operation<f32> {
-    Operation::Fn(
+    Operation::Aggregate(
         "l_relu",
-        Arity::Any,
         Arc::new(|inputs: &[f32]| {
             let sum = inputs.iter().fold(0_f32, |acc, x| acc + x);
             let result = if sum > 0_f32 { sum } else { 0.01 * sum };
@@ -546,9 +570,8 @@ pub fn leaky_relu() -> Operation<f32> {
 }
 
 pub fn softplus() -> Operation<f32> {
-    Operation::Fn(
+    Operation::Aggregate(
         "soft_plus",
-        Arity::Any,
         Arc::new(|inputs: &[f32]| {
             let sum = inputs.iter().fold(0_f32, |acc, x| acc + x);
             let result = sum.exp().ln_1p();
@@ -566,7 +589,7 @@ mod test {
     fn test_ops() {
         let op = add();
         assert_eq!(op.name(), "+");
-        assert_eq!(op.arity(), Arity::Nary(2));
+        assert_eq!(op.arity(), Arity::Exact(2));
         assert_eq!(op.apply(&[1_f32, 2_f32]), 3_f32);
         assert_eq!(op.new_instance(), op);
     }

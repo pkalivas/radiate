@@ -150,9 +150,17 @@ impl<T> Valid for TreeNode<T> {
                         return false;
                     }
                 }
-                Arity::Nary(n) => {
+                Arity::Exact(n) => {
                     if node.children.is_none()
                         || node.children.as_ref().unwrap().len() != n as usize
+                    {
+                        return false;
+                    }
+                }
+                Arity::Ranged(min, max) => {
+                    if node.children.is_none()
+                        || node.children.as_ref().unwrap().len() < min as usize
+                        || node.children.as_ref().unwrap().len() > max as usize
                     {
                         return false;
                     }
@@ -279,11 +287,25 @@ where
 {
     fn is_valid(&self) -> bool {
         match self.node_type {
-            NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
-            NodeType::Output => !self.incoming.is_empty(),
-            NodeType::Gate => self.incoming.len() == *self.value.arity() as usize,
-            NodeType::Aggregate => !self.incoming.is_empty() && !self.outgoing.is_empty(),
-            NodeType::Weight => self.incoming.len() == 1 && self.outgoing.len() == 1,
+            NodeType::Input => {
+                self.incoming.is_empty()
+                    && !self.outgoing.is_empty()
+                    && self.value.arity() == Arity::Zero
+            }
+            NodeType::Output => !self.incoming.is_empty() && self.value.arity() == Arity::Any,
+            NodeType::Gate => {
+                self.incoming.len() == *self.value.arity() as usize && !self.outgoing.is_empty()
+            }
+            NodeType::Aggregate => {
+                !self.incoming.is_empty()
+                    && !self.outgoing.is_empty()
+                    && self.value.arity() == Arity::Any
+            }
+            NodeType::Weight => {
+                self.incoming.len() == 1
+                    && self.outgoing.len() == 1
+                    && self.value.arity() == Arity::Exact(1)
+            }
         }
     }
 }

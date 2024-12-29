@@ -172,6 +172,7 @@ where
             Operation::MutableConst {
                 value, operation, ..
             } => Some(operation(&self.args, value)),
+            Operation::Aggregate(_, ref fn_ptr) => Some(fn_ptr(&self.args)),
         };
 
         self.pending_idx = 0;
