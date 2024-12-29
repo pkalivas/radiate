@@ -47,7 +47,7 @@ pub enum Expr<T> {
     Fn(&'static str, Arity, Arc<dyn Fn(&[T]) -> T>),
     Var(String, usize),
     Const(&'static str, T),
-    MutableConst(
+    Weight(
         &'static str,
         Arity,
         T,
@@ -65,7 +65,7 @@ impl<T> Expr<T> {
             Expr::Fn(name, _, _) => name,
             Expr::Var(name, _) => name,
             Expr::Const(name, _) => name,
-            Expr::MutableConst(name, _, _, _, _) => name,
+            Expr::Weight(name, _, _, _, _) => name,
         }
     }
 
@@ -74,7 +74,7 @@ impl<T> Expr<T> {
             Expr::Fn(_, arity, _) => *arity,
             Expr::Var(_, _) => Arity::Zero,
             Expr::Const(_, _) => Arity::Zero,
-            Expr::MutableConst(_, arity, _, _, _) => *arity,
+            Expr::Weight(_, arity, _, _, _) => *arity,
         }
     }
 
@@ -86,7 +86,7 @@ impl<T> Expr<T> {
             Expr::Fn(_, _, op) => op(inputs),
             Expr::Var(_, index) => inputs[*index].clone(),
             Expr::Const(_, value) => value.clone(),
-            Expr::MutableConst(_, _, value, _, operation) => operation(inputs, value),
+            Expr::Weight(_, _, value, _, operation) => operation(inputs, value),
         }
     }
 
@@ -98,7 +98,7 @@ impl<T> Expr<T> {
             Expr::Fn(name, arity, op) => Expr::Fn(name, *arity, op.clone()),
             Expr::Var(name, index) => Expr::Var(name.clone(), *index),
             Expr::Const(name, value) => Expr::Const(name, value.clone()),
-            Expr::MutableConst(name, arity, _, get_value, operation) => Expr::MutableConst(
+            Expr::Weight(name, arity, _, get_value, operation) => Expr::Weight(
                 name,
                 *arity,
                 get_value().clone(),
@@ -118,7 +118,7 @@ where
             Expr::Fn(name, arity, op) => Expr::Fn(name, *arity, op.clone()),
             Expr::Var(name, index) => Expr::Var(name.clone(), *index),
             Expr::Const(name, value) => Expr::Const(name, value.clone()),
-            Expr::MutableConst(name, arity, value, get_value, operation) => Expr::MutableConst(
+            Expr::Weight(name, arity, value, get_value, operation) => Expr::Weight(
                 name,
                 *arity,
                 value.clone(),
@@ -178,7 +178,7 @@ where
             Expr::Fn(name, _, _) => write!(f, "Fn: {}", name),
             Expr::Var(name, index) => write!(f, "Var: {}({})", name, index),
             Expr::Const(name, value) => write!(f, "C: {}({:?})", name, value),
-            Expr::MutableConst(name, _, value, _, _) => write!(f, "{}({:.2?})", name, value),
+            Expr::Weight(name, _, value, _, _) => write!(f, "{}({:.2?})", name, value),
         }
     }
 }
@@ -429,7 +429,7 @@ where
 {
     let supplier = || random_provider::random::<T>() * T::from(2).unwrap() - T::from(1).unwrap();
     let operation = |inputs: &[T], weight: &T| clamp(inputs[0] * *weight);
-    Expr::MutableConst(
+    Expr::Weight(
         "w",
         1.into(),
         supplier(),
@@ -560,12 +560,12 @@ mod test {
         let op2 = weight::<f32>();
 
         let o_one = match op {
-            Expr::MutableConst(_, _, value, _, _) => value,
+            Expr::Weight(_, _, value, _, _) => value,
             _ => panic!("Expected MutableConst"),
         };
 
         let o_two = match op2 {
-            Expr::MutableConst(_, _, value, _, _) => value,
+            Expr::Weight(_, _, value, _, _) => value,
             _ => panic!("Expected MutableConst"),
         };
 
