@@ -261,7 +261,12 @@ where
 impl GraphCodex<f32> {
     pub fn dense(input_size: usize, output_size: usize) -> Self {
         let factory = NodeFactory::<f32>::regression(input_size);
-        let graph = GraphBuilder::new(&factory).acyclic(input_size, output_size);
+        let graph = GraphBuilder::new(
+            &factory.get_inputs(),
+            &factory.get_operations(),
+            &factory.get_outputs(),
+        )
+        .acyclic(input_size, output_size);
 
         GraphCodex {
             input_size,

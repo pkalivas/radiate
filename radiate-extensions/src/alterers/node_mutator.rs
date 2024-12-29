@@ -1,14 +1,14 @@
 use std::ops::{Add, Mul, Sub};
 use std::sync::Arc;
 
-use crate::NodeChromosome;
+use crate::expr::Expr;
+use crate::{GraphNode, NodeChrom, NodeChromosome, Role};
 use num_traits::Float;
 use radiate::alter::AlterType;
 use radiate::engines::genome::genes::gene::Gene;
 use radiate::{random_provider, Alter, Chromosome};
 use rand::distributions::uniform::SampleUniform;
 use rand::{distributions::Standard, prelude::Distribution};
-use crate::expr::Expr;
 
 pub struct NodeMutator<T>
 where
@@ -34,7 +34,7 @@ where
     }
 }
 
-impl<T> Alter<NodeChromosome<T>> for NodeMutator<T>
+impl<T> Alter<NodeChrom<GraphNode<T>>> for NodeMutator<T>
 where
     T: Clone
         + PartialEq
@@ -59,13 +59,13 @@ where
     }
 
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut NodeChromosome<T>) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut NodeChrom<GraphNode<T>>) -> i32 {
         let mut count = 0;
 
         for i in 0..chromosome.len() {
             if random_provider::random::<f32>() < self.rate {
                 count += 1;
-                let temp_node = chromosome.new_node(i, chromosome.get_gene(i).node_type);
+                // let temp_node = chromosome.new_node(i, chromosome.get_gene(i).node_type);
                 let current_node = chromosome.get_gene(i);
 
                 match current_node.allele() {
@@ -99,8 +99,14 @@ where
                         }
                     }
                     _ => {
-                        if temp_node.value.arity() == current_node.value.arity() {
-                            chromosome.set_gene(i, current_node.with_allele(temp_node.allele()));
+                        if current_node.cell.role == Role::Internal {
+                            let internals = chromosome.get_internals();
+                            if let Some(vals) = internals {
+                                let temp_node = random_provider::choose(vals);
+                                if temp_node.arity() == current_node.cell.value.arity() {
+                                    chromosome.set_gene(i, current_node.with_allele(temp_node));
+                                }
+                            }
                         }
                     }
                 }

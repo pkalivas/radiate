@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::architects::schema::node_types::NodeType;
-use crate::NodeChromosome;
+use crate::{GraphNode, NodeChrom, NodeChromosome};
 use radiate::alter::AlterType;
 use radiate::engines::alterers::Alter;
 use radiate::engines::genome::*;
@@ -34,10 +34,10 @@ where
     #[inline]
     pub fn cross(
         &self,
-        population: &Population<NodeChromosome<T>>,
+        population: &Population<NodeChrom<GraphNode<T>>>,
         indexes: &[usize],
         generation: i32,
-    ) -> Option<Phenotype<NodeChromosome<T>>> {
+    ) -> Option<Phenotype<NodeChrom<GraphNode<T>>>> {
         let parent_one = &population[indexes[0]];
         let parent_two = &population[indexes[1]];
 
@@ -57,7 +57,7 @@ where
             let node_one = chromo_one.get_gene(i);
             let node_two = chromo_two.get_gene(i);
 
-            if node_one.node_type != NodeType::Weight || node_two.node_type != NodeType::Weight {
+            if node_one.cell.value.arity() != node_two.cell.value.arity() {
                 continue;
             }
 
@@ -94,7 +94,7 @@ where
     }
 }
 
-impl<T> Alter<NodeChromosome<T>> for GraphCrossover<T>
+impl<T> Alter<NodeChrom<GraphNode<T>>> for GraphCrossover<T>
 where
     T: Clone + PartialEq + Default + 'static,
 {
@@ -113,7 +113,7 @@ where
     #[inline]
     fn alter(
         &self,
-        population: &mut Population<NodeChromosome<T>>,
+        population: &mut Population<NodeChrom<GraphNode<T>>>,
         generation: i32,
     ) -> Vec<Metric> {
         let timer = Timer::new();

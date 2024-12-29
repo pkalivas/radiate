@@ -1,6 +1,9 @@
 use std::collections::BTreeMap;
 
-use super::{expr, Graph, GraphNode};
+use super::{
+    expr::{self, Expr},
+    Graph, GraphNode,
+};
 use crate::{NodeCell, NodeFactory, Role};
 use radiate::random_provider;
 use uuid::Uuid;
@@ -22,7 +25,9 @@ pub struct GraphBuilder<'a, T>
 where
     T: Clone + PartialEq + Default,
 {
-    pub factory: &'a NodeFactory<T>,
+    pub providers: &'a Vec<Expr<T>>,
+    pub internal: &'a Vec<Expr<T>>,
+    pub outputs: &'a Vec<Expr<T>>,
     pub nodes: BTreeMap<&'a Uuid, &'a GraphNode<T>>,
     pub node_order: BTreeMap<usize, &'a Uuid>,
     pub relationships: Vec<Relationship<'a>>,
@@ -32,9 +37,15 @@ impl<'a, T> GraphBuilder<'a, T>
 where
     T: Clone + PartialEq + Default,
 {
-    pub fn new(factory: &'a NodeFactory<T>) -> Self {
+    pub fn new(
+        providers: &'a Vec<Expr<T>>,
+        internal: &'a Vec<Expr<T>>,
+        outputs: &'a Vec<Expr<T>>,
+    ) -> Self {
         GraphBuilder {
-            factory,
+            providers,
+            internal,
+            outputs,
             nodes: BTreeMap::new(),
             node_order: BTreeMap::new(),
             relationships: Vec::new(),
@@ -42,7 +53,7 @@ where
     }
 
     pub fn acyclic(&self, input_size: usize, output_size: usize) -> Graph<T> {
-        let builder = GraphBuilder::new(self.factory);
+        let builder = GraphBuilder::new(self.providers, self.internal, self.outputs);
         let input = self.new_graph(input_size, Role::Provider);
         let output = self.new_graph(output_size, Role::Output);
 
@@ -106,7 +117,7 @@ where
     }
 
     pub fn layer(&self, collections: Vec<&'a Graph<T>>) -> Self {
-        let mut conn = GraphBuilder::new(&self.factory);
+        let mut conn = GraphBuilder::new(self.providers, self.internal, self.outputs);
         let mut previous = collections[0];
 
         for collection in collections.iter() {
@@ -162,11 +173,11 @@ where
             let new_node = match role {
                 Role::Provider => GraphNode::new(i, NodeCell::provider(expr::var(i))),
                 Role::Output => {
-                    let val = random_provider::choose(self.factory.get_outputs());
+                    let val = random_provider::choose(self.outputs);
                     GraphNode::new(i, NodeCell::output(val.clone()))
                 }
                 Role::Internal => {
-                    let val = random_provider::choose(self.factory.get_operations());
+                    let val = random_provider::choose(self.internal);
                     GraphNode::new(i, NodeCell::internal(val.clone()))
                 }
             };

@@ -47,6 +47,18 @@ where
             outputs: None,
         }
     }
+
+    pub fn get_providers(&self) -> Option<&Vec<N::Allele>> {
+        self.providers.as_ref().map(|p| p.as_ref().as_ref())
+    }
+
+    pub fn get_internals(&self) -> Option<&Vec<N::Allele>> {
+        self.internals.as_ref().map(|p| p.as_ref().as_ref())
+    }
+
+    pub fn get_outputs(&self) -> Option<&Vec<N::Allele>> {
+        self.outputs.as_ref().map(|p| p.as_ref().as_ref())
+    }
 }
 
 impl<N> Chromosome for NodeChrom<N>
