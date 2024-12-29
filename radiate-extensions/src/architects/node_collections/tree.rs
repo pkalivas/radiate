@@ -39,7 +39,7 @@ where
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Tree {{\n")?;
         for node in self.iter_breadth_first() {
-            write!(f, "  {:?},\n", node.cell.value)?;
+            write!(f, "  {:?},\n", node.value)?;
         }
         write!(f, "}}")
     }
@@ -49,23 +49,23 @@ where
 mod test {
     use super::*;
 
-    use crate::{expr, NodeCell};
+    use crate::expr;
 
     #[test]
     fn test_tree() {
         let mut tree_one = Tree::new(TreeNode::with_children(
-            NodeCell::new(expr::add()),
+            expr::add(),
             vec![
-                TreeNode::new(NodeCell::new(expr::value(1.0))),
-                TreeNode::new(NodeCell::new(expr::value(2.0))),
+                TreeNode::new(expr::value(1.0)),
+                TreeNode::new(expr::value(2.0)),
             ],
         ));
 
         let mut tree_two = Tree::new(TreeNode::with_children(
-            NodeCell::new(expr::mul()),
+            expr::mul(),
             vec![
-                TreeNode::new(NodeCell::new(expr::value(3.0))),
-                TreeNode::new(NodeCell::new(expr::value(4.0))),
+                TreeNode::new(expr::value(3.0)),
+                TreeNode::new(expr::value(4.0)),
             ],
         ));
 
@@ -77,7 +77,7 @@ mod test {
         // Verify swap using breadth-first traversal
         let values_one: Vec<_> = tree_one
             .iter_breadth_first()
-            .filter_map(|n| match &n.cell.value {
+            .filter_map(|n| match &n.value {
                 expr::Expr::Const(_, v) => Some(*v),
                 _ => None,
             })

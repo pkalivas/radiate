@@ -248,7 +248,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{expr, NodeCell, Tree};
+    use crate::{expr, Tree};
 
     #[test]
     fn test_tree_traversal() {
@@ -258,21 +258,17 @@ mod tests {
         //     2   3
         //    /
         //   4
-        let leaf = NodeCell::new(expr::value(4.0));
-        let node2 =
-            TreeNode::with_children(NodeCell::new(expr::value(2.0)), vec![TreeNode::new(leaf)]);
+        let leaf = expr::value(4.0);
+        let node2 = TreeNode::with_children(expr::value(2.0), vec![TreeNode::new(leaf)]);
 
-        let node3 = TreeNode::new(NodeCell::new(expr::value(3.0)));
+        let node3 = TreeNode::new(expr::value(3.0));
 
-        let root = Tree::new(TreeNode::with_children(
-            NodeCell::new(expr::value(1.0)),
-            vec![node2, node3],
-        ));
+        let root = Tree::new(TreeNode::with_children(expr::add(), vec![node2, node3]));
 
         // Test pre-order
         let pre_order: Vec<f32> = root
             .iter_pre_order()
-            .map(|n| match &n.cell.value {
+            .map(|n| match &n.value {
                 expr::Expr::Const(_, v) => *v,
                 _ => panic!("Expected constant"),
             })
@@ -282,7 +278,7 @@ mod tests {
         // Test post-order
         let post_order: Vec<f32> = root
             .iter_post_order()
-            .map(|n| match &n.cell.value {
+            .map(|n| match &n.value {
                 expr::Expr::Const(_, v) => *v,
                 _ => panic!("Expected constant"),
             })
@@ -292,7 +288,7 @@ mod tests {
         // Test breadth-first
         let bfs: Vec<f32> = root
             .iter_breadth_first()
-            .map(|n| match &n.cell.value {
+            .map(|n| match &n.value {
                 expr::Expr::Const(_, v) => *v,
                 _ => panic!("Expected constant"),
             })

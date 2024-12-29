@@ -27,7 +27,7 @@ impl<T: Clone> Reduce<T> for TreeNode<T> {
     fn reduce(&mut self, input: &Self::Input) -> Self::Output {
         fn eval<T: Clone>(node: &TreeNode<T>, curr_input: &Vec<T>) -> T {
             if node.is_leaf() {
-                return node.cell.value.apply(&curr_input);
+                return node.value.apply(&curr_input);
             } else {
                 if let Some(children) = &node.children {
                     let mut inputs = Vec::with_capacity(children.len());
@@ -35,7 +35,7 @@ impl<T: Clone> Reduce<T> for TreeNode<T> {
                         inputs.push(eval(child, &curr_input));
                     }
 
-                    return node.cell.value.apply(&inputs);
+                    return node.value.apply(&inputs);
                 }
 
                 panic!("Node is not a leaf and has no children.");
@@ -190,19 +190,16 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        expr::{self},
-        NodeCell,
-    };
+    use crate::expr::{self};
 
     use super::*;
 
     #[test]
     fn test_tree_reduce_simple() {
-        let mut root = TreeNode::new(NodeCell::new(expr::add()));
+        let mut root = TreeNode::new(expr::add());
 
-        root.add_child(TreeNode::new(NodeCell::new(expr::value(1.0))));
-        root.add_child(TreeNode::new(NodeCell::new(expr::value(2.0))));
+        root.add_child(TreeNode::new(expr::value(1.0)));
+        root.add_child(TreeNode::new(expr::value(2.0)));
 
         let result = root.reduce(&vec![]);
 
@@ -211,15 +208,15 @@ mod tests {
 
     #[test]
     fn test_tree_reduce_complex() {
-        let mut root = TreeNode::new(NodeCell::new(expr::add()));
+        let mut root = TreeNode::new(expr::add());
 
-        let mut left = TreeNode::new(NodeCell::new(expr::mul()));
-        left.add_child(TreeNode::new(NodeCell::new(expr::value(2.0))));
-        left.add_child(TreeNode::new(NodeCell::new(expr::value(3.0))));
+        let mut left = TreeNode::new(expr::mul());
+        left.add_child(TreeNode::new(expr::value(2.0)));
+        left.add_child(TreeNode::new(expr::value(3.0)));
 
-        let mut right = TreeNode::new(NodeCell::new(expr::add()));
-        right.add_child(TreeNode::new(NodeCell::new(expr::value(2.0))));
-        right.add_child(TreeNode::new(NodeCell::new(expr::var(0))));
+        let mut right = TreeNode::new(expr::add());
+        right.add_child(TreeNode::new(expr::value(2.0)));
+        right.add_child(TreeNode::new(expr::var(0)));
 
         root.add_child(left);
         root.add_child(right);

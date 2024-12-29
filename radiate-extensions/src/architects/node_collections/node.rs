@@ -8,44 +8,23 @@ use uuid::Uuid;
 use super::expr::Arity;
 use super::TreeIterator;
 
-#[derive(Clone, PartialEq)]
-pub struct NodeCell<T> {
-    pub value: Expr<T>,
-    pub id: Uuid,
-}
-
-impl<T> NodeCell<T> {
-    pub fn new(value: Expr<T>) -> Self {
-        NodeCell {
-            value,
-            id: Uuid::new_v4(),
-        }
-    }
-}
-
 #[derive(PartialEq)]
 pub struct TreeNode<T> {
-    pub cell: NodeCell<T>,
+    pub value: Expr<T>,
     pub children: Option<Vec<TreeNode<T>>>,
 }
 
 impl<T> TreeNode<T> {
-    pub fn new<C>(cell: C) -> Self
-    where
-        C: Into<NodeCell<T>>,
-    {
+    pub fn new(val: Expr<T>) -> Self {
         TreeNode {
-            cell: cell.into(),
+            value: val,
             children: None,
         }
     }
 
-    pub fn with_children<C>(cell: C, children: Vec<TreeNode<T>>) -> Self
-    where
-        C: Into<NodeCell<T>>,
-    {
+    pub fn with_children(val: Expr<T>, children: Vec<TreeNode<T>>) -> Self {
         TreeNode {
-            cell: cell.into(),
+            value: val,
             children: Some(children),
         }
     }
@@ -125,22 +104,10 @@ impl<T> TreeNode<T> {
     }
 }
 
-impl<T> AsRef<NodeCell<T>> for TreeNode<T> {
-    fn as_ref(&self) -> &NodeCell<T> {
-        &self.cell
-    }
-}
-
-impl<T> AsMut<NodeCell<T>> for TreeNode<T> {
-    fn as_mut(&mut self) -> &mut NodeCell<T> {
-        &mut self.cell
-    }
-}
-
 impl<T: Clone> Clone for TreeNode<T> {
     fn clone(&self) -> Self {
         TreeNode {
-            cell: self.cell.clone(),
+            value: self.value.clone(),
             children: self.children.as_ref().map(|children| {
                 children
                     .iter()
@@ -158,15 +125,12 @@ where
     type Allele = Expr<T>;
 
     fn allele(&self) -> &Self::Allele {
-        &self.cell.value
+        &self.value
     }
 
     fn new_instance(&self) -> Self {
         TreeNode {
-            cell: NodeCell {
-                value: self.cell.value.new_instance(),
-                ..self.cell.clone()
-            },
+            value: self.value.new_instance(),
             children: self.children.as_ref().map(|children| {
                 children
                     .iter()
@@ -178,10 +142,7 @@ where
 
     fn with_allele(&self, allele: &Self::Allele) -> Self {
         TreeNode {
-            cell: NodeCell {
-                value: allele.clone(),
-                ..self.cell.clone()
-            },
+            value: allele.clone(),
             children: self.children.as_ref().map(|children| {
                 children
                     .iter()
@@ -195,7 +156,7 @@ where
 impl<T> Valid for TreeNode<T> {
     fn is_valid(&self) -> bool {
         for node in self.iter_breadth_first() {
-            match node.cell.value.arity() {
+            match node.value.arity() {
                 Arity::Zero => {
                     if node.children.is_some() {
                         return false;
@@ -218,7 +179,8 @@ impl<T> Valid for TreeNode<T> {
 
 #[derive(Clone, PartialEq)]
 pub struct GraphNode<T> {
-    pub cell: NodeCell<T>,
+    pub value: Expr<T>,
+    pub id: Uuid,
     pub enabled: bool,
     pub direction: Direction,
     pub index: usize,
@@ -227,10 +189,11 @@ pub struct GraphNode<T> {
 }
 
 impl<T> GraphNode<T> {
-    pub fn new(index: usize, cell: NodeCell<T>) -> Self {
+    pub fn new(index: usize, value: Expr<T>) -> Self {
         GraphNode {
-            cell,
+            value,
             index,
+            id: Uuid::new_v4(),
             enabled: true,
             direction: Direction::Forward,
             incoming: HashSet::new(),
@@ -255,18 +218,6 @@ impl<T> GraphNode<T> {
     }
 }
 
-impl<T> AsRef<NodeCell<T>> for GraphNode<T> {
-    fn as_ref(&self) -> &NodeCell<T> {
-        &self.cell
-    }
-}
-
-impl<T> AsMut<NodeCell<T>> for GraphNode<T> {
-    fn as_mut(&mut self) -> &mut NodeCell<T> {
-        &mut self.cell
-    }
-}
-
 impl<T> Gene for GraphNode<T>
 where
     T: Clone + PartialEq + Default,
@@ -274,15 +225,13 @@ where
     type Allele = Expr<T>;
 
     fn allele(&self) -> &Self::Allele {
-        &self.cell.value
+        &self.value
     }
 
     fn new_instance(&self) -> Self {
         GraphNode {
-            cell: NodeCell {
-                value: self.cell.value.new_instance(),
-                ..self.cell.clone()
-            },
+            value: self.value.new_instance(),
+            id: Uuid::new_v4(),
             index: self.index,
             enabled: self.enabled,
             direction: self.direction,
@@ -293,10 +242,8 @@ where
 
     fn with_allele(&self, allele: &Self::Allele) -> Self {
         GraphNode {
-            cell: NodeCell {
-                value: allele.clone(),
-                ..self.cell.clone()
-            },
+            value: allele.clone(),
+            id: Uuid::new_v4(),
             index: self.index,
             enabled: self.enabled,
             direction: self.direction,
@@ -311,7 +258,7 @@ where
     T: Clone + PartialEq,
 {
     fn is_valid(&self) -> bool {
-        match self.cell.value.arity() {
+        match self.value.arity() {
             Arity::Zero => self.incoming.is_empty() && !self.outgoing.is_empty(),
             Arity::Nary(n) => self.incoming.len() == n as usize && self.outgoing.len() > 0,
             Arity::Any => true,
@@ -431,6 +378,7 @@ where
                     NodeType::Weight => self.incoming.len() == 1 && self.outgoing.len() == 1,
                     NodeType::Link => self.incoming.len() == 1 && !self.outgoing.is_empty(),
                     NodeType::Leaf => self.incoming.is_empty() && !self.outgoing.is_empty(),
+                    NodeType::Unknown => true,
                 };
             } else if coll_type == &CollectionType::Tree {
                 return match self.node_type {
@@ -441,6 +389,7 @@ where
                     NodeType::Weight => self.incoming.len() == 1 && self.outgoing.len() == 1,
                     NodeType::Link => self.incoming.len() == 1 && !self.outgoing.is_empty(),
                     NodeType::Leaf => !self.incoming.is_empty() && self.outgoing.is_empty(),
+                    NodeType::Unknown => true,
                 };
             }
         }

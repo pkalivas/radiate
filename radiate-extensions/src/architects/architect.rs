@@ -5,7 +5,7 @@ use crate::architects::node_collections::node_factory::NodeFactory;
 use crate::architects::node_collections::NodeCollection;
 use crate::architects::schema::node_types::NodeType;
 use crate::expr::Expr;
-use crate::{NodeCell, Tree, TreeNode};
+use crate::{Tree, TreeNode};
 use radiate::random_provider;
 
 pub trait Archit {
@@ -49,7 +49,7 @@ impl<T: Clone> TreeArchit<T> {
                 random_provider::choose(&self.leafs).new_instance()
             };
 
-            return TreeNode::new(NodeCell::new(leaf));
+            return TreeNode::new(leaf);
         }
 
         let gate = if self.gates.is_empty() {
@@ -58,8 +58,8 @@ impl<T: Clone> TreeArchit<T> {
             random_provider::choose(&self.gates).new_instance()
         };
 
-        let mut parent = TreeNode::new(NodeCell::new(gate));
-        for _ in 0..*parent.cell.value.arity() {
+        let mut parent = TreeNode::new(gate);
+        for _ in 0..*parent.value.arity() {
             let temp = self.grow_tree(depth - 1);
             parent.add_child(temp);
         }

@@ -301,6 +301,10 @@ where
             .iter()
             .filter(|node| node.node_type == NodeType::Leaf)
             .collect::<Vec<&Node<T>>>(),
+        NodeType::Unknown => collection
+            .iter()
+            .filter(|node| node.node_type == NodeType::Unknown)
+            .collect::<Vec<&Node<T>>>(),
     };
 
     if genes.is_empty() {
