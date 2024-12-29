@@ -30,7 +30,7 @@ where
     }
 
     pub fn from_shape(input_size: usize, output_size: usize, factory: &NodeFactory<T>) -> Self {
-        let nodes = Architect::<Graph<T>, T>::new(factory)
+        let nodes = Architect::<T>::new(factory)
             .acyclic(input_size, output_size)
             .iter()
             .cloned()
@@ -56,10 +56,10 @@ where
 
     pub fn set_nodes<F>(mut self, node_fn: F) -> Self
     where
-        F: Fn(&Architect<Graph<T>, T>, NodeCollectionBuilder<Graph<T>, T>) -> Graph<T>,
+        F: Fn(&Architect<T>, NodeCollectionBuilder<T>) -> Graph<T>,
     {
-        let graph = Architect::<Graph<T>, T>::new(&self.factory.borrow())
-            .build(|arc, builder| node_fn(arc, builder));
+        let graph =
+            Architect::<T>::new(&self.factory.borrow()).build(|arc, builder| node_fn(arc, builder));
 
         self.nodes = graph.iter().cloned().collect::<Vec<GraphNode<T>>>();
         self.input_size = graph
@@ -112,7 +112,7 @@ where
 impl GraphCodex<f32> {
     pub fn regression(input_size: usize, output_size: usize) -> Self {
         let factory = NodeFactory::<f32>::regression(input_size);
-        let nodes = Architect::<Graph<f32>, f32>::new(&factory)
+        let nodes = Architect::<f32>::new(&factory)
             .acyclic(input_size, output_size)
             .iter()
             .cloned()
@@ -148,7 +148,7 @@ where
     }
 
     fn decode(&self, genotype: &Genotype<NodeChromosome<T>>) -> Graph<T> {
-        Graph::from_nodes(
+        Graph::new(
             genotype
                 .iter()
                 .next()

@@ -1,7 +1,7 @@
 use crate::architects::node_collections::*;
 use crate::architects::schema::node_types::NodeType;
 use crate::node::GraphNode;
-use crate::schema::collection_type::CollectionType;
+
 use radiate::alter::AlterType;
 use radiate::engines::alterers::Alter;
 use radiate::engines::genome::*;
@@ -84,7 +84,7 @@ where
             let new_target_edge = factory.new_node(new_target_edge_index, source_node.node_type);
 
             if is_locked(outgoing_node) {
-                let mut temp = Graph::from_nodes(
+                let mut temp = Graph::new(
                     collection
                         .iter()
                         .cloned()
@@ -105,7 +105,7 @@ where
                     false,
                 );
             } else {
-                let mut temp = Graph::from_nodes(
+                let mut temp = Graph::new(
                     collection
                         .iter()
                         .cloned()
@@ -130,7 +130,7 @@ where
             return None;
         }
 
-        let mut temp = Graph::from_nodes(
+        let mut temp = Graph::new(
             collection
                 .iter()
                 .cloned()
@@ -176,7 +176,7 @@ where
             let recurrent_edge = factory.new_node(recurrent_edge_index, source_node.node_type);
 
             return if is_locked(outgoing_node) {
-                let mut temp = Graph::from_nodes(
+                let mut temp = Graph::new(
                     collection
                         .iter()
                         .cloned()
@@ -193,7 +193,7 @@ where
 
                 self.repair_insert(temp, new_node_index, incoming_node, outgoing_node, true)
             } else if !source_node.is_recurrent() {
-                let mut temp = Graph::from_nodes(
+                let mut temp = Graph::new(
                     collection
                         .iter()
                         .cloned()
@@ -215,7 +215,7 @@ where
 
                 self.repair_insert(temp, new_node_index, incoming_node, outgoing_node, true)
             } else {
-                let mut temp = Graph::from_nodes(
+                let mut temp = Graph::new(
                     collection
                         .iter()
                         .cloned()
@@ -234,7 +234,7 @@ where
             return None;
         }
 
-        let mut temp = Graph::from_nodes(
+        let mut temp = Graph::new(
             collection
                 .iter()
                 .cloned()
@@ -260,9 +260,6 @@ where
     ) -> Option<Vec<GraphNode<T>>> {
         let node = collection.get(new_node_index);
         if *node.value.arity() == 0 {
-            for node in collection.iter_mut() {
-                node.collection_type = Some(CollectionType::Graph);
-            }
             return Some(collection.into_iter().collect::<Vec<GraphNode<T>>>());
         }
         let arity = *collection.get(new_node_index).value.arity();
@@ -276,10 +273,6 @@ where
             ) {
                 collection.attach(other_source_node.index, new_node_index);
             }
-        }
-
-        for node in collection.iter_mut() {
-            node.collection_type = Some(CollectionType::Graph);
         }
 
         if !collection.is_valid() {

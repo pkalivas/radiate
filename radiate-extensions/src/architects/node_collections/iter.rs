@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use super::Graph;
 use crate::node::GraphNode;
-use crate::{NodeCollection, Tree, TreeNode};
+use crate::{ Tree, TreeNode};
 
 pub trait TreeIterator<T> {
     fn iter_pre_order(&self) -> PreOrderIterator<T>;

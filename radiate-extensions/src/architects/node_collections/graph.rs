@@ -4,10 +4,7 @@ use radiate::{random_provider, Valid};
 
 use super::GraphIterator;
 use crate::node::GraphNode;
-use crate::{
-    node_collections, schema::collection_type::CollectionType, Direction, NodeCollection,
-    NodeFactory, NodeRepairs, NodeType,
-};
+use crate::{Direction, NodeType};
 
 #[derive(Clone, PartialEq, Default)]
 pub struct Graph<T>
@@ -21,14 +18,70 @@ impl<T> Graph<T>
 where
     T: Clone + PartialEq + Default,
 {
+    pub fn new(nodes: Vec<GraphNode<T>>) -> Self {
+        Graph { nodes }
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &GraphNode<T>> {
+        self.nodes.iter()
+    }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut GraphNode<T>> {
+        self.nodes.iter_mut()
+    }
+
     pub fn topological_iter(&self) -> impl Iterator<Item = &GraphNode<T>> {
         GraphIterator::new(self)
+    }
+
+    pub fn len(&self) -> usize {
+        self.nodes.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.nodes.is_empty()
+    }
+
+    pub fn get_mut(&mut self, index: usize) -> &mut GraphNode<T> {
+        self.nodes.get_mut(index).unwrap()
+    }
+
+    pub fn get(&self, index: usize) -> &GraphNode<T> {
+        self.nodes.get(index).unwrap()
+    }
+
+    pub fn get_nodes(&self) -> &[GraphNode<T>] {
+        &self.nodes
+    }
+
+    pub fn get_nodes_mut(&mut self) -> &mut [GraphNode<T>] {
+        &mut self.nodes
+    }
+
+    pub fn attach(&mut self, incoming: usize, outgoing: usize) -> &mut Self {
+        self.get_nodes_mut()[incoming]
+            .outgoing_mut()
+            .insert(outgoing);
+        self.get_nodes_mut()[outgoing]
+            .incoming_mut()
+            .insert(incoming);
+        self
+    }
+
+    pub fn detach(&mut self, incoming: usize, outgoing: usize) -> &mut Self {
+        self.get_nodes_mut()[incoming]
+            .outgoing_mut()
+            .remove(&outgoing);
+        self.get_nodes_mut()[outgoing]
+            .incoming_mut()
+            .remove(&incoming);
+        self
     }
 
     pub fn set_cycles(mut self, indecies: Vec<usize>) -> Graph<T> {
         if indecies.is_empty() {
             let all_indices = self
-                .get_nodes()
+                .as_ref()
                 .iter()
                 .map(|node| node.index)
                 .collect::<Vec<usize>>();
@@ -37,7 +90,7 @@ where
         }
 
         for idx in indecies {
-            let node_cycles = node_collections::get_cycles(self.get_nodes(), idx);
+            let node_cycles = get_cycles(self.as_ref(), idx);
 
             if node_cycles.is_empty() {
                 let node = self.get_mut(idx);
@@ -54,67 +107,12 @@ where
     }
 }
 
-impl<T> NodeCollection<T> for Graph<T>
+impl<T> AsRef<[GraphNode<T>]> for Graph<T>
 where
     T: Clone + PartialEq + Default,
 {
-    fn from_nodes(nodes: Vec<GraphNode<T>>) -> Self {
-        Graph { nodes }
-    }
-
-    fn get(&self, index: usize) -> &GraphNode<T> {
-        self.nodes.get(index).unwrap_or_else(|| {
-            panic!(
-                "Node index {} out of bounds. Graph has {} nodes.",
-                index,
-                self.nodes.len()
-            )
-        })
-    }
-
-    fn get_mut(&mut self, index: usize) -> &mut GraphNode<T> {
-        let length = self.nodes.len();
-        self.nodes.get_mut(index).unwrap_or_else(|| {
-            panic!(
-                "Node index {} out of bounds. Graph has {} nodes.",
-                index, length
-            )
-        })
-    }
-
-    fn get_nodes(&self) -> &[GraphNode<T>] {
+    fn as_ref(&self) -> &[GraphNode<T>] {
         &self.nodes
-    }
-
-    fn get_nodes_mut(&mut self) -> &mut [GraphNode<T>] {
-        &mut self.nodes
-    }
-}
-
-impl<T> NodeRepairs<T> for Graph<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    fn repair(&mut self, factory: Option<&NodeFactory<T>>) -> Self {
-        let mut collection = self.clone().set_cycles(Vec::new());
-
-        for node in collection.iter_mut() {
-            node.collection_type = Some(CollectionType::Graph);
-
-            if let Some(factory) = factory {
-                let temp_node = factory.new_node(node.index, NodeType::Aggregate);
-
-                if node.node_type() == &NodeType::Output && !node.outgoing().is_empty() {
-                    node.node_type = NodeType::Aggregate;
-                    node.value = temp_node.value.clone();
-                } else if node.node_type() == &NodeType::Input && !node.incoming().is_empty() {
-                    node.node_type = NodeType::Aggregate;
-                    node.value = temp_node.value.clone();
-                }
-            }
-        }
-
-        collection
     }
 }
 
@@ -301,12 +299,7 @@ pub fn is_locked<T>(node: &GraphNode<T>) -> bool {
 pub fn random_source_node<T>(collection: &[GraphNode<T>]) -> &GraphNode<T> {
     random_node_of_type(
         collection,
-        vec![
-            NodeType::Input,
-            NodeType::Gate,
-            NodeType::Aggregate,
-            NodeType::Link,
-        ],
+        vec![NodeType::Input, NodeType::Gate, NodeType::Aggregate],
     )
 }
 
@@ -341,17 +334,9 @@ fn random_node_of_type<T>(collection: &[GraphNode<T>], node_types: Vec<NodeType>
             .iter()
             .filter(|node| node.node_type == NodeType::Output)
             .collect::<Vec<&GraphNode<T>>>(),
-        NodeType::Link => collection
-            .iter()
-            .filter(|node| node.node_type == NodeType::Link)
-            .collect::<Vec<&GraphNode<T>>>(),
         NodeType::Aggregate => collection
             .iter()
             .filter(|node| node.node_type == NodeType::Aggregate)
-            .collect::<Vec<&GraphNode<T>>>(),
-        NodeType::Leaf => collection
-            .iter()
-            .filter(|node| node.node_type == NodeType::Leaf)
             .collect::<Vec<&GraphNode<T>>>(),
         NodeType::Unknown => collection
             .iter()

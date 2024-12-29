@@ -5,7 +5,5 @@ pub enum NodeType {
     Gate,
     Aggregate,
     Weight,
-    Link,
-    Leaf,
     Unknown,
 }

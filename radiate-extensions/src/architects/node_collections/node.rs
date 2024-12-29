@@ -1,6 +1,5 @@
 use crate::architects::schema::{direction::Direction, node_types::NodeType};
 use crate::expr::Operation;
-use crate::schema::collection_type::CollectionType;
 use radiate::engines::genome::genes::gene::{Gene, Valid};
 use std::collections::HashSet;
 use uuid::Uuid;
@@ -181,7 +180,6 @@ pub struct GraphNode<T> {
     pub id: Uuid,
     pub index: usize,
     pub value: Operation<T>,
-    pub collection_type: Option<CollectionType>,
     pub enabled: bool,
     pub node_type: NodeType,
     pub direction: Direction,
@@ -197,7 +195,6 @@ impl<T> GraphNode<T> {
             value,
             enabled: true,
             direction: Direction::Forward,
-            collection_type: None,
             node_type,
             incoming: HashSet::new(),
             outgoing: HashSet::new(),
@@ -252,7 +249,6 @@ where
             enabled: self.enabled,
             value: self.value.new_instance(),
             direction: self.direction,
-            collection_type: self.collection_type,
             node_type: self.node_type,
             incoming: self.incoming.clone(),
             outgoing: self.outgoing.clone(),
@@ -265,7 +261,6 @@ where
             index: self.index,
             value: allele.clone(),
             enabled: self.enabled,
-            collection_type: self.collection_type,
             direction: self.direction,
             node_type: self.node_type,
             incoming: self.incoming.clone(),
@@ -279,33 +274,14 @@ where
     T: Clone + PartialEq,
 {
     fn is_valid(&self) -> bool {
-        if let Some(coll_type) = &self.collection_type {
-            if coll_type == &CollectionType::Graph {
-                return match self.node_type {
-                    NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
-                    NodeType::Output => !self.incoming.is_empty(),
-                    NodeType::Gate => self.incoming.len() == *self.value.arity() as usize,
-                    NodeType::Aggregate => !self.incoming.is_empty() && !self.outgoing.is_empty(),
-                    NodeType::Weight => self.incoming.len() == 1 && self.outgoing.len() == 1,
-                    NodeType::Link => self.incoming.len() == 1 && !self.outgoing.is_empty(),
-                    NodeType::Leaf => self.incoming.is_empty() && !self.outgoing.is_empty(),
-                    NodeType::Unknown => true,
-                };
-            } else if coll_type == &CollectionType::Tree {
-                return match self.node_type {
-                    NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
-                    NodeType::Output => !self.incoming.is_empty(),
-                    NodeType::Gate => self.outgoing.len() == *self.value.arity() as usize,
-                    NodeType::Aggregate => !self.incoming.is_empty() && !self.outgoing.is_empty(),
-                    NodeType::Weight => self.incoming.len() == 1 && self.outgoing.len() == 1,
-                    NodeType::Link => self.incoming.len() == 1 && !self.outgoing.is_empty(),
-                    NodeType::Leaf => !self.incoming.is_empty() && self.outgoing.is_empty(),
-                    NodeType::Unknown => true,
-                };
-            }
-        }
-
-        false
+        return match self.node_type {
+            NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
+            NodeType::Output => !self.incoming.is_empty(),
+            NodeType::Gate => self.incoming.len() == *self.value.arity() as usize,
+            NodeType::Aggregate => !self.incoming.is_empty() && !self.outgoing.is_empty(),
+            NodeType::Weight => self.incoming.len() == 1 && self.outgoing.len() == 1,
+            NodeType::Unknown => true,
+        };
     }
 }
 
@@ -319,7 +295,6 @@ where
             index: self.index,
             enabled: self.enabled,
             value: self.value.clone(),
-            collection_type: self.collection_type,
             direction: self.direction,
             node_type: self.node_type,
             incoming: self.incoming.clone(),
@@ -355,7 +330,6 @@ where
             value: Operation::default(),
             direction: Direction::Forward,
             node_type: NodeType::Input,
-            collection_type: None,
             incoming: HashSet::new(),
             outgoing: HashSet::new(),
         }

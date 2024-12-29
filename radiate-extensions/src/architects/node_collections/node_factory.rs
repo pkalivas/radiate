@@ -20,11 +20,6 @@ where
         }
     }
 
-    pub fn leafs(mut self, values: Vec<Operation<T>>) -> NodeFactory<T> {
-        self.add_node_values(NodeType::Leaf, values);
-        self
-    }
-
     pub fn inputs(mut self, values: Vec<Operation<T>>) -> NodeFactory<T> {
         self.add_node_values(NodeType::Input, values);
         self
@@ -85,7 +80,6 @@ where
             .collect::<Vec<Operation<f32>>>();
         NodeFactory::new()
             .inputs(inputs.clone())
-            .leafs(inputs.clone())
             .gates(vec![
                 expr::add(),
                 expr::sub(),

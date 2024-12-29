@@ -1,7 +1,7 @@
 use super::{Graph, Tree};
 use crate::expr::Operation;
 use crate::node::GraphNode;
-use crate::{NodeCollection, NodeType, TreeNode};
+use crate::{NodeType, TreeNode};
 
 pub trait Reduce<T> {
     type Input;
@@ -184,7 +184,7 @@ where
     T: Clone + PartialEq + Default,
 {
     match node.node_type {
-        NodeType::Input | NodeType::Link | NodeType::Leaf => 1,
+        NodeType::Input => 1,
         NodeType::Gate => *node.value.arity() as usize,
         _ => node.incoming.len(),
     }
