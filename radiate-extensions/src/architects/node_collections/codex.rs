@@ -15,10 +15,10 @@ pub struct GraphCodex<T>
 where
     T: Clone + PartialEq + Default,
 {
-    pub input_size: usize,
-    pub output_size: usize,
-    pub factory: Rc<RefCell<NodeFactory<T>>>,
-    pub nodes: Vec<GraphNode<T>>,
+    input_size: usize,
+    output_size: usize,
+    factory: Rc<RefCell<NodeFactory<T>>>,
+    nodes: Vec<GraphNode<T>>,
 }
 
 impl<T> GraphCodex<T>

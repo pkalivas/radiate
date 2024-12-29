@@ -27,12 +27,12 @@ impl<T: Clone> Reduce<T> for TreeNode<T> {
     fn reduce(&mut self, input: &Self::Input) -> Self::Output {
         fn eval<T: Clone>(node: &TreeNode<T>, curr_input: &Vec<T>) -> T {
             if node.is_leaf() {
-                return node.value.apply(&curr_input);
+                node.value.apply(curr_input)
             } else {
                 if let Some(children) = &node.children {
                     let mut inputs = Vec::with_capacity(children.len());
                     for child in children {
-                        inputs.push(eval(child, &curr_input));
+                        inputs.push(eval(child, curr_input));
                     }
 
                     return node.value.apply(&inputs);
