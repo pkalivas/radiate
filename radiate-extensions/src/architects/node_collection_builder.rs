@@ -46,7 +46,7 @@ where
         let input = self.new_graph(input_size, Role::Provider);
         let output = self.new_graph(output_size, Role::Output);
 
-        builder.one_to_one(&input, &output).build()
+        builder.all_to_all(&input, &output).build()
     }
 
     pub fn one_to_one(mut self, one: &'a Graph<T>, two: &'a Graph<T>) -> Self {

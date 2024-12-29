@@ -351,6 +351,19 @@ impl<T> AsMut<NodeCell<T>> for GraphNode<T> {
     }
 }
 
+impl<T> From<Expr<T>> for GraphNode<T> {
+    fn from(value: Expr<T>) -> Self {
+        GraphNode {
+            cell: NodeCell::new(value),
+            index: 0,
+            enabled: true,
+            direction: Direction::Forward,
+            incoming: HashSet::new(),
+            outgoing: HashSet::new(),
+        }
+    }
+}
+
 impl<T> Gene for GraphNode<T>
 where
     T: Clone + PartialEq + Default,

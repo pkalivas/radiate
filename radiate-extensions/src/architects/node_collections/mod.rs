@@ -132,188 +132,150 @@ where
     new_nodes
 }
 
-#[inline]
-pub fn get_cycles<T>(nodes: &[Node<T>], index: usize) -> Vec<usize>
-where
-    T: Clone + PartialEq + Default,
-{
-    let mut path = Vec::new();
-    let mut seen = HashSet::new();
-    let mut current = nodes[index]
-        .incoming()
-        .iter()
-        .cloned()
-        .collect::<VecDeque<usize>>();
+// #[inline]
+// pub fn can_connect<T>(collection: &[Node<T>], source: usize, target: usize, recurrent: bool) -> bool
+// where
+//     T: Clone + PartialEq + Default,
+// {
+//     let source_node = &collection.get(source).unwrap();
+//     let target_node = &collection.get(target).unwrap();
 
-    while !current.is_empty() {
-        let current_index = current.pop_front().unwrap();
-        let current_node = &nodes[current_index];
+//     if (source_node.outgoing.is_empty() || source_node.is_recurrent()) && !recurrent {
+//         return false;
+//     }
 
-        if seen.contains(&current_index) {
-            continue;
-        }
+//     let would_create_cycle = recurrent || !would_create_cycle(collection, source, target);
+//     let nodes_are_weights =
+//         source_node.node_type == NodeType::Weight || target_node.node_type == NodeType::Weight;
 
-        if current_index == index {
-            return path;
-        }
+//     would_create_cycle && !nodes_are_weights && source != target
+// }
 
-        seen.insert(current_index);
+// #[inline]
+// pub fn would_create_cycle<T>(collection: &[Node<T>], source: usize, target: usize) -> bool
+// where
+//     T: Clone + PartialEq + Default,
+// {
+//     let mut seen = HashSet::new();
+//     let mut visited = collection
+//         .get(target)
+//         .unwrap()
+//         .outgoing
+//         .iter()
+//         .collect::<Vec<&usize>>();
 
-        if !current_node.incoming().is_empty() {
-            path.push(current_index);
-            for outgoing in current_node.incoming().iter() {
-                current.push_back(*outgoing);
-            }
-        }
-    }
+//     while !visited.is_empty() {
+//         let node_index = visited.pop().unwrap();
 
-    Vec::new()
-}
+//         seen.insert(*node_index);
 
-#[inline]
-pub fn can_connect<T>(collection: &[Node<T>], source: usize, target: usize, recurrent: bool) -> bool
-where
-    T: Clone + PartialEq + Default,
-{
-    let source_node = &collection.get(source).unwrap();
-    let target_node = &collection.get(target).unwrap();
+//         if *node_index == source {
+//             return true;
+//         }
 
-    if (source_node.outgoing.is_empty() || source_node.is_recurrent()) && !recurrent {
-        return false;
-    }
+//         for edge_index in collection
+//             .get(*node_index)
+//             .unwrap()
+//             .outgoing
+//             .iter()
+//             .filter(|edge_index| !seen.contains(edge_index))
+//         {
+//             visited.push(edge_index);
+//         }
+//     }
 
-    let would_create_cycle = recurrent || !would_create_cycle(collection, source, target);
-    let nodes_are_weights =
-        source_node.node_type == NodeType::Weight || target_node.node_type == NodeType::Weight;
+//     false
+// }
 
-    would_create_cycle && !nodes_are_weights && source != target
-}
+// pub fn is_locked<T>(node: &Node<T>) -> bool
+// where
+//     T: Clone + PartialEq + Default,
+// {
+//     if node.node_type == NodeType::Aggregate || node.node_type == NodeType::Output {
+//         return false;
+//     }
 
-#[inline]
-pub fn would_create_cycle<T>(collection: &[Node<T>], source: usize, target: usize) -> bool
-where
-    T: Clone + PartialEq + Default,
-{
-    let mut seen = HashSet::new();
-    let mut visited = collection
-        .get(target)
-        .unwrap()
-        .outgoing
-        .iter()
-        .collect::<Vec<&usize>>();
+//     node.incoming.len() == *node.value.arity() as usize
+// }
 
-    while !visited.is_empty() {
-        let node_index = visited.pop().unwrap();
+// #[inline]
+// pub fn random_source_node<T>(collection: &[Node<T>]) -> &Node<T>
+// where
+//     T: Clone + PartialEq + Default,
+// {
+//     random_node_of_type(
+//         collection,
+//         vec![
+//             NodeType::Input,
+//             NodeType::Gate,
+//             NodeType::Aggregate,
+//             NodeType::Link,
+//         ],
+//     )
+// }
 
-        seen.insert(*node_index);
+// #[inline]
+// pub fn random_target_node<T>(collection: &[Node<T>]) -> &Node<T>
+// where
+//     T: Clone + PartialEq + Default,
+// {
+//     random_node_of_type(collection, vec![NodeType::Output, NodeType::Aggregate])
+// }
 
-        if *node_index == source {
-            return true;
-        }
+// #[inline]
+// fn random_node_of_type<T>(collection: &[Node<T>], node_types: Vec<NodeType>) -> &Node<T>
+// where
+//     T: Clone + PartialEq + Default,
+// {
+//     if node_types.is_empty() {
+//         panic!("At least one node type must be specified.");
+//     }
 
-        for edge_index in collection
-            .get(*node_index)
-            .unwrap()
-            .outgoing
-            .iter()
-            .filter(|edge_index| !seen.contains(edge_index))
-        {
-            visited.push(edge_index);
-        }
-    }
+//     let gene_node_type_index = random_provider::random::<usize>() % node_types.len();
+//     let gene_node_type = node_types.get(gene_node_type_index).unwrap();
 
-    false
-}
+//     let genes = match gene_node_type {
+//         NodeType::Input => collection
+//             .iter()
+//             .filter(|node| node.node_type == NodeType::Input)
+//             .collect::<Vec<&Node<T>>>(),
+//         NodeType::Weight => collection
+//             .iter()
+//             .filter(|node| node.node_type == NodeType::Weight)
+//             .collect::<Vec<&Node<T>>>(),
+//         NodeType::Gate => collection
+//             .iter()
+//             .filter(|node| node.node_type == NodeType::Gate)
+//             .collect::<Vec<&Node<T>>>(),
+//         NodeType::Output => collection
+//             .iter()
+//             .filter(|node| node.node_type == NodeType::Output)
+//             .collect::<Vec<&Node<T>>>(),
+//         NodeType::Link => collection
+//             .iter()
+//             .filter(|node| node.node_type == NodeType::Link)
+//             .collect::<Vec<&Node<T>>>(),
+//         NodeType::Aggregate => collection
+//             .iter()
+//             .filter(|node| node.node_type == NodeType::Aggregate)
+//             .collect::<Vec<&Node<T>>>(),
+//         NodeType::Leaf => collection
+//             .iter()
+//             .filter(|node| node.node_type == NodeType::Leaf)
+//             .collect::<Vec<&Node<T>>>(),
+//     };
 
-pub fn is_locked<T>(node: &Node<T>) -> bool
-where
-    T: Clone + PartialEq + Default,
-{
-    if node.node_type == NodeType::Aggregate || node.node_type == NodeType::Output {
-        return false;
-    }
+//     if genes.is_empty() {
+//         return random_node_of_type(
+//             collection,
+//             node_types
+//                 .iter()
+//                 .filter(|nt| *nt != gene_node_type)
+//                 .cloned()
+//                 .collect(),
+//         );
+//     }
 
-    node.incoming.len() == *node.value.arity() as usize
-}
-
-#[inline]
-pub fn random_source_node<T>(collection: &[Node<T>]) -> &Node<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    random_node_of_type(
-        collection,
-        vec![
-            NodeType::Input,
-            NodeType::Gate,
-            NodeType::Aggregate,
-            NodeType::Link,
-        ],
-    )
-}
-
-#[inline]
-pub fn random_target_node<T>(collection: &[Node<T>]) -> &Node<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    random_node_of_type(collection, vec![NodeType::Output, NodeType::Aggregate])
-}
-
-#[inline]
-fn random_node_of_type<T>(collection: &[Node<T>], node_types: Vec<NodeType>) -> &Node<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    if node_types.is_empty() {
-        panic!("At least one node type must be specified.");
-    }
-
-    let gene_node_type_index = random_provider::random::<usize>() % node_types.len();
-    let gene_node_type = node_types.get(gene_node_type_index).unwrap();
-
-    let genes = match gene_node_type {
-        NodeType::Input => collection
-            .iter()
-            .filter(|node| node.node_type == NodeType::Input)
-            .collect::<Vec<&Node<T>>>(),
-        NodeType::Weight => collection
-            .iter()
-            .filter(|node| node.node_type == NodeType::Weight)
-            .collect::<Vec<&Node<T>>>(),
-        NodeType::Gate => collection
-            .iter()
-            .filter(|node| node.node_type == NodeType::Gate)
-            .collect::<Vec<&Node<T>>>(),
-        NodeType::Output => collection
-            .iter()
-            .filter(|node| node.node_type == NodeType::Output)
-            .collect::<Vec<&Node<T>>>(),
-        NodeType::Link => collection
-            .iter()
-            .filter(|node| node.node_type == NodeType::Link)
-            .collect::<Vec<&Node<T>>>(),
-        NodeType::Aggregate => collection
-            .iter()
-            .filter(|node| node.node_type == NodeType::Aggregate)
-            .collect::<Vec<&Node<T>>>(),
-        NodeType::Leaf => collection
-            .iter()
-            .filter(|node| node.node_type == NodeType::Leaf)
-            .collect::<Vec<&Node<T>>>(),
-    };
-
-    if genes.is_empty() {
-        return random_node_of_type(
-            collection,
-            node_types
-                .iter()
-                .filter(|nt| *nt != gene_node_type)
-                .cloned()
-                .collect(),
-        );
-    }
-
-    let index = random_provider::random::<usize>() % genes.len();
-    genes.get(index).unwrap()
-}
+//     let index = random_provider::random::<usize>() % genes.len();
+//     genes.get(index).unwrap()
+// }

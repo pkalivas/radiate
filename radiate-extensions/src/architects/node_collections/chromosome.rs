@@ -5,23 +5,33 @@ use std::ops::{Index, IndexMut};
 use std::rc::Rc;
 use std::sync::Arc;
 
+type AlleleStore<T> = Option<Arc<Box<Vec<T>>>>;
+
 #[derive(Clone, Default)]
 pub struct NodeChrom<N>
 where
     N: Gene,
+    N::Allele: Clone,
 {
     nodes: Vec<N>,
     constraint: Option<Arc<Box<dyn Fn(&N) -> bool>>>,
+    providers: AlleleStore<N::Allele>,
+    internals: AlleleStore<N::Allele>,
+    outputs: AlleleStore<N::Allele>,
 }
 
 impl<N> NodeChrom<N>
 where
     N: Gene,
+    N::Allele: Clone,
 {
     pub fn new(nodes: Vec<N>) -> Self {
         NodeChrom {
             nodes,
             constraint: None,
+            providers: None,
+            internals: None,
+            outputs: None,
         }
     }
 
@@ -29,13 +39,20 @@ where
         nodes: Vec<N>,
         constraint: Option<Arc<Box<dyn Fn(&N) -> bool>>>,
     ) -> Self {
-        NodeChrom { nodes, constraint }
+        NodeChrom {
+            nodes,
+            constraint,
+            providers: None,
+            internals: None,
+            outputs: None,
+        }
     }
 }
 
 impl<N> Chromosome for NodeChrom<N>
 where
     N: Gene,
+    N::Allele: Clone,
 {
     type Gene = N;
 
@@ -43,6 +60,9 @@ where
         NodeChrom {
             nodes: genes,
             constraint: None,
+            providers: None,
+            internals: None,
+            outputs: None,
         }
     }
 
@@ -58,6 +78,7 @@ where
 impl<N> Valid for NodeChrom<N>
 where
     N: Gene,
+    N::Allele: Clone,
 {
     fn is_valid(&self) -> bool {
         for gene in &self.nodes {
@@ -77,6 +98,7 @@ where
 impl<N> PartialEq for NodeChrom<N>
 where
     N: Gene,
+    N::Allele: Clone,
 {
     fn eq(&self, other: &Self) -> bool {
         self.nodes == other.nodes

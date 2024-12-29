@@ -150,7 +150,13 @@ impl<T: Clone + Default> Tracer<T> {
             self.result = Some(T::default());
         }
 
-        self.result = Some(node.cell.value.apply(&self.args));
+        if node.is_provider() {
+            self.result = Some(self.args[0].clone());
+        } else {
+            self.result = Some(node.cell.value.apply(&self.args));
+        }
+
+        // self.result = Some(node.cell.value.apply(&self.args));
 
         // self.result = match &node.value {
         //     Expr::Const(_, ref value) => Some(value.clone()),
