@@ -128,6 +128,7 @@ where
 {
     fn encode(&self) -> Genotype<NodeChromosome<T>> {
         let reader = self.factory.borrow();
+
         let nodes = self
             .nodes
             .iter()

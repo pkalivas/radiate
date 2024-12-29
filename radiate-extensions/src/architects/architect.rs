@@ -102,13 +102,13 @@ where
 
                 match node.node_type() {
                     NodeType::Input => {
-                        if node.incoming().is_empty() {
+                        if !node.incoming().is_empty() {
                             node.node_type = NodeType::Aggregate;
                             node.value = temp_node.value.clone();
                         }
                     }
                     NodeType::Output => {
-                        if node.outgoing().is_empty() {
+                        if !node.outgoing().is_empty() {
                             node.node_type = NodeType::Aggregate;
                             node.value = temp_node.value.clone();
                         }
