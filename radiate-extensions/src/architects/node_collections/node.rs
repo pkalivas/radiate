@@ -177,94 +177,94 @@ impl<T> Valid for TreeNode<T> {
     }
 }
 
-#[derive(Clone, PartialEq)]
-pub struct GraphNode<T> {
-    pub value: Expr<T>,
-    pub id: Uuid,
-    pub enabled: bool,
-    pub direction: Direction,
-    pub index: usize,
-    pub incoming: HashSet<usize>,
-    pub outgoing: HashSet<usize>,
-}
+// #[derive(Clone, PartialEq)]
+// pub struct GraphNode<T> {
+//     pub value: Expr<T>,
+//     pub id: Uuid,
+//     pub enabled: bool,
+//     pub direction: Direction,
+//     pub index: usize,
+//     pub incoming: HashSet<usize>,
+//     pub outgoing: HashSet<usize>,
+// }
 
-impl<T> GraphNode<T> {
-    pub fn new(index: usize, value: Expr<T>) -> Self {
-        GraphNode {
-            value,
-            index,
-            id: Uuid::new_v4(),
-            enabled: true,
-            direction: Direction::Forward,
-            incoming: HashSet::new(),
-            outgoing: HashSet::new(),
-        }
-    }
+// impl<T> GraphNode<T> {
+//     pub fn new(index: usize, value: Expr<T>) -> Self {
+//         GraphNode {
+//             value,
+//             index,
+//             id: Uuid::new_v4(),
+//             enabled: true,
+//             direction: Direction::Forward,
+//             incoming: HashSet::new(),
+//             outgoing: HashSet::new(),
+//         }
+//     }
 
-    pub fn incoming(&self) -> &HashSet<usize> {
-        &self.incoming
-    }
+//     pub fn incoming(&self) -> &HashSet<usize> {
+//         &self.incoming
+//     }
 
-    pub fn outgoing(&self) -> &HashSet<usize> {
-        &self.outgoing
-    }
+//     pub fn outgoing(&self) -> &HashSet<usize> {
+//         &self.outgoing
+//     }
 
-    pub fn incoming_mut(&mut self) -> &mut HashSet<usize> {
-        &mut self.incoming
-    }
+//     pub fn incoming_mut(&mut self) -> &mut HashSet<usize> {
+//         &mut self.incoming
+//     }
 
-    pub fn outgoing_mut(&mut self) -> &mut HashSet<usize> {
-        &mut self.outgoing
-    }
-}
+//     pub fn outgoing_mut(&mut self) -> &mut HashSet<usize> {
+//         &mut self.outgoing
+//     }
+// }
 
-impl<T> Gene for GraphNode<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    type Allele = Expr<T>;
+// impl<T> Gene for GraphNode<T>
+// where
+//     T: Clone + PartialEq + Default,
+// {
+//     type Allele = Expr<T>;
 
-    fn allele(&self) -> &Self::Allele {
-        &self.value
-    }
+//     fn allele(&self) -> &Self::Allele {
+//         &self.value
+//     }
 
-    fn new_instance(&self) -> Self {
-        GraphNode {
-            value: self.value.new_instance(),
-            id: Uuid::new_v4(),
-            index: self.index,
-            enabled: self.enabled,
-            direction: self.direction,
-            incoming: self.incoming.clone(),
-            outgoing: self.outgoing.clone(),
-        }
-    }
+//     fn new_instance(&self) -> Self {
+//         GraphNode {
+//             value: self.value.new_instance(),
+//             id: Uuid::new_v4(),
+//             index: self.index,
+//             enabled: self.enabled,
+//             direction: self.direction,
+//             incoming: self.incoming.clone(),
+//             outgoing: self.outgoing.clone(),
+//         }
+//     }
 
-    fn with_allele(&self, allele: &Self::Allele) -> Self {
-        GraphNode {
-            value: allele.clone(),
-            id: Uuid::new_v4(),
-            index: self.index,
-            enabled: self.enabled,
-            direction: self.direction,
-            incoming: self.incoming.clone(),
-            outgoing: self.outgoing.clone(),
-        }
-    }
-}
+//     fn with_allele(&self, allele: &Self::Allele) -> Self {
+//         GraphNode {
+//             value: allele.clone(),
+//             id: Uuid::new_v4(),
+//             index: self.index,
+//             enabled: self.enabled,
+//             direction: self.direction,
+//             incoming: self.incoming.clone(),
+//             outgoing: self.outgoing.clone(),
+//         }
+//     }
+// }
 
-impl<T> Valid for GraphNode<T>
-where
-    T: Clone + PartialEq,
-{
-    fn is_valid(&self) -> bool {
-        match self.value.arity() {
-            Arity::Zero => self.incoming.is_empty() && !self.outgoing.is_empty(),
-            Arity::Nary(n) => self.incoming.len() == n as usize && self.outgoing.len() > 0,
-            Arity::Any => true,
-        }
-    }
-}
+// impl<T> Valid for GraphNode<T>
+// where
+//     T: Clone + PartialEq,
+// {
+//     fn is_valid(&self) -> bool {
+//         match self.value.arity() {
+//             Arity::Zero => self.incoming.is_empty() && !self.outgoing.is_empty(),
+//             Arity::Nary(n) => self.incoming.len() == n as usize && self.outgoing.len() > 0,
+//             Arity::Any => true,
+//         }
+//     }
+// }
 
 pub struct Node<T> {
     pub id: Uuid,

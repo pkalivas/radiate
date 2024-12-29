@@ -1,12 +1,7 @@
-use crate::expr::Expr;
-use crate::node::Node;
-use crate::schema::collection_type::CollectionType;
-use crate::{NodeChrom, NodeChromosome, TreeNode};
+use crate::{NodeChrom, TreeNode};
 use radiate::alter::AlterType;
-use radiate::{random_provider, Alter, Chromosome, Valid};
-use std::collections::{HashMap, HashSet};
+use radiate::{random_provider, Alter, Chromosome};
 use std::fmt::Debug;
-use uuid::Uuid;
 
 pub struct TreeCrossover {
     pub rate: f32,
