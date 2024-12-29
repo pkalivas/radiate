@@ -157,14 +157,6 @@ impl<T> Valid for TreeNode<T> {
                         return false;
                     }
                 }
-                Arity::Ranged(min, max) => {
-                    if node.children.is_none()
-                        || node.children.as_ref().unwrap().len() < min as usize
-                        || node.children.as_ref().unwrap().len() > max as usize
-                    {
-                        return false;
-                    }
-                }
                 Arity::Any => {}
             }
         }
