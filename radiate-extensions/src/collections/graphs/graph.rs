@@ -2,7 +2,7 @@ use std::collections::{HashSet, VecDeque};
 use std::ops::{Index, IndexMut};
 
 use super::GraphIterator;
-use crate::collections::graphs::mutation::GraphTransaction;
+use crate::collections::graphs::modifier::GraphTransaction;
 use crate::collections::{Direction, GraphNode, NodeType};
 use crate::ops::operation::Arity;
 use radiate::{random_provider, Valid};

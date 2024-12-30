@@ -5,7 +5,7 @@ const MAX_INDEX: i32 = 500;
 const MIN_SCORE: f32 = 0.01;
 
 fn main() {
-    let graph_codex = GraphCodex::regression(1, 1).set_outputs(vec![Operation::sigmoid()]);
+    let graph_codex = GraphCodex::regression(1, 1).with_output(Operation::sigmoid());
     // .set_nodes(|arc, _| arc.acyclic(1, 1));
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
@@ -15,7 +15,7 @@ fn main() {
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
-            NodeMutator::new(0.01, 0.05),
+            OperationMutator::new(0.01, 0.05),
             GraphMutator::new(vec![
                 NodeMutate::Recurrent(NodeType::Edge, 0.05),
                 NodeMutate::Recurrent(NodeType::Vertex, 0.05),
@@ -48,7 +48,7 @@ fn display(result: &EngineContext<GraphChromosome<f32>, Graph<f32>>) {
     println!("{:?}", result)
 }
 
-fn get_sample_set() -> DataSet<f32> {
+fn get_sample_set() -> DataSet {
     let inputs = vec![
         vec![0.0],
         vec![0.0],

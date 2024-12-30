@@ -1,10 +1,15 @@
+pub mod crossover;
 pub mod graphs;
+pub mod mutator;
 pub mod node_factory;
 pub mod reducers;
 pub mod trees;
 
 use crate::ops::Operation;
+
+pub use crossover::{GraphCrossover, NodeCrossover, TreeCrossover};
 pub use graphs::{Direction, Graph, GraphChromosome, GraphCodex, GraphNode, NodeType};
+pub use mutator::{GraphMutator, NodeMutate, OperationMutator};
 pub use node_factory::*;
 use radiate::random_provider;
 pub use reducers::*;
@@ -19,12 +24,6 @@ pub trait Builder {
 pub trait Factory<T> {
     type Input;
     fn new_instance(&self, input: Self::Input) -> T;
-}
-
-pub trait Generator {
-    type Input;
-    type Output;
-    fn generate(&self, input: Self::Input) -> Self::Output;
 }
 
 impl<T> Factory<GraphNode<T>> for HashMap<NodeType, Vec<Operation<T>>>

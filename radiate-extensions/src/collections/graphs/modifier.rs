@@ -97,14 +97,17 @@ impl<'a, T: Clone + Default + PartialEq> GraphTransaction<'a, T> {
 }
 
 // updated GraphMutator implementation
-impl<T: Clone + PartialEq + Default> GraphMutator<T> {
-    pub fn add_node(
+impl GraphMutator {
+    pub fn add_node<T>(
         &self,
         graph: &mut Graph<T>,
         node_type: &NodeType,
         factory: &NodeFactory<T>,
         recurrent: bool,
-    ) -> bool {
+    ) -> bool
+    where
+        T: Clone + Default + PartialEq,
+    {
         let mut transaction = GraphTransaction::new(graph);
 
         if !self.try_add_node(&mut transaction, node_type, factory, recurrent) {
@@ -115,13 +118,16 @@ impl<T: Clone + PartialEq + Default> GraphMutator<T> {
         true
     }
 
-    fn try_add_node(
+    fn try_add_node<T>(
         &self,
         transaction: &mut GraphTransaction<T>,
         node_type: &NodeType,
         factory: &NodeFactory<T>,
         is_recurrent: bool,
-    ) -> bool {
+    ) -> bool
+    where
+        T: Clone + Default + PartialEq,
+    {
         let source_node_index = graphs::random_source_node(&transaction.graph.nodes).index;
         let target_node_index = graphs::random_target_node(&transaction.graph.nodes).index;
 
@@ -157,14 +163,17 @@ impl<T: Clone + PartialEq + Default> GraphMutator<T> {
         }
     }
 
-    fn try_edge_insertion(
+    fn try_edge_insertion<T>(
         &self,
         transaction: &mut GraphTransaction<T>,
         source_node: usize,
         target_node: usize,
         node_type: &NodeType,
         factory: &NodeFactory<T>,
-    ) -> bool {
+    ) -> bool
+    where
+        T: Clone + Default + PartialEq,
+    {
         let new_source_edge_index = transaction.graph.nodes.len();
         let new_node_index = transaction.graph.nodes.len() + 1;
         let new_target_edge_index = transaction.graph.nodes.len() + 2;
@@ -210,14 +219,17 @@ impl<T: Clone + PartialEq + Default> GraphMutator<T> {
         self.complete_node_arity(transaction, new_node_index, false)
     }
 
-    fn try_backward_edge_insertion(
+    fn try_backward_edge_insertion<T>(
         &self,
         transaction: &mut GraphTransaction<T>,
         source_idx: usize,
         target_idx: usize,
         node_type: &NodeType,
         factory: &NodeFactory<T>,
-    ) -> bool {
+    ) -> bool
+    where
+        T: Clone + Default + PartialEq,
+    {
         let new_source_edge_index = transaction.graph.nodes.len();
         let new_node_index = transaction.graph.nodes.len() + 1;
         let new_target_edge_index = transaction.graph.nodes.len() + 2;
@@ -308,7 +320,7 @@ impl<T: Clone + PartialEq + Default> GraphMutator<T> {
         }
     }
 
-    fn try_normal_insertion(
+    fn try_normal_insertion<T>(
         &self,
         transaction: &mut GraphTransaction<T>,
         source_node: usize,
@@ -316,7 +328,10 @@ impl<T: Clone + PartialEq + Default> GraphMutator<T> {
         node_type: &NodeType,
         factory: &NodeFactory<T>,
         is_recurrent: bool,
-    ) -> bool {
+    ) -> bool
+    where
+        T: Clone + Default + PartialEq,
+    {
         if !graphs::can_connect(
             &transaction.graph.nodes,
             source_node,
@@ -340,12 +355,15 @@ impl<T: Clone + PartialEq + Default> GraphMutator<T> {
         self.complete_node_arity(transaction, node_index, is_recurrent)
     }
 
-    fn complete_node_arity(
+    fn complete_node_arity<T>(
         &self,
         transaction: &mut GraphTransaction<T>,
         node_index: usize,
         is_recurrent: bool,
-    ) -> bool {
+    ) -> bool
+    where
+        T: Clone + Default + PartialEq,
+    {
         let arity = transaction.graph.nodes[node_index].value.arity();
 
         match arity {

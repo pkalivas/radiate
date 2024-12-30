@@ -4,7 +4,7 @@ mod chromosome;
 mod codex;
 mod graph;
 mod iter;
-mod mutation;
+mod modifier;
 mod node;
 
 pub use chromosome::GraphChromosome;

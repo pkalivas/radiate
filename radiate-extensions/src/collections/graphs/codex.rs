@@ -55,23 +55,23 @@ where
         self
     }
 
-    pub fn set_vertices(self, vertices: Vec<Operation<T>>) -> Self {
+    pub fn with_vertices(self, vertices: Vec<Operation<T>>) -> Self {
         self.set_values(NodeType::Vertex, vertices);
         self
     }
 
-    pub fn set_edges(self, edges: Vec<Operation<T>>) -> Self {
+    pub fn with_edges(self, edges: Vec<Operation<T>>) -> Self {
         self.set_values(NodeType::Edge, edges);
         self
     }
 
-    pub fn set_inputs(self, inputs: Vec<Operation<T>>) -> Self {
+    pub fn with_inputs(self, inputs: Vec<Operation<T>>) -> Self {
         self.set_values(NodeType::Input, inputs);
         self
     }
 
-    pub fn set_outputs(self, outputs: Vec<Operation<T>>) -> Self {
-        self.set_values(NodeType::Output, outputs);
+    pub fn with_output(self, outputs: Operation<T>) -> Self {
+        self.set_values(NodeType::Output, vec![outputs]);
         self
     }
 
