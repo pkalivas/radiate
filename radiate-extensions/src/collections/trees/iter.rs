@@ -114,6 +114,7 @@ mod tests {
     use super::*;
     use crate::collections::{Tree, TreeNode};
     use crate::ops::operation;
+    use crate::Operation;
 
     #[test]
     fn test_tree_traversal() {
@@ -123,13 +124,13 @@ mod tests {
         //     2   3
         //    /
         //   4
-        let leaf = operation::value(4.0);
-        let node2 = TreeNode::with_children(operation::value(2.0), vec![TreeNode::new(leaf)]);
+        let leaf = Operation::value(4.0);
+        let node2 = TreeNode::with_children(Operation::value(2.0), vec![TreeNode::new(leaf)]);
 
-        let node3 = TreeNode::new(operation::value(3.0));
+        let node3 = TreeNode::new(Operation::value(3.0));
 
         let root = Tree::new(TreeNode::with_children(
-            operation::add(),
+            Operation::value(1.0),
             vec![node2, node3],
         ));
 
@@ -138,7 +139,7 @@ mod tests {
             .iter_pre_order()
             .map(|n| match &n.value {
                 operation::Operation::Const(_, v) => *v,
-                _ => panic!("Expected constant"),
+                _ => panic!("Expected constant but got {:?}", n.value),
             })
             .collect();
         assert_eq!(pre_order, vec![1.0, 2.0, 4.0, 3.0]);

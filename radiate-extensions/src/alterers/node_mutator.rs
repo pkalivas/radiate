@@ -60,8 +60,8 @@ where
 
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<T>) -> i32 {
-        let two = T::from(2).unwrap();
-        let one = T::from(1).unwrap();
+        let two = T::from(0.1).unwrap();
+        let one = T::from(0.05).unwrap();
 
         let mutation_indexes = (0..chromosome.len())
             .filter(|_| random_provider::random::<f32>() < self.rate)

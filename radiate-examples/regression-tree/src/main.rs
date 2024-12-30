@@ -1,5 +1,5 @@
 use radiate::*;
-use radiate_extensions::ops::operation;
+
 use radiate_extensions::*;
 
 const MIN_SCORE: f32 = 0.01;
@@ -9,8 +9,8 @@ fn main() {
     // set_seed(200);
     let graph_codex = TreeCodex::new(3)
         .constraint(|node| node.size() < 30)
-        .gates(vec![operation::add(), operation::sub(), operation::mul()])
-        .leafs(vec![operation::var(0)]);
+        .gates(vec![Operation::add(), Operation::sub(), Operation::mul()])
+        .leafs(vec![Operation::var(0)]);
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 

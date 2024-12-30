@@ -84,7 +84,7 @@ where
 impl GraphCodex<f32> {
     pub fn regression(input_size: usize, output_size: usize) -> Self {
         let factory = NodeFactory::<f32>::regression(input_size);
-        let nodes = GraphBuilder::<f32>::regression(input_size).acyclic(input_size, output_size);
+        let nodes = GraphBuilder::<f32>::new(&factory).acyclic(input_size, output_size);
         GraphCodex::<f32>::from_graph(nodes, &factory)
     }
 }

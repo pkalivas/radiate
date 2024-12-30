@@ -46,10 +46,6 @@ impl<T> GraphNode<T> {
         &self.node_type
     }
 
-    pub fn value(&self) -> &Operation<T> {
-        &self.value
-    }
-
     pub fn is_recurrent(&self) -> bool {
         self.direction == Direction::Backward
             || self.incoming.contains(&self.index)

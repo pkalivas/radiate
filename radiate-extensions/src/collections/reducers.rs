@@ -189,16 +189,14 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::ops::operation::{self};
-
     use super::*;
 
     #[test]
     fn test_tree_reduce_simple() {
-        let mut root = TreeNode::new(operation::add());
+        let mut root = TreeNode::new(Operation::add());
 
-        root.add_child(TreeNode::new(operation::value(1.0)));
-        root.add_child(TreeNode::new(operation::value(2.0)));
+        root.add_child(TreeNode::new(Operation::value(1.0)));
+        root.add_child(TreeNode::new(Operation::value(2.0)));
 
         let result = root.reduce(&vec![]);
 
@@ -207,15 +205,15 @@ mod tests {
 
     #[test]
     fn test_tree_reduce_complex() {
-        let mut root = TreeNode::new(operation::add());
+        let mut root = TreeNode::new(Operation::add());
 
-        let mut left = TreeNode::new(operation::mul());
-        left.add_child(TreeNode::new(operation::value(2.0)));
-        left.add_child(TreeNode::new(operation::value(3.0)));
+        let mut left = TreeNode::new(Operation::mul());
+        left.add_child(TreeNode::new(Operation::value(2.0)));
+        left.add_child(TreeNode::new(Operation::value(3.0)));
 
-        let mut right = TreeNode::new(operation::add());
-        right.add_child(TreeNode::new(operation::value(2.0)));
-        right.add_child(TreeNode::new(operation::var(0)));
+        let mut right = TreeNode::new(Operation::add());
+        right.add_child(TreeNode::new(Operation::value(2.0)));
+        right.add_child(TreeNode::new(Operation::var(0)));
 
         root.add_child(left);
         root.add_child(right);
