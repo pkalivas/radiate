@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use radiate::*;
-    use radiate_extensions::*;
+    use radiate_extensions::collections::{GraphCodex, GraphReducer, NodeFactory};
 
     #[test]
     fn test_graph() {
@@ -24,14 +24,14 @@ mod tests {
 
     #[test]
     fn test_acyclic_graph() {
-        let factory = NodeFactory::<f32>::regression(2);
-        let architect = GraphBuilder::<f32>::new(&factory);
+        // let factory = OpStore::<f32>::regression(2);
+        // let architect = GraphBuilder::<f32>::new(&factory);
 
-        let graph = architect.weighted_cyclic(2, 2, 2);
+        // let graph = architect.weighted_cyclic(2, 2, 2);
 
-        for node in graph.get_nodes() {
-            println!("{:?}", node);
-        }
+        // for node in graph.get_nodes() {
+        //     println!("{:?}", node);
+        // }
     }
 
     #[test]

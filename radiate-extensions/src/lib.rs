@@ -1,7 +1,8 @@
 pub mod alterers;
-pub mod architects;
+pub mod collections;
+pub mod ops;
 pub mod problems;
 
 pub use alterers::*;
-pub use architects::*;
+pub use collections::*;
 pub use problems::*;

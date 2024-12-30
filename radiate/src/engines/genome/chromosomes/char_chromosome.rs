@@ -9,10 +9,6 @@ pub struct CharChromosome {
 impl Chromosome for CharChromosome {
     type Gene = CharGene;
 
-    fn from_genes(genes: Vec<CharGene>) -> Self {
-        CharChromosome { genes }
-    }
-
     fn get_genes(&self) -> &[CharGene] {
         &self.genes
     }

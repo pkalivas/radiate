@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{NodeChromosome, NodeType};
+use crate::collections::{NodeChromosome, NodeType};
 use radiate::alter::AlterType;
 use radiate::engines::alterers::Alter;
 use radiate::engines::genome::*;
@@ -56,7 +56,7 @@ where
             let node_one = chromo_one.get_gene(i);
             let node_two = chromo_two.get_gene(i);
 
-            if node_one.node_type != NodeType::Weight || node_two.node_type != NodeType::Weight {
+            if node_one.node_type != NodeType::Edge || node_two.node_type != NodeType::Edge {
                 continue;
             }
 

@@ -31,7 +31,7 @@ use crate::Valid;
 pub trait Chromosome: Clone + PartialEq + Valid {
     type Gene: Gene;
 
-    fn from_genes(genes: Vec<Self::Gene>) -> Self;
+    // fn from_genes(genes: Vec<Self::Gene>) -> Self;
     fn get_genes(&self) -> &[Self::Gene];
     fn get_genes_mut(&mut self) -> &mut [Self::Gene];
 

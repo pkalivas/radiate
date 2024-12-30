@@ -111,11 +111,11 @@ impl Codex<FloatChromosome, NeuralNet> for NeuralNetCodex {
     fn encode(&self) -> Genotype<FloatChromosome> {
         let mut chromosomes = Vec::<FloatChromosome>::new();
         for shape in &self.shapes {
-            chromosomes.push(FloatChromosome::from_genes(
-                (0..shape.0 * shape.1)
+            chromosomes.push(FloatChromosome {
+                genes: (0..shape.0 * shape.1)
                     .map(|_| FloatGene::new(-1.0, 1.0))
                     .collect::<Vec<FloatGene>>(),
-            ));
+            });
         }
 
         Genotype::from_chromosomes(chromosomes)

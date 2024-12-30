@@ -1,7 +1,5 @@
-use super::{Graph, Tree};
-use crate::node::GraphNode;
-use crate::operation::Operation;
-use crate::{NodeType, TreeNode};
+use super::{Graph, GraphNode, NodeType, Tree, TreeNode};
+use crate::ops::operation::Operation;
 
 pub trait Reduce<T> {
     type Input;
@@ -172,7 +170,6 @@ where
             Operation::MutableConst {
                 value, operation, ..
             } => Some(operation(&self.args, value)),
-            Operation::Aggregate(_, ref fn_ptr) => Some(fn_ptr(&self.args)),
         };
 
         self.pending_idx = 0;
@@ -186,14 +183,15 @@ where
 {
     match node.node_type {
         NodeType::Input => 1,
-        NodeType::Gate => *node.value.arity() as usize,
         _ => node.incoming.len(),
+        // NodeType::Gate => *node.value.arity() as usize,
+        // _ => node.incoming.len(),
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::operation::{self};
+    use crate::ops::operation::{self};
 
     use super::*;
 

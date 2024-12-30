@@ -1,12 +1,12 @@
-use crate::architects::node_collections::node::GraphNode;
-use crate::operation::Operation;
-use crate::{operation, NodeType};
+use crate::collections::{GraphNode, NodeType};
+use crate::ops::operation;
+use crate::ops::operation::Operation;
 use radiate::random_provider;
 use std::collections::HashMap;
 
 #[derive(Default, Clone, PartialEq, Debug)]
 pub struct NodeFactory<T: Clone> {
-    node_values: HashMap<NodeType, Vec<Operation<T>>>,
+    pub node_values: HashMap<NodeType, Vec<Operation<T>>>,
 }
 
 impl<T> NodeFactory<T>
@@ -29,23 +29,13 @@ where
         self
     }
 
-    pub fn gates(mut self, values: Vec<Operation<T>>) -> NodeFactory<T> {
-        self.add_node_values(NodeType::Gate, values);
+    pub fn vertices(mut self, values: Vec<Operation<T>>) -> NodeFactory<T> {
+        self.add_node_values(NodeType::Vertex, values);
         self
     }
 
-    pub fn aggregates(mut self, values: Vec<Operation<T>>) -> NodeFactory<T> {
-        self.add_node_values(NodeType::Aggregate, values);
-        self
-    }
-
-    pub fn weights(mut self, values: Vec<Operation<T>>) -> NodeFactory<T> {
-        self.add_node_values(NodeType::Weight, values);
-        self
-    }
-
-    pub fn set_values(mut self, node_type: NodeType, values: Vec<Operation<T>>) -> NodeFactory<T> {
-        self.add_node_values(node_type, values);
+    pub fn edges(mut self, values: Vec<Operation<T>>) -> NodeFactory<T> {
+        self.add_node_values(NodeType::Edge, values);
         self
     }
 
@@ -79,7 +69,7 @@ where
             .collect::<Vec<Operation<f32>>>();
         NodeFactory::new()
             .inputs(inputs.clone())
-            .gates(vec![
+            .vertices(vec![
                 operation::add(),
                 operation::sub(),
                 operation::mul(),
@@ -92,22 +82,14 @@ where
                 operation::sin(),
                 operation::cos(),
                 operation::tan(),
-                operation::sum(),
-                operation::prod(),
-                operation::max(),
-                operation::min(),
                 operation::ceil(),
                 operation::floor(),
                 operation::gt(),
                 operation::lt(),
-            ])
-            .aggregates(vec![
                 operation::sigmoid(),
                 operation::tanh(),
                 operation::relu(),
                 operation::linear(),
-                operation::sum(),
-                operation::prod(),
                 operation::max(),
                 operation::min(),
                 operation::mish(),
@@ -116,7 +98,7 @@ where
                 operation::sum(),
                 operation::prod(),
             ])
-            .weights(vec![operation::weight()])
+            .edges(vec![operation::weight(), operation::identity()])
             .outputs(vec![operation::linear()])
     }
 }

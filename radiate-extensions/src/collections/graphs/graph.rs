@@ -1,19 +1,32 @@
-use std::collections::{HashSet, VecDeque};
-
-use radiate::{random_provider, Valid};
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::ops::{Index, IndexMut};
+use std::sync::Arc;
 
 use super::GraphIterator;
-use crate::node::GraphNode;
-use crate::{Direction, NodeType};
+use crate::collections::{Direction, GraphNode, NodeType};
+use radiate::{random_provider, Chromosome, Valid};
+
+use crate::ops::operation::Arity;
+use crate::ops::Operation;
+
+type NodeFactory<T> = Option<Arc<HashMap<NodeType, Vec<Operation<T>>>>>;
 
 #[derive(Clone, PartialEq, Default)]
 pub struct Graph<T> {
-    nodes: Vec<GraphNode<T>>,
+    pub nodes: Vec<GraphNode<T>>,
+    factory: NodeFactory<T>,
 }
 
 impl<T> Graph<T> {
     pub fn new(nodes: Vec<GraphNode<T>>) -> Self {
-        Graph { nodes }
+        Graph {
+            nodes,
+            factory: None,
+        }
+    }
+
+    pub fn with_factory(nodes: Vec<GraphNode<T>>, factory: NodeFactory<T>) -> Self {
+        Graph { nodes, factory }
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &GraphNode<T>> {
@@ -44,31 +57,15 @@ impl<T> Graph<T> {
         self.nodes.get(index).unwrap()
     }
 
-    pub fn get_nodes(&self) -> &[GraphNode<T>] {
-        &self.nodes
-    }
-
-    pub fn get_nodes_mut(&mut self) -> &mut [GraphNode<T>] {
-        &mut self.nodes
-    }
-
     pub fn attach(&mut self, incoming: usize, outgoing: usize) -> &mut Self {
-        self.get_nodes_mut()[incoming]
-            .outgoing_mut()
-            .insert(outgoing);
-        self.get_nodes_mut()[outgoing]
-            .incoming_mut()
-            .insert(incoming);
+        self.as_mut()[incoming].outgoing_mut().insert(outgoing);
+        self.as_mut()[outgoing].incoming_mut().insert(incoming);
         self
     }
 
     pub fn detach(&mut self, incoming: usize, outgoing: usize) -> &mut Self {
-        self.get_nodes_mut()[incoming]
-            .outgoing_mut()
-            .remove(&outgoing);
-        self.get_nodes_mut()[outgoing]
-            .incoming_mut()
-            .remove(&incoming);
+        self.as_mut()[incoming].outgoing_mut().remove(&outgoing);
+        self.as_mut()[outgoing].incoming_mut().remove(&incoming);
         self
     }
 
@@ -101,9 +98,18 @@ impl<T> Graph<T> {
     }
 }
 
-impl<T> AsRef<[GraphNode<T>]> for Graph<T> {
-    fn as_ref(&self) -> &[GraphNode<T>] {
+impl<T> Chromosome for Graph<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    type Gene = GraphNode<T>;
+
+    fn get_genes(&self) -> &[GraphNode<T>] {
         &self.nodes
+    }
+
+    fn get_genes_mut(&mut self) -> &mut [GraphNode<T>] {
+        &mut self.nodes
     }
 }
 
@@ -113,6 +119,32 @@ where
 {
     fn is_valid(&self) -> bool {
         self.nodes.iter().all(|node| node.is_valid())
+    }
+}
+
+impl<T> AsRef<[GraphNode<T>]> for Graph<T> {
+    fn as_ref(&self) -> &[GraphNode<T>] {
+        &self.nodes
+    }
+}
+
+impl<T> AsMut<[GraphNode<T>]> for Graph<T> {
+    fn as_mut(&mut self) -> &mut [GraphNode<T>] {
+        &mut self.nodes
+    }
+}
+
+impl<T> Index<usize> for Graph<T> {
+    type Output = GraphNode<T>;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        self.nodes.get(index).expect("Index out of bounds.")
+    }
+}
+
+impl<T> IndexMut<usize> for Graph<T> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        self.nodes.get_mut(index).expect("Index out of bounds.")
     }
 }
 
@@ -134,7 +166,7 @@ where
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Graph {{\n")?;
-        for node in self.get_nodes() {
+        for node in self.as_ref() {
             write!(f, "  {:?},\n", node)?;
         }
         write!(f, "}}")
@@ -240,7 +272,7 @@ pub fn can_connect<T>(
 
     let would_create_cycle = recurrent || !would_create_cycle(collection, source, target);
     let nodes_are_weights =
-        source_node.node_type == NodeType::Weight || target_node.node_type == NodeType::Weight;
+        source_node.node_type == NodeType::Edge || target_node.node_type == NodeType::Edge;
 
     would_create_cycle && !nodes_are_weights && source != target
 }
@@ -279,24 +311,21 @@ pub fn would_create_cycle<T>(collection: &[GraphNode<T>], source: usize, target:
 }
 
 pub fn is_locked<T>(node: &GraphNode<T>) -> bool {
-    if node.node_type == NodeType::Aggregate || node.node_type == NodeType::Output {
+    if node.value.arity() == Arity::Any {
         return false;
     }
 
-    node.incoming.len() == *node.value.arity() as usize
+    node.incoming.len() == *node.value.arity()
 }
 
 #[inline]
 pub fn random_source_node<T>(collection: &[GraphNode<T>]) -> &GraphNode<T> {
-    random_node_of_type(
-        collection,
-        vec![NodeType::Input, NodeType::Gate, NodeType::Aggregate],
-    )
+    random_node_of_type(collection, vec![NodeType::Input, NodeType::Vertex])
 }
 
 #[inline]
 pub fn random_target_node<T>(collection: &[GraphNode<T>]) -> &GraphNode<T> {
-    random_node_of_type(collection, vec![NodeType::Output, NodeType::Aggregate])
+    random_node_of_type(collection, vec![NodeType::Output, NodeType::Vertex])
 }
 
 #[inline]
@@ -313,21 +342,17 @@ fn random_node_of_type<T>(collection: &[GraphNode<T>], node_types: Vec<NodeType>
             .iter()
             .filter(|node| node.node_type == NodeType::Input)
             .collect::<Vec<&GraphNode<T>>>(),
-        NodeType::Weight => collection
-            .iter()
-            .filter(|node| node.node_type == NodeType::Weight)
-            .collect::<Vec<&GraphNode<T>>>(),
-        NodeType::Gate => collection
-            .iter()
-            .filter(|node| node.node_type == NodeType::Gate)
-            .collect::<Vec<&GraphNode<T>>>(),
         NodeType::Output => collection
             .iter()
             .filter(|node| node.node_type == NodeType::Output)
             .collect::<Vec<&GraphNode<T>>>(),
-        NodeType::Aggregate => collection
+        NodeType::Vertex => collection
             .iter()
-            .filter(|node| node.node_type == NodeType::Aggregate)
+            .filter(|node| node.node_type == NodeType::Vertex)
+            .collect::<Vec<&GraphNode<T>>>(),
+        NodeType::Edge => collection
+            .iter()
+            .filter(|node| node.node_type == NodeType::Edge)
             .collect::<Vec<&GraphNode<T>>>(),
     };
 

@@ -19,15 +19,6 @@ impl<A: PartialEq + Clone> PermutationChromosome<A> {
 impl<A: PartialEq + Clone> Chromosome for PermutationChromosome<A> {
     type Gene = PermutationGene<A>;
 
-    fn from_genes(genes: Vec<PermutationGene<A>>) -> Self {
-        let alleles = match genes.first() {
-            Some(gene) => Arc::clone(&gene.alleles),
-            None => Arc::new(Vec::new()),
-        };
-
-        PermutationChromosome { genes, alleles }
-    }
-
     fn get_genes(&self) -> &[PermutationGene<A>] {
         &self.genes
     }

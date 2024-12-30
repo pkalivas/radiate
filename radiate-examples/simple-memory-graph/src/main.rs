@@ -1,4 +1,6 @@
 use radiate::*;
+use radiate_extensions::collections::{Graph, GraphCodex, GraphReducer, NodeChromosome, NodeType};
+use radiate_extensions::ops::operation;
 use radiate_extensions::*;
 
 const MAX_INDEX: i32 = 500;
@@ -7,7 +9,6 @@ const MIN_SCORE: f32 = 0.01;
 fn main() {
     let graph_codex = GraphCodex::regression(1, 1)
         .set_outputs(vec![operation::sigmoid()])
-        .set_gates(vec![operation::add(), operation::sub(), operation::mul()])
         .set_nodes(|arc, _| arc.lstm(1, 1, 1));
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
@@ -19,9 +20,9 @@ fn main() {
             GraphCrossover::new(0.5, 0.5),
             NodeMutator::new(0.01, 0.05),
             GraphMutator::new(vec![
-                NodeMutate::Recurrent(NodeType::Weight, 0.05),
-                NodeMutate::Recurrent(NodeType::Aggregate, 0.03),
-                NodeMutate::Recurrent(NodeType::Gate, 0.03),
+                NodeMutate::Recurrent(NodeType::Edge, 0.05),
+                NodeMutate::Recurrent(NodeType::Vertex, 0.03),
+                // NodeMutate::Recurrent(NodeType::Gate, 0.03),
             ]),
         ))
         .fitness_fn(move |genotype: Graph<f32>| {

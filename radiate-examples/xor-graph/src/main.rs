@@ -1,4 +1,6 @@
 use radiate::*;
+use radiate_extensions::collections::{Graph, GraphCodex, GraphReducer, NodeChromosome, NodeType};
+use radiate_extensions::ops::operation;
 use radiate_extensions::*;
 
 const MAX_INDEX: i32 = 500;
@@ -15,9 +17,8 @@ fn main() {
             GraphCrossover::new(0.5, 0.5),
             NodeMutator::new(0.1, 0.05),
             GraphMutator::new(vec![
-                NodeMutate::Forward(NodeType::Weight, 0.05),
-                NodeMutate::Forward(NodeType::Aggregate, 0.03),
-                NodeMutate::Forward(NodeType::Gate, 0.03),
+                NodeMutate::Forward(NodeType::Edge, 0.05),
+                NodeMutate::Forward(NodeType::Vertex, 0.03),
             ]),
         ))
         .fitness_fn(move |genotype: Graph<f32>| {

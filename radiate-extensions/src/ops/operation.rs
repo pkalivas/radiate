@@ -1,6 +1,7 @@
 use std::{
+    fmt::Debug,
     fmt::Display,
-    ops::{Add, Deref, Div, Mul, Neg, Range, Sub},
+    ops::{Add, Deref, Div, Mul, Neg, Sub},
     sync::Arc,
 };
 
@@ -19,7 +20,6 @@ const MIN_VALUE: f32 = -1e+5_f32;
 pub enum Arity {
     Zero,
     Exact(usize),
-    Ranged(usize, usize),
     Any,
 }
 
@@ -32,12 +32,6 @@ impl From<usize> for Arity {
     }
 }
 
-impl From<Range<usize>> for Arity {
-    fn from(range: Range<usize>) -> Self {
-        Arity::Ranged(range.start, range.end)
-    }
-}
-
 impl Deref for Arity {
     type Target = usize;
 
@@ -46,16 +40,8 @@ impl Deref for Arity {
             Arity::Zero => &0,
             Arity::Exact(n) => n,
             Arity::Any => &0,
-            Arity::Ranged(start, _) => start,
         }
     }
-}
-
-pub trait Op<T: Clone> {
-    fn name(&self) -> &str;
-    fn arity(&self) -> Arity;
-    fn apply(&self, inputs: &[T]) -> T;
-    fn new_instance(&self) -> Self;
 }
 
 /// A generic operation type that can represent several kinds of “ops”.
@@ -97,12 +83,6 @@ pub enum Operation<T> {
         get_value: Arc<dyn Fn() -> T>,
         operation: Arc<dyn Fn(&[T], &T) -> T>,
     },
-    /// 5) An aggregate operation: e.g., sum, prod, max, min etc.
-    ///
-    /// # Arguments
-    ///   - `&'static str` name
-    ///  - `Arc<dyn Fn(&[T]) -> T>` for the actual function logic
-    Aggregate(&'static str, Arc<dyn Fn(&[T]) -> T>),
 }
 
 unsafe impl Send for Operation<f32> {}
@@ -115,7 +95,6 @@ impl<T> Operation<T> {
             Operation::Var(name, _) => name,
             Operation::Const(name, _) => name,
             Operation::MutableConst { name, .. } => name,
-            Operation::Aggregate(name, _) => name,
         }
     }
 
@@ -125,7 +104,6 @@ impl<T> Operation<T> {
             Operation::Var(_, _) => Arity::Zero,
             Operation::Const(_, _) => Arity::Zero,
             Operation::MutableConst { arity, .. } => *arity,
-            Operation::Aggregate(_, _) => Arity::Any,
         }
     }
 
@@ -140,7 +118,6 @@ impl<T> Operation<T> {
             Operation::MutableConst {
                 value, operation, ..
             } => operation(inputs, value),
-            Operation::Aggregate(_, op) => op(inputs),
         }
     }
 
@@ -165,7 +142,6 @@ impl<T> Operation<T> {
                 get_value: get_value.clone(),
                 operation: operation.clone(),
             },
-            Operation::Aggregate(name, op) => Operation::Aggregate(name, op.clone()),
         }
     }
 }
@@ -192,7 +168,6 @@ where
                 get_value: get_value.clone(),
                 operation: operation.clone(),
             },
-            Operation::Aggregate(name, op) => Operation::Aggregate(name, op.clone()),
         }
     }
 }
@@ -214,7 +189,7 @@ impl<T> std::fmt::Display for Operation<T> {
 
 impl<T> Default for Operation<T>
 where
-    T: Default,
+    T: Default + Clone,
 {
     fn default() -> Self {
         Operation::Const("default", T::default())
@@ -231,7 +206,6 @@ where
             Operation::Var(name, index) => write!(f, "Var: {}({})", name, index),
             Operation::Const(name, value) => write!(f, "C: {}({:?})", name, value),
             Operation::MutableConst { name, value, .. } => write!(f, "{}({:.2?})", name, value),
-            Operation::Aggregate(name, _) => write!(f, "Agg: {}", name),
         }
     }
 }
@@ -306,15 +280,17 @@ pub fn div<T: Div<Output = T> + Clone + Float>() -> Operation<T> {
 }
 
 pub fn sum<T: Add<Output = T> + Clone + Default + Float>() -> Operation<T> {
-    Operation::Aggregate(
+    Operation::Fn(
         "sum",
+        Arity::Any,
         Arc::new(|inputs: &[T]| clamp(inputs.iter().fold(T::default(), |acc, x| acc + *x))),
     )
 }
 
 pub fn prod<T: Mul<Output = T> + Clone + Default + Float>() -> Operation<T> {
-    Operation::Aggregate(
+    Operation::Fn(
         "prod",
+        Arity::Any,
         Arc::new(|inputs: &[T]| {
             let result = inputs.iter().fold(T::default(), |acc, x| acc * *x);
 
@@ -436,8 +412,9 @@ pub fn lt<T: Clone + PartialEq + PartialOrd>() -> Operation<T> {
 }
 
 pub fn max<T: Clone + PartialOrd>() -> Operation<T> {
-    Operation::Aggregate(
+    Operation::Fn(
         "max",
+        Arity::Any,
         Arc::new(|inputs: &[T]| {
             inputs.iter().fold(
                 inputs[0].clone(),
@@ -454,8 +431,9 @@ pub fn max<T: Clone + PartialOrd>() -> Operation<T> {
 }
 
 pub fn min<T: Clone + PartialOrd>() -> Operation<T> {
-    Operation::Aggregate(
+    Operation::Fn(
         "min",
+        Arity::Any,
         Arc::new(|inputs: &[T]| {
             inputs.iter().fold(
                 inputs[0].clone(),
@@ -487,67 +465,86 @@ where
     }
 }
 
+pub fn identity<T: Clone>() -> Operation<T> {
+    Operation::Fn(
+        "identity",
+        1.into(),
+        Arc::new(|inputs: &[T]| inputs[0].clone()),
+    )
+}
+
 pub fn var<T: Clone>(index: usize) -> Operation<T> {
     let var_name = Box::leak(Box::new(format!("var_{}", index)));
     Operation::Var(var_name, index)
 }
 
-pub fn sigmoid() -> Operation<f32> {
-    Operation::Aggregate(
+pub fn sigmoid<T: Float + Clone + Add<Output = T>>() -> Operation<T> {
+    Operation::Fn(
         "sigmoid",
-        Arc::new(|inputs: &[f32]| {
-            let sum = inputs.iter().fold(0_f32, |acc, x| acc + x);
-            let result = 1_f32 / (1_f32 + (-sum).exp());
+        Arity::Any,
+        Arc::new(|inputs: &[T]| {
+            let sum = inputs.iter().fold(T::zero(), |acc, x| acc + x.clone());
+            let result = T::from(1_f32).unwrap() / (T::from(1_f32).unwrap() + (-sum).exp());
             clamp(result)
         }),
     )
 }
 
-pub fn relu() -> Operation<f32> {
-    Operation::Aggregate(
+pub fn relu<T: Float + Clone + Add<Output = T>>() -> Operation<T> {
+    Operation::Fn(
         "relu",
-        Arc::new(|inputs: &[f32]| {
-            let sum = inputs.iter().fold(0_f32, |acc, x| acc + x);
+        Arity::Any,
+        Arc::new(|inputs: &[T]| {
+            let sum = inputs.iter().fold(T::zero(), |acc, x| acc + x.clone());
             let result = clamp(sum);
-            if result > 0_f32 {
+            if result > T::zero() {
                 result
             } else {
-                0_f32
+                T::zero()
             }
         }),
     )
 }
 
-pub fn tanh() -> Operation<f32> {
-    Operation::Aggregate(
+pub fn tanh<T: Float + Clone + Add<Output = T>>() -> Operation<T> {
+    Operation::Fn(
         "tanh",
-        Arc::new(|inputs: &[f32]| {
-            let result = inputs.iter().fold(0_f32, |acc, x| acc + x).tanh();
+        Arity::Any,
+        Arc::new(|inputs: &[T]| {
+            let result = inputs
+                .iter()
+                .fold(T::zero(), |acc, x| acc + x.clone())
+                .tanh();
 
             clamp(result)
         }),
     )
 }
 
-pub fn linear() -> Operation<f32> {
-    Operation::Aggregate(
+pub fn linear<T: Float + Clone + Add<Output = T>>() -> Operation<T> {
+    Operation::Fn(
         "linear",
-        Arc::new(|inputs: &[f32]| {
-            let result = inputs.iter().fold(0_f32, |acc, x| acc + x);
+        Arity::Any,
+        Arc::new(|inputs: &[T]| {
+            let result = inputs.iter().fold(T::zero(), |acc, x| acc + x.clone());
 
             clamp(result)
         }),
     )
 }
 
-pub fn mish() -> Operation<f32> {
-    Operation::Aggregate(
+pub fn mish<T: Float + Clone + Add<Output = T> + Mul<Output = T>>() -> Operation<T> {
+    Operation::Fn(
         "mish",
-        Arc::new(|inputs: &[f32]| {
-            let result = inputs.iter().fold(0_f32, |acc, x| acc + x).tanh()
+        Arity::Any,
+        Arc::new(|inputs: &[T]| {
+            let result = inputs
+                .iter()
+                .fold(T::zero(), |acc, x| acc + x.clone())
+                .tanh()
                 * (inputs
                     .iter()
-                    .fold(0_f32, |acc, x| acc + x)
+                    .fold(T::zero(), |acc, x| acc + x.clone())
                     .exp()
                     .ln_1p()
                     .exp());
@@ -557,23 +554,29 @@ pub fn mish() -> Operation<f32> {
     )
 }
 
-pub fn leaky_relu() -> Operation<f32> {
-    Operation::Aggregate(
+pub fn leaky_relu<T: Float + Clone + Add<Output = T> + Mul<Output = T>>() -> Operation<T> {
+    Operation::Fn(
         "l_relu",
-        Arc::new(|inputs: &[f32]| {
-            let sum = inputs.iter().fold(0_f32, |acc, x| acc + x);
-            let result = if sum > 0_f32 { sum } else { 0.01 * sum };
+        Arity::Any,
+        Arc::new(|inputs: &[T]| {
+            let sum = inputs.iter().fold(T::zero(), |acc, x| acc + x.clone());
+            let result = if sum > T::from(0).unwrap() {
+                sum
+            } else {
+                T::from(0.01).unwrap() * sum.clone()
+            };
 
             clamp(result)
         }),
     )
 }
 
-pub fn softplus() -> Operation<f32> {
-    Operation::Aggregate(
+pub fn softplus<T: Float + Clone + Add<Output = T>>() -> Operation<T> {
+    Operation::Fn(
         "soft_plus",
-        Arc::new(|inputs: &[f32]| {
-            let sum = inputs.iter().fold(0_f32, |acc, x| acc + x);
+        Arity::Any,
+        Arc::new(|inputs: &[T]| {
+            let sum = inputs.iter().fold(T::zero(), |acc, x| acc + x.clone());
             let result = sum.exp().ln_1p();
 
             clamp(result)

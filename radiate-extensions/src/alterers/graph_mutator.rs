@@ -1,5 +1,5 @@
-use crate::architects::node_collections::*;
-use crate::node::GraphNode;
+use crate::collections::*;
+use crate::ops::Arity;
 
 use radiate::alter::AlterType;
 use radiate::engines::alterers::Alter;
@@ -61,8 +61,8 @@ where
         node_type: &NodeType,
         factory: &NodeFactory<T>,
     ) -> Option<Vec<GraphNode<T>>> {
-        let source_node = random_source_node(collection);
-        let target_node = random_target_node(collection);
+        let source_node = graphs::random_source_node(collection);
+        let target_node = graphs::random_target_node(collection);
         let source_node_index = source_node.index;
         let target_node_index = target_node.index;
 
@@ -70,7 +70,7 @@ where
         let new_node_index = collection.len() + 1;
         let new_target_edge_index = collection.len() + 2;
 
-        if source_node.node_type == NodeType::Weight && node_type != &NodeType::Weight {
+        if source_node.node_type == NodeType::Edge && node_type != &NodeType::Edge {
             let incoming_node = collection
                 .get(*source_node.incoming.iter().next().unwrap())
                 .unwrap();
@@ -82,7 +82,7 @@ where
             let new_node = factory.new_node(new_node_index, *node_type);
             let new_target_edge = factory.new_node(new_target_edge_index, source_node.node_type);
 
-            if is_locked(outgoing_node) {
+            if graphs::is_locked(outgoing_node) {
                 let mut temp = Graph::new(
                     collection
                         .iter()
@@ -125,7 +125,7 @@ where
                     false,
                 );
             }
-        } else if !can_connect(collection, source_node.index, target_node.index, false) {
+        } else if !graphs::can_connect(collection, source_node.index, target_node.index, false) {
             return None;
         }
 
@@ -151,8 +151,8 @@ where
         node_type: &NodeType,
         factory: &NodeFactory<T>,
     ) -> Option<Vec<GraphNode<T>>> {
-        let source_node = random_source_node(collection);
-        let target_node = random_target_node(collection);
+        let source_node = graphs::random_source_node(collection);
+        let target_node = graphs::random_target_node(collection);
         let source_node_index = source_node.index;
         let target_node_index = target_node.index;
 
@@ -161,7 +161,7 @@ where
         let new_target_edge_index = collection.len() + 2;
         let recurrent_edge_index = collection.len() + 3;
 
-        if source_node.node_type == NodeType::Weight && node_type != &NodeType::Weight {
+        if source_node.node_type == NodeType::Edge && node_type != &NodeType::Edge {
             let incoming_node = collection
                 .get(*source_node.incoming.iter().next().unwrap())
                 .unwrap();
@@ -174,7 +174,7 @@ where
             let new_target_edge = factory.new_node(new_target_edge_index, source_node.node_type);
             let recurrent_edge = factory.new_node(recurrent_edge_index, source_node.node_type);
 
-            return if is_locked(outgoing_node) {
+            return if graphs::is_locked(outgoing_node) {
                 let mut temp = Graph::new(
                     collection
                         .iter()
@@ -229,7 +229,7 @@ where
 
                 self.repair_insert(temp, new_node_index, incoming_node, outgoing_node, true)
             };
-        } else if !can_connect(collection, source_node.index, target_node.index, true) {
+        } else if !graphs::can_connect(collection, source_node.index, target_node.index, true) {
             return None;
         }
 
@@ -258,22 +258,22 @@ where
         recurrent: bool,
     ) -> Option<Vec<GraphNode<T>>> {
         let node = collection.get(new_node_index);
-        if *node.value.arity() == 0 {
-            if !collection.is_valid() {
-                return None;
+        match node.value.arity() {
+            Arity::Any | Arity::Zero => {
+                return Some(collection.into_iter().collect::<Vec<GraphNode<T>>>());
             }
-            return Some(collection.into_iter().collect::<Vec<GraphNode<T>>>());
-        }
-        let arity = *collection.get(new_node_index).value.arity();
-        for _ in 0..arity - 1 {
-            let other_source_node = random_source_node(collection.get_nodes());
-            if can_connect(
-                collection.get_nodes(),
-                other_source_node.index,
-                new_node_index,
-                recurrent,
-            ) {
-                collection.attach(other_source_node.index, new_node_index);
+            Arity::Exact(arity) => {
+                for _ in 0..arity - 1 {
+                    let other_source_node = graphs::random_source_node(collection.as_ref());
+                    if graphs::can_connect(
+                        collection.as_ref(),
+                        other_source_node.index,
+                        new_node_index,
+                        recurrent,
+                    ) {
+                        collection.attach(other_source_node.index, new_node_index);
+                    }
+                }
             }
         }
 
