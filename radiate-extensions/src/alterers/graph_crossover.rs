@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{NodeChromosome, NodeType};
+use crate::collections::{GraphChromosome, NodeType};
 use radiate::alter::AlterType;
 use radiate::engines::alterers::Alter;
 use radiate::engines::genome::*;
@@ -33,10 +33,10 @@ where
     #[inline]
     pub fn cross(
         &self,
-        population: &Population<NodeChromosome<T>>,
+        population: &Population<GraphChromosome<T>>,
         indexes: &[usize],
         generation: i32,
-    ) -> Option<Phenotype<NodeChromosome<T>>> {
+    ) -> Option<Phenotype<GraphChromosome<T>>> {
         let parent_one = &population[indexes[0]];
         let parent_two = &population[indexes[1]];
 
@@ -52,13 +52,22 @@ where
         let mut new_chromo_one = chromo_one.clone();
         let mut num_crosses = 0;
 
-        for i in 0..std::cmp::min(chromo_one.len(), chromo_two.len()) {
+        let edge_indexes = (0..std::cmp::min(chromo_one.len(), chromo_two.len()))
+            .filter(|i| {
+                let node_one = chromo_one.get_gene(*i);
+                let node_two = chromo_two.get_gene(*i);
+
+                node_one.node_type == NodeType::Edge && node_two.node_type == NodeType::Edge
+            })
+            .collect::<Vec<usize>>();
+
+        if edge_indexes.is_empty() {
+            return None;
+        }
+
+        for i in edge_indexes {
             let node_one = chromo_one.get_gene(i);
             let node_two = chromo_two.get_gene(i);
-
-            if node_one.node_type != NodeType::Weight || node_two.node_type != NodeType::Weight {
-                continue;
-            }
 
             if random_provider::random::<f32>() < self.crossover_parent_node_rate {
                 new_chromo_one.set_gene(node_one.index, node_one.with_allele(node_two.allele()));
@@ -93,7 +102,7 @@ where
     }
 }
 
-impl<T> Alter<NodeChromosome<T>> for GraphCrossover<T>
+impl<T> Alter<GraphChromosome<T>> for GraphCrossover<T>
 where
     T: Clone + PartialEq + Default + 'static,
 {
@@ -112,7 +121,7 @@ where
     #[inline]
     fn alter(
         &self,
-        population: &mut Population<NodeChromosome<T>>,
+        population: &mut Population<GraphChromosome<T>>,
         generation: i32,
     ) -> Vec<Metric> {
         let timer = Timer::new();

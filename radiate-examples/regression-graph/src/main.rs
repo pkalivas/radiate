@@ -1,13 +1,13 @@
 use radiate::*;
 use radiate_extensions::*;
+use random_provider::set_seed;
 
 const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
-    let graph_codex = GraphCodex::regression(1, 1)
-        .set_outputs(vec![expr::linear()])
-        .set_gates(vec![expr::add(), expr::sub(), expr::mul()]);
+    set_seed(1000);
+    let graph_codex = GraphCodex::regression(1, 1).set_outputs(vec![Operation::linear()]);
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 
@@ -19,9 +19,8 @@ fn main() {
             GraphCrossover::new(0.5, 0.5),
             NodeMutator::new(0.07, 0.05),
             GraphMutator::new(vec![
-                NodeMutate::Forward(NodeType::Weight, 0.05),
-                NodeMutate::Forward(NodeType::Aggregate, 0.02),
-                NodeMutate::Forward(NodeType::Gate, 0.03),
+                NodeMutate::Forward(NodeType::Edge, 0.03),
+                NodeMutate::Forward(NodeType::Vertex, 0.03),
             ]),
         ))
         .fitness_fn(move |genotype: Graph<f32>| {
@@ -38,7 +37,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<NodeChromosome<f32>, Graph<f32>>) {
+fn display(result: &EngineContext<GraphChromosome<f32>, Graph<f32>>) {
     let mut regression_accuracy = 0.0;
     let mut total = 0.0;
 

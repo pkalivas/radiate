@@ -1,4 +1,5 @@
 use radiate::*;
+
 use radiate_extensions::*;
 
 const MIN_SCORE: f32 = 0.01;
@@ -8,8 +9,8 @@ fn main() {
     // set_seed(200);
     let graph_codex = TreeCodex::new(3)
         .constraint(|node| node.size() < 30)
-        .gates(vec![expr::add(), expr::sub(), expr::mul()])
-        .leafs(vec![expr::var(0)]);
+        .gates(vec![Operation::add(), Operation::sub(), Operation::mul()])
+        .leafs(vec![Operation::var(0)]);
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 
@@ -17,12 +18,12 @@ fn main() {
         .minimizing()
         .num_threads(10)
         .alter(alters!(
-            TreeCrossover::new(0.5, 50),
+            TreeCrossover::new(0.5),
             // NodeMutator::new(0.01, 0.05),
         ))
         .fitness_fn(move |genotype: Tree<f32>| {
             let mut reducer = Tree::new(genotype.root().take().unwrap().to_owned());
-            Score::from_f32(regression.error(|input| vec![reducer.reduce(&input)]))
+            Score::from_f32(regression.error(|input| vec![reducer.reduce(input)]))
         })
         .build();
 
@@ -34,7 +35,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<NodeChrom<TreeNode<f32>>, Tree<f32>>) {
+fn display(result: &EngineContext<TreeChromosome<f32>, Tree<f32>>) {
     let mut regression_accuracy = 0.0;
     let mut total = 0.0;
 

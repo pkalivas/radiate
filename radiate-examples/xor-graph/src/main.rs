@@ -5,7 +5,7 @@ const MAX_INDEX: i32 = 500;
 const MIN_SCORE: f32 = 0.01;
 
 fn main() {
-    let graph_codex = GraphCodex::regression(2, 1).set_outputs(vec![expr::sigmoid()]);
+    let graph_codex = GraphCodex::regression(2, 1).set_outputs(vec![Operation::sigmoid()]);
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 
@@ -15,9 +15,8 @@ fn main() {
             GraphCrossover::new(0.5, 0.5),
             NodeMutator::new(0.1, 0.05),
             GraphMutator::new(vec![
-                NodeMutate::Forward(NodeType::Weight, 0.05),
-                NodeMutate::Forward(NodeType::Aggregate, 0.03),
-                NodeMutate::Forward(NodeType::Gate, 0.03),
+                NodeMutate::Forward(NodeType::Edge, 0.05),
+                NodeMutate::Forward(NodeType::Vertex, 0.03),
             ]),
         ))
         .fitness_fn(move |genotype: Graph<f32>| {
@@ -34,7 +33,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<NodeChromosome<f32>, Graph<f32>>) {
+fn display(result: &EngineContext<GraphChromosome<f32>, Graph<f32>>) {
     let mut reducer = GraphReducer::new(&result.best);
     for sample in get_sample_set().get_samples().iter() {
         let output = &reducer.reduce(&sample.1);

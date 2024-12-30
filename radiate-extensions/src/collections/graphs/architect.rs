@@ -1,10 +1,5 @@
+use crate::collections::{Builder, Graph, GraphNode, NodeType};
 use std::collections::BTreeMap;
-
-use crate::architects::node_collections::node::GraphNode;
-use crate::architects::node_collections::node_factory::NodeFactory;
-
-use super::Graph;
-use crate::NodeType;
 use uuid::Uuid;
 
 enum ConnectTypes {
@@ -21,23 +16,21 @@ struct Relationship<'a> {
 }
 
 #[derive(Default)]
-pub struct GraphBuilder<'a, T>
+pub struct GraphArchitect<'a, T>
 where
-    T: Clone + PartialEq + Default,
+    T: Clone,
 {
-    factory: Option<&'a NodeFactory<T>>,
     nodes: BTreeMap<&'a Uuid, &'a GraphNode<T>>,
     node_order: BTreeMap<usize, &'a Uuid>,
     relationships: Vec<Relationship<'a>>,
 }
 
-impl<'a, T> GraphBuilder<'a, T>
+impl<'a, T> GraphArchitect<'a, T>
 where
-    T: Clone + PartialEq + Default,
+    T: Clone,
 {
-    pub fn new(factory: &'a NodeFactory<T>) -> Self {
-        GraphBuilder {
-            factory: Some(factory),
+    pub fn new() -> Self {
+        GraphArchitect {
             nodes: BTreeMap::new(),
             node_order: BTreeMap::new(),
             relationships: Vec::new(),
@@ -73,56 +66,14 @@ where
         self.attach(collection.as_ref());
         self
     }
+}
 
-    pub fn build(self) -> Graph<T> {
-        let mut new_nodes = Vec::new();
-        let mut node_id_index_map = BTreeMap::new();
-
-        for (index, (_, node_id)) in self.node_order.iter().enumerate() {
-            let node = self.nodes.get(node_id).unwrap();
-            let new_node = GraphNode::new(index, node.node_type, node.value.clone());
-
-            new_nodes.push(new_node);
-            node_id_index_map.insert(node_id, index);
-        }
-
-        let mut new_collection = Graph { nodes: new_nodes };
-        for rel in self.relationships {
-            let source_idx = node_id_index_map.get(&rel.source_id).unwrap();
-            let target_idx = node_id_index_map.get(&rel.target_id).unwrap();
-
-            new_collection.attach(*source_idx, *target_idx);
-        }
-
-        let mut collection = new_collection.clone().set_cycles(Vec::new());
-
-        for node in collection.get_nodes_mut() {
-            if let Some(factory) = self.factory {
-                let temp_node = factory.new_node(node.index, NodeType::Aggregate);
-
-                match node.node_type() {
-                    NodeType::Input => {
-                        if node.incoming().is_empty() {
-                            node.node_type = NodeType::Aggregate;
-                            node.value = temp_node.value.clone();
-                        }
-                    }
-                    NodeType::Output => {
-                        if node.outgoing().is_empty() {
-                            node.node_type = NodeType::Aggregate;
-                            node.value = temp_node.value.clone();
-                        }
-                    }
-                    _ => {}
-                }
-            }
-        }
-
-        collection
-    }
-
+impl<'a, T> GraphArchitect<'a, T>
+where
+    T: Clone,
+{
     pub fn layer<C: AsRef<[GraphNode<T>]>>(&self, collections: Vec<&'a C>) -> Self {
-        let mut conn = GraphBuilder::new(self.factory.unwrap());
+        let mut conn = GraphArchitect::new();
         let mut previous = collections[0];
 
         for collection in collections.iter() {
@@ -157,7 +108,12 @@ where
             }
         }
     }
+}
 
+impl<'a, T> GraphArchitect<'a, T>
+where
+    T: Clone,
+{
     fn connect<C: AsRef<[GraphNode<T>]>>(
         &mut self,
         connection: ConnectTypes,
@@ -282,8 +238,7 @@ where
             .filter(|(_, node)| {
                 node.outgoing().len() == 1
                     && node.is_recurrent()
-                    && (node.node_type() == &NodeType::Gate
-                        || node.node_type() == &NodeType::Aggregate)
+                    && (node.node_type() == &NodeType::Vertex)
             })
             .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
             .collect::<Vec<&GraphNode<T>>>();
@@ -321,7 +276,7 @@ where
             .filter(|(_, node)| {
                 node.outgoing().len() == 1
                     && node.is_recurrent()
-                    && node.node_type() == &NodeType::Gate
+                    && node.node_type() == &NodeType::Vertex
             })
             .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
             .collect::<Vec<&GraphNode<T>>>();
@@ -339,3 +294,83 @@ where
             .collect::<Vec<&GraphNode<T>>>()
     }
 }
+
+impl<T> Builder for GraphArchitect<'_, T>
+where
+    T: Clone,
+{
+    type Output = Graph<T>;
+
+    fn build(&self) -> Self::Output {
+        let mut new_nodes = Vec::new();
+        let mut node_id_index_map = BTreeMap::new();
+
+        for (index, (_, node_id)) in self.node_order.iter().enumerate() {
+            let node = self.nodes.get(node_id).unwrap();
+            let new_node = GraphNode::new(index, node.node_type, node.value.clone());
+
+            new_nodes.push(new_node);
+            node_id_index_map.insert(node_id, index);
+        }
+
+        let mut new_collection = Graph::new(new_nodes);
+        for rel in self.relationships.iter() {
+            let source_idx = node_id_index_map.get(&rel.source_id).unwrap();
+            let target_idx = node_id_index_map.get(&rel.target_id).unwrap();
+
+            new_collection.attach(*source_idx, *target_idx);
+        }
+
+        new_collection.clone().set_cycles(Vec::new())
+    }
+}
+
+// pub fn build(self) -> Graph<T>
+// where
+//     T: Default,
+// {
+//     let mut new_nodes = Vec::new();
+//     let mut node_id_index_map = BTreeMap::new();
+
+//     for (index, (_, node_id)) in self.node_order.iter().enumerate() {
+//         let node = self.nodes.get(node_id).unwrap();
+//         let new_node = GraphNode::new(index, node.node_type, node.value.clone());
+
+//         new_nodes.push(new_node);
+//         node_id_index_map.insert(node_id, index);
+//     }
+
+//     let mut new_collection = Graph::new(new_nodes);
+//     for rel in self.relationships {
+//         let source_idx = node_id_index_map.get(&rel.source_id).unwrap();
+//         let target_idx = node_id_index_map.get(&rel.target_id).unwrap();
+
+//         new_collection.attach(*source_idx, *target_idx);
+//     }
+
+//     let mut collection = new_collection.clone().set_cycles(Vec::new());
+
+//     for node in collection.as_mut() {
+//         if let Some(factory) = self.factory {
+//             let temp_node = factory.new_node(node.index, NodeType::Vertex);
+
+//             match node.node_type() {
+//                 NodeType::Input => {
+//                     if !node.incoming().is_empty() {
+//                         node.node_type = NodeType::Vertex;
+//                         node.value = temp_node.value.clone();
+//                     }
+//                 }
+//                 NodeType::Output => {
+//                     if !node.outgoing().is_empty() {
+//                         node.node_type = NodeType::Vertex;
+//                         node.value = temp_node.value.clone();
+//                     }
+//                 }
+//                 _ => {}
+//             }
+//         }
+//     }
+
+//     collection
+// }

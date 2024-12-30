@@ -1,7 +1,5 @@
-use super::{Graph, Tree};
-use crate::expr::Operation;
-use crate::node::GraphNode;
-use crate::{NodeType, TreeNode};
+use super::{Graph, GraphNode, NodeType, Tree, TreeNode};
+use crate::ops::operation::Operation;
 
 pub trait Reduce<T> {
     type Input;
@@ -27,12 +25,12 @@ impl<T: Clone> Reduce<T> for TreeNode<T> {
     fn reduce(&mut self, input: &Self::Input) -> Self::Output {
         fn eval<T: Clone>(node: &TreeNode<T>, curr_input: &Vec<T>) -> T {
             if node.is_leaf() {
-                return node.value.apply(&curr_input);
+                node.value.apply(curr_input)
             } else {
                 if let Some(children) = &node.children {
                     let mut inputs = Vec::with_capacity(children.len());
                     for child in children {
-                        inputs.push(eval(child, &curr_input));
+                        inputs.push(eval(child, curr_input));
                     }
 
                     return node.value.apply(&inputs);
@@ -185,23 +183,20 @@ where
 {
     match node.node_type {
         NodeType::Input => 1,
-        NodeType::Gate => *node.value.arity() as usize,
         _ => node.incoming.len(),
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::expr::{self};
-
     use super::*;
 
     #[test]
     fn test_tree_reduce_simple() {
-        let mut root = TreeNode::new(expr::add());
+        let mut root = TreeNode::new(Operation::add());
 
-        root.add_child(TreeNode::new(expr::value(1.0)));
-        root.add_child(TreeNode::new(expr::value(2.0)));
+        root.add_child(TreeNode::new(Operation::value(1.0)));
+        root.add_child(TreeNode::new(Operation::value(2.0)));
 
         let result = root.reduce(&vec![]);
 
@@ -210,15 +205,15 @@ mod tests {
 
     #[test]
     fn test_tree_reduce_complex() {
-        let mut root = TreeNode::new(expr::add());
+        let mut root = TreeNode::new(Operation::add());
 
-        let mut left = TreeNode::new(expr::mul());
-        left.add_child(TreeNode::new(expr::value(2.0)));
-        left.add_child(TreeNode::new(expr::value(3.0)));
+        let mut left = TreeNode::new(Operation::mul());
+        left.add_child(TreeNode::new(Operation::value(2.0)));
+        left.add_child(TreeNode::new(Operation::value(3.0)));
 
-        let mut right = TreeNode::new(expr::add());
-        right.add_child(TreeNode::new(expr::value(2.0)));
-        right.add_child(TreeNode::new(expr::var(0)));
+        let mut right = TreeNode::new(Operation::add());
+        right.add_child(TreeNode::new(Operation::value(2.0)));
+        right.add_child(TreeNode::new(Operation::var(0)));
 
         root.add_child(left);
         root.add_child(right);

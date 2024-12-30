@@ -26,12 +26,10 @@ impl Codex<CharChromosome, Vec<Vec<char>>> for CharCodex {
     fn encode(&self) -> Genotype<CharChromosome> {
         Genotype {
             chromosomes: (0..self.num_chromosomes)
-                .map(|_| {
-                    CharChromosome::from_genes(
-                        (0..self.num_genes)
-                            .map(|_| CharGene::new())
-                            .collect::<Vec<CharGene>>(),
-                    )
+                .map(|_| CharChromosome {
+                    genes: (0..self.num_genes)
+                        .map(|_| CharGene::new())
+                        .collect::<Vec<CharGene>>(),
                 })
                 .collect::<Vec<CharChromosome>>(),
         }
