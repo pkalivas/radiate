@@ -1,4 +1,5 @@
 pub mod chromosome;
+pub mod generator;
 pub mod graphs;
 pub mod node_factory;
 pub mod reducers;
@@ -21,6 +22,12 @@ pub trait Builder {
 pub trait Factory<T> {
     type Input;
     fn new_instance(&self, input: Self::Input) -> T;
+}
+
+pub trait Generator {
+    type Input;
+    type Output;
+    fn generate(&self, input: Self::Input) -> Self::Output;
 }
 
 impl<T> Factory<GraphNode<T>> for HashMap<NodeType, Vec<Operation<T>>>

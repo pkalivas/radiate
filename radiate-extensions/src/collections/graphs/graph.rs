@@ -1,32 +1,20 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashSet, VecDeque};
 use std::ops::{Index, IndexMut};
-use std::sync::Arc;
 
 use super::GraphIterator;
 use crate::collections::{Direction, GraphNode, NodeType};
-use radiate::{random_provider, Chromosome, Valid};
-
+use crate::graphs::mutation::GraphTransaction;
 use crate::ops::operation::Arity;
-use crate::ops::Operation;
-
-type NodeFactory<T> = Option<Arc<HashMap<NodeType, Vec<Operation<T>>>>>;
+use radiate::{random_provider, Chromosome, Valid};
 
 #[derive(Clone, PartialEq, Default)]
 pub struct Graph<T> {
     pub nodes: Vec<GraphNode<T>>,
-    pub factory: NodeFactory<T>,
 }
 
 impl<T> Graph<T> {
     pub fn new(nodes: Vec<GraphNode<T>>) -> Self {
-        Graph {
-            nodes,
-            factory: None,
-        }
-    }
-
-    pub fn with_factory(nodes: Vec<GraphNode<T>>, factory: NodeFactory<T>) -> Self {
-        Graph { nodes, factory }
+        Graph { nodes }
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &GraphNode<T>> {
@@ -96,20 +84,19 @@ impl<T> Graph<T> {
 
         self
     }
-}
 
-impl<T> Chromosome for Graph<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    type Gene = GraphNode<T>;
-
-    fn get_genes(&self) -> &[GraphNode<T>] {
-        &self.nodes
-    }
-
-    fn get_genes_mut(&mut self) -> &mut [GraphNode<T>] {
-        &mut self.nodes
+    pub fn try_mutation<F>(&mut self, mutation: F) -> bool
+    where
+        F: FnOnce(&mut GraphTransaction<T>) -> bool,
+        T: Clone + Default + PartialEq,
+    {
+        let mut transaction = GraphTransaction::new(self);
+        if !mutation(&mut transaction) {
+            transaction.rollback();
+            false
+        } else {
+            transaction.commit()
+        }
     }
 }
 

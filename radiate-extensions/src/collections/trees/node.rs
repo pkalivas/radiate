@@ -4,10 +4,6 @@ use radiate::engines::genome::genes::gene::{Gene, Valid};
 use super::TreeIterator;
 use crate::ops::operation::Arity;
 
-pub trait Node<T> {
-    fn arity(&self) -> Arity;
-}
-
 #[derive(PartialEq)]
 pub struct TreeNode<T> {
     pub value: Operation<T>,

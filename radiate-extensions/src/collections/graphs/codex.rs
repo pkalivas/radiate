@@ -2,6 +2,7 @@ use crate::collections::graphs::architect::GraphArchitect;
 use crate::collections::graphs::builder::GraphBuilder;
 use crate::collections::{Graph, GraphNode, NodeChromosome, NodeFactory, NodeType};
 use crate::ops::Operation;
+use crate::Factory;
 use radiate::{Chromosome, Codex, Gene, Genotype};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -89,7 +90,7 @@ impl GraphCodex<f32> {
 
 impl<T> Codex<NodeChromosome<T>, Graph<T>> for GraphCodex<T>
 where
-    T: Clone + PartialEq + Default,
+    T: Clone + PartialEq + Default + 'static,
 {
     fn encode(&self) -> Genotype<NodeChromosome<T>> {
         let reader = self.factory.borrow();
@@ -98,7 +99,7 @@ where
             let nodes = graph
                 .iter()
                 .map(|node| {
-                    let temp_node = reader.new_node(node.index, node.node_type);
+                    let temp_node = reader.new_instance((node.index, node.node_type));
 
                     if temp_node.value.arity() == node.value.arity() {
                         return node.with_allele(temp_node.allele());
@@ -107,6 +108,8 @@ where
                     node.clone()
                 })
                 .collect::<Vec<GraphNode<T>>>();
+
+            // let node_chrom = NodeChrom::with_factory(nodes, self.factory.clone());
 
             return Genotype {
                 chromosomes: vec![NodeChromosome::with_factory(nodes, self.factory.clone())],

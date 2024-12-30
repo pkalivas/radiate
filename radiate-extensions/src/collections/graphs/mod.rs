@@ -3,6 +3,7 @@ mod builder;
 mod codex;
 mod graph;
 mod iter;
+mod mutation;
 mod node;
 
 pub use codex::GraphCodex;

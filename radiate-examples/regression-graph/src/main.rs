@@ -7,14 +7,13 @@ const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
-    let graph_codex = GraphCodex::regression(1, 1)
-        .set_outputs(vec![operation::linear()])
-        .set_vertices(vec![
-            operation::add(),
-            operation::sub(),
-            operation::mul(),
-            operation::sigmoid(),
-        ]);
+    let graph_codex = GraphCodex::regression(1, 1).set_outputs(vec![operation::linear()]);
+    // .set_vertices(vec![
+    //     operation::add(),
+    //     operation::sub(),
+    //     operation::mul(),
+    //     operation::sigmoid(),
+    // ]);
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 

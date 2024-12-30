@@ -7,9 +7,8 @@ const MAX_INDEX: i32 = 500;
 const MIN_SCORE: f32 = 0.01;
 
 fn main() {
-    let graph_codex = GraphCodex::regression(1, 1)
-        .set_outputs(vec![operation::sigmoid()])
-        .set_nodes(|arc, _| arc.lstm(1, 1, 1));
+    let graph_codex = GraphCodex::regression(1, 1).set_outputs(vec![operation::sigmoid()]);
+    // .set_nodes(|arc, _| arc.acyclic(1, 1));
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 
@@ -21,8 +20,7 @@ fn main() {
             NodeMutator::new(0.01, 0.05),
             GraphMutator::new(vec![
                 NodeMutate::Recurrent(NodeType::Edge, 0.05),
-                NodeMutate::Recurrent(NodeType::Vertex, 0.03),
-                // NodeMutate::Recurrent(NodeType::Gate, 0.03),
+                NodeMutate::Recurrent(NodeType::Vertex, 0.1),
             ]),
         ))
         .fitness_fn(move |genotype: Graph<f32>| {

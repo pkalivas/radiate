@@ -71,16 +71,14 @@ where
         let new_target_edge_index = collection.len() + 2;
 
         if source_node.node_type == NodeType::Edge && node_type != &NodeType::Edge {
-            let incoming_node = collection
-                .get(*source_node.incoming.iter().next().unwrap())
-                .unwrap();
-            let outgoing_node = collection
-                .get(*source_node.outgoing.iter().next().unwrap())
-                .unwrap();
+            let incoming_node = collection.get(*source_node.incoming.iter().next()?)?;
+            let outgoing_node = collection.get(*source_node.outgoing.iter().next()?)?;
 
-            let new_source_edge = factory.new_node(new_source_edge_index, source_node.node_type);
-            let new_node = factory.new_node(new_node_index, *node_type);
-            let new_target_edge = factory.new_node(new_target_edge_index, source_node.node_type);
+            let new_source_edge =
+                factory.new_instance((new_source_edge_index, source_node.node_type));
+            let new_node = factory.new_instance((new_node_index, *node_type));
+            let new_target_edge =
+                factory.new_instance((new_target_edge_index, source_node.node_type));
 
             if graphs::is_locked(outgoing_node) {
                 let mut temp = Graph::new(
@@ -133,7 +131,7 @@ where
             collection
                 .iter()
                 .cloned()
-                .chain(vec![factory.new_node(collection.len(), *node_type)])
+                .chain(vec![factory.new_instance((collection.len(), *node_type))])
                 .collect::<Vec<GraphNode<T>>>(),
         );
 
@@ -162,17 +160,16 @@ where
         let recurrent_edge_index = collection.len() + 3;
 
         if source_node.node_type == NodeType::Edge && node_type != &NodeType::Edge {
-            let incoming_node = collection
-                .get(*source_node.incoming.iter().next().unwrap())
-                .unwrap();
-            let outgoing_node = collection
-                .get(*source_node.outgoing.iter().next().unwrap())
-                .unwrap();
+            let incoming_node = collection.get(*source_node.incoming.iter().next()?)?;
+            let outgoing_node = collection.get(*source_node.outgoing.iter().next()?)?;
 
-            let new_source_edge = factory.new_node(new_source_edge_index, source_node.node_type);
-            let new_node = factory.new_node(new_node_index, *node_type);
-            let new_target_edge = factory.new_node(new_target_edge_index, source_node.node_type);
-            let recurrent_edge = factory.new_node(recurrent_edge_index, source_node.node_type);
+            let new_source_edge =
+                factory.new_instance((new_source_edge_index, source_node.node_type));
+            let new_node = factory.new_instance((new_node_index, *node_type));
+            let new_target_edge =
+                factory.new_instance((new_target_edge_index, source_node.node_type));
+            let recurrent_edge =
+                factory.new_instance((recurrent_edge_index, source_node.node_type));
 
             return if graphs::is_locked(outgoing_node) {
                 let mut temp = Graph::new(
@@ -237,7 +234,7 @@ where
             collection
                 .iter()
                 .cloned()
-                .chain(vec![factory.new_node(collection.len(), *node_type)])
+                .chain(vec![factory.new_instance((collection.len(), *node_type))])
                 .collect::<Vec<GraphNode<T>>>(),
         );
 
@@ -327,11 +324,33 @@ where
 
             if let Some(ref factory) = chromosome.factory {
                 let mutated_graph = if mutation.is_recurrent() {
+                    let mut graph = Graph::new(chromosome.nodes.clone());
                     let node_fact = factory.borrow();
-                    self.insert_recurrent_node(&chromosome.nodes, &mutation.node_type(), &node_fact)
+
+                    let valid =
+                        self.add_backward_node(&mut graph, &mutation.node_type(), &node_fact);
+
+                    if valid {
+                        Some(graph.into_iter().collect::<Vec<GraphNode<T>>>())
+                    } else {
+                        None
+                    }
+                    // let node_fact = factory.borrow();
+                    // self.insert_recurrent_node(&chromosome.nodes, &mutation.node_type(), &node_fact)
                 } else {
+                    let mut graph = Graph::new(chromosome.nodes.clone());
                     let node_fact = factory.borrow();
-                    self.insert_forward_node(&chromosome.nodes, &mutation.node_type(), &node_fact)
+
+                    let valid =
+                        self.add_forward_node(&mut graph, &mutation.node_type(), &node_fact);
+
+                    if valid {
+                        Some(graph.into_iter().collect::<Vec<GraphNode<T>>>())
+                    } else {
+                        None
+                    }
+                    // let node_fact = factory.borrow();
+                    // self.insert_forward_node(&chromosome.nodes, &mutation.node_type(), &node_fact)
                 };
 
                 if let Some(mutated_graph) = mutated_graph {

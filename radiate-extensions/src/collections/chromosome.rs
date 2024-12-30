@@ -1,10 +1,11 @@
 use crate::collections::{Factory, GraphNode, NodeFactory, NodeType};
 use radiate::{Chromosome, Gene, Valid};
 use std::cell::RefCell;
-use std::hash::Hash;
 use std::ops::{Index, IndexMut};
 use std::rc::Rc;
 use std::sync::Arc;
+
+type Constraint<N> = Arc<Box<dyn Fn(&N) -> bool>>;
 
 #[derive(Clone, Default)]
 pub struct NodeChrom<N>
@@ -12,8 +13,7 @@ where
     N: Gene,
 {
     nodes: Vec<N>,
-    constraint: Option<Arc<Box<dyn Fn(&N) -> bool>>>,
-    factory: Option<Arc<Box<dyn Factory<N, Input = (usize, NodeType)>>>>,
+    constraint: Option<Constraint<N>>,
 }
 
 impl<N> NodeChrom<N>
@@ -24,19 +24,11 @@ where
         NodeChrom {
             nodes,
             constraint: None,
-            factory: None,
         }
     }
 
-    pub fn with_constraint(
-        nodes: Vec<N>,
-        constraint: Option<Arc<Box<dyn Fn(&N) -> bool>>>,
-    ) -> Self {
-        NodeChrom {
-            nodes,
-            constraint,
-            factory: None,
-        }
+    pub fn with_constraint(nodes: Vec<N>, constraint: Option<Constraint<N>>) -> Self {
+        NodeChrom { nodes, constraint }
     }
 }
 
@@ -113,7 +105,7 @@ where
     pub fn new_node(&self, index: usize, node_type: NodeType) -> GraphNode<T> {
         let factory = self.factory.as_ref().unwrap();
         let factory = factory.borrow();
-        factory.new_node(index, node_type)
+        factory.new_instance((index, node_type))
     }
 }
 
