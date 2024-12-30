@@ -5,12 +5,11 @@ use std::fmt::Debug;
 
 pub struct TreeCrossover {
     pub rate: f32,
-    pub max_height: usize,
 }
 
 impl TreeCrossover {
-    pub fn new(rate: f32, max_height: usize) -> Self {
-        Self { rate, max_height }
+    pub fn new(rate: f32) -> Self {
+        Self { rate }
     }
 }
 

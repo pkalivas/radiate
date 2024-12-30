@@ -1,7 +1,6 @@
-pub mod architect;
-pub mod builder;
+pub mod builders;
 pub mod node_collections;
 
-pub use builder::{GraphBuilder, TreeBuilder};
+pub use builders::*;
 
 pub use node_collections::*;

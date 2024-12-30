@@ -1,6 +1,8 @@
 use crate::{GraphNode, NodeFactory, NodeType};
 use radiate::{Chromosome, Gene, Valid};
 use std::cell::RefCell;
+use std::collections::HashMap;
+use std::hash::Hash;
 use std::ops::{Index, IndexMut};
 use std::rc::Rc;
 use std::sync::Arc;
@@ -12,6 +14,7 @@ where
 {
     nodes: Vec<N>,
     constraint: Option<Arc<Box<dyn Fn(&N) -> bool>>>,
+    // factory: Option<Arc<HashMap<NodeType, Vec<N>>>>,
 }
 
 impl<N> NodeChrom<N>

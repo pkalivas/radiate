@@ -478,67 +478,73 @@ pub fn var<T: Clone>(index: usize) -> Operation<T> {
     Operation::Var(var_name, index)
 }
 
-pub fn sigmoid() -> Operation<f32> {
+pub fn sigmoid<T: Float + Clone + Add<Output = T>>() -> Operation<T> {
     Operation::Fn(
         "sigmoid",
         Arity::Any,
-        Arc::new(|inputs: &[f32]| {
-            let sum = inputs.iter().fold(0_f32, |acc, x| acc + x);
-            let result = 1_f32 / (1_f32 + (-sum).exp());
+        Arc::new(|inputs: &[T]| {
+            let sum = inputs.iter().fold(T::zero(), |acc, x| acc + x.clone());
+            let result = T::from(1_f32).unwrap() / (T::from(1_f32).unwrap() + (-sum).exp());
             clamp(result)
         }),
     )
 }
 
-pub fn relu() -> Operation<f32> {
+pub fn relu<T: Float + Clone + Add<Output = T>>() -> Operation<T> {
     Operation::Fn(
         "relu",
         Arity::Any,
-        Arc::new(|inputs: &[f32]| {
-            let sum = inputs.iter().fold(0_f32, |acc, x| acc + x);
+        Arc::new(|inputs: &[T]| {
+            let sum = inputs.iter().fold(T::zero(), |acc, x| acc + x.clone());
             let result = clamp(sum);
-            if result > 0_f32 {
+            if result > T::zero() {
                 result
             } else {
-                0_f32
+                T::zero()
             }
         }),
     )
 }
 
-pub fn tanh() -> Operation<f32> {
+pub fn tanh<T: Float + Clone + Add<Output = T>>() -> Operation<T> {
     Operation::Fn(
         "tanh",
         Arity::Any,
-        Arc::new(|inputs: &[f32]| {
-            let result = inputs.iter().fold(0_f32, |acc, x| acc + x).tanh();
+        Arc::new(|inputs: &[T]| {
+            let result = inputs
+                .iter()
+                .fold(T::zero(), |acc, x| acc + x.clone())
+                .tanh();
 
             clamp(result)
         }),
     )
 }
 
-pub fn linear() -> Operation<f32> {
+pub fn linear<T: Float + Clone + Add<Output = T>>() -> Operation<T> {
     Operation::Fn(
         "linear",
         Arity::Any,
-        Arc::new(|inputs: &[f32]| {
-            let result = inputs.iter().fold(0_f32, |acc, x| acc + x);
+        Arc::new(|inputs: &[T]| {
+            let result = inputs.iter().fold(T::zero(), |acc, x| acc + x.clone());
 
             clamp(result)
         }),
     )
 }
 
-pub fn mish() -> Operation<f32> {
+pub fn mish<T: Float + Clone + Add<Output = T> + Mul<Output = T>>() -> Operation<T> {
     Operation::Fn(
         "mish",
         Arity::Any,
-        Arc::new(|inputs: &[f32]| {
-            let result = inputs.iter().fold(0_f32, |acc, x| acc + x).tanh()
+        Arc::new(|inputs: &[T]| {
+            let result = inputs
+                .iter()
+                .fold(T::zero(), |acc, x| acc + x.clone())
+                .tanh()
                 * (inputs
                     .iter()
-                    .fold(0_f32, |acc, x| acc + x)
+                    .fold(T::zero(), |acc, x| acc + x.clone())
                     .exp()
                     .ln_1p()
                     .exp());
@@ -548,25 +554,29 @@ pub fn mish() -> Operation<f32> {
     )
 }
 
-pub fn leaky_relu() -> Operation<f32> {
+pub fn leaky_relu<T: Float + Clone + Add<Output = T> + Mul<Output = T>>() -> Operation<T> {
     Operation::Fn(
         "l_relu",
         Arity::Any,
-        Arc::new(|inputs: &[f32]| {
-            let sum = inputs.iter().fold(0_f32, |acc, x| acc + x);
-            let result = if sum > 0_f32 { sum } else { 0.01 * sum };
+        Arc::new(|inputs: &[T]| {
+            let sum = inputs.iter().fold(T::zero(), |acc, x| acc + x.clone());
+            let result = if sum > T::from(0).unwrap() {
+                sum
+            } else {
+                T::from(0.01).unwrap() * sum.clone()
+            };
 
             clamp(result)
         }),
     )
 }
 
-pub fn softplus() -> Operation<f32> {
+pub fn softplus<T: Float + Clone + Add<Output = T>>() -> Operation<T> {
     Operation::Fn(
         "soft_plus",
         Arity::Any,
-        Arc::new(|inputs: &[f32]| {
-            let sum = inputs.iter().fold(0_f32, |acc, x| acc + x);
+        Arc::new(|inputs: &[T]| {
+            let sum = inputs.iter().fold(T::zero(), |acc, x| acc + x.clone());
             let result = sum.exp().ln_1p();
 
             clamp(result)

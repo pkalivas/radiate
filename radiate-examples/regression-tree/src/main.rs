@@ -18,7 +18,7 @@ fn main() {
         .minimizing()
         .num_threads(10)
         .alter(alters!(
-            TreeCrossover::new(0.5, 50),
+            TreeCrossover::new(0.5),
             // NodeMutator::new(0.01, 0.05),
         ))
         .fitness_fn(move |genotype: Tree<f32>| {

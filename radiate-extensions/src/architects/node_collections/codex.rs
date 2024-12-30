@@ -58,8 +58,10 @@ where
     where
         F: Fn(&GraphBuilder<T>, GraphArchitect<T>) -> Graph<T>,
     {
-        let graph = GraphBuilder::<T>::new(&self.factory.borrow())
-            .build(|arc, builder| node_fn(arc, builder));
+        let graph = node_fn(
+            &GraphBuilder::new(&self.factory.borrow()),
+            GraphArchitect::new(),
+        );
 
         self.nodes = graph.iter().cloned().collect::<Vec<GraphNode<T>>>();
         self.input_size = graph
@@ -107,7 +109,7 @@ where
 impl GraphCodex<f32> {
     pub fn regression(input_size: usize, output_size: usize) -> Self {
         let factory = NodeFactory::<f32>::regression(input_size);
-        let nodes = GraphBuilder::<f32>::new(&factory)
+        let nodes = GraphBuilder::<f32>::regression(input_size)
             .acyclic(input_size, output_size)
             .iter()
             .cloned()

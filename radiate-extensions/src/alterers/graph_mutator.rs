@@ -1,6 +1,8 @@
 use crate::architects::node_collections::*;
 use crate::node::GraphNode;
+use crate::ops::Arity;
 
+use num_traits::Zero;
 use radiate::alter::AlterType;
 use radiate::engines::alterers::Alter;
 use radiate::engines::genome::*;
@@ -258,22 +260,22 @@ where
         recurrent: bool,
     ) -> Option<Vec<GraphNode<T>>> {
         let node = collection.get(new_node_index);
-        if *node.value.arity() == 0 {
-            // if !collection.is_valid() {
-            //     return None;
-            // }
-            return Some(collection.into_iter().collect::<Vec<GraphNode<T>>>());
-        }
-        let arity = *collection.get(new_node_index).value.arity();
-        for _ in 0..arity - 1 {
-            let other_source_node = random_source_node(collection.as_ref());
-            if can_connect(
-                collection.as_ref(),
-                other_source_node.index,
-                new_node_index,
-                recurrent,
-            ) {
-                collection.attach(other_source_node.index, new_node_index);
+        match node.value.arity() {
+            Arity::Any | Arity::Zero => {
+                return Some(collection.into_iter().collect::<Vec<GraphNode<T>>>());
+            }
+            Arity::Exact(arity) => {
+                for _ in 0..arity - 1 {
+                    let other_source_node = random_source_node(collection.as_ref());
+                    if can_connect(
+                        collection.as_ref(),
+                        other_source_node.index,
+                        new_node_index,
+                        recurrent,
+                    ) {
+                        collection.attach(other_source_node.index, new_node_index);
+                    }
+                }
             }
         }
 
