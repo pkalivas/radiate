@@ -53,7 +53,7 @@ where
         }
     }
 }
-impl<T> Alter<NodeChromosome<T>> for GraphMutator<T>
+impl<T> Alter<GraphChromosome<T>> for GraphMutator<T>
 where
     T: Clone + PartialEq + Default,
 {
@@ -72,7 +72,7 @@ where
     #[inline]
     fn alter(
         &self,
-        population: &mut Population<NodeChromosome<T>>,
+        population: &mut Population<GraphChromosome<T>>,
         generation: i32,
     ) -> Vec<Metric> {
         let timer = Timer::new();
@@ -99,7 +99,7 @@ where
         vec![result]
     }
 
-    fn mutate_chromosome(&self, chromosome: &mut NodeChromosome<T>) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<T>) -> i32 {
         let mutation = random_provider::choose(&self.mutations);
 
         if random_provider::random::<f32>() > mutation.rate() {

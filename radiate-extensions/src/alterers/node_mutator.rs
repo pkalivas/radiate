@@ -1,7 +1,7 @@
 use std::ops::{Add, Mul, Sub};
 use std::sync::Arc;
 
-use crate::collections::NodeChromosome;
+use crate::collections::GraphChromosome;
 use crate::ops::operation::Operation;
 use num_traits::Float;
 use radiate::alter::AlterType;
@@ -34,7 +34,7 @@ where
     }
 }
 
-impl<T> Alter<NodeChromosome<T>> for NodeMutator<T>
+impl<T> Alter<GraphChromosome<T>> for NodeMutator<T>
 where
     T: Clone
         + PartialEq
@@ -59,7 +59,7 @@ where
     }
 
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut NodeChromosome<T>) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<T>) -> i32 {
         let two = T::from(2).unwrap();
         let one = T::from(1).unwrap();
 
@@ -109,57 +109,5 @@ where
         }
 
         mutation_indexes.len() as i32
-
-        // for i in 0..chromosome.len() {
-        //     if random_provider::random::<f32>() < self.rate {
-        //         count += 1;
-        //         let temp_node = chromosome.new_node(i, chromosome.get_gene(i).node_type);
-        //         let current_node = chromosome.get_gene(i);
-
-        //         match current_node.allele() {
-        //             Operation::MutableConst {
-        //                 name,
-        //                 arity,
-        //                 value,
-        //                 get_value,
-        //                 operation,
-        //             } => {
-        //                 let random_value = random_provider::random::<T>() * T::from(2).unwrap()
-        //                     - T::from(1).unwrap();
-
-        //                 if random_provider::random::<f32>() < self.replace_rate {
-        //                     chromosome.set_gene(
-        //                         i,
-        //                         current_node.with_allele(&Operation::MutableConst {
-        //                             name,
-        //                             arity: *arity,
-        //                             value: random_value,
-        //                             get_value: Arc::clone(get_value),
-        //                             operation: Arc::clone(operation),
-        //                         }),
-        //                     );
-        //                 } else {
-        //                     let new_value = random_value + *value;
-        //                     chromosome.set_gene(
-        //                         i,
-        //                         current_node.with_allele(&Operation::MutableConst {
-        //                             name,
-        //                             arity: *arity,
-        //                             value: new_value,
-        //                             get_value: Arc::clone(get_value),
-        //                             operation: Arc::clone(operation),
-        //                         }),
-        //                     );
-        //                 }
-        //             }
-
-        //             _ => {
-        //                 if temp_node.value.arity() == current_node.value.arity() {
-        //                     chromosome.set_gene(i, current_node.with_allele(temp_node.allele()));
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
     }
 }

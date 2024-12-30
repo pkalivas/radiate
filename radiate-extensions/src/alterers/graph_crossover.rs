@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::collections::{NodeChromosome, NodeType};
+use crate::collections::{GraphChromosome, NodeType};
 use radiate::alter::AlterType;
 use radiate::engines::alterers::Alter;
 use radiate::engines::genome::*;
@@ -33,10 +33,10 @@ where
     #[inline]
     pub fn cross(
         &self,
-        population: &Population<NodeChromosome<T>>,
+        population: &Population<GraphChromosome<T>>,
         indexes: &[usize],
         generation: i32,
-    ) -> Option<Phenotype<NodeChromosome<T>>> {
+    ) -> Option<Phenotype<GraphChromosome<T>>> {
         let parent_one = &population[indexes[0]];
         let parent_two = &population[indexes[1]];
 
@@ -102,7 +102,7 @@ where
     }
 }
 
-impl<T> Alter<NodeChromosome<T>> for GraphCrossover<T>
+impl<T> Alter<GraphChromosome<T>> for GraphCrossover<T>
 where
     T: Clone + PartialEq + Default + 'static,
 {
@@ -121,7 +121,7 @@ where
     #[inline]
     fn alter(
         &self,
-        population: &mut Population<NodeChromosome<T>>,
+        population: &mut Population<GraphChromosome<T>>,
         generation: i32,
     ) -> Vec<Metric> {
         let timer = Timer::new();

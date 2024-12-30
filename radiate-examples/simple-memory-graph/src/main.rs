@@ -1,5 +1,5 @@
 use radiate::*;
-use radiate_extensions::collections::{Graph, GraphCodex, GraphReducer, NodeChromosome, NodeType};
+use radiate_extensions::collections::{Graph, GraphChromosome, GraphCodex, GraphReducer, NodeType};
 use radiate_extensions::ops::operation;
 use radiate_extensions::*;
 
@@ -37,7 +37,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<NodeChromosome<f32>, Graph<f32>>) {
+fn display(result: &EngineContext<GraphChromosome<f32>, Graph<f32>>) {
     let mut reducer = GraphReducer::new(&result.best);
     for sample in get_sample_set().get_samples().iter() {
         let output = reducer.reduce(&sample.1);

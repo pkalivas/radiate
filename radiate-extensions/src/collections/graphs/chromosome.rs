@@ -1,82 +1,11 @@
-use crate::collections::{Factory, GraphNode, NodeFactory, NodeType};
-use radiate::{Chromosome, Gene, Valid};
+use crate::{Factory, GraphNode, NodeFactory, NodeType};
+use radiate::{Chromosome, Valid};
 use std::cell::RefCell;
 use std::ops::{Index, IndexMut};
 use std::rc::Rc;
-use std::sync::Arc;
-
-type Constraint<N> = Arc<Box<dyn Fn(&N) -> bool>>;
-
-#[derive(Clone, Default)]
-pub struct NodeChrom<N>
-where
-    N: Gene,
-{
-    nodes: Vec<N>,
-    constraint: Option<Constraint<N>>,
-}
-
-impl<N> NodeChrom<N>
-where
-    N: Gene,
-{
-    pub fn new(nodes: Vec<N>) -> Self {
-        NodeChrom {
-            nodes,
-            constraint: None,
-        }
-    }
-
-    pub fn with_constraint(nodes: Vec<N>, constraint: Option<Constraint<N>>) -> Self {
-        NodeChrom { nodes, constraint }
-    }
-}
-
-impl<N> Chromosome for NodeChrom<N>
-where
-    N: Gene,
-{
-    type Gene = N;
-
-    fn get_genes(&self) -> &[N] {
-        &self.nodes
-    }
-
-    fn get_genes_mut(&mut self) -> &mut [N] {
-        &mut self.nodes
-    }
-}
-
-impl<N> Valid for NodeChrom<N>
-where
-    N: Gene,
-{
-    fn is_valid(&self) -> bool {
-        for gene in &self.nodes {
-            if let Some(constraint) = &self.constraint {
-                if !constraint(gene) {
-                    return false;
-                }
-            } else if !gene.is_valid() {
-                return false;
-            }
-        }
-
-        true
-    }
-}
-
-impl<N> PartialEq for NodeChrom<N>
-where
-    N: Gene,
-{
-    fn eq(&self, other: &Self) -> bool {
-        self.nodes == other.nodes
-    }
-}
 
 #[derive(Clone)]
-pub struct NodeChromosome<T>
+pub struct GraphChromosome<T>
 where
     T: Clone + PartialEq + Default,
 {
@@ -84,19 +13,19 @@ where
     pub factory: Option<Rc<RefCell<NodeFactory<T>>>>,
 }
 
-impl<T> NodeChromosome<T>
+impl<T> GraphChromosome<T>
 where
     T: Clone + PartialEq + Default,
 {
     pub fn new(nodes: Vec<GraphNode<T>>) -> Self {
-        NodeChromosome {
+        GraphChromosome {
             nodes,
             factory: None,
         }
     }
 
     pub fn with_factory(nodes: Vec<GraphNode<T>>, factory: Rc<RefCell<NodeFactory<T>>>) -> Self {
-        NodeChromosome {
+        GraphChromosome {
             nodes,
             factory: Some(factory),
         }
@@ -109,7 +38,7 @@ where
     }
 }
 
-impl<T> Chromosome for NodeChromosome<T>
+impl<T> Chromosome for GraphChromosome<T>
 where
     T: Clone + PartialEq + Default,
 {
@@ -124,7 +53,7 @@ where
     }
 }
 
-impl<T> Valid for NodeChromosome<T>
+impl<T> Valid for GraphChromosome<T>
 where
     T: Clone + PartialEq + Default,
 {
@@ -133,7 +62,7 @@ where
     }
 }
 
-impl<T> Index<usize> for NodeChromosome<T>
+impl<T> Index<usize> for GraphChromosome<T>
 where
     T: Clone + PartialEq + Default,
 {
@@ -144,7 +73,7 @@ where
     }
 }
 
-impl<T> IndexMut<usize> for NodeChromosome<T>
+impl<T> IndexMut<usize> for GraphChromosome<T>
 where
     T: Clone + PartialEq + Default,
 {
@@ -153,7 +82,7 @@ where
     }
 }
 
-impl<T> PartialEq for NodeChromosome<T>
+impl<T> PartialEq for GraphChromosome<T>
 where
     T: Clone + PartialEq + Default,
 {
@@ -162,7 +91,7 @@ where
     }
 }
 
-impl<T> std::fmt::Debug for NodeChromosome<T>
+impl<T> std::fmt::Debug for GraphChromosome<T>
 where
     T: Clone + PartialEq + Default + std::fmt::Debug,
 {

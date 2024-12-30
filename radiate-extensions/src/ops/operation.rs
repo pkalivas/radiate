@@ -1,6 +1,5 @@
 use std::{
-    fmt::Debug,
-    fmt::Display,
+    fmt::{Debug, Display},
     ops::{Add, Deref, Div, Mul, Neg, Sub},
     sync::Arc,
 };
@@ -41,6 +40,154 @@ impl Deref for Arity {
             Arity::Exact(n) => n,
             Arity::Any => &0,
         }
+    }
+}
+
+pub trait Oper<T> {
+    fn name(&self) -> &str;
+    fn arity(&self) -> Arity;
+    fn apply(&self, inputs: &[T]) -> T;
+}
+
+pub struct ConstOp<T> {
+    name: &'static str,
+    value: T,
+}
+
+impl<T> ConstOp<T> {
+    pub fn new(name: &'static str, value: T) -> Self {
+        Self { name, value }
+    }
+}
+
+impl<T> Oper<T> for ConstOp<T>
+where
+    T: Clone,
+{
+    fn name(&self) -> &str {
+        self.name
+    }
+
+    fn arity(&self) -> Arity {
+        Arity::Zero
+    }
+
+    fn apply(&self, _: &[T]) -> T {
+        self.value.clone()
+    }
+}
+
+pub struct VariableOp {
+    name: &'static str,
+    index: usize,
+}
+
+impl VariableOp {
+    pub fn new(name: &'static str, index: usize) -> Self {
+        Self { name, index }
+    }
+}
+
+impl<T: Clone> Oper<T> for VariableOp {
+    fn name(&self) -> &str {
+        self.name
+    }
+
+    fn arity(&self) -> Arity {
+        Arity::Zero
+    }
+
+    fn apply(&self, inputs: &[T]) -> T {
+        inputs[self.index].clone()
+    }
+}
+
+pub struct FnOp<T> {
+    name: &'static str,
+    arity: Arity,
+    operation: Arc<Box<dyn Fn(&[T]) -> T>>,
+}
+
+impl<T> FnOp<T> {
+    pub fn new(name: &'static str, arity: Arity, operation: Box<dyn Fn(&[T]) -> T>) -> Self {
+        Self {
+            name,
+            arity,
+            operation: Arc::new(operation),
+        }
+    }
+}
+
+impl<T> Oper<T> for FnOp<T>
+where
+    T: Clone,
+{
+    fn name(&self) -> &str {
+        self.name
+    }
+
+    fn arity(&self) -> Arity {
+        self.arity
+    }
+
+    fn apply(&self, inputs: &[T]) -> T {
+        if inputs.len() != *self.arity {
+            panic!("Invalid number of inputs for operation");
+        }
+
+        (self.operation)(inputs)
+    }
+}
+
+pub struct Op<T> {
+    inner: Arc<Box<dyn Oper<T>>>,
+}
+
+impl<T> Op<T> {
+    pub fn new(inner: Box<dyn Oper<T>>) -> Self {
+        Self {
+            inner: Arc::new(inner),
+        }
+    }
+}
+
+impl<T> Oper<T> for Op<T>
+where
+    T: Clone,
+{
+    fn name(&self) -> &str {
+        self.inner.name()
+    }
+
+    fn arity(&self) -> Arity {
+        self.inner.arity()
+    }
+
+    fn apply(&self, inputs: &[T]) -> T {
+        self.inner.apply(inputs)
+    }
+}
+
+impl<T> Clone for Op<T> {
+    fn clone(&self) -> Self {
+        Self {
+            inner: Arc::clone(&self.inner),
+        }
+    }
+}
+
+impl<T> PartialEq for Op<T>
+where
+    T: Clone,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.name() == other.name()
+    }
+}
+
+impl<T> Debug for Op<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name())
     }
 }
 

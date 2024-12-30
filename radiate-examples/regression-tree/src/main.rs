@@ -23,7 +23,7 @@ fn main() {
         ))
         .fitness_fn(move |genotype: Tree<f32>| {
             let mut reducer = Tree::new(genotype.root().take().unwrap().to_owned());
-            Score::from_f32(regression.error(|input| vec![reducer.reduce(&input)]))
+            Score::from_f32(regression.error(|input| vec![reducer.reduce(input)]))
         })
         .build();
 
@@ -35,7 +35,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<NodeChrom<TreeNode<f32>>, Tree<f32>>) {
+fn display(result: &EngineContext<TreeChromosome<f32>, Tree<f32>>) {
     let mut regression_accuracy = 0.0;
     let mut total = 0.0;
 

@@ -36,8 +36,8 @@ impl ErrorFunction {
                 for sample in samples.get_samples().iter() {
                     let output = eval_func(&sample.1);
 
-                    for (i, val) in output.iter().enumerate() {
-                        let diff = sample.2[i] - *val;
+                    for (i, val) in output.into_iter().enumerate() {
+                        let diff = sample.2[i] - val;
                         sum += diff * diff;
                     }
                 }

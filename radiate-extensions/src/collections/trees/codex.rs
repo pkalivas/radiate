@@ -1,5 +1,5 @@
 use crate::collections::trees::TreeBuilder;
-use crate::collections::{NodeChrom, Tree, TreeNode};
+use crate::collections::{Tree, TreeChromosome, TreeNode};
 use crate::ops::Operation;
 use radiate::{Chromosome, Codex, Genotype};
 use std::sync::Arc;
@@ -36,11 +36,11 @@ impl<T: Clone + Default> TreeCodex<T> {
     }
 }
 
-impl<T> Codex<NodeChrom<TreeNode<T>>, Tree<T>> for TreeCodex<T>
+impl<T> Codex<TreeChromosome<T>, Tree<T>> for TreeCodex<T>
 where
     T: Clone + PartialEq + Default,
 {
-    fn encode(&self) -> Genotype<NodeChrom<TreeNode<T>>> {
+    fn encode(&self) -> Genotype<TreeChromosome<T>> {
         let root = self.architect.build().root().take().unwrap().to_owned();
 
         if let Some(constraint) = &self.constraint {
@@ -50,14 +50,14 @@ where
         }
 
         Genotype {
-            chromosomes: vec![NodeChrom::with_constraint(
+            chromosomes: vec![TreeChromosome::with_constraint(
                 vec![root],
                 self.constraint.clone(),
             )],
         }
     }
 
-    fn decode(&self, genotype: &Genotype<NodeChrom<TreeNode<T>>>) -> Tree<T> {
+    fn decode(&self, genotype: &Genotype<TreeChromosome<T>>) -> Tree<T> {
         let nodes = genotype
             .iter()
             .next()

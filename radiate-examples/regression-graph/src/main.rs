@@ -1,12 +1,14 @@
 use radiate::*;
-use radiate_extensions::collections::{Graph, GraphCodex, GraphReducer, NodeChromosome, NodeType};
+use radiate_extensions::collections::{Graph, GraphChromosome, GraphCodex, GraphReducer, NodeType};
 use radiate_extensions::ops::operation;
 use radiate_extensions::*;
+use random_provider::set_seed;
 
 const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
+    set_seed(1000);
     let graph_codex = GraphCodex::regression(1, 1)
         .set_outputs(vec![operation::linear()])
         .set_vertices(vec![
@@ -21,7 +23,7 @@ fn main() {
 
     let engine = GeneticEngine::from_codex(&graph_codex)
         .minimizing()
-        .num_threads(10)
+        .num_threads(1)
         .offspring_selector(RouletteSelector::new())
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
@@ -45,7 +47,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<NodeChromosome<f32>, Graph<f32>>) {
+fn display(result: &EngineContext<GraphChromosome<f32>, Graph<f32>>) {
     let mut regression_accuracy = 0.0;
     let mut total = 0.0;
 

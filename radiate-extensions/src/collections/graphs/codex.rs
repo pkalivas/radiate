@@ -1,6 +1,7 @@
 use crate::collections::graphs::architect::GraphArchitect;
 use crate::collections::graphs::builder::GraphBuilder;
-use crate::collections::{Graph, GraphNode, NodeChromosome, NodeFactory, NodeType};
+use crate::collections::{Graph, GraphNode, NodeFactory, NodeType};
+use crate::graphs::chromosome::GraphChromosome;
 use crate::ops::Operation;
 use crate::Factory;
 use radiate::{Chromosome, Codex, Gene, Genotype};
@@ -88,11 +89,11 @@ impl GraphCodex<f32> {
     }
 }
 
-impl<T> Codex<NodeChromosome<T>, Graph<T>> for GraphCodex<T>
+impl<T> Codex<GraphChromosome<T>, Graph<T>> for GraphCodex<T>
 where
     T: Clone + PartialEq + Default + 'static,
 {
-    fn encode(&self) -> Genotype<NodeChromosome<T>> {
+    fn encode(&self) -> Genotype<GraphChromosome<T>> {
         let reader = self.factory.borrow();
 
         if let Some(graph) = &self.graph {
@@ -109,17 +110,15 @@ where
                 })
                 .collect::<Vec<GraphNode<T>>>();
 
-            // let node_chrom = NodeChrom::with_factory(nodes, self.factory.clone());
-
             return Genotype {
-                chromosomes: vec![NodeChromosome::with_factory(nodes, self.factory.clone())],
+                chromosomes: vec![GraphChromosome::with_factory(nodes, self.factory.clone())],
             };
         }
 
         panic!("Graph not initialized.");
     }
 
-    fn decode(&self, genotype: &Genotype<NodeChromosome<T>>) -> Graph<T> {
+    fn decode(&self, genotype: &Genotype<GraphChromosome<T>>) -> Graph<T> {
         Graph::new(
             genotype
                 .iter()

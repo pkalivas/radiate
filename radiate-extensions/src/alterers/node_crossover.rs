@@ -1,4 +1,4 @@
-use crate::collections::NodeChromosome;
+use crate::collections::GraphChromosome;
 use radiate::alter::AlterType;
 use radiate::engines::genome::*;
 use radiate::{random_provider, Alter};
@@ -13,7 +13,7 @@ impl NodeCrossover {
     }
 }
 
-impl<T> Alter<NodeChromosome<T>> for NodeCrossover
+impl<T> Alter<GraphChromosome<T>> for NodeCrossover
 where
     T: Clone + PartialEq + Default,
 {
@@ -32,8 +32,8 @@ where
     #[inline]
     fn cross_chromosomes(
         &self,
-        chrom_one: &mut NodeChromosome<T>,
-        chrom_two: &mut NodeChromosome<T>,
+        chrom_one: &mut GraphChromosome<T>,
+        chrom_two: &mut GraphChromosome<T>,
     ) -> i32 {
         let rate = self.rate;
         let mut cross_count = 0;

@@ -1,18 +1,15 @@
-pub mod chromosome;
-pub mod generator;
 pub mod graphs;
 pub mod node_factory;
 pub mod reducers;
 pub mod trees;
 
 use crate::ops::Operation;
-pub use chromosome::*;
-pub use graphs::{Direction, Graph, GraphCodex, GraphNode, NodeType};
+pub use graphs::{Direction, Graph, GraphChromosome, GraphCodex, GraphNode, NodeType};
 pub use node_factory::*;
 use radiate::random_provider;
 pub use reducers::*;
 use std::collections::HashMap;
-pub use trees::{Tree, TreeCodex, TreeIterator, TreeNode};
+pub use trees::{Tree, TreeBuilder, TreeChromosome, TreeCodex, TreeIterator, TreeNode};
 
 pub trait Builder {
     type Output;
