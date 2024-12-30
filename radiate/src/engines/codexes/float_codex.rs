@@ -52,15 +52,13 @@ impl Codex<FloatChromosome, Vec<Vec<f32>>> for FloatCodex {
     fn encode(&self) -> Genotype<FloatChromosome> {
         Genotype {
             chromosomes: (0..self.num_chromosomes)
-                .map(|_| {
-                    FloatChromosome::from_genes(
-                        (0..self.num_genes)
-                            .map(|_| {
-                                FloatGene::new(self.min, self.max)
-                                    .with_bounds(self.lower_bound, self.upper_bound)
-                            })
-                            .collect::<Vec<FloatGene>>(),
-                    )
+                .map(|_| FloatChromosome {
+                    genes: (0..self.num_genes)
+                        .map(|_| {
+                            FloatGene::new(self.min, self.max)
+                                .with_bounds(self.lower_bound, self.upper_bound)
+                        })
+                        .collect::<Vec<FloatGene>>(),
                 })
                 .collect::<Vec<FloatChromosome>>(),
         }

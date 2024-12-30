@@ -1,7 +1,5 @@
-use super::{Graph, Tree};
-use crate::node::GraphNode;
+use super::{Graph, GraphNode, NodeType, Tree, TreeNode};
 use crate::ops::operation::Operation;
-use crate::{NodeType, TreeNode};
 
 pub trait Reduce<T> {
     type Input;

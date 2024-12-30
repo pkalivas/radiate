@@ -1,8 +1,8 @@
 use std::ops::{Add, Mul, Sub};
 use std::sync::Arc;
 
+use crate::collections::NodeChromosome;
 use crate::ops::operation::Operation;
-use crate::NodeChromosome;
 use num_traits::Float;
 use radiate::alter::AlterType;
 use radiate::engines::genome::genes::gene::Gene;

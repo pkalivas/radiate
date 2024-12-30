@@ -1,9 +1,6 @@
-use crate::architects::node_collections::node_factory::NodeFactory;
-use crate::{Graph, GraphNode, NodeType};
+use crate::collections::{Builder, Graph, GraphNode, NodeType};
 use std::collections::BTreeMap;
 use uuid::Uuid;
-
-use super::Builder;
 
 enum ConnectTypes {
     OneToOne,
@@ -232,7 +229,6 @@ where
                 node.outgoing().len() == 1
                     && node.is_recurrent()
                     && (node.node_type() == &NodeType::Vertex)
-                // || node.node_type() == &NodeType::Aggregate)
             })
             .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
             .collect::<Vec<&GraphNode<T>>>();
@@ -316,23 +312,6 @@ where
         }
 
         new_collection.clone().set_cycles(Vec::new())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::builder::TreeBuilder;
-    use crate::ops::operation;
-
-    #[test]
-    fn test_tree_archit() {
-        let tree_archit = TreeBuilder::<f32>::new(3)
-            .with_gates(vec![operation::add(), operation::sub()])
-            .with_leafs(vec![operation::var(0), operation::var(1)]);
-        let tree = tree_archit.build();
-        let size = tree.root().map(|n| n.size()).unwrap_or(0);
-
-        assert_eq!(size, 15);
     }
 }
 

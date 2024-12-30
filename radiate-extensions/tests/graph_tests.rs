@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use radiate::*;
-    use radiate_extensions::*;
+    use radiate_extensions::collections::{GraphCodex, GraphReducer, NodeFactory};
 
     #[test]
     fn test_graph() {

@@ -1,8 +1,6 @@
-use crate::architects::node_collections::*;
-use crate::node::GraphNode;
+use crate::collections::*;
 use crate::ops::Arity;
 
-use num_traits::Zero;
 use radiate::alter::AlterType;
 use radiate::engines::alterers::Alter;
 use radiate::engines::genome::*;
@@ -63,8 +61,8 @@ where
         node_type: &NodeType,
         factory: &NodeFactory<T>,
     ) -> Option<Vec<GraphNode<T>>> {
-        let source_node = random_source_node(collection);
-        let target_node = random_target_node(collection);
+        let source_node = graphs::random_source_node(collection);
+        let target_node = graphs::random_target_node(collection);
         let source_node_index = source_node.index;
         let target_node_index = target_node.index;
 
@@ -84,7 +82,7 @@ where
             let new_node = factory.new_node(new_node_index, *node_type);
             let new_target_edge = factory.new_node(new_target_edge_index, source_node.node_type);
 
-            if is_locked(outgoing_node) {
+            if graphs::is_locked(outgoing_node) {
                 let mut temp = Graph::new(
                     collection
                         .iter()
@@ -127,7 +125,7 @@ where
                     false,
                 );
             }
-        } else if !can_connect(collection, source_node.index, target_node.index, false) {
+        } else if !graphs::can_connect(collection, source_node.index, target_node.index, false) {
             return None;
         }
 
@@ -153,8 +151,8 @@ where
         node_type: &NodeType,
         factory: &NodeFactory<T>,
     ) -> Option<Vec<GraphNode<T>>> {
-        let source_node = random_source_node(collection);
-        let target_node = random_target_node(collection);
+        let source_node = graphs::random_source_node(collection);
+        let target_node = graphs::random_target_node(collection);
         let source_node_index = source_node.index;
         let target_node_index = target_node.index;
 
@@ -176,7 +174,7 @@ where
             let new_target_edge = factory.new_node(new_target_edge_index, source_node.node_type);
             let recurrent_edge = factory.new_node(recurrent_edge_index, source_node.node_type);
 
-            return if is_locked(outgoing_node) {
+            return if graphs::is_locked(outgoing_node) {
                 let mut temp = Graph::new(
                     collection
                         .iter()
@@ -231,7 +229,7 @@ where
 
                 self.repair_insert(temp, new_node_index, incoming_node, outgoing_node, true)
             };
-        } else if !can_connect(collection, source_node.index, target_node.index, true) {
+        } else if !graphs::can_connect(collection, source_node.index, target_node.index, true) {
             return None;
         }
 
@@ -266,8 +264,8 @@ where
             }
             Arity::Exact(arity) => {
                 for _ in 0..arity - 1 {
-                    let other_source_node = random_source_node(collection.as_ref());
-                    if can_connect(
+                    let other_source_node = graphs::random_source_node(collection.as_ref());
+                    if graphs::can_connect(
                         collection.as_ref(),
                         other_source_node.index,
                         new_node_index,

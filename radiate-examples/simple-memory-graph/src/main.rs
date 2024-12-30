@@ -1,4 +1,5 @@
 use radiate::*;
+use radiate_extensions::collections::{Graph, GraphCodex, GraphReducer, NodeChromosome, NodeType};
 use radiate_extensions::ops::operation;
 use radiate_extensions::*;
 

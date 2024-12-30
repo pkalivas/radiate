@@ -1,16 +1,17 @@
-pub mod architect;
-pub mod builder;
-
-use std::collections::HashMap;
-
-pub use architect::*;
-pub use builder::*;
-
-use radiate::random_provider;
+pub mod chromosome;
+pub mod graphs;
+pub mod node_factory;
+pub mod reducers;
+pub mod trees;
 
 use crate::ops::Operation;
-
-use super::{Graph, GraphNode, NodeType};
+pub use chromosome::*;
+pub use graphs::{Direction, Graph, GraphCodex, GraphNode, NodeType};
+pub use node_factory::*;
+use radiate::random_provider;
+pub use reducers::*;
+use std::collections::HashMap;
+pub use trees::{Tree, TreeCodex, TreeIterator, TreeNode};
 
 pub trait Builder {
     type Output;

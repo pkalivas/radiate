@@ -17,10 +17,6 @@ where
 {
     type Gene = IntGene<I>;
 
-    fn from_genes(genes: Vec<IntGene<I>>) -> Self {
-        IntChromosome { genes }
-    }
-
     fn get_genes(&self) -> &[IntGene<I>] {
         &self.genes
     }

@@ -55,15 +55,13 @@ where
     fn encode(&self) -> Genotype<IntChromosome<T>> {
         Genotype {
             chromosomes: (0..self.num_chromosomes)
-                .map(|_| {
-                    IntChromosome::from_genes(
-                        (0..self.num_genes)
-                            .map(|_| {
-                                IntGene::from_min_max(self.min, self.max)
-                                    .with_bounds(self.lower_bound, self.upper_bound)
-                            })
-                            .collect::<Vec<IntGene<T>>>(),
-                    )
+                .map(|_| IntChromosome {
+                    genes: (0..self.num_genes)
+                        .map(|_| {
+                            IntGene::from_min_max(self.min, self.max)
+                                .with_bounds(self.lower_bound, self.upper_bound)
+                        })
+                        .collect::<Vec<IntGene<T>>>(),
                 })
                 .collect::<Vec<IntChromosome<T>>>(),
         }

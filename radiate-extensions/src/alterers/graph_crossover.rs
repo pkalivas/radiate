@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{NodeChromosome, NodeType};
+use crate::collections::{NodeChromosome, NodeType};
 use radiate::alter::AlterType;
 use radiate::engines::alterers::Alter;
 use radiate::engines::genome::*;

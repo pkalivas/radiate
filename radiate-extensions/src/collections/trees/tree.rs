@@ -1,4 +1,4 @@
-use crate::{TreeIterator, TreeNode};
+use crate::collections::{TreeIterator, TreeNode};
 use std::fmt::Debug;
 
 #[derive(Clone, PartialEq, Default)]

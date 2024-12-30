@@ -12,10 +12,6 @@ pub struct BitChromosome {
 impl Chromosome for BitChromosome {
     type Gene = BitGene;
 
-    fn from_genes(genes: Vec<BitGene>) -> Self {
-        BitChromosome { genes }
-    }
-
     fn get_genes(&self) -> &[BitGene] {
         &self.genes
     }

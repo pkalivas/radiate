@@ -1,4 +1,4 @@
-use crate::{NodeChrom, TreeNode};
+use crate::collections::{NodeChrom, TreeNode};
 use radiate::alter::AlterType;
 use radiate::{random_provider, Alter, Chromosome};
 use std::fmt::Debug;

@@ -1,4 +1,4 @@
-use crate::NodeChromosome;
+use crate::collections::NodeChromosome;
 use radiate::alter::AlterType;
 use radiate::engines::genome::*;
 use radiate::{random_provider, Alter};

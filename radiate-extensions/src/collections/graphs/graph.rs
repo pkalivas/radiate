@@ -1,21 +1,32 @@
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::ops::{Index, IndexMut};
-
-use radiate::{random_provider, Chromosome, Valid};
+use std::sync::Arc;
 
 use super::GraphIterator;
-use crate::node::GraphNode;
+use crate::collections::{Direction, GraphNode, NodeType};
+use radiate::{random_provider, Chromosome, Valid};
+
 use crate::ops::operation::Arity;
-use crate::{Direction, NodeType};
+use crate::ops::Operation;
+
+type NodeFactory<T> = Option<Arc<HashMap<NodeType, Vec<Operation<T>>>>>;
 
 #[derive(Clone, PartialEq, Default)]
 pub struct Graph<T> {
     pub nodes: Vec<GraphNode<T>>,
+    factory: NodeFactory<T>,
 }
 
 impl<T> Graph<T> {
     pub fn new(nodes: Vec<GraphNode<T>>) -> Self {
-        Graph { nodes }
+        Graph {
+            nodes,
+            factory: None,
+        }
+    }
+
+    pub fn with_factory(nodes: Vec<GraphNode<T>>, factory: NodeFactory<T>) -> Self {
+        Graph { nodes, factory }
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &GraphNode<T>> {
@@ -93,16 +104,21 @@ where
 {
     type Gene = GraphNode<T>;
 
-    fn from_genes(genes: Vec<GraphNode<T>>) -> Self {
-        Graph { nodes: genes }
-    }
-
     fn get_genes(&self) -> &[GraphNode<T>] {
         &self.nodes
     }
 
     fn get_genes_mut(&mut self) -> &mut [GraphNode<T>] {
         &mut self.nodes
+    }
+}
+
+impl<T> Valid for Graph<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    fn is_valid(&self) -> bool {
+        self.nodes.iter().all(|node| node.is_valid())
     }
 }
 
@@ -129,15 +145,6 @@ impl<T> Index<usize> for Graph<T> {
 impl<T> IndexMut<usize> for Graph<T> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.nodes.get_mut(index).expect("Index out of bounds.")
-    }
-}
-
-impl<T> Valid for Graph<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    fn is_valid(&self) -> bool {
-        self.nodes.iter().all(|node| node.is_valid())
     }
 }
 

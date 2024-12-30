@@ -1,7 +1,6 @@
-use crate::{GraphNode, NodeFactory, NodeType};
+use crate::collections::{Factory, GraphNode, NodeFactory, NodeType};
 use radiate::{Chromosome, Gene, Valid};
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::hash::Hash;
 use std::ops::{Index, IndexMut};
 use std::rc::Rc;
@@ -14,7 +13,7 @@ where
 {
     nodes: Vec<N>,
     constraint: Option<Arc<Box<dyn Fn(&N) -> bool>>>,
-    // factory: Option<Arc<HashMap<NodeType, Vec<N>>>>,
+    factory: Option<Arc<Box<dyn Factory<N, Input = (usize, NodeType)>>>>,
 }
 
 impl<N> NodeChrom<N>
@@ -25,6 +24,7 @@ where
         NodeChrom {
             nodes,
             constraint: None,
+            factory: None,
         }
     }
 
@@ -32,7 +32,11 @@ where
         nodes: Vec<N>,
         constraint: Option<Arc<Box<dyn Fn(&N) -> bool>>>,
     ) -> Self {
-        NodeChrom { nodes, constraint }
+        NodeChrom {
+            nodes,
+            constraint,
+            factory: None,
+        }
     }
 }
 
@@ -41,13 +45,6 @@ where
     N: Gene,
 {
     type Gene = N;
-
-    fn from_genes(genes: Vec<N>) -> Self {
-        NodeChrom {
-            nodes: genes,
-            constraint: None,
-        }
-    }
 
     fn get_genes(&self) -> &[N] {
         &self.nodes
@@ -125,13 +122,6 @@ where
     T: Clone + PartialEq + Default,
 {
     type Gene = GraphNode<T>;
-
-    fn from_genes(genes: Vec<GraphNode<T>>) -> Self {
-        NodeChromosome {
-            nodes: genes,
-            factory: None,
-        }
-    }
 
     fn get_genes(&self) -> &[GraphNode<T>] {
         &self.nodes
