@@ -1,5 +1,4 @@
 use crate::collections::*;
-use crate::ops::Arity;
 
 use radiate::alter::AlterType;
 use radiate::engines::alterers::Alter;
@@ -40,256 +39,23 @@ where
     T: Clone + PartialEq + Default,
 {
     pub mutations: Vec<NodeMutate>,
-    _marker: std::marker::PhantomData<T>,
+    _phantom: std::marker::PhantomData<T>,
 }
 
 impl<T> GraphMutator<T>
 where
-    T: Clone + PartialEq + Default + 'static,
+    T: Clone + PartialEq + Default,
 {
     pub fn new(mutations: Vec<NodeMutate>) -> Self {
         Self {
             mutations,
-            _marker: std::marker::PhantomData,
+            _phantom: std::marker::PhantomData,
         }
-    }
-
-    #[inline]
-    pub fn insert_forward_node(
-        &self,
-        collection: &[GraphNode<T>],
-        node_type: &NodeType,
-        factory: &NodeFactory<T>,
-    ) -> Option<Vec<GraphNode<T>>> {
-        let source_node = graphs::random_source_node(collection);
-        let target_node = graphs::random_target_node(collection);
-        let source_node_index = source_node.index;
-        let target_node_index = target_node.index;
-
-        let new_source_edge_index = collection.len();
-        let new_node_index = collection.len() + 1;
-        let new_target_edge_index = collection.len() + 2;
-
-        if source_node.node_type == NodeType::Edge && node_type != &NodeType::Edge {
-            let incoming_node = collection.get(*source_node.incoming.iter().next()?)?;
-            let outgoing_node = collection.get(*source_node.outgoing.iter().next()?)?;
-
-            let new_source_edge =
-                factory.new_instance((new_source_edge_index, source_node.node_type));
-            let new_node = factory.new_instance((new_node_index, *node_type));
-            let new_target_edge =
-                factory.new_instance((new_target_edge_index, source_node.node_type));
-
-            if graphs::is_locked(outgoing_node) {
-                let mut temp = Graph::new(
-                    collection
-                        .iter()
-                        .cloned()
-                        .chain(vec![new_source_edge, new_node])
-                        .collect::<Vec<GraphNode<T>>>(),
-                );
-
-                temp.attach(source_node_index, new_node_index);
-                temp.attach(new_node_index, new_source_edge_index);
-                temp.attach(new_source_edge_index, outgoing_node.index);
-                temp.detach(source_node_index, outgoing_node.index);
-
-                return self.repair_insert(
-                    temp,
-                    new_node_index,
-                    incoming_node,
-                    outgoing_node,
-                    false,
-                );
-            } else {
-                let mut temp = Graph::new(
-                    collection
-                        .iter()
-                        .cloned()
-                        .chain(vec![new_source_edge, new_node, new_target_edge])
-                        .collect::<Vec<GraphNode<T>>>(),
-                );
-
-                temp.attach(source_node.index, new_source_edge_index);
-                temp.attach(new_source_edge_index, new_node_index);
-                temp.attach(new_node_index, new_target_edge_index);
-                temp.attach(new_target_edge_index, outgoing_node.index);
-
-                return self.repair_insert(
-                    temp,
-                    new_node_index,
-                    incoming_node,
-                    outgoing_node,
-                    false,
-                );
-            }
-        } else if !graphs::can_connect(collection, source_node.index, target_node.index, false) {
-            return None;
-        }
-
-        let mut temp = Graph::new(
-            collection
-                .iter()
-                .cloned()
-                .chain(vec![factory.new_instance((collection.len(), *node_type))])
-                .collect::<Vec<GraphNode<T>>>(),
-        );
-
-        temp.attach(source_node_index, collection.len());
-        temp.attach(collection.len(), target_node_index);
-        temp.detach(source_node_index, target_node_index);
-
-        self.repair_insert(temp, collection.len(), source_node, target_node, false)
-    }
-
-    #[inline]
-    pub fn insert_recurrent_node(
-        &self,
-        collection: &[GraphNode<T>],
-        node_type: &NodeType,
-        factory: &NodeFactory<T>,
-    ) -> Option<Vec<GraphNode<T>>> {
-        let source_node = graphs::random_source_node(collection);
-        let target_node = graphs::random_target_node(collection);
-        let source_node_index = source_node.index;
-        let target_node_index = target_node.index;
-
-        let new_source_edge_index = collection.len();
-        let new_node_index = collection.len() + 1;
-        let new_target_edge_index = collection.len() + 2;
-        let recurrent_edge_index = collection.len() + 3;
-
-        if source_node.node_type == NodeType::Edge && node_type != &NodeType::Edge {
-            let incoming_node = collection.get(*source_node.incoming.iter().next()?)?;
-            let outgoing_node = collection.get(*source_node.outgoing.iter().next()?)?;
-
-            let new_source_edge =
-                factory.new_instance((new_source_edge_index, source_node.node_type));
-            let new_node = factory.new_instance((new_node_index, *node_type));
-            let new_target_edge =
-                factory.new_instance((new_target_edge_index, source_node.node_type));
-            let recurrent_edge =
-                factory.new_instance((recurrent_edge_index, source_node.node_type));
-
-            return if graphs::is_locked(outgoing_node) {
-                let mut temp = Graph::new(
-                    collection
-                        .iter()
-                        .cloned()
-                        .chain(vec![new_source_edge, new_node, new_target_edge])
-                        .collect::<Vec<GraphNode<T>>>(),
-                );
-
-                temp.attach(incoming_node.index, new_node_index);
-                temp.attach(new_node_index, new_source_edge_index);
-                temp.attach(new_source_edge_index, new_node_index);
-                temp.attach(new_node_index, new_target_edge_index);
-                temp.attach(new_target_edge_index, outgoing_node.index);
-                temp.detach(incoming_node.index, outgoing_node.index);
-
-                self.repair_insert(temp, new_node_index, incoming_node, outgoing_node, true)
-            } else if !source_node.is_recurrent() {
-                let mut temp = Graph::new(
-                    collection
-                        .iter()
-                        .cloned()
-                        .chain(vec![
-                            new_source_edge,
-                            new_node,
-                            new_target_edge,
-                            recurrent_edge,
-                        ])
-                        .collect::<Vec<GraphNode<T>>>(),
-                );
-
-                temp.attach(incoming_node.index, new_source_edge_index);
-                temp.attach(new_source_edge_index, new_node_index);
-                temp.attach(new_node_index, new_target_edge_index);
-                temp.attach(new_target_edge_index, outgoing_node.index);
-                temp.attach(recurrent_edge_index, new_node_index);
-                temp.attach(new_node_index, recurrent_edge_index);
-
-                self.repair_insert(temp, new_node_index, incoming_node, outgoing_node, true)
-            } else {
-                let mut temp = Graph::new(
-                    collection
-                        .iter()
-                        .cloned()
-                        .chain(vec![new_source_edge, new_node, new_target_edge])
-                        .collect::<Vec<GraphNode<T>>>(),
-                );
-
-                temp.attach(incoming_node.index, new_source_edge_index);
-                temp.attach(new_source_edge_index, new_node_index);
-                temp.attach(new_node_index, new_target_edge_index);
-                temp.attach(new_target_edge_index, outgoing_node.index);
-
-                self.repair_insert(temp, new_node_index, incoming_node, outgoing_node, true)
-            };
-        } else if !graphs::can_connect(collection, source_node.index, target_node.index, true) {
-            return None;
-        }
-
-        let mut temp = Graph::new(
-            collection
-                .iter()
-                .cloned()
-                .chain(vec![factory.new_instance((collection.len(), *node_type))])
-                .collect::<Vec<GraphNode<T>>>(),
-        );
-
-        temp.attach(source_node_index, collection.len());
-        temp.attach(collection.len(), target_node_index);
-        temp.detach(source_node_index, target_node_index);
-
-        self.repair_insert(temp, collection.len(), source_node, target_node, true)
-    }
-
-    #[inline]
-    fn repair_insert(
-        &self,
-        mut collection: Graph<T>,
-        new_node_index: usize,
-        source_node: &GraphNode<T>,
-        target_node: &GraphNode<T>,
-        recurrent: bool,
-    ) -> Option<Vec<GraphNode<T>>> {
-        let node = collection.get(new_node_index);
-        match node.value.arity() {
-            Arity::Any | Arity::Zero => {
-                return Some(collection.into_iter().collect::<Vec<GraphNode<T>>>());
-            }
-            Arity::Exact(arity) => {
-                for _ in 0..arity - 1 {
-                    let other_source_node = graphs::random_source_node(collection.as_ref());
-                    if graphs::can_connect(
-                        collection.as_ref(),
-                        other_source_node.index,
-                        new_node_index,
-                        recurrent,
-                    ) {
-                        collection.attach(other_source_node.index, new_node_index);
-                    }
-                }
-            }
-        }
-
-        if !collection.is_valid() {
-            return None;
-        }
-
-        Some(
-            collection
-                .set_cycles(vec![source_node.index, target_node.index])
-                .into_iter()
-                .collect::<Vec<GraphNode<T>>>(),
-        )
     }
 }
-
 impl<T> Alter<NodeChromosome<T>> for GraphMutator<T>
 where
-    T: Clone + PartialEq + Default + 'static,
+    T: Clone + PartialEq + Default,
 {
     fn name(&self) -> &'static str {
         "GraphMutator"
@@ -312,64 +78,17 @@ where
         let timer = Timer::new();
         let mut count = 0;
         for i in 0..population.len() {
-            let mutation = random_provider::choose(&self.mutations);
+            let phenotype = &mut population[i];
+            let genotype = &mut phenotype.genotype();
 
-            if random_provider::random::<f32>() > mutation.rate() {
-                continue;
-            }
-
-            let genotype = population[i].genotype();
             let chromosome_index = random_provider::random::<usize>() % genotype.len();
-            let chromosome = &genotype[chromosome_index];
 
-            if let Some(ref factory) = chromosome.factory {
-                let mutated_graph = if mutation.is_recurrent() {
-                    let mut graph = Graph::new(chromosome.nodes.clone());
-                    let node_fact = factory.borrow();
+            let chromosome = &mut phenotype.genotype_mut()[chromosome_index];
 
-                    let valid =
-                        self.add_backward_node(&mut graph, &mutation.node_type(), &node_fact);
-
-                    if valid {
-                        Some(graph.into_iter().collect::<Vec<GraphNode<T>>>())
-                    } else {
-                        None
-                    }
-                    // let node_fact = factory.borrow();
-                    // self.insert_recurrent_node(&chromosome.nodes, &mutation.node_type(), &node_fact)
-                } else {
-                    let mut graph = Graph::new(chromosome.nodes.clone());
-                    let node_fact = factory.borrow();
-
-                    let valid =
-                        self.add_forward_node(&mut graph, &mutation.node_type(), &node_fact);
-
-                    if valid {
-                        Some(graph.into_iter().collect::<Vec<GraphNode<T>>>())
-                    } else {
-                        None
-                    }
-                    // let node_fact = factory.borrow();
-                    // self.insert_forward_node(&chromosome.nodes, &mutation.node_type(), &node_fact)
-                };
-
-                if let Some(mutated_graph) = mutated_graph {
-                    if !mutated_graph.iter().all(|node| node.is_valid()) {
-                        continue;
-                    }
-
-                    if mutated_graph.len() == chromosome.nodes.len() {
-                        continue;
-                    }
-
-                    let mut copied_genotype = genotype.clone();
-
-                    count += 1;
-
-                    copied_genotype[chromosome_index] =
-                        NodeChromosome::with_factory(mutated_graph, factory.clone());
-                    population[i] = Phenotype::from_genotype(copied_genotype, generation);
-                }
+            if self.mutate_chromosome(chromosome) > 0 {
+                count += 1;
+                phenotype.set_score(None);
+                phenotype.generation = generation;
             }
         }
 
@@ -378,5 +97,30 @@ where
         result.add_duration(timer.duration());
 
         vec![result]
+    }
+
+    fn mutate_chromosome(&self, chromosome: &mut NodeChromosome<T>) -> i32 {
+        let mutation = random_provider::choose(&self.mutations);
+
+        if random_provider::random::<f32>() > mutation.rate() {
+            return 0;
+        }
+
+        if let Some(ref factory) = chromosome.factory {
+            let mut graph = Graph::new(chromosome.nodes.clone());
+            let node_fact = factory.borrow();
+
+            if self.add_node(
+                &mut graph,
+                &mutation.node_type(),
+                &node_fact,
+                mutation.is_recurrent(),
+            ) {
+                chromosome.nodes = graph.into_iter().collect::<Vec<GraphNode<T>>>();
+                return 1;
+            }
+        }
+
+        0
     }
 }

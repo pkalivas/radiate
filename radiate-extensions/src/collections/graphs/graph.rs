@@ -5,7 +5,7 @@ use super::GraphIterator;
 use crate::collections::{Direction, GraphNode, NodeType};
 use crate::graphs::mutation::GraphTransaction;
 use crate::ops::operation::Arity;
-use radiate::{random_provider, Chromosome, Valid};
+use radiate::{random_provider, Valid};
 
 #[derive(Clone, PartialEq, Default)]
 pub struct Graph<T> {
@@ -93,10 +93,10 @@ impl<T> Graph<T> {
         let mut transaction = GraphTransaction::new(self);
         if !mutation(&mut transaction) {
             transaction.rollback();
-            false
-        } else {
-            transaction.commit()
+            return false;
         }
+
+        true
     }
 }
 
@@ -158,54 +158,6 @@ where
         }
         write!(f, "}}")
     }
-}
-
-#[inline]
-pub fn reindex<T>(index: usize, nodes: &[&GraphNode<T>]) -> Vec<GraphNode<T>>
-where
-    T: Clone,
-{
-    let mut new_nodes = nodes
-        .iter()
-        .enumerate()
-        .map(|(i, node)| GraphNode {
-            index: index + i,
-            incoming: HashSet::new(),
-            outgoing: HashSet::new(),
-            ..(*node).clone()
-        })
-        .collect::<Vec<GraphNode<T>>>();
-
-    let ref_new_nodes = new_nodes.clone();
-
-    let old_nodes = nodes
-        .iter()
-        .enumerate()
-        .map(|(i, node)| (node.index, i))
-        .collect::<std::collections::BTreeMap<usize, usize>>();
-
-    for i in 0..nodes.len() {
-        let old_node = nodes.get(i).unwrap();
-        let new_node = &mut new_nodes[i];
-
-        for incoming in old_node.incoming.iter() {
-            if let Some(old_index) = old_nodes.get(incoming) {
-                new_node
-                    .incoming_mut()
-                    .insert(ref_new_nodes[*old_index].index);
-            }
-        }
-
-        for outgoing in old_node.outgoing.iter() {
-            if let Some(old_index) = old_nodes.get(outgoing) {
-                new_node
-                    .outgoing_mut()
-                    .insert(ref_new_nodes[*old_index].index);
-            }
-        }
-    }
-
-    new_nodes
 }
 
 #[inline]

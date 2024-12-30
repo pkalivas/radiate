@@ -7,13 +7,15 @@ const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
-    let graph_codex = GraphCodex::regression(1, 1).set_outputs(vec![operation::linear()]);
-    // .set_vertices(vec![
-    //     operation::add(),
-    //     operation::sub(),
-    //     operation::mul(),
-    //     operation::sigmoid(),
-    // ]);
+    let graph_codex = GraphCodex::regression(1, 1)
+        .set_outputs(vec![operation::linear()])
+        .set_vertices(vec![
+            operation::add(),
+            operation::sub(),
+            operation::mul(),
+            operation::sigmoid(),
+            operation::tanh(),
+        ]);
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 
@@ -25,9 +27,8 @@ fn main() {
             GraphCrossover::new(0.5, 0.5),
             NodeMutator::new(0.07, 0.05),
             GraphMutator::new(vec![
-                NodeMutate::Forward(NodeType::Edge, 0.05),
+                NodeMutate::Forward(NodeType::Edge, 0.03),
                 NodeMutate::Forward(NodeType::Vertex, 0.1),
-                // NodeMutate::Forward(NodeType::Gate, 0.03),
             ]),
         ))
         .fitness_fn(move |genotype: Graph<f32>| {

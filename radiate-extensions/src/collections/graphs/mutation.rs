@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use super::{Direction, Graph, GraphNode};
 use crate::ops::Arity;
 use crate::{graphs, Factory, GraphMutator, NodeFactory, NodeType};
@@ -9,6 +11,10 @@ enum MutationStep {
     AddNode,
     AddEdge(usize, usize),
     RemoveEdge(usize, usize),
+    DirectionChange {
+        index: usize,
+        previous_direction: Direction,
+    },
 }
 
 /// Tracks changes and provides rollback capability
@@ -18,16 +24,15 @@ where
 {
     graph: &'a mut Graph<T>,
     steps: Vec<MutationStep>,
-    starting_len: usize,
+    effects: HashSet<usize>,
 }
 
 impl<'a, T: Clone + Default + PartialEq> GraphTransaction<'a, T> {
     pub fn new(graph: &'a mut Graph<T>) -> Self {
-        let starting_len = graph.nodes.len();
         Self {
             graph,
             steps: Vec::new(),
-            starting_len,
+            effects: HashSet::new(),
         }
     }
 
@@ -35,21 +40,31 @@ impl<'a, T: Clone + Default + PartialEq> GraphTransaction<'a, T> {
         let index = self.graph.nodes.len();
         self.steps.push(MutationStep::AddNode);
         self.graph.nodes.push(node);
+        self.effects.insert(index);
         index
     }
 
     pub fn attach(&mut self, from: usize, to: usize) {
         self.steps.push(MutationStep::AddEdge(from, to));
         self.graph.attach(from, to);
+        self.effects.insert(from);
+        self.effects.insert(to);
     }
 
     pub fn detach(&mut self, from: usize, to: usize) {
         self.steps.push(MutationStep::RemoveEdge(from, to));
         self.graph.detach(from, to);
+        self.effects.insert(from);
+        self.effects.insert(to);
     }
 
-    pub fn commit(self) -> bool {
-        true // Transaction succeeded
+    pub fn change_direction(&mut self, index: usize, direction: Direction) {
+        let previous_direction = self.graph.nodes[index].direction;
+        self.steps.push(MutationStep::DirectionChange {
+            index,
+            previous_direction,
+        });
+        self.graph.nodes[index].direction = direction;
     }
 
     pub fn rollback(self) {
@@ -65,6 +80,13 @@ impl<'a, T: Clone + Default + PartialEq> GraphTransaction<'a, T> {
                 MutationStep::RemoveEdge(from, to) => {
                     self.graph.attach(from, to);
                 }
+                MutationStep::DirectionChange {
+                    index,
+                    previous_direction,
+                    ..
+                } => {
+                    self.graph.nodes[index].direction = previous_direction;
+                }
             }
         }
     }
@@ -76,67 +98,21 @@ impl<'a, T: Clone + Default + PartialEq> GraphTransaction<'a, T> {
 
 // updated GraphMutator implementation
 impl<T: Clone + PartialEq + Default> GraphMutator<T> {
-    pub fn add_forward_node(
+    pub fn add_node(
         &self,
         graph: &mut Graph<T>,
         node_type: &NodeType,
         factory: &NodeFactory<T>,
+        recurrent: bool,
     ) -> bool {
         let mut transaction = GraphTransaction::new(graph);
 
-        if !self.try_add_node(&mut transaction, node_type, factory, false) {
+        if !self.try_add_node(&mut transaction, node_type, factory, recurrent) {
             transaction.rollback();
             return false;
         }
 
-        transaction.commit()
-    }
-
-    pub fn add_backward_node(
-        &self,
-        graph: &mut Graph<T>,
-        node_type: &NodeType,
-        factory: &NodeFactory<T>,
-    ) -> bool {
-        let mut transaction = GraphTransaction::new(graph);
-
-        if !self.try_add_backward_node(&mut transaction, node_type, factory, true) {
-            transaction.rollback();
-            return false;
-        }
-
-        transaction.commit()
-    }
-
-    fn try_add_backward_node(
-        &self,
-        transaction: &mut GraphTransaction<T>,
-        node_type: &NodeType,
-        factory: &NodeFactory<T>,
-        is_recurrent: bool,
-    ) -> bool {
-        let source_node_index = graphs::random_source_node(&transaction.graph.nodes).index;
-        let target_node_index = graphs::random_target_node(&transaction.graph.nodes).index;
-
-        let source_node_type = transaction.graph.nodes[source_node_index].node_type;
-
-        if source_node_type == NodeType::Edge && node_type != &NodeType::Edge {
-            self.try_backward_edge_insertion(
-                transaction,
-                source_node_index,
-                target_node_index,
-                node_type,
-                factory,
-            )
-        } else {
-            self.handle_normal_node_backward(
-                transaction,
-                source_node_index,
-                target_node_index,
-                node_type,
-                factory,
-            )
-        }
+        true
     }
 
     fn try_add_node(
@@ -152,14 +128,23 @@ impl<T: Clone + PartialEq + Default> GraphMutator<T> {
         let source_node_type = transaction.graph.nodes[source_node_index].node_type;
 
         if source_node_type == NodeType::Edge && node_type != &NodeType::Edge {
-            self.try_edge_insertion(
-                transaction,
-                source_node_index,
-                target_node_index,
-                node_type,
-                factory,
-                is_recurrent,
-            )
+            if is_recurrent {
+                self.try_backward_edge_insertion(
+                    transaction,
+                    source_node_index,
+                    target_node_index,
+                    node_type,
+                    factory,
+                )
+            } else {
+                self.try_edge_insertion(
+                    transaction,
+                    source_node_index,
+                    target_node_index,
+                    node_type,
+                    factory,
+                )
+            }
         } else {
             self.try_normal_insertion(
                 transaction,
@@ -179,7 +164,6 @@ impl<T: Clone + PartialEq + Default> GraphMutator<T> {
         target_node: usize,
         node_type: &NodeType,
         factory: &NodeFactory<T>,
-        is_recurrent: bool,
     ) -> bool {
         let new_source_edge_index = transaction.graph.nodes.len();
         let new_node_index = transaction.graph.nodes.len() + 1;
@@ -223,27 +207,7 @@ impl<T: Clone + PartialEq + Default> GraphMutator<T> {
             transaction.attach(new_target_edge_index, target_node);
         }
 
-        self.complete_node_arity(transaction, new_node_index, factory)
-    }
-
-    fn try_normal_insertion(
-        &self,
-        transaction: &mut GraphTransaction<T>,
-        source_node: usize,
-        target_node: usize,
-        node_type: &NodeType,
-        factory: &NodeFactory<T>,
-        is_recurrent: bool,
-    ) -> bool {
-        let new_node_index = transaction.graph.nodes.len();
-        let new_node = factory.new_instance((new_node_index, *node_type));
-
-        let node_index = transaction.add_node(new_node);
-        transaction.attach(source_node, node_index);
-        transaction.attach(node_index, target_node);
-        transaction.detach(source_node, target_node);
-
-        self.complete_node_arity(transaction, node_index, factory)
+        self.complete_node_arity(transaction, new_node_index, false)
     }
 
     fn try_backward_edge_insertion(
@@ -326,7 +290,7 @@ impl<T: Clone + PartialEq + Default> GraphMutator<T> {
                 transaction.attach(new_target_edge_index, outgoing_idx);
             }
 
-            self.complete_node_arity(transaction, new_node_index, factory)
+            self.complete_node_arity(transaction, new_node_index, true)
         } else {
             if !graphs::can_connect(&transaction.graph.nodes, source_idx, target_idx, true) {
                 return false;
@@ -340,38 +304,47 @@ impl<T: Clone + PartialEq + Default> GraphMutator<T> {
             transaction.attach(new_node_index, target_idx);
             transaction.detach(source_idx, target_idx);
 
-            self.complete_node_arity(transaction, new_node_index, factory)
+            self.complete_node_arity(transaction, new_node_index, true)
         }
     }
 
-    fn handle_normal_node_backward(
+    fn try_normal_insertion(
         &self,
         transaction: &mut GraphTransaction<T>,
-        source_idx: usize,
-        target_idx: usize,
+        source_node: usize,
+        target_node: usize,
         node_type: &NodeType,
         factory: &NodeFactory<T>,
+        is_recurrent: bool,
     ) -> bool {
-        if !graphs::can_connect(&transaction.graph.nodes, source_idx, target_idx, true) {
+        if !graphs::can_connect(
+            &transaction.graph.nodes,
+            source_node,
+            target_node,
+            is_recurrent,
+        ) {
             return false;
         }
 
         let mut new_node = factory.new_instance((transaction.graph.nodes.len(), *node_type));
-        new_node.direction = Direction::Backward;
-        let new_idx = transaction.add_node(new_node);
 
-        transaction.attach(source_idx, new_idx);
-        transaction.attach(new_idx, target_idx);
-        transaction.detach(source_idx, target_idx);
+        if is_recurrent {
+            new_node.direction = Direction::Backward;
+        }
 
-        self.complete_node_arity(transaction, new_idx, factory)
+        let node_index = transaction.add_node(new_node);
+        transaction.attach(source_node, node_index);
+        transaction.attach(node_index, target_node);
+        transaction.detach(source_node, target_node);
+
+        self.complete_node_arity(transaction, node_index, is_recurrent)
     }
 
     fn complete_node_arity(
         &self,
         transaction: &mut GraphTransaction<T>,
         node_index: usize,
-        factory: &NodeFactory<T>,
+        is_recurrent: bool,
     ) -> bool {
         let arity = transaction.graph.nodes[node_index].value.arity();
 
@@ -386,7 +359,7 @@ impl<T: Clone + PartialEq + Default> GraphMutator<T> {
                         &transaction.graph.nodes,
                         other_source_node.index,
                         node_index,
-                        false,
+                        is_recurrent,
                     ) {
                         transaction.attach(other_source_node.index, node_index);
                     }
@@ -394,30 +367,20 @@ impl<T: Clone + PartialEq + Default> GraphMutator<T> {
             }
         }
 
-        transaction.is_valid()
+        let effects = transaction.effects.clone();
 
-        // let node = collection.get(new_node_index);
-        // match node.value.arity() {
-        //     Arity::Any | Arity::Zero => {
-        //         return Some(collection.into_iter().collect::<Vec<GraphNode<T>>>());
-        //     }
-        //     Arity::Exact(arity) => {
-        //         for _ in 0..arity - 1 {
-        //             let other_source_node = graphs::random_source_node(collection.as_ref());
-        //             if graphs::can_connect(
-        //                 collection.as_ref(),
-        //                 other_source_node.index,
-        //                 new_node_index,
-        //                 recurrent,
-        //             ) {
-        //                 collection.attach(other_source_node.index, new_node_index);
-        //             }
-        //         }
-        //     }
-        // }
-        //
-        // if !collection.is_valid() {
-        //     return None;
-        // }
+        for idx in effects {
+            let node_cycles = graphs::get_cycles(&transaction.graph.nodes, idx);
+
+            if node_cycles.is_empty() {
+                transaction.change_direction(idx, Direction::Forward);
+            } else {
+                for cycle_idx in node_cycles {
+                    transaction.change_direction(cycle_idx, Direction::Backward);
+                }
+            }
+        }
+
+        true
     }
 }
