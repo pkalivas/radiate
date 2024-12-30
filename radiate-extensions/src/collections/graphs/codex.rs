@@ -10,10 +10,8 @@ pub struct GraphCodex<T>
 where
     T: Clone + PartialEq + Default,
 {
-    input_size: usize,
-    output_size: usize,
     factory: Rc<RefCell<NodeFactory<T>>>,
-    nodes: Vec<GraphNode<T>>,
+    graph: Option<Graph<T>>,
 }
 
 impl<T> GraphCodex<T>
@@ -25,27 +23,15 @@ where
     }
 
     pub fn from_shape(input_size: usize, output_size: usize, factory: &NodeFactory<T>) -> Self {
-        let nodes = GraphBuilder::<T>::new(factory)
-            .acyclic(input_size, output_size)
-            .iter()
-            .cloned()
-            .collect::<Vec<GraphNode<T>>>();
+        let nodes = GraphBuilder::<T>::new(factory).acyclic(input_size, output_size);
 
-        GraphCodex::from_nodes(nodes, factory)
+        GraphCodex::from_graph(nodes, factory)
     }
 
-    pub fn from_nodes(nodes: Vec<GraphNode<T>>, factory: &NodeFactory<T>) -> Self {
+    pub fn from_graph(graph: Graph<T>, factory: &NodeFactory<T>) -> Self {
         GraphCodex {
-            input_size: nodes
-                .iter()
-                .filter(|node| node.node_type == NodeType::Input)
-                .count(),
-            output_size: nodes
-                .iter()
-                .filter(|node| node.node_type == NodeType::Output)
-                .count(),
             factory: Rc::new(RefCell::new(factory.clone())),
-            nodes,
+            graph: Some(graph),
         }
     }
 
@@ -58,15 +44,7 @@ where
             GraphArchitect::new(),
         );
 
-        self.nodes = graph.iter().cloned().collect::<Vec<GraphNode<T>>>();
-        self.input_size = graph
-            .iter()
-            .filter(|node| node.node_type == NodeType::Input)
-            .count();
-        self.output_size = graph
-            .iter()
-            .filter(|node| node.node_type == NodeType::Output)
-            .count();
+        self.graph = Some(graph);
         self
     }
 
@@ -104,13 +82,8 @@ where
 impl GraphCodex<f32> {
     pub fn regression(input_size: usize, output_size: usize) -> Self {
         let factory = NodeFactory::<f32>::regression(input_size);
-        let nodes = GraphBuilder::<f32>::regression(input_size)
-            .acyclic(input_size, output_size)
-            .iter()
-            .cloned()
-            .collect::<Vec<GraphNode<f32>>>();
-
-        GraphCodex::<f32>::from_nodes(nodes, &factory)
+        let nodes = GraphBuilder::<f32>::regression(input_size).acyclic(input_size, output_size);
+        GraphCodex::<f32>::from_graph(nodes, &factory)
     }
 }
 
@@ -121,23 +94,26 @@ where
     fn encode(&self) -> Genotype<NodeChromosome<T>> {
         let reader = self.factory.borrow();
 
-        let nodes = self
-            .nodes
-            .iter()
-            .map(|node| {
-                let temp_node = reader.new_node(node.index, node.node_type);
+        if let Some(graph) = &self.graph {
+            let nodes = graph
+                .iter()
+                .map(|node| {
+                    let temp_node = reader.new_node(node.index, node.node_type);
 
-                if temp_node.value.arity() == node.value.arity() {
-                    return node.with_allele(temp_node.allele());
-                }
+                    if temp_node.value.arity() == node.value.arity() {
+                        return node.with_allele(temp_node.allele());
+                    }
 
-                node.clone()
-            })
-            .collect::<Vec<GraphNode<T>>>();
+                    node.clone()
+                })
+                .collect::<Vec<GraphNode<T>>>();
 
-        Genotype {
-            chromosomes: vec![NodeChromosome::with_factory(nodes, self.factory.clone())],
+            return Genotype {
+                chromosomes: vec![NodeChromosome::with_factory(nodes, self.factory.clone())],
+            };
         }
+
+        panic!("Graph not initialized.");
     }
 
     fn decode(&self, genotype: &Genotype<NodeChromosome<T>>) -> Graph<T> {

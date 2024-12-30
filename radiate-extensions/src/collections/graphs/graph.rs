@@ -14,7 +14,7 @@ type NodeFactory<T> = Option<Arc<HashMap<NodeType, Vec<Operation<T>>>>>;
 #[derive(Clone, PartialEq, Default)]
 pub struct Graph<T> {
     pub nodes: Vec<GraphNode<T>>,
-    factory: NodeFactory<T>,
+    pub factory: NodeFactory<T>,
 }
 
 impl<T> Graph<T> {

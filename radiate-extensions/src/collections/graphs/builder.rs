@@ -6,6 +6,7 @@ use radiate::random_provider;
 use rand::distributions::uniform::SampleUniform;
 use rand::distributions::{Distribution, Standard};
 use std::collections::HashMap;
+use std::sync::Arc;
 
 /// The `GraphBuilder` is a builder pattern that allows us to create a variety of different
 /// graph architectures.
@@ -421,7 +422,10 @@ where
             layers.push(layer);
         }
 
-        GraphArchitect::new().layer(layers).build()
+        let mut graph = GraphArchitect::new().layer(layers).build();
+        graph.factory = Some(Arc::new(self.node_factory.clone()));
+
+        graph
     }
 }
 
