@@ -1,20 +1,11 @@
 use std::{
     fmt::{Debug, Display},
-    ops::{Add, Deref, Div, Mul, Neg, Sub},
+    ops::Deref,
     sync::Arc,
 };
 
-use rand::{
-    distributions::{uniform::SampleUniform, Standard},
-    prelude::Distribution,
-};
-
-use num_traits::{Float, NumCast};
-use radiate::random_provider;
-
-const MAX_VALUE: f32 = 1e+5_f32;
-const MIN_VALUE: f32 = -1e+5_f32;
-
+/// Arity is a way to describe how many inputs an operation expects.
+/// It can be zero, a specific number, or any number.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum Arity {
     Zero,
@@ -40,154 +31,6 @@ impl Deref for Arity {
             Arity::Exact(n) => n,
             Arity::Any => &0,
         }
-    }
-}
-
-pub trait Oper<T> {
-    fn name(&self) -> &str;
-    fn arity(&self) -> Arity;
-    fn apply(&self, inputs: &[T]) -> T;
-}
-
-pub struct ConstOp<T> {
-    name: &'static str,
-    value: T,
-}
-
-impl<T> ConstOp<T> {
-    pub fn new(name: &'static str, value: T) -> Self {
-        Self { name, value }
-    }
-}
-
-impl<T> Oper<T> for ConstOp<T>
-where
-    T: Clone,
-{
-    fn name(&self) -> &str {
-        self.name
-    }
-
-    fn arity(&self) -> Arity {
-        Arity::Zero
-    }
-
-    fn apply(&self, _: &[T]) -> T {
-        self.value.clone()
-    }
-}
-
-pub struct VariableOp {
-    name: &'static str,
-    index: usize,
-}
-
-impl VariableOp {
-    pub fn new(name: &'static str, index: usize) -> Self {
-        Self { name, index }
-    }
-}
-
-impl<T: Clone> Oper<T> for VariableOp {
-    fn name(&self) -> &str {
-        self.name
-    }
-
-    fn arity(&self) -> Arity {
-        Arity::Zero
-    }
-
-    fn apply(&self, inputs: &[T]) -> T {
-        inputs[self.index].clone()
-    }
-}
-
-pub struct FnOp<T> {
-    name: &'static str,
-    arity: Arity,
-    operation: Arc<Box<dyn Fn(&[T]) -> T>>,
-}
-
-impl<T> FnOp<T> {
-    pub fn new(name: &'static str, arity: Arity, operation: Box<dyn Fn(&[T]) -> T>) -> Self {
-        Self {
-            name,
-            arity,
-            operation: Arc::new(operation),
-        }
-    }
-}
-
-impl<T> Oper<T> for FnOp<T>
-where
-    T: Clone,
-{
-    fn name(&self) -> &str {
-        self.name
-    }
-
-    fn arity(&self) -> Arity {
-        self.arity
-    }
-
-    fn apply(&self, inputs: &[T]) -> T {
-        if inputs.len() != *self.arity {
-            panic!("Invalid number of inputs for operation");
-        }
-
-        (self.operation)(inputs)
-    }
-}
-
-pub struct Op<T> {
-    inner: Arc<Box<dyn Oper<T>>>,
-}
-
-impl<T> Op<T> {
-    pub fn new(inner: Box<dyn Oper<T>>) -> Self {
-        Self {
-            inner: Arc::new(inner),
-        }
-    }
-}
-
-impl<T> Oper<T> for Op<T>
-where
-    T: Clone,
-{
-    fn name(&self) -> &str {
-        self.inner.name()
-    }
-
-    fn arity(&self) -> Arity {
-        self.inner.arity()
-    }
-
-    fn apply(&self, inputs: &[T]) -> T {
-        self.inner.apply(inputs)
-    }
-}
-
-impl<T> Clone for Op<T> {
-    fn clone(&self) -> Self {
-        Self {
-            inner: Arc::clone(&self.inner),
-        }
-    }
-}
-
-impl<T> PartialEq for Op<T>
-where
-    T: Clone,
-{
-    fn eq(&self, other: &Self) -> bool {
-        self.name() == other.name()
-    }
-}
-
-impl<T> Debug for Op<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name())
     }
 }
 
@@ -232,9 +75,7 @@ pub enum Operation<T> {
     },
 }
 
-unsafe impl Send for Operation<f32> {}
-unsafe impl Sync for Operation<f32> {}
-
+/// Base functionality for operations.
 impl<T> Operation<T> {
     pub fn name(&self) -> &str {
         match self {
@@ -273,7 +114,7 @@ impl<T> Operation<T> {
         T: Clone,
     {
         match self {
-            Operation::Fn(name, arity, op) => Operation::Fn(name, *arity, op.clone()),
+            Operation::Fn(name, arity, op) => Operation::Fn(name, *arity, Arc::clone(op)),
             Operation::Var(name, index) => Operation::Var(name, *index),
             Operation::Const(name, value) => Operation::Const(name, value.clone()),
             Operation::MutableConst {
@@ -286,12 +127,82 @@ impl<T> Operation<T> {
                 name,
                 arity: *arity,
                 value: (*get_value)(),
-                get_value: get_value.clone(),
-                operation: operation.clone(),
+                get_value: Arc::clone(get_value),
+                operation: Arc::clone(operation),
             },
         }
     }
 }
+
+impl<T> Operation<T> {
+    pub fn value(value: T) -> Self
+    where
+        T: Clone + Display,
+    {
+        let name = Box::leak(Box::new(format!("{}", value)));
+        Operation::Const(name, value)
+    }
+
+    pub fn constant(name: &'static str, value: T) -> Self {
+        Operation::Const(name, value)
+    }
+
+    pub fn gt() -> Self
+    where
+        T: Clone + PartialEq + PartialOrd,
+    {
+        Operation::Fn(
+            ">",
+            2.into(),
+            Arc::new(|inputs: &[T]| {
+                if inputs[0] > inputs[1] {
+                    inputs[0].clone()
+                } else {
+                    inputs[1].clone()
+                }
+            }),
+        )
+    }
+
+    pub fn lt() -> Self
+    where
+        T: Clone + PartialEq + PartialOrd,
+    {
+        Operation::Fn(
+            "<",
+            2.into(),
+            Arc::new(|inputs: &[T]| {
+                if inputs[0] < inputs[1] {
+                    inputs[0].clone()
+                } else {
+                    inputs[1].clone()
+                }
+            }),
+        )
+    }
+
+    pub fn identity() -> Self
+    where
+        T: Clone,
+    {
+        Operation::Fn(
+            "Identity",
+            1.into(),
+            Arc::new(|inputs: &[T]| inputs[0].clone()),
+        )
+    }
+
+    pub fn var(index: usize) -> Self
+    where
+        T: Clone,
+    {
+        let name = Box::leak(Box::new(format!("var_{}", index)));
+        Operation::Var(name, index)
+    }
+}
+
+unsafe impl Send for Operation<f32> {}
+unsafe impl Sync for Operation<f32> {}
 
 impl<T> Clone for Operation<T>
 where
@@ -299,7 +210,7 @@ where
 {
     fn clone(&self) -> Self {
         match self {
-            Operation::Fn(name, arity, op) => Operation::Fn(name, *arity, op.clone()),
+            Operation::Fn(name, arity, op) => Operation::Fn(name, *arity, Arc::clone(op)),
             Operation::Var(name, index) => Operation::Var(name, *index),
             Operation::Const(name, value) => Operation::Const(name, value.clone()),
             Operation::MutableConst {
@@ -312,8 +223,8 @@ where
                 name,
                 arity: *arity,
                 value: value.clone(),
-                get_value: get_value.clone(),
-                operation: operation.clone(),
+                get_value: Arc::clone(get_value),
+                operation: Arc::clone(operation),
             },
         }
     }
@@ -328,7 +239,7 @@ where
     }
 }
 
-impl<T> std::fmt::Display for Operation<T> {
+impl<T> Display for Operation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.name())
     }
@@ -343,9 +254,9 @@ where
     }
 }
 
-impl<T> std::fmt::Debug for Operation<T>
+impl<T> Debug for Operation<T>
 where
-    T: std::fmt::Debug,
+    T: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -357,388 +268,15 @@ where
     }
 }
 
-pub fn clamp<T>(value: T) -> T
-where
-    T: Clone + Float,
-{
-    if value.is_nan() {
-        return T::from(0_f32).unwrap();
-    }
-
-    let min_value = T::from(MIN_VALUE).unwrap();
-    let max_value = T::from(MAX_VALUE).unwrap();
-
-    if value < min_value {
-        min_value
-    } else if value > max_value {
-        max_value
-    } else {
-        value
-    }
-}
-
-pub fn value<T: Clone + Display>(value: T) -> Operation<T> {
-    let name = Box::leak(Box::new(format!("{}", value)));
-    Operation::Const(name, value)
-}
-
-pub fn constant<T: Clone>(name: &'static str, value: T) -> Operation<T> {
-    Operation::Const(name, value)
-}
-
-pub fn add<T: Add<Output = T> + Clone + Float>() -> Operation<T> {
-    Operation::Fn(
-        "+",
-        2.into(),
-        Arc::new(|inputs: &[T]| clamp(inputs[0] + inputs[1])),
-    )
-}
-
-pub fn sub<T: Sub<Output = T> + Clone + Float>() -> Operation<T> {
-    Operation::Fn(
-        "-",
-        2.into(),
-        Arc::new(|inputs: &[T]| clamp(inputs[0] - inputs[1])),
-    )
-}
-
-pub fn mul<T: Mul<Output = T> + Clone + Float>() -> Operation<T> {
-    Operation::Fn(
-        "*",
-        2.into(),
-        Arc::new(|inputs: &[T]| clamp(inputs[0] * inputs[1])),
-    )
-}
-
-pub fn div<T: Div<Output = T> + Clone + Float>() -> Operation<T> {
-    Operation::Fn(
-        "/",
-        2.into(),
-        Arc::new(|inputs: &[T]| {
-            let denom = if inputs[1] == T::from(0).unwrap() {
-                inputs[0] / T::from(1).unwrap()
-            } else {
-                inputs[0] / inputs[1]
-            };
-
-            clamp(denom)
-        }),
-    )
-}
-
-pub fn sum<T: Add<Output = T> + Clone + Default + Float>() -> Operation<T> {
-    Operation::Fn(
-        "sum",
-        Arity::Any,
-        Arc::new(|inputs: &[T]| clamp(inputs.iter().fold(T::default(), |acc, x| acc + *x))),
-    )
-}
-
-pub fn prod<T: Mul<Output = T> + Clone + Default + Float>() -> Operation<T> {
-    Operation::Fn(
-        "prod",
-        Arity::Any,
-        Arc::new(|inputs: &[T]| {
-            let result = inputs.iter().fold(T::default(), |acc, x| acc * *x);
-
-            clamp(result)
-        }),
-    )
-}
-
-pub fn neg<T: Neg<Output = T> + Clone + Default + Float>() -> Operation<T> {
-    Operation::Fn("neg", 1.into(), Arc::new(|inputs: &[T]| clamp(-inputs[0])))
-}
-
-pub fn pow<T: Mul<Output = T> + Clone + Float>() -> Operation<T> {
-    Operation::Fn(
-        "pow",
-        2.into(),
-        Arc::new(|inputs: &[T]| clamp(inputs[0] * inputs[1])),
-    )
-}
-
-pub fn sqrt<T: Mul<Output = T> + Clone + Float>() -> Operation<T> {
-    Operation::Fn(
-        "sqrt",
-        1.into(),
-        Arc::new(|inputs: &[T]| clamp(inputs[0].sqrt())),
-    )
-}
-
-pub fn abs<T: Clone + Float>() -> Operation<T> {
-    Operation::Fn(
-        "abs",
-        1.into(),
-        Arc::new(|inputs: &[T]| clamp(inputs[0].abs())),
-    )
-}
-
-pub fn exp<T: Clone + Float>() -> Operation<T> {
-    Operation::Fn(
-        "exp",
-        1.into(),
-        Arc::new(|inputs: &[T]| clamp(inputs[0].exp())),
-    )
-}
-
-pub fn log<T: Clone + Float>() -> Operation<T> {
-    Operation::Fn(
-        "log",
-        1.into(),
-        Arc::new(|inputs: &[T]| clamp(inputs[0].ln())),
-    )
-}
-
-pub fn sin<T: Clone + Float>() -> Operation<T> {
-    Operation::Fn(
-        "sin",
-        1.into(),
-        Arc::new(|inputs: &[T]| clamp(inputs[0].sin())),
-    )
-}
-
-pub fn cos<T: Clone + Float>() -> Operation<T> {
-    Operation::Fn(
-        "cos",
-        1.into(),
-        Arc::new(|inputs: &[T]| clamp(inputs[0].cos())),
-    )
-}
-
-pub fn tan<T: Clone + Float>() -> Operation<T> {
-    Operation::Fn(
-        "tan",
-        1.into(),
-        Arc::new(|inputs: &[T]| clamp(inputs[0].tan())),
-    )
-}
-
-pub fn ceil<T: Clone + Float>() -> Operation<T> {
-    Operation::Fn(
-        "ceil",
-        1.into(),
-        Arc::new(|inputs: &[T]| clamp(inputs[0].ceil())),
-    )
-}
-
-pub fn floor<T: Clone + Float>() -> Operation<T> {
-    Operation::Fn(
-        "floor",
-        1.into(),
-        Arc::new(|inputs: &[T]| clamp(inputs[0].floor())),
-    )
-}
-
-pub fn gt<T: Clone + PartialEq + PartialOrd>() -> Operation<T> {
-    Operation::Fn(
-        ">",
-        2.into(),
-        Arc::new(|inputs: &[T]| {
-            if inputs[0] > inputs[1] {
-                inputs[0].clone()
-            } else {
-                inputs[1].clone()
-            }
-        }),
-    )
-}
-
-pub fn lt<T: Clone + PartialEq + PartialOrd>() -> Operation<T> {
-    Operation::Fn(
-        "<",
-        2.into(),
-        Arc::new(|inputs: &[T]| {
-            if inputs[0] < inputs[1] {
-                inputs[0].clone()
-            } else {
-                inputs[1].clone()
-            }
-        }),
-    )
-}
-
-pub fn max<T: Clone + PartialOrd>() -> Operation<T> {
-    Operation::Fn(
-        "max",
-        Arity::Any,
-        Arc::new(|inputs: &[T]| {
-            inputs.iter().fold(
-                inputs[0].clone(),
-                |acc, x| {
-                    if *x > acc {
-                        x.clone()
-                    } else {
-                        acc
-                    }
-                },
-            )
-        }),
-    )
-}
-
-pub fn min<T: Clone + PartialOrd>() -> Operation<T> {
-    Operation::Fn(
-        "min",
-        Arity::Any,
-        Arc::new(|inputs: &[T]| {
-            inputs.iter().fold(
-                inputs[0].clone(),
-                |acc, x| {
-                    if *x < acc {
-                        x.clone()
-                    } else {
-                        acc
-                    }
-                },
-            )
-        }),
-    )
-}
-
-pub fn weight<T: Sub<Output = T> + Mul<Output = T> + Copy + Default + Float>() -> Operation<T>
-where
-    Standard: Distribution<T>,
-    T: PartialOrd + NumCast + SampleUniform,
-{
-    let supplier = || random_provider::random::<T>() * T::from(2).unwrap() - T::from(1).unwrap();
-    let operation = |inputs: &[T], weight: &T| clamp(inputs[0] * *weight);
-    Operation::MutableConst {
-        name: "w",
-        arity: 1.into(),
-        value: supplier(),
-        get_value: Arc::new(supplier),
-        operation: Arc::new(operation),
-    }
-}
-
-pub fn identity<T: Clone>() -> Operation<T> {
-    Operation::Fn(
-        "identity",
-        1.into(),
-        Arc::new(|inputs: &[T]| inputs[0].clone()),
-    )
-}
-
-pub fn var<T: Clone>(index: usize) -> Operation<T> {
-    let var_name = Box::leak(Box::new(format!("var_{}", index)));
-    Operation::Var(var_name, index)
-}
-
-pub fn sigmoid<T: Float + Clone + Add<Output = T>>() -> Operation<T> {
-    Operation::Fn(
-        "sigmoid",
-        Arity::Any,
-        Arc::new(|inputs: &[T]| {
-            let sum = inputs.iter().fold(T::zero(), |acc, x| acc + x.clone());
-            let result = T::from(1_f32).unwrap() / (T::from(1_f32).unwrap() + (-sum).exp());
-            clamp(result)
-        }),
-    )
-}
-
-pub fn relu<T: Float + Clone + Add<Output = T>>() -> Operation<T> {
-    Operation::Fn(
-        "relu",
-        Arity::Any,
-        Arc::new(|inputs: &[T]| {
-            let sum = inputs.iter().fold(T::zero(), |acc, x| acc + x.clone());
-            let result = clamp(sum);
-            if result > T::zero() {
-                result
-            } else {
-                T::zero()
-            }
-        }),
-    )
-}
-
-pub fn tanh<T: Float + Clone + Add<Output = T>>() -> Operation<T> {
-    Operation::Fn(
-        "tanh",
-        Arity::Any,
-        Arc::new(|inputs: &[T]| {
-            let result = inputs
-                .iter()
-                .fold(T::zero(), |acc, x| acc + x.clone())
-                .tanh();
-
-            clamp(result)
-        }),
-    )
-}
-
-pub fn linear<T: Float + Clone + Add<Output = T>>() -> Operation<T> {
-    Operation::Fn(
-        "linear",
-        Arity::Any,
-        Arc::new(|inputs: &[T]| {
-            let result = inputs.iter().fold(T::zero(), |acc, x| acc + x.clone());
-
-            clamp(result)
-        }),
-    )
-}
-
-pub fn mish<T: Float + Clone + Add<Output = T> + Mul<Output = T>>() -> Operation<T> {
-    Operation::Fn(
-        "mish",
-        Arity::Any,
-        Arc::new(|inputs: &[T]| {
-            let result = inputs
-                .iter()
-                .fold(T::zero(), |acc, x| acc + x.clone())
-                .tanh()
-                * (inputs
-                    .iter()
-                    .fold(T::zero(), |acc, x| acc + x.clone())
-                    .exp()
-                    .ln_1p()
-                    .exp());
-
-            clamp(result)
-        }),
-    )
-}
-
-pub fn leaky_relu<T: Float + Clone + Add<Output = T> + Mul<Output = T>>() -> Operation<T> {
-    Operation::Fn(
-        "l_relu",
-        Arity::Any,
-        Arc::new(|inputs: &[T]| {
-            let sum = inputs.iter().fold(T::zero(), |acc, x| acc + x.clone());
-            let result = if sum > T::from(0).unwrap() {
-                sum
-            } else {
-                T::from(0.01).unwrap() * sum.clone()
-            };
-
-            clamp(result)
-        }),
-    )
-}
-
-pub fn softplus<T: Float + Clone + Add<Output = T>>() -> Operation<T> {
-    Operation::Fn(
-        "soft_plus",
-        Arity::Any,
-        Arc::new(|inputs: &[T]| {
-            let sum = inputs.iter().fold(T::zero(), |acc, x| acc + x.clone());
-            let result = sum.exp().ln_1p();
-
-            clamp(result)
-        }),
-    )
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
+    use radiate::random_provider;
 
     #[test]
     fn test_ops() {
-        let op = add();
-        assert_eq!(op.name(), "+");
+        let op = Operation::add();
+        assert_eq!(op.name(), "add");
         assert_eq!(op.arity(), Arity::Exact(2));
         assert_eq!(op.apply(&[1_f32, 2_f32]), 3_f32);
         assert_eq!(op.new_instance(), op);
@@ -748,8 +286,8 @@ mod test {
     fn test_random_seed_works() {
         random_provider::set_seed(42);
 
-        let op = weight::<f32>();
-        let op2 = weight::<f32>();
+        let op = Operation::weight();
+        let op2 = Operation::weight();
 
         let o_one = match op {
             Operation::MutableConst { value, .. } => value,

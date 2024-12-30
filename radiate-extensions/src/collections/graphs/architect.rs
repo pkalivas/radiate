@@ -66,7 +66,12 @@ where
         self.attach(collection.as_ref());
         self
     }
+}
 
+impl<'a, T> GraphArchitect<'a, T>
+where
+    T: Clone,
+{
     pub fn layer<C: AsRef<[GraphNode<T>]>>(&self, collections: Vec<&'a C>) -> Self {
         let mut conn = GraphArchitect::new();
         let mut previous = collections[0];
@@ -103,7 +108,12 @@ where
             }
         }
     }
+}
 
+impl<'a, T> GraphArchitect<'a, T>
+where
+    T: Clone,
+{
     fn connect<C: AsRef<[GraphNode<T>]>>(
         &mut self,
         connection: ConnectTypes,

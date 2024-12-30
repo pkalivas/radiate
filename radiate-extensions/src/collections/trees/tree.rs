@@ -49,23 +49,23 @@ where
 mod test {
     use super::*;
 
-    use crate::ops::operation;
+    use crate::{ops::operation, Operation};
 
     #[test]
     fn test_tree() {
         let mut tree_one = Tree::new(TreeNode::with_children(
-            operation::add(),
+            Operation::add(),
             vec![
-                TreeNode::new(operation::value(1.0)),
-                TreeNode::new(operation::value(2.0)),
+                TreeNode::new(Operation::value(1.0)),
+                TreeNode::new(Operation::value(2.0)),
             ],
         ));
 
         let mut tree_two = Tree::new(TreeNode::with_children(
-            operation::mul(),
+            Operation::mul(),
             vec![
-                TreeNode::new(operation::value(3.0)),
-                TreeNode::new(operation::value(4.0)),
+                TreeNode::new(Operation::value(3.0)),
+                TreeNode::new(Operation::value(4.0)),
             ],
         ));
 

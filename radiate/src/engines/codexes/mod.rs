@@ -45,7 +45,7 @@ pub use subset_codex::*;
 /// impl Codex<IntChromosome<i32>, NQueens> for NQueensCodex {
 ///     fn encode(&self) -> Genotype<IntChromosome<i32>> {
 ///         let genes = (0..self.size).map(|_| IntGene::from_min_max(0, self.size)).collect();
-///         let chromosomes = vec![IntChromosome::from_genes(genes)];
+///         let chromosomes = vec![IntChromosome { genes }];
 ///         Genotype::from_chromosomes(chromosomes)
 ///     }
 ///

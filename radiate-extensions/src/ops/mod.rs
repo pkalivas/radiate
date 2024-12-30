@@ -1,5 +1,6 @@
 pub mod math;
 pub mod operation;
 
-use math::MathOp;
 pub use operation::*;
+
+pub use math::{get_math_operations, get_activation_operations, get_all_operations};
