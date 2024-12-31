@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use super::{Direction, Graph, GraphNode};
 use crate::ops::Arity;
-use crate::{Factory, GraphMutator, NodeFactory, NodeType};
+use crate::{Factory, GraphMutator, NodeCell, NodeFactory, NodeType};
 use radiate::Valid;
 
 /// Represents a reversible change to the graph
@@ -18,17 +18,17 @@ enum MutationStep {
 }
 
 /// Tracks changes and provides rollback capability
-pub struct GraphTransaction<'a, T>
+pub struct GraphTransaction<'a, C: NodeCell>
 where
-    T: Clone + Default + PartialEq,
+    C: Clone + Default + PartialEq + NodeCell,
 {
-    graph: &'a mut Graph<T>,
+    graph: &'a mut Graph<C>,
     steps: Vec<MutationStep>,
     effects: HashSet<usize>,
 }
 
-impl<'a, T: Clone + Default + PartialEq> GraphTransaction<'a, T> {
-    pub fn new(graph: &'a mut Graph<T>) -> Self {
+impl<'a, C: Clone + Default + PartialEq + NodeCell> GraphTransaction<'a, C> {
+    pub fn new(graph: &'a mut Graph<C>) -> Self {
         Self {
             graph,
             steps: Vec::new(),
@@ -36,7 +36,7 @@ impl<'a, T: Clone + Default + PartialEq> GraphTransaction<'a, T> {
         }
     }
 
-    pub fn add_node(&mut self, node: GraphNode<T>) -> usize {
+    pub fn add_node(&mut self, node: GraphNode<C>) -> usize {
         let index = self.graph.nodes.len();
         self.steps.push(MutationStep::AddNode);
         self.graph.nodes.push(node);
@@ -98,16 +98,13 @@ impl<'a, T: Clone + Default + PartialEq> GraphTransaction<'a, T> {
 
 // updated GraphMutator implementation
 impl GraphMutator {
-    pub fn add_node<T>(
+    pub fn add_node<C: NodeCell + Clone + Default + PartialEq>(
         &self,
-        graph: &mut Graph<T>,
+        graph: &mut Graph<C>,
         node_type: &NodeType,
-        factory: &NodeFactory<T>,
+        factory: &NodeFactory<C>,
         recurrent: bool,
-    ) -> bool
-    where
-        T: Clone + Default + PartialEq,
-    {
+    ) -> bool {
         let mut transaction = GraphTransaction::new(graph);
 
         if !self.try_add_node(&mut transaction, node_type, factory, recurrent) {
@@ -118,15 +115,15 @@ impl GraphMutator {
         true
     }
 
-    fn try_add_node<T>(
+    fn try_add_node<C>(
         &self,
-        transaction: &mut GraphTransaction<T>,
+        transaction: &mut GraphTransaction<C>,
         node_type: &NodeType,
-        factory: &NodeFactory<T>,
+        factory: &NodeFactory<C>,
         is_recurrent: bool,
     ) -> bool
     where
-        T: Clone + Default + PartialEq,
+        C: Clone + Default + PartialEq + NodeCell,
     {
         let source_node_index = transaction.graph.random_source_node().index;
         let target_node_index = transaction.graph.random_target_node().index;
@@ -163,16 +160,16 @@ impl GraphMutator {
         }
     }
 
-    fn try_edge_insertion<T>(
+    fn try_edge_insertion<C>(
         &self,
-        transaction: &mut GraphTransaction<T>,
+        transaction: &mut GraphTransaction<C>,
         source_node: usize,
         target_node: usize,
         node_type: &NodeType,
-        factory: &NodeFactory<T>,
+        factory: &NodeFactory<C>,
     ) -> bool
     where
-        T: Clone + Default + PartialEq,
+        C: Clone + Default + PartialEq + NodeCell,
     {
         let new_source_edge_index = transaction.graph.nodes.len();
         let new_node_index = transaction.graph.nodes.len() + 1;
@@ -219,16 +216,16 @@ impl GraphMutator {
         self.complete_node_arity(transaction, new_node_index, false)
     }
 
-    fn try_backward_edge_insertion<T>(
+    fn try_backward_edge_insertion<C>(
         &self,
-        transaction: &mut GraphTransaction<T>,
+        transaction: &mut GraphTransaction<C>,
         source_idx: usize,
         target_idx: usize,
         node_type: &NodeType,
-        factory: &NodeFactory<T>,
+        factory: &NodeFactory<C>,
     ) -> bool
     where
-        T: Clone + Default + PartialEq,
+        C: Clone + Default + PartialEq + NodeCell,
     {
         let new_source_edge_index = transaction.graph.nodes.len();
         let new_node_index = transaction.graph.nodes.len() + 1;
@@ -320,17 +317,17 @@ impl GraphMutator {
         }
     }
 
-    fn try_normal_insertion<T>(
+    fn try_normal_insertion<C>(
         &self,
-        transaction: &mut GraphTransaction<T>,
+        transaction: &mut GraphTransaction<C>,
         source_node: usize,
         target_node: usize,
         node_type: &NodeType,
-        factory: &NodeFactory<T>,
+        factory: &NodeFactory<C>,
         is_recurrent: bool,
     ) -> bool
     where
-        T: Clone + Default + PartialEq,
+        C: Clone + Default + PartialEq + NodeCell,
     {
         if !&transaction
             .graph
@@ -353,14 +350,14 @@ impl GraphMutator {
         self.complete_node_arity(transaction, node_index, is_recurrent)
     }
 
-    fn complete_node_arity<T>(
+    fn complete_node_arity<C>(
         &self,
-        transaction: &mut GraphTransaction<T>,
+        transaction: &mut GraphTransaction<C>,
         node_index: usize,
         is_recurrent: bool,
     ) -> bool
     where
-        T: Clone + Default + PartialEq,
+        C: Clone + Default + PartialEq + NodeCell,
     {
         let arity = transaction.graph.nodes[node_index].value.arity();
 

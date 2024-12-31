@@ -8,7 +8,7 @@ pub trait Reduce<T> {
     fn reduce(&mut self, input: &Self::Input) -> Self::Output;
 }
 
-impl<T: Clone> Reduce<T> for Tree<T> {
+impl<T: Clone> Reduce<T> for Tree<Operation<T>> {
     type Input = Vec<T>;
     type Output = T;
 
@@ -18,12 +18,12 @@ impl<T: Clone> Reduce<T> for Tree<T> {
     }
 }
 
-impl<T: Clone> Reduce<T> for TreeNode<T> {
+impl<T: Clone> Reduce<T> for TreeNode<Operation<T>> {
     type Input = Vec<T>;
     type Output = T;
 
     fn reduce(&mut self, input: &Self::Input) -> Self::Output {
-        fn eval<T: Clone>(node: &TreeNode<T>, curr_input: &Vec<T>) -> T {
+        fn eval<T: Clone>(node: &TreeNode<Operation<T>>, curr_input: &Vec<T>) -> T {
             if node.is_leaf() {
                 node.value.apply(curr_input)
             } else {
@@ -54,7 +54,7 @@ pub struct GraphReducer<'a, T>
 where
     T: Clone + PartialEq + Default,
 {
-    graph: &'a Graph<T>,
+    graph: &'a Graph<Operation<T>>,
     tracers: Vec<Tracer<T>>,
     order: Vec<usize>,
     outputs: Vec<T>,
@@ -64,7 +64,7 @@ impl<'a, T> GraphReducer<'a, T>
 where
     T: Clone + PartialEq + Default,
 {
-    pub fn new(graph: &'a Graph<T>) -> GraphReducer<'a, T> {
+    pub fn new(graph: &'a Graph<Operation<T>>) -> GraphReducer<'a, T> {
         let output_size = graph
             .iter()
             .filter(|node| node.node_type == NodeType::Output)
@@ -151,7 +151,7 @@ where
     }
 
     #[inline]
-    pub fn eval(&mut self, node: &GraphNode<T>) {
+    pub fn eval(&mut self, node: &GraphNode<Operation<T>>) {
         if self.pending_idx != self.input_size {
             panic!("Tracer is not ready to be evaluated.");
         }
@@ -174,7 +174,7 @@ where
     }
 }
 
-fn input_size<T>(node: &GraphNode<T>) -> usize
+fn input_size<T>(node: &GraphNode<Operation<T>>) -> usize
 where
     T: Clone + PartialEq + Default,
 {

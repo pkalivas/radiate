@@ -1,15 +1,16 @@
 use crate::collections::trees::TreeBuilder;
 use crate::collections::{Tree, TreeChromosome, TreeNode};
-use crate::ops::Operation;
+
+use crate::NodeCell;
 use radiate::{Chromosome, Codex, Genotype};
 use std::sync::Arc;
 
-pub struct TreeCodex<T: Clone> {
-    architect: TreeBuilder<T>,
-    constraint: Option<Arc<Box<dyn Fn(&TreeNode<T>) -> bool>>>,
+pub struct TreeCodex<C: Clone + NodeCell> {
+    architect: TreeBuilder<C>,
+    constraint: Option<Arc<Box<dyn Fn(&TreeNode<C>) -> bool>>>,
 }
 
-impl<T: Clone + Default> TreeCodex<T> {
+impl<C: NodeCell + Clone + Default> TreeCodex<C> {
     pub fn new(depth: usize) -> Self {
         TreeCodex {
             architect: TreeBuilder::new(depth),
@@ -19,28 +20,28 @@ impl<T: Clone + Default> TreeCodex<T> {
 
     pub fn constraint<F>(mut self, constraint: F) -> Self
     where
-        F: Fn(&TreeNode<T>) -> bool + 'static,
+        F: Fn(&TreeNode<C>) -> bool + 'static,
     {
         self.constraint = Some(Arc::new(Box::new(constraint)));
         self
     }
 
-    pub fn gates(mut self, gates: Vec<Operation<T>>) -> Self {
+    pub fn gates(mut self, gates: Vec<C>) -> Self {
         self.architect = self.architect.with_gates(gates);
         self
     }
 
-    pub fn leafs(mut self, leafs: Vec<Operation<T>>) -> Self {
+    pub fn leafs(mut self, leafs: Vec<C>) -> Self {
         self.architect = self.architect.with_leafs(leafs);
         self
     }
 }
 
-impl<T> Codex<TreeChromosome<T>, Tree<T>> for TreeCodex<T>
+impl<C> Codex<TreeChromosome<C>, Tree<C>> for TreeCodex<C>
 where
-    T: Clone + PartialEq + Default,
+    C: Clone + PartialEq + Default + NodeCell,
 {
-    fn encode(&self) -> Genotype<TreeChromosome<T>> {
+    fn encode(&self) -> Genotype<TreeChromosome<C>> {
         let root = self.architect.build().root().take().unwrap().to_owned();
 
         if let Some(constraint) = &self.constraint {
@@ -57,14 +58,14 @@ where
         }
     }
 
-    fn decode(&self, genotype: &Genotype<TreeChromosome<T>>) -> Tree<T> {
+    fn decode(&self, genotype: &Genotype<TreeChromosome<C>>) -> Tree<C> {
         let nodes = genotype
             .iter()
             .next()
             .unwrap()
             .iter()
             .cloned()
-            .collect::<Vec<TreeNode<T>>>()
+            .collect::<Vec<TreeNode<C>>>()
             .first()
             .unwrap()
             .to_owned();
@@ -77,11 +78,12 @@ where
 mod tests {
     use super::*;
 
+    use crate::ops::Operation;
     use radiate::engines::codexes::Codex;
 
     #[test]
     fn test_tree_codex() {
-        let codex = TreeCodex::<f32>::new(3)
+        let codex = TreeCodex::<Operation<f32>>::new(3)
             .gates(vec![Operation::add(), Operation::sub(), Operation::mul()])
             .leafs(vec![Operation::value(1.0), Operation::value(2.0)]);
         let genotype = codex.encode();

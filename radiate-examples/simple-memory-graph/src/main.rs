@@ -20,7 +20,7 @@ fn main() {
                 NodeMutate::Recurrent(NodeType::Vertex, 0.05),
             ]),
         ))
-        .fitness_fn(move |genotype: Graph<f32>| {
+        .fitness_fn(move |genotype: Graph<Operation<f32>>| {
             let mut reducer = GraphReducer::new(&genotype);
             Score::from_f32(regression.error(|input| reducer.reduce(input)))
         })
@@ -34,7 +34,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<GraphChromosome<f32>, Graph<f32>>) {
+fn display(result: &EngineContext<GraphChromosome<Operation<f32>>, Graph<Operation<f32>>>) {
     let mut reducer = GraphReducer::new(&result.best);
     for sample in get_sample_set().get_samples().iter() {
         let output = reducer.reduce(&sample.1);

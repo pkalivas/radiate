@@ -18,7 +18,7 @@ fn main() {
         .minimizing()
         .num_threads(10)
         .alter(alters!(TreeCrossover::new(0.5),))
-        .fitness_fn(move |genotype: Tree<f32>| {
+        .fitness_fn(move |genotype: Tree<Operation<f32>>| {
             let mut reducer = Tree::new(genotype.root().take().unwrap().to_owned());
             Score::from_f32(regression.error(|input| vec![reducer.reduce(input)]))
         })
@@ -32,7 +32,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<TreeChromosome<f32>, Tree<f32>>) {
+fn display(result: &EngineContext<TreeChromosome<Operation<f32>>, Tree<Operation<f32>>>) {
     let mut regression_accuracy = 0.0;
     let mut total = 0.0;
 

@@ -1,41 +1,41 @@
-use crate::collections::{TreeIterator, TreeNode};
+use crate::{
+    collections::{TreeIterator, TreeNode},
+    NodeCell,
+};
 use std::fmt::Debug;
 
 #[derive(Clone, PartialEq, Default)]
-pub struct Tree<T> {
-    root: Option<TreeNode<T>>,
+pub struct Tree<C: NodeCell> {
+    root: Option<TreeNode<C>>,
 }
 
-impl<T> Tree<T> {
-    pub fn new(root: TreeNode<T>) -> Self {
+impl<C: NodeCell> Tree<C> {
+    pub fn new(root: TreeNode<C>) -> Self {
         Tree { root: Some(root) }
     }
 
-    pub fn root(&self) -> Option<&TreeNode<T>> {
+    pub fn root(&self) -> Option<&TreeNode<C>> {
         self.root.as_ref()
     }
 
-    pub fn root_mut(&mut self) -> Option<&mut TreeNode<T>> {
+    pub fn root_mut(&mut self) -> Option<&mut TreeNode<C>> {
         self.root.as_mut()
     }
 }
 
-impl<T> AsRef<TreeNode<T>> for Tree<T> {
-    fn as_ref(&self) -> &TreeNode<T> {
+impl<C: NodeCell> AsRef<TreeNode<C>> for Tree<C> {
+    fn as_ref(&self) -> &TreeNode<C> {
         self.root.as_ref().unwrap()
     }
 }
 
-impl<T> AsMut<TreeNode<T>> for Tree<T> {
-    fn as_mut(&mut self) -> &mut TreeNode<T> {
+impl<C: NodeCell> AsMut<TreeNode<C>> for Tree<C> {
+    fn as_mut(&mut self) -> &mut TreeNode<C> {
         self.root.as_mut().unwrap()
     }
 }
 
-impl<T> Debug for Tree<T>
-where
-    T: Debug,
-{
+impl<C: NodeCell + Debug> Debug for Tree<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Tree {{\n")?;
         for node in self.iter_breadth_first() {

@@ -1,4 +1,4 @@
-use super::{Graph, GraphChromosome, GraphNode, NodeType};
+use super::{Graph, GraphChromosome, GraphNode, NodeCell, NodeType};
 
 use radiate::{random_provider, timer::Timer, Alter, AlterType, Chromosome, Metric, Population};
 
@@ -46,9 +46,9 @@ impl GraphMutator {
     }
 }
 
-impl<T> Alter<GraphChromosome<T>> for GraphMutator
+impl<C> Alter<GraphChromosome<C>> for GraphMutator
 where
-    T: Clone + PartialEq + Default,
+    C: Clone + PartialEq + Default + NodeCell,
 {
     fn name(&self) -> &'static str {
         "GraphMutator"
@@ -65,7 +65,7 @@ where
     #[inline]
     fn alter(
         &self,
-        population: &mut Population<GraphChromosome<T>>,
+        population: &mut Population<GraphChromosome<C>>,
         generation: i32,
     ) -> Vec<Metric> {
         let timer = Timer::new();
@@ -92,7 +92,7 @@ where
         vec![result]
     }
 
-    fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<T>) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<C>) -> i32 {
         let mutation = random_provider::choose(&self.mutations);
 
         if random_provider::random::<f32>() > mutation.rate() {
@@ -109,7 +109,7 @@ where
                 &node_fact,
                 mutation.is_recurrent(),
             ) {
-                chromosome.nodes = graph.into_iter().collect::<Vec<GraphNode<T>>>();
+                chromosome.nodes = graph.into_iter().collect::<Vec<GraphNode<C>>>();
                 return 1;
             }
         }
@@ -129,7 +129,7 @@ impl OperationMutator {
     }
 }
 
-impl<T> Alter<GraphChromosome<T>> for OperationMutator
+impl<T> Alter<GraphChromosome<Operation<T>>> for OperationMutator
 where
     T: Clone + PartialEq + Default,
 {
@@ -146,7 +146,7 @@ where
     }
 
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<T>) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<Operation<T>>) -> i32 {
         let mutation_indexes = (0..chromosome.len())
             .filter(|_| random_provider::random::<f32>() < self.rate)
             .collect::<Vec<usize>>();

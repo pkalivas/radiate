@@ -1,18 +1,14 @@
-use crate::ops::operation::Operation;
-
 use crate::collections::{Tree, TreeNode};
+use crate::NodeCell;
 use radiate::random_provider;
 
-pub struct TreeBuilder<T> {
-    gates: Vec<Operation<T>>,
-    leafs: Vec<Operation<T>>,
+pub struct TreeBuilder<C: NodeCell> {
+    gates: Vec<C>,
+    leafs: Vec<C>,
     depth: usize,
 }
 
-impl<T> TreeBuilder<T>
-where
-    T: Clone,
-{
+impl<C: NodeCell> TreeBuilder<C> {
     pub fn new(depth: usize) -> Self {
         TreeBuilder {
             gates: Vec::new(),
@@ -26,31 +22,31 @@ where
         self
     }
 
-    pub fn with_gates(mut self, gates: Vec<Operation<T>>) -> Self {
+    pub fn with_gates(mut self, gates: Vec<C>) -> Self {
         self.gates = gates;
         self
     }
 
-    pub fn with_leafs(mut self, leafs: Vec<Operation<T>>) -> Self {
+    pub fn with_leafs(mut self, leafs: Vec<C>) -> Self {
         self.leafs = leafs;
         self
     }
 
-    pub fn build(&self) -> Tree<T>
+    pub fn build(&self) -> Tree<C>
     where
-        T: Default,
+        C: Default,
     {
         let root = self.grow_tree(self.depth);
         Tree::new(root)
     }
 
-    fn grow_tree(&self, depth: usize) -> TreeNode<T>
+    fn grow_tree(&self, depth: usize) -> TreeNode<C>
     where
-        T: Default,
+        C: Default,
     {
         if depth == 0 {
             let leaf = if self.leafs.is_empty() {
-                Operation::default()
+                C::default()
             } else {
                 random_provider::choose(&self.leafs).new_instance()
             };
@@ -59,7 +55,7 @@ where
         }
 
         let gate = if self.gates.is_empty() {
-            Operation::default()
+            C::default()
         } else {
             random_provider::choose(&self.gates).new_instance()
         };

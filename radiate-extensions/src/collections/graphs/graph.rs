@@ -3,8 +3,9 @@ use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
 
 use super::GraphIterator;
-use crate::collections::graphs::modifier::GraphTransaction;
+use crate::collections::graphs::mutation::GraphTransaction;
 use crate::collections::{Direction, GraphNode, NodeType};
+use crate::NodeCell;
 
 use radiate::{random_provider, Valid};
 
@@ -26,27 +27,27 @@ use radiate::{random_provider, Valid};
 /// It also provides methods for iterating over the nodes in the graph in a sudo topological order.
 //
 #[derive(Clone, PartialEq, Default)]
-pub struct Graph<T> {
-    pub nodes: Vec<GraphNode<T>>,
+pub struct Graph<C: NodeCell> {
+    pub nodes: Vec<GraphNode<C>>,
 }
 
 /// The 'Graph' struct provides methods for creating, modifying, and iterating over a graph.
-impl<T> Graph<T> {
+impl<C: NodeCell> Graph<C> {
     /// Create a new 'Graph' from a 'Vec' of 'GraphNode's.
     ///
     /// # Arguments
     /// - nodes: A 'Vec' of 'GraphNode's.
-    pub fn new(nodes: Vec<GraphNode<T>>) -> Self {
+    pub fn new(nodes: Vec<GraphNode<C>>) -> Self {
         Graph { nodes }
     }
 
     /// iterates over the nodes in the graph. The nodes are returned in the order they
     /// were added, so there is no real order to this iterator.
-    pub fn iter(&self) -> impl Iterator<Item = &GraphNode<T>> {
+    pub fn iter(&self) -> impl Iterator<Item = &GraphNode<C>> {
         self.nodes.iter()
     }
     /// mutably iterates over the nodes in the graph. The nodes are returned in the order they
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut GraphNode<T>> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut GraphNode<C>> {
         self.nodes.iter_mut()
     }
 
@@ -55,7 +56,7 @@ impl<T> Graph<T> {
     /// It is a 'best effort' topological order, as it is not guaranteed to be a true topological
     /// order. This is because the graph may contain cycles which would make it impossible to
     /// create a true topological order.
-    pub fn topological_iter(&self) -> impl Iterator<Item = &GraphNode<T>> {
+    pub fn topological_iter(&self) -> impl Iterator<Item = &GraphNode<C>> {
         GraphIterator::new(self)
     }
 
@@ -70,12 +71,12 @@ impl<T> Graph<T> {
     }
 
     /// Returns a mutable reference to the node at the specified index.
-    pub fn get_mut(&mut self, index: usize) -> &mut GraphNode<T> {
+    pub fn get_mut(&mut self, index: usize) -> &mut GraphNode<C> {
         self.nodes.get_mut(index).unwrap()
     }
 
     /// Returns a reference to the node at the specified index.
-    pub fn get(&self, index: usize) -> &GraphNode<T> {
+    pub fn get(&self, index: usize) -> &GraphNode<C> {
         self.nodes.get(index).unwrap()
     }
 
@@ -117,12 +118,12 @@ impl<T> Graph<T> {
 }
 
 /// Functinos for modifying the graph.
-impl<T> Graph<T> {
+impl<C: NodeCell> Graph<C> {
     /// Given a list of node indices, this function will set the 'direction' field of the nodes
     /// at those indices to 'Direction::Backward' if they are part of a cycle. If they are not part
     /// of a cycle, the 'direction' field will be set to 'Direction::Forward'.
     /// If no indices are provided, the function will set the 'direction' field of all nodes in the graph.
-    pub fn set_cycles(mut self, indecies: Vec<usize>) -> Graph<T> {
+    pub fn set_cycles(mut self, indecies: Vec<usize>) -> Graph<C> {
         if indecies.is_empty() {
             let all_indices = self
                 .as_ref()
@@ -158,8 +159,8 @@ impl<T> Graph<T> {
     ///  - mutation: A closure that takes a mutable reference to a 'GraphTransaction' and returns a 'bool'.
     pub fn try_modify<F>(&mut self, mutation: F) -> bool
     where
-        F: FnOnce(&mut GraphTransaction<T>) -> bool,
-        T: Clone + Default + PartialEq,
+        F: FnOnce(&mut GraphTransaction<C>) -> bool,
+        C: Clone + Default + PartialEq,
     {
         let mut transaction = GraphTransaction::new(self);
         if !mutation(&mut transaction) {
@@ -173,7 +174,7 @@ impl<T> Graph<T> {
 
 /// Functions for checking the validity of the graph or connections between nodes. These are
 /// useful for modifying the graph in a way that maintains its integrity.
-impl<T> Graph<T> {
+impl<C: NodeCell> Graph<C> {
     /// Get the cycles in the graph that include the node at the specified index.
     ///
     /// # Arguments
@@ -280,20 +281,20 @@ impl<T> Graph<T> {
     /// Get a random node that can be used as a source node for a connection.
     /// A source node can be either an input or a vertex node.
     #[inline]
-    pub fn random_source_node(&self) -> &GraphNode<T> {
+    pub fn random_source_node(&self) -> &GraphNode<C> {
         self.random_node_of_type(vec![NodeType::Input, NodeType::Vertex])
     }
     /// Get a random node that can be used as a target node for a connection.
     /// A target node can be either an output or a vertex node.
     #[inline]
-    pub fn random_target_node(&self) -> &GraphNode<T> {
+    pub fn random_target_node(&self) -> &GraphNode<C> {
         self.random_node_of_type(vec![NodeType::Output, NodeType::Vertex])
     }
     /// Helper functions to get a random node of the specified type. If no nodes of the specified
     /// type are found, the function will try to get a random node of a different type.
     /// If no nodes are found, the function will panic.
     #[inline]
-    fn random_node_of_type(&self, node_types: Vec<NodeType>) -> &GraphNode<T> {
+    fn random_node_of_type(&self, node_types: Vec<NodeType>) -> &GraphNode<C> {
         if node_types.is_empty() {
             panic!("At least one node type must be specified.");
         }
@@ -305,19 +306,19 @@ impl<T> Graph<T> {
             NodeType::Input => self
                 .iter()
                 .filter(|node| node.node_type == NodeType::Input)
-                .collect::<Vec<&GraphNode<T>>>(),
+                .collect::<Vec<&GraphNode<C>>>(),
             NodeType::Output => self
                 .iter()
                 .filter(|node| node.node_type == NodeType::Output)
-                .collect::<Vec<&GraphNode<T>>>(),
+                .collect::<Vec<&GraphNode<C>>>(),
             NodeType::Vertex => self
                 .iter()
                 .filter(|node| node.node_type == NodeType::Vertex)
-                .collect::<Vec<&GraphNode<T>>>(),
+                .collect::<Vec<&GraphNode<C>>>(),
             NodeType::Edge => self
                 .iter()
                 .filter(|node| node.node_type == NodeType::Edge)
-                .collect::<Vec<&GraphNode<T>>>(),
+                .collect::<Vec<&GraphNode<C>>>(),
         };
 
         if genes.is_empty() {
@@ -335,57 +336,51 @@ impl<T> Graph<T> {
     }
 }
 
-impl<T> Valid for Graph<T>
+impl<C> Valid for Graph<C>
 where
-    T: Clone + PartialEq + Default,
+    C: NodeCell + Clone + PartialEq + Default,
 {
     fn is_valid(&self) -> bool {
-        self.nodes.iter().all(|node| node.is_valid())
+        self.iter().all(|node| node.is_valid())
     }
 }
 
-impl<T> AsRef<[GraphNode<T>]> for Graph<T> {
-    fn as_ref(&self) -> &[GraphNode<T>] {
+impl<C: NodeCell> AsRef<[GraphNode<C>]> for Graph<C> {
+    fn as_ref(&self) -> &[GraphNode<C>] {
         &self.nodes
     }
 }
 
-impl<T> AsMut<[GraphNode<T>]> for Graph<T> {
-    fn as_mut(&mut self) -> &mut [GraphNode<T>] {
+impl<C: NodeCell> AsMut<[GraphNode<C>]> for Graph<C> {
+    fn as_mut(&mut self) -> &mut [GraphNode<C>] {
         &mut self.nodes
     }
 }
 
-impl<T> Index<usize> for Graph<T> {
-    type Output = GraphNode<T>;
+impl<C: NodeCell> Index<usize> for Graph<C> {
+    type Output = GraphNode<C>;
 
     fn index(&self, index: usize) -> &Self::Output {
         self.nodes.get(index).expect("Index out of bounds.")
     }
 }
 
-impl<T> IndexMut<usize> for Graph<T> {
+impl<C: NodeCell> IndexMut<usize> for Graph<C> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.nodes.get_mut(index).expect("Index out of bounds.")
     }
 }
 
-impl<T> IntoIterator for Graph<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    type Item = GraphNode<T>;
-    type IntoIter = std::vec::IntoIter<GraphNode<T>>;
+impl<C: NodeCell> IntoIterator for Graph<C> {
+    type Item = GraphNode<C>;
+    type IntoIter = std::vec::IntoIter<GraphNode<C>>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.nodes.into_iter()
     }
 }
 
-impl<T> Debug for Graph<T>
-where
-    T: Clone + PartialEq + Default + Debug,
-{
+impl<C: NodeCell + Debug + PartialEq + Clone> Debug for Graph<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Graph {{\n")?;
         for node in self.as_ref() {
@@ -394,3 +389,63 @@ where
         write!(f, "}}")
     }
 }
+
+// impl<T> Valid for Graph<T>
+// where
+//     T: Clone + PartialEq + Default,
+// {
+//     fn is_valid(&self) -> bool {
+//         self.nodes.iter().all(|node| node.is_valid())
+//     }
+// }
+
+// impl<T> AsRef<[GraphNode<T>]> for Graph<T> {
+//     fn as_ref(&self) -> &[GraphNode<T>] {
+//         &self.nodes
+//     }
+// }
+
+// impl<T> AsMut<[GraphNode<T>]> for Graph<T> {
+//     fn as_mut(&mut self) -> &mut [GraphNode<T>] {
+//         &mut self.nodes
+//     }
+// }
+
+// impl<T> Index<usize> for Graph<T> {
+//     type Output = GraphNode<T>;
+
+//     fn index(&self, index: usize) -> &Self::Output {
+//         self.nodes.get(index).expect("Index out of bounds.")
+//     }
+// }
+
+// impl<T> IndexMut<usize> for Graph<T> {
+//     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+//         self.nodes.get_mut(index).expect("Index out of bounds.")
+//     }
+// }
+
+// impl<T> IntoIterator for Graph<T>
+// where
+//     T: Clone + PartialEq + Default,
+// {
+//     type Item = GraphNode<T>;
+//     type IntoIter = std::vec::IntoIter<GraphNode<T>>;
+
+//     fn into_iter(self) -> Self::IntoIter {
+//         self.nodes.into_iter()
+//     }
+// }
+
+// impl<T> Debug for Graph<T>
+// where
+//     T: Clone + PartialEq + Default + Debug,
+// {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         write!(f, "Graph {{\n")?;
+//         for node in self.as_ref() {
+//             write!(f, "  {:?},\n", node)?;
+//         }
+//         write!(f, "}}")
+//     }
+// }
