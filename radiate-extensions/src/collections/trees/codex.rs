@@ -78,14 +78,14 @@ where
 mod tests {
     use super::*;
 
-    use crate::ops::Operation;
+    use crate::ops::Op;
     use radiate::engines::codexes::Codex;
 
     #[test]
     fn test_tree_codex() {
-        let codex = TreeCodex::<Operation<f32>>::new(3)
-            .gates(vec![Operation::add(), Operation::sub(), Operation::mul()])
-            .leafs(vec![Operation::value(1.0), Operation::value(2.0)]);
+        let codex = TreeCodex::<Op<f32>>::new(3)
+            .gates(vec![Op::add(), Op::sub(), Op::mul()])
+            .leafs(vec![Op::value(1.0), Op::value(2.0)]);
         let genotype = codex.encode();
         let tree = codex.decode(&genotype);
 

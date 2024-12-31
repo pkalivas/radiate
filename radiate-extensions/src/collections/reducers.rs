@@ -1,5 +1,5 @@
 use super::{Graph, GraphNode, NodeType, Tree, TreeNode};
-use crate::ops::operation::Operation;
+use crate::ops::operation::Op;
 
 pub trait Reduce<T> {
     type Input;
@@ -8,7 +8,7 @@ pub trait Reduce<T> {
     fn reduce(&mut self, input: &Self::Input) -> Self::Output;
 }
 
-impl<T: Clone> Reduce<T> for Tree<Operation<T>> {
+impl<T: Clone> Reduce<T> for Tree<Op<T>> {
     type Input = Vec<T>;
     type Output = T;
 
@@ -18,12 +18,12 @@ impl<T: Clone> Reduce<T> for Tree<Operation<T>> {
     }
 }
 
-impl<T: Clone> Reduce<T> for TreeNode<Operation<T>> {
+impl<T: Clone> Reduce<T> for TreeNode<Op<T>> {
     type Input = Vec<T>;
     type Output = T;
 
     fn reduce(&mut self, input: &Self::Input) -> Self::Output {
-        fn eval<T: Clone>(node: &TreeNode<Operation<T>>, curr_input: &Vec<T>) -> T {
+        fn eval<T: Clone>(node: &TreeNode<Op<T>>, curr_input: &Vec<T>) -> T {
             if node.is_leaf() {
                 node.value.apply(curr_input)
             } else {
@@ -54,7 +54,7 @@ pub struct GraphReducer<'a, T>
 where
     T: Clone + PartialEq + Default,
 {
-    graph: &'a Graph<Operation<T>>,
+    graph: &'a Graph<Op<T>>,
     tracers: Vec<Tracer<T>>,
     order: Vec<usize>,
     outputs: Vec<T>,
@@ -64,7 +64,7 @@ impl<'a, T> GraphReducer<'a, T>
 where
     T: Clone + PartialEq + Default,
 {
-    pub fn new(graph: &'a Graph<Operation<T>>) -> GraphReducer<'a, T> {
+    pub fn new(graph: &'a Graph<Op<T>>) -> GraphReducer<'a, T> {
         let output_size = graph
             .iter()
             .filter(|node| node.node_type == NodeType::Output)
@@ -151,7 +151,7 @@ where
     }
 
     #[inline]
-    pub fn eval(&mut self, node: &GraphNode<Operation<T>>) {
+    pub fn eval(&mut self, node: &GraphNode<Op<T>>) {
         if self.pending_idx != self.input_size {
             panic!("Tracer is not ready to be evaluated.");
         }
@@ -161,10 +161,10 @@ where
         }
 
         self.result = match &node.value {
-            Operation::Const(_, ref value) => Some(value.clone()),
-            Operation::Fn(_, _, ref fn_ptr) => Some(fn_ptr(&self.args)),
-            Operation::Var(_, _) => Some(self.args[0].clone()),
-            Operation::MutableConst {
+            Op::Const(_, ref value) => Some(value.clone()),
+            Op::Fn(_, _, ref fn_ptr) => Some(fn_ptr(&self.args)),
+            Op::Var(_, _) => Some(self.args[0].clone()),
+            Op::MutableConst {
                 value, operation, ..
             } => Some(operation(&self.args, value)),
         };
@@ -174,7 +174,7 @@ where
     }
 }
 
-fn input_size<T>(node: &GraphNode<Operation<T>>) -> usize
+fn input_size<T>(node: &GraphNode<Op<T>>) -> usize
 where
     T: Clone + PartialEq + Default,
 {
@@ -190,10 +190,10 @@ mod tests {
 
     #[test]
     fn test_tree_reduce_simple() {
-        let mut root = TreeNode::new(Operation::add());
+        let mut root = TreeNode::new(Op::add());
 
-        root.add_child(TreeNode::new(Operation::value(1.0)));
-        root.add_child(TreeNode::new(Operation::value(2.0)));
+        root.add_child(TreeNode::new(Op::value(1.0)));
+        root.add_child(TreeNode::new(Op::value(2.0)));
 
         let result = root.reduce(&vec![]);
 
@@ -202,15 +202,15 @@ mod tests {
 
     #[test]
     fn test_tree_reduce_complex() {
-        let mut root = TreeNode::new(Operation::add());
+        let mut root = TreeNode::new(Op::add());
 
-        let mut left = TreeNode::new(Operation::mul());
-        left.add_child(TreeNode::new(Operation::value(2.0)));
-        left.add_child(TreeNode::new(Operation::value(3.0)));
+        let mut left = TreeNode::new(Op::mul());
+        left.add_child(TreeNode::new(Op::value(2.0)));
+        left.add_child(TreeNode::new(Op::value(3.0)));
 
-        let mut right = TreeNode::new(Operation::add());
-        right.add_child(TreeNode::new(Operation::value(2.0)));
-        right.add_child(TreeNode::new(Operation::var(0)));
+        let mut right = TreeNode::new(Op::add());
+        right.add_child(TreeNode::new(Op::value(2.0)));
+        right.add_child(TreeNode::new(Op::var(0)));
 
         root.add_child(left);
         root.add_child(right);

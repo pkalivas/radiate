@@ -1,4 +1,4 @@
-use crate::{ops::operation::Operation, Node, NodeCell};
+use crate::{ops::operation::Op, Node, NodeCell};
 use radiate::engines::genome::genes::gene::{Gene, Valid};
 
 use super::TreeIterator;
@@ -100,16 +100,16 @@ impl<C: NodeCell> TreeNode<C> {
     }
 }
 
-impl<T: Clone + PartialEq> Node<Operation<T>> for TreeNode<Operation<T>> {
+impl<T: Clone + PartialEq> Node<Op<T>> for TreeNode<Op<T>> {
     fn arity(&self) -> Arity {
         self.value.arity()
     }
 
-    fn cell(&self, _index: usize) -> &Operation<T> {
+    fn cell(&self, _index: usize) -> &Op<T> {
         &self.value
     }
 
-    fn cell_mut(&mut self, _index: usize) -> &mut Operation<T> {
+    fn cell_mut(&mut self, _index: usize) -> &mut Op<T> {
         &mut self.value
     }
 }

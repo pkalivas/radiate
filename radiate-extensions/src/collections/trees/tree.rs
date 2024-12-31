@@ -49,23 +49,23 @@ impl<C: NodeCell + Debug> Debug for Tree<C> {
 mod test {
     use super::*;
 
-    use crate::{ops::operation, Operation};
+    use crate::{ops::operation, Op};
 
     #[test]
     fn test_tree() {
         let mut tree_one = Tree::new(TreeNode::with_children(
-            Operation::add(),
+            Op::add(),
             vec![
-                TreeNode::new(Operation::value(1.0)),
-                TreeNode::new(Operation::value(2.0)),
+                TreeNode::new(Op::value(1.0)),
+                TreeNode::new(Op::value(2.0)),
             ],
         ));
 
         let mut tree_two = Tree::new(TreeNode::with_children(
-            Operation::mul(),
+            Op::mul(),
             vec![
-                TreeNode::new(Operation::value(3.0)),
-                TreeNode::new(Operation::value(4.0)),
+                TreeNode::new(Op::value(3.0)),
+                TreeNode::new(Op::value(4.0)),
             ],
         ));
 
@@ -76,7 +76,7 @@ mod test {
         let values_one: Vec<_> = tree_one
             .iter_breadth_first()
             .filter_map(|n| match &n.value {
-                operation::Operation::Const(_, v) => Some(*v),
+                operation::Op::Const(_, v) => Some(*v),
                 _ => None,
             })
             .collect();

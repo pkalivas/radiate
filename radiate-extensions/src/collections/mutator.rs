@@ -4,7 +4,7 @@ use radiate::{random_provider, timer::Timer, Alter, AlterType, Chromosome, Metri
 
 use std::sync::Arc;
 
-use crate::ops::operation::Operation;
+use crate::ops::operation::Op;
 
 use radiate::engines::genome::genes::gene::Gene;
 
@@ -129,7 +129,7 @@ impl OperationMutator {
     }
 }
 
-impl<T> Alter<GraphChromosome<Operation<T>>> for OperationMutator
+impl<T> Alter<GraphChromosome<Op<T>>> for OperationMutator
 where
     T: Clone + PartialEq + Default,
 {
@@ -146,7 +146,7 @@ where
     }
 
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<Operation<T>>) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<Op<T>>) -> i32 {
         let mutation_indexes = (0..chromosome.len())
             .filter(|_| random_provider::random::<f32>() < self.rate)
             .collect::<Vec<usize>>();
@@ -159,7 +159,7 @@ where
             let curreent_node = chromosome.get_gene(i);
 
             match curreent_node.allele() {
-                Operation::MutableConst {
+                Op::MutableConst {
                     name,
                     arity,
                     value,
@@ -170,7 +170,7 @@ where
                     let new_value = get_value();
                     let modified_value = modifier(value);
 
-                    let new_op = Operation::MutableConst {
+                    let new_op = Op::MutableConst {
                         name,
                         arity: *arity,
                         value: if random_provider::random::<f32>() < self.replace_rate {

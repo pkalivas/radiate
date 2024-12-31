@@ -3,7 +3,7 @@ mod tests {
     use radiate::*;
     use radiate_extensions::{
         collections::{GraphCodex, GraphReducer, NodeFactory},
-        Operation,
+        Op,
     };
 
     #[test]
@@ -39,7 +39,7 @@ mod tests {
 
     #[test]
     fn test_reducer() {
-        let factory = NodeFactory::<Operation<f32>>::regression(2);
+        let factory = NodeFactory::<Op<f32>>::regression(2);
         let graph_codex =
             GraphCodex::from_factory(&factory).set_nodes(|arc, _| arc.weighted_acyclic(2, 2));
 

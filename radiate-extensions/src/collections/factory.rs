@@ -1,6 +1,6 @@
 use crate::collections::{GraphNode, NodeType};
 use crate::ops;
-use crate::ops::operation::Operation;
+use crate::ops::operation::Op;
 
 use radiate::random_provider;
 use std::collections::HashMap;
@@ -49,16 +49,16 @@ impl<C: Clone> NodeFactory<C> {
     }
 }
 
-impl NodeFactory<Operation<f32>> {
-    pub fn regression(input_size: usize) -> NodeFactory<Operation<f32>> {
+impl NodeFactory<Op<f32>> {
+    pub fn regression(input_size: usize) -> NodeFactory<Op<f32>> {
         let inputs = (0..input_size)
-            .map(Operation::var)
-            .collect::<Vec<Operation<f32>>>();
+            .map(Op::var)
+            .collect::<Vec<Op<f32>>>();
         NodeFactory::new()
             .inputs(inputs.clone())
             .vertices(ops::get_all_operations())
-            .edges(vec![Operation::weight(), Operation::identity()])
-            .outputs(vec![Operation::linear()])
+            .edges(vec![Op::weight(), Op::identity()])
+            .outputs(vec![Op::linear()])
     }
 }
 
@@ -70,7 +70,6 @@ impl<C: NodeCell + Clone + Default> Factory<GraphNode<C>> for HashMap<NodeType, 
         if let Some(values) = self.get(&node_type) {
             return match node_type {
                 NodeType::Input => {
-                    // let value = values[index % values.len()].clone();
                     let value = random_provider::choose(values).new_instance();
                     GraphNode::new(index, node_type, value)
                 }
@@ -116,7 +115,7 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let factory: NodeFactory<Operation<f32>> = NodeFactory::new();
+        let factory: NodeFactory<Op<f32>> = NodeFactory::new();
         assert!(factory.node_values.is_empty());
     }
 }

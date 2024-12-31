@@ -2,7 +2,7 @@ use crate::collections::graphs::architect::GraphArchitect;
 use crate::collections::graphs::builder::GraphBuilder;
 use crate::collections::{Graph, GraphNode, NodeFactory, NodeType};
 use crate::graphs::chromosome::GraphChromosome;
-use crate::ops::Operation;
+use crate::ops::Op;
 use crate::{Factory, NodeCell};
 use radiate::{Chromosome, Codex, Gene, Genotype};
 use std::cell::RefCell;
@@ -76,11 +76,11 @@ where
     }
 }
 
-impl GraphCodex<Operation<f32>> {
+impl GraphCodex<Op<f32>> {
     pub fn regression(input_size: usize, output_size: usize) -> Self {
-        let factory = NodeFactory::<Operation<f32>>::regression(input_size);
-        let nodes = GraphBuilder::<Operation<f32>>::new(&factory).acyclic(input_size, output_size);
-        GraphCodex::<Operation<f32>>::from_graph(nodes, &factory)
+        let factory = NodeFactory::<Op<f32>>::regression(input_size);
+        let nodes = GraphBuilder::<Op<f32>>::new(&factory).acyclic(input_size, output_size);
+        GraphCodex::<Op<f32>>::from_graph(nodes, &factory)
     }
 }
 

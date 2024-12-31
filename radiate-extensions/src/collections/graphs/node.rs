@@ -1,4 +1,4 @@
-use crate::ops::{Arity, Operation};
+use crate::ops::{Arity, Op};
 use crate::{Node, NodeCell};
 use radiate::{Gene, Valid};
 use std::collections::HashSet;
@@ -80,7 +80,7 @@ impl<C: NodeCell> GraphNode<C> {
     }
 }
 
-impl<T> Node<Operation<T>> for GraphNode<Operation<T>>
+impl<T> Node<Op<T>> for GraphNode<Op<T>>
 where
     T: Clone + PartialEq,
 {
@@ -88,11 +88,11 @@ where
         self.value.arity()
     }
 
-    fn cell(&self, _index: usize) -> &Operation<T> {
+    fn cell(&self, _index: usize) -> &Op<T> {
         &self.value
     }
 
-    fn cell_mut(&mut self, _index: usize) -> &mut Operation<T> {
+    fn cell_mut(&mut self, _index: usize) -> &mut Op<T> {
         &mut self.value
     }
 }

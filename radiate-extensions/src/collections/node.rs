@@ -1,4 +1,4 @@
-use crate::{ops::Arity, Operation};
+use crate::{ops::Arity, Op};
 
 pub trait Node<C: NodeCell> {
     fn arity(&self) -> Arity;
@@ -15,7 +15,7 @@ pub trait NodeCell {
     fn new_instance(&self) -> Self;
 }
 
-impl<T: Clone> NodeCell for Operation<T> {
+impl<T: Clone> NodeCell for Op<T> {
     type Value = Self;
 
     fn arity(&self) -> Arity {

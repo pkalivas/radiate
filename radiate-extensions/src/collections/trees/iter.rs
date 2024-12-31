@@ -117,7 +117,7 @@ mod tests {
     use super::*;
     use crate::collections::{Tree, TreeNode};
     use crate::ops::operation;
-    use crate::Operation;
+    use crate::Op;
 
     #[test]
     fn test_tree_traversal() {
@@ -127,13 +127,13 @@ mod tests {
         //     2   3
         //    /
         //   4
-        let leaf = Operation::value(4.0);
-        let node2 = TreeNode::with_children(Operation::value(2.0), vec![TreeNode::new(leaf)]);
+        let leaf = Op::value(4.0);
+        let node2 = TreeNode::with_children(Op::value(2.0), vec![TreeNode::new(leaf)]);
 
-        let node3 = TreeNode::new(Operation::value(3.0));
+        let node3 = TreeNode::new(Op::value(3.0));
 
         let root = Tree::new(TreeNode::with_children(
-            Operation::value(1.0),
+            Op::value(1.0),
             vec![node2, node3],
         ));
 
@@ -141,7 +141,7 @@ mod tests {
         let pre_order: Vec<f32> = root
             .iter_pre_order()
             .map(|n| match &n.value {
-                operation::Operation::Const(_, v) => *v,
+                operation::Op::Const(_, v) => *v,
                 _ => panic!("Expected constant but got {:?}", n.value),
             })
             .collect();
@@ -151,7 +151,7 @@ mod tests {
         let post_order: Vec<f32> = root
             .iter_post_order()
             .map(|n| match &n.value {
-                operation::Operation::Const(_, v) => *v,
+                operation::Op::Const(_, v) => *v,
                 _ => panic!("Expected constant"),
             })
             .collect();
@@ -161,7 +161,7 @@ mod tests {
         let bfs: Vec<f32> = root
             .iter_breadth_first()
             .map(|n| match &n.value {
-                operation::Operation::Const(_, v) => *v,
+                operation::Op::Const(_, v) => *v,
                 _ => panic!("Expected constant"),
             })
             .collect();
