@@ -6,15 +6,6 @@ pub trait Node<C: NodeCell> {
     fn cell_mut(&mut self, index: usize) -> &mut C;
 }
 
-pub trait NodeCell {
-    type Value;
-
-    fn arity(&self) -> Arity;
-    fn value(&self) -> &Self::Value;
-    fn value_mut(&mut self) -> &mut Self::Value;
-    fn new_instance(&self) -> Self;
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NodeType {
     /// Nodes intended for graphs
@@ -29,6 +20,14 @@ pub enum NodeType {
     Leaf,
 }
 
+pub trait NodeCell {
+    type Value;
+
+    fn arity(&self) -> Arity;
+    fn value(&self) -> &Self::Value;
+    fn new_instance(&self) -> Self;
+}
+
 impl<T: Clone> NodeCell for Op<T> {
     type Value = Self;
 
@@ -37,10 +36,6 @@ impl<T: Clone> NodeCell for Op<T> {
     }
 
     fn value(&self) -> &Self::Value {
-        self
-    }
-
-    fn value_mut(&mut self) -> &mut Self::Value {
         self
     }
 

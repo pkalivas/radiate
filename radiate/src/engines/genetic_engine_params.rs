@@ -6,8 +6,7 @@ use crate::engines::genome::phenotype::Phenotype;
 use crate::engines::genome::population::Population;
 use crate::engines::objectives::Score;
 use crate::objectives::{Objective, Optimize};
-use crate::uniform_crossover::UniformCrossover;
-use crate::uniform_mutator::UniformMutator;
+use crate::uniform::{UniformCrossover, UniformMutator};
 use crate::{Alter, Chromosome};
 use std::sync::Arc;
 

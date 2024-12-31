@@ -53,7 +53,7 @@ impl<T: Clone> Reduce<T> for TreeNode<Op<T>> {
 ///
 pub struct GraphReducer<'a, T>
 where
-    T: Clone + PartialEq + Default,
+    T: Clone + Default,
 {
     graph: &'a Graph<Op<T>>,
     tracers: Vec<Tracer<T>>,
@@ -63,7 +63,7 @@ where
 
 impl<'a, T> GraphReducer<'a, T>
 where
-    T: Clone + PartialEq + Default,
+    T: Clone + Default,
 {
     pub fn new(graph: &'a Graph<Op<T>>) -> GraphReducer<'a, T> {
         let output_size = graph
@@ -131,7 +131,7 @@ where
 
 impl<T> Tracer<T>
 where
-    T: Clone + PartialEq + Default,
+    T: Clone + Default,
 {
     pub fn new(input_size: usize) -> Self {
         Tracer {
@@ -152,7 +152,7 @@ where
     }
 
     #[inline]
-    pub fn eval(&mut self, node: &GraphNode<Op<T>>) {
+    pub fn eval(&mut self,  node: &GraphNode<Op<T>>) {
         if self.pending_idx != self.input_size {
             panic!("Tracer is not ready to be evaluated.");
         }
@@ -177,7 +177,7 @@ where
 
 fn input_size<T>(node: &GraphNode<Op<T>>) -> usize
 where
-    T: Clone + PartialEq + Default,
+    T: Clone + Default,
 {
     match node.node_type {
         NodeType::Input => 1,
