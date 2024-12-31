@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
 
 use super::GraphIterator;
-use crate::collections::graphs::mutation::GraphTransaction;
+use crate::collections::graphs::GraphTransaction;
 use crate::collections::{Direction, GraphNode};
 use crate::NodeCell;
 
@@ -27,9 +27,9 @@ use radiate::{random_provider, Valid};
 /// The 'Graph' struct provides methods for attaching and detaching nodes from one another.
 /// It also provides methods for iterating over the nodes in the graph in a sudo topological order.
 //
-#[derive(Clone, PartialEq, Default)]
+#[derive(Clone, Default)]
 pub struct Graph<C: NodeCell> {
-    pub nodes: Vec<GraphNode<C>>,
+    nodes: Vec<GraphNode<C>>,
 }
 
 /// The 'Graph' struct provides methods for creating, modifying, and iterating over a graph.
@@ -42,23 +42,14 @@ impl<C: NodeCell> Graph<C> {
         Graph { nodes }
     }
 
-    /// iterates over the nodes in the graph. The nodes are returned in the order they
-    /// were added, so there is no real order to this iterator.
-    pub fn iter(&self) -> impl Iterator<Item = &GraphNode<C>> {
-        self.nodes.iter()
-    }
-    /// mutably iterates over the nodes in the graph. The nodes are returned in the order they
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut GraphNode<C>> {
-        self.nodes.iter_mut()
+    /// Push a 'GraphNode' onto the last position in the graph.
+    pub fn push(&mut self, node: GraphNode<C>) {
+        self.nodes.push(node);
     }
 
-    /// iterates over the nodes in the graph in a sudo topological order. This means that
-    /// the nodes are returned in an order that respects the connections between them.
-    /// It is a 'best effort' topological order, as it is not guaranteed to be a true topological
-    /// order. This is because the graph may contain cycles which would make it impossible to
-    /// create a true topological order.
-    pub fn topological_iter(&self) -> impl Iterator<Item = &GraphNode<C>> {
-        GraphIterator::new(self)
+    /// Pop the last 'GraphNode' from the graph.
+    pub fn pop(&mut self) -> Option<GraphNode<C>> {
+        self.nodes.pop()
     }
 
     /// Returns the number of nodes in the graph.
@@ -79,6 +70,25 @@ impl<C: NodeCell> Graph<C> {
     /// Returns a reference to the node at the specified index.
     pub fn get(&self, index: usize) -> &GraphNode<C> {
         self.nodes.get(index).unwrap()
+    }
+
+    /// iterates over the nodes in the graph. The nodes are returned in the order they
+    /// were added, so there is no real order to this iterator.
+    pub fn iter(&self) -> impl Iterator<Item = &GraphNode<C>> {
+        self.nodes.iter()
+    }
+    /// mutably iterates over the nodes in the graph. The nodes are returned in the order they
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut GraphNode<C>> {
+        self.nodes.iter_mut()
+    }
+
+    /// iterates over the nodes in the graph in a sudo topological order. This means that
+    /// the nodes are returned in an order that respects the connections between them.
+    /// It is a 'best effort' topological order, as it is not guaranteed to be a true topological
+    /// order. This is because the graph may contain cycles which would make it impossible to
+    /// create a true topological order.
+    pub fn topological_iter(&self) -> impl Iterator<Item = &GraphNode<C>> {
+        GraphIterator::new(self)
     }
 
     /// Attach and detach nodes from one another. This is the primary way to modify the graph.
@@ -379,6 +389,12 @@ impl<C: NodeCell> IntoIterator for Graph<C> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.nodes.into_iter()
+    }
+}
+
+impl<C: NodeCell + PartialEq> PartialEq for Graph<C> {
+    fn eq(&self, other: &Self) -> bool {
+        self.nodes == other.nodes
     }
 }
 
