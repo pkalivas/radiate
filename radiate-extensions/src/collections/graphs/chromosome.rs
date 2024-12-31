@@ -1,4 +1,4 @@
-use crate::{GraphNode, NodeCell, NodeFactory};
+use crate::{CellStore, GraphNode, NodeCell};
 use radiate::{Chromosome, Valid};
 use std::cell::RefCell;
 use std::fmt::Debug;
@@ -11,14 +11,14 @@ where
     C: Clone + PartialEq + Default + NodeCell,
 {
     pub nodes: Vec<GraphNode<C>>,
-    pub factory: Option<Rc<RefCell<NodeFactory<C>>>>,
+    pub factory: Option<Rc<RefCell<CellStore<C>>>>,
 }
 
 impl<C> GraphChromosome<C>
 where
     C: Clone + PartialEq + Default + NodeCell,
 {
-    pub fn new(nodes: Vec<GraphNode<C>>, factory: Rc<RefCell<NodeFactory<C>>>) -> Self {
+    pub fn new(nodes: Vec<GraphNode<C>>, factory: Rc<RefCell<CellStore<C>>>) -> Self {
         GraphChromosome {
             nodes,
             factory: Some(factory),

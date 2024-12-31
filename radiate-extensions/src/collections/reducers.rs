@@ -1,4 +1,5 @@
-use super::{Graph, GraphNode, NodeType, Tree, TreeNode};
+use super::{Graph, GraphNode, Tree, TreeNode};
+use crate::node::NodeType;
 use crate::ops::operation::Op;
 
 pub trait Reduce<T> {

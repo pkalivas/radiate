@@ -1,3 +1,4 @@
+use crate::node::NodeType;
 use crate::ops::{Arity, Op};
 use crate::{Node, NodeCell};
 use radiate::{Gene, Valid};
@@ -9,14 +10,6 @@ use uuid::Uuid;
 pub enum Direction {
     Forward,
     Backward,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum NodeType {
-    Input,
-    Output,
-    Vertex,
-    Edge,
 }
 
 #[derive(Clone, PartialEq)]
@@ -159,6 +152,7 @@ impl<C: NodeCell + Clone + PartialEq> Valid for GraphNode<C> {
 
                 false
             }
+            _ => false,
         }
     }
 }

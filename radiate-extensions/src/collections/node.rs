@@ -15,6 +15,20 @@ pub trait NodeCell {
     fn new_instance(&self) -> Self;
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum NodeType {
+    /// Nodes intended for graphs
+    Input,
+    Output,
+    Vertex,
+    Edge,
+
+    /// Nodes intended for trees
+    Root,
+    Branch,
+    Leaf,
+}
+
 impl<T: Clone> NodeCell for Op<T> {
     type Value = Self;
 

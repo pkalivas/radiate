@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 
-use crate::collections::{GraphChromosome, NodeType};
+use super::{NodeCell, TreeChromosome};
+use crate::collections::GraphChromosome;
+use crate::node::NodeType;
 use radiate::alter::AlterType;
 use radiate::engines::alterers::Alter;
 use radiate::engines::genome::*;
 use radiate::timer::Timer;
 use radiate::{random_provider, Metric};
-
-use super::{NodeCell, TreeChromosome};
 
 const NUM_PARENTS: usize = 2;
 

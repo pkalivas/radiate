@@ -1,4 +1,4 @@
-use super::{Graph, GraphChromosome, GraphNode, NodeCell, NodeType};
+use super::{Graph, GraphChromosome, GraphNode, NodeCell};
 
 use radiate::{random_provider, timer::Timer, Alter, AlterType, Chromosome, Metric, Population};
 
@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use crate::ops::operation::Op;
 
+use crate::node::NodeType;
 use radiate::engines::genome::genes::gene::Gene;
 
 pub enum NodeMutate {

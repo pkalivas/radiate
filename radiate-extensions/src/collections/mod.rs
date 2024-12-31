@@ -8,9 +8,9 @@ pub mod trees;
 
 pub use crossover::{GraphCrossover, NodeCrossover, TreeCrossover};
 pub use factory::*;
-pub use graphs::{Direction, Graph, GraphChromosome, GraphCodex, GraphNode, NodeType};
+pub use graphs::{Direction, Graph, GraphChromosome, GraphCodex, GraphNode};
 pub use mutator::{GraphMutator, NodeMutate, OperationMutator};
-pub use node::{Node, NodeCell};
+pub use node::{Node, NodeCell, NodeType};
 
 pub use reducers::*;
 

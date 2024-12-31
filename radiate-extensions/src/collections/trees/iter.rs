@@ -132,10 +132,7 @@ mod tests {
 
         let node3 = TreeNode::new(Op::value(3.0));
 
-        let root = Tree::new(TreeNode::with_children(
-            Op::value(1.0),
-            vec![node2, node3],
-        ));
+        let root = Tree::new(TreeNode::with_children(Op::value(1.0), vec![node2, node3]));
 
         // Test pre-order
         let pre_order: Vec<f32> = root

@@ -1,8 +1,9 @@
 use std::collections::HashSet;
 
 use super::{Direction, Graph, GraphNode};
+use crate::node::NodeType;
 use crate::ops::Arity;
-use crate::{Factory, GraphMutator, NodeCell, NodeFactory, NodeType};
+use crate::{CellStore, Factory, GraphMutator, NodeCell};
 use radiate::Valid;
 
 /// Represents a reversible change to the graph
@@ -102,7 +103,7 @@ impl GraphMutator {
         &self,
         graph: &mut Graph<C>,
         node_type: &NodeType,
-        factory: &NodeFactory<C>,
+        factory: &CellStore<C>,
         recurrent: bool,
     ) -> bool {
         let mut transaction = GraphTransaction::new(graph);
@@ -119,7 +120,7 @@ impl GraphMutator {
         &self,
         transaction: &mut GraphTransaction<C>,
         node_type: &NodeType,
-        factory: &NodeFactory<C>,
+        factory: &CellStore<C>,
         is_recurrent: bool,
     ) -> bool
     where
@@ -166,7 +167,7 @@ impl GraphMutator {
         source_node: usize,
         target_node: usize,
         node_type: &NodeType,
-        factory: &NodeFactory<C>,
+        factory: &CellStore<C>,
     ) -> bool
     where
         C: Clone + Default + PartialEq + NodeCell,
@@ -222,7 +223,7 @@ impl GraphMutator {
         source_idx: usize,
         target_idx: usize,
         node_type: &NodeType,
-        factory: &NodeFactory<C>,
+        factory: &CellStore<C>,
     ) -> bool
     where
         C: Clone + Default + PartialEq + NodeCell,
@@ -323,7 +324,7 @@ impl GraphMutator {
         source_node: usize,
         target_node: usize,
         node_type: &NodeType,
-        factory: &NodeFactory<C>,
+        factory: &CellStore<C>,
         is_recurrent: bool,
     ) -> bool
     where

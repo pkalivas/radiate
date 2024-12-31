@@ -1,36 +1,37 @@
 use crate::collections::graphs::architect::GraphArchitect;
 use crate::collections::graphs::builder::GraphBuilder;
-use crate::collections::{Graph, GraphNode, NodeFactory, NodeType};
+use crate::collections::{Graph, GraphNode};
 use crate::graphs::chromosome::GraphChromosome;
+use crate::node::NodeType;
 use crate::ops::Op;
-use crate::{Factory, NodeCell};
+use crate::{CellStore, Factory, NodeCell};
 use radiate::{Chromosome, Codex, Gene, Genotype};
 use std::cell::RefCell;
 use std::rc::Rc;
 
 pub struct GraphCodex<C>
 where
-    C: Clone + PartialEq + Default + NodeCell,
+    C: NodeCell,
 {
-    factory: Rc<RefCell<NodeFactory<C>>>,
+    factory: Rc<RefCell<CellStore<C>>>,
     graph: Option<Graph<C>>,
 }
 
 impl<C> GraphCodex<C>
 where
-    C: Clone + PartialEq + Default + NodeCell,
+    C: NodeCell + Clone + Default,
 {
-    pub fn from_factory(factory: &NodeFactory<C>) -> Self {
-        GraphCodex::from_shape(1, 1, factory)
+    pub fn from_factory(store: &CellStore<C>) -> Self {
+        GraphCodex::from_shape(1, 1, store)
     }
 
-    pub fn from_shape(input_size: usize, output_size: usize, factory: &NodeFactory<C>) -> Self {
-        let nodes = GraphBuilder::<C>::new(factory).acyclic(input_size, output_size);
+    pub fn from_shape(input_size: usize, output_size: usize, store: &CellStore<C>) -> Self {
+        let nodes = GraphBuilder::<C>::new(store.clone()).acyclic(input_size, output_size);
 
-        GraphCodex::from_graph(nodes, factory)
+        GraphCodex::from_graph(nodes, store)
     }
 
-    pub fn from_graph(graph: Graph<C>, factory: &NodeFactory<C>) -> Self {
+    pub fn from_graph(graph: Graph<C>, factory: &CellStore<C>) -> Self {
         GraphCodex {
             factory: Rc::new(RefCell::new(factory.clone())),
             graph: Some(graph),
@@ -42,7 +43,7 @@ where
         F: Fn(&GraphBuilder<C>, GraphArchitect<C>) -> Graph<C>,
     {
         let graph = node_fn(
-            &GraphBuilder::new(&self.factory.borrow()),
+            &GraphBuilder::new(self.factory.borrow().clone()),
             GraphArchitect::new(),
         );
 
@@ -72,15 +73,15 @@ where
 
     fn set_values(&self, node_type: NodeType, values: Vec<C>) {
         let mut factory = self.factory.borrow_mut();
-        factory.add_node_values(node_type, values);
+        factory.add_values(node_type, values);
     }
 }
 
 impl GraphCodex<Op<f32>> {
     pub fn regression(input_size: usize, output_size: usize) -> Self {
-        let factory = NodeFactory::<Op<f32>>::regression(input_size);
-        let nodes = GraphBuilder::<Op<f32>>::new(&factory).acyclic(input_size, output_size);
-        GraphCodex::<Op<f32>>::from_graph(nodes, &factory)
+        let store = CellStore::regression(input_size);
+        let nodes = GraphBuilder::<Op<f32>>::new(store.clone()).acyclic(input_size, output_size);
+        GraphCodex::<Op<f32>>::from_graph(nodes, &store)
     }
 }
 

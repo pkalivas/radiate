@@ -1,9 +1,9 @@
 use crate::collections::graphs::architect::GraphArchitect;
-use crate::collections::{Builder, Graph, GraphNode, NodeFactory, NodeType};
+use crate::collections::{Builder, Graph, GraphNode, NodeType};
+
 use crate::ops::{Arity, Op};
-use crate::{ops, NodeCell};
+use crate::{ops, CellStore, Factory, NodeCell};
 use radiate::random_provider;
-use std::collections::HashMap;
 
 /// The `GraphBuilder` is a builder pattern that allows us to create a variety of different
 /// graph architectures.
@@ -11,28 +11,19 @@ use std::collections::HashMap;
 /// # Type Parameters
 /// 'T': The type of the values that the graph will contain.
 ///
-#[derive(Default)]
-pub struct GraphBuilder<C: Clone + Default> {
-    node_factory: Option<HashMap<NodeType, Vec<C>>>,
+pub struct GraphBuilder<C: NodeCell> {
+    store: CellStore<C>,
 }
 
-impl<C: Clone + Default> GraphBuilder<C> {
-    pub fn new(node_factory: &NodeFactory<C>) -> Self {
-        GraphBuilder {
-            node_factory: Some(node_factory.node_values.clone()),
-        }
-    }
-
-    pub fn from_factory(node_factory: HashMap<NodeType, Vec<C>>) -> Self {
-        GraphBuilder {
-            node_factory: Some(node_factory),
-        }
+impl<C: NodeCell> GraphBuilder<C> {
+    pub fn new(store: CellStore<C>) -> Self {
+        GraphBuilder { store: store }
     }
 }
 
 /// Configuration methods for the `GraphBuilder` that allow us to specify the different
 /// types of nodes that the graph will contain.
-impl<C: Clone + Default> GraphBuilder<C> {
+impl<C: NodeCell> GraphBuilder<C> {
     pub fn with_inputs(mut self, inputs: Vec<C>) -> Self {
         self.set_values(NodeType::Input, inputs);
         self
@@ -54,13 +45,7 @@ impl<C: Clone + Default> GraphBuilder<C> {
     }
 
     fn set_values(&mut self, node_type: NodeType, values: Vec<C>) {
-        if let Some(ref mut factory) = self.node_factory {
-            factory.insert(node_type, values);
-        } else {
-            let mut factory = HashMap::new();
-            factory.insert(node_type, values);
-            self.node_factory = Some(factory);
-        }
+        self.store.add_values(node_type, values);
     }
 }
 
@@ -86,14 +71,7 @@ impl<C: NodeCell + Clone + Default> GraphBuilder<C> {
 
     fn new_nodes(&self, node_type: NodeType, size: usize) -> Vec<GraphNode<C>> {
         (0..size)
-            .map(|i| {
-                if let Some(values) = self.node_factory.as_ref().unwrap().get(&node_type) {
-                    let value = values[i % values.len()].clone();
-                    return GraphNode::new(i, node_type, value);
-                }
-
-                GraphNode::new(i, node_type, C::default())
-            })
+            .map(|i| self.store.new_instance((i, node_type)))
             .collect::<Vec<GraphNode<C>>>()
     }
 }
@@ -137,27 +115,25 @@ impl GraphBuilder<Op<f32>> {
     }
 
     fn operations_with_any_arity(&self) -> Vec<Op<f32>> {
-        if let Some(ref factory) = self.node_factory {
-            if let Some(values) = factory.get(&NodeType::Vertex) {
-                let vertecies_with_any = values
-                    .iter()
-                    .filter(|op| op.arity() == Arity::Any)
-                    .cloned()
-                    .collect::<Vec<Op<f32>>>();
+        if let Some(values) = self.store.get_values(NodeType::Vertex) {
+            let vertecies_with_any = values
+                .iter()
+                .filter(|op| op.arity() == Arity::Any)
+                .cloned()
+                .collect::<Vec<Op<f32>>>();
 
-                if !vertecies_with_any.is_empty() {
-                    return vertecies_with_any;
-                }
-            } else if let Some(values) = factory.get(&NodeType::Output) {
-                let outputs_with_any = values
-                    .iter()
-                    .filter(|op| op.arity() == Arity::Any)
-                    .cloned()
-                    .collect::<Vec<Op<f32>>>();
+            if !vertecies_with_any.is_empty() {
+                return vertecies_with_any;
+            }
+        } else if let Some(values) = self.store.get_values(NodeType::Output) {
+            let outputs_with_any = values
+                .iter()
+                .filter(|op| op.arity() == Arity::Any)
+                .cloned()
+                .collect::<Vec<Op<f32>>>();
 
-                if !outputs_with_any.is_empty() {
-                    return outputs_with_any;
-                }
+            if !outputs_with_any.is_empty() {
+                return outputs_with_any;
             }
         }
 
@@ -167,8 +143,8 @@ impl GraphBuilder<Op<f32>> {
 
 impl GraphBuilder<Op<f32>> {
     pub fn regression(input_size: usize) -> Self {
-        let factory = NodeFactory::regression(input_size);
-        GraphBuilder::from_factory(factory.node_values.clone())
+        let store = CellStore::<Op<f32>>::regression(input_size);
+        GraphBuilder::new(store)
     }
 
     pub fn weighted_acyclic(&self, input_size: usize, output_size: usize) -> Graph<Op<f32>> {
@@ -361,9 +337,16 @@ impl GraphBuilder<Op<f32>> {
     }
 }
 
+impl<C: NodeCell> Default for GraphBuilder<C> {
+    fn default() -> Self {
+        GraphBuilder {
+            store: CellStore::<C>::new(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
-
     use super::*;
 
     #[test]

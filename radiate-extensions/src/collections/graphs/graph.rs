@@ -4,9 +4,10 @@ use std::ops::{Index, IndexMut};
 
 use super::GraphIterator;
 use crate::collections::graphs::mutation::GraphTransaction;
-use crate::collections::{Direction, GraphNode, NodeType};
+use crate::collections::{Direction, GraphNode};
 use crate::NodeCell;
 
+use crate::node::NodeType;
 use radiate::{random_provider, Valid};
 
 /// A 'Graph' is simply a 'Vec' of 'GraphNode's.
@@ -319,6 +320,7 @@ impl<C: NodeCell> Graph<C> {
                 .iter()
                 .filter(|node| node.node_type == NodeType::Edge)
                 .collect::<Vec<&GraphNode<C>>>(),
+            _ => panic!("Invalid node type."),
         };
 
         if genes.is_empty() {
