@@ -50,11 +50,6 @@ where
         self
     }
 
-    pub fn set_factory(mut self, factory: &NodeFactory<T>) -> Self {
-        self.factory = Rc::new(RefCell::new(factory.clone()));
-        self
-    }
-
     pub fn with_vertices(self, vertices: Vec<Operation<T>>) -> Self {
         self.set_values(NodeType::Vertex, vertices);
         self
@@ -75,7 +70,7 @@ where
         self
     }
 
-    pub fn set_values(&self, node_type: NodeType, values: Vec<Operation<T>>) {
+    fn set_values(&self, node_type: NodeType, values: Vec<Operation<T>>) {
         let mut factory = self.factory.borrow_mut();
         factory.add_node_values(node_type, values);
     }

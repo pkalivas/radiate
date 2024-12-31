@@ -69,6 +69,14 @@ impl<T> GraphNode<T> {
     pub fn outgoing_mut(&mut self) -> &mut HashSet<usize> {
         &mut self.outgoing
     }
+
+    pub fn is_locked(&self) -> bool {
+        if self.value.arity() == Arity::Any {
+            return false;
+        }
+
+        self.incoming.len() == *self.value.arity()
+    }
 }
 
 impl<T> Gene for GraphNode<T>

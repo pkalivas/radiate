@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use super::{Direction, Graph, GraphNode};
 use crate::ops::Arity;
-use crate::{graphs, Factory, GraphMutator, NodeFactory, NodeType};
+use crate::{Factory, GraphMutator, NodeFactory, NodeType};
 use radiate::Valid;
 
 /// Represents a reversible change to the graph
@@ -128,8 +128,8 @@ impl GraphMutator {
     where
         T: Clone + Default + PartialEq,
     {
-        let source_node_index = graphs::random_source_node(&transaction.graph.nodes).index;
-        let target_node_index = graphs::random_target_node(&transaction.graph.nodes).index;
+        let source_node_index = transaction.graph.random_source_node().index;
+        let target_node_index = transaction.graph.random_target_node().index;
 
         let source_node_type = transaction.graph.nodes[source_node_index].node_type;
 
@@ -181,7 +181,7 @@ impl GraphMutator {
         let source_node = transaction.graph.nodes[source_node].index;
         let target_node = transaction.graph.nodes[target_node].index;
 
-        if graphs::is_locked(&transaction.graph.nodes[target_node]) {
+        if transaction.graph[target_node].is_locked() {
             let edge = factory.new_instance((
                 new_source_edge_index,
                 transaction.graph.nodes[source_node].node_type,
@@ -240,7 +240,7 @@ impl GraphMutator {
         let source_is_recurrent = transaction.graph.nodes[source_idx].is_recurrent();
         let source_incoming = transaction.graph.nodes[source_idx].incoming.clone();
         let source_outgoing = transaction.graph.nodes[source_idx].outgoing.clone();
-        let target_is_locked = graphs::is_locked(&transaction.graph.nodes[target_idx]);
+        let target_is_locked = transaction.graph.nodes[target_idx].is_locked();
 
         if source_node_type == NodeType::Edge && node_type != &NodeType::Edge {
             let incoming_idx = *source_incoming.iter().next().unwrap();
@@ -304,7 +304,7 @@ impl GraphMutator {
 
             self.complete_node_arity(transaction, new_node_index, true)
         } else {
-            if !graphs::can_connect(&transaction.graph.nodes, source_idx, target_idx, true) {
+            if !&transaction.graph.can_connect(source_idx, target_idx, true) {
                 return false;
             }
 
@@ -332,12 +332,10 @@ impl GraphMutator {
     where
         T: Clone + Default + PartialEq,
     {
-        if !graphs::can_connect(
-            &transaction.graph.nodes,
-            source_node,
-            target_node,
-            is_recurrent,
-        ) {
+        if !&transaction
+            .graph
+            .can_connect(source_node, target_node, is_recurrent)
+        {
             return false;
         }
 
@@ -372,9 +370,8 @@ impl GraphMutator {
             }
             Arity::Exact(arity) => {
                 for _ in 0..arity - 1 {
-                    let other_source_node = graphs::random_source_node(&transaction.graph.nodes);
-                    if graphs::can_connect(
-                        &transaction.graph.nodes,
+                    let other_source_node = transaction.graph.random_source_node();
+                    if transaction.graph.can_connect(
                         other_source_node.index,
                         node_index,
                         is_recurrent,
@@ -388,7 +385,7 @@ impl GraphMutator {
         let effects = transaction.effects.clone();
 
         for idx in effects {
-            let node_cycles = graphs::get_cycles(&transaction.graph.nodes, idx);
+            let node_cycles = transaction.graph.get_cycles(idx);
 
             if node_cycles.is_empty() {
                 transaction.change_direction(idx, Direction::Forward);

@@ -74,7 +74,8 @@ where
         if let Some(values) = self.get(&node_type) {
             return match node_type {
                 NodeType::Input => {
-                    let value = values[index % values.len()].clone();
+                    // let value = values[index % values.len()].clone();
+                    let value = random_provider::choose(values).new_instance();
                     GraphNode::new(index, node_type, value)
                 }
                 _ => {

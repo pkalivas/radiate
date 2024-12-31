@@ -31,14 +31,6 @@ where
     T: Clone + PartialEq + Default,
 {
     type Gene = GraphNode<T>;
-
-    // fn get_genes(&self) -> &[GraphNode<T>] {
-    //     &self.nodes
-    // }
-
-    // fn get_genes_mut(&mut self) -> &mut [GraphNode<T>] {
-    //     &mut self.nodes
-    // }
 }
 
 impl<T> Valid for GraphChromosome<T>
