@@ -32,13 +32,13 @@ where
 {
     type Gene = TreeNode<T>;
 
-    fn get_genes(&self) -> &[TreeNode<T>] {
-        &self.nodes
-    }
+    // fn get_genes(&self) -> &[TreeNode<T>] {
+    //     &self.nodes
+    // }
 
-    fn get_genes_mut(&mut self) -> &mut [TreeNode<T>] {
-        &mut self.nodes
-    }
+    // fn get_genes_mut(&mut self) -> &mut [TreeNode<T>] {
+    //     &mut self.nodes
+    // }
 }
 
 impl<T> Valid for TreeChromosome<T>
@@ -57,6 +57,24 @@ where
         }
 
         true
+    }
+}
+
+impl<T> AsRef<[TreeNode<T>]> for TreeChromosome<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    fn as_ref(&self) -> &[TreeNode<T>] {
+        &self.nodes
+    }
+}
+
+impl<T> AsMut<[TreeNode<T>]> for TreeChromosome<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    fn as_mut(&mut self) -> &mut [TreeNode<T>] {
+        &mut self.nodes
     }
 }
 

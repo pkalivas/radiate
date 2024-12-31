@@ -5,8 +5,6 @@ pub mod mutator;
 pub mod reducers;
 pub mod trees;
 
-use crate::ops::Operation;
-
 pub use crossover::{GraphCrossover, NodeCrossover, TreeCrossover};
 pub use factory::*;
 pub use graphs::{Direction, Graph, GraphChromosome, GraphCodex, GraphNode, NodeType};

@@ -1,6 +1,7 @@
 use crate::ops::{Arity, Operation};
 use radiate::{Gene, Valid};
 use std::collections::HashSet;
+use std::fmt::Debug;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -17,6 +18,7 @@ pub enum NodeType {
     Edge,
 }
 
+#[derive(Clone, PartialEq)]
 pub struct GraphNode<T> {
     pub value: Operation<T>,
     pub id: Uuid,
@@ -138,39 +140,6 @@ where
     }
 }
 
-impl<T> Clone for GraphNode<T>
-where
-    T: Clone,
-{
-    fn clone(&self) -> Self {
-        GraphNode {
-            id: self.id,
-            index: self.index,
-            enabled: self.enabled,
-            value: self.value.clone(),
-            direction: self.direction,
-            node_type: self.node_type,
-            incoming: self.incoming.clone(),
-            outgoing: self.outgoing.clone(),
-        }
-    }
-}
-
-impl<T> PartialEq for GraphNode<T>
-where
-    T: PartialEq,
-{
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-            && self.index == other.index
-            && self.value == other.value
-            && self.direction == other.direction
-            && self.node_type == other.node_type
-            && self.incoming == other.incoming
-            && self.outgoing == other.outgoing
-    }
-}
-
 impl<T> Default for GraphNode<T>
 where
     T: Default + Clone,
@@ -189,18 +158,9 @@ where
     }
 }
 
-impl<T> std::fmt::Display for GraphNode<T>
+impl<T> Debug for GraphNode<T>
 where
-    T: Clone + PartialEq,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.index)
-    }
-}
-
-impl<T> std::fmt::Debug for GraphNode<T>
-where
-    T: Clone + PartialEq + std::fmt::Debug,
+    T: Clone + PartialEq + Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let incoming = self

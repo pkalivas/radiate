@@ -1,4 +1,5 @@
 use std::collections::{HashSet, VecDeque};
+use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
 
 use super::GraphIterator;
@@ -85,7 +86,7 @@ impl<T> Graph<T> {
         self
     }
 
-    pub fn try_mutation<F>(&mut self, mutation: F) -> bool
+    pub fn try_modify<F>(&mut self, mutation: F) -> bool
     where
         F: FnOnce(&mut GraphTransaction<T>) -> bool,
         T: Clone + Default + PartialEq,
@@ -147,9 +148,9 @@ where
     }
 }
 
-impl<T> std::fmt::Debug for Graph<T>
+impl<T> Debug for Graph<T>
 where
-    T: Clone + PartialEq + Default + std::fmt::Debug,
+    T: Clone + PartialEq + Default + Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Graph {{\n")?;

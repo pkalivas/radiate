@@ -249,8 +249,8 @@ where
         let swap_one_index = random_provider::random::<usize>() % chrom_one.len();
         let swap_two_index = random_provider::random::<usize>() % chrom_two.len();
 
-        let one_node = &mut chrom_one.get_genes_mut()[swap_one_index];
-        let two_node = &mut chrom_two.get_genes_mut()[swap_two_index];
+        let one_node = &mut chrom_one.as_mut()[swap_one_index];
+        let two_node = &mut chrom_two.as_mut()[swap_two_index];
 
         let one_size = one_node.size();
         let two_size = two_node.size();
