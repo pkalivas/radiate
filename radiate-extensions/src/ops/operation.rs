@@ -71,6 +71,7 @@ pub enum Operation<T> {
         arity: Arity,
         value: T,
         get_value: Arc<dyn Fn() -> T>,
+        modifier: Arc<dyn Fn(&T) -> T>,
         operation: Arc<dyn Fn(&[T], &T) -> T>,
     },
 }
@@ -122,12 +123,14 @@ impl<T> Operation<T> {
                 arity,
                 value: _,
                 get_value,
+                modifier,
                 operation,
             } => Operation::MutableConst {
                 name,
                 arity: *arity,
                 value: (*get_value)(),
                 get_value: Arc::clone(get_value),
+                modifier: Arc::clone(modifier),
                 operation: Arc::clone(operation),
             },
         }
@@ -218,12 +221,14 @@ where
                 arity,
                 value,
                 get_value,
+                modifier,
                 operation,
             } => Operation::MutableConst {
                 name,
                 arity: *arity,
                 value: value.clone(),
                 get_value: Arc::clone(get_value),
+                modifier: Arc::clone(modifier),
                 operation: Arc::clone(operation),
             },
         }

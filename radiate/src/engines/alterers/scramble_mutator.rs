@@ -32,7 +32,7 @@ impl<C: Chromosome> Alter<C> for ScrambleMutator {
             let start = random_provider::gen_range(0..chromosome.len());
             let end = random_provider::gen_range(start..chromosome.len());
 
-            let segment = &mut chromosome.get_genes_mut()[start..end];
+            let segment = &mut chromosome.as_mut()[start..end];
             random_provider::shuffle(segment);
             mutations += 1;
         }

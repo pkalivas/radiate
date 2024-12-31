@@ -3,6 +3,7 @@ use super::{
     Integer,
 };
 use crate::random_provider;
+use rand::distributions::Distribution;
 use rand::distributions::Standard;
 
 /// A `Gene` that represents an integer value. This gene just wraps an integer value and provides
@@ -40,7 +41,7 @@ use rand::distributions::Standard;
 #[derive(Clone, PartialEq)]
 pub struct IntGene<T: Integer<T>>
 where
-    Standard: rand::distributions::Distribution<T>,
+    Standard: Distribution<T>,
 {
     pub allele: T,
     pub min: T,
@@ -50,7 +51,7 @@ where
 }
 impl<T: Integer<T>> IntGene<T>
 where
-    Standard: rand::distributions::Distribution<T>,
+    Standard: Distribution<T>,
 {
     /// Create a new instance of the `IntGene` with the given allele. The min and max values will be set
     /// to the minimum and maximum values of the integer type `T`, and the upper and lower
@@ -83,7 +84,7 @@ where
 /// Implement the `Gene` trait for `IntGene`. This allows the `IntGene` to be used in a genetic algorithm.
 impl<T: Integer<T>> Gene for IntGene<T>
 where
-    Standard: rand::distributions::Distribution<T>,
+    Standard: Distribution<T>,
 {
     type Allele = T;
 
@@ -119,7 +120,7 @@ where
 /// Note: the bounds are used for crossover and mutation.
 impl<T: Integer<T>> Valid for IntGene<T>
 where
-    Standard: rand::distributions::Distribution<T>,
+    Standard: Distribution<T>,
 {
     fn is_valid(&self) -> bool {
         self.allele >= self.min && self.allele <= self.max
@@ -128,7 +129,7 @@ where
 
 impl<T: Integer<T>> BoundGene for IntGene<T>
 where
-    Standard: rand::distributions::Distribution<T>,
+    Standard: Distribution<T>,
 {
     fn upper_bound(&self) -> &T {
         &self.upper_bound
@@ -149,7 +150,7 @@ where
 
 impl<T: Integer<T>> NumericGene for IntGene<T>
 where
-    Standard: rand::distributions::Distribution<T>,
+    Standard: Distribution<T>,
 {
     fn min(&self) -> &T {
         &self.min
@@ -169,7 +170,7 @@ where
 
 impl<T: Integer<T>> std::fmt::Debug for IntGene<T>
 where
-    Standard: rand::distributions::Distribution<T>,
+    Standard: Distribution<T>,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.allele)
@@ -178,7 +179,7 @@ where
 
 impl<T: Integer<T>> From<T> for IntGene<T>
 where
-    Standard: rand::distributions::Distribution<T>,
+    Standard: Distribution<T>,
 {
     fn from(allele: T) -> Self {
         IntGene::new(allele)
@@ -187,7 +188,7 @@ where
 
 impl<T: Integer<T>> From<&T> for IntGene<T>
 where
-    Standard: rand::distributions::Distribution<T>,
+    Standard: Distribution<T>,
 {
     fn from(allele: &T) -> Self {
         IntGene::new(*allele)

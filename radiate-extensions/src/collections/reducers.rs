@@ -126,7 +126,6 @@ where
     pub pending_idx: usize,
     pub args: Vec<T>,
     pub result: Option<T>,
-    pub previous_result: Option<T>,
 }
 
 impl<T> Tracer<T>
@@ -139,7 +138,6 @@ where
             pending_idx: 0,
             args: Vec::with_capacity(input_size),
             result: None,
-            previous_result: None,
         }
     }
 
@@ -162,7 +160,6 @@ where
             self.result = Some(T::default());
         }
 
-        self.previous_result = self.result.clone();
         self.result = match &node.value {
             Operation::Const(_, ref value) => Some(value.clone()),
             Operation::Fn(_, _, ref fn_ptr) => Some(fn_ptr(&self.args)),

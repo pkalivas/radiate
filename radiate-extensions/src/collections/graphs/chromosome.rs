@@ -1,10 +1,11 @@
-use crate::{Factory, GraphNode, NodeFactory, NodeType};
+use crate::{GraphNode, NodeFactory};
 use radiate::{Chromosome, Valid};
 use std::cell::RefCell;
+use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
 use std::rc::Rc;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct GraphChromosome<T>
 where
     T: Clone + PartialEq + Default,
@@ -17,24 +18,11 @@ impl<T> GraphChromosome<T>
 where
     T: Clone + PartialEq + Default,
 {
-    pub fn new(nodes: Vec<GraphNode<T>>) -> Self {
-        GraphChromosome {
-            nodes,
-            factory: None,
-        }
-    }
-
-    pub fn with_factory(nodes: Vec<GraphNode<T>>, factory: Rc<RefCell<NodeFactory<T>>>) -> Self {
+    pub fn new(nodes: Vec<GraphNode<T>>, factory: Rc<RefCell<NodeFactory<T>>>) -> Self {
         GraphChromosome {
             nodes,
             factory: Some(factory),
         }
-    }
-
-    pub fn new_node(&self, index: usize, node_type: NodeType) -> GraphNode<T> {
-        let factory = self.factory.as_ref().unwrap();
-        let factory = factory.borrow();
-        factory.new_instance((index, node_type))
     }
 }
 
@@ -43,14 +31,6 @@ where
     T: Clone + PartialEq + Default,
 {
     type Gene = GraphNode<T>;
-
-    fn get_genes(&self) -> &[GraphNode<T>] {
-        &self.nodes
-    }
-
-    fn get_genes_mut(&mut self) -> &mut [GraphNode<T>] {
-        &mut self.nodes
-    }
 }
 
 impl<T> Valid for GraphChromosome<T>
@@ -59,6 +39,24 @@ where
 {
     fn is_valid(&self) -> bool {
         self.nodes.iter().all(|gene| gene.is_valid())
+    }
+}
+
+impl<T> AsRef<[GraphNode<T>]> for GraphChromosome<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    fn as_ref(&self) -> &[GraphNode<T>] {
+        &self.nodes
+    }
+}
+
+impl<T> AsMut<[GraphNode<T>]> for GraphChromosome<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    fn as_mut(&mut self) -> &mut [GraphNode<T>] {
+        &mut self.nodes
     }
 }
 
@@ -82,22 +80,13 @@ where
     }
 }
 
-impl<T> PartialEq for GraphChromosome<T>
+impl<T> Debug for GraphChromosome<T>
 where
-    T: Clone + PartialEq + Default,
-{
-    fn eq(&self, other: &Self) -> bool {
-        self.nodes == other.nodes
-    }
-}
-
-impl<T> std::fmt::Debug for GraphChromosome<T>
-where
-    T: Clone + PartialEq + Default + std::fmt::Debug,
+    T: Clone + PartialEq + Default + Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Graph {{\n")?;
-        for node in self.get_genes() {
+        for node in self.as_ref() {
             write!(f, "  {:?},\n", node)?;
         }
         write!(f, "}}")

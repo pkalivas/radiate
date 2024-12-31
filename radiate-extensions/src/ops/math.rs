@@ -8,6 +8,7 @@ const ONE: f32 = 1.0_f32;
 const ZERO: f32 = 0.0_f32;
 const TWO: f32 = 2.0_f32;
 const HALF: f32 = 0.5_f32;
+const TENTH: f32 = 0.1_f32;
 
 /// Clamp a value to the range [-1e+5, 1e+5]. Without this, values can quickly become
 /// too large or too small to be useful.
@@ -159,11 +160,16 @@ impl Operation<f32> {
     pub fn weight() -> Self {
         let supplier = || random_provider::random::<f32>() * TWO - ONE;
         let operation = |inputs: &[f32], weight: &f32| clamp(inputs[0] * weight);
+        let modifier = |current: &f32| {
+            let diff = (random_provider::random::<f32>() * TWO - ONE) * TENTH;
+            clamp(current + diff)
+        };
         Operation::MutableConst {
             name: "w",
             arity: 1.into(),
             value: supplier(),
             get_value: Arc::new(supplier),
+            modifier: Arc::new(modifier),
             operation: Arc::new(operation),
         }
     }

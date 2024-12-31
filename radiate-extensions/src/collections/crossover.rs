@@ -7,6 +7,8 @@ use radiate::engines::genome::*;
 use radiate::timer::Timer;
 use radiate::{random_provider, Metric};
 
+use super::TreeChromosome;
+
 const NUM_PARENTS: usize = 2;
 
 pub struct GraphCrossover<T>
@@ -149,5 +151,119 @@ where
         metric.add_duration(timer.duration());
 
         vec![metric]
+    }
+}
+
+pub struct NodeCrossover {
+    pub rate: f32,
+}
+
+impl NodeCrossover {
+    pub fn new(rate: f32) -> Self {
+        Self { rate }
+    }
+}
+
+impl<T> Alter<GraphChromosome<T>> for NodeCrossover
+where
+    T: Clone + PartialEq + Default,
+{
+    fn name(&self) -> &'static str {
+        "Node Crossover"
+    }
+
+    fn rate(&self) -> f32 {
+        self.rate
+    }
+
+    fn alter_type(&self) -> AlterType {
+        AlterType::Crossover
+    }
+
+    #[inline]
+    fn cross_chromosomes(
+        &self,
+        chrom_one: &mut GraphChromosome<T>,
+        chrom_two: &mut GraphChromosome<T>,
+    ) -> i32 {
+        let rate = self.rate;
+        let mut cross_count = 0;
+
+        for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
+            if random_provider::random::<f32>() < rate {
+                let gene_one = chrom_one.get_gene(i);
+                let gene_two = chrom_two.get_gene(i);
+
+                if gene_one.value.arity() != gene_two.value.arity()
+                    || gene_one.node_type() != gene_two.node_type()
+                {
+                    continue;
+                }
+
+                let new_gene_one = gene_one.with_allele(gene_two.allele());
+                let new_gene_two = gene_two.with_allele(gene_one.allele());
+
+                chrom_one.set_gene(i, new_gene_one);
+                chrom_two.set_gene(i, new_gene_two);
+
+                cross_count += 1;
+            }
+        }
+
+        cross_count
+    }
+}
+
+pub struct TreeCrossover {
+    pub rate: f32,
+}
+
+impl TreeCrossover {
+    pub fn new(rate: f32) -> Self {
+        Self { rate }
+    }
+}
+
+impl<T> Alter<TreeChromosome<T>> for TreeCrossover
+where
+    T: Clone + PartialEq + Default,
+{
+    fn name(&self) -> &'static str {
+        "Tree Crossover"
+    }
+
+    fn rate(&self) -> f32 {
+        self.rate
+    }
+
+    fn alter_type(&self) -> AlterType {
+        AlterType::Crossover
+    }
+
+    #[inline]
+    fn cross_chromosomes(
+        &self,
+        chrom_one: &mut TreeChromosome<T>,
+        chrom_two: &mut TreeChromosome<T>,
+    ) -> i32 {
+        let swap_one_index = random_provider::random::<usize>() % chrom_one.len();
+        let swap_two_index = random_provider::random::<usize>() % chrom_two.len();
+
+        let one_node = &mut chrom_one.as_mut()[swap_one_index];
+        let two_node = &mut chrom_two.as_mut()[swap_two_index];
+
+        let one_size = one_node.size();
+        let two_size = two_node.size();
+
+        let one_rand_index = random_provider::random::<usize>() % one_size;
+        let two_rand_index = random_provider::random::<usize>() % two_size;
+
+        if one_rand_index < 1 || two_rand_index < 1 {
+            return 0;
+        }
+
+        one_node.swap_subtrees(two_node, one_rand_index, two_rand_index);
+
+        2
     }
 }

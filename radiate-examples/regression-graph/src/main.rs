@@ -7,7 +7,7 @@ const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
     set_seed(1000);
-    let graph_codex = GraphCodex::regression(1, 1).set_outputs(vec![Operation::linear()]);
+    let graph_codex = GraphCodex::regression(1, 1).with_output(Operation::linear());
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 
@@ -17,7 +17,7 @@ fn main() {
         .offspring_selector(RouletteSelector::new())
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
-            NodeMutator::new(0.07, 0.05),
+            OperationMutator::new(0.07, 0.05),
             GraphMutator::new(vec![
                 NodeMutate::Forward(NodeType::Edge, 0.03),
                 NodeMutate::Forward(NodeType::Vertex, 0.03),
@@ -57,7 +57,7 @@ fn display(result: &EngineContext<GraphChromosome<f32>, Graph<f32>>) {
     println!("{:?}", result)
 }
 
-fn get_sample_set() -> DataSet<f32> {
+fn get_sample_set() -> DataSet {
     let mut inputs = Vec::new();
     let mut answers = Vec::new();
 

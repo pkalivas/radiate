@@ -17,10 +17,7 @@ fn main() {
     let engine = GeneticEngine::from_codex(&graph_codex)
         .minimizing()
         .num_threads(10)
-        .alter(alters!(
-            TreeCrossover::new(0.5),
-            // NodeMutator::new(0.01, 0.05),
-        ))
+        .alter(alters!(TreeCrossover::new(0.5),))
         .fitness_fn(move |genotype: Tree<f32>| {
             let mut reducer = Tree::new(genotype.root().take().unwrap().to_owned());
             Score::from_f32(regression.error(|input| vec![reducer.reduce(input)]))
@@ -56,7 +53,7 @@ fn display(result: &EngineContext<TreeChromosome<f32>, Tree<f32>>) {
     println!("{:?}", result)
 }
 
-fn get_sample_set() -> DataSet<f32> {
+fn get_sample_set() -> DataSet {
     let mut inputs = Vec::new();
     let mut answers = Vec::new();
 
