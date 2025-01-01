@@ -92,7 +92,7 @@ impl<'a, C: NodeCell + Clone> GraphArchitect<'a, C> {
 
                 for outgoing in group
                     .iter()
-                    .filter(|item| node.outgoing().contains(&item.index))
+                    .filter(|item| node.outgoing().contains(&item.index()))
                 {
                     self.relationships.push(Relationship {
                         source_id: &node.id,
@@ -229,7 +229,7 @@ impl<'a, C: NodeCell + Clone> GraphArchitect<'a, C> {
             .filter(|(_, node)| {
                 node.outgoing().len() == 1
                     && node.is_recurrent()
-                    && (node.node_type() == &NodeType::Vertex)
+                    && (node.node_type() == NodeType::Vertex)
             })
             .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
             .collect::<Vec<&GraphNode<C>>>();
@@ -267,7 +267,7 @@ impl<'a, C: NodeCell + Clone> GraphArchitect<'a, C> {
             .filter(|(_, node)| {
                 node.outgoing().len() == 1
                     && node.is_recurrent()
-                    && node.node_type() == &NodeType::Vertex
+                    && node.node_type() == NodeType::Vertex
             })
             .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
             .collect::<Vec<&GraphNode<C>>>();
@@ -295,7 +295,7 @@ impl<C: NodeCell + Clone> Builder for GraphArchitect<'_, C> {
 
         for (index, (_, node_id)) in self.node_order.iter().enumerate() {
             let node = self.nodes.get(node_id).unwrap();
-            let new_node = GraphNode::new(index, node.node_type, node.value.clone());
+            let new_node = GraphNode::new(index, node.node_type(), node.value.clone());
 
             new_nodes.push(new_node);
             node_id_index_map.insert(node_id, index);
@@ -309,7 +309,8 @@ impl<C: NodeCell + Clone> Builder for GraphArchitect<'_, C> {
             new_collection.attach(*source_idx, *target_idx);
         }
 
-        new_collection.clone().set_cycles(Vec::new())
+        new_collection.set_cycles(vec![]);
+        new_collection
     }
 }
 

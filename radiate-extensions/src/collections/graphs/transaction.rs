@@ -60,12 +60,12 @@ impl<'a, C: Clone + Default + PartialEq + NodeCell> GraphTransaction<'a, C> {
     }
 
     pub fn change_direction(&mut self, index: usize, direction: Direction) {
-        let previous_direction = self.graph[index].direction;
+        let previous_direction = self.graph[index].direction();
         self.steps.push(MutationStep::DirectionChange {
             index,
             previous_direction,
         });
-        self.graph[index].direction = direction;
+        self.graph[index].set_direction(direction);
     }
 
     pub fn rollback(self) {
@@ -86,7 +86,7 @@ impl<'a, C: Clone + Default + PartialEq + NodeCell> GraphTransaction<'a, C> {
                     previous_direction,
                     ..
                 } => {
-                    self.graph[index].direction = previous_direction;
+                    self.graph[index].set_direction(previous_direction);
                 }
             }
         }

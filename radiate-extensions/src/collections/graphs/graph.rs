@@ -142,12 +142,12 @@ impl<C: NodeCell> Graph<C> {
     /// at those indices to 'Direction::Backward' if they are part of a cycle. If they are not part
     /// of a cycle, the 'direction' field will be set to 'Direction::Forward'.
     /// If no indices are provided, the function will set the 'direction' field of all nodes in the graph.
-    pub fn set_cycles(mut self, indecies: Vec<usize>) -> Graph<C> {
+    pub fn set_cycles(&mut self, indecies: Vec<usize>) {
         if indecies.is_empty() {
             let all_indices = self
                 .as_ref()
                 .iter()
-                .map(|node| node.index)
+                .map(|node| node.index())
                 .collect::<Vec<usize>>();
 
             return self.set_cycles(all_indices);
@@ -158,16 +158,14 @@ impl<C: NodeCell> Graph<C> {
 
             if node_cycles.is_empty() {
                 let node = self.get_mut(idx);
-                node.direction = Direction::Forward;
+                node.set_direction(Direction::Forward);
             } else {
                 for cycle_idx in node_cycles {
                     let node = self.get_mut(cycle_idx);
-                    node.direction = Direction::Backward;
+                    node.set_direction(Direction::Backward);
                 }
             }
         }
-
-        self
     }
 
     /// tries to modify the graph using a 'GraphTransaction'. If the transaction is successful,
@@ -249,13 +247,13 @@ impl<C: NodeCell> Graph<C> {
         let source_node = &self[source];
         let target_node = &self[target];
 
-        if (source_node.outgoing.is_empty() || source_node.is_recurrent()) && !recurrent {
+        if (source_node.outgoing().is_empty() || source_node.is_recurrent()) && !recurrent {
             return false;
         }
 
         let would_create_cycle = recurrent || !self.would_create_cycle(source, target);
         let nodes_are_weights =
-            source_node.node_type == NodeType::Edge || target_node.node_type == NodeType::Edge;
+            source_node.node_type() == NodeType::Edge || target_node.node_type() == NodeType::Edge;
 
         would_create_cycle && !nodes_are_weights && source != target
     }
@@ -268,7 +266,7 @@ impl<C: NodeCell> Graph<C> {
     #[inline]
     pub fn would_create_cycle(&self, source: usize, target: usize) -> bool {
         let mut seen = HashSet::new();
-        let mut visited = self.get(target).outgoing.iter().collect::<Vec<&usize>>();
+        let mut visited = self.get(target).outgoing().iter().collect::<Vec<&usize>>();
 
         while !visited.is_empty() {
             let node_index = visited.pop().unwrap();
@@ -281,7 +279,7 @@ impl<C: NodeCell> Graph<C> {
 
             for edge_index in self
                 .get(*node_index)
-                .outgoing
+                .outgoing()
                 .iter()
                 .filter(|edge_index| !seen.contains(edge_index))
             {
@@ -324,19 +322,19 @@ impl<C: NodeCell> Graph<C> {
         let genes = match gene_node_type {
             NodeType::Input => self
                 .iter()
-                .filter(|node| node.node_type == NodeType::Input)
+                .filter(|node| node.node_type() == NodeType::Input)
                 .collect::<Vec<&GraphNode<C>>>(),
             NodeType::Output => self
                 .iter()
-                .filter(|node| node.node_type == NodeType::Output)
+                .filter(|node| node.node_type() == NodeType::Output)
                 .collect::<Vec<&GraphNode<C>>>(),
             NodeType::Vertex => self
                 .iter()
-                .filter(|node| node.node_type == NodeType::Vertex)
+                .filter(|node| node.node_type() == NodeType::Vertex)
                 .collect::<Vec<&GraphNode<C>>>(),
             NodeType::Edge => self
                 .iter()
-                .filter(|node| node.node_type == NodeType::Edge)
+                .filter(|node| node.node_type() == NodeType::Edge)
                 .collect::<Vec<&GraphNode<C>>>(),
         };
 
@@ -439,12 +437,12 @@ mod test {
         assert!(graph.get(1).is_valid());
         assert!(graph.get(2).is_valid());
 
-        assert_eq!(graph.get(0).incoming.len(), 0);
-        assert_eq!(graph.get(0).outgoing.len(), 1);
-        assert_eq!(graph.get(1).incoming.len(), 1);
-        assert_eq!(graph.get(1).outgoing.len(), 1);
-        assert_eq!(graph.get(2).incoming.len(), 1);
-        assert_eq!(graph.get(2).outgoing.len(), 0);
+        assert_eq!(graph.get(0).incoming().len(), 0);
+        assert_eq!(graph.get(0).outgoing().len(), 1);
+        assert_eq!(graph.get(1).incoming().len(), 1);
+        assert_eq!(graph.get(1).outgoing().len(), 1);
+        assert_eq!(graph.get(2).incoming().len(), 1);
+        assert_eq!(graph.get(2).outgoing().len(), 0);
     }
 
     #[test]
@@ -468,13 +466,58 @@ mod test {
         assert!(graph.get(2).is_valid());
         assert!(graph.get(3).is_valid());
 
-        assert_eq!(graph.get(0).incoming.len(), 0);
-        assert_eq!(graph.get(0).outgoing.len(), 1);
-        assert_eq!(graph.get(1).incoming.len(), 2);
-        assert_eq!(graph.get(1).outgoing.len(), 1);
-        assert_eq!(graph.get(2).incoming.len(), 1);
-        assert_eq!(graph.get(2).outgoing.len(), 2);
-        assert_eq!(graph.get(3).incoming.len(), 1);
-        assert_eq!(graph.get(3).outgoing.len(), 0);
+        assert_eq!(graph.get(0).incoming().len(), 0);
+        assert_eq!(graph.get(0).outgoing().len(), 1);
+        assert_eq!(graph.get(1).incoming().len(), 2);
+        assert_eq!(graph.get(1).outgoing().len(), 1);
+        assert_eq!(graph.get(2).incoming().len(), 1);
+        assert_eq!(graph.get(2).outgoing().len(), 2);
+        assert_eq!(graph.get(3).incoming().len(), 1);
+        assert_eq!(graph.get(3).outgoing().len(), 0);
+    }
+
+    #[test]
+    fn test_graph_with_cycles_and_recurrent_nodes() {
+        let mut graph = Graph::<i32>::default();
+
+        graph.add(NodeType::Input, 0);
+        graph.add(NodeType::Vertex, 1);
+        graph.add(NodeType::Vertex, 2);
+        graph.add(NodeType::Output, 3);
+
+        graph
+            .attach(0, 1)
+            .attach(1, 2)
+            .attach(2, 1)
+            .attach(2, 3)
+            .attach(3, 1);
+
+        println!("{:?}", graph);
+
+        graph.set_cycles(vec![]);
+
+        println!("{:?}", graph);
+
+        assert_eq!(graph.len(), 4);
+
+        assert!(graph.is_valid());
+        assert!(graph.get(0).is_valid());
+        assert!(graph.get(1).is_valid());
+        assert!(graph.get(2).is_valid());
+        assert!(graph.get(3).is_valid());
+
+        assert_eq!(graph.get(0).incoming().len(), 0);
+        assert_eq!(graph.get(0).outgoing().len(), 1);
+        assert_eq!(graph.get(1).incoming().len(), 3);
+        assert_eq!(graph.get(1).outgoing().len(), 1);
+        assert_eq!(graph.get(2).incoming().len(), 1);
+        assert_eq!(graph.get(2).outgoing().len(), 2);
+        assert_eq!(graph.get(3).incoming().len(), 1);
+        assert_eq!(graph.get(3).outgoing().len(), 1);
+
+        assert_eq!(graph.get(0).direction(), Direction::Forward);
+        assert_eq!(graph.get(1).direction(), Direction::Backward);
+        assert_eq!(graph.get(2).direction(), Direction::Backward);
+        assert_eq!(graph.get(3).direction(), Direction::Backward);
     }
 }

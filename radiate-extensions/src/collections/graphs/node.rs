@@ -24,12 +24,12 @@ pub enum Direction {
 pub struct GraphNode<C: NodeCell> {
     pub value: C,
     pub id: Uuid,
-    pub index: usize,
-    pub enabled: bool,
-    pub node_type: NodeType,
-    pub direction: Direction,
-    pub incoming: HashSet<usize>,
-    pub outgoing: HashSet<usize>,
+    index: usize,
+    enabled: bool,
+    node_type: NodeType,
+    direction: Direction,
+    incoming: HashSet<usize>,
+    outgoing: HashSet<usize>,
 }
 
 impl<C: NodeCell> GraphNode<C> {
@@ -46,8 +46,32 @@ impl<C: NodeCell> GraphNode<C> {
         }
     }
 
-    pub fn node_type(&self) -> &NodeType {
-        &self.node_type
+    pub fn node_type(&self) -> NodeType {
+        self.node_type
+    }
+
+    pub fn direction(&self) -> Direction {
+        self.direction
+    }
+
+    pub fn set_direction(&mut self, direction: Direction) {
+        self.direction = direction;
+    }
+
+    pub fn is_enabled(&self) -> bool {
+        self.enabled
+    }
+
+    pub fn enable(&mut self) {
+        self.enabled = true;
+    }
+
+    pub fn disable(&mut self) {
+        self.enabled = false;
+    }
+
+    pub fn index(&self) -> usize {
+        self.index
     }
 
     pub fn is_recurrent(&self) -> bool {
@@ -123,7 +147,7 @@ impl<C: NodeCell + Clone + PartialEq> Valid for GraphNode<C> {
         match self.node_type {
             NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
             NodeType::Output => {
-                (!self.incoming.is_empty() && self.outgoing.is_empty())
+                (!self.incoming.is_empty())
                     && (self.incoming.len() == *self.value.arity()
                         || self.value.arity() == Arity::Any)
             }
@@ -136,14 +160,6 @@ impl<C: NodeCell + Clone + PartialEq> Valid for GraphNode<C> {
                     }
                 }
                 return false;
-
-                // if self.value.arity() == Arity::Any {
-                //     !self.incoming.is_empty() && !self.outgoing.is_empty()
-                // } else if let Arity::Exact(n) = self.value.arity() {
-                //     self.incoming.len() == n && !self.outgoing.is_empty()
-                // } else {
-                //     !self.incoming.is_empty() && !self.outgoing.is_empty()
-                // }
             }
             NodeType::Edge => {
                 if self.value.arity() == Arity::Exact(1) {

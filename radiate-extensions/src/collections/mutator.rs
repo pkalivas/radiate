@@ -202,7 +202,7 @@ where
                 }
                 _ => {
                     if let Some(store) = chromosome.factory.as_ref() {
-                        let new_op = store.borrow().new_instance((i, curreent_node.node_type));
+                        let new_op = store.borrow().new_instance((i, curreent_node.node_type()));
 
                         if new_op.value.arity() == curreent_node.value.arity() {
                             chromosome.set_gene(i, curreent_node.with_allele(new_op.allele()));

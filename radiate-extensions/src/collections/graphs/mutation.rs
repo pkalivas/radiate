@@ -34,10 +34,10 @@ impl GraphMutator {
     where
         C: Clone + Default + PartialEq + NodeCell,
     {
-        let source_node_index = transaction.as_ref().random_source_node().index;
-        let target_node_index = transaction.as_ref().random_target_node().index;
+        let source_node_index = transaction.as_ref().random_source_node().index();
+        let target_node_index = transaction.as_ref().random_target_node().index();
 
-        let source_node_type = transaction.as_ref()[source_node_index].node_type;
+        let source_node_type = transaction.as_ref()[source_node_index].node_type();
 
         if source_node_type == NodeType::Edge && node_type != &NodeType::Edge {
             if is_recurrent {
@@ -84,13 +84,13 @@ impl GraphMutator {
         let new_node_index = transaction.as_ref().len() + 1;
         let new_target_edge_index = transaction.as_ref().len() + 2;
 
-        let source_node = transaction.as_ref()[source_node].index;
-        let target_node = transaction.as_ref()[target_node].index;
+        let source_node = transaction.as_ref()[source_node].index();
+        let target_node = transaction.as_ref()[target_node].index();
 
         if transaction.as_ref()[target_node].is_locked() {
             let edge = factory.new_instance((
                 new_source_edge_index,
-                transaction.as_ref()[source_node].node_type,
+                transaction.as_ref()[source_node].node_type(),
             ));
             let new_node = factory.new_instance((new_node_index, *node_type));
 
@@ -104,12 +104,12 @@ impl GraphMutator {
         } else {
             let new_source_edge = factory.new_instance((
                 new_source_edge_index,
-                transaction.as_ref()[source_node].node_type,
+                transaction.as_ref()[source_node].node_type(),
             ));
             let new_node = factory.new_instance((new_node_index, *node_type));
             let new_target_edge = factory.new_instance((
                 new_target_edge_index,
-                transaction.as_ref()[target_node].node_type,
+                transaction.as_ref()[target_node].node_type(),
             ));
 
             transaction.add_node(new_source_edge);
@@ -142,10 +142,10 @@ impl GraphMutator {
         let recurrent_edge_index = transaction.as_ref().len() + 3;
 
         // Get node info before mutations
-        let source_node_type = transaction.as_ref()[source_idx].node_type;
+        let source_node_type = transaction.as_ref()[source_idx].node_type();
         let source_is_recurrent = transaction.as_ref()[source_idx].is_recurrent();
-        let source_incoming = transaction.as_ref()[source_idx].incoming.clone();
-        let source_outgoing = transaction.as_ref()[source_idx].outgoing.clone();
+        let source_incoming = transaction.as_ref()[source_idx].incoming().clone();
+        let source_outgoing = transaction.as_ref()[source_idx].outgoing().clone();
         let target_is_locked = transaction.as_ref()[target_idx].is_locked();
 
         if source_node_type == NodeType::Edge && node_type != &NodeType::Edge {
@@ -278,11 +278,11 @@ impl GraphMutator {
                 for _ in 0..arity - 1 {
                     let other_source_node = transaction.as_ref().random_source_node();
                     if transaction.as_ref().can_connect(
-                        other_source_node.index,
+                        other_source_node.index(),
                         node_index,
                         is_recurrent,
                     ) {
-                        transaction.attach(other_source_node.index, node_index);
+                        transaction.attach(other_source_node.index(), node_index);
                     }
                 }
             }

@@ -68,7 +68,7 @@ where
     pub fn new(graph: &'a Graph<Op<T>>) -> GraphReducer<'a, T> {
         let output_size = graph
             .iter()
-            .filter(|node| node.node_type == NodeType::Output)
+            .filter(|node| node.node_type() == NodeType::Output)
             .count();
 
         GraphReducer {
@@ -88,29 +88,29 @@ where
             self.order = self
                 .graph
                 .topological_iter()
-                .map(|node| node.index)
+                .map(|node| node.index())
                 .collect();
         }
 
         let mut output_index = 0;
         for index in &self.order {
             let node = self.graph.get(*index);
-            if node.node_type == NodeType::Input {
-                self.tracers[node.index].add_input(inputs[node.index].clone());
+            if node.node_type() == NodeType::Input {
+                self.tracers[node.index()].add_input(inputs[node.index()].clone());
             } else {
-                for incoming in &node.incoming {
+                for incoming in node.incoming() {
                     let arg = self.tracers[*incoming]
                         .result
                         .clone()
                         .unwrap_or_else(|| T::default());
-                    self.tracers[node.index].add_input(arg);
+                    self.tracers[node.index()].add_input(arg);
                 }
             }
 
-            self.tracers[node.index].eval(node);
+            self.tracers[node.index()].eval(node);
 
-            if node.node_type == NodeType::Output {
-                self.outputs[output_index] = self.tracers[node.index].result.clone().unwrap();
+            if node.node_type() == NodeType::Output {
+                self.outputs[output_index] = self.tracers[node.index()].result.clone().unwrap();
                 output_index += 1;
             }
         }
@@ -157,7 +157,7 @@ where
             panic!("Tracer is not ready to be evaluated.");
         }
 
-        if !node.enabled {
+        if !node.is_enabled() {
             self.result = Some(T::default());
         }
 
@@ -179,9 +179,9 @@ fn input_size<T>(node: &GraphNode<Op<T>>) -> usize
 where
     T: Clone + Default,
 {
-    match node.node_type {
+    match node.node_type() {
         NodeType::Input => 1,
-        _ => node.incoming.len(),
+        _ => node.incoming().len(),
     }
 }
 

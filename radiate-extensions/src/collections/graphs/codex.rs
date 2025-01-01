@@ -92,7 +92,7 @@ where
             let nodes = graph
                 .iter()
                 .map(|node| {
-                    let temp_node = reader.new_instance((node.index, node.node_type));
+                    let temp_node = reader.new_instance((node.index(), node.node_type()));
 
                     if temp_node.value.arity() == node.value.arity() {
                         return node.with_allele(temp_node.allele());
