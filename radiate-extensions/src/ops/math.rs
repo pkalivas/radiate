@@ -1,4 +1,4 @@
-use super::{Arity, Operation};
+use super::{Arity, Op};
 use radiate::random_provider;
 use std::sync::Arc;
 
@@ -156,7 +156,7 @@ impl ActivationOperation {
 }
 
 /// Implementations of the `Operation` trait for `f32`.
-impl Operation<f32> {
+impl Op<f32> {
     pub fn weight() -> Self {
         let supplier = || random_provider::random::<f32>() * TWO - ONE;
         let operation = |inputs: &[f32], weight: &f32| clamp(inputs[0] * weight);
@@ -164,7 +164,7 @@ impl Operation<f32> {
             let diff = (random_provider::random::<f32>() * TWO - ONE) * TENTH;
             clamp(current + diff)
         };
-        Operation::MutableConst {
+        Op::MutableConst {
             name: "w",
             arity: 1.into(),
             value: supplier(),
@@ -175,7 +175,7 @@ impl Operation<f32> {
     }
 
     pub fn add() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "add",
             2.into(),
             Arc::new(|inputs: &[f32]| MathOperation::Add.apply(inputs)),
@@ -183,7 +183,7 @@ impl Operation<f32> {
     }
 
     pub fn sub() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "sub",
             2.into(),
             Arc::new(|inputs: &[f32]| MathOperation::Sub.apply(inputs)),
@@ -191,7 +191,7 @@ impl Operation<f32> {
     }
 
     pub fn mul() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "mul",
             2.into(),
             Arc::new(|inputs: &[f32]| MathOperation::Mul.apply(inputs)),
@@ -199,7 +199,7 @@ impl Operation<f32> {
     }
 
     pub fn div() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "div",
             2.into(),
             Arc::new(|inputs: &[f32]| MathOperation::Div.apply(inputs)),
@@ -207,7 +207,7 @@ impl Operation<f32> {
     }
 
     pub fn sum() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "sum",
             Arity::Any,
             Arc::new(|inputs: &[f32]| MathOperation::Sum.apply(inputs)),
@@ -215,7 +215,7 @@ impl Operation<f32> {
     }
 
     pub fn prod() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "prod",
             Arity::Any,
             Arc::new(|inputs: &[f32]| MathOperation::Prod.apply(inputs)),
@@ -223,7 +223,7 @@ impl Operation<f32> {
     }
 
     pub fn neg() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "neg",
             1.into(),
             Arc::new(|inputs: &[f32]| MathOperation::Neg.apply(inputs)),
@@ -231,7 +231,7 @@ impl Operation<f32> {
     }
 
     pub fn pow() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "pow",
             2.into(),
             Arc::new(|inputs: &[f32]| MathOperation::Pow.apply(inputs)),
@@ -239,7 +239,7 @@ impl Operation<f32> {
     }
 
     pub fn sqrt() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "sqrt",
             1.into(),
             Arc::new(|inputs: &[f32]| MathOperation::Sqrt.apply(inputs)),
@@ -247,7 +247,7 @@ impl Operation<f32> {
     }
 
     pub fn abs() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "abs",
             1.into(),
             Arc::new(|inputs: &[f32]| MathOperation::Abs.apply(inputs)),
@@ -255,7 +255,7 @@ impl Operation<f32> {
     }
 
     pub fn exp() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "exp",
             1.into(),
             Arc::new(|inputs: &[f32]| MathOperation::Exp.apply(inputs)),
@@ -263,7 +263,7 @@ impl Operation<f32> {
     }
 
     pub fn log() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "log",
             1.into(),
             Arc::new(|inputs: &[f32]| MathOperation::Log.apply(inputs)),
@@ -271,7 +271,7 @@ impl Operation<f32> {
     }
 
     pub fn sin() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "sin",
             1.into(),
             Arc::new(|inputs: &[f32]| MathOperation::Sin.apply(inputs)),
@@ -279,7 +279,7 @@ impl Operation<f32> {
     }
 
     pub fn cos() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "cos",
             1.into(),
             Arc::new(|inputs: &[f32]| MathOperation::Cos.apply(inputs)),
@@ -287,7 +287,7 @@ impl Operation<f32> {
     }
 
     pub fn max() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "max",
             Arity::Any,
             Arc::new(|inputs: &[f32]| MathOperation::Max.apply(inputs)),
@@ -295,7 +295,7 @@ impl Operation<f32> {
     }
 
     pub fn min() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "min",
             Arity::Any,
             Arc::new(|inputs: &[f32]| MathOperation::Min.apply(inputs)),
@@ -303,7 +303,7 @@ impl Operation<f32> {
     }
 
     pub fn tan() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "tan",
             1.into(),
             Arc::new(|inputs: &[f32]| MathOperation::Tan.apply(inputs)),
@@ -311,7 +311,7 @@ impl Operation<f32> {
     }
 
     pub fn ceil() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "ceil",
             1.into(),
             Arc::new(|inputs: &[f32]| MathOperation::Ceil.apply(inputs)),
@@ -319,7 +319,7 @@ impl Operation<f32> {
     }
 
     pub fn floor() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "floor",
             1.into(),
             Arc::new(|inputs: &[f32]| MathOperation::Floor.apply(inputs)),
@@ -327,7 +327,7 @@ impl Operation<f32> {
     }
 
     pub fn sigmoid() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "sigmoid",
             Arity::Any,
             Arc::new(|inputs: &[f32]| ActivationOperation::Sigmoid.apply(inputs)),
@@ -335,7 +335,7 @@ impl Operation<f32> {
     }
 
     pub fn tanh() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "tanh",
             Arity::Any,
             Arc::new(|inputs: &[f32]| ActivationOperation::Tanh.apply(inputs)),
@@ -343,7 +343,7 @@ impl Operation<f32> {
     }
 
     pub fn relu() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "relu",
             Arity::Any,
             Arc::new(|inputs: &[f32]| ActivationOperation::ReLU.apply(inputs)),
@@ -351,7 +351,7 @@ impl Operation<f32> {
     }
 
     pub fn leaky_relu() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "leaky_relu",
             Arity::Any,
             Arc::new(|inputs: &[f32]| ActivationOperation::LeakyReLU.apply(inputs)),
@@ -359,7 +359,7 @@ impl Operation<f32> {
     }
 
     pub fn elu() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "elu",
             Arity::Any,
             Arc::new(|inputs: &[f32]| ActivationOperation::ELU.apply(inputs)),
@@ -367,7 +367,7 @@ impl Operation<f32> {
     }
 
     pub fn linear() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "linear",
             Arity::Any,
             Arc::new(|inputs: &[f32]| ActivationOperation::Linear.apply(inputs)),
@@ -375,7 +375,7 @@ impl Operation<f32> {
     }
 
     pub fn mish() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "mish",
             Arity::Any,
             Arc::new(|inputs: &[f32]| ActivationOperation::Mish.apply(inputs)),
@@ -383,7 +383,7 @@ impl Operation<f32> {
     }
 
     pub fn swish() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "swish",
             Arity::Any,
             Arc::new(|inputs: &[f32]| ActivationOperation::Swish.apply(inputs)),
@@ -391,7 +391,7 @@ impl Operation<f32> {
     }
 
     pub fn softplus() -> Self {
-        Operation::Fn(
+        Op::Fn(
             "softplus",
             Arity::Any,
             Arc::new(|inputs: &[f32]| ActivationOperation::Softplus.apply(inputs)),
@@ -400,47 +400,47 @@ impl Operation<f32> {
 }
 
 /// Get a list of all the math operations.
-pub fn get_math_operations() -> Vec<Operation<f32>> {
+pub fn get_math_operations() -> Vec<Op<f32>> {
     vec![
-        Operation::add(),
-        Operation::sub(),
-        Operation::mul(),
-        Operation::div(),
-        Operation::sum(),
-        Operation::prod(),
-        Operation::neg(),
-        Operation::pow(),
-        Operation::sqrt(),
-        Operation::abs(),
-        Operation::exp(),
-        Operation::log(),
-        Operation::sin(),
-        Operation::cos(),
-        Operation::tan(),
-        Operation::ceil(),
-        Operation::floor(),
-        Operation::max(),
-        Operation::min(),
+        Op::add(),
+        Op::sub(),
+        Op::mul(),
+        Op::div(),
+        Op::sum(),
+        Op::prod(),
+        Op::neg(),
+        Op::pow(),
+        Op::sqrt(),
+        Op::abs(),
+        Op::exp(),
+        Op::log(),
+        Op::sin(),
+        Op::cos(),
+        Op::tan(),
+        Op::ceil(),
+        Op::floor(),
+        Op::max(),
+        Op::min(),
     ]
 }
 
 /// Get a list of all the activation operations.
-pub fn get_activation_operations() -> Vec<Operation<f32>> {
+pub fn get_activation_operations() -> Vec<Op<f32>> {
     vec![
-        Operation::sigmoid(),
-        Operation::tanh(),
-        Operation::relu(),
-        Operation::leaky_relu(),
-        Operation::elu(),
-        Operation::linear(),
-        Operation::mish(),
-        Operation::swish(),
-        Operation::softplus(),
+        Op::sigmoid(),
+        Op::tanh(),
+        Op::relu(),
+        Op::leaky_relu(),
+        Op::elu(),
+        Op::linear(),
+        Op::mish(),
+        Op::swish(),
+        Op::softplus(),
     ]
 }
 
 /// Get a list of all the operations.
-pub fn get_all_operations() -> Vec<Operation<f32>> {
+pub fn get_all_operations() -> Vec<Op<f32>> {
     let mut operations = get_math_operations();
     operations.extend(get_activation_operations());
     operations

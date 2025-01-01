@@ -1,13 +1,12 @@
 use super::codexes::Codex;
 use super::thread_pool::ThreadPool;
-use super::{RouletteSelector, Select, TournamentSelector};
+use super::{AlterWrapper, RouletteSelector, Select, TournamentSelector};
 use crate::engines::genetic_engine::GeneticEngine;
 use crate::engines::genome::phenotype::Phenotype;
 use crate::engines::genome::population::Population;
 use crate::engines::objectives::Score;
 use crate::objectives::{Objective, Optimize};
-use crate::uniform_crossover::UniformCrossover;
-use crate::uniform_mutator::UniformMutator;
+use crate::uniform::{UniformCrossover, UniformMutator};
 use crate::{Alter, Chromosome};
 use std::sync::Arc;
 
@@ -42,6 +41,8 @@ where
     pub population: Option<Population<C>>,
     pub codex: Option<Arc<&'a dyn Codex<C, T>>>,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
+
+    pub wrappers: Vec<AlterWrapper<C>>,
 }
 
 impl<'a, C, T> GeneticEngineParams<'a, C, T>
@@ -79,7 +80,13 @@ where
             codex: None,
             population: None,
             fitness_fn: None,
+            wrappers: Vec::new(),
         }
+    }
+    
+    pub fn wrappers(mut self, wrappers: Vec<AlterWrapper<C>>) -> Self {
+        self.wrappers = wrappers;
+        self
     }
 
     /// Set the population size of the genetic engine. Default is 100.

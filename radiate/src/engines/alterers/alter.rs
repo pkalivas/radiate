@@ -2,6 +2,7 @@ use crate::engines::genome::population::Population;
 use crate::timer::Timer;
 use crate::{random_provider, subset, Chromosome, Gene, Genotype, Metric, Phenotype};
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AlterType {
     Mutator,
     Crossover,

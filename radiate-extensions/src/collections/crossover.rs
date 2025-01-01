@@ -1,28 +1,28 @@
 use std::collections::HashMap;
 
-use crate::collections::{GraphChromosome, NodeType};
+use super::{NodeCell, TreeChromosome};
+use crate::collections::GraphChromosome;
+use crate::node::NodeType;
 use radiate::alter::AlterType;
 use radiate::engines::alterers::Alter;
 use radiate::engines::genome::*;
 use radiate::timer::Timer;
 use radiate::{random_provider, Metric};
 
-use super::TreeChromosome;
-
 const NUM_PARENTS: usize = 2;
 
-pub struct GraphCrossover<T>
+pub struct GraphCrossover<C>
 where
-    T: Clone + PartialEq + Default,
+    C: Clone + PartialEq + Default + NodeCell,
 {
     pub crossover_rate: f32,
     pub crossover_parent_node_rate: f32,
-    _marker: std::marker::PhantomData<T>,
+    _marker: std::marker::PhantomData<C>,
 }
 
-impl<T> GraphCrossover<T>
+impl<C> GraphCrossover<C>
 where
-    T: Clone + PartialEq + Default + 'static,
+    C: NodeCell + Clone + PartialEq + Default + 'static,
 {
     pub fn new(crossover_rate: f32, crossover_parent_node_rate: f32) -> Self {
         Self {
@@ -35,10 +35,10 @@ where
     #[inline]
     pub fn cross(
         &self,
-        population: &Population<GraphChromosome<T>>,
+        population: &Population<GraphChromosome<C>>,
         indexes: &[usize],
         generation: i32,
-    ) -> Option<Phenotype<GraphChromosome<T>>> {
+    ) -> Option<Phenotype<GraphChromosome<C>>> {
         let parent_one = &population[indexes[0]];
         let parent_two = &population[indexes[1]];
 
@@ -104,9 +104,9 @@ where
     }
 }
 
-impl<T> Alter<GraphChromosome<T>> for GraphCrossover<T>
+impl<C> Alter<GraphChromosome<C>> for GraphCrossover<C>
 where
-    T: Clone + PartialEq + Default + 'static,
+    C: NodeCell + Clone + PartialEq + Default + 'static,
 {
     fn name(&self) -> &'static str {
         "GraphCrossover"
@@ -123,7 +123,7 @@ where
     #[inline]
     fn alter(
         &self,
-        population: &mut Population<GraphChromosome<T>>,
+        population: &mut Population<GraphChromosome<C>>,
         generation: i32,
     ) -> Vec<Metric> {
         let timer = Timer::new();
@@ -133,7 +133,7 @@ where
             if random_provider::random::<f32>() < self.crossover_rate
                 && population.len() > NUM_PARENTS
             {
-                let parent_indexes = GraphCrossover::<T>::distinct_subset(population.len());
+                let parent_indexes = GraphCrossover::<C>::distinct_subset(population.len());
 
                 if let Some(phenotype) = self.cross(population, &parent_indexes, generation) {
                     new_phenotypes.insert(index, phenotype);
@@ -164,9 +164,9 @@ impl NodeCrossover {
     }
 }
 
-impl<T> Alter<GraphChromosome<T>> for NodeCrossover
+impl<C> Alter<GraphChromosome<C>> for NodeCrossover
 where
-    T: Clone + PartialEq + Default,
+    C: NodeCell + Clone + PartialEq + Default,
 {
     fn name(&self) -> &'static str {
         "Node Crossover"
@@ -183,8 +183,8 @@ where
     #[inline]
     fn cross_chromosomes(
         &self,
-        chrom_one: &mut GraphChromosome<T>,
-        chrom_two: &mut GraphChromosome<T>,
+        chrom_one: &mut GraphChromosome<C>,
+        chrom_two: &mut GraphChromosome<C>,
     ) -> i32 {
         let rate = self.rate;
         let mut cross_count = 0;
@@ -224,9 +224,9 @@ impl TreeCrossover {
     }
 }
 
-impl<T> Alter<TreeChromosome<T>> for TreeCrossover
+impl<C> Alter<TreeChromosome<C>> for TreeCrossover
 where
-    T: Clone + PartialEq + Default,
+    C: Clone + PartialEq + Default + NodeCell,
 {
     fn name(&self) -> &'static str {
         "Tree Crossover"
@@ -243,8 +243,8 @@ where
     #[inline]
     fn cross_chromosomes(
         &self,
-        chrom_one: &mut TreeChromosome<T>,
-        chrom_two: &mut TreeChromosome<T>,
+        chrom_one: &mut TreeChromosome<C>,
+        chrom_two: &mut TreeChromosome<C>,
     ) -> i32 {
         let swap_one_index = random_provider::random::<usize>() % chrom_one.len();
         let swap_two_index = random_provider::random::<usize>() % chrom_two.len();

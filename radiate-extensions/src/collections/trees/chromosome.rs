@@ -1,17 +1,17 @@
-use crate::TreeNode;
+use crate::{NodeCell, TreeNode};
 use radiate::{Chromosome, Valid};
 use std::sync::Arc;
 
 type Constraint<N> = Arc<Box<dyn Fn(&N) -> bool>>;
 
 #[derive(Clone, Default)]
-pub struct TreeChromosome<T> {
-    nodes: Vec<TreeNode<T>>,
-    constraint: Option<Constraint<TreeNode<T>>>,
+pub struct TreeChromosome<C: NodeCell> {
+    nodes: Vec<TreeNode<C>>,
+    constraint: Option<Constraint<TreeNode<C>>>,
 }
 
-impl<T> TreeChromosome<T> {
-    pub fn new(nodes: Vec<TreeNode<T>>) -> Self {
+impl<C: NodeCell> TreeChromosome<C> {
+    pub fn new(nodes: Vec<TreeNode<C>>) -> Self {
         TreeChromosome {
             nodes,
             constraint: None,
@@ -19,31 +19,23 @@ impl<T> TreeChromosome<T> {
     }
 
     pub fn with_constraint(
-        nodes: Vec<TreeNode<T>>,
-        constraint: Option<Constraint<TreeNode<T>>>,
+        nodes: Vec<TreeNode<C>>,
+        constraint: Option<Constraint<TreeNode<C>>>,
     ) -> Self {
         TreeChromosome { nodes, constraint }
     }
 }
 
-impl<T> Chromosome for TreeChromosome<T>
+impl<C> Chromosome for TreeChromosome<C>
 where
-    T: Clone + PartialEq + Default,
+    C: Clone + PartialEq + Default + NodeCell,
 {
-    type Gene = TreeNode<T>;
-
-    // fn get_genes(&self) -> &[TreeNode<T>] {
-    //     &self.nodes
-    // }
-
-    // fn get_genes_mut(&mut self) -> &mut [TreeNode<T>] {
-    //     &mut self.nodes
-    // }
+    type Gene = TreeNode<C>;
 }
 
-impl<T> Valid for TreeChromosome<T>
+impl<C> Valid for TreeChromosome<C>
 where
-    T: Clone + PartialEq + Default,
+    C: Clone + PartialEq + Default + NodeCell,
 {
     fn is_valid(&self) -> bool {
         for gene in &self.nodes {
@@ -60,27 +52,27 @@ where
     }
 }
 
-impl<T> AsRef<[TreeNode<T>]> for TreeChromosome<T>
+impl<C> AsRef<[TreeNode<C>]> for TreeChromosome<C>
 where
-    T: Clone + PartialEq + Default,
+    C: Clone + PartialEq + Default + NodeCell,
 {
-    fn as_ref(&self) -> &[TreeNode<T>] {
+    fn as_ref(&self) -> &[TreeNode<C>] {
         &self.nodes
     }
 }
 
-impl<T> AsMut<[TreeNode<T>]> for TreeChromosome<T>
+impl<C> AsMut<[TreeNode<C>]> for TreeChromosome<C>
 where
-    T: Clone + PartialEq + Default,
+    C: Clone + PartialEq + Default + NodeCell,
 {
-    fn as_mut(&mut self) -> &mut [TreeNode<T>] {
+    fn as_mut(&mut self) -> &mut [TreeNode<C>] {
         &mut self.nodes
     }
 }
 
-impl<T> PartialEq for TreeChromosome<T>
+impl<C> PartialEq for TreeChromosome<C>
 where
-    T: PartialEq,
+    C: PartialEq + NodeCell,
 {
     fn eq(&self, other: &Self) -> bool {
         self.nodes == other.nodes

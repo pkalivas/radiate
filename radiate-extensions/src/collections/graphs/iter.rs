@@ -1,4 +1,7 @@
-use crate::collections::{Graph, GraphNode};
+use crate::{
+    collections::{Graph, GraphNode},
+    NodeCell,
+};
 use std::collections::VecDeque;
 
 /// `GraphIterator` is an iterator that traverses a `Graph` in sudo-topological order. I say
@@ -6,15 +9,15 @@ use std::collections::VecDeque;
 /// that allows for recurrent connections. This iterator is used by the `GraphReducer` to evaluate
 /// the nodes in a `Graph` in the correct order.
 ///
-pub struct GraphIterator<'a, T> {
-    pub graph: &'a Graph<T>,
+pub struct GraphIterator<'a, C: NodeCell> {
+    pub graph: &'a Graph<C>,
     pub completed: Vec<bool>,
     pub index_queue: VecDeque<usize>,
     pub pending_index: usize,
 }
 
-impl<'a, T> GraphIterator<'a, T> {
-    pub fn new(graph: &'a Graph<T>) -> Self {
+impl<'a, C: NodeCell> GraphIterator<'a, C> {
+    pub fn new(graph: &'a Graph<C>) -> Self {
         Self {
             graph,
             completed: vec![false; graph.len()],
@@ -24,8 +27,8 @@ impl<'a, T> GraphIterator<'a, T> {
     }
 }
 
-impl<'a, T> Iterator for GraphIterator<'a, T> {
-    type Item = &'a GraphNode<T>;
+impl<'a, C: NodeCell> Iterator for GraphIterator<'a, C> {
+    type Item = &'a GraphNode<C>;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {

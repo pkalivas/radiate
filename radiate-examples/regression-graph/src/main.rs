@@ -7,7 +7,7 @@ const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
     set_seed(1000);
-    let graph_codex = GraphCodex::regression(1, 1).with_output(Operation::linear());
+    let graph_codex = GraphCodex::regression(1, 1).with_output(Op::linear());
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 
@@ -23,7 +23,7 @@ fn main() {
                 NodeMutate::Forward(NodeType::Vertex, 0.03),
             ]),
         ))
-        .fitness_fn(move |genotype: Graph<f32>| {
+        .fitness_fn(move |genotype: Graph<Op<f32>>| {
             let mut reducer = GraphReducer::new(&genotype);
             Score::from_f32(regression.error(|input| reducer.reduce(input)))
         })
@@ -37,7 +37,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<GraphChromosome<f32>, Graph<f32>>) {
+fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     let mut regression_accuracy = 0.0;
     let mut total = 0.0;
 

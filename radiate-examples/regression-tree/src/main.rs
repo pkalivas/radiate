@@ -9,8 +9,8 @@ fn main() {
     // set_seed(200);
     let graph_codex = TreeCodex::new(3)
         .constraint(|node| node.size() < 30)
-        .gates(vec![Operation::add(), Operation::sub(), Operation::mul()])
-        .leafs(vec![Operation::var(0)]);
+        .gates(vec![Op::add(), Op::sub(), Op::mul()])
+        .leafs(vec![Op::var(0)]);
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 
@@ -18,7 +18,7 @@ fn main() {
         .minimizing()
         .num_threads(10)
         .alter(alters!(TreeCrossover::new(0.5),))
-        .fitness_fn(move |genotype: Tree<f32>| {
+        .fitness_fn(move |genotype: Tree<Op<f32>>| {
             let mut reducer = Tree::new(genotype.root().take().unwrap().to_owned());
             Score::from_f32(regression.error(|input| vec![reducer.reduce(input)]))
         })
@@ -32,7 +32,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<TreeChromosome<f32>, Tree<f32>>) {
+fn display(result: &EngineContext<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
     let mut regression_accuracy = 0.0;
     let mut total = 0.0;
 
