@@ -1,7 +1,7 @@
 use crate::NumericGene;
 use crate::{random_provider, Chromosome};
 
-use super::{AlterAction, Crossover, Alter, EngineCompoment};
+use super::{Alter, AlterAction, Crossover, EngineCompoment};
 
 pub struct MeanCrossover {
     pub rate: f32,

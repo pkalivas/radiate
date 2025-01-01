@@ -1,12 +1,12 @@
 use super::codexes::Codex;
-use super::engine_context::EngineContext;
+use super::context::EngineContext;
 use super::genome::phenotype::Phenotype;
 use super::thread_pool::ThreadPool;
 use super::{AlterAction, MetricSet};
 use crate::engines::domain::timer::Timer;
-use crate::engines::genetic_engine_params::GeneticEngineParams;
 use crate::engines::genome::population::Population;
 use crate::engines::objectives::Score;
+use crate::engines::params::GeneticEngineParams;
 use crate::objectives::{Front, Objective};
 use crate::{metric_names, Chromosome, Metric, Select, Valid};
 use std::sync::{Arc, Mutex};

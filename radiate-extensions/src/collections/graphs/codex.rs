@@ -21,16 +21,6 @@ impl<C> GraphCodex<C>
 where
     C: NodeCell + Clone + Default,
 {
-    pub fn from_factory(store: &CellStore<C>) -> Self {
-        GraphCodex::from_shape(1, 1, store)
-    }
-
-    pub fn from_shape(input_size: usize, output_size: usize, store: &CellStore<C>) -> Self {
-        let nodes = GraphBuilder::<C>::new(store.clone()).acyclic(input_size, output_size);
-
-        GraphCodex::from_graph(nodes, store)
-    }
-
     pub fn from_graph(graph: Graph<C>, factory: &CellStore<C>) -> Self {
         GraphCodex {
             factory: Rc::new(RefCell::new(factory.clone())),

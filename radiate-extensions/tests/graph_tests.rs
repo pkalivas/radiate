@@ -1,10 +1,7 @@
 #[cfg(test)]
 mod tests {
     use radiate::*;
-    use radiate_extensions::{
-        collections::{GraphCodex, GraphReducer},
-        CellStore, Op,
-    };
+    use radiate_extensions::collections::{GraphCodex, GraphReducer};
 
     #[test]
     fn test_graph() {
@@ -39,9 +36,8 @@ mod tests {
 
     #[test]
     fn test_reducer() {
-        let factory = CellStore::<Op<f32>>::regression(2);
         let graph_codex =
-            GraphCodex::from_factory(&factory).set_nodes(|arc, _| arc.weighted_acyclic(2, 2));
+            GraphCodex::regression(2, 2).set_nodes(|arc, _| arc.weighted_acyclic(2, 2));
 
         let genotype = graph_codex.encode();
         let decoded = graph_codex.decode(&genotype);

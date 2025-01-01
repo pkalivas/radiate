@@ -1,7 +1,7 @@
 use super::codexes::Codex;
 use super::thread_pool::ThreadPool;
-use super::{AlterAction, Alter, RouletteSelector, Select, TournamentSelector};
-use crate::engines::genetic_engine::GeneticEngine;
+use super::{Alter, AlterAction, RouletteSelector, Select, TournamentSelector};
+use crate::engines::engine::GeneticEngine;
 use crate::engines::genome::phenotype::Phenotype;
 use crate::engines::genome::population::Population;
 use crate::engines::objectives::Score;
