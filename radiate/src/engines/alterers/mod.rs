@@ -7,7 +7,7 @@ pub mod intermediate;
 pub mod invert;
 pub mod mean;
 pub mod multipoint;
-pub mod mutation;
+pub mod mutate;
 pub mod pmx;
 pub mod scramble;
 pub mod shuffle;
@@ -24,26 +24,10 @@ pub use intermediate::*;
 pub use invert::*;
 pub use mean::*;
 pub use multipoint::*;
-pub use mutation::*;
+pub use mutate::*;
 pub use pmx::*;
 pub use scramble::*;
 pub use shuffle::*;
 pub use simulated_binary::*;
 pub use swap::*;
 pub use uniform::*;
-
-use super::{Chromosome, Metric, Population};
-
-pub trait EngineCompoment {
-    fn name(&self) -> &'static str;
-}
-
-pub enum AlterAction<C: Chromosome> {
-    Mutate(Box<dyn MutateAction<C>>),
-    Crossover(Box<dyn CrossoverAction<C>>),
-}
-
-pub trait EngineAlterer<C: Chromosome>: EngineCompoment {
-    fn rate(&self) -> f32;
-    fn to_alter(self) -> AlterAction<C>;
-}

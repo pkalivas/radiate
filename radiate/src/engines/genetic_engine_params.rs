@@ -1,6 +1,6 @@
 use super::codexes::Codex;
 use super::thread_pool::ThreadPool;
-use super::{AlterAction, EngineAlterer, RouletteSelector, Select, TournamentSelector};
+use super::{AlterAction, Alter, RouletteSelector, Select, TournamentSelector};
 use crate::engines::genetic_engine::GeneticEngine;
 use crate::engines::genome::phenotype::Phenotype;
 use crate::engines::genome::population::Population;

@@ -1,7 +1,7 @@
 use super::{Graph, GraphChromosome, GraphNode, NodeCell};
 
-use radiate::{random_provider, timer::Timer, Alter, AlterType, Chromosome, Metric, Population};
-use radiate::{AlterAction, EngineAlterer, EngineCompoment, MutateAction};
+use radiate::{random_provider, timer::Timer, Chromosome, Metric, Population};
+use radiate::{Alter, AlterAction, EngineCompoment, Mutate};
 
 use std::sync::Arc;
 
@@ -54,7 +54,7 @@ impl EngineCompoment for GraphMutator {
     }
 }
 
-impl<C> EngineAlterer<GraphChromosome<C>> for GraphMutator
+impl<C> Alter<GraphChromosome<C>> for GraphMutator
 where
     C: Clone + PartialEq + Default + NodeCell,
 {
@@ -67,7 +67,7 @@ where
     }
 }
 
-impl<C> MutateAction<GraphChromosome<C>> for GraphMutator
+impl<C> Mutate<GraphChromosome<C>> for GraphMutator
 where
     C: Clone + PartialEq + Default + NodeCell,
 {
@@ -144,7 +144,7 @@ impl EngineCompoment for OperationMutator {
     }
 }
 
-impl<T> EngineAlterer<GraphChromosome<Op<T>>> for OperationMutator
+impl<T> Alter<GraphChromosome<Op<T>>> for OperationMutator
 where
     T: Clone + PartialEq + Default,
 {
@@ -157,7 +157,7 @@ where
     }
 }
 
-impl<T> MutateAction<GraphChromosome<Op<T>>> for OperationMutator
+impl<T> Mutate<GraphChromosome<Op<T>>> for OperationMutator
 where
     T: Clone + PartialEq + Default,
 {

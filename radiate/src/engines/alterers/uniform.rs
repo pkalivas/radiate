@@ -1,10 +1,10 @@
 use crate::Chromosome;
 
+use super::Alter;
 use super::AlterAction;
-use super::CrossoverAction;
-use super::EngineAlterer;
+use super::Crossover;
 use super::EngineCompoment;
-use super::MutateAction;
+use super::Mutate;
 
 pub struct UniformCrossover {
     pub rate: f32,
@@ -15,6 +15,24 @@ impl UniformCrossover {
         Self { rate }
     }
 }
+
+impl<C: Chromosome> Alter<C> for UniformCrossover {
+    fn rate(&self) -> f32 {
+        self.rate
+    }
+
+    fn to_alter(self) -> AlterAction<C> {
+        AlterAction::Crossover(Box::new(self))
+    }
+}
+
+impl EngineCompoment for UniformCrossover {
+    fn name(&self) -> &'static str {
+        "UniformCrossover"
+    }
+}
+
+impl<C: Chromosome> Crossover<C> for UniformCrossover {}
 
 pub struct UniformMutator {
     pub rate: f32,
@@ -32,7 +50,7 @@ impl EngineCompoment for UniformMutator {
     }
 }
 
-impl<C: Chromosome> EngineAlterer<C> for UniformMutator {
+impl<C: Chromosome> Alter<C> for UniformMutator {
     fn rate(&self) -> f32 {
         self.rate
     }
@@ -42,22 +60,4 @@ impl<C: Chromosome> EngineAlterer<C> for UniformMutator {
     }
 }
 
-impl<C: Chromosome> MutateAction<C> for UniformMutator {}
-
-impl<C: Chromosome> EngineAlterer<C> for UniformCrossover {
-    fn rate(&self) -> f32 {
-        self.rate
-    }
-
-    fn to_alter(self) -> AlterAction<C> {
-        AlterAction::Crossover(Box::new(self))
-    }
-}
-
-impl EngineCompoment for UniformCrossover {
-    fn name(&self) -> &'static str {
-        "UniformCrossover"
-    }
-}
-
-impl<C: Chromosome> CrossoverAction<C> for UniformCrossover {}
+impl<C: Chromosome> Mutate<C> for UniformMutator {}

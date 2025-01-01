@@ -3,13 +3,10 @@ use std::collections::HashMap;
 use super::{NodeCell, TreeChromosome};
 use crate::collections::GraphChromosome;
 use crate::node::NodeType;
-use radiate::alter::AlterType;
-use radiate::engines::alterers::Alter;
+
 use radiate::engines::genome::*;
 use radiate::timer::Timer;
-use radiate::{
-    random_provider, AlterAction, CrossoverAction, EngineAlterer, EngineCompoment, Metric,
-};
+use radiate::{random_provider, AlterAction, Crossover, Alter, EngineCompoment, Metric};
 
 const NUM_PARENTS: usize = 2;
 
@@ -115,7 +112,7 @@ where
     }
 }
 
-impl<C> EngineAlterer<GraphChromosome<C>> for GraphCrossover<C>
+impl<C> Alter<GraphChromosome<C>> for GraphCrossover<C>
 where
     C: NodeCell + Clone + PartialEq + Default + 'static,
 {
@@ -128,7 +125,7 @@ where
     }
 }
 
-impl<C> CrossoverAction<GraphChromosome<C>> for GraphCrossover<C>
+impl<C> Crossover<GraphChromosome<C>> for GraphCrossover<C>
 where
     C: NodeCell + Clone + PartialEq + Default + 'static,
 {
@@ -182,7 +179,7 @@ impl EngineCompoment for TreeCrossover {
     }
 }
 
-impl<C> EngineAlterer<TreeChromosome<C>> for TreeCrossover
+impl<C> Alter<TreeChromosome<C>> for TreeCrossover
 where
     C: Clone + PartialEq + Default + NodeCell,
 {
@@ -195,7 +192,7 @@ where
     }
 }
 
-impl<C> CrossoverAction<TreeChromosome<C>> for TreeCrossover
+impl<C> Crossover<TreeChromosome<C>> for TreeCrossover
 where
     C: Clone + PartialEq + Default + NodeCell,
 {

@@ -1,6 +1,6 @@
 use crate::{random_provider, Chromosome};
 
-use super::{AlterAction, EngineAlterer, EngineCompoment, MutateAction};
+use super::{AlterAction, Alter, EngineCompoment, Mutate};
 
 pub struct InversionMutator {
     rate: f32,
@@ -18,7 +18,7 @@ impl EngineCompoment for InversionMutator {
     }
 }
 
-impl<C: Chromosome> EngineAlterer<C> for InversionMutator {
+impl<C: Chromosome> Alter<C> for InversionMutator {
     fn rate(&self) -> f32 {
         self.rate
     }
@@ -28,7 +28,7 @@ impl<C: Chromosome> EngineAlterer<C> for InversionMutator {
     }
 }
 
-impl<C: Chromosome> MutateAction<C> for InversionMutator {
+impl<C: Chromosome> Mutate<C> for InversionMutator {
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut C) -> i32 {
         let mut mutations = 0;
@@ -44,32 +44,3 @@ impl<C: Chromosome> MutateAction<C> for InversionMutator {
         mutations
     }
 }
-
-// impl<C: Chromosome> Alter<C> for InversionMutator {
-//     fn name(&self) -> &'static str {
-//         "InversionMutator"
-//     }
-
-//     fn rate(&self) -> f32 {
-//         self.rate
-//     }
-
-//     fn alter_type(&self) -> AlterType {
-//         AlterType::Mutator
-//     }
-
-//     #[inline]
-//     fn mutate_chromosome(&self, chromosome: &mut C) -> i32 {
-//         let mut mutations = 0;
-
-//         if random_provider::random::<f32>() < self.rate {
-//             let start = random_provider::gen_range(0..chromosome.len());
-//             let end = random_provider::gen_range(start..chromosome.len());
-
-//             chromosome.as_mut()[start..end].reverse();
-//             mutations += 1;
-//         }
-
-//         mutations
-//     }
-// }

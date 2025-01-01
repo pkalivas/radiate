@@ -1,4 +1,4 @@
-use super::{AlterAction, EngineAlterer, EngineCompoment, MutateAction};
+use super::{AlterAction, Alter, EngineCompoment, Mutate};
 
 use crate::{random_provider, Chromosome};
 
@@ -18,7 +18,7 @@ impl EngineCompoment for SwapMutator {
     }
 }
 
-impl<C: Chromosome> EngineAlterer<C> for SwapMutator {
+impl<C: Chromosome> Alter<C> for SwapMutator {
     fn rate(&self) -> f32 {
         self.rate
     }
@@ -28,7 +28,7 @@ impl<C: Chromosome> EngineAlterer<C> for SwapMutator {
     }
 }
 
-impl<C: Chromosome> MutateAction<C> for SwapMutator {
+impl<C: Chromosome> Mutate<C> for SwapMutator {
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut C) -> i32 {
         let mut mutations = 0;
@@ -49,37 +49,3 @@ impl<C: Chromosome> MutateAction<C> for SwapMutator {
         mutations
     }
 }
-
-// impl<C: Chromosome> Alter<C> for SwapMutator {
-//     fn name(&self) -> &'static str {
-//         "SwapMutator"
-//     }
-
-//     fn rate(&self) -> f32 {
-//         self.rate
-//     }
-
-//     fn alter_type(&self) -> AlterType {
-//         AlterType::Mutator
-//     }
-
-//     #[inline]
-//     fn mutate_chromosome(&self, chromosome: &mut C) -> i32 {
-//         let mut mutations = 0;
-
-//         for i in 0..chromosome.len() {
-//             if random_provider::random::<f32>() < self.rate {
-//                 let swap_index = random_provider::gen_range(0..chromosome.len());
-
-//                 if swap_index == i {
-//                     continue;
-//                 }
-
-//                 chromosome.as_mut().swap(i, swap_index);
-//                 mutations += 1;
-//             }
-//         }
-
-//         mutations
-//     }
-// }

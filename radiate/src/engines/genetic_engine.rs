@@ -3,7 +3,6 @@ use super::engine_context::EngineContext;
 use super::genome::phenotype::Phenotype;
 use super::thread_pool::ThreadPool;
 use super::{AlterAction, MetricSet};
-
 use crate::engines::domain::timer::Timer;
 use crate::engines::genetic_engine_params::GeneticEngineParams;
 use crate::engines::genome::population::Population;
@@ -217,15 +216,14 @@ where
         objective.sort(population);
 
         for alterer in alterer {
-            let metrics = match alterer {
-                // EngineAlterer::Alterer(alterer) => alterer.alter(population, generation),
+            let alter_metrics = match alterer {
                 AlterAction::Mutate(mutator) => mutator.mutate(population, generation),
                 AlterAction::Crossover(crossover) => crossover.crossover(population, generation),
             };
-            // let alter_metrics = alterer.alter(population, generation);
-            // for metric in alter_metrics {
-            //     metrics.upsert(metric);
-            // }
+
+            for metric in alter_metrics {
+                metrics.upsert(metric);
+            }
         }
     }
 

@@ -1,8 +1,9 @@
-use crate::{random_provider, timer::Timer, Gene, Genotype};
+use crate::{random_provider, timer::Timer, Chromosome, Gene, Genotype, Metric, Population};
 
-use super::{Chromosome, EngineAlterer, Metric, Population};
+use super::Alter;
 
-pub trait MutateAction<C: Chromosome>: EngineAlterer<C> {
+pub trait Mutate<C: Chromosome>: Alter<C> {
+    #[inline]
     fn mutate(&self, population: &mut Population<C>, generation: i32) -> Vec<Metric> {
         let timer = Timer::new();
         let mut count = 0;

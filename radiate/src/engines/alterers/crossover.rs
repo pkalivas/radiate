@@ -2,9 +2,9 @@ use crate::{
     random_provider, subset, timer::Timer, Chromosome, Gene, Metric, Phenotype, Population,
 };
 
-use super::EngineAlterer;
+use super::Alter;
 
-pub trait CrossoverAction<C: Chromosome>: EngineAlterer<C> {
+pub trait Crossover<C: Chromosome>: Alter<C> {
     fn crossover(&self, population: &mut Population<C>, generation: i32) -> Vec<Metric> {
         let timer = Timer::new();
         let mut count = 0;
