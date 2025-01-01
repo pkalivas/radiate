@@ -1,9 +1,9 @@
 use radiate::Valid;
 
 use super::transaction::GraphTransaction;
-use super::{Graph, NodeType};
+use super::Graph;
 use crate::ops::Arity;
-use crate::{CellStore, Factory, GraphMutator, NodeCell};
+use crate::{CellStore, Factory, GraphMutator, NodeCell, NodeType};
 
 // updated GraphMutator implementation
 impl GraphMutator {
@@ -267,7 +267,7 @@ impl GraphMutator {
     where
         C: Clone + Default + PartialEq + NodeCell,
     {
-        let arity = transaction.as_ref()[node_index].value.arity();
+        let arity = transaction.as_ref()[node_index].value().arity();
 
         match arity {
             Arity::Any | Arity::Zero => {

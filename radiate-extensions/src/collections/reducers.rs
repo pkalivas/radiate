@@ -26,15 +26,16 @@ impl<T: Clone> Reduce<T> for TreeNode<Op<T>> {
     fn reduce(&mut self, input: &Self::Input) -> Self::Output {
         fn eval<T: Clone>(node: &TreeNode<Op<T>>, curr_input: &Vec<T>) -> T {
             if node.is_leaf() {
-                node.value.apply(curr_input)
+                node.value().apply(curr_input)
             } else {
-                if let Some(children) = &node.children {
+                if let Some(children) = &node.children() {
                     let mut inputs = Vec::with_capacity(children.len());
-                    for child in children {
+
+                    for child in *children {
                         inputs.push(eval(child, curr_input));
                     }
 
-                    return node.value.apply(&inputs);
+                    return node.value().apply(&inputs);
                 }
 
                 panic!("Node is not a leaf and has no children.");
@@ -161,7 +162,7 @@ where
             self.result = Some(T::default());
         }
 
-        self.result = match &node.value {
+        self.result = match &node.value() {
             Op::Const(_, ref value) => Some(value.clone()),
             Op::Fn(_, _, ref fn_ptr) => Some(fn_ptr(&self.args)),
             Op::Var(_, _) => Some(self.args[0].clone()),

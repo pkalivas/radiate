@@ -1,18 +1,10 @@
 use crate::ops::Arity;
-use crate::NodeCell;
+use crate::{NodeCell, NodeType};
 use radiate::{Gene, Valid};
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::hash::Hash;
 use uuid::Uuid;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum NodeType {
-    Input,
-    Output,
-    Vertex,
-    Edge,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Direction {
@@ -22,8 +14,8 @@ pub enum Direction {
 
 #[derive(Clone, PartialEq)]
 pub struct GraphNode<C: NodeCell> {
-    pub value: C,
-    pub id: Uuid,
+    value: C,
+    id: Uuid,
     index: usize,
     enabled: bool,
     node_type: NodeType,
@@ -72,6 +64,14 @@ impl<C: NodeCell> GraphNode<C> {
 
     pub fn index(&self) -> usize {
         self.index
+    }
+
+    pub fn id(&self) -> &Uuid {
+        &self.id
+    }
+
+    pub fn value(&self) -> &C {
+        &self.value
     }
 
     pub fn is_recurrent(&self) -> bool {
@@ -168,6 +168,7 @@ impl<C: NodeCell + Clone + PartialEq> Valid for GraphNode<C> {
 
                 false
             }
+            _ => false,
         }
     }
 }

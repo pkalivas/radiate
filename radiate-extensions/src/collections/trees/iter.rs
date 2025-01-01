@@ -116,6 +116,7 @@ impl<'a, C: NodeCell> Iterator for TreeBreadthFirstIterator<'a, C> {
 mod tests {
     use super::*;
     use crate::collections::{Tree, TreeNode};
+
     use crate::ops::operation;
     use crate::Op;
 
@@ -137,9 +138,9 @@ mod tests {
         // Test pre-order
         let pre_order: Vec<f32> = root
             .iter_pre_order()
-            .map(|n| match &n.value {
+            .map(|n| match &n.value() {
                 operation::Op::Const(_, v) => *v,
-                _ => panic!("Expected constant but got {:?}", n.value),
+                _ => panic!("Expected constant but got {:?}", n.value()),
             })
             .collect();
         assert_eq!(pre_order, vec![1.0, 2.0, 4.0, 3.0]);
@@ -147,7 +148,7 @@ mod tests {
         // Test post-order
         let post_order: Vec<f32> = root
             .iter_post_order()
-            .map(|n| match &n.value {
+            .map(|n| match &n.value() {
                 operation::Op::Const(_, v) => *v,
                 _ => panic!("Expected constant"),
             })
@@ -157,7 +158,7 @@ mod tests {
         // Test breadth-first
         let bfs: Vec<f32> = root
             .iter_breadth_first()
-            .map(|n| match &n.value {
+            .map(|n| match &n.value() {
                 operation::Op::Const(_, v) => *v,
                 _ => panic!("Expected constant"),
             })

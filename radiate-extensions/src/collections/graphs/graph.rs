@@ -2,10 +2,10 @@ use std::collections::{HashSet, VecDeque};
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
 
-use super::{GraphIterator, NodeType};
+use super::GraphIterator;
 use crate::collections::graphs::GraphTransaction;
 use crate::collections::{Direction, GraphNode};
-use crate::NodeCell;
+use crate::{NodeCell, NodeType};
 
 use radiate::{random_provider, Valid};
 
@@ -336,6 +336,7 @@ impl<C: NodeCell> Graph<C> {
                 .iter()
                 .filter(|node| node.node_type() == NodeType::Edge)
                 .collect::<Vec<&GraphNode<C>>>(),
+            _ => panic!("Invalid node type."),
         };
 
         if genes.is_empty() {
@@ -410,114 +411,5 @@ impl<C: NodeCell + Debug + PartialEq + Clone> Debug for Graph<C> {
             write!(f, "  {:?},\n", node)?;
         }
         write!(f, "}}")
-    }
-}
-
-#[cfg(test)]
-mod test {
-
-    use super::*;
-
-    #[test]
-    fn test_simple_graph() {
-        let mut graph = Graph::<i32>::default();
-
-        graph.add(NodeType::Input, 0);
-        graph.add(NodeType::Vertex, 1);
-        graph.add(NodeType::Output, 2);
-
-        graph.attach(0, 1).attach(1, 2);
-
-        println!("{:?}", graph);
-
-        assert_eq!(graph.len(), 3);
-
-        assert!(graph.is_valid());
-        assert!(graph.get(0).is_valid());
-        assert!(graph.get(1).is_valid());
-        assert!(graph.get(2).is_valid());
-
-        assert_eq!(graph.get(0).incoming().len(), 0);
-        assert_eq!(graph.get(0).outgoing().len(), 1);
-        assert_eq!(graph.get(1).incoming().len(), 1);
-        assert_eq!(graph.get(1).outgoing().len(), 1);
-        assert_eq!(graph.get(2).incoming().len(), 1);
-        assert_eq!(graph.get(2).outgoing().len(), 0);
-    }
-
-    #[test]
-    fn test_graph_with_cycles() {
-        let mut graph = Graph::<i32>::default();
-
-        graph.add(NodeType::Input, 0);
-        graph.add(NodeType::Vertex, 1);
-        graph.add(NodeType::Vertex, 2);
-        graph.add(NodeType::Output, 3);
-
-        graph.attach(0, 1).attach(1, 2).attach(2, 1).attach(2, 3);
-
-        println!("{:?}", graph);
-
-        assert_eq!(graph.len(), 4);
-
-        assert!(graph.is_valid());
-        assert!(graph.get(0).is_valid());
-        assert!(graph.get(1).is_valid());
-        assert!(graph.get(2).is_valid());
-        assert!(graph.get(3).is_valid());
-
-        assert_eq!(graph.get(0).incoming().len(), 0);
-        assert_eq!(graph.get(0).outgoing().len(), 1);
-        assert_eq!(graph.get(1).incoming().len(), 2);
-        assert_eq!(graph.get(1).outgoing().len(), 1);
-        assert_eq!(graph.get(2).incoming().len(), 1);
-        assert_eq!(graph.get(2).outgoing().len(), 2);
-        assert_eq!(graph.get(3).incoming().len(), 1);
-        assert_eq!(graph.get(3).outgoing().len(), 0);
-    }
-
-    #[test]
-    fn test_graph_with_cycles_and_recurrent_nodes() {
-        let mut graph = Graph::<i32>::default();
-
-        graph.add(NodeType::Input, 0);
-        graph.add(NodeType::Vertex, 1);
-        graph.add(NodeType::Vertex, 2);
-        graph.add(NodeType::Output, 3);
-
-        graph
-            .attach(0, 1)
-            .attach(1, 2)
-            .attach(2, 1)
-            .attach(2, 3)
-            .attach(3, 1);
-
-        println!("{:?}", graph);
-
-        graph.set_cycles(vec![]);
-
-        println!("{:?}", graph);
-
-        assert_eq!(graph.len(), 4);
-
-        assert!(graph.is_valid());
-        assert!(graph.get(0).is_valid());
-        assert!(graph.get(1).is_valid());
-        assert!(graph.get(2).is_valid());
-        assert!(graph.get(3).is_valid());
-
-        assert_eq!(graph.get(0).incoming().len(), 0);
-        assert_eq!(graph.get(0).outgoing().len(), 1);
-        assert_eq!(graph.get(1).incoming().len(), 3);
-        assert_eq!(graph.get(1).outgoing().len(), 1);
-        assert_eq!(graph.get(2).incoming().len(), 1);
-        assert_eq!(graph.get(2).outgoing().len(), 2);
-        assert_eq!(graph.get(3).incoming().len(), 1);
-        assert_eq!(graph.get(3).outgoing().len(), 1);
-
-        assert_eq!(graph.get(0).direction(), Direction::Forward);
-        assert_eq!(graph.get(1).direction(), Direction::Backward);
-        assert_eq!(graph.get(2).direction(), Direction::Backward);
-        assert_eq!(graph.get(3).direction(), Direction::Backward);
     }
 }

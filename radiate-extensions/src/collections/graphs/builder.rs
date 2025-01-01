@@ -17,7 +17,7 @@ pub struct GraphBuilder<C: NodeCell> {
 
 impl<C: NodeCell> GraphBuilder<C> {
     pub fn new(store: CellStore<C>) -> Self {
-        GraphBuilder { store: store }
+        GraphBuilder { store }
     }
 }
 

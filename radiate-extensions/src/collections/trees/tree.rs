@@ -1,7 +1,7 @@
-use crate::{
-    collections::{TreeIterator, TreeNode},
-    NodeCell,
-};
+use crate::collections::TreeIterator;
+use crate::collections::TreeNode;
+
+use crate::NodeCell;
 use std::fmt::Debug;
 
 #[derive(Clone, PartialEq, Default)]
@@ -39,7 +39,7 @@ impl<C: NodeCell + Debug> Debug for Tree<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Tree {{\n")?;
         for node in self.iter_breadth_first() {
-            write!(f, "  {:?},\n", node.value)?;
+            write!(f, "  {:?},\n", node.value())?;
         }
         write!(f, "}}")
     }
@@ -69,7 +69,7 @@ mod test {
         // Verify swap using breadth-first traversal
         let values_one: Vec<_> = tree_one
             .iter_breadth_first()
-            .filter_map(|n| match &n.value {
+            .filter_map(|n| match &n.value() {
                 operation::Op::Const(_, v) => Some(*v),
                 _ => None,
             })

@@ -61,7 +61,7 @@ impl<C: NodeCell> TreeBuilder<C> {
         };
 
         let mut parent = TreeNode::new(gate);
-        for _ in 0..*parent.value.arity() {
+        for _ in 0..*parent.value().arity() {
             let temp = self.grow_tree(depth - 1);
             parent.add_child(temp);
         }

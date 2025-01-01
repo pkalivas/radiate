@@ -6,8 +6,8 @@ use crate::ops::operation::Arity;
 
 #[derive(PartialEq)]
 pub struct TreeNode<C: NodeCell> {
-    pub value: C,
-    pub children: Option<Vec<TreeNode<C>>>,
+    value: C,
+    children: Option<Vec<TreeNode<C>>>,
 }
 
 impl<C: NodeCell> TreeNode<C> {
@@ -23,6 +23,10 @@ impl<C: NodeCell> TreeNode<C> {
             value: val,
             children: Some(children),
         }
+    }
+
+    pub fn value(&self) -> &C {
+        &self.value
     }
 
     pub fn is_leaf(&self) -> bool {
