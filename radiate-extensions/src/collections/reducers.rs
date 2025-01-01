@@ -1,5 +1,5 @@
-use super::{Graph, GraphNode, Tree, TreeNode};
-use crate::node::NodeType;
+use super::{Graph, GraphNode, NodeType, Tree, TreeNode};
+
 use crate::ops::operation::Op;
 
 pub trait Reduce<T> {
@@ -26,15 +26,16 @@ impl<T: Clone> Reduce<T> for TreeNode<Op<T>> {
     fn reduce(&mut self, input: &Self::Input) -> Self::Output {
         fn eval<T: Clone>(node: &TreeNode<Op<T>>, curr_input: &Vec<T>) -> T {
             if node.is_leaf() {
-                node.value.apply(curr_input)
+                node.value().apply(curr_input)
             } else {
-                if let Some(children) = &node.children {
+                if let Some(children) = &node.children() {
                     let mut inputs = Vec::with_capacity(children.len());
-                    for child in children {
+
+                    for child in *children {
                         inputs.push(eval(child, curr_input));
                     }
 
-                    return node.value.apply(&inputs);
+                    return node.value().apply(&inputs);
                 }
 
                 panic!("Node is not a leaf and has no children.");
@@ -68,7 +69,7 @@ where
     pub fn new(graph: &'a Graph<Op<T>>) -> GraphReducer<'a, T> {
         let output_size = graph
             .iter()
-            .filter(|node| node.node_type == NodeType::Output)
+            .filter(|node| node.node_type() == NodeType::Output)
             .count();
 
         GraphReducer {
@@ -88,29 +89,29 @@ where
             self.order = self
                 .graph
                 .topological_iter()
-                .map(|node| node.index)
+                .map(|node| node.index())
                 .collect();
         }
 
         let mut output_index = 0;
         for index in &self.order {
             let node = self.graph.get(*index);
-            if node.node_type == NodeType::Input {
-                self.tracers[node.index].add_input(inputs[node.index].clone());
+            if node.node_type() == NodeType::Input {
+                self.tracers[node.index()].add_input(inputs[node.index()].clone());
             } else {
-                for incoming in &node.incoming {
+                for incoming in node.incoming() {
                     let arg = self.tracers[*incoming]
                         .result
                         .clone()
                         .unwrap_or_else(|| T::default());
-                    self.tracers[node.index].add_input(arg);
+                    self.tracers[node.index()].add_input(arg);
                 }
             }
 
-            self.tracers[node.index].eval(node);
+            self.tracers[node.index()].eval(node);
 
-            if node.node_type == NodeType::Output {
-                self.outputs[output_index] = self.tracers[node.index].result.clone().unwrap();
+            if node.node_type() == NodeType::Output {
+                self.outputs[output_index] = self.tracers[node.index()].result.clone().unwrap();
                 output_index += 1;
             }
         }
@@ -152,16 +153,16 @@ where
     }
 
     #[inline]
-    pub fn eval(&mut self,  node: &GraphNode<Op<T>>) {
+    pub fn eval(&mut self, node: &GraphNode<Op<T>>) {
         if self.pending_idx != self.input_size {
             panic!("Tracer is not ready to be evaluated.");
         }
 
-        if !node.enabled {
+        if !node.is_enabled() {
             self.result = Some(T::default());
         }
 
-        self.result = match &node.value {
+        self.result = match &node.value() {
             Op::Const(_, ref value) => Some(value.clone()),
             Op::Fn(_, _, ref fn_ptr) => Some(fn_ptr(&self.args)),
             Op::Var(_, _) => Some(self.args[0].clone()),
@@ -179,9 +180,9 @@ fn input_size<T>(node: &GraphNode<Op<T>>) -> usize
 where
     T: Clone + Default,
 {
-    match node.node_type {
+    match node.node_type() {
         NodeType::Input => 1,
-        _ => node.incoming.len(),
+        _ => node.incoming().len(),
     }
 }
 

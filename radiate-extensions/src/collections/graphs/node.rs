@@ -1,9 +1,9 @@
-use crate::node::NodeType;
-use crate::ops::{Arity, Op};
-use crate::{Node, NodeCell};
+use crate::ops::Arity;
+use crate::{NodeCell, NodeType};
 use radiate::{Gene, Valid};
 use std::collections::HashSet;
 use std::fmt::Debug;
+use std::hash::Hash;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -14,14 +14,14 @@ pub enum Direction {
 
 #[derive(Clone, PartialEq)]
 pub struct GraphNode<C: NodeCell> {
-    pub value: C,
-    pub id: Uuid,
-    pub index: usize,
-    pub enabled: bool,
-    pub node_type: NodeType,
-    pub direction: Direction,
-    pub incoming: HashSet<usize>,
-    pub outgoing: HashSet<usize>,
+    value: C,
+    id: Uuid,
+    index: usize,
+    enabled: bool,
+    node_type: NodeType,
+    direction: Direction,
+    incoming: HashSet<usize>,
+    outgoing: HashSet<usize>,
 }
 
 impl<C: NodeCell> GraphNode<C> {
@@ -38,8 +38,40 @@ impl<C: NodeCell> GraphNode<C> {
         }
     }
 
-    pub fn node_type(&self) -> &NodeType {
-        &self.node_type
+    pub fn node_type(&self) -> NodeType {
+        self.node_type
+    }
+
+    pub fn direction(&self) -> Direction {
+        self.direction
+    }
+
+    pub fn set_direction(&mut self, direction: Direction) {
+        self.direction = direction;
+    }
+
+    pub fn is_enabled(&self) -> bool {
+        self.enabled
+    }
+
+    pub fn enable(&mut self) {
+        self.enabled = true;
+    }
+
+    pub fn disable(&mut self) {
+        self.enabled = false;
+    }
+
+    pub fn index(&self) -> usize {
+        self.index
+    }
+
+    pub fn id(&self) -> &Uuid {
+        &self.id
+    }
+
+    pub fn value(&self) -> &C {
+        &self.value
     }
 
     pub fn is_recurrent(&self) -> bool {
@@ -70,23 +102,6 @@ impl<C: NodeCell> GraphNode<C> {
         }
 
         self.incoming.len() == *self.value.arity()
-    }
-}
-
-impl<T> Node<Op<T>> for GraphNode<Op<T>>
-where
-    T: Clone + PartialEq,
-{
-    fn arity(&self) -> Arity {
-        self.value.arity()
-    }
-
-    fn cell(&self, _index: usize) -> &Op<T> {
-        &self.value
-    }
-
-    fn cell_mut(&mut self, _index: usize) -> &mut Op<T> {
-        &mut self.value
     }
 }
 
@@ -130,20 +145,21 @@ where
 impl<C: NodeCell + Clone + PartialEq> Valid for GraphNode<C> {
     fn is_valid(&self) -> bool {
         match self.node_type {
-            NodeType::Input => {
-                self.incoming.is_empty()
-                    && !self.outgoing.is_empty()
-                    && self.value.arity() == Arity::Zero
+            NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
+            NodeType::Output => {
+                (!self.incoming.is_empty())
+                    && (self.incoming.len() == *self.value.arity()
+                        || self.value.arity() == Arity::Any)
             }
-            NodeType::Output => !self.incoming.is_empty() && self.value.arity() == Arity::Any,
             NodeType::Vertex => {
-                if self.value.arity() == Arity::Any {
-                    !self.incoming.is_empty() && !self.outgoing.is_empty()
-                } else if let Arity::Exact(n) = self.value.arity() {
-                    self.incoming.len() == n && !self.outgoing.is_empty()
-                } else {
-                    self.incoming.is_empty() && !self.outgoing.is_empty()
+                if !self.incoming.is_empty() && !self.outgoing.is_empty() {
+                    if let Arity::Exact(n) = self.value.arity() {
+                        return self.incoming.len() == n;
+                    } else if self.value.arity() == Arity::Any {
+                        return true;
+                    }
                 }
+                return false;
             }
             NodeType::Edge => {
                 if self.value.arity() == Arity::Exact(1) {
@@ -152,7 +168,6 @@ impl<C: NodeCell + Clone + PartialEq> Valid for GraphNode<C> {
 
                 false
             }
-            _ => false,
         }
     }
 }
@@ -185,7 +200,7 @@ impl<C: NodeCell + Debug + PartialEq + Clone> Debug for GraphNode<C> {
             f,
             "[{:<3}] {:>10?} :: {:<12} E: {:<5} V:{:<5} R:{:<5} {:<2} {:<2} < [{}]",
             self.index,
-            format!("{:?}", self.node_type)[..3].to_owned(),
+            format!("{:?}", self.node_type())[..3].to_owned(),
             format!("{:?}", self.value).to_owned(),
             self.enabled,
             self.is_valid(),

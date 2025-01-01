@@ -5,9 +5,8 @@ use std::ops::{Index, IndexMut};
 use super::GraphIterator;
 use crate::collections::graphs::GraphTransaction;
 use crate::collections::{Direction, GraphNode};
-use crate::NodeCell;
+use crate::{NodeCell, NodeType};
 
-use crate::node::NodeType;
 use radiate::{random_provider, Valid};
 
 /// A 'Graph' is simply a 'Vec' of 'GraphNode's.
@@ -45,6 +44,15 @@ impl<C: NodeCell> Graph<C> {
     /// Push a 'GraphNode' onto the last position in the graph.
     pub fn push(&mut self, node: GraphNode<C>) {
         self.nodes.push(node);
+    }
+
+    pub fn add<T>(&mut self, node_type: NodeType, val: T) -> usize
+    where
+        T: Into<C>,
+    {
+        let node = GraphNode::new(self.len(), node_type, val.into());
+        self.push(node);
+        self.len() - 1
     }
 
     /// Pop the last 'GraphNode' from the graph.
@@ -134,12 +142,12 @@ impl<C: NodeCell> Graph<C> {
     /// at those indices to 'Direction::Backward' if they are part of a cycle. If they are not part
     /// of a cycle, the 'direction' field will be set to 'Direction::Forward'.
     /// If no indices are provided, the function will set the 'direction' field of all nodes in the graph.
-    pub fn set_cycles(mut self, indecies: Vec<usize>) -> Graph<C> {
+    pub fn set_cycles(&mut self, indecies: Vec<usize>) {
         if indecies.is_empty() {
             let all_indices = self
                 .as_ref()
                 .iter()
-                .map(|node| node.index)
+                .map(|node| node.index())
                 .collect::<Vec<usize>>();
 
             return self.set_cycles(all_indices);
@@ -150,16 +158,14 @@ impl<C: NodeCell> Graph<C> {
 
             if node_cycles.is_empty() {
                 let node = self.get_mut(idx);
-                node.direction = Direction::Forward;
+                node.set_direction(Direction::Forward);
             } else {
                 for cycle_idx in node_cycles {
                     let node = self.get_mut(cycle_idx);
-                    node.direction = Direction::Backward;
+                    node.set_direction(Direction::Backward);
                 }
             }
         }
-
-        self
     }
 
     /// tries to modify the graph using a 'GraphTransaction'. If the transaction is successful,
@@ -241,13 +247,13 @@ impl<C: NodeCell> Graph<C> {
         let source_node = &self[source];
         let target_node = &self[target];
 
-        if (source_node.outgoing.is_empty() || source_node.is_recurrent()) && !recurrent {
+        if (source_node.outgoing().is_empty() || source_node.is_recurrent()) && !recurrent {
             return false;
         }
 
         let would_create_cycle = recurrent || !self.would_create_cycle(source, target);
         let nodes_are_weights =
-            source_node.node_type == NodeType::Edge || target_node.node_type == NodeType::Edge;
+            source_node.node_type() == NodeType::Edge || target_node.node_type() == NodeType::Edge;
 
         would_create_cycle && !nodes_are_weights && source != target
     }
@@ -260,7 +266,7 @@ impl<C: NodeCell> Graph<C> {
     #[inline]
     pub fn would_create_cycle(&self, source: usize, target: usize) -> bool {
         let mut seen = HashSet::new();
-        let mut visited = self.get(target).outgoing.iter().collect::<Vec<&usize>>();
+        let mut visited = self.get(target).outgoing().iter().collect::<Vec<&usize>>();
 
         while !visited.is_empty() {
             let node_index = visited.pop().unwrap();
@@ -273,7 +279,7 @@ impl<C: NodeCell> Graph<C> {
 
             for edge_index in self
                 .get(*node_index)
-                .outgoing
+                .outgoing()
                 .iter()
                 .filter(|edge_index| !seen.contains(edge_index))
             {
@@ -293,7 +299,7 @@ impl<C: NodeCell> Graph<C> {
     /// A source node can be either an input or a vertex node.
     #[inline]
     pub fn random_source_node(&self) -> &GraphNode<C> {
-        self.random_node_of_type(vec![NodeType::Input, NodeType::Vertex])
+        self.random_node_of_type(vec![NodeType::Input, NodeType::Vertex, NodeType::Edge])
     }
     /// Get a random node that can be used as a target node for a connection.
     /// A target node can be either an output or a vertex node.
@@ -316,21 +322,20 @@ impl<C: NodeCell> Graph<C> {
         let genes = match gene_node_type {
             NodeType::Input => self
                 .iter()
-                .filter(|node| node.node_type == NodeType::Input)
+                .filter(|node| node.node_type() == NodeType::Input)
                 .collect::<Vec<&GraphNode<C>>>(),
             NodeType::Output => self
                 .iter()
-                .filter(|node| node.node_type == NodeType::Output)
+                .filter(|node| node.node_type() == NodeType::Output)
                 .collect::<Vec<&GraphNode<C>>>(),
             NodeType::Vertex => self
                 .iter()
-                .filter(|node| node.node_type == NodeType::Vertex)
+                .filter(|node| node.node_type() == NodeType::Vertex)
                 .collect::<Vec<&GraphNode<C>>>(),
             NodeType::Edge => self
                 .iter()
-                .filter(|node| node.node_type == NodeType::Edge)
+                .filter(|node| node.node_type() == NodeType::Edge)
                 .collect::<Vec<&GraphNode<C>>>(),
-            _ => panic!("Invalid node type."),
         };
 
         if genes.is_empty() {

@@ -1,4 +1,4 @@
-use crate::{ops::operation::Op, Node, NodeCell};
+use crate::NodeCell;
 use radiate::engines::genome::genes::gene::{Gene, Valid};
 
 use super::TreeIterator;
@@ -6,8 +6,8 @@ use crate::ops::operation::Arity;
 
 #[derive(PartialEq)]
 pub struct TreeNode<C: NodeCell> {
-    pub value: C,
-    pub children: Option<Vec<TreeNode<C>>>,
+    value: C,
+    children: Option<Vec<TreeNode<C>>>,
 }
 
 impl<C: NodeCell> TreeNode<C> {
@@ -23,6 +23,10 @@ impl<C: NodeCell> TreeNode<C> {
             value: val,
             children: Some(children),
         }
+    }
+
+    pub fn value(&self) -> &C {
+        &self.value
     }
 
     pub fn is_leaf(&self) -> bool {
@@ -97,20 +101,6 @@ impl<C: NodeCell> TreeNode<C> {
         }
 
         None
-    }
-}
-
-impl<T: Clone + PartialEq> Node<Op<T>> for TreeNode<Op<T>> {
-    fn arity(&self) -> Arity {
-        self.value.arity()
-    }
-
-    fn cell(&self, _index: usize) -> &Op<T> {
-        &self.value
-    }
-
-    fn cell_mut(&mut self, _index: usize) -> &mut Op<T> {
-        &mut self.value
     }
 }
 

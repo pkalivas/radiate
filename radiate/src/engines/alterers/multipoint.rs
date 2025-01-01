@@ -1,5 +1,6 @@
-use crate::alter::AlterType;
-use crate::{random_provider, Alter, Chromosome};
+use super::{AlterAction, Crossover, Alter, EngineCompoment};
+
+use crate::{random_provider, Chromosome};
 
 pub struct MultiPointCrossover {
     pub num_points: usize,
@@ -12,21 +13,23 @@ impl MultiPointCrossover {
     }
 }
 
-impl<C: Chromosome> Alter<C> for MultiPointCrossover {
+impl EngineCompoment for MultiPointCrossover {
     fn name(&self) -> &'static str {
-        let result = format!("MultiPointCrossover ({})", self.num_points);
-        Box::leak(result.into_boxed_str())
+        "MultiPointCrossover"
     }
+}
 
+impl<C: Chromosome> Alter<C> for MultiPointCrossover {
     fn rate(&self) -> f32 {
         self.rate
     }
 
-    fn alter_type(&self) -> AlterType {
-        AlterType::Crossover
+    fn to_alter(self) -> AlterAction<C> {
+        AlterAction::Crossover(Box::new(self))
     }
+}
 
-    #[inline]
+impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C) -> i32 {
         let length = std::cmp::min(chrom_one.len(), chrom_two.len());
 

@@ -1,16 +1,21 @@
 pub mod crossover;
-pub mod factory;
 pub mod graphs;
 pub mod mutator;
 pub mod node;
+
 pub mod reducers;
+pub mod store;
 pub mod trees;
 
-pub use crossover::{GraphCrossover, NodeCrossover, TreeCrossover};
-pub use factory::*;
-pub use graphs::{Direction, Graph, GraphChromosome, GraphCodex, GraphNode};
+pub use crossover::{GraphCrossover, TreeCrossover};
+pub use graphs::{
+    Direction, Graph, GraphArchitect, GraphBuilder, GraphChromosome, GraphCodex, GraphIterator,
+    GraphNode,
+};
 pub use mutator::{GraphMutator, NodeMutate, OperationMutator};
-pub use node::{Node, NodeCell, NodeType};
+pub use node::{NodeCell, NodeType};
+
+pub use store::*;
 
 pub use reducers::*;
 

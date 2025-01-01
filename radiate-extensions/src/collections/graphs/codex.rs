@@ -1,8 +1,7 @@
 use crate::collections::graphs::architect::GraphArchitect;
 use crate::collections::graphs::builder::GraphBuilder;
-use crate::collections::{Graph, GraphNode};
+use crate::collections::{Graph, GraphNode, NodeType};
 use crate::graphs::chromosome::GraphChromosome;
-use crate::node::NodeType;
 use crate::ops::Op;
 use crate::{CellStore, Factory, NodeCell};
 use radiate::{Chromosome, Codex, Gene, Genotype};
@@ -21,14 +20,11 @@ impl<C> GraphCodex<C>
 where
     C: NodeCell + Clone + Default,
 {
-    pub fn from_factory(store: &CellStore<C>) -> Self {
-        GraphCodex::from_shape(1, 1, store)
-    }
-
-    pub fn from_shape(input_size: usize, output_size: usize, store: &CellStore<C>) -> Self {
-        let nodes = GraphBuilder::<C>::new(store.clone()).acyclic(input_size, output_size);
-
-        GraphCodex::from_graph(nodes, store)
+    pub fn new() -> Self {
+        GraphCodex {
+            factory: Rc::new(RefCell::new(CellStore::new())),
+            graph: None,
+        }
     }
 
     pub fn from_graph(graph: Graph<C>, factory: &CellStore<C>) -> Self {
@@ -96,9 +92,9 @@ where
             let nodes = graph
                 .iter()
                 .map(|node| {
-                    let temp_node = reader.new_instance((node.index, node.node_type));
+                    let temp_node = reader.new_instance((node.index(), node.node_type()));
 
-                    if temp_node.value.arity() == node.value.arity() {
+                    if temp_node.value().arity() == node.value().arity() {
                         return node.with_allele(temp_node.allele());
                     }
 

@@ -1,6 +1,5 @@
-use crate::node::NodeType;
 use crate::{
-    collections::{Builder, Graph, GraphNode},
+    collections::{Builder, Graph, GraphNode, NodeType},
     NodeCell,
 };
 use std::collections::BTreeMap;
@@ -85,19 +84,19 @@ impl<'a, C: NodeCell + Clone> GraphArchitect<'a, C> {
 
     pub fn attach(&mut self, group: &'a [GraphNode<C>]) {
         for node in group.iter() {
-            if !self.nodes.contains_key(&node.id) {
-                let node_id = &node.id;
+            if !self.nodes.contains_key(&node.id()) {
+                let node_id = &node.id();
 
                 self.nodes.insert(node_id, node);
                 self.node_order.insert(self.node_order.len(), node_id);
 
                 for outgoing in group
                     .iter()
-                    .filter(|item| node.outgoing().contains(&item.index))
+                    .filter(|item| node.outgoing().contains(&item.index()))
                 {
                     self.relationships.push(Relationship {
-                        source_id: &node.id,
-                        target_id: &outgoing.id,
+                        source_id: &node.id(),
+                        target_id: &outgoing.id(),
                     });
                 }
             }
@@ -134,8 +133,8 @@ impl<'a, C: NodeCell + Clone> GraphArchitect<'a, C> {
 
         for (one, two) in one_outputs.into_iter().zip(two_inputs.into_iter()) {
             self.relationships.push(Relationship {
-                source_id: &one.id,
-                target_id: &two.id,
+                source_id: &one.id(),
+                target_id: &two.id(),
             });
         }
     }
@@ -151,8 +150,8 @@ impl<'a, C: NodeCell + Clone> GraphArchitect<'a, C> {
         for targets in two_inputs.chunks(one_outputs.len()) {
             for (source, target) in one_outputs.iter().zip(targets.iter()) {
                 self.relationships.push(Relationship {
-                    source_id: &source.id,
-                    target_id: &target.id,
+                    source_id: &source.id(),
+                    target_id: &target.id(),
                 });
             }
         }
@@ -169,8 +168,8 @@ impl<'a, C: NodeCell + Clone> GraphArchitect<'a, C> {
         for sources in one_outputs.chunks(two_inputs.len()) {
             for (source, target) in sources.iter().zip(two_inputs.iter()) {
                 self.relationships.push(Relationship {
-                    source_id: &source.id,
-                    target_id: &target.id,
+                    source_id: &source.id(),
+                    target_id: &target.id(),
                 });
             }
         }
@@ -183,8 +182,8 @@ impl<'a, C: NodeCell + Clone> GraphArchitect<'a, C> {
         for source in one_outputs {
             for target in two_inputs.iter() {
                 self.relationships.push(Relationship {
-                    source_id: &source.id,
-                    target_id: &target.id,
+                    source_id: &source.id(),
+                    target_id: &target.id(),
                 });
             }
         }
@@ -200,12 +199,12 @@ impl<'a, C: NodeCell + Clone> GraphArchitect<'a, C> {
 
         for (one, two) in one_outputs.into_iter().zip(two_inputs.into_iter()) {
             self.relationships.push(Relationship {
-                source_id: &one.id,
-                target_id: &two.id,
+                source_id: &one.id(),
+                target_id: &two.id(),
             });
             self.relationships.push(Relationship {
-                source_id: &two.id,
-                target_id: &one.id,
+                source_id: &two.id(),
+                target_id: &one.id(),
             });
         }
     }
@@ -230,7 +229,7 @@ impl<'a, C: NodeCell + Clone> GraphArchitect<'a, C> {
             .filter(|(_, node)| {
                 node.outgoing().len() == 1
                     && node.is_recurrent()
-                    && (node.node_type() == &NodeType::Vertex)
+                    && (node.node_type() == NodeType::Vertex)
             })
             .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
             .collect::<Vec<&GraphNode<C>>>();
@@ -268,7 +267,7 @@ impl<'a, C: NodeCell + Clone> GraphArchitect<'a, C> {
             .filter(|(_, node)| {
                 node.outgoing().len() == 1
                     && node.is_recurrent()
-                    && node.node_type() == &NodeType::Vertex
+                    && node.node_type() == NodeType::Vertex
             })
             .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
             .collect::<Vec<&GraphNode<C>>>();
@@ -296,7 +295,7 @@ impl<C: NodeCell + Clone> Builder for GraphArchitect<'_, C> {
 
         for (index, (_, node_id)) in self.node_order.iter().enumerate() {
             let node = self.nodes.get(node_id).unwrap();
-            let new_node = GraphNode::new(index, node.node_type, node.value.clone());
+            let new_node = GraphNode::new(index, node.node_type(), node.value().clone());
 
             new_nodes.push(new_node);
             node_id_index_map.insert(node_id, index);
@@ -310,7 +309,8 @@ impl<C: NodeCell + Clone> Builder for GraphArchitect<'_, C> {
             new_collection.attach(*source_idx, *target_idx);
         }
 
-        new_collection.clone().set_cycles(Vec::new())
+        new_collection.set_cycles(vec![]);
+        new_collection
     }
 }
 

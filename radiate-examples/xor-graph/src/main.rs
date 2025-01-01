@@ -1,10 +1,12 @@
 use radiate::*;
 use radiate_extensions::*;
+use random_provider::set_seed;
 
 const MAX_INDEX: i32 = 500;
 const MIN_SCORE: f32 = 0.01;
 
 fn main() {
+    set_seed(1000);
     let graph_codex = GraphCodex::regression(2, 1).with_output(Op::sigmoid());
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
@@ -26,7 +28,7 @@ fn main() {
         .build();
 
     let result = engine.run(|output| {
-        println!("[ {:?} ]: {:?}", output.index, output.score().as_float());
+        println!("[ {:?} ]: {:?}", output.index, output.score().as_float(),);
         output.index == MAX_INDEX || output.score().as_float() < MIN_SCORE
     });
 

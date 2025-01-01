@@ -1,5 +1,6 @@
-use crate::alter::AlterType;
-use crate::{random_provider, Alter, Chromosome, FloatGene, Gene};
+use crate::{random_provider, Chromosome, FloatGene, Gene};
+
+use super::{AlterAction, Crossover, Alter, EngineCompoment};
 
 /// Intermediate Crossover. This crossover method takes two chromosomes and crosses them
 /// by taking a weighted average of the two alleles. The weight is determined by the `alpha`
@@ -29,18 +30,23 @@ impl IntermediateCrossover {
     }
 }
 
-impl<C: Chromosome<Gene = FloatGene>> Alter<C> for IntermediateCrossover {
+impl EngineCompoment for IntermediateCrossover {
     fn name(&self) -> &'static str {
         "IntermediateCrossover"
     }
+}
+
+impl<C: Chromosome<Gene = FloatGene>> Alter<C> for IntermediateCrossover {
     fn rate(&self) -> f32 {
         self.rate
     }
 
-    fn alter_type(&self) -> AlterType {
-        AlterType::Crossover
+    fn to_alter(self) -> AlterAction<C> {
+        AlterAction::Crossover(Box::new(self))
     }
+}
 
+impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for IntermediateCrossover {
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C) -> i32 {
         let mut cross_count = 0;
 

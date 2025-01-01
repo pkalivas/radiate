@@ -1,5 +1,6 @@
+use super::{Alter, AlterAction, Crossover, EngineCompoment};
 use crate::subset::subset;
-use crate::{Alter, AlterType, Chromosome, PermutationChromosome};
+use crate::{Chromosome, PermutationChromosome};
 
 pub struct PMXCrossover {
     rate: f32,
@@ -11,19 +12,24 @@ impl PMXCrossover {
     }
 }
 
-impl<A: PartialEq + Clone> Alter<PermutationChromosome<A>> for PMXCrossover {
+impl EngineCompoment for PMXCrossover {
     fn name(&self) -> &'static str {
         "PMX Crossover"
     }
+}
 
+impl<A: PartialEq + Clone> Alter<PermutationChromosome<A>> for PMXCrossover {
     fn rate(&self) -> f32 {
         self.rate
     }
 
-    fn alter_type(&self) -> AlterType {
-        AlterType::Crossover
+    fn to_alter(self) -> AlterAction<PermutationChromosome<A>> {
+        AlterAction::Crossover(Box::new(self))
     }
+}
 
+impl<A: PartialEq + Clone> Crossover<PermutationChromosome<A>> for PMXCrossover {
+    #[inline]
     fn cross_chromosomes(
         &self,
         chrom_one: &mut PermutationChromosome<A>,
@@ -37,7 +43,7 @@ impl<A: PartialEq + Clone> Alter<PermutationChromosome<A>> for PMXCrossover {
         let subset = subset(chrom_one.genes.len(), 2);
         let start = subset[0] as usize;
         let end = subset[1] as usize;
-        
+
         let mut offspring_one = chrom_one.genes.clone();
         let mut offspring_two = chrom_two.genes.clone();
 

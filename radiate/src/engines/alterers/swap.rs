@@ -1,5 +1,6 @@
-use crate::alter::AlterType;
-use crate::{random_provider, Alter, Chromosome};
+use super::{AlterAction, Alter, EngineCompoment, Mutate};
+
+use crate::{random_provider, Chromosome};
 
 pub struct SwapMutator {
     rate: f32,
@@ -11,19 +12,23 @@ impl SwapMutator {
     }
 }
 
-impl<C: Chromosome> Alter<C> for SwapMutator {
+impl EngineCompoment for SwapMutator {
     fn name(&self) -> &'static str {
         "SwapMutator"
     }
+}
 
+impl<C: Chromosome> Alter<C> for SwapMutator {
     fn rate(&self) -> f32 {
         self.rate
     }
 
-    fn alter_type(&self) -> AlterType {
-        AlterType::Mutator
+    fn to_alter(self) -> AlterAction<C> {
+        AlterAction::Mutate(Box::new(self))
     }
+}
 
+impl<C: Chromosome> Mutate<C> for SwapMutator {
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut C) -> i32 {
         let mut mutations = 0;

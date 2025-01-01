@@ -1,12 +1,12 @@
-use super::{Graph, GraphChromosome, GraphNode, NodeCell};
+use super::{Factory, Graph, GraphChromosome, GraphNode, NodeCell, NodeType};
 
-use radiate::{random_provider, timer::Timer, Alter, AlterType, Chromosome, Metric, Population};
+use radiate::{random_provider, timer::Timer, Chromosome, Metric, Population};
+use radiate::{Alter, AlterAction, EngineCompoment, Mutate};
 
 use std::sync::Arc;
 
 use crate::ops::operation::Op;
 
-use crate::node::NodeType;
 use radiate::engines::genome::genes::gene::Gene;
 
 pub enum NodeMutate {
@@ -47,24 +47,31 @@ impl GraphMutator {
     }
 }
 
+impl EngineCompoment for GraphMutator {
+    fn name(&self) -> &'static str {
+        "GraphMutator"
+    }
+}
+
 impl<C> Alter<GraphChromosome<C>> for GraphMutator
 where
     C: Clone + PartialEq + Default + NodeCell,
 {
-    fn name(&self) -> &'static str {
-        "GraphMutator"
-    }
-
     fn rate(&self) -> f32 {
         1.0
     }
 
-    fn alter_type(&self) -> AlterType {
-        AlterType::Alterer
+    fn to_alter(self) -> AlterAction<GraphChromosome<C>> {
+        AlterAction::Mutate(Box::new(self))
     }
+}
 
+impl<C> Mutate<GraphChromosome<C>> for GraphMutator
+where
+    C: Clone + PartialEq + Default + NodeCell,
+{
     #[inline]
-    fn alter(
+    fn mutate(
         &self,
         population: &mut Population<GraphChromosome<C>>,
         generation: i32,
@@ -130,22 +137,29 @@ impl OperationMutator {
     }
 }
 
+impl EngineCompoment for OperationMutator {
+    fn name(&self) -> &'static str {
+        "OpMutator"
+    }
+}
+
 impl<T> Alter<GraphChromosome<Op<T>>> for OperationMutator
 where
     T: Clone + PartialEq + Default,
 {
-    fn name(&self) -> &'static str {
-        "OpMutator"
-    }
-
     fn rate(&self) -> f32 {
         self.rate
     }
 
-    fn alter_type(&self) -> AlterType {
-        AlterType::Mutator
+    fn to_alter(self) -> AlterAction<GraphChromosome<Op<T>>> {
+        AlterAction::Mutate(Box::new(self))
     }
+}
 
+impl<T> Mutate<GraphChromosome<Op<T>>> for OperationMutator
+where
+    T: Clone + PartialEq + Default,
+{
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<Op<T>>) -> i32 {
         let mutation_indexes = (0..chromosome.len())
@@ -186,7 +200,15 @@ where
 
                     chromosome.set_gene(i, curreent_node.with_allele(&new_op));
                 }
-                _ => {}
+                _ => {
+                    if let Some(store) = chromosome.factory.as_ref() {
+                        let new_op = store.borrow().new_instance((i, curreent_node.node_type()));
+
+                        if new_op.value().arity() == curreent_node.value().arity() {
+                            chromosome.set_gene(i, curreent_node.with_allele(new_op.allele()));
+                        }
+                    }
+                }
             }
         }
 

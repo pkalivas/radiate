@@ -1,5 +1,6 @@
-use crate::alter::AlterType;
-use crate::{random_provider, Alter, Chromosome, FloatGene, Gene, NumericGene};
+use crate::{random_provider, Chromosome, FloatGene, Gene, NumericGene};
+
+use super::{AlterAction, Alter, EngineCompoment, Mutate};
 
 pub struct GaussianMutator {
     rate: f32,
@@ -21,19 +22,23 @@ impl GaussianMutator {
     }
 }
 
-impl<C: Chromosome<Gene = FloatGene>> Alter<C> for GaussianMutator {
+impl EngineCompoment for GaussianMutator {
     fn name(&self) -> &'static str {
         "GaussianMutator"
     }
+}
 
+impl<C: Chromosome<Gene = FloatGene>> Alter<C> for GaussianMutator {
     fn rate(&self) -> f32 {
         self.rate
     }
 
-    fn alter_type(&self) -> AlterType {
-        AlterType::Mutator
+    fn to_alter(self) -> AlterAction<C> {
+        AlterAction::Mutate(Box::new(self))
     }
+}
 
+impl<C: Chromosome<Gene = FloatGene>> Mutate<C> for GaussianMutator {
     #[inline]
     fn mutate_gene(&self, gene: &C::Gene) -> C::Gene {
         let min = *gene.min() as f64;

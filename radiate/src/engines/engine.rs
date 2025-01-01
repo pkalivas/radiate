@@ -1,13 +1,12 @@
 use super::codexes::Codex;
-use super::engine_context::EngineContext;
+use super::context::EngineContext;
 use super::genome::phenotype::Phenotype;
 use super::thread_pool::ThreadPool;
-use super::MetricSet;
-use crate::engines::alterers::alter::Alter;
+use super::{AlterAction, MetricSet};
 use crate::engines::domain::timer::Timer;
-use crate::engines::genetic_engine_params::GeneticEngineParams;
 use crate::engines::genome::population::Population;
 use crate::engines::objectives::Score;
+use crate::engines::params::GeneticEngineParams;
 use crate::objectives::{Front, Objective};
 use crate::{metric_names, Chromosome, Metric, Select, Valid};
 use std::sync::{Arc, Mutex};
@@ -217,7 +216,11 @@ where
         objective.sort(population);
 
         for alterer in alterer {
-            let alter_metrics = alterer.alter(population, generation);
+            let alter_metrics = match alterer {
+                AlterAction::Mutate(mutator) => mutator.mutate(population, generation),
+                AlterAction::Crossover(crossover) => crossover.crossover(population, generation),
+            };
+
             for metric in alter_metrics {
                 metrics.upsert(metric);
             }
@@ -390,7 +393,7 @@ where
         self.params.offspring_selector.as_ref()
     }
 
-    fn alterer(&self) -> &[Box<dyn Alter<C>>] {
+    fn alterer(&self) -> &[AlterAction<C>] {
         &self.params.alterers
     }
 
