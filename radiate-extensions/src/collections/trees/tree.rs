@@ -55,18 +55,12 @@ mod test {
     fn test_tree() {
         let mut tree_one = Tree::new(TreeNode::with_children(
             Op::add(),
-            vec![
-                TreeNode::new(Op::value(1.0)),
-                TreeNode::new(Op::value(2.0)),
-            ],
+            vec![TreeNode::new(Op::value(1.0)), TreeNode::new(Op::value(2.0))],
         ));
 
         let mut tree_two = Tree::new(TreeNode::with_children(
             Op::mul(),
-            vec![
-                TreeNode::new(Op::value(3.0)),
-                TreeNode::new(Op::value(4.0)),
-            ],
+            vec![TreeNode::new(Op::value(3.0)), TreeNode::new(Op::value(4.0))],
         ));
 
         // Swap the first child of each tree

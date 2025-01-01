@@ -1,10 +1,17 @@
-use crate::node::NodeType;
-use crate::ops::{Arity, Op};
-use crate::{Node, NodeCell};
+use crate::ops::Arity;
+use crate::NodeCell;
 use radiate::{Gene, Valid};
 use std::collections::HashSet;
 use std::fmt::Debug;
 use uuid::Uuid;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum NodeType {
+    Input,
+    Output,
+    Vertex,
+    Edge,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Direction {
@@ -73,23 +80,6 @@ impl<C: NodeCell> GraphNode<C> {
     }
 }
 
-impl<T> Node<Op<T>> for GraphNode<Op<T>>
-where
-    T: Clone + PartialEq,
-{
-    fn arity(&self) -> Arity {
-        self.value.arity()
-    }
-
-    fn cell(&self, _index: usize) -> &Op<T> {
-        &self.value
-    }
-
-    fn cell_mut(&mut self, _index: usize) -> &mut Op<T> {
-        &mut self.value
-    }
-}
-
 impl<C: NodeCell> Gene for GraphNode<C>
 where
     C: Clone + PartialEq + Default,
@@ -133,9 +123,13 @@ impl<C: NodeCell + Clone + PartialEq> Valid for GraphNode<C> {
             NodeType::Input => {
                 self.incoming.is_empty()
                     && !self.outgoing.is_empty()
-                    && self.value.arity() == Arity::Zero
+                    && (self.value.arity() == Arity::Zero || self.value.arity() == Arity::Exact(0))
             }
-            NodeType::Output => !self.incoming.is_empty() && self.value.arity() == Arity::Any,
+            NodeType::Output => {
+                (!self.incoming.is_empty() && self.outgoing.is_empty())
+                    && (self.value.arity() == Arity::Any
+                        || self.incoming.len() == *self.value.arity())
+            }
             NodeType::Vertex => {
                 if self.value.arity() == Arity::Any {
                     !self.incoming.is_empty() && !self.outgoing.is_empty()
@@ -152,7 +146,6 @@ impl<C: NodeCell + Clone + PartialEq> Valid for GraphNode<C> {
 
                 false
             }
-            _ => false,
         }
     }
 }

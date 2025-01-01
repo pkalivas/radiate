@@ -1,4 +1,4 @@
-use super::{Factory, Graph, GraphChromosome, GraphNode, Node, NodeCell};
+use super::{Factory, Graph, GraphChromosome, GraphNode, NodeCell, NodeType};
 
 use radiate::{random_provider, timer::Timer, Chromosome, Metric, Population};
 use radiate::{Alter, AlterAction, EngineCompoment, Mutate};
@@ -7,7 +7,6 @@ use std::sync::Arc;
 
 use crate::ops::operation::Op;
 
-use crate::node::NodeType;
 use radiate::engines::genome::genes::gene::Gene;
 
 pub enum NodeMutate {
@@ -205,7 +204,7 @@ where
                     if let Some(store) = chromosome.factory.as_ref() {
                         let new_op = store.borrow().new_instance((i, curreent_node.node_type));
 
-                        if new_op.arity() == curreent_node.arity() {
+                        if new_op.value.arity() == curreent_node.value.arity() {
                             chromosome.set_gene(i, curreent_node.with_allele(new_op.allele()));
                         }
                     }

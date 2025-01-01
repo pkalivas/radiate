@@ -2,12 +2,11 @@ use std::collections::{HashSet, VecDeque};
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
 
-use super::GraphIterator;
+use super::{GraphIterator, NodeType};
 use crate::collections::graphs::GraphTransaction;
 use crate::collections::{Direction, GraphNode};
 use crate::NodeCell;
 
-use crate::node::NodeType;
 use radiate::{random_provider, Valid};
 
 /// A 'Graph' is simply a 'Vec' of 'GraphNode's.
@@ -330,7 +329,6 @@ impl<C: NodeCell> Graph<C> {
                 .iter()
                 .filter(|node| node.node_type == NodeType::Edge)
                 .collect::<Vec<&GraphNode<C>>>(),
-            _ => panic!("Invalid node type."),
         };
 
         if genes.is_empty() {
@@ -405,5 +403,32 @@ impl<C: NodeCell + Debug + PartialEq + Clone> Debug for Graph<C> {
             write!(f, "  {:?},\n", node)?;
         }
         write!(f, "}}")
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+
+    #[test]
+    fn test_graph() {
+        let mut graph = Graph::<i32>::default();
+
+        graph.attach(0, 2).attach(2, 1);
+
+        assert_eq!(graph.len(), 3);
+        assert_eq!(graph.get(0).outgoing.len(), 1);
+        assert_eq!(graph.get(1).incoming.len(), 1);
+        assert_eq!(graph.get(2).outgoing.len(), 1);
+        assert_eq!(graph.get(2).incoming.len(), 1);
+
+        graph.detach(0, 2).detach(2, 1);
+
+        assert_eq!(graph.len(), 3);
+        assert_eq!(graph.get(0).outgoing.len(), 0);
+        assert_eq!(graph.get(1).incoming.len(), 0);
+        assert_eq!(graph.get(2).outgoing.len(), 0);
+        assert_eq!(graph.get(2).incoming.len(), 0);
     }
 }

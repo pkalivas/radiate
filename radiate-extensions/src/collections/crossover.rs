@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
-use super::{NodeCell, TreeChromosome};
+use super::{NodeCell, NodeType, TreeChromosome};
 use crate::collections::GraphChromosome;
-use crate::node::NodeType;
 
 use radiate::engines::genome::*;
 use radiate::timer::Timer;

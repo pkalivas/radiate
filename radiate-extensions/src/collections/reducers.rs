@@ -1,5 +1,5 @@
-use super::{Graph, GraphNode, Tree, TreeNode};
-use crate::node::NodeType;
+use super::{Graph, GraphNode, NodeType, Tree, TreeNode};
+
 use crate::ops::operation::Op;
 
 pub trait Reduce<T> {
@@ -152,7 +152,7 @@ where
     }
 
     #[inline]
-    pub fn eval(&mut self,  node: &GraphNode<Op<T>>) {
+    pub fn eval(&mut self, node: &GraphNode<Op<T>>) {
         if self.pending_idx != self.input_size {
             panic!("Tracer is not ready to be evaluated.");
         }

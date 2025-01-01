@@ -92,12 +92,24 @@ impl<'a, C: Clone + Default + PartialEq + NodeCell> GraphTransaction<'a, C> {
         }
     }
 
-    pub fn affected(&self) -> &HashSet<usize> {
-        &self.effects
-    }
-
     pub fn is_valid(&self) -> bool {
         self.graph.is_valid()
+    }
+
+    pub fn set_cycles(&mut self) {
+        let effects = self.effects.clone();
+
+        for idx in effects {
+            let node_cycles = self.graph.get_cycles(idx);
+
+            if node_cycles.is_empty() {
+                self.change_direction(idx, Direction::Forward);
+            } else {
+                for cycle_idx in node_cycles {
+                    self.change_direction(cycle_idx, Direction::Backward);
+                }
+            }
+        }
     }
 }
 

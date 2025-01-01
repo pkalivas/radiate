@@ -5,7 +5,9 @@ const MAX_INDEX: i32 = 500;
 const MIN_SCORE: f32 = 0.01;
 
 fn main() {
-    let graph_codex = GraphCodex::regression(1, 1).with_output(Op::sigmoid());
+    let graph_codex = GraphCodex::regression(1, 1)
+        .with_output(Op::sigmoid())
+        .set_nodes(|arc, _| arc.acyclic(1, 1));
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 

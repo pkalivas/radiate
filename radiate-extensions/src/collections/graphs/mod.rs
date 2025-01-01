@@ -12,5 +12,5 @@ pub use chromosome::GraphChromosome;
 pub use codex::GraphCodex;
 pub use graph::Graph;
 pub use iter::GraphIterator;
-pub use node::{Direction, GraphNode};
+pub use node::{Direction, GraphNode, NodeType};
 pub use transaction::GraphTransaction;

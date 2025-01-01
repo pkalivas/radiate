@@ -1,6 +1,7 @@
+use radiate::Valid;
+
 use super::transaction::GraphTransaction;
-use super::{Direction, Graph};
-use crate::node::NodeType;
+use super::{Graph, NodeType};
 use crate::ops::Arity;
 use crate::{CellStore, Factory, GraphMutator, NodeCell};
 
@@ -152,8 +153,8 @@ impl GraphMutator {
             let outgoing_idx = *source_outgoing.iter().next().unwrap();
 
             if target_is_locked {
-                let mut new_node = factory.new_instance((new_node_index, *node_type));
-                new_node.direction = Direction::Backward;
+                let new_node = factory.new_instance((new_node_index, *node_type));
+
                 let new_source_edge =
                     factory.new_instance((new_source_edge_index, source_node_type));
                 let new_target_edge =
@@ -170,8 +171,8 @@ impl GraphMutator {
                 transaction.attach(new_target_edge_index, outgoing_idx);
                 transaction.detach(incoming_idx, outgoing_idx);
             } else if !source_is_recurrent {
-                let mut new_node = factory.new_instance((new_node_index, *node_type));
-                new_node.direction = Direction::Backward;
+                let new_node = factory.new_instance((new_node_index, *node_type));
+
                 let new_source_edge =
                     factory.new_instance((new_source_edge_index, source_node_type));
                 let new_target_edge =
@@ -190,8 +191,8 @@ impl GraphMutator {
                 transaction.attach(recurrent_edge_index, new_node_index);
                 transaction.attach(new_node_index, recurrent_edge_index);
             } else {
-                let mut new_node = factory.new_instance((new_node_index, *node_type));
-                new_node.direction = Direction::Backward;
+                let new_node = factory.new_instance((new_node_index, *node_type));
+
                 let new_source_edge =
                     factory.new_instance((new_source_edge_index, source_node_type));
                 let new_target_edge =
@@ -216,8 +217,8 @@ impl GraphMutator {
                 return false;
             }
 
-            let mut new_node = factory.new_instance((new_node_index, *node_type));
-            new_node.direction = Direction::Backward;
+            let new_node = factory.new_instance((new_node_index, *node_type));
+
             transaction.add_node(new_node);
 
             transaction.attach(source_idx, new_node_index);
@@ -247,11 +248,7 @@ impl GraphMutator {
             return false;
         }
 
-        let mut new_node = factory.new_instance((transaction.as_ref().len(), *node_type));
-
-        if is_recurrent {
-            new_node.direction = Direction::Backward;
-        }
+        let new_node = factory.new_instance((transaction.as_ref().len(), *node_type));
 
         let node_index = transaction.add_node(new_node);
         transaction.attach(source_node, node_index);
@@ -274,7 +271,8 @@ impl GraphMutator {
 
         match arity {
             Arity::Any | Arity::Zero => {
-                return true;
+                transaction.set_cycles();
+                return transaction.as_ref().is_valid();
             }
             Arity::Exact(arity) => {
                 for _ in 0..arity - 1 {
@@ -290,20 +288,7 @@ impl GraphMutator {
             }
         }
 
-        let effects = transaction.affected().clone();
-
-        for idx in effects {
-            let node_cycles = transaction.as_ref().get_cycles(idx);
-
-            if node_cycles.is_empty() {
-                transaction.change_direction(idx, Direction::Forward);
-            } else {
-                for cycle_idx in node_cycles {
-                    transaction.change_direction(cycle_idx, Direction::Backward);
-                }
-            }
-        }
-
-        true
+        transaction.set_cycles();
+        transaction.as_ref().is_valid()
     }
 }

@@ -1,8 +1,7 @@
 use crate::collections::graphs::architect::GraphArchitect;
 use crate::collections::graphs::builder::GraphBuilder;
-use crate::collections::{Graph, GraphNode};
+use crate::collections::{Graph, GraphNode, NodeType};
 use crate::graphs::chromosome::GraphChromosome;
-use crate::node::NodeType;
 use crate::ops::Op;
 use crate::{CellStore, Factory, NodeCell};
 use radiate::{Chromosome, Codex, Gene, Genotype};

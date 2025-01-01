@@ -1,6 +1,5 @@
-use crate::node::NodeType;
 use crate::{
-    collections::{Builder, Graph, GraphNode},
+    collections::{Builder, Graph, GraphNode, NodeType},
     NodeCell,
 };
 use std::collections::BTreeMap;
