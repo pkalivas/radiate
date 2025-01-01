@@ -109,6 +109,20 @@ impl From<Vec<bool>> for BitChromosome {
     }
 }
 
+impl From<&[u8]> for BitChromosome {
+    fn from(alleles: &[u8]) -> Self {
+        let genes = alleles.iter().map(BitGene::from).collect();
+        BitChromosome { genes }
+    }
+}
+
+impl From<Vec<u8>> for BitChromosome {
+    fn from(alleles: Vec<u8>) -> Self {
+        let genes = alleles.iter().map(BitGene::from).collect();
+        BitChromosome { genes }
+    }
+}
+
 /// A `Chromosome` that contains `CharGenes`.
 #[derive(Clone, PartialEq)]
 pub struct CharChromosome {

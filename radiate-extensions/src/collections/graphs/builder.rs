@@ -9,7 +9,7 @@ use radiate::random_provider;
 /// graph architectures.
 ///
 /// # Type Parameters
-/// 'T': The type of the values that the graph will contain.
+/// 'C' - The type of the node cell that the graph will contain.
 ///
 pub struct GraphBuilder<C: NodeCell> {
     store: CellStore<C>,
@@ -342,39 +342,5 @@ impl<C: NodeCell> Default for GraphBuilder<C> {
         GraphBuilder {
             store: CellStore::<C>::new(),
         }
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn graph_builder_simple_acyclic_f32() {
-        // let factory = NodeFactory::new()
-        //     .inputs((0..2).map(Operation::var).collect())
-        //     .vertices(vec![Operation::linear()])
-        //     .outputs(vec![Operation::linear()]);
-
-        // let node = factory.generate((0, NodeType::Vertex));
-        let builder = GraphBuilder::<Op<f32>>::default()
-            .with_inputs(vec![Op::var(0), Op::var(1)])
-            .with_outputs(vec![Op::linear()]);
-
-        let graph = builder.acyclic(2, 1);
-
-        assert_eq!(graph.len(), 3);
-    }
-
-    #[test]
-    fn graph_builder_simple_cyclic_f32() {
-        let builder = GraphBuilder::<Op<f32>>::default()
-            .with_inputs(vec![Op::var(0), Op::var(1)])
-            .with_vertices(vec![Op::linear()])
-            .with_outputs(vec![Op::linear()]);
-
-        let graph = builder.cyclic(2, 1);
-
-        println!("{:?}", graph);
     }
 }

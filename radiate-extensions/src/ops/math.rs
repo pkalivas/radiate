@@ -441,7 +441,8 @@ pub fn get_activation_operations() -> Vec<Op<f32>> {
 
 /// Get a list of all the operations.
 pub fn get_all_operations() -> Vec<Op<f32>> {
-    let mut operations = get_math_operations();
-    operations.extend(get_activation_operations());
-    operations
+    get_math_operations()
+        .into_iter()
+        .chain(get_activation_operations())
+        .collect()
 }

@@ -1,6 +1,5 @@
 pub mod alter;
 pub mod arithmetic;
-pub mod bitflip;
 pub mod crossover;
 pub mod gaussian;
 pub mod intermediate;
@@ -17,7 +16,6 @@ pub mod uniform;
 
 pub use alter::*;
 pub use arithmetic::*;
-pub use bitflip::*;
 pub use crossover::*;
 pub use gaussian::*;
 pub use intermediate::*;

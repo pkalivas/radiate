@@ -30,7 +30,7 @@ where
 
 impl<'a, C: Clone + Default + PartialEq + NodeCell> GraphTransaction<'a, C> {
     pub fn new(graph: &'a mut Graph<C>) -> Self {
-        Self {
+        GraphTransaction {
             graph,
             steps: Vec::new(),
             effects: HashSet::new(),
