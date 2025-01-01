@@ -131,7 +131,6 @@ where
     fn crossover(
         &self,
         population: &mut Population<GraphChromosome<C>>,
-
         generation: i32,
     ) -> Vec<Metric> {
         let timer = Timer::new();
@@ -141,7 +140,6 @@ where
             if random_provider::random::<f32>() < self.crossover_rate
                 && population.len() > NUM_PARENTS
             {
-                // let parent_indexes = GraphCrossover::<C>::distinct_subset(population.len());
                 let parent_indexes = subset::individual_indexes(index, population.len(), 2);
 
                 if let Some(phenotype) = self.cross(population, &parent_indexes, generation) {

@@ -1,10 +1,12 @@
 use radiate::*;
 use radiate_extensions::*;
+use random_provider::set_seed;
 
 const MAX_INDEX: i32 = 500;
 const MIN_SCORE: f32 = 0.01;
 
 fn main() {
+    set_seed(100);
     let graph_codex = GraphCodex::regression(1, 1)
         .with_output(Op::sigmoid())
         .set_nodes(|arc, _| arc.acyclic(1, 1));
@@ -14,6 +16,7 @@ fn main() {
     let engine = GeneticEngine::from_codex(&graph_codex)
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4_f32))
+        .survivor_selector(TournamentSelector::new(4))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.1, 0.05),

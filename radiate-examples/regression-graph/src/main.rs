@@ -15,6 +15,7 @@ fn main() {
         .minimizing()
         .num_threads(10)
         .offspring_selector(RouletteSelector::new())
+        .survivor_selector(TournamentSelector::new(4))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),

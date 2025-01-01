@@ -168,7 +168,6 @@ impl<C: NodeCell + Clone + PartialEq> Valid for GraphNode<C> {
 
                 false
             }
-            _ => false,
         }
     }
 }

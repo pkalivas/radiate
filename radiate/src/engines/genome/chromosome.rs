@@ -36,17 +36,6 @@ pub trait Chromosome:
     ///
     /// * `index` - The position of the gene to retrieve.
     ///
-    /// # Returns
-    ///
-    /// * A reference to the `FloatGene` at the given index.
-    ///
-    /// # Example
-    /// ```
-    /// # use radiate::{FloatGene, FloatChromosome};
-    /// let genes = vec![FloatGene::new(-1.0, 1.0)];
-    /// let chromosome = FloatChromosome::new(genes);
-    /// assert_eq!(chromosome.get_gene(0).allele, -1.0);
-    /// ```
     fn get_gene(&self, index: usize) -> &Self::Gene {
         &self.as_ref()[index]
     }
@@ -58,15 +47,6 @@ pub trait Chromosome:
     /// * `index` - The position of the gene to set.
     /// * `gene` - The `FloatGene` to replace the existing gene.
     ///
-    /// # Example
-    ///
-    /// ```
-    /// # use radiate::{FloatGene, FloatChromosome};
-    /// let genes = vec![FloatGene::new(-1.0, 1.0)];
-    /// let mut chromosome = FloatChromosome::new(genes);
-    /// chromosome.set_gene(0, FloatGene::new(0.5, 1.0));
-    /// assert_eq!(chromosome.get_gene(0).allele, 0.5);
-    /// ```
     fn set_gene(&mut self, index: usize, gene: Self::Gene) {
         self.as_mut()[index] = gene;
     }

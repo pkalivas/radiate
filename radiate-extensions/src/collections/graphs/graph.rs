@@ -299,7 +299,7 @@ impl<C: NodeCell> Graph<C> {
     /// A source node can be either an input or a vertex node.
     #[inline]
     pub fn random_source_node(&self) -> &GraphNode<C> {
-        self.random_node_of_type(vec![NodeType::Input, NodeType::Vertex])
+        self.random_node_of_type(vec![NodeType::Input, NodeType::Vertex, NodeType::Edge])
     }
     /// Get a random node that can be used as a target node for a connection.
     /// A target node can be either an output or a vertex node.
@@ -336,7 +336,6 @@ impl<C: NodeCell> Graph<C> {
                 .iter()
                 .filter(|node| node.node_type() == NodeType::Edge)
                 .collect::<Vec<&GraphNode<C>>>(),
-            _ => panic!("Invalid node type."),
         };
 
         if genes.is_empty() {
