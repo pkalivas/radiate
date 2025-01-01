@@ -6,7 +6,7 @@ use crate::node::NodeType;
 
 use radiate::engines::genome::*;
 use radiate::timer::Timer;
-use radiate::{random_provider, AlterAction, Crossover, Alter, EngineCompoment, Metric};
+use radiate::{random_provider, subset, Alter, AlterAction, Crossover, EngineCompoment, Metric};
 
 const NUM_PARENTS: usize = 2;
 
@@ -142,7 +142,8 @@ where
             if random_provider::random::<f32>() < self.crossover_rate
                 && population.len() > NUM_PARENTS
             {
-                let parent_indexes = GraphCrossover::<C>::distinct_subset(population.len());
+                // let parent_indexes = GraphCrossover::<C>::distinct_subset(population.len());
+                let parent_indexes = subset::individual_indexes(index, population.len(), 2);
 
                 if let Some(phenotype) = self.cross(population, &parent_indexes, generation) {
                     new_phenotypes.insert(index, phenotype);

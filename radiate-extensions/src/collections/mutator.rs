@@ -1,4 +1,4 @@
-use super::{Graph, GraphChromosome, GraphNode, NodeCell};
+use super::{Factory, Graph, GraphChromosome, GraphNode, Node, NodeCell};
 
 use radiate::{random_provider, timer::Timer, Chromosome, Metric, Population};
 use radiate::{Alter, AlterAction, EngineCompoment, Mutate};
@@ -201,7 +201,15 @@ where
 
                     chromosome.set_gene(i, curreent_node.with_allele(&new_op));
                 }
-                _ => {}
+                _ => {
+                    if let Some(store) = chromosome.factory.as_ref() {
+                        let new_op = store.borrow().new_instance((i, curreent_node.node_type));
+
+                        if new_op.arity() == curreent_node.arity() {
+                            chromosome.set_gene(i, curreent_node.with_allele(new_op.allele()));
+                        }
+                    }
+                }
             }
         }
 
