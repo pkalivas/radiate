@@ -1,5 +1,5 @@
-use crate::alter::AlterType;
-use crate::{random_provider, Alter, Chromosome};
+use super::{AlterAction, CrossoverAction, EngineAlterer, EngineCompoment};
+use crate::{random_provider, Chromosome};
 
 pub struct ShuffleCrossover {
     rate: f32,
@@ -11,20 +11,23 @@ impl ShuffleCrossover {
     }
 }
 
-impl<C: Chromosome> Alter<C> for ShuffleCrossover {
+impl EngineCompoment for ShuffleCrossover {
     fn name(&self) -> &'static str {
         "ShuffleCrossover"
     }
+}
 
+impl<C: Chromosome> EngineAlterer<C> for ShuffleCrossover {
     fn rate(&self) -> f32 {
         self.rate
     }
 
-    fn alter_type(&self) -> AlterType {
-        AlterType::Crossover
+    fn to_alter(self) -> AlterAction<C> {
+        AlterAction::Crossover(Box::new(self))
     }
+}
 
-    #[inline]
+impl<C: Chromosome> CrossoverAction<C> for ShuffleCrossover {
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C) -> i32 {
         let length = std::cmp::min(chrom_one.len(), chrom_two.len());
         if length < 2 {
@@ -47,3 +50,40 @@ impl<C: Chromosome> Alter<C> for ShuffleCrossover {
         1
     }
 }
+
+// impl<C: Chromosome> Alter<C> for ShuffleCrossover {
+//     fn name(&self) -> &'static str {
+//         "ShuffleCrossover"
+//     }
+
+//     fn rate(&self) -> f32 {
+//         self.rate
+//     }
+
+//     fn alter_type(&self) -> AlterType {
+//         AlterType::Crossover
+//     }
+
+//     #[inline]
+//     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C) -> i32 {
+//         let length = std::cmp::min(chrom_one.len(), chrom_two.len());
+//         if length < 2 {
+//             return 0;
+//         }
+
+//         let mut indices: Vec<usize> = (0..length).collect();
+//         random_provider::shuffle(&mut indices);
+
+//         let temp_chrom_one = chrom_one.clone();
+//         let temp_chrom_two = chrom_two.clone();
+
+//         for (i, &index) in indices.iter().enumerate() {
+//             if i % 2 == 0 {
+//                 chrom_one.set_gene(index, temp_chrom_two.get_gene(index).clone());
+//                 chrom_two.set_gene(index, temp_chrom_one.get_gene(index).clone());
+//             }
+//         }
+
+//         1
+//     }
+// }

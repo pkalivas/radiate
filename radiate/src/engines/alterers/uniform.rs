@@ -1,13 +1,11 @@
-use crate::alter::AlterType;
-use crate::Alter;
 use crate::Chromosome;
 
-use super::AltererTwo;
-use super::Crossover;
-use super::EngineComponent;
-use super::Mutator;
+use super::AlterAction;
+use super::CrossoverAction;
+use super::EngineAlterer;
+use super::EngineCompoment;
+use super::MutateAction;
 
-#[derive(Clone)]
 pub struct UniformCrossover {
     pub rate: f32,
 }
@@ -18,20 +16,6 @@ impl UniformCrossover {
     }
 }
 
-impl<C: Chromosome> Alter<C> for UniformCrossover {
-    fn name(&self) -> &'static str {
-        "UniformCrossover"
-    }
-    fn rate(&self) -> f32 {
-        self.rate
-    }
-
-    fn alter_type(&self) -> AlterType {
-        AlterType::Crossover
-    }
-}
-
-#[derive(Clone)]
 pub struct UniformMutator {
     pub rate: f32,
 }
@@ -42,52 +26,38 @@ impl UniformMutator {
     }
 }
 
-impl<C: Chromosome> Alter<C> for UniformMutator {
-    fn name(&self) -> &'static str {
-        "UniformMutator"
-    }
-
-    fn rate(&self) -> f32 {
-        self.rate
-    }
-
-    fn alter_type(&self) -> AlterType {
-        AlterType::Mutator
-    }
-}
-
-impl EngineComponent for UniformMutator {
+impl EngineCompoment for UniformMutator {
     fn name(&self) -> &'static str {
         "UniformMutator"
     }
 }
 
-impl AltererTwo for UniformMutator {
+impl<C: Chromosome> EngineAlterer<C> for UniformMutator {
     fn rate(&self) -> f32 {
         self.rate
     }
 
-    fn alter_type(&self) -> AlterType {
-        AlterType::Crossover
+    fn to_alter(self) -> AlterAction<C> {
+        AlterAction::Mutate(Box::new(self))
     }
 }
 
-impl<C: Chromosome> Mutator<C> for UniformMutator {}
+impl<C: Chromosome> MutateAction<C> for UniformMutator {}
 
-impl<C: Chromosome> Crossover<C> for UniformCrossover {}
+impl<C: Chromosome> EngineAlterer<C> for UniformCrossover {
+    fn rate(&self) -> f32 {
+        self.rate
+    }
 
-impl EngineComponent for UniformCrossover {
+    fn to_alter(self) -> AlterAction<C> {
+        AlterAction::Crossover(Box::new(self))
+    }
+}
+
+impl EngineCompoment for UniformCrossover {
     fn name(&self) -> &'static str {
         "UniformCrossover"
     }
 }
 
-impl AltererTwo for UniformCrossover {
-    fn rate(&self) -> f32 {
-        self.rate
-    }
-
-    fn alter_type(&self) -> AlterType {
-        AlterType::Crossover
-    }
-}
+impl<C: Chromosome> CrossoverAction<C> for UniformCrossover {}

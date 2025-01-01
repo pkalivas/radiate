@@ -4,21 +4,9 @@ fn main() {
     let target = "Hello, Radiate!";
     let codex = CharCodex::new(1, target.len());
 
-    let temp: Vec<AlterWrapper<CharChromosome>> = alter_wrapper![
-        UniformMutator::new(0.1),
-        UniformCrossover::new(0.5),
-        // ShuffleCrossover::new(0.5),
-        // ScrambleMutator::new(0.5),
-        // SwapMutator::new(0.5)
-    ];
-
     let engine = GeneticEngine::from_codex(&codex)
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .survivor_selector(TournamentSelector::new(3))
-        .wrappers(alter_wrapper!(
-            UniformMutator::new(0.1),
-            UniformCrossover::new(0.5)
-        ))
         .alter(alters![
             UniformMutator::new(0.1),
             UniformCrossover::new(0.5)

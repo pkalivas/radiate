@@ -15,14 +15,14 @@ fn main() {
         .minimizing()
         .num_threads(10)
         .offspring_selector(RouletteSelector::new())
-        .alter(alters!(
-            GraphCrossover::new(0.5, 0.5),
-            OperationMutator::new(0.07, 0.05),
-            GraphMutator::new(vec![
-                NodeMutate::Forward(NodeType::Edge, 0.03),
-                NodeMutate::Forward(NodeType::Vertex, 0.03),
-            ]),
-        ))
+        // .alter(alters!(
+        //     GraphCrossover::new(0.5, 0.5),
+        //     OperationMutator::new(0.07, 0.05),
+        //     GraphMutator::new(vec![
+        //         NodeMutate::Forward(NodeType::Edge, 0.03),
+        //         NodeMutate::Forward(NodeType::Vertex, 0.03),
+        //     ]),
+        // ))
         .fitness_fn(move |genotype: Graph<Op<f32>>| {
             let mut reducer = GraphReducer::new(&genotype);
             Score::from_f32(regression.error(|input| reducer.reduce(input)))

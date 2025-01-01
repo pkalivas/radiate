@@ -1,5 +1,3 @@
-use crate::{AlterType, AlterWrapper, AltererTwo, Chromosome, Mutator};
-
 #[macro_export]
 macro_rules! add_impl {
     ($($t:ty),*) => {
@@ -187,71 +185,11 @@ macro_rules! impl_integer {
 macro_rules! alters {
     ($($struct_instance:expr),* $(,)?) => {
         {
-            let mut vec: Vec<Box<dyn Alter<_>>> = Vec::new();
+            let mut vec: Vec<AlterAction<_>> = Vec::new();
             $(
-                vec.push(Box::new($struct_instance));
+                vec.push($struct_instance.to_alter());
             )*
             vec
         }
     };
-}
-// #[macro_export]
-// macro_rules! alter_wrapper {
-//     ($($struct_instance:expr),* $(,)?) => {{
-//         let mut vec = Vec::new();
-
-//         $(
-//             match radiate::AltererTwo::alter_type($struct_instance) {
-//                 AlterType::Mutator => {
-//                     // Explicitly box the instance as a Mutator trait object
-//                     let mutator: Box<dyn Mutator<_>> = Box::new($struct_instance as dyn Mutator<_>);
-//                     vec.push(AlterWrapper::Mutator(mutator));
-//                 },
-//                 AlterType::Crossover => {
-//                     // Explicitly box the instance as a Crossover trait object
-//                     let crossover: Box<dyn Crossover<_>> = Box::new($struct_instance);
-//                     vec.push(AlterWrapper::Crossover(crossover));
-//                 },
-//                 _ => {
-//                     panic!("Unsupported alter type");
-//                 }
-//             }
-//         )*
-
-//         vec
-//     }};
-// }
-#[macro_export]
-macro_rules! alter_wrapper {
-    ($($struct_instance:expr),* $(,)?) => {{
-        let mut vec = Vec::new();
-
-        $(
-            {
-                // Box the instance as AltererTwo
-                let boxed: Box<dyn radiate::AltererTwo> = Box::new($struct_instance);
-
-                // Match on the alter type and transmute to the appropriate type
-                match boxed.alter_type() {
-                    AlterType::Mutator => {
-                        unsafe {
-                            let mutator: Box<dyn radiate::Mutator<_>> = std::mem::transmute(boxed);
-                            vec.push(radiate::AlterWrapper::Mutator(mutator));
-                        }
-                    },
-                    AlterType::Crossover => {
-                        unsafe {
-                            let crossover: Box<dyn radiate::Crossover<_>> = std::mem::transmute(boxed);
-                            vec.push(radiate::AlterWrapper::Crossover(crossover));
-                        }
-                    },
-                    _ => {
-                        panic!("Unsupported alter type");
-                    }
-                }
-            }
-        )*
-
-        vec
-    }};
 }
