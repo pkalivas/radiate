@@ -1,27 +1,31 @@
 use radiate::*;
 use radiate_extensions::*;
+use random_provider::set_seed;
 
 const MAX_INDEX: i32 = 500;
 const MIN_SCORE: f32 = 0.01;
 
 fn main() {
-    let graph_codex = GraphCodex::regression(1, 1).set_outputs(vec![Operation::sigmoid()]);
-    // .set_nodes(|arc, _| arc.acyclic(1, 1));
+    set_seed(100);
+    let graph_codex = GraphCodex::regression(1, 1)
+        .with_output(Op::sigmoid())
+        .set_nodes(|arc, _| arc.acyclic(1, 1));
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 
     let engine = GeneticEngine::from_codex(&graph_codex)
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4_f32))
+        .survivor_selector(TournamentSelector::new(4))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
-            NodeMutator::new(0.01, 0.05),
+            OperationMutator::new(0.1, 0.05),
             GraphMutator::new(vec![
                 NodeMutate::Recurrent(NodeType::Edge, 0.05),
                 NodeMutate::Recurrent(NodeType::Vertex, 0.05),
             ]),
         ))
-        .fitness_fn(move |genotype: Graph<f32>| {
+        .fitness_fn(move |genotype: Graph<Op<f32>>| {
             let mut reducer = GraphReducer::new(&genotype);
             Score::from_f32(regression.error(|input| reducer.reduce(input)))
         })
@@ -35,7 +39,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<GraphChromosome<f32>, Graph<f32>>) {
+fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     let mut reducer = GraphReducer::new(&result.best);
     for sample in get_sample_set().get_samples().iter() {
         let output = reducer.reduce(&sample.1);
@@ -48,7 +52,7 @@ fn display(result: &EngineContext<GraphChromosome<f32>, Graph<f32>>) {
     println!("{:?}", result)
 }
 
-fn get_sample_set() -> DataSet<f32> {
+fn get_sample_set() -> DataSet {
     let inputs = vec![
         vec![0.0],
         vec![0.0],

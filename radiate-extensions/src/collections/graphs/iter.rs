@@ -1,4 +1,7 @@
-use crate::collections::{Graph, GraphNode};
+use crate::{
+    collections::{Graph, GraphNode},
+    NodeCell,
+};
 use std::collections::VecDeque;
 
 /// `GraphIterator` is an iterator that traverses a `Graph` in sudo-topological order. I say
@@ -6,15 +9,15 @@ use std::collections::VecDeque;
 /// that allows for recurrent connections. This iterator is used by the `GraphReducer` to evaluate
 /// the nodes in a `Graph` in the correct order.
 ///
-pub struct GraphIterator<'a, T> {
-    pub graph: &'a Graph<T>,
+pub struct GraphIterator<'a, C: NodeCell> {
+    pub graph: &'a Graph<C>,
     pub completed: Vec<bool>,
     pub index_queue: VecDeque<usize>,
     pub pending_index: usize,
 }
 
-impl<'a, T> GraphIterator<'a, T> {
-    pub fn new(graph: &'a Graph<T>) -> Self {
+impl<'a, C: NodeCell> GraphIterator<'a, C> {
+    pub fn new(graph: &'a Graph<C>) -> Self {
         Self {
             graph,
             completed: vec![false; graph.len()],
@@ -24,8 +27,8 @@ impl<'a, T> GraphIterator<'a, T> {
     }
 }
 
-impl<'a, T> Iterator for GraphIterator<'a, T> {
-    type Item = &'a GraphNode<T>;
+impl<'a, C: NodeCell> Iterator for GraphIterator<'a, C> {
+    type Item = &'a GraphNode<C>;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
@@ -36,19 +39,19 @@ impl<'a, T> Iterator for GraphIterator<'a, T> {
             }
 
             let node = self.graph.get(index);
-            let mut degree = node.incoming.len();
-            for incoming_index in &node.incoming {
+            let mut degree = node.incoming().len();
+            for incoming_index in node.incoming() {
                 let incoming_node = self.graph.get(*incoming_index);
-                if self.completed[incoming_node.index] || incoming_node.is_recurrent() {
+                if self.completed[incoming_node.index()] || incoming_node.is_recurrent() {
                     degree -= 1;
                 }
             }
 
             if degree == 0 {
-                self.completed[node.index] = true;
-                self.index_queue.push_back(node.index);
+                self.completed[node.index()] = true;
+                self.index_queue.push_back(node.index());
             } else {
-                min_pending_index = std::cmp::min(min_pending_index, node.index);
+                min_pending_index = std::cmp::min(min_pending_index, node.index());
             }
         }
 

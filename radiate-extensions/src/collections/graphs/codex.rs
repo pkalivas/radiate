@@ -1,36 +1,33 @@
 use crate::collections::graphs::architect::GraphArchitect;
 use crate::collections::graphs::builder::GraphBuilder;
-use crate::collections::{Graph, GraphNode, NodeFactory, NodeType};
+use crate::collections::{Graph, GraphNode, NodeType};
 use crate::graphs::chromosome::GraphChromosome;
-use crate::ops::Operation;
-use crate::Factory;
+use crate::ops::Op;
+use crate::{CellStore, Factory, NodeCell};
 use radiate::{Chromosome, Codex, Gene, Genotype};
 use std::cell::RefCell;
 use std::rc::Rc;
 
-pub struct GraphCodex<T>
+pub struct GraphCodex<C>
 where
-    T: Clone + PartialEq + Default,
+    C: NodeCell,
 {
-    factory: Rc<RefCell<NodeFactory<T>>>,
-    graph: Option<Graph<T>>,
+    factory: Rc<RefCell<CellStore<C>>>,
+    graph: Option<Graph<C>>,
 }
 
-impl<T> GraphCodex<T>
+impl<C> GraphCodex<C>
 where
-    T: Clone + PartialEq + Default,
+    C: NodeCell + Clone + Default,
 {
-    pub fn from_factory(factory: &NodeFactory<T>) -> Self {
-        GraphCodex::from_shape(1, 1, factory)
+    pub fn new() -> Self {
+        GraphCodex {
+            factory: Rc::new(RefCell::new(CellStore::new())),
+            graph: None,
+        }
     }
 
-    pub fn from_shape(input_size: usize, output_size: usize, factory: &NodeFactory<T>) -> Self {
-        let nodes = GraphBuilder::<T>::new(factory).acyclic(input_size, output_size);
-
-        GraphCodex::from_graph(nodes, factory)
-    }
-
-    pub fn from_graph(graph: Graph<T>, factory: &NodeFactory<T>) -> Self {
+    pub fn from_graph(graph: Graph<C>, factory: &CellStore<C>) -> Self {
         GraphCodex {
             factory: Rc::new(RefCell::new(factory.clone())),
             graph: Some(graph),
@@ -39,10 +36,10 @@ where
 
     pub fn set_nodes<F>(mut self, node_fn: F) -> Self
     where
-        F: Fn(&GraphBuilder<T>, GraphArchitect<T>) -> Graph<T>,
+        F: Fn(&GraphBuilder<C>, GraphArchitect<C>) -> Graph<C>,
     {
         let graph = node_fn(
-            &GraphBuilder::new(&self.factory.borrow()),
+            &GraphBuilder::new(self.factory.borrow().clone()),
             GraphArchitect::new(),
         );
 
@@ -50,75 +47,70 @@ where
         self
     }
 
-    pub fn set_factory(mut self, factory: &NodeFactory<T>) -> Self {
-        self.factory = Rc::new(RefCell::new(factory.clone()));
-        self
-    }
-
-    pub fn set_vertices(self, vertices: Vec<Operation<T>>) -> Self {
+    pub fn with_vertices(self, vertices: Vec<C>) -> Self {
         self.set_values(NodeType::Vertex, vertices);
         self
     }
 
-    pub fn set_edges(self, edges: Vec<Operation<T>>) -> Self {
+    pub fn with_edges(self, edges: Vec<C>) -> Self {
         self.set_values(NodeType::Edge, edges);
         self
     }
 
-    pub fn set_inputs(self, inputs: Vec<Operation<T>>) -> Self {
+    pub fn with_inputs(self, inputs: Vec<C>) -> Self {
         self.set_values(NodeType::Input, inputs);
         self
     }
 
-    pub fn set_outputs(self, outputs: Vec<Operation<T>>) -> Self {
-        self.set_values(NodeType::Output, outputs);
+    pub fn with_output(self, outputs: C) -> Self {
+        self.set_values(NodeType::Output, vec![outputs]);
         self
     }
 
-    pub fn set_values(&self, node_type: NodeType, values: Vec<Operation<T>>) {
+    fn set_values(&self, node_type: NodeType, values: Vec<C>) {
         let mut factory = self.factory.borrow_mut();
-        factory.add_node_values(node_type, values);
+        factory.add_values(node_type, values);
     }
 }
 
-impl GraphCodex<f32> {
+impl GraphCodex<Op<f32>> {
     pub fn regression(input_size: usize, output_size: usize) -> Self {
-        let factory = NodeFactory::<f32>::regression(input_size);
-        let nodes = GraphBuilder::<f32>::new(&factory).acyclic(input_size, output_size);
-        GraphCodex::<f32>::from_graph(nodes, &factory)
+        let store = CellStore::regression(input_size);
+        let nodes = GraphBuilder::<Op<f32>>::new(store.clone()).acyclic(input_size, output_size);
+        GraphCodex::<Op<f32>>::from_graph(nodes, &store)
     }
 }
 
-impl<T> Codex<GraphChromosome<T>, Graph<T>> for GraphCodex<T>
+impl<C> Codex<GraphChromosome<C>, Graph<C>> for GraphCodex<C>
 where
-    T: Clone + PartialEq + Default + 'static,
+    C: NodeCell + Clone + PartialEq + Default + 'static,
 {
-    fn encode(&self) -> Genotype<GraphChromosome<T>> {
+    fn encode(&self) -> Genotype<GraphChromosome<C>> {
         let reader = self.factory.borrow();
 
         if let Some(graph) = &self.graph {
             let nodes = graph
                 .iter()
                 .map(|node| {
-                    let temp_node = reader.new_instance((node.index, node.node_type));
+                    let temp_node = reader.new_instance((node.index(), node.node_type()));
 
-                    if temp_node.value.arity() == node.value.arity() {
+                    if temp_node.value().arity() == node.value().arity() {
                         return node.with_allele(temp_node.allele());
                     }
 
                     node.clone()
                 })
-                .collect::<Vec<GraphNode<T>>>();
+                .collect::<Vec<GraphNode<C>>>();
 
             return Genotype {
-                chromosomes: vec![GraphChromosome::with_factory(nodes, self.factory.clone())],
+                chromosomes: vec![GraphChromosome::new(nodes, self.factory.clone())],
             };
         }
 
         panic!("Graph not initialized.");
     }
 
-    fn decode(&self, genotype: &Genotype<GraphChromosome<T>>) -> Graph<T> {
+    fn decode(&self, genotype: &Genotype<GraphChromosome<C>>) -> Graph<C> {
         Graph::new(
             genotype
                 .iter()
@@ -126,7 +118,7 @@ where
                 .unwrap()
                 .iter()
                 .cloned()
-                .collect::<Vec<GraphNode<T>>>(),
+                .collect::<Vec<GraphNode<C>>>(),
         )
     }
 }

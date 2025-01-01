@@ -1,5 +1,5 @@
-use crate::alter::AlterType;
-use crate::{random_provider, Alter, Chromosome};
+use super::{AlterAction, Alter, EngineCompoment, Mutate};
+use crate::{random_provider, Chromosome};
 
 pub struct BitFlipMutator {
     rate: f32,
@@ -11,23 +11,29 @@ impl BitFlipMutator {
     }
 }
 
+impl EngineCompoment for BitFlipMutator {
+    fn name(&self) -> &'static str {
+        "BitFlipMutator"
+    }
+}
+
 impl<C: Chromosome> Alter<C> for BitFlipMutator
 where
     C::Gene: Clone + std::ops::BitXor<Output = C::Gene> + From<u8>,
 {
-    fn name(&self) -> &'static str {
-        "BitFlipMutator"
-    }
-
     fn rate(&self) -> f32 {
         self.rate
     }
 
-    fn alter_type(&self) -> AlterType {
-        AlterType::Mutator
+    fn to_alter(self) -> AlterAction<C> {
+        AlterAction::Mutate(Box::new(self))
     }
+}
 
-    #[inline]
+impl<C: Chromosome> Mutate<C> for BitFlipMutator
+where
+    C::Gene: Clone + std::ops::BitXor<Output = C::Gene> + From<u8>,
+{
     fn mutate_chromosome(&self, chromosome: &mut C) -> i32 {
         let mut mutations = 0;
 

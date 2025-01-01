@@ -1,32 +1,35 @@
-use crate::collections::{Tree, TreeNode};
+use crate::{
+    collections::{Tree, TreeNode},
+    NodeCell,
+};
 use std::collections::VecDeque;
 
-pub trait TreeIterator<T> {
-    fn iter_pre_order(&self) -> PreOrderIterator<T>;
-    fn iter_post_order(&self) -> PostOrderIterator<T>;
-    fn iter_breadth_first(&self) -> TreeBreadthFirstIterator<T>;
+pub trait TreeIterator<C: NodeCell> {
+    fn iter_pre_order(&self) -> PreOrderIterator<C>;
+    fn iter_post_order(&self) -> PostOrderIterator<C>;
+    fn iter_breadth_first(&self) -> TreeBreadthFirstIterator<C>;
 }
 
-impl<T> TreeIterator<T> for TreeNode<T> {
-    fn iter_pre_order(&self) -> PreOrderIterator<T> {
+impl<C: NodeCell> TreeIterator<C> for TreeNode<C> {
+    fn iter_pre_order(&self) -> PreOrderIterator<C> {
         PreOrderIterator { stack: vec![self] }
     }
 
-    fn iter_post_order(&self) -> PostOrderIterator<T> {
+    fn iter_post_order(&self) -> PostOrderIterator<C> {
         PostOrderIterator {
             stack: vec![(self, false)],
         }
     }
 
-    fn iter_breadth_first(&self) -> TreeBreadthFirstIterator<T> {
+    fn iter_breadth_first(&self) -> TreeBreadthFirstIterator<C> {
         TreeBreadthFirstIterator {
             queue: vec![self].into_iter().collect(),
         }
     }
 }
 
-impl<T> TreeIterator<T> for Tree<T> {
-    fn iter_pre_order(&self) -> PreOrderIterator<T> {
+impl<C: NodeCell> TreeIterator<C> for Tree<C> {
+    fn iter_pre_order(&self) -> PreOrderIterator<C> {
         PreOrderIterator {
             stack: self
                 .root()
@@ -34,14 +37,14 @@ impl<T> TreeIterator<T> for Tree<T> {
         }
     }
 
-    fn iter_post_order(&self) -> PostOrderIterator<T> {
+    fn iter_post_order(&self) -> PostOrderIterator<C> {
         PostOrderIterator {
             stack: self
                 .root()
                 .map_or(Vec::new(), |root| vec![(root, false)].into_iter().collect()),
         }
     }
-    fn iter_breadth_first(&self) -> TreeBreadthFirstIterator<T> {
+    fn iter_breadth_first(&self) -> TreeBreadthFirstIterator<C> {
         TreeBreadthFirstIterator {
             queue: self
                 .root()
@@ -50,12 +53,12 @@ impl<T> TreeIterator<T> for Tree<T> {
     }
 }
 
-pub struct PreOrderIterator<'a, T> {
-    stack: Vec<&'a TreeNode<T>>,
+pub struct PreOrderIterator<'a, C: NodeCell> {
+    stack: Vec<&'a TreeNode<C>>,
 }
 
-impl<'a, T> Iterator for PreOrderIterator<'a, T> {
-    type Item = &'a TreeNode<T>;
+impl<'a, C: NodeCell> Iterator for PreOrderIterator<'a, C> {
+    type Item = &'a TreeNode<C>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.stack.pop().map(|node| {
@@ -70,12 +73,12 @@ impl<'a, T> Iterator for PreOrderIterator<'a, T> {
     }
 }
 
-pub struct PostOrderIterator<'a, T> {
-    stack: Vec<(&'a TreeNode<T>, bool)>,
+pub struct PostOrderIterator<'a, C: NodeCell> {
+    stack: Vec<(&'a TreeNode<C>, bool)>,
 }
 
-impl<'a, T> Iterator for PostOrderIterator<'a, T> {
-    type Item = &'a TreeNode<T>;
+impl<'a, C: NodeCell> Iterator for PostOrderIterator<'a, C> {
+    type Item = &'a TreeNode<C>;
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some((node, visited)) = self.stack.pop() {
@@ -93,12 +96,12 @@ impl<'a, T> Iterator for PostOrderIterator<'a, T> {
     }
 }
 
-pub struct TreeBreadthFirstIterator<'a, T> {
-    queue: VecDeque<&'a TreeNode<T>>,
+pub struct TreeBreadthFirstIterator<'a, C: NodeCell> {
+    queue: VecDeque<&'a TreeNode<C>>,
 }
 
-impl<'a, T> Iterator for TreeBreadthFirstIterator<'a, T> {
-    type Item = &'a TreeNode<T>;
+impl<'a, C: NodeCell> Iterator for TreeBreadthFirstIterator<'a, C> {
+    type Item = &'a TreeNode<C>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let node = self.queue.pop_front()?;
@@ -113,8 +116,9 @@ impl<'a, T> Iterator for TreeBreadthFirstIterator<'a, T> {
 mod tests {
     use super::*;
     use crate::collections::{Tree, TreeNode};
+
     use crate::ops::operation;
-    use crate::Operation;
+    use crate::Op;
 
     #[test]
     fn test_tree_traversal() {
@@ -124,22 +128,19 @@ mod tests {
         //     2   3
         //    /
         //   4
-        let leaf = Operation::value(4.0);
-        let node2 = TreeNode::with_children(Operation::value(2.0), vec![TreeNode::new(leaf)]);
+        let leaf = Op::value(4.0);
+        let node2 = TreeNode::with_children(Op::value(2.0), vec![TreeNode::new(leaf)]);
 
-        let node3 = TreeNode::new(Operation::value(3.0));
+        let node3 = TreeNode::new(Op::value(3.0));
 
-        let root = Tree::new(TreeNode::with_children(
-            Operation::value(1.0),
-            vec![node2, node3],
-        ));
+        let root = Tree::new(TreeNode::with_children(Op::value(1.0), vec![node2, node3]));
 
         // Test pre-order
         let pre_order: Vec<f32> = root
             .iter_pre_order()
-            .map(|n| match &n.value {
-                operation::Operation::Const(_, v) => *v,
-                _ => panic!("Expected constant but got {:?}", n.value),
+            .map(|n| match &n.value() {
+                operation::Op::Const(_, v) => *v,
+                _ => panic!("Expected constant but got {:?}", n.value()),
             })
             .collect();
         assert_eq!(pre_order, vec![1.0, 2.0, 4.0, 3.0]);
@@ -147,8 +148,8 @@ mod tests {
         // Test post-order
         let post_order: Vec<f32> = root
             .iter_post_order()
-            .map(|n| match &n.value {
-                operation::Operation::Const(_, v) => *v,
+            .map(|n| match &n.value() {
+                operation::Op::Const(_, v) => *v,
                 _ => panic!("Expected constant"),
             })
             .collect();
@@ -157,8 +158,8 @@ mod tests {
         // Test breadth-first
         let bfs: Vec<f32> = root
             .iter_breadth_first()
-            .map(|n| match &n.value {
-                operation::Operation::Const(_, v) => *v,
+            .map(|n| match &n.value() {
+                operation::Op::Const(_, v) => *v,
                 _ => panic!("Expected constant"),
             })
             .collect();

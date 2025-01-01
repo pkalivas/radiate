@@ -1,4 +1,7 @@
-use crate::collections::{Builder, Graph, GraphNode, NodeType};
+use crate::{
+    collections::{Builder, Graph, GraphNode, NodeType},
+    NodeCell,
+};
 use std::collections::BTreeMap;
 use uuid::Uuid;
 
@@ -16,19 +19,13 @@ struct Relationship<'a> {
 }
 
 #[derive(Default)]
-pub struct GraphArchitect<'a, T>
-where
-    T: Clone,
-{
-    nodes: BTreeMap<&'a Uuid, &'a GraphNode<T>>,
+pub struct GraphArchitect<'a, C: NodeCell + Clone> {
+    nodes: BTreeMap<&'a Uuid, &'a GraphNode<C>>,
     node_order: BTreeMap<usize, &'a Uuid>,
     relationships: Vec<Relationship<'a>>,
 }
 
-impl<'a, T> GraphArchitect<'a, T>
-where
-    T: Clone,
-{
+impl<'a, C: NodeCell + Clone> GraphArchitect<'a, C> {
     pub fn new() -> Self {
         GraphArchitect {
             nodes: BTreeMap::new(),
@@ -37,42 +34,39 @@ where
         }
     }
 
-    pub fn one_to_one<C: AsRef<[GraphNode<T>]>>(mut self, one: &'a C, two: &'a C) -> Self {
+    pub fn one_to_one<G: AsRef<[GraphNode<C>]>>(mut self, one: &'a G, two: &'a G) -> Self {
         self.connect(ConnectTypes::OneToOne, one, two);
         self
     }
 
-    pub fn one_to_many<C: AsRef<[GraphNode<T>]>>(mut self, one: &'a C, two: &'a C) -> Self {
+    pub fn one_to_many<G: AsRef<[GraphNode<C>]>>(mut self, one: &'a G, two: &'a G) -> Self {
         self.connect(ConnectTypes::OneToMany, one, two);
         self
     }
 
-    pub fn many_to_one<C: AsRef<[GraphNode<T>]>>(mut self, one: &'a C, two: &'a C) -> Self {
+    pub fn many_to_one<G: AsRef<[GraphNode<C>]>>(mut self, one: &'a G, two: &'a G) -> Self {
         self.connect(ConnectTypes::ManyToOne, one, two);
         self
     }
 
-    pub fn all_to_all<C: AsRef<[GraphNode<T>]>>(mut self, one: &'a C, two: &'a C) -> Self {
+    pub fn all_to_all<G: AsRef<[GraphNode<C>]>>(mut self, one: &'a G, two: &'a G) -> Self {
         self.connect(ConnectTypes::AllToAll, one, two);
         self
     }
 
-    pub fn one_to_one_self<C: AsRef<[GraphNode<T>]>>(mut self, one: &'a C, two: &'a C) -> Self {
+    pub fn one_to_one_self<G: AsRef<[GraphNode<C>]>>(mut self, one: &'a G, two: &'a G) -> Self {
         self.connect(ConnectTypes::AllToAllSelf, one, two);
         self
     }
 
-    pub fn insert<C: AsRef<[GraphNode<T>]>>(mut self, collection: &'a C) -> Self {
+    pub fn insert<G: AsRef<[GraphNode<C>]>>(mut self, collection: &'a G) -> Self {
         self.attach(collection.as_ref());
         self
     }
 }
 
-impl<'a, T> GraphArchitect<'a, T>
-where
-    T: Clone,
-{
-    pub fn layer<C: AsRef<[GraphNode<T>]>>(&self, collections: Vec<&'a C>) -> Self {
+impl<'a, C: NodeCell + Clone> GraphArchitect<'a, C> {
+    pub fn layer<G: AsRef<[GraphNode<C>]>>(&self, collections: Vec<&'a G>) -> Self {
         let mut conn = GraphArchitect::new();
         let mut previous = collections[0];
 
@@ -88,21 +82,21 @@ where
         conn
     }
 
-    pub fn attach(&mut self, group: &'a [GraphNode<T>]) {
+    pub fn attach(&mut self, group: &'a [GraphNode<C>]) {
         for node in group.iter() {
-            if !self.nodes.contains_key(&node.id) {
-                let node_id = &node.id;
+            if !self.nodes.contains_key(&node.id()) {
+                let node_id = &node.id();
 
                 self.nodes.insert(node_id, node);
                 self.node_order.insert(self.node_order.len(), node_id);
 
                 for outgoing in group
                     .iter()
-                    .filter(|item| node.outgoing().contains(&item.index))
+                    .filter(|item| node.outgoing().contains(&item.index()))
                 {
                     self.relationships.push(Relationship {
-                        source_id: &node.id,
-                        target_id: &outgoing.id,
+                        source_id: &node.id(),
+                        target_id: &outgoing.id(),
                     });
                 }
             }
@@ -110,15 +104,12 @@ where
     }
 }
 
-impl<'a, T> GraphArchitect<'a, T>
-where
-    T: Clone,
-{
-    fn connect<C: AsRef<[GraphNode<T>]>>(
+impl<'a, C: NodeCell + Clone> GraphArchitect<'a, C> {
+    fn connect<G: AsRef<[GraphNode<C>]>>(
         &mut self,
         connection: ConnectTypes,
-        one: &'a C,
-        two: &'a C,
+        one: &'a G,
+        two: &'a G,
     ) {
         self.attach(one.as_ref());
         self.attach(two.as_ref());
@@ -132,7 +123,7 @@ where
         }
     }
 
-    fn one_to_one_connect<C: AsRef<[GraphNode<T>]>>(&mut self, one: &'a C, two: &'a C) {
+    fn one_to_one_connect<G: AsRef<[GraphNode<C>]>>(&mut self, one: &'a G, two: &'a G) {
         let one_outputs = self.get_outputs(one);
         let two_inputs = self.get_inputs(two);
 
@@ -142,13 +133,13 @@ where
 
         for (one, two) in one_outputs.into_iter().zip(two_inputs.into_iter()) {
             self.relationships.push(Relationship {
-                source_id: &one.id,
-                target_id: &two.id,
+                source_id: &one.id(),
+                target_id: &two.id(),
             });
         }
     }
 
-    fn one_to_many_connect<C: AsRef<[GraphNode<T>]>>(&mut self, one: &'a C, two: &'a C) {
+    fn one_to_many_connect<G: AsRef<[GraphNode<C>]>>(&mut self, one: &'a G, two: &'a G) {
         let one_outputs = self.get_outputs(one);
         let two_inputs = self.get_inputs(two);
 
@@ -159,14 +150,14 @@ where
         for targets in two_inputs.chunks(one_outputs.len()) {
             for (source, target) in one_outputs.iter().zip(targets.iter()) {
                 self.relationships.push(Relationship {
-                    source_id: &source.id,
-                    target_id: &target.id,
+                    source_id: &source.id(),
+                    target_id: &target.id(),
                 });
             }
         }
     }
 
-    fn many_to_one_connect<C: AsRef<[GraphNode<T>]>>(&mut self, one: &'a C, two: &'a C) {
+    fn many_to_one_connect<G: AsRef<[GraphNode<C>]>>(&mut self, one: &'a G, two: &'a G) {
         let one_outputs = self.get_outputs(one);
         let two_inputs = self.get_inputs(two);
 
@@ -177,28 +168,28 @@ where
         for sources in one_outputs.chunks(two_inputs.len()) {
             for (source, target) in sources.iter().zip(two_inputs.iter()) {
                 self.relationships.push(Relationship {
-                    source_id: &source.id,
-                    target_id: &target.id,
+                    source_id: &source.id(),
+                    target_id: &target.id(),
                 });
             }
         }
     }
 
-    fn all_to_all_connect<C: AsRef<[GraphNode<T>]>>(&mut self, one: &'a C, two: &'a C) {
+    fn all_to_all_connect<G: AsRef<[GraphNode<C>]>>(&mut self, one: &'a G, two: &'a G) {
         let one_outputs = self.get_outputs(one);
         let two_inputs = self.get_inputs(two);
 
         for source in one_outputs {
             for target in two_inputs.iter() {
                 self.relationships.push(Relationship {
-                    source_id: &source.id,
-                    target_id: &target.id,
+                    source_id: &source.id(),
+                    target_id: &target.id(),
                 });
             }
         }
     }
 
-    fn all_to_all_self_connect<C: AsRef<[GraphNode<T>]>>(&mut self, one: &'a C, two: &'a C) {
+    fn all_to_all_self_connect<G: AsRef<[GraphNode<C>]>>(&mut self, one: &'a G, two: &'a G) {
         let one_outputs = self.get_outputs(one);
         let two_inputs = self.get_inputs(two);
 
@@ -208,24 +199,24 @@ where
 
         for (one, two) in one_outputs.into_iter().zip(two_inputs.into_iter()) {
             self.relationships.push(Relationship {
-                source_id: &one.id,
-                target_id: &two.id,
+                source_id: &one.id(),
+                target_id: &two.id(),
             });
             self.relationships.push(Relationship {
-                source_id: &two.id,
-                target_id: &one.id,
+                source_id: &two.id(),
+                target_id: &one.id(),
             });
         }
     }
 
-    fn get_outputs<C: AsRef<[GraphNode<T>]>>(&self, collection: &'a C) -> Vec<&'a GraphNode<T>> {
+    fn get_outputs<G: AsRef<[GraphNode<C>]>>(&self, collection: &'a G) -> Vec<&'a GraphNode<C>> {
         let outputs = collection
             .as_ref()
             .iter()
             .enumerate()
             .skip_while(|(_, node)| !node.outgoing().is_empty())
             .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
-            .collect::<Vec<&GraphNode<T>>>();
+            .collect::<Vec<&GraphNode<C>>>();
 
         if !outputs.is_empty() {
             return outputs;
@@ -238,10 +229,10 @@ where
             .filter(|(_, node)| {
                 node.outgoing().len() == 1
                     && node.is_recurrent()
-                    && (node.node_type() == &NodeType::Vertex)
+                    && (node.node_type() == NodeType::Vertex)
             })
             .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
-            .collect::<Vec<&GraphNode<T>>>();
+            .collect::<Vec<&GraphNode<C>>>();
 
         if !recurrent_outputs.is_empty() {
             return recurrent_outputs;
@@ -253,17 +244,17 @@ where
             .enumerate()
             .filter(|(_, node)| node.incoming().is_empty())
             .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
-            .collect::<Vec<&GraphNode<T>>>()
+            .collect::<Vec<&GraphNode<C>>>()
     }
 
-    fn get_inputs<C: AsRef<[GraphNode<T>]>>(&self, collection: &'a C) -> Vec<&'a GraphNode<T>> {
+    fn get_inputs<G: AsRef<[GraphNode<C>]>>(&self, collection: &'a G) -> Vec<&'a GraphNode<C>> {
         let inputs = collection
             .as_ref()
             .iter()
             .enumerate()
             .take_while(|(_, node)| node.incoming().is_empty())
             .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
-            .collect::<Vec<&GraphNode<T>>>();
+            .collect::<Vec<&GraphNode<C>>>();
 
         if !inputs.is_empty() {
             return inputs;
@@ -276,10 +267,10 @@ where
             .filter(|(_, node)| {
                 node.outgoing().len() == 1
                     && node.is_recurrent()
-                    && node.node_type() == &NodeType::Vertex
+                    && node.node_type() == NodeType::Vertex
             })
             .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
-            .collect::<Vec<&GraphNode<T>>>();
+            .collect::<Vec<&GraphNode<C>>>();
 
         if !recurrent_inputs.is_empty() {
             return recurrent_inputs;
@@ -291,15 +282,12 @@ where
             .enumerate()
             .filter(|(_, node)| node.outgoing().is_empty())
             .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
-            .collect::<Vec<&GraphNode<T>>>()
+            .collect::<Vec<&GraphNode<C>>>()
     }
 }
 
-impl<T> Builder for GraphArchitect<'_, T>
-where
-    T: Clone,
-{
-    type Output = Graph<T>;
+impl<C: NodeCell + Clone> Builder for GraphArchitect<'_, C> {
+    type Output = Graph<C>;
 
     fn build(&self) -> Self::Output {
         let mut new_nodes = Vec::new();
@@ -307,7 +295,7 @@ where
 
         for (index, (_, node_id)) in self.node_order.iter().enumerate() {
             let node = self.nodes.get(node_id).unwrap();
-            let new_node = GraphNode::new(index, node.node_type, node.value.clone());
+            let new_node = GraphNode::new(index, node.node_type(), node.value().clone());
 
             new_nodes.push(new_node);
             node_id_index_map.insert(node_id, index);
@@ -321,7 +309,8 @@ where
             new_collection.attach(*source_idx, *target_idx);
         }
 
-        new_collection.clone().set_cycles(Vec::new())
+        new_collection.set_cycles(vec![]);
+        new_collection
     }
 }
 

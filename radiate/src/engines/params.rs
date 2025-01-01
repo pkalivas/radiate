@@ -1,14 +1,13 @@
 use super::codexes::Codex;
 use super::thread_pool::ThreadPool;
-use super::{RouletteSelector, Select, TournamentSelector};
-use crate::engines::genetic_engine::GeneticEngine;
+use super::{Alter, AlterAction, RouletteSelector, Select, TournamentSelector};
+use crate::engines::engine::GeneticEngine;
 use crate::engines::genome::phenotype::Phenotype;
 use crate::engines::genome::population::Population;
 use crate::engines::objectives::Score;
 use crate::objectives::{Objective, Optimize};
-use crate::uniform_crossover::UniformCrossover;
-use crate::uniform_mutator::UniformMutator;
-use crate::{Alter, Chromosome};
+use crate::uniform::{UniformCrossover, UniformMutator};
+use crate::Chromosome;
 use std::sync::Arc;
 
 /// Parameters for the genetic engine.
@@ -38,7 +37,7 @@ where
     pub objective: Objective,
     pub survivor_selector: Box<dyn Select<C>>,
     pub offspring_selector: Box<dyn Select<C>>,
-    pub alterers: Vec<Box<dyn Alter<C>>>,
+    pub alterers: Vec<AlterAction<C>>,
     pub population: Option<Population<C>>,
     pub codex: Option<Arc<&'a dyn Codex<C, T>>>,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
@@ -153,7 +152,7 @@ where
     /// The alterer is used to apply mutations and crossover operations to the offspring and will be used to create the next generation of the population.
     /// Note, the order of the alterers is important. The alterers will be applied in the order they are provided.
     // pub fn alterer(mut self, alterers: Vec<Box<dyn Alter<C>>>) -> Self {
-    pub fn alter(mut self, alterers: Vec<Box<dyn Alter<C>>>) -> Self {
+    pub fn alter(mut self, alterers: Vec<AlterAction<C>>) -> Self {
         self.alterers = alterers;
         self
     }
@@ -233,8 +232,8 @@ where
             return;
         }
 
-        let crossover = Box::new(UniformCrossover::new(0.5));
-        let mutator = Box::new(UniformMutator::new(0.1));
+        let crossover = UniformCrossover::new(0.5).to_alter();
+        let mutator = UniformMutator::new(0.1).to_alter();
 
         self.alterers.push(crossover);
         self.alterers.push(mutator);

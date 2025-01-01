@@ -1,4 +1,4 @@
-pub mod architect;
+mod architect;
 mod builder;
 mod chromosome;
 mod codex;
@@ -6,11 +6,13 @@ mod graph;
 mod iter;
 mod mutation;
 mod node;
+mod transaction;
 
+pub use architect::GraphArchitect;
+pub use builder::GraphBuilder;
 pub use chromosome::GraphChromosome;
 pub use codex::GraphCodex;
-pub use graph::{
-    can_connect, get_cycles, is_locked, random_source_node, random_target_node, Graph,
-};
+pub use graph::Graph;
 pub use iter::GraphIterator;
-pub use node::{Direction, GraphNode, NodeType};
+pub use node::{Direction, GraphNode};
+pub use transaction::GraphTransaction;

@@ -1,4 +1,5 @@
-use crate::{random_provider, Alter, AlterType, Chromosome, FloatGene, Gene, NumericGene};
+use super::{Alter, AlterAction, Crossover, EngineCompoment};
+use crate::{random_provider, Chromosome, FloatGene, Gene, NumericGene};
 
 pub struct SimulatedBinaryCrossover {
     contiguty: f32,
@@ -24,19 +25,23 @@ impl SimulatedBinaryCrossover {
     }
 }
 
-impl<C: Chromosome<Gene = FloatGene>> Alter<C> for SimulatedBinaryCrossover {
+impl EngineCompoment for SimulatedBinaryCrossover {
     fn name(&self) -> &'static str {
         "Simulated Binary Crossover"
     }
+}
 
+impl<C: Chromosome<Gene = FloatGene>> Alter<C> for SimulatedBinaryCrossover {
     fn rate(&self) -> f32 {
         self.crossover_rate
     }
 
-    fn alter_type(&self) -> AlterType {
-        AlterType::Crossover
+    fn to_alter(self) -> AlterAction<C> {
+        AlterAction::Crossover(Box::new(self))
     }
+}
 
+impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for SimulatedBinaryCrossover {
     #[inline]
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C) -> i32 {
         let length = std::cmp::min(chrom_one.len(), chrom_two.len());

@@ -1,5 +1,5 @@
-use crate::alter::AlterType;
-use crate::{random_provider, Alter, Chromosome};
+use super::{Alter, AlterAction, Crossover, EngineCompoment};
+use crate::{random_provider, Chromosome};
 
 pub struct ShuffleCrossover {
     rate: f32,
@@ -11,19 +11,23 @@ impl ShuffleCrossover {
     }
 }
 
-impl<C: Chromosome> Alter<C> for ShuffleCrossover {
+impl EngineCompoment for ShuffleCrossover {
     fn name(&self) -> &'static str {
         "ShuffleCrossover"
     }
+}
 
+impl<C: Chromosome> Alter<C> for ShuffleCrossover {
     fn rate(&self) -> f32 {
         self.rate
     }
 
-    fn alter_type(&self) -> AlterType {
-        AlterType::Crossover
+    fn to_alter(self) -> AlterAction<C> {
+        AlterAction::Crossover(Box::new(self))
     }
+}
 
+impl<C: Chromosome> Crossover<C> for ShuffleCrossover {
     #[inline]
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C) -> i32 {
         let length = std::cmp::min(chrom_one.len(), chrom_two.len());

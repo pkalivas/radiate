@@ -1,6 +1,7 @@
-use crate::alter::AlterType;
-use crate::{random_provider, Alter, Chromosome, Gene};
+use crate::{random_provider, Chromosome, Gene};
 use std::ops::{Add, Div, Mul, Sub};
+
+use super::{AlterAction, Alter, EngineCompoment, Mutate};
 
 /// Arithmetic Mutator. Mutates genes by performing arithmetic operations on them.
 /// The ArithmeticMutator takes a rate parameter that determines the likelihood that
@@ -37,25 +38,13 @@ impl ArithmeticMutator {
     }
 }
 
-impl<C: Chromosome> Alter<C> for ArithmeticMutator
+impl<C: Chromosome> Mutate<C> for ArithmeticMutator
 where
     C::Gene: Add<Output = C::Gene>
         + Sub<Output = C::Gene>
         + Mul<Output = C::Gene>
         + Div<Output = C::Gene>,
 {
-    fn name(&self) -> &'static str {
-        "ArithmeticMutator"
-    }
-    fn rate(&self) -> f32 {
-        self.rate
-    }
-
-    fn alter_type(&self) -> AlterType {
-        AlterType::Mutator
-    }
-
-    #[inline]
     fn mutate_chromosome(&self, chromosome: &mut C) -> i32 {
         let mut mutations = 0;
         for i in 0..chromosome.len() {
@@ -69,5 +58,27 @@ where
         }
 
         mutations
+    }
+}
+
+impl<C: Chromosome> Alter<C> for ArithmeticMutator
+where
+    C::Gene: Add<Output = C::Gene>
+        + Sub<Output = C::Gene>
+        + Mul<Output = C::Gene>
+        + Div<Output = C::Gene>,
+{
+    fn rate(&self) -> f32 {
+        self.rate
+    }
+
+    fn to_alter(self) -> AlterAction<C> {
+        AlterAction::Mutate(Box::new(self))
+    }
+}
+
+impl EngineCompoment for ArithmeticMutator {
+    fn name(&self) -> &'static str {
+        "ArithmeticMutator"
     }
 }

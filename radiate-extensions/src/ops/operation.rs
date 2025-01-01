@@ -35,7 +35,7 @@ impl Deref for Arity {
 }
 
 /// A generic operation type that can represent several kinds of “ops”.
-pub enum Operation<T> {
+pub enum Op<T> {
     /// 1) A stateless function operation:
     ///
     /// # Arguments
@@ -71,27 +71,28 @@ pub enum Operation<T> {
         arity: Arity,
         value: T,
         get_value: Arc<dyn Fn() -> T>,
+        modifier: Arc<dyn Fn(&T) -> T>,
         operation: Arc<dyn Fn(&[T], &T) -> T>,
     },
 }
 
 /// Base functionality for operations.
-impl<T> Operation<T> {
+impl<T> Op<T> {
     pub fn name(&self) -> &str {
         match self {
-            Operation::Fn(name, _, _) => name,
-            Operation::Var(name, _) => name,
-            Operation::Const(name, _) => name,
-            Operation::MutableConst { name, .. } => name,
+            Op::Fn(name, _, _) => name,
+            Op::Var(name, _) => name,
+            Op::Const(name, _) => name,
+            Op::MutableConst { name, .. } => name,
         }
     }
 
     pub fn arity(&self) -> Arity {
         match self {
-            Operation::Fn(_, arity, _) => *arity,
-            Operation::Var(_, _) => Arity::Zero,
-            Operation::Const(_, _) => Arity::Zero,
-            Operation::MutableConst { arity, .. } => *arity,
+            Op::Fn(_, arity, _) => *arity,
+            Op::Var(_, _) => Arity::Zero,
+            Op::Const(_, _) => Arity::Zero,
+            Op::MutableConst { arity, .. } => *arity,
         }
     }
 
@@ -100,58 +101,60 @@ impl<T> Operation<T> {
         T: Clone,
     {
         match self {
-            Operation::Fn(_, _, op) => op(inputs),
-            Operation::Var(_, index) => inputs[*index].clone(),
-            Operation::Const(_, value) => value.clone(),
-            Operation::MutableConst {
+            Op::Fn(_, _, op) => op(inputs),
+            Op::Var(_, index) => inputs[*index].clone(),
+            Op::Const(_, value) => value.clone(),
+            Op::MutableConst {
                 value, operation, ..
             } => operation(inputs, value),
         }
     }
 
-    pub fn new_instance(&self) -> Operation<T>
+    pub fn new_instance(&self) -> Op<T>
     where
         T: Clone,
     {
         match self {
-            Operation::Fn(name, arity, op) => Operation::Fn(name, *arity, Arc::clone(op)),
-            Operation::Var(name, index) => Operation::Var(name, *index),
-            Operation::Const(name, value) => Operation::Const(name, value.clone()),
-            Operation::MutableConst {
+            Op::Fn(name, arity, op) => Op::Fn(name, *arity, Arc::clone(op)),
+            Op::Var(name, index) => Op::Var(name, *index),
+            Op::Const(name, value) => Op::Const(name, value.clone()),
+            Op::MutableConst {
                 name,
                 arity,
                 value: _,
                 get_value,
+                modifier,
                 operation,
-            } => Operation::MutableConst {
+            } => Op::MutableConst {
                 name,
                 arity: *arity,
                 value: (*get_value)(),
                 get_value: Arc::clone(get_value),
+                modifier: Arc::clone(modifier),
                 operation: Arc::clone(operation),
             },
         }
     }
 }
 
-impl<T> Operation<T> {
+impl<T> Op<T> {
     pub fn value(value: T) -> Self
     where
         T: Clone + Display,
     {
         let name = Box::leak(Box::new(format!("{}", value)));
-        Operation::Const(name, value)
+        Op::Const(name, value)
     }
 
     pub fn constant(name: &'static str, value: T) -> Self {
-        Operation::Const(name, value)
+        Op::Const(name, value)
     }
 
     pub fn gt() -> Self
     where
         T: Clone + PartialEq + PartialOrd,
     {
-        Operation::Fn(
+        Op::Fn(
             ">",
             2.into(),
             Arc::new(|inputs: &[T]| {
@@ -168,7 +171,7 @@ impl<T> Operation<T> {
     where
         T: Clone + PartialEq + PartialOrd,
     {
-        Operation::Fn(
+        Op::Fn(
             "<",
             2.into(),
             Arc::new(|inputs: &[T]| {
@@ -185,7 +188,7 @@ impl<T> Operation<T> {
     where
         T: Clone,
     {
-        Operation::Fn(
+        Op::Fn(
             "Identity",
             1.into(),
             Arc::new(|inputs: &[T]| inputs[0].clone()),
@@ -197,40 +200,42 @@ impl<T> Operation<T> {
         T: Clone,
     {
         let name = Box::leak(Box::new(format!("var_{}", index)));
-        Operation::Var(name, index)
+        Op::Var(name, index)
     }
 }
 
-unsafe impl Send for Operation<f32> {}
-unsafe impl Sync for Operation<f32> {}
+unsafe impl Send for Op<f32> {}
+unsafe impl Sync for Op<f32> {}
 
-impl<T> Clone for Operation<T>
+impl<T> Clone for Op<T>
 where
     T: Clone,
 {
     fn clone(&self) -> Self {
         match self {
-            Operation::Fn(name, arity, op) => Operation::Fn(name, *arity, Arc::clone(op)),
-            Operation::Var(name, index) => Operation::Var(name, *index),
-            Operation::Const(name, value) => Operation::Const(name, value.clone()),
-            Operation::MutableConst {
+            Op::Fn(name, arity, op) => Op::Fn(name, *arity, Arc::clone(op)),
+            Op::Var(name, index) => Op::Var(name, *index),
+            Op::Const(name, value) => Op::Const(name, value.clone()),
+            Op::MutableConst {
                 name,
                 arity,
                 value,
                 get_value,
+                modifier,
                 operation,
-            } => Operation::MutableConst {
+            } => Op::MutableConst {
                 name,
                 arity: *arity,
                 value: value.clone(),
                 get_value: Arc::clone(get_value),
+                modifier: Arc::clone(modifier),
                 operation: Arc::clone(operation),
             },
         }
     }
 }
 
-impl<T> PartialEq for Operation<T>
+impl<T> PartialEq for Op<T>
 where
     T: PartialEq,
 {
@@ -239,31 +244,31 @@ where
     }
 }
 
-impl<T> Display for Operation<T> {
+impl<T> Display for Op<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.name())
     }
 }
 
-impl<T> Default for Operation<T>
+impl<T> Default for Op<T>
 where
     T: Default + Clone,
 {
     fn default() -> Self {
-        Operation::Const("default", T::default())
+        Op::Const("default", T::default())
     }
 }
 
-impl<T> Debug for Operation<T>
+impl<T> Debug for Op<T>
 where
     T: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Operation::Fn(name, _, _) => write!(f, "Fn: {}", name),
-            Operation::Var(name, index) => write!(f, "Var: {}({})", name, index),
-            Operation::Const(name, value) => write!(f, "C: {}({:?})", name, value),
-            Operation::MutableConst { name, value, .. } => write!(f, "{}({:.2?})", name, value),
+            Op::Fn(name, _, _) => write!(f, "Fn: {}", name),
+            Op::Var(name, index) => write!(f, "Var: {}({})", name, index),
+            Op::Const(name, value) => write!(f, "C: {}({:?})", name, value),
+            Op::MutableConst { name, value, .. } => write!(f, "{}({:.2?})", name, value),
         }
     }
 }
@@ -275,7 +280,7 @@ mod test {
 
     #[test]
     fn test_ops() {
-        let op = Operation::add();
+        let op = Op::add();
         assert_eq!(op.name(), "add");
         assert_eq!(op.arity(), Arity::Exact(2));
         assert_eq!(op.apply(&[1_f32, 2_f32]), 3_f32);
@@ -286,16 +291,16 @@ mod test {
     fn test_random_seed_works() {
         random_provider::set_seed(42);
 
-        let op = Operation::weight();
-        let op2 = Operation::weight();
+        let op = Op::weight();
+        let op2 = Op::weight();
 
         let o_one = match op {
-            Operation::MutableConst { value, .. } => value,
+            Op::MutableConst { value, .. } => value,
             _ => panic!("Expected MutableConst"),
         };
 
         let o_two = match op2 {
-            Operation::MutableConst { value, .. } => value,
+            Op::MutableConst { value, .. } => value,
             _ => panic!("Expected MutableConst"),
         };
 
