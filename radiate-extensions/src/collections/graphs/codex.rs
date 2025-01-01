@@ -20,6 +20,13 @@ impl<C> GraphCodex<C>
 where
     C: NodeCell + Clone + Default,
 {
+    pub fn new() -> Self {
+        GraphCodex {
+            factory: Rc::new(RefCell::new(CellStore::new())),
+            graph: None,
+        }
+    }
+
     pub fn from_graph(graph: Graph<C>, factory: &CellStore<C>) -> Self {
         GraphCodex {
             factory: Rc::new(RefCell::new(factory.clone())),

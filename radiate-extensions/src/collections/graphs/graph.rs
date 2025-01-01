@@ -46,6 +46,15 @@ impl<C: NodeCell> Graph<C> {
         self.nodes.push(node);
     }
 
+    pub fn add<T>(&mut self, node_type: NodeType, val: T) -> usize
+    where
+        T: Into<C>,
+    {
+        let node = GraphNode::new(self.len(), node_type, val.into());
+        self.push(node);
+        self.len() - 1
+    }
+
     /// Pop the last 'GraphNode' from the graph.
     pub fn pop(&mut self) -> Option<GraphNode<C>> {
         self.nodes.pop()
@@ -412,23 +421,60 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_graph() {
+    fn test_simple_graph() {
         let mut graph = Graph::<i32>::default();
 
-        graph.attach(0, 2).attach(2, 1);
+        graph.add(NodeType::Input, 0);
+        graph.add(NodeType::Vertex, 1);
+        graph.add(NodeType::Output, 2);
+
+        graph.attach(0, 1).attach(1, 2);
+
+        println!("{:?}", graph);
 
         assert_eq!(graph.len(), 3);
+
+        assert!(graph.is_valid());
+        assert!(graph.get(0).is_valid());
+        assert!(graph.get(1).is_valid());
+        assert!(graph.get(2).is_valid());
+
+        assert_eq!(graph.get(0).incoming.len(), 0);
         assert_eq!(graph.get(0).outgoing.len(), 1);
         assert_eq!(graph.get(1).incoming.len(), 1);
-        assert_eq!(graph.get(2).outgoing.len(), 1);
+        assert_eq!(graph.get(1).outgoing.len(), 1);
         assert_eq!(graph.get(2).incoming.len(), 1);
-
-        graph.detach(0, 2).detach(2, 1);
-
-        assert_eq!(graph.len(), 3);
-        assert_eq!(graph.get(0).outgoing.len(), 0);
-        assert_eq!(graph.get(1).incoming.len(), 0);
         assert_eq!(graph.get(2).outgoing.len(), 0);
-        assert_eq!(graph.get(2).incoming.len(), 0);
+    }
+
+    #[test]
+    fn test_graph_with_cycles() {
+        let mut graph = Graph::<i32>::default();
+
+        graph.add(NodeType::Input, 0);
+        graph.add(NodeType::Vertex, 1);
+        graph.add(NodeType::Vertex, 2);
+        graph.add(NodeType::Output, 3);
+
+        graph.attach(0, 1).attach(1, 2).attach(2, 1).attach(2, 3);
+
+        println!("{:?}", graph);
+
+        assert_eq!(graph.len(), 4);
+
+        assert!(graph.is_valid());
+        assert!(graph.get(0).is_valid());
+        assert!(graph.get(1).is_valid());
+        assert!(graph.get(2).is_valid());
+        assert!(graph.get(3).is_valid());
+
+        assert_eq!(graph.get(0).incoming.len(), 0);
+        assert_eq!(graph.get(0).outgoing.len(), 1);
+        assert_eq!(graph.get(1).incoming.len(), 2);
+        assert_eq!(graph.get(1).outgoing.len(), 1);
+        assert_eq!(graph.get(2).incoming.len(), 1);
+        assert_eq!(graph.get(2).outgoing.len(), 2);
+        assert_eq!(graph.get(3).incoming.len(), 1);
+        assert_eq!(graph.get(3).outgoing.len(), 0);
     }
 }

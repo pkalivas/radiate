@@ -16,7 +16,7 @@ fn main() {
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
-            OperationMutator::new(0.01, 0.05),
+            OperationMutator::new(0.1, 0.05),
             GraphMutator::new(vec![
                 NodeMutate::Recurrent(NodeType::Edge, 0.05),
                 NodeMutate::Recurrent(NodeType::Vertex, 0.05),

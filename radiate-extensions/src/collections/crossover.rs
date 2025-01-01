@@ -57,7 +57,7 @@ where
                 let node_one = chromo_one.get_gene(*i);
                 let node_two = chromo_two.get_gene(*i);
 
-                node_one.node_type == NodeType::Edge && node_two.node_type == NodeType::Edge
+                node_one.node_type() == &NodeType::Edge && node_two.node_type() == &NodeType::Edge
             })
             .collect::<Vec<usize>>();
 

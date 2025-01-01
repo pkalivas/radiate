@@ -3,6 +3,7 @@ use crate::NodeCell;
 use radiate::{Gene, Valid};
 use std::collections::HashSet;
 use std::fmt::Debug;
+use std::hash::Hash;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -120,24 +121,29 @@ where
 impl<C: NodeCell + Clone + PartialEq> Valid for GraphNode<C> {
     fn is_valid(&self) -> bool {
         match self.node_type {
-            NodeType::Input => {
-                self.incoming.is_empty()
-                    && !self.outgoing.is_empty()
-                    && (self.value.arity() == Arity::Zero || self.value.arity() == Arity::Exact(0))
-            }
+            NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
             NodeType::Output => {
                 (!self.incoming.is_empty() && self.outgoing.is_empty())
-                    && (self.value.arity() == Arity::Any
-                        || self.incoming.len() == *self.value.arity())
+                    && (self.incoming.len() == *self.value.arity()
+                        || self.value.arity() == Arity::Any)
             }
             NodeType::Vertex => {
-                if self.value.arity() == Arity::Any {
-                    !self.incoming.is_empty() && !self.outgoing.is_empty()
-                } else if let Arity::Exact(n) = self.value.arity() {
-                    self.incoming.len() == n && !self.outgoing.is_empty()
-                } else {
-                    self.incoming.is_empty() && !self.outgoing.is_empty()
+                if !self.incoming.is_empty() && !self.outgoing.is_empty() {
+                    if let Arity::Exact(n) = self.value.arity() {
+                        return self.incoming.len() == n;
+                    } else if self.value.arity() == Arity::Any {
+                        return true;
+                    }
                 }
+                return false;
+
+                // if self.value.arity() == Arity::Any {
+                //     !self.incoming.is_empty() && !self.outgoing.is_empty()
+                // } else if let Arity::Exact(n) = self.value.arity() {
+                //     self.incoming.len() == n && !self.outgoing.is_empty()
+                // } else {
+                //     !self.incoming.is_empty() && !self.outgoing.is_empty()
+                // }
             }
             NodeType::Edge => {
                 if self.value.arity() == Arity::Exact(1) {
@@ -178,7 +184,7 @@ impl<C: NodeCell + Debug + PartialEq + Clone> Debug for GraphNode<C> {
             f,
             "[{:<3}] {:>10?} :: {:<12} E: {:<5} V:{:<5} R:{:<5} {:<2} {:<2} < [{}]",
             self.index,
-            format!("{:?}", self.node_type)[..3].to_owned(),
+            format!("{:?}", self.node_type())[..3].to_owned(),
             format!("{:?}", self.value).to_owned(),
             self.enabled,
             self.is_valid(),
