@@ -97,7 +97,7 @@ where
         for index in &self.order {
             let node = self.graph.get(*index);
             if node.node_type() == NodeType::Input {
-                self.tracers[node.index()].add_input(inputs[node.index()].clone());
+                self.tracers[node.index()].add_input(inputs[node.index() % inputs.len()].clone());
             } else {
                 for incoming in node.incoming() {
                     let arg = self.tracers[*incoming]

@@ -75,16 +75,8 @@ impl<C: NodeCell + Default> Factory<GraphNode<C>> for CellStore<C> {
     fn new_instance(&self, input: Self::Input) -> GraphNode<C> {
         let (index, node_type) = input;
         if let Some(values) = self.get_values(node_type) {
-            return match node_type {
-                NodeType::Input => {
-                    let value = random_provider::choose(values).new_instance();
-                    GraphNode::new(index, node_type, value)
-                }
-                _ => {
-                    let value = random_provider::choose(values);
-                    GraphNode::new(index, node_type, value.new_instance())
-                }
-            };
+            let new_instance = random_provider::choose(values).new_instance();
+            return GraphNode::new(index, node_type, new_instance);
         }
 
         GraphNode::new(index, node_type, C::default())

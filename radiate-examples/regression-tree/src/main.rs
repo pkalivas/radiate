@@ -17,7 +17,7 @@ fn main() {
     let engine = GeneticEngine::from_codex(&graph_codex)
         .minimizing()
         .num_threads(10)
-        .alter(alters!(TreeCrossover::new(0.5),))
+        .alter(alters!(TreeCrossover::new(0.5)))
         .fitness_fn(move |genotype: Tree<Op<f32>>| {
             let mut reducer = Tree::new(genotype.root().take().unwrap().to_owned());
             Score::from_f32(regression.error(|input| vec![reducer.reduce(input)]))

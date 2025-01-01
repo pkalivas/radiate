@@ -4,6 +4,8 @@ use std::{
     sync::Arc,
 };
 
+use crate::NodeCell;
+
 /// Arity is a way to describe how many inputs an operation expects.
 /// It can be zero, a specific number, or any number.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
@@ -109,32 +111,6 @@ impl<T> Op<T> {
             } => operation(inputs, value),
         }
     }
-
-    pub fn new_instance(&self) -> Op<T>
-    where
-        T: Clone,
-    {
-        match self {
-            Op::Fn(name, arity, op) => Op::Fn(name, *arity, Arc::clone(op)),
-            Op::Var(name, index) => Op::Var(name, *index),
-            Op::Const(name, value) => Op::Const(name, value.clone()),
-            Op::MutableConst {
-                name,
-                arity,
-                value: _,
-                get_value,
-                modifier,
-                operation,
-            } => Op::MutableConst {
-                name,
-                arity: *arity,
-                value: (*get_value)(),
-                get_value: Arc::clone(get_value),
-                modifier: Arc::clone(modifier),
-                operation: Arc::clone(operation),
-            },
-        }
-    }
 }
 
 impl<T> Op<T> {
@@ -206,6 +182,35 @@ impl<T> Op<T> {
 
 unsafe impl Send for Op<f32> {}
 unsafe impl Sync for Op<f32> {}
+
+impl<T: Clone> NodeCell for Op<T> {
+    fn arity(&self) -> Arity {
+        self.arity()
+    }
+
+    fn new_instance(&self) -> Op<T> {
+        match self {
+            Op::Fn(name, arity, op) => Op::Fn(name, *arity, Arc::clone(op)),
+            Op::Var(name, index) => Op::Var(name, *index),
+            Op::Const(name, value) => Op::Const(name, value.clone()),
+            Op::MutableConst {
+                name,
+                arity,
+                value: _,
+                get_value,
+                modifier,
+                operation,
+            } => Op::MutableConst {
+                name,
+                arity: *arity,
+                value: (*get_value)(),
+                get_value: Arc::clone(get_value),
+                modifier: Arc::clone(modifier),
+                operation: Arc::clone(operation),
+            },
+        }
+    }
+}
 
 impl<T> Clone for Op<T>
 where

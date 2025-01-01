@@ -1,4 +1,4 @@
-use radiate::Valid;
+use radiate::{random_provider, Valid};
 
 use super::transaction::GraphTransaction;
 use super::Graph;
@@ -122,7 +122,7 @@ impl GraphMutator {
             transaction.attach(new_target_edge_index, target_node);
         }
 
-        self.complete_node_arity(transaction, new_node_index, false)
+        self.complete_node_arity(transaction, new_node_index, factory, false)
     }
 
     fn try_backward_edge_insertion<C>(
@@ -208,7 +208,7 @@ impl GraphMutator {
                 transaction.attach(new_target_edge_index, outgoing_idx);
             }
 
-            self.complete_node_arity(transaction, new_node_index, true)
+            self.complete_node_arity(transaction, new_node_index, factory, true)
         } else {
             if !&transaction
                 .as_ref()
@@ -225,7 +225,7 @@ impl GraphMutator {
             transaction.attach(new_node_index, target_idx);
             transaction.detach(source_idx, target_idx);
 
-            self.complete_node_arity(transaction, new_node_index, true)
+            self.complete_node_arity(transaction, new_node_index, factory, true)
         }
     }
 
@@ -255,13 +255,14 @@ impl GraphMutator {
         transaction.attach(node_index, target_node);
         transaction.detach(source_node, target_node);
 
-        self.complete_node_arity(transaction, node_index, is_recurrent)
+        self.complete_node_arity(transaction, node_index, factory, is_recurrent)
     }
 
     fn complete_node_arity<C>(
         &self,
         transaction: &mut GraphTransaction<C>,
         node_index: usize,
+        factory: &CellStore<C>,
         is_recurrent: bool,
     ) -> bool
     where
@@ -276,13 +277,20 @@ impl GraphMutator {
             }
             Arity::Exact(arity) => {
                 for _ in 0..arity - 1 {
-                    let other_source_node = transaction.as_ref().random_source_node();
-                    if transaction.as_ref().can_connect(
-                        other_source_node.index(),
-                        node_index,
-                        is_recurrent,
-                    ) {
-                        transaction.attach(other_source_node.index(), node_index);
+                    if random_provider::random::<f32>() < 0.05 {
+                        let input_node =
+                            factory.new_instance((transaction.as_ref().len(), NodeType::Input));
+                        let input_index = transaction.add_node(input_node);
+                        transaction.attach(input_index, node_index);
+                    } else {
+                        let other_source_node = transaction.as_ref().random_source_node();
+                        if transaction.as_ref().can_connect(
+                            other_source_node.index(),
+                            node_index,
+                            is_recurrent,
+                        ) {
+                            transaction.attach(other_source_node.index(), node_index);
+                        }
                     }
                 }
             }

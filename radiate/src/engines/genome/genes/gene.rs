@@ -20,35 +20,37 @@ pub trait Valid {
 /// ```
 /// use radiate::*;
 ///
-/// // A simple gene that represents a number.
+/// // A simple gene that represents a point.
 /// #[derive(Clone, Debug, PartialEq)]
-/// struct MyGene {
-///    allele: f32,
+/// struct PointGene {
+///    allele: (f32, f32),
 /// }
 ///
 /// // Implement the Gene trait for the NumberGene.
-/// impl Gene for MyGene {
-///     type Allele = f32;
+/// impl Gene for PointGene {
+///     type Allele = (f32, f32);
 ///
 ///     fn allele(&self) -> &Self::Allele {
 ///         &self.allele
 ///     }
 ///
 ///     fn new_instance(&self) -> Self {
-///        MyGene { allele: 0.0 }
+///        PointGene { allele: (0.0, 0.0) }
 ///     }
 ///
 ///     fn with_allele(&self, allele: &Self::Allele) -> Self {
-///       MyGene { allele: *allele }
+///       PointGene { allele: *allele }
 ///     }
 /// }
 ///
 /// // You must also implement the `Valid` trait for the gene.
 /// // This is used to check if the gene is valid. For example, a gene that represents a number between 0 and 1.
 /// // The default implementation of the `Valid` trait is to return true.
-/// impl Valid for MyGene {
+/// impl Valid for PointGene {
 ///    fn is_valid(&self) -> bool {
-///      self.allele >= 0.0 && self.allele <= 1.0
+///      let (x, y) = self.allele;
+///     // Check if the x and y values are between 0 and 1.
+///     x >= 0.0 && x <= 1.0 && y >= 0.0 && y <= 1.0
 ///   }
 /// }
 /// ```

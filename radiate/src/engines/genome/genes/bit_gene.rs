@@ -84,6 +84,14 @@ impl From<&bool> for BitGene {
     }
 }
 
+impl From<&u8> for BitGene {
+    fn from(allele: &u8) -> BitGene {
+        BitGene {
+            allele: *allele == 1,
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

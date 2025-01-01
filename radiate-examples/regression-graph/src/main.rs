@@ -1,27 +1,29 @@
+use std::vec;
+
 use radiate::*;
 use radiate_extensions::*;
-use random_provider::set_seed;
 
-const MIN_SCORE: f32 = 0.01;
+const MIN_SCORE: f32 = 0.001;
 const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
-    set_seed(1000);
-    let graph_codex = GraphCodex::regression(1, 1).with_output(Op::linear());
+    random_provider::set_seed(1000);
+
+    let graph_codex = GraphCodex::regression(1, 1)
+        .with_output(Op::linear())
+        .with_vertices(vec![Op::add(), Op::sub(), Op::mul()]);
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 
     let engine = GeneticEngine::from_codex(&graph_codex)
         .minimizing()
         .num_threads(10)
-        .offspring_selector(RouletteSelector::new())
-        .survivor_selector(TournamentSelector::new(4))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
             GraphMutator::new(vec![
                 NodeMutate::Forward(NodeType::Edge, 0.03),
-                NodeMutate::Forward(NodeType::Vertex, 0.03),
+                NodeMutate::Forward(NodeType::Vertex, 0.1),
             ]),
         ))
         .fitness_fn(move |genotype: Graph<Op<f32>>| {
