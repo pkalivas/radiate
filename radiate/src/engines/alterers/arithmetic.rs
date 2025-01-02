@@ -1,13 +1,12 @@
 use crate::{random_provider, Chromosome, Gene};
 use std::ops::{Add, Div, Mul, Sub};
 
-use super::{AlterAction, Alter, EngineCompoment, Mutate};
+use super::{Alter, AlterAction, EngineCompoment, Mutate};
 
 /// Arithmetic Mutator. Mutates genes by performing arithmetic operations on them.
 /// The ArithmeticMutator takes a rate parameter that determines the likelihood that
 /// a gene will be mutated. The ArithmeticMutator can perform addition, subtraction,
 /// multiplication, and division on genes.
-///
 pub struct ArithmeticMutator {
     rate: f32,
 }

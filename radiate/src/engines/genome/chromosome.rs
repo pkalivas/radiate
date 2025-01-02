@@ -183,41 +183,6 @@ impl FloatChromosome {
     pub fn new(genes: Vec<FloatGene>) -> Self {
         FloatChromosome { genes }
     }
-
-    pub fn normalize(mut self) -> Self {
-        let mut sum = 0.0;
-        for gene in &self.genes {
-            sum += gene.allele;
-        }
-
-        for gene in &mut self.genes {
-            gene.allele /= sum;
-        }
-
-        self
-    }
-
-    pub fn standardize(mut self) -> Self {
-        let mut sum = 0.0;
-        for gene in &self.genes {
-            sum += gene.allele;
-        }
-
-        let mean = sum / self.genes.len() as f32;
-
-        let mut variance = 0.0;
-        for gene in &self.genes {
-            variance += (gene.allele - mean).powi(2);
-        }
-
-        let std_dev = (variance / self.genes.len() as f32).sqrt();
-
-        for gene in &mut self.genes {
-            gene.allele = (gene.allele - mean) / std_dev;
-        }
-
-        self
-    }
 }
 
 impl Chromosome for FloatChromosome {

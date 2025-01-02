@@ -36,6 +36,7 @@ impl<C: Chromosome> Crossover<C> for MeanCrossover
 where
     C::Gene: NumericGene,
 {
+    #[inline]
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C) -> i32 {
         let mut count = 0;
 
