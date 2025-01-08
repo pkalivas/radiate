@@ -48,7 +48,8 @@ where
 impl_integer!(i8, i16, i32, i64, i128, u8, u16, u32, u64, u128);
 
 // Implement Add, Sub, Mul, and Div for FloatGene and IntGene<i8>,
-// IntGene<i16>, IntGene<i32>, IntGene<i64>, and IntGene<i128>
+// IntGene<i16>, IntGene<i32>, IntGene<i64>, IntGene<i128>, IntGene<u8>, IntGene<u16>,
+// IntGene<u32>, IntGene<u64>, and IntGene<u128>
 arithmetic_impl!(
     FloatGene,
     IntGene<i8>,

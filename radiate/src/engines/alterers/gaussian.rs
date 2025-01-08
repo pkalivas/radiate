@@ -1,6 +1,6 @@
 use crate::{random_provider, Chromosome, FloatGene, Gene, NumericGene};
 
-use super::{AlterAction, Alter, EngineCompoment, Mutate};
+use super::{Alter, AlterAction, EngineCompoment, Mutate};
 
 pub struct GaussianMutator {
     rate: f32,

@@ -1,10 +1,10 @@
-use super::{AlterAction, Crossover, Alter, EngineCompoment};
+use super::{Alter, AlterAction, Crossover, EngineCompoment};
 
 use crate::{random_provider, Chromosome};
 
 pub struct MultiPointCrossover {
-    pub num_points: usize,
-    pub rate: f32,
+    num_points: usize,
+    rate: f32,
 }
 
 impl MultiPointCrossover {
@@ -39,8 +39,8 @@ impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
 
         let mut crossover_points: Vec<usize> = (1..length).collect();
         random_provider::shuffle(&mut crossover_points);
-        let num_points = 2;
-        let selected_points = &crossover_points[..num_points];
+
+        let selected_points = &crossover_points[..self.num_points];
 
         let mut sorted_points = selected_points.to_vec();
         sorted_points.sort();
@@ -79,6 +79,6 @@ impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
             chrom_two.set_gene(i, gene_two.clone());
         }
 
-        num_points as i32
+        self.num_points as i32
     }
 }

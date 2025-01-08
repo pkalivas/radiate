@@ -4,7 +4,7 @@ use crate::{random_provider, Chromosome};
 use super::{Alter, AlterAction, Crossover, EngineCompoment};
 
 pub struct MeanCrossover {
-    pub rate: f32,
+    rate: f32,
 }
 
 impl MeanCrossover {

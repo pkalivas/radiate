@@ -10,7 +10,7 @@ use super::Codex;
 /// A `Codex` for a `Genotype` of `IntGenes`. The `encode` function creates a `Genotype` with `num_chromosomes` chromosomes
 /// and `num_genes` genes per chromosome. The `decode` function creates a `Vec<Vec<T>>` from the `Genotype` where the inner `Vec`
 /// contains the alleles of the `IntGenes` in the chromosome. `T` must implement the `Integer` trait, meaning it must be one of
-/// `i8`, `i16`, `i32`, `i64`, or `i128`.
+/// `i8`, `i16`, `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, or `u128`.
 ///
 /// The lower and upper bounds of the `IntGenes` can be set with the `with_bounds` function.
 /// The default bounds are `T::MIN` and `T::MAX`.

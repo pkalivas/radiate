@@ -50,6 +50,7 @@ where
     pub upper_bound: T,
     pub lower_bound: T,
 }
+
 impl<T: Integer<T>> IntGene<T>
 where
     Standard: Distribution<T>,
