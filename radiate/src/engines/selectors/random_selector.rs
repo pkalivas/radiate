@@ -12,7 +12,7 @@ impl RandomSelector {
 
 impl<C: Chromosome> Select<C> for RandomSelector {
     fn name(&self) -> &'static str {
-        "Monte Carlo Selector"
+        "Random Selector"
     }
 
     fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {

@@ -5,6 +5,7 @@ use crate::{
 use super::Alter;
 
 pub trait Crossover<C: Chromosome>: Alter<C> {
+    #[inline]
     fn crossover(&self, population: &mut Population<C>, generation: i32) -> Vec<Metric> {
         let timer = Timer::new();
         let mut count = 0;

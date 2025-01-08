@@ -26,7 +26,7 @@ pub trait Valid {
 ///    allele: (f32, f32),
 /// }
 ///
-/// // Implement the Gene trait for the NumberGene.
+/// // Implement the Gene trait for the PointGene.
 /// impl Gene for PointGene {
 ///     type Allele = (f32, f32);
 ///
@@ -44,7 +44,6 @@ pub trait Valid {
 /// }
 ///
 /// // You must also implement the `Valid` trait for the gene.
-/// // This is used to check if the gene is valid. For example, a gene that represents a number between 0 and 1.
 /// // The default implementation of the `Valid` trait is to return true.
 /// impl Valid for PointGene {
 ///    fn is_valid(&self) -> bool {

@@ -104,6 +104,7 @@ pub enum ActivationOperation {
     Mish,
     Swish,
     Softplus,
+    Softmax,
 }
 
 /// Implementations of the `ActivationOperation` enum. These are the basic activation functions used
@@ -150,6 +151,10 @@ impl ActivationOperation {
             ActivationOperation::Softplus => {
                 let x = clamp(inputs.iter().cloned().sum::<f32>());
                 clamp(x.exp().ln_1p())
+            }
+            ActivationOperation::Softmax => {
+                let total = inputs.iter().cloned().map(|x| x.exp()).sum::<f32>();
+                clamp(inputs.iter().cloned().map(|x| x.exp() / total).sum::<f32>())
             }
         }
     }
@@ -397,6 +402,14 @@ impl Op<f32> {
             Arc::new(|inputs: &[f32]| ActivationOperation::Softplus.apply(inputs)),
         )
     }
+
+    pub fn softmax() -> Self {
+        Op::Fn(
+            "softmax",
+            Arity::Any,
+            Arc::new(|inputs: &[f32]| ActivationOperation::Softmax.apply(inputs)),
+        )
+    }
 }
 
 /// Get a list of all the math operations.
@@ -436,6 +449,7 @@ pub fn get_activation_operations() -> Vec<Op<f32>> {
         Op::mish(),
         Op::swish(),
         Op::softplus(),
+        Op::softmax(),
     ]
 }
 

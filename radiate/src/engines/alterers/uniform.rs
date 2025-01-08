@@ -7,7 +7,7 @@ use super::EngineCompoment;
 use super::Mutate;
 
 pub struct UniformCrossover {
-    pub rate: f32,
+    rate: f32,
 }
 
 impl UniformCrossover {

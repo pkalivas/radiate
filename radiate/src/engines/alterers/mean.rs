@@ -4,7 +4,7 @@ use crate::{random_provider, Chromosome};
 use super::{Alter, AlterAction, Crossover, EngineCompoment};
 
 pub struct MeanCrossover {
-    pub rate: f32,
+    rate: f32,
 }
 
 impl MeanCrossover {
@@ -36,6 +36,7 @@ impl<C: Chromosome> Crossover<C> for MeanCrossover
 where
     C::Gene: NumericGene,
 {
+    #[inline]
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C) -> i32 {
         let mut count = 0;
 

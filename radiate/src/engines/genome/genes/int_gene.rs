@@ -12,7 +12,8 @@ use rand::distributions::Standard;
 /// that the integer can be generated from, and the upper and lower bounds are the upper and lower bounds the gene will
 /// be subject to during crossover and mutation. If the `allele` exceedes the bounds, the `Gene` will be considered invalid.
 ///
-/// `IntGene` is generic over `T` - the type of integer. The `Integer` trait is implemented for `i8`, `i16`, `i32`, `i64`, and `i128`.
+/// `IntGene` is generic over `T` - the type of integer. The `Integer` trait is implemented
+/// for `i8`, `i16`, `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, and `u128`.
 ///
 /// # Example
 /// ``` rust
@@ -49,6 +50,7 @@ where
     pub upper_bound: T,
     pub lower_bound: T,
 }
+
 impl<T: Integer<T>> IntGene<T>
 where
     Standard: Distribution<T>,
