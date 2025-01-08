@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 radiate = { path = "../radiate" }
-radiate-extensions = { path = "../radiate-extensions" }
+radiate-gp = { path = "../radiate-gp" }
 
 [dev-dependencies]
 divan = "0.1.17"

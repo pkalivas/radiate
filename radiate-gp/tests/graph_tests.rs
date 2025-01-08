@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use radiate::*;
-    use radiate_extensions::{
+    use radiate_gp::{
         collections::{GraphBuilder, GraphCodex, GraphReducer},
         Direction, Graph, NodeType, Op,
     };
