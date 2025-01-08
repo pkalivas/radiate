@@ -1,5 +1,5 @@
 use radiate::*;
-use radiate_extensions::*;
+use radiate_gp::*;
 use random_provider::set_seed;
 
 const MAX_INDEX: i32 = 500;

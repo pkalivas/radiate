@@ -52,7 +52,7 @@ where
         self.timer.duration().as_secs_f64()
     }
 
-    /// Upsert (update or create) a metric with the given key and value. This is only used within the engine itself.
+    /// Upsert (update or create) a metric with the given key and value.
     pub fn upsert_metric(&mut self, metric: Metric) {
         self.metrics.upsert(metric);
     }

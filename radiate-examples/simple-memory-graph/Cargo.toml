@@ -1,8 +1,8 @@
-    [package]
+[package]
 name = "simple-memory-graph"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 radiate = { path = "../../radiate" }
-radiate-extensions = { path = "../../radiate-extensions" }
+radiate-gp = { path = "../../radiate-gp" }

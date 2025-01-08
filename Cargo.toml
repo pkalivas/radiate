@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "radiate",
-    "radiate-extensions",
+    "radiate-gp",
     "radiate-examples/min-sum",
     "radiate-examples/string-evolver",
     "radiate-examples/xor-graph",
@@ -14,4 +14,5 @@ members = [
     "radiate-examples/TSP",
     "radiate-examples/DTLZ",
     "radiate-examples/rastrigin",
-    "radiate-benchmarks"]
+    "radiate-benchmarks"
+]
