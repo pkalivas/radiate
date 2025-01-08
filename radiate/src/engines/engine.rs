@@ -88,7 +88,7 @@ where
     }
 
     /// Executes the genetic algorithm. The algorithm continues until a specified
-    /// stopping condition, 'limit', is met, such as reaching a target fitness score or
+    /// stopping condition,  'limit', is met, such as reaching a target fitness score or
     /// exceeding a maximum number of generations. When 'limit' returns true, the algorithm stops.
     pub fn run<F>(&self, limit: F) -> EngineContext<C, T>
     where
