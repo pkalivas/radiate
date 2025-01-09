@@ -1,12 +1,11 @@
 use radiate::*;
 use radiate_gp::*;
-use random_provider::set_seed;
 
 const MAX_INDEX: i32 = 500;
 const MIN_SCORE: f32 = 0.01;
 
 fn main() {
-    set_seed(501);
+    random_provider::set_seed(501);
     let graph_codex = GraphCodex::regression(2, 1).with_output(Op::sigmoid());
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);

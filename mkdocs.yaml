@@ -10,7 +10,7 @@ nav:
   - Selectors: selectors.md
   - Alterers: alterers.md
   - Metrics: metrics.md
-  - Extensions: extensions.md
+  - Genetic Programming: gp.md
   - Examples: examples.md
 theme:
   favicon: assets/radiate.ico
