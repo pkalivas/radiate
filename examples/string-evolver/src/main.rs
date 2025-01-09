@@ -6,11 +6,6 @@ fn main() {
 
     let engine = GeneticEngine::from_codex(&codex)
         .offspring_selector(BoltzmannSelector::new(4_f32))
-        .survivor_selector(TournamentSelector::new(3))
-        .alter(alters![
-            UniformMutator::new(0.1),
-            UniformCrossover::new(0.5)
-        ])
         .fitness_fn(|genotype: Vec<Vec<char>>| {
             Score::from_usize(genotype.into_iter().flatten().zip(target.chars()).fold(
                 0,

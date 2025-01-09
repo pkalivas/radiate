@@ -36,7 +36,6 @@ fn display(result: &EngineContext<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
     let mut regression_accuracy = 0.0;
     let mut total = 0.0;
 
-    // let mut reducer = TreeReducer::new(&result.best);
     let mut reducer = result.best.clone();
     for sample in get_sample_set().get_samples().iter() {
         let output = reducer.reduce(&sample.1);
