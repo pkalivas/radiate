@@ -1,5 +1,5 @@
 
-Check the git repo [examples](https://github.com/pkalivas/radiate/tree/master/radiate-examples) for a more 
+Check the git repo [examples](https://github.com/pkalivas/radiate/tree/master/examples) for a more 
 comprehensive list of examples.
 
 ## MinSum
@@ -426,7 +426,7 @@ comprehensive list of examples.
 
 > Objective - Evolve a `Graph<f32>` to solve the XOR problem (NeuroEvolution).
 >
->  Warning - only available with the `radiate-extensions` crate
+>  Warning - only available with the `radiate-gp` crate
 
 ??? example
 
