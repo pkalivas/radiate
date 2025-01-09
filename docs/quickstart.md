@@ -9,7 +9,7 @@ Radiate is inspired from a multitude of other genetic algorithm libraries, all o
 ## Configuration
 ```toml
 [dependencies]
-radiate = "1.2.6"
+radiate = "1.2.7"
 ```
 
 ## Core Implementations
@@ -39,11 +39,11 @@ Fitness Function
 
 ## Extensions
 
-For genetic programming Radiate offers a separate crate called [radiate-extenions](https://crates.io/crates/radiate-extensions) which extend the core library with additional features. Mainly it provides a [genetic programming](https://en.wikipedia.org/wiki/Genetic_programming#:~:text=In%20artificial%20intelligence%2C%20genetic%20programming,to%20the%20population%20of%20programs.) - probems that are represented as Trees (Expression Trees) or Graphs (NeuroEvolution). These offer powerful ways to solve complex problems.
+For genetic programming Radiate offers a separate crate called [radiate-gp](https://crates.io/crates/radiate-gp) which extend the core library with additional features. Mainly it provides a [genetic programming](https://en.wikipedia.org/wiki/Genetic_programming#:~:text=In%20artificial%20intelligence%2C%20genetic%20programming,to%20the%20population%20of%20programs.) - probems that are represented as Trees (Expression Trees) or Graphs (NeuroEvolution). These offer powerful ways to solve complex problems.
 
 ```toml
 [dependencies]
-radiate-extensions = "0.1.2"
+radiate-gp = "0.0.1"
 ```
 
 !!! note

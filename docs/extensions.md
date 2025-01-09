@@ -1,7 +1,7 @@
 
 # Extensions
 
-The radiate-extensions provides genetic programming capabilities. 
+The radiate-gp provides genetic programming capabilities. 
 
 The crate is not yet documented to the extent it should be, but you can refer to the [examples](https://github.com/pkalivas/radiate/tree/master/radiate-examples) for now.
 
