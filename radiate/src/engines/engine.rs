@@ -41,7 +41,7 @@ use std::sync::{Arc, Mutex};
 ///     .survivor_selector(TournamentSelector::new(3)) // Use tournament selection to select survivors.
 ///     .alter(alters![
 ///         ArithmeticMutator::new(0.01), // Specific mutator for numeric values.
-///         MeanCrossover::new(0.5) // Specific crossover operation for numeric values .
+///         MeanCrossover::new(0.5) // Specific crossover operation for numeric values.
 ///     ])
 ///     .fitness_fn(|genotype: Vec<Vec<f32>>| { // Define the fitness function to be minimized.
 ///         // Calculate the fitness score of the individual based on the decoded genotype.
