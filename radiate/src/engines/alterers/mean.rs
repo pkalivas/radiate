@@ -7,10 +7,10 @@ use super::{Alter, AlterAction, Crossover, EngineCompoment};
 /// with the mean of the two genes. The mean is calculated by adding the two genes together and dividing
 /// by two.
 ///
-/// This is a simple crossover method that is useful for numeric genes. However, keep
+/// This crossover can only be used with `NumericGene`s and can be largely benifitial. However, keep
 /// in mind that because we are taking the mean of two genes, this results in children that
 /// converge towards a common distribution. This can be useful in some cases, but it can also
-/// result in a loss of diversity in the population.
+/// result in a loss of diversity in the population in others.
 pub struct MeanCrossover {
     rate: f32,
 }

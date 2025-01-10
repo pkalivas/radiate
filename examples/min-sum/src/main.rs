@@ -9,7 +9,6 @@ fn main() {
         .population_size(150)
         .minimizing()
         .offspring_selector(EliteSelector::new())
-        .survivor_selector(TournamentSelector::new(4))
         .alter(alters!(
             ArithmeticMutator::new(0.01),
             UniformCrossover::new(0.5),

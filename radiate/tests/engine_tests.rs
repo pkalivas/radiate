@@ -2,7 +2,7 @@ mod utilities;
 
 #[cfg(test)]
 mod engine_tests {
-    use objectives::Score;
+
     use radiate::*;
 
     #[test]

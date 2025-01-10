@@ -22,7 +22,7 @@ fn main() {
 
     let engine = GeneticEngine::from_codex(&codex)
         .minimizing()
-        .num_threads(4)
+        .num_threads(5)
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .alter(alters!(
             IntermediateCrossover::new(0.75, 0.1),
