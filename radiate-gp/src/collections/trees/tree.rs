@@ -21,6 +21,18 @@ impl<C: NodeCell> Tree<C> {
     pub fn root_mut(&mut self) -> Option<&mut TreeNode<C>> {
         self.root.as_mut()
     }
+
+    pub fn take_root(self) -> Option<TreeNode<C>> {
+        self.root
+    }
+
+    pub fn size(&self) -> usize {
+        self.root.as_ref().map_or(0, |node| node.size())
+    }
+
+    pub fn height(&self) -> usize {
+        self.root.as_ref().map_or(0, |node| node.height())
+    }
 }
 
 impl<C: NodeCell> AsRef<TreeNode<C>> for Tree<C> {
