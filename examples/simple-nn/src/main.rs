@@ -103,7 +103,7 @@ impl NeuralNet {
 }
 
 pub struct NeuralNetCodex {
-    pub shapes: Vec<(i32, i32)>,
+    pub shapes: Vec<(usize, usize)>,
     pub inputs: Vec<Vec<f32>>,
     pub target: Vec<f32>,
 }
