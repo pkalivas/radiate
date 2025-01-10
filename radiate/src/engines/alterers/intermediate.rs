@@ -17,6 +17,8 @@ pub struct IntermediateCrossover {
 }
 
 impl IntermediateCrossover {
+    /// Create a new instance of the `IntermediateCrossover` with the given rate and alpha.
+    /// The rate must be between 0.0 and 1.0, and the alpha must be between 0.0 and 1.0.
     pub fn new(rate: f32, alpha: f32) -> Self {
         if rate < 0.0 || rate > 1.0 {
             panic!("Rate must be between 0 and 1");

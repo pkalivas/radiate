@@ -57,6 +57,18 @@ impl<C: NodeCell> TreeNode<C> {
         }
     }
 
+    pub fn height(&self) -> usize {
+        if let Some(children) = self.children.as_ref() {
+            1 + children
+                .iter()
+                .map(|child| child.height())
+                .max()
+                .unwrap_or(0)
+        } else {
+            0
+        }
+    }
+
     pub fn swap_subtrees(&mut self, other: &mut TreeNode<C>, self_idx: usize, other_idx: usize) {
         if let (Some(self_subtree), Some(other_subtree)) =
             (self.get_mut(self_idx), other.get_mut(other_idx))

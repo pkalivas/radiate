@@ -70,15 +70,25 @@ pub trait Gene: Clone + PartialEq + Valid {
 /// A `Gene` that has bounds. This is useful for genes that represent numbers or other values that have
 /// a range of valid values. For example, a gene that represents a number between 0 and 1.
 pub trait BoundGene: Gene {
+    /// Get the upper bound of the gene.
     fn upper_bound(&self) -> &Self::Allele;
+
+    /// Get the lower bound of the gene.
     fn lower_bound(&self) -> &Self::Allele;
+
+    /// Create a new `Gene` with the given upper and lower bounds.
     fn with_bounds(self, upper_bound: Self::Allele, lower_bound: Self::Allele) -> Self;
 }
 
 /// A gene that represents a number. This gene can be used to represent any type of number, including
 /// integers, floats, etc. Useful for using numeric mutations or crossover operations on numeric genes.
 pub trait NumericGene: BoundGene {
+    /// Get the value of the gene as a number.
     fn min(&self) -> &Self::Allele;
+
+    /// Get the value of the gene as a number.
     fn max(&self) -> &Self::Allele;
+
+    /// Get the value of the gene as a number.
     fn mean(&self, other: &Self) -> Self;
 }
