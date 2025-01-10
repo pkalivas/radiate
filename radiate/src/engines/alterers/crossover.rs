@@ -4,6 +4,17 @@ use crate::{
 
 use super::Alter;
 
+/// The `Crossover` trait is used to define the crossover operation for a genetic algorithm.
+///
+/// In a genetic algorithm, crossover is a genetic operator used to vary the
+/// programming of a chromosome or chromosomes from one generation to the next.
+/// It is analogous to reproduction and biological crossover, upon which genetic algorithms are based.
+///
+/// A `Crossover` typically takes two parent chromosomes and produces two or more offspring chromosomes.
+/// This trait allows you to define your own crossover operation on either the entire population
+/// or a subset of the population. If a struct implements the `Crossover` trait but does not override
+/// any of the methods, the default implementation will perform a simple crossover operation on the
+/// entire population. This is the case with the `UniformCrossover` struct.
 pub trait Crossover<C: Chromosome>: Alter<C> {
     #[inline]
     fn crossover(&self, population: &mut Population<C>, generation: i32) -> Vec<Metric> {
