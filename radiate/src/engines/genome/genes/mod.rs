@@ -16,12 +16,12 @@ use std::{
 };
 
 use crate::{add_impl, arithmetic_impl, div_impl, impl_integer, mul_impl, sub_impl};
-pub use bit::*;
-pub use char::*;
-pub use float::*;
-pub use gene::*;
-pub use int::*;
-pub use permutation::*;
+pub use bit::BitGene;
+pub use char::CharGene;
+pub use float::FloatGene;
+pub use gene::{BoundGene, Gene, NumericGene, Valid};
+pub use int::IntGene;
+pub use permutation::PermutationGene;
 
 pub trait Integer<T>:
     Copy
