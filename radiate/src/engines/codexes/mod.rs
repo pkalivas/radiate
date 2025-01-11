@@ -2,22 +2,22 @@ use super::genome::genotype::Genotype;
 use super::genome::phenotype::Phenotype;
 use super::genome::population::Population;
 
-pub mod bit_codex;
-pub mod char_codex;
-pub mod float_codex;
-pub mod fn_codex;
-pub mod int_codex;
-pub mod permutation_codex;
-pub mod subset_codex;
+pub mod bit;
+pub mod char;
+pub mod float;
+pub mod function;
+pub mod int;
+pub mod permutation;
+pub mod subset;
 
 use crate::Chromosome;
-pub use bit_codex::*;
-pub use char_codex::*;
-pub use float_codex::*;
-pub use fn_codex::*;
-pub use int_codex::*;
-pub use permutation_codex::*;
-pub use subset_codex::*;
+pub use bit::BitCodex;
+pub use char::CharCodex;
+pub use float::FloatCodex;
+pub use function::FnCodex;
+pub use int::IntCodex;
+pub use permutation::PermutationCodex;
+pub use subset::SubSetCodex;
 
 /// The `Codex` is a core concept in Radiate, as it allows for the encoding and decoding from
 /// a `Genotype` to the type `T` (commonly called Phenotype in biology) that is being optimized.

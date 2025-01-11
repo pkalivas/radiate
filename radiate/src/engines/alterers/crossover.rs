@@ -1,5 +1,5 @@
 use crate::{
-    random_provider, subset, timer::Timer, Chromosome, Gene, Metric, Phenotype, Population,
+    indexes, random_provider, timer::Timer, Chromosome, Gene, Metric, Phenotype, Population,
 };
 
 use super::Alter;
@@ -23,7 +23,7 @@ pub trait Crossover<C: Chromosome>: Alter<C> {
 
         for i in 0..population.len() {
             if random_provider::random::<f32>() < self.rate() {
-                let parent_indexes = subset::individual_indexes(i, population.len(), 2);
+                let parent_indexes = indexes::individual_indexes(i, population.len(), 2);
                 count += self.cross(population, &parent_indexes, generation);
             }
         }
