@@ -1,7 +1,7 @@
 use rand::distributions::Standard;
 
 use crate::engines::genome::genes::gene::{BoundGene, Gene};
-use crate::engines::genome::genes::int_gene::IntGene;
+use crate::engines::genome::genes::int::IntGene;
 use crate::engines::genome::genotype::Genotype;
 use crate::{Chromosome, IntChromosome, Integer};
 

@@ -1,5 +1,5 @@
 use super::Codex;
-use crate::engines::genome::genes::float_gene::FloatGene;
+use crate::engines::genome::genes::float::FloatGene;
 use crate::engines::genome::genes::gene::{BoundGene, Gene};
 use crate::engines::genome::genotype::Genotype;
 use crate::{Chromosome, FloatChromosome};
