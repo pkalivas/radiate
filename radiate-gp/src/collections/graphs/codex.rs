@@ -103,7 +103,7 @@ where
                 .collect::<Vec<GraphNode<C>>>();
 
             return Genotype {
-                chromosomes: vec![GraphChromosome::new(nodes, self.factory.clone())],
+                chromosomes: vec![GraphChromosome::new(nodes, Rc::clone(&self.factory))],
             };
         }
 

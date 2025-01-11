@@ -1,6 +1,6 @@
-use radiate::timer::Timer;
 use radiate::{
-    random_provider, Alter, AlterAction, EngineCompoment, Metric, Mutate, Population, Valid,
+    random_provider, timer::Timer, Alter, AlterAction, EngineCompoment, Metric, Mutate, Population,
+    Valid,
 };
 
 use super::transaction::GraphTransaction;
