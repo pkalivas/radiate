@@ -366,8 +366,8 @@ where
                 .sum::<usize>();
 
             age_metric.add_value(age as f32);
-            score_metric.add_value(score.as_float());
-            unique.push(score.as_float());
+            score_metric.add_value(score.as_f32());
+            unique.push(score.as_f32());
             size_values.push(phenotype_size as f32);
         }
 

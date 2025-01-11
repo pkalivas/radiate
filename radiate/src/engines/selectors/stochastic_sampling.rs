@@ -24,11 +24,11 @@ impl<C: Chromosome> Select<C> for StochasticUniversalSamplingSelector {
 
         let total_fitness: f32 = population
             .iter()
-            .map(|ind| ind.score().as_ref().unwrap().as_float())
+            .map(|ind| ind.score().as_ref().unwrap().as_f32())
             .sum();
 
         for individual in population.iter() {
-            let score = individual.score().as_ref().unwrap().as_float();
+            let score = individual.score().as_ref().unwrap().as_f32();
             fitness_values.push(score / total_fitness);
         }
 

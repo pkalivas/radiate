@@ -43,7 +43,7 @@ fn run() {
         .build();
 
     engine.run(|output| {
-        output.score().as_float() < MIN_SCORE
+        output.score().as_f32() < MIN_SCORE
             || output.index == MAX_INDEX
             || output.timer.duration().as_secs() > MAX_SECONDS
     });

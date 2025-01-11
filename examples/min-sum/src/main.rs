@@ -24,7 +24,7 @@ fn main() {
 
     let result = engine.run(|output| {
         println!("[ {:?} ]: {:?}", output.index, output.best.first().unwrap());
-        output.score().as_int() == MIN_SCORE
+        output.score().as_i32() == MIN_SCORE
     });
 
     println!("{:?}", result);
