@@ -22,8 +22,8 @@ fn main() {
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
             GraphMutator::new(vec![
-                NodeMutate::Forward(NodeType::Edge, 0.03),
-                NodeMutate::Forward(NodeType::Vertex, 0.1),
+                NodeMutate::Edge(0.03, false),
+                NodeMutate::Vertex(0.1, false),
             ]),
         ))
         .fitness_fn(move |genotype: Graph<Op<f32>>| {

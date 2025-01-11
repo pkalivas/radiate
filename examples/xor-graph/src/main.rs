@@ -6,6 +6,7 @@ const MIN_SCORE: f32 = 0.01;
 
 fn main() {
     random_provider::set_seed(501);
+
     let graph_codex = GraphCodex::regression(2, 1).with_output(Op::sigmoid());
 
     let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
@@ -16,8 +17,8 @@ fn main() {
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.1, 0.05),
             GraphMutator::new(vec![
-                NodeMutate::Forward(NodeType::Edge, 0.05),
-                NodeMutate::Forward(NodeType::Vertex, 0.03),
+                NodeMutate::Edge(0.05, false),
+                NodeMutate::Vertex(0.03, false),
             ]),
         ))
         .fitness_fn(move |genotype: Graph<Op<f32>>| {

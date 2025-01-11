@@ -199,7 +199,7 @@ mod test {
         });
 
         for i in 0..population.len() {
-            population[i].set_score(Some(Score::from_f32(i as f32)));
+            population[i].set_score(Some(Score::from_usize(i)));
         }
 
         let mut minimize_population = population.clone();
@@ -213,12 +213,12 @@ mod test {
 
         for i in 0..population.len() {
             assert_eq!(
-                minimize_population[i].score().as_ref().unwrap().as_f32(),
-                i as f32
+                minimize_population[i].score().as_ref().unwrap().as_usize(),
+                i
             );
             assert_eq!(
-                maximize_population[i].score().as_ref().unwrap().as_f32(),
-                (population.len() - i - 1) as f32
+                maximize_population[i].score().as_ref().unwrap().as_usize(),
+                (population.len() - i - 1)
             );
         }
     }

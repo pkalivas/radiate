@@ -10,9 +10,9 @@ pub mod trees;
 pub use crossover::{GraphCrossover, TreeCrossover};
 pub use graphs::{
     Direction, Graph, GraphArchitect, GraphBuilder, GraphChromosome, GraphCodex, GraphIterator,
-    GraphNode,
+    GraphMutator, GraphNode, NodeMutate,
 };
-pub use mutator::{GraphMutator, NodeMutate, OperationMutator};
+pub use mutator::OperationMutator;
 pub use node::{NodeCell, NodeType};
 
 pub use store::*;
