@@ -55,7 +55,7 @@ impl Knapsack {
         }
     }
 
-    pub fn fitness(capacity: &f32, genotype: &Vec<&Item>) -> Score {
+    pub fn fitness(capacity: &f32, genotype: &Vec<&Item>) -> f32 {
         let mut sum = 0_f32;
         let mut weight = 0_f32;
         for item in genotype {
@@ -64,9 +64,9 @@ impl Knapsack {
         }
 
         if weight > *capacity {
-            Score::from_f32(0_f32)
+            0_f32
         } else {
-            Score::from_f32(sum)
+            sum
         }
     }
 

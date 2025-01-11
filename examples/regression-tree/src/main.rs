@@ -20,7 +20,7 @@ fn main() {
         .alter(alters!(TreeCrossover::new(0.5)))
         .fitness_fn(move |genotype: Tree<Op<f32>>| {
             let mut reducer = Tree::new(genotype.take_root().unwrap());
-            Score::from_f32(regression.error(|input| vec![reducer.reduce(input)]))
+            regression.error(|input| vec![reducer.reduce(input)])
         })
         .build();
 

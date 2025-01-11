@@ -25,7 +25,7 @@ fn main() -> io::Result<()> {
                 total_distance += distance_matrix[genotype[i]][genotype[j]];
             }
 
-            Score::from_f32(total_distance)
+            total_distance
         })
         .build();
 

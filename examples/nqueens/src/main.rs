@@ -30,13 +30,12 @@ fn main() {
                 }
             }
 
-            Score::from_usize(score)
+            score
         })
         .build();
 
     let result = engine.run(|output| {
         println!("[ {:?} ]: {:?}", output.index, output.score().as_usize());
-
         output.score().as_usize() == 0
     });
 

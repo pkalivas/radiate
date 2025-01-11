@@ -129,8 +129,12 @@ where
     /// Set the fitness function of the genetic engine. This is the function that will be used to evaluate the fitness of each individual in the population.
     /// This function should take a single argument of type T and return a Score. The Score is used to evaluate or rank the fitness of the individual.
     /// This method is required and must be set before calling the `build` method.
-    pub fn fitness_fn(mut self, fitness_func: impl Fn(T) -> Score + Send + Sync + 'static) -> Self {
-        self.fitness_fn = Some(Arc::new(fitness_func));
+    pub fn fitness_fn<S: Into<Score>>(
+        mut self,
+        fitness_func: impl Fn(T) -> S + Send + Sync + 'static,
+    ) -> Self {
+        let other = move |x| fitness_func(x).into();
+        self.fitness_fn = Some(Arc::new(other));
         self
     }
 

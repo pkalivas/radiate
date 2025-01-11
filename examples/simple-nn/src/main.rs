@@ -91,14 +91,14 @@ impl NeuralNet {
         output
     }
 
-    pub fn error(&self, data: &[Vec<f32>], target: &[f32]) -> Score {
+    pub fn error(&self, data: &[Vec<f32>], target: &[f32]) -> f32 {
         let mut score = 0_f32;
         for (input, target) in data.iter().zip(target.iter()) {
             let output = self.feed_forward(input.clone());
             score += (target - output[0]).powi(2);
         }
 
-        Score::from_f32(score / data.len() as f32)
+        score / data.len() as f32
     }
 }
 
@@ -125,14 +125,14 @@ impl Codex<FloatChromosome, NeuralNet> for NeuralNetCodex {
     fn decode(&self, genotype: &Genotype<FloatChromosome>) -> NeuralNet {
         let mut layers = Vec::new();
         for (i, chromosome) in genotype.iter().enumerate() {
-            let layer = chromosome
-                .iter()
-                .as_slice()
-                .chunks(self.shapes[i].1 as usize)
-                .map(|chunk| chunk.iter().map(|gene| gene.allele).collect::<Vec<f32>>())
-                .collect::<Vec<Vec<f32>>>();
-
-            layers.push(layer);
+            layers.push(
+                chromosome
+                    .iter()
+                    .as_slice()
+                    .chunks(self.shapes[i].1 as usize)
+                    .map(|chunk| chunk.iter().map(|gene| gene.allele).collect::<Vec<f32>>())
+                    .collect::<Vec<Vec<f32>>>(),
+            );
         }
 
         NeuralNet { layers }

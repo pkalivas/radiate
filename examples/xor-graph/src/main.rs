@@ -23,7 +23,7 @@ fn main() {
         ))
         .fitness_fn(move |genotype: Graph<Op<f32>>| {
             let mut reducer = GraphReducer::new(&genotype);
-            Score::from_f32(regression.error(|input| reducer.reduce(input)))
+            regression.error(|input| reducer.reduce(input))
         })
         .build();
 

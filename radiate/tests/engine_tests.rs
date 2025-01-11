@@ -12,11 +12,9 @@ mod engine_tests {
         let engine = GeneticEngine::from_codex(&codex)
             .minimizing()
             .fitness_fn(|genotype: Vec<Vec<i32>>| {
-                Score::from_int(
-                    genotype
-                        .iter()
-                        .fold(0, |acc, chromosome| acc + chromosome.iter().sum::<i32>()),
-                )
+                genotype
+                    .iter()
+                    .fold(0, |acc, chromosome| acc + chromosome.iter().sum::<i32>())
             })
             .build();
 
@@ -32,11 +30,9 @@ mod engine_tests {
 
         let engine = GeneticEngine::from_codex(&codex)
             .fitness_fn(|genotype: Vec<Vec<i32>>| {
-                Score::from_int(
-                    genotype
-                        .iter()
-                        .fold(0, |acc, chromosome| acc + chromosome.iter().sum::<i32>()),
-                )
+                genotype
+                    .iter()
+                    .fold(0, |acc, chromosome| acc + chromosome.iter().sum::<i32>())
             })
             .build();
 
@@ -59,7 +55,7 @@ mod engine_tests {
                 for i in 0..first.len() {
                     score += (first[i] - target[i]).abs();
                 }
-                Score::from_int(score)
+                score
             })
             .build();
 
@@ -74,7 +70,7 @@ mod engine_tests {
         let codex = IntCodex::new(1, 5, 0, 100);
         let engine = GeneticEngine::from_codex(&codex)
             .population_size(150)
-            .fitness_fn(|_| Score::from_int(1))
+            .fitness_fn(|_| 1)
             .build();
 
         let result = engine.run(|_| true);

@@ -10,16 +10,10 @@ fn main() {
         .minimizing()
         .offspring_selector(EliteSelector::new())
         .alter(alters!(
-            ArithmeticMutator::new(0.01),
+            ArithmeticMutator::new(0.05),
             UniformCrossover::new(0.5),
         ))
-        .fitness_fn(|genotype: Vec<Vec<i32>>| {
-            Score::from_int(
-                genotype
-                    .iter()
-                    .fold(0, |acc, chromosome| acc + chromosome.iter().sum::<i32>()),
-            )
-        })
+        .fitness_fn(|genotype: Vec<Vec<i32>>| genotype.iter().flatten().sum::<i32>())
         .build();
 
     let result = engine.run(|output| {

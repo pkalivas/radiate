@@ -109,3 +109,39 @@ impl Hash for Score {
         hash.hash(state);
     }
 }
+
+impl From<f32> for Score {
+    fn from(value: f32) -> Self {
+        Score::from_f32(value)
+    }
+}
+
+impl From<i32> for Score {
+    fn from(value: i32) -> Self {
+        Score::from_int(value)
+    }
+}
+
+impl From<usize> for Score {
+    fn from(value: usize) -> Self {
+        Score::from_usize(value)
+    }
+}
+
+impl From<String> for Score {
+    fn from(value: String) -> Self {
+        Score::from_string(&value)
+    }
+}
+
+impl From<&str> for Score {
+    fn from(value: &str) -> Self {
+        Score::from_string(value)
+    }
+}
+
+impl From<Vec<f32>> for Score {
+    fn from(value: Vec<f32>) -> Self {
+        Score::from_vec(value)
+    }
+}
