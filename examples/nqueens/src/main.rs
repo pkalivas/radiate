@@ -36,7 +36,6 @@ fn main() {
 
     let result = engine.run(|output| {
         println!("[ {:?} ]: {:?}", output.index, output.score().as_usize());
-
         output.score().as_usize() == 0
     });
 

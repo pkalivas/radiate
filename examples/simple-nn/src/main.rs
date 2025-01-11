@@ -125,14 +125,14 @@ impl Codex<FloatChromosome, NeuralNet> for NeuralNetCodex {
     fn decode(&self, genotype: &Genotype<FloatChromosome>) -> NeuralNet {
         let mut layers = Vec::new();
         for (i, chromosome) in genotype.iter().enumerate() {
-            let layer = chromosome
-                .iter()
-                .as_slice()
-                .chunks(self.shapes[i].1 as usize)
-                .map(|chunk| chunk.iter().map(|gene| gene.allele).collect::<Vec<f32>>())
-                .collect::<Vec<Vec<f32>>>();
-
-            layers.push(layer);
+            layers.push(
+                chromosome
+                    .iter()
+                    .as_slice()
+                    .chunks(self.shapes[i].1 as usize)
+                    .map(|chunk| chunk.iter().map(|gene| gene.allele).collect::<Vec<f32>>())
+                    .collect::<Vec<Vec<f32>>>(),
+            );
         }
 
         NeuralNet { layers }

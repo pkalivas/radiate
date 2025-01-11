@@ -25,7 +25,7 @@ fn main() {
         .build();
 
     let result = engine.run(|output| {
-        let best_as_string = output.best[0].iter().collect::<String>();
+        let best_as_string = output.best.iter().flatten().collect::<String>();
         println!("[ {:?} ]: {:?}", output.index, best_as_string);
 
         output.score().as_usize() == target.len()
