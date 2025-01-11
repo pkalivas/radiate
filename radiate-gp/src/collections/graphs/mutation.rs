@@ -1,12 +1,51 @@
-use radiate::{random_provider, Valid};
+use radiate::timer::Timer;
+use radiate::{
+    random_provider, Alter, AlterAction, EngineCompoment, Metric, Mutate, Population, Valid,
+};
 
 use super::transaction::GraphTransaction;
-use super::Graph;
+use super::{Graph, GraphChromosome, GraphNode};
 use crate::ops::Arity;
-use crate::{CellStore, Factory, GraphMutator, NodeCell, NodeType};
+use crate::{CellStore, Factory, NodeCell, NodeType};
+
+pub enum NodeMutate {
+    Edge(f32, bool),
+    Vertex(f32, bool),
+}
+
+impl NodeMutate {
+    pub fn node_type(&self) -> NodeType {
+        match self {
+            NodeMutate::Edge(_, _) => NodeType::Edge,
+            NodeMutate::Vertex(_, _) => NodeType::Vertex,
+        }
+    }
+
+    pub fn rate(&self) -> f32 {
+        match self {
+            NodeMutate::Edge(rate, _) => *rate,
+            NodeMutate::Vertex(rate, _) => *rate,
+        }
+    }
+
+    pub fn is_recurrent(&self) -> bool {
+        match self {
+            NodeMutate::Edge(_, rec) => *rec,
+            NodeMutate::Vertex(_, rec) => *rec,
+        }
+    }
+}
+
+pub struct GraphMutator {
+    mutations: Vec<NodeMutate>,
+}
 
 // updated GraphMutator implementation
 impl GraphMutator {
+    pub fn new(mutations: Vec<NodeMutate>) -> Self {
+        Self { mutations }
+    }
+
     pub fn add_node<C: NodeCell + Clone + Default + PartialEq>(
         &self,
         graph: &mut Graph<C>,
@@ -298,5 +337,84 @@ impl GraphMutator {
 
         transaction.set_cycles();
         transaction.as_ref().is_valid()
+    }
+}
+
+impl EngineCompoment for GraphMutator {
+    fn name(&self) -> &'static str {
+        "GraphMutator"
+    }
+}
+
+impl<C> Alter<GraphChromosome<C>> for GraphMutator
+where
+    C: Clone + PartialEq + Default + NodeCell,
+{
+    fn rate(&self) -> f32 {
+        1.0
+    }
+
+    fn to_alter(self) -> AlterAction<GraphChromosome<C>> {
+        AlterAction::Mutate(Box::new(self))
+    }
+}
+
+impl<C> Mutate<GraphChromosome<C>> for GraphMutator
+where
+    C: Clone + PartialEq + Default + NodeCell,
+{
+    #[inline]
+    fn mutate(
+        &self,
+        population: &mut Population<GraphChromosome<C>>,
+        generation: i32,
+    ) -> Vec<Metric> {
+        let timer = Timer::new();
+        let mut count = 0;
+        for i in 0..population.len() {
+            let phenotype = &mut population[i];
+            let genotype = &mut phenotype.genotype();
+
+            let chromosome_index = random_provider::random::<usize>() % genotype.len();
+
+            let chromosome = &mut phenotype.genotype_mut()[chromosome_index];
+
+            if self.mutate_chromosome(chromosome) > 0 {
+                count += 1;
+                phenotype.set_score(None);
+                phenotype.generation = generation;
+            }
+        }
+
+        let mut result = Metric::new_operations(self.name());
+        result.add_value(count as f32);
+        result.add_duration(timer.duration());
+
+        vec![result]
+    }
+
+    fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<C>) -> i32 {
+        let mutation = random_provider::choose(&self.mutations);
+
+        if random_provider::random::<f32>() > mutation.rate() {
+            return 0;
+        }
+
+        if let Some(ref factory) = chromosome.factory {
+            let mut graph = Graph::new(chromosome.nodes.clone());
+            let node_fact = factory.borrow();
+
+            if self.add_node(
+                &mut graph,
+                &mutation.node_type(),
+                &node_fact,
+                mutation.is_recurrent(),
+            ) {
+                chromosome.nodes = graph.into_iter().collect::<Vec<GraphNode<C>>>();
+                return 1;
+            }
+        }
+
+        0
     }
 }
