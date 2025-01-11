@@ -1,4 +1,4 @@
-use crate::engines::genome::genes::bit_gene::BitGene;
+use crate::engines::genome::genes::bit::BitGene;
 use crate::engines::genome::genes::gene::Gene;
 use crate::engines::genome::genotype::Genotype;
 use crate::{BitChromosome, Chromosome};

@@ -22,7 +22,7 @@ fn main() {
 
     let engine = GeneticEngine::from_codex(&codex)
         .minimizing()
-        .num_threads(4)
+        .num_threads(5)
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .alter(alters!(
             IntermediateCrossover::new(0.75, 0.1),
@@ -32,8 +32,8 @@ fn main() {
         .build();
 
     let result = engine.run(|output| {
-        println!("[ {:?} ]: {:?}", output.index, output.score().as_float());
-        output.score().as_float() < MIN_SCORE
+        println!("[ {:?} ]: {:?}", output.index, output.score().as_f32());
+        output.score().as_f32() < MIN_SCORE
             || output.index == MAX_INDEX
             || output.timer.duration().as_secs() > MAX_SECONDS
     });
@@ -103,7 +103,7 @@ impl NeuralNet {
 }
 
 pub struct NeuralNetCodex {
-    pub shapes: Vec<(i32, i32)>,
+    pub shapes: Vec<(usize, usize)>,
     pub inputs: Vec<Vec<f32>>,
     pub target: Vec<f32>,
 }

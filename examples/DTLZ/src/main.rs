@@ -26,7 +26,6 @@ fn main() {
 
     let result = engine.run(move |output| {
         println!("[ {:?} ]", output.index);
-
         output.index > 1000
     });
 

@@ -27,8 +27,8 @@ fn main() {
         .build();
 
     let result = engine.run(|output| {
-        println!("[ {:?} ]: {:?}", output.index, output.score().as_float(),);
-        output.index == MAX_INDEX || output.score().as_float() < MIN_SCORE
+        println!("[ {:?} ]: {:?}", output.index, output.score().as_f32(),);
+        output.index == MAX_INDEX || output.score().as_f32() < MIN_SCORE
     });
 
     display(&result);

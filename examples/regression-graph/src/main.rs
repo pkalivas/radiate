@@ -33,8 +33,8 @@ fn main() {
         .build();
 
     let result = engine.run(|output| {
-        println!("[ {:?} ]: {:?}", output.index, output.score().as_float());
-        output.score().as_float() < MIN_SCORE || output.seconds() > MAX_SECONDS
+        println!("[ {:?} ]: {:?}", output.index, output.score().as_f32());
+        output.score().as_f32() < MIN_SCORE || output.seconds() > MAX_SECONDS
     });
 
     display(&result);

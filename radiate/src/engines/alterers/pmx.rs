@@ -1,5 +1,5 @@
 use super::{Alter, AlterAction, Crossover, EngineCompoment};
-use crate::subset::subset;
+use crate::indexes;
 use crate::{Chromosome, PermutationChromosome};
 
 pub struct PMXCrossover {
@@ -40,7 +40,7 @@ impl<A: PartialEq + Clone> Crossover<PermutationChromosome<A>> for PMXCrossover 
             return 0;
         }
 
-        let subset = subset(chrom_one.genes.len(), 2);
+        let subset = indexes::subset(chrom_one.genes.len(), 2);
         let start = subset[0] as usize;
         let end = subset[1] as usize;
 

@@ -213,11 +213,11 @@ mod test {
 
         for i in 0..population.len() {
             assert_eq!(
-                minimize_population[i].score().as_ref().unwrap().as_float(),
+                minimize_population[i].score().as_ref().unwrap().as_f32(),
                 i as f32
             );
             assert_eq!(
-                maximize_population[i].score().as_ref().unwrap().as_float(),
+                maximize_population[i].score().as_ref().unwrap().as_f32(),
                 (population.len() - i - 1) as f32
             );
         }

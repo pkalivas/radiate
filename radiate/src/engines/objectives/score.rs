@@ -65,35 +65,19 @@ impl Score {
         }
     }
 
-    pub fn as_float(&self) -> f32 {
-        if self.values.len() > 1 {
-            // panic!("Score has multiple values, cannot be converted to float")
-        }
-
+    pub fn as_f32(&self) -> f32 {
         self.values[0]
     }
 
-    pub fn as_int(&self) -> i32 {
-        if self.values.len() > 1 {
-            panic!("Score has multiple values, cannot be converted to int")
-        }
-
+    pub fn as_i32(&self) -> i32 {
         self.values[0] as i32
     }
 
     pub fn as_string(&self) -> String {
-        if self.values.len() > 1 {
-            panic!("Score has multiple values, cannot be converted to string")
-        }
-
         self.values[0].to_string()
     }
 
     pub fn as_usize(&self) -> usize {
-        if self.values.len() > 1 {
-            panic!("Score has multiple values, cannot be converted to usize")
-        }
-
         self.values[0] as usize
     }
 }
