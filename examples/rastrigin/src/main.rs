@@ -23,7 +23,7 @@ fn main() {
                     - A * (2.0 * std::f32::consts::PI * genotype[0][i]).cos();
             }
 
-            Score::from_f32(value)
+            value
         })
         .build();
 

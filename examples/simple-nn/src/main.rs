@@ -91,14 +91,14 @@ impl NeuralNet {
         output
     }
 
-    pub fn error(&self, data: &[Vec<f32>], target: &[f32]) -> Score {
+    pub fn error(&self, data: &[Vec<f32>], target: &[f32]) -> f32 {
         let mut score = 0_f32;
         for (input, target) in data.iter().zip(target.iter()) {
             let output = self.feed_forward(input.clone());
             score += (target - output[0]).powi(2);
         }
 
-        Score::from_f32(score / data.len() as f32)
+        score / data.len() as f32
     }
 }
 

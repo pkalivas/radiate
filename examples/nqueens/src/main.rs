@@ -30,7 +30,7 @@ fn main() {
                 }
             }
 
-            Score::from_usize(score)
+            score
         })
         .build();
 

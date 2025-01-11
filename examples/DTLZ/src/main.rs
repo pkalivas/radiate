@@ -19,9 +19,7 @@ fn main() {
             SimulatedBinaryCrossover::new(1_f32, 1.0),
             UniformMutator::new(0.1_f32),
         ))
-        .fitness_fn(move |genotype: Vec<Vec<f32>>| {
-            Score::from_vec(dtlz_7(genotype.first().unwrap()))
-        })
+        .fitness_fn(move |genotype: Vec<Vec<f32>>| dtlz_7(genotype.first().unwrap()))
         .build();
 
     let result = engine.run(move |output| {

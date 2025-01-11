@@ -7,16 +7,20 @@ fn main() {
     let engine = GeneticEngine::from_codex(&codex)
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .fitness_fn(|genotype: Vec<Vec<char>>| {
-            Score::from_usize(genotype.into_iter().flatten().zip(target.chars()).fold(
-                0,
-                |acc, (geno, targ)| {
-                    if geno == targ {
-                        acc + 1
-                    } else {
-                        acc
-                    }
-                },
-            ))
+            genotype
+                .into_iter()
+                .flatten()
+                .zip(target.chars())
+                .fold(
+                    0,
+                    |acc, (geno, targ)| {
+                        if geno == targ {
+                            acc + 1
+                        } else {
+                            acc
+                        }
+                    },
+                )
         })
         .build();
 
