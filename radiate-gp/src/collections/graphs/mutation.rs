@@ -400,7 +400,7 @@ where
             return 0;
         }
 
-        if let Some(ref factory) = chromosome.factory {
+        if let Some(ref factory) = chromosome.store {
             let mut graph = Graph::new(chromosome.nodes.clone());
             let node_fact = factory.borrow();
 

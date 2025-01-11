@@ -12,7 +12,7 @@ pub struct GraphCodex<C>
 where
     C: NodeCell,
 {
-    factory: Rc<RefCell<CellStore<C>>>,
+    store: Rc<RefCell<CellStore<C>>>,
     graph: Option<Graph<C>>,
 }
 
@@ -22,14 +22,14 @@ where
 {
     pub fn new() -> Self {
         GraphCodex {
-            factory: Rc::new(RefCell::new(CellStore::new())),
+            store: Rc::new(RefCell::new(CellStore::new())),
             graph: None,
         }
     }
 
     pub fn from_graph(graph: Graph<C>, factory: &CellStore<C>) -> Self {
         GraphCodex {
-            factory: Rc::new(RefCell::new(factory.clone())),
+            store: Rc::new(RefCell::new(factory.clone())),
             graph: Some(graph),
         }
     }
@@ -39,7 +39,7 @@ where
         F: Fn(&GraphBuilder<C>, GraphArchitect<C>) -> Graph<C>,
     {
         let graph = node_fn(
-            &GraphBuilder::new(self.factory.borrow().clone()),
+            &GraphBuilder::new(self.store.borrow().clone()),
             GraphArchitect::new(),
         );
 
@@ -68,7 +68,7 @@ where
     }
 
     fn set_values(&self, node_type: NodeType, values: Vec<C>) {
-        let mut factory = self.factory.borrow_mut();
+        let mut factory = self.store.borrow_mut();
         factory.add_values(node_type, values);
     }
 }
@@ -86,13 +86,13 @@ where
     C: NodeCell + Clone + PartialEq + Default + 'static,
 {
     fn encode(&self) -> Genotype<GraphChromosome<C>> {
-        let reader = self.factory.borrow();
+        let store = self.store.borrow();
 
         if let Some(graph) = &self.graph {
             let nodes = graph
                 .iter()
                 .map(|node| {
-                    let temp_node = reader.new_instance((node.index(), node.node_type()));
+                    let temp_node = store.new_instance((node.index(), node.node_type()));
 
                     if temp_node.value().arity() == node.value().arity() {
                         return node.with_allele(temp_node.allele());
@@ -103,7 +103,7 @@ where
                 .collect::<Vec<GraphNode<C>>>();
 
             return Genotype {
-                chromosomes: vec![GraphChromosome::new(nodes, Rc::clone(&self.factory))],
+                chromosomes: vec![GraphChromosome::new(nodes, Rc::clone(&self.store))],
             };
         }
 
