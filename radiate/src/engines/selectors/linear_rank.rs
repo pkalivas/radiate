@@ -26,7 +26,7 @@ impl<C: Chromosome> Select<C> for LinearRankSelector {
     ) -> Population<C> {
         let mut fitness_values = population
             .iter()
-            .map(|individual| individual.score().as_ref().unwrap().as_f32())
+            .map(|individual| individual.score().unwrap().as_f32())
             .collect::<Vec<f32>>();
 
         let total_rank: f32 = (1..=fitness_values.len()).map(|i| i as f32).sum();

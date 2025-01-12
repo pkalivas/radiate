@@ -13,7 +13,6 @@ homepage = "https://pkalivas.github.io/radiate/"
 
 [dependencies]
 rand = "0.8.5"
-itertools = "0.14.0"
 
 [dev-dependencies]
 rstest = "0.24.0"

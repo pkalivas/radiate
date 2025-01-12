@@ -20,18 +20,8 @@ comprehensive list of examples.
             .population_size(150)
             .minimizing()
             .offspring_selector(EliteSelector::new())
-            .survivor_selector(TournamentSelector::new(4))
-            .alter(alters!(
-                ArithmeticMutator::new(0.01),
-                UniformCrossover::new(0.5),
-            ))
-            .fitness_fn(|genotype: Vec<Vec<i32>>| {
-                Score::from_int(
-                    genotype
-                        .iter()
-                        .fold(0, |acc, chromosome| acc + chromosome.iter().sum::<i32>()),
-                )
-            })
+            .alter(alters!(SwapMutator::new(0.05), UniformCrossover::new(0.5)))
+            .fitness_fn(|geno: Vec<Vec<i32>>| geno.iter().flatten().sum::<i32>())
             .build();
 
         let result = engine.run(|output| {
@@ -80,7 +70,7 @@ comprehensive list of examples.
                     }
                 }
 
-                Score::from_usize(score)
+                score
             })
             .build();
 
@@ -257,7 +247,7 @@ comprehensive list of examples.
                         - A * (2.0 * std::f32::consts::PI * genotype[0][i]).cos();
                 }
 
-                Score::from_f32(value)
+                value
             })
             .build();
 
@@ -373,14 +363,14 @@ comprehensive list of examples.
             output
         }
 
-        pub fn error(&self, data: &[Vec<f32>], target: &[f32]) -> Score {
+        pub fn error(&self, data: &[Vec<f32>], target: &[f32]) -> f32 {
             let mut score = 0_f32;
             for (input, target) in data.iter().zip(target.iter()) {
                 let output = self.feed_forward(input.clone());
                 score += (target - output[0]).powi(2);
             }
 
-            Score::from_f32(score / data.len() as f32)
+            score / data.len() as f32
         }
     }
 
@@ -439,6 +429,7 @@ comprehensive list of examples.
 
     fn main() {
         random_provider::set_seed(501);
+
         let graph_codex = GraphCodex::regression(2, 1).with_output(Op::sigmoid());
 
         let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
@@ -449,19 +440,19 @@ comprehensive list of examples.
                 GraphCrossover::new(0.5, 0.5),
                 OperationMutator::new(0.1, 0.05),
                 GraphMutator::new(vec![
-                    NodeMutate::Forward(NodeType::Edge, 0.05),
-                    NodeMutate::Forward(NodeType::Vertex, 0.03),
+                    NodeMutate::Edge(0.05, false),
+                    NodeMutate::Vertex(0.03, false),
                 ]),
             ))
             .fitness_fn(move |genotype: Graph<Op<f32>>| {
                 let mut reducer = GraphReducer::new(&genotype);
-                Score::from_f32(regression.error(|input| reducer.reduce(input)))
+                regression.error(|input| reducer.reduce(input))
             })
             .build();
 
         let result = engine.run(|output| {
-            println!("[ {:?} ]: {:?}", output.index, output.score().as_float(),);
-            output.index == MAX_INDEX || output.score().as_float() < MIN_SCORE
+            println!("[ {:?} ]: {:?}", output.index, output.score().as_f32(),);
+            output.index == MAX_INDEX || output.score().as_f32() < MIN_SCORE
         });
 
         display(&result);

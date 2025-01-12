@@ -27,7 +27,7 @@ impl<C: Chromosome> Select<C> for BoltzmannSelector {
         count: usize,
     ) -> Population<C> {
         let mut selected = Vec::with_capacity(count);
-        let mut min = population[0].score().as_ref().unwrap().as_f32();
+        let mut min = population[0].score().unwrap().as_f32();
         let mut max = min;
 
         // Normalize the fitness values.

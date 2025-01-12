@@ -1,5 +1,4 @@
 use crate::objectives::{pareto, Objective, Score};
-use itertools::Itertools;
 use std::cmp;
 
 /// A front is a collection of scores that are non-dominated with respect to each other.
@@ -71,12 +70,14 @@ impl Front {
     fn filter(&mut self) {
         let crowding_distances = pareto::crowding_distance(&self.scores, &self.objective);
 
-        self.scores = crowding_distances
+        let mut enumerated = crowding_distances.iter().enumerate().collect::<Vec<_>>();
+
+        enumerated.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap_or(cmp::Ordering::Equal));
+
+        self.scores = enumerated
             .iter()
-            .enumerate()
-            .sorted_by(|a, b| b.1.partial_cmp(a.1).unwrap_or(cmp::Ordering::Equal))
-            .take(self.min_size)
-            .map(|(i, _)| self.scores[i].clone())
+            .take(self.max_size)
+            .map(|(i, _)| self.scores[*i].clone())
             .collect::<Vec<_>>();
     }
 }
