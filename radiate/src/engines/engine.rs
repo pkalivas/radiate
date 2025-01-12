@@ -148,9 +148,7 @@ where
             handle.population[idx].set_score(Some(score));
         }
 
-        handle
-            .metrics
-            .upsert_operations(metric_names::EVALUATION, count, timer.duration());
+        handle.upsert_operation(metric_names::EVALUATION, count, timer.duration());
 
         objective.sort(&mut handle.population);
     }
@@ -241,30 +239,23 @@ where
         let population = &mut context.population;
 
         let timer = Timer::new();
-        let mut age_count = 0;
-        let mut invalid_count = 0;
+        let mut age_count = 0_f32;
+        let mut invalid_count = 0_f32;
         for i in 0..population.len() {
             let phenotype = &population[i];
 
             if phenotype.age(generation) > max_age {
                 population[i] = Phenotype::from_genotype(codex.encode(), generation);
-                age_count += 1;
+                age_count += 1_f32;
             } else if !phenotype.genotype().is_valid() {
                 population[i] = Phenotype::from_genotype(codex.encode(), generation);
-                invalid_count += 1;
+                invalid_count += 1_f32;
             }
         }
 
-        context.metrics.upsert_operations(
-            metric_names::AGE_FILTER,
-            age_count as f32,
-            timer.duration(),
-        );
-        context.metrics.upsert_operations(
-            metric_names::INVALID_FILTER,
-            invalid_count as f32,
-            timer.duration(),
-        );
+        let duration = timer.duration();
+        context.upsert_operation(metric_names::AGE_FILTER, age_count, duration);
+        context.upsert_operation(metric_names::INVALID_FILTER, invalid_count, duration);
     }
 
     /// Recombines the survivors and offspring populations to create the next generation. The survivors
@@ -335,9 +326,7 @@ where
                 front.lock().unwrap().update_front(&scores);
             });
 
-            output
-                .metrics
-                .upsert_operations(metric_names::FRONT, 1.0, timer.duration());
+            output.upsert_operation(metric_names::FRONT, 1.0, timer.duration());
         }
     }
 
