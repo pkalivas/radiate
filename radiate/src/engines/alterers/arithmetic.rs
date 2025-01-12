@@ -1,7 +1,7 @@
-use crate::{random_provider, Chromosome, Gene};
+use crate::{random_provider, Chromosome, EngineCompoment, Gene};
 use std::ops::{Add, Div, Mul, Sub};
 
-use super::{Alter, AlterAction, EngineCompoment, Mutate};
+use super::{Alter, AlterAction, Mutate};
 
 /// Arithmetic Mutator. Mutates genes by performing arithmetic operations on them.
 /// The ArithmeticMutator takes a rate parameter that determines the likelihood that

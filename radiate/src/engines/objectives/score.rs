@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::hash::Hash;
 
 /// A score is a value that can be used to compare the fitness of two individuals and represents
@@ -8,7 +9,6 @@ use std::hash::Hash;
 ///
 /// Note: The reason it is a Vec is for multi-objective optimization problems. This allows for multiple
 /// fitness values to be returned from the fitness function.
-///
 #[derive(Clone, PartialEq)]
 pub struct Score {
     pub values: Vec<f32>,
@@ -94,7 +94,7 @@ impl PartialOrd for Score {
     }
 }
 
-impl std::fmt::Debug for Score {
+impl Debug for Score {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self.values)
     }
@@ -143,5 +143,39 @@ impl From<&str> for Score {
 impl From<Vec<f32>> for Score {
     fn from(value: Vec<f32>) -> Self {
         Score::from_vec(value)
+    }
+}
+
+impl From<Vec<i32>> for Score {
+    fn from(value: Vec<i32>) -> Self {
+        Score::from_vec(value.into_iter().map(|v| v as f32).collect())
+    }
+}
+
+impl From<Vec<usize>> for Score {
+    fn from(value: Vec<usize>) -> Self {
+        Score::from_vec(value.into_iter().map(|v| v as f32).collect())
+    }
+}
+
+impl From<Vec<String>> for Score {
+    fn from(value: Vec<String>) -> Self {
+        Score::from_vec(
+            value
+                .into_iter()
+                .map(|v| v.parse::<f32>().unwrap())
+                .collect(),
+        )
+    }
+}
+
+impl From<Vec<&str>> for Score {
+    fn from(value: Vec<&str>) -> Self {
+        Score::from_vec(
+            value
+                .into_iter()
+                .map(|v| v.parse::<f32>().unwrap())
+                .collect(),
+        )
     }
 }

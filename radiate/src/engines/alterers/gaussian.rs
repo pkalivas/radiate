@@ -1,6 +1,6 @@
-use crate::{random_provider, Chromosome, FloatGene, Gene, NumericGene};
+use crate::{random_provider, Chromosome, EngineCompoment, FloatGene, Gene, NumericGene};
 
-use super::{Alter, AlterAction, EngineCompoment, Mutate};
+use super::{Alter, AlterAction, Mutate};
 
 /// The `GaussianMutator` is a simple mutator that adds a small amount of Gaussian noise to the gene.
 ///

@@ -1,6 +1,6 @@
-use super::{Alter, AlterAction, Crossover, EngineCompoment};
+use super::{Alter, AlterAction, Crossover};
 use crate::indexes;
-use crate::{Chromosome, PermutationChromosome};
+use crate::{Chromosome, EngineCompoment, PermutationChromosome};
 
 pub struct PMXCrossover {
     rate: f32,

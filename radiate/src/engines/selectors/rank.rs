@@ -1,5 +1,5 @@
 use crate::objectives::Objective;
-use crate::{random_provider, Chromosome, Population, Select};
+use crate::{random_provider, Chromosome, EngineCompoment, Population, Select};
 
 // In rank selection, the selection probability does not depend directly on the fitness, but on
 // the fitness rank of an individual within the population. This puts large fitness differences
@@ -19,11 +19,13 @@ impl Default for RankSelector {
     }
 }
 
-impl<C: Chromosome> Select<C> for RankSelector {
+impl EngineCompoment for RankSelector {
     fn name(&self) -> &'static str {
-        "Rank Selector"
+        "RankSelector"
     }
+}
 
+impl<C: Chromosome> Select<C> for RankSelector {
     fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {
         let mut selected = Vec::with_capacity(count);
 

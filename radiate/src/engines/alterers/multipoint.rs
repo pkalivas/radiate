@@ -1,6 +1,6 @@
-use super::{Alter, AlterAction, Crossover, EngineCompoment};
+use super::{Alter, AlterAction, Crossover};
 
-use crate::{random_provider, Chromosome};
+use crate::{random_provider, Chromosome, EngineCompoment};
 
 /// The `MultiPointCrossover` is a crossover method that takes two chromosomes and crosses them
 /// by selecting multiple points in the chromosome and swapping the genes between the two chromosomes.

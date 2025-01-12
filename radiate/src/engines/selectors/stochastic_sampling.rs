@@ -1,5 +1,5 @@
 use crate::objectives::{Objective, Optimize};
-use crate::{random_provider, Chromosome, Population, Select};
+use crate::{random_provider, Chromosome, EngineCompoment, Population, Select};
 
 pub struct StochasticUniversalSamplingSelector;
 
@@ -9,11 +9,13 @@ impl StochasticUniversalSamplingSelector {
     }
 }
 
-impl<C: Chromosome> Select<C> for StochasticUniversalSamplingSelector {
+impl EngineCompoment for StochasticUniversalSamplingSelector {
     fn name(&self) -> &'static str {
-        "StochasticUniversalSampling"
+        "StochasticUniversalSamplingSelector"
     }
+}
 
+impl<C: Chromosome> Select<C> for StochasticUniversalSamplingSelector {
     fn select(
         &self,
         population: &Population<C>,

@@ -21,3 +21,7 @@ pub use objectives::*;
 pub use params::*;
 pub use selectors::*;
 pub use stats::*;
+
+pub trait EngineCompoment {
+    fn name(&self) -> &'static str;
+}
