@@ -1,10 +1,6 @@
-use crate::Chromosome;
+use crate::{Chromosome, EngineCompoment};
 
 use super::{Crossover, Mutate};
-
-pub trait EngineCompoment {
-    fn name(&self) -> &'static str;
-}
 
 pub enum AlterAction<C: Chromosome> {
     Mutate(Box<dyn Mutate<C>>),

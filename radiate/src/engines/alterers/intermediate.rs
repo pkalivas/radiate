@@ -1,6 +1,6 @@
-use crate::{random_provider, Chromosome, FloatGene, Gene};
+use crate::{random_provider, Chromosome, EngineCompoment, FloatGene, Gene};
 
-use super::{Alter, AlterAction, Crossover, EngineCompoment};
+use super::{Alter, AlterAction, Crossover};
 
 /// Intermediate Crossover. This crossover method takes two chromosomes and crosses them
 /// by taking a weighted average of the two alleles. The weight is determined by the `alpha`

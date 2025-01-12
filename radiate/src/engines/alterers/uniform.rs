@@ -1,9 +1,8 @@
-use crate::Chromosome;
+use crate::{Chromosome, EngineCompoment};
 
 use super::Alter;
 use super::AlterAction;
 use super::Crossover;
-use super::EngineCompoment;
 use super::Mutate;
 
 pub struct UniformCrossover {

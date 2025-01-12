@@ -1,6 +1,6 @@
-use crate::{random_provider, Chromosome};
+use crate::{random_provider, Chromosome, EngineCompoment};
 
-use super::{AlterAction, Alter, EngineCompoment, Mutate};
+use super::{Alter, AlterAction, Mutate};
 
 pub struct ScrambleMutator {
     rate: f32,
