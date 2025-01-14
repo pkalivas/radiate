@@ -22,12 +22,8 @@ mod selector_tests {
         let selected = selector.select(&population, &Objective::Single(optimize), num);
 
         for i in 0..num {
-            let original = population[i].score().as_ref().unwrap().as_float();
-            let selected = selected[i]
-                .score()
-                .as_ref()
-                .map(|va| va.as_float())
-                .unwrap();
+            let original = population[i].score().as_ref().unwrap().as_f32();
+            let selected = selected[i].score().as_ref().map(|va| va.as_f32()).unwrap();
 
             assert_eq!(original, selected);
         }

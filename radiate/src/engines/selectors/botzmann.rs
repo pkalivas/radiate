@@ -1,7 +1,7 @@
 use super::Select;
 use crate::objectives::{Objective, Optimize};
 use crate::selectors::ProbabilityWheelIterator;
-use crate::{Chromosome, Population};
+use crate::{Chromosome, EngineCompoment, Population};
 
 pub struct BoltzmannSelector {
     temperature: f32,
@@ -13,11 +13,13 @@ impl BoltzmannSelector {
     }
 }
 
-impl<C: Chromosome> Select<C> for BoltzmannSelector {
+impl EngineCompoment for BoltzmannSelector {
     fn name(&self) -> &'static str {
-        "Boltzmann Selector"
+        "BoltzmannSelector"
     }
+}
 
+impl<C: Chromosome> Select<C> for BoltzmannSelector {
     fn select(
         &self,
         population: &Population<C>,
@@ -25,12 +27,12 @@ impl<C: Chromosome> Select<C> for BoltzmannSelector {
         count: usize,
     ) -> Population<C> {
         let mut selected = Vec::with_capacity(count);
-        let mut min = population[0].score().as_ref().unwrap().as_float();
+        let mut min = population[0].score().unwrap().as_f32();
         let mut max = min;
 
         // Normalize the fitness values.
         for individual in population.iter() {
-            let score = individual.score().as_ref().unwrap().as_float();
+            let score = individual.score().as_ref().unwrap().as_f32();
             if score < min {
                 min = score;
             }
@@ -52,7 +54,7 @@ impl<C: Chromosome> Select<C> for BoltzmannSelector {
         // and apply the Boltzmann distribution to get the probabilities (temp * fitness).exp()
         let mut result = Vec::with_capacity(population.len());
         for individual in population.iter() {
-            let score = individual.score().as_ref().unwrap().as_float();
+            let score = individual.score().as_ref().unwrap().as_f32();
             let fitness = (score - min) / diff;
             let value = (self.temperature * fitness).exp();
 

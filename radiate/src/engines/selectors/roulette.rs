@@ -1,7 +1,7 @@
 use super::Select;
 use crate::objectives::{Objective, Optimize};
 use crate::selectors::ProbabilityWheelIterator;
-use crate::{Chromosome, Population};
+use crate::{Chromosome, EngineCompoment, Population};
 
 pub struct RouletteSelector;
 
@@ -17,11 +17,13 @@ impl Default for RouletteSelector {
     }
 }
 
-impl<C: Chromosome> Select<C> for RouletteSelector {
+impl EngineCompoment for RouletteSelector {
     fn name(&self) -> &'static str {
-        "Roulette Selector"
+        "RouletteSelector"
     }
+}
 
+impl<C: Chromosome> Select<C> for RouletteSelector {
     fn select(
         &self,
         population: &Population<C>,
@@ -32,7 +34,7 @@ impl<C: Chromosome> Select<C> for RouletteSelector {
         let mut fitness_values = Vec::with_capacity(population.len());
         let scores = population
             .iter()
-            .map(|individual| individual.score().as_ref().unwrap().as_float())
+            .map(|individual| individual.score().as_ref().unwrap().as_f32())
             .collect::<Vec<f32>>();
 
         // scale the fitness values so that they sum to 1

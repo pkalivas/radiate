@@ -48,7 +48,7 @@ radiate-gp = "0.0.1"
 
 !!! note
 
-    I'm currently working on the docs for these. If you are interested in using it, please refer to the git repo's [exampless](https://github.com/pkalivas/radiate/tree/master/radiate-examples) which include examples of both Tree and Graph based genetic programming.
+    I'm currently working on the docs for these. If you are interested in using it, please refer to the git repo's [examples](https://github.com/pkalivas/radiate/tree/master/examples) which include examples of both Tree and Graph based genetic programming.
 
 
 ## Example
@@ -63,28 +63,34 @@ radiate-gp = "0.0.1"
         let codex = CharCodex::new(1, target.len());
 
         let engine = GeneticEngine::from_codex(&codex)
-            .offspring_selector(BoltzmannSelector::new(4_f32))  // optional
-            .fitness_fn(|genotype: Vec<Vec<char>>| {
-                Score::from_usize(genotype.into_iter().flatten().zip(target.chars()).fold(
-                    0,
-                    |acc, (geno, targ)| {
-                        if geno == targ {
-                            acc + 1
-                        } else {
-                            acc
-                        }
-                    },
-                ))
+            .offspring_selector(BoltzmannSelector::new(4_f32)) // optional
+            .fitness_fn(|geno: Vec<Vec<char>>| {
+                geno.into_iter()
+                    .flatten()
+                    .zip(target.chars())
+                    .fold(
+                        0,
+                        |acc, (geno, targ)| {
+                            if geno == targ {
+                                acc + 1
+                            } else {
+                                acc
+                            }
+                        },
+                    )
             })
             .build();
 
-        let result = engine.run(|output| {
-            let best_as_string = output.best[0].iter().collect::<String>();
-            println!("[ {:?} ]: {:?}", output.index, best_as_string);
+        let result = engine.run(|ctx| {
+            let best_as_string = ctx.best.iter().flatten().collect::<String>();
+            println!("[ {:?} ]: {:?}", ctx.index, best_as_string);
 
-            output.score().as_usize() == target.len()
+            ctx.score().as_usize() == target.len()
         });
 
-        println!("{:?}", result); // Should print "Hello, Radiate!"
+        // prints the final `EvolutionContext` which contains the final population, best individual,
+        // the number of generations (index), best score, and the `MetricSet` (a collection of 
+        // evolution metrics the engine maintains throughout the run)
+        println!("{:?}", result); 
     }
     ```

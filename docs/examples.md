@@ -1,5 +1,5 @@
 
-Check the git repo [examples](https://github.com/pkalivas/radiate/tree/master/radiate-examples) for a more 
+Check the git repo [examples](https://github.com/pkalivas/radiate/tree/master/examples) for a more 
 comprehensive list of examples.
 
 ## MinSum
@@ -20,18 +20,8 @@ comprehensive list of examples.
             .population_size(150)
             .minimizing()
             .offspring_selector(EliteSelector::new())
-            .survivor_selector(TournamentSelector::new(4))
-            .alter(alters!(
-                ArithmeticMutator::new(0.01),
-                UniformCrossover::new(0.5),
-            ))
-            .fitness_fn(|genotype: Vec<Vec<i32>>| {
-                Score::from_int(
-                    genotype
-                        .iter()
-                        .fold(0, |acc, chromosome| acc + chromosome.iter().sum::<i32>()),
-                )
-            })
+            .alter(alters!(SwapMutator::new(0.05), UniformCrossover::new(0.5)))
+            .fitness_fn(|geno: Vec<Vec<i32>>| geno.iter().flatten().sum::<i32>())
             .build();
 
         let result = engine.run(|output| {
@@ -80,7 +70,7 @@ comprehensive list of examples.
                     }
                 }
 
-                Score::from_usize(score)
+                score
             })
             .build();
 
@@ -257,7 +247,7 @@ comprehensive list of examples.
                         - A * (2.0 * std::f32::consts::PI * genotype[0][i]).cos();
                 }
 
-                Score::from_f32(value)
+                value
             })
             .build();
 
@@ -373,14 +363,14 @@ comprehensive list of examples.
             output
         }
 
-        pub fn error(&self, data: &[Vec<f32>], target: &[f32]) -> Score {
+        pub fn error(&self, data: &[Vec<f32>], target: &[f32]) -> f32 {
             let mut score = 0_f32;
             for (input, target) in data.iter().zip(target.iter()) {
                 let output = self.feed_forward(input.clone());
                 score += (target - output[0]).powi(2);
             }
 
-            Score::from_f32(score / data.len() as f32)
+            score / data.len() as f32
         }
     }
 
@@ -426,7 +416,7 @@ comprehensive list of examples.
 
 > Objective - Evolve a `Graph<f32>` to solve the XOR problem (NeuroEvolution).
 >
->  Warning - only available with the `radiate-extensions` crate
+>  Warning - only available with the `radiate-gp` crate
 
 ??? example
 
@@ -438,7 +428,9 @@ comprehensive list of examples.
     const MIN_SCORE: f32 = 0.01;
 
     fn main() {
-        let graph_codex = GraphCodex::regression(2, 1).set_outputs(vec![op::sigmoid()]);
+        random_provider::set_seed(501);
+
+        let graph_codex = GraphCodex::regression(2, 1).with_output(Op::sigmoid());
 
         let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
 
@@ -446,28 +438,27 @@ comprehensive list of examples.
             .minimizing()
             .alter(alters!(
                 GraphCrossover::new(0.5, 0.5),
-                NodeMutator::new(0.1, 0.05),
+                OperationMutator::new(0.1, 0.05),
                 GraphMutator::new(vec![
-                    NodeMutate::Forward(NodeType::Weight, 0.05),
-                    NodeMutate::Forward(NodeType::Aggregate, 0.03),
-                    NodeMutate::Forward(NodeType::Gate, 0.03),
+                    NodeMutate::Edge(0.05, false),
+                    NodeMutate::Vertex(0.03, false),
                 ]),
             ))
-            .fitness_fn(move |genotype: Graph<f32>| {
+            .fitness_fn(move |genotype: Graph<Op<f32>>| {
                 let mut reducer = GraphReducer::new(&genotype);
-                Score::from_f32(regression.error(|input| reducer.reduce(input)))
+                regression.error(|input| reducer.reduce(input))
             })
             .build();
 
         let result = engine.run(|output| {
-            println!("[ {:?} ]: {:?}", output.index, output.score().as_float());
-            output.index == MAX_INDEX || output.score().as_float() < MIN_SCORE
+            println!("[ {:?} ]: {:?}", output.index, output.score().as_f32(),);
+            output.index == MAX_INDEX || output.score().as_f32() < MIN_SCORE
         });
 
         display(&result);
     }
 
-    fn display(result: &EngineOutput<NodeChromosome<f32>, Graph<f32>>) {
+    fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
         let mut reducer = GraphReducer::new(&result.best);
         for sample in get_sample_set().get_samples().iter() {
             let output = &reducer.reduce(&sample.1);
@@ -480,7 +471,7 @@ comprehensive list of examples.
         println!("{:?}", result)
     }
 
-    fn get_sample_set() -> DataSet<f32> {
+    fn get_sample_set() -> DataSet {
         let inputs = vec![
             vec![0.0, 0.0],
             vec![1.0, 1.0],

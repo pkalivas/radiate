@@ -47,12 +47,17 @@ impl<C: Chromosome> Population<C> {
         self.individuals.len()
     }
 
+    /// Swap the individuals at the given indices. This will set the is_sorted flag to false
+    /// because the order of the individuals has changed and we don't know if the order
+    /// has changed to benefit the order or not. Therefore, don't use this method to
+    /// sort the population, use the `sort_by` method instead.
     pub fn swap(&mut self, a: usize, b: usize) {
         self.is_sorted = false;
         self.individuals.swap(a, b);
     }
 
-    /// Sort the individuals in the population using the given closure. This will set the is_sorted flag to true.
+    /// Sort the individuals in the population using the given closure.
+    /// This will set the is_sorted flag to true.
     pub fn sort_by<F>(&mut self, f: F)
     where
         F: FnMut(&Phenotype<C>, &Phenotype<C>) -> std::cmp::Ordering,
@@ -65,6 +70,7 @@ impl<C: Chromosome> Population<C> {
         self.is_sorted = true;
     }
 
+    /// Create a new instance of the Population from the given Vec of individuals.
     pub fn from_vec(individuals: Vec<Phenotype<C>>) -> Self {
         Population {
             individuals,
@@ -72,6 +78,9 @@ impl<C: Chromosome> Population<C> {
         }
     }
 
+    /// Create a new instance of the Population from the given size and closure.
+    /// This will iterate the given closure `size` times and collect
+    /// the results into a Vec of new individuals.
     pub fn from_fn<F>(size: usize, f: F) -> Self
     where
         F: Fn() -> Phenotype<C>,
@@ -199,7 +208,7 @@ mod test {
         });
 
         for i in 0..population.len() {
-            population[i].set_score(Some(Score::from_f32(i as f32)));
+            population[i].set_score(Some(Score::from_usize(i)));
         }
 
         let mut minimize_population = population.clone();
@@ -213,12 +222,12 @@ mod test {
 
         for i in 0..population.len() {
             assert_eq!(
-                minimize_population[i].score().as_ref().unwrap().as_float(),
-                i as f32
+                minimize_population[i].score().as_ref().unwrap().as_usize(),
+                i
             );
             assert_eq!(
-                maximize_population[i].score().as_ref().unwrap().as_float(),
-                (population.len() - i - 1) as f32
+                maximize_population[i].score().as_ref().unwrap().as_usize(),
+                (population.len() - i - 1)
             );
         }
     }

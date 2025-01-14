@@ -1,12 +1,18 @@
-use crate::{random_provider, Chromosome};
+use crate::{random_provider, Chromosome, EngineCompoment};
 
-use super::{Alter, AlterAction, EngineCompoment, Mutate};
+use super::{Alter, AlterAction, Mutate};
 
+/// The `InversionMutator` is a simple mutator that inverts a random section of the chromosome.
+///
+/// Because the slice of the chromosome is of random length, with small chromosomes, the inversion
+/// may not be very effective. This mutator is best used with larger chromosomes.
 pub struct InversionMutator {
     rate: f32,
 }
 
 impl InversionMutator {
+    /// Create a new instance of the `InversionMutator` with the given rate.
+    /// The rate must be between 0.0 and 1.0.
     pub fn new(rate: f32) -> Self {
         InversionMutator { rate }
     }

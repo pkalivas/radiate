@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::hash::Hash;
 
 /// A score is a value that can be used to compare the fitness of two individuals and represents
@@ -8,7 +9,6 @@ use std::hash::Hash;
 ///
 /// Note: The reason it is a Vec is for multi-objective optimization problems. This allows for multiple
 /// fitness values to be returned from the fitness function.
-///
 #[derive(Clone, PartialEq)]
 pub struct Score {
     pub values: Vec<f32>,
@@ -65,35 +65,19 @@ impl Score {
         }
     }
 
-    pub fn as_float(&self) -> f32 {
-        if self.values.len() > 1 {
-            // panic!("Score has multiple values, cannot be converted to float")
-        }
-
+    pub fn as_f32(&self) -> f32 {
         self.values[0]
     }
 
-    pub fn as_int(&self) -> i32 {
-        if self.values.len() > 1 {
-            panic!("Score has multiple values, cannot be converted to int")
-        }
-
+    pub fn as_i32(&self) -> i32 {
         self.values[0] as i32
     }
 
     pub fn as_string(&self) -> String {
-        if self.values.len() > 1 {
-            panic!("Score has multiple values, cannot be converted to string")
-        }
-
         self.values[0].to_string()
     }
 
     pub fn as_usize(&self) -> usize {
-        if self.values.len() > 1 {
-            panic!("Score has multiple values, cannot be converted to usize")
-        }
-
         self.values[0] as usize
     }
 }
@@ -110,7 +94,7 @@ impl PartialOrd for Score {
     }
 }
 
-impl std::fmt::Debug for Score {
+impl Debug for Score {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self.values)
     }
@@ -123,5 +107,75 @@ impl Hash for Score {
             hash ^= value.to_bits();
         }
         hash.hash(state);
+    }
+}
+
+impl From<f32> for Score {
+    fn from(value: f32) -> Self {
+        Score::from_f32(value)
+    }
+}
+
+impl From<i32> for Score {
+    fn from(value: i32) -> Self {
+        Score::from_int(value)
+    }
+}
+
+impl From<usize> for Score {
+    fn from(value: usize) -> Self {
+        Score::from_usize(value)
+    }
+}
+
+impl From<String> for Score {
+    fn from(value: String) -> Self {
+        Score::from_string(&value)
+    }
+}
+
+impl From<&str> for Score {
+    fn from(value: &str) -> Self {
+        Score::from_string(value)
+    }
+}
+
+impl From<Vec<f32>> for Score {
+    fn from(value: Vec<f32>) -> Self {
+        Score::from_vec(value)
+    }
+}
+
+impl From<Vec<i32>> for Score {
+    fn from(value: Vec<i32>) -> Self {
+        Score::from_vec(value.into_iter().map(|v| v as f32).collect())
+    }
+}
+
+impl From<Vec<usize>> for Score {
+    fn from(value: Vec<usize>) -> Self {
+        Score::from_vec(value.into_iter().map(|v| v as f32).collect())
+    }
+}
+
+impl From<Vec<String>> for Score {
+    fn from(value: Vec<String>) -> Self {
+        Score::from_vec(
+            value
+                .into_iter()
+                .map(|v| v.parse::<f32>().unwrap())
+                .collect(),
+        )
+    }
+}
+
+impl From<Vec<&str>> for Score {
+    fn from(value: Vec<&str>) -> Self {
+        Score::from_vec(
+            value
+                .into_iter()
+                .map(|v| v.parse::<f32>().unwrap())
+                .collect(),
+        )
     }
 }

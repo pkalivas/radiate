@@ -1,9 +1,9 @@
-pub mod bit_gene;
-pub mod char_gene;
-pub mod float_gene;
+pub mod bit;
+pub mod char;
+pub mod float;
 pub mod gene;
-pub mod int_gene;
-pub mod permutation_gene;
+pub mod int;
+pub mod permutation;
 
 use rand::{
     distributions::{uniform::SampleUniform, Standard},
@@ -16,12 +16,12 @@ use std::{
 };
 
 use crate::{add_impl, arithmetic_impl, div_impl, impl_integer, mul_impl, sub_impl};
-pub use bit_gene::*;
-pub use char_gene::*;
-pub use float_gene::*;
-pub use gene::*;
-pub use int_gene::*;
-pub use permutation_gene::*;
+pub use bit::BitGene;
+pub use char::CharGene;
+pub use float::FloatGene;
+pub use gene::{BoundGene, Gene, NumericGene, Valid};
+pub use int::IntGene;
+pub use permutation::PermutationGene;
 
 pub trait Integer<T>:
     Copy

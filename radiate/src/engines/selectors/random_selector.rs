@@ -1,6 +1,6 @@
 use super::Select;
 use crate::objectives::Objective;
-use crate::{random_provider, Chromosome, Population};
+use crate::{random_provider, Chromosome, EngineCompoment, Population};
 
 pub struct RandomSelector;
 
@@ -10,11 +10,13 @@ impl RandomSelector {
     }
 }
 
-impl<C: Chromosome> Select<C> for RandomSelector {
+impl EngineCompoment for RandomSelector {
     fn name(&self) -> &'static str {
-        "Random Selector"
+        "RandomSelector"
     }
+}
 
+impl<C: Chromosome> Select<C> for RandomSelector {
     fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {
         let mut selected = Vec::with_capacity(count);
 

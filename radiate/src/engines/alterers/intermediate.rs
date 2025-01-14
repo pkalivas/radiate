@@ -1,6 +1,6 @@
-use crate::{random_provider, Chromosome, FloatGene, Gene};
+use crate::{random_provider, Chromosome, EngineCompoment, FloatGene, Gene};
 
-use super::{Alter, AlterAction, Crossover, EngineCompoment};
+use super::{Alter, AlterAction, Crossover};
 
 /// Intermediate Crossover. This crossover method takes two chromosomes and crosses them
 /// by taking a weighted average of the two alleles. The weight is determined by the `alpha`
@@ -17,6 +17,8 @@ pub struct IntermediateCrossover {
 }
 
 impl IntermediateCrossover {
+    /// Create a new instance of the `IntermediateCrossover` with the given rate and alpha.
+    /// The rate must be between 0.0 and 1.0, and the alpha must be between 0.0 and 1.0.
     pub fn new(rate: f32, alpha: f32) -> Self {
         if rate < 0.0 || rate > 1.0 {
             panic!("Rate must be between 0 and 1");

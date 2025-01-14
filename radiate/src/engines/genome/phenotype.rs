@@ -25,6 +25,7 @@ pub struct Phenotype<C: Chromosome> {
 }
 
 impl<C: Chromosome> Phenotype<C> {
+    /// Create a new instance of the `Phenotype` with the given `Genotype` and generation.
     pub fn from_genotype(genotype: Genotype<C>, generation: i32) -> Self {
         Phenotype {
             genotype,
@@ -33,6 +34,9 @@ impl<C: Chromosome> Phenotype<C> {
         }
     }
 
+    /// This is a convenience method that allows you to create a `Phenotype` from a list of chromosomes.
+    /// Without it, we end up neededing to create a list of `Genes` then a list of `Chromosomes` then a `Genotype`,
+    /// its just a lot. This method allows you to create a `Phenotype` from a list of chromosomes directly.
     pub fn from_chromosomes(chromosomes: Vec<C>, generation: i32) -> Self {
         Phenotype {
             genotype: Genotype::from_chromosomes(chromosomes),

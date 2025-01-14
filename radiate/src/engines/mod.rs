@@ -10,7 +10,9 @@ pub mod selectors;
 pub mod stats;
 
 pub use alterers::*;
-pub use codexes::*;
+pub use codexes::{
+    BitCodex, CharCodex, Codex, FloatCodex, FnCodex, IntCodex, PermutationCodex, SubSetCodex,
+};
 pub use context::*;
 pub use domain::*;
 pub use engine::*;
@@ -19,3 +21,7 @@ pub use objectives::*;
 pub use params::*;
 pub use selectors::*;
 pub use stats::*;
+
+pub trait EngineCompoment {
+    fn name(&self) -> &'static str;
+}

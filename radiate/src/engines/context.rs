@@ -3,9 +3,10 @@ use super::MetricSet;
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
 use crate::objectives::Front;
-use crate::{Chromosome, Metric};
+use crate::Chromosome;
 use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 /// The context of the genetic engine. This struct contains the current state of the genetic engine
 /// at any given time. This includes:
@@ -52,9 +53,9 @@ where
         self.timer.duration().as_secs_f64()
     }
 
-    /// Upsert (update or create) a metric with the given key and value.
-    pub fn upsert_metric(&mut self, metric: Metric) {
-        self.metrics.upsert(metric);
+    /// Upsert (update or create) a metric operation with the given name, value, and time.
+    pub fn upsert_operation(&mut self, name: &'static str, value: f32, time: Duration) {
+        self.metrics.upsert_operations(name, value, time);
     }
 }
 

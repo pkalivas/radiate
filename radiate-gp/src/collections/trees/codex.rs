@@ -64,13 +64,9 @@ where
             .next()
             .unwrap()
             .iter()
-            .cloned()
-            .collect::<Vec<TreeNode<C>>>()
-            .first()
-            .unwrap()
-            .to_owned();
+            .collect::<Vec<&TreeNode<C>>>();
 
-        Tree::new(nodes)
+        Tree::new((*nodes.first().unwrap()).clone())
     }
 }
 
@@ -86,9 +82,11 @@ mod tests {
         let codex = TreeCodex::<Op<f32>>::new(3)
             .gates(vec![Op::add(), Op::sub(), Op::mul()])
             .leafs(vec![Op::value(1.0), Op::value(2.0)]);
+
         let genotype = codex.encode();
         let tree = codex.decode(&genotype);
 
+        assert!(tree.root().unwrap().height() == 3);
         assert!(tree.root().is_some());
     }
 }

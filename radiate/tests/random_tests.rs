@@ -5,7 +5,6 @@ mod random_tests {
     use std::io::BufRead;
 
     #[test]
-    // #[ignore]
     fn random_seed_test() {
         random_provider::set_seed(42);
 
@@ -14,9 +13,8 @@ mod random_tests {
             .join("tests/data/random_values.csv");
 
         let file = std::fs::File::open(file_path).expect("Failed to open file");
-        let reader = std::io::BufReader::new(file);
 
-        let values_from_file: Vec<f32> = reader
+        let values_from_file: Vec<f32> = std::io::BufReader::new(file)
             .lines()
             .map(|line| {
                 line.expect("Failed to read line")

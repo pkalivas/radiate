@@ -1,6 +1,5 @@
-use super::{AlterAction, Alter, EngineCompoment, Mutate};
-
-use crate::{random_provider, Chromosome};
+use super::{Alter, AlterAction, Mutate};
+use crate::{random_provider, Chromosome, EngineCompoment};
 
 pub struct SwapMutator {
     rate: f32,

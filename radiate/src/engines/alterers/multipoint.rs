@@ -1,14 +1,29 @@
-use super::{Alter, AlterAction, Crossover, EngineCompoment};
+use super::{Alter, AlterAction, Crossover};
 
-use crate::{random_provider, Chromosome};
+use crate::{random_provider, Chromosome, EngineCompoment};
 
+/// The `MultiPointCrossover` is a crossover method that takes two chromosomes and crosses them
+/// by selecting multiple points in the chromosome and swapping the genes between the two chromosomes.
+/// The number of points to swap is determined by the `num_points` parameter and must be between 1 and the
+/// length of the chromosome. Note, in most cases having more than 2 points is not useful and actually
+/// reduces the effectiveness of the crossover. However, it can be useful in some cases so it is allowed.
+///
+/// This is the traditional crossver method used by genetic algorithms. It is a
+/// simple method that can be used with any type of gene.
 pub struct MultiPointCrossover {
     num_points: usize,
     rate: f32,
 }
 
 impl MultiPointCrossover {
+    /// Create a new instance of the `MultiPointCrossover` with the given rate and number of points.
+    /// The rate must be between 0.0 and 1.0, and the number of points must be between 1 and the length
+    /// of the chromosome.
     pub fn new(rate: f32, num_points: usize) -> Self {
+        if rate < 0.0 || rate > 1.0 {
+            panic!("Rate must be between 0 and 1");
+        }
+
         Self { num_points, rate }
     }
 }

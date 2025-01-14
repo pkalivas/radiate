@@ -1,14 +1,27 @@
-use crate::NumericGene;
-use crate::{random_provider, Chromosome};
+use crate::{random_provider, Chromosome, EngineCompoment, NumericGene};
 
-use super::{Alter, AlterAction, Crossover, EngineCompoment};
+use super::{Alter, AlterAction, Crossover};
 
+/// The `MeanCrossover` is a simple crossover method that replaces the genes of the first chromosome
+/// with the mean of the two genes. The mean is calculated by adding the two genes together and dividing
+/// by two.
+///
+/// This crossover can only be used with `NumericGene`s and can be largely benifitial. However, keep
+/// in mind that because we are taking the mean of two genes, this results in children that
+/// converge towards a common distribution. This can be useful in some cases, but it can also
+/// result in a loss of diversity in the population in others.
 pub struct MeanCrossover {
     rate: f32,
 }
 
 impl MeanCrossover {
+    /// Create a new instance of the `MeanCrossover` with the given rate.
+    /// The rate must be between 0.0 and 1.0.
     pub fn new(rate: f32) -> Self {
+        if rate < 0.0 || rate > 1.0 {
+            panic!("The rate must be between 0.0 and 1.0");
+        }
+
         MeanCrossover { rate }
     }
 }
