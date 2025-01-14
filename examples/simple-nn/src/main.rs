@@ -28,7 +28,7 @@ fn main() {
             IntermediateCrossover::new(0.75, 0.1),
             ArithmeticMutator::new(0.03),
         ))
-        .fitness_fn(move |genotype: NeuralNet| genotype.error(&inputs, &target))
+        .fitness_fn(move |net: NeuralNet| net.error(&inputs, &target))
         .build();
 
     let result = engine.run(|output| {

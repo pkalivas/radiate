@@ -6,7 +6,8 @@ use crate::random_provider;
 /// default to f32::MIN and f32::MAX respectively. The `min` and `max` values are used to
 /// generate a random number between the `min` and `max` values, which is the `allele` of the `FloatGene`.
 /// The `upper_bound` and `lower_bound` are used to set the bounds of the `FloatGene` when it is used
-/// in a `BoundGene` context (crossover or mutation). The `upper_bound` and `lower_bound` default to f32::MAX and f32::MIN respectively.
+/// in a `BoundGene` context (crossover or mutation). The `upper_bound` and `lower_bound`
+/// default to f32::MAX and f32::MIN respectively.
 ///
 /// # Example
 /// ``` rust

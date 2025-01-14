@@ -6,9 +6,8 @@ fn main() {
 
     let engine = GeneticEngine::from_codex(&codex)
         .offspring_selector(BoltzmannSelector::new(4_f32))
-        .fitness_fn(|genotype: Vec<Vec<char>>| {
-            genotype
-                .into_iter()
+        .fitness_fn(|geno: Vec<Vec<char>>| {
+            geno.into_iter()
                 .flatten()
                 .zip(target.chars())
                 .fold(
@@ -24,11 +23,11 @@ fn main() {
         })
         .build();
 
-    let result = engine.run(|output| {
-        let best_as_string = output.best.iter().flatten().collect::<String>();
-        println!("[ {:?} ]: {:?}", output.index, best_as_string);
+    let result = engine.run(|ctx| {
+        let best_as_string = ctx.best.iter().flatten().collect::<String>();
+        println!("[ {:?} ]: {:?}", ctx.index, best_as_string);
 
-        output.score().as_usize() == target.len()
+        ctx.score().as_usize() == target.len()
     });
 
     println!("{:?}", result);
