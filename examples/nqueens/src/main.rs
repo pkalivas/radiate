@@ -34,9 +34,9 @@ fn main() {
         })
         .build();
 
-    let result = engine.run(|output| {
-        println!("[ {:?} ]: {:?}", output.index, output.score().as_usize());
-        output.score().as_usize() == 0
+    let result = engine.run(|ctx| {
+        println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_usize());
+        ctx.score().as_usize() == 0
     });
 
     println!("\nResult Queens Board ({:.3?}):", result.timer.duration());

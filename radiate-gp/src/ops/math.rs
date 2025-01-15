@@ -20,6 +20,8 @@ fn clamp(value: f32) -> f32 {
 }
 
 /// Aggregate a slice of 'f32' values by summing them, then applying a function to the result.
+/// There usually arent too many inputs, so we can use an if statement to handle a few of the
+/// common cases - vals with a len <= 5.
 fn aggregate<F>(vals: &[f32], f: F) -> f32
 where
     F: Fn(f32) -> f32,
@@ -33,6 +35,10 @@ where
         return f(vals[0] + vals[1]);
     } else if len == 3 {
         return f(vals[0] + vals[1] + vals[2]);
+    } else if len == 4 {
+        return f(vals[0] + vals[1] + vals[2] + vals[3]);
+    } else if len == 5 {
+        return f(vals[0] + vals[1] + vals[2] + vals[3] + vals[4]);
     }
 
     f(vals.iter().cloned().sum::<f32>())

@@ -16,16 +16,16 @@ fn main() {
         .fitness_fn(move |genotype: Vec<&Item>| Knapsack::fitness(&KNAPSACK.capacity, &genotype))
         .build();
 
-    let result = engine.run(|output| {
-        let value_total = Knapsack::value_total(&output.best);
-        let weight_total = Knapsack::weight_total(&output.best);
+    let result = engine.run(|ctx| {
+        let value_total = Knapsack::value_total(&ctx.best);
+        let weight_total = Knapsack::weight_total(&ctx.best);
 
         println!(
             "[ {:?} ]: Value={:?} Weight={:?}",
-            output.index, value_total, weight_total
+            ctx.index, value_total, weight_total
         );
 
-        output.index == MAX_EPOCHS
+        ctx.index == MAX_EPOCHS
     });
 
     println!(

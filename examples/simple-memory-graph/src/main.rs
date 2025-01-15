@@ -11,7 +11,7 @@ fn main() {
         .with_output(Op::sigmoid())
         .set_nodes(|arc, _| arc.acyclic(1, 1));
 
-    let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
+    let regression = Regression::new(get_dataset(), ErrorFunction::MSE);
 
     let engine = GeneticEngine::from_codex(&graph_codex)
         .minimizing()
@@ -31,9 +31,9 @@ fn main() {
         })
         .build();
 
-    let result = engine.run(|output| {
-        println!("[ {:?} ]: {:?}", output.index, output.score().as_f32());
-        output.index == MAX_INDEX || output.score().as_f32() < MIN_SCORE
+    let result = engine.run(|ctx| {
+        println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32());
+        ctx.index == MAX_INDEX || ctx.score().as_f32() < MIN_SCORE
     });
 
     display(&result);
@@ -41,7 +41,7 @@ fn main() {
 
 fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     let mut reducer = GraphReducer::new(&result.best);
-    for sample in get_sample_set().iter() {
+    for sample in get_dataset().iter() {
         let output = reducer.reduce(&sample.1);
         println!(
             "{:?} -> epected: {:?}, actual: {:.3?}",
@@ -52,7 +52,7 @@ fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     println!("{:?}", result)
 }
 
-fn get_sample_set() -> DataSet {
+fn get_dataset() -> DataSet {
     let inputs = vec![
         vec![0.0],
         vec![0.0],
@@ -73,5 +73,5 @@ fn get_sample_set() -> DataSet {
         vec![1.0],
     ];
 
-    DataSet::from_vecs(inputs, answers)
+    DataSet::new(inputs, answers)
 }

@@ -58,5 +58,5 @@ fn get_dataset() -> DataSet {
 
     let answers = vec![vec![0.0], vec![0.0], vec![1.0], vec![1.0]];
 
-    DataSet::from_vecs(inputs, answers)
+    DataSet::new(inputs, answers)
 }
