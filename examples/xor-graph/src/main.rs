@@ -9,7 +9,7 @@ fn main() {
 
     let graph_codex = GraphCodex::regression(2, 1).with_output(Op::sigmoid());
 
-    let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
+    let regression = Regression::new(get_dataset(), ErrorFunction::MSE);
 
     let engine = GeneticEngine::from_codex(&graph_codex)
         .minimizing()
@@ -37,7 +37,7 @@ fn main() {
 
 fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     let mut reducer = GraphReducer::new(&result.best);
-    for sample in get_sample_set().get_samples().iter() {
+    for sample in get_dataset().iter() {
         let output = &reducer.reduce(&sample.1);
         println!(
             "{:?} -> epected: {:?}, actual: {:.3?}",
@@ -48,7 +48,7 @@ fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     println!("{:?}", result)
 }
 
-fn get_sample_set() -> DataSet {
+fn get_dataset() -> DataSet {
     let inputs = vec![
         vec![0.0, 0.0],
         vec![1.0, 1.0],

@@ -414,7 +414,7 @@ comprehensive list of examples.
 
 ## XOR Problem (NeuroEvolution)
 
-> Objective - Evolve a `Graph<f32>` to solve the XOR problem (NeuroEvolution).
+> Objective - Evolve a `Graph<Op<f32>>` to solve the XOR problem (NeuroEvolution).
 >
 >  Warning - only available with the `radiate-gp` crate
 
@@ -432,7 +432,7 @@ comprehensive list of examples.
 
         let graph_codex = GraphCodex::regression(2, 1).with_output(Op::sigmoid());
 
-        let regression = Regression::new(get_sample_set(), ErrorFunction::MSE);
+        let regression = Regression::new(get_dataset(), ErrorFunction::MSE);
 
         let engine = GeneticEngine::from_codex(&graph_codex)
             .minimizing()
@@ -450,9 +450,9 @@ comprehensive list of examples.
             })
             .build();
 
-        let result = engine.run(|output| {
-            println!("[ {:?} ]: {:?}", output.index, output.score().as_f32(),);
-            output.index == MAX_INDEX || output.score().as_f32() < MIN_SCORE
+        let result = engine.run(|ctx| {
+            println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32(),);
+            ctx.index == MAX_INDEX || ctx.score().as_f32() < MIN_SCORE
         });
 
         display(&result);
@@ -460,7 +460,7 @@ comprehensive list of examples.
 
     fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
         let mut reducer = GraphReducer::new(&result.best);
-        for sample in get_sample_set().get_samples().iter() {
+        for sample in get_dataset().iter() {
             let output = &reducer.reduce(&sample.1);
             println!(
                 "{:?} -> epected: {:?}, actual: {:.3?}",
@@ -471,7 +471,7 @@ comprehensive list of examples.
         println!("{:?}", result)
     }
 
-    fn get_sample_set() -> DataSet {
+    fn get_dataset() -> DataSet {
         let inputs = vec![
             vec![0.0, 0.0],
             vec![1.0, 1.0],

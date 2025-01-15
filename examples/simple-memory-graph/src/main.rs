@@ -41,7 +41,7 @@ fn main() {
 
 fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     let mut reducer = GraphReducer::new(&result.best);
-    for sample in get_sample_set().get_samples().iter() {
+    for sample in get_sample_set().iter() {
         let output = reducer.reduce(&sample.1);
         println!(
             "{:?} -> epected: {:?}, actual: {:.3?}",

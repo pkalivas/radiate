@@ -1,5 +1,6 @@
 use super::gene::{BoundGene, Gene, NumericGene, Valid};
 use crate::random_provider;
+use std::fmt::Debug;
 
 /// A `Gene` that represents a floating point number.
 /// The `allele` is the in the case of the `FloatGene` a f32. The `min` and `max` values
@@ -118,7 +119,7 @@ impl NumericGene for FloatGene {
     }
 }
 
-impl std::fmt::Debug for FloatGene {
+impl Debug for FloatGene {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.allele)
     }
