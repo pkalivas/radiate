@@ -45,7 +45,7 @@ fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     let mut total = 0.0;
 
     let mut reducer = GraphReducer::new(&result.best);
-    for sample in get_sample_set().get_samples().iter() {
+    for sample in get_sample_set().iter() {
         let output = reducer.reduce(&sample.1);
 
         total += sample.2[0].abs();

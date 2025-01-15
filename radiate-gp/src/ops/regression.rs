@@ -1,25 +1,14 @@
 const ZERO: f32 = 0.0;
 
 pub struct Regression {
-    sample_set: DataSet,
+    data_set: DataSet,
     loss_function: ErrorFunction,
 }
 
 impl Regression {
     pub fn new(sample_set: DataSet, loss_function: ErrorFunction) -> Self {
         Regression {
-            sample_set,
-            loss_function,
-        }
-    }
-
-    pub fn from(loss_function: ErrorFunction, samples: Vec<(Vec<f32>, Vec<f32>)>) -> Self {
-        let mut sample_set = DataSet::new();
-        for (input, output) in samples {
-            sample_set.add_sample(input, output);
-        }
-        Regression {
-            sample_set,
+            data_set: sample_set,
             loss_function,
         }
     }
@@ -28,16 +17,11 @@ impl Regression {
     where
         F: FnMut(&Vec<f32>) -> Vec<f32>,
     {
-        self.loss_function
-            .calculate(&self.sample_set, &mut error_fn)
+        self.loss_function.calculate(&self.data_set, &mut error_fn)
     }
 
-    pub fn get_samples(&self) -> &[Row] {
-        self.sample_set.get_samples()
-    }
-
-    pub fn get_loss_function(&self) -> &ErrorFunction {
-        &self.loss_function
+    pub fn iter(&self) -> &[Row] {
+        self.data_set.iter()
     }
 }
 
@@ -50,16 +34,6 @@ pub struct DataSet {
 }
 
 impl DataSet {
-    pub fn new() -> Self {
-        DataSet {
-            samples: Vec::new(),
-        }
-    }
-
-    pub fn from_samples(samples: Vec<Row>) -> Self {
-        DataSet { samples }
-    }
-
     pub fn from_vecs(inputs: Vec<Vec<f32>>, outputs: Vec<Vec<f32>>) -> Self {
         let mut samples = Vec::new();
         for (input, output) in inputs.into_iter().zip(outputs.into_iter()) {
@@ -68,21 +42,16 @@ impl DataSet {
         DataSet { samples }
     }
 
-    pub fn add_sample(&mut self, input: Vec<f32>, output: Vec<f32>) {
-        let index = self.samples.len();
-        self.samples.push(Row(index, input, output));
-    }
-
-    pub fn get_sample(&self, index: usize) -> Option<&Row> {
-        self.samples.get(index)
-    }
-
-    pub fn get_samples(&self) -> &[Row] {
+    pub fn iter(&self) -> &[Row] {
         &self.samples
     }
 
-    pub fn get_samples_mut(&mut self) -> &mut [Row] {
+    pub fn iter_mut(&mut self) -> &mut [Row] {
         &mut self.samples
+    }
+
+    pub fn len(&self) -> usize {
+        self.samples.len()
     }
 }
 
@@ -101,7 +70,7 @@ impl ErrorFunction {
         match self {
             ErrorFunction::MSE => {
                 let mut sum = ZERO;
-                for sample in samples.get_samples().iter() {
+                for sample in samples.iter().iter() {
                     let output = eval_func(&sample.1);
 
                     for (i, val) in output.into_iter().enumerate() {
@@ -110,11 +79,11 @@ impl ErrorFunction {
                     }
                 }
 
-                sum / (samples.get_samples().len() as f32)
+                sum / (samples.iter().len() as f32)
             }
             ErrorFunction::MAE => {
                 let mut sum = ZERO;
-                for sample in samples.get_samples().iter() {
+                for sample in samples.iter().iter() {
                     let output = eval_func(&sample.1);
 
                     for i in 0..sample.2.len() {
@@ -123,12 +92,12 @@ impl ErrorFunction {
                     }
                 }
 
-                sum /= samples.get_samples().len() as f32;
+                sum /= samples.iter().len() as f32;
                 sum
             }
             ErrorFunction::CrossEntropy => {
                 let mut sum = ZERO;
-                for sample in samples.get_samples().iter() {
+                for sample in samples.iter().iter() {
                     let output = eval_func(&sample.1);
 
                     for i in 0..sample.2.len() {
@@ -140,7 +109,7 @@ impl ErrorFunction {
             }
             ErrorFunction::Diff => {
                 let mut sum = ZERO;
-                for sample in samples.get_samples().iter() {
+                for sample in samples.iter().iter() {
                     let output = eval_func(&sample.1);
 
                     for i in 0..sample.2.len() {

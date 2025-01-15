@@ -37,7 +37,7 @@ fn display(result: &EngineContext<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
     let mut total = 0.0;
 
     let mut reducer = result.best.clone();
-    for sample in get_sample_set().get_samples().iter() {
+    for sample in get_sample_set().iter() {
         let output = reducer.reduce(&sample.1);
 
         total += sample.2[0].abs();
