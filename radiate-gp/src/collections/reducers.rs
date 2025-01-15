@@ -88,7 +88,7 @@ where
         if self.order.is_empty() {
             self.order = self
                 .graph
-                .topological_iter()
+                .iter_topological()
                 .map(|node| node.index())
                 .collect();
         }
