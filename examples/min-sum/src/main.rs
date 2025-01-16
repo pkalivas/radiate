@@ -13,9 +13,9 @@ fn main() {
         .fitness_fn(|geno: Vec<Vec<i32>>| geno.iter().flatten().sum::<i32>())
         .build();
 
-    let result = engine.run(|output| {
-        println!("[ {:?} ]: {:?}", output.index, output.best.first().unwrap());
-        output.score().as_i32() == MIN_SCORE
+    let result = engine.run(|ctx| {
+        println!("[ {:?} ]: {:?}", ctx.index, ctx.best.first().unwrap());
+        ctx.score().as_i32() == MIN_SCORE
     });
 
     println!("{:?}", result);

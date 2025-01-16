@@ -14,8 +14,9 @@ impl<T: Clone> Reduce<T> for Tree<Op<T>> {
     type Output = T;
 
     fn reduce(&mut self, input: &Self::Input) -> Self::Output {
-        let result = self.root_mut().map(|root| root.reduce(input));
-        result.unwrap_or_else(|| panic!("Tree has no root node."))
+        self.root_mut()
+            .map(|root| root.reduce(input))
+            .unwrap_or_else(|| panic!("Tree has no root node."))
     }
 }
 
@@ -88,7 +89,7 @@ where
         if self.order.is_empty() {
             self.order = self
                 .graph
-                .topological_iter()
+                .iter_topological()
                 .map(|node| node.index())
                 .collect();
         }

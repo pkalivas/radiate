@@ -34,7 +34,7 @@ pub struct DataSet {
 }
 
 impl DataSet {
-    pub fn from_vecs(inputs: Vec<Vec<f32>>, outputs: Vec<Vec<f32>>) -> Self {
+    pub fn new(inputs: Vec<Vec<f32>>, outputs: Vec<Vec<f32>>) -> Self {
         let mut samples = Vec::new();
         for (input, output) in inputs.into_iter().zip(outputs.into_iter()) {
             samples.push(Row(samples.len(), input, output));

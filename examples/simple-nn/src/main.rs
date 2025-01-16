@@ -31,11 +31,11 @@ fn main() {
         .fitness_fn(move |net: NeuralNet| net.error(&inputs, &target))
         .build();
 
-    let result = engine.run(|output| {
-        println!("[ {:?} ]: {:?}", output.index, output.score().as_f32());
-        output.score().as_f32() < MIN_SCORE
-            || output.index == MAX_INDEX
-            || output.timer.duration().as_secs() > MAX_SECONDS
+    let result = engine.run(|ctx| {
+        println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32());
+        ctx.score().as_f32() < MIN_SCORE
+            || ctx.index == MAX_INDEX
+            || ctx.timer.duration().as_secs() > MAX_SECONDS
     });
 
     println!("Seconds: {:?}", result.seconds());
