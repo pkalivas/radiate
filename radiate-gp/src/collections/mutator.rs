@@ -54,9 +54,9 @@ where
         }
 
         for &i in mutation_indexes.iter() {
-            let curreent_node = chromosome.get_gene(i);
+            let current_node = chromosome.get_gene(i);
 
-            match curreent_node.allele() {
+            match current_node.allele() {
                 Op::MutableConst {
                     name,
                     arity,
@@ -81,14 +81,14 @@ where
                         operation: Arc::clone(operation),
                     };
 
-                    chromosome.set_gene(i, curreent_node.with_allele(&new_op));
+                    chromosome.set_gene(i, current_node.with_allele(&new_op));
                 }
                 _ => {
                     if let Some(store) = chromosome.store.as_ref() {
-                        let new_op = store.borrow().new_instance((i, curreent_node.node_type()));
+                        let new_op = store.borrow().new_instance((i, current_node.node_type()));
 
-                        if new_op.value().arity() == curreent_node.value().arity() {
-                            chromosome.set_gene(i, curreent_node.with_allele(new_op.allele()));
+                        if new_op.value().arity() == current_node.value().arity() {
+                            chromosome.set_gene(i, current_node.with_allele(new_op.allele()));
                         }
                     }
                 }
