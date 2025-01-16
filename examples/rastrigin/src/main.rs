@@ -27,9 +27,9 @@ fn main() {
         })
         .build();
 
-    let result = engine.run(|output| {
-        println!("[ {:?} ]: {:?}", output.index, output.score().as_f32());
-        output.score().as_f32() <= MIN_SCORE || output.seconds() > MAX_SECONDS
+    let result = engine.run(|ctx| {
+        println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32());
+        ctx.score().as_f32() <= MIN_SCORE || ctx.seconds() > MAX_SECONDS
     });
 
     println!("{:?}", result);

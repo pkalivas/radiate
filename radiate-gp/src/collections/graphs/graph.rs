@@ -95,8 +95,14 @@ impl<C: NodeCell> Graph<C> {
     /// It is a 'best effort' topological order, as it is not guaranteed to be a true topological
     /// order. This is because the graph may contain cycles which would make it impossible to
     /// create a true topological order.
-    pub fn topological_iter(&self) -> impl Iterator<Item = &GraphNode<C>> {
+    pub fn iter_topological(&self) -> impl Iterator<Item = &GraphNode<C>> {
         GraphIterator::new(self)
+    }
+
+    /// Returns a vector of all the nodes in the graph. This will consume the graph and return
+    /// the nodes as a 'Vec'. This is useful for taking ownership of the nodes.
+    pub fn take_nodes(self) -> Vec<GraphNode<C>> {
+        self.nodes
     }
 
     /// Attach and detach nodes from one another. This is the primary way to modify the graph.

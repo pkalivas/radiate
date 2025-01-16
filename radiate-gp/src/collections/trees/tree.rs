@@ -61,7 +61,7 @@ impl<C: NodeCell + Debug> Debug for Tree<C> {
 mod test {
     use super::*;
 
-    use crate::{ops::operation, Op};
+    use crate::Op;
 
     #[test]
     fn test_tree() {
@@ -82,7 +82,7 @@ mod test {
         let values_one: Vec<_> = tree_one
             .iter_breadth_first()
             .filter_map(|n| match &n.value() {
-                operation::Op::Const(_, v) => Some(*v),
+                Op::Const(_, v) => Some(*v),
                 _ => None,
             })
             .collect();

@@ -22,9 +22,9 @@ fn main() {
         .fitness_fn(|geno: Vec<Vec<f32>>| dtlz_7(geno.first().unwrap()))
         .build();
 
-    let result = engine.run(|output| {
-        println!("[ {:?} ]", output.index);
-        output.index > 1000
+    let result = engine.run(|ctx| {
+        println!("[ {:?} ]", ctx.index);
+        ctx.index > 1000
     });
 
     let front = result.front.lock().unwrap();

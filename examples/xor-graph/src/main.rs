@@ -27,9 +27,9 @@ fn main() {
         })
         .build();
 
-    let result = engine.run(|output| {
-        println!("[ {:?} ]: {:?}", output.index, output.score().as_f32(),);
-        output.index == MAX_INDEX || output.score().as_f32() < MIN_SCORE
+    let result = engine.run(|ctx| {
+        println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32(),);
+        ctx.index == MAX_INDEX || ctx.score().as_f32() < MIN_SCORE
     });
 
     display(&result);
@@ -58,5 +58,5 @@ fn get_dataset() -> DataSet {
 
     let answers = vec![vec![0.0], vec![0.0], vec![1.0], vec![1.0]];
 
-    DataSet::from_vecs(inputs, answers)
+    DataSet::new(inputs, answers)
 }

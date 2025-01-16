@@ -29,10 +29,9 @@ fn main() -> io::Result<()> {
         })
         .build();
 
-    let result = engine.run(move |output| {
-        println!("[ {:?} ]: {:?}", output.index, output.score());
-
-        output.index > 2500 || output.score().as_usize() == 2085
+    let result = engine.run(move |ctx| {
+        println!("[ {:?} ]: {:?}", ctx.index, ctx.score());
+        ctx.index > 2500 || ctx.score().as_usize() == 2085
     });
 
     plot_tsp_solution(&result.best, &distance_points).unwrap();
