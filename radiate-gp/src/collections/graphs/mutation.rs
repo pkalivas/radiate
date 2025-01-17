@@ -8,6 +8,10 @@ use super::{Graph, GraphChromosome, GraphNode};
 use crate::ops::Arity;
 use crate::{CellStore, Factory, NodeCell, NodeType};
 
+/// A node mutation used to alter the graph structure randomly
+/// The mutation can be either an edge or a vertex, with a rate of mutation and a flag to
+/// indicate if the node is recurrent. Note - at this point this only represents additions
+/// to the `graph`.
 pub enum NodeMutate {
     Edge(f32, bool),
     Vertex(f32, bool),
@@ -36,16 +40,26 @@ impl NodeMutate {
     }
 }
 
+/// A graph mutator that can be used to alter the graph structure. This is used to add nodes
+/// to the graph, and can be used to add either edges or vertices. The mutator is created with
+/// a set of mutations that can be applied to the graph.
 pub struct GraphMutator {
     mutations: Vec<NodeMutate>,
 }
 
 // updated GraphMutator implementation
 impl GraphMutator {
+    /// Create a new graph mutator with a set of mutations
+    ///
+    /// # Arguments
+    /// - `mutations` - a vector of `NodeMutate` that represent the mutations that can be applied
     pub fn new(mutations: Vec<NodeMutate>) -> Self {
         Self { mutations }
     }
 
+    /// Add a node to the graph using the transaction. This will attempt to add a node to the graph
+    /// and if successful will commit the transaction. If the node cannot be added the transaction
+    /// will be rolled back.
     pub fn add_node<C: NodeCell + Clone + Default + PartialEq>(
         &self,
         graph: &mut Graph<C>,
