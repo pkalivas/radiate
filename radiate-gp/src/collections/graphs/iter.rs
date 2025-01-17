@@ -8,7 +8,6 @@ use std::collections::VecDeque;
 /// "sudo-topological" because it is not a true topological order, but rather a topological order
 /// that allows for recurrent connections. This iterator is used by the `GraphReducer` to evaluate
 /// the nodes in a `Graph` in the correct order.
-///
 pub struct GraphIterator<'a, C: NodeCell> {
     pub graph: &'a Graph<C>,
     pub completed: Vec<bool>,
@@ -17,6 +16,10 @@ pub struct GraphIterator<'a, C: NodeCell> {
 }
 
 impl<'a, C: NodeCell> GraphIterator<'a, C> {
+    /// Create a new `GraphIterator` from a reference to a `Graph`.
+    ///
+    /// # Arguments
+    /// - `graph`: A reference to the `Graph` to iterate over.
     pub fn new(graph: &'a Graph<C>) -> Self {
         Self {
             graph,
@@ -27,6 +30,17 @@ impl<'a, C: NodeCell> GraphIterator<'a, C> {
     }
 }
 
+/// Implement the `Iterator` trait for `GraphIterator`.
+/// The `Item` type is a reference to a `GraphNode`.
+///
+/// This implementation is a bit more complex than the typical iterator implementation. The iterator
+/// must traverse the graph in a sudo-topological order. This means that it must iterate over the
+/// nodes in the graph in an order that respects the dependencies between the nodes. The iterator
+/// does this by keeping track of which nodes have been completed and which nodes are pending. It
+/// then iterates over the nodes in the graph, checking the dependencies of each node to determine
+/// if it can be completed. If a node can be completed, it is added to the index queue, which is
+/// used to determine the order in which the nodes are returned by the iterator.
+/// It is a 'sudo' topological order because it allows for recurrent connections in the graph.
 impl<'a, C: NodeCell> Iterator for GraphIterator<'a, C> {
     type Item = &'a GraphNode<C>;
 
