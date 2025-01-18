@@ -48,7 +48,7 @@ pub trait Select<C: Chromosome>: EngineCompoment {
     ) -> Population<C>;
 }
 
-/// An iterator that generates random indices based on the probabilities.
+/// An iterator that generates random indices based on probabilities.
 /// This iterator is used in the RouletteWheel selection algorithm, and
 /// Boltzmann selection algorithm. This is essentially the 'roulette wheel'
 /// that is spun to select individuals from the population. The probability

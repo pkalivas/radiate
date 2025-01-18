@@ -7,13 +7,7 @@ pub struct RouletteSelector;
 
 impl RouletteSelector {
     pub fn new() -> Self {
-        Self
-    }
-}
-
-impl Default for RouletteSelector {
-    fn default() -> Self {
-        Self::new()
+        RouletteSelector
     }
 }
 

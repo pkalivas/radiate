@@ -9,13 +9,7 @@ pub struct RankSelector;
 
 impl RankSelector {
     pub fn new() -> Self {
-        Self
-    }
-}
-
-impl Default for RankSelector {
-    fn default() -> Self {
-        Self::new()
+        RankSelector
     }
 }
 

@@ -8,7 +8,7 @@ pub struct TournamentSelector {
 
 impl TournamentSelector {
     pub fn new(num: usize) -> Self {
-        Self { num }
+        TournamentSelector { num }
     }
 }
 

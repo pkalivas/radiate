@@ -9,7 +9,7 @@ pub struct BoltzmannSelector {
 
 impl BoltzmannSelector {
     pub fn new(temperature: f32) -> Self {
-        Self { temperature }
+        BoltzmannSelector { temperature }
     }
 }
 
