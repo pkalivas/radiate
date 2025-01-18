@@ -36,6 +36,9 @@ impl BitGene {
     }
 }
 
+/// Implement the `Gene` trait for the `BitGene`.
+/// This allows the `BitGene` to be used in a `Chromosome` - specifically the
+/// `BitChromosome`, thus allowing the `BitGene` to be used in the `GeneticEngine`.
 impl Gene for BitGene {
     type Allele = bool;
 

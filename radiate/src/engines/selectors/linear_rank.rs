@@ -58,6 +58,6 @@ impl<C: Chromosome> Select<C> for LinearRankSelector {
             }
         }
 
-        Population::from_vec(selected_population)
+        Population::new(selected_population)
     }
 }

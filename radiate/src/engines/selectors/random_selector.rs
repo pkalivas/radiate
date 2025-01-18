@@ -25,7 +25,7 @@ impl<C: Chromosome> Select<C> for RandomSelector {
             selected.push(population[index].clone());
         }
 
-        Population::from_vec(selected)
+        Population::new(selected)
     }
 }
 

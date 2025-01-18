@@ -25,11 +25,11 @@ pub struct Population<C: Chromosome> {
 }
 
 impl<C: Chromosome> Population<C> {
-    /// Create a new instance of the Population. This will create a new instance with an
-    /// empty list of individuals and the is_sorted flag set to false.
-    pub fn new() -> Self {
+    /// Create a new instance of the Population with the given individuals.
+    /// This will set the is_sorted flag to false.
+    pub fn new(individuals: Vec<Phenotype<C>>) -> Self {
         Population {
-            individuals: Vec::new(),
+            individuals,
             is_sorted: false,
         }
     }
@@ -68,14 +68,6 @@ impl<C: Chromosome> Population<C> {
 
         self.individuals.sort_by(f);
         self.is_sorted = true;
-    }
-
-    /// Create a new instance of the Population from the given Vec of individuals.
-    pub fn from_vec(individuals: Vec<Phenotype<C>>) -> Self {
-        Population {
-            individuals,
-            is_sorted: false,
-        }
     }
 
     /// Create a new instance of the Population from the given size and closure.
@@ -166,7 +158,7 @@ mod test {
 
     #[test]
     fn test_new() {
-        let population = Population::<CharChromosome>::new();
+        let population = Population::<CharChromosome>::default();
         assert_eq!(population.len(), 0);
     }
 
@@ -177,7 +169,7 @@ mod test {
             Phenotype::from_chromosomes(vec![CharChromosome::from("world")], 0),
         ];
 
-        let population = Population::from_vec(individuals.clone());
+        let population = Population::new(individuals.clone());
         assert_eq!(population.len(), individuals.len());
     }
 
@@ -197,7 +189,7 @@ mod test {
 
     #[test]
     fn test_is_empty() {
-        let population = Population::<CharChromosome>::new();
+        let population = Population::<CharChromosome>::default();
         assert!(population.is_empty());
     }
 

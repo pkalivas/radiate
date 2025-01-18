@@ -13,7 +13,7 @@ pub fn float_population(num: usize) -> Population<FloatChromosome> {
         population.push(phenotype);
     }
 
-    Population::from_vec(population)
+    Population::new(population)
 }
 
 #[allow(dead_code)]
@@ -30,5 +30,5 @@ pub fn random_float_population(num: usize) -> Population<FloatChromosome> {
         population.push(phenotype);
     }
 
-    Population::from_vec(population)
+    Population::new(population)
 }

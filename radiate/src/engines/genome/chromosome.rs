@@ -68,7 +68,7 @@ pub trait Chromosome:
 /// A `BitChromosome` is a collection of `BitGenes` that represent the genetic
 /// material of an individual in the population.
 ///
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Default)]
 pub struct BitChromosome {
     pub genes: Vec<BitGene>,
 }
@@ -110,7 +110,7 @@ impl From<Vec<bool>> for BitChromosome {
 }
 
 /// A `Chromosome` that contains `CharGenes`.
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Default)]
 pub struct CharChromosome {
     pub genes: Vec<CharGene>,
 }
@@ -160,7 +160,7 @@ impl From<&[char]> for CharChromosome {
 /// # Fields
 ///
 /// * `genes` - A vector of `FloatGene` representing the individual's genetic information.
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Default)]
 pub struct FloatChromosome {
     pub genes: Vec<FloatGene>,
 }
@@ -225,7 +225,7 @@ impl From<&[f32]> for FloatChromosome {
 ///
 /// * `genes` - A vector of `IntGene<T>` representing the individual's genetic informationn.
 ///
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Default)]
 pub struct IntChromosome<I: Integer<I>>
 where
     Standard: rand::distributions::Distribution<I>,
@@ -286,7 +286,7 @@ where
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct PermutationChromosome<A: PartialEq + Clone> {
     pub genes: Vec<PermutationGene<A>>,
     pub alleles: Arc<Vec<A>>,

@@ -34,6 +34,6 @@ impl<C: Chromosome> Select<C> for TournamentSelector {
             selected.push(population[tournament[0]].clone());
         }
 
-        Population::from_vec(selected)
+        Population::new(selected)
     }
 }

@@ -35,6 +35,9 @@ impl CharGene {
     }
 }
 
+/// Implement the `Gene` trait for the `CharGene`. This allows the `CharGene` to be used in
+/// a `Chromosome` - specifically the `CharChromosome`, thus allowing the `CharGene` to
+/// be used in the `GeneticEngine`.
 impl Gene for CharGene {
     type Allele = char;
 
