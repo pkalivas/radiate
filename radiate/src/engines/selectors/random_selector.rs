@@ -6,7 +6,7 @@ pub struct RandomSelector;
 
 impl RandomSelector {
     pub fn new() -> Self {
-        Self
+        RandomSelector
     }
 }
 

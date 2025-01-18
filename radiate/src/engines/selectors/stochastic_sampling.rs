@@ -66,9 +66,3 @@ impl<C: Chromosome> Select<C> for StochasticUniversalSamplingSelector {
         Population::from_vec(pointers)
     }
 }
-
-impl Default for StochasticUniversalSamplingSelector {
-    fn default() -> Self {
-        Self::new()
-    }
-}
