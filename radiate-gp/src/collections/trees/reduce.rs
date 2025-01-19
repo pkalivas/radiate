@@ -43,7 +43,7 @@ impl<T: Clone> Reduce<T> for TreeNode<Op<T>> {
                     return node.value().apply(&inputs);
                 }
 
-                panic!("Node is not a leaf and has no children.");
+                panic!("Node is not a leaf and has no children - this should never happen.");
             }
         }
 

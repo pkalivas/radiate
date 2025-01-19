@@ -46,6 +46,5 @@ pub trait Reduce<T> {
     type Input;
     type Output;
 
-    /// Transforms the `Input` into the `Output`.
     fn reduce(&mut self, input: &Self::Input) -> Self::Output;
 }
