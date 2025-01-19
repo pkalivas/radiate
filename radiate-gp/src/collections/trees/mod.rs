@@ -4,6 +4,7 @@ mod codex;
 mod crossover;
 mod iter;
 mod node;
+mod reduce;
 mod tree;
 
 pub use builder::TreeBuilder;

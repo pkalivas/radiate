@@ -7,6 +7,7 @@ mod graph;
 mod iter;
 mod mutation;
 mod node;
+mod reduce;
 mod transaction;
 
 pub use architect::GraphArchitect;
@@ -18,4 +19,5 @@ pub use graph::Graph;
 pub use iter::GraphIterator;
 pub use mutation::{GraphMutator, NodeMutate};
 pub use node::{Direction, GraphNode};
+pub use reduce::GraphReducer;
 pub use transaction::GraphTransaction;

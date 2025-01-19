@@ -8,7 +8,7 @@ pub mod trees;
 
 pub use graphs::{
     Direction, Graph, GraphArchitect, GraphBuilder, GraphChromosome, GraphCodex, GraphCrossover,
-    GraphIterator, GraphMutator, GraphNode, NodeMutate,
+    GraphIterator, GraphMutator, GraphNode, GraphReducer, NodeMutate,
 };
 pub use mutator::OperationMutator;
 pub use node::{NodeCell, NodeType};

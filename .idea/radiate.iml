@@ -24,6 +24,19 @@
       <sourceFolder url="file://$MODULE_DIR$/radiate-benchmarks/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/radiate-gp/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/radiate-gp/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/benchmarks/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/DTLZ/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/TSP/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/knapsack/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/min-sum/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/nqueens/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/rastrigin/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/regression-graph/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/regression-tree/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/simple-memory-graph/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/simple-nn/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/string-evolver/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/xor-graph/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/radiate/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
