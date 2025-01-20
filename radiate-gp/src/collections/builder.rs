@@ -33,7 +33,7 @@
 /// ```
 /// **Note**: The above is not guaranteed, but is a good example of what
 /// the tree will look like. It isn't guaranteed because the `TreeBuilder`
-/// uses a random number generator to pick the value for each node.
+/// uses the `random_provider` to pick the value (`Op<f32>` in this case) for each node.
 pub trait Builder {
     type Output;
     fn build(&self) -> Self::Output;

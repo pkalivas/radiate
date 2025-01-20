@@ -25,7 +25,6 @@ use std::time::Duration;
 /// # Type Parameters
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 /// - `T`: The type of the best individual in the population.
-///
 pub struct EngineContext<C, T>
 where
     C: Chromosome,

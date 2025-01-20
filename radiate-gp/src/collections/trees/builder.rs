@@ -71,6 +71,12 @@ impl<C: NodeCell + Default> Builder for TreeBuilder<C> {
     }
 }
 
+impl<C: NodeCell + Default> Default for TreeBuilder<C> {
+    fn default() -> Self {
+        TreeBuilder::new(1)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::Op;
