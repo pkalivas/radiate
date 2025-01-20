@@ -40,7 +40,7 @@
 ///
 /// This can also be thought of (and is functionally equivalent) as:
 /// ```text
-///  (2 * 3) + (2 + x)
+/// f(x) = (2 * 3) + (2 + x)
 /// ```
 pub trait Reduce<T> {
     type Input;
