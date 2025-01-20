@@ -42,7 +42,7 @@ where
     C: Clone + PartialEq + Default + NodeCell,
 {
     fn encode(&self) -> Genotype<TreeChromosome<C>> {
-        let root = self.builder.build().root().take().unwrap().to_owned();
+        let root = self.builder.build().take_root().unwrap();
 
         if let Some(constraint) = &self.constraint {
             if !constraint(&root) {
