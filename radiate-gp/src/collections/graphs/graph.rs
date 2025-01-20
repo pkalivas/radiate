@@ -258,10 +258,10 @@ impl<C: NodeCell> Graph<C> {
         }
 
         let would_create_cycle = recurrent || !self.would_create_cycle(source, target);
-        let nodes_are_weights =
+        let nodes_are_edges =
             source_node.node_type() == NodeType::Edge || target_node.node_type() == NodeType::Edge;
 
-        would_create_cycle && !nodes_are_weights && source != target
+        would_create_cycle && !nodes_are_edges && source != target
     }
     /// Check if connecting the source node to the target node would create a cycle.
     ///
