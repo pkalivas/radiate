@@ -6,12 +6,12 @@ use radiate::engines::genome::*;
 use radiate::{random_provider, Alter, AlterAction, Crossover, EngineCompoment};
 
 pub struct TreeCrossover {
-    pub rate: f32,
+    rate: f32,
 }
 
 impl TreeCrossover {
     pub fn new(rate: f32) -> Self {
-        Self { rate }
+        TreeCrossover { rate }
     }
 }
 

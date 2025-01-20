@@ -2,7 +2,7 @@ use radiate::*;
 use radiate_gp::*;
 
 const MIN_SCORE: f32 = 0.01;
-const MAX_SECONDS: f64 = 5.0;
+const MAX_SECONDS: f64 = 1.0;
 
 fn main() {
     random_provider::set_seed(42069);
