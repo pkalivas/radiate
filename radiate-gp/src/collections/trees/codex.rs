@@ -1,19 +1,19 @@
 use crate::collections::trees::TreeBuilder;
 use crate::collections::{Tree, TreeChromosome, TreeNode};
 
-use crate::NodeCell;
+use crate::{Builder, NodeCell};
 use radiate::{Chromosome, Codex, Genotype};
 use std::sync::Arc;
 
 pub struct TreeCodex<C: Clone + NodeCell> {
-    architect: TreeBuilder<C>,
+    builder: TreeBuilder<C>,
     constraint: Option<Arc<Box<dyn Fn(&TreeNode<C>) -> bool>>>,
 }
 
 impl<C: NodeCell + Clone + Default> TreeCodex<C> {
     pub fn new(depth: usize) -> Self {
         TreeCodex {
-            architect: TreeBuilder::new(depth),
+            builder: TreeBuilder::new(depth),
             constraint: None,
         }
     }
@@ -27,12 +27,12 @@ impl<C: NodeCell + Clone + Default> TreeCodex<C> {
     }
 
     pub fn gates(mut self, gates: Vec<C>) -> Self {
-        self.architect = self.architect.with_gates(gates);
+        self.builder = self.builder.with_gates(gates);
         self
     }
 
     pub fn leafs(mut self, leafs: Vec<C>) -> Self {
-        self.architect = self.architect.with_leafs(leafs);
+        self.builder = self.builder.with_leafs(leafs);
         self
     }
 }
@@ -42,7 +42,7 @@ where
     C: Clone + PartialEq + Default + NodeCell,
 {
     fn encode(&self) -> Genotype<TreeChromosome<C>> {
-        let root = self.architect.build().root().take().unwrap().to_owned();
+        let root = self.builder.build().root().take().unwrap().to_owned();
 
         if let Some(constraint) = &self.constraint {
             if !constraint(&root) {

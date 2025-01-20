@@ -63,6 +63,6 @@ impl<C: Chromosome> Select<C> for StochasticUniversalSamplingSelector {
             current_point += point_distance;
         }
 
-        Population::from_vec(pointers)
+        Population::new(pointers)
     }
 }

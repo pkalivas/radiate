@@ -3,7 +3,7 @@ mod tests {
     use radiate::*;
     use radiate_gp::{
         collections::{GraphBuilder, GraphCodex, GraphReducer},
-        Direction, Graph, NodeType, Op,
+        Direction, Graph, NodeType, Op, Reduce,
     };
 
     #[test]

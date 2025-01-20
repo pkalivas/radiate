@@ -54,6 +54,6 @@ impl<C: Chromosome> Select<C> for RouletteSelector {
             selected.push(population[idx].clone());
         }
 
-        Population::from_vec(selected)
+        Population::new(selected)
     }
 }

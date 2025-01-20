@@ -26,7 +26,7 @@ use radiate::{random_provider, Valid};
 /// The 'Graph' struct provides methods for attaching and detaching nodes from one another.
 /// It also provides methods for iterating over the nodes in the graph in a sudo topological order.
 //
-#[derive(Clone, Default)]
+#[derive(Clone, Default, PartialEq)]
 pub struct Graph<C: NodeCell> {
     nodes: Vec<GraphNode<C>>,
 }
@@ -403,9 +403,11 @@ impl<C: NodeCell> IntoIterator for Graph<C> {
     }
 }
 
-impl<C: NodeCell + PartialEq> PartialEq for Graph<C> {
-    fn eq(&self, other: &Self) -> bool {
-        self.nodes == other.nodes
+impl<C: NodeCell> FromIterator<GraphNode<C>> for Graph<C> {
+    fn from_iter<T: IntoIterator<Item = GraphNode<C>>>(iter: T) -> Self {
+        Graph {
+            nodes: iter.into_iter().collect(),
+        }
     }
 }
 
