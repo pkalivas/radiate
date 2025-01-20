@@ -10,7 +10,6 @@ use radiate::random_provider;
 ///
 /// # Type Parameters
 /// 'C' - The type of the node cell that the graph will contain.
-///
 pub struct GraphBuilder<C: NodeCell> {
     store: CellStore<C>,
 }

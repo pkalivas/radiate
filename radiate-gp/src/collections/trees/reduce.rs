@@ -3,7 +3,7 @@ use crate::{Op, Reduce, TreeNode};
 use super::Tree;
 
 /// Implements the `Reduce` trait for `Tree<Op<T>>`. All this really does is
-/// call the `reduce` method on the root node of the `Tree`. the real work is
+/// call the `reduce` method on the root node of the `Tree`. The real work is
 /// done in the `TreeNode` implementation below.
 impl<T: Clone> Reduce<T> for Tree<Op<T>> {
     type Input = Vec<T>;
@@ -71,27 +71,24 @@ mod tests {
 
     #[test]
     fn test_tree_reduce_complex() {
-        let mut root = TreeNode::with_children(
-            Op::add(),
-            vec![
-                TreeNode::with_children(
-                    Op::mul(),
-                    vec![TreeNode::new(Op::value(2.0)), TreeNode::new(Op::value(3.0))],
-                ),
-                TreeNode::with_children(
-                    Op::add(),
-                    vec![TreeNode::new(Op::value(2.0)), TreeNode::new(Op::var(0))],
-                ),
-            ],
-        );
+        let mut root = TreeNode::new(Op::add())
+            .attach(
+                TreeNode::new(Op::mul())
+                    .attach(TreeNode::new(Op::value(2.0)))
+                    .attach(TreeNode::new(Op::value(3.0))),
+            )
+            .attach(
+                TreeNode::new(Op::add())
+                    .attach(TreeNode::new(Op::value(2.0)))
+                    .attach(TreeNode::new(Op::var(0))),
+            );
 
-        let result = root.reduce(&vec![1_f32]);
-        assert_eq!(result, 9.0);
+        let nine = root.reduce(&vec![1_f32]);
+        let ten = root.reduce(&vec![2_f32]);
+        let eleven = root.reduce(&vec![3_f32]);
 
-        let result = root.reduce(&vec![2_f32]);
-        assert_eq!(result, 10.0);
-
-        let result = root.reduce(&vec![3_f32]);
-        assert_eq!(result, 11.0);
+        assert_eq!(nine, 9.0);
+        assert_eq!(ten, 10.0);
+        assert_eq!(eleven, 11.0);
     }
 }

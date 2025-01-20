@@ -41,6 +41,11 @@ impl<C: NodeCell> TreeNode<C> {
         }
     }
 
+    pub fn attach(mut self, other: TreeNode<C>) -> Self {
+        self.add_child(other);
+        self
+    }
+
     pub fn children(&self) -> Option<&Vec<TreeNode<C>>> {
         self.children.as_ref()
     }
