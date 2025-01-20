@@ -24,6 +24,19 @@
 ///     ],
 /// );
 ///
+/// // the above tree can also be created in the following way:
+/// let mut other_root = TreeNode::new(Op::add())
+///     .attach(
+///         TreeNode::new(Op::mul())
+///             .attach(TreeNode::new(Op::value(2.0)))
+///             .attach(TreeNode::new(Op::value(3.0))),
+///     )
+///     .attach(
+///         TreeNode::new(Op::add())
+///             .attach(TreeNode::new(Op::value(2.0)))
+///             .attach(TreeNode::new(Op::var(0))),
+///     );
+///
 /// // And the result of evaluating this tree with an input of `1` would be:
 /// let result = root.reduce(&vec![1_f32]);
 /// assert_eq!(result, 9.0);
