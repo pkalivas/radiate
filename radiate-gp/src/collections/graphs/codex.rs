@@ -8,10 +8,7 @@ use radiate::{Chromosome, Codex, Gene, Genotype};
 use std::cell::RefCell;
 use std::rc::Rc;
 
-pub struct GraphCodex<C>
-where
-    C: NodeCell,
-{
+pub struct GraphCodex<C: NodeCell> {
     store: Rc<RefCell<CellStore<C>>>,
     graph: Option<Graph<C>>,
 }

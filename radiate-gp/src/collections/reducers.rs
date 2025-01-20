@@ -38,7 +38,7 @@
 /// ```
 /// Where `x` is the first variable in the input.
 ///
-/// This can also be thought of as:
+/// This can also be thought of (and is functionally equivalent) as:
 /// ```text
 ///  (2 * 3) + (2 + x)
 /// ```
