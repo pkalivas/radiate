@@ -60,6 +60,7 @@ impl GraphMutator {
     /// Add a node to the graph using the transaction. This will attempt to add a node to the graph
     /// and if successful will commit the transaction. If the node cannot be added the transaction
     /// will be rolled back.
+    #[inline]
     pub fn add_node<C: NodeCell + Clone + Default + PartialEq>(
         &self,
         graph: &mut Graph<C>,

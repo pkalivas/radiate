@@ -37,7 +37,6 @@ use crate::{Chromosome, Codex, Genotype};
 /// # Type Parameters
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 /// - `T`: The type that the genotype will be decoded to.
-///
 #[derive(Default)]
 pub struct FnCodex<C: Chromosome, T> {
     encoder: Option<Box<dyn Fn() -> Genotype<C>>>,

@@ -59,7 +59,6 @@ use std::sync::{Arc, Mutex};
 /// # Type Parameters
 /// - `C`: The type of the chromosome used in the genotype, which must implement the `Chromosome` trait.
 /// - `T`: The type of the phenotype produced by the genetic algorithm, which must be `Clone`, `Send`, and `static`.
-///
 pub struct GeneticEngine<'a, C, T>
 where
     C: Chromosome,

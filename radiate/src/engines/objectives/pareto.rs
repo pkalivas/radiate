@@ -160,6 +160,7 @@ pub fn dominance<K: PartialOrd, T: AsRef<[K]>>(
             }
         }
     }
+
     better_in_any
 }
 

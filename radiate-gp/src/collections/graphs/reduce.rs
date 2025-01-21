@@ -60,7 +60,6 @@ impl<'a, T: Clone + Default> Reduce<T> for GraphReducer<'a, T> {
     ///
     ///  # Returns
     /// * A `Vec` of `T` which is the output of the `Graph`.
-    ///
     #[inline]
     fn reduce(&mut self, input: &Self::Input) -> Self::Output {
         if self.order.is_empty() {
