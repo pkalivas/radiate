@@ -11,7 +11,7 @@ pub struct WorkResult<T> {
 
 impl<T> WorkResult<T> {
     /// Get the result of the job.
-    /// Note: This method will block until the result is available.
+    /// **Note**: This method will block until the result is available.
     pub fn result(&self) -> T {
         self.receiver.recv().unwrap()
     }

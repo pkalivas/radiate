@@ -54,7 +54,6 @@ pub trait Select<C: Chromosome>: EngineCompoment {
 /// that is spun to select individuals from the population. The probability
 /// of selecting an individual is based on the fitness (probability) of the individual.
 /// The higher the fitness, the higher the probability of the individual being selected.
-///
 pub(super) struct ProbabilityWheelIterator<'a> {
     probabilities: &'a [f32],
     total: f32,
