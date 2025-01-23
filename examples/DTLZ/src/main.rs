@@ -10,8 +10,8 @@ fn main() {
     let codex = FloatCodex::new(1, VARIABLES, 0_f32, 1_f32).with_bounds(0.0, 1.0);
 
     let engine = GeneticEngine::from_codex(&codex)
-        .num_threads(4)
-        .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
+        .num_threads(10)
+        .multi_objective(vec![Optimize::Maximize; OBJECTIVES])
         .front_size(1000, 1100)
         .offspring_selector(TournamentSelector::new(5))
         .survivor_selector(NSGA2Selector::new())
@@ -19,7 +19,7 @@ fn main() {
             SimulatedBinaryCrossover::new(1_f32, 1.0),
             UniformMutator::new(0.1_f32),
         ))
-        .fitness_fn(|geno: Vec<Vec<f32>>| dtlz_7(geno.first().unwrap()))
+        .fitness_fn(|geno: Vec<Vec<f32>>| dtlz_2(geno.first().unwrap()))
         .build();
 
     let result = engine.run(|ctx| {

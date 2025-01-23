@@ -168,13 +168,13 @@ pub fn dominance<K: PartialOrd, T: AsRef<[K]>>(
 /// scores that are not dominated by any other score in the set. This is useful
 /// for selecting the best solutions in a multi-objective optimization problem.
 pub fn pareto_front<K: PartialOrd, T: AsRef<[K]> + Clone>(
-    scores: &[T],
+    values: &[T],
     objective: &Objective,
 ) -> Vec<T> {
     let mut front = Vec::new();
-    for score in scores {
+    for score in values {
         let mut dominated = false;
-        for other in scores {
+        for other in values {
             if dominance(other, score, objective) {
                 dominated = true;
                 break;
