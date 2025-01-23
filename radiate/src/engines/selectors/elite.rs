@@ -6,7 +6,7 @@ pub struct EliteSelector;
 
 impl EliteSelector {
     pub fn new() -> Self {
-        Self
+        EliteSelector
     }
 }
 

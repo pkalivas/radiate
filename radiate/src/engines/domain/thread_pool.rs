@@ -1,6 +1,6 @@
 use std::{
     sync::{mpsc, Arc, Mutex},
-    thread,
+    thread::{self},
 };
 
 /// `WorkResult` is a simple wrapper around a `Receiver` that allows the user to get
@@ -11,7 +11,7 @@ pub struct WorkResult<T> {
 
 impl<T> WorkResult<T> {
     /// Get the result of the job.
-    /// Note: This method will block until the result is available.
+    /// **Note**: This method will block until the result is available.
     pub fn result(&self) -> T {
         self.receiver.recv().unwrap()
     }
@@ -30,7 +30,7 @@ impl ThreadPool {
         let (sender, receiver) = mpsc::channel();
         let receiver = Arc::new(Mutex::new(receiver));
 
-        Self {
+        ThreadPool {
             sender,
             workers: (0..size)
                 .map(|_| Worker::new(Arc::clone(&receiver)))
@@ -104,7 +104,7 @@ impl Worker {
     /// When a job is received, it will be executed in a new thread and the
     /// mutex will release allowing another job to be received from a different worker.
     fn new(receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Self {
-        Self {
+        Worker {
             thread: Some(thread::spawn(move || loop {
                 let job = receiver.lock().unwrap().recv().unwrap();
 

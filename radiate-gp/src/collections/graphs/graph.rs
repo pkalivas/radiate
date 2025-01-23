@@ -46,10 +46,7 @@ impl<C: NodeCell> Graph<C> {
         self.nodes.push(node);
     }
 
-    pub fn add<T>(&mut self, node_type: NodeType, val: T) -> usize
-    where
-        T: Into<C>,
-    {
+    pub fn add(&mut self, node_type: NodeType, val: impl Into<C>) -> usize {
         let node = GraphNode::new(self.len(), node_type, val.into());
         self.push(node);
         self.len() - 1
@@ -85,6 +82,7 @@ impl<C: NodeCell> Graph<C> {
     pub fn iter(&self) -> impl Iterator<Item = &GraphNode<C>> {
         self.nodes.iter()
     }
+
     /// mutably iterates over the nodes in the graph. The nodes are returned in the order they
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut GraphNode<C>> {
         self.nodes.iter_mut()
@@ -148,6 +146,7 @@ impl<C: NodeCell> Graph<C> {
     /// at those indices to 'Direction::Backward' if they are part of a cycle. If they are not part
     /// of a cycle, the 'direction' field will be set to 'Direction::Forward'.
     /// If no indices are provided, the function will set the 'direction' field of all nodes in the graph.
+    #[inline]
     pub fn set_cycles(&mut self, indecies: Vec<usize>) {
         if indecies.is_empty() {
             let all_indices = self
@@ -180,6 +179,7 @@ impl<C: NodeCell> Graph<C> {
     ///
     /// # Arguments
     ///  - mutation: A closure that takes a mutable reference to a 'GraphTransaction' and returns a 'bool'.
+    #[inline]
     pub fn try_modify<F>(&mut self, mutation: F) -> bool
     where
         F: FnOnce(&mut GraphTransaction<C>) -> bool,
@@ -258,10 +258,10 @@ impl<C: NodeCell> Graph<C> {
         }
 
         let would_create_cycle = recurrent || !self.would_create_cycle(source, target);
-        let nodes_are_weights =
+        let nodes_are_edges =
             source_node.node_type() == NodeType::Edge || target_node.node_type() == NodeType::Edge;
 
-        would_create_cycle && !nodes_are_weights && source != target
+        would_create_cycle && !nodes_are_edges && source != target
     }
     /// Check if connecting the source node to the target node would create a cycle.
     ///
@@ -363,6 +363,7 @@ impl<C> Valid for Graph<C>
 where
     C: NodeCell + Clone + PartialEq + Default,
 {
+    #[inline]
     fn is_valid(&self) -> bool {
         self.iter().all(|node| node.is_valid())
     }

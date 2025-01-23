@@ -9,7 +9,7 @@ fn main() {
 
     let engine = GeneticEngine::from_codex(&codex)
         .minimizing()
-        .num_threads(10)
+        .num_threads(5)
         .offspring_selector(BoltzmannSelector::new(4.0))
         .alter(alters!(
             MultiPointCrossover::new(0.75, 2),

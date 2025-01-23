@@ -16,8 +16,6 @@ mod tests {
 
         graph.attach(0, 1).attach(1, 2);
 
-        println!("{:?}", graph);
-
         assert_eq!(graph.len(), 3);
 
         assert!(graph.is_valid());
@@ -43,8 +41,6 @@ mod tests {
         graph.add(NodeType::Output, 3);
 
         graph.attach(0, 1).attach(1, 2).attach(2, 1).attach(2, 3);
-
-        println!("{:?}", graph);
 
         assert_eq!(graph.len(), 4);
 
@@ -80,11 +76,7 @@ mod tests {
             .attach(2, 3)
             .attach(3, 1);
 
-        println!("{:?}", graph);
-
         graph.set_cycles(vec![]);
-
-        println!("{:?}", graph);
 
         assert_eq!(graph.len(), 4);
 

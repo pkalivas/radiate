@@ -41,13 +41,15 @@ impl<C: Chromosome> Crossover<C> for ShuffleCrossover {
         let temp_chrom_one = chrom_one.clone();
         let temp_chrom_two = chrom_two.clone();
 
+        let mut cross_count = 0;
         for (i, &index) in indices.iter().enumerate() {
             if i % 2 == 0 {
                 chrom_one.set_gene(index, temp_chrom_two.get_gene(index).clone());
                 chrom_two.set_gene(index, temp_chrom_one.get_gene(index).clone());
+                cross_count += 1;
             }
         }
 
-        1
+        cross_count
     }
 }

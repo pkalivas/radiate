@@ -78,6 +78,6 @@ impl Front {
             .iter()
             .take(self.max_size)
             .map(|(i, _)| self.scores[*i].clone())
-            .collect::<Vec<_>>();
+            .collect::<Vec<Score>>();
     }
 }
