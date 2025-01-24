@@ -33,11 +33,11 @@ impl<T: Clone> Reduce<T> for TreeNode<Op<T>> {
             if node.is_leaf() {
                 node.value().apply(curr_input)
             } else {
-                if let Some(children) = &node.children() {
+                if let Some(children) = node.children() {
                     let mut inputs = Vec::with_capacity(children.len());
 
-                    for child in *children {
-                        inputs.push(eval(child, curr_input));
+                    for child in children {
+                        inputs.push(eval(&child, curr_input));
                     }
 
                     return node.value().apply(&inputs);
@@ -71,21 +71,23 @@ mod tests {
 
     #[test]
     fn test_tree_reduce_complex() {
-        let mut root = TreeNode::new(Op::add())
-            .attach(
-                TreeNode::new(Op::mul())
-                    .attach(TreeNode::new(Op::value(2.0)))
-                    .attach(TreeNode::new(Op::value(3.0))),
-            )
-            .attach(
-                TreeNode::new(Op::add())
-                    .attach(TreeNode::new(Op::value(2.0)))
-                    .attach(TreeNode::new(Op::var(0))),
-            );
+        let mut tree = Tree::new(
+            TreeNode::new(Op::add())
+                .attach(
+                    TreeNode::new(Op::mul())
+                        .attach(TreeNode::new(Op::value(2.0)))
+                        .attach(TreeNode::new(Op::value(3.0))),
+                )
+                .attach(
+                    TreeNode::new(Op::add())
+                        .attach(TreeNode::new(Op::value(2.0)))
+                        .attach(TreeNode::new(Op::var(0))),
+                ),
+        );
 
-        let nine = root.reduce(&vec![1_f32]);
-        let ten = root.reduce(&vec![2_f32]);
-        let eleven = root.reduce(&vec![3_f32]);
+        let nine = tree.reduce(&vec![1_f32]);
+        let ten = tree.reduce(&vec![2_f32]);
+        let eleven = tree.reduce(&vec![3_f32]);
 
         assert_eq!(nine, 9.0);
         assert_eq!(ten, 10.0);

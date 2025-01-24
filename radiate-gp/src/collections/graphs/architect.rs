@@ -5,6 +5,19 @@ use crate::{
 use std::collections::BTreeMap;
 use uuid::Uuid;
 
+/// Building a `Graph<T>` can be a very complex task. This struct and its operations exist
+/// to simplify the process of building a `Graph<T>` by allowing the user to build a `Graph<T>`
+/// in a more declarative way.
+///
+/// The `GraphArchitect` struct is a builder for `Graph<T>` that allows you to build a `Graph<T>`
+/// in an extremely declarative way. It allows you to build a `Graph<T>` by connecting
+/// `GraphNode`s together in all sorts of ways. This results in an extremely powerful tool.
+/// The `GraphArchitect` is ment to take a collection of `GraphNode`s and connect them together
+/// in a sudo 'layered' way. I say 'sudo' because the 'layers' can simply be connecting
+/// input nodes to output nodes, hidden nodes to weights, input nodes to output nodes, recurrent
+/// connections, etc.
+///
+/// ----- Finish this description
 enum ConnectTypes {
     OneToOne,
     OneToMany,

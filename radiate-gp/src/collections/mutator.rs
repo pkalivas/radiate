@@ -9,14 +9,23 @@ use crate::ops::operation::Op;
 
 use radiate::engines::genome::genes::gene::Gene;
 
+// TODO: Make this viable for trees too. Then move the file to a different location
 pub struct OperationMutator {
-    pub rate: f32,
-    pub replace_rate: f32,
+    rate: f32,
+    replace_rate: f32,
 }
 
 impl OperationMutator {
     pub fn new(rate: f32, replace_rate: f32) -> Self {
-        Self { rate, replace_rate }
+        if rate < 0.0 || rate > 1.0 {
+            panic!("rate must be between 0.0 and 1.0");
+        }
+
+        if replace_rate < 0.0 || replace_rate > 1.0 {
+            panic!("replace_rate must be between 0.0 and 1.0");
+        }
+
+        OperationMutator { rate, replace_rate }
     }
 }
 
@@ -66,22 +75,23 @@ where
                     operation,
                 } => {
                     let new_value = get_value();
-                    let modified_value = modifier(value);
-
-                    let new_op = Op::MutableConst {
-                        name,
-                        arity: *arity,
-                        value: if random_provider::random::<f32>() < self.replace_rate {
-                            new_value
-                        } else {
-                            modified_value
-                        },
-                        modifier: Arc::clone(modifier),
-                        get_value: Arc::clone(get_value),
-                        operation: Arc::clone(operation),
+                    let new_value = if random_provider::random::<f32>() < self.replace_rate {
+                        new_value
+                    } else {
+                        modifier(value)
                     };
 
-                    chromosome.set_gene(i, current_node.with_allele(&new_op));
+                    chromosome.set_gene(
+                        i,
+                        current_node.with_allele(&Op::MutableConst {
+                            name,
+                            arity: *arity,
+                            value: new_value,
+                            modifier: Arc::clone(modifier),
+                            get_value: Arc::clone(get_value),
+                            operation: Arc::clone(operation),
+                        }),
+                    );
                 }
                 _ => {
                     if let Some(store) = chromosome.store.as_ref() {

@@ -1,4 +1,5 @@
 pub mod builder;
+pub mod factory;
 pub mod graphs;
 pub mod mutator;
 pub mod node;
@@ -16,6 +17,7 @@ pub use node::{NodeCell, NodeType};
 
 pub use store::*;
 
+pub use factory::Factory;
 pub use reducers::*;
 
 pub use trees::{
