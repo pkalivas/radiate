@@ -1,10 +1,8 @@
 #[cfg(test)]
 mod tests {
+
     use radiate::*;
-    use radiate_gp::{
-        collections::{GraphBuilder, GraphCodex, GraphReducer},
-        Direction, Graph, NodeType, Op, Reduce,
-    };
+    use radiate_gp::{Direction, Graph, NodeType};
 
     #[test]
     fn test_simple_graph() {
@@ -99,38 +97,5 @@ mod tests {
         assert_eq!(graph.get(1).direction(), Direction::Backward);
         assert_eq!(graph.get(2).direction(), Direction::Backward);
         assert_eq!(graph.get(3).direction(), Direction::Backward);
-    }
-
-    #[test]
-    fn test_graph() {
-        let graph = GraphBuilder::<Op<f32>>::regression(2).cyclic(2, 2);
-
-        println!("{:?}", graph);
-    }
-
-    #[test]
-    fn test_reducer() {
-        let graph_codex =
-            GraphCodex::regression(2, 2).set_nodes(|arc, _| arc.weighted_acyclic(2, 2));
-
-        let genotype = graph_codex.encode();
-        let decoded = graph_codex.decode(&genotype);
-
-        for chromosome in genotype.iter() {
-            for gene in chromosome.iter() {
-                println!("{:?}", gene);
-            }
-        }
-
-        let inputs = vec![1.0, 2.0];
-        let input_two = vec![3.0, 4.0];
-        let mut reducer = GraphReducer::new(&decoded);
-        let outputs = reducer.reduce(&inputs);
-
-        println!("{:?}", outputs);
-
-        let output_two = reducer.reduce(&input_two);
-
-        println!("{:?}", output_two);
     }
 }

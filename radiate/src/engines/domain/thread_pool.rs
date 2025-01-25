@@ -106,9 +106,9 @@ impl Worker {
     fn new(receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Self {
         Worker {
             thread: Some(thread::spawn(move || loop {
-                let job = receiver.lock().unwrap().recv().unwrap();
+                let message = receiver.lock().unwrap().recv().unwrap();
 
-                match job {
+                match message {
                     Message::NewJob(job) => job(),
                     Message::Terminate => break,
                 }

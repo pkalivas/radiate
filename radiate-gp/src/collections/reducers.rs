@@ -10,22 +10,7 @@
 /// ```rust
 /// use radiate_gp::{Op, Reduce, TreeNode};
 ///
-/// let mut root = TreeNode::with_children(
-///     Op::add(),
-///     vec![
-///         TreeNode::with_children(
-///             Op::mul(),
-///             vec![TreeNode::new(Op::value(2.0)), TreeNode::new(Op::value(3.0))],
-///         ),
-///         TreeNode::with_children(
-///             Op::add(),
-///             vec![TreeNode::new(Op::value(2.0)), TreeNode::new(Op::var(0))],
-///         ),
-///     ],
-/// );
-///
-/// // the above tree can also be created in the following way:
-/// let mut other_root = TreeNode::new(Op::add())
+/// let mut root = TreeNode::new(Op::add())
 ///     .attach(
 ///         TreeNode::new(Op::mul())
 ///             .attach(TreeNode::new(Op::value(2.0)))

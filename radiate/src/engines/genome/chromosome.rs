@@ -25,7 +25,6 @@ use rand::distributions::Standard;
 /// ```text
 /// Chromosome: [Gene, Gene, Gene]
 /// ```
-///
 pub trait Chromosome:
     Clone + PartialEq + Valid + AsRef<[Self::Gene]> + AsMut<[Self::Gene]>
 {

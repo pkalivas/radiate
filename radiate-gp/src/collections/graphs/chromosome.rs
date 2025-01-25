@@ -2,7 +2,6 @@ use crate::{CellStore, GraphNode, NodeCell};
 use radiate::{Chromosome, Valid};
 use std::cell::RefCell;
 use std::fmt::Debug;
-use std::ops::{Index, IndexMut};
 use std::rc::Rc;
 
 #[derive(Clone, PartialEq)]
@@ -57,26 +56,6 @@ where
 {
     fn as_mut(&mut self) -> &mut [GraphNode<C>] {
         &mut self.nodes
-    }
-}
-
-impl<C> Index<usize> for GraphChromosome<C>
-where
-    C: Clone + PartialEq + Default + NodeCell,
-{
-    type Output = GraphNode<C>;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.nodes[index]
-    }
-}
-
-impl<C> IndexMut<usize> for GraphChromosome<C>
-where
-    C: Clone + PartialEq + Default + NodeCell,
-{
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        &mut self.nodes[index]
     }
 }
 
