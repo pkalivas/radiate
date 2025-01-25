@@ -42,7 +42,7 @@ impl RandomProvider {
     /// Generates a random number using the global RNG.
     pub(self) fn random<T>() -> T
     where
-        T: rand::distributions::uniform::SampleUniform,
+        T: SampleUniform,
         Standard: Distribution<T>,
     {
         let instance = RandomProvider::global();

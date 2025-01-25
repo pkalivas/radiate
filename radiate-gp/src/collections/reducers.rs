@@ -10,7 +10,7 @@
 /// ```rust
 /// use radiate_gp::{Op, Reduce, TreeNode};
 ///
-/// let mut other_root = TreeNode::new(Op::add())
+/// let mut root = TreeNode::new(Op::add())
 ///     .attach(
 ///         TreeNode::new(Op::mul())
 ///             .attach(TreeNode::new(Op::value(2.0)))

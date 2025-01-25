@@ -1,11 +1,10 @@
 use std::sync::Arc;
 
-use super::{Factory, GraphChromosome};
-
 use radiate::{random_provider, Chromosome};
 use radiate::{Alter, AlterAction, EngineCompoment, Mutate};
 
 use crate::ops::operation::Op;
+use crate::{Factory, GraphChromosome};
 
 use radiate::engines::genome::genes::gene::Gene;
 
