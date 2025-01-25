@@ -2,6 +2,7 @@ use super::DataSet;
 
 const ZERO: f32 = 0.0;
 
+#[derive(Debug, Clone, Copy)]
 pub enum Loss {
     MSE,
     MAE,
@@ -18,10 +19,10 @@ impl Loss {
             Loss::MSE => {
                 let mut sum = ZERO;
                 for sample in samples.iter() {
-                    let output = eval_func(&sample.1);
+                    let output = eval_func(sample.input());
 
                     for (i, val) in output.into_iter().enumerate() {
-                        let diff = sample.2[i] - val;
+                        let diff = sample.output()[i] - val;
                         sum += diff * diff;
                     }
                 }
@@ -31,10 +32,10 @@ impl Loss {
             Loss::MAE => {
                 let mut sum = ZERO;
                 for sample in samples.iter() {
-                    let output = eval_func(&sample.1);
+                    let output = eval_func(sample.input());
 
-                    for i in 0..sample.2.len() {
-                        let diff = sample.2[i] - output[i];
+                    for i in 0..sample.output().len() {
+                        let diff = sample.output()[i] - output[i];
                         sum += diff;
                     }
                 }
@@ -45,10 +46,10 @@ impl Loss {
             Loss::CrossEntropy => {
                 let mut sum = ZERO;
                 for sample in samples.iter() {
-                    let output = eval_func(&sample.1);
+                    let output = eval_func(sample.input());
 
-                    for i in 0..sample.2.len() {
-                        sum += sample.2[i] * output[i].ln();
+                    for i in 0..sample.output().len() {
+                        sum += sample.output()[i] * output[i].ln();
                     }
                 }
 
@@ -57,10 +58,10 @@ impl Loss {
             Loss::Diff => {
                 let mut sum = ZERO;
                 for sample in samples.iter() {
-                    let output = eval_func(&sample.1);
+                    let output = eval_func(sample.input());
 
-                    for i in 0..sample.2.len() {
-                        sum += (sample.2[i] - output[i]).abs();
+                    for i in 0..sample.output().len() {
+                        sum += (sample.output()[i] - output[i]).abs();
                     }
                 }
 

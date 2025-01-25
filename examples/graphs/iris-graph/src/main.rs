@@ -9,20 +9,16 @@ const MAX_SECONDS: f64 = 5.0;
 fn main() {
     random_provider::set_seed(1000);
 
-    let mut dataset = load_iris_dataset();
-
-    dataset.shuffle();
-    dataset.standardize();
-
-    let (train, test) = dataset.split(0.75);
+    let (train, test) = load_iris_dataset().shuffle().standardize().split(0.75);
 
     let graph_codex = GraphCodex::classification(4, 4);
 
-    let regression = Regression::new(train, Loss::MSE);
+    let regression = Regression::new(train.clone(), Loss::MSE);
 
     let engine = GeneticEngine::from_codex(&graph_codex)
         .minimizing()
         .num_threads(10)
+        .offspring_selector(BoltzmannSelector::new(4.0))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.02, 0.05),
@@ -33,7 +29,7 @@ fn main() {
         ))
         .fitness_fn(move |genotype: Graph<Op<f32>>| {
             let mut reducer = GraphReducer::new(&genotype);
-            regression.error(|input| reducer.reduce(input))
+            regression.loss(|input| reducer.reduce(input))
         })
         .build();
 
@@ -42,37 +38,25 @@ fn main() {
         ctx.score().as_f32() < MIN_SCORE || ctx.seconds() > MAX_SECONDS
     });
 
-    display(&test, &result);
+    display(&train, &test, &result);
 }
 
-fn display(test_data: &DataSet, result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
-    let mut classification_accuracy = 0.0;
-    let mut total = 0.0;
+fn display(
+    train: &DataSet,
+    test: &DataSet,
+    result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>,
+) {
     let mut reducer = GraphReducer::new(&result.best);
-    for sample in test_data.iter() {
-        let output = reducer.reduce(&sample.1);
 
-        let mut max_idx = 0;
-        for i in 0..output.len() {
-            if output[i] > output[max_idx] {
-                max_idx = i;
-            }
-        }
+    let train_acc = Accuracy::new("train", &train, Loss::MSE);
+    let test_acc = Accuracy::new("test", &test, Loss::MSE);
 
-        let target = sample.2.iter().position(|&x| x == 1.0).unwrap();
+    let train_acc_result = train_acc.calc(|input| reducer.reduce(input));
+    let test_acc_result = test_acc.calc(|input| reducer.reduce(input));
 
-        total += 1.0;
-        if max_idx == target {
-            classification_accuracy += 1.0;
-        }
-
-        println!("Target: {:?} :: Pred: {:?}", target, max_idx);
-    }
-
-    classification_accuracy /= total;
-
-    println!("Accuracy: {:.2?}", classification_accuracy);
-    println!("{:?}", result)
+    println!("{:?}", result);
+    println!("{:?}", train_acc_result);
+    println!("{:?}", test_acc_result);
 }
 
 fn load_iris_dataset() -> DataSet {

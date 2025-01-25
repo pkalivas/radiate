@@ -26,7 +26,7 @@ fn main() {
         ))
         .fitness_fn(move |genotype: Graph<Op<f32>>| {
             let mut reducer = GraphReducer::new(&genotype);
-            regression.error(|input| reducer.reduce(input))
+            regression.loss(|input| reducer.reduce(input))
         })
         .build();
 
@@ -44,12 +44,12 @@ fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
 
     let mut reducer = GraphReducer::new(&result.best);
     for sample in get_dataset().iter() {
-        let output = reducer.reduce(&sample.1);
+        let output = reducer.reduce(sample.input());
 
-        total += sample.2[0].abs();
-        regression_accuracy += (sample.2[0] - output[0]).abs();
+        total += sample.output()[0].abs();
+        regression_accuracy += (sample.output()[0] - output[0]).abs();
 
-        println!("{:.2?} :: {:.2?}", sample.2[0], output[0]);
+        println!("{:.2?} :: {:.2?}", sample.output()[0], output[0]);
     }
 
     regression_accuracy = (total - regression_accuracy) / total;

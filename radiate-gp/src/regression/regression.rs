@@ -1,4 +1,4 @@
-use super::{data::Row, DataSet, Loss};
+use super::{DataSet, Loss};
 
 pub struct Regression {
     data_set: DataSet,
@@ -13,14 +13,10 @@ impl Regression {
         }
     }
 
-    pub fn error<F>(&self, mut error_fn: F) -> f32
+    pub fn loss<F>(&self, mut error_fn: F) -> f32
     where
         F: FnMut(&Vec<f32>) -> Vec<f32>,
     {
         self.loss_function.calculate(&self.data_set, &mut error_fn)
-    }
-
-    pub fn iter(&self) -> &[Row] {
-        self.data_set.iter()
     }
 }
