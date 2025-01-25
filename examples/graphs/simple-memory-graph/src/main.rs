@@ -11,7 +11,7 @@ fn main() {
         .with_output(Op::sigmoid())
         .set_nodes(|arc, _| arc.acyclic(1, 1));
 
-    let regression = Regression::new(get_dataset(), ErrorFunction::MSE);
+    let regression = Regression::new(get_dataset(), Loss::MSE);
 
     let engine = GeneticEngine::from_codex(&graph_codex)
         .minimizing()

@@ -1,26 +1,32 @@
 use radiate::*;
 use radiate_gp::*;
 
-const MIN_SCORE: f32 = 0.01;
-const MAX_SECONDS: f64 = 1.0;
+const MIN_SCORE: f32 = 0.001;
+const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
-    random_provider::set_seed(42069);
+    random_provider::set_seed(1000);
 
-    let graph_codex = TreeCodex::new(3)
-        .constraint(|node| node.size() < 30)
-        .gates(vec![Op::add(), Op::sub(), Op::mul()])
-        .leafs(vec![Op::var(0)]);
+    let graph_codex = GraphCodex::regression(1, 1)
+        .with_vertices(vec![Op::add(), Op::sub(), Op::mul()])
+        .with_output(Op::linear());
 
-    let regression = Regression::new(get_dataset(), ErrorFunction::MSE);
+    let regression = Regression::new(get_dataset(), Loss::MSE);
 
     let engine = GeneticEngine::from_codex(&graph_codex)
         .minimizing()
         .num_threads(10)
-        .alter(alters!(TreeCrossover::new(0.5)))
-        .fitness_fn(move |genotype: Tree<Op<f32>>| {
-            let mut reducer = Tree::new(genotype.take_root().unwrap());
-            regression.error(|input| vec![reducer.reduce(input)])
+        .alter(alters!(
+            GraphCrossover::new(0.5, 0.5),
+            OperationMutator::new(0.07, 0.05),
+            GraphMutator::new(vec![
+                NodeMutate::Edge(0.03, false),
+                NodeMutate::Vertex(0.1, false),
+            ]),
+        ))
+        .fitness_fn(move |genotype: Graph<Op<f32>>| {
+            let mut reducer = GraphReducer::new(&genotype);
+            regression.error(|input| reducer.reduce(input))
         })
         .build();
 
@@ -32,18 +38,18 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
+fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     let mut regression_accuracy = 0.0;
     let mut total = 0.0;
 
-    let mut reducer = result.best.clone();
+    let mut reducer = GraphReducer::new(&result.best);
     for sample in get_dataset().iter() {
         let output = reducer.reduce(&sample.1);
 
         total += sample.2[0].abs();
-        regression_accuracy += (sample.2[0] - output).abs();
+        regression_accuracy += (sample.2[0] - output[0]).abs();
 
-        println!("{:.2?} :: {:.2?}", sample.2[0], output);
+        println!("{:.2?} :: {:.2?}", sample.2[0], output[0]);
     }
 
     regression_accuracy = (total - regression_accuracy) / total;

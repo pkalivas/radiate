@@ -76,6 +76,12 @@ impl GraphCodex<Op<f32>> {
         let nodes = GraphBuilder::<Op<f32>>::new(store.clone()).acyclic(input_size, output_size);
         GraphCodex::<Op<f32>>::from_graph(nodes, &store)
     }
+
+    pub fn classification(input_size: usize, output_size: usize) -> Self {
+        let store = CellStore::classification(input_size);
+        let nodes = GraphBuilder::<Op<f32>>::new(store.clone()).acyclic(input_size, output_size);
+        GraphCodex::<Op<f32>>::from_graph(nodes, &store)
+    }
 }
 
 impl<C> Codex<GraphChromosome<C>, Graph<C>> for GraphCodex<C>
