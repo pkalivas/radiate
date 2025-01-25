@@ -47,7 +47,7 @@ where
 }
 
 /// Implements the `Reduce` trait for `GraphReducer`.
-impl<'a, T: Clone + Default> Reduce<T> for GraphReducer<'a, T> {
+impl<'a, T: Clone + Default> Reduce for GraphReducer<'a, T> {
     type Input = Vec<T>;
     type Output = Vec<T>;
 

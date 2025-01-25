@@ -1,10 +1,18 @@
 use crate::ops::Arity;
-use crate::{NodeCell, NodeType};
+use crate::NodeCell;
 use radiate::{Gene, Valid};
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::hash::Hash;
 use uuid::Uuid;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum NodeType {
+    Input,
+    Output,
+    Vertex,
+    Edge,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Direction {

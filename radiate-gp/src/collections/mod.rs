@@ -9,9 +9,9 @@ pub mod trees;
 pub use builder::Builder;
 pub use graphs::{
     Direction, Graph, GraphArchitect, GraphBuilder, GraphChromosome, GraphCodex, GraphCrossover,
-    GraphIterator, GraphMutator, GraphNode, GraphReducer, NodeMutate,
+    GraphIterator, GraphMutator, GraphNode, GraphReducer, NodeMutate, NodeType,
 };
-pub use node::{NodeCell, NodeType};
+pub use node::NodeCell;
 
 pub use store::*;
 

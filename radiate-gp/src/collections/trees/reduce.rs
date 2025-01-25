@@ -5,7 +5,7 @@ use super::Tree;
 /// Implements the `Reduce` trait for `Tree<Op<T>>`. All this really does is
 /// call the `reduce` method on the root node of the `Tree`. The real work is
 /// done in the `TreeNode` implementation below.
-impl<T: Clone> Reduce<T> for Tree<Op<T>> {
+impl<T: Clone> Reduce for Tree<Op<T>> {
     type Input = Vec<T>;
     type Output = T;
 
@@ -23,7 +23,7 @@ impl<T: Clone> Reduce<T> for Tree<Op<T>> {
 ///
 /// Because a `Tree` has only a single root node, this can only be used to return a single value.
 /// But, due to the structure and functionality of the `Op<T>`, we can have a multitude of `Inputs`
-impl<T: Clone> Reduce<T> for TreeNode<Op<T>> {
+impl<T: Clone> Reduce for TreeNode<Op<T>> {
     type Input = Vec<T>;
     type Output = T;
 

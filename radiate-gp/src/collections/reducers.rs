@@ -40,7 +40,7 @@
 /// ```text
 /// f(x) = (2 * 3) + (2 + x)
 /// ```
-pub trait Reduce<T> {
+pub trait Reduce {
     type Input;
     type Output;
 
