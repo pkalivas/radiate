@@ -14,4 +14,4 @@ documentation = "https://pkalivas.github.io/radiate/"
 [dependencies]
 radiate = { path = "../radiate" }
 uuid = { version = "1.10.0", features = ["v4"] }
-rand = "0.8.5"
+

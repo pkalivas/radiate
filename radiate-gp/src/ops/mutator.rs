@@ -34,6 +34,7 @@ impl EngineCompoment for OperationMutator {
     }
 }
 
+/// This implementation is for the `GraphChromosome` type.
 impl<T> Alter<GraphChromosome<Op<T>>> for OperationMutator
 where
     T: Clone + PartialEq + Default,
@@ -47,6 +48,10 @@ where
     }
 }
 
+/// This implementation is for the `GraphChromosome<Op<T>>` type.
+/// It mutates the chromosome by changing the value of the `MutableConst` Op nodes (weights).
+/// If the node is not a `MutableConst` node, it tries to replace it with a new node from the store,
+/// but only if the arity of the new node is the same as the current node.
 impl<T> Mutate<GraphChromosome<Op<T>>> for OperationMutator
 where
     T: Clone + PartialEq + Default,

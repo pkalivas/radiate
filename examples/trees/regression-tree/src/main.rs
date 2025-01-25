@@ -12,7 +12,7 @@ fn main() {
         .gates(vec![Op::add(), Op::sub(), Op::mul()])
         .leafs(vec![Op::var(0)]);
 
-    let regression = Regression::new(get_dataset(), ErrorFunction::MSE);
+    let regression = Regression::new(get_dataset(), Loss::MSE);
 
     let engine = GeneticEngine::from_codex(&graph_codex)
         .minimizing()
@@ -20,7 +20,7 @@ fn main() {
         .alter(alters!(TreeCrossover::new(0.5)))
         .fitness_fn(move |genotype: Tree<Op<f32>>| {
             let mut reducer = Tree::new(genotype.take_root().unwrap());
-            regression.error(|input| vec![reducer.reduce(input)])
+            regression.loss(|input| vec![reducer.reduce(input)])
         })
         .build();
 
@@ -38,12 +38,12 @@ fn display(result: &EngineContext<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
 
     let mut reducer = result.best.clone();
     for sample in get_dataset().iter() {
-        let output = reducer.reduce(&sample.1);
+        let output = reducer.reduce(sample.input());
 
-        total += sample.2[0].abs();
-        regression_accuracy += (sample.2[0] - output).abs();
+        total += sample.output()[0].abs();
+        regression_accuracy += (sample.output()[0] - output).abs();
 
-        println!("{:.2?} :: {:.2?}", sample.2[0], output);
+        println!("{:.2?} :: {:.2?}", sample.output()[0], output);
     }
 
     regression_accuracy = (total - regression_accuracy) / total;

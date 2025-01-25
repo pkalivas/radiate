@@ -2,17 +2,22 @@
 members = [
     "radiate",
     "radiate-gp",
+    
     "examples/min-sum",
     "examples/string-evolver",
-    "examples/xor-graph",
-    "examples/knapsack",
-    "examples/regression-graph",
-    "examples/simple-memory-graph",
+    "examples/knapsack",    
     "examples/nqueens",
-    "examples/regression-tree",
     "examples/simple-nn",
     "examples/TSP",
     "examples/DTLZ",
     "examples/rastrigin",
+
+    "examples/trees/regression-tree",
+
+    "examples/graphs/iris-graph",
+    "examples/graphs/xor-graph",
+    "examples/graphs/regression-graph",
+    "examples/graphs/simple-memory-graph",
+
     "benchmarks"
 ]
