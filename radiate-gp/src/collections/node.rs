@@ -1,16 +1,12 @@
-use crate::ops::Arity;
+use crate::{node_cell, ops::Arity};
 
 pub trait NodeCell {
     fn arity(&self) -> Arity;
     fn new_instance(&self) -> Self;
 }
 
-impl NodeCell for i32 {
-    fn arity(&self) -> Arity {
-        Arity::Any
-    }
-
-    fn new_instance(&self) -> Self {
-        *self
-    }
-}
+node_cell!(f32, Arity::Any);
+node_cell!(i32, Arity::Any);
+node_cell!(bool, Arity::Any);
+node_cell!(String, Arity::Any);
+node_cell!(char, Arity::Any);

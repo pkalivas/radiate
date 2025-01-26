@@ -1,12 +1,13 @@
 pub mod builder;
+pub mod domain;
 pub mod eval;
 pub mod factory;
 pub mod graphs;
 pub mod node;
-
 pub mod trees;
 
 pub use builder::Builder;
+pub use domain::*;
 pub use graphs::{
     Direction, Graph, GraphAggregate, GraphBuilder, GraphChromosome, GraphCrossover,
     GraphEvaluator, GraphMutator, GraphNode, GraphTopologicalIterator, NodeMutate, NodeType,

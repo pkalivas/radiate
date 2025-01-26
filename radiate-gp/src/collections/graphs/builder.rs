@@ -297,6 +297,7 @@ impl GraphBuilder<Op<f32>> {
         memory_size: usize,
         output: Op<f32>,
     ) -> GraphBuilder<Op<f32>> {
+        self.with_values(NodeType::Input, (0..input_size).map(Op::var).collect());
         self.with_values(NodeType::Output, vec![output]);
 
         let input = self.input(input_size);
