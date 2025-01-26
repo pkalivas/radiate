@@ -43,8 +43,8 @@ where
         let geno_one = parent_one.genotype();
         let geno_two = parent_two.genotype();
 
-        let chromo_index =
-            random_provider::random::<usize>() % std::cmp::min(geno_one.len(), geno_two.len());
+        let rand_idx = random_provider::random::<usize>();
+        let chromo_index = rand_idx % std::cmp::min(geno_one.len(), geno_two.len());
 
         let chromo_one = &geno_one[chromo_index];
         let chromo_two = &geno_two[chromo_index];
@@ -76,12 +76,10 @@ where
         }
 
         if num_crosses > 0 {
-            let new_genotype_one = Genotype {
-                chromosomes: vec![new_chromo_one],
-            };
-            let new_phenotype = Phenotype::from_genotype(new_genotype_one, generation);
-
-            return Some(new_phenotype);
+            return Some(Phenotype::from_chromosomes(
+                vec![new_chromo_one],
+                generation,
+            ));
         }
 
         None

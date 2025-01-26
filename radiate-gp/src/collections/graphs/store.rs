@@ -24,12 +24,6 @@ impl<C: NodeCell> CellStore<C> {
     }
 }
 
-impl<C: NodeCell> Default for CellStore<C> {
-    fn default() -> Self {
-        CellStore::new()
-    }
-}
-
 impl<C: NodeCell + Clone> Clone for CellStore<C> {
     fn clone(&self) -> Self {
         let mut store = CellStore::new();

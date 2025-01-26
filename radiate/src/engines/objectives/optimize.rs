@@ -1,6 +1,5 @@
 use crate::{Chromosome, Population};
 
-
 #[derive(Clone, Debug, PartialEq)]
 pub enum Objective {
     Single(Optimize),
@@ -80,14 +79,6 @@ pub enum Optimize {
 }
 
 impl Optimize {
-
-    pub fn other_sort<T: PartialOrd>(&self, population: &mut [T]) {
-        match self {
-            Optimize::Minimize => population.sort_by(|a, b| a.partial_cmp(b).unwrap()),
-            Optimize::Maximize => population.sort_by(|a, b| b.partial_cmp(a).unwrap()),
-        }
-    }
-
     pub fn sort<C: Chromosome>(&self, population: &mut Population<C>) {
         match self {
             Optimize::Minimize => population.sort_by(|a, b| a.partial_cmp(b).unwrap()),
@@ -118,4 +109,3 @@ mod tests {
         assert!(!Optimize::Maximize.is_better(&1, &2));
     }
 }
-

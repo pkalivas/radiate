@@ -11,17 +11,7 @@ pub struct TreeChromosome<C: NodeCell> {
 }
 
 impl<C: NodeCell> TreeChromosome<C> {
-    pub fn new(nodes: Vec<TreeNode<C>>) -> Self {
-        TreeChromosome {
-            nodes,
-            constraint: None,
-        }
-    }
-
-    pub fn with_constraint(
-        nodes: Vec<TreeNode<C>>,
-        constraint: Option<Constraint<TreeNode<C>>>,
-    ) -> Self {
+    pub fn new(nodes: Vec<TreeNode<C>>, constraint: Option<Constraint<TreeNode<C>>>) -> Self {
         TreeChromosome { nodes, constraint }
     }
 }

@@ -50,12 +50,8 @@ where
             }
         }
 
-        Genotype {
-            chromosomes: vec![TreeChromosome::with_constraint(
-                vec![root],
-                self.constraint.clone(),
-            )],
-        }
+        let chromosome = TreeChromosome::new(vec![root], self.constraint.clone());
+        Genotype::new(vec![chromosome])
     }
 
     fn decode(&self, genotype: &Genotype<TreeChromosome<C>>) -> Tree<C> {

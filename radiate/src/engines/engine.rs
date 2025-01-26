@@ -86,6 +86,10 @@ where
         GeneticEngineParams::new().codex(codex)
     }
 
+    /// Initializes a `GeneticEngineParams` using the provided problem, which defines the fitness function
+    /// used to evaluate the individuals in the population. Because the `Problem` is always needed, this
+    /// is a convenience method that allows users to create a `GeneticEngineParams` instance
+    /// which will then be 'built' resulting in a `GeneticEngine` instance.
     pub fn from_problem(problem: impl Problem<C, T> + 'static) -> GeneticEngineParams<C, T> {
         GeneticEngineParams::new().problem(problem)
     }

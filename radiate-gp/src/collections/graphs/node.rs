@@ -150,7 +150,7 @@ where
     }
 }
 
-impl<C: NodeCell + Clone + PartialEq> Valid for GraphNode<C> {
+impl<C: NodeCell> Valid for GraphNode<C> {
     fn is_valid(&self) -> bool {
         match self.node_type {
             NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),

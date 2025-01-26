@@ -87,17 +87,6 @@ impl<C: NodeCell> Graph<C> {
         self.nodes.iter_mut()
     }
 
-    /// Returns a vector of all the nodes in the graph. This will consume the graph and return
-    /// the nodes as a 'Vec'. This is useful for taking ownership of the nodes.
-    pub fn take_nodes(self) -> Vec<GraphNode<C>> {
-        self.nodes
-    }
-
-    /// Returns a slice of the nodes in the graph.
-    pub fn nodes(&self) -> &[GraphNode<C>] {
-        &self.nodes
-    }
-
     /// Attach and detach nodes from one another. This is the primary way to modify the graph.
     /// Note that this method does not check if the nodes are already connected. This is because
     /// the connections are represented by 'HashSet's which do not allow duplicates.
@@ -354,10 +343,7 @@ impl<C: NodeCell> Graph<C> {
     }
 }
 
-impl<C> Valid for Graph<C>
-where
-    C: NodeCell + Clone + PartialEq + Default,
-{
+impl<C: NodeCell> Valid for Graph<C> {
     #[inline]
     fn is_valid(&self) -> bool {
         self.iter().all(|node| node.is_valid())

@@ -1,10 +1,11 @@
+use radiate::Chromosome;
 use radiate::{
     random_provider, timer::Timer, Alter, AlterAction, EngineCompoment, Metric, Mutate, Population,
     Valid,
 };
 
 use super::transaction::GraphTransaction;
-use super::{Graph, GraphChromosome, GraphNode, CellStore};
+use super::{CellStore, Graph, GraphChromosome, GraphNode};
 use crate::ops::Arity;
 use crate::{Factory, NodeCell, NodeType};
 
@@ -415,19 +416,18 @@ where
             return 0;
         }
 
-        if let Some(ref factory) = chromosome.store {
-            let mut graph = Graph::new(chromosome.nodes.clone());
-            let node_fact = factory.read().unwrap();
+        let store = chromosome.store();
+        let node_fact = store.read().unwrap();
+        let mut graph = Graph::new(chromosome.iter().cloned().collect());
 
-            if self.add_node(
-                &mut graph,
-                &mutation.node_type(),
-                &node_fact,
-                mutation.is_recurrent(),
-            ) {
-                chromosome.nodes = graph.into_iter().collect::<Vec<GraphNode<C>>>();
-                return 1;
-            }
+        if self.add_node(
+            &mut graph,
+            &mutation.node_type(),
+            &node_fact,
+            mutation.is_recurrent(),
+        ) {
+            chromosome.set_nodes(graph.into_iter().collect::<Vec<GraphNode<C>>>());
+            return 1;
         }
 
         0
