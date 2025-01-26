@@ -1,9 +1,9 @@
-use crate::collections::graphs::architect::GraphArchitect;
+use crate::collections::graphs::aggregate::GraphAggregate;
 use crate::collections::graphs::builder::GraphBuilder;
 use crate::collections::{Graph, GraphNode, NodeType};
 use crate::graphs::chromosome::GraphChromosome;
 use crate::ops::Op;
-use crate::{CellStore, Factory, NodeCell};
+use crate::{Builder, CellStore, Factory, NodeCell};
 use radiate::{Chromosome, Codex, Gene, Genotype};
 use std::sync::{Arc, RwLock};
 
@@ -30,13 +30,13 @@ where
         }
     }
 
-    pub fn set_nodes<F>(mut self, node_fn: F) -> Self
+    pub fn set_graph<F>(mut self, node_fn: F) -> Self
     where
-        F: Fn(&GraphArchitect<C>, GraphBuilder<C>) -> Graph<C>,
+        F: Fn(&GraphBuilder<C>, GraphAggregate<C>) -> Graph<C>,
     {
         let graph = node_fn(
-            &GraphArchitect::new((*self.store.read().unwrap()).clone()),
-            GraphBuilder::new(),
+            &GraphBuilder::new((*self.store.read().unwrap()).clone()),
+            GraphAggregate::new(),
         );
 
         self.graph = Some(graph);
@@ -70,15 +70,48 @@ where
 }
 
 impl GraphCodex<Op<f32>> {
-    pub fn regression(input_size: usize, output_size: usize) -> Self {
-        let store = CellStore::regression(input_size);
-        let nodes = GraphArchitect::<Op<f32>>::new(store.clone()).acyclic(input_size, output_size);
+    pub fn lstm(input_size: usize, hidden_size: usize, output_size: usize) -> Self {
+        let store = CellStore::regressor(input_size);
+        let nodes =
+            GraphBuilder::<Op<f32>>::new(store.clone()).lstm(input_size, hidden_size, output_size);
         GraphCodex::<Op<f32>>::from_graph(nodes, &store)
     }
 
-    pub fn classification(input_size: usize, output_size: usize) -> Self {
-        let store = CellStore::classification(input_size);
-        let nodes = GraphArchitect::<Op<f32>>::new(store.clone()).acyclic(input_size, output_size);
+    pub fn gru(input_size: usize, output_size: usize, hidden_size: usize) -> Self {
+        let store = CellStore::regressor(input_size);
+        let nodes =
+            GraphBuilder::<Op<f32>>::new(store.clone()).gru(input_size, output_size, hidden_size);
+        GraphCodex::<Op<f32>>::from_graph(nodes, &store)
+    }
+
+    pub fn acyclic(input_size: usize, output_size: usize) -> Self {
+        let store = CellStore::regressor(input_size);
+        let nodes = GraphBuilder::<Op<f32>>::new(store.clone())
+            .acyclic(input_size, output_size)
+            .build();
+        GraphCodex::<Op<f32>>::from_graph(nodes, &store)
+    }
+
+    pub fn cyclic(input_size: usize, output_size: usize) -> Self {
+        let store = CellStore::regressor(input_size);
+        let nodes = GraphBuilder::<Op<f32>>::new(store.clone()).cyclic(input_size, output_size);
+        GraphCodex::<Op<f32>>::from_graph(nodes, &store)
+    }
+
+    pub fn weighted_acyclic(input_size: usize, output_size: usize) -> Self {
+        let store = CellStore::regressor(input_size);
+        let nodes =
+            GraphBuilder::<Op<f32>>::new(store.clone()).weighted_acyclic(input_size, output_size);
+        GraphCodex::<Op<f32>>::from_graph(nodes, &store)
+    }
+
+    pub fn weighted_cyclic(input_size: usize, output_size: usize, memory_size: usize) -> Self {
+        let store = CellStore::regressor(input_size);
+        let nodes = GraphBuilder::<Op<f32>>::new(store.clone()).weighted_cyclic(
+            input_size,
+            output_size,
+            memory_size,
+        );
         GraphCodex::<Op<f32>>::from_graph(nodes, &store)
     }
 }

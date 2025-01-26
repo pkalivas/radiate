@@ -1,385 +1,353 @@
-use crate::{
-    collections::{Builder, Graph, GraphNode, NodeType},
-    NodeCell,
-};
-use std::collections::BTreeMap;
-use uuid::Uuid;
+use std::sync::{Arc, RwLock};
 
-/// Building a `Graph<T>` can be a very complex task. This struct and its operations exist
-/// to simplify the process of building a `Graph<T>` by allowing the user to build a `Graph<T>`
-/// in a more declarative way.
+use crate::collections::{Builder, Graph, GraphNode, NodeType};
+
+use crate::ops::{Arity, Op};
+use crate::{ops, CellStore, Factory, NodeCell};
+use radiate::{random_provider, Chromosome, Codex, Genotype};
+
+use super::aggregate::GraphAggregate;
+use super::GraphChromosome;
+
+/// The `GraphBuilder` is a builder pattern that allows us to create a variety of different
+/// graph architectures.
 ///
-/// The `GraphArchitect` struct is a builder for `Graph<T>` that allows you to build a `Graph<T>`
-/// in an extremely declarative way. It allows you to build a `Graph<T>` by connecting
-/// `GraphNode`s together in all sorts of ways. This results in an extremely powerful tool.
-/// The `GraphArchitect` is ment to take a collection of `GraphNode`s and connect them together
-/// in a sudo 'layered' way. I say 'sudo' because the 'layers' can simply be connecting
-/// input nodes to output nodes, hidden nodes to weights, input nodes to output nodes, recurrent
-/// connections, etc.
-///
-/// ----- Finish this description
-enum ConnectTypes {
-    OneToOne,
-    OneToMany,
-    ManyToOne,
-    AllToAll,
-    AllToAllSelf,
-}
-
-struct Relationship<'a> {
-    source_id: &'a Uuid,
-    target_id: &'a Uuid,
-}
-
-#[derive(Default)]
-pub struct GraphBuilder<'a, C: NodeCell + Clone> {
-    nodes: BTreeMap<&'a Uuid, &'a GraphNode<C>>,
-    node_order: BTreeMap<usize, &'a Uuid>,
-    relationships: Vec<Relationship<'a>>,
+/// # Type Parameters
+/// 'C' - The type of the node cell that the graph will contain.
+pub struct GraphBuilder<C: NodeCell> {
+    store: Arc<RwLock<CellStore<C>>>,
     node_cache: Option<Vec<GraphNode<C>>>,
 }
 
-impl<'a, C: NodeCell + Clone> GraphBuilder<'a, C> {
-    pub fn new() -> Self {
+impl<C: NodeCell> GraphBuilder<C> {
+    pub fn new(store: CellStore<C>) -> Self {
         GraphBuilder {
-            nodes: BTreeMap::new(),
-            node_order: BTreeMap::new(),
-            relationships: Vec::new(),
+            store: Arc::new(RwLock::new(store)),
             node_cache: None,
         }
     }
+}
 
-    pub fn one_to_one<G: AsRef<[GraphNode<C>]>>(mut self, one: &'a G, two: &'a G) -> Self {
-        self.connect(ConnectTypes::OneToOne, one, two);
-        self
+/// Builder methods for creating different types of nodes in the graph.
+/// These methods will create a collection of nodes of the specified type and size,
+/// then layer we can use these nodes to build various graph architectures.
+impl<C: NodeCell + Clone + Default> GraphBuilder<C> {
+    pub fn input(&self, size: usize) -> Vec<GraphNode<C>> {
+        self.new_nodes(NodeType::Input, size)
     }
 
-    pub fn one_to_many<G: AsRef<[GraphNode<C>]>>(mut self, one: &'a G, two: &'a G) -> Self {
-        self.connect(ConnectTypes::OneToMany, one, two);
-        self
+    pub fn output(&self, size: usize) -> Vec<GraphNode<C>> {
+        self.new_nodes(NodeType::Output, size)
     }
 
-    pub fn many_to_one<G: AsRef<[GraphNode<C>]>>(mut self, one: &'a G, two: &'a G) -> Self {
-        self.connect(ConnectTypes::ManyToOne, one, two);
-        self
+    pub fn vertex(&self, size: usize) -> Vec<GraphNode<C>> {
+        self.new_nodes(NodeType::Vertex, size)
     }
 
-    pub fn all_to_all<G: AsRef<[GraphNode<C>]>>(mut self, one: &'a G, two: &'a G) -> Self {
-        self.connect(ConnectTypes::AllToAll, one, two);
-        self
+    pub fn edge(&self, size: usize) -> Vec<GraphNode<C>> {
+        self.new_nodes(NodeType::Edge, size)
     }
 
-    pub fn one_to_one_self<G: AsRef<[GraphNode<C>]>>(mut self, one: &'a G, two: &'a G) -> Self {
-        self.connect(ConnectTypes::AllToAllSelf, one, two);
-        self
-    }
-
-    pub fn insert<G: AsRef<[GraphNode<C>]>>(mut self, collection: &'a G) -> Self {
-        self.attach(collection.as_ref());
-        self
+    fn new_nodes(&self, node_type: NodeType, size: usize) -> Vec<GraphNode<C>> {
+        (0..size)
+            .map(|i| (*self.store.read().unwrap()).new_instance((i, node_type)))
+            .collect::<Vec<GraphNode<C>>>()
     }
 }
 
-impl<'a, C: NodeCell + Clone> GraphBuilder<'a, C> {
-    pub fn layer<G: AsRef<[GraphNode<C>]>>(&self, collections: Vec<&'a G>) -> Self {
-        let mut conn = GraphBuilder::new();
-        let mut previous = collections[0];
+impl<C: NodeCell + Clone + Default> GraphBuilder<C> {
+    pub fn acyclic(mut self, input_size: usize, output_size: usize) -> GraphBuilder<C> {
+        let graph = GraphAggregate::new()
+            .all_to_all(&self.input(input_size), &self.output(output_size))
+            .build();
 
-        for collection in collections.iter() {
-            conn.attach((*collection).as_ref());
-        }
-
-        for i in 1..collections.len() {
-            conn = conn.one_to_one(previous, collections[i]);
-            previous = collections[i];
-        }
-
-        conn
+        self.node_cache = Some(graph.into_iter().collect());
+        self
     }
 
-    pub fn attach(&mut self, group: &'a [GraphNode<C>]) {
-        self.node_cache = None;
-        for node in group.iter() {
-            if !self.nodes.contains_key(&node.id()) {
-                let node_id = &node.id();
+    pub fn cyclic(&self, input_size: usize, output_size: usize) -> Graph<C> {
+        let input = self.input(input_size);
+        let aggregate = self.vertex(input_size);
+        let link = self.vertex(input_size);
+        let output = self.output(output_size);
 
-                self.nodes.insert(node_id, node);
-                self.node_order.insert(self.node_order.len(), node_id);
-
-                for outgoing in group
-                    .iter()
-                    .filter(|item| node.outgoing().contains(&item.index()))
-                {
-                    self.relationships.push(Relationship {
-                        source_id: &node.id(),
-                        target_id: &outgoing.id(),
-                    });
-                }
-            }
-        }
+        GraphAggregate::new()
+            .one_to_one(&input, &aggregate)
+            .one_to_one_self(&aggregate, &link)
+            .all_to_all(&aggregate, &output)
+            .build()
     }
 }
 
-impl<'a, C: NodeCell + Clone> GraphBuilder<'a, C> {
-    fn connect<G: AsRef<[GraphNode<C>]>>(
-        &mut self,
-        connection: ConnectTypes,
-        one: &'a G,
-        two: &'a G,
-    ) {
-        self.attach(one.as_ref());
-        self.attach(two.as_ref());
-
-        match connection {
-            ConnectTypes::OneToOne => self.one_to_one_connect(one, two),
-            ConnectTypes::OneToMany => self.one_to_many_connect(one, two),
-            ConnectTypes::ManyToOne => self.many_to_one_connect(one, two),
-            ConnectTypes::AllToAll => self.all_to_all_connect(one, two),
-            ConnectTypes::AllToAllSelf => self.all_to_all_self_connect(one, two),
-        }
-    }
-
-    fn one_to_one_connect<G: AsRef<[GraphNode<C>]>>(&mut self, one: &'a G, two: &'a G) {
-        let one_outputs = self.get_outputs(one);
-        let two_inputs = self.get_inputs(two);
-
-        if one_outputs.len() != two_inputs.len() {
-            panic!("OneToOne - oneGroup outputs must be the same length as twoGroup inputs.");
-        }
-
-        for (one, two) in one_outputs.into_iter().zip(two_inputs.into_iter()) {
-            self.relationships.push(Relationship {
-                source_id: &one.id(),
-                target_id: &two.id(),
-            });
-        }
-    }
-
-    fn one_to_many_connect<G: AsRef<[GraphNode<C>]>>(&mut self, one: &'a G, two: &'a G) {
-        let one_outputs = self.get_outputs(one);
-        let two_inputs = self.get_inputs(two);
-
-        if two_inputs.len() % one_outputs.len() != 0 {
-            panic!("OneToMany - TwoGroup inputs must be a multiple of OneGroup outputs.");
-        }
-
-        for targets in two_inputs.chunks(one_outputs.len()) {
-            for (source, target) in one_outputs.iter().zip(targets.iter()) {
-                self.relationships.push(Relationship {
-                    source_id: &source.id(),
-                    target_id: &target.id(),
-                });
-            }
-        }
-    }
-
-    fn many_to_one_connect<G: AsRef<[GraphNode<C>]>>(&mut self, one: &'a G, two: &'a G) {
-        let one_outputs = self.get_outputs(one);
-        let two_inputs = self.get_inputs(two);
-
-        if one_outputs.len() % two_inputs.len() != 0 {
-            panic!("ManyToOne - OneGroup outputs must be a multiple of TwoGroup inputs.");
-        }
-
-        for sources in one_outputs.chunks(two_inputs.len()) {
-            for (source, target) in sources.iter().zip(two_inputs.iter()) {
-                self.relationships.push(Relationship {
-                    source_id: &source.id(),
-                    target_id: &target.id(),
-                });
-            }
-        }
-    }
-
-    fn all_to_all_connect<G: AsRef<[GraphNode<C>]>>(&mut self, one: &'a G, two: &'a G) {
-        let one_outputs = self.get_outputs(one);
-        let two_inputs = self.get_inputs(two);
-
-        for source in one_outputs {
-            for target in two_inputs.iter() {
-                self.relationships.push(Relationship {
-                    source_id: &source.id(),
-                    target_id: &target.id(),
-                });
-            }
-        }
-    }
-
-    fn all_to_all_self_connect<G: AsRef<[GraphNode<C>]>>(&mut self, one: &'a G, two: &'a G) {
-        let one_outputs = self.get_outputs(one);
-        let two_inputs = self.get_inputs(two);
-
-        if one_outputs.len() != two_inputs.len() {
-            panic!("Self - oneGroup outputs must be the same length as twoGroup inputs.");
-        }
-
-        for (one, two) in one_outputs.into_iter().zip(two_inputs.into_iter()) {
-            self.relationships.push(Relationship {
-                source_id: &one.id(),
-                target_id: &two.id(),
-            });
-            self.relationships.push(Relationship {
-                source_id: &two.id(),
-                target_id: &one.id(),
-            });
-        }
-    }
-
-    fn get_outputs<G: AsRef<[GraphNode<C>]>>(&self, collection: &'a G) -> Vec<&'a GraphNode<C>> {
-        let outputs = collection
-            .as_ref()
-            .iter()
-            .enumerate()
-            .skip_while(|(_, node)| !node.outgoing().is_empty())
-            .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
-            .collect::<Vec<&GraphNode<C>>>();
-
-        if !outputs.is_empty() {
-            return outputs;
-        }
-
-        let recurrent_outputs = collection
-            .as_ref()
-            .iter()
-            .enumerate()
-            .filter(|(_, node)| {
-                node.outgoing().len() == 1
-                    && node.is_recurrent()
-                    && (node.node_type() == NodeType::Vertex)
+/// For `Graph<T>` where `T` is a `Float` type we can use the `GraphBuilder` to create
+/// a variety of different graph architectures. Such as LSTM, GRU, Attention Units, etc
+/// but for those we need to provide the `GraphBuilder` with a way to generate the nodes
+/// that accept a variable number of inputs. This makes sure that the `GraphBuilder` can
+/// generate those nodes when needed.
+impl GraphBuilder<Op<f32>> {
+    fn aggregates(&self, size: usize) -> Vec<GraphNode<Op<f32>>> {
+        let ops = self.operations_with_any_arity();
+        (0..size)
+            .map(|i| {
+                let op = random_provider::choose(&ops).new_instance();
+                GraphNode::new(i, NodeType::Vertex, op)
             })
-            .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
-            .collect::<Vec<&GraphNode<C>>>();
-
-        if !recurrent_outputs.is_empty() {
-            return recurrent_outputs;
-        }
-
-        collection
-            .as_ref()
-            .iter()
-            .enumerate()
-            .filter(|(_, node)| node.incoming().is_empty())
-            .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
-            .collect::<Vec<&GraphNode<C>>>()
+            .collect::<Vec<GraphNode<Op<f32>>>>()
     }
 
-    fn get_inputs<G: AsRef<[GraphNode<C>]>>(&self, collection: &'a G) -> Vec<&'a GraphNode<C>> {
-        let inputs = collection
-            .as_ref()
-            .iter()
-            .enumerate()
-            .take_while(|(_, node)| node.incoming().is_empty())
-            .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
-            .collect::<Vec<&GraphNode<C>>>();
+    fn operations_with_any_arity(&self) -> Vec<Op<f32>> {
+        if let Some(values) = self.store.read().unwrap().get_values(NodeType::Vertex) {
+            let vertecies_with_any = values
+                .iter()
+                .filter(|op| op.arity() == Arity::Any)
+                .cloned()
+                .collect::<Vec<Op<f32>>>();
 
-        if !inputs.is_empty() {
-            return inputs;
+            if !vertecies_with_any.is_empty() {
+                return vertecies_with_any;
+            }
+        } else if let Some(values) = self.store.read().unwrap().get_values(NodeType::Output) {
+            let outputs_with_any = values
+                .iter()
+                .filter(|op| op.arity() == Arity::Any)
+                .cloned()
+                .collect::<Vec<Op<f32>>>();
+
+            if !outputs_with_any.is_empty() {
+                return outputs_with_any;
+            }
         }
 
-        let recurrent_inputs = collection
-            .as_ref()
-            .iter()
-            .enumerate()
-            .filter(|(_, node)| {
-                node.outgoing().len() == 1
-                    && node.is_recurrent()
-                    && node.node_type() == NodeType::Vertex
-            })
-            .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
-            .collect::<Vec<&GraphNode<C>>>();
-
-        if !recurrent_inputs.is_empty() {
-            return recurrent_inputs;
-        }
-
-        collection
-            .as_ref()
-            .iter()
-            .enumerate()
-            .filter(|(_, node)| node.outgoing().is_empty())
-            .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
-            .collect::<Vec<&GraphNode<C>>>()
+        ops::get_activation_operations()
     }
 }
 
-impl<C: NodeCell + Clone> Builder for GraphBuilder<'_, C> {
+impl GraphBuilder<Op<f32>> {
+    pub fn regression(input_size: usize) -> Self {
+        let store = CellStore::<Op<f32>>::regressor(input_size);
+        GraphBuilder::new(store)
+    }
+
+    pub fn weighted_acyclic(&self, input_size: usize, output_size: usize) -> Graph<Op<f32>> {
+        let input = self.input(input_size);
+        let output = self.output(output_size);
+        let weights = self.edge(input_size * output_size);
+
+        GraphAggregate::new()
+            .one_to_many(&input, &weights)
+            .many_to_one(&weights, &output)
+            .build()
+    }
+
+    pub fn weighted_cyclic(
+        &self,
+        input_size: usize,
+        output_size: usize,
+        memory_size: usize,
+    ) -> Graph<Op<f32>> {
+        let input = self.input(input_size);
+        let output = self.output(output_size);
+        let weights = self.edge(input_size * memory_size);
+        let aggregate = self.aggregates(memory_size);
+        let aggregate_weights = self.edge(memory_size);
+
+        GraphAggregate::new()
+            .one_to_many(&input, &weights)
+            .many_to_one(&weights, &aggregate)
+            .one_to_one_self(&aggregate, &aggregate_weights)
+            .all_to_all(&aggregate, &output)
+            .build()
+    }
+
+    pub fn attention_unit(
+        &self,
+        input_size: usize,
+        output_size: usize,
+        num_heads: usize,
+    ) -> Graph<Op<f32>> {
+        let input = self.input(input_size);
+        let output = self.output(output_size);
+
+        let query_weights = self.edge(input_size * num_heads);
+        let key_weights = self.edge(input_size * num_heads);
+        let value_weights = self.edge(input_size * num_heads);
+
+        let attention_scores = self.aggregates(num_heads);
+        let attention_aggreg = self.aggregates(num_heads);
+
+        GraphAggregate::new()
+            .one_to_many(&input, &query_weights)
+            .one_to_many(&input, &key_weights)
+            .one_to_many(&input, &value_weights)
+            .many_to_one(&query_weights, &attention_scores)
+            .many_to_one(&key_weights, &attention_scores)
+            .one_to_many(&attention_scores, &attention_aggreg)
+            .many_to_one(&value_weights, &attention_aggreg)
+            .many_to_one(&attention_aggreg, &output)
+            .build()
+    }
+
+    pub fn lstm(
+        &self,
+        input_size: usize,
+        output_size: usize,
+        memory_size: usize,
+    ) -> Graph<Op<f32>> {
+        let input = self.input(input_size);
+        let output = self.output(output_size);
+
+        let input_to_forget_weights = self.edge(input_size * memory_size);
+        let hidden_to_forget_weights = self.edge(memory_size * memory_size);
+
+        let input_to_input_weights = self.edge(input_size * memory_size);
+        let hidden_to_input_weights = self.edge(memory_size * memory_size);
+
+        let input_to_candidate_weights = self.edge(input_size * memory_size);
+        let hidden_to_candidate_weights = self.edge(memory_size * memory_size);
+
+        let input_to_output_weights = self.edge(input_size * memory_size);
+        let hidden_to_output_weights = self.edge(memory_size * memory_size);
+
+        let output_weights = self.edge(memory_size * output_size);
+
+        let forget_gate = self.aggregates(memory_size);
+        let input_gate = self.aggregates(memory_size);
+        let candidate_gate = self.aggregates(memory_size);
+        let output_gate = self.aggregates(memory_size);
+
+        let input_candidate_mul_gate = self.aggregates(memory_size);
+        let forget_memory_mul_gate = self.aggregates(memory_size);
+        let memory_candidate_gate = self.aggregates(memory_size);
+        let output_tahn_mul_gate = self.aggregates(memory_size);
+        let tanh_gate = self.aggregates(memory_size);
+
+        GraphAggregate::new()
+            .one_to_many(&input, &input_to_forget_weights)
+            .one_to_many(&input, &input_to_input_weights)
+            .one_to_many(&input, &input_to_candidate_weights)
+            .one_to_many(&input, &input_to_output_weights)
+            .one_to_many(&output_tahn_mul_gate, &hidden_to_forget_weights)
+            .one_to_many(&output_tahn_mul_gate, &hidden_to_input_weights)
+            .one_to_many(&output_tahn_mul_gate, &hidden_to_candidate_weights)
+            .one_to_many(&output_tahn_mul_gate, &hidden_to_output_weights)
+            .many_to_one(&input_to_forget_weights, &forget_gate)
+            .many_to_one(&hidden_to_forget_weights, &forget_gate)
+            .many_to_one(&input_to_input_weights, &input_gate)
+            .many_to_one(&hidden_to_input_weights, &input_gate)
+            .many_to_one(&input_to_candidate_weights, &candidate_gate)
+            .many_to_one(&hidden_to_candidate_weights, &candidate_gate)
+            .many_to_one(&input_to_output_weights, &output_gate)
+            .many_to_one(&hidden_to_output_weights, &output_gate)
+            .one_to_one(&forget_gate, &forget_memory_mul_gate)
+            .one_to_one(&memory_candidate_gate, &forget_memory_mul_gate)
+            .one_to_one(&input_gate, &input_candidate_mul_gate)
+            .one_to_one(&candidate_gate, &input_candidate_mul_gate)
+            .one_to_one(&forget_memory_mul_gate, &memory_candidate_gate)
+            .one_to_one(&input_candidate_mul_gate, &memory_candidate_gate)
+            .one_to_one(&memory_candidate_gate, &tanh_gate)
+            .one_to_one(&tanh_gate, &output_tahn_mul_gate)
+            .one_to_one(&output_gate, &output_tahn_mul_gate)
+            .one_to_many(&output_tahn_mul_gate, &output_weights)
+            .many_to_one(&output_weights, &output)
+            .build()
+    }
+
+    pub fn gru(&self, input_size: usize, output_size: usize, memory_size: usize) -> Graph<Op<f32>> {
+        let input = self.input(input_size);
+        let output = self.output(output_size);
+
+        let output_weights = self.edge(memory_size * output_size);
+
+        let reset_gate = self.aggregates(memory_size);
+        let update_gate = self.aggregates(memory_size);
+        let candidate_gate = self.aggregates(memory_size);
+
+        let input_to_reset_weights = self.edge(input_size * memory_size);
+        let input_to_update_weights = self.edge(input_size * memory_size);
+        let input_to_candidate_weights = self.edge(input_size * memory_size);
+
+        let hidden_to_reset_weights = self.edge(memory_size * memory_size);
+        let hidden_to_update_weights = self.edge(memory_size * memory_size);
+        let hidden_to_candidate_weights = self.edge(memory_size * memory_size);
+
+        let hidden_reset_gate = self.aggregates(memory_size);
+        let update_candidate_mul_gate = self.aggregates(memory_size);
+        let invert_update_gate = self.aggregates(memory_size);
+        let hidden_invert_mul_gate = self.aggregates(memory_size);
+        let candidate_hidden_add_gate = self.aggregates(memory_size);
+
+        GraphAggregate::new()
+            .one_to_many(&input, &input_to_reset_weights)
+            .one_to_many(&input, &input_to_update_weights)
+            .one_to_many(&input, &input_to_candidate_weights)
+            .one_to_many(&candidate_hidden_add_gate, &hidden_to_reset_weights)
+            .one_to_many(&candidate_hidden_add_gate, &hidden_to_update_weights)
+            .many_to_one(&input_to_reset_weights, &reset_gate)
+            .many_to_one(&hidden_to_reset_weights, &reset_gate)
+            .many_to_one(&input_to_update_weights, &update_gate)
+            .many_to_one(&hidden_to_update_weights, &update_gate)
+            .one_to_one(&reset_gate, &hidden_reset_gate)
+            .one_to_one(&candidate_hidden_add_gate, &hidden_reset_gate)
+            .one_to_many(&hidden_reset_gate, &hidden_to_candidate_weights)
+            .many_to_one(&input_to_candidate_weights, &candidate_gate)
+            .many_to_one(&hidden_to_candidate_weights, &candidate_gate)
+            .one_to_one(&update_gate, &update_candidate_mul_gate)
+            .one_to_one(&candidate_gate, &update_candidate_mul_gate)
+            .one_to_one(&update_gate, &invert_update_gate)
+            .one_to_one(&candidate_hidden_add_gate, &hidden_invert_mul_gate)
+            .one_to_one(&invert_update_gate, &hidden_invert_mul_gate)
+            .one_to_one(&hidden_invert_mul_gate, &candidate_hidden_add_gate)
+            .one_to_one(&update_candidate_mul_gate, &candidate_hidden_add_gate)
+            .one_to_many(&candidate_hidden_add_gate, &output_weights)
+            .many_to_one(&output_weights, &output)
+            .build()
+    }
+}
+
+impl<C: NodeCell + Clone> Builder for GraphBuilder<C> {
     type Output = Graph<C>;
 
     fn build(&self) -> Self::Output {
-        if let Some(cache) = &self.node_cache {
-            return Graph::new(cache.clone());
+        if let Some(nodes) = &self.node_cache {
+            Graph::new(nodes.clone())
+        } else {
+            Graph::new(vec![])
         }
-
-        let mut new_nodes = Vec::new();
-        let mut node_id_index_map = BTreeMap::new();
-
-        for (index, (_, node_id)) in self.node_order.iter().enumerate() {
-            let node = self.nodes.get(node_id).unwrap();
-            let new_node = GraphNode::new(index, node.node_type(), node.value().clone());
-
-            new_nodes.push(new_node);
-            node_id_index_map.insert(node_id, index);
-        }
-
-        let mut new_collection = Graph::new(new_nodes);
-        for rel in self.relationships.iter() {
-            let source_idx = node_id_index_map.get(&rel.source_id).unwrap();
-            let target_idx = node_id_index_map.get(&rel.target_id).unwrap();
-
-            new_collection.attach(*source_idx, *target_idx);
-        }
-
-        new_collection.set_cycles(vec![]);
-        new_collection
     }
 }
 
-// pub fn build(self) -> Graph<T>
-// where
-//     T: Default,
-// {
-//     let mut new_nodes = Vec::new();
-//     let mut node_id_index_map = BTreeMap::new();
+impl<C> Codex<GraphChromosome<C>, Graph<C>> for GraphBuilder<C>
+where
+    C: NodeCell + Clone + PartialEq + Default,
+{
+    fn encode(&self) -> Genotype<GraphChromosome<C>> {
+        let store = self.store.clone();
+        let nodes = self.node_cache.clone().unwrap_or_default();
 
-//     for (index, (_, node_id)) in self.node_order.iter().enumerate() {
-//         let node = self.nodes.get(node_id).unwrap();
-//         let new_node = GraphNode::new(index, node.node_type, node.value.clone());
+        Genotype::from_chromosomes(vec![GraphChromosome {
+            nodes,
+            store: Some(store),
+        }])
+    }
 
-//         new_nodes.push(new_node);
-//         node_id_index_map.insert(node_id, index);
-//     }
+    fn decode(&self, genotype: &Genotype<GraphChromosome<C>>) -> Graph<C> {
+        let nodes = genotype
+            .iter()
+            .next()
+            .unwrap()
+            .iter()
+            .cloned()
+            .collect::<Vec<GraphNode<C>>>();
 
-//     let mut new_collection = Graph::new(new_nodes);
-//     for rel in self.relationships {
-//         let source_idx = node_id_index_map.get(&rel.source_id).unwrap();
-//         let target_idx = node_id_index_map.get(&rel.target_id).unwrap();
+        Graph::new(nodes)
+    }
+}
 
-//         new_collection.attach(*source_idx, *target_idx);
-//     }
-
-//     let mut collection = new_collection.clone().set_cycles(Vec::new());
-
-//     for node in collection.as_mut() {
-//         if let Some(factory) = self.factory {
-//             let temp_node = factory.new_node(node.index, NodeType::Vertex);
-
-//             match node.node_type() {
-//                 NodeType::Input => {
-//                     if !node.incoming().is_empty() {
-//                         node.node_type = NodeType::Vertex;
-//                         node.value = temp_node.value.clone();
-//                     }
-//                 }
-//                 NodeType::Output => {
-//                     if !node.outgoing().is_empty() {
-//                         node.node_type = NodeType::Vertex;
-//                         node.value = temp_node.value.clone();
-//                     }
-//                 }
-//                 _ => {}
-//             }
-//         }
-//     }
-
-//     collection
-// }
+impl<C: NodeCell> Default for GraphBuilder<C> {
+    fn default() -> Self {
+        GraphBuilder {
+            store: Arc::new(RwLock::new(CellStore::default())),
+            node_cache: None,
+        }
+    }
+}

@@ -1,5 +1,3 @@
-use super::NodeType;
-
 /// A trait for types that can be built into a final value.
 ///
 /// This is a quality of life trait to help with the builder pattern or

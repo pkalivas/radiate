@@ -1,4 +1,4 @@
-use super::{Graph, GraphIterator, GraphNode};
+use super::{iter::GraphIterator, GraphNode};
 use crate::{Eval, EvalMut, NodeCell, NodeType};
 
 /// `GraphReducer` is a struct that is used to evaluate a `Graph` of `Node`s. It uses the `GraphIterator`
@@ -29,23 +29,24 @@ where
     ///
     /// # Arguments
     /// * `graph` - The `Graph` to reduce.
-    pub fn new<N: AsRef<[GraphNode<C>]>>(graph: &'a N) -> GraphEvaluator<'a, C, T> {
+    pub fn new<N>(graph: &'a N) -> GraphEvaluator<'a, C, T>
+    where
+        N: AsRef<[GraphNode<C>]>,
+    {
+        let nodes = graph.as_ref();
+
         GraphEvaluator {
-            nodes: graph.as_ref(),
-            output_size: graph
-                .as_ref()
+            nodes,
+            output_size: nodes
                 .iter()
                 .filter(|node| node.node_type() == NodeType::Output)
                 .count(),
-            inputs: graph
-                .as_ref()
+            inputs: nodes
                 .iter()
                 .map(|node| vec![T::default(); node.incoming().len()])
                 .collect::<Vec<Vec<T>>>(),
-            eval_order: GraphIterator::new(graph.as_ref())
-                .map(|node| node.index())
-                .collect(),
-            outputs: vec![T::default(); graph.as_ref().len()],
+            eval_order: nodes.iter_topological().map(|node| node.index()).collect(),
+            outputs: vec![T::default(); nodes.len()],
         }
     }
 }
@@ -91,21 +92,11 @@ where
     }
 }
 
-impl<'a, C, T> From<&'a Graph<C>> for GraphEvaluator<'a, C, T>
-where
-    C: NodeCell,
-    T: Default + Clone,
-{
-    fn from(graph: &'a Graph<C>) -> Self {
-        GraphEvaluator::new(graph)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use radiate::random_provider;
 
-    use crate::graphs::architect::GraphArchitect;
+    use crate::graphs::builder::GraphBuilder;
 
     use super::*;
 
@@ -113,7 +104,7 @@ mod tests {
     fn test_graph_eval_simple() {
         random_provider::set_seed(2);
 
-        let builder = GraphArchitect::regression(3);
+        let builder = GraphBuilder::regression(3);
 
         let graph = builder.lstm(3, 3, 3);
 

@@ -7,9 +7,7 @@ const MIN_SCORE: f32 = 0.01;
 
 fn main() {
     set_seed(100);
-    let graph_codex = GraphCodex::regression(1, 1)
-        .with_output(Op::sigmoid())
-        .set_nodes(|arc, _| arc.acyclic(1, 1));
+    let graph_codex = GraphCodex::acyclic(1, 1).with_output(Op::sigmoid());
 
     let regression = Regression::new(get_dataset(), Loss::MSE);
 

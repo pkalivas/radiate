@@ -8,8 +8,8 @@ pub mod trees;
 
 pub use builder::Builder;
 pub use graphs::{
-    Direction, Graph, GraphArchitect, GraphBuilder, GraphChromosome, GraphCodex, GraphCrossover,
-    GraphEvaluator, GraphIterator, GraphMutator, GraphNode, NodeMutate, NodeType,
+    Direction, Graph, GraphAggregate, GraphBuilder, GraphChromosome, GraphCodex, GraphCrossover,
+    GraphEvaluator, GraphMutator, GraphNode, GraphTopologicalIterator, NodeMutate, NodeType,
 };
 pub use node::NodeCell;
 

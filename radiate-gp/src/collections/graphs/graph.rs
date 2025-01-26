@@ -2,7 +2,6 @@ use std::collections::{HashSet, VecDeque};
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
 
-use super::GraphIterator;
 use crate::collections::graphs::GraphTransaction;
 use crate::collections::{Direction, GraphNode};
 use crate::{NodeCell, NodeType};
@@ -86,15 +85,6 @@ impl<C: NodeCell> Graph<C> {
     /// mutably iterates over the nodes in the graph. The nodes are returned in the order they
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut GraphNode<C>> {
         self.nodes.iter_mut()
-    }
-
-    /// iterates over the nodes in the graph in a sudo topological order. This means that
-    /// the nodes are returned in an order that respects the connections between them.
-    /// It is a 'best effort' topological order, as it is not guaranteed to be a true topological
-    /// order. This is because the graph may contain cycles which would make it impossible to
-    /// create a true topological order.
-    pub fn iter_topological(&self) -> impl Iterator<Item = &GraphNode<C>> {
-        GraphIterator::new(self.nodes.as_ref())
     }
 
     /// Returns a vector of all the nodes in the graph. This will consume the graph and return

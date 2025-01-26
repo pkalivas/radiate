@@ -12,7 +12,7 @@ fn main() {
     let (train, test) = load_iris_dataset().shuffle().standardize().split(0.75);
     let train_copy = train.clone();
 
-    let graph_codex = GraphCodex::classification(4, 4);
+    let graph_codex = GraphCodex::acyclic(4, 4).with_output(Op::sigmoid());
 
     let engine = GeneticEngine::from_codex(graph_codex)
         .minimizing()

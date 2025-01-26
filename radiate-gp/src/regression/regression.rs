@@ -71,7 +71,6 @@ impl Problem<GraphChromosome<Op<f32>>, Graph<Op<f32>>>
     }
 
     fn decode(&self, genotype: &Genotype<GraphChromosome<Op<f32>>>) -> Graph<Op<f32>> {
-        println!("Decoding genotype");
         self.codex.decode(genotype)
     }
 

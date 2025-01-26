@@ -7,7 +7,7 @@ const MIN_SCORE: f32 = 0.01;
 fn main() {
     random_provider::set_seed(501);
 
-    let graph_codex = GraphCodex::regression(2, 1).with_output(Op::sigmoid());
+    let graph_codex = GraphCodex::acyclic(2, 1).with_output(Op::sigmoid());
 
     let regression = Regression::new(get_dataset(), Loss::MSE);
 

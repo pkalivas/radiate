@@ -58,6 +58,15 @@ where
     }
 }
 
+impl<C> PartialEq for GraphChromosome<C>
+where
+    C: Clone + PartialEq + Default + NodeCell,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.nodes == other.nodes
+    }
+}
+
 impl<C> Debug for GraphChromosome<C>
 where
     C: Clone + PartialEq + Default + NodeCell + Debug,
@@ -68,14 +77,5 @@ where
             write!(f, "  {:?},\n", node)?;
         }
         write!(f, "}}")
-    }
-}
-
-impl<C> PartialEq for GraphChromosome<C>
-where
-    C: Clone + PartialEq + Default + NodeCell,
-{
-    fn eq(&self, other: &Self) -> bool {
-        self.nodes == other.nodes
     }
 }

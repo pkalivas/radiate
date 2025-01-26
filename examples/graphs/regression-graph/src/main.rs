@@ -7,7 +7,7 @@ const MAX_SECONDS: f64 = 5.0;
 fn main() {
     random_provider::set_seed(1000);
 
-    let graph_codex = GraphCodex::regression(1, 1)
+    let graph_codex = GraphCodex::acyclic(1, 1)
         .with_vertices(vec![Op::add(), Op::sub(), Op::mul()])
         .with_output(Op::linear());
 
