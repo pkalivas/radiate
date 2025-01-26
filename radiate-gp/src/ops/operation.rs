@@ -76,6 +76,10 @@ pub enum Op<T> {
         modifier: Arc<dyn Fn(&T) -> T>,
         operation: Arc<dyn Fn(&[T], &T) -> T>,
     },
+    /// 5) A 'Value' operation that can be used to represent a constant value.
+    ///     This is a convenience method for creating a `Const` operation with any given
+    ///     value and arity
+    Value(T, Arity),
 }
 
 /// Base functionality for operations.
@@ -86,6 +90,7 @@ impl<T> Op<T> {
             Op::Var(name, _) => name,
             Op::Const(name, _) => name,
             Op::MutableConst { name, .. } => name,
+            Op::Value(_, _) => "Value",
         }
     }
 
@@ -95,6 +100,7 @@ impl<T> Op<T> {
             Op::Var(_, _) => Arity::Zero,
             Op::Const(_, _) => Arity::Zero,
             Op::MutableConst { arity, .. } => *arity,
+            Op::Value(_, arity) => *arity,
         }
     }
 
@@ -179,6 +185,7 @@ where
             Op::MutableConst {
                 value, operation, ..
             } => operation(inputs, value),
+            Op::Value(value, _) => value.clone(),
         }
     }
 }
@@ -209,6 +216,7 @@ where
                 modifier: Arc::clone(modifier),
                 operation: Arc::clone(operation),
             },
+            Op::Value(value, arity) => Op::Value(value.clone(), *arity),
         }
     }
 }
@@ -237,6 +245,7 @@ where
                 modifier: Arc::clone(modifier),
                 operation: Arc::clone(operation),
             },
+            Op::Value(value, arity) => Op::Value(value.clone(), *arity),
         }
     }
 }
@@ -275,7 +284,20 @@ where
             Op::Var(name, index) => write!(f, "Var: {}({})", name, index),
             Op::Const(name, value) => write!(f, "C: {}({:?})", name, value),
             Op::MutableConst { name, value, .. } => write!(f, "{}({:.2?})", name, value),
+            Op::Value(value, _) => write!(f, "Value({:?})", value),
         }
+    }
+}
+
+impl Into<Op<f32>> for f32 {
+    fn into(self) -> Op<f32> {
+        Op::value(self)
+    }
+}
+
+impl Into<Op<i32>> for i32 {
+    fn into(self) -> Op<i32> {
+        Op::value(self)
     }
 }
 

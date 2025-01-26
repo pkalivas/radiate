@@ -33,11 +33,11 @@ pub struct GraphNode<T> {
 }
 
 impl<T> GraphNode<T> {
-    pub fn new(index: usize, node_type: NodeType, value: Op<T>) -> Self {
+    pub fn new(index: usize, node_type: NodeType, value: impl Into<Op<T>>) -> Self {
         Self {
             id: Uuid::new_v4(),
             index,
-            value,
+            value: value.into(),
             enabled: true,
             direction: Direction::Forward,
             node_type,

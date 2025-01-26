@@ -23,10 +23,7 @@ where
     type Gene = TreeNode<T>;
 }
 
-impl<T> Valid for TreeChromosome<T>
-where
-    T: Clone + PartialEq + Default,
-{
+impl<T> Valid for TreeChromosome<T> {
     fn is_valid(&self) -> bool {
         for gene in &self.nodes {
             if let Some(constraint) = &self.constraint {
@@ -42,19 +39,13 @@ where
     }
 }
 
-impl<T> AsRef<[TreeNode<T>]> for TreeChromosome<T>
-where
-    T: Clone + PartialEq + Default,
-{
+impl<T> AsRef<[TreeNode<T>]> for TreeChromosome<T> {
     fn as_ref(&self) -> &[TreeNode<T>] {
         &self.nodes
     }
 }
 
-impl<T> AsMut<[TreeNode<T>]> for TreeChromosome<T>
-where
-    T: Clone + PartialEq + Default,
-{
+impl<T> AsMut<[TreeNode<T>]> for TreeChromosome<T> {
     fn as_mut(&mut self) -> &mut [TreeNode<T>] {
         &mut self.nodes
     }
