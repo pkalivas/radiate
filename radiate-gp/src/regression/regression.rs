@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use radiate::{Chromosome, Codex, Genotype, Problem, Score};
 
-use crate::{Eval, EvalMut, Graph, GraphChromosome, GraphEvaluator, Op, Tree};
+use crate::{Eval, EvalMut, Graph, GraphChromosome, GraphEvaluator, Tree};
 
 use super::{DataSet, Loss};
 

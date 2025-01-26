@@ -1,4 +1,4 @@
-use crate::{EvalMut, Graph, GraphEvaluator, Op};
+use crate::{EvalMut, Graph, GraphEvaluator};
 
 use super::DataSet;
 

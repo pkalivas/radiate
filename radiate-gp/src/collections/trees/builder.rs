@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::collections::{Tree, TreeNode};
-use crate::{Builder, NodeCell, Op};
+use crate::{Builder, Op};
 use radiate::random_provider;
 
 pub struct TreeBuilder<T> {

@@ -8,7 +8,6 @@ fn main() {
     random_provider::set_seed(501);
 
     let graph_codex = GraphBuilder::default().weighted_acyclic(2, 1, Op::sigmoid());
-
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
     let engine = GeneticEngine::from_codex(graph_codex)

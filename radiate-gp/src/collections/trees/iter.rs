@@ -1,7 +1,4 @@
-use crate::{
-    collections::{Tree, TreeNode},
-    NodeCell,
-};
+use crate::collections::{Tree, TreeNode};
 use std::collections::VecDeque;
 
 pub trait TreeIterator<T> {

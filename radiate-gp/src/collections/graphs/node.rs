@@ -1,5 +1,5 @@
 use crate::ops::Arity;
-use crate::{Eval, NodeCell, Op};
+use crate::{Eval, Op};
 use radiate::{Gene, Valid};
 use std::collections::HashSet;
 use std::fmt::Debug;

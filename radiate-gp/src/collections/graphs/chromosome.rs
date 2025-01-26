@@ -1,5 +1,5 @@
 use super::CellStore;
-use crate::{GraphNode, NodeCell};
+use crate::GraphNode;
 use radiate::{Chromosome, Valid};
 use std::fmt::Debug;
 use std::sync::{Arc, RwLock};
@@ -58,9 +58,9 @@ impl<T: PartialEq> PartialEq for GraphChromosome<T> {
     }
 }
 
-impl<C> Debug for GraphChromosome<C>
+impl<T> Debug for GraphChromosome<T>
 where
-    C: Clone + PartialEq + NodeCell + Debug,
+    T: Clone + PartialEq + Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Graph {{\n")?;

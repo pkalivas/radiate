@@ -1,4 +1,4 @@
-use crate::{collections::GraphNode, NodeCell};
+use crate::collections::GraphNode;
 use std::collections::VecDeque;
 
 pub trait GraphIterator<'a, T> {

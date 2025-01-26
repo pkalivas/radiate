@@ -1,4 +1,4 @@
-use crate::{NodeCell, Op};
+use crate::Op;
 use radiate::engines::genome::genes::gene::{Gene, Valid};
 
 use super::TreeIterator;

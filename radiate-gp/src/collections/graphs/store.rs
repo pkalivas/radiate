@@ -1,5 +1,5 @@
 use crate::collections::{GraphNode, NodeType};
-use crate::{Factory, NodeCell, Op};
+use crate::{Factory, Op};
 
 use radiate::random_provider;
 use std::collections::HashMap;
@@ -24,7 +24,7 @@ impl<T> CellStore<T> {
     }
 }
 
-impl<C: NodeCell + Clone> Clone for CellStore<C> {
+impl<T: Clone> Clone for CellStore<T> {
     fn clone(&self) -> Self {
         let mut store = CellStore::new();
         for (node_type, values) in &self.values {
@@ -35,7 +35,7 @@ impl<C: NodeCell + Clone> Clone for CellStore<C> {
     }
 }
 
-impl<C: NodeCell + PartialEq> PartialEq for CellStore<C> {
+impl<T: PartialEq> PartialEq for CellStore<T> {
     fn eq(&self, other: &Self) -> bool {
         self.values == other.values
     }
@@ -47,8 +47,13 @@ impl<T: Default + Clone> Factory<GraphNode<T>> for CellStore<T> {
     fn new_instance(&self, input: Self::Input) -> GraphNode<T> {
         let (index, node_type) = input;
         if let Some(values) = self.get_values(node_type) {
-            let new_instance = random_provider::choose(values).new_instance(());
-            return GraphNode::new(index, node_type, new_instance);
+            if node_type == NodeType::Input {
+                let new_instance = values[index % values.len()].new_instance(());
+                return GraphNode::new(index, node_type, new_instance);
+            } else {
+                let new_instance = random_provider::choose(values).new_instance(());
+                return GraphNode::new(index, node_type, new_instance);
+            }
         }
 
         GraphNode::new(index, node_type, Op::default())

@@ -2,8 +2,6 @@ use std::collections::HashSet;
 
 use radiate::Valid;
 
-use crate::NodeCell;
-
 use super::{Direction, Graph, GraphNode};
 
 /// Represents a reversible change to the graph

@@ -4,7 +4,7 @@ use std::{
     sync::Arc,
 };
 
-use crate::{Eval, Factory, NodeCell};
+use crate::{Eval, Factory};
 
 /// Arity is a way to describe how many inputs an operation expects.
 /// It can be zero, a specific number, or any number.
@@ -212,8 +212,6 @@ where
         }
     }
 }
-
-impl<T: Clone> NodeCell for Op<T> {}
 
 impl<T> Clone for Op<T>
 where

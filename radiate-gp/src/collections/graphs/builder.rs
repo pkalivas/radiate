@@ -3,7 +3,7 @@ use std::sync::{Arc, RwLock};
 use crate::collections::{Builder, Graph, GraphNode, NodeType};
 
 use crate::ops::{Arity, Op};
-use crate::{ops, Factory, NodeCell};
+use crate::{ops, Factory};
 use radiate::{random_provider, Chromosome, Codex, Gene, Genotype};
 
 use super::aggregate::GraphAggregate;
@@ -352,8 +352,8 @@ impl GraphBuilder<f32> {
     }
 }
 
-impl<C: NodeCell + Clone> Builder for GraphBuilder<C> {
-    type Output = Graph<C>;
+impl<T: Clone> Builder for GraphBuilder<T> {
+    type Output = Graph<T>;
 
     fn build(&self) -> Self::Output {
         if let Some(nodes) = &self.node_cache {
@@ -374,10 +374,6 @@ where
             let new_nodes = nodes
                 .iter()
                 .map(|node| {
-                    if node.node_type() == NodeType::Input || node.node_type() == NodeType::Output {
-                        return node.clone();
-                    }
-
                     let new_node = store
                         .read()
                         .unwrap()
