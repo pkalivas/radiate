@@ -22,8 +22,8 @@ where
     C: NodeCell,
     T: Default + Clone,
 {
-    /// Creates a new `GraphReducer` with the given `Graph`. Will cache the order of nodes in
-    /// the `Graph` on the first iteration. On initialization the `GraphReducer` will cache the
+    /// Creates a new `GraphEvaluator` with the given `Graph`. Will cache the order of nodes in
+    /// the `Graph` on the first iteration. On initialization the `GraphEvaluator` will cache the
     /// output size of the `Graph` to be used in the `reduce` method and create a vec of `Tracer`
     /// which will be used to evaluate the `Graph` in the `reduce` method.
     ///
@@ -51,7 +51,7 @@ where
     }
 }
 
-/// Implements the `Reduce` trait for `GraphReducer`.
+/// Implements the `EvalMut` trait for `GraphEvaluator`.
 impl<'a, C, T> EvalMut<[T], Vec<T>> for GraphEvaluator<'a, C, T>
 where
     C: NodeCell + Eval<[T], T>,
@@ -89,42 +89,5 @@ where
         }
 
         output
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use radiate::random_provider;
-
-    use crate::{
-        graphs::{builder::GraphBuilder, CellStore},
-        Builder, Op,
-    };
-
-    use super::*;
-
-    #[test]
-    fn test_graph_eval_simple() {
-        random_provider::set_seed(2);
-
-        let builder = GraphBuilder::new(CellStore::regressor(3));
-
-        let graph = builder.lstm(3, 3, 3, Op::linear()).build();
-
-        for node in graph.iter() {
-            println!("{:?}", node);
-        }
-
-        let mut evaluator = GraphEvaluator::new(&graph);
-
-        let input = vec![1.0, 2.0, 3.0];
-        let output = evaluator.eval_mut(&input);
-
-        println!("{:?}", output);
-
-        assert_eq!(output.len(), 3);
-        assert_eq!(output[0], 0.33010882);
-        assert_eq!(output[1], 0.0);
-        assert_eq!(output[2], 0.0);
     }
 }

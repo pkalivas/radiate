@@ -18,13 +18,6 @@ impl Regression {
             loss_function,
         }
     }
-
-    pub fn loss<F>(&self, mut error_fn: F) -> f32
-    where
-        F: FnMut(&Vec<f32>) -> Vec<f32>,
-    {
-        self.loss_function.calculate(&self.data_set, &mut error_fn)
-    }
 }
 
 impl Eval<Graph<Op<f32>>, f32> for Regression {

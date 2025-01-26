@@ -22,8 +22,8 @@ fn main() {
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.02, 0.05),
             GraphMutator::new(vec![
-                NodeMutate::Edge(0.03, false),
-                NodeMutate::Vertex(0.03, false),
+                NodeMutate::Edge(0.01, false),
+                NodeMutate::Vertex(0.01, false),
             ]),
         ))
         .fitness_fn(move |graph: Graph<Op<f32>>| regression.eval(&graph))

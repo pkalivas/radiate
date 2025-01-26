@@ -8,9 +8,9 @@
 ///
 /// # Example
 /// ```rust
-/// use radiate_gp::{Op, Reduce, TreeNode};
+/// use radiate_gp::{Op, Eval, TreeNode};
 ///
-/// let mut root = TreeNode::new(Op::add())
+/// let root = TreeNode::new(Op::add())
 ///     .attach(
 ///         TreeNode::new(Op::mul())
 ///             .attach(TreeNode::new(Op::value(2.0)))
@@ -23,7 +23,7 @@
 ///     );
 ///
 /// // And the result of evaluating this tree with an input of `1` would be:
-/// let result = root.eval_mut(&vec![1_f32]);
+/// let result = root.eval(&vec![1_f32]);
 /// assert_eq!(result, 9.0);
 /// ```
 /// This creates a `Tree` that looks like:

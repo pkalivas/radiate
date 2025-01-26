@@ -31,7 +31,7 @@ use std::sync::{Arc, Mutex};
 /// // eg: [[1.0, 2.0, 3.0, 4.0, 5.0]]
 ///
 /// // Create a new instance of the genetic engine with the given codex.
-/// let engine = GeneticEngine::from_codex(&codex)
+/// let engine = GeneticEngine::from_codex(codex)
 ///     .minimizing()  // Minimize the fitness function.
 ///     .population_size(150) // Set the population size to 150 individuals.
 ///     .max_age(15) // Set the maximum age of an individual to 15 generations before it is replaced with a new individual.
