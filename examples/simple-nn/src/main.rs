@@ -20,7 +20,7 @@ fn main() {
         target: target.clone(),
     };
 
-    let engine = GeneticEngine::from_codex(&codex)
+    let engine = GeneticEngine::from_codex(codex.clone())
         .minimizing()
         .num_threads(5)
         .offspring_selector(BoltzmannSelector::new(4_f32))
@@ -102,6 +102,7 @@ impl NeuralNet {
     }
 }
 
+#[derive(Clone)]
 pub struct NeuralNetCodex {
     pub shapes: Vec<(usize, usize)>,
     pub inputs: Vec<Vec<f32>>,

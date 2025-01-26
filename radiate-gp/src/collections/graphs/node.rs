@@ -1,5 +1,5 @@
 use crate::ops::Arity;
-use crate::NodeCell;
+use crate::{Eval, NodeCell};
 use radiate::{Gene, Valid};
 use std::collections::HashSet;
 use std::fmt::Debug;
@@ -177,6 +177,12 @@ impl<C: NodeCell + Clone + PartialEq> Valid for GraphNode<C> {
                 false
             }
         }
+    }
+}
+
+impl<T, C: NodeCell + Eval<[T], T>> Eval<[T], T> for GraphNode<C> {
+    fn eval(&self, inputs: &[T]) -> T {
+        self.value.eval(inputs)
     }
 }
 

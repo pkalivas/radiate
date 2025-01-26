@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use radiate::*;
 use radiate_gp::*;
 
-const MIN_SCORE: f32 = 0.001;
+const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
@@ -11,11 +11,10 @@ fn main() {
 
     let (train, test) = load_iris_dataset().shuffle().standardize().split(0.75);
 
-    let graph_codex = GraphCodex::classification(4, 4);
-
+    let builder = GraphBuilder::default().acyclic(4, 4, Op::sigmoid());
     let regression = Regression::new(train.clone(), Loss::MSE);
 
-    let engine = GeneticEngine::from_codex(&graph_codex)
+    let engine = GeneticEngine::from_codex(builder)
         .minimizing()
         .num_threads(10)
         .offspring_selector(BoltzmannSelector::new(4.0))
@@ -23,14 +22,11 @@ fn main() {
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.02, 0.05),
             GraphMutator::new(vec![
-                NodeMutate::Edge(0.03, false),
-                NodeMutate::Vertex(0.03, false),
+                NodeMutate::Edge(0.01, false),
+                NodeMutate::Vertex(0.01, false),
             ]),
         ))
-        .fitness_fn(move |genotype: Graph<Op<f32>>| {
-            let mut reducer = GraphReducer::new(&genotype);
-            regression.loss(|input| reducer.reduce(input))
-        })
+        .fitness_fn(move |graph: Graph<Op<f32>>| regression.eval(&graph))
         .build();
 
     let result = engine.run(|ctx| {
@@ -46,13 +42,13 @@ fn display(
     test: &DataSet,
     result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>,
 ) {
-    let mut reducer = GraphReducer::new(&result.best);
+    let mut reducer = GraphEvaluator::new(&result.best);
 
     let train_acc = Accuracy::new("train", &train, Loss::MSE);
     let test_acc = Accuracy::new("test", &test, Loss::MSE);
 
-    let train_acc_result = train_acc.calc(|input| reducer.reduce(input));
-    let test_acc_result = test_acc.calc(|input| reducer.reduce(input));
+    let train_acc_result = train_acc.calc(|input| reducer.eval_mut(input));
+    let test_acc_result = test_acc.calc(|input| reducer.eval_mut(input));
 
     println!("{:?}", result);
     println!("{:?}", train_acc_result);

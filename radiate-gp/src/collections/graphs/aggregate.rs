@@ -32,18 +32,20 @@ struct Relationship<'a> {
 }
 
 #[derive(Default)]
-pub struct GraphArchitect<'a, C: NodeCell + Clone> {
+pub struct GraphAggregate<'a, C: NodeCell + Clone> {
     nodes: BTreeMap<&'a Uuid, &'a GraphNode<C>>,
     node_order: BTreeMap<usize, &'a Uuid>,
     relationships: Vec<Relationship<'a>>,
+    node_cache: Option<Vec<GraphNode<C>>>,
 }
 
-impl<'a, C: NodeCell + Clone> GraphArchitect<'a, C> {
+impl<'a, C: NodeCell + Clone> GraphAggregate<'a, C> {
     pub fn new() -> Self {
-        GraphArchitect {
+        GraphAggregate {
             nodes: BTreeMap::new(),
             node_order: BTreeMap::new(),
             relationships: Vec::new(),
+            node_cache: None,
         }
     }
 
@@ -78,9 +80,9 @@ impl<'a, C: NodeCell + Clone> GraphArchitect<'a, C> {
     }
 }
 
-impl<'a, C: NodeCell + Clone> GraphArchitect<'a, C> {
+impl<'a, C: NodeCell + Clone> GraphAggregate<'a, C> {
     pub fn layer<G: AsRef<[GraphNode<C>]>>(&self, collections: Vec<&'a G>) -> Self {
-        let mut conn = GraphArchitect::new();
+        let mut conn = GraphAggregate::new();
         let mut previous = collections[0];
 
         for collection in collections.iter() {
@@ -96,6 +98,7 @@ impl<'a, C: NodeCell + Clone> GraphArchitect<'a, C> {
     }
 
     pub fn attach(&mut self, group: &'a [GraphNode<C>]) {
+        self.node_cache = None;
         for node in group.iter() {
             if !self.nodes.contains_key(&node.id()) {
                 let node_id = &node.id();
@@ -117,7 +120,7 @@ impl<'a, C: NodeCell + Clone> GraphArchitect<'a, C> {
     }
 }
 
-impl<'a, C: NodeCell + Clone> GraphArchitect<'a, C> {
+impl<'a, C: NodeCell + Clone> GraphAggregate<'a, C> {
     fn connect<G: AsRef<[GraphNode<C>]>>(
         &mut self,
         connection: ConnectTypes,
@@ -299,10 +302,14 @@ impl<'a, C: NodeCell + Clone> GraphArchitect<'a, C> {
     }
 }
 
-impl<C: NodeCell + Clone> Builder for GraphArchitect<'_, C> {
+impl<C: NodeCell + Clone> Builder for GraphAggregate<'_, C> {
     type Output = Graph<C>;
 
     fn build(&self) -> Self::Output {
+        if let Some(cache) = &self.node_cache {
+            return Graph::new(cache.clone());
+        }
+
         let mut new_nodes = Vec::new();
         let mut node_id_index_map = BTreeMap::new();
 

@@ -17,7 +17,7 @@ use std::ops::{Index, IndexMut};
 ///
 /// # Type Parameters
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
-///
+
 #[derive(Clone, Default)]
 pub struct Population<C: Chromosome> {
     pub individuals: Vec<Phenotype<C>>,
@@ -98,6 +98,10 @@ impl<C: Chromosome> Population<C> {
             .filter_map(|i| i.score())
             .collect::<Vec<_>>()
     }
+
+    // pub fn take_phenotype(&mut self, index: usize) -> Phenotype<C> {
+    //     std::mem::replace(&mut self.individuals[index], Phenotype::default())
+    // }
 }
 
 impl<C: Chromosome> AsRef<[Phenotype<C>]> for Population<C> {
@@ -182,8 +186,8 @@ mod test {
         assert_eq!(population.len(), 10);
 
         for individual in population.iter() {
-            assert_eq!(individual.genotype.len(), 1);
-            assert_eq!(individual.genotype.iter().next().unwrap().len(), 5);
+            assert_eq!(individual.genotype().len(), 1);
+            assert_eq!(individual.genotype().iter().next().unwrap().len(), 5);
         }
     }
 
