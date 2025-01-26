@@ -27,6 +27,7 @@ use super::Codex;
 /// // Decode the `Genotype` to a `Vec<Vec<bool>>`, then get the first chromosome
 /// let bit_string: Vec<bool> = codex.decode(&genotype)[0].clone();
 /// ```
+#[derive(Clone)]
 pub struct BitCodex {
     num_chromosomes: usize,
     num_genes: usize,

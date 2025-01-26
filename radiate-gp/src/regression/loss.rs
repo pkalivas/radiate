@@ -1,5 +1,3 @@
-use crate::EvalMut;
-
 use super::DataSet;
 
 const ZERO: f32 = 0.0;

@@ -13,7 +13,7 @@ fn main() {
 
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
-    let engine = GeneticEngine::from_codex(&graph_codex)
+    let engine = GeneticEngine::from_codex(graph_codex)
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .survivor_selector(TournamentSelector::new(4))

@@ -11,7 +11,7 @@ fn main() {
     random_provider::set_seed(12345);
     let codex = SubSetCodex::new(&KNAPSACK.items);
 
-    let engine = GeneticEngine::from_codex(&codex)
+    let engine = GeneticEngine::from_codex(codex)
         .max_age(MAX_EPOCHS)
         .fitness_fn(move |genotype: Vec<&Item>| Knapsack::fitness(&KNAPSACK.capacity, &genotype))
         .build();

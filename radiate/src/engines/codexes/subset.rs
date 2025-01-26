@@ -44,3 +44,9 @@ impl<'a, T> Codex<BitChromosome, Vec<&'a T>> for SubSetCodex<'a, T> {
         result
     }
 }
+
+impl<'a, T> Clone for SubSetCodex<'a, T> {
+    fn clone(&self) -> Self {
+        Self { items: self.items }
+    }
+}

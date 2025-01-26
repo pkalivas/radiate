@@ -11,7 +11,7 @@ fn main() {
 
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
-    let engine = GeneticEngine::from_codex(&graph_codex)
+    let engine = GeneticEngine::from_codex(graph_codex)
         .minimizing()
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),

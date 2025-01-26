@@ -4,7 +4,7 @@ fn main() {
     let target = "Hello, Radiate!";
     let codex = CharCodex::new(1, target.len());
 
-    let engine = GeneticEngine::from_codex(&codex)
+    let engine = GeneticEngine::from_codex(codex)
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .fitness_fn(|geno: Vec<Vec<char>>| {
             geno.into_iter()

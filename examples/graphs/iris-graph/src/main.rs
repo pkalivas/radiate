@@ -14,7 +14,7 @@ fn main() {
 
     let regression = Regression::new(train.clone(), Loss::MSE);
 
-    let engine = GeneticEngine::from_codex(&graph_codex)
+    let engine = GeneticEngine::from_codex(graph_codex)
         .minimizing()
         .num_threads(10)
         .offspring_selector(BoltzmannSelector::new(4.0))

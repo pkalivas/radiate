@@ -9,7 +9,7 @@ const N_GENES: usize = 2;
 fn main() {
     let codex = FloatCodex::new(1, N_GENES, -RANGE, RANGE).with_bounds(-RANGE, RANGE);
 
-    let engine = GeneticEngine::from_codex(&codex)
+    let engine = GeneticEngine::from_codex(codex)
         .minimizing()
         .population_size(500)
         .alter(alters!(

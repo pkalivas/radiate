@@ -1,6 +1,7 @@
 use crate::{random_provider, Codex, Gene, Genotype, PermutationChromosome, PermutationGene};
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct PermutationCodex<A: PartialEq + Clone> {
     alleles: Arc<Vec<A>>,
 }

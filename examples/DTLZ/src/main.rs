@@ -9,7 +9,7 @@ const K: usize = VARIABLES - OBJECTIVES + 1;
 fn main() {
     let codex = FloatCodex::new(1, VARIABLES, 0_f32, 1_f32).with_bounds(0.0, 1.0);
 
-    let engine = GeneticEngine::from_codex(&codex)
+    let engine = GeneticEngine::from_codex(codex)
         .num_threads(10)
         .multi_objective(vec![Optimize::Maximize; OBJECTIVES])
         .front_size(1000, 1100)

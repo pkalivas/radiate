@@ -2,7 +2,7 @@ use super::codexes::Codex;
 use super::context::EngineContext;
 use super::genome::phenotype::Phenotype;
 use super::thread_pool::ThreadPool;
-use super::{AlterAction, MetricSet};
+use super::{AlterAction, MetricSet, Problem};
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
 use crate::engines::objectives::Score;
@@ -59,22 +59,22 @@ use std::sync::{Arc, Mutex};
 /// # Type Parameters
 /// - `C`: The type of the chromosome used in the genotype, which must implement the `Chromosome` trait.
 /// - `T`: The type of the phenotype produced by the genetic algorithm, which must be `Clone`, `Send`, and `static`.
-pub struct GeneticEngine<'a, C, T>
+pub struct GeneticEngine<C, T>
 where
-    C: Chromosome,
+    C: Chromosome + 'static,
     T: Clone + Send + 'static,
 {
-    params: GeneticEngineParams<'a, C, T>,
+    params: GeneticEngineParams<C, T>,
 }
 
-impl<'a, C, T> GeneticEngine<'a, C, T>
+impl<C, T> GeneticEngine<C, T>
 where
     C: Chromosome,
     T: Clone + Send,
 {
     /// Create a new instance of the `GeneticEngine` struct with the given parameters.
     /// - `params`: An instance of `GeneticEngineParams` that holds configuration parameters for the genetic engine.
-    pub fn new(params: GeneticEngineParams<'a, C, T>) -> Self {
+    pub fn new(params: GeneticEngineParams<C, T>) -> Self {
         GeneticEngine { params }
     }
 
@@ -82,7 +82,7 @@ where
     /// are represented in the population. Because the `Codex` is always needed, this
     /// is a convenience method that allows users to create a `GeneticEngineParams` instance
     /// which will then be 'built' resulting in a `GeneticEngine` instance.
-    pub fn from_codex(codex: &'a impl Codex<C, T>) -> GeneticEngineParams<'a, C, T> {
+    pub fn from_codex(codex: impl Codex<C, T> + 'static) -> GeneticEngineParams<C, T> {
         GeneticEngineParams::new().codex(codex)
     }
 
@@ -124,7 +124,7 @@ where
     /// It will also only evaluate individuals that have not yet been scored, which saves time
     /// by avoiding redundant evaluations.
     fn evaluate(&self, handle: &mut EngineContext<C, T>) {
-        let codex = self.codex();
+        let codex = self.problem();
         let objective = self.objective();
         let thread_pool = self.thread_pool();
         let timer = Timer::new();
@@ -232,7 +232,7 @@ where
     /// healthy and that only valid individuals are allowed to reproduce or survive to the next generation.
     fn filter(&self, context: &mut EngineContext<C, T>) {
         let max_age = self.max_age();
-        let codex = self.codex();
+        let codex = self.problem();
 
         let generation = context.index;
         let population = &mut context.population;
@@ -278,7 +278,7 @@ where
     /// and calculating various metrics such as the age of individuals, the score of individuals, and the
     /// number of unique scores in the population. This method is called at the end of each generation.
     fn audit(&self, output: &mut EngineContext<C, T>) {
-        let codex = self.codex();
+        let codex = self.problem();
         let optimize = self.objective();
 
         if !output.population.is_sorted {
@@ -385,12 +385,12 @@ where
         &self.params.alterers
     }
 
-    fn codex(&self) -> &'a dyn Codex<C, T> {
-        *Arc::clone(self.params.codex.as_ref().unwrap())
-    }
-
     fn fitness_fn(&self) -> Arc<dyn Fn(T) -> Score + Send + Sync> {
         Arc::clone(self.params.fitness_fn.as_ref().unwrap())
+    }
+
+    fn problem(&self) -> Arc<Box<dyn Problem<C, T>>> {
+        Arc::clone(self.params.problem.as_ref().unwrap())
     }
 
     fn population(&self) -> &Population<C> {
@@ -422,7 +422,7 @@ where
 
         EngineContext {
             population: population.clone(),
-            best: self.codex().decode(population[0].genotype()),
+            best: self.problem().decode(population[0].genotype()),
             index: 0,
             timer: Timer::new(),
             metrics: MetricSet::new(),

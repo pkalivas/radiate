@@ -13,7 +13,7 @@ fn main() {
 
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
-    let engine = GeneticEngine::from_codex(&graph_codex)
+    let engine = GeneticEngine::from_codex(graph_codex)
         .minimizing()
         .num_threads(10)
         .alter(alters!(
