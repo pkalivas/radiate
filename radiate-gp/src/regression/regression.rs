@@ -1,4 +1,4 @@
-use crate::{Eval, EvalMut, Graph, GraphEvaluator, Op, Tree, TypedEval};
+use crate::{Eval, EvalMut, Graph, GraphEvaluator, Op, Tree};
 
 use super::{DataSet, Loss};
 
@@ -23,7 +23,7 @@ impl Regression {
     }
 }
 
-impl TypedEval<Graph<Op<f32>>, f32> for Regression {
+impl Eval<Graph<Op<f32>>, f32> for Regression {
     fn eval(&self, graph: &Graph<Op<f32>>) -> f32 {
         let mut evaluator = GraphEvaluator::new(graph);
 
@@ -32,7 +32,7 @@ impl TypedEval<Graph<Op<f32>>, f32> for Regression {
     }
 }
 
-impl TypedEval<Tree<Op<f32>>, f32> for Regression {
+impl Eval<Tree<Op<f32>>, f32> for Regression {
     fn eval(&self, tree: &Tree<Op<f32>>) -> f32 {
         self.loss_function
             .calculate(&self.data_set, &mut |input| vec![tree.eval(input)])

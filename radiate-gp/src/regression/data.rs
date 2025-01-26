@@ -1,9 +1,5 @@
 use radiate::random_provider;
 
-use crate::{Eval, EvalMut, IntoEval};
-
-use super::Loss;
-
 #[derive(Debug, Clone, Default)]
 pub struct Row {
     input: Vec<f32>,
@@ -48,14 +44,6 @@ impl DataSet {
 
     pub fn len(&self) -> usize {
         self.rows.len()
-    }
-
-    pub fn loss<T, E>(&self, evaluator: T, loss: Loss) -> f32
-    where
-        T: Into<dyn Eval<Input = [f32], Output = Vec<f32>>>,
-    {
-        let mut eval: E = evaluator.into();
-        loss.calculate(self, &mut |input| eval.eval_mut(input))
     }
 
     pub fn shuffle(mut self) -> Self {

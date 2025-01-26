@@ -57,14 +57,11 @@ where
 }
 
 /// Implements the `Reduce` trait for `GraphReducer`.
-impl<'a, C, T> EvalMut for GraphEvaluator<'a, C, T>
+impl<'a, C, T> EvalMut<[T], Vec<T>> for GraphEvaluator<'a, C, T>
 where
-    C: NodeCell + Eval<Input = [T], Output = T>,
+    C: NodeCell + Eval<[T], T>,
     T: Clone + Default,
 {
-    type Input = [T];
-    type Output = Vec<T>;
-
     /// Evaluates the `Graph` with the given input. Returns the output of the `Graph`.
     /// The `reduce` method will cache the order of nodes in the `Graph` on the first iteration.
     /// On subsequent iterations it will use the cached order to evaluate the `Graph` in the correct order.
@@ -75,7 +72,7 @@ where
     ///  # Returns
     /// * A `Vec` of `T` which is the output of the `Graph`.
     #[inline]
-    fn eval_mut(&mut self, input: &Self::Input) -> Self::Output {
+    fn eval_mut(&mut self, input: &[T]) -> Vec<T> {
         self.try_init_eval_order();
 
         let mut output = Vec::with_capacity(self.output_size);

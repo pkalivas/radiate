@@ -40,45 +40,39 @@
 /// ```text
 /// f(x) = (2 * 3) + (2 + x)
 /// ```
-pub trait Eval {
-    type Input: ?Sized;
-    type Output;
-
-    fn eval(&self, input: &Self::Input) -> Self::Output;
-}
-
-pub trait EvalMut {
-    type Input: ?Sized;
-    type Output;
-
-    fn eval_mut(&mut self, input: &Self::Input) -> Self::Output;
-}
-
-pub trait IntoEval<T: EvalMut> {
-    fn into_eval(self) -> T;
-}
-
-pub trait TypedEval<I, O> {
+pub trait Eval<I: ?Sized, O> {
     fn eval(&self, input: &I) -> O;
 }
 
-impl<I, O> Eval for dyn TypedEval<I, O> {
-    type Input = I;
-    type Output = O;
-
-    fn eval(&self, input: &Self::Input) -> Self::Output {
-        self.eval(input)
-    }
+pub trait EvalMut<I: ?Sized, O> {
+    fn eval_mut(&mut self, input: &I) -> O;
 }
 
-impl<E> EvalMut for E
-where
-    E: Eval,
-{
-    type Input = E::Input;
-    type Output = E::Output;
+// pub trait TypedEval<I, O> {
+//     fn eval(&self, input: &I) -> O;
+// }
 
-    fn eval_mut(&mut self, input: &Self::Input) -> Self::Output {
-        self.eval(input)
-    }
-}
+// impl<I, O> Eval for dyn TypedEval<I, O> {
+//     type Input = I;
+//     type Output = O;
+
+//     fn eval(&self, input: &Self::Input) -> Self::Output {
+//         self.eval(input)
+//     }
+// }
+
+// impl<E> EvalMut for E
+// where
+//     E: Eval,
+// {
+//     type Input = E::Input;
+//     type Output = E::Output;
+
+//     fn eval_mut(&mut self, input: &Self::Input) -> Self::Output {
+//         self.eval(input)
+//     }
+// }
+
+// pub trait Reduce<I: ?Sized, O> {
+//     fn reduce(&mut self, input: &I) -> O;
+// }

@@ -10,7 +10,6 @@ fn main() {
     random_provider::set_seed(1000);
 
     let (train, test) = load_iris_dataset().shuffle().standardize().split(0.75);
-    let train_copy = train.clone();
     let graph_codex = GraphCodex::classification(4, 4);
 
     let regression = Regression::new(train.clone(), Loss::MSE);
@@ -27,7 +26,7 @@ fn main() {
                 NodeMutate::Vertex(0.03, false),
             ]),
         ))
-        .fitness_fn(move |graph: Graph<Op<f32>>| train_copy.loss(graph, Loss::MSE))
+        .fitness_fn(move |graph: Graph<Op<f32>>| regression.eval(&graph))
         .build();
 
     let result = engine.run(|ctx| {

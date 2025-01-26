@@ -180,11 +180,8 @@ impl<C: NodeCell + Clone + PartialEq> Valid for GraphNode<C> {
     }
 }
 
-impl<C: NodeCell + Eval> Eval for GraphNode<C> {
-    type Input = C::Input;
-    type Output = C::Output;
-
-    fn eval(&self, inputs: &Self::Input) -> Self::Output {
+impl<T, C: NodeCell + Eval<[T], T>> Eval<[T], T> for GraphNode<C> {
+    fn eval(&self, inputs: &[T]) -> T {
         self.value.eval(inputs)
     }
 }

@@ -5,12 +5,9 @@ use super::Tree;
 /// Implements the `Reduce` trait for `Tree<Op<T>>`. All this really does is
 /// call the `reduce` method on the root node of the `Tree`. The real work is
 /// done in the `TreeNode` implementation below.
-impl<T: Clone> Eval for Tree<Op<T>> {
-    type Input = Vec<T>;
-    type Output = T;
-
+impl<T: Clone> Eval<[T], T> for Tree<Op<T>> {
     #[inline]
-    fn eval(&self, input: &Self::Input) -> Self::Output {
+    fn eval(&self, input: &[T]) -> T {
         self.root()
             .map(|root| root.eval(input))
             .unwrap_or_else(|| panic!("Tree has no root node."))
@@ -23,13 +20,10 @@ impl<T: Clone> Eval for Tree<Op<T>> {
 ///
 /// Because a `Tree` has only a single root node, this can only be used to return a single value.
 /// But, due to the structure and functionality of the `Op<T>`, we can have a multitude of `Inputs`
-impl<T: Clone> Eval for TreeNode<Op<T>> {
-    type Input = Vec<T>;
-    type Output = T;
-
+impl<T: Clone> Eval<[T], T> for TreeNode<Op<T>> {
     #[inline]
-    fn eval(&self, input: &Self::Input) -> Self::Output {
-        fn eval<T: Clone>(node: &TreeNode<Op<T>>, curr_input: &Vec<T>) -> T {
+    fn eval(&self, input: &[T]) -> T {
+        fn eval<T: Clone>(node: &TreeNode<Op<T>>, curr_input: &[T]) -> T {
             if node.is_leaf() {
                 node.value().eval(curr_input)
             } else {

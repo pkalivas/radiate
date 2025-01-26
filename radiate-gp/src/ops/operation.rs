@@ -158,14 +158,11 @@ impl<T> Op<T> {
 unsafe impl Send for Op<f32> {}
 unsafe impl Sync for Op<f32> {}
 
-impl<T> Eval for Op<T>
+impl<T> Eval<[T], T> for Op<T>
 where
     T: Clone,
 {
-    type Input = [T];
-    type Output = T;
-
-    fn eval(&self, inputs: &Self::Input) -> Self::Output {
+    fn eval(&self, inputs: &[T]) -> T {
         match self {
             Op::Fn(_, _, op) => op(inputs),
             Op::Var(_, index) => inputs[*index].clone(),
