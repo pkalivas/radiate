@@ -151,8 +151,8 @@ impl GraphBuilder<Op<f32>> {
         self.with_values(NodeType::Output, vec![output]);
 
         let input = self.input(input_size);
-        let aggregate = self.vertex(input_size);
-        let link = self.vertex(input_size);
+        let aggregate = self.aggregates(input_size);
+        let link = self.aggregates(input_size);
         let output = self.output(output_size);
 
         let graph = GraphAggregate::new()
@@ -174,7 +174,9 @@ impl GraphBuilder<Op<f32>> {
         self.with_values(NodeType::Input, (0..input_size).map(Op::var).collect());
         self.with_values(NodeType::Output, vec![output]);
 
-        let input = self.input(input_size);
+        let input = (0..input_size)
+            .map(|i| GraphNode::new(i, NodeType::Input, Op::var(i)))
+            .collect();
         let output = self.output(output_size);
         let weights = self.edge(input_size * output_size);
 
@@ -372,6 +374,10 @@ where
             let new_nodes = nodes
                 .iter()
                 .map(|node| {
+                    if node.node_type() == NodeType::Input || node.node_type() == NodeType::Output {
+                        return node.clone();
+                    }
+
                     let new_node = store
                         .read()
                         .unwrap()

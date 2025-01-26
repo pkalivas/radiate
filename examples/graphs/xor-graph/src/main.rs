@@ -5,7 +5,7 @@ const MAX_INDEX: i32 = 500;
 const MIN_SCORE: f32 = 0.01;
 
 fn main() {
-    // random_provider::set_seed(501);
+    random_provider::set_seed(501);
 
     let graph_codex = GraphBuilder::default().weighted_acyclic(2, 1, Op::sigmoid());
 
@@ -18,7 +18,7 @@ fn main() {
             OperationMutator::new(0.05, 0.05),
             GraphMutator::new(vec![
                 NodeMutate::Edge(0.03, false),
-                NodeMutate::Vertex(0.1, false),
+                NodeMutate::Vertex(0.3, false),
             ]),
         ))
         .fitness_fn(move |genotype: Graph<Op<f32>>| regression.eval(&genotype))

@@ -4,7 +4,7 @@ use radiate::{random_provider, Chromosome};
 use radiate::{Alter, AlterAction, EngineCompoment, Mutate};
 
 use crate::ops::operation::Op;
-use crate::{Factory, GraphChromosome, NodeCell};
+use crate::{Factory, GraphChromosome, NodeCell, NodeType};
 
 use radiate::engines::genome::genes::gene::Gene;
 
@@ -98,6 +98,12 @@ where
                     );
                 }
                 _ => {
+                    if current_node.node_type() == NodeType::Input
+                        || current_node.node_type() == NodeType::Output
+                    {
+                        continue;
+                    }
+
                     let new_op = chromosome
                         .store()
                         .read()
