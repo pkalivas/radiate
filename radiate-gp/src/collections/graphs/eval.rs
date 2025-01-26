@@ -91,3 +91,45 @@ where
         output
     }
 }
+
+impl<'a, C, T> Eval<[T], Vec<T>> for &'a [GraphNode<C>]
+where
+    C: NodeCell + Eval<[T], T>,
+    T: Clone + Default,
+{
+    /// Evaluates the `Graph` with the given input. Returns the output of the `Graph`.
+    ///
+    /// # Arguments
+    /// * `input` - A `Vec` of `T` to evaluate the `Graph` with.
+    ///
+    ///  # Returns
+    /// * A `Vec` of `T` which is the output of the `Graph`.
+    #[inline]
+    fn eval(&self, input: &[T]) -> Vec<T> {
+        let mut evaluator = GraphEvaluator::new(self);
+        evaluator.eval_mut(input)
+    }
+}
+
+impl<'a, C, T> Eval<Vec<Vec<T>>, Vec<T>> for &'a [GraphNode<C>]
+where
+    C: NodeCell + Eval<[T], T>,
+    T: Clone + Default,
+{
+    /// Evaluates the `Graph` with the given input. Returns the output of the `Graph`.
+    ///
+    /// # Arguments
+    /// * `input` - A `Vec` of `Vec` of `T` to evaluate the `Graph` with.
+    ///
+    ///  # Returns
+    /// * A `Vec` of `T` which is the output of the `Graph`.
+    #[inline]
+    fn eval(&self, input: &Vec<Vec<T>>) -> Vec<T> {
+        let mut output = Vec::with_capacity(self.len());
+        for inputs in input.iter() {
+            output.extend(self.eval(inputs.as_slice()));
+        }
+
+        output
+    }
+}

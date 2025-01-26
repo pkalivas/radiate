@@ -8,16 +8,6 @@ pub trait Problem<C: Chromosome, T>: Send + Sync {
     fn eval(&self, individual: &Genotype<C>) -> Score;
 }
 
-impl<C: Chromosome, T> Codex<C, T> for dyn Problem<C, T> {
-    fn encode(&self) -> Genotype<C> {
-        Problem::encode(self)
-    }
-
-    fn decode(&self, genotype: &Genotype<C>) -> T {
-        Problem::decode(self, genotype)
-    }
-}
-
 pub struct DefaultProblem<C, T>
 where
     C: Chromosome,

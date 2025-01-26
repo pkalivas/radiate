@@ -1,6 +1,4 @@
 use crate::collections::{GraphNode, NodeType};
-use crate::ops::operation::Op;
-use crate::ops::{self};
 use crate::{Factory, NodeCell};
 
 use radiate::random_provider;
@@ -23,20 +21,6 @@ impl<C: NodeCell> CellStore<C> {
 
     pub fn get_values(&self, node_type: NodeType) -> Option<&Vec<C>> {
         self.values.get(&node_type)
-    }
-}
-
-impl CellStore<Op<f32>> {
-    pub fn regressor(input_size: usize) -> CellStore<Op<f32>> {
-        let inputs = (0..input_size).map(Op::var).collect::<Vec<Op<f32>>>();
-        let mut store = CellStore::new();
-
-        store.add_values(NodeType::Input, inputs);
-        store.add_values(NodeType::Vertex, ops::get_all_operations());
-        store.add_values(NodeType::Edge, vec![Op::weight(), Op::identity()]);
-        store.add_values(NodeType::Output, vec![Op::linear()]);
-
-        store
     }
 }
 

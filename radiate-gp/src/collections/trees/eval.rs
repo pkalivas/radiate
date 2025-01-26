@@ -1,4 +1,4 @@
-use crate::{Eval, Op, TreeNode};
+use crate::{Eval, NodeCell, Op, TreeNode};
 
 use super::Tree;
 
@@ -20,10 +20,18 @@ impl<T: Clone> Eval<[T], T> for Tree<Op<T>> {
 ///
 /// Because a `Tree` has only a single root node, this can only be used to return a single value.
 /// But, due to the structure and functionality of the `Op<T>`, we can have a multitude of `Inputs`
-impl<T: Clone> Eval<[T], T> for TreeNode<Op<T>> {
+impl<C, T> Eval<[T], T> for TreeNode<C>
+where
+    C: NodeCell + Eval<[T], T>,
+    T: Clone,
+{
     #[inline]
     fn eval(&self, input: &[T]) -> T {
-        fn eval<T: Clone>(node: &TreeNode<Op<T>>, curr_input: &[T]) -> T {
+        fn eval<C, T>(node: &TreeNode<C>, curr_input: &[T]) -> T
+        where
+            C: NodeCell + Eval<[T], T>,
+            T: Clone,
+        {
             if node.is_leaf() {
                 node.value().eval(curr_input)
             } else {

@@ -113,9 +113,9 @@ impl<C: NodeCell> GraphNode<C> {
     }
 }
 
-impl<C: NodeCell> Gene for GraphNode<C>
+impl<C> Gene for GraphNode<C>
 where
-    C: Clone + PartialEq + Default,
+    C: Clone + PartialEq + Default + NodeCell,
 {
     type Allele = C;
 

@@ -82,8 +82,6 @@ impl<C: NodeCell + Clone + Default> GraphBuilder<C> {
     }
 }
 
-impl<C: NodeCell + Clone + Default> GraphBuilder<C> {}
-
 /// For `Graph<T>` where `T` is a `Float` type we can use the `GraphBuilder` to create
 /// a variety of different graph architectures. Such as LSTM, GRU, Attention Units, etc
 /// but for those we need to provide the `GraphBuilder` with a way to generate the nodes
@@ -125,9 +123,7 @@ impl GraphBuilder<Op<f32>> {
 
         ops::get_activation_operations()
     }
-}
 
-impl GraphBuilder<Op<f32>> {
     pub fn acyclic(
         mut self,
         input_size: usize,
@@ -390,7 +386,7 @@ where
                 .collect::<Vec<GraphNode<C>>>();
 
             let chromosome = GraphChromosome::new(new_nodes, store);
-            return Genotype::from_chromosomes(vec![chromosome]);
+            return Genotype::new(vec![chromosome]);
         }
 
         panic!("GraphBuilder has no nodes to encode");
@@ -411,8 +407,16 @@ where
 
 impl Default for GraphBuilder<Op<f32>> {
     fn default() -> Self {
+        let inputs = (0..1).map(Op::var).collect::<Vec<Op<f32>>>();
+        let mut store = CellStore::new();
+
+        store.add_values(NodeType::Input, inputs);
+        store.add_values(NodeType::Vertex, ops::get_all_operations());
+        store.add_values(NodeType::Edge, vec![Op::weight(), Op::identity()]);
+        store.add_values(NodeType::Output, vec![Op::linear()]);
+
         GraphBuilder {
-            store: Arc::new(RwLock::new(CellStore::regressor(1))),
+            store: Arc::new(RwLock::new(store)),
             node_cache: None,
         }
     }

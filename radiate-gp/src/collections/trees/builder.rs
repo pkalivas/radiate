@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::collections::{Tree, TreeNode};
 use crate::{Builder, NodeCell};
 use radiate::random_provider;
@@ -6,6 +8,7 @@ pub struct TreeBuilder<C: NodeCell> {
     depth: usize,
     gates: Vec<C>,
     leafs: Vec<C>,
+    constraint: Option<Arc<Box<dyn Fn(&TreeNode<C>) -> bool>>>,
 }
 
 impl<C: NodeCell> TreeBuilder<C> {
@@ -14,6 +17,7 @@ impl<C: NodeCell> TreeBuilder<C> {
             depth,
             gates: Vec::new(),
             leafs: Vec::new(),
+            constraint: None,
         }
     }
 
@@ -29,6 +33,14 @@ impl<C: NodeCell> TreeBuilder<C> {
 
     pub fn with_leafs(mut self, leafs: Vec<C>) -> Self {
         self.leafs = leafs;
+        self
+    }
+
+    pub fn with_constraint<F>(mut self, constraint: F) -> Self
+    where
+        F: Fn(&TreeNode<C>) -> bool + 'static,
+    {
+        self.constraint = Some(Arc::new(Box::new(constraint)));
         self
     }
 
@@ -68,12 +80,6 @@ impl<C: NodeCell + Default> Builder for TreeBuilder<C> {
     fn build(&self) -> Self::Output {
         let root = self.grow_tree(self.depth);
         Tree::new(root)
-    }
-}
-
-impl<C: NodeCell + Default> Default for TreeBuilder<C> {
-    fn default() -> Self {
-        TreeBuilder::new(1)
     }
 }
 
