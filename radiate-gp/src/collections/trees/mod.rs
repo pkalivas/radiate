@@ -2,9 +2,9 @@ mod builder;
 mod chromosome;
 mod codex;
 mod crossover;
+mod eval;
 mod iter;
 mod node;
-mod reduce;
 mod tree;
 
 pub use builder::TreeBuilder;

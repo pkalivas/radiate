@@ -23,7 +23,7 @@
 ///     );
 ///
 /// // And the result of evaluating this tree with an input of `1` would be:
-/// let result = root.reduce(&vec![1_f32]);
+/// let result = root.eval_mut(&vec![1_f32]);
 /// assert_eq!(result, 9.0);
 /// ```
 /// This creates a `Tree` that looks like:
@@ -40,9 +40,45 @@
 /// ```text
 /// f(x) = (2 * 3) + (2 + x)
 /// ```
-pub trait Reduce {
-    type Input;
+pub trait Eval {
+    type Input: ?Sized;
     type Output;
 
-    fn reduce(&mut self, input: &Self::Input) -> Self::Output;
+    fn eval(&self, input: &Self::Input) -> Self::Output;
+}
+
+pub trait EvalMut {
+    type Input: ?Sized;
+    type Output;
+
+    fn eval_mut(&mut self, input: &Self::Input) -> Self::Output;
+}
+
+pub trait IntoEval<T: EvalMut> {
+    fn into_eval(self) -> T;
+}
+
+pub trait TypedEval<I, O> {
+    fn eval(&self, input: &I) -> O;
+}
+
+impl<I, O> Eval for dyn TypedEval<I, O> {
+    type Input = I;
+    type Output = O;
+
+    fn eval(&self, input: &Self::Input) -> Self::Output {
+        self.eval(input)
+    }
+}
+
+impl<E> EvalMut for E
+where
+    E: Eval,
+{
+    type Input = E::Input;
+    type Output = E::Output;
+
+    fn eval_mut(&mut self, input: &Self::Input) -> Self::Output {
+        self.eval(input)
+    }
 }

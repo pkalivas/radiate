@@ -26,8 +26,8 @@ fn main() {
             ]),
         ))
         .fitness_fn(move |genotype: Graph<Op<f32>>| {
-            let mut reducer = GraphReducer::new(&genotype);
-            regression.loss(|input| reducer.reduce(input))
+            let mut reducer = GraphEvaluator::new(&genotype);
+            regression.loss(|input| reducer.eval_mut(input))
         })
         .build();
 
@@ -40,9 +40,9 @@ fn main() {
 }
 
 fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
-    let mut reducer = GraphReducer::new(&result.best);
+    let mut reducer = GraphEvaluator::new(&result.best);
     for sample in get_dataset().iter() {
-        let output = reducer.reduce(sample.input());
+        let output = reducer.eval_mut(sample.input());
         println!(
             "{:?} -> epected: {:?}, actual: {:.3?}",
             sample.input(),

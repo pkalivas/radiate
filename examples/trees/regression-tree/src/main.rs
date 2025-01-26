@@ -18,10 +18,7 @@ fn main() {
         .minimizing()
         .num_threads(10)
         .alter(alters!(TreeCrossover::new(0.5)))
-        .fitness_fn(move |genotype: Tree<Op<f32>>| {
-            let mut reducer = Tree::new(genotype.take_root().unwrap());
-            regression.loss(|input| vec![reducer.reduce(input)])
-        })
+        .fitness_fn(move |tree: Tree<Op<f32>>| regression.eval(&tree))
         .build();
 
     let result = engine.run(|ctx| {
@@ -36,9 +33,9 @@ fn display(result: &EngineContext<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
     let mut regression_accuracy = 0.0;
     let mut total = 0.0;
 
-    let mut reducer = result.best.clone();
+    let reducer = result.best.clone();
     for sample in get_dataset().iter() {
-        let output = reducer.reduce(sample.input());
+        let output = reducer.eval(sample.input());
 
         total += sample.output()[0].abs();
         regression_accuracy += (sample.output()[0] - output).abs();

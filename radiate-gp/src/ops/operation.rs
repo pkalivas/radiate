@@ -4,7 +4,7 @@ use std::{
     sync::Arc,
 };
 
-use crate::NodeCell;
+use crate::{Eval, NodeCell};
 
 /// Arity is a way to describe how many inputs an operation expects.
 /// It can be zero, a specific number, or any number.
@@ -89,31 +89,6 @@ impl<T> Op<T> {
         }
     }
 
-    pub fn arity(&self) -> Arity {
-        match self {
-            Op::Fn(_, arity, _) => *arity,
-            Op::Var(_, _) => Arity::Zero,
-            Op::Const(_, _) => Arity::Zero,
-            Op::MutableConst { arity, .. } => *arity,
-        }
-    }
-
-    pub fn apply(&self, inputs: &[T]) -> T
-    where
-        T: Clone,
-    {
-        match self {
-            Op::Fn(_, _, op) => op(inputs),
-            Op::Var(_, index) => inputs[*index].clone(),
-            Op::Const(_, value) => value.clone(),
-            Op::MutableConst {
-                value, operation, ..
-            } => operation(inputs, value),
-        }
-    }
-}
-
-impl<T> Op<T> {
     pub fn value(value: T) -> Self
     where
         T: Clone + Display,
@@ -183,9 +158,33 @@ impl<T> Op<T> {
 unsafe impl Send for Op<f32> {}
 unsafe impl Sync for Op<f32> {}
 
+impl<T> Eval for Op<T>
+where
+    T: Clone,
+{
+    type Input = [T];
+    type Output = T;
+
+    fn eval(&self, inputs: &Self::Input) -> Self::Output {
+        match self {
+            Op::Fn(_, _, op) => op(inputs),
+            Op::Var(_, index) => inputs[*index].clone(),
+            Op::Const(_, value) => value.clone(),
+            Op::MutableConst {
+                value, operation, ..
+            } => operation(inputs, value),
+        }
+    }
+}
+
 impl<T: Clone> NodeCell for Op<T> {
     fn arity(&self) -> Arity {
-        self.arity()
+        match self {
+            Op::Fn(_, arity, _) => *arity,
+            Op::Var(_, _) => Arity::Zero,
+            Op::Const(_, _) => Arity::Zero,
+            Op::MutableConst { arity, .. } => *arity,
+        }
     }
 
     fn new_instance(&self) -> Op<T> {
@@ -288,7 +287,7 @@ mod test {
         let op = Op::add();
         assert_eq!(op.name(), "add");
         assert_eq!(op.arity(), Arity::Exact(2));
-        assert_eq!(op.apply(&[1_f32, 2_f32]), 3_f32);
+        assert_eq!(op.eval(&vec![1_f32, 2_f32]), 3_f32);
         assert_eq!(op.new_instance(), op);
     }
 

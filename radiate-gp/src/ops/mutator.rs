@@ -4,7 +4,7 @@ use radiate::{random_provider, Chromosome};
 use radiate::{Alter, AlterAction, EngineCompoment, Mutate};
 
 use crate::ops::operation::Op;
-use crate::{Factory, GraphChromosome};
+use crate::{Factory, GraphChromosome, NodeCell};
 
 use radiate::engines::genome::genes::gene::Gene;
 

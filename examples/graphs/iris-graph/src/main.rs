@@ -10,7 +10,7 @@ fn main() {
     random_provider::set_seed(1000);
 
     let (train, test) = load_iris_dataset().shuffle().standardize().split(0.75);
-
+    let train_copy = train.clone();
     let graph_codex = GraphCodex::classification(4, 4);
 
     let regression = Regression::new(train.clone(), Loss::MSE);
@@ -27,10 +27,7 @@ fn main() {
                 NodeMutate::Vertex(0.03, false),
             ]),
         ))
-        .fitness_fn(move |genotype: Graph<Op<f32>>| {
-            let mut reducer = GraphReducer::new(&genotype);
-            regression.loss(|input| reducer.reduce(input))
-        })
+        .fitness_fn(move |graph: Graph<Op<f32>>| train_copy.loss(graph, Loss::MSE))
         .build();
 
     let result = engine.run(|ctx| {
@@ -46,13 +43,13 @@ fn display(
     test: &DataSet,
     result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>,
 ) {
-    let mut reducer = GraphReducer::new(&result.best);
+    let mut reducer = GraphEvaluator::new(&result.best);
 
     let train_acc = Accuracy::new("train", &train, Loss::MSE);
     let test_acc = Accuracy::new("test", &test, Loss::MSE);
 
-    let train_acc_result = train_acc.calc(|input| reducer.reduce(input));
-    let test_acc_result = test_acc.calc(|input| reducer.reduce(input));
+    let train_acc_result = train_acc.calc(|input| reducer.eval_mut(input));
+    let test_acc_result = test_acc.calc(|input| reducer.eval_mut(input));
 
     println!("{:?}", result);
     println!("{:?}", train_acc_result);
