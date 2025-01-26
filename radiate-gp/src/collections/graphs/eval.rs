@@ -96,7 +96,10 @@ where
 mod tests {
     use radiate::random_provider;
 
-    use crate::graphs::builder::GraphBuilder;
+    use crate::{
+        graphs::{builder::GraphBuilder, CellStore},
+        Builder, Op,
+    };
 
     use super::*;
 
@@ -104,9 +107,9 @@ mod tests {
     fn test_graph_eval_simple() {
         random_provider::set_seed(2);
 
-        let builder = GraphBuilder::regression(3);
+        let builder = GraphBuilder::new(CellStore::regressor(3));
 
-        let graph = builder.lstm(3, 3, 3);
+        let graph = builder.lstm(3, 3, 3, Op::linear()).build();
 
         for node in graph.iter() {
             println!("{:?}", node);

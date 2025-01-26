@@ -7,8 +7,8 @@ const MIN_SCORE: f32 = 0.01;
 
 fn main() {
     set_seed(100);
-    let graph_codex = GraphCodex::acyclic(1, 1).with_output(Op::sigmoid());
 
+    let graph_codex = GraphBuilder::default().acyclic(1, 1, Op::sigmoid());
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
     let engine = GeneticEngine::from_codex(graph_codex)
@@ -23,10 +23,7 @@ fn main() {
                 NodeMutate::Vertex(0.05, true),
             ]),
         ))
-        .fitness_fn(move |genotype: Graph<Op<f32>>| {
-            let mut reducer = GraphEvaluator::new(&genotype);
-            regression.loss(|input| reducer.eval_mut(input))
-        })
+        .fitness_fn(move |genotype: Graph<Op<f32>>| regression.eval(&genotype))
         .build();
 
     let result = engine.run(|ctx| {

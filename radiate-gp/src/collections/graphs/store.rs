@@ -1,8 +1,7 @@
 use crate::collections::{GraphNode, NodeType};
 use crate::ops::operation::Op;
 use crate::ops::{self};
-
-use super::{Factory, NodeCell};
+use crate::{Factory, NodeCell};
 
 use radiate::random_provider;
 use std::collections::HashMap;

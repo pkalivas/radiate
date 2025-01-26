@@ -86,7 +86,7 @@ where
         GeneticEngineParams::new().codex(codex)
     }
 
-    pub fn from_problem<P>(problem: impl Problem<C, T> + 'static) -> GeneticEngineParams<C, T> {
+    pub fn from_problem(problem: impl Problem<C, T> + 'static) -> GeneticEngineParams<C, T> {
         GeneticEngineParams::new().problem(problem)
     }
 

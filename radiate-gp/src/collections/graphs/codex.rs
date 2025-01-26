@@ -1,159 +1,165 @@
-use crate::collections::graphs::aggregate::GraphAggregate;
-use crate::collections::graphs::builder::GraphBuilder;
-use crate::collections::{Graph, GraphNode, NodeType};
-use crate::graphs::chromosome::GraphChromosome;
-use crate::ops::Op;
-use crate::{Builder, CellStore, Factory, NodeCell};
-use radiate::{Chromosome, Codex, Gene, Genotype};
-use std::sync::{Arc, RwLock};
+// use crate::collections::graphs::aggregate::GraphAggregate;
+// use crate::collections::graphs::builder::GraphBuilder;
+// use crate::collections::{Graph, GraphNode, NodeType};
+// use crate::graphs::chromosome::GraphChromosome;
+// use crate::ops::Op;
+// use crate::{Builder, Factory, NodeCell};
+// use radiate::{Chromosome, Codex, Gene, Genotype};
+// use std::sync::{Arc, RwLock};
 
-pub struct GraphCodex<C: NodeCell> {
-    store: Arc<RwLock<CellStore<C>>>,
-    graph: Option<Graph<C>>,
-}
+// use super::CellStore;
 
-impl<C> GraphCodex<C>
-where
-    C: NodeCell + Clone + Default,
-{
-    pub fn new() -> Self {
-        GraphCodex {
-            store: Arc::new(RwLock::new(CellStore::new())),
-            graph: None,
-        }
-    }
+// pub struct GraphCodex<C: NodeCell> {
+//     store: Arc<RwLock<CellStore<C>>>,
+//     graph: Option<Graph<C>>,
+// }
 
-    pub fn from_graph(graph: Graph<C>, factory: &CellStore<C>) -> Self {
-        GraphCodex {
-            store: Arc::new(RwLock::new(factory.clone())),
-            graph: Some(graph),
-        }
-    }
+// impl<C> GraphCodex<C>
+// where
+//     C: NodeCell + Clone + Default,
+// {
+//     pub fn new() -> Self {
+//         GraphCodex {
+//             store: Arc::new(RwLock::new(CellStore::new())),
+//             graph: None,
+//         }
+//     }
 
-    pub fn set_graph<F>(mut self, node_fn: F) -> Self
-    where
-        F: Fn(&GraphBuilder<C>, GraphAggregate<C>) -> Graph<C>,
-    {
-        let graph = node_fn(
-            &GraphBuilder::new((*self.store.read().unwrap()).clone()),
-            GraphAggregate::new(),
-        );
+//     pub fn from_graph(graph: Graph<C>, factory: &CellStore<C>) -> Self {
+//         GraphCodex {
+//             store: Arc::new(RwLock::new(factory.clone())),
+//             graph: Some(graph),
+//         }
+//     }
 
-        self.graph = Some(graph);
-        self
-    }
+//     pub fn set_graph<F>(mut self, node_fn: F) -> Self
+//     where
+//         F: Fn(&GraphBuilder<C>, GraphAggregate<C>) -> Graph<C>,
+//     {
+//         let graph = node_fn(
+//             &GraphBuilder::new((*self.store.read().unwrap()).clone()),
+//             GraphAggregate::new(),
+//         );
 
-    pub fn with_vertices(self, vertices: Vec<C>) -> Self {
-        self.set_values(NodeType::Vertex, vertices);
-        self
-    }
+//         self.graph = Some(graph);
+//         self
+//     }
 
-    pub fn with_edges(self, edges: Vec<C>) -> Self {
-        self.set_values(NodeType::Edge, edges);
-        self
-    }
+//     pub fn with_vertices(self, vertices: Vec<C>) -> Self {
+//         self.set_values(NodeType::Vertex, vertices);
+//         self
+//     }
 
-    pub fn with_inputs(self, inputs: Vec<C>) -> Self {
-        self.set_values(NodeType::Input, inputs);
-        self
-    }
+//     pub fn with_edges(self, edges: Vec<C>) -> Self {
+//         self.set_values(NodeType::Edge, edges);
+//         self
+//     }
 
-    pub fn with_output(self, outputs: C) -> Self {
-        self.set_values(NodeType::Output, vec![outputs]);
-        self
-    }
+//     pub fn with_inputs(self, inputs: Vec<C>) -> Self {
+//         self.set_values(NodeType::Input, inputs);
+//         self
+//     }
 
-    fn set_values(&self, node_type: NodeType, values: Vec<C>) {
-        let mut factory = self.store.write().unwrap();
-        factory.add_values(node_type, values);
-    }
-}
+//     pub fn with_output(self, outputs: C) -> Self {
+//         self.set_values(NodeType::Output, vec![outputs]);
+//         self
+//     }
 
-impl GraphCodex<Op<f32>> {
-    pub fn lstm(input_size: usize, hidden_size: usize, output_size: usize) -> Self {
-        let store = CellStore::regressor(input_size);
-        let nodes =
-            GraphBuilder::<Op<f32>>::new(store.clone()).lstm(input_size, hidden_size, output_size);
-        GraphCodex::<Op<f32>>::from_graph(nodes, &store)
-    }
+//     fn set_values(&self, node_type: NodeType, values: Vec<C>) {
+//         let mut factory = self.store.write().unwrap();
+//         factory.add_values(node_type, values);
+//     }
+// }
 
-    pub fn gru(input_size: usize, output_size: usize, hidden_size: usize) -> Self {
-        let store = CellStore::regressor(input_size);
-        let nodes =
-            GraphBuilder::<Op<f32>>::new(store.clone()).gru(input_size, output_size, hidden_size);
-        GraphCodex::<Op<f32>>::from_graph(nodes, &store)
-    }
+// impl GraphCodex<Op<f32>> {
+//     pub fn lstm(input_size: usize, hidden_size: usize, output_size: usize) -> Self {
+//         let store = CellStore::regressor(input_size);
+//         let nodes = GraphBuilder::<Op<f32>>::new(store.clone())
+//             .lstm(input_size, hidden_size, output_size, Op::linear())
+//             .build();
+//         GraphCodex::<Op<f32>>::from_graph(nodes, &store)
+//     }
 
-    pub fn acyclic(input_size: usize, output_size: usize) -> Self {
-        let store = CellStore::regressor(input_size);
-        let nodes = GraphBuilder::<Op<f32>>::new(store.clone())
-            .acyclic(input_size, output_size)
-            .build();
-        GraphCodex::<Op<f32>>::from_graph(nodes, &store)
-    }
+//     pub fn gru(input_size: usize, output_size: usize, hidden_size: usize) -> Self {
+//         let store = CellStore::regressor(input_size);
+//         let nodes = GraphBuilder::<Op<f32>>::new(store.clone())
+//             .gru(input_size, output_size, hidden_size, Op::linear())
+//             .build();
+//         GraphCodex::<Op<f32>>::from_graph(nodes, &store)
+//     }
 
-    pub fn cyclic(input_size: usize, output_size: usize) -> Self {
-        let store = CellStore::regressor(input_size);
-        let nodes = GraphBuilder::<Op<f32>>::new(store.clone()).cyclic(input_size, output_size);
-        GraphCodex::<Op<f32>>::from_graph(nodes, &store)
-    }
+//     pub fn acyclic(input_size: usize, output_size: usize) -> Self {
+//         let store = CellStore::regressor(input_size);
+//         let nodes = GraphBuilder::<Op<f32>>::default()
+//             .with_store(store.clone())
+//             .acyclic(input_size, output_size, Op::linear())
+//             .build();
+//         GraphCodex::<Op<f32>>::from_graph(nodes, &store)
+//     }
 
-    pub fn weighted_acyclic(input_size: usize, output_size: usize) -> Self {
-        let store = CellStore::regressor(input_size);
-        let nodes =
-            GraphBuilder::<Op<f32>>::new(store.clone()).weighted_acyclic(input_size, output_size);
-        GraphCodex::<Op<f32>>::from_graph(nodes, &store)
-    }
+//     pub fn cyclic(input_size: usize, output_size: usize) -> Self {
+//         let store = CellStore::regressor(input_size);
+//         let nodes = GraphBuilder::<Op<f32>>::new(store.clone())
+//             .cyclic(input_size, output_size, Op::linear())
+//             .build();
+//         GraphCodex::<Op<f32>>::from_graph(nodes, &store)
+//     }
 
-    pub fn weighted_cyclic(input_size: usize, output_size: usize, memory_size: usize) -> Self {
-        let store = CellStore::regressor(input_size);
-        let nodes = GraphBuilder::<Op<f32>>::new(store.clone()).weighted_cyclic(
-            input_size,
-            output_size,
-            memory_size,
-        );
-        GraphCodex::<Op<f32>>::from_graph(nodes, &store)
-    }
-}
+//     pub fn weighted_acyclic(input_size: usize, output_size: usize) -> Self {
+//         let store = CellStore::regressor(input_size);
+//         let nodes = GraphBuilder::<Op<f32>>::new(store.clone())
+//             .weighted_acyclic(input_size, output_size, Op::linear())
+//             .build();
+//         GraphCodex::<Op<f32>>::from_graph(nodes, &store)
+//     }
 
-impl<C> Codex<GraphChromosome<C>, Graph<C>> for GraphCodex<C>
-where
-    C: NodeCell + Clone + PartialEq + Default + 'static,
-{
-    fn encode(&self) -> Genotype<GraphChromosome<C>> {
-        let store = self.store.read().unwrap();
+//     pub fn weighted_cyclic(input_size: usize, output_size: usize, memory_size: usize) -> Self {
+//         let store = CellStore::regressor(input_size);
+//         let nodes = GraphBuilder::<Op<f32>>::new(store.clone())
+//             .weighted_cyclic(input_size, output_size, memory_size, Op::linear())
+//             .build();
+//         GraphCodex::<Op<f32>>::from_graph(nodes, &store)
+//     }
+// }
 
-        if let Some(graph) = &self.graph {
-            let nodes = graph
-                .iter()
-                .map(|node| {
-                    let temp_node = store.new_instance((node.index(), node.node_type()));
+// impl<C> Codex<GraphChromosome<C>, Graph<C>> for GraphCodex<C>
+// where
+//     C: NodeCell + Clone + PartialEq + Default + 'static,
+// {
+//     fn encode(&self) -> Genotype<GraphChromosome<C>> {
+//         let store = self.store.read().unwrap();
 
-                    if temp_node.value().arity() == node.value().arity() {
-                        return node.with_allele(temp_node.allele());
-                    }
+//         if let Some(graph) = &self.graph {
+//             let nodes = graph
+//                 .iter()
+//                 .map(|node| {
+//                     let temp_node = store.new_instance((node.index(), node.node_type()));
 
-                    node.clone()
-                })
-                .collect::<Vec<GraphNode<C>>>();
+//                     if temp_node.value().arity() == node.value().arity() {
+//                         return node.with_allele(temp_node.allele());
+//                     }
 
-            return Genotype {
-                chromosomes: vec![GraphChromosome::new(nodes, Arc::clone(&self.store))],
-            };
-        }
+//                     node.clone()
+//                 })
+//                 .collect::<Vec<GraphNode<C>>>();
 
-        panic!("Graph not initialized.");
-    }
+//             return Genotype {
+//                 chromosomes: vec![GraphChromosome::new(nodes, Arc::clone(&self.store))],
+//             };
+//         }
 
-    fn decode(&self, genotype: &Genotype<GraphChromosome<C>>) -> Graph<C> {
-        Graph::new(
-            genotype
-                .iter()
-                .next()
-                .unwrap()
-                .iter()
-                .cloned()
-                .collect::<Vec<GraphNode<C>>>(),
-        )
-    }
-}
+//         panic!("Graph not initialized.");
+//     }
+
+//     fn decode(&self, genotype: &Genotype<GraphChromosome<C>>) -> Graph<C> {
+//         Graph::new(
+//             genotype
+//                 .iter()
+//                 .next()
+//                 .unwrap()
+//                 .iter()
+//                 .cloned()
+//                 .collect::<Vec<GraphNode<C>>>(),
+//         )
+//     }
+// }

@@ -7,9 +7,9 @@ const MAX_SECONDS: f64 = 5.0;
 fn main() {
     random_provider::set_seed(1000);
 
-    let graph_codex = GraphCodex::acyclic(1, 1)
-        .with_vertices(vec![Op::add(), Op::sub(), Op::mul()])
-        .with_output(Op::linear());
+    let graph_codex = GraphBuilder::default()
+        .set_vertecies(vec![Op::add(), Op::sub(), Op::mul()])
+        .acyclic(1, 1, Op::linear());
 
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
@@ -24,10 +24,7 @@ fn main() {
                 NodeMutate::Vertex(0.1, false),
             ]),
         ))
-        .fitness_fn(move |genotype: Graph<Op<f32>>| {
-            let mut reducer = GraphEvaluator::new(&genotype);
-            regression.loss(|input| reducer.eval_mut(input))
-        })
+        .fitness_fn(move |genotype: Graph<Op<f32>>| regression.eval(&genotype))
         .build();
 
     let result = engine.run(|ctx| {

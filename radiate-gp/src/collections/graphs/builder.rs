@@ -3,11 +3,11 @@ use std::sync::{Arc, RwLock};
 use crate::collections::{Builder, Graph, GraphNode, NodeType};
 
 use crate::ops::{Arity, Op};
-use crate::{ops, CellStore, Factory, NodeCell};
-use radiate::{random_provider, Chromosome, Codex, Genotype};
+use crate::{ops, Factory, NodeCell};
+use radiate::{random_provider, Chromosome, Codex, Gene, Genotype};
 
 use super::aggregate::GraphAggregate;
-use super::GraphChromosome;
+use super::{CellStore, GraphChromosome};
 
 /// The `GraphBuilder` is a builder pattern that allows us to create a variety of different
 /// graph architectures.
@@ -26,12 +26,39 @@ impl<C: NodeCell> GraphBuilder<C> {
             node_cache: None,
         }
     }
+
+    pub fn with_store(&mut self, store: CellStore<C>) -> Self {
+        GraphBuilder {
+            store: Arc::new(RwLock::new(store)),
+            node_cache: None,
+        }
+    }
 }
 
 /// Builder methods for creating different types of nodes in the graph.
 /// These methods will create a collection of nodes of the specified type and size,
 /// then layer we can use these nodes to build various graph architectures.
 impl<C: NodeCell + Clone + Default> GraphBuilder<C> {
+    pub fn set_vertecies(self, vertecies: Vec<C>) -> Self {
+        self.store
+            .write()
+            .unwrap()
+            .add_values(NodeType::Vertex, vertecies);
+        self
+    }
+
+    pub fn set_edges(self, edges: Vec<C>) -> Self {
+        self.store
+            .write()
+            .unwrap()
+            .add_values(NodeType::Edge, edges);
+        self
+    }
+
+    pub fn with_values(&self, node_type: NodeType, values: Vec<C>) {
+        self.store.write().unwrap().add_values(node_type, values);
+    }
+
     pub fn input(&self, size: usize) -> Vec<GraphNode<C>> {
         self.new_nodes(NodeType::Input, size)
     }
@@ -55,29 +82,7 @@ impl<C: NodeCell + Clone + Default> GraphBuilder<C> {
     }
 }
 
-impl<C: NodeCell + Clone + Default> GraphBuilder<C> {
-    pub fn acyclic(mut self, input_size: usize, output_size: usize) -> GraphBuilder<C> {
-        let graph = GraphAggregate::new()
-            .all_to_all(&self.input(input_size), &self.output(output_size))
-            .build();
-
-        self.node_cache = Some(graph.into_iter().collect());
-        self
-    }
-
-    pub fn cyclic(&self, input_size: usize, output_size: usize) -> Graph<C> {
-        let input = self.input(input_size);
-        let aggregate = self.vertex(input_size);
-        let link = self.vertex(input_size);
-        let output = self.output(output_size);
-
-        GraphAggregate::new()
-            .one_to_one(&input, &aggregate)
-            .one_to_one_self(&aggregate, &link)
-            .all_to_all(&aggregate, &output)
-            .build()
-    }
-}
+impl<C: NodeCell + Clone + Default> GraphBuilder<C> {}
 
 /// For `Graph<T>` where `T` is a `Float` type we can use the `GraphBuilder` to create
 /// a variety of different graph architectures. Such as LSTM, GRU, Attention Units, etc
@@ -123,76 +128,106 @@ impl GraphBuilder<Op<f32>> {
 }
 
 impl GraphBuilder<Op<f32>> {
-    pub fn regression(input_size: usize) -> Self {
-        let store = CellStore::<Op<f32>>::regressor(input_size);
-        GraphBuilder::new(store)
+    pub fn acyclic(
+        mut self,
+        input_size: usize,
+        output_size: usize,
+        output: Op<f32>,
+    ) -> GraphBuilder<Op<f32>> {
+        self.with_values(NodeType::Input, (0..input_size).map(Op::var).collect());
+        self.with_values(NodeType::Output, vec![output]);
+
+        let graph = GraphAggregate::new()
+            .all_to_all(&self.input(input_size), &self.output(output_size))
+            .build();
+
+        self.node_cache = Some(graph.into_iter().collect());
+        self
     }
 
-    pub fn weighted_acyclic(&self, input_size: usize, output_size: usize) -> Graph<Op<f32>> {
+    pub fn cyclic(
+        mut self,
+        input_size: usize,
+        output_size: usize,
+        output: Op<f32>,
+    ) -> GraphBuilder<Op<f32>> {
+        self.with_values(NodeType::Input, (0..input_size).map(Op::var).collect());
+        self.with_values(NodeType::Output, vec![output]);
+
+        let input = self.input(input_size);
+        let aggregate = self.vertex(input_size);
+        let link = self.vertex(input_size);
+        let output = self.output(output_size);
+
+        let graph = GraphAggregate::new()
+            .one_to_one(&input, &aggregate)
+            .one_to_one_self(&aggregate, &link)
+            .all_to_all(&aggregate, &output)
+            .build();
+
+        self.node_cache = Some(graph.into_iter().collect());
+        self
+    }
+
+    pub fn weighted_acyclic(
+        mut self,
+        input_size: usize,
+        output_size: usize,
+        output: Op<f32>,
+    ) -> GraphBuilder<Op<f32>> {
+        self.with_values(NodeType::Input, (0..input_size).map(Op::var).collect());
+        self.with_values(NodeType::Output, vec![output]);
+
         let input = self.input(input_size);
         let output = self.output(output_size);
         let weights = self.edge(input_size * output_size);
 
-        GraphAggregate::new()
+        let graph = GraphAggregate::new()
             .one_to_many(&input, &weights)
             .many_to_one(&weights, &output)
-            .build()
+            .build();
+
+        self.node_cache = Some(graph.into_iter().collect());
+        self
     }
 
     pub fn weighted_cyclic(
-        &self,
+        mut self,
         input_size: usize,
         output_size: usize,
         memory_size: usize,
-    ) -> Graph<Op<f32>> {
+        output: Op<f32>,
+    ) -> GraphBuilder<Op<f32>> {
+        self.with_values(NodeType::Input, (0..input_size).map(Op::var).collect());
+        self.with_values(NodeType::Output, vec![output]);
+
         let input = self.input(input_size);
         let output = self.output(output_size);
         let weights = self.edge(input_size * memory_size);
         let aggregate = self.aggregates(memory_size);
         let aggregate_weights = self.edge(memory_size);
 
-        GraphAggregate::new()
+        let graph = GraphAggregate::new()
             .one_to_many(&input, &weights)
             .many_to_one(&weights, &aggregate)
             .one_to_one_self(&aggregate, &aggregate_weights)
             .all_to_all(&aggregate, &output)
-            .build()
-    }
+            .build();
 
-    pub fn attention_unit(
-        &self,
-        input_size: usize,
-        output_size: usize,
-        num_heads: usize,
-    ) -> Graph<Op<f32>> {
-        let input = self.input(input_size);
-        let output = self.output(output_size);
-
-        let query_weights = self.edge(input_size * num_heads);
-        let key_weights = self.edge(input_size * num_heads);
-        let value_weights = self.edge(input_size * num_heads);
-
-        let attention_scores = self.aggregates(num_heads);
-        let attention_aggreg = self.aggregates(num_heads);
-
-        GraphAggregate::new()
-            .one_to_many(&input, &query_weights)
-            .one_to_many(&input, &key_weights)
-            .one_to_many(&input, &value_weights)
-            .many_to_one(&query_weights, &attention_scores)
-            .many_to_one(&key_weights, &attention_scores)
-            .one_to_many(&attention_scores, &attention_aggreg)
-            .many_to_one(&value_weights, &attention_aggreg)
-            .many_to_one(&attention_aggreg, &output)
-            .build()
+        self.node_cache = Some(graph.into_iter().collect());
+        self
     }
 
     pub fn lstm(
-        &self,
+        mut self,
         input_size: usize,
         output_size: usize,
         memory_size: usize,
-    ) -> Graph<Op<f32>> {
+        output: Op<f32>,
+    ) -> GraphBuilder<Op<f32>> {
+        self.with_values(NodeType::Input, (0..input_size).map(Op::var).collect());
+        self.with_values(NodeType::Output, vec![output]);
+
         let input = self.input(input_size);
         let output = self.output(output_size);
 
@@ -221,7 +256,7 @@ impl GraphBuilder<Op<f32>> {
         let output_tahn_mul_gate = self.aggregates(memory_size);
         let tanh_gate = self.aggregates(memory_size);
 
-        GraphAggregate::new()
+        let graph = GraphAggregate::new()
             .one_to_many(&input, &input_to_forget_weights)
             .one_to_many(&input, &input_to_input_weights)
             .one_to_many(&input, &input_to_candidate_weights)
@@ -249,10 +284,21 @@ impl GraphBuilder<Op<f32>> {
             .one_to_one(&output_gate, &output_tahn_mul_gate)
             .one_to_many(&output_tahn_mul_gate, &output_weights)
             .many_to_one(&output_weights, &output)
-            .build()
+            .build();
+
+        self.node_cache = Some(graph.into_iter().collect());
+        self
     }
 
-    pub fn gru(&self, input_size: usize, output_size: usize, memory_size: usize) -> Graph<Op<f32>> {
+    pub fn gru(
+        mut self,
+        input_size: usize,
+        output_size: usize,
+        memory_size: usize,
+        output: Op<f32>,
+    ) -> GraphBuilder<Op<f32>> {
+        self.with_values(NodeType::Output, vec![output]);
+
         let input = self.input(input_size);
         let output = self.output(output_size);
 
@@ -276,7 +322,7 @@ impl GraphBuilder<Op<f32>> {
         let hidden_invert_mul_gate = self.aggregates(memory_size);
         let candidate_hidden_add_gate = self.aggregates(memory_size);
 
-        GraphAggregate::new()
+        let graph = GraphAggregate::new()
             .one_to_many(&input, &input_to_reset_weights)
             .one_to_many(&input, &input_to_update_weights)
             .one_to_many(&input, &input_to_candidate_weights)
@@ -300,7 +346,10 @@ impl GraphBuilder<Op<f32>> {
             .one_to_one(&update_candidate_mul_gate, &candidate_hidden_add_gate)
             .one_to_many(&candidate_hidden_add_gate, &output_weights)
             .many_to_one(&output_weights, &output)
-            .build()
+            .build();
+
+        self.node_cache = Some(graph.into_iter().collect());
+        self
     }
 }
 
@@ -321,32 +370,48 @@ where
     C: NodeCell + Clone + PartialEq + Default,
 {
     fn encode(&self) -> Genotype<GraphChromosome<C>> {
-        let store = self.store.clone();
-        let nodes = self.node_cache.clone().unwrap_or_default();
+        let store = Arc::clone(&self.store);
+        if let Some(nodes) = &self.node_cache {
+            let new_nodes = nodes
+                .iter()
+                .map(|node| {
+                    let new_node = store
+                        .read()
+                        .unwrap()
+                        .new_instance((node.index(), node.node_type()));
 
-        Genotype::from_chromosomes(vec![GraphChromosome {
-            nodes,
-            store: Some(store),
-        }])
+                    if new_node.value().arity() == node.value().arity() {
+                        node.with_allele(new_node.allele())
+                    } else {
+                        node.clone()
+                    }
+                })
+                .collect::<Vec<GraphNode<C>>>();
+
+            let chromosome = GraphChromosome::new(new_nodes, store);
+            return Genotype::from_chromosomes(vec![chromosome]);
+        }
+
+        panic!("GraphBuilder has no nodes to encode");
     }
 
     fn decode(&self, genotype: &Genotype<GraphChromosome<C>>) -> Graph<C> {
-        let nodes = genotype
-            .iter()
-            .next()
-            .unwrap()
-            .iter()
-            .cloned()
-            .collect::<Vec<GraphNode<C>>>();
-
-        Graph::new(nodes)
+        Graph::new(
+            genotype
+                .iter()
+                .next()
+                .unwrap()
+                .iter()
+                .cloned()
+                .collect::<Vec<GraphNode<C>>>(),
+        )
     }
 }
 
-impl<C: NodeCell> Default for GraphBuilder<C> {
+impl Default for GraphBuilder<Op<f32>> {
     fn default() -> Self {
         GraphBuilder {
-            store: Arc::new(RwLock::new(CellStore::default())),
+            store: Arc::new(RwLock::new(CellStore::regressor(1))),
             node_cache: None,
         }
     }

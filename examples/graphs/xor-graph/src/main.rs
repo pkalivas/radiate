@@ -1,3 +1,4 @@
+use graphs::CellStore;
 use radiate::*;
 use radiate_gp::*;
 
@@ -5,9 +6,10 @@ const MAX_INDEX: i32 = 500;
 const MIN_SCORE: f32 = 0.01;
 
 fn main() {
-    random_provider::set_seed(501);
+    // random_provider::set_seed(501);
 
-    let graph_codex = GraphCodex::acyclic(2, 1).with_output(Op::sigmoid());
+    let graph_codex =
+        GraphBuilder::new(CellStore::regressor(2)).weighted_acyclic(2, 1, Op::sigmoid());
 
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
@@ -15,16 +17,13 @@ fn main() {
         .minimizing()
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
-            OperationMutator::new(0.1, 0.05),
+            OperationMutator::new(0.05, 0.05),
             GraphMutator::new(vec![
-                NodeMutate::Edge(0.05, false),
-                NodeMutate::Vertex(0.03, false),
+                NodeMutate::Edge(0.03, false),
+                NodeMutate::Vertex(0.1, false),
             ]),
         ))
-        .fitness_fn(move |genotype: Graph<Op<f32>>| {
-            let mut reducer = GraphEvaluator::new(&genotype);
-            regression.loss(|input| reducer.eval_mut(input))
-        })
+        .fitness_fn(move |genotype: Graph<Op<f32>>| regression.eval(&genotype))
         .build();
 
     let result = engine.run(|ctx| {

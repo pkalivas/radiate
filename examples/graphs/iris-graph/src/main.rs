@@ -3,18 +3,18 @@ use std::collections::HashSet;
 use radiate::*;
 use radiate_gp::*;
 
-const MIN_SCORE: f32 = 0.001;
+const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
     random_provider::set_seed(1000);
 
     let (train, test) = load_iris_dataset().shuffle().standardize().split(0.75);
-    let train_copy = train.clone();
 
-    let graph_codex = GraphCodex::acyclic(4, 4).with_output(Op::sigmoid());
+    let builder = GraphBuilder::default().acyclic(4, 4, Op::sigmoid());
+    let regression = Regression::new(train.clone(), Loss::MSE);
 
-    let engine = GeneticEngine::from_codex(graph_codex)
+    let engine = GeneticEngine::from_codex(builder)
         .minimizing()
         .num_threads(10)
         .offspring_selector(BoltzmannSelector::new(4.0))
@@ -26,9 +26,7 @@ fn main() {
                 NodeMutate::Vertex(0.03, false),
             ]),
         ))
-        .fitness_fn(move |graph: Graph<Op<f32>>| {
-            Loss::MSE.loss(&mut GraphEvaluator::new(&graph), &train_copy)
-        })
+        .fitness_fn(move |graph: Graph<Op<f32>>| regression.eval(&graph))
         .build();
 
     let result = engine.run(|ctx| {

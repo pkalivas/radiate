@@ -1,7 +1,9 @@
-use crate::{CellStore, GraphNode, NodeCell};
+use crate::{GraphNode, NodeCell};
 use radiate::{Chromosome, Valid};
 use std::fmt::Debug;
 use std::sync::{Arc, RwLock};
+
+use super::CellStore;
 
 #[derive(Clone)]
 pub struct GraphChromosome<C>
