@@ -32,13 +32,13 @@ struct Relationship<'a> {
 }
 
 #[derive(Default)]
-pub struct GraphAggregate<'a, C: NodeCell + Clone> {
-    nodes: BTreeMap<&'a Uuid, &'a GraphNode<C>>,
+pub struct GraphAggregate<'a, T: Clone> {
+    nodes: BTreeMap<&'a Uuid, &'a GraphNode<T>>,
     node_order: BTreeMap<usize, &'a Uuid>,
     relationships: Vec<Relationship<'a>>,
 }
 
-impl<'a, C: NodeCell + Clone> GraphAggregate<'a, C> {
+impl<'a, T: Clone> GraphAggregate<'a, T> {
     pub fn new() -> Self {
         GraphAggregate {
             nodes: BTreeMap::new(),
@@ -47,39 +47,39 @@ impl<'a, C: NodeCell + Clone> GraphAggregate<'a, C> {
         }
     }
 
-    pub fn one_to_one<G: AsRef<[GraphNode<C>]>>(mut self, one: &'a G, two: &'a G) -> Self {
+    pub fn one_to_one<G: AsRef<[GraphNode<T>]>>(mut self, one: &'a G, two: &'a G) -> Self {
         self.connect(ConnectTypes::OneToOne, one, two);
         self
     }
 
-    pub fn one_to_many<G: AsRef<[GraphNode<C>]>>(mut self, one: &'a G, two: &'a G) -> Self {
+    pub fn one_to_many<G: AsRef<[GraphNode<T>]>>(mut self, one: &'a G, two: &'a G) -> Self {
         self.connect(ConnectTypes::OneToMany, one, two);
         self
     }
 
-    pub fn many_to_one<G: AsRef<[GraphNode<C>]>>(mut self, one: &'a G, two: &'a G) -> Self {
+    pub fn many_to_one<G: AsRef<[GraphNode<T>]>>(mut self, one: &'a G, two: &'a G) -> Self {
         self.connect(ConnectTypes::ManyToOne, one, two);
         self
     }
 
-    pub fn all_to_all<G: AsRef<[GraphNode<C>]>>(mut self, one: &'a G, two: &'a G) -> Self {
+    pub fn all_to_all<G: AsRef<[GraphNode<T>]>>(mut self, one: &'a G, two: &'a G) -> Self {
         self.connect(ConnectTypes::AllToAll, one, two);
         self
     }
 
-    pub fn one_to_one_self<G: AsRef<[GraphNode<C>]>>(mut self, one: &'a G, two: &'a G) -> Self {
+    pub fn one_to_one_self<G: AsRef<[GraphNode<T>]>>(mut self, one: &'a G, two: &'a G) -> Self {
         self.connect(ConnectTypes::AllToAllSelf, one, two);
         self
     }
 
-    pub fn insert<G: AsRef<[GraphNode<C>]>>(mut self, collection: &'a G) -> Self {
+    pub fn insert<G: AsRef<[GraphNode<T>]>>(mut self, collection: &'a G) -> Self {
         self.attach(collection.as_ref());
         self
     }
 }
 
-impl<'a, C: NodeCell + Clone> GraphAggregate<'a, C> {
-    pub fn layer<G: AsRef<[GraphNode<C>]>>(&self, collections: Vec<&'a G>) -> Self {
+impl<'a, T: Clone> GraphAggregate<'a, T> {
+    pub fn layer<G: AsRef<[GraphNode<T>]>>(&self, collections: Vec<&'a G>) -> Self {
         let mut conn = GraphAggregate::new();
         let mut previous = collections[0];
 
@@ -95,7 +95,7 @@ impl<'a, C: NodeCell + Clone> GraphAggregate<'a, C> {
         conn
     }
 
-    pub fn attach(&mut self, group: &'a [GraphNode<C>]) {
+    pub fn attach(&mut self, group: &'a [GraphNode<T>]) {
         for node in group.iter() {
             if !self.nodes.contains_key(&node.id()) {
                 let node_id = &node.id();
@@ -117,8 +117,8 @@ impl<'a, C: NodeCell + Clone> GraphAggregate<'a, C> {
     }
 }
 
-impl<'a, C: NodeCell + Clone> GraphAggregate<'a, C> {
-    fn connect<G: AsRef<[GraphNode<C>]>>(
+impl<'a, T: Clone> GraphAggregate<'a, T> {
+    fn connect<G: AsRef<[GraphNode<T>]>>(
         &mut self,
         connection: ConnectTypes,
         one: &'a G,
@@ -136,7 +136,7 @@ impl<'a, C: NodeCell + Clone> GraphAggregate<'a, C> {
         }
     }
 
-    fn one_to_one_connect<G: AsRef<[GraphNode<C>]>>(&mut self, one: &'a G, two: &'a G) {
+    fn one_to_one_connect<G: AsRef<[GraphNode<T>]>>(&mut self, one: &'a G, two: &'a G) {
         let one_outputs = self.get_outputs(one);
         let two_inputs = self.get_inputs(two);
 
@@ -152,7 +152,7 @@ impl<'a, C: NodeCell + Clone> GraphAggregate<'a, C> {
         }
     }
 
-    fn one_to_many_connect<G: AsRef<[GraphNode<C>]>>(&mut self, one: &'a G, two: &'a G) {
+    fn one_to_many_connect<G: AsRef<[GraphNode<T>]>>(&mut self, one: &'a G, two: &'a G) {
         let one_outputs = self.get_outputs(one);
         let two_inputs = self.get_inputs(two);
 
@@ -170,7 +170,7 @@ impl<'a, C: NodeCell + Clone> GraphAggregate<'a, C> {
         }
     }
 
-    fn many_to_one_connect<G: AsRef<[GraphNode<C>]>>(&mut self, one: &'a G, two: &'a G) {
+    fn many_to_one_connect<G: AsRef<[GraphNode<T>]>>(&mut self, one: &'a G, two: &'a G) {
         let one_outputs = self.get_outputs(one);
         let two_inputs = self.get_inputs(two);
 
@@ -188,7 +188,7 @@ impl<'a, C: NodeCell + Clone> GraphAggregate<'a, C> {
         }
     }
 
-    fn all_to_all_connect<G: AsRef<[GraphNode<C>]>>(&mut self, one: &'a G, two: &'a G) {
+    fn all_to_all_connect<G: AsRef<[GraphNode<T>]>>(&mut self, one: &'a G, two: &'a G) {
         let one_outputs = self.get_outputs(one);
         let two_inputs = self.get_inputs(two);
 
@@ -202,7 +202,7 @@ impl<'a, C: NodeCell + Clone> GraphAggregate<'a, C> {
         }
     }
 
-    fn all_to_all_self_connect<G: AsRef<[GraphNode<C>]>>(&mut self, one: &'a G, two: &'a G) {
+    fn all_to_all_self_connect<G: AsRef<[GraphNode<T>]>>(&mut self, one: &'a G, two: &'a G) {
         let one_outputs = self.get_outputs(one);
         let two_inputs = self.get_inputs(two);
 
@@ -222,14 +222,14 @@ impl<'a, C: NodeCell + Clone> GraphAggregate<'a, C> {
         }
     }
 
-    fn get_outputs<G: AsRef<[GraphNode<C>]>>(&self, collection: &'a G) -> Vec<&'a GraphNode<C>> {
+    fn get_outputs<G: AsRef<[GraphNode<T>]>>(&self, collection: &'a G) -> Vec<&'a GraphNode<T>> {
         let outputs = collection
             .as_ref()
             .iter()
             .enumerate()
             .skip_while(|(_, node)| !node.outgoing().is_empty())
             .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
-            .collect::<Vec<&GraphNode<C>>>();
+            .collect::<Vec<&GraphNode<T>>>();
 
         if !outputs.is_empty() {
             return outputs;
@@ -245,7 +245,7 @@ impl<'a, C: NodeCell + Clone> GraphAggregate<'a, C> {
                     && (node.node_type() == NodeType::Vertex)
             })
             .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
-            .collect::<Vec<&GraphNode<C>>>();
+            .collect::<Vec<&GraphNode<T>>>();
 
         if !recurrent_outputs.is_empty() {
             return recurrent_outputs;
@@ -257,17 +257,17 @@ impl<'a, C: NodeCell + Clone> GraphAggregate<'a, C> {
             .enumerate()
             .filter(|(_, node)| node.incoming().is_empty())
             .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
-            .collect::<Vec<&GraphNode<C>>>()
+            .collect::<Vec<&GraphNode<T>>>()
     }
 
-    fn get_inputs<G: AsRef<[GraphNode<C>]>>(&self, collection: &'a G) -> Vec<&'a GraphNode<C>> {
+    fn get_inputs<G: AsRef<[GraphNode<T>]>>(&self, collection: &'a G) -> Vec<&'a GraphNode<T>> {
         let inputs = collection
             .as_ref()
             .iter()
             .enumerate()
             .take_while(|(_, node)| node.incoming().is_empty())
             .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
-            .collect::<Vec<&GraphNode<C>>>();
+            .collect::<Vec<&GraphNode<T>>>();
 
         if !inputs.is_empty() {
             return inputs;
@@ -283,7 +283,7 @@ impl<'a, C: NodeCell + Clone> GraphAggregate<'a, C> {
                     && node.node_type() == NodeType::Vertex
             })
             .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
-            .collect::<Vec<&GraphNode<C>>>();
+            .collect::<Vec<&GraphNode<T>>>();
 
         if !recurrent_inputs.is_empty() {
             return recurrent_inputs;
@@ -295,12 +295,12 @@ impl<'a, C: NodeCell + Clone> GraphAggregate<'a, C> {
             .enumerate()
             .filter(|(_, node)| node.outgoing().is_empty())
             .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
-            .collect::<Vec<&GraphNode<C>>>()
+            .collect::<Vec<&GraphNode<T>>>()
     }
 }
 
-impl<C: NodeCell + Clone> Builder for GraphAggregate<'_, C> {
-    type Output = Graph<C>;
+impl<T: Clone> Builder for GraphAggregate<'_, T> {
+    type Output = Graph<T>;
 
     fn build(&self) -> Self::Output {
         let mut new_nodes = Vec::new();

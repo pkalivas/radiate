@@ -14,20 +14,20 @@ use super::{CellStore, GraphChromosome};
 ///
 /// # Type Parameters
 /// 'C' - The type of the node cell that the graph will contain.
-pub struct GraphBuilder<C: NodeCell> {
-    store: Arc<RwLock<CellStore<C>>>,
-    node_cache: Option<Vec<GraphNode<C>>>,
+pub struct GraphBuilder<T> {
+    store: Arc<RwLock<CellStore<T>>>,
+    node_cache: Option<Vec<GraphNode<T>>>,
 }
 
-impl<C: NodeCell> GraphBuilder<C> {
-    pub fn new(store: CellStore<C>) -> Self {
+impl<T> GraphBuilder<T> {
+    pub fn new(store: CellStore<T>) -> Self {
         GraphBuilder {
             store: Arc::new(RwLock::new(store)),
             node_cache: None,
         }
     }
 
-    pub fn with_store(&mut self, store: CellStore<C>) -> Self {
+    pub fn with_store(&mut self, store: CellStore<T>) -> Self {
         GraphBuilder {
             store: Arc::new(RwLock::new(store)),
             node_cache: None,
@@ -38,8 +38,8 @@ impl<C: NodeCell> GraphBuilder<C> {
 /// Builder methods for creating different types of nodes in the graph.
 /// These methods will create a collection of nodes of the specified type and size,
 /// then layer we can use these nodes to build various graph architectures.
-impl<C: NodeCell + Clone + Default> GraphBuilder<C> {
-    pub fn set_vertecies(self, vertecies: Vec<C>) -> Self {
+impl<T: Clone + Default> GraphBuilder<T> {
+    pub fn set_vertecies(self, vertecies: Vec<Op<T>>) -> Self {
         self.store
             .write()
             .unwrap()
@@ -47,7 +47,7 @@ impl<C: NodeCell + Clone + Default> GraphBuilder<C> {
         self
     }
 
-    pub fn set_edges(self, edges: Vec<C>) -> Self {
+    pub fn set_edges(self, edges: Vec<Op<T>>) -> Self {
         self.store
             .write()
             .unwrap()
@@ -55,30 +55,30 @@ impl<C: NodeCell + Clone + Default> GraphBuilder<C> {
         self
     }
 
-    pub fn with_values(&self, node_type: NodeType, values: Vec<C>) {
+    pub fn with_values(&self, node_type: NodeType, values: Vec<Op<T>>) {
         self.store.write().unwrap().add_values(node_type, values);
     }
 
-    pub fn input(&self, size: usize) -> Vec<GraphNode<C>> {
+    pub fn input(&self, size: usize) -> Vec<GraphNode<T>> {
         self.new_nodes(NodeType::Input, size)
     }
 
-    pub fn output(&self, size: usize) -> Vec<GraphNode<C>> {
+    pub fn output(&self, size: usize) -> Vec<GraphNode<T>> {
         self.new_nodes(NodeType::Output, size)
     }
 
-    pub fn vertex(&self, size: usize) -> Vec<GraphNode<C>> {
+    pub fn vertex(&self, size: usize) -> Vec<GraphNode<T>> {
         self.new_nodes(NodeType::Vertex, size)
     }
 
-    pub fn edge(&self, size: usize) -> Vec<GraphNode<C>> {
+    pub fn edge(&self, size: usize) -> Vec<GraphNode<T>> {
         self.new_nodes(NodeType::Edge, size)
     }
 
-    fn new_nodes(&self, node_type: NodeType, size: usize) -> Vec<GraphNode<C>> {
+    fn new_nodes(&self, node_type: NodeType, size: usize) -> Vec<GraphNode<T>> {
         (0..size)
             .map(|i| (*self.store.read().unwrap()).new_instance((i, node_type)))
-            .collect::<Vec<GraphNode<C>>>()
+            .collect::<Vec<GraphNode<T>>>()
     }
 }
 
@@ -87,15 +87,15 @@ impl<C: NodeCell + Clone + Default> GraphBuilder<C> {
 /// but for those we need to provide the `GraphBuilder` with a way to generate the nodes
 /// that accept a variable number of inputs. This makes sure that the `GraphBuilder` can
 /// generate those nodes when needed.
-impl GraphBuilder<Op<f32>> {
-    fn aggregates(&self, size: usize) -> Vec<GraphNode<Op<f32>>> {
+impl GraphBuilder<f32> {
+    fn aggregates(&self, size: usize) -> Vec<GraphNode<f32>> {
         let ops = self.operations_with_any_arity();
         (0..size)
             .map(|i| {
-                let op = random_provider::choose(&ops).new_instance();
+                let op = random_provider::choose(&ops).new_instance(());
                 GraphNode::new(i, NodeType::Vertex, op)
             })
-            .collect::<Vec<GraphNode<Op<f32>>>>()
+            .collect::<Vec<GraphNode<f32>>>()
     }
 
     fn operations_with_any_arity(&self) -> Vec<Op<f32>> {
@@ -129,7 +129,7 @@ impl GraphBuilder<Op<f32>> {
         input_size: usize,
         output_size: usize,
         output: Op<f32>,
-    ) -> GraphBuilder<Op<f32>> {
+    ) -> GraphBuilder<f32> {
         self.with_values(NodeType::Input, (0..input_size).map(Op::var).collect());
         self.with_values(NodeType::Output, vec![output]);
 
@@ -146,7 +146,7 @@ impl GraphBuilder<Op<f32>> {
         input_size: usize,
         output_size: usize,
         output: Op<f32>,
-    ) -> GraphBuilder<Op<f32>> {
+    ) -> GraphBuilder<f32> {
         self.with_values(NodeType::Input, (0..input_size).map(Op::var).collect());
         self.with_values(NodeType::Output, vec![output]);
 
@@ -170,7 +170,7 @@ impl GraphBuilder<Op<f32>> {
         input_size: usize,
         output_size: usize,
         output: Op<f32>,
-    ) -> GraphBuilder<Op<f32>> {
+    ) -> GraphBuilder<f32> {
         self.with_values(NodeType::Input, (0..input_size).map(Op::var).collect());
         self.with_values(NodeType::Output, vec![output]);
 
@@ -195,7 +195,7 @@ impl GraphBuilder<Op<f32>> {
         output_size: usize,
         memory_size: usize,
         output: Op<f32>,
-    ) -> GraphBuilder<Op<f32>> {
+    ) -> GraphBuilder<f32> {
         self.with_values(NodeType::Input, (0..input_size).map(Op::var).collect());
         self.with_values(NodeType::Output, vec![output]);
 
@@ -222,7 +222,7 @@ impl GraphBuilder<Op<f32>> {
         output_size: usize,
         memory_size: usize,
         output: Op<f32>,
-    ) -> GraphBuilder<Op<f32>> {
+    ) -> GraphBuilder<f32> {
         self.with_values(NodeType::Input, (0..input_size).map(Op::var).collect());
         self.with_values(NodeType::Output, vec![output]);
 
@@ -294,7 +294,7 @@ impl GraphBuilder<Op<f32>> {
         output_size: usize,
         memory_size: usize,
         output: Op<f32>,
-    ) -> GraphBuilder<Op<f32>> {
+    ) -> GraphBuilder<f32> {
         self.with_values(NodeType::Input, (0..input_size).map(Op::var).collect());
         self.with_values(NodeType::Output, vec![output]);
 
@@ -364,11 +364,11 @@ impl<C: NodeCell + Clone> Builder for GraphBuilder<C> {
     }
 }
 
-impl<C> Codex<GraphChromosome<C>, Graph<C>> for GraphBuilder<C>
+impl<T> Codex<GraphChromosome<T>, Graph<T>> for GraphBuilder<T>
 where
-    C: NodeCell + Clone + PartialEq + Default,
+    T: Clone + PartialEq + Default,
 {
-    fn encode(&self) -> Genotype<GraphChromosome<C>> {
+    fn encode(&self) -> Genotype<GraphChromosome<T>> {
         let store = Arc::clone(&self.store);
         if let Some(nodes) = &self.node_cache {
             let new_nodes = nodes
@@ -389,7 +389,7 @@ where
                         node.clone()
                     }
                 })
-                .collect::<Vec<GraphNode<C>>>();
+                .collect::<Vec<GraphNode<T>>>();
 
             let chromosome = GraphChromosome::new(new_nodes, store);
             return Genotype::new(vec![chromosome]);
@@ -398,7 +398,7 @@ where
         panic!("GraphBuilder has no nodes to encode");
     }
 
-    fn decode(&self, genotype: &Genotype<GraphChromosome<C>>) -> Graph<C> {
+    fn decode(&self, genotype: &Genotype<GraphChromosome<T>>) -> Graph<T> {
         Graph::new(
             genotype
                 .iter()
@@ -406,12 +406,12 @@ where
                 .unwrap()
                 .iter()
                 .cloned()
-                .collect::<Vec<GraphNode<C>>>(),
+                .collect::<Vec<GraphNode<T>>>(),
         )
     }
 }
 
-impl Default for GraphBuilder<Op<f32>> {
+impl Default for GraphBuilder<f32> {
     fn default() -> Self {
         let inputs = (0..1).map(Op::var).collect::<Vec<Op<f32>>>();
         let mut store = CellStore::new();

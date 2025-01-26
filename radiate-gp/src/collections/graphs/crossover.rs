@@ -9,18 +9,18 @@ use radiate::{indexes, random_provider, Alter, AlterAction, Crossover, EngineCom
 
 const NUM_PARENTS: usize = 2;
 
-pub struct GraphCrossover<C>
+pub struct GraphCrossover<T>
 where
-    C: Clone + PartialEq + Default + NodeCell,
+    T: Clone + PartialEq + Default,
 {
     crossover_rate: f32,
     crossover_parent_node_rate: f32,
-    _marker: std::marker::PhantomData<C>,
+    _marker: std::marker::PhantomData<T>,
 }
 
-impl<C> GraphCrossover<C>
+impl<T> GraphCrossover<T>
 where
-    C: NodeCell + Clone + PartialEq + Default + 'static,
+    T: Clone + PartialEq + Default + 'static,
 {
     pub fn new(crossover_rate: f32, crossover_parent_node_rate: f32) -> Self {
         Self {
@@ -33,10 +33,10 @@ where
     #[inline]
     pub fn cross(
         &self,
-        population: &Population<GraphChromosome<C>>,
+        population: &Population<GraphChromosome<T>>,
         indexes: &[usize],
         generation: i32,
-    ) -> Option<Phenotype<GraphChromosome<C>>> {
+    ) -> Option<Phenotype<GraphChromosome<T>>> {
         let parent_one = &population[indexes[0]];
         let parent_two = &population[indexes[1]];
 
@@ -86,35 +86,35 @@ where
     }
 }
 
-impl<C> EngineCompoment for GraphCrossover<C>
+impl<T> EngineCompoment for GraphCrossover<T>
 where
-    C: NodeCell + Clone + PartialEq + Default + 'static,
+    T: Clone + PartialEq + Default + 'static,
 {
     fn name(&self) -> &'static str {
         "GraphCrossover"
     }
 }
 
-impl<C> Alter<GraphChromosome<C>> for GraphCrossover<C>
+impl<T> Alter<GraphChromosome<T>> for GraphCrossover<T>
 where
-    C: NodeCell + Clone + PartialEq + Default + 'static,
+    T: Clone + PartialEq + Default + 'static,
 {
     fn rate(&self) -> f32 {
         self.crossover_rate
     }
 
-    fn to_alter(self) -> radiate::AlterAction<GraphChromosome<C>> {
+    fn to_alter(self) -> radiate::AlterAction<GraphChromosome<T>> {
         AlterAction::Crossover(Box::new(self))
     }
 }
 
-impl<C> Crossover<GraphChromosome<C>> for GraphCrossover<C>
+impl<T> Crossover<GraphChromosome<T>> for GraphCrossover<T>
 where
-    C: NodeCell + Clone + PartialEq + Default + 'static,
+    T: Clone + PartialEq + Default + 'static,
 {
     fn crossover(
         &self,
-        population: &mut Population<GraphChromosome<C>>,
+        population: &mut Population<GraphChromosome<T>>,
         generation: i32,
     ) -> Vec<Metric> {
         let timer = Timer::new();

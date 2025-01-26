@@ -1,31 +1,31 @@
-use crate::{NodeCell, TreeNode};
+use crate::TreeNode;
 use radiate::{Chromosome, Valid};
 use std::sync::Arc;
 
 type Constraint<N> = Arc<Box<dyn Fn(&N) -> bool>>;
 
 #[derive(Clone, Default)]
-pub struct TreeChromosome<C: NodeCell> {
-    nodes: Vec<TreeNode<C>>,
-    constraint: Option<Constraint<TreeNode<C>>>,
+pub struct TreeChromosome<T> {
+    nodes: Vec<TreeNode<T>>,
+    constraint: Option<Constraint<TreeNode<T>>>,
 }
 
-impl<C: NodeCell> TreeChromosome<C> {
-    pub fn new(nodes: Vec<TreeNode<C>>, constraint: Option<Constraint<TreeNode<C>>>) -> Self {
+impl<T> TreeChromosome<T> {
+    pub fn new(nodes: Vec<TreeNode<T>>, constraint: Option<Constraint<TreeNode<T>>>) -> Self {
         TreeChromosome { nodes, constraint }
     }
 }
 
-impl<C> Chromosome for TreeChromosome<C>
+impl<T> Chromosome for TreeChromosome<T>
 where
-    C: Clone + PartialEq + Default + NodeCell,
+    T: Clone + PartialEq + Default,
 {
-    type Gene = TreeNode<C>;
+    type Gene = TreeNode<T>;
 }
 
-impl<C> Valid for TreeChromosome<C>
+impl<T> Valid for TreeChromosome<T>
 where
-    C: Clone + PartialEq + Default + NodeCell,
+    T: Clone + PartialEq + Default,
 {
     fn is_valid(&self) -> bool {
         for gene in &self.nodes {
@@ -42,27 +42,27 @@ where
     }
 }
 
-impl<C> AsRef<[TreeNode<C>]> for TreeChromosome<C>
+impl<T> AsRef<[TreeNode<T>]> for TreeChromosome<T>
 where
-    C: Clone + PartialEq + Default + NodeCell,
+    T: Clone + PartialEq + Default,
 {
-    fn as_ref(&self) -> &[TreeNode<C>] {
+    fn as_ref(&self) -> &[TreeNode<T>] {
         &self.nodes
     }
 }
 
-impl<C> AsMut<[TreeNode<C>]> for TreeChromosome<C>
+impl<T> AsMut<[TreeNode<T>]> for TreeChromosome<T>
 where
-    C: Clone + PartialEq + Default + NodeCell,
+    T: Clone + PartialEq + Default,
 {
-    fn as_mut(&mut self) -> &mut [TreeNode<C>] {
+    fn as_mut(&mut self) -> &mut [TreeNode<T>] {
         &mut self.nodes
     }
 }
 
-impl<C> PartialEq for TreeChromosome<C>
+impl<T> PartialEq for TreeChromosome<T>
 where
-    C: PartialEq + NodeCell,
+    T: PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
         self.nodes == other.nodes

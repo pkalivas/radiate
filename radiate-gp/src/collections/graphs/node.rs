@@ -1,5 +1,5 @@
 use crate::ops::Arity;
-use crate::{Eval, NodeCell};
+use crate::{Eval, NodeCell, Op};
 use radiate::{Gene, Valid};
 use std::collections::HashSet;
 use std::fmt::Debug;
@@ -21,8 +21,8 @@ pub enum Direction {
 }
 
 #[derive(Clone, PartialEq)]
-pub struct GraphNode<C: NodeCell> {
-    value: C,
+pub struct GraphNode<T> {
+    value: Op<T>,
     id: Uuid,
     index: usize,
     enabled: bool,
@@ -32,8 +32,8 @@ pub struct GraphNode<C: NodeCell> {
     outgoing: HashSet<usize>,
 }
 
-impl<C: NodeCell> GraphNode<C> {
-    pub fn new(index: usize, node_type: NodeType, value: C) -> Self {
+impl<T> GraphNode<T> {
+    pub fn new(index: usize, node_type: NodeType, value: Op<T>) -> Self {
         Self {
             id: Uuid::new_v4(),
             index,
@@ -78,7 +78,7 @@ impl<C: NodeCell> GraphNode<C> {
         &self.id
     }
 
-    pub fn value(&self) -> &C {
+    pub fn value(&self) -> &Op<T> {
         &self.value
     }
 
@@ -113,17 +113,17 @@ impl<C: NodeCell> GraphNode<C> {
     }
 }
 
-impl<C> Gene for GraphNode<C>
+impl<T> Gene for GraphNode<T>
 where
-    C: Clone + PartialEq + Default + NodeCell,
+    T: Clone + PartialEq + Default,
 {
-    type Allele = C;
+    type Allele = Op<T>;
 
-    fn allele(&self) -> &C {
+    fn allele(&self) -> &Self::Allele {
         &self.value
     }
 
-    fn new_instance(&self) -> GraphNode<C> {
+    fn new_instance(&self) -> GraphNode<T> {
         GraphNode {
             id: Uuid::new_v4(),
             index: self.index,
@@ -136,7 +136,7 @@ where
         }
     }
 
-    fn with_allele(&self, allele: &C) -> GraphNode<C> {
+    fn with_allele(&self, allele: &Self::Allele) -> GraphNode<T> {
         GraphNode {
             id: Uuid::new_v4(),
             index: self.index,
@@ -150,7 +150,7 @@ where
     }
 }
 
-impl<C: NodeCell> Valid for GraphNode<C> {
+impl<T> Valid for GraphNode<T> {
     fn is_valid(&self) -> bool {
         match self.node_type {
             NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
@@ -180,19 +180,19 @@ impl<C: NodeCell> Valid for GraphNode<C> {
     }
 }
 
-impl<T, C: NodeCell + Eval<[T], T>> Eval<[T], T> for GraphNode<C> {
+impl<T: Clone> Eval<[T], T> for GraphNode<T> {
     fn eval(&self, inputs: &[T]) -> T {
         self.value.eval(inputs)
     }
 }
 
-impl<C: NodeCell + Default> Default for GraphNode<C> {
+impl<T: Default> Default for GraphNode<T> {
     fn default() -> Self {
         GraphNode {
             id: Uuid::new_v4(),
             index: 0,
             enabled: true,
-            value: C::default(),
+            value: Op::default(),
             direction: Direction::Forward,
             node_type: NodeType::Input,
             incoming: HashSet::new(),
@@ -201,7 +201,7 @@ impl<C: NodeCell + Default> Default for GraphNode<C> {
     }
 }
 
-impl<C: NodeCell + Debug + PartialEq + Clone> Debug for GraphNode<C> {
+impl<T: Debug + PartialEq + Clone> Debug for GraphNode<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let incoming = self
             .incoming

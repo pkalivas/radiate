@@ -1,12 +1,12 @@
 use crate::{collections::GraphNode, NodeCell};
 use std::collections::VecDeque;
 
-pub trait GraphIterator<'a, C: NodeCell> {
-    fn iter_topological(&'a self) -> GraphTopologicalIterator<'a, C>;
+pub trait GraphIterator<'a, T> {
+    fn iter_topological(&'a self) -> GraphTopologicalIterator<'a, T>;
 }
 
-impl<'a, G: AsRef<[GraphNode<C>]>, C: NodeCell> GraphIterator<'a, C> for G {
-    fn iter_topological(&'a self) -> GraphTopologicalIterator<'a, C> {
+impl<'a, G: AsRef<[GraphNode<T>]>, T> GraphIterator<'a, T> for G {
+    fn iter_topological(&'a self) -> GraphTopologicalIterator<'a, T> {
         GraphTopologicalIterator::new(self.as_ref())
     }
 }
@@ -15,19 +15,19 @@ impl<'a, G: AsRef<[GraphNode<C>]>, C: NodeCell> GraphIterator<'a, C> for G {
 /// "sudo-topological" because it is not a true topological order, but rather a topological order
 /// that allows for recurrent connections. This iterator is used by the `GraphReducer` to evaluate
 /// the nodes in a `Graph` in the correct order.
-pub struct GraphTopologicalIterator<'a, C: NodeCell> {
-    pub graph: &'a [GraphNode<C>],
+pub struct GraphTopologicalIterator<'a, T> {
+    pub graph: &'a [GraphNode<T>],
     pub completed: Vec<bool>,
     pub index_queue: VecDeque<usize>,
     pub pending_index: usize,
 }
 
-impl<'a, C: NodeCell> GraphTopologicalIterator<'a, C> {
+impl<'a, T> GraphTopologicalIterator<'a, T> {
     /// Create a new `GraphIterator` from a reference to a `Graph`.
     ///
     /// # Arguments
     /// - `graph`: A reference to the `Graph` to iterate over.
-    pub fn new(graph: &'a [GraphNode<C>]) -> Self {
+    pub fn new(graph: &'a [GraphNode<T>]) -> Self {
         Self {
             graph,
             completed: vec![false; graph.len()],
@@ -48,8 +48,8 @@ impl<'a, C: NodeCell> GraphTopologicalIterator<'a, C> {
 /// if it can be completed. If a node can be completed, it is added to the index queue, which is
 /// used to determine the order in which the nodes are returned by the iterator.
 /// It is a 'sudo' topological order because it allows for recurrent connections in the graph.
-impl<'a, C: NodeCell> Iterator for GraphTopologicalIterator<'a, C> {
-    type Item = &'a GraphNode<C>;
+impl<'a, T> Iterator for GraphTopologicalIterator<'a, T> {
+    type Item = &'a GraphNode<T>;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {

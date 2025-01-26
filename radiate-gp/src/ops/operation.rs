@@ -4,7 +4,7 @@ use std::{
     sync::Arc,
 };
 
-use crate::{Eval, NodeCell};
+use crate::{Eval, Factory, NodeCell};
 
 /// Arity is a way to describe how many inputs an operation expects.
 /// It can be zero, a specific number, or any number.
@@ -86,6 +86,15 @@ impl<T> Op<T> {
             Op::Var(name, _) => name,
             Op::Const(name, _) => name,
             Op::MutableConst { name, .. } => name,
+        }
+    }
+
+    pub fn arity(&self) -> Arity {
+        match self {
+            Op::Fn(_, arity, _) => *arity,
+            Op::Var(_, _) => Arity::Zero,
+            Op::Const(_, _) => Arity::Zero,
+            Op::MutableConst { arity, .. } => *arity,
         }
     }
 
@@ -174,17 +183,13 @@ where
     }
 }
 
-impl<T: Clone> NodeCell for Op<T> {
-    fn arity(&self) -> Arity {
-        match self {
-            Op::Fn(_, arity, _) => *arity,
-            Op::Var(_, _) => Arity::Zero,
-            Op::Const(_, _) => Arity::Zero,
-            Op::MutableConst { arity, .. } => *arity,
-        }
-    }
+impl<T> Factory<Op<T>> for Op<T>
+where
+    T: Clone,
+{
+    type Input = ();
 
-    fn new_instance(&self) -> Op<T> {
+    fn new_instance(&self, _: Self::Input) -> Op<T> {
         match self {
             Op::Fn(name, arity, op) => Op::Fn(name, *arity, Arc::clone(op)),
             Op::Var(name, index) => Op::Var(name, *index),
@@ -207,6 +212,8 @@ impl<T: Clone> NodeCell for Op<T> {
         }
     }
 }
+
+impl<T: Clone> NodeCell for Op<T> {}
 
 impl<T> Clone for Op<T>
 where
@@ -253,7 +260,7 @@ impl<T> Display for Op<T> {
 
 impl<T> Default for Op<T>
 where
-    T: Default + Clone,
+    T: Default,
 {
     fn default() -> Self {
         Op::Const("default", T::default())
@@ -285,7 +292,7 @@ mod test {
         assert_eq!(op.name(), "add");
         assert_eq!(op.arity(), Arity::Exact(2));
         assert_eq!(op.eval(&vec![1_f32, 2_f32]), 3_f32);
-        assert_eq!(op.new_instance(), op);
+        assert_eq!(op.new_instance(()), op);
     }
 
     #[test]

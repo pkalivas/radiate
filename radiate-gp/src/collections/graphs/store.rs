@@ -1,25 +1,25 @@
 use crate::collections::{GraphNode, NodeType};
-use crate::{Factory, NodeCell};
+use crate::{Factory, NodeCell, Op};
 
 use radiate::random_provider;
 use std::collections::HashMap;
 
-pub struct CellStore<C: NodeCell> {
-    values: HashMap<NodeType, Vec<C>>,
+pub struct CellStore<T> {
+    values: HashMap<NodeType, Vec<Op<T>>>,
 }
 
-impl<C: NodeCell> CellStore<C> {
+impl<T> CellStore<T> {
     pub fn new() -> Self {
         CellStore {
             values: HashMap::new(),
         }
     }
 
-    pub fn add_values(&mut self, node_type: NodeType, values: Vec<C>) {
+    pub fn add_values(&mut self, node_type: NodeType, values: Vec<Op<T>>) {
         self.values.insert(node_type, values);
     }
 
-    pub fn get_values(&self, node_type: NodeType) -> Option<&Vec<C>> {
+    pub fn get_values(&self, node_type: NodeType) -> Option<&Vec<Op<T>>> {
         self.values.get(&node_type)
     }
 }
@@ -41,16 +41,16 @@ impl<C: NodeCell + PartialEq> PartialEq for CellStore<C> {
     }
 }
 
-impl<C: NodeCell + Default> Factory<GraphNode<C>> for CellStore<C> {
+impl<T: Default + Clone> Factory<GraphNode<T>> for CellStore<T> {
     type Input = (usize, NodeType);
 
-    fn new_instance(&self, input: Self::Input) -> GraphNode<C> {
+    fn new_instance(&self, input: Self::Input) -> GraphNode<T> {
         let (index, node_type) = input;
         if let Some(values) = self.get_values(node_type) {
-            let new_instance = random_provider::choose(values).new_instance();
+            let new_instance = random_provider::choose(values).new_instance(());
             return GraphNode::new(index, node_type, new_instance);
         }
 
-        GraphNode::new(index, node_type, C::default())
+        GraphNode::new(index, node_type, Op::default())
     }
 }

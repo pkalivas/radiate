@@ -20,8 +20,8 @@ impl Regression {
     }
 }
 
-impl Eval<Graph<Op<f32>>, f32> for Regression {
-    fn eval(&self, graph: &Graph<Op<f32>>) -> f32 {
+impl Eval<Graph<f32>, f32> for Regression {
+    fn eval(&self, graph: &Graph<f32>) -> f32 {
         let mut evaluator = GraphEvaluator::new(graph);
 
         self.loss_function
@@ -29,8 +29,8 @@ impl Eval<Graph<Op<f32>>, f32> for Regression {
     }
 }
 
-impl Eval<Tree<Op<f32>>, f32> for Regression {
-    fn eval(&self, tree: &Tree<Op<f32>>) -> f32 {
+impl Eval<Tree<f32>, f32> for Regression {
+    fn eval(&self, tree: &Tree<f32>) -> f32 {
         self.loss_function
             .calculate(&self.data_set, &mut |input| vec![tree.eval(input)])
     }
@@ -56,18 +56,18 @@ impl<C: Chromosome, T> RegressionProblem<C, T> {
     }
 }
 
-impl Problem<GraphChromosome<Op<f32>>, Graph<Op<f32>>>
-    for RegressionProblem<GraphChromosome<Op<f32>>, Graph<Op<f32>>>
+impl Problem<GraphChromosome<f32>, Graph<f32>>
+    for RegressionProblem<GraphChromosome<f32>, Graph<f32>>
 {
-    fn encode(&self) -> Genotype<GraphChromosome<Op<f32>>> {
+    fn encode(&self) -> Genotype<GraphChromosome<f32>> {
         self.codex.encode()
     }
 
-    fn decode(&self, genotype: &Genotype<GraphChromosome<Op<f32>>>) -> Graph<Op<f32>> {
+    fn decode(&self, genotype: &Genotype<GraphChromosome<f32>>) -> Graph<f32> {
         self.codex.decode(genotype)
     }
 
-    fn eval(&self, graph: &Genotype<GraphChromosome<Op<f32>>>) -> Score {
+    fn eval(&self, graph: &Genotype<GraphChromosome<f32>>) -> Score {
         let graph = &graph.chromosomes[0].as_ref();
         let mut evaluator = GraphEvaluator::new(graph);
 

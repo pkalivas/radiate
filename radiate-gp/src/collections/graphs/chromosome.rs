@@ -5,54 +5,54 @@ use std::fmt::Debug;
 use std::sync::{Arc, RwLock};
 
 #[derive(Clone)]
-pub struct GraphChromosome<C: NodeCell> {
-    nodes: Vec<GraphNode<C>>,
-    store: Option<Arc<RwLock<CellStore<C>>>>,
+pub struct GraphChromosome<T> {
+    nodes: Vec<GraphNode<T>>,
+    store: Option<Arc<RwLock<CellStore<T>>>>,
 }
 
-impl<C: NodeCell> GraphChromosome<C> {
-    pub fn new(nodes: Vec<GraphNode<C>>, factory: Arc<RwLock<CellStore<C>>>) -> Self {
+impl<T> GraphChromosome<T> {
+    pub fn new(nodes: Vec<GraphNode<T>>, factory: Arc<RwLock<CellStore<T>>>) -> Self {
         GraphChromosome {
             nodes,
             store: Some(factory),
         }
     }
 
-    pub fn set_nodes(&mut self, nodes: Vec<GraphNode<C>>) {
+    pub fn set_nodes(&mut self, nodes: Vec<GraphNode<T>>) {
         self.nodes = nodes;
     }
 
-    pub fn store(&self) -> Arc<RwLock<CellStore<C>>> {
+    pub fn store(&self) -> Arc<RwLock<CellStore<T>>> {
         self.store.as_ref().unwrap().clone()
     }
 }
 
-impl<C> Chromosome for GraphChromosome<C>
+impl<T> Chromosome for GraphChromosome<T>
 where
-    C: Clone + PartialEq + Default + NodeCell,
+    T: Clone + PartialEq + Default,
 {
-    type Gene = GraphNode<C>;
+    type Gene = GraphNode<T>;
 }
 
-impl<C: NodeCell> Valid for GraphChromosome<C> {
+impl<T> Valid for GraphChromosome<T> {
     fn is_valid(&self) -> bool {
         self.nodes.iter().all(|gene| gene.is_valid())
     }
 }
 
-impl<C: NodeCell> AsRef<[GraphNode<C>]> for GraphChromosome<C> {
-    fn as_ref(&self) -> &[GraphNode<C>] {
+impl<T> AsRef<[GraphNode<T>]> for GraphChromosome<T> {
+    fn as_ref(&self) -> &[GraphNode<T>] {
         &self.nodes
     }
 }
 
-impl<C: NodeCell> AsMut<[GraphNode<C>]> for GraphChromosome<C> {
-    fn as_mut(&mut self) -> &mut [GraphNode<C>] {
+impl<T> AsMut<[GraphNode<T>]> for GraphChromosome<T> {
+    fn as_mut(&mut self) -> &mut [GraphNode<T>] {
         &mut self.nodes
     }
 }
 
-impl<C: NodeCell + PartialEq> PartialEq for GraphChromosome<C> {
+impl<T: PartialEq> PartialEq for GraphChromosome<T> {
     fn eq(&self, other: &Self) -> bool {
         self.nodes == other.nodes
     }

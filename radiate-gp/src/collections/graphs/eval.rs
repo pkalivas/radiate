@@ -1,25 +1,21 @@
 use super::{iter::GraphIterator, GraphNode};
-use crate::{Eval, EvalMut, NodeCell, NodeType};
+use crate::{Eval, EvalMut, NodeType};
 
 /// `GraphReducer` is a struct that is used to evaluate a `Graph` of `Node`s. It uses the `GraphIterator`
 /// to traverse the `Graph` in a sudo-topological order and evaluate the nodes in the correct order.
 ///
 /// On the first iteration it caches the order of nodes in the `Graph` and then uses that order to
 /// evaluate the nodes in the correct order. This is a massive performance improvement.
-pub struct GraphEvaluator<'a, C, T>
-where
-    C: NodeCell,
-{
-    nodes: &'a [GraphNode<C>],
+pub struct GraphEvaluator<'a, T> {
+    nodes: &'a [GraphNode<T>],
     output_size: usize,
     eval_order: Vec<usize>,
     outputs: Vec<T>,
     inputs: Vec<Vec<T>>,
 }
 
-impl<'a, C, T> GraphEvaluator<'a, C, T>
+impl<'a, T> GraphEvaluator<'a, T>
 where
-    C: NodeCell,
     T: Default + Clone,
 {
     /// Creates a new `GraphEvaluator` with the given `Graph`. Will cache the order of nodes in
@@ -29,9 +25,9 @@ where
     ///
     /// # Arguments
     /// * `graph` - The `Graph` to reduce.
-    pub fn new<N>(graph: &'a N) -> GraphEvaluator<'a, C, T>
+    pub fn new<N>(graph: &'a N) -> GraphEvaluator<'a, T>
     where
-        N: AsRef<[GraphNode<C>]>,
+        N: AsRef<[GraphNode<T>]>,
     {
         let nodes = graph.as_ref();
 
@@ -52,9 +48,8 @@ where
 }
 
 /// Implements the `EvalMut` trait for `GraphEvaluator`.
-impl<'a, C, T> EvalMut<[T], Vec<T>> for GraphEvaluator<'a, C, T>
+impl<'a, T> EvalMut<[T], Vec<T>> for GraphEvaluator<'a, T>
 where
-    C: NodeCell + Eval<[T], T>,
     T: Clone + Default,
 {
     /// Evaluates the `Graph` with the given input. Returns the output of the `Graph`.
@@ -92,9 +87,8 @@ where
     }
 }
 
-impl<'a, C, T> Eval<[T], Vec<T>> for &'a [GraphNode<C>]
+impl<'a, T> Eval<[T], Vec<T>> for &'a [GraphNode<T>]
 where
-    C: NodeCell + Eval<[T], T>,
     T: Clone + Default,
 {
     /// Evaluates the `Graph` with the given input. Returns the output of the `Graph`.
@@ -111,9 +105,8 @@ where
     }
 }
 
-impl<'a, C, T> Eval<Vec<Vec<T>>, Vec<T>> for &'a [GraphNode<C>]
+impl<'a, T> Eval<Vec<Vec<T>>, Vec<T>> for &'a [GraphNode<T>]
 where
-    C: NodeCell + Eval<[T], T>,
     T: Clone + Default,
 {
     /// Evaluates the `Graph` with the given input. Returns the output of the `Graph`.

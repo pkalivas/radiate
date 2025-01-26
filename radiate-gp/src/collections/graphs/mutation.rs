@@ -62,11 +62,11 @@ impl GraphMutator {
     /// and if successful will commit the transaction. If the node cannot be added the transaction
     /// will be rolled back.
     #[inline]
-    pub fn add_node<C: NodeCell + Clone + Default + PartialEq>(
+    pub fn add_node<T: Clone + Default + PartialEq>(
         &self,
-        graph: &mut Graph<C>,
+        graph: &mut Graph<T>,
         node_type: &NodeType,
-        factory: &CellStore<C>,
+        factory: &CellStore<T>,
         recurrent: bool,
     ) -> bool {
         let mut transaction = GraphTransaction::new(graph);
@@ -79,15 +79,15 @@ impl GraphMutator {
         true
     }
 
-    fn try_add_node<C>(
+    fn try_add_node<T>(
         &self,
-        transaction: &mut GraphTransaction<C>,
+        transaction: &mut GraphTransaction<T>,
         node_type: &NodeType,
-        factory: &CellStore<C>,
+        factory: &CellStore<T>,
         is_recurrent: bool,
     ) -> bool
     where
-        C: Clone + Default + PartialEq + NodeCell,
+        T: Clone + Default + PartialEq,
     {
         let source_node_index = transaction.as_ref().random_source_node().index();
         let target_node_index = transaction.as_ref().random_target_node().index();
@@ -124,16 +124,16 @@ impl GraphMutator {
         }
     }
 
-    fn try_edge_insertion<C>(
+    fn try_edge_insertion<T>(
         &self,
-        transaction: &mut GraphTransaction<C>,
+        transaction: &mut GraphTransaction<T>,
         source_node: usize,
         target_node: usize,
         node_type: &NodeType,
-        factory: &CellStore<C>,
+        factory: &CellStore<T>,
     ) -> bool
     where
-        C: Clone + Default + PartialEq + NodeCell,
+        T: Clone + Default + PartialEq,
     {
         let new_source_edge_index = transaction.as_ref().len();
         let new_node_index = transaction.as_ref().len() + 1;
@@ -180,16 +180,16 @@ impl GraphMutator {
         self.complete_node_arity(transaction, new_node_index, factory, false)
     }
 
-    fn try_backward_edge_insertion<C>(
+    fn try_backward_edge_insertion<T>(
         &self,
-        transaction: &mut GraphTransaction<C>,
+        transaction: &mut GraphTransaction<T>,
         source_idx: usize,
         target_idx: usize,
         node_type: &NodeType,
-        factory: &CellStore<C>,
+        factory: &CellStore<T>,
     ) -> bool
     where
-        C: Clone + Default + PartialEq + NodeCell,
+        T: Clone + Default + PartialEq,
     {
         let new_source_edge_index = transaction.as_ref().len();
         let new_node_index = transaction.as_ref().len() + 1;
@@ -284,17 +284,17 @@ impl GraphMutator {
         }
     }
 
-    fn try_normal_insertion<C>(
+    fn try_normal_insertion<T>(
         &self,
-        transaction: &mut GraphTransaction<C>,
+        transaction: &mut GraphTransaction<T>,
         source_node: usize,
         target_node: usize,
         node_type: &NodeType,
-        factory: &CellStore<C>,
+        factory: &CellStore<T>,
         is_recurrent: bool,
     ) -> bool
     where
-        C: Clone + Default + PartialEq + NodeCell,
+        T: Clone + Default + PartialEq,
     {
         if !&transaction
             .as_ref()
@@ -313,15 +313,15 @@ impl GraphMutator {
         self.complete_node_arity(transaction, node_index, factory, is_recurrent)
     }
 
-    fn complete_node_arity<C>(
+    fn complete_node_arity<T>(
         &self,
-        transaction: &mut GraphTransaction<C>,
+        transaction: &mut GraphTransaction<T>,
         node_index: usize,
-        factory: &CellStore<C>,
+        factory: &CellStore<T>,
         is_recurrent: bool,
     ) -> bool
     where
-        C: Clone + Default + PartialEq + NodeCell,
+        T: Clone + Default + PartialEq,
     {
         let arity = transaction.as_ref()[node_index].value().arity();
 
@@ -362,27 +362,27 @@ impl EngineCompoment for GraphMutator {
     }
 }
 
-impl<C> Alter<GraphChromosome<C>> for GraphMutator
+impl<T> Alter<GraphChromosome<T>> for GraphMutator
 where
-    C: Clone + PartialEq + Default + NodeCell,
+    T: Clone + PartialEq + Default,
 {
     fn rate(&self) -> f32 {
         1.0
     }
 
-    fn to_alter(self) -> AlterAction<GraphChromosome<C>> {
+    fn to_alter(self) -> AlterAction<GraphChromosome<T>> {
         AlterAction::Mutate(Box::new(self))
     }
 }
 
-impl<C> Mutate<GraphChromosome<C>> for GraphMutator
+impl<T> Mutate<GraphChromosome<T>> for GraphMutator
 where
-    C: Clone + PartialEq + Default + NodeCell,
+    T: Clone + PartialEq + Default,
 {
     #[inline]
     fn mutate(
         &self,
-        population: &mut Population<GraphChromosome<C>>,
+        population: &mut Population<GraphChromosome<T>>,
         generation: i32,
     ) -> Vec<Metric> {
         let timer = Timer::new();
@@ -409,7 +409,7 @@ where
         vec![result]
     }
 
-    fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<C>) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<T>) -> i32 {
         let mutation = random_provider::choose(&self.mutations);
 
         if random_provider::random::<f32>() > mutation.rate() {
@@ -426,7 +426,7 @@ where
             &node_fact,
             mutation.is_recurrent(),
         ) {
-            chromosome.set_nodes(graph.into_iter().collect::<Vec<GraphNode<C>>>());
+            chromosome.set_nodes(graph.into_iter().collect::<Vec<GraphNode<T>>>());
             return 1;
         }
 
