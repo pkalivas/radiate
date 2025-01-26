@@ -417,7 +417,7 @@ where
 
         if let Some(ref factory) = chromosome.store {
             let mut graph = Graph::new(chromosome.nodes.clone());
-            let node_fact = factory.borrow();
+            let node_fact = factory.read().unwrap();
 
             if self.add_node(
                 &mut graph,

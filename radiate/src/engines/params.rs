@@ -213,9 +213,6 @@ where
 
     /// Build the genetic engine with the given parameters. This will create a new instance of the `GeneticEngine` with the given parameters.
     pub fn build(mut self) -> GeneticEngine<C, T> {
-        self.build_population();
-        self.build_alterer();
-
         if self.problem.is_none() {
             if self.codex.is_none() {
                 panic!("Codex not set");
@@ -232,6 +229,8 @@ where
 
             self.problem(problem).build()
         } else {
+            self.build_population();
+            self.build_alterer();
             GeneticEngine::new(self)
         }
     }
@@ -239,7 +238,7 @@ where
     /// Build the population of the genetic engine. This will create a new population using the codex if the population is not set.
     fn build_population(&mut self) {
         self.population = match &self.population {
-            None => Some(match self.codex.as_ref() {
+            None => Some(match self.problem.as_ref() {
                 Some(codex) => Population::from_fn(self.population_size, || {
                     Phenotype::from_genotype(codex.encode(), 0)
                 }),

@@ -1,23 +1,22 @@
 use crate::{CellStore, GraphNode, NodeCell};
 use radiate::{Chromosome, Valid};
-use std::cell::RefCell;
 use std::fmt::Debug;
-use std::rc::Rc;
+use std::sync::{Arc, RwLock};
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub struct GraphChromosome<C>
 where
     C: Clone + PartialEq + Default + NodeCell,
 {
     pub nodes: Vec<GraphNode<C>>,
-    pub store: Option<Rc<RefCell<CellStore<C>>>>,
+    pub store: Option<Arc<RwLock<CellStore<C>>>>,
 }
 
 impl<C> GraphChromosome<C>
 where
     C: Clone + PartialEq + Default + NodeCell,
 {
-    pub fn new(nodes: Vec<GraphNode<C>>, factory: Rc<RefCell<CellStore<C>>>) -> Self {
+    pub fn new(nodes: Vec<GraphNode<C>>, factory: Arc<RwLock<CellStore<C>>>) -> Self {
         GraphChromosome {
             nodes,
             store: Some(factory),
@@ -69,5 +68,14 @@ where
             write!(f, "  {:?},\n", node)?;
         }
         write!(f, "}}")
+    }
+}
+
+impl<C> PartialEq for GraphChromosome<C>
+where
+    C: Clone + PartialEq + Default + NodeCell,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.nodes == other.nodes
     }
 }

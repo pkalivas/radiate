@@ -48,31 +48,11 @@ pub trait EvalMut<I: ?Sized, O> {
     fn eval_mut(&mut self, input: &I) -> O;
 }
 
-// pub trait TypedEval<I, O> {
-//     fn eval(&self, input: &I) -> O;
-// }
-
-// impl<I, O> Eval for dyn TypedEval<I, O> {
-//     type Input = I;
-//     type Output = O;
-
-//     fn eval(&self, input: &Self::Input) -> Self::Output {
-//         self.eval(input)
-//     }
-// }
-
-// impl<E> EvalMut for E
-// where
-//     E: Eval,
-// {
-//     type Input = E::Input;
-//     type Output = E::Output;
-
-//     fn eval_mut(&mut self, input: &Self::Input) -> Self::Output {
-//         self.eval(input)
-//     }
-// }
-
-// pub trait Reduce<I: ?Sized, O> {
-//     fn reduce(&mut self, input: &I) -> O;
-// }
+impl<I: ?Sized, O, F> Eval<I, O> for F
+where
+    F: Fn(&I) -> O,
+{
+    fn eval(&self, input: &I) -> O {
+        self(input)
+    }
+}

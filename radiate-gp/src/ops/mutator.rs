@@ -99,7 +99,10 @@ where
                 }
                 _ => {
                     if let Some(store) = chromosome.store.as_ref() {
-                        let new_op = store.borrow().new_instance((i, current_node.node_type()));
+                        let new_op = store
+                            .read()
+                            .unwrap()
+                            .new_instance((i, current_node.node_type()));
 
                         if new_op.value().arity() == current_node.value().arity() {
                             chromosome.set_gene(i, current_node.with_allele(new_op.allele()));

@@ -21,7 +21,7 @@ use crate::{Chromosome, Valid};
 /// # Type Parameters
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 ///
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Default)]
 pub struct Genotype<C: Chromosome> {
     pub chromosomes: Vec<C>,
 }
@@ -75,3 +75,6 @@ impl<C: Chromosome> IndexMut<usize> for Genotype<C> {
         &mut self.chromosomes[index]
     }
 }
+
+unsafe impl<C: Chromosome> Send for Genotype<C> {}
+unsafe impl<C: Chromosome> Sync for Genotype<C> {}

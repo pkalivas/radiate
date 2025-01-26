@@ -86,6 +86,10 @@ where
         GeneticEngineParams::new().codex(codex)
     }
 
+    pub fn from_problem<P>(problem: impl Problem<C, T> + 'static) -> GeneticEngineParams<C, T> {
+        GeneticEngineParams::new().problem(problem)
+    }
+
     /// Executes the genetic algorithm. The algorithm continues until a specified
     /// stopping condition, 'limit', is met, such as reaching a target fitness score or
     /// exceeding a maximum number of generations. When 'limit' returns true, the algorithm stops.
@@ -124,18 +128,22 @@ where
     /// It will also only evaluate individuals that have not yet been scored, which saves time
     /// by avoiding redundant evaluations.
     fn evaluate(&self, handle: &mut EngineContext<C, T>) {
-        let codex = self.problem();
         let objective = self.objective();
         let thread_pool = self.thread_pool();
         let timer = Timer::new();
 
         let mut work_results = Vec::new();
         for idx in 0..handle.population.len() {
-            let individual = &handle.population[idx];
-            if individual.score().is_none() {
-                let fitness_fn = self.fitness_fn();
-                let decoded = codex.decode(individual.genotype());
-                let work = thread_pool.submit_with_result(move || (idx, fitness_fn(decoded)));
+            let individual = &mut handle.population[idx];
+            if individual.score().is_some() {
+                continue;
+            } else {
+                let problem = self.problem();
+                let geno = individual.take_genotype();
+                let work = thread_pool.submit_with_result(move || {
+                    let score = problem.eval(&geno);
+                    (idx, score, geno)
+                });
 
                 work_results.push(work);
             }
@@ -143,8 +151,9 @@ where
 
         let count = work_results.len() as f32;
         for work_result in work_results {
-            let (idx, score) = work_result.result();
+            let (idx, score, genotype) = work_result.result();
             handle.population[idx].set_score(Some(score));
+            handle.population[idx].set_genotype(genotype);
         }
 
         handle.upsert_operation(metric_names::EVALUATION, count, timer.duration());
@@ -232,7 +241,7 @@ where
     /// healthy and that only valid individuals are allowed to reproduce or survive to the next generation.
     fn filter(&self, context: &mut EngineContext<C, T>) {
         let max_age = self.max_age();
-        let codex = self.problem();
+        let problem = self.problem();
 
         let generation = context.index;
         let population = &mut context.population;
@@ -244,10 +253,10 @@ where
             let phenotype = &population[i];
 
             if phenotype.age(generation) > max_age {
-                population[i] = Phenotype::from_genotype(codex.encode(), generation);
+                population[i] = Phenotype::from_genotype(problem.encode(), generation);
                 age_count += 1_f32;
             } else if !phenotype.genotype().is_valid() {
-                population[i] = Phenotype::from_genotype(codex.encode(), generation);
+                population[i] = Phenotype::from_genotype(problem.encode(), generation);
                 invalid_count += 1_f32;
             }
         }
@@ -278,7 +287,7 @@ where
     /// and calculating various metrics such as the age of individuals, the score of individuals, and the
     /// number of unique scores in the population. This method is called at the end of each generation.
     fn audit(&self, output: &mut EngineContext<C, T>) {
-        let codex = self.problem();
+        let problem = self.problem();
         let optimize = self.objective();
 
         if !output.population.is_sorted {
@@ -289,12 +298,12 @@ where
             if let Some(best_score) = output.population[0].score() {
                 if optimize.is_better(best_score, current_score) {
                     output.score = Some(best_score.clone());
-                    output.best = codex.decode(output.population[0].genotype());
+                    output.best = problem.decode(output.population[0].genotype());
                 }
             }
         } else {
             output.score = output.population[0].score().cloned();
-            output.best = codex.decode(output.population[0].genotype());
+            output.best = problem.decode(output.population[0].genotype());
         }
 
         self.update_front(output);
@@ -383,10 +392,6 @@ where
 
     fn alterer(&self) -> &[AlterAction<C>] {
         &self.params.alterers
-    }
-
-    fn fitness_fn(&self) -> Arc<dyn Fn(T) -> Score + Send + Sync> {
-        Arc::clone(self.params.fitness_fn.as_ref().unwrap())
     }
 
     fn problem(&self) -> Arc<Box<dyn Problem<C, T>>> {

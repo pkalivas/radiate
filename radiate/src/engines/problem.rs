@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use super::{Chromosome, Codex, Genotype, Score};
 
-pub trait Problem<C: Chromosome, T> {
+pub trait Problem<C: Chromosome, T>: Send + Sync {
     fn encode(&self) -> Genotype<C>;
     fn decode(&self, genotype: &Genotype<C>) -> T;
-    fn fitness(&self, individual: &Genotype<C>) -> Score;
+    fn eval(&self, individual: &Genotype<C>) -> Score;
 }
 
 impl<C: Chromosome, T> Codex<C, T> for dyn Problem<C, T> {
@@ -27,6 +27,20 @@ where
     pub fitness_fn: Arc<dyn Fn(T) -> Score + Send + Sync>,
 }
 
+unsafe impl<C, T> Send for DefaultProblem<C, T>
+where
+    C: Chromosome,
+    T: Clone,
+{
+}
+
+unsafe impl<C, T> Sync for DefaultProblem<C, T>
+where
+    C: Chromosome,
+    T: Clone,
+{
+}
+
 impl<C, T> Problem<C, T> for DefaultProblem<C, T>
 where
     C: Chromosome,
@@ -40,7 +54,7 @@ where
         self.codex.decode(genotype)
     }
 
-    fn fitness(&self, individual: &Genotype<C>) -> Score {
+    fn eval(&self, individual: &Genotype<C>) -> Score {
         let phenotype = self.decode(individual);
         (self.fitness_fn)(phenotype)
     }

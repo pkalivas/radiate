@@ -1,7 +1,4 @@
-use crate::{
-    collections::{Graph, GraphNode},
-    NodeCell,
-};
+use crate::{collections::GraphNode, NodeCell};
 use std::collections::VecDeque;
 
 /// `GraphIterator` is an iterator that traverses a `Graph` in sudo-topological order. I say
@@ -9,7 +6,7 @@ use std::collections::VecDeque;
 /// that allows for recurrent connections. This iterator is used by the `GraphReducer` to evaluate
 /// the nodes in a `Graph` in the correct order.
 pub struct GraphIterator<'a, C: NodeCell> {
-    pub graph: &'a Graph<C>,
+    pub graph: &'a [GraphNode<C>],
     pub completed: Vec<bool>,
     pub index_queue: VecDeque<usize>,
     pub pending_index: usize,
@@ -20,7 +17,7 @@ impl<'a, C: NodeCell> GraphIterator<'a, C> {
     ///
     /// # Arguments
     /// - `graph`: A reference to the `Graph` to iterate over.
-    pub fn new(graph: &'a Graph<C>) -> Self {
+    pub fn new(graph: &'a [GraphNode<C>]) -> Self {
         Self {
             graph,
             completed: vec![false; graph.len()],
@@ -52,10 +49,10 @@ impl<'a, C: NodeCell> Iterator for GraphIterator<'a, C> {
                 continue;
             }
 
-            let node = self.graph.get(index);
+            let node = &self.graph[index];
             let mut degree = node.incoming().len();
             for incoming_index in node.incoming() {
-                let incoming_node = self.graph.get(*incoming_index);
+                let incoming_node = &self.graph[*incoming_index];
                 if self.completed[incoming_node.index()] || incoming_node.is_recurrent() {
                     degree -= 1;
                 }
@@ -72,7 +69,7 @@ impl<'a, C: NodeCell> Iterator for GraphIterator<'a, C> {
         self.pending_index = min_pending_index;
 
         if let Some(index) = self.index_queue.pop_front() {
-            return Some(self.graph.get(index));
+            return Some(&self.graph[index]);
         }
 
         None

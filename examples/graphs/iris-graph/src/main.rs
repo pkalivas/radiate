@@ -10,9 +10,9 @@ fn main() {
     random_provider::set_seed(1000);
 
     let (train, test) = load_iris_dataset().shuffle().standardize().split(0.75);
-    let graph_codex = GraphCodex::classification(4, 4);
+    let train_copy = train.clone();
 
-    let regression = Regression::new(train.clone(), Loss::MSE);
+    let graph_codex = GraphCodex::classification(4, 4);
 
     let engine = GeneticEngine::from_codex(graph_codex)
         .minimizing()
@@ -26,7 +26,9 @@ fn main() {
                 NodeMutate::Vertex(0.03, false),
             ]),
         ))
-        .fitness_fn(move |graph: Graph<Op<f32>>| regression.eval(&graph))
+        .fitness_fn(move |graph: Graph<Op<f32>>| {
+            Loss::MSE.loss(&mut GraphEvaluator::new(&graph), &train_copy)
+        })
         .build();
 
     let result = engine.run(|ctx| {

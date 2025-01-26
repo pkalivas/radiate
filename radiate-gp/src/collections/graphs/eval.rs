@@ -1,4 +1,4 @@
-use super::Graph;
+use super::{Graph, GraphIterator, GraphNode};
 use crate::{Eval, EvalMut, NodeCell, NodeType};
 
 /// `GraphReducer` is a struct that is used to evaluate a `Graph` of `Node`s. It uses the `GraphIterator`
@@ -10,7 +10,7 @@ pub struct GraphEvaluator<'a, C, T>
 where
     C: NodeCell,
 {
-    graph: &'a Graph<C>,
+    nodes: &'a [GraphNode<C>],
     output_size: usize,
     eval_order: Vec<usize>,
     outputs: Vec<T>,
@@ -29,29 +29,23 @@ where
     ///
     /// # Arguments
     /// * `graph` - The `Graph` to reduce.
-    pub fn new(graph: &'a Graph<C>) -> GraphEvaluator<'a, C, T> {
+    pub fn new<N: AsRef<[GraphNode<C>]>>(graph: &'a N) -> GraphEvaluator<'a, C, T> {
         GraphEvaluator {
-            graph,
+            nodes: graph.as_ref(),
             output_size: graph
+                .as_ref()
                 .iter()
                 .filter(|node| node.node_type() == NodeType::Output)
                 .count(),
             inputs: graph
+                .as_ref()
                 .iter()
                 .map(|node| vec![T::default(); node.incoming().len()])
                 .collect::<Vec<Vec<T>>>(),
-            eval_order: Vec::with_capacity(graph.len()),
-            outputs: vec![T::default(); graph.len()],
-        }
-    }
-
-    fn try_init_eval_order(&mut self) {
-        if self.eval_order.is_empty() {
-            self.eval_order = self
-                .graph
-                .iter_topological()
+            eval_order: GraphIterator::new(graph.as_ref())
                 .map(|node| node.index())
-                .collect();
+                .collect(),
+            outputs: vec![T::default(); graph.as_ref().len()],
         }
     }
 }
@@ -73,11 +67,9 @@ where
     /// * A `Vec` of `T` which is the output of the `Graph`.
     #[inline]
     fn eval_mut(&mut self, input: &[T]) -> Vec<T> {
-        self.try_init_eval_order();
-
         let mut output = Vec::with_capacity(self.output_size);
         for index in self.eval_order.iter() {
-            let node = self.graph.get(*index);
+            let node = &self.nodes[*index];
             if node.incoming().is_empty() {
                 self.outputs[node.index()] = node.value().eval(input);
             } else {
@@ -113,7 +105,7 @@ where
 mod tests {
     use radiate::random_provider;
 
-    use crate::GraphBuilder;
+    use crate::graphs::architect::GraphArchitect;
 
     use super::*;
 
@@ -121,7 +113,7 @@ mod tests {
     fn test_graph_eval_simple() {
         random_provider::set_seed(2);
 
-        let builder = GraphBuilder::regression(3);
+        let builder = GraphArchitect::regression(3);
 
         let graph = builder.lstm(3, 3, 3);
 
