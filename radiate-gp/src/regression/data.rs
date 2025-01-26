@@ -124,9 +124,3 @@ impl DataSet {
         self
     }
 }
-
-impl AsRef<[Row]> for DataSet {
-    fn as_ref(&self) -> &[Row] {
-        &self.rows
-    }
-}

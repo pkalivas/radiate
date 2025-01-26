@@ -291,13 +291,19 @@ where
 
 impl Into<Op<f32>> for f32 {
     fn into(self) -> Op<f32> {
-        Op::value(self)
+        Op::Value(self, Arity::Any)
     }
 }
 
 impl Into<Op<i32>> for i32 {
     fn into(self) -> Op<i32> {
-        Op::value(self)
+        Op::Value(self, Arity::Any)
+    }
+}
+
+impl Into<Op<bool>> for bool {
+    fn into(self) -> Op<bool> {
+        Op::Value(self, Arity::Any)
     }
 }
 

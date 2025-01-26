@@ -4,13 +4,13 @@ use crate::{Factory, Op};
 use radiate::random_provider;
 use std::collections::HashMap;
 
-pub struct CellStore<T> {
+pub struct NodeStore<T> {
     values: HashMap<NodeType, Vec<Op<T>>>,
 }
 
-impl<T> CellStore<T> {
+impl<T> NodeStore<T> {
     pub fn new() -> Self {
-        CellStore {
+        NodeStore {
             values: HashMap::new(),
         }
     }
@@ -24,9 +24,9 @@ impl<T> CellStore<T> {
     }
 }
 
-impl<T: Clone> Clone for CellStore<T> {
+impl<T: Clone> Clone for NodeStore<T> {
     fn clone(&self) -> Self {
-        let mut store = CellStore::new();
+        let mut store = NodeStore::new();
         for (node_type, values) in &self.values {
             store.add_values(*node_type, values.clone());
         }
@@ -35,13 +35,13 @@ impl<T: Clone> Clone for CellStore<T> {
     }
 }
 
-impl<T: PartialEq> PartialEq for CellStore<T> {
+impl<T: PartialEq> PartialEq for NodeStore<T> {
     fn eq(&self, other: &Self) -> bool {
         self.values == other.values
     }
 }
 
-impl<T: Default + Clone> Factory<GraphNode<T>> for CellStore<T> {
+impl<T: Default + Clone> Factory<GraphNode<T>> for NodeStore<T> {
     type Input = (usize, NodeType);
 
     fn new_instance(&self, input: Self::Input) -> GraphNode<T> {

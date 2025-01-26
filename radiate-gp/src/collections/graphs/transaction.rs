@@ -1,6 +1,8 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, ops::Index};
 
 use radiate::Valid;
+
+use crate::Op;
 
 use super::{Direction, Graph, GraphNode};
 
@@ -33,6 +35,20 @@ impl<'a, T: Clone + Default + PartialEq> GraphTransaction<'a, T> {
             steps: Vec::new(),
             effects: HashSet::new(),
         }
+    }
+
+    pub fn len(&self) -> usize {
+        self.graph.len()
+    }
+
+    pub fn insert_vertex(&mut self, value: impl Into<Op<T>>) -> usize {
+        let node = GraphNode::new(self.graph.len(), super::NodeType::Vertex, value);
+        self.add_node(node)
+    }
+
+    pub fn insert_edge(&mut self, value: impl Into<Op<T>>) -> usize {
+        let node = GraphNode::new(self.graph.len(), super::NodeType::Edge, value);
+        self.add_node(node)
     }
 
     pub fn add_node(&mut self, node: GraphNode<T>) -> usize {
@@ -117,5 +133,16 @@ where
 {
     fn as_ref(&self) -> &Graph<T> {
         self.graph
+    }
+}
+
+impl<'a, T> Index<usize> for GraphTransaction<'a, T>
+where
+    T: Clone + Default + PartialEq,
+{
+    type Output = GraphNode<T>;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.graph[index]
     }
 }

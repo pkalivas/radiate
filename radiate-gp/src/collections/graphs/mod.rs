@@ -19,5 +19,5 @@ pub use graph::Graph;
 pub use iter::GraphTopologicalIterator;
 pub use mutation::{GraphMutator, NodeMutate};
 pub use node::{Direction, GraphNode, NodeType};
-pub use store::CellStore;
+pub use store::NodeStore;
 pub use transaction::GraphTransaction;

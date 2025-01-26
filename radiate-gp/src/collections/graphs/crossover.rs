@@ -9,34 +9,29 @@ use radiate::{indexes, random_provider, Alter, AlterAction, Crossover, EngineCom
 
 const NUM_PARENTS: usize = 2;
 
-pub struct GraphCrossover<T>
-where
-    T: Clone + PartialEq + Default,
-{
+pub struct GraphCrossover {
     crossover_rate: f32,
     crossover_parent_node_rate: f32,
-    _marker: std::marker::PhantomData<T>,
 }
 
-impl<T> GraphCrossover<T>
-where
-    T: Clone + PartialEq + Default + 'static,
-{
+impl GraphCrossover {
     pub fn new(crossover_rate: f32, crossover_parent_node_rate: f32) -> Self {
         Self {
             crossover_rate,
             crossover_parent_node_rate,
-            _marker: std::marker::PhantomData,
         }
     }
 
     #[inline]
-    pub fn cross(
+    pub fn cross<T>(
         &self,
         population: &Population<GraphChromosome<T>>,
         indexes: &[usize],
         generation: i32,
-    ) -> Option<Phenotype<GraphChromosome<T>>> {
+    ) -> Option<Phenotype<GraphChromosome<T>>>
+    where
+        T: Clone + PartialEq + Default + 'static,
+    {
         let parent_one = &population[indexes[0]];
         let parent_two = &population[indexes[1]];
 
@@ -86,16 +81,13 @@ where
     }
 }
 
-impl<T> EngineCompoment for GraphCrossover<T>
-where
-    T: Clone + PartialEq + Default + 'static,
-{
+impl EngineCompoment for GraphCrossover {
     fn name(&self) -> &'static str {
         "GraphCrossover"
     }
 }
 
-impl<T> Alter<GraphChromosome<T>> for GraphCrossover<T>
+impl<T> Alter<GraphChromosome<T>> for GraphCrossover
 where
     T: Clone + PartialEq + Default + 'static,
 {
@@ -108,7 +100,7 @@ where
     }
 }
 
-impl<T> Crossover<GraphChromosome<T>> for GraphCrossover<T>
+impl<T> Crossover<GraphChromosome<T>> for GraphCrossover
 where
     T: Clone + PartialEq + Default + 'static,
 {
@@ -120,6 +112,7 @@ where
         let timer = Timer::new();
         let mut count = 0;
         let mut new_phenotypes = HashMap::new();
+
         for index in 0..population.len() {
             if random_provider::random::<f32>() < self.crossover_rate
                 && population.len() > NUM_PARENTS

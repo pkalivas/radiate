@@ -1,4 +1,4 @@
-use super::CellStore;
+use super::NodeStore;
 use crate::GraphNode;
 use radiate::{Chromosome, Valid};
 use std::fmt::Debug;
@@ -7,11 +7,11 @@ use std::sync::{Arc, RwLock};
 #[derive(Clone)]
 pub struct GraphChromosome<T> {
     nodes: Vec<GraphNode<T>>,
-    store: Option<Arc<RwLock<CellStore<T>>>>,
+    store: Option<Arc<RwLock<NodeStore<T>>>>,
 }
 
 impl<T> GraphChromosome<T> {
-    pub fn new(nodes: Vec<GraphNode<T>>, factory: Arc<RwLock<CellStore<T>>>) -> Self {
+    pub fn new(nodes: Vec<GraphNode<T>>, factory: Arc<RwLock<NodeStore<T>>>) -> Self {
         GraphChromosome {
             nodes,
             store: Some(factory),
@@ -22,7 +22,7 @@ impl<T> GraphChromosome<T> {
         self.nodes = nodes;
     }
 
-    pub fn store(&self) -> Arc<RwLock<CellStore<T>>> {
+    pub fn store(&self) -> Arc<RwLock<NodeStore<T>>> {
         self.store.as_ref().unwrap().clone()
     }
 }

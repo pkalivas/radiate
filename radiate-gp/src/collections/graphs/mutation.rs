@@ -5,7 +5,7 @@ use radiate::{
 };
 
 use super::transaction::GraphTransaction;
-use super::{CellStore, Graph, GraphChromosome, GraphNode};
+use super::{Graph, GraphChromosome, GraphNode, NodeStore};
 use crate::ops::Arity;
 use crate::{Factory, NodeType};
 
@@ -66,7 +66,7 @@ impl GraphMutator {
         &self,
         graph: &mut Graph<T>,
         node_type: &NodeType,
-        factory: &CellStore<T>,
+        factory: &NodeStore<T>,
         recurrent: bool,
     ) -> bool {
         let mut transaction = GraphTransaction::new(graph);
@@ -83,7 +83,7 @@ impl GraphMutator {
         &self,
         transaction: &mut GraphTransaction<T>,
         node_type: &NodeType,
-        factory: &CellStore<T>,
+        factory: &NodeStore<T>,
         is_recurrent: bool,
     ) -> bool
     where
@@ -92,7 +92,7 @@ impl GraphMutator {
         let source_node_index = transaction.as_ref().random_source_node().index();
         let target_node_index = transaction.as_ref().random_target_node().index();
 
-        let source_node_type = transaction.as_ref()[source_node_index].node_type();
+        let source_node_type = transaction[source_node_index].node_type();
 
         if source_node_type == NodeType::Edge && node_type != &NodeType::Edge {
             if is_recurrent {
@@ -130,23 +130,21 @@ impl GraphMutator {
         source_node: usize,
         target_node: usize,
         node_type: &NodeType,
-        factory: &CellStore<T>,
+        factory: &NodeStore<T>,
     ) -> bool
     where
         T: Clone + Default + PartialEq,
     {
-        let new_source_edge_index = transaction.as_ref().len();
-        let new_node_index = transaction.as_ref().len() + 1;
-        let new_target_edge_index = transaction.as_ref().len() + 2;
+        let new_source_edge_index = transaction.len();
+        let new_node_index = transaction.len() + 1;
+        let new_target_edge_index = transaction.len() + 2;
 
-        let source_node = transaction.as_ref()[source_node].index();
-        let target_node = transaction.as_ref()[target_node].index();
+        let source_node = transaction[source_node].index();
+        let target_node = transaction[target_node].index();
 
-        if transaction.as_ref()[target_node].is_locked() {
-            let edge = factory.new_instance((
-                new_source_edge_index,
-                transaction.as_ref()[source_node].node_type(),
-            ));
+        if transaction[target_node].is_locked() {
+            let edge =
+                factory.new_instance((new_source_edge_index, transaction[source_node].node_type()));
             let new_node = factory.new_instance((new_node_index, *node_type));
 
             let edge_index = transaction.add_node(edge);
@@ -157,15 +155,11 @@ impl GraphMutator {
             transaction.attach(edge_index, target_node);
             transaction.detach(source_node, target_node);
         } else {
-            let new_source_edge = factory.new_instance((
-                new_source_edge_index,
-                transaction.as_ref()[source_node].node_type(),
-            ));
+            let new_source_edge =
+                factory.new_instance((new_source_edge_index, transaction[source_node].node_type()));
             let new_node = factory.new_instance((new_node_index, *node_type));
-            let new_target_edge = factory.new_instance((
-                new_target_edge_index,
-                transaction.as_ref()[target_node].node_type(),
-            ));
+            let new_target_edge =
+                factory.new_instance((new_target_edge_index, transaction[target_node].node_type()));
 
             transaction.add_node(new_source_edge);
             transaction.add_node(new_node);
@@ -186,22 +180,22 @@ impl GraphMutator {
         source_idx: usize,
         target_idx: usize,
         node_type: &NodeType,
-        factory: &CellStore<T>,
+        factory: &NodeStore<T>,
     ) -> bool
     where
         T: Clone + Default + PartialEq,
     {
-        let new_source_edge_index = transaction.as_ref().len();
-        let new_node_index = transaction.as_ref().len() + 1;
-        let new_target_edge_index = transaction.as_ref().len() + 2;
-        let recurrent_edge_index = transaction.as_ref().len() + 3;
+        let new_source_edge_index = transaction.len();
+        let new_node_index = transaction.len() + 1;
+        let new_target_edge_index = transaction.len() + 2;
+        let recurrent_edge_index = transaction.len() + 3;
 
         // Get node info before mutations
-        let source_node_type = transaction.as_ref()[source_idx].node_type();
-        let source_is_recurrent = transaction.as_ref()[source_idx].is_recurrent();
-        let source_incoming = transaction.as_ref()[source_idx].incoming().clone();
-        let source_outgoing = transaction.as_ref()[source_idx].outgoing().clone();
-        let target_is_locked = transaction.as_ref()[target_idx].is_locked();
+        let source_node_type = transaction[source_idx].node_type();
+        let source_is_recurrent = transaction[source_idx].is_recurrent();
+        let source_incoming = transaction[source_idx].incoming().clone();
+        let source_outgoing = transaction[source_idx].outgoing().clone();
+        let target_is_locked = transaction[target_idx].is_locked();
 
         if source_node_type == NodeType::Edge && node_type != &NodeType::Edge {
             let incoming_idx = *source_incoming.iter().next().unwrap();
@@ -290,7 +284,7 @@ impl GraphMutator {
         source_node: usize,
         target_node: usize,
         node_type: &NodeType,
-        factory: &CellStore<T>,
+        factory: &NodeStore<T>,
         is_recurrent: bool,
     ) -> bool
     where
@@ -303,7 +297,7 @@ impl GraphMutator {
             return false;
         }
 
-        let new_node = factory.new_instance((transaction.as_ref().len(), *node_type));
+        let new_node = factory.new_instance((transaction.len(), *node_type));
 
         let node_index = transaction.add_node(new_node);
         transaction.attach(source_node, node_index);
@@ -317,13 +311,13 @@ impl GraphMutator {
         &self,
         transaction: &mut GraphTransaction<T>,
         node_index: usize,
-        factory: &CellStore<T>,
+        factory: &NodeStore<T>,
         is_recurrent: bool,
     ) -> bool
     where
         T: Clone + Default + PartialEq,
     {
-        let arity = transaction.as_ref()[node_index].value().arity();
+        let arity = transaction[node_index].value().arity();
 
         match arity {
             Arity::Any | Arity::Zero => {
@@ -333,8 +327,7 @@ impl GraphMutator {
             Arity::Exact(arity) => {
                 for _ in 0..arity - 1 {
                     if random_provider::random::<f32>() < 0.05 {
-                        let input_node =
-                            factory.new_instance((transaction.as_ref().len(), NodeType::Input));
+                        let input_node = factory.new_instance((transaction.len(), NodeType::Input));
                         let input_index = transaction.add_node(input_node);
                         transaction.attach(input_index, node_index);
                     } else {

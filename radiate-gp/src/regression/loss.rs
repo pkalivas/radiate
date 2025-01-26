@@ -13,10 +13,6 @@ pub enum Loss {
 }
 
 impl Loss {
-    pub fn loss(&self, eval: &mut impl EvalMut<[f32], Vec<f32>>, samples: &DataSet) -> f32 {
-        self.calculate(samples, &mut |input| eval.eval_mut(input))
-    }
-
     pub fn calculate<F>(&self, samples: &DataSet, eval_func: &mut F) -> f32
     where
         F: FnMut(&Vec<f32>) -> Vec<f32>,
