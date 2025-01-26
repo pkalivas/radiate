@@ -4,9 +4,9 @@ use radiate::{
 };
 
 use super::transaction::GraphTransaction;
-use super::{Graph, GraphChromosome, GraphNode};
+use super::{Graph, GraphChromosome, GraphNode, CellStore};
 use crate::ops::Arity;
-use crate::{CellStore, Factory, NodeCell, NodeType};
+use crate::{Factory, NodeCell, NodeType};
 
 /// A node mutation used to alter the graph structure randomly
 /// The mutation can be either an edge or a vertex, with a rate of mutation and a flag to
@@ -417,7 +417,7 @@ where
 
         if let Some(ref factory) = chromosome.store {
             let mut graph = Graph::new(chromosome.nodes.clone());
-            let node_fact = factory.borrow();
+            let node_fact = factory.read().unwrap();
 
             if self.add_node(
                 &mut graph,

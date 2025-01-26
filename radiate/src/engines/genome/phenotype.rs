@@ -19,7 +19,7 @@ use super::{genotype::Genotype, Valid};
 ///
 #[derive(Clone, PartialEq, Debug)]
 pub struct Phenotype<C: Chromosome> {
-    pub genotype: Genotype<C>,
+    pub genotype: Option<Genotype<C>>,
     pub score: Option<Score>,
     pub generation: i32,
 }
@@ -28,7 +28,7 @@ impl<C: Chromosome> Phenotype<C> {
     /// Create a new instance of the `Phenotype` with the given `Genotype` and generation.
     pub fn from_genotype(genotype: Genotype<C>, generation: i32) -> Self {
         Phenotype {
-            genotype,
+            genotype: Some(genotype),
             score: None,
             generation,
         }
@@ -39,18 +39,27 @@ impl<C: Chromosome> Phenotype<C> {
     /// its just a lot. This method allows you to create a `Phenotype` from a list of chromosomes directly.
     pub fn from_chromosomes(chromosomes: Vec<C>, generation: i32) -> Self {
         Phenotype {
-            genotype: Genotype::from_chromosomes(chromosomes),
+            genotype: Some(Genotype::from_chromosomes(chromosomes)),
             score: None,
             generation,
         }
     }
 
     pub fn genotype(&self) -> &Genotype<C> {
-        &self.genotype
+        self.genotype.as_ref().unwrap()
     }
 
     pub fn genotype_mut(&mut self) -> &mut Genotype<C> {
-        &mut self.genotype
+        self.genotype.as_mut().unwrap()
+    }
+
+    pub fn take_genotype(&mut self) -> Genotype<C> {
+        self.score = None;
+        self.genotype.take().unwrap()
+    }
+
+    pub fn set_genotype(&mut self, genotype: Genotype<C>) {
+        self.genotype = Some(genotype);
     }
 
     pub fn score(&self) -> Option<&Score> {
@@ -76,7 +85,7 @@ impl<C: Chromosome> Phenotype<C> {
 /// and will remove any invalid individuals from the population, replacing them with new individuals at the given generation.
 impl<C: Chromosome> Valid for Phenotype<C> {
     fn is_valid(&self) -> bool {
-        self.genotype.is_valid()
+        self.genotype.as_ref().unwrap().is_valid()
     }
 }
 

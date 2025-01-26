@@ -8,9 +8,9 @@
 ///
 /// # Example
 /// ```rust
-/// use radiate_gp::{Op, Reduce, TreeNode};
+/// use radiate_gp::{Op, Eval, TreeNode};
 ///
-/// let mut root = TreeNode::new(Op::add())
+/// let root = TreeNode::new(Op::add())
 ///     .attach(
 ///         TreeNode::new(Op::mul())
 ///             .attach(TreeNode::new(Op::value(2.0)))
@@ -23,7 +23,7 @@
 ///     );
 ///
 /// // And the result of evaluating this tree with an input of `1` would be:
-/// let result = root.reduce(&vec![1_f32]);
+/// let result = root.eval(&vec![1_f32]);
 /// assert_eq!(result, 9.0);
 /// ```
 /// This creates a `Tree` that looks like:
@@ -40,9 +40,19 @@
 /// ```text
 /// f(x) = (2 * 3) + (2 + x)
 /// ```
-pub trait Reduce {
-    type Input;
-    type Output;
+pub trait Eval<I: ?Sized, O> {
+    fn eval(&self, input: &I) -> O;
+}
 
-    fn reduce(&mut self, input: &Self::Input) -> Self::Output;
+pub trait EvalMut<I: ?Sized, O> {
+    fn eval_mut(&mut self, input: &I) -> O;
+}
+
+impl<I: ?Sized, O, F> Eval<I, O> for F
+where
+    F: Fn(&I) -> O,
+{
+    fn eval(&self, input: &I) -> O {
+        self(input)
+    }
 }

@@ -6,7 +6,7 @@ mod test {
 
     #[test]
     fn test_simpl_tree() {
-        let mut tree = Tree::new(
+        let tree = Tree::new(
             TreeNode::new(Op::add())
                 .attach(TreeNode::new(Op::value(1.0)))
                 .attach(TreeNode::new(Op::value(2.0))),
@@ -15,6 +15,6 @@ mod test {
         assert!(tree.root().unwrap().is_valid());
         assert_eq!(tree.height(), 1);
         assert_eq!(tree.size(), 3);
-        assert_eq!(tree.reduce(&vec![]), 3.0);
+        assert_eq!(tree.eval(&vec![]), 3.0);
     }
 }

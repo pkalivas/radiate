@@ -5,7 +5,7 @@ const MIN_SCORE: i32 = 0;
 fn main() {
     let codex = IntCodex::new(1, 10, 0, 100).with_bounds(0, 100);
 
-    let engine = GeneticEngine::from_codex(&codex)
+    let engine = GeneticEngine::from_codex(codex)
         .population_size(150)
         .minimizing()
         .offspring_selector(EliteSelector::new())

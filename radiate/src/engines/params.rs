@@ -1,6 +1,8 @@
 use super::codexes::Codex;
 use super::thread_pool::ThreadPool;
-use super::{Alter, AlterAction, RouletteSelector, Select, TournamentSelector};
+use super::{
+    Alter, AlterAction, DefaultProblem, Problem, RouletteSelector, Select, TournamentSelector,
+};
 use crate::engines::engine::GeneticEngine;
 use crate::engines::genome::phenotype::Phenotype;
 use crate::engines::genome::population::Population;
@@ -23,10 +25,10 @@ use std::sync::Arc;
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 /// - `T`: The type of the best individual in the population.
 ///
-pub struct GeneticEngineParams<'a, C, T>
+pub struct GeneticEngineParams<C, T>
 where
-    C: Chromosome,
-    T: Clone,
+    C: Chromosome + 'static,
+    T: Clone + 'static,
 {
     pub population_size: usize,
     pub max_age: i32,
@@ -39,11 +41,12 @@ where
     pub offspring_selector: Box<dyn Select<C>>,
     pub alterers: Vec<AlterAction<C>>,
     pub population: Option<Population<C>>,
-    pub codex: Option<Arc<&'a dyn Codex<C, T>>>,
+    pub codex: Option<Arc<Box<dyn Codex<C, T>>>>,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
+    pub problem: Option<Arc<Box<dyn Problem<C, T>>>>,
 }
 
-impl<'a, C, T> GeneticEngineParams<'a, C, T>
+impl<C, T> GeneticEngineParams<C, T>
 where
     C: Chromosome,
     T: Clone + Send,
@@ -78,6 +81,7 @@ where
             codex: None,
             population: None,
             fitness_fn: None,
+            problem: None,
         }
     }
 
@@ -114,8 +118,14 @@ where
     }
 
     /// Set the codex that will be used to encode and decode the genotype of the population.
-    pub fn codex(mut self, codex: &'a impl Codex<C, T>) -> Self {
-        self.codex = Some(Arc::new(codex));
+    pub fn codex<E: Codex<C, T> + 'static>(mut self, codex: E) -> Self {
+        self.codex = Some(Arc::new(Box::new(codex)));
+        self
+    }
+
+    /// Set the problem of the genetic engine. This is useful if you want to provide a custom problem.
+    pub fn problem<P: Problem<C, T> + 'static>(mut self, problem: P) -> Self {
+        self.problem = Some(Arc::new(Box::new(problem)));
         self
     }
 
@@ -202,25 +212,33 @@ where
     }
 
     /// Build the genetic engine with the given parameters. This will create a new instance of the `GeneticEngine` with the given parameters.
-    pub fn build(mut self) -> GeneticEngine<'a, C, T> {
-        self.build_population();
-        self.build_alterer();
+    pub fn build(mut self) -> GeneticEngine<C, T> {
+        if self.problem.is_none() {
+            if self.codex.is_none() {
+                panic!("Codex not set");
+            }
 
-        if self.codex.is_none() {
-            panic!("Codex not set");
+            if self.fitness_fn.is_none() {
+                panic!("Fitness function not set");
+            }
+
+            let problem = DefaultProblem {
+                codex: self.codex.clone().unwrap(),
+                fitness_fn: self.fitness_fn.clone().unwrap(),
+            };
+
+            self.problem(problem).build()
+        } else {
+            self.build_population();
+            self.build_alterer();
+            GeneticEngine::new(self)
         }
-
-        if self.fitness_fn.is_none() {
-            panic!("Fitness function not set");
-        }
-
-        GeneticEngine::new(self)
     }
 
     /// Build the population of the genetic engine. This will create a new population using the codex if the population is not set.
     fn build_population(&mut self) {
         self.population = match &self.population {
-            None => Some(match self.codex.as_ref() {
+            None => Some(match self.problem.as_ref() {
                 Some(codex) => Population::from_fn(self.population_size, || {
                     Phenotype::from_genotype(codex.encode(), 0)
                 }),

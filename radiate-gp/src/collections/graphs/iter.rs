@@ -1,26 +1,33 @@
-use crate::{
-    collections::{Graph, GraphNode},
-    NodeCell,
-};
+use crate::{collections::GraphNode, NodeCell};
 use std::collections::VecDeque;
+
+pub trait GraphIterator<'a, C: NodeCell> {
+    fn iter_topological(&'a self) -> GraphTopologicalIterator<'a, C>;
+}
+
+impl<'a, G: AsRef<[GraphNode<C>]>, C: NodeCell> GraphIterator<'a, C> for G {
+    fn iter_topological(&'a self) -> GraphTopologicalIterator<'a, C> {
+        GraphTopologicalIterator::new(self.as_ref())
+    }
+}
 
 /// `GraphIterator` is an iterator that traverses a `Graph` in sudo-topological order. I say
 /// "sudo-topological" because it is not a true topological order, but rather a topological order
 /// that allows for recurrent connections. This iterator is used by the `GraphReducer` to evaluate
 /// the nodes in a `Graph` in the correct order.
-pub struct GraphIterator<'a, C: NodeCell> {
-    pub graph: &'a Graph<C>,
+pub struct GraphTopologicalIterator<'a, C: NodeCell> {
+    pub graph: &'a [GraphNode<C>],
     pub completed: Vec<bool>,
     pub index_queue: VecDeque<usize>,
     pub pending_index: usize,
 }
 
-impl<'a, C: NodeCell> GraphIterator<'a, C> {
+impl<'a, C: NodeCell> GraphTopologicalIterator<'a, C> {
     /// Create a new `GraphIterator` from a reference to a `Graph`.
     ///
     /// # Arguments
     /// - `graph`: A reference to the `Graph` to iterate over.
-    pub fn new(graph: &'a Graph<C>) -> Self {
+    pub fn new(graph: &'a [GraphNode<C>]) -> Self {
         Self {
             graph,
             completed: vec![false; graph.len()],
@@ -41,7 +48,7 @@ impl<'a, C: NodeCell> GraphIterator<'a, C> {
 /// if it can be completed. If a node can be completed, it is added to the index queue, which is
 /// used to determine the order in which the nodes are returned by the iterator.
 /// It is a 'sudo' topological order because it allows for recurrent connections in the graph.
-impl<'a, C: NodeCell> Iterator for GraphIterator<'a, C> {
+impl<'a, C: NodeCell> Iterator for GraphTopologicalIterator<'a, C> {
     type Item = &'a GraphNode<C>;
 
     #[inline]
@@ -52,10 +59,10 @@ impl<'a, C: NodeCell> Iterator for GraphIterator<'a, C> {
                 continue;
             }
 
-            let node = self.graph.get(index);
+            let node = &self.graph[index];
             let mut degree = node.incoming().len();
             for incoming_index in node.incoming() {
-                let incoming_node = self.graph.get(*incoming_index);
+                let incoming_node = &self.graph[*incoming_index];
                 if self.completed[incoming_node.index()] || incoming_node.is_recurrent() {
                     degree -= 1;
                 }
@@ -72,7 +79,7 @@ impl<'a, C: NodeCell> Iterator for GraphIterator<'a, C> {
         self.pending_index = min_pending_index;
 
         if let Some(index) = self.index_queue.pop_front() {
-            return Some(self.graph.get(index));
+            return Some(&self.graph[index]);
         }
 
         None

@@ -7,13 +7,13 @@ const MAX_SECONDS: f64 = 5.0;
 fn main() {
     random_provider::set_seed(1000);
 
-    let graph_codex = GraphCodex::regression(1, 1)
-        .with_vertices(vec![Op::add(), Op::sub(), Op::mul()])
-        .with_output(Op::linear());
+    let graph_codex = GraphBuilder::default()
+        .set_vertecies(vec![Op::add(), Op::sub(), Op::mul()])
+        .acyclic(1, 1, Op::linear());
 
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
-    let engine = GeneticEngine::from_codex(&graph_codex)
+    let engine = GeneticEngine::from_codex(graph_codex)
         .minimizing()
         .num_threads(10)
         .alter(alters!(
@@ -24,10 +24,7 @@ fn main() {
                 NodeMutate::Vertex(0.1, false),
             ]),
         ))
-        .fitness_fn(move |genotype: Graph<Op<f32>>| {
-            let mut reducer = GraphReducer::new(&genotype);
-            regression.loss(|input| reducer.reduce(input))
-        })
+        .fitness_fn(move |genotype: Graph<Op<f32>>| regression.eval(&genotype))
         .build();
 
     let result = engine.run(|ctx| {
@@ -42,9 +39,9 @@ fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     let mut regression_accuracy = 0.0;
     let mut total = 0.0;
 
-    let mut reducer = GraphReducer::new(&result.best);
+    let mut reducer = GraphEvaluator::new(&result.best);
     for sample in get_dataset().iter() {
-        let output = reducer.reduce(sample.input());
+        let output = reducer.eval_mut(sample.input());
 
         total += sample.output()[0].abs();
         regression_accuracy += (sample.output()[0] - output[0]).abs();

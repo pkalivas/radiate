@@ -6,6 +6,8 @@ pub mod engine;
 pub mod genome;
 pub mod objectives;
 pub mod params;
+
+pub mod problem;
 pub mod selectors;
 pub mod stats;
 
@@ -19,6 +21,7 @@ pub use engine::*;
 pub use genome::*;
 pub use objectives::*;
 pub use params::*;
+pub use problem::*;
 pub use selectors::*;
 pub use stats::*;
 

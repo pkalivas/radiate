@@ -14,6 +14,7 @@ use super::Codex;
 ///
 /// The lower and upper bounds of the `IntGenes` can be set with the `with_bounds` function.
 /// The default bounds are `T::MIN` and `T::MAX`.
+#[derive(Clone)]
 pub struct IntCodex<T: Integer<T>>
 where
     Standard: rand::distributions::Distribution<T>,

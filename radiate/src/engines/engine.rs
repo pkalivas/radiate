@@ -2,7 +2,7 @@ use super::codexes::Codex;
 use super::context::EngineContext;
 use super::genome::phenotype::Phenotype;
 use super::thread_pool::ThreadPool;
-use super::{AlterAction, MetricSet};
+use super::{AlterAction, MetricSet, Problem};
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
 use crate::engines::objectives::Score;
@@ -31,7 +31,7 @@ use std::sync::{Arc, Mutex};
 /// // eg: [[1.0, 2.0, 3.0, 4.0, 5.0]]
 ///
 /// // Create a new instance of the genetic engine with the given codex.
-/// let engine = GeneticEngine::from_codex(&codex)
+/// let engine = GeneticEngine::from_codex(codex)
 ///     .minimizing()  // Minimize the fitness function.
 ///     .population_size(150) // Set the population size to 150 individuals.
 ///     .max_age(15) // Set the maximum age of an individual to 15 generations before it is replaced with a new individual.
@@ -59,22 +59,22 @@ use std::sync::{Arc, Mutex};
 /// # Type Parameters
 /// - `C`: The type of the chromosome used in the genotype, which must implement the `Chromosome` trait.
 /// - `T`: The type of the phenotype produced by the genetic algorithm, which must be `Clone`, `Send`, and `static`.
-pub struct GeneticEngine<'a, C, T>
+pub struct GeneticEngine<C, T>
 where
-    C: Chromosome,
+    C: Chromosome + 'static,
     T: Clone + Send + 'static,
 {
-    params: GeneticEngineParams<'a, C, T>,
+    params: GeneticEngineParams<C, T>,
 }
 
-impl<'a, C, T> GeneticEngine<'a, C, T>
+impl<C, T> GeneticEngine<C, T>
 where
     C: Chromosome,
     T: Clone + Send,
 {
     /// Create a new instance of the `GeneticEngine` struct with the given parameters.
     /// - `params`: An instance of `GeneticEngineParams` that holds configuration parameters for the genetic engine.
-    pub fn new(params: GeneticEngineParams<'a, C, T>) -> Self {
+    pub fn new(params: GeneticEngineParams<C, T>) -> Self {
         GeneticEngine { params }
     }
 
@@ -82,8 +82,12 @@ where
     /// are represented in the population. Because the `Codex` is always needed, this
     /// is a convenience method that allows users to create a `GeneticEngineParams` instance
     /// which will then be 'built' resulting in a `GeneticEngine` instance.
-    pub fn from_codex(codex: &'a impl Codex<C, T>) -> GeneticEngineParams<'a, C, T> {
+    pub fn from_codex(codex: impl Codex<C, T> + 'static) -> GeneticEngineParams<C, T> {
         GeneticEngineParams::new().codex(codex)
+    }
+
+    pub fn from_problem(problem: impl Problem<C, T> + 'static) -> GeneticEngineParams<C, T> {
+        GeneticEngineParams::new().problem(problem)
     }
 
     /// Executes the genetic algorithm. The algorithm continues until a specified
@@ -124,18 +128,22 @@ where
     /// It will also only evaluate individuals that have not yet been scored, which saves time
     /// by avoiding redundant evaluations.
     fn evaluate(&self, handle: &mut EngineContext<C, T>) {
-        let codex = self.codex();
         let objective = self.objective();
         let thread_pool = self.thread_pool();
         let timer = Timer::new();
 
         let mut work_results = Vec::new();
         for idx in 0..handle.population.len() {
-            let individual = &handle.population[idx];
-            if individual.score().is_none() {
-                let fitness_fn = self.fitness_fn();
-                let decoded = codex.decode(individual.genotype());
-                let work = thread_pool.submit_with_result(move || (idx, fitness_fn(decoded)));
+            let individual = &mut handle.population[idx];
+            if individual.score().is_some() {
+                continue;
+            } else {
+                let problem = self.problem();
+                let geno = individual.take_genotype();
+                let work = thread_pool.submit_with_result(move || {
+                    let score = problem.eval(&geno);
+                    (idx, score, geno)
+                });
 
                 work_results.push(work);
             }
@@ -143,8 +151,9 @@ where
 
         let count = work_results.len() as f32;
         for work_result in work_results {
-            let (idx, score) = work_result.result();
+            let (idx, score, genotype) = work_result.result();
             handle.population[idx].set_score(Some(score));
+            handle.population[idx].set_genotype(genotype);
         }
 
         handle.upsert_operation(metric_names::EVALUATION, count, timer.duration());
@@ -232,7 +241,7 @@ where
     /// healthy and that only valid individuals are allowed to reproduce or survive to the next generation.
     fn filter(&self, context: &mut EngineContext<C, T>) {
         let max_age = self.max_age();
-        let codex = self.codex();
+        let problem = self.problem();
 
         let generation = context.index;
         let population = &mut context.population;
@@ -244,10 +253,10 @@ where
             let phenotype = &population[i];
 
             if phenotype.age(generation) > max_age {
-                population[i] = Phenotype::from_genotype(codex.encode(), generation);
+                population[i] = Phenotype::from_genotype(problem.encode(), generation);
                 age_count += 1_f32;
             } else if !phenotype.genotype().is_valid() {
-                population[i] = Phenotype::from_genotype(codex.encode(), generation);
+                population[i] = Phenotype::from_genotype(problem.encode(), generation);
                 invalid_count += 1_f32;
             }
         }
@@ -278,7 +287,7 @@ where
     /// and calculating various metrics such as the age of individuals, the score of individuals, and the
     /// number of unique scores in the population. This method is called at the end of each generation.
     fn audit(&self, output: &mut EngineContext<C, T>) {
-        let codex = self.codex();
+        let problem = self.problem();
         let optimize = self.objective();
 
         if !output.population.is_sorted {
@@ -289,12 +298,12 @@ where
             if let Some(best_score) = output.population[0].score() {
                 if optimize.is_better(best_score, current_score) {
                     output.score = Some(best_score.clone());
-                    output.best = codex.decode(output.population[0].genotype());
+                    output.best = problem.decode(output.population[0].genotype());
                 }
             }
         } else {
             output.score = output.population[0].score().cloned();
-            output.best = codex.decode(output.population[0].genotype());
+            output.best = problem.decode(output.population[0].genotype());
         }
 
         self.update_front(output);
@@ -385,12 +394,8 @@ where
         &self.params.alterers
     }
 
-    fn codex(&self) -> &'a dyn Codex<C, T> {
-        *Arc::clone(self.params.codex.as_ref().unwrap())
-    }
-
-    fn fitness_fn(&self) -> Arc<dyn Fn(T) -> Score + Send + Sync> {
-        Arc::clone(self.params.fitness_fn.as_ref().unwrap())
+    fn problem(&self) -> Arc<Box<dyn Problem<C, T>>> {
+        Arc::clone(self.params.problem.as_ref().unwrap())
     }
 
     fn population(&self) -> &Population<C> {
@@ -422,7 +427,7 @@ where
 
         EngineContext {
             population: population.clone(),
-            best: self.codex().decode(population[0].genotype()),
+            best: self.problem().decode(population[0].genotype()),
             index: 0,
             timer: Timer::new(),
             metrics: MetricSet::new(),
