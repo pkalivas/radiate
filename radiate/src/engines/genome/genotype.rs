@@ -27,7 +27,7 @@ pub struct Genotype<C: Chromosome> {
 }
 
 impl<C: Chromosome> Genotype<C> {
-    pub fn from_chromosomes(chromosomes: Vec<C>) -> Self {
+    pub fn new(chromosomes: Vec<C>) -> Self {
         Genotype { chromosomes }
     }
 

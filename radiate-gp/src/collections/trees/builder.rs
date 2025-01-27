@@ -1,19 +1,23 @@
+use std::sync::{Arc, RwLock};
+
 use crate::collections::{Tree, TreeNode};
-use crate::{Builder, NodeCell};
+use crate::{Builder, Op};
 use radiate::random_provider;
 
-pub struct TreeBuilder<C: NodeCell> {
+pub struct TreeBuilder<T> {
     depth: usize,
-    gates: Vec<C>,
-    leafs: Vec<C>,
+    gates: Arc<RwLock<Vec<Op<T>>>>,
+    leafs: Arc<RwLock<Vec<Op<T>>>>,
+    constraint: Option<Arc<Box<dyn Fn(&TreeNode<T>) -> bool>>>,
 }
 
-impl<C: NodeCell> TreeBuilder<C> {
+impl<T> TreeBuilder<T> {
     pub fn new(depth: usize) -> Self {
         TreeBuilder {
             depth,
-            gates: Vec::new(),
-            leafs: Vec::new(),
+            gates: Arc::new(RwLock::new(Vec::new())),
+            leafs: Arc::new(RwLock::new(Vec::new())),
+            constraint: None,
         }
     }
 
@@ -22,34 +26,52 @@ impl<C: NodeCell> TreeBuilder<C> {
         self
     }
 
-    pub fn with_gates(mut self, gates: Vec<C>) -> Self {
-        self.gates = gates;
+    pub fn with_gates(mut self, gates: Vec<Op<T>>) -> Self {
+        self.gates = Arc::new(RwLock::new(gates));
         self
     }
 
-    pub fn with_leafs(mut self, leafs: Vec<C>) -> Self {
-        self.leafs = leafs;
+    pub fn with_leafs(mut self, leafs: Vec<Op<T>>) -> Self {
+        self.leafs = Arc::new(RwLock::new(leafs));
         self
     }
 
-    fn grow_tree(&self, depth: usize) -> TreeNode<C>
+    pub fn with_constraint<F>(mut self, constraint: F) -> Self
     where
-        C: Default,
+        F: Fn(&TreeNode<T>) -> bool + 'static,
+    {
+        self.constraint = Some(Arc::new(Box::new(constraint)));
+        self
+    }
+
+    pub fn get_gates(&self) -> Arc<RwLock<Vec<Op<T>>>> {
+        self.gates.clone()
+    }
+
+    pub fn get_leafs(&self) -> Arc<RwLock<Vec<Op<T>>>> {
+        self.leafs.clone()
+    }
+
+    fn grow_tree(&self, depth: usize) -> TreeNode<T>
+    where
+        T: Default + Clone,
     {
         if depth == 0 {
-            let leaf = if self.leafs.is_empty() {
-                C::default()
+            let leafs = self.leafs.read().unwrap();
+            let leaf = if leafs.is_empty() {
+                Op::default()
             } else {
-                random_provider::choose(&self.leafs).new_instance()
+                random_provider::choose(&leafs).clone()
             };
 
             return TreeNode::new(leaf);
         }
 
-        let gate = if self.gates.is_empty() {
-            C::default()
+        let gates = self.gates.read().unwrap();
+        let gate = if gates.is_empty() {
+            Op::default()
         } else {
-            random_provider::choose(&self.gates).new_instance()
+            random_provider::choose(&gates).clone()
         };
 
         let mut parent = TreeNode::new(gate);
@@ -62,18 +84,12 @@ impl<C: NodeCell> TreeBuilder<C> {
     }
 }
 
-impl<C: NodeCell + Default> Builder for TreeBuilder<C> {
-    type Output = Tree<C>;
+impl<T: Default + Clone> Builder for TreeBuilder<T> {
+    type Output = Tree<T>;
 
     fn build(&self) -> Self::Output {
         let root = self.grow_tree(self.depth);
         Tree::new(root)
-    }
-}
-
-impl<C: NodeCell + Default> Default for TreeBuilder<C> {
-    fn default() -> Self {
-        TreeBuilder::new(1)
     }
 }
 

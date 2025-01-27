@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use radiate::*;
 use radiate_gp::*;
+use trees::{ProgramTree, ProgramTreeCodex};
 
 const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
@@ -12,23 +13,16 @@ fn main() {
     let (train, test) = load_iris_dataset().shuffle().standardize().split(0.75);
 
     let regression = Regression::new(train.clone(), Loss::MSE);
-    let codex = GraphBuilder::default()
-        .acyclic(4, 4, Op::sigmoid())
-        .into_codex();
+    let codex = ProgramTreeCodex::new(3, 4)
+        .constraint(|node| node.size() < 50)
+        .gates(ops::get_math_operations())
+        .leafs((0..4).map(|i| Op::var(i)).collect());
 
     let engine = GeneticEngine::from_codex(codex)
         .minimizing()
         .num_threads(10)
-        .offspring_selector(BoltzmannSelector::new(4.0))
-        .alter(alters!(
-            GraphCrossover::new(0.5, 0.5),
-            OperationMutator::new(0.02, 0.05),
-            GraphMutator::new(vec![
-                NodeMutate::Edge(0.01, false),
-                NodeMutate::Vertex(0.01, false),
-            ]),
-        ))
-        .fitness_fn(move |graph: Graph<f32>| regression.eval(&graph))
+        .alter(alters!(TreeCrossover::new(0.5), TreeMutator::new(0.03)))
+        .fitness_fn(move |tree: ProgramTree| regression.eval(&tree))
         .build();
 
     let result = engine.run(|ctx| {
@@ -42,15 +36,14 @@ fn main() {
 fn display(
     train: &DataSet,
     test: &DataSet,
-    result: &EngineContext<GraphChromosome<f32>, Graph<f32>>,
+    result: &EngineContext<TreeChromosome<f32>, ProgramTree>,
 ) {
-    let mut reducer = GraphEvaluator::new(&result.best);
-
     let train_acc = Accuracy::new("train", &train, Loss::MSE);
     let test_acc = Accuracy::new("test", &test, Loss::MSE);
+    let best = result.best.clone();
 
-    let train_acc_result = train_acc.calc(|input| reducer.eval_mut(input));
-    let test_acc_result = test_acc.calc(|input| reducer.eval_mut(input));
+    let train_acc_result = train_acc.calc(|input| best.eval(input));
+    let test_acc_result = test_acc.calc(|input| best.eval(input));
 
     println!("{:?}", result);
     println!("{:?}", train_acc_result);

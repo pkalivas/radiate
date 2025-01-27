@@ -1,31 +1,31 @@
-use crate::NodeCell;
-use radiate::engines::genome::genes::gene::{Gene, Valid};
+use crate::Op;
+use radiate::engines::genome::gene::{Gene, Valid};
 
 use super::TreeIterator;
 use crate::ops::operation::Arity;
 
 #[derive(PartialEq)]
-pub struct TreeNode<C: NodeCell> {
-    value: C,
-    children: Option<Vec<TreeNode<C>>>,
+pub struct TreeNode<T> {
+    value: Op<T>,
+    children: Option<Vec<TreeNode<T>>>,
 }
 
-impl<C: NodeCell> TreeNode<C> {
-    pub fn new(val: C) -> Self {
+impl<T> TreeNode<T> {
+    pub fn new(val: Op<T>) -> Self {
         TreeNode {
             value: val,
             children: None,
         }
     }
 
-    pub fn with_children(val: C, children: Vec<TreeNode<C>>) -> Self {
+    pub fn with_children(val: Op<T>, children: Vec<TreeNode<T>>) -> Self {
         TreeNode {
             value: val,
             children: Some(children),
         }
     }
 
-    pub fn value(&self) -> &C {
+    pub fn value(&self) -> &Op<T> {
         &self.value
     }
 
@@ -33,7 +33,7 @@ impl<C: NodeCell> TreeNode<C> {
         self.children.is_none()
     }
 
-    pub fn add_child(&mut self, child: TreeNode<C>) {
+    pub fn add_child(&mut self, child: TreeNode<T>) {
         if let Some(children) = self.children.as_mut() {
             children.push(child);
         } else {
@@ -41,16 +41,16 @@ impl<C: NodeCell> TreeNode<C> {
         }
     }
 
-    pub fn attach(mut self, other: TreeNode<C>) -> Self {
+    pub fn attach(mut self, other: TreeNode<T>) -> Self {
         self.add_child(other);
         self
     }
 
-    pub fn children(&self) -> Option<&Vec<TreeNode<C>>> {
+    pub fn children(&self) -> Option<&Vec<TreeNode<T>>> {
         self.children.as_ref()
     }
 
-    pub fn children_mut(&mut self) -> Option<&mut Vec<TreeNode<C>>> {
+    pub fn children_mut(&mut self) -> Option<&mut Vec<TreeNode<T>>> {
         self.children.as_mut()
     }
 
@@ -74,7 +74,7 @@ impl<C: NodeCell> TreeNode<C> {
         }
     }
 
-    pub fn swap_subtrees(&mut self, other: &mut TreeNode<C>, self_idx: usize, other_idx: usize) {
+    pub fn swap_subtrees(&mut self, other: &mut TreeNode<T>, self_idx: usize, other_idx: usize) {
         if let (Some(self_subtree), Some(other_subtree)) =
             (self.get_mut(self_idx), other.get_mut(other_idx))
         {
@@ -82,26 +82,7 @@ impl<C: NodeCell> TreeNode<C> {
         }
     }
 
-    pub fn get(&self, index: usize) -> Option<&TreeNode<C>> {
-        if index == 0 {
-            return Some(self);
-        }
-
-        if let Some(children) = self.children.as_ref() {
-            let mut count = 0;
-            for child in children {
-                let size = child.size();
-                if index <= count + size {
-                    return child.get(index - count - 1);
-                }
-                count += size;
-            }
-        }
-
-        None
-    }
-
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut TreeNode<C>> {
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut TreeNode<T>> {
         if index == 0 {
             return Some(self);
         }
@@ -121,7 +102,7 @@ impl<C: NodeCell> TreeNode<C> {
     }
 }
 
-impl<C: NodeCell + Clone> Clone for TreeNode<C> {
+impl<T: Clone> Clone for TreeNode<T> {
     fn clone(&self) -> Self {
         TreeNode {
             value: self.value.clone(),
@@ -130,11 +111,11 @@ impl<C: NodeCell + Clone> Clone for TreeNode<C> {
     }
 }
 
-impl<C> Gene for TreeNode<C>
+impl<T> Gene for TreeNode<T>
 where
-    C: Clone + PartialEq + Default + NodeCell,
+    T: Clone + PartialEq + Default,
 {
-    type Allele = C;
+    type Allele = Op<T>;
 
     fn allele(&self) -> &Self::Allele {
         &self.value
@@ -142,12 +123,12 @@ where
 
     fn new_instance(&self) -> Self {
         TreeNode {
-            value: self.value.new_instance(),
+            value: self.value.clone(),
             children: self.children.as_ref().map(|children| {
                 children
                     .iter()
                     .map(|child| child.new_instance())
-                    .collect::<Vec<TreeNode<C>>>()
+                    .collect::<Vec<TreeNode<T>>>()
             }),
         }
     }
@@ -160,10 +141,10 @@ where
     }
 }
 
-impl<C: NodeCell> Valid for TreeNode<C> {
+impl<T> Valid for TreeNode<T> {
     fn is_valid(&self) -> bool {
         for node in self.iter_breadth_first() {
-            match node.value.arity() {
+            match node.value().arity() {
                 Arity::Zero => {
                     if node.children.is_some() {
                         return false;

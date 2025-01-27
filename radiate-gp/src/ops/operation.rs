@@ -4,7 +4,7 @@ use std::{
     sync::Arc,
 };
 
-use crate::{Eval, NodeCell};
+use crate::{Eval, Factory};
 
 /// Arity is a way to describe how many inputs an operation expects.
 /// It can be zero, a specific number, or any number.
@@ -76,6 +76,10 @@ pub enum Op<T> {
         modifier: Arc<dyn Fn(&T) -> T>,
         operation: Arc<dyn Fn(&[T], &T) -> T>,
     },
+    /// 5) A 'Value' operation that can be used to represent a constant value.
+    ///     This is a convenience method for creating a `Const` operation with any given
+    ///     value and arity
+    Value(T, Arity),
 }
 
 /// Base functionality for operations.
@@ -86,6 +90,17 @@ impl<T> Op<T> {
             Op::Var(name, _) => name,
             Op::Const(name, _) => name,
             Op::MutableConst { name, .. } => name,
+            Op::Value(_, _) => "Value",
+        }
+    }
+
+    pub fn arity(&self) -> Arity {
+        match self {
+            Op::Fn(_, arity, _) => *arity,
+            Op::Var(_, _) => Arity::Zero,
+            Op::Const(_, _) => Arity::Zero,
+            Op::MutableConst { arity, .. } => *arity,
+            Op::Value(_, arity) => *arity,
         }
     }
 
@@ -170,21 +185,18 @@ where
             Op::MutableConst {
                 value, operation, ..
             } => operation(inputs, value),
+            Op::Value(value, _) => value.clone(),
         }
     }
 }
 
-impl<T: Clone> NodeCell for Op<T> {
-    fn arity(&self) -> Arity {
-        match self {
-            Op::Fn(_, arity, _) => *arity,
-            Op::Var(_, _) => Arity::Zero,
-            Op::Const(_, _) => Arity::Zero,
-            Op::MutableConst { arity, .. } => *arity,
-        }
-    }
+impl<T> Factory<Op<T>> for Op<T>
+where
+    T: Clone,
+{
+    type Input = ();
 
-    fn new_instance(&self) -> Op<T> {
+    fn new_instance(&self, _: Self::Input) -> Op<T> {
         match self {
             Op::Fn(name, arity, op) => Op::Fn(name, *arity, Arc::clone(op)),
             Op::Var(name, index) => Op::Var(name, *index),
@@ -204,6 +216,7 @@ impl<T: Clone> NodeCell for Op<T> {
                 modifier: Arc::clone(modifier),
                 operation: Arc::clone(operation),
             },
+            Op::Value(value, arity) => Op::Value(value.clone(), *arity),
         }
     }
 }
@@ -232,6 +245,7 @@ where
                 modifier: Arc::clone(modifier),
                 operation: Arc::clone(operation),
             },
+            Op::Value(value, arity) => Op::Value(value.clone(), *arity),
         }
     }
 }
@@ -253,7 +267,7 @@ impl<T> Display for Op<T> {
 
 impl<T> Default for Op<T>
 where
-    T: Default + Clone,
+    T: Default,
 {
     fn default() -> Self {
         Op::Const("default", T::default())
@@ -270,7 +284,26 @@ where
             Op::Var(name, index) => write!(f, "Var: {}({})", name, index),
             Op::Const(name, value) => write!(f, "C: {}({:?})", name, value),
             Op::MutableConst { name, value, .. } => write!(f, "{}({:.2?})", name, value),
+            Op::Value(value, _) => write!(f, "Value({:?})", value),
         }
+    }
+}
+
+impl Into<Op<f32>> for f32 {
+    fn into(self) -> Op<f32> {
+        Op::Value(self, Arity::Any)
+    }
+}
+
+impl Into<Op<i32>> for i32 {
+    fn into(self) -> Op<i32> {
+        Op::Value(self, Arity::Any)
+    }
+}
+
+impl Into<Op<bool>> for bool {
+    fn into(self) -> Op<bool> {
+        Op::Value(self, Arity::Any)
     }
 }
 
@@ -285,7 +318,7 @@ mod test {
         assert_eq!(op.name(), "add");
         assert_eq!(op.arity(), Arity::Exact(2));
         assert_eq!(op.eval(&vec![1_f32, 2_f32]), 3_f32);
-        assert_eq!(op.new_instance(), op);
+        assert_eq!(op.new_instance(()), op);
     }
 
     #[test]

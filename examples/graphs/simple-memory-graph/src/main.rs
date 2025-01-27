@@ -1,14 +1,15 @@
 use radiate::*;
 use radiate_gp::*;
-use random_provider::set_seed;
 
 const MAX_INDEX: i32 = 500;
 const MIN_SCORE: f32 = 0.01;
 
 fn main() {
-    set_seed(100);
+    random_provider::set_seed(100);
 
-    let graph_codex = GraphBuilder::default().acyclic(1, 1, Op::sigmoid());
+    let graph_codex = GraphBuilder::default()
+        .lstm(1, 1, Op::sigmoid())
+        .into_codex();
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
     let engine = GeneticEngine::from_codex(graph_codex)
@@ -23,7 +24,7 @@ fn main() {
                 NodeMutate::Vertex(0.05, true),
             ]),
         ))
-        .fitness_fn(move |genotype: Graph<Op<f32>>| regression.eval(&genotype))
+        .fitness_fn(move |genotype: Graph<f32>| regression.eval(&genotype))
         .build();
 
     let result = engine.run(|ctx| {
@@ -34,7 +35,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
+fn display(result: &EngineContext<GraphChromosome<f32>, Graph<f32>>) {
     let mut reducer = GraphEvaluator::new(&result.best);
     for sample in get_dataset().iter() {
         let output = reducer.eval_mut(sample.input());

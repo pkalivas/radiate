@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::collections::GraphChromosome;
-use crate::{NodeCell, NodeType};
+use crate::NodeType;
 
 use radiate::engines::genome::*;
 use radiate::timer::Timer;
@@ -9,42 +9,37 @@ use radiate::{indexes, random_provider, Alter, AlterAction, Crossover, EngineCom
 
 const NUM_PARENTS: usize = 2;
 
-pub struct GraphCrossover<C>
-where
-    C: Clone + PartialEq + Default + NodeCell,
-{
+pub struct GraphCrossover {
     crossover_rate: f32,
     crossover_parent_node_rate: f32,
-    _marker: std::marker::PhantomData<C>,
 }
 
-impl<C> GraphCrossover<C>
-where
-    C: NodeCell + Clone + PartialEq + Default + 'static,
-{
+impl GraphCrossover {
     pub fn new(crossover_rate: f32, crossover_parent_node_rate: f32) -> Self {
         Self {
             crossover_rate,
             crossover_parent_node_rate,
-            _marker: std::marker::PhantomData,
         }
     }
 
     #[inline]
-    pub fn cross(
+    pub fn cross<T>(
         &self,
-        population: &Population<GraphChromosome<C>>,
+        population: &Population<GraphChromosome<T>>,
         indexes: &[usize],
         generation: i32,
-    ) -> Option<Phenotype<GraphChromosome<C>>> {
+    ) -> Option<Phenotype<GraphChromosome<T>>>
+    where
+        T: Clone + PartialEq + Default + 'static,
+    {
         let parent_one = &population[indexes[0]];
         let parent_two = &population[indexes[1]];
 
         let geno_one = parent_one.genotype();
         let geno_two = parent_two.genotype();
 
-        let chromo_index =
-            random_provider::random::<usize>() % std::cmp::min(geno_one.len(), geno_two.len());
+        let rand_idx = random_provider::random::<usize>();
+        let chromo_index = rand_idx % std::cmp::min(geno_one.len(), geno_two.len());
 
         let chromo_one = &geno_one[chromo_index];
         let chromo_two = &geno_two[chromo_index];
@@ -76,52 +71,48 @@ where
         }
 
         if num_crosses > 0 {
-            let new_genotype_one = Genotype {
-                chromosomes: vec![new_chromo_one],
-            };
-            let new_phenotype = Phenotype::from_genotype(new_genotype_one, generation);
-
-            return Some(new_phenotype);
+            return Some(Phenotype::from_chromosomes(
+                vec![new_chromo_one],
+                generation,
+            ));
         }
 
         None
     }
 }
 
-impl<C> EngineCompoment for GraphCrossover<C>
-where
-    C: NodeCell + Clone + PartialEq + Default + 'static,
-{
+impl EngineCompoment for GraphCrossover {
     fn name(&self) -> &'static str {
         "GraphCrossover"
     }
 }
 
-impl<C> Alter<GraphChromosome<C>> for GraphCrossover<C>
+impl<T> Alter<GraphChromosome<T>> for GraphCrossover
 where
-    C: NodeCell + Clone + PartialEq + Default + 'static,
+    T: Clone + PartialEq + Default + 'static,
 {
     fn rate(&self) -> f32 {
         self.crossover_rate
     }
 
-    fn to_alter(self) -> radiate::AlterAction<GraphChromosome<C>> {
+    fn to_alter(self) -> radiate::AlterAction<GraphChromosome<T>> {
         AlterAction::Crossover(Box::new(self))
     }
 }
 
-impl<C> Crossover<GraphChromosome<C>> for GraphCrossover<C>
+impl<T> Crossover<GraphChromosome<T>> for GraphCrossover
 where
-    C: NodeCell + Clone + PartialEq + Default + 'static,
+    T: Clone + PartialEq + Default + 'static,
 {
     fn crossover(
         &self,
-        population: &mut Population<GraphChromosome<C>>,
+        population: &mut Population<GraphChromosome<T>>,
         generation: i32,
     ) -> Vec<Metric> {
         let timer = Timer::new();
         let mut count = 0;
         let mut new_phenotypes = HashMap::new();
+
         for index in 0..population.len() {
             if random_provider::random::<f32>() < self.crossover_rate
                 && population.len() > NUM_PARENTS

@@ -1,14 +1,10 @@
-use std::sync::Arc;
-
+use crate::ops::operation::Op;
+use crate::{Factory, GraphChromosome, NodeType};
+use radiate::engines::genome::gene::Gene;
 use radiate::{random_provider, Chromosome};
 use radiate::{Alter, AlterAction, EngineCompoment, Mutate};
+use std::sync::Arc;
 
-use crate::ops::operation::Op;
-use crate::{Factory, GraphChromosome, NodeCell};
-
-use radiate::engines::genome::genes::gene::Gene;
-
-// TODO: Make this viable for trees too. Then move the file to a different location
 pub struct OperationMutator {
     rate: f32,
     replace_rate: f32,
@@ -35,7 +31,7 @@ impl EngineCompoment for OperationMutator {
 }
 
 /// This implementation is for the `GraphChromosome` type.
-impl<T> Alter<GraphChromosome<Op<T>>> for OperationMutator
+impl<T> Alter<GraphChromosome<T>> for OperationMutator
 where
     T: Clone + PartialEq + Default,
 {
@@ -43,7 +39,7 @@ where
         self.rate
     }
 
-    fn to_alter(self) -> AlterAction<GraphChromosome<Op<T>>> {
+    fn to_alter(self) -> AlterAction<GraphChromosome<T>> {
         AlterAction::Mutate(Box::new(self))
     }
 }
@@ -52,14 +48,17 @@ where
 /// It mutates the chromosome by changing the value of the `MutableConst` Op nodes (weights).
 /// If the node is not a `MutableConst` node, it tries to replace it with a new node from the store,
 /// but only if the arity of the new node is the same as the current node.
-impl<T> Mutate<GraphChromosome<Op<T>>> for OperationMutator
+impl<T> Mutate<GraphChromosome<T>> for OperationMutator
 where
     T: Clone + PartialEq + Default,
 {
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<Op<T>>) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<T>) -> i32 {
         let mutation_indexes = (0..chromosome.len())
-            .filter(|_| random_provider::random::<f32>() < self.rate)
+            .filter(|index| {
+                random_provider::random::<f32>() < self.rate
+                    && chromosome.get_gene(*index).node_type() != NodeType::Input
+            })
             .collect::<Vec<usize>>();
 
         if mutation_indexes.is_empty() {
@@ -98,15 +97,14 @@ where
                     );
                 }
                 _ => {
-                    if let Some(store) = chromosome.store.as_ref() {
-                        let new_op = store
-                            .read()
-                            .unwrap()
-                            .new_instance((i, current_node.node_type()));
+                    let new_op = chromosome
+                        .store()
+                        .read()
+                        .unwrap()
+                        .new_instance((i, current_node.node_type()));
 
-                        if new_op.value().arity() == current_node.value().arity() {
-                            chromosome.set_gene(i, current_node.with_allele(new_op.allele()));
-                        }
+                    if new_op.value().arity() == current_node.value().arity() {
+                        chromosome.set_gene(i, current_node.with_allele(new_op.allele()));
                     }
                 }
             }

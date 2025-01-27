@@ -1,6 +1,9 @@
-use super::gene::{BoundGene, Gene, NumericGene, Valid};
+use super::{
+    gene::{BoundGene, Gene, NumericGene, Valid},
+    Chromosome,
+};
 use crate::random_provider;
-use std::fmt::Debug;
+use std::{fmt::Debug, ops::Range};
 
 /// A `Gene` that represents a floating point number.
 /// The `allele` is the in the case of the `FloatGene` a f32. The `min` and `max` values
@@ -152,6 +155,66 @@ impl From<&f32> for FloatGene {
             upper_bound: f32::MAX,
             lower_bound: f32::MIN,
         }
+    }
+}
+
+/// Represents a chromosome composed of floating-point genes.
+///
+/// A `FloatChromosome` contains a vector of `FloatGene` instances, each representing
+/// a single floating-point value. This structure is typically used in problems where
+/// solutions are encoded as real numbers.
+///
+/// # Fields
+///
+/// * `genes` - A vector of `FloatGene` representing the individual's genetic information.
+#[derive(Clone, PartialEq, Default)]
+pub struct FloatChromosome {
+    pub genes: Vec<FloatGene>,
+}
+
+impl FloatChromosome {
+    pub fn new(genes: Vec<FloatGene>) -> Self {
+        FloatChromosome { genes }
+    }
+}
+
+impl Chromosome for FloatChromosome {
+    type Gene = FloatGene;
+}
+
+impl Valid for FloatChromosome {
+    fn is_valid(&self) -> bool {
+        self.genes.iter().all(|gene| gene.is_valid())
+    }
+}
+
+impl AsRef<[FloatGene]> for FloatChromosome {
+    fn as_ref(&self) -> &[FloatGene] {
+        &self.genes
+    }
+}
+
+impl AsMut<[FloatGene]> for FloatChromosome {
+    fn as_mut(&mut self) -> &mut [FloatGene] {
+        &mut self.genes
+    }
+}
+
+impl From<Range<i32>> for FloatChromosome {
+    fn from(range: Range<i32>) -> Self {
+        let mut genes = Vec::new();
+        for _ in range.start..range.end {
+            genes.push(FloatGene::new(range.start as f32, range.end as f32));
+        }
+
+        FloatChromosome { genes }
+    }
+}
+
+impl From<&[f32]> for FloatChromosome {
+    fn from(alleles: &[f32]) -> Self {
+        let genes = alleles.iter().map(FloatGene::from).collect();
+        FloatChromosome { genes }
     }
 }
 

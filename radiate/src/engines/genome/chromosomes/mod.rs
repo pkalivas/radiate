@@ -1,4 +1,8 @@
 pub mod bit;
+pub mod chromosome;
+
+pub use bit::{BitChromosome, BitGene};
+pub use chromosome::*;
 pub mod char;
 pub mod float;
 pub mod gene;
@@ -16,12 +20,12 @@ use std::{
 };
 
 use crate::{add_impl, arithmetic_impl, div_impl, impl_integer, mul_impl, sub_impl};
-pub use bit::BitGene;
-pub use char::CharGene;
-pub use float::FloatGene;
+
+pub use char::{CharChromosome, CharGene};
+pub use float::{FloatChromosome, FloatGene};
 pub use gene::{BoundGene, Gene, NumericGene, Valid};
-pub use int::IntGene;
-pub use permutation::PermutationGene;
+pub use int::{IntChromosome, IntGene};
+pub use permutation::{PermutationChromosome, PermutationGene};
 
 pub trait Integer<T>:
     Copy

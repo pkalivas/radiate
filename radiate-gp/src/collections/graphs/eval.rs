@@ -1,25 +1,21 @@
-use super::{iter::GraphIterator, GraphNode};
-use crate::{Eval, EvalMut, NodeCell, NodeType};
+use super::{iter::GraphIterator, Graph, GraphNode};
+use crate::{Eval, EvalMut, NodeType};
 
 /// `GraphReducer` is a struct that is used to evaluate a `Graph` of `Node`s. It uses the `GraphIterator`
 /// to traverse the `Graph` in a sudo-topological order and evaluate the nodes in the correct order.
 ///
 /// On the first iteration it caches the order of nodes in the `Graph` and then uses that order to
 /// evaluate the nodes in the correct order. This is a massive performance improvement.
-pub struct GraphEvaluator<'a, C, T>
-where
-    C: NodeCell,
-{
-    nodes: &'a [GraphNode<C>],
+pub struct GraphEvaluator<'a, T> {
+    nodes: &'a [GraphNode<T>],
     output_size: usize,
     eval_order: Vec<usize>,
     outputs: Vec<T>,
     inputs: Vec<Vec<T>>,
 }
 
-impl<'a, C, T> GraphEvaluator<'a, C, T>
+impl<'a, T> GraphEvaluator<'a, T>
 where
-    C: NodeCell,
     T: Default + Clone,
 {
     /// Creates a new `GraphEvaluator` with the given `Graph`. Will cache the order of nodes in
@@ -29,9 +25,9 @@ where
     ///
     /// # Arguments
     /// * `graph` - The `Graph` to reduce.
-    pub fn new<N>(graph: &'a N) -> GraphEvaluator<'a, C, T>
+    pub fn new<N>(graph: &'a N) -> GraphEvaluator<'a, T>
     where
-        N: AsRef<[GraphNode<C>]>,
+        N: AsRef<[GraphNode<T>]>,
     {
         let nodes = graph.as_ref();
 
@@ -52,9 +48,8 @@ where
 }
 
 /// Implements the `EvalMut` trait for `GraphEvaluator`.
-impl<'a, C, T> EvalMut<[T], Vec<T>> for GraphEvaluator<'a, C, T>
+impl<'a, T> EvalMut<[T], Vec<T>> for GraphEvaluator<'a, T>
 where
-    C: NodeCell + Eval<[T], T>,
     T: Clone + Default,
 {
     /// Evaluates the `Graph` with the given input. Returns the output of the `Graph`.
@@ -89,5 +84,54 @@ where
         }
 
         output
+    }
+}
+
+impl<T> Eval<[T], Vec<T>> for Graph<T>
+where
+    T: Clone + Default,
+{
+    /// Evaluates the `Graph` with the given input. Returns the output of the `Graph`.
+    ///
+    /// # Arguments
+    /// * `input` - A `Vec` of `T` to evaluate the `Graph` with.
+    ///
+    ///  # Returns
+    /// * A `Vec` of `T` which is the output of the `Graph`.
+    #[inline]
+    fn eval(&self, input: &[T]) -> Vec<T> {
+        let mut evaluator = GraphEvaluator::new(self);
+        evaluator.eval_mut(input)
+    }
+}
+
+impl<T> Eval<Vec<Vec<T>>, Vec<Vec<T>>> for Graph<T>
+where
+    T: Clone + Default,
+{
+    /// Evaluates the `Graph` with the given input 'Vec<Vec<T>>'. Returns the output of the `Graph` as 'Vec<Vec<T>>'.
+    /// This is inteded to be used when evaluating a batch of inputs.
+    ///
+    /// # Arguments
+    /// * `input` - A `Vec<Vec<T>>` to evaluate the `Graph` with.
+    ///
+    /// # Returns
+    /// * A `Vec<Vec<T>>` which is the output of the `Graph`.
+    #[inline]
+    fn eval(&self, input: &Vec<Vec<T>>) -> Vec<Vec<T>> {
+        let mut output = Vec::with_capacity(self.len());
+        let mut evaluator = GraphEvaluator::new(self);
+
+        for inputs in input.iter() {
+            output.push(evaluator.eval_mut(inputs));
+        }
+
+        output
+    }
+}
+
+impl<T: Clone> Eval<[T], T> for GraphNode<T> {
+    fn eval(&self, inputs: &[T]) -> T {
+        self.value().eval(inputs)
     }
 }

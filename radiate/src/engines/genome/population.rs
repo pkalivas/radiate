@@ -98,10 +98,6 @@ impl<C: Chromosome> Population<C> {
             .filter_map(|i| i.score())
             .collect::<Vec<_>>()
     }
-
-    // pub fn take_phenotype(&mut self, index: usize) -> Phenotype<C> {
-    //     std::mem::replace(&mut self.individuals[index], Phenotype::default())
-    // }
 }
 
 impl<C: Chromosome> AsRef<[Phenotype<C>]> for Population<C> {
@@ -157,8 +153,7 @@ impl<C: Chromosome + Debug> Debug for Population<C> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::objectives::Optimize;
-    use crate::{CharChromosome, FloatChromosome};
+    use crate::{char::CharChromosome, float::FloatChromosome, objectives::Optimize};
 
     #[test]
     fn test_new() {

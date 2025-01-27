@@ -1,8 +1,8 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, ops::Index};
 
 use radiate::Valid;
 
-use crate::NodeCell;
+use crate::Op;
 
 use super::{Direction, Graph, GraphNode};
 
@@ -19,17 +19,17 @@ enum MutationStep {
 }
 
 /// Tracks changes and provides rollback capability
-pub struct GraphTransaction<'a, C: NodeCell>
+pub struct GraphTransaction<'a, T>
 where
-    C: Clone + Default + PartialEq + NodeCell,
+    T: Clone + Default + PartialEq,
 {
-    graph: &'a mut Graph<C>,
+    graph: &'a mut Graph<T>,
     steps: Vec<MutationStep>,
     effects: HashSet<usize>,
 }
 
-impl<'a, C: Clone + Default + PartialEq + NodeCell> GraphTransaction<'a, C> {
-    pub fn new(graph: &'a mut Graph<C>) -> Self {
+impl<'a, T: Clone + Default + PartialEq> GraphTransaction<'a, T> {
+    pub fn new(graph: &'a mut Graph<T>) -> Self {
         GraphTransaction {
             graph,
             steps: Vec::new(),
@@ -37,7 +37,21 @@ impl<'a, C: Clone + Default + PartialEq + NodeCell> GraphTransaction<'a, C> {
         }
     }
 
-    pub fn add_node(&mut self, node: GraphNode<C>) -> usize {
+    pub fn len(&self) -> usize {
+        self.graph.len()
+    }
+
+    pub fn insert_vertex(&mut self, value: impl Into<Op<T>>) -> usize {
+        let node = GraphNode::new(self.graph.len(), super::NodeType::Vertex, value);
+        self.add_node(node)
+    }
+
+    pub fn insert_edge(&mut self, value: impl Into<Op<T>>) -> usize {
+        let node = GraphNode::new(self.graph.len(), super::NodeType::Edge, value);
+        self.add_node(node)
+    }
+
+    pub fn add_node(&mut self, node: GraphNode<T>) -> usize {
         let index = self.graph.len();
         self.steps.push(MutationStep::AddNode);
         self.graph.push(node);
@@ -113,11 +127,22 @@ impl<'a, C: Clone + Default + PartialEq + NodeCell> GraphTransaction<'a, C> {
     }
 }
 
-impl<'a, C: NodeCell> AsRef<Graph<C>> for GraphTransaction<'a, C>
+impl<'a, T> AsRef<Graph<T>> for GraphTransaction<'a, T>
 where
-    C: Clone + Default + PartialEq + NodeCell,
+    T: Clone + Default + PartialEq,
 {
-    fn as_ref(&self) -> &Graph<C> {
+    fn as_ref(&self) -> &Graph<T> {
         self.graph
+    }
+}
+
+impl<'a, T> Index<usize> for GraphTransaction<'a, T>
+where
+    T: Clone + Default + PartialEq,
+{
+    type Output = GraphNode<T>;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.graph[index]
     }
 }

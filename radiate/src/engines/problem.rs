@@ -8,17 +8,7 @@ pub trait Problem<C: Chromosome, T>: Send + Sync {
     fn eval(&self, individual: &Genotype<C>) -> Score;
 }
 
-impl<C: Chromosome, T> Codex<C, T> for dyn Problem<C, T> {
-    fn encode(&self) -> Genotype<C> {
-        Problem::encode(self)
-    }
-
-    fn decode(&self, genotype: &Genotype<C>) -> T {
-        Problem::decode(self, genotype)
-    }
-}
-
-pub struct DefaultProblem<C, T>
+pub(crate) struct EngineProblem<C, T>
 where
     C: Chromosome,
     T: Clone,
@@ -27,21 +17,21 @@ where
     pub fitness_fn: Arc<dyn Fn(T) -> Score + Send + Sync>,
 }
 
-unsafe impl<C, T> Send for DefaultProblem<C, T>
+unsafe impl<C, T> Send for EngineProblem<C, T>
 where
     C: Chromosome,
     T: Clone,
 {
 }
 
-unsafe impl<C, T> Sync for DefaultProblem<C, T>
+unsafe impl<C, T> Sync for EngineProblem<C, T>
 where
     C: Chromosome,
     T: Clone,
 {
 }
 
-impl<C, T> Problem<C, T> for DefaultProblem<C, T>
+impl<C, T> Problem<C, T> for EngineProblem<C, T>
 where
     C: Chromosome,
     T: Clone,
