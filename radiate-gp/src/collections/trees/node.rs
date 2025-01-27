@@ -1,5 +1,5 @@
 use crate::Op;
-use radiate::engines::genome::genes::gene::{Gene, Valid};
+use radiate::engines::genome::gene::{Gene, Valid};
 
 use super::TreeIterator;
 use crate::ops::operation::Arity;

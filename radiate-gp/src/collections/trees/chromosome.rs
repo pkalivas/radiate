@@ -1,18 +1,46 @@
-use crate::TreeNode;
+use crate::{Op, TreeNode};
 use radiate::{Chromosome, Valid};
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 type Constraint<N> = Arc<Box<dyn Fn(&N) -> bool>>;
 
 #[derive(Clone, Default)]
 pub struct TreeChromosome<T> {
     nodes: Vec<TreeNode<T>>,
+    gates: Arc<RwLock<Vec<Op<T>>>>,
+    leafs: Arc<RwLock<Vec<Op<T>>>>,
     constraint: Option<Constraint<TreeNode<T>>>,
 }
 
 impl<T> TreeChromosome<T> {
-    pub fn new(nodes: Vec<TreeNode<T>>, constraint: Option<Constraint<TreeNode<T>>>) -> Self {
-        TreeChromosome { nodes, constraint }
+    pub fn new(
+        nodes: Vec<TreeNode<T>>,
+        gates: Arc<RwLock<Vec<Op<T>>>>,
+        leafs: Arc<RwLock<Vec<Op<T>>>>,
+        constraint: Option<Constraint<TreeNode<T>>>,
+    ) -> Self {
+        TreeChromosome {
+            nodes,
+            gates,
+            leafs,
+            constraint,
+        }
+    }
+
+    pub fn root(&self) -> &TreeNode<T> {
+        &self.nodes[0]
+    }
+
+    pub fn root_mut(&mut self) -> &mut TreeNode<T> {
+        &mut self.nodes[0]
+    }
+
+    pub fn get_leafs(&self) -> Arc<RwLock<Vec<Op<T>>>> {
+        Arc::clone(&self.leafs)
+    }
+
+    pub fn get_gates(&self) -> Arc<RwLock<Vec<Op<T>>>> {
+        Arc::clone(&self.gates)
     }
 }
 

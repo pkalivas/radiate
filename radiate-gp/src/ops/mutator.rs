@@ -1,14 +1,10 @@
-use std::sync::Arc;
-
-use radiate::{random_provider, Chromosome};
-use radiate::{Alter, AlterAction, EngineCompoment, Mutate};
-
 use crate::ops::operation::Op;
 use crate::{Factory, GraphChromosome, NodeType};
+use radiate::engines::genome::gene::Gene;
+use radiate::{random_provider, Chromosome};
+use radiate::{Alter, AlterAction, EngineCompoment, Mutate};
+use std::sync::Arc;
 
-use radiate::engines::genome::genes::gene::Gene;
-
-// TODO: Make this viable for trees too. Then move the file to a different location
 pub struct OperationMutator {
     rate: f32,
     replace_rate: f32,

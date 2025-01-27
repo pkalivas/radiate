@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use crate::collections::{Tree, TreeNode};
 use crate::{Builder, Op};
@@ -6,8 +6,8 @@ use radiate::random_provider;
 
 pub struct TreeBuilder<T> {
     depth: usize,
-    gates: Vec<Op<T>>,
-    leafs: Vec<Op<T>>,
+    gates: Arc<RwLock<Vec<Op<T>>>>,
+    leafs: Arc<RwLock<Vec<Op<T>>>>,
     constraint: Option<Arc<Box<dyn Fn(&TreeNode<T>) -> bool>>>,
 }
 
@@ -15,8 +15,8 @@ impl<T> TreeBuilder<T> {
     pub fn new(depth: usize) -> Self {
         TreeBuilder {
             depth,
-            gates: Vec::new(),
-            leafs: Vec::new(),
+            gates: Arc::new(RwLock::new(Vec::new())),
+            leafs: Arc::new(RwLock::new(Vec::new())),
             constraint: None,
         }
     }
@@ -27,12 +27,12 @@ impl<T> TreeBuilder<T> {
     }
 
     pub fn with_gates(mut self, gates: Vec<Op<T>>) -> Self {
-        self.gates = gates;
+        self.gates = Arc::new(RwLock::new(gates));
         self
     }
 
     pub fn with_leafs(mut self, leafs: Vec<Op<T>>) -> Self {
-        self.leafs = leafs;
+        self.leafs = Arc::new(RwLock::new(leafs));
         self
     }
 
@@ -44,24 +44,34 @@ impl<T> TreeBuilder<T> {
         self
     }
 
+    pub fn get_gates(&self) -> Arc<RwLock<Vec<Op<T>>>> {
+        self.gates.clone()
+    }
+
+    pub fn get_leafs(&self) -> Arc<RwLock<Vec<Op<T>>>> {
+        self.leafs.clone()
+    }
+
     fn grow_tree(&self, depth: usize) -> TreeNode<T>
     where
         T: Default + Clone,
     {
         if depth == 0 {
-            let leaf = if self.leafs.is_empty() {
+            let leafs = self.leafs.read().unwrap();
+            let leaf = if leafs.is_empty() {
                 Op::default()
             } else {
-                random_provider::choose(&self.leafs).clone()
+                random_provider::choose(&leafs).clone()
             };
 
             return TreeNode::new(leaf);
         }
 
-        let gate = if self.gates.is_empty() {
+        let gates = self.gates.read().unwrap();
+        let gate = if gates.is_empty() {
             Op::default()
         } else {
-            random_provider::choose(&self.gates).clone()
+            random_provider::choose(&gates).clone()
         };
 
         let mut parent = TreeNode::new(gate);

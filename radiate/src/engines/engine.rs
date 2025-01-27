@@ -106,10 +106,8 @@ where
         loop {
             self.evaluate(&mut ctx);
 
-            let survivors = self.select_survivors(&ctx.population, &mut ctx.metrics);
-
-            let mut offspring = self.select_offspring(&ctx.population, &mut ctx.metrics);
-            self.alter(&mut offspring, &mut ctx.metrics, ctx.index);
+            let survivors = self.select_survivors(&mut ctx);
+            let offspring = self.create_offspring(&mut ctx);
 
             self.recombine(&mut ctx, survivors, offspring);
 
@@ -173,19 +171,15 @@ where
     /// fraction is 0.8, then 20 individuals will be selected as survivors.
     ///
     /// This method returns a new population containing only the selected survivors.
-    fn select_survivors(
-        &self,
-        population: &Population<C>,
-        metrics: &mut MetricSet,
-    ) -> Population<C> {
+    fn select_survivors(&self, ctx: &mut EngineContext<C, T>) -> Population<C> {
         let selector = self.survivor_selector();
         let count = self.survivor_count();
         let objective = self.objective();
 
         let timer = Timer::new();
-        let result = selector.select(population, objective, count);
+        let result = selector.select(&ctx.population, objective, count);
 
-        metrics.upsert_operations(selector.name(), count as f32, timer.duration());
+        ctx.upsert_operation(selector.name(), count as f32, timer.duration());
 
         result
     }
@@ -198,43 +192,34 @@ where
     /// and the offspring fraction is 0.8, then 80 individuals will be selected as offspring which will
     /// be used to create the next generation through crossover and mutation.
     ///
-    /// This method returns a new population containing only the selected offspring.
-    fn select_offspring(
-        &self,
-        population: &Population<C>,
-        metrics: &mut MetricSet,
-    ) -> Population<C> {
-        let selector = self.offspring_selector();
-        let count = self.offspring_count();
-        let objective = self.objective();
-
-        let timer = Timer::new();
-        let result = selector.select(population, objective, count);
-
-        metrics.upsert_operations(selector.name(), count as f32, timer.duration());
-
-        result
-    }
-
     /// Alters the offspring population using the alterers specified in the genetic engine parameters.
     /// The alterer in this case is going to be a ```CompositeAlterer``` and is responsible for applying
     /// the provided mutation and crossover operations to the offspring population.
-    fn alter(&self, population: &mut Population<C>, metrics: &mut MetricSet, generation: i32) {
-        let alterer = self.alterer();
+    fn create_offspring(&self, ctx: &mut EngineContext<C, T>) -> Population<C> {
+        let selector = self.offspring_selector();
+        let count = self.offspring_count();
         let objective = self.objective();
+        let alterer = self.alterer();
 
-        objective.sort(population);
+        let timer = Timer::new();
+        let mut offspring = selector.select(&ctx.population, objective, count);
+
+        ctx.upsert_operation(selector.name(), count as f32, timer.duration());
+
+        objective.sort(&mut offspring);
 
         for alterer in alterer {
             let alter_metrics = match alterer {
-                AlterAction::Mutate(mutator) => mutator.mutate(population, generation),
-                AlterAction::Crossover(crossover) => crossover.crossover(population, generation),
+                AlterAction::Mutate(mutator) => mutator.mutate(&mut offspring, ctx.index),
+                AlterAction::Crossover(crossover) => crossover.crossover(&mut offspring, ctx.index),
             };
 
             for metric in alter_metrics {
-                metrics.upsert(metric);
+                ctx.metrics.upsert(metric);
             }
         }
+
+        offspring
     }
 
     /// Filters the population to remove individuals that are too old or invalid. The maximum age

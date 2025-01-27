@@ -50,8 +50,12 @@ where
             }
         }
 
-        let chromosome = TreeChromosome::new(vec![root], self.constraint.clone());
-        Genotype::new(vec![chromosome])
+        Genotype::new(vec![TreeChromosome::new(
+            vec![root],
+            self.builder.get_gates(),
+            self.builder.get_leafs(),
+            self.constraint.clone(),
+        )])
     }
 
     fn decode(&self, genotype: &Genotype<TreeChromosome<T>>) -> Tree<T> {
@@ -63,6 +67,87 @@ where
             .collect::<Vec<&TreeNode<T>>>();
 
         Tree::new((*nodes.first().unwrap()).clone())
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct ProgramTree {
+    pub trees: Option<Vec<Tree<f32>>>,
+}
+
+pub struct ProgramTreeCodex {
+    num_trees: usize,
+    builder: TreeBuilder<f32>,
+    constraint: Option<Arc<Box<dyn Fn(&TreeNode<f32>) -> bool>>>,
+}
+
+impl ProgramTreeCodex {
+    pub fn new(depth: usize, num_trees: usize) -> Self {
+        ProgramTreeCodex {
+            num_trees,
+            builder: TreeBuilder::new(depth),
+            constraint: None,
+        }
+    }
+
+    pub fn constraint<F>(mut self, constraint: F) -> Self
+    where
+        F: Fn(&TreeNode<f32>) -> bool + 'static,
+    {
+        self.constraint = Some(Arc::new(Box::new(constraint)));
+        self
+    }
+
+    pub fn gates(mut self, gates: Vec<Op<f32>>) -> Self {
+        self.builder = self.builder.with_gates(gates);
+        self
+    }
+
+    pub fn leafs(mut self, leafs: Vec<Op<f32>>) -> Self {
+        self.builder = self.builder.with_leafs(leafs);
+        self
+    }
+}
+
+impl Codex<TreeChromosome<f32>, ProgramTree> for ProgramTreeCodex {
+    fn encode(&self) -> Genotype<TreeChromosome<f32>> {
+        let trees = (0..self.num_trees)
+            .map(|_| self.builder.build().take_root().unwrap())
+            .collect::<Vec<_>>();
+
+        if let Some(constraint) = &self.constraint {
+            for tree in &trees {
+                if !constraint(tree) {
+                    panic!("Root node does not meet constraint.");
+                }
+            }
+        }
+
+        Genotype::new(
+            trees
+                .into_iter()
+                .map(|tree| {
+                    TreeChromosome::new(
+                        vec![tree],
+                        self.builder.get_gates(),
+                        self.builder.get_leafs(),
+                        self.constraint.clone(),
+                    )
+                })
+                .collect(),
+        )
+    }
+
+    fn decode(&self, genotype: &Genotype<TreeChromosome<f32>>) -> ProgramTree {
+        let trees = genotype
+            .iter()
+            .map(|chromosome| {
+                let nodes = chromosome.iter().collect::<Vec<&TreeNode<f32>>>();
+                Tree::new((*nodes.first().unwrap()).clone())
+            })
+            .collect();
+
+        ProgramTree { trees: Some(trees) }
     }
 }
 
