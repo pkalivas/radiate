@@ -1,10 +1,7 @@
-use std::sync::{Arc, RwLock};
-
-use radiate::{Chromosome, Codex, Gene, Genotype};
-
-use crate::Factory;
-
 use super::{Graph, GraphChromosome, GraphNode, NodeStore};
+use crate::Factory;
+use radiate::{Chromosome, Codex, Gene, Genotype};
+use std::sync::{Arc, RwLock};
 
 pub struct GraphCodex<T> {
     store: Arc<RwLock<NodeStore<T>>>,
@@ -13,7 +10,7 @@ pub struct GraphCodex<T> {
 
 impl<T> GraphCodex<T> {
     pub fn new(store: Arc<RwLock<NodeStore<T>>>, nodes: Option<Vec<GraphNode<T>>>) -> Self {
-        Self { store, nodes }
+        GraphCodex { store, nodes }
     }
 }
 
@@ -40,8 +37,7 @@ where
                 })
                 .collect::<Vec<GraphNode<T>>>();
 
-            let chromosome = GraphChromosome::new(new_nodes, store);
-            return Genotype::new(vec![chromosome]);
+            return Genotype::new(vec![GraphChromosome::new(new_nodes, store)]);
         }
 
         panic!("GraphBuilder has no nodes to encode");

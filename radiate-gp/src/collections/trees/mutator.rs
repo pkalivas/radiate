@@ -25,13 +25,14 @@ impl TreeMutator {
 
         if node.is_leaf() {
             if random_provider::random::<f32>() < self.rate {
-                let new_leaf = random_provider::choose(&(*leafs).read().unwrap()).clone();
-                (*node) = node.with_allele(&new_leaf);
+                let leaf_values = leafs.read().unwrap();
+                (*node) = node.with_allele(&random_provider::choose(&leaf_values));
                 count += 1;
             }
         } else {
             if random_provider::random::<f32>() < self.rate {
-                let new_gate = random_provider::choose(&(*gates).read().unwrap()).clone();
+                let gate_values = gates.read().unwrap();
+                let new_gate = random_provider::choose(&gate_values);
 
                 if new_gate.arity() == node.value().arity() {
                     (*node) = node.with_allele(&new_gate);

@@ -28,11 +28,11 @@ pub trait Crossover<C: Chromosome>: Alter<C> {
             }
         }
 
-        let mut new_metric = Metric::new_operations(self.name());
-        new_metric.add_value(count as f32);
-        new_metric.add_duration(timer.duration());
-
-        vec![new_metric]
+        vec![Metric::new_operations(
+            self.name(),
+            count as f32,
+            timer.duration(),
+        )]
     }
 
     #[inline]
@@ -45,6 +45,8 @@ pub trait Crossover<C: Chromosome>: Alter<C> {
         let index_one = parent_indexes[0];
         let index_two = parent_indexes[1];
 
+        // TODO: test if we need to clone the genotype here
+        // we might be able to just use a reference
         let mut geno_one = population[index_one].genotype().clone();
         let mut geno_two = population[index_two].genotype().clone();
 

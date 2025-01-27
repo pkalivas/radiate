@@ -8,6 +8,12 @@ pub struct TimeStatistic {
 }
 
 impl TimeStatistic {
+    pub fn new(initial_val: Duration) -> Self {
+        let mut result = TimeStatistic::default();
+        result.add(initial_val);
+        result
+    }
+
     pub fn add(&mut self, value: Duration) {
         self.statistic.add(value.as_secs_f32());
         self.last_time = value;
@@ -36,15 +42,15 @@ impl TimeStatistic {
     pub fn min(&self) -> Duration {
         Duration::from_secs_f32(self.statistic.min())
     }
-    
+
     pub fn max(&self) -> Duration {
         Duration::from_secs_f32(self.statistic.max())
     }
-    
+
     pub fn sum(&self) -> Duration {
         Duration::from_secs_f32(self.statistic.sum())
     }
-    
+
     pub fn clear(&mut self) {
         self.statistic.clear();
     }

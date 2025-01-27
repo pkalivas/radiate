@@ -1,12 +1,10 @@
 pub mod graphs;
-pub mod program;
 pub mod trees;
 
 pub use graphs::{
     Direction, Graph, GraphAggregate, GraphBuilder, GraphChromosome, GraphCrossover,
     GraphEvaluator, GraphMutator, GraphNode, GraphTopologicalIterator, NodeMutate, NodeType,
 };
-pub use program::Regressor;
 
 pub use trees::{
     Tree, TreeBuilder, TreeChromosome, TreeCodex, TreeCrossover, TreeIterator, TreeMutator,

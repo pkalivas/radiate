@@ -1,7 +1,7 @@
 use std::sync::{Arc, RwLock};
 
 use crate::collections::{Tree, TreeNode};
-use crate::{Builder, Op};
+use crate::{Builder, Factory, Op};
 use radiate::random_provider;
 
 pub struct TreeBuilder<T> {
@@ -61,7 +61,7 @@ impl<T> TreeBuilder<T> {
             let leaf = if leafs.is_empty() {
                 Op::default()
             } else {
-                random_provider::choose(&leafs).clone()
+                random_provider::choose(&leafs).new_instance(())
             };
 
             return TreeNode::new(leaf);
@@ -71,7 +71,7 @@ impl<T> TreeBuilder<T> {
         let gate = if gates.is_empty() {
             Op::default()
         } else {
-            random_provider::choose(&gates).clone()
+            random_provider::choose(&gates).new_instance(())
         };
 
         let mut parent = TreeNode::new(gate);

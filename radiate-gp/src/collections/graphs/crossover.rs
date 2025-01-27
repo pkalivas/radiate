@@ -1,11 +1,9 @@
-use std::collections::HashMap;
-
 use crate::collections::GraphChromosome;
 use crate::NodeType;
-
 use radiate::engines::genome::*;
 use radiate::timer::Timer;
 use radiate::{indexes, random_provider, Alter, AlterAction, Crossover, EngineCompoment, Metric};
+use std::collections::HashMap;
 
 const NUM_PARENTS: usize = 2;
 
@@ -16,7 +14,7 @@ pub struct GraphCrossover {
 
 impl GraphCrossover {
     pub fn new(crossover_rate: f32, crossover_parent_node_rate: f32) -> Self {
-        Self {
+        GraphCrossover {
             crossover_rate,
             crossover_parent_node_rate,
         }
@@ -30,7 +28,7 @@ impl GraphCrossover {
         generation: i32,
     ) -> Option<Phenotype<GraphChromosome<T>>>
     where
-        T: Clone + PartialEq + Default + 'static,
+        T: Clone + PartialEq + Default,
     {
         let parent_one = &population[indexes[0]];
         let parent_two = &population[indexes[1]];
@@ -95,7 +93,7 @@ where
         self.crossover_rate
     }
 
-    fn to_alter(self) -> radiate::AlterAction<GraphChromosome<T>> {
+    fn to_alter(self) -> AlterAction<GraphChromosome<T>> {
         AlterAction::Crossover(Box::new(self))
     }
 }
@@ -130,10 +128,10 @@ where
             population[index] = phenotype;
         }
 
-        let mut metric = Metric::new_operations(self.name());
-        metric.add_value(count as f32);
-        metric.add_duration(timer.duration());
-
-        vec![metric]
+        vec![Metric::new_operations(
+            self.name(),
+            count as f32,
+            timer.duration(),
+        )]
     }
 }

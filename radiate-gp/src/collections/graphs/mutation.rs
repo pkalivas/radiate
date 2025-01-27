@@ -382,9 +382,8 @@ where
         let mut count = 0;
         for i in 0..population.len() {
             let phenotype = &mut population[i];
-            let genotype = &mut phenotype.genotype();
 
-            let chromosome_index = random_provider::random::<usize>() % genotype.len();
+            let chromosome_index = random_provider::random::<usize>() % phenotype.genotype().len();
 
             let chromosome = &mut phenotype.genotype_mut()[chromosome_index];
 
@@ -395,13 +394,14 @@ where
             }
         }
 
-        let mut result = Metric::new_operations(self.name());
-        result.add_value(count as f32);
-        result.add_duration(timer.duration());
-
-        vec![result]
+        vec![Metric::new_operations(
+            self.name(),
+            count as f32,
+            timer.duration(),
+        )]
     }
 
+    #[inline]
     fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<T>) -> i32 {
         let mutation = random_provider::choose(&self.mutations);
 

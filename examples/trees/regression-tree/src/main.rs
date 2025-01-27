@@ -7,7 +7,7 @@ const MAX_SECONDS: f64 = 1.0;
 fn main() {
     random_provider::set_seed(42069);
 
-    let graph_codex = TreeCodex::new(3)
+    let graph_codex = TreeCodex::new(1, 3)
         .constraint(|node| node.size() < 30)
         .gates(vec![Op::add(), Op::sub(), Op::mul()])
         .leafs(vec![Op::var(0)]);
@@ -18,7 +18,7 @@ fn main() {
         .minimizing()
         .num_threads(10)
         .alter(alters!(TreeCrossover::new(0.5)))
-        .fitness_fn(move |tree: Tree<f32>| regression.eval(&tree))
+        .fitness_fn(move |tree: Vec<Tree<f32>>| regression.eval(&tree))
         .build();
 
     let result = engine.run(|ctx| {
@@ -29,13 +29,13 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<TreeChromosome<f32>, Tree<f32>>) {
+fn display(result: &EngineContext<TreeChromosome<f32>, Vec<Tree<f32>>>) {
     let mut regression_accuracy = 0.0;
     let mut total = 0.0;
 
     let reducer = result.best.clone();
     for sample in get_dataset().iter() {
-        let output = reducer.eval(sample.input());
+        let output = reducer.eval(sample.input())[0];
 
         total += sample.output()[0].abs();
         regression_accuracy += (sample.output()[0] - output).abs();

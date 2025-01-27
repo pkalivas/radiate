@@ -20,11 +20,11 @@ pub trait Mutate<C: Chromosome>: Alter<C> {
             }
         }
 
-        let mut new_metric = Metric::new_operations(self.name());
-        new_metric.add_value(count as f32);
-        new_metric.add_duration(timer.duration());
-
-        vec![new_metric]
+        vec![Metric::new_operations(
+            self.name(),
+            count as f32,
+            timer.duration(),
+        )]
     }
 
     #[inline]

@@ -51,6 +51,12 @@ pub struct Statistic {
 }
 
 impl Statistic {
+    pub fn new(initial_val: f32) -> Self {
+        let mut result = Statistic::default();
+        result.add(initial_val);
+        result
+    }
+
     pub fn last_value(&self) -> f32 {
         self.last_value
     }
@@ -74,7 +80,7 @@ impl Statistic {
             self.m1.value()
         }
     }
-    
+
     pub fn sum(&self) -> f32 {
         self.sum.value()
     }
@@ -111,7 +117,7 @@ impl Statistic {
 
         value
     }
-    
+
     pub fn kurtosis(&self) -> f32 {
         let mut value = f32::NAN;
         if self.count >= 4 {
@@ -119,8 +125,7 @@ impl Statistic {
             if temp < 10e-10_f32 {
                 value = 0_f32;
             } else {
-                value = self.count as f32 * (self.count as f32 + 1_f32)
-                    * self.m4.value()
+                value = self.count as f32 * (self.count as f32 + 1_f32) * self.m4.value()
                     / ((self.count as f32 - 1_f32)
                         * (self.count as f32 - 2_f32)
                         * (self.count as f32 - 3_f32)
@@ -156,7 +161,7 @@ impl Statistic {
         self.min = if value < self.min { value } else { self.min };
         self.sum.add(value);
     }
-    
+
     pub fn clear(&mut self) {
         self.m1 = Adder::default();
         self.m2 = Adder::default();

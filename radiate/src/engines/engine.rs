@@ -193,7 +193,6 @@ where
     /// be used to create the next generation through crossover and mutation.
     ///
     /// Alters the offspring population using the alterers specified in the genetic engine parameters.
-    /// The alterer in this case is going to be a ```CompositeAlterer``` and is responsible for applying
     /// the provided mutation and crossover operations to the offspring population.
     fn create_offspring(&self, ctx: &mut EngineContext<C, T>) -> Population<C> {
         let selector = self.offspring_selector();
