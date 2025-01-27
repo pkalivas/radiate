@@ -20,16 +20,10 @@ impl<T: Clone> Eval<[T], T> for Tree<T> {
 ///
 /// Because a `Tree` has only a single root node, this can only be used to return a single value.
 /// But, due to the structure and functionality of the `Op<T>`, we can have a multitude of `Inputs`
-impl<T> Eval<[T], T> for TreeNode<T>
-where
-    T: Clone,
-{
+impl<T: Clone> Eval<[T], T> for TreeNode<T> {
     #[inline]
     fn eval(&self, input: &[T]) -> T {
-        fn eval<T>(node: &TreeNode<T>, curr_input: &[T]) -> T
-        where
-            T: Clone,
-        {
+        fn eval<T: Clone>(node: &TreeNode<T>, curr_input: &[T]) -> T {
             if node.is_leaf() {
                 node.value().eval(curr_input)
             } else {

@@ -82,25 +82,6 @@ impl<T> TreeNode<T> {
         }
     }
 
-    pub fn get(&self, index: usize) -> Option<&TreeNode<T>> {
-        if index == 0 {
-            return Some(self);
-        }
-
-        if let Some(children) = self.children.as_ref() {
-            let mut count = 0;
-            for child in children {
-                let size = child.size();
-                if index <= count + size {
-                    return child.get(index - count - 1);
-                }
-                count += size;
-            }
-        }
-
-        None
-    }
-
     pub fn get_mut(&mut self, index: usize) -> Option<&mut TreeNode<T>> {
         if index == 0 {
             return Some(self);

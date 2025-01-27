@@ -51,10 +51,7 @@ impl<T> AsMut<[TreeNode<T>]> for TreeChromosome<T> {
     }
 }
 
-impl<T> PartialEq for TreeChromosome<T>
-where
-    T: PartialEq,
-{
+impl<T: PartialEq> PartialEq for TreeChromosome<T> {
     fn eq(&self, other: &Self) -> bool {
         self.nodes == other.nodes
     }

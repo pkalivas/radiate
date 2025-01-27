@@ -1,4 +1,4 @@
-use super::{iter::GraphIterator, GraphNode};
+use super::{iter::GraphIterator, Graph, GraphNode};
 use crate::{Eval, EvalMut, NodeType};
 
 /// `GraphReducer` is a struct that is used to evaluate a `Graph` of `Node`s. It uses the `GraphIterator`
@@ -87,7 +87,7 @@ where
     }
 }
 
-impl<'a, T> Eval<[T], Vec<T>> for &'a [GraphNode<T>]
+impl<T> Eval<[T], Vec<T>> for Graph<T>
 where
     T: Clone + Default,
 {
@@ -105,22 +105,25 @@ where
     }
 }
 
-impl<'a, T> Eval<Vec<Vec<T>>, Vec<T>> for &'a [GraphNode<T>]
+impl<T> Eval<Vec<Vec<T>>, Vec<Vec<T>>> for Graph<T>
 where
     T: Clone + Default,
 {
-    /// Evaluates the `Graph` with the given input. Returns the output of the `Graph`.
+    /// Evaluates the `Graph` with the given input 'Vec<Vec<T>>'. Returns the output of the `Graph` as 'Vec<Vec<T>>'.
+    /// This is inteded to be used when evaluating a batch of inputs.
     ///
     /// # Arguments
-    /// * `input` - A `Vec` of `Vec` of `T` to evaluate the `Graph` with.
+    /// * `input` - A `Vec<Vec<T>>` to evaluate the `Graph` with.
     ///
-    ///  # Returns
-    /// * A `Vec` of `T` which is the output of the `Graph`.
+    /// # Returns
+    /// * A `Vec<Vec<T>>` which is the output of the `Graph`.
     #[inline]
-    fn eval(&self, input: &Vec<Vec<T>>) -> Vec<T> {
+    fn eval(&self, input: &Vec<Vec<T>>) -> Vec<Vec<T>> {
         let mut output = Vec::with_capacity(self.len());
+        let mut evaluator = GraphEvaluator::new(self);
+
         for inputs in input.iter() {
-            output.extend(self.eval(inputs.as_slice()));
+            output.push(evaluator.eval_mut(inputs));
         }
 
         output
