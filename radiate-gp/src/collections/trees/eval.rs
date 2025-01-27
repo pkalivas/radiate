@@ -1,11 +1,11 @@
-use crate::{Eval, Op, TreeNode};
+use crate::{Eval, TreeNode};
 
-use super::Tree;
+use super::{ProgramTree, Tree};
 
 /// Implements the `Reduce` trait for `Tree<Op<T>>`. All this really does is
 /// call the `reduce` method on the root node of the `Tree`. The real work is
 /// done in the `TreeNode` implementation below.
-impl<T: Clone> Eval<[T], T> for Tree<Op<T>> {
+impl<T: Clone> Eval<[T], T> for Tree<T> {
     #[inline]
     fn eval(&self, input: &[T]) -> T {
         self.root()
@@ -20,10 +20,10 @@ impl<T: Clone> Eval<[T], T> for Tree<Op<T>> {
 ///
 /// Because a `Tree` has only a single root node, this can only be used to return a single value.
 /// But, due to the structure and functionality of the `Op<T>`, we can have a multitude of `Inputs`
-impl<T: Clone> Eval<[T], T> for TreeNode<Op<T>> {
+impl<T: Clone> Eval<[T], T> for TreeNode<T> {
     #[inline]
     fn eval(&self, input: &[T]) -> T {
-        fn eval<T: Clone>(node: &TreeNode<Op<T>>, curr_input: &[T]) -> T {
+        fn eval<T: Clone>(node: &TreeNode<T>, curr_input: &[T]) -> T {
             if node.is_leaf() {
                 node.value().eval(curr_input)
             } else {
@@ -42,6 +42,23 @@ impl<T: Clone> Eval<[T], T> for TreeNode<Op<T>> {
         }
 
         eval(self, input)
+    }
+}
+
+/// Implements the `Reduce` trait for `ProgramTree`. This is a wrapper around a `Vec<Tree<T>>`
+/// and allows for the evaluation of each `Tree` in the `Vec` with a single input.
+/// This is useful for things like `Ensemble` models where multiple models are used to make a prediction.
+///
+/// This is a simple implementation that just maps over the `Vec` and calls `eval` on each `Tree`.
+impl Eval<[f32], Vec<f32>> for ProgramTree {
+    #[inline]
+    fn eval(&self, inputs: &[f32]) -> Vec<f32> {
+        self.trees.as_ref().map_or(Vec::new(), |trees| {
+            trees
+                .iter()
+                .map(|tree| tree.root().unwrap().eval(inputs))
+                .collect()
+        })
     }
 }
 

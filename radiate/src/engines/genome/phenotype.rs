@@ -39,7 +39,7 @@ impl<C: Chromosome> Phenotype<C> {
     /// its just a lot. This method allows you to create a `Phenotype` from a list of chromosomes directly.
     pub fn from_chromosomes(chromosomes: Vec<C>, generation: i32) -> Self {
         Phenotype {
-            genotype: Some(Genotype::from_chromosomes(chromosomes)),
+            genotype: Some(Genotype::new(chromosomes)),
             score: None,
             generation,
         }

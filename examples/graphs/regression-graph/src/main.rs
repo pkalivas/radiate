@@ -9,7 +9,8 @@ fn main() {
 
     let graph_codex = GraphBuilder::default()
         .set_vertecies(vec![Op::add(), Op::sub(), Op::mul()])
-        .acyclic(1, 1, Op::linear());
+        .acyclic(1, 1, Op::linear())
+        .into_codex();
 
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
@@ -24,7 +25,7 @@ fn main() {
                 NodeMutate::Vertex(0.1, false),
             ]),
         ))
-        .fitness_fn(move |genotype: Graph<Op<f32>>| regression.eval(&genotype))
+        .fitness_fn(move |genotype: Graph<f32>| regression.eval(&genotype))
         .build();
 
     let result = engine.run(|ctx| {
@@ -35,7 +36,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
+fn display(result: &EngineContext<GraphChromosome<f32>, Graph<f32>>) {
     let mut regression_accuracy = 0.0;
     let mut total = 0.0;
 

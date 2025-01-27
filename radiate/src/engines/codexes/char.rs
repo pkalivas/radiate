@@ -1,5 +1,5 @@
-use crate::engines::genome::genes::char::CharGene;
-use crate::engines::genome::genes::gene::Gene;
+use crate::engines::genome::char::CharGene;
+use crate::engines::genome::gene::Gene;
 use crate::engines::genome::genotype::Genotype;
 use crate::{CharChromosome, Chromosome};
 

@@ -1,6 +1,6 @@
 use super::Codex;
-use crate::engines::genome::genes::float::FloatGene;
-use crate::engines::genome::genes::gene::{BoundGene, Gene};
+use crate::engines::genome::float::FloatGene;
+use crate::engines::genome::gene::{BoundGene, Gene};
 use crate::engines::genome::genotype::Genotype;
 use crate::{Chromosome, FloatChromosome};
 
@@ -39,13 +39,6 @@ impl FloatCodex {
         self.lower_bound = lower_bound;
         self.upper_bound = upper_bound;
         self
-    }
-
-    /// Create a new `FloatCodex` with a single chromosome and a single gene with the given min and max values.
-    /// The default bounds are `f32::MIN` and `f32::MAX`. This is useful for problems where the goal is to find
-    /// the best floating point number between the min and max values, like the Rastrigin function.
-    pub fn scalar(min: f32, max: f32) -> Self {
-        FloatCodex::new(1, 1, min, max)
     }
 }
 

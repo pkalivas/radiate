@@ -1,4 +1,3 @@
-use graphs::CellStore;
 use radiate::*;
 use radiate_gp::*;
 
@@ -6,11 +5,11 @@ const MAX_INDEX: i32 = 500;
 const MIN_SCORE: f32 = 0.01;
 
 fn main() {
-    // random_provider::set_seed(501);
+    random_provider::set_seed(501);
 
-    let graph_codex =
-        GraphBuilder::new(CellStore::regressor(2)).weighted_acyclic(2, 1, Op::sigmoid());
-
+    let graph_codex = GraphBuilder::default()
+        .weighted_acyclic(2, 1, Op::sigmoid())
+        .into_codex();
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
     let engine = GeneticEngine::from_codex(graph_codex)
@@ -20,10 +19,10 @@ fn main() {
             OperationMutator::new(0.05, 0.05),
             GraphMutator::new(vec![
                 NodeMutate::Edge(0.03, false),
-                NodeMutate::Vertex(0.1, false),
+                NodeMutate::Vertex(0.3, false),
             ]),
         ))
-        .fitness_fn(move |genotype: Graph<Op<f32>>| regression.eval(&genotype))
+        .fitness_fn(move |genotype: Graph<f32>| regression.eval(&genotype))
         .build();
 
     let result = engine.run(|ctx| {
@@ -34,7 +33,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
+fn display(result: &EngineContext<GraphChromosome<f32>, Graph<f32>>) {
     let mut reducer = GraphEvaluator::new(&result.best);
     for sample in get_dataset().iter() {
         let output = &reducer.eval_mut(sample.input())[0];

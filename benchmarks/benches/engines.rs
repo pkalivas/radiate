@@ -119,7 +119,7 @@ impl Codex<FloatChromosome, NeuralNet> for NeuralNetCodex {
             });
         }
 
-        Genotype::from_chromosomes(chromosomes)
+        Genotype::new(chromosomes)
     }
 
     fn decode(&self, genotype: &Genotype<FloatChromosome>) -> NeuralNet {

@@ -1,5 +1,3 @@
-use crate::NodeCell;
-
 use super::TreeChromosome;
 
 use radiate::engines::genome::*;
@@ -21,28 +19,28 @@ impl EngineCompoment for TreeCrossover {
     }
 }
 
-impl<C> Alter<TreeChromosome<C>> for TreeCrossover
+impl<T> Alter<TreeChromosome<T>> for TreeCrossover
 where
-    C: Clone + PartialEq + Default + NodeCell,
+    T: Clone + PartialEq + Default,
 {
     fn rate(&self) -> f32 {
         self.rate
     }
 
-    fn to_alter(self) -> AlterAction<TreeChromosome<C>> {
+    fn to_alter(self) -> AlterAction<TreeChromosome<T>> {
         AlterAction::Crossover(Box::new(self))
     }
 }
 
-impl<C> Crossover<TreeChromosome<C>> for TreeCrossover
+impl<T> Crossover<TreeChromosome<T>> for TreeCrossover
 where
-    C: Clone + PartialEq + Default + NodeCell,
+    T: Clone + PartialEq + Default,
 {
     #[inline]
     fn cross_chromosomes(
         &self,
-        chrom_one: &mut TreeChromosome<C>,
-        chrom_two: &mut TreeChromosome<C>,
+        chrom_one: &mut TreeChromosome<T>,
+        chrom_two: &mut TreeChromosome<T>,
     ) -> i32 {
         let swap_one_index = random_provider::random::<usize>() % chrom_one.len();
         let swap_two_index = random_provider::random::<usize>() % chrom_two.len();

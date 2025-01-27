@@ -1,6 +1,9 @@
 use crate::random_provider;
 
-use super::gene::{Gene, Valid};
+use super::{
+    gene::{Gene, Valid},
+    Chromosome,
+};
 
 const ALPHABET: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"$%&/()=?`{[]}\\+~*#';.:,-_<>|@^' ";
 
@@ -77,6 +80,48 @@ impl From<char> for CharGene {
 impl From<&char> for CharGene {
     fn from(allele: &char) -> Self {
         CharGene { allele: *allele }
+    }
+}
+
+/// A `Chromosome` that contains `CharGenes`.
+#[derive(Clone, PartialEq, Default)]
+pub struct CharChromosome {
+    pub genes: Vec<CharGene>,
+}
+
+impl Chromosome for CharChromosome {
+    type Gene = CharGene;
+}
+
+impl Valid for CharChromosome {
+    fn is_valid(&self) -> bool {
+        self.genes.iter().all(|gene| gene.is_valid())
+    }
+}
+
+impl AsRef<[CharGene]> for CharChromosome {
+    fn as_ref(&self) -> &[CharGene] {
+        &self.genes
+    }
+}
+
+impl AsMut<[CharGene]> for CharChromosome {
+    fn as_mut(&mut self) -> &mut [CharGene] {
+        &mut self.genes
+    }
+}
+
+impl From<&'static str> for CharChromosome {
+    fn from(alleles: &'static str) -> Self {
+        let genes = alleles.chars().map(CharGene::from).collect();
+        CharChromosome { genes }
+    }
+}
+
+impl From<&[char]> for CharChromosome {
+    fn from(alleles: &[char]) -> Self {
+        let genes = alleles.iter().map(CharGene::from).collect();
+        CharChromosome { genes }
     }
 }
 

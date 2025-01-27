@@ -17,7 +17,7 @@ use crate::{Chromosome, Codex, Genotype};
 ///     // The resulting codex type will be FnCodex<IntChromosome<i8>, Vec<i8>>.
 ///     let codex = FnCodex::new()
 ///         .with_encoder(|| {
-///             Genotype::from_chromosomes(vec![IntChromosome {
+///             Genotype::new(vec![IntChromosome {
 ///                genes: (0..N_QUEENS)
 ///                     .map(|_| IntGene::from_min_max(0, N_QUEENS as i8))
 ///                     .collect(),

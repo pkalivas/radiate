@@ -1,77 +1,66 @@
-use crate::{GraphNode, NodeCell};
+use super::NodeStore;
+use crate::GraphNode;
 use radiate::{Chromosome, Valid};
 use std::fmt::Debug;
 use std::sync::{Arc, RwLock};
 
-use super::CellStore;
-
 #[derive(Clone)]
-pub struct GraphChromosome<C>
-where
-    C: Clone + PartialEq + Default + NodeCell,
-{
-    pub nodes: Vec<GraphNode<C>>,
-    pub store: Option<Arc<RwLock<CellStore<C>>>>,
+pub struct GraphChromosome<T> {
+    nodes: Vec<GraphNode<T>>,
+    store: Option<Arc<RwLock<NodeStore<T>>>>,
 }
 
-impl<C> GraphChromosome<C>
-where
-    C: Clone + PartialEq + Default + NodeCell,
-{
-    pub fn new(nodes: Vec<GraphNode<C>>, factory: Arc<RwLock<CellStore<C>>>) -> Self {
+impl<T> GraphChromosome<T> {
+    pub fn new(nodes: Vec<GraphNode<T>>, factory: Arc<RwLock<NodeStore<T>>>) -> Self {
         GraphChromosome {
             nodes,
             store: Some(factory),
         }
     }
+
+    pub fn set_nodes(&mut self, nodes: Vec<GraphNode<T>>) {
+        self.nodes = nodes;
+    }
+
+    pub fn store(&self) -> Arc<RwLock<NodeStore<T>>> {
+        self.store.as_ref().unwrap().clone()
+    }
 }
 
-impl<C> Chromosome for GraphChromosome<C>
+impl<T> Chromosome for GraphChromosome<T>
 where
-    C: Clone + PartialEq + Default + NodeCell,
+    T: Clone + PartialEq + Default,
 {
-    type Gene = GraphNode<C>;
+    type Gene = GraphNode<T>;
 }
 
-impl<C> Valid for GraphChromosome<C>
-where
-    C: Clone + PartialEq + Default + NodeCell,
-{
+impl<T> Valid for GraphChromosome<T> {
     fn is_valid(&self) -> bool {
         self.nodes.iter().all(|gene| gene.is_valid())
     }
 }
 
-impl<C> AsRef<[GraphNode<C>]> for GraphChromosome<C>
-where
-    C: Clone + PartialEq + Default + NodeCell,
-{
-    fn as_ref(&self) -> &[GraphNode<C>] {
+impl<T> AsRef<[GraphNode<T>]> for GraphChromosome<T> {
+    fn as_ref(&self) -> &[GraphNode<T>] {
         &self.nodes
     }
 }
 
-impl<C> AsMut<[GraphNode<C>]> for GraphChromosome<C>
-where
-    C: Clone + PartialEq + Default + NodeCell,
-{
-    fn as_mut(&mut self) -> &mut [GraphNode<C>] {
+impl<T> AsMut<[GraphNode<T>]> for GraphChromosome<T> {
+    fn as_mut(&mut self) -> &mut [GraphNode<T>] {
         &mut self.nodes
     }
 }
 
-impl<C> PartialEq for GraphChromosome<C>
-where
-    C: Clone + PartialEq + Default + NodeCell,
-{
+impl<T: PartialEq> PartialEq for GraphChromosome<T> {
     fn eq(&self, other: &Self) -> bool {
         self.nodes == other.nodes
     }
 }
 
-impl<C> Debug for GraphChromosome<C>
+impl<T> Debug for GraphChromosome<T>
 where
-    C: Clone + PartialEq + Default + NodeCell + Debug,
+    T: Clone + PartialEq + Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Graph {{\n")?;
