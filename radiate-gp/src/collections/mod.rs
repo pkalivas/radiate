@@ -1,6 +1,8 @@
 pub mod graphs;
 pub mod trees;
 
+use std::collections::HashMap;
+
 pub use graphs::{
     Direction, Graph, GraphAggregate, GraphChromosome, GraphCodex, GraphCrossover, GraphEvaluator,
     GraphMutator, GraphNode, GraphTopologicalIterator, NodeMutate, NodeType,
@@ -114,4 +116,15 @@ impl<I: ?Sized, O> EvalMut<I, O> for dyn Eval<I, O> {
 pub trait Factory<T> {
     type Input;
     fn new_instance(&self, input: Self::Input) -> T;
+}
+
+pub trait Store<K, V> {
+    fn map<F, R>(&self, key: K, f: F) -> Option<R>
+    where
+        F: Fn(&V) -> R;
+
+    fn get_or_insert_with<F>(&self, key: K, f: F) -> V
+    where
+        V: Clone,
+        F: Fn() -> V;
 }

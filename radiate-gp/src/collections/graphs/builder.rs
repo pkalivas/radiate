@@ -2,7 +2,7 @@ use super::aggregate::GraphAggregate;
 use super::NodeStore;
 use crate::collections::{Builder, Graph, GraphNode, NodeType};
 use crate::ops::Arity;
-use crate::Factory;
+use crate::{Factory, Store};
 use radiate::random_provider;
 
 pub struct AsyclicGraphBuilder<T> {
@@ -19,6 +19,13 @@ impl<T: Clone + Default> AsyclicGraphBuilder<T> {
             inner: NodeBuilder::new(values),
         }
     }
+    // pub fn new(input_size: usize, output_size: usize, values: impl Into<NodeStore<T>>) -> Self {
+    //     AsyclicGraphBuilder {
+    //         input_size,
+    //         output_size,
+    //         inner: NodeBuilder::new(values),
+    //     }
+    // }
 }
 
 impl<T: Clone + Default> Builder for AsyclicGraphBuilder<T> {
@@ -55,8 +62,8 @@ impl<T: Clone + Default> Builder for CyclicGraphBuilder<T> {
 
     fn build(&self) -> Self::Output {
         let input = self.inner.input(self.input_size);
-        let aggregate = self.inner.aggregates(self.input_size);
-        let link = self.inner.aggregates(self.input_size);
+        let aggregate = self.inner.vertex(self.input_size);
+        let link = self.inner.vertex(self.input_size);
         let output = self.inner.output(self.output_size);
 
         GraphAggregate::new()
@@ -86,32 +93,40 @@ impl<T: Clone + Default> NodeBuilder<T> {
         self.new_nodes(NodeType::Output, size)
     }
 
-    pub fn aggregates(&self, size: usize) -> Vec<GraphNode<T>> {
-        let vertecies_with_any = self.store.values_with_arities(NodeType::Vertex, Arity::Any);
-        let outputs_with_any = self.store.values_with_arities(NodeType::Output, Arity::Any);
+    // pub fn aggregates(&self, size: usize) -> Vec<GraphNode<T>> {
+    //     let vertecies_with_any = self.store.values_with_arities(NodeType::Vertex, Arity::Any);
+    //     let outputs_with_any = self.store.values_with_arities(NodeType::Output, Arity::Any);
 
-        if !vertecies_with_any.is_empty() {
-            return (0..size)
-                .map(|i| {
-                    let op = random_provider::choose(&vertecies_with_any).new_instance(());
-                    GraphNode::new(i, NodeType::Vertex, op)
-                })
-                .collect::<Vec<GraphNode<T>>>();
-        } else if !outputs_with_any.is_empty() {
-            return (0..size)
-                .map(|i| {
-                    let op = random_provider::choose(&outputs_with_any).new_instance(());
-                    GraphNode::new(i, NodeType::Vertex, op)
-                })
-                .collect::<Vec<GraphNode<T>>>();
-        }
+    //     if !vertecies_with_any.is_empty() {
+    //         return (0..size)
+    //             .map(|i| {
+    //                 let op = random_provider::choose(&vertecies_with_any).new_instance(());
+    //                 GraphNode::new(i, NodeType::Vertex, op)
+    //             })
+    //             .collect::<Vec<GraphNode<T>>>();
+    //     } else if !outputs_with_any.is_empty() {
+    //         return (0..size)
+    //             .map(|i| {
+    //                 let op = random_provider::choose(&outputs_with_any).new_instance(());
+    //                 GraphNode::new(i, NodeType::Vertex, op)
+    //             })
+    //             .collect::<Vec<GraphNode<T>>>();
+    //     }
 
+    //     self.new_nodes(NodeType::Vertex, size)
+    // }
+
+    pub fn edge(&self, size: usize) -> Vec<GraphNode<T>> {
+        self.new_nodes(NodeType::Edge, size)
+    }
+
+    pub fn vertex(&self, size: usize) -> Vec<GraphNode<T>> {
         self.new_nodes(NodeType::Vertex, size)
     }
 
     fn new_nodes(&self, node_type: NodeType, size: usize) -> Vec<GraphNode<T>> {
         self.store.map_values(node_type, size, |idx, op| {
-            GraphNode::new(idx, node_type, op.new_instance(()))
+            GraphNode::new(idx, node_type, op.clone())
         })
     }
 }

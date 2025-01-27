@@ -317,7 +317,7 @@ impl GraphMutator {
     where
         T: Clone + Default + PartialEq,
     {
-        let arity = transaction[node_index].value().arity();
+        let arity = transaction[node_index].arity();
 
         match arity {
             Arity::Any | Arity::Zero => {

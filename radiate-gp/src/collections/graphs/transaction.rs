@@ -41,12 +41,12 @@ impl<'a, T: Clone + Default + PartialEq> GraphTransaction<'a, T> {
         self.graph.len()
     }
 
-    pub fn insert_vertex(&mut self, value: impl Into<Op<T>>) -> usize {
+    pub fn insert_vertex(&mut self, value: impl Into<T>) -> usize {
         let node = GraphNode::new(self.graph.len(), super::NodeType::Vertex, value);
         self.add_node(node)
     }
 
-    pub fn insert_edge(&mut self, value: impl Into<Op<T>>) -> usize {
+    pub fn insert_edge(&mut self, value: impl Into<T>) -> usize {
         let node = GraphNode::new(self.graph.len(), super::NodeType::Edge, value);
         self.add_node(node)
     }

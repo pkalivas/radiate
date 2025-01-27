@@ -22,18 +22,19 @@ pub enum Direction {
 
 #[derive(Clone, PartialEq)]
 pub struct GraphNode<T> {
-    value: Op<T>,
+    value: T,
     id: Uuid,
     index: usize,
     enabled: bool,
     node_type: NodeType,
     direction: Direction,
+    arity: Option<Arity>,
     incoming: HashSet<usize>,
     outgoing: HashSet<usize>,
 }
 
 impl<T> GraphNode<T> {
-    pub fn new(index: usize, node_type: NodeType, value: impl Into<Op<T>>) -> Self {
+    pub fn new(index: usize, node_type: NodeType, value: impl Into<T>) -> Self {
         Self {
             id: Uuid::new_v4(),
             index,
@@ -41,6 +42,7 @@ impl<T> GraphNode<T> {
             enabled: true,
             direction: Direction::Forward,
             node_type,
+            arity: None,
             incoming: HashSet::new(),
             outgoing: HashSet::new(),
         }
@@ -78,7 +80,7 @@ impl<T> GraphNode<T> {
         &self.id
     }
 
-    pub fn value(&self) -> &Op<T> {
+    pub fn value(&self) -> &T {
         &self.value
     }
 
@@ -104,12 +106,25 @@ impl<T> GraphNode<T> {
         &mut self.outgoing
     }
 
+    pub fn set_arity(&mut self, arity: Arity) {
+        self.arity = Some(arity);
+    }
+
+    pub fn arity(&self) -> Arity {
+        self.arity.unwrap_or(match self.node_type {
+            NodeType::Input => Arity::Zero,
+            NodeType::Output => Arity::Any,
+            NodeType::Vertex => Arity::Any,
+            NodeType::Edge => Arity::Exact(1),
+        })
+    }
+
     pub fn is_locked(&self) -> bool {
-        if self.value.arity() == Arity::Any {
+        if self.arity() == Arity::Any {
             return false;
         }
 
-        self.incoming.len() == *self.value.arity()
+        self.incoming.len() == *self.arity()
     }
 }
 
@@ -117,7 +132,7 @@ impl<T> Gene for GraphNode<T>
 where
     T: Clone + PartialEq + Default,
 {
-    type Allele = Op<T>;
+    type Allele = T;
 
     fn allele(&self) -> &Self::Allele {
         &self.value
@@ -131,6 +146,7 @@ where
             value: self.value.clone(),
             direction: self.direction,
             node_type: self.node_type,
+            arity: self.arity,
             incoming: self.incoming.clone(),
             outgoing: self.outgoing.clone(),
         }
@@ -144,6 +160,7 @@ where
             enabled: self.enabled,
             direction: self.direction,
             node_type: self.node_type,
+            arity: self.arity,
             incoming: self.incoming.clone(),
             outgoing: self.outgoing.clone(),
         }
@@ -152,31 +169,34 @@ where
 
 impl<T> Valid for GraphNode<T> {
     fn is_valid(&self) -> bool {
-        match self.node_type {
-            NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
-            NodeType::Output => {
-                (!self.incoming.is_empty())
-                    && (self.incoming.len() == *self.value.arity()
-                        || self.value.arity() == Arity::Any)
-            }
-            NodeType::Vertex => {
-                if !self.incoming.is_empty() && !self.outgoing.is_empty() {
-                    if let Arity::Exact(n) = self.value.arity() {
-                        return self.incoming.len() == n;
-                    } else if self.value.arity() == Arity::Any {
-                        return true;
+        if let Some(arity) = self.arity {
+            return match self.node_type {
+                NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
+                NodeType::Output => {
+                    (!self.incoming.is_empty())
+                        && (self.incoming.len() == *arity || arity == Arity::Any)
+                }
+                NodeType::Vertex => {
+                    if !self.incoming.is_empty() && !self.outgoing.is_empty() {
+                        if let Arity::Exact(n) = arity {
+                            return self.incoming.len() == n;
+                        } else if arity == Arity::Any {
+                            return true;
+                        }
                     }
+                    return false;
                 }
-                return false;
-            }
-            NodeType::Edge => {
-                if self.value.arity() == Arity::Exact(1) {
-                    return self.incoming.len() == 1 && self.outgoing.len() == 1;
-                }
+                NodeType::Edge => {
+                    if arity == Arity::Exact(1) {
+                        return self.incoming.len() == 1 && self.outgoing.len() == 1;
+                    }
 
-                false
-            }
+                    false
+                }
+            };
         }
+
+        true
     }
 }
 
@@ -186,7 +206,8 @@ impl<T: Default> Default for GraphNode<T> {
             id: Uuid::new_v4(),
             index: 0,
             enabled: true,
-            value: Op::default(),
+            value: T::default(),
+            arity: None,
             direction: Direction::Forward,
             node_type: NodeType::Input,
             incoming: HashSet::new(),

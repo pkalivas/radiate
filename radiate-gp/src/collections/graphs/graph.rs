@@ -45,7 +45,7 @@ impl<T> Graph<T> {
         self.nodes.push(node);
     }
 
-    pub fn insert(&mut self, node_type: NodeType, val: impl Into<Op<T>>) -> usize {
+    pub fn insert(&mut self, node_type: NodeType, val: impl Into<T>) -> usize {
         let node = GraphNode::new(self.len(), node_type, val.into());
         self.push(node);
         self.len() - 1

@@ -44,7 +44,7 @@ fn main() {
                 NodeMutate::Vertex(0.01, false),
             ]),
         ))
-        .fitness_fn(move |graph: Graph<f32>| regression.eval(&graph))
+        .fitness_fn(move |graph: Graph<Op<f32>>| regression.eval(&graph))
         .build();
 
     let result = engine.run(|ctx| {
@@ -58,7 +58,7 @@ fn main() {
 fn display(
     train: &DataSet,
     test: &DataSet,
-    result: &EngineContext<GraphChromosome<f32>, Graph<f32>>,
+    result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>,
 ) {
     let mut reducer = GraphEvaluator::new(&result.best);
 
