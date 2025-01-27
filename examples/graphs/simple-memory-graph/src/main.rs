@@ -7,7 +7,9 @@ const MIN_SCORE: f32 = 0.01;
 fn main() {
     random_provider::set_seed(100);
 
-    let graph_codex = GraphBuilder::default().lstm(1, 1, Op::sigmoid());
+    let graph_codex = GraphBuilder::default()
+        .lstm(1, 1, Op::sigmoid())
+        .into_codex();
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
     let engine = GeneticEngine::from_codex(graph_codex)

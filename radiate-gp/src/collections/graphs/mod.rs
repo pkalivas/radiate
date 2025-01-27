@@ -1,6 +1,7 @@
 mod aggregate;
 mod builder;
 mod chromosome;
+mod codex;
 mod crossover;
 mod eval;
 mod graph;

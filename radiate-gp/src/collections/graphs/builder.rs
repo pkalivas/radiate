@@ -4,10 +4,11 @@ use crate::collections::{Builder, Graph, GraphNode, NodeType};
 
 use crate::ops::{Arity, Op};
 use crate::{ops, Factory};
-use radiate::{random_provider, Chromosome, Codex, Gene, Genotype};
+use radiate::random_provider;
 
 use super::aggregate::GraphAggregate;
-use super::{GraphChromosome, NodeStore};
+use super::codex::GraphCodex;
+use super::NodeStore;
 
 /// The `GraphBuilder` is a builder pattern that allows us to create a variety of different
 /// graph architectures.
@@ -32,6 +33,10 @@ impl<T> GraphBuilder<T> {
             store: Arc::new(RwLock::new(store)),
             node_cache: None,
         }
+    }
+
+    pub fn into_codex(self) -> GraphCodex<T> {
+        GraphCodex::new(self.store, self.node_cache)
     }
 }
 
@@ -309,24 +314,6 @@ impl GraphBuilder<f32> {
 
         let final_weights = self.edge(output_size);
 
-        // let graph = GraphAggregate::new()
-        //     .many_to_one(&input, &forget_gate)
-        //     .many_to_one(&input, &input_gate)
-        //     .many_to_one(&input, &output_gate)
-        //     .many_to_one(&input, &candidate)
-        //     .one_to_one(&hidden_state, &forget_gate)
-        //     .one_to_one(&hidden_state, &input_gate)
-        //     .one_to_one(&hidden_state, &output_gate)
-        //     .one_to_one(&hidden_state, &candidate)
-        //     .one_to_one(&forget_gate, &cell_state)
-        //     .one_to_one(&input_gate, &candidate)
-        //     .one_to_one(&candidate, &cell_state)
-        //     .one_to_one(&cell_state, &hidden_state)
-        //     .one_to_one(&output_gate, &hidden_state)
-        //     .one_to_many(&hidden_state, &final_weights)
-        //     .one_to_one(&final_weights, &output)
-        //     .build();
-
         let graph = GraphAggregate::new()
             .one_to_one(&input, &input_to_forget_weights)
             .one_to_one(&input, &input_to_input_weights)
@@ -367,49 +354,6 @@ impl<T: Clone> Builder for GraphBuilder<T> {
         } else {
             Graph::new(vec![])
         }
-    }
-}
-
-impl<T> Codex<GraphChromosome<T>, Graph<T>> for GraphBuilder<T>
-where
-    T: Clone + PartialEq + Default,
-{
-    fn encode(&self) -> Genotype<GraphChromosome<T>> {
-        let store = Arc::clone(&self.store);
-        if let Some(nodes) = &self.node_cache {
-            let new_nodes = nodes
-                .iter()
-                .map(|node| {
-                    let new_node = store
-                        .read()
-                        .unwrap()
-                        .new_instance((node.index(), node.node_type()));
-
-                    if new_node.value().arity() == node.value().arity() {
-                        node.with_allele(new_node.allele())
-                    } else {
-                        node.clone()
-                    }
-                })
-                .collect::<Vec<GraphNode<T>>>();
-
-            let chromosome = GraphChromosome::new(new_nodes, store);
-            return Genotype::new(vec![chromosome]);
-        }
-
-        panic!("GraphBuilder has no nodes to encode");
-    }
-
-    fn decode(&self, genotype: &Genotype<GraphChromosome<T>>) -> Graph<T> {
-        Graph::new(
-            genotype
-                .iter()
-                .next()
-                .unwrap()
-                .iter()
-                .cloned()
-                .collect::<Vec<GraphNode<T>>>(),
-        )
     }
 }
 

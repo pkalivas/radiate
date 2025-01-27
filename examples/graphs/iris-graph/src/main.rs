@@ -11,10 +11,12 @@ fn main() {
 
     let (train, test) = load_iris_dataset().shuffle().standardize().split(0.75);
 
-    let builder = GraphBuilder::default().acyclic(4, 4, Op::sigmoid());
     let regression = Regression::new(train.clone(), Loss::MSE);
+    let codex = GraphBuilder::default()
+        .acyclic(4, 4, Op::sigmoid())
+        .into_codex();
 
-    let engine = GeneticEngine::from_codex(builder)
+    let engine = GeneticEngine::from_codex(codex)
         .minimizing()
         .num_threads(10)
         .offspring_selector(BoltzmannSelector::new(4.0))

@@ -9,7 +9,8 @@ fn main() {
 
     let graph_codex = GraphBuilder::default()
         .set_vertecies(vec![Op::add(), Op::sub(), Op::mul()])
-        .acyclic(1, 1, Op::linear());
+        .acyclic(1, 1, Op::linear())
+        .into_codex();
 
     let regression = Regression::new(get_dataset(), Loss::MSE);
 

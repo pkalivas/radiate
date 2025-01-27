@@ -1,6 +1,6 @@
 use std::{fmt::Debug, sync::Arc};
 
-use super::{Gene, Valid};
+use super::{Chromosome, Gene, Valid};
 
 /// The `PermutationGene` is a gene that represents a permutation of a set of alleles. The gene has an index
 /// that represents the position of the allele in the alleles vector. The alleles vector is a set of unique
@@ -50,5 +50,48 @@ impl<A: PartialEq + Clone> Gene for PermutationGene<A> {
 impl<A: PartialEq + Clone> Valid for PermutationGene<A> {
     fn is_valid(&self) -> bool {
         self.index < self.alleles.len()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct PermutationChromosome<A: PartialEq + Clone> {
+    pub genes: Vec<PermutationGene<A>>,
+    pub alleles: Arc<Vec<A>>,
+}
+
+impl<A: PartialEq + Clone> PermutationChromosome<A> {
+    pub fn new(genes: Vec<PermutationGene<A>>, alleles: Arc<Vec<A>>) -> Self {
+        PermutationChromosome { genes, alleles }
+    }
+}
+
+impl<A: PartialEq + Clone> Chromosome for PermutationChromosome<A> {
+    type Gene = PermutationGene<A>;
+}
+
+impl<A: PartialEq + Clone> Valid for PermutationChromosome<A> {
+    fn is_valid(&self) -> bool {
+        // Check if the genes are a valid permutation of the alleles
+        let mut bit_set = vec![false; self.alleles.len()];
+        self.genes.iter().all(|gene| {
+            let index = gene.index;
+            if bit_set[index] {
+                return false;
+            }
+            bit_set[index] = true;
+            true
+        })
+    }
+}
+
+impl<A: PartialEq + Clone> AsRef<[PermutationGene<A>]> for PermutationChromosome<A> {
+    fn as_ref(&self) -> &[PermutationGene<A>] {
+        &self.genes
+    }
+}
+
+impl<A: PartialEq + Clone> AsMut<[PermutationGene<A>]> for PermutationChromosome<A> {
+    fn as_mut(&mut self) -> &mut [PermutationGene<A>] {
+        &mut self.genes
     }
 }

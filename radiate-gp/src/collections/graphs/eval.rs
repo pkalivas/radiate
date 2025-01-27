@@ -129,3 +129,9 @@ where
         output
     }
 }
+
+impl<T: Clone> Eval<[T], T> for GraphNode<T> {
+    fn eval(&self, inputs: &[T]) -> T {
+        self.value().eval(inputs)
+    }
+}

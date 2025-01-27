@@ -1,7 +1,7 @@
 use super::codexes::Codex;
 use super::thread_pool::ThreadPool;
 use super::{
-    Alter, AlterAction, DefaultProblem, Problem, RouletteSelector, Select, TournamentSelector,
+    Alter, AlterAction, EngineProblem, Problem, RouletteSelector, Select, TournamentSelector,
 };
 use crate::engines::engine::GeneticEngine;
 use crate::engines::genome::phenotype::Phenotype;
@@ -222,7 +222,7 @@ where
                 panic!("Fitness function not set");
             }
 
-            let problem = DefaultProblem {
+            let problem = EngineProblem {
                 codex: self.codex.clone().unwrap(),
                 fitness_fn: self.fitness_fn.clone().unwrap(),
             };

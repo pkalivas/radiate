@@ -1,6 +1,6 @@
 use super::{
     gene::{BoundGene, Gene, NumericGene, Valid},
-    Integer,
+    Chromosome, Integer,
 };
 use crate::random_provider;
 use rand::distributions::Distribution;
@@ -254,6 +254,81 @@ impl From<IntGene<u64>> for u64 {
 impl From<IntGene<u128>> for u128 {
     fn from(gene: IntGene<u128>) -> Self {
         gene.allele
+    }
+}
+
+/// Represents a chromosome composed of integer genes.
+///
+/// An `IntChromosome` is generic over the integer type `T` and contains a vector of `IntGene<T>`
+/// instances. This structure is suitable for optimization problems where solutions are encoded
+/// as integers.
+///
+/// # Type Parameters
+///
+/// * `T` - The integer type used for genes (e.g., `i32`, `u32`).
+///
+/// # Fields
+///
+/// * `genes` - A vector of `IntGene<T>` representing the individual's genetic informationn.
+///
+#[derive(Clone, PartialEq, Default)]
+pub struct IntChromosome<I: Integer<I>>
+where
+    Standard: rand::distributions::Distribution<I>,
+{
+    pub genes: Vec<IntGene<I>>,
+}
+
+impl<I: Integer<I>> IntChromosome<I>
+where
+    Standard: rand::distributions::Distribution<I>,
+{
+    pub fn new(genes: Vec<IntGene<I>>) -> Self {
+        IntChromosome { genes }
+    }
+}
+
+impl<I: Integer<I>> Chromosome for IntChromosome<I>
+where
+    Standard: rand::distributions::Distribution<I>,
+{
+    type Gene = IntGene<I>;
+}
+
+impl<T: Integer<T>> Valid for IntChromosome<T>
+where
+    Standard: rand::distributions::Distribution<T>,
+{
+    fn is_valid(&self) -> bool {
+        self.genes.iter().all(|gene| gene.is_valid())
+    }
+}
+
+impl<T: Integer<T>> AsRef<[IntGene<T>]> for IntChromosome<T>
+where
+    Standard: rand::distributions::Distribution<T>,
+{
+    fn as_ref(&self) -> &[IntGene<T>] {
+        &self.genes
+    }
+}
+
+impl<T: Integer<T>> AsMut<[IntGene<T>]> for IntChromosome<T>
+where
+    Standard: rand::distributions::Distribution<T>,
+{
+    fn as_mut(&mut self) -> &mut [IntGene<T>] {
+        &mut self.genes
+    }
+}
+
+impl<T: Integer<T>> From<&[T]> for IntChromosome<T>
+where
+    Standard: rand::distributions::Distribution<T>,
+{
+    fn from(alleles: &[T]) -> Self {
+        let genes = alleles.iter().map(IntGene::from).collect();
+        IntChromosome { genes }
     }
 }
 

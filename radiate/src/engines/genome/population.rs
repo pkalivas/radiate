@@ -157,8 +157,7 @@ impl<C: Chromosome + Debug> Debug for Population<C> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::objectives::Optimize;
-    use crate::{CharChromosome, FloatChromosome};
+    use crate::{char::CharChromosome, float::FloatChromosome, objectives::Optimize};
 
     #[test]
     fn test_new() {

@@ -1,5 +1,5 @@
 use crate::ops::Arity;
-use crate::{Eval, Op};
+use crate::Op;
 use radiate::{Gene, Valid};
 use std::collections::HashSet;
 use std::fmt::Debug;
@@ -177,12 +177,6 @@ impl<T> Valid for GraphNode<T> {
                 false
             }
         }
-    }
-}
-
-impl<T: Clone> Eval<[T], T> for GraphNode<T> {
-    fn eval(&self, inputs: &[T]) -> T {
-        self.value.eval(inputs)
     }
 }
 
