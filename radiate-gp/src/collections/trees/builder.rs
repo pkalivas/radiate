@@ -1,8 +1,7 @@
-use std::sync::{Arc, RwLock};
-
 use crate::collections::{Tree, TreeNode};
 use crate::{Builder, Factory, Op};
 use radiate::random_provider;
+use std::sync::{Arc, RwLock};
 
 pub struct TreeBuilder<T> {
     depth: usize,

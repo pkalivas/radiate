@@ -1,5 +1,5 @@
 use crate::collections::GraphChromosome;
-use crate::NodeType;
+use crate::Op;
 use radiate::engines::genome::*;
 use radiate::timer::Timer;
 use radiate::{indexes, random_provider, Alter, AlterAction, Crossover, EngineCompoment, Metric};
@@ -45,20 +45,23 @@ impl GraphCrossover {
         let mut new_chromo_one = chromo_one.clone();
         let mut num_crosses = 0;
 
-        let edge_indexes = (0..std::cmp::min(chromo_one.len(), chromo_two.len()))
+        let weight_indexes = (0..std::cmp::min(chromo_one.len(), chromo_two.len()))
             .filter(|i| {
                 let node_one = chromo_one.get_gene(*i);
                 let node_two = chromo_two.get_gene(*i);
 
-                node_one.node_type() == NodeType::Edge && node_two.node_type() == NodeType::Edge
+                match (node_one.value(), node_two.value()) {
+                    (Op::MutableConst { .. }, Op::MutableConst { .. }) => true,
+                    _ => false,
+                }
             })
             .collect::<Vec<usize>>();
 
-        if edge_indexes.is_empty() {
+        if weight_indexes.is_empty() {
             return None;
         }
 
-        for i in edge_indexes {
+        for i in weight_indexes {
             let node_one = chromo_one.get_gene(i);
             let node_two = chromo_two.get_gene(i);
 
@@ -87,7 +90,7 @@ impl EngineCompoment for GraphCrossover {
 
 impl<T> Alter<GraphChromosome<T>> for GraphCrossover
 where
-    T: Clone + PartialEq + Default + 'static,
+    T: Clone + PartialEq + Default,
 {
     fn rate(&self) -> f32 {
         self.crossover_rate
@@ -100,7 +103,7 @@ where
 
 impl<T> Crossover<GraphChromosome<T>> for GraphCrossover
 where
-    T: Clone + PartialEq + Default + 'static,
+    T: Clone + PartialEq + Default,
 {
     fn crossover(
         &self,

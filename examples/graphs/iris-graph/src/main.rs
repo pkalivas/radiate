@@ -12,9 +12,25 @@ fn main() {
     let (train, test) = load_iris_dataset().shuffle().standardize().split(0.75);
 
     let regression = Regression::new(train.clone(), Loss::MSE);
-    let codex = GraphBuilder::default()
-        .acyclic(4, 4, Op::sigmoid())
-        .into_codex();
+
+    let ops = ops::get_all_operations();
+    let edges = vec![Op::weight(), Op::identity()];
+    let outputs = vec![Op::sigmoid()];
+
+    let store = ops
+        .iter()
+        .chain(edges.iter())
+        .chain(outputs.iter())
+        .cloned()
+        .collect::<Vec<_>>();
+
+    // let store = vec![
+    // (NodeType::Edge, edges.clone()),
+    // (NodeType::Vertex, ops.clone()),
+    // (NodeType::Output, outputs.clone()),
+    // ];
+
+    let codex = GraphCodex::asyclic(4, 4, store);
 
     let engine = GeneticEngine::from_codex(codex)
         .minimizing()

@@ -7,10 +7,13 @@ const MAX_SECONDS: f64 = 5.0;
 fn main() {
     random_provider::set_seed(1000);
 
-    let graph_codex = GraphBuilder::default()
-        .set_vertecies(vec![Op::add(), Op::sub(), Op::mul()])
-        .acyclic(1, 1, Op::linear())
-        .into_codex();
+    let values = vec![
+        (NodeType::Edge, vec![Op::weight(), Op::identity()]),
+        (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
+        (NodeType::Output, vec![Op::linear()]),
+    ];
+
+    let graph_codex = GraphCodex::asyclic(1, 1, values);
 
     let regression = Regression::new(get_dataset(), Loss::MSE);
 

@@ -1,8 +1,7 @@
-use crate::Op;
-use radiate::engines::genome::gene::{Gene, Valid};
-
 use super::TreeIterator;
 use crate::ops::operation::Arity;
+use crate::Op;
+use radiate::engines::genome::gene::{Gene, Valid};
 
 #[derive(PartialEq)]
 pub struct TreeNode<T> {

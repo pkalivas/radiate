@@ -18,10 +18,6 @@ impl Row {
     pub fn output(&self) -> &Vec<f32> {
         &self.output
     }
-
-    pub fn pair(&self) -> (&Vec<f32>, &Vec<f32>) {
-        (&self.input, &self.output)
-    }
 }
 
 #[derive(Default, Clone)]

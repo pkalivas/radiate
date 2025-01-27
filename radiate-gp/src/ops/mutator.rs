@@ -1,5 +1,5 @@
 use crate::ops::operation::Op;
-use crate::{Factory, GraphChromosome, NodeType};
+use crate::{Factory, GraphChromosome};
 use radiate::engines::genome::gene::Gene;
 use radiate::{random_provider, Chromosome};
 use radiate::{Alter, AlterAction, EngineCompoment, Mutate};
@@ -55,10 +55,7 @@ where
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<T>) -> i32 {
         let mutation_indexes = (0..chromosome.len())
-            .filter(|index| {
-                random_provider::random::<f32>() < self.rate
-                    && chromosome.get_gene(*index).node_type() != NodeType::Input
-            })
+            .filter(|_| random_provider::random::<f32>() < self.rate)
             .collect::<Vec<usize>>();
 
         if mutation_indexes.is_empty() {
@@ -99,8 +96,6 @@ where
                 _ => {
                     let new_op = chromosome
                         .store()
-                        .read()
-                        .unwrap()
                         .new_instance((i, current_node.node_type()));
 
                     if new_op.value().arity() == current_node.value().arity() {

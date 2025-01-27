@@ -410,13 +410,13 @@ where
         }
 
         let store = chromosome.store();
-        let node_fact = store.read().unwrap();
+
         let mut graph = Graph::new(chromosome.iter().cloned().collect());
 
         if self.add_node(
             &mut graph,
             &mutation.node_type(),
-            &node_fact,
+            &store,
             mutation.is_recurrent(),
         ) {
             chromosome.set_nodes(graph.into_iter().collect::<Vec<GraphNode<T>>>());

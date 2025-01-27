@@ -270,7 +270,7 @@ where
     T: Default,
 {
     fn default() -> Self {
-        Op::Const("default", T::default())
+        Op::Fn("default", Arity::Zero, Arc::new(|_| T::default()))
     }
 }
 
