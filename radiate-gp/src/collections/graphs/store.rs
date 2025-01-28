@@ -96,15 +96,6 @@ impl<T> Clone for NodeStore<T> {
     }
 }
 
-impl<T: PartialEq> PartialEq for NodeStore<T> {
-    fn eq(&self, other: &Self) -> bool {
-        let self_values = self.values.read().unwrap();
-        let other_values = other.values.read().unwrap();
-
-        (*self_values) == (*other_values)
-    }
-}
-
 impl<T: Default + Clone> Factory<GraphNode<T>> for NodeStore<T> {
     type Input = (usize, NodeType);
 
@@ -125,6 +116,15 @@ impl<T: Default + Clone> Factory<GraphNode<T>> for NodeStore<T> {
         }
 
         GraphNode::new(index, node_type, T::default())
+    }
+}
+
+impl<T: PartialEq> PartialEq for NodeStore<T> {
+    fn eq(&self, other: &Self) -> bool {
+        let self_values = self.values.read().unwrap();
+        let other_values = other.values.read().unwrap();
+
+        (*self_values) == (*other_values)
     }
 }
 

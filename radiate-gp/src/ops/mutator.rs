@@ -96,7 +96,7 @@ where
                 _ => {
                     let new_op = chromosome
                         .store()
-                        .new_instance((i, current_node.node_type()));
+                        .new_instance((current_node.index(), current_node.node_type()));
 
                     if new_op.value().arity() == current_node.value().arity() {
                         chromosome.set_gene(i, current_node.with_allele(new_op.allele()));

@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use radiate::*;
-use radiate_gp::*;
+use radiate_gp::{graphs::NodeStore, *};
 
 const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
@@ -39,6 +39,8 @@ fn main() {
     for (i, node) in t.iter().enumerate() {
         println!("{}: {:?}", i, node);
     }
+
+    panic!();
 
     let engine = GeneticEngine::from_codex(codex)
         .minimizing()
