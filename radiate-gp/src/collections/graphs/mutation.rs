@@ -1,3 +1,6 @@
+use core::panic;
+use std::fmt::Debug;
+
 use radiate::Chromosome;
 use radiate::{
     random_provider, timer::Timer, Alter, AlterAction, EngineCompoment, Metric, Mutate, Population,
@@ -62,7 +65,7 @@ impl GraphMutator {
     /// and if successful will commit the transaction. If the node cannot be added the transaction
     /// will be rolled back.
     #[inline]
-    pub fn add_node<T: Clone + Default + PartialEq>(
+    pub fn add_node<T: Clone + Default + PartialEq + Debug>(
         &self,
         graph: &mut Graph<T>,
         node_type: &NodeType,
@@ -87,7 +90,7 @@ impl GraphMutator {
         is_recurrent: bool,
     ) -> bool
     where
-        T: Clone + Default + PartialEq,
+        T: Clone + Default + PartialEq + std::fmt::Debug,
     {
         let source_node_index = transaction.as_ref().random_source_node().index();
         let target_node_index = transaction.as_ref().random_target_node().index();
@@ -133,7 +136,7 @@ impl GraphMutator {
         factory: &NodeStore<T>,
     ) -> bool
     where
-        T: Clone + Default + PartialEq,
+        T: Clone + Default + PartialEq + std::fmt::Debug,
     {
         let new_source_edge_index = transaction.len();
         let new_node_index = transaction.len() + 1;
@@ -183,7 +186,7 @@ impl GraphMutator {
         factory: &NodeStore<T>,
     ) -> bool
     where
-        T: Clone + Default + PartialEq,
+        T: Clone + Default + PartialEq + std::fmt::Debug,
     {
         let new_source_edge_index = transaction.len();
         let new_node_index = transaction.len() + 1;
@@ -288,7 +291,7 @@ impl GraphMutator {
         is_recurrent: bool,
     ) -> bool
     where
-        T: Clone + Default + PartialEq,
+        T: Clone + Default + PartialEq + std::fmt::Debug,
     {
         if !&transaction
             .as_ref()
@@ -315,9 +318,15 @@ impl GraphMutator {
         is_recurrent: bool,
     ) -> bool
     where
-        T: Clone + Default + PartialEq,
+        T: Clone + Default + PartialEq + std::fmt::Debug,
     {
         let arity = transaction[node_index].arity();
+
+        if arity.is_none() {
+            dbg!(transaction.as_ref());
+        }
+
+        let arity = arity.unwrap();
 
         match arity {
             Arity::Any | Arity::Zero => {
@@ -357,7 +366,7 @@ impl EngineCompoment for GraphMutator {
 
 impl<T> Alter<GraphChromosome<T>> for GraphMutator
 where
-    T: Clone + PartialEq + Default,
+    T: Clone + PartialEq + Default + Debug,
 {
     fn rate(&self) -> f32 {
         1.0
@@ -370,7 +379,7 @@ where
 
 impl<T> Mutate<GraphChromosome<T>> for GraphMutator
 where
-    T: Clone + PartialEq + Default,
+    T: Clone + PartialEq + Default + Debug,
 {
     #[inline]
     fn mutate(

@@ -49,6 +49,10 @@ impl<T> NodeStore<T> {
     {
         let reader = self.values.read().unwrap();
         if let Some(values) = reader.get(&node_type) {
+            if values.is_empty() {
+                return None;
+            }
+
             return Some(mapper(values));
         }
 

@@ -13,12 +13,14 @@ fn main() {
 
     let regression = Regression::new(train.clone(), Loss::MSE);
 
+    let inputs = (0..4).map(Op::var).collect::<Vec<_>>();
     let ops = ops::get_all_operations();
     let edges = vec![Op::weight(), Op::identity()];
     let outputs = vec![Op::sigmoid()];
 
     let store = ops
         .iter()
+        .chain(inputs.iter())
         .chain(edges.iter())
         .chain(outputs.iter())
         .cloned()
@@ -31,6 +33,12 @@ fn main() {
     // ];
 
     let codex = GraphCodex::asyclic(4, 4, store);
+
+    let t = codex.encode();
+
+    for (i, node) in t.iter().enumerate() {
+        println!("{}: {:?}", i, node);
+    }
 
     let engine = GeneticEngine::from_codex(codex)
         .minimizing()

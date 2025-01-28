@@ -69,7 +69,7 @@ where
         for index in self.eval_order.iter() {
             let node = &self.nodes[*index];
             if node.incoming().is_empty() {
-                self.outputs[node.index()] = node.value().eval(input);
+                self.outputs[node.index()] = node.eval(input);
             } else {
                 let mut count = 0;
                 for incoming in node.incoming() {
@@ -77,7 +77,7 @@ where
                     count += 1;
                 }
 
-                self.outputs[node.index()] = node.value().eval(&self.inputs[node.index()]);
+                self.outputs[node.index()] = node.eval(&self.inputs[node.index()]);
             }
 
             if node.node_type() == NodeType::Output {

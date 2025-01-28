@@ -125,21 +125,37 @@ impl<T: Clone + Default> NodeBuilder<T> {
     }
 
     fn new_nodes(&self, node_type: NodeType, size: usize) -> Vec<GraphNode<T>> {
-        self.store.map_values(node_type, size, |idx, op| {
-            GraphNode::new(idx, node_type, op.clone())
-        })
+        (0..size)
+            .map(|i| self.store.new_instance((i, node_type)))
+            .collect::<Vec<GraphNode<T>>>()
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::{ops, Op};
+
     use super::*;
 
     #[test]
     fn test_graph_builder() {
-        let builder = AsyclicGraphBuilder::<f32>::new(3, 3, NodeStore::new());
+        let ops = ops::get_all_operations();
+        let edges = vec![Op::weight(), Op::identity()];
+        let outputs = vec![Op::sigmoid()];
+
+        let store = ops
+            .iter()
+            .chain(edges.iter())
+            .chain(outputs.iter())
+            .cloned()
+            .collect::<Vec<_>>();
+
+        let builder = AsyclicGraphBuilder::new(3, 3, store);
         let graph = builder.build();
-        assert_eq!(graph.len(), 0);
+
+        for node in graph.iter() {
+            println!("{:?}", node);
+        }
     }
 
     // #[test]

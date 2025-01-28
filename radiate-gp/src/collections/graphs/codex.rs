@@ -54,6 +54,7 @@ where
         let store = self.store.clone();
 
         if let Some(nodes) = &self.nodes {
+            println!("Encoding nodes: {:?}", nodes);
             let new_nodes = nodes
                 .iter()
                 .map(|node| {

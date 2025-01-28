@@ -35,17 +35,7 @@ pub struct GraphNode<T> {
 
 impl<T> GraphNode<T> {
     pub fn new(index: usize, node_type: NodeType, value: impl Into<T>) -> Self {
-        Self {
-            id: Uuid::new_v4(),
-            index,
-            value: value.into(),
-            enabled: true,
-            direction: Direction::Forward,
-            node_type,
-            arity: None,
-            incoming: HashSet::new(),
-            outgoing: HashSet::new(),
-        }
+        (index, node_type, value.into()).into()
     }
 
     pub fn node_type(&self) -> NodeType {
@@ -110,21 +100,25 @@ impl<T> GraphNode<T> {
         self.arity = Some(arity);
     }
 
-    pub fn arity(&self) -> Arity {
-        self.arity.unwrap_or(match self.node_type {
-            NodeType::Input => Arity::Zero,
-            NodeType::Output => Arity::Any,
-            NodeType::Vertex => Arity::Any,
-            NodeType::Edge => Arity::Exact(1),
-        })
+    pub fn arity(&self) -> Option<&Arity> {
+        self.arity.as_ref()
     }
 
     pub fn is_locked(&self) -> bool {
-        if self.arity() == Arity::Any {
+        if let Some(arity) = self.arity {
+            if let Arity::Exact(n) = arity {
+                return self.incoming.len() == n;
+            }
+
             return false;
         }
 
-        self.incoming.len() == *self.arity()
+        false
+        // if self.arity() == Arity::Any {
+        //     return false;
+        // }
+
+        // self.incoming.len() == *self.arity()
     }
 }
 
@@ -200,6 +194,43 @@ impl<T> Valid for GraphNode<T> {
     }
 }
 
+impl<T> From<(usize, NodeType, T)> for GraphNode<Op<T>>
+where
+    T: Into<Op<T>>,
+{
+    fn from((index, node_type, value): (usize, NodeType, T)) -> Self {
+        let value = value.into();
+        let arity = value.arity();
+        GraphNode {
+            id: Uuid::new_v4(),
+            index,
+            value,
+            enabled: true,
+            arity: Some(arity),
+            direction: Direction::Forward,
+            node_type,
+            incoming: HashSet::new(),
+            outgoing: HashSet::new(),
+        }
+    }
+}
+
+impl<T> From<(usize, NodeType, T)> for GraphNode<T> {
+    fn from((index, node_type, value): (usize, NodeType, T)) -> Self {
+        GraphNode {
+            id: Uuid::new_v4(),
+            index,
+            value,
+            enabled: true,
+            arity: None,
+            direction: Direction::Forward,
+            node_type,
+            incoming: HashSet::new(),
+            outgoing: HashSet::new(),
+        }
+    }
+}
+
 impl<T: Default> Default for GraphNode<T> {
     fn default() -> Self {
         GraphNode {
@@ -227,7 +258,7 @@ impl<T: Debug + PartialEq + Clone> Debug for GraphNode<T> {
 
         write!(
             f,
-            "[{:<3}] {:>10?} :: {:<12} E: {:<5} V:{:<5} R:{:<5} {:<2} {:<2} < [{}]",
+            "[{:<3}] {:>10?} :: {:<12} E: {:<5} V:{:<5} R:{:<5} {:<2} {:<2} < [{}] > {:?}",
             self.index,
             format!("{:?}", self.node_type())[..3].to_owned(),
             format!("{:?}", self.value).to_owned(),
@@ -236,7 +267,8 @@ impl<T: Debug + PartialEq + Clone> Debug for GraphNode<T> {
             self.is_recurrent(),
             self.incoming.len(),
             self.outgoing.len(),
-            incoming
+            incoming,
+            self.arity
         )
     }
 }
