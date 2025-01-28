@@ -1,10 +1,6 @@
-use std::{collections::HashSet, ops::Index};
-
-use radiate::Valid;
-
-use crate::Op;
-
 use super::{Direction, Graph, GraphNode};
+use radiate::Valid;
+use std::{collections::HashSet, ops::Index};
 
 /// Represents a reversible change to the graph
 #[derive(Debug)]
@@ -39,16 +35,6 @@ impl<'a, T: Clone + Default + PartialEq> GraphTransaction<'a, T> {
 
     pub fn len(&self) -> usize {
         self.graph.len()
-    }
-
-    pub fn insert_vertex(&mut self, value: impl Into<Op<T>>) -> usize {
-        let node = GraphNode::new(self.graph.len(), super::NodeType::Vertex, value);
-        self.add_node(node)
-    }
-
-    pub fn insert_edge(&mut self, value: impl Into<Op<T>>) -> usize {
-        let node = GraphNode::new(self.graph.len(), super::NodeType::Edge, value);
-        self.add_node(node)
     }
 
     pub fn add_node(&mut self, node: GraphNode<T>) -> usize {

@@ -50,10 +50,7 @@ impl GraphCrossover {
                 let node_one = chromo_one.get_gene(*i);
                 let node_two = chromo_two.get_gene(*i);
 
-                match (node_one.value(), node_two.value()) {
-                    (Op::MutableConst { .. }, Op::MutableConst { .. }) => true,
-                    _ => false,
-                }
+                matches!((node_one.value(), node_two.value()), (Op::MutableConst { .. }, Op::MutableConst { .. }))
             })
             .collect::<Vec<usize>>();
 

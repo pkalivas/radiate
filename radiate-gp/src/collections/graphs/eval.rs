@@ -48,7 +48,7 @@ where
 }
 
 /// Implements the `EvalMut` trait for `GraphEvaluator`.
-impl<'a, T> EvalMut<[T], Vec<T>> for GraphEvaluator<'a, T>
+impl<T> EvalMut<[T], Vec<T>> for GraphEvaluator<'_, T>
 where
     T: Clone + Default,
 {

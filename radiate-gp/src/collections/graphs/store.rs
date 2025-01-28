@@ -70,9 +70,9 @@ impl<T> NodeStore<T> {
             return (0..size)
                 .map(|i| {
                     if i < values.len() {
-                        return mapper(i, &values[i]);
+                        mapper(i, &values[i])
                     } else {
-                        return mapper(i, &values[i % values.len()]);
+                        mapper(i, &values[i % values.len()])
                     }
                 })
                 .collect::<Vec<K>>();

@@ -1,5 +1,3 @@
-use std::fmt::Debug;
-
 use super::{
     builder::{AsyclicGraphBuilder, CyclicGraphBuilder},
     Graph, GraphChromosome, GraphNode, NodeStore,
@@ -48,7 +46,7 @@ impl<T> GraphCodex<T> {
 
 impl<T> Codex<GraphChromosome<T>, Graph<T>> for GraphCodex<T>
 where
-    T: Clone + PartialEq + Default + Debug,
+    T: Clone + PartialEq + Default,
 {
     fn encode(&self) -> Genotype<GraphChromosome<T>> {
         let store = self.store.clone();

@@ -167,7 +167,7 @@ impl<T> Valid for GraphNode<T> {
                         return true;
                     }
                 }
-                return false;
+                false
             }
             NodeType::Edge => {
                 if self.value.arity() == Arity::Exact(1) {
