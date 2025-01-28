@@ -199,14 +199,17 @@ where
     T: Into<Op<T>>,
 {
     fn from((index, node_type, value): (usize, NodeType, T)) -> Self {
-        let value = value.into();
-        let arity = value.arity();
+        let value = value.into(); // Convert value into Op<T>
+        let arity = value.arity(); // Get arity from Op<T>
+
+        println!("Creating GraphNode with arity: {:?}", arity);
+
         GraphNode {
             id: Uuid::new_v4(),
             index,
             value,
             enabled: true,
-            arity: Some(arity),
+            arity: Some(arity), // Set the GraphNode's arity
             direction: Direction::Forward,
             node_type,
             incoming: HashSet::new(),
@@ -214,15 +217,15 @@ where
         }
     }
 }
-
 impl<T> From<(usize, NodeType, T)> for GraphNode<T> {
     fn from((index, node_type, value): (usize, NodeType, T)) -> Self {
+        println!("HERERE");
         GraphNode {
             id: Uuid::new_v4(),
             index,
             value,
             enabled: true,
-            arity: None,
+            arity: None, // Non-Op<T> values don't have an arity
             direction: Direction::Forward,
             node_type,
             incoming: HashSet::new(),
