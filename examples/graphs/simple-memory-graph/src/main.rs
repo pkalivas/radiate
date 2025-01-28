@@ -13,7 +13,7 @@ fn main() {
         (NodeType::Output, vec![Op::sigmoid()]),
     ];
 
-    let graph_codex = GraphCodex::cyclic(1, 1, values);
+    let graph_codex = GraphCodex::asyclic(1, 1, values);
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
     let engine = GeneticEngine::from_codex(graph_codex)

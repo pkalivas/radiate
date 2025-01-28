@@ -1,40 +1,21 @@
 use std::fmt::Debug;
 
-use super::{
-    builder::{AsyclicGraphBuilder, CyclicGraphBuilder},
-    Graph, GraphChromosome, GraphNode, NodeStore,
-};
+use super::{builder::AsyclicGraphBuilder, Graph, GraphChromosome, GraphNode, ValueStore};
 use crate::{Builder, Factory};
 use radiate::{Chromosome, Codex, Gene, Genotype};
 
 pub struct GraphCodex<T> {
-    store: NodeStore<T>,
+    store: ValueStore<T>,
     nodes: Option<Vec<GraphNode<T>>>,
 }
 
 impl<T> GraphCodex<T> {
-    pub fn asyclic(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Self
+    pub fn asyclic(input_size: usize, output_size: usize, store: impl Into<ValueStore<T>>) -> Self
     where
         T: Clone + Default,
     {
         let new_store = store.into();
         let nodes = AsyclicGraphBuilder::new(input_size, output_size, &new_store)
-            .build()
-            .into_iter()
-            .collect();
-
-        GraphCodex {
-            store: new_store,
-            nodes: Some(nodes),
-        }
-    }
-
-    pub fn cyclic(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Self
-    where
-        T: Clone + Default,
-    {
-        let new_store = store.into();
-        let nodes = CyclicGraphBuilder::new(input_size, output_size, &new_store)
             .build()
             .into_iter()
             .collect();

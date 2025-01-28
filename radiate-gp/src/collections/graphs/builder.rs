@@ -1,9 +1,9 @@
-use super::aggregate::GraphAggregate;
-use super::NodeStore;
-use crate::collections::{Builder, Graph, GraphNode, NodeType};
-use crate::ops::Arity;
-use crate::{Factory, Store};
 use radiate::random_provider;
+
+use super::aggregate::GraphAggregate;
+use super::ValueStore;
+use crate::collections::{Builder, Graph, GraphNode, NodeType};
+use crate::{Factory, Generator, Op, Store};
 
 pub struct AsyclicGraphBuilder<T> {
     input_size: usize,
@@ -12,20 +12,13 @@ pub struct AsyclicGraphBuilder<T> {
 }
 
 impl<T: Clone + Default> AsyclicGraphBuilder<T> {
-    pub fn new(input_size: usize, output_size: usize, values: impl Into<NodeStore<T>>) -> Self {
+    pub fn new(input_size: usize, output_size: usize, values: impl Into<ValueStore<T>>) -> Self {
         AsyclicGraphBuilder {
             input_size,
             output_size,
             inner: NodeBuilder::new(values),
         }
     }
-    // pub fn new(input_size: usize, output_size: usize, values: impl Into<NodeStore<T>>) -> Self {
-    //     AsyclicGraphBuilder {
-    //         input_size,
-    //         output_size,
-    //         inner: NodeBuilder::new(values),
-    //     }
-    // }
 }
 
 impl<T: Clone + Default> Builder for AsyclicGraphBuilder<T> {
@@ -41,45 +34,12 @@ impl<T: Clone + Default> Builder for AsyclicGraphBuilder<T> {
     }
 }
 
-pub struct CyclicGraphBuilder<T> {
-    input_size: usize,
-    output_size: usize,
-    inner: NodeBuilder<T>,
-}
-
-impl<T: Clone + Default> CyclicGraphBuilder<T> {
-    pub fn new(input_size: usize, output_size: usize, values: impl Into<NodeStore<T>>) -> Self {
-        CyclicGraphBuilder {
-            input_size,
-            output_size,
-            inner: NodeBuilder::new(values),
-        }
-    }
-}
-
-impl<T: Clone + Default> Builder for CyclicGraphBuilder<T> {
-    type Output = Graph<T>;
-
-    fn build(&self) -> Self::Output {
-        let input = self.inner.input(self.input_size);
-        let aggregate = self.inner.vertex(self.input_size);
-        let link = self.inner.vertex(self.input_size);
-        let output = self.inner.output(self.output_size);
-
-        GraphAggregate::new()
-            .one_to_one(&input, &aggregate)
-            .one_to_one_self(&aggregate, &link)
-            .all_to_all(&aggregate, &output)
-            .build()
-    }
-}
-
 struct NodeBuilder<T> {
-    store: NodeStore<T>,
+    store: ValueStore<T>,
 }
 
 impl<T: Clone + Default> NodeBuilder<T> {
-    pub fn new(store: impl Into<NodeStore<T>>) -> Self {
+    pub fn new(store: impl Into<ValueStore<T>>) -> Self {
         NodeBuilder {
             store: store.into(),
         }
@@ -131,9 +91,69 @@ impl<T: Clone + Default> NodeBuilder<T> {
     }
 }
 
+impl<T: Clone + Default> Generator for NodeBuilder<T> {
+    type Output = GraphNode<T>;
+    type Input = (usize, NodeType);
+
+    fn generate(&self, input: Self::Input) -> Self::Output {
+        let (index, node_type) = input;
+
+        let new_node = self.store.map(node_type, |values| {
+            let new_value = match node_type {
+                NodeType::Input => values[index % values.len()].clone(),
+                _ => random_provider::choose(values).clone(),
+            };
+
+            GraphNode::new(index, node_type, new_value)
+        });
+
+        if let Some(new_value) = new_node {
+            return new_value;
+        }
+
+        GraphNode::default()
+    }
+}
+
+// pub struct CyclicGraphBuilder<T> {
+//     input_size: usize,
+//     output_size: usize,
+//     inner: NodeBuilder<T>,
+// }
+
+// impl<T: Clone + Default> CyclicGraphBuilder<T> {
+//     pub fn new(input_size: usize, output_size: usize, values: impl Into<NodeStore<T>>) -> Self {
+//         CyclicGraphBuilder {
+//             input_size,
+//             output_size,
+//             inner: NodeBuilder::new(values),
+//         }
+//     }
+// }
+
+// impl<T: Clone + Default> Builder for CyclicGraphBuilder<T> {
+//     type Output = Graph<T>;
+
+//     fn build(&self) -> Self::Output {
+//         let input = self.inner.input(self.input_size);
+//         let aggregate = self.inner.vertex(self.input_size);
+//         let link = self.inner.vertex(self.input_size);
+//         let output = self.inner.output(self.output_size);
+
+//         GraphAggregate::new()
+//             .one_to_one(&input, &aggregate)
+//             .one_to_one_self(&aggregate, &link)
+//             .all_to_all(&aggregate, &output)
+//             .build()
+//     }
+// }
+
 #[cfg(test)]
 mod tests {
-    use crate::{ops, Op};
+    use crate::{
+        ops::{self, OpStore},
+        Op,
+    };
 
     use super::*;
 
@@ -148,7 +168,7 @@ mod tests {
             .chain(edges.iter())
             .chain(outputs.iter())
             .cloned()
-            .collect::<Vec<_>>();
+            .collect::<Vec<Op<f32>>>();
 
         let builder = AsyclicGraphBuilder::new(3, 3, store);
         let graph = builder.build();

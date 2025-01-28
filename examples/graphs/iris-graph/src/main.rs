@@ -1,7 +1,10 @@
 use std::collections::HashSet;
 
 use radiate::*;
-use radiate_gp::{graphs::NodeStore, *};
+use radiate_gp::{
+    graphs::{AsyclicGraphBuilder, ValueStore},
+    *,
+};
 
 const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
@@ -24,19 +27,19 @@ fn main() {
         .chain(edges.iter())
         .chain(outputs.iter())
         .cloned()
-        .collect::<Vec<_>>();
+        .collect::<Vec<Op<f32>>>();
 
     // let store = vec![
     // (NodeType::Edge, edges.clone()),
     // (NodeType::Vertex, ops.clone()),
     // (NodeType::Output, outputs.clone()),
     // ];
-
+    let builder = AsyclicGraphBuilder::new(4, 1, store.clone()).build();
     let codex = GraphCodex::asyclic(4, 4, store);
 
     let t = codex.encode();
 
-    for (i, node) in t.iter().enumerate() {
+    for (i, node) in builder.iter().enumerate() {
         println!("{}: {:?}", i, node);
     }
 

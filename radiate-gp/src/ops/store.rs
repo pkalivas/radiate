@@ -6,7 +6,7 @@ use std::{
 
 use radiate::random_provider;
 
-use crate::{Factory, GraphNode, NodeType, Store};
+use crate::{graphs::ValueStore, Factory, GraphNode, NodeType, Store};
 
 use super::{Arity, Op};
 
@@ -63,25 +63,35 @@ impl<T: Clone + Default> Factory<GraphNode<Op<T>>> for OpStore<NodeType, T> {
     type Input = (usize, NodeType);
 
     fn new_instance(&self, input: Self::Input) -> GraphNode<Op<T>> {
-        let (index, key) = input;
+        let (index, node_type) = input;
 
-        let new_node = self.map(key, |values| {
-            let new_value = match key {
-                NodeType::Input => values[index % values.len()].clone(),
-                _ => random_provider::choose(values).new_instance(()),
-            };
+        let new_value: Op<T> = self.new_instance((index, node_type));
 
-            let mut node = GraphNode::<Op<T>>::new(index, key, new_value);
-            node.set_arity(node.value().arity());
+        let arity = new_value.arity();
+        let mut node = GraphNode::new(index, node_type, new_value);
 
-            node
+        node.set_arity(arity);
+
+        node
+    }
+}
+
+impl<T: Clone + Default> Factory<Op<T>> for OpStore<NodeType, T> {
+    type Input = (usize, NodeType);
+
+    fn new_instance(&self, input: Self::Input) -> Op<T> {
+        let (index, node_type) = input;
+
+        let new_node = self.map(node_type, |values| match node_type {
+            NodeType::Input => values[index % values.len()].clone(),
+            _ => random_provider::choose(values).new_instance(()),
         });
 
         if let Some(new_value) = new_node {
             return new_value;
         }
 
-        GraphNode::new(index, key, Op::default())
+        Op::default()
     }
 }
 
@@ -123,9 +133,9 @@ impl<K: Eq + Hash, T> From<Vec<(K, Vec<Op<T>>)>> for OpStore<K, T> {
     }
 }
 
-impl<T: Clone> From<Vec<Op<T>>> for OpStore<NodeType, T> {
+impl<T: Clone> From<Vec<Op<T>>> for ValueStore<Op<T>> {
     fn from(values: Vec<Op<T>>) -> Self {
-        let store = OpStore::new();
+        let store = ValueStore::new();
 
         let input_values = values
             .iter()
@@ -151,10 +161,22 @@ impl<T: Clone> From<Vec<Op<T>>> for OpStore<NodeType, T> {
             .cloned()
             .collect::<Vec<Op<T>>>();
 
-        store.insert(NodeType::Input, input_values);
-        store.insert(NodeType::Output, output_values);
-        store.insert(NodeType::Edge, edge_values);
-        store.insert(NodeType::Vertex, node_values);
+        store.add_values(NodeType::Input, input_values);
+        store.add_values(NodeType::Output, output_values);
+        store.add_values(NodeType::Edge, edge_values);
+        store.add_values(NodeType::Vertex, node_values);
+
+        store
+    }
+}
+
+impl<T: Clone> Into<ValueStore<Op<T>>> for OpStore<NodeType, T> {
+    fn into(self) -> ValueStore<Op<T>> {
+        let store = ValueStore::new();
+
+        for (key, ops) in self.store.read().unwrap().iter() {
+            store.add_values(key.clone(), ops.clone());
+        }
 
         store
     }

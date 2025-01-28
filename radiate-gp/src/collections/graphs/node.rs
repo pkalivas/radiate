@@ -1,5 +1,5 @@
 use crate::ops::Arity;
-use crate::Op;
+use crate::{Op, Repair};
 use radiate::{Gene, Valid};
 use std::collections::HashSet;
 use std::fmt::Debug;
@@ -35,7 +35,17 @@ pub struct GraphNode<T> {
 
 impl<T> GraphNode<T> {
     pub fn new(index: usize, node_type: NodeType, value: impl Into<T>) -> Self {
-        (index, node_type, value.into()).into()
+        GraphNode {
+            id: Uuid::new_v4(),
+            index,
+            value: value.into(),
+            enabled: true,
+            arity: None, // Non-Op<T> values don't have an arity
+            direction: Direction::Forward,
+            node_type,
+            incoming: HashSet::new(),
+            outgoing: HashSet::new(),
+        }
     }
 
     pub fn node_type(&self) -> NodeType {
@@ -194,43 +204,9 @@ impl<T> Valid for GraphNode<T> {
     }
 }
 
-impl<T> From<(usize, NodeType, T)> for GraphNode<Op<T>>
-where
-    T: Into<Op<T>>,
-{
-    fn from((index, node_type, value): (usize, NodeType, T)) -> Self {
-        let value = value.into(); // Convert value into Op<T>
-        let arity = value.arity(); // Get arity from Op<T>
-
-        println!("Creating GraphNode with arity: {:?}", arity);
-
-        GraphNode {
-            id: Uuid::new_v4(),
-            index,
-            value,
-            enabled: true,
-            arity: Some(arity), // Set the GraphNode's arity
-            direction: Direction::Forward,
-            node_type,
-            incoming: HashSet::new(),
-            outgoing: HashSet::new(),
-        }
-    }
-}
-impl<T> From<(usize, NodeType, T)> for GraphNode<T> {
-    fn from((index, node_type, value): (usize, NodeType, T)) -> Self {
-        println!("HERERE");
-        GraphNode {
-            id: Uuid::new_v4(),
-            index,
-            value,
-            enabled: true,
-            arity: None, // Non-Op<T> values don't have an arity
-            direction: Direction::Forward,
-            node_type,
-            incoming: HashSet::new(),
-            outgoing: HashSet::new(),
-        }
+impl<T> Repair for GraphNode<T> {
+    fn try_repair(&mut self) -> bool {
+        todo!()
     }
 }
 

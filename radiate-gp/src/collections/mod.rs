@@ -119,9 +119,16 @@ impl<I: ?Sized, O> EvalMut<I, O> for dyn Eval<I, O> {
 /// A trait for types that can be created from a given input.
 ///
 /// TODO: Document this trait.
-pub trait Factory<T, Marker = T> {
+pub trait Factory<T> {
     type Input;
     fn new_instance(&self, input: Self::Input) -> T;
+}
+
+pub trait Generator {
+    type Input;
+    type Output;
+
+    fn generate(&self, input: Self::Input) -> Self::Output;
 }
 
 pub trait Store<K, V> {
@@ -135,104 +142,6 @@ pub trait Store<K, V> {
         F: Fn() -> V;
 }
 
-pub struct ValueStore<T> {
-    store: Arc<RwLock<HashMap<NodeType, Vec<T>>>>,
-}
-
-impl<T> ValueStore<T> {
-    pub fn new() -> Self {
-        ValueStore {
-            store: Arc::new(RwLock::new(HashMap::new())),
-        }
-    }
-
-    pub fn add_values(&self, node_type: NodeType, values: Vec<T>) {
-        let mut values_map = self.store.write().unwrap();
-        values_map.insert(node_type, values);
-    }
-
-    pub fn contains(&self, node_type: NodeType) -> bool {
-        let values = self.store.read().unwrap();
-        values.contains_key(&node_type) && !values[&node_type].is_empty()
-    }
-
-    pub fn map<F, K>(&self, node_type: NodeType, mapper: F) -> Option<K>
-    where
-        F: Fn(&Vec<T>) -> K,
-    {
-        let reader = self.store.read().unwrap();
-        if let Some(values) = reader.get(&node_type) {
-            if values.is_empty() {
-                return None;
-            }
-
-            return Some(mapper(values));
-        }
-
-        None
-    }
-
-    pub fn map_values<F, K>(&self, node_type: NodeType, size: usize, mapper: F) -> Vec<K>
-    where
-        T: Clone + Default,
-        F: Fn(usize, &T) -> K,
-    {
-        let reader = self.store.read().unwrap();
-        if let Some(values) = reader.get(&node_type) {
-            return values
-                .iter()
-                .enumerate()
-                .map(|(idx, value)| mapper(idx, value))
-                .collect::<Vec<K>>();
-        }
-
-        (0..size).map(|idx| mapper(idx, &T::default())).collect()
-    }
-}
-
-impl<T> Factory<T> for ValueStore<T>
-where
-    T: Clone + Default,
-{
-    type Input = (usize, NodeType);
-
-    fn new_instance(&self, input: Self::Input) -> T {
-        let (index, key) = input;
-
-        let new_node = self.map(key, |values| match key {
-            NodeType::Input => values[index % values.len()].clone(),
-            _ => random_provider::choose(values).clone(),
-        });
-
-        new_node.unwrap_or_else(|| T::default())
-    }
-}
-
-pub struct NodeBuilderTwo<N, T> {
-    store: ValueStore<T>,
-    factory: Arc<dyn Factory<N, Input = (usize, NodeType, T)>>,
-}
-
-impl<N, T> NodeBuilderTwo<N, T> {
-    pub fn new(
-        store: impl Into<ValueStore<T>>,
-        factory: Arc<dyn Factory<N, Input = (usize, NodeType, T)>>,
-    ) -> Self {
-        NodeBuilderTwo {
-            store: store.into(),
-            factory,
-        }
-    }
-}
-
-impl<N, T: Clone + Default> Factory<N> for NodeBuilderTwo<N, T> {
-    type Input = (usize, NodeType);
-
-    fn new_instance(&self, input: Self::Input) -> N {
-        let (index, key) = input;
-        let value = self.store.new_instance((index, key));
-        let new_node = self.factory.new_instance((index, key, value));
-
-        new_node
-    }
+pub trait Repair {
+    fn try_repair(&mut self) -> bool;
 }

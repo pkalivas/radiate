@@ -8,7 +8,7 @@ use radiate::{
 };
 
 use super::transaction::GraphTransaction;
-use super::{Graph, GraphChromosome, GraphNode, NodeStore};
+use super::{Graph, GraphChromosome, GraphNode, ValueStore};
 use crate::ops::Arity;
 use crate::{Factory, NodeType};
 
@@ -69,7 +69,7 @@ impl GraphMutator {
         &self,
         graph: &mut Graph<T>,
         node_type: &NodeType,
-        factory: &NodeStore<T>,
+        factory: &ValueStore<T>,
         recurrent: bool,
     ) -> bool {
         let mut transaction = GraphTransaction::new(graph);
@@ -86,7 +86,7 @@ impl GraphMutator {
         &self,
         transaction: &mut GraphTransaction<T>,
         node_type: &NodeType,
-        factory: &NodeStore<T>,
+        factory: &ValueStore<T>,
         is_recurrent: bool,
     ) -> bool
     where
@@ -133,7 +133,7 @@ impl GraphMutator {
         source_node: usize,
         target_node: usize,
         node_type: &NodeType,
-        factory: &NodeStore<T>,
+        factory: &ValueStore<T>,
     ) -> bool
     where
         T: Clone + Default + PartialEq + std::fmt::Debug,
@@ -183,7 +183,7 @@ impl GraphMutator {
         source_idx: usize,
         target_idx: usize,
         node_type: &NodeType,
-        factory: &NodeStore<T>,
+        factory: &ValueStore<T>,
     ) -> bool
     where
         T: Clone + Default + PartialEq + std::fmt::Debug,
@@ -287,7 +287,7 @@ impl GraphMutator {
         source_node: usize,
         target_node: usize,
         node_type: &NodeType,
-        factory: &NodeStore<T>,
+        factory: &ValueStore<T>,
         is_recurrent: bool,
     ) -> bool
     where
@@ -314,7 +314,7 @@ impl GraphMutator {
         &self,
         transaction: &mut GraphTransaction<T>,
         node_index: usize,
-        factory: &NodeStore<T>,
+        factory: &ValueStore<T>,
         is_recurrent: bool,
     ) -> bool
     where
