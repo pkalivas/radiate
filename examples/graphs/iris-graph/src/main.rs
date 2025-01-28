@@ -17,18 +17,18 @@ fn main() {
     let edges = vec![Op::weight(), Op::identity()];
     let outputs = vec![Op::sigmoid()];
 
-    let store = ops
-        .iter()
-        .chain(edges.iter())
-        .chain(outputs.iter())
-        .cloned()
-        .collect::<Vec<_>>();
+    // let store = ops
+    //     .iter()
+    //     .chain(edges.iter())
+    //     .chain(outputs.iter())
+    //     .cloned()
+    //     .collect::<Vec<_>>();
 
-    // let store = vec![
-    // (NodeType::Edge, edges.clone()),
-    // (NodeType::Vertex, ops.clone()),
-    // (NodeType::Output, outputs.clone()),
-    // ];
+    let store = vec![
+        (NodeType::Edge, edges.clone()),
+        (NodeType::Vertex, ops.clone()),
+        (NodeType::Output, outputs.clone()),
+    ];
 
     let codex = GraphCodex::asyclic(4, 4, store);
 
