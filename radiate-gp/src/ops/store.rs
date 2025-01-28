@@ -71,7 +71,10 @@ impl<T: Clone + Default> Factory<GraphNode<Op<T>>> for OpStore<NodeType, T> {
                 _ => random_provider::choose(values).new_instance(()),
             };
 
-            GraphNode::new(index, key, new_value)
+            let mut node = GraphNode::<Op<T>>::new(index, key, new_value);
+            node.set_arity(node.value().arity());
+
+            node
         });
 
         if let Some(new_value) = new_node {
