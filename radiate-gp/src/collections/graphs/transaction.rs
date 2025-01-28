@@ -1,10 +1,6 @@
-use std::{collections::HashSet, ops::Index};
-
-use radiate::Valid;
-
-use crate::Op;
-
 use super::{Direction, Graph, GraphNode};
+use radiate::Valid;
+use std::{collections::HashSet, ops::Index};
 
 /// Represents a reversible change to the graph
 #[derive(Debug)]

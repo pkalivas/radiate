@@ -13,7 +13,7 @@ mod transaction;
 
 pub use aggregate::GraphAggregate;
 // pub use builder::GraphBuilder;
-pub use builder::AsyclicGraphBuilder;
+pub use builder::{AsyclicGraphBuilder, NodeBuilder};
 pub use chromosome::GraphChromosome;
 pub use codex::GraphCodex;
 pub use crossover::GraphCrossover;
@@ -22,5 +22,5 @@ pub use graph::Graph;
 pub use iter::GraphTopologicalIterator;
 pub use mutation::{GraphMutator, NodeMutate};
 pub use node::{Direction, GraphNode, NodeType};
-pub use store::ValueStore;
+pub use store::{NodeStore, ValueStore};
 pub use transaction::GraphTransaction;

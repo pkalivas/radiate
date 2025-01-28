@@ -1,23 +1,15 @@
 pub mod graphs;
 pub mod trees;
 
-use std::{
-    collections::HashMap,
-    sync::{Arc, RwLock},
-};
-
 pub use graphs::{
     Direction, Graph, GraphAggregate, GraphChromosome, GraphCodex, GraphCrossover, GraphEvaluator,
     GraphMutator, GraphNode, GraphTopologicalIterator, NodeMutate, NodeType,
 };
 
-use radiate::random_provider;
 pub use trees::{
     Tree, TreeBuilder, TreeChromosome, TreeCodex, TreeCrossover, TreeIterator, TreeMutator,
     TreeNode,
 };
-
-use crate::{ops::Arity, Op};
 
 /// A trait for types that can be built into a final value.
 ///
@@ -140,8 +132,4 @@ pub trait Store<K, V> {
     where
         V: Clone,
         F: Fn() -> V;
-}
-
-pub trait Repair {
-    fn try_repair(&mut self) -> bool;
 }

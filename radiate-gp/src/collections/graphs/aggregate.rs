@@ -305,7 +305,12 @@ impl<T: Clone> Builder for GraphAggregate<'_, T> {
 
         for (index, (_, node_id)) in self.node_order.iter().enumerate() {
             let node = self.nodes.get(node_id).unwrap();
-            let new_node = GraphNode::new(index, node.node_type(), node.value().clone());
+            let new_node = GraphNode::new_with_arity(
+                index,
+                node.node_type(),
+                node.value().clone(),
+                node.arity().clone(),
+            );
 
             new_nodes.push(new_node);
             node_id_index_map.insert(node_id, index);

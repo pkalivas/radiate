@@ -1,14 +1,14 @@
+use super::{Arity, Op};
+use crate::{
+    graphs::{NodeBuilder, NodeStore},
+    Factory, GraphNode, NodeType, Store,
+};
+use radiate::random_provider;
 use std::{
     collections::HashMap,
     hash::Hash,
     sync::{Arc, RwLock},
 };
-
-use radiate::random_provider;
-
-use crate::{graphs::ValueStore, Factory, GraphNode, NodeType, Store};
-
-use super::{Arity, Op};
 
 pub struct OpStore<K: Eq + Hash, T> {
     store: Arc<RwLock<HashMap<K, Vec<Op<T>>>>>,
@@ -39,6 +39,8 @@ impl<K: Eq + Hash, T> OpStore<K, T> {
         reader.contains_key(key) && !reader[key].is_empty()
     }
 }
+
+impl<T: Default + Clone + 'static> NodeStore<Op<T>> for OpStore<NodeType, T> {}
 
 impl<K: Eq + Hash, T> Store<K, Vec<Op<T>>> for OpStore<K, T> {
     fn map<F, R>(&self, key: K, f: F) -> Option<R>
@@ -112,72 +114,83 @@ impl<K: Eq + Hash, T: PartialEq> PartialEq for OpStore<K, T> {
     }
 }
 
-impl<K: Eq + Hash, T> From<HashMap<K, Vec<Op<T>>>> for OpStore<K, T> {
-    fn from(store: HashMap<K, Vec<Op<T>>>) -> Self {
-        OpStore {
-            store: Arc::new(RwLock::new(store)),
-        }
+impl<T: Clone + Default + 'static> From<Op<T>> for OpStore<NodeType, T> {
+    fn from(value: Op<T>) -> Self {
+        let store = OpStore::new();
+
+        let input_values = vec![Op::var(0)];
+        let output_values = vec![value.clone()];
+        let edge_values = vec![Op::identity()];
+        let node_values = vec![value.clone()];
+
+        store.insert(NodeType::Input, input_values);
+        store.insert(NodeType::Output, output_values);
+        store.insert(NodeType::Edge, edge_values);
+        store.insert(NodeType::Vertex, node_values);
+
+        store.into()
     }
 }
 
-impl<K: Eq + Hash, T> From<Vec<(K, Vec<Op<T>>)>> for OpStore<K, T> {
-    fn from(store: Vec<(K, Vec<Op<T>>)>) -> Self {
-        let mut map = HashMap::new();
-        for (key, ops) in store {
-            map.insert(key, ops);
-        }
+impl<T: Clone + Default + 'static> Into<NodeBuilder<Op<T>>> for Vec<Op<T>> {
+    fn into(self) -> NodeBuilder<Op<T>> {
+        let store = OpStore::new();
 
-        OpStore {
-            store: Arc::new(RwLock::new(map)),
-        }
-    }
-}
-
-impl<T: Clone> From<Vec<Op<T>>> for ValueStore<Op<T>> {
-    fn from(values: Vec<Op<T>>) -> Self {
-        let store = ValueStore::new();
-
-        let input_values = values
+        let input_values = self
             .iter()
             .filter(|op| op.arity() == Arity::Zero)
             .cloned()
             .collect::<Vec<Op<T>>>();
 
-        let output_values = values
+        let output_values = self
             .iter()
             .filter(|op| op.arity() == Arity::Any)
             .cloned()
             .collect::<Vec<Op<T>>>();
 
-        let edge_values = values
+        let edge_values = self
             .iter()
             .filter(|op| op.arity() == Arity::Exact(1))
             .cloned()
             .collect::<Vec<Op<T>>>();
 
-        let node_values = values
+        let node_values = self
             .iter()
             .filter(|op| op.arity() != Arity::Zero)
             .cloned()
             .collect::<Vec<Op<T>>>();
 
-        store.add_values(NodeType::Input, input_values);
-        store.add_values(NodeType::Output, output_values);
-        store.add_values(NodeType::Edge, edge_values);
-        store.add_values(NodeType::Vertex, node_values);
+        store.insert(NodeType::Input, input_values);
+        store.insert(NodeType::Output, output_values);
+        store.insert(NodeType::Edge, edge_values);
+        store.insert(NodeType::Vertex, node_values);
 
-        store
+        store.into()
     }
 }
 
-impl<T: Clone> Into<ValueStore<Op<T>>> for OpStore<NodeType, T> {
-    fn into(self) -> ValueStore<Op<T>> {
-        let store = ValueStore::new();
+impl<T: Clone + Default + 'static> Into<OpStore<NodeType, T>> for Vec<(NodeType, Vec<Op<T>>)> {
+    fn into(self) -> OpStore<NodeType, T> {
+        let store = OpStore::new();
 
-        for (key, ops) in self.store.read().unwrap().iter() {
-            store.add_values(key.clone(), ops.clone());
+        for (node_type, ops) in self {
+            store.insert(node_type, ops);
         }
 
-        store
+        store.into()
+    }
+    // fn from(values: Vec<(NodeType, Vec<Op<T>>)>) -> Self {
+    //     let map = OpStore::new();
+    //     for (node_type, ops) in values {
+    //         map.insert(node_type, ops);
+    //     }
+
+    //     map
+    // }
+}
+
+impl<T: Clone + Default + 'static> Into<NodeBuilder<Op<T>>> for OpStore<NodeType, T> {
+    fn into(self) -> NodeBuilder<Op<T>> {
+        NodeBuilder::new(Arc::new(self))
     }
 }

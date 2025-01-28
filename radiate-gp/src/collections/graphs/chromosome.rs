@@ -1,4 +1,4 @@
-use super::ValueStore;
+use super::NodeBuilder;
 use crate::GraphNode;
 use radiate::{Chromosome, Valid};
 use std::fmt::Debug;
@@ -6,11 +6,11 @@ use std::fmt::Debug;
 #[derive(Clone)]
 pub struct GraphChromosome<T> {
     nodes: Vec<GraphNode<T>>,
-    store: Option<ValueStore<T>>,
+    store: Option<NodeBuilder<T>>,
 }
 
 impl<T> GraphChromosome<T> {
-    pub fn new(nodes: Vec<GraphNode<T>>, factory: ValueStore<T>) -> Self {
+    pub fn new(nodes: Vec<GraphNode<T>>, factory: NodeBuilder<T>) -> Self {
         GraphChromosome {
             nodes,
             store: Some(factory),
@@ -21,12 +21,8 @@ impl<T> GraphChromosome<T> {
         self.nodes = nodes;
     }
 
-    pub fn store(&self) -> ValueStore<T> {
-        if let Some(store) = &self.store {
-            store.clone()
-        } else {
-            panic!("Node store not set")
-        }
+    pub fn store(&self) -> NodeBuilder<T> {
+        self.store.clone().unwrap()
     }
 }
 

@@ -4,7 +4,7 @@ use std::{
     sync::Arc,
 };
 
-use crate::{Eval, Factory, GraphNode, NodeType};
+use crate::{Eval, Factory};
 
 /// Arity is a way to describe how many inputs an operation expects.
 /// It can be zero, a specific number, or any number.

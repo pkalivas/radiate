@@ -7,28 +7,28 @@ const MIN_SCORE: f32 = 0.01;
 fn main() {
     random_provider::set_seed(501);
 
-    let graph_codex = GraphCodex::asyclic(2, 1, Op::sigmoid());
-    let regression = Regression::new(get_dataset(), Loss::MSE);
+    // let graph_codex = GraphCodex::asyclic(2, 1, Op::sigmoid());
+    // let regression = Regression::new(get_dataset(), Loss::MSE);
 
-    let engine = GeneticEngine::from_codex(graph_codex)
-        .minimizing()
-        .alter(alters!(
-            GraphCrossover::new(0.5, 0.5),
-            OperationMutator::new(0.05, 0.05),
-            GraphMutator::new(vec![
-                NodeMutate::Edge(0.03, false),
-                NodeMutate::Vertex(0.3, false),
-            ]),
-        ))
-        .fitness_fn(move |genotype: Graph<Op<f32>>| regression.eval(&genotype))
-        .build();
+    // let engine = GeneticEngine::from_codex(graph_codex)
+    //     .minimizing()
+    //     .alter(alters!(
+    //         GraphCrossover::new(0.5, 0.5),
+    //         OperationMutator::new(0.05, 0.05),
+    //         GraphMutator::new(vec![
+    //             NodeMutate::Edge(0.03, false),
+    //             NodeMutate::Vertex(0.3, false),
+    //         ]),
+    //     ))
+    //     .fitness_fn(move |genotype: Graph<Op<f32>>| regression.eval(&genotype))
+    //     .build();
 
-    let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32(),);
-        ctx.index == MAX_INDEX || ctx.score().as_f32() < MIN_SCORE
-    });
+    // let result = engine.run(|ctx| {
+    //     println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32(),);
+    //     ctx.index == MAX_INDEX || ctx.score().as_f32() < MIN_SCORE
+    // });
 
-    display(&result);
+    // display(&result);
 }
 
 fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {

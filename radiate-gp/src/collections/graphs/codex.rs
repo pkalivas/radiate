@@ -1,21 +1,23 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
-use super::{builder::AsyclicGraphBuilder, Graph, GraphChromosome, GraphNode, ValueStore};
+use super::{
+    builder::AsyclicGraphBuilder, Graph, GraphChromosome, GraphNode, NodeBuilder, NodeStore,
+};
 use crate::{Builder, Factory};
 use radiate::{Chromosome, Codex, Gene, Genotype};
 
 pub struct GraphCodex<T> {
-    store: ValueStore<T>,
+    store: NodeBuilder<T>,
     nodes: Option<Vec<GraphNode<T>>>,
 }
 
 impl<T> GraphCodex<T> {
-    pub fn asyclic(input_size: usize, output_size: usize, store: impl Into<ValueStore<T>>) -> Self
+    pub fn asyclic(input_size: usize, output_size: usize, store: impl Into<NodeBuilder<T>>) -> Self
     where
         T: Clone + Default,
     {
         let new_store = store.into();
-        let nodes = AsyclicGraphBuilder::new(input_size, output_size, &new_store)
+        let nodes = AsyclicGraphBuilder::new(input_size, output_size, new_store.clone())
             .build()
             .into_iter()
             .collect();
@@ -35,7 +37,6 @@ where
         let store = self.store.clone();
 
         if let Some(nodes) = &self.nodes {
-            println!("Encoding nodes: {:?}", nodes);
             let new_nodes = nodes
                 .iter()
                 .map(|node| {
@@ -48,6 +49,10 @@ where
                     }
                 })
                 .collect::<Vec<GraphNode<T>>>();
+
+            for node in new_nodes.iter() {
+                println!("{:?}", node);
+            }
 
             return Genotype::new(vec![GraphChromosome::new(new_nodes, store)]);
         }

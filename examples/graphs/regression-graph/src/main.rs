@@ -8,12 +8,21 @@ fn main() {
     random_provider::set_seed(1000);
 
     let values = vec![
+        (NodeType::Input, vec![Op::var(0)]),
         (NodeType::Edge, vec![Op::weight(), Op::identity()]),
         (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
         (NodeType::Output, vec![Op::linear()]),
     ];
 
-    let graph_codex = GraphCodex::asyclic(1, 1, values);
+    let store = values
+        .iter()
+        .flat_map(|(node_type, values)| values.iter().map(move |value| value.clone()))
+        .collect::<Vec<_>>();
+
+    let graph_codex = GraphCodex::asyclic(1, 1, store);
+
+    let graph = graph_codex.encode();
+    println!("{:?}", graph);
 
     let regression = Regression::new(get_dataset(), Loss::MSE);
 

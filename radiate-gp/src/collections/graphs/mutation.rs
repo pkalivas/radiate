@@ -1,4 +1,3 @@
-use core::panic;
 use std::fmt::Debug;
 
 use radiate::Chromosome;
@@ -8,7 +7,7 @@ use radiate::{
 };
 
 use super::transaction::GraphTransaction;
-use super::{Graph, GraphChromosome, GraphNode, ValueStore};
+use super::{Graph, GraphChromosome, GraphNode, NodeBuilder};
 use crate::ops::Arity;
 use crate::{Factory, NodeType};
 
@@ -69,7 +68,7 @@ impl GraphMutator {
         &self,
         graph: &mut Graph<T>,
         node_type: &NodeType,
-        factory: &ValueStore<T>,
+        factory: &NodeBuilder<T>,
         recurrent: bool,
     ) -> bool {
         let mut transaction = GraphTransaction::new(graph);
@@ -86,7 +85,7 @@ impl GraphMutator {
         &self,
         transaction: &mut GraphTransaction<T>,
         node_type: &NodeType,
-        factory: &ValueStore<T>,
+        factory: &NodeBuilder<T>,
         is_recurrent: bool,
     ) -> bool
     where
@@ -133,7 +132,7 @@ impl GraphMutator {
         source_node: usize,
         target_node: usize,
         node_type: &NodeType,
-        factory: &ValueStore<T>,
+        factory: &NodeBuilder<T>,
     ) -> bool
     where
         T: Clone + Default + PartialEq + std::fmt::Debug,
@@ -183,7 +182,7 @@ impl GraphMutator {
         source_idx: usize,
         target_idx: usize,
         node_type: &NodeType,
-        factory: &ValueStore<T>,
+        factory: &NodeBuilder<T>,
     ) -> bool
     where
         T: Clone + Default + PartialEq + std::fmt::Debug,
@@ -287,7 +286,7 @@ impl GraphMutator {
         source_node: usize,
         target_node: usize,
         node_type: &NodeType,
-        factory: &ValueStore<T>,
+        factory: &NodeBuilder<T>,
         is_recurrent: bool,
     ) -> bool
     where
@@ -314,7 +313,7 @@ impl GraphMutator {
         &self,
         transaction: &mut GraphTransaction<T>,
         node_index: usize,
-        factory: &ValueStore<T>,
+        factory: &NodeBuilder<T>,
         is_recurrent: bool,
     ) -> bool
     where
@@ -322,11 +321,11 @@ impl GraphMutator {
     {
         let arity = transaction[node_index].arity();
 
-        if arity.is_none() {
-            dbg!(transaction.as_ref());
-        }
+        // if arity.is_none() {
+        //     dbg!(transaction.as_ref());
+        // }
 
-        let arity = arity.unwrap();
+        // let arity = arity.unwrap();
 
         match arity {
             Arity::Any | Arity::Zero => {

@@ -1,10 +1,7 @@
 use std::collections::HashSet;
 
 use radiate::*;
-use radiate_gp::{
-    graphs::{AsyclicGraphBuilder, ValueStore},
-    *,
-};
+use radiate_gp::*;
 
 const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
@@ -34,16 +31,8 @@ fn main() {
     // (NodeType::Vertex, ops.clone()),
     // (NodeType::Output, outputs.clone()),
     // ];
-    let builder = AsyclicGraphBuilder::new(4, 1, store.clone()).build();
+    // let builder = AsyclicGraphBuilder::new(4, 1, store.clone()).build();
     let codex = GraphCodex::asyclic(4, 4, store);
-
-    let t = codex.encode();
-
-    for (i, node) in builder.iter().enumerate() {
-        println!("{}: {:?}", i, node);
-    }
-
-    panic!();
 
     let engine = GeneticEngine::from_codex(codex)
         .minimizing()

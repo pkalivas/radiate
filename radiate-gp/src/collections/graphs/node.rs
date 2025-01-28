@@ -1,5 +1,4 @@
 use crate::ops::Arity;
-use crate::{Op, Repair};
 use radiate::{Gene, Valid};
 use std::collections::HashSet;
 use std::fmt::Debug;
@@ -40,7 +39,26 @@ impl<T> GraphNode<T> {
             index,
             value: value.into(),
             enabled: true,
-            arity: None, // Non-Op<T> values don't have an arity
+            arity: None,
+            direction: Direction::Forward,
+            node_type,
+            incoming: HashSet::new(),
+            outgoing: HashSet::new(),
+        }
+    }
+
+    pub fn new_with_arity(
+        index: usize,
+        node_type: NodeType,
+        value: impl Into<T>,
+        arity: Arity,
+    ) -> Self {
+        GraphNode {
+            id: Uuid::new_v4(),
+            index,
+            value: value.into(),
+            enabled: true,
+            arity: Some(arity),
             direction: Direction::Forward,
             node_type,
             incoming: HashSet::new(),
@@ -110,8 +128,13 @@ impl<T> GraphNode<T> {
         self.arity = Some(arity);
     }
 
-    pub fn arity(&self) -> Option<&Arity> {
-        self.arity.as_ref()
+    pub fn arity(&self) -> Arity {
+        self.arity.unwrap_or(match self.node_type {
+            NodeType::Input => Arity::Zero,
+            NodeType::Output => Arity::Any,
+            NodeType::Vertex => Arity::Any,
+            NodeType::Edge => Arity::Exact(1),
+        })
     }
 
     pub fn is_locked(&self) -> bool {
@@ -124,11 +147,6 @@ impl<T> GraphNode<T> {
         }
 
         false
-        // if self.arity() == Arity::Any {
-        //     return false;
-        // }
-
-        // self.incoming.len() == *self.arity()
     }
 }
 
@@ -201,12 +219,6 @@ impl<T> Valid for GraphNode<T> {
         }
 
         true
-    }
-}
-
-impl<T> Repair for GraphNode<T> {
-    fn try_repair(&mut self) -> bool {
-        todo!()
     }
 }
 
