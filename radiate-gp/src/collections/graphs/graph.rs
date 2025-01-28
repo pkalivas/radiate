@@ -4,11 +4,9 @@ use std::ops::{Index, IndexMut};
 
 use crate::collections::graphs::GraphTransaction;
 use crate::collections::{Direction, GraphNode};
-use crate::{NodeType, Op};
+use crate::NodeType;
 
 use radiate::{random_provider, Valid};
-
-use super::IntoValue;
 
 /// A 'Graph' is simply a 'Vec' of 'GraphNode's.
 ///

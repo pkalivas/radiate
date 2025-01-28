@@ -4,7 +4,7 @@ use std::{
     sync::Arc,
 };
 
-use crate::{Eval, Factory};
+use crate::{graphs::NodeValue, Eval, Factory};
 
 /// Arity is a way to describe how many inputs an operation expects.
 /// It can be zero, a specific number, or any number.
@@ -172,6 +172,16 @@ impl<T> Op<T> {
 
 unsafe impl Send for Op<f32> {}
 unsafe impl Sync for Op<f32> {}
+
+impl<T> Into<NodeValue<Op<T>>> for Op<T>
+where
+    T: Clone,
+{
+    fn into(self) -> NodeValue<Op<T>> {
+        let arity = self.arity();
+        NodeValue::Bounded(self, arity)
+    }
+}
 
 impl<T> Eval<[T], T> for Op<T>
 where

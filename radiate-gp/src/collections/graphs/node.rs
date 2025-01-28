@@ -1,67 +1,9 @@
 use crate::ops::Arity;
-use crate::Op;
 use radiate::{Gene, Valid};
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::hash::Hash;
 use uuid::Uuid;
-
-pub trait Bounded {
-    type Output;
-    fn arity(&self) -> Arity;
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Value<T> {
-    Bounded(T, Arity),
-    Unbounded(T),
-}
-
-impl<T> Value<T> {
-    pub fn value(&self) -> &T {
-        match self {
-            Value::Bounded(val, _) => val,
-            Value::Unbounded(val) => val,
-        }
-    }
-
-    pub fn arity(&self) -> Arity {
-        match self {
-            Value::Bounded(_, arity) => *arity,
-            Value::Unbounded(_) => Arity::Any,
-        }
-    }
-}
-
-impl<T: Default> Default for Value<T> {
-    fn default() -> Self {
-        Value::Unbounded(Default::default())
-    }
-}
-
-pub trait IntoValue<T = Self> {
-    fn into_value(self) -> Value<Self>
-    where
-        Self: Sized;
-}
-
-impl<T> IntoValue for T {
-    fn into_value(self) -> Value<T> {
-        Value::Unbounded(self)
-    }
-}
-
-// pub trait IntoValue<T = Self> {
-//     fn into_value(self) -> Value<T>
-//     where
-//         Self: Sized;
-// }
-
-// impl<T> IntoValue for T {
-//     fn into_value(self) -> Value<Self> {
-//         Value::Unbounded(self)
-//     }
-// }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NodeType {
@@ -79,25 +21,41 @@ pub enum Direction {
 
 #[derive(Clone, PartialEq)]
 pub struct GraphNode<T> {
-    value: Value<T>,
+    value: T,
     id: Uuid,
     index: usize,
     enabled: bool,
     node_type: NodeType,
     direction: Direction,
+    arity: Option<Arity>,
     incoming: HashSet<usize>,
     outgoing: HashSet<usize>,
 }
 
 impl<T> GraphNode<T> {
     pub fn new(index: usize, node_type: NodeType, value: T) -> Self {
-        Self {
+        GraphNode {
             id: Uuid::new_v4(),
             index,
-            value: value.into_value(),
+            value,
             enabled: true,
             direction: Direction::Forward,
             node_type,
+            arity: None,
+            incoming: HashSet::new(),
+            outgoing: HashSet::new(),
+        }
+    }
+
+    pub fn with_arity(index: usize, node_type: NodeType, value: T, arity: Arity) -> Self {
+        GraphNode {
+            id: Uuid::new_v4(),
+            index,
+            value,
+            enabled: true,
+            direction: Direction::Forward,
+            node_type,
+            arity: Some(arity),
             incoming: HashSet::new(),
             outgoing: HashSet::new(),
         }
@@ -136,10 +94,7 @@ impl<T> GraphNode<T> {
     }
 
     pub fn value(&self) -> &T {
-        match &self.value {
-            Value::Bounded(val, _) => val,
-            Value::Unbounded(val) => val,
-        }
+        &self.value
     }
 
     pub fn is_recurrent(&self) -> bool {
@@ -165,15 +120,12 @@ impl<T> GraphNode<T> {
     }
 
     pub fn arity(&self) -> Arity {
-        match &self.value {
-            Value::Bounded(_, arity) => *arity,
-            Value::Unbounded(_) => match self.node_type {
-                NodeType::Input => Arity::Exact(0),
-                NodeType::Output => Arity::Any,
-                NodeType::Vertex => Arity::Any,
-                NodeType::Edge => Arity::Exact(1),
-            },
-        }
+        self.arity.unwrap_or(match self.node_type {
+            NodeType::Input => Arity::Zero,
+            NodeType::Output => Arity::Any,
+            NodeType::Vertex => Arity::Any,
+            NodeType::Edge => Arity::Exact(1),
+        })
     }
 
     pub fn is_locked(&self) -> bool {
@@ -203,6 +155,7 @@ where
             value: self.value.clone(),
             direction: self.direction,
             node_type: self.node_type,
+            arity: self.arity,
             incoming: self.incoming.clone(),
             outgoing: self.outgoing.clone(),
         }
@@ -212,10 +165,11 @@ where
         GraphNode {
             id: Uuid::new_v4(),
             index: self.index,
-            value: allele.clone().into_value(),
+            value: allele.clone(),
             enabled: self.enabled,
             direction: self.direction,
             node_type: self.node_type,
+            arity: self.arity,
             incoming: self.incoming.clone(),
             outgoing: self.outgoing.clone(),
         }
@@ -257,9 +211,10 @@ impl<T: Default> Default for GraphNode<T> {
             id: Uuid::new_v4(),
             index: 0,
             enabled: true,
-            value: Value::Unbounded(Default::default()),
+            value: Default::default(),
             direction: Direction::Forward,
             node_type: NodeType::Input,
+            arity: None,
             incoming: HashSet::new(),
             outgoing: HashSet::new(),
         }

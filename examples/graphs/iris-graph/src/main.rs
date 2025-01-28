@@ -17,36 +17,15 @@ fn main() {
     let edges = vec![Op::weight(), Op::identity()];
     let outputs = vec![Op::sigmoid()];
 
-    for (index, op) in ops.iter().enumerate() {
-        println!("{:?} :: {:?}", index, op.into_value());
-    }
-
-    // let store = ops
-    //     .iter()
-    //     .chain(edges.iter())
-    //     .chain(outputs.iter())
-    //     .cloned()
-    //     .collect::<Vec<_>>();
-
-    let store = vec![
-        (
-            NodeType::Input,
-            (0..4).map(|_| Op::var(0)).collect::<Vec<_>>(),
-        ),
-        (NodeType::Edge, edges.clone()),
-        (NodeType::Vertex, ops.clone()),
-        (NodeType::Output, outputs.clone()),
-    ];
+    let store = ops
+        .iter()
+        .chain((0..4).map(Op::var).collect::<Vec<Op<f32>>>().iter())
+        .chain(edges.iter())
+        .chain(outputs.iter())
+        .cloned()
+        .collect::<Vec<Op<f32>>>();
 
     let codex = GraphCodex::asyclic(4, 4, store);
-
-    let encoded = codex.encode();
-
-    for (index, node) in encoded.iter().enumerate() {
-        println!("{:?} :: {:?}", index, node);
-    }
-
-    // panic!();
 
     let engine = GeneticEngine::from_codex(codex)
         .minimizing()

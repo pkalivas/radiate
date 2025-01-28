@@ -19,6 +19,6 @@ pub use eval::GraphEvaluator;
 pub use graph::Graph;
 pub use iter::GraphTopologicalIterator;
 pub use mutation::{GraphMutator, NodeMutate};
-pub use node::{Direction, GraphNode, IntoValue, NodeType, Value};
-pub use store::NodeStore;
+pub use node::{Direction, GraphNode, NodeType};
+pub use store::*;
 pub use transaction::GraphTransaction;

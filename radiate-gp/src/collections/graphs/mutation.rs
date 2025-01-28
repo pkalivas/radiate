@@ -317,10 +317,7 @@ impl GraphMutator {
     where
         T: Clone + Default + PartialEq,
     {
-        let node = &transaction[node_index];
         let arity = transaction[node_index].arity();
-
-        println!("Arity: {:?}", transaction[node_index].arity());
 
         match arity {
             Arity::Any | Arity::Zero => {
@@ -412,18 +409,18 @@ where
             return 0;
         }
 
-        let store = chromosome.store();
+        if let Some(store) = chromosome.store() {
+            let mut graph = Graph::new(chromosome.iter().cloned().collect());
 
-        let mut graph = Graph::new(chromosome.iter().cloned().collect());
-
-        if self.add_node(
-            &mut graph,
-            &mutation.node_type(),
-            &store,
-            mutation.is_recurrent(),
-        ) {
-            chromosome.set_nodes(graph.into_iter().collect::<Vec<GraphNode<T>>>());
-            return 1;
+            if self.add_node(
+                &mut graph,
+                &mutation.node_type(),
+                &store,
+                mutation.is_recurrent(),
+            ) {
+                chromosome.set_nodes(graph.into_iter().collect::<Vec<GraphNode<T>>>());
+                return 1;
+            }
         }
 
         0

@@ -8,6 +8,7 @@ fn main() {
     random_provider::set_seed(100);
 
     let values = vec![
+        (NodeType::Input, vec![Op::var(0)]),
         (NodeType::Edge, vec![Op::weight(), Op::identity()]),
         (NodeType::Vertex, ops::get_all_operations()),
         (NodeType::Output, vec![Op::sigmoid()]),

@@ -1,6 +1,6 @@
 use super::NodeStore;
-use crate::GraphNode;
-use radiate::{Chromosome, Valid};
+use crate::{Factory, GraphNode};
+use radiate::{Chromosome, Gene, Valid};
 use std::fmt::Debug;
 
 #[derive(Clone)]
@@ -21,12 +21,39 @@ impl<T> GraphChromosome<T> {
         self.nodes = nodes;
     }
 
-    pub fn store(&self) -> NodeStore<T> {
-        if let Some(store) = &self.store {
-            store.clone()
-        } else {
-            panic!("Node store not set")
+    pub fn store(&self) -> Option<&NodeStore<T>> {
+        self.store.as_ref()
+    }
+}
+
+impl<T> Factory<GraphChromosome<T>> for GraphChromosome<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    type Input = Option<NodeStore<T>>;
+
+    fn new_instance(&self, store: Self::Input) -> Self {
+        let store = store.or_else(|| self.store.clone());
+        if let Some(store) = &store {
+            return GraphChromosome {
+                nodes: self
+                    .nodes
+                    .iter()
+                    .enumerate()
+                    .map(|(index, node)| {
+                        let new_node = store.new_instance((index, node.node_type()));
+                        if new_node.arity() == node.arity() {
+                            node.with_allele(new_node.allele())
+                        } else {
+                            node.clone()
+                        }
+                    })
+                    .collect(),
+                store: Some(store.clone()),
+            };
         }
+
+        self.clone()
     }
 }
 
@@ -58,6 +85,15 @@ impl<T> AsMut<[GraphNode<T>]> for GraphChromosome<T> {
 impl<T: PartialEq> PartialEq for GraphChromosome<T> {
     fn eq(&self, other: &Self) -> bool {
         self.nodes == other.nodes
+    }
+}
+
+impl<T> FromIterator<GraphNode<T>> for GraphChromosome<T> {
+    fn from_iter<I: IntoIterator<Item = GraphNode<T>>>(iter: I) -> Self {
+        GraphChromosome {
+            nodes: iter.into_iter().collect(),
+            store: None,
+        }
     }
 }
 
