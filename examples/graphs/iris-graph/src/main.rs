@@ -17,6 +17,10 @@ fn main() {
     let edges = vec![Op::weight(), Op::identity()];
     let outputs = vec![Op::sigmoid()];
 
+    for (index, op) in ops.iter().enumerate() {
+        println!("{:?} :: {:?}", index, op.into_value());
+    }
+
     // let store = ops
     //     .iter()
     //     .chain(edges.iter())
@@ -25,12 +29,24 @@ fn main() {
     //     .collect::<Vec<_>>();
 
     let store = vec![
+        (
+            NodeType::Input,
+            (0..4).map(|_| Op::var(0)).collect::<Vec<_>>(),
+        ),
         (NodeType::Edge, edges.clone()),
         (NodeType::Vertex, ops.clone()),
         (NodeType::Output, outputs.clone()),
     ];
 
     let codex = GraphCodex::asyclic(4, 4, store);
+
+    let encoded = codex.encode();
+
+    for (index, node) in encoded.iter().enumerate() {
+        println!("{:?} :: {:?}", index, node);
+    }
+
+    // panic!();
 
     let engine = GeneticEngine::from_codex(codex)
         .minimizing()
@@ -44,7 +60,7 @@ fn main() {
                 NodeMutate::Vertex(0.01, false),
             ]),
         ))
-        .fitness_fn(move |graph: Graph<f32>| regression.eval(&graph))
+        .fitness_fn(move |graph: Graph<Op<f32>>| regression.eval(&graph))
         .build();
 
     let result = engine.run(|ctx| {
@@ -58,7 +74,7 @@ fn main() {
 fn display(
     train: &DataSet,
     test: &DataSet,
-    result: &EngineContext<GraphChromosome<f32>, Graph<f32>>,
+    result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>,
 ) {
     let mut reducer = GraphEvaluator::new(&result.best);
 

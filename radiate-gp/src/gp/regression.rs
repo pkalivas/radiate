@@ -1,5 +1,5 @@
 use super::{DataSet, Loss};
-use crate::{Eval, EvalMut, Graph, GraphEvaluator, Tree};
+use crate::{Eval, EvalMut, Graph, GraphEvaluator, Op, Tree};
 
 pub struct Regression {
     data_set: DataSet,
@@ -15,8 +15,8 @@ impl Regression {
     }
 }
 
-impl Eval<Graph<f32>, f32> for Regression {
-    fn eval(&self, graph: &Graph<f32>) -> f32 {
+impl Eval<Graph<Op<f32>>, f32> for Regression {
+    fn eval(&self, graph: &Graph<Op<f32>>) -> f32 {
         let mut evaluator = GraphEvaluator::new(graph);
 
         self.loss_function

@@ -3,7 +3,7 @@ pub mod trees;
 
 pub use graphs::{
     Direction, Graph, GraphAggregate, GraphChromosome, GraphCodex, GraphCrossover, GraphEvaluator,
-    GraphMutator, GraphNode, GraphTopologicalIterator, NodeMutate, NodeType,
+    GraphMutator, GraphNode, GraphTopologicalIterator, IntoValue, NodeMutate, NodeType, Value,
 };
 
 pub use trees::{

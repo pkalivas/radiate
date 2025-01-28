@@ -59,7 +59,7 @@ where
                 .map(|node| {
                     let new_node = self.store.new_instance((node.index(), node.node_type()));
 
-                    if new_node.value().arity() == node.value().arity() {
+                    if new_node.arity() == node.arity() {
                         node.with_allele(new_node.allele())
                     } else {
                         node.clone()

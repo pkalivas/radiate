@@ -1,4 +1,4 @@
-use crate::collections::{GraphNode, NodeType};
+use crate::collections::{GraphNode, IntoValue, NodeType, Value};
 use crate::ops::Arity;
 use crate::{Factory, Op};
 use radiate::random_provider;
@@ -7,7 +7,7 @@ use std::fmt::Debug;
 use std::sync::{Arc, RwLock};
 
 pub struct NodeStore<T> {
-    values: Arc<RwLock<HashMap<NodeType, Vec<Op<T>>>>>,
+    values: Arc<RwLock<HashMap<NodeType, Vec<T>>>>,
 }
 
 impl<T> NodeStore<T> {
@@ -17,9 +17,9 @@ impl<T> NodeStore<T> {
         }
     }
 
-    pub fn add_values(&self, node_type: NodeType, values: Vec<Op<T>>) {
+    pub fn add_values(&self, node_type: NodeType, values: Vec<T>) {
         let mut values_map = self.values.write().unwrap();
-        values_map.insert(node_type, values);
+        values_map.insert(node_type, values.into_iter().map(|val| val).collect());
     }
 
     pub fn contains(&self, node_type: NodeType) -> bool {
@@ -27,25 +27,25 @@ impl<T> NodeStore<T> {
         values.contains_key(&node_type) && !values[&node_type].is_empty()
     }
 
-    pub fn values_with_arities(&self, node_type: NodeType, arity: Arity) -> Vec<Op<T>>
-    where
-        T: Clone,
-    {
-        let reader = self.values.read().unwrap();
-        if let Some(values) = reader.get(&node_type) {
-            return values
-                .iter()
-                .filter(|op| op.arity() == arity)
-                .cloned()
-                .collect::<Vec<Op<T>>>();
-        }
+    // pub fn values_with_arities(&self, node_type: NodeType, arity: Arity) -> Vec<T>
+    // where
+    //     T: Clone,
+    // {
+    //     let reader = self.values.read().unwrap();
+    //     if let Some(values) = reader.get(&node_type) {
+    //         return values
+    //             .iter()
+    //             .filter(|op| op.arity() == arity)
+    //             .cloned()
+    //             .collect::<Vec<Value<T>>>();
+    //     }
 
-        Vec::new()
-    }
+    //     Vec::new()
+    // }
 
     pub fn map<F, K>(&self, node_type: NodeType, mapper: F) -> Option<K>
     where
-        F: Fn(&Vec<Op<T>>) -> K,
+        F: Fn(&Vec<T>) -> K,
     {
         let reader = self.values.read().unwrap();
         if let Some(values) = reader.get(&node_type) {
@@ -58,12 +58,12 @@ impl<T> NodeStore<T> {
     pub fn map_values<F, K>(&self, node_type: NodeType, size: usize, mapper: F) -> Vec<K>
     where
         T: Clone + Default,
-        F: Fn(usize, &Op<T>) -> K,
+        F: Fn(usize, &T) -> K,
     {
-        if node_type == NodeType::Input && !self.contains(NodeType::Input) {
-            let inputs = (0..size).map(Op::var).collect::<Vec<Op<T>>>();
-            self.add_values(NodeType::Input, inputs);
-        }
+        // if node_type == NodeType::Input && !self.contains(NodeType::Input) {
+        //     let inputs = (0..size).map(Op::var).collect::<Vec<Op<T>>>();
+        //     self.add_values(NodeType::Input, inputs);
+        // }
 
         let reader = self.values.read().unwrap();
         if let Some(values) = reader.get(&node_type) {
@@ -79,7 +79,7 @@ impl<T> NodeStore<T> {
         }
 
         (0..size)
-            .map(|i| mapper(i, &Op::default()))
+            .map(|i| mapper(i, &T::default()))
             .collect::<Vec<K>>()
     }
 }
@@ -93,7 +93,7 @@ impl<T: Default + Clone> Factory<GraphNode<T>> for NodeStore<T> {
         let new_node = self.map(node_type, |values| {
             let new_value = match node_type {
                 NodeType::Input => values[index % values.len()].clone(),
-                _ => random_provider::choose(values).new_instance(()),
+                _ => random_provider::choose(values).clone(),
             };
 
             GraphNode::new(index, node_type, new_value)
@@ -103,7 +103,7 @@ impl<T: Default + Clone> Factory<GraphNode<T>> for NodeStore<T> {
             return new_value;
         }
 
-        GraphNode::new(index, node_type, Op::default())
+        GraphNode::new(index, node_type, T::default())
     }
 }
 
@@ -124,16 +124,16 @@ impl<T: PartialEq> PartialEq for NodeStore<T> {
     }
 }
 
-impl<T> From<HashMap<NodeType, Vec<Op<T>>>> for NodeStore<T> {
-    fn from(values: HashMap<NodeType, Vec<Op<T>>>) -> Self {
+impl<T> From<HashMap<NodeType, Vec<T>>> for NodeStore<T> {
+    fn from(values: HashMap<NodeType, Vec<T>>) -> Self {
         NodeStore {
             values: Arc::new(RwLock::new(values)),
         }
     }
 }
 
-impl<T> From<Vec<(NodeType, Vec<Op<T>>)>> for NodeStore<T> {
-    fn from(values: Vec<(NodeType, Vec<Op<T>>)>) -> Self {
+impl<T> From<Vec<(NodeType, Vec<T>)>> for NodeStore<T> {
+    fn from(values: Vec<(NodeType, Vec<T>)>) -> Self {
         let mut map = HashMap::new();
         for (node_type, ops) in values {
             map.insert(node_type, ops);
@@ -145,8 +145,8 @@ impl<T> From<Vec<(NodeType, Vec<Op<T>>)>> for NodeStore<T> {
     }
 }
 
-impl<T> From<(NodeType, Vec<Op<T>>)> for NodeStore<T> {
-    fn from(value: (NodeType, Vec<Op<T>>)) -> Self {
+impl<T> From<(NodeType, Vec<T>)> for NodeStore<T> {
+    fn from(value: (NodeType, Vec<T>)) -> Self {
         let mut map = HashMap::new();
         map.insert(value.0, value.1);
 
@@ -156,33 +156,33 @@ impl<T> From<(NodeType, Vec<Op<T>>)> for NodeStore<T> {
     }
 }
 
-impl<T: Clone> From<Vec<Op<T>>> for NodeStore<T> {
-    fn from(values: Vec<Op<T>>) -> Self {
+impl<T: Clone> From<Vec<T>> for NodeStore<T> {
+    fn from(values: Vec<T>) -> Self {
         let store = NodeStore::new();
 
         let input_values = values
             .iter()
-            .filter(|op| op.arity() == Arity::Zero)
+            .filter(|op| op.into_value().arity() == Arity::Zero)
             .cloned()
-            .collect::<Vec<Op<T>>>();
+            .collect::<Vec<T>>();
 
         let output_values = values
             .iter()
-            .filter(|op| op.arity() == Arity::Any)
+            .filter(|op| op.into_value().arity() == Arity::Any)
             .cloned()
-            .collect::<Vec<Op<T>>>();
+            .collect::<Vec<T>>();
 
         let edge_values = values
             .iter()
-            .filter(|op| op.arity() == Arity::Exact(1))
+            .filter(|op| op.into_value().arity() == Arity::Exact(1))
             .cloned()
-            .collect::<Vec<Op<T>>>();
+            .collect::<Vec<T>>();
 
         let node_values = values
             .iter()
-            .filter(|op| op.arity() != Arity::Zero)
+            .filter(|op| op.into_value().arity() != Arity::Zero)
             .cloned()
-            .collect::<Vec<Op<T>>>();
+            .collect::<Vec<T>>();
 
         store.add_values(NodeType::Input, input_values);
         store.add_values(NodeType::Output, output_values);
@@ -193,7 +193,7 @@ impl<T: Clone> From<Vec<Op<T>>> for NodeStore<T> {
     }
 }
 
-impl<T: Clone> From<Op<T>> for NodeStore<T> {
+impl<T: Clone> From<Op<T>> for NodeStore<Op<T>> {
     fn from(value: Op<T>) -> Self {
         let store = NodeStore::new();
 

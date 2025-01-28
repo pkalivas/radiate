@@ -6,6 +6,63 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use uuid::Uuid;
 
+pub trait Bounded {
+    type Output;
+    fn arity(&self) -> Arity;
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Value<T> {
+    Bounded(T, Arity),
+    Unbounded(T),
+}
+
+impl<T> Value<T> {
+    pub fn value(&self) -> &T {
+        match self {
+            Value::Bounded(val, _) => val,
+            Value::Unbounded(val) => val,
+        }
+    }
+
+    pub fn arity(&self) -> Arity {
+        match self {
+            Value::Bounded(_, arity) => *arity,
+            Value::Unbounded(_) => Arity::Any,
+        }
+    }
+}
+
+impl<T: Default> Default for Value<T> {
+    fn default() -> Self {
+        Value::Unbounded(Default::default())
+    }
+}
+
+pub trait IntoValue<T = Self> {
+    fn into_value(self) -> Value<Self>
+    where
+        Self: Sized;
+}
+
+impl<T> IntoValue for T {
+    fn into_value(self) -> Value<T> {
+        Value::Unbounded(self)
+    }
+}
+
+// pub trait IntoValue<T = Self> {
+//     fn into_value(self) -> Value<T>
+//     where
+//         Self: Sized;
+// }
+
+// impl<T> IntoValue for T {
+//     fn into_value(self) -> Value<Self> {
+//         Value::Unbounded(self)
+//     }
+// }
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NodeType {
     Input,
@@ -22,7 +79,7 @@ pub enum Direction {
 
 #[derive(Clone, PartialEq)]
 pub struct GraphNode<T> {
-    value: Op<T>,
+    value: Value<T>,
     id: Uuid,
     index: usize,
     enabled: bool,
@@ -33,11 +90,11 @@ pub struct GraphNode<T> {
 }
 
 impl<T> GraphNode<T> {
-    pub fn new(index: usize, node_type: NodeType, value: impl Into<Op<T>>) -> Self {
+    pub fn new(index: usize, node_type: NodeType, value: T) -> Self {
         Self {
             id: Uuid::new_v4(),
             index,
-            value: value.into(),
+            value: value.into_value(),
             enabled: true,
             direction: Direction::Forward,
             node_type,
@@ -78,8 +135,11 @@ impl<T> GraphNode<T> {
         &self.id
     }
 
-    pub fn value(&self) -> &Op<T> {
-        &self.value
+    pub fn value(&self) -> &T {
+        match &self.value {
+            Value::Bounded(val, _) => val,
+            Value::Unbounded(val) => val,
+        }
     }
 
     pub fn is_recurrent(&self) -> bool {
@@ -104,12 +164,24 @@ impl<T> GraphNode<T> {
         &mut self.outgoing
     }
 
+    pub fn arity(&self) -> Arity {
+        match &self.value {
+            Value::Bounded(_, arity) => *arity,
+            Value::Unbounded(_) => match self.node_type {
+                NodeType::Input => Arity::Exact(0),
+                NodeType::Output => Arity::Any,
+                NodeType::Vertex => Arity::Any,
+                NodeType::Edge => Arity::Exact(1),
+            },
+        }
+    }
+
     pub fn is_locked(&self) -> bool {
-        if self.value.arity() == Arity::Any {
+        if self.arity() == Arity::Any {
             return false;
         }
 
-        self.incoming.len() == *self.value.arity()
+        self.incoming.len() == *self.arity()
     }
 }
 
@@ -117,10 +189,10 @@ impl<T> Gene for GraphNode<T>
 where
     T: Clone + PartialEq + Default,
 {
-    type Allele = Op<T>;
+    type Allele = T;
 
     fn allele(&self) -> &Self::Allele {
-        &self.value
+        self.value()
     }
 
     fn new_instance(&self) -> GraphNode<T> {
@@ -140,7 +212,7 @@ where
         GraphNode {
             id: Uuid::new_v4(),
             index: self.index,
-            value: allele.clone(),
+            value: allele.clone().into_value(),
             enabled: self.enabled,
             direction: self.direction,
             node_type: self.node_type,
@@ -156,21 +228,20 @@ impl<T> Valid for GraphNode<T> {
             NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
             NodeType::Output => {
                 (!self.incoming.is_empty())
-                    && (self.incoming.len() == *self.value.arity()
-                        || self.value.arity() == Arity::Any)
+                    && (self.incoming.len() == *self.arity() || self.arity() == Arity::Any)
             }
             NodeType::Vertex => {
                 if !self.incoming.is_empty() && !self.outgoing.is_empty() {
-                    if let Arity::Exact(n) = self.value.arity() {
+                    if let Arity::Exact(n) = self.arity() {
                         return self.incoming.len() == n;
-                    } else if self.value.arity() == Arity::Any {
+                    } else if self.arity() == Arity::Any {
                         return true;
                     }
                 }
                 return false;
             }
             NodeType::Edge => {
-                if self.value.arity() == Arity::Exact(1) {
+                if self.arity() == Arity::Exact(1) {
                     return self.incoming.len() == 1 && self.outgoing.len() == 1;
                 }
 
@@ -186,7 +257,7 @@ impl<T: Default> Default for GraphNode<T> {
             id: Uuid::new_v4(),
             index: 0,
             enabled: true,
-            value: Op::default(),
+            value: Value::Unbounded(Default::default()),
             direction: Direction::Forward,
             node_type: NodeType::Input,
             incoming: HashSet::new(),
@@ -206,7 +277,7 @@ impl<T: Debug + PartialEq + Clone> Debug for GraphNode<T> {
 
         write!(
             f,
-            "[{:<3}] {:>10?} :: {:<12} E: {:<5} V:{:<5} R:{:<5} {:<2} {:<2} < [{}]",
+            "[{:<3}] {:>10?} :: {:<12} E: {:<5} V:{:<5} R:{:<5} {:<2} {:<2} < [{}] > {:?}",
             self.index,
             format!("{:?}", self.node_type())[..3].to_owned(),
             format!("{:?}", self.value).to_owned(),
@@ -215,7 +286,8 @@ impl<T: Debug + PartialEq + Clone> Debug for GraphNode<T> {
             self.is_recurrent(),
             self.incoming.len(),
             self.outgoing.len(),
-            incoming
+            incoming,
+            self.arity()
         )
     }
 }

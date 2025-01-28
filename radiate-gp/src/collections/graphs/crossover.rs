@@ -5,6 +5,8 @@ use radiate::timer::Timer;
 use radiate::{indexes, random_provider, Alter, AlterAction, Crossover, EngineCompoment, Metric};
 use std::collections::HashMap;
 
+use super::NodeType;
+
 const NUM_PARENTS: usize = 2;
 
 pub struct GraphCrossover {
@@ -50,10 +52,12 @@ impl GraphCrossover {
                 let node_one = chromo_one.get_gene(*i);
                 let node_two = chromo_two.get_gene(*i);
 
-                match (node_one.value(), node_two.value()) {
-                    (Op::MutableConst { .. }, Op::MutableConst { .. }) => true,
-                    _ => false,
-                }
+                node_one.node_type() == NodeType::Edge && node_two.node_type() == NodeType::Edge
+
+                // match (node_one.value(), node_two.value()) {
+                //     (Op::MutableConst { .. }, Op::MutableConst { .. }) => true,
+                //     _ => false,
+                // }
             })
             .collect::<Vec<usize>>();
 

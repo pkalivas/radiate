@@ -8,6 +8,8 @@ use crate::{NodeType, Op};
 
 use radiate::{random_provider, Valid};
 
+use super::IntoValue;
+
 /// A 'Graph' is simply a 'Vec' of 'GraphNode's.
 ///
 /// Its important to note that this graph differs from a traditional graph in that it is not
@@ -45,8 +47,8 @@ impl<T> Graph<T> {
         self.nodes.push(node);
     }
 
-    pub fn insert(&mut self, node_type: NodeType, val: impl Into<Op<T>>) -> usize {
-        let node = GraphNode::new(self.len(), node_type, val.into());
+    pub fn insert(&mut self, node_type: NodeType, val: T) -> usize {
+        let node = GraphNode::new(self.len(), node_type, val);
         self.push(node);
         self.len() - 1
     }
