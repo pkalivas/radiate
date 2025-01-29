@@ -1,6 +1,5 @@
-use crate::collections::NodeType;
-use crate::ops::Arity;
-use crate::Op;
+// use crate::collections::NodeType;
+use crate::{Arity, Op};
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::{Arc, RwLock};

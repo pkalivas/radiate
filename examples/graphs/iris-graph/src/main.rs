@@ -34,7 +34,6 @@ fn main() {
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.02, 0.05),
-            WeightMutator::new(0.02),
             GraphMutator::new(vec![
                 NodeMutate::Edge(0.008, false),
                 NodeMutate::Vertex(0.006, false),

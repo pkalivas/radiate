@@ -75,8 +75,8 @@ mod tests {
     fn test_tree_reduce_simple() {
         let mut root = TreeNode::new(Op::add());
 
-        root.add_child(TreeNode::new(Op::value(1.0)));
-        root.add_child(TreeNode::new(Op::value(2.0)));
+        root.add_child(TreeNode::new(Op::constant(1.0)));
+        root.add_child(TreeNode::new(Op::constant(2.0)));
 
         let result = root.eval(&vec![]);
 
@@ -89,12 +89,12 @@ mod tests {
             TreeNode::new(Op::add())
                 .attach(
                     TreeNode::new(Op::mul())
-                        .attach(TreeNode::new(Op::value(2.0)))
-                        .attach(TreeNode::new(Op::value(3.0))),
+                        .attach(TreeNode::new(Op::constant(2.0)))
+                        .attach(TreeNode::new(Op::constant(3.0))),
                 )
                 .attach(
                     TreeNode::new(Op::add())
-                        .attach(TreeNode::new(Op::value(2.0)))
+                        .attach(TreeNode::new(Op::constant(2.0)))
                         .attach(TreeNode::new(Op::var(0))),
                 ),
         );

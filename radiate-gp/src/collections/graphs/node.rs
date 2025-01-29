@@ -1,6 +1,5 @@
 use crate::node::Node;
-use crate::ops::Arity;
-use crate::NodeType;
+use crate::{Arity, NodeType};
 use radiate::{Gene, Valid};
 use std::collections::HashSet;
 use std::fmt::Debug;
@@ -122,18 +121,35 @@ impl<T> Node for GraphNode<T> {
     }
 
     fn node_type(&self) -> NodeType {
-        self.node_type
+        // self.node_type
+
+        let arity = self.arity();
+
+        if let Arity::Any = arity {
+            if self.outgoing.is_empty() {
+                return NodeType::Output;
+            } else {
+                return NodeType::Vertex;
+            }
+        } else if let Arity::Exact(1) = arity {
+            return NodeType::Edge;
+        } else if let Arity::Zero = arity {
+            return NodeType::Input;
+        } else {
+            return NodeType::Vertex;
+        }
     }
 
     fn arity(&self) -> Arity {
-        self.arity.unwrap_or(match self.node_type {
-            NodeType::Input => Arity::Zero,
-            NodeType::Output => Arity::Any,
-            NodeType::Vertex => Arity::Any,
-            NodeType::Edge => Arity::Exact(1),
-            NodeType::Leaf => Arity::Zero,
-            NodeType::Root => Arity::Any,
-        })
+        self.arity.unwrap_or(Arity::Any)
+        // self.arity.unwrap_or(match self.node_type {
+        //     NodeType::Input => Arity::Zero,
+        //     NodeType::Output => Arity::Any,
+        //     NodeType::Vertex => Arity::Any,
+        //     NodeType::Edge => Arity::Exact(1),
+        //     NodeType::Leaf => Arity::Zero,
+        //     NodeType::Root => Arity::Any,
+        // })
     }
 }
 

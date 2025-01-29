@@ -1,4 +1,5 @@
-use super::{Arity, Op};
+use super::Op;
+use crate::Arity;
 use radiate::random_provider;
 use std::sync::Arc;
 
@@ -168,7 +169,7 @@ impl ActivationOperation {
 
 /// Implementations of the `Operation` trait for `f32`.
 impl Op<f32> {
-    pub fn mut_const_weight() -> Self {
+    pub fn weight() -> Self {
         let supplier = || random_provider::random::<f32>() * TWO - ONE;
         let operation = |inputs: &[f32], weight: &f32| clamp(inputs[0] * weight);
         let modifier = |current: &f32| {
@@ -176,22 +177,13 @@ impl Op<f32> {
             clamp(current + diff)
         };
         Op::MutableConst {
-            name: "mcw",
+            name: "w",
             arity: 1.into(),
             value: supplier(),
             get_value: Arc::new(supplier),
             modifier: Arc::new(modifier),
             operation: Arc::new(operation),
         }
-    }
-
-    pub fn weight() -> Self {
-        Op::Weight(
-            "w",
-            1.into(),
-            random_provider::random::<f32>() * TWO - ONE,
-            Arc::new(|inputs: &[f32], weight: &f32| clamp(inputs[0] * weight)),
-        )
     }
 
     pub fn add() -> Self {

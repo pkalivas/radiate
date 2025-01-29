@@ -1,4 +1,4 @@
-use crate::ops::Arity;
+use crate::Arity;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NodeType {

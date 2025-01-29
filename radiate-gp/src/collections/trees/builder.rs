@@ -1,7 +1,6 @@
 use crate::collections::{Tree, TreeNode};
 use crate::node::Node;
-use crate::ops::Arity;
-use crate::{Factory, NodeStore, NodeType};
+use crate::{Arity, Factory, NodeStore, NodeType};
 
 impl<T> Tree<T> {
     pub fn with_depth(depth: usize, nodes: impl Into<NodeStore<T>>) -> Self
@@ -52,7 +51,7 @@ mod tests {
     fn test_tree_builder_depth_two() {
         let store = vec![
             (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
-            (NodeType::Leaf, vec![Op::value(1.0), Op::value(2.0)]),
+            (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
         ];
         let tree = Tree::with_depth(2, store);
 
@@ -68,7 +67,7 @@ mod tests {
         // The above test should be good enough, but just for peace of mind.
         let store = vec![
             (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
-            (NodeType::Leaf, vec![Op::value(1.0), Op::value(2.0)]),
+            (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
         ];
         let tree = Tree::with_depth(3, store);
 

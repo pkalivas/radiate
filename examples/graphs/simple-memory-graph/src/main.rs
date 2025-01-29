@@ -9,12 +9,12 @@ fn main() {
 
     let values = vec![
         (NodeType::Input, vec![Op::var(0)]),
-        (NodeType::Edge, vec![Op::mut_const_weight(), Op::identity()]),
+        (NodeType::Edge, vec![Op::weight(), Op::identity()]),
         (NodeType::Vertex, ops::get_all_operations()),
         (NodeType::Output, vec![Op::sigmoid()]),
     ];
 
-    let graph_codex = GraphCodex::cyclic(1, 1, values);
+    let graph_codex = GraphCodex::asyclic(1, 1, values);
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
     let engine = GeneticEngine::from_codex(graph_codex)
