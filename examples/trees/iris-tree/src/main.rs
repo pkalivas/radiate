@@ -19,7 +19,7 @@ fn main() {
     ];
 
     let regression = Regression::new(train.clone(), Loss::MSE);
-    let codex = TreeCodex::multi_root(3, 4, store).constraint(|node| node.size() < 30);
+    let codex = TreeCodex::multi_root(3, 4, store).constraint(|node| node.size() < 40);
 
     let engine = GeneticEngine::from_codex(codex)
         .minimizing()

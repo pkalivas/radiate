@@ -1,6 +1,9 @@
 use super::{Direction, Graph, GraphNode};
 use radiate::Valid;
-use std::{collections::HashSet, ops::Index};
+use std::{
+    collections::HashSet,
+    ops::{Deref, Index},
+};
 
 /// Represents a reversible change to the graph
 #[derive(Debug)]
@@ -15,16 +18,13 @@ enum MutationStep {
 }
 
 /// Tracks changes and provides rollback capability
-pub struct GraphTransaction<'a, T>
-where
-    T: Clone + Default + PartialEq,
-{
+pub struct GraphTransaction<'a, T> {
     graph: &'a mut Graph<T>,
     steps: Vec<MutationStep>,
     effects: HashSet<usize>,
 }
 
-impl<'a, T: Clone + Default + PartialEq> GraphTransaction<'a, T> {
+impl<'a, T> GraphTransaction<'a, T> {
     pub fn new(graph: &'a mut Graph<T>) -> Self {
         GraphTransaction {
             graph,
@@ -113,22 +113,24 @@ impl<'a, T: Clone + Default + PartialEq> GraphTransaction<'a, T> {
     }
 }
 
-impl<'a, T> AsRef<Graph<T>> for GraphTransaction<'a, T>
-where
-    T: Clone + Default + PartialEq,
-{
+impl<'a, T> AsRef<Graph<T>> for GraphTransaction<'a, T> {
     fn as_ref(&self) -> &Graph<T> {
         self.graph
     }
 }
 
-impl<'a, T> Index<usize> for GraphTransaction<'a, T>
-where
-    T: Clone + Default + PartialEq,
-{
+impl<'a, T> Index<usize> for GraphTransaction<'a, T> {
     type Output = GraphNode<T>;
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.graph[index]
+    }
+}
+
+impl<'a, T> Deref for GraphTransaction<'a, T> {
+    type Target = Graph<T>;
+
+    fn deref(&self) -> &Self::Target {
+        self.graph
     }
 }

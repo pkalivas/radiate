@@ -18,4 +18,5 @@ pub mod metric_names {
     pub const UNIQUE: &str = "Unique";
     pub const GENOME_SIZE: &str = "Genome Size";
     pub const FRONT: &str = "Front";
+    pub const NUM_EQUAL: &str = "Num Equal";
 }

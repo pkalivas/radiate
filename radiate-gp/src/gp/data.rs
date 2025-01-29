@@ -47,6 +47,14 @@ impl DataSet {
         self
     }
 
+    pub fn features(&self) -> Vec<Vec<f32>> {
+        self.rows.iter().map(|row| row.input.clone()).collect()
+    }
+
+    pub fn labels(&self) -> Vec<Vec<f32>> {
+        self.rows.iter().map(|row| row.output.clone()).collect()
+    }
+
     pub fn split(self, ratio: f32) -> (Self, Self) {
         let split = (self.len() as f32 * ratio).round() as usize;
         let (left, right) = self.rows.split_at(split);

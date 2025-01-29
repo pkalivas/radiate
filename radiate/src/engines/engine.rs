@@ -2,7 +2,7 @@ use super::codexes::Codex;
 use super::context::EngineContext;
 use super::genome::phenotype::Phenotype;
 use super::thread_pool::ThreadPool;
-use super::{AlterAction, MetricSet, Problem};
+use super::{AlterAction, FilterStrategy, MetricSet, Problem};
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
 use crate::engines::objectives::Score;
@@ -240,12 +240,25 @@ where
         for i in 0..population.len() {
             let phenotype = &population[i];
 
+            let mut removed = false;
             if phenotype.age(generation) > max_age {
-                population[i] = Phenotype::from_genotype(problem.encode(), generation);
+                removed = true;
                 age_count += 1_f32;
             } else if !phenotype.genotype().is_valid() {
-                population[i] = Phenotype::from_genotype(problem.encode(), generation);
+                removed = true;
                 invalid_count += 1_f32;
+            }
+
+            if removed {
+                match self.filter_strategy() {
+                    FilterStrategy::Encode => {
+                        population[i] = Phenotype::from_genotype(problem.encode(), generation);
+                    }
+                    FilterStrategy::PopulationSample => {
+                        let idx = rand::random::<usize>() % population.len();
+                        population[i] = population[idx].clone();
+                    }
+                }
             }
         }
 
@@ -338,9 +351,14 @@ where
         let mut score_metric = Metric::new_value(metric_names::SCORE);
         let mut size_values = Vec::with_capacity(output.population.len());
         let mut unique = Vec::with_capacity(output.population.len());
+        let mut equal_members = 0;
 
         for i in 0..output.population.len() {
             let phenotype = &output.population[i];
+
+            if i > 0 && phenotype.genotype() == output.population[i - 1].genotype() {
+                equal_members += 1;
+            }
 
             let age = phenotype.age(output.index);
             let score = phenotype.score().unwrap();
@@ -360,10 +378,13 @@ where
 
         let mut unique_metric = Metric::new_value(metric_names::UNIQUE);
         let mut size_metric = Metric::new_distribution(metric_names::GENOME_SIZE);
+        let mut equal_metric = Metric::new_value(metric_names::NUM_EQUAL);
 
         unique_metric.add_value(unique.len() as f32);
         size_metric.add_sequence(&size_values);
+        equal_metric.add_value(equal_members as f32);
 
+        output.metrics.upsert(equal_metric);
         output.metrics.upsert(age_metric);
         output.metrics.upsert(score_metric);
         output.metrics.upsert(unique_metric);
@@ -408,6 +429,10 @@ where
 
     fn thread_pool(&self) -> &ThreadPool {
         &self.params.thread_pool
+    }
+
+    fn filter_strategy(&self) -> &FilterStrategy {
+        &self.params.filter_strategy
     }
 
     fn start(&self) -> EngineContext<C, T> {

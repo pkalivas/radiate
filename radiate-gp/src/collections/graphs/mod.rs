@@ -16,7 +16,7 @@ pub use codex::GraphCodex;
 pub use crossover::GraphCrossover;
 pub use eval::GraphEvaluator;
 pub use graph::Graph;
-pub use iter::GraphTopologicalIterator;
+pub use iter::GraphIterator;
 pub use mutation::{GraphMutator, NodeMutate};
 pub use node::{Direction, GraphNode};
 pub use transaction::GraphTransaction;

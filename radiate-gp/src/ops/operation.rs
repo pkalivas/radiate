@@ -80,6 +80,8 @@ pub enum Op<T> {
     ///     This is a convenience method for creating a `Const` operation with any given
     ///     value and arity
     Value(T, Arity),
+
+    Weight(&'static str, Arity, T, Arc<dyn Fn(&[T], &T) -> T>),
 }
 
 /// Base functionality for operations.
@@ -91,6 +93,7 @@ impl<T> Op<T> {
             Op::Const(name, _) => name,
             Op::MutableConst { name, .. } => name,
             Op::Value(_, _) => "Value",
+            Op::Weight(name, _, _, _) => name,
         }
     }
 
@@ -101,6 +104,7 @@ impl<T> Op<T> {
             Op::Const(_, _) => Arity::Zero,
             Op::MutableConst { arity, .. } => *arity,
             Op::Value(_, arity) => *arity,
+            Op::Weight(_, arity, _, _) => *arity,
         }
     }
 
@@ -196,6 +200,7 @@ where
                 value, operation, ..
             } => operation(inputs, value),
             Op::Value(value, _) => value.clone(),
+            Op::Weight(_, _, value, operation) => operation(inputs, value),
         }
     }
 }
@@ -227,6 +232,9 @@ where
                 operation: Arc::clone(operation),
             },
             Op::Value(value, arity) => Op::Value(value.clone(), *arity),
+            Op::Weight(name, arity, value, operation) => {
+                Op::Weight(name, *arity, value.clone(), Arc::clone(operation))
+            }
         }
     }
 }
@@ -256,6 +264,9 @@ where
                 operation: Arc::clone(operation),
             },
             Op::Value(value, arity) => Op::Value(value.clone(), *arity),
+            Op::Weight(name, arity, value, operation) => {
+                Op::Weight(name, *arity, value.clone(), Arc::clone(operation))
+            }
         }
     }
 }
@@ -295,6 +306,7 @@ where
             Op::Const(name, value) => write!(f, "C: {}({:?})", name, value),
             Op::MutableConst { name, value, .. } => write!(f, "{}({:.2?})", name, value),
             Op::Value(value, _) => write!(f, "Value({:?})", value),
+            Op::Weight(name, _, value, _) => write!(f, "W: {}({:.2?})", name, value),
         }
     }
 }
@@ -335,8 +347,8 @@ mod test {
     fn test_random_seed_works() {
         random_provider::set_seed(42);
 
-        let op = Op::weight();
-        let op2 = Op::weight();
+        let op = Op::mut_const_weight();
+        let op2 = Op::mut_const_weight();
 
         let o_one = match op {
             Op::MutableConst { value, .. } => value,

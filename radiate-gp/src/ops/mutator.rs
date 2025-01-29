@@ -94,6 +94,7 @@ where
                         }),
                     );
                 }
+                Op::Weight(_, _, _, _) => {}
                 _ => {
                     let new_op: Option<Op<T>> = chromosome
                         .store()

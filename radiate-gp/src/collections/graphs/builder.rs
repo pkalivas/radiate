@@ -1,7 +1,6 @@
 use super::aggregate::GraphAggregate;
-
 use crate::{
-    collections::{Builder, Graph, GraphNode, NodeType},
+    collections::{Graph, GraphNode, NodeType},
     Factory, NodeStore,
 };
 

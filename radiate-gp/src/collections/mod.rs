@@ -1,14 +1,16 @@
+pub mod factory;
 pub mod graphs;
 pub mod node;
 pub mod store;
 pub mod trees;
+
+pub use factory::*;
 pub use graphs::{
     Direction, Graph, GraphAggregate, GraphChromosome, GraphCodex, GraphCrossover, GraphEvaluator,
-    GraphMutator, GraphNode, GraphTopologicalIterator, NodeMutate,
+    GraphIterator, GraphMutator, GraphNode, NodeMutate,
 };
 pub use node::NodeType;
 pub use store::{NodeStore, NodeValue};
-
 pub use trees::{
     Tree, TreeChromosome, TreeCodex, TreeCrossover, TreeIterator, TreeMutator, TreeNode,
 };
@@ -108,12 +110,4 @@ impl<I: ?Sized, O> EvalMut<I, O> for dyn Eval<I, O> {
     fn eval_mut(&mut self, input: &I) -> O {
         self.eval(input)
     }
-}
-
-/// A trait for types that can be created from a given input.
-///
-/// TODO: Document this trait.
-pub trait Factory<T> {
-    type Input;
-    fn new_instance(&self, input: Self::Input) -> T;
 }

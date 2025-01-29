@@ -14,10 +14,11 @@ fn main() {
     let regression = Regression::new(train.clone(), Loss::MSE);
 
     let ops = ops::get_all_operations();
-    let edges = vec![Op::weight(), Op::identity()];
+    let edges = vec![Op::identity(), Op::weight()];
     let outputs = vec![Op::sigmoid()];
 
     let store = vec![
+        (NodeType::Input, (0..4).map(Op::var).collect()),
         (NodeType::Edge, edges.clone()),
         (NodeType::Vertex, ops.clone()),
         (NodeType::Output, outputs.clone()),
@@ -28,20 +29,22 @@ fn main() {
     let engine = GeneticEngine::from_codex(codex)
         .minimizing()
         .num_threads(10)
+        .offspring_fraction(0.98)
         .offspring_selector(BoltzmannSelector::new(4.0))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.02, 0.05),
+            WeightMutator::new(0.02),
             GraphMutator::new(vec![
-                NodeMutate::Edge(0.01, false),
-                NodeMutate::Vertex(0.01, false),
+                NodeMutate::Edge(0.008, false),
+                NodeMutate::Vertex(0.006, false),
             ]),
         ))
         .fitness_fn(move |graph: Graph<Op<f32>>| regression.eval(&graph))
         .build();
 
     let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32());
+        println!("[ {:?} ]: {:?}", ctx.index, ctx.score());
         ctx.score().as_f32() < MIN_SCORE || ctx.seconds() > MAX_SECONDS
     });
 

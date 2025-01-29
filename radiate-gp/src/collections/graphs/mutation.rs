@@ -1,7 +1,6 @@
 use radiate::Chromosome;
 use radiate::{
     random_provider, timer::Timer, Alter, AlterAction, EngineCompoment, Metric, Mutate, Population,
-    Valid,
 };
 
 use super::transaction::GraphTransaction;
@@ -90,8 +89,8 @@ impl GraphMutator {
     where
         T: Clone + Default + PartialEq,
     {
-        let source_node_index = transaction.as_ref().random_source_node().index();
-        let target_node_index = transaction.as_ref().random_target_node().index();
+        let source_node_index = transaction.random_source_node().index();
+        let target_node_index = transaction.random_target_node().index();
 
         let source_node_type = transaction[source_node_index].node_type();
 
@@ -291,10 +290,7 @@ impl GraphMutator {
     where
         T: Clone + Default + PartialEq,
     {
-        if !&transaction
-            .as_ref()
-            .can_connect(source_node, target_node, is_recurrent)
-        {
+        if !&transaction.can_connect(source_node, target_node, is_recurrent) {
             return false;
         }
 
@@ -323,7 +319,7 @@ impl GraphMutator {
         match arity {
             Arity::Any | Arity::Zero => {
                 transaction.set_cycles();
-                return transaction.as_ref().is_valid();
+                return transaction.is_valid();
             }
             Arity::Exact(arity) => {
                 for _ in 0..arity - 1 {
@@ -332,8 +328,8 @@ impl GraphMutator {
                         let input_index = transaction.add_node(input_node);
                         transaction.attach(input_index, node_index);
                     } else {
-                        let other_source_node = transaction.as_ref().random_source_node();
-                        if transaction.as_ref().can_connect(
+                        let other_source_node = transaction.random_source_node();
+                        if transaction.can_connect(
                             other_source_node.index(),
                             node_index,
                             is_recurrent,
@@ -346,7 +342,7 @@ impl GraphMutator {
         }
 
         transaction.set_cycles();
-        transaction.as_ref().is_valid()
+        transaction.is_valid()
     }
 }
 

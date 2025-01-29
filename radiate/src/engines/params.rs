@@ -12,6 +12,11 @@ use crate::uniform::{UniformCrossover, UniformMutator};
 use crate::Chromosome;
 use std::sync::Arc;
 
+pub enum FilterStrategy {
+    Encode,
+    PopulationSample,
+}
+
 /// Parameters for the genetic engine.
 /// This struct is used to configure the genetic engine before it is created.
 ///
@@ -44,6 +49,7 @@ where
     pub codex: Option<Arc<Box<dyn Codex<C, T>>>>,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
     pub problem: Option<Arc<Box<dyn Problem<C, T>>>>,
+    pub filter_strategy: FilterStrategy,
 }
 
 impl<C, T> GeneticEngineParams<C, T>
@@ -82,6 +88,7 @@ where
             population: None,
             fitness_fn: None,
             problem: None,
+            filter_strategy: FilterStrategy::Encode,
         }
     }
 
@@ -102,6 +109,11 @@ where
         }
 
         self.max_age = max_age;
+        self
+    }
+
+    pub fn filter_strategy(mut self, filter_strategy: FilterStrategy) -> Self {
+        self.filter_strategy = filter_strategy;
         self
     }
 
