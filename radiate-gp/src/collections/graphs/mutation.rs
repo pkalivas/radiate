@@ -6,6 +6,7 @@ use radiate::{
 
 use super::transaction::GraphTransaction;
 use super::{Graph, GraphChromosome, GraphNode};
+use crate::node::Node;
 use crate::ops::Arity;
 use crate::{Factory, NodeStore, NodeType};
 

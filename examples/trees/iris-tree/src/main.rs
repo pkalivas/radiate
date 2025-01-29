@@ -13,12 +13,13 @@ fn main() {
     let (train, test) = load_iris_dataset().shuffle().standardize().split(0.75);
 
     let store = vec![
+        (NodeType::Root, vec![Op::sigmoid()]),
         (NodeType::Vertex, ops::get_math_operations()),
         (NodeType::Leaf, (0..4).map(|i| Op::var(i)).collect()),
     ];
 
     let regression = Regression::new(train.clone(), Loss::MSE);
-    let codex = TreeCodex::multi_root(3, 4, store).constraint(|node| node.size() < 50);
+    let codex = TreeCodex::multi_root(3, 4, store).constraint(|node| node.size() < 30);
 
     let engine = GeneticEngine::from_codex(codex)
         .minimizing()

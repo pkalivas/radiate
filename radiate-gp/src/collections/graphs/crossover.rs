@@ -1,4 +1,5 @@
 use crate::collections::GraphChromosome;
+use crate::node::Node;
 use crate::NodeType;
 use radiate::engines::genome::*;
 use radiate::timer::Timer;

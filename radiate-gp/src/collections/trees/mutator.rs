@@ -1,5 +1,5 @@
 use super::TreeChromosome;
-use crate::{Factory, NodeStore, NodeType, TreeNode};
+use crate::{node::Node, Factory, NodeStore, NodeType, TreeNode};
 use radiate::{random_provider, Alter, AlterAction, EngineCompoment, Gene, Mutate};
 
 pub struct TreeMutator {

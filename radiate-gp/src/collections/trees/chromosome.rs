@@ -1,8 +1,6 @@
-use crate::{Factory, NodeStore, TreeNode};
+use crate::{NodeStore, TreeNode};
 use radiate::{Chromosome, Valid};
 use std::sync::Arc;
-
-use super::Tree;
 
 type Constraint<N> = Arc<Box<dyn Fn(&N) -> bool>>;
 
@@ -40,24 +38,6 @@ impl<T> TreeChromosome<T> {
         } else {
             None
         }
-    }
-}
-
-impl<T: Default + Clone> Factory<TreeChromosome<T>> for TreeChromosome<T> {
-    type Input = usize;
-
-    fn new_instance(&self, depth: usize) -> Self {
-        if let Some(store) = &self.store {
-            let root = Tree::with_depth(depth, store.clone()).take_root().unwrap();
-
-            return TreeChromosome {
-                nodes: vec![root],
-                store: self.store.clone(),
-                constraint: self.constraint.clone(),
-            };
-        }
-
-        self.clone()
     }
 }
 

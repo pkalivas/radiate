@@ -4,6 +4,7 @@ use std::ops::{Index, IndexMut};
 
 use crate::collections::graphs::GraphTransaction;
 use crate::collections::{Direction, GraphNode};
+use crate::node::Node;
 use crate::NodeType;
 
 use radiate::{random_provider, Valid};

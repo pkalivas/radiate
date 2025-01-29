@@ -1,4 +1,4 @@
-use crate::{Eval, TreeNode};
+use crate::{node::Node, Eval, TreeNode};
 
 use super::Tree;
 

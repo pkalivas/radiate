@@ -1,4 +1,7 @@
-use crate::collections::{Builder, Graph, GraphNode, NodeType};
+use crate::{
+    collections::{Builder, Graph, GraphNode, NodeType},
+    node::Node,
+};
 use std::collections::BTreeMap;
 use uuid::Uuid;
 

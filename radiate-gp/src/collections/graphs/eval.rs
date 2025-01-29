@@ -1,5 +1,5 @@
 use super::{iter::GraphIterator, Graph, GraphNode};
-use crate::{Eval, EvalMut, NodeType};
+use crate::{node::Node, Eval, EvalMut, NodeType};
 
 /// `GraphReducer` is a struct that is used to evaluate a `Graph` of `Node`s. It uses the `GraphIterator`
 /// to traverse the `Graph` in a sudo-topological order and evaluate the nodes in the correct order.

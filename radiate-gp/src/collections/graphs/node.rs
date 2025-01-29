@@ -1,3 +1,4 @@
+use crate::node::Node;
 use crate::ops::Arity;
 use crate::NodeType;
 use radiate::{Gene, Valid};
@@ -54,10 +55,6 @@ impl<T> GraphNode<T> {
         }
     }
 
-    pub fn node_type(&self) -> NodeType {
-        self.node_type
-    }
-
     pub fn direction(&self) -> Direction {
         self.direction
     }
@@ -86,10 +83,6 @@ impl<T> GraphNode<T> {
         &self.id
     }
 
-    pub fn value(&self) -> &T {
-        &self.value
-    }
-
     pub fn is_recurrent(&self) -> bool {
         self.direction == Direction::Backward
             || self.incoming.contains(&self.index)
@@ -112,7 +105,27 @@ impl<T> GraphNode<T> {
         &mut self.outgoing
     }
 
-    pub fn arity(&self) -> Arity {
+    pub fn is_locked(&self) -> bool {
+        if self.arity() == Arity::Any {
+            return false;
+        }
+
+        self.incoming.len() == *self.arity()
+    }
+}
+
+impl<T> Node for GraphNode<T> {
+    type Value = T;
+
+    fn value(&self) -> &Self::Value {
+        &self.value
+    }
+
+    fn node_type(&self) -> NodeType {
+        self.node_type
+    }
+
+    fn arity(&self) -> Arity {
         self.arity.unwrap_or(match self.node_type {
             NodeType::Input => Arity::Zero,
             NodeType::Output => Arity::Any,
@@ -121,14 +134,6 @@ impl<T> GraphNode<T> {
             NodeType::Leaf => Arity::Zero,
             NodeType::Root => Arity::Any,
         })
-    }
-
-    pub fn is_locked(&self) -> bool {
-        if self.arity() == Arity::Any {
-            return false;
-        }
-
-        self.incoming.len() == *self.arity()
     }
 }
 

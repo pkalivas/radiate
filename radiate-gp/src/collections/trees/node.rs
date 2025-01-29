@@ -1,5 +1,5 @@
 use super::TreeIterator;
-use crate::{ops::operation::Arity, NodeType};
+use crate::{node::Node, ops::operation::Arity, NodeType};
 use radiate::engines::genome::gene::{Gene, Valid};
 
 #[derive(PartialEq)]
@@ -34,20 +34,8 @@ impl<T> TreeNode<T> {
         }
     }
 
-    pub fn value(&self) -> &T {
-        &self.value
-    }
-
     pub fn is_leaf(&self) -> bool {
         self.children.is_none()
-    }
-
-    pub fn node_type(&self) -> NodeType {
-        if let Some(_) = self.children.as_ref() {
-            NodeType::Vertex
-        } else {
-            NodeType::Leaf
-        }
     }
 
     pub fn add_child(&mut self, child: TreeNode<T>) {
@@ -117,26 +105,37 @@ impl<T> TreeNode<T> {
 
         None
     }
+}
 
-    pub fn arity(&self) -> Arity {
+impl<T> Node for TreeNode<T> {
+    type Value = T;
+
+    fn value(&self) -> &Self::Value {
+        &self.value
+    }
+
+    fn node_type(&self) -> NodeType {
+        if let Some(_) = self.children.as_ref() {
+            NodeType::Vertex
+        } else {
+            NodeType::Leaf
+        }
+    }
+
+    fn arity(&self) -> Arity {
         if let Some(arity) = self.arity {
             arity
         } else {
             if let Some(children) = self.children.as_ref() {
                 Arity::Exact(children.len())
             } else {
-                Arity::Zero
+                match self.node_type() {
+                    NodeType::Leaf => Arity::Zero,
+                    NodeType::Vertex => Arity::Any,
+                    NodeType::Root => Arity::Any,
+                    _ => Arity::Zero,
+                }
             }
-        }
-    }
-}
-
-impl<T: Clone> Clone for TreeNode<T> {
-    fn clone(&self) -> Self {
-        TreeNode {
-            value: self.value.clone(),
-            arity: self.arity,
-            children: self.children.as_ref().map(|children| children.to_vec()),
         }
     }
 }
@@ -194,5 +193,15 @@ impl<T> Valid for TreeNode<T> {
         }
 
         true
+    }
+}
+
+impl<T: Clone> Clone for TreeNode<T> {
+    fn clone(&self) -> Self {
+        TreeNode {
+            value: self.value.clone(),
+            arity: self.arity,
+            children: self.children.as_ref().map(|children| children.to_vec()),
+        }
     }
 }

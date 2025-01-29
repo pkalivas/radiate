@@ -1,3 +1,4 @@
+use crate::node::Node;
 use crate::ops::operation::Op;
 use crate::{Factory, GraphChromosome};
 use radiate::engines::genome::gene::Gene;

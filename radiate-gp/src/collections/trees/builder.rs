@@ -1,4 +1,6 @@
 use crate::collections::{Tree, TreeNode};
+use crate::node::Node;
+use crate::ops::Arity;
 use crate::{Factory, NodeStore, NodeType};
 
 impl<T> Tree<T> {
@@ -24,7 +26,19 @@ impl<T> Tree<T> {
             parent
         }
 
-        Tree::new(grow(depth, &store))
+        let mut root: TreeNode<T> = store.new_instance(NodeType::Root);
+
+        if root.arity() == Arity::Any {
+            for _ in 0..2 {
+                root.add_child(grow(depth - 1, &store));
+            }
+        } else {
+            for _ in 0..*root.arity() {
+                root.add_child(grow(depth - 1, &store));
+            }
+        }
+
+        Tree::new(root)
     }
 }
 
