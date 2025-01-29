@@ -2,15 +2,15 @@
 mod tests {
 
     use radiate::*;
-    use radiate_gp::{Direction, Graph, NodeType};
+    use radiate_gp::{Direction, Graph};
 
     #[test]
     fn test_simple_graph() {
         let mut graph = Graph::<i32>::default();
 
-        graph.insert(NodeType::Input, 0);
-        graph.insert(NodeType::Vertex, 1);
-        graph.insert(NodeType::Output, 2);
+        graph.insert(0);
+        graph.insert(1);
+        graph.insert(2);
 
         graph.attach(0, 1).attach(1, 2);
 
@@ -33,10 +33,10 @@ mod tests {
     fn test_graph_with_cycles() {
         let mut graph = Graph::<i32>::default();
 
-        graph.insert(NodeType::Input, 0);
-        graph.insert(NodeType::Vertex, 1);
-        graph.insert(NodeType::Vertex, 2);
-        graph.insert(NodeType::Output, 3);
+        graph.insert(0);
+        graph.insert(1);
+        graph.insert(2);
+        graph.insert(3);
 
         graph.attach(0, 1).attach(1, 2).attach(2, 1).attach(2, 3);
 
@@ -62,10 +62,10 @@ mod tests {
     fn test_graph_with_cycles_and_recurrent_nodes() {
         let mut graph = Graph::<i32>::default();
 
-        graph.insert(NodeType::Input, 0);
-        graph.insert(NodeType::Vertex, 1);
-        graph.insert(NodeType::Vertex, 2);
-        graph.insert(NodeType::Output, 3);
+        graph.insert(0);
+        graph.insert(1);
+        graph.insert(2);
+        graph.insert(3);
 
         graph
             .attach(0, 1)

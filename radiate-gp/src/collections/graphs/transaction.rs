@@ -140,7 +140,6 @@ impl<'a, T> GraphTransaction<'a, T> {
                         let random_input = random_provider::choose(&input_node).value();
                         let input_index = self.add_node(GraphNode::with_arity(
                             self.len(),
-                            NodeType::Input,
                             (*random_input).clone(),
                             Arity::Zero,
                         ));

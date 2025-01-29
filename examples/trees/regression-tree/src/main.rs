@@ -7,10 +7,7 @@ const MAX_SECONDS: f64 = 1.0;
 fn main() {
     random_provider::set_seed(42069);
 
-    let store = vec![
-        (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
-        (NodeType::Leaf, vec![Op::var(0)]),
-    ];
+    let store = vec![Op::add(), Op::sub(), Op::mul(), Op::var(0)];
 
     let graph_codex = TreeCodex::single(3, store).constraint(|node| node.size() < 30);
 

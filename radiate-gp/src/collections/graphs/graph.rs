@@ -1,6 +1,5 @@
 use crate::collections::graphs::GraphTransaction;
 use crate::collections::{Direction, GraphNode};
-use crate::NodeType;
 use radiate::Valid;
 use std::collections::{HashSet, VecDeque};
 use std::fmt::Debug;
@@ -43,8 +42,8 @@ impl<T> Graph<T> {
         self.nodes.push(node);
     }
 
-    pub fn insert(&mut self, node_type: NodeType, val: T) -> usize {
-        let node = GraphNode::new(self.len(), node_type, val);
+    pub fn insert(&mut self, val: T) -> usize {
+        let node = GraphNode::new(self.len(), val);
         self.push(node);
         self.len() - 1
     }

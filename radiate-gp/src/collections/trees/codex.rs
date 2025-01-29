@@ -78,14 +78,17 @@ where
 mod tests {
     use super::*;
 
-    use crate::{ops::Op, NodeType};
+    use crate::ops::Op;
     use radiate::engines::codexes::Codex;
 
     #[test]
     fn test_tree_codex() {
         let store = vec![
-            (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
-            (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
+            Op::add(),
+            Op::sub(),
+            Op::mul(),
+            Op::constant(1.0),
+            Op::constant(2.0),
         ];
         let codex = TreeCodex::single(3, store);
 

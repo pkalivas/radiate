@@ -1,6 +1,6 @@
 use super::transaction::InsertionType;
 use super::{Graph, GraphChromosome, GraphNode};
-use crate::{Factory, NodeStore, NodeType};
+use crate::{Arity, Factory, NodeStore, NodeType};
 use radiate::Chromosome;
 use radiate::{
     random_provider, timer::Timer, Alter, AlterAction, EngineCompoment, Metric, Mutate, Population,
@@ -42,7 +42,6 @@ impl NodeMutate {
 /// to the graph, and can be used to add either edges or vertices. The mutator is created with
 /// a set of mutations that can be applied to the graph.
 pub struct GraphMutator {
-    // mutations: Vec<NodeMutate>,
     rate: f32,
     bias_rate: f32,
     allow_recurrent: bool,
@@ -69,11 +68,11 @@ impl GraphMutator {
     pub fn add_node<T: Clone + Default + PartialEq>(
         &self,
         graph: &mut Graph<T>,
-        node_type: &NodeType,
         factory: &NodeStore<T>,
         recurrent: bool,
     ) -> bool {
-        let new_node = factory.new_instance((graph.len(), *node_type));
+        let new_node = factory.new_instance((graph.len(), |arity| arity != Arity::Zero));
+
         graph.try_modify(|trans| {
             let source_idx = trans.random_source_node().index();
             let target_idx = trans.random_target_node().index();
@@ -162,6 +161,11 @@ where
 
         if let Some(store) = chromosome.store() {
             let mut graph = Graph::new(chromosome.iter().cloned().collect());
+
+            if self.add_node(&mut graph, &store, self.allow_recurrent) {
+                chromosome.set_nodes(graph.into_iter().collect::<Vec<GraphNode<T>>>());
+                return 1;
+            }
 
             // if self.add_node(
             //     &mut graph,

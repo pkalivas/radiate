@@ -25,13 +25,11 @@ impl<T> GraphChromosome<T> {
     }
 }
 
-impl<T> Factory<GraphChromosome<T>> for GraphChromosome<T>
+impl<T> Factory<Option<NodeStore<T>>, GraphChromosome<T>> for GraphChromosome<T>
 where
     T: Clone + PartialEq + Default,
 {
-    type Input = Option<NodeStore<T>>;
-
-    fn new_instance(&self, store: Self::Input) -> Self {
+    fn new_instance(&self, store: Option<NodeStore<T>>) -> GraphChromosome<T> {
         let store = store.or_else(|| self.store.clone());
         if let Some(store) = &store {
             return GraphChromosome {
@@ -40,7 +38,7 @@ where
                     .iter()
                     .enumerate()
                     .map(|(index, node)| {
-                        let new_node: GraphNode<T> = store.new_instance((index, node.node_type()));
+                        let new_node: GraphNode<T> = store.new_instance((index, node.arity()));
                         if new_node.arity() == node.arity() {
                             node.with_allele(new_node.allele())
                         } else {

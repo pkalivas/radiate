@@ -12,11 +12,20 @@ fn main() {
 
     let (train, test) = load_iris_dataset().shuffle().standardize().split(0.75);
 
+    // let store = vec![
+    //     (NodeType::Root, vec![Op::sigmoid()]),
+    //     (NodeType::Vertex, ops::get_math_operations()),
+    //     (NodeType::Leaf, (0..4).map(|i| Op::var(i)).collect()),
+    // ];
+
     let store = vec![
-        (NodeType::Root, vec![Op::sigmoid()]),
-        (NodeType::Vertex, ops::get_math_operations()),
-        (NodeType::Leaf, (0..4).map(|i| Op::var(i)).collect()),
-    ];
+        vec![Op::sigmoid()],
+        ops::get_math_operations(),
+        (0..4).map(|i| Op::var(i)).collect(),
+    ]
+    .into_iter()
+    .flatten()
+    .collect::<Vec<Op<f32>>>();
 
     let regression = Regression::new(train.clone(), Loss::MSE);
     let codex = TreeCodex::multi_root(3, 4, store).constraint(|node| node.size() < 40);

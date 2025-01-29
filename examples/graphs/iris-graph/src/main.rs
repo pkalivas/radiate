@@ -13,16 +13,19 @@ fn main() {
 
     let regression = Regression::new(train.clone(), Loss::MSE);
 
-    let ops = ops::get_all_operations();
+    // let ops = ops::get_all_operations();
     let edges = vec![Op::identity(), Op::weight()];
     let outputs = vec![Op::sigmoid()];
 
     let store = vec![
-        (NodeType::Input, (0..4).map(Op::var).collect()),
-        (NodeType::Edge, edges.clone()),
-        (NodeType::Vertex, ops.clone()),
-        (NodeType::Output, outputs.clone()),
-    ];
+        (0..4).map(Op::var).collect(),
+        edges.clone(),
+        // ops.clone(),
+        outputs.clone(),
+    ]
+    .into_iter()
+    .flatten()
+    .collect::<Vec<Op<f32>>>();
 
     let codex = GraphCodex::asyclic(4, 4, store);
 
@@ -34,10 +37,7 @@ fn main() {
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.02, 0.05),
-            GraphMutator::new(vec![
-                NodeMutate::Edge(0.008, false),
-                NodeMutate::Vertex(0.006, false),
-            ]),
+            GraphMutator::new(0.008, 0.05, false),
         ))
         .fitness_fn(move |graph: Graph<Op<f32>>| regression.eval(&graph))
         .build();

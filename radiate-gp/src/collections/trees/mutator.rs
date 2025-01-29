@@ -1,5 +1,5 @@
 use super::TreeChromosome;
-use crate::{node::Node, Factory, NodeStore, NodeType, TreeNode};
+use crate::{node::Node, Arity, Factory, NodeStore, TreeNode};
 use radiate::{random_provider, Alter, AlterAction, EngineCompoment, Gene, Mutate};
 
 pub struct TreeMutator {
@@ -19,13 +19,13 @@ impl TreeMutator {
 
         if node.is_leaf() {
             if random_provider::random::<f32>() < self.rate {
-                let leaf_value: TreeNode<T> = store.new_instance(NodeType::Leaf);
+                let leaf_value: TreeNode<T> = store.new_instance(Arity::Zero);
                 node.with_allele(leaf_value.allele());
                 count += 1;
             }
         } else {
             if random_provider::random::<f32>() < self.rate {
-                let new_gate: TreeNode<T> = store.new_instance(node.node_type());
+                let new_gate: TreeNode<T> = store.new_instance(|val| val != Arity::Zero);
 
                 if new_gate.arity() == node.arity() {
                     (*node) = node.with_allele(&new_gate.allele());

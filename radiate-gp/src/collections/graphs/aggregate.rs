@@ -53,8 +53,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
 
         for (index, (_, node_id)) in self.node_order.iter().enumerate() {
             let node = self.nodes.get(node_id).unwrap();
-            let new_node =
-                GraphNode::with_arity(index, node.node_type(), node.value().clone(), node.arity());
+            let new_node = GraphNode::with_arity(index, node.value().clone(), node.arity());
 
             new_nodes.push(new_node);
             node_id_index_map.insert(node_id, index);

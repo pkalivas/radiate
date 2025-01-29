@@ -1,9 +1,10 @@
 use crate::node::Node;
 use crate::ops::operation::Op;
-use crate::{Factory, GraphChromosome};
+use crate::{Factory, GraphChromosome, NodeType};
 use radiate::engines::genome::gene::Gene;
 use radiate::{random_provider, Chromosome};
 use radiate::{Alter, AlterAction, EngineCompoment, Mutate};
+use std::ops::Not;
 use std::sync::Arc;
 
 pub struct OperationMutator {
@@ -66,6 +67,12 @@ where
         for &i in mutation_indexes.iter() {
             let current_node = chromosome.get_gene(i);
 
+            if current_node.node_type() == NodeType::Input
+                || current_node.node_type() == NodeType::Output
+            {
+                continue;
+            }
+
             match current_node.allele() {
                 Op::MutableConst {
                     name,
@@ -98,7 +105,7 @@ where
                 _ => {
                     let new_op: Option<Op<T>> = chromosome
                         .store()
-                        .map(|store| store.new_instance(current_node.node_type()));
+                        .map(|store| store.new_instance(Some(current_node.arity())));
 
                     if let Some(new_op) = new_op {
                         if new_op.arity() == current_node.arity() {

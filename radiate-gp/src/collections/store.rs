@@ -1,6 +1,5 @@
 // use crate::collections::NodeType;
 use crate::{Arity, Op};
-use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::{Arc, RwLock};
 
@@ -27,17 +26,17 @@ impl<T> NodeValue<T> {
 }
 
 pub struct NodeStore<T> {
-    values: Arc<RwLock<HashMap<NodeType, Vec<NodeValue<T>>>>>,
+    values: Arc<RwLock<Vec<NodeValue<T>>>>,
 }
 
 impl<T> NodeStore<T> {
     pub fn new() -> Self {
         NodeStore {
-            values: Arc::new(RwLock::new(HashMap::new())),
+            values: Arc::new(RwLock::new(Vec::new())),
         }
     }
 
-    pub fn insert(&self, node_type: NodeType, values: Vec<T>)
+    pub fn insert(&self, values: Vec<T>)
     where
         T: Into<NodeValue<T>>,
     {
@@ -46,76 +45,40 @@ impl<T> NodeStore<T> {
         let valid_values = values
             .into_iter()
             .map(|val| val.into())
-            .filter(|val| match val {
-                NodeValue::Unbound(_) => true,
-                NodeValue::Bounded(_, arity) => {
-                    return match node_type {
-                        NodeType::Input => arity == &Arity::Zero,
-                        NodeType::Output => arity == &Arity::Any,
-                        NodeType::Edge => arity == &Arity::Exact(1),
-                        NodeType::Vertex => arity != &Arity::Zero,
-                        NodeType::Leaf => arity == &Arity::Zero,
-                        NodeType::Root => arity != &Arity::Zero,
-                    }
-                }
-            })
-            .collect();
+            .collect::<Vec<NodeValue<T>>>();
 
-        values_map.insert(node_type, valid_values);
+        values_map.extend(valid_values);
     }
 
-    pub fn map<F, K>(&self, node_type: NodeType, mapper: F) -> Option<K>
+    pub fn map<F, K>(&self, arity: Option<Arity>, mapper: F) -> Option<K>
     where
-        F: Fn(&Vec<NodeValue<T>>) -> K,
+        F: Fn(Vec<&NodeValue<T>>) -> K,
     {
         let reader = self.values.read().unwrap();
-        if let Some(values) = reader.get(&node_type) {
+        if let Some(arity) = arity {
+            let values = reader
+                .iter()
+                .filter(|value| value.arity() == Some(arity))
+                .collect::<Vec<&NodeValue<T>>>();
+
+            if values.is_empty() {
+                return None;
+            }
+
             return Some(mapper(values));
         }
 
-        None
-    }
-}
-
-impl<T> From<HashMap<NodeType, Vec<T>>> for NodeStore<T>
-where
-    T: Into<NodeValue<T>>,
-{
-    fn from(values: HashMap<NodeType, Vec<T>>) -> Self {
-        let store = NodeStore::new();
-        for (node_type, ops) in values {
-            store.insert(node_type, ops);
-        }
-
-        store
-    }
-}
-
-impl<T> From<Vec<(NodeType, Vec<T>)>> for NodeStore<T>
-where
-    T: Into<NodeValue<T>>,
-{
-    fn from(values: Vec<(NodeType, Vec<T>)>) -> Self {
-        let store = NodeStore::new();
-        for (node_type, ops) in values {
-            store.insert(node_type, ops);
-        }
-
-        store
+        Some(mapper(reader.iter().collect()))
     }
 }
 
 impl<T> From<Vec<T>> for NodeStore<T>
 where
-    T: Into<NodeValue<T>> + Clone,
+    T: Into<NodeValue<T>>,
 {
     fn from(values: Vec<T>) -> Self {
         let store = NodeStore::new();
-
-        store.insert(NodeType::Input, values.clone());
-        store.insert(NodeType::Vertex, values.clone());
-        store.insert(NodeType::Output, values.clone());
-        store.insert(NodeType::Edge, values.clone());
+        store.insert(values);
 
         store
     }
@@ -130,10 +93,10 @@ impl<T: Clone> From<Op<T>> for NodeStore<Op<T>> {
         let edge_values = vec![Op::identity()];
         let node_values = vec![value.clone()];
 
-        store.insert(NodeType::Input, input_values);
-        store.insert(NodeType::Output, output_values);
-        store.insert(NodeType::Edge, edge_values);
-        store.insert(NodeType::Vertex, node_values);
+        store.insert(input_values);
+        store.insert(output_values);
+        store.insert(edge_values);
+        store.insert(node_values);
 
         store
     }

@@ -1,6 +1,6 @@
 use crate::collections::{Tree, TreeNode};
 use crate::node::Node;
-use crate::{Arity, Factory, NodeStore, NodeType};
+use crate::{Arity, Factory, NodeStore};
 
 impl<T> Tree<T> {
     pub fn with_depth(depth: usize, nodes: impl Into<NodeStore<T>>) -> Self
@@ -14,10 +14,10 @@ impl<T> Tree<T> {
             T: Default + Clone,
         {
             if current_depth == 0 {
-                return store.new_instance(NodeType::Leaf);
+                return store.new_instance(Arity::Zero);
             }
 
-            let mut parent: TreeNode<T> = store.new_instance(NodeType::Vertex);
+            let mut parent: TreeNode<T> = store.new_instance(|val| val != Arity::Zero);
             for _ in 0..*parent.arity() {
                 parent.add_child(grow(current_depth - 1, store));
             }
@@ -25,7 +25,7 @@ impl<T> Tree<T> {
             parent
         }
 
-        let mut root: TreeNode<T> = store.new_instance(NodeType::Root);
+        let mut root: TreeNode<T> = store.new_instance(|val| val != Arity::Zero);
 
         if root.arity() == Arity::Any {
             for _ in 0..2 {
@@ -50,8 +50,11 @@ mod tests {
     #[test]
     fn test_tree_builder_depth_two() {
         let store = vec![
-            (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
-            (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
+            Op::add(),
+            Op::sub(),
+            Op::mul(),
+            Op::constant(1.0),
+            Op::constant(2.0),
         ];
         let tree = Tree::with_depth(2, store);
 
@@ -66,8 +69,11 @@ mod tests {
         // just a quality of life test to make sure the builder is working.
         // The above test should be good enough, but just for peace of mind.
         let store = vec![
-            (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
-            (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
+            Op::add(),
+            Op::sub(),
+            Op::mul(),
+            Op::constant(1.0),
+            Op::constant(2.0),
         ];
         let tree = Tree::with_depth(3, store);
 

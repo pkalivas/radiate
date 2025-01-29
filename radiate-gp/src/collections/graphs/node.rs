@@ -18,7 +18,6 @@ pub struct GraphNode<T> {
     id: Uuid,
     index: usize,
     enabled: bool,
-    node_type: NodeType,
     direction: Direction,
     arity: Option<Arity>,
     incoming: HashSet<usize>,
@@ -26,28 +25,27 @@ pub struct GraphNode<T> {
 }
 
 impl<T> GraphNode<T> {
-    pub fn new(index: usize, node_type: NodeType, value: T) -> Self {
+    pub fn new(index: usize, value: T) -> Self {
         GraphNode {
             id: Uuid::new_v4(),
             index,
             value,
             enabled: true,
             direction: Direction::Forward,
-            node_type,
             arity: None,
             incoming: HashSet::new(),
             outgoing: HashSet::new(),
         }
     }
 
-    pub fn with_arity(index: usize, node_type: NodeType, value: T, arity: Arity) -> Self {
+    pub fn with_arity(index: usize, value: T, arity: Arity) -> Self {
         GraphNode {
             id: Uuid::new_v4(),
             index,
             value,
             enabled: true,
             direction: Direction::Forward,
-            node_type,
+
             arity: Some(arity),
             incoming: HashSet::new(),
             outgoing: HashSet::new(),
@@ -132,7 +130,11 @@ impl<T> Node for GraphNode<T> {
                 return NodeType::Vertex;
             }
         } else if let Arity::Exact(1) = arity {
-            return NodeType::Edge;
+            if self.incoming.len() == 1 && self.outgoing.len() == 1 {
+                return NodeType::Edge;
+            } else {
+                return NodeType::Vertex;
+            }
         } else if let Arity::Zero = arity {
             return NodeType::Input;
         } else {
@@ -170,7 +172,7 @@ where
             enabled: self.enabled,
             value: self.value.clone(),
             direction: self.direction,
-            node_type: self.node_type,
+
             arity: self.arity,
             incoming: self.incoming.clone(),
             outgoing: self.outgoing.clone(),
@@ -184,7 +186,7 @@ where
             value: allele.clone(),
             enabled: self.enabled,
             direction: self.direction,
-            node_type: self.node_type,
+
             arity: self.arity,
             incoming: self.incoming.clone(),
             outgoing: self.outgoing.clone(),
@@ -194,7 +196,7 @@ where
 
 impl<T> Valid for GraphNode<T> {
     fn is_valid(&self) -> bool {
-        match self.node_type {
+        match self.node_type() {
             NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
             NodeType::Output => {
                 (!self.incoming.is_empty())
@@ -230,7 +232,7 @@ impl<T: Default> Default for GraphNode<T> {
             enabled: true,
             value: Default::default(),
             direction: Direction::Forward,
-            node_type: NodeType::Input,
+
             arity: None,
             incoming: HashSet::new(),
             outgoing: HashSet::new(),

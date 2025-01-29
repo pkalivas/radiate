@@ -8,11 +8,14 @@ fn main() {
     random_provider::set_seed(100);
 
     let values = vec![
-        (NodeType::Input, vec![Op::var(0)]),
-        (NodeType::Edge, vec![Op::weight(), Op::identity()]),
-        (NodeType::Vertex, ops::get_all_operations()),
-        (NodeType::Output, vec![Op::sigmoid()]),
-    ];
+        vec![Op::var(0)],
+        vec![Op::weight(), Op::identity()],
+        ops::get_all_operations(),
+        vec![Op::sigmoid()],
+    ]
+    .into_iter()
+    .flatten()
+    .collect::<Vec<Op<f32>>>();
 
     let graph_codex = GraphCodex::asyclic(1, 1, values);
     let regression = Regression::new(get_dataset(), Loss::MSE);
@@ -24,10 +27,7 @@ fn main() {
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.1, 0.05),
-            GraphMutator::new(vec![
-                NodeMutate::Edge(0.05, true),
-                NodeMutate::Vertex(0.05, true),
-            ]),
+            GraphMutator::new(0.05, 0.05, false)
         ))
         .fitness_fn(move |genotype: Graph<Op<f32>>| regression.eval(&genotype))
         .build();
