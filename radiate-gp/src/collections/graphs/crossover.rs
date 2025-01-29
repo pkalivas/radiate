@@ -1,5 +1,6 @@
 use crate::collections::GraphChromosome;
-use crate::Op;
+use crate::node::Node;
+use crate::NodeType;
 use radiate::engines::genome::*;
 use radiate::timer::Timer;
 use radiate::{indexes, random_provider, Alter, AlterAction, Crossover, EngineCompoment, Metric};
@@ -50,7 +51,7 @@ impl GraphCrossover {
                 let node_one = chromo_one.get_gene(*i);
                 let node_two = chromo_two.get_gene(*i);
 
-                matches!((node_one.value(), node_two.value()), (Op::MutableConst { .. }, Op::MutableConst { .. }))
+                node_one.node_type() == NodeType::Edge && node_two.node_type() == NodeType::Edge
             })
             .collect::<Vec<usize>>();
 

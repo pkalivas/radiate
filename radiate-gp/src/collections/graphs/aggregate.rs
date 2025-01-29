@@ -1,4 +1,7 @@
-use crate::collections::{Builder, Graph, GraphNode, NodeType};
+use crate::{
+    collections::{Builder, Graph, GraphNode, NodeType},
+    node::Node,
+};
 use std::collections::BTreeMap;
 use uuid::Uuid;
 
@@ -305,7 +308,8 @@ impl<T: Clone> Builder for GraphAggregate<'_, T> {
 
         for (index, (_, node_id)) in self.node_order.iter().enumerate() {
             let node = self.nodes.get(node_id).unwrap();
-            let new_node = GraphNode::new(index, node.node_type(), node.value().clone());
+            let new_node =
+                GraphNode::with_arity(index, node.node_type(), node.value().clone(), node.arity());
 
             new_nodes.push(new_node);
             node_id_index_map.insert(node_id, index);

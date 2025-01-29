@@ -8,7 +8,6 @@ mod mutator;
 mod node;
 mod tree;
 
-pub use builder::TreeBuilder;
 pub use chromosome::TreeChromosome;
 pub use codex::TreeCodex;
 pub use crossover::TreeCrossover;

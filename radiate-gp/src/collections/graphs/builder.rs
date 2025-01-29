@@ -1,68 +1,80 @@
 use super::aggregate::GraphAggregate;
-use super::NodeStore;
-use crate::collections::{Builder, Graph, GraphNode, NodeType};
-use crate::ops::Arity;
-use crate::Factory;
-use radiate::random_provider;
 
-pub struct AsyclicGraphBuilder<T> {
-    input_size: usize,
-    output_size: usize,
-    inner: NodeBuilder<T>,
-}
+use crate::{
+    collections::{Builder, Graph, GraphNode, NodeType},
+    Factory, NodeStore,
+};
 
-impl<T: Clone + Default> AsyclicGraphBuilder<T> {
-    pub fn new(input_size: usize, output_size: usize, values: impl Into<NodeStore<T>>) -> Self {
-        AsyclicGraphBuilder {
-            input_size,
-            output_size,
-            inner: NodeBuilder::new(values),
-        }
-    }
-}
+impl<T: Clone + Default> Graph<T> {
+    pub fn directed(
+        input_size: usize,
+        output_size: usize,
+        values: impl Into<NodeStore<T>>,
+    ) -> Graph<T> {
+        let builder = NodeBuilder::new(values);
 
-impl<T: Clone + Default> Builder for AsyclicGraphBuilder<T> {
-    type Output = Graph<T>;
-
-    fn build(&self) -> Self::Output {
-        let input_nodes = self.inner.input(self.input_size);
-        let output_nodes = self.inner.output(self.output_size);
+        let input_nodes = builder.input(input_size);
+        let output_nodes = builder.output(output_size);
 
         GraphAggregate::new()
             .all_to_all(&input_nodes, &output_nodes)
             .build()
     }
-}
 
-pub struct CyclicGraphBuilder<T> {
-    input_size: usize,
-    output_size: usize,
-    inner: NodeBuilder<T>,
-}
+    pub fn recurrent(
+        input_size: usize,
+        output_size: usize,
+        values: impl Into<NodeStore<T>>,
+    ) -> Graph<T> {
+        let builder = NodeBuilder::new(values);
 
-impl<T: Clone + Default> CyclicGraphBuilder<T> {
-    pub fn new(input_size: usize, output_size: usize, values: impl Into<NodeStore<T>>) -> Self {
-        CyclicGraphBuilder {
-            input_size,
-            output_size,
-            inner: NodeBuilder::new(values),
-        }
-    }
-}
-
-impl<T: Clone + Default> Builder for CyclicGraphBuilder<T> {
-    type Output = Graph<T>;
-
-    fn build(&self) -> Self::Output {
-        let input = self.inner.input(self.input_size);
-        let aggregate = self.inner.aggregates(self.input_size);
-        let link = self.inner.aggregates(self.input_size);
-        let output = self.inner.output(self.output_size);
+        let input = builder.input(input_size);
+        let aggregate = builder.vertecies(input_size);
+        let link = builder.vertecies(input_size);
+        let output = builder.output(output_size);
 
         GraphAggregate::new()
             .one_to_one(&input, &aggregate)
             .one_to_one_self(&aggregate, &link)
             .all_to_all(&aggregate, &output)
+            .build()
+    }
+
+    pub fn weighted_directed(
+        input_size: usize,
+        output_size: usize,
+        values: impl Into<NodeStore<T>>,
+    ) -> Graph<T> {
+        let builder = NodeBuilder::new(values);
+
+        let input = builder.input(input_size);
+        let output = builder.output(output_size);
+        let weights = builder.edge(input_size * output_size);
+
+        GraphAggregate::new()
+            .one_to_many(&input, &weights)
+            .many_to_one(&weights, &output)
+            .build()
+    }
+
+    pub fn weighted_recurrent(
+        input_size: usize,
+        output_size: usize,
+        values: impl Into<NodeStore<T>>,
+    ) -> Graph<T> {
+        let builder = NodeBuilder::new(values);
+
+        let input = builder.input(input_size);
+        let aggregate = builder.vertecies(input_size);
+        let link = builder.vertecies(input_size);
+        let output = builder.output(output_size);
+        let weights = builder.edge(input_size * input_size);
+
+        GraphAggregate::new()
+            .one_to_one(&input, &aggregate)
+            .one_to_one_self(&aggregate, &link)
+            .one_to_many(&link, &weights)
+            .many_to_one(&weights, &output)
             .build()
     }
 }
@@ -86,45 +98,34 @@ impl<T: Clone + Default> NodeBuilder<T> {
         self.new_nodes(NodeType::Output, size)
     }
 
-    pub fn aggregates(&self, size: usize) -> Vec<GraphNode<T>> {
-        let vertecies_with_any = self.store.values_with_arities(NodeType::Vertex, Arity::Any);
-        let outputs_with_any = self.store.values_with_arities(NodeType::Output, Arity::Any);
+    pub fn edge(&self, size: usize) -> Vec<GraphNode<T>> {
+        self.new_nodes(NodeType::Edge, size)
+    }
 
-        if !vertecies_with_any.is_empty() {
-            return (0..size)
-                .map(|i| {
-                    let op = random_provider::choose(&vertecies_with_any).new_instance(());
-                    GraphNode::new(i, NodeType::Vertex, op)
-                })
-                .collect::<Vec<GraphNode<T>>>();
-        } else if !outputs_with_any.is_empty() {
-            return (0..size)
-                .map(|i| {
-                    let op = random_provider::choose(&outputs_with_any).new_instance(());
-                    GraphNode::new(i, NodeType::Vertex, op)
-                })
-                .collect::<Vec<GraphNode<T>>>();
-        }
-
+    pub fn vertecies(&self, size: usize) -> Vec<GraphNode<T>> {
         self.new_nodes(NodeType::Vertex, size)
     }
 
     fn new_nodes(&self, node_type: NodeType, size: usize) -> Vec<GraphNode<T>> {
-        self.store.map_values(node_type, size, |idx, op| {
-            GraphNode::new(idx, node_type, op.new_instance(()))
-        })
+        (0..size)
+            .map(|idx| self.store.new_instance((idx, node_type)))
+            .collect()
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::Op;
+
     use super::*;
 
     #[test]
     fn test_graph_builder() {
-        let builder = AsyclicGraphBuilder::<f32>::new(3, 3, NodeStore::new());
-        let graph = builder.build();
-        assert_eq!(graph.len(), 0);
+        let graph = Graph::directed(3, 3, Op::sigmoid());
+
+        for node in graph.iter() {
+            println!("{:?}", node);
+        }
     }
 
     // #[test]

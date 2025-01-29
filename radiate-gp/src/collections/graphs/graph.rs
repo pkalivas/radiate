@@ -4,7 +4,8 @@ use std::ops::{Index, IndexMut};
 
 use crate::collections::graphs::GraphTransaction;
 use crate::collections::{Direction, GraphNode};
-use crate::{NodeType, Op};
+use crate::node::Node;
+use crate::NodeType;
 
 use radiate::{random_provider, Valid};
 
@@ -45,8 +46,8 @@ impl<T> Graph<T> {
         self.nodes.push(node);
     }
 
-    pub fn insert(&mut self, node_type: NodeType, val: impl Into<Op<T>>) -> usize {
-        let node = GraphNode::new(self.len(), node_type, val.into());
+    pub fn insert(&mut self, node_type: NodeType, val: T) -> usize {
+        let node = GraphNode::new(self.len(), node_type, val);
         self.push(node);
         self.len() - 1
     }
@@ -326,6 +327,7 @@ impl<T> Graph<T> {
                 .iter()
                 .filter(|node| node.node_type() == NodeType::Edge)
                 .collect::<Vec<&GraphNode<T>>>(),
+            _ => vec![],
         };
 
         if genes.is_empty() {

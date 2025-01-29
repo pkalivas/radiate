@@ -1,93 +1,43 @@
 use crate::collections::{Tree, TreeNode};
-use crate::{Builder, Factory, Op};
-use radiate::random_provider;
-use std::sync::{Arc, RwLock};
+use crate::node::Node;
+use crate::ops::Arity;
+use crate::{Factory, NodeStore, NodeType};
 
-pub struct TreeBuilder<T> {
-    depth: usize,
-    gates: Arc<RwLock<Vec<Op<T>>>>,
-    leafs: Arc<RwLock<Vec<Op<T>>>>,
-    constraint: Option<Arc<Box<dyn Fn(&TreeNode<T>) -> bool>>>,
-}
-
-impl<T> TreeBuilder<T> {
-    pub fn new(depth: usize) -> Self {
-        TreeBuilder {
-            depth,
-            gates: Arc::new(RwLock::new(Vec::new())),
-            leafs: Arc::new(RwLock::new(Vec::new())),
-            constraint: None,
-        }
-    }
-
-    pub fn with_depth(mut self, depth: usize) -> Self {
-        self.depth = depth;
-        self
-    }
-
-    pub fn with_gates(mut self, gates: Vec<Op<T>>) -> Self {
-        self.gates = Arc::new(RwLock::new(gates));
-        self
-    }
-
-    pub fn with_leafs(mut self, leafs: Vec<Op<T>>) -> Self {
-        self.leafs = Arc::new(RwLock::new(leafs));
-        self
-    }
-
-    pub fn with_constraint<F>(mut self, constraint: F) -> Self
-    where
-        F: Fn(&TreeNode<T>) -> bool + 'static,
-    {
-        self.constraint = Some(Arc::new(Box::new(constraint)));
-        self
-    }
-
-    pub fn get_gates(&self) -> Arc<RwLock<Vec<Op<T>>>> {
-        self.gates.clone()
-    }
-
-    pub fn get_leafs(&self) -> Arc<RwLock<Vec<Op<T>>>> {
-        self.leafs.clone()
-    }
-
-    fn grow_tree(&self, depth: usize) -> TreeNode<T>
+impl<T> Tree<T> {
+    pub fn with_depth(depth: usize, nodes: impl Into<NodeStore<T>>) -> Self
     where
         T: Default + Clone,
     {
-        if depth == 0 {
-            let leafs = self.leafs.read().unwrap();
-            let leaf = if leafs.is_empty() {
-                Op::default()
-            } else {
-                random_provider::choose(&leafs).new_instance(())
-            };
+        let store = nodes.into();
 
-            return TreeNode::new(leaf);
+        fn grow<T>(current_depth: usize, store: &NodeStore<T>) -> TreeNode<T>
+        where
+            T: Default + Clone,
+        {
+            if current_depth == 0 {
+                return store.new_instance(NodeType::Leaf);
+            }
+
+            let mut parent: TreeNode<T> = store.new_instance(NodeType::Vertex);
+            for _ in 0..*parent.arity() {
+                parent.add_child(grow(current_depth - 1, store));
+            }
+
+            parent
         }
 
-        let gates = self.gates.read().unwrap();
-        let gate = if gates.is_empty() {
-            Op::default()
+        let mut root: TreeNode<T> = store.new_instance(NodeType::Root);
+
+        if root.arity() == Arity::Any {
+            for _ in 0..2 {
+                root.add_child(grow(depth - 1, &store));
+            }
         } else {
-            random_provider::choose(&gates).new_instance(())
-        };
-
-        let mut parent = TreeNode::new(gate);
-        for _ in 0..*parent.value().arity() {
-            let node = self.grow_tree(depth - 1);
-            parent.add_child(node);
+            for _ in 0..*root.arity() {
+                root.add_child(grow(depth - 1, &store));
+            }
         }
 
-        parent
-    }
-}
-
-impl<T: Default + Clone> Builder for TreeBuilder<T> {
-    type Output = Tree<T>;
-
-    fn build(&self) -> Self::Output {
-        let root = self.grow_tree(self.depth);
         Tree::new(root)
     }
 }
@@ -100,11 +50,11 @@ mod tests {
 
     #[test]
     fn test_tree_builder_depth_two() {
-        let builder = TreeBuilder::new(2)
-            .with_gates(vec![Op::add(), Op::mul()])
-            .with_leafs(vec![Op::value(1.0), Op::value(2.0)]);
-
-        let tree = builder.build();
+        let store = vec![
+            (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
+            (NodeType::Leaf, vec![Op::value(1.0), Op::value(2.0)]),
+        ];
+        let tree = Tree::with_depth(2, store);
 
         assert!(tree.root().is_some());
         assert!(tree.root().unwrap().children().unwrap().len() == 2);
@@ -116,11 +66,11 @@ mod tests {
     fn test_tree_builder_depth_three() {
         // just a quality of life test to make sure the builder is working.
         // The above test should be good enough, but just for peace of mind.
-        let builder = TreeBuilder::new(3)
-            .with_gates(vec![Op::add(), Op::mul()])
-            .with_leafs(vec![Op::value(1.0), Op::value(2.0)]);
-
-        let tree = builder.build();
+        let store = vec![
+            (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
+            (NodeType::Leaf, vec![Op::value(1.0), Op::value(2.0)]),
+        ];
+        let tree = Tree::with_depth(3, store);
 
         assert!(tree.root().is_some());
         assert!(tree.root().unwrap().children().unwrap().len() == 2);

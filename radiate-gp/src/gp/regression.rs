@@ -1,5 +1,5 @@
 use super::{DataSet, Loss};
-use crate::{Eval, EvalMut, Graph, GraphEvaluator, Tree};
+use crate::{Eval, EvalMut, Graph, GraphEvaluator, Op, Tree};
 
 pub struct Regression {
     data_set: DataSet,
@@ -15,8 +15,8 @@ impl Regression {
     }
 }
 
-impl Eval<Graph<f32>, f32> for Regression {
-    fn eval(&self, graph: &Graph<f32>) -> f32 {
+impl Eval<Graph<Op<f32>>, f32> for Regression {
+    fn eval(&self, graph: &Graph<Op<f32>>) -> f32 {
         let mut evaluator = GraphEvaluator::new(graph);
 
         self.loss_function
@@ -24,15 +24,15 @@ impl Eval<Graph<f32>, f32> for Regression {
     }
 }
 
-impl Eval<Tree<f32>, f32> for Regression {
-    fn eval(&self, tree: &Tree<f32>) -> f32 {
+impl Eval<Tree<Op<f32>>, f32> for Regression {
+    fn eval(&self, tree: &Tree<Op<f32>>) -> f32 {
         self.loss_function
             .calculate(&self.data_set, &mut |input| vec![tree.eval(input)])
     }
 }
 
-impl Eval<Vec<Tree<f32>>, f32> for Regression {
-    fn eval(&self, program: &Vec<Tree<f32>>) -> f32 {
+impl Eval<Vec<Tree<Op<f32>>>, f32> for Regression {
+    fn eval(&self, program: &Vec<Tree<Op<f32>>>) -> f32 {
         self.loss_function
             .calculate(&self.data_set, &mut |input| program.eval(input))
     }

@@ -1,31 +1,37 @@
 use super::TreeIterator;
-use crate::ops::operation::Arity;
-use crate::Op;
+use crate::{node::Node, ops::operation::Arity, NodeType};
 use radiate::engines::genome::gene::{Gene, Valid};
 
 #[derive(PartialEq)]
 pub struct TreeNode<T> {
-    value: Op<T>,
+    value: T,
+    arity: Option<Arity>,
     children: Option<Vec<TreeNode<T>>>,
 }
 
 impl<T> TreeNode<T> {
-    pub fn new(val: Op<T>) -> Self {
+    pub fn new(val: T) -> Self {
         TreeNode {
             value: val,
+            arity: None,
             children: None,
         }
     }
 
-    pub fn with_children(val: Op<T>, children: Vec<TreeNode<T>>) -> Self {
+    pub fn with_arity(val: T, arity: Arity) -> Self {
         TreeNode {
             value: val,
-            children: Some(children),
+            arity: Some(arity),
+            children: None,
         }
     }
 
-    pub fn value(&self) -> &Op<T> {
-        &self.value
+    pub fn with_children(val: T, children: Vec<TreeNode<T>>) -> Self {
+        TreeNode {
+            value: val,
+            arity: None,
+            children: Some(children),
+        }
     }
 
     pub fn is_leaf(&self) -> bool {
@@ -101,11 +107,35 @@ impl<T> TreeNode<T> {
     }
 }
 
-impl<T: Clone> Clone for TreeNode<T> {
-    fn clone(&self) -> Self {
-        TreeNode {
-            value: self.value.clone(),
-            children: self.children.as_ref().map(|children| children.to_vec()),
+impl<T> Node for TreeNode<T> {
+    type Value = T;
+
+    fn value(&self) -> &Self::Value {
+        &self.value
+    }
+
+    fn node_type(&self) -> NodeType {
+        if let Some(_) = self.children.as_ref() {
+            NodeType::Vertex
+        } else {
+            NodeType::Leaf
+        }
+    }
+
+    fn arity(&self) -> Arity {
+        if let Some(arity) = self.arity {
+            arity
+        } else {
+            if let Some(children) = self.children.as_ref() {
+                Arity::Exact(children.len())
+            } else {
+                match self.node_type() {
+                    NodeType::Leaf => Arity::Zero,
+                    NodeType::Vertex => Arity::Any,
+                    NodeType::Root => Arity::Any,
+                    _ => Arity::Zero,
+                }
+            }
         }
     }
 }
@@ -114,7 +144,7 @@ impl<T> Gene for TreeNode<T>
 where
     T: Clone + PartialEq + Default,
 {
-    type Allele = Op<T>;
+    type Allele = T;
 
     fn allele(&self) -> &Self::Allele {
         &self.value
@@ -123,6 +153,7 @@ where
     fn new_instance(&self) -> Self {
         TreeNode {
             value: self.value.clone(),
+            arity: self.arity,
             children: self.children.as_ref().map(|children| {
                 children
                     .iter()
@@ -135,6 +166,7 @@ where
     fn with_allele(&self, allele: &Self::Allele) -> Self {
         TreeNode {
             value: allele.clone(),
+            arity: self.arity,
             children: self.children.as_ref().map(|children| children.to_vec()),
         }
     }
@@ -143,7 +175,7 @@ where
 impl<T> Valid for TreeNode<T> {
     fn is_valid(&self) -> bool {
         for node in self.iter_breadth_first() {
-            match node.value().arity() {
+            match node.arity() {
                 Arity::Zero => {
                     if node.children.is_some() {
                         return false;
@@ -161,5 +193,15 @@ impl<T> Valid for TreeNode<T> {
         }
 
         true
+    }
+}
+
+impl<T: Clone> Clone for TreeNode<T> {
+    fn clone(&self) -> Self {
+        TreeNode {
+            value: self.value.clone(),
+            arity: self.arity,
+            children: self.children.as_ref().map(|children| children.to_vec()),
+        }
     }
 }

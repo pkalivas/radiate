@@ -1,7 +1,6 @@
 use super::TreeChromosome;
-use crate::{Op, TreeNode};
+use crate::{node::Node, Factory, NodeStore, NodeType, TreeNode};
 use radiate::{random_provider, Alter, AlterAction, EngineCompoment, Gene, Mutate};
-use std::sync::{Arc, RwLock};
 
 pub struct TreeMutator {
     rate: f32,
@@ -12,12 +11,7 @@ impl TreeMutator {
         TreeMutator { rate }
     }
 
-    fn mutate_node<T>(
-        &self,
-        node: &mut TreeNode<T>,
-        leafs: &Arc<RwLock<Vec<Op<T>>>>,
-        gates: &Arc<RwLock<Vec<Op<T>>>>,
-    ) -> i32
+    fn mutate_node<T>(&self, node: &mut TreeNode<T>, store: &NodeStore<T>) -> i32
     where
         T: Clone + PartialEq + Default,
     {
@@ -25,23 +19,22 @@ impl TreeMutator {
 
         if node.is_leaf() {
             if random_provider::random::<f32>() < self.rate {
-                let leaf_values = leafs.read().unwrap();
-                (*node) = node.with_allele(&random_provider::choose(&leaf_values));
+                let leaf_value: TreeNode<T> = store.new_instance(NodeType::Leaf);
+                node.with_allele(leaf_value.allele());
                 count += 1;
             }
         } else {
             if random_provider::random::<f32>() < self.rate {
-                let gate_values = gates.read().unwrap();
-                let new_gate = random_provider::choose(&gate_values);
+                let new_gate: TreeNode<T> = store.new_instance(node.node_type());
 
-                if new_gate.arity() == node.value().arity() {
-                    (*node) = node.with_allele(&new_gate);
+                if new_gate.arity() == node.arity() {
+                    (*node) = node.with_allele(&new_gate.allele());
                     count += 1;
                 }
             }
 
             for child in node.children_mut().unwrap() {
-                count += self.mutate_node(child, leafs, gates);
+                count += self.mutate_node(child, store);
             }
         }
 
@@ -73,10 +66,11 @@ where
     T: Clone + PartialEq + Default,
 {
     fn mutate_chromosome(&self, chromosome: &mut TreeChromosome<T>) -> i32 {
-        let leafs = chromosome.get_leafs();
-        let gates = chromosome.get_gates();
-        let root = chromosome.root_mut();
-
-        self.mutate_node(root, &leafs, &gates)
+        let store = chromosome.get_store();
+        if let Some(store) = store {
+            self.mutate_node(chromosome.root_mut(), &store)
+        } else {
+            0
+        }
     }
 }

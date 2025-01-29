@@ -1,13 +1,11 @@
-use super::{
-    builder::{AsyclicGraphBuilder, CyclicGraphBuilder},
-    Graph, GraphChromosome, GraphNode, NodeStore,
-};
-use crate::{Builder, Factory};
-use radiate::{Chromosome, Codex, Gene, Genotype};
+use super::{Graph, GraphChromosome, GraphNode};
+use crate::{Factory, NodeStore};
+use radiate::{Chromosome, Codex, Genotype};
+use std::fmt::Debug;
 
 pub struct GraphCodex<T> {
     store: NodeStore<T>,
-    nodes: Option<Vec<GraphNode<T>>>,
+    template: GraphChromosome<T>,
 }
 
 impl<T> GraphCodex<T> {
@@ -16,14 +14,12 @@ impl<T> GraphCodex<T> {
         T: Clone + Default,
     {
         let new_store = store.into();
-        let nodes = AsyclicGraphBuilder::new(input_size, output_size, &new_store)
-            .build()
-            .into_iter()
-            .collect();
 
         GraphCodex {
-            store: new_store,
-            nodes: Some(nodes),
+            store: new_store.clone(),
+            template: Graph::directed(input_size, output_size, &new_store)
+                .into_iter()
+                .collect(),
         }
     }
 
@@ -32,14 +28,12 @@ impl<T> GraphCodex<T> {
         T: Clone + Default,
     {
         let new_store = store.into();
-        let nodes = CyclicGraphBuilder::new(input_size, output_size, &new_store)
-            .build()
-            .into_iter()
-            .collect();
 
         GraphCodex {
-            store: new_store,
-            nodes: Some(nodes),
+            store: new_store.clone(),
+            template: Graph::recurrent(input_size, output_size, &new_store)
+                .into_iter()
+                .collect(),
         }
     }
 }
@@ -49,26 +43,8 @@ where
     T: Clone + PartialEq + Default,
 {
     fn encode(&self) -> Genotype<GraphChromosome<T>> {
-        let store = self.store.clone();
-
-        if let Some(nodes) = &self.nodes {
-            let new_nodes = nodes
-                .iter()
-                .map(|node| {
-                    let new_node = self.store.new_instance((node.index(), node.node_type()));
-
-                    if new_node.value().arity() == node.value().arity() {
-                        node.with_allele(new_node.allele())
-                    } else {
-                        node.clone()
-                    }
-                })
-                .collect::<Vec<GraphNode<T>>>();
-
-            return Genotype::new(vec![GraphChromosome::new(new_nodes, store)]);
-        }
-
-        panic!("GraphBuilder has no nodes to encode");
+        let chromosome = self.template.new_instance(Some(self.store.clone()));
+        return Genotype::new(vec![chromosome]);
     }
 
     fn decode(&self, genotype: &Genotype<GraphChromosome<T>>) -> Graph<T> {
