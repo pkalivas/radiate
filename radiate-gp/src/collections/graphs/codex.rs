@@ -1,5 +1,5 @@
-use super::{Graph, GraphChromosome, GraphNode, NodeStore};
-use crate::Factory;
+use super::{Graph, GraphChromosome, GraphNode};
+use crate::{Factory, NodeStore};
 use radiate::{Chromosome, Codex, Genotype};
 use std::fmt::Debug;
 

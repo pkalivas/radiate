@@ -6,6 +6,8 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::{Arc, RwLock};
 
+use super::TreeNode;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum NodeValue<T> {
     Bounded(T, Arity),
@@ -70,6 +72,8 @@ impl<T> NodeStore<T> {
                         NodeType::Output => arity == &Arity::Any,
                         NodeType::Edge => arity == &Arity::Exact(1),
                         NodeType::Vertex => arity != &Arity::Zero,
+                        NodeType::Leaf => arity == &Arity::Zero,
+                        NodeType::Root => arity != &Arity::Zero,
                     }
                 }
             })
@@ -141,20 +145,28 @@ impl<T: Default + Clone> Factory<GraphNode<T>> for NodeStore<T> {
     }
 }
 
-impl<T> Clone for NodeStore<T> {
-    fn clone(&self) -> Self {
-        NodeStore {
-            values: Arc::clone(&self.values),
+impl<T: Clone + Default> Factory<TreeNode<T>> for NodeStore<T> {
+    type Input = NodeType;
+
+    fn new_instance(&self, input: Self::Input) -> TreeNode<T> {
+        let new_node = self.map(input, |values| {
+            let node_value = random_provider::choose(values);
+
+            match node_value {
+                NodeValue::Bounded(value, arity) => {
+                    return TreeNode::with_arity(value.clone(), *arity);
+                }
+                NodeValue::Unbound(value) => {
+                    return TreeNode::new(value.clone());
+                }
+            }
+        });
+
+        if let Some(new_value) = new_node {
+            return new_value;
         }
-    }
-}
 
-impl<T: PartialEq> PartialEq for NodeStore<T> {
-    fn eq(&self, other: &Self) -> bool {
-        let self_values = self.values.read().unwrap();
-        let other_values = other.values.read().unwrap();
-
-        (*self_values) == (*other_values)
+        TreeNode::new(T::default())
     }
 }
 
@@ -225,6 +237,23 @@ impl<T: Clone> From<&NodeStore<T>> for NodeStore<T> {
         NodeStore {
             values: Arc::clone(&store.values),
         }
+    }
+}
+
+impl<T> Clone for NodeStore<T> {
+    fn clone(&self) -> Self {
+        NodeStore {
+            values: Arc::clone(&self.values),
+        }
+    }
+}
+
+impl<T: PartialEq> PartialEq for NodeStore<T> {
+    fn eq(&self, other: &Self) -> bool {
+        let self_values = self.values.read().unwrap();
+        let other_values = other.values.read().unwrap();
+
+        (*self_values) == (*other_values)
     }
 }
 

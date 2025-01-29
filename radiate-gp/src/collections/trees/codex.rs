@@ -1,20 +1,38 @@
-use crate::collections::trees::TreeBuilder;
 use crate::collections::{Tree, TreeChromosome, TreeNode};
-use crate::{Builder, Op};
+use crate::NodeStore;
 use radiate::{Codex, Genotype};
 use std::sync::Arc;
 
 pub struct TreeCodex<T: Clone> {
-    num_trees: usize,
-    builder: TreeBuilder<T>,
+    depth: usize,
+    store: Option<NodeStore<T>>,
+    templates: Option<Vec<Tree<T>>>,
     constraint: Option<Arc<Box<dyn Fn(&TreeNode<T>) -> bool>>>,
 }
 
 impl<T: Clone + Default> TreeCodex<T> {
-    pub fn new(num_trees: usize, depth: usize) -> Self {
+    pub fn single(depth: usize, store: impl Into<NodeStore<T>>) -> Self {
+        let store = store.into();
+        let tree = Tree::with_depth(depth, store.clone());
+
         TreeCodex {
-            num_trees,
-            builder: TreeBuilder::new(depth),
+            depth,
+            store: Some(store),
+            templates: Some(vec![tree]),
+            constraint: None,
+        }
+    }
+
+    pub fn multi_root(depth: usize, num_trees: usize, store: impl Into<NodeStore<T>>) -> Self {
+        let store = store.into();
+        let trees = (0..num_trees)
+            .map(|_| Tree::with_depth(depth, store.clone()))
+            .collect::<Vec<_>>();
+
+        TreeCodex {
+            depth,
+            store: Some(store),
+            templates: Some(trees),
             constraint: None,
         }
     }
@@ -26,16 +44,6 @@ impl<T: Clone + Default> TreeCodex<T> {
         self.constraint = Some(Arc::new(Box::new(constraint)));
         self
     }
-
-    pub fn gates(mut self, gates: Vec<Op<T>>) -> Self {
-        self.builder = self.builder.with_gates(gates);
-        self
-    }
-
-    pub fn leafs(mut self, leafs: Vec<Op<T>>) -> Self {
-        self.builder = self.builder.with_leafs(leafs);
-        self
-    }
 }
 
 impl<T> Codex<TreeChromosome<T>, Vec<Tree<T>>> for TreeCodex<T>
@@ -43,8 +51,12 @@ where
     T: Clone + PartialEq + Default,
 {
     fn encode(&self) -> Genotype<TreeChromosome<T>> {
-        let trees = (0..self.num_trees)
-            .map(|_| self.builder.build().take_root().unwrap())
+        let trees = (0..self.templates.as_ref().unwrap().len())
+            .map(|_| {
+                Tree::with_depth(self.depth, self.store.clone().unwrap())
+                    .take_root()
+                    .unwrap()
+            })
             .collect::<Vec<_>>();
 
         if let Some(constraint) = &self.constraint {
@@ -59,12 +71,7 @@ where
             trees
                 .into_iter()
                 .map(|tree| {
-                    TreeChromosome::new(
-                        vec![tree],
-                        self.builder.get_gates(),
-                        self.builder.get_leafs(),
-                        self.constraint.clone(),
-                    )
+                    TreeChromosome::new(vec![tree], self.store.clone(), self.constraint.clone())
                 })
                 .collect(),
         )
@@ -78,24 +85,20 @@ where
     }
 }
 
-impl<T: Clone + Default> Default for TreeCodex<T> {
-    fn default() -> Self {
-        TreeCodex::new(1, 3)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use crate::ops::Op;
+    use crate::{ops::Op, NodeType};
     use radiate::engines::codexes::Codex;
 
     #[test]
     fn test_tree_codex() {
-        let codex = TreeCodex::<f32>::new(1, 3)
-            .gates(vec![Op::add(), Op::sub(), Op::mul()])
-            .leafs(vec![Op::value(1.0), Op::value(2.0)]);
+        let store = vec![
+            (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
+            (NodeType::Leaf, vec![Op::value(1.0), Op::value(2.0)]),
+        ];
+        let codex = TreeCodex::single(3, store);
 
         let genotype = codex.encode();
         let tree = codex.decode(&genotype).first().unwrap().clone();

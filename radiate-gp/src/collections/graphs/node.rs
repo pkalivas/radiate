@@ -1,17 +1,10 @@
 use crate::ops::Arity;
+use crate::NodeType;
 use radiate::{Gene, Valid};
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::hash::Hash;
 use uuid::Uuid;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum NodeType {
-    Input,
-    Output,
-    Vertex,
-    Edge,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Direction {
@@ -125,6 +118,8 @@ impl<T> GraphNode<T> {
             NodeType::Output => Arity::Any,
             NodeType::Vertex => Arity::Any,
             NodeType::Edge => Arity::Exact(1),
+            NodeType::Leaf => Arity::Zero,
+            NodeType::Root => Arity::Any,
         })
     }
 
@@ -201,6 +196,7 @@ impl<T> Valid for GraphNode<T> {
 
                 false
             }
+            _ => false,
         }
     }
 }

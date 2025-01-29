@@ -5,9 +5,9 @@ use radiate::{
 };
 
 use super::transaction::GraphTransaction;
-use super::{Graph, GraphChromosome, GraphNode, NodeStore};
+use super::{Graph, GraphChromosome, GraphNode};
 use crate::ops::Arity;
-use crate::{Factory, NodeType};
+use crate::{Factory, NodeStore, NodeType};
 
 /// A node mutation used to alter the graph structure randomly
 /// The mutation can be either an edge or a vertex, with a rate of mutation and a flag to

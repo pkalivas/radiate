@@ -1,14 +1,17 @@
 pub mod graphs;
+pub mod node;
+pub mod store;
 pub mod trees;
 
 pub use graphs::{
     Direction, Graph, GraphAggregate, GraphChromosome, GraphCodex, GraphCrossover, GraphEvaluator,
-    GraphMutator, GraphNode, GraphTopologicalIterator, NodeMutate, NodeType,
+    GraphMutator, GraphNode, GraphTopologicalIterator, NodeMutate,
 };
+pub use node::NodeType;
+pub use store::{NodeStore, NodeValue};
 
 pub use trees::{
-    Tree, TreeBuilder, TreeChromosome, TreeCodex, TreeCrossover, TreeIterator, TreeMutator,
-    TreeNode,
+    Tree, TreeChromosome, TreeCodex, TreeCrossover, TreeIterator, TreeMutator, TreeNode,
 };
 
 /// A trait for types that can be built into a final value.

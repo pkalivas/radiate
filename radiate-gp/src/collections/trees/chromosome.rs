@@ -1,28 +1,27 @@
-use crate::{Op, TreeNode};
+use crate::{Factory, NodeStore, TreeNode};
 use radiate::{Chromosome, Valid};
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
+
+use super::Tree;
 
 type Constraint<N> = Arc<Box<dyn Fn(&N) -> bool>>;
 
 #[derive(Clone, Default)]
 pub struct TreeChromosome<T> {
     nodes: Vec<TreeNode<T>>,
-    gates: Arc<RwLock<Vec<Op<T>>>>,
-    leafs: Arc<RwLock<Vec<Op<T>>>>,
+    store: Option<NodeStore<T>>,
     constraint: Option<Constraint<TreeNode<T>>>,
 }
 
 impl<T> TreeChromosome<T> {
     pub fn new(
         nodes: Vec<TreeNode<T>>,
-        gates: Arc<RwLock<Vec<Op<T>>>>,
-        leafs: Arc<RwLock<Vec<Op<T>>>>,
+        store: Option<NodeStore<T>>,
         constraint: Option<Constraint<TreeNode<T>>>,
     ) -> Self {
         TreeChromosome {
             nodes,
-            gates,
-            leafs,
+            store,
             constraint,
         }
     }
@@ -35,12 +34,30 @@ impl<T> TreeChromosome<T> {
         &mut self.nodes[0]
     }
 
-    pub fn get_leafs(&self) -> Arc<RwLock<Vec<Op<T>>>> {
-        Arc::clone(&self.leafs)
+    pub fn get_store(&self) -> Option<NodeStore<T>> {
+        if let Some(store) = &self.store {
+            Some(store.clone())
+        } else {
+            None
+        }
     }
+}
 
-    pub fn get_gates(&self) -> Arc<RwLock<Vec<Op<T>>>> {
-        Arc::clone(&self.gates)
+impl<T: Default + Clone> Factory<TreeChromosome<T>> for TreeChromosome<T> {
+    type Input = usize;
+
+    fn new_instance(&self, depth: usize) -> Self {
+        if let Some(store) = &self.store {
+            let root = Tree::with_depth(depth, store.clone()).take_root().unwrap();
+
+            return TreeChromosome {
+                nodes: vec![root],
+                store: self.store.clone(),
+                constraint: self.constraint.clone(),
+            };
+        }
+
+        self.clone()
     }
 }
 

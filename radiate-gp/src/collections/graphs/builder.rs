@@ -1,8 +1,8 @@
 use super::aggregate::GraphAggregate;
-use super::NodeStore;
+
 use crate::{
     collections::{Builder, Graph, GraphNode, NodeType},
-    Factory,
+    Factory, NodeStore,
 };
 
 impl<T: Clone + Default> Graph<T> {

@@ -1,5 +1,4 @@
-use super::NodeStore;
-use crate::{Factory, GraphNode};
+use crate::{Factory, GraphNode, NodeStore};
 use radiate::{Chromosome, Gene, Valid};
 use std::fmt::Debug;
 
@@ -41,7 +40,7 @@ where
                     .iter()
                     .enumerate()
                     .map(|(index, node)| {
-                        let new_node = store.new_instance((index, node.node_type()));
+                        let new_node: GraphNode<T> = store.new_instance((index, node.node_type()));
                         if new_node.arity() == node.arity() {
                             node.with_allele(new_node.allele())
                         } else {

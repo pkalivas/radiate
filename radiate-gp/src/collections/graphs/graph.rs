@@ -326,6 +326,7 @@ impl<T> Graph<T> {
                 .iter()
                 .filter(|node| node.node_type() == NodeType::Edge)
                 .collect::<Vec<&GraphNode<T>>>(),
+            _ => vec![],
         };
 
         if genes.is_empty() {
