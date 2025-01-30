@@ -1,6 +1,6 @@
 use crate::node::Node;
 use crate::ops::operation::Op;
-use crate::{Factory, GraphChromosome};
+use crate::{Factory, GraphChromosome, NodeType};
 use radiate::engines::genome::gene::Gene;
 use radiate::{random_provider, Chromosome};
 use radiate::{Alter, AlterAction, EngineCompoment, Mutate};
@@ -65,6 +65,12 @@ where
 
         for &i in mutation_indexes.iter() {
             let current_node = chromosome.get_gene(i);
+
+            if current_node.node_type() == NodeType::Input
+                || current_node.node_type() == NodeType::Output
+            {
+                continue;
+            }
 
             match current_node.allele() {
                 Op::MutableConst {

@@ -53,10 +53,10 @@ impl<T: Default + Clone> Factory<(usize, NodeType), GraphNode<T>> for NodeStore<
 
             match node_value {
                 NodeValue::Bounded(value, arity) => {
-                    return GraphNode::with_arity(index, node_type, value.clone(), *arity);
+                    return (index, node_type, value.clone(), *arity).into();
                 }
                 NodeValue::Unbound(value) => {
-                    return GraphNode::new(index, node_type, value.clone());
+                    return (index, node_type, value.clone()).into();
                 }
             }
         });
@@ -78,7 +78,7 @@ where
         let (index, filter) = input;
         let new_node = self.map(|values| {
             let mapped_values = values
-                .iter()
+                .into_iter()
                 .filter(|value| match value {
                     NodeValue::Bounded(_, arity) => filter(*arity),
                     _ => false,
@@ -89,10 +89,10 @@ where
 
             match node_value {
                 NodeValue::Bounded(value, arity) => {
-                    return GraphNode::new_wi(index, value.clone(), *arity);
+                    return (index, value.clone(), *arity).into();
                 }
                 NodeValue::Unbound(value) => {
-                    return GraphNode::new_wi(index, value.clone(), Arity::Any);
+                    return (index, value.clone()).into();
                 }
             }
         });
@@ -102,24 +102,6 @@ where
         }
 
         GraphNode::new(index, NodeType::Vertex, T::default())
-
-        // let new_node = self.filter_map
-
-        // match node_value {
-        //     NodeValue::Bounded(value, arity) => {
-        //         return GraphNode::with_arity(index, value.clone(), *arity);
-        //     }
-        //     NodeValue::Unbound(value) => {
-        //         return GraphNode::new(index, value.clone());
-        //     }
-        // }
-        // });
-
-        // if let Some(new_value) = new_node {
-        //     return new_value;
-        // }
-
-        // GraphNode::new(0, T::default())
     }
 }
 

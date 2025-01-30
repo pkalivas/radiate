@@ -6,6 +6,8 @@ use std::collections::{HashSet, VecDeque};
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
 
+use super::transaction::TransactionResult;
+
 /// A 'Graph' is simply a 'Vec' of 'GraphNode's.
 ///
 /// Its important to note that this graph differs from a traditional graph in that it is not
@@ -162,18 +164,14 @@ impl<T> Graph<T> {
     /// # Arguments
     ///  - mutation: A closure that takes a mutable reference to a 'GraphTransaction' and returns a 'bool'.
     #[inline]
-    pub fn try_modify<F>(&mut self, mutation: F) -> bool
+    pub fn try_modify<F>(&mut self, mutation: F) -> TransactionResult<T>
     where
-        F: FnOnce(&mut GraphTransaction<T>) -> bool,
+        F: FnOnce(&mut GraphTransaction<T>),
         T: Clone + Default + PartialEq,
     {
         let mut transaction = GraphTransaction::new(self);
-        if !mutation(&mut transaction) {
-            transaction.rollback();
-            return false;
-        }
-
-        true
+        mutation(&mut transaction);
+        transaction.commit()
     }
 }
 

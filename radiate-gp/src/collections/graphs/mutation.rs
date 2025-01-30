@@ -1,8 +1,10 @@
-use super::transaction::InsertionType;
-use super::{Graph, GraphChromosome, GraphNode};
-use crate::{Arity, Factory, NodeStore, NodeType};
+use super::transaction::{InsertStep, TransactionResult};
+use super::{Graph, GraphChromosome, GraphNode, GraphTransaction};
+use crate::node::Node;
+use crate::{Arity, Factory, NodeType};
 use radiate::Chromosome;
 use radiate::{random_provider, Alter, AlterAction, EngineCompoment, Mutate};
+use std::fmt::Debug;
 
 /// A graph mutator that can be used to alter the graph structure. This is used to add nodes
 /// to the graph, and can be used to add either edges or vertices. The mutator is created with
@@ -49,36 +51,42 @@ impl GraphMutator {
     #[inline]
     pub fn add_node<T: Clone + Default + PartialEq>(
         &self,
-        graph: &mut Graph<T>,
-        node_type: &NodeType,
-        factory: &NodeStore<T>,
+        trans: &mut GraphTransaction<T>,
+        new_node: GraphNode<T>,
         recurrent: bool,
-    ) -> bool {
-        // let new_node = factory.new_instance((graph.len(), *node_type));
-        let new_node = factory.new_instance((graph.len(), |arity| arity != Arity::Zero));
-        graph.try_modify(|trans| {
-            let source_idx = trans.random_source_node().index();
-            let target_idx = trans.random_target_node().index();
+    ) {
+        let needed_insertions = match new_node.arity() {
+            Arity::Zero => 0,
+            Arity::Any => 1,
+            Arity::Exact(n) => n,
+        };
 
-            let insertion_type = trans.get_insertion_type(source_idx, target_idx, recurrent);
-            let node_idx = trans.add_node(new_node);
+        let source_idx = (0..needed_insertions)
+            .map(|_| trans.random_source_node().index())
+            .collect::<Vec<usize>>();
+        let target_idx = trans.random_target_node().index();
 
-            match insertion_type {
-                InsertionType::FeedForward => {
-                    trans.attach(source_idx, node_idx);
-                    trans.attach(node_idx, target_idx);
+        let node_idx = trans.add_node(new_node);
+
+        for src in source_idx {
+            let insertion_type = trans.get_insertion_type(src, target_idx, node_idx, recurrent);
+
+            for step in insertion_type {
+                match step {
+                    InsertStep::Connect(source, target) => trans.attach(source, target),
+                    InsertStep::Detach(source, target) => trans.detach(source, target),
+                    _ => {}
                 }
-                InsertionType::Split => {
-                    trans.attach(source_idx, node_idx);
-                    trans.attach(node_idx, target_idx);
-                    trans.detach(source_idx, target_idx);
-                }
-                _ => {}
             }
+        }
 
-            trans.repair(node_idx, recurrent);
-            trans.is_valid()
-        })
+        trans.set_cycles();
+
+        if trans.as_ref().iter().any(|n| n.is_recurrent()) {
+            for node in trans.as_ref().iter() {
+                println!("WHAT");
+            }
+        }
     }
 }
 
@@ -90,7 +98,7 @@ impl EngineCompoment for GraphMutator {
 
 impl<T> Alter<GraphChromosome<T>> for GraphMutator
 where
-    T: Clone + PartialEq + Default,
+    T: Clone + PartialEq + Default + Debug,
 {
     fn rate(&self) -> f32 {
         1.0
@@ -103,15 +111,20 @@ where
 
 impl<T> Mutate<GraphChromosome<T>> for GraphMutator
 where
-    T: Clone + PartialEq + Default,
+    T: Clone + PartialEq + Default + Debug,
 {
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<T>) -> i32 {
         if let Some(node_type_to_add) = self.mutate_type() {
             if let Some(store) = chromosome.store() {
+                let new_node = store.new_instance((chromosome.len(), node_type_to_add));
+
                 let mut graph = Graph::new(chromosome.iter().cloned().collect());
 
-                if self.add_node(&mut graph, &node_type_to_add, &store, self.allow_recurrent) {
+                let result =
+                    graph.try_modify(|trans| self.add_node(trans, new_node, self.allow_recurrent));
+
+                if let TransactionResult::Valid(_) = result {
                     chromosome.set_nodes(graph.into_iter().collect::<Vec<GraphNode<T>>>());
                     return 1;
                 }
