@@ -20,7 +20,7 @@ fn main() {
     let store = vec![
         (NodeType::Input, (0..4).map(Op::var).collect()),
         (NodeType::Edge, edges.clone()),
-        (NodeType::Vertex, ops.clone()),
+        (NodeType::Vertex, outputs.clone()),
         (NodeType::Output, outputs.clone()),
     ];
 
