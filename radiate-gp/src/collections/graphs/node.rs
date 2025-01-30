@@ -18,7 +18,7 @@ pub struct GraphNode<T> {
     id: Uuid,
     index: usize,
     enabled: bool,
-    node_type: NodeType,
+    node_type: Option<NodeType>,
     direction: Direction,
     arity: Option<Arity>,
     incoming: HashSet<usize>,
@@ -33,8 +33,22 @@ impl<T> GraphNode<T> {
             value,
             enabled: true,
             direction: Direction::Forward,
-            node_type,
+            node_type: Some(node_type),
             arity: None,
+            incoming: HashSet::new(),
+            outgoing: HashSet::new(),
+        }
+    }
+
+    pub fn new_wi(index: usize, value: T, arity: Arity) -> Self {
+        GraphNode {
+            id: Uuid::new_v4(),
+            index,
+            value,
+            enabled: true,
+            direction: Direction::Forward,
+            node_type: None,
+            arity: Some(arity),
             incoming: HashSet::new(),
             outgoing: HashSet::new(),
         }
@@ -47,7 +61,7 @@ impl<T> GraphNode<T> {
             value,
             enabled: true,
             direction: Direction::Forward,
-            node_type,
+            node_type: Some(node_type),
             arity: Some(arity),
             incoming: HashSet::new(),
             outgoing: HashSet::new(),
@@ -121,18 +135,40 @@ impl<T> Node for GraphNode<T> {
     }
 
     fn node_type(&self) -> NodeType {
-        self.node_type
+        if let Some(node_type) = self.node_type {
+            return node_type;
+        }
+        let arity = self.arity();
+
+        if let Arity::Any = arity {
+            if self.outgoing.is_empty() {
+                return NodeType::Output;
+            } else {
+                return NodeType::Vertex;
+            }
+        } else if let Arity::Exact(1) = arity {
+            if self.incoming.len() == 1 && self.outgoing.len() == 1 {
+                return NodeType::Edge;
+            } else {
+                return NodeType::Vertex;
+            }
+        } else if let Arity::Zero = arity {
+            return NodeType::Input;
+        } else {
+            return NodeType::Vertex;
+        }
     }
 
     fn arity(&self) -> Arity {
-        self.arity.unwrap_or(match self.node_type {
-            NodeType::Input => Arity::Zero,
-            NodeType::Output => Arity::Any,
-            NodeType::Vertex => Arity::Any,
-            NodeType::Edge => Arity::Exact(1),
-            NodeType::Leaf => Arity::Zero,
-            NodeType::Root => Arity::Any,
-        })
+        self.arity.unwrap_or(Arity::Any)
+        // self.arity.unwrap_or(match self.node_type {
+        //     NodeType::Input => Arity::Zero,
+        //     NodeType::Output => Arity::Any,
+        //     NodeType::Vertex => Arity::Any,
+        //     NodeType::Edge => Arity::Exact(1),
+        //     NodeType::Leaf => Arity::Zero,
+        //     NodeType::Root => Arity::Any,
+        // })
     }
 }
 
@@ -177,7 +213,7 @@ where
 
 impl<T> Valid for GraphNode<T> {
     fn is_valid(&self) -> bool {
-        match self.node_type {
+        match self.node_type() {
             NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
             NodeType::Output => {
                 (!self.incoming.is_empty())
@@ -213,7 +249,7 @@ impl<T: Default> Default for GraphNode<T> {
             enabled: true,
             value: Default::default(),
             direction: Direction::Forward,
-            node_type: NodeType::Input,
+            node_type: None,
             arity: None,
             incoming: HashSet::new(),
             outgoing: HashSet::new(),

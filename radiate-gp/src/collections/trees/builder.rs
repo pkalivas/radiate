@@ -17,7 +17,7 @@ impl<T> Tree<T> {
                 return store.new_instance(NodeType::Leaf);
             }
 
-            let mut parent: TreeNode<T> = store.new_instance(NodeType::Vertex);
+            let mut parent = store.new_instance(NodeType::Vertex);
             for _ in 0..*parent.arity() {
                 parent.add_child(grow(current_depth - 1, store));
             }
@@ -25,7 +25,7 @@ impl<T> Tree<T> {
             parent
         }
 
-        let mut root: TreeNode<T> = store.new_instance(NodeType::Root);
+        let mut root = store.new_instance(NodeType::Root);
 
         if root.arity() == Arity::Any {
             for _ in 0..2 {

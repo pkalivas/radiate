@@ -1,6 +1,6 @@
 use super::transaction::InsertionType;
 use super::{Graph, GraphChromosome, GraphNode};
-use crate::{Factory, NodeStore, NodeType};
+use crate::{Arity, Factory, NodeStore, NodeType};
 use radiate::Chromosome;
 use radiate::{random_provider, Alter, AlterAction, EngineCompoment, Mutate};
 
@@ -54,7 +54,8 @@ impl GraphMutator {
         factory: &NodeStore<T>,
         recurrent: bool,
     ) -> bool {
-        let new_node = factory.new_instance((graph.len(), *node_type));
+        // let new_node = factory.new_instance((graph.len(), *node_type));
+        let new_node = factory.new_instance((graph.len(), |arity| arity != Arity::Zero));
         graph.try_modify(|trans| {
             let source_idx = trans.random_source_node().index();
             let target_idx = trans.random_target_node().index();

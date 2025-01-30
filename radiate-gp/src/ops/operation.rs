@@ -138,13 +138,11 @@ where
     }
 }
 
-impl<T> Factory<Op<T>> for Op<T>
+impl<T> Factory<(), Op<T>> for Op<T>
 where
     T: Clone,
 {
-    type Input = ();
-
-    fn new_instance(&self, _: Self::Input) -> Op<T> {
+    fn new_instance(&self, _: ()) -> Op<T> {
         match self {
             Op::Fn(name, arity, op) => Op::Fn(name, *arity, Arc::clone(op)),
             Op::Var(name, index) => Op::Var(name, *index),
