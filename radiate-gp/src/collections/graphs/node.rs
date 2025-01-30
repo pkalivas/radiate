@@ -121,35 +121,18 @@ impl<T> Node for GraphNode<T> {
     }
 
     fn node_type(&self) -> NodeType {
-        // self.node_type
-
-        let arity = self.arity();
-
-        if let Arity::Any = arity {
-            if self.outgoing.is_empty() {
-                return NodeType::Output;
-            } else {
-                return NodeType::Vertex;
-            }
-        } else if let Arity::Exact(1) = arity {
-            return NodeType::Edge;
-        } else if let Arity::Zero = arity {
-            return NodeType::Input;
-        } else {
-            return NodeType::Vertex;
-        }
+        self.node_type
     }
 
     fn arity(&self) -> Arity {
-        self.arity.unwrap_or(Arity::Any)
-        // self.arity.unwrap_or(match self.node_type {
-        //     NodeType::Input => Arity::Zero,
-        //     NodeType::Output => Arity::Any,
-        //     NodeType::Vertex => Arity::Any,
-        //     NodeType::Edge => Arity::Exact(1),
-        //     NodeType::Leaf => Arity::Zero,
-        //     NodeType::Root => Arity::Any,
-        // })
+        self.arity.unwrap_or(match self.node_type {
+            NodeType::Input => Arity::Zero,
+            NodeType::Output => Arity::Any,
+            NodeType::Vertex => Arity::Any,
+            NodeType::Edge => Arity::Exact(1),
+            NodeType::Leaf => Arity::Zero,
+            NodeType::Root => Arity::Any,
+        })
     }
 }
 
@@ -249,9 +232,10 @@ impl<T: Debug + PartialEq + Clone> Debug for GraphNode<T> {
 
         write!(
             f,
-            "[{:<3}] {:>10?} :: {:<12} E: {:<5} V:{:<5} R:{:<5} {:<2} {:<2} < [{}] > {:?}",
+            "[{:<3}] {:>10?} :: {:<10} {:<12} E: {:<5} V:{:<5} R:{:<5} {:<2} {:<2} < [{}]",
             self.index,
             format!("{:?}", self.node_type())[..3].to_owned(),
+            self.arity(),
             format!("{:?}", self.value).to_owned(),
             self.enabled,
             self.is_valid(),
@@ -259,7 +243,6 @@ impl<T: Debug + PartialEq + Clone> Debug for GraphNode<T> {
             self.incoming.len(),
             self.outgoing.len(),
             incoming,
-            self.arity()
         )
     }
 }

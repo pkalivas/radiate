@@ -8,6 +8,7 @@ pub use ops::{
 };
 pub use regression::{Accuracy, AccuracyResult, DataSet, Loss, Regression};
 
+use std::fmt::Display;
 use std::ops::Deref;
 
 /// Arity is a way to describe how many inputs an operation expects.
@@ -36,6 +37,16 @@ impl Deref for Arity {
             Arity::Zero => &0,
             Arity::Exact(n) => n,
             Arity::Any => &0,
+        }
+    }
+}
+
+impl Display for Arity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Arity::Zero => write!(f, "{:<5}", "Zero"),
+            Arity::Exact(n) => write!(f, "{:<5}", n),
+            Arity::Any => write!(f, "{:<5}", "Any"),
         }
     }
 }

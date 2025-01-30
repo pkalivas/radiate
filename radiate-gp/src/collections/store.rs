@@ -4,6 +4,8 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::{Arc, RwLock};
 
+use super::NodeType;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum NodeValue<T> {
     Bounded(T, Arity),

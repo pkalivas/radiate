@@ -6,45 +6,12 @@ use radiate::{
     random_provider, timer::Timer, Alter, AlterAction, EngineCompoment, Metric, Mutate, Population,
 };
 
-/// A node mutation used to alter the graph structure randomly
-/// The mutation can be either an edge or a vertex, with a rate of mutation and a flag to
-/// indicate if the node is recurrent. Note - at this point this only represents additions
-/// to the `graph`.
-pub enum NodeMutate {
-    Edge(f32, bool),
-    Vertex(f32, bool),
-}
-
-impl NodeMutate {
-    pub fn node_type(&self) -> NodeType {
-        match self {
-            NodeMutate::Edge(_, _) => NodeType::Edge,
-            NodeMutate::Vertex(_, _) => NodeType::Vertex,
-        }
-    }
-
-    pub fn rate(&self) -> f32 {
-        match self {
-            NodeMutate::Edge(rate, _) => *rate,
-            NodeMutate::Vertex(rate, _) => *rate,
-        }
-    }
-
-    pub fn is_recurrent(&self) -> bool {
-        match self {
-            NodeMutate::Edge(_, rec) => *rec,
-            NodeMutate::Vertex(_, rec) => *rec,
-        }
-    }
-}
-
 /// A graph mutator that can be used to alter the graph structure. This is used to add nodes
 /// to the graph, and can be used to add either edges or vertices. The mutator is created with
 /// a set of mutations that can be applied to the graph.
 pub struct GraphMutator {
-    // mutations: Vec<NodeMutate>,
-    rate: f32,
-    bias_rate: f32,
+    vertex_rate: f32,
+    edge_rate: f32,
     allow_recurrent: bool,
 }
 
@@ -54,11 +21,27 @@ impl GraphMutator {
     ///
     /// # Arguments
     /// - `mutations` - a vector of `NodeMutate` that represent the mutations that can be applied
-    pub fn new(rate: f32, bias_rate: f32, allow_recurrent: bool) -> Self {
+    pub fn new(rate: f32, edge_rate: f32, allow_recurrent: bool) -> Self {
         GraphMutator {
-            rate,
+            vertex_rate: rate,
+            edge_rate,
             allow_recurrent,
-            bias_rate,
+        }
+    }
+
+    pub fn mutate_type(&self) -> Option<NodeType> {
+        if random_provider::bool(0.5) {
+            if random_provider::random::<f32>() < self.edge_rate {
+                Some(NodeType::Edge)
+            } else {
+                None
+            }
+        } else {
+            if random_provider::random::<f32>() < self.vertex_rate {
+                Some(NodeType::Vertex)
+            } else {
+                None
+            }
         }
     }
 
@@ -154,24 +137,15 @@ where
 
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<T>) -> i32 {
-        // let mutation = random_provider::choose(&self.mutations);
+        if let Some(node_type_to_add) = self.mutate_type() {
+            if let Some(store) = chromosome.store() {
+                let mut graph = Graph::new(chromosome.iter().cloned().collect());
 
-        if random_provider::random::<f32>() > self.rate {
-            return 0;
-        }
-
-        if let Some(store) = chromosome.store() {
-            let mut graph = Graph::new(chromosome.iter().cloned().collect());
-
-            // if self.add_node(
-            //     &mut graph,
-            //     &mutation.node_type(),
-            //     &store,
-            //     mutation.is_recurrent(),
-            // ) {
-            //     chromosome.set_nodes(graph.into_iter().collect::<Vec<GraphNode<T>>>());
-            //     return 1;
-            // }
+                if self.add_node(&mut graph, &node_type_to_add, &store, self.allow_recurrent) {
+                    chromosome.set_nodes(graph.into_iter().collect::<Vec<GraphNode<T>>>());
+                    return 1;
+                }
+            }
         }
 
         0

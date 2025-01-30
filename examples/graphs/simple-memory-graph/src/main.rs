@@ -14,7 +14,7 @@ fn main() {
         (NodeType::Output, vec![Op::sigmoid()]),
     ];
 
-    let graph_codex = GraphCodex::asyclic(1, 1, values);
+    let graph_codex = GraphCodex::cyclic(1, 1, values);
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
     let engine = GeneticEngine::from_codex(graph_codex)
@@ -24,10 +24,7 @@ fn main() {
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.1, 0.05),
-            GraphMutator::new(vec![
-                NodeMutate::Edge(0.05, true),
-                NodeMutate::Vertex(0.05, true),
-            ]),
+            GraphMutator::new(0.05, 0.05, true)
         ))
         .fitness_fn(move |genotype: Graph<Op<f32>>| regression.eval(&genotype))
         .build();

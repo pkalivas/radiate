@@ -17,6 +17,6 @@ pub use crossover::GraphCrossover;
 pub use eval::GraphEvaluator;
 pub use graph::Graph;
 pub use iter::GraphIterator;
-pub use mutation::{GraphMutator, NodeMutate};
+pub use mutation::GraphMutator;
 pub use node::{Direction, GraphNode};
 pub use transaction::GraphTransaction;

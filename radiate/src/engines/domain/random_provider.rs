@@ -59,6 +59,12 @@ impl RandomProvider {
         let mut rng = instance.rng.lock().unwrap();
         rng.gen_range(range)
     }
+
+    pub(self) fn bool(prob: f64) -> bool {
+        let instance = RandomProvider::global();
+        let mut rng = instance.rng.lock().unwrap();
+        rng.gen_bool(prob)
+    }
 }
 
 /// Seeds the thread-local random number generator with the given seed.
@@ -76,6 +82,11 @@ where
     Standard: Distribution<T>,
 {
     RandomProvider::random()
+}
+
+/// Generates a random boolean with the given probability of being true.
+pub fn bool(prob: f64) -> bool {
+    RandomProvider::bool(prob)
 }
 
 /// Generates a random number of type T in the given range.

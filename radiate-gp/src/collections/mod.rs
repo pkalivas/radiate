@@ -7,7 +7,7 @@ pub mod trees;
 pub use factory::*;
 pub use graphs::{
     Direction, Graph, GraphAggregate, GraphChromosome, GraphCodex, GraphCrossover, GraphEvaluator,
-    GraphIterator, GraphMutator, GraphNode, NodeMutate,
+    GraphIterator, GraphMutator, GraphNode,
 };
 pub use node::NodeType;
 pub use store::{NodeStore, NodeValue};

@@ -364,7 +364,7 @@ impl Op<f32> {
 
     pub fn leaky_relu() -> Self {
         Op::Fn(
-            "leaky_relu",
+            "l_relu",
             Arity::Any,
             Arc::new(|inputs: &[f32]| ActivationOperation::LeakyReLU.apply(inputs)),
         )

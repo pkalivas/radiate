@@ -24,10 +24,7 @@ fn main() {
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
-            GraphMutator::new(vec![
-                NodeMutate::Edge(0.03, false),
-                NodeMutate::Vertex(0.1, false),
-            ]),
+            GraphMutator::new(0.1, 0.03, false)
         ))
         .fitness_fn(move |genotype: Graph<Op<f32>>| regression.eval(&genotype))
         .build();

@@ -19,6 +19,7 @@ enum MutationStep {
     },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InsertionType {
     FeedForward,
     Split,
@@ -242,7 +243,7 @@ impl<'a, T> GraphTransaction<'a, T> {
     /// A source node can be either an input or a vertex node.
     #[inline]
     pub fn random_source_node(&self) -> &GraphNode<T> {
-        self.random_node_of_type(vec![NodeType::Input, NodeType::Vertex, NodeType::Edge])
+        self.random_node_of_type(vec![NodeType::Input, NodeType::Vertex])
     }
     /// Get a random node that can be used as a target node for a connection.
     /// A target node can be either an output or a vertex node.
