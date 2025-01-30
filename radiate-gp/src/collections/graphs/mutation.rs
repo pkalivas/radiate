@@ -2,9 +2,7 @@ use super::transaction::InsertionType;
 use super::{Graph, GraphChromosome, GraphNode};
 use crate::{Factory, NodeStore, NodeType};
 use radiate::Chromosome;
-use radiate::{
-    random_provider, timer::Timer, Alter, AlterAction, EngineCompoment, Metric, Mutate, Population,
-};
+use radiate::{random_provider, Alter, AlterAction, EngineCompoment, Mutate};
 
 /// A graph mutator that can be used to alter the graph structure. This is used to add nodes
 /// to the graph, and can be used to add either edges or vertices. The mutator is created with
@@ -106,35 +104,6 @@ impl<T> Mutate<GraphChromosome<T>> for GraphMutator
 where
     T: Clone + PartialEq + Default,
 {
-    #[inline]
-    fn mutate(
-        &self,
-        population: &mut Population<GraphChromosome<T>>,
-        generation: i32,
-    ) -> Vec<Metric> {
-        let timer = Timer::new();
-        let mut count = 0;
-        for i in 0..population.len() {
-            let phenotype = &mut population[i];
-
-            let chromosome_index = random_provider::random::<usize>() % phenotype.genotype().len();
-
-            let chromosome = &mut phenotype.genotype_mut()[chromosome_index];
-
-            if self.mutate_chromosome(chromosome) > 0 {
-                count += 1;
-                phenotype.set_score(None);
-                phenotype.generation = generation;
-            }
-        }
-
-        vec![Metric::new_operations(
-            self.name(),
-            count as f32,
-            timer.duration(),
-        )]
-    }
-
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<T>) -> i32 {
         if let Some(node_type_to_add) = self.mutate_type() {
