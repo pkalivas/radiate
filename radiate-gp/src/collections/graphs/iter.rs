@@ -28,7 +28,7 @@ impl<'a, T> GraphTopologicalIterator<'a, T> {
     /// # Arguments
     /// - `graph`: A reference to the `Graph` to iterate over.
     pub fn new(graph: &'a [GraphNode<T>]) -> Self {
-        Self {
+        GraphTopologicalIterator {
             graph,
             completed: vec![false; graph.len()],
             index_queue: VecDeque::new(),

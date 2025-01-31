@@ -180,7 +180,7 @@ impl Op<f32> {
             name: "w",
             arity: 1.into(),
             value: supplier(),
-            get_value: Arc::new(supplier),
+            supplier: Arc::new(supplier),
             modifier: Arc::new(modifier),
             operation: Arc::new(operation),
         }

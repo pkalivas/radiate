@@ -250,7 +250,7 @@ impl<T: Default> Into<GraphNode<T>> for (usize, T) {
         GraphNode {
             index,
             id: Uuid::new_v4(),
-            value: value,
+            value,
             enabled: true,
             direction: Direction::Forward,
             node_type: None,

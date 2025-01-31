@@ -77,7 +77,7 @@ where
                     name,
                     arity,
                     value,
-                    get_value,
+                    supplier: get_value,
                     modifier,
                     operation,
                 } => {
@@ -95,7 +95,7 @@ where
                             arity: *arity,
                             value: new_value,
                             modifier: Arc::clone(modifier),
-                            get_value: Arc::clone(get_value),
+                            supplier: Arc::clone(get_value),
                             operation: Arc::clone(operation),
                         }),
                     );
