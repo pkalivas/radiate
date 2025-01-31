@@ -1,5 +1,3 @@
-use crate::{EvalMut, Graph, GraphEvaluator, Op};
-
 use super::DataSet;
 
 const ZERO: f32 = 0.0;
@@ -70,12 +68,5 @@ impl Loss {
                 sum
             }
         }
-    }
-}
-
-impl EvalMut<(Graph<Op<f32>>, &DataSet), f32> for Loss {
-    fn eval_mut(&mut self, (graph, samples): &(Graph<Op<f32>>, &DataSet)) -> f32 {
-        let mut evaluator = GraphEvaluator::new(graph);
-        self.calculate(samples, &mut |input| evaluator.eval_mut(input))
     }
 }

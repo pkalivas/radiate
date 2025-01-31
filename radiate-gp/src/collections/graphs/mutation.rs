@@ -4,7 +4,6 @@ use crate::node::Node;
 use crate::{Arity, Factory, NodeType};
 use radiate::Chromosome;
 use radiate::{random_provider, Alter, AlterAction, EngineCompoment, Mutate};
-use std::fmt::Debug;
 
 /// A graph mutator that can be used to alter the graph structure. This is used to add nodes
 /// to the graph, and can be used to add either edges or vertices. The mutator is created with
@@ -21,9 +20,9 @@ impl GraphMutator {
     ///
     /// # Arguments
     /// - `mutations` - a vector of `NodeMutate` that represent the mutations that can be applied
-    pub fn new(rate: f32, edge_rate: f32, allow_recurrent: bool) -> Self {
+    pub fn new(vertex_rate: f32, edge_rate: f32, allow_recurrent: bool) -> Self {
         GraphMutator {
-            vertex_rate: rate,
+            vertex_rate,
             edge_rate,
             allow_recurrent,
         }
@@ -49,7 +48,7 @@ impl GraphMutator {
     /// and if successful will commit the transaction. If the node cannot be added the transaction
     /// will be rolled back.
     #[inline]
-    pub fn add_node<T: Clone + Default + PartialEq>(
+    pub fn add_node<T>(
         &self,
         trans: &mut GraphTransaction<T>,
         new_node: GraphNode<T>,
@@ -61,32 +60,29 @@ impl GraphMutator {
             Arity::Exact(n) => n,
         };
 
+        let target_idx = trans.random_target_node().map(|n| n.index());
+
         let source_idx = (0..needed_insertions)
-            .map(|_| trans.random_source_node().index())
+            .filter_map(|_| trans.random_source_node().map(|n| n.index()))
             .collect::<Vec<usize>>();
-        let target_idx = trans.random_target_node().index();
 
         let node_idx = trans.add_node(new_node);
 
-        for src in source_idx {
-            let insertion_type = trans.get_insertion_type(src, target_idx, node_idx, recurrent);
+        if let Some(target_idx) = target_idx {
+            for src in source_idx {
+                let insertion_type = trans.get_insertion_type(src, target_idx, node_idx, recurrent);
 
-            for step in insertion_type {
-                match step {
-                    InsertStep::Connect(source, target) => trans.attach(source, target),
-                    InsertStep::Detach(source, target) => trans.detach(source, target),
-                    _ => {}
+                for step in insertion_type {
+                    match step {
+                        InsertStep::Connect(source, target) => trans.attach(source, target),
+                        InsertStep::Detach(source, target) => trans.detach(source, target),
+                        _ => {}
+                    }
                 }
             }
         }
 
         trans.set_cycles();
-
-        if trans.as_ref().iter().any(|n| n.is_recurrent()) {
-            for node in trans.as_ref().iter() {
-                println!("WHAT");
-            }
-        }
     }
 }
 
@@ -98,7 +94,7 @@ impl EngineCompoment for GraphMutator {
 
 impl<T> Alter<GraphChromosome<T>> for GraphMutator
 where
-    T: Clone + PartialEq + Default + Debug,
+    T: Clone + PartialEq + Default,
 {
     fn rate(&self) -> f32 {
         1.0
@@ -111,7 +107,7 @@ where
 
 impl<T> Mutate<GraphChromosome<T>> for GraphMutator
 where
-    T: Clone + PartialEq + Default + Debug,
+    T: Clone + PartialEq + Default,
 {
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<T>) -> i32 {

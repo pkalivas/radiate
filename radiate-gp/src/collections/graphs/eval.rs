@@ -71,10 +71,8 @@ where
             if node.incoming().is_empty() {
                 self.outputs[node.index()] = node.eval(input);
             } else {
-                let mut count = 0;
-                for incoming in node.incoming() {
-                    self.inputs[node.index()][count] = self.outputs[*incoming].clone();
-                    count += 1;
+                for (idx, incoming) in node.incoming().iter().enumerate() {
+                    self.inputs[node.index()][idx] = self.outputs[*incoming].clone();
                 }
 
                 self.outputs[node.index()] = node.eval(&self.inputs[node.index()]);
@@ -135,6 +133,13 @@ where
 }
 
 impl<T: Eval<[V], V>, V: Clone> Eval<[V], V> for GraphNode<T> {
+    /// Evaluates the `GraphNode` with the given input. Returns the output of the `GraphNode`.
+    /// # Arguments
+    /// * `inputs` - A `Vec` of `T` to evaluate the `GraphNode` with.
+    ///
+    /// # Returns
+    /// * A `T` which is the output of the `GraphNode`.
+    #[inline]
     fn eval(&self, inputs: &[V]) -> V {
         self.value().eval(inputs)
     }

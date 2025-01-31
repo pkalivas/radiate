@@ -9,8 +9,8 @@ fn main() {
 
     let values = vec![
         (NodeType::Input, vec![Op::var(0)]),
-        (NodeType::Edge, vec![Op::weight(), Op::identity()]),
-        (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
+        (NodeType::Edge, vec![Op::weight()]),
+        (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::linear()]),
         (NodeType::Output, vec![Op::linear()]),
     ];
 

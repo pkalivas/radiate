@@ -26,11 +26,14 @@ impl<T> TreeNode<T> {
         }
     }
 
-    pub fn with_children(val: T, children: Vec<TreeNode<T>>) -> Self {
+    pub fn with_children<N>(val: T, children: Vec<N>) -> Self
+    where
+        N: Into<TreeNode<T>>,
+    {
         TreeNode {
             value: val,
             arity: None,
-            children: Some(children),
+            children: Some(children.into_iter().map(|n| n.into()).collect()),
         }
     }
 
@@ -38,15 +41,16 @@ impl<T> TreeNode<T> {
         self.children.is_none()
     }
 
-    pub fn add_child(&mut self, child: TreeNode<T>) {
+    pub fn add_child(&mut self, child: impl Into<TreeNode<T>>) {
+        let node = child.into();
         if let Some(children) = self.children.as_mut() {
-            children.push(child);
+            children.push(node);
         } else {
-            self.children = Some(vec![child]);
+            self.children = Some(vec![node]);
         }
     }
 
-    pub fn attach(mut self, other: TreeNode<T>) -> Self {
+    pub fn attach(mut self, other: impl Into<TreeNode<T>>) -> Self {
         self.add_child(other);
         self
     }

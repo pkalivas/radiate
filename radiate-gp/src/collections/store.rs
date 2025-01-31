@@ -25,18 +25,6 @@ impl<T> NodeValue<T> {
         }
     }
 
-    pub fn valid_node_type(&self, node_type: NodeType) -> bool {
-        match self.arity().unwrap_or(Arity::Any) {
-            Arity::Zero => matches!(node_type, NodeType::Input | NodeType::Leaf),
-            Arity::Any => matches!(
-                node_type,
-                NodeType::Output | NodeType::Root | NodeType::Vertex
-            ),
-            Arity::Exact(1) => matches!(node_type, NodeType::Edge | NodeType::Vertex),
-            _ => matches!(node_type, NodeType::Vertex),
-        }
-    }
-
     pub fn allowed_node_types(&self) -> Vec<NodeType> {
         match self.arity().unwrap_or(Arity::Any) {
             Arity::Zero => vec![NodeType::Input, NodeType::Leaf],

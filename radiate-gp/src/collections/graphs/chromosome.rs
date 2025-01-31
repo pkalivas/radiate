@@ -29,9 +29,9 @@ impl<T> Factory<Option<NodeStore<T>>, GraphChromosome<T>> for GraphChromosome<T>
 where
     T: Clone + PartialEq + Default,
 {
-    fn new_instance(&self, store: Option<NodeStore<T>>) -> GraphChromosome<T> {
-        let store = store.or_else(|| self.store.clone());
-        if let Some(store) = &store {
+    fn new_instance(&self, input: Option<NodeStore<T>>) -> GraphChromosome<T> {
+        let maybe_store = input.or_else(|| self.store.clone());
+        if let Some(store) = maybe_store {
             return GraphChromosome {
                 nodes: self
                     .nodes
@@ -46,7 +46,7 @@ where
                         }
                     })
                     .collect(),
-                store: Some(store.clone()),
+                store: Some(store),
             };
         }
 

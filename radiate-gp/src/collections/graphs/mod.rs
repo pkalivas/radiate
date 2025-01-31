@@ -5,7 +5,6 @@ mod codex;
 mod crossover;
 mod eval;
 mod graph;
-mod insert;
 mod iter;
 mod mutation;
 mod node;

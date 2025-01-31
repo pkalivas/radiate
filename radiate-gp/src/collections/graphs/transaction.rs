@@ -1,12 +1,7 @@
-use crate::{node::Node, Arity, NodeType};
-
 use super::{Direction, Graph, GraphNode};
+use crate::{node::Node, Arity, NodeType};
 use radiate::{random_provider, Valid};
-use std::{
-    collections::HashSet,
-    fmt::Debug,
-    ops::{Deref, Index},
-};
+use std::{collections::HashSet, fmt::Debug, ops::Deref};
 
 /// Represents a reversible change to the graph
 #[derive(Debug, Clone)]
@@ -28,25 +23,6 @@ pub enum ReplayStep<T> {
     DirectionChange(usize, Direction),
 }
 
-impl<T: Debug + PartialEq + Clone> Debug for ReplayStep<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ReplayStep::AddNode(index, node) => {
-                write!(f, "AddNode({}, {:?})", index, node)
-            }
-            ReplayStep::AddEdge(from, to) => {
-                write!(f, "AddEdge({}, {})", from, to)
-            }
-            ReplayStep::RemoveEdge(from, to) => {
-                write!(f, "RemoveEdge({}, {})", from, to)
-            }
-            ReplayStep::DirectionChange(index, direction) => {
-                write!(f, "DirectionChange({}, {:?})", index, direction)
-            }
-        }
-    }
-}
-
 pub enum TransactionResult<T> {
     Valid(Vec<MutationStep>),
     Invalid(Vec<MutationStep>, Vec<ReplayStep<T>>),
@@ -54,8 +30,6 @@ pub enum TransactionResult<T> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InsertStep {
-    FeedForward(usize, usize),
-    Split(usize, usize),
     Detach(usize, usize),
     Connect(usize, usize),
     Invalid,
@@ -115,20 +89,20 @@ impl<'a, T> GraphTransaction<'a, T> {
     }
 
     pub fn change_direction(&mut self, index: usize, direction: Direction) {
-        let previous_direction = self.graph[index].direction();
-        if previous_direction == direction {
-            return;
-        }
+        if let Some(node) = self.graph.get_mut(index) {
+            if node.direction() == direction {
+                return;
+            }
 
-        self.steps.push(MutationStep::DirectionChange {
-            index,
-            previous_direction,
-        });
-        self.graph[index].set_direction(direction);
+            self.steps.push(MutationStep::DirectionChange {
+                index,
+                previous_direction: node.direction(),
+            });
+            node.set_direction(direction);
+        }
     }
 
     pub fn rollback(self) -> Vec<ReplayStep<T>> {
-        // Reverse all changes in reverse order
         let mut replay_steps = Vec::new();
         for step in self.steps.into_iter().rev() {
             match step {
@@ -149,9 +123,11 @@ impl<'a, T> GraphTransaction<'a, T> {
                     previous_direction,
                     ..
                 } => {
-                    let prev_dir = self.graph[index].direction();
-                    self.graph[index].set_direction(previous_direction);
-                    replay_steps.push(ReplayStep::DirectionChange(index, prev_dir));
+                    if let Some(node) = self.graph.get_mut(index) {
+                        let prev_dir = node.direction();
+                        node.set_direction(previous_direction);
+                        replay_steps.push(ReplayStep::DirectionChange(index, prev_dir));
+                    }
                 }
             }
         }
@@ -163,15 +139,9 @@ impl<'a, T> GraphTransaction<'a, T> {
     pub fn replay(&mut self, steps: Vec<ReplayStep<T>>) {
         for step in steps {
             match step {
-                ReplayStep::AddNode(index, node) => {
-                    if node.is_none() {
-                        continue;
-                    }
-
-                    if index == self.graph.len() {
-                        self.add_node(node.unwrap());
-                    } else {
-                        panic!("Node index mismatch");
+                ReplayStep::AddNode(_, node) => {
+                    if let Some(node) = node {
+                        self.add_node(node);
                     }
                 }
                 ReplayStep::AddEdge(from, to) => {
@@ -214,8 +184,8 @@ impl<'a, T> GraphTransaction<'a, T> {
         new_node: usize,
         allow_recurrent: bool,
     ) -> Vec<InsertStep> {
-        let target_node = self.graph.get(target);
-        let source_node = self.graph.get(source);
+        let target_node = self.graph.get(target).unwrap();
+        let source_node = self.graph.get(source).unwrap();
 
         let mut steps = Vec::new();
 
@@ -274,8 +244,12 @@ impl<'a, T> GraphTransaction<'a, T> {
                 }
             } else {
                 if !would_create_cycle && source != target {
-                    steps.push(InsertStep::Connect(source, new_node));
-                    steps.push(InsertStep::Connect(new_node, target));
+                    if source == new_node || target == new_node {
+                        steps.push(InsertStep::Invalid);
+                    } else {
+                        steps.push(InsertStep::Connect(source, new_node));
+                        steps.push(InsertStep::Connect(new_node, target));
+                    }
                 }
             }
         }
@@ -292,7 +266,10 @@ impl<'a, T> GraphTransaction<'a, T> {
     #[inline]
     pub fn would_create_cycle(&self, source: usize, target: usize) -> bool {
         let mut seen = HashSet::new();
-        let mut visited = self.get(target).outgoing().iter().collect::<Vec<&usize>>();
+        let mut visited = self
+            .get(target)
+            .map(|node| node.outgoing().iter().collect())
+            .unwrap_or(Vec::new());
 
         while !visited.is_empty() {
             let node_index = visited.pop().unwrap();
@@ -303,12 +280,17 @@ impl<'a, T> GraphTransaction<'a, T> {
                 return true;
             }
 
-            for edge_index in self
+            let node_edges = self
                 .get(*node_index)
-                .outgoing()
-                .iter()
-                .filter(|edge_index| !seen.contains(edge_index))
-            {
+                .map(|node| {
+                    node.outgoing()
+                        .iter()
+                        .filter(|edge_index| !seen.contains(edge_index))
+                        .collect()
+                })
+                .unwrap_or(Vec::new());
+
+            for edge_index in node_edges {
                 visited.push(edge_index);
             }
         }
@@ -324,22 +306,22 @@ impl<'a, T> GraphTransaction<'a, T> {
     /// Get a random node that can be used as a source node for a connection.
     /// A source node can be either an input or a vertex node.
     #[inline]
-    pub fn random_source_node(&self) -> &GraphNode<T> {
+    pub fn random_source_node(&self) -> Option<&GraphNode<T>> {
         self.random_node_of_type(vec![NodeType::Input, NodeType::Vertex, NodeType::Edge])
     }
     /// Get a random node that can be used as a target node for a connection.
     /// A target node can be either an output or a vertex node.
     #[inline]
-    pub fn random_target_node(&self) -> &GraphNode<T> {
+    pub fn random_target_node(&self) -> Option<&GraphNode<T>> {
         self.random_node_of_type(vec![NodeType::Output, NodeType::Vertex, NodeType::Edge])
     }
     /// Helper functions to get a random node of the specified type. If no nodes of the specified
     /// type are found, the function will try to get a random node of a different type.
     /// If no nodes are found, the function will panic.
     #[inline]
-    fn random_node_of_type(&self, node_types: Vec<NodeType>) -> &GraphNode<T> {
+    fn random_node_of_type(&self, node_types: Vec<NodeType>) -> Option<&GraphNode<T>> {
         if node_types.is_empty() {
-            panic!("At least one node type must be specified.");
+            return None;
         }
 
         let gene_node_type_index = random_provider::random::<usize>() % node_types.len();
@@ -376,15 +358,7 @@ impl<'a, T> GraphTransaction<'a, T> {
         }
 
         let index = random_provider::random::<usize>() % genes.len();
-        genes.get(index).unwrap()
-    }
-}
-
-impl<'a, T> Index<usize> for GraphTransaction<'a, T> {
-    type Output = GraphNode<T>;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.graph[index]
+        genes.get(index).map(|x| *x)
     }
 }
 

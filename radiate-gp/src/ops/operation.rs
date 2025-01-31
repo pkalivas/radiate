@@ -1,4 +1,4 @@
-use crate::{Arity, Eval, Factory, NodeValue};
+use crate::{Arity, Eval, Factory, NodeValue, TreeNode};
 use std::{
     fmt::{Debug, Display},
     sync::Arc,
@@ -118,6 +118,12 @@ where
     fn into(self) -> NodeValue<Op<T>> {
         let arity = self.arity();
         NodeValue::Bounded(self, arity)
+    }
+}
+
+impl<T> Into<TreeNode<Op<T>>> for Op<T> {
+    fn into(self) -> TreeNode<Op<T>> {
+        TreeNode::new(self)
     }
 }
 
