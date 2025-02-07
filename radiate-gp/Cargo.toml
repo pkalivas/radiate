@@ -12,6 +12,6 @@ license = "MIT"
 documentation = "https://pkalivas.github.io/radiate/"
 
 [dependencies]
-radiate = "1.2.8"
+radiate = { path = "../radiate" }
 uuid = { version = "1.10.0", features = ["v4"] }
 
