@@ -1,6 +1,6 @@
 [package]
 name = "radiate-gp"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 authors = ["pkalivas <peterkalivas@gmail.com>"]
 description = "Extensions for radiate. Genetic Programming implementations for graphs (neural networks) and trees"
@@ -12,6 +12,6 @@ license = "MIT"
 documentation = "https://pkalivas.github.io/radiate/"
 
 [dependencies]
-radiate = { path = "../radiate" }
+radiate = 1.2.8
 uuid = { version = "1.10.0", features = ["v4"] }
 
