@@ -1,6 +1,5 @@
-use std::sync::Arc;
-
 use super::{Chromosome, Codex, Genotype, Score};
+use std::sync::Arc;
 
 pub trait Problem<C: Chromosome, T>: Send + Sync {
     fn encode(&self) -> Genotype<C>;

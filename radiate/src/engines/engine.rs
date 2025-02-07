@@ -376,7 +376,7 @@ where
 
         unique.dedup();
 
-        let mut unique_metric = Metric::new_value(metric_names::UNIQUE);
+        let mut unique_metric = Metric::new_value(metric_names::UNIQUE_SCORES);
         let mut size_metric = Metric::new_distribution(metric_names::GENOME_SIZE);
         let mut equal_metric = Metric::new_value(metric_names::NUM_EQUAL);
 

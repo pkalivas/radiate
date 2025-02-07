@@ -58,7 +58,7 @@ impl<T> NodeStore<T> {
             for node_type in node_type {
                 store_values
                     .entry(node_type)
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(node_value.clone());
             }
         }

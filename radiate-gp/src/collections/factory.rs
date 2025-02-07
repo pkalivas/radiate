@@ -1,12 +1,7 @@
+use super::{GraphNode, NodeStore, NodeType, NodeValue, TreeNode};
+use crate::Arity;
 use radiate::random_provider;
 
-use crate::Arity;
-
-use super::{GraphNode, NodeStore, NodeType, NodeValue, TreeNode};
-
-/// A trait for types that can be created from a given input.
-///
-/// TODO: Document this trait.
 pub trait Factory<I, O> {
     fn new_instance(&self, input: I) -> O;
 }
@@ -69,13 +64,13 @@ impl<T: Default + Clone> Factory<(usize, NodeType), GraphNode<T>> for NodeStore<
     }
 }
 
-impl<T, F> Factory<(usize, F), GraphNode<T>> for NodeStore<T>
+impl<T, F> Factory<(usize, NodeType, F), GraphNode<T>> for NodeStore<T>
 where
     T: Default + Clone,
     F: Fn(Arity) -> bool,
 {
-    fn new_instance(&self, input: (usize, F)) -> GraphNode<T> {
-        let (index, filter) = input;
+    fn new_instance(&self, input: (usize, NodeType, F)) -> GraphNode<T> {
+        let (index, node_type, filter) = input;
         let new_node = self.map(|values| {
             let mapped_values = values
                 .into_iter()
@@ -89,10 +84,10 @@ where
 
             match node_value {
                 NodeValue::Bounded(value, arity) => {
-                    return (index, value.clone(), *arity).into();
+                    return GraphNode::with_arity(index, node_type, value.clone(), *arity);
                 }
                 NodeValue::Unbound(value) => {
-                    return (index, value.clone()).into();
+                    return GraphNode::new(index, node_type, value.clone());
                 }
             }
         });
@@ -101,7 +96,7 @@ where
             return new_value;
         }
 
-        GraphNode::new(index, NodeType::Vertex, T::default())
+        GraphNode::new(index, node_type, T::default())
     }
 }
 

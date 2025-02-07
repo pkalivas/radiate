@@ -35,12 +35,10 @@ impl GraphMutator {
             } else {
                 None
             }
+        } else if random_provider::random::<f32>() < self.vertex_rate {
+            Some(NodeType::Vertex)
         } else {
-            if random_provider::random::<f32>() < self.vertex_rate {
-                Some(NodeType::Vertex)
-            } else {
-                None
-            }
+            None
         }
     }
 

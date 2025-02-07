@@ -104,10 +104,11 @@ impl<T: Clone + Default> NodeBuilder<T> {
     pub fn vertecies(&self, size: usize) -> Vec<GraphNode<T>> {
         (0..size)
             .map(|idx| {
-                self.store.new_instance((idx, |arity| match arity {
-                    Arity::Any => true,
-                    _ => false,
-                }))
+                self.store
+                    .new_instance((idx, NodeType::Vertex, |arity| match arity {
+                        Arity::Any => true,
+                        _ => false,
+                    }))
             })
             .collect()
     }

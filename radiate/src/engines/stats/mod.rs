@@ -15,7 +15,7 @@ pub mod metric_names {
     pub const EVALUATION: &str = "Evaluation";
     pub const AGE_FILTER: &str = "Age Filter";
     pub const INVALID_FILTER: &str = "Invalid Filter";
-    pub const UNIQUE: &str = "Unique";
+    pub const UNIQUE_SCORES: &str = "Unique Scores";
     pub const GENOME_SIZE: &str = "Genome Size";
     pub const FRONT: &str = "Front";
     pub const NUM_EQUAL: &str = "Num Equal";
