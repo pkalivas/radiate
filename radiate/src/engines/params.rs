@@ -46,9 +46,9 @@ where
     pub offspring_selector: Box<dyn Select<C>>,
     pub alterers: Vec<AlterAction<C>>,
     pub population: Option<Population<C>>,
-    pub codex: Option<Arc<Box<dyn Codex<C, T>>>>,
+    pub codex: Option<Arc<dyn Codex<C, T>>>,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
-    pub problem: Option<Arc<Box<dyn Problem<C, T>>>>,
+    pub problem: Option<Arc<dyn Problem<C, T>>>,
     pub filter_strategy: FilterStrategy,
 }
 
@@ -72,6 +72,7 @@ where
     ///     * This is the optimization goal of the genetic engine. The default is to maximize the fitness function.
     /// * survivor_selector: TournamentSelector::new(3)
     /// * offspring_selector: RouletteSelector::new()
+    /// * filter_strategy: FilterStrategy::Encode
     pub fn new() -> Self {
         GeneticEngineParams {
             population_size: 100,
@@ -112,6 +113,11 @@ where
         self
     }
 
+    /// The `FilterStrategy` is used to determine how a new individual is added to the `Population`
+    /// if an individual is deemed to be either invalid or reaches the maximum age.
+    ///
+    /// Default is `FilterStrategy::Encode`, which means that a new individual will be created
+    /// be using the `Codex` to encode a new individual from scratch.
     pub fn filter_strategy(mut self, filter_strategy: FilterStrategy) -> Self {
         self.filter_strategy = filter_strategy;
         self
@@ -130,14 +136,14 @@ where
     }
 
     /// Set the codex that will be used to encode and decode the genotype of the population.
-    pub fn codex<E: Codex<C, T> + 'static>(mut self, codex: E) -> Self {
-        self.codex = Some(Arc::new(Box::new(codex)));
+    pub fn codex<D: Codex<C, T> + 'static>(mut self, codex: D) -> Self {
+        self.codex = Some(Arc::new(codex));
         self
     }
 
     /// Set the problem of the genetic engine. This is useful if you want to provide a custom problem.
     pub fn problem<P: Problem<C, T> + 'static>(mut self, problem: P) -> Self {
-        self.problem = Some(Arc::new(Box::new(problem)));
+        self.problem = Some(Arc::new(problem));
         self
     }
 
@@ -148,8 +154,11 @@ where
         self
     }
 
-    /// Set the fitness function of the genetic engine. This is the function that will be used to evaluate the fitness of each individual in the population.
-    /// This function should take a single argument of type T and return a Score. The Score is used to evaluate or rank the fitness of the individual.
+    /// Set the fitness function of the genetic engine. This is the function that will be
+    /// used to evaluate the fitness of each individual in the population. This function should
+    /// take a single argument of type T and return a `Score`. The `Score` is used to
+    /// evaluate or rank the fitness of the individual.
+    ///
     /// This method is required and must be set before calling the `build` method.
     pub fn fitness_fn<S: Into<Score>>(
         mut self,
@@ -160,24 +169,26 @@ where
         self
     }
 
-    /// Set the survivor selector of the genetic engine. This is the selector that will be used to select the survivors of the population.
-    /// Default is TournamentSelector with a group size of 3.
+    /// Set the survivor selector of the genetic engine. This is the selector that will
+    /// be used to select the survivors of the population. Default is `TournamentSelector`
+    /// with a group size of 3.
     pub fn survivor_selector<S: Select<C> + 'static>(mut self, selector: S) -> Self {
         self.survivor_selector = Box::new(selector);
         self
     }
 
-    /// Set the offspring selector of the genetic engine. This is the selector that will be used to select the offspring of the population.
-    /// Default is RouletteSelector.
+    /// Set the offspring selector of the genetic engine. This is the selector that will
+    /// be used to select the offspring of the population. Default is `RouletteSelector`.
     pub fn offspring_selector<S: Select<C> + 'static>(mut self, selector: S) -> Self {
         self.offspring_selector = Box::new(selector);
         self
     }
 
-    /// Set the alterer of the genetic engine. This is the alterer that will be used to alter the offspring of the population.
-    /// The alterer is used to apply mutations and crossover operations to the offspring and will be used to create the next generation of the population.
-    /// Note, the order of the alterers is important. The alterers will be applied in the order they are provided.
-    // pub fn alterer(mut self, alterers: Vec<Box<dyn Alter<C>>>) -> Self {
+    /// Set the alterer of the genetic engine. This is the alterer that will be used to
+    /// alter the offspring of the population. The alterer is used to apply mutations
+    /// and crossover operations to the offspring and will be used to create the next
+    /// generation of the population. **Note**: the order of the alterers is important - the
+    /// alterers will be applied in the order they are provided.
     pub fn alter(mut self, alterers: Vec<AlterAction<C>>) -> Self {
         self.alterers = alterers;
         self
@@ -200,6 +211,9 @@ where
         self
     }
 
+    /// Set the minimum and maximum size of the pareto front. This is used for
+    /// multi-objective optimization problems where the goal is to find the best
+    /// solutions that are not dominated by any other solution.
     pub fn front_size(mut self, min_size: usize, max_size: usize) -> Self {
         if min_size > max_size {
             panic!("min_size must be less than or equal to max_size");
@@ -216,14 +230,16 @@ where
         self
     }
 
-    /// Set the thread pool of the genetic engine. This is the thread pool that will be used to execute the fitness function in parallel.
-    /// Some fitness functions may be computationally expensive and can benefit from parallel execution.
+    /// Set the thread pool of the genetic engine. This is the thread pool that will be used
+    /// to execute the fitness function in parallel. Some fitness functions may be computationally
+    /// expensive and can benefit from parallel execution.
     pub fn num_threads(mut self, num_threads: usize) -> Self {
         self.thread_pool = ThreadPool::new(num_threads);
         self
     }
 
-    /// Build the genetic engine with the given parameters. This will create a new instance of the `GeneticEngine` with the given parameters.
+    /// Build the genetic engine with the given parameters. This will create a new
+    /// instance of the `GeneticEngine` with the given parameters.
     pub fn build(mut self) -> GeneticEngine<C, T> {
         if self.problem.is_none() {
             if self.codex.is_none() {
@@ -247,7 +263,8 @@ where
         }
     }
 
-    /// Build the population of the genetic engine. This will create a new population using the codex if the population is not set.
+    /// Build the population of the genetic engine. This will create a new population
+    /// using the codex if the population is not set.
     fn build_population(&mut self) {
         self.population = match &self.population {
             None => Some(match self.problem.as_ref() {
@@ -260,7 +277,9 @@ where
         };
     }
 
-    /// Build the alterer of the genetic engine. This will create a new alterer if the alterer is not set.
+    /// Build the alterer of the genetic engine. This will create a
+    /// new `UniformCrossover` and `UniformMutator` if the alterer is not set.
+    /// with a 0.5 crossover rate and a 0.1 mutation rate.
     fn build_alterer(&mut self) {
         if !self.alterers.is_empty() {
             return;

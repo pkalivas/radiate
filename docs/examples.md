@@ -16,7 +16,7 @@ comprehensive list of examples.
     fn main() {
         let codex = IntCodex::new(1, 10, 0, 100).with_bounds(0, 100);
 
-        let engine = GeneticEngine::from_codex(&codex)
+        let engine = GeneticEngine::from_codex(codex)
             .population_size(150)
             .minimizing()
             .offspring_selector(EliteSelector::new())
@@ -24,9 +24,9 @@ comprehensive list of examples.
             .fitness_fn(|geno: Vec<Vec<i32>>| geno.iter().flatten().sum::<i32>())
             .build();
 
-        let result = engine.run(|output| {
-            println!("[ {:?} ]: {:?}", output.index, output.best.first().unwrap());
-            output.score().as_int() == MIN_SCORE
+        let result = engine.run(|ctx| {
+            println!("[ {:?} ]: {:?}", ctx.index, ctx.best.first().unwrap());
+            ctx.score().as_i32() == MIN_SCORE
         });
 
         println!("{:?}", result);
@@ -35,25 +35,27 @@ comprehensive list of examples.
 
 ## NQueens
 
-> Objective - Place `n` queens on an `n x n` chessboard such that no two queens threaten each other.
+> Objective - Place `n` queens on an `n x n` (in this case a 32x32 board) chessboard such that no two queens threaten each other.
 
 ??? example
 
     ```rust
     use radiate::*;
 
-    const N_QUEENS: usize = 16;
+    const N_QUEENS: usize = 32;
 
     fn main() {
+        random_provider::set_seed(42);
+
         let codex = IntCodex::<i8>::new(1, N_QUEENS, 0, N_QUEENS as i8);
 
-        let engine = GeneticEngine::from_codex(&codex)
+        let engine = GeneticEngine::from_codex(codex)
             .minimizing()
-            .num_threads(10)
-            .offspring_selector(RouletteSelector::new())
+            .num_threads(5)
+            .offspring_selector(BoltzmannSelector::new(4.0))
             .alter(alters!(
                 MultiPointCrossover::new(0.75, 2),
-                UniformMutator::new(0.01)
+                UniformMutator::new(0.05)
             ))
             .fitness_fn(|genotype: Vec<Vec<i8>>| {
                 let queens = &genotype[0];
@@ -74,10 +76,9 @@ comprehensive list of examples.
             })
             .build();
 
-        let result = engine.run(|output| {
-            println!("[ {:?} ]: {:?}", output.index, output.score().as_usize());
-
-            output.score().as_usize() == 0
+        let result = engine.run(|ctx| {
+            println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_usize());
+            ctx.score().as_usize() == 0
         });
 
         println!("\nResult Queens Board ({:.3?}):", result.timer.duration());
@@ -114,15 +115,25 @@ comprehensive list of examples.
     static KNAPSACK: LazyLock<Knapsack> = LazyLock::new(|| Knapsack::new(KNAPSACK_SIZE));
 
     fn main() {
-        seed_rng(12345);
+        random_provider::set_seed(12345);
         let codex = SubSetCodex::new(&KNAPSACK.items);
 
-        let engine = GeneticEngine::from_codex(&codex)
+        let engine = GeneticEngine::from_codex(codex)
             .max_age(MAX_EPOCHS)
             .fitness_fn(move |genotype: Vec<&Item>| Knapsack::fitness(&KNAPSACK.capacity, &genotype))
             .build();
 
-        let result = engine.run(|output| output.index == MAX_EPOCHS);
+        let result = engine.run(|ctx| {
+            let value_total = Knapsack::value_total(&ctx.best);
+            let weight_total = Knapsack::weight_total(&ctx.best);
+
+            println!(
+                "[ {:?} ]: Value={:?} Weight={:?}",
+                ctx.index, value_total, weight_total
+            );
+
+            ctx.index == MAX_EPOCHS
+        });
 
         println!(
             "Result Value Total=[ {:?} ]",
@@ -151,7 +162,7 @@ comprehensive list of examples.
             }
         }
 
-        pub fn fitness(capacity: &f32, genotype: &Vec<&Item>) -> Score {
+        pub fn fitness(capacity: &f32, genotype: &Vec<&Item>) -> f32 {
             let mut sum = 0_f32;
             let mut weight = 0_f32;
             for item in genotype {
@@ -160,9 +171,9 @@ comprehensive list of examples.
             }
 
             if weight > *capacity {
-                Score::from_f32(0_f32)
+                0_f32
             } else {
-                Score::from_f32(sum)
+                sum
             }
         }
 
@@ -212,7 +223,6 @@ comprehensive list of examples.
                 .collect()
         }
     }
-
     ```
 
 ## Rastrigin
@@ -233,7 +243,7 @@ comprehensive list of examples.
     fn main() {
         let codex = FloatCodex::new(1, N_GENES, -RANGE, RANGE).with_bounds(-RANGE, RANGE);
 
-        let engine = GeneticEngine::from_codex(&codex)
+        let engine = GeneticEngine::from_codex(codex)
             .minimizing()
             .population_size(500)
             .alter(alters!(
@@ -251,9 +261,9 @@ comprehensive list of examples.
             })
             .build();
 
-        let result = engine.run(|output| {
-            println!("[ {:?} ]: {:?}", output.index, output.score().as_float());
-            output.score().as_float() <= MIN_SCORE || output.seconds() > MAX_SECONDS
+        let result = engine.run(|ctx| {
+            println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32());
+            ctx.score().as_f32() <= MIN_SCORE || ctx.seconds() > MAX_SECONDS
         });
 
         println!("{:?}", result);
@@ -271,7 +281,7 @@ comprehensive list of examples.
 
     const MIN_SCORE: f32 = 0.0001;
     const MAX_INDEX: i32 = 500;
-    const MAX_SECONDS: u64 = 5;
+    const MAX_SECONDS: u64 = 1;
 
     fn main() {
         let inputs = vec![
@@ -289,24 +299,25 @@ comprehensive list of examples.
             target: target.clone(),
         };
 
-        let engine = GeneticEngine::from_codex(&codex)
-            .population_size(100)
+        let engine = GeneticEngine::from_codex(codex.clone())
             .minimizing()
+            .num_threads(5)
             .offspring_selector(BoltzmannSelector::new(4_f32))
             .alter(alters!(
                 IntermediateCrossover::new(0.75, 0.1),
-                ArithmeticMutator::new(0.05),
+                ArithmeticMutator::new(0.03),
             ))
-            .fitness_fn(move |genotype: NeuralNet| genotype.error(&inputs, &target))
+            .fitness_fn(move |net: NeuralNet| net.error(&inputs, &target))
             .build();
 
-        let result = engine.run(|output| {
-            println!("[ {:?} ]: {:?}", output.index, output.score().as_float());
-            output.score().as_float() < MIN_SCORE
-                || output.index == MAX_INDEX
-                || output.timer.duration().as_secs() > MAX_SECONDS
+        let result = engine.run(|ctx| {
+            println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32());
+            ctx.score().as_f32() < MIN_SCORE
+                || ctx.index == MAX_INDEX
+                || ctx.timer.duration().as_secs() > MAX_SECONDS
         });
 
+        println!("Seconds: {:?}", result.seconds());
         println!("{:?}", result.metrics);
         let best = result.best;
         for (input, target) in codex.inputs.iter().zip(codex.target.iter()) {
@@ -324,10 +335,6 @@ comprehensive list of examples.
     }
 
     impl NeuralNet {
-        pub fn new(layers: Vec<Vec<Vec<f32>>>) -> Self {
-            NeuralNet { layers }
-        }
-
         pub fn feed_forward(&self, input: Vec<f32>) -> Vec<f32> {
             let mut output = input;
 
@@ -374,8 +381,9 @@ comprehensive list of examples.
         }
     }
 
+    #[derive(Clone)]
     pub struct NeuralNetCodex {
-        pub shapes: Vec<(i32, i32)>,
+        pub shapes: Vec<(usize, usize)>,
         pub inputs: Vec<Vec<f32>>,
         pub target: Vec<f32>,
     }
@@ -384,27 +392,27 @@ comprehensive list of examples.
         fn encode(&self) -> Genotype<FloatChromosome> {
             let mut chromosomes = Vec::<FloatChromosome>::new();
             for shape in &self.shapes {
-                chromosomes.push(FloatChromosome::from_genes(
-                    (0..shape.0 * shape.1)
+                chromosomes.push(FloatChromosome {
+                    genes: (0..shape.0 * shape.1)
                         .map(|_| FloatGene::new(-1.0, 1.0))
                         .collect::<Vec<FloatGene>>(),
-                ));
+                });
             }
 
-            Genotype::from_chromosomes(chromosomes)
+            Genotype::new(chromosomes)
         }
 
         fn decode(&self, genotype: &Genotype<FloatChromosome>) -> NeuralNet {
             let mut layers = Vec::new();
             for (i, chromosome) in genotype.iter().enumerate() {
-                let layer = chromosome
-                    .iter()
-                    .as_slice()
-                    .chunks(self.shapes[i].1 as usize)
-                    .map(|chunk| chunk.iter().map(|gene| gene.allele).collect::<Vec<f32>>())
-                    .collect::<Vec<Vec<f32>>>();
-
-                layers.push(layer);
+                layers.push(
+                    chromosome
+                        .iter()
+                        .as_slice()
+                        .chunks(self.shapes[i].1 as usize)
+                        .map(|chunk| chunk.iter().map(|gene| gene.allele).collect::<Vec<f32>>())
+                        .collect::<Vec<Vec<f32>>>(),
+                );
             }
 
             NeuralNet { layers }
@@ -430,24 +438,24 @@ comprehensive list of examples.
     fn main() {
         random_provider::set_seed(501);
 
-        let graph_codex = GraphCodex::regression(2, 1).with_output(Op::sigmoid());
+        let values = vec![
+            (NodeType::Input, vec![Op::var(0), Op::var(1)]),
+            (NodeType::Edge, vec![Op::weight(), Op::identity()]),
+            (NodeType::Vertex, ops::get_all_operations()),
+            (NodeType::Output, vec![Op::sigmoid()]),
+        ];
 
-        let regression = Regression::new(get_dataset(), ErrorFunction::MSE);
+        let graph_codex = GraphCodex::asyclic(2, 1, values);
+        let regression = Regression::new(get_dataset(), Loss::MSE);
 
-        let engine = GeneticEngine::from_codex(&graph_codex)
+        let engine = GeneticEngine::from_codex(graph_codex)
             .minimizing()
             .alter(alters!(
                 GraphCrossover::new(0.5, 0.5),
-                OperationMutator::new(0.1, 0.05),
-                GraphMutator::new(vec![
-                    NodeMutate::Edge(0.05, false),
-                    NodeMutate::Vertex(0.03, false),
-                ]),
+                OperationMutator::new(0.05, 0.05),
+                GraphMutator::new(0.06, 0.01, false)
             ))
-            .fitness_fn(move |genotype: Graph<Op<f32>>| {
-                let mut reducer = GraphReducer::new(&genotype);
-                regression.error(|input| reducer.reduce(input))
-            })
+            .fitness_fn(move |genotype: Graph<Op<f32>>| regression.eval(&genotype))
             .build();
 
         let result = engine.run(|ctx| {
@@ -459,12 +467,14 @@ comprehensive list of examples.
     }
 
     fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
-        let mut reducer = GraphReducer::new(&result.best);
+        let mut reducer = GraphEvaluator::new(&result.best);
         for sample in get_dataset().iter() {
-            let output = &reducer.reduce(&sample.1);
+            let output = &reducer.eval_mut(sample.input())[0];
             println!(
                 "{:?} -> epected: {:?}, actual: {:.3?}",
-                sample.1, sample.2, output
+                sample.input(),
+                sample.output(),
+                output
             );
         }
 
@@ -481,6 +491,6 @@ comprehensive list of examples.
 
         let answers = vec![vec![0.0], vec![0.0], vec![1.0], vec![1.0]];
 
-        DataSet::from_vecs(inputs, answers)
+        DataSet::new(inputs, answers)
     }
     ```

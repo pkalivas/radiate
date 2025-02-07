@@ -12,23 +12,12 @@ where
     C: Chromosome,
     T: Clone,
 {
-    pub codex: Arc<Box<dyn Codex<C, T>>>,
+    pub codex: Arc<dyn Codex<C, T>>,
     pub fitness_fn: Arc<dyn Fn(T) -> Score + Send + Sync>,
 }
 
-unsafe impl<C, T> Send for EngineProblem<C, T>
-where
-    C: Chromosome,
-    T: Clone,
-{
-}
-
-unsafe impl<C, T> Sync for EngineProblem<C, T>
-where
-    C: Chromosome,
-    T: Clone,
-{
-}
+unsafe impl<C: Chromosome, T: Clone> Send for EngineProblem<C, T> {}
+unsafe impl<C: Chromosome, T: Clone> Sync for EngineProblem<C, T> {}
 
 impl<C, T> Problem<C, T> for EngineProblem<C, T>
 where
