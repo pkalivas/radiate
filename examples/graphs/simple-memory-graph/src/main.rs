@@ -5,7 +5,7 @@ const MAX_INDEX: i32 = 500;
 const MIN_SCORE: f32 = 0.01;
 
 fn main() {
-    random_provider::set_seed(100);
+    random_provider::set_seed(42);
 
     let values = vec![
         (NodeType::Input, vec![Op::var(0)]),
@@ -17,6 +17,10 @@ fn main() {
     let graph_codex = GraphCodex::cyclic(1, 1, values);
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
+    let encoding = graph_codex.encode();
+
+    println!("Initial: {:?}", encoding);
+
     let engine = GeneticEngine::from_codex(graph_codex)
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4_f32))
@@ -26,7 +30,12 @@ fn main() {
             OperationMutator::new(0.1, 0.05),
             GraphMutator::new(0.05, 0.05, true)
         ))
-        .fitness_fn(move |genotype: Graph<Op<f32>>| regression.eval(&genotype))
+        .fitness_fn(move |graph: Graph<Op<f32>>| {
+            if !graph.is_valid() {
+                println!("{:?}", graph);
+            }
+            regression.eval(&graph)
+        })
         .build();
 
     let result = engine.run(|ctx| {

@@ -4,7 +4,8 @@ use crate::NodeType;
 use radiate::Valid;
 use std::collections::{HashSet, VecDeque};
 use std::fmt::Debug;
-use std::ops::{Index, IndexMut};
+
+use super::transaction::TransactionResult;
 
 /// A 'Graph' is simply a 'Vec' of 'GraphNode's.
 ///
@@ -65,13 +66,13 @@ impl<T> Graph<T> {
     }
 
     /// Returns a mutable reference to the node at the specified index.
-    pub fn get_mut(&mut self, index: usize) -> &mut GraphNode<T> {
-        self.nodes.get_mut(index).unwrap()
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut GraphNode<T>> {
+        self.nodes.get_mut(index)
     }
 
     /// Returns a reference to the node at the specified index.
-    pub fn get(&self, index: usize) -> &GraphNode<T> {
-        self.nodes.get(index).unwrap()
+    pub fn get(&self, index: usize) -> Option<&GraphNode<T>> {
+        self.nodes.get(index)
     }
 
     /// iterates over the nodes in the graph. The nodes are returned in the order they
@@ -144,12 +145,14 @@ impl<T> Graph<T> {
             let node_cycles = self.get_cycles(idx);
 
             if node_cycles.is_empty() {
-                let node = self.get_mut(idx);
-                node.set_direction(Direction::Forward);
+                if let Some(node) = self.get_mut(idx) {
+                    node.set_direction(Direction::Forward);
+                }
             } else {
                 for cycle_idx in node_cycles {
-                    let node = self.get_mut(cycle_idx);
-                    node.set_direction(Direction::Backward);
+                    if let Some(node) = self.get_mut(cycle_idx) {
+                        node.set_direction(Direction::Backward);
+                    }
                 }
             }
         }
@@ -162,18 +165,14 @@ impl<T> Graph<T> {
     /// # Arguments
     ///  - mutation: A closure that takes a mutable reference to a 'GraphTransaction' and returns a 'bool'.
     #[inline]
-    pub fn try_modify<F>(&mut self, mutation: F) -> bool
+    pub fn try_modify<F>(&mut self, mutation: F) -> TransactionResult<T>
     where
-        F: FnOnce(&mut GraphTransaction<T>) -> bool,
+        F: FnOnce(&mut GraphTransaction<T>),
         T: Clone + Default + PartialEq,
     {
         let mut transaction = GraphTransaction::new(self);
-        if !mutation(&mut transaction) {
-            transaction.rollback();
-            return false;
-        }
-
-        true
+        mutation(&mut transaction);
+        transaction.commit()
     }
 }
 
@@ -188,30 +187,30 @@ impl<T> Graph<T> {
     pub fn get_cycles(&self, index: usize) -> Vec<usize> {
         let mut path = Vec::new();
         let mut seen = HashSet::new();
-        let mut current = self[index]
-            .incoming()
-            .iter()
-            .cloned()
-            .collect::<VecDeque<usize>>();
+        let mut current = self
+            .get(index)
+            .map(|node| node.outgoing().iter().cloned().collect::<VecDeque<usize>>())
+            .unwrap_or_default();
 
         while !current.is_empty() {
             let current_index = current.pop_front().unwrap();
-            let current_node = &self[current_index];
+            if let Some(current_node) = self.get(current_index) {
+                if seen.contains(&current_index) {
+                    continue;
+                }
 
-            if seen.contains(&current_index) {
-                continue;
-            }
+                if current_index == index {
+                    path.push(current_index);
+                    return path;
+                }
 
-            if current_index == index {
-                return path;
-            }
+                seen.insert(current_index);
 
-            seen.insert(current_index);
-
-            if !current_node.incoming().is_empty() {
-                path.push(current_index);
-                for outgoing in current_node.incoming().iter() {
-                    current.push_back(*outgoing);
+                if !current_node.outgoing().is_empty() {
+                    path.push(current_index);
+                    for outgoing in current_node.outgoing().iter() {
+                        current.push_back(*outgoing);
+                    }
                 }
             }
         }
@@ -236,20 +235,6 @@ impl<T> AsRef<[GraphNode<T>]> for Graph<T> {
 impl<T> AsMut<[GraphNode<T>]> for Graph<T> {
     fn as_mut(&mut self) -> &mut [GraphNode<T>] {
         &mut self.nodes
-    }
-}
-
-impl<T> Index<usize> for Graph<T> {
-    type Output = GraphNode<T>;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        self.nodes.get(index).expect("Index out of bounds.")
-    }
-}
-
-impl<T> IndexMut<usize> for Graph<T> {
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        self.nodes.get_mut(index).expect("Index out of bounds.")
     }
 }
 

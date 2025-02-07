@@ -1,7 +1,7 @@
 use super::aggregate::GraphAggregate;
 use crate::{
     collections::{Graph, GraphNode, NodeType},
-    Factory, NodeStore,
+    Arity, Factory, NodeStore,
 };
 
 impl<T: Clone + Default> Graph<T> {
@@ -102,7 +102,15 @@ impl<T: Clone + Default> NodeBuilder<T> {
     }
 
     pub fn vertecies(&self, size: usize) -> Vec<GraphNode<T>> {
-        self.new_nodes(NodeType::Vertex, size)
+        (0..size)
+            .map(|idx| {
+                self.store
+                    .new_instance((idx, NodeType::Vertex, |arity| match arity {
+                        Arity::Any => true,
+                        _ => false,
+                    }))
+            })
+            .collect()
     }
 
     fn new_nodes(&self, node_type: NodeType, size: usize) -> Vec<GraphNode<T>> {

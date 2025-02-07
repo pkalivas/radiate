@@ -8,6 +8,7 @@ fn main() {
     random_provider::set_seed(42069);
 
     let store = vec![
+        (NodeType::Root, vec![Op::linear()]),
         (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
         (NodeType::Leaf, vec![Op::var(0)]),
     ];

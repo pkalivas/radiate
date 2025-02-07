@@ -18,8 +18,8 @@ pub struct GraphNode<T> {
     id: Uuid,
     index: usize,
     enabled: bool,
-    node_type: Option<NodeType>,
     direction: Direction,
+    node_type: Option<NodeType>,
     arity: Option<Arity>,
     incoming: HashSet<usize>,
     outgoing: HashSet<usize>,
@@ -35,20 +35,6 @@ impl<T> GraphNode<T> {
             direction: Direction::Forward,
             node_type: Some(node_type),
             arity: None,
-            incoming: HashSet::new(),
-            outgoing: HashSet::new(),
-        }
-    }
-
-    pub fn new_wi(index: usize, value: T, arity: Arity) -> Self {
-        GraphNode {
-            id: Uuid::new_v4(),
-            index,
-            value,
-            enabled: true,
-            direction: Direction::Forward,
-            node_type: None,
-            arity: Some(arity),
             incoming: HashSet::new(),
             outgoing: HashSet::new(),
         }
@@ -138,6 +124,7 @@ impl<T> Node for GraphNode<T> {
         if let Some(node_type) = self.node_type {
             return node_type;
         }
+
         let arity = self.arity();
 
         if let Arity::Any = arity {
@@ -160,14 +147,23 @@ impl<T> Node for GraphNode<T> {
     }
 
     fn arity(&self) -> Arity {
+        if let Some(node_type) = self.node_type {
+            return self.arity.unwrap_or(match node_type {
+                NodeType::Input => Arity::Zero,
+                NodeType::Output => Arity::Any,
+                NodeType::Vertex => Arity::Any,
+                NodeType::Edge => Arity::Exact(1),
+                NodeType::Leaf => Arity::Zero,
+                NodeType::Root => Arity::Any,
+            });
+        }
+
         self.arity.unwrap_or(Arity::Any)
-        // self.arity.unwrap_or(match self.node_type {
-        //     NodeType::Input => Arity::Zero,
-        //     NodeType::Output => Arity::Any,
-        //     NodeType::Vertex => Arity::Any,
-        //     NodeType::Edge => Arity::Exact(1),
-        //     NodeType::Leaf => Arity::Zero,
-        //     NodeType::Root => Arity::Any,
+
+        // self.arity.unwrap_or(match self.incoming.len() {
+        //     0 => Arity::Zero,
+        //     1 => Arity::Exact(1),
+        //     _ => Arity::Any,
         // })
     }
 }
@@ -237,6 +233,54 @@ impl<T> Valid for GraphNode<T> {
                 false
             }
             _ => false,
+        }
+    }
+}
+
+impl<T> Into<GraphNode<T>> for (usize, NodeType, T) {
+    fn into(self) -> GraphNode<T> {
+        let (index, node_type, value) = self;
+        GraphNode::new(index, node_type, value)
+    }
+}
+
+impl<T: Default> Into<GraphNode<T>> for (usize, T) {
+    fn into(self) -> GraphNode<T> {
+        let (index, value) = self;
+        GraphNode {
+            index,
+            id: Uuid::new_v4(),
+            value,
+            enabled: true,
+            direction: Direction::Forward,
+            node_type: None,
+            arity: None,
+            incoming: HashSet::new(),
+            outgoing: HashSet::new(),
+        }
+    }
+}
+
+impl<T: Default> Into<GraphNode<T>> for (usize, NodeType, T, Arity) {
+    fn into(self) -> GraphNode<T> {
+        let (index, node_type, value, arity) = self;
+        GraphNode::with_arity(index, node_type, value, arity)
+    }
+}
+
+impl<T: Default> Into<GraphNode<T>> for (usize, T, Arity) {
+    fn into(self) -> GraphNode<T> {
+        let (index, value, arity) = self;
+        GraphNode {
+            index,
+            id: Uuid::new_v4(),
+            value,
+            enabled: true,
+            direction: Direction::Forward,
+            node_type: None,
+            arity: Some(arity),
+            incoming: HashSet::new(),
+            outgoing: HashSet::new(),
         }
     }
 }

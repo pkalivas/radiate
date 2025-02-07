@@ -1,4 +1,4 @@
-use crate::{Arity, Eval, Factory, NodeValue};
+use crate::{Arity, Eval, Factory, NodeValue, TreeNode};
 use std::{
     fmt::{Debug, Display},
     sync::Arc,
@@ -40,7 +40,7 @@ pub enum Op<T> {
         name: &'static str,
         arity: Arity,
         value: T,
-        get_value: Arc<dyn Fn() -> T>,
+        supplier: Arc<dyn Fn() -> T>,
         modifier: Arc<dyn Fn(&T) -> T>,
         operation: Arc<dyn Fn(&[T], &T) -> T>,
     },
@@ -121,6 +121,12 @@ where
     }
 }
 
+impl<T> Into<TreeNode<Op<T>>> for Op<T> {
+    fn into(self) -> TreeNode<Op<T>> {
+        TreeNode::new(self)
+    }
+}
+
 impl<T> Eval<[T], T> for Op<T>
 where
     T: Clone,
@@ -151,14 +157,14 @@ where
                 name,
                 arity,
                 value: _,
-                get_value,
+                supplier,
                 modifier,
                 operation,
             } => Op::MutableConst {
                 name,
                 arity: *arity,
-                value: (*get_value)(),
-                get_value: Arc::clone(get_value),
+                value: (*supplier)(),
+                supplier: Arc::clone(supplier),
                 modifier: Arc::clone(modifier),
                 operation: Arc::clone(operation),
             },
@@ -182,14 +188,14 @@ where
                 name,
                 arity,
                 value,
-                get_value,
+                supplier,
                 modifier,
                 operation,
             } => Op::MutableConst {
                 name,
                 arity: *arity,
                 value: value.clone(),
-                get_value: Arc::clone(get_value),
+                supplier: Arc::clone(supplier),
                 modifier: Arc::clone(modifier),
                 operation: Arc::clone(operation),
             },

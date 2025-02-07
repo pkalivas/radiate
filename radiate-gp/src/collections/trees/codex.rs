@@ -84,6 +84,7 @@ mod tests {
     #[test]
     fn test_tree_codex() {
         let store = vec![
+            (NodeType::Root, vec![Op::add(), Op::sub()]),
             (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
             (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
         ];

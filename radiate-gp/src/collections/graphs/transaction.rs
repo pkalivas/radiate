@@ -1,16 +1,12 @@
-use crate::{node::Node, Arity, NodeType};
-
 use super::{Direction, Graph, GraphNode};
+use crate::{node::Node, Arity, NodeType};
 use radiate::{random_provider, Valid};
-use std::{
-    collections::HashSet,
-    ops::{Deref, Index},
-};
+use std::{collections::HashSet, fmt::Debug, ops::Deref};
 
 /// Represents a reversible change to the graph
-#[derive(Debug)]
-enum MutationStep {
-    AddNode,
+#[derive(Debug, Clone)]
+pub enum MutationStep {
+    AddNode(usize),
     AddEdge(usize, usize),
     RemoveEdge(usize, usize),
     DirectionChange {
@@ -19,10 +15,23 @@ enum MutationStep {
     },
 }
 
+#[derive(Clone)]
+pub enum ReplayStep<T> {
+    AddNode(usize, Option<GraphNode<T>>),
+    AddEdge(usize, usize),
+    RemoveEdge(usize, usize),
+    DirectionChange(usize, Direction),
+}
+
+pub enum TransactionResult<T> {
+    Valid(Vec<MutationStep>),
+    Invalid(Vec<MutationStep>, Vec<ReplayStep<T>>),
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum InsertionType {
-    FeedForward,
-    Split,
+pub enum InsertStep {
+    Detach(usize, usize),
+    Connect(usize, usize),
     Invalid,
 }
 
@@ -42,13 +51,24 @@ impl<'a, T> GraphTransaction<'a, T> {
         }
     }
 
+    pub fn commit(self) -> TransactionResult<T> {
+        let result_steps = self.steps.iter().map(|step| (*step).clone()).collect();
+
+        if self.is_valid() {
+            TransactionResult::Valid(result_steps)
+        } else {
+            let replay_steps = self.rollback();
+            TransactionResult::Invalid(result_steps, replay_steps)
+        }
+    }
+
     pub fn len(&self) -> usize {
         self.graph.len()
     }
 
     pub fn add_node(&mut self, node: GraphNode<T>) -> usize {
         let index = self.graph.len();
-        self.steps.push(MutationStep::AddNode);
+        self.steps.push(MutationStep::AddNode(index));
         self.graph.push(node);
         self.effects.insert(index);
         index
@@ -69,33 +89,69 @@ impl<'a, T> GraphTransaction<'a, T> {
     }
 
     pub fn change_direction(&mut self, index: usize, direction: Direction) {
-        let previous_direction = self.graph[index].direction();
-        self.steps.push(MutationStep::DirectionChange {
-            index,
-            previous_direction,
-        });
-        self.graph[index].set_direction(direction);
+        if let Some(node) = self.graph.get_mut(index) {
+            if node.direction() == direction {
+                return;
+            }
+
+            self.steps.push(MutationStep::DirectionChange {
+                index,
+                previous_direction: node.direction(),
+            });
+            node.set_direction(direction);
+        }
     }
 
-    pub fn rollback(self) {
-        // Reverse all changes in reverse order
+    pub fn rollback(self) -> Vec<ReplayStep<T>> {
+        let mut replay_steps = Vec::new();
         for step in self.steps.into_iter().rev() {
             match step {
-                MutationStep::AddNode => {
-                    self.graph.pop();
+                MutationStep::AddNode(_) => {
+                    let added_node = self.graph.pop();
+                    replay_steps.push(ReplayStep::AddNode(self.graph.len(), added_node));
                 }
                 MutationStep::AddEdge(from, to) => {
                     self.graph.detach(from, to);
+                    replay_steps.push(ReplayStep::AddEdge(from, to));
                 }
                 MutationStep::RemoveEdge(from, to) => {
                     self.graph.attach(from, to);
+                    replay_steps.push(ReplayStep::RemoveEdge(from, to));
                 }
                 MutationStep::DirectionChange {
                     index,
                     previous_direction,
                     ..
                 } => {
-                    self.graph[index].set_direction(previous_direction);
+                    if let Some(node) = self.graph.get_mut(index) {
+                        let prev_dir = node.direction();
+                        node.set_direction(previous_direction);
+                        replay_steps.push(ReplayStep::DirectionChange(index, prev_dir));
+                    }
+                }
+            }
+        }
+
+        replay_steps.reverse();
+        replay_steps
+    }
+
+    pub fn replay(&mut self, steps: Vec<ReplayStep<T>>) {
+        for step in steps {
+            match step {
+                ReplayStep::AddNode(_, node) => {
+                    if let Some(node) = node {
+                        self.add_node(node);
+                    }
+                }
+                ReplayStep::AddEdge(from, to) => {
+                    self.attach(from, to);
+                }
+                ReplayStep::RemoveEdge(from, to) => {
+                    self.detach(from, to);
+                }
+                ReplayStep::DirectionChange(index, direction) => {
+                    self.change_direction(index, direction);
                 }
             }
         }
@@ -121,84 +177,84 @@ impl<'a, T> GraphTransaction<'a, T> {
         }
     }
 
-    pub fn repair(&mut self, index: usize, allow_recurrent: bool)
-    where
-        T: Clone,
-    {
-        let arity = self.graph.get(index).arity();
-
-        match arity {
-            Arity::Exact(_) => {
-                let incoming_count = self.graph.get(index).incoming().len();
-                for _ in 0..*arity - incoming_count {
-                    if random_provider::random::<f32>() < 0.05 {
-                        let input_node = self
-                            .graph
-                            .iter()
-                            .filter(|node| node.arity() == Arity::Zero)
-                            .collect::<Vec<&GraphNode<T>>>();
-
-                        let random_input = random_provider::choose(&input_node).value();
-                        let input_index = self.add_node(GraphNode::with_arity(
-                            self.len(),
-                            NodeType::Input,
-                            (*random_input).clone(),
-                            Arity::Zero,
-                        ));
-
-                        self.attach(input_index, index);
-                    } else {
-                        let other_source_node = self.random_source_node();
-                        let insert_type = self.get_insertion_type(
-                            other_source_node.index(),
-                            index,
-                            allow_recurrent,
-                        );
-
-                        match insert_type {
-                            InsertionType::Invalid => {}
-                            _ => {
-                                self.attach(other_source_node.index(), index);
-                            }
-                        }
-                    }
-                }
-            }
-            _ => {}
-        }
-
-        self.set_cycles();
-    }
-
     pub fn get_insertion_type(
         &self,
         source: usize,
         target: usize,
+        new_node: usize,
         allow_recurrent: bool,
-    ) -> InsertionType {
-        let target_node = self.graph.get(target);
+    ) -> Vec<InsertStep> {
+        let target_node = self.graph.get(target).unwrap();
+        let source_node = self.graph.get(source).unwrap();
 
-        let same_node = source == target;
+        let mut steps = Vec::new();
 
-        if allow_recurrent {
-            if target_node.is_locked() || same_node {
-                return InsertionType::Split;
-            }
-
-            return InsertionType::FeedForward;
-        }
+        let source_is_edge = source_node.node_type() == NodeType::Edge;
+        let target_is_edge = target_node.node_type() == NodeType::Edge;
 
         let would_create_cycle = self.would_create_cycle(source, target);
 
-        if same_node || would_create_cycle {
-            return InsertionType::Invalid;
+        if source_is_edge {
+            let source_outgoing = source_node.outgoing().iter().next().unwrap();
+            if source_outgoing == &new_node {
+                if allow_recurrent {
+                    steps.push(InsertStep::Connect(source, new_node));
+                } else {
+                    steps.push(InsertStep::Invalid);
+                }
+            } else {
+                if would_create_cycle && !allow_recurrent {
+                    steps.push(InsertStep::Invalid);
+                } else {
+                    steps.push(InsertStep::Connect(source, new_node));
+                    steps.push(InsertStep::Connect(new_node, *source_outgoing));
+                    steps.push(InsertStep::Detach(source, *source_outgoing));
+                }
+            }
+        } else if target_is_edge || target_node.is_locked() {
+            let target_incoming = target_node.incoming().iter().next().unwrap();
+            if target_incoming == &new_node {
+                if allow_recurrent {
+                    steps.push(InsertStep::Connect(*target_incoming, new_node));
+                } else {
+                    steps.push(InsertStep::Invalid);
+                }
+            } else {
+                if would_create_cycle && !allow_recurrent {
+                    steps.push(InsertStep::Invalid);
+                } else {
+                    steps.push(InsertStep::Connect(*target_incoming, new_node));
+                    steps.push(InsertStep::Connect(new_node, target));
+                    steps.push(InsertStep::Detach(*target_incoming, target));
+                }
+            }
+        } else {
+            if allow_recurrent {
+                let souce_arity = source_node.arity();
+
+                match souce_arity {
+                    Arity::Any => {
+                        steps.push(InsertStep::Connect(source, new_node));
+                        steps.push(InsertStep::Connect(new_node, source));
+                    }
+                    _ => {
+                        steps.push(InsertStep::Connect(source, new_node));
+                        steps.push(InsertStep::Connect(new_node, target));
+                    }
+                }
+            } else {
+                if !would_create_cycle && source != target {
+                    if source == new_node || target == new_node {
+                        steps.push(InsertStep::Invalid);
+                    } else {
+                        steps.push(InsertStep::Connect(source, new_node));
+                        steps.push(InsertStep::Connect(new_node, target));
+                    }
+                }
+            }
         }
 
-        if target_node.is_locked() {
-            return InsertionType::Split;
-        }
-
-        InsertionType::FeedForward
+        steps
     }
 
     /// Check if connecting the source node to the target node would create a cycle.
@@ -210,7 +266,10 @@ impl<'a, T> GraphTransaction<'a, T> {
     #[inline]
     pub fn would_create_cycle(&self, source: usize, target: usize) -> bool {
         let mut seen = HashSet::new();
-        let mut visited = self.get(target).outgoing().iter().collect::<Vec<&usize>>();
+        let mut visited = self
+            .get(target)
+            .map(|node| node.outgoing().iter().collect())
+            .unwrap_or(Vec::new());
 
         while !visited.is_empty() {
             let node_index = visited.pop().unwrap();
@@ -221,12 +280,17 @@ impl<'a, T> GraphTransaction<'a, T> {
                 return true;
             }
 
-            for edge_index in self
+            let node_edges = self
                 .get(*node_index)
-                .outgoing()
-                .iter()
-                .filter(|edge_index| !seen.contains(edge_index))
-            {
+                .map(|node| {
+                    node.outgoing()
+                        .iter()
+                        .filter(|edge_index| !seen.contains(edge_index))
+                        .collect()
+                })
+                .unwrap_or(Vec::new());
+
+            for edge_index in node_edges {
                 visited.push(edge_index);
             }
         }
@@ -242,22 +306,22 @@ impl<'a, T> GraphTransaction<'a, T> {
     /// Get a random node that can be used as a source node for a connection.
     /// A source node can be either an input or a vertex node.
     #[inline]
-    pub fn random_source_node(&self) -> &GraphNode<T> {
-        self.random_node_of_type(vec![NodeType::Input, NodeType::Vertex])
+    pub fn random_source_node(&self) -> Option<&GraphNode<T>> {
+        self.random_node_of_type(vec![NodeType::Input, NodeType::Vertex, NodeType::Edge])
     }
     /// Get a random node that can be used as a target node for a connection.
     /// A target node can be either an output or a vertex node.
     #[inline]
-    pub fn random_target_node(&self) -> &GraphNode<T> {
+    pub fn random_target_node(&self) -> Option<&GraphNode<T>> {
         self.random_node_of_type(vec![NodeType::Output, NodeType::Vertex, NodeType::Edge])
     }
     /// Helper functions to get a random node of the specified type. If no nodes of the specified
     /// type are found, the function will try to get a random node of a different type.
     /// If no nodes are found, the function will panic.
     #[inline]
-    fn random_node_of_type(&self, node_types: Vec<NodeType>) -> &GraphNode<T> {
+    fn random_node_of_type(&self, node_types: Vec<NodeType>) -> Option<&GraphNode<T>> {
         if node_types.is_empty() {
-            panic!("At least one node type must be specified.");
+            return None;
         }
 
         let gene_node_type_index = random_provider::random::<usize>() % node_types.len();
@@ -294,15 +358,7 @@ impl<'a, T> GraphTransaction<'a, T> {
         }
 
         let index = random_provider::random::<usize>() % genes.len();
-        genes.get(index).unwrap()
-    }
-}
-
-impl<'a, T> Index<usize> for GraphTransaction<'a, T> {
-    type Output = GraphNode<T>;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.graph[index]
+        genes.get(index).map(|x| *x)
     }
 }
 
