@@ -1,4 +1,5 @@
-use super::{Arity, Op};
+use super::Op;
+use crate::Arity;
 use radiate::random_provider;
 use std::sync::Arc;
 
@@ -179,7 +180,7 @@ impl Op<f32> {
             name: "w",
             arity: 1.into(),
             value: supplier(),
-            get_value: Arc::new(supplier),
+            supplier: Arc::new(supplier),
             modifier: Arc::new(modifier),
             operation: Arc::new(operation),
         }
@@ -363,7 +364,7 @@ impl Op<f32> {
 
     pub fn leaky_relu() -> Self {
         Op::Fn(
-            "leaky_relu",
+            "l_relu",
             Arity::Any,
             Arc::new(|inputs: &[f32]| ActivationOperation::LeakyReLU.apply(inputs)),
         )

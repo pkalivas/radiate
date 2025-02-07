@@ -5,12 +5,21 @@ const MAX_INDEX: i32 = 500;
 const MIN_SCORE: f32 = 0.01;
 
 fn main() {
-    random_provider::set_seed(100);
+    random_provider::set_seed(42);
 
-    let graph_codex = GraphBuilder::default()
-        .lstm(1, 1, Op::sigmoid())
-        .into_codex();
+    let values = vec![
+        (NodeType::Input, vec![Op::var(0)]),
+        (NodeType::Edge, vec![Op::weight(), Op::identity()]),
+        (NodeType::Vertex, ops::get_all_operations()),
+        (NodeType::Output, vec![Op::sigmoid()]),
+    ];
+
+    let graph_codex = GraphCodex::cyclic(1, 1, values);
     let regression = Regression::new(get_dataset(), Loss::MSE);
+
+    let encoding = graph_codex.encode();
+
+    println!("Initial: {:?}", encoding);
 
     let engine = GeneticEngine::from_codex(graph_codex)
         .minimizing()
@@ -19,12 +28,14 @@ fn main() {
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.1, 0.05),
-            GraphMutator::new(vec![
-                NodeMutate::Edge(0.05, true),
-                NodeMutate::Vertex(0.05, true),
-            ]),
+            GraphMutator::new(0.05, 0.05, true)
         ))
-        .fitness_fn(move |genotype: Graph<f32>| regression.eval(&genotype))
+        .fitness_fn(move |graph: Graph<Op<f32>>| {
+            if !graph.is_valid() {
+                println!("{:?}", graph);
+            }
+            regression.eval(&graph)
+        })
         .build();
 
     let result = engine.run(|ctx| {
@@ -35,7 +46,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<GraphChromosome<f32>, Graph<f32>>) {
+fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     let mut reducer = GraphEvaluator::new(&result.best);
     for sample in get_dataset().iter() {
         let output = reducer.eval_mut(sample.input());

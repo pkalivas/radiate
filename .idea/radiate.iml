@@ -37,6 +37,12 @@
       <sourceFolder url="file://$MODULE_DIR$/examples/simple-nn/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/examples/string-evolver/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/examples/xor-graph/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/graphs/iris-graph/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/graphs/regression-graph/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/graphs/simple-memory-graph/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/graphs/xor-graph/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/trees/iris-tree/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/trees/regression-tree/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/radiate/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>

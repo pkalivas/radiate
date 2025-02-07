@@ -46,8 +46,7 @@ impl MetricSet {
             m.add_value(value);
             m.add_duration(time);
         } else {
-            self.add(Metric::new_operations(name));
-            self.upsert_operations(name, value, time);
+            self.add(Metric::new_operations(name, value, time));
         }
     }
 
@@ -129,8 +128,8 @@ impl Metric {
         Metric::Distribution(name, Distribution::default())
     }
 
-    pub fn new_operations(name: &'static str) -> Self {
-        Metric::Operations(name, Statistic::default(), TimeStatistic::default())
+    pub fn new_operations(name: &'static str, val: f32, time: Duration) -> Self {
+        Metric::Operations(name, Statistic::new(val), TimeStatistic::new(time))
     }
 
     pub fn add_value(&mut self, value: f32) {

@@ -1,6 +1,5 @@
-use crate::{Chromosome, EngineCompoment};
-
 use super::{Crossover, Mutate};
+use crate::{Chromosome, EngineCompoment};
 
 pub enum AlterAction<C: Chromosome> {
     Mutate(Box<dyn Mutate<C>>),

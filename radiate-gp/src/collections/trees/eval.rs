@@ -1,13 +1,33 @@
-use crate::{Eval, TreeNode};
+use crate::{node::Node, Eval, TreeNode};
 
-use super::{ProgramTree, Tree};
+use super::Tree;
+
+/// Implements the `Reduce` trait for `Vec<Tree<T>>`. This is a wrapper around a `Vec<Tree<T>>`
+/// and allows for the evaluation of each `Tree` in the `Vec` with a single input.
+/// This is useful for things like `Ensemble` models where multiple models are used to make a prediction.
+///
+/// This is a simple implementation that just maps over the `Vec` and calls `eval` on each `Tree`.
+impl<T, V> Eval<[V], Vec<V>> for Vec<Tree<T>>
+where
+    T: Eval<[V], V>,
+    V: Clone,
+{
+    #[inline]
+    fn eval(&self, inputs: &[V]) -> Vec<V> {
+        self.iter().map(|tree| tree.eval(inputs)).collect()
+    }
+}
 
 /// Implements the `Reduce` trait for `Tree<Op<T>>`. All this really does is
 /// call the `reduce` method on the root node of the `Tree`. The real work is
 /// done in the `TreeNode` implementation below.
-impl<T: Clone> Eval<[T], T> for Tree<T> {
+impl<T, V> Eval<[V], V> for Tree<T>
+where
+    T: Eval<[V], V>,
+    V: Clone,
+{
     #[inline]
-    fn eval(&self, input: &[T]) -> T {
+    fn eval(&self, input: &[V]) -> V {
         self.root()
             .map(|root| root.eval(input))
             .unwrap_or_else(|| panic!("Tree has no root node."))
@@ -20,45 +40,28 @@ impl<T: Clone> Eval<[T], T> for Tree<T> {
 ///
 /// Because a `Tree` has only a single root node, this can only be used to return a single value.
 /// But, due to the structure and functionality of the `Op<T>`, we can have a multitude of `Inputs`
-impl<T: Clone> Eval<[T], T> for TreeNode<T> {
+impl<T, V> Eval<[V], V> for TreeNode<T>
+where
+    T: Eval<[V], V>,
+    V: Clone,
+{
     #[inline]
-    fn eval(&self, input: &[T]) -> T {
-        fn eval<T: Clone>(node: &TreeNode<T>, curr_input: &[T]) -> T {
-            if node.is_leaf() {
-                node.value().eval(curr_input)
-            } else {
-                if let Some(children) = node.children() {
-                    let mut inputs = Vec::with_capacity(children.len());
+    fn eval(&self, input: &[V]) -> V {
+        if self.is_leaf() {
+            self.value().eval(input)
+        } else {
+            if let Some(children) = self.children() {
+                let mut inputs = Vec::with_capacity(children.len());
 
-                    for child in children {
-                        inputs.push(eval(&child, curr_input));
-                    }
-
-                    return node.value().eval(&inputs);
+                for child in children {
+                    inputs.push(child.eval(input));
                 }
 
-                panic!("Node is not a leaf and has no children - this should never happen.");
+                return self.value().eval(&inputs);
             }
+
+            panic!("Node is not a leaf and has no children - this should never happen.");
         }
-
-        eval(self, input)
-    }
-}
-
-/// Implements the `Reduce` trait for `ProgramTree`. This is a wrapper around a `Vec<Tree<T>>`
-/// and allows for the evaluation of each `Tree` in the `Vec` with a single input.
-/// This is useful for things like `Ensemble` models where multiple models are used to make a prediction.
-///
-/// This is a simple implementation that just maps over the `Vec` and calls `eval` on each `Tree`.
-impl Eval<[f32], Vec<f32>> for ProgramTree {
-    #[inline]
-    fn eval(&self, inputs: &[f32]) -> Vec<f32> {
-        self.trees.as_ref().map_or(Vec::new(), |trees| {
-            trees
-                .iter()
-                .map(|tree| tree.root().unwrap().eval(inputs))
-                .collect()
-        })
     }
 }
 
@@ -72,8 +75,8 @@ mod tests {
     fn test_tree_reduce_simple() {
         let mut root = TreeNode::new(Op::add());
 
-        root.add_child(TreeNode::new(Op::value(1.0)));
-        root.add_child(TreeNode::new(Op::value(2.0)));
+        root.add_child(TreeNode::new(Op::constant(1.0)));
+        root.add_child(TreeNode::new(Op::constant(2.0)));
 
         let result = root.eval(&vec![]);
 
@@ -86,12 +89,12 @@ mod tests {
             TreeNode::new(Op::add())
                 .attach(
                     TreeNode::new(Op::mul())
-                        .attach(TreeNode::new(Op::value(2.0)))
-                        .attach(TreeNode::new(Op::value(3.0))),
+                        .attach(TreeNode::new(Op::constant(2.0)))
+                        .attach(TreeNode::new(Op::constant(3.0))),
                 )
                 .attach(
                     TreeNode::new(Op::add())
-                        .attach(TreeNode::new(Op::value(2.0)))
+                        .attach(TreeNode::new(Op::constant(2.0)))
                         .attach(TreeNode::new(Op::var(0))),
                 ),
         );

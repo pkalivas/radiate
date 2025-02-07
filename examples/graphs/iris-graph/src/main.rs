@@ -12,27 +12,35 @@ fn main() {
     let (train, test) = load_iris_dataset().shuffle().standardize().split(0.75);
 
     let regression = Regression::new(train.clone(), Loss::MSE);
-    let codex = GraphBuilder::default()
-        .acyclic(4, 4, Op::sigmoid())
-        .into_codex();
+
+    let ops = ops::get_all_operations();
+    let edges = vec![Op::identity(), Op::weight()];
+    let outputs = vec![Op::sigmoid()];
+
+    let store = vec![
+        (NodeType::Input, (0..4).map(Op::var).collect()),
+        (NodeType::Edge, edges.clone()),
+        (NodeType::Vertex, ops.clone()),
+        (NodeType::Output, outputs.clone()),
+    ];
+
+    let codex = GraphCodex::asyclic(4, 4, store);
 
     let engine = GeneticEngine::from_codex(codex)
         .minimizing()
         .num_threads(10)
+        .offspring_fraction(0.98)
         .offspring_selector(BoltzmannSelector::new(4.0))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.02, 0.05),
-            GraphMutator::new(vec![
-                NodeMutate::Edge(0.01, false),
-                NodeMutate::Vertex(0.01, false),
-            ]),
+            GraphMutator::new(0.008, 0.002, false)
         ))
-        .fitness_fn(move |graph: Graph<f32>| regression.eval(&graph))
+        .fitness_fn(move |graph: Graph<Op<f32>>| regression.eval(&graph))
         .build();
 
     let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32());
+        println!("[ {:?} ]: {:?}", ctx.index, ctx.score());
         ctx.score().as_f32() < MIN_SCORE || ctx.seconds() > MAX_SECONDS
     });
 
@@ -42,7 +50,7 @@ fn main() {
 fn display(
     train: &DataSet,
     test: &DataSet,
-    result: &EngineContext<GraphChromosome<f32>, Graph<f32>>,
+    result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>,
 ) {
     let mut reducer = GraphEvaluator::new(&result.best);
 

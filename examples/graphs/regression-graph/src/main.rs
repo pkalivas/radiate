@@ -7,10 +7,14 @@ const MAX_SECONDS: f64 = 5.0;
 fn main() {
     random_provider::set_seed(1000);
 
-    let graph_codex = GraphBuilder::default()
-        .set_vertecies(vec![Op::add(), Op::sub(), Op::mul()])
-        .acyclic(1, 1, Op::linear())
-        .into_codex();
+    let values = vec![
+        (NodeType::Input, vec![Op::var(0)]),
+        (NodeType::Edge, vec![Op::weight()]),
+        (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::linear()]),
+        (NodeType::Output, vec![Op::linear()]),
+    ];
+
+    let graph_codex = GraphCodex::asyclic(1, 1, values);
 
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
@@ -20,12 +24,9 @@ fn main() {
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
-            GraphMutator::new(vec![
-                NodeMutate::Edge(0.03, false),
-                NodeMutate::Vertex(0.1, false),
-            ]),
+            GraphMutator::new(0.1, 0.1, false)
         ))
-        .fitness_fn(move |genotype: Graph<f32>| regression.eval(&genotype))
+        .fitness_fn(move |genotype: Graph<Op<f32>>| regression.eval(&genotype))
         .build();
 
     let result = engine.run(|ctx| {
@@ -36,7 +37,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<GraphChromosome<f32>, Graph<f32>>) {
+fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     let mut regression_accuracy = 0.0;
     let mut total = 0.0;
 

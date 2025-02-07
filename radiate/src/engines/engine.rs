@@ -2,7 +2,7 @@ use super::codexes::Codex;
 use super::context::EngineContext;
 use super::genome::phenotype::Phenotype;
 use super::thread_pool::ThreadPool;
-use super::{AlterAction, MetricSet, Problem};
+use super::{AlterAction, FilterStrategy, MetricSet, Problem};
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
 use crate::engines::objectives::Score;
@@ -82,14 +82,21 @@ where
     /// are represented in the population. Because the `Codex` is always needed, this
     /// is a convenience method that allows users to create a `GeneticEngineParams` instance
     /// which will then be 'built' resulting in a `GeneticEngine` instance.
+    ///
+    /// **Note** with this method, the `Codex` is supplied to the `GeneticEngineParams` and thus
+    /// the `GeneticEngineParams` also will need a `FitnessFn` to be supplied before building.
     pub fn from_codex(codex: impl Codex<C, T> + 'static) -> GeneticEngineParams<C, T> {
         GeneticEngineParams::new().codex(codex)
     }
 
     /// Initializes a `GeneticEngineParams` using the provided problem, which defines the fitness function
-    /// used to evaluate the individuals in the population. Because the `Problem` is always needed, this
-    /// is a convenience method that allows users to create a `GeneticEngineParams` instance
-    /// which will then be 'built' resulting in a `GeneticEngine` instance.
+    /// used to evaluate the individuals in the population. Unlike the above method, this method
+    /// does not require a `Codex` to be supplied, as the `Problem` will provide the necessary
+    /// functionality. So in a sense, the supplying a `Problem` is a method that lets the
+    /// user do a little more work up front, but then have less to do when building the `GeneticEngine`.
+    ///
+    /// Similar to the `from_codex` method, this is a convenience method that allows users
+    /// to create a `GeneticEngineParams` instance.
     pub fn from_problem(problem: impl Problem<C, T> + 'static) -> GeneticEngineParams<C, T> {
         GeneticEngineParams::new().problem(problem)
     }
@@ -163,12 +170,18 @@ where
         objective.sort(&mut handle.population);
     }
 
-    /// Selects the individuals that will survive to the next generation. The number of survivors
-    /// is determined by the population size and the offspring fraction specified in the genetic
-    /// engine parameters. The survivors are selected using the survivor selector specified in the
-    /// genetic engine parameters, which is typically a selection algorithm like tournament selection
+    /// the `select_survivors` method selects the individuals that will survive
+    /// to the next generation. The number of survivors is determined by the population size and the
+    /// offspring fraction specified in the genetic engine parameters. The survivors
+    /// are selected using the survivor selector specified in the genetic engine parameters,
+    /// which is typically a selection algorithm like tournament selection
     /// or roulette wheel selection. For example, if the population size is 100 and the offspring
     /// fraction is 0.8, then 20 individuals will be selected as survivors.
+    ///
+    /// The reasoning behind this is to ensure that a subset of the population is retained
+    /// to the next generation, while the rest of the population is replaced with new individuals created
+    /// through crossover and mutation. By selecting a subset of the population to survive, the genetic algorithm
+    /// can maintain some of the best solutions found so far while also introducing new genetic material/genetic diversity.
     ///
     /// This method returns a new population containing only the selected survivors.
     fn select_survivors(&self, ctx: &mut EngineContext<C, T>) -> Population<C> {
@@ -184,7 +197,7 @@ where
         result
     }
 
-    /// Selects the offspring that will be used to create the next generation. The number of offspring
+    /// Create the offspring that will be used to create the next generation. The number of offspring
     /// is determined by the population size and the offspring fraction specified in the genetic
     /// engine parameters. The offspring are selected using the offspring selector specified in the
     /// genetic engine parameters, which, like the survivor selector, is typically a selection algorithm
@@ -192,9 +205,12 @@ where
     /// and the offspring fraction is 0.8, then 80 individuals will be selected as offspring which will
     /// be used to create the next generation through crossover and mutation.
     ///
-    /// Alters the offspring population using the alterers specified in the genetic engine parameters.
-    /// The alterer in this case is going to be a ```CompositeAlterer``` and is responsible for applying
-    /// the provided mutation and crossover operations to the offspring population.
+    /// Once the parents are selected through the offspring selector, the `create_offspring` method
+    /// will apply the mutation and crossover operations specified during engine creation to the
+    /// selected parents, creating a new population of `Phenotypes` with the same size as the
+    /// `offspring_fraction` specifies. This process introduces new genetic material into the population,
+    /// which allows the genetic algorithm explore new solutions in the problem space and (hopefully)
+    /// avoid getting stuck in local minima.
     fn create_offspring(&self, ctx: &mut EngineContext<C, T>) -> Population<C> {
         let selector = self.offspring_selector();
         let count = self.offspring_count();
@@ -228,6 +244,13 @@ where
     /// if an individual is found to be invalid (i.e., its genotype is not valid, provided by the `valid` trait),
     /// it is replaced with a new individual. This method ensures that the population remains
     /// healthy and that only valid individuals are allowed to reproduce or survive to the next generation.
+    ///
+    /// The method in which a new individual is created is determined by the `filter_strategy`
+    /// parameter in the genetic engine parameters and is either `FilterStrategy::Encode` or
+    /// `FilterStrategy::PopulationSample`. If the `FilterStrategy` is `FilterStrategy::Encode`, then a new individual
+    /// is created using the `encode` method of the `Problem` trait, while if the `FilterStrategy`
+    /// is `FilterStrategy::PopulationSample`, then a new individual is created by randomly selecting
+    /// an individual from the population.
     fn filter(&self, context: &mut EngineContext<C, T>) {
         let max_age = self.max_age();
         let problem = self.problem();
@@ -241,12 +264,25 @@ where
         for i in 0..population.len() {
             let phenotype = &population[i];
 
+            let mut removed = false;
             if phenotype.age(generation) > max_age {
-                population[i] = Phenotype::from_genotype(problem.encode(), generation);
+                removed = true;
                 age_count += 1_f32;
             } else if !phenotype.genotype().is_valid() {
-                population[i] = Phenotype::from_genotype(problem.encode(), generation);
+                removed = true;
                 invalid_count += 1_f32;
+            }
+
+            if removed {
+                match self.filter_strategy() {
+                    FilterStrategy::Encode => {
+                        population[i] = Phenotype::from_genotype(problem.encode(), generation);
+                    }
+                    FilterStrategy::PopulationSample => {
+                        let idx = rand::random::<usize>() % population.len();
+                        population[i] = population[idx].clone();
+                    }
+                }
             }
         }
 
@@ -339,9 +375,14 @@ where
         let mut score_metric = Metric::new_value(metric_names::SCORE);
         let mut size_values = Vec::with_capacity(output.population.len());
         let mut unique = Vec::with_capacity(output.population.len());
+        let mut equal_members = 0;
 
         for i in 0..output.population.len() {
             let phenotype = &output.population[i];
+
+            if i > 0 && phenotype.genotype() == output.population[i - 1].genotype() {
+                equal_members += 1;
+            }
 
             let age = phenotype.age(output.index);
             let score = phenotype.score().unwrap();
@@ -359,12 +400,15 @@ where
 
         unique.dedup();
 
-        let mut unique_metric = Metric::new_value(metric_names::UNIQUE);
+        let mut unique_metric = Metric::new_value(metric_names::UNIQUE_SCORES);
         let mut size_metric = Metric::new_distribution(metric_names::GENOME_SIZE);
+        let mut equal_metric = Metric::new_value(metric_names::NUM_EQUAL);
 
         unique_metric.add_value(unique.len() as f32);
         size_metric.add_sequence(&size_values);
+        equal_metric.add_value(equal_members as f32);
 
+        output.metrics.upsert(equal_metric);
         output.metrics.upsert(age_metric);
         output.metrics.upsert(score_metric);
         output.metrics.upsert(unique_metric);
@@ -383,7 +427,7 @@ where
         &self.params.alterers
     }
 
-    fn problem(&self) -> Arc<Box<dyn Problem<C, T>>> {
+    fn problem(&self) -> Arc<dyn Problem<C, T>> {
         Arc::clone(self.params.problem.as_ref().unwrap())
     }
 
@@ -409,6 +453,10 @@ where
 
     fn thread_pool(&self) -> &ThreadPool {
         &self.params.thread_pool
+    }
+
+    fn filter_strategy(&self) -> &FilterStrategy {
+        &self.params.filter_strategy
     }
 
     fn start(&self) -> EngineContext<C, T> {

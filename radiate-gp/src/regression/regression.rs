@@ -1,39 +1,92 @@
 use super::{DataSet, Loss};
-use crate::{trees::ProgramTree, Eval, EvalMut, Graph, GraphEvaluator, Tree};
+use crate::{Eval, EvalMut, Graph, GraphEvaluator, Op, Tree};
 
 pub struct Regression {
     data_set: DataSet,
-    loss_function: Loss,
+    loss: Loss,
 }
 
 impl Regression {
-    pub fn new(sample_set: DataSet, loss_function: Loss) -> Self {
+    pub fn new(sample_set: DataSet, loss: Loss) -> Self {
         Regression {
             data_set: sample_set,
-            loss_function,
+            loss,
         }
     }
 }
 
-impl Eval<Graph<f32>, f32> for Regression {
-    fn eval(&self, graph: &Graph<f32>) -> f32 {
+impl Eval<Graph<Op<f32>>, f32> for Regression {
+    fn eval(&self, graph: &Graph<Op<f32>>) -> f32 {
         let mut evaluator = GraphEvaluator::new(graph);
 
-        self.loss_function
+        self.loss
             .calculate(&self.data_set, &mut |input| evaluator.eval_mut(input))
     }
 }
 
-impl Eval<Tree<f32>, f32> for Regression {
-    fn eval(&self, tree: &Tree<f32>) -> f32 {
-        self.loss_function
+impl Eval<Tree<Op<f32>>, f32> for Regression {
+    fn eval(&self, tree: &Tree<Op<f32>>) -> f32 {
+        self.loss
             .calculate(&self.data_set, &mut |input| vec![tree.eval(input)])
     }
 }
 
-impl Eval<ProgramTree, f32> for Regression {
-    fn eval(&self, program: &ProgramTree) -> f32 {
-        self.loss_function
+impl Eval<Vec<Tree<Op<f32>>>, f32> for Regression {
+    fn eval(&self, program: &Vec<Tree<Op<f32>>>) -> f32 {
+        self.loss
             .calculate(&self.data_set, &mut |input| program.eval(input))
     }
 }
+
+// use std::{marker::PhantomData, sync::Arc};
+
+// pub struct RegressionProblem<C, T, G>
+// where
+//     C: Chromosome,
+//     T: Clone,
+//     G: Codex<C, T>,
+// {
+//     data_set: DataSet,
+//     loss: Loss,
+//     codex: Arc<G>,
+//     _marker: PhantomData<C>,
+//     _marker2: PhantomData<T>,
+// }
+
+// impl<C, T, G> RegressionProblem<C, T, G>
+// where
+//     C: Chromosome,
+//     T: Clone,
+//     G: Codex<C, T>,
+// {
+//     pub fn new(data_set: DataSet, loss: Loss, codex: G) -> Self {
+//         RegressionProblem {
+//             data_set,
+//             loss,
+//             codex: Arc::new(codex),
+//             _marker: PhantomData,
+//             _marker2: PhantomData,
+//         }
+//     }
+// }
+
+// impl Problem<GraphChromosome<Op<f32>>, Graph<Op<f32>>>
+//     for RegressionProblem<GraphChromosome<Op<f32>>, Graph<Op<f32>>, GraphCodex<Op<f32>>>
+// {
+//     fn encode(&self) -> Genotype<GraphChromosome<Op<f32>>> {
+//         self.codex.encode()
+//     }
+
+//     fn decode(&self, genotype: &Genotype<GraphChromosome<Op<f32>>>) -> Graph<Op<f32>> {
+//         self.codex.decode(genotype)
+//     }
+
+//     fn eval(&self, individual: &Genotype<GraphChromosome<Op<f32>>>) -> Score {
+//         let chrome = individual.iter().next().unwrap();
+//         let mut evaluator = GraphEvaluator::new(&chrome);
+
+//         self.loss
+//             .calculate(&self.data_set, &mut |input| evaluator.eval_mut(input))
+//             .into()
+//     }
+// }

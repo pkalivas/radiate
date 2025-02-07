@@ -16,10 +16,10 @@ impl<'a, G: AsRef<[GraphNode<T>]>, T> GraphIterator<'a, T> for G {
 /// that allows for recurrent connections. This iterator is used by the `GraphReducer` to evaluate
 /// the nodes in a `Graph` in the correct order.
 pub struct GraphTopologicalIterator<'a, T> {
-    pub graph: &'a [GraphNode<T>],
-    pub completed: Vec<bool>,
-    pub index_queue: VecDeque<usize>,
-    pub pending_index: usize,
+    graph: &'a [GraphNode<T>],
+    completed: Vec<bool>,
+    index_queue: VecDeque<usize>,
+    pending_index: usize,
 }
 
 impl<'a, T> GraphTopologicalIterator<'a, T> {
@@ -28,7 +28,7 @@ impl<'a, T> GraphTopologicalIterator<'a, T> {
     /// # Arguments
     /// - `graph`: A reference to the `Graph` to iterate over.
     pub fn new(graph: &'a [GraphNode<T>]) -> Self {
-        Self {
+        GraphTopologicalIterator {
             graph,
             completed: vec![false; graph.len()],
             index_queue: VecDeque::new(),

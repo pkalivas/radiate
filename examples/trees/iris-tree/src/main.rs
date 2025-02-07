@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use radiate::*;
 use radiate_gp::*;
-use trees::{ProgramTree, ProgramTreeCodex};
+use trees::TreeCodex;
 
 const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
@@ -12,17 +12,20 @@ fn main() {
 
     let (train, test) = load_iris_dataset().shuffle().standardize().split(0.75);
 
+    let store = vec![
+        (NodeType::Root, vec![Op::sigmoid()]),
+        (NodeType::Vertex, ops::get_math_operations()),
+        (NodeType::Leaf, (0..4).map(|i| Op::var(i)).collect()),
+    ];
+
     let regression = Regression::new(train.clone(), Loss::MSE);
-    let codex = ProgramTreeCodex::new(3, 4)
-        .constraint(|node| node.size() < 50)
-        .gates(ops::get_math_operations())
-        .leafs((0..4).map(|i| Op::var(i)).collect());
+    let codex = TreeCodex::multi_root(3, 4, store).constraint(|node| node.size() < 40);
 
     let engine = GeneticEngine::from_codex(codex)
         .minimizing()
         .num_threads(10)
         .alter(alters!(TreeCrossover::new(0.5), TreeMutator::new(0.03)))
-        .fitness_fn(move |tree: ProgramTree| regression.eval(&tree))
+        .fitness_fn(move |tree: Vec<Tree<Op<f32>>>| regression.eval(&tree))
         .build();
 
     let result = engine.run(|ctx| {
@@ -36,7 +39,7 @@ fn main() {
 fn display(
     train: &DataSet,
     test: &DataSet,
-    result: &EngineContext<TreeChromosome<f32>, ProgramTree>,
+    result: &EngineContext<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>,
 ) {
     let train_acc = Accuracy::new("train", &train, Loss::MSE);
     let test_acc = Accuracy::new("test", &test, Loss::MSE);

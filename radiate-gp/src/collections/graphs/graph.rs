@@ -1,12 +1,11 @@
-use std::collections::{HashSet, VecDeque};
-use std::fmt::Debug;
-use std::ops::{Index, IndexMut};
-
 use crate::collections::graphs::GraphTransaction;
 use crate::collections::{Direction, GraphNode};
-use crate::{NodeType, Op};
+use crate::NodeType;
+use radiate::Valid;
+use std::collections::{HashSet, VecDeque};
+use std::fmt::Debug;
 
-use radiate::{random_provider, Valid};
+use super::transaction::TransactionResult;
 
 /// A 'Graph' is simply a 'Vec' of 'GraphNode's.
 ///
@@ -45,8 +44,8 @@ impl<T> Graph<T> {
         self.nodes.push(node);
     }
 
-    pub fn insert(&mut self, node_type: NodeType, val: impl Into<Op<T>>) -> usize {
-        let node = GraphNode::new(self.len(), node_type, val.into());
+    pub fn insert(&mut self, node_type: NodeType, val: T) -> usize {
+        let node = GraphNode::new(self.len(), node_type, val);
         self.push(node);
         self.len() - 1
     }
@@ -67,13 +66,13 @@ impl<T> Graph<T> {
     }
 
     /// Returns a mutable reference to the node at the specified index.
-    pub fn get_mut(&mut self, index: usize) -> &mut GraphNode<T> {
-        self.nodes.get_mut(index).unwrap()
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut GraphNode<T>> {
+        self.nodes.get_mut(index)
     }
 
     /// Returns a reference to the node at the specified index.
-    pub fn get(&self, index: usize) -> &GraphNode<T> {
-        self.nodes.get(index).unwrap()
+    pub fn get(&self, index: usize) -> Option<&GraphNode<T>> {
+        self.nodes.get(index)
     }
 
     /// iterates over the nodes in the graph. The nodes are returned in the order they
@@ -146,12 +145,14 @@ impl<T> Graph<T> {
             let node_cycles = self.get_cycles(idx);
 
             if node_cycles.is_empty() {
-                let node = self.get_mut(idx);
-                node.set_direction(Direction::Forward);
+                if let Some(node) = self.get_mut(idx) {
+                    node.set_direction(Direction::Forward);
+                }
             } else {
                 for cycle_idx in node_cycles {
-                    let node = self.get_mut(cycle_idx);
-                    node.set_direction(Direction::Backward);
+                    if let Some(node) = self.get_mut(cycle_idx) {
+                        node.set_direction(Direction::Backward);
+                    }
                 }
             }
         }
@@ -164,18 +165,14 @@ impl<T> Graph<T> {
     /// # Arguments
     ///  - mutation: A closure that takes a mutable reference to a 'GraphTransaction' and returns a 'bool'.
     #[inline]
-    pub fn try_modify<F>(&mut self, mutation: F) -> bool
+    pub fn try_modify<F>(&mut self, mutation: F) -> TransactionResult<T>
     where
-        F: FnOnce(&mut GraphTransaction<T>) -> bool,
+        F: FnOnce(&mut GraphTransaction<T>),
         T: Clone + Default + PartialEq,
     {
         let mut transaction = GraphTransaction::new(self);
-        if !mutation(&mut transaction) {
-            transaction.rollback();
-            return false;
-        }
-
-        true
+        mutation(&mut transaction);
+        transaction.commit()
     }
 }
 
@@ -190,156 +187,35 @@ impl<T> Graph<T> {
     pub fn get_cycles(&self, index: usize) -> Vec<usize> {
         let mut path = Vec::new();
         let mut seen = HashSet::new();
-        let mut current = self[index]
-            .incoming()
-            .iter()
-            .cloned()
-            .collect::<VecDeque<usize>>();
+        let mut current = self
+            .get(index)
+            .map(|node| node.outgoing().iter().cloned().collect::<VecDeque<usize>>())
+            .unwrap_or_default();
 
         while !current.is_empty() {
             let current_index = current.pop_front().unwrap();
-            let current_node = &self[current_index];
+            if let Some(current_node) = self.get(current_index) {
+                if seen.contains(&current_index) {
+                    continue;
+                }
 
-            if seen.contains(&current_index) {
-                continue;
-            }
+                if current_index == index {
+                    path.push(current_index);
+                    return path;
+                }
 
-            if current_index == index {
-                return path;
-            }
+                seen.insert(current_index);
 
-            seen.insert(current_index);
-
-            if !current_node.incoming().is_empty() {
-                path.push(current_index);
-                for outgoing in current_node.incoming().iter() {
-                    current.push_back(*outgoing);
+                if !current_node.outgoing().is_empty() {
+                    path.push(current_index);
+                    for outgoing in current_node.outgoing().iter() {
+                        current.push_back(*outgoing);
+                    }
                 }
             }
         }
 
         Vec::new()
-    }
-    /// Check if two nodes can be connected. This is determined by a few rules:
-    /// - The source node must have outgoing connections or be recurrent.
-    /// - The source and target nodes must not be edges.
-    /// - The source and target nodes must not be the same.
-    /// - The connection must not create a cycle if it is not recurrent.
-    ///
-    /// If all these conditions are met, the function will return true. Otherwise, it will return false.
-    ///
-    /// # Arguments
-    /// - source: The index of the source node.
-    /// - target: The index of the target node.
-    /// - recurrent: A flag that indicates if the desired connection is recurrent.
-    #[inline]
-    pub fn can_connect(&self, source: usize, target: usize, recurrent: bool) -> bool {
-        let source_node = &self[source];
-        let target_node = &self[target];
-
-        if (source_node.outgoing().is_empty() || source_node.is_recurrent()) && !recurrent {
-            return false;
-        }
-
-        let would_create_cycle = recurrent || !self.would_create_cycle(source, target);
-        let nodes_are_edges =
-            source_node.node_type() == NodeType::Edge || target_node.node_type() == NodeType::Edge;
-
-        would_create_cycle && !nodes_are_edges && source != target
-    }
-    /// Check if connecting the source node to the target node would create a cycle.
-    ///
-    /// # Arguments
-    /// - source: The index of the source node.
-    /// - target: The index of the target node.
-    ///
-    #[inline]
-    pub fn would_create_cycle(&self, source: usize, target: usize) -> bool {
-        let mut seen = HashSet::new();
-        let mut visited = self.get(target).outgoing().iter().collect::<Vec<&usize>>();
-
-        while !visited.is_empty() {
-            let node_index = visited.pop().unwrap();
-
-            seen.insert(*node_index);
-
-            if *node_index == source {
-                return true;
-            }
-
-            for edge_index in self
-                .get(*node_index)
-                .outgoing()
-                .iter()
-                .filter(|edge_index| !seen.contains(edge_index))
-            {
-                visited.push(edge_index);
-            }
-        }
-
-        false
-    }
-    /// The below functinos are used to get random nodes from the graph. These are useful for
-    /// creating connections between nodes. Neither of these functions will return an edge node.
-    /// This is because edge nodes are not valid source or target nodes for connections as they
-    /// they only allow one incoming and one outgoing connection, thus they can't be used to create
-    /// new connections. Instread, edge nodes are used to represent the weights of the connections
-    ///
-    /// Get a random node that can be used as a source node for a connection.
-    /// A source node can be either an input or a vertex node.
-    #[inline]
-    pub fn random_source_node(&self) -> &GraphNode<T> {
-        self.random_node_of_type(vec![NodeType::Input, NodeType::Vertex, NodeType::Edge])
-    }
-    /// Get a random node that can be used as a target node for a connection.
-    /// A target node can be either an output or a vertex node.
-    #[inline]
-    pub fn random_target_node(&self) -> &GraphNode<T> {
-        self.random_node_of_type(vec![NodeType::Output, NodeType::Vertex])
-    }
-    /// Helper functions to get a random node of the specified type. If no nodes of the specified
-    /// type are found, the function will try to get a random node of a different type.
-    /// If no nodes are found, the function will panic.
-    #[inline]
-    fn random_node_of_type(&self, node_types: Vec<NodeType>) -> &GraphNode<T> {
-        if node_types.is_empty() {
-            panic!("At least one node type must be specified.");
-        }
-
-        let gene_node_type_index = random_provider::random::<usize>() % node_types.len();
-        let gene_node_type = node_types.get(gene_node_type_index).unwrap();
-
-        let genes = match gene_node_type {
-            NodeType::Input => self
-                .iter()
-                .filter(|node| node.node_type() == NodeType::Input)
-                .collect::<Vec<&GraphNode<T>>>(),
-            NodeType::Output => self
-                .iter()
-                .filter(|node| node.node_type() == NodeType::Output)
-                .collect::<Vec<&GraphNode<T>>>(),
-            NodeType::Vertex => self
-                .iter()
-                .filter(|node| node.node_type() == NodeType::Vertex)
-                .collect::<Vec<&GraphNode<T>>>(),
-            NodeType::Edge => self
-                .iter()
-                .filter(|node| node.node_type() == NodeType::Edge)
-                .collect::<Vec<&GraphNode<T>>>(),
-        };
-
-        if genes.is_empty() {
-            return self.random_node_of_type(
-                node_types
-                    .iter()
-                    .filter(|nt| *nt != gene_node_type)
-                    .cloned()
-                    .collect(),
-            );
-        }
-
-        let index = random_provider::random::<usize>() % genes.len();
-        genes.get(index).unwrap()
     }
 }
 
@@ -359,20 +235,6 @@ impl<T> AsRef<[GraphNode<T>]> for Graph<T> {
 impl<T> AsMut<[GraphNode<T>]> for Graph<T> {
     fn as_mut(&mut self) -> &mut [GraphNode<T>] {
         &mut self.nodes
-    }
-}
-
-impl<T> Index<usize> for Graph<T> {
-    type Output = GraphNode<T>;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        self.nodes.get(index).expect("Index out of bounds.")
-    }
-}
-
-impl<T> IndexMut<usize> for Graph<T> {
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        self.nodes.get_mut(index).expect("Index out of bounds.")
     }
 }
 

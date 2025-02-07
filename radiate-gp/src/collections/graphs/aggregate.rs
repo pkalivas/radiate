@@ -1,4 +1,7 @@
-use crate::collections::{Builder, Graph, GraphNode, NodeType};
+use crate::{
+    collections::{Graph, GraphNode, NodeType},
+    node::Node,
+};
 use std::collections::BTreeMap;
 use uuid::Uuid;
 
@@ -42,6 +45,31 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
             node_order: BTreeMap::new(),
             relationships: Vec::new(),
         }
+    }
+
+    pub fn build(&self) -> Graph<T> {
+        let mut new_nodes = Vec::new();
+        let mut node_id_index_map = BTreeMap::new();
+
+        for (index, (_, node_id)) in self.node_order.iter().enumerate() {
+            let node = self.nodes.get(node_id).unwrap();
+            let new_node =
+                GraphNode::with_arity(index, node.node_type(), node.value().clone(), node.arity());
+
+            new_nodes.push(new_node);
+            node_id_index_map.insert(node_id, index);
+        }
+
+        let mut new_collection = Graph::new(new_nodes);
+        for rel in self.relationships.iter() {
+            let source_idx = node_id_index_map.get(&rel.source_id).unwrap();
+            let target_idx = node_id_index_map.get(&rel.target_id).unwrap();
+
+            new_collection.attach(*source_idx, *target_idx);
+        }
+
+        new_collection.set_cycles(vec![]);
+        new_collection
     }
 
     pub fn one_to_one<G: AsRef<[GraphNode<T>]>>(mut self, one: &'a G, two: &'a G) -> Self {
@@ -293,33 +321,5 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
             .filter(|(_, node)| node.outgoing().is_empty())
             .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
             .collect::<Vec<&GraphNode<T>>>()
-    }
-}
-
-impl<T: Clone> Builder for GraphAggregate<'_, T> {
-    type Output = Graph<T>;
-
-    fn build(&self) -> Self::Output {
-        let mut new_nodes = Vec::new();
-        let mut node_id_index_map = BTreeMap::new();
-
-        for (index, (_, node_id)) in self.node_order.iter().enumerate() {
-            let node = self.nodes.get(node_id).unwrap();
-            let new_node = GraphNode::new(index, node.node_type(), node.value().clone());
-
-            new_nodes.push(new_node);
-            node_id_index_map.insert(node_id, index);
-        }
-
-        let mut new_collection = Graph::new(new_nodes);
-        for rel in self.relationships.iter() {
-            let source_idx = node_id_index_map.get(&rel.source_id).unwrap();
-            let target_idx = node_id_index_map.get(&rel.target_id).unwrap();
-
-            new_collection.attach(*source_idx, *target_idx);
-        }
-
-        new_collection.set_cycles(vec![]);
-        new_collection
     }
 }

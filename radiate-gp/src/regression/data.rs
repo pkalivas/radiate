@@ -18,10 +18,6 @@ impl Row {
     pub fn output(&self) -> &Vec<f32> {
         &self.output
     }
-
-    pub fn pair(&self) -> (&Vec<f32>, &Vec<f32>) {
-        (&self.input, &self.output)
-    }
 }
 
 #[derive(Default, Clone)]
@@ -49,6 +45,14 @@ impl DataSet {
     pub fn shuffle(mut self) -> Self {
         random_provider::shuffle(&mut self.rows);
         self
+    }
+
+    pub fn features(&self) -> Vec<Vec<f32>> {
+        self.rows.iter().map(|row| row.input.clone()).collect()
+    }
+
+    pub fn labels(&self) -> Vec<Vec<f32>> {
+        self.rows.iter().map(|row| row.output.clone()).collect()
     }
 
     pub fn split(self, ratio: f32) -> (Self, Self) {

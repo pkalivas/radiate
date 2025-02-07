@@ -1,40 +1,8 @@
+use crate::{Arity, Eval, Factory, NodeValue, TreeNode};
 use std::{
     fmt::{Debug, Display},
-    ops::Deref,
     sync::Arc,
 };
-
-use crate::{Eval, Factory};
-
-/// Arity is a way to describe how many inputs an operation expects.
-/// It can be zero, a specific number, or any number.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
-pub enum Arity {
-    Zero,
-    Exact(usize),
-    Any,
-}
-
-impl From<usize> for Arity {
-    fn from(value: usize) -> Self {
-        match value {
-            0 => Arity::Zero,
-            n => Arity::Exact(n),
-        }
-    }
-}
-
-impl Deref for Arity {
-    type Target = usize;
-
-    fn deref(&self) -> &Self::Target {
-        match self {
-            Arity::Zero => &0,
-            Arity::Exact(n) => n,
-            Arity::Any => &0,
-        }
-    }
-}
 
 /// A generic operation type that can represent several kinds of “ops”.
 pub enum Op<T> {
@@ -72,14 +40,18 @@ pub enum Op<T> {
         name: &'static str,
         arity: Arity,
         value: T,
-        get_value: Arc<dyn Fn() -> T>,
+        supplier: Arc<dyn Fn() -> T>,
         modifier: Arc<dyn Fn(&T) -> T>,
         operation: Arc<dyn Fn(&[T], &T) -> T>,
     },
-    /// 5) A 'Value' operation that can be used to represent a constant value.
-    ///     This is a convenience method for creating a `Const` operation with any given
-    ///     value and arity
-    Value(T, Arity),
+    /// 5) A 'Value' operation that can be used as a 'stateful' constant:
+    ///
+    /// # Arguments
+    /// - `&'static str` name
+    /// - `Arity` of how many inputs it might read
+    /// - Current value of type `T`
+    /// - An `Arc<dyn Fn(&[T], &T) -> T>` for updating or combining inputs & old value -> new value
+    Value(&'static str, Arity, T, Arc<dyn Fn(&[T], &T) -> T>),
 }
 
 /// Base functionality for operations.
@@ -90,7 +62,7 @@ impl<T> Op<T> {
             Op::Var(name, _) => name,
             Op::Const(name, _) => name,
             Op::MutableConst { name, .. } => name,
-            Op::Value(_, _) => "Value",
+            Op::Value(name, _, _, _) => name,
         }
     }
 
@@ -100,11 +72,11 @@ impl<T> Op<T> {
             Op::Var(_, _) => Arity::Zero,
             Op::Const(_, _) => Arity::Zero,
             Op::MutableConst { arity, .. } => *arity,
-            Op::Value(_, arity) => *arity,
+            Op::Value(_, arity, _, _) => *arity,
         }
     }
 
-    pub fn value(value: T) -> Self
+    pub fn constant(value: T) -> Self
     where
         T: Clone + Display,
     {
@@ -112,42 +84,8 @@ impl<T> Op<T> {
         Op::Const(name, value)
     }
 
-    pub fn constant(name: &'static str, value: T) -> Self {
+    pub fn named_constant(name: &'static str, value: T) -> Self {
         Op::Const(name, value)
-    }
-
-    pub fn gt() -> Self
-    where
-        T: Clone + PartialEq + PartialOrd,
-    {
-        Op::Fn(
-            ">",
-            2.into(),
-            Arc::new(|inputs: &[T]| {
-                if inputs[0] > inputs[1] {
-                    inputs[0].clone()
-                } else {
-                    inputs[1].clone()
-                }
-            }),
-        )
-    }
-
-    pub fn lt() -> Self
-    where
-        T: Clone + PartialEq + PartialOrd,
-    {
-        Op::Fn(
-            "<",
-            2.into(),
-            Arc::new(|inputs: &[T]| {
-                if inputs[0] < inputs[1] {
-                    inputs[0].clone()
-                } else {
-                    inputs[1].clone()
-                }
-            }),
-        )
     }
 
     pub fn identity() -> Self
@@ -155,7 +93,7 @@ impl<T> Op<T> {
         T: Clone,
     {
         Op::Fn(
-            "Identity",
+            "identity",
             1.into(),
             Arc::new(|inputs: &[T]| inputs[0].clone()),
         )
@@ -165,13 +103,29 @@ impl<T> Op<T> {
     where
         T: Clone,
     {
-        let name = Box::leak(Box::new(format!("var_{}", index)));
+        let name = Box::leak(Box::new(format!("{}", index)));
         Op::Var(name, index)
     }
 }
 
 unsafe impl Send for Op<f32> {}
 unsafe impl Sync for Op<f32> {}
+
+impl<T> Into<NodeValue<Op<T>>> for Op<T>
+where
+    T: Clone,
+{
+    fn into(self) -> NodeValue<Op<T>> {
+        let arity = self.arity();
+        NodeValue::Bounded(self, arity)
+    }
+}
+
+impl<T> Into<TreeNode<Op<T>>> for Op<T> {
+    fn into(self) -> TreeNode<Op<T>> {
+        TreeNode::new(self)
+    }
+}
 
 impl<T> Eval<[T], T> for Op<T>
 where
@@ -185,18 +139,16 @@ where
             Op::MutableConst {
                 value, operation, ..
             } => operation(inputs, value),
-            Op::Value(value, _) => value.clone(),
+            Op::Value(_, _, value, operation) => operation(inputs, value),
         }
     }
 }
 
-impl<T> Factory<Op<T>> for Op<T>
+impl<T> Factory<(), Op<T>> for Op<T>
 where
     T: Clone,
 {
-    type Input = ();
-
-    fn new_instance(&self, _: Self::Input) -> Op<T> {
+    fn new_instance(&self, _: ()) -> Op<T> {
         match self {
             Op::Fn(name, arity, op) => Op::Fn(name, *arity, Arc::clone(op)),
             Op::Var(name, index) => Op::Var(name, *index),
@@ -205,18 +157,20 @@ where
                 name,
                 arity,
                 value: _,
-                get_value,
+                supplier,
                 modifier,
                 operation,
             } => Op::MutableConst {
                 name,
                 arity: *arity,
-                value: (*get_value)(),
-                get_value: Arc::clone(get_value),
+                value: (*supplier)(),
+                supplier: Arc::clone(supplier),
                 modifier: Arc::clone(modifier),
                 operation: Arc::clone(operation),
             },
-            Op::Value(value, arity) => Op::Value(value.clone(), *arity),
+            Op::Value(name, arity, value, operation) => {
+                Op::Value(name, *arity, value.clone(), Arc::clone(operation))
+            }
         }
     }
 }
@@ -234,18 +188,20 @@ where
                 name,
                 arity,
                 value,
-                get_value,
+                supplier,
                 modifier,
                 operation,
             } => Op::MutableConst {
                 name,
                 arity: *arity,
                 value: value.clone(),
-                get_value: Arc::clone(get_value),
+                supplier: Arc::clone(supplier),
                 modifier: Arc::clone(modifier),
                 operation: Arc::clone(operation),
             },
-            Op::Value(value, arity) => Op::Value(value.clone(), *arity),
+            Op::Value(name, arity, value, operation) => {
+                Op::Value(name, *arity, value.clone(), Arc::clone(operation))
+            }
         }
     }
 }
@@ -270,7 +226,7 @@ where
     T: Default,
 {
     fn default() -> Self {
-        Op::Const("default", T::default())
+        Op::Fn("default", Arity::Zero, Arc::new(|_| T::default()))
     }
 }
 
@@ -284,26 +240,26 @@ where
             Op::Var(name, index) => write!(f, "Var: {}({})", name, index),
             Op::Const(name, value) => write!(f, "C: {}({:?})", name, value),
             Op::MutableConst { name, value, .. } => write!(f, "{}({:.2?})", name, value),
-            Op::Value(value, _) => write!(f, "Value({:?})", value),
+            Op::Value(name, _, value, _) => write!(f, "{}({:.2?})", name, value),
         }
     }
 }
 
 impl Into<Op<f32>> for f32 {
     fn into(self) -> Op<f32> {
-        Op::Value(self, Arity::Any)
+        Op::Value("Value(f32)", Arity::Any, self, Arc::new(|_, v| *v))
     }
 }
 
 impl Into<Op<i32>> for i32 {
     fn into(self) -> Op<i32> {
-        Op::Value(self, Arity::Any)
+        Op::Value("Value(i32)", Arity::Any, self, Arc::new(|_, v| *v))
     }
 }
 
 impl Into<Op<bool>> for bool {
     fn into(self) -> Op<bool> {
-        Op::Value(self, Arity::Any)
+        Op::Value("Value(bool)", Arity::Any, self, Arc::new(|_, v| *v))
     }
 }
 

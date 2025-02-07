@@ -8,8 +8,8 @@ mod test {
     fn test_simpl_tree() {
         let tree = Tree::new(
             TreeNode::new(Op::add())
-                .attach(TreeNode::new(Op::value(1.0)))
-                .attach(TreeNode::new(Op::value(2.0))),
+                .attach(TreeNode::new(Op::constant(1.0)))
+                .attach(TreeNode::new(Op::constant(2.0))),
         );
 
         assert!(tree.root().unwrap().is_valid());

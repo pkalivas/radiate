@@ -1,17 +1,15 @@
-use super::NodeStore;
-use crate::GraphNode;
-use radiate::{Chromosome, Valid};
+use crate::{node::Node, Factory, GraphNode, NodeStore};
+use radiate::{Chromosome, Gene, Valid};
 use std::fmt::Debug;
-use std::sync::{Arc, RwLock};
 
 #[derive(Clone)]
 pub struct GraphChromosome<T> {
     nodes: Vec<GraphNode<T>>,
-    store: Option<Arc<RwLock<NodeStore<T>>>>,
+    store: Option<NodeStore<T>>,
 }
 
 impl<T> GraphChromosome<T> {
-    pub fn new(nodes: Vec<GraphNode<T>>, factory: Arc<RwLock<NodeStore<T>>>) -> Self {
+    pub fn new(nodes: Vec<GraphNode<T>>, factory: NodeStore<T>) -> Self {
         GraphChromosome {
             nodes,
             store: Some(factory),
@@ -22,8 +20,37 @@ impl<T> GraphChromosome<T> {
         self.nodes = nodes;
     }
 
-    pub fn store(&self) -> Arc<RwLock<NodeStore<T>>> {
-        self.store.as_ref().unwrap().clone()
+    pub fn store(&self) -> Option<&NodeStore<T>> {
+        self.store.as_ref()
+    }
+}
+
+impl<T> Factory<Option<NodeStore<T>>, GraphChromosome<T>> for GraphChromosome<T>
+where
+    T: Clone + PartialEq + Default,
+{
+    fn new_instance(&self, input: Option<NodeStore<T>>) -> GraphChromosome<T> {
+        let maybe_store = input.or_else(|| self.store.clone());
+        if let Some(store) = maybe_store {
+            return GraphChromosome {
+                nodes: self
+                    .nodes
+                    .iter()
+                    .enumerate()
+                    .map(|(index, node)| {
+                        let new_node = store.new_instance((index, node.node_type()));
+                        if new_node.arity() == node.arity() {
+                            node.with_allele(new_node.allele())
+                        } else {
+                            node.clone()
+                        }
+                    })
+                    .collect(),
+                store: Some(store),
+            };
+        }
+
+        self.clone()
     }
 }
 
@@ -55,6 +82,15 @@ impl<T> AsMut<[GraphNode<T>]> for GraphChromosome<T> {
 impl<T: PartialEq> PartialEq for GraphChromosome<T> {
     fn eq(&self, other: &Self) -> bool {
         self.nodes == other.nodes
+    }
+}
+
+impl<T> FromIterator<GraphNode<T>> for GraphChromosome<T> {
+    fn from_iter<I: IntoIterator<Item = GraphNode<T>>>(iter: I) -> Self {
+        GraphChromosome {
+            nodes: iter.into_iter().collect(),
+            store: None,
+        }
     }
 }
 
