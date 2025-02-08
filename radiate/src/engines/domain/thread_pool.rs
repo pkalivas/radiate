@@ -47,7 +47,7 @@ impl ThreadPool {
         self.sender.send(Message::NewJob(job)).unwrap();
     }
 
-    /// Execute a job in the thread pool and return a WorkResult that can be used to get the result of the job.
+    /// Execute a job in the thread pool and return a `WorkResult` that can be used to get the result of the job.
     pub fn submit_with_result<F, T>(&self, f: F) -> WorkResult<T>
     where
         F: FnOnce() -> T + Send + 'static,

@@ -101,7 +101,7 @@ of the two parent genes, where the weight is determined by the `alpha` parameter
 	* If the random value is less than the rate, compute a new allele as a weighted combination of the parent’s alleles:
 
 	$$
-	\text{allele}{\text{child}} = \alpha \cdot \text{allele}{\text{parent1}} + (1 - \alpha) \cdot \text{allele}_{\text{parent2}}
+	\text{allele}_{\text{child}} = \alpha \cdot \text{allele}_{\text{parent1}} + (1 - \alpha) \cdot \text{allele}_{\text{parent2}}
 	$$ 
 	
 	* Here, ${alpha}$ is randomly sampled from the range [0, ${self.alpha}$].
