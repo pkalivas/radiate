@@ -16,9 +16,9 @@ radiate = "1.2.8"
 
 Genetic Engine
 
-* The GeneticEngine is the central component orchestrating the genetic algorithm. 
+* The `GeneticEngine` is the central component orchestrating the genetic algorithm. 
     It manages the population, evaluates fitness, and handles selection, crossover, and mutation processes.
-    It is designed to be flexible and extensible, allowing customization to fit specific problem requirements.
+    It is designed to be flexible and extensible, allowing customization to fit specific optimization requirements.
 
 Codex
 
@@ -39,7 +39,9 @@ Fitness Function
 
 ## Extensions
 
-For genetic programming Radiate offers a separate crate called [radiate-gp](https://crates.io/crates/radiate-gp) which extend the core library with additional features. Mainly it provides a [genetic programming](https://en.wikipedia.org/wiki/Genetic_programming#:~:text=In%20artificial%20intelligence%2C%20genetic%20programming,to%20the%20population%20of%20programs.) - probems that are represented as Trees (Expression Trees) or Graphs (NeuroEvolution). These offer powerful ways to solve complex problems.
+Radiate offers a separate crate called [radiate-gp](https://crates.io/crates/radiate-gp) which extend the core library with additional features. Mainly it provides data structures and algorithms which facilitate [Genetic Programming](https://en.wikipedia.org/wiki/Genetic_programming#:~:text=In%20artificial%20intelligence%2C%20genetic%20programming,to%20the%20population%20of%20programs.) (GP) - probems that are represented as Trees or Graphs. This is a powerful extension to the core library, allowing users to tackle even more complex or unique problems. 
+
+To use it, add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
