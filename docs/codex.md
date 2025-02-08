@@ -224,14 +224,14 @@ ___
             Genotype {
                 chromosomes: (0..self.num_chromosomes)
                     .map(|_| {
-                        FloatChromosome::from_genes(
-                            (0..self.num_genes)
+                        FloatChromosome {
+                            genes: (0..self.num_genes)
                                 .map(|_| {
                                     FloatGene::new(self.min, self.max)
                                         .with_bounds(self.lower_bound, self.upper_bound)
                                 })
                                 .collect::<Vec<FloatGene>>(),
-                        )
+                        }
                     })
                     .collect::<Vec<FloatChromosome>>(),
             }
@@ -307,11 +307,11 @@ ___
         // The resulting codex type will be FnCodex<IntChromosome<i8>, Vec<i8>>.
         let codex = FnCodex::new()
             .with_encoder(|| {
-                Genotype::from_chromosomes(vec![IntChromosome::from_genes(
-                    (0..N_QUEENS)
+                Genotype::from_chromosomes(vec![IntChromosome {
+                    genes: (0..N_QUEENS)
                         .map(|_| IntGene::from_min_max(0, N_QUEENS as i8))
                         .collect(),
-                )])
+                }])
             })
             .with_decoder(|genotype| {
                 genotype.chromosomes[0]
@@ -350,7 +350,7 @@ ___
     impl Codex<IntChromosome<i32>, NQueens> for NQueensCodex {
         fn encode(&self) -> Genotype<IntChromosome<i32>> {
             let genes = (0..self.size).map(|_| IntGene::from_min_max(0, self.size)).collect();
-            let chromosomes = vec![IntChromosome::from_genes(genes)];
+            let chromosomes = vec![IntChromosome { genes }];
             Genotype::from_chromosomes(chromosomes)
         }
 

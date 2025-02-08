@@ -2,7 +2,7 @@ use crate::{NodeStore, TreeNode};
 use radiate::{Chromosome, Valid};
 use std::sync::Arc;
 
-type Constraint<N> = Arc<Box<dyn Fn(&N) -> bool>>;
+type Constraint<N> = Arc<dyn Fn(&N) -> bool>;
 
 #[derive(Clone, Default)]
 pub struct TreeChromosome<T> {

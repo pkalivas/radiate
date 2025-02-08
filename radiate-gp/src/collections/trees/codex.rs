@@ -7,7 +7,7 @@ pub struct TreeCodex<T: Clone> {
     depth: usize,
     num_trees: usize,
     store: Option<NodeStore<T>>,
-    constraint: Option<Arc<Box<dyn Fn(&TreeNode<T>) -> bool>>>,
+    constraint: Option<Arc<dyn Fn(&TreeNode<T>) -> bool>>,
 }
 
 impl<T: Clone + Default> TreeCodex<T> {
@@ -33,7 +33,7 @@ impl<T: Clone + Default> TreeCodex<T> {
     where
         F: Fn(&TreeNode<T>) -> bool + 'static,
     {
-        self.constraint = Some(Arc::new(Box::new(constraint)));
+        self.constraint = Some(Arc::new(constraint));
         self
     }
 }
@@ -50,11 +50,11 @@ where
                 .map(|tree| TreeChromosome::new(tree, Some(store.clone()), self.constraint.clone()))
                 .collect::<Vec<TreeChromosome<T>>>();
 
-            for chromosome in &new_chromosomes {
-                if let Some(constraint) = &self.constraint {
-                    for tree in chromosome.iter() {
-                        if !constraint(tree) {
-                            panic!("Root node does not meet constraint.");
+            if let Some(constraint) = &self.constraint {
+                for chromosome in &new_chromosomes {
+                    for node in chromosome.iter() {
+                        if !constraint(node) {
+                            panic!("TreeCodex.encode() - Root node does not meet constraint.");
                         }
                     }
                 }
