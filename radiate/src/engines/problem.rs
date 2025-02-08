@@ -10,20 +10,12 @@ pub trait Problem<C: Chromosome, T>: Send + Sync {
 pub(crate) struct EngineProblem<C, T>
 where
     C: Chromosome,
-    T: Clone,
 {
     pub codex: Arc<dyn Codex<C, T>>,
     pub fitness_fn: Arc<dyn Fn(T) -> Score + Send + Sync>,
 }
 
-unsafe impl<C: Chromosome, T: Clone> Send for EngineProblem<C, T> {}
-unsafe impl<C: Chromosome, T: Clone> Sync for EngineProblem<C, T> {}
-
-impl<C, T> Problem<C, T> for EngineProblem<C, T>
-where
-    C: Chromosome,
-    T: Clone,
-{
+impl<C: Chromosome, T> Problem<C, T> for EngineProblem<C, T> {
     fn encode(&self) -> Genotype<C> {
         self.codex.encode()
     }
@@ -37,3 +29,6 @@ where
         (self.fitness_fn)(phenotype)
     }
 }
+
+unsafe impl<C: Chromosome, T> Send for EngineProblem<C, T> {}
+unsafe impl<C: Chromosome, T> Sync for EngineProblem<C, T> {}

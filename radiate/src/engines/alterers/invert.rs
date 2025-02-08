@@ -14,6 +14,10 @@ impl InversionMutator {
     /// Create a new instance of the `InversionMutator` with the given rate.
     /// The rate must be between 0.0 and 1.0.
     pub fn new(rate: f32) -> Self {
+        if rate < 0.0 || rate > 1.0 {
+            panic!("rate must be between 0.0 and 1.0");
+        }
+
         InversionMutator { rate }
     }
 }
