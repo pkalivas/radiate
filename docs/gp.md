@@ -3,20 +3,17 @@
 
 The `radiate-gp` crate provides the fundamental building blocks for [Genetic Programming](https://en.wikipedia.org/wiki/Genetic_programming) (GP). Mainly, it provides data structures and algorithms to build and evolve `Tree`s and `Graph`s. Traditionally, GP is a method of evolving 'programs' to solve problems. The idea is to represent a program as a `Tree` or a `Graph` and evolve it to solve a specific problem. These problems are typically some sort of regression problems, but can be used to solve any problem that can be represented as a `Tree` or a `Graph`. It can be easier to think of these as evolving Expression Trees/Random Forests/Decision Trees or Neural Networks. 
 
-The crate is not yet documented to the extent it should be, but you can refer to the [examples](https://github.com/pkalivas/radiate/tree/master/examples) for now.
+!!! warning 
 
-## Nodes
+    As of 2/8/2024:
 
-The `Node` is the `Gene` of both the `Graph` and the `Tree`. It `Allele` is an
-enum, `Ops<T>`, that provides a number of different ways to represent the node's.
+    This crate is still being finalized and is not yet documented to the extent it should be. If you are interested in using it, please refer to the [examples](https://github.com/pkalivas/radiate/tree/master/examples) for now - they are current. The documentation will be added as functionality is finalized. 
 
-!!! note 
-
-    This needs a lot more documentation.
+    Just for reassurance, this crate is pretty much done and ready for production use, I'm just not totally happy with a few very small details. This is just a personal preference and I want to make sure I'm happy with the general flow of the code before I fully document it (this stuff takes a lot of time to write).
 
 ## Graphs
 
-Graphs are a powerful way to represent problems. They are used in many fields, such as neural networks, and can be used to solve complex problems. Radiate offers an extremely unique way to build any graph architecture you can think of though the
+Graphs are a powerful way to represent problems. They are used in many fields, such as Neural Networks, and can be used to solve complex problems. Radiate offers an extremely unique way to build any graph architecture you can think of though the
 `Architect<'a, C, T>` and integrate it seemlessly with the `GeneticEngine`. 
 
 The `Architect` is a builder pattern that allows you to layer, attach, and build any graph architecture you can think of. Currently it has pre-built functionality for building `Graph`s:
