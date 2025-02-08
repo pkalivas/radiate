@@ -28,7 +28,8 @@ impl<C: Chromosome> Select<C> for RouletteSelector {
         let mut fitness_values = Vec::with_capacity(population.len());
         let scores = population
             .iter()
-            .map(|individual| individual.score().as_ref().unwrap().as_f32())
+            .filter_map(|individual| individual.score())
+            .map(|score| score.as_f32())
             .collect::<Vec<f32>>();
 
         // scale the fitness values so that they sum to 1

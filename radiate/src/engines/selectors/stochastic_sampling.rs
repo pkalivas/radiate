@@ -24,10 +24,11 @@ impl<C: Chromosome> Select<C> for StochasticUniversalSamplingSelector {
     ) -> Population<C> {
         let mut fitness_values = Vec::with_capacity(population.len());
 
-        let total_fitness: f32 = population
+        let total_fitness = population
             .iter()
-            .map(|ind| ind.score().as_ref().unwrap().as_f32())
-            .sum();
+            .filter_map(|ind| ind.score())
+            .map(|score| score.as_f32())
+            .sum::<f32>();
 
         for individual in population.iter() {
             let score = individual.score().as_ref().unwrap().as_f32();

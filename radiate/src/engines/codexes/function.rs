@@ -32,8 +32,8 @@ use crate::{Chromosome, Codex, Genotype};
 ///         });
 ///
 ///     // encode and decode
-///     let genotype = codex.encode(); // Genotype<IntChromosome<i8>>
-///     let decoded = codex.decode(&genotype); // Vec<i8>
+///     let genotype: Genotype<IntChromosome<i8>> = codex.encode();
+///     let decoded: Vec<i8> = codex.decode(&genotype);
 /// }
 /// ```
 /// # Type Parameters

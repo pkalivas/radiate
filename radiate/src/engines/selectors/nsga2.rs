@@ -1,5 +1,5 @@
 use crate::objectives::{pareto, Objective};
-use crate::{Chromosome, EngineCompoment, Population, Select};
+use crate::{Chromosome, EngineCompoment, Population, Score, Select};
 
 /// NSGA2 Selector. Selects individuals based on the NSGA2 algorithm.
 /// This algorithm ranks individuals based on their dominance relationships
@@ -33,8 +33,9 @@ impl<C: Chromosome> Select<C> for NSGA2Selector {
     ) -> Population<C> {
         let scores = population
             .iter()
-            .map(|individual| individual.score().unwrap().clone())
-            .collect::<Vec<_>>();
+            .filter_map(|individual| individual.score())
+            .map(|score| score.clone())
+            .collect::<Vec<Score>>();
 
         let ranks = pareto::rank(population, objective);
         let distances = pareto::crowding_distance(&scores, objective);

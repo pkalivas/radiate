@@ -13,7 +13,7 @@ fn main() {
         (NodeType::Leaf, vec![Op::var(0)]),
     ];
 
-    let graph_codex = TreeCodex::single(3, store).constraint(|node| node.size() < 30);
+    let graph_codex = TreeCodex::single(3, store).constraint(|root| root.size() < 30);
 
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
