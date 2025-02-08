@@ -2,7 +2,6 @@ use std::collections::HashSet;
 
 use radiate::*;
 use radiate_gp::*;
-use trees::TreeCodex;
 
 const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
@@ -14,7 +13,7 @@ fn main() {
 
     let store = vec![
         (NodeType::Root, vec![Op::sigmoid()]),
-        (NodeType::Vertex, ops::get_math_operations()),
+        (NodeType::Vertex, ops::math_operations()),
         (NodeType::Leaf, (0..4).map(|i| Op::var(i)).collect()),
     ];
 

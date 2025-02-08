@@ -3,9 +3,7 @@ pub mod ops;
 pub mod regression;
 
 pub use collections::*;
-pub use ops::{
-    get_activation_operations, get_all_operations, get_math_operations, Op, OperationMutator,
-};
+pub use ops::{activation_operations, get_all_operations, math_operations, Op, OperationMutator};
 pub use regression::{Accuracy, AccuracyResult, DataSet, Loss, Regression};
 
 use std::fmt::Display;

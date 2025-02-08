@@ -38,23 +38,14 @@ fn main() {
 }
 
 fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
-    let mut regression_accuracy = 0.0;
-    let mut total = 0.0;
+    let mut evaluator = GraphEvaluator::new(&result.best);
 
-    let mut reducer = GraphEvaluator::new(&result.best);
-    for sample in get_dataset().iter() {
-        let output = reducer.eval_mut(sample.input());
+    let data_set = get_dataset();
+    let accuracy = Accuracy::new("reg", &data_set, Loss::MSE);
+    let accuracy_result = accuracy.calc(|input| evaluator.eval_mut(input));
 
-        total += sample.output()[0].abs();
-        regression_accuracy += (sample.output()[0] - output[0]).abs();
-
-        println!("{:.2?} :: {:.2?}", sample.output()[0], output[0]);
-    }
-
-    regression_accuracy = (total - regression_accuracy) / total;
-
-    println!("Accuracy: {:.2?}", regression_accuracy);
-    println!("{:?}", result)
+    println!("{:?}", result);
+    println!("{:?}", accuracy_result);
 }
 
 fn get_dataset() -> DataSet {
