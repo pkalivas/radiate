@@ -1,9 +1,9 @@
 
-# Extensions
+# Genetic Programming 
 
-The radiate-gp provides genetic programming capabilities. 
+The `radiate-gp` crate provides the fundamental building blocks for [Genetic Programming](https://en.wikipedia.org/wiki/Genetic_programming) (GP). Mainly, it provides data structures and algorithms to build and evolve `Tree`s and `Graph`s. Traditionally, GP is a method of evolving 'programs' to solve problems. The idea is to represent a program as a `Tree` or a `Graph` and evolve it to solve a specific problem. These problems are typically some sort of regression problems, but can be used to solve any problem that can be represented as a `Tree` or a `Graph`. It can be easier to think of these as evolving Expression Trees/Random Forests/Decision Trees or Neural Networks. 
 
-The crate is not yet documented to the extent it should be, but you can refer to the [examples](https://github.com/pkalivas/radiate/tree/master/radiate-examples) for now.
+The crate is not yet documented to the extent it should be, but you can refer to the [examples](https://github.com/pkalivas/radiate/tree/master/examples) for now.
 
 ## Nodes
 
