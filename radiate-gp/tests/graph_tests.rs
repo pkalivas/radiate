@@ -8,11 +8,11 @@ mod tests {
     fn test_simple_graph() {
         let mut graph = Graph::<i32>::default();
 
-        graph.insert(NodeType::Input, 0);
-        graph.insert(NodeType::Vertex, 1);
-        graph.insert(NodeType::Output, 2);
+        let idx_one = graph.insert(NodeType::Input, 0);
+        let idx_two = graph.insert(NodeType::Vertex, 1);
+        let idx_three = graph.insert(NodeType::Output, 2);
 
-        graph.attach(0, 1).attach(1, 2);
+        graph.attach(idx_one, idx_two).attach(idx_two, idx_three);
 
         assert_eq!(graph.len(), 3);
 
