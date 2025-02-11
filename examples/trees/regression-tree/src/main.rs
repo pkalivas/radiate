@@ -36,9 +36,9 @@ fn display(result: &EngineContext<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>) 
     let mut regression_accuracy = 0.0;
     let mut total = 0.0;
 
-    let reducer = result.best.clone();
+    let forest = result.best.clone();
     for sample in get_dataset().iter() {
-        let output = reducer.eval(sample.input())[0];
+        let output = forest.eval(sample.input())[0];
 
         total += sample.output()[0].abs();
         regression_accuracy += (sample.output()[0] - output).abs();

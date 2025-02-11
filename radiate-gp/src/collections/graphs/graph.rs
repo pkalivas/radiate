@@ -4,6 +4,7 @@ use crate::NodeType;
 use radiate::Valid;
 use std::collections::{HashSet, VecDeque};
 use std::fmt::Debug;
+use std::ops::{Index, IndexMut};
 
 use super::transaction::TransactionResult;
 
@@ -235,6 +236,20 @@ impl<T> AsRef<[GraphNode<T>]> for Graph<T> {
 impl<T> AsMut<[GraphNode<T>]> for Graph<T> {
     fn as_mut(&mut self) -> &mut [GraphNode<T>] {
         &mut self.nodes
+    }
+}
+
+impl<T> Index<usize> for Graph<T> {
+    type Output = GraphNode<T>;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.nodes[index]
+    }
+}
+
+impl<T> IndexMut<usize> for Graph<T> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.nodes[index]
     }
 }
 

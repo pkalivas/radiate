@@ -29,7 +29,7 @@ fn main() {
     let engine = GeneticEngine::from_codex(codex)
         .minimizing()
         .num_threads(10)
-        .offspring_fraction(0.98)
+        .offspring_fraction(0.92)
         .offspring_selector(BoltzmannSelector::new(4.0))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
