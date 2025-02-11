@@ -227,9 +227,27 @@ comprehensive list of examples.
 
 ## Rastrigin
 
-> Objective - Find the global minimum of the Rastrigin function.
+> Objective - Find the global minimum of the [Rastrigin](https://en.wikipedia.org/wiki/Rastrigin_function) function.
 
 ??? example
+
+    The Rastrigin function is a non-convex function used as a performance test problem for optimization algorithms. The function is highly multimodal, with many local minima, making it challenging for optimization algorithms to find the global minimum. 
+    It is defined as:
+    $$
+    f(x) = A \cdot n + \sum_{i=1}^{n} \left[ x_i^2 - A \cdot \cos(2 \pi x_i) \right]
+    $$
+    where:
+
+    - \( A \) is a constant (typically set to 10)
+    - \( n \) is the number of dimensions (in this case 2)
+    - \( x_i \) are the input variables.
+    - The global minimum occurs at \( x = 0 \) for all dimensions, where the function value is \( 0 \).
+
+    <figure>
+        ![Rastrigin](assets/Rastrigin_function.png){ width="400" }
+    </figure>
+
+    This is a great example of a problem that is easy to solve with a genetic algorithm and is a classic example of a problem that is difficult to solve with traditional optimization methods.
 
     ```rust
     use radiate::*;
