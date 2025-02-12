@@ -8,13 +8,24 @@ comprehensive list of examples.
 
 ??? example MinSum
 
+    This example demonstrates how to use the `radiate` library to solve a very simple optimization problem. This will create 
+    a `Population` with 150 `Phenotype<IntChrosome<i32>>` with 1 `IntChromosome<i32>` 10 `IntGene<i32>` genes each, where each gene is a random number between 0 and 100. We set the bounds of the chromosomes to be between 0 and 100, this ensures that any chromosome whith a 
+    gene outside of these bounds is classified as 'invalid' and is discarded from the population.
+    
+    The goal is to find a set of numbers that sum to the minimum value (0) - meaning all the genes' allele's should be 0. The `fitness_fn` calculates the sum of all the genes in the genotype, and the `minimizing()` method is used to indicate that we want to minimize this value. The `alter` method is used to specify the mutation and crossover strategies to be used during the evolution process. The `run` method is used to execute the evolution process, and the `ctx` parameter provides information about the current state of the engine. The `best` solution is printed at the end. We execute the engine until the score is `MIN_SCORE` (0).
+
     ```rust
     use radiate::*;
 
     const MIN_SCORE: i32 = 0;
+    const NUM_CHROMOSOMES: usize = 1;
+    const NUM_GENES: usize = 10;
+    const MIN_GENE_VALUE: i32 = 0;
+    const MAX_GENE_VALUE: i32 = 100;
 
     fn main() {
-        let codex = IntCodex::new(1, 10, 0, 100).with_bounds(0, 100);
+        let codex = IntCodex::new(NUM_CHROMOSOMES, NUM_GENES, MIN_GENE_VALUE, MAX_GENE_VALUE)
+            .with_bounds(MIN_GENE_VALUE, MAX_GENE_VALUE);
 
         let engine = GeneticEngine::from_codex(codex)
             .population_size(150)
