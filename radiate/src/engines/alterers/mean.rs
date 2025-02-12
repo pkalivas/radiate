@@ -8,7 +8,7 @@ use super::{Alter, AlterAction, Crossover};
 ///
 /// This crossover can only be used with `NumericGene`s and can be largely benifitial. However, keep
 /// in mind that because we are taking the mean of two genes, this results in children that
-/// converge towards a common distribution. This can be useful in some cases, but it can also
+/// converge towards a common distribution. This can be usefu l in some cases, but it can also
 /// result in a loss of diversity in the population in others.
 pub struct MeanCrossover {
     rate: f32,
