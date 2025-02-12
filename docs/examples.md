@@ -46,9 +46,11 @@ comprehensive list of examples.
 
 ## NQueens
 
-> Objective - Place `n` queens on an `n x n` (in this case a 32x32 board) chessboard such that no two queens threaten each other.
+> Objective - Place `n` queens on an `n x n` board such that no two queens threaten each other.
 
 ??? example
+
+    This example demonstrates how to use the `radiate` library to solve the classic N-Queens problem, where the goal is to place `n` queens on an `n x n` board such that no two queens threaten each other. By threatening each other, we mean that they are in the same row, column, or diagonal. The solution is represented as a single chromosome with `n` genes, where each gene represents the row position of a queen in its respective column. The fitness function calculates the number of pairs of queens that threaten each other, and the goal is to minimize this value to zero.
 
     ```rust
     use radiate::*;
@@ -242,7 +244,7 @@ comprehensive list of examples.
 
 ??? example
 
-    The Rastrigin function is a non-convex function used as a performance test problem for optimization algorithms. The function is highly multimodal, with many local minima, making it challenging for optimization algorithms to find the global minimum. 
+    The Rastrigin function is a non-convex function used as a benchmark test problem for optimization algorithms. The function is highly multimodal, with many local minima, making it challenging for optimization algorithms to find the global minimum. 
     It is defined as:
     $$
     f(x) = A \cdot n + \sum_{i=1}^{n} \left[ x_i^2 - A \cdot \cos(2 \pi x_i) \right]
@@ -257,8 +259,6 @@ comprehensive list of examples.
     <figure>
         ![Rastrigin](assets/Rastrigin_function.png){ width="400" }
     </figure>
-
-    This is a great example of a problem that is easy to solve with a genetic algorithm and is a classic example of a problem that is difficult to solve with traditional optimization methods.
 
     ```rust
     use radiate::*;
