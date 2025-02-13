@@ -4,7 +4,7 @@ members = [
     "radiate-gp",
     
     "examples/min-sum",
-    "examples/string-evolver",
+    "examples/hello-world",
     "examples/knapsack",    
     "examples/nqueens",
     "examples/simple-nn",
