@@ -4,3 +4,8 @@ target/
 Cargo.lock
 radiate/.vs
 .idea/
+.vscode/
+*.sdf
+*.suo
+*.user
+*.DS_Store
