@@ -11,6 +11,7 @@ members = [
     "examples/TSP",
     "examples/DTLZ",
     "examples/rastrigin",
+    "examples/rosenbrock",
 
     "examples/trees/regression-tree",
 
@@ -20,5 +21,5 @@ members = [
     "examples/graphs/simple-memory-graph",
 
     "benchmarks",
-    "examples/trees/iris-tree"
+    "examples/trees/iris-tree",
 ]

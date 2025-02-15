@@ -69,11 +69,11 @@ impl ThreadPool {
 /// We need to make sure that all workers are terminated before the ThreadPool is dropped.
 impl Drop for ThreadPool {
     fn drop(&mut self) {
-        for _ in &self.workers {
+        for _ in self.workers.iter() {
             self.sender.send(Message::Terminate).unwrap();
         }
 
-        for worker in &mut self.workers {
+        for worker in self.workers.iter_mut() {
             if let Some(thread) = worker.thread.take() {
                 thread.join().unwrap();
             }

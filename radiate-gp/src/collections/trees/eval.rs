@@ -18,7 +18,7 @@ where
     }
 }
 
-/// Implements the `Reduce` trait for `Tree<Op<T>>`. All this really does is
+/// Implements the `Reduce` trait for `Tree<T>` where `T` is `Eval<[V], V>`. All this really does is
 /// call the `reduce` method on the root node of the `Tree`. The real work is
 /// done in the `TreeNode` implementation below.
 impl<T, V> Eval<[V], V> for Tree<T>
@@ -34,12 +34,13 @@ where
     }
 }
 
-/// Implements the `Reduce` trait for `TreeNode<Op<T>>`. This is where the real work is done.
+/// Implements the `Reduce` trait for `TreeNode<T>` where `T` is `Eval<[V], V>`. This is where the real work is done.
 /// It recursively evaluates the `TreeNode` and its children until it reaches a leaf node,
-/// at which point it applies the `Op` to the input.
+/// at which point it applies the `T`'s eval fn to the input.
 ///
 /// Because a `Tree` has only a single root node, this can only be used to return a single value.
-/// But, due to the structure and functionality of the `Op<T>`, we can have a multitude of `Inputs`
+/// We assume here that each leaf can eval the incoming input - this is a safe and the
+/// only real logical assumption we can make.
 impl<T, V> Eval<[V], V> for TreeNode<T>
 where
     T: Eval<[V], V>,
