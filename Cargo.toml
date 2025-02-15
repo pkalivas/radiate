@@ -20,6 +20,5 @@ members = [
     "examples/graphs/regression-graph",
     "examples/graphs/simple-memory-graph",
 
-    "benchmarks",
     "examples/trees/iris-tree",
 ]
