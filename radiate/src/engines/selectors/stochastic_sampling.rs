@@ -56,7 +56,7 @@ impl<C: Chromosome> Select<C> for StochasticUniversalSamplingSelector {
         for _ in 0..count {
             let mut index = 0;
             let mut fitness_sum = fitness_values[index];
-            while fitness_sum < current_point {
+            while fitness_sum < current_point && index < fitness_values.len() - 1 {
                 index += 1;
                 fitness_sum += fitness_values[index];
             }
