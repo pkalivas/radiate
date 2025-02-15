@@ -78,7 +78,7 @@ impl<T> Op<T> {
 
     pub fn constant(value: T) -> Self
     where
-        T: Clone + Display,
+        T: Display,
     {
         let name = Box::leak(Box::new(format!("{}", value)));
         Op::Const(name, value)
@@ -99,10 +99,7 @@ impl<T> Op<T> {
         )
     }
 
-    pub fn var(index: usize) -> Self
-    where
-        T: Clone,
-    {
+    pub fn var(index: usize) -> Self {
         let name = Box::leak(Box::new(format!("{}", index)));
         Op::Var(name, index)
     }

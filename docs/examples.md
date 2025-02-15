@@ -264,7 +264,7 @@ comprehensive list of examples.
     use radiate::*;
 
     const MIN_SCORE: f32 = 0.00;
-    const MAX_SECONDS: f64 = 5.0;
+    const MAX_SECONDS: f64 = 1.0;
     const A: f32 = 10.0;
     const RANGE: f32 = 5.12;
     const N_GENES: usize = 2;

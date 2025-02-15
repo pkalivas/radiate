@@ -4,13 +4,14 @@ members = [
     "radiate-gp",
     
     "examples/min-sum",
-    "examples/string-evolver",
+    "examples/hello-world",
     "examples/knapsack",    
     "examples/nqueens",
     "examples/simple-nn",
     "examples/TSP",
     "examples/DTLZ",
     "examples/rastrigin",
+    "examples/rosenbrock",
 
     "examples/trees/regression-tree",
 
@@ -20,5 +21,5 @@ members = [
     "examples/graphs/simple-memory-graph",
 
     "benchmarks",
-    "examples/trees/iris-tree"
+    "examples/trees/iris-tree",
 ]
