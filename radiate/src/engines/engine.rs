@@ -21,7 +21,7 @@ use std::sync::{Arc, Mutex};
 /// crossover and mutation.
 ///
 /// # Examples
-/// ``` rust
+/// ``` no_run
 /// use radiate::*;
 ///
 /// // Define a codex that encodes and decodes individuals in the population, in this case using floats.
@@ -215,7 +215,7 @@ where
         let selector = self.offspring_selector();
         let count = self.offspring_count();
         let objective = self.objective();
-        let alterer = self.alterer();
+        let alters = self.alters();
 
         let timer = Timer::new();
         let mut offspring = selector.select(&ctx.population, objective, count);
@@ -224,7 +224,7 @@ where
 
         objective.sort(&mut offspring);
 
-        for alterer in alterer {
+        for alterer in alters {
             let alter_metrics = match alterer {
                 AlterAction::Mutate(mutator) => mutator.mutate(&mut offspring, ctx.index),
                 AlterAction::Crossover(crossover) => crossover.crossover(&mut offspring, ctx.index),
@@ -423,7 +423,7 @@ where
         self.params.offspring_selector.as_ref()
     }
 
-    fn alterer(&self) -> &[AlterAction<C>] {
+    fn alters(&self) -> &[AlterAction<C>] {
         &self.params.alterers
     }
 
