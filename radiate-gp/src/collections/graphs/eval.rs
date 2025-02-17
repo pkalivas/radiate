@@ -4,7 +4,7 @@ use crate::{node::Node, Eval, EvalMut, NodeType};
 /// `GraphReducer` is a struct that is used to evaluate a `Graph` of `Node`s. It uses the `GraphIterator`
 /// to traverse the `Graph` in a sudo-topological order and evaluate the nodes in the correct order.
 ///
-/// On the first iteration it caches the order of nodes in the `Graph` and then uses that order to
+/// On the first iteration it cache s the order of nodes in the `Graph` and then uses that order to
 /// evaluate the nodes in the correct order. This is a massive performance improvement.
 pub struct GraphEvaluator<'a, T, V> {
     nodes: &'a [GraphNode<T>],
