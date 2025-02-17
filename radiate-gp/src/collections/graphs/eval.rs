@@ -144,3 +144,34 @@ impl<T: Eval<[V], V>, V: Clone> Eval<[V], V> for GraphNode<T> {
         self.value().eval(inputs)
     }
 }
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use crate::{Graph, Op};
+
+    #[test]
+    fn test_graph_eval_simple() {
+        let mut graph = Graph::<Op<f32>>::default();
+
+        let idx_one = graph.insert(NodeType::Input, Op::var(0));
+        let idx_two = graph.insert(NodeType::Input, Op::constant(5_f32));
+        let idx_three = graph.insert(NodeType::Vertex, Op::add());
+        let idx_four = graph.insert(NodeType::Output, Op::linear());
+
+        graph
+            .attach(idx_one, idx_three)
+            .attach(idx_two, idx_three)
+            .attach(idx_three, idx_four);
+
+        let six = graph.eval(&vec![vec![1_f32]]);
+        let seven = graph.eval(&vec![vec![2_f32]]);
+        let eight = graph.eval(&vec![vec![3_f32]]);
+
+        assert_eq!(six, vec![vec![6_f32]]);
+        assert_eq!(seven, vec![vec![7_f32]]);
+        assert_eq!(eight, vec![vec![8_f32]]);
+        assert_eq!(graph.len(), 4);
+    }
+}
