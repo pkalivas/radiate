@@ -1,6 +1,6 @@
 use std::{
     sync::{mpsc, Arc, Mutex},
-    thread::{self},
+    thread,
 };
 
 /// `WorkResult` is a simple wrapper around a `Receiver` that allows the user to get

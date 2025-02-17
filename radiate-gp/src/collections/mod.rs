@@ -15,11 +15,11 @@ pub use trees::{
     Tree, TreeChromosome, TreeCodex, TreeCrossover, TreeIterator, TreeMutator, TreeNode,
 };
 
-/// `Reduce` trait is used to evaluate a `Tree` or `Graph` of `Node`s.
+/// `Eval` trait is used to evaluate a `Tree` or `Graph` of `Node`s.
 /// It is implemented directly on the `Tree` and `TreeNode` types as well as
-/// on the `GraphReducer` struct.
+/// on the `GraphEvaluator` struct.
 ///
-/// The `reduce` trait and subsequent method is used to transform the `Input` into
+/// The `Eval` trait and subsequent method is used to transform the `Input` into
 /// the `Output`. This is extremely useful for evaluating the `Graph` or `Tree` with a given input
 /// as traversing each can be very slow or sometimes cumbersome to do manually.
 ///
