@@ -87,25 +87,6 @@ where
     }
 }
 
-impl<T, V> Eval<[V], Vec<V>> for Graph<T>
-where
-    T: Eval<[V], V>,
-    V: Clone + Default,
-{
-    /// Evaluates the `Graph` with the given input. Returns the output of the `Graph`.
-    ///
-    /// # Arguments
-    /// * `input` - A `Vec` of `T` to evaluate the `Graph` with.
-    ///
-    ///  # Returns
-    /// * A `Vec` of `T` which is the output of the `Graph`.
-    #[inline]
-    fn eval(&self, input: &[V]) -> Vec<V> {
-        let mut evaluator = GraphEvaluator::new(self);
-        evaluator.eval_mut(input)
-    }
-}
-
 impl<T, V> Eval<Vec<Vec<V>>, Vec<Vec<V>>> for Graph<T>
 where
     T: Eval<[V], V>,

@@ -33,23 +33,12 @@ fn main() {
 }
 
 fn display(result: &EngineContext<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>) {
-    let mut regression_accuracy = 0.0;
-    let mut total = 0.0;
+    let data_set = get_dataset();
+    let accuracy = Accuracy::new("reg", &data_set, Loss::MSE);
+    let accuracy_result = accuracy.calc(|input| result.best.eval(input));
 
-    let forest = result.best.clone();
-    for sample in get_dataset().iter() {
-        let output = forest.eval(sample.input())[0];
-
-        total += sample.output()[0].abs();
-        regression_accuracy += (sample.output()[0] - output).abs();
-
-        println!("{:.2?} :: {:.2?}", sample.output()[0], output);
-    }
-
-    regression_accuracy = (total - regression_accuracy) / total;
-
-    println!("Accuracy: {:.2?}", regression_accuracy);
-    println!("{:?}", result)
+    println!("{:?}", result);
+    println!("{:?}", accuracy_result);
 }
 
 fn get_dataset() -> DataSet {

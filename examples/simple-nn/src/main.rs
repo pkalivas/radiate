@@ -111,7 +111,7 @@ pub struct NeuralNetCodex {
 
 impl Codex<FloatChromosome, NeuralNet> for NeuralNetCodex {
     fn encode(&self) -> Genotype<FloatChromosome> {
-        let mut chromosomes = Vec::<FloatChromosome>::new();
+        let mut chromosomes = Vec::new();
         for shape in &self.shapes {
             chromosomes.push(FloatChromosome {
                 genes: (0..shape.0 * shape.1)
