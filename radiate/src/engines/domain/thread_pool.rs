@@ -1,5 +1,5 @@
 use std::{
-    sync::{mpsc, Arc, Mutex},
+    sync::{Arc, Mutex, mpsc},
     thread,
 };
 
@@ -105,12 +105,14 @@ impl Worker {
     /// mutex will release allowing another job to be received from a different worker.
     fn new(receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Self {
         Worker {
-            thread: Some(thread::spawn(move || loop {
-                let message = receiver.lock().unwrap().recv().unwrap();
+            thread: Some(thread::spawn(move || {
+                loop {
+                    let message = receiver.lock().unwrap().recv().unwrap();
 
-                match message {
-                    Message::NewJob(job) => job(),
-                    Message::Terminate => break,
+                    match message {
+                        Message::NewJob(job) => job(),
+                        Message::Terminate => break,
+                    }
                 }
             })),
         }

@@ -63,11 +63,7 @@ impl Knapsack {
             weight += item.weight;
         }
 
-        if weight > *capacity {
-            0_f32
-        } else {
-            sum
-        }
+        if weight > *capacity { 0_f32 } else { sum }
     }
 
     pub fn value_total(items: &Vec<&Item>) -> f32 {

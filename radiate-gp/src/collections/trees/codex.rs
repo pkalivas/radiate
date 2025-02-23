@@ -1,5 +1,5 @@
-use crate::collections::{Tree, TreeChromosome, TreeNode};
 use crate::NodeStore;
+use crate::collections::{Tree, TreeChromosome, TreeNode};
 use radiate::{Chromosome, Codex, Genotype};
 use std::sync::Arc;
 
@@ -78,7 +78,7 @@ where
 mod tests {
     use super::*;
 
-    use crate::{ops::Op, NodeType};
+    use crate::{NodeType, ops::Op};
     use radiate::engines::codexes::Codex;
 
     #[test]

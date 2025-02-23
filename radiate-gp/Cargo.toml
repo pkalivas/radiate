@@ -1,7 +1,7 @@
 [package]
 name = "radiate-gp"
 version = "0.0.2"
-edition = "2021"
+edition = "2024"
 authors = ["pkalivas <peterkalivas@gmail.com>"]
 description = "Extensions for radiate. Genetic Programming implementations for graphs (neural networks) and trees"
 repository = "https://github.com/pkalivas/radiate"

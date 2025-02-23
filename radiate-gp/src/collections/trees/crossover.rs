@@ -1,7 +1,6 @@
 use super::TreeChromosome;
-
 use radiate::engines::genome::*;
-use radiate::{random_provider, Alter, AlterAction, Crossover, EngineCompoment};
+use radiate::{Alter, AlterAction, Crossover, EngineCompoment, random_provider};
 
 pub struct TreeCrossover {
     rate: f32,

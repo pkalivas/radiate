@@ -1,5 +1,5 @@
 use super::{Alter, AlterAction, Crossover};
-use crate::{random_provider, Chromosome, EngineCompoment, FloatGene, Gene, NumericGene};
+use crate::{Chromosome, EngineCompoment, FloatGene, Gene, NumericGene, random_provider};
 
 pub struct SimulatedBinaryCrossover {
     contiguty: f32,

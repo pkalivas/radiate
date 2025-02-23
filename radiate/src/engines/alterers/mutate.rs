@@ -1,5 +1,5 @@
 use super::Alter;
-use crate::{random_provider, timer::Timer, Chromosome, Gene, Genotype, Metric, Population};
+use crate::{Chromosome, Gene, Genotype, Metric, Population, random_provider, timer::Timer};
 
 pub trait Mutate<C: Chromosome>: Alter<C> {
     #[inline]

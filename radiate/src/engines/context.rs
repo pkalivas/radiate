@@ -1,9 +1,9 @@
-use super::objectives::Score;
 use super::MetricSet;
+use super::objectives::Score;
+use crate::Chromosome;
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
 use crate::objectives::Front;
-use crate::Chromosome;
 use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;

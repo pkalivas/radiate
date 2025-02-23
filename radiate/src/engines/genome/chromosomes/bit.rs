@@ -1,4 +1,4 @@
-use crate::{random_provider, Chromosome, Gene, Valid};
+use crate::{Chromosome, Gene, Valid, random_provider};
 use std::fmt::Debug;
 
 /// A gene that represents a single bit. The `allele` is a `bool` that is randomly assigned.

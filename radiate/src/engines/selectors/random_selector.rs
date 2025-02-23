@@ -1,6 +1,6 @@
 use super::Select;
 use crate::objectives::Objective;
-use crate::{random_provider, Chromosome, EngineCompoment, Population};
+use crate::{Chromosome, EngineCompoment, Population, random_provider};
 
 pub struct RandomSelector;
 

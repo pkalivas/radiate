@@ -1,6 +1,6 @@
 use super::phenotype::Phenotype;
-use crate::objectives::score::Score;
 use crate::Chromosome;
+use crate::objectives::score::Score;
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
 

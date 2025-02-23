@@ -1,6 +1,6 @@
+use crate::NodeType;
 use crate::collections::graphs::GraphTransaction;
 use crate::collections::{Direction, GraphNode};
-use crate::NodeType;
 use radiate::Valid;
 use std::collections::{HashSet, VecDeque};
 use std::fmt::Debug;

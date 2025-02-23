@@ -8,7 +8,7 @@ use crate::engines::genome::population::Population;
 use crate::engines::objectives::Score;
 use crate::engines::params::GeneticEngineParams;
 use crate::objectives::{Front, Objective};
-use crate::{metric_names, Chromosome, Metric, Select, Valid};
+use crate::{Chromosome, Metric, Select, Valid, metric_names};
 use std::sync::{Arc, Mutex};
 
 /// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
