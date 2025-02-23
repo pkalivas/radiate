@@ -1,4 +1,4 @@
-use crate::objectives::{pareto, Objective};
+use crate::objectives::{Objective, pareto};
 use crate::{Chromosome, EngineCompoment, Population, Score, Select};
 
 /// NSGA2 Selector. Selects individuals based on the NSGA2 algorithm.

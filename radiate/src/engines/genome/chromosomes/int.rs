@@ -1,6 +1,6 @@
 use super::{
-    gene::{BoundGene, Gene, NumericGene, Valid},
     Chromosome, Integer,
+    gene::{BoundGene, Gene, NumericGene, Valid},
 };
 use crate::random_provider;
 use rand::distributions::Distribution;

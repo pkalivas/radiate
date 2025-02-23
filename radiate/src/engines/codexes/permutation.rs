@@ -1,4 +1,4 @@
-use crate::{random_provider, Codex, Gene, Genotype, PermutationChromosome, PermutationGene};
+use crate::{Codex, Gene, Genotype, PermutationChromosome, PermutationGene, random_provider};
 use std::sync::Arc;
 
 #[derive(Clone)]

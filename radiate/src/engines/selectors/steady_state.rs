@@ -1,5 +1,5 @@
 use crate::objectives::Objective;
-use crate::{random_provider, Chromosome, EngineCompoment, Population, Select};
+use crate::{Chromosome, EngineCompoment, Population, Select, random_provider};
 
 pub struct SteadyStateSelector {
     replacement_count: usize,

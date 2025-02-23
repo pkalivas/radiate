@@ -1,4 +1,4 @@
-use crate::{random_provider, Chromosome, EngineCompoment, Gene};
+use crate::{Chromosome, EngineCompoment, Gene, random_provider};
 use std::ops::{Add, Div, Mul, Sub};
 
 use super::{Alter, AlterAction, Mutate};

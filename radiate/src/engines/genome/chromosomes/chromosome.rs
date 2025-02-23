@@ -1,4 +1,4 @@
-use super::{gene::Gene, Valid};
+use super::{Valid, gene::Gene};
 
 /// The `Chromosome` struct represents a collection of `Gene` instances. The `Chromosome` is part of the
 /// genetic makeup of an individual. It is a collection of `Gene` instances, it is essentially a

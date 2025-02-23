@@ -1,8 +1,8 @@
 use crate::random_provider;
 
 use super::{
-    gene::{Gene, Valid},
     Chromosome,
+    gene::{Gene, Valid},
 };
 
 const ALPHABET: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"$%&/()=?`{[]}\\+~*#';.:,-_<>|@^' ";
