@@ -20,11 +20,11 @@ use std::{fmt::Debug, ops::Range};
 /// // Create a new FloatGene with a min value of 0 and a max value of 1 meaning the
 /// // allele will be a random number between 0 and 1.
 /// // The upper_bound and lower_bound are set to f32::MAX and f32::MIN respectively.
-/// let gene = FloatGene::new(0_f32, 1_f32);
+/// let gene = FloatGene::from_min_max(0_f32, 1_f32);
 ///
 /// // Create a new FloatGene with a min of 0 and a max of 1 and set the upper_bound
 /// // and lower_bound to 0 and 100 respectively.
-/// let gene = FloatGene::new(0_f32, 1_f32).with_bounds(100_f32, 0_f32);
+/// let gene = FloatGene::from_min_max(0_f32, 1_f32).with_bounds(100_f32, 0_f32);
 /// ```
 ///
 #[derive(Clone, PartialEq)]
@@ -37,9 +37,21 @@ pub struct FloatGene {
 }
 
 impl FloatGene {
-    pub fn new(min: f32, max: f32) -> Self {
+    pub fn new(allele: f32) -> Self {
         FloatGene {
-            allele: random_provider::random::<f32>() * (max - min) + min,
+            allele,
+            min: f32::MIN,
+            max: f32::MAX,
+            upper_bound: f32::MAX,
+            lower_bound: f32::MIN,
+        }
+    }
+
+    pub fn from_min_max(min: f32, max: f32) -> Self {
+        let (min, max) = if min > max { (max, min) } else { (min, max) };
+
+        Self {
+            allele: random_provider::random_range(min..max),
             min,
             max,
             upper_bound: f32::MAX,
@@ -204,7 +216,10 @@ impl From<Range<i32>> for FloatChromosome {
     fn from(range: Range<i32>) -> Self {
         let mut genes = Vec::new();
         for _ in range.start..range.end {
-            genes.push(FloatGene::new(range.start as f32, range.end as f32));
+            genes.push(FloatGene::from_min_max(
+                range.start as f32,
+                range.end as f32,
+            ));
         }
 
         FloatChromosome { genes }
@@ -224,13 +239,13 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let gene = FloatGene::new(0_f32, 1_f32);
+        let gene = FloatGene::from_min_max(0_f32, 1_f32);
         assert!(gene.is_valid());
     }
 
     #[test]
     fn test_into() {
-        let gene = FloatGene::new(0_f32, 1_f32);
+        let gene = FloatGene::from_min_max(0_f32, 1_f32);
         let copy = gene.clone();
         let allele: f32 = gene.into();
         assert_eq!(allele, copy.allele);
@@ -238,14 +253,14 @@ mod tests {
 
     #[test]
     fn test_from() {
-        let gene = FloatGene::new(0_f32, 1_f32);
+        let gene = FloatGene::from_min_max(0_f32, 1_f32);
         let copy = gene.clone();
         assert_eq!(gene, copy);
     }
 
     #[test]
     fn test_is_valid() {
-        let gene = FloatGene::new(0_f32, 1_f32).with_bounds(0.0, 1_f32);
+        let gene = FloatGene::from_min_max(0_f32, 1_f32).with_bounds(0.0, 1_f32);
         assert!(gene.is_valid());
         assert!(gene.allele >= 0_f32 && gene.allele <= 1_f32);
     }

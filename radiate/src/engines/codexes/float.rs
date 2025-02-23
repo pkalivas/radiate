@@ -49,7 +49,7 @@ impl Codex<FloatChromosome, Vec<Vec<f32>>> for FloatCodex {
                 .map(|_| FloatChromosome {
                     genes: (0..self.num_genes)
                         .map(|_| {
-                            FloatGene::new(self.min, self.max)
+                            FloatGene::from_min_max(self.min, self.max)
                                 .with_bounds(self.lower_bound, self.upper_bound)
                         })
                         .collect::<Vec<FloatGene>>(),

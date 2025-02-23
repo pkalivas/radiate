@@ -1,5 +1,4 @@
 use plotly::{Plot, Scatter3D};
-use radiate::objectives::{Front, Optimize};
 use radiate::*;
 
 const VARIABLES: usize = 4;

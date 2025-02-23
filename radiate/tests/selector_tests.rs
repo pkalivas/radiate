@@ -32,28 +32,20 @@ mod selector_tests {
     }
 
     #[rstest]
-    #[case(Box::new(BoltzmannSelector::new(4.0)), Optimize::Minimize, 80)]
-    #[case(Box::new(BoltzmannSelector::new(1.0)), Optimize::Minimize, 80)]
-    #[case(Box::new(BoltzmannSelector::new(4.0)), Optimize::Maximize, 80)]
-    #[case(Box::new(BoltzmannSelector::new(1.0)), Optimize::Maximize, 80)]
-    #[case(Box::new(RouletteSelector::new()), Optimize::Minimize, 80)]
-    #[case(Box::new(RouletteSelector::new()), Optimize::Maximize, 80)]
-    #[case(Box::new(TournamentSelector::new(3)), Optimize::Minimize, 80)]
-    #[case(Box::new(TournamentSelector::new(3)), Optimize::Maximize, 80)]
-    #[case(Box::new(RankSelector::new()), Optimize::Minimize, 80)]
-    #[case(Box::new(RankSelector::new()), Optimize::Maximize, 80)]
-    #[case(
-        Box::new(StochasticUniversalSamplingSelector::new()),
-        Optimize::Minimize,
-        80
-    )]
-    #[case(
-        Box::new(StochasticUniversalSamplingSelector::new()),
-        Optimize::Maximize,
-        80
-    )]
+    #[case(BoltzmannSelector::new(4.0), Optimize::Minimize, 80)]
+    #[case(BoltzmannSelector::new(1.0), Optimize::Minimize, 80)]
+    #[case(BoltzmannSelector::new(4.0), Optimize::Maximize, 80)]
+    #[case(BoltzmannSelector::new(1.0), Optimize::Maximize, 80)]
+    #[case(RouletteSelector::new(), Optimize::Minimize, 80)]
+    #[case(RouletteSelector::new(), Optimize::Maximize, 80)]
+    #[case(TournamentSelector::new(3), Optimize::Minimize, 80)]
+    #[case(TournamentSelector::new(3), Optimize::Maximize, 80)]
+    #[case(RankSelector::new(), Optimize::Minimize, 80)]
+    #[case(RankSelector::new(), Optimize::Maximize, 80)]
+    #[case(StochasticUniversalSamplingSelector::new(), Optimize::Minimize, 80)]
+    #[case(StochasticUniversalSamplingSelector::new(), Optimize::Maximize, 80)]
     fn test_probability_selectors_better_than_random(
-        #[case] selector: Box<dyn Select<FloatChromosome>>,
+        #[case] selector: impl Select<FloatChromosome>,
         #[case] optimize: Optimize,
         #[case] count: usize,
     ) {
