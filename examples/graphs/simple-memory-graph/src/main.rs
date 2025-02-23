@@ -17,10 +17,6 @@ fn main() {
     let graph_codex = GraphCodex::cyclic(1, 1, values);
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
-    let encoding = graph_codex.encode();
-
-    println!("Initial: {:?}", encoding);
-
     let engine = GeneticEngine::from_codex(graph_codex)
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4_f32))

@@ -6,7 +6,6 @@ pub mod engine;
 pub mod genome;
 pub mod objectives;
 pub mod params;
-
 pub mod problem;
 pub mod selectors;
 pub mod stats;
