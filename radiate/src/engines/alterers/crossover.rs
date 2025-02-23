@@ -1,5 +1,5 @@
 use crate::{
-    indexes, random_provider, timer::Timer, Chromosome, Gene, Metric, Phenotype, Population,
+    Chromosome, Gene, Metric, Phenotype, Population, indexes, random_provider, timer::Timer,
 };
 
 use super::Alter;

@@ -2,8 +2,8 @@ use crate::node::Node;
 use crate::ops::operation::Op;
 use crate::{Factory, GraphChromosome, NodeType};
 use radiate::engines::genome::gene::Gene;
-use radiate::{random_provider, Chromosome};
 use radiate::{Alter, AlterAction, EngineCompoment, Mutate};
+use radiate::{Chromosome, random_provider};
 use std::sync::Arc;
 
 pub struct OperationMutator {

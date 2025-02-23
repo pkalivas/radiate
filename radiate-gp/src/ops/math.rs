@@ -132,11 +132,7 @@ impl ActivationOperation {
             ActivationOperation::ReLU => clamp(inputs.iter().cloned().sum::<f32>().max(ZERO)),
             ActivationOperation::LeakyReLU => {
                 let x = clamp(inputs.iter().cloned().sum::<f32>());
-                if x > ZERO {
-                    x
-                } else {
-                    clamp(HALF * x)
-                }
+                if x > ZERO { x } else { clamp(HALF * x) }
             }
             ActivationOperation::ELU => {
                 let x = clamp(inputs.iter().cloned().sum::<f32>());

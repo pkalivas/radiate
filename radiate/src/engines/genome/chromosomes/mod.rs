@@ -10,7 +10,7 @@ pub mod int;
 pub mod permutation;
 
 use rand::{
-    distributions::{uniform::SampleUniform, Standard},
+    distributions::{Standard, uniform::SampleUniform},
     prelude::Distribution,
 };
 use std::{

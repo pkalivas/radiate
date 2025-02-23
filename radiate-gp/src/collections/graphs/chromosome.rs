@@ -1,4 +1,4 @@
-use crate::{node::Node, Factory, GraphNode, NodeStore};
+use crate::{Factory, GraphNode, NodeStore, node::Node};
 use radiate::{Chromosome, Gene, Valid};
 use std::fmt::Debug;
 

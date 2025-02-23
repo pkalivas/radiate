@@ -1,5 +1,5 @@
 use super::{Alter, AlterAction, Crossover};
-use crate::{random_provider, Chromosome, EngineCompoment};
+use crate::{Chromosome, EngineCompoment, random_provider};
 
 pub struct ShuffleCrossover {
     rate: f32,

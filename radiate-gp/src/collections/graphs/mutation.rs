@@ -3,7 +3,7 @@ use super::{Graph, GraphChromosome, GraphNode, GraphTransaction};
 use crate::node::Node;
 use crate::{Arity, Factory, NodeType};
 use radiate::Chromosome;
-use radiate::{random_provider, Alter, AlterAction, EngineCompoment, Mutate};
+use radiate::{Alter, AlterAction, EngineCompoment, Mutate, random_provider};
 
 /// A graph mutator that can be used to alter the graph structure. This is used to add nodes
 /// to the graph, and can be used to add either edges or vertices. The mutator is created with

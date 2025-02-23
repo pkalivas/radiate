@@ -114,9 +114,9 @@ mod tests {
     use super::*;
     use crate::collections::{Tree, TreeNode};
 
+    use crate::Op;
     use crate::node::Node;
     use crate::ops::operation;
-    use crate::Op;
 
     #[test]
     fn test_tree_traversal() {

@@ -9,9 +9,9 @@ pub mod steady_state;
 pub mod stochastic_sampling;
 pub mod tournament;
 
+use crate::Chromosome;
 use crate::engines::genome::population::Population;
 use crate::objectives::Objective;
-use crate::Chromosome;
 pub use botzmann::*;
 pub use elite::*;
 pub use linear_rank::*;
@@ -23,7 +23,7 @@ pub use steady_state::*;
 pub use stochastic_sampling::*;
 pub use tournament::*;
 
-use super::{random_provider, EngineCompoment};
+use super::{EngineCompoment, random_provider};
 
 /// A trait for selection algorithms. Selection algorithms are used to select
 /// individuals from a population to be used in the next generation. The

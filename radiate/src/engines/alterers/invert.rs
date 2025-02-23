@@ -1,4 +1,4 @@
-use crate::{random_provider, Chromosome, EngineCompoment};
+use crate::{Chromosome, EngineCompoment, random_provider};
 
 use super::{Alter, AlterAction, Mutate};
 

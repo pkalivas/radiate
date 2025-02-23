@@ -1,9 +1,9 @@
-use rand::distributions::Standard;
-use rand::distributions::{uniform::SampleUniform, Distribution};
-use rand::rngs::StdRng;
-use rand::seq::SliceRandom;
 use rand::Rng;
 use rand::SeedableRng;
+use rand::distributions::Standard;
+use rand::distributions::{Distribution, uniform::SampleUniform};
+use rand::rngs::StdRng;
+use rand::seq::SliceRandom;
 use std::sync::{Arc, Mutex, OnceLock};
 
 struct RandomProvider {
@@ -47,7 +47,7 @@ impl RandomProvider {
     {
         let instance = RandomProvider::global();
         let mut rng = instance.rng.lock().unwrap();
-        rng.gen()
+        rng.r#gen()
     }
 
     pub(self) fn gen_range<T>(range: std::ops::Range<T>) -> T

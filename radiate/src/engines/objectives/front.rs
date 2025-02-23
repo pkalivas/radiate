@@ -1,4 +1,4 @@
-use crate::objectives::{pareto, Objective, Score};
+use crate::objectives::{Objective, Score, pareto};
 use std::cmp;
 
 /// A front is a collection of scores that are non-dominated with respect to each other.
