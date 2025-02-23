@@ -2,7 +2,7 @@ use plotters::backend::BitMapBackend;
 use plotters::chart::ChartBuilder;
 use plotters::drawing::IntoDrawingArea;
 use plotters::element::Circle;
-use plotters::prelude::{Color, IntoFont, LineSeries, BLUE, RED, WHITE};
+use plotters::prelude::{BLUE, Color, IntoFont, LineSeries, RED, WHITE};
 use radiate::*;
 use std::fs::File;
 use std::io::{self, BufRead};

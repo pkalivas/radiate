@@ -13,11 +13,7 @@ fn main() {
                 .fold(
                     0,
                     |acc, (geno, targ)| {
-                        if geno == targ {
-                            acc + 1
-                        } else {
-                            acc
-                        }
+                        if geno == targ { acc + 1 } else { acc }
                     },
                 )
         })
