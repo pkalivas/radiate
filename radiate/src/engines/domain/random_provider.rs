@@ -1,10 +1,7 @@
-use rand::Rng;
-use rand::SeedableRng;
-use rand::distr::Distribution;
-use rand::distr::StandardUniform;
-use rand::distr::uniform::SampleUniform;
+use rand::distr::{Distribution, StandardUniform, uniform::SampleUniform};
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
+use rand::{Rng, SeedableRng};
 use std::sync::{Arc, Mutex, OnceLock};
 
 struct RandomProvider {
