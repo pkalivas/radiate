@@ -1,9 +1,9 @@
+use crate::NodeType;
 use crate::collections::GraphChromosome;
 use crate::node::Node;
-use crate::NodeType;
 use radiate::engines::genome::*;
 use radiate::timer::Timer;
-use radiate::{indexes, random_provider, Alter, AlterAction, Crossover, EngineCompoment, Metric};
+use radiate::{Alter, AlterAction, Crossover, EngineCompoment, Metric, indexes, random_provider};
 use std::collections::HashMap;
 
 const NUM_PARENTS: usize = 2;
