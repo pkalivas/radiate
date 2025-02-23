@@ -9,10 +9,7 @@ pub mod gene;
 pub mod int;
 pub mod permutation;
 
-use rand::{
-    distributions::{Standard, uniform::SampleUniform},
-    prelude::Distribution,
-};
+use rand::distr::uniform::SampleUniform;
 use std::{
     fmt::Debug,
     fmt::Display,
@@ -39,8 +36,6 @@ pub trait Integer<T>:
     + SampleUniform
     + Display
     + Default
-where
-    Standard: Distribution<T>,
 {
     const MIN: T;
     const MAX: T;

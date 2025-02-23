@@ -1,7 +1,8 @@
 use rand::Rng;
 use rand::SeedableRng;
-use rand::distributions::Standard;
-use rand::distributions::{Distribution, uniform::SampleUniform};
+use rand::distr::Distribution;
+use rand::distr::StandardUniform;
+use rand::distr::uniform::SampleUniform;
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
 use std::sync::{Arc, Mutex, OnceLock};
@@ -16,7 +17,7 @@ impl RandomProvider {
         static INSTANCE: OnceLock<RandomProvider> = OnceLock::new();
 
         INSTANCE.get_or_init(|| RandomProvider {
-            rng: Arc::new(Mutex::new(StdRng::from_entropy())),
+            rng: Arc::new(Mutex::new(StdRng::from_os_rng())),
         })
     }
 
@@ -43,27 +44,26 @@ impl RandomProvider {
     pub(self) fn random<T>() -> T
     where
         T: SampleUniform,
-        Standard: Distribution<T>,
+        StandardUniform: Distribution<T>,
     {
         let instance = RandomProvider::global();
         let mut rng = instance.rng.lock().unwrap();
-        rng.r#gen()
+        rng.random()
     }
 
     pub(self) fn gen_range<T>(range: std::ops::Range<T>) -> T
     where
         T: SampleUniform + PartialOrd,
-        Standard: Distribution<T>,
     {
         let instance = RandomProvider::global();
         let mut rng = instance.rng.lock().unwrap();
-        rng.gen_range(range)
+        rng.random_range(range)
     }
 
     pub(self) fn bool(prob: f64) -> bool {
         let instance = RandomProvider::global();
         let mut rng = instance.rng.lock().unwrap();
-        rng.gen_bool(prob)
+        rng.random_bool(prob)
     }
 }
 
@@ -79,7 +79,7 @@ pub fn set_seed(seed: u64) {
 pub fn random<T>() -> T
 where
     T: SampleUniform,
-    Standard: Distribution<T>,
+    StandardUniform: Distribution<T>,
 {
     RandomProvider::random()
 }
@@ -90,17 +90,16 @@ pub fn bool(prob: f64) -> bool {
 }
 
 /// Generates a random number of type T in the given range.
-pub fn gen_range<T>(range: std::ops::Range<T>) -> T
+pub fn random_range<T>(range: std::ops::Range<T>) -> T
 where
     T: SampleUniform + PartialOrd,
-    Standard: Distribution<T>,
 {
     RandomProvider::gen_range(range)
 }
 
 /// Chooses a random item from the given slice.
 pub fn choose<T>(items: &[T]) -> &T {
-    let index = gen_range(0..items.len());
+    let index = random_range(0..items.len());
     &items[index]
 }
 
@@ -155,7 +154,7 @@ mod tests {
     #[test]
     fn test_gen_range() {
         for _ in 0..100 {
-            let value: f64 = gen_range(0.0..100.0);
+            let value: f64 = random_range(0.0..100.0);
             assert!(value >= 0.0 && value < 100.0);
         }
     }

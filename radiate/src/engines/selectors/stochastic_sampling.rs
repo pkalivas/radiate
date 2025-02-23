@@ -48,7 +48,7 @@ impl<C: Chromosome> Select<C> for StochasticUniversalSamplingSelector {
 
         let fitness_total = fitness_values.iter().sum::<f32>();
         let point_distance = fitness_total / count as f32;
-        let start_point = random_provider::gen_range(0.0..point_distance);
+        let start_point = random_provider::random_range(0.0..point_distance);
 
         let mut pointers = Vec::with_capacity(count);
         let mut current_point = start_point;

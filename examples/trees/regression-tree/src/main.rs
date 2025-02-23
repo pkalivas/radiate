@@ -5,7 +5,7 @@ const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 1.0;
 
 fn main() {
-    random_provider::set_seed(42069);
+    random_provider::set_seed(518);
 
     let store = vec![
         (NodeType::Root, vec![Op::linear()]),

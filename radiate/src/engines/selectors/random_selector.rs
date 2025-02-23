@@ -21,7 +21,7 @@ impl<C: Chromosome> Select<C> for RandomSelector {
         let mut selected = Vec::with_capacity(count);
 
         for _ in 0..count {
-            let index = random_provider::gen_range(0..population.len());
+            let index = random_provider::random_range(0..population.len());
             selected.push(population[index].clone());
         }
 
