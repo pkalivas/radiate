@@ -70,7 +70,7 @@ impl<C: Chromosome, T> FnCodex<C, T> {
     }
 }
 
-impl<C: Chromosome, T: Clone> Codex<C, T> for FnCodex<C, T> {
+impl<C: Chromosome, T> Codex<C, T> for FnCodex<C, T> {
     fn encode(&self) -> Genotype<C> {
         match &self.encoder {
             Some(encoder) => encoder(),
