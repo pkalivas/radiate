@@ -30,7 +30,7 @@ pub struct BitGene {
 impl BitGene {
     pub fn new() -> Self {
         BitGene {
-            allele: random_provider::gen_range(0..2) == 1,
+            allele: random_provider::random_range(0..2) == 1,
         }
     }
 }

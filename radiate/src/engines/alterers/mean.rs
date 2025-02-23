@@ -1,6 +1,5 @@
-use crate::{Chromosome, EngineCompoment, NumericGene, random_provider};
-
 use super::{Alter, AlterAction, Crossover};
+use crate::{Chromosome, EngineCompoment, NumericGene, random_provider};
 
 /// The `MeanCrossover` is a simple crossover method that replaces the genes of the first chromosome
 /// with the mean of the two genes. The mean is calculated by adding the two genes together and dividing

@@ -33,7 +33,7 @@ impl ArithmeticMutator {
         T: Gene + Add<Output = T> + Sub<Output = T> + Mul<Output = T> + Div<Output = T>,
     {
         let new_instance = gene.new_instance();
-        let operator = random_provider::gen_range(0..4);
+        let operator = random_provider::random_range(0..4);
 
         match operator {
             0 => gene.clone() + new_instance,

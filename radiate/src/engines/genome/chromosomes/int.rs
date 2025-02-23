@@ -3,8 +3,6 @@ use super::{
     gene::{BoundGene, Gene, NumericGene, Valid},
 };
 use crate::random_provider;
-use rand::distributions::Distribution;
-use rand::distributions::Standard;
 
 /// A `Gene` that represents an integer value. This gene just wraps an integer value and provides
 /// functionality for it to be used in a genetic algorithm. In this `Gene` implementation, the
@@ -40,10 +38,7 @@ use rand::distributions::Standard;
 /// - `T`: The type of integer used in the gene.
 ///
 #[derive(Clone, PartialEq)]
-pub struct IntGene<T: Integer<T>>
-where
-    Standard: Distribution<T>,
-{
+pub struct IntGene<T: Integer<T>> {
     pub allele: T,
     pub min: T,
     pub max: T,
@@ -51,10 +46,7 @@ where
     pub lower_bound: T,
 }
 
-impl<T: Integer<T>> IntGene<T>
-where
-    Standard: Distribution<T>,
-{
+impl<T: Integer<T>> IntGene<T> {
     /// Create a new instance of the `IntGene` with the given allele. The min and max values will be set
     /// to the minimum and maximum values of the integer type `T`, and the upper and lower
     /// bounds will be set to the maximum and minimum values of the integer type `T`.
@@ -74,7 +66,7 @@ where
         let (min, max) = if min > max { (max, min) } else { (min, max) };
 
         Self {
-            allele: random_provider::gen_range(min..max),
+            allele: random_provider::random_range(min..max),
             min,
             max,
             upper_bound: T::MAX,
@@ -84,10 +76,7 @@ where
 }
 
 /// Implement the `Gene` trait for `IntGene`. This allows the `IntGene` to be used in a genetic algorithm.
-impl<T: Integer<T>> Gene for IntGene<T>
-where
-    Standard: Distribution<T>,
-{
+impl<T: Integer<T>> Gene for IntGene<T> {
     type Allele = T;
 
     fn allele(&self) -> &T {
@@ -97,7 +86,7 @@ where
     /// Create a new instance of the `IntGene` with a random allele between the min and max values.
     fn new_instance(&self) -> IntGene<T> {
         IntGene {
-            allele: random_provider::gen_range(self.min..self.max),
+            allele: random_provider::random_range(self.min..self.max),
             min: self.min,
             max: self.max,
             upper_bound: self.upper_bound,
@@ -120,19 +109,13 @@ where
 /// An `IntGene` is valid if the `allele` is between the `min` and `max` values.
 ///
 /// Note: the bounds are used for crossover and mutation.
-impl<T: Integer<T>> Valid for IntGene<T>
-where
-    Standard: Distribution<T>,
-{
+impl<T: Integer<T>> Valid for IntGene<T> {
     fn is_valid(&self) -> bool {
         self.allele >= self.min && self.allele <= self.max
     }
 }
 
-impl<T: Integer<T>> BoundGene for IntGene<T>
-where
-    Standard: Distribution<T>,
-{
+impl<T: Integer<T>> BoundGene for IntGene<T> {
     fn upper_bound(&self) -> &T {
         &self.upper_bound
     }
@@ -150,10 +133,7 @@ where
     }
 }
 
-impl<T: Integer<T>> NumericGene for IntGene<T>
-where
-    Standard: Distribution<T>,
-{
+impl<T: Integer<T>> NumericGene for IntGene<T> {
     fn min(&self) -> &T {
         &self.min
     }
@@ -170,28 +150,19 @@ where
     }
 }
 
-impl<T: Integer<T>> std::fmt::Debug for IntGene<T>
-where
-    Standard: Distribution<T>,
-{
+impl<T: Integer<T>> std::fmt::Debug for IntGene<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.allele)
     }
 }
 
-impl<T: Integer<T>> From<T> for IntGene<T>
-where
-    Standard: Distribution<T>,
-{
+impl<T: Integer<T>> From<T> for IntGene<T> {
     fn from(allele: T) -> Self {
         IntGene::new(allele)
     }
 }
 
-impl<T: Integer<T>> From<&T> for IntGene<T>
-where
-    Standard: Distribution<T>,
-{
+impl<T: Integer<T>> From<&T> for IntGene<T> {
     fn from(allele: &T) -> Self {
         IntGene::new(*allele)
     }
@@ -272,60 +243,39 @@ impl From<IntGene<u128>> for u128 {
 /// * `genes` - A vector of `IntGene<T>` representing the individual's genetic informationn.
 ///
 #[derive(Clone, PartialEq, Default)]
-pub struct IntChromosome<I: Integer<I>>
-where
-    Standard: rand::distributions::Distribution<I>,
-{
+pub struct IntChromosome<I: Integer<I>> {
     pub genes: Vec<IntGene<I>>,
 }
 
-impl<I: Integer<I>> IntChromosome<I>
-where
-    Standard: rand::distributions::Distribution<I>,
-{
+impl<I: Integer<I>> IntChromosome<I> {
     pub fn new(genes: Vec<IntGene<I>>) -> Self {
         IntChromosome { genes }
     }
 }
 
-impl<I: Integer<I>> Chromosome for IntChromosome<I>
-where
-    Standard: rand::distributions::Distribution<I>,
-{
+impl<I: Integer<I>> Chromosome for IntChromosome<I> {
     type Gene = IntGene<I>;
 }
 
-impl<T: Integer<T>> Valid for IntChromosome<T>
-where
-    Standard: rand::distributions::Distribution<T>,
-{
+impl<T: Integer<T>> Valid for IntChromosome<T> {
     fn is_valid(&self) -> bool {
         self.genes.iter().all(|gene| gene.is_valid())
     }
 }
 
-impl<T: Integer<T>> AsRef<[IntGene<T>]> for IntChromosome<T>
-where
-    Standard: rand::distributions::Distribution<T>,
-{
+impl<T: Integer<T>> AsRef<[IntGene<T>]> for IntChromosome<T> {
     fn as_ref(&self) -> &[IntGene<T>] {
         &self.genes
     }
 }
 
-impl<T: Integer<T>> AsMut<[IntGene<T>]> for IntChromosome<T>
-where
-    Standard: rand::distributions::Distribution<T>,
-{
+impl<T: Integer<T>> AsMut<[IntGene<T>]> for IntChromosome<T> {
     fn as_mut(&mut self) -> &mut [IntGene<T>] {
         &mut self.genes
     }
 }
 
-impl<T: Integer<T>> From<&[T]> for IntChromosome<T>
-where
-    Standard: rand::distributions::Distribution<T>,
-{
+impl<T: Integer<T>> From<&[T]> for IntChromosome<T> {
     fn from(alleles: &[T]) -> Self {
         let genes = alleles.iter().map(IntGene::from).collect();
         IntChromosome { genes }

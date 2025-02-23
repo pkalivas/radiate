@@ -95,10 +95,7 @@ In other words, the `Codex` is the bridge between the domain language of Radiate
         ```
     === "IntCodex"
         ```rust
-        pub struct IntCodex<T: Integer<T>>
-        where
-            Standard: rand::distributions::Distribution<T>,
-        {
+        pub struct IntCodex<T: Integer<T>> {
             pub num_chromosomes: usize,
             pub num_genes: usize,
             pub min: T,

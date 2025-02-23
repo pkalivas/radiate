@@ -47,7 +47,7 @@ impl<C: Chromosome> Select<C> for LinearRankSelector {
         }
 
         for _ in 0..count {
-            let target = random_provider::gen_range(0.0..total_rank);
+            let target = random_provider::random_range(0.0..total_rank);
             let mut cumulative_rank = 0.0;
 
             for (rank, _) in fitness_values.iter().enumerate() {

@@ -1,5 +1,3 @@
-use rand::distributions::Standard;
-
 use crate::engines::genome::gene::{BoundGene, Gene};
 use crate::engines::genome::genotype::Genotype;
 use crate::engines::genome::int::IntGene;
@@ -15,10 +13,7 @@ use super::Codex;
 /// The lower and upper bounds of the `IntGenes` can be set with the `with_bounds` function.
 /// The default bounds are `T::MIN` and `T::MAX`.
 #[derive(Clone)]
-pub struct IntCodex<T: Integer<T>>
-where
-    Standard: rand::distributions::Distribution<T>,
-{
+pub struct IntCodex<T: Integer<T>> {
     num_chromosomes: usize,
     num_genes: usize,
     min: T,
@@ -27,10 +22,7 @@ where
     upper_bound: T,
 }
 
-impl<T: Integer<T>> IntCodex<T>
-where
-    Standard: rand::distributions::Distribution<T>,
-{
+impl<T: Integer<T>> IntCodex<T> {
     pub fn new(num_chromosomes: usize, num_genes: usize, min: T, max: T) -> Self {
         IntCodex {
             num_chromosomes,
@@ -49,10 +41,7 @@ where
     }
 }
 
-impl<T: Integer<T>> Codex<IntChromosome<T>, Vec<Vec<T>>> for IntCodex<T>
-where
-    Standard: rand::distributions::Distribution<T>,
-{
+impl<T: Integer<T>> Codex<IntChromosome<T>, Vec<Vec<T>>> for IntCodex<T> {
     fn encode(&self) -> Genotype<IntChromosome<T>> {
         Genotype {
             chromosomes: (0..self.num_chromosomes)
@@ -81,10 +70,7 @@ where
     }
 }
 
-impl<T: Integer<T>> Default for IntCodex<T>
-where
-    Standard: rand::distributions::Distribution<T>,
-{
+impl<T: Integer<T>> Default for IntCodex<T> {
     fn default() -> Self {
         IntCodex {
             num_chromosomes: 1,

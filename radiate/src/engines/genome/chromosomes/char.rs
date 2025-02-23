@@ -31,7 +31,7 @@ pub struct CharGene {
 
 impl CharGene {
     pub fn new() -> Self {
-        let index = random_provider::random::<usize>() % ALPHABET.len();
+        let index = random_provider::random_range(0..ALPHABET.len());
         CharGene {
             allele: ALPHABET.chars().nth(index).unwrap(),
         }

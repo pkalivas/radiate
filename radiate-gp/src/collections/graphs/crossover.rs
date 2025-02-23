@@ -37,8 +37,8 @@ impl GraphCrossover {
         let geno_one = parent_one.genotype();
         let geno_two = parent_two.genotype();
 
-        let rand_idx = random_provider::random::<usize>();
-        let chromo_index = rand_idx % std::cmp::min(geno_one.len(), geno_two.len());
+        let chromo_index =
+            random_provider::random_range(0..std::cmp::min(geno_one.len(), geno_two.len()));
 
         let chromo_one = &geno_one[chromo_index];
         let chromo_two = &geno_two[chromo_index];

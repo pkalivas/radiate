@@ -324,7 +324,7 @@ impl<'a, T> GraphTransaction<'a, T> {
             return None;
         }
 
-        let gene_node_type_index = random_provider::random::<usize>() % node_types.len();
+        let gene_node_type_index = random_provider::random_range(0..node_types.len());
         let gene_node_type = node_types.get(gene_node_type_index).unwrap();
 
         let genes = match gene_node_type {
@@ -357,7 +357,7 @@ impl<'a, T> GraphTransaction<'a, T> {
             );
         }
 
-        let index = random_provider::random::<usize>() % genes.len();
+        let index = random_provider::random_range(0..genes.len());
         genes.get(index).map(|x| *x)
     }
 }

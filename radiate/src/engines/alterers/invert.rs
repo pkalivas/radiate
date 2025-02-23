@@ -44,8 +44,8 @@ impl<C: Chromosome> Mutate<C> for InversionMutator {
         let mut mutations = 0;
 
         if random_provider::random::<f32>() < self.rate {
-            let start = random_provider::gen_range(0..chromosome.len());
-            let end = random_provider::gen_range(start..chromosome.len());
+            let start = random_provider::random_range(0..chromosome.len());
+            let end = random_provider::random_range(start..chromosome.len());
 
             chromosome.as_mut()[start..end].reverse();
             mutations += 1;

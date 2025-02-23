@@ -47,10 +47,7 @@ ___
 
             ```rust
             #[derive(Clone, PartialEq)]
-            pub struct IntGene<T: Integer<T>>
-            where
-                Standard: rand::distributions::Distribution<T>,
-            {
+            pub struct IntGene<T: Integer<T>> {
                 pub allele: T,
                 pub min: T,
                 pub max: T,
@@ -128,10 +125,7 @@ The `Chromosome` is a collection of `Genes` that represent a part or the whole o
 
             ```rust
             #[derive(Clone, PartialEq)]
-            pub struct IntChromosome<I: Integer<I>>
-            where
-                Standard: rand::distributions::Distribution<I>,
-            {
+            pub struct IntChromosome<I: Integer<I>> {
                 pub genes: Vec<IntGene<I>>,
             } 
             ```

@@ -279,7 +279,7 @@ where
                         population[i] = Phenotype::from_genotype(problem.encode(), generation);
                     }
                     FilterStrategy::PopulationSample => {
-                        let idx = rand::random::<usize>() % population.len();
+                        let idx = rand::random_range(0..population.len());
                         population[i] = population[idx].clone();
                     }
                 }
