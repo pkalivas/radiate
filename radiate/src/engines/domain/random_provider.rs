@@ -18,13 +18,13 @@ impl RandomProvider {
         })
     }
 
-    pub(self) fn replace_global(other: StdRng) {
+    pub(self) fn set_rng(other: StdRng) {
         let instance = RandomProvider::global();
         let mut rng = instance.rng.lock().unwrap();
         *rng = other;
     }
 
-    pub(self) fn get_global() -> StdRng {
+    pub(self) fn get_rng() -> StdRng {
         let instance = RandomProvider::global();
         let rng = instance.rng.lock().unwrap();
         rng.clone()
@@ -48,7 +48,7 @@ impl RandomProvider {
         rng.random()
     }
 
-    pub(self) fn gen_range<T>(range: std::ops::Range<T>) -> T
+    pub(self) fn random_range<T>(range: std::ops::Range<T>) -> T
     where
         T: SampleUniform + PartialOrd,
     {
@@ -91,7 +91,7 @@ pub fn random_range<T>(range: std::ops::Range<T>) -> T
 where
     T: SampleUniform + PartialOrd,
 {
-    RandomProvider::gen_range(range)
+    RandomProvider::random_range(range)
 }
 
 /// Chooses a random item from the given slice.
@@ -118,8 +118,8 @@ pub fn shuffle<T>(items: &mut [T]) {
 }
 
 /// Generates a vector of indexes from 0 to n-1 in random order.
-pub fn indexes(n: usize) -> Vec<usize> {
-    let mut indexes: Vec<usize> = (0..n).collect();
+pub fn indexes(range: std::ops::Range<usize>) -> Vec<usize> {
+    let mut indexes = range.collect::<Vec<usize>>();
     shuffle(&mut indexes);
     indexes
 }
@@ -128,11 +128,11 @@ pub fn scoped_seed<F>(seed: u64, func: F)
 where
     F: FnOnce(),
 {
-    let current_rng = RandomProvider::get_global();
+    let current_rng = RandomProvider::get_rng();
 
-    RandomProvider::replace_global(StdRng::seed_from_u64(seed));
+    RandomProvider::set_rng(StdRng::seed_from_u64(seed));
     func();
-    RandomProvider::replace_global(current_rng);
+    RandomProvider::set_rng(current_rng);
 }
 
 #[cfg(test)]
@@ -174,7 +174,7 @@ mod tests {
 
     #[test]
     fn test_indexes() {
-        let indexes = indexes(10);
+        let indexes = indexes(0..10);
         assert_eq!(indexes.len(), 10);
         assert_ne!(indexes, vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
     }

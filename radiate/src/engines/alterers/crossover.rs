@@ -1,8 +1,7 @@
+use super::Alter;
 use crate::{
     Chromosome, Gene, Metric, Phenotype, Population, indexes, random_provider, timer::Timer,
 };
-
-use super::Alter;
 
 /// The `Crossover` trait is used to define the crossover operation for a genetic algorithm.
 ///
@@ -50,8 +49,8 @@ pub trait Crossover<C: Chromosome>: Alter<C> {
         let mut geno_one = population[index_one].genotype().clone();
         let mut geno_two = population[index_two].genotype().clone();
 
-        let chromosome_index =
-            random_provider::random_range(0..std::cmp::min(geno_one.len(), geno_two.len()));
+        let max_idx = std::cmp::min(geno_one.len(), geno_two.len());
+        let chromosome_index = random_provider::random_range(0..max_idx);
 
         let chrom_one = &mut geno_one[chromosome_index];
         let chrom_two = &mut geno_two[chromosome_index];
