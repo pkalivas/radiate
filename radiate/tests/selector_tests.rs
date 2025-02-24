@@ -57,11 +57,11 @@ mod selector_tests {
 
         let mut better_than_random = 0;
 
-        let monte_carlo_selector = RandomSelector::new();
+        let random_selector = RandomSelector::new();
 
         for _ in 0..num_permutations {
             let selected = selector.select(&population, &objectives, count);
-            let random_selected = monte_carlo_selector.select(&population, &objectives, count);
+            let random_selected = random_selector.select(&population, &objectives, count);
 
             assert_eq!(selected.len(), count);
             assert_eq!(random_selected.len(), count);
