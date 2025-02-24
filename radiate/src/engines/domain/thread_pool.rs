@@ -119,7 +119,7 @@ impl Worker {
     }
 
     /// Simple check if the worker is alive. The thread is 'taken' when the worker is dropped.
-    /// So if the thread is 'taken' the worker is no longer alive.
+    /// So if the thread is 'None' the worker is no longer alive.
     pub fn is_alive(&self) -> bool {
         self.thread.is_some()
     }

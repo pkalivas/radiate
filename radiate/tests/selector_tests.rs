@@ -3,7 +3,6 @@ mod utilities;
 #[cfg(test)]
 mod selector_tests {
     use crate::utilities::population_utils;
-    use radiate::objectives::{Objective, Optimize};
     use radiate::*;
     use rstest::*;
 
