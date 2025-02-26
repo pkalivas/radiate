@@ -45,6 +45,12 @@ impl ArithmeticMutator {
     }
 }
 
+impl EngineCompoment for ArithmeticMutator {
+    fn name(&self) -> &'static str {
+        "ArithmeticMutator"
+    }
+}
+
 impl<C: Chromosome> Alter<C> for ArithmeticMutator
 where
     C::Gene: Add<Output = C::Gene>
@@ -58,12 +64,6 @@ where
 
     fn to_alter(self) -> AlterAction<C> {
         AlterAction::Mutate(Box::new(self))
-    }
-}
-
-impl EngineCompoment for ArithmeticMutator {
-    fn name(&self) -> &'static str {
-        "ArithmeticMutator"
     }
 }
 
