@@ -52,7 +52,24 @@ impl<'a, T> GraphTransaction<'a, T> {
     }
 
     pub fn commit(self) -> TransactionResult<T> {
+        self.commit_with(None)
+    }
+
+    pub fn commit_with(
+        mut self,
+        validator: Option<&dyn Fn(&Graph<T>) -> bool>,
+    ) -> TransactionResult<T> {
+        self.set_cycles();
         let result_steps = self.steps.iter().map(|step| (*step).clone()).collect();
+
+        if let Some(validator) = validator {
+            if validator(self.graph) && self.is_valid() {
+                return TransactionResult::Valid(result_steps);
+            } else {
+                let replay_steps = self.rollback();
+                return TransactionResult::Invalid(result_steps, replay_steps);
+            }
+        }
 
         if self.is_valid() {
             TransactionResult::Valid(result_steps)
@@ -179,26 +196,33 @@ impl<'a, T> GraphTransaction<'a, T> {
 
     pub fn get_insertion_type(
         &self,
-        source: usize,
-        target: usize,
-        new_node: usize,
+        source_idx: usize,
+        target_idx: usize,
+        new_node_idx: usize,
         allow_recurrent: bool,
     ) -> Vec<InsertStep> {
-        let target_node = self.graph.get(target).unwrap();
-        let source_node = self.graph.get(source).unwrap();
+        let target_node = self.graph.get(target_idx).unwrap();
+        let source_node = self.graph.get(source_idx).unwrap();
+        let new_node = self.graph.get(new_node_idx).unwrap();
 
         let mut steps = Vec::new();
 
         let source_is_edge = source_node.node_type() == NodeType::Edge;
         let target_is_edge = target_node.node_type() == NodeType::Edge;
+        let new_node_arity = new_node.arity();
 
-        let would_create_cycle = self.would_create_cycle(source, target);
+        let would_create_cycle = self.would_create_cycle(source_idx, target_idx);
+
+        if new_node_arity == Arity::Zero && !target_node.is_locked() {
+            steps.push(InsertStep::Connect(new_node_idx, target_idx));
+            return steps;
+        }
 
         if source_is_edge {
             let source_outgoing = source_node.outgoing().iter().next().unwrap();
-            if source_outgoing == &new_node {
+            if source_outgoing == &new_node_idx {
                 if allow_recurrent {
-                    steps.push(InsertStep::Connect(source, new_node));
+                    steps.push(InsertStep::Connect(source_idx, new_node_idx));
                 } else {
                     steps.push(InsertStep::Invalid);
                 }
@@ -206,16 +230,16 @@ impl<'a, T> GraphTransaction<'a, T> {
                 if would_create_cycle && !allow_recurrent {
                     steps.push(InsertStep::Invalid);
                 } else {
-                    steps.push(InsertStep::Connect(source, new_node));
-                    steps.push(InsertStep::Connect(new_node, *source_outgoing));
-                    steps.push(InsertStep::Detach(source, *source_outgoing));
+                    steps.push(InsertStep::Connect(source_idx, new_node_idx));
+                    steps.push(InsertStep::Connect(new_node_idx, *source_outgoing));
+                    steps.push(InsertStep::Detach(source_idx, *source_outgoing));
                 }
             }
         } else if target_is_edge || target_node.is_locked() {
             let target_incoming = target_node.incoming().iter().next().unwrap();
-            if target_incoming == &new_node {
+            if target_incoming == &new_node_idx {
                 if allow_recurrent {
-                    steps.push(InsertStep::Connect(*target_incoming, new_node));
+                    steps.push(InsertStep::Connect(*target_incoming, new_node_idx));
                 } else {
                     steps.push(InsertStep::Invalid);
                 }
@@ -223,9 +247,9 @@ impl<'a, T> GraphTransaction<'a, T> {
                 if would_create_cycle && !allow_recurrent {
                     steps.push(InsertStep::Invalid);
                 } else {
-                    steps.push(InsertStep::Connect(*target_incoming, new_node));
-                    steps.push(InsertStep::Connect(new_node, target));
-                    steps.push(InsertStep::Detach(*target_incoming, target));
+                    steps.push(InsertStep::Connect(*target_incoming, new_node_idx));
+                    steps.push(InsertStep::Connect(new_node_idx, target_idx));
+                    steps.push(InsertStep::Detach(*target_incoming, target_idx));
                 }
             }
         } else {
@@ -234,21 +258,21 @@ impl<'a, T> GraphTransaction<'a, T> {
 
                 match souce_arity {
                     Arity::Any => {
-                        steps.push(InsertStep::Connect(source, new_node));
-                        steps.push(InsertStep::Connect(new_node, source));
+                        steps.push(InsertStep::Connect(source_idx, new_node_idx));
+                        steps.push(InsertStep::Connect(new_node_idx, source_idx));
                     }
                     _ => {
-                        steps.push(InsertStep::Connect(source, new_node));
-                        steps.push(InsertStep::Connect(new_node, target));
+                        steps.push(InsertStep::Connect(source_idx, new_node_idx));
+                        steps.push(InsertStep::Connect(new_node_idx, target_idx));
                     }
                 }
             } else {
-                if !would_create_cycle && source != target {
-                    if source == new_node || target == new_node {
+                if !would_create_cycle && source_idx != target_idx {
+                    if source_idx == new_node_idx || target_idx == new_node_idx {
                         steps.push(InsertStep::Invalid);
                     } else {
-                        steps.push(InsertStep::Connect(source, new_node));
-                        steps.push(InsertStep::Connect(new_node, target));
+                        steps.push(InsertStep::Connect(source_idx, new_node_idx));
+                        steps.push(InsertStep::Connect(new_node_idx, target_idx));
                     }
                 }
             }

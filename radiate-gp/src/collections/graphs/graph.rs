@@ -168,12 +168,10 @@ impl<T> Graph<T> {
     #[inline]
     pub fn try_modify<F>(&mut self, mutation: F) -> TransactionResult<T>
     where
-        F: FnOnce(&mut GraphTransaction<T>),
+        F: FnOnce(GraphTransaction<T>) -> TransactionResult<T>,
         T: Clone + Default + PartialEq,
     {
-        let mut transaction = GraphTransaction::new(self);
-        mutation(&mut transaction);
-        transaction.commit()
+        mutation(GraphTransaction::new(self))
     }
 }
 
