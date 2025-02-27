@@ -1,5 +1,5 @@
-use super::{Alter, AlterAction, Alterer, Crossover, IntoAlter};
-use crate::{Chromosome, EngineCompoment, random_provider};
+use super::{AlterAction, Alterer, Crossover, IntoAlter};
+use crate::{Chromosome, random_provider};
 
 pub struct ShuffleCrossover {
     rate: f32,
@@ -8,22 +8,6 @@ pub struct ShuffleCrossover {
 impl ShuffleCrossover {
     pub fn new(rate: f32) -> Self {
         ShuffleCrossover { rate }
-    }
-}
-
-impl EngineCompoment for ShuffleCrossover {
-    fn name(&self) -> &'static str {
-        "ShuffleCrossover"
-    }
-}
-
-impl<C: Chromosome> Alter<C> for ShuffleCrossover {
-    fn rate(&self) -> f32 {
-        self.rate
-    }
-
-    fn to_alter(self) -> AlterAction<C> {
-        AlterAction::Crossover(Box::new(self))
     }
 }
 

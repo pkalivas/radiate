@@ -2,7 +2,7 @@ use super::codexes::Codex;
 use super::context::EngineContext;
 use super::genome::phenotype::Phenotype;
 use super::thread_pool::ThreadPool;
-use super::{AlterAction, AlterFn, FilterStrategy, MetricSet, Problem};
+use super::{Alter, AlterAction, FilterStrategy, MetricSet, Problem};
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
 use crate::engines::objectives::Score;
@@ -428,7 +428,7 @@ where
         self.params.offspring_selector.as_ref()
     }
 
-    fn alters(&self) -> &[Box<dyn AlterFn<C>>] {
+    fn alters(&self) -> &[Box<dyn Alter<C>>] {
         &self.params.alterers
     }
 

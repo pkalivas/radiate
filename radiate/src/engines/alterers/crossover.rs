@@ -1,12 +1,5 @@
-use super::{Alter, IntoAlter};
-use crate::{
-    Chromosome, Gene, Metric, Phenotype, Population, indexes, random_provider, timer::Timer,
-};
-
-pub struct AlterResult {
-    pub count: i32,
-    pub metrics: Vec<Metric>,
-}
+use super::{AlterResult, IntoAlter};
+use crate::{Chromosome, Gene, Phenotype, Population, indexes, random_provider};
 
 /// The `Crossover` trait is used to define the crossover operation for a genetic algorithm.
 ///
@@ -35,12 +28,6 @@ pub trait Crossover<C: Chromosome>: IntoAlter<C> {
             count,
             metrics: vec![],
         }
-
-        // vec![Metric::new_operations(
-        //     self.name(),
-        //     count as f32,
-        //     timer.duration(),
-        // )]
     }
 
     #[inline]

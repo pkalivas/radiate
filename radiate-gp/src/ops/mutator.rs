@@ -2,7 +2,7 @@ use crate::node::Node;
 use crate::ops::operation::Op;
 use crate::{Factory, GraphChromosome, NodeType};
 use radiate::engines::genome::gene::Gene;
-use radiate::{Alter, AlterAction, Alterer, EngineCompoment, IntoAlter, Mutate};
+use radiate::{AlterAction, Alterer, IntoAlter, Mutate};
 use radiate::{Chromosome, random_provider};
 use std::sync::Arc;
 

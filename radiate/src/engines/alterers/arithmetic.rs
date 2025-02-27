@@ -1,7 +1,7 @@
-use crate::{Chromosome, EngineCompoment, Gene, random_provider};
+use crate::{Chromosome, Gene, random_provider};
 use std::ops::{Add, Div, Mul, Sub};
 
-use super::{Alter, AlterAction, Alterer, IntoAlter, Mutate};
+use super::{AlterAction, Alterer, IntoAlter, Mutate};
 
 /// Arithmetic Mutator. Mutates genes by performing arithmetic operations on them.
 /// The ArithmeticMutator takes a rate parameter that determines the likelihood that
@@ -42,28 +42,6 @@ impl ArithmeticMutator {
             3 => gene.clone() / new_instance,
             _ => panic!("Invalid operator: {}", operator),
         }
-    }
-}
-
-impl EngineCompoment for ArithmeticMutator {
-    fn name(&self) -> &'static str {
-        "ArithmeticMutator"
-    }
-}
-
-impl<C: Chromosome> Alter<C> for ArithmeticMutator
-where
-    C::Gene: Add<Output = C::Gene>
-        + Sub<Output = C::Gene>
-        + Mul<Output = C::Gene>
-        + Div<Output = C::Gene>,
-{
-    fn rate(&self) -> f32 {
-        self.rate
-    }
-
-    fn to_alter(self) -> AlterAction<C> {
-        AlterAction::Mutate(Box::new(self))
     }
 }
 

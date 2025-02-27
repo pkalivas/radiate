@@ -1,8 +1,6 @@
 use super::TreeChromosome;
 use radiate::engines::genome::*;
-use radiate::{
-    Alter, AlterAction, Alterer, Crossover, EngineCompoment, IntoAlter, random_provider,
-};
+use radiate::{AlterAction, Alterer, Crossover, IntoAlter, random_provider};
 
 pub struct TreeCrossover {
     rate: f32,
@@ -11,25 +9,6 @@ pub struct TreeCrossover {
 impl TreeCrossover {
     pub fn new(rate: f32) -> Self {
         TreeCrossover { rate }
-    }
-}
-
-impl EngineCompoment for TreeCrossover {
-    fn name(&self) -> &'static str {
-        "TreeCrossover"
-    }
-}
-
-impl<T> Alter<TreeChromosome<T>> for TreeCrossover
-where
-    T: Clone + PartialEq + Default,
-{
-    fn rate(&self) -> f32 {
-        self.rate
-    }
-
-    fn to_alter(self) -> AlterAction<TreeChromosome<T>> {
-        AlterAction::Crossover(Box::new(self))
     }
 }
 

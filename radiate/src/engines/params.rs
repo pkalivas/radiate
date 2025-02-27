@@ -1,8 +1,7 @@
 use super::codexes::Codex;
 use super::thread_pool::ThreadPool;
 use super::{
-    Alter, AlterAction, AlterFn, Alterer, EngineProblem, IntoAlter, Problem, RouletteSelector,
-    Select, TournamentSelector,
+    Alter, EngineProblem, IntoAlter, Problem, RouletteSelector, Select, TournamentSelector,
 };
 use crate::Chromosome;
 use crate::engines::engine::GeneticEngine;
@@ -45,7 +44,7 @@ where
     pub objective: Objective,
     pub survivor_selector: Box<dyn Select<C>>,
     pub offspring_selector: Box<dyn Select<C>>,
-    pub alterers: Vec<Box<dyn AlterFn<C>>>,
+    pub alterers: Vec<Box<dyn Alter<C>>>,
     pub population: Option<Population<C>>,
     pub codex: Option<Arc<dyn Codex<C, T>>>,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
@@ -190,7 +189,7 @@ where
     /// and crossover operations to the offspring and will be used to create the next
     /// generation of the population. **Note**: the order of the alterers is important - the
     /// alterers will be applied in the order they are provided.
-    pub fn alter(mut self, alterers: Vec<Box<dyn AlterFn<C>>>) -> Self {
+    pub fn alter(mut self, alterers: Vec<Box<dyn Alter<C>>>) -> Self {
         self.alterers = alterers;
         self
     }
@@ -286,8 +285,8 @@ where
             return;
         }
 
-        let crossover = Box::new(UniformCrossover::new(0.5).into_alter()) as Box<dyn AlterFn<C>>;
-        let mutator = Box::new(UniformMutator::new(0.1).into_alter()) as Box<dyn AlterFn<C>>;
+        let crossover = Box::new(UniformCrossover::new(0.5).into_alter()) as Box<dyn Alter<C>>;
+        let mutator = Box::new(UniformMutator::new(0.1).into_alter()) as Box<dyn Alter<C>>;
 
         self.alterers.push(crossover);
         self.alterers.push(mutator);

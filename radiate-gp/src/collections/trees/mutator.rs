@@ -1,8 +1,6 @@
 use super::TreeChromosome;
 use crate::{Factory, NodeStore, NodeType, TreeNode, node::Node};
-use radiate::{
-    Alter, AlterAction, Alterer, EngineCompoment, Gene, IntoAlter, Mutate, random_provider,
-};
+use radiate::{AlterAction, Alterer, Gene, IntoAlter, Mutate, random_provider};
 
 pub struct TreeMutator {
     rate: f32,
@@ -41,25 +39,6 @@ impl TreeMutator {
         }
 
         count
-    }
-}
-
-impl EngineCompoment for TreeMutator {
-    fn name(&self) -> &'static str {
-        "TreeMutator"
-    }
-}
-
-impl<T> Alter<TreeChromosome<T>> for TreeMutator
-where
-    T: Clone + PartialEq + Default,
-{
-    fn rate(&self) -> f32 {
-        self.rate
-    }
-
-    fn to_alter(self) -> AlterAction<TreeChromosome<T>> {
-        AlterAction::Mutate(Box::new(self))
     }
 }
 

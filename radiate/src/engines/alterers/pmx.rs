@@ -1,6 +1,6 @@
-use super::{Alter, AlterAction, Alterer, Crossover, IntoAlter};
+use super::{AlterAction, Alterer, Crossover, IntoAlter};
 use crate::indexes;
-use crate::{Chromosome, EngineCompoment, PermutationChromosome};
+use crate::{Chromosome, PermutationChromosome};
 
 pub struct PMXCrossover {
     rate: f32,
@@ -9,22 +9,6 @@ pub struct PMXCrossover {
 impl PMXCrossover {
     pub fn new(rate: f32) -> Self {
         PMXCrossover { rate }
-    }
-}
-
-impl EngineCompoment for PMXCrossover {
-    fn name(&self) -> &'static str {
-        "PMX Crossover"
-    }
-}
-
-impl<A: PartialEq + Clone> Alter<PermutationChromosome<A>> for PMXCrossover {
-    fn rate(&self) -> f32 {
-        self.rate
-    }
-
-    fn to_alter(self) -> AlterAction<PermutationChromosome<A>> {
-        AlterAction::Crossover(Box::new(self))
     }
 }
 

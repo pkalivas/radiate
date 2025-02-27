@@ -1,5 +1,5 @@
-use super::{Alter, AlterResult, IntoAlter};
-use crate::{Chromosome, Gene, Genotype, Metric, Population, random_provider, timer::Timer};
+use super::{AlterResult, IntoAlter};
+use crate::{Chromosome, Gene, Genotype, Population, random_provider};
 
 pub trait Mutate<C: Chromosome>: IntoAlter<C> {
     #[inline]
@@ -22,12 +22,6 @@ pub trait Mutate<C: Chromosome>: IntoAlter<C> {
             count,
             metrics: vec![],
         }
-
-        // vec![Metric::new_operations(
-        //     self.name(),
-        //     count as f32,
-        //     timer.duration(),
-        // )]
     }
 
     #[inline]

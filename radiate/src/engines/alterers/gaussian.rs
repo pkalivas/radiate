@@ -1,6 +1,6 @@
-use crate::{Chromosome, EngineCompoment, FloatGene, Gene, NumericGene, random_provider};
+use crate::{Chromosome, FloatGene, Gene, NumericGene, random_provider};
 
-use super::{Alter, AlterAction, Alterer, IntoAlter, Mutate};
+use super::{AlterAction, Alterer, IntoAlter, Mutate};
 
 /// The `GaussianMutator` is a simple mutator that adds a small amount of Gaussian noise to the gene.
 ///
@@ -33,22 +33,6 @@ impl GaussianMutator {
         } else {
             value
         }
-    }
-}
-
-impl EngineCompoment for GaussianMutator {
-    fn name(&self) -> &'static str {
-        "GaussianMutator"
-    }
-}
-
-impl<C: Chromosome<Gene = FloatGene>> Alter<C> for GaussianMutator {
-    fn rate(&self) -> f32 {
-        self.rate
-    }
-
-    fn to_alter(self) -> AlterAction<C> {
-        AlterAction::Mutate(Box::new(self))
     }
 }
 

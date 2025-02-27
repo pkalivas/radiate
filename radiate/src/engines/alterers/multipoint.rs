@@ -1,6 +1,6 @@
-use super::{Alter, AlterAction, Alterer, Crossover, IntoAlter};
+use super::{AlterAction, Alterer, Crossover, IntoAlter};
 
-use crate::{Chromosome, EngineCompoment, random_provider};
+use crate::{Chromosome, random_provider};
 
 /// The `MultiPointCrossover` is a crossover method that takes two chromosomes and crosses them
 /// by selecting multiple points in the chromosome and swapping the genes between the two chromosomes.
@@ -25,22 +25,6 @@ impl MultiPointCrossover {
         }
 
         Self { num_points, rate }
-    }
-}
-
-impl EngineCompoment for MultiPointCrossover {
-    fn name(&self) -> &'static str {
-        "MultiPointCrossover"
-    }
-}
-
-impl<C: Chromosome> Alter<C> for MultiPointCrossover {
-    fn rate(&self) -> f32 {
-        self.rate
-    }
-
-    fn to_alter(self) -> AlterAction<C> {
-        AlterAction::Crossover(Box::new(self))
     }
 }
 

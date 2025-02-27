@@ -185,16 +185,11 @@ macro_rules! impl_integer {
 macro_rules! alters {
     ($($struct_instance:expr),* $(,)?) => {
         {
-            let mut vec: Vec<Box<dyn AlterFn<_>>> = Vec::new();
+            let mut vec: Vec<Box<dyn Alter<_>>> = Vec::new();
             $(
                 vec.push(Box::new($struct_instance.into_alter()));
             )*
             vec
-            // let mut vec: Vec<AlterAction<_>> = Vec::new();
-            // $(
-            //     vec.push($struct_instance.to_alter());
-            // )*
-            // vec
         }
     };
 }

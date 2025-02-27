@@ -2,11 +2,7 @@ use crate::NodeType;
 use crate::collections::GraphChromosome;
 use crate::node::Node;
 use radiate::engines::genome::*;
-use radiate::timer::Timer;
-use radiate::{
-    Alter, AlterAction, AlterResult, Alterer, Crossover, EngineCompoment, IntoAlter, Metric,
-    indexes, random_provider,
-};
+use radiate::{AlterAction, AlterResult, Alterer, Crossover, IntoAlter, indexes, random_provider};
 use std::collections::HashMap;
 
 const NUM_PARENTS: usize = 2;
@@ -116,12 +112,6 @@ where
             count,
             metrics: vec![],
         }
-
-        // vec![Metric::new_operations(
-        //     self.name(),
-        //     count as f32,
-        //     timer.duration(),
-        // )]
     }
 }
 

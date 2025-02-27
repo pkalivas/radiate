@@ -1,5 +1,5 @@
-use super::{Alter, AlterAction, Alterer, IntoAlter, Mutate};
-use crate::{Chromosome, EngineCompoment, random_provider};
+use super::{AlterAction, Alterer, IntoAlter, Mutate};
+use crate::{Chromosome, random_provider};
 
 pub struct SwapMutator {
     rate: f32,
@@ -8,22 +8,6 @@ pub struct SwapMutator {
 impl SwapMutator {
     pub fn new(rate: f32) -> Self {
         SwapMutator { rate }
-    }
-}
-
-impl EngineCompoment for SwapMutator {
-    fn name(&self) -> &'static str {
-        "SwapMutator"
-    }
-}
-
-impl<C: Chromosome> Alter<C> for SwapMutator {
-    fn rate(&self) -> f32 {
-        self.rate
-    }
-
-    fn to_alter(self) -> AlterAction<C> {
-        AlterAction::Mutate(Box::new(self))
     }
 }
 

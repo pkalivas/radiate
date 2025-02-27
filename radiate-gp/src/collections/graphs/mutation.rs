@@ -2,7 +2,7 @@ use super::transaction::{InsertStep, TransactionResult};
 use super::{Graph, GraphChromosome, GraphNode};
 use crate::node::Node;
 use crate::{Arity, Factory, NodeType};
-use radiate::{Alter, AlterAction, Alterer, EngineCompoment, Mutate, random_provider};
+use radiate::{AlterAction, Alterer, Mutate, random_provider};
 use radiate::{Chromosome, IntoAlter};
 
 /// A graph mutator that can be used to alter the graph structure. This is used to add nodes
