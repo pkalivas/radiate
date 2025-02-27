@@ -9,7 +9,7 @@ pub use graphs::{
     Direction, Graph, GraphAggregate, GraphChromosome, GraphCodex, GraphCrossover, GraphEvaluator,
     GraphIterator, GraphMutator, GraphNode,
 };
-pub use node::NodeType;
+pub use node::{Node, NodeType};
 pub use store::{NodeStore, NodeValue};
 pub use trees::{
     Tree, TreeChromosome, TreeCodex, TreeCrossover, TreeIterator, TreeMutator, TreeNode,

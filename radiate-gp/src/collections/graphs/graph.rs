@@ -41,13 +41,12 @@ impl<T> Graph<T> {
     }
 
     /// Push a 'GraphNode' onto the last position in the graph.
-    pub fn push(&mut self, node: GraphNode<T>) {
-        self.nodes.push(node);
+    pub fn push(&mut self, node: impl Into<GraphNode<T>>) {
+        self.nodes.push(node.into());
     }
 
     pub fn insert(&mut self, node_type: NodeType, val: T) -> usize {
-        let node = GraphNode::new(self.len(), node_type, val);
-        self.push(node);
+        self.push((self.len(), node_type, val));
         self.len() - 1
     }
 

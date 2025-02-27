@@ -1,4 +1,4 @@
-use super::TreeIterator;
+use super::{Tree, TreeIterator};
 use crate::{Arity, NodeType, node::Node};
 use radiate::engines::genome::gene::{Gene, Valid};
 
@@ -84,10 +84,11 @@ impl<T> TreeNode<T> {
     }
 
     pub fn swap_subtrees(&mut self, other: &mut TreeNode<T>, self_idx: usize, other_idx: usize) {
-        if let (Some(self_subtree), Some(other_subtree)) =
-            (self.get_mut(self_idx), other.get_mut(other_idx))
-        {
-            std::mem::swap(self_subtree, other_subtree);
+        let self_subtree = self.get_mut(self_idx);
+        let other_subtree = other.get_mut(other_idx);
+
+        if let (Some(self_sub), Some(other_sub)) = (self_subtree, other_subtree) {
+            std::mem::swap(self_sub, other_sub);
         }
     }
 
@@ -207,5 +208,47 @@ impl<T: Clone> Clone for TreeNode<T> {
             arity: self.arity,
             children: self.children.as_ref().map(|children| children.to_vec()),
         }
+    }
+}
+
+impl<T> Into<Tree<T>> for TreeNode<T> {
+    fn into(self) -> Tree<T> {
+        Tree::new(self)
+    }
+}
+
+impl Into<TreeNode<i32>> for i32 {
+    fn into(self) -> TreeNode<i32> {
+        TreeNode::new(self)
+    }
+}
+
+impl Into<TreeNode<f64>> for f64 {
+    fn into(self) -> TreeNode<f64> {
+        TreeNode::new(self)
+    }
+}
+
+impl Into<TreeNode<String>> for String {
+    fn into(self) -> TreeNode<String> {
+        TreeNode::new(self)
+    }
+}
+
+impl Into<TreeNode<bool>> for bool {
+    fn into(self) -> TreeNode<bool> {
+        TreeNode::new(self)
+    }
+}
+
+impl Into<TreeNode<char>> for char {
+    fn into(self) -> TreeNode<char> {
+        TreeNode::new(self)
+    }
+}
+
+impl Into<TreeNode<usize>> for usize {
+    fn into(self) -> TreeNode<usize> {
+        TreeNode::new(self)
     }
 }

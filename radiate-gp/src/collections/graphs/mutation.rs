@@ -95,8 +95,7 @@ where
 
                     if let Some(trgt) = target_idx {
                         for src in source_idx {
-                            let insertion_type =
-                                trans.get_insertion_type(src, trgt, node_idx, self.allow_recurrent);
+                            let insertion_type = trans.get_insertion_steps(src, trgt, node_idx);
 
                             for step in insertion_type {
                                 match step {

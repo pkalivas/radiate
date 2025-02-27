@@ -159,12 +159,6 @@ impl<T> Node for GraphNode<T> {
         }
 
         self.arity.unwrap_or(Arity::Any)
-
-        // self.arity.unwrap_or(match self.incoming.len() {
-        //     0 => Arity::Zero,
-        //     1 => Arity::Exact(1),
-        //     _ => Arity::Any,
-        // })
     }
 }
 

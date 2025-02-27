@@ -194,12 +194,11 @@ impl<'a, T> GraphTransaction<'a, T> {
         }
     }
 
-    pub fn get_insertion_type(
+    pub fn get_insertion_steps(
         &self,
         source_idx: usize,
         target_idx: usize,
         new_node_idx: usize,
-        allow_recurrent: bool,
     ) -> Vec<InsertStep> {
         let target_node = self.graph.get(target_idx).unwrap();
         let source_node = self.graph.get(source_idx).unwrap();
@@ -211,116 +210,41 @@ impl<'a, T> GraphTransaction<'a, T> {
         let target_is_edge = target_node.node_type() == NodeType::Edge;
         let new_node_arity = new_node.arity();
 
-        let would_create_cycle = self.would_create_cycle(source_idx, target_idx);
-
         if new_node_arity == Arity::Zero && !target_node.is_locked() {
             steps.push(InsertStep::Connect(new_node_idx, target_idx));
             return steps;
         }
 
         if source_is_edge {
-            let source_outgoing = source_node.outgoing().iter().next().unwrap();
+            let source_outgoing_idxes = source_node.outgoing().iter().collect::<Vec<&usize>>();
+            let source_outgoing = *random_provider::choose(&source_outgoing_idxes);
+
             if source_outgoing == &new_node_idx {
-                if allow_recurrent {
-                    steps.push(InsertStep::Connect(source_idx, new_node_idx));
-                } else {
-                    steps.push(InsertStep::Invalid);
-                }
+                steps.push(InsertStep::Connect(source_idx, new_node_idx));
             } else {
-                if would_create_cycle && !allow_recurrent {
-                    steps.push(InsertStep::Invalid);
-                } else {
-                    steps.push(InsertStep::Connect(source_idx, new_node_idx));
-                    steps.push(InsertStep::Connect(new_node_idx, *source_outgoing));
-                    steps.push(InsertStep::Detach(source_idx, *source_outgoing));
-                }
+                steps.push(InsertStep::Connect(source_idx, new_node_idx));
+                steps.push(InsertStep::Connect(new_node_idx, *source_outgoing));
+                steps.push(InsertStep::Detach(source_idx, *source_outgoing));
             }
         } else if target_is_edge || target_node.is_locked() {
-            let target_incoming = target_node.incoming().iter().next().unwrap();
+            let target_incoming_idxes = target_node.incoming().iter().collect::<Vec<&usize>>();
+            let target_incoming = *random_provider::choose(&target_incoming_idxes);
+
             if target_incoming == &new_node_idx {
-                if allow_recurrent {
-                    steps.push(InsertStep::Connect(*target_incoming, new_node_idx));
-                } else {
-                    steps.push(InsertStep::Invalid);
-                }
+                steps.push(InsertStep::Connect(*target_incoming, new_node_idx));
             } else {
-                if would_create_cycle && !allow_recurrent {
-                    steps.push(InsertStep::Invalid);
-                } else {
-                    steps.push(InsertStep::Connect(*target_incoming, new_node_idx));
-                    steps.push(InsertStep::Connect(new_node_idx, target_idx));
-                    steps.push(InsertStep::Detach(*target_incoming, target_idx));
-                }
+                steps.push(InsertStep::Connect(*target_incoming, new_node_idx));
+                steps.push(InsertStep::Connect(new_node_idx, target_idx));
+                steps.push(InsertStep::Detach(*target_incoming, target_idx));
             }
         } else {
-            if allow_recurrent {
-                let souce_arity = source_node.arity();
-
-                match souce_arity {
-                    Arity::Any => {
-                        steps.push(InsertStep::Connect(source_idx, new_node_idx));
-                        steps.push(InsertStep::Connect(new_node_idx, source_idx));
-                    }
-                    _ => {
-                        steps.push(InsertStep::Connect(source_idx, new_node_idx));
-                        steps.push(InsertStep::Connect(new_node_idx, target_idx));
-                    }
-                }
-            } else {
-                if !would_create_cycle && source_idx != target_idx {
-                    if source_idx == new_node_idx || target_idx == new_node_idx {
-                        steps.push(InsertStep::Invalid);
-                    } else {
-                        steps.push(InsertStep::Connect(source_idx, new_node_idx));
-                        steps.push(InsertStep::Connect(new_node_idx, target_idx));
-                    }
-                }
-            }
+            steps.push(InsertStep::Connect(source_idx, new_node_idx));
+            steps.push(InsertStep::Connect(new_node_idx, target_idx));
         }
 
         steps
     }
 
-    /// Check if connecting the source node to the target node would create a cycle.
-    ///
-    /// # Arguments
-    /// - source: The index of the source node.
-    /// - target: The index of the target node.
-    ///
-    #[inline]
-    pub fn would_create_cycle(&self, source: usize, target: usize) -> bool {
-        let mut seen = HashSet::new();
-        let mut visited = self
-            .get(target)
-            .map(|node| node.outgoing().iter().collect())
-            .unwrap_or(Vec::new());
-
-        while !visited.is_empty() {
-            let node_index = visited.pop().unwrap();
-
-            seen.insert(*node_index);
-
-            if *node_index == source {
-                return true;
-            }
-
-            let node_edges = self
-                .get(*node_index)
-                .map(|node| {
-                    node.outgoing()
-                        .iter()
-                        .filter(|edge_index| !seen.contains(edge_index))
-                        .collect()
-                })
-                .unwrap_or(Vec::new());
-
-            for edge_index in node_edges {
-                visited.push(edge_index);
-            }
-        }
-
-        false
-    }
     /// The below functinos are used to get random nodes from the graph. These are useful for
     /// creating connections between nodes. Neither of these functions will return an edge node.
     /// This is because edge nodes are not valid source or target nodes for connections as they
@@ -393,3 +317,44 @@ impl<'a, T> Deref for GraphTransaction<'a, T> {
         self.graph
     }
 }
+
+// /// Check if connecting the source node to the target node would create a cycle.
+// ///
+// /// # Arguments
+// /// - source: The index of the source node.
+// /// - target: The index of the target node.
+// ///
+// #[inline]
+// pub fn would_create_cycle(&self, source: usize, target: usize) -> bool {
+//     let mut seen = HashSet::new();
+//     let mut visited = self
+//         .get(target)
+//         .map(|node| node.outgoing().iter().collect())
+//         .unwrap_or(Vec::new());
+
+//     while !visited.is_empty() {
+//         let node_index = visited.pop().unwrap();
+
+//         seen.insert(*node_index);
+
+//         if *node_index == source {
+//             return true;
+//         }
+
+//         let node_edges = self
+//             .get(*node_index)
+//             .map(|node| {
+//                 node.outgoing()
+//                     .iter()
+//                     .filter(|edge_index| !seen.contains(edge_index))
+//                     .collect()
+//             })
+//             .unwrap_or(Vec::new());
+
+//         for edge_index in node_edges {
+//             visited.push(edge_index);
+//         }
+//     }
+
+//     false
+// }
