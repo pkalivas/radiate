@@ -435,6 +435,7 @@ pub fn math_operations() -> Vec<Op<f32>> {
         Op::sum(),
         Op::prod(),
         Op::neg(),
+        Op::diff(),
         Op::pow(),
         Op::sqrt(),
         Op::abs(),

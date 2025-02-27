@@ -82,7 +82,6 @@ mod tests {
     #[test]
     fn test_tree_builder_depth_two() {
         let store = vec![
-            (NodeType::Root, vec![Op::add(), Op::sub()]),
             (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
             (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
         ];
@@ -101,7 +100,6 @@ mod tests {
         // just a quality of life test to make sure the builder is working.
         // The above test should be good enough, but just for peace of mind.
         let store = vec![
-            (NodeType::Root, vec![Op::add(), Op::sub()]),
             (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
             (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
         ];
