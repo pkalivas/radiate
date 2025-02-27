@@ -1,4 +1,4 @@
-use super::{Alter, AlterAction, Crossover};
+use super::{Alter, AlterAction, Alterer, Crossover, IntoAlter};
 use crate::{Chromosome, EngineCompoment, random_provider};
 
 pub struct ShuffleCrossover {
@@ -29,7 +29,7 @@ impl<C: Chromosome> Alter<C> for ShuffleCrossover {
 
 impl<C: Chromosome> Crossover<C> for ShuffleCrossover {
     #[inline]
-    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C) -> i32 {
+    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, _: f32) -> i32 {
         let length = std::cmp::min(chrom_one.len(), chrom_two.len());
         if length < 2 {
             return 0;
@@ -51,5 +51,15 @@ impl<C: Chromosome> Crossover<C> for ShuffleCrossover {
         }
 
         cross_count
+    }
+}
+
+impl<C: Chromosome> IntoAlter<C> for ShuffleCrossover {
+    fn into_alter(self) -> Alterer<C> {
+        Alterer::new(
+            "ShuffleCrossover",
+            self.rate,
+            AlterAction::Crossover(Box::new(self)),
+        )
     }
 }

@@ -1,4 +1,4 @@
-use super::{Alter, AlterAction, Mutate};
+use super::{Alter, AlterAction, Alterer, IntoAlter, Mutate};
 use crate::{Chromosome, EngineCompoment, random_provider};
 
 pub struct SwapMutator {
@@ -29,11 +29,11 @@ impl<C: Chromosome> Alter<C> for SwapMutator {
 
 impl<C: Chromosome> Mutate<C> for SwapMutator {
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut C) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> i32 {
         let mut mutations = 0;
 
         for i in 0..chromosome.len() {
-            if random_provider::random::<f32>() < self.rate {
+            if random_provider::random::<f32>() < rate {
                 let swap_index = random_provider::random_range(0..chromosome.len());
 
                 if swap_index == i {
@@ -46,5 +46,15 @@ impl<C: Chromosome> Mutate<C> for SwapMutator {
         }
 
         mutations
+    }
+}
+
+impl<C: Chromosome> IntoAlter<C> for SwapMutator {
+    fn into_alter(self) -> Alterer<C> {
+        Alterer::new(
+            "SwapMutator",
+            self.rate,
+            AlterAction::Mutate(Box::new(self)),
+        )
     }
 }

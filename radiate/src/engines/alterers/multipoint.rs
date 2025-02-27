@@ -1,4 +1,4 @@
-use super::{Alter, AlterAction, Crossover};
+use super::{Alter, AlterAction, Alterer, Crossover, IntoAlter};
 
 use crate::{Chromosome, EngineCompoment, random_provider};
 
@@ -45,7 +45,7 @@ impl<C: Chromosome> Alter<C> for MultiPointCrossover {
 }
 
 impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
-    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C) -> i32 {
+    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, _: f32) -> i32 {
         let length = std::cmp::min(chrom_one.len(), chrom_two.len());
 
         if length < 2 {
@@ -95,5 +95,15 @@ impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
         }
 
         self.num_points as i32
+    }
+}
+
+impl<C: Chromosome> IntoAlter<C> for MultiPointCrossover {
+    fn into_alter(self) -> Alterer<C> {
+        Alterer::new(
+            "MultiPointCrossover",
+            self.rate,
+            AlterAction::Crossover(Box::new(self)),
+        )
     }
 }

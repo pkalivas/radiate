@@ -3,7 +3,10 @@ use crate::collections::GraphChromosome;
 use crate::node::Node;
 use radiate::engines::genome::*;
 use radiate::timer::Timer;
-use radiate::{Alter, AlterAction, Crossover, EngineCompoment, Metric, indexes, random_provider};
+use radiate::{
+    Alter, AlterAction, AlterResult, Alterer, Crossover, EngineCompoment, IntoAlter, Metric,
+    indexes, random_provider,
+};
 use std::collections::HashMap;
 
 const NUM_PARENTS: usize = 2;
@@ -80,25 +83,6 @@ impl GraphCrossover {
     }
 }
 
-impl EngineCompoment for GraphCrossover {
-    fn name(&self) -> &'static str {
-        "GraphCrossover"
-    }
-}
-
-impl<T> Alter<GraphChromosome<T>> for GraphCrossover
-where
-    T: Clone + PartialEq + Default,
-{
-    fn rate(&self) -> f32 {
-        self.crossover_rate
-    }
-
-    fn to_alter(self) -> AlterAction<GraphChromosome<T>> {
-        AlterAction::Crossover(Box::new(self))
-    }
-}
-
 impl<T> Crossover<GraphChromosome<T>> for GraphCrossover
 where
     T: Clone + PartialEq + Default,
@@ -107,15 +91,14 @@ where
         &self,
         population: &mut Population<GraphChromosome<T>>,
         generation: i32,
-    ) -> Vec<Metric> {
-        let timer = Timer::new();
+        rate: f32,
+    ) -> AlterResult {
+        // let timer = Timer::new();
         let mut count = 0;
         let mut new_phenotypes = HashMap::new();
 
         for index in 0..population.len() {
-            if random_provider::random::<f32>() < self.crossover_rate
-                && population.len() > NUM_PARENTS
-            {
+            if random_provider::random::<f32>() < rate && population.len() > NUM_PARENTS {
                 let parent_indexes = indexes::individual_indexes(index, population.len(), 2);
 
                 if let Some(phenotype) = self.cross(population, &parent_indexes, generation) {
@@ -129,10 +112,28 @@ where
             population[index] = phenotype;
         }
 
-        vec![Metric::new_operations(
-            self.name(),
-            count as f32,
-            timer.duration(),
-        )]
+        AlterResult {
+            count,
+            metrics: vec![],
+        }
+
+        // vec![Metric::new_operations(
+        //     self.name(),
+        //     count as f32,
+        //     timer.duration(),
+        // )]
+    }
+}
+
+impl<T> IntoAlter<GraphChromosome<T>> for GraphCrossover
+where
+    T: Clone + PartialEq + Default,
+{
+    fn into_alter(self) -> Alterer<GraphChromosome<T>> {
+        Alterer::new(
+            "GraphCrossover",
+            self.crossover_rate,
+            AlterAction::Crossover(Box::new(self)),
+        )
     }
 }

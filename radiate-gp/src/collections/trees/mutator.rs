@@ -1,6 +1,8 @@
 use super::TreeChromosome;
 use crate::{Factory, NodeStore, NodeType, TreeNode, node::Node};
-use radiate::{Alter, AlterAction, EngineCompoment, Gene, Mutate, random_provider};
+use radiate::{
+    Alter, AlterAction, Alterer, EngineCompoment, Gene, IntoAlter, Mutate, random_provider,
+};
 
 pub struct TreeMutator {
     rate: f32,
@@ -11,20 +13,20 @@ impl TreeMutator {
         TreeMutator { rate }
     }
 
-    fn mutate_node<T>(&self, node: &mut TreeNode<T>, store: &NodeStore<T>) -> i32
+    fn mutate_node<T>(&self, node: &mut TreeNode<T>, store: &NodeStore<T>, rate: f32) -> i32
     where
         T: Clone + PartialEq + Default,
     {
         let mut count = 0;
 
         if node.is_leaf() {
-            if random_provider::random::<f32>() < self.rate {
+            if random_provider::random::<f32>() < rate {
                 let leaf_value: TreeNode<T> = store.new_instance(NodeType::Leaf);
                 node.with_allele(leaf_value.allele());
                 count += 1;
             }
         } else {
-            if random_provider::random::<f32>() < self.rate {
+            if random_provider::random::<f32>() < rate {
                 let new_gate: TreeNode<T> = store.new_instance(node.node_type());
 
                 if new_gate.arity() == node.arity() {
@@ -34,7 +36,7 @@ impl TreeMutator {
             }
 
             for child in node.children_mut().unwrap() {
-                count += self.mutate_node(child, store);
+                count += self.mutate_node(child, store, rate);
             }
         }
 
@@ -65,12 +67,25 @@ impl<T> Mutate<TreeChromosome<T>> for TreeMutator
 where
     T: Clone + PartialEq + Default,
 {
-    fn mutate_chromosome(&self, chromosome: &mut TreeChromosome<T>) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut TreeChromosome<T>, rate: f32) -> i32 {
         let store = chromosome.get_store();
         if let Some(store) = store {
-            self.mutate_node(chromosome.root_mut(), &store)
+            self.mutate_node(chromosome.root_mut(), &store, rate)
         } else {
             0
         }
+    }
+}
+
+impl<T> IntoAlter<TreeChromosome<T>> for TreeMutator
+where
+    T: Clone + PartialEq + Default,
+{
+    fn into_alter(self) -> Alterer<TreeChromosome<T>> {
+        Alterer::new(
+            "TreeMutator",
+            self.rate,
+            AlterAction::Mutate(Box::new(self)),
+        )
     }
 }

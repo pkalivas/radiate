@@ -2,8 +2,8 @@ use super::transaction::{InsertStep, TransactionResult};
 use super::{Graph, GraphChromosome, GraphNode};
 use crate::node::Node;
 use crate::{Arity, Factory, NodeType};
-use radiate::Chromosome;
-use radiate::{Alter, AlterAction, EngineCompoment, Mutate, random_provider};
+use radiate::{Alter, AlterAction, Alterer, EngineCompoment, Mutate, random_provider};
+use radiate::{Chromosome, IntoAlter};
 
 /// A graph mutator that can be used to alter the graph structure. This is used to add nodes
 /// to the graph, and can be used to add either edges or vertices. The mutator is created with
@@ -48,31 +48,12 @@ impl GraphMutator {
     }
 }
 
-impl EngineCompoment for GraphMutator {
-    fn name(&self) -> &'static str {
-        "GraphMutator"
-    }
-}
-
-impl<T> Alter<GraphChromosome<T>> for GraphMutator
-where
-    T: Clone + PartialEq + Default,
-{
-    fn rate(&self) -> f32 {
-        1.0
-    }
-
-    fn to_alter(self) -> AlterAction<GraphChromosome<T>> {
-        AlterAction::Mutate(Box::new(self))
-    }
-}
-
 impl<T> Mutate<GraphChromosome<T>> for GraphMutator
 where
     T: Clone + PartialEq + Default,
 {
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<T>) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<T>, _: f32) -> i32 {
         if let Some(node_type_to_add) = self.mutate_type() {
             if let Some(store) = chromosome.store() {
                 let new_node = store.new_instance((chromosome.len(), node_type_to_add));
@@ -128,5 +109,14 @@ where
         }
 
         0
+    }
+}
+
+impl<T> IntoAlter<GraphChromosome<T>> for GraphMutator
+where
+    T: Clone + PartialEq + Default,
+{
+    fn into_alter(self) -> Alterer<GraphChromosome<T>> {
+        Alterer::new("GraphMutator", 1.0, AlterAction::Mutate(Box::new(self)))
     }
 }

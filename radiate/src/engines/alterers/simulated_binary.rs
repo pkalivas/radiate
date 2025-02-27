@@ -1,4 +1,4 @@
-use super::{Alter, AlterAction, Crossover};
+use super::{Alter, AlterAction, Crossover, IntoAlter};
 use crate::{Chromosome, EngineCompoment, FloatGene, Gene, NumericGene, random_provider};
 
 pub struct SimulatedBinaryCrossover {
@@ -43,7 +43,7 @@ impl<C: Chromosome<Gene = FloatGene>> Alter<C> for SimulatedBinaryCrossover {
 
 impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for SimulatedBinaryCrossover {
     #[inline]
-    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C) -> i32 {
+    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, _: f32) -> i32 {
         let length = std::cmp::min(chrom_one.len(), chrom_two.len());
 
         if length < 2 {
@@ -83,5 +83,15 @@ impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for SimulatedBinaryCrossover 
         }
 
         count
+    }
+}
+
+impl<C: Chromosome<Gene = FloatGene>> IntoAlter<C> for SimulatedBinaryCrossover {
+    fn into_alter(self) -> super::Alterer<C> {
+        super::Alterer::new(
+            "SimulatedBinaryCrossover",
+            self.crossover_rate,
+            AlterAction::Crossover(Box::new(self)),
+        )
     }
 }

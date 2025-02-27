@@ -1,4 +1,4 @@
-use super::{Alter, AlterAction, Crossover};
+use super::{Alter, AlterAction, Alterer, Crossover, IntoAlter};
 use crate::indexes;
 use crate::{Chromosome, EngineCompoment, PermutationChromosome};
 
@@ -34,6 +34,7 @@ impl<A: PartialEq + Clone> Crossover<PermutationChromosome<A>> for PMXCrossover 
         &self,
         chrom_one: &mut PermutationChromosome<A>,
         chrom_two: &mut PermutationChromosome<A>,
+        _: f32,
     ) -> i32 {
         let length = std::cmp::min(chrom_one.genes.len(), chrom_two.genes.len());
         if length < 2 {
@@ -75,5 +76,15 @@ impl<A: PartialEq + Clone> Crossover<PermutationChromosome<A>> for PMXCrossover 
         chrom_two.genes = offspring_two;
 
         2
+    }
+}
+
+impl<A: PartialEq + Clone> IntoAlter<PermutationChromosome<A>> for PMXCrossover {
+    fn into_alter(self) -> Alterer<PermutationChromosome<A>> {
+        Alterer::new(
+            "PMX Crossover",
+            self.rate,
+            AlterAction::Crossover(Box::new(self)),
+        )
     }
 }
