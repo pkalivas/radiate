@@ -1,6 +1,5 @@
-use crate::{Chromosome, FloatGene, Gene, NumericGene, random_provider};
-
 use super::{AlterAction, Alterer, IntoAlter, Mutate};
+use crate::{Chromosome, FloatGene, Gene, NumericGene, random_provider};
 
 /// The `GaussianMutator` is a simple mutator that adds a small amount of Gaussian noise to the gene.
 ///
@@ -19,21 +18,6 @@ impl GaussianMutator {
 
         GaussianMutator { rate }
     }
-
-    /// Clamp a value between a minimum and maximum value.
-    /// If the value is less than the minimum, return the minimum. Else if the value is
-    /// greater than the maximum, return the maximum. Without this function, the Gaussian noise
-    /// could potentially generate a value outside of the gene's bounds or a value just plain unusable
-    /// (e.g. NaN, +/- Inf).
-    pub fn clamp(value: f64, min: f64, max: f64) -> f64 {
-        if value < min {
-            min
-        } else if value > max {
-            max
-        } else {
-            value
-        }
-    }
 }
 
 impl<C: Chromosome<Gene = FloatGene>> Mutate<C> for GaussianMutator {
@@ -46,8 +30,8 @@ impl<C: Chromosome<Gene = FloatGene>> Mutate<C> for GaussianMutator {
         let value = *gene.allele() as f64;
 
         let gaussian = random_provider::gaussian(value, std_dev);
+        let allele = gaussian.clamp(min, max) as f32;
 
-        let allele = GaussianMutator::clamp(gaussian, min, max) as f32;
         gene.with_allele(&allele)
     }
 }

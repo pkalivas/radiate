@@ -13,16 +13,6 @@ impl SimulatedBinaryCrossover {
             crossover_rate,
         }
     }
-
-    pub fn clamp(value: f32, min: f32, max: f32) -> f32 {
-        if value < min {
-            min
-        } else if value > max {
-            max
-        } else {
-            value
-        }
-    }
 }
 
 impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for SimulatedBinaryCrossover {
@@ -54,11 +44,7 @@ impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for SimulatedBinaryCrossover 
                     (v1 - v2) * 0.5 + (beta * 0.5 * (v1 - v2).abs())
                 };
 
-                let new_gene = SimulatedBinaryCrossover::clamp(
-                    v,
-                    *chrom_one.get_gene(i).min(),
-                    *chrom_one.get_gene(i).max(),
-                );
+                let new_gene = v.clamp(*chrom_one.get_gene(i).min(), *chrom_one.get_gene(i).max());
 
                 count += 1;
 

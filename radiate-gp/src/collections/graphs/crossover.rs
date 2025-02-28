@@ -93,8 +93,9 @@ where
         let mut new_phenotypes = HashMap::new();
 
         for index in 0..population.len() {
-            if random_provider::random::<f32>() < rate && population.len() > NUM_PARENTS {
-                let parent_indexes = indexes::individual_indexes(index, population.len(), 2);
+            let pop_len = population.len();
+            if random_provider::random::<f32>() < rate && pop_len > NUM_PARENTS {
+                let parent_indexes = indexes::individual_indexes(index, pop_len, NUM_PARENTS);
 
                 if let Some(phenotype) = self.cross(population, &parent_indexes, generation) {
                     new_phenotypes.insert(index, phenotype);

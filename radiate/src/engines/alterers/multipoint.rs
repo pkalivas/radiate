@@ -1,5 +1,4 @@
 use super::{AlterAction, Alterer, Crossover, IntoAlter};
-
 use crate::{Chromosome, random_provider};
 
 /// The `MultiPointCrossover` is a crossover method that takes two chromosomes and crosses them
