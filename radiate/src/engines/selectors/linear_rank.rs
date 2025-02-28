@@ -1,5 +1,5 @@
 use crate::objectives::{Objective, Optimize};
-use crate::{Chromosome, EngineCompoment, Population, Select, random_provider};
+use crate::{Chromosome, Population, Select, random_provider};
 
 pub struct LinearRankSelector {
     selection_pressure: f32,
@@ -11,13 +11,11 @@ impl LinearRankSelector {
     }
 }
 
-impl EngineCompoment for LinearRankSelector {
+impl<C: Chromosome> Select<C> for LinearRankSelector {
     fn name(&self) -> &'static str {
         "LinearRankSelector"
     }
-}
 
-impl<C: Chromosome> Select<C> for LinearRankSelector {
     fn select(
         &self,
         population: &Population<C>,

@@ -1,5 +1,5 @@
 use crate::objectives::Objective;
-use crate::{Chromosome, EngineCompoment, Population, Select, random_provider};
+use crate::{Chromosome, Population, Select, random_provider};
 
 pub struct SteadyStateSelector {
     replacement_count: usize,
@@ -11,13 +11,11 @@ impl SteadyStateSelector {
     }
 }
 
-impl EngineCompoment for SteadyStateSelector {
+impl<C: Chromosome> Select<C> for SteadyStateSelector {
     fn name(&self) -> &'static str {
         "SteadyStateSelector"
     }
-}
 
-impl<C: Chromosome> Select<C> for SteadyStateSelector {
     fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {
         let mut selected_population = population.clone();
         let slice = population.as_ref();

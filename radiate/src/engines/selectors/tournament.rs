@@ -1,6 +1,6 @@
 use super::Select;
 use crate::objectives::Objective;
-use crate::{Chromosome, EngineCompoment, Population, random_provider};
+use crate::{Chromosome, Population, random_provider};
 
 pub struct TournamentSelector {
     num: usize,
@@ -12,13 +12,11 @@ impl TournamentSelector {
     }
 }
 
-impl EngineCompoment for TournamentSelector {
+impl<C: Chromosome> Select<C> for TournamentSelector {
     fn name(&self) -> &'static str {
         "TournamentSelector"
     }
-}
 
-impl<C: Chromosome> Select<C> for TournamentSelector {
     fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {
         let mut selected = Vec::with_capacity(count);
 

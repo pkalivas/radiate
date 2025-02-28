@@ -19,6 +19,7 @@ Radiate defines a selector as:
 * `count` - The number of individuals to select.
 ```rust
 pub trait Select<C: Chromosome> {
+    fn name(&self) -> &'static str;
     fn select(
         &self,
         population: &Population<C>,

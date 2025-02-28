@@ -1,6 +1,6 @@
 use super::Select;
 use crate::objectives::Objective;
-use crate::{Chromosome, EngineCompoment, Population};
+use crate::{Chromosome, Population};
 
 pub struct EliteSelector;
 
@@ -16,13 +16,11 @@ impl Default for EliteSelector {
     }
 }
 
-impl EngineCompoment for EliteSelector {
+impl<C: Chromosome> Select<C> for EliteSelector {
     fn name(&self) -> &'static str {
         "EliteSelector"
     }
-}
 
-impl<C: Chromosome> Select<C> for EliteSelector {
     fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {
         population.iter().take(count).cloned().collect()
     }

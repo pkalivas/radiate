@@ -1,5 +1,5 @@
 use crate::objectives::{Objective, pareto};
-use crate::{Chromosome, EngineCompoment, Population, Score, Select};
+use crate::{Chromosome, Population, Score, Select};
 
 /// NSGA2 Selector. Selects individuals based on the NSGA2 algorithm.
 /// This algorithm ranks individuals based on their dominance relationships
@@ -18,13 +18,11 @@ impl NSGA2Selector {
     }
 }
 
-impl EngineCompoment for NSGA2Selector {
+impl<C: Chromosome> Select<C> for NSGA2Selector {
     fn name(&self) -> &'static str {
         "NSGA2Selector"
     }
-}
 
-impl<C: Chromosome> Select<C> for NSGA2Selector {
     fn select(
         &self,
         population: &Population<C>,

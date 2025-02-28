@@ -1,7 +1,7 @@
 use super::Select;
 use crate::objectives::{Objective, Optimize};
 use crate::selectors::ProbabilityWheelIterator;
-use crate::{Chromosome, EngineCompoment, Population};
+use crate::{Chromosome, Population};
 
 pub struct BoltzmannSelector {
     temperature: f32,
@@ -13,13 +13,11 @@ impl BoltzmannSelector {
     }
 }
 
-impl EngineCompoment for BoltzmannSelector {
+impl<C: Chromosome> Select<C> for BoltzmannSelector {
     fn name(&self) -> &'static str {
         "BoltzmannSelector"
     }
-}
 
-impl<C: Chromosome> Select<C> for BoltzmannSelector {
     fn select(
         &self,
         population: &Population<C>,
