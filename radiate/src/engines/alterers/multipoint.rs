@@ -35,21 +35,17 @@ impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
             return 0;
         }
 
-        let mut crossover_points: Vec<usize> = (1..length).collect();
-        random_provider::shuffle(&mut crossover_points);
+        let mut crossover_points = random_provider::indexes(0..length);
+        crossover_points.sort();
 
         let selected_points = &crossover_points[..self.num_points];
-
-        let mut sorted_points = selected_points.to_vec();
-        sorted_points.sort();
-
         let mut offspring_one = Vec::with_capacity(length);
         let mut offspring_two = Vec::with_capacity(length);
 
         let mut current_parent = 1;
         let mut last_point = 0;
 
-        for &point in &sorted_points {
+        for &point in selected_points {
             if current_parent == 1 {
                 offspring_one.extend_from_slice(&chrom_one.as_ref()[last_point..point]);
                 offspring_two.extend_from_slice(&chrom_two.as_ref()[last_point..point]);
