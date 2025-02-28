@@ -1,5 +1,6 @@
 pub mod alter;
 pub mod arithmetic;
+pub mod blend;
 pub mod crossover;
 pub mod gaussian;
 pub mod intermediate;
@@ -16,6 +17,7 @@ pub mod uniform;
 
 pub use alter::*;
 pub use arithmetic::*;
+pub use blend::*;
 pub use crossover::*;
 pub use gaussian::*;
 pub use intermediate::*;
