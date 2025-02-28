@@ -46,6 +46,14 @@ impl<T> NodeStore<T> {
         }
     }
 
+    pub fn contains_type(&self, node_type: NodeType) -> bool {
+        let values = self.values.read().unwrap();
+        values.contains_key(&node_type)
+            && values
+                .get(&node_type)
+                .map_or(false, |values| !values.is_empty())
+    }
+
     pub fn add(&self, values: Vec<T>)
     where
         T: Into<NodeValue<T>> + Clone,
@@ -69,7 +77,6 @@ impl<T> NodeStore<T> {
         T: Into<NodeValue<T>>,
     {
         let mut store_values = self.values.write().unwrap();
-
         store_values.insert(node_type, values.into_iter().map(|x| x.into()).collect());
     }
 

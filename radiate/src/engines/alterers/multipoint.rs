@@ -1,6 +1,5 @@
-use super::{Alter, AlterAction, Crossover};
-
-use crate::{Chromosome, EngineCompoment, random_provider};
+use super::{AlterAction, Alterer, Crossover, IntoAlter};
+use crate::{Chromosome, random_provider};
 
 /// The `MultiPointCrossover` is a crossover method that takes two chromosomes and crosses them
 /// by selecting multiple points in the chromosome and swapping the genes between the two chromosomes.
@@ -28,45 +27,25 @@ impl MultiPointCrossover {
     }
 }
 
-impl EngineCompoment for MultiPointCrossover {
-    fn name(&self) -> &'static str {
-        "MultiPointCrossover"
-    }
-}
-
-impl<C: Chromosome> Alter<C> for MultiPointCrossover {
-    fn rate(&self) -> f32 {
-        self.rate
-    }
-
-    fn to_alter(self) -> AlterAction<C> {
-        AlterAction::Crossover(Box::new(self))
-    }
-}
-
 impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
-    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C) -> i32 {
+    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, _: f32) -> i32 {
         let length = std::cmp::min(chrom_one.len(), chrom_two.len());
 
         if length < 2 {
             return 0;
         }
 
-        let mut crossover_points: Vec<usize> = (1..length).collect();
-        random_provider::shuffle(&mut crossover_points);
+        let mut crossover_points = random_provider::indexes(0..length);
+        crossover_points.sort();
 
         let selected_points = &crossover_points[..self.num_points];
-
-        let mut sorted_points = selected_points.to_vec();
-        sorted_points.sort();
-
         let mut offspring_one = Vec::with_capacity(length);
         let mut offspring_two = Vec::with_capacity(length);
 
         let mut current_parent = 1;
         let mut last_point = 0;
 
-        for &point in &sorted_points {
+        for &point in selected_points {
             if current_parent == 1 {
                 offspring_one.extend_from_slice(&chrom_one.as_ref()[last_point..point]);
                 offspring_two.extend_from_slice(&chrom_two.as_ref()[last_point..point]);
@@ -95,5 +74,15 @@ impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
         }
 
         self.num_points as i32
+    }
+}
+
+impl<C: Chromosome> IntoAlter<C> for MultiPointCrossover {
+    fn into_alter(self) -> Alterer<C> {
+        Alterer::new(
+            "MultiPointCrossover",
+            self.rate,
+            AlterAction::Crossover(Box::new(self)),
+        )
     }
 }

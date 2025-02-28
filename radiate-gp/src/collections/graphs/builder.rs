@@ -90,15 +90,15 @@ impl<T: Clone + Default> NodeBuilder<T> {
     }
 
     pub fn input(&self, size: usize) -> Vec<GraphNode<T>> {
-        self.new_nodes(NodeType::Input, size)
+        self.new_nodes(NodeType::Input, size, Arity::Zero)
     }
 
     pub fn output(&self, size: usize) -> Vec<GraphNode<T>> {
-        self.new_nodes(NodeType::Output, size)
+        self.new_nodes(NodeType::Output, size, Arity::Any)
     }
 
     pub fn edge(&self, size: usize) -> Vec<GraphNode<T>> {
-        self.new_nodes(NodeType::Edge, size)
+        self.new_nodes(NodeType::Edge, size, Arity::Exact(1))
     }
 
     pub fn vertecies(&self, size: usize) -> Vec<GraphNode<T>> {
@@ -113,10 +113,24 @@ impl<T: Clone + Default> NodeBuilder<T> {
             .collect()
     }
 
-    fn new_nodes(&self, node_type: NodeType, size: usize) -> Vec<GraphNode<T>> {
-        (0..size)
-            .map(|idx| self.store.new_instance((idx, node_type)))
-            .collect()
+    fn new_nodes(
+        &self,
+        node_type: NodeType,
+        size: usize,
+        fallback_arity: Arity,
+    ) -> Vec<GraphNode<T>> {
+        if self.store.contains_type(node_type) {
+            (0..size)
+                .map(|idx| self.store.new_instance((idx, node_type)))
+                .collect()
+        } else {
+            (0..size)
+                .map(|idx| {
+                    self.store
+                        .new_instance((idx, node_type, |arity| arity == fallback_arity))
+                })
+                .collect()
+        }
     }
 }
 

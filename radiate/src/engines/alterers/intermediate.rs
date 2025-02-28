@@ -1,6 +1,5 @@
-use crate::{Chromosome, EngineCompoment, FloatGene, Gene, random_provider};
-
-use super::{Alter, AlterAction, Crossover};
+use super::{AlterAction, Alterer, Crossover, IntoAlter};
+use crate::{Chromosome, FloatGene, Gene, random_provider};
 
 /// Intermediate Crossover. This crossover method takes two chromosomes and crosses them
 /// by taking a weighted average of the two alleles. The weight is determined by the `alpha`
@@ -32,29 +31,13 @@ impl IntermediateCrossover {
     }
 }
 
-impl EngineCompoment for IntermediateCrossover {
-    fn name(&self) -> &'static str {
-        "IntermediateCrossover"
-    }
-}
-
-impl<C: Chromosome<Gene = FloatGene>> Alter<C> for IntermediateCrossover {
-    fn rate(&self) -> f32 {
-        self.rate
-    }
-
-    fn to_alter(self) -> AlterAction<C> {
-        AlterAction::Crossover(Box::new(self))
-    }
-}
-
 impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for IntermediateCrossover {
     #[inline]
-    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C) -> i32 {
+    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, rate: f32) -> i32 {
         let mut cross_count = 0;
 
         for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
-            if random_provider::random::<f32>() < self.rate {
+            if random_provider::random::<f32>() < rate {
                 let gene_one = chrom_one.get_gene(i);
                 let gene_two = chrom_two.get_gene(i);
 
@@ -70,5 +53,15 @@ impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for IntermediateCrossover {
         }
 
         cross_count
+    }
+}
+
+impl<C: Chromosome<Gene = FloatGene>> IntoAlter<C> for IntermediateCrossover {
+    fn into_alter(self) -> Alterer<C> {
+        Alterer::new(
+            "IntermediateCrossover",
+            self.rate,
+            AlterAction::Crossover(Box::new(self)),
+        )
     }
 }

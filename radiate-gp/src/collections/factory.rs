@@ -24,8 +24,7 @@ where
 {
     fn new_instance(&self, input: NodeType) -> T {
         let new_node = self.map_by_type(input, |values| {
-            let node_value = random_provider::choose(&values);
-            node_value.new_instance(())
+            random_provider::choose(&values).new_instance(())
         });
 
         if let Some(new_value) = new_node {

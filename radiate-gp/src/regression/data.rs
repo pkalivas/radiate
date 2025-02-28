@@ -34,8 +34,8 @@ impl DataSet {
         DataSet { rows: samples }
     }
 
-    pub fn iter(&self) -> &[Row] {
-        &self.rows
+    pub fn iter(&self) -> std::slice::Iter<Row> {
+        self.rows.iter()
     }
 
     pub fn len(&self) -> usize {

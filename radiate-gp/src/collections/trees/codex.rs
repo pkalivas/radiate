@@ -46,7 +46,7 @@ where
         if let Some(store) = &self.store {
             let new_chromosomes = (0..self.num_trees)
                 .map(|_| Tree::with_depth(self.depth, store).take_root())
-                .filter_map(|tree| tree.map(|tree| vec![tree]))
+                .filter_map(|root| root.map(|node| vec![node]))
                 .map(|tree| TreeChromosome::new(tree, Some(store.clone()), self.constraint.clone()))
                 .collect::<Vec<TreeChromosome<T>>>();
 

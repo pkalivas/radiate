@@ -52,6 +52,7 @@ pub enum MathOperation {
     Div,
     Sum,
     Prod,
+    Diff,
     Neg,
     Pow,
     Sqrt,
@@ -83,6 +84,7 @@ impl MathOperation {
                 }
             }
             MathOperation::Sum => clamp(aggregate(inputs, |x| x)),
+            MathOperation::Diff => clamp(inputs.iter().cloned().fold(ZERO, |acc, x| acc - x)),
             MathOperation::Prod => clamp(inputs.iter().product()),
             MathOperation::Neg => clamp(-inputs[0]),
             MathOperation::Pow => clamp(inputs[0].powf(inputs[1])),
@@ -219,6 +221,14 @@ impl Op<f32> {
             "sum",
             Arity::Any,
             Arc::new(|inputs: &[f32]| MathOperation::Sum.apply(inputs)),
+        )
+    }
+
+    pub fn diff() -> Self {
+        Op::Fn(
+            "diff",
+            Arity::Any,
+            Arc::new(|inputs: &[f32]| MathOperation::Diff.apply(inputs)),
         )
     }
 
@@ -425,6 +435,7 @@ pub fn math_operations() -> Vec<Op<f32>> {
         Op::sum(),
         Op::prod(),
         Op::neg(),
+        Op::diff(),
         Op::pow(),
         Op::sqrt(),
         Op::abs(),

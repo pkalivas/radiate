@@ -1,12 +1,63 @@
 use crate::collections::{Tree, TreeNode};
 use std::collections::VecDeque;
 
+/// Tree traversal iterators for pre-order, post-order, and breadth-first search.
+/// These iterators allow for efficient traversal of tree structures, providing
+/// a way to visit each node in the tree in different orders.
+///
+/// # PreOrderIterator
+/// The `PreOrderIterator` visits nodes in pre-order, meaning it visits the root
+/// node first, then recursively visits each child node from left to right.
+///
+/// # PostOrderIterator
+/// The `PostOrderIterator` visits nodes in post-order, meaning it recursively
+/// visits each child node from left to right, and then visits the root node.
+///
+/// # TreeBreadthFirstIterator
+/// The `TreeBreadthFirstIterator` visits nodes in breadth-first order, meaning
+/// it visits all nodes at the current depth before moving on to the next depth.
+///
+/// # Usage
+/// To use these iterators, you can call the `iter_pre_order`, `iter_post_order`,
+/// or `iter_breadth_first` methods on a `TreeNode` or `Tree` instance. These
+/// methods return an iterator that can be used to traverse the tree in the
+/// desired order.
+///
+/// # Example
+/// ```rust
+/// use radiate_gp::*;
+///
+/// // create a simple tree
+/// let tree = Tree::new(TreeNode::new(1)
+///     .attach(TreeNode::new(2)
+///         .attach(TreeNode::new(4))
+///         .attach(TreeNode::new(5)))
+///     .attach(TreeNode::new(3)
+///         .attach(TreeNode::new(6))
+///        .attach(TreeNode::new(7))));
+///
+/// // iterate over the tree in pre-order
+/// // Output: 1, 2, 4, 5, 3, 6, 7
+/// let pre_order = tree.iter_pre_order().map(|n| n.value()).collect::<Vec<&i32>>();
+///
+/// // iterate over the tree in post-order
+/// // Output: 4, 5, 2, 6, 7, 3, 1
+/// let post_order = tree.iter_post_order().map(|n| n.value()).collect::<Vec<&i32>>();
+///
+/// // iterate over the tree in breadth-first order
+/// // Output: 1, 2, 3, 4, 5, 6, 7
+/// let breadth_first = tree.iter_breadth_first().map(|n| n.value()).collect::<Vec<&i32>>();
+/// ```
+///
 pub trait TreeIterator<T> {
     fn iter_pre_order(&self) -> PreOrderIterator<T>;
     fn iter_post_order(&self) -> PostOrderIterator<T>;
     fn iter_breadth_first(&self) -> TreeBreadthFirstIterator<T>;
 }
 
+/// Implement the `TreeIterator` trait for `TreeNode`
+///
+/// This allows for traversal of a single node and its children in pre-order, post-order, and breadth-first order.
 impl<T> TreeIterator<T> for TreeNode<T> {
     fn iter_pre_order(&self) -> PreOrderIterator<T> {
         PreOrderIterator { stack: vec![self] }
@@ -25,6 +76,9 @@ impl<T> TreeIterator<T> for TreeNode<T> {
     }
 }
 
+/// Implement the `TreeIterator` trait for `Tree`
+///
+/// This allows for traversal of the entire tree in pre-order, post-order, and breadth-first order.
 impl<T> TreeIterator<T> for Tree<T> {
     fn iter_pre_order(&self) -> PreOrderIterator<T> {
         PreOrderIterator {
