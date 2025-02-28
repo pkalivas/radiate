@@ -55,3 +55,9 @@ impl TimeStatistic {
         self.statistic.clear();
     }
 }
+
+impl Into<TimeStatistic> for Duration {
+    fn into(self) -> TimeStatistic {
+        TimeStatistic::new(self)
+    }
+}

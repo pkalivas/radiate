@@ -89,7 +89,6 @@ where
         generation: i32,
         rate: f32,
     ) -> AlterResult {
-        // let timer = Timer::new();
         let mut count = 0;
         let mut new_phenotypes = HashMap::new();
 

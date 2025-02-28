@@ -128,8 +128,8 @@ impl Metric {
         Metric::Distribution(name, Distribution::default())
     }
 
-    pub fn new_operations(name: &'static str, val: f32, time: Duration) -> Self {
-        Metric::Operations(name, Statistic::new(val), TimeStatistic::new(time))
+    pub fn new_operations(name: &'static str, val: impl Into<Statistic>, time: Duration) -> Self {
+        Metric::Operations(name, val.into(), TimeStatistic::new(time))
     }
 
     pub fn add_value(&mut self, value: f32) {

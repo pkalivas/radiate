@@ -64,13 +64,15 @@ impl<C: Chromosome> Alter<C> for Alterer<C> {
             AlterAction::Mutate(m) => {
                 let timer = Timer::new();
 
-                let result = m.mutate(population, generation, self.rate);
+                let mutate_result = m.mutate(population, generation, self.rate);
 
                 let duration = timer.duration();
-                let count = result.count as f32;
-                let metric = Metric::new_operations(self.name, count, duration);
+                let metric = Metric::new_operations(self.name, mutate_result.count, duration);
 
-                return vec![metric].into_iter().chain(result.metrics).collect();
+                return vec![metric]
+                    .into_iter()
+                    .chain(mutate_result.metrics)
+                    .collect();
             }
             AlterAction::Crossover(c) => {
                 let timer = Timer::new();
@@ -78,8 +80,7 @@ impl<C: Chromosome> Alter<C> for Alterer<C> {
                 let crossover_result = c.crossover(population, generation, self.rate);
 
                 let duration = timer.duration();
-                let count = crossover_result.count as f32;
-                let metric = Metric::new_operations(self.name, count, duration);
+                let metric = Metric::new_operations(self.name, crossover_result.count, duration);
 
                 return vec![metric]
                     .into_iter()

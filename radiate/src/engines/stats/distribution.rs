@@ -56,3 +56,19 @@ impl Distribution {
         self.last_sequence.clear();
     }
 }
+
+impl Into<Distribution> for &[f32] {
+    fn into(self) -> Distribution {
+        let mut result = Distribution::default();
+        result.add(self);
+        result
+    }
+}
+
+impl Into<Distribution> for Vec<f32> {
+    fn into(self) -> Distribution {
+        let mut result = Distribution::default();
+        result.add(&self);
+        result
+    }
+}
