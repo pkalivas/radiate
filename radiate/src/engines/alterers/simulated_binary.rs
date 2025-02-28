@@ -1,5 +1,5 @@
-use super::{Alter, AlterAction, Crossover};
-use crate::{Chromosome, EngineCompoment, FloatGene, Gene, NumericGene, random_provider};
+use super::{AlterAction, Crossover, IntoAlter};
+use crate::{Chromosome, FloatGene, Gene, NumericGene, random_provider};
 
 pub struct SimulatedBinaryCrossover {
     contiguty: f32,
@@ -13,37 +13,11 @@ impl SimulatedBinaryCrossover {
             crossover_rate,
         }
     }
-
-    pub fn clamp(value: f32, min: f32, max: f32) -> f32 {
-        if value < min {
-            min
-        } else if value > max {
-            max
-        } else {
-            value
-        }
-    }
-}
-
-impl EngineCompoment for SimulatedBinaryCrossover {
-    fn name(&self) -> &'static str {
-        "Simulated Binary Crossover"
-    }
-}
-
-impl<C: Chromosome<Gene = FloatGene>> Alter<C> for SimulatedBinaryCrossover {
-    fn rate(&self) -> f32 {
-        self.crossover_rate
-    }
-
-    fn to_alter(self) -> AlterAction<C> {
-        AlterAction::Crossover(Box::new(self))
-    }
 }
 
 impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for SimulatedBinaryCrossover {
     #[inline]
-    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C) -> i32 {
+    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, _: f32) -> i32 {
         let length = std::cmp::min(chrom_one.len(), chrom_two.len());
 
         if length < 2 {
@@ -70,11 +44,7 @@ impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for SimulatedBinaryCrossover 
                     (v1 - v2) * 0.5 + (beta * 0.5 * (v1 - v2).abs())
                 };
 
-                let new_gene = SimulatedBinaryCrossover::clamp(
-                    v,
-                    *chrom_one.get_gene(i).min(),
-                    *chrom_one.get_gene(i).max(),
-                );
+                let new_gene = v.clamp(*chrom_one.get_gene(i).min(), *chrom_one.get_gene(i).max());
 
                 count += 1;
 
@@ -83,5 +53,15 @@ impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for SimulatedBinaryCrossover 
         }
 
         count
+    }
+}
+
+impl<C: Chromosome<Gene = FloatGene>> IntoAlter<C> for SimulatedBinaryCrossover {
+    fn into_alter(self) -> super::Alterer<C> {
+        super::Alterer::new(
+            "SimulatedBinaryCrossover",
+            self.crossover_rate,
+            AlterAction::Crossover(Box::new(self)),
+        )
     }
 }

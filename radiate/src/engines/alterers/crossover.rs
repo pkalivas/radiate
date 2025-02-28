@@ -1,7 +1,5 @@
-use super::Alter;
-use crate::{
-    Chromosome, Gene, Metric, Phenotype, Population, indexes, random_provider, timer::Timer,
-};
+use super::{AlterResult, IntoAlter};
+use crate::{Chromosome, Gene, Phenotype, Population, indexes, random_provider};
 
 /// The `Crossover` trait is used to define the crossover operation for a genetic algorithm.
 ///
@@ -14,24 +12,22 @@ use crate::{
 /// or a subset of the population. If a struct implements the `Crossover` trait but does not override
 /// any of the methods, the default implementation will perform a simple crossover operation on the
 /// entire population. This is the case with the `UniformCrossover` struct.
-pub trait Crossover<C: Chromosome>: Alter<C> {
+pub trait Crossover<C: Chromosome>: IntoAlter<C> {
     #[inline]
-    fn crossover(&self, population: &mut Population<C>, generation: i32) -> Vec<Metric> {
-        let timer = Timer::new();
+    fn crossover(&self, population: &mut Population<C>, generation: i32, rate: f32) -> AlterResult {
         let mut count = 0;
 
         for i in 0..population.len() {
-            if random_provider::random::<f32>() < self.rate() {
+            if random_provider::random::<f32>() < rate {
                 let parent_indexes = indexes::individual_indexes(i, population.len(), 2);
-                count += self.cross(population, &parent_indexes, generation);
+                count += self.cross(population, &parent_indexes, generation, rate);
             }
         }
 
-        vec![Metric::new_operations(
-            self.name(),
-            count as f32,
-            timer.duration(),
-        )]
+        AlterResult {
+            count,
+            metrics: vec![],
+        }
     }
 
     #[inline]
@@ -40,6 +36,7 @@ pub trait Crossover<C: Chromosome>: Alter<C> {
         population: &mut Population<C>,
         parent_indexes: &[usize],
         generation: i32,
+        rate: f32,
     ) -> i32 {
         let index_one = parent_indexes[0];
         let index_two = parent_indexes[1];
@@ -55,7 +52,7 @@ pub trait Crossover<C: Chromosome>: Alter<C> {
         let chrom_one = &mut geno_one[chromosome_index];
         let chrom_two = &mut geno_two[chromosome_index];
 
-        let cross_count = self.cross_chromosomes(chrom_one, chrom_two);
+        let cross_count = self.cross_chromosomes(chrom_one, chrom_two, rate);
 
         if cross_count > 0 {
             population[index_one] = Phenotype::from_genotype(geno_one, generation);
@@ -66,8 +63,7 @@ pub trait Crossover<C: Chromosome>: Alter<C> {
     }
 
     #[inline]
-    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C) -> i32 {
-        let rate = self.rate();
+    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, rate: f32) -> i32 {
         let mut cross_count = 0;
 
         for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {

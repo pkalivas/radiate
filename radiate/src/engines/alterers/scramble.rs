@@ -1,6 +1,5 @@
-use crate::{Chromosome, EngineCompoment, random_provider};
-
-use super::{Alter, AlterAction, Mutate};
+use super::{AlterAction, Alterer, IntoAlter, Mutate};
+use crate::{Chromosome, random_provider};
 
 pub struct ScrambleMutator {
     rate: f32,
@@ -12,28 +11,12 @@ impl ScrambleMutator {
     }
 }
 
-impl EngineCompoment for ScrambleMutator {
-    fn name(&self) -> &'static str {
-        "ScrambleMutator"
-    }
-}
-
-impl<C: Chromosome> Alter<C> for ScrambleMutator {
-    fn rate(&self) -> f32 {
-        self.rate
-    }
-
-    fn to_alter(self) -> AlterAction<C> {
-        AlterAction::Mutate(Box::new(self))
-    }
-}
-
 impl<C: Chromosome> Mutate<C> for ScrambleMutator {
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut C) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> i32 {
         let mut mutations = 0;
 
-        if random_provider::random::<f32>() < self.rate {
+        if random_provider::random::<f32>() < rate {
             let start = random_provider::random_range(0..chromosome.len());
             let end = random_provider::random_range(start..chromosome.len());
 
@@ -43,5 +26,15 @@ impl<C: Chromosome> Mutate<C> for ScrambleMutator {
         }
 
         mutations
+    }
+}
+
+impl<C: Chromosome> IntoAlter<C> for ScrambleMutator {
+    fn into_alter(self) -> Alterer<C> {
+        Alterer::new(
+            "ScrambleMutator",
+            self.rate,
+            AlterAction::Mutate(Box::new(self)),
+        )
     }
 }

@@ -2,7 +2,7 @@ use crate::node::Node;
 use crate::ops::operation::Op;
 use crate::{Factory, GraphChromosome, NodeType};
 use radiate::engines::genome::gene::Gene;
-use radiate::{Alter, AlterAction, EngineCompoment, Mutate};
+use radiate::{AlterAction, Alterer, IntoAlter, Mutate};
 use radiate::{Chromosome, random_provider};
 use std::sync::Arc;
 
@@ -25,26 +25,6 @@ impl OperationMutator {
     }
 }
 
-impl EngineCompoment for OperationMutator {
-    fn name(&self) -> &'static str {
-        "OpMutator"
-    }
-}
-
-/// This implementation is for the `GraphChromosome` type.
-impl<T> Alter<GraphChromosome<Op<T>>> for OperationMutator
-where
-    T: Clone + PartialEq + Default,
-{
-    fn rate(&self) -> f32 {
-        self.rate
-    }
-
-    fn to_alter(self) -> AlterAction<GraphChromosome<Op<T>>> {
-        AlterAction::Mutate(Box::new(self))
-    }
-}
-
 /// This implementation is for the `GraphChromosome<Op<T>>` type.
 /// It mutates the chromosome by changing the value of the `MutableConst` Op nodes (weights).
 /// If the node is not a `MutableConst` node, it tries to replace it with a new node from the store,
@@ -54,9 +34,9 @@ where
     T: Clone + PartialEq + Default,
 {
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<Op<T>>) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<Op<T>>, rate: f32) -> i32 {
         let mutation_indexes = (0..chromosome.len())
-            .filter(|_| random_provider::random::<f32>() < self.rate)
+            .filter(|_| random_provider::random::<f32>() < rate)
             .collect::<Vec<usize>>();
 
         if mutation_indexes.is_empty() {
@@ -116,5 +96,18 @@ where
         }
 
         mutation_indexes.len() as i32
+    }
+}
+
+impl<T> IntoAlter<GraphChromosome<Op<T>>> for OperationMutator
+where
+    T: Clone + PartialEq + Default,
+{
+    fn into_alter(self) -> Alterer<GraphChromosome<Op<T>>> {
+        Alterer::new(
+            "OperationMutator",
+            self.rate,
+            AlterAction::Mutate(Box::new(self)),
+        )
     }
 }

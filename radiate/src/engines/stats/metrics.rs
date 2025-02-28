@@ -128,8 +128,8 @@ impl Metric {
         Metric::Distribution(name, Distribution::default())
     }
 
-    pub fn new_operations(name: &'static str, val: f32, time: Duration) -> Self {
-        Metric::Operations(name, Statistic::new(val), TimeStatistic::new(time))
+    pub fn new_operations(name: &'static str, val: impl Into<Statistic>, time: Duration) -> Self {
+        Metric::Operations(name, val.into(), TimeStatistic::new(time))
     }
 
     pub fn add_value(&mut self, value: f32) {
@@ -410,5 +410,25 @@ mod tests {
         assert_eq!(metric.value_min().unwrap(), 1.0);
         assert_eq!(metric.value_max().unwrap(), 5.0);
         assert_eq!(metric.name(), "test");
+    }
+
+    #[test]
+    fn test_metric_set() {
+        let mut metric_set = MetricSet::new();
+        metric_set.upsert_value("test", 1.0);
+        metric_set.upsert_value("test", 2.0);
+        metric_set.upsert_value("test", 3.0);
+        metric_set.upsert_value("test", 4.0);
+        metric_set.upsert_value("test", 5.0);
+
+        let metric = metric_set.get("test").unwrap();
+
+        assert_eq!(metric.count(), 5);
+        assert_eq!(metric.last_value(), 5.0);
+        assert_eq!(metric.value_mean().unwrap(), 3.0);
+        assert_eq!(metric.value_variance().unwrap(), 2.5);
+        assert_eq!(metric.value_std_dev().unwrap(), 1.5811388);
+        assert_eq!(metric.value_min().unwrap(), 1.0);
+        assert_eq!(metric.value_max().unwrap(), 5.0);
     }
 }

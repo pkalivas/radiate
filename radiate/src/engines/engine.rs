@@ -2,7 +2,7 @@ use super::codexes::Codex;
 use super::context::EngineContext;
 use super::genome::phenotype::Phenotype;
 use super::thread_pool::ThreadPool;
-use super::{AlterAction, FilterStrategy, MetricSet, Problem};
+use super::{Alter, FilterStrategy, MetricSet, Problem};
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
 use crate::engines::objectives::Score;
@@ -225,12 +225,9 @@ where
         objective.sort(&mut offspring);
 
         for alterer in alters {
-            let alter_metrics = match alterer {
-                AlterAction::Mutate(mutator) => mutator.mutate(&mut offspring, ctx.index),
-                AlterAction::Crossover(crossover) => crossover.crossover(&mut offspring, ctx.index),
-            };
+            let alter_result = alterer.alter(&mut offspring, ctx.index);
 
-            for metric in alter_metrics {
+            for metric in alter_result {
                 ctx.metrics.upsert(metric);
             }
         }
@@ -423,7 +420,7 @@ where
         self.params.offspring_selector.as_ref()
     }
 
-    fn alters(&self) -> &[AlterAction<C>] {
+    fn alters(&self) -> &[Box<dyn Alter<C>>] {
         &self.params.alterers
     }
 

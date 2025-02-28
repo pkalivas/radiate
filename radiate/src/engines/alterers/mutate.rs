@@ -1,16 +1,15 @@
-use super::Alter;
-use crate::{Chromosome, Gene, Genotype, Metric, Population, random_provider, timer::Timer};
+use super::{AlterResult, IntoAlter};
+use crate::{Chromosome, Gene, Genotype, Population, random_provider};
 
-pub trait Mutate<C: Chromosome>: Alter<C> {
+pub trait Mutate<C: Chromosome>: IntoAlter<C> {
     #[inline]
-    fn mutate(&self, population: &mut Population<C>, generation: i32) -> Vec<Metric> {
-        let timer = Timer::new();
+    fn mutate(&self, population: &mut Population<C>, generation: i32, rate: f32) -> AlterResult {
         let mut count = 0;
 
         for phenotype in population.iter_mut() {
             let genotype = phenotype.genotype_mut();
 
-            let mutation_count = self.mutate_genotype(genotype);
+            let mutation_count = self.mutate_genotype(genotype, rate);
 
             if mutation_count > 0 {
                 phenotype.generation = generation;
@@ -19,28 +18,27 @@ pub trait Mutate<C: Chromosome>: Alter<C> {
             }
         }
 
-        vec![Metric::new_operations(
-            self.name(),
-            count as f32,
-            timer.duration(),
-        )]
+        AlterResult {
+            count,
+            metrics: vec![],
+        }
     }
 
     #[inline]
-    fn mutate_genotype(&self, genotype: &mut Genotype<C>) -> i32 {
+    fn mutate_genotype(&self, genotype: &mut Genotype<C>, rate: f32) -> i32 {
         let mut count = 0;
         for chromosome in genotype.iter_mut() {
-            count += self.mutate_chromosome(chromosome);
+            count += self.mutate_chromosome(chromosome, rate);
         }
 
         count
     }
 
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut C) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> i32 {
         let mut count = 0;
         for gene in chromosome.iter_mut() {
-            if random_provider::random::<f32>() < self.rate() {
+            if random_provider::random::<f32>() < rate {
                 *gene = self.mutate_gene(gene);
                 count += 1;
             }
