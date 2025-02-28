@@ -1,7 +1,7 @@
 use super::Select;
 use crate::objectives::{Objective, Optimize};
 use crate::selectors::ProbabilityWheelIterator;
-use crate::{Chromosome, EngineCompoment, Population};
+use crate::{Chromosome, Population};
 
 pub struct RouletteSelector;
 
@@ -11,13 +11,11 @@ impl RouletteSelector {
     }
 }
 
-impl EngineCompoment for RouletteSelector {
+impl<C: Chromosome> Select<C> for RouletteSelector {
     fn name(&self) -> &'static str {
         "RouletteSelector"
     }
-}
 
-impl<C: Chromosome> Select<C> for RouletteSelector {
     fn select(
         &self,
         population: &Population<C>,

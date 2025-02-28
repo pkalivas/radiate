@@ -36,7 +36,7 @@ impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for BlendCrossover {
                 let allele_two = gene_two.allele();
 
                 let new_allele_one = allele_one - (self.alpha * (allele_one - allele_two));
-                let new_allele_two = allele_two + (self.alpha * (allele_one - allele_two));
+                let new_allele_two = allele_two + (self.alpha * (*allele_two - *allele_one));
 
                 chrom_one.set_gene(i, gene_one.with_allele(&new_allele_one));
                 chrom_two.set_gene(i, gene_two.with_allele(&new_allele_two));

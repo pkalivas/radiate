@@ -23,7 +23,7 @@ pub use steady_state::*;
 pub use stochastic_sampling::*;
 pub use tournament::*;
 
-use super::{EngineCompoment, random_provider};
+use super::random_provider;
 
 /// A trait for selection algorithms. Selection algorithms are used to select
 /// individuals from a population to be used in the next generation. The
@@ -39,7 +39,8 @@ use super::{EngineCompoment, random_provider};
 /// let selector = RouletteSelector::new();
 /// ```
 ///
-pub trait Select<C: Chromosome>: EngineCompoment {
+pub trait Select<C: Chromosome> {
+    fn name(&self) -> &'static str;
     fn select(
         &self,
         population: &Population<C>,
