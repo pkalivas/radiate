@@ -43,8 +43,9 @@ In other words, the `Codex` is the bridge between the domain language of Radiate
     === "CharCodex"
         ```rust
         pub struct CharCodex {
-            pub num_chromosomes: usize,
-            pub num_genes: usize,
+            num_chromosomes: usize,
+            num_genes: usize,
+            char_set: Arc<[char]>,
         }
         ```
 
@@ -56,6 +57,7 @@ In other words, the `Codex` is the bridge between the domain language of Radiate
             class CharCodex {
                 num_chromosomes: usize
                 num_genes: usize
+                char_set: Arc~[char]~
                 
                 encode() Genotype~CharChromosome~
                 decode(&Genotype~CharChromosome~) Vec~Vec~char~~

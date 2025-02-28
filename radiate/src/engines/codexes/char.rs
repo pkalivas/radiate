@@ -1,7 +1,9 @@
+use std::sync::Arc;
+
 use crate::engines::genome::char::CharGene;
 use crate::engines::genome::gene::Gene;
 use crate::engines::genome::genotype::Genotype;
-use crate::{CharChromosome, Chromosome};
+use crate::{CharChromosome, Chromosome, char};
 
 use super::Codex;
 
@@ -12,6 +14,7 @@ use super::Codex;
 pub struct CharCodex {
     num_chromosomes: usize,
     num_genes: usize,
+    char_set: Arc<[char]>,
 }
 
 impl CharCodex {
@@ -19,7 +22,13 @@ impl CharCodex {
         CharCodex {
             num_chromosomes,
             num_genes,
+            char_set: char::ALPHABET.chars().collect::<Vec<char>>().into(),
         }
+    }
+
+    pub fn with_char_set(mut self, char_set: impl Into<Arc<[char]>>) -> Self {
+        self.char_set = char_set.into();
+        self
     }
 }
 
@@ -29,7 +38,7 @@ impl Codex<CharChromosome, Vec<Vec<char>>> for CharCodex {
             chromosomes: (0..self.num_chromosomes)
                 .map(|_| CharChromosome {
                     genes: (0..self.num_genes)
-                        .map(|_| CharGene::new())
+                        .map(|_| CharGene::new(Arc::clone(&self.char_set)))
                         .collect::<Vec<CharGene>>(),
                 })
                 .collect::<Vec<CharChromosome>>(),
