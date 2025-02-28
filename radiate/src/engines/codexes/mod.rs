@@ -44,7 +44,7 @@ pub use subset::SubSetCodex;
 /// // `Genotype`.
 /// impl Codex<IntChromosome<i32>, NQueens> for NQueensCodex {
 ///     fn encode(&self) -> Genotype<IntChromosome<i32>> {
-///         let genes = (0..self.size).map(|_| IntGene::from_min_max(0, self.size)).collect();
+///         let genes = (0..self.size).map(|_| IntGene::from(0..self.size)).collect();
 ///         let chromosomes = vec![IntChromosome { genes }];
 ///         Genotype::new(chromosomes)
 ///     }
@@ -58,7 +58,7 @@ pub use subset::SubSetCodex;
 /// let codex = NQueensCodex { size: 5 };
 ///
 /// // encode a new Genotype of IntGenes with a size of 5. The result will be a genotype with a single chromosome with 5 genes.
-/// // The genes will have a min value of 0, a max value of 5, an upper_bound of i32::Max, and a lower_bound of i32::Min.
+/// // The genes will have a min value of 0, a max value of 5, an upper_bound of 5, and a lower_bound of 0.
 /// // The alleles will be random values between 0 and 5. It will look something like:
 /// // Genotype {
 /// //     chromosomes: [

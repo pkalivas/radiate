@@ -25,7 +25,7 @@ use std::sync::{Arc, Mutex};
 /// use radiate::*;
 ///
 /// // Define a codex that encodes and decodes individuals in the population, in this case using floats.
-/// let codex = FloatCodex::new(1, 5, 0.0, 100.0);
+/// let codex = FloatCodex::new(1, 5, 0.0..100.0);
 /// // This codex will encode Genotype instances with 1 Chromosome and 5 FloatGenes,
 /// // with random allels between 0.0 and 100.0. It will decode into a Vec<Vec<f32>>.
 /// // eg: [[1.0, 2.0, 3.0, 4.0, 5.0]]

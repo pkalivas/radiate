@@ -3,6 +3,7 @@ use crate::engines::genome::float::FloatGene;
 use crate::engines::genome::gene::{BoundGene, Gene};
 use crate::engines::genome::genotype::Genotype;
 use crate::{Chromosome, FloatChromosome};
+use std::ops::Range;
 
 /// A `Codex` for a `Genotype` of `FloatGenes`. The `encode` function creates a `Genotype` with `num_chromosomes` chromosomes
 /// and `num_genes` genes per chromosome. The `decode` function creates a `Vec<Vec<f32>>` from the `Genotype` where the inner `Vec`
@@ -23,7 +24,9 @@ pub struct FloatCodex {
 impl FloatCodex {
     /// Create a new `FloatCodex` with the given number of chromosomes, genes, min, and max values.
     /// The f_32 values for each `FloatGene` will be randomly generated between the min and max values.
-    pub fn new(num_chromosomes: usize, num_genes: usize, min: f32, max: f32) -> Self {
+    pub fn new(num_chromosomes: usize, num_genes: usize, range: Range<f32>) -> Self {
+        let (min, max) = (range.start, range.end);
+
         FloatCodex {
             num_chromosomes,
             num_genes,
@@ -49,7 +52,7 @@ impl Codex<FloatChromosome, Vec<Vec<f32>>> for FloatCodex {
                 .map(|_| FloatChromosome {
                     genes: (0..self.num_genes)
                         .map(|_| {
-                            FloatGene::from_min_max(self.min, self.max)
+                            FloatGene::from(self.min..self.max)
                                 .with_bounds(self.lower_bound, self.upper_bound)
                         })
                         .collect::<Vec<FloatGene>>(),

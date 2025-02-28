@@ -9,7 +9,7 @@ const NUM_GENES: usize = 2;
 const RANGE: f32 = 2.0;
 
 fn main() {
-    let codex = FloatCodex::new(NUM_CHROMOSOMES, NUM_GENES, -RANGE, RANGE);
+    let codex = FloatCodex::new(NUM_CHROMOSOMES, NUM_GENES, -RANGE..RANGE);
 
     let engine = GeneticEngine::from_codex(codex)
         .minimizing()

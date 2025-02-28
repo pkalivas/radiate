@@ -1,9 +1,9 @@
+use super::Codex;
 use crate::engines::genome::gene::{BoundGene, Gene};
 use crate::engines::genome::genotype::Genotype;
 use crate::engines::genome::int::IntGene;
 use crate::{Chromosome, IntChromosome, Integer};
-
-use super::Codex;
+use std::ops::Range;
 
 /// A `Codex` for a `Genotype` of `IntGenes`. The `encode` function creates a `Genotype` with `num_chromosomes` chromosomes
 /// and `num_genes` genes per chromosome. The `decode` function creates a `Vec<Vec<T>>` from the `Genotype` where the inner `Vec`
@@ -23,14 +23,15 @@ pub struct IntCodex<T: Integer<T>> {
 }
 
 impl<T: Integer<T>> IntCodex<T> {
-    pub fn new(num_chromosomes: usize, num_genes: usize, min: T, max: T) -> Self {
+    pub fn new(num_chromosomes: usize, num_genes: usize, range: Range<T>) -> Self {
+        let (min, max) = (range.start, range.end);
         IntCodex {
             num_chromosomes,
             num_genes,
             min,
             max,
-            lower_bound: T::MIN,
-            upper_bound: T::MAX,
+            lower_bound: min,
+            upper_bound: max,
         }
     }
 
@@ -48,7 +49,7 @@ impl<T: Integer<T>> Codex<IntChromosome<T>, Vec<Vec<T>>> for IntCodex<T> {
                 .map(|_| IntChromosome {
                     genes: (0..self.num_genes)
                         .map(|_| {
-                            IntGene::from_min_max(self.min, self.max)
+                            IntGene::from(self.min..self.max)
                                 .with_bounds(self.lower_bound, self.upper_bound)
                         })
                         .collect::<Vec<IntGene<T>>>(),

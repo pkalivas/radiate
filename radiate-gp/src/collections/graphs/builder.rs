@@ -136,7 +136,7 @@ impl<T: Clone + Default> NodeBuilder<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::Op;
+    use crate::{Node, Op};
 
     use super::*;
 
@@ -144,66 +144,46 @@ mod tests {
     fn test_graph_builder() {
         let graph = Graph::directed(3, 3, Op::sigmoid());
 
+        assert_eq!(graph.len(), 6);
+
         for node in graph.iter() {
-            println!("{:?}", node);
+            if node.node_type() == NodeType::Input {
+                assert_eq!(node.arity(), Arity::Zero);
+                assert_eq!(node.incoming().iter().count(), 0);
+                assert_eq!(node.outgoing().iter().count(), 3);
+            } else if node.node_type() == NodeType::Output {
+                assert_eq!(node.arity(), Arity::Any);
+                assert_eq!(node.incoming().iter().count(), 3);
+                assert_eq!(node.outgoing().iter().count(), 0);
+                assert_eq!(node.value(), &Op::sigmoid());
+            }
         }
     }
 
-    // #[test]
-    // fn test_acyclic_graph_builder() {
-    //     let builder = AsyclicGraphBuilder::<f32>::new(3, 3, Op::sigmoid());
-    //     let graph = builder.build();
-    // }
+    #[test]
+    fn test_graph_builder_recurrent() {
+        let graph = Graph::recurrent(3, 3, Op::sigmoid());
+
+        assert_eq!(graph.len(), 12);
+
+        for node in graph.iter() {
+            if node.node_type() == NodeType::Input {
+                assert_eq!(node.arity(), Arity::Zero);
+                assert_eq!(node.incoming().iter().count(), 0);
+                assert_eq!(node.outgoing().iter().count(), 1);
+            } else if node.node_type() == NodeType::Vertex {
+                assert_eq!(node.arity(), Arity::Any);
+                assert_eq!(node.is_recurrent(), true);
+                assert_eq!(node.value(), &Op::sigmoid());
+            } else if node.node_type() == NodeType::Output {
+                assert_eq!(node.arity(), Arity::Any);
+                assert_eq!(node.incoming().iter().count(), 3);
+                assert_eq!(node.outgoing().iter().count(), 0);
+                assert_eq!(node.value(), &Op::sigmoid());
+            }
+        }
+    }
 }
-
-// pub fn weighted_acyclic(
-//     mut self,
-//     input_size: usize,
-//     output_size: usize,
-//     output: Op<f32>,
-// ) -> GraphBuilder<f32> {
-//     self.with_values(NodeType::Input, (0..input_size).map(Op::var).collect());
-//     self.with_values(NodeType::Output, vec![output]);
-
-//     let input = self.input(input_size);
-//     let output = self.output(output_size);
-//     let weights = self.edge(input_size * output_size);
-
-//     let graph = GraphAggregate::new()
-//         .one_to_many(&input, &weights)
-//         .many_to_one(&weights, &output)
-//         .build();
-
-//     self.node_cache = Some(graph.into_iter().collect());
-//     self
-// }
-
-// pub fn weighted_cyclic(
-//     mut self,
-//     input_size: usize,
-//     output_size: usize,
-//     memory_size: usize,
-//     output: Op<f32>,
-// ) -> GraphBuilder<f32> {
-//     self.with_values(NodeType::Input, (0..input_size).map(Op::var).collect());
-//     self.with_values(NodeType::Output, vec![output]);
-
-//     let input = self.input(input_size);
-//     let output = self.output(output_size);
-//     let weights = self.edge(input_size * memory_size);
-//     let aggregate = self.aggregates(memory_size);
-//     let aggregate_weights = self.edge(memory_size);
-
-//     let graph = GraphAggregate::new()
-//         .one_to_many(&input, &weights)
-//         .many_to_one(&weights, &aggregate)
-//         .one_to_one_self(&aggregate, &aggregate_weights)
-//         .all_to_all(&aggregate, &output)
-//         .build();
-
-//     self.node_cache = Some(graph.into_iter().collect());
-//     self
-// }
 
 // pub fn gru(
 //     mut self,

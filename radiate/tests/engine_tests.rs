@@ -7,7 +7,7 @@ mod engine_tests {
 
     #[test]
     fn engine_can_minimize() {
-        let codex = IntCodex::new(1, 5, 0, 100);
+        let codex = IntCodex::new(1, 5, 0..100);
 
         let engine = GeneticEngine::from_codex(codex)
             .minimizing()
@@ -22,7 +22,7 @@ mod engine_tests {
 
     #[test]
     fn engine_can_maximize() {
-        let codex = IntCodex::new(1, 5, 0, 101);
+        let codex = IntCodex::new(1, 5, 0..101);
 
         let engine = GeneticEngine::from_codex(codex)
             .fitness_fn(|geno: Vec<Vec<i32>>| geno.iter().flatten().sum::<i32>())
@@ -37,7 +37,7 @@ mod engine_tests {
     #[test]
     fn engine_evolves_towards_target() {
         let target = [1, 2, 3, 4, 5];
-        let codex = IntCodex::new(1, target.len(), 0, 10);
+        let codex = IntCodex::new(1, target.len(), 0..10);
 
         let engine = GeneticEngine::from_codex(codex)
             .minimizing()

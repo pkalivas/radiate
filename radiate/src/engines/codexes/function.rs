@@ -19,7 +19,7 @@ use crate::{Chromosome, Codex, Genotype};
 ///         .with_encoder(|| {
 ///             Genotype::new(vec![IntChromosome {
 ///                genes: (0..N_QUEENS)
-///                     .map(|_| IntGene::from_min_max(0, N_QUEENS as i8))
+///                     .map(|_| IntGene::from(0..N_QUEENS as i8))
 ///                     .collect(),
 ///             }])
 ///         })

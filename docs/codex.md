@@ -190,6 +190,7 @@ ___
     Let's take a look at a simplified version of Raditate's built-in `FloatCodex` which encodes and decodes floating-point numbers. The `FloatCodex` takes in the number of chromosomes, number of genes per chromosome, the max allele value, and the min allele value. The `encode` method creates a new `Genotype` of `FloatChromosomes` with `FloatGenes` that have random alleles between the max and min. The `decode` method takes a `Genotype` and returns a `Vec<Vec<f32>>` of the gene values.
 
     ```rust
+    use std::ops::Range;
     use radiate::*;
 
     pub struct FloatCodex {
@@ -204,14 +205,15 @@ ___
     impl FloatCodex {
         /// Create a new `FloatCodex` with the given number of chromosomes, genes, min, and max values.
         /// The f_32 values for each `FloatGene` will be randomly generated between the min and max values.
-        pub fn new(num_chromosomes: usize, num_genes: usize, min: f32, max: f32) -> Self {
+        pub fn new(num_chromosomes: usize, num_genes: usize, range: Range<f32>) -> Self {
+            let (min, max) = (range.start, range.end);
             FloatCodex {
                 num_chromosomes,
                 num_genes,
                 min,
                 max,
-                lower_bound: min,
-                upper_bound: max,
+                lower_bound: f32::MIN,
+                upper_bound: f32::MAX,
             }
         }
     }
@@ -224,7 +226,7 @@ ___
                         FloatChromosome {
                             genes: (0..self.num_genes)
                                 .map(|_| {
-                                    FloatGene::from_min_max(self.min, self.max)
+                                    FloatGene::from(self.min..self.max)
                                         .with_bounds(self.lower_bound, self.upper_bound)
                                 })
                                 .collect::<Vec<FloatGene>>(),
@@ -253,7 +255,7 @@ ___
 
     ```rust
     fn main() {
-        let codex = FloatCodex::new(2, 3, 0.0, 1.0);
+        let codex = FloatCodex::new(2, 3, 0.0..1.0);
 
         let genotype: Genotype<FloatChromosome> = codex.encode();
         let decoded: Vec<Vec<f32>> = codex.decode(&genotype);
@@ -306,7 +308,7 @@ ___
             .with_encoder(|| {
                 Genotype::from_chromosomes(vec![IntChromosome {
                     genes: (0..N_QUEENS)
-                        .map(|_| IntGene::from_min_max(0, N_QUEENS as i8))
+                        .map(|_| IntGene::from(0..N_QUEENS as i8))
                         .collect(),
                 }])
             })
@@ -346,7 +348,7 @@ ___
     ```rust
     impl Codex<IntChromosome<i32>, NQueens> for NQueensCodex {
         fn encode(&self) -> Genotype<IntChromosome<i32>> {
-            let genes = (0..self.size).map(|_| IntGene::from_min_max(0, self.size)).collect();
+            let genes = (0..self.size).map(|_| IntGene::from(0..self.size)).collect();
             let chromosomes = vec![IntChromosome { genes }];
             Genotype::from_chromosomes(chromosomes)
         }
@@ -362,7 +364,7 @@ ___
     ```
 
     encode a new Genotype of IntGenes with a size of 5. The result will be a genotype with a single chromosome with 5 genes.
-    The genes will have a min value of 0, a max value of 5, an upper_bound of i32::Max, and a lower_bound of i32::Min.
+    The genes will have a min value of 0, a max value of 5, an upper_bound of 5, and a lower_bound of 0
     The alleles will be random values between 0 and 5. It will look something like:
     ```text
     Genotype {

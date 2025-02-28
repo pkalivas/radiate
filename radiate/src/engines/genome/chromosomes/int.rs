@@ -3,6 +3,7 @@ use super::{
     gene::{BoundGene, Gene, NumericGene, Valid},
 };
 use crate::random_provider;
+use std::ops::Range;
 
 /// A `Gene` that represents an integer value. This gene just wraps an integer value and provides
 /// functionality for it to be used in a genetic algorithm. In this `Gene` implementation, the
@@ -22,16 +23,16 @@ use crate::random_provider;
 /// let gene: IntGene<i32> = 5.into();
 ///
 /// // Create the same gene, but with a different method
-/// let gene = IntGene::new(5);
+/// let gene = IntGene::from(5);
 ///
 /// // Create a gene, but with a min value of 0 and a max value of 10. In this case,
 /// // the allele will be a random value between 0 and 10. The min and max values will
 /// // be set to 0 and 10, and the upper and lower bounds will be set to i32::MAX and i32::MIN.
-/// let gene = IntGene::from_min_max(0, 10);
+/// let gene = IntGene::from(0..10);
 ///
 /// // Create a gene with a min value of 0 and a max value of 10, but with upper and lower bounds of 10 and 0.
 /// // In this case, the allele will be a random value between 0 and 10, but the upper and lower bounds will be 10 and 0.
-/// let gene = IntGene::from_min_max(0, 10).with_bounds(10, 0);
+/// let gene = IntGene::from(0..10).with_bounds(10, 0);
 /// ```
 ///
 /// # Type Parameters
@@ -44,35 +45,6 @@ pub struct IntGene<T: Integer<T>> {
     pub max: T,
     pub upper_bound: T,
     pub lower_bound: T,
-}
-
-impl<T: Integer<T>> IntGene<T> {
-    /// Create a new instance of the `IntGene` with the given allele. The min and max values will be set
-    /// to the minimum and maximum values of the integer type `T`, and the upper and lower
-    /// bounds will be set to the maximum and minimum values of the integer type `T`.
-    pub fn new(allele: T) -> Self {
-        IntGene {
-            allele,
-            min: T::MIN,
-            max: T::MAX,
-            upper_bound: T::MAX,
-            lower_bound: T::MIN,
-        }
-    }
-
-    /// Create a new instance of the `IntGene` with a random allele between the given min and max values.
-    /// The upper and lower bounds will be set to the maximum and minimum values of the integer type `T`.
-    pub fn from_min_max(min: T, max: T) -> Self {
-        let (min, max) = if min > max { (max, min) } else { (min, max) };
-
-        Self {
-            allele: random_provider::random_range(min..max),
-            min,
-            max,
-            upper_bound: T::MAX,
-            lower_bound: T::MIN,
-        }
-    }
 }
 
 /// Implement the `Gene` trait for `IntGene`. This allows the `IntGene` to be used in a genetic algorithm.
@@ -158,13 +130,39 @@ impl<T: Integer<T>> std::fmt::Debug for IntGene<T> {
 
 impl<T: Integer<T>> From<T> for IntGene<T> {
     fn from(allele: T) -> Self {
-        IntGene::new(allele)
+        IntGene {
+            allele,
+            min: T::MIN,
+            max: T::MAX,
+            upper_bound: T::MAX,
+            lower_bound: T::MIN,
+        }
     }
 }
 
 impl<T: Integer<T>> From<&T> for IntGene<T> {
     fn from(allele: &T) -> Self {
-        IntGene::new(*allele)
+        IntGene {
+            allele: *allele,
+            min: T::MIN,
+            max: T::MAX,
+            upper_bound: T::MAX,
+            lower_bound: T::MIN,
+        }
+    }
+}
+
+impl<T: Integer<T>> From<Range<T>> for IntGene<T> {
+    fn from(range: Range<T>) -> Self {
+        let (min, max) = (range.start, range.end);
+
+        Self {
+            allele: random_provider::random_range(range),
+            min,
+            max,
+            upper_bound: min,
+            lower_bound: max,
+        }
     }
 }
 
@@ -288,46 +286,46 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let gene = IntGene::from_min_max(0, 10);
+        let gene = IntGene::from(0..10);
         assert!(gene.allele >= 0 && gene.allele <= 10);
     }
 
     #[test]
     fn test_new_instance() {
-        let gene = IntGene::from_min_max(0, 10);
+        let gene = IntGene::from(0..10);
         let new_gene = gene.new_instance();
         assert!(new_gene.allele >= 0 && new_gene.allele <= 10);
     }
 
     #[test]
     fn test_from_allele() {
-        let gene = IntGene::new(5);
+        let gene = IntGene::from(5);
         let new_gene = gene.with_allele(&5);
         assert_eq!(new_gene.allele, 5);
     }
 
     #[test]
     fn test_is_valid() {
-        let gene = IntGene::from_min_max(0, 10);
+        let gene = IntGene::from(0..10);
         assert!(gene.is_valid());
     }
 
     #[test]
     fn test_upper_bound() {
-        let gene = IntGene::from_min_max(0, 10).with_bounds(10, 0);
+        let gene = IntGene::from(0..10).with_bounds(10, 0);
         assert_eq!(*gene.upper_bound(), 10);
     }
 
     #[test]
     fn test_lower_bound() {
-        let gene = IntGene::from_min_max(0, 10).with_bounds(10, 0);
+        let gene = IntGene::from(0..10).with_bounds(10, 0);
         assert_eq!(*gene.lower_bound(), 0);
     }
 
     #[test]
     fn test_mean() {
-        let gene = IntGene::new(5);
-        let other = IntGene::new(5);
+        let gene = IntGene::from(5);
+        let other = IntGene::from(5);
         let new_gene = gene.mean(&other);
         assert_eq!(new_gene.allele, 5);
     }
@@ -340,7 +338,7 @@ mod tests {
 
     #[test]
     fn test_from() {
-        let gene = IntGene::new(5);
+        let gene = IntGene::from(5);
         let i: i32 = gene.into();
         assert_eq!(i, 5);
     }

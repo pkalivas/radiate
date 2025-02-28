@@ -68,9 +68,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{Op, TreeNode};
-
     use super::*;
+    use crate::{Op, TreeNode};
 
     #[test]
     fn test_tree_reduce_simple() {

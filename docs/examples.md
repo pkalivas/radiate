@@ -24,8 +24,7 @@ comprehensive list of examples.
     const MAX_GENE_VALUE: i32 = 100;
 
     fn main() {
-        let codex = IntCodex::new(NUM_CHROMOSOMES, NUM_GENES, MIN_GENE_VALUE, MAX_GENE_VALUE)
-            .with_bounds(MIN_GENE_VALUE, MAX_GENE_VALUE);
+        let codex = IntCodex::new(NUM_CHROMOSOMES, NUM_GENES, MIN_GENE_VALUE..MAX_GENE_VALUE);
 
         let engine = GeneticEngine::from_codex(codex)
             .population_size(150)
@@ -60,7 +59,7 @@ comprehensive list of examples.
     fn main() {
         random_provider::set_seed(42);
 
-        let codex = IntCodex::<i8>::new(1, N_QUEENS, 0, N_QUEENS as i8);
+        let codex = IntCodex::<i8>::new(1, N_QUEENS, 0..N_QUEENS as i8);
 
         let engine = GeneticEngine::from_codex(codex)
             .minimizing()
@@ -270,7 +269,7 @@ comprehensive list of examples.
     const N_GENES: usize = 2;
 
     fn main() {
-        let codex = FloatCodex::new(1, N_GENES, -RANGE, RANGE).with_bounds(-RANGE, RANGE);
+        let codex = FloatCodex::new(1, N_GENES, -RANGE..RANGE);
 
         let engine = GeneticEngine::from_codex(codex)
             .minimizing()
@@ -423,7 +422,7 @@ comprehensive list of examples.
             for shape in &self.shapes {
                 chromosomes.push(FloatChromosome {
                     genes: (0..shape.0 * shape.1)
-                        .map(|_| FloatGene::new(-1.0, 1.0))
+                        .map(|_| FloatGene::from(-1.0..1.0))
                         .collect::<Vec<FloatGene>>(),
                 });
             }
