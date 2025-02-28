@@ -2,7 +2,7 @@ use super::codexes::Codex;
 use super::context::EngineContext;
 use super::genome::phenotype::Phenotype;
 use super::thread_pool::ThreadPool;
-use super::{Alter, AlterAction, FilterStrategy, MetricSet, Problem};
+use super::{Alter, FilterStrategy, MetricSet, Problem};
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
 use crate::engines::objectives::Score;
@@ -230,14 +230,6 @@ where
             for metric in alter_result {
                 ctx.metrics.upsert(metric);
             }
-            // let alter_metrics = match alterer {
-            //     AlterAction::Mutate(mutator) => mutator.mutate(&mut offspring, ctx.index),
-            //     AlterAction::Crossover(crossover) => crossover.crossover(&mut offspring, ctx.index),
-            // };
-
-            // for metric in alter_metrics {
-            //     ctx.metrics.upsert(metric);
-            // }
         }
 
         offspring
