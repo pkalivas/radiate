@@ -228,8 +228,7 @@ ___
                         FloatChromosome {
                             genes: (0..self.num_genes)
                                 .map(|_| {
-                                    FloatGene::from(self.min..self.max)
-                                        .with_bounds(self.lower_bound, self.upper_bound)
+                                    FloatGene::from((self.min..self.max, self.lower_bound..self.upper_bound))
                                 })
                                 .collect::<Vec<FloatGene>>(),
                         }

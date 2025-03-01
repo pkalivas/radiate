@@ -20,7 +20,7 @@ use crate::{add_impl, arithmetic_impl, div_impl, impl_integer, mul_impl, sub_imp
 
 pub use char::{CharChromosome, CharGene};
 pub use float::{FloatChromosome, FloatGene};
-pub use gene::{BoundGene, Gene, NumericGene, Valid};
+pub use gene::{Gene, NumericGene, Valid};
 pub use int::{IntChromosome, IntGene};
 pub use permutation::{PermutationChromosome, PermutationGene};
 

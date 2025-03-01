@@ -98,15 +98,6 @@ impl From<char> for CharGene {
     }
 }
 
-impl From<&char> for CharGene {
-    fn from(allele: &char) -> Self {
-        CharGene {
-            allele: *allele,
-            chat_set: ALPHABET.chars().collect::<Vec<char>>().into(),
-        }
-    }
-}
-
 impl From<&str> for CharGene {
     fn from(str: &str) -> Self {
         let char_set: Arc<[char]> = str.chars().collect::<Vec<char>>().into();
@@ -120,17 +111,6 @@ impl From<&str> for CharGene {
 
 impl From<String> for CharGene {
     fn from(string: String) -> Self {
-        let char_set: Arc<[char]> = string.chars().collect::<Vec<char>>().into();
-        let allele = random_provider::random_range(0..char_set.len());
-        CharGene {
-            allele: char_set[allele],
-            chat_set: char_set,
-        }
-    }
-}
-
-impl From<&String> for CharGene {
-    fn from(string: &String) -> Self {
         let char_set: Arc<[char]> = string.chars().collect::<Vec<char>>().into();
         let allele = random_provider::random_range(0..char_set.len());
         CharGene {

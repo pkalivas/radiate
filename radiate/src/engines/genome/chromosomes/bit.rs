@@ -30,7 +30,7 @@ pub struct BitGene {
 impl BitGene {
     pub fn new() -> Self {
         BitGene {
-            allele: random_provider::random_range(0..2) == 1,
+            allele: random_provider::bool(0.5),
         }
     }
 }
@@ -81,12 +81,6 @@ impl From<bool> for BitGene {
     }
 }
 
-impl From<&bool> for BitGene {
-    fn from(allele: &bool) -> BitGene {
-        BitGene { allele: *allele }
-    }
-}
-
 /// A `Chromosome` that contains `BitGenes`.
 /// A `BitChromosome` is a collection of `BitGenes` that represent the genetic
 /// material of an individual in the population.
@@ -118,16 +112,9 @@ impl AsMut<[BitGene]> for BitChromosome {
     }
 }
 
-impl From<&[bool]> for BitChromosome {
-    fn from(alleles: &[bool]) -> Self {
-        let genes = alleles.iter().map(BitGene::from).collect();
-        BitChromosome { genes }
-    }
-}
-
 impl From<Vec<bool>> for BitChromosome {
     fn from(alleles: Vec<bool>) -> Self {
-        let genes = alleles.iter().map(BitGene::from).collect();
+        let genes = alleles.into_iter().map(BitGene::from).collect();
         BitChromosome { genes }
     }
 }

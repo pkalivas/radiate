@@ -1,9 +1,12 @@
 use super::{
     Chromosome,
-    gene::{BoundGene, Gene, NumericGene, Valid},
+    gene::{Gene, NumericGene, Valid},
 };
 use crate::random_provider;
-use std::{fmt::Debug, ops::Range};
+use std::{
+    fmt::Debug,
+    ops::{Bound, Range, RangeBounds},
+};
 
 /// A `Gene` that represents a floating point number.
 /// The `allele` is the in the case of the `FloatGene` a f32. The `min` and `max` values
@@ -24,15 +27,13 @@ use std::{fmt::Debug, ops::Range};
 ///
 /// // Create a new FloatGene with a min of 0 and a max of 1 and set the upper_bound
 /// // and lower_bound to 0 and 100 respectively.
-/// let gene = FloatGene::from(0_f32..1_f32).with_bounds(0_f32, 100_f32);
+/// let gene = FloatGene::from((0_f32..1_f32, 0_f32..100_f32));
 /// ```
 #[derive(Clone, PartialEq)]
 pub struct FloatGene {
     pub allele: f32,
-    pub min: f32,
-    pub max: f32,
-    pub upper_bound: f32,
-    pub lower_bound: f32,
+    pub value_range: Range<f32>,
+    pub bounds: Range<f32>,
 }
 
 /// Implement the `Valid` trait for the `FloatGene`.
@@ -42,7 +43,7 @@ pub struct FloatGene {
 /// invalid individuals from the population, replacing them with new individuals at the given generation.
 impl Valid for FloatGene {
     fn is_valid(&self) -> bool {
-        self.allele >= self.lower_bound && self.allele <= self.upper_bound
+        self.allele >= self.bounds.start && self.allele <= self.bounds.end
     }
 }
 
@@ -55,57 +56,46 @@ impl Gene for FloatGene {
 
     fn new_instance(&self) -> FloatGene {
         FloatGene {
-            allele: random_provider::random::<f32>() * (self.max - self.min) + self.min,
-            min: self.min,
-            max: self.max,
-            upper_bound: self.upper_bound,
-            lower_bound: self.lower_bound,
+            allele: random_provider::random_range(self.value_range.clone()),
+            value_range: self.value_range.clone(),
+            bounds: self.bounds.clone(),
         }
     }
 
     fn with_allele(&self, allele: &f32) -> FloatGene {
         FloatGene {
             allele: *allele,
-            min: self.min,
-            max: self.max,
-            upper_bound: self.upper_bound,
-            lower_bound: self.lower_bound,
-        }
-    }
-}
-
-impl BoundGene for FloatGene {
-    fn upper_bound(&self) -> &f32 {
-        &self.upper_bound
-    }
-
-    fn lower_bound(&self) -> &f32 {
-        &self.lower_bound
-    }
-
-    fn with_bounds(self, lower_bound: f32, upper_bound: f32) -> FloatGene {
-        FloatGene {
-            upper_bound,
-            lower_bound,
-            ..self
+            value_range: self.value_range.clone(),
+            bounds: self.bounds.clone(),
         }
     }
 }
 
 impl NumericGene for FloatGene {
     fn min(&self) -> &Self::Allele {
-        &self.min
+        &self.value_range.start
     }
 
     fn max(&self) -> &Self::Allele {
-        &self.max
+        &self.value_range.end
     }
 
     fn mean(&self, other: &FloatGene) -> FloatGene {
         FloatGene {
             allele: (self.allele + other.allele) / 2_f32,
-            ..*self
+            value_range: self.value_range.clone(),
+            bounds: self.bounds.clone(),
         }
+    }
+}
+
+impl RangeBounds<f32> for FloatGene {
+    fn start_bound(&self) -> Bound<&f32> {
+        self.bounds.start_bound()
+    }
+
+    fn end_bound(&self) -> Bound<&f32> {
+        self.bounds.end_bound()
     }
 }
 
@@ -119,10 +109,8 @@ impl From<f32> for FloatGene {
     fn from(allele: f32) -> Self {
         FloatGene {
             allele,
-            min: f32::MIN,
-            max: f32::MAX,
-            upper_bound: f32::MAX,
-            lower_bound: f32::MIN,
+            value_range: f32::MIN..f32::MAX,
+            bounds: f32::MIN..f32::MAX,
         }
     }
 }
@@ -133,10 +121,20 @@ impl From<Range<f32>> for FloatGene {
 
         Self {
             allele: random_provider::random_range(range),
-            min,
-            max,
-            upper_bound: max,
-            lower_bound: min,
+            value_range: min..max,
+            bounds: min..max,
+        }
+    }
+}
+
+impl From<(Range<f32>, Range<f32>)> for FloatGene {
+    fn from((value_range, bounds): (Range<f32>, Range<f32>)) -> Self {
+        let allele = random_provider::random_range(value_range.clone());
+
+        Self {
+            allele,
+            value_range,
+            bounds,
         }
     }
 }
@@ -223,9 +221,18 @@ impl From<Vec<f32>> for FloatChromosome {
     }
 }
 
-impl From<(i32, Range<f32>)> for FloatChromosome {
-    fn from((size, range): (i32, Range<f32>)) -> Self {
+impl From<(usize, Range<f32>)> for FloatChromosome {
+    fn from((size, range): (usize, Range<f32>)) -> Self {
         let genes = (0..size).map(|_| FloatGene::from(range.clone())).collect();
+        FloatChromosome { genes }
+    }
+}
+
+impl From<(usize, Range<f32>, Range<f32>)> for FloatChromosome {
+    fn from((size, range, bounds): (usize, Range<f32>, Range<f32>)) -> Self {
+        let genes = (0..size)
+            .map(|_| FloatGene::from((range.clone(), bounds.clone())))
+            .collect();
         FloatChromosome { genes }
     }
 }
@@ -237,18 +244,18 @@ mod tests {
     #[test]
     fn test_new() {
         let gene_one = FloatGene::from(0_f32..1_f32);
-        let gene_two = FloatGene::from(-1.0..1.0).with_bounds(-100.0, 100.0);
+        let gene_two = FloatGene::from((-1.0..1.0, -100.0..100.0));
 
         assert_eq!(*gene_one.min(), 0_f32);
         assert_eq!(*gene_one.max(), 1_f32);
-        assert_eq!(*gene_one.lower_bound(), 0.0);
-        assert_eq!(*gene_one.upper_bound(), 1_f32);
+        assert_eq!(gene_one.start_bound(), Bound::Included(&0_f32));
+        assert_eq!(gene_one.end_bound(), Bound::Excluded(&1_f32));
         assert!(gene_one.is_valid());
 
         assert_eq!(*gene_two.min(), -1.0);
         assert_eq!(*gene_two.max(), 1.0);
-        assert_eq!(*gene_two.lower_bound(), -100.0);
-        assert_eq!(*gene_two.upper_bound(), 100.0);
+        assert_eq!(gene_two.start_bound(), Bound::Included(&-100.0));
+        assert_eq!(gene_two.end_bound(), Bound::Excluded(&100.0));
         assert!(gene_two.is_valid());
     }
 
@@ -295,6 +302,19 @@ mod tests {
         for (gene, allele) in chromosome.iter().zip(vec![0.0, 1.0, 2.0]) {
             assert!(gene.is_valid());
             assert_eq!(gene.allele, allele);
+        }
+    }
+
+    #[test]
+    fn test_chromosome_from_range_with_bounds() {
+        let chromosome = FloatChromosome::from((3, 0.0..10.0, -10.0..10.0));
+
+        assert_eq!(chromosome.len(), 3);
+        assert!(chromosome.is_valid());
+        for gene in chromosome.iter() {
+            assert!(gene.is_valid());
+            assert!(gene.allele >= 0.0 && gene.allele <= 10.0);
+            assert!(gene.bounds.start >= -10.0 && gene.bounds.end <= 10.0);
         }
     }
 }

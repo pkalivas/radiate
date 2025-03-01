@@ -1,9 +1,9 @@
 use super::{
     Chromosome, Integer,
-    gene::{BoundGene, Gene, NumericGene, Valid},
+    gene::{Gene, NumericGene, Valid},
 };
 use crate::random_provider;
-use std::ops::Range;
+use std::ops::{Bound, Range, RangeBounds};
 
 /// A `Gene` that represents an integer value. This gene just wraps an integer value and provides
 /// functionality for it to be used in a genetic algorithm. In this `Gene` implementation, the
@@ -31,8 +31,8 @@ use std::ops::Range;
 /// let gene = IntGene::from(0..10);
 ///
 /// // Create a gene with a min value of 0 and a max value of 10, but with upper and lower bounds of 10 and 0.
-/// // In this case, the allele will be a random value between 0 and 10, but the upper and lower bounds will be 10 and 0.
-/// let gene = IntGene::from(0..10).with_bounds(10, 0);
+/// // In this case, the allele will be a random value between 0 and 10, but the lower and upper bounds will be -10 and 10.
+/// let gene = IntGene::from((0..10, -10..10));
 /// ```
 ///
 /// # Type Parameters
@@ -41,10 +41,8 @@ use std::ops::Range;
 #[derive(Clone, PartialEq)]
 pub struct IntGene<T: Integer<T>> {
     pub allele: T,
-    pub min: T,
-    pub max: T,
-    pub upper_bound: T,
-    pub lower_bound: T,
+    pub value_range: Range<T>,
+    pub bounds: Range<T>,
 }
 
 /// Implement the `Gene` trait for `IntGene`. This allows the `IntGene` to be used in a genetic algorithm.
@@ -58,21 +56,17 @@ impl<T: Integer<T>> Gene for IntGene<T> {
     /// Create a new instance of the `IntGene` with a random allele between the min and max values.
     fn new_instance(&self) -> IntGene<T> {
         IntGene {
-            allele: random_provider::random_range(self.min..self.max),
-            min: self.min,
-            max: self.max,
-            upper_bound: self.upper_bound,
-            lower_bound: self.lower_bound,
+            allele: random_provider::random_range(self.value_range.clone()),
+            value_range: self.value_range.clone(),
+            bounds: self.bounds.clone(),
         }
     }
 
     fn with_allele(&self, allele: &T) -> IntGene<T> {
         IntGene {
             allele: *allele,
-            min: self.min,
-            max: self.max,
-            upper_bound: self.upper_bound,
-            lower_bound: self.lower_bound,
+            value_range: self.value_range.clone(),
+            bounds: self.bounds.clone(),
         }
     }
 }
@@ -83,42 +77,35 @@ impl<T: Integer<T>> Gene for IntGene<T> {
 /// Note: the bounds are used for crossover and mutation.
 impl<T: Integer<T>> Valid for IntGene<T> {
     fn is_valid(&self) -> bool {
-        self.allele >= self.min && self.allele <= self.max
-    }
-}
-
-impl<T: Integer<T>> BoundGene for IntGene<T> {
-    fn upper_bound(&self) -> &T {
-        &self.upper_bound
-    }
-
-    fn lower_bound(&self) -> &T {
-        &self.lower_bound
-    }
-
-    fn with_bounds(self, upper_bound: T, lower_bound: T) -> IntGene<T> {
-        IntGene {
-            upper_bound,
-            lower_bound,
-            ..self
-        }
+        self.allele >= self.value_range.start && self.allele <= self.value_range.end
     }
 }
 
 impl<T: Integer<T>> NumericGene for IntGene<T> {
     fn min(&self) -> &T {
-        &self.min
+        &self.value_range.start
     }
 
     fn max(&self) -> &T {
-        &self.max
+        &self.value_range.end
     }
 
     fn mean(&self, other: &IntGene<T>) -> IntGene<T> {
         IntGene {
             allele: (self.allele + other.allele) / T::from_i32(2),
-            ..*self
+            value_range: self.value_range.clone(),
+            bounds: self.bounds.clone(),
         }
+    }
+}
+
+impl<T: Integer<T>> RangeBounds<T> for IntGene<T> {
+    fn start_bound(&self) -> Bound<&T> {
+        self.bounds.start_bound()
+    }
+
+    fn end_bound(&self) -> Bound<&T> {
+        self.bounds.end_bound()
     }
 }
 
@@ -132,10 +119,8 @@ impl<T: Integer<T>> From<T> for IntGene<T> {
     fn from(allele: T) -> Self {
         IntGene {
             allele,
-            min: T::MIN,
-            max: T::MAX,
-            upper_bound: T::MAX,
-            lower_bound: T::MIN,
+            value_range: T::MIN..T::MAX,
+            bounds: T::MIN..T::MAX,
         }
     }
 }
@@ -144,10 +129,8 @@ impl<T: Integer<T>> From<&T> for IntGene<T> {
     fn from(allele: &T) -> Self {
         IntGene {
             allele: *allele,
-            min: T::MIN,
-            max: T::MAX,
-            upper_bound: T::MAX,
-            lower_bound: T::MIN,
+            value_range: T::MIN..T::MAX,
+            bounds: T::MIN..T::MAX,
         }
     }
 }
@@ -158,24 +141,18 @@ impl<T: Integer<T>> From<Range<T>> for IntGene<T> {
 
         Self {
             allele: random_provider::random_range(range),
-            min,
-            max,
-            upper_bound: min,
-            lower_bound: max,
+            value_range: min..max,
+            bounds: min..max,
         }
     }
 }
 
-impl<T: Integer<T>> From<(Range<T>, T, T)> for IntGene<T> {
-    fn from((range, upper_bound, lower_bound): (Range<T>, T, T)) -> Self {
-        let (min, max) = (range.start, range.end);
-
+impl<T: Integer<T>> From<(Range<T>, Range<T>)> for IntGene<T> {
+    fn from((range, bounds): (Range<T>, Range<T>)) -> Self {
         Self {
-            allele: random_provider::random_range(range),
-            min,
-            max,
-            upper_bound,
-            lower_bound,
+            allele: random_provider::random_range(range.clone()),
+            value_range: range,
+            bounds,
         }
     }
 }
@@ -304,8 +281,32 @@ impl<T: Integer<T>> From<&[T]> for IntChromosome<T> {
     }
 }
 
+impl<T: Integer<T>> From<(usize, Range<T>)> for IntChromosome<T> {
+    fn from((size, range): (usize, Range<T>)) -> Self {
+        let genes = (0..size).map(|_| IntGene::from(range.clone())).collect();
+        IntChromosome { genes }
+    }
+}
+
+impl<T: Integer<T>> From<(usize, Range<T>, Range<T>)> for IntChromosome<T> {
+    fn from((size, range, bounds): (usize, Range<T>, Range<T>)) -> Self {
+        let genes = (0..size)
+            .map(|_| IntGene::from((range.clone(), bounds.clone())))
+            .collect();
+        IntChromosome { genes }
+    }
+}
+
+impl<T: Integer<T>> From<Vec<T>> for IntChromosome<T> {
+    fn from(alleles: Vec<T>) -> Self {
+        let genes = alleles.iter().map(IntGene::from).collect();
+        IntChromosome { genes }
+    }
+}
+
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     #[test]
@@ -335,15 +336,28 @@ mod tests {
     }
 
     #[test]
-    fn test_upper_bound() {
-        let gene = IntGene::from(0..10).with_bounds(10, 0);
-        assert_eq!(*gene.upper_bound(), 10);
+    fn test_bounds() {
+        let gene_one = IntGene::from((0..10, 0..10));
+        let gene_two = IntGene::from((0..10, -100..100));
+
+        assert_eq!(*gene_one.min(), 0);
+        assert_eq!(*gene_one.max(), 10);
+        assert_eq!(*gene_two.min(), 0);
+        assert_eq!(*gene_two.max(), 10);
+        assert_eq!(gene_one.start_bound(), Bound::Included(&0));
+        assert_eq!(gene_one.end_bound(), Bound::Excluded(&10));
+        assert_eq!(gene_two.start_bound(), Bound::Included(&-100));
+        assert_eq!(gene_two.end_bound(), Bound::Excluded(&100));
+        assert!(gene_one.is_valid());
+        assert!(gene_two.is_valid());
     }
 
     #[test]
     fn test_lower_bound() {
-        let gene = IntGene::from(0..10).with_bounds(10, 0);
-        assert_eq!(*gene.lower_bound(), 0);
+        let gene = IntGene::from((0..10, 0..10));
+
+        assert_eq!(gene.start_bound(), Bound::Included(&0));
+        assert_eq!(gene.end_bound(), Bound::Excluded(&10));
     }
 
     #[test]
@@ -365,5 +379,36 @@ mod tests {
         let gene = IntGene::from(5);
         let i: i32 = gene.into();
         assert_eq!(i, 5);
+    }
+
+    #[test]
+    fn test_chromosome_from_range() {
+        let chromosome = IntChromosome::from((10, 0..10));
+        assert_eq!(chromosome.genes.len(), 10);
+        for gene in &chromosome.genes {
+            assert!(gene.allele >= 0 && gene.allele <= 10);
+        }
+    }
+
+    #[test]
+    fn test_chromosome_from_range_with_bounds() {
+        let chromosome = IntChromosome::from((10, 0..10, -10..10));
+
+        assert_eq!(chromosome.genes.len(), 10);
+        for gene in &chromosome.genes {
+            assert!(gene.allele >= 0 && gene.allele <= 10);
+            assert!(gene.bounds.start_bound() == Bound::Included(&-10));
+            assert!(gene.bounds.end_bound() == Bound::Excluded(&10));
+        }
+    }
+
+    #[test]
+    fn test_chromosome_from_alleles() {
+        let alleles = vec![1, 2, 3, 4, 5];
+        let chromosome = IntChromosome::from(alleles.clone());
+        assert_eq!(chromosome.genes.len(), 5);
+        for (i, gene) in chromosome.genes.iter().enumerate() {
+            assert_eq!(gene.allele, alleles[i]);
+        }
     }
 }
