@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use radiate::*;
 
-const KNAPSACK_SIZE: usize = 15;
+const KNAPSACK_SIZE: usize = 25;
 const MAX_EPOCHS: i32 = 50;
 
 fn main() {

@@ -1,6 +1,6 @@
 use super::Codex;
 use crate::engines::genome::float::FloatGene;
-use crate::engines::genome::gene::{BoundGene, Gene};
+use crate::engines::genome::gene::Gene;
 use crate::engines::genome::genotype::Genotype;
 use crate::{Chromosome, FloatChromosome};
 use std::ops::Range;
@@ -52,8 +52,10 @@ impl Codex<FloatChromosome, Vec<Vec<f32>>> for FloatCodex {
                 .map(|_| FloatChromosome {
                     genes: (0..self.num_genes)
                         .map(|_| {
-                            FloatGene::from(self.min..self.max)
-                                .with_bounds(self.lower_bound, self.upper_bound)
+                            FloatGene::from((
+                                self.min..self.max,
+                                self.lower_bound..self.upper_bound,
+                            ))
                         })
                         .collect::<Vec<FloatGene>>(),
                 })

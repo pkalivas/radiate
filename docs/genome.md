@@ -32,10 +32,8 @@ ___
             #[derive(Clone, PartialEq)]
             pub struct FloatGene {
                 pub allele: f32,
-                pub min: f32,
-                pub max: f32,
-                pub upper_bound: f32,
-                pub lower_bound: f32,
+                pub value_range: Range<f32>
+                pub bounds: Range<f32>,
             }
             ```
 
