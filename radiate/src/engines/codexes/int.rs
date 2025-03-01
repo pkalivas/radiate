@@ -1,5 +1,5 @@
 use super::Codex;
-use crate::engines::genome::gene::{BoundGene, Gene};
+use crate::engines::genome::gene::Gene;
 use crate::engines::genome::genotype::Genotype;
 use crate::engines::genome::int::IntGene;
 use crate::{Chromosome, IntChromosome, Integer};
@@ -49,8 +49,7 @@ impl<T: Integer<T>> Codex<IntChromosome<T>, Vec<Vec<T>>> for IntCodex<T> {
                 .map(|_| IntChromosome {
                     genes: (0..self.num_genes)
                         .map(|_| {
-                            IntGene::from(self.min..self.max)
-                                .with_bounds(self.lower_bound, self.upper_bound)
+                            IntGene::from((self.min..self.max, self.lower_bound, self.upper_bound))
                         })
                         .collect::<Vec<IntGene<T>>>(),
                 })
