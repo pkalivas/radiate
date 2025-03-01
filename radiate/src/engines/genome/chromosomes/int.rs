@@ -77,7 +77,7 @@ impl<T: Integer<T>> Gene for IntGene<T> {
 /// Note: the bounds are used for crossover and mutation.
 impl<T: Integer<T>> Valid for IntGene<T> {
     fn is_valid(&self) -> bool {
-        self.allele >= self.value_range.start && self.allele <= self.value_range.end
+        self.allele >= self.bounds.start && self.allele <= self.bounds.end
     }
 }
 
@@ -274,13 +274,6 @@ impl<T: Integer<T>> AsMut<[IntGene<T>]> for IntChromosome<T> {
     }
 }
 
-impl<T: Integer<T>> From<&[T]> for IntChromosome<T> {
-    fn from(alleles: &[T]) -> Self {
-        let genes = alleles.iter().map(IntGene::from).collect();
-        IntChromosome { genes }
-    }
-}
-
 impl<T: Integer<T>> From<(usize, Range<T>)> for IntChromosome<T> {
     fn from((size, range): (usize, Range<T>)) -> Self {
         let genes = (0..size).map(|_| IntGene::from(range.clone())).collect();
@@ -406,6 +399,7 @@ mod tests {
     fn test_chromosome_from_alleles() {
         let alleles = vec![1, 2, 3, 4, 5];
         let chromosome = IntChromosome::from(alleles.clone());
+
         assert_eq!(chromosome.genes.len(), 5);
         for (i, gene) in chromosome.genes.iter().enumerate() {
             assert_eq!(gene.allele, alleles[i]);
