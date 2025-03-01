@@ -166,6 +166,20 @@ impl<T: Integer<T>> From<Range<T>> for IntGene<T> {
     }
 }
 
+impl<T: Integer<T>> From<(Range<T>, T, T)> for IntGene<T> {
+    fn from((range, upper_bound, lower_bound): (Range<T>, T, T)) -> Self {
+        let (min, max) = (range.start, range.end);
+
+        Self {
+            allele: random_provider::random_range(range),
+            min,
+            max,
+            upper_bound,
+            lower_bound,
+        }
+    }
+}
+
 impl From<IntGene<i8>> for i8 {
     fn from(gene: IntGene<i8>) -> Self {
         gene.allele
