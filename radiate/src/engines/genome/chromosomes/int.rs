@@ -27,7 +27,7 @@ use std::ops::{Bound, Range, RangeBounds};
 ///
 /// // Create a gene, but with a min value of 0 and a max value of 10. In this case,
 /// // the allele will be a random value between 0 and 10. The min and max values will
-/// // be set to 0 and 10, and the upper and lower bounds will be set to i32::MAX and i32::MIN.
+/// // be set to 0 and 10, and the upper and lower bounds will be set to 0 and 10.
 /// let gene = IntGene::from(0..10);
 ///
 /// // Create a gene with a min value of 0 and a max value of 10, but with upper and lower bounds of 10 and 0.
