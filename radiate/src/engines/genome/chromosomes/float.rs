@@ -24,9 +24,8 @@ use std::{fmt::Debug, ops::Range};
 ///
 /// // Create a new FloatGene with a min of 0 and a max of 1 and set the upper_bound
 /// // and lower_bound to 0 and 100 respectively.
-/// let gene = FloatGene::from(0_f32..1_f32).with_bounds(100_f32, 0_f32);
+/// let gene = FloatGene::from(0_f32..1_f32).with_bounds(0_f32, 100_f32);
 /// ```
-///
 #[derive(Clone, PartialEq)]
 pub struct FloatGene {
     pub allele: f32,
@@ -128,18 +127,6 @@ impl From<f32> for FloatGene {
     }
 }
 
-impl From<&f32> for FloatGene {
-    fn from(allele: &f32) -> Self {
-        FloatGene {
-            allele: *allele,
-            min: f32::MIN,
-            max: f32::MAX,
-            upper_bound: f32::MAX,
-            lower_bound: f32::MIN,
-        }
-    }
-}
-
 impl From<Range<f32>> for FloatGene {
     fn from(range: Range<f32>) -> Self {
         let (min, max) = (range.start, range.end);
@@ -169,6 +156,33 @@ impl Debug for FloatGene {
 /// # Fields
 ///
 /// * `genes` - A vector of `FloatGene` representing the individual's genetic information.
+///
+/// # Example
+/// ```rust
+/// use radiate::*;
+///
+/// let chromosome = FloatChromosome::from(vec![0.0, 1.0, 2.0]);
+/// let chromosome_allels = chromosome
+///     .iter()
+///     .map(|gene| *gene.allele())
+///     .collect::<Vec<f32>>();
+///
+/// assert!(chromosome.is_valid());
+/// assert_eq!(chromosome_allels.len(), 3);
+/// assert_eq!(chromosome_allels, vec![0.0, 1.0, 2.0]);
+///
+/// let ranged_chromo = FloatChromosome::from((3, 0.0..10.0));
+/// let ranged_chromo_allels = ranged_chromo
+///    .iter()
+///    .map(|gene| *gene.allele())
+///    .collect::<Vec<f32>>();
+///
+/// assert!(ranged_chromo.is_valid());
+/// assert_eq!(ranged_chromo_allels.len(), 3);
+/// for allele in ranged_chromo_allels {
+///    assert!(allele >= 0.0 && allele <= 10.0);
+/// }
+///```
 #[derive(Clone, PartialEq, Default)]
 pub struct FloatChromosome {
     pub genes: Vec<FloatGene>,
@@ -202,9 +216,9 @@ impl AsMut<[FloatGene]> for FloatChromosome {
     }
 }
 
-impl From<&[f32]> for FloatChromosome {
-    fn from(alleles: &[f32]) -> Self {
-        let genes = alleles.iter().map(FloatGene::from).collect();
+impl From<Vec<f32>> for FloatChromosome {
+    fn from(alleles: Vec<f32>) -> Self {
+        let genes = alleles.into_iter().map(FloatGene::from).collect();
         FloatChromosome { genes }
     }
 }
@@ -258,5 +272,29 @@ mod tests {
         let gene = FloatGene::from(0_f32..1_f32);
         assert!(gene.is_valid());
         assert!(gene.allele >= 0_f32 && gene.allele <= 1_f32);
+    }
+
+    #[test]
+    fn test_chromosome() {
+        let chromosome = FloatChromosome::from((10, -1.0..1.0));
+
+        assert_eq!(chromosome.len(), 10);
+        assert!(chromosome.is_valid());
+        for gene in chromosome.iter() {
+            assert!(gene.is_valid());
+            assert!(gene.allele >= -1.0 && gene.allele <= 1.0);
+        }
+    }
+
+    #[test]
+    fn test_chromosome_from_vec() {
+        let chromosome = FloatChromosome::from(vec![0.0, 1.0, 2.0]);
+
+        assert_eq!(chromosome.len(), 3);
+        assert!(chromosome.is_valid());
+        for (gene, allele) in chromosome.iter().zip(vec![0.0, 1.0, 2.0]) {
+            assert!(gene.is_valid());
+            assert_eq!(gene.allele, allele);
+        }
     }
 }
