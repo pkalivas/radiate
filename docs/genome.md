@@ -47,10 +47,8 @@ ___
             #[derive(Clone, PartialEq)]
             pub struct IntGene<T: Integer<T>> {
                 pub allele: T,
-                pub min: T,
-                pub max: T,
-                pub upper_bound: T,
-                pub lower_bound: T,
+                pub value_range: Range<T>,
+                pub bounds: Range<T>,
             }
             ```
 
