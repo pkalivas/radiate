@@ -11,7 +11,7 @@ impl<T> Tree<T> {
     /// `NodeStore`, otherwise it will be a `NodeType::Vertex`. This allows caller's to specify what
     /// the root node is if desired, otherwise it will be a random vertex node from the `NodeStore`.
     ///
-    /// # The `NodeStore` must contain at least one `NodeType::Root` and one `NodeType::Vertex`
+    /// # The `NodeStore` must contain at least one `NodeType::Root` or one `NodeType::Vertex`
     ///
     /// # Arguments
     /// * `depth` - The depth of the tree.

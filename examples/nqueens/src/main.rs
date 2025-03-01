@@ -5,7 +5,7 @@ const N_QUEENS: usize = 32;
 fn main() {
     random_provider::set_seed(500);
 
-    let codex = IntCodex::<i8>::new(1, N_QUEENS, 0, N_QUEENS as i8);
+    let codex = IntCodex::<i8>::new(1, N_QUEENS, 0..N_QUEENS as i8);
 
     let engine = GeneticEngine::from_codex(codex)
         .minimizing()

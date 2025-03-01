@@ -195,7 +195,7 @@ mod test {
     #[test]
     fn test_sort_by() {
         let mut population = Population::from_fn(10, || {
-            Phenotype::from_chromosomes(vec![FloatChromosome::from(0..10)], 0)
+            Phenotype::from_chromosomes(vec![FloatChromosome::from((10, -10.0..10.0))], 0)
         });
 
         for i in 0..population.len() {

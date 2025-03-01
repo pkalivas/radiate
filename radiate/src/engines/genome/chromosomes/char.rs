@@ -1,11 +1,11 @@
-use crate::random_provider;
-
 use super::{
     Chromosome,
     gene::{Gene, Valid},
 };
+use crate::random_provider;
+use std::{char, sync::Arc};
 
-const ALPHABET: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"$%&/()=?`{[]}\\+~*#';.:,-_<>|@^' ";
+pub const ALPHABET: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"$%&/()=?`{[]}\\+~*#';.:,-_<>|@^' ";
 
 /// A gene that represents a single character. The `allele` is a `char`
 /// that is randomly selected from the `ALPHABET` constant.
@@ -15,7 +15,7 @@ const ALPHABET: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRST
 /// use radiate::*;
 ///
 /// // Create a new CharGene with a random allele from the ALPHABET constant.
-/// let gene = CharGene::new();
+/// let gene = CharGene::default();
 ///
 /// // Get the allele of the CharGene.
 /// let allele = gene.allele();
@@ -27,13 +27,15 @@ const ALPHABET: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRST
 #[derive(Clone, PartialEq)]
 pub struct CharGene {
     pub allele: char,
+    pub chat_set: Arc<[char]>,
 }
 
 impl CharGene {
-    pub fn new() -> Self {
-        let index = random_provider::random_range(0..ALPHABET.len());
+    pub fn new(char_set: Arc<[char]>) -> Self {
+        let index = random_provider::random_range(0..char_set.len());
         CharGene {
-            allele: ALPHABET.chars().nth(index).unwrap(),
+            allele: char_set[index],
+            chat_set: char_set,
         }
     }
 }
@@ -49,19 +51,35 @@ impl Gene for CharGene {
     }
 
     fn new_instance(&self) -> CharGene {
-        CharGene::new()
+        let index = random_provider::random_range(0..self.chat_set.len());
+        CharGene {
+            allele: self.chat_set[index],
+            chat_set: Arc::clone(&self.chat_set),
+        }
     }
 
     fn with_allele(&self, allele: &char) -> CharGene {
-        CharGene { allele: *allele }
+        CharGene {
+            allele: *allele,
+            chat_set: Arc::clone(&self.chat_set),
+        }
     }
 }
 
-impl Valid for CharGene {}
+impl Valid for CharGene {
+    fn is_valid(&self) -> bool {
+        self.chat_set.contains(&self.allele)
+    }
+}
 
-impl std::fmt::Debug for CharGene {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.allele)
+impl Default for CharGene {
+    fn default() -> Self {
+        let char_set: Arc<[char]> = ALPHABET.chars().collect::<Vec<char>>().into();
+        let allele = random_provider::random_range(0..char_set.len());
+        CharGene {
+            allele: char_set[allele],
+            chat_set: char_set,
+        }
     }
 }
 
@@ -73,13 +91,67 @@ impl From<CharGene> for char {
 
 impl From<char> for CharGene {
     fn from(allele: char) -> Self {
-        CharGene { allele }
+        CharGene {
+            allele,
+            chat_set: ALPHABET.chars().collect::<Vec<char>>().into(),
+        }
     }
 }
 
 impl From<&char> for CharGene {
     fn from(allele: &char) -> Self {
-        CharGene { allele: *allele }
+        CharGene {
+            allele: *allele,
+            chat_set: ALPHABET.chars().collect::<Vec<char>>().into(),
+        }
+    }
+}
+
+impl From<&str> for CharGene {
+    fn from(str: &str) -> Self {
+        let char_set: Arc<[char]> = str.chars().collect::<Vec<char>>().into();
+        let allele = random_provider::random_range(0..char_set.len());
+        CharGene {
+            allele: char_set[allele],
+            chat_set: char_set,
+        }
+    }
+}
+
+impl From<String> for CharGene {
+    fn from(string: String) -> Self {
+        let char_set: Arc<[char]> = string.chars().collect::<Vec<char>>().into();
+        let allele = random_provider::random_range(0..char_set.len());
+        CharGene {
+            allele: char_set[allele],
+            chat_set: char_set,
+        }
+    }
+}
+
+impl From<&String> for CharGene {
+    fn from(string: &String) -> Self {
+        let char_set: Arc<[char]> = string.chars().collect::<Vec<char>>().into();
+        let allele = random_provider::random_range(0..char_set.len());
+        CharGene {
+            allele: char_set[allele],
+            chat_set: char_set,
+        }
+    }
+}
+
+impl From<(char, Arc<[char]>)> for CharGene {
+    fn from((allele, char_set): (char, Arc<[char]>)) -> Self {
+        CharGene {
+            allele,
+            chat_set: char_set,
+        }
+    }
+}
+
+impl std::fmt::Debug for CharGene {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.allele)
     }
 }
 
@@ -111,16 +183,13 @@ impl AsMut<[CharGene]> for CharChromosome {
     }
 }
 
-impl From<&'static str> for CharChromosome {
-    fn from(alleles: &'static str) -> Self {
-        let genes = alleles.chars().map(CharGene::from).collect();
-        CharChromosome { genes }
-    }
-}
-
-impl From<&[char]> for CharChromosome {
-    fn from(alleles: &[char]) -> Self {
-        let genes = alleles.iter().map(CharGene::from).collect();
+impl<T: Into<String>> From<T> for CharChromosome {
+    fn from(alleles: T) -> Self {
+        let char_set: Arc<[char]> = alleles.into().chars().collect::<Vec<char>>().into();
+        let genes = char_set
+            .iter()
+            .map(|&allele| CharGene::from((allele, Arc::clone(&char_set))))
+            .collect();
         CharChromosome { genes }
     }
 }
@@ -131,13 +200,13 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let gene = CharGene::new();
+        let gene = CharGene::default();
         assert!(ALPHABET.contains(gene.allele));
     }
 
     #[test]
     fn test_into() {
-        let gene = CharGene::new();
+        let gene = CharGene::default();
         let copy = gene.clone();
         let allele: char = gene.into();
         assert_eq!(allele, copy.allele);
@@ -157,5 +226,42 @@ mod tests {
         let new_gene = gene_one.with_allele(&gene_two.allele);
 
         assert_eq!(gene_two.allele, new_gene.allele);
+    }
+
+    #[test]
+    fn test_is_valid() {
+        let gene_one = CharGene::default();
+        let gene_two = CharGene::from("hello");
+        let gene_three = gene_two.with_allele(&'a');
+
+        assert!(gene_one.is_valid());
+        assert!(gene_two.is_valid());
+        assert!(!gene_three.is_valid());
+    }
+
+    #[test]
+    fn test_char_from_str() {
+        let gene = CharGene::from("hello");
+        assert_eq!(
+            "hello".chars().collect::<Vec<char>>(),
+            gene.chat_set.as_ref()
+        );
+    }
+
+    #[test]
+    fn test_char_chromosome_from_str() {
+        let gene = CharChromosome::from("hello");
+        assert_eq!(
+            "hello".chars().collect::<Vec<char>>(),
+            gene.genes.iter().map(|g| g.allele).collect::<Vec<char>>()
+        );
+    }
+
+    #[test]
+    fn test_char_chromosome_from_string() {
+        let chromosome = CharChromosome::from("hello");
+        let hello: String = chromosome.genes.iter().map(|g| g.allele).collect();
+
+        assert_eq!(hello, "hello");
     }
 }

@@ -115,7 +115,7 @@ impl Codex<FloatChromosome, NeuralNet> for NeuralNetCodex {
         for shape in &self.shapes {
             chromosomes.push(FloatChromosome {
                 genes: (0..shape.0 * shape.1)
-                    .map(|_| FloatGene::from_min_max(-1.0, 1.0))
+                    .map(|_| FloatGene::from(-1.0..1.0))
                     .collect::<Vec<FloatGene>>(),
             });
         }
