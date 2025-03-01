@@ -1,19 +1,19 @@
-use std::sync::LazyLock;
+use std::sync::Arc;
 
 use radiate::*;
 
 const KNAPSACK_SIZE: usize = 15;
 const MAX_EPOCHS: i32 = 50;
 
-static KNAPSACK: LazyLock<Knapsack> = LazyLock::new(|| Knapsack::new(KNAPSACK_SIZE));
-
 fn main() {
     random_provider::set_seed(12345);
-    let codex = SubSetCodex::new(&KNAPSACK.items);
+    let knapsack = Knapsack::new(KNAPSACK_SIZE);
+    let capacity = knapsack.capacity;
+    let codex = SubSetCodex::new(knapsack.items);
 
     let engine = GeneticEngine::from_codex(codex)
         .max_age(MAX_EPOCHS)
-        .fitness_fn(move |genotype: Vec<&Item>| Knapsack::fitness(&KNAPSACK.capacity, &genotype))
+        .fitness_fn(move |genotype: Vec<Arc<Item>>| Knapsack::fitness(&capacity, &genotype))
         .build();
 
     let result = engine.run(|ctx| {
@@ -36,7 +36,7 @@ fn main() {
         "Result Weigh Total=[ {:?} ]",
         Knapsack::weight_total(&result.best)
     );
-    println!("Max Weight=[{:?}]", KNAPSACK.capacity);
+    println!("Max Weight=[{:?}]", capacity);
 }
 
 pub struct Knapsack {
@@ -55,7 +55,7 @@ impl Knapsack {
         }
     }
 
-    pub fn fitness(capacity: &f32, genotype: &Vec<&Item>) -> f32 {
+    pub fn fitness(capacity: &f32, genotype: &Vec<Arc<Item>>) -> f32 {
         let mut sum = 0_f32;
         let mut weight = 0_f32;
         for item in genotype {
@@ -66,11 +66,11 @@ impl Knapsack {
         if weight > *capacity { 0_f32 } else { sum }
     }
 
-    pub fn value_total(items: &Vec<&Item>) -> f32 {
+    pub fn value_total(items: &Vec<Arc<Item>>) -> f32 {
         items.iter().fold(0_f32, |acc, item| acc + item.value)
     }
 
-    pub fn weight_total(items: &Vec<&Item>) -> f32 {
+    pub fn weight_total(items: &Vec<Arc<Item>>) -> f32 {
         items.iter().fold(0_f32, |acc, item| acc + item.weight)
     }
 }
