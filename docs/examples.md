@@ -117,22 +117,21 @@ comprehensive list of examples.
 ??? example
 
     ```rust
-    use std::sync::LazyLock;
-
+    use std::sync::Arc;
     use radiate::*;
 
     const KNAPSACK_SIZE: usize = 15;
     const MAX_EPOCHS: i32 = 50;
 
-    static KNAPSACK: LazyLock<Knapsack> = LazyLock::new(|| Knapsack::new(KNAPSACK_SIZE));
-
     fn main() {
         random_provider::set_seed(12345);
-        let codex = SubSetCodex::new(&KNAPSACK.items);
+        let knapsack = Knapsack::new(KNAPSACK_SIZE);
+        let capacity = knapsack.capacity;
+        let codex = SubSetCodex::new(knapsack.items);
 
         let engine = GeneticEngine::from_codex(codex)
             .max_age(MAX_EPOCHS)
-            .fitness_fn(move |genotype: Vec<&Item>| Knapsack::fitness(&KNAPSACK.capacity, &genotype))
+            .fitness_fn(move |genotype: Vec<Arc<Item>>| Knapsack::fitness(&capacity, &genotype))
             .build();
 
         let result = engine.run(|ctx| {
@@ -155,7 +154,7 @@ comprehensive list of examples.
             "Result Weigh Total=[ {:?} ]",
             Knapsack::weight_total(&result.best)
         );
-        println!("Max Weight=[{:?}]", KNAPSACK.capacity);
+        println!("Max Weight=[{:?}]", capacity);
     }
 
     pub struct Knapsack {
@@ -174,7 +173,7 @@ comprehensive list of examples.
             }
         }
 
-        pub fn fitness(capacity: &f32, genotype: &Vec<&Item>) -> f32 {
+        pub fn fitness(capacity: &f32, genotype: &Vec<Arc<Item>>) -> f32 {
             let mut sum = 0_f32;
             let mut weight = 0_f32;
             for item in genotype {
@@ -182,18 +181,14 @@ comprehensive list of examples.
                 weight += item.weight;
             }
 
-            if weight > *capacity {
-                0_f32
-            } else {
-                sum
-            }
+            if weight > *capacity { 0_f32 } else { sum }
         }
 
-        pub fn value_total(items: &Vec<&Item>) -> f32 {
+        pub fn value_total(items: &Vec<Arc<Item>>) -> f32 {
             items.iter().fold(0_f32, |acc, item| acc + item.value)
         }
 
-        pub fn weight_total(items: &Vec<&Item>) -> f32 {
+        pub fn weight_total(items: &Vec<Arc<Item>>) -> f32 {
             items.iter().fold(0_f32, |acc, item| acc + item.weight)
         }
     }
@@ -448,7 +443,7 @@ comprehensive list of examples.
     }
     ```
 
-## XOR Problem (NeuroEvolution)
+## Graph - XOR Problem
 
 > Objective - Evolve a `Graph<Op<f32>>` to solve the XOR problem (NeuroEvolution).
 >
@@ -520,5 +515,76 @@ comprehensive list of examples.
         let answers = vec![vec![0.0], vec![0.0], vec![1.0], vec![1.0]];
 
         DataSet::new(inputs, answers)
+    }
+    ```
+
+### Tree - Regression
+
+> Objective - Evolve a `Tree<Op<f32>>` to solve the a regression problem (Genetic Programming).
+
+??? example
+
+    ```rust
+    use radiate::*;
+    use radiate_gp::*;
+
+    const MIN_SCORE: f32 = 0.01;
+    const MAX_SECONDS: f64 = 1.0;
+
+    fn main() {
+        random_provider::set_seed(518);
+
+        let store = vec![
+            (NodeType::Root, vec![Op::add(), Op::sub(), Op::mul()]), // optional
+            // if the above line is not supplied, the codex will select a random value 
+            // from the list of vertex operations below as the root node.
+            (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
+            (NodeType::Leaf, vec![Op::var(0)]),
+        ];
+
+        let graph_codex = TreeCodex::single(3, store).constraint(|root| root.size() < 30);
+
+        let regression = Regression::new(get_dataset(), Loss::MSE);
+
+        let engine = GeneticEngine::from_codex(graph_codex)
+            .minimizing()
+            .num_threads(10)
+            .alter(alters!(TreeCrossover::new(0.5)))
+            .fitness_fn(move |tree: Vec<Tree<Op<f32>>>| regression.eval(&tree))
+            .build();
+
+        let result = engine.run(|ctx| {
+            println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32());
+            ctx.score().as_f32() < MIN_SCORE || ctx.seconds() > MAX_SECONDS
+        });
+
+        display(&result);
+    }
+
+    fn display(result: &EngineContext<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>) {
+        let data_set = get_dataset();
+        let accuracy = Accuracy::new("reg", &data_set, Loss::MSE);
+        let accuracy_result = accuracy.calc(|input| result.best.eval(input));
+
+        println!("{:?}", result);
+        println!("{:?}", accuracy_result);
+    }
+
+    fn get_dataset() -> DataSet {
+        let mut inputs = Vec::new();
+        let mut answers = Vec::new();
+
+        let mut input = -1.0;
+        for _ in -10..10 {
+            input += 0.1;
+            inputs.push(vec![input]);
+            answers.push(vec![compute(input)]);
+        }
+
+        DataSet::new(inputs, answers)
+    }
+
+    fn compute(x: f32) -> f32 {
+        4.0 * x.powf(3.0) - 3.0 * x.powf(2.0) + x
     }
     ```
