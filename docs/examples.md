@@ -49,7 +49,13 @@ comprehensive list of examples.
 
 ??? example
 
-    This example demonstrates how to use the `radiate` library to solve the classic N-Queens problem, where the goal is to place `n` queens on an `n x n` board such that no two queens threaten each other. By threatening each other, we mean that they are in the same row, column, or diagonal. The solution is represented as a single chromosome with `n` genes, where each gene represents the row position of a queen in its respective column. The fitness function calculates the number of pairs of queens that threaten each other, and the goal is to minimize this value to zero.
+    This example demonstrates how to use the `radiate` library to solve the classic N-Queens problem, where the goal is to place `n` queens on an `n x n` board such that no two queens threaten each other. By threatening each other, we mean that they are in the same row, column, or diagonal. The solution is represented as a single chromosome with `n` genes, where each gene represents the row position of a queen in its respective column. The fitness function calculates the number of pairs of queens that threaten each other, and the goal is to minimize this value to zero. 
+
+    For example, a solution for `n=8` would be:
+
+    <figure>
+        ![8-Queens](assets/nqueens.png){ width="400" }
+    </figure>
 
     ```rust
     use radiate::*;
@@ -65,7 +71,7 @@ comprehensive list of examples.
             .minimizing()
             .num_threads(5)
             .offspring_selector(BoltzmannSelector::new(4.0))
-            .alter(alters!(
+            .alter(alters!( 
                 MultiPointCrossover::new(0.75, 2),
                 UniformMutator::new(0.05)
             ))
