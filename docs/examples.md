@@ -518,7 +518,7 @@ comprehensive list of examples.
     }
     ```
 
-### Tree - Regression
+## Tree - Regression
 
 > Objective - Evolve a `Tree<Op<f32>>` to solve the a regression problem (Genetic Programming).
 

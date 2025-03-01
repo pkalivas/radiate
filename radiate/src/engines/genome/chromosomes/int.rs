@@ -240,6 +240,16 @@ impl From<IntGene<u128>> for u128 {
 ///
 /// * `genes` - A vector of `IntGene<T>` representing the individual's genetic informationn.
 ///
+/// # Example
+/// ``` rust
+/// use radiate::*;
+///
+/// // Create a new IntChromosome with a vector of IntGene instances.
+/// let genes = vec![IntGene::from(0..10), IntGene::from(10..20)];
+/// let chromosome = IntChromosome::new(genes);
+///
+/// // Check if the chromosome is valid.
+/// assert!(chromosome.is_valid());
 #[derive(Clone, PartialEq, Default)]
 pub struct IntChromosome<I: Integer<I>> {
     pub genes: Vec<IntGene<I>>,
