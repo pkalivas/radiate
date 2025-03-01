@@ -121,12 +121,12 @@ let crossover = IntermediateCrossover::new(0.7, 0.5);
 > * `rate`: f32 - Crossover rate.
 > * `alpha`: f32 - The alpha value for the blend.
 
-The `BlendMutator` is a crossover operator designed for `FloatGene`s. It introduces variability by blending the gene controlled by the `alpha` parameter. This approach allows for smooth transitions between gene values, promoting exploration of the search space.
+The `BlendCrossover` is a crossover operator designed for `FloatGene`s. It introduces variability by blending the gene controlled by the `alpha` parameter. This approach allows for smooth transitions between gene values, promoting exploration of the search space.
 Its functionality is similar to the `IntermediateCrossover`, but it uses a different formula to calculate the new gene value.
 Its defined as:
 
 $$
-\text{allele}_{\text{child}} = \text{allele}_{\text{parent1}} + \alpha \cdot (\text{allele}_{\text{parent2}} - \text{allele}_{\text{parent1}})
+\text{allele}_{\text{child}} = \text{allele}_{\text{parent1}} - \alpha \cdot (\text{allele}_{\text{parent2}} - \text{allele}_{\text{parent1}})
 $$
 
 Create a new `BlendCrossover` with a mutation rate of `0.75` and an alpha value of `0.1`
