@@ -1,13 +1,12 @@
 use super::codexes::Codex;
 use super::context::EngineContext;
-use super::genome::phenotype::Phenotype;
 use super::thread_pool::ThreadPool;
-use super::{Alter, FilterStrategy, MetricSet, Problem};
+use super::{Alter, GeneticEngineParams, MetricSet, Problem, ReplacementStrategy};
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
 use crate::engines::objectives::Score;
-use crate::engines::params::GeneticEngineParams;
-use crate::objectives::{Front, Objective};
+use crate::engines::params::GeneticEngineBuilder;
+use crate::objectives::Objective;
 use crate::{Chromosome, Metric, Select, Valid, metric_names};
 use std::sync::{Arc, Mutex};
 
@@ -85,8 +84,8 @@ where
     ///
     /// **Note** with this method, the `Codex` is supplied to the `GeneticEngineParams` and thus
     /// the `GeneticEngineParams` also will need a `FitnessFn` to be supplied before building.
-    pub fn from_codex(codex: impl Codex<C, T> + 'static) -> GeneticEngineParams<C, T> {
-        GeneticEngineParams::new().codex(codex)
+    pub fn from_codex(codex: impl Codex<C, T> + 'static) -> GeneticEngineBuilder<C, T> {
+        GeneticEngineBuilder::new().codex(codex)
     }
 
     /// Initializes a `GeneticEngineParams` using the provided problem, which defines the fitness function
@@ -97,8 +96,8 @@ where
     ///
     /// Similar to the `from_codex` method, this is a convenience method that allows users
     /// to create a `GeneticEngineParams` instance.
-    pub fn from_problem(problem: impl Problem<C, T> + 'static) -> GeneticEngineParams<C, T> {
-        GeneticEngineParams::new().problem(problem)
+    pub fn from_problem(problem: impl Problem<C, T> + 'static) -> GeneticEngineBuilder<C, T> {
+        GeneticEngineBuilder::new().problem(problem)
     }
 
     /// Executes the genetic algorithm. The algorithm continues until a specified
@@ -165,7 +164,7 @@ where
             handle.population[idx].set_genotype(genotype);
         }
 
-        handle.upsert_operation(metric_names::EVALUATION, count, timer.duration());
+        handle.upsert_operation(metric_names::EVALUATION, count, timer);
 
         objective.sort(&mut handle.population);
     }
@@ -192,7 +191,7 @@ where
         let timer = Timer::new();
         let result = selector.select(&ctx.population, objective, count);
 
-        ctx.upsert_operation(selector.name(), count as f32, timer.duration());
+        ctx.upsert_operation(selector.name(), count as f32, timer);
 
         result
     }
@@ -220,7 +219,7 @@ where
         let timer = Timer::new();
         let mut offspring = selector.select(&ctx.population, objective, count);
 
-        ctx.upsert_operation(selector.name(), count as f32, timer.duration());
+        ctx.upsert_operation(selector.name(), count as f32, timer);
 
         objective.sort(&mut offspring);
 
@@ -250,7 +249,6 @@ where
     /// an individual from the population.
     fn filter(&self, context: &mut EngineContext<C, T>) {
         let max_age = self.max_age();
-        let problem = self.problem();
 
         let generation = context.index;
         let population = &mut context.population;
@@ -271,15 +269,11 @@ where
             }
 
             if removed {
-                match self.filter_strategy() {
-                    FilterStrategy::Encode => {
-                        population[i] = Phenotype::from_genotype(problem.encode(), generation);
-                    }
-                    FilterStrategy::PopulationSample => {
-                        let idx = rand::random_range(0..population.len());
-                        population[i] = population[idx].clone();
-                    }
-                }
+                let replacement = self.replace_strategy();
+                let problem = self.problem();
+                let encoder = Arc::new(move || problem.encode());
+
+                replacement.replace(i, generation, population, encoder);
             }
         }
 
@@ -412,52 +406,48 @@ where
         output.metrics.upsert(size_metric);
     }
 
-    fn survivor_selector(&self) -> &dyn Select<C> {
-        self.params.survivor_selector.as_ref()
+    fn survivor_selector(&self) -> &Box<dyn Select<C>> {
+        self.params.survivor_selector()
     }
 
-    fn offspring_selector(&self) -> &dyn Select<C> {
-        self.params.offspring_selector.as_ref()
+    fn offspring_selector(&self) -> &Box<dyn Select<C>> {
+        self.params.offspring_selector()
     }
 
     fn alters(&self) -> &[Box<dyn Alter<C>>] {
-        &self.params.alterers
+        self.params.alters()
     }
 
     fn problem(&self) -> Arc<dyn Problem<C, T>> {
-        Arc::clone(self.params.problem.as_ref().unwrap())
-    }
-
-    fn population(&self) -> &Population<C> {
-        self.params.population.as_ref().unwrap()
+        self.params.problem()
     }
 
     fn objective(&self) -> &Objective {
-        &self.params.objective
+        self.params.objective()
     }
 
     fn survivor_count(&self) -> usize {
-        self.params.population_size - self.offspring_count()
+        self.params.survivor_count()
     }
 
     fn offspring_count(&self) -> usize {
-        (self.params.population_size as f32 * self.params.offspring_fraction) as usize
+        self.params.offspring_count()
     }
 
-    fn max_age(&self) -> i32 {
-        self.params.max_age
+    fn max_age(&self) -> usize {
+        self.params.max_age()
     }
 
     fn thread_pool(&self) -> &ThreadPool {
-        &self.params.thread_pool
+        self.params.thread_pool()
     }
 
-    fn filter_strategy(&self) -> &FilterStrategy {
-        &self.params.filter_strategy
+    fn replace_strategy(&self) -> &Box<dyn ReplacementStrategy<C>> {
+        self.params.replacement_strategy()
     }
 
     fn start(&self) -> EngineContext<C, T> {
-        let population = self.population();
+        let population = self.params.population().clone();
 
         EngineContext {
             population: population.clone(),
@@ -466,11 +456,7 @@ where
             timer: Timer::new(),
             metrics: MetricSet::new(),
             score: None,
-            front: Arc::new(Mutex::new(Front::new(
-                self.params.min_front_size,
-                self.params.max_front_size,
-                self.objective().clone(),
-            ))),
+            front: Arc::new(Mutex::new(self.params.front().clone())),
         }
     }
 

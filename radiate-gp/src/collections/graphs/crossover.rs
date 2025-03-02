@@ -25,7 +25,7 @@ impl GraphCrossover {
         &self,
         population: &Population<GraphChromosome<T>>,
         indexes: &[usize],
-        generation: i32,
+        generation: usize,
     ) -> Option<Phenotype<GraphChromosome<T>>>
     where
         T: Clone + PartialEq + Default,
@@ -86,7 +86,7 @@ where
     fn crossover(
         &self,
         population: &mut Population<GraphChromosome<T>>,
-        generation: i32,
+        generation: usize,
         rate: f32,
     ) -> AlterResult {
         let mut count = 0;
@@ -108,10 +108,7 @@ where
             population[index] = phenotype;
         }
 
-        AlterResult {
-            count,
-            metrics: vec![],
-        }
+        count.into()
     }
 }
 

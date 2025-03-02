@@ -41,12 +41,17 @@ impl MetricSet {
         }
     }
 
-    pub fn upsert_operations(&mut self, name: &'static str, value: f32, time: Duration) {
+    pub fn upsert_operations(
+        &mut self,
+        name: &'static str,
+        value: impl Into<f32>,
+        time: impl Into<Duration>,
+    ) {
         if let Some(m) = self.metrics.get_mut(name) {
-            m.add_value(value);
-            m.add_duration(time);
+            m.add_value(value.into());
+            m.add_duration(time.into());
         } else {
-            self.add(Metric::new_operations(name, value, time));
+            self.add(Metric::new_operations(name, value.into(), time.into()));
         }
     }
 
@@ -128,8 +133,12 @@ impl Metric {
         Metric::Distribution(name, Distribution::default())
     }
 
-    pub fn new_operations(name: &'static str, val: impl Into<Statistic>, time: Duration) -> Self {
-        Metric::Operations(name, val.into(), TimeStatistic::new(time))
+    pub fn new_operations(
+        name: &'static str,
+        val: impl Into<Statistic>,
+        time: impl Into<TimeStatistic>,
+    ) -> Self {
+        Metric::Operations(name, val.into(), time.into())
     }
 
     pub fn add_value(&mut self, value: f32) {

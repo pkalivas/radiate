@@ -1,7 +1,6 @@
 use super::Codex;
 use crate::engines::genome::gene::Gene;
 use crate::engines::genome::genotype::Genotype;
-use crate::engines::genome::int::IntGene;
 use crate::{Chromosome, IntChromosome, Integer};
 use std::ops::Range;
 
@@ -11,50 +10,44 @@ use std::ops::Range;
 /// `i8`, `i16`, `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, or `u128`.
 ///
 /// The lower and upper bounds of the `IntGenes` can be set with the `with_bounds` function.
-/// The default bounds are `T::MIN` and `T::MAX`.
+/// The default bounds are equal to `min` and `max`.
 #[derive(Clone)]
 pub struct IntCodex<T: Integer<T>> {
     num_chromosomes: usize,
     num_genes: usize,
-    min: T,
-    max: T,
-    lower_bound: T,
-    upper_bound: T,
+    value_range: Range<T>,
+    bounds: Range<T>,
 }
 
 impl<T: Integer<T>> IntCodex<T> {
     pub fn new(num_chromosomes: usize, num_genes: usize, range: Range<T>) -> Self {
-        let (min, max) = (range.start, range.end);
         IntCodex {
             num_chromosomes,
             num_genes,
-            min,
-            max,
-            lower_bound: min,
-            upper_bound: max,
+            value_range: range.clone(),
+            bounds: range,
         }
     }
 
     pub fn with_bounds(mut self, lower_bound: T, upper_bound: T) -> Self {
-        self.lower_bound = lower_bound;
-        self.upper_bound = upper_bound;
+        self.bounds = lower_bound..upper_bound;
         self
     }
 }
 
 impl<T: Integer<T>> Codex<IntChromosome<T>, Vec<Vec<T>>> for IntCodex<T> {
     fn encode(&self) -> Genotype<IntChromosome<T>> {
-        Genotype {
-            chromosomes: (0..self.num_chromosomes)
-                .map(|_| IntChromosome {
-                    genes: (0..self.num_genes)
-                        .map(|_| {
-                            IntGene::from((self.min..self.max, self.lower_bound..self.upper_bound))
-                        })
-                        .collect::<Vec<IntGene<T>>>(),
+        Genotype::from(
+            (0..self.num_chromosomes)
+                .map(|_| {
+                    IntChromosome::from((
+                        self.num_genes,
+                        self.value_range.clone(),
+                        self.bounds.clone(),
+                    ))
                 })
                 .collect::<Vec<IntChromosome<T>>>(),
-        }
+        )
     }
 
     fn decode(&self, genotype: &Genotype<IntChromosome<T>>) -> Vec<Vec<T>> {
@@ -75,10 +68,8 @@ impl<T: Integer<T>> Default for IntCodex<T> {
         IntCodex {
             num_chromosomes: 1,
             num_genes: 1,
-            min: T::MIN,
-            max: T::MAX,
-            lower_bound: T::MIN,
-            upper_bound: T::MAX,
+            value_range: T::MIN..T::MAX,
+            bounds: T::MIN..T::MAX,
         }
     }
 }

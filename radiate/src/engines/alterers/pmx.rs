@@ -1,4 +1,4 @@
-use super::{AlterAction, Alterer, Crossover, IntoAlter};
+use super::{AlterAction, AlterResult, Alterer, Crossover, IntoAlter};
 use crate::indexes;
 use crate::{Chromosome, PermutationChromosome};
 
@@ -19,10 +19,10 @@ impl<A: PartialEq + Clone> Crossover<PermutationChromosome<A>> for PMXCrossover 
         chrom_one: &mut PermutationChromosome<A>,
         chrom_two: &mut PermutationChromosome<A>,
         _: f32,
-    ) -> i32 {
+    ) -> AlterResult {
         let length = std::cmp::min(chrom_one.genes.len(), chrom_two.genes.len());
         if length < 2 {
-            return 0;
+            return 0.into();
         }
 
         let subset = indexes::subset(chrom_one.genes.len(), 2);
@@ -59,7 +59,7 @@ impl<A: PartialEq + Clone> Crossover<PermutationChromosome<A>> for PMXCrossover 
         chrom_one.genes = offspring_one;
         chrom_two.genes = offspring_two;
 
-        2
+        2.into()
     }
 }
 

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use radiate::*;
 
 const KNAPSACK_SIZE: usize = 25;
-const MAX_EPOCHS: i32 = 50;
+const MAX_EPOCHS: usize = 50;
 
 fn main() {
     random_provider::set_seed(12345);

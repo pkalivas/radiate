@@ -76,5 +76,11 @@ impl<C: Chromosome> IndexMut<usize> for Genotype<C> {
     }
 }
 
+impl<C: Chromosome> From<Vec<C>> for Genotype<C> {
+    fn from(chromosomes: Vec<C>) -> Self {
+        Genotype { chromosomes }
+    }
+}
+
 unsafe impl<C: Chromosome> Send for Genotype<C> {}
 unsafe impl<C: Chromosome> Sync for Genotype<C> {}

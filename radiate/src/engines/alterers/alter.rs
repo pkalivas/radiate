@@ -22,7 +22,7 @@ use crate::{Chromosome, Metric, Population, timer::Timer};
 /// but it is designed to be more flexible and extensible. Because an `Alter` can be of type `Mutate`
 /// or `Crossover`, it is abstracted out of those core traits into this trait.
 pub trait Alter<C: Chromosome> {
-    fn alter(&self, population: &mut Population<C>, generation: i32) -> Vec<Metric>;
+    fn alter(&self, population: &mut Population<C>, generation: usize) -> Vec<Metric>;
 }
 
 /// The `IntoAlter` trait is used to convert a struct into an `Alterer` struct. Because an `Alterer`
@@ -33,9 +33,52 @@ pub trait IntoAlter<C: Chromosome> {
     fn into_alter(self) -> Alterer<C>;
 }
 
-pub struct AlterResult {
-    pub count: i32,
-    pub metrics: Vec<Metric>,
+/// The `AlterResult` struct is used to represent the result of an
+/// alteration operation. It contains the number of operations
+/// performed and a vector of metrics that were collected
+/// during the alteration process.
+#[derive(Default)]
+pub struct AlterResult(pub usize, pub Option<Vec<Metric>>);
+
+impl AlterResult {
+    pub fn count(&self) -> usize {
+        self.0
+    }
+
+    pub fn metrics(&self) -> Option<&Vec<Metric>> {
+        self.1.as_ref()
+    }
+
+    pub fn merge(&mut self, other: AlterResult) {
+        let AlterResult(other_count, other_metrics) = other;
+
+        self.0 += other_count;
+        if let Some(metrics) = other_metrics {
+            if let Some(self_metrics) = &mut self.1 {
+                self_metrics.extend(metrics);
+            } else {
+                self.1 = Some(metrics);
+            }
+        }
+    }
+}
+
+impl Into<AlterResult> for usize {
+    fn into(self) -> AlterResult {
+        AlterResult(self, None)
+    }
+}
+
+impl Into<AlterResult> for (usize, Vec<Metric>) {
+    fn into(self) -> AlterResult {
+        AlterResult(self.0, Some(self.1))
+    }
+}
+
+impl Into<AlterResult> for (usize, Metric) {
+    fn into(self) -> AlterResult {
+        AlterResult(self.0, Some(vec![self.1]))
+    }
 }
 
 /// The `AlterAction` enum is used to represent the different
@@ -46,6 +89,13 @@ pub enum AlterAction<C: Chromosome> {
     Crossover(Box<dyn Crossover<C>>),
 }
 
+/// The `Alterer` struct is used to represent an alterer that can
+/// perform an alteration on a population. It contains a name,
+/// a rate, and an `AlterAction` that represents the type of
+/// alteration that will be performed. The `Alterer` struct
+/// implements the `Alter` trait, which allows it to perform
+/// the alteration on a population. The `Alterer` struct is a way to join together
+/// the `Mutate` and `Crossover` traits into a single struct.
 pub struct Alterer<C: Chromosome> {
     name: &'static str,
     rate: f32,
@@ -53,39 +103,39 @@ pub struct Alterer<C: Chromosome> {
 }
 
 impl<C: Chromosome> Alterer<C> {
+    /// Creates a new `Alterer` struct with the given name, rate, and `AlterAction`.
+    ///
+    ///  The `name` is a static string that represents the name of the alterer.
+    /// The `rate` is a float that represents the rate at which the alteration will be performed.
+    /// The `alter` is an `AlterAction` that represents the type of alteration that will be performed,
+    /// which can be either a mutation or a crossover operation.
     pub fn new(name: &'static str, rate: f32, alter: AlterAction<C>) -> Self {
         Self { name, rate, alter }
     }
 }
 
 impl<C: Chromosome> Alter<C> for Alterer<C> {
-    fn alter(&self, population: &mut Population<C>, generation: i32) -> Vec<Metric> {
+    fn alter(&self, population: &mut Population<C>, generation: usize) -> Vec<Metric> {
         match &self.alter {
             AlterAction::Mutate(m) => {
                 let timer = Timer::new();
+                let AlterResult(count, metrics) = m.mutate(population, generation, self.rate);
+                let metric = Metric::new_operations(self.name, count, timer);
 
-                let mutate_result = m.mutate(population, generation, self.rate);
-
-                let duration = timer.duration();
-                let metric = Metric::new_operations(self.name, mutate_result.count, duration);
-
-                return vec![metric]
-                    .into_iter()
-                    .chain(mutate_result.metrics)
-                    .collect();
+                return match metrics {
+                    Some(metrics) => metrics.into_iter().chain(vec![metric]).collect(),
+                    None => vec![metric],
+                };
             }
             AlterAction::Crossover(c) => {
                 let timer = Timer::new();
+                let AlterResult(count, metrics) = c.crossover(population, generation, self.rate);
+                let metric = Metric::new_operations(self.name, count, timer);
 
-                let crossover_result = c.crossover(population, generation, self.rate);
-
-                let duration = timer.duration();
-                let metric = Metric::new_operations(self.name, crossover_result.count, duration);
-
-                return vec![metric]
-                    .into_iter()
-                    .chain(crossover_result.metrics)
-                    .collect();
+                return match metrics {
+                    Some(metrics) => metrics.into_iter().chain(vec![metric]).collect(),
+                    None => vec![metric],
+                };
             }
         }
     }

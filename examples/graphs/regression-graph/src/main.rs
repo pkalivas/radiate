@@ -5,7 +5,7 @@ const MIN_SCORE: f32 = 0.001;
 const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
-    random_provider::set_seed(1000);
+    // random_provider::set_seed(1000);
 
     let values = vec![
         (NodeType::Input, vec![Op::var(0)]),
@@ -24,7 +24,7 @@ fn main() {
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
-            GraphMutator::new(0.1, 0.1)
+            GraphMutator::new(0.1, 0.1).allow_recurrent(false),
         ))
         .fitness_fn(move |genotype: Graph<Op<f32>>| regression.eval(&genotype))
         .build();

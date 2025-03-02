@@ -1,9 +1,11 @@
 use super::transaction::{InsertStep, TransactionResult};
-use super::{Graph, GraphChromosome, GraphNode};
+use super::{Graph, GraphChromosome};
 use crate::node::Node;
 use crate::{Arity, Factory, NodeType};
-use radiate::{AlterAction, Alterer, Mutate, random_provider};
+use radiate::{AlterAction, AlterResult, Alterer, Metric, Mutate, random_provider};
 use radiate::{Chromosome, IntoAlter};
+
+const INVALID_MUTATION: &'static str = "GraphMutator(Ivld)";
 
 /// A graph mutator that can be used to alter the graph structure. This is used to add nodes
 /// to the graph, and can be used to add either edges or vertices. The mutator is created with
@@ -28,11 +30,20 @@ impl GraphMutator {
         }
     }
 
+    /// Set the `allow_recurrent` flag to allow or disallow recurrent nodes in the graph.
+    ///
+    /// If `allow` is true, recurrent nodes are allowed. If false, they are not.
+    /// When a recurrent node is or cycle is created duing mutation and `allow_recurrent` is false,
+    /// the mutation will be discarded and the changes to the graph will be rolled back resulting in
+    /// no changes to the graph.
     pub fn allow_recurrent(mut self, allow: bool) -> Self {
         self.allow_recurrent = allow;
         self
     }
 
+    /// Get the type of node to add to the graph. This is used to determine if the node
+    /// should be an edge or a vertex. First, a random boolean is generated. If true,
+    /// we attempt to add an edge. If false, we attempt to add a vertex.
     fn mutate_type(&self) -> Option<NodeType> {
         if random_provider::bool(0.5) {
             if random_provider::random::<f32>() < self.edge_rate {
@@ -53,7 +64,7 @@ where
     T: Clone + PartialEq + Default,
 {
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<T>, _: f32) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<T>, _: f32) -> AlterResult {
         if let Some(node_type_to_add) = self.mutate_type() {
             if let Some(store) = chromosome.store() {
                 let new_node = store.new_instance((chromosome.len(), node_type_to_add));
@@ -101,14 +112,20 @@ where
                     }))
                 });
 
-                if let TransactionResult::Valid(_) = result {
-                    chromosome.set_nodes(graph.into_iter().collect::<Vec<GraphNode<T>>>());
-                    return 1;
+                match result {
+                    TransactionResult::Invalid(_, _) => {
+                        let metric = Metric::Value(INVALID_MUTATION, 1.into());
+                        return (0, metric).into();
+                    }
+                    TransactionResult::Valid(_) => {
+                        chromosome.set_nodes(graph.into_iter().collect());
+                        return 1.into();
+                    }
                 }
             }
         }
 
-        0
+        0.into()
     }
 }
 

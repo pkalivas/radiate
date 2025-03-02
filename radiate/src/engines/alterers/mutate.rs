@@ -3,39 +3,39 @@ use crate::{Chromosome, Gene, Genotype, Population, random_provider};
 
 pub trait Mutate<C: Chromosome>: IntoAlter<C> {
     #[inline]
-    fn mutate(&self, population: &mut Population<C>, generation: i32, rate: f32) -> AlterResult {
-        let mut count = 0;
+    fn mutate(&self, population: &mut Population<C>, generation: usize, rate: f32) -> AlterResult {
+        let mut result = AlterResult::default();
 
         for phenotype in population.iter_mut() {
             let genotype = phenotype.genotype_mut();
 
-            let mutation_count = self.mutate_genotype(genotype, rate);
+            let mutate_result = self.mutate_genotype(genotype, rate);
 
-            if mutation_count > 0 {
+            if mutate_result.count() > 0 {
                 phenotype.generation = generation;
                 phenotype.score = None;
-                count += mutation_count;
             }
+
+            result.merge(mutate_result);
         }
 
-        AlterResult {
-            count,
-            metrics: vec![],
-        }
+        result
     }
 
     #[inline]
-    fn mutate_genotype(&self, genotype: &mut Genotype<C>, rate: f32) -> i32 {
-        let mut count = 0;
+    fn mutate_genotype(&self, genotype: &mut Genotype<C>, rate: f32) -> AlterResult {
+        let mut result = AlterResult::default();
+
         for chromosome in genotype.iter_mut() {
-            count += self.mutate_chromosome(chromosome, rate);
+            let mutate_result = self.mutate_chromosome(chromosome, rate);
+            result.merge(mutate_result);
         }
 
-        count
+        result
     }
 
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> AlterResult {
         let mut count = 0;
         for gene in chromosome.iter_mut() {
             if random_provider::random::<f32>() < rate {
@@ -44,7 +44,7 @@ pub trait Mutate<C: Chromosome>: IntoAlter<C> {
             }
         }
 
-        count
+        count.into()
     }
 
     #[inline]

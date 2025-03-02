@@ -1,7 +1,7 @@
 use radiate::*;
 use radiate_gp::*;
 
-const MAX_INDEX: i32 = 500;
+const MAX_INDEX: usize = 5000;
 const MIN_SCORE: f32 = 0.01;
 
 fn main() {
@@ -22,7 +22,7 @@ fn main() {
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.05, 0.05),
-            GraphMutator::new(0.06, 0.01).allow_recurrent(false)
+            GraphMutator::new(0.06, 0.01).allow_recurrent(false),
         ))
         .fitness_fn(move |genotype: Graph<Op<f32>>| regression.eval(&genotype))
         .build();

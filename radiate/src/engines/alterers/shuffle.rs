@@ -1,4 +1,4 @@
-use super::{AlterAction, Alterer, Crossover, IntoAlter};
+use super::{AlterAction, AlterResult, Alterer, Crossover, IntoAlter};
 use crate::{Chromosome, random_provider};
 
 pub struct ShuffleCrossover {
@@ -13,10 +13,10 @@ impl ShuffleCrossover {
 
 impl<C: Chromosome> Crossover<C> for ShuffleCrossover {
     #[inline]
-    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, _: f32) -> i32 {
+    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, _: f32) -> AlterResult {
         let length = std::cmp::min(chrom_one.len(), chrom_two.len());
         if length < 2 {
-            return 0;
+            return 0.into();
         }
 
         let mut indices: Vec<usize> = (0..length).collect();
@@ -34,7 +34,7 @@ impl<C: Chromosome> Crossover<C> for ShuffleCrossover {
             }
         }
 
-        cross_count
+        cross_count.into()
     }
 }
 

@@ -21,12 +21,12 @@ use super::{Valid, genotype::Genotype};
 pub struct Phenotype<C: Chromosome> {
     pub genotype: Option<Genotype<C>>,
     pub score: Option<Score>,
-    pub generation: i32,
+    pub generation: usize,
 }
 
 impl<C: Chromosome> Phenotype<C> {
     /// Create a new instance of the `Phenotype` with the given `Genotype` and generation.
-    pub fn from_genotype(genotype: Genotype<C>, generation: i32) -> Self {
+    pub fn from_genotype(genotype: Genotype<C>, generation: usize) -> Self {
         Phenotype {
             genotype: Some(genotype),
             score: None,
@@ -37,7 +37,7 @@ impl<C: Chromosome> Phenotype<C> {
     /// This is a convenience method that allows you to create a `Phenotype` from a list of chromosomes.
     /// Without it, we end up neededing to create a list of `Genes` then a list of `Chromosomes` then a `Genotype`,
     /// its just a lot. This method allows you to create a `Phenotype` from a list of chromosomes directly.
-    pub fn from_chromosomes(chromosomes: Vec<C>, generation: i32) -> Self {
+    pub fn from_chromosomes(chromosomes: Vec<C>, generation: usize) -> Self {
         Phenotype {
             genotype: Some(Genotype::new(chromosomes)),
             score: None,
@@ -62,6 +62,10 @@ impl<C: Chromosome> Phenotype<C> {
         self.genotype = Some(genotype);
     }
 
+    pub fn set_score(&mut self, score: Option<Score>) {
+        self.score = score;
+    }
+
     pub fn score(&self) -> Option<&Score> {
         match &self.score {
             Some(score) => Some(score),
@@ -69,13 +73,9 @@ impl<C: Chromosome> Phenotype<C> {
         }
     }
 
-    pub fn set_score(&mut self, score: Option<Score>) {
-        self.score = score;
-    }
-
     /// Get the age of the individual in generations. The age is calculated as the
     /// difference between the given generation and the generation in which the individual was created.
-    pub fn age(&self, generation: i32) -> i32 {
+    pub fn age(&self, generation: usize) -> usize {
         generation - self.generation
     }
 }
