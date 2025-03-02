@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 /// A simple timer that can be used to measure the time it takes to perform
 /// an operation. The timer can be stopped and started, and the duration
@@ -43,5 +43,11 @@ impl Clone for Timer {
             end: self.end,
             stopped: self.stopped,
         }
+    }
+}
+
+impl Into<Duration> for Timer {
+    fn into(self) -> Duration {
+        self.duration()
     }
 }

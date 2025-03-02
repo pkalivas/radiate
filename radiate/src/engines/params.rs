@@ -1,7 +1,8 @@
 use super::codexes::Codex;
 use super::thread_pool::ThreadPool;
 use super::{
-    Alter, EngineProblem, IntoAlter, Problem, RouletteSelector, Select, TournamentSelector,
+    Alter, EncodeReplace, EngineProblem, Front, IntoAlter, Problem, ReplacementStrategy,
+    RouletteSelector, Select, TournamentSelector,
 };
 use crate::Chromosome;
 use crate::engines::engine::GeneticEngine;
@@ -11,11 +12,6 @@ use crate::engines::objectives::Score;
 use crate::objectives::{Objective, Optimize};
 use crate::uniform::{UniformCrossover, UniformMutator};
 use std::sync::Arc;
-
-pub enum FilterStrategy {
-    Encode,
-    PopulationSample,
-}
 
 /// Parameters for the genetic engine.
 /// This struct is used to configure the genetic engine before it is created.
@@ -30,7 +26,7 @@ pub enum FilterStrategy {
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 /// - `T`: The type of the best individual in the population.
 ///
-pub struct GeneticEngineParams<C, T>
+pub struct GeneticEngineBuilder<C, T>
 where
     C: Chromosome + 'static,
     T: Clone + 'static,
@@ -49,10 +45,10 @@ where
     pub codex: Option<Arc<dyn Codex<C, T>>>,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
     pub problem: Option<Arc<dyn Problem<C, T>>>,
-    pub filter_strategy: FilterStrategy,
+    pub replacement_strategy: Box<dyn ReplacementStrategy<C>>,
 }
 
-impl<C, T> GeneticEngineParams<C, T>
+impl<C, T> GeneticEngineBuilder<C, T>
 where
     C: Chromosome,
     T: Clone + Send,
@@ -72,9 +68,16 @@ where
     ///     * This is the optimization goal of the genetic engine. The default is to maximize the fitness function.
     /// * survivor_selector: TournamentSelector::new(3)
     /// * offspring_selector: RouletteSelector::new()
-    /// * filter_strategy: FilterStrategy::Encode
+    /// * replacement_strategy: EncodeReplace
+    ///     * This is the replacement strategy that is used to replace an individual in the population
+    ///       if the individual is invalid or reaches the maximum age.
+    /// * min_front_size: 800
+    /// * max_front_size: 900
+    ///     * This is the minimum and maximum size of the pareto front. This is used for
+    ///       multi-objective optimization problems where the goal is to find the best
+    ///       solutions that are not dominated by any other solution.
     pub fn new() -> Self {
-        GeneticEngineParams {
+        GeneticEngineBuilder {
             population_size: 100,
             max_age: 20,
             offspring_fraction: 0.8,
@@ -89,7 +92,7 @@ where
             population: None,
             fitness_fn: None,
             problem: None,
-            filter_strategy: FilterStrategy::Encode,
+            replacement_strategy: Box::new(EncodeReplace),
         }
     }
 
@@ -118,8 +121,8 @@ where
     ///
     /// Default is `FilterStrategy::Encode`, which means that a new individual will be created
     /// be using the `Codex` to encode a new individual from scratch.
-    pub fn filter_strategy(mut self, filter_strategy: FilterStrategy) -> Self {
-        self.filter_strategy = filter_strategy;
+    pub fn replace_strategy<R: ReplacementStrategy<C> + 'static>(mut self, replace: R) -> Self {
+        self.replacement_strategy = Box::new(replace);
         self
     }
 
@@ -259,7 +262,23 @@ where
         } else {
             self.build_population();
             self.build_alterer();
-            GeneticEngine::new(self)
+
+            let inputs = GeneticEngineParams {
+                population: self.population.unwrap(),
+                problem: self.problem.unwrap(),
+                fitness_fn: self.fitness_fn.unwrap(),
+                survivor_selector: self.survivor_selector,
+                offspring_selector: self.offspring_selector,
+                replacement_strategy: self.replacement_strategy,
+                alterers: self.alterers,
+                objective: self.objective.clone(),
+                thread_pool: self.thread_pool,
+                max_age: self.max_age,
+                front: Front::new(self.min_front_size, self.max_front_size, self.objective),
+                offspring_fraction: self.offspring_fraction,
+            };
+
+            GeneticEngine::new(inputs)
         }
     }
 
@@ -290,5 +309,104 @@ where
 
         self.alterers.push(crossover);
         self.alterers.push(mutator);
+    }
+}
+
+pub struct GeneticEngineParams<C: Chromosome, T> {
+    population: Population<C>,
+    problem: Arc<dyn Problem<C, T>>,
+    fitness_fn: Arc<dyn Fn(T) -> Score + Send + Sync>,
+    survivor_selector: Box<dyn Select<C>>,
+    offspring_selector: Box<dyn Select<C>>,
+    replacement_strategy: Box<dyn ReplacementStrategy<C>>,
+    alterers: Vec<Box<dyn Alter<C>>>,
+    objective: Objective,
+    thread_pool: ThreadPool,
+    max_age: usize,
+    front: Front,
+    offspring_fraction: f32,
+}
+
+impl<C: Chromosome, T> GeneticEngineParams<C, T> {
+    pub fn new(
+        population: Population<C>,
+        problem: Arc<dyn Problem<C, T>>,
+        fitness_fn: Arc<dyn Fn(T) -> Score + Send + Sync>,
+        survivor_selector: Box<dyn Select<C>>,
+        offspring_selector: Box<dyn Select<C>>,
+        replacement_strategy: Box<dyn ReplacementStrategy<C>>,
+        alterers: Vec<Box<dyn Alter<C>>>,
+        objective: Objective,
+        thread_pool: ThreadPool,
+        max_age: usize,
+        front: Front,
+        offspring_fraction: f32,
+    ) -> Self {
+        Self {
+            population,
+            problem,
+            fitness_fn,
+            survivor_selector,
+            offspring_selector,
+            replacement_strategy,
+            alterers,
+            objective,
+            thread_pool,
+            max_age,
+            front,
+            offspring_fraction,
+        }
+    }
+
+    pub fn population(&self) -> &Population<C> {
+        &self.population
+    }
+
+    pub fn problem(&self) -> Arc<dyn Problem<C, T>> {
+        Arc::clone(&self.problem)
+    }
+
+    pub fn fitness_fn(&self) -> Arc<dyn Fn(T) -> Score + Send + Sync> {
+        Arc::clone(&self.fitness_fn)
+    }
+
+    pub fn survivor_selector(&self) -> &Box<dyn Select<C>> {
+        &self.survivor_selector
+    }
+
+    pub fn offspring_selector(&self) -> &Box<dyn Select<C>> {
+        &self.offspring_selector
+    }
+
+    pub fn replacement_strategy(&self) -> &Box<dyn ReplacementStrategy<C>> {
+        &self.replacement_strategy
+    }
+
+    pub fn alters(&self) -> &[Box<dyn Alter<C>>] {
+        &self.alterers
+    }
+
+    pub fn objective(&self) -> &Objective {
+        &self.objective
+    }
+
+    pub fn thread_pool(&self) -> &ThreadPool {
+        &self.thread_pool
+    }
+
+    pub fn max_age(&self) -> usize {
+        self.max_age
+    }
+
+    pub fn front(&self) -> &Front {
+        &self.front
+    }
+
+    pub fn survivor_count(&self) -> usize {
+        self.population.len() - self.offspring_count()
+    }
+
+    pub fn offspring_count(&self) -> usize {
+        (self.population.len() as f32 * self.offspring_fraction) as usize
     }
 }

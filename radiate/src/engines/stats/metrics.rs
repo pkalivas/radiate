@@ -41,12 +41,17 @@ impl MetricSet {
         }
     }
 
-    pub fn upsert_operations(&mut self, name: &'static str, value: f32, time: Duration) {
+    pub fn upsert_operations(
+        &mut self,
+        name: &'static str,
+        value: impl Into<f32>,
+        time: impl Into<Duration>,
+    ) {
         if let Some(m) = self.metrics.get_mut(name) {
-            m.add_value(value);
-            m.add_duration(time);
+            m.add_value(value.into());
+            m.add_duration(time.into());
         } else {
-            self.add(Metric::new_operations(name, value, time));
+            self.add(Metric::new_operations(name, value.into(), time.into()));
         }
     }
 
