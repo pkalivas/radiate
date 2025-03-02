@@ -108,10 +108,7 @@ where
             population[index] = phenotype;
         }
 
-        AlterResult {
-            count,
-            metrics: vec![],
-        }
+        AlterResult(count, Vec::new())
     }
 }
 

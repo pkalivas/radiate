@@ -24,10 +24,7 @@ pub trait Crossover<C: Chromosome>: IntoAlter<C> {
             }
         }
 
-        AlterResult {
-            count,
-            metrics: vec![],
-        }
+        AlterResult(count, Vec::new())
     }
 
     #[inline]
@@ -41,8 +38,6 @@ pub trait Crossover<C: Chromosome>: IntoAlter<C> {
         let index_one = parent_indexes[0];
         let index_two = parent_indexes[1];
 
-        // TODO: test if we need to clone the genotype here
-        // we might be able to just use a reference
         let mut geno_one = population[index_one].genotype().clone();
         let mut geno_two = population[index_two].genotype().clone();
 

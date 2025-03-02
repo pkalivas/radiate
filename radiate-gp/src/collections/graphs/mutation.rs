@@ -28,11 +28,20 @@ impl GraphMutator {
         }
     }
 
+    /// Set the `allow_recurrent` flag to allow or disallow recurrent nodes in the graph.
+    ///
+    /// If `allow` is true, recurrent nodes are allowed. If false, they are not.
+    /// When a recurrent node is or cycle is created duing mutation and `allow_recurrent` is false,
+    /// the mutation will be discarded and the changes to the graph will be rolled back resulting in
+    /// no changes to the graph.
     pub fn allow_recurrent(mut self, allow: bool) -> Self {
         self.allow_recurrent = allow;
         self
     }
 
+    /// Get the type of node to add to the graph. This is used to determine if the node
+    /// should be an edge or a vertex. First, a random boolean is generated. If true,
+    /// we attempt to add an edge. If false, we attempt to add a vertex.
     fn mutate_type(&self) -> Option<NodeType> {
         if random_provider::bool(0.5) {
             if random_provider::random::<f32>() < self.edge_rate {

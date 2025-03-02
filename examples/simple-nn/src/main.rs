@@ -5,6 +5,7 @@ const MAX_INDEX: i32 = 500;
 const MAX_SECONDS: u64 = 1;
 
 fn main() {
+    random_provider::set_seed(12345);
     let inputs = vec![
         vec![0.0, 0.0],
         vec![1.0, 1.0],

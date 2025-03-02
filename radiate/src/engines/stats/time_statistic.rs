@@ -1,4 +1,4 @@
-use crate::Statistic;
+use crate::{Statistic, timer::Timer};
 use std::time::Duration;
 
 #[derive(Clone, PartialEq, Default)]
@@ -59,5 +59,11 @@ impl TimeStatistic {
 impl Into<TimeStatistic> for Duration {
     fn into(self) -> TimeStatistic {
         TimeStatistic::new(self)
+    }
+}
+
+impl Into<TimeStatistic> for Timer {
+    fn into(self) -> TimeStatistic {
+        TimeStatistic::new(self.duration())
     }
 }

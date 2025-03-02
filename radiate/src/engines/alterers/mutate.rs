@@ -18,10 +18,7 @@ pub trait Mutate<C: Chromosome>: IntoAlter<C> {
             }
         }
 
-        AlterResult {
-            count,
-            metrics: vec![],
-        }
+        AlterResult(count, Vec::new())
     }
 
     #[inline]

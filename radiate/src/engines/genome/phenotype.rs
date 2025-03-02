@@ -62,15 +62,15 @@ impl<C: Chromosome> Phenotype<C> {
         self.genotype = Some(genotype);
     }
 
+    pub fn set_score(&mut self, score: Option<Score>) {
+        self.score = score;
+    }
+
     pub fn score(&self) -> Option<&Score> {
         match &self.score {
             Some(score) => Some(score),
             None => None,
         }
-    }
-
-    pub fn set_score(&mut self, score: Option<Score>) {
-        self.score = score;
     }
 
     /// Get the age of the individual in generations. The age is calculated as the

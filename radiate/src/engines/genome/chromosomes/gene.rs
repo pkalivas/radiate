@@ -90,4 +90,8 @@ pub trait ArithmeticGene:
     fn mean(&self, other: &Self) -> Self;
 
     fn from_f32(&self, value: f32) -> Self;
+
+    fn from_i32(&self, value: i32) -> Self {
+        self.from_f32(value as f32)
+    }
 }
