@@ -1,7 +1,9 @@
 use super::codexes::Codex;
 use super::context::EngineContext;
 use super::thread_pool::ThreadPool;
-use super::{Alter, GeneticEngineParams, MetricSet, Problem, ReplacementStrategy};
+use super::{
+    Alter, GeneticEngineParams, MetricSet, PopulationContext, Problem, ReplacementStrategy,
+};
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
 use crate::engines::objectives::Score;
@@ -183,7 +185,7 @@ where
     /// can maintain some of the best solutions found so far while also introducing new genetic material/genetic diversity.
     ///
     /// This method returns a new population containing only the selected survivors.
-    fn select_survivors(&self, ctx: &mut EngineContext<C, T>) -> Population<C> {
+    fn select_survivors(&self, ctx: &mut EngineContext<C, T>) -> PopulationContext<C> {
         let selector = self.survivor_selector();
         let count = self.survivor_count();
         let objective = self.objective();
@@ -193,7 +195,7 @@ where
 
         ctx.upsert_operation(selector.name(), count as f32, timer);
 
-        result
+        PopulationContext::new(result)
     }
 
     /// Create the offspring that will be used to create the next generation. The number of offspring
@@ -210,7 +212,7 @@ where
     /// `offspring_fraction` specifies. This process introduces new genetic material into the population,
     /// which allows the genetic algorithm explore new solutions in the problem space and (hopefully)
     /// avoid getting stuck in local minima.
-    fn create_offspring(&self, ctx: &mut EngineContext<C, T>) -> Population<C> {
+    fn create_offspring(&self, ctx: &mut EngineContext<C, T>) -> PopulationContext<C> {
         let selector = self.offspring_selector();
         let count = self.offspring_count();
         let objective = self.objective();
@@ -231,7 +233,7 @@ where
             }
         }
 
-        offspring
+        PopulationContext::new(offspring)
     }
 
     /// Filters the population to remove individuals that are too old or invalid. The maximum age
@@ -290,13 +292,27 @@ where
     fn recombine(
         &self,
         handle: &mut EngineContext<C, T>,
-        survivors: Population<C>,
-        offspring: Population<C>,
+        survivors: PopulationContext<C>,
+        offspring: PopulationContext<C>,
     ) {
-        handle.population = survivors
-            .into_iter()
-            .chain(offspring)
-            .collect::<Population<C>>();
+        if survivors.is_ok() && offspring.is_ok() {
+            let surviving_population = survivors.take_population();
+            let offspring_population = offspring.take_population();
+
+            match (surviving_population, offspring_population) {
+                (Some(survivors), Some(offspring)) => {
+                    handle.population = survivors
+                        .into_iter()
+                        .chain(offspring)
+                        .collect::<Population<C>>();
+                }
+                _ => {}
+            }
+        }
+        // handle.population = survivors
+        //     .into_iter()
+        //     .chain(offspring)
+        //     .collect::<Population<C>>();
     }
 
     /// Audits the current state of the genetic algorithm, updating the best individual found so far
@@ -457,6 +473,7 @@ where
             metrics: MetricSet::new(),
             score: None,
             front: Arc::new(Mutex::new(self.params.front().clone())),
+            error: None,
         }
     }
 

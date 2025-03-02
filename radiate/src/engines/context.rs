@@ -36,6 +36,7 @@ where
     pub metrics: MetricSet,
     pub score: Option<Score>,
     pub front: Arc<Mutex<Front>>,
+    pub error: Option<String>,
 }
 
 impl<C, T> EngineContext<C, T>
@@ -77,6 +78,7 @@ where
             metrics: self.metrics.clone(),
             score: self.score.clone(),
             front: self.front.clone(),
+            error: self.error.clone(),
         }
     }
 }
@@ -94,5 +96,52 @@ where
         write!(f, "  duration: {:?},\n", self.timer.duration())?;
         write!(f, "  metrics: {:?},\n", self.metrics)?;
         write!(f, "}}")
+    }
+}
+
+pub struct PopulationContext<C>
+where
+    C: Chromosome,
+{
+    pub population: Option<Population<C>>,
+    pub error: Option<String>,
+}
+
+impl<C> PopulationContext<C>
+where
+    C: Chromosome,
+{
+    pub fn new(population: Population<C>) -> Self {
+        Self {
+            population: Some(population),
+            error: None,
+        }
+    }
+
+    pub fn new_error(error: String) -> Self {
+        Self {
+            population: None,
+            error: Some(error),
+        }
+    }
+
+    pub fn population(&self) -> Option<&Population<C>> {
+        self.population.as_ref()
+    }
+
+    pub fn error(&self) -> Option<&String> {
+        self.error.as_ref()
+    }
+
+    pub fn take_population(self) -> Option<Population<C>> {
+        self.population
+    }
+
+    pub fn take_error(&mut self) -> Option<String> {
+        self.error.take()
+    }
+
+    pub fn is_ok(&self) -> bool {
+        self.error.is_none()
     }
 }

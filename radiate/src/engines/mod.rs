@@ -3,6 +3,7 @@ pub mod codexes;
 pub mod context;
 pub mod domain;
 pub mod engine;
+pub mod error;
 pub mod genome;
 pub mod objectives;
 pub mod params;
@@ -18,6 +19,7 @@ pub use codexes::{
 pub use context::*;
 pub use domain::*;
 pub use engine::*;
+pub use error::*;
 pub use genome::*;
 pub use objectives::*;
 pub use params::*;
