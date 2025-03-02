@@ -1,171 +1,4 @@
 #[macro_export]
-macro_rules! add_impl {
-    ($($t:ty),*) => {
-        $(
-            impl Add for $t {
-                type Output = $t;
-
-                #[inline]
-                fn add(self, other: $t) -> $t {
-                    Self {
-                        allele: self.allele() + other.allele(),
-                        ..self
-                    }
-                }
-            }
-        )*
-    };
-}
-
-#[macro_export]
-macro_rules! sub_impl {
-    ($($t:ty),*) => {
-        $(
-            impl Sub for $t {
-                type Output = $t;
-
-                #[inline]
-                fn sub(self, other: $t) -> $t {
-                    Self {
-                        allele: self.allele() - other.allele(),
-                        ..self
-                    }
-                }
-            }
-        )*
-    };
-}
-
-#[macro_export]
-macro_rules! mul_impl {
-    ($($t:ty),*) => {
-        $(
-            impl Mul for $t {
-                type Output = $t;
-
-                #[inline]
-                fn mul(self, other: $t) -> $t {
-                    Self {
-                        allele: self.allele() * other.allele(),
-                        ..self
-                    }
-                }
-            }
-        )*
-    };
-}
-
-#[macro_export]
-macro_rules! div_impl {
-    ($($t:ty),*) => {
-        $(
-            impl Div for $t {
-                type Output = $t;
-
-                #[inline]
-                fn div(self, other: $t) -> $t {
-                    if std::any::TypeId::of::<$t>() == std::any::TypeId::of::<FloatGene>() {
-                        if *other.allele() == 0.0 as <$t as Gene>::Allele {
-                            return Self {
-                                allele: self.allele() / 1.0 as <$t as Gene>::Allele,
-                                ..self
-                            }
-                        }
-                    } else if std::any::TypeId::of::<$t>() == std::any::TypeId::of::<IntGene<i8>>() {
-                        if *other.allele() == 0 as <$t as Gene>::Allele {
-                            return Self {
-                                allele: self.allele() / 1 as <$t as Gene>::Allele,
-                                ..self
-                            }
-                        }
-                    } else if std::any::TypeId::of::<$t>() == std::any::TypeId::of::<IntGene<i16>>() {
-                        if *other.allele() == 0 as <$t as Gene>::Allele {
-                            return Self {
-                                allele: self.allele() / 1 as <$t as Gene>::Allele,
-                                ..self
-                            }
-                        }
-                    } else if std::any::TypeId::of::<$t>() == std::any::TypeId::of::<IntGene<i32>>() {
-                        if *other.allele() == 0 as <$t as Gene>::Allele {
-                            return Self {
-                                allele: self.allele() / 1 as <$t as Gene>::Allele,
-                                ..self
-                            }
-                        }
-                    } else if std::any::TypeId::of::<$t>() == std::any::TypeId::of::<IntGene<i64>>() {
-                        if *other.allele() == 0 as <$t as Gene>::Allele {
-                            return Self {
-                                allele: self.allele() / 1 as <$t as Gene>::Allele,
-                                ..self
-                            }
-                        }
-                    } else if std::any::TypeId::of::<$t>() == std::any::TypeId::of::<IntGene<i128>>() {
-                        if *other.allele() == 0 as <$t as Gene>::Allele {
-                            return Self {
-                                allele: self.allele() / 1 as <$t as Gene>::Allele,
-                                ..self
-                            }
-                        }
-                    } else if std::any::TypeId::of::<$t>() == std::any::TypeId::of::<IntGene<u8>>() {
-                        if *other.allele() == 0 as <$t as Gene>::Allele {
-                            return Self {
-                                allele: self.allele() / 1 as <$t as Gene>::Allele,
-                                ..self
-                            }
-                        }
-                    } else if std::any::TypeId::of::<$t>() == std::any::TypeId::of::<IntGene<u16>>() {
-                        if *other.allele() == 0 as <$t as Gene>::Allele {
-                            return Self {
-                                allele: self.allele() / 1 as <$t as Gene>::Allele,
-                                ..self
-                            }
-                        }
-                    } else if std::any::TypeId::of::<$t>() == std::any::TypeId::of::<IntGene<u32>>() {
-                        if *other.allele() == 0 as <$t as Gene>::Allele {
-                            return Self {
-                                allele: self.allele() / 1 as <$t as Gene>::Allele,
-                                ..self
-                            }
-                        }
-                    } else if std::any::TypeId::of::<$t>() == std::any::TypeId::of::<IntGene<u64>>() {
-                        if *other.allele() == 0 as <$t as Gene>::Allele {
-                            return Self {
-                                allele: self.allele() / 1 as <$t as Gene>::Allele,
-                                ..self
-                            }
-                        }
-                    } else if std::any::TypeId::of::<$t>() == std::any::TypeId::of::<IntGene<u128>>() {
-                        if *other.allele() == 0 as <$t as Gene>::Allele {
-                            return Self {
-                                allele: self.allele() / 1 as <$t as Gene>::Allele,
-                                ..self
-                            }
-                        }
-                    }
-
-                    Self {
-                        allele: self.allele() / *other.allele(),
-                        ..self
-                    }
-                }
-            }
-        )*
-    };
-}
-
-#[macro_export]
-macro_rules! arithmetic_impl {
-    ($($t:ty),*) => {
-        $(
-            add_impl!($t);
-            sub_impl!($t);
-            mul_impl!($t);
-            div_impl!($t);
-        )*
-    };
-}
-
-#[macro_export]
 macro_rules! impl_integer {
     ($($t:ty),*) => {
         $(
@@ -191,5 +24,56 @@ macro_rules! alters {
             )*
             vec
         }
+    };
+}
+
+#[macro_export]
+macro_rules! impl_arithmetic_for_intgene {
+    ($gene_type:ty, [$($rhs_type:ty),*]) => {
+        use std::ops::{Add, Sub, Mul, Div};
+
+        $(
+            impl<T: Integer<T>> Add<$rhs_type> for $gene_type {
+                type Output = Self;
+
+                fn add(self, rhs: $rhs_type) -> Self::Output {
+                    let new_allele = self.allele + T::from_i32(rhs as i32);
+                    self.with_allele(&new_allele)
+                }
+            }
+
+            impl<T: Integer<T>> Sub<$rhs_type> for $gene_type {
+                type Output = Self;
+
+                fn sub(self, rhs: $rhs_type) -> Self::Output {
+                    let new_allele = self.allele - T::from_i32(rhs as i32);
+                    self.with_allele(&new_allele)
+                }
+            }
+
+            impl<T: Integer<T>> Mul<$rhs_type> for $gene_type {
+                type Output = Self;
+
+                fn mul(self, rhs: $rhs_type) -> Self::Output {
+                    let new_allele = self.allele * T::from_i32(rhs as i32);
+                    self.with_allele(&new_allele)
+                }
+            }
+
+            impl<T: Integer<T>> Div<$rhs_type> for $gene_type {
+                type Output = Self;
+
+                fn div(self, rhs: $rhs_type) -> Self::Output {
+                    let rhs = T::from_i32(rhs as i32);
+                    if rhs == T::from_i32(0) {
+                        return self;
+                    }
+
+                    let new_allele = self.allele / rhs;
+                    self.with_allele(&new_allele)
+
+                }
+            }
+        )*
     };
 }

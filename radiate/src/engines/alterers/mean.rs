@@ -1,11 +1,11 @@
 use super::{AlterAction, Alterer, Crossover, IntoAlter};
-use crate::{Chromosome, NumericGene, random_provider};
+use crate::{ArithmeticGene, Chromosome, random_provider};
 
 /// The `MeanCrossover` is a simple crossover method that replaces the genes of the first chromosome
 /// with the mean of the two genes. The mean is calculated by adding the two genes together and dividing
 /// by two.
 ///
-/// This crossover can only be used with `NumericGene`s and can be largely benifitial. However, keep
+/// This crossover can only be used with `ArithmeticGene`s and can be largely benifitial. However, keep
 /// in mind that because we are taking the mean of two genes, this results in children that
 /// converge towards a common distribution. This can be useful in some cases, but it can also
 /// result in a loss of diversity in the population in others.
@@ -27,7 +27,7 @@ impl MeanCrossover {
 
 impl<C: Chromosome> Crossover<C> for MeanCrossover
 where
-    C::Gene: NumericGene,
+    C::Gene: ArithmeticGene,
 {
     #[inline]
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, rate: f32) -> i32 {
@@ -46,7 +46,7 @@ where
 
 impl<C: Chromosome> IntoAlter<C> for MeanCrossover
 where
-    C::Gene: NumericGene,
+    C::Gene: ArithmeticGene,
 {
     fn into_alter(self) -> Alterer<C> {
         Alterer::new(
