@@ -1,9 +1,9 @@
 use super::{
     Chromosome, Integer,
-    gene::{Gene, NumericGene, Valid},
+    gene::{ArithmeticGene, Gene, Valid},
 };
 use crate::random_provider;
-use std::ops::{Bound, Range, RangeBounds};
+use std::ops::{Add, Bound, Div, Mul, Range, RangeBounds, Sub};
 
 /// A `Gene` that represents an integer value. This gene just wraps an integer value and provides
 /// functionality for it to be used in a genetic algorithm. In this `Gene` implementation, the
@@ -81,13 +81,24 @@ impl<T: Integer<T>> Valid for IntGene<T> {
     }
 }
 
-impl<T: Integer<T>> NumericGene for IntGene<T> {
+/// Implement the `ArithmeticGene` trait for `IntGene`. This allows the `IntGene` to be used in numeric
+/// operations. The `ArithmeticGene` trait is a superset of the `Gene` trait, and adds functionality
+/// for numeric operations such as addition, subtraction, multiplication, division and mean.
+impl<T: Integer<T>> ArithmeticGene for IntGene<T> {
     fn min(&self) -> &T {
         &self.value_range.start
     }
 
     fn max(&self) -> &T {
         &self.value_range.end
+    }
+
+    fn from_f32(&self, value: f32) -> Self {
+        IntGene {
+            allele: T::from_i32(value as i32),
+            value_range: self.value_range.clone(),
+            bounds: self.bounds.clone(),
+        }
     }
 
     fn mean(&self, other: &IntGene<T>) -> IntGene<T> {
@@ -99,6 +110,7 @@ impl<T: Integer<T>> NumericGene for IntGene<T> {
     }
 }
 
+/// Implement the `RangeBounds` trait for `IntGene`. This allows the `IntGene` to be used in range
 impl<T: Integer<T>> RangeBounds<T> for IntGene<T> {
     fn start_bound(&self) -> Bound<&T> {
         self.bounds.start_bound()
@@ -109,9 +121,57 @@ impl<T: Integer<T>> RangeBounds<T> for IntGene<T> {
     }
 }
 
-impl<T: Integer<T>> std::fmt::Debug for IntGene<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.allele)
+impl<T: Integer<T>> Add for IntGene<T> {
+    type Output = IntGene<T>;
+
+    fn add(self, other: IntGene<T>) -> IntGene<T> {
+        IntGene {
+            allele: self.allele + other.allele,
+            value_range: self.value_range.clone(),
+            bounds: self.bounds.clone(),
+        }
+    }
+}
+
+impl<T: Integer<T>> Sub for IntGene<T> {
+    type Output = IntGene<T>;
+
+    fn sub(self, other: IntGene<T>) -> IntGene<T> {
+        IntGene {
+            allele: self.allele - other.allele,
+            value_range: self.value_range.clone(),
+            bounds: self.bounds.clone(),
+        }
+    }
+}
+
+impl<T: Integer<T>> Mul for IntGene<T> {
+    type Output = IntGene<T>;
+
+    fn mul(self, other: IntGene<T>) -> IntGene<T> {
+        IntGene {
+            allele: self.allele * other.allele,
+            value_range: self.value_range.clone(),
+            bounds: self.bounds.clone(),
+        }
+    }
+}
+
+impl<T: Integer<T>> Div for IntGene<T> {
+    type Output = IntGene<T>;
+
+    fn div(self, other: IntGene<T>) -> IntGene<T> {
+        let denominator = if other.allele == T::from_i32(0) {
+            T::from_i32(1)
+        } else {
+            other.allele
+        };
+
+        IntGene {
+            allele: self.allele / denominator,
+            value_range: self.value_range.clone(),
+            bounds: self.bounds.clone(),
+        }
     }
 }
 
@@ -119,16 +179,6 @@ impl<T: Integer<T>> From<T> for IntGene<T> {
     fn from(allele: T) -> Self {
         IntGene {
             allele,
-            value_range: T::MIN..T::MAX,
-            bounds: T::MIN..T::MAX,
-        }
-    }
-}
-
-impl<T: Integer<T>> From<&T> for IntGene<T> {
-    fn from(allele: &T) -> Self {
-        IntGene {
-            allele: *allele,
             value_range: T::MIN..T::MAX,
             bounds: T::MIN..T::MAX,
         }
@@ -157,63 +207,9 @@ impl<T: Integer<T>> From<(Range<T>, Range<T>)> for IntGene<T> {
     }
 }
 
-impl From<IntGene<i8>> for i8 {
-    fn from(gene: IntGene<i8>) -> Self {
-        gene.allele
-    }
-}
-
-impl From<IntGene<i16>> for i16 {
-    fn from(gene: IntGene<i16>) -> Self {
-        gene.allele
-    }
-}
-
-impl From<IntGene<i32>> for i32 {
-    fn from(gene: IntGene<i32>) -> Self {
-        gene.allele
-    }
-}
-
-impl From<IntGene<i64>> for i64 {
-    fn from(gene: IntGene<i64>) -> Self {
-        gene.allele
-    }
-}
-
-impl From<IntGene<i128>> for i128 {
-    fn from(gene: IntGene<i128>) -> Self {
-        gene.allele
-    }
-}
-
-impl From<IntGene<u8>> for u8 {
-    fn from(gene: IntGene<u8>) -> Self {
-        gene.allele
-    }
-}
-
-impl From<IntGene<u16>> for u16 {
-    fn from(gene: IntGene<u16>) -> Self {
-        gene.allele
-    }
-}
-
-impl From<IntGene<u32>> for u32 {
-    fn from(gene: IntGene<u32>) -> Self {
-        gene.allele
-    }
-}
-
-impl From<IntGene<u64>> for u64 {
-    fn from(gene: IntGene<u64>) -> Self {
-        gene.allele
-    }
-}
-
-impl From<IntGene<u128>> for u128 {
-    fn from(gene: IntGene<u128>) -> Self {
-        gene.allele
+impl<T: Integer<T>> std::fmt::Debug for IntGene<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.allele)
     }
 }
 
@@ -241,6 +237,7 @@ impl From<IntGene<u128>> for u128 {
 ///
 /// // Check if the chromosome is valid.
 /// assert!(chromosome.is_valid());
+///
 #[derive(Clone, PartialEq, Default)]
 pub struct IntChromosome<I: Integer<I>> {
     pub genes: Vec<IntGene<I>>,
@@ -292,7 +289,7 @@ impl<T: Integer<T>> From<(usize, Range<T>, Range<T>)> for IntChromosome<T> {
 
 impl<T: Integer<T>> From<Vec<T>> for IntChromosome<T> {
     fn from(alleles: Vec<T>) -> Self {
-        let genes = alleles.iter().map(IntGene::from).collect();
+        let genes = alleles.into_iter().map(IntGene::from).collect();
         IntChromosome { genes }
     }
 }
@@ -365,13 +362,6 @@ mod tests {
     fn test_into() {
         let gene: IntGene<i32> = 5.into();
         assert_eq!(gene.allele, 5);
-    }
-
-    #[test]
-    fn test_from() {
-        let gene = IntGene::from(5);
-        let i: i32 = gene.into();
-        assert_eq!(i, 5);
     }
 
     #[test]

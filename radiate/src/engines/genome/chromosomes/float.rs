@@ -1,11 +1,11 @@
 use super::{
     Chromosome,
-    gene::{Gene, NumericGene, Valid},
+    gene::{ArithmeticGene, Gene, Valid},
 };
 use crate::random_provider;
 use std::{
     fmt::Debug,
-    ops::{Bound, Range, RangeBounds},
+    ops::{Add, Bound, Div, Mul, Range, RangeBounds, Sub},
 };
 
 /// A `Gene` that represents a floating point number.
@@ -71,13 +71,21 @@ impl Gene for FloatGene {
     }
 }
 
-impl NumericGene for FloatGene {
+impl ArithmeticGene for FloatGene {
     fn min(&self) -> &Self::Allele {
         &self.value_range.start
     }
 
     fn max(&self) -> &Self::Allele {
         &self.value_range.end
+    }
+
+    fn from_f32(&self, value: f32) -> Self {
+        FloatGene {
+            allele: value,
+            value_range: self.value_range.clone(),
+            bounds: self.bounds.clone(),
+        }
     }
 
     fn mean(&self, other: &FloatGene) -> FloatGene {
@@ -96,6 +104,60 @@ impl RangeBounds<f32> for FloatGene {
 
     fn end_bound(&self) -> Bound<&f32> {
         self.bounds.end_bound()
+    }
+}
+
+impl Add for FloatGene {
+    type Output = FloatGene;
+
+    fn add(self, other: FloatGene) -> FloatGene {
+        FloatGene {
+            allele: self.allele + other.allele,
+            value_range: self.value_range.clone(),
+            bounds: self.bounds.clone(),
+        }
+    }
+}
+
+impl Sub for FloatGene {
+    type Output = FloatGene;
+
+    fn sub(self, other: FloatGene) -> FloatGene {
+        FloatGene {
+            allele: self.allele - other.allele,
+            value_range: self.value_range.clone(),
+            bounds: self.bounds.clone(),
+        }
+    }
+}
+
+impl Mul for FloatGene {
+    type Output = FloatGene;
+
+    fn mul(self, other: FloatGene) -> FloatGene {
+        FloatGene {
+            allele: self.allele * other.allele,
+            value_range: self.value_range.clone(),
+            bounds: self.bounds.clone(),
+        }
+    }
+}
+
+impl Div for FloatGene {
+    type Output = FloatGene;
+
+    fn div(self, other: FloatGene) -> FloatGene {
+        let denominator = if other.allele == 0.0 {
+            1.0
+        } else {
+            other.allele
+        };
+
+        FloatGene {
+            allele: self.allele / denominator,
+            value_range: self.value_range.clone(),
+            bounds: self.bounds.clone(),
+        }
     }
 }
 

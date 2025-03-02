@@ -1,5 +1,5 @@
 use super::{AlterAction, Alterer, Crossover, IntoAlter};
-use crate::{Chromosome, FloatGene, Gene, random_provider};
+use crate::{ArithmeticGene, Chromosome, random_provider};
 
 pub struct BlendCrossover {
     rate: f32,
@@ -22,7 +22,10 @@ impl BlendCrossover {
     }
 }
 
-impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for BlendCrossover {
+impl<G: ArithmeticGene, C: Chromosome<Gene = G>> Crossover<C> for BlendCrossover
+where
+    G::Allele: Into<f32> + Clone,
+{
     #[inline]
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, rate: f32) -> i32 {
         let mut cross_count = 0;
@@ -32,14 +35,14 @@ impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for BlendCrossover {
                 let gene_one = chrom_one.get_gene(i);
                 let gene_two = chrom_two.get_gene(i);
 
-                let allele_one = gene_one.allele();
-                let allele_two = gene_two.allele();
+                let allele_one: f32 = (gene_one.allele().clone()).into();
+                let allele_two: f32 = (gene_two.allele().clone()).into();
 
                 let new_allele_one = allele_one - (self.alpha * (allele_two - allele_one));
                 let new_allele_two = allele_two - (self.alpha * (allele_one - allele_two));
 
-                chrom_one.set_gene(i, gene_one.with_allele(&new_allele_one));
-                chrom_two.set_gene(i, gene_two.with_allele(&new_allele_two));
+                chrom_one.set_gene(i, gene_one.from_f32(new_allele_one));
+                chrom_two.set_gene(i, gene_two.from_f32(new_allele_two));
 
                 cross_count += 1;
             }
@@ -49,7 +52,10 @@ impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for BlendCrossover {
     }
 }
 
-impl<C: Chromosome<Gene = FloatGene>> IntoAlter<C> for BlendCrossover {
+impl<G: ArithmeticGene, C: Chromosome<Gene = G>> IntoAlter<C> for BlendCrossover
+where
+    G::Allele: Into<f32> + Clone,
+{
     fn into_alter(self) -> Alterer<C> {
         Alterer::new(
             "BlendCrossover",

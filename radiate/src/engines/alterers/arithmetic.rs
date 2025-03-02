@@ -1,6 +1,5 @@
 use super::{AlterAction, Alterer, IntoAlter, Mutate};
-use crate::{Chromosome, Gene, random_provider};
-use std::ops::{Add, Div, Mul, Sub};
+use crate::{ArithmeticGene, Chromosome, Gene, random_provider};
 
 /// Arithmetic Mutator. Mutates genes by performing arithmetic operations on them.
 /// The ArithmeticMutator takes a rate parameter that determines the likelihood that
@@ -8,7 +7,7 @@ use std::ops::{Add, Div, Mul, Sub};
 /// multiplication, and division on genes.
 ///
 /// This is a simple mutator that can be used with any gene that implements the
-/// `Add`, `Sub`, `Mul`, and `Div` traits - `NumericGene` is a good example.
+/// `Add`, `Sub`, `Mul`, and `Div` traits - `ArithmeticGene` is a good example.
 pub struct ArithmeticMutator {
     rate: f32,
 }
@@ -27,10 +26,7 @@ impl ArithmeticMutator {
 
 impl<C: Chromosome> Mutate<C> for ArithmeticMutator
 where
-    C::Gene: Add<Output = C::Gene>
-        + Sub<Output = C::Gene>
-        + Mul<Output = C::Gene>
-        + Div<Output = C::Gene>,
+    C::Gene: ArithmeticGene,
 {
     /// Mutate a gene by performing an arithmetic operation on it.
     /// Randomly select a number between 0 and 3, and perform the corresponding
@@ -62,10 +58,7 @@ where
 
 impl<C: Chromosome> IntoAlter<C> for ArithmeticMutator
 where
-    C::Gene: Add<Output = C::Gene>
-        + Sub<Output = C::Gene>
-        + Mul<Output = C::Gene>
-        + Div<Output = C::Gene>,
+    C::Gene: ArithmeticGene,
 {
     fn into_alter(self) -> Alterer<C> {
         Alterer::new(

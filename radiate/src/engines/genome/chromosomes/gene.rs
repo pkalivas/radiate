@@ -1,4 +1,4 @@
-use std::ops::RangeBounds;
+use std::ops::{Add, Div, Mul, RangeBounds, Sub};
 
 /// A `Valid` type is a type that can be checked for validity. This is used for checking if a gene
 /// or a chromosome is valid. For example, a gene that represents a number between 0 and 1 can be checked
@@ -69,9 +69,17 @@ pub trait Gene: Clone + PartialEq + Valid {
     fn with_allele(&self, allele: &Self::Allele) -> Self;
 }
 
-/// A gene that represents a number. This gene can be used to represent any type of number, including
-/// integers, floats, etc. Useful for using numeric mutations or crossover operations on numeric genes.
-pub trait NumericGene: Gene + RangeBounds<Self::Allele> {
+/// A gene that represents a number. This gene can be used to represent any type of number,
+/// including integers, floats, etc. Essentially, any gene that can `Add`, `Sub`, `Mul`, and `Div`
+/// can be used as a `ArithmeticGene`.
+pub trait ArithmeticGene:
+    Gene
+    + RangeBounds<Self::Allele>
+    + Add<Output = Self>
+    + Sub<Output = Self>
+    + Mul<Output = Self>
+    + Div<Output = Self>
+{
     /// Get the min value of the gene as a number.
     fn min(&self) -> &Self::Allele;
 
@@ -80,4 +88,6 @@ pub trait NumericGene: Gene + RangeBounds<Self::Allele> {
 
     /// Get the value of the gene as a number.
     fn mean(&self, other: &Self) -> Self;
+
+    fn from_f32(&self, value: f32) -> Self;
 }

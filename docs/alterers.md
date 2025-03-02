@@ -74,7 +74,7 @@ let crossover = ShuffleCrossover::new(0.7);
 ### Mean
 
 The `MeanCrossover` operator is a crossover mechanism designed 
-for `NumericGene`s. It combines the corresponding genes of two parent chromosomes by 
+for `ArithmeticGene`s. It combines the corresponding genes of two parent chromosomes by 
 replacing a gene in one chromosome with the mean (average) of the two genes. This approach 
 is useful when genes represent numeric values such as weights or coordinates, 
 as it promotes a balanced combination of parent traits.
@@ -86,7 +86,7 @@ let crossover = MeanCrossover::new(0.7);
 
 ### Intermediate
 
-The `IntermediateCrossover` operator is a crossover mechanism designed for `NumericGene`s. 
+The `IntermediateCrossover` operator is a crossover mechanism designed for `ArithmeticGene`s. 
 It combines the corresponding genes of two parent chromosomes by replacing a gene in one chromosome
 with a value that lies between the two parent genes. The new gene is calculated as the weighted average
 of the two parent genes, where the weight is determined by the `alpha` parameter.
@@ -151,7 +151,7 @@ mutator has a `rate` parameter that determines the probability that the mutation
 >  * `rate`: f32 - Mutation rate.
 > * `std_dev`: f32 - The standard deviation of the Gaussian distribution.
 
-The `GaussianMutator` operator is a mutation mechanism designed for `NumericGene`s. It introduces random noise to the gene values by adding a sample from a Gaussian distribution with a specified standard deviation. This mutation operator produces small, incremental changes centered around the current gene value.
+The `GaussianMutator` operator is a mutation mechanism designed for `ArithmeticGene`s. It introduces random noise to the gene values by adding a sample from a Gaussian distribution with a specified standard deviation. This mutation operator produces small, incremental changes centered around the current gene value.
 
 
 Create a new `GaussianMutator` with a mutation rate of `0.1` and a standard deviation of `0.1`

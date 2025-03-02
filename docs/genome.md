@@ -9,7 +9,7 @@ ___
 ### Gene
 : The `Gene` is a wrapper around an `Allele` that provides additional functionality for working with genetic information. A `Gene` can be thought of as a container for an `Allele` that allows the `Allele` to operate within the context of the Genome. For example, the `FloatGene` struct is a `Gene` that contains a floating-point number as its `Allele`. Radiate provides a number of built-in `Gene` types that can be used to represent different types of genetic information. However, custom `Gene` can also be defined to represent unique types of genetic information.
 
- : Certain `Genes` have additional functionality that allows them to be manipulated in specific ways, such as the `FloatGene` and `IntGene<I>` which implement the `NumericGene`. The `NumericGene` trait provides methods for performing arithmetic operations on the `Gene`.
+ : Certain `Genes` have additional functionality that allows them to be manipulated in specific ways, such as the `FloatGene` and `IntGene<I>` which implement the `ArithmeticGene`. The `ArithmeticGene` trait provides methods for performing arithmetic operations on the `Gene`.
 
     !!! info "Core Library `Gene` Implementations"
 
@@ -39,7 +39,7 @@ ___
 
             * **Allele**: `f32`
             * **Description**: Represents a single floating-point number
-            * **Implements**: `Gene`, `NumericGene`
+            * **Implements**: `Gene`, `ArithmeticGene`
 
         === "IntGene"
 
@@ -54,7 +54,7 @@ ___
 
             * **Allele**: `I` where `I` implements `Integer<I>`. `Integer` is a trait in Radiate and is implemented for `i8`, `i16`, `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, `u128`.
             * **Description**: Represents a single integer number
-            * **Implements**: `Gene`, `NumericGene`
+            * **Implements**: `Gene`, `ArithmeticGene`
     
         === "CharGene"
 
