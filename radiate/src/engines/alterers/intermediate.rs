@@ -1,4 +1,4 @@
-use super::{AlterAction, Alterer, Crossover, IntoAlter};
+use super::{AlterAction, AlterResult, Alterer, Crossover, IntoAlter};
 use crate::{Chromosome, FloatGene, Gene, random_provider};
 
 /// Intermediate Crossover. This crossover method takes two chromosomes and crosses them
@@ -33,7 +33,7 @@ impl IntermediateCrossover {
 
 impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for IntermediateCrossover {
     #[inline]
-    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, rate: f32) -> i32 {
+    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, rate: f32) -> AlterResult {
         let mut cross_count = 0;
 
         for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
@@ -52,7 +52,7 @@ impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for IntermediateCrossover {
             }
         }
 
-        cross_count
+        cross_count.into()
     }
 }
 

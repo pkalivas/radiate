@@ -1,7 +1,7 @@
 use radiate::*;
 
 const MIN_SCORE: f32 = 0.0001;
-const MAX_INDEX: i32 = 500;
+const MAX_INDEX: usize = 500;
 const MAX_SECONDS: u64 = 1;
 
 fn main() {

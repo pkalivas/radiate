@@ -31,7 +31,7 @@ where
 {
     pub population: Population<C>,
     pub best: T,
-    pub index: i32,
+    pub index: usize,
     pub timer: Timer,
     pub metrics: MetricSet,
     pub score: Option<Score>,

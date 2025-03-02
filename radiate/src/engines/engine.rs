@@ -444,7 +444,7 @@ where
         (self.params.population_size as f32 * self.params.offspring_fraction) as usize
     }
 
-    fn max_age(&self) -> i32 {
+    fn max_age(&self) -> usize {
         self.params.max_age
     }
 

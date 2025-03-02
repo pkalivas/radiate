@@ -2,7 +2,7 @@ use super::transaction::{InsertStep, TransactionResult};
 use super::{Graph, GraphChromosome, GraphNode};
 use crate::node::Node;
 use crate::{Arity, Factory, NodeType};
-use radiate::{AlterAction, Alterer, Mutate, random_provider};
+use radiate::{AlterAction, AlterResult, Alterer, Mutate, random_provider};
 use radiate::{Chromosome, IntoAlter};
 
 /// A graph mutator that can be used to alter the graph structure. This is used to add nodes
@@ -62,7 +62,7 @@ where
     T: Clone + PartialEq + Default,
 {
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<T>, _: f32) -> i32 {
+    fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<T>, _: f32) -> AlterResult {
         if let Some(node_type_to_add) = self.mutate_type() {
             if let Some(store) = chromosome.store() {
                 let new_node = store.new_instance((chromosome.len(), node_type_to_add));
@@ -112,12 +112,12 @@ where
 
                 if let TransactionResult::Valid(_) = result {
                     chromosome.set_nodes(graph.into_iter().collect::<Vec<GraphNode<T>>>());
-                    return 1;
+                    return 1.into();
                 }
             }
         }
 
-        0
+        0.into()
     }
 }
 

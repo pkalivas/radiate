@@ -1,7 +1,7 @@
 use radiate::*;
 use radiate_gp::*;
 
-const MAX_INDEX: i32 = 500;
+const MAX_INDEX: usize = 500;
 const MIN_SCORE: f32 = 0.01;
 
 fn main() {

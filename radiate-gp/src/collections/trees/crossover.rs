@@ -1,6 +1,6 @@
 use super::TreeChromosome;
 use radiate::engines::genome::*;
-use radiate::{AlterAction, Alterer, Crossover, IntoAlter, random_provider};
+use radiate::{AlterAction, AlterResult, Alterer, Crossover, IntoAlter, random_provider};
 
 pub struct TreeCrossover {
     rate: f32,
@@ -22,7 +22,7 @@ where
         chrom_one: &mut TreeChromosome<T>,
         chrom_two: &mut TreeChromosome<T>,
         _: f32,
-    ) -> i32 {
+    ) -> AlterResult {
         let swap_one_index = random_provider::random_range(0..chrom_one.len());
         let swap_two_index = random_provider::random_range(0..chrom_two.len());
 
@@ -36,12 +36,12 @@ where
         let two_rand_index = random_provider::random_range(0..two_size);
 
         if one_rand_index < 1 || two_rand_index < 1 {
-            return 0;
+            return 0.into();
         }
 
         one_node.swap_subtrees(two_node, one_rand_index, two_rand_index);
 
-        2
+        2.into()
     }
 }
 

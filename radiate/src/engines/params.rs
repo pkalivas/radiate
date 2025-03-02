@@ -36,7 +36,7 @@ where
     T: Clone + 'static,
 {
     pub population_size: usize,
-    pub max_age: i32,
+    pub max_age: usize,
     pub min_front_size: usize,
     pub max_front_size: usize,
     pub offspring_fraction: f32,
@@ -104,7 +104,7 @@ where
     }
 
     /// Set the maximum age of an individual in the population. Default is 25.
-    pub fn max_age(mut self, max_age: i32) -> Self {
+    pub fn max_age(mut self, max_age: usize) -> Self {
         if max_age < 1 {
             panic!("max_age must be greater than 0");
         }

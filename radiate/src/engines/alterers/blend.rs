@@ -1,4 +1,4 @@
-use super::{AlterAction, Alterer, Crossover, IntoAlter};
+use super::{AlterAction, AlterResult, Alterer, Crossover, IntoAlter};
 use crate::{ArithmeticGene, Chromosome, random_provider};
 
 pub struct BlendCrossover {
@@ -27,7 +27,7 @@ where
     G::Allele: Into<f32> + Clone,
 {
     #[inline]
-    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, rate: f32) -> i32 {
+    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, rate: f32) -> AlterResult {
         let mut cross_count = 0;
 
         for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
@@ -48,7 +48,7 @@ where
             }
         }
 
-        cross_count
+        cross_count.into()
     }
 }
 

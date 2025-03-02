@@ -14,17 +14,23 @@ use crate::{Chromosome, Gene, Phenotype, Population, indexes, random_provider};
 /// entire population. This is the case with the `UniformCrossover` struct.
 pub trait Crossover<C: Chromosome>: IntoAlter<C> {
     #[inline]
-    fn crossover(&self, population: &mut Population<C>, generation: i32, rate: f32) -> AlterResult {
-        let mut count = 0;
+    fn crossover(
+        &self,
+        population: &mut Population<C>,
+        generation: usize,
+        rate: f32,
+    ) -> AlterResult {
+        let mut result = AlterResult::default();
 
         for i in 0..population.len() {
             if random_provider::random::<f32>() < rate {
                 let parent_indexes = indexes::individual_indexes(i, population.len(), 2);
-                count += self.cross(population, &parent_indexes, generation, rate);
+                let cross_result = self.cross(population, &parent_indexes, generation, rate);
+                result.merge(cross_result);
             }
         }
 
-        AlterResult(count, Vec::new())
+        result
     }
 
     #[inline]
@@ -32,9 +38,11 @@ pub trait Crossover<C: Chromosome>: IntoAlter<C> {
         &self,
         population: &mut Population<C>,
         parent_indexes: &[usize],
-        generation: i32,
+        generation: usize,
         rate: f32,
-    ) -> i32 {
+    ) -> AlterResult {
+        let mut result = AlterResult::default();
+
         let index_one = parent_indexes[0];
         let index_two = parent_indexes[1];
 
@@ -47,18 +55,19 @@ pub trait Crossover<C: Chromosome>: IntoAlter<C> {
         let chrom_one = &mut geno_one[chromosome_index];
         let chrom_two = &mut geno_two[chromosome_index];
 
-        let cross_count = self.cross_chromosomes(chrom_one, chrom_two, rate);
+        let cross_result = self.cross_chromosomes(chrom_one, chrom_two, rate);
 
-        if cross_count > 0 {
+        if cross_result.count() > 0 {
             population[index_one] = Phenotype::from_genotype(geno_one, generation);
             population[index_two] = Phenotype::from_genotype(geno_two, generation);
         }
 
-        cross_count
+        result.merge(cross_result);
+        result
     }
 
     #[inline]
-    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, rate: f32) -> i32 {
+    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, rate: f32) -> AlterResult {
         let mut cross_count = 0;
 
         for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
@@ -76,6 +85,6 @@ pub trait Crossover<C: Chromosome>: IntoAlter<C> {
             }
         }
 
-        cross_count
+        cross_count.into()
     }
 }
