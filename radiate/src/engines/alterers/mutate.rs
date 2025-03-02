@@ -14,9 +14,9 @@ pub trait Mutate<C: Chromosome>: IntoAlter<C> {
             if mutate_result.count() > 0 {
                 phenotype.generation = generation;
                 phenotype.score = None;
-
-                result.merge(mutate_result);
             }
+
+            result.merge(mutate_result);
         }
 
         result

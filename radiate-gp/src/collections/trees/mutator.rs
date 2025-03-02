@@ -11,7 +11,7 @@ impl TreeMutator {
         TreeMutator { rate }
     }
 
-    fn mutate_node<T>(&self, node: &mut TreeNode<T>, store: &NodeStore<T>, rate: f32) -> i32
+    fn mutate_node<T>(&self, node: &mut TreeNode<T>, store: &NodeStore<T>, rate: f32) -> usize
     where
         T: Clone + PartialEq + Default,
     {

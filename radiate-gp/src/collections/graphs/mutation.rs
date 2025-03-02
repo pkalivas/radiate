@@ -1,9 +1,11 @@
 use super::transaction::{InsertStep, TransactionResult};
-use super::{Graph, GraphChromosome, GraphNode};
+use super::{Graph, GraphChromosome};
 use crate::node::Node;
 use crate::{Arity, Factory, NodeType};
-use radiate::{AlterAction, AlterResult, Alterer, Mutate, random_provider};
+use radiate::{AlterAction, AlterResult, Alterer, Metric, Mutate, random_provider};
 use radiate::{Chromosome, IntoAlter};
+
+const INVALID_MUTATION: &'static str = "GraphMutator(Ivld)";
 
 /// A graph mutator that can be used to alter the graph structure. This is used to add nodes
 /// to the graph, and can be used to add either edges or vertices. The mutator is created with
@@ -110,9 +112,15 @@ where
                     }))
                 });
 
-                if let TransactionResult::Valid(_) = result {
-                    chromosome.set_nodes(graph.into_iter().collect::<Vec<GraphNode<T>>>());
-                    return 1.into();
+                match result {
+                    TransactionResult::Invalid(_, _) => {
+                        let metric = Metric::Value(INVALID_MUTATION, 1.into());
+                        return (0, metric).into();
+                    }
+                    TransactionResult::Valid(_) => {
+                        chromosome.set_nodes(graph.into_iter().collect());
+                        return 1.into();
+                    }
                 }
             }
         }

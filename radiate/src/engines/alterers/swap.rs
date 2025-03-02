@@ -29,7 +29,7 @@ impl<C: Chromosome> Mutate<C> for SwapMutator {
             }
         }
 
-        AlterResult(mutations, None)
+        mutations.into()
     }
 }
 

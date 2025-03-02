@@ -95,7 +95,7 @@ where
             }
         }
 
-        (mutation_indexes.len() as i32).into()
+        mutation_indexes.len().into()
     }
 }
 

@@ -73,7 +73,7 @@ impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
             chrom_two.set_gene(i, gene_two.clone());
         }
 
-        (self.num_points as i32).into()
+        self.num_points.into()
     }
 }
 

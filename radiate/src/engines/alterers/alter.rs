@@ -38,10 +38,10 @@ pub trait IntoAlter<C: Chromosome> {
 /// performed and a vector of metrics that were collected
 /// during the alteration process.
 #[derive(Default)]
-pub struct AlterResult(pub i32, pub Option<Vec<Metric>>);
+pub struct AlterResult(pub usize, pub Option<Vec<Metric>>);
 
 impl AlterResult {
-    pub fn count(&self) -> i32 {
+    pub fn count(&self) -> usize {
         self.0
     }
 
@@ -63,15 +63,21 @@ impl AlterResult {
     }
 }
 
-impl Into<AlterResult> for i32 {
+impl Into<AlterResult> for usize {
     fn into(self) -> AlterResult {
         AlterResult(self, None)
     }
 }
 
-impl Into<AlterResult> for (i32, Vec<Metric>) {
+impl Into<AlterResult> for (usize, Vec<Metric>) {
     fn into(self) -> AlterResult {
         AlterResult(self.0, Some(self.1))
+    }
+}
+
+impl Into<AlterResult> for (usize, Metric) {
+    fn into(self) -> AlterResult {
+        AlterResult(self.0, Some(vec![self.1]))
     }
 }
 

@@ -25,7 +25,7 @@ impl<C: Chromosome> Mutate<C> for ScrambleMutator {
             mutations += 1;
         }
 
-        AlterResult(mutations, None)
+        mutations.into()
     }
 }
 
