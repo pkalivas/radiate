@@ -16,10 +16,10 @@ use std::sync::Arc;
 /// Parameters for the genetic engine.
 /// This struct is used to configure the genetic engine before it is created.
 ///
-/// When the `GeneticEngineParams`  calls the `build` method, it will create a new instance
+/// When the `GeneticEngineBuilder` calls the `build` method, it will create a new instance
 /// of the `GeneticEngine` with the given parameters. If any of the required parameters are not
 /// set, the `build` method will panic. At a minimum, the `codex` and `fitness_fn` must be set.
-/// The `GeneticEngineParams` struct is a builder pattern that allows you to set the parameters of
+/// The `GeneticEngineBuilder` struct is a builder pattern that allows you to set the parameters of
 /// the `GeneticEngine` in a fluent and functional way.
 ///
 /// # Type Parameters

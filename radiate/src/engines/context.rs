@@ -1,5 +1,5 @@
-use super::MetricSet;
 use super::objectives::Score;
+use super::{EngineError, MetricSet};
 use crate::Chromosome;
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
@@ -36,7 +36,7 @@ where
     pub metrics: MetricSet,
     pub score: Option<Score>,
     pub front: Arc<Mutex<Front>>,
-    pub error: Option<String>,
+    pub error: Option<EngineError>,
 }
 
 impl<C, T> EngineContext<C, T>
@@ -44,8 +44,11 @@ where
     C: Chromosome,
 {
     /// Get the current score of the best individual in the population.
-    pub fn score(&self) -> &Score {
-        self.score.as_ref().unwrap()
+    pub fn score(&self) -> Score {
+        match self.error {
+            Some(_) => Score::default(),
+            None => self.score.clone().unwrap_or_default(),
+        }
     }
 
     /// Get the current duration of the genetic engine run in seconds.
@@ -61,6 +64,14 @@ where
         time: impl Into<Duration>,
     ) {
         self.metrics.upsert_operations(name, value, time);
+    }
+
+    pub fn is_ok(&self) -> bool {
+        self.error.is_none()
+    }
+
+    pub fn is_err(&self) -> bool {
+        self.error.is_some()
     }
 }
 
@@ -88,14 +99,19 @@ where
     C: Chromosome,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "EngineOutput {{\n")?;
-        write!(f, "  best: {:?},\n", self.best)?;
-        write!(f, "  score: {:?},\n", self.score())?;
-        write!(f, "  index: {:?},\n", self.index)?;
-        write!(f, "  size: {:?},\n", self.population.len())?;
-        write!(f, "  duration: {:?},\n", self.timer.duration())?;
-        write!(f, "  metrics: {:?},\n", self.metrics)?;
-        write!(f, "}}")
+        match self.error {
+            Some(ref err) => write!(f, "EngineContext {{\n  error: {:?},\n}}", err),
+            None => {
+                write!(f, "EngineContext {{\n")?;
+                write!(f, "  best: {:?},\n", self.best)?;
+                write!(f, "  score: {:?},\n", self.score())?;
+                write!(f, "  index: {:?},\n", self.index)?;
+                write!(f, "  size: {:?},\n", self.population.len())?;
+                write!(f, "  duration: {:?},\n", self.timer.duration())?;
+                write!(f, "  metrics: {:?},\n", self.metrics)?;
+                write!(f, "}}")
+            }
+        }
     }
 }
 

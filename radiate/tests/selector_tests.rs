@@ -18,7 +18,9 @@ mod selector_tests {
         optimize.sort(&mut population);
 
         let selector = EliteSelector::new();
-        let selected = selector.select(&population, &Objective::Single(optimize), num);
+        let selected = selector
+            .select(&population, &Objective::Single(optimize), num)
+            .unwrap();
 
         for i in 0..num {
             let original = population[i].score().as_ref().unwrap().as_f32();
@@ -59,8 +61,10 @@ mod selector_tests {
         let random_selector = RandomSelector::new();
 
         for _ in 0..num_permutations {
-            let selected = selector.select(&population, &objectives, count);
-            let random_selected = random_selector.select(&population, &objectives, count);
+            let selected = selector.select(&population, &objectives, count).unwrap();
+            let random_selected = random_selector
+                .select(&population, &objectives, count)
+                .unwrap();
 
             assert_eq!(selected.len(), count);
             assert_eq!(random_selected.len(), count);

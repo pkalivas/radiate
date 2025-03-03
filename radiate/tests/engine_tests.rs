@@ -3,6 +3,8 @@ mod utilities;
 #[cfg(test)]
 mod engine_tests {
 
+    use std::vec;
+
     use radiate::*;
 
     #[test]
@@ -55,5 +57,20 @@ mod engine_tests {
 
         let best = result.best.first().unwrap();
         assert_eq!(best, &vec![1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn engine_has_error_for_invalid_selector() {
+        let codex = IntCodex::new(1, 5, 0..100);
+
+        let engine = GeneticEngine::from_codex(codex)
+            .multi_objective(vec![Optimize::Minimize, Optimize::Maximize])
+            .offspring_selector(BoltzmannSelector::new(4.0))
+            .fitness_fn(|geno: Vec<Vec<i32>>| geno.iter().flatten().sum::<i32>())
+            .build();
+
+        let result = engine.run(|ctx| ctx.score().as_i32() == 0);
+
+        assert!(result.is_err());
     }
 }

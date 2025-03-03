@@ -1,5 +1,5 @@
 use crate::objectives::Objective;
-use crate::{Chromosome, Population, Select, random_provider};
+use crate::{Chromosome, Population, Select, SelectorError, random_provider};
 
 pub struct SteadyStateSelector {
     replacement_count: usize,
@@ -16,7 +16,12 @@ impl<C: Chromosome> Select<C> for SteadyStateSelector {
         "SteadyStateSelector"
     }
 
-    fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {
+    fn select(
+        &self,
+        population: &Population<C>,
+        _: &Objective,
+        count: usize,
+    ) -> Result<Population<C>, SelectorError> {
         let mut selected_population = population.clone();
         let slice = population.as_ref();
 
@@ -26,9 +31,9 @@ impl<C: Chromosome> Select<C> for SteadyStateSelector {
             selected_population[replace_index] = new_individual;
         }
 
-        selected_population
+        Ok(selected_population
             .into_iter()
             .take(count)
-            .collect::<Population<C>>()
+            .collect::<Population<C>>())
     }
 }

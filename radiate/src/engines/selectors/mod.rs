@@ -23,7 +23,7 @@ pub use steady_state::*;
 pub use stochastic_sampling::*;
 pub use tournament::*;
 
-use super::random_provider;
+use super::{SelectorError, random_provider};
 
 /// A trait for selection algorithms. Selection algorithms are used to select
 /// individuals from a population to be used in the next generation. The
@@ -46,7 +46,7 @@ pub trait Select<C: Chromosome> {
         population: &Population<C>,
         optimize: &Objective,
         count: usize,
-    ) -> Population<C>;
+    ) -> Result<Population<C>, SelectorError>;
 }
 
 /// An iterator that generates random indices based on probabilities.

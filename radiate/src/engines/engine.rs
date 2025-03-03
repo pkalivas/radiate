@@ -1,9 +1,7 @@
 use super::codexes::Codex;
 use super::context::EngineContext;
 use super::thread_pool::ThreadPool;
-use super::{
-    Alter, GeneticEngineParams, MetricSet, PopulationContext, Problem, ReplacementStrategy,
-};
+use super::{Alter, GeneticEngineParams, MetricSet, Problem, ReplacementStrategy};
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
 use crate::engines::objectives::Score;
@@ -123,7 +121,7 @@ where
             self.evaluate(&mut ctx);
             self.audit(&mut ctx);
 
-            if limit(&ctx) {
+            if ctx.is_err() || limit(&ctx) {
                 break self.stop(&mut ctx);
             }
         }
@@ -138,6 +136,10 @@ where
     /// It will also only evaluate individuals that have not yet been scored, which saves time
     /// by avoiding redundant evaluations.
     fn evaluate(&self, handle: &mut EngineContext<C, T>) {
+        if handle.is_err() {
+            return;
+        }
+
         let objective = self.objective();
         let thread_pool = self.thread_pool();
         let timer = Timer::new();
@@ -185,7 +187,7 @@ where
     /// can maintain some of the best solutions found so far while also introducing new genetic material/genetic diversity.
     ///
     /// This method returns a new population containing only the selected survivors.
-    fn select_survivors(&self, ctx: &mut EngineContext<C, T>) -> PopulationContext<C> {
+    fn select_survivors(&self, ctx: &mut EngineContext<C, T>) -> Option<Population<C>> {
         let selector = self.survivor_selector();
         let count = self.survivor_count();
         let objective = self.objective();
@@ -193,9 +195,20 @@ where
         let timer = Timer::new();
         let result = selector.select(&ctx.population, objective, count);
 
-        ctx.upsert_operation(selector.name(), count as f32, timer);
+        match result {
+            Ok(survivors) => {
+                ctx.upsert_operation(selector.name(), survivors.len() as f32, timer);
+                Some(survivors)
+            }
+            Err(selector_error) => {
+                ctx.error = Some(selector_error.into());
+                return None;
+            }
+        }
 
-        PopulationContext::new(result)
+        // ctx.upsert_operation(selector.name(), count as f32, timer);
+
+        // PopulationContext::new(result)
     }
 
     /// Create the offspring that will be used to create the next generation. The number of offspring
@@ -212,28 +225,50 @@ where
     /// `offspring_fraction` specifies. This process introduces new genetic material into the population,
     /// which allows the genetic algorithm explore new solutions in the problem space and (hopefully)
     /// avoid getting stuck in local minima.
-    fn create_offspring(&self, ctx: &mut EngineContext<C, T>) -> PopulationContext<C> {
+    fn create_offspring(&self, ctx: &mut EngineContext<C, T>) -> Option<Population<C>> {
         let selector = self.offspring_selector();
         let count = self.offspring_count();
         let objective = self.objective();
         let alters = self.alters();
 
         let timer = Timer::new();
-        let mut offspring = selector.select(&ctx.population, objective, count);
+        let offspring = selector.select(&ctx.population, objective, count);
 
-        ctx.upsert_operation(selector.name(), count as f32, timer);
+        match offspring {
+            Ok(mut offspring_population) => {
+                ctx.upsert_operation(selector.name(), offspring_population.len() as f32, timer);
 
-        objective.sort(&mut offspring);
+                objective.sort(&mut offspring_population);
 
-        for alterer in alters {
-            let alter_result = alterer.alter(&mut offspring, ctx.index);
+                for alterer in alters {
+                    let alter_result = alterer.alter(&mut offspring_population, ctx.index);
 
-            for metric in alter_result {
-                ctx.metrics.upsert(metric);
+                    for metric in alter_result {
+                        ctx.metrics.upsert(metric);
+                    }
+                }
+
+                Some(offspring_population)
+            }
+            Err(selector_error) => {
+                ctx.error = Some(selector_error.into());
+                None
             }
         }
 
-        PopulationContext::new(offspring)
+        // ctx.upsert_operation(selector.name(), count as f32, timer);
+
+        // objective.sort(&mut offspring);
+
+        // for alterer in alters {
+        //     let alter_result = alterer.alter(&mut offspring, ctx.index);
+
+        //     for metric in alter_result {
+        //         ctx.metrics.upsert(metric);
+        //     }
+        // }
+
+        // PopulationContext::new(offspring)
     }
 
     /// Filters the population to remove individuals that are too old or invalid. The maximum age
@@ -250,6 +285,10 @@ where
     /// is `FilterStrategy::PopulationSample`, then a new individual is created by randomly selecting
     /// an individual from the population.
     fn filter(&self, context: &mut EngineContext<C, T>) {
+        if context.error.is_some() {
+            return;
+        }
+
         let max_age = self.max_age();
 
         let generation = context.index;
@@ -292,14 +331,11 @@ where
     fn recombine(
         &self,
         handle: &mut EngineContext<C, T>,
-        survivors: PopulationContext<C>,
-        offspring: PopulationContext<C>,
+        survivors: Option<Population<C>>,
+        offspring: Option<Population<C>>,
     ) {
-        if survivors.is_ok() && offspring.is_ok() {
-            let surviving_population = survivors.take_population();
-            let offspring_population = offspring.take_population();
-
-            match (surviving_population, offspring_population) {
+        if survivors.is_some() && offspring.is_some() && !handle.is_err() {
+            match (survivors, offspring) {
                 (Some(survivors), Some(offspring)) => {
                     handle.population = survivors
                         .into_iter()
@@ -309,6 +345,21 @@ where
                 _ => {}
             }
         }
+
+        // if survivors.is_ok() && offspring.is_ok() {
+        //     let surviving_population = survivors.take_population();
+        //     let offspring_population = offspring.take_population();
+
+        //     match (surviving_population, offspring_population) {
+        //         (Some(survivors), Some(offspring)) => {
+        //             handle.population = survivors
+        //                 .into_iter()
+        //                 .chain(offspring)
+        //                 .collect::<Population<C>>();
+        //         }
+        //         _ => {}
+        //     }
+        // }
         // handle.population = survivors
         //     .into_iter()
         //     .chain(offspring)
@@ -319,6 +370,10 @@ where
     /// and calculating various metrics such as the age of individuals, the score of individuals, and the
     /// number of unique scores in the population. This method is called at the end of each generation.
     fn audit(&self, output: &mut EngineContext<C, T>) {
+        if output.error.is_some() {
+            return;
+        }
+
         let problem = self.problem();
         let optimize = self.objective();
 

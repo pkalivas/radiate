@@ -1,7 +1,7 @@
 use super::Select;
 use crate::objectives::{Objective, Optimize};
 use crate::selectors::ProbabilityWheelIterator;
-use crate::{Chromosome, Population};
+use crate::{Chromosome, Population, SelectorError};
 
 pub struct RouletteSelector;
 
@@ -21,7 +21,7 @@ impl<C: Chromosome> Select<C> for RouletteSelector {
         population: &Population<C>,
         objective: &Objective,
         count: usize,
-    ) -> Population<C> {
+    ) -> Result<Population<C>, SelectorError> {
         let mut selected = Vec::with_capacity(count);
         let mut fitness_values = Vec::with_capacity(population.len());
         let scores = population
@@ -53,6 +53,6 @@ impl<C: Chromosome> Select<C> for RouletteSelector {
             selected.push(population[idx].clone());
         }
 
-        Population::new(selected)
+        Ok(Population::new(selected))
     }
 }

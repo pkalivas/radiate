@@ -1,6 +1,6 @@
 use super::Select;
 use crate::objectives::Objective;
-use crate::{Chromosome, Population, random_provider};
+use crate::{Chromosome, Population, SelectorError, random_provider};
 
 pub struct RandomSelector;
 
@@ -15,7 +15,12 @@ impl<C: Chromosome> Select<C> for RandomSelector {
         "RandomSelector"
     }
 
-    fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {
+    fn select(
+        &self,
+        population: &Population<C>,
+        _: &Objective,
+        count: usize,
+    ) -> Result<Population<C>, SelectorError> {
         let mut selected = Vec::with_capacity(count);
 
         for _ in 0..count {
@@ -23,7 +28,7 @@ impl<C: Chromosome> Select<C> for RandomSelector {
             selected.push(population[index].clone());
         }
 
-        Population::new(selected)
+        Ok(Population::new(selected))
     }
 }
 

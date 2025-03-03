@@ -1,5 +1,5 @@
 use crate::objectives::{Objective, Optimize};
-use crate::{Chromosome, Population, Select, random_provider};
+use crate::{Chromosome, Population, Select, SelectorError, random_provider};
 
 pub struct LinearRankSelector {
     selection_pressure: f32,
@@ -21,7 +21,7 @@ impl<C: Chromosome> Select<C> for LinearRankSelector {
         population: &Population<C>,
         objective: &Objective,
         count: usize,
-    ) -> Population<C> {
+    ) -> Result<Population<C>, SelectorError> {
         let mut fitness_values = population
             .iter()
             .filter_map(|individual| individual.score())
@@ -57,6 +57,6 @@ impl<C: Chromosome> Select<C> for LinearRankSelector {
             }
         }
 
-        Population::new(selected_population)
+        Ok(Population::new(selected_population))
     }
 }

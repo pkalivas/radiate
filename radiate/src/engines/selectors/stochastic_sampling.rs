@@ -1,5 +1,5 @@
 use crate::objectives::{Objective, Optimize};
-use crate::{Chromosome, Population, Select, random_provider};
+use crate::{Chromosome, Population, Select, SelectorError, random_provider};
 
 pub struct StochasticUniversalSamplingSelector;
 
@@ -19,7 +19,7 @@ impl<C: Chromosome> Select<C> for StochasticUniversalSamplingSelector {
         population: &Population<C>,
         objective: &Objective,
         count: usize,
-    ) -> Population<C> {
+    ) -> Result<Population<C>, SelectorError> {
         let mut fitness_values = Vec::with_capacity(population.len());
 
         let total_fitness = population
@@ -40,7 +40,10 @@ impl<C: Chromosome> Select<C> for StochasticUniversalSamplingSelector {
                 }
             }
             Objective::Multi(_) => {
-                panic!("Multi-objective optimization is not supported by this selector.");
+                return Err(SelectorError::InvalidObjective(
+                    "Stochastic Universal Sampling does not support multi-objective optimization."
+                        .to_string(),
+                ));
             }
         }
 
@@ -62,6 +65,6 @@ impl<C: Chromosome> Select<C> for StochasticUniversalSamplingSelector {
             current_point += point_distance;
         }
 
-        Population::new(pointers)
+        Ok(Population::new(pointers))
     }
 }

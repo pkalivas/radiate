@@ -1,7 +1,7 @@
 use super::Select;
 use crate::objectives::{Objective, Optimize};
 use crate::selectors::ProbabilityWheelIterator;
-use crate::{Chromosome, Population};
+use crate::{Chromosome, Population, SelectorError};
 
 pub struct BoltzmannSelector {
     temperature: f32,
@@ -23,7 +23,7 @@ impl<C: Chromosome> Select<C> for BoltzmannSelector {
         population: &Population<C>,
         objective: &Objective,
         count: usize,
-    ) -> Population<C> {
+    ) -> Result<Population<C>, SelectorError> {
         let mut selected = Vec::with_capacity(count);
         let mut min = population[0].score().unwrap().as_f32();
         let mut max = min;
@@ -41,11 +41,11 @@ impl<C: Chromosome> Select<C> for BoltzmannSelector {
 
         let diff = (max - min).abs();
         if diff == 0.0 {
-            return population
+            return Ok(population
                 .iter()
                 .take(count)
                 .cloned()
-                .collect::<Population<C>>();
+                .collect::<Population<C>>());
         }
 
         // Calculate the fitness values for each individual (normalized)
@@ -73,7 +73,9 @@ impl<C: Chromosome> Select<C> for BoltzmannSelector {
                 }
             }
             Objective::Multi(_) => {
-                panic!("Multi-objective optimization is not supported by this selector.");
+                return Err(SelectorError::InvalidObjective(
+                    "BoltzmannSelector only supports single objective optimization".to_string(),
+                ));
             }
         }
 
@@ -83,6 +85,6 @@ impl<C: Chromosome> Select<C> for BoltzmannSelector {
             selected.push(population[idx].clone());
         }
 
-        Population::new(selected)
+        Ok(Population::new(selected))
     }
 }
