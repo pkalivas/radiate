@@ -1,8 +1,8 @@
 use super::codexes::Codex;
 use super::thread_pool::ThreadPool;
 use super::{
-    Alter, EncodeReplace, EngineProblem, Front, IntoAlter, Problem, ReplacementStrategy,
-    RouletteSelector, Select, TournamentSelector,
+    Alter, BuilderError, EncodeReplace, EngineError, EngineProblem, Front, IntoAlter, Problem,
+    ReplacementStrategy, RouletteSelector, Select, TournamentSelector,
 };
 use crate::Chromosome;
 use crate::engines::engine::GeneticEngine;
@@ -46,6 +46,7 @@ where
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
     pub problem: Option<Arc<dyn Problem<C, T>>>,
     pub replacement_strategy: Box<dyn ReplacementStrategy<C>>,
+    pub error: Option<EngineError>,
 }
 
 impl<C, T> GeneticEngineBuilder<C, T>
@@ -93,6 +94,7 @@ where
             fitness_fn: None,
             problem: None,
             replacement_strategy: Box::new(EncodeReplace),
+            error: None,
         }
     }
 
@@ -219,13 +221,29 @@ where
     /// solutions that are not dominated by any other solution.
     pub fn front_size(mut self, min_size: usize, max_size: usize) -> Self {
         if min_size > max_size {
-            panic!("min_size must be less than or equal to max_size");
+            self.error = Some(
+                BuilderError::InvalidFrontSize(
+                    "min_size must be less than or equal to max_size".to_string(),
+                )
+                .into(),
+            );
         } else if min_size < 1 {
-            panic!("min_size must be greater than 0");
+            self.error = Some(
+                BuilderError::InvalidFrontSize("min_size must be greater than 0".to_string())
+                    .into(),
+            );
         } else if max_size < 1 {
-            panic!("max_size must be greater than 0");
+            self.error = Some(
+                BuilderError::InvalidFrontSize("max_size must be greater than 0".to_string())
+                    .into(),
+            );
         } else if max_size < min_size {
-            panic!("max_size must be greater than or equal to min_size");
+            self.error = Some(
+                BuilderError::InvalidFrontSize(
+                    "max_size must be greater than or equal to min_size".to_string(),
+                )
+                .into(),
+            );
         }
 
         self.min_front_size = min_size;
@@ -246,54 +264,85 @@ where
     pub fn build(mut self) -> GeneticEngine<C, T> {
         if self.problem.is_none() {
             if self.codex.is_none() {
-                panic!("Codex not set");
+                self.error = Some(BuilderError::MissingCodex.into());
             }
 
             if self.fitness_fn.is_none() {
-                panic!("Fitness function not set");
+                self.error = Some(BuilderError::MissingFitnessFn.into());
             }
 
-            let problem = EngineProblem {
-                codex: self.codex.clone().unwrap(),
-                fitness_fn: self.fitness_fn.clone().unwrap(),
-            };
+            if self.error.is_none() {
+                let problem = EngineProblem {
+                    codex: self.codex.clone(),
+                    fitness_fn: self.fitness_fn.clone(),
+                };
 
-            self.problem(problem).build()
-        } else {
-            self.build_population();
-            self.build_alterer();
-
-            let inputs = GeneticEngineParams {
-                population: self.population.unwrap(),
-                problem: self.problem.unwrap(),
-                fitness_fn: self.fitness_fn.unwrap(),
-                survivor_selector: self.survivor_selector,
-                offspring_selector: self.offspring_selector,
-                replacement_strategy: self.replacement_strategy,
-                alterers: self.alterers,
-                objective: self.objective.clone(),
-                thread_pool: self.thread_pool,
-                max_age: self.max_age,
-                front: Front::new(self.min_front_size, self.max_front_size, self.objective),
-                offspring_fraction: self.offspring_fraction,
-            };
-
-            GeneticEngine::new(inputs)
+                return self.problem(problem).build();
+            }
         }
+
+        self.build_population();
+        self.build_alterer();
+
+        let inputs = GeneticEngineParams {
+            population: self.population.unwrap(),
+            problem: self.problem.unwrap(),
+            fitness_fn: self.fitness_fn.unwrap(),
+            survivor_selector: self.survivor_selector,
+            offspring_selector: self.offspring_selector,
+            replacement_strategy: self.replacement_strategy,
+            alterers: self.alterers,
+            objective: self.objective.clone(),
+            thread_pool: self.thread_pool,
+            max_age: self.max_age,
+            front: Front::new(self.min_front_size, self.max_front_size, self.objective),
+            offspring_fraction: self.offspring_fraction,
+        };
+
+        GeneticEngine::new(inputs)
     }
 
     /// Build the population of the genetic engine. This will create a new population
     /// using the codex if the population is not set.
     fn build_population(&mut self) {
-        self.population = match &self.population {
-            None => Some(match self.problem.as_ref() {
-                Some(problem) => Population::from_fn(self.population_size, || {
-                    Phenotype::from_genotype(problem.encode(), 0)
-                }),
-                None => panic!("Codex not set"),
-            }),
-            Some(pop) => Some(pop.clone()),
-        };
+        if let Some(pop) = &self.population {
+            self.population = Some(pop.clone());
+        } else {
+            match self.problem {
+                Some(ref problem) => {
+                    let mut population = Vec::new();
+                    for i in 0..self.population_size {
+                        match problem.encode() {
+                            Ok(genotype) => {
+                                let phenotype = Phenotype::from_genotype(genotype, i);
+                                population.push(phenotype);
+                            }
+                            Err(e) => {
+                                self.error = Some(e.into());
+                                break;
+                            }
+                        }
+                    }
+
+                    if self.error.is_none() {
+                        self.population = Some(Population::new(population));
+                    }
+                }
+                None => {
+                    self.error = Some(BuilderError::MissingCodex.into());
+                }
+            }
+        }
+
+        // self.population = match &self.population {
+        //     None => Some(match self.problem.as_ref() {
+        //         Some(problem) => Population::from_fn(self.population_size, || {
+        //             Phenotype::from_genotype(problem.encode(), 0)
+        //         }),
+        //         None => panic!("Codex not set"),
+        //     }),
+        //     Some(pop) => Some(pop.clone()),
+        // };
     }
 
     /// Build the alterer of the genetic engine. This will create a

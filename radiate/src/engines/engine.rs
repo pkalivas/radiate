@@ -164,8 +164,16 @@ where
         let count = work_results.len() as f32;
         for work_result in work_results {
             let (idx, score, genotype) = work_result.result();
-            handle.population[idx].set_score(Some(score));
-            handle.population[idx].set_genotype(genotype);
+            match score {
+                Ok(score) => {
+                    handle.population[idx].set_score(Some(score));
+                    handle.population[idx].set_genotype(genotype);
+                }
+                Err(e) => {
+                    handle.error = Some(e.into());
+                    return;
+                }
+            }
         }
 
         handle.upsert_operation(metric_names::EVALUATION, count, timer);
@@ -205,10 +213,6 @@ where
                 return None;
             }
         }
-
-        // ctx.upsert_operation(selector.name(), count as f32, timer);
-
-        // PopulationContext::new(result)
     }
 
     /// Create the offspring that will be used to create the next generation. The number of offspring
@@ -255,20 +259,6 @@ where
                 None
             }
         }
-
-        // ctx.upsert_operation(selector.name(), count as f32, timer);
-
-        // objective.sort(&mut offspring);
-
-        // for alterer in alters {
-        //     let alter_result = alterer.alter(&mut offspring, ctx.index);
-
-        //     for metric in alter_result {
-        //         ctx.metrics.upsert(metric);
-        //     }
-        // }
-
-        // PopulationContext::new(offspring)
     }
 
     /// Filters the population to remove individuals that are too old or invalid. The maximum age
@@ -314,7 +304,15 @@ where
                 let problem = self.problem();
                 let encoder = Arc::new(move || problem.encode());
 
-                replacement.replace(i, generation, population, encoder);
+                let replace_result = replacement.replace(i, generation, population, encoder);
+
+                match replace_result {
+                    Ok(_) => {}
+                    Err(e) => {
+                        context.error = Some(e.into());
+                        return;
+                    }
+                }
             }
         }
 
@@ -345,25 +343,6 @@ where
                 _ => {}
             }
         }
-
-        // if survivors.is_ok() && offspring.is_ok() {
-        //     let surviving_population = survivors.take_population();
-        //     let offspring_population = offspring.take_population();
-
-        //     match (surviving_population, offspring_population) {
-        //         (Some(survivors), Some(offspring)) => {
-        //             handle.population = survivors
-        //                 .into_iter()
-        //                 .chain(offspring)
-        //                 .collect::<Population<C>>();
-        //         }
-        //         _ => {}
-        //     }
-        // }
-        // handle.population = survivors
-        //     .into_iter()
-        //     .chain(offspring)
-        //     .collect::<Population<C>>();
     }
 
     /// Audits the current state of the genetic algorithm, updating the best individual found so far
@@ -385,12 +364,24 @@ where
             if let Some(best_score) = output.population[0].score() {
                 if optimize.is_better(best_score, current_score) {
                     output.score = Some(best_score.clone());
-                    output.best = problem.decode(output.population[0].genotype());
+                    match problem.decode(output.population[0].genotype()) {
+                        Ok(best) => output.best = best,
+                        Err(e) => {
+                            output.error = Some(e.into());
+                            return;
+                        }
+                    }
                 }
             }
         } else {
             output.score = output.population[0].score().cloned();
-            output.best = problem.decode(output.population[0].genotype());
+            match problem.decode(output.population[0].genotype()) {
+                Ok(best) => output.best = best,
+                Err(e) => {
+                    output.error = Some(e.into());
+                    return;
+                }
+            }
         }
 
         self.update_front(output);
@@ -519,10 +510,11 @@ where
 
     fn start(&self) -> EngineContext<C, T> {
         let population = self.params.population().clone();
+        let best = self.problem().decode(population[0].genotype());
 
         EngineContext {
             population: population.clone(),
-            best: self.problem().decode(population[0].genotype()),
+            best: best,
             index: 0,
             timer: Timer::new(),
             metrics: MetricSet::new(),

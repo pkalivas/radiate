@@ -51,3 +51,15 @@ impl Into<Duration> for Timer {
         self.duration()
     }
 }
+
+impl std::fmt::Debug for Timer {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "Timer {{ start: {:?}, end: {:?}, duration: {} }}",
+            self.start,
+            self.end,
+            self.duration().as_secs_f32()
+        )
+    }
+}
