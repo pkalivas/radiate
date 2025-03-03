@@ -1,5 +1,5 @@
 use crate::objectives::{Objective, pareto};
-use crate::{Chromosome, Population, Score, Select, SelectorError};
+use crate::{Chromosome, EngineError, Population, Score, Select};
 
 /// NSGA2 Selector. Selects individuals based on the NSGA2 algorithm.
 /// This algorithm ranks individuals based on their dominance relationships
@@ -28,7 +28,13 @@ impl<C: Chromosome> Select<C> for NSGA2Selector {
         population: &Population<C>,
         objective: &Objective,
         count: usize,
-    ) -> Result<Population<C>, SelectorError> {
+    ) -> Result<Population<C>, EngineError> {
+        if let Objective::Single(_) = *objective {
+            return Err(EngineError::SelectorError(
+                "NSGA2Selector only works with multi-objective optimization".to_string(),
+            ));
+        }
+
         let scores = population
             .iter()
             .filter_map(|individual| individual.score())

@@ -1,4 +1,5 @@
 pub mod alterers;
+pub mod builder;
 pub mod codexes;
 pub mod context;
 pub mod domain;
@@ -13,6 +14,7 @@ pub mod selectors;
 pub mod stats;
 
 pub use alterers::*;
+pub use builder::*;
 pub use codexes::{
     BitCodex, CharCodex, Codex, FloatCodex, FnCodex, IntCodex, PermutationCodex, SubSetCodex,
 };

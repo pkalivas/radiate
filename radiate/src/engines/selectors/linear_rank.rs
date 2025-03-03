@@ -1,5 +1,5 @@
 use crate::objectives::{Objective, Optimize};
-use crate::{Chromosome, Population, Select, SelectorError, random_provider};
+use crate::{Chromosome, EngineError, Population, Select, random_provider};
 
 pub struct LinearRankSelector {
     selection_pressure: f32,
@@ -21,7 +21,7 @@ impl<C: Chromosome> Select<C> for LinearRankSelector {
         population: &Population<C>,
         objective: &Objective,
         count: usize,
-    ) -> Result<Population<C>, SelectorError> {
+    ) -> Result<Population<C>, EngineError> {
         let mut fitness_values = population
             .iter()
             .filter_map(|individual| individual.score())
@@ -37,7 +37,11 @@ impl<C: Chromosome> Select<C> for LinearRankSelector {
                     fitness_values.reverse();
                 }
             }
-            Objective::Multi(_) => {}
+            Objective::Multi(_) => {
+                return Err(EngineError::SelectorError(
+                    "LinearRankSelector does not support multi-objective optimization".to_string(),
+                ));
+            }
         }
 
         for fit in fitness_values.iter_mut() {

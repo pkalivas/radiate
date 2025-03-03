@@ -1,14 +1,14 @@
 use super::codexes::Codex;
 use super::context::EngineContext;
 use super::thread_pool::ThreadPool;
-use super::{Alter, GeneticEngineParams, MetricSet, Problem, ReplacementStrategy};
+use super::{Alter, EngineError, GeneticEngineParams, Problem, ReplacementStrategy};
+use crate::engines::builder::GeneticEngineBuilder;
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
 use crate::engines::objectives::Score;
-use crate::engines::params::GeneticEngineBuilder;
 use crate::objectives::Objective;
 use crate::{Chromosome, Metric, Select, Valid, metric_names};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 /// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -61,7 +61,7 @@ use std::sync::{Arc, Mutex};
 pub struct GeneticEngine<C, T>
 where
     C: Chromosome + 'static,
-    T: Clone + Send + 'static,
+    T: Clone + Default + Send + 'static,
 {
     params: GeneticEngineParams<C, T>,
 }
@@ -69,12 +69,16 @@ where
 impl<C, T> GeneticEngine<C, T>
 where
     C: Chromosome,
-    T: Clone + Send,
+    T: Clone + Default + Send,
 {
     /// Create a new instance of the `GeneticEngine` struct with the given parameters.
     /// - `params`: An instance of `GeneticEngineParams` that holds configuration parameters for the genetic engine.
     pub fn new(params: GeneticEngineParams<C, T>) -> Self {
         GeneticEngine { params }
+    }
+
+    pub fn builder() -> GeneticEngineBuilder<C, T> {
+        GeneticEngineBuilder::default()
     }
 
     /// Initializes a `GeneticEngineParams` using the provided codex, which defines how individuals
@@ -85,7 +89,7 @@ where
     /// **Note** with this method, the `Codex` is supplied to the `GeneticEngineParams` and thus
     /// the `GeneticEngineParams` also will need a `FitnessFn` to be supplied before building.
     pub fn from_codex(codex: impl Codex<C, T> + 'static) -> GeneticEngineBuilder<C, T> {
-        GeneticEngineBuilder::new().codex(codex)
+        GeneticEngineBuilder::default().codex(codex)
     }
 
     /// Initializes a `GeneticEngineParams` using the provided problem, which defines the fitness function
@@ -97,7 +101,7 @@ where
     /// Similar to the `from_codex` method, this is a convenience method that allows users
     /// to create a `GeneticEngineParams` instance.
     pub fn from_problem(problem: impl Problem<C, T> + 'static) -> GeneticEngineBuilder<C, T> {
-        GeneticEngineBuilder::new().problem(problem)
+        GeneticEngineBuilder::default().problem(problem)
     }
 
     /// Executes the genetic algorithm. The algorithm continues until a specified
@@ -170,7 +174,7 @@ where
                     handle.population[idx].set_genotype(genotype);
                 }
                 Err(e) => {
-                    handle.error = Some(e.into());
+                    handle.set_error(e);
                     return;
                 }
             }
@@ -196,23 +200,26 @@ where
     ///
     /// This method returns a new population containing only the selected survivors.
     fn select_survivors(&self, ctx: &mut EngineContext<C, T>) -> Option<Population<C>> {
+        if ctx.is_err() {
+            return None;
+        }
+
         let selector = self.survivor_selector();
         let count = self.survivor_count();
         let objective = self.objective();
 
         let timer = Timer::new();
-        let result = selector.select(&ctx.population, objective, count);
 
-        match result {
-            Ok(survivors) => {
+        selector
+            .select(&ctx.population, objective, count)
+            .map(|survivors| {
                 ctx.upsert_operation(selector.name(), survivors.len() as f32, timer);
-                Some(survivors)
-            }
-            Err(selector_error) => {
-                ctx.error = Some(selector_error.into());
-                return None;
-            }
-        }
+                survivors
+            })
+            .map_err(|selector_error| {
+                ctx.set_error(selector_error);
+            })
+            .ok()
     }
 
     /// Create the offspring that will be used to create the next generation. The number of offspring
@@ -230,35 +237,38 @@ where
     /// which allows the genetic algorithm explore new solutions in the problem space and (hopefully)
     /// avoid getting stuck in local minima.
     fn create_offspring(&self, ctx: &mut EngineContext<C, T>) -> Option<Population<C>> {
+        if ctx.is_err() {
+            return None;
+        }
+
         let selector = self.offspring_selector();
         let count = self.offspring_count();
         let objective = self.objective();
         let alters = self.alters();
 
         let timer = Timer::new();
-        let offspring = selector.select(&ctx.population, objective, count);
 
-        match offspring {
-            Ok(mut offspring_population) => {
-                ctx.upsert_operation(selector.name(), offspring_population.len() as f32, timer);
+        selector
+            .select(&ctx.population, objective, count)
+            .map(|mut offspring| {
+                ctx.upsert_operation(selector.name(), offspring.len() as f32, timer);
 
-                objective.sort(&mut offspring_population);
+                objective.sort(&mut offspring);
 
                 for alterer in alters {
-                    let alter_result = alterer.alter(&mut offspring_population, ctx.index);
+                    let alter_result = alterer.alter(&mut offspring, ctx.index);
 
                     for metric in alter_result {
                         ctx.metrics.upsert(metric);
                     }
                 }
 
-                Some(offspring_population)
-            }
-            Err(selector_error) => {
-                ctx.error = Some(selector_error.into());
-                None
-            }
-        }
+                offspring
+            })
+            .map_err(|selector_error| {
+                ctx.set_error(selector_error);
+            })
+            .ok()
     }
 
     /// Filters the population to remove individuals that are too old or invalid. The maximum age
@@ -275,7 +285,7 @@ where
     /// is `FilterStrategy::PopulationSample`, then a new individual is created by randomly selecting
     /// an individual from the population.
     fn filter(&self, context: &mut EngineContext<C, T>) {
-        if context.error.is_some() {
+        if context.is_err() {
             return;
         }
 
@@ -305,13 +315,9 @@ where
                 let encoder = Arc::new(move || problem.encode());
 
                 let replace_result = replacement.replace(i, generation, population, encoder);
-
-                match replace_result {
-                    Ok(_) => {}
-                    Err(e) => {
-                        context.error = Some(e.into());
-                        return;
-                    }
+                if let Err(e) = replace_result {
+                    context.set_error(e);
+                    return;
                 }
             }
         }
@@ -349,7 +355,7 @@ where
     /// and calculating various metrics such as the age of individuals, the score of individuals, and the
     /// number of unique scores in the population. This method is called at the end of each generation.
     fn audit(&self, output: &mut EngineContext<C, T>) {
-        if output.error.is_some() {
+        if output.is_err() {
             return;
         }
 
@@ -367,7 +373,7 @@ where
                     match problem.decode(output.population[0].genotype()) {
                         Ok(best) => output.best = best,
                         Err(e) => {
-                            output.error = Some(e.into());
+                            output.set_error(e);
                             return;
                         }
                     }
@@ -378,7 +384,7 @@ where
             match problem.decode(output.population[0].genotype()) {
                 Ok(best) => output.best = best,
                 Err(e) => {
-                    output.error = Some(e.into());
+                    output.set_error(e);
                     return;
                 }
             }
@@ -461,11 +467,11 @@ where
         size_metric.add_sequence(&size_values);
         equal_metric.add_value(equal_members as f32);
 
-        output.metrics.upsert(equal_metric);
-        output.metrics.upsert(age_metric);
-        output.metrics.upsert(score_metric);
-        output.metrics.upsert(unique_metric);
-        output.metrics.upsert(size_metric);
+        output.upsert_metric(equal_metric);
+        output.upsert_metric(age_metric);
+        output.upsert_metric(score_metric);
+        output.upsert_metric(unique_metric);
+        output.upsert_metric(size_metric);
     }
 
     fn survivor_selector(&self) -> &Box<dyn Select<C>> {
@@ -509,18 +515,26 @@ where
     }
 
     fn start(&self) -> EngineContext<C, T> {
-        let population = self.params.population().clone();
-        let best = self.problem().decode(population[0].genotype());
+        match self.params.population() {
+            Some(population) => {
+                let front = self.params.front().clone();
+                let errors = self.params.errors().clone();
+                EngineContext::new(population.clone(), front, errors)
+            }
+            None => {
+                let err = match self.params.errors() {
+                    Some(e) => Some(e.clone()),
+                    None => Some(EngineError::PopulationError(
+                        "Population is not set".to_string(),
+                    )),
+                };
 
-        EngineContext {
-            population: population.clone(),
-            best: best,
-            index: 0,
-            timer: Timer::new(),
-            metrics: MetricSet::new(),
-            score: None,
-            front: Arc::new(Mutex::new(self.params.front().clone())),
-            error: None,
+                EngineContext::new(
+                    Population::new(Vec::new()),
+                    self.params.front().clone(),
+                    err,
+                )
+            }
         }
     }
 

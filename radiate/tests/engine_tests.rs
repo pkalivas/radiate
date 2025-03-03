@@ -73,4 +73,27 @@ mod engine_tests {
 
         assert!(result.is_err());
     }
+
+    #[test]
+    fn engine_has_error_for_missing_codex() {
+        let engine = GeneticEngine::<IntChromosome<i32>, Vec<Vec<i32>>>::builder()
+            .minimizing()
+            .fitness_fn(|geno: Vec<Vec<i32>>| geno.iter().flatten().sum::<i32>())
+            .build();
+
+        let result = engine.run(|ctx| ctx.score().as_i32() == 0);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn engine_has_error_for_missing_fitness_fn() {
+        let codex = IntCodex::new(1, 5, 0..100);
+
+        let engine = GeneticEngine::from_codex(codex).minimizing().build();
+
+        let result = engine.run(|ctx| ctx.score().as_i32() == 0);
+
+        assert!(result.is_err());
+    }
 }

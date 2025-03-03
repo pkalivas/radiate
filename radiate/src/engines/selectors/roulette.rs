@@ -1,7 +1,7 @@
 use super::Select;
 use crate::objectives::{Objective, Optimize};
 use crate::selectors::ProbabilityWheelIterator;
-use crate::{Chromosome, Population, SelectorError};
+use crate::{Chromosome, EngineError, Population};
 
 pub struct RouletteSelector;
 
@@ -21,7 +21,7 @@ impl<C: Chromosome> Select<C> for RouletteSelector {
         population: &Population<C>,
         objective: &Objective,
         count: usize,
-    ) -> Result<Population<C>, SelectorError> {
+    ) -> Result<Population<C>, EngineError> {
         let mut selected = Vec::with_capacity(count);
         let mut fitness_values = Vec::with_capacity(population.len());
         let scores = population
@@ -43,7 +43,9 @@ impl<C: Chromosome> Select<C> for RouletteSelector {
                 }
             }
             Objective::Multi(_) => {
-                panic!("Multi-objective optimization is not supported by this selector.");
+                return Err(EngineError::SelectorError(
+                    "Roulette Selector does not support multi-objective optimization.".to_string(),
+                ));
             }
         }
 

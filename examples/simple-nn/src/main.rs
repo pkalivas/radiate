@@ -51,7 +51,7 @@ fn main() {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct NeuralNet {
     pub layers: Vec<Vec<Vec<f32>>>,
 }

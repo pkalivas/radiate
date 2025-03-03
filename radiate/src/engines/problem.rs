@@ -1,10 +1,10 @@
-use super::{Chromosome, Codex, Genotype, ProblemError, Score};
+use super::{Chromosome, Codex, EngineError, Genotype, Score};
 use std::sync::Arc;
 
 pub trait Problem<C: Chromosome, T>: Send + Sync {
-    fn encode(&self) -> Result<Genotype<C>, ProblemError>;
-    fn decode(&self, genotype: &Genotype<C>) -> Result<T, ProblemError>;
-    fn eval(&self, individual: &Genotype<C>) -> Result<Score, ProblemError>;
+    fn encode(&self) -> Result<Genotype<C>, EngineError>;
+    fn decode(&self, genotype: &Genotype<C>) -> Result<T, EngineError>;
+    fn eval(&self, individual: &Genotype<C>) -> Result<Score, EngineError>;
 }
 
 pub(crate) struct EngineProblem<C, T>
@@ -16,26 +16,30 @@ where
 }
 
 impl<C: Chromosome, T> Problem<C, T> for EngineProblem<C, T> {
-    fn encode(&self) -> Result<Genotype<C>, ProblemError> {
+    fn encode(&self) -> Result<Genotype<C>, EngineError> {
         match &self.codex {
             Some(codex) => Ok(codex.encode()),
-            None => Err(ProblemError::EncodingError("Codex is not set".to_string())),
+            None => Err(EngineError::PopulationError(
+                "Codex is not set (Encoding)".to_string(),
+            )),
         }
     }
 
-    fn decode(&self, genotype: &Genotype<C>) -> Result<T, ProblemError> {
+    fn decode(&self, genotype: &Genotype<C>) -> Result<T, EngineError> {
         match &self.codex {
             Some(codex) => Ok(codex.decode(genotype)),
-            None => Err(ProblemError::DecodingError("Codex is not set".to_string())),
+            None => Err(EngineError::PopulationError(
+                "Codex is not set (Decoding)".to_string(),
+            )),
         }
     }
 
-    fn eval(&self, individual: &Genotype<C>) -> Result<Score, ProblemError> {
+    fn eval(&self, individual: &Genotype<C>) -> Result<Score, EngineError> {
         let phenotype = self.decode(individual)?;
         match &self.fitness_fn {
             Some(fitness_fn) => Ok((fitness_fn)(phenotype)),
-            None => Err(ProblemError::EvaluationError(
-                "Fitness function is not set".to_string(),
+            None => Err(EngineError::PopulationError(
+                "Fitness function is not set (FitnessFn)".to_string(),
             )),
         }
     }

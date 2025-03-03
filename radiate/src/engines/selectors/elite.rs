@@ -1,6 +1,6 @@
 use super::Select;
 use crate::objectives::Objective;
-use crate::{Chromosome, Population, SelectorError};
+use crate::{Chromosome, EngineError, Population};
 
 pub struct EliteSelector;
 
@@ -26,7 +26,7 @@ impl<C: Chromosome> Select<C> for EliteSelector {
         population: &Population<C>,
         _: &Objective,
         count: usize,
-    ) -> Result<Population<C>, SelectorError> {
+    ) -> Result<Population<C>, EngineError> {
         Ok(population.iter().take(count).cloned().collect())
     }
 }

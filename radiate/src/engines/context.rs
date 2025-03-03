@@ -1,5 +1,5 @@
 use super::objectives::Score;
-use super::{EngineError, MetricSet};
+use super::{EngineError, Metric, MetricSet};
 use crate::Chromosome;
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
@@ -28,6 +28,7 @@ use std::time::Duration;
 pub struct EngineContext<C, T>
 where
     C: Chromosome,
+    T: Default,
 {
     pub population: Population<C>,
     pub best: T,
@@ -42,7 +43,20 @@ where
 impl<C, T> EngineContext<C, T>
 where
     C: Chromosome,
+    T: Default,
 {
+    pub fn new(population: Population<C>, front: Front, errors: Option<EngineError>) -> Self {
+        Self {
+            population,
+            best: T::default(),
+            index: 0,
+            timer: Timer::new(),
+            metrics: MetricSet::default(),
+            score: None,
+            front: Arc::new(Mutex::new(front)),
+            error: errors,
+        }
+    }
     /// Get the current score of the best individual in the population.
     pub fn score(&self) -> Score {
         match self.error {
@@ -66,6 +80,14 @@ where
         self.metrics.upsert_operations(name, value, time);
     }
 
+    pub fn upsert_metric(&mut self, metric: impl Into<Metric>) {
+        self.metrics.upsert(metric.into());
+    }
+
+    pub fn set_error(&mut self, error: impl Into<EngineError>) {
+        self.error = Some(error.into());
+    }
+
     pub fn is_ok(&self) -> bool {
         self.error.is_none()
     }
@@ -78,7 +100,7 @@ where
 impl<C, T> Clone for EngineContext<C, T>
 where
     C: Chromosome,
-    T: Clone,
+    T: Clone + Default,
 {
     fn clone(&self) -> Self {
         Self {
@@ -97,6 +119,7 @@ where
 impl<C, T: Debug> Debug for EngineContext<C, T>
 where
     C: Chromosome,
+    T: Default,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.error {
