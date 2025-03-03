@@ -245,7 +245,7 @@ impl<'a, T> GraphTransaction<'a, T> {
         steps
     }
 
-    /// The below functinos are used to get random nodes from the graph. These are useful for
+    /// The below functions are used to get random nodes from the graph. These are useful for
     /// creating connections between nodes. Neither of these functions will return an edge node.
     /// This is because edge nodes are not valid source or target nodes for connections as they
     /// they only allow one incoming and one outgoing connection, thus they can't be used to create
