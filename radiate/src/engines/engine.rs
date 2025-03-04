@@ -175,7 +175,6 @@ where
                 }
                 Err(e) => {
                     handle.set_error(e);
-                    return;
                 }
             }
         }
@@ -256,9 +255,7 @@ where
                 objective.sort(&mut offspring);
 
                 for alterer in alters {
-                    let alter_result = alterer.alter(&mut offspring, ctx.index);
-
-                    for metric in alter_result {
+                    for metric in alterer.alter(&mut offspring, ctx.index) {
                         ctx.metrics.upsert(metric);
                     }
                 }
@@ -334,20 +331,12 @@ where
     /// will be used in the next iteration of the genetic algorithm.
     fn recombine(
         &self,
-        handle: &mut EngineContext<C, T>,
+        ctx: &mut EngineContext<C, T>,
         survivors: Option<Population<C>>,
         offspring: Option<Population<C>>,
     ) {
-        if survivors.is_some() && offspring.is_some() && !handle.is_err() {
-            match (survivors, offspring) {
-                (Some(survivors), Some(offspring)) => {
-                    handle.population = survivors
-                        .into_iter()
-                        .chain(offspring)
-                        .collect::<Population<C>>();
-                }
-                _ => {}
-            }
+        if let (Some(survivors), Some(offspring)) = (survivors, offspring) {
+            ctx.population = survivors.into_iter().chain(offspring).collect();
         }
     }
 
@@ -522,17 +511,14 @@ where
                 EngineContext::new(population.clone(), front, errors)
             }
             None => {
-                let err = match self.params.errors() {
-                    Some(e) => Some(e.clone()),
-                    None => Some(EngineError::PopulationError(
-                        "Population is not set".to_string(),
-                    )),
-                };
+                let err = self.params.errors().unwrap_or_else(|| {
+                    EngineError::PopulationError("Population is not set".to_string())
+                });
 
                 EngineContext::new(
                     Population::new(Vec::new()),
                     self.params.front().clone(),
-                    err,
+                    Some(err),
                 )
             }
         }

@@ -8,6 +8,7 @@ pub enum EngineError {
     ProblemError(String),
     PopulationError(String),
     CombinedError(Vec<EngineError>),
+    Error(String),
 }
 
 impl Error for EngineError {}
@@ -19,6 +20,7 @@ impl Display for EngineError {
             EngineError::BuilderError(err) => write!(f, "Builder error: {}", err),
             EngineError::ProblemError(err) => write!(f, "Problem error: {}", err),
             EngineError::PopulationError(err) => write!(f, "Population error: {}", err),
+            EngineError::Error(err) => write!(f, "Error: {}", err),
             EngineError::CombinedError(errs) => {
                 write!(f, "Combined errors:")?;
                 for err in errs {
@@ -33,5 +35,11 @@ impl Display for EngineError {
 impl Into<EngineError> for Vec<EngineError> {
     fn into(self) -> EngineError {
         EngineError::CombinedError(self)
+    }
+}
+
+impl Into<EngineError> for String {
+    fn into(self) -> EngineError {
+        EngineError::BuilderError(self)
     }
 }
