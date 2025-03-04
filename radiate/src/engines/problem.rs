@@ -19,7 +19,7 @@ impl<C: Chromosome, T> Problem<C, T> for EngineProblem<C, T> {
     fn encode(&self) -> Result<Genotype<C>, EngineError> {
         match &self.codex {
             Some(codex) => Ok(codex.encode()),
-            None => Err(EngineError::PopulationError(
+            None => Err(EngineError::ProblemError(
                 "Codex is not set (Encoding)".to_string(),
             )),
         }
@@ -28,7 +28,7 @@ impl<C: Chromosome, T> Problem<C, T> for EngineProblem<C, T> {
     fn decode(&self, genotype: &Genotype<C>) -> Result<T, EngineError> {
         match &self.codex {
             Some(codex) => Ok(codex.decode(genotype)),
-            None => Err(EngineError::PopulationError(
+            None => Err(EngineError::ProblemError(
                 "Codex is not set (Decoding)".to_string(),
             )),
         }
@@ -38,7 +38,7 @@ impl<C: Chromosome, T> Problem<C, T> for EngineProblem<C, T> {
         let phenotype = self.decode(individual)?;
         match &self.fitness_fn {
             Some(fitness_fn) => Ok((fitness_fn)(phenotype)),
-            None => Err(EngineError::PopulationError(
+            None => Err(EngineError::ProblemError(
                 "Fitness function is not set (FitnessFn)".to_string(),
             )),
         }

@@ -94,8 +94,6 @@ mod engine_tests {
 
         let result = engine.run(|ctx| ctx.score().as_i32() == 0);
 
-        println!("Result: {:?}", result);
-
         assert!(result.is_err());
     }
 }

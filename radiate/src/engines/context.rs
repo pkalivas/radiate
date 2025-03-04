@@ -85,11 +85,11 @@ where
     }
 
     pub fn set_error(&mut self, error: impl Into<EngineError>) {
-        self.error = Some(error.into());
-    }
+        if self.error.is_some() {
+            return;
+        }
 
-    pub fn is_ok(&self) -> bool {
-        self.error.is_none()
+        self.error = Some(error.into());
     }
 
     pub fn is_err(&self) -> bool {

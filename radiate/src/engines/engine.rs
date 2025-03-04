@@ -148,22 +148,18 @@ where
         let thread_pool = self.thread_pool();
         let timer = Timer::new();
 
-        let mut work_results = Vec::new();
-        for idx in 0..handle.population.len() {
-            let individual = &mut handle.population[idx];
-            if individual.score().is_some() {
-                continue;
-            } else {
-                let problem = self.problem();
-                let geno = individual.take_genotype();
-                let work = thread_pool.submit_with_result(move || {
-                    let score = problem.eval(&geno);
-                    (idx, score, geno)
-                });
-
-                work_results.push(work);
-            }
-        }
+        let work_results = handle
+            .population
+            .iter_mut()
+            .enumerate()
+            .filter_map(|(idx, individual)| {
+                individual.score().is_none().then(|| {
+                    let problem = self.problem();
+                    let genotype = individual.take_genotype();
+                    thread_pool.submit_with_result(move || (idx, problem.eval(&genotype), genotype))
+                })
+            })
+            .collect::<Vec<_>>();
 
         let count = work_results.len() as f32;
         for work_result in work_results {
@@ -180,7 +176,6 @@ where
         }
 
         handle.upsert_operation(metric_names::EVALUATION, count, timer);
-
         objective.sort(&mut handle.population);
     }
 
@@ -512,7 +507,7 @@ where
             }
             None => {
                 let err = self.params.errors().unwrap_or_else(|| {
-                    EngineError::PopulationError("Population is not set".to_string())
+                    EngineError::BuilderError("Population is not set".to_string())
                 });
 
                 EngineContext::new(
