@@ -10,7 +10,7 @@ fn main() {
     let values = vec![
         (NodeType::Input, vec![Op::var(0), Op::var(1)]),
         (NodeType::Edge, vec![Op::weight(), Op::identity()]),
-        (NodeType::Vertex, ops::get_all_operations()),
+        (NodeType::Vertex, ops::all_ops()),
         (NodeType::Output, vec![Op::sigmoid()]),
     ];
 

@@ -320,3 +320,62 @@ impl<T: Debug + PartialEq + Clone> Debug for GraphNode<T> {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::NodeType;
+    use std::collections::HashSet;
+
+    #[test]
+    fn test_graph_node() {
+        let node = GraphNode::new(0, NodeType::Input, 0.0);
+
+        assert_eq!(node.index(), 0);
+        assert_eq!(node.node_type(), NodeType::Input);
+        assert_eq!(node.arity(), Arity::Zero);
+        assert_eq!(node.is_valid(), false);
+        assert_eq!(node.is_enabled(), true);
+        assert_eq!(node.is_recurrent(), false);
+        assert_eq!(node.incoming(), &HashSet::new());
+        assert_eq!(node.outgoing(), &HashSet::new());
+    }
+
+    #[test]
+    fn test_graph_node_with_arity() {
+        let node = GraphNode::with_arity(0, NodeType::Input, 0.0, Arity::Zero);
+
+        assert_eq!(node.index(), 0);
+        assert_eq!(node.node_type(), NodeType::Input);
+        assert_eq!(node.arity(), Arity::Zero);
+        assert_eq!(node.is_valid(), false);
+        assert_eq!(node.is_enabled(), true);
+        assert_eq!(node.is_recurrent(), false);
+        assert_eq!(node.incoming(), &HashSet::new());
+        assert_eq!(node.outgoing(), &HashSet::new());
+    }
+
+    #[test]
+    fn test_graph_node_with_allele() {
+        let node = GraphNode::new(0, NodeType::Input, 0.0);
+
+        let new_node = node.with_allele(&1.0);
+        assert_eq!(new_node.index(), 0);
+        assert_eq!(new_node.node_type(), NodeType::Input);
+        assert_eq!(new_node.arity(), Arity::Zero);
+        assert_eq!(new_node.is_valid(), false);
+        assert_eq!(new_node.is_enabled(), true);
+        assert_eq!(new_node.is_recurrent(), false);
+        assert_eq!(new_node.incoming(), &HashSet::new());
+        assert_eq!(new_node.outgoing(), &HashSet::new());
+    }
+
+    #[test]
+    fn test_graph_node_with_direction() {
+        let mut node = GraphNode::new(0, NodeType::Input, 0.0);
+
+        assert_eq!(node.direction(), Direction::Forward);
+        node.set_direction(Direction::Backward);
+        assert_eq!(node.direction(), Direction::Backward);
+    }
+}

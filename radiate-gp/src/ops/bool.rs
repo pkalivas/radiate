@@ -54,7 +54,7 @@ impl Op<bool> {
     pub fn and_then() -> Self {
         Op::Fn(
             "and_then",
-            2.into(),
+            3.into(),
             Arc::new(|args| args[0] && args[1] && args[2]),
         )
     }

@@ -222,7 +222,7 @@ mod tests {
 
     #[test]
     fn test_node_store() {
-        let all_ops = ops::get_all_operations();
+        let all_ops = ops::all_ops();
         let store = NodeStore::from(all_ops);
 
         store.insert(NodeType::Output, vec![Op::sigmoid()]);

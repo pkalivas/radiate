@@ -2,7 +2,40 @@
 mod tests {
 
     use radiate::*;
-    use radiate_gp::{Direction, Graph, NodeType};
+    use radiate_gp::{Arity, Direction, Graph, GraphNode, Node, NodeType, Op};
+
+    #[test]
+    fn test_graph_node_creations() {
+        let mut graph_one = Graph::new(vec![
+            GraphNode::new(0, NodeType::Input, 0),
+            GraphNode::new(1, NodeType::Vertex, 1),
+            GraphNode::new(2, NodeType::Output, 1),
+        ]);
+
+        graph_one.attach(0, 1).attach(1, 2);
+
+        assert_eq!(graph_one.len(), 3);
+        assert!(graph_one.is_valid());
+        assert!(graph_one[0].arity() == Arity::Zero);
+        assert!(graph_one[1].arity() == Arity::Any);
+        assert!(graph_one[2].arity() == Arity::Any);
+
+        let mut graph_two = Graph::new(vec![
+            GraphNode::new(0, NodeType::Input, Op::var(0)),
+            GraphNode::new(1, NodeType::Input, Op::constant(5.0)),
+            GraphNode::with_arity(2, NodeType::Vertex, Op::add(), Arity::Exact(2)),
+            GraphNode::new(3, NodeType::Output, Op::linear()),
+        ]);
+
+        graph_two.attach(0, 2).attach(1, 2).attach(2, 3);
+
+        assert_eq!(graph_two.len(), 4);
+        assert!(graph_two.is_valid());
+        assert!(graph_two[0].arity() == Arity::Zero);
+        assert!(graph_two[1].arity() == Arity::Zero);
+        assert!(graph_two[2].arity() == Arity::Exact(2));
+        assert!(graph_two[3].arity() == Arity::Any);
+    }
 
     #[test]
     fn test_simple_graph() {

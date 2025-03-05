@@ -426,7 +426,7 @@ impl Op<f32> {
 }
 
 /// Get a list of all the math operations.
-pub fn math_operations() -> Vec<Op<f32>> {
+pub fn math_ops() -> Vec<Op<f32>> {
     vec![
         Op::add(),
         Op::sub(),
@@ -452,7 +452,7 @@ pub fn math_operations() -> Vec<Op<f32>> {
 }
 
 /// Get a list of all the activation operations.
-pub fn activation_operations() -> Vec<Op<f32>> {
+pub fn activation_ops() -> Vec<Op<f32>> {
     vec![
         Op::sigmoid(),
         Op::tanh(),
@@ -468,9 +468,6 @@ pub fn activation_operations() -> Vec<Op<f32>> {
 }
 
 /// Get a list of all the operations.
-pub fn get_all_operations() -> Vec<Op<f32>> {
-    math_operations()
-        .into_iter()
-        .chain(activation_operations())
-        .collect()
+pub fn all_ops() -> Vec<Op<f32>> {
+    math_ops().into_iter().chain(activation_ops()).collect()
 }

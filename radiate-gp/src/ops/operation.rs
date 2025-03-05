@@ -294,4 +294,16 @@ mod test {
         println!("o_one: {:?}", o_one);
         println!("o_two: {:?}", o_two);
     }
+
+    #[test]
+    fn test_op_clone() {
+        let op = Op::add();
+        let op2 = op.clone();
+
+        let result = op.eval(&vec![1_f32, 2_f32]);
+        let result2 = op2.eval(&vec![1_f32, 2_f32]);
+
+        assert_eq!(op, op2);
+        assert_eq!(result, result2);
+    }
 }

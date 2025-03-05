@@ -548,11 +548,11 @@ comprehensive list of examples.
             (NodeType::Leaf, vec![Op::var(0)]),
         ];
 
-        let graph_codex = TreeCodex::single(3, store).constraint(|root| root.size() < 30);
+        let tree_codex = TreeCodex::single(3, store).constraint(|root| root.size() < 30);
 
         let regression = Regression::new(get_dataset(), Loss::MSE);
 
-        let engine = GeneticEngine::from_codex(graph_codex)
+        let engine = GeneticEngine::from_codex(tree_codex)
             .minimizing()
             .num_threads(10)
             .alter(alters!(TreeCrossover::new(0.5)))
