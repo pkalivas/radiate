@@ -168,7 +168,7 @@ impl<T: Clone + Default> Graph<T> {
     }
 }
 
-struct NodeBuilder<T> {
+pub struct NodeBuilder<T> {
     store: NodeStore<T>,
 }
 

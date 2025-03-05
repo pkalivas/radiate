@@ -167,82 +167,144 @@ Provided `Ops` include:
 
 ## Graphs
 
-Graphs are a powerful way to represent problems. They are used in many fields, such as Neural Networks, and can be used to solve complex problems. Radiate offers an extremely unique way to build any type of graph architecture you can think of. The `GraphArchitect` is the underlying structure that allows you to construct complex `Graph`s. It is a builder pattern that keeps an aggregate of all nodes and their relationships to eachother then builds or compiles the `GraphNode`'s into a `Graph` when ready. Because of the complex rules that govern the relation between different types of nodes, each `GraphNode` is given a `NodeType` that determines how it will interact with other nodes within the graph. The `NodeType` can be 
+Graphs are a powerful way to represent problems. They are used in many fields, such as Neural Networks, and can be used to solve complex problems. Radiate-gp thinks of graphs in a more general way than most implementations. Instead of being a collection of inputs, nodes, edges, and outputs, radiate-gp thinks of a graph as simply a bag of nodes that can be connected in any way. Why? Well, because it allows for more flexibility within the graph and it lends itself well to the evolutionary nature of genetic programming. However, this representation is not without it's drawbacks. It can be difficult to reason about the graph and it can be difficult to ensure that the graph is valid. Radiate-gp tries to mitigate these issues by sticking to a few simple rules that govern the graph.
 
-| Type | Description | Allowed Arity |
-|------|-------------|---------------|
-| Input | A node that takes input from the outside world | 0 |
-| Output | A node that takes input from within the graph and returns a value to the outside world | Any |
-| Edge | A node that takes input from a single node in the graph and returns a value to another node within the graph | Exact(1) |
-| Vertex | A node that takes input from at least one node within the graph and returns a value to at least one node within the graph | Exact(n) or Any |
+1. Each input node must have 0 incoming connections and at least 1 outgoing connection.
+2. Each output node must have at least 1 incoming connection and 0 outgoing connections.
+3. Each edge node must have exactly 1 incoming connection and 1 outgoing connection.
+4. Each vertex node must have at least 1 incoming connection and at least 1 outgoing connection.
 
-### Directed Acyclic Graphs (DAGs)
+With these rules in mind, we can begin to build and evolve graphs. The graph typically relies on an underlying `GraphArchitect` to construct a valid graph. This architect is a builder pattern that keeps an aggregate of nodes added and their relationships to other nodes. Because of the architect's decoupled nature, we can easily create complex graphs, however it is up to the user to ensure that the desired end graph is valid. 
 
-To create a DAG we supply a vec of tuples where the first element is the `NodeType` and the second element is a vec of `Op`s. The `NodeType` is either `Input`, `Output`, or `Hidden`. The `Op`s are the possible alleles for the `GraphNode`.
-``` rust
+Radiate-gp provides a few basic graph architectures, but it is also possible to construct your own graph through either the built in graph functions or by using the architect. In most cases building a graph requires a vec of tuples where the first element is the `NodeType` and the second element is a vec of values that the `GraphNode` can take. The `NodeType` is either `Input`, `Output`, `Vertex`, or `Edge`. The value of the `GraphNode` is picked at random from the vec of it's `NodeType`.
+
+??? info "Directed Acyclic Graphs (DAGs)"
+
+    ``` rust
+    let values = vec![
+        (NodeType::Input, vec![Op::var(0), Op::var(1)]),
+        (NodeType::Output, vec![Op::sigmoid()]),
+    ];
+
+    let graph = Graph::directed(2, 1, values);
+    ```
+    This will create a `Graph` with 2 inputs and 1 output with a sigmoid activation function and will look like this:
+
+    ```plaintext
+    Input0 ---
+                \
+                  Sigmoid
+                /
+    Input1 ---
+    ```
+
+    Its also possible to create the same graph manually like so
+
+    ``` rust
+    let mut graph = Graph::new(vec![
+        GraphNode::new(0, NodeType::Input, Op::var(0)),
+        GraphNode::new(1, NodeType::Input, Op::var(1)),
+        GraphNode::new(2, NodeType::Output, Op::sigmoid()),
+    ])
+
+    graph.attach(0, 2).attach(1, 2);
+    ```
+
+??? info "Directed Cyclic Graphs (DCGs)"
+
+    ``` rust
+    let values = vec![
+        (NodeType::Input, vec![Op::var(0)]),
+        (NodeType::Edge, vec![Op::weight(), Op::identity()]),
+        (NodeType::Vertex, ops::all_ops()),
+        (NodeType::Output, vec![Op::sigmoid()]),
+    ];
+
+    let graph = Graph::recurrent(1, 1, values);
+    ```
+
+    This will create a `Graph` with 1 input, 1 output, 1 vertex with a cycle back to itself, and 1 output with a sigmoid activation function.
+    It will look like this:
+
+    ```plaintext
+                     ___________________
+                    /                   \
+    Input0 --- Vertex --- Vertex    Sigmoid
+            \_____________/
+    ```
+
+### Codex
+
+The `GraphCodex` is much the same as other codexes gone over previously. It's encode function will produce a Genotype with a single `GraphChromosome` representing one graph, while the decode function will take a Genotype and produce a single `Graph`. The graph codex can be created similar to how a graph is created. It requires a set of values that a `GraphNode` can take the type of graph that is desired. 
+
+A codex for a directed graph with 2 inputs and 1 output might look like this:
+```rust
 let values = vec![
     (NodeType::Input, vec![Op::var(0), Op::var(1)]),
     (NodeType::Output, vec![Op::sigmoid()]),
 ];
 
-let graph = Graph::directed(2, 1, values);
-```
-This will create a `Graph` with 2 inputs and 1 output with a sigmoid activation function and will look like this:
-
-```plaintext
-Input0 ---
-           \
-            Sigmoid
-           /
-Input1 ---
+let codex = GraphCodex::directed(2, 1, values);
 ```
 
-
-
-### GraphCrossover
-
-> Inputs
->
-> * `rate`: f32 - Crossover rate.
-> * `crossover_parent_rate`: f32 - The rate at which the nodes of the fittest parent are copied.
-
-Borrowing from the popular [NEAT](https://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) (NeuroEvoltuion of Augmenting Topologies).
-The `GraphCrossover` operator is used to crossover two `Graph`s. It works by 
-first copying the nodes from the fittest parent, then iterating over the edges of the other parent and adding them to the child if a random value is less than the `crossover_parent_rate`. 
-
-Create a new `GraphCrossover` with a crossover rate of `0.7` and a parent rate of `0.5`
+while a codex for a directed cyclic graph with 2 inputs and 2 outputs might look like this:
 ```rust
-let crossover = GraphCrossover::new(0.7, 0.5);
-```
+let values = vec![
+    (NodeType::Input, vec![Op::var(0), Op::var(1)]),
+    (NodeType::Edge, vec![Op::weight(), Op::identity()]),
+    (NodeType::Vertex, ops::all_ops()),
+    (NodeType::Output, vec![Op::sigmoid(), Op::tanh()]),
+];
 
-### GraphMutator
+let codex = GraphCodex::recurrent(2, 2, values);
+``` 
 
-> Inputs
->
-> * `edge_rate`: f32 - Mutation rate.
-> * `node_rate`: f32 - Mutation rate.
-> * `allow_recurrent`: bool - Allow recurrent connections to be made (default: true).
+### Alters
 
-The `GraphMutator` adds edges or nodes to a `Graph` with the given probabilities. It uses a transaction to add these nodes to the graph so invalid mutations can be rolled back allowing for extremely efficeint graph mutation. If `allow_recurrent` is set to `true`, the mutator will allow recurrent connections to be made. The `GraphMutator` will return a metric of invalid mutations created so the user can adjust the mutation rates accordingly.
+=== "GraphCrossover"
+    
+    > Inputs
+	>
+	> * `rate`: f32 - Crossover rate.
+	> * `crossover_parent_rate`: f32 - The rate at which the nodes of the fittest parent are copied.
 
-Create a new `GraphMutator` with an edge mutation rate of `0.1`, a node mutation rate of `0.1`, and disallow recurrent connections.
-```rust
-let mutator = GraphMutator::new(0.1, 0.1).allow_recurrent(false);
-```
+	Borrowing from the popular [NEAT](https://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) (NeuroEvoltuion of Augmenting Topologies).
+	The `GraphCrossover` operator is used to crossover two `Graph`s. It works by 
+	first copying the nodes from the fittest parent, then iterating over the edges of the other parent and adding them to the child if a random value is less than the `crossover_parent_rate`. 
 
-### OpMutator
+	Create a new `GraphCrossover` with a crossover rate of `0.7` and a parent rate of `0.5`
+	```rust
+	let crossover = GraphCrossover::new(0.7, 0.5);
+	```
 
-> Inputs
->
-> * `rate`: f32 - Mutation rate.
-> * `replace_rate`: f32 - Rate at which the `Op` is replaced with a new `Op`.
+=== "GraphMutator"
 
-The `OpMutator` mutates the `Op` of a `GraphNode` in a `Graph`. It works by iterating over the nodes of the graph and determining if the `Op` should be mutated or replaced. If the `Op` is to be mutated, the `Op` is mutated by changing the `Op`'s internal properties. If the `Op` is to be replaced, the `Op` is replaced with a new `Op`. It is gaurenteed that the `Op`'s `Arity` will not change which ensures that that the graph remains valid.
+	> Inputs
+	>
+	> * `edge_rate`: f32 - Mutation rate.
+	> * `node_rate`: f32 - Mutation rate.
+	> * `allow_recurrent`: bool - Allow recurrent connections to be made (default: true).
 
-Create a new `OpMutator` with a mutation rate of `0.1` and a replace rate of `0.1`.
-```rust
-let mutator = OpMutator::new(0.1, 0.1);
-```
+	The `GraphMutator` adds edges or nodes to a `Graph` with the given probabilities. It uses a transaction to add these nodes to the graph so invalid mutations can be rolled back allowing for extremely efficeint graph mutation. If `allow_recurrent` is set to `true`, the mutator will allow recurrent connections to be made. The `GraphMutator` will return a metric of invalid mutations created so the user can adjust the mutation rates accordingly.
+
+	Create a new `GraphMutator` with an edge mutation rate of `0.1`, a node mutation rate of `0.1`, and disallow recurrent connections.
+	```rust
+	let mutator = GraphMutator::new(0.1, 0.1).allow_recurrent(false);
+	```
+
+=== "OperationMutator"
+
+	> Inputs
+	>
+	> * `rate`: f32 - Mutation rate.
+	> * `replace_rate`: f32 - Rate at which the `Op` is replaced with a new `Op`.
+
+	The `OperationMutator` mutates the `Op` of a `GraphNode` in a `Graph`. It works by iterating over the nodes of the graph and determining if the `Op` should be mutated or replaced. If the `Op` is to be mutated, the `Op` is mutated by changing the `Op`'s internal properties. If the `Op` is to be replaced, the `Op` is replaced with a new `Op`. It is gaurenteed that the `Op`'s `Arity` will not change which ensures that that the graph remains valid.
+
+	Create a new `OperationMutator` with a mutation rate of `0.1` and a replace rate of `0.1`.
+	```rust
+	let mutator = OpMutator::new(0.1, 0.1);
+	```
 
 ## Trees
 

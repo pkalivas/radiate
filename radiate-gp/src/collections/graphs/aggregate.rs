@@ -397,7 +397,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
             ConnectTypes::OneToMany => self.one_to_many_connect(one, two),
             ConnectTypes::ManyToOne => self.many_to_one_connect(one, two),
             ConnectTypes::AllToAll => self.all_to_all_connect(one, two),
-            ConnectTypes::OneToSelf => self.all_to_all_self_connect(one, two),
+            ConnectTypes::OneToSelf => self.one_to_self_connect(one, two),
         }
     }
 
@@ -467,7 +467,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         }
     }
 
-    fn all_to_all_self_connect<G: AsRef<[GraphNode<T>]>>(&mut self, one: &'a G, two: &'a G) {
+    fn one_to_self_connect<G: AsRef<[GraphNode<T>]>>(&mut self, one: &'a G, two: &'a G) {
         let one_outputs = self.get_outputs(one);
         let two_inputs = self.get_inputs(two);
 

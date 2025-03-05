@@ -24,7 +24,7 @@ fn main() {
         (NodeType::Output, outputs.clone()),
     ];
 
-    let codex = GraphCodex::asyclic(4, 4, store);
+    let codex = GraphCodex::directed(4, 4, store);
 
     let engine = GeneticEngine::from_codex(codex)
         .minimizing()

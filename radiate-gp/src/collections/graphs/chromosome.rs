@@ -34,7 +34,6 @@ where
         if let Some(store) = maybe_store {
             return GraphChromosome {
                 nodes: self
-                    .nodes
                     .iter()
                     .enumerate()
                     .map(|(index, node)| {

@@ -1,7 +1,7 @@
 use crate::node::Node;
 use crate::{Arity, NodeType};
 use radiate::{Gene, Valid};
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 use std::fmt::Debug;
 use std::hash::Hash;
 use uuid::Uuid;
@@ -21,8 +21,8 @@ pub struct GraphNode<T> {
     direction: Direction,
     node_type: Option<NodeType>,
     arity: Option<Arity>,
-    incoming: HashSet<usize>,
-    outgoing: HashSet<usize>,
+    incoming: BTreeSet<usize>,
+    outgoing: BTreeSet<usize>,
 }
 
 impl<T> GraphNode<T> {
@@ -35,8 +35,8 @@ impl<T> GraphNode<T> {
             direction: Direction::Forward,
             node_type: Some(node_type),
             arity: None,
-            incoming: HashSet::new(),
-            outgoing: HashSet::new(),
+            incoming: BTreeSet::new(),
+            outgoing: BTreeSet::new(),
         }
     }
 
@@ -49,8 +49,8 @@ impl<T> GraphNode<T> {
             direction: Direction::Forward,
             node_type: Some(node_type),
             arity: Some(arity),
-            incoming: HashSet::new(),
-            outgoing: HashSet::new(),
+            incoming: BTreeSet::new(),
+            outgoing: BTreeSet::new(),
         }
     }
 
@@ -88,19 +88,19 @@ impl<T> GraphNode<T> {
             || self.outgoing.contains(&self.index)
     }
 
-    pub fn incoming(&self) -> &HashSet<usize> {
+    pub fn incoming(&self) -> &BTreeSet<usize> {
         &self.incoming
     }
 
-    pub fn outgoing(&self) -> &HashSet<usize> {
+    pub fn outgoing(&self) -> &BTreeSet<usize> {
         &self.outgoing
     }
 
-    pub fn incoming_mut(&mut self) -> &mut HashSet<usize> {
+    pub fn incoming_mut(&mut self) -> &mut BTreeSet<usize> {
         &mut self.incoming
     }
 
-    pub fn outgoing_mut(&mut self) -> &mut HashSet<usize> {
+    pub fn outgoing_mut(&mut self) -> &mut BTreeSet<usize> {
         &mut self.outgoing
     }
 
@@ -249,8 +249,8 @@ impl<T: Default> Into<GraphNode<T>> for (usize, T) {
             direction: Direction::Forward,
             node_type: None,
             arity: None,
-            incoming: HashSet::new(),
-            outgoing: HashSet::new(),
+            incoming: BTreeSet::new(),
+            outgoing: BTreeSet::new(),
         }
     }
 }
@@ -273,8 +273,8 @@ impl<T: Default> Into<GraphNode<T>> for (usize, T, Arity) {
             direction: Direction::Forward,
             node_type: None,
             arity: Some(arity),
-            incoming: HashSet::new(),
-            outgoing: HashSet::new(),
+            incoming: BTreeSet::new(),
+            outgoing: BTreeSet::new(),
         }
     }
 }
@@ -289,13 +289,13 @@ impl<T: Default> Default for GraphNode<T> {
             direction: Direction::Forward,
             node_type: None,
             arity: None,
-            incoming: HashSet::new(),
-            outgoing: HashSet::new(),
+            incoming: BTreeSet::new(),
+            outgoing: BTreeSet::new(),
         }
     }
 }
 
-impl<T: Debug + PartialEq + Clone> Debug for GraphNode<T> {
+impl<T: Debug> Debug for GraphNode<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let incoming = self
             .incoming
@@ -325,7 +325,7 @@ impl<T: Debug + PartialEq + Clone> Debug for GraphNode<T> {
 mod tests {
     use super::*;
     use crate::NodeType;
-    use std::collections::HashSet;
+    use std::collections::BTreeSet;
 
     #[test]
     fn test_graph_node() {
@@ -337,8 +337,8 @@ mod tests {
         assert_eq!(node.is_valid(), false);
         assert_eq!(node.is_enabled(), true);
         assert_eq!(node.is_recurrent(), false);
-        assert_eq!(node.incoming(), &HashSet::new());
-        assert_eq!(node.outgoing(), &HashSet::new());
+        assert_eq!(node.incoming(), &BTreeSet::new());
+        assert_eq!(node.outgoing(), &BTreeSet::new());
     }
 
     #[test]
@@ -351,8 +351,8 @@ mod tests {
         assert_eq!(node.is_valid(), false);
         assert_eq!(node.is_enabled(), true);
         assert_eq!(node.is_recurrent(), false);
-        assert_eq!(node.incoming(), &HashSet::new());
-        assert_eq!(node.outgoing(), &HashSet::new());
+        assert_eq!(node.incoming(), &BTreeSet::new());
+        assert_eq!(node.outgoing(), &BTreeSet::new());
     }
 
     #[test]
@@ -366,8 +366,8 @@ mod tests {
         assert_eq!(new_node.is_valid(), false);
         assert_eq!(new_node.is_enabled(), true);
         assert_eq!(new_node.is_recurrent(), false);
-        assert_eq!(new_node.incoming(), &HashSet::new());
-        assert_eq!(new_node.outgoing(), &HashSet::new());
+        assert_eq!(new_node.incoming(), &BTreeSet::new());
+        assert_eq!(new_node.outgoing(), &BTreeSet::new());
     }
 
     #[test]

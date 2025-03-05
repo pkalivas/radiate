@@ -5,7 +5,7 @@ const MIN_SCORE: f32 = 0.001;
 const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
-    // random_provider::set_seed(1000);
+    random_provider::set_seed(1000);
 
     let values = vec![
         (NodeType::Input, vec![Op::var(0)]),
@@ -14,8 +14,7 @@ fn main() {
         (NodeType::Output, vec![Op::linear()]),
     ];
 
-    let graph_codex = GraphCodex::asyclic(1, 1, values);
-
+    let graph_codex = GraphCodex::directed(1, 1, values);
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
     let engine = GeneticEngine::from_codex(graph_codex)
