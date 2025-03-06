@@ -339,10 +339,16 @@ where
         if let Objective::Multi(_) = objective {
             let timer = Timer::new();
 
-            {
-                let mut front = output.front.lock().unwrap();
-                front.update_front(&output.population.individuals);
-            }
+            output
+                .front
+                .lock()
+                .unwrap()
+                .update_front(&output.population.individuals);
+
+            // {
+            //     let mut front = output.front.lock().unwrap();
+            //     front.update_front(&output.population.individuals);
+            // }
 
             // let scores = output
             //     .population
