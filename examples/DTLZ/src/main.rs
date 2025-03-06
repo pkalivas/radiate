@@ -10,15 +10,15 @@ fn main() {
 
     let engine = GeneticEngine::from_codex(codex)
         .num_threads(10)
-        .multi_objective(vec![Optimize::Maximize; OBJECTIVES])
-        .front_size(1000..1100)
+        .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
+        .front_size(1100..1300)
         .offspring_selector(RouletteSelector::new())
         .survivor_selector(NSGA2Selector::new())
         .alter(alters!(
             SimulatedBinaryCrossover::new(1_f32, 1.0),
             UniformMutator::new(0.1_f32),
         ))
-        .fitness_fn(|geno: Vec<Vec<f32>>| dtlz_1(geno.first().unwrap()))
+        .fitness_fn(|geno: Vec<Vec<f32>>| dtlz_7(geno.first().unwrap()))
         .build();
 
     let result = engine.run(|ctx| {
