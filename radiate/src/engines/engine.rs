@@ -4,7 +4,6 @@ use super::thread_pool::ThreadPool;
 use super::{Alter, GeneticEngineParams, MetricSet, Problem, ReplacementStrategy};
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
-use crate::engines::objectives::Score;
 use crate::engines::params::GeneticEngineBuilder;
 use crate::objectives::Objective;
 use crate::{Chromosome, Metric, Select, Valid, metric_names};
@@ -342,8 +341,9 @@ where
             let scores = output
                 .population
                 .iter()
-                .map(|individual| individual.score().unwrap().clone())
-                .collect::<Vec<Score>>();
+                .filter_map(|individual| individual.score())
+                .map(|score| Vec::from(score.as_ref()))
+                .collect::<Vec<Vec<f32>>>();
 
             let front = Arc::clone(&output.front);
             thread_pool.submit(move || {

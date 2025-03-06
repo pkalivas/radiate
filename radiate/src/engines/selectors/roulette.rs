@@ -1,7 +1,7 @@
 use super::Select;
 use crate::objectives::{Objective, Optimize};
 use crate::selectors::ProbabilityWheelIterator;
-use crate::{Chromosome, Population};
+use crate::{Chromosome, Population, pareto};
 
 pub struct RouletteSelector;
 
@@ -22,37 +22,37 @@ impl<C: Chromosome> Select<C> for RouletteSelector {
         objective: &Objective,
         count: usize,
     ) -> Population<C> {
-        let mut selected = Vec::with_capacity(count);
-        let mut fitness_values = Vec::with_capacity(population.len());
-        let scores = population
-            .iter()
-            .filter_map(|individual| individual.score())
-            .map(|score| score.as_f32())
-            .collect::<Vec<f32>>();
-
-        // scale the fitness values so that they sum to 1
-        let total = scores.iter().sum::<f32>();
-        for fit in scores.iter() {
-            fitness_values.push(fit / total);
-        }
-
-        match objective {
+        let fitness_values = match objective {
             Objective::Single(opt) => {
-                if opt == &Optimize::Minimize {
+                let scores = population
+                    .iter()
+                    .filter_map(|individual| individual.score())
+                    .map(|score| score.as_f32())
+                    .collect::<Vec<f32>>();
+
+                let total = scores.iter().sum::<f32>();
+                let mut fitness_values =
+                    scores.iter().map(|&fit| fit / total).collect::<Vec<f32>>();
+
+                if let Optimize::Minimize = opt {
                     fitness_values.reverse();
                 }
+
+                fitness_values
             }
             Objective::Multi(_) => {
-                panic!("Multi-objective optimization is not supported by this selector.");
+                let weights = pareto::weights(&population.get_scores_ref(), objective);
+                let total_weights = weights.iter().sum::<f32>();
+                weights
+                    .iter()
+                    .map(|&fit| fit / total_weights)
+                    .collect::<Vec<f32>>()
             }
-        }
+        };
 
         // Select individuals based on their fitness values
-        let prob_iter = ProbabilityWheelIterator::new(&fitness_values, count);
-        for idx in prob_iter {
-            selected.push(population[idx].clone());
-        }
-
-        Population::new(selected)
+        ProbabilityWheelIterator::new(&fitness_values, count)
+            .map(|idx| population[idx].clone())
+            .collect::<Population<C>>()
     }
 }

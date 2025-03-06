@@ -1,5 +1,5 @@
-use crate::objectives::{Objective, Score, pareto};
-use std::cmp;
+use crate::objectives::{Objective, pareto};
+use std::{cmp, ops::Range};
 
 /// A front is a collection of scores that are non-dominated with respect to each other.
 /// This is useful for multi-objective optimization problems where the goal is to find
@@ -7,40 +7,38 @@ use std::cmp;
 /// This results in what is called the Pareto front.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Front {
-    scores: Vec<Score>,
-    max_size: usize,
-    min_size: usize,
+    scores: Vec<Vec<f32>>,
+    range: Range<usize>,
     objective: Objective,
 }
 
 impl Front {
-    pub fn new(max_size: usize, min_size: usize, objective: Objective) -> Self {
+    pub fn new(range: Range<usize>, objective: Objective) -> Self {
         Front {
             scores: Vec::new(),
-            max_size,
-            min_size,
+            range,
             objective,
         }
     }
 
-    pub fn scores(&self) -> &Vec<Score> {
+    pub fn scores(&self) -> &[Vec<f32>] {
         &self.scores
     }
 
     /// Update the front with a new set of scores. This will add the scores to the front
     /// and filter out any dominated scores. If the front exceeds the maximum size, it will
     /// filter out the least crowded scores.
-    pub fn update_front(&mut self, scores: &[Score]) {
+    pub fn update_front(&mut self, scores: &[Vec<f32>]) {
         for score in scores {
             self.add(score);
         }
 
-        if self.scores.len() > self.max_size {
+        if self.scores.len() > self.range.end {
             self.filter();
         }
     }
 
-    fn add(&mut self, score: &Score) {
+    fn add(&mut self, score: &Vec<f32>) {
         let mut to_remove = Vec::new();
         let mut is_dominated = false;
         let mut remove_duplicates = false;
@@ -68,7 +66,8 @@ impl Front {
     }
 
     fn filter(&mut self) {
-        let crowding_distances = pareto::crowding_distance(&self.scores, &self.objective);
+        let scores = self.scores.iter().map(|s| s.as_ref()).collect::<Vec<_>>();
+        let crowding_distances = pareto::crowding_distance(&scores, &self.objective);
 
         let mut enumerated = crowding_distances.iter().enumerate().collect::<Vec<_>>();
 
@@ -76,8 +75,8 @@ impl Front {
 
         self.scores = enumerated
             .iter()
-            .take(self.max_size)
+            .take(self.range.end)
             .map(|(i, _)| self.scores[*i].clone())
-            .collect::<Vec<Score>>();
+            .collect::<Vec<Vec<f32>>>();
     }
 }

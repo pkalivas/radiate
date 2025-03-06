@@ -1,5 +1,5 @@
 use crate::objectives::{Objective, Optimize};
-use crate::{Chromosome, Population, Select, random_provider};
+use crate::{Chromosome, Population, Select, pareto, random_provider};
 
 pub struct StochasticUniversalSamplingSelector;
 
@@ -20,29 +20,33 @@ impl<C: Chromosome> Select<C> for StochasticUniversalSamplingSelector {
         objective: &Objective,
         count: usize,
     ) -> Population<C> {
-        let mut fitness_values = Vec::with_capacity(population.len());
-
-        let total_fitness = population
-            .iter()
-            .filter_map(|ind| ind.score())
-            .map(|score| score.as_f32())
-            .sum::<f32>();
-
-        for individual in population.iter() {
-            let score = individual.score().as_ref().unwrap().as_f32();
-            fitness_values.push(score / total_fitness);
-        }
-
-        match objective {
+        let fitness_values = match objective {
             Objective::Single(opt) => {
-                if opt == &Optimize::Minimize {
+                let scores = population
+                    .get_scores_ref()
+                    .iter()
+                    .map(|scores| scores[0])
+                    .collect::<Vec<f32>>();
+
+                let total = scores.iter().sum::<f32>();
+                let mut fitness_values =
+                    scores.iter().map(|&fit| fit / total).collect::<Vec<f32>>();
+
+                if let Optimize::Minimize = opt {
                     fitness_values.reverse();
                 }
+
+                fitness_values
             }
             Objective::Multi(_) => {
-                panic!("Multi-objective optimization is not supported by this selector.");
+                let weights = pareto::weights(&population.get_scores_ref(), objective);
+                let total_weights = weights.iter().sum::<f32>();
+                weights
+                    .iter()
+                    .map(|&fit| fit / total_weights)
+                    .collect::<Vec<f32>>()
             }
-        }
+        };
 
         let fitness_total = fitness_values.iter().sum::<f32>();
         let point_distance = fitness_total / count as f32;

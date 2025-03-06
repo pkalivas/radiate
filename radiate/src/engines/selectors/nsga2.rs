@@ -1,5 +1,5 @@
 use crate::objectives::{Objective, pareto};
-use crate::{Chromosome, Population, Score, Select};
+use crate::{Chromosome, Population, Select};
 
 /// NSGA2 Selector. Selects individuals based on the NSGA2 algorithm.
 /// This algorithm ranks individuals based on their dominance relationships
@@ -32,15 +32,15 @@ impl<C: Chromosome> Select<C> for NSGA2Selector {
         let scores = population
             .iter()
             .filter_map(|individual| individual.score())
-            .map(|score| score.clone())
-            .collect::<Vec<Score>>();
+            .map(|score| score.as_ref())
+            .collect::<Vec<&[f32]>>();
 
-        let ranks = pareto::rank(population, objective);
+        let ranks = pareto::rank(&scores, objective);
         let distances = pareto::crowding_distance(&scores, objective);
 
         let mut indices = (0..population.len()).collect::<Vec<usize>>();
 
-        // This is commonly called "non- dominated sorting" in the NSGA-II algorithm.
+        // This is commonly called "non-dominated sorting" in the NSGA-II algorithm.
         indices.sort_by(|&a, &b| {
             let a_rank = ranks[a];
             let b_rank = ranks[b];

@@ -1,7 +1,7 @@
 use super::Select;
 use crate::objectives::{Objective, Optimize};
 use crate::selectors::ProbabilityWheelIterator;
-use crate::{Chromosome, Population};
+use crate::{Chromosome, Population, pareto};
 
 pub struct BoltzmannSelector {
     temperature: f32,
@@ -24,65 +24,59 @@ impl<C: Chromosome> Select<C> for BoltzmannSelector {
         objective: &Objective,
         count: usize,
     ) -> Population<C> {
-        let mut selected = Vec::with_capacity(count);
-        let mut min = population[0].score().unwrap().as_f32();
-        let mut max = min;
-
-        // Normalize the fitness values.
-        for individual in population.iter() {
-            let score = individual.score().as_ref().unwrap().as_f32();
-            if score < min {
-                min = score;
-            }
-            if score > max {
-                max = score;
-            }
-        }
-
-        let diff = (max - min).abs();
-        if diff == 0.0 {
-            return population
-                .iter()
-                .take(count)
-                .cloned()
-                .collect::<Population<C>>();
-        }
-
-        // Calculate the fitness values for each individual (normalized)
-        // and apply the Boltzmann distribution to get the probabilities (temp * fitness).exp()
-        let mut result = Vec::with_capacity(population.len());
-        for individual in population.iter() {
-            let score = individual.score().as_ref().unwrap().as_f32();
-            let fitness = (score - min) / diff;
-            let value = (self.temperature * fitness).exp();
-
-            result.push(value);
-        }
-
-        // Normalize the probabilities to sum to 1
-        let total_fitness = result.iter().sum::<f32>();
-        for fit in result.iter_mut() {
-            *fit /= total_fitness;
-        }
-
-        // Reverse the probabilities if minimizing so that the lowest scores have the highest probability
-        match objective {
+        let fitness_values = match objective {
             Objective::Single(opt) => {
-                if opt == &Optimize::Minimize {
-                    result.reverse();
+                let scores = population
+                    .get_scores_ref()
+                    .iter()
+                    .map(|scores| scores[0])
+                    .collect::<Vec<f32>>();
+
+                let (min, max) = scores
+                    .iter()
+                    .fold((f32::MAX, f32::MIN), |(min, max), &score| {
+                        (min.min(score), max.max(score))
+                    });
+                let diff = (max - min).abs().max(1e-6);
+                let botzlmann_values = scores
+                    .iter()
+                    .map(|&score| (self.temperature * ((score - min) / diff)).exp())
+                    .collect::<Vec<f32>>();
+
+                let total_fitness = botzlmann_values.iter().sum::<f32>();
+                let mut fitness_values = botzlmann_values
+                    .iter()
+                    .map(|&fit| fit / total_fitness)
+                    .collect::<Vec<f32>>();
+
+                if let Optimize::Minimize = opt {
+                    fitness_values.reverse();
                 }
+
+                fitness_values
             }
             Objective::Multi(_) => {
-                panic!("Multi-objective optimization is not supported by this selector.");
+                let weights = pareto::weights(&population.get_scores_ref(), objective);
+
+                let (max, min) = weights.iter().fold((f32::MIN, f32::MAX), |(max, min), &w| {
+                    (max.max(w), min.min(w))
+                });
+                let diff = (max - min).abs().max(1e-6);
+                let botzmann_values = weights
+                    .iter()
+                    .map(|&score| (self.temperature * ((score - min) / diff)).exp())
+                    .collect::<Vec<f32>>();
+                let total_fitness = botzmann_values.iter().sum::<f32>();
+                botzmann_values
+                    .iter()
+                    .map(|&fit| fit / total_fitness)
+                    .collect::<Vec<f32>>()
             }
-        }
+        };
 
         // Select the individuals based on the probabilities
-        let prob_iter = ProbabilityWheelIterator::new(&result, count);
-        for idx in prob_iter {
-            selected.push(population[idx].clone());
-        }
-
-        Population::new(selected)
+        return ProbabilityWheelIterator::new(&fitness_values, count)
+            .map(|idx| population[idx].clone())
+            .collect::<Population<C>>();
     }
 }
