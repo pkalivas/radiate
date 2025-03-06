@@ -1,6 +1,5 @@
 use super::phenotype::Phenotype;
 use crate::Chromosome;
-use crate::objectives::score::Score;
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
 
@@ -92,10 +91,11 @@ impl<C: Chromosome> Population<C> {
         self.individuals.is_empty()
     }
 
-    pub fn get_scores_ref(&self) -> Vec<&Score> {
+    pub fn get_scores_ref(&self) -> Vec<&[f32]> {
         self.individuals
             .iter()
             .filter_map(|i| i.score())
+            .map(|s| s.as_ref())
             .collect::<Vec<_>>()
     }
 }
@@ -153,7 +153,7 @@ impl<C: Chromosome + Debug> Debug for Population<C> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{char::CharChromosome, float::FloatChromosome, objectives::Optimize};
+    use crate::{Score, char::CharChromosome, float::FloatChromosome, objectives::Optimize};
 
     #[test]
     fn test_new() {

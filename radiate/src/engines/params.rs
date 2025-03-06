@@ -11,6 +11,7 @@ use crate::engines::genome::population::Population;
 use crate::engines::objectives::Score;
 use crate::objectives::{Objective, Optimize};
 use crate::uniform::{UniformCrossover, UniformMutator};
+use std::ops::Range;
 use std::sync::Arc;
 
 /// Parameters for the genetic engine.
@@ -33,8 +34,7 @@ where
 {
     pub population_size: usize,
     pub max_age: usize,
-    pub min_front_size: usize,
-    pub max_front_size: usize,
+    pub front_range: Range<usize>,
     pub offspring_fraction: f32,
     pub thread_pool: ThreadPool,
     pub objective: Objective,
@@ -81,8 +81,7 @@ where
             population_size: 100,
             max_age: 20,
             offspring_fraction: 0.8,
-            min_front_size: 800,
-            max_front_size: 900,
+            front_range: 800..900,
             thread_pool: ThreadPool::new(1),
             objective: Objective::Single(Optimize::Maximize),
             survivor_selector: Box::new(TournamentSelector::new(3)),
@@ -217,19 +216,8 @@ where
     /// Set the minimum and maximum size of the pareto front. This is used for
     /// multi-objective optimization problems where the goal is to find the best
     /// solutions that are not dominated by any other solution.
-    pub fn front_size(mut self, min_size: usize, max_size: usize) -> Self {
-        if min_size > max_size {
-            panic!("min_size must be less than or equal to max_size");
-        } else if min_size < 1 {
-            panic!("min_size must be greater than 0");
-        } else if max_size < 1 {
-            panic!("max_size must be greater than 0");
-        } else if max_size < min_size {
-            panic!("max_size must be greater than or equal to min_size");
-        }
-
-        self.min_front_size = min_size;
-        self.max_front_size = max_size;
+    pub fn front_size(mut self, range: Range<usize>) -> Self {
+        self.front_range = range;
         self
     }
 
@@ -274,7 +262,7 @@ where
                 objective: self.objective.clone(),
                 thread_pool: self.thread_pool,
                 max_age: self.max_age,
-                front: Front::new(self.min_front_size, self.max_front_size, self.objective),
+                front: Front::new(self.front_range, self.objective),
                 offspring_fraction: self.offspring_fraction,
             };
 

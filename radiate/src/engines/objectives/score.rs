@@ -106,6 +106,7 @@ impl Hash for Score {
         for value in &self.values {
             hash ^= value.to_bits();
         }
+
         hash.hash(state);
     }
 }
