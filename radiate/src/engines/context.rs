@@ -1,5 +1,5 @@
-use super::MetricSet;
 use super::objectives::Score;
+use super::{MetricSet, Phenotype};
 use crate::Chromosome;
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
@@ -35,7 +35,7 @@ where
     pub timer: Timer,
     pub metrics: MetricSet,
     pub score: Option<Score>,
-    pub front: Arc<Mutex<Front>>,
+    pub front: Arc<Mutex<Front<Phenotype<C>>>>,
 }
 
 impl<C, T> EngineContext<C, T>

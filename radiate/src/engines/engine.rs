@@ -338,17 +338,25 @@ where
 
         if let Objective::Multi(_) = objective {
             let timer = Timer::new();
-            let scores = output
-                .population
-                .iter()
-                .filter_map(|individual| individual.score())
-                .map(|score| Vec::from(score.as_ref()))
-                .collect::<Vec<Vec<f32>>>();
 
-            let front = Arc::clone(&output.front);
-            thread_pool.submit(move || {
-                front.lock().unwrap().update_front(&scores);
-            });
+            {
+                let mut front = output.front.lock().unwrap();
+                for individual in output.population.iter() {
+                    front.add(individual);
+                }
+            }
+
+            // let scores = output
+            //     .population
+            //     .iter()
+            //     .filter_map(|individual| individual.score())
+            //     .map(|score| Vec::from(score.as_ref()))
+            //     .collect::<Vec<Vec<f32>>>();
+
+            // let front = Arc::clone(&output.front);
+            // thread_pool.submit(move || {
+            //     front.lock().unwrap().update_front(&scores);
+            // });
 
             output.upsert_operation(metric_names::FRONT, 1.0, timer.duration());
         }

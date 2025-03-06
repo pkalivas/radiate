@@ -2,7 +2,7 @@ use super::codexes::Codex;
 use super::thread_pool::ThreadPool;
 use super::{
     Alter, EncodeReplace, EngineProblem, Front, IntoAlter, Problem, ReplacementStrategy,
-    RouletteSelector, Select, TournamentSelector,
+    RouletteSelector, Select, TournamentSelector, pareto,
 };
 use crate::Chromosome;
 use crate::engines::engine::GeneticEngine;
@@ -11,6 +11,7 @@ use crate::engines::genome::population::Population;
 use crate::engines::objectives::Score;
 use crate::objectives::{Objective, Optimize};
 use crate::uniform::{UniformCrossover, UniformMutator};
+use std::cmp::Ordering;
 use std::ops::Range;
 use std::sync::Arc;
 
@@ -251,6 +252,8 @@ where
             self.build_population();
             self.build_alterer();
 
+            let temp_objectives = self.objective.clone();
+
             let inputs = GeneticEngineParams {
                 population: self.population.unwrap(),
                 problem: self.problem.unwrap(),
@@ -262,7 +265,21 @@ where
                 objective: self.objective.clone(),
                 thread_pool: self.thread_pool,
                 max_age: self.max_age,
-                front: Front::new(self.front_range, self.objective),
+                front: Front::new(
+                    self.front_range,
+                    self.objective,
+                    move |one: &Phenotype<C>, two: &Phenotype<C>| {
+                        if pareto::dominance(
+                            one.score().unwrap(),
+                            two.score().unwrap(),
+                            &temp_objectives,
+                        ) {
+                            Ordering::Greater
+                        } else {
+                            Ordering::Less
+                        }
+                    },
+                ),
                 offspring_fraction: self.offspring_fraction,
             };
 
@@ -311,7 +328,7 @@ pub struct GeneticEngineParams<C: Chromosome, T> {
     objective: Objective,
     thread_pool: ThreadPool,
     max_age: usize,
-    front: Front,
+    front: Front<Phenotype<C>>,
     offspring_fraction: f32,
 }
 
@@ -327,7 +344,7 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
         objective: Objective,
         thread_pool: ThreadPool,
         max_age: usize,
-        front: Front,
+        front: Front<Phenotype<C>>,
         offspring_fraction: f32,
     ) -> Self {
         Self {
@@ -386,7 +403,7 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
         self.max_age
     }
 
-    pub fn front(&self) -> &Front {
+    pub fn front(&self) -> &Front<Phenotype<C>> {
         &self.front
     }
 
