@@ -341,9 +341,7 @@ where
 
             {
                 let mut front = output.front.lock().unwrap();
-                for individual in output.population.iter() {
-                    front.add(individual);
-                }
+                front.update_front(&output.population.individuals);
             }
 
             // let scores = output
