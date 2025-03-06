@@ -5,6 +5,37 @@ use crate::{
 };
 
 impl<T: Clone + Default> Graph<T> {
+    /// Creates a directed graph with the given input and output sizes.
+    /// The values are used to initialize the nodes in the graph with the given values.
+    ///
+    /// # Example
+    /// ```
+    /// use radiate::*;
+    /// use radiate_gp::*;
+    ///
+    /// let values = vec![
+    ///     (NodeType::Input, vec![Op::var(0), Op::var(1), Op::var(2)]),
+    ///     (NodeType::Output, vec![Op::sigmoid()]),
+    /// ];
+    ///
+    /// let graph = Graph::directed(3, 3, values);
+    ///
+    /// assert_eq!(graph.len(), 6);
+    /// ```
+    ///
+    /// The graph will have 6 nodes, 3 input nodes and 3 output nodes where each input node is
+    /// connected to each output node. Such as:
+    /// ``` text
+    /// [0, 1, 2] -> [3, 4, 5]
+    /// ```
+    ///
+    /// # Arguments
+    /// * `input_size` - The number of input nodes.
+    /// * `output_size` - The number of output nodes.
+    /// * `values` - The values to initialize the nodes with.
+    ///
+    /// # Returns
+    /// A new directed graph.
     pub fn directed(
         input_size: usize,
         output_size: usize,
@@ -20,6 +51,44 @@ impl<T: Clone + Default> Graph<T> {
             .build()
     }
 
+    /// Creates a recurrent graph with the given input and output sizes.
+    /// The values are used to initialize the nodes in the graph with the given values.
+    /// The graph will have a recurrent connection from each hidden vertex to itself.
+    /// The graph will have a one-to-one connection from each input node to each hidden vertex.
+    /// The graph will have an all-to-all connection from each hidden vertex to each output node.
+    ///
+    /// # Example
+    /// ```
+    /// use radiate::*;
+    /// use radiate_gp::*;
+    ///
+    /// let values = vec![
+    ///   (NodeType::Input, vec![Op::var(0), Op::var(1), Op::var(2)]),
+    ///   (NodeType::Vertex, vec![Op::linear()]),
+    ///   (NodeType::Output, vec![Op::sigmoid()]),
+    /// ];
+    ///
+    /// let graph = Graph::recurrent(3, 3, values);
+    ///
+    /// assert_eq!(graph.len(), 12);
+    /// ```
+    ///
+    /// The graph will have 12 nodes, 3 input nodes, 3 hidden nodes with recurrent connections to themselves,
+    /// and 3 output nodes. Such as:
+    /// ``` text
+    /// [0, 1, 2] -> [3, 4, 5]
+    ///     [3, 4, 5] -> [6, 7, 8]
+    ///         [6, 7, 8] -> [3, 4, 5]
+    /// [3, 4, 5] -> [9, 10, 11]
+    /// ```
+    ///
+    /// # Arguments
+    /// * `input_size` - The number of input nodes.
+    /// * `output_size` - The number of output nodes.
+    /// * `values` - The values to initialize the nodes with.
+    ///
+    /// # Returns
+    /// A new recurrent graph.
     pub fn recurrent(
         input_size: usize,
         output_size: usize,
@@ -34,11 +103,22 @@ impl<T: Clone + Default> Graph<T> {
 
         GraphAggregate::new()
             .one_to_one(&input, &aggregate)
-            .one_to_one_self(&aggregate, &link)
+            .one_to_self(&aggregate, &link)
             .all_to_all(&aggregate, &output)
             .build()
     }
 
+    /// Creates a weighted directed graph with the given input and output sizes.
+    ///
+    /// This will result in the same graph as `Graph::directed` but with an additional edge
+    /// connecting each input node to each output node.
+    ///
+    /// # Arguments
+    /// * `input_size` - The number of input nodes.
+    /// * `output_size` - The number of output nodes.
+    ///
+    /// # Returns
+    /// A new weighted directed graph.
     pub fn weighted_directed(
         input_size: usize,
         output_size: usize,
@@ -56,6 +136,16 @@ impl<T: Clone + Default> Graph<T> {
             .build()
     }
 
+    /// Creates a weighted recurrent graph with the given input and output sizes.
+    /// This will result in the same graph as `Graph::recurrent` but with an additional edge
+    /// connecting each hidden vertex to each output node.
+    ///
+    /// # Arguments
+    /// * `input_size` - The number of input nodes.
+    /// * `output_size` - The number of output nodes.
+    ///
+    /// # Returns
+    /// A new weighted recurrent graph.
     pub fn weighted_recurrent(
         input_size: usize,
         output_size: usize,
@@ -71,14 +161,14 @@ impl<T: Clone + Default> Graph<T> {
 
         GraphAggregate::new()
             .one_to_one(&input, &aggregate)
-            .one_to_one_self(&aggregate, &link)
+            .one_to_self(&aggregate, &link)
             .one_to_many(&link, &weights)
             .many_to_one(&weights, &output)
             .build()
     }
 }
 
-struct NodeBuilder<T> {
+pub struct NodeBuilder<T> {
     store: NodeStore<T>,
 }
 

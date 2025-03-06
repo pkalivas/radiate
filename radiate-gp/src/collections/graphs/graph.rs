@@ -14,7 +14,7 @@ use super::transaction::TransactionResult;
 /// a collection of edges and vertices. Instead, it is a collection of nodes that are connected
 /// to one another. Each node has a unique index that is used to reference it in the graph
 /// and must be identical to its position in the 'Vec'.
-/// Each 'GraphNode' has a 'HashSet' of incoming and outgoing connections. These connections are
+/// Each 'GraphNode' has a set of ordered incoming and outgoing connections. These connections are
 /// represented by the index of the connected node in the graph. Because of this representation,
 /// an edge is not a separate entity, its just a node. The 'NodeType' enum is used to distinguish
 /// different types of nodes. This allows for a more flexible representation of the graph

@@ -87,8 +87,6 @@ mod tests {
         ];
         let tree = Tree::with_depth(2, store);
 
-        println!("{:?}", tree.root().unwrap().children().unwrap().len());
-
         assert!(tree.root().is_some());
         assert!(tree.root().unwrap().children().unwrap().len() == 2);
         assert!(tree.height() == 2);

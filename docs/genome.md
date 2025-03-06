@@ -11,7 +11,7 @@ ___
 
  : Certain `Genes` have additional functionality that allows them to be manipulated in specific ways, such as the `FloatGene` and `IntGene<I>` which implement the `ArithmeticGene`. The `ArithmeticGene` trait provides methods for performing arithmetic operations on the `Gene`.
 
-    !!! info "Core Library `Gene` Implementations"
+    !!! info "`Gene` Implementations"
 
         === "BitGene"
 
@@ -82,7 +82,7 @@ ___
             * **Allele**: `A`
             * **Description**: Given a list of `A`, represents a single value of the list
             * **Implements**: `Gene`
-
+  
     User defined `Gene` types can be implemented by implementing the `Gene` trait.
 
 
@@ -91,7 +91,7 @@ ___
 : Each `Gene` is contained within a `Chromosome` and as such, each `Gene` has its own `Chromosome`.
 The `Chromosome` is a collection of `Genes` that represent a part or the whole of the genetic information of an individual. A `Chromosome` can be thought of as a "chunk" or vector of genetic information. For example, a `Chromosome` could represent a sequence of numbers, a string of characters, or a set of binary values among other things. The decision to a defined `Chromosome` for each `Gene` was made to allow for more flexibility in the genetic information that can be represented. 
 
-    !!! info "Core library `Chromosome` implementations"
+    !!! info "`Chromosome` implementations"
 
         === "BitChromosome"
 
@@ -153,7 +153,7 @@ The `Chromosome` is a collection of `Genes` that represent a part or the whole o
 
             * **Gene Type**: `PermutationGene<A>`
             * **Description**: Represents a sequence of unique values from a list of `A`.
-
+        
     For user defined `Chromosome` types, the `Chromosome` trait can be implemented.
 
 ___

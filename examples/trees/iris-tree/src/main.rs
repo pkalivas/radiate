@@ -13,7 +13,7 @@ fn main() {
 
     let store = vec![
         (NodeType::Root, vec![Op::sigmoid()]),
-        (NodeType::Vertex, ops::math_operations()),
+        (NodeType::Vertex, ops::math_ops()),
         (NodeType::Leaf, (0..4).map(|i| Op::var(i)).collect()),
     ];
 

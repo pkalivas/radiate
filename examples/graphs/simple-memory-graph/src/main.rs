@@ -10,11 +10,11 @@ fn main() {
     let values = vec![
         (NodeType::Input, vec![Op::var(0)]),
         (NodeType::Edge, vec![Op::weight(), Op::identity()]),
-        (NodeType::Vertex, ops::get_all_operations()),
+        (NodeType::Vertex, ops::all_ops()),
         (NodeType::Output, vec![Op::sigmoid()]),
     ];
 
-    let graph_codex = GraphCodex::cyclic(1, 1, values);
+    let graph_codex = GraphCodex::recurrent(1, 1, values);
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
     let engine = GeneticEngine::from_codex(graph_codex)
@@ -26,12 +26,7 @@ fn main() {
             OperationMutator::new(0.1, 0.05),
             GraphMutator::new(0.05, 0.05)
         ))
-        .fitness_fn(move |graph: Graph<Op<f32>>| {
-            if !graph.is_valid() {
-                println!("{:?}", graph);
-            }
-            regression.eval(&graph)
-        })
+        .fitness_fn(move |graph: Graph<Op<f32>>| regression.eval(&graph))
         .build();
 
     let result = engine.run(|ctx| {

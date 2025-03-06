@@ -13,7 +13,7 @@ fn main() {
 
     let regression = Regression::new(train.clone(), Loss::MSE);
 
-    let ops = ops::get_all_operations();
+    let ops = ops::all_ops();
     let edges = vec![Op::identity(), Op::weight()];
     let outputs = vec![Op::sigmoid()];
 
@@ -24,7 +24,7 @@ fn main() {
         (NodeType::Output, outputs.clone()),
     ];
 
-    let codex = GraphCodex::asyclic(4, 4, store);
+    let codex = GraphCodex::directed(4, 4, store);
 
     let engine = GeneticEngine::from_codex(codex)
         .minimizing()

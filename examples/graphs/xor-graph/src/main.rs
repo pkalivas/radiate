@@ -10,11 +10,11 @@ fn main() {
     let values = vec![
         (NodeType::Input, vec![Op::var(0), Op::var(1)]),
         (NodeType::Edge, vec![Op::weight(), Op::identity()]),
-        (NodeType::Vertex, ops::get_all_operations()),
+        (NodeType::Vertex, ops::all_ops()),
         (NodeType::Output, vec![Op::sigmoid()]),
     ];
 
-    let graph_codex = GraphCodex::asyclic(2, 1, values);
+    let graph_codex = GraphCodex::directed(2, 1, values);
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
     let engine = GeneticEngine::from_codex(graph_codex)

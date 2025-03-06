@@ -13,7 +13,6 @@ fn main() {
     ];
 
     let graph_codex = TreeCodex::single(3, store).constraint(|root| root.size() < 30);
-
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
     let engine = GeneticEngine::from_codex(graph_codex)

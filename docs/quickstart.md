@@ -50,6 +50,8 @@ radiate-gp = "0.0.2"
 
 !!! note
 
+    As of 3/5/2025
+
     I'm currently working on the docs for these. If you are interested in using it, please refer to the git repo's [examples](https://github.com/pkalivas/radiate/tree/master/examples) which include examples of both Tree and Graph based genetic programming.
 
 

@@ -8,7 +8,7 @@ pub struct GraphCodex<T> {
 }
 
 impl<T> GraphCodex<T> {
-    pub fn asyclic(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Self
+    pub fn directed(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Self
     where
         T: Clone + Default,
     {
@@ -22,7 +22,7 @@ impl<T> GraphCodex<T> {
         }
     }
 
-    pub fn cyclic(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Self
+    pub fn recurrent(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Self
     where
         T: Clone + Default,
     {
