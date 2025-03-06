@@ -40,7 +40,7 @@ impl<C: Chromosome> Select<C> for NSGA2Selector {
 
         let mut indices = (0..population.len()).collect::<Vec<usize>>();
 
-        // This is commonly called "non-dominated sorting" in the NSGA-II algorithm.
+        // This is commonly called "non- dominated sorting" in the NSGA-II algorithm.
         indices.sort_by(|&a, &b| {
             let a_rank = ranks[a];
             let b_rank = ranks[b];
