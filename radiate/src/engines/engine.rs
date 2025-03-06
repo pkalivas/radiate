@@ -334,35 +334,17 @@ where
     /// This can significantly speed up the calculation of the front for large populations.
     fn update_front(&self, output: &mut EngineContext<C, T>) {
         let objective = self.objective();
-        let thread_pool = self.thread_pool();
 
         if let Objective::Multi(_) = objective {
             let timer = Timer::new();
 
-            output
+            let added_count = output
                 .front
                 .lock()
                 .unwrap()
                 .update_front(&output.population.individuals);
 
-            // {
-            //     let mut front = output.front.lock().unwrap();
-            //     front.update_front(&output.population.individuals);
-            // }
-
-            // let scores = output
-            //     .population
-            //     .iter()
-            //     .filter_map(|individual| individual.score())
-            //     .map(|score| Vec::from(score.as_ref()))
-            //     .collect::<Vec<Vec<f32>>>();
-
-            // let front = Arc::clone(&output.front);
-            // thread_pool.submit(move || {
-            //     front.lock().unwrap().update_front(&scores);
-            // });
-
-            output.upsert_operation(metric_names::FRONT, 1.0, timer.duration());
+            output.upsert_operation(metric_names::FRONT, added_count as f32, timer.duration());
         }
     }
 

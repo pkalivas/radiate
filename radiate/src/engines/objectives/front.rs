@@ -40,26 +40,31 @@ where
         &self.values
     }
 
-    pub fn update_front(&mut self, scores: &[T]) {
+    pub fn update_front(&mut self, scores: &[T]) -> usize {
+        let mut count = 0;
         for value in scores {
-            self.add(value);
+            if self.add(value) {
+                count += 1;
+            }
         }
 
         if self.values.len() > self.range.end {
             self.filter();
         }
+
+        count
     }
 
-    pub fn add(&mut self, score: &T) {
+    pub fn add(&mut self, score: &T) -> bool {
         let mut to_remove = Vec::new();
         let mut is_dominated = false;
         let mut remove_duplicates = false;
 
         for existing_score in self.values.iter() {
             if (self.ord)(score, existing_score) == Ordering::Greater {
-                to_remove.push(existing_score.clone());
+                to_remove.push(Arc::clone(existing_score));
             } else if (self.ord)(existing_score, score) == Ordering::Greater
-                || &*(*existing_score) == score
+                || (&*(*existing_score)).as_ref() == score.as_ref()
             {
                 is_dominated = true;
                 remove_duplicates = true;
@@ -74,7 +79,10 @@ where
         if !is_dominated {
             self.values.retain(|x| !to_remove.contains(x));
             self.values.push(Arc::new(score.clone()));
+            return true;
         }
+
+        false
     }
 
     fn filter(&mut self) {
@@ -92,7 +100,7 @@ where
         self.values = enumerated
             .iter()
             .take(self.range.end)
-            .map(|(i, _)| self.values[*i].clone())
+            .map(|(i, _)| Arc::clone(&self.values[*i]))
             .collect::<Vec<Arc<T>>>();
     }
 }
