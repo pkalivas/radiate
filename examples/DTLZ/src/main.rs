@@ -18,7 +18,7 @@ fn main() {
             SimulatedBinaryCrossover::new(1_f32, 1.0),
             UniformMutator::new(0.1_f32),
         ))
-        .fitness_fn(|geno: Vec<Vec<f32>>| dtlz_7(geno.first().unwrap()))
+        .fitness_fn(|geno: Vec<Vec<f32>>| dtlz_1(geno.first().unwrap()))
         .build();
 
     let result = engine.run(|ctx| {
@@ -31,16 +31,17 @@ fn main() {
     plot_front(&front);
 }
 
-fn plot_front(front: &Front) {
+fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {
     let mut x = vec![];
     let mut y = vec![];
     let mut z = vec![];
     let mut color = vec![];
 
-    for (i, score) in front.scores().iter().enumerate() {
-        x.push(score[0]);
-        y.push(score[1]);
-        z.push(score[2]);
+    for (i, pheno) in front.values().iter().enumerate() {
+        let score = pheno.score().unwrap();
+        x.push(score.values[0]);
+        y.push(score.values[1]);
+        z.push(score.values[2]);
         color.push(i as f32);
     }
 
