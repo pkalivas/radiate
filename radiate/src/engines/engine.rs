@@ -7,7 +7,7 @@ use crate::engines::genome::population::Population;
 use crate::engines::params::GeneticEngineBuilder;
 use crate::objectives::Objective;
 use crate::{Chromosome, Metric, Select, Valid, metric_names};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 /// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -337,14 +337,9 @@ where
 
         if let Objective::Multi(_) = objective {
             let timer = Timer::new();
+            let added_count = output.front.update_front(output.population.as_ref());
 
-            let added_count = output
-                .front
-                .lock()
-                .unwrap()
-                .update_front(&output.population.individuals);
-
-            output.upsert_operation(metric_names::FRONT, added_count as f32, timer.duration());
+            output.upsert_operation(metric_names::FRONT, added_count as f32, timer);
         }
     }
 
@@ -450,7 +445,7 @@ where
             timer: Timer::new(),
             metrics: MetricSet::new(),
             score: None,
-            front: Arc::new(Mutex::new(self.params.front().clone())),
+            front: self.params.front().clone(),
         }
     }
 
