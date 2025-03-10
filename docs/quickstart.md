@@ -9,7 +9,7 @@ Radiate is inspired from a multitude of other genetic algorithm libraries, all o
 ## Configuration
 ```toml
 [dependencies]
-radiate = "1.2.8"
+radiate = "1.2.9"
 ```
 
 ## Core Implementations
@@ -45,7 +45,7 @@ To use it, add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-radiate-gp = "0.0.2"
+radiate-gp = "0.0.3"
 ```
 
 !!! note
