@@ -264,9 +264,11 @@ where
                     if let (Some(one), Some(two)) = (one.score(), two.score()) {
                         if pareto::dominance(one, two, &front_obj) {
                             return Ordering::Greater;
+                        } else if pareto::dominance(two, one, &front_obj) {
+                            return Ordering::Less;
+                        } else {
+                            return Ordering::Equal;
                         }
-
-                        return Ordering::Less;
                     }
 
                     Ordering::Equal
@@ -281,7 +283,7 @@ where
                 offspring_selector: self.offspring_selector,
                 replacement_strategy: self.replacement_strategy,
                 alterers: self.alterers,
-                objective: self.objective.clone(),
+                objective: self.objective,
                 thread_pool: self.thread_pool,
                 max_age: self.max_age,
                 front,
