@@ -26,9 +26,8 @@ fn main() {
         ctx.index > 1000
     });
 
-    let front = result.front.lock().unwrap();
     println!("{:?}", result.metrics);
-    plot_front(&front);
+    plot_front(&result.front);
 }
 
 fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {

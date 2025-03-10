@@ -252,7 +252,26 @@ where
             self.build_population();
             self.build_alterer();
 
-            let temp_objectives = self.objective.clone();
+            let front_obj = self.objective.clone();
+            let front = Front::new(
+                self.front_range,
+                self.objective.clone(),
+                move |one: &Phenotype<C>, two: &Phenotype<C>| {
+                    if one.score().is_none() || two.score().is_none() {
+                        return Ordering::Equal;
+                    }
+
+                    if let (Some(one), Some(two)) = (one.score(), two.score()) {
+                        if pareto::dominance(one, two, &front_obj) {
+                            return Ordering::Greater;
+                        }
+
+                        return Ordering::Less;
+                    }
+
+                    Ordering::Equal
+                },
+            );
 
             let inputs = GeneticEngineParams {
                 population: self.population.unwrap(),
@@ -265,21 +284,7 @@ where
                 objective: self.objective.clone(),
                 thread_pool: self.thread_pool,
                 max_age: self.max_age,
-                front: Front::new(
-                    self.front_range,
-                    self.objective,
-                    move |one: &Phenotype<C>, two: &Phenotype<C>| {
-                        if pareto::dominance(
-                            one.score().unwrap(),
-                            two.score().unwrap(),
-                            &temp_objectives,
-                        ) {
-                            Ordering::Greater
-                        } else {
-                            Ordering::Less
-                        }
-                    },
-                ),
+                front,
                 offspring_fraction: self.offspring_fraction,
             };
 

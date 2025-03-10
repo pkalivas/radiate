@@ -5,7 +5,6 @@ use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
 use crate::objectives::Front;
 use std::fmt::Debug;
-use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 /// The context of the genetic engine. This struct contains the current state of the genetic engine
@@ -35,7 +34,7 @@ where
     pub timer: Timer,
     pub metrics: MetricSet,
     pub score: Option<Score>,
-    pub front: Arc<Mutex<Front<Phenotype<C>>>>,
+    pub front: Front<Phenotype<C>>,
 }
 
 impl<C, T> EngineContext<C, T>
