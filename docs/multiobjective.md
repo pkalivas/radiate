@@ -65,7 +65,7 @@ To set up the engine to solve this type of problem, we supply the objective func
         // typically we can get the 'best' solution from the result by calling
         // 'result.best', but in a multiobjective case we only care about the Pareto front
         // which is stored in 'result.front' and can be accessed like so:
-        let front = result.front.lock().unwrap();
+        let front = result.front;
     }
     ```
 
@@ -141,7 +141,7 @@ Again, to set up the engine to solve this type of problem, we supply the objecti
         // typically we can get the 'best' solution from the result by calling
         // 'result.best', but in a multiobjective case we only care about the Pareto front
         // which is stored in 'result.front' and can be accessed like so:
-        let front = result.front.lock().unwrap();
+        let front = result.front;
     }
     ```
 
