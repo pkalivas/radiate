@@ -181,7 +181,7 @@ impl From<Range<f32>> for FloatGene {
     fn from(range: Range<f32>) -> Self {
         let (min, max) = (range.start, range.end);
 
-        Self {
+        FloatGene {
             allele: random_provider::random_range(range),
             value_range: min..max,
             bounds: min..max,
@@ -193,7 +193,7 @@ impl From<(Range<f32>, Range<f32>)> for FloatGene {
     fn from((value_range, bounds): (Range<f32>, Range<f32>)) -> Self {
         let allele = random_provider::random_range(value_range.clone());
 
-        Self {
+        FloatGene {
             allele,
             value_range,
             bounds,
