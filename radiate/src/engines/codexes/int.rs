@@ -29,8 +29,8 @@ impl<T: Integer<T>> IntCodex<T> {
         }
     }
 
-    pub fn with_bounds(mut self, lower_bound: T, upper_bound: T) -> Self {
-        self.bounds = lower_bound..upper_bound;
+    pub fn with_bounds(mut self, bounds: Range<T>) -> Self {
+        self.bounds = bounds;
         self
     }
 }

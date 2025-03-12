@@ -6,13 +6,13 @@ const OBJECTIVES: usize = 3;
 const K: usize = VARIABLES - OBJECTIVES + 1;
 
 fn main() {
-    let codex = FloatCodex::new(1, VARIABLES, 0_f32..1_f32).with_bounds(-100.0, 100.0);
+    let codex = FloatCodex::new(1, VARIABLES, 0_f32..1_f32).with_bounds(-100.0..100.0);
 
     let engine = GeneticEngine::from_codex(codex)
         .num_threads(10)
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
         .front_size(1100..1300)
-        .offspring_selector(RouletteSelector::new())
+        .offspring_selector(TournamentSelector::new(5))
         .survivor_selector(NSGA2Selector::new())
         .alter(alters!(
             SimulatedBinaryCrossover::new(1_f32, 1.0),
