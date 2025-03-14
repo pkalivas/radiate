@@ -37,7 +37,7 @@ where
             if random_provider::random::<f32>() < rate {
                 let curr_gene = chromosome.get_gene(i);
                 let new_instance = curr_gene.new_instance();
-                let operator = random_provider::random_range(0..4);
+                let operator = random_provider::range(0..4);
 
                 let new_gene = match operator {
                     0 => curr_gene.clone() + new_instance,

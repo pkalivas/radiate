@@ -50,7 +50,7 @@ pub trait Crossover<C: Chromosome>: IntoAlter<C> {
         let mut geno_two = population[index_two].genotype().clone();
 
         let max_idx = std::cmp::min(geno_one.len(), geno_two.len());
-        let chromosome_index = random_provider::random_range(0..max_idx);
+        let chromosome_index = random_provider::range(0..max_idx);
 
         let chrom_one = &mut geno_one[chromosome_index];
         let chrom_two = &mut geno_two[chromosome_index];

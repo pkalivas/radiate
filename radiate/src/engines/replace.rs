@@ -48,7 +48,7 @@ impl<C: Chromosome> ReplacementStrategy<C> for PopulationSampleReplace {
         population: &mut Population<C>,
         _: Arc<dyn Fn() -> Genotype<C>>,
     ) {
-        let random_member = random_provider::random_range(0..population.len());
+        let random_member = random_provider::range(0..population.len());
         let new_phenotype = population[random_member].genotype().clone();
         population[replace_idx] = Phenotype::from_genotype(new_phenotype, generation);
     }

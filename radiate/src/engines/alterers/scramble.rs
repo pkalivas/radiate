@@ -17,8 +17,8 @@ impl<C: Chromosome> Mutate<C> for ScrambleMutator {
         let mut mutations = 0;
 
         if random_provider::random::<f32>() < rate {
-            let start = random_provider::random_range(0..chromosome.len());
-            let end = random_provider::random_range(start..chromosome.len());
+            let start = random_provider::range(0..chromosome.len());
+            let end = random_provider::range(start..chromosome.len());
 
             let segment = &mut chromosome.as_mut()[start..end];
             random_provider::shuffle(segment);

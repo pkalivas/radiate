@@ -56,7 +56,7 @@ impl<T: Integer<T>> Gene for IntGene<T> {
     /// Create a new instance of the `IntGene` with a random allele between the min and max values.
     fn new_instance(&self) -> IntGene<T> {
         IntGene {
-            allele: random_provider::random_range(self.value_range.clone()),
+            allele: random_provider::range(self.value_range.clone()),
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
@@ -190,7 +190,7 @@ impl<T: Integer<T>> From<Range<T>> for IntGene<T> {
         let (min, max) = (range.start, range.end);
 
         Self {
-            allele: random_provider::random_range(range),
+            allele: random_provider::range(range),
             value_range: min..max,
             bounds: min..max,
         }
@@ -200,7 +200,7 @@ impl<T: Integer<T>> From<Range<T>> for IntGene<T> {
 impl<T: Integer<T>> From<(Range<T>, Range<T>)> for IntGene<T> {
     fn from((range, bounds): (Range<T>, Range<T>)) -> Self {
         Self {
-            allele: random_provider::random_range(range.clone()),
+            allele: random_provider::range(range.clone()),
             value_range: range,
             bounds,
         }

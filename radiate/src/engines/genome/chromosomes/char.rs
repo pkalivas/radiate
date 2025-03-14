@@ -32,7 +32,7 @@ pub struct CharGene {
 
 impl CharGene {
     pub fn new(char_set: Arc<[char]>) -> Self {
-        let index = random_provider::random_range(0..char_set.len());
+        let index = random_provider::range(0..char_set.len());
         CharGene {
             allele: char_set[index],
             chat_set: char_set,
@@ -51,7 +51,7 @@ impl Gene for CharGene {
     }
 
     fn new_instance(&self) -> CharGene {
-        let index = random_provider::random_range(0..self.chat_set.len());
+        let index = random_provider::range(0..self.chat_set.len());
         CharGene {
             allele: self.chat_set[index],
             chat_set: Arc::clone(&self.chat_set),
@@ -75,7 +75,7 @@ impl Valid for CharGene {
 impl Default for CharGene {
     fn default() -> Self {
         let char_set: Arc<[char]> = ALPHABET.chars().collect::<Vec<char>>().into();
-        let allele = random_provider::random_range(0..char_set.len());
+        let allele = random_provider::range(0..char_set.len());
         CharGene {
             allele: char_set[allele],
             chat_set: char_set,
@@ -101,7 +101,7 @@ impl From<char> for CharGene {
 impl From<&str> for CharGene {
     fn from(str: &str) -> Self {
         let char_set: Arc<[char]> = str.chars().collect::<Vec<char>>().into();
-        let allele = random_provider::random_range(0..char_set.len());
+        let allele = random_provider::range(0..char_set.len());
         CharGene {
             allele: char_set[allele],
             chat_set: char_set,
@@ -112,7 +112,7 @@ impl From<&str> for CharGene {
 impl From<String> for CharGene {
     fn from(string: String) -> Self {
         let char_set: Arc<[char]> = string.chars().collect::<Vec<char>>().into();
-        let allele = random_provider::random_range(0..char_set.len());
+        let allele = random_provider::range(0..char_set.len());
         CharGene {
             allele: char_set[allele],
             chat_set: char_set,

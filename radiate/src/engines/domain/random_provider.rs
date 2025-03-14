@@ -48,7 +48,7 @@ impl RandomProvider {
         rng.random()
     }
 
-    pub(self) fn random_range<T>(range: std::ops::Range<T>) -> T
+    pub(self) fn range<T>(range: std::ops::Range<T>) -> T
     where
         T: SampleUniform + PartialOrd,
     {
@@ -87,16 +87,16 @@ pub fn bool(prob: f64) -> bool {
 }
 
 /// Generates a random number of type T in the given range.
-pub fn random_range<T>(range: std::ops::Range<T>) -> T
+pub fn range<T>(range: std::ops::Range<T>) -> T
 where
     T: SampleUniform + PartialOrd,
 {
-    RandomProvider::random_range(range)
+    RandomProvider::range(range)
 }
 
 /// Chooses a random item from the given slice.
 pub fn choose<T>(items: &[T]) -> &T {
-    let index = random_range(0..items.len());
+    let index = range(0..items.len());
     &items[index]
 }
 
@@ -151,7 +151,7 @@ mod tests {
     #[test]
     fn test_gen_range() {
         for _ in 0..100 {
-            let value: f64 = random_range(0.0..100.0);
+            let value: f64 = range(0.0..100.0);
             assert!(value >= 0.0 && value < 100.0);
         }
     }

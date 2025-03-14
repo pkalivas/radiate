@@ -23,8 +23,8 @@ where
         chrom_two: &mut TreeChromosome<T>,
         _: f32,
     ) -> AlterResult {
-        let swap_one_index = random_provider::random_range(0..chrom_one.len());
-        let swap_two_index = random_provider::random_range(0..chrom_two.len());
+        let swap_one_index = random_provider::range(0..chrom_one.len());
+        let swap_two_index = random_provider::range(0..chrom_two.len());
 
         let one_node = &mut chrom_one.as_mut()[swap_one_index];
         let two_node = &mut chrom_two.as_mut()[swap_two_index];
@@ -32,8 +32,8 @@ where
         let one_size = one_node.size();
         let two_size = two_node.size();
 
-        let one_rand_index = random_provider::random_range(0..one_size);
-        let two_rand_index = random_provider::random_range(0..two_size);
+        let one_rand_index = random_provider::range(0..one_size);
+        let two_rand_index = random_provider::range(0..two_size);
 
         if one_rand_index < 1 || two_rand_index < 1 {
             return 0.into();
