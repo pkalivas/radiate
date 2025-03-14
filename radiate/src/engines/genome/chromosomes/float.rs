@@ -278,24 +278,27 @@ impl AsMut<[FloatGene]> for FloatChromosome {
 
 impl From<Vec<f32>> for FloatChromosome {
     fn from(alleles: Vec<f32>) -> Self {
-        let genes = alleles.into_iter().map(FloatGene::from).collect();
-        FloatChromosome { genes }
+        FloatChromosome {
+            genes: alleles.into_iter().map(FloatGene::from).collect(),
+        }
     }
 }
 
 impl From<(usize, Range<f32>)> for FloatChromosome {
     fn from((size, range): (usize, Range<f32>)) -> Self {
-        let genes = (0..size).map(|_| FloatGene::from(range.clone())).collect();
-        FloatChromosome { genes }
+        FloatChromosome {
+            genes: (0..size).map(|_| FloatGene::from(range.clone())).collect(),
+        }
     }
 }
 
 impl From<(usize, Range<f32>, Range<f32>)> for FloatChromosome {
     fn from((size, range, bounds): (usize, Range<f32>, Range<f32>)) -> Self {
-        let genes = (0..size)
-            .map(|_| FloatGene::from((range.clone(), bounds.clone())))
-            .collect();
-        FloatChromosome { genes }
+        FloatChromosome {
+            genes: (0..size)
+                .map(|_| FloatGene::from((range.clone(), bounds.clone())))
+                .collect(),
+        }
     }
 }
 
