@@ -4,7 +4,8 @@ use std::{
 };
 
 /// `WorkResult` is a simple wrapper around a `Receiver` that allows the user to get
-/// the result of a job that was executed in the thread pool. It kinda acts like a `Future` in a synchronous way.
+/// the result of a job that was executed in the thread pool. It kinda acts like
+/// a `Future` in a synchronous way.
 pub struct WorkResult<T> {
     receiver: mpsc::Receiver<T>,
 }

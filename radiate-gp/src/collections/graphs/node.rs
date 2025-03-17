@@ -129,20 +129,20 @@ impl<T> Node for GraphNode<T> {
 
         if let Arity::Any = arity {
             if self.outgoing.is_empty() {
-                return NodeType::Output;
+                NodeType::Output
             } else {
-                return NodeType::Vertex;
+                NodeType::Vertex
             }
         } else if let Arity::Exact(1) = arity {
             if self.incoming.len() == 1 && self.outgoing.len() == 1 {
-                return NodeType::Edge;
+                NodeType::Edge
             } else {
-                return NodeType::Vertex;
+                NodeType::Vertex
             }
         } else if let Arity::Zero = arity {
-            return NodeType::Input;
+            NodeType::Input
         } else {
-            return NodeType::Vertex;
+            NodeType::Vertex
         }
     }
 

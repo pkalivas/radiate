@@ -124,6 +124,8 @@ pub fn indexes(range: std::ops::Range<usize>) -> Vec<usize> {
     indexes
 }
 
+/// Executes the given function with a new random number generator with the given seed.
+/// The original random number generator is restored after the function has been executed
 pub fn scoped_seed<F>(seed: u64, func: F)
 where
     F: FnOnce(),
