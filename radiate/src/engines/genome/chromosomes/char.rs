@@ -27,15 +27,15 @@ pub const ALPHABET: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP
 #[derive(Clone, PartialEq)]
 pub struct CharGene {
     pub allele: char,
-    pub chat_set: Arc<[char]>,
+    pub char_set: Arc<[char]>,
 }
 
 impl CharGene {
     pub fn new(char_set: Arc<[char]>) -> Self {
-        let index = random_provider::random_range(0..char_set.len());
+        let index = random_provider::range(0..char_set.len());
         CharGene {
             allele: char_set[index],
-            chat_set: char_set,
+            char_set,
         }
     }
 }
@@ -51,34 +51,34 @@ impl Gene for CharGene {
     }
 
     fn new_instance(&self) -> CharGene {
-        let index = random_provider::random_range(0..self.chat_set.len());
+        let index = random_provider::range(0..self.char_set.len());
         CharGene {
-            allele: self.chat_set[index],
-            chat_set: Arc::clone(&self.chat_set),
+            allele: self.char_set[index],
+            char_set: Arc::clone(&self.char_set),
         }
     }
 
     fn with_allele(&self, allele: &char) -> CharGene {
         CharGene {
             allele: *allele,
-            chat_set: Arc::clone(&self.chat_set),
+            char_set: Arc::clone(&self.char_set),
         }
     }
 }
 
 impl Valid for CharGene {
     fn is_valid(&self) -> bool {
-        self.chat_set.contains(&self.allele)
+        self.char_set.contains(&self.allele)
     }
 }
 
 impl Default for CharGene {
     fn default() -> Self {
         let char_set: Arc<[char]> = ALPHABET.chars().collect::<Vec<char>>().into();
-        let allele = random_provider::random_range(0..char_set.len());
+        let allele = random_provider::range(0..char_set.len());
         CharGene {
             allele: char_set[allele],
-            chat_set: char_set,
+            char_set,
         }
     }
 }
@@ -93,7 +93,7 @@ impl From<char> for CharGene {
     fn from(allele: char) -> Self {
         CharGene {
             allele,
-            chat_set: ALPHABET.chars().collect::<Vec<char>>().into(),
+            char_set: ALPHABET.chars().collect::<Vec<char>>().into(),
         }
     }
 }
@@ -101,10 +101,10 @@ impl From<char> for CharGene {
 impl From<&str> for CharGene {
     fn from(str: &str) -> Self {
         let char_set: Arc<[char]> = str.chars().collect::<Vec<char>>().into();
-        let allele = random_provider::random_range(0..char_set.len());
+        let allele = random_provider::range(0..char_set.len());
         CharGene {
             allele: char_set[allele],
-            chat_set: char_set,
+            char_set,
         }
     }
 }
@@ -112,20 +112,17 @@ impl From<&str> for CharGene {
 impl From<String> for CharGene {
     fn from(string: String) -> Self {
         let char_set: Arc<[char]> = string.chars().collect::<Vec<char>>().into();
-        let allele = random_provider::random_range(0..char_set.len());
+        let allele = random_provider::range(0..char_set.len());
         CharGene {
             allele: char_set[allele],
-            chat_set: char_set,
+            char_set,
         }
     }
 }
 
 impl From<(char, Arc<[char]>)> for CharGene {
     fn from((allele, char_set): (char, Arc<[char]>)) -> Self {
-        CharGene {
-            allele,
-            chat_set: char_set,
-        }
+        CharGene { allele, char_set }
     }
 }
 
@@ -224,7 +221,7 @@ mod tests {
         let gene = CharGene::from("hello");
         assert_eq!(
             "hello".chars().collect::<Vec<char>>(),
-            gene.chat_set.as_ref()
+            gene.char_set.as_ref()
         );
     }
 

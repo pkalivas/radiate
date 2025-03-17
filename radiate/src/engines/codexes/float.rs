@@ -32,8 +32,8 @@ impl FloatCodex {
 
     /// Set the bounds of the `FloatGenes` in the `Genotype`. The default bounds
     /// are equal to the min and max values.
-    pub fn with_bounds(mut self, lower_bound: f32, upper_bound: f32) -> Self {
-        self.bounds = lower_bound..upper_bound;
+    pub fn with_bounds(mut self, range: Range<f32>) -> Self {
+        self.bounds = range;
         self
     }
 }

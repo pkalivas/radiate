@@ -56,7 +56,7 @@ impl Gene for FloatGene {
 
     fn new_instance(&self) -> FloatGene {
         FloatGene {
-            allele: random_provider::random_range(self.value_range.clone()),
+            allele: random_provider::range(self.value_range.clone()),
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
@@ -181,8 +181,8 @@ impl From<Range<f32>> for FloatGene {
     fn from(range: Range<f32>) -> Self {
         let (min, max) = (range.start, range.end);
 
-        Self {
-            allele: random_provider::random_range(range),
+        FloatGene {
+            allele: random_provider::range(range),
             value_range: min..max,
             bounds: min..max,
         }
@@ -191,9 +191,9 @@ impl From<Range<f32>> for FloatGene {
 
 impl From<(Range<f32>, Range<f32>)> for FloatGene {
     fn from((value_range, bounds): (Range<f32>, Range<f32>)) -> Self {
-        let allele = random_provider::random_range(value_range.clone());
+        let allele = random_provider::range(value_range.clone());
 
-        Self {
+        FloatGene {
             allele,
             value_range,
             bounds,
@@ -278,24 +278,27 @@ impl AsMut<[FloatGene]> for FloatChromosome {
 
 impl From<Vec<f32>> for FloatChromosome {
     fn from(alleles: Vec<f32>) -> Self {
-        let genes = alleles.into_iter().map(FloatGene::from).collect();
-        FloatChromosome { genes }
+        FloatChromosome {
+            genes: alleles.into_iter().map(FloatGene::from).collect(),
+        }
     }
 }
 
 impl From<(usize, Range<f32>)> for FloatChromosome {
     fn from((size, range): (usize, Range<f32>)) -> Self {
-        let genes = (0..size).map(|_| FloatGene::from(range.clone())).collect();
-        FloatChromosome { genes }
+        FloatChromosome {
+            genes: (0..size).map(|_| FloatGene::from(range.clone())).collect(),
+        }
     }
 }
 
 impl From<(usize, Range<f32>, Range<f32>)> for FloatChromosome {
     fn from((size, range, bounds): (usize, Range<f32>, Range<f32>)) -> Self {
-        let genes = (0..size)
-            .map(|_| FloatGene::from((range.clone(), bounds.clone())))
-            .collect();
-        FloatChromosome { genes }
+        FloatChromosome {
+            genes: (0..size)
+                .map(|_| FloatGene::from((range.clone(), bounds.clone())))
+                .collect(),
+        }
     }
 }
 

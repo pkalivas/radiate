@@ -18,7 +18,7 @@ impl<C: Chromosome> Mutate<C> for SwapMutator {
 
         for i in 0..chromosome.len() {
             if random_provider::random::<f32>() < rate {
-                let swap_index = random_provider::random_range(0..chromosome.len());
+                let swap_index = random_provider::range(0..chromosome.len());
 
                 if swap_index == i {
                     continue;

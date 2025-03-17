@@ -89,8 +89,10 @@ pub trait ArithmeticGene:
     /// Get the value of the gene as a number.
     fn mean(&self, other: &Self) -> Self;
 
+    /// Create a new gene from an f32.
     fn from_f32(&self, value: f32) -> Self;
 
+    /// Create a new gene from an i32.
     fn from_i32(&self, value: i32) -> Self {
         self.from_f32(value as f32)
     }

@@ -56,7 +56,7 @@ impl<T: Integer<T>> Gene for IntGene<T> {
     /// Create a new instance of the `IntGene` with a random allele between the min and max values.
     fn new_instance(&self) -> IntGene<T> {
         IntGene {
-            allele: random_provider::random_range(self.value_range.clone()),
+            allele: random_provider::range(self.value_range.clone()),
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
@@ -189,8 +189,8 @@ impl<T: Integer<T>> From<Range<T>> for IntGene<T> {
     fn from(range: Range<T>) -> Self {
         let (min, max) = (range.start, range.end);
 
-        Self {
-            allele: random_provider::random_range(range),
+        IntGene {
+            allele: random_provider::range(range),
             value_range: min..max,
             bounds: min..max,
         }
@@ -199,8 +199,8 @@ impl<T: Integer<T>> From<Range<T>> for IntGene<T> {
 
 impl<T: Integer<T>> From<(Range<T>, Range<T>)> for IntGene<T> {
     fn from((range, bounds): (Range<T>, Range<T>)) -> Self {
-        Self {
-            allele: random_provider::random_range(range.clone()),
+        IntGene {
+            allele: random_provider::range(range.clone()),
             value_range: range,
             bounds,
         }
@@ -273,24 +273,27 @@ impl<T: Integer<T>> AsMut<[IntGene<T>]> for IntChromosome<T> {
 
 impl<T: Integer<T>> From<(usize, Range<T>)> for IntChromosome<T> {
     fn from((size, range): (usize, Range<T>)) -> Self {
-        let genes = (0..size).map(|_| IntGene::from(range.clone())).collect();
-        IntChromosome { genes }
+        IntChromosome {
+            genes: (0..size).map(|_| IntGene::from(range.clone())).collect(),
+        }
     }
 }
 
 impl<T: Integer<T>> From<(usize, Range<T>, Range<T>)> for IntChromosome<T> {
     fn from((size, range, bounds): (usize, Range<T>, Range<T>)) -> Self {
-        let genes = (0..size)
-            .map(|_| IntGene::from((range.clone(), bounds.clone())))
-            .collect();
-        IntChromosome { genes }
+        IntChromosome {
+            genes: (0..size)
+                .map(|_| IntGene::from((range.clone(), bounds.clone())))
+                .collect(),
+        }
     }
 }
 
 impl<T: Integer<T>> From<Vec<T>> for IntChromosome<T> {
     fn from(alleles: Vec<T>) -> Self {
-        let genes = alleles.into_iter().map(IntGene::from).collect();
-        IntChromosome { genes }
+        IntChromosome {
+            genes: alleles.into_iter().map(IntGene::from).collect(),
+        }
     }
 }
 

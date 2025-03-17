@@ -53,7 +53,7 @@ impl<C: Chromosome> Select<C> for LinearRankSelector {
         let mut selected_population = Vec::with_capacity(count);
 
         for _ in 0..count {
-            let target = random_provider::random_range(0.0..total_rank);
+            let target = random_provider::range(0.0..total_rank);
             let mut cumulative_rank = 0.0;
 
             for (rank, _) in fitness_values.iter().enumerate() {
@@ -68,40 +68,3 @@ impl<C: Chromosome> Select<C> for LinearRankSelector {
         Population::new(selected_population)
     }
 }
-
-// let mut fitness_values = population
-//     .iter()
-//     .filter_map(|individual| individual.score())
-//     .map(|score| score.as_f32())
-//     .collect::<Vec<f32>>();
-
-// let total_rank: f32 = (1..=fitness_values.len()).map(|i| i as f32).sum();
-// let mut selected_population = Vec::with_capacity(count);
-
-// match objective {
-//     Objective::Single(opt) => {
-//         if opt == &Optimize::Minimize {
-//             fitness_values.reverse();
-//         }
-//     }
-//     Objective::Multi(_) => {}
-// }
-
-// for fit in fitness_values.iter_mut() {
-//     *fit = 1.0 / *fit;
-// }
-
-// for _ in 0..count {
-//     let target = random_provider::random_range(0.0..total_rank);
-//     let mut cumulative_rank = 0.0;
-
-//     for (rank, _) in fitness_values.iter().enumerate() {
-//         cumulative_rank += (rank + 1) as f32 * self.selection_pressure;
-//         if cumulative_rank > target {
-//             selected_population.push(population[rank].clone());
-//             break;
-//         }
-//     }
-// }
-
-// Population::new(selected_population)
