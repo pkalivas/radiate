@@ -60,8 +60,7 @@ pub struct NeuralNet {
 impl NeuralNet {
     pub fn feed_forward(&self, input: Vec<f32>) -> Vec<f32> {
         let mut output = input;
-
-        for layer in &self.layers {
+        for layer in self.layers.iter() {
             let layer_height = layer.len();
             let layer_width = layer[0].len();
 
@@ -80,11 +79,8 @@ impl NeuralNet {
                     sum += layer[j][i] * output[j];
                 }
 
-                if i == layer_width - 1 {
-                    new_output.push(if sum > 0.0 { sum } else { 0.0 });
-                } else {
-                    new_output.push(1.0 / (1.0 + (-sum).exp()));
-                }
+                // ReLU activation function
+                new_output.push(if sum > 0.0 { sum } else { 0.0 });
             }
 
             output = new_output;
@@ -113,16 +109,11 @@ pub struct NeuralNetCodex {
 
 impl Codex<FloatChromosome, NeuralNet> for NeuralNetCodex {
     fn encode(&self) -> Genotype<FloatChromosome> {
-        let mut chromosomes = Vec::new();
-        for shape in &self.shapes {
-            chromosomes.push(FloatChromosome::from((
-                shape.0 * shape.1,
-                -1.0..1.0,
-                -100.0..100.0,
-            )));
-        }
-
-        Genotype::new(chromosomes)
+        self.shapes
+            .iter()
+            .map(|shape| FloatChromosome::from((shape.0 * shape.1, -1.0..1.0, -100.0..100.0)))
+            .collect::<Vec<FloatChromosome>>()
+            .into()
     }
 
     fn decode(&self, genotype: &Genotype<FloatChromosome>) -> NeuralNet {
