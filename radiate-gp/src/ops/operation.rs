@@ -120,7 +120,8 @@ where
 
 impl<T> Into<TreeNode<Op<T>>> for Op<T> {
     fn into(self) -> TreeNode<Op<T>> {
-        TreeNode::new(self)
+        let arity = self.arity();
+        TreeNode::with_arity(self, arity)
     }
 }
 

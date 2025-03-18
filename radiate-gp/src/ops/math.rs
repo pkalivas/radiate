@@ -3,20 +3,21 @@ use crate::Arity;
 use radiate::random_provider;
 use std::sync::Arc;
 
-const MAX_VALUE: f32 = 1e+5_f32;
-const MIN_VALUE: f32 = -1e+5_f32;
+const MAX_VALUE: f32 = 1e+10_f32;
+const MIN_VALUE: f32 = -1e+10_f32;
 const ONE: f32 = 1.0_f32;
 const ZERO: f32 = 0.0_f32;
 const TWO: f32 = 2.0_f32;
 const HALF: f32 = 0.5_f32;
 const TENTH: f32 = 0.1_f32;
 
-/// Clamp a value to the range [-1e+5, 1e+5]. Without this, values can quickly become
+/// Clamp a value to the range [-1e+10, 1e+10]. Without this, values can quickly become
 /// too large or too small to be useful.
 fn clamp(value: f32) -> f32 {
     if value.is_nan() {
         return ZERO;
     }
+
     value.clamp(MIN_VALUE, MAX_VALUE)
 }
 
