@@ -12,7 +12,7 @@ mod test {
                 .attach(TreeNode::new(Op::constant(2.0))),
         );
 
-        assert!(tree.root().unwrap().is_valid());
+        assert_eq!(tree.root().map(|node| node.is_valid()), Some(true));
         assert_eq!(tree.height(), 1);
         assert_eq!(tree.size(), 3);
         assert_eq!(tree.eval(&vec![]), 3.0);

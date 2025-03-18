@@ -51,7 +51,7 @@ where
                 .collect::<Vec<TreeChromosome<T>>>();
 
             if let Some(constraint) = &self.constraint {
-                for chromosome in &new_chromosomes {
+                for chromosome in new_chromosomes.iter() {
                     for node in chromosome.iter() {
                         if !constraint(node) {
                             panic!("TreeCodex.encode() - Root node does not meet constraint.");
