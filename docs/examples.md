@@ -309,10 +309,12 @@ comprehensive list of examples.
     use radiate::*;
 
     const MIN_SCORE: f32 = 0.0001;
-    const MAX_INDEX: i32 = 500;
+    const MAX_INDEX: usize = 500;
     const MAX_SECONDS: u64 = 1;
 
     fn main() {
+        random_provider::set_seed(12345);
+
         let inputs = vec![
             vec![0.0, 0.0],
             vec![1.0, 1.0],
@@ -366,8 +368,7 @@ comprehensive list of examples.
     impl NeuralNet {
         pub fn feed_forward(&self, input: Vec<f32>) -> Vec<f32> {
             let mut output = input;
-
-            for layer in &self.layers {
+            for layer in self.layers.iter() {
                 let layer_height = layer.len();
                 let layer_width = layer[0].len();
 
@@ -386,11 +387,8 @@ comprehensive list of examples.
                         sum += layer[j][i] * output[j];
                     }
 
-                    if i == layer_width - 1 {
-                        new_output.push(if sum > 0.0 { sum } else { 0.0 });
-                    } else {
-                        new_output.push(1.0 / (1.0 + (-sum).exp()));
-                    }
+                    // ReLU activation function
+                    new_output.push(if sum > 0.0 { sum } else { 0.0 });
                 }
 
                 output = new_output;
@@ -419,16 +417,11 @@ comprehensive list of examples.
 
     impl Codex<FloatChromosome, NeuralNet> for NeuralNetCodex {
         fn encode(&self) -> Genotype<FloatChromosome> {
-            let mut chromosomes = Vec::<FloatChromosome>::new();
-            for shape in &self.shapes {
-                chromosomes.push(FloatChromosome {
-                    genes: (0..shape.0 * shape.1)
-                        .map(|_| FloatGene::from((-1.0..1.0, -100.0..100.0)))
-                        .collect::<Vec<FloatGene>>(),
-                });
-            }
-
-            Genotype::new(chromosomes)
+            self.shapes
+                .iter()
+                .map(|shape| FloatChromosome::from((shape.0 * shape.1, -1.0..1.0, -100.0..100.0)))
+                .collect::<Vec<FloatChromosome>>()
+                .into()
         }
 
         fn decode(&self, genotype: &Genotype<FloatChromosome>) -> NeuralNet {
