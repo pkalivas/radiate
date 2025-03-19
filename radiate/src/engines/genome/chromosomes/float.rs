@@ -1,6 +1,6 @@
 use super::{
-    Chromosome,
     gene::{ArithmeticGene, Gene, Valid},
+    Chromosome,
 };
 use crate::random_provider;
 use std::{
@@ -80,17 +80,17 @@ impl ArithmeticGene for FloatGene {
         &self.value_range.end
     }
 
-    fn from_f32(&self, value: f32) -> Self {
+    fn mean(&self, other: &FloatGene) -> FloatGene {
         FloatGene {
-            allele: value,
+            allele: (self.allele + other.allele) / 2_f32,
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
     }
 
-    fn mean(&self, other: &FloatGene) -> FloatGene {
+    fn from_f32(&self, value: f32) -> Self {
         FloatGene {
-            allele: (self.allele + other.allele) / 2_f32,
+            allele: value,
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }

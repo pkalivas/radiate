@@ -28,7 +28,7 @@ impl Op<bool> {
     }
 
     pub fn gt() -> Self {
-        Op::Fn("gt", 2.into(), Arc::new(|args| args[0] > args[1]))
+        Op::Fn("gt", 2.into(), Arc::new(|args| args[0] & !args[1]))
     }
 
     pub fn ge() -> Self {
@@ -36,7 +36,7 @@ impl Op<bool> {
     }
 
     pub fn lt() -> Self {
-        Op::Fn("lt", 2.into(), Arc::new(|args| args[0] < args[1]))
+        Op::Fn("lt", 2.into(), Arc::new(|args| !args[0] & args[1]))
     }
 
     pub fn le() -> Self {

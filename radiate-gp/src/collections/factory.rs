@@ -47,11 +47,9 @@ impl<T: Default + Clone> Factory<(usize, NodeType), GraphNode<T>> for NodeStore<
 
             match node_value {
                 NodeValue::Bounded(value, arity) => {
-                    return (index, node_type, value.clone(), *arity).into();
+                    (index, node_type, value.clone(), *arity).into()
                 }
-                NodeValue::Unbound(value) => {
-                    return (index, node_type, value.clone()).into();
-                }
+                NodeValue::Unbound(value) => (index, node_type, value.clone()).into(),
             }
         });
 
@@ -83,11 +81,9 @@ where
 
             match node_value {
                 NodeValue::Bounded(value, arity) => {
-                    return GraphNode::with_arity(index, node_type, value.clone(), *arity);
+                    GraphNode::with_arity(index, node_type, value.clone(), *arity)
                 }
-                NodeValue::Unbound(value) => {
-                    return GraphNode::new(index, node_type, value.clone());
-                }
+                NodeValue::Unbound(value) => GraphNode::new(index, node_type, value.clone()),
             }
         });
 
@@ -105,12 +101,8 @@ impl<T: Clone + Default> Factory<NodeType, TreeNode<T>> for NodeStore<T> {
             let node_value = random_provider::choose(&values);
 
             match node_value {
-                NodeValue::Bounded(value, arity) => {
-                    return TreeNode::with_arity(value.clone(), *arity);
-                }
-                NodeValue::Unbound(value) => {
-                    return TreeNode::new(value.clone());
-                }
+                NodeValue::Bounded(value, arity) => TreeNode::with_arity(value.clone(), *arity),
+                NodeValue::Unbound(value) => TreeNode::new(value.clone()),
             }
         });
 

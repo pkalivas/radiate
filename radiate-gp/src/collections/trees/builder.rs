@@ -4,7 +4,7 @@ use crate::{Arity, Factory, NodeStore, NodeType};
 
 impl<T> Tree<T> {
     /// Create a tree with the given depth, where each node is a random node from the node store.
-    /// This obey's the rules of the `NodeStore`'s `NodeType`'s arity, and will create a tree
+    /// This obeys the rules of the `NodeStore`'s `NodeType`'s arity, and will create a tree
     /// that is as balanced as possible.
     ///
     /// Note that the root node will try to be a `NodeType::Root` if it is available in the
@@ -47,7 +47,7 @@ impl<T> Tree<T> {
     /// Recursively grow a tree from the given depth, where each node is a random node from the
     /// node store. If the depth is 0, then a leaf node is returned. Otherwise, a vertex node is
     /// returned with children that are grown from the given depth.
-    /// This obey's the rules of the `NodeStore`'s `NodeType`'s arity, and will create a tree
+    /// This obeys the rules of the `NodeStore`'s `NodeType`'s arity, and will create a tree
     /// that is as balanced as possible.
     ///
     /// # Arguments
@@ -88,9 +88,9 @@ mod tests {
         let tree = Tree::with_depth(2, store);
 
         assert!(tree.root().is_some());
-        assert!(tree.root().unwrap().children().unwrap().len() == 2);
-        assert!(tree.height() == 2);
-        assert!(tree.size() == 7);
+        assert_eq!(tree.root().unwrap().children().unwrap().len(), 2);
+        assert_eq!(tree.height(), 2);
+        assert_eq!(tree.size(), 7);
     }
 
     #[test]
@@ -104,8 +104,8 @@ mod tests {
         let tree = Tree::with_depth(3, store);
 
         assert!(tree.root().is_some());
-        assert!(tree.root().unwrap().children().unwrap().len() == 2);
-        assert!(tree.height() == 3);
-        assert!(tree.size() == 15);
+        assert_eq!(tree.root().unwrap().children().unwrap().len(), 2);
+        assert_eq!(tree.height(), 3);
+        assert_eq!(tree.size(), 15);
     }
 }

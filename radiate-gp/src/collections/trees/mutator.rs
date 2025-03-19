@@ -1,6 +1,6 @@
 use super::TreeChromosome;
-use crate::{Factory, NodeStore, NodeType, TreeNode, node::Node};
-use radiate::{AlterAction, AlterResult, Alterer, Gene, IntoAlter, Mutate, random_provider};
+use crate::{node::Node, Factory, NodeStore, NodeType, TreeNode};
+use radiate::{random_provider, AlterAction, AlterResult, Alterer, Gene, IntoAlter, Mutate};
 
 pub struct TreeMutator {
     rate: f32,
@@ -11,7 +11,7 @@ impl TreeMutator {
         TreeMutator { rate }
     }
 
-    fn mutate_node<T>(&self, node: &mut TreeNode<T>, store: &NodeStore<T>, rate: f32) -> usize
+    fn mutate_node<T>(node: &mut TreeNode<T>, store: &NodeStore<T>, rate: f32) -> usize
     where
         T: Clone + PartialEq + Default,
     {
@@ -28,13 +28,13 @@ impl TreeMutator {
                 let new_gate: TreeNode<T> = store.new_instance(node.node_type());
 
                 if new_gate.arity() == node.arity() {
-                    (*node) = node.with_allele(&new_gate.allele());
+                    *node = node.with_allele(new_gate.allele());
                     count += 1;
                 }
             }
 
             for child in node.children_mut().unwrap() {
-                count += self.mutate_node(child, store, rate);
+                count += TreeMutator::mutate_node(child, store, rate);
             }
         }
 
@@ -49,10 +49,10 @@ where
     fn mutate_chromosome(&self, chromosome: &mut TreeChromosome<T>, rate: f32) -> AlterResult {
         let store = chromosome.get_store();
         if let Some(store) = store {
-            let mutations = self.mutate_node(chromosome.root_mut(), &store, rate);
-            return mutations.into();
+            let mutations = TreeMutator::mutate_node(chromosome.root_mut(), &store, rate);
+            mutations.into()
         } else {
-            return 0.into();
+            0.into()
         }
     }
 }

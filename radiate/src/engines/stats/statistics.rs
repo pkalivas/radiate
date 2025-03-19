@@ -191,51 +191,21 @@ impl Default for Statistic {
     }
 }
 
-impl Into<Statistic> for f32 {
-    fn into(self) -> Statistic {
-        Statistic::new(self)
+impl From<f32> for Statistic {
+    fn from(value: f32) -> Self {
+        Statistic::new(value)
     }
 }
 
-impl Into<Statistic> for i32 {
-    fn into(self) -> Statistic {
-        Statistic::new(self as f32)
+impl From<i32> for Statistic {
+    fn from(value: i32) -> Self {
+        Statistic::new(value as f32)
     }
 }
 
-impl Into<Statistic> for u32 {
-    fn into(self) -> Statistic {
-        Statistic::new(self as f32)
-    }
-}
-
-impl Into<Statistic> for u64 {
-    fn into(self) -> Statistic {
-        Statistic::new(self as f32)
-    }
-}
-
-impl Into<Statistic> for f64 {
-    fn into(self) -> Statistic {
-        Statistic::new(self as f32)
-    }
-}
-
-impl Into<Statistic> for i64 {
-    fn into(self) -> Statistic {
-        Statistic::new(self as f32)
-    }
-}
-
-impl Into<Statistic> for usize {
-    fn into(self) -> Statistic {
-        Statistic::new(self as f32)
-    }
-}
-
-impl Into<Statistic> for isize {
-    fn into(self) -> Statistic {
-        Statistic::new(self as f32)
+impl From<usize> for Statistic {
+    fn from(value: usize) -> Self {
+        Statistic::new(value as f32)
     }
 }
 

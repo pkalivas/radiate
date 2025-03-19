@@ -1,5 +1,5 @@
 use super::{AlterAction, AlterResult, Alterer, IntoAlter, Mutate};
-use crate::{Chromosome, random_provider};
+use crate::{random_provider, Chromosome};
 
 /// The `InversionMutator` is a simple mutator that inverts a random section of the chromosome.
 ///
@@ -13,7 +13,7 @@ impl InversionMutator {
     /// Create a new instance of the `InversionMutator` with the given rate.
     /// The rate must be between 0.0 and 1.0.
     pub fn new(rate: f32) -> Self {
-        if rate < 0.0 || rate > 1.0 {
+        if !(0.0..=1.0).contains(&rate) {
             panic!("rate must be between 0.0 and 1.0");
         }
 

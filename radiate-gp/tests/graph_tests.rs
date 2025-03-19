@@ -95,17 +95,17 @@ mod tests {
     fn test_graph_with_cycles_and_recurrent_nodes() {
         let mut graph = Graph::<i32>::default();
 
-        graph.insert(NodeType::Input, 0);
-        graph.insert(NodeType::Vertex, 1);
-        graph.insert(NodeType::Vertex, 2);
-        graph.insert(NodeType::Output, 3);
+        let idx_one = graph.insert(NodeType::Input, 0);
+        let idx_two = graph.insert(NodeType::Vertex, 1);
+        let idx_three = graph.insert(NodeType::Vertex, 2);
+        let idx_four = graph.insert(NodeType::Output, 3);
 
         graph
-            .attach(0, 1)
-            .attach(1, 2)
-            .attach(2, 1)
-            .attach(2, 3)
-            .attach(3, 1);
+            .attach(idx_one, idx_two)
+            .attach(idx_two, idx_three)
+            .attach(idx_three, idx_two)
+            .attach(idx_three, idx_four)
+            .attach(idx_four, idx_two);
 
         graph.set_cycles(vec![]);
 

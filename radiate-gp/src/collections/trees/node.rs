@@ -1,5 +1,5 @@
-use super::{Tree, TreeIterator};
-use crate::{Arity, NodeType, node::Node};
+use super::TreeIterator;
+use crate::{node::Node, Arity, NodeType};
 use radiate::engines::genome::gene::{Gene, Valid};
 
 #[derive(PartialEq)]
@@ -120,7 +120,7 @@ impl<T> Node for TreeNode<T> {
     }
 
     fn node_type(&self) -> NodeType {
-        if let Some(_) = self.children.as_ref() {
+        if self.children.as_ref().is_some() {
             NodeType::Vertex
         } else {
             NodeType::Leaf
@@ -130,16 +130,14 @@ impl<T> Node for TreeNode<T> {
     fn arity(&self) -> Arity {
         if let Some(arity) = self.arity {
             arity
+        } else if let Some(children) = self.children.as_ref() {
+            Arity::Exact(children.len())
         } else {
-            if let Some(children) = self.children.as_ref() {
-                Arity::Exact(children.len())
-            } else {
-                match self.node_type() {
-                    NodeType::Leaf => Arity::Zero,
-                    NodeType::Vertex => Arity::Any,
-                    NodeType::Root => Arity::Any,
-                    _ => Arity::Zero,
-                }
+            match self.node_type() {
+                NodeType::Leaf => Arity::Zero,
+                NodeType::Vertex => Arity::Any,
+                NodeType::Root => Arity::Any,
+                _ => Arity::Zero,
             }
         }
     }
@@ -187,9 +185,7 @@ impl<T> Valid for TreeNode<T> {
                     }
                 }
                 Arity::Exact(n) => {
-                    if node.children.is_none()
-                        || node.children.as_ref().unwrap().len() != n as usize
-                    {
+                    if node.children.is_none() || node.children.as_ref().unwrap().len() != n {
                         return false;
                     }
                 }
@@ -211,44 +207,38 @@ impl<T: Clone> Clone for TreeNode<T> {
     }
 }
 
-impl<T> Into<Tree<T>> for TreeNode<T> {
-    fn into(self) -> Tree<T> {
-        Tree::new(self)
+impl From<i32> for TreeNode<i32> {
+    fn from(n: i32) -> Self {
+        TreeNode::new(n)
     }
 }
 
-impl Into<TreeNode<i32>> for i32 {
-    fn into(self) -> TreeNode<i32> {
-        TreeNode::new(self)
+impl From<f64> for TreeNode<f64> {
+    fn from(value: f64) -> Self {
+        TreeNode::new(value)
     }
 }
 
-impl Into<TreeNode<f64>> for f64 {
-    fn into(self) -> TreeNode<f64> {
-        TreeNode::new(self)
+impl From<String> for TreeNode<String> {
+    fn from(value: String) -> Self {
+        TreeNode::new(value)
     }
 }
 
-impl Into<TreeNode<String>> for String {
-    fn into(self) -> TreeNode<String> {
-        TreeNode::new(self)
+impl From<bool> for TreeNode<bool> {
+    fn from(value: bool) -> Self {
+        TreeNode::new(value)
     }
 }
 
-impl Into<TreeNode<bool>> for bool {
-    fn into(self) -> TreeNode<bool> {
-        TreeNode::new(self)
+impl From<char> for TreeNode<char> {
+    fn from(value: char) -> Self {
+        TreeNode::new(value)
     }
 }
 
-impl Into<TreeNode<char>> for char {
-    fn into(self) -> TreeNode<char> {
-        TreeNode::new(self)
-    }
-}
-
-impl Into<TreeNode<usize>> for usize {
-    fn into(self) -> TreeNode<usize> {
-        TreeNode::new(self)
+impl From<usize> for TreeNode<usize> {
+    fn from(value: usize) -> Self {
+        TreeNode::new(value)
     }
 }

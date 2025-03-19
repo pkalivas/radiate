@@ -33,11 +33,7 @@ impl<T> TreeChromosome<T> {
     }
 
     pub fn get_store(&self) -> Option<NodeStore<T>> {
-        if let Some(store) = &self.store {
-            Some(store.clone())
-        } else {
-            None
-        }
+        self.store.clone()
     }
 }
 

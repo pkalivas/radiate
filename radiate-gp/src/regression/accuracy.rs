@@ -38,7 +38,7 @@ impl<'a> Accuracy<'a> {
         let mut fp = 0.0; // False Positives
         let mut fn_ = 0.0; // False Negatives
 
-        let loss = self.loss_fn.calculate(&self.data_set, &mut eval);
+        let loss = self.loss_fn.calculate(self.data_set, &mut eval);
 
         // Compute the mean of actual values for R² calculation
         let total_values: usize = self.data_set.len();
@@ -95,12 +95,10 @@ impl<'a> Accuracy<'a> {
             } else {
                 0.0
             }
+        } else if total_samples > 0.0 {
+            correct_predictions / total_samples
         } else {
-            if total_samples > 0.0 {
-                correct_predictions / total_samples
-            } else {
-                0.0
-            }
+            0.0
         };
 
         // Compute classification metrics only if it's a classification task
@@ -139,7 +137,7 @@ impl<'a> Accuracy<'a> {
             rmse,
             r_squared,
             loss,
-            loss_fn: self.loss_fn.clone(),
+            loss_fn: self.loss_fn,
             sample_count: self.data_set.len(),
             is_regression,
         }

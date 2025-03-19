@@ -2,10 +2,10 @@ use super::transaction::{InsertStep, TransactionResult};
 use super::{Graph, GraphChromosome};
 use crate::node::Node;
 use crate::{Arity, Factory, NodeType};
-use radiate::{AlterAction, AlterResult, Alterer, Metric, Mutate, random_provider};
+use radiate::{random_provider, AlterAction, AlterResult, Alterer, Metric, Mutate};
 use radiate::{Chromosome, IntoAlter};
 
-const INVALID_MUTATION: &'static str = "GraphMutator(Ivld)";
+const INVALID_MUTATION: &str = "GraphMutator(Ivld)";
 
 /// A graph mutator that can be used to alter the graph structure. This is used to add nodes
 /// to the graph, and can be used to add either edges or vertices. The mutator is created with
@@ -33,7 +33,7 @@ impl GraphMutator {
     /// Set the `allow_recurrent` flag to allow or disallow recurrent nodes in the graph.
     ///
     /// If `allow` is true, recurrent nodes are allowed. If false, they are not.
-    /// When a recurrent node is or cycle is created duing mutation and `allow_recurrent` is false,
+    /// When a recurrent node is or cycle is created during mutation and `allow_recurrent` is false,
     /// the mutation will be discarded and the changes to the graph will be rolled back resulting in
     /// no changes to the graph.
     pub fn allow_recurrent(mut self, allow: bool) -> Self {
@@ -103,7 +103,7 @@ where
                         }
                     }
 
-                    trans.commit_with(Some(&|graph: &Graph<T>| {
+                    trans.commit_with(Some(|graph: &Graph<T>| {
                         if !self.allow_recurrent {
                             return graph.iter().all(|node| !node.is_recurrent());
                         }
@@ -112,16 +112,16 @@ where
                     }))
                 });
 
-                match result {
+                return match result {
                     TransactionResult::Invalid(_, _) => {
                         let metric = Metric::Value(INVALID_MUTATION, 1.into());
-                        return (0, metric).into();
+                        (0, metric).into()
                     }
                     TransactionResult::Valid(_) => {
                         chromosome.set_nodes(graph.into_iter().collect());
-                        return 1.into();
+                        1.into()
                     }
-                }
+                };
             }
         }
 

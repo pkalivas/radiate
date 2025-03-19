@@ -2,8 +2,8 @@ use crate::node::Node;
 use crate::ops::operation::Op;
 use crate::{Factory, GraphChromosome, NodeType};
 use radiate::engines::genome::gene::Gene;
+use radiate::{random_provider, Chromosome};
 use radiate::{AlterAction, AlterResult, Alterer, IntoAlter, Mutate};
-use radiate::{Chromosome, random_provider};
 use std::sync::Arc;
 
 pub struct OperationMutator {
@@ -13,11 +13,11 @@ pub struct OperationMutator {
 
 impl OperationMutator {
     pub fn new(rate: f32, replace_rate: f32) -> Self {
-        if rate < 0.0 || rate > 1.0 {
+        if !(0.0..=1.0).contains(&rate) {
             panic!("rate must be between 0.0 and 1.0");
         }
 
-        if replace_rate < 0.0 || replace_rate > 1.0 {
+        if !(0.0..=1.0).contains(&replace_rate) {
             panic!("replace_rate must be between 0.0 and 1.0");
         }
 

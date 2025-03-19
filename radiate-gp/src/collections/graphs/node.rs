@@ -231,16 +231,15 @@ impl<T> Valid for GraphNode<T> {
     }
 }
 
-impl<T> Into<GraphNode<T>> for (usize, NodeType, T) {
-    fn into(self) -> GraphNode<T> {
-        let (index, node_type, value) = self;
+impl<T> From<(usize, NodeType, T)> for GraphNode<T> {
+    fn from(value: (usize, NodeType, T)) -> Self {
+        let (index, node_type, value) = value;
         GraphNode::new(index, node_type, value)
     }
 }
 
-impl<T: Default> Into<GraphNode<T>> for (usize, T) {
-    fn into(self) -> GraphNode<T> {
-        let (index, value) = self;
+impl<T: Default> From<(usize, T)> for GraphNode<T> {
+    fn from((index, value): (usize, T)) -> Self {
         GraphNode {
             index,
             id: Uuid::new_v4(),
@@ -255,16 +254,15 @@ impl<T: Default> Into<GraphNode<T>> for (usize, T) {
     }
 }
 
-impl<T: Default> Into<GraphNode<T>> for (usize, NodeType, T, Arity) {
-    fn into(self) -> GraphNode<T> {
-        let (index, node_type, value, arity) = self;
+impl<T: Default> From<(usize, NodeType, T, Arity)> for GraphNode<T> {
+    fn from(value: (usize, NodeType, T, Arity)) -> Self {
+        let (index, node_type, value, arity) = value;
         GraphNode::with_arity(index, node_type, value, arity)
     }
 }
 
-impl<T: Default> Into<GraphNode<T>> for (usize, T, Arity) {
-    fn into(self) -> GraphNode<T> {
-        let (index, value, arity) = self;
+impl<T: Default> From<(usize, T, Arity)> for GraphNode<T> {
+    fn from((index, value, arity): (usize, T, Arity)) -> Self {
         GraphNode {
             index,
             id: Uuid::new_v4(),
@@ -334,9 +332,9 @@ mod tests {
         assert_eq!(node.index(), 0);
         assert_eq!(node.node_type(), NodeType::Input);
         assert_eq!(node.arity(), Arity::Zero);
-        assert_eq!(node.is_valid(), false);
-        assert_eq!(node.is_enabled(), true);
-        assert_eq!(node.is_recurrent(), false);
+        assert!(!node.is_valid());
+        assert!(node.is_enabled());
+        assert!(!node.is_recurrent());
         assert_eq!(node.incoming(), &BTreeSet::new());
         assert_eq!(node.outgoing(), &BTreeSet::new());
     }
@@ -348,9 +346,9 @@ mod tests {
         assert_eq!(node.index(), 0);
         assert_eq!(node.node_type(), NodeType::Input);
         assert_eq!(node.arity(), Arity::Zero);
-        assert_eq!(node.is_valid(), false);
-        assert_eq!(node.is_enabled(), true);
-        assert_eq!(node.is_recurrent(), false);
+        assert!(!node.is_valid());
+        assert!(node.is_enabled());
+        assert!(!node.is_recurrent());
         assert_eq!(node.incoming(), &BTreeSet::new());
         assert_eq!(node.outgoing(), &BTreeSet::new());
     }
@@ -363,9 +361,9 @@ mod tests {
         assert_eq!(new_node.index(), 0);
         assert_eq!(new_node.node_type(), NodeType::Input);
         assert_eq!(new_node.arity(), Arity::Zero);
-        assert_eq!(new_node.is_valid(), false);
-        assert_eq!(new_node.is_enabled(), true);
-        assert_eq!(new_node.is_recurrent(), false);
+        assert!(!new_node.is_valid());
+        assert!(new_node.is_enabled());
+        assert!(!new_node.is_recurrent());
         assert_eq!(new_node.incoming(), &BTreeSet::new());
         assert_eq!(new_node.outgoing(), &BTreeSet::new());
     }

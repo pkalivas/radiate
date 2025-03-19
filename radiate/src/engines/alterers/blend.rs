@@ -1,5 +1,5 @@
 use super::{AlterAction, AlterResult, Alterer, Crossover, IntoAlter};
-use crate::{ArithmeticGene, Chromosome, random_provider};
+use crate::{random_provider, ArithmeticGene, Chromosome};
 
 pub struct BlendCrossover {
     rate: f32,
@@ -10,11 +10,11 @@ impl BlendCrossover {
     /// Create a new instance of the `BlendCrossover` with the given rate and alpha.
     /// The rate must be between 0.0 and 1.0, and the alpha must be between 0.0 and 1.0.
     pub fn new(rate: f32, alpha: f32) -> Self {
-        if rate < 0.0 || rate > 1.0 {
+        if !(0.0..=1.0).contains(&rate) {
             panic!("Rate must be between 0 and 1");
         }
 
-        if alpha < 0.0 || alpha > 1.0 {
+        if !(0.0..=1.0).contains(&alpha) {
             panic!("Alpha must be between 0 and 1");
         }
 
@@ -35,8 +35,8 @@ where
                 let gene_one = chrom_one.get_gene(i);
                 let gene_two = chrom_two.get_gene(i);
 
-                let allele_one: f32 = (gene_one.allele().clone()).into();
-                let allele_two: f32 = (gene_two.allele().clone()).into();
+                let allele_one: f32 = gene_one.allele().clone().into();
+                let allele_two: f32 = gene_two.allele().clone().into();
 
                 let new_allele_one = allele_one - (self.alpha * (allele_two - allele_one));
                 let new_allele_two = allele_two - (self.alpha * (allele_one - allele_two));

@@ -1,13 +1,15 @@
-use crate::NodeStore;
 use crate::collections::{Tree, TreeChromosome, TreeNode};
+use crate::NodeStore;
 use radiate::{Chromosome, Codex, Genotype};
 use std::sync::Arc;
+
+type Constraint<N> = Arc<dyn Fn(&N) -> bool>;
 
 pub struct TreeCodex<T: Clone> {
     depth: usize,
     num_trees: usize,
     store: Option<NodeStore<T>>,
-    constraint: Option<Arc<dyn Fn(&TreeNode<T>) -> bool>>,
+    constraint: Option<Constraint<TreeNode<T>>>,
 }
 
 impl<T: Clone + Default> TreeCodex<T> {
@@ -51,7 +53,7 @@ where
                 .collect::<Vec<TreeChromosome<T>>>();
 
             if let Some(constraint) = &self.constraint {
-                for chromosome in &new_chromosomes {
+                for chromosome in new_chromosomes.iter() {
                     for node in chromosome.iter() {
                         if !constraint(node) {
                             panic!("TreeCodex.encode() - Root node does not meet constraint.");
@@ -78,7 +80,7 @@ where
 mod tests {
     use super::*;
 
-    use crate::{NodeType, ops::Op};
+    use crate::{ops::Op, NodeType};
     use radiate::engines::codexes::Codex;
 
     #[test]
@@ -93,7 +95,7 @@ mod tests {
         let genotype = codex.encode();
         let tree = codex.decode(&genotype).first().unwrap().clone();
 
-        assert!(tree.root().unwrap().height() == 3);
+        assert_eq!(tree.root().unwrap().height(), 3);
         assert!(tree.root().is_some());
     }
 }

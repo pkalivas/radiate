@@ -35,6 +35,7 @@ impl<T> NodeValue<T> {
     }
 }
 
+#[derive(Default)]
 pub struct NodeStore<T> {
     values: Arc<RwLock<HashMap<NodeType, Vec<NodeValue<T>>>>>,
 }
@@ -51,7 +52,7 @@ impl<T> NodeStore<T> {
         values.contains_key(&node_type)
             && values
                 .get(&node_type)
-                .map_or(false, |values| !values.is_empty())
+                .is_some_and(|values| !values.is_empty())
     }
 
     pub fn add(&self, values: Vec<T>)

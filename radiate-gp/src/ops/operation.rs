@@ -108,20 +108,20 @@ impl<T> Op<T> {
 unsafe impl Send for Op<f32> {}
 unsafe impl Sync for Op<f32> {}
 
-impl<T> Into<NodeValue<Op<T>>> for Op<T>
+impl<T> From<Op<T>> for NodeValue<Op<T>>
 where
     T: Clone,
 {
-    fn into(self) -> NodeValue<Op<T>> {
-        let arity = self.arity();
-        NodeValue::Bounded(self, arity)
+    fn from(value: Op<T>) -> Self {
+        let arity = value.arity();
+        NodeValue::Bounded(value, arity)
     }
 }
 
-impl<T> Into<TreeNode<Op<T>>> for Op<T> {
-    fn into(self) -> TreeNode<Op<T>> {
-        let arity = self.arity();
-        TreeNode::with_arity(self, arity)
+impl<T> From<Op<T>> for TreeNode<Op<T>> {
+    fn from(value: Op<T>) -> Self {
+        let arity = value.arity();
+        TreeNode::with_arity(value, arity)
     }
 }
 
@@ -243,21 +243,21 @@ where
     }
 }
 
-impl Into<Op<f32>> for f32 {
-    fn into(self) -> Op<f32> {
-        Op::Value("Value(f32)", Arity::Any, self, Arc::new(|_, v| *v))
+impl From<f32> for Op<f32> {
+    fn from(value: f32) -> Self {
+        Op::Value("Value(f32)", Arity::Any, value, Arc::new(|_, v| *v))
     }
 }
 
-impl Into<Op<i32>> for i32 {
-    fn into(self) -> Op<i32> {
-        Op::Value("Value(i32)", Arity::Any, self, Arc::new(|_, v| *v))
+impl From<i32> for Op<i32> {
+    fn from(value: i32) -> Self {
+        Op::Value("Value(i32)", Arity::Any, value, Arc::new(|_, v| *v))
     }
 }
 
-impl Into<Op<bool>> for bool {
-    fn into(self) -> Op<bool> {
-        Op::Value("Value(bool)", Arity::Any, self, Arc::new(|_, v| *v))
+impl From<bool> for Op<bool> {
+    fn from(value: bool) -> Self {
+        Op::Value("Value(bool)", Arity::Any, value, Arc::new(|_, v| *v))
     }
 }
 
@@ -271,7 +271,7 @@ mod test {
         let op = Op::add();
         assert_eq!(op.name(), "add");
         assert_eq!(op.arity(), Arity::Exact(2));
-        assert_eq!(op.eval(&vec![1_f32, 2_f32]), 3_f32);
+        assert_eq!(op.eval(&[1_f32, 2_f32]), 3_f32);
         assert_eq!(op.new_instance(()), op);
     }
 
@@ -301,8 +301,8 @@ mod test {
         let op = Op::add();
         let op2 = op.clone();
 
-        let result = op.eval(&vec![1_f32, 2_f32]);
-        let result2 = op2.eval(&vec![1_f32, 2_f32]);
+        let result = op.eval(&[1_f32, 2_f32]);
+        let result2 = op2.eval(&[1_f32, 2_f32]);
 
         assert_eq!(op, op2);
         assert_eq!(result, result2);

@@ -1,7 +1,7 @@
 use super::Select;
 use crate::objectives::{Objective, Optimize};
 use crate::selectors::ProbabilityWheelIterator;
-use crate::{Chromosome, Population, pareto};
+use crate::{pareto, Chromosome, Population};
 
 pub struct BoltzmannSelector {
     temperature: f32,
@@ -75,8 +75,8 @@ impl<C: Chromosome> Select<C> for BoltzmannSelector {
         };
 
         // Select the individuals based on the probabilities
-        return ProbabilityWheelIterator::new(&fitness_values, count)
+        ProbabilityWheelIterator::new(&fitness_values, count)
             .map(|idx| population[idx].clone())
-            .collect::<Population<C>>();
+            .collect::<Population<C>>()
     }
 }
