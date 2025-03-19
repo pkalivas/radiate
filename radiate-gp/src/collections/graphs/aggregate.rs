@@ -25,21 +25,21 @@ enum ConnectTypes {
     ///
     /// # Rules
     /// * The second collection must be of size `n` where `n` is a multiple of the size of the first
-    /// collection IE: `n % first.len() == 0`.
+    ///   collection IE: `n % first.len() == 0`.
     /// * The `GraphNode`'s in the second collection must have an arity of either `Any` or `Exact(n / first.len())`.
     OneToMany,
     /// Connects all `GraphNode`s in the first collection to a single `GraphNode` in the second collection.
     ///
     /// # Rules
     /// * The first collection must be of size `n` where `n` is a multiple of the size of the second collection
-    /// IE: `n % second.len() == 0`.
+    ///   IE: `n % second.len() == 0`.
     /// * The `GraphNode`'s in the first collection must have an arity of either `Any` or `Exact(n / second.len())`.
     ManyToOne,
     /// Connects all `GraphNode`s in the first collection to all `GraphNode`s in the second collection.
     ///
     /// # Rules
     /// * The `GraphNode`'s in the second collection must have an arity of either `Any` or `Exact(n)`
-    /// where `n` is the size of the first collection.
+    ///   where `n` is the size of the first collection.
     AllToAll,
     /// Connects each `GraphNode` in the first collection to the corresponding `GraphNode` in the second collection
     /// then connects each `GraphNode` in the second collection to the corresponding `GraphNode` in the first collection.
@@ -53,7 +53,7 @@ enum ConnectTypes {
 }
 
 /// Represents a relationship between two `GraphNode`s where the `source_id` is the `GraphNode<T>`'s
-/// id that is incoming, or giving it's value to the `target_id` `GraphNode<T>`.
+/// id that is incoming, or giving its value to the `target_id` `GraphNode<T>`.
 struct Relationship<'a> {
     source_id: &'a Uuid,
     target_id: &'a Uuid,
@@ -348,9 +348,9 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
             conn.attach((*collection).as_ref());
         }
 
-        for i in 1..collections.len() {
-            conn = conn.one_to_one(previous, collections[i]);
-            previous = collections[i];
+        for coll in collections.iter().skip(1) {
+            conn = conn.one_to_one(previous, coll);
+            previous = coll;
         }
 
         conn
@@ -373,8 +373,8 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
                     .filter(|item| node.outgoing().contains(&item.index()))
                 {
                     self.relationships.push(Relationship {
-                        source_id: &node.id(),
-                        target_id: &outgoing.id(),
+                        source_id: node.id(),
+                        target_id: outgoing.id(),
                     });
                 }
             }
@@ -411,8 +411,8 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
 
         for (one, two) in one_outputs.into_iter().zip(two_inputs.into_iter()) {
             self.relationships.push(Relationship {
-                source_id: &one.id(),
-                target_id: &two.id(),
+                source_id: one.id(),
+                target_id: two.id(),
             });
         }
     }
@@ -428,8 +428,8 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         for targets in two_inputs.chunks(one_outputs.len()) {
             for (source, target) in one_outputs.iter().zip(targets.iter()) {
                 self.relationships.push(Relationship {
-                    source_id: &source.id(),
-                    target_id: &target.id(),
+                    source_id: source.id(),
+                    target_id: target.id(),
                 });
             }
         }
@@ -446,8 +446,8 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         for sources in one_outputs.chunks(two_inputs.len()) {
             for (source, target) in sources.iter().zip(two_inputs.iter()) {
                 self.relationships.push(Relationship {
-                    source_id: &source.id(),
-                    target_id: &target.id(),
+                    source_id: source.id(),
+                    target_id: target.id(),
                 });
             }
         }
@@ -460,8 +460,8 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         for source in one_outputs {
             for target in two_inputs.iter() {
                 self.relationships.push(Relationship {
-                    source_id: &source.id(),
-                    target_id: &target.id(),
+                    source_id: source.id(),
+                    target_id: target.id(),
                 });
             }
         }
@@ -477,12 +477,12 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
 
         for (one, two) in one_outputs.into_iter().zip(two_inputs.into_iter()) {
             self.relationships.push(Relationship {
-                source_id: &one.id(),
-                target_id: &two.id(),
+                source_id: one.id(),
+                target_id: two.id(),
             });
             self.relationships.push(Relationship {
-                source_id: &two.id(),
-                target_id: &one.id(),
+                source_id: two.id(),
+                target_id: one.id(),
             });
         }
     }

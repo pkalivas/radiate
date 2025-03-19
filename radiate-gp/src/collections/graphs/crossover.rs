@@ -44,7 +44,7 @@ impl GraphCrossover {
         let mut new_chromo_one = chromo_one.clone();
         let mut num_crosses = 0;
 
-        let edge_indecies = (0..std::cmp::min(chromo_one.len(), chromo_two.len()))
+        let edge_indies = (0..std::cmp::min(chromo_one.len(), chromo_two.len()))
             .filter(|i| {
                 let node_one = chromo_one.get_gene(*i);
                 let node_two = chromo_two.get_gene(*i);
@@ -53,11 +53,11 @@ impl GraphCrossover {
             })
             .collect::<Vec<usize>>();
 
-        if edge_indecies.is_empty() {
+        if edge_indies.is_empty() {
             return None;
         }
 
-        for i in edge_indecies {
+        for i in edge_indies {
             let node_one = chromo_one.get_gene(i);
             let node_two = chromo_two.get_gene(i);
 

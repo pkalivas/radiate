@@ -52,23 +52,23 @@ impl<'a, T> GraphTransaction<'a, T> {
     }
 
     pub fn commit(self) -> TransactionResult<T> {
-        self.commit_with(None)
+        self.commit_with::<fn(&Graph<T>) -> bool>(None)
     }
 
-    pub fn commit_with(
+    pub fn commit_with<F: Fn(&Graph<T>) -> bool>(
         mut self,
-        validator: Option<&dyn Fn(&Graph<T>) -> bool>,
+        validator: Option<F>,
     ) -> TransactionResult<T> {
         self.set_cycles();
         let result_steps = self.steps.iter().map(|step| (*step).clone()).collect();
 
         if let Some(validator) = validator {
-            if validator(self.graph) && self.is_valid() {
-                return TransactionResult::Valid(result_steps);
+            return if validator(self.graph) && self.is_valid() {
+                TransactionResult::Valid(result_steps)
             } else {
                 let replay_steps = self.rollback();
-                return TransactionResult::Invalid(result_steps, replay_steps);
-            }
+                TransactionResult::Invalid(result_steps, replay_steps)
+            };
         }
 
         if self.is_valid() {
@@ -77,10 +77,6 @@ impl<'a, T> GraphTransaction<'a, T> {
             let replay_steps = self.rollback();
             TransactionResult::Invalid(result_steps, replay_steps)
         }
-    }
-
-    pub fn len(&self) -> usize {
-        self.graph.len()
     }
 
     pub fn add_node(&mut self, node: GraphNode<T>) -> usize {
@@ -248,8 +244,8 @@ impl<'a, T> GraphTransaction<'a, T> {
     /// The below functions are used to get random nodes from the graph. These are useful for
     /// creating connections between nodes. Neither of these functions will return an edge node.
     /// This is because edge nodes are not valid source or target nodes for connections as they
-    /// they only allow one incoming and one outgoing connection, thus they can't be used to create
-    /// new connections. Instread, edge nodes are used to represent the weights of the connections
+    /// only allow one incoming and one outgoing connection, thus they can't be used to create
+    /// new connections. Instead, edge nodes are used to represent the weights of the connections
     ///
     /// Get a random node that can be used as a source node for a connection.
     /// A source node can be either an input or a vertex node.
@@ -306,11 +302,11 @@ impl<'a, T> GraphTransaction<'a, T> {
         }
 
         let index = random_provider::range(0..genes.len());
-        genes.get(index).map(|x| *x)
+        genes.get(index).copied()
     }
 }
 
-impl<'a, T> Deref for GraphTransaction<'a, T> {
+impl<T> Deref for GraphTransaction<'_, T> {
     type Target = Graph<T>;
 
     fn deref(&self) -> &Self::Target {

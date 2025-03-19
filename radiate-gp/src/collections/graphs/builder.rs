@@ -1,7 +1,7 @@
 use super::aggregate::GraphAggregate;
 use crate::{
-    Arity, Factory, NodeStore,
-    collections::{Graph, GraphNode, NodeType},
+    collections::{Graph, GraphNode, NodeType}, Arity, Factory,
+    NodeStore,
 };
 
 impl<T: Clone + Default> Graph<T> {
@@ -195,10 +195,7 @@ impl<T: Clone + Default> NodeBuilder<T> {
         (0..size)
             .map(|idx| {
                 self.store
-                    .new_instance((idx, NodeType::Vertex, |arity| match arity {
-                        Arity::Any => true,
-                        _ => false,
-                    }))
+                    .new_instance((idx, NodeType::Vertex, |arity| matches!(arity, Arity::Any)))
             })
             .collect()
     }
@@ -263,7 +260,7 @@ mod tests {
                 assert_eq!(node.outgoing().iter().count(), 1);
             } else if node.node_type() == NodeType::Vertex {
                 assert_eq!(node.arity(), Arity::Any);
-                assert_eq!(node.is_recurrent(), true);
+                assert!(node.is_recurrent());
                 assert_eq!(node.value(), &Op::sigmoid());
             } else if node.node_type() == NodeType::Output {
                 assert_eq!(node.arity(), Arity::Any);

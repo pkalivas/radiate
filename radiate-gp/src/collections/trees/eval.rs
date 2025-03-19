@@ -1,5 +1,5 @@
 use super::Tree;
-use crate::{Eval, TreeNode, node::Node};
+use crate::{node::Node, Eval, TreeNode};
 
 /// Implements the `Reduce` trait for `Vec<Tree<T>>`. This is a wrapper around a `Vec<Tree<T>>`
 /// and allows for the evaluation of each `Tree` in the `Vec` with a single input.
@@ -77,7 +77,7 @@ mod tests {
         root.add_child(TreeNode::new(Op::constant(1.0)));
         root.add_child(TreeNode::new(Op::constant(2.0)));
 
-        let result = root.eval(&vec![]);
+        let result = root.eval(&[]);
 
         assert_eq!(result, 3.0);
     }
@@ -98,9 +98,9 @@ mod tests {
                 ),
         );
 
-        let nine = tree.eval(&vec![1_f32]);
-        let ten = tree.eval(&vec![2_f32]);
-        let eleven = tree.eval(&vec![3_f32]);
+        let nine = tree.eval(&[1_f32]);
+        let ten = tree.eval(&[2_f32]);
+        let eleven = tree.eval(&[3_f32]);
 
         assert_eq!(nine, 9.0);
         assert_eq!(ten, 10.0);

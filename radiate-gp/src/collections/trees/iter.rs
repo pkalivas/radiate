@@ -112,14 +112,13 @@ impl<'a, T> Iterator for PreOrderIterator<'a, T> {
     type Item = &'a TreeNode<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.stack.pop().map(|node| {
+        self.stack.pop().inspect(|node| {
             // Push children in reverse order for correct traversal
             if let Some(children) = node.children() {
                 for child in children.iter().rev() {
                     self.stack.push(child);
                 }
             }
-            node
         })
     }
 }
@@ -168,9 +167,8 @@ mod tests {
     use super::*;
     use crate::collections::{Tree, TreeNode};
 
-    use crate::Op;
     use crate::node::Node;
-    use crate::ops::operation;
+    use crate::Op;
 
     #[test]
     fn test_tree_traversal() {
@@ -194,7 +192,7 @@ mod tests {
         let pre_order: Vec<f32> = root
             .iter_pre_order()
             .map(|n| match &n.value() {
-                operation::Op::Const(_, v) => *v,
+                Op::Const(_, v) => *v,
                 _ => panic!("Expected constant but got {:?}", n.value()),
             })
             .collect();
@@ -204,7 +202,7 @@ mod tests {
         let post_order: Vec<f32> = root
             .iter_post_order()
             .map(|n| match &n.value() {
-                operation::Op::Const(_, v) => *v,
+                Op::Const(_, v) => *v,
                 _ => panic!("Expected constant"),
             })
             .collect();
@@ -214,7 +212,7 @@ mod tests {
         let bfs: Vec<f32> = root
             .iter_breadth_first()
             .map(|n| match &n.value() {
-                operation::Op::Const(_, v) => *v,
+                Op::Const(_, v) => *v,
                 _ => panic!("Expected constant"),
             })
             .collect();
