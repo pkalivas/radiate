@@ -57,18 +57,18 @@ impl Distribution {
     }
 }
 
-impl Into<Distribution> for &[f32] {
-    fn into(self) -> Distribution {
+impl From<&[f32]> for Distribution {
+    fn from(value: &[f32]) -> Self {
         let mut result = Distribution::default();
-        result.add(self);
+        result.add(value);
         result
     }
 }
 
-impl Into<Distribution> for Vec<f32> {
-    fn into(self) -> Distribution {
+impl From<Vec<f32>> for Distribution {
+    fn from(value: Vec<f32>) -> Self {
         let mut result = Distribution::default();
-        result.add(&self);
+        result.add(&value);
         result
     }
 }

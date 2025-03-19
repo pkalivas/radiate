@@ -27,7 +27,7 @@ impl Timer {
         self.stopped = true;
     }
 
-    pub fn duration(&self) -> std::time::Duration {
+    pub fn duration(&self) -> Duration {
         if !self.stopped {
             return self.start.elapsed();
         }

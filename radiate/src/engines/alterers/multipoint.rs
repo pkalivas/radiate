@@ -1,5 +1,5 @@
 use super::{AlterAction, AlterResult, Alterer, Crossover, IntoAlter};
-use crate::{Chromosome, random_provider};
+use crate::{random_provider, Chromosome};
 
 /// The `MultiPointCrossover` is a crossover method that takes two chromosomes and crosses them
 /// by selecting multiple points in the chromosome and swapping the genes between the two chromosomes.
@@ -19,7 +19,7 @@ impl MultiPointCrossover {
     /// The rate must be between 0.0 and 1.0, and the number of points must be between 1 and the length
     /// of the chromosome.
     pub fn new(rate: f32, num_points: usize) -> Self {
-        if rate < 0.0 || rate > 1.0 {
+        if !(0.0..=1.0).contains(&rate) {
             panic!("Rate must be between 0 and 1");
         }
 

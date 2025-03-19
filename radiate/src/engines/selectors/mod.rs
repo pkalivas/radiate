@@ -74,7 +74,7 @@ impl<'a> ProbabilityWheelIterator<'a> {
     }
 }
 
-impl<'a> Iterator for ProbabilityWheelIterator<'a> {
+impl Iterator for ProbabilityWheelIterator<'_> {
     type Item = usize;
 
     fn next(&mut self) -> Option<Self::Item> {

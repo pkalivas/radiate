@@ -1,4 +1,4 @@
-use rand::distr::{Distribution, StandardUniform, uniform::SampleUniform};
+use rand::distr::{uniform::SampleUniform, Distribution, StandardUniform};
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
 use rand::{Rng, SeedableRng};
@@ -139,14 +139,13 @@ where
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]
     fn test_random() {
         for _ in 0..100 {
             let value: f64 = random();
-            assert!(value >= 0.0 && value < 1.0);
+            assert!((0.0..1.0).contains(&value));
         }
     }
 
@@ -154,7 +153,7 @@ mod tests {
     fn test_gen_range() {
         for _ in 0..100 {
             let value: f64 = range(0.0..100.0);
-            assert!(value >= 0.0 && value < 100.0);
+            assert!((0.0..100.0).contains(&value));
         }
     }
 

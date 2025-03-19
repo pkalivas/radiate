@@ -1,5 +1,5 @@
 use super::{AlterAction, AlterResult, Alterer, IntoAlter, Mutate};
-use crate::{ArithmeticGene, Chromosome, Gene, random_provider};
+use crate::{random_provider, ArithmeticGene, Chromosome, Gene};
 
 /// Arithmetic Mutator. Mutates genes by performing arithmetic operations on them.
 /// The ArithmeticMutator takes a rate parameter that determines the likelihood that
@@ -16,7 +16,7 @@ impl ArithmeticMutator {
     /// Create a new instance of the `ArithmeticMutator` with the given rate.
     /// The rate must be between 0.0 and 1.0.
     pub fn new(rate: f32) -> Self {
-        if rate < 0.0 || rate > 1.0 {
+        if !(0.0..=1.0).contains(&rate) {
             panic!("Rate must be between 0 and 1");
         }
 

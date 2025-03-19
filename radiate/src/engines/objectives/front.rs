@@ -1,6 +1,6 @@
-use crate::objectives::{Objective, pareto};
+use crate::objectives::{pareto, Objective};
 use std::{
-    cmp::{self, Ordering},
+    cmp::Ordering,
     ops::Range,
     sync::Arc,
 };
@@ -64,7 +64,7 @@ where
             if (self.ord)(score, existing_score) == Ordering::Greater {
                 to_remove.push(Arc::clone(existing_score));
             } else if (self.ord)(existing_score, score) == Ordering::Greater
-                || (&*(*existing_score)).as_ref() == score.as_ref()
+                || (*(*existing_score)).as_ref() == score.as_ref()
             {
                 is_dominated = true;
                 remove_duplicates = true;
@@ -95,7 +95,7 @@ where
 
         let mut enumerated = crowding_distances.iter().enumerate().collect::<Vec<_>>();
 
-        enumerated.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap_or(cmp::Ordering::Equal));
+        enumerated.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap_or(Ordering::Equal));
 
         self.values = enumerated
             .iter()

@@ -153,7 +153,7 @@ impl<C: Chromosome + Debug> Debug for Population<C> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{Score, char::CharChromosome, float::FloatChromosome, objectives::Optimize};
+    use crate::{char::CharChromosome, float::FloatChromosome, objectives::Optimize, Score};
 
     #[test]
     fn test_new() {
@@ -218,7 +218,7 @@ mod test {
             );
             assert_eq!(
                 maximize_population[i].score().as_ref().unwrap().as_usize(),
-                (population.len() - i - 1)
+                population.len() - i - 1
             );
         }
     }

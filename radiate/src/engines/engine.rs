@@ -6,7 +6,7 @@ use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
 use crate::engines::params::GeneticEngineBuilder;
 use crate::objectives::Objective;
-use crate::{Chromosome, Metric, Select, Valid, metric_names};
+use crate::{metric_names, Chromosome, Metric, Select, Valid};
 use std::sync::Arc;
 
 /// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
@@ -25,7 +25,7 @@ use std::sync::Arc;
 /// // Define a codex that encodes and decodes individuals in the population, in this case using floats.
 /// let codex = FloatCodex::new(1, 5, 0.0..100.0);
 /// // This codex will encode Genotype instances with 1 Chromosome and 5 FloatGenes,
-/// // with random allels between 0.0 and 100.0. It will decode into a Vec<Vec<f32>>.
+/// // with random alleles between 0.0 and 100.0. It will decode into a Vec<Vec<f32>>.
 /// // eg: [[1.0, 2.0, 3.0, 4.0, 5.0]]
 ///
 /// // Create a new instance of the genetic engine with the given codex.

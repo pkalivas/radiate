@@ -1,5 +1,5 @@
 use super::{AlterAction, AlterResult, Alterer, Crossover, IntoAlter};
-use crate::{ArithmeticGene, Chromosome, random_provider};
+use crate::{random_provider, ArithmeticGene, Chromosome};
 
 /// The `MeanCrossover` is a simple crossover method that replaces the genes of the first chromosome
 /// with the mean of the two genes. The mean is calculated by adding the two genes together and dividing
@@ -17,7 +17,7 @@ impl MeanCrossover {
     /// Create a new instance of the `MeanCrossover` with the given rate.
     /// The rate must be between 0.0 and 1.0.
     pub fn new(rate: f32) -> Self {
-        if rate < 0.0 || rate > 1.0 {
+        if !(0.0..=1.0).contains(&rate) {
             panic!("The rate must be between 0.0 and 1.0");
         }
 

@@ -1,6 +1,6 @@
 use super::{
-    Chromosome, Integer,
-    gene::{ArithmeticGene, Gene, Valid},
+    gene::{ArithmeticGene, Gene, Valid}, Chromosome,
+    Integer,
 };
 use crate::random_provider;
 use std::ops::{Add, Bound, Div, Mul, Range, RangeBounds, Sub};
@@ -93,17 +93,17 @@ impl<T: Integer<T>> ArithmeticGene for IntGene<T> {
         &self.value_range.end
     }
 
-    fn from_f32(&self, value: f32) -> Self {
+    fn mean(&self, other: &IntGene<T>) -> IntGene<T> {
         IntGene {
-            allele: T::from_i32(value as i32),
+            allele: (self.allele + other.allele) / T::from_i32(2),
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
     }
 
-    fn mean(&self, other: &IntGene<T>) -> IntGene<T> {
+    fn from_f32(&self, value: f32) -> Self {
         IntGene {
-            allele: (self.allele + other.allele) / T::from_i32(2),
+            allele: T::from_i32(value as i32),
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
@@ -299,7 +299,6 @@ impl<T: Integer<T>> From<Vec<T>> for IntChromosome<T> {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]
@@ -383,8 +382,8 @@ mod tests {
         assert_eq!(chromosome.genes.len(), 10);
         for gene in &chromosome.genes {
             assert!(gene.allele >= 0 && gene.allele <= 10);
-            assert!(gene.bounds.start_bound() == Bound::Included(&-10));
-            assert!(gene.bounds.end_bound() == Bound::Excluded(&10));
+            assert_eq!(gene.bounds.start_bound(), Bound::Included(&-10));
+            assert_eq!(gene.bounds.end_bound(), Bound::Excluded(&10));
         }
     }
 

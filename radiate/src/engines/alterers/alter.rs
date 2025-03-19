@@ -1,5 +1,5 @@
 use super::{Crossover, Mutate};
-use crate::{Chromosome, Metric, Population, timer::Timer};
+use crate::{timer::Timer, Chromosome, Metric, Population};
 
 /// This is the main trait that is used to define the different types of alterations that can be
 /// performed on a population. The `Alter` trait is used to define the `alter` method that is used
@@ -122,20 +122,20 @@ impl<C: Chromosome> Alter<C> for Alterer<C> {
                 let AlterResult(count, metrics) = m.mutate(population, generation, self.rate);
                 let metric = Metric::new_operations(self.name, count, timer);
 
-                return match metrics {
+                match metrics {
                     Some(metrics) => metrics.into_iter().chain(vec![metric]).collect(),
                     None => vec![metric],
-                };
+                }
             }
             AlterAction::Crossover(c) => {
                 let timer = Timer::new();
                 let AlterResult(count, metrics) = c.crossover(population, generation, self.rate);
                 let metric = Metric::new_operations(self.name, count, timer);
 
-                return match metrics {
+                match metrics {
                     Some(metrics) => metrics.into_iter().chain(vec![metric]).collect(),
                     None => vec![metric],
-                };
+                }
             }
         }
     }

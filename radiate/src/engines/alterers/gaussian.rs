@@ -1,5 +1,5 @@
 use super::{AlterAction, Alterer, IntoAlter, Mutate};
-use crate::{ArithmeticGene, Chromosome, FloatGene, Gene, random_provider};
+use crate::{random_provider, ArithmeticGene, Chromosome, FloatGene, Gene};
 
 /// The `GaussianMutator` is a simple mutator that adds a small amount of Gaussian noise to the gene.
 ///
@@ -12,7 +12,7 @@ impl GaussianMutator {
     /// Create a new instance of the `GaussianMutator` with the given rate.
     /// The rate must be between 0.0 and 1.0.
     pub fn new(rate: f32) -> Self {
-        if rate < 0.0 || rate > 1.0 {
+        if !(0.0..=1.0).contains(&rate) {
             panic!("Rate must be between 0 and 1");
         }
 

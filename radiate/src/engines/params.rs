@@ -1,16 +1,16 @@
 use super::codexes::Codex;
 use super::thread_pool::ThreadPool;
 use super::{
-    Alter, EncodeReplace, EngineProblem, Front, IntoAlter, Problem, ReplacementStrategy,
-    RouletteSelector, Select, TournamentSelector, pareto,
+    pareto, Alter, EncodeReplace, EngineProblem, Front, IntoAlter, Problem,
+    ReplacementStrategy, RouletteSelector, Select, TournamentSelector,
 };
-use crate::Chromosome;
 use crate::engines::engine::GeneticEngine;
 use crate::engines::genome::phenotype::Phenotype;
 use crate::engines::genome::population::Population;
 use crate::engines::objectives::Score;
 use crate::objectives::{Objective, Optimize};
 use crate::uniform::{UniformCrossover, UniformMutator};
+use crate::Chromosome;
 use std::cmp::Ordering;
 use std::ops::Range;
 use std::sync::Arc;
@@ -130,7 +130,7 @@ where
     /// Default is 0.8. This is a value from 0...=1 that represents the fraction of
     /// population that will be replaced by offspring each generation. The remainder will 'survive' to the next generation.
     pub fn offspring_fraction(mut self, offspring_fraction: f32) -> Self {
-        if offspring_fraction < 0.0 || offspring_fraction > 1.0 {
+        if !(0.0..=1.0).contains(&offspring_fraction) {
             panic!("offspring_fraction must be between 0 and 1");
         }
 
@@ -262,12 +262,12 @@ where
                     }
 
                     if let (Some(one), Some(two)) = (one.score(), two.score()) {
-                        if pareto::dominance(one, two, &front_obj) {
-                            return Ordering::Greater;
+                        return if pareto::dominance(one, two, &front_obj) {
+                            Ordering::Greater
                         } else if pareto::dominance(two, one, &front_obj) {
-                            return Ordering::Less;
+                            Ordering::Less
                         } else {
-                            return Ordering::Equal;
+                            Ordering::Equal
                         }
                     }
 
