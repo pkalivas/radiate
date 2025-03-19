@@ -103,7 +103,7 @@ where
                         }
                     }
 
-                    trans.commit_with(Some(&|graph: &Graph<T>| {
+                    trans.commit_with(Some(|graph: &Graph<T>| {
                         if !self.allow_recurrent {
                             return graph.iter().all(|node| !node.is_recurrent());
                         }
