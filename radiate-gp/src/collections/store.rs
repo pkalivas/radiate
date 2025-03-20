@@ -217,22 +217,23 @@ impl<T: Debug> Debug for NodeStore<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::ops;
-
     use super::*;
+    use crate::ops;
 
     #[test]
     fn test_node_store() {
         let all_ops = ops::all_ops();
         let store = NodeStore::from(all_ops);
 
-        store.insert(NodeType::Output, vec![Op::sigmoid()]);
+        store.add(vec![Op::sigmoid()]);
 
-        // store.add((0..3).map(Op::var).collect());
-        // store.add(vec![Op::sigmoid(); 3]);
-        // store.add(vec![Op::add(); 3]);
-        // store.add(vec![Op::weight(); 3]);
+        store.add((0..3).map(Op::var).collect());
 
-        println!("{:?}", store);
+        assert!(store.contains_type(NodeType::Input));
+        assert!(store.contains_type(NodeType::Output));
+        assert!(store.contains_type(NodeType::Edge));
+        assert!(store.contains_type(NodeType::Vertex));
+        assert!(store.contains_type(NodeType::Leaf));
+        assert!(store.contains_type(NodeType::Root));
     }
 }

@@ -1,5 +1,5 @@
 use super::Tree;
-use crate::{node::Node, Eval, TreeNode};
+use crate::{Eval, TreeNode, node::Node};
 
 /// Implements the `Reduce` trait for `Vec<Tree<T>>`. This is a wrapper around a `Vec<Tree<T>>`
 /// and allows for the evaluation of each `Tree` in the `Vec` with a single input.
