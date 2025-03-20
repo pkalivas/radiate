@@ -69,8 +69,8 @@ impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
         for i in 0..length {
             let gene_one = &offspring_one[i];
             let gene_two = &offspring_two[i];
-            chrom_one.set_gene(i, gene_one.clone());
-            chrom_two.set_gene(i, gene_two.clone());
+            chrom_one.set(i, gene_one.clone());
+            chrom_two.set(i, gene_two.clone());
         }
 
         self.num_points.into()

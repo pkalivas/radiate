@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use radiate::*;
-use radiate_gp::*;
+use radiate_gp::{graphs::GraphReplacement, *};
 
 const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
@@ -30,6 +30,7 @@ fn main() {
         .minimizing()
         .num_threads(10)
         .offspring_fraction(0.92)
+        .replace_strategy(GraphReplacement)
         .offspring_selector(BoltzmannSelector::new(4.0))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),

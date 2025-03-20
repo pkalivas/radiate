@@ -46,8 +46,8 @@ impl GraphCrossover {
 
         let edge_indies = (0..std::cmp::min(chromo_one.len(), chromo_two.len()))
             .filter(|i| {
-                let node_one = chromo_one.get_gene(*i);
-                let node_two = chromo_two.get_gene(*i);
+                let node_one = chromo_one.get(*i);
+                let node_two = chromo_two.get(*i);
 
                 node_one.node_type() == NodeType::Edge && node_two.node_type() == NodeType::Edge
             })
@@ -58,11 +58,11 @@ impl GraphCrossover {
         }
 
         for i in edge_indies {
-            let node_one = chromo_one.get_gene(i);
-            let node_two = chromo_two.get_gene(i);
+            let node_one = chromo_one.get(i);
+            let node_two = chromo_two.get(i);
 
             if random_provider::random::<f32>() < self.crossover_parent_node_rate {
-                new_chromo_one.set_gene(node_one.index(), node_one.with_allele(node_two.allele()));
+                new_chromo_one.set(node_one.index(), node_one.with_allele(node_two.allele()));
                 num_crosses += 1;
             }
         }

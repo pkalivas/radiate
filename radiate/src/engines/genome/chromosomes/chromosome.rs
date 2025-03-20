@@ -24,7 +24,7 @@ pub trait Chromosome:
     ///
     /// * `index` - The position of the gene to retrieve.
     ///
-    fn get_gene(&self, index: usize) -> &Self::Gene {
+    fn get(&self, index: usize) -> &Self::Gene {
         &self.as_ref()[index]
     }
 
@@ -35,7 +35,7 @@ pub trait Chromosome:
     /// * `index` - The position of the gene to set.
     /// * `gene` - The `FloatGene` to replace the existing gene.
     ///
-    fn set_gene(&mut self, index: usize, gene: Self::Gene) {
+    fn set(&mut self, index: usize, gene: Self::Gene) {
         self.as_mut()[index] = gene;
     }
 
