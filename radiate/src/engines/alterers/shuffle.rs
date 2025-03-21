@@ -28,8 +28,8 @@ impl<C: Chromosome> Crossover<C> for ShuffleCrossover {
         let mut cross_count = 0;
         for (i, &index) in indices.iter().enumerate() {
             if i % 2 == 0 {
-                chrom_one.set_gene(index, temp_chrom_two.get_gene(index).clone());
-                chrom_two.set_gene(index, temp_chrom_one.get_gene(index).clone());
+                chrom_one.set(index, temp_chrom_two.get(index).clone());
+                chrom_two.set(index, temp_chrom_one.get(index).clone());
                 cross_count += 1;
             }
         }

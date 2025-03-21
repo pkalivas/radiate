@@ -1,5 +1,5 @@
 use super::{AlterAction, AlterResult, Alterer, Crossover, IntoAlter};
-use crate::{random_provider, Chromosome, FloatGene, Gene};
+use crate::{Chromosome, FloatGene, Gene, random_provider};
 
 /// Intermediate Crossover. This crossover method takes two chromosomes and crosses them
 /// by taking a weighted average of the two alleles. The weight is determined by the `alpha`
@@ -38,8 +38,8 @@ impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for IntermediateCrossover {
 
         for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
             if random_provider::random::<f32>() < rate {
-                let gene_one = chrom_one.get_gene(i);
-                let gene_two = chrom_two.get_gene(i);
+                let gene_one = chrom_one.get(i);
+                let gene_two = chrom_two.get(i);
 
                 let allele1 = gene_one.allele();
                 let allele2 = gene_two.allele();
@@ -47,7 +47,7 @@ impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for IntermediateCrossover {
                 let alpha = random_provider::range(0.0..self.alpha);
                 let allele = allele1 * alpha + allele2 * (1.0 - alpha);
 
-                chrom_one.set_gene(i, gene_one.with_allele(&allele));
+                chrom_one.set(i, gene_one.with_allele(&allele));
                 cross_count += 1;
             }
         }

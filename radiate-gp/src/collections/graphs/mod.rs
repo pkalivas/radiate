@@ -8,6 +8,7 @@ mod graph;
 mod iter;
 mod mutation;
 mod node;
+mod replacement;
 mod transaction;
 
 pub use aggregate::GraphAggregate;
@@ -19,4 +20,5 @@ pub use graph::Graph;
 pub use iter::GraphIterator;
 pub use mutation::GraphMutator;
 pub use node::{Direction, GraphNode};
+pub use replacement::GraphReplacement;
 pub use transaction::GraphTransaction;

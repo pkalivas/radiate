@@ -1,5 +1,5 @@
 use super::TreeIterator;
-use crate::{node::Node, Arity, NodeType};
+use crate::{Arity, NodeType, node::Node};
 use radiate::engines::genome::gene::{Gene, Valid};
 
 #[derive(PartialEq)]

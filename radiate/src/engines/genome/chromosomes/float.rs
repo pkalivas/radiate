@@ -1,6 +1,6 @@
 use super::{
-    gene::{ArithmeticGene, Gene, Valid},
     Chromosome,
+    gene::{ArithmeticGene, Gene, Valid},
 };
 use crate::random_provider;
 use std::{

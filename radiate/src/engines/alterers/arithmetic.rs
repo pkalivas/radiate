@@ -1,5 +1,5 @@
 use super::{AlterAction, AlterResult, Alterer, IntoAlter, Mutate};
-use crate::{random_provider, ArithmeticGene, Chromosome, Gene};
+use crate::{ArithmeticGene, Chromosome, Gene, random_provider};
 
 /// Arithmetic Mutator. Mutates genes by performing arithmetic operations on them.
 /// The ArithmeticMutator takes a rate parameter that determines the likelihood that
@@ -35,7 +35,7 @@ where
         let mut mutations = 0;
         for i in 0..chromosome.len() {
             if random_provider::random::<f32>() < rate {
-                let curr_gene = chromosome.get_gene(i);
+                let curr_gene = chromosome.get(i);
                 let new_instance = curr_gene.new_instance();
                 let operator = random_provider::range(0..4);
 
@@ -47,7 +47,7 @@ where
                     _ => panic!("Invalid operator: {}", operator),
                 };
 
-                chromosome.set_gene(i, new_gene);
+                chromosome.set(i, new_gene);
                 mutations += 1;
             }
         }

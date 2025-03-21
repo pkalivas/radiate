@@ -72,14 +72,14 @@ pub trait Crossover<C: Chromosome>: IntoAlter<C> {
 
         for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
             if random_provider::random::<f32>() < rate {
-                let gene_one = chrom_one.get_gene(i);
-                let gene_two = chrom_two.get_gene(i);
+                let gene_one = chrom_one.get(i);
+                let gene_two = chrom_two.get(i);
 
                 let new_gene_one = gene_one.with_allele(gene_two.allele());
                 let new_gene_two = gene_two.with_allele(gene_one.allele());
 
-                chrom_one.set_gene(i, new_gene_one);
-                chrom_two.set_gene(i, new_gene_two);
+                chrom_one.set(i, new_gene_one);
+                chrom_two.set(i, new_gene_two);
 
                 cross_count += 1;
             }

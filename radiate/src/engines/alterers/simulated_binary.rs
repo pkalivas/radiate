@@ -35,8 +35,8 @@ impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for SimulatedBinaryCrossover 
                     (0.5 / (1.0 - u)).powf(1.0 / (self.contiguty + 1.0))
                 };
 
-                let v1 = chrom_one.get_gene(i).allele();
-                let v2 = chrom_two.get_gene(i).allele();
+                let v1 = chrom_one.get(i).allele();
+                let v2 = chrom_two.get(i).allele();
 
                 let v = if random_provider::range(0..2) == 0 {
                     (v1 - v2) * 0.5 - (beta * 0.5 * (v1 - v2).abs())
@@ -44,11 +44,11 @@ impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for SimulatedBinaryCrossover 
                     (v1 - v2) * 0.5 + (beta * 0.5 * (v1 - v2).abs())
                 };
 
-                let new_gene = v.clamp(*chrom_one.get_gene(i).min(), *chrom_one.get_gene(i).max());
+                let new_gene = v.clamp(*chrom_one.get(i).min(), *chrom_one.get(i).max());
 
                 count += 1;
 
-                chrom_one.set_gene(i, chrom_one.get_gene(i).with_allele(&new_gene));
+                chrom_one.set(i, chrom_one.get(i).with_allele(&new_gene));
             }
         }
 

@@ -1,3 +1,4 @@
+use super::transaction::TransactionResult;
 use crate::NodeType;
 use crate::collections::graphs::GraphTransaction;
 use crate::collections::{Direction, GraphNode};
@@ -5,8 +6,6 @@ use radiate::Valid;
 use std::collections::{HashSet, VecDeque};
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
-
-use super::transaction::TransactionResult;
 
 /// A 'Graph' is simply a 'Vec' of 'GraphNode's.
 ///
@@ -121,10 +120,7 @@ impl<T> Graph<T> {
         self.as_mut()[outgoing].incoming_mut().remove(&incoming);
         self
     }
-}
 
-/// Functinos for modifying the graph.
-impl<T> Graph<T> {
     /// Given a list of node indices, this function will set the 'direction' field of the nodes
     /// at those indices to 'Direction::Backward' if they are part of a cycle. If they are not part
     /// of a cycle, the 'direction' field will be set to 'Direction::Forward'.
@@ -172,11 +168,7 @@ impl<T> Graph<T> {
     {
         mutation(GraphTransaction::new(self))
     }
-}
 
-/// Functions for checking the validity of the graph or connections between nodes. These are
-/// useful for modifying the graph in a way that maintains its integrity.
-impl<T> Graph<T> {
     /// Get the cycles in the graph that include the node at the specified index.
     ///
     /// # Arguments

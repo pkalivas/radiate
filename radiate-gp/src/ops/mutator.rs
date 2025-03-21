@@ -2,8 +2,8 @@ use crate::node::Node;
 use crate::ops::operation::Op;
 use crate::{Factory, GraphChromosome, NodeType};
 use radiate::engines::genome::gene::Gene;
-use radiate::{random_provider, Chromosome};
 use radiate::{AlterAction, AlterResult, Alterer, IntoAlter, Mutate};
+use radiate::{Chromosome, random_provider};
 use std::sync::Arc;
 
 pub struct OperationMutator {
@@ -44,7 +44,7 @@ where
         }
 
         for &i in mutation_indexes.iter() {
-            let current_node = chromosome.get_gene(i);
+            let current_node = chromosome.get(i);
 
             if current_node.node_type() == NodeType::Input
                 || current_node.node_type() == NodeType::Output
@@ -68,7 +68,7 @@ where
                         modifier(value)
                     };
 
-                    chromosome.set_gene(
+                    chromosome.set(
                         i,
                         current_node.with_allele(&Op::MutableConst {
                             name,
@@ -88,7 +88,7 @@ where
 
                     if let Some(new_op) = new_op {
                         if new_op.arity() == current_node.arity() {
-                            chromosome.set_gene(i, current_node.with_allele(&new_op));
+                            chromosome.set(i, current_node.with_allele(&new_op));
                         }
                     }
                 }
