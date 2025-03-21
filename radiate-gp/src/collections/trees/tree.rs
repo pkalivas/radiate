@@ -62,11 +62,10 @@ impl<T: Debug> Debug for Tree<T> {
 #[cfg(test)]
 mod test {
     use super::*;
-
-    use crate::Op;
+    use crate::{NodeType, Op};
 
     #[test]
-    fn test_tree() {
+    fn test_swap_subtrees() {
         let mut tree_one = Tree::new(TreeNode::with_children(
             Op::add(),
             vec![Op::constant(1.0), Op::constant(2.0)],
@@ -90,5 +89,26 @@ mod test {
             .collect::<Vec<f32>>();
 
         assert_eq!(values_one, vec![3.0, 2.0]);
+    }
+
+    #[test]
+    fn test_size() {
+        let tree = Tree::new(TreeNode::with_children(
+            Op::add(),
+            vec![Op::constant(1.0), Op::constant(2.0)],
+        ));
+
+        assert_eq!(tree.size(), 3);
+    }
+
+    #[test]
+    fn test_depth() {
+        let store = vec![
+            (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
+            (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
+        ];
+
+        let tree = Tree::with_depth(5, store);
+        assert_eq!(tree.height(), 5);
     }
 }

@@ -6,7 +6,7 @@ use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
 use crate::engines::params::GeneticEngineBuilder;
 use crate::objectives::Objective;
-use crate::{metric_names, Chromosome, Metric, Select, Valid};
+use crate::{Chromosome, Metric, Select, Valid, metric_names};
 use std::sync::Arc;
 
 /// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
