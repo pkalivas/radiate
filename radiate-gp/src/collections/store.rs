@@ -151,9 +151,7 @@ where
 {
     fn from(values: Vec<T>) -> Self {
         let store = NodeStore::new();
-
         store.add(values);
-
         store
     }
 }
@@ -224,8 +222,6 @@ mod tests {
     fn test_node_store() {
         let all_ops = ops::all_ops();
         let store = NodeStore::from(all_ops);
-
-        store.add(vec![Op::sigmoid()]);
 
         store.add((0..3).map(Op::var).collect());
 

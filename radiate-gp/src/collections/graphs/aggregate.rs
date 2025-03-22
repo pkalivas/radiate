@@ -5,9 +5,11 @@ use crate::{
 use std::collections::BTreeMap;
 use uuid::Uuid;
 
-/// Building a `Graph<T>` can be a very complex task. This struct and its operations exist
-/// to simplify the process of building a `Graph<T>` by allowing the user to build a `Graph<T>`
-/// in a more declarative way. The `ConnectTypes` are simply a set of available ways we can
+/// Building a `Graph<T>` can be a very complex task. Everything in this file exists
+/// to simplify the process of building a `Graph<T>` by allowing the user to do so
+/// in a declarative way.
+///
+/// The `ConnectTypes` are simply a set of available ways we can
 /// connect different `GraphNode`s together.
 ///
 /// # Assumptions
