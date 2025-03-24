@@ -1,5 +1,5 @@
 use super::{AlterAction, AlterResult, Alterer, Crossover, IntoAlter};
-use crate::{random_provider, ArithmeticGene, Chromosome};
+use crate::{ArithmeticGene, Chromosome, random_provider};
 
 pub struct BlendCrossover {
     rate: f32,

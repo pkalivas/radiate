@@ -1,5 +1,5 @@
 use super::{Crossover, Mutate};
-use crate::{timer::Timer, Chromosome, Metric, Population};
+use crate::{Chromosome, Metric, Population, timer::Timer};
 
 /// This is the main trait that is used to define the different types of alterations that can be
 /// performed on a population. The `Alter` trait is used to define the `alter` method that is used

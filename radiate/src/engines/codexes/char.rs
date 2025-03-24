@@ -1,9 +1,8 @@
-use std::sync::Arc;
-
 use crate::engines::genome::char::CharGene;
 use crate::engines::genome::gene::Gene;
 use crate::engines::genome::genotype::Genotype;
 use crate::{CharChromosome, Chromosome, char};
+use std::sync::Arc;
 
 use super::Codex;
 

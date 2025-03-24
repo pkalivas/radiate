@@ -1,4 +1,4 @@
-use crate::{timer::Timer, Statistic};
+use crate::{Statistic, timer::Timer};
 use std::time::Duration;
 
 #[derive(Clone, PartialEq, Default)]

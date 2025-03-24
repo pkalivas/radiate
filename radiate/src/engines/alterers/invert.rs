@@ -1,5 +1,5 @@
 use super::{AlterAction, AlterResult, Alterer, IntoAlter, Mutate};
-use crate::{random_provider, Chromosome};
+use crate::{Chromosome, random_provider};
 
 /// The `InversionMutator` is a simple mutator that inverts a random section of the chromosome.
 ///

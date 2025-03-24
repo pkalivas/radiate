@@ -1,6 +1,5 @@
-use std::ops::{Index, IndexMut};
-
 use crate::{Chromosome, Valid};
+use std::ops::{Index, IndexMut};
 
 /// The `Genotype` struct represents the genetic makeup of an individual. It is a collection of `Chromosome` instances, it is
 /// essentially a light wrapper around a Vec of `Chromosome`s. The `Genotype` struct, however, has some additional functionality

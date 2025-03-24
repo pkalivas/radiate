@@ -1,6 +1,5 @@
-use std::sync::Arc;
-
 use crate::{Chromosome, Codex, Genotype};
+use std::sync::Arc;
 
 /// A `Codex` that uses functions to encode and decode a `Genotype` to and from a type `T`.
 /// Most of the other codexes in this module are more specialized and are used to create `Genotypes` of specific types of `Chromosomes`.

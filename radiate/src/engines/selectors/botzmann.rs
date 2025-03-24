@@ -1,7 +1,7 @@
 use super::Select;
 use crate::objectives::{Objective, Optimize};
 use crate::selectors::ProbabilityWheelIterator;
-use crate::{pareto, Chromosome, Population};
+use crate::{Chromosome, Population, pareto};
 
 pub struct BoltzmannSelector {
     temperature: f32,
