@@ -223,9 +223,8 @@ impl<T: Clone + Default> NodeBuilder<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Node, Op};
-
     use super::*;
+    use crate::{Node, Op};
 
     #[test]
     fn test_graph_builder() {

@@ -113,7 +113,11 @@ where
     }
 }
 
-impl<T: Eval<[V], V>, V: Clone> Eval<[V], V> for GraphNode<T> {
+impl<T, V> Eval<[V], V> for GraphNode<T>
+where
+    T: Eval<[V], V>,
+    V: Clone,
+{
     /// Evaluates the `GraphNode` with the given input. Returns the output of the `GraphNode`.
     /// # Arguments
     /// * `inputs` - A `Vec` of `T` to evaluate the `GraphNode` with.
