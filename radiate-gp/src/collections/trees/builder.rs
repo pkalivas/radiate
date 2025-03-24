@@ -75,9 +75,8 @@ impl<T> Tree<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::Op;
-
     use super::*;
+    use crate::Op;
 
     #[test]
     fn test_tree_builder_depth_two() {

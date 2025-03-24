@@ -1,7 +1,6 @@
+use super::{Valid, genotype::Genotype};
 use crate::Chromosome;
 use crate::engines::objectives::Score;
-
-use super::{Valid, genotype::Genotype};
 
 /// A `Phenotype` is a representation of an individual in the population. It contains:
 /// * `Genotype` - the genetic representation of the individual

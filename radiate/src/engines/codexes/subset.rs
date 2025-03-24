@@ -1,7 +1,6 @@
-use std::sync::Arc;
-
 use super::Codex;
 use crate::{BitChromosome, BitGene, Chromosome, Gene, Genotype};
+use std::sync::Arc;
 
 /// A `Codex` for a subset of items. This is useful for problems where the goal is to find the best subset of items
 /// from a larger set of items. The `encode` function creates a `Genotype` with a single chromosome of `BitGenes`

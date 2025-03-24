@@ -1,6 +1,6 @@
 use super::TreeChromosome;
-use crate::{node::Node, Factory, NodeStore, NodeType, TreeNode};
-use radiate::{random_provider, AlterAction, AlterResult, Alterer, Gene, IntoAlter, Mutate};
+use crate::{Factory, NodeStore, NodeType, TreeNode, node::Node};
+use radiate::{AlterAction, AlterResult, Alterer, Gene, IntoAlter, Mutate, random_provider};
 
 pub struct TreeMutator {
     rate: f32,

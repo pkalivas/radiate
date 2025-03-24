@@ -84,23 +84,21 @@ mod tests {
 
     #[test]
     fn test_tree_reduce_complex() {
-        let tree = Tree::new(
-            TreeNode::new(Op::add())
-                .attach(
-                    TreeNode::new(Op::mul())
-                        .attach(TreeNode::new(Op::constant(2.0)))
-                        .attach(TreeNode::new(Op::constant(3.0))),
-                )
-                .attach(
-                    TreeNode::new(Op::add())
-                        .attach(TreeNode::new(Op::constant(2.0)))
-                        .attach(TreeNode::new(Op::var(0))),
-                ),
-        );
+        let node = TreeNode::new(Op::add())
+            .attach(
+                TreeNode::new(Op::mul())
+                    .attach(TreeNode::new(Op::constant(2.0)))
+                    .attach(TreeNode::new(Op::constant(3.0))),
+            )
+            .attach(
+                TreeNode::new(Op::add())
+                    .attach(TreeNode::new(Op::constant(2.0)))
+                    .attach(TreeNode::new(Op::var(0))),
+            );
 
-        let nine = tree.eval(&[1_f32]);
-        let ten = tree.eval(&[2_f32]);
-        let eleven = tree.eval(&[3_f32]);
+        let nine = node.eval(&[1_f32]);
+        let ten = node.eval(&[2_f32]);
+        let eleven = node.eval(&[3_f32]);
 
         assert_eq!(nine, 9.0);
         assert_eq!(ten, 10.0);

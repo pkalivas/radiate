@@ -1,4 +1,4 @@
-use rand::distr::{uniform::SampleUniform, Distribution, StandardUniform};
+use rand::distr::{Distribution, StandardUniform, uniform::SampleUniform};
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
 use rand::{Rng, SeedableRng};

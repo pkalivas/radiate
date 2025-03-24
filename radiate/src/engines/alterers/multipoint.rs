@@ -1,5 +1,5 @@
 use super::{AlterAction, AlterResult, Alterer, Crossover, IntoAlter};
-use crate::{random_provider, Chromosome};
+use crate::{Chromosome, random_provider};
 
 /// The `MultiPointCrossover` is a crossover method that takes two chromosomes and crosses them
 /// by selecting multiple points in the chromosome and swapping the genes between the two chromosomes.

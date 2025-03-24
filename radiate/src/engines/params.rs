@@ -1,16 +1,16 @@
 use super::codexes::Codex;
 use super::thread_pool::ThreadPool;
 use super::{
-    pareto, Alter, EncodeReplace, EngineProblem, Front, IntoAlter, Problem,
-    ReplacementStrategy, RouletteSelector, Select, TournamentSelector,
+    Alter, EncodeReplace, EngineProblem, Front, IntoAlter, Problem, ReplacementStrategy,
+    RouletteSelector, Select, TournamentSelector, pareto,
 };
+use crate::Chromosome;
 use crate::engines::engine::GeneticEngine;
 use crate::engines::genome::phenotype::Phenotype;
 use crate::engines::genome::population::Population;
 use crate::engines::objectives::Score;
 use crate::objectives::{Objective, Optimize};
 use crate::uniform::{UniformCrossover, UniformMutator};
-use crate::Chromosome;
 use std::cmp::Ordering;
 use std::ops::Range;
 use std::sync::Arc;
@@ -268,7 +268,7 @@ where
                             Ordering::Less
                         } else {
                             Ordering::Equal
-                        }
+                        };
                     }
 
                     Ordering::Equal

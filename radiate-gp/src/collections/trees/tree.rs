@@ -66,15 +66,17 @@ mod test {
 
     #[test]
     fn test_swap_subtrees() {
-        let mut tree_one = Tree::new(TreeNode::with_children(
-            Op::add(),
-            vec![Op::constant(1.0), Op::constant(2.0)],
-        ));
+        let mut tree_one = Tree::new(
+            TreeNode::new(Op::add())
+                .attach(TreeNode::new(Op::constant(1.0)))
+                .attach(TreeNode::new(Op::constant(2.0))),
+        );
 
-        let mut tree_two = Tree::new(TreeNode::with_children(
-            Op::mul(),
-            vec![Op::constant(3.0), Op::constant(4.0)],
-        ));
+        let mut tree_two = Tree::new(
+            TreeNode::new(Op::mul())
+                .attach(TreeNode::new(Op::constant(3.0)))
+                .attach(TreeNode::new(Op::constant(4.0))),
+        );
 
         // Swap the first child of each tree
         tree_one.as_mut().swap_subtrees(tree_two.as_mut(), 1, 1);
@@ -93,10 +95,11 @@ mod test {
 
     #[test]
     fn test_size() {
-        let tree = Tree::new(TreeNode::with_children(
-            Op::add(),
-            vec![Op::constant(1.0), Op::constant(2.0)],
-        ));
+        let tree = Tree::new(
+            TreeNode::new(Op::add())
+                .attach(TreeNode::from(Op::constant(1.0)))
+                .attach(TreeNode::from(Op::constant(2.0))),
+        );
 
         assert_eq!(tree.size(), 3);
     }

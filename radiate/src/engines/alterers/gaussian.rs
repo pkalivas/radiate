@@ -1,5 +1,5 @@
 use super::{AlterAction, Alterer, IntoAlter, Mutate};
-use crate::{random_provider, ArithmeticGene, Chromosome, FloatGene, Gene};
+use crate::{ArithmeticGene, Chromosome, FloatGene, Gene, random_provider};
 
 /// The `GaussianMutator` is a simple mutator that adds a small amount of Gaussian noise to the gene.
 ///

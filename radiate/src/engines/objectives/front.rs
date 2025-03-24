@@ -1,9 +1,5 @@
-use crate::objectives::{pareto, Objective};
-use std::{
-    cmp::Ordering,
-    ops::Range,
-    sync::Arc,
-};
+use crate::objectives::{Objective, pareto};
+use std::{cmp::Ordering, ops::Range, sync::Arc};
 
 /// A front is a collection of scores that are non-dominated with respect to each other.
 /// This is useful for multi-objective optimization problems where the goal is to find
@@ -40,9 +36,9 @@ where
         &self.values
     }
 
-    pub fn update_front(&mut self, scores: &[T]) -> usize {
+    pub fn update_front(&mut self, values: &[T]) -> usize {
         let mut count = 0;
-        for value in scores {
+        for value in values {
             if self.add(value) {
                 count += 1;
             }
@@ -55,16 +51,16 @@ where
         count
     }
 
-    pub fn add(&mut self, score: &T) -> bool {
+    pub fn add(&mut self, value: &T) -> bool {
         let mut to_remove = Vec::new();
         let mut is_dominated = false;
         let mut remove_duplicates = false;
 
-        for existing_score in self.values.iter() {
-            if (self.ord)(score, existing_score) == Ordering::Greater {
-                to_remove.push(Arc::clone(existing_score));
-            } else if (self.ord)(existing_score, score) == Ordering::Greater
-                || (*(*existing_score)).as_ref() == score.as_ref()
+        for existing_val in self.values.iter() {
+            if (self.ord)(value, existing_val) == Ordering::Greater {
+                to_remove.push(Arc::clone(existing_val));
+            } else if (self.ord)(existing_val, value) == Ordering::Greater
+                || (*(*existing_val)).as_ref() == value.as_ref()
             {
                 is_dominated = true;
                 remove_duplicates = true;
@@ -78,7 +74,7 @@ where
 
         if !is_dominated {
             self.values.retain(|x| !to_remove.contains(x));
-            self.values.push(Arc::new(score.clone()));
+            self.values.push(Arc::new(value.clone()));
             return true;
         }
 
