@@ -68,10 +68,7 @@ impl GraphCrossover {
         }
 
         if num_crosses > 0 {
-            return Some(Phenotype::from_chromosomes(
-                vec![new_chromo_one],
-                generation,
-            ));
+            return Some(Phenotype::from((vec![new_chromo_one], generation)));
         }
 
         None

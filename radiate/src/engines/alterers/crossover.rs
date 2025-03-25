@@ -58,8 +58,8 @@ pub trait Crossover<C: Chromosome>: IntoAlter<C> {
         let cross_result = self.cross_chromosomes(chrom_one, chrom_two, rate);
 
         if cross_result.count() > 0 {
-            population[index_one] = Phenotype::from_genotype(geno_one, generation);
-            population[index_two] = Phenotype::from_genotype(geno_two, generation);
+            population[index_one] = Phenotype::from((geno_one, generation));
+            population[index_two] = Phenotype::from((geno_two, generation));
         }
 
         result.merge(cross_result);

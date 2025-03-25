@@ -166,8 +166,8 @@ mod test {
     #[test]
     fn test_from_vec() {
         let individuals = vec![
-            Phenotype::from_chromosomes(vec![CharChromosome::from("hello")], 0),
-            Phenotype::from_chromosomes(vec![CharChromosome::from("world")], 0),
+            Phenotype::from((vec![CharChromosome::from("hello")], 0)),
+            Phenotype::from((vec![CharChromosome::from("world")], 0)),
         ];
 
         let population = Population::new(individuals.clone());
@@ -177,7 +177,7 @@ mod test {
     #[test]
     fn test_from_fn() {
         let population = Population::from((10, || {
-            Phenotype::from_chromosomes(vec![CharChromosome::from("hello")], 0)
+            Phenotype::from((vec![CharChromosome::from("hello")], 0))
         }));
 
         assert_eq!(population.len(), 10);
@@ -197,7 +197,7 @@ mod test {
     #[test]
     fn test_sort_by() {
         let mut population = Population::from((10, || {
-            Phenotype::from_chromosomes(vec![FloatChromosome::from((10, -10.0..10.0))], 0)
+            Phenotype::from((vec![FloatChromosome::from((10, -10.0..10.0))], 0))
         }));
 
         for i in 0..population.len() {

@@ -27,14 +27,13 @@ where
         let random_member = random_provider::range(0..population.len());
         let genotype = population[random_member].genotype();
 
-        population[replace_idx] = Phenotype::from_genotype(
+        population[replace_idx] = Phenotype::from((
             genotype
                 .chromosomes
                 .iter()
                 .map(|chromosomee| chromosomee.new_instance(None))
-                .collect::<Vec<GraphChromosome<T>>>()
-                .into(),
+                .collect::<Vec<GraphChromosome<T>>>(),
             generation,
-        );
+        ));
     }
 }

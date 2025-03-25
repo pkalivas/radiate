@@ -297,7 +297,7 @@ where
         self.population = match &self.population {
             None => Some(match self.problem.as_ref() {
                 Some(problem) => Population::from((self.population_size, || {
-                    Phenotype::from_genotype(problem.encode(), 0)
+                    Phenotype::from((problem.encode(), 0))
                 })),
                 None => panic!("Codex not set"),
             }),
