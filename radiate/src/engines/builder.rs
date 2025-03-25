@@ -296,9 +296,9 @@ where
     fn build_population(&mut self) {
         self.population = match &self.population {
             None => Some(match self.problem.as_ref() {
-                Some(problem) => Population::from_fn(self.population_size, || {
+                Some(problem) => Population::from((self.population_size, || {
                     Phenotype::from_genotype(problem.encode(), 0)
-                }),
+                })),
                 None => panic!("Codex not set"),
             }),
             Some(pop) => Some(pop.clone()),
