@@ -397,4 +397,25 @@ mod tests {
             assert_eq!(gene.allele, alleles[i]);
         }
     }
+
+    #[test]
+    fn test_gene_arithmetic() {
+        let gene_one = IntGene::from(5);
+        let gene_two = IntGene::from(5);
+        let zero_gene = IntGene::from(0);
+
+        let add = gene_one.clone() + gene_two.clone();
+        let sub = gene_one.clone() - gene_two.clone();
+        let mul = gene_one.clone() * gene_two.clone();
+        let div = gene_one.clone() / gene_two.clone();
+        let div_zero = gene_one.clone() / zero_gene.clone();
+        let mean = gene_one.mean(&gene_two);
+
+        assert_eq!(add.allele, 10);
+        assert_eq!(sub.allele, 0);
+        assert_eq!(mul.allele, 25);
+        assert_eq!(div.allele, 1);
+        assert_eq!(div_zero.allele, 5);
+        assert_eq!(mean.allele, 5);
+    }
 }

@@ -382,4 +382,25 @@ mod tests {
             assert!(gene.bounds.start >= -10.0 && gene.bounds.end <= 10.0);
         }
     }
+
+    #[test]
+    fn test_gene_arithmetic() {
+        let gene_one = FloatGene::from(5_f32);
+        let gene_two = FloatGene::from(10_f32);
+        let zero_gene = FloatGene::from(0_f32);
+
+        let add = gene_one.clone() + gene_two.clone();
+        let sub = gene_one.clone() - gene_two.clone();
+        let mul = gene_one.clone() * gene_two.clone();
+        let div = gene_one.clone() / gene_two.clone();
+        let mean = gene_one.clone().mean(&gene_two.clone());
+        let div_zero = gene_one.clone() / zero_gene.clone();
+
+        assert_eq!(add.allele, 15_f32);
+        assert_eq!(sub.allele, -5_f32);
+        assert_eq!(mul.allele, 50_f32);
+        assert_eq!(div.allele, 0.5_f32);
+        assert_eq!(mean.allele, 7.5_f32);
+        assert_eq!(div_zero.allele, 5_f32);
+    }
 }
