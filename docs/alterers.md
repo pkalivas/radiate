@@ -3,6 +3,48 @@
 Alterers are the operators that modify the population of individuals through either mutation or crossover. Crossover and mutation are two powerful ways to create new individuals from the existing population, and they are essential for the genetic algorithm to explore the search space effectively.
 As such, the choice of alterer can have a significant impact on the performance of the genetic algorithm, so it is important to choose an alterer that is well-suited to the problem being solved.
 
+Adding alterers to the engine can be done in a few ways. The simplest way is to add a single mutator and a single crossover to the engine as such:
+
+```rust
+    let engine = GeneticEngine::from_codex(codex)
+		...
+        .crossover(MultiPointCrossover::new(0.75, 2))
+        .mutator(UniformMutator::new(0.05))
+		...
+```
+
+However, if more than one is desired it can be done as such:
+
+```rust
+	let engine = GeneticEngine::from_codex(codex)
+		...
+		.mutators(vec![
+			Box::new(ScrambleMuator::new(0.75)),
+			Box::new(UniformMutator::new(0.05)),
+		])
+		.crossovers(vec![
+			Box::new(MultiPointCrossover::new(0.75, 2)),
+			Box::new(UniformCrossover::new(0.75)),
+		])
+		...
+```
+
+Alternatively, the `alterers` method and macro can be used to add both mutators and crossovers at the same time:
+
+```rust
+	let engine = GeneticEngine::from_codex(codex)
+		...
+		.alterers(alters![
+			ScrambleMuator::new(0.75),
+			UniformMutator::new(0.05),
+			MultiPointCrossover::new(0.75, 2),
+			UniformCrossover::new(0.75),
+		])
+		...
+```
+
+Its important to note that the order of which these operations are added to the engine are the order in which they will be applied. This can have a significant impact of the performance of the genetic algorithm.
+
 ## Crossover 
 
 Crossover is a genetic operator that combines two parent individuals to create one or more offspring. Radiate provides a number of built-in crossover operators that can be used to customize the crossover process, or you can define your own custom crossover operators.

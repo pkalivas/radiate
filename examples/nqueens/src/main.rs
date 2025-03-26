@@ -11,10 +11,8 @@ fn main() {
         .minimizing()
         .num_threads(5)
         .offspring_selector(BoltzmannSelector::new(4.0))
-        .alter(alters!(
-            MultiPointCrossover::new(0.75, 2),
-            UniformMutator::new(0.05)
-        ))
+        .crossover(MultiPointCrossover::new(0.75, 2))
+        .mutator(UniformMutator::new(0.05))
         .fitness_fn(|genotype: Vec<Vec<i8>>| {
             let queens = &genotype[0];
             let mut score = 0;
