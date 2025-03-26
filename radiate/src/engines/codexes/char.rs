@@ -1,10 +1,9 @@
+use super::Codex;
 use crate::engines::genome::char::CharGene;
 use crate::engines::genome::gene::Gene;
 use crate::engines::genome::genotype::Genotype;
 use crate::{CharChromosome, Chromosome, char};
 use std::sync::Arc;
-
-use super::Codex;
 
 /// A `Codex` for a `Genotype` of `CharGenes`. The `encode` function creates a `Genotype` with `num_chromosomes` chromosomes
 /// and `num_genes` genes per chromosome. The `decode` function creates a `String` from the `Genotype` where the `String`

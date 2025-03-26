@@ -168,29 +168,74 @@ impl<T: Clone + Default> Graph<T> {
     }
 }
 
+/// A simple builder struct for constructing nodes of a certain type. This is pretty much just a
+/// quality of life struct that removes boiler plate code when creating collections of nodes.
 pub struct NodeBuilder<T> {
     store: NodeStore<T>,
 }
 
 impl<T: Clone + Default> NodeBuilder<T> {
+    /// Create a new `NodeBuilder` with the given store where 'store'
+    /// is anything that can be converted into a `NodeStore` - IE: the
+    /// values that can be given to a node.
+    ///
+    /// # Arguments
+    /// * `store` - The store to use when creating new nodes.
     pub fn new(store: impl Into<NodeStore<T>>) -> Self {
         NodeBuilder {
             store: store.into(),
         }
     }
 
+    /// Create a new collection of input nodes with the given size.
+    /// If the `NodeType::Input` is not found in the store, a new node
+    /// with a random value and an arity of `Arity::Zero` will be used.
+    ///
+    /// # Arguments
+    /// * `size` - The number of input nodes to create.
+    ///
+    /// # Returns
+    /// A collection of input nodes.
     pub fn input(&self, size: usize) -> Vec<GraphNode<T>> {
         self.new_nodes(NodeType::Input, size, Arity::Zero)
     }
 
+    /// Create a new collection of output nodes with the given size.
+    /// We first look for the `NodeType::Output` in the store and if it is not found,
+    /// we create a new node with a random value with an arity of `Arity::Any`.
+    ///
+    /// # Arguments
+    /// * `size` - The number of output nodes to create.
+    ///
+    /// # Returns
+    /// A collection of output nodes.
     pub fn output(&self, size: usize) -> Vec<GraphNode<T>> {
         self.new_nodes(NodeType::Output, size, Arity::Any)
     }
 
+    /// Create a new collection of edge nodes with the given size.
+    /// The arity of the edge nodes will be set to `Arity::Exact(1)` so
+    /// if there are no `NodeType::Edge` in the store, a random value with
+    /// arity of 1 will be used.
+    ///
+    /// # Arguments
+    /// * `size` - The number of edge nodes to create.
+    ///
+    /// # Returns
+    /// A collection of edge nodes.
     pub fn edge(&self, size: usize) -> Vec<GraphNode<T>> {
         self.new_nodes(NodeType::Edge, size, Arity::Exact(1))
     }
 
+    /// Create a new collection of vertex nodes with the given size.
+    /// If the `NodeType::Vertex` is not found in the store, a new node
+    /// with a random value and an arity of `Arity::Any` will be used.
+    ///
+    /// # Arguments
+    /// * `size` - The number of vertex nodes to create.
+    ///
+    /// # Returns
+    /// A collection of vertex nodes.
     pub fn vertecies(&self, size: usize) -> Vec<GraphNode<T>> {
         (0..size)
             .map(|idx| {
@@ -200,6 +245,17 @@ impl<T: Clone + Default> NodeBuilder<T> {
             .collect()
     }
 
+    /// Helper function to create a new collection of nodes of the given type.
+    /// If the node type is not found in the store, a random value with the given
+    /// fallback arity will be used to create the node.
+    ///
+    /// # Arguments
+    /// * `node_type` - The type of node to create.
+    /// * `size` - The number of nodes to create.
+    /// * `fallback_arity` - The arity to use if the node type is not found in the store.
+    ///
+    /// # Returns
+    /// A collection of nodes of the given type.
     fn new_nodes(
         &self,
         node_type: NodeType,

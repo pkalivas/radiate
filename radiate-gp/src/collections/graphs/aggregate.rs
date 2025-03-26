@@ -104,28 +104,25 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
     /// # Returns
     /// A `Graph<T>` that has been built from the `GraphAggregate<T>`.
     pub fn build(&self) -> Graph<T> {
-        let mut new_nodes = Vec::new();
         let mut node_id_index_map = BTreeMap::new();
+        let mut graph = Graph::<T>::default();
 
-        for (index, (_, node_id)) in self.node_order.iter().enumerate() {
+        for (index, node_id) in self.node_order.values().enumerate() {
             let node = self.nodes.get(node_id).unwrap();
-            let new_node =
-                GraphNode::with_arity(index, node.node_type(), node.value().clone(), node.arity());
 
-            new_nodes.push(new_node);
+            graph.push((index, node.node_type(), node.value().clone(), node.arity()));
             node_id_index_map.insert(node_id, index);
         }
 
-        let mut new_collection = Graph::new(new_nodes);
         for rel in self.relationships.iter() {
             let source_idx = node_id_index_map.get(&rel.source_id).unwrap();
             let target_idx = node_id_index_map.get(&rel.target_id).unwrap();
 
-            new_collection.attach(*source_idx, *target_idx);
+            graph.attach(*source_idx, *target_idx);
         }
 
-        new_collection.set_cycles(vec![]);
-        new_collection
+        graph.set_cycles(vec![]);
+        graph
     }
 
     /// Connects the `GraphNode`s in the first collection to the `GraphNode`s in the second collection

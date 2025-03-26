@@ -254,7 +254,7 @@ impl<T: Default> From<(usize, T)> for GraphNode<T> {
     }
 }
 
-impl<T: Default> From<(usize, NodeType, T, Arity)> for GraphNode<T> {
+impl<T> From<(usize, NodeType, T, Arity)> for GraphNode<T> {
     fn from(value: (usize, NodeType, T, Arity)) -> Self {
         let (index, node_type, value, arity) = value;
         GraphNode::with_arity(index, node_type, value, arity)
@@ -375,5 +375,32 @@ mod tests {
         assert_eq!(node.direction(), Direction::Forward);
         node.set_direction(Direction::Backward);
         assert_eq!(node.direction(), Direction::Backward);
+    }
+
+    #[test]
+    fn graph_node_from_fns_produce_valid_arities() {
+        let node = GraphNode::from((0, NodeType::Input, 0.0));
+        assert_eq!(node.arity(), Arity::Zero);
+
+        let node = GraphNode::from((0, NodeType::Output, 0.0));
+        assert_eq!(node.arity(), Arity::Any);
+
+        let node = GraphNode::from((0, NodeType::Vertex, 0.0));
+        assert_eq!(node.arity(), Arity::Any);
+
+        let node = GraphNode::from((0, NodeType::Edge, 0.0));
+        assert_eq!(node.arity(), Arity::Exact(1));
+
+        let node = GraphNode::from((0, NodeType::Input, 0.0, Arity::Zero));
+        assert_eq!(node.arity(), Arity::Zero);
+
+        let node = GraphNode::from((0, NodeType::Output, 0.0, Arity::Any));
+        assert_eq!(node.arity(), Arity::Any);
+
+        let node = GraphNode::from((0, NodeType::Vertex, 0.0, Arity::Any));
+        assert_eq!(node.arity(), Arity::Any);
+
+        let node = GraphNode::from((0, NodeType::Edge, 0.0, Arity::Exact(1)));
+        assert_eq!(node.arity(), Arity::Exact(1));
     }
 }
