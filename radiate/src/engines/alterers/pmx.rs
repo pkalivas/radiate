@@ -1,4 +1,4 @@
-use super::{AlterAction, AlterResult, Alterer, Crossover, IntoAlter};
+use super::{AlterResult, Crossover};
 use crate::indexes;
 use crate::{Chromosome, PermutationChromosome};
 
@@ -13,6 +13,10 @@ impl PMXCrossover {
 }
 
 impl<A: PartialEq + Clone> Crossover<PermutationChromosome<A>> for PMXCrossover {
+    fn rate(&self) -> f32 {
+        self.rate
+    }
+
     #[inline]
     fn cross_chromosomes(
         &self,
@@ -60,15 +64,5 @@ impl<A: PartialEq + Clone> Crossover<PermutationChromosome<A>> for PMXCrossover 
         chrom_two.genes = offspring_two;
 
         2.into()
-    }
-}
-
-impl<A: PartialEq + Clone> IntoAlter<PermutationChromosome<A>> for PMXCrossover {
-    fn into_alter(self) -> Alterer<PermutationChromosome<A>> {
-        Alterer::new(
-            "PMX Crossover",
-            self.rate,
-            AlterAction::Crossover(Box::new(self)),
-        )
     }
 }

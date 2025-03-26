@@ -1,4 +1,4 @@
-use super::{AlterAction, AlterResult, Alterer, IntoAlter, Mutate};
+use super::{AlterResult, Mutate};
 use crate::{Chromosome, random_provider};
 
 pub struct ScrambleMutator {
@@ -12,6 +12,10 @@ impl ScrambleMutator {
 }
 
 impl<C: Chromosome> Mutate<C> for ScrambleMutator {
+    fn rate(&self) -> f32 {
+        self.rate
+    }
+
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> AlterResult {
         let mut mutations = 0;
@@ -26,15 +30,5 @@ impl<C: Chromosome> Mutate<C> for ScrambleMutator {
         }
 
         mutations.into()
-    }
-}
-
-impl<C: Chromosome> IntoAlter<C> for ScrambleMutator {
-    fn into_alter(self) -> Alterer<C> {
-        Alterer::new(
-            "ScrambleMutator",
-            self.rate,
-            AlterAction::Mutate(Box::new(self)),
-        )
     }
 }

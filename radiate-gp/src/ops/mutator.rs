@@ -2,7 +2,7 @@ use crate::node::Node;
 use crate::ops::operation::Op;
 use crate::{Factory, GraphChromosome, NodeType};
 use radiate::engines::genome::gene::Gene;
-use radiate::{AlterAction, AlterResult, Alterer, IntoAlter, Mutate};
+use radiate::{AlterResult, Mutate};
 use radiate::{Chromosome, random_provider};
 use std::sync::Arc;
 
@@ -33,6 +33,10 @@ impl<T> Mutate<GraphChromosome<Op<T>>> for OperationMutator
 where
     T: Clone + PartialEq + Default,
 {
+    fn rate(&self) -> f32 {
+        self.rate
+    }
+
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<Op<T>>, rate: f32) -> AlterResult {
         let mutation_indexes = (0..chromosome.len())
@@ -96,18 +100,5 @@ where
         }
 
         mutation_indexes.len().into()
-    }
-}
-
-impl<T> IntoAlter<GraphChromosome<Op<T>>> for OperationMutator
-where
-    T: Clone + PartialEq + Default,
-{
-    fn into_alter(self) -> Alterer<GraphChromosome<Op<T>>> {
-        Alterer::new(
-            "OperationMutator",
-            self.rate,
-            AlterAction::Mutate(Box::new(self)),
-        )
     }
 }

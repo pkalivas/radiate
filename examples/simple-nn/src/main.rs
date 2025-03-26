@@ -26,10 +26,11 @@ fn main() {
         .minimizing()
         .num_threads(5)
         .offspring_selector(BoltzmannSelector::new(4_f32))
-        .alter(alters!(
-            IntermediateCrossover::new(0.75, 0.1),
-            ArithmeticMutator::new(0.03),
-        ))
+        .crossover(IntermediateCrossover::new(0.75, 0.1))
+        .mutators(vec![
+            Box::new(ArithmeticMutator::new(0.03)),
+            Box::new(GaussianMutator::new(0.03)),
+        ])
         .fitness_fn(move |net: NeuralNet| net.error(&inputs, &target))
         .build();
 
@@ -132,3 +133,8 @@ impl Codex<FloatChromosome, NeuralNet> for NeuralNetCodex {
         NeuralNet { layers }
     }
 }
+
+// .alter(alters!(
+//     IntermediateCrossover::new(0.75, 0.1),
+//     ArithmeticMutator::new(0.03),
+// ))

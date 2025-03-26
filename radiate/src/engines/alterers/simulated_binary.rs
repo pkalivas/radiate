@@ -1,4 +1,4 @@
-use super::{AlterAction, AlterResult, Crossover, IntoAlter};
+use super::{AlterResult, Crossover};
 use crate::{ArithmeticGene, Chromosome, FloatGene, Gene, random_provider};
 
 pub struct SimulatedBinaryCrossover {
@@ -16,6 +16,10 @@ impl SimulatedBinaryCrossover {
 }
 
 impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for SimulatedBinaryCrossover {
+    fn rate(&self) -> f32 {
+        self.crossover_rate
+    }
+
     #[inline]
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, _: f32) -> AlterResult {
         let length = std::cmp::min(chrom_one.len(), chrom_two.len());
@@ -53,15 +57,5 @@ impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for SimulatedBinaryCrossover 
         }
 
         count.into()
-    }
-}
-
-impl<C: Chromosome<Gene = FloatGene>> IntoAlter<C> for SimulatedBinaryCrossover {
-    fn into_alter(self) -> super::Alterer<C> {
-        super::Alterer::new(
-            "SimulatedBinaryCrossover",
-            self.crossover_rate,
-            AlterAction::Crossover(Box::new(self)),
-        )
     }
 }

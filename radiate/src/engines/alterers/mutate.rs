@@ -1,7 +1,22 @@
-use super::{AlterResult, IntoAlter};
+use super::{AlterAction, AlterResult};
 use crate::{Chromosome, Gene, Genotype, Population, random_provider};
 
-pub trait Mutate<C: Chromosome>: IntoAlter<C> {
+pub trait Mutate<C: Chromosome> {
+    fn name(&self) -> &'static str {
+        std::any::type_name::<Self>().split("::").last().unwrap()
+    }
+
+    fn rate(&self) -> f32 {
+        1.0
+    }
+
+    fn alterer(self) -> AlterAction<C>
+    where
+        Self: Sized + 'static,
+    {
+        AlterAction::Mutate(self.name(), self.rate(), Box::new(self))
+    }
+
     #[inline]
     fn mutate(&self, population: &mut Population<C>, generation: usize, rate: f32) -> AlterResult {
         let mut result = AlterResult::default();

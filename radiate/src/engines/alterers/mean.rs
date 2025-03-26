@@ -1,4 +1,4 @@
-use super::{AlterAction, AlterResult, Alterer, Crossover, IntoAlter};
+use super::{AlterResult, Crossover};
 use crate::{ArithmeticGene, Chromosome, random_provider};
 
 /// The `MeanCrossover` is a simple crossover method that replaces the genes of the first chromosome
@@ -29,6 +29,10 @@ impl<C: Chromosome> Crossover<C> for MeanCrossover
 where
     C::Gene: ArithmeticGene,
 {
+    fn rate(&self) -> f32 {
+        self.rate
+    }
+
     #[inline]
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, rate: f32) -> AlterResult {
         let mut count = 0;
@@ -41,18 +45,5 @@ where
         }
 
         count.into()
-    }
-}
-
-impl<C: Chromosome> IntoAlter<C> for MeanCrossover
-where
-    C::Gene: ArithmeticGene,
-{
-    fn into_alter(self) -> Alterer<C> {
-        Alterer::new(
-            "MeanCrossover",
-            self.rate,
-            AlterAction::Crossover(Box::new(self)),
-        )
     }
 }

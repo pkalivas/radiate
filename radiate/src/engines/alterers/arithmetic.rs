@@ -1,4 +1,4 @@
-use super::{AlterAction, AlterResult, Alterer, IntoAlter, Mutate};
+use super::{AlterResult, Mutate};
 use crate::{ArithmeticGene, Chromosome, Gene, random_provider};
 
 /// Arithmetic Mutator. Mutates genes by performing arithmetic operations on them.
@@ -28,6 +28,10 @@ impl<C: Chromosome> Mutate<C> for ArithmeticMutator
 where
     C::Gene: ArithmeticGene,
 {
+    fn rate(&self) -> f32 {
+        self.rate
+    }
+
     /// Mutate a gene by performing an arithmetic operation on it.
     /// Randomly select a number between 0 and 3, and perform the corresponding
     /// arithmetic operation on the gene.
@@ -53,18 +57,5 @@ where
         }
 
         mutations.into()
-    }
-}
-
-impl<C: Chromosome> IntoAlter<C> for ArithmeticMutator
-where
-    C::Gene: ArithmeticGene,
-{
-    fn into_alter(self) -> Alterer<C> {
-        Alterer::new(
-            "ArithmeticMutator",
-            self.rate,
-            AlterAction::Mutate(Box::new(self)),
-        )
     }
 }
