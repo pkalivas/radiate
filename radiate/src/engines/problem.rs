@@ -1,5 +1,5 @@
 use super::{Chromosome, Codex, Genotype, Score};
-use std::sync::Arc;
+use std::{borrow::Borrow, sync::Arc};
 
 pub trait Problem<C: Chromosome, T>: Send + Sync {
     fn encode(&self) -> Genotype<C>;
@@ -32,3 +32,25 @@ impl<C: Chromosome, T> Problem<C, T> for EngineProblem<C, T> {
 
 unsafe impl<C: Chromosome, T> Send for EngineProblem<C, T> {}
 unsafe impl<C: Chromosome, T> Sync for EngineProblem<C, T> {}
+
+pub struct EngineRefProblem<C: Chromosome> {
+    pub encoder: Arc<dyn Fn() -> Genotype<C>>,
+    pub fitness_fn: Arc<dyn Fn(&Genotype<C>) -> Score + Send + Sync>,
+}
+
+impl<C: Chromosome> Problem<C, Genotype<C>> for EngineRefProblem<C> {
+    fn encode(&self) -> Genotype<C> {
+        (self.encoder)()
+    }
+
+    fn decode(&self, genotype: &Genotype<C>) -> Genotype<C> {
+        genotype.clone()
+    }
+
+    fn eval(&self, individual: &Genotype<C>) -> Score {
+        (self.fitness_fn)(individual)
+    }
+}
+
+unsafe impl<C: Chromosome> Send for EngineRefProblem<C> {}
+unsafe impl<C: Chromosome> Sync for EngineRefProblem<C> {}

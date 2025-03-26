@@ -40,26 +40,28 @@ impl Eval<Vec<Tree<Op<f32>>>, f32> for Regression {
 
 // use std::{marker::PhantomData, sync::Arc};
 
-// pub struct RegressionProblem<C, T, G>
+// pub struct RegressionProblem<C, T>
 // where
 //     C: Chromosome,
 //     T: Clone,
-//     G: Codex<C, T>,
 // {
 //     data_set: DataSet,
 //     loss: Loss,
-//     codex: Arc<G>,
+//     codex: Arc<dyn Codex<C, T> + Send + Sync>,
 //     _marker: PhantomData<C>,
 //     _marker2: PhantomData<T>,
 // }
 
-// impl<C, T, G> RegressionProblem<C, T, G>
+// impl<C, T> RegressionProblem<C, T>
 // where
 //     C: Chromosome,
 //     T: Clone,
-//     G: Codex<C, T>,
 // {
-//     pub fn new(data_set: DataSet, loss: Loss, codex: G) -> Self {
+//     pub fn new<G: Codex<C, T> + Send + Sync + 'static>(
+//         data_set: DataSet,
+//         loss: Loss,
+//         codex: G,
+//     ) -> Self {
 //         RegressionProblem {
 //             data_set,
 //             loss,
@@ -71,7 +73,7 @@ impl Eval<Vec<Tree<Op<f32>>>, f32> for Regression {
 // }
 
 // impl Problem<GraphChromosome<Op<f32>>, Graph<Op<f32>>>
-//     for RegressionProblem<GraphChromosome<Op<f32>>, Graph<Op<f32>>, GraphCodex<Op<f32>>>
+//     for RegressionProblem<GraphChromosome<Op<f32>>, Graph<Op<f32>>>
 // {
 //     fn encode(&self) -> Genotype<GraphChromosome<Op<f32>>> {
 //         self.codex.encode()
