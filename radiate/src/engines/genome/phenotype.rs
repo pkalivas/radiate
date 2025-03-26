@@ -24,26 +24,6 @@ pub struct Phenotype<C: Chromosome> {
 }
 
 impl<C: Chromosome> Phenotype<C> {
-    /// Create a new instance of the `Phenotype` with the given `Genotype` and generation.
-    pub fn from_genotype(genotype: Genotype<C>, generation: usize) -> Self {
-        Phenotype {
-            genotype: Some(genotype),
-            score: None,
-            generation,
-        }
-    }
-
-    /// This is a convenience method that allows you to create a `Phenotype` from a list of chromosomes.
-    /// Without it, we end up neededing to create a list of `Genes` then a list of `Chromosomes` then a `Genotype`,
-    /// its just a lot. This method allows you to create a `Phenotype` from a list of chromosomes directly.
-    pub fn from_chromosomes(chromosomes: Vec<C>, generation: usize) -> Self {
-        Phenotype {
-            genotype: Some(Genotype::new(chromosomes)),
-            score: None,
-            generation,
-        }
-    }
-
     pub fn genotype(&self) -> &Genotype<C> {
         self.genotype.as_ref().unwrap()
     }
@@ -105,5 +85,28 @@ impl<C: Chromosome> AsRef<[f32]> for Phenotype<C> {
 impl<C: Chromosome> PartialOrd for Phenotype<C> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.score.partial_cmp(&other.score)
+    }
+}
+
+impl<C: Chromosome> From<(Genotype<C>, usize)> for Phenotype<C> {
+    fn from((genotype, generation): (Genotype<C>, usize)) -> Self {
+        Phenotype {
+            genotype: Some(genotype),
+            score: None,
+            generation,
+        }
+    }
+}
+
+/// This is a convenience method that allows you to create a `Phenotype` from a list of chromosomes.
+/// Without it, we end up neededing to create a list of `Genes` then a list of `Chromosomes` then a `Genotype`,
+/// its just a lot. This method allows you to create a `Phenotype` from a list of chromosomes directly.
+impl<C: Chromosome> From<(Vec<C>, usize)> for Phenotype<C> {
+    fn from((chromosomes, generation): (Vec<C>, usize)) -> Self {
+        Phenotype {
+            genotype: Some(Genotype::new(chromosomes)),
+            score: None,
+            generation,
+        }
     }
 }

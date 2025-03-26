@@ -1,4 +1,4 @@
-use super::{AlterResult, IntoAlter};
+use super::{AlterAction, AlterResult};
 use crate::{Chromosome, Gene, Phenotype, Population, indexes, random_provider};
 
 /// The `Crossover` trait is used to define the crossover operation for a genetic algorithm.
@@ -12,7 +12,22 @@ use crate::{Chromosome, Gene, Phenotype, Population, indexes, random_provider};
 /// or a subset of the population. If a struct implements the `Crossover` trait but does not override
 /// any of the methods, the default implementation will perform a simple crossover operation on the
 /// entire population. This is the case with the `UniformCrossover` struct.
-pub trait Crossover<C: Chromosome>: IntoAlter<C> {
+pub trait Crossover<C: Chromosome> {
+    fn name(&self) -> &'static str {
+        std::any::type_name::<Self>().split("::").last().unwrap()
+    }
+
+    fn rate(&self) -> f32 {
+        1.0
+    }
+
+    fn alterer(self) -> AlterAction<C>
+    where
+        Self: Sized + 'static,
+    {
+        AlterAction::Crossover(self.name(), self.rate(), Box::new(self))
+    }
+
     #[inline]
     fn crossover(
         &self,
@@ -58,8 +73,8 @@ pub trait Crossover<C: Chromosome>: IntoAlter<C> {
         let cross_result = self.cross_chromosomes(chrom_one, chrom_two, rate);
 
         if cross_result.count() > 0 {
-            population[index_one] = Phenotype::from_genotype(geno_one, generation);
-            population[index_two] = Phenotype::from_genotype(geno_two, generation);
+            population[index_one] = Phenotype::from((geno_one, generation));
+            population[index_two] = Phenotype::from((geno_two, generation));
         }
 
         result.merge(cross_result);

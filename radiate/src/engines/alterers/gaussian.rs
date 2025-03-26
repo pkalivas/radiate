@@ -1,4 +1,4 @@
-use super::{AlterAction, Alterer, IntoAlter, Mutate};
+use super::Mutate;
 use crate::{ArithmeticGene, Chromosome, FloatGene, Gene, random_provider};
 
 /// The `GaussianMutator` is a simple mutator that adds a small amount of Gaussian noise to the gene.
@@ -21,6 +21,10 @@ impl GaussianMutator {
 }
 
 impl<C: Chromosome<Gene = FloatGene>> Mutate<C> for GaussianMutator {
+    fn rate(&self) -> f32 {
+        self.rate
+    }
+
     #[inline]
     fn mutate_gene(&self, gene: &C::Gene) -> C::Gene {
         let min = *gene.min() as f64;
@@ -33,15 +37,5 @@ impl<C: Chromosome<Gene = FloatGene>> Mutate<C> for GaussianMutator {
         let allele = gaussian.clamp(min, max) as f32;
 
         gene.with_allele(&allele)
-    }
-}
-
-impl<C: Chromosome<Gene = FloatGene>> IntoAlter<C> for GaussianMutator {
-    fn into_alter(self) -> Alterer<C> {
-        Alterer::new(
-            "GaussianMutator",
-            self.rate,
-            AlterAction::Mutate(Box::new(self)),
-        )
     }
 }

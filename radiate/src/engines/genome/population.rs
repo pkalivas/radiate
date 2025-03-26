@@ -69,24 +69,6 @@ impl<C: Chromosome> Population<C> {
         self.is_sorted = true;
     }
 
-    /// Create a new instance of the Population from the given size and closure.
-    /// This will iterate the given closure `size` times and collect
-    /// the results into a Vec of new individuals.
-    pub fn from_fn<F>(size: usize, f: F) -> Self
-    where
-        F: Fn() -> Phenotype<C>,
-    {
-        let mut individuals = Vec::with_capacity(size);
-        for _ in 0..size {
-            individuals.push(f());
-        }
-
-        Population {
-            individuals,
-            is_sorted: false,
-        }
-    }
-
     pub fn is_empty(&self) -> bool {
         self.individuals.is_empty()
     }
@@ -140,6 +122,26 @@ impl<C: Chromosome> FromIterator<Phenotype<C>> for Population<C> {
     }
 }
 
+/// Create a new instance of the Population from the given size and closure.
+/// This will iterate the given closure `size` times and collect
+/// the results into a Vec of new individuals.
+impl<C: Chromosome, F> From<(usize, F)> for Population<C>
+where
+    F: Fn() -> Phenotype<C>,
+{
+    fn from((size, f): (usize, F)) -> Self {
+        let mut individuals = Vec::with_capacity(size);
+        for _ in 0..size {
+            individuals.push(f());
+        }
+
+        Population {
+            individuals,
+            is_sorted: false,
+        }
+    }
+}
+
 impl<C: Chromosome + Debug> Debug for Population<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "[")?;
@@ -164,8 +166,8 @@ mod test {
     #[test]
     fn test_from_vec() {
         let individuals = vec![
-            Phenotype::from_chromosomes(vec![CharChromosome::from("hello")], 0),
-            Phenotype::from_chromosomes(vec![CharChromosome::from("world")], 0),
+            Phenotype::from((vec![CharChromosome::from("hello")], 0)),
+            Phenotype::from((vec![CharChromosome::from("world")], 0)),
         ];
 
         let population = Population::new(individuals.clone());
@@ -174,9 +176,9 @@ mod test {
 
     #[test]
     fn test_from_fn() {
-        let population = Population::from_fn(10, || {
-            Phenotype::from_chromosomes(vec![CharChromosome::from("hello")], 0)
-        });
+        let population = Population::from((10, || {
+            Phenotype::from((vec![CharChromosome::from("hello")], 0))
+        }));
 
         assert_eq!(population.len(), 10);
 
@@ -194,9 +196,9 @@ mod test {
 
     #[test]
     fn test_sort_by() {
-        let mut population = Population::from_fn(10, || {
-            Phenotype::from_chromosomes(vec![FloatChromosome::from((10, -10.0..10.0))], 0)
-        });
+        let mut population = Population::from((10, || {
+            Phenotype::from((vec![FloatChromosome::from((10, -10.0..10.0))], 0))
+        }));
 
         for i in 0..population.len() {
             population[i].set_score(Some(Score::from_usize(i)));

@@ -25,14 +25,6 @@ pub trait Alter<C: Chromosome> {
     fn alter(&self, population: &mut Population<C>, generation: usize) -> Vec<Metric>;
 }
 
-/// The `IntoAlter` trait is used to convert a struct into an `Alterer` struct. Because an `Alterer`
-/// can be a `Mutate` or a `Crossover`, this trait is used to combine the two into one joined trait.
-/// This is mostly a convience and quality of life trait so that the user does not have to
-/// manually create an `Alterer` struct from a `Mutate` or `Crossover` struct.
-pub trait IntoAlter<C: Chromosome> {
-    fn into_alter(self) -> Alterer<C>;
-}
-
 /// The `AlterResult` struct is used to represent the result of an
 /// alteration operation. It contains the number of operations
 /// performed and a vector of metrics that were collected
@@ -85,52 +77,27 @@ impl Into<AlterResult> for (usize, Metric) {
 /// types of alterations that can be performed on a
 /// population - It can be either a mutation or a crossover operation.
 pub enum AlterAction<C: Chromosome> {
-    Mutate(Box<dyn Mutate<C>>),
-    Crossover(Box<dyn Crossover<C>>),
+    Mutate(&'static str, f32, Box<dyn Mutate<C>>),
+    Crossover(&'static str, f32, Box<dyn Crossover<C>>),
 }
 
-/// The `Alterer` struct is used to represent an alterer that can
-/// perform an alteration on a population. It contains a name,
-/// a rate, and an `AlterAction` that represents the type of
-/// alteration that will be performed. The `Alterer` struct
-/// implements the `Alter` trait, which allows it to perform
-/// the alteration on a population. The `Alterer` struct is a way to join together
-/// the `Mutate` and `Crossover` traits into a single struct.
-pub struct Alterer<C: Chromosome> {
-    name: &'static str,
-    rate: f32,
-    alter: AlterAction<C>,
-}
-
-impl<C: Chromosome> Alterer<C> {
-    /// Creates a new `Alterer` struct with the given name, rate, and `AlterAction`.
-    ///
-    ///  The `name` is a static string that represents the name of the alterer.
-    /// The `rate` is a float that represents the rate at which the alteration will be performed.
-    /// The `alter` is an `AlterAction` that represents the type of alteration that will be performed,
-    /// which can be either a mutation or a crossover operation.
-    pub fn new(name: &'static str, rate: f32, alter: AlterAction<C>) -> Self {
-        Self { name, rate, alter }
-    }
-}
-
-impl<C: Chromosome> Alter<C> for Alterer<C> {
+impl<C: Chromosome> Alter<C> for AlterAction<C> {
     fn alter(&self, population: &mut Population<C>, generation: usize) -> Vec<Metric> {
-        match &self.alter {
-            AlterAction::Mutate(m) => {
+        match &self {
+            AlterAction::Mutate(name, rate, m) => {
                 let timer = Timer::new();
-                let AlterResult(count, metrics) = m.mutate(population, generation, self.rate);
-                let metric = Metric::new_operations(self.name, count, timer);
+                let AlterResult(count, metrics) = m.mutate(population, generation, *rate);
+                let metric = Metric::new_operations(name, count, timer);
 
                 match metrics {
                     Some(metrics) => metrics.into_iter().chain(vec![metric]).collect(),
                     None => vec![metric],
                 }
             }
-            AlterAction::Crossover(c) => {
+            AlterAction::Crossover(name, rate, c) => {
                 let timer = Timer::new();
-                let AlterResult(count, metrics) = c.crossover(population, generation, self.rate);
-                let metric = Metric::new_operations(self.name, count, timer);
+                let AlterResult(count, metrics) = c.crossover(population, generation, *rate);
+                let metric = Metric::new_operations(name, count, timer);
 
                 match metrics {
                     Some(metrics) => metrics.into_iter().chain(vec![metric]).collect(),

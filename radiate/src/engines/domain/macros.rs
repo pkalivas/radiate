@@ -20,7 +20,7 @@ macro_rules! alters {
         {
             let mut vec: Vec<Box<dyn Alter<_>>> = Vec::new();
             $(
-                vec.push(Box::new($struct_instance.into_alter()));
+                vec.push(Box::new($struct_instance.alterer()));
             )*
             vec
         }

@@ -1,4 +1,4 @@
-use super::{AlterAction, AlterResult, Alterer, IntoAlter, Mutate};
+use super::{AlterResult, Mutate};
 use crate::{Chromosome, random_provider};
 
 /// The `InversionMutator` is a simple mutator that inverts a random section of the chromosome.
@@ -22,6 +22,10 @@ impl InversionMutator {
 }
 
 impl<C: Chromosome> Mutate<C> for InversionMutator {
+    fn rate(&self) -> f32 {
+        self.rate
+    }
+
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> AlterResult {
         let mut mutations = 0;
@@ -35,15 +39,5 @@ impl<C: Chromosome> Mutate<C> for InversionMutator {
         }
 
         mutations.into()
-    }
-}
-
-impl<C: Chromosome> IntoAlter<C> for InversionMutator {
-    fn into_alter(self) -> Alterer<C> {
-        Alterer::new(
-            "InversionMutator",
-            self.rate,
-            AlterAction::Mutate(Box::new(self)),
-        )
     }
 }

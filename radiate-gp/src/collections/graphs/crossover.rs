@@ -2,7 +2,7 @@ use crate::NodeType;
 use crate::collections::GraphChromosome;
 use crate::node::Node;
 use radiate::engines::genome::*;
-use radiate::{AlterAction, AlterResult, Alterer, Crossover, IntoAlter, indexes, random_provider};
+use radiate::{AlterResult, Crossover, indexes, random_provider};
 use std::collections::HashMap;
 
 const NUM_PARENTS: usize = 2;
@@ -68,10 +68,7 @@ impl GraphCrossover {
         }
 
         if num_crosses > 0 {
-            return Some(Phenotype::from_chromosomes(
-                vec![new_chromo_one],
-                generation,
-            ));
+            return Some(Phenotype::from((vec![new_chromo_one], generation)));
         }
 
         None
@@ -82,6 +79,10 @@ impl<T> Crossover<GraphChromosome<T>> for GraphCrossover
 where
     T: Clone + PartialEq + Default,
 {
+    fn rate(&self) -> f32 {
+        self.crossover_rate
+    }
+    #[inline]
     fn crossover(
         &self,
         population: &mut Population<GraphChromosome<T>>,
@@ -108,18 +109,5 @@ where
         }
 
         count.into()
-    }
-}
-
-impl<T> IntoAlter<GraphChromosome<T>> for GraphCrossover
-where
-    T: Clone + PartialEq + Default,
-{
-    fn into_alter(self) -> Alterer<GraphChromosome<T>> {
-        Alterer::new(
-            "GraphCrossover",
-            self.crossover_rate,
-            AlterAction::Crossover(Box::new(self)),
-        )
     }
 }

@@ -1,6 +1,6 @@
 use super::TreeChromosome;
 use crate::{Factory, NodeStore, NodeType, TreeNode, node::Node};
-use radiate::{AlterAction, AlterResult, Alterer, Gene, IntoAlter, Mutate, random_provider};
+use radiate::{AlterResult, Gene, Mutate, random_provider};
 
 pub struct TreeMutator {
     rate: f32,
@@ -46,6 +46,10 @@ impl<T> Mutate<TreeChromosome<T>> for TreeMutator
 where
     T: Clone + PartialEq + Default,
 {
+    fn rate(&self) -> f32 {
+        self.rate
+    }
+
     fn mutate_chromosome(&self, chromosome: &mut TreeChromosome<T>, rate: f32) -> AlterResult {
         let store = chromosome.get_store();
         if let Some(store) = store {
@@ -54,18 +58,5 @@ where
         } else {
             0.into()
         }
-    }
-}
-
-impl<T> IntoAlter<TreeChromosome<T>> for TreeMutator
-where
-    T: Clone + PartialEq + Default,
-{
-    fn into_alter(self) -> Alterer<TreeChromosome<T>> {
-        Alterer::new(
-            "TreeMutator",
-            self.rate,
-            AlterAction::Mutate(Box::new(self)),
-        )
     }
 }

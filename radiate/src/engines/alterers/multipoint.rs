@@ -1,4 +1,4 @@
-use super::{AlterAction, AlterResult, Alterer, Crossover, IntoAlter};
+use super::{AlterResult, Crossover};
 use crate::{Chromosome, random_provider};
 
 /// The `MultiPointCrossover` is a crossover method that takes two chromosomes and crosses them
@@ -28,6 +28,11 @@ impl MultiPointCrossover {
 }
 
 impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
+    fn rate(&self) -> f32 {
+        self.rate
+    }
+
+    #[inline]
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, _: f32) -> AlterResult {
         let length = std::cmp::min(chrom_one.len(), chrom_two.len());
 
@@ -74,15 +79,5 @@ impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
         }
 
         self.num_points.into()
-    }
-}
-
-impl<C: Chromosome> IntoAlter<C> for MultiPointCrossover {
-    fn into_alter(self) -> Alterer<C> {
-        Alterer::new(
-            "MultiPointCrossover",
-            self.rate,
-            AlterAction::Crossover(Box::new(self)),
-        )
     }
 }

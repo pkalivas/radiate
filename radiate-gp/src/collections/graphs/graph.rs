@@ -24,7 +24,7 @@ use std::ops::{Index, IndexMut};
 /// The 'Graph' struct provides methods for attaching and detaching nodes from one another.
 /// It also provides methods for iterating over the nodes in the graph in a sudo topological order.
 //
-#[derive(Clone, Default, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Graph<T> {
     nodes: Vec<GraphNode<T>>,
 }
@@ -259,6 +259,12 @@ impl<T> FromIterator<GraphNode<T>> for Graph<T> {
     }
 }
 
+impl<T> Default for Graph<T> {
+    fn default() -> Self {
+        Graph { nodes: Vec::new() }
+    }
+}
+
 impl<T: Debug + PartialEq + Clone> Debug for Graph<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Graph {{\n")?;
@@ -266,5 +272,42 @@ impl<T: Debug + PartialEq + Clone> Debug for Graph<T> {
             write!(f, "  {:?},\n", node)?;
         }
         write!(f, "}}")
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::collections::BTreeSet;
+
+    #[test]
+    fn test_graph_is_valid() {
+        let mut graph = Graph::default();
+        graph.push((0, NodeType::Input, 0));
+        graph.push((1, NodeType::Output, 1));
+        graph.attach(0, 1);
+
+        assert!(graph.is_valid());
+    }
+
+    #[test]
+    fn test_graph_is_not_valid() {
+        let mut graph = Graph::default();
+        graph.push((0, NodeType::Input, 0));
+        graph.push((1, NodeType::Output, 1));
+        graph.attach(1, 0);
+
+        assert!(!graph.is_valid());
+    }
+
+    #[test]
+    fn test_graph_attach() {
+        let mut graph = Graph::default();
+        graph.push((0, NodeType::Input, 0));
+        graph.push((1, NodeType::Output, 1));
+        graph.attach(0, 1);
+
+        assert_eq!(graph[0].outgoing(), &BTreeSet::from_iter(vec![1]));
+        assert_eq!(graph[1].incoming(), &BTreeSet::from_iter(vec![0]));
     }
 }
