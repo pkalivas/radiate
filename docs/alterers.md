@@ -43,7 +43,7 @@ Alternatively, the `alterers` method and macro can be used to add both mutators 
 		...
 ```
 
-Its important to note that the order of which these operations are added to the engine are the order in which they will be applied. This can have a significant impact of the performance of the genetic algorithm.
+Its important to note that the order of which these operations are added to the engine are the order in which they will be applied. This can have a significant impact of the performance of the genetic algorithm . 
 
 ## Crossover 
 
