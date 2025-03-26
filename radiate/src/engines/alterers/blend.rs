@@ -1,4 +1,4 @@
-use super::{AlterAction, AlterResult, Alterer, Crossover, IntoAlter};
+use super::{AlterResult, Crossover};
 use crate::{ArithmeticGene, Chromosome, random_provider};
 
 pub struct BlendCrossover {
@@ -26,6 +26,10 @@ impl<G: ArithmeticGene, C: Chromosome<Gene = G>> Crossover<C> for BlendCrossover
 where
     G::Allele: Into<f32> + Clone,
 {
+    fn rate(&self) -> f32 {
+        self.rate
+    }
+
     #[inline]
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, rate: f32) -> AlterResult {
         let mut cross_count = 0;
@@ -49,18 +53,5 @@ where
         }
 
         cross_count.into()
-    }
-}
-
-impl<G: ArithmeticGene, C: Chromosome<Gene = G>> IntoAlter<C> for BlendCrossover
-where
-    G::Allele: Into<f32> + Clone,
-{
-    fn into_alter(self) -> Alterer<C> {
-        Alterer::new(
-            "BlendCrossover",
-            self.rate,
-            AlterAction::Crossover(Box::new(self)),
-        )
     }
 }

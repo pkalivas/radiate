@@ -1,7 +1,4 @@
-use super::AlterAction;
-use super::Alterer;
 use super::Crossover;
-use super::IntoAlter;
 use super::Mutate;
 use crate::Chromosome;
 
@@ -15,15 +12,9 @@ impl UniformCrossover {
     }
 }
 
-impl<C: Chromosome> Crossover<C> for UniformCrossover {}
-
-impl<C: Chromosome> IntoAlter<C> for UniformCrossover {
-    fn into_alter(self) -> Alterer<C> {
-        Alterer::new(
-            "UniformCrossover",
-            self.rate,
-            AlterAction::Crossover(Box::new(self)),
-        )
+impl<C: Chromosome> Crossover<C> for UniformCrossover {
+    fn rate(&self) -> f32 {
+        self.rate
     }
 }
 
@@ -37,14 +28,8 @@ impl UniformMutator {
     }
 }
 
-impl<C: Chromosome> Mutate<C> for UniformMutator {}
-
-impl<C: Chromosome> IntoAlter<C> for UniformMutator {
-    fn into_alter(self) -> Alterer<C> {
-        Alterer::new(
-            "UniformMutator",
-            self.rate,
-            AlterAction::Mutate(Box::new(self)),
-        )
+impl<C: Chromosome> Mutate<C> for UniformMutator {
+    fn rate(&self) -> f32 {
+        self.rate
     }
 }

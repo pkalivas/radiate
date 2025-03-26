@@ -1,4 +1,4 @@
-use super::{AlterResult, IntoAlter};
+use super::{AlterAction, AlterResult};
 use crate::{Chromosome, Gene, Phenotype, Population, indexes, random_provider};
 
 /// The `Crossover` trait is used to define the crossover operation for a genetic algorithm.
@@ -12,7 +12,22 @@ use crate::{Chromosome, Gene, Phenotype, Population, indexes, random_provider};
 /// or a subset of the population. If a struct implements the `Crossover` trait but does not override
 /// any of the methods, the default implementation will perform a simple crossover operation on the
 /// entire population. This is the case with the `UniformCrossover` struct.
-pub trait Crossover<C: Chromosome>: IntoAlter<C> {
+pub trait Crossover<C: Chromosome> {
+    fn name(&self) -> &'static str {
+        std::any::type_name::<Self>().split("::").last().unwrap()
+    }
+
+    fn rate(&self) -> f32 {
+        1.0
+    }
+
+    fn alterer(self) -> AlterAction<C>
+    where
+        Self: Sized + 'static,
+    {
+        AlterAction::Crossover(self.name(), self.rate(), Box::new(self))
+    }
+
     #[inline]
     fn crossover(
         &self,

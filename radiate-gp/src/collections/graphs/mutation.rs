@@ -2,8 +2,8 @@ use super::transaction::{InsertStep, TransactionResult};
 use super::{Graph, GraphChromosome};
 use crate::node::Node;
 use crate::{Arity, Factory, NodeType};
-use radiate::{AlterAction, AlterResult, Alterer, Metric, Mutate, random_provider};
-use radiate::{Chromosome, IntoAlter};
+use radiate::Chromosome;
+use radiate::{AlterResult, Metric, Mutate, random_provider};
 
 const INVALID_MUTATION: &str = "GraphMutator(Ivld)";
 
@@ -126,14 +126,5 @@ where
         }
 
         0.into()
-    }
-}
-
-impl<T> IntoAlter<GraphChromosome<T>> for GraphMutator
-where
-    T: Clone + PartialEq + Default,
-{
-    fn into_alter(self) -> Alterer<GraphChromosome<T>> {
-        Alterer::new("GraphMutator", 1.0, AlterAction::Mutate(Box::new(self)))
     }
 }

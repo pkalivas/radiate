@@ -1,8 +1,8 @@
 use super::codexes::Codex;
 use super::thread_pool::ThreadPool;
 use super::{
-    Alter, EncodeReplace, EngineProblem, Front, GeneticEngineParams, IntoAlter, Problem,
-    ReplacementStrategy, RouletteSelector, Select, TournamentSelector, pareto,
+    Alter, AlterAction, Crossover, EncodeReplace, EngineProblem, Front, GeneticEngineParams,
+    Mutate, Problem, ReplacementStrategy, RouletteSelector, Select, TournamentSelector, pareto,
 };
 use crate::Chromosome;
 use crate::engines::engine::GeneticEngine;
@@ -197,6 +197,36 @@ where
         self
     }
 
+    pub fn mutator<M: Mutate<C> + 'static>(mut self, mutator: M) -> Self {
+        self.alterers.push(Box::new(mutator.alterer()));
+        self
+    }
+
+    pub fn mutators(mut self, mutators: Vec<Box<dyn Mutate<C>>>) -> Self {
+        let mutate_actions = mutators
+            .into_iter()
+            .map(|m| Box::new(AlterAction::Mutate(m.name(), m.rate(), m)) as Box<dyn Alter<C>>)
+            .collect::<Vec<_>>();
+
+        self.alterers.extend(mutate_actions);
+        self
+    }
+
+    pub fn crossover<R: Crossover<C> + 'static>(mut self, crossover: R) -> Self {
+        self.alterers.push(Box::new(crossover.alterer()));
+        self
+    }
+
+    pub fn crossovers(mut self, crossovers: Vec<Box<dyn Crossover<C>>>) -> Self {
+        let crossover_actions = crossovers
+            .into_iter()
+            .map(|c| Box::new(AlterAction::Crossover(c.name(), c.rate(), c)) as Box<dyn Alter<C>>)
+            .collect::<Vec<_>>();
+
+        self.alterers.extend(crossover_actions);
+        self
+    }
+
     /// Set the optimization goal of the genetic engine to minimize the fitness function.
     pub fn minimizing(mut self) -> Self {
         self.objective = Objective::Single(Optimize::Minimize);
@@ -313,8 +343,8 @@ where
             return;
         }
 
-        let crossover = Box::new(UniformCrossover::new(0.5).into_alter()) as Box<dyn Alter<C>>;
-        let mutator = Box::new(UniformMutator::new(0.1).into_alter()) as Box<dyn Alter<C>>;
+        let crossover = Box::new(UniformCrossover::new(0.5).alterer()) as Box<dyn Alter<C>>;
+        let mutator = Box::new(UniformMutator::new(0.1).alterer()) as Box<dyn Alter<C>>;
 
         self.alterers.push(crossover);
         self.alterers.push(mutator);
