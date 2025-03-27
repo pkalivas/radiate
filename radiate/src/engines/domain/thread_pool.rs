@@ -1,8 +1,64 @@
+use std::sync::Condvar;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::{
     sync::{Arc, Mutex, mpsc},
     thread,
 };
 
+#[derive(Clone)]
+pub struct WaitGroup {
+    inner: Arc<Inner>,
+}
+
+struct Inner {
+    counter: AtomicUsize,
+    lock: Mutex<()>,
+    cvar: Condvar,
+}
+
+pub struct WaitGuard {
+    wg: WaitGroup,
+}
+
+impl Drop for WaitGuard {
+    fn drop(&mut self) {
+        if self.wg.inner.counter.fetch_sub(1, Ordering::AcqRel) == 1 {
+            let _guard = self.wg.inner.lock.lock().unwrap();
+            self.wg.inner.cvar.notify_all();
+        }
+    }
+}
+
+impl WaitGroup {
+    pub fn new() -> Self {
+        Self {
+            inner: Arc::new(Inner {
+                counter: AtomicUsize::new(0),
+                lock: Mutex::new(()),
+                cvar: Condvar::new(),
+            }),
+        }
+    }
+
+    /// Adds one to the counter and returns a scoped guard that will decrement when dropped.
+    pub fn guard(&self) -> WaitGuard {
+        self.inner.counter.fetch_add(1, Ordering::AcqRel);
+        WaitGuard { wg: self.clone() }
+    }
+
+    /// Waits until the counter reaches zero.
+    pub fn wait(&self) {
+        if self.inner.counter.load(Ordering::Acquire) == 0 {
+            return;
+        }
+
+        let lock = self.inner.lock.lock().unwrap();
+        let _unused = self
+            .inner
+            .cvar
+            .wait_while(lock, |_| self.inner.counter.load(Ordering::Acquire) != 0);
+    }
+}
 /// `WorkResult` is a simple wrapper around a `Receiver` that allows the user to get
 /// the result of a job that was executed in the thread pool. It kinda acts like
 /// a `Future` in a synchronous way.

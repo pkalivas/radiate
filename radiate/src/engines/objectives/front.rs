@@ -11,7 +11,7 @@ where
     T: PartialEq + Clone + AsRef<[f32]>,
 {
     values: Vec<Arc<T>>,
-    ord: Arc<dyn Fn(&T, &T) -> Ordering>,
+    ord: Arc<dyn Fn(&T, &T) -> Ordering + Send + Sync>,
     range: Range<usize>,
     objective: Objective,
 }
@@ -22,7 +22,7 @@ where
 {
     pub fn new<F>(range: Range<usize>, objective: Objective, comp: F) -> Self
     where
-        F: Fn(&T, &T) -> Ordering + 'static,
+        F: Fn(&T, &T) -> Ordering + Send + Sync + 'static,
     {
         Front {
             values: Vec::new(),
@@ -57,7 +57,6 @@ where
     pub fn add(&mut self, value: &T) -> bool {
         let mut to_remove = Vec::new();
         let mut is_dominated = false;
-        let mut remove_duplicates = false;
 
         for existing_val in self.values.iter() {
             if (self.ord)(value, existing_val) == Ordering::Greater {
@@ -66,13 +65,8 @@ where
                 || (*(*existing_val)).as_ref() == value.as_ref()
             {
                 is_dominated = true;
-                remove_duplicates = true;
                 break;
             }
-        }
-
-        if remove_duplicates {
-            self.values.retain(|x| !to_remove.contains(x));
         }
 
         if !is_dominated {

@@ -1,15 +1,16 @@
 use super::codexes::Codex;
 use super::context::SharedEngineContext;
-use super::thread_pool::ThreadPool;
+use super::thread_pool::{ThreadPool, WaitGroup};
 use super::{
-    Alter, Audit, Distance, EngineContext, GeneticEngineParams, MetricSet, Phenotype, Problem,
-    ReplacementStrategy, Species, population, random_provider, speciate,
+    Alter, Audit, Distance, EngineContext, GeneticEngineParams, MetricSet, Problem,
+    ReplacementStrategy, Species, random_provider, speciate,
 };
 use crate::engines::builder::GeneticEngineBuilder;
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
 use crate::objectives::Objective;
 use crate::{Chromosome, Metric, Select, Valid, metric_names};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 /// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
@@ -182,6 +183,52 @@ where
         objective.sort(&mut handle.population_lock());
     }
 
+    // let objective = self.objective();
+    // let thread_pool = self.thread_pool();
+    // let problem = self.problem();
+
+    // let timer = Timer::new();
+
+    // let count = AtomicUsize::new(0);
+    // let wg = WaitGroup::new();
+    // let population_len = ctx.population_len();
+
+    // for idx in 0..population_len {
+    //     let geno = {
+    //         let mut pop = ctx.population_lock();
+    //         let individual = &mut pop[idx];
+
+    //         if individual.score().is_some() {
+    //             continue;
+    //         }
+
+    //         individual.take_genotype()
+    //     };
+
+    //     let problem = Arc::clone(&problem);
+    //     let population = Arc::clone(&ctx.population);
+    //     let guard = wg.guard(); // auto-decrements when thread finishes
+
+    //     count.fetch_add(1, Ordering::Relaxed);
+
+    //     thread_pool.submit(move || {
+    //         let score = problem.eval(&geno);
+    //         let mut pop = population.lock().unwrap();
+    //         pop[idx].set_score(Some(score));
+    //         pop[idx].set_genotype(geno);
+    //         drop(guard); // redundant, but shows intention
+    //     });
+    // }
+
+    // wg.wait();
+
+    // ctx.upsert_operation(
+    //     metric_names::EVALUATION,
+    //     count.load(Ordering::Relaxed) as f32,
+    //     timer,
+    // );
+    // objective.sort(&mut ctx.population_lock());
+
     /// Speciates the population into species based on the genetic distance between individuals.
     fn speciate(&self, ctx: &mut SharedEngineContext<C, T>) {
         let distance = self.distance();
@@ -204,20 +251,24 @@ where
                     distances.push(dist);
 
                     if dist < distance.threshold() {
-                        ctx.set_species_id(i, species.id());
+                        // ctx.set_species_id(i, species.id());
+                        population[i].set_species_id(Some(species.id()));
                         found = true;
                         break;
                     }
                 }
 
                 if !found {
-                    let phenotype = ctx.phenotype(i);
+                    let phenotype = &population[i];
                     let genotype = phenotype.genotype().clone();
                     let score = phenotype.score().unwrap();
                     let new_species = Species::new(genotype, score.clone(), ctx.index());
 
-                    ctx.set_species_id(i, new_species.id());
-                    ctx.add_species(new_species);
+                    population[i].set_species_id(Some(new_species.id()));
+                    species.push(new_species);
+
+                    // ctx.set_species_id(i, new_species.id());
+                    // ctx.add_species(new_species);
                 }
             }
 
@@ -284,11 +335,12 @@ where
             objective.sort(&mut offspring);
 
             alters.iter().for_each(|alterer| {
+                let mut metric_set = ctx.metrics_lock();
                 alterer
                     .alter(&mut offspring, ctx.index())
                     .into_iter()
                     .for_each(|metric| {
-                        ctx.upsert_metric(metric);
+                        metric_set.upsert(metric);
                     });
             });
 
@@ -311,11 +363,12 @@ where
                 objective.sort(&mut selected);
 
                 alters.iter().for_each(|alterer| {
+                    let mut metric_set = ctx.metrics_lock();
                     alterer
                         .alter(&mut selected, ctx.index())
                         .into_iter()
                         .for_each(|metric| {
-                            ctx.upsert_metric(metric);
+                            metric_set.upsert(metric);
                         });
                 });
 
@@ -391,16 +444,10 @@ where
         survivors: Population<C>,
         offspring: Population<C>,
     ) {
-        let new_population = survivors
+        (*handle.population_lock()) = survivors
             .into_iter()
             .chain(offspring)
             .collect::<Population<C>>();
-        let mut population = handle.population_lock();
-        (*population) = new_population;
-        // handle.population = survivors
-        //     .into_iter()
-        //     .chain(offspring)
-        //     .collect::<Population<C>>();
     }
 
     /// Audits the current state of the genetic algorithm, updating the best individual found so far
@@ -427,13 +474,13 @@ where
             objective.sort(&mut population);
         }
 
-        if let Some(best_score) = population[0].score().cloned() {
+        if let Some(best_score) = population[0].score() {
             let current_score = ctx
                 .score
                 .lock()
                 .unwrap()
                 .as_ref()
-                .map_or(true, |current| objective.is_better(&best_score, current));
+                .map_or(true, |current| objective.is_better(best_score, current));
             if current_score {
                 ctx.update_score(best_score.clone());
                 ctx.update_best(problem.decode(population[0].genotype()));
@@ -462,16 +509,6 @@ where
 
             let count = ctx.front().update_front(new_individuals.as_slice());
             ctx.upsert_operation(metric_names::FRONT, count as f32, timer);
-
-            // let new_individuals = output
-            //     .population
-            //     .iter()
-            //     .filter(|pheno| pheno.generation == output.index)
-            //     .collect::<Vec<&Phenotype<C>>>();
-
-            // let count = output.front.update_front(new_individuals.as_slice());
-
-            // output.upsert_operation(metric_names::FRONT, count as f32, timer);
         }
     }
 

@@ -19,7 +19,7 @@ where
     pub timer: Timer,
     pub metrics: MetricSet,
     pub score: Option<Score>,
-    pub front: Front<Phenotype<C>>,
+    pub front: Arc<Mutex<Front<Phenotype<C>>>>,
     pub species: Vec<Species<C>>,
 }
 
@@ -42,6 +42,10 @@ where
 
     pub fn timer(&self) -> Timer {
         self.timer.clone()
+    }
+
+    pub fn front(&self) -> MutexGuard<'_, Front<Phenotype<C>>> {
+        self.front.lock().expect("Failed to lock front")
     }
 }
 
@@ -110,10 +114,10 @@ where
             Ok(species) => species.into_inner().unwrap(),
             Err(species) => species.lock().unwrap().clone(),
         };
-        let front = match Arc::try_unwrap(ctx.front) {
-            Ok(front) => front.into_inner().unwrap(),
-            Err(front) => front.lock().unwrap().clone(),
-        };
+        // let front = match Arc::try_unwrap(ctx.front) {
+        //     Ok(front) => front.into_inner().unwrap(),
+        //     Err(front) => front.lock().unwrap().clone(),
+        // };
 
         EngineContext {
             population,
@@ -122,7 +126,7 @@ where
             timer: ctx.timer.lock().unwrap().clone(),
             metrics,
             score: ctx.score.lock().unwrap().clone(),
-            front,
+            front: Arc::clone(&ctx.front),
             species,
         }
     }
@@ -264,7 +268,6 @@ where
         let timer = Arc::new(Mutex::new(ctx.timer));
         let metrics = Arc::new(Mutex::new(ctx.metrics));
         let score = Arc::new(Mutex::new(ctx.score));
-        let front = Arc::new(Mutex::new(ctx.front));
         let species = Arc::new(Mutex::new(ctx.species));
 
         SharedEngineContext {
@@ -274,7 +277,7 @@ where
             timer,
             metrics,
             score,
-            front,
+            front: ctx.front,
             species,
         }
     }

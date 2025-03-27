@@ -28,8 +28,10 @@ fn main() {
         ctx.index() > 1000
     });
 
+    println!("Seconds: {:?}", result.seconds());
+
     println!("{:?}", result.metrics);
-    plot_front(&result.front);
+    plot_front(&result.front());
 }
 
 fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {
