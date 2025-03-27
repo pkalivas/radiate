@@ -80,6 +80,22 @@ impl<C: Chromosome> Population<C> {
             .map(|s| s.as_ref())
             .collect::<Vec<_>>()
     }
+
+    pub fn take<F: Fn(&Phenotype<C>) -> bool>(&mut self, filter: F) -> Self {
+        let mut new_population = Vec::new();
+        let mut old_population = Vec::new();
+
+        for individual in self.individuals.drain(..) {
+            if filter(&individual) {
+                new_population.push(individual);
+            } else {
+                old_population.push(individual);
+            }
+        }
+
+        self.individuals = old_population;
+        Population::new(new_population)
+    }
 }
 
 impl<C: Chromosome> AsRef<[Phenotype<C>]> for Population<C> {

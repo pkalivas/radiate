@@ -1,5 +1,7 @@
 use std::fmt::Debug;
 use std::hash::Hash;
+use std::iter::Sum;
+use std::ops::{Add, Div, Mul, Sub};
 
 /// A score is a value that can be used to compare the fitness of two individuals and represents
 /// the 'fitness' of an individual within the genetic algorithm.
@@ -9,7 +11,7 @@ use std::hash::Hash;
 ///
 /// Note: The reason it is a Vec is for multi-objective optimization problems. This allows for multiple
 /// fitness values to be returned from the fitness function.
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Default)]
 pub struct Score {
     pub values: Vec<f32>,
 }
@@ -178,5 +180,172 @@ impl From<Vec<&str>> for Score {
                 .map(|v| v.parse::<f32>().unwrap())
                 .collect(),
         )
+    }
+}
+
+impl Add for Score {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        if self.values.is_empty() {
+            return other;
+        }
+        let values = self
+            .values
+            .iter()
+            .zip(other.values.iter())
+            .map(|(a, b)| a + b)
+            .collect();
+
+        Score { values }
+    }
+}
+
+impl Add<f32> for Score {
+    type Output = Self;
+
+    fn add(self, other: f32) -> Self {
+        if self.values.is_empty() {
+            return Score::from_f32(other);
+        }
+
+        let values = self.values.iter().map(|a| a + other).collect();
+
+        Score { values }
+    }
+}
+
+impl Sub for Score {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self {
+        if self.values.is_empty() {
+            return other;
+        }
+
+        let values = self
+            .values
+            .iter()
+            .zip(other.values.iter())
+            .map(|(a, b)| a - b)
+            .collect();
+
+        Score { values }
+    }
+}
+
+impl Sub<f32> for Score {
+    type Output = Self;
+
+    fn sub(self, other: f32) -> Self {
+        if self.values.is_empty() {
+            return Score::from_f32(-other);
+        }
+
+        let values = self.values.iter().map(|a| a - other).collect();
+
+        Score { values }
+    }
+}
+
+impl Mul for Score {
+    type Output = Self;
+
+    fn mul(self, other: Self) -> Self {
+        if self.values.is_empty() {
+            return other;
+        }
+
+        let values = self
+            .values
+            .iter()
+            .zip(other.values.iter())
+            .map(|(a, b)| a * b)
+            .collect();
+
+        Score { values }
+    }
+}
+
+impl Mul<f32> for Score {
+    type Output = Self;
+
+    fn mul(self, other: f32) -> Self {
+        if self.values.is_empty() {
+            return Score::from_f32(other);
+        }
+
+        let values = self.values.iter().map(|a| a * other).collect();
+
+        Score { values }
+    }
+}
+
+impl Div for Score {
+    type Output = Self;
+
+    fn div(self, other: Self) -> Self {
+        if self.values.is_empty() {
+            return other;
+        }
+
+        let values = self
+            .values
+            .iter()
+            .zip(other.values.iter())
+            .map(|(a, b)| a / b)
+            .collect();
+
+        Score { values }
+    }
+}
+
+impl Div<f32> for Score {
+    type Output = Self;
+
+    fn div(self, other: f32) -> Self {
+        if self.values.is_empty() {
+            return Score::from_f32(other);
+        }
+
+        let values = self.values.iter().map(|a| a / other).collect();
+
+        Score { values }
+    }
+}
+
+impl Sum for Score {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        let mut values = vec![];
+
+        for score in iter {
+            for (i, value) in score.values.iter().enumerate() {
+                if values.len() <= i {
+                    values.push(*value);
+                } else {
+                    values[i] += value;
+                }
+            }
+        }
+
+        Score { values }
+    }
+}
+
+impl<'a> Sum<&'a Score> for Score {
+    fn sum<I: Iterator<Item = &'a Score>>(iter: I) -> Self {
+        let mut values = vec![];
+
+        for score in iter {
+            for (i, value) in score.values.iter().enumerate() {
+                if values.len() <= i {
+                    values.push(*value);
+                } else {
+                    values[i] += value;
+                }
+            }
+        }
+
+        Score { values }
     }
 }

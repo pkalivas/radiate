@@ -21,6 +21,7 @@ pub struct Phenotype<C: Chromosome> {
     pub genotype: Option<Genotype<C>>,
     pub score: Option<Score>,
     pub generation: usize,
+    pub species_id: Option<u64>,
 }
 
 impl<C: Chromosome> Phenotype<C> {
@@ -37,12 +38,20 @@ impl<C: Chromosome> Phenotype<C> {
         self.genotype.take().unwrap()
     }
 
+    pub fn species_id(&self) -> Option<u64> {
+        self.species_id
+    }
+
     pub fn set_genotype(&mut self, genotype: Genotype<C>) {
         self.genotype = Some(genotype);
     }
 
     pub fn set_score(&mut self, score: Option<Score>) {
         self.score = score;
+    }
+
+    pub fn set_species_id(&mut self, species_id: Option<u64>) {
+        self.species_id = species_id;
     }
 
     pub fn score(&self) -> Option<&Score> {
@@ -94,12 +103,13 @@ impl<C: Chromosome> PartialOrd for Phenotype<C> {
     }
 }
 
-impl<C: Chromosome> From<(Genotype<C>, usize)> for Phenotype<C> {
-    fn from((genotype, generation): (Genotype<C>, usize)) -> Self {
+impl<C: Chromosome> From<(Genotype<C>, usize, Option<u64>)> for Phenotype<C> {
+    fn from((genotype, generation, species_id): (Genotype<C>, usize, Option<u64>)) -> Self {
         Phenotype {
             genotype: Some(genotype),
             score: None,
             generation,
+            species_id,
         }
     }
 }
@@ -113,6 +123,7 @@ impl<C: Chromosome> From<(Vec<C>, usize)> for Phenotype<C> {
             genotype: Some(Genotype::new(chromosomes)),
             score: None,
             generation,
+            species_id: None,
         }
     }
 }

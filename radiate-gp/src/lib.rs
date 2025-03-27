@@ -4,7 +4,7 @@ pub mod regression;
 
 pub use collections::*;
 pub use ops::{Op, OperationMutator, activation_ops, all_ops, math_ops};
-pub use regression::{Accuracy, AccuracyResult, DataSet, Loss, Regression};
+pub use regression::{Accuracy, AccuracyResult, DataSet, Loss, Regression, RegressionProblem};
 
 use std::fmt::Display;
 use std::ops::Deref;

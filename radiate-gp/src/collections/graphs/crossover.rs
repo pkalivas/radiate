@@ -79,7 +79,8 @@ where
         }
 
         if num_crosses > 0 {
-            population[indexes[1]] = Phenotype::from((new_geno_one, generation));
+            population[indexes[1]] =
+                Phenotype::from((new_geno_one, generation, parent_one.species_id()));
         }
 
         num_crosses.into()

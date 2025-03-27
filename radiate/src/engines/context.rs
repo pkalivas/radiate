@@ -61,6 +61,30 @@ where
     ) {
         self.metrics.upsert_operations(name, value, time);
     }
+
+    pub fn set_species_id(&mut self, index: usize, species_id: u64) {
+        self.population[index].set_species_id(Some(species_id));
+    }
+
+    pub fn get_species(&self, idx: usize) -> &Species<C> {
+        &self.species[idx]
+    }
+
+    pub fn add_species(&mut self, species: Species<C>) {
+        self.species.push(species);
+    }
+
+    pub fn phenotype(&self, index: usize) -> &Phenotype<C> {
+        &self.population[index]
+    }
+
+    pub fn phenotype_mut(&mut self, index: usize) -> &mut Phenotype<C> {
+        &mut self.population[index]
+    }
+
+    pub fn species(&self) -> &Vec<Species<C>> {
+        &self.species
+    }
 }
 
 impl<C, T> Clone for EngineContext<C, T>
@@ -93,8 +117,16 @@ where
         write!(f, "  index: {:?},\n", self.index)?;
         write!(f, "  size: {:?},\n", self.population.len())?;
         write!(f, "  duration: {:?},\n", self.timer.duration())?;
-        write!(f, "  species: {:?},\n", self.species)?;
         write!(f, "  metrics: {:?},\n", self.metrics)?;
+
+        if !self.species.is_empty() {
+            write!(f, "  species: [\n")?;
+            for species in &self.species {
+                write!(f, "    {:?},\n", species)?;
+            }
+            write!(f, "  ],\n")?;
+        }
+
         write!(f, "}}")
     }
 }

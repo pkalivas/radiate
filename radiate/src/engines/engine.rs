@@ -3,7 +3,7 @@ use super::context::EngineContext;
 use super::thread_pool::ThreadPool;
 use super::{
     Alter, Distance, GeneticEngineParams, MetricSet, Phenotype, Problem, ReplacementStrategy,
-    Score, Species, random_provider, species,
+    Species, random_provider, speciate,
 };
 use crate::engines::builder::GeneticEngineBuilder;
 use crate::engines::domain::timer::Timer;
@@ -113,7 +113,6 @@ where
 
         loop {
             self.evaluate(&mut ctx);
-
             self.speciate(&mut ctx);
 
             let survivors = self.select_survivors(&mut ctx);
@@ -128,85 +127,6 @@ where
 
             if limit(&ctx) {
                 break self.stop(&mut ctx);
-            }
-        }
-    }
-
-    fn speciate(&self, handle: &mut EngineContext<C, T>) {
-        let distance = self.params.distance();
-        if let Some(distance) = distance {
-            let population = &handle.population;
-
-            let mut to_remove = Vec::new();
-            for (idx, species) in handle.species.iter_mut().enumerate() {
-                if species.members.is_empty() {
-                    to_remove.push(idx);
-                    continue;
-                }
-
-                let random_index = random_provider::choose(&species.members);
-                species.mascot = population[*random_index].genotype().clone();
-                species.clear_members();
-            }
-
-            for idx in to_remove.iter().rev() {
-                handle.species.remove(*idx);
-            }
-
-            for i in 0..population.len() {
-                let phenotype = &population[i];
-                let genotype = phenotype.genotype();
-
-                let mut found = false;
-                let species_count = handle.species.len();
-                for j in 0..species_count {
-                    let mascot = &handle.species[j].mascot;
-                    let score = distance.distance(genotype, mascot);
-
-                    if score < 0.1 {
-                        handle.species[j].add_member(i);
-                        found = true;
-                        break;
-                    }
-                }
-
-                if !found {
-                    let score = phenotype.score().unwrap();
-                    let mut species = Species::new(genotype.clone(), score.clone());
-                    species.add_member(i);
-                    handle.species.push(species);
-                }
-            }
-
-            handle.species.retain(|species| !species.members.is_empty());
-
-            let species_count = handle.species.len();
-            let mut total_species_score = 0.0;
-            for i in 0..species_count {
-                let species = &handle.species[i];
-                let members = &species.members;
-
-                let mut total_score = 0.0;
-                for member in members {
-                    total_score +=
-                        population[*member].score().unwrap().as_f32() / members.len() as f32;
-                }
-
-                total_species_score += total_score;
-            }
-
-            for i in 0..species_count {
-                let species = &mut handle.species[i];
-                let members = &species.members;
-
-                let mut total_score = 0.0;
-                for member in members {
-                    total_score +=
-                        population[*member].score().unwrap().as_f32() / members.len() as f32;
-                }
-
-                let species_score = total_score / total_species_score;
-                species.score = Score::from_f32(species_score);
             }
         }
     }
@@ -251,6 +171,46 @@ where
         handle.upsert_operation(metric_names::EVALUATION, count, timer);
 
         objective.sort(&mut handle.population);
+    }
+
+    fn speciate(&self, ctx: &mut EngineContext<C, T>) {
+        let distance = self.distance();
+        let objective = self.objective();
+
+        if let Some(distance) = distance {
+            let timer = Timer::new();
+
+            speciate::generate_mascots(&mut ctx.population, &mut ctx.species);
+
+            for i in 0..ctx.population.len() {
+                let mut found = false;
+                for j in 0..ctx.species.len() {
+                    let species = ctx.get_species(j);
+                    let dist = distance.distance(ctx.phenotype(i).genotype(), species.mascot());
+
+                    if dist < distance.threshold() {
+                        ctx.set_species_id(i, species.id());
+                        found = true;
+                        break;
+                    }
+                }
+
+                if !found {
+                    let phenotype = ctx.phenotype(i);
+                    let genotype = phenotype.genotype().clone();
+                    let score = phenotype.score().unwrap();
+                    let new_species = Species::new(genotype, score.clone(), ctx.index);
+
+                    ctx.set_species_id(i, new_species.id());
+                    ctx.add_species(new_species);
+                }
+            }
+
+            speciate::fitness_share(&mut ctx.population, &mut ctx.species, objective);
+
+            let species_count = ctx.species().len();
+            ctx.upsert_operation(metric_names::SPECIATION, species_count as f32, timer);
+        }
     }
 
     /// the `select_survivors` method selects the individuals that will survive
@@ -300,22 +260,47 @@ where
         let objective = self.objective();
         let alters = self.alters();
 
-        let timer = Timer::new();
-        let mut offspring = selector.select(&ctx.population, objective, count);
+        if ctx.species.is_empty() || random_provider::random::<f32>() < 0.01 {
+            let timer = Timer::new();
+            let mut offspring = selector.select(&ctx.population, objective, count);
 
-        ctx.upsert_operation(selector.name(), count as f32, timer);
+            ctx.upsert_operation(selector.name(), count as f32, timer);
+            objective.sort(&mut offspring);
 
-        objective.sort(&mut offspring);
-
-        for alterer in alters {
-            let alter_result = alterer.alter(&mut offspring, ctx.index);
-
-            for metric in alter_result {
-                ctx.metrics.upsert(metric);
+            for alterer in alters {
+                for metric in alterer.alter(&mut offspring, ctx.index) {
+                    ctx.metrics.upsert(metric);
+                }
             }
-        }
 
-        offspring
+            offspring
+        } else {
+            let mut offspring = Vec::new();
+            let species_count = ctx.species.len();
+            for i in 0..species_count {
+                let species = &ctx.species[i];
+                let population = &mut ctx.population;
+                let timer = Timer::new();
+
+                let count = (species.score().as_f32() * count as f32).round() as usize;
+                let members = population.take(|pheno| pheno.species_id() == Some(species.id()));
+
+                let mut selected = selector.select(&members, objective, count);
+
+                ctx.upsert_operation(selector.name(), count as f32, timer);
+                objective.sort(&mut selected);
+
+                for alterer in alters {
+                    for metric in alterer.alter(&mut selected, ctx.index) {
+                        ctx.metrics.upsert(metric);
+                    }
+                }
+
+                offspring.extend(selected);
+            }
+
+            offspring.into_iter().collect::<Population<C>>()
+        }
     }
 
     /// Filters the population to remove individuals that are too old or invalid. The maximum age
@@ -331,11 +316,11 @@ where
     /// is created using the `encode` method of the `Problem` trait, while if the `FilterStrategy`
     /// is `FilterStrategy::PopulationSample`, then a new individual is created by randomly selecting
     /// an individual from the population.
-    fn filter(&self, context: &mut EngineContext<C, T>) {
+    fn filter(&self, ctx: &mut EngineContext<C, T>) {
         let max_age = self.max_age();
 
-        let generation = context.index;
-        let population = &mut context.population;
+        let generation = ctx.index;
+        let population = &mut ctx.population;
 
         let timer = Timer::new();
         let mut age_count = 0_f32;
@@ -361,9 +346,15 @@ where
             }
         }
 
+        let before_species = ctx.species().len();
+        ctx.species
+            .retain(|species| species.age(generation) < max_age);
+        let species_count = (before_species - ctx.species().len()) as f32;
+
         let duration = timer.duration();
-        context.upsert_operation(metric_names::AGE_FILTER, age_count, duration);
-        context.upsert_operation(metric_names::INVALID_FILTER, invalid_count, duration);
+        ctx.upsert_operation(metric_names::SPECIES_FILTER, species_count, duration);
+        ctx.upsert_operation(metric_names::AGE_FILTER, age_count, duration);
+        ctx.upsert_operation(metric_names::INVALID_FILTER, invalid_count, duration);
     }
 
     /// Recombines the survivors and offspring populations to create the next generation. The survivors

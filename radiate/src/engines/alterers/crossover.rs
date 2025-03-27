@@ -38,7 +38,7 @@ pub trait Crossover<C: Chromosome> {
         let mut result = AlterResult::default();
 
         for i in 0..population.len() {
-            if random_provider::random::<f32>() < rate {
+            if random_provider::random::<f32>() < rate && population.len() > 3 {
                 let parent_indexes = indexes::individual_indexes(i, population.len(), 2);
                 let cross_result = self.cross(population, &parent_indexes, generation, rate);
                 result.merge(cross_result);
@@ -73,8 +73,10 @@ pub trait Crossover<C: Chromosome> {
         let cross_result = self.cross_chromosomes(chrom_one, chrom_two, rate);
 
         if cross_result.count() > 0 {
-            population[index_one] = Phenotype::from((geno_one, generation));
-            population[index_two] = Phenotype::from((geno_two, generation));
+            let one_species_id = population[index_one].species_id();
+            let two_species_id = population[index_two].species_id();
+            population[index_one] = Phenotype::from((geno_one, generation, one_species_id));
+            population[index_two] = Phenotype::from((geno_two, generation, two_species_id));
         }
 
         result.merge(cross_result);

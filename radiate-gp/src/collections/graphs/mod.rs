@@ -16,7 +16,7 @@ pub use aggregate::GraphAggregate;
 pub use chromosome::GraphChromosome;
 pub use codex::GraphCodex;
 pub use crossover::GraphCrossover;
-pub use distance::GraphDistance;
+pub use distance::NeatDistance;
 pub use eval::GraphEvaluator;
 pub use graph::Graph;
 pub use iter::GraphIterator;

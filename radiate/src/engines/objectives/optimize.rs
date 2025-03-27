@@ -7,6 +7,33 @@ pub enum Objective {
 }
 
 impl Objective {
+    pub fn cmp<T>(&self, a: &T, b: &T) -> std::cmp::Ordering
+    where
+        T: PartialOrd,
+    {
+        match self {
+            Objective::Single(opt) => {
+                if opt.is_better(a, b) {
+                    std::cmp::Ordering::Less
+                } else if opt.is_better(b, a) {
+                    std::cmp::Ordering::Greater
+                } else {
+                    std::cmp::Ordering::Equal
+                }
+            }
+            Objective::Multi(opts) => {
+                for &opt in opts {
+                    if opt.is_better(a, b) {
+                        return std::cmp::Ordering::Less;
+                    } else if opt.is_better(b, a) {
+                        return std::cmp::Ordering::Greater;
+                    }
+                }
+                std::cmp::Ordering::Equal
+            }
+        }
+    }
+
     pub fn sort<C: Chromosome>(&self, population: &mut Population<C>) {
         match self {
             Objective::Single(opt) => opt.sort(population),
