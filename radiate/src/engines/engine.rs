@@ -1,7 +1,9 @@
 use super::codexes::Codex;
 use super::context::EngineContext;
 use super::thread_pool::ThreadPool;
-use super::{Alter, GeneticEngineParams, MetricSet, Phenotype, Problem, ReplacementStrategy};
+use super::{
+    Alter, GeneticEngineParams, Genotype, MetricSet, Phenotype, Problem, ReplacementStrategy,
+};
 use crate::engines::builder::GeneticEngineBuilder;
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
@@ -97,6 +99,12 @@ where
     /// to create a `GeneticEngineParams` instance.
     pub fn from_problem(problem: impl Problem<C, T> + 'static) -> GeneticEngineBuilder<C, T> {
         GeneticEngineBuilder::new().problem(problem)
+    }
+
+    pub fn from_encoder<E: Fn() -> Genotype<C> + 'static>(
+        encoder: E,
+    ) -> GeneticEngineBuilder<C, Genotype<C>> {
+        GeneticEngineBuilder::from(encoder)
     }
 
     /// Executes the genetic algorithm. The algorithm continues until a specified
