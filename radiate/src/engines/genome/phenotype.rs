@@ -80,6 +80,12 @@ impl<C: Chromosome> AsRef<[f32]> for Phenotype<C> {
     }
 }
 
+impl<C: Chromosome> AsRef<Phenotype<C>> for &Phenotype<C> {
+    fn as_ref(&self) -> &Phenotype<C> {
+        self
+    }
+}
+
 /// Implement the `PartialOrd` trait for the `Phenotype`. This allows the `Phenotype` to be compared
 /// with other `Phenotype` instances. The comparison is based on the `Score` (fitness) of the `Phenotype`.
 impl<C: Chromosome> PartialOrd for Phenotype<C> {

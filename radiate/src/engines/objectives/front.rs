@@ -36,10 +36,13 @@ where
         &self.values
     }
 
-    pub fn update_front(&mut self, values: &[T]) -> usize {
+    pub fn update_front<V>(&mut self, values: &[V]) -> usize
+    where
+        V: AsRef<T>,
+    {
         let mut count = 0;
         for value in values {
-            if self.add(value) {
+            if self.add(value.as_ref()) {
                 count += 1;
             }
         }

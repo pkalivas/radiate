@@ -1,7 +1,7 @@
 use super::codexes::Codex;
 use super::context::EngineContext;
 use super::thread_pool::ThreadPool;
-use super::{Alter, GeneticEngineParams, MetricSet, Problem, ReplacementStrategy};
+use super::{Alter, GeneticEngineParams, MetricSet, Phenotype, Problem, ReplacementStrategy};
 use crate::engines::builder::GeneticEngineBuilder;
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
@@ -337,9 +337,16 @@ where
 
         if let Objective::Multi(_) = objective {
             let timer = Timer::new();
-            let added_count = output.front.update_front(output.population.as_ref());
 
-            output.upsert_operation(metric_names::FRONT, added_count as f32, timer);
+            let new_individuals = output
+                .population
+                .iter()
+                .filter(|pheno| pheno.generation == output.index)
+                .collect::<Vec<&Phenotype<C>>>();
+
+            let count = output.front.update_front(new_individuals.as_slice());
+
+            output.upsert_operation(metric_names::FRONT, count as f32, timer);
         }
     }
 
