@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use radiate::*;
 use radiate_gp::{regression::RegressionProblem, *};
 
@@ -15,19 +17,17 @@ fn main() {
     ];
 
     let graph_codex = GraphCodex::directed(1, 1, values);
-    let regression = Regression::new(get_dataset(), Loss::MSE);
 
     let problem = RegressionProblem::new(get_dataset(), Loss::MSE, graph_codex);
 
     let engine = GeneticEngine::from_problem(problem)
         .minimizing()
-        .num_threads(10)
+        // .num_threads(10)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
             GraphMutator::new(0.1, 0.1).allow_recurrent(false),
         ))
-        // .fitness_fn(move |genotype: Graph<Op<f32>>| regression.eval(&genotype))
         .build();
 
     let result = engine.run(|ctx| {
@@ -39,6 +39,21 @@ fn main() {
 }
 
 fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
+    let mut total_ids = Vec::new();
+    let mut unique_ids = HashSet::new();
+
+    for pheno in result.population.iter() {
+        for chromosome in pheno.genotype().iter() {
+            for node in chromosome.iter() {
+                total_ids.push(node.id());
+                unique_ids.insert(node.id());
+            }
+        }
+    }
+
+    println!("Total Nodes: {}", total_ids.len());
+    println!("Unique Nodes: {}", unique_ids.len());
+
     let mut evaluator = GraphEvaluator::new(&result.best);
 
     let data_set = get_dataset();

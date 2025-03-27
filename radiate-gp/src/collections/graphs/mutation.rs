@@ -104,11 +104,7 @@ where
                     }
 
                     trans.commit_with(Some(|graph: &Graph<T>| {
-                        if !self.allow_recurrent {
-                            return graph.iter().all(|node| !node.is_recurrent());
-                        }
-
-                        true
+                        self.allow_recurrent || !graph.iter().any(|node| node.is_recurrent())
                     }))
                 });
 
@@ -117,9 +113,9 @@ where
                         let metric = Metric::Value(INVALID_MUTATION, 1.into());
                         (0, metric).into()
                     }
-                    TransactionResult::Valid(_) => {
+                    TransactionResult::Valid(steps) => {
                         chromosome.set_nodes(graph.into_iter().collect());
-                        1.into()
+                        steps.len().into()
                     }
                 };
             }

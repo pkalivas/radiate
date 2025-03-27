@@ -2,8 +2,7 @@ use crate::NodeType;
 use crate::collections::GraphChromosome;
 use crate::node::Node;
 use radiate::engines::genome::*;
-use radiate::{AlterResult, Crossover, indexes, random_provider};
-use std::collections::HashMap;
+use radiate::{AlterResult, Crossover, random_provider};
 
 const NUM_PARENTS: usize = 2;
 
@@ -19,17 +18,28 @@ impl GraphCrossover {
             crossover_parent_node_rate,
         }
     }
+}
+
+impl<T> Crossover<GraphChromosome<T>> for GraphCrossover
+where
+    T: Clone + PartialEq + Default,
+{
+    fn rate(&self) -> f32 {
+        self.crossover_rate
+    }
 
     #[inline]
-    pub fn cross<T>(
+    fn cross(
         &self,
-        population: &Population<GraphChromosome<T>>,
+        population: &mut Population<GraphChromosome<T>>,
         indexes: &[usize],
         generation: usize,
-    ) -> Option<Phenotype<GraphChromosome<T>>>
-    where
-        T: Clone + PartialEq + Default,
-    {
+        _: f32,
+    ) -> AlterResult {
+        if population.len() <= NUM_PARENTS {
+            return 0.into();
+        }
+
         let parent_one = &population[indexes[0]];
         let parent_two = &population[indexes[1]];
 
@@ -41,7 +51,6 @@ impl GraphCrossover {
         let chromo_one = &geno_one[chromo_index];
         let chromo_two = &geno_two[chromo_index];
 
-        let mut new_chromo_one = chromo_one.clone();
         let mut num_crosses = 0;
 
         let edge_indies = (0..std::cmp::min(chromo_one.len(), chromo_two.len()))
@@ -49,65 +58,30 @@ impl GraphCrossover {
                 let node_one = chromo_one.get(*i);
                 let node_two = chromo_two.get(*i);
 
-                node_one.node_type() == NodeType::Edge && node_two.node_type() == NodeType::Edge
+                node_one.node_type() == NodeType::Edge
+                    && node_two.node_type() == NodeType::Edge
+                    && random_provider::random::<f32>() < self.crossover_parent_node_rate
             })
             .collect::<Vec<usize>>();
 
         if edge_indies.is_empty() {
-            return None;
+            return num_crosses.into();
         }
 
+        let mut new_geno_one = geno_one.clone();
+        let new_chromo_one = &mut new_geno_one[chromo_index];
         for i in edge_indies {
             let node_one = chromo_one.get(i);
             let node_two = chromo_two.get(i);
 
-            if random_provider::random::<f32>() < self.crossover_parent_node_rate {
-                new_chromo_one.set(node_one.index(), node_one.with_allele(node_two.allele()));
-                num_crosses += 1;
-            }
+            (*new_chromo_one.as_mut()[node_one.index()].value_mut()) = node_two.value().clone();
+            num_crosses += 1;
         }
 
         if num_crosses > 0 {
-            return Some(Phenotype::from((vec![new_chromo_one], generation)));
+            population[indexes[1]] = Phenotype::from((new_geno_one, generation));
         }
 
-        None
-    }
-}
-
-impl<T> Crossover<GraphChromosome<T>> for GraphCrossover
-where
-    T: Clone + PartialEq + Default,
-{
-    fn rate(&self) -> f32 {
-        self.crossover_rate
-    }
-    #[inline]
-    fn crossover(
-        &self,
-        population: &mut Population<GraphChromosome<T>>,
-        generation: usize,
-        rate: f32,
-    ) -> AlterResult {
-        let mut count = 0;
-        let mut new_phenotypes = HashMap::new();
-
-        for index in 0..population.len() {
-            let pop_len = population.len();
-            if random_provider::random::<f32>() < rate && pop_len > NUM_PARENTS {
-                let parent_indexes = indexes::individual_indexes(index, pop_len, NUM_PARENTS);
-
-                if let Some(phenotype) = self.cross(population, &parent_indexes, generation) {
-                    new_phenotypes.insert(index, phenotype);
-                    count += 1;
-                }
-            }
-        }
-
-        for (index, phenotype) in new_phenotypes.into_iter() {
-            population[index] = phenotype;
-        }
-
-        count.into()
+        num_crosses.into()
     }
 }

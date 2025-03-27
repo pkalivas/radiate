@@ -23,7 +23,10 @@ fn main() {
     let engine = GeneticEngine::from_codex(codex)
         .minimizing()
         .num_threads(10)
-        .alter(alters!(TreeCrossover::new(0.5), TreeMutator::new(0.03)))
+        .alter(alters!(
+            TreeCrossover::new(0.5),
+            OperationMutator::new(0.03, 0.02)
+        ))
         .fitness_fn(move |tree: Vec<Tree<Op<f32>>>| regression.eval(&tree))
         .build();
 

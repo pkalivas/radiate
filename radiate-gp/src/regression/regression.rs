@@ -96,7 +96,7 @@ impl Problem<GraphChromosome<Op<f32>>, Graph<Op<f32>>>
 
     fn eval(&self, individual: &Genotype<GraphChromosome<Op<f32>>>) -> Score {
         let chrome = individual.iter().next().unwrap();
-        let mut evaluator = GraphEvaluator::new(&chrome);
+        let mut evaluator = GraphEvaluator::new(chrome);
 
         self.loss
             .calculate(&self.data_set, &mut |input| evaluator.eval_mut(input))
