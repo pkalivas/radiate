@@ -174,60 +174,12 @@ where
             let mut pop = handle.population_lock();
             pop[idx].set_genotype(genotype);
             pop[idx].set_score(Some(score));
-            // handle.population[idx].set_score(Some(score));
-            // handle.population[idx].set_genotype(genotype);
         }
 
         handle.upsert_operation(metric_names::EVALUATION, count, timer);
 
         objective.sort(&mut handle.population_lock());
     }
-
-    // let objective = self.objective();
-    // let thread_pool = self.thread_pool();
-    // let problem = self.problem();
-
-    // let timer = Timer::new();
-
-    // let count = AtomicUsize::new(0);
-    // let wg = WaitGroup::new();
-    // let population_len = ctx.population_len();
-
-    // for idx in 0..population_len {
-    //     let geno = {
-    //         let mut pop = ctx.population_lock();
-    //         let individual = &mut pop[idx];
-
-    //         if individual.score().is_some() {
-    //             continue;
-    //         }
-
-    //         individual.take_genotype()
-    //     };
-
-    //     let problem = Arc::clone(&problem);
-    //     let population = Arc::clone(&ctx.population);
-    //     let guard = wg.guard(); // auto-decrements when thread finishes
-
-    //     count.fetch_add(1, Ordering::Relaxed);
-
-    //     thread_pool.submit(move || {
-    //         let score = problem.eval(&geno);
-    //         let mut pop = population.lock().unwrap();
-    //         pop[idx].set_score(Some(score));
-    //         pop[idx].set_genotype(geno);
-    //         drop(guard); // redundant, but shows intention
-    //     });
-    // }
-
-    // wg.wait();
-
-    // ctx.upsert_operation(
-    //     metric_names::EVALUATION,
-    //     count.load(Ordering::Relaxed) as f32,
-    //     timer,
-    // );
-    // objective.sort(&mut ctx.population_lock());
 
     /// Speciates the population into species based on the genetic distance between individuals.
     fn speciate(&self, ctx: &mut SharedEngineContext<C, T>) {
@@ -247,11 +199,10 @@ where
                 let mut found = false;
                 for j in 0..species.len() {
                     let species = &species[j];
-                    let dist = distance.distance(ctx.phenotype(i).genotype(), species.mascot());
+                    let dist = distance.distance(population[i].genotype(), species.mascot());
                     distances.push(dist);
 
                     if dist < distance.threshold() {
-                        // ctx.set_species_id(i, species.id());
                         population[i].set_species_id(Some(species.id()));
                         found = true;
                         break;
@@ -266,15 +217,12 @@ where
 
                     population[i].set_species_id(Some(new_species.id()));
                     species.push(new_species);
-
-                    // ctx.set_species_id(i, new_species.id());
-                    // ctx.add_species(new_species);
                 }
             }
 
             speciate::fitness_share(&mut population, &mut species, objective);
 
-            let species_count = ctx.species_lock().len();
+            let species_count = species.len() as f32;
             ctx.upsert_operation(metric_names::SPECIATION, species_count as f32, timer);
             ctx.upsert_distribution(metric_names::DISTANCE, &distances);
         }
