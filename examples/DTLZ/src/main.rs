@@ -6,6 +6,8 @@ const OBJECTIVES: usize = 3;
 const K: usize = VARIABLES - OBJECTIVES + 1;
 
 fn main() {
+    random_provider::set_seed(501);
+
     let codex = FloatCodex::new(1, VARIABLES, 0_f32..1_f32).with_bounds(-100.0..100.0);
 
     let engine = GeneticEngine::from_codex(codex)

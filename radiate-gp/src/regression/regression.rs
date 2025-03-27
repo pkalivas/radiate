@@ -1,5 +1,7 @@
+use radiate::{Chromosome, Codex, Genotype, Problem, Score};
+
 use super::{DataSet, Loss};
-use crate::{Eval, EvalMut, Graph, GraphEvaluator, Op, Tree};
+use crate::{Eval, EvalMut, Graph, GraphChromosome, GraphEvaluator, Op, Tree};
 
 pub struct Regression {
     data_set: DataSet,
@@ -24,6 +26,15 @@ impl Eval<Graph<Op<f32>>, f32> for Regression {
     }
 }
 
+impl Eval<GraphChromosome<Op<f32>>, f32> for Regression {
+    fn eval(&self, chromosome: &GraphChromosome<Op<f32>>) -> f32 {
+        let mut evaluator = GraphEvaluator::new(&chromosome);
+
+        self.loss
+            .calculate(&self.data_set, &mut |input| evaluator.eval_mut(input))
+    }
+}
+
 impl Eval<Tree<Op<f32>>, f32> for Regression {
     fn eval(&self, tree: &Tree<Op<f32>>) -> f32 {
         self.loss
@@ -38,55 +49,57 @@ impl Eval<Vec<Tree<Op<f32>>>, f32> for Regression {
     }
 }
 
-// use std::{marker::PhantomData, sync::Arc};
+use std::{marker::PhantomData, sync::Arc};
 
-// pub struct RegressionProblem<C, T, G>
-// where
-//     C: Chromosome,
-//     T: Clone,
-//     G: Codex<C, T>,
-// {
-//     data_set: DataSet,
-//     loss: Loss,
-//     codex: Arc<G>,
-//     _marker: PhantomData<C>,
-//     _marker2: PhantomData<T>,
-// }
+pub struct RegressionProblem<C, T>
+where
+    C: Chromosome,
+    T: Clone,
+{
+    data_set: DataSet,
+    loss: Loss,
+    codex: Arc<dyn Codex<C, T> + Send + Sync>,
+    _marker: PhantomData<C>,
+    _marker2: PhantomData<T>,
+}
 
-// impl<C, T, G> RegressionProblem<C, T, G>
-// where
-//     C: Chromosome,
-//     T: Clone,
-//     G: Codex<C, T>,
-// {
-//     pub fn new(data_set: DataSet, loss: Loss, codex: G) -> Self {
-//         RegressionProblem {
-//             data_set,
-//             loss,
-//             codex: Arc::new(codex),
-//             _marker: PhantomData,
-//             _marker2: PhantomData,
-//         }
-//     }
-// }
+impl<C, T> RegressionProblem<C, T>
+where
+    C: Chromosome,
+    T: Clone,
+{
+    pub fn new<G: Codex<C, T> + Send + Sync + 'static>(
+        data_set: DataSet,
+        loss: Loss,
+        codex: G,
+    ) -> Self {
+        RegressionProblem {
+            data_set,
+            loss,
+            codex: Arc::new(codex),
+            _marker: PhantomData,
+            _marker2: PhantomData,
+        }
+    }
+}
 
-// impl Problem<GraphChromosome<Op<f32>>, Graph<Op<f32>>>
-//     for RegressionProblem<GraphChromosome<Op<f32>>, Graph<Op<f32>>, GraphCodex<Op<f32>>>
-// {
-//     fn encode(&self) -> Genotype<GraphChromosome<Op<f32>>> {
-//         self.codex.encode()
-//     }
+impl Problem<GraphChromosome<Op<f32>>, Graph<Op<f32>>>
+    for RegressionProblem<GraphChromosome<Op<f32>>, Graph<Op<f32>>>
+{
+    fn encode(&self) -> Genotype<GraphChromosome<Op<f32>>> {
+        self.codex.encode()
+    }
 
-//     fn decode(&self, genotype: &Genotype<GraphChromosome<Op<f32>>>) -> Graph<Op<f32>> {
-//         self.codex.decode(genotype)
-//     }
+    fn decode(&self, genotype: &Genotype<GraphChromosome<Op<f32>>>) -> Graph<Op<f32>> {
+        self.codex.decode(genotype)
+    }
 
-//     fn eval(&self, individual: &Genotype<GraphChromosome<Op<f32>>>) -> Score {
-//         let chrome = individual.iter().next().unwrap();
-//         let mut evaluator = GraphEvaluator::new(&chrome);
+    fn eval(&self, individual: &Genotype<GraphChromosome<Op<f32>>>) -> Score {
+        let chrome = individual.iter().next().unwrap();
+        let mut evaluator = GraphEvaluator::new(&chrome);
 
-//         self.loss
-//             .calculate(&self.data_set, &mut |input| evaluator.eval_mut(input))
-//             .into()
-//     }
-// }
+        self.loss
+            .calculate(&self.data_set, &mut |input| evaluator.eval_mut(input))
+            .into()
+    }
+}

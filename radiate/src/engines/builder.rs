@@ -1,8 +1,9 @@
 use super::codexes::Codex;
 use super::thread_pool::ThreadPool;
 use super::{
-    Alter, AlterAction, Crossover, EncodeReplace, EngineProblem, Front, GeneticEngineParams,
-    Mutate, Problem, ReplacementStrategy, RouletteSelector, Select, TournamentSelector, pareto,
+    Alter, AlterAction, Crossover, EncodeReplace, EngineProblem, FnCodex, Front,
+    GeneticEngineParams, Genotype, Mutate, Problem, ReplacementStrategy, RouletteSelector, Select,
+    TournamentSelector, pareto,
 };
 use crate::Chromosome;
 use crate::engines::engine::GeneticEngine;
@@ -95,6 +96,15 @@ where
             replacement_strategy: Box::new(EncodeReplace),
         }
     }
+
+    // pub fn encoder<E: Fn() -> Genotype<C> + 'static>(mut self, encoder: E) -> Self {
+    //     let codex = FnCodex::new()
+    //         .with_encoder(encoder)
+    //         .with_decoder(|geno| geno.clone());
+
+    //     self.codex = Some(Arc::new(codex));
+    //     self
+    // }
 
     /// Set the population size of the genetic engine. Default is 100.
     pub fn population_size(mut self, population_size: usize) -> Self {
@@ -348,5 +358,17 @@ where
 
         self.alterers.push(crossover);
         self.alterers.push(mutator);
+    }
+}
+
+impl<C: Chromosome, F: Fn() -> Genotype<C> + 'static> From<F>
+    for GeneticEngineBuilder<C, Genotype<C>>
+{
+    fn from(f: F) -> Self {
+        let codex = FnCodex::new()
+            .with_encoder(f)
+            .with_decoder(|geno| geno.clone());
+
+        GeneticEngineBuilder::new().codex(codex)
     }
 }

@@ -1,5 +1,5 @@
 use radiate::*;
-use radiate_gp::*;
+use radiate_gp::{regression::RegressionProblem, *};
 
 const MIN_SCORE: f32 = 0.001;
 const MAX_SECONDS: f64 = 5.0;
@@ -17,7 +17,9 @@ fn main() {
     let graph_codex = GraphCodex::directed(1, 1, values);
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
-    let engine = GeneticEngine::from_codex(graph_codex)
+    let problem = RegressionProblem::new(get_dataset(), Loss::MSE, graph_codex);
+
+    let engine = GeneticEngine::from_problem(problem)
         .minimizing()
         .num_threads(10)
         .alter(alters!(
@@ -25,7 +27,7 @@ fn main() {
             OperationMutator::new(0.07, 0.05),
             GraphMutator::new(0.1, 0.1).allow_recurrent(false),
         ))
-        .fitness_fn(move |genotype: Graph<Op<f32>>| regression.eval(&genotype))
+        // .fitness_fn(move |genotype: Graph<Op<f32>>| regression.eval(&genotype))
         .build();
 
     let result = engine.run(|ctx| {
