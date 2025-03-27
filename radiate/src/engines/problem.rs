@@ -35,7 +35,7 @@ unsafe impl<C: Chromosome, T> Sync for EngineProblem<C, T> {}
 
 pub struct EngineRefProblem<C: Chromosome> {
     pub encoder: Arc<dyn Fn() -> Genotype<C>>,
-    pub fitness_fn: Arc<dyn Fn(&Genotype<C>) -> Score + Send + Sync>,
+    pub fitness_fn: Arc<dyn Fn(&Genotype<C>) -> Score>,
 }
 
 impl<C: Chromosome> Problem<C, Genotype<C>> for EngineRefProblem<C> {

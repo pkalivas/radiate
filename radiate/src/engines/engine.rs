@@ -1,9 +1,7 @@
 use super::codexes::Codex;
 use super::context::EngineContext;
 use super::thread_pool::ThreadPool;
-use super::{
-    Alter, EngineRefProblem, GeneticEngineParams, Genotype, MetricSet, Problem, ReplacementStrategy,
-};
+use super::{Alter, GeneticEngineParams, MetricSet, Problem, ReplacementStrategy};
 use crate::engines::builder::GeneticEngineBuilder;
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
@@ -100,14 +98,6 @@ where
     pub fn from_problem(problem: impl Problem<C, T> + 'static) -> GeneticEngineBuilder<C, T> {
         GeneticEngineBuilder::new().problem(problem)
     }
-
-    // pub fn from_fn<E: Fn() -> Genotype<C> + 'static>(encoder: E) -> GeneticEngineBuilder<C, T> {
-    //     let problem = EngineRefProblem {
-    //         encoder: Arc::new(encoder),
-    //         fitness_fn: Arc::new(|_| Score::from_f32(0.0)),
-    //     };
-    //     GeneticEngineBuilder::new()
-    // }
 
     /// Executes the genetic algorithm. The algorithm continues until a specified
     /// stopping condition, 'limit', is met, such as reaching a target fitness score or
