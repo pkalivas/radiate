@@ -18,7 +18,7 @@ fn main() {
     let engine = GeneticEngine::from_codex(graph_codex)
         .minimizing()
         .num_threads(10)
-        .alter(alters!(TreeCrossover::new(0.5)))
+        .crossover(TreeCrossover::new(0.7))
         .fitness_fn(move |tree: Vec<Tree<Op<f32>>>| regression.eval(&tree))
         .build();
 

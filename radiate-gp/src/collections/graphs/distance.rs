@@ -12,7 +12,7 @@ pub struct NeatDistance {
 
 impl NeatDistance {
     pub fn new(distance: f32, excess: f32, disjoint: f32, weight_diff: f32) -> Self {
-        Self {
+        NeatDistance {
             distance,
             excess,
             disjoint,

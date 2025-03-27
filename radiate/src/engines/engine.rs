@@ -2,8 +2,8 @@ use super::codexes::Codex;
 use super::context::EngineContext;
 use super::thread_pool::ThreadPool;
 use super::{
-    Alter, Distance, GeneticEngineParams, MetricSet, Phenotype, Problem, ReplacementStrategy,
-    Species, random_provider, speciate,
+    Alter, Audit, Distance, GeneticEngineParams, MetricSet, Phenotype, Problem,
+    ReplacementStrategy, Species, random_provider, speciate,
 };
 use crate::engines::builder::GeneticEngineBuilder;
 use crate::engines::domain::timer::Timer;
@@ -173,12 +173,14 @@ where
         objective.sort(&mut handle.population);
     }
 
+    /// Speciates the population into species based on the genetic distance between individuals.
     fn speciate(&self, ctx: &mut EngineContext<C, T>) {
         let distance = self.distance();
         let objective = self.objective();
 
         if let Some(distance) = distance {
             let timer = Timer::new();
+            let mut distances = Vec::new();
 
             speciate::generate_mascots(&mut ctx.population, &mut ctx.species);
 
@@ -187,6 +189,7 @@ where
                 for j in 0..ctx.species.len() {
                     let species = ctx.get_species(j);
                     let dist = distance.distance(ctx.phenotype(i).genotype(), species.mascot());
+                    distances.push(dist);
 
                     if dist < distance.threshold() {
                         ctx.set_species_id(i, species.id());
@@ -210,6 +213,7 @@ where
 
             let species_count = ctx.species().len();
             ctx.upsert_operation(metric_names::SPECIATION, species_count as f32, timer);
+            ctx.upsert_distribution(metric_names::DISTANCE, &distances);
         }
     }
 
@@ -267,11 +271,14 @@ where
             ctx.upsert_operation(selector.name(), count as f32, timer);
             objective.sort(&mut offspring);
 
-            for alterer in alters {
-                for metric in alterer.alter(&mut offspring, ctx.index) {
-                    ctx.metrics.upsert(metric);
-                }
-            }
+            alters.iter().for_each(|alterer| {
+                alterer
+                    .alter(&mut offspring, ctx.index)
+                    .into_iter()
+                    .for_each(|metric| {
+                        ctx.upsert_metric(metric);
+                    });
+            });
 
             offspring
         } else {
@@ -290,11 +297,14 @@ where
                 ctx.upsert_operation(selector.name(), count as f32, timer);
                 objective.sort(&mut selected);
 
-                for alterer in alters {
-                    for metric in alterer.alter(&mut selected, ctx.index) {
-                        ctx.metrics.upsert(metric);
-                    }
-                }
+                alters.iter().for_each(|alterer| {
+                    alterer
+                        .alter(&mut selected, ctx.index)
+                        .into_iter()
+                        .for_each(|metric| {
+                            ctx.upsert_metric(metric);
+                        });
+                });
 
                 offspring.extend(selected);
             }
@@ -378,30 +388,28 @@ where
     /// and calculating various metrics such as the age of individuals, the score of individuals, and the
     /// number of unique scores in the population. This method is called at the end of each generation.
     fn audit(&self, output: &mut EngineContext<C, T>) {
-        let audits = self.params.audits();
+        let audits = self.audits();
+        let problem = self.problem();
+        let optimize = self.objective();
+
         let audit_metrics = audits
             .iter()
-            .map(|audit| audit.audit(output.index, &output.population))
+            .map(|audit| audit.audit(output.index(), &output.population))
             .flatten()
             .collect::<Vec<Metric>>();
 
         for metric in audit_metrics {
-            output.metrics.upsert(metric);
+            output.upsert_metric(metric);
         }
-
-        let problem = self.problem();
-        let optimize = self.objective();
 
         if !output.population.is_sorted {
             optimize.sort(&mut output.population);
         }
 
-        if let Some(current_score) = &output.score {
-            if let Some(best_score) = output.population[0].score() {
-                if optimize.is_better(best_score, current_score) {
-                    output.score = Some(best_score.clone());
-                    output.best = problem.decode(output.population[0].genotype());
-                }
+        if let (Some(best), Some(current)) = (output.population[0].score(), &output.score) {
+            if optimize.is_better(best, current) {
+                output.score = Some(best.clone());
+                output.best = problem.decode(output.population[0].genotype());
             }
         } else {
             output.score = output.population[0].score().cloned();
@@ -472,6 +480,10 @@ where
 
     fn distance(&self) -> Option<Arc<dyn Distance<C>>> {
         self.params.distance()
+    }
+
+    fn audits(&self) -> &[Arc<dyn Audit<C>>] {
+        self.params.audits()
     }
 
     fn replace_strategy(&self) -> &Box<dyn ReplacementStrategy<C>> {
