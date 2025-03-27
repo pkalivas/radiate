@@ -22,7 +22,7 @@ fn main() {
 
     let engine = GeneticEngine::from_problem(problem)
         .minimizing()
-        .distance(NeatDistance::new(1.8, 1.0, 1.0, 3.0))
+        // .distance(NeatDistance::new(1.8, 1.0, 1.0, 3.0))
         .num_threads(10)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),

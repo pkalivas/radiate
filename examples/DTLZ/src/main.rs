@@ -25,7 +25,7 @@ fn main() {
 
     let result = engine.run(|ctx| {
         println!("[ {:?} ]", ctx.index);
-        ctx.index > 1000
+        ctx.index() > 1000
     });
 
     println!("{:?}", result.metrics);

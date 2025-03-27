@@ -37,8 +37,8 @@ fn main() {
     let result = engine.run(|ctx| {
         println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32());
         ctx.score().as_f32() < MIN_SCORE
-            || ctx.index == MAX_INDEX
-            || ctx.timer.duration().as_secs() > MAX_SECONDS
+            || ctx.index() == MAX_INDEX
+            || ctx.timer().duration().as_secs() > MAX_SECONDS
     });
 
     println!("Seconds: {:?}", result.seconds());
