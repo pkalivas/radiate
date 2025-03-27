@@ -1,7 +1,10 @@
 use super::codexes::Codex;
 use super::context::EngineContext;
 use super::thread_pool::ThreadPool;
-use super::{Alter, GeneticEngineParams, MetricSet, Phenotype, Problem, ReplacementStrategy};
+use super::{
+    Alter, Distance, GeneticEngineParams, MetricSet, Phenotype, Problem, ReplacementStrategy,
+    Score, Species, random_provider, species,
+};
 use crate::engines::builder::GeneticEngineBuilder;
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
@@ -111,6 +114,8 @@ where
         loop {
             self.evaluate(&mut ctx);
 
+            self.speciate(&mut ctx);
+
             let survivors = self.select_survivors(&mut ctx);
             let offspring = self.create_offspring(&mut ctx);
 
@@ -118,10 +123,90 @@ where
 
             self.filter(&mut ctx);
             self.evaluate(&mut ctx);
+            self.update_front(&mut ctx);
             self.audit(&mut ctx);
 
             if limit(&ctx) {
                 break self.stop(&mut ctx);
+            }
+        }
+    }
+
+    fn speciate(&self, handle: &mut EngineContext<C, T>) {
+        let distance = self.params.distance();
+        if let Some(distance) = distance {
+            let population = &handle.population;
+
+            let mut to_remove = Vec::new();
+            for (idx, species) in handle.species.iter_mut().enumerate() {
+                if species.members.is_empty() {
+                    to_remove.push(idx);
+                    continue;
+                }
+
+                let random_index = random_provider::choose(&species.members);
+                species.mascot = population[*random_index].genotype().clone();
+                species.clear_members();
+            }
+
+            for idx in to_remove.iter().rev() {
+                handle.species.remove(*idx);
+            }
+
+            for i in 0..population.len() {
+                let phenotype = &population[i];
+                let genotype = phenotype.genotype();
+
+                let mut found = false;
+                let species_count = handle.species.len();
+                for j in 0..species_count {
+                    let mascot = &handle.species[j].mascot;
+                    let score = distance.distance(genotype, mascot);
+
+                    if score < 0.1 {
+                        handle.species[j].add_member(i);
+                        found = true;
+                        break;
+                    }
+                }
+
+                if !found {
+                    let score = phenotype.score().unwrap();
+                    let mut species = Species::new(genotype.clone(), score.clone());
+                    species.add_member(i);
+                    handle.species.push(species);
+                }
+            }
+
+            handle.species.retain(|species| !species.members.is_empty());
+
+            let species_count = handle.species.len();
+            let mut total_species_score = 0.0;
+            for i in 0..species_count {
+                let species = &handle.species[i];
+                let members = &species.members;
+
+                let mut total_score = 0.0;
+                for member in members {
+                    total_score +=
+                        population[*member].score().unwrap().as_f32() / members.len() as f32;
+                }
+
+                total_species_score += total_score;
+            }
+
+            for i in 0..species_count {
+                let species = &mut handle.species[i];
+                let members = &species.members;
+
+                let mut total_score = 0.0;
+                for member in members {
+                    total_score +=
+                        population[*member].score().unwrap().as_f32() / members.len() as f32;
+                }
+
+                let species_score = total_score / total_species_score;
+                species.score = Score::from_f32(species_score);
             }
         }
     }
@@ -302,6 +387,17 @@ where
     /// and calculating various metrics such as the age of individuals, the score of individuals, and the
     /// number of unique scores in the population. This method is called at the end of each generation.
     fn audit(&self, output: &mut EngineContext<C, T>) {
+        let audits = self.params.audits();
+        let audit_metrics = audits
+            .iter()
+            .map(|audit| audit.audit(output.index, &output.population))
+            .flatten()
+            .collect::<Vec<Metric>>();
+
+        for metric in audit_metrics {
+            output.metrics.upsert(metric);
+        }
+
         let problem = self.problem();
         let optimize = self.objective();
 
@@ -320,9 +416,6 @@ where
             output.score = output.population[0].score().cloned();
             output.best = problem.decode(output.population[0].genotype());
         }
-
-        self.update_front(output);
-        self.update_metrics(output);
 
         output.index += 1;
     }
@@ -348,58 +441,6 @@ where
 
             output.upsert_operation(metric_names::FRONT, count as f32, timer);
         }
-    }
-
-    /// Adds various metrics to the output context, including the age of individuals, the score of individuals,
-    /// and the number of unique scores in the population. These metrics can be used to monitor the progress of
-    /// the genetic algorithm and to identify potential issues or areas for improvement.
-    ///
-    /// The age of an individual is the number of generations it has survived, while the score of an individual
-    /// is a measure of its fitness. The number of unique scores in the population is a measure of diversity, with
-    /// a higher number indicating a more diverse population.
-    fn update_metrics(&self, output: &mut EngineContext<C, T>) {
-        let mut age_metric = Metric::new_value(metric_names::AGE);
-        let mut score_metric = Metric::new_value(metric_names::SCORE);
-        let mut size_values = Vec::with_capacity(output.population.len());
-        let mut unique = Vec::with_capacity(output.population.len());
-        let mut equal_members = 0;
-
-        for i in 0..output.population.len() {
-            let phenotype = &output.population[i];
-
-            if i > 0 && phenotype.genotype() == output.population[i - 1].genotype() {
-                equal_members += 1;
-            }
-
-            let age = phenotype.age(output.index);
-            let score = phenotype.score().unwrap();
-            let phenotype_size = phenotype
-                .genotype()
-                .iter()
-                .map(|chromosome| chromosome.len())
-                .sum::<usize>();
-
-            age_metric.add_value(age as f32);
-            score_metric.add_value(score.as_f32());
-            unique.push(score);
-            size_values.push(phenotype_size as f32);
-        }
-
-        unique.dedup();
-
-        let mut unique_metric = Metric::new_value(metric_names::UNIQUE_SCORES);
-        let mut size_metric = Metric::new_distribution(metric_names::GENOME_SIZE);
-        let mut equal_metric = Metric::new_value(metric_names::NUM_EQUAL);
-
-        unique_metric.add_value(unique.len() as f32);
-        size_metric.add_sequence(&size_values);
-        equal_metric.add_value(equal_members as f32);
-
-        output.metrics.upsert(equal_metric);
-        output.metrics.upsert(age_metric);
-        output.metrics.upsert(score_metric);
-        output.metrics.upsert(unique_metric);
-        output.metrics.upsert(size_metric);
     }
 
     fn survivor_selector(&self) -> &Box<dyn Select<C>> {
@@ -438,6 +479,10 @@ where
         self.params.thread_pool()
     }
 
+    fn distance(&self) -> Option<Arc<dyn Distance<C>>> {
+        self.params.distance()
+    }
+
     fn replace_strategy(&self) -> &Box<dyn ReplacementStrategy<C>> {
         self.params.replacement_strategy()
     }
@@ -453,6 +498,7 @@ where
             metrics: MetricSet::new(),
             score: None,
             front: self.params.front().clone(),
+            species: Vec::new(),
         }
     }
 

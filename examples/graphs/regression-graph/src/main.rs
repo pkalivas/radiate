@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use radiate::*;
-use radiate_gp::{regression::RegressionProblem, *};
+use radiate_gp::{graphs::GraphDistance, regression::RegressionProblem, *};
 
 const MIN_SCORE: f32 = 0.001;
 const MAX_SECONDS: f64 = 5.0;
@@ -22,6 +22,7 @@ fn main() {
 
     let engine = GeneticEngine::from_problem(problem)
         .minimizing()
+        .distance(GraphDistance)
         // .num_threads(10)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
@@ -37,6 +38,42 @@ fn main() {
 
     display(&result);
 }
+
+// fn audit_fn(generation: usize, population: &Population<GraphChromosome<Op<f32>>>) -> Vec<Metric> {
+//     let mut similarity_matrix = vec![vec![0.0; population.len()]; population.len()];
+
+//     for i in 0..population.len() {
+//         for j in 0..population.len() {
+//             let chrome_one = &population[i].genotype()[0];
+//             let chrome_two = &population[j].genotype()[0];
+//             let similarity = graph_distance(chrome_one.as_ref(), chrome_two.as_ref());
+
+//             similarity_matrix[i][j] = similarity;
+//         }
+//     }
+
+//     let mut similar_distribution = vec![0.0_f32; population.len()];
+//     for i in 0..population.len() {
+//         let mut similar_count = 0.0;
+//         for j in 0..population.len() {
+//             if similarity_matrix[i][j] < 0.1 {
+//                 similar_count += 1.0;
+//             }
+//         }
+
+//         println!(
+//             "Similar Count: {} {:?}",
+//             similar_count,
+//             population[i].score()
+//         );
+//         similar_distribution[i] = similar_count;
+//     }
+
+//     let mut metric = Metric::new_distribution("similar");
+//     metric.add_sequence(&similar_distribution);
+
+//     vec![metric]
+// }
 
 fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     let mut total_ids = Vec::new();

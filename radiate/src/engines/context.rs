@@ -1,5 +1,5 @@
 use super::objectives::Score;
-use super::{MetricSet, Phenotype};
+use super::{MetricSet, Phenotype, Species};
 use crate::Chromosome;
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
@@ -35,6 +35,7 @@ where
     pub metrics: MetricSet,
     pub score: Option<Score>,
     pub front: Front<Phenotype<C>>,
+    pub species: Vec<Species<C>>,
 }
 
 impl<C, T> EngineContext<C, T>
@@ -76,6 +77,7 @@ where
             metrics: self.metrics.clone(),
             score: self.score.clone(),
             front: self.front.clone(),
+            species: self.species.clone(),
         }
     }
 }
@@ -91,6 +93,7 @@ where
         write!(f, "  index: {:?},\n", self.index)?;
         write!(f, "  size: {:?},\n", self.population.len())?;
         write!(f, "  duration: {:?},\n", self.timer.duration())?;
+        write!(f, "  species: {:?},\n", self.species)?;
         write!(f, "  metrics: {:?},\n", self.metrics)?;
         write!(f, "}}")
     }
