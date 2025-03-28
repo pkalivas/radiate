@@ -1,5 +1,6 @@
 use super::codexes::Codex;
 use super::context::EngineContext;
+use super::sync::SyncCell;
 use super::thread_pool::{ThreadPool, WaitGroup};
 use super::{
     Alter, Audit, Distance, GeneticEngineParams, MetricSet, Phenotype, Problem,
@@ -10,7 +11,7 @@ use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
 use crate::objectives::Objective;
 use crate::{Chromosome, Metric, Select, Valid, metric_names};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 /// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -426,30 +427,29 @@ where
             let timer = Timer::new();
             let wg = WaitGroup::new();
 
-            let front = Arc::new(ctx.front.clone());
             let new_individuals = ctx
                 .population
                 .iter()
                 .filter(|pheno| pheno.generation() == ctx.index)
                 .collect::<Vec<&Phenotype<C>>>();
 
-            let dominates_vector = Arc::new(Mutex::new(vec![false; new_individuals.len()]));
-            let remove_vector = Arc::new(Mutex::new(Vec::new()));
+            let front = SyncCell::new(ctx.front.clone());
+            let dominates_vector = SyncCell::new(vec![false; new_individuals.len()]);
+            let remove_vector = SyncCell::new(Vec::new());
 
             for (idx, member) in new_individuals.iter().enumerate() {
                 let pheno = Phenotype::clone(member);
-                let front_clone = Arc::clone(&front);
-                let doms_vector = Arc::clone(&dominates_vector);
-                let remove_vector = Arc::clone(&remove_vector);
+                let front_clone = SyncCell::clone(&front);
+                let doms_vector = SyncCell::clone(&dominates_vector);
+                let remove_vector = SyncCell::clone(&remove_vector);
 
                 thread_pool.group_submit(&wg, move || {
-                    let (dominates, to_remove) = front_clone.dominates(&pheno);
+                    let (dominates, to_remove) = front_clone.read().dominates(&pheno);
 
                     if dominates {
-                        doms_vector.lock().unwrap().get_mut(idx).map(|v| *v = true);
+                        doms_vector.write().get_mut(idx).map(|v| *v = true);
                         remove_vector
-                            .lock()
-                            .unwrap()
+                            .write()
                             .extend(to_remove.iter().map(|r| r.clone()));
                     }
                 });
@@ -458,14 +458,13 @@ where
             let count = wg.wait();
 
             let dominates_vector = dominates_vector
-                .lock()
-                .unwrap()
+                .read()
                 .iter()
                 .enumerate()
                 .filter(|(_, is_dominating)| **is_dominating)
                 .map(|(idx, _)| new_individuals[idx])
                 .collect::<Vec<&Phenotype<C>>>();
-            let mut remove_vector = remove_vector.lock().unwrap();
+            let mut remove_vector = remove_vector.write();
 
             remove_vector.dedup();
 
