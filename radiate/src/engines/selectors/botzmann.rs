@@ -27,9 +27,9 @@ impl<C: Chromosome> Select<C> for BoltzmannSelector {
         let fitness_values = match objective {
             Objective::Single(opt) => {
                 let scores = population
-                    .get_scores_ref()
+                    .get_scores()
                     .iter()
-                    .map(|scores| scores[0])
+                    .map(|score| score.as_f32())
                     .collect::<Vec<f32>>();
 
                 let (min, max) = scores
@@ -56,7 +56,7 @@ impl<C: Chromosome> Select<C> for BoltzmannSelector {
                 fitness_values
             }
             Objective::Multi(_) => {
-                let weights = pareto::weights(&population.get_scores_ref(), objective);
+                let weights = pareto::weights(&population.get_scores(), objective);
 
                 let (max, min) = weights.iter().fold((f32::MIN, f32::MAX), |(max, min), &w| {
                     (max.max(w), min.min(w))

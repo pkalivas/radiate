@@ -17,6 +17,17 @@ where
     }
 }
 
+impl<T, V> Eval<[V], Vec<V>> for Vec<&TreeNode<T>>
+where
+    T: Eval<[V], V>,
+    V: Clone,
+{
+    #[inline]
+    fn eval(&self, inputs: &[V]) -> Vec<V> {
+        self.iter().map(|node| node.eval(inputs)).collect()
+    }
+}
+
 /// Implements the `Reduce` trait for `Tree<T>` where `T` is `Eval<[V], V>`. All this really does is
 /// call the `reduce` method on the root node of the `Tree`. The real work is
 /// done in the `TreeNode` implementation below.

@@ -1,5 +1,5 @@
 use super::phenotype::Phenotype;
-use crate::Chromosome;
+use crate::{Chromosome, Score};
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
 
@@ -33,6 +33,15 @@ impl<C: Chromosome> Population<C> {
         }
     }
 
+    pub fn get(&self, index: usize) -> &Phenotype<C> {
+        &self.individuals[index]
+    }
+
+    pub fn get_mut(&mut self, index: usize) -> &mut Phenotype<C> {
+        self.is_sorted = false; // Set the is_sorted flag to false because we're mutating the individual
+        &mut self.individuals[index]
+    }
+
     pub fn iter(&self) -> std::slice::Iter<Phenotype<C>> {
         self.individuals.iter()
     }
@@ -55,6 +64,15 @@ impl<C: Chromosome> Population<C> {
         self.individuals.swap(a, b);
     }
 
+    pub fn get_scores(&self) -> Vec<Score> {
+        // Collect the scores from each individual in the population.
+        // This will return a vector of scores for each individual.
+        self.individuals
+            .iter()
+            .filter_map(|individual| individual.score())
+            .collect()
+    }
+
     /// Sort the individuals in the population using the given closure.
     /// This will set the is_sorted flag to true.
     pub fn sort_by<F>(&mut self, f: F)
@@ -73,12 +91,20 @@ impl<C: Chromosome> Population<C> {
         self.individuals.is_empty()
     }
 
-    pub fn get_scores_ref(&self) -> Vec<&[f32]> {
-        self.individuals
-            .iter()
-            .filter_map(|i| i.score())
-            .map(|s| s.as_ref())
-            .collect::<Vec<_>>()
+    pub fn take<F: Fn(&Phenotype<C>) -> bool>(&mut self, filter: F) -> Self {
+        let mut new_population = Vec::new();
+        let mut old_population = Vec::new();
+
+        for individual in self.individuals.drain(..) {
+            if filter(&individual) {
+                new_population.push(individual);
+            } else {
+                old_population.push(individual);
+            }
+        }
+
+        self.individuals = old_population;
+        Population::new(new_population)
     }
 }
 
@@ -155,7 +181,9 @@ impl<C: Chromosome + Debug> Debug for Population<C> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{Score, char::CharChromosome, float::FloatChromosome, objectives::Optimize};
+    use crate::{
+        Score, Scored, char::CharChromosome, float::FloatChromosome, objectives::Optimize,
+    };
 
     #[test]
     fn test_new() {
@@ -214,12 +242,9 @@ mod test {
         assert!(maximize_population.is_sorted);
 
         for i in 0..population.len() {
+            assert_eq!(minimize_population[i].score().as_usize(), i);
             assert_eq!(
-                minimize_population[i].score().as_ref().unwrap().as_usize(),
-                i
-            );
-            assert_eq!(
-                maximize_population[i].score().as_ref().unwrap().as_usize(),
+                maximize_population[i].score().as_usize(),
                 population.len() - i - 1
             );
         }

@@ -15,16 +15,15 @@ fn main() {
     ];
 
     let graph_codex = GraphCodex::directed(2, 1, values);
-    let regression = Regression::new(get_dataset(), Loss::MSE);
+    let regression = Regression::new(get_dataset(), Loss::MSE, graph_codex);
 
-    let engine = GeneticEngine::from_codex(graph_codex)
+    let engine = GeneticEngine::from_problem(regression)
         .minimizing()
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.05, 0.05),
             GraphMutator::new(0.06, 0.01).allow_recurrent(false),
         ))
-        .fitness_fn(move |genotype: Graph<Op<f32>>| regression.eval(&genotype))
         .build();
 
     let result = engine.run(|ctx| {

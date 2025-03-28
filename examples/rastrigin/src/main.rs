@@ -7,7 +7,7 @@ const RANGE: f32 = 5.12;
 const N_GENES: usize = 2;
 
 fn main() {
-    let codex = FloatCodex::new(1, N_GENES, -RANGE..RANGE);
+    let codex = FloatCodex::vector(N_GENES, -RANGE..RANGE);
 
     let engine = GeneticEngine::from_codex(codex)
         .minimizing()
@@ -16,11 +16,10 @@ fn main() {
             UniformCrossover::new(0.5),
             ArithmeticMutator::new(0.01)
         ))
-        .fitness_fn(move |genotype: Vec<Vec<f32>>| {
+        .fitness_fn(move |genotype: Vec<f32>| {
             let mut value = A * N_GENES as f32;
             for i in 0..N_GENES {
-                value += genotype[0][i].powi(2)
-                    - A * (2.0 * std::f32::consts::PI * genotype[0][i]).cos();
+                value += genotype[i].powi(2) - A * (2.0 * std::f32::consts::PI * genotype[i]).cos();
             }
 
             value

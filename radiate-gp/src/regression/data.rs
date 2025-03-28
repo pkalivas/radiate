@@ -128,3 +128,9 @@ impl DataSet {
         self
     }
 }
+
+impl From<(Vec<Vec<f32>>, Vec<Vec<f32>>)> for DataSet {
+    fn from(data: (Vec<Vec<f32>>, Vec<Vec<f32>>)) -> Self {
+        DataSet::new(data.0, data.1)
+    }
+}

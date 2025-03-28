@@ -1,5 +1,5 @@
 use super::thread_pool::ThreadPool;
-use super::{Alter, Front, Problem, ReplacementStrategy, Select};
+use super::{Alter, Audit, Distance, Front, Problem, ReplacementStrategy, Score, Select};
 use crate::Chromosome;
 use crate::engines::genome::phenotype::Phenotype;
 use crate::engines::genome::population::Population;
@@ -12,11 +12,13 @@ pub struct GeneticEngineParams<C: Chromosome, T> {
     survivor_selector: Box<dyn Select<C>>,
     offspring_selector: Box<dyn Select<C>>,
     replacement_strategy: Box<dyn ReplacementStrategy<C>>,
+    audits: Vec<Arc<dyn Audit<C>>>,
+    distance: Option<Arc<dyn Distance<C>>>,
     alterers: Vec<Box<dyn Alter<C>>>,
     objective: Objective,
     thread_pool: ThreadPool,
     max_age: usize,
-    front: Front<Phenotype<C>>,
+    front: Front<Phenotype<C>, Score>,
     offspring_fraction: f32,
 }
 
@@ -27,11 +29,13 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
         survivor_selector: Box<dyn Select<C>>,
         offspring_selector: Box<dyn Select<C>>,
         replacement_strategy: Box<dyn ReplacementStrategy<C>>,
+        audits: Vec<Arc<dyn Audit<C>>>,
+        distance: Option<Arc<dyn Distance<C>>>,
         alterers: Vec<Box<dyn Alter<C>>>,
         objective: Objective,
         thread_pool: ThreadPool,
         max_age: usize,
-        front: Front<Phenotype<C>>,
+        front: Front<Phenotype<C>, Score>,
         offspring_fraction: f32,
     ) -> Self {
         Self {
@@ -40,6 +44,8 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
             survivor_selector,
             offspring_selector,
             replacement_strategy,
+            audits,
+            distance,
             alterers,
             objective,
             thread_pool,
@@ -69,6 +75,14 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
         &self.replacement_strategy
     }
 
+    pub fn audits(&self) -> &[Arc<dyn Audit<C>>] {
+        &self.audits
+    }
+
+    pub fn distance(&self) -> Option<Arc<dyn Distance<C>>> {
+        self.distance.clone()
+    }
+
     pub fn alters(&self) -> &[Box<dyn Alter<C>>] {
         &self.alterers
     }
@@ -85,7 +99,7 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
         self.max_age
     }
 
-    pub fn front(&self) -> &Front<Phenotype<C>> {
+    pub fn front(&self) -> &Front<Phenotype<C>, Score> {
         &self.front
     }
 

@@ -11,8 +11,6 @@ fn main() {
 
     let (train, test) = load_iris_dataset().shuffle().standardize().split(0.75);
 
-    let regression = Regression::new(train.clone(), Loss::MSE);
-
     let ops = ops::all_ops();
     let edges = vec![Op::identity(), Op::weight()];
     let outputs = vec![Op::sigmoid()];
@@ -25,8 +23,9 @@ fn main() {
     ];
 
     let codex = GraphCodex::directed(4, 4, store);
+    let regression = Regression::new(train.clone(), Loss::MSE, codex);
 
-    let engine = GeneticEngine::from_codex(codex)
+    let engine = GeneticEngine::from_problem(regression)
         .minimizing()
         .num_threads(10)
         .offspring_fraction(0.92)
@@ -37,7 +36,6 @@ fn main() {
             OperationMutator::new(0.02, 0.05),
             GraphMutator::new(0.008, 0.002)
         ))
-        .fitness_fn(move |graph: Graph<Op<f32>>| regression.eval(&graph))
         .build();
 
     let result = engine.run(|ctx| {

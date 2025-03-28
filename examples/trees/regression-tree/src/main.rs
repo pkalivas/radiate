@@ -1,5 +1,5 @@
 use radiate::*;
-use radiate_gp::*;
+use radiate_gp::{trees::HoistMutator, *};
 
 const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 1.0;
@@ -12,14 +12,13 @@ fn main() {
         (NodeType::Leaf, vec![Op::var(0)]),
     ];
 
-    let graph_codex = TreeCodex::single(3, store).constraint(|root| root.size() < 30);
-    let regression = Regression::new(get_dataset(), Loss::MSE);
+    let tree_codex = TreeCodex::single(3, store).constraint(|root| root.size() < 30);
+    let problem = Regression::new(get_dataset(), Loss::MSE, tree_codex);
 
-    let engine = GeneticEngine::from_codex(graph_codex)
+    let engine = GeneticEngine::from_problem(problem)
         .minimizing()
-        .num_threads(10)
-        .alter(alters!(TreeCrossover::new(0.5)))
-        .fitness_fn(move |tree: Vec<Tree<Op<f32>>>| regression.eval(&tree))
+        .mutator(HoistMutator::new(0.04))
+        .crossover(TreeCrossover::new(0.7))
         .build();
 
     let result = engine.run(|ctx| {
@@ -30,10 +29,10 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>) {
+fn display(result: &EngineContext<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
     let data_set = get_dataset();
     let accuracy = Accuracy::new("reg", &data_set, Loss::MSE);
-    let accuracy_result = accuracy.calc(|input| result.best.eval(input));
+    let accuracy_result = accuracy.calc(|input| vec![result.best.eval(input)]);
 
     println!("{:?}", result);
     println!("{:?}", accuracy_result);

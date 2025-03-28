@@ -1,6 +1,7 @@
 use crate::{Arity, Eval, Factory, NodeValue, TreeNode};
 use std::{
     fmt::{Debug, Display},
+    hash::Hash,
     sync::Arc,
 };
 
@@ -210,6 +211,12 @@ where
 {
     fn eq(&self, other: &Self) -> bool {
         self.name() == other.name()
+    }
+}
+
+impl<T> Hash for Op<T> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.name().hash(state);
     }
 }
 

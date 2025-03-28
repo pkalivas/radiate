@@ -1,6 +1,8 @@
 use super::{Valid, genotype::Genotype};
 use crate::Chromosome;
 use crate::engines::objectives::Score;
+use crate::sync::{SyncCell, SyncCellGuard, SyncCellGuardMut};
+use std::ops::Deref;
 
 /// A `Phenotype` is a representation of an individual in the population. It contains:
 /// * `Genotype` - the genetic representation of the individual
@@ -16,40 +18,55 @@ use crate::engines::objectives::Score;
 /// # Type Parameters
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 ///
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Phenotype<C: Chromosome> {
-    pub genotype: Option<Genotype<C>>,
-    pub score: Option<Score>,
-    pub generation: usize,
+    genotype: SyncCell<Genotype<C>>,
+    score: SyncCell<Option<Score>>,
+    generation: usize,
+    species_id: Option<u64>,
 }
 
 impl<C: Chromosome> Phenotype<C> {
-    pub fn genotype(&self) -> &Genotype<C> {
-        self.genotype.as_ref().unwrap()
+    pub fn clone(other: &Phenotype<C>) -> Self {
+        Phenotype {
+            genotype: SyncCell::clone(&other.genotype),
+            score: SyncCell::clone(&other.score),
+            generation: other.generation,
+            species_id: other.species_id,
+        }
     }
 
-    pub fn genotype_mut(&mut self) -> &mut Genotype<C> {
-        self.genotype.as_mut().unwrap()
+    pub fn genotype(&self) -> SyncCellGuard<Genotype<C>> {
+        self.genotype.read()
     }
 
-    pub fn take_genotype(&mut self) -> Genotype<C> {
-        self.score = None;
-        self.genotype.take().unwrap()
+    pub fn genotype_mut(&mut self) -> SyncCellGuardMut<Genotype<C>> {
+        self.genotype.write()
     }
 
-    pub fn set_genotype(&mut self, genotype: Genotype<C>) {
-        self.genotype = Some(genotype);
+    pub fn generation(&self) -> usize {
+        self.generation
+    }
+
+    pub fn set_generation(&mut self, generation: usize) {
+        self.generation = generation;
+    }
+
+    pub fn species_id(&self) -> Option<u64> {
+        self.species_id
     }
 
     pub fn set_score(&mut self, score: Option<Score>) {
-        self.score = score;
+        self.score.set(score);
     }
 
-    pub fn score(&self) -> Option<&Score> {
-        match &self.score {
-            Some(score) => Some(score),
-            None => None,
-        }
+    pub fn set_species_id(&mut self, species_id: Option<u64>) {
+        self.species_id = species_id;
+    }
+
+    pub fn score(&self) -> Option<Score> {
+        let lock = self.score.read();
+        lock.inner().clone()
     }
 
     /// Get the age of the individual in generations. The age is calculated as the
@@ -64,19 +81,13 @@ impl<C: Chromosome> Phenotype<C> {
 /// and will remove any invalid individuals from the population, replacing them with new individuals at the given generation.
 impl<C: Chromosome> Valid for Phenotype<C> {
     fn is_valid(&self) -> bool {
-        self.genotype.as_ref().unwrap().is_valid()
+        self.genotype().deref().is_valid()
     }
 }
 
-impl<C: Chromosome> AsRef<Score> for Phenotype<C> {
-    fn as_ref(&self) -> &Score {
-        self.score.as_ref().unwrap()
-    }
-}
-
-impl<C: Chromosome> AsRef<[f32]> for Phenotype<C> {
-    fn as_ref(&self) -> &[f32] {
-        self.score.as_ref().unwrap().as_ref()
+impl<C: Chromosome> AsRef<Phenotype<C>> for Phenotype<C> {
+    fn as_ref(&self) -> &Phenotype<C> {
+        self
     }
 }
 
@@ -84,16 +95,20 @@ impl<C: Chromosome> AsRef<[f32]> for Phenotype<C> {
 /// with other `Phenotype` instances. The comparison is based on the `Score` (fitness) of the `Phenotype`.
 impl<C: Chromosome> PartialOrd for Phenotype<C> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.score.partial_cmp(&other.score)
+        let self_score = self.score();
+        let other_score = other.score();
+
+        self_score.partial_cmp(&other_score)
     }
 }
 
-impl<C: Chromosome> From<(Genotype<C>, usize)> for Phenotype<C> {
-    fn from((genotype, generation): (Genotype<C>, usize)) -> Self {
+impl<C: Chromosome> From<(Genotype<C>, usize, Option<u64>)> for Phenotype<C> {
+    fn from((genotype, generation, species_id): (Genotype<C>, usize, Option<u64>)) -> Self {
         Phenotype {
-            genotype: Some(genotype),
-            score: None,
+            genotype: SyncCell::new(genotype),
+            score: SyncCell::new(None),
             generation,
+            species_id,
         }
     }
 }
@@ -104,9 +119,10 @@ impl<C: Chromosome> From<(Genotype<C>, usize)> for Phenotype<C> {
 impl<C: Chromosome> From<(Vec<C>, usize)> for Phenotype<C> {
     fn from((chromosomes, generation): (Vec<C>, usize)) -> Self {
         Phenotype {
-            genotype: Some(Genotype::new(chromosomes)),
-            score: None,
+            genotype: SyncCell::new(Genotype::new(chromosomes)),
+            score: SyncCell::new(None),
             generation,
+            species_id: None,
         }
     }
 }

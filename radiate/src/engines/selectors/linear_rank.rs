@@ -25,9 +25,9 @@ impl<C: Chromosome> Select<C> for LinearRankSelector {
         let fitness_values = match objective {
             Objective::Single(opt) => {
                 let scores = population
-                    .get_scores_ref()
+                    .get_scores()
                     .iter()
-                    .map(|scores| scores[0])
+                    .map(|score| score.as_f32())
                     .collect::<Vec<f32>>();
                 let total = scores.iter().sum::<f32>();
                 let mut fitness_values =
@@ -40,7 +40,7 @@ impl<C: Chromosome> Select<C> for LinearRankSelector {
                 fitness_values
             }
             Objective::Multi(_) => {
-                let weights = pareto::weights(&population.get_scores_ref(), objective);
+                let weights = pareto::weights(&population.get_scores(), objective);
                 let total_weights = weights.iter().sum::<f32>();
                 weights
                     .iter()

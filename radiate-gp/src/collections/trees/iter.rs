@@ -1,5 +1,7 @@
 use crate::collections::{Tree, TreeNode};
-use std::collections::VecDeque;
+use std::{collections::VecDeque, marker::PhantomData};
+
+use super::TreeChromosome;
 
 /// Tree traversal iterators for pre-order, post-order, and breadth-first search.
 /// These iterators allow for efficient traversal of tree structures, providing
@@ -53,6 +55,7 @@ pub trait TreeIterator<T> {
     fn iter_pre_order(&self) -> PreOrderIterator<T>;
     fn iter_post_order(&self) -> PostOrderIterator<T>;
     fn iter_breadth_first(&self) -> TreeBreadthFirstIterator<T>;
+    fn apply<F: Fn(&mut TreeNode<T>)>(&mut self, visit_fn: F);
 }
 
 /// Implement the `TreeIterator` trait for `TreeNode`
@@ -73,6 +76,11 @@ impl<T> TreeIterator<T> for TreeNode<T> {
         TreeBreadthFirstIterator {
             queue: vec![self].into_iter().collect(),
         }
+    }
+
+    fn apply<F: Fn(&mut TreeNode<T>)>(&mut self, visit_fn: F) {
+        let visitor = TreeVisitor::new(visit_fn);
+        visitor.visit(self);
     }
 }
 
@@ -101,6 +109,31 @@ impl<T> TreeIterator<T> for Tree<T> {
                 .root()
                 .map_or(VecDeque::new(), |root| vec![root].into_iter().collect()),
         }
+    }
+
+    fn apply<F: Fn(&mut TreeNode<T>)>(&mut self, visit_fn: F) {
+        let visitor = TreeVisitor::new(visit_fn);
+        if let Some(root) = self.root_mut() {
+            visitor.visit(root);
+        }
+    }
+}
+
+impl<T> TreeIterator<T> for TreeChromosome<T> {
+    fn iter_pre_order(&self) -> PreOrderIterator<T> {
+        self.root().iter_pre_order()
+    }
+
+    fn iter_post_order(&self) -> PostOrderIterator<T> {
+        self.root().iter_post_order()
+    }
+
+    fn iter_breadth_first(&self) -> TreeBreadthFirstIterator<T> {
+        self.root().iter_breadth_first()
+    }
+
+    fn apply<F: Fn(&mut TreeNode<T>)>(&mut self, visit_fn: F) {
+        self.root_mut().apply(visit_fn);
     }
 }
 
@@ -159,6 +192,40 @@ impl<'a, T> Iterator for TreeBreadthFirstIterator<'a, T> {
             self.queue.extend(children.iter());
         }
         Some(node)
+    }
+}
+
+pub struct TreeVisitor<T, F>
+where
+    F: Fn(&mut TreeNode<T>),
+{
+    visitor: F,
+    _marker: PhantomData<T>,
+}
+
+impl<T, F> TreeVisitor<T, F>
+where
+    F: Fn(&mut TreeNode<T>),
+{
+    pub fn new(visitor: F) -> Self {
+        TreeVisitor {
+            visitor,
+            _marker: PhantomData,
+        }
+    }
+
+    pub fn visit(&self, node: &mut TreeNode<T>) {
+        self.visit_recursive(node);
+    }
+
+    fn visit_recursive(&self, node: &mut TreeNode<T>) {
+        (self.visitor)(node);
+
+        if let Some(children) = node.children_mut() {
+            for child in children.iter_mut() {
+                self.visit_recursive(child);
+            }
+        }
     }
 }
 

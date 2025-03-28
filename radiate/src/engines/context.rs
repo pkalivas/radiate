@@ -1,5 +1,5 @@
 use super::objectives::Score;
-use super::{MetricSet, Phenotype};
+use super::{Metric, MetricSet, Phenotype, Species};
 use crate::Chromosome;
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
@@ -34,7 +34,8 @@ where
     pub timer: Timer,
     pub metrics: MetricSet,
     pub score: Option<Score>,
-    pub front: Front<Phenotype<C>>,
+    pub front: Front<Phenotype<C>, Score>,
+    pub species: Vec<Species<C>>,
 }
 
 impl<C, T> EngineContext<C, T>
@@ -51,14 +52,42 @@ where
         self.timer.duration().as_secs_f64()
     }
 
+    pub fn index(&self) -> usize {
+        self.index
+    }
+
     /// Upsert (update or create) a metric operation with the given name, value, and time.
-    pub fn upsert_operation(
+    pub(crate) fn upsert_operation(
         &mut self,
         name: &'static str,
         value: impl Into<f32>,
         time: impl Into<Duration>,
     ) {
         self.metrics.upsert_operations(name, value, time);
+    }
+
+    pub(crate) fn upsert_distribution(&mut self, name: &'static str, values: &[f32]) {
+        self.metrics.upsert_sequence(name, values);
+    }
+
+    pub(crate) fn upsert_metric(&mut self, metric: Metric) {
+        self.metrics.upsert(metric);
+    }
+
+    pub(crate) fn set_species_id(&mut self, index: usize, species_id: u64) {
+        self.population[index].set_species_id(Some(species_id));
+    }
+
+    pub(crate) fn get_species(&self, idx: usize) -> &Species<C> {
+        &self.species[idx]
+    }
+
+    pub(crate) fn add_species(&mut self, species: Species<C>) {
+        self.species.push(species);
+    }
+
+    pub(crate) fn species(&self) -> &Vec<Species<C>> {
+        &self.species
     }
 }
 
@@ -76,6 +105,7 @@ where
             metrics: self.metrics.clone(),
             score: self.score.clone(),
             front: self.front.clone(),
+            species: self.species.clone(),
         }
     }
 }
@@ -92,6 +122,15 @@ where
         write!(f, "  size: {:?},\n", self.population.len())?;
         write!(f, "  duration: {:?},\n", self.timer.duration())?;
         write!(f, "  metrics: {:?},\n", self.metrics)?;
+
+        if !self.species.is_empty() {
+            write!(f, "  species: [\n")?;
+            for species in &self.species {
+                write!(f, "    {:?},\n", species)?;
+            }
+            write!(f, "  ],\n")?;
+        }
+
         write!(f, "}}")
     }
 }

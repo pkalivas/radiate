@@ -15,9 +15,10 @@ fn main() {
     ];
 
     let graph_codex = GraphCodex::directed(1, 1, values);
-    let regression = Regression::new(get_dataset(), Loss::MSE);
 
-    let engine = GeneticEngine::from_codex(graph_codex)
+    let problem = Regression::new(get_dataset(), Loss::MSE, graph_codex);
+
+    let engine = GeneticEngine::from_problem(problem)
         .minimizing()
         .num_threads(10)
         .alter(alters!(
@@ -25,7 +26,6 @@ fn main() {
             OperationMutator::new(0.07, 0.05),
             GraphMutator::new(0.1, 0.1).allow_recurrent(false),
         ))
-        .fitness_fn(move |genotype: Graph<Op<f32>>| regression.eval(&genotype))
         .build();
 
     let result = engine.run(|ctx| {
@@ -64,3 +64,5 @@ fn get_dataset() -> DataSet {
 fn compute(x: f32) -> f32 {
     4.0 * x.powf(3.0) - 3.0 * x.powf(2.0) + x
 }
+
+// .distance(NeatDistance::new(1.8, 1.0, 1.0, 3.0))

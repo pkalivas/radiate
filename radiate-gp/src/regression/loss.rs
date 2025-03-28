@@ -27,7 +27,7 @@ impl Loss {
                     }
                 }
 
-                sum / (samples.iter().len() as f32)
+                sum / (samples.len() as f32)
             }
             Loss::MAE => {
                 let mut sum = ZERO;

@@ -18,7 +18,7 @@ use super::Codex;
 /// let length = 10;
 ///
 /// // Create a new `BitCodex` with a single chromosome and `length` genes
-/// let codex = BitCodex::new(1, length);
+/// let codex = BitCodex::matrix(1, length);
 ///
 /// // Create a new `Genotype` of `BitGenes` with a single chromosome and `length` genes
 /// let genotype = codex.encode();
@@ -27,21 +27,43 @@ use super::Codex;
 /// let bit_string: Vec<bool> = codex.decode(&genotype)[0].clone();
 /// ```
 #[derive(Clone)]
-pub struct BitCodex {
+pub struct BitCodex<T = ()> {
     num_chromosomes: usize,
     num_genes: usize,
+    _marker: std::marker::PhantomData<T>,
 }
 
-impl BitCodex {
-    pub fn new(num_chromosomes: usize, num_genes: usize) -> Self {
+impl BitCodex<Vec<Vec<bool>>> {
+    pub fn matrix(num_chromosomes: usize, num_genes: usize) -> Self {
         BitCodex {
             num_chromosomes,
             num_genes,
+            _marker: std::marker::PhantomData,
         }
     }
 }
 
-impl Codex<BitChromosome, Vec<Vec<bool>>> for BitCodex {
+impl BitCodex<Vec<bool>> {
+    pub fn vector(num_genes: usize) -> Self {
+        BitCodex {
+            num_chromosomes: 1,
+            num_genes,
+            _marker: std::marker::PhantomData,
+        }
+    }
+}
+
+impl BitCodex<bool> {
+    pub fn scalar() -> Self {
+        BitCodex {
+            num_chromosomes: 1,
+            num_genes: 1,
+            _marker: std::marker::PhantomData,
+        }
+    }
+}
+
+impl Codex<BitChromosome, Vec<Vec<bool>>> for BitCodex<Vec<Vec<bool>>> {
     fn encode(&self) -> Genotype<BitChromosome> {
         Genotype {
             chromosomes: (0..self.num_chromosomes)
@@ -67,11 +89,55 @@ impl Codex<BitChromosome, Vec<Vec<bool>>> for BitCodex {
     }
 }
 
-impl Default for BitCodex {
-    fn default() -> Self {
-        BitCodex {
-            num_chromosomes: 1,
-            num_genes: 1,
+impl Codex<BitChromosome, Vec<bool>> for BitCodex<Vec<bool>> {
+    fn encode(&self) -> Genotype<BitChromosome> {
+        Genotype {
+            chromosomes: (0..self.num_chromosomes)
+                .map(|_| BitChromosome {
+                    genes: (0..self.num_genes)
+                        .map(|_| BitGene::new())
+                        .collect::<Vec<BitGene>>(),
+                })
+                .collect::<Vec<BitChromosome>>(),
         }
+    }
+
+    fn decode(&self, genotype: &Genotype<BitChromosome>) -> Vec<bool> {
+        genotype
+            .iter()
+            .flat_map(|chromosome| {
+                chromosome
+                    .iter()
+                    .map(|gene| *gene.allele())
+                    .collect::<Vec<bool>>()
+            })
+            .collect::<Vec<bool>>()
+    }
+}
+
+impl Codex<BitChromosome, bool> for BitCodex<bool> {
+    fn encode(&self) -> Genotype<BitChromosome> {
+        Genotype {
+            chromosomes: (0..self.num_chromosomes)
+                .map(|_| BitChromosome {
+                    genes: (0..self.num_genes)
+                        .map(|_| BitGene::new())
+                        .collect::<Vec<BitGene>>(),
+                })
+                .collect::<Vec<BitChromosome>>(),
+        }
+    }
+
+    fn decode(&self, genotype: &Genotype<BitChromosome>) -> bool {
+        genotype
+            .iter()
+            .flat_map(|chromosome| {
+                chromosome
+                    .iter()
+                    .map(|gene| *gene.allele())
+                    .collect::<Vec<bool>>()
+            })
+            .next()
+            .unwrap_or(false)
     }
 }

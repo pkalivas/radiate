@@ -13,6 +13,7 @@ pub enum NodeType {
 pub trait Node {
     type Value;
 
+    fn value_mut(&mut self) -> &mut Self::Value;
     fn value(&self) -> &Self::Value;
     fn node_type(&self) -> NodeType;
     fn arity(&self) -> Arity;

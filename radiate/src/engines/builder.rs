@@ -1,8 +1,9 @@
 use super::codexes::Codex;
 use super::thread_pool::ThreadPool;
 use super::{
-    Alter, AlterAction, Crossover, EncodeReplace, EngineProblem, Front, GeneticEngineParams,
-    Mutate, Problem, ReplacementStrategy, RouletteSelector, Select, TournamentSelector, pareto,
+    Alter, AlterAction, Audit, Crossover, Distance, EncodeReplace, EngineProblem, Front,
+    GeneticEngineParams, MetricAudit, Mutate, Problem, ReplacementStrategy, RouletteSelector,
+    Select, TournamentSelector, pareto,
 };
 use crate::Chromosome;
 use crate::engines::engine::GeneticEngine;
@@ -47,6 +48,8 @@ where
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
     pub problem: Option<Arc<dyn Problem<C, T>>>,
     pub replacement_strategy: Box<dyn ReplacementStrategy<C>>,
+    pub audits: Vec<Arc<dyn Audit<C>>>,
+    pub distance: Option<Arc<dyn Distance<C>>>,
 }
 
 impl<C, T> GeneticEngineBuilder<C, T>
@@ -93,6 +96,8 @@ where
             fitness_fn: None,
             problem: None,
             replacement_strategy: Box::new(EncodeReplace),
+            audits: vec![Arc::new(MetricAudit)],
+            distance: None,
         }
     }
 
@@ -123,6 +128,22 @@ where
     /// be using the `Codex` to encode a new individual from scratch.
     pub fn replace_strategy<R: ReplacementStrategy<C> + 'static>(mut self, replace: R) -> Self {
         self.replacement_strategy = Box::new(replace);
+        self
+    }
+
+    // pub fn audit<A: Audit<C> + 'static>(mut self, audit: A) -> Self {
+    pub fn audit(mut self, audit: impl Audit<C> + 'static) -> Self {
+        self.audits.push(Arc::new(audit));
+        self
+    }
+
+    pub fn audits(mut self, audits: Vec<Arc<dyn Audit<C>>>) -> Self {
+        self.audits.extend(audits);
+        self
+    }
+
+    pub fn distance<D: Distance<C> + 'static>(mut self, distance: D) -> Self {
+        self.distance = Some(Arc::new(distance));
         self
     }
 
@@ -292,9 +313,9 @@ where
                     }
 
                     if let (Some(one), Some(two)) = (one.score(), two.score()) {
-                        return if pareto::dominance(one, two, &front_obj) {
+                        return if pareto::dominance(&one, &two, &front_obj) {
                             Ordering::Greater
-                        } else if pareto::dominance(two, one, &front_obj) {
+                        } else if pareto::dominance(&two, &one, &front_obj) {
                             Ordering::Less
                         } else {
                             Ordering::Equal
@@ -311,6 +332,8 @@ where
                 self.survivor_selector,
                 self.offspring_selector,
                 self.replacement_strategy,
+                self.audits,
+                self.distance,
                 self.alterers,
                 self.objective,
                 self.thread_pool,
@@ -327,7 +350,7 @@ where
         self.population = match &self.population {
             None => Some(match self.problem.as_ref() {
                 Some(problem) => Population::from((self.population_size, || {
-                    Phenotype::from((problem.encode(), 0))
+                    Phenotype::from((problem.encode(), 0, None))
                 })),
                 None => panic!("Codex not set"),
             }),

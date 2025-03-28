@@ -5,32 +5,41 @@ use std::sync::Arc;
 
 type Constraint<N> = Arc<dyn Fn(&N) -> bool>;
 
-pub struct TreeCodex<T: Clone> {
+pub struct TreeCodex<T: Clone, D = Vec<Tree<T>>> {
     depth: usize,
     num_trees: usize,
     store: Option<NodeStore<T>>,
     constraint: Option<Constraint<TreeNode<T>>>,
+    _phantom: std::marker::PhantomData<D>,
 }
 
 impl<T: Clone + Default> TreeCodex<T> {
-    pub fn single(depth: usize, store: impl Into<NodeStore<T>>) -> Self {
+    pub fn single(depth: usize, store: impl Into<NodeStore<T>>) -> TreeCodex<T, Tree<T>> {
         TreeCodex {
             depth,
             num_trees: 1,
             store: Some(store.into()),
             constraint: None,
+            _phantom: std::marker::PhantomData,
         }
     }
 
-    pub fn multi_root(depth: usize, num_trees: usize, store: impl Into<NodeStore<T>>) -> Self {
+    pub fn multi_root(
+        depth: usize,
+        num_trees: usize,
+        store: impl Into<NodeStore<T>>,
+    ) -> TreeCodex<T, Vec<Tree<T>>> {
         TreeCodex {
             depth,
             num_trees,
             store: Some(store.into()),
             constraint: None,
+            _phantom: std::marker::PhantomData,
         }
     }
+}
 
+impl<T: Clone, D> TreeCodex<T, D> {
     pub fn constraint<F>(mut self, constraint: F) -> Self
     where
         F: Fn(&TreeNode<T>) -> bool + 'static,
@@ -40,7 +49,7 @@ impl<T: Clone + Default> TreeCodex<T> {
     }
 }
 
-impl<T> Codex<TreeChromosome<T>, Vec<Tree<T>>> for TreeCodex<T>
+impl<T> Codex<TreeChromosome<T>, Vec<Tree<T>>> for TreeCodex<T, Vec<Tree<T>>>
 where
     T: Clone + PartialEq + Default,
 {
@@ -76,6 +85,39 @@ where
     }
 }
 
+impl<T> Codex<TreeChromosome<T>, Tree<T>> for TreeCodex<T, Tree<T>>
+where
+    T: Clone + PartialEq + Default,
+{
+    fn encode(&self) -> Genotype<TreeChromosome<T>> {
+        if let Some(store) = &self.store {
+            let new_chromosome = Tree::with_depth(self.depth, store)
+                .take_root()
+                .map(|root| vec![root])
+                .map(|tree| TreeChromosome::new(tree, Some(store.clone()), self.constraint.clone()))
+                .unwrap_or_else(|| TreeChromosome::new(vec![], None, None));
+
+            if let Some(constraint) = &self.constraint {
+                if !constraint(new_chromosome.root()) {
+                    panic!("TreeCodex.encode() - Root node does not meet constraint.");
+                }
+            }
+
+            return Genotype::new(vec![new_chromosome]);
+        }
+
+        Genotype::new(vec![])
+    }
+
+    fn decode(&self, genotype: &Genotype<TreeChromosome<T>>) -> Tree<T> {
+        genotype
+            .iter()
+            .next()
+            .map(|chromosome| Tree::new(chromosome.root().clone()))
+            .unwrap_or_else(|| Tree::default())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -93,7 +135,7 @@ mod tests {
         let codex = TreeCodex::single(3, store);
 
         let genotype = codex.encode();
-        let tree = codex.decode(&genotype).first().unwrap().clone();
+        let tree = codex.decode(&genotype);
 
         assert_eq!(tree.root().unwrap().height(), 3);
         assert!(tree.root().is_some());

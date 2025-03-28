@@ -1,48 +1,21 @@
 use super::TreeChromosome;
-use crate::{Factory, NodeStore, NodeType, TreeNode, node::Node};
-use radiate::{AlterResult, Gene, Mutate, random_provider};
+use radiate::{AlterResult, Mutate, random_provider};
 
-pub struct TreeMutator {
+pub struct HoistMutator {
     rate: f32,
 }
 
-impl TreeMutator {
+impl HoistMutator {
     pub fn new(rate: f32) -> Self {
-        TreeMutator { rate }
-    }
-
-    fn mutate_node<T>(node: &mut TreeNode<T>, store: &NodeStore<T>, rate: f32) -> usize
-    where
-        T: Clone + PartialEq + Default,
-    {
-        let mut count = 0;
-
-        if node.is_leaf() {
-            if random_provider::random::<f32>() < rate {
-                let leaf_value: TreeNode<T> = store.new_instance(NodeType::Leaf);
-                node.with_allele(leaf_value.allele());
-                count += 1;
-            }
-        } else {
-            if random_provider::random::<f32>() < rate {
-                let new_gate: TreeNode<T> = store.new_instance(node.node_type());
-
-                if new_gate.arity() == node.arity() {
-                    *node = node.with_allele(new_gate.allele());
-                    count += 1;
-                }
-            }
-
-            for child in node.children_mut().unwrap() {
-                count += TreeMutator::mutate_node(child, store, rate);
-            }
+        if !(0.0..=1.0).contains(&rate) {
+            panic!("rate must be between 0.0 and 1.0");
         }
 
-        count
+        HoistMutator { rate }
     }
 }
 
-impl<T> Mutate<TreeChromosome<T>> for TreeMutator
+impl<T> Mutate<TreeChromosome<T>> for HoistMutator
 where
     T: Clone + PartialEq + Default,
 {
@@ -50,13 +23,32 @@ where
         self.rate
     }
 
-    fn mutate_chromosome(&self, chromosome: &mut TreeChromosome<T>, rate: f32) -> AlterResult {
-        let store = chromosome.get_store();
-        if let Some(store) = store {
-            let mutations = TreeMutator::mutate_node(chromosome.root_mut(), &store, rate);
-            mutations.into()
-        } else {
-            0.into()
+    fn mutate_chromosome(&self, chromosome: &mut TreeChromosome<T>, _: f32) -> AlterResult {
+        let root = chromosome.root_mut();
+        let root_size = root.size();
+        let rand_index = random_provider::range(0..root_size);
+
+        if rand_index < 1 {
+            return 0.into();
         }
+
+        if let Some(rand_node) = root.get_mut(rand_index) {
+            if rand_node.is_leaf() {
+                return 0.into();
+            }
+
+            let child_idx = random_provider::range(0..rand_node.children().map_or(0, |c| c.len()));
+            let mut child = rand_node.detach(child_idx).unwrap();
+
+            let child_decendant_count = child.size();
+            let child_replacement = random_provider::range(0..child_decendant_count);
+            let child_replacement_node = child.get_mut(child_replacement).unwrap();
+
+            rand_node.add_child(child_replacement_node.clone());
+
+            return 1.into();
+        }
+
+        0.into()
     }
 }

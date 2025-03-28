@@ -1,6 +1,7 @@
 use super::TreeIterator;
 use crate::{Arity, NodeType, node::Node};
 use radiate::engines::genome::gene::{Gene, Valid};
+use std::fmt::Debug;
 
 #[derive(PartialEq)]
 pub struct TreeNode<T> {
@@ -53,6 +54,15 @@ impl<T> TreeNode<T> {
     pub fn attach(mut self, other: impl Into<TreeNode<T>>) -> Self {
         self.add_child(other);
         self
+    }
+
+    pub fn detach(&mut self, index: usize) -> Option<TreeNode<T>> {
+        if let Some(children) = self.children.as_mut() {
+            if index < children.len() {
+                return Some(children.remove(index));
+            }
+        }
+        None
     }
 
     pub fn children(&self) -> Option<&Vec<TreeNode<T>>> {
@@ -117,6 +127,10 @@ impl<T> Node for TreeNode<T> {
 
     fn value(&self) -> &Self::Value {
         &self.value
+    }
+
+    fn value_mut(&mut self) -> &mut Self::Value {
+        &mut self.value
     }
 
     fn node_type(&self) -> NodeType {
@@ -204,6 +218,37 @@ impl<T: Clone> Clone for TreeNode<T> {
             arity: self.arity,
             children: self.children.as_ref().map(|children| children.to_vec()),
         }
+    }
+}
+
+impl<T: Debug> Debug for TreeNode<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        fn pretty_print_lines<T: Debug>(
+            node: &TreeNode<T>,
+            prefix: &str,
+            is_last: bool,
+            result: &mut String,
+        ) {
+            let connector = if is_last { "└── " } else { "├── " };
+            let new_str_to_print = format!("{}{}{:?}\n", prefix, connector, node.value());
+            result.push_str(&new_str_to_print);
+
+            if let Some(children) = &node.children {
+                let len = children.len();
+                for (i, child) in children.iter().enumerate() {
+                    let is_last_child = i == len - 1;
+                    let new_prefix = if is_last {
+                        format!("{}    ", prefix)
+                    } else {
+                        format!("{}│   ", prefix)
+                    };
+                    pretty_print_lines(child, &new_prefix, is_last_child, result);
+                }
+            }
+        }
+        let mut result = String::new();
+        pretty_print_lines(self, "", true, &mut result);
+        write!(f, "{}", result)
     }
 }
 

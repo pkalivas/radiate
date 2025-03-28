@@ -26,14 +26,14 @@ where
     ) {
         let random_member = random_provider::range(0..population.len());
         let genotype = population[random_member].genotype();
+        let chromosomes = genotype
+            .chromosomes
+            .iter()
+            .map(|chromosomee| chromosomee.new_instance(None))
+            .collect::<Vec<GraphChromosome<T>>>();
 
-        population[replace_idx] = Phenotype::from((
-            genotype
-                .chromosomes
-                .iter()
-                .map(|chromosomee| chromosomee.new_instance(None))
-                .collect::<Vec<GraphChromosome<T>>>(),
-            generation,
-        ));
+        drop(genotype); // Drop the genotype to avoid holding onto the old instance.
+
+        population[replace_idx] = Phenotype::from((chromosomes, generation));
     }
 }

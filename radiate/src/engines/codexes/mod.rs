@@ -94,7 +94,10 @@ pub trait Codex<C: Chromosome, T> {
     /// decode it to a new instance of `T`.
     fn spawn(&self, num: usize) -> Vec<T> {
         (0..num)
-            .map(|_| self.decode(&self.encode()))
+            .map(|_| {
+                let genotype = self.encode();
+                self.decode(&genotype)
+            })
             .collect::<Vec<T>>()
     }
 
@@ -108,7 +111,7 @@ pub trait Codex<C: Chromosome, T> {
     /// Spawn a new instance of `Population<G, A>` from the `Codex`. This will encode `num` a new `Genotype`s
     fn spawn_population(&self, num: usize) -> Population<C> {
         (0..num)
-            .map(|_| Phenotype::from((self.encode(), 0)))
+            .map(|_| Phenotype::from((self.encode(), 0, None)))
             .collect::<Population<C>>()
     }
 }

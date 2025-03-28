@@ -120,6 +120,10 @@ impl<T> Node for GraphNode<T> {
         &self.value
     }
 
+    fn value_mut(&mut self) -> &mut Self::Value {
+        &mut self.value
+    }
+
     fn node_type(&self) -> NodeType {
         if let Some(node_type) = self.node_type {
             return node_type;

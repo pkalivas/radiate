@@ -5,7 +5,7 @@ const N_QUEENS: usize = 32;
 fn main() {
     random_provider::set_seed(500);
 
-    let codex = IntCodex::<i8>::new(1, N_QUEENS, 0..N_QUEENS as i8);
+    let codex = IntCodex::<i8, Vec<i8>>::vector(N_QUEENS, 0..N_QUEENS as i8);
 
     let engine = GeneticEngine::from_codex(codex)
         .minimizing()
@@ -13,8 +13,7 @@ fn main() {
         .offspring_selector(BoltzmannSelector::new(4.0))
         .crossover(MultiPointCrossover::new(0.75, 2))
         .mutator(UniformMutator::new(0.05))
-        .fitness_fn(|genotype: Vec<Vec<i8>>| {
-            let queens = &genotype[0];
+        .fitness_fn(|queens: Vec<i8>| {
             let mut score = 0;
 
             for i in 0..N_QUEENS {
@@ -39,7 +38,7 @@ fn main() {
 
     println!("\nResult Queens Board ({:.3?}):", result.timer.duration());
 
-    let board = &result.best[0];
+    let board = &result.best;
     for i in 0..N_QUEENS {
         for j in 0..N_QUEENS {
             if board[j] == i as i8 {

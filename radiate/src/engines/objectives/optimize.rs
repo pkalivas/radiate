@@ -7,13 +7,45 @@ pub enum Objective {
 }
 
 impl Objective {
+    pub fn cmp<T>(&self, a: &T, b: &T) -> std::cmp::Ordering
+    where
+        T: PartialOrd,
+    {
+        match self {
+            Objective::Single(opt) => {
+                if opt.is_better(a, b) {
+                    std::cmp::Ordering::Less
+                } else if opt.is_better(b, a) {
+                    std::cmp::Ordering::Greater
+                } else {
+                    std::cmp::Ordering::Equal
+                }
+            }
+            Objective::Multi(opts) => {
+                for &opt in opts {
+                    if opt.is_better(a, b) {
+                        return std::cmp::Ordering::Less;
+                    } else if opt.is_better(b, a) {
+                        return std::cmp::Ordering::Greater;
+                    }
+                }
+                std::cmp::Ordering::Equal
+            }
+        }
+    }
+
     pub fn sort<C: Chromosome>(&self, population: &mut Population<C>) {
         match self {
             Objective::Single(opt) => opt.sort(population),
             Objective::Multi(_) => population.sort_by(|a, b| {
-                let a = a.score().unwrap();
-                let b = b.score().unwrap();
-                self.dominance_cmp(&a.values, &b.values)
+                let one = a.score(); //.unwrap();
+                let two = b.score();
+
+                if one.is_none() || two.is_none() {
+                    return std::cmp::Ordering::Equal;
+                }
+
+                self.dominance_cmp(one.unwrap().as_ref(), two.unwrap().as_ref())
             }),
         }
     }

@@ -2,7 +2,7 @@ use radiate::*;
 
 fn main() {
     let target = "Hello, Radiate!";
-    let codex = CharCodex::new(1, target.len());
+    let codex = CharCodex::matrix(1, target.len());
 
     let engine = GeneticEngine::from_codex(codex)
         .offspring_selector(BoltzmannSelector::new(4_f32))

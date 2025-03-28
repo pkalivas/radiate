@@ -6,7 +6,9 @@ const OBJECTIVES: usize = 3;
 const K: usize = VARIABLES - OBJECTIVES + 1;
 
 fn main() {
-    let codex = FloatCodex::new(1, VARIABLES, 0_f32..1_f32).with_bounds(-100.0..100.0);
+    random_provider::set_seed(501);
+
+    let codex = FloatCodex::vector(VARIABLES, 0_f32..1_f32).with_bounds(-100.0..100.0);
 
     let engine = GeneticEngine::from_codex(codex)
         .num_threads(10)
@@ -18,7 +20,7 @@ fn main() {
             SimulatedBinaryCrossover::new(1_f32, 1.0),
             UniformMutator::new(0.1_f32),
         ))
-        .fitness_fn(|geno: Vec<Vec<f32>>| dtlz_1(geno.first().unwrap()))
+        .fitness_fn(|geno: Vec<f32>| dtlz_1(&geno))
         .build();
 
     let result = engine.run(|ctx| {
@@ -26,11 +28,12 @@ fn main() {
         ctx.index > 1000
     });
 
+    println!("{:?}", result.seconds());
     println!("{:?}", result.metrics);
     plot_front(&result.front);
 }
 
-fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {
+fn plot_front(front: &Front<Phenotype<FloatChromosome>, Score>) {
     let mut x = vec![];
     let mut y = vec![];
     let mut z = vec![];
