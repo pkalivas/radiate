@@ -75,7 +75,9 @@ where
     }
 
     pub(crate) fn set_species_id(&mut self, index: usize, species_id: u64) {
-        self.population[index].set_species_id(Some(species_id));
+        self.population[index]
+            .write()
+            .set_species_id(Some(species_id));
     }
 
     pub(crate) fn get_species(&self, idx: usize) -> &Species<C> {
@@ -86,9 +88,9 @@ where
         self.species.push(species);
     }
 
-    pub(crate) fn phenotype(&self, index: usize) -> &Phenotype<C> {
-        &self.population[index]
-    }
+    // pub(crate) fn phenotype(&self, index: usize) -> &Phenotype<C> {
+    //     &self.population[index]
+    // }
 
     pub(crate) fn species(&self) -> &Vec<Species<C>> {
         &self.species

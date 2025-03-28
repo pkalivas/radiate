@@ -61,8 +61,8 @@ pub trait Crossover<C: Chromosome> {
         let index_one = parent_indexes[0];
         let index_two = parent_indexes[1];
 
-        let mut geno_one = population[index_one].genotype().clone();
-        let mut geno_two = population[index_two].genotype().clone();
+        let mut geno_one = population[index_one].read().genotype().clone();
+        let mut geno_two = population[index_two].read().genotype().clone();
 
         let max_idx = std::cmp::min(geno_one.len(), geno_two.len());
         let chromosome_index = random_provider::range(0..max_idx);
@@ -73,10 +73,10 @@ pub trait Crossover<C: Chromosome> {
         let cross_result = self.cross_chromosomes(chrom_one, chrom_two, rate);
 
         if cross_result.count() > 0 {
-            let one_species_id = population[index_one].species_id();
-            let two_species_id = population[index_two].species_id();
-            population[index_one] = Phenotype::from((geno_one, generation, one_species_id));
-            population[index_two] = Phenotype::from((geno_two, generation, two_species_id));
+            let one_species_id = population[index_one].read().species_id();
+            let two_species_id = population[index_two].read().species_id();
+            population[index_one] = Phenotype::from((geno_one, generation, one_species_id)).into();
+            population[index_two] = Phenotype::from((geno_two, generation, two_species_id)).into();
         }
 
         result.merge(cross_result);

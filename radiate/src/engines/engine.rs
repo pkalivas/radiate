@@ -3,7 +3,7 @@ use super::context::EngineContext;
 use super::thread_pool::ThreadPool;
 use super::{
     Alter, Audit, Distance, GeneticEngineParams, MetricSet, Phenotype, Problem,
-    ReplacementStrategy, Species, random_provider, speciate,
+    ReplacementStrategy, Species, SyncCell, random_provider, speciate,
 };
 use crate::engines::builder::GeneticEngineBuilder;
 use crate::engines::domain::timer::Timer;
@@ -146,15 +146,29 @@ where
 
         let mut work_results = Vec::new();
         for idx in 0..handle.population.len() {
-            let individual = &mut handle.population[idx];
-            if individual.score().is_some() {
+            let score = handle
+                .population
+                .get(idx)
+                .map(|pheno| pheno.read().score().is_some())
+                .unwrap_or(false);
+            if score {
+                // If the individual already has a score, skip evaluation
+                // This prevents redundant evaluations and speeds up the process
                 continue;
             } else {
                 let problem = self.problem();
-                let geno = individual.take_genotype();
+                let phenotype = handle
+                    .population
+                    .get(idx)
+                    .map(|pheno| SyncCell::clone(pheno))
+                    .unwrap();
+                // let geno = individual.take_genotype();
                 let work = thread_pool.submit_with_result(move || {
-                    let score = problem.eval(&geno);
-                    (idx, score, geno)
+                    let mut writer = phenotype.write();
+                    let score = problem.eval(&writer.genotype());
+
+                    writer.set_score(Some(score));
+                    idx
                 });
 
                 work_results.push(work);
@@ -163,9 +177,10 @@ where
 
         let count = work_results.len() as f32;
         for work_result in work_results {
-            let (idx, score, genotype) = work_result.result();
-            handle.population[idx].set_score(Some(score));
-            handle.population[idx].set_genotype(genotype);
+            work_result.result();
+            // let (idx, score, genotype) = work_result.result();
+            // handle.population[idx].set_score(Some(score));
+            // handle.population[idx].set_genotype(genotype);
         }
 
         handle.upsert_operation(metric_names::EVALUATION, count, timer);
@@ -188,7 +203,8 @@ where
                 let mut found = false;
                 for j in 0..ctx.species.len() {
                     let species = ctx.get_species(j);
-                    let dist = distance.distance(ctx.phenotype(i).genotype(), species.mascot());
+                    let dist =
+                        distance.distance(ctx.population[i].read().genotype(), species.mascot());
                     distances.push(dist);
 
                     if dist < distance.threshold() {
@@ -199,13 +215,16 @@ where
                 }
 
                 if !found {
-                    let phenotype = ctx.phenotype(i);
+                    let mut phenotype = ctx.population[i].write();
                     let genotype = phenotype.genotype().clone();
                     let score = phenotype.score().unwrap();
                     let new_species = Species::new(genotype, score.clone(), ctx.index);
 
-                    ctx.set_species_id(i, new_species.id());
-                    ctx.add_species(new_species);
+                    phenotype.set_species_id(Some(new_species.id())); // Set the species ID for the new individual
+                    ctx.species.push(new_species); // Add the new species to the species list
+
+                    // ctx.set_species_id(i, new_species.id());
+                    // ctx.add_species(new_species);
                 }
             }
 
@@ -291,7 +310,7 @@ where
             let timer = Timer::new();
 
             let count = (species.score().as_f32() * count as f32).round() as usize;
-            let members = population.take(|pheno| pheno.species_id() == Some(species.id()));
+            let members = population.filter_drain(|pheno| pheno.species_id() == Some(species.id()));
 
             let mut selected = selector.select(&members, objective, count);
 
@@ -336,7 +355,7 @@ where
         let mut age_count = 0_f32;
         let mut invalid_count = 0_f32;
         for i in 0..population.len() {
-            let phenotype = &population[i];
+            let phenotype = population.get(i).map(|pheno| pheno.read()).unwrap();
 
             let mut removed = false;
             if phenotype.age(generation) > max_age {
@@ -351,6 +370,8 @@ where
                 let replacement = self.replace_strategy();
                 let problem = self.problem();
                 let encoder = Arc::new(move || problem.encode());
+
+                drop(phenotype); // Drop the read lock to avoid holding it while creating a new individual
 
                 replacement.replace(i, generation, population, encoder);
             }
@@ -406,14 +427,16 @@ where
             optimize.sort(&mut output.population);
         }
 
-        if let (Some(best), Some(current)) = (output.population[0].score(), &output.score) {
+        let current_best = output.population.get(0).unwrap().read();
+
+        if let (Some(best), Some(current)) = (current_best.score(), &output.score) {
             if optimize.is_better(best, current) {
                 output.score = Some(best.clone());
-                output.best = problem.decode(output.population[0].genotype());
+                output.best = problem.decode(current_best.genotype());
             }
         } else {
-            output.score = output.population[0].score().cloned();
-            output.best = problem.decode(output.population[0].genotype());
+            output.score = current_best.score().cloned();
+            output.best = problem.decode(current_best.genotype());
         }
 
         output.index += 1;
@@ -430,15 +453,15 @@ where
         if let Objective::Multi(_) = objective {
             let timer = Timer::new();
 
-            let new_individuals = output
-                .population
-                .iter()
-                .filter(|pheno| pheno.generation == output.index)
-                .collect::<Vec<&Phenotype<C>>>();
+            // let new_individuals = output
+            //     .population
+            //     .iter()
+            //     .filter(|pheno| pheno.generation == output.index)
+            //     .collect::<Vec<&Phenotype<C>>>();
 
-            let count = output.front.update_front(new_individuals.as_slice());
+            // let count = output.front.update_front(new_individuals.as_slice());
 
-            output.upsert_operation(metric_names::FRONT, count as f32, timer);
+            // output.upsert_operation(metric_names::FRONT, count as f32, timer);
         }
     }
 
@@ -495,7 +518,7 @@ where
 
         EngineContext {
             population: population.clone(),
-            best: self.problem().decode(population[0].genotype()),
+            best: self.problem().decode(population[0].read().genotype()),
             index: 0,
             timer: Timer::new(),
             metrics: MetricSet::new(),

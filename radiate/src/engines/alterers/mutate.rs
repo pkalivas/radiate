@@ -1,5 +1,5 @@
 use super::{AlterAction, AlterResult};
-use crate::{Chromosome, Gene, Genotype, Population, random_provider};
+use crate::{Chromosome, Gene, Genotype, Population, genotype, phenotype, random_provider};
 
 pub trait Mutate<C: Chromosome> {
     fn name(&self) -> &'static str {
@@ -22,13 +22,15 @@ pub trait Mutate<C: Chromosome> {
         let mut result = AlterResult::default();
 
         for phenotype in population.iter_mut() {
-            let genotype = phenotype.genotype_mut();
-
-            let mutate_result = self.mutate_genotype(genotype, rate);
+            let mutate_result = self.mutate_genotype(phenotype.write().genotype_mut(), rate);
 
             if mutate_result.count() > 0 {
-                phenotype.generation = generation;
-                phenotype.score = None;
+                let mut writer = phenotype.write();
+
+                writer.generation = generation;
+                writer.set_score(None);
+                // phenotype.generation = generation;
+                // phenotype.score = None;
             }
 
             result.merge(mutate_result);

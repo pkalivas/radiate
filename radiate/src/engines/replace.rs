@@ -30,7 +30,7 @@ impl<C: Chromosome> ReplacementStrategy<C> for EncodeReplace {
         population: &mut Population<C>,
         encoder: Arc<dyn Fn() -> Genotype<C>>,
     ) {
-        population[replace_idx] = Phenotype::from((encoder(), generation, None));
+        population[replace_idx] = Phenotype::from((encoder(), generation, None)).into();
     }
 }
 
@@ -49,7 +49,7 @@ impl<C: Chromosome> ReplacementStrategy<C> for PopulationSampleReplace {
         _: Arc<dyn Fn() -> Genotype<C>>,
     ) {
         let random_member = random_provider::range(0..population.len());
-        let new_phenotype = population[random_member].genotype().clone();
-        population[replace_idx] = Phenotype::from((new_phenotype, generation, None));
+        let new_phenotype = population[random_member].read().genotype().clone();
+        population[replace_idx] = Phenotype::from((new_phenotype, generation, None)).into();
     }
 }

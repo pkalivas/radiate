@@ -1,7 +1,100 @@
 use super::phenotype::Phenotype;
 use crate::Chromosome;
 use std::fmt::Debug;
-use std::ops::{Index, IndexMut};
+use std::ops::{Deref, DerefMut, Index, IndexMut};
+use std::sync::{Arc, RwLockReadGuard};
+use std::sync::{RwLock, RwLockWriteGuard};
+
+#[derive(Debug)]
+pub struct SyncCell<T> {
+    inner: Arc<RwLock<T>>,
+}
+
+impl<T> SyncCell<T> {
+    pub fn new(value: T) -> Self {
+        SyncCell {
+            inner: Arc::new(RwLock::new(value)),
+        }
+    }
+
+    pub fn clone(other: &SyncCell<T>) -> Self {
+        // This will create a new MemberCell with the same inner Phenotype.
+        // Note: This will not clone the inner Phenotype itself, but rather create a new reference to it.
+        SyncCell {
+            inner: Arc::clone(&other.inner),
+        }
+    }
+
+    pub fn into_inner(self) -> T {
+        // This will consume the MemberCell and return the inner Phenotype.
+        // Note: This will not drop the RwLock, so be cautious when using this.
+        Arc::try_unwrap(self.inner)
+            .ok()
+            .expect("Multiple references to SyncCell exist")
+            .into_inner()
+            .expect("RwLock poisoned")
+    }
+
+    pub fn read(&self) -> SyncCellGuard<T> {
+        let read_lock = self.inner.read().unwrap();
+        SyncCellGuard { inner: read_lock }
+    }
+
+    pub fn write(&self) -> SyncCellGuardMut<T> {
+        let write_lock = self.inner.write().unwrap();
+        SyncCellGuardMut { inner: write_lock }
+    }
+
+    pub fn set(&self, value: T) {
+        let mut write_lock = self.inner.write().unwrap();
+        *write_lock = value;
+    }
+}
+
+impl<T: Clone> Clone for SyncCell<T> {
+    fn clone(&self) -> Self {
+        let inner = self.inner.read().unwrap().clone();
+        SyncCell {
+            inner: Arc::new(RwLock::new(inner)),
+        }
+    }
+}
+
+impl<C: Chromosome> From<Phenotype<C>> for SyncCell<Phenotype<C>> {
+    fn from(individual: Phenotype<C>) -> Self {
+        SyncCell::new(individual)
+    }
+}
+
+pub struct SyncCellGuard<'a, T> {
+    inner: RwLockReadGuard<'a, T>,
+}
+
+impl<T> Deref for SyncCellGuard<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+pub struct SyncCellGuardMut<'a, T> {
+    inner: RwLockWriteGuard<'a, T>,
+}
+
+impl<T> Deref for SyncCellGuardMut<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<T> DerefMut for SyncCellGuardMut<'_, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 
 /// A `Population` is a collection of `Phenotype` instances. This struct is the core collection of individuals
 /// being evolved by the `GeneticEngine`. It can be thought of as a Vec of `Phenotype`s and
@@ -19,25 +112,32 @@ use std::ops::{Index, IndexMut};
 
 #[derive(Clone, Default)]
 pub struct Population<C: Chromosome> {
-    pub individuals: Vec<Phenotype<C>>,
+    pub individuals: Vec<SyncCell<Phenotype<C>>>,
     pub is_sorted: bool,
 }
 
 impl<C: Chromosome> Population<C> {
     /// Create a new instance of the Population with the given individuals.
     /// This will set the is_sorted flag to false.
-    pub fn new(individuals: Vec<Phenotype<C>>) -> Self {
+    pub fn new<M: Into<SyncCell<Phenotype<C>>>>(individuals: Vec<M>) -> Self {
         Population {
-            individuals,
+            individuals: individuals
+                .into_iter()
+                .map(|individual| individual.into())
+                .collect(),
             is_sorted: false,
         }
     }
 
-    pub fn iter(&self) -> std::slice::Iter<Phenotype<C>> {
+    pub fn get(&self, index: usize) -> Option<&SyncCell<Phenotype<C>>> {
+        self.individuals.get(index)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &SyncCell<Phenotype<C>>> {
         self.individuals.iter()
     }
 
-    pub fn iter_mut(&mut self) -> std::slice::IterMut<Phenotype<C>> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut SyncCell<Phenotype<C>>> {
         self.is_sorted = false;
         self.individuals.iter_mut()
     }
@@ -57,7 +157,7 @@ impl<C: Chromosome> Population<C> {
 
     /// Sort the individuals in the population using the given closure.
     /// This will set the is_sorted flag to true.
-    pub fn sort_by<F>(&mut self, f: F)
+    pub fn sort_by<F>(&mut self, mut f: F)
     where
         F: FnMut(&Phenotype<C>, &Phenotype<C>) -> std::cmp::Ordering,
     {
@@ -65,7 +165,15 @@ impl<C: Chromosome> Population<C> {
             return;
         }
 
-        self.individuals.sort_by(f);
+        self.individuals.sort_by(|a, b| {
+            let a_guard = a.read();
+            let b_guard = b.read();
+            // We need to unwrap the Phenotype from the SyncCellGuard to compare them.
+            let a_phenotype = a_guard.deref(); // Deref to get the inner Phenotype
+            let b_phenotype = b_guard.deref(); // Deref to get the inner Phenotype
+            // Call the provided closure to compare the two Phenotypes.
+            f(a_phenotype, b_phenotype)
+        });
         self.is_sorted = true;
     }
 
@@ -74,19 +182,20 @@ impl<C: Chromosome> Population<C> {
     }
 
     pub fn get_scores_ref(&self) -> Vec<&[f32]> {
-        self.individuals
-            .iter()
-            .filter_map(|i| i.score())
-            .map(|s| s.as_ref())
-            .collect::<Vec<_>>()
+        Vec::new()
+        // self.individuals
+        //     .iter()
+        //     .filter_map(|i| i.score())
+        //     .map(|s| s.as_ref())
+        //     .collect::<Vec<_>>()
     }
 
-    pub fn take<F: Fn(&Phenotype<C>) -> bool>(&mut self, filter: F) -> Self {
+    pub fn filter_drain<F: Fn(&Phenotype<C>) -> bool>(&mut self, filter: F) -> Self {
         let mut new_population = Vec::new();
         let mut old_population = Vec::new();
 
         for individual in self.individuals.drain(..) {
-            if filter(&individual) {
+            if filter(&individual.read()) {
                 new_population.push(individual);
             } else {
                 old_population.push(individual);
@@ -98,14 +207,8 @@ impl<C: Chromosome> Population<C> {
     }
 }
 
-impl<C: Chromosome> AsRef<[Phenotype<C>]> for Population<C> {
-    fn as_ref(&self) -> &[Phenotype<C>] {
-        &self.individuals
-    }
-}
-
 impl<C: Chromosome> Index<usize> for Population<C> {
-    type Output = Phenotype<C>;
+    type Output = SyncCell<Phenotype<C>>;
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.individuals[index]
@@ -120,17 +223,19 @@ impl<C: Chromosome> IndexMut<usize> for Population<C> {
 }
 
 impl<C: Chromosome> IntoIterator for Population<C> {
-    type Item = Phenotype<C>;
-    type IntoIter = std::vec::IntoIter<Phenotype<C>>;
-
+    type Item = SyncCell<Phenotype<C>>;
+    type IntoIter = std::vec::IntoIter<SyncCell<Phenotype<C>>>;
     fn into_iter(self) -> Self::IntoIter {
         self.individuals.into_iter()
     }
 }
 
-impl<C: Chromosome> FromIterator<Phenotype<C>> for Population<C> {
-    fn from_iter<I: IntoIterator<Item = Phenotype<C>>>(iter: I) -> Self {
-        let individuals = iter.into_iter().collect();
+impl<C: Chromosome, T: Into<SyncCell<Phenotype<C>>>> FromIterator<T> for Population<C> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let individuals = iter
+            .into_iter()
+            .map(|individual| individual.into())
+            .collect::<Vec<SyncCell<Phenotype<C>>>>();
         Population {
             individuals,
             is_sorted: false,
@@ -148,7 +253,7 @@ where
     fn from((size, f): (usize, F)) -> Self {
         let mut individuals = Vec::with_capacity(size);
         for _ in 0..size {
-            individuals.push(f());
+            individuals.push(SyncCell::new(f()));
         }
 
         Population {
@@ -199,8 +304,8 @@ mod test {
         assert_eq!(population.len(), 10);
 
         for individual in population.iter() {
-            assert_eq!(individual.genotype().len(), 1);
-            assert_eq!(individual.genotype().iter().next().unwrap().len(), 5);
+            assert_eq!(individual.read().genotype().len(), 1);
+            assert_eq!(individual.read().genotype().iter().next().unwrap().len(), 5);
         }
     }
 
@@ -212,12 +317,16 @@ mod test {
 
     #[test]
     fn test_sort_by() {
-        let mut population = Population::from((10, || {
+        let population = Population::from((10, || {
             Phenotype::from((vec![FloatChromosome::from((10, -10.0..10.0))], 0))
         }));
 
         for i in 0..population.len() {
-            population[i].set_score(Some(Score::from_usize(i)));
+            population
+                .get(i)
+                .unwrap()
+                .write()
+                .set_score(Some(Score::from_usize(i)));
         }
 
         let mut minimize_population = population.clone();
@@ -231,11 +340,23 @@ mod test {
 
         for i in 0..population.len() {
             assert_eq!(
-                minimize_population[i].score().as_ref().unwrap().as_usize(),
+                minimize_population
+                    .get(i)
+                    .unwrap()
+                    .read()
+                    .score()
+                    .unwrap()
+                    .as_usize(),
                 i
             );
             assert_eq!(
-                maximize_population[i].score().as_ref().unwrap().as_usize(),
+                maximize_population
+                    .get(i)
+                    .unwrap()
+                    .read()
+                    .score()
+                    .unwrap()
+                    .as_usize(),
                 population.len() - i - 1
             );
         }

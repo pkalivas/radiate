@@ -7,6 +7,7 @@ pub fn generate_mascots<C: Chromosome>(population: &Population<C>, species: &mut
     for (idx, species) in species.iter_mut().enumerate() {
         let species_members = population
             .iter()
+            .map(|pheno| pheno.read())
             .filter(|phenotype| phenotype.species_id() == Some(species.id()))
             .collect::<Vec<&Phenotype<C>>>();
 
