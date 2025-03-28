@@ -308,19 +308,19 @@ where
                 self.front_range,
                 self.objective.clone(),
                 move |one: &Phenotype<C>, two: &Phenotype<C>| {
-                    if one.score().is_none() || two.score().is_none() {
-                        return Ordering::Equal;
-                    }
+                    // if one.score().is_none() || two.score().is_none() {
+                    //     return Ordering::Equal;
+                    // }
 
-                    if let (Some(one), Some(two)) = (one.score(), two.score()) {
-                        return if pareto::dominance(one, two, &front_obj) {
-                            Ordering::Greater
-                        } else if pareto::dominance(two, one, &front_obj) {
-                            Ordering::Less
-                        } else {
-                            Ordering::Equal
-                        };
-                    }
+                    // if let (Some(one), Some(two)) = (one.score(), two.score()) {
+                    //     return if pareto::dominance(one, two, &front_obj) {
+                    //         Ordering::Greater
+                    //     } else if pareto::dominance(two, one, &front_obj) {
+                    //         Ordering::Less
+                    //     } else {
+                    //         Ordering::Equal
+                    //     };
+                    // }
 
                     Ordering::Equal
                 },

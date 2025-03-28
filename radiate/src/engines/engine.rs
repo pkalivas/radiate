@@ -146,15 +146,19 @@ where
 
         let mut work_results = Vec::new();
         for idx in 0..handle.population.len() {
-            let individual = &mut handle.population[idx];
+            let individual = &handle.population[idx];
             if individual.score().is_some() {
                 continue;
             } else {
                 let problem = self.problem();
-                let geno = individual.take_genotype();
+                let inner = individual.inner();
+
                 let work = thread_pool.submit_with_result(move || {
+                    let geno = inner.genotype.read().unwrap();
+
                     let score = problem.eval(&geno);
-                    (idx, score, geno)
+                    inner.score.write().unwrap().replace(score.clone());
+                    idx
                 });
 
                 work_results.push(work);
@@ -162,10 +166,11 @@ where
         }
 
         let count = work_results.len() as f32;
-        for work_result in work_results {
-            let (idx, score, genotype) = work_result.result();
-            handle.population[idx].set_score(Some(score));
-            handle.population[idx].set_genotype(genotype);
+        for res in work_results {
+            res.result();
+            // let (idx, score, genotype) = work_result.result();
+            // handle.population[idx].set_score(Some(score));
+            // handle.population[idx].set_genotype(genotype);
         }
 
         handle.upsert_operation(metric_names::EVALUATION, count, timer);
@@ -188,7 +193,7 @@ where
                 let mut found = false;
                 for j in 0..ctx.species.len() {
                     let species = ctx.get_species(j);
-                    let dist = distance.distance(ctx.phenotype(i).genotype(), species.mascot());
+                    let dist = distance.distance(&ctx.phenotype(i).genotype(), species.mascot());
                     distances.push(dist);
 
                     if dist < distance.threshold() {
@@ -201,8 +206,8 @@ where
                 if !found {
                     let phenotype = ctx.phenotype(i);
                     let genotype = phenotype.genotype().clone();
-                    let score = phenotype.score().unwrap();
-                    let new_species = Species::new(genotype, score.clone(), ctx.index);
+                    let score = phenotype.score().unwrap().score().clone();
+                    let new_species = Species::new(genotype, score, ctx.index);
 
                     ctx.set_species_id(i, new_species.id());
                     ctx.add_species(new_species);
@@ -406,14 +411,17 @@ where
             optimize.sort(&mut output.population);
         }
 
-        if let (Some(best), Some(current)) = (output.population[0].score(), &output.score) {
+        let best_individual = &output.population[0];
+        let beset_score = best_individual.score().unwrap();
+
+        if let (Some(best), Some(current)) = (beset_score.as_ref(), &output.score) {
             if optimize.is_better(best, current) {
                 output.score = Some(best.clone());
-                output.best = problem.decode(output.population[0].genotype());
+                output.best = problem.decode(&output.population[0].genotype());
             }
         } else {
-            output.score = output.population[0].score().cloned();
-            output.best = problem.decode(output.population[0].genotype());
+            output.score = Some(beset_score.clone());
+            output.best = problem.decode(&output.population[0].genotype());
         }
 
         output.index += 1;
@@ -430,15 +438,15 @@ where
         if let Objective::Multi(_) = objective {
             let timer = Timer::new();
 
-            let new_individuals = output
-                .population
-                .iter()
-                .filter(|pheno| pheno.generation == output.index)
-                .collect::<Vec<&Phenotype<C>>>();
+            // let new_individuals = output
+            //     .population
+            //     .iter()
+            //     .filter(|pheno| pheno.generation == output.index)
+            //     .collect::<Vec<&Phenotype<C>>>();
 
-            let count = output.front.update_front(new_individuals.as_slice());
+            // let count = output.front.update_front(new_individuals.as_slice());
 
-            output.upsert_operation(metric_names::FRONT, count as f32, timer);
+            // output.upsert_operation(metric_names::FRONT, count as f32, timer);
         }
     }
 
@@ -495,7 +503,7 @@ where
 
         EngineContext {
             population: population.clone(),
-            best: self.problem().decode(population[0].genotype()),
+            best: self.problem().decode(&population[0].genotype()),
             index: 0,
             timer: Timer::new(),
             metrics: MetricSet::new(),

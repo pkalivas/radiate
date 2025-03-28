@@ -31,12 +31,12 @@ impl<C: Chromosome> Audit<C> for MetricAudit {
         for i in 0..population.len() {
             let phenotype = &population[i];
 
-            if i > 0 && phenotype.genotype() == population[i - 1].genotype() {
+            if i > 0 && *phenotype.genotype() == *population[i - 1].genotype() {
                 equal_members += 1;
             }
 
             let age = phenotype.age(generation);
-            let score = phenotype.score().unwrap();
+            let score = phenotype.score().unwrap().score().clone();
             let phenotype_size = phenotype
                 .genotype()
                 .iter()

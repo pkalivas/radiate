@@ -1,7 +1,52 @@
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::iter::Sum;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Deref, Div, Mul, Sub};
+use std::sync::RwLockReadGuard;
+
+pub trait ScoreView {
+    fn score(&self) -> impl Deref<Target = Option<Score>>;
+}
+
+pub struct ScoreGuard<'a> {
+    score: RwLockReadGuard<'a, Option<Score>>,
+}
+
+impl<'a> ScoreGuard<'a> {
+    pub fn new(score: RwLockReadGuard<'a, Option<Score>>) -> Self {
+        ScoreGuard { score }
+    }
+
+    pub fn as_ref(&self) -> Option<&Score> {
+        self.score.as_ref()
+    }
+
+    pub fn is_some(&self) -> bool {
+        self.score.is_some()
+    }
+
+    pub fn score(&self) -> &Score {
+        // This will panic if the score is None, so be careful when using this method.
+        // It's better to use `as_ref()` to check if it exists first.
+        self.score.as_ref().unwrap()
+    }
+
+    pub fn values(&self) -> &[f32] {
+        // This will panic if the score is None, so be careful when using this method.
+        // It's better to use `as_ref()` to check if it exists first.
+        self.score.as_ref().unwrap().as_ref()
+    }
+}
+
+impl<'a> Deref for ScoreGuard<'a> {
+    type Target = Score;
+
+    fn deref(&self) -> &Self::Target {
+        // This will panic if the score is None, so be careful when using this method.
+        // It's better to use `as_ref()` to check if it exists first.
+        self.score.as_ref().unwrap()
+    }
+}
 
 /// A score is a value that can be used to compare the fitness of two individuals and represents
 /// the 'fitness' of an individual within the genetic algorithm.

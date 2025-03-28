@@ -22,13 +22,15 @@ pub trait Mutate<C: Chromosome> {
         let mut result = AlterResult::default();
 
         for phenotype in population.iter_mut() {
-            let genotype = phenotype.genotype_mut();
+            let inner = phenotype.inner();
 
-            let mutate_result = self.mutate_genotype(genotype, rate);
+            let mut genotype = inner.genotype.write().unwrap(); // Lock the genotype for mutation
+            let mutate_result = self.mutate_genotype(&mut genotype, rate);
 
             if mutate_result.count() > 0 {
-                phenotype.generation = generation;
-                phenotype.score = None;
+                // phenotype.generation = generation;
+                phenotype.set_generation(generation);
+                phenotype.set_score(None); // Reset the score since the genotype has changed
             }
 
             result.merge(mutate_result);

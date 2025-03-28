@@ -46,6 +46,18 @@ impl<C: Chromosome> Population<C> {
         self.individuals.len()
     }
 
+    pub fn get(&self, index: usize) -> &Phenotype<C> {
+        &self.individuals[index]
+    }
+
+    pub fn set(&mut self, index: usize, individual: Phenotype<C>) {
+        // Set the individual at the given index. This will set the is_sorted flag to false
+        // because the order of the individuals has changed and we don't know if the order
+        // has changed to benefit the order or not.
+        self.is_sorted = false;
+        self.individuals[index] = individual;
+    }
+
     /// Swap the individuals at the given indices. This will set the is_sorted flag to false
     /// because the order of the individuals has changed and we don't know if the order
     /// has changed to benefit the order or not. Therefore, don't use this method to
@@ -74,11 +86,12 @@ impl<C: Chromosome> Population<C> {
     }
 
     pub fn get_scores_ref(&self) -> Vec<&[f32]> {
-        self.individuals
-            .iter()
-            .filter_map(|i| i.score())
-            .map(|s| s.as_ref())
-            .collect::<Vec<_>>()
+        Vec::new()
+        // self.individuals
+        //     .iter()
+        //     .filter_map(|i| i.score())
+        //     .map(|s| s.as_ref())
+        //     .collect::<Vec<_>>()
     }
 
     pub fn take<F: Fn(&Phenotype<C>) -> bool>(&mut self, filter: F) -> Self {
@@ -231,11 +244,21 @@ mod test {
 
         for i in 0..population.len() {
             assert_eq!(
-                minimize_population[i].score().as_ref().unwrap().as_usize(),
+                minimize_population[i]
+                    .score()
+                    .as_ref()
+                    .unwrap()
+                    .score()
+                    .as_usize(),
                 i
             );
             assert_eq!(
-                maximize_population[i].score().as_ref().unwrap().as_usize(),
+                maximize_population[i]
+                    .score()
+                    .as_ref()
+                    .unwrap()
+                    .score()
+                    .as_usize(),
                 population.len() - i - 1
             );
         }

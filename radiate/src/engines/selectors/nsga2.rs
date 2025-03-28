@@ -29,37 +29,40 @@ impl<C: Chromosome> Select<C> for NSGA2Selector {
         objective: &Objective,
         count: usize,
     ) -> Population<C> {
-        let scores = population
-            .iter()
-            .filter_map(|individual| individual.score())
-            .map(|score| score.as_ref())
-            .collect::<Vec<&[f32]>>();
+        unimplemented!()
+        // let scores = population
+        //     .iter()
+        //     .map(|individual| individual.score())
+        //     .filter(|score| score.is_some())
+        //     .map(|score| score.score().clone()) // Assuming score() returns an Option<Score>
+        //     .map(|score| &score.values) // Filter out None scores
+        //     .collect::<Vec<&[f32]>>();
 
-        let ranks = pareto::rank(&scores, objective);
-        let distances = pareto::crowding_distance(&scores, objective);
+        // let ranks = pareto::rank(&scores, objective);
+        // let distances = pareto::crowding_distance(&scores, objective);
 
-        let mut indices = (0..population.len()).collect::<Vec<usize>>();
+        // let mut indices = (0..population.len()).collect::<Vec<usize>>();
 
-        // This is commonly called "non-dominated sorting" in the NSGA-II algorithm.
-        indices.sort_by(|&a, &b| {
-            let a_rank = ranks[a];
-            let b_rank = ranks[b];
-            let a_distance = distances[a];
-            let b_distance = distances[b];
+        // // This is commonly called "non-dominated sorting" in the NSGA-II algorithm.
+        // indices.sort_by(|&a, &b| {
+        //     let a_rank = ranks[a];
+        //     let b_rank = ranks[b];
+        //     let a_distance = distances[a];
+        //     let b_distance = distances[b];
 
-            if a_rank < b_rank || (a_rank == b_rank && a_distance > b_distance) {
-                std::cmp::Ordering::Less
-            } else if b_rank < a_rank || (b_rank == a_rank && b_distance > a_distance) {
-                std::cmp::Ordering::Greater
-            } else {
-                std::cmp::Ordering::Equal
-            }
-        });
+        //     if a_rank < b_rank || (a_rank == b_rank && a_distance > b_distance) {
+        //         std::cmp::Ordering::Less
+        //     } else if b_rank < a_rank || (b_rank == a_rank && b_distance > a_distance) {
+        //         std::cmp::Ordering::Greater
+        //     } else {
+        //         std::cmp::Ordering::Equal
+        //     }
+        // });
 
-        indices
-            .iter()
-            .take(count)
-            .map(|&i| population[i].clone())
-            .collect::<Population<C>>()
+        // indices
+        //     .iter()
+        //     .take(count)
+        //     .map(|&i| population[i].clone())
+        //     .collect::<Population<C>>()
     }
 }

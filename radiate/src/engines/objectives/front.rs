@@ -1,6 +1,8 @@
 use crate::objectives::{Objective, pareto};
 use std::{cmp::Ordering, ops::Range, sync::Arc};
 
+use super::{Score, ScoreView};
+
 /// A front is a collection of scores that are non-dominated with respect to each other.
 /// This is useful for multi-objective optimization problems where the goal is to find
 /// the best solutions that are not dominated by any other solution.
@@ -8,7 +10,7 @@ use std::{cmp::Ordering, ops::Range, sync::Arc};
 #[derive(Clone)]
 pub struct Front<T>
 where
-    T: PartialEq + Clone + AsRef<[f32]>,
+    T: PartialEq + Clone + ScoreView,
 {
     values: Vec<Arc<T>>,
     ord: Arc<dyn Fn(&T, &T) -> Ordering>,
@@ -18,7 +20,7 @@ where
 
 impl<T> Front<T>
 where
-    T: PartialEq + Clone + AsRef<[f32]>,
+    T: PartialEq + Clone + ScoreView,
 {
     pub fn new<F>(range: Range<usize>, objective: Objective, comp: F) -> Self
     where
@@ -63,7 +65,7 @@ where
             if (self.ord)(value, existing_val) == Ordering::Greater {
                 to_remove.push(Arc::clone(existing_val));
             } else if (self.ord)(existing_val, value) == Ordering::Greater
-                || (*(*existing_val)).as_ref() == value.as_ref()
+                || (*(*existing_val)) == *value
             {
                 is_dominated = true;
                 remove_duplicates = true;
@@ -85,21 +87,31 @@ where
     }
 
     fn filter(&mut self) {
-        let values = self
-            .values
-            .iter()
-            .map(|s| (*(*s).as_ref()).as_ref())
-            .collect::<Vec<_>>();
-        let crowding_distances = pareto::crowding_distance(&values, &self.objective);
+        // let values = self
+        //     .values
+        //     .iter()
+        //     .filter_map(|value| {
+        //         if let Some(score) = (&*value.score()).as_ref() {
+        //             // Check if the score is valid and can be used for crowding distance calculation
+        //             // This assumes that the score implements a method to return its values as a slice
+        //             Some(score.values.as_slice())
+        //         } else {
+        //             None
+        //         }
+        //     })
+        //     // .map(|s| (*(*s).as_ref()).as_ref())
+        //     .collect::<Vec<_>>()
+        //     .as_slice();
+        // let crowding_distances = pareto::crowding_distance(values, &self.objective);
 
-        let mut enumerated = crowding_distances.iter().enumerate().collect::<Vec<_>>();
+        // let mut enumerated = crowding_distances.iter().enumerate().collect::<Vec<_>>();
 
-        enumerated.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap_or(Ordering::Equal));
+        // enumerated.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap_or(Ordering::Equal));
 
-        self.values = enumerated
-            .iter()
-            .take(self.range.end)
-            .map(|(i, _)| Arc::clone(&self.values[*i]))
-            .collect::<Vec<Arc<T>>>();
+        // self.values = enumerated
+        //     .iter()
+        //     .take(self.range.end)
+        //     .map(|(i, _)| Arc::clone(&self.values[*i]))
+        //     .collect::<Vec<Arc<T>>>();
     }
 }
