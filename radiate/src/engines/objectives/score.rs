@@ -2,6 +2,62 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::iter::Sum;
 use std::ops::{Add, Div, Mul, Sub};
+use std::sync::Arc;
+
+pub trait Scored {
+    fn as_f32(&self) -> f32;
+    fn values(&self) -> &[f32];
+    fn as_usize(&self) -> usize {
+        self.as_f32() as usize
+    }
+    fn score(&self) -> Option<&Score>;
+    fn score_value(&self) -> Option<f32> {
+        self.score().map(|s| s.as_f32())
+    }
+}
+
+impl Scored for Option<&Score> {
+    fn as_f32(&self) -> f32 {
+        match self {
+            Some(score) => score.as_f32(),
+            None => f32::NAN,
+        }
+    }
+
+    fn values(&self) -> &[f32] {
+        match self {
+            Some(score) => &score.values,
+            None => &[],
+        }
+    }
+
+    fn score(&self) -> Option<&Score> {
+        match self {
+            Some(score) => Some(score),
+            None => None,
+        }
+    }
+}
+
+impl Scored for Option<Score> {
+    fn as_f32(&self) -> f32 {
+        match self {
+            Some(score) => score.as_f32(),
+            None => f32::NAN,
+        }
+    }
+
+    fn values(&self) -> &[f32] {
+        match self {
+            Some(score) => &score.values,
+            None => &[],
+        }
+    }
+
+    fn score(&self) -> Option<&Score> {
+        self.as_ref()
+    }
+}
 
 /// A score is a value that can be used to compare the fitness of two individuals and represents
 /// the 'fitness' of an individual within the genetic algorithm.
@@ -13,7 +69,7 @@ use std::ops::{Add, Div, Mul, Sub};
 /// fitness values to be returned from the fitness function.
 #[derive(Clone, PartialEq, Default)]
 pub struct Score {
-    pub values: Vec<f32>,
+    pub values: Arc<[f32]>,
 }
 
 impl Score {
@@ -36,7 +92,17 @@ impl Score {
     }
 
     pub fn from_vec(values: Vec<f32>) -> Self {
-        Score { values }
+        // Check for NaN values in the input vector
+        for value in &values {
+            if value.is_nan() {
+                panic!("Score value cannot be NaN")
+            }
+        }
+
+        // Convert the Vec<f32> into an Arc<[f32]> for efficient sharing
+        Score {
+            values: Arc::from(values),
+        }
     }
 
     pub fn from_f32(value: f32) -> Self {
@@ -45,25 +111,28 @@ impl Score {
         }
 
         Score {
-            values: vec![value],
+            values: Arc::from(vec![value]),
         }
     }
 
     pub fn from_int(value: i32) -> Self {
         Score {
-            values: vec![value as f32],
+            values: Arc::from(vec![value as f32]),
         }
     }
 
     pub fn from_usize(value: usize) -> Self {
         Score {
-            values: vec![value as f32],
+            values: Arc::from(vec![value as f32]),
         }
     }
 
     pub fn from_string(value: &str) -> Self {
         Score {
-            values: vec![value.parse::<f32>().unwrap()],
+            values: Arc::from(
+                // Attempt to parse the string into a f32, if it fails panic
+                vec![value.parse::<f32>().expect("Failed to parse string to f32")],
+            ),
         }
     }
 
@@ -104,9 +173,13 @@ impl Debug for Score {
 
 impl Hash for Score {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        let mut hash = 0;
-        for value in &self.values {
-            hash ^= value.to_bits();
+        let mut hash: usize = 0;
+
+        for value in self.values.iter() {
+            // Combine the hash of each value in the vector
+            // This is a simple way to create a unique hash for the Score
+            let value_hash = value.to_bits(); // Convert f32 to bits for hashing
+            hash = hash.wrapping_add(value_hash as usize);
         }
 
         hash.hash(state);
@@ -328,7 +401,10 @@ impl Sum for Score {
             }
         }
 
-        Score { values }
+        Score { values:
+            // Convert the vector into an Arc<[f32]> for efficient sharing
+            Arc::from(values),
+        }
     }
 }
 
@@ -346,6 +422,9 @@ impl<'a> Sum<&'a Score> for Score {
             }
         }
 
-        Score { values }
+        Score { values:
+            // Convert the vector into an Arc<[f32]> for efficient sharing
+            Arc::from(values),
+        }
     }
 }

@@ -34,7 +34,7 @@ where
     pub timer: Timer,
     pub metrics: MetricSet,
     pub score: Option<Score>,
-    pub front: Front<Phenotype<C>>,
+    pub front: Front<Phenotype<C>, Score>,
     pub species: Vec<Species<C>>,
 }
 
@@ -84,10 +84,6 @@ where
 
     pub(crate) fn add_species(&mut self, species: Species<C>) {
         self.species.push(species);
-    }
-
-    pub(crate) fn phenotype(&self, index: usize) -> &Phenotype<C> {
-        &self.population[index]
     }
 
     pub(crate) fn species(&self) -> &Vec<Species<C>> {

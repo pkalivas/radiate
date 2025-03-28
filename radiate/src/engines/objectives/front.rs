@@ -1,34 +1,55 @@
-use crate::objectives::{Objective, pareto};
+use crate::{
+    Chromosome, Phenotype,
+    objectives::{Objective, pareto},
+};
 use std::{cmp::Ordering, ops::Range, sync::Arc};
+
+use super::Score;
+
+pub trait FrontValue<T: AsRef<[f32]>> {
+    fn as_values(&self) -> T;
+}
+
+impl<C: Chromosome> FrontValue<Score> for Phenotype<C> {
+    fn as_values(&self) -> Score {
+        let guard = self.score(); // keeps the lock alive
+        guard.unwrap()
+        // and Score has a method values() that returns &[f32]
+    }
+}
 
 /// A front is a collection of scores that are non-dominated with respect to each other.
 /// This is useful for multi-objective optimization problems where the goal is to find
 /// the best solutions that are not dominated by any other solution.
 /// This results in what is called the Pareto front.
 #[derive(Clone)]
-pub struct Front<T>
+pub struct Front<T, K>
 where
-    T: PartialEq + Clone + AsRef<[f32]>,
+    T: PartialEq + Clone + FrontValue<K>,
+    K: AsRef<[f32]>,
 {
     values: Vec<Arc<T>>,
-    ord: Arc<dyn Fn(&T, &T) -> Ordering>,
+    ord: Arc<dyn Fn(&T, &T) -> Ordering + Send + Sync>,
     range: Range<usize>,
     objective: Objective,
+    __marker: std::marker::PhantomData<K>,
 }
 
-impl<T> Front<T>
+impl<T, K> Front<T, K>
 where
-    T: PartialEq + Clone + AsRef<[f32]>,
+    T: PartialEq + Clone + FrontValue<K>,
+    K: AsRef<[f32]>,
 {
     pub fn new<F>(range: Range<usize>, objective: Objective, comp: F) -> Self
     where
-        F: Fn(&T, &T) -> Ordering + 'static,
+        F: Fn(&T, &T) -> Ordering + Send + Sync + 'static,
     {
         Front {
             values: Vec::new(),
             range,
             objective,
             ord: Arc::new(comp),
+            __marker: std::marker::PhantomData,
         }
     }
 
@@ -54,25 +75,50 @@ where
         count
     }
 
+    pub fn dominates(&self, value: &T) -> (bool, Vec<Arc<T>>) {
+        let mut to_remove = Vec::new();
+        for existing_val in self.values.iter() {
+            if (self.ord)(existing_val.as_ref(), value) == Ordering::Greater {
+                // If an existing value dominates the new value, return false
+                return (false, to_remove);
+            } else if (self.ord)(value, existing_val.as_ref()) == Ordering::Greater {
+                // If the new value dominates an existing value, continue checking
+                to_remove.push(Arc::clone(existing_val));
+                continue;
+            } else if value == existing_val.as_ref() {
+                // If they are equal, we consider it dominated
+                return (false, to_remove);
+            }
+        }
+
+        (true, to_remove)
+    }
+
+    pub fn clean(&mut self, new_values: Vec<&T>, to_remove: &[Arc<T>]) {
+        self.values.retain(|x| !to_remove.contains(x));
+
+        for new_val in new_values {
+            self.values.push(Arc::new(new_val.clone()));
+        }
+
+        if self.values.len() > self.range.end {
+            self.filter();
+        }
+    }
+
     pub fn add(&mut self, value: &T) -> bool {
         let mut to_remove = Vec::new();
         let mut is_dominated = false;
-        let mut remove_duplicates = false;
 
         for existing_val in self.values.iter() {
             if (self.ord)(value, existing_val) == Ordering::Greater {
                 to_remove.push(Arc::clone(existing_val));
             } else if (self.ord)(existing_val, value) == Ordering::Greater
-                || (*(*existing_val)).as_ref() == value.as_ref()
+                || value == existing_val.as_ref()
             {
                 is_dominated = true;
-                remove_duplicates = true;
                 break;
             }
-        }
-
-        if remove_duplicates {
-            self.values.retain(|x| !to_remove.contains(x));
         }
 
         if !is_dominated {
@@ -88,7 +134,7 @@ where
         let values = self
             .values
             .iter()
-            .map(|s| (*(*s).as_ref()).as_ref())
+            .map(|s| (*(*s).as_ref()).as_values())
             .collect::<Vec<_>>();
         let crowding_distances = pareto::crowding_distance(&values, &self.objective);
 

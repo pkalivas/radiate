@@ -59,7 +59,7 @@ pub fn fitness_share<C: Chromosome>(
 
         let mut best_score = members
             .iter()
-            .map(|member| member.score().unwrap().clone())
+            .filter_map(|member| member.score())
             .collect::<Vec<Score>>();
 
         best_score.sort_by(|a, b| objective.cmp(a, b));
