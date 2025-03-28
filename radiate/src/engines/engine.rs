@@ -1,16 +1,15 @@
 use super::codexes::Codex;
 use super::context::EngineContext;
 use super::sync::SyncCell;
-use super::thread_pool::{ThreadPool, WaitGroup};
+use super::thread_pool::WaitGroup;
 use super::{
-    Alter, Audit, Distance, GeneticEngineParams, MetricSet, Phenotype, Problem,
-    ReplacementStrategy, Species, random_provider, speciate,
+    GeneticEngineParams, MetricSet, Phenotype, Problem, Species, random_provider, speciate,
 };
 use crate::engines::builder::GeneticEngineBuilder;
 use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
 use crate::objectives::Objective;
-use crate::{Chromosome, Metric, Select, Valid, metric_names};
+use crate::{Chromosome, Metric, Valid, metric_names};
 use std::sync::Arc;
 
 /// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
@@ -88,7 +87,7 @@ where
     /// **Note** with this method, the `Codex` is supplied to the `GeneticEngineParams` and thus
     /// the `GeneticEngineParams` also will need a `FitnessFn` to be supplied before building.
     pub fn from_codex(codex: impl Codex<C, T> + 'static) -> GeneticEngineBuilder<C, T> {
-        GeneticEngineBuilder::new().codex(codex)
+        GeneticEngineBuilder::default().codex(codex)
     }
 
     /// Initializes a `GeneticEngineParams` using the provided problem, which defines the fitness function
@@ -100,7 +99,7 @@ where
     /// Similar to the `from_codex` method, this is a convenience method that allows users
     /// to create a `GeneticEngineParams` instance.
     pub fn from_problem(problem: impl Problem<C, T> + 'static) -> GeneticEngineBuilder<C, T> {
-        GeneticEngineBuilder::new().problem(problem)
+        GeneticEngineBuilder::default().problem(problem)
     }
 
     /// Executes the genetic algorithm. The algorithm continues until a specified
@@ -113,23 +112,40 @@ where
         let mut ctx = self.start();
 
         loop {
-            self.evaluate(&mut ctx);
-            self.speciate(&mut ctx);
+            // self.evaluate(&mut ctx);
+            // self.speciate(&mut ctx);
 
-            let survivors = self.select_survivors(&mut ctx);
-            let offspring = self.create_offspring(&mut ctx);
+            // let survivors = self.select_survivors(&mut ctx);
+            // let offspring = self.create_offspring(&mut ctx);
 
-            self.recombine(&mut ctx, survivors, offspring);
+            // self.recombine(&mut ctx, survivors, offspring);
 
-            self.filter(&mut ctx);
-            self.evaluate(&mut ctx);
-            self.update_front(&mut ctx);
-            self.audit(&mut ctx);
+            // self.filter(&mut ctx);
+            // self.evaluate(&mut ctx);
+            // self.update_front(&mut ctx);
+            // self.audit(&mut ctx);
+
+            self.next(&mut ctx);
 
             if limit(&ctx) {
                 break self.stop(&mut ctx);
             }
         }
+    }
+
+    pub fn next(&self, mut ctx: &mut EngineContext<C, T>) {
+        self.evaluate(&mut ctx);
+        self.speciate(&mut ctx);
+
+        let survivors = self.select_survivors(&mut ctx);
+        let offspring = self.create_offspring(&mut ctx);
+
+        self.recombine(&mut ctx, survivors, offspring);
+
+        self.filter(&mut ctx);
+        self.evaluate(&mut ctx);
+        self.update_front(&mut ctx);
+        self.audit(&mut ctx);
     }
 
     /// Evaluates the fitness of each individual in the population using the fitness function
@@ -141,8 +157,8 @@ where
     /// It will also only evaluate individuals that have not yet been scored, which saves time
     /// by avoiding redundant evaluations.
     fn evaluate(&self, handle: &mut EngineContext<C, T>) {
-        let objective = self.objective();
-        let thread_pool = self.thread_pool();
+        let objective = self.params.objective();
+        let thread_pool = self.params.thread_pool();
         let timer = Timer::new();
         let wg = WaitGroup::new();
 
@@ -150,7 +166,7 @@ where
             if pheno.score().is_some() {
                 continue;
             } else {
-                let problem = self.problem();
+                let problem = self.params.problem();
                 let mut member = Phenotype::clone(pheno);
 
                 thread_pool.group_submit(&wg, move || {
@@ -168,8 +184,8 @@ where
 
     /// Speciates the population into species based on the genetic distance between individuals.
     fn speciate(&self, ctx: &mut EngineContext<C, T>) {
-        let distance = self.distance();
-        let objective = self.objective();
+        let distance = self.params.distance();
+        let objective = self.params.objective();
 
         if let Some(distance) = distance {
             let timer = Timer::new();
@@ -225,9 +241,9 @@ where
     ///
     /// This method returns a new population containing only the selected survivors.
     fn select_survivors(&self, ctx: &mut EngineContext<C, T>) -> Population<C> {
-        let selector = self.survivor_selector();
-        let count = self.survivor_count();
-        let objective = self.objective();
+        let selector = self.params.survivor_selector();
+        let count = self.params.survivor_count();
+        let objective = self.params.objective();
 
         let timer = Timer::new();
         let result = selector.select(&ctx.population, objective, count);
@@ -252,10 +268,10 @@ where
     /// which allows the genetic algorithm explore new solutions in the problem space and (hopefully)
     /// avoid getting stuck in local minima.
     fn create_offspring(&self, ctx: &mut EngineContext<C, T>) -> Population<C> {
-        let selector = self.offspring_selector();
-        let count = self.offspring_count();
-        let objective = self.objective();
-        let alters = self.alters();
+        let selector = self.params.offspring_selector();
+        let count = self.params.offspring_count();
+        let objective = self.params.objective();
+        let alters = self.params.alters();
 
         if ctx.species.is_empty() || random_provider::random::<f32>() < 0.01 {
             let timer = Timer::new();
@@ -320,7 +336,7 @@ where
     /// is `FilterStrategy::PopulationSample`, then a new individual is created by randomly selecting
     /// an individual from the population.
     fn filter(&self, ctx: &mut EngineContext<C, T>) {
-        let max_age = self.max_age();
+        let max_age = self.params.max_age();
 
         let generation = ctx.index;
         let population = &mut ctx.population;
@@ -341,8 +357,8 @@ where
             }
 
             if removed {
-                let replacement = self.replace_strategy();
-                let problem = self.problem();
+                let replacement = self.params.replacement_strategy();
+                let problem = self.params.problem();
                 let encoder = Arc::new(move || problem.encode());
 
                 replacement.replace(i, generation, population, encoder);
@@ -381,9 +397,9 @@ where
     /// and calculating various metrics such as the age of individuals, the score of individuals, and the
     /// number of unique scores in the population. This method is called at the end of each generation.
     fn audit(&self, output: &mut EngineContext<C, T>) {
-        let audits = self.audits();
-        let problem = self.problem();
-        let optimize = self.objective();
+        let audits = self.params.audits();
+        let problem = self.params.problem();
+        let optimize = self.params.objective();
 
         let audit_metrics = audits
             .iter()
@@ -420,8 +436,8 @@ where
     /// The front is updated in a separate thread to avoid blocking the main thread while the front is being calculated.
     /// This can significantly speed up the calculation of the front for large populations.
     fn update_front(&self, ctx: &mut EngineContext<C, T>) {
-        let objective = self.objective();
-        let thread_pool = self.thread_pool();
+        let objective = self.params.objective();
+        let thread_pool = self.params.thread_pool();
 
         if let Objective::Multi(_) = objective {
             let timer = Timer::new();
@@ -474,60 +490,12 @@ where
         }
     }
 
-    fn survivor_selector(&self) -> &Box<dyn Select<C>> {
-        self.params.survivor_selector()
-    }
-
-    fn offspring_selector(&self) -> &Box<dyn Select<C>> {
-        self.params.offspring_selector()
-    }
-
-    fn alters(&self) -> &[Box<dyn Alter<C>>] {
-        self.params.alters()
-    }
-
-    fn problem(&self) -> Arc<dyn Problem<C, T>> {
-        self.params.problem()
-    }
-
-    fn objective(&self) -> &Objective {
-        self.params.objective()
-    }
-
-    fn survivor_count(&self) -> usize {
-        self.params.survivor_count()
-    }
-
-    fn offspring_count(&self) -> usize {
-        self.params.offspring_count()
-    }
-
-    fn max_age(&self) -> usize {
-        self.params.max_age()
-    }
-
-    fn thread_pool(&self) -> &ThreadPool {
-        self.params.thread_pool()
-    }
-
-    fn distance(&self) -> Option<Arc<dyn Distance<C>>> {
-        self.params.distance()
-    }
-
-    fn audits(&self) -> &[Arc<dyn Audit<C>>] {
-        self.params.audits()
-    }
-
-    fn replace_strategy(&self) -> &Box<dyn ReplacementStrategy<C>> {
-        self.params.replacement_strategy()
-    }
-
-    fn start(&self) -> EngineContext<C, T> {
+    pub(super) fn start(&self) -> EngineContext<C, T> {
         let population = self.params.population().clone();
 
         EngineContext {
             population: population.clone(),
-            best: self.problem().decode(&population[0].genotype()),
+            best: self.params.problem().decode(&population[0].genotype()),
             index: 0,
             timer: Timer::new(),
             metrics: MetricSet::new(),
@@ -540,5 +508,73 @@ where
     fn stop(&self, output: &mut EngineContext<C, T>) -> EngineContext<C, T> {
         output.timer.stop();
         output.clone()
+    }
+}
+
+impl<C, T> Default for GeneticEngine<C, T>
+where
+    C: Chromosome,
+    T: Clone + Send,
+{
+    fn default() -> Self {
+        GeneticEngineBuilder::<C, T>::default().build()
+    }
+}
+
+#[cfg(test)]
+mod engine_tests {
+    use crate::{EngineIter, GeneticEngine, IntCodex};
+
+    #[test]
+    fn engine_can_minimize() {
+        let codex = IntCodex::vector(5, 0..100);
+
+        let engine = GeneticEngine::from_codex(codex)
+            .minimizing()
+            .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
+            .build();
+
+        for epoch in engine.iter().take(10) {
+            println!("{:?}", epoch);
+        }
+
+        // let result = engine.run(|ctx| ctx.score().as_i32() == 0);
+
+        // let best = result.best;
+        // assert_eq!(best.iter().sum::<i32>(), 0);
+    }
+
+    #[test]
+    fn engine_can_maximize() {
+        let codex = IntCodex::vector(5, 0..101);
+
+        let engine = GeneticEngine::from_codex(codex)
+            .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
+            .build();
+
+        let result = engine.run(|ctx| ctx.score().as_i32() == 500);
+
+        assert_eq!(result.best.iter().sum::<i32>(), 500);
+    }
+
+    #[test]
+    fn engine_evolves_towards_target() {
+        let target = [1, 2, 3, 4, 5];
+        let codex = IntCodex::vector(target.len(), 0..10);
+
+        let engine = GeneticEngine::from_codex(codex)
+            .minimizing()
+            .fitness_fn(move |geno: Vec<i32>| {
+                let mut score = 0;
+                for i in 0..geno.len() {
+                    score += (geno[i] - target[i]).abs();
+                }
+                score
+            })
+            .build();
+
+        let result = engine.run(|ctx| ctx.score().as_i32() == 0);
+
+        assert_eq!(&result.best, &vec![1, 2, 3, 4, 5]);
     }
 }

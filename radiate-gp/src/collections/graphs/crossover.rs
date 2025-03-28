@@ -1,4 +1,3 @@
-use crate::NodeType;
 use crate::collections::GraphChromosome;
 use crate::node::Node;
 use radiate::engines::genome::*;
@@ -40,51 +39,47 @@ where
             return 0.into();
         }
 
-        let parent_one = &population[indexes[0]];
-        let parent_two = &population[indexes[1]];
+        let (parent_one, parent_two) = population.get_pair_mut(indexes[0], indexes[1]);
 
-        let geno_one = parent_one.genotype();
-        let geno_two = parent_two.genotype();
+        let num_crosses = {
+            let mut geno_one = parent_one.genotype_mut();
+            let geno_two = parent_two.genotype();
 
-        let chromo_index = random_provider::range(0..std::cmp::min(geno_one.len(), geno_two.len()));
+            let chromo_index =
+                random_provider::range(0..std::cmp::min(geno_one.len(), geno_two.len()));
 
-        let chromo_one = &geno_one[chromo_index];
-        let chromo_two = &geno_two[chromo_index];
+            let chromo_one = geno_one.get_mut(chromo_index);
+            let chromo_two = geno_two.get(chromo_index);
 
-        let mut num_crosses = 0;
+            let mut num_crosses = 0;
 
-        let edge_indies = (0..std::cmp::min(chromo_one.len(), chromo_two.len()))
-            .filter(|i| {
-                let node_one = chromo_one.get(*i);
-                let node_two = chromo_two.get(*i);
+            let edge_indies = (0..std::cmp::min(chromo_one.len(), chromo_two.len()))
+                .filter(|i| {
+                    let node_one = chromo_one.get(*i);
+                    let node_two = chromo_two.get(*i);
 
-                node_one.node_type() == NodeType::Edge
-                    && node_two.node_type() == NodeType::Edge
-                    && random_provider::random::<f32>() < self.crossover_parent_node_rate
-            })
-            .collect::<Vec<usize>>();
+                    node_one.arity() == node_two.arity()
+                        && random_provider::random::<f32>() < self.crossover_parent_node_rate
+                })
+                .collect::<Vec<usize>>();
 
-        if edge_indies.is_empty() {
-            return num_crosses.into();
-        }
+            if edge_indies.is_empty() {
+                return num_crosses.into();
+            }
 
-        let mut new_geno_one = geno_one.clone();
-        let new_chromo_one = &mut new_geno_one[chromo_index];
-        for i in edge_indies {
-            let node_one = chromo_one.get(i);
-            let node_two = chromo_two.get(i);
+            for i in edge_indies {
+                let node_two = chromo_two.get(i);
 
-            (*new_chromo_one.as_mut()[node_one.index()].value_mut()) = node_two.value().clone();
-            num_crosses += 1;
-        }
+                *chromo_one.as_mut()[i].value_mut() = node_two.value().clone();
+                num_crosses += 1;
+            }
 
-        drop(geno_one); // Drop the borrow checker on the original chromosome
-        // Now we can safely create a new phenotype with the updated genotype
-        drop(geno_two); // Drop the borrow checker on the original chromosome
+            num_crosses
+        };
 
         if num_crosses > 0 {
-            let species_id = parent_one.species_id(); // Get the species id from the first parent
-            population[indexes[1]] = Phenotype::from((new_geno_one, generation, species_id)); // Create a new phenotype with the updated genotype
+            parent_one.set_generation(generation);
+            parent_one.set_score(None);
         }
 
         num_crosses.into()

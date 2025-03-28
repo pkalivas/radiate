@@ -41,13 +41,10 @@ impl ThreadPool {
     }
 
     pub fn group_submit(&self, wg: &WaitGroup, f: impl FnOnce() + Send + 'static) {
-        // Increment the wait group counter
         let guard = wg.guard();
 
-        // Submit the job to the thread pool
         self.submit(move || {
             f();
-            // Drop the guard when the job is done to decrement the counter.
             drop(guard);
         });
     }

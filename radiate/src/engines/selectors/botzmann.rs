@@ -74,7 +74,6 @@ impl<C: Chromosome> Select<C> for BoltzmannSelector {
             }
         };
 
-        // Select the individuals based on the probabilities
         ProbabilityWheelIterator::new(&fitness_values, count)
             .map(|idx| population[idx].clone())
             .collect::<Population<C>>()

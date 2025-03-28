@@ -25,7 +25,7 @@ impl<C: Chromosome> Select<C> for StochasticUniversalSamplingSelector {
                 let scores = population
                     .get_scores()
                     .iter()
-                    .map(|score| score.as_f32()) // Convert scores to f32
+                    .map(|score| score.as_f32())
                     .collect::<Vec<f32>>();
                 let total = scores.iter().sum::<f32>();
                 let mut fitness_values =

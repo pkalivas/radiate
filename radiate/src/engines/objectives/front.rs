@@ -32,7 +32,7 @@ where
     ord: Arc<dyn Fn(&T, &T) -> Ordering + Send + Sync>,
     range: Range<usize>,
     objective: Objective,
-    __marker: std::marker::PhantomData<K>,
+    _marker: std::marker::PhantomData<K>,
 }
 
 impl<T, K> Front<T, K>
@@ -49,7 +49,7 @@ where
             range,
             objective,
             ord: Arc::new(comp),
-            __marker: std::marker::PhantomData,
+            _marker: std::marker::PhantomData,
         }
     }
 

@@ -63,16 +63,16 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
         Arc::clone(&self.problem)
     }
 
-    pub fn survivor_selector(&self) -> &Box<dyn Select<C>> {
-        &self.survivor_selector
+    pub fn survivor_selector(&self) -> &dyn Select<C> {
+        &*self.survivor_selector
     }
 
-    pub fn offspring_selector(&self) -> &Box<dyn Select<C>> {
-        &self.offspring_selector
+    pub fn offspring_selector(&self) -> &dyn Select<C> {
+        &*self.offspring_selector
     }
 
-    pub fn replacement_strategy(&self) -> &Box<dyn ReplacementStrategy<C>> {
-        &self.replacement_strategy
+    pub fn replacement_strategy(&self) -> &dyn ReplacementStrategy<C> {
+        &*self.replacement_strategy
     }
 
     pub fn audits(&self) -> &[Arc<dyn Audit<C>>] {

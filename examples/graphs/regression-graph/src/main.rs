@@ -28,10 +28,26 @@ fn main() {
         ))
         .build();
 
-    let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32());
-        ctx.score().as_f32() < MIN_SCORE || ctx.seconds() > MAX_SECONDS
-    });
+    let result = engine
+        .iter()
+        .limit(|ctx| ctx.seconds() < MAX_SECONDS)
+        .limit(|ctx| ctx.score().as_f32() > MIN_SCORE)
+        .inspect(|ctx| {
+            println!(
+                "[ Iteration {} ]: Best Score: {:?}",
+                ctx.read().index,
+                ctx.read().score().as_f32()
+            );
+        })
+        .last()
+        .unwrap()
+        .read()
+        .clone();
+
+    // let result = engine.run(|ctx| {
+    //     println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32());
+    //     ctx.score().as_f32() < MIN_SCORE || ctx.seconds() > MAX_SECONDS
+    // });
 
     display(&result);
 }

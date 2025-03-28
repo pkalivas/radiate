@@ -1,5 +1,5 @@
 use super::{AlterAction, AlterResult};
-use crate::{Chromosome, Gene, Phenotype, Population, indexes, random_provider};
+use crate::{Chromosome, Gene, Population, indexes, random_provider};
 
 /// The `Crossover` trait is used to define the crossover operation for a genetic algorithm.
 ///
@@ -58,28 +58,29 @@ pub trait Crossover<C: Chromosome> {
     ) -> AlterResult {
         let mut result = AlterResult::default();
 
-        let index_one = parent_indexes[0];
-        let index_two = parent_indexes[1];
+        let (one, two) = population.get_pair_mut(parent_indexes[0], parent_indexes[1]);
 
-        let mut geno_one = population[index_one].genotype().clone();
-        let mut geno_two = population[index_two].genotype().clone();
+        let cross_result = {
+            let mut geno_one = one.genotype_mut();
+            let mut geno_two = two.genotype_mut();
 
-        let max_idx = std::cmp::min(geno_one.len(), geno_two.len());
-        let chromosome_index = random_provider::range(0..max_idx);
+            let min_len = std::cmp::min(geno_one.len(), geno_two.len());
+            let chromosome_index = random_provider::range(0..min_len);
 
-        let chrom_one = &mut geno_one[chromosome_index];
-        let chrom_two = &mut geno_two[chromosome_index];
+            let chrom_one = &mut geno_one[chromosome_index];
+            let chrom_two = &mut geno_two[chromosome_index];
 
-        let cross_result = self.cross_chromosomes(chrom_one, chrom_two, rate);
+            self.cross_chromosomes(chrom_one, chrom_two, rate)
+        };
 
         if cross_result.count() > 0 {
-            let one_species_id = population[index_one].species_id();
-            let two_species_id = population[index_two].species_id();
-            population[index_one] = Phenotype::from((geno_one, generation, one_species_id));
-            population[index_two] = Phenotype::from((geno_two, generation, two_species_id));
+            one.set_generation(generation);
+            two.set_generation(generation);
+            one.set_score(None);
+            two.set_score(None);
+            result.merge(cross_result);
         }
 
-        result.merge(cross_result);
         result
     }
 

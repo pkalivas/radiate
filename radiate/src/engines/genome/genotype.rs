@@ -45,6 +45,14 @@ impl<C: Chromosome> Genotype<C> {
     pub fn is_empty(&self) -> bool {
         self.chromosomes.is_empty()
     }
+
+    pub fn get(&self, index: usize) -> &C {
+        &self.chromosomes[index]
+    }
+
+    pub fn get_mut(&mut self, index: usize) -> &mut C {
+        &mut self.chromosomes[index]
+    }
 }
 
 impl<C: Chromosome> Valid for Genotype<C> {

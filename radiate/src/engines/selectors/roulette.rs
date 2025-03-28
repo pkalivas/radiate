@@ -26,7 +26,6 @@ impl<C: Chromosome> Select<C> for RouletteSelector {
             Objective::Single(opt) => {
                 let scores = population
                     .iter()
-                    // .filter_map(|individual| individual.score().get())
                     .map(|score| score.score().as_f32())
                     .collect::<Vec<f32>>();
 
@@ -50,7 +49,6 @@ impl<C: Chromosome> Select<C> for RouletteSelector {
             }
         };
 
-        // Select individuals based on their fitness values
         ProbabilityWheelIterator::new(&fitness_values, count)
             .map(|idx| population[idx].clone())
             .collect::<Population<C>>()
