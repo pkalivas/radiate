@@ -1,5 +1,5 @@
 use super::thread_pool::ThreadPool;
-use super::{Alter, Audit, Distance, Front, Problem, ReplacementStrategy, Score, Select};
+use super::{Alter, Audit, Distance, Front, Problem, ReplacementStrategy, Select};
 use crate::Chromosome;
 use crate::engines::genome::phenotype::Phenotype;
 use crate::engines::genome::population::Population;
@@ -18,7 +18,7 @@ pub struct GeneticEngineParams<C: Chromosome, T> {
     objective: Objective,
     thread_pool: ThreadPool,
     max_age: usize,
-    front: Front<Phenotype<C>, Score>,
+    front: Front<Phenotype<C>>,
     offspring_fraction: f32,
 }
 
@@ -35,7 +35,7 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
         objective: Objective,
         thread_pool: ThreadPool,
         max_age: usize,
-        front: Front<Phenotype<C>, Score>,
+        front: Front<Phenotype<C>>,
         offspring_fraction: f32,
     ) -> Self {
         Self {
@@ -99,7 +99,7 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
         self.max_age
     }
 
-    pub fn front(&self) -> &Front<Phenotype<C>, Score> {
+    pub fn front(&self) -> &Front<Phenotype<C>> {
         &self.front
     }
 

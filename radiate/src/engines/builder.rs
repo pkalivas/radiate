@@ -50,7 +50,7 @@ where
     pub problem: Option<Arc<dyn Problem<C, T>>>,
     pub replacement_strategy: Box<dyn ReplacementStrategy<C>>,
     pub distance: Option<Arc<dyn Distance<C>>>,
-    pub front: Option<Front<Phenotype<C>, Score>>,
+    pub front: Option<Front<Phenotype<C>>>,
 }
 
 impl<C, T> GeneticEngineBuilder<C, T>

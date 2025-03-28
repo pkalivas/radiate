@@ -1,6 +1,6 @@
 use super::codexes::Codex;
 use super::context::EngineContext;
-use super::sync::SyncCell;
+use super::sync::RwCell;
 use super::thread_pool::WaitGroup;
 use super::{
     GeneticEngineParams, MetricSet, Phenotype, Problem, Species, random_provider, speciate,
@@ -112,19 +112,6 @@ where
         let mut ctx = self.start();
 
         loop {
-            // self.evaluate(&mut ctx);
-            // self.speciate(&mut ctx);
-
-            // let survivors = self.select_survivors(&mut ctx);
-            // let offspring = self.create_offspring(&mut ctx);
-
-            // self.recombine(&mut ctx, survivors, offspring);
-
-            // self.filter(&mut ctx);
-            // self.evaluate(&mut ctx);
-            // self.update_front(&mut ctx);
-            // self.audit(&mut ctx);
-
             self.next(&mut ctx);
 
             if limit(&ctx) {
@@ -156,13 +143,13 @@ where
     /// parallel, which can significantly speed up the evaluation process for large populations.
     /// It will also only evaluate individuals that have not yet been scored, which saves time
     /// by avoiding redundant evaluations.
-    fn evaluate(&self, handle: &mut EngineContext<C, T>) {
+    fn evaluate(&self, ctx: &mut EngineContext<C, T>) {
         let objective = self.params.objective();
         let thread_pool = self.params.thread_pool();
         let timer = Timer::new();
         let wg = WaitGroup::new();
 
-        for pheno in handle.population.iter() {
+        for pheno in ctx.population.iter() {
             if pheno.score().is_some() {
                 continue;
             } else {
@@ -177,9 +164,9 @@ where
         }
 
         let count = wg.wait() as f32;
-        handle.upsert_operation(metric_names::EVALUATION, count, timer);
+        ctx.upsert_operation(metric_names::EVALUATION, count, timer);
 
-        objective.sort(&mut handle.population);
+        objective.sort(&mut ctx.population);
     }
 
     /// Speciates the population into species based on the genetic distance between individuals.
@@ -383,11 +370,11 @@ where
     /// will be used in the next iteration of the genetic algorithm.
     fn recombine(
         &self,
-        handle: &mut EngineContext<C, T>,
+        ctx: &mut EngineContext<C, T>,
         survivors: Population<C>,
         offspring: Population<C>,
     ) {
-        handle.population = survivors
+        ctx.population = survivors
             .into_iter()
             .chain(offspring)
             .collect::<Population<C>>();
@@ -396,38 +383,38 @@ where
     /// Audits the current state of the genetic algorithm, updating the best individual found so far
     /// and calculating various metrics such as the age of individuals, the score of individuals, and the
     /// number of unique scores in the population. This method is called at the end of each generation.
-    fn audit(&self, output: &mut EngineContext<C, T>) {
+    fn audit(&self, ctx: &mut EngineContext<C, T>) {
         let audits = self.params.audits();
         let problem = self.params.problem();
         let optimize = self.params.objective();
 
         let audit_metrics = audits
             .iter()
-            .map(|audit| audit.audit(output.index(), &output.population))
+            .map(|audit| audit.audit(ctx.index(), &ctx.population))
             .flatten()
             .collect::<Vec<Metric>>();
 
         for metric in audit_metrics {
-            output.upsert_metric(metric);
+            ctx.upsert_metric(metric);
         }
 
-        if !output.population.is_sorted {
-            optimize.sort(&mut output.population);
+        if !ctx.population.is_sorted {
+            optimize.sort(&mut ctx.population);
         }
 
-        let current_best = output.population.get(0);
+        let current_best = ctx.population.get(0);
 
-        if let (Some(best), Some(current)) = (current_best.score(), &output.score) {
+        if let (Some(best), Some(current)) = (current_best.score(), &ctx.score) {
             if optimize.is_better(&best, &current) {
-                output.score = Some(best.clone());
-                output.best = problem.decode(&current_best.genotype());
+                ctx.score = Some(best.clone());
+                ctx.best = problem.decode(&current_best.genotype());
             }
         } else {
-            output.score = Some(current_best.score().unwrap().clone());
-            output.best = problem.decode(&current_best.genotype());
+            ctx.score = Some(current_best.score().unwrap().clone());
+            ctx.best = problem.decode(&current_best.genotype());
         }
 
-        output.index += 1;
+        ctx.index += 1;
     }
 
     /// Updates the front of the population using the scores of the individuals. The front is a collection
@@ -449,15 +436,15 @@ where
                 .filter(|pheno| pheno.generation() == ctx.index)
                 .collect::<Vec<&Phenotype<C>>>();
 
-            let front = SyncCell::new(ctx.front.clone());
-            let dominates_vector = SyncCell::new(vec![false; new_individuals.len()]);
-            let remove_vector = SyncCell::new(Vec::new());
+            let front = RwCell::new(ctx.front.clone());
+            let dominates_vector = RwCell::new(vec![false; new_individuals.len()]);
+            let remove_vector = RwCell::new(Vec::new());
 
             for (idx, member) in new_individuals.iter().enumerate() {
                 let pheno = Phenotype::clone(member);
-                let front_clone = SyncCell::clone(&front);
-                let doms_vector = SyncCell::clone(&dominates_vector);
-                let remove_vector = SyncCell::clone(&remove_vector);
+                let front_clone = RwCell::clone(&front);
+                let doms_vector = RwCell::clone(&dominates_vector);
+                let remove_vector = RwCell::clone(&remove_vector);
 
                 thread_pool.group_submit(&wg, move || {
                     let (dominates, to_remove) = front_clone.read().dominates(&pheno);
@@ -523,7 +510,7 @@ where
 
 #[cfg(test)]
 mod engine_tests {
-    use crate::{EngineIter, GeneticEngine, IntCodex};
+    use crate::{GeneticEngine, IntCodex};
 
     #[test]
     fn engine_can_minimize() {
@@ -534,14 +521,10 @@ mod engine_tests {
             .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
             .build();
 
-        for epoch in engine.iter().take(10) {
-            println!("{:?}", epoch);
-        }
+        let result = engine.run(|ctx| ctx.score().as_i32() == 0);
 
-        // let result = engine.run(|ctx| ctx.score().as_i32() == 0);
-
-        // let best = result.best;
-        // assert_eq!(best.iter().sum::<i32>(), 0);
+        let best = result.best;
+        assert_eq!(best.iter().sum::<i32>(), 0);
     }
 
     #[test]

@@ -1,4 +1,4 @@
-use super::{Chromosome, EngineCell, EngineContext, GeneticEngine};
+use super::{Chromosome, EngineContext, GeneticEngine, Phenotype};
 
 pub trait EngineIter<C, T>
 where
@@ -24,8 +24,7 @@ where
     T: Clone + Send + 'static,
 {
     engine: &'a GeneticEngine<C, T>,
-    cell: EngineCell<C, T>,
-    limits: Option<Vec<Box<dyn Fn(&EngineContext<C, T>) -> bool>>>,
+    ctx: EngineContext<C, T>,
 }
 
 impl<'a, C, T> EngineIterator<'a, C, T>
@@ -34,22 +33,12 @@ where
     T: Clone + Send + 'static,
 {
     pub fn new(engine: &'a GeneticEngine<C, T>) -> Self {
-        let cell = EngineCell::new(engine.start());
+        let ctx = engine.start();
+
         EngineIterator {
             engine,
-            cell,
-            limits: None,
+            ctx: ctx.clone(),
         }
-    }
-
-    pub fn limit(&mut self, limit: impl Fn(&EngineContext<C, T>) -> bool + 'static) -> &mut Self {
-        if self.limits.is_none() {
-            self.limits = Some(vec![Box::new(limit)]);
-        } else if let Some(ref mut limits) = self.limits {
-            limits.push(Box::new(limit));
-        }
-
-        self
     }
 }
 
@@ -58,21 +47,25 @@ where
     C: Chromosome + 'static,
     T: Clone + Send + 'static,
 {
-    type Item = EngineCell<C, T>;
+    type Item = EngineContext<C, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut ctx = self.cell.write();
+        self.engine.next(&mut self.ctx);
 
-        if let Some(limits) = &self.limits {
-            for limit in limits {
-                if !limit(&ctx) {
-                    return None;
-                }
-            }
-        }
-
-        self.engine.next(&mut ctx);
-
-        Some(self.cell.clone())
+        Some(EngineContext {
+            population: self
+                .ctx
+                .population
+                .iter()
+                .map(|phenotype| Phenotype::clone(phenotype))
+                .collect(),
+            best: self.ctx.best.clone(),
+            index: self.ctx.index,
+            timer: self.ctx.timer.clone(),
+            metrics: self.ctx.metrics.clone(),
+            score: self.ctx.score.clone(),
+            front: self.ctx.front.clone(),
+            species: self.ctx.species.clone(),
+        })
     }
 }

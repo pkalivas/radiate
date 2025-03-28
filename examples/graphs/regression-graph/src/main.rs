@@ -30,26 +30,21 @@ fn main() {
 
     let result = engine
         .iter()
-        .limit(|ctx| ctx.seconds() < MAX_SECONDS)
-        .limit(|ctx| ctx.score().as_f32() > MIN_SCORE)
-        .inspect(|ctx| {
-            println!(
-                "[ Iteration {} ]: Best Score: {:?}",
-                ctx.read().index,
-                ctx.read().score().as_f32()
-            );
-        })
+        .take_while(|ctx| ctx.score().as_f32() > MIN_SCORE && ctx.seconds() < MAX_SECONDS)
+        .inspect(|ctx| log_ctx!(ctx))
         .last()
-        .unwrap()
-        .read()
-        .clone();
+        .unwrap();
+
+    print_metrics!(&result.metrics);
+
+    display(&result);
 
     // let result = engine.run(|ctx| {
     //     println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32());
     //     ctx.score().as_f32() < MIN_SCORE || ctx.seconds() > MAX_SECONDS
     // });
 
-    display(&result);
+    // display(&result);
 }
 
 fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {

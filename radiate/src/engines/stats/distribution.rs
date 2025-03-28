@@ -55,6 +55,33 @@ impl Distribution {
         self.statistic.clear();
         self.last_sequence.clear();
     }
+
+    pub fn percentile(&self, p: f32) -> f32 {
+        // Ensure p is between 0 and 100
+        if p < 0.0 || p > 100.0 {
+            panic!("Percentile must be between 0 and 100");
+        }
+
+        // Calculate the index for the percentile
+        let count = self.count() as f32;
+        if count == 0 as f32 {
+            panic!("Cannot calculate percentile for an empty distribution");
+        }
+        let index = (p / 100.0) * count;
+        let sorted_values = {
+            let mut values = self.last_sequence.clone();
+            values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            values
+        };
+
+        // Ensure the index is within bounds
+        let index = index as usize;
+        if index >= sorted_values.len() {
+            panic!("Index out of bounds for the sorted values");
+        }
+        // Return the value at the calculated index
+        sorted_values[index]
+    }
 }
 
 impl From<&[f32]> for Distribution {

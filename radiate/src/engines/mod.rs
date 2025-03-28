@@ -1,7 +1,6 @@
 pub mod alterers;
 pub mod audit;
 pub mod builder;
-pub mod cell;
 pub mod codexes;
 pub mod context;
 pub mod distance;
@@ -19,7 +18,6 @@ pub mod stats;
 pub use alterers::*;
 pub use audit::*;
 pub use builder::*;
-pub use cell::*;
 pub use codexes::{
     BitCodex, CharCodex, Codex, FloatCodex, FnCodex, IntCodex, PermutationCodex, SubSetCodex,
 };

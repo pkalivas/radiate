@@ -38,7 +38,7 @@ impl Objective {
         match self {
             Objective::Single(opt) => opt.sort(population),
             Objective::Multi(_) => population.sort_by(|a, b| {
-                let one = a.score(); //.unwrap();
+                let one = a.score();
                 let two = b.score();
 
                 if one.is_none() || two.is_none() {

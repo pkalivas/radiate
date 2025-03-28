@@ -5,57 +5,32 @@ use std::ops::{Add, Div, Mul, Sub};
 use std::sync::Arc;
 
 pub trait Scored {
-    fn as_f32(&self) -> f32;
-    fn values(&self) -> &[f32];
+    fn values(&self) -> impl AsRef<[f32]>;
+
+    fn as_f32(&self) -> f32 {
+        self.values().as_ref()[0]
+    }
+
     fn as_usize(&self) -> usize {
         self.as_f32() as usize
     }
-    fn score(&self) -> Option<&Score>;
-    fn score_value(&self) -> Option<f32> {
-        self.score().map(|s| s.as_f32())
-    }
-}
 
-impl Scored for Option<&Score> {
-    fn as_f32(&self) -> f32 {
-        match self {
-            Some(score) => score.as_f32(),
-            None => f32::NAN,
-        }
-    }
-
-    fn values(&self) -> &[f32] {
-        match self {
-            Some(score) => &score.values,
-            None => &[],
-        }
-    }
-
-    fn score(&self) -> Option<&Score> {
-        match self {
-            Some(score) => Some(score),
-            None => None,
-        }
-    }
+    fn score(&self) -> Option<Score>;
 }
 
 impl Scored for Option<Score> {
-    fn as_f32(&self) -> f32 {
+    fn values(&self) -> impl AsRef<[f32]> {
         match self {
-            Some(score) => score.as_f32(),
-            None => f32::NAN,
+            Some(score) => score.clone(),
+            None => Score::default(),
         }
     }
 
-    fn values(&self) -> &[f32] {
+    fn score(&self) -> Option<Score> {
         match self {
-            Some(score) => &score.values,
-            None => &[],
+            Some(score) => Some(score.clone()),
+            None => None,
         }
-    }
-
-    fn score(&self) -> Option<&Score> {
-        self.as_ref()
     }
 }
 
@@ -92,14 +67,12 @@ impl Score {
     }
 
     pub fn from_vec(values: Vec<f32>) -> Self {
-        // Check for NaN values in the input vector
         for value in &values {
             if value.is_nan() {
                 panic!("Score value cannot be NaN")
             }
         }
 
-        // Convert the Vec<f32> into an Arc<[f32]> for efficient sharing
         Score {
             values: Arc::from(values),
         }
@@ -129,15 +102,14 @@ impl Score {
 
     pub fn from_string(value: &str) -> Self {
         Score {
-            values: Arc::from(
-                // Attempt to parse the string into a f32, if it fails panic
-                vec![value.parse::<f32>().expect("Failed to parse string to f32")],
-            ),
+            values: Arc::from(vec![
+                value.parse::<f32>().expect("Failed to parse string to f32"),
+            ]),
         }
     }
 
     pub fn as_f32(&self) -> f32 {
-        self.values[0]
+        self.values.get(0).cloned().unwrap_or(f32::NAN)
     }
 
     pub fn as_i32(&self) -> i32 {
@@ -176,9 +148,7 @@ impl Hash for Score {
         let mut hash: usize = 0;
 
         for value in self.values.iter() {
-            // Combine the hash of each value in the vector
-            // This is a simple way to create a unique hash for the Score
-            let value_hash = value.to_bits(); // Convert f32 to bits for hashing
+            let value_hash = value.to_bits();
             hash = hash.wrapping_add(value_hash as usize);
         }
 

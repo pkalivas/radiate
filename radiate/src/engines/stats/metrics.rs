@@ -100,6 +100,10 @@ impl MetricSet {
     pub fn names(&self) -> Vec<&'static str> {
         self.metrics.keys().copied().collect()
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&'static str, &Metric)> {
+        self.metrics.iter().map(|(name, metric)| (*name, metric))
+    }
 }
 
 impl std::fmt::Debug for MetricSet {
@@ -355,44 +359,44 @@ impl std::fmt::Debug for Metric {
         match self {
             Metric::Value(name, stat) => write!(
                 f,
-                "Metric Value {{ {:<15} -> ∧: {:<7.3?}  ∨: {:<7.3?} μ: {:<7.3?} N: {:<7} }}",
+                "{:<20} | Mean: {:>8.3}, Min: {:>8.3}, Max: {:>8.3}, N: {:>3}",
                 name,
-                stat.max(),
-                stat.min(),
                 stat.mean(),
-                stat.count()
+                stat.min(),
+                stat.max(),
+                stat.count(),
             ),
             Metric::Time(name, stat) => write!(
                 f,
-                "Metric Time {{ {:<15} -> ∧: {:<7.3?}  ∨: {:<7.3?} μ: {:<7.3?} N: {:<7} S: {:<7.3?} }}",
+                "{:<20} | Avg Time: {:>9.3?}, Min Time: {:>9.3?}, Max Time: {:>9.3?}, N: {:>3} | Total Time: {:>9.3?}",
                 name,
-                stat.max(),
-                stat.min(),
                 stat.mean(),
+                stat.min(),
+                stat.max(),
                 stat.count(),
-                stat.sum()
+                stat.sum(),
             ),
             Metric::Distribution(name, dist) => write!(
                 f,
-                "Metric Dist. {{ {:<15} -> ∧: {:<7.3?}  ∨: {:<7.3?} μ: {:<7.3?} N: {:<7} }}",
+                "{:<20} | Mean: {:>8.3}, Median: {:>8.3}, P90: {:>8.3}, Min: {:>8.3}, Max: {:>8.3}, N: {:>3}",
                 name,
-                dist.max(),
-                dist.min(),
                 dist.mean(),
-                dist.count()
+                dist.percentile(50.0),
+                dist.percentile(90.0),
+                dist.min(),
+                dist.max(),
+                dist.count(),
             ),
             Metric::Operations(name, stat, time_stat) => write!(
                 f,
-                "Metric Oper. {{ {:<15} -> ∧: {:<7.3?}  ∨: {:<7.3?} μ: {:<7.3?} N: {:<7} :: ∧[{:<10?}] ∨[{:<10?}] μ[{:<10?}] S[{:<10.3?}] }}",
+                "{:<20} | Mean: {:>8.3}, Min: {:>8.3}, Max: {:>8.3}, N: {:>3} | Avg Time: {:>9.3?}, Total Time: {:>9.3?}",
                 name,
-                stat.max(),
-                stat.min(),
                 stat.mean(),
+                stat.min(),
+                stat.max(),
                 stat.count(),
-                time_stat.max(),
-                time_stat.min(),
                 time_stat.mean(),
-                time_stat.sum()
+                time_stat.sum(),
             ),
         }
     }
