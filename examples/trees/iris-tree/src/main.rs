@@ -17,17 +17,16 @@ fn main() {
         (NodeType::Leaf, (0..4).map(|i| Op::var(i)).collect()),
     ];
 
-    let regression = Regression::new(train.clone(), Loss::MSE);
     let codex = TreeCodex::multi_root(3, 4, store).constraint(|node| node.size() < 40);
+    let regression = Regression::new(train.clone(), Loss::MSE, codex);
 
-    let engine = GeneticEngine::from_codex(codex)
+    let engine = GeneticEngine::from_problem(regression)
         .minimizing()
         .num_threads(10)
         .alter(alters!(
             TreeCrossover::new(0.5),
-            OperationMutator::new(0.03, 0.02)
+            OperationMutator::new(0.03, 0.02),
         ))
-        .fitness_fn(move |tree: Vec<Tree<Op<f32>>>| regression.eval(&tree))
         .build();
 
     let result = engine.run(|ctx| {

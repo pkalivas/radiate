@@ -12,7 +12,8 @@ pub use graphs::{
 pub use node::{Node, NodeType};
 pub use store::{NodeStore, NodeValue};
 pub use trees::{
-    SubtreeHashDistance, Tree, TreeChromosome, TreeCodex, TreeCrossover, TreeIterator, TreeNode,
+    HoistMutator, SubtreeHashDistance, Tree, TreeChromosome, TreeCodex, TreeCrossover,
+    TreeIterator, TreeNode,
 };
 
 /// `Eval` trait is used to evaluate a `Tree` or `Graph` of `Node`s.

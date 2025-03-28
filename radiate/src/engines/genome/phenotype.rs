@@ -55,10 +55,7 @@ impl<C: Chromosome> Phenotype<C> {
     }
 
     pub fn score(&self) -> Option<&Score> {
-        match &self.score {
-            Some(score) => Some(score),
-            None => None,
-        }
+        self.score.as_ref()
     }
 
     /// Get the age of the individual in generations. The age is calculated as the

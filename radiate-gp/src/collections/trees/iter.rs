@@ -1,6 +1,8 @@
 use crate::collections::{Tree, TreeNode};
 use std::{collections::VecDeque, marker::PhantomData};
 
+use super::TreeChromosome;
+
 /// Tree traversal iterators for pre-order, post-order, and breadth-first search.
 /// These iterators allow for efficient traversal of tree structures, providing
 /// a way to visit each node in the tree in different orders.
@@ -114,6 +116,24 @@ impl<T> TreeIterator<T> for Tree<T> {
         if let Some(root) = self.root_mut() {
             visitor.visit(root);
         }
+    }
+}
+
+impl<T> TreeIterator<T> for TreeChromosome<T> {
+    fn iter_pre_order(&self) -> PreOrderIterator<T> {
+        self.root().iter_pre_order()
+    }
+
+    fn iter_post_order(&self) -> PostOrderIterator<T> {
+        self.root().iter_post_order()
+    }
+
+    fn iter_breadth_first(&self) -> TreeBreadthFirstIterator<T> {
+        self.root().iter_breadth_first()
+    }
+
+    fn apply<F: Fn(&mut TreeNode<T>)>(&mut self, visit_fn: F) {
+        self.root_mut().apply(visit_fn);
     }
 }
 

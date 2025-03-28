@@ -1,6 +1,5 @@
-use std::vec;
-
 use super::{Chromosome, Metric, Population, metric_names};
+use std::vec;
 
 pub trait Audit<C: Chromosome> {
     fn audit(&self, generation: usize, population: &Population<C>) -> Vec<Metric>;

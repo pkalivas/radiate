@@ -26,7 +26,7 @@ use std::sync::Arc;
 /// use radiate::*;
 ///
 /// // Define a codex that encodes and decodes individuals in the population, in this case using floats.
-/// let codex = FloatCodex::new(1, 5, 0.0..100.0);
+/// let codex = FloatCodex::matrix(1, 5, 0.0..100.0);
 /// // This codex will encode Genotype instances with 1 Chromosome and 5 FloatGenes,
 /// // with random alleles between 0.0 and 100.0. It will decode into a Vec<Vec<f32>>.
 /// // eg: [[1.0, 2.0, 3.0, 4.0, 5.0]]
@@ -280,37 +280,37 @@ where
                     });
             });
 
-            offspring
-        } else {
-            let mut offspring = Vec::new();
-            let species_count = ctx.species.len();
-            for i in 0..species_count {
-                let species = &ctx.species[i];
-                let population = &mut ctx.population;
-                let timer = Timer::new();
-
-                let count = (species.score().as_f32() * count as f32).round() as usize;
-                let members = population.take(|pheno| pheno.species_id() == Some(species.id()));
-
-                let mut selected = selector.select(&members, objective, count);
-
-                ctx.upsert_operation(selector.name(), count as f32, timer);
-                objective.sort(&mut selected);
-
-                alters.iter().for_each(|alterer| {
-                    alterer
-                        .alter(&mut selected, ctx.index)
-                        .into_iter()
-                        .for_each(|metric| {
-                            ctx.upsert_metric(metric);
-                        });
-                });
-
-                offspring.extend(selected);
-            }
-
-            offspring.into_iter().collect::<Population<C>>()
+            return offspring;
         }
+
+        let mut offspring = Vec::new();
+        let species_count = ctx.species.len();
+        for i in 0..species_count {
+            let species = &ctx.species[i];
+            let population = &mut ctx.population;
+            let timer = Timer::new();
+
+            let count = (species.score().as_f32() * count as f32).round() as usize;
+            let members = population.take(|pheno| pheno.species_id() == Some(species.id()));
+
+            let mut selected = selector.select(&members, objective, count);
+
+            ctx.upsert_operation(selector.name(), count as f32, timer);
+            objective.sort(&mut selected);
+
+            alters.iter().for_each(|alterer| {
+                alterer
+                    .alter(&mut selected, ctx.index)
+                    .into_iter()
+                    .for_each(|metric| {
+                        ctx.upsert_metric(metric);
+                    });
+            });
+
+            offspring.extend(selected);
+        }
+
+        offspring.into_iter().collect::<Population<C>>()
     }
 
     /// Filters the population to remove individuals that are too old or invalid. The maximum age

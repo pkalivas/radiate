@@ -1,90 +1,42 @@
-use radiate::{Chromosome, Codex, Genotype, Problem, Score};
-
 use super::{DataSet, Loss};
-use crate::{Eval, EvalMut, Graph, GraphChromosome, GraphEvaluator, Op, Tree};
-
-pub struct Regression {
-    data_set: DataSet,
-    loss: Loss,
-}
-
-impl Regression {
-    pub fn new(sample_set: DataSet, loss: Loss) -> Self {
-        Regression {
-            data_set: sample_set,
-            loss,
-        }
-    }
-}
-
-impl Eval<Graph<Op<f32>>, f32> for Regression {
-    fn eval(&self, graph: &Graph<Op<f32>>) -> f32 {
-        let mut evaluator = GraphEvaluator::new(graph);
-
-        self.loss
-            .calculate(&self.data_set, &mut |input| evaluator.eval_mut(input))
-    }
-}
-
-impl Eval<GraphChromosome<Op<f32>>, f32> for Regression {
-    fn eval(&self, chromosome: &GraphChromosome<Op<f32>>) -> f32 {
-        let mut evaluator = GraphEvaluator::new(&chromosome);
-
-        self.loss
-            .calculate(&self.data_set, &mut |input| evaluator.eval_mut(input))
-    }
-}
-
-impl Eval<Tree<Op<f32>>, f32> for Regression {
-    fn eval(&self, tree: &Tree<Op<f32>>) -> f32 {
-        self.loss
-            .calculate(&self.data_set, &mut |input| vec![tree.eval(input)])
-    }
-}
-
-impl Eval<Vec<Tree<Op<f32>>>, f32> for Regression {
-    fn eval(&self, program: &Vec<Tree<Op<f32>>>) -> f32 {
-        self.loss
-            .calculate(&self.data_set, &mut |input| program.eval(input))
-    }
-}
-
+use crate::{Eval, EvalMut, Graph, GraphChromosome, GraphEvaluator, Op, Tree, TreeChromosome};
+use radiate::{Chromosome, Codex, Genotype, Problem, Score};
 use std::{marker::PhantomData, sync::Arc};
 
-pub struct RegressionProblem<C, T>
+pub struct Regression<C, T>
 where
     C: Chromosome,
     T: Clone,
 {
     data_set: DataSet,
     loss: Loss,
-    codex: Arc<dyn Codex<C, T> + Send + Sync>,
-    _marker: PhantomData<C>,
-    _marker2: PhantomData<T>,
+    codex: Arc<dyn Codex<C, T>>,
+    _chrom: PhantomData<C>,
+    _val: PhantomData<T>,
 }
 
-impl<C, T> RegressionProblem<C, T>
+impl<C, T> Regression<C, T>
 where
     C: Chromosome,
     T: Clone,
 {
-    pub fn new<G: Codex<C, T> + Send + Sync + 'static>(
-        data_set: DataSet,
+    pub fn new<G: Codex<C, T> + 'static>(
+        sample_set: impl Into<DataSet>,
         loss: Loss,
         codex: G,
     ) -> Self {
-        RegressionProblem {
-            data_set,
+        Regression {
+            data_set: sample_set.into(),
             loss,
             codex: Arc::new(codex),
-            _marker: PhantomData,
-            _marker2: PhantomData,
+            _chrom: PhantomData,
+            _val: PhantomData,
         }
     }
 }
 
 impl Problem<GraphChromosome<Op<f32>>, Graph<Op<f32>>>
-    for RegressionProblem<GraphChromosome<Op<f32>>, Graph<Op<f32>>>
+    for Regression<GraphChromosome<Op<f32>>, Graph<Op<f32>>>
 {
     fn encode(&self) -> Genotype<GraphChromosome<Op<f32>>> {
         self.codex.encode()
@@ -102,4 +54,93 @@ impl Problem<GraphChromosome<Op<f32>>, Graph<Op<f32>>>
             .calculate(&self.data_set, &mut |input| evaluator.eval_mut(input))
             .into()
     }
+}
+
+impl Problem<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>
+    for Regression<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>
+{
+    fn encode(&self) -> Genotype<TreeChromosome<Op<f32>>> {
+        self.codex.encode()
+    }
+
+    fn decode(&self, genotype: &Genotype<TreeChromosome<Op<f32>>>) -> Vec<Tree<Op<f32>>> {
+        self.codex.decode(genotype)
+    }
+
+    fn eval(&self, individual: &Genotype<TreeChromosome<Op<f32>>>) -> Score {
+        let chrome = individual
+            .iter()
+            .map(|chrom| chrom.root())
+            .collect::<Vec<_>>();
+        self.loss
+            .calculate(&self.data_set, &mut |input| chrome.eval(input))
+            .into()
+    }
+}
+
+impl Problem<TreeChromosome<Op<f32>>, Tree<Op<f32>>>
+    for Regression<TreeChromosome<Op<f32>>, Tree<Op<f32>>>
+{
+    fn encode(&self) -> Genotype<TreeChromosome<Op<f32>>> {
+        self.codex.encode()
+    }
+
+    fn decode(&self, genotype: &Genotype<TreeChromosome<Op<f32>>>) -> Tree<Op<f32>> {
+        self.codex.decode(genotype)
+    }
+
+    fn eval(&self, individual: &Genotype<TreeChromosome<Op<f32>>>) -> Score {
+        let chrome = individual
+            .iter()
+            .map(|chrom| chrom.root())
+            .collect::<Vec<_>>();
+        self.loss
+            .calculate(&self.data_set, &mut |input| chrome.eval(input))
+            .into()
+    }
+}
+
+impl Eval<Graph<Op<f32>>, f32> for Regression<GraphChromosome<Op<f32>>, Graph<Op<f32>>> {
+    fn eval(&self, graph: &Graph<Op<f32>>) -> f32 {
+        let mut evaluator = GraphEvaluator::new(graph);
+
+        self.loss
+            .calculate(&self.data_set, &mut |input| evaluator.eval_mut(input))
+    }
+}
+
+impl Eval<GraphChromosome<Op<f32>>, f32> for Regression<GraphChromosome<Op<f32>>, Graph<Op<f32>>> {
+    fn eval(&self, chromosome: &GraphChromosome<Op<f32>>) -> f32 {
+        let mut evaluator = GraphEvaluator::new(&chromosome);
+
+        self.loss
+            .calculate(&self.data_set, &mut |input| evaluator.eval_mut(input))
+    }
+}
+
+impl Eval<Tree<Op<f32>>, f32> for Regression<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>> {
+    fn eval(&self, tree: &Tree<Op<f32>>) -> f32 {
+        self.loss
+            .calculate(&self.data_set, &mut |input| vec![tree.eval(input)])
+    }
+}
+
+impl Eval<Vec<Tree<Op<f32>>>, f32> for Regression<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>> {
+    fn eval(&self, program: &Vec<Tree<Op<f32>>>) -> f32 {
+        self.loss
+            .calculate(&self.data_set, &mut |input| program.eval(input))
+    }
+}
+
+unsafe impl<C, T> Send for Regression<C, T>
+where
+    C: Chromosome,
+    T: Clone,
+{
+}
+unsafe impl<C, T> Sync for Regression<C, T>
+where
+    C: Chromosome,
+    T: Clone,
+{
 }

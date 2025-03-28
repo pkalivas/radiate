@@ -56,6 +56,15 @@ impl<T> TreeNode<T> {
         self
     }
 
+    pub fn detach(&mut self, index: usize) -> Option<TreeNode<T>> {
+        if let Some(children) = self.children.as_mut() {
+            if index < children.len() {
+                return Some(children.remove(index));
+            }
+        }
+        None
+    }
+
     pub fn children(&self) -> Option<&Vec<TreeNode<T>>> {
         self.children.as_ref()
     }

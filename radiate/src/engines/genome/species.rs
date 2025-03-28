@@ -1,10 +1,9 @@
+use super::{Chromosome, Genotype};
 use crate::{Objective, Score};
 use std::{
     fmt::{self, Debug, Formatter},
     sync::atomic::{AtomicU64, Ordering},
 };
-
-use super::{Chromosome, Genotype};
 
 static ID_COUNTER: AtomicU64 = AtomicU64::new(1);
 

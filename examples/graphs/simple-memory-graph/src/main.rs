@@ -15,9 +15,9 @@ fn main() {
     ];
 
     let graph_codex = GraphCodex::recurrent(1, 1, values);
-    let regression = Regression::new(get_dataset(), Loss::MSE);
+    let regression = Regression::new(get_dataset(), Loss::MSE, graph_codex);
 
-    let engine = GeneticEngine::from_codex(graph_codex)
+    let engine = GeneticEngine::from_problem(regression)
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .survivor_selector(TournamentSelector::new(4))
@@ -26,7 +26,6 @@ fn main() {
             OperationMutator::new(0.1, 0.05),
             GraphMutator::new(0.05, 0.05)
         ))
-        .fitness_fn(move |graph: Graph<Op<f32>>| regression.eval(&graph))
         .build();
 
     let result = engine.run(|ctx| {

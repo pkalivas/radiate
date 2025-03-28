@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use radiate::*;
 use radiate_gp::*;
 
@@ -18,11 +16,10 @@ fn main() {
 
     let graph_codex = GraphCodex::directed(1, 1, values);
 
-    let problem = RegressionProblem::new(get_dataset(), Loss::MSE, graph_codex);
+    let problem = Regression::new(get_dataset(), Loss::MSE, graph_codex);
 
     let engine = GeneticEngine::from_problem(problem)
         .minimizing()
-        .distance(NeatDistance::new(1.8, 1.0, 1.0, 3.0))
         .num_threads(10)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
@@ -40,21 +37,6 @@ fn main() {
 }
 
 fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
-    let mut total_ids = Vec::new();
-    let mut unique_ids = HashSet::new();
-
-    for pheno in result.population.iter() {
-        for chromosome in pheno.genotype().iter() {
-            for node in chromosome.iter() {
-                total_ids.push(node.id());
-                unique_ids.insert(node.id());
-            }
-        }
-    }
-
-    println!("Total Nodes: {}", total_ids.len());
-    println!("Unique Nodes: {}", unique_ids.len());
-
     let mut evaluator = GraphEvaluator::new(&result.best);
 
     let data_set = get_dataset();
@@ -82,3 +64,5 @@ fn get_dataset() -> DataSet {
 fn compute(x: f32) -> f32 {
     4.0 * x.powf(3.0) - 3.0 * x.powf(2.0) + x
 }
+
+// .distance(NeatDistance::new(1.8, 1.0, 1.0, 3.0))
