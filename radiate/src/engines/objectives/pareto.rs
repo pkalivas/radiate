@@ -7,16 +7,16 @@ use crate::objectives::{Objective, Optimize};
 /// desirable because they are more spread out. This is useful for selecting
 /// diverse solutions in a multi-objective optimization problem and is a
 /// key component of the NSGA-II algorithm.
-pub fn crowding_distance(scores: &[&[f32]], objective: &Objective) -> Vec<f32> {
+pub fn crowding_distance<T: AsRef<[f32]>>(scores: &[T], objective: &Objective) -> Vec<f32> {
     let indices = scores
         .iter()
         .enumerate()
-        .map(|(i, score)| (*score, i))
+        .map(|(i, score)| (score.as_ref(), i))
         .collect::<Vec<(&[f32], usize)>>();
 
     let mut result = vec![0.0; scores.len()];
 
-    for i in 0..scores[0].len() {
+    for i in 0..indices[0].0.len() {
         let mut distance_values = indices.clone();
         distance_values.sort_by(|a, b| b.0[i].partial_cmp(&a.0[i]).unwrap());
 
@@ -48,7 +48,7 @@ pub fn crowding_distance(scores: &[&[f32]], objective: &Objective) -> Vec<f32> {
 /// individual in the population based on their dominance relationships with other
 /// individuals in the population. The result is a vector of ranks, where the rank
 /// of the individual at index `i` is `ranks[i]`.
-pub fn rank(population: &[&[f32]], objective: &Objective) -> Vec<usize> {
+pub fn rank<T: AsRef<[f32]>>(population: &[T], objective: &Objective) -> Vec<usize> {
     let mut dominated_counts = vec![0; population.len()];
     let mut dominates = vec![Vec::new(); population.len()];
     let mut current_front: Vec<usize> = Vec::new();
@@ -56,8 +56,8 @@ pub fn rank(population: &[&[f32]], objective: &Objective) -> Vec<usize> {
 
     for i in 0..population.len() {
         for j in (i + 1)..population.len() {
-            let score_one = population[i];
-            let score_two = population[j];
+            let score_one = &population[i];
+            let score_two = &population[j];
             if dominance(score_one, score_two, objective) {
                 dominance_matrix[i][j] = 1;
                 dominance_matrix[j][i] = -1;
@@ -110,7 +110,7 @@ pub fn rank(population: &[&[f32]], objective: &Objective) -> Vec<usize> {
     ranks
 }
 
-pub fn weights(scores: &[&[f32]], objective: &Objective) -> Vec<f32> {
+pub fn weights<T: AsRef<[f32]>>(scores: &[T], objective: &Objective) -> Vec<f32> {
     let ranks = rank(scores, objective);
     let distances = crowding_distance(scores, objective);
 

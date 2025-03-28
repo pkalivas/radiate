@@ -28,11 +28,12 @@ fn main() {
         ctx.index > 1000
     });
 
+    println!("{:?}", result.seconds());
     println!("{:?}", result.metrics);
     plot_front(&result.front);
 }
 
-fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {
+fn plot_front(front: &Front<Phenotype<FloatChromosome>, Score>) {
     let mut x = vec![];
     let mut y = vec![];
     let mut z = vec![];

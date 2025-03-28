@@ -1,3 +1,5 @@
+use crate::Scored;
+
 use super::{Chromosome, Metric, Population, metric_names};
 use std::vec;
 
@@ -31,12 +33,12 @@ impl<C: Chromosome> Audit<C> for MetricAudit {
         for i in 0..population.len() {
             let phenotype = &population[i];
 
-            if i > 0 && phenotype.genotype() == population[i - 1].genotype() {
+            if i > 0 && *phenotype.genotype() == *population[i - 1].genotype() {
                 equal_members += 1;
             }
 
             let age = phenotype.age(generation);
-            let score = phenotype.score().unwrap();
+            let score = phenotype.score();
             let phenotype_size = phenotype
                 .genotype()
                 .iter()
@@ -45,7 +47,7 @@ impl<C: Chromosome> Audit<C> for MetricAudit {
 
             age_metric.add_value(age as f32);
             score_metric.add_value(score.as_f32());
-            unique.push(score);
+            unique.push(score.clone());
             size_values.push(phenotype_size as f32);
         }
 

@@ -38,9 +38,14 @@ impl Objective {
         match self {
             Objective::Single(opt) => opt.sort(population),
             Objective::Multi(_) => population.sort_by(|a, b| {
-                let a = a.score().unwrap();
-                let b = b.score().unwrap();
-                self.dominance_cmp(&a.values, &b.values)
+                let one = a.score(); //.unwrap();
+                let two = b.score();
+
+                if one.is_none() || two.is_none() {
+                    return std::cmp::Ordering::Equal;
+                }
+
+                self.dominance_cmp(one.unwrap().as_ref(), two.unwrap().as_ref())
             }),
         }
     }

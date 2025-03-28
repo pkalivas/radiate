@@ -1,7 +1,8 @@
 use std::{
-    sync::{Arc, Mutex, mpsc},
-    thread,
+    sync::atomic::{AtomicUsize, Ordering},
+    sync::{Arc, Condvar, Mutex},
 };
+use std::{sync::mpsc, thread};
 
 /// `WorkResult` is a simple wrapper around a `Receiver` that allows the user to get
 /// the result of a job that was executed in the thread pool. It kinda acts like
@@ -37,6 +38,18 @@ impl ThreadPool {
                 .map(|_| Worker::new(Arc::clone(&receiver)))
                 .collect(),
         }
+    }
+
+    pub fn group_submit(&self, wg: &WaitGroup, f: impl FnOnce() + Send + 'static) {
+        // Increment the wait group counter
+        let guard = wg.guard();
+
+        // Submit the job to the thread pool
+        self.submit(move || {
+            f();
+            // Drop the guard when the job is done to decrement the counter.
+            drop(guard);
+        });
     }
 
     /// Execute a job in the thread pool. This is a 'fire and forget' method.
@@ -123,6 +136,71 @@ impl Worker {
     /// So if the thread is 'None' the worker is no longer alive.
     pub fn is_alive(&self) -> bool {
         self.thread.is_some()
+    }
+}
+
+#[derive(Clone)]
+pub struct WaitGroup {
+    inner: Arc<Inner>,
+    total_count: Arc<AtomicUsize>,
+}
+
+struct Inner {
+    counter: AtomicUsize,
+    lock: Mutex<()>,
+    cvar: Condvar,
+}
+
+pub struct WaitGuard {
+    wg: WaitGroup,
+}
+
+impl Drop for WaitGuard {
+    fn drop(&mut self) {
+        if self.wg.inner.counter.fetch_sub(1, Ordering::AcqRel) == 1 {
+            let _guard = self.wg.inner.lock.lock().unwrap();
+            self.wg.inner.cvar.notify_all();
+        }
+    }
+}
+
+impl WaitGroup {
+    pub fn new() -> Self {
+        Self {
+            inner: Arc::new(Inner {
+                counter: AtomicUsize::new(0),
+                lock: Mutex::new(()),
+                cvar: Condvar::new(),
+            }),
+            total_count: Arc::new(AtomicUsize::new(0)),
+        }
+    }
+
+    pub fn get_count(&self) -> usize {
+        // Returns the current count of the wait group.
+        self.total_count.load(Ordering::Acquire)
+    }
+
+    /// Adds one to the counter and returns a scoped guard that will decrement when dropped.
+    pub fn guard(&self) -> WaitGuard {
+        self.inner.counter.fetch_add(1, Ordering::AcqRel);
+        self.total_count.fetch_add(1, Ordering::AcqRel);
+        WaitGuard { wg: self.clone() }
+    }
+
+    /// Waits until the counter reaches zero.
+    pub fn wait(&self) -> usize {
+        if self.inner.counter.load(Ordering::Acquire) == 0 {
+            return 0;
+        }
+
+        let lock = self.inner.lock.lock().unwrap();
+        let _unused = self
+            .inner
+            .cvar
+            .wait_while(lock, |_| self.inner.counter.load(Ordering::Acquire) != 0);
+
+        self.get_count()
     }
 }
 

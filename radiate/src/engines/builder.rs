@@ -313,9 +313,9 @@ where
                     }
 
                     if let (Some(one), Some(two)) = (one.score(), two.score()) {
-                        return if pareto::dominance(one, two, &front_obj) {
+                        return if pareto::dominance(&one, &two, &front_obj) {
                             Ordering::Greater
-                        } else if pareto::dominance(two, one, &front_obj) {
+                        } else if pareto::dominance(&two, &one, &front_obj) {
                             Ordering::Less
                         } else {
                             Ordering::Equal

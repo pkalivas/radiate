@@ -1,6 +1,6 @@
 use super::codexes::Codex;
 use super::context::EngineContext;
-use super::thread_pool::ThreadPool;
+use super::thread_pool::{ThreadPool, WaitGroup};
 use super::{
     Alter, Audit, Distance, GeneticEngineParams, MetricSet, Phenotype, Problem,
     ReplacementStrategy, Species, random_provider, speciate,
@@ -10,7 +10,7 @@ use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
 use crate::objectives::Objective;
 use crate::{Chromosome, Metric, Select, Valid, metric_names};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 /// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -143,31 +143,23 @@ where
         let objective = self.objective();
         let thread_pool = self.thread_pool();
         let timer = Timer::new();
+        let wg = WaitGroup::new();
 
-        let mut work_results = Vec::new();
-        for idx in 0..handle.population.len() {
-            let individual = &mut handle.population[idx];
-            if individual.score().is_some() {
+        for pheno in handle.population.iter() {
+            if pheno.score().is_some() {
                 continue;
             } else {
                 let problem = self.problem();
-                let geno = individual.take_genotype();
-                let work = thread_pool.submit_with_result(move || {
-                    let score = problem.eval(&geno);
-                    (idx, score, geno)
-                });
+                let mut member = Phenotype::clone(pheno);
 
-                work_results.push(work);
+                thread_pool.group_submit(&wg, move || {
+                    let score = problem.eval(&member.genotype());
+                    member.set_score(Some(score));
+                });
             }
         }
 
-        let count = work_results.len() as f32;
-        for work_result in work_results {
-            let (idx, score, genotype) = work_result.result();
-            handle.population[idx].set_score(Some(score));
-            handle.population[idx].set_genotype(genotype);
-        }
-
+        let count = wg.wait() as f32;
         handle.upsert_operation(metric_names::EVALUATION, count, timer);
 
         objective.sort(&mut handle.population);
@@ -188,7 +180,7 @@ where
                 let mut found = false;
                 for j in 0..ctx.species.len() {
                     let species = ctx.get_species(j);
-                    let dist = distance.distance(ctx.phenotype(i).genotype(), species.mascot());
+                    let dist = distance.distance(&ctx.population[i].genotype(), species.mascot());
                     distances.push(dist);
 
                     if dist < distance.threshold() {
@@ -199,12 +191,12 @@ where
                 }
 
                 if !found {
-                    let phenotype = ctx.phenotype(i);
+                    let phenotype = ctx.population.get_mut(i);
                     let genotype = phenotype.genotype().clone();
-                    let score = phenotype.score().unwrap();
-                    let new_species = Species::new(genotype, score.clone(), ctx.index);
+                    let score = phenotype.score().unwrap().clone();
+                    let new_species = Species::new(genotype, score, ctx.index);
 
-                    ctx.set_species_id(i, new_species.id());
+                    phenotype.set_species_id(Some(new_species.id()));
                     ctx.add_species(new_species);
                 }
             }
@@ -406,14 +398,16 @@ where
             optimize.sort(&mut output.population);
         }
 
-        if let (Some(best), Some(current)) = (output.population[0].score(), &output.score) {
-            if optimize.is_better(best, current) {
+        let current_best = output.population.get(0);
+
+        if let (Some(best), Some(current)) = (current_best.score(), &output.score) {
+            if optimize.is_better(&best, &current) {
                 output.score = Some(best.clone());
-                output.best = problem.decode(output.population[0].genotype());
+                output.best = problem.decode(&current_best.genotype());
             }
         } else {
-            output.score = output.population[0].score().cloned();
-            output.best = problem.decode(output.population[0].genotype());
+            output.score = Some(current_best.score().unwrap().clone());
+            output.best = problem.decode(&current_best.genotype());
         }
 
         output.index += 1;
@@ -424,21 +418,60 @@ where
     /// called if the objective is multi-objective, as the front is not relevant for single-objective optimization.
     /// The front is updated in a separate thread to avoid blocking the main thread while the front is being calculated.
     /// This can significantly speed up the calculation of the front for large populations.
-    fn update_front(&self, output: &mut EngineContext<C, T>) {
+    fn update_front(&self, ctx: &mut EngineContext<C, T>) {
         let objective = self.objective();
+        let thread_pool = self.thread_pool();
 
         if let Objective::Multi(_) = objective {
             let timer = Timer::new();
+            let wg = WaitGroup::new();
 
-            let new_individuals = output
+            let front = Arc::new(ctx.front.clone());
+            let new_individuals = ctx
                 .population
                 .iter()
-                .filter(|pheno| pheno.generation == output.index)
+                .filter(|pheno| pheno.generation() == ctx.index)
                 .collect::<Vec<&Phenotype<C>>>();
 
-            let count = output.front.update_front(new_individuals.as_slice());
+            let dominates_vector = Arc::new(Mutex::new(vec![false; new_individuals.len()]));
+            let remove_vector = Arc::new(Mutex::new(Vec::new()));
 
-            output.upsert_operation(metric_names::FRONT, count as f32, timer);
+            for (idx, member) in new_individuals.iter().enumerate() {
+                let pheno = Phenotype::clone(member);
+                let front_clone = Arc::clone(&front);
+                let doms_vector = Arc::clone(&dominates_vector);
+                let remove_vector = Arc::clone(&remove_vector);
+
+                thread_pool.group_submit(&wg, move || {
+                    let (dominates, to_remove) = front_clone.dominates(&pheno);
+
+                    if dominates {
+                        doms_vector.lock().unwrap().get_mut(idx).map(|v| *v = true);
+                        remove_vector
+                            .lock()
+                            .unwrap()
+                            .extend(to_remove.iter().map(|r| r.clone()));
+                    }
+                });
+            }
+
+            let count = wg.wait();
+
+            let dominates_vector = dominates_vector
+                .lock()
+                .unwrap()
+                .iter()
+                .enumerate()
+                .filter(|(_, is_dominating)| **is_dominating)
+                .map(|(idx, _)| new_individuals[idx])
+                .collect::<Vec<&Phenotype<C>>>();
+            let mut remove_vector = remove_vector.lock().unwrap();
+
+            remove_vector.dedup();
+
+            ctx.front.clean(dominates_vector, remove_vector.as_slice());
+
+            ctx.upsert_operation(metric_names::FRONT, count as f32, timer);
         }
     }
 
@@ -495,7 +528,7 @@ where
 
         EngineContext {
             population: population.clone(),
-            best: self.problem().decode(population[0].genotype()),
+            best: self.problem().decode(&population[0].genotype()),
             index: 0,
             timer: Timer::new(),
             metrics: MetricSet::new(),

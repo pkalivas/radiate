@@ -78,9 +78,13 @@ where
             num_crosses += 1;
         }
 
+        drop(geno_one); // Drop the borrow checker on the original chromosome
+        // Now we can safely create a new phenotype with the updated genotype
+        drop(geno_two); // Drop the borrow checker on the original chromosome
+
         if num_crosses > 0 {
-            population[indexes[1]] =
-                Phenotype::from((new_geno_one, generation, parent_one.species_id()));
+            let species_id = parent_one.species_id(); // Get the species id from the first parent
+            population[indexes[1]] = Phenotype::from((new_geno_one, generation, species_id)); // Create a new phenotype with the updated genotype
         }
 
         num_crosses.into()
