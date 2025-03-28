@@ -1,6 +1,64 @@
+use std::ops::{Deref, DerefMut};
+use std::sync::{Arc, RwLock, RwLockReadGuard};
+
 use super::{Valid, genotype::Genotype};
 use crate::Chromosome;
 use crate::engines::objectives::Score;
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct PhenotypeCell<C: Chromosome> {
+    genotype: Genotype<C>,
+    score: Option<Score>,
+    generation: usize,
+    species_id: Option<u64>,
+}
+
+pub struct GenotypeGuard<'a, C: Chromosome> {
+    inner: RwLockReadGuard<'a, PhenotypeCell<C>>,
+}
+
+impl<'a, C: Chromosome> GenotypeGuard<'a, C> {
+    pub fn new(inner: &'a RwLock<PhenotypeCell<C>>) -> Self {
+        let guard = inner.read().unwrap();
+        GenotypeGuard { inner: guard }
+    }
+}
+
+impl<'a, C: Chromosome> Deref for GenotypeGuard<'a, C> {
+    type Target = Genotype<C>;
+
+    fn deref(&self) -> &Self::Target {
+        // Return the genotype from the inner cell
+        &self.inner.genotype
+    }
+}
+
+pub struct GenotypeGuardMut<'a, C: Chromosome> {
+    inner: std::sync::RwLockWriteGuard<'a, PhenotypeCell<C>>,
+}
+
+impl<'a, C: Chromosome> GenotypeGuardMut<'a, C> {
+    pub fn new(inner: &'a RwLock<PhenotypeCell<C>>) -> Self {
+        let guard = inner.write().unwrap();
+        GenotypeGuardMut { inner: guard }
+    }
+}
+
+impl<'a, C: Chromosome> Deref for GenotypeGuardMut<'a, C> {
+    type Target = Genotype<C>;
+
+    fn deref(&self) -> &Self::Target {
+        // Return the genotype from the inner cell
+        &self.inner.genotype
+    }
+}
+
+impl<'a, C: Chromosome> DerefMut for GenotypeGuardMut<'a, C> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        // Return the mutable genotype from the inner cell
+        &mut self.inner.genotype
+    }
+}
 
 /// A `Phenotype` is a representation of an individual in the population. It contains:
 /// * `Genotype` - the genetic representation of the individual
@@ -16,46 +74,59 @@ use crate::engines::objectives::Score;
 /// # Type Parameters
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 ///
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug)]
 pub struct Phenotype<C: Chromosome> {
-    pub genotype: Option<Genotype<C>>,
-    pub score: Option<Score>,
-    pub generation: usize,
-    pub species_id: Option<u64>,
+    inner: Arc<RwLock<PhenotypeCell<C>>>,
 }
 
 impl<C: Chromosome> Phenotype<C> {
-    pub fn genotype(&self) -> &Genotype<C> {
-        self.genotype.as_ref().unwrap()
+    pub fn genotype(&self) -> GenotypeGuard<C> {
+        // Create a read guard to access the inner cell
+        let guard = GenotypeGuard::new(&self.inner);
+        guard
     }
 
-    pub fn genotype_mut(&mut self) -> &mut Genotype<C> {
-        self.genotype.as_mut().unwrap()
+    pub fn genotype_mut(&mut self) -> GenotypeGuardMut<C> {
+        // Create a mutable guard to access the inner cell
+        let guard = GenotypeGuardMut::new(&self.inner);
+        guard
     }
 
-    pub fn take_genotype(&mut self) -> Genotype<C> {
-        self.score = None;
-        self.genotype.take().unwrap()
+    pub fn generation(&self) -> usize {
+        // Lock the inner cell to access the generation
+        let cell = self.inner.read().unwrap();
+        cell.generation
     }
+
+    // pub fn take_genotype(&mut self) -> Genotype<C> {
+    //     self.score = None;
+    //     self.genotype.take().unwrap()
+    // }
 
     pub fn species_id(&self) -> Option<u64> {
-        self.species_id
+        // Lock the inner cell to access the species_id
+        let cell = self.inner.read().unwrap();
+        cell.species_id
     }
 
-    pub fn set_genotype(&mut self, genotype: Genotype<C>) {
-        self.genotype = Some(genotype);
-    }
+    // pub fn set_genotype(&mut self, genotype: Genotype<C>) {
+    //     self.genotype = Some(genotype);
+    // }
 
     pub fn set_score(&mut self, score: Option<Score>) {
-        self.score = score;
+        // Lock the inner cell to set the score
+        let mut cell = self.inner.write().unwrap();
+        cell.score = score;
     }
 
     pub fn set_species_id(&mut self, species_id: Option<u64>) {
-        self.species_id = species_id;
+        // Lock the inner cell to set the species_id
+        let mut cell = self.inner.write().unwrap();
+        cell.species_id = species_id;
     }
 
-    pub fn score(&self) -> Option<&Score> {
-        self.score.as_ref()
+    pub fn score(&self) -> ScoreGuard<C> {
+        ScoreGuard::new(&self.inner)
     }
 
     /// Get the age of the individual in generations. The age is calculated as the
@@ -89,6 +160,17 @@ impl<C: Chromosome> AsRef<[f32]> for Phenotype<C> {
 impl<C: Chromosome> AsRef<Phenotype<C>> for &Phenotype<C> {
     fn as_ref(&self) -> &Phenotype<C> {
         self
+    }
+}
+
+/// Implement the `PartialEq` trait for the `Phenotype`. This allows the `Phenotype` to be compared
+/// with other `Phenotype` instances. The comparison is based on the `Score` (fitness) of the `Phenotype`.
+impl<C: Chromosome> PartialEq for Phenotype<C> {
+    fn eq(&self, other: &Self) -> bool {
+        return self.genotype() == other.genotype()
+            && self.score() == other.score()
+            && self.generation() == other.generation()
+            && self.species_id() == other.species_id();
     }
 }
 
