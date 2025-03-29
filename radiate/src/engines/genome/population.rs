@@ -38,7 +38,7 @@ impl<C: Chromosome> Population<C> {
     }
 
     pub fn get_mut(&mut self, index: usize) -> &mut Phenotype<C> {
-        self.is_sorted = false; // Set the is_sorted flag to false because we're mutating the individual
+        self.is_sorted = false;
         &mut self.individuals[index]
     }
 
@@ -65,8 +65,6 @@ impl<C: Chromosome> Population<C> {
     }
 
     pub fn get_scores(&self) -> Vec<Score> {
-        // Collect the scores from each individual in the population.
-        // This will return a vector of scores for each individual.
         self.individuals
             .iter()
             .filter_map(|individual| individual.score())
@@ -103,8 +101,26 @@ impl<C: Chromosome> Population<C> {
             }
         }
 
+        self.is_sorted = false;
         self.individuals = old_population;
+
         Population::new(new_population)
+    }
+
+    pub fn get_pair_mut(
+        &mut self,
+        first: usize,
+        second: usize,
+    ) -> (&mut Phenotype<C>, &mut Phenotype<C>) {
+        let (one, two) = if first < second {
+            let (left, right) = self.individuals.split_at_mut(second);
+            (&mut left[first], &mut right[0])
+        } else {
+            let (left, right) = self.individuals.split_at_mut(first);
+            (&mut right[0], &mut left[second])
+        };
+
+        (one, two)
     }
 }
 

@@ -43,13 +43,14 @@ where
     pub survivor_selector: Box<dyn Select<C>>,
     pub offspring_selector: Box<dyn Select<C>>,
     pub alterers: Vec<Box<dyn Alter<C>>>,
+    pub audits: Vec<Arc<dyn Audit<C>>>,
     pub population: Option<Population<C>>,
     pub codex: Option<Arc<dyn Codex<C, T>>>,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
     pub problem: Option<Arc<dyn Problem<C, T>>>,
     pub replacement_strategy: Box<dyn ReplacementStrategy<C>>,
-    pub audits: Vec<Arc<dyn Audit<C>>>,
     pub distance: Option<Arc<dyn Distance<C>>>,
+    pub front: Option<Front<Phenotype<C>>>,
 }
 
 impl<C, T> GeneticEngineBuilder<C, T>
@@ -57,50 +58,6 @@ where
     C: Chromosome,
     T: Clone + Send,
 {
-    /// Create a new instance of the GeneticEngineParams. This will create a new instance with the following defaults:
-    /// * population_size: 100
-    /// * max_age: 20
-    /// * offspring_fraction: 0.8
-    ///     * This is a value from 0...=1 that represents the fraction of
-    ///       population that will be replaced by offspring each generation.
-    ///       For example, if the population size is 100 and the offspring_fraction is 0.8,
-    ///       then 80 individuals will be replaced by offspring each generation.
-    ///       The remaining 20 individuals will be selected from the survivors of the previous generation.
-    /// * thread_pool: ThreadPool::new(1)
-    ///     * This is a thread pool that is used to execute the fitness function in parallel. Default is 1 thread.
-    /// * optimize: Optimize::Maximize
-    ///     * This is the optimization goal of the genetic engine. The default is to maximize the fitness function.
-    /// * survivor_selector: TournamentSelector::new(3)
-    /// * offspring_selector: RouletteSelector::new()
-    /// * replacement_strategy: EncodeReplace
-    ///     * This is the replacement strategy that is used to replace an individual in the population
-    ///       if the individual is invalid or reaches the maximum age.
-    /// * min_front_size: 800
-    /// * max_front_size: 900
-    ///     * This is the minimum and maximum size of the pareto front. This is used for
-    ///       multi-objective optimization problems where the goal is to find the best
-    ///       solutions that are not dominated by any other solution.
-    pub fn new() -> Self {
-        GeneticEngineBuilder {
-            population_size: 100,
-            max_age: 20,
-            offspring_fraction: 0.8,
-            front_range: 800..900,
-            thread_pool: ThreadPool::new(1),
-            objective: Objective::Single(Optimize::Maximize),
-            survivor_selector: Box::new(TournamentSelector::new(3)),
-            offspring_selector: Box::new(RouletteSelector::new()),
-            alterers: Vec::new(),
-            codex: None,
-            population: None,
-            fitness_fn: None,
-            problem: None,
-            replacement_strategy: Box::new(EncodeReplace),
-            audits: vec![Arc::new(MetricAudit)],
-            distance: None,
-        }
-    }
-
     /// Set the population size of the genetic engine. Default is 100.
     pub fn population_size(mut self, population_size: usize) -> Self {
         if population_size < 1 {
@@ -302,29 +259,7 @@ where
         } else {
             self.build_population();
             self.build_alterer();
-
-            let front_obj = self.objective.clone();
-            let front = Front::new(
-                self.front_range,
-                self.objective.clone(),
-                move |one: &Phenotype<C>, two: &Phenotype<C>| {
-                    if one.score().is_none() || two.score().is_none() {
-                        return Ordering::Equal;
-                    }
-
-                    if let (Some(one), Some(two)) = (one.score(), two.score()) {
-                        return if pareto::dominance(&one, &two, &front_obj) {
-                            Ordering::Greater
-                        } else if pareto::dominance(&two, &one, &front_obj) {
-                            Ordering::Less
-                        } else {
-                            Ordering::Equal
-                        };
-                    }
-
-                    Ordering::Equal
-                },
-            );
+            self.build_front();
 
             GeneticEngine::new(GeneticEngineParams::new(
                 self.population.unwrap(),
@@ -338,7 +273,7 @@ where
                 self.objective,
                 self.thread_pool,
                 self.max_age,
-                front,
+                self.front.clone().unwrap(),
                 self.offspring_fraction,
             ))
         }
@@ -371,5 +306,59 @@ where
 
         self.alterers.push(crossover);
         self.alterers.push(mutator);
+    }
+
+    fn build_front(&mut self) {
+        if self.front.is_some() {
+            return;
+        }
+
+        let front_obj = self.objective.clone();
+        self.front = Some(Front::new(
+            self.front_range.clone(),
+            front_obj.clone(),
+            move |one: &Phenotype<C>, two: &Phenotype<C>| {
+                if one.score().is_none() || two.score().is_none() {
+                    return Ordering::Equal;
+                }
+
+                if let (Some(one), Some(two)) = (one.score(), two.score()) {
+                    if pareto::dominance(&one, &two, &front_obj) {
+                        return Ordering::Greater;
+                    } else if pareto::dominance(&two, &one, &front_obj) {
+                        return Ordering::Less;
+                    }
+                }
+                Ordering::Equal
+            },
+        ));
+    }
+}
+
+impl<C, T> Default for GeneticEngineBuilder<C, T>
+where
+    C: Chromosome + 'static,
+    T: Clone + Send + 'static,
+{
+    fn default() -> Self {
+        Self {
+            population_size: 100,
+            max_age: 20,
+            offspring_fraction: 0.8,
+            front_range: 800..900,
+            thread_pool: ThreadPool::new(1),
+            objective: Objective::Single(Optimize::Maximize),
+            survivor_selector: Box::new(TournamentSelector::new(3)),
+            offspring_selector: Box::new(RouletteSelector::new()),
+            replacement_strategy: Box::new(EncodeReplace),
+            audits: vec![Arc::new(MetricAudit)],
+            alterers: Vec::new(),
+            codex: None,
+            population: None,
+            fitness_fn: None,
+            problem: None,
+            distance: None,
+            front: None,
+        }
     }
 }

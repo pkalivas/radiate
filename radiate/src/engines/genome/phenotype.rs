@@ -1,7 +1,7 @@
 use super::{Valid, genotype::Genotype};
-use crate::Chromosome;
 use crate::engines::objectives::Score;
-use crate::sync::{SyncCell, SyncCellGuard, SyncCellGuardMut};
+use crate::sync::{RwCell, RwCellGuard, RwCellGuardMut};
+use crate::{Chromosome, Scored};
 use std::ops::Deref;
 
 /// A `Phenotype` is a representation of an individual in the population. It contains:
@@ -20,8 +20,8 @@ use std::ops::Deref;
 ///
 #[derive(Clone, Debug, PartialEq)]
 pub struct Phenotype<C: Chromosome> {
-    genotype: SyncCell<Genotype<C>>,
-    score: SyncCell<Option<Score>>,
+    genotype: RwCell<Genotype<C>>,
+    score: RwCell<Option<Score>>,
     generation: usize,
     species_id: Option<u64>,
 }
@@ -29,18 +29,18 @@ pub struct Phenotype<C: Chromosome> {
 impl<C: Chromosome> Phenotype<C> {
     pub fn clone(other: &Phenotype<C>) -> Self {
         Phenotype {
-            genotype: SyncCell::clone(&other.genotype),
-            score: SyncCell::clone(&other.score),
+            genotype: RwCell::clone(&other.genotype),
+            score: RwCell::clone(&other.score),
             generation: other.generation,
             species_id: other.species_id,
         }
     }
 
-    pub fn genotype(&self) -> SyncCellGuard<Genotype<C>> {
+    pub fn genotype(&self) -> RwCellGuard<Genotype<C>> {
         self.genotype.read()
     }
 
-    pub fn genotype_mut(&mut self) -> SyncCellGuardMut<Genotype<C>> {
+    pub fn genotype_mut(&mut self) -> RwCellGuardMut<Genotype<C>> {
         self.genotype.write()
     }
 
@@ -91,6 +91,20 @@ impl<C: Chromosome> AsRef<Phenotype<C>> for Phenotype<C> {
     }
 }
 
+impl<C: Chromosome> Scored for Phenotype<C> {
+    fn values(&self) -> impl AsRef<[f32]> {
+        let score = self.score();
+        if score.is_none() {
+            return Score::default();
+        }
+
+        score.unwrap()
+    }
+    fn score(&self) -> Option<Score> {
+        self.score()
+    }
+}
+
 /// Implement the `PartialOrd` trait for the `Phenotype`. This allows the `Phenotype` to be compared
 /// with other `Phenotype` instances. The comparison is based on the `Score` (fitness) of the `Phenotype`.
 impl<C: Chromosome> PartialOrd for Phenotype<C> {
@@ -105,8 +119,8 @@ impl<C: Chromosome> PartialOrd for Phenotype<C> {
 impl<C: Chromosome> From<(Genotype<C>, usize, Option<u64>)> for Phenotype<C> {
     fn from((genotype, generation, species_id): (Genotype<C>, usize, Option<u64>)) -> Self {
         Phenotype {
-            genotype: SyncCell::new(genotype),
-            score: SyncCell::new(None),
+            genotype: RwCell::new(genotype),
+            score: RwCell::new(None),
             generation,
             species_id,
         }
@@ -119,8 +133,8 @@ impl<C: Chromosome> From<(Genotype<C>, usize, Option<u64>)> for Phenotype<C> {
 impl<C: Chromosome> From<(Vec<C>, usize)> for Phenotype<C> {
     fn from((chromosomes, generation): (Vec<C>, usize)) -> Self {
         Phenotype {
-            genotype: SyncCell::new(Genotype::new(chromosomes)),
-            score: SyncCell::new(None),
+            genotype: RwCell::new(Genotype::new(chromosomes)),
+            score: RwCell::new(None),
             generation,
             species_id: None,
         }

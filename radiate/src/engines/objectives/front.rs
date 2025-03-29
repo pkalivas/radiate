@@ -1,44 +1,25 @@
-use crate::{
-    Chromosome, Phenotype,
-    objectives::{Objective, pareto},
-};
+use super::Scored;
+use crate::objectives::{Objective, pareto};
 use std::{cmp::Ordering, ops::Range, sync::Arc};
-
-use super::Score;
-
-pub trait FrontValue<T: AsRef<[f32]>> {
-    fn as_values(&self) -> T;
-}
-
-impl<C: Chromosome> FrontValue<Score> for Phenotype<C> {
-    fn as_values(&self) -> Score {
-        let guard = self.score(); // keeps the lock alive
-        guard.unwrap()
-        // and Score has a method values() that returns &[f32]
-    }
-}
 
 /// A front is a collection of scores that are non-dominated with respect to each other.
 /// This is useful for multi-objective optimization problems where the goal is to find
 /// the best solutions that are not dominated by any other solution.
 /// This results in what is called the Pareto front.
 #[derive(Clone)]
-pub struct Front<T, K>
+pub struct Front<T>
 where
-    T: PartialEq + Clone + FrontValue<K>,
-    K: AsRef<[f32]>,
+    T: PartialEq + Clone + Scored,
 {
     values: Vec<Arc<T>>,
     ord: Arc<dyn Fn(&T, &T) -> Ordering + Send + Sync>,
     range: Range<usize>,
     objective: Objective,
-    __marker: std::marker::PhantomData<K>,
 }
 
-impl<T, K> Front<T, K>
+impl<T> Front<T>
 where
-    T: PartialEq + Clone + FrontValue<K>,
-    K: AsRef<[f32]>,
+    T: PartialEq + Clone + Scored,
 {
     pub fn new<F>(range: Range<usize>, objective: Objective, comp: F) -> Self
     where
@@ -49,7 +30,6 @@ where
             range,
             objective,
             ord: Arc::new(comp),
-            __marker: std::marker::PhantomData,
         }
     }
 
@@ -134,7 +114,7 @@ where
         let values = self
             .values
             .iter()
-            .map(|s| (*(*s).as_ref()).as_values())
+            .map(|s| s.score().unwrap())
             .collect::<Vec<_>>();
         let crowding_distances = pareto::crowding_distance(&values, &self.objective);
 

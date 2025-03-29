@@ -238,7 +238,7 @@ impl<T: Integer<T>> std::fmt::Debug for IntGene<T> {
 /// // Check if the chromosome is valid.
 /// assert!(chromosome.is_valid());
 ///
-#[derive(Clone, PartialEq, Default)]
+#[derive(Clone, PartialEq, Default, Debug)]
 pub struct IntChromosome<I: Integer<I>> {
     pub genes: Vec<IntGene<I>>,
 }

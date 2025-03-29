@@ -31,7 +31,7 @@ impl<C: Chromosome> Select<C> for NSGA2Selector {
     ) -> Population<C> {
         let scores = population
             .iter()
-            .filter_map(|individual| individual.score()) // Get the score of each individual
+            .filter_map(|individual| individual.score())
             .collect::<Vec<_>>();
 
         let ranks = pareto::rank(scores.as_slice(), objective);

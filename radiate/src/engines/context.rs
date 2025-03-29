@@ -34,7 +34,7 @@ where
     pub timer: Timer,
     pub metrics: MetricSet,
     pub score: Option<Score>,
-    pub front: Front<Phenotype<C>, Score>,
+    pub front: Front<Phenotype<C>>,
     pub species: Vec<Species<C>>,
 }
 

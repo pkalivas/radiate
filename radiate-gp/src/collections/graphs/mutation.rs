@@ -110,7 +110,8 @@ where
 
                 return match result {
                     TransactionResult::Invalid(_, _) => {
-                        let metric = Metric::Value(INVALID_MUTATION, 1.into());
+                        let mut metric = Metric::new_value(INVALID_MUTATION);
+                        metric.add_value(1_f32);
                         (0, metric).into()
                     }
                     TransactionResult::Valid(steps) => {
