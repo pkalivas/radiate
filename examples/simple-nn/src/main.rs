@@ -35,15 +35,15 @@ fn main() {
         .build();
 
     let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32());
+        println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_f32());
         ctx.score().as_f32() < MIN_SCORE
-            || ctx.index == MAX_INDEX
-            || ctx.timer.duration().as_secs() > MAX_SECONDS
+            || ctx.index() == MAX_INDEX
+            || ctx.duration().as_secs() > MAX_SECONDS
     });
 
     println!("Seconds: {:?}", result.seconds());
-    println!("{:?}", result.metrics);
-    let best = result.best;
+    println!("{:?}", result.metrics());
+    let best = result.best();
     for (input, target) in codex.inputs.iter().zip(codex.target.iter()) {
         let output = best.feed_forward(input.clone());
         println!(

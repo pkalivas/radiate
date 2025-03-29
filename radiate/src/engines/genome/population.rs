@@ -245,7 +245,7 @@ mod test {
         }));
 
         for i in 0..population.len() {
-            population[i].set_score(Some(Score::from_usize(i)));
+            population[i].set_score(Some(Score::from(i)));
         }
 
         let mut minimize_population = population.clone();

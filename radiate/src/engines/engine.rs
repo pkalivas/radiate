@@ -164,7 +164,7 @@ where
         }
 
         let count = wg.wait() as f32;
-        ctx.upsert_operation(metric_names::EVALUATION, count, timer);
+        ctx.record_operation(metric_names::EVALUATION, count, timer);
 
         objective.sort(&mut ctx.population);
     }
@@ -208,8 +208,8 @@ where
             speciate::fitness_share(&mut ctx.population, &mut ctx.species, objective);
 
             let species_count = ctx.species().len();
-            ctx.upsert_operation(metric_names::SPECIATION, species_count as f32, timer);
-            ctx.upsert_distribution(metric_names::DISTANCE, &distances);
+            ctx.record_operation(metric_names::SPECIATION, species_count as f32, timer);
+            ctx.record_distribution(metric_names::DISTANCE, &distances);
         }
     }
 
@@ -235,7 +235,7 @@ where
         let timer = Timer::new();
         let result = selector.select(&ctx.population, objective, count);
 
-        ctx.upsert_operation(selector.name(), count as f32, timer);
+        ctx.record_operation(selector.name(), count as f32, timer);
 
         result
     }
@@ -264,7 +264,7 @@ where
             let timer = Timer::new();
             let mut offspring = selector.select(&ctx.population, objective, count);
 
-            ctx.upsert_operation(selector.name(), count as f32, timer);
+            ctx.record_operation(selector.name(), count as f32, timer);
             objective.sort(&mut offspring);
 
             alters.iter().for_each(|alterer| {
@@ -272,7 +272,7 @@ where
                     .alter(&mut offspring, ctx.index)
                     .into_iter()
                     .for_each(|metric| {
-                        ctx.upsert_metric(metric);
+                        ctx.record_metric(metric);
                     });
             });
 
@@ -291,7 +291,7 @@ where
 
             let mut selected = selector.select(&members, objective, count);
 
-            ctx.upsert_operation(selector.name(), count as f32, timer);
+            ctx.record_operation(selector.name(), count as f32, timer);
             objective.sort(&mut selected);
 
             alters.iter().for_each(|alterer| {
@@ -299,7 +299,7 @@ where
                     .alter(&mut selected, ctx.index)
                     .into_iter()
                     .for_each(|metric| {
-                        ctx.upsert_metric(metric);
+                        ctx.record_metric(metric);
                     });
             });
 
@@ -358,9 +358,9 @@ where
         let species_count = (before_species - ctx.species().len()) as f32;
 
         let duration = timer.duration();
-        ctx.upsert_operation(metric_names::SPECIES_FILTER, species_count, duration);
-        ctx.upsert_operation(metric_names::AGE_FILTER, age_count, duration);
-        ctx.upsert_operation(metric_names::INVALID_FILTER, invalid_count, duration);
+        ctx.record_operation(metric_names::SPECIES_FILTER, species_count, duration);
+        ctx.record_operation(metric_names::AGE_FILTER, age_count, duration);
+        ctx.record_operation(metric_names::INVALID_FILTER, invalid_count, duration);
     }
 
     /// Recombines the survivors and offspring populations to create the next generation. The survivors
@@ -395,7 +395,7 @@ where
             .collect::<Vec<Metric>>();
 
         for metric in audit_metrics {
-            ctx.upsert_metric(metric);
+            ctx.record_metric(metric);
         }
 
         if !ctx.population.is_sorted {
@@ -473,7 +473,7 @@ where
 
             ctx.front.clean(dominates_vector, remove_vector.as_slice());
 
-            ctx.upsert_operation(metric_names::FRONT, count as f32, timer);
+            ctx.record_operation(metric_names::FRONT, count as f32, timer);
         }
     }
 

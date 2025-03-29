@@ -30,7 +30,7 @@ fn main() {
         .build();
 
     let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32());
+        println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_f32());
         ctx.score().as_f32() < MIN_SCORE || ctx.seconds() > MAX_SECONDS
     });
 
@@ -44,7 +44,7 @@ fn display(
 ) {
     let train_acc = Accuracy::new("train", &train, Loss::MSE);
     let test_acc = Accuracy::new("test", &test, Loss::MSE);
-    let best = result.best.clone();
+    let best = result.best().clone();
 
     let train_acc_result = train_acc.calc(|input| best.eval(input));
     let test_acc_result = test_acc.calc(|input| best.eval(input));

@@ -158,9 +158,9 @@ macro_rules! log_ctx {
         let c = $ctx;
         println!(
             "[ Iteration {:<4} ] Score: {:>8.4}, Elapsed: {:.2?}",
-            c.index,
-            c.score.as_ref().map(|s| s.as_f32()).unwrap_or_default(),
-            c.timer.duration()
+            c.index(),
+            c.score(),
+            c.duration()
         );
     }};
 }

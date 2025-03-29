@@ -24,13 +24,13 @@ fn main() {
         .build();
 
     let result = engine.run(|ctx| {
-        println!("[ {:?} ]", ctx.index);
-        ctx.index > 1000
+        println!("[ {:?} ]", ctx.index());
+        ctx.index() > 1000
     });
 
     println!("{:?}", result.seconds());
-    println!("{:?}", result.metrics);
-    plot_front(&result.front);
+    println!("{:?}", result.metrics());
+    plot_front(result.pareto_front());
 }
 
 fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {

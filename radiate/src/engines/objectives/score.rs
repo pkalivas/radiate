@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use std::iter::Sum;
 use std::ops::{Add, Div, Mul, Sub};
@@ -8,7 +8,12 @@ pub trait Scored {
     fn values(&self) -> impl AsRef<[f32]>;
 
     fn as_f32(&self) -> f32 {
-        self.values().as_ref()[0]
+        let vals = self.values();
+        if vals.as_ref().is_empty() {
+            f32::NAN
+        } else {
+            vals.as_ref()[0]
+        }
     }
 
     fn as_usize(&self) -> usize {
@@ -34,6 +39,12 @@ impl Scored for Option<Score> {
     }
 }
 
+fn guard_nan(value: &f32) {
+    if value.is_nan() {
+        panic!("Score value cannot be NaN")
+    }
+}
+
 /// A score is a value that can be used to compare the fitness of two individuals and represents
 /// the 'fitness' of an individual within the genetic algorithm.
 /// The score can be a single value or multiple values, depending on the problem being solved.
@@ -48,80 +59,24 @@ pub struct Score {
 }
 
 impl Score {
-    pub fn from_any(value: &dyn std::any::Any) -> Self {
-        if let Some(value) = value.downcast_ref::<f32>() {
-            Score::from_f32(*value)
-        } else if let Some(value) = value.downcast_ref::<i32>() {
-            Score::from_int(*value)
-        } else if let Some(value) = value.downcast_ref::<usize>() {
-            Score::from_usize(*value)
-        } else if let Some(value) = value.downcast_ref::<String>() {
-            Score::from_string(value)
-        } else if let Some(value) = value.downcast_ref::<Score>() {
-            value.clone()
-        } else if let Some(value) = value.downcast_ref::<Vec<f32>>() {
-            Score::from_vec(value.clone())
-        } else {
-            panic!("Invalid type for Score")
-        }
-    }
-
-    pub fn from_vec(values: Vec<f32>) -> Self {
-        for value in &values {
-            if value.is_nan() {
-                panic!("Score value cannot be NaN")
-            }
-        }
-
-        Score {
-            values: Arc::from(values),
-        }
-    }
-
-    pub fn from_f32(value: f32) -> Self {
-        if value.is_nan() {
-            panic!("Score value cannot be NaN")
-        }
-
-        Score {
-            values: Arc::from(vec![value]),
-        }
-    }
-
-    pub fn from_int(value: i32) -> Self {
-        Score {
-            values: Arc::from(vec![value as f32]),
-        }
-    }
-
-    pub fn from_usize(value: usize) -> Self {
-        Score {
-            values: Arc::from(vec![value as f32]),
-        }
-    }
-
-    pub fn from_string(value: &str) -> Self {
-        Score {
-            values: Arc::from(vec![
-                value.parse::<f32>().expect("Failed to parse string to f32"),
-            ]),
-        }
-    }
-
     pub fn as_f32(&self) -> f32 {
         self.values.get(0).cloned().unwrap_or(f32::NAN)
     }
 
     pub fn as_i32(&self) -> i32 {
-        self.values[0] as i32
+        self.values.get(0).cloned().unwrap_or(f32::NAN) as i32
     }
 
     pub fn as_string(&self) -> String {
-        self.values[0].to_string()
+        self.values
+            .iter()
+            .map(|value| format!("{:.4}", value))
+            .collect::<Vec<String>>()
+            .join(", ")
     }
 
     pub fn as_usize(&self) -> usize {
-        self.values[0] as usize
+        self.values.get(0).cloned().unwrap_or(f32::NAN) as usize
     }
 }
 
@@ -143,6 +98,19 @@ impl Debug for Score {
     }
 }
 
+impl Display for Score {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (i, value) in self.values.iter().enumerate() {
+            if i > 0 {
+                write!(f, ", ")?;
+            }
+            write!(f, "{:.4}", value)?;
+        }
+
+        Ok(())
+    }
+}
+
 impl Hash for Score {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         let mut hash: usize = 0;
@@ -158,71 +126,111 @@ impl Hash for Score {
 
 impl From<f32> for Score {
     fn from(value: f32) -> Self {
-        Score::from_f32(value)
+        if value.is_nan() {
+            panic!("Score value cannot be NaN")
+        }
+
+        Score {
+            values: Arc::from(vec![value]),
+        }
     }
 }
 
 impl From<i32> for Score {
     fn from(value: i32) -> Self {
-        Score::from_int(value)
+        Score {
+            values: Arc::from(vec![value as f32]),
+        }
     }
 }
 
 impl From<usize> for Score {
     fn from(value: usize) -> Self {
-        Score::from_usize(value)
+        Score {
+            values: Arc::from(vec![value as f32]),
+        }
     }
 }
 
 impl From<String> for Score {
     fn from(value: String) -> Self {
-        Score::from_string(&value)
+        let parsed_value = value.parse::<f32>().expect("Failed to parse string to f32");
+
+        Score {
+            values: Arc::from(vec![parsed_value]),
+        }
     }
 }
 
 impl From<&str> for Score {
     fn from(value: &str) -> Self {
-        Score::from_string(value)
+        let parsed_value = value.parse::<f32>().expect("Failed to parse string to f32");
+
+        Score {
+            values: Arc::from(vec![parsed_value]),
+        }
     }
 }
 
 impl From<Vec<f32>> for Score {
     fn from(value: Vec<f32>) -> Self {
-        Score::from_vec(value)
+        for v in &value {
+            if v.is_nan() {
+                panic!("Score value cannot be NaN")
+            }
+        }
+
+        Score {
+            values: Arc::from(value),
+        }
     }
 }
 
 impl From<Vec<i32>> for Score {
     fn from(value: Vec<i32>) -> Self {
-        Score::from_vec(value.into_iter().map(|v| v as f32).collect())
+        let float_values: Vec<f32> = value.iter().map(|&v| v as f32).inspect(guard_nan).collect();
+
+        Score {
+            values: Arc::from(float_values),
+        }
     }
 }
 
 impl From<Vec<usize>> for Score {
     fn from(value: Vec<usize>) -> Self {
-        Score::from_vec(value.into_iter().map(|v| v as f32).collect())
+        let float_values: Vec<f32> = value.iter().map(|&v| v as f32).inspect(guard_nan).collect();
+
+        Score {
+            values: Arc::from(float_values),
+        }
     }
 }
 
 impl From<Vec<String>> for Score {
     fn from(value: Vec<String>) -> Self {
-        Score::from_vec(
-            value
-                .into_iter()
-                .map(|v| v.parse::<f32>().unwrap())
-                .collect(),
-        )
+        let float_values: Vec<f32> = value
+            .iter()
+            .map(|v| v.parse::<f32>().expect("Failed to parse string to f32"))
+            .inspect(guard_nan)
+            .collect();
+
+        Score {
+            values: Arc::from(float_values),
+        }
     }
 }
 
 impl From<Vec<&str>> for Score {
     fn from(value: Vec<&str>) -> Self {
-        Score::from_vec(
-            value
-                .into_iter()
-                .map(|v| v.parse::<f32>().unwrap())
-                .collect(),
-        )
+        let float_values: Vec<f32> = value
+            .iter()
+            .map(|&v| v.parse::<f32>().expect("Failed to parse string to f32"))
+            .inspect(guard_nan)
+            .collect();
+
+        Score {
+            values: Arc::from(float_values),
+        }
     }
 }
 
@@ -249,7 +257,7 @@ impl Add<f32> for Score {
 
     fn add(self, other: f32) -> Self {
         if self.values.is_empty() {
-            return Score::from_f32(other);
+            return Score::from(other);
         }
 
         let values = self.values.iter().map(|a| a + other).collect();
@@ -282,7 +290,7 @@ impl Sub<f32> for Score {
 
     fn sub(self, other: f32) -> Self {
         if self.values.is_empty() {
-            return Score::from_f32(-other);
+            return Score::from(-other);
         }
 
         let values = self.values.iter().map(|a| a - other).collect();
@@ -315,7 +323,7 @@ impl Mul<f32> for Score {
 
     fn mul(self, other: f32) -> Self {
         if self.values.is_empty() {
-            return Score::from_f32(other);
+            return Score::from(other);
         }
 
         let values = self.values.iter().map(|a| a * other).collect();
@@ -348,7 +356,7 @@ impl Div<f32> for Score {
 
     fn div(self, other: f32) -> Self {
         if self.values.is_empty() {
-            return Score::from_f32(other);
+            return Score::from(other);
         }
 
         let values = self.values.iter().map(|a| a / other).collect();
@@ -371,9 +379,8 @@ impl Sum for Score {
             }
         }
 
-        Score { values:
-            // Convert the vector into an Arc<[f32]> for efficient sharing
-            Arc::from(values),
+        Score {
+            values: Arc::from(values),
         }
     }
 }
@@ -392,9 +399,8 @@ impl<'a> Sum<&'a Score> for Score {
             }
         }
 
-        Score { values:
-            // Convert the vector into an Arc<[f32]> for efficient sharing
-            Arc::from(values),
+        Score {
+            values: Arc::from(values),
         }
     }
 }

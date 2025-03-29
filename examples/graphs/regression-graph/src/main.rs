@@ -32,12 +32,12 @@ fn main() {
         .take_while(|ctx| ctx.score().as_f32() > MIN_SCORE && ctx.seconds() < MAX_SECONDS)
         .inspect(|ctx| log_ctx!(ctx))
         .last()
-        .inspect(|ctx| display(ctx))
+        .inspect(display)
         .unwrap();
 }
 
 fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
-    let mut evaluator = GraphEvaluator::new(&result.best);
+    let mut evaluator = GraphEvaluator::new(result.best());
 
     let data_set = get_dataset();
     let accuracy = Accuracy::new("reg", &data_set, Loss::MSE);

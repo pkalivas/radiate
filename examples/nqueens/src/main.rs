@@ -32,13 +32,13 @@ fn main() {
         .build();
 
     let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_usize());
+        println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_usize());
         ctx.score().as_usize() == 0
     });
 
-    println!("\nResult Queens Board ({:.3?}):", result.timer.duration());
+    println!("\nResult Queens Board ({:.3?}):", result.duration());
 
-    let board = &result.best;
+    let board = result.best();
     for i in 0..N_QUEENS {
         for j in 0..N_QUEENS {
             if board[j] == i as i8 {

@@ -22,7 +22,7 @@ fn main() {
         .build();
 
     let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32());
+        println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_f32());
         ctx.score().as_f32() < MIN_SCORE || ctx.seconds() > MAX_SECONDS
     });
 
@@ -32,7 +32,7 @@ fn main() {
 fn display(result: &EngineContext<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
     let data_set = get_dataset();
     let accuracy = Accuracy::new("reg", &data_set, Loss::MSE);
-    let accuracy_result = accuracy.calc(|input| vec![result.best.eval(input)]);
+    let accuracy_result = accuracy.calc(|input| vec![result.best().eval(input)]);
 
     println!("{:?}", result);
     println!("{:?}", accuracy_result);

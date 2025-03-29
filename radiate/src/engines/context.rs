@@ -17,6 +17,8 @@ use std::time::Duration;
 /// * current best score - the score of the current best individual
 /// * front - the current pareto front of the population (if multi-objective)
 ///
+/// It can be thought of as a snapshot of the genetic engine's state at a specific generation.
+///
 /// The EngineContext is passed to the user-defined closure that is executed each generation. The user
 /// can use the EngineContext to access the current state of the genetic engine and make decisions based
 /// on the current state on how to proceed.
@@ -28,14 +30,20 @@ pub struct EngineContext<C, T>
 where
     C: Chromosome,
 {
-    pub population: Population<C>,
-    pub best: T,
-    pub index: usize,
-    pub timer: Timer,
-    pub metrics: MetricSet,
-    pub score: Option<Score>,
-    pub front: Front<Phenotype<C>>,
-    pub species: Vec<Species<C>>,
+    pub(crate) population: Population<C>,
+    pub(crate) best: T,
+    pub(crate) index: usize,
+    pub(crate) timer: Timer,
+    pub(crate) metrics: MetricSet,
+    pub(crate) score: Option<Score>,
+    pub(crate) front: Front<Phenotype<C>>,
+    pub(crate) species: Vec<Species<C>>,
+}
+
+/// Encapsulates information about the best solution found so far.
+pub struct BestSolution<T> {
+    pub individual: T,
+    pub score: Score,
 }
 
 impl<C, T> EngineContext<C, T>
@@ -56,8 +64,28 @@ where
         self.index
     }
 
+    pub fn population(&self) -> &Population<C> {
+        &self.population
+    }
+
+    pub fn best(&self) -> &T {
+        &self.best
+    }
+
+    pub fn duration(&self) -> Duration {
+        self.timer.duration()
+    }
+
+    pub fn metrics(&self) -> &MetricSet {
+        &self.metrics
+    }
+
+    pub fn pareto_front(&self) -> &Front<Phenotype<C>> {
+        &self.front
+    }
+
     /// Upsert (update or create) a metric operation with the given name, value, and time.
-    pub(crate) fn upsert_operation(
+    pub(crate) fn record_operation(
         &mut self,
         name: &'static str,
         value: impl Into<f32>,
@@ -66,11 +94,11 @@ where
         self.metrics.upsert_operations(name, value, time);
     }
 
-    pub(crate) fn upsert_distribution(&mut self, name: &'static str, values: &[f32]) {
+    pub(crate) fn record_distribution(&mut self, name: &'static str, values: &[f32]) {
         self.metrics.upsert_sequence(name, values);
     }
 
-    pub(crate) fn upsert_metric(&mut self, metric: Metric) {
+    pub(crate) fn record_metric(&mut self, metric: Metric) {
         self.metrics.upsert(metric);
     }
 
@@ -86,7 +114,7 @@ where
         self.species.push(species);
     }
 
-    pub(crate) fn species(&self) -> &Vec<Species<C>> {
+    pub(crate) fn species(&self) -> &[Species<C>] {
         &self.species
     }
 }

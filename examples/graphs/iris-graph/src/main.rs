@@ -39,7 +39,7 @@ fn main() {
         .build();
 
     let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index, ctx.score());
+        println!("[ {:?} ]: {:?}", ctx.index(), ctx.score());
         ctx.score().as_f32() < MIN_SCORE || ctx.seconds() > MAX_SECONDS
     });
 
@@ -51,7 +51,7 @@ fn display(
     test: &DataSet,
     result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>,
 ) {
-    let mut reducer = GraphEvaluator::new(&result.best);
+    let mut reducer = GraphEvaluator::new(result.best());
 
     let train_acc = Accuracy::new("train", &train, Loss::MSE);
     let test_acc = Accuracy::new("test", &test, Loss::MSE);
