@@ -140,3 +140,14 @@ impl<C: Chromosome> From<(Vec<C>, usize)> for Phenotype<C> {
         }
     }
 }
+
+impl<C: Chromosome> From<(&Phenotype<C>, Score)> for Phenotype<C> {
+    fn from((phenotype, score): (&Phenotype<C>, Score)) -> Self {
+        Phenotype {
+            genotype: RwCell::clone(&phenotype.genotype),
+            score: RwCell::new(Some(score)),
+            generation: phenotype.generation,
+            species_id: phenotype.species_id,
+        }
+    }
+}

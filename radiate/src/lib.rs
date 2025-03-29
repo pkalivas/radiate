@@ -42,7 +42,7 @@ pub use context::*;
 pub use domain::*;
 pub use engine::*;
 pub use genome::*;
-pub use iter::EngineIter;
+pub use iter::{EngineIter, EngineIteratorExt};
 pub use objectives::{Front, Objective, Optimize, Score, Scored, pareto};
 pub use params::*;
 pub use problem::*;
