@@ -3,7 +3,7 @@ use super::context::EngineContext;
 use super::sync::RwCell;
 use super::thread_pool::WaitGroup;
 use super::{
-    GeneticEngineParams, MetricSet, Phenotype, Problem, Species, random_provider, speciate,
+    GeneticEngineParams, MetricSet, Phenotype, Problem, Species, random_provider, species,
 };
 use crate::engines::builder::GeneticEngineBuilder;
 use crate::engines::domain::timer::Timer;
@@ -178,7 +178,7 @@ where
             let timer = Timer::new();
             let mut distances = Vec::new();
 
-            speciate::generate_mascots(&mut ctx.population, &mut ctx.species);
+            species::generate_mascots(&mut ctx.population, &mut ctx.species);
 
             for i in 0..ctx.population.len() {
                 let mut found = false;
@@ -205,7 +205,7 @@ where
                 }
             }
 
-            speciate::fitness_share(&mut ctx.population, &mut ctx.species, objective);
+            species::fitness_share(&mut ctx.population, &mut ctx.species, objective);
 
             let species_count = ctx.species().len();
             ctx.record_operation(metric_names::SPECIATION, species_count as f32, timer);

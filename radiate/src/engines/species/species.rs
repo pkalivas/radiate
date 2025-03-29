@@ -1,5 +1,4 @@
-use super::{Chromosome, Genotype};
-use crate::{Objective, Score};
+use crate::{Chromosome, Genotype, Objective, Score};
 use std::{
     fmt::{self, Debug, Formatter},
     sync::atomic::{AtomicU64, Ordering},

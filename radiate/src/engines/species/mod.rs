@@ -1,6 +1,14 @@
-use super::random_provider;
-use crate::{Chromosome, Phenotype, Population, Score, Species, objectives};
+pub mod cosine;
+pub mod distance;
+pub mod species;
+
 use std::collections::HashMap;
+
+pub use cosine::*;
+pub use distance::*;
+pub use species::*;
+
+use super::{Chromosome, Objective, Phenotype, Population, Score, random_provider};
 
 pub fn generate_mascots<C: Chromosome>(population: &Population<C>, species: &mut Vec<Species<C>>) {
     let mut to_remove = Vec::new();
@@ -28,7 +36,7 @@ pub fn generate_mascots<C: Chromosome>(population: &Population<C>, species: &mut
 pub fn fitness_share<C: Chromosome>(
     population: &mut Population<C>,
     species: &mut Vec<Species<C>>,
-    objective: &objectives::Objective,
+    objective: &Objective,
 ) {
     let mut species_members = population
         .iter_mut()

@@ -3,7 +3,6 @@ pub mod audit;
 pub mod builder;
 pub mod codexes;
 pub mod context;
-pub mod distance;
 pub mod domain;
 pub mod engine;
 pub mod genome;
@@ -13,6 +12,7 @@ pub mod params;
 pub mod problem;
 pub mod replace;
 pub mod selectors;
+pub mod species;
 pub mod stats;
 
 pub use alterers::*;
@@ -22,7 +22,6 @@ pub use codexes::{
     BitCodex, CharCodex, Codex, FloatCodex, FnCodex, IntCodex, PermutationCodex, SubSetCodex,
 };
 pub use context::*;
-pub use distance::*;
 pub use domain::*;
 pub use engine::*;
 pub use genome::*;
@@ -32,4 +31,5 @@ pub use params::*;
 pub use problem::*;
 pub use replace::*;
 pub use selectors::*;
+pub use species::*;
 pub use stats::*;
