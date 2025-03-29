@@ -123,7 +123,7 @@ mod tests {
     use super::*;
 
     use crate::{NodeType, ops::Op};
-    use radiate::engines::codexes::Codex;
+    use radiate::codexes::Codex;
 
     #[test]
     fn test_tree_codex() {

@@ -5,9 +5,9 @@ use super::thread_pool::WaitGroup;
 use super::{
     GeneticEngineParams, MetricSet, Phenotype, Problem, Species, random_provider, species,
 };
-use crate::engines::builder::GeneticEngineBuilder;
-use crate::engines::domain::timer::Timer;
-use crate::engines::genome::population::Population;
+use crate::builder::GeneticEngineBuilder;
+use crate::domain::timer::Timer;
+use crate::genome::population::Population;
 use crate::objectives::Objective;
 use crate::{Chromosome, Metric, Valid, metric_names};
 use std::sync::Arc;
@@ -49,7 +49,7 @@ use std::sync::Arc;
 ///         let score = genotype.iter().fold(0.0, |acc, chromosome| {
 ///             acc + chromosome.iter().sum::<f32>()
 ///         });
-///         Score::from_f32(score)
+///         score
 ///    })
 ///   .build(); // Build the genetic engine.
 ///

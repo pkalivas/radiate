@@ -1,5 +1,5 @@
 use super::{Valid, genotype::Genotype};
-use crate::engines::objectives::Score;
+use crate::objectives::Score;
 use crate::sync::{RwCell, RwCellGuard, RwCellGuardMut};
 use crate::{Chromosome, Scored};
 use std::ops::Deref;

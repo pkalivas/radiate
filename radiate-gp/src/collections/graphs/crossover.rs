@@ -1,6 +1,6 @@
 use crate::collections::GraphChromosome;
 use crate::node::Node;
-use radiate::engines::genome::*;
+use radiate::genome::*;
 use radiate::{AlterResult, Crossover, random_provider};
 
 const NUM_PARENTS: usize = 2;
