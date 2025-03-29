@@ -7,6 +7,11 @@ pub struct Distribution {
 }
 
 impl Distribution {
+    pub fn push(&mut self, value: f32) {
+        self.statistic.add(value);
+        self.last_sequence.push(value);
+    }
+
     pub fn add(&mut self, value: &[f32]) {
         self.clear();
         for v in value {
@@ -52,7 +57,7 @@ impl Distribution {
     }
 
     pub fn clear(&mut self) {
-        self.statistic.clear();
+        // self.statistic.clear();
         self.last_sequence.clear();
     }
 
@@ -63,7 +68,7 @@ impl Distribution {
         }
 
         // Calculate the index for the percentile
-        let count = self.count() as f32;
+        let count = self.last_sequence.len() as f32;
         if count == 0 as f32 {
             panic!("Cannot calculate percentile for an empty distribution");
         }

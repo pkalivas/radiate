@@ -15,7 +15,6 @@ fn main() {
     ];
 
     let graph_codex = GraphCodex::directed(1, 1, values);
-
     let problem = Regression::new(get_dataset(), Loss::MSE, graph_codex);
 
     let engine = GeneticEngine::from_problem(problem)
@@ -28,23 +27,13 @@ fn main() {
         ))
         .build();
 
-    let result = engine
+    engine
         .iter()
         .take_while(|ctx| ctx.score().as_f32() > MIN_SCORE && ctx.seconds() < MAX_SECONDS)
         .inspect(|ctx| log_ctx!(ctx))
         .last()
+        .inspect(|ctx| display(ctx))
         .unwrap();
-
-    print_metrics!(&result.metrics);
-
-    display(&result);
-
-    // let result = engine.run(|ctx| {
-    //     println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32());
-    //     ctx.score().as_f32() < MIN_SCORE || ctx.seconds() > MAX_SECONDS
-    // });
-
-    // display(&result);
 }
 
 fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
@@ -75,5 +64,3 @@ fn get_dataset() -> DataSet {
 fn compute(x: f32) -> f32 {
     4.0 * x.powf(3.0) - 3.0 * x.powf(2.0) + x
 }
-
-// .distance(NeatDistance::new(1.8, 1.0, 1.0, 3.0))

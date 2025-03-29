@@ -58,9 +58,10 @@ impl MetricSet {
     pub fn upsert(&mut self, metric: Metric) {
         if let Some(m) = self.metrics.get_mut(metric.name()) {
             match m {
-                Metric::Value(_, stat) => {
-                    if let Metric::Value(_, new_stat) = metric {
+                Metric::Value(_, stat, dist) => {
+                    if let Metric::Value(_, new_stat, new_dist) = metric {
                         stat.add(new_stat.last_value());
+                        dist.add(new_dist.last_sequence());
                     }
                 }
                 Metric::Time(_, stat) => {
@@ -109,16 +110,37 @@ impl MetricSet {
 impl std::fmt::Debug for MetricSet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "MetricSet {{\n")?;
-        for name in self.names() {
-            write!(f, "  \t{:?},\n", self.get(name).unwrap())?;
+
+        for meteric in self
+            .iter()
+            .filter(|(_, m)| matches!(m, Metric::Operations(_, _, _)))
+        {
+            write!(f, "\t{:?},\n", meteric.1)?;
         }
+
+        for metric in self
+            .iter()
+            .filter(|(_, m)| matches!(m, Metric::Value(_, _, _)))
+        {
+            write!(f, "\t{:?},\n", metric.1)?;
+        }
+        for metric in self
+            .iter()
+            .filter(|(_, m)| matches!(m, Metric::Distribution(_, _)))
+        {
+            write!(f, "\t{:?},\n", metric.1)?;
+        }
+        for metric in self.iter().filter(|(_, m)| matches!(m, Metric::Time(_, _))) {
+            write!(f, "\t{:?},\n", metric.1)?;
+        }
+
         write!(f, "}}")
     }
 }
 
 #[derive(Clone, PartialEq)]
 pub enum Metric {
-    Value(&'static str, Statistic),
+    Value(&'static str, Statistic, Distribution),
     Time(&'static str, TimeStatistic),
     Distribution(&'static str, Distribution),
     Operations(&'static str, Statistic, TimeStatistic),
@@ -126,7 +148,7 @@ pub enum Metric {
 
 impl Metric {
     pub fn new_value(name: &'static str) -> Self {
-        Metric::Value(name, Statistic::default())
+        Metric::Value(name, Statistic::default(), Distribution::default())
     }
 
     pub fn new_time(name: &'static str) -> Self {
@@ -147,7 +169,10 @@ impl Metric {
 
     pub fn add_value(&mut self, value: f32) {
         match self {
-            Metric::Value(_, stat) => stat.add(value),
+            Metric::Value(_, stat, dist) => {
+                stat.add(value);
+                dist.push(value);
+            }
             Metric::Operations(_, stat, _) => stat.add(value),
             _ => {}
         }
@@ -169,7 +194,7 @@ impl Metric {
 
     pub fn name(&self) -> &'static str {
         match self {
-            Metric::Value(name, _) => name,
+            Metric::Value(name, _, _) => name,
             Metric::Time(name, _) => name,
             Metric::Distribution(name, _) => name,
             Metric::Operations(name, _, _) => name,
@@ -178,7 +203,7 @@ impl Metric {
 
     pub fn last_value(&self) -> f32 {
         match self {
-            Metric::Value(_, stat) => stat.last_value(),
+            Metric::Value(_, stat, _) => stat.last_value(),
             Metric::Operations(_, stat, _) => stat.last_value(),
             _ => 0.0,
         }
@@ -194,7 +219,7 @@ impl Metric {
 
     pub fn value_mean(&self) -> Option<f32> {
         match self {
-            Metric::Value(_, stat) => Some(stat.mean()),
+            Metric::Value(_, stat, _) => Some(stat.mean()),
             Metric::Operations(_, stat, _) => Some(stat.mean()),
             _ => None,
         }
@@ -202,7 +227,7 @@ impl Metric {
 
     pub fn value_variance(&self) -> Option<f32> {
         match self {
-            Metric::Value(_, stat) => Some(stat.variance()),
+            Metric::Value(_, stat, _) => Some(stat.variance()),
             Metric::Operations(_, stat, _) => Some(stat.variance()),
             _ => None,
         }
@@ -210,7 +235,7 @@ impl Metric {
 
     pub fn value_std_dev(&self) -> Option<f32> {
         match self {
-            Metric::Value(_, stat) => Some(stat.std_dev()),
+            Metric::Value(_, stat, _) => Some(stat.std_dev()),
             Metric::Operations(_, stat, _) => Some(stat.std_dev()),
             _ => None,
         }
@@ -218,7 +243,7 @@ impl Metric {
 
     pub fn value_skewness(&self) -> Option<f32> {
         match self {
-            Metric::Value(_, stat) => Some(stat.skewness()),
+            Metric::Value(_, stat, _) => Some(stat.skewness()),
             Metric::Operations(_, stat, _) => Some(stat.skewness()),
             _ => None,
         }
@@ -226,7 +251,7 @@ impl Metric {
 
     pub fn value_min(&self) -> Option<f32> {
         match self {
-            Metric::Value(_, stat) => Some(stat.min()),
+            Metric::Value(_, stat, _) => Some(stat.min()),
             Metric::Operations(_, stat, _) => Some(stat.min()),
             _ => None,
         }
@@ -234,7 +259,7 @@ impl Metric {
 
     pub fn value_max(&self) -> Option<f32> {
         match self {
-            Metric::Value(_, stat) => Some(stat.max()),
+            Metric::Value(_, stat, _) => Some(stat.max()),
             Metric::Operations(_, stat, _) => Some(stat.max()),
             _ => None,
         }
@@ -291,6 +316,7 @@ impl Metric {
     pub fn last_sequence(&self) -> Option<&Vec<f32>> {
         match self {
             Metric::Distribution(_, dist) => Some(dist.last_sequence()),
+            Metric::Value(_, _, dist) => Some(dist.last_sequence()),
             _ => None,
         }
     }
@@ -298,6 +324,7 @@ impl Metric {
     pub fn sequence_mean(&self) -> Option<f32> {
         match self {
             Metric::Distribution(_, dist) => Some(dist.mean()),
+            Metric::Value(_, _, dist) => Some(dist.mean()),
             _ => None,
         }
     }
@@ -305,6 +332,7 @@ impl Metric {
     pub fn sequence_variance(&self) -> Option<f32> {
         match self {
             Metric::Distribution(_, dist) => Some(dist.variance()),
+            Metric::Value(_, _, dist) => Some(dist.variance()),
             _ => None,
         }
     }
@@ -312,6 +340,7 @@ impl Metric {
     pub fn sequence_std_dev(&self) -> Option<f32> {
         match self {
             Metric::Distribution(_, dist) => Some(dist.standard_deviation()),
+            Metric::Value(_, _, dist) => Some(dist.standard_deviation()),
             _ => None,
         }
     }
@@ -319,6 +348,7 @@ impl Metric {
     pub fn sequence_skewness(&self) -> Option<f32> {
         match self {
             Metric::Distribution(_, dist) => Some(dist.skewness()),
+            Metric::Value(_, _, dist) => Some(dist.skewness()),
             _ => None,
         }
     }
@@ -326,6 +356,7 @@ impl Metric {
     pub fn sequence_kurtosis(&self) -> Option<f32> {
         match self {
             Metric::Distribution(_, dist) => Some(dist.kurtosis()),
+            Metric::Value(_, _, dist) => Some(dist.kurtosis()),
             _ => None,
         }
     }
@@ -333,6 +364,7 @@ impl Metric {
     pub fn sequence_min(&self) -> Option<f32> {
         match self {
             Metric::Distribution(_, dist) => Some(dist.min()),
+            Metric::Value(_, _, dist) => Some(dist.min()),
             _ => None,
         }
     }
@@ -340,13 +372,14 @@ impl Metric {
     pub fn sequence_max(&self) -> Option<f32> {
         match self {
             Metric::Distribution(_, dist) => Some(dist.max()),
+            Metric::Value(_, _, dist) => Some(dist.max()),
             _ => None,
         }
     }
 
     pub fn count(&self) -> i32 {
         match self {
-            Metric::Value(_, stat) => stat.count(),
+            Metric::Value(_, stat, _) => stat.count(),
             Metric::Time(_, stat) => stat.count(),
             Metric::Distribution(_, dist) => dist.count(),
             Metric::Operations(_, stat, _) => stat.count(),
@@ -357,14 +390,18 @@ impl Metric {
 impl std::fmt::Debug for Metric {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Metric::Value(name, stat) => write!(
+            Metric::Value(name, stat, dist) => write!(
                 f,
-                "{:<20} | Mean: {:>8.3}, Min: {:>8.3}, Max: {:>8.3}, N: {:>3}",
+                "{:<20} | Mean: {:>8.3}, Min: {:>8.3}, Max: {:>8.3}, N: {:>3} | Dist. Mean: {:>8.3}, Dist. StdDev: {:>8.3}, Dist. Min: {:>8.3}, Dist. Max: {:>8.3}",
                 name,
                 stat.mean(),
                 stat.min(),
                 stat.max(),
                 stat.count(),
+                dist.mean(),
+                dist.standard_deviation(),
+                dist.min(),
+                dist.max(),
             ),
             Metric::Time(name, stat) => write!(
                 f,
@@ -378,11 +415,10 @@ impl std::fmt::Debug for Metric {
             ),
             Metric::Distribution(name, dist) => write!(
                 f,
-                "{:<20} | Mean: {:>8.3}, Median: {:>8.3}, P90: {:>8.3}, Min: {:>8.3}, Max: {:>8.3}, N: {:>3}",
+                "{:<20} | Mean: {:>8.3}, StdDev: {:>8.3}, Min: {:>8.3}, Max: {:>8.3}, N: {:>3}",
                 name,
                 dist.mean(),
-                dist.percentile(50.0),
-                dist.percentile(90.0),
+                dist.standard_deviation(),
                 dist.min(),
                 dist.max(),
                 dist.count(),
@@ -408,7 +444,7 @@ mod tests {
 
     #[test]
     fn test_metric() {
-        let mut metric = Metric::Value("test", Statistic::default());
+        let mut metric = Metric::Value("test", Statistic::default(), Distribution::default());
         metric.add_value(1.0);
         metric.add_value(2.0);
         metric.add_value(3.0);
