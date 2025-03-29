@@ -5,13 +5,16 @@ use super::{
     GeneticEngineParams, MetricAudit, Mutate, Problem, ReplacementStrategy, RouletteSelector,
     Select, TournamentSelector, pareto,
 };
-use crate::Chromosome;
 use crate::engine::GeneticEngine;
 use crate::genome::phenotype::Phenotype;
 use crate::genome::population::Population;
 use crate::objectives::Score;
 use crate::objectives::{Objective, Optimize};
 use crate::uniform::{UniformCrossover, UniformMutator};
+use crate::{
+    AuditStep, Chromosome, EngineStep, EvaluateStep, FilterStep, FrontStep, RecombineStep,
+    SpeciateStep,
+};
 use std::cmp::Ordering;
 use std::ops::Range;
 use std::sync::Arc;
@@ -38,17 +41,17 @@ where
     pub max_age: usize,
     pub front_range: Range<usize>,
     pub offspring_fraction: f32,
-    pub thread_pool: ThreadPool,
+    pub thread_pool: Arc<ThreadPool>,
     pub objective: Objective,
-    pub survivor_selector: Box<dyn Select<C>>,
-    pub offspring_selector: Box<dyn Select<C>>,
-    pub alterers: Vec<Box<dyn Alter<C>>>,
+    pub survivor_selector: Arc<dyn Select<C>>,
+    pub offspring_selector: Arc<dyn Select<C>>,
+    pub alterers: Vec<Arc<dyn Alter<C>>>,
     pub audits: Vec<Arc<dyn Audit<C>>>,
     pub population: Option<Population<C>>,
     pub codex: Option<Arc<dyn Codex<C, T>>>,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
     pub problem: Option<Arc<dyn Problem<C, T>>>,
-    pub replacement_strategy: Box<dyn ReplacementStrategy<C>>,
+    pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     pub distance: Option<Arc<dyn Distance<C>>>,
     pub front: Option<Front<Phenotype<C>>>,
 }
@@ -84,7 +87,7 @@ where
     /// Default is `FilterStrategy::Encode`, which means that a new individual will be created
     /// be using the `Codex` to encode a new individual from scratch.
     pub fn replace_strategy<R: ReplacementStrategy<C> + 'static>(mut self, replace: R) -> Self {
-        self.replacement_strategy = Box::new(replace);
+        self.replacement_strategy = Arc::new(replace);
         self
     }
 
@@ -154,14 +157,14 @@ where
     /// be used to select the survivors of the population. Default is `TournamentSelector`
     /// with a group size of 3.
     pub fn survivor_selector<S: Select<C> + 'static>(mut self, selector: S) -> Self {
-        self.survivor_selector = Box::new(selector);
+        self.survivor_selector = Arc::new(selector);
         self
     }
 
     /// Set the offspring selector of the genetic engine. This is the selector that will
     /// be used to select the offspring of the population. Default is `RouletteSelector`.
     pub fn offspring_selector<S: Select<C> + 'static>(mut self, selector: S) -> Self {
-        self.offspring_selector = Box::new(selector);
+        self.offspring_selector = Arc::new(selector);
         self
     }
 
@@ -171,19 +174,22 @@ where
     /// generation of the population. **Note**: the order of the alterers is important - the
     /// alterers will be applied in the order they are provided.
     pub fn alter(mut self, alterers: Vec<Box<dyn Alter<C>>>) -> Self {
-        self.alterers = alterers;
+        self.alterers = alterers
+            .into_iter()
+            .map(|alter| alter.into())
+            .collect::<Vec<Arc<dyn Alter<C>>>>();
         self
     }
 
     pub fn mutator<M: Mutate<C> + 'static>(mut self, mutator: M) -> Self {
-        self.alterers.push(Box::new(mutator.alterer()));
+        self.alterers.push(Arc::new(mutator.alterer()));
         self
     }
 
     pub fn mutators(mut self, mutators: Vec<Box<dyn Mutate<C>>>) -> Self {
         let mutate_actions = mutators
             .into_iter()
-            .map(|m| Box::new(AlterAction::Mutate(m.name(), m.rate(), m)) as Box<dyn Alter<C>>)
+            .map(|m| Arc::new(AlterAction::Mutate(m.name(), m.rate(), m)) as Arc<dyn Alter<C>>)
             .collect::<Vec<_>>();
 
         self.alterers.extend(mutate_actions);
@@ -191,14 +197,14 @@ where
     }
 
     pub fn crossover<R: Crossover<C> + 'static>(mut self, crossover: R) -> Self {
-        self.alterers.push(Box::new(crossover.alterer()));
+        self.alterers.push(Arc::new(crossover.alterer()));
         self
     }
 
     pub fn crossovers(mut self, crossovers: Vec<Box<dyn Crossover<C>>>) -> Self {
         let crossover_actions = crossovers
             .into_iter()
-            .map(|c| Box::new(AlterAction::Crossover(c.name(), c.rate(), c)) as Box<dyn Alter<C>>)
+            .map(|c| Arc::new(AlterAction::Crossover(c.name(), c.rate(), c)) as Arc<dyn Alter<C>>)
             .collect::<Vec<_>>();
 
         self.alterers.extend(crossover_actions);
@@ -234,7 +240,7 @@ where
     /// to execute the fitness function in parallel. Some fitness functions may be computationally
     /// expensive and can benefit from parallel execution.
     pub fn num_threads(mut self, num_threads: usize) -> Self {
-        self.thread_pool = ThreadPool::new(num_threads);
+        self.thread_pool = Arc::new(ThreadPool::new(num_threads));
         self
     }
 
@@ -261,7 +267,7 @@ where
             self.build_alterer();
             self.build_front();
 
-            GeneticEngine::new(GeneticEngineParams::new(
+            let params = GeneticEngineParams::new(
                 self.population.unwrap(),
                 self.problem.unwrap(),
                 self.survivor_selector,
@@ -275,7 +281,39 @@ where
                 self.max_age,
                 self.front.clone().unwrap(),
                 self.offspring_fraction,
-            ))
+            );
+
+            let mut steps = Vec::<Box<dyn EngineStep<C, T>>>::new();
+
+            if let Some(eval_step) = EvaluateStep::register(&params) {
+                steps.push(eval_step);
+            }
+
+            if let Some(speciate_step) = SpeciateStep::register(&params) {
+                steps.push(speciate_step);
+            }
+
+            if let Some(recombine_step) = RecombineStep::register(&params) {
+                steps.push(recombine_step);
+            }
+
+            if let Some(filter_step) = FilterStep::register(&params) {
+                steps.push(filter_step);
+            }
+
+            if let Some(evaluate_step) = EvaluateStep::register(&params) {
+                steps.push(evaluate_step);
+            }
+
+            if let Some(front_step) = FrontStep::register(&params) {
+                steps.push(front_step);
+            }
+
+            if let Some(audit_step) = AuditStep::register(&params) {
+                steps.push(audit_step);
+            }
+
+            GeneticEngine::new(params, steps)
         }
     }
 
@@ -301,8 +339,8 @@ where
             return;
         }
 
-        let crossover = Box::new(UniformCrossover::new(0.5).alterer()) as Box<dyn Alter<C>>;
-        let mutator = Box::new(UniformMutator::new(0.1).alterer()) as Box<dyn Alter<C>>;
+        let crossover = Arc::new(UniformCrossover::new(0.5).alterer()) as Arc<dyn Alter<C>>;
+        let mutator = Arc::new(UniformMutator::new(0.1).alterer()) as Arc<dyn Alter<C>>;
 
         self.alterers.push(crossover);
         self.alterers.push(mutator);
@@ -346,11 +384,11 @@ where
             max_age: 20,
             offspring_fraction: 0.8,
             front_range: 800..900,
-            thread_pool: ThreadPool::new(1),
+            thread_pool: Arc::new(ThreadPool::new(1)),
             objective: Objective::Single(Optimize::Maximize),
-            survivor_selector: Box::new(TournamentSelector::new(3)),
-            offspring_selector: Box::new(RouletteSelector::new()),
-            replacement_strategy: Box::new(EncodeReplace),
+            survivor_selector: Arc::new(TournamentSelector::new(3)),
+            offspring_selector: Arc::new(RouletteSelector::new()),
+            replacement_strategy: Arc::new(EncodeReplace),
             audits: vec![Arc::new(MetricAudit)],
             alterers: Vec::new(),
             codex: None,

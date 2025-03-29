@@ -116,13 +116,15 @@ where
             .iter()
             .map(|s| s.score().unwrap())
             .collect::<Vec<_>>();
-        let crowding_distances = pareto::crowding_distance(&values, &self.objective);
 
-        let mut enumerated = crowding_distances.iter().enumerate().collect::<Vec<_>>();
+        let mut crowding_distances = pareto::crowding_distance(&values, &self.objective)
+            .into_iter()
+            .enumerate()
+            .collect::<Vec<_>>();
 
-        enumerated.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap_or(Ordering::Equal));
+        crowding_distances.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(Ordering::Equal));
 
-        self.values = enumerated
+        self.values = crowding_distances
             .iter()
             .take(self.range.end)
             .map(|(i, _)| Arc::clone(&self.values[*i]))

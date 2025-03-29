@@ -9,14 +9,14 @@ use std::sync::Arc;
 pub struct GeneticEngineParams<C: Chromosome, T> {
     population: Population<C>,
     problem: Arc<dyn Problem<C, T>>,
-    survivor_selector: Box<dyn Select<C>>,
-    offspring_selector: Box<dyn Select<C>>,
-    replacement_strategy: Box<dyn ReplacementStrategy<C>>,
+    survivor_selector: Arc<dyn Select<C>>,
+    offspring_selector: Arc<dyn Select<C>>,
+    replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     audits: Vec<Arc<dyn Audit<C>>>,
     distance: Option<Arc<dyn Distance<C>>>,
-    alterers: Vec<Box<dyn Alter<C>>>,
+    alterers: Vec<Arc<dyn Alter<C>>>,
     objective: Objective,
-    thread_pool: ThreadPool,
+    thread_pool: Arc<ThreadPool>,
     max_age: usize,
     front: Front<Phenotype<C>>,
     offspring_fraction: f32,
@@ -26,14 +26,14 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
     pub fn new(
         population: Population<C>,
         problem: Arc<dyn Problem<C, T>>,
-        survivor_selector: Box<dyn Select<C>>,
-        offspring_selector: Box<dyn Select<C>>,
-        replacement_strategy: Box<dyn ReplacementStrategy<C>>,
+        survivor_selector: Arc<dyn Select<C>>,
+        offspring_selector: Arc<dyn Select<C>>,
+        replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
         audits: Vec<Arc<dyn Audit<C>>>,
         distance: Option<Arc<dyn Distance<C>>>,
-        alterers: Vec<Box<dyn Alter<C>>>,
+        alterers: Vec<Arc<dyn Alter<C>>>,
         objective: Objective,
-        thread_pool: ThreadPool,
+        thread_pool: Arc<ThreadPool>,
         max_age: usize,
         front: Front<Phenotype<C>>,
         offspring_fraction: f32,
@@ -63,16 +63,16 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
         Arc::clone(&self.problem)
     }
 
-    pub fn survivor_selector(&self) -> &dyn Select<C> {
-        &*self.survivor_selector
+    pub fn survivor_selector(&self) -> &Arc<dyn Select<C>> {
+        &self.survivor_selector
     }
 
-    pub fn offspring_selector(&self) -> &dyn Select<C> {
-        &*self.offspring_selector
+    pub fn offspring_selector(&self) -> &Arc<dyn Select<C>> {
+        &self.offspring_selector
     }
 
-    pub fn replacement_strategy(&self) -> &dyn ReplacementStrategy<C> {
-        &*self.replacement_strategy
+    pub fn replacement_strategy(&self) -> &Arc<dyn ReplacementStrategy<C>> {
+        &self.replacement_strategy
     }
 
     pub fn audits(&self) -> &[Arc<dyn Audit<C>>] {
@@ -83,7 +83,7 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
         self.distance.clone()
     }
 
-    pub fn alters(&self) -> &[Box<dyn Alter<C>>] {
+    pub fn alters(&self) -> &[Arc<dyn Alter<C>>] {
         &self.alterers
     }
 
@@ -91,7 +91,7 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
         &self.objective
     }
 
-    pub fn thread_pool(&self) -> &ThreadPool {
+    pub fn thread_pool(&self) -> &Arc<ThreadPool> {
         &self.thread_pool
     }
 
