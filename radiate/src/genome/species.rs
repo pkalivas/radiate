@@ -21,9 +21,8 @@ pub struct Species<C: Chromosome> {
     mascot: Phenotype<C>,
     population: Population<C>,
     score: Score,
-    best_score: Score,
+    best_score: Option<Score>,
     stagnation: usize,
-    count: usize,
     id: SpeciesId,
     generation: usize,
 }
@@ -36,11 +35,18 @@ impl<C: Chromosome> Species<C> {
             population: Population::new(vec![mascot]),
             score: score.clone(),
             generation,
-            count: 0,
-            best_score: score.clone(),
+            best_score: None,
             stagnation: 0,
             id: SpeciesId::new(),
         }
+    }
+
+    pub fn population(&self) -> &Population<C> {
+        &self.population
+    }
+
+    pub fn population_mut(&mut self) -> &mut Population<C> {
+        &mut self.population
     }
 
     pub fn set_mascot(&mut self, mascot: Phenotype<C>) {
@@ -49,10 +55,6 @@ impl<C: Chromosome> Species<C> {
 
     pub fn mascot(&self) -> &Phenotype<C> {
         &self.mascot
-    }
-
-    pub fn len(&self) -> usize {
-        self.population.len()
     }
 
     pub fn set_score(&mut self, score: Score) {
@@ -76,33 +78,27 @@ impl<C: Chromosome> Species<C> {
         self.population.push(new_phenotype);
     }
 
-    pub fn sort_by(&mut self, objective: &Objective) {
-        objective.sort(&mut self.population);
-    }
-
-    pub fn population(&self) -> &Population<C> {
-        &self.population
-    }
-
-    pub fn population_mut(&mut self) -> &mut Population<C> {
-        &mut self.population
-    }
-
     pub fn adjusted_scores(&self) -> Vec<Score> {
         self.population
             .get_scores()
             .iter()
-            .map(|score| score.clone() / self.count as f32)
+            .map(|score| score.clone() / self.len() as f32)
             .collect()
     }
 
     pub fn update_score(&mut self, score: Score, top_score: Score, objective: &Objective) {
         self.score = score.clone();
-        if objective.is_better(&top_score, &self.best_score) {
-            self.best_score = top_score;
+        if self.best_score.is_none() {
+            self.best_score = Some(top_score);
             self.stagnation = 0;
-        } else {
-            self.stagnation += 1;
+            return;
+        } else if let Some(ref best_score) = self.best_score {
+            if objective.is_better(&top_score, best_score) {
+                self.best_score = Some(top_score);
+                self.stagnation = 0;
+            } else {
+                self.stagnation += 1;
+            }
         }
     }
 
@@ -123,7 +119,6 @@ impl<C: Chromosome> Clone for Species<C> {
             score: self.score.clone(),
             best_score: self.best_score.clone(),
             stagnation: self.stagnation,
-            count: self.count,
             id: self.id,
             generation: self.generation,
         }
@@ -133,12 +128,10 @@ impl<C: Chromosome> Clone for Species<C> {
 impl<C: Chromosome> PopulationView<C> for Species<C> {
     fn push(&mut self, individual: Phenotype<C>) {
         self.population.push(individual);
-        self.count += 1;
     }
 
     fn clear(&mut self) {
         self.population.clear();
-        self.count = 0;
     }
 
     fn sort_by<F>(&mut self, f: F)

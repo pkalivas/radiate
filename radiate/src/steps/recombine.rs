@@ -1,11 +1,10 @@
-use std::sync::Arc;
-
 use super::EngineStep;
 use crate::domain::timer::Timer;
 use crate::{
-    Alter, AlterResult, Chromosome, EngineContext, GeneticEngineParams, Objective, Population,
-    Select, random_provider,
+    Alter, AlterResult, Chromosome, EngineContext, GeneticEngineParams, Metric, Objective,
+    Population, Select, random_provider,
 };
+use std::sync::Arc;
 
 pub struct RecombineStep<C: Chromosome> {
     survivor_selector: Arc<dyn Select<C>>,
@@ -55,6 +54,10 @@ impl<C: Chromosome> RecombineStep<C> {
         for id in alter_result.changed() {
             individuals.get_mut(*id).invalidate(ctx.index);
         }
+
+        let mut metr = Metric::new_value("invalidated");
+        metr.add_value(alter_result.2.len() as f32);
+        ctx.record_metric(metr);
 
         alter_result
     }
@@ -117,9 +120,10 @@ impl<C: Chromosome> RecombineStep<C> {
         let species_count = ctx.species.len();
         for i in 0..species_count {
             let species = &ctx.species[i];
+            let scale = &ctx.species[species_count - 1 - i].score().as_f32();
             let timer = Timer::new();
 
-            let count = (species.score().as_f32() * self.offspring_count as f32).round() as usize;
+            let count = (scale * self.offspring_count as f32).round() as usize;
 
             let mut selected = selector.select(species.population(), &self.objective, count);
 

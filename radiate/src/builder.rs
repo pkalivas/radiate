@@ -280,7 +280,7 @@ where
                 self.objective,
                 self.thread_pool,
                 self.max_age,
-                RwCell::new(self.front.clone().unwrap()), // Use the front we built earlier
+                RwCell::new(self.front.clone().unwrap()),
                 self.offspring_fraction,
             );
 
