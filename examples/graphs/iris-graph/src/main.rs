@@ -38,12 +38,14 @@ fn main() {
         ))
         .build();
 
-    let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index(), ctx.score());
-        ctx.score().as_f32() < MIN_SCORE || ctx.seconds() > MAX_SECONDS
-    });
-
-    display(&train, &test, &result);
+    engine
+        .iter()
+        .take_while(|ctx| ctx.score().as_f32() > MIN_SCORE && ctx.seconds() < MAX_SECONDS)
+        .inspect(|ctx| {
+            println!("[ {:?} ]: {:?}", ctx.index(), ctx.score());
+        })
+        .last()
+        .inspect(|result| display(&train, &test, result));
 }
 
 fn display(

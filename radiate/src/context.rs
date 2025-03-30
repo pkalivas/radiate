@@ -2,7 +2,7 @@ use crate::domain::timer::Timer;
 use crate::genome::population::Population;
 use crate::objectives::Front;
 use crate::sync::{RwCell, RwCellGuard};
-use crate::{Chromosome, Genotype, Metric, MetricSet, Objective, Phenotype, Score, Species};
+use crate::{Chromosome, Genotype, MetricSet, Objective, Phenotype, Score, Species};
 use std::fmt::Debug;
 use std::sync::Arc;
 use std::time::Duration;
@@ -46,12 +46,10 @@ impl<C, T> EngineContext<C, T>
 where
     C: Chromosome,
 {
-    /// Get the current score of the best individual in the population.
     pub fn score(&self) -> &Score {
         self.score.as_ref().unwrap()
     }
 
-    /// Get the current duration of the genetic engine run in seconds.
     pub fn seconds(&self) -> f64 {
         self.timer.duration().as_secs_f64()
     }
@@ -88,8 +86,8 @@ where
         &self.objective
     }
 
-    pub(crate) fn record_metric(&mut self, metric: Metric) {
-        self.metrics.upsert(metric);
+    pub(crate) fn begin_epoch(&mut self) {
+        self.timer.start();
     }
 
     pub(crate) fn complete_epoch(&mut self) {

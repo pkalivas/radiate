@@ -112,12 +112,14 @@ where
             self.next(&mut ctx);
 
             if limit(&ctx) {
-                break self.stop(&mut ctx);
+                break ctx;
             }
         }
     }
 
     pub fn next(&self, ctx: &mut EngineContext<C, T>) {
+        ctx.begin_epoch();
+
         for step in self.steps.iter() {
             let timer = std::time::Instant::now();
             let StepWrapper(step_type, action) = step;
@@ -125,7 +127,7 @@ where
             let metrics = action.execute(ctx.index, &mut ctx.population, &mut ctx.species);
 
             for metric in metrics.into_iter() {
-                ctx.record_metric(metric);
+                ctx.metrics.upsert(metric);
             }
 
             ctx.metrics.upsert_time(step_type.name(), timer.elapsed());
@@ -150,11 +152,6 @@ where
             objective: self.params.objective().clone(),
             decoder: Arc::new(move |genotype| problem.decode(genotype)),
         }
-    }
-
-    fn stop(&self, output: &mut EngineContext<C, T>) -> EngineContext<C, T> {
-        output.timer.stop();
-        output.clone()
     }
 }
 

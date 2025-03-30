@@ -77,7 +77,7 @@ where
 
         vec![Metric::new_operations(
             metric_names::FRONT,
-            count as f32,
+            count,
             self.metric.lock().unwrap().last_time(),
         )]
     }

@@ -269,51 +269,22 @@ where
             self.build_front();
 
             let params = GeneticEngineParams::new(
-                self.population.unwrap(),
-                self.problem.unwrap(),
-                self.survivor_selector,
-                self.offspring_selector,
-                self.replacement_strategy,
-                self.audits,
-                self.distance,
-                self.alterers,
-                self.objective,
-                self.thread_pool,
+                self.population.clone().unwrap(),
+                self.problem.clone().unwrap(),
+                self.survivor_selector.clone(),
+                self.offspring_selector.clone(),
+                self.replacement_strategy.clone(),
+                self.audits.clone(),
+                self.distance.clone(),
+                self.alterers.clone(),
+                self.objective.clone(),
+                self.thread_pool.clone(),
                 self.max_age,
                 RwCell::new(self.front.clone().unwrap()),
                 self.offspring_fraction,
             );
 
-            let mut steps = Vec::<StepWrapper<C, T>>::new();
-
-            if let Some(eval_step) = EvaluateStep::register(&params) {
-                steps.push(StepWrapper(EngineStepType::Evaluate, eval_step));
-            }
-
-            if let Some(speciate_step) = SpeciateStep::register(&params) {
-                steps.push(StepWrapper(EngineStepType::Speciate, speciate_step));
-            }
-
-            if let Some(recombine_step) = RecombineStep::register(&params) {
-                steps.push(StepWrapper(EngineStepType::Recombine, recombine_step));
-            }
-
-            if let Some(filter_step) = FilterStep::register(&params) {
-                steps.push(StepWrapper(EngineStepType::Filter, filter_step));
-            }
-
-            if let Some(evaluate_step) = EvaluateStep::register(&params) {
-                steps.push(StepWrapper(EngineStepType::Evaluate, evaluate_step));
-            }
-
-            if let Some(front_step) = FrontStep::register(&params) {
-                steps.push(StepWrapper(EngineStepType::Front, front_step));
-            }
-
-            if let Some(audit_step) = AuditStep::register(&params) {
-                steps.push(StepWrapper(EngineStepType::Audit, audit_step));
-            }
-
+            let steps = self.register_steps(&params);
             GeneticEngine::new(params, steps)
         }
     }
@@ -371,6 +342,40 @@ where
                 Ordering::Equal
             },
         ));
+    }
+
+    fn register_steps(&self, params: &GeneticEngineParams<C, T>) -> Vec<StepWrapper<C, T>> {
+        let mut steps = Vec::<StepWrapper<C, T>>::new();
+
+        if let Some(eval_step) = EvaluateStep::register(&params) {
+            steps.push(StepWrapper(EngineStepType::Evaluate, eval_step));
+        }
+
+        if let Some(speciate_step) = SpeciateStep::register(&params) {
+            steps.push(StepWrapper(EngineStepType::Speciate, speciate_step));
+        }
+
+        if let Some(recombine_step) = RecombineStep::register(&params) {
+            steps.push(StepWrapper(EngineStepType::Recombine, recombine_step));
+        }
+
+        if let Some(filter_step) = FilterStep::register(&params) {
+            steps.push(StepWrapper(EngineStepType::Filter, filter_step));
+        }
+
+        if let Some(evaluate_step) = EvaluateStep::register(&params) {
+            steps.push(StepWrapper(EngineStepType::Evaluate, evaluate_step));
+        }
+
+        if let Some(front_step) = FrontStep::register(&params) {
+            steps.push(StepWrapper(EngineStepType::Front, front_step));
+        }
+
+        if let Some(audit_step) = AuditStep::register(&params) {
+            steps.push(StepWrapper(EngineStepType::Audit, audit_step));
+        }
+
+        steps
     }
 }
 

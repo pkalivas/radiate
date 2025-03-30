@@ -51,7 +51,7 @@ where
         let count = wg.wait();
         self.objective.sort(population);
 
-        return vec![Metric::new_value(metric_names::FITNESS).with_value(count as f32)];
+        return vec![Metric::new_value(metric_names::FITNESS).with_count_value(count)];
     }
 
     fn register(params: &GeneticEngineParams<C, T>) -> Option<Box<Self>>

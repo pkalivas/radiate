@@ -34,6 +34,14 @@ impl Timer {
 
         self.end.duration_since(self.start)
     }
+
+    pub fn start(&mut self) {
+        if self.stopped {
+            self.stopped = false;
+        } else {
+            return;
+        }
+    }
 }
 
 impl Clone for Timer {

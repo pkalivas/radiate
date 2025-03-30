@@ -1,10 +1,9 @@
+use super::PopulationView;
 use crate::{Chromosome, Objective, Phenotype, Population, Score};
 use std::{
     fmt::{self, Debug, Formatter},
     sync::atomic::{AtomicU64, Ordering},
 };
-
-use super::PopulationView;
 
 static ID_COUNTER: AtomicU64 = AtomicU64::new(1);
 
