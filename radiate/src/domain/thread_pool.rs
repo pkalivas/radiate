@@ -1,26 +1,11 @@
-use std::{
-    sync::atomic::{AtomicUsize, Ordering},
-    sync::{Arc, Condvar, Mutex},
+use std::sync::{
+    Arc, Condvar, Mutex,
+    atomic::{AtomicBool, AtomicUsize, Ordering},
 };
 use std::{sync::mpsc, thread};
 
-/// `WorkResult` is a simple wrapper around a `Receiver` that allows the user to get
-/// the result of a job that was executed in the thread pool. It kinda acts like
-/// a `Future` in a synchronous way.
-pub struct WorkResult<T> {
-    receiver: mpsc::Receiver<T>,
-}
-
-impl<T> WorkResult<T> {
-    /// Get the result of the job.
-    /// **Note**: This method will block until the result is available.
-    pub fn result(&self) -> T {
-        self.receiver.recv().unwrap()
-    }
-}
-
 pub struct ThreadPool {
-    sender: mpsc::Sender<Message>,
+    sender: Arc<mpsc::Sender<Message>>,
     workers: Vec<Worker>,
 }
 
@@ -31,6 +16,7 @@ impl ThreadPool {
     pub fn new(size: usize) -> Self {
         let (sender, receiver) = mpsc::channel();
         let receiver = Arc::new(Mutex::new(receiver));
+        let sender = Arc::new(sender);
 
         ThreadPool {
             sender,
@@ -49,7 +35,27 @@ impl ThreadPool {
         });
     }
 
-    /// Execute a job in the thread pool. This is a 'fire and forget' method.
+    pub fn submit_scoped<F>(&self, job: F)
+    where
+        F: FnOnce(Scope) + Send + 'static,
+    {
+        let scope = self.scope();
+        self.submit(move || {
+            job(scope);
+        });
+    }
+
+    pub fn scope(&self) -> Scope {
+        let wg = WaitGroup::new();
+
+        let scope = Scope {
+            sender: Arc::clone(&self.sender),
+            wg: wg.clone(),
+        };
+
+        scope
+    }
+
     pub fn submit<F>(&self, f: F)
     where
         F: FnOnce() + Send + 'static,
@@ -58,21 +64,35 @@ impl ThreadPool {
         self.sender.send(Message::NewJob(job)).unwrap();
     }
 
-    /// Execute a job in the thread pool and return a `WorkResult` that can be used to get the result of the job.
-    pub fn submit_with_result<F, T>(&self, f: F) -> WorkResult<T>
-    where
-        F: FnOnce() -> T + Send + 'static,
-        T: Send + 'static,
-    {
-        let (tx, rx) = mpsc::sync_channel(1);
-        let job = Box::new(move || tx.send(f()).unwrap());
-
-        self.sender.send(Message::NewJob(job)).unwrap();
-        WorkResult { receiver: rx }
-    }
-
     pub fn is_alive(&self) -> bool {
         self.workers.iter().any(|worker| worker.is_alive())
+    }
+}
+
+pub struct Scope {
+    sender: Arc<mpsc::Sender<Message>>,
+    wg: WaitGroup,
+}
+
+impl Scope {
+    pub fn spawn<F>(&self, job: F)
+    where
+        F: FnOnce() + Send + 'static,
+    {
+        let guard = self.wg.guard();
+        let guard_job = move || {
+            job();
+            drop(guard);
+        };
+        self.sender
+            .send(Message::NewJob(Box::new(guard_job)))
+            .unwrap();
+    }
+}
+
+impl Drop for Scope {
+    fn drop(&mut self) {
+        self.wg.wait();
     }
 }
 
@@ -201,6 +221,44 @@ impl WaitGroup {
     }
 }
 
+#[derive(Clone)]
+pub struct SingleFlag {
+    state: Arc<AtomicBool>,
+    lock: Arc<Mutex<()>>,
+    cvar: Arc<Condvar>,
+}
+
+impl SingleFlag {
+    pub fn new() -> Self {
+        Self {
+            state: Arc::new(AtomicBool::new(false)),
+            lock: Arc::new(Mutex::new(())),
+            cvar: Arc::new(Condvar::new()),
+        }
+    }
+
+    pub fn start(&self) {
+        self.state.store(true, Ordering::SeqCst);
+    }
+
+    pub fn finish(&self) {
+        self.state.store(false, Ordering::SeqCst);
+        let _guard = self.lock.lock().unwrap();
+        self.cvar.notify_all();
+    }
+
+    pub fn is_running(&self) -> bool {
+        self.state.load(Ordering::SeqCst)
+    }
+
+    pub fn wait(&self) {
+        let mut guard = self.lock.lock().unwrap();
+        while self.state.load(Ordering::SeqCst) {
+            guard = self.cvar.wait(guard).unwrap();
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::time::{Duration, Instant};
@@ -262,22 +320,6 @@ mod tests {
         let mut results = results.lock().unwrap();
         results.sort(); // Order may not be guaranteed
         assert_eq!(*results, vec![0, 1, 2, 3, 4]);
-    }
-
-    #[test]
-    fn test_thread_pool_process() {
-        let pool = ThreadPool::new(4);
-
-        let results = pool.submit_with_result(|| {
-            let start_time = std::time::SystemTime::now();
-            println!("Job started.");
-            thread::sleep(Duration::from_secs(2));
-            println!("Job finished in {:?}.", start_time.elapsed().unwrap());
-            42
-        });
-
-        let result = results.result();
-        assert_eq!(result, 42);
     }
 
     #[test]

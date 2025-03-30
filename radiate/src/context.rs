@@ -1,7 +1,8 @@
 use crate::domain::timer::Timer;
 use crate::genome::population::Population;
 use crate::objectives::Front;
-use crate::{Chromosome, Metric, MetricSet, Phenotype, Score, Species};
+use crate::sync::{RwCell, RwCellGuard};
+use crate::{Chromosome, Metric, MetricSet, Objective, Phenotype, Score, Species, SpeciesId};
 use std::fmt::Debug;
 use std::time::Duration;
 
@@ -34,8 +35,9 @@ where
     pub(crate) timer: Timer,
     pub(crate) metrics: MetricSet,
     pub(crate) score: Option<Score>,
-    pub(crate) front: Front<Phenotype<C>>,
+    pub(crate) front: RwCell<Front<Phenotype<C>>>,
     pub(crate) species: Vec<Species<C>>,
+    pub(crate) objective: Objective,
 }
 
 /// Encapsulates information about the best solution found so far.
@@ -66,6 +68,10 @@ where
         &self.population
     }
 
+    pub fn population_mut(&mut self) -> &mut Population<C> {
+        &mut self.population
+    }
+
     pub fn best(&self) -> &T {
         &self.best
     }
@@ -78,8 +84,20 @@ where
         &self.metrics
     }
 
-    pub fn pareto_front(&self) -> &Front<Phenotype<C>> {
-        &self.front
+    pub fn pareto_front(&self) -> RwCellGuard<Front<Phenotype<C>>> {
+        self.front.read()
+    }
+
+    pub fn objective(&self) -> &Objective {
+        &self.objective
+    }
+
+    pub(crate) fn new_members(&self) -> Vec<Phenotype<C>> {
+        self.population
+            .iter()
+            .filter(|pheno| pheno.generation() == self.index)
+            .map(|phenotype| Phenotype::from((phenotype, phenotype.score().unwrap())))
+            .collect::<Vec<Phenotype<C>>>()
     }
 
     /// Upsert (update or create) a metric operation with the given name, value, and time.
@@ -100,7 +118,7 @@ where
         self.metrics.upsert(metric);
     }
 
-    pub(crate) fn set_species_id(&mut self, index: usize, species_id: u64) {
+    pub(crate) fn set_species_id(&mut self, index: usize, species_id: SpeciesId) {
         self.population[index].set_species_id(Some(species_id));
     }
 
@@ -130,8 +148,9 @@ where
             timer: self.timer.clone(),
             metrics: self.metrics.clone(),
             score: self.score.clone(),
-            front: self.front.clone(),
+            front: RwCell::clone(&self.front), // Clone the front to allow multiple threads to access it
             species: self.species.clone(),
+            objective: self.objective.clone(),
         }
     }
 }

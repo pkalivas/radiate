@@ -32,9 +32,9 @@ where
         &self,
         population: &mut Population<GraphChromosome<T>>,
         indexes: &[usize],
-        generation: usize,
         _: f32,
     ) -> AlterResult {
+        let mut result = AlterResult::default();
         if population.len() <= NUM_PARENTS {
             return 0.into();
         }
@@ -78,10 +78,10 @@ where
         };
 
         if num_crosses > 0 {
-            parent_one.set_generation(generation);
-            parent_one.set_score(None);
+            result.add_count(num_crosses);
+            result.mark_changed(indexes[0]);
         }
 
-        num_crosses.into()
+        result
     }
 }

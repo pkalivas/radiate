@@ -1,5 +1,6 @@
 use super::{Crossover, Mutate};
 use crate::{Chromosome, Metric, Population, timer::Timer};
+use std::collections::HashSet;
 
 /// This is the main trait that is used to define the different types of alterations that can be
 /// performed on a population. The `Alter` trait is used to define the `alter` method that is used
@@ -22,7 +23,7 @@ use crate::{Chromosome, Metric, Population, timer::Timer};
 /// but it is designed to be more flexible and extensible. Because an `Alter` can be of type `Mutate`
 /// or `Crossover`, it is abstracted out of those core traits into this trait.
 pub trait Alter<C: Chromosome> {
-    fn alter(&self, population: &mut Population<C>, generation: usize) -> Vec<Metric>;
+    fn alter(&self, population: &mut Population<C>) -> AlterResult;
 }
 
 /// The `AlterResult` struct is used to represent the result of an
@@ -30,19 +31,35 @@ pub trait Alter<C: Chromosome> {
 /// performed and a vector of metrics that were collected
 /// during the alteration process.
 #[derive(Default)]
-pub struct AlterResult(pub usize, pub Option<Vec<Metric>>);
+pub struct AlterResult(pub usize, pub Option<Vec<Metric>>, pub HashSet<usize>);
 
 impl AlterResult {
     pub fn count(&self) -> usize {
         self.0
     }
 
+    pub fn add_count(&mut self, count: usize) {
+        self.0 += count;
+    }
+
     pub fn metrics(&self) -> Option<&Vec<Metric>> {
         self.1.as_ref()
     }
 
+    pub fn take_metrics(&mut self) -> Option<Vec<Metric>> {
+        self.1.take()
+    }
+
+    pub fn changed(&self) -> impl Iterator<Item = &usize> {
+        self.2.iter()
+    }
+
+    pub fn mark_changed(&mut self, id: usize) {
+        self.2.insert(id);
+    }
+
     pub fn merge(&mut self, other: AlterResult) {
-        let AlterResult(other_count, other_metrics) = other;
+        let AlterResult(other_count, other_metrics, other_ids) = other;
 
         self.0 += other_count;
         if let Some(metrics) = other_metrics {
@@ -52,24 +69,26 @@ impl AlterResult {
                 self.1 = Some(metrics);
             }
         }
+
+        self.2.extend(other_ids);
     }
 }
 
 impl Into<AlterResult> for usize {
     fn into(self) -> AlterResult {
-        AlterResult(self, None)
+        AlterResult(self, None, HashSet::new())
     }
 }
 
 impl Into<AlterResult> for (usize, Vec<Metric>) {
     fn into(self) -> AlterResult {
-        AlterResult(self.0, Some(self.1))
+        AlterResult(self.0, Some(self.1), HashSet::new())
     }
 }
 
 impl Into<AlterResult> for (usize, Metric) {
     fn into(self) -> AlterResult {
-        AlterResult(self.0, Some(vec![self.1]))
+        AlterResult(self.0, Some(vec![self.1]), HashSet::new())
     }
 }
 
@@ -82,27 +101,31 @@ pub enum AlterAction<C: Chromosome> {
 }
 
 impl<C: Chromosome> Alter<C> for AlterAction<C> {
-    fn alter(&self, population: &mut Population<C>, generation: usize) -> Vec<Metric> {
+    fn alter(&self, population: &mut Population<C>) -> AlterResult {
         match &self {
             AlterAction::Mutate(name, rate, m) => {
                 let timer = Timer::new();
-                let AlterResult(count, metrics) = m.mutate(population, generation, *rate);
+                let AlterResult(count, metrics, ids) = m.mutate(population, *rate);
                 let metric = Metric::new_operations(name, count, timer);
 
-                match metrics {
+                let result_metrics = match metrics {
                     Some(metrics) => metrics.into_iter().chain(vec![metric]).collect(),
                     None => vec![metric],
-                }
+                };
+
+                AlterResult(count, Some(result_metrics), ids)
             }
             AlterAction::Crossover(name, rate, c) => {
                 let timer = Timer::new();
-                let AlterResult(count, metrics) = c.crossover(population, generation, *rate);
+                let AlterResult(count, metrics, ids) = c.crossover(population, *rate);
                 let metric = Metric::new_operations(name, count, timer);
 
-                match metrics {
+                let result = match metrics {
                     Some(metrics) => metrics.into_iter().chain(vec![metric]).collect(),
                     None => vec![metric],
-                }
+                };
+
+                AlterResult(count, Some(result), ids)
             }
         }
     }

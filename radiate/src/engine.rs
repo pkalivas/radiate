@@ -3,6 +3,7 @@ use super::context::EngineContext;
 use super::{GeneticEngineParams, MetricSet, Problem};
 use crate::builder::GeneticEngineBuilder;
 use crate::domain::timer::Timer;
+use crate::sync::RwCell;
 use crate::{Chromosome, EngineStep};
 
 /// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
@@ -130,8 +131,9 @@ where
             timer: Timer::new(),
             metrics: MetricSet::new(),
             score: None,
-            front: self.params.front().clone(),
+            front: RwCell::clone(&self.params.front()),
             species: Vec::new(),
+            objective: self.params.objective().clone(),
         }
     }
 

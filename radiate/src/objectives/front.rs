@@ -1,5 +1,8 @@
 use super::Scored;
-use crate::objectives::{Objective, pareto};
+use crate::{
+    IterSortExt,
+    objectives::{Objective, pareto},
+};
 use std::{cmp::Ordering, ops::Range, sync::Arc};
 
 /// A front is a collection of scores that are non-dominated with respect to each other.
@@ -117,17 +120,12 @@ where
             .map(|s| s.score().unwrap())
             .collect::<Vec<_>>();
 
-        let mut crowding_distances = pareto::crowding_distance(&values, &self.objective)
+        self.values = pareto::crowding_distance(&values, &self.objective)
             .into_iter()
             .enumerate()
-            .collect::<Vec<_>>();
-
-        crowding_distances.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(Ordering::Equal));
-
-        self.values = crowding_distances
-            .iter()
+            .sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(Ordering::Equal))
             .take(self.range.end)
-            .map(|(i, _)| Arc::clone(&self.values[*i]))
-            .collect::<Vec<Arc<T>>>();
+            .map(|(i, _)| Arc::clone(&self.values[i]))
+            .collect::<Vec<_>>();
     }
 }

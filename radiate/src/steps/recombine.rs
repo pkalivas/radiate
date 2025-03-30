@@ -3,8 +3,8 @@ use std::sync::Arc;
 use super::EngineStep;
 use crate::domain::timer::Timer;
 use crate::{
-    Alter, Chromosome, EngineContext, GeneticEngineParams, Objective, Population, Select,
-    random_provider,
+    Alter, AlterResult, Chromosome, EngineContext, GeneticEngineParams, Objective, Population,
+    Select, random_provider,
 };
 
 pub struct RecombineStep<C: Chromosome> {
@@ -33,6 +33,30 @@ impl<C: Chromosome> RecombineStep<C> {
             offspring_count,
             objective,
         }
+    }
+
+    fn apply_alterations<T>(
+        &self,
+        ctx: &mut EngineContext<C, T>,
+        individuals: &mut Population<C>,
+    ) -> AlterResult {
+        let mut alter_result = AlterResult::default();
+
+        for alterer in &self.alters {
+            alter_result.merge(alterer.alter(individuals));
+        }
+
+        if let Some(metrics) = alter_result.take_metrics() {
+            for metric in metrics {
+                ctx.record_metric(metric);
+            }
+        }
+
+        for id in alter_result.changed() {
+            individuals.get_mut(*id).invalidate(ctx.index);
+        }
+
+        alter_result
     }
     /// the `select_survivors` method selects the individuals that will survive
     /// to the next generation. The number of survivors is determined by the population size and the
@@ -74,34 +98,22 @@ impl<C: Chromosome> RecombineStep<C> {
     /// which allows the genetic algorithm explore new solutions in the problem space and (hopefully)
     /// avoid getting stuck in local minima.
     fn create_offspring<T>(&self, ctx: &mut EngineContext<C, T>) -> Population<C> {
+        let selector = &self.offspring_selector;
         if ctx.species.is_empty() || random_provider::random::<f32>() < 0.01 {
             let timer = Timer::new();
-            let mut offspring = self.offspring_selector.select(
-                &ctx.population,
-                &self.objective,
-                self.offspring_count,
-            );
 
-            ctx.record_operation(
-                self.offspring_selector.name(),
-                offspring.len() as f32,
-                timer,
-            );
+            let mut offspring =
+                selector.select(&ctx.population(), &self.objective, self.offspring_count);
+
+            ctx.record_operation(selector.name(), offspring.len() as f32, timer);
+
             self.objective.sort(&mut offspring);
-
-            self.alters.iter().for_each(|alterer| {
-                alterer
-                    .alter(&mut offspring, ctx.index)
-                    .into_iter()
-                    .for_each(|metric| {
-                        ctx.record_metric(metric);
-                    });
-            });
-
+            self.apply_alterations(ctx, &mut offspring);
             return offspring;
         }
 
         let mut offspring = Vec::new();
+        let mut alter_result = AlterResult::default();
         let species_count = ctx.species.len();
         for i in 0..species_count {
             let species = &ctx.species[i];
@@ -111,26 +123,16 @@ impl<C: Chromosome> RecombineStep<C> {
             let count = (species.score().as_f32() * self.offspring_count as f32).round() as usize;
             let members = population.take(|pheno| pheno.species_id() == Some(species.id()));
 
-            let mut selected = self
-                .offspring_selector
-                .select(&members, &self.objective, count);
+            let mut selected = selector.select(&members, &self.objective, count);
 
-            ctx.record_operation(self.offspring_selector.name(), count as f32, timer);
+            ctx.record_operation(selector.name(), count as f32, timer);
             self.objective.sort(&mut selected);
 
-            self.alters.iter().for_each(|alterer| {
-                alterer
-                    .alter(&mut selected, ctx.index)
-                    .into_iter()
-                    .for_each(|metric| {
-                        ctx.record_metric(metric);
-                    });
-            });
-
+            alter_result.merge(self.apply_alterations(ctx, &mut selected));
             offspring.extend(selected);
         }
 
-        offspring.into_iter().collect::<Population<C>>()
+        offspring.into_iter().collect()
     }
 }
 

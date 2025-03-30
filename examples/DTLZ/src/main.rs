@@ -30,7 +30,7 @@ fn main() {
 
     println!("{:?}", result.seconds());
     println!("{:?}", result.metrics());
-    plot_front(result.pareto_front());
+    plot_front(result.pareto_front().as_ref());
 }
 
 fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {

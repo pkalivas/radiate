@@ -10,6 +10,7 @@ use crate::genome::phenotype::Phenotype;
 use crate::genome::population::Population;
 use crate::objectives::Score;
 use crate::objectives::{Objective, Optimize};
+use crate::sync::RwCell;
 use crate::uniform::{UniformCrossover, UniformMutator};
 use crate::{
     AuditStep, Chromosome, EngineStep, EvaluateStep, FilterStep, FrontStep, RecombineStep,
@@ -279,7 +280,7 @@ where
                 self.objective,
                 self.thread_pool,
                 self.max_age,
-                self.front.clone().unwrap(),
+                RwCell::new(self.front.clone().unwrap()), // Use the front we built earlier
                 self.offspring_fraction,
             );
 

@@ -20,6 +20,7 @@ fn main() {
     let engine = GeneticEngine::from_problem(problem)
         .minimizing()
         .num_threads(10)
+        .distance(NeatDistance::new(1.8, 1.0, 1.0, 3.0))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
@@ -29,6 +30,7 @@ fn main() {
 
     engine
         .iter()
+        .only_improvements()
         .take_while(|ctx| ctx.score().as_f32() > MIN_SCORE && ctx.seconds() < MAX_SECONDS)
         .inspect(|ctx| log_ctx!(ctx))
         .last()

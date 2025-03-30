@@ -4,6 +4,7 @@ use crate::Chromosome;
 use crate::genome::phenotype::Phenotype;
 use crate::genome::population::Population;
 use crate::objectives::Objective;
+use crate::sync::RwCell;
 use std::sync::Arc;
 
 pub struct GeneticEngineParams<C: Chromosome, T> {
@@ -18,7 +19,7 @@ pub struct GeneticEngineParams<C: Chromosome, T> {
     objective: Objective,
     thread_pool: Arc<ThreadPool>,
     max_age: usize,
-    front: Front<Phenotype<C>>,
+    front: RwCell<Front<Phenotype<C>>>,
     offspring_fraction: f32,
 }
 
@@ -35,7 +36,7 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
         objective: Objective,
         thread_pool: Arc<ThreadPool>,
         max_age: usize,
-        front: Front<Phenotype<C>>,
+        front: RwCell<Front<Phenotype<C>>>,
         offspring_fraction: f32,
     ) -> Self {
         Self {
@@ -99,7 +100,7 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
         self.max_age
     }
 
-    pub fn front(&self) -> &Front<Phenotype<C>> {
+    pub fn front(&self) -> &RwCell<Front<Phenotype<C>>> {
         &self.front
     }
 

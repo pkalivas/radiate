@@ -1,15 +1,17 @@
 use super::EngineStep;
-use crate::domain::{thread_pool::WaitGroup, timer::Timer};
-use crate::thread_pool::ThreadPool;
+use crate::domain::timer::Timer;
+use crate::thread_pool::{Scope, SingleFlag, ThreadPool};
 use crate::{Chromosome, EngineContext, GeneticEngineParams, Objective, Phenotype, sync::RwCell};
-use crate::{Front, metric_names};
-use std::sync::Arc;
+use crate::{Front, TimeStatistic, metric_names};
+use std::sync::{Arc, Mutex};
 
 pub struct FrontStep<C: Chromosome> {
+    update_guard: SingleFlag,
     front: RwCell<Front<Phenotype<C>>>,
-    dominates_buffer: RwCell<Vec<bool>>,
-    remove_buffer: RwCell<Vec<Arc<Phenotype<C>>>>,
+    dominates: RwCell<Vec<bool>>,
+    to_remove: RwCell<Vec<Arc<Phenotype<C>>>>,
     thread_pool: Arc<ThreadPool>,
+    metric: Arc<Mutex<TimeStatistic>>,
 }
 
 impl<C, T> EngineStep<C, T> for FrontStep<C>
@@ -21,19 +23,17 @@ where
     where
         Self: Sized,
     {
-        if let Objective::Single(_) = params.objective() {
+        if matches!(params.objective(), Objective::Single(_)) {
             return None;
         }
 
-        let dominates_buffer = RwCell::new(vec![false; params.population().len()]);
-        let remove_buffer = RwCell::new(Vec::new());
-        let front = params.front().clone();
-
         Some(Box::new(FrontStep {
-            front: RwCell::new(front),
-            dominates_buffer: dominates_buffer,
-            remove_buffer: remove_buffer,
+            update_guard: SingleFlag::new(),
+            front: RwCell::clone(&params.front()),
+            dominates: RwCell::new(vec![false; params.population().len()]),
+            to_remove: RwCell::new(Vec::new()),
             thread_pool: Arc::clone(&params.thread_pool()),
+            metric: Arc::new(Mutex::new(TimeStatistic::default())),
         }))
     }
 
@@ -43,55 +43,100 @@ where
     /// The front is updated in a separate thread to avoid blocking the main thread while the front is being calculated.
     /// This can significantly speed up the calculation of the front for large populations.
     fn execute(&self, ctx: &mut EngineContext<C, T>) {
-        let timer = Timer::new();
-        let wg = WaitGroup::new();
+        self.update_guard.wait();
+        self.update_guard.start();
 
-        let new_individuals = ctx
-            .population
-            .iter()
-            .filter(|pheno| pheno.generation() == ctx.index)
-            .collect::<Vec<&Phenotype<C>>>();
+        let flag = self.update_guard.clone();
 
-        self.dominates_buffer.write().fill(false);
-        self.remove_buffer.write().clear();
+        self.dominates.write().fill(false);
+        self.to_remove.write().clear();
 
-        for (idx, member) in new_individuals.iter().enumerate() {
-            let pheno = Phenotype::clone(member);
-            let front_clone = RwCell::clone(&self.front);
-            let doms_vector = RwCell::clone(&self.dominates_buffer);
-            let remove_vector = RwCell::clone(&self.remove_buffer);
+        let metric_clone = Arc::clone(&self.metric);
+        let update = FrontUpdate::new(
+            ctx.new_members(),
+            &self.front,
+            &self.dominates,
+            &self.to_remove,
+        );
 
-            self.thread_pool.group_submit(&wg, move || {
-                let (dominates, to_remove) = front_clone.read().dominates(&pheno);
+        self.thread_pool.submit_scoped(move |scope| {
+            let timer = Timer::new();
 
-                if dominates {
-                    doms_vector.write().get_mut(idx).map(|v| *v = true);
-                    remove_vector
-                        .write()
-                        .extend(to_remove.iter().map(|r| r.clone()));
+            update.spawn_tasks(scope);
+            update.finalize_front();
+
+            metric_clone.lock().unwrap().add(timer.duration());
+            flag.finish();
+        });
+
+        let count = self.dominates.read().iter().filter(|flag| **flag).count();
+        ctx.record_operation(
+            metric_names::FRONT,
+            count as f32,
+            self.metric.lock().unwrap().last_time(),
+        );
+    }
+}
+
+struct FrontUpdate<C: Chromosome> {
+    candidates: Vec<Phenotype<C>>,
+    front: RwCell<Front<Phenotype<C>>>,
+    dominates: RwCell<Vec<bool>>,
+    to_remove: RwCell<Vec<Arc<Phenotype<C>>>>,
+}
+
+impl<C: Chromosome> FrontUpdate<C>
+where
+    C: Chromosome + 'static,
+{
+    pub fn new(
+        candidates: Vec<Phenotype<C>>,
+        front: &RwCell<Front<Phenotype<C>>>,
+        dominates: &RwCell<Vec<bool>>,
+        to_remove: &RwCell<Vec<Arc<Phenotype<C>>>>,
+    ) -> Self {
+        FrontUpdate {
+            candidates,
+            front: RwCell::clone(front),
+            dominates: RwCell::clone(dominates),
+            to_remove: RwCell::clone(to_remove),
+        }
+    }
+    pub fn spawn_tasks(&self, scope: Scope) {
+        for (idx, pheno) in self.candidates.iter().enumerate() {
+            let pheno = Phenotype::clone(pheno);
+            let front = RwCell::clone(&self.front);
+            let dominates = RwCell::clone(&self.dominates);
+            let to_remove = RwCell::clone(&self.to_remove);
+
+            scope.spawn(move || {
+                let (dom, to_rm) = front.read().dominates(&pheno);
+                if dom {
+                    dominates.write().get_mut(idx).map(|v| *v = true);
+                    to_remove.write().extend(to_rm.iter().cloned());
                 }
             });
         }
+    }
 
-        let count = wg.wait();
-
-        let dominates_vector = self
-            .dominates_buffer
+    fn finalize_front(&self) {
+        let dominators = self
+            .dominates
             .read()
             .iter()
             .enumerate()
-            .filter(|(_, is_dominating)| **is_dominating)
-            .map(|(idx, _)| new_individuals[idx])
-            .collect::<Vec<&Phenotype<C>>>();
-        let mut remove_vector = self.remove_buffer.write();
+            .filter_map(|(i, &flag)| {
+                if flag {
+                    Some(&self.candidates[i])
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
 
-        remove_vector.dedup();
+        let mut remove = self.to_remove.write();
+        remove.dedup();
 
-        self.front
-            .write()
-            .clean(dominates_vector, remove_vector.as_slice());
-
-        ctx.front = self.front.read().clone();
-        ctx.record_operation(metric_names::FRONT, count as f32, timer);
+        self.front.write().clean(dominators, &remove);
     }
 }

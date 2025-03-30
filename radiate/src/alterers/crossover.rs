@@ -29,18 +29,13 @@ pub trait Crossover<C: Chromosome> {
     }
 
     #[inline]
-    fn crossover(
-        &self,
-        population: &mut Population<C>,
-        generation: usize,
-        rate: f32,
-    ) -> AlterResult {
+    fn crossover(&self, population: &mut Population<C>, rate: f32) -> AlterResult {
         let mut result = AlterResult::default();
 
         for i in 0..population.len() {
             if random_provider::random::<f32>() < rate && population.len() > 3 {
                 let parent_indexes = indexes::individual_indexes(i, population.len(), 2);
-                let cross_result = self.cross(population, &parent_indexes, generation, rate);
+                let cross_result = self.cross(population, &parent_indexes, rate);
                 result.merge(cross_result);
             }
         }
@@ -53,7 +48,6 @@ pub trait Crossover<C: Chromosome> {
         &self,
         population: &mut Population<C>,
         parent_indexes: &[usize],
-        generation: usize,
         rate: f32,
     ) -> AlterResult {
         let mut result = AlterResult::default();
@@ -74,11 +68,9 @@ pub trait Crossover<C: Chromosome> {
         };
 
         if cross_result.count() > 0 {
-            one.set_generation(generation);
-            two.set_generation(generation);
-            one.set_score(None);
-            two.set_score(None);
             result.merge(cross_result);
+            result.mark_changed(parent_indexes[0]);
+            result.mark_changed(parent_indexes[1]);
         }
 
         result
