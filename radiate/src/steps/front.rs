@@ -66,9 +66,19 @@ where
         self.thread_pool.submit_scoped(move |scope| {
             let timer = std::time::Instant::now();
 
+            let task_time = std::time::Instant::now();
             update.spawn_tasks(scope);
+            let elapsed = task_time.elapsed();
+            let finalize_time = std::time::Instant::now();
             update.finalize_front();
+            let finalize_elapsed = finalize_time.elapsed();
 
+            println!(
+                "Front update took: {:?} (task time: {:?}, finalize time: {:?})",
+                timer.elapsed(),
+                elapsed,
+                finalize_elapsed
+            );
             metric_clone.lock().unwrap().add(timer.elapsed());
             flag.finish();
         });

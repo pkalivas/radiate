@@ -33,7 +33,25 @@ impl<C: Chromosome> RecombineStep<C> {
         }
     }
 
-    fn apply_alterations(&self, generation: usize, individuals: &mut Population<C>) -> AlterResult {
+    fn select_offspring(
+        &self,
+        individuals: &Population<C>,
+        count: usize,
+    ) -> (Population<C>, Metric) {
+        let time = std::time::Instant::now();
+        let mut selected = self
+            .offspring_selector
+            .select(individuals, &self.objective, count);
+
+        self.objective.sort(&mut selected);
+
+        let length = selected.len() as f32;
+        let metric = Metric::new_operations(self.offspring_selector.name(), length, time.elapsed());
+
+        (selected, metric)
+    }
+
+    fn apply_alterations(&self, generation: usize, individuals: &mut Population<C>) -> Vec<Metric> {
         let mut metrics = Vec::new();
         let mut alter_result = AlterResult::default();
 
@@ -51,12 +69,14 @@ impl<C: Chromosome> RecombineStep<C> {
             individuals.get_mut(*id).invalidate(generation);
         }
 
-        alter_result.add_metric(
-            Metric::new_value(metric_names::ALTERED).with_value(alter_result.2.len() as f32),
-        );
-
-        alter_result
+        metrics
+            .into_iter()
+            .chain(vec![
+                Metric::new_value(metric_names::ALTERED).with_value(alter_result.2.len() as f32),
+            ])
+            .collect::<Vec<Metric>>()
     }
+
     /// the `select_survivors` method selects the individuals that will survive
     /// to the next generation. The number of survivors is determined by the population size and the
     /// offspring fraction specified in the genetic engine parameters. The survivors
@@ -110,54 +130,36 @@ impl<C: Chromosome> RecombineStep<C> {
         species: &Vec<Species<C>>,
     ) -> (Population<C>, Vec<Metric>) {
         let mut metrics = Vec::new();
-        let selector = &self.offspring_selector;
+
         if species.is_empty() || random_provider::random::<f32>() < 0.01 {
-            let timer = std::time::Instant::now();
+            let (mut offspring, metric) = self.select_offspring(&population, self.offspring_count);
 
-            let mut offspring = selector.select(&population, &self.objective, self.offspring_count);
+            metrics.push(metric);
+            metrics.extend(self.apply_alterations(generation, &mut offspring));
 
-            metrics.push(Metric::new_operations(
-                selector.name(),
-                offspring.len() as f32,
-                timer.elapsed(),
-            ));
-
-            self.objective.sort(&mut offspring);
-            self.apply_alterations(generation, &mut offspring);
             return (offspring, metrics);
         }
 
-        let mut offspring = Vec::new();
-        let mut alter_result = AlterResult::default();
+        let mut altered_individuals = Vec::new();
         let species_count = species.len();
         for i in 0..species_count {
             let current_species = &species[i];
             let scale = &species[species_count - 1 - i].score().as_f32();
-            let timer = std::time::Instant::now();
 
             let count = (scale * self.offspring_count as f32).round() as usize;
 
-            let mut selected =
-                selector.select(current_species.population(), &self.objective, count);
+            let (mut offspring, metric) =
+                self.select_offspring(current_species.population(), count);
 
-            metrics.push(Metric::new_operations(
-                selector.name(),
-                count as f32,
-                timer.elapsed(),
-            ));
-            self.objective.sort(&mut selected);
-
-            alter_result.merge(self.apply_alterations(generation, &mut selected));
-            offspring.extend(selected);
-        }
-
-        if let Some(mets) = alter_result.take_metrics() {
-            for metric in mets {
+            metrics.push(metric);
+            for metric in self.apply_alterations(generation, &mut offspring) {
                 metrics.push(metric);
             }
+
+            altered_individuals.extend(offspring);
         }
 
-        (offspring.into_iter().collect(), metrics)
+        (altered_individuals.into_iter().collect(), metrics)
     }
 }
 

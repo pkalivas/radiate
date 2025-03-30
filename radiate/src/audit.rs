@@ -51,20 +51,20 @@ impl<C: Chromosome> Audit<C> for MetricAudit {
 
         unique.dedup();
 
-        let mut unique_metric = Metric::new_value(metric_names::UNIQUE_SCORES);
+        let mut unique_scores = Metric::new_value(metric_names::UNIQUE_SCORES);
         let mut size_metric = Metric::new_distribution(metric_names::GENOME_SIZE);
-        let mut equal_metric = Metric::new_value(metric_names::NUM_EQUAL);
+        let mut unique_individuals = Metric::new_value(metric_names::UNIQUE_INDIVIDUALS);
 
-        unique_metric.add_value(unique.len() as f32);
+        unique_scores.add_value(unique.len() as f32);
         size_metric.add_sequence(&size_values);
-        equal_metric.add_value(equal_members.len() as f32);
+        unique_individuals.add_value(equal_members.len() as f32);
 
         vec![
             age_metric,
             score_metric,
-            unique_metric,
+            unique_scores,
             size_metric,
-            equal_metric,
+            unique_individuals,
         ]
     }
 }

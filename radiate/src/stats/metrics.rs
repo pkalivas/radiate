@@ -452,7 +452,7 @@ impl std::fmt::Debug for Metric {
         match self {
             Metric::Value(name, stat, dist) => write!(
                 f,
-                "{:<20} | Mean: {:>8.3}, Min: {:>8.3}, Max: {:>8.3}, N: {:>3} | Dist. Mean: {:>8.3}, Dist. StdDev: {:>8.3}, Dist. Min: {:>8.3}, Dist. Max: {:>8.3}",
+                "{:<20} | Mean: {:>8.3}, Min: {:>8.3}, Max: {:>8.3}, N: {:>4} | Dist. Mean: {:>8.3}, Dist. StdDev: {:>8.3}, Dist. Min: {:>8.3}, Dist. Max: {:>8.3}",
                 name,
                 stat.mean(),
                 stat.min(),
@@ -465,7 +465,7 @@ impl std::fmt::Debug for Metric {
             ),
             Metric::Time(name, stat) => write!(
                 f,
-                "{:<20} | Avg Time: {:>9.3?}, Min Time: {:>9.3?}, Max Time: {:>9.3?}, N: {:>3} | Total Time: {:>9.3?}",
+                "{:<20} | Avg Time: {:>9.3?}, Min Time: {:>9.3?}, Max Time: {:>9.3?}, N: {:>4} | Total Time: {:>9.3?}",
                 name,
                 stat.mean(),
                 stat.min(),
@@ -475,7 +475,7 @@ impl std::fmt::Debug for Metric {
             ),
             Metric::Distribution(name, dist) => write!(
                 f,
-                "{:<20} | Mean: {:>8.3}, StdDev: {:>8.3}, Min: {:>8.3}, Max: {:>8.3}, N: {:>3}",
+                "{:<20} | Mean: {:>8.3}, StdDev: {:>8.3}, Min: {:>8.3}, Max: {:>8.3}, N: {:>4}",
                 name,
                 dist.mean(),
                 dist.standard_deviation(),
@@ -485,7 +485,7 @@ impl std::fmt::Debug for Metric {
             ),
             Metric::Operations(name, stat, time_stat) => write!(
                 f,
-                "{:<20} | Mean: {:>8.3}, Min: {:>8.3}, Max: {:>8.3}, N: {:>3} | Avg Time: {:>9.3?}, Total Time: {:>9.3?}",
+                "{:<20} | Mean: {:>8.3}, Min: {:>8.3}, Max: {:>8.3}, N: {:>4} | Avg Time: {:>9.3?}, Total Time: {:>9.3?}",
                 name,
                 stat.mean(),
                 stat.min(),

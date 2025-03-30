@@ -93,11 +93,21 @@ where
         self.fitness_share(species);
 
         let species_count = species.len();
+        let new_species = species.iter().filter(|s| s.age(generation) == 0).count();
 
-        vec![
-            Metric::new_value(metric_names::SPECIATION).with_value(species_count as f32),
-            Metric::new_distribution(metric_names::DISTANCE).with_distribution(&distances),
-        ]
+        let mut result = vec![
+            Metric::new_value(metric_names::SPECIES_COUNT).with_value(species_count as f32),
+            Metric::new_distribution(metric_names::SPECIES_DISTANCE_DIST)
+                .with_distribution(&distances),
+        ];
+
+        if new_species > 0 {
+            result.push(
+                Metric::new_value(metric_names::SPECIES_CREATED).with_value(new_species as f32),
+            );
+        }
+
+        result
     }
 
     fn register(params: &GeneticEngineParams<C, T>) -> Option<Box<Self>>

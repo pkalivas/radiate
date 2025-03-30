@@ -34,28 +34,28 @@ impl PhenotypeId {
 pub struct Phenotype<C: Chromosome> {
     genotype: RwCell<Genotype<C>>,
     score: RwCell<Option<Score>>,
-    id: PhenotypeId,
+    id: RwCell<PhenotypeId>,
     generation: usize,
 }
 
 impl<C: Chromosome> Phenotype<C> {
     pub fn clone(other: &Phenotype<C>) -> Self {
         Phenotype {
-            id: other.id,
+            id: RwCell::clone(&other.id),
             genotype: RwCell::clone(&other.genotype),
             score: RwCell::clone(&other.score),
             generation: other.generation,
         }
     }
 
-    pub fn id(&self) -> PhenotypeId {
-        self.id
+    pub fn id(&self) -> RwCellGuard<PhenotypeId> {
+        self.id.read()
     }
 
     pub fn invalidate(&mut self, generation: usize) {
         self.score.set(None);
         self.generation = generation;
-        self.id = PhenotypeId::new();
+        self.id.set(PhenotypeId::new());
     }
 
     pub fn genotype(&self) -> RwCellGuard<Genotype<C>> {
@@ -133,7 +133,7 @@ impl<C: Chromosome> PartialOrd for Phenotype<C> {
 impl<C: Chromosome> From<(Genotype<C>, usize)> for Phenotype<C> {
     fn from((genotype, generation): (Genotype<C>, usize)) -> Self {
         Phenotype {
-            id: PhenotypeId::new(),
+            id: RwCell::new(PhenotypeId::new()),
             genotype: RwCell::new(genotype),
             score: RwCell::new(None),
             generation,
@@ -147,7 +147,7 @@ impl<C: Chromosome> From<(Genotype<C>, usize)> for Phenotype<C> {
 impl<C: Chromosome> From<(Vec<C>, usize)> for Phenotype<C> {
     fn from((chromosomes, generation): (Vec<C>, usize)) -> Self {
         Phenotype {
-            id: PhenotypeId::new(),
+            id: RwCell::new(PhenotypeId::new()),
             genotype: RwCell::new(Genotype::new(chromosomes)),
             score: RwCell::new(None),
             generation,
@@ -158,7 +158,7 @@ impl<C: Chromosome> From<(Vec<C>, usize)> for Phenotype<C> {
 impl<C: Chromosome> From<(&Phenotype<C>, Score)> for Phenotype<C> {
     fn from((phenotype, score): (&Phenotype<C>, Score)) -> Self {
         Phenotype {
-            id: phenotype.id,
+            id: RwCell::clone(&phenotype.id),
             genotype: RwCell::clone(&phenotype.genotype),
             score: RwCell::new(Some(score)),
             generation: phenotype.generation,

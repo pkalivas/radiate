@@ -1,4 +1,5 @@
 use std::{
+    hash::{Hash, Hasher},
     ops::{Deref, DerefMut},
     sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
@@ -87,6 +88,20 @@ impl<T> AsRef<T> for RwCellGuard<'_, T> {
     }
 }
 
+impl<T: PartialEq> PartialEq for RwCellGuard<'_, T> {
+    fn eq(&self, other: &Self) -> bool {
+        (*self.inner) == (*other.inner)
+    }
+}
+
+impl<T: Eq> Eq for RwCellGuard<'_, T> {}
+
+impl<T: Hash> Hash for RwCellGuard<'_, T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.inner.hash(state);
+    }
+}
+
 pub struct RwCellGuardMut<'a, T> {
     inner: RwLockWriteGuard<'a, T>,
 }
@@ -102,5 +117,19 @@ impl<T> Deref for RwCellGuardMut<'_, T> {
 impl<T> DerefMut for RwCellGuardMut<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
+    }
+}
+
+impl<T: PartialEq> PartialEq for RwCellGuardMut<'_, T> {
+    fn eq(&self, other: &Self) -> bool {
+        (*self.inner) == (*other.inner)
+    }
+}
+
+impl<T: Eq> Eq for RwCellGuardMut<'_, T> {}
+
+impl<T: Hash> Hash for RwCellGuardMut<'_, T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.inner.hash(state);
     }
 }

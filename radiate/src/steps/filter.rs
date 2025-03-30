@@ -51,6 +51,7 @@ where
         population: &mut Population<C>,
         species: &mut Vec<Species<C>>,
     ) -> Vec<Metric> {
+        let mut result = Vec::new();
         let mut age_count = 0_f32;
         let mut invalid_count = 0_f32;
         for i in 0..population.len() {
@@ -75,10 +76,17 @@ where
         species.retain(|species| species.age(generation) < self.max_age);
         let species_count = (before_species - species.len()) as f32;
 
-        vec![
-            Metric::new_value(metric_names::AGE_FILTER).with_value(age_count),
-            Metric::new_value(metric_names::INVALID_FILTER).with_value(invalid_count),
-            Metric::new_value(metric_names::SPECIES_FILTER).with_value(species_count),
-        ]
+        if age_count > 0_f32 {
+            result.push(Metric::new_value(metric_names::REPLACE_AGE).with_value(age_count))
+        }
+
+        if invalid_count > 0_f32 {
+            result.push(Metric::new_value(metric_names::REPLACE_INVALID).with_value(invalid_count))
+        }
+        if species_count > 0_f32 {
+            result.push(Metric::new_value(metric_names::SPECIES_AGE_FAIL).with_value(species_count))
+        }
+
+        result
     }
 }

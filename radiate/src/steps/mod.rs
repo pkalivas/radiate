@@ -19,41 +19,24 @@ where
     C: Chromosome,
     T: Clone + Send,
 {
+    fn name(&self) -> &'static str {
+        std::any::type_name::<Self>()
+            .split("<")
+            .next()
+            .unwrap_or(std::any::type_name::<Self>())
+            .split("::")
+            .last()
+            .unwrap_or("Unknown Step")
+    }
+
     fn register(params: &GeneticEngineParams<C, T>) -> Option<Box<Self>>
     where
         Self: Sized;
+
     fn execute(
         &self,
         generation: usize,
         population: &mut Population<C>,
         species: &mut Vec<Species<C>>,
     ) -> Vec<Metric>;
-}
-
-pub struct StepWrapper<C: Chromosome, T: Clone + Send>(
-    pub EngineStepType,
-    pub Box<dyn EngineStep<C, T>>,
-);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum EngineStepType {
-    Evaluate,
-    Speciate,
-    Recombine,
-    Filter,
-    Front,
-    Audit,
-}
-
-impl EngineStepType {
-    pub fn name(self) -> &'static str {
-        match self {
-            EngineStepType::Evaluate => "evaluate",
-            EngineStepType::Speciate => "speciate",
-            EngineStepType::Recombine => "recombine",
-            EngineStepType::Filter => "filter",
-            EngineStepType::Front => "front",
-            EngineStepType::Audit => "audit",
-        }
-    }
 }

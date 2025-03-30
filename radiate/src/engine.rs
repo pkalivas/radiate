@@ -6,7 +6,7 @@ use super::{GeneticEngineParams, MetricSet, Problem};
 use crate::builder::GeneticEngineBuilder;
 use crate::domain::timer::Timer;
 use crate::sync::RwCell;
-use crate::{Chromosome, StepWrapper};
+use crate::{Chromosome, EngineStep};
 
 /// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -61,7 +61,7 @@ where
     C: Chromosome + 'static,
     T: Clone + Send + 'static,
 {
-    steps: Vec<StepWrapper<C, T>>,
+    steps: Vec<Box<dyn EngineStep<C, T>>>,
     params: GeneticEngineParams<C, T>,
 }
 
@@ -72,7 +72,7 @@ where
 {
     /// Create a new instance of the `GeneticEngine` struct with the given parameters.
     /// - `params`: An instance of `GeneticEngineParams` that holds configuration parameters for the genetic engine.
-    pub fn new(params: GeneticEngineParams<C, T>, steps: Vec<StepWrapper<C, T>>) -> Self {
+    pub fn new(params: GeneticEngineParams<C, T>, steps: Vec<Box<dyn EngineStep<C, T>>>) -> Self {
         GeneticEngine { params, steps }
     }
 
@@ -122,15 +122,14 @@ where
 
         for step in self.steps.iter() {
             let timer = std::time::Instant::now();
-            let StepWrapper(step_type, action) = step;
 
-            let metrics = action.execute(ctx.index, &mut ctx.population, &mut ctx.species);
+            let metrics = step.execute(ctx.index, &mut ctx.population, &mut ctx.species);
 
             for metric in metrics.into_iter() {
                 ctx.metrics.upsert(metric);
             }
 
-            ctx.metrics.upsert_time(step_type.name(), timer.elapsed());
+            ctx.metrics.upsert_time(step.name(), timer.elapsed());
         }
 
         ctx.complete_epoch();
