@@ -1,4 +1,3 @@
-use crate::{Chromosome, Phenotype};
 use std::{
     ops::{Deref, DerefMut},
     sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
@@ -60,12 +59,6 @@ impl<T: Clone> Clone for RwCell<T> {
         RwCell {
             inner: Arc::new(RwLock::new(inner)),
         }
-    }
-}
-
-impl<C: Chromosome> From<Phenotype<C>> for RwCell<Phenotype<C>> {
-    fn from(individual: Phenotype<C>) -> Self {
-        RwCell::new(individual)
     }
 }
 

@@ -23,10 +23,12 @@ fn main() {
         .fitness_fn(|geno: Vec<f32>| dtlz_1(&geno))
         .build();
 
-    let result = engine.run(|ctx| {
-        println!("[ {:?} ]", ctx.index());
-        ctx.index() > 1000
-    });
+    let result = engine
+        .iter()
+        .inspect(|ctx| println!("[{:?}]", ctx.index()))
+        .take(1000)
+        .last()
+        .unwrap();
 
     println!("{:?}", result.seconds());
     println!("{:?}", result.metrics());

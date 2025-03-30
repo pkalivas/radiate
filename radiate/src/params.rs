@@ -39,7 +39,7 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
         front: RwCell<Front<Phenotype<C>>>,
         offspring_fraction: f32,
     ) -> Self {
-        Self {
+        GeneticEngineParams {
             population,
             problem,
             survivor_selector,

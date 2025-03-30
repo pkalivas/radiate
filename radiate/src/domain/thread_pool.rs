@@ -45,6 +45,14 @@ impl ThreadPool {
         });
     }
 
+    pub fn submit<F>(&self, f: F)
+    where
+        F: FnOnce() + Send + 'static,
+    {
+        let job = Box::new(f);
+        self.sender.send(Message::NewJob(job)).unwrap();
+    }
+
     pub fn scope(&self) -> Scope {
         let wg = WaitGroup::new();
 
@@ -54,14 +62,6 @@ impl ThreadPool {
         };
 
         scope
-    }
-
-    pub fn submit<F>(&self, f: F)
-    where
-        F: FnOnce() + Send + 'static,
-    {
-        let job = Box::new(f);
-        self.sender.send(Message::NewJob(job)).unwrap();
     }
 
     pub fn is_alive(&self) -> bool {

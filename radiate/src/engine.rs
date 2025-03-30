@@ -134,7 +134,7 @@ where
         ctx.complete_epoch();
     }
 
-    pub(super) fn start(&self) -> EngineContext<C, T> {
+    pub fn start(&self) -> EngineContext<C, T> {
         let population = self.params.population().clone();
         let problem = self.params.problem();
 
@@ -239,16 +239,3 @@ mod engine_tests {
         }
     );
 }
-
-// self.evaluate(&mut ctx);
-// self.speciate(&mut ctx);
-
-// let survivors = self.select_survivors(&mut ctx);
-// let offspring = self.create_offspring(&mut ctx);
-
-// self.recombine(&mut ctx, survivors, offspring);
-
-// self.filter(&mut ctx);
-// self.evaluate(&mut ctx);
-// self.update_front(&mut ctx);
-// self.audit(&mut ctx);

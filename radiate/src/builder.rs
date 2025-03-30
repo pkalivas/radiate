@@ -380,7 +380,7 @@ where
     T: Clone + Send + 'static,
 {
     fn default() -> Self {
-        Self {
+        GeneticEngineBuilder {
             population_size: 100,
             max_age: 20,
             offspring_fraction: 0.8,
