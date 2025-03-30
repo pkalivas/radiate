@@ -20,6 +20,7 @@ fn main() {
     let engine = GeneticEngine::from_problem(problem)
         .minimizing()
         .num_threads(10)
+        .distance(NeatDistance::new(1.8, 1.0, 1.0, 3.0))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),

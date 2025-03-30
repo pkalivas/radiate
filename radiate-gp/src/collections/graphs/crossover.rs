@@ -27,52 +27,11 @@ where
         self.crossover_rate
     }
 
-    // #[inline]
-    // fn cross_chromosomes(
-    //     &self,
-    //     chrom_one: &mut GraphChromosome<T>,
-    //     chrom_two: &mut GraphChromosome<T>,
-    //     rate: f32,
-    // ) -> AlterResult {
-    //     let mut result = AlterResult::default();
-    //     let mut num_crosses = 0;
-
-    //     let edge_indies = (0..std::cmp::min(chrom_one.len(), chrom_two.len()))
-    //         .filter(|i| {
-    //             let node_one = chrom_one.get(*i);
-    //             let node_two = chrom_two.get(*i);
-
-    //             node_one.arity() == node_two.arity()
-    //                 && random_provider::random::<f32>() < self.crossover_parent_node_rate
-    //         })
-    //         .collect::<Vec<usize>>();
-
-    //     if edge_indies.is_empty() {
-    //         return num_crosses.into();
-    //     }
-
-    //     for i in edge_indies {
-    //         let node_two = chrom_two.get(i);
-
-    //         *chrom_one.as_mut()[i].value_mut() = node_two.value().clone();
-    //         num_crosses += 1;
-    //     }
-
-    //     if num_crosses > 0 {
-    //         result.add_count(num_crosses);
-    //         result.mark_changed(chrom_one.id());
-    //         result.mark_changed(chrom_two.id()); // Mark the second parent as well
-    //     }
-
-    //     result
-    // }
-
     #[inline]
     fn cross(
         &self,
         population: &mut Population<GraphChromosome<T>>,
         indexes: &[usize],
-        _: usize,
         _: f32,
     ) -> AlterResult {
         let mut result = AlterResult::default();

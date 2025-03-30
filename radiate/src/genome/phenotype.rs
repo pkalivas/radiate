@@ -56,7 +56,7 @@ impl<C: Chromosome> Phenotype<C> {
 
     pub fn invalidate(&mut self, generation: usize) {
         self.score.set(None);
-        self.generation = generation; // Update the generation to the current one
+        self.generation = generation;
         self.id = PhenotypeId::new();
     }
 

@@ -1,11 +1,6 @@
 use super::{Crossover, Mutate};
-use crate::{Chromosome, Metric, Population, indexes, random_provider, timer::Timer};
+use crate::{Chromosome, Metric, Population, timer::Timer};
 use std::collections::HashSet;
-
-pub struct AlterGuard<'a, C: Chromosome> {
-    inner: &'a mut C,
-    change_count: usize,
-}
 
 /// This is the main trait that is used to define the different types of alterations that can be
 /// performed on a population. The `Alter` trait is used to define the `alter` method that is used
@@ -28,7 +23,7 @@ pub struct AlterGuard<'a, C: Chromosome> {
 /// but it is designed to be more flexible and extensible. Because an `Alter` can be of type `Mutate`
 /// or `Crossover`, it is abstracted out of those core traits into this trait.
 pub trait Alter<C: Chromosome> {
-    fn alter(&self, population: &mut Population<C>, generation: usize) -> AlterResult;
+    fn alter(&self, population: &mut Population<C>) -> AlterResult;
 }
 
 /// The `AlterResult` struct is used to represent the result of an
@@ -49,6 +44,10 @@ impl AlterResult {
 
     pub fn metrics(&self) -> Option<&Vec<Metric>> {
         self.1.as_ref()
+    }
+
+    pub fn take_metrics(&mut self) -> Option<Vec<Metric>> {
+        self.1.take()
     }
 
     pub fn changed(&self) -> impl Iterator<Item = &usize> {
@@ -102,11 +101,11 @@ pub enum AlterAction<C: Chromosome> {
 }
 
 impl<C: Chromosome> Alter<C> for AlterAction<C> {
-    fn alter(&self, population: &mut Population<C>, generation: usize) -> AlterResult {
+    fn alter(&self, population: &mut Population<C>) -> AlterResult {
         match &self {
             AlterAction::Mutate(name, rate, m) => {
                 let timer = Timer::new();
-                let AlterResult(count, metrics, ids) = m.mutate(population, generation, *rate);
+                let AlterResult(count, metrics, ids) = m.mutate(population, *rate);
                 let metric = Metric::new_operations(name, count, timer);
 
                 let result_metrics = match metrics {
@@ -117,43 +116,16 @@ impl<C: Chromosome> Alter<C> for AlterAction<C> {
                 AlterResult(count, Some(result_metrics), ids)
             }
             AlterAction::Crossover(name, rate, c) => {
-                let mut result = AlterResult::default();
-                for i in 0..population.len() {
-                    if random_provider::random::<f32>() < *rate && population.len() > 3 {
-                        let cross_idxs = indexes::individual_indexes(i, population.len(), 2);
-                        let (one_idx, two_idx) = (cross_idxs[0], cross_idxs[1]);
-                        let (one, two) = population.get_pair_mut(one_idx, two_idx);
+                let timer = Timer::new();
+                let AlterResult(count, metrics, ids) = c.crossover(population, *rate);
+                let metric = Metric::new_operations(name, count, timer);
 
-                        let cross_result = {
-                            let mut geno_one = one.genotype_mut();
-                            let mut geno_two = two.genotype_mut();
+                let result = match metrics {
+                    Some(metrics) => metrics.into_iter().chain(vec![metric]).collect(),
+                    None => vec![metric],
+                };
 
-                            let min_len = std::cmp::min(geno_one.len(), geno_two.len());
-                            let chromosome_index = random_provider::range(0..min_len);
-
-                            let chrom_one = &mut geno_one[chromosome_index];
-                            let chrom_two = &mut geno_two[chromosome_index];
-
-                            c.cross_chromosomes(chrom_one, chrom_two, *rate)
-                        };
-
-                        let cross_result = c.cross(population, &cross_idxs, generation, *rate);
-                        result.merge(cross_result);
-                    }
-                }
-
-                result
-                // Return an empty result if no crossover was performed
-                // let timer = Timer::new();
-                // let AlterResult(count, metrics, ids) = c.crossover(population, generation, *rate);
-                // let metric = Metric::new_operations(name, count, timer);
-
-                // let result = match metrics {
-                //     Some(metrics) => metrics.into_iter().chain(vec![metric]).collect(),
-                //     None => vec![metric],
-                // };
-
-                // AlterResult(count, Some(result), ids)
+                AlterResult(count, Some(result), ids)
             }
         }
     }

@@ -18,15 +18,14 @@ pub trait Mutate<C: Chromosome> {
     }
 
     #[inline]
-    fn mutate(&self, population: &mut Population<C>, generation: usize, rate: f32) -> AlterResult {
+    fn mutate(&self, population: &mut Population<C>, rate: f32) -> AlterResult {
         let mut result = AlterResult::default();
 
-        for phenotype in population.iter_mut() {
+        for (idx, phenotype) in population.iter_mut().enumerate() {
             let mutate_result = self.mutate_genotype(&mut phenotype.genotype_mut(), rate);
 
             if mutate_result.count() > 0 {
-                phenotype.set_generation(generation);
-                phenotype.set_score(None);
+                result.mark_changed(idx);
             }
 
             result.merge(mutate_result);
