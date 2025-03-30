@@ -1,7 +1,7 @@
 use super::{Valid, genotype::Genotype};
 use crate::objectives::Score;
 use crate::sync::{RwCell, RwCellGuard, RwCellGuardMut};
-use crate::{Chromosome, Scored, SpeciesId};
+use crate::{Chromosome, Scored};
 use std::ops::Deref;
 use std::sync::atomic::AtomicU64;
 
@@ -36,7 +36,6 @@ pub struct Phenotype<C: Chromosome> {
     score: RwCell<Option<Score>>,
     id: PhenotypeId,
     generation: usize,
-    species_id: Option<SpeciesId>,
 }
 
 impl<C: Chromosome> Phenotype<C> {
@@ -46,7 +45,6 @@ impl<C: Chromosome> Phenotype<C> {
             genotype: RwCell::clone(&other.genotype),
             score: RwCell::clone(&other.score),
             generation: other.generation,
-            species_id: other.species_id,
         }
     }
 
@@ -76,16 +74,8 @@ impl<C: Chromosome> Phenotype<C> {
         self.generation = generation;
     }
 
-    pub fn species_id(&self) -> Option<SpeciesId> {
-        self.species_id
-    }
-
     pub fn set_score(&mut self, score: Option<Score>) {
         self.score.set(score);
-    }
-
-    pub fn set_species_id(&mut self, species_id: Option<SpeciesId>) {
-        self.species_id = species_id;
     }
 
     pub fn score(&self) -> Option<Score> {
@@ -140,14 +130,13 @@ impl<C: Chromosome> PartialOrd for Phenotype<C> {
     }
 }
 
-impl<C: Chromosome> From<(Genotype<C>, usize, Option<SpeciesId>)> for Phenotype<C> {
-    fn from((genotype, generation, species_id): (Genotype<C>, usize, Option<SpeciesId>)) -> Self {
+impl<C: Chromosome> From<(Genotype<C>, usize)> for Phenotype<C> {
+    fn from((genotype, generation): (Genotype<C>, usize)) -> Self {
         Phenotype {
             id: PhenotypeId::new(),
             genotype: RwCell::new(genotype),
             score: RwCell::new(None),
             generation,
-            species_id,
         }
     }
 }
@@ -162,7 +151,6 @@ impl<C: Chromosome> From<(Vec<C>, usize)> for Phenotype<C> {
             genotype: RwCell::new(Genotype::new(chromosomes)),
             score: RwCell::new(None),
             generation,
-            species_id: None,
         }
     }
 }
@@ -174,7 +162,6 @@ impl<C: Chromosome> From<(&Phenotype<C>, Score)> for Phenotype<C> {
             genotype: RwCell::clone(&phenotype.genotype),
             score: RwCell::new(Some(score)),
             generation: phenotype.generation,
-            species_id: phenotype.species_id,
         }
     }
 }

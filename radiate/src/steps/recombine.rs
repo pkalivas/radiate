@@ -117,13 +117,11 @@ impl<C: Chromosome> RecombineStep<C> {
         let species_count = ctx.species.len();
         for i in 0..species_count {
             let species = &ctx.species[i];
-            let population = &mut ctx.population;
             let timer = Timer::new();
 
             let count = (species.score().as_f32() * self.offspring_count as f32).round() as usize;
-            let members = population.take(|pheno| pheno.species_id() == Some(species.id()));
 
-            let mut selected = selector.select(&members, &self.objective, count);
+            let mut selected = selector.select(species.population(), &self.objective, count);
 
             ctx.record_operation(selector.name(), count as f32, timer);
             self.objective.sort(&mut selected);

@@ -1,3 +1,4 @@
+use super::PopulationView;
 use super::phenotype::Phenotype;
 use crate::{Chromosome, Score};
 use std::fmt::Debug;
@@ -33,6 +34,11 @@ impl<C: Chromosome> Population<C> {
         }
     }
 
+    pub fn push(&mut self, individual: Phenotype<C>) {
+        self.individuals.push(individual);
+        self.is_sorted = false;
+    }
+
     pub fn get(&self, index: usize) -> &Phenotype<C> {
         &self.individuals[index]
     }
@@ -55,6 +61,11 @@ impl<C: Chromosome> Population<C> {
         self.individuals.len()
     }
 
+    pub fn clear(&mut self) {
+        self.individuals.clear();
+        self.is_sorted = false;
+    }
+
     /// Swap the individuals at the given indices. This will set the is_sorted flag to false
     /// because the order of the individuals has changed and we don't know if the order
     /// has changed to benefit the order or not. Therefore, don't use this method to
@@ -69,20 +80,6 @@ impl<C: Chromosome> Population<C> {
             .iter()
             .filter_map(|individual| individual.score())
             .collect()
-    }
-
-    /// Sort the individuals in the population using the given closure.
-    /// This will set the is_sorted flag to true.
-    pub fn sort_by<F>(&mut self, f: F)
-    where
-        F: FnMut(&Phenotype<C>, &Phenotype<C>) -> std::cmp::Ordering,
-    {
-        if self.is_sorted {
-            return;
-        }
-
-        self.individuals.sort_by(f);
-        self.is_sorted = true;
     }
 
     pub fn is_empty(&self) -> bool {
@@ -124,9 +121,37 @@ impl<C: Chromosome> Population<C> {
     }
 }
 
+impl<C: Chromosome> PopulationView<C> for Population<C> {
+    fn push(&mut self, individual: Phenotype<C>) {
+        self.push(individual);
+    }
+
+    fn clear(&mut self) {
+        self.clear();
+    }
+
+    fn sort_by<F>(&mut self, f: F)
+    where
+        F: FnMut(&Phenotype<C>, &Phenotype<C>) -> std::cmp::Ordering,
+    {
+        if self.is_sorted {
+            return;
+        }
+        self.individuals.sort_by(f);
+        self.is_sorted = true;
+    }
+}
+
 impl<C: Chromosome> AsRef<[Phenotype<C>]> for Population<C> {
     fn as_ref(&self) -> &[Phenotype<C>] {
         &self.individuals
+    }
+}
+
+impl<C: Chromosome> AsMut<[Phenotype<C>]> for Population<C> {
+    fn as_mut(&mut self) -> &mut [Phenotype<C>] {
+        self.is_sorted = false;
+        &mut self.individuals
     }
 }
 
