@@ -35,6 +35,16 @@ impl ThreadPool {
         });
     }
 
+    pub fn submit_scoped<F>(&self, job: F)
+    where
+        F: FnOnce(Scope) + Send + 'static,
+    {
+        let scope = self.scope();
+        self.submit(move || {
+            job(scope);
+        });
+    }
+
     pub fn scope(&self) -> Scope {
         let wg = WaitGroup::new();
 
@@ -46,7 +56,6 @@ impl ThreadPool {
         scope
     }
 
-    /// Execute a job in the thread pool. This is a 'fire and forget' method.
     pub fn submit<F>(&self, f: F)
     where
         F: FnOnce() + Send + 'static,
