@@ -28,7 +28,7 @@ where
         let timer = Timer::new();
         let wg = WaitGroup::new();
 
-        for pheno in ctx.population.iter() {
+        for pheno in ctx.population().iter() {
             if pheno.score().is_some() {
                 continue;
             } else {

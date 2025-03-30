@@ -68,6 +68,10 @@ where
         &self.population
     }
 
+    pub fn population_mut(&mut self) -> &mut Population<C> {
+        &mut self.population
+    }
+
     pub fn best(&self) -> &T {
         &self.best
     }
@@ -86,6 +90,14 @@ where
 
     pub fn objective(&self) -> &Objective {
         &self.objective
+    }
+
+    pub(crate) fn new_members(&self) -> Vec<Phenotype<C>> {
+        self.population
+            .iter()
+            .filter(|pheno| pheno.generation() == self.index)
+            .map(|phenotype| Phenotype::from((phenotype, phenotype.score().unwrap())))
+            .collect::<Vec<Phenotype<C>>>()
     }
 
     /// Upsert (update or create) a metric operation with the given name, value, and time.
