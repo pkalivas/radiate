@@ -22,4 +22,6 @@ pub mod metric_names {
     pub const SPECIATION: &str = "Speciation";
     pub const SPECIES_FILTER: &str = "Species Filter";
     pub const DISTANCE: &str = "Distance";
+    pub const FITNESS: &str = "Fitness";
+    pub const ALTERED: &str = "Altered";
 }

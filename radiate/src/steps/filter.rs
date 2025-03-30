@@ -1,8 +1,9 @@
 use super::EngineStep;
 use crate::{
-    Chromosome, EngineContext, GeneticEngineParams, Genotype, ReplacementStrategy, metric_names,
+    Chromosome, GeneticEngineParams, Genotype, Population, ReplacementStrategy, Species,
+    metric_names,
 };
-use crate::{Valid, domain::timer::Timer};
+use crate::{Metric, Valid};
 use std::sync::Arc;
 
 pub struct FilterStep<C: Chromosome> {
@@ -44,11 +45,12 @@ where
         }))
     }
 
-    fn execute(&self, ctx: &mut EngineContext<C, T>) {
-        let generation = ctx.index;
-        let population = &mut ctx.population;
-
-        let timer = Timer::new();
+    fn execute(
+        &self,
+        generation: usize,
+        population: &mut Population<C>,
+        species: &mut Vec<Species<C>>,
+    ) -> Vec<Metric> {
         let mut age_count = 0_f32;
         let mut invalid_count = 0_f32;
         for i in 0..population.len() {
@@ -69,14 +71,14 @@ where
             }
         }
 
-        let before_species = ctx.species().len();
-        ctx.species
-            .retain(|species| species.age(generation) < self.max_age);
-        let species_count = (before_species - ctx.species().len()) as f32;
+        let before_species = species.len();
+        species.retain(|species| species.age(generation) < self.max_age);
+        let species_count = (before_species - species.len()) as f32;
 
-        let duration = timer.duration();
-        ctx.record_operation(metric_names::SPECIES_FILTER, species_count, duration);
-        ctx.record_operation(metric_names::AGE_FILTER, age_count, duration);
-        ctx.record_operation(metric_names::INVALID_FILTER, invalid_count, duration);
+        vec![
+            Metric::new_value(metric_names::AGE_FILTER).with_value(age_count),
+            Metric::new_value(metric_names::INVALID_FILTER).with_value(invalid_count),
+            Metric::new_value(metric_names::SPECIES_FILTER).with_value(species_count),
+        ]
     }
 }

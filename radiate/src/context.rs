@@ -2,8 +2,9 @@ use crate::domain::timer::Timer;
 use crate::genome::population::Population;
 use crate::objectives::Front;
 use crate::sync::{RwCell, RwCellGuard};
-use crate::{Chromosome, Metric, MetricSet, Objective, Phenotype, Score, Species};
+use crate::{Chromosome, Genotype, Metric, MetricSet, Objective, Phenotype, Score, Species};
 use std::fmt::Debug;
+use std::sync::Arc;
 use std::time::Duration;
 
 /// The context of the genetic engine. This struct contains the current state of the genetic engine
@@ -38,12 +39,7 @@ where
     pub(crate) front: RwCell<Front<Phenotype<C>>>,
     pub(crate) species: Vec<Species<C>>,
     pub(crate) objective: Objective,
-}
-
-/// Encapsulates information about the best solution found so far.
-pub struct BestSolution<T> {
-    pub individual: T,
-    pub score: Score,
+    pub(crate) decoder: Arc<dyn Fn(&Genotype<C>) -> T>,
 }
 
 impl<C, T> EngineContext<C, T>
@@ -92,34 +88,24 @@ where
         &self.objective
     }
 
-    pub(crate) fn new_members(&self) -> Vec<Phenotype<C>> {
-        self.population
-            .iter()
-            .filter(|pheno| pheno.generation() == self.index)
-            .map(|phenotype| Phenotype::from((phenotype, phenotype.score().unwrap())))
-            .collect::<Vec<Phenotype<C>>>()
-    }
-
-    /// Upsert (update or create) a metric operation with the given name, value, and time.
-    pub(crate) fn record_operation(
-        &mut self,
-        name: &'static str,
-        value: impl Into<f32>,
-        time: impl Into<Duration>,
-    ) {
-        self.metrics.upsert_operations(name, value, time);
-    }
-
-    pub(crate) fn record_distribution(&mut self, name: &'static str, values: &[f32]) {
-        self.metrics.upsert_sequence(name, values);
-    }
-
     pub(crate) fn record_metric(&mut self, metric: Metric) {
         self.metrics.upsert(metric);
     }
 
-    pub(crate) fn species(&self) -> &[Species<C>] {
-        &self.species
+    pub(crate) fn complete_epoch(&mut self) {
+        let current_best = self.population.get(0);
+
+        if let (Some(best), Some(current)) = (current_best.score(), &self.score) {
+            if self.objective().is_better(&best, &current) {
+                self.score = Some(best.clone());
+                self.best = (self.decoder)(&current_best.genotype());
+            }
+        } else {
+            self.score = Some(current_best.score().unwrap().clone());
+            self.best = (self.decoder)(&current_best.genotype());
+        }
+
+        self.index += 1;
     }
 }
 
@@ -136,9 +122,10 @@ where
             timer: self.timer.clone(),
             metrics: self.metrics.clone(),
             score: self.score.clone(),
-            front: RwCell::clone(&self.front), // Clone the front to allow multiple threads to access it
+            front: RwCell::clone(&self.front),
             species: self.species.clone(),
             objective: self.objective.clone(),
+            decoder: Arc::clone(&self.decoder),
         }
     }
 }

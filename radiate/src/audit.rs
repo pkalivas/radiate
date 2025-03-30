@@ -33,10 +33,6 @@ impl<C: Chromosome> Audit<C> for MetricAudit {
         for i in 0..population.len() {
             let phenotype = &population[i];
 
-            // if i > 0 && *phenotype.genotype() == *population[i - 1].genotype() {
-            //     equal_members += 1;
-            // }
-
             equal_members.insert(phenotype.id());
 
             let age = phenotype.age(generation);

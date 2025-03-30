@@ -68,6 +68,7 @@ where
             front: self.ctx.front.clone(),
             species: self.ctx.species.clone(),
             objective: self.ctx.objective.clone(),
+            decoder: self.ctx.decoder.clone(),
         })
     }
 }

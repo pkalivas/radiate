@@ -1,9 +1,11 @@
-use std::sync::Arc;
-
 use super::EngineStep;
-use crate::domain::{thread_pool::WaitGroup, timer::Timer};
+use crate::domain::thread_pool::WaitGroup;
 use crate::thread_pool::ThreadPool;
-use crate::{Chromosome, EngineContext, GeneticEngineParams, Objective, Phenotype, Problem};
+use crate::{
+    Chromosome, GeneticEngineParams, Metric, Objective, Phenotype, Population, Problem, Species,
+    metric_names,
+};
+use std::sync::Arc;
 
 pub struct EvaluateStep<C: Chromosome, T> {
     objective: Objective,
@@ -24,11 +26,15 @@ where
     C: Chromosome + 'static,
     T: Clone + Send + 'static,
 {
-    fn execute(&self, ctx: &mut EngineContext<C, T>) {
-        let timer = Timer::new();
+    fn execute(
+        &self,
+        _: usize,
+        population: &mut Population<C>,
+        _: &mut Vec<Species<C>>,
+    ) -> Vec<Metric> {
         let wg = WaitGroup::new();
 
-        for pheno in ctx.population().iter() {
+        for pheno in population.iter() {
             if pheno.score().is_some() {
                 continue;
             } else {
@@ -42,10 +48,10 @@ where
             }
         }
 
-        let count = wg.wait() as f32;
-        ctx.record_operation("EvaluateStep", count, timer);
+        let count = wg.wait();
+        self.objective.sort(population);
 
-        self.objective.sort(&mut ctx.population);
+        return vec![Metric::new_value(metric_names::FITNESS).with_value(count as f32)];
     }
 
     fn register(params: &GeneticEngineParams<C, T>) -> Option<Box<Self>>

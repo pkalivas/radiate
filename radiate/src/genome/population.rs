@@ -119,6 +119,14 @@ impl<C: Chromosome> Population<C> {
 
         (one, two)
     }
+
+    pub fn members_at_generation(&self, generation: usize) -> Vec<Phenotype<C>> {
+        self.individuals
+            .iter()
+            .filter(|individual| individual.generation() == generation)
+            .map(|member| Phenotype::clone(member))
+            .collect()
+    }
 }
 
 impl<C: Chromosome> PopulationView<C> for Population<C> {

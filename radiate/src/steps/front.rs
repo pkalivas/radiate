@@ -1,8 +1,7 @@
 use super::EngineStep;
-use crate::domain::timer::Timer;
 use crate::thread_pool::{Scope, SingleFlag, ThreadPool};
-use crate::{Chromosome, EngineContext, GeneticEngineParams, Objective, Phenotype, sync::RwCell};
-use crate::{Front, TimeStatistic, metric_names};
+use crate::{Chromosome, GeneticEngineParams, Objective, Phenotype, sync::RwCell};
+use crate::{Front, Metric, Population, Species, TimeStatistic, metric_names};
 use std::sync::{Arc, Mutex};
 
 pub struct FrontStep<C: Chromosome> {
@@ -42,7 +41,12 @@ where
     /// called if the objective is multi-objective, as the front is not relevant for single-objective optimization.
     /// The front is updated in a separate thread to avoid blocking the main thread while the front is being calculated.
     /// This can significantly speed up the calculation of the front for large populations.
-    fn execute(&self, ctx: &mut EngineContext<C, T>) {
+    fn execute(
+        &self,
+        generation: usize,
+        population: &mut Population<C>,
+        _: &mut Vec<Species<C>>,
+    ) -> Vec<Metric> {
         self.update_guard.wait();
         self.update_guard.start();
 
@@ -53,28 +57,29 @@ where
 
         let metric_clone = Arc::clone(&self.metric);
         let update = FrontUpdate::new(
-            ctx.new_members(),
+            population.members_at_generation(generation),
             &self.front,
             &self.dominates,
             &self.to_remove,
         );
 
         self.thread_pool.submit_scoped(move |scope| {
-            let timer = Timer::new();
+            let timer = std::time::Instant::now();
 
             update.spawn_tasks(scope);
             update.finalize_front();
 
-            metric_clone.lock().unwrap().add(timer.duration());
+            metric_clone.lock().unwrap().add(timer.elapsed());
             flag.finish();
         });
 
         let count = self.dominates.read().iter().filter(|flag| **flag).count();
-        ctx.record_operation(
+
+        vec![Metric::new_operations(
             metric_names::FRONT,
             count as f32,
             self.metric.lock().unwrap().last_time(),
-        );
+        )]
     }
 }
 

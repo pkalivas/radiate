@@ -167,6 +167,35 @@ impl Metric {
         Metric::Operations(name, val.into(), time.into())
     }
 
+    pub fn with_value(mut self, value: impl Into<f32>) -> Self {
+        match &mut self {
+            Metric::Value(_, stat, dist) => {
+                let into_value = value.into();
+                stat.add(into_value);
+                dist.push(into_value);
+            }
+            Metric::Operations(_, stat, _) => {
+                let into_value = value.into();
+                stat.add(into_value);
+            }
+            _ => {}
+        }
+        self
+    }
+
+    pub fn with_distribution(mut self, values: &[f32]) -> Self {
+        match &mut self {
+            Metric::Value(_, _, dist) => {
+                dist.add(values);
+            }
+            Metric::Distribution(_, dist) => {
+                dist.add(values);
+            }
+            _ => {}
+        }
+        self
+    }
+
     pub fn add_value(&mut self, value: f32) {
         match self {
             Metric::Value(_, stat, dist) => {

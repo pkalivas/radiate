@@ -1,8 +1,7 @@
 use super::EngineStep;
-use crate::domain::timer::Timer;
 use crate::{
-    Alter, AlterResult, Chromosome, EngineContext, GeneticEngineParams, Metric, Objective,
-    Population, Select, random_provider,
+    Alter, AlterResult, Chromosome, GeneticEngineParams, Metric, Objective, Population, Select,
+    Species, metric_names, random_provider,
 };
 use std::sync::Arc;
 
@@ -34,30 +33,27 @@ impl<C: Chromosome> RecombineStep<C> {
         }
     }
 
-    fn apply_alterations<T>(
-        &self,
-        ctx: &mut EngineContext<C, T>,
-        individuals: &mut Population<C>,
-    ) -> AlterResult {
+    fn apply_alterations(&self, generation: usize, individuals: &mut Population<C>) -> AlterResult {
+        let mut metrics = Vec::new();
         let mut alter_result = AlterResult::default();
 
         for alterer in &self.alters {
             alter_result.merge(alterer.alter(individuals));
         }
 
-        if let Some(metrics) = alter_result.take_metrics() {
-            for metric in metrics {
-                ctx.record_metric(metric);
+        if let Some(mets) = alter_result.take_metrics() {
+            for metric in mets {
+                metrics.push(metric);
             }
         }
 
         for id in alter_result.changed() {
-            individuals.get_mut(*id).invalidate(ctx.index);
+            individuals.get_mut(*id).invalidate(generation);
         }
 
-        let mut metr = Metric::new_value("invalidated");
-        metr.add_value(alter_result.2.len() as f32);
-        ctx.record_metric(metr);
+        alter_result.add_metric(
+            Metric::new_value(metric_names::ALTERED).with_value(alter_result.2.len() as f32),
+        );
 
         alter_result
     }
@@ -75,15 +71,22 @@ impl<C: Chromosome> RecombineStep<C> {
     /// can maintain some of the best solutions found so far while also introducing new genetic material/genetic diversity.
     ///
     /// This method returns a new population containing only the selected survivors.
-    fn select_survivors<T>(&self, ctx: &mut EngineContext<C, T>) -> Population<C> {
-        let timer = Timer::new();
+    fn select_survivors(&self, population: &Population<C>) -> (Population<C>, Vec<Metric>) {
+        let timer = std::time::Instant::now();
         let result =
             self.survivor_selector
-                .select(&ctx.population, &self.objective, self.survivor_count);
+                .select(population, &self.objective, self.survivor_count);
 
-        ctx.record_operation(self.survivor_selector.name(), result.len() as f32, timer);
+        let length = result.len() as f32;
 
-        result
+        (
+            result,
+            vec![Metric::new_operations(
+                self.survivor_selector.name(),
+                length,
+                timer.elapsed(),
+            )],
+        )
     }
 
     /// Create the offspring that will be used to create the next generation. The number of offspring
@@ -100,41 +103,61 @@ impl<C: Chromosome> RecombineStep<C> {
     /// `offspring_fraction` specifies. This process introduces new genetic material into the population,
     /// which allows the genetic algorithm explore new solutions in the problem space and (hopefully)
     /// avoid getting stuck in local minima.
-    fn create_offspring<T>(&self, ctx: &mut EngineContext<C, T>) -> Population<C> {
+    fn create_offspring(
+        &self,
+        generation: usize,
+        population: &Population<C>,
+        species: &Vec<Species<C>>,
+    ) -> (Population<C>, Vec<Metric>) {
+        let mut metrics = Vec::new();
         let selector = &self.offspring_selector;
-        if ctx.species.is_empty() || random_provider::random::<f32>() < 0.01 {
-            let timer = Timer::new();
+        if species.is_empty() || random_provider::random::<f32>() < 0.01 {
+            let timer = std::time::Instant::now();
 
-            let mut offspring =
-                selector.select(&ctx.population(), &self.objective, self.offspring_count);
+            let mut offspring = selector.select(&population, &self.objective, self.offspring_count);
 
-            ctx.record_operation(selector.name(), offspring.len() as f32, timer);
+            metrics.push(Metric::new_operations(
+                selector.name(),
+                offspring.len() as f32,
+                timer.elapsed(),
+            ));
 
             self.objective.sort(&mut offspring);
-            self.apply_alterations(ctx, &mut offspring);
-            return offspring;
+            self.apply_alterations(generation, &mut offspring);
+            return (offspring, metrics);
         }
 
         let mut offspring = Vec::new();
         let mut alter_result = AlterResult::default();
-        let species_count = ctx.species.len();
+        let species_count = species.len();
         for i in 0..species_count {
-            let species = &ctx.species[i];
-            let scale = &ctx.species[species_count - 1 - i].score().as_f32();
-            let timer = Timer::new();
+            let current_species = &species[i];
+            let scale = &species[species_count - 1 - i].score().as_f32();
+            let timer = std::time::Instant::now();
 
             let count = (scale * self.offspring_count as f32).round() as usize;
 
-            let mut selected = selector.select(species.population(), &self.objective, count);
+            let mut selected =
+                selector.select(current_species.population(), &self.objective, count);
 
-            ctx.record_operation(selector.name(), count as f32, timer);
+            metrics.push(Metric::new_operations(
+                selector.name(),
+                count as f32,
+                timer.elapsed(),
+            ));
             self.objective.sort(&mut selected);
 
-            alter_result.merge(self.apply_alterations(ctx, &mut selected));
+            alter_result.merge(self.apply_alterations(generation, &mut selected));
             offspring.extend(selected);
         }
 
-        offspring.into_iter().collect()
+        if let Some(mets) = alter_result.take_metrics() {
+            for metric in mets {
+                metrics.push(metric);
+            }
+        }
+
+        (offspring.into_iter().collect(), metrics)
     }
 }
 
@@ -166,13 +189,24 @@ where
         }))
     }
 
-    fn execute(&self, ctx: &mut EngineContext<C, T>) {
-        let survivors = self.select_survivors(ctx);
-        let offspring = self.create_offspring(ctx);
+    fn execute(
+        &self,
+        generation: usize,
+        population: &mut Population<C>,
+        species: &mut Vec<Species<C>>,
+    ) -> Vec<Metric> {
+        let (survivors, survivor_metrics) = self.select_survivors(population);
+        let (offspring, offspring_metrics) =
+            self.create_offspring(generation, &population, species);
 
-        ctx.population = survivors
+        (*population) = survivors
             .into_iter()
             .chain(offspring.into_iter())
             .collect::<Population<C>>();
+
+        survivor_metrics
+            .into_iter()
+            .chain(offspring_metrics.into_iter())
+            .collect::<Vec<Metric>>()
     }
 }

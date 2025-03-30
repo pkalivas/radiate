@@ -13,8 +13,8 @@ use crate::objectives::{Objective, Optimize};
 use crate::sync::RwCell;
 use crate::uniform::{UniformCrossover, UniformMutator};
 use crate::{
-    AuditStep, Chromosome, EngineStep, EvaluateStep, FilterStep, FrontStep, RecombineStep,
-    SpeciateStep,
+    AuditStep, Chromosome, EngineStep, EngineStepType, EvaluateStep, FilterStep, FrontStep,
+    RecombineStep, SpeciateStep, StepWrapper,
 };
 use std::cmp::Ordering;
 use std::ops::Range;
@@ -284,34 +284,34 @@ where
                 self.offspring_fraction,
             );
 
-            let mut steps = Vec::<Box<dyn EngineStep<C, T>>>::new();
+            let mut steps = Vec::<StepWrapper<C, T>>::new();
 
             if let Some(eval_step) = EvaluateStep::register(&params) {
-                steps.push(eval_step);
+                steps.push(StepWrapper(EngineStepType::Evaluate, eval_step));
             }
 
             if let Some(speciate_step) = SpeciateStep::register(&params) {
-                steps.push(speciate_step);
+                steps.push(StepWrapper(EngineStepType::Speciate, speciate_step));
             }
 
             if let Some(recombine_step) = RecombineStep::register(&params) {
-                steps.push(recombine_step);
+                steps.push(StepWrapper(EngineStepType::Recombine, recombine_step));
             }
 
             if let Some(filter_step) = FilterStep::register(&params) {
-                steps.push(filter_step);
+                steps.push(StepWrapper(EngineStepType::Filter, filter_step));
             }
 
             if let Some(evaluate_step) = EvaluateStep::register(&params) {
-                steps.push(evaluate_step);
+                steps.push(StepWrapper(EngineStepType::Evaluate, evaluate_step));
             }
 
             if let Some(front_step) = FrontStep::register(&params) {
-                steps.push(front_step);
+                steps.push(StepWrapper(EngineStepType::Front, front_step));
             }
 
             if let Some(audit_step) = AuditStep::register(&params) {
-                steps.push(audit_step);
+                steps.push(StepWrapper(EngineStepType::Audit, audit_step));
             }
 
             GeneticEngine::new(params, steps)

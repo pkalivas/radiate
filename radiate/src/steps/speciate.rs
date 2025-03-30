@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
 use super::EngineStep;
-use crate::domain::timer::Timer;
 use crate::{
-    Chromosome, Distance, EngineContext, GeneticEngineParams, Objective, Phenotype, PopulationView,
-    Score, Species, metric_names, random_provider,
+    Chromosome, Distance, GeneticEngineParams, Metric, Objective, Phenotype, Population,
+    PopulationView, Score, Species, metric_names, random_provider,
 };
 
 pub struct SpeciateStep<C: Chromosome> {
@@ -55,12 +54,13 @@ where
     C: Chromosome,
     T: Clone + Send,
 {
-    fn execute(&self, ctx: &mut EngineContext<C, T>) {
-        let timer = Timer::new();
+    fn execute(
+        &self,
+        generation: usize,
+        population: &mut Population<C>,
+        species: &mut Vec<Species<C>>,
+    ) -> Vec<Metric> {
         let mut distances = Vec::new();
-
-        let population = &mut ctx.population;
-        let species = &mut ctx.species;
 
         self.generate_mascots(species);
 
@@ -82,7 +82,7 @@ where
 
             if !found {
                 let phenotype = population.get_mut(i);
-                let new_species = Species::new(Phenotype::clone(phenotype), ctx.index);
+                let new_species = Species::new(Phenotype::clone(phenotype), generation);
 
                 species.push(new_species);
             }
@@ -90,11 +90,14 @@ where
 
         species.retain(|s| s.len() > 0);
 
-        self.fitness_share(&mut ctx.species);
+        self.fitness_share(species);
 
-        let species_count = ctx.species().len();
-        ctx.record_operation(metric_names::SPECIATION, species_count as f32, timer);
-        ctx.record_distribution(metric_names::DISTANCE, &distances);
+        let species_count = species.len();
+
+        vec![
+            Metric::new_value(metric_names::SPECIATION).with_value(species_count as f32),
+            Metric::new_distribution(metric_names::DISTANCE).with_distribution(&distances),
+        ]
     }
 
     fn register(params: &GeneticEngineParams<C, T>) -> Option<Box<Self>>

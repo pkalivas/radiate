@@ -30,7 +30,6 @@ fn main() {
 
     engine
         .iter()
-        // .only_improvements()
         .take_while(|ctx| ctx.score().as_f32() > MIN_SCORE && ctx.seconds() < MAX_SECONDS)
         .inspect(|ctx| log_ctx!(ctx))
         .last()

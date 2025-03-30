@@ -1,5 +1,5 @@
 use super::{Crossover, Mutate};
-use crate::{Chromosome, Metric, Population, timer::Timer};
+use crate::{Chromosome, Metric, Population};
 use std::collections::HashSet;
 
 /// This is the main trait that is used to define the different types of alterations that can be
@@ -72,6 +72,14 @@ impl AlterResult {
 
         self.2.extend(other_ids);
     }
+
+    pub fn add_metric(&mut self, metric: Metric) {
+        if let Some(metrics) = &mut self.1 {
+            metrics.push(metric);
+        } else {
+            self.1 = Some(vec![metric]);
+        }
+    }
 }
 
 impl Into<AlterResult> for usize {
@@ -104,9 +112,9 @@ impl<C: Chromosome> Alter<C> for AlterAction<C> {
     fn alter(&self, population: &mut Population<C>) -> AlterResult {
         match &self {
             AlterAction::Mutate(name, rate, m) => {
-                let timer = Timer::new();
+                let timer = std::time::Instant::now();
                 let AlterResult(count, metrics, ids) = m.mutate(population, *rate);
-                let metric = Metric::new_operations(name, count, timer);
+                let metric = Metric::new_operations(name, count, timer.elapsed());
 
                 let result_metrics = match metrics {
                     Some(metrics) => metrics.into_iter().chain(vec![metric]).collect(),
@@ -116,9 +124,9 @@ impl<C: Chromosome> Alter<C> for AlterAction<C> {
                 AlterResult(count, Some(result_metrics), ids)
             }
             AlterAction::Crossover(name, rate, c) => {
-                let timer = Timer::new();
+                let timer = std::time::Instant::now();
                 let AlterResult(count, metrics, ids) = c.crossover(population, *rate);
-                let metric = Metric::new_operations(name, count, timer);
+                let metric = Metric::new_operations(name, count, timer.elapsed());
 
                 let result = match metrics {
                     Some(metrics) => metrics.into_iter().chain(vec![metric]).collect(),

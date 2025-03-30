@@ -1,10 +1,12 @@
+use std::sync::Arc;
+
 use super::codexes::Codex;
 use super::context::EngineContext;
 use super::{GeneticEngineParams, MetricSet, Problem};
 use crate::builder::GeneticEngineBuilder;
 use crate::domain::timer::Timer;
 use crate::sync::RwCell;
-use crate::{Chromosome, EngineStep};
+use crate::{Chromosome, StepWrapper};
 
 /// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -59,7 +61,7 @@ where
     C: Chromosome + 'static,
     T: Clone + Send + 'static,
 {
-    steps: Vec<Box<dyn EngineStep<C, T>>>,
+    steps: Vec<StepWrapper<C, T>>,
     params: GeneticEngineParams<C, T>,
 }
 
@@ -70,7 +72,7 @@ where
 {
     /// Create a new instance of the `GeneticEngine` struct with the given parameters.
     /// - `params`: An instance of `GeneticEngineParams` that holds configuration parameters for the genetic engine.
-    pub fn new(params: GeneticEngineParams<C, T>, steps: Vec<Box<dyn EngineStep<C, T>>>) -> Self {
+    pub fn new(params: GeneticEngineParams<C, T>, steps: Vec<StepWrapper<C, T>>) -> Self {
         GeneticEngine { params, steps }
     }
 
@@ -115,18 +117,30 @@ where
         }
     }
 
-    pub fn next(&self, mut ctx: &mut EngineContext<C, T>) {
+    pub fn next(&self, ctx: &mut EngineContext<C, T>) {
         for step in self.steps.iter() {
-            step.execute(&mut ctx);
+            let timer = std::time::Instant::now();
+            let StepWrapper(step_type, action) = step;
+
+            let metrics = action.execute(ctx.index, &mut ctx.population, &mut ctx.species);
+
+            for metric in metrics.into_iter() {
+                ctx.record_metric(metric);
+            }
+
+            ctx.metrics.upsert_time(step_type.name(), timer.elapsed());
         }
+
+        ctx.complete_epoch();
     }
 
     pub(super) fn start(&self) -> EngineContext<C, T> {
         let population = self.params.population().clone();
+        let problem = self.params.problem();
 
         EngineContext {
             population: population.clone(),
-            best: self.params.problem().decode(&population[0].genotype()),
+            best: problem.decode(&population[0].genotype()),
             index: 0,
             timer: Timer::new(),
             metrics: MetricSet::new(),
@@ -134,6 +148,7 @@ where
             front: RwCell::clone(&self.params.front()),
             species: Vec::new(),
             objective: self.params.objective().clone(),
+            decoder: Arc::new(move |genotype| problem.decode(genotype)),
         }
     }
 
