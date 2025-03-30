@@ -1,8 +1,20 @@
 use super::{Valid, genotype::Genotype};
 use crate::objectives::Score;
 use crate::sync::{RwCell, RwCellGuard, RwCellGuardMut};
-use crate::{Chromosome, Scored};
+use crate::{Chromosome, Scored, SpeciesId};
 use std::ops::Deref;
+use std::sync::atomic::AtomicU64;
+
+static PHENOTYPE_ID_COUNTER: AtomicU64 = AtomicU64::new(1);
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct PhenotypeId(u64);
+
+impl PhenotypeId {
+    pub fn new() -> Self {
+        PhenotypeId(PHENOTYPE_ID_COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst))
+    }
+}
 
 /// A `Phenotype` is a representation of an individual in the population. It contains:
 /// * `Genotype` - the genetic representation of the individual
@@ -22,18 +34,30 @@ use std::ops::Deref;
 pub struct Phenotype<C: Chromosome> {
     genotype: RwCell<Genotype<C>>,
     score: RwCell<Option<Score>>,
+    id: PhenotypeId,
     generation: usize,
-    species_id: Option<u64>,
+    species_id: Option<SpeciesId>,
 }
 
 impl<C: Chromosome> Phenotype<C> {
     pub fn clone(other: &Phenotype<C>) -> Self {
         Phenotype {
+            id: other.id,
             genotype: RwCell::clone(&other.genotype),
             score: RwCell::clone(&other.score),
             generation: other.generation,
             species_id: other.species_id,
         }
+    }
+
+    pub fn id(&self) -> PhenotypeId {
+        self.id
+    }
+
+    pub fn invalidate(&mut self, generation: usize) {
+        self.score.set(None);
+        self.generation = generation; // Update the generation to the current one
+        self.id = PhenotypeId::new();
     }
 
     pub fn genotype(&self) -> RwCellGuard<Genotype<C>> {
@@ -52,7 +76,7 @@ impl<C: Chromosome> Phenotype<C> {
         self.generation = generation;
     }
 
-    pub fn species_id(&self) -> Option<u64> {
+    pub fn species_id(&self) -> Option<SpeciesId> {
         self.species_id
     }
 
@@ -60,7 +84,7 @@ impl<C: Chromosome> Phenotype<C> {
         self.score.set(score);
     }
 
-    pub fn set_species_id(&mut self, species_id: Option<u64>) {
+    pub fn set_species_id(&mut self, species_id: Option<SpeciesId>) {
         self.species_id = species_id;
     }
 
@@ -116,9 +140,10 @@ impl<C: Chromosome> PartialOrd for Phenotype<C> {
     }
 }
 
-impl<C: Chromosome> From<(Genotype<C>, usize, Option<u64>)> for Phenotype<C> {
-    fn from((genotype, generation, species_id): (Genotype<C>, usize, Option<u64>)) -> Self {
+impl<C: Chromosome> From<(Genotype<C>, usize, Option<SpeciesId>)> for Phenotype<C> {
+    fn from((genotype, generation, species_id): (Genotype<C>, usize, Option<SpeciesId>)) -> Self {
         Phenotype {
+            id: PhenotypeId::new(),
             genotype: RwCell::new(genotype),
             score: RwCell::new(None),
             generation,
@@ -133,6 +158,7 @@ impl<C: Chromosome> From<(Genotype<C>, usize, Option<u64>)> for Phenotype<C> {
 impl<C: Chromosome> From<(Vec<C>, usize)> for Phenotype<C> {
     fn from((chromosomes, generation): (Vec<C>, usize)) -> Self {
         Phenotype {
+            id: PhenotypeId::new(),
             genotype: RwCell::new(Genotype::new(chromosomes)),
             score: RwCell::new(None),
             generation,
@@ -144,6 +170,7 @@ impl<C: Chromosome> From<(Vec<C>, usize)> for Phenotype<C> {
 impl<C: Chromosome> From<(&Phenotype<C>, Score)> for Phenotype<C> {
     fn from((phenotype, score): (&Phenotype<C>, Score)) -> Self {
         Phenotype {
+            id: phenotype.id,
             genotype: RwCell::clone(&phenotype.genotype),
             score: RwCell::new(Some(score)),
             generation: phenotype.generation,

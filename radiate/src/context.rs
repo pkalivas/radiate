@@ -2,7 +2,7 @@ use crate::domain::timer::Timer;
 use crate::genome::population::Population;
 use crate::objectives::Front;
 use crate::sync::{RwCell, RwCellGuard};
-use crate::{Chromosome, Metric, MetricSet, Objective, Phenotype, Score, Species};
+use crate::{Chromosome, Metric, MetricSet, Objective, Phenotype, Score, Species, SpeciesId};
 use std::fmt::Debug;
 use std::time::Duration;
 
@@ -118,7 +118,7 @@ where
         self.metrics.upsert(metric);
     }
 
-    pub(crate) fn set_species_id(&mut self, index: usize, species_id: u64) {
+    pub(crate) fn set_species_id(&mut self, index: usize, species_id: SpeciesId) {
         self.population[index].set_species_id(Some(species_id));
     }
 

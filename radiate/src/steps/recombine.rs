@@ -3,8 +3,8 @@ use std::sync::Arc;
 use super::EngineStep;
 use crate::domain::timer::Timer;
 use crate::{
-    Alter, Chromosome, EngineContext, GeneticEngineParams, Objective, Population, Select,
-    random_provider,
+    Alter, AlterResult, Chromosome, EngineContext, GeneticEngineParams, Objective, Population,
+    Select, alter, random_provider,
 };
 
 pub struct RecombineStep<C: Chromosome> {
@@ -89,19 +89,30 @@ impl<C: Chromosome> RecombineStep<C> {
             );
             self.objective.sort(&mut offspring);
 
-            self.alters.iter().for_each(|alterer| {
-                alterer
-                    .alter(&mut offspring, ctx.index)
-                    .into_iter()
-                    .for_each(|metric| {
-                        ctx.record_metric(metric);
-                    });
-            });
+            let alter_result = self
+                .alters
+                .iter()
+                .map(|alterer| alterer.alter(&mut offspring, ctx.index))
+                .fold(AlterResult::default(), |mut acc, result| {
+                    acc.merge(result);
+                    acc
+                });
+
+            if let Some(metrics) = alter_result.metrics() {
+                for metric in metrics.into_iter() {
+                    ctx.record_metric(metric.clone());
+                }
+            }
+
+            for id in alter_result.changed() {
+                offspring.get_mut(*id).invalidate(ctx.index);
+            }
 
             return offspring;
         }
 
         let mut offspring = Vec::new();
+        let mut alter_result = AlterResult::default();
         let species_count = ctx.species.len();
         for i in 0..species_count {
             let species = &ctx.species[i];
@@ -119,18 +130,14 @@ impl<C: Chromosome> RecombineStep<C> {
             self.objective.sort(&mut selected);
 
             self.alters.iter().for_each(|alterer| {
-                alterer
-                    .alter(&mut selected, ctx.index)
-                    .into_iter()
-                    .for_each(|metric| {
-                        ctx.record_metric(metric);
-                    });
+                let result = alterer.alter(&mut selected, ctx.index);
+                alter_result.merge(result);
             });
 
             offspring.extend(selected);
         }
 
-        offspring.into_iter().collect::<Population<C>>()
+        offspring.into_iter().collect()
     }
 }
 

@@ -1,7 +1,7 @@
 use crate::Scored;
 
 use super::{Chromosome, Metric, Population, metric_names};
-use std::vec;
+use std::{collections::HashSet, vec};
 
 pub trait Audit<C: Chromosome> {
     fn audit(&self, generation: usize, population: &Population<C>) -> Vec<Metric>;
@@ -28,14 +28,16 @@ impl<C: Chromosome> Audit<C> for MetricAudit {
         let mut score_metric = Metric::new_value(metric_names::SCORE);
         let mut size_values = Vec::with_capacity(population.len());
         let mut unique = Vec::with_capacity(population.len());
-        let mut equal_members = 0;
+        let mut equal_members = HashSet::new();
 
         for i in 0..population.len() {
             let phenotype = &population[i];
 
-            if i > 0 && *phenotype.genotype() == *population[i - 1].genotype() {
-                equal_members += 1;
-            }
+            // if i > 0 && *phenotype.genotype() == *population[i - 1].genotype() {
+            //     equal_members += 1;
+            // }
+
+            equal_members.insert(phenotype.id());
 
             let age = phenotype.age(generation);
             let score = phenotype.score();
@@ -59,7 +61,7 @@ impl<C: Chromosome> Audit<C> for MetricAudit {
 
         unique_metric.add_value(unique.len() as f32);
         size_metric.add_sequence(&size_values);
-        equal_metric.add_value(equal_members as f32);
+        equal_metric.add_value(equal_members.len() as f32);
 
         vec![
             age_metric,

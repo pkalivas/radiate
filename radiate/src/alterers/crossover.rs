@@ -53,7 +53,7 @@ pub trait Crossover<C: Chromosome> {
         &self,
         population: &mut Population<C>,
         parent_indexes: &[usize],
-        generation: usize,
+        _: usize,
         rate: f32,
     ) -> AlterResult {
         let mut result = AlterResult::default();
@@ -74,11 +74,9 @@ pub trait Crossover<C: Chromosome> {
         };
 
         if cross_result.count() > 0 {
-            one.set_generation(generation);
-            two.set_generation(generation);
-            one.set_score(None);
-            two.set_score(None);
             result.merge(cross_result);
+            result.mark_changed(parent_indexes[0]);
+            result.mark_changed(parent_indexes[1]);
         }
 
         result

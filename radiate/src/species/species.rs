@@ -6,6 +6,15 @@ use std::{
 
 static ID_COUNTER: AtomicU64 = AtomicU64::new(1);
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct SpeciesId(u64);
+
+impl SpeciesId {
+    pub fn new() -> Self {
+        SpeciesId(ID_COUNTER.fetch_add(1, Ordering::SeqCst))
+    }
+}
+
 #[derive(Clone)]
 pub struct Species<C: Chromosome> {
     mascot: Genotype<C>,
@@ -13,7 +22,7 @@ pub struct Species<C: Chromosome> {
     best_score: Score,
     stagnation: usize,
     count: usize,
-    id: u64,
+    id: SpeciesId,
     generation: usize,
 }
 
@@ -26,7 +35,7 @@ impl<C: Chromosome> Species<C> {
             count: 0,
             best_score: score.clone(),
             stagnation: 0,
-            id: ID_COUNTER.fetch_add(1, Ordering::SeqCst),
+            id: SpeciesId::new(),
         }
     }
 
@@ -50,7 +59,7 @@ impl<C: Chromosome> Species<C> {
         self.score = score;
     }
 
-    pub fn id(&self) -> u64 {
+    pub fn id(&self) -> SpeciesId {
         self.id
     }
 
