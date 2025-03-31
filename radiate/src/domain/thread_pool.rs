@@ -26,6 +26,10 @@ impl ThreadPool {
         }
     }
 
+    pub fn num_workers(&self) -> usize {
+        self.workers.len()
+    }
+
     pub fn group_submit(&self, wg: &WaitGroup, f: impl FnOnce() + Send + 'static) {
         let guard = wg.guard();
 

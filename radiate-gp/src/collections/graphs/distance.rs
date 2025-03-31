@@ -1,19 +1,17 @@
 use super::{GraphChromosome, GraphIterator, GraphNode};
 use crate::{Node, NodeType, Op};
-use radiate::{Distance, Genotype};
+use radiate::{DiversityMeasure, Phenotype};
 use std::cmp::Ordering;
 
 pub struct NeatDistance {
-    distance: f32,
     excess: f32,
     disjoint: f32,
     weight_diff: f32,
 }
 
 impl NeatDistance {
-    pub fn new(distance: f32, excess: f32, disjoint: f32, weight_diff: f32) -> Self {
+    pub fn new(excess: f32, disjoint: f32, weight_diff: f32) -> Self {
         NeatDistance {
-            distance,
             excess,
             disjoint,
             weight_diff,
@@ -21,15 +19,11 @@ impl NeatDistance {
     }
 }
 
-impl Distance<GraphChromosome<Op<f32>>> for NeatDistance {
-    fn threshold(&self) -> f32 {
-        self.distance
-    }
-
-    fn distance(
+impl DiversityMeasure<GraphChromosome<Op<f32>>> for NeatDistance {
+    fn diversity(
         &self,
-        one: &Genotype<GraphChromosome<Op<f32>>>,
-        two: &Genotype<GraphChromosome<Op<f32>>>,
+        one: &Phenotype<GraphChromosome<Op<f32>>>,
+        two: &Phenotype<GraphChromosome<Op<f32>>>,
     ) -> f32 {
         let mut excess = 0.0;
         let mut disjoint = 0.0;
@@ -38,7 +32,7 @@ impl Distance<GraphChromosome<Op<f32>>> for NeatDistance {
 
         let mut distance = 0.0;
 
-        for (a, b) in one.iter().zip(two.iter()) {
+        for (a, b) in one.genotype().iter().zip(two.genotype().iter()) {
             let mut idx_a = 0;
             let mut idx_b = 0;
 

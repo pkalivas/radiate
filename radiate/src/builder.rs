@@ -1,9 +1,9 @@
 use super::codexes::Codex;
 use super::thread_pool::ThreadPool;
 use super::{
-    Alter, AlterAction, Audit, Crossover, Distance, EncodeReplace, EngineProblem, Front,
-    GeneticEngineParams, MetricAudit, Mutate, Problem, ReplacementStrategy, RouletteSelector,
-    Select, TournamentSelector, pareto,
+    Alter, AlterAction, Crossover, DiversityMeasure, EncodeReplace, EngineProblem, Front,
+    GeneticEngineParams, Mutate, Problem, ReplacementStrategy, RouletteSelector, Select,
+    TournamentSelector, pareto,
 };
 use crate::engine::GeneticEngine;
 use crate::genome::phenotype::Phenotype;
@@ -47,13 +47,13 @@ where
     pub survivor_selector: Arc<dyn Select<C>>,
     pub offspring_selector: Arc<dyn Select<C>>,
     pub alterers: Vec<Arc<dyn Alter<C>>>,
-    pub audits: Vec<Arc<dyn Audit<C>>>,
     pub population: Option<Population<C>>,
     pub codex: Option<Arc<dyn Codex<C, T>>>,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
     pub problem: Option<Arc<dyn Problem<C, T>>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
-    pub distance: Option<Arc<dyn Distance<C>>>,
+    pub diversity_measure: Option<Arc<dyn DiversityMeasure<C>>>,
+    pub species_threshold: f32,
     pub front: Option<Front<Phenotype<C>>>,
 }
 
@@ -92,19 +92,17 @@ where
         self
     }
 
-    // pub fn audit<A: Audit<C> + 'static>(mut self, audit: A) -> Self {
-    pub fn audit(mut self, audit: impl Audit<C> + 'static) -> Self {
-        self.audits.push(Arc::new(audit));
+    pub fn diversity<D: DiversityMeasure<C> + 'static>(mut self, distance: D) -> Self {
+        self.diversity_measure = Some(Arc::new(distance));
         self
     }
 
-    pub fn audits(mut self, audits: Vec<Arc<dyn Audit<C>>>) -> Self {
-        self.audits.extend(audits);
-        self
-    }
+    pub fn species_threshold(mut self, threshold: f32) -> Self {
+        if threshold < 0.0 {
+            panic!("diversity_distance_threashold must be non-negative");
+        }
 
-    pub fn distance<D: Distance<C> + 'static>(mut self, distance: D) -> Self {
-        self.distance = Some(Arc::new(distance));
+        self.species_threshold = threshold;
         self
     }
 
@@ -274,14 +272,14 @@ where
                 self.survivor_selector.clone(),
                 self.offspring_selector.clone(),
                 self.replacement_strategy.clone(),
-                self.audits.clone(),
-                self.distance.clone(),
+                self.diversity_measure.clone(),
                 self.alterers.clone(),
                 self.objective.clone(),
                 self.thread_pool.clone(),
                 self.max_age,
                 RwCell::new(self.front.clone().unwrap()),
                 self.offspring_fraction,
+                self.species_threshold,
             );
 
             let steps = self.register_steps(&params);
@@ -390,18 +388,18 @@ where
             max_age: 20,
             offspring_fraction: 0.8,
             front_range: 800..900,
+            species_threshold: 0.5,
             thread_pool: Arc::new(ThreadPool::new(1)),
             objective: Objective::Single(Optimize::Maximize),
             survivor_selector: Arc::new(TournamentSelector::new(3)),
             offspring_selector: Arc::new(RouletteSelector::new()),
             replacement_strategy: Arc::new(EncodeReplace),
-            audits: vec![Arc::new(MetricAudit)],
             alterers: Vec::new(),
             codex: None,
             population: None,
             fitness_fn: None,
             problem: None,
-            distance: None,
+            diversity_measure: None,
             front: None,
         }
     }

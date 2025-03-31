@@ -15,10 +15,10 @@
 //! See the git repo's [examples](https://github.com/pkalivas/radiate/tree/master/examples) directory for more examples.
 //!
 pub mod alterers;
-pub mod audit;
 pub mod builder;
 pub mod codexes;
 pub mod context;
+pub mod diversity;
 pub mod domain;
 pub mod engine;
 pub mod genome;
@@ -28,17 +28,16 @@ pub mod params;
 pub mod problem;
 pub mod replace;
 pub mod selectors;
-pub mod species;
 pub mod stats;
 pub mod steps;
 
 pub use alterers::*;
-pub use audit::*;
 pub use builder::*;
 pub use codexes::{
     BitCodex, CharCodex, Codex, FloatCodex, FnCodex, IntCodex, PermutationCodex, SubSetCodex,
 };
 pub use context::*;
+pub use diversity::*;
 pub use domain::*;
 pub use engine::*;
 pub use genome::*;
@@ -48,6 +47,5 @@ pub use params::*;
 pub use problem::*;
 pub use replace::*;
 pub use selectors::*;
-pub use species::*;
 pub use stats::*;
 pub use steps::*;

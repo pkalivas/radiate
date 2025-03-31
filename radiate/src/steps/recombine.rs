@@ -149,7 +149,7 @@ impl<C: Chromosome> RecombineStep<C> {
             let count = (scale * self.offspring_count as f32).round() as usize;
 
             let (mut offspring, metric) =
-                self.select_offspring(current_species.population(), count);
+                self.select_offspring(&current_species.population(), count);
 
             metrics.push(metric);
             for metric in self.apply_alterations(generation, &mut offspring) {

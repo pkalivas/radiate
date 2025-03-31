@@ -57,7 +57,7 @@ where
 
         let metric_clone = Arc::clone(&self.metric);
         let update = FrontUpdate::new(
-            population.members_at_generation(generation),
+            population.individuals_in_generation(generation),
             &self.front,
             &self.dominates,
             &self.to_remove,
@@ -66,19 +66,9 @@ where
         self.thread_pool.submit_scoped(move |scope| {
             let timer = std::time::Instant::now();
 
-            let task_time = std::time::Instant::now();
             update.spawn_tasks(scope);
-            let elapsed = task_time.elapsed();
-            let finalize_time = std::time::Instant::now();
             update.finalize_front();
-            let finalize_elapsed = finalize_time.elapsed();
 
-            println!(
-                "Front update took: {:?} (task time: {:?}, finalize time: {:?})",
-                timer.elapsed(),
-                elapsed,
-                finalize_elapsed
-            );
             metric_clone.lock().unwrap().add(timer.elapsed());
             flag.finish();
         });

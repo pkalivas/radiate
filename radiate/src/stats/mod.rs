@@ -1,11 +1,13 @@
 pub mod distribution;
 pub mod metrics;
+pub mod quantile;
 pub mod statistics;
 pub mod time_statistic;
 
 pub use distribution::*;
 pub use metric_names::*;
 pub use metrics::*;
+pub use quantile::*;
 pub use statistics::*;
 pub use time_statistic::*;
 
@@ -30,4 +32,6 @@ pub mod metric_names {
     pub const SPECIES_AGE_FAIL: &str = "Species(Age Removed)";
     pub const SPECIES_DISTANCE_DIST: &str = "Species(Distance)";
     pub const SPECIES_CREATED: &str = "Species(Created)";
+    pub const SPECIES_DIED: &str = "Species(Died)";
+    pub const SPECIES_AGE: &str = "Species(Age)";
 }

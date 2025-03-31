@@ -61,7 +61,7 @@ impl MetricSet {
                 Metric::Value(_, stat, dist) => {
                     if let Metric::Value(_, new_stat, new_dist) = metric {
                         stat.add(new_stat.last_value());
-                        dist.add(new_dist.last_sequence());
+                        dist.update(new_dist.last_sequence());
                     }
                 }
                 Metric::Time(_, stat) => {
@@ -71,7 +71,7 @@ impl MetricSet {
                 }
                 Metric::Distribution(_, dist) => {
                     if let Metric::Distribution(_, new_dist) = metric {
-                        dist.add(new_dist.last_sequence());
+                        dist.update(new_dist.last_sequence());
                     }
                 }
                 Metric::Operations(_, stat, time_stat) => {
@@ -186,10 +186,10 @@ impl Metric {
     pub fn with_distribution(mut self, values: &[f32]) -> Self {
         match &mut self {
             Metric::Value(_, _, dist) => {
-                dist.add(values);
+                dist.update(values);
             }
             Metric::Distribution(_, dist) => {
-                dist.add(values);
+                dist.update(values);
             }
             _ => {}
         }
@@ -248,7 +248,7 @@ impl Metric {
 
     pub fn add_sequence(&mut self, value: &[f32]) {
         if let Metric::Distribution(_, dist) = self {
-            dist.add(value);
+            dist.update(value);
         }
     }
 

@@ -1,20 +1,14 @@
 use super::TreeChromosome;
 use crate::{Node, TreeNode};
-use radiate::{Distance, Genotype};
+use radiate::{DiversityMeasure, Phenotype};
 use std::{
     collections::{HashSet, hash_map::DefaultHasher},
     hash::{Hash, Hasher},
 };
 
-pub struct SubtreeHashDistance {
-    threshold: f32,
-}
+pub struct SubtreeHashDistance;
 
 impl SubtreeHashDistance {
-    pub fn new(threshold: f32) -> Self {
-        SubtreeHashDistance { threshold }
-    }
-
     pub fn subtree_hashes<T: Hash>(node: &TreeNode<T>, hashes: &mut HashSet<u64>) {
         let mut hasher = DefaultHasher::new();
         node.value().hash(&mut hasher);
@@ -30,18 +24,14 @@ impl SubtreeHashDistance {
     }
 }
 
-impl<T> Distance<TreeChromosome<T>> for SubtreeHashDistance
+impl<T> DiversityMeasure<TreeChromosome<T>> for SubtreeHashDistance
 where
     T: Clone + PartialEq + Default + Hash,
 {
-    fn threshold(&self) -> f32 {
-        self.threshold
-    }
-
-    fn distance(
+    fn diversity(
         &self,
-        one: &Genotype<TreeChromosome<T>>,
-        two: &Genotype<TreeChromosome<T>>,
+        one: &Phenotype<TreeChromosome<T>>,
+        two: &Phenotype<TreeChromosome<T>>,
     ) -> f32 {
         fn walk<T: PartialEq + Hash>(a: &TreeNode<T>, b: &TreeNode<T>) -> f32 {
             let mut hash_a = HashSet::new();
@@ -57,13 +47,13 @@ where
 
         let mut diff = 0_f32;
 
-        for (a, b) in one.iter().zip(two.iter()) {
+        for (a, b) in one.genotype().iter().zip(two.genotype().iter()) {
             let one_root = a.root();
             let two_root = b.root();
 
             diff += walk(one_root, two_root);
         }
 
-        diff as f32 / one.len() as f32
+        diff as f32 / one.genotype().len() as f32
     }
 }

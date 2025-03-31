@@ -1,5 +1,5 @@
 use super::thread_pool::ThreadPool;
-use super::{Alter, Audit, Distance, Front, Problem, ReplacementStrategy, Select};
+use super::{Alter, DiversityMeasure, Front, Problem, ReplacementStrategy, Select};
 use crate::Chromosome;
 use crate::genome::phenotype::Phenotype;
 use crate::genome::population::Population;
@@ -13,14 +13,14 @@ pub struct GeneticEngineParams<C: Chromosome, T> {
     survivor_selector: Arc<dyn Select<C>>,
     offspring_selector: Arc<dyn Select<C>>,
     replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
-    audits: Vec<Arc<dyn Audit<C>>>,
-    distance: Option<Arc<dyn Distance<C>>>,
+    distance: Option<Arc<dyn DiversityMeasure<C>>>,
     alterers: Vec<Arc<dyn Alter<C>>>,
     objective: Objective,
     thread_pool: Arc<ThreadPool>,
     max_age: usize,
     front: RwCell<Front<Phenotype<C>>>,
     offspring_fraction: f32,
+    species_threshold: f32,
 }
 
 impl<C: Chromosome, T> GeneticEngineParams<C, T> {
@@ -30,14 +30,14 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
         survivor_selector: Arc<dyn Select<C>>,
         offspring_selector: Arc<dyn Select<C>>,
         replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
-        audits: Vec<Arc<dyn Audit<C>>>,
-        distance: Option<Arc<dyn Distance<C>>>,
+        distance: Option<Arc<dyn DiversityMeasure<C>>>,
         alterers: Vec<Arc<dyn Alter<C>>>,
         objective: Objective,
         thread_pool: Arc<ThreadPool>,
         max_age: usize,
         front: RwCell<Front<Phenotype<C>>>,
         offspring_fraction: f32,
+        species_threshold: f32,
     ) -> Self {
         GeneticEngineParams {
             population,
@@ -45,7 +45,6 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
             survivor_selector,
             offspring_selector,
             replacement_strategy,
-            audits,
             distance,
             alterers,
             objective,
@@ -53,6 +52,7 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
             max_age,
             front,
             offspring_fraction,
+            species_threshold,
         }
     }
 
@@ -76,11 +76,7 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
         &self.replacement_strategy
     }
 
-    pub fn audits(&self) -> &[Arc<dyn Audit<C>>] {
-        &self.audits
-    }
-
-    pub fn distance(&self) -> Option<Arc<dyn Distance<C>>> {
+    pub fn distance(&self) -> Option<Arc<dyn DiversityMeasure<C>>> {
         self.distance.clone()
     }
 
@@ -110,5 +106,9 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
 
     pub fn offspring_count(&self) -> usize {
         (self.population.len() as f32 * self.offspring_fraction) as usize
+    }
+
+    pub fn species_threshold(&self) -> f32 {
+        self.species_threshold
     }
 }

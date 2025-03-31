@@ -1,4 +1,3 @@
-use super::PopulationView;
 use crate::{Chromosome, Objective, Phenotype, Population, Score};
 use std::{
     fmt::{self, Debug, Formatter},
@@ -17,12 +16,12 @@ impl SpeciesId {
 }
 
 pub struct Species<C: Chromosome> {
+    id: SpeciesId,
     mascot: Phenotype<C>,
     population: Population<C>,
     score: Score,
     best_score: Option<Score>,
     stagnation: usize,
-    id: SpeciesId,
     generation: usize,
 }
 
@@ -30,13 +29,13 @@ impl<C: Chromosome> Species<C> {
     pub fn new(mascot: Phenotype<C>, generation: usize) -> Self {
         let score = mascot.score().unwrap();
         Species {
+            id: SpeciesId::new(),
             mascot: Phenotype::clone(&mascot),
             population: Population::new(vec![mascot]),
             score: score.clone(),
-            generation,
             best_score: None,
+            generation,
             stagnation: 0,
-            id: SpeciesId::new(),
         }
     }
 
@@ -72,17 +71,13 @@ impl<C: Chromosome> Species<C> {
         &self.score
     }
 
+    pub fn len(&self) -> usize {
+        self.population.len()
+    }
+
     pub fn add_member(&mut self, phenotype: &Phenotype<C>) {
         let new_phenotype = Phenotype::clone(phenotype);
         self.population.push(new_phenotype);
-    }
-
-    pub fn adjusted_scores(&self) -> Vec<Score> {
-        self.population
-            .get_scores()
-            .iter()
-            .map(|score| score.clone() / self.len() as f32)
-            .collect()
     }
 
     pub fn update_score(&mut self, score: Score, top_score: Score, objective: &Objective) {
@@ -109,6 +104,7 @@ impl<C: Chromosome> Species<C> {
 impl<C: Chromosome> Clone for Species<C> {
     fn clone(&self) -> Self {
         Species {
+            id: self.id,
             mascot: Phenotype::clone(&self.mascot),
             population: self
                 .population
@@ -118,26 +114,8 @@ impl<C: Chromosome> Clone for Species<C> {
             score: self.score.clone(),
             best_score: self.best_score.clone(),
             stagnation: self.stagnation,
-            id: self.id,
             generation: self.generation,
         }
-    }
-}
-
-impl<C: Chromosome> PopulationView<C> for Species<C> {
-    fn push(&mut self, individual: Phenotype<C>) {
-        self.population.push(individual);
-    }
-
-    fn clear(&mut self) {
-        self.population.clear();
-    }
-
-    fn sort_by<F>(&mut self, f: F)
-    where
-        F: FnMut(&Phenotype<C>, &Phenotype<C>) -> std::cmp::Ordering,
-    {
-        self.population.sort_by(f);
     }
 }
 

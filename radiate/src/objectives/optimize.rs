@@ -1,4 +1,4 @@
-use crate::{Chromosome, PopulationView};
+use crate::{Chromosome, Phenotype};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Objective {
@@ -34,10 +34,10 @@ impl Objective {
         }
     }
 
-    pub fn sort<C: Chromosome, P: PopulationView<C>>(&self, population: &mut P) {
+    pub fn sort<C: Chromosome, P: AsMut<[Phenotype<C>]>>(&self, population: &mut P) {
         match self {
             Objective::Single(opt) => opt.sort(population),
-            Objective::Multi(_) => population.sort_by(|a, b| {
+            Objective::Multi(_) => population.as_mut().sort_by(|a, b| {
                 let one = a.score();
                 let two = b.score();
 
@@ -111,10 +111,14 @@ pub enum Optimize {
 }
 
 impl Optimize {
-    pub fn sort<C: Chromosome, P: PopulationView<C>>(&self, population: &mut P) {
+    pub fn sort<C: Chromosome, I: AsMut<[Phenotype<C>]>>(&self, population: &mut I) {
         match self {
-            Optimize::Minimize => population.sort_by(|a, b| a.partial_cmp(b).unwrap()),
-            Optimize::Maximize => population.sort_by(|a, b| b.partial_cmp(a).unwrap()),
+            Optimize::Minimize => population
+                .as_mut()
+                .sort_by(|a, b| a.partial_cmp(b).unwrap()),
+            Optimize::Maximize => population
+                .as_mut()
+                .sort_by(|a, b| b.partial_cmp(a).unwrap()),
         }
     }
 
