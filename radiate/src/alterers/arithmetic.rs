@@ -1,5 +1,5 @@
 use super::{AlterResult, Mutate};
-use crate::{ArithmeticGene, Chromosome, Gene, random_provider};
+use crate::{ArithmeticGene, Chromosome, Gene, Rate, random_provider};
 
 /// Arithmetic Mutator. Mutates genes by performing arithmetic operations on them.
 /// The ArithmeticMutator takes a rate parameter that determines the likelihood that
@@ -28,8 +28,8 @@ impl<C: Chromosome> Mutate<C> for ArithmeticMutator
 where
     C::Gene: ArithmeticGene,
 {
-    fn rate(&self) -> f32 {
-        self.rate
+    fn rate(&self) -> Rate {
+        self.rate.into()
     }
 
     /// Mutate a gene by performing an arithmetic operation on it.

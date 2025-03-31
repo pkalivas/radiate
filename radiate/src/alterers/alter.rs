@@ -1,6 +1,9 @@
 use super::{Crossover, Mutate};
-use crate::{AdaptiveParam, Chromosome, Metric, Population};
-use std::collections::HashSet;
+use crate::{Chromosome, Metric, Population, Rate};
+use std::{
+    collections::HashSet,
+    sync::{Arc, RwLock},
+};
 
 /// This is the main trait that is used to define the different types of alterations that can be
 /// performed on a population. The `Alter` trait is used to define the `alter` method that is used
@@ -104,8 +107,8 @@ impl Into<AlterResult> for (usize, Metric) {
 /// types of alterations that can be performed on a
 /// population - It can be either a mutation or a crossover operation.
 pub enum AlterAction<C: Chromosome> {
-    Mutate(&'static str, AdaptiveParam, Box<dyn Mutate<C>>),
-    Crossover(&'static str, AdaptiveParam, Box<dyn Crossover<C>>),
+    Mutate(&'static str, Rate, Box<dyn Mutate<C>>),
+    Crossover(&'static str, Rate, Box<dyn Crossover<C>>),
 }
 
 impl<C: Chromosome> Alter<C> for AlterAction<C> {

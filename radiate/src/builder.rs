@@ -18,7 +18,7 @@ use crate::{
 };
 use std::cmp::Ordering;
 use std::ops::Range;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 /// Parameters for the genetic engine.
 /// This struct is used to configure the genetic engine before it is created.
@@ -198,9 +198,7 @@ where
     pub fn mutators(mut self, mutators: Vec<Box<dyn Mutate<C>>>) -> Self {
         let mutate_actions = mutators
             .into_iter()
-            .map(|m| {
-                Arc::new(AlterAction::Mutate(m.name(), m.rate().into(), m)) as Arc<dyn Alter<C>>
-            })
+            .map(|m| Arc::new(AlterAction::Mutate(m.name(), m.rate(), m)) as Arc<dyn Alter<C>>)
             .collect::<Vec<_>>();
 
         self.alterers.extend(mutate_actions);

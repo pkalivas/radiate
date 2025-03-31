@@ -1,5 +1,5 @@
 use super::{AlterResult, Mutate};
-use crate::{Chromosome, random_provider};
+use crate::{Chromosome, Rate, random_provider};
 
 pub struct SwapMutator {
     rate: f32,
@@ -12,8 +12,8 @@ impl SwapMutator {
 }
 
 impl<C: Chromosome> Mutate<C> for SwapMutator {
-    fn rate(&self) -> f32 {
-        self.rate
+    fn rate(&self) -> Rate {
+        self.rate.into()
     }
 
     #[inline]

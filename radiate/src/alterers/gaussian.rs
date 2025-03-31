@@ -1,5 +1,5 @@
 use super::Mutate;
-use crate::{ArithmeticGene, Chromosome, FloatGene, Gene, random_provider};
+use crate::{ArithmeticGene, Chromosome, FloatGene, Gene, Rate, random_provider};
 
 /// The `GaussianMutator` is a simple mutator that adds a small amount of Gaussian noise to the gene.
 ///
@@ -21,8 +21,8 @@ impl GaussianMutator {
 }
 
 impl<C: Chromosome<Gene = FloatGene>> Mutate<C> for GaussianMutator {
-    fn rate(&self) -> f32 {
-        self.rate
+    fn rate(&self) -> Rate {
+        self.rate.into()
     }
 
     #[inline]

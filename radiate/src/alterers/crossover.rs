@@ -1,3 +1,5 @@
+use std::sync::{Arc, RwLock};
+
 use super::{AlterAction, AlterResult};
 use crate::{Chromosome, Gene, Population, indexes, random_provider};
 

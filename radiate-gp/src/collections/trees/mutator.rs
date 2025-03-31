@@ -1,5 +1,5 @@
 use super::TreeChromosome;
-use radiate::{AlterResult, Mutate, random_provider};
+use radiate::{AlterResult, Mutate, Rate, random_provider};
 
 pub struct HoistMutator {
     rate: f32,
@@ -19,8 +19,8 @@ impl<T> Mutate<TreeChromosome<T>> for HoistMutator
 where
     T: Clone + PartialEq + Default,
 {
-    fn rate(&self) -> f32 {
-        self.rate
+    fn rate(&self) -> Rate {
+        self.rate.into()
     }
 
     fn mutate_chromosome(&self, chromosome: &mut TreeChromosome<T>, _: f32) -> AlterResult {

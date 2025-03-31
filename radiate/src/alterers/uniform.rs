@@ -1,6 +1,7 @@
 use super::Crossover;
 use super::Mutate;
 use crate::Chromosome;
+use crate::Rate;
 
 pub struct UniformCrossover {
     rate: f32,
@@ -29,7 +30,7 @@ impl UniformMutator {
 }
 
 impl<C: Chromosome> Mutate<C> for UniformMutator {
-    fn rate(&self) -> f32 {
-        self.rate
+    fn rate(&self) -> Rate {
+        self.rate.into()
     }
 }
