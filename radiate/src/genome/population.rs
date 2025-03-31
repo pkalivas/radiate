@@ -69,7 +69,7 @@ impl<C: Chromosome> Population<C> {
     pub fn get_scores(&self) -> Vec<RwCellGuard<'_, Option<Score>>> {
         self.individuals
             .iter()
-            .filter(|individual| individual.score_ref().is_some()) // Only include individuals with a score
+            .filter(|individual| individual.score_ref().is_some())
             .map(|individual| individual.score_ref())
             .collect()
     }

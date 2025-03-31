@@ -78,11 +78,6 @@ impl<C: Chromosome> Phenotype<C> {
         self.score.set(score);
     }
 
-    // pub fn score(&self) -> Option<Score> {
-    //     let lock = self.score.read();
-    //     lock.inner().clone()
-    // }
-
     pub fn score_ref(&self) -> RwCellGuard<Option<Score>> {
         self.score.read()
     }

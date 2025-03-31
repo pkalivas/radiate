@@ -157,7 +157,7 @@ impl<C: Chromosome> Clone for Species<C> {
 
 impl<C: Chromosome> Scored for Species<C> {
     fn values(&self) -> impl AsRef<[f32]> {
-        self.score()
+        self.score.as_ref()
     }
     fn score(&self) -> Option<Score> {
         Some(self.score.clone())
@@ -166,7 +166,7 @@ impl<C: Chromosome> Scored for Species<C> {
 
 impl<C: Chromosome + PartialEq> PartialEq for Species<C> {
     fn eq(&self, other: &Self) -> bool {
-        self.score() == other.score()
+        self.score == other.score
             && self.id == other.id
             && self.mascot() == other.mascot()
             && self.len() == other.len()
@@ -177,7 +177,7 @@ impl<C: Chromosome + PartialEq> PartialEq for Species<C> {
 
 impl<C: Chromosome> PartialOrd for Species<C> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.score().partial_cmp(other.score())
+        self.score.as_ref().partial_cmp(other.score.as_ref())
     }
 }
 
