@@ -27,22 +27,18 @@ impl<C: Chromosome> SpeciateStep<C> {
 
     pub fn fitness_share(&self, species: &mut Vec<Species<C>>) {
         let mut total_species_score = Score::default();
-        for i in 0..species.len() {
+        for species in species.iter() {
             total_species_score =
-                total_species_score + Self::adjust_scores(&species[i]).iter().sum::<Score>();
+                total_species_score + Self::adjust_scores(species).iter().sum::<Score>();
         }
 
         for species in species.iter_mut() {
             let adjusted_score =
                 Self::adjust_scores(species).iter().sum::<Score>() / total_species_score.clone();
-
-            self.objective.sort(species);
-
-            let best_score = species.population().get(0).score().unwrap();
-            species.update_score(adjusted_score, best_score, &self.objective);
+            species.update_score(adjusted_score, &self.objective);
         }
 
-        species.sort_by(|a, b| self.objective.cmp(a.score(), b.score()));
+        self.objective.sort(species);
     }
 
     fn adjust_scores(species: &Species<C>) -> Vec<Score> {
@@ -139,8 +135,7 @@ where
                 species[species_id].add_member(population.get(i));
             } else {
                 let mut found = false;
-                for j in 0..species.len() {
-                    let species = &mut species[j];
+                for species in species.iter_mut() {
                     let dist = self
                         .diversity
                         .diversity(population.get(i), &species.mascot());

@@ -1,5 +1,5 @@
 use super::{Crossover, Mutate};
-use crate::{Chromosome, Metric, Population};
+use crate::{AdaptiveParam, Chromosome, Metric, Population};
 use std::collections::HashSet;
 
 /// This is the main trait that is used to define the different types of alterations that can be
@@ -104,16 +104,17 @@ impl Into<AlterResult> for (usize, Metric) {
 /// types of alterations that can be performed on a
 /// population - It can be either a mutation or a crossover operation.
 pub enum AlterAction<C: Chromosome> {
-    Mutate(&'static str, f32, Box<dyn Mutate<C>>),
-    Crossover(&'static str, f32, Box<dyn Crossover<C>>),
+    Mutate(&'static str, AdaptiveParam, Box<dyn Mutate<C>>),
+    Crossover(&'static str, AdaptiveParam, Box<dyn Crossover<C>>),
 }
 
 impl<C: Chromosome> Alter<C> for AlterAction<C> {
     fn alter(&self, population: &mut Population<C>) -> AlterResult {
         match &self {
-            AlterAction::Mutate(name, rate, m) => {
+            AlterAction::Mutate(name, param, m) => {
                 let timer = std::time::Instant::now();
-                let AlterResult(count, metrics, ids) = m.mutate(population, *rate);
+                let rate = param.get();
+                let AlterResult(count, metrics, ids) = m.mutate(population, rate);
                 let metric = Metric::new_operations(name, count, timer.elapsed());
 
                 let result_metrics = match metrics {
@@ -123,9 +124,10 @@ impl<C: Chromosome> Alter<C> for AlterAction<C> {
 
                 AlterResult(count, Some(result_metrics), ids)
             }
-            AlterAction::Crossover(name, rate, c) => {
+            AlterAction::Crossover(name, param, c) => {
                 let timer = std::time::Instant::now();
-                let AlterResult(count, metrics, ids) = c.crossover(population, *rate);
+                let rate = param.get();
+                let AlterResult(count, metrics, ids) = c.crossover(population, rate);
                 let metric = Metric::new_operations(name, count, timer.elapsed());
 
                 let result = match metrics {

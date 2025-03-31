@@ -10,6 +10,7 @@ pub struct FilterStep<C: Chromosome> {
     replacer: Arc<dyn ReplacementStrategy<C>>,
     encoder: Arc<dyn Fn() -> Genotype<C>>,
     max_age: usize,
+    max_species_age: usize,
 }
 
 /// Filters the population to remove individuals that are too old or invalid. The maximum age
@@ -42,6 +43,7 @@ where
             replacer: Arc::clone(&replacement_strategy),
             encoder,
             max_age: params.max_age(),
+            max_species_age: params.max_species_age(),
         }))
     }
 
@@ -73,7 +75,7 @@ where
         }
 
         let before_species = species.len();
-        species.retain(|species| species.age(generation) < self.max_age);
+        species.retain(|species| species.age(generation) < self.max_species_age);
         let species_count = (before_species - species.len()) as f32;
 
         if age_count > 0_f32 {

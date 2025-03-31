@@ -69,7 +69,7 @@ macro_rules! print_metrics {
                 }
                 match (metric_type, metric) {
                     ("Operations", Metric::Operations(_, _, _)) => println!("{:?}", metric),
-                    ("Value", Metric::Value(_, _)) => println!("{:?}", metric),
+                    ("Value", Metric::Value(_, _, _)) => println!("{:?}", metric),
                     ("Distribution", Metric::Distribution(_, _)) => println!("{:?}", metric),
                     ("Time", Metric::Time(_, _)) => println!("{:?}", metric),
                     _ => {},
@@ -166,6 +166,42 @@ macro_rules! log_ctx {
 }
 
 #[macro_export]
+macro_rules! log_species {
+    ($ctx:expr) => {{
+        println!("Species Summary:");
+        println!(
+            "{:>5} | {:>8} | {:<13} | {:<13} | {:>12} | {:>12} | {:>12}",
+            "Idx", "Members", "Score", "Best Score", "Stagnation", "Generation", "ID"
+        );
+        println!("{}", "-".repeat(90));
+        for (i, sp) in $ctx.species().iter().enumerate() {
+            println!(
+                "{:>5} | {:>8} | {:<13.4} | {:<13.4} | {:>12} | {:>12} | {:?}",
+                i,
+                sp.len(),
+                sp.score().as_f32(),
+                sp.stagnation_tracker().current_score().as_f32(),
+                sp.stagnation(),
+                sp.generation(),
+                sp.id()
+            );
+        }
+
+        print_metrics!(
+            $ctx.metrics(),
+            [
+                "Species(Created)",
+                "Species(Age)",
+                "Species(Count)",
+                "Species(Died)",
+                "Species(Age Removed)",
+                "Species(Distance)",
+            ]
+        );
+    }};
+}
+
+#[macro_export]
 macro_rules! metric {
     ($name:expr, $val:expr, $time:expr) => {{ Metric::new_operations($name, $val, $time) }};
     ($name:expr, $val:expr) => {{
@@ -173,9 +209,9 @@ macro_rules! metric {
         metric.add_value($val);
         metric
     }};
-    ($name:expr, $dist:expr) => {{
+    ($name:expr, [$($dist:expr),* $(,)?]) => {{
         let mut metric = Metric::new_distribution($name)
-        metric.add_distribution($dist);
+        metric.add_sequence($dist);
         metric
     }};
     ($name:expr, $time:expr) => {{

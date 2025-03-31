@@ -86,6 +86,10 @@ where
         &self.objective
     }
 
+    pub fn species(&self) -> &[Species<C>] {
+        &self.species
+    }
+
     pub(crate) fn begin_epoch(&mut self) {
         self.timer.start();
     }

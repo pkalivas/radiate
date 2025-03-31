@@ -25,7 +25,7 @@ pub trait Crossover<C: Chromosome> {
     where
         Self: Sized + 'static,
     {
-        AlterAction::Crossover(self.name(), self.rate(), Box::new(self))
+        AlterAction::Crossover(self.name(), self.rate().into(), Box::new(self))
     }
 
     #[inline]

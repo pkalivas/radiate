@@ -40,6 +40,7 @@ where
 {
     pub population_size: usize,
     pub max_age: usize,
+    pub max_species_age: usize,
     pub front_range: Range<usize>,
     pub offspring_fraction: f32,
     pub thread_pool: Arc<ThreadPool>,
@@ -103,6 +104,15 @@ where
         }
 
         self.species_threshold = threshold;
+        self
+    }
+
+    pub fn max_species_age(mut self, max_species_age: usize) -> Self {
+        if max_species_age < 1 {
+            panic!("max_species_age must be greater than 0");
+        }
+
+        self.max_species_age = max_species_age;
         self
     }
 
@@ -188,7 +198,9 @@ where
     pub fn mutators(mut self, mutators: Vec<Box<dyn Mutate<C>>>) -> Self {
         let mutate_actions = mutators
             .into_iter()
-            .map(|m| Arc::new(AlterAction::Mutate(m.name(), m.rate(), m)) as Arc<dyn Alter<C>>)
+            .map(|m| {
+                Arc::new(AlterAction::Mutate(m.name(), m.rate().into(), m)) as Arc<dyn Alter<C>>
+            })
             .collect::<Vec<_>>();
 
         self.alterers.extend(mutate_actions);
@@ -203,7 +215,9 @@ where
     pub fn crossovers(mut self, crossovers: Vec<Box<dyn Crossover<C>>>) -> Self {
         let crossover_actions = crossovers
             .into_iter()
-            .map(|c| Arc::new(AlterAction::Crossover(c.name(), c.rate(), c)) as Arc<dyn Alter<C>>)
+            .map(|c| {
+                Arc::new(AlterAction::Crossover(c.name(), c.rate().into(), c)) as Arc<dyn Alter<C>>
+            })
             .collect::<Vec<_>>();
 
         self.alterers.extend(crossover_actions);
@@ -277,6 +291,7 @@ where
                 self.objective.clone(),
                 self.thread_pool.clone(),
                 self.max_age,
+                self.max_species_age,
                 RwCell::new(self.front.clone().unwrap()),
                 self.offspring_fraction,
                 self.species_threshold,
@@ -386,6 +401,7 @@ where
         GeneticEngineBuilder {
             population_size: 100,
             max_age: 20,
+            max_species_age: 25,
             offspring_fraction: 0.8,
             front_range: 800..900,
             species_threshold: 0.5,

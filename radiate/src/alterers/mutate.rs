@@ -14,7 +14,7 @@ pub trait Mutate<C: Chromosome> {
     where
         Self: Sized + 'static,
     {
-        AlterAction::Mutate(self.name(), self.rate(), Box::new(self))
+        AlterAction::Mutate(self.name(), self.rate().into(), Box::new(self))
     }
 
     #[inline]

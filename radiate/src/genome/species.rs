@@ -1,4 +1,4 @@
-use crate::{Chromosome, Objective, Phenotype, Population, Score};
+use crate::{Chromosome, Objective, Phenotype, Population, Score, Scored};
 use std::{
     fmt::{self, Debug, Formatter},
     sync::atomic::{AtomicU64, Ordering},
@@ -15,13 +15,44 @@ impl SpeciesId {
     }
 }
 
+pub struct StangationTracker {
+    current_score: Score,
+    count: usize,
+}
+
+impl StangationTracker {
+    pub fn new() -> Self {
+        StangationTracker {
+            current_score: Score::default(),
+            count: 0,
+        }
+    }
+
+    pub fn update(&mut self, new_score: &Score, objective: &Objective) {
+        if objective.is_better(new_score, &self.current_score) {
+            self.current_score = new_score.clone();
+            self.count = 0;
+            return;
+        } else {
+            self.count += 1;
+        }
+    }
+
+    pub fn current_score(&self) -> &Score {
+        &self.current_score
+    }
+
+    pub fn stagnation_count(&self) -> usize {
+        self.count
+    }
+}
+
 pub struct Species<C: Chromosome> {
     id: SpeciesId,
     mascot: Phenotype<C>,
     population: Population<C>,
     score: Score,
-    best_score: Option<Score>,
-    stagnation: usize,
+    stagnation_tracker: StangationTracker,
     generation: usize,
 }
 
@@ -33,9 +64,12 @@ impl<C: Chromosome> Species<C> {
             mascot: Phenotype::clone(&mascot),
             population: Population::new(vec![mascot]),
             score: score.clone(),
-            best_score: None,
+            stagnation_tracker: StangationTracker {
+                current_score: score.clone(),
+                count: 0,
+            },
+
             generation,
-            stagnation: 0,
         }
     }
 
@@ -64,7 +98,15 @@ impl<C: Chromosome> Species<C> {
     }
 
     pub fn stagnation(&self) -> usize {
-        self.stagnation
+        self.stagnation_tracker.count
+    }
+
+    pub fn stagnation_tracker(&self) -> &StangationTracker {
+        &self.stagnation_tracker
+    }
+
+    pub fn generation(&self) -> usize {
+        self.generation
     }
 
     pub fn score(&self) -> &Score {
@@ -80,20 +122,12 @@ impl<C: Chromosome> Species<C> {
         self.population.push(new_phenotype);
     }
 
-    pub fn update_score(&mut self, score: Score, top_score: Score, objective: &Objective) {
+    pub fn update_score(&mut self, score: Score, objective: &Objective) {
+        objective.sort(&mut self.population);
+
         self.score = score.clone();
-        if self.best_score.is_none() {
-            self.best_score = Some(top_score);
-            self.stagnation = 0;
-            return;
-        } else if let Some(ref best_score) = self.best_score {
-            if objective.is_better(&top_score, best_score) {
-                self.best_score = Some(top_score);
-                self.stagnation = 0;
-            } else {
-                self.stagnation += 1;
-            }
-        }
+        self.stagnation_tracker
+            .update(&self.population.get(0).score().unwrap(), objective);
     }
 
     pub fn age(&self, generation: usize) -> usize {
@@ -112,10 +146,38 @@ impl<C: Chromosome> Clone for Species<C> {
                 .map(|phenotype| Phenotype::clone(phenotype))
                 .collect::<Population<C>>(),
             score: self.score.clone(),
-            best_score: self.best_score.clone(),
-            stagnation: self.stagnation,
+            stagnation_tracker: StangationTracker {
+                current_score: self.stagnation_tracker.current_score.clone(),
+                count: self.stagnation_tracker.count,
+            },
             generation: self.generation,
         }
+    }
+}
+
+impl<C: Chromosome> Scored for Species<C> {
+    fn values(&self) -> impl AsRef<[f32]> {
+        self.score()
+    }
+    fn score(&self) -> Option<Score> {
+        Some(self.score.clone())
+    }
+}
+
+impl<C: Chromosome + PartialEq> PartialEq for Species<C> {
+    fn eq(&self, other: &Self) -> bool {
+        self.score() == other.score()
+            && self.id == other.id
+            && self.mascot() == other.mascot()
+            && self.len() == other.len()
+            && self.stagnation() == other.stagnation()
+            && self.generation == other.generation
+    }
+}
+
+impl<C: Chromosome> PartialOrd for Species<C> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.score().partial_cmp(other.score())
     }
 }
 
@@ -135,11 +197,12 @@ impl<C: Chromosome> Debug for Species<C> {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(
             f,
-            "Species {{ members: {:?}, score: {:?}, best_score: {:?}, stagnation: {:?}, id: {:?} }}",
+            "Species {{ members: {:?}, score: {:?}, best_score: {:?}, stagnation: {:?}, generation: {:?}, id: {:?} }}",
             self.len(),
             self.score,
-            self.best_score,
-            self.stagnation,
+            self.stagnation_tracker.current_score,
+            self.stagnation_tracker.count,
+            self.generation,
             self.id
         )
     }

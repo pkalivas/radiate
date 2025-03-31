@@ -1,4 +1,4 @@
-use crate::{Chromosome, Phenotype};
+use super::Scored;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Objective {
@@ -34,7 +34,7 @@ impl Objective {
         }
     }
 
-    pub fn sort<C: Chromosome, P: AsMut<[Phenotype<C>]>>(&self, population: &mut P) {
+    pub fn sort<P: AsMut<[S]>, S: Scored + PartialOrd>(&self, population: &mut P) {
         match self {
             Objective::Single(opt) => opt.sort(population),
             Objective::Multi(_) => population.as_mut().sort_by(|a, b| {
@@ -111,7 +111,7 @@ pub enum Optimize {
 }
 
 impl Optimize {
-    pub fn sort<C: Chromosome, I: AsMut<[Phenotype<C>]>>(&self, population: &mut I) {
+    pub fn sort<I: AsMut<[S]>, S: Scored + PartialOrd>(&self, population: &mut I) {
         match self {
             Optimize::Minimize => population
                 .as_mut()

@@ -141,15 +141,16 @@ impl<C: Chromosome> RecombineStep<C> {
         }
 
         let mut altered_individuals = Vec::new();
-        let species_count = species.len();
-        for i in 0..species_count {
-            let current_species = &species[i];
-            let scale = &species[species_count - 1 - i].score().as_f32();
+        let mut species_scores = species.iter().map(|s| s.score()).collect::<Vec<_>>();
 
-            let count = (scale * self.offspring_count as f32).round() as usize;
+        if let Objective::Single(crate::Optimize::Minimize) = &self.objective {
+            species_scores.reverse();
+        }
 
-            let (mut offspring, metric) =
-                self.select_offspring(&current_species.population(), count);
+        for (species, score) in species.iter().zip(species_scores.iter()) {
+            let count = (score.as_f32() * self.offspring_count as f32).round() as usize;
+
+            let (mut offspring, metric) = self.select_offspring(species.population(), count);
 
             metrics.push(metric);
             for metric in self.apply_alterations(generation, &mut offspring) {
