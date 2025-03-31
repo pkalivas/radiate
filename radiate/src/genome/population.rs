@@ -1,4 +1,5 @@
 use super::phenotype::Phenotype;
+use crate::sync::RwCellGuard;
 use crate::{Chromosome, Score};
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut, Range};
@@ -65,10 +66,11 @@ impl<C: Chromosome> Population<C> {
         self.individuals.swap(a, b);
     }
 
-    pub fn get_scores(&self) -> Vec<Score> {
+    pub fn get_scores(&self) -> Vec<RwCellGuard<'_, Option<Score>>> {
         self.individuals
             .iter()
-            .filter_map(|individual| individual.score())
+            .filter(|individual| individual.score_ref().is_some()) // Only include individuals with a score
+            .map(|individual| individual.score_ref())
             .collect()
     }
 

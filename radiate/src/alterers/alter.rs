@@ -8,7 +8,6 @@ use std::collections::HashSet;
 pub enum Alterer<C: Chromosome> {
     Mutate(&'static str, Rate, Box<dyn Mutate<C>>),
     Crossover(&'static str, Rate, Box<dyn Crossover<C>>),
-    // Adaptive(Rate, Box<Alterer<C>>),
 }
 
 impl<C: Chromosome> Alterer<C> {
@@ -23,7 +22,6 @@ impl<C: Chromosome> Alterer<C> {
         match self {
             Alterer::Mutate(name, _, _) => name,
             Alterer::Crossover(name, _, _) => name,
-            // Alterer::Adaptive(_, alterer) => alterer.name(),
         }
     }
 
@@ -31,49 +29,17 @@ impl<C: Chromosome> Alterer<C> {
         match self {
             Alterer::Mutate(_, rate, _) => rate,
             Alterer::Crossover(_, rate, _) => rate,
-            // Alterer::Adaptive(rate, _) => rate,
         }
     }
 
     pub fn alter(&self, population: &mut Population<C>) -> AlterResult {
         match &self {
             Alterer::Mutate(name, param, m) => {
-                // self.alter_with(name, population, param, |pop, rate| m.mutate(pop, rate))
-
-                let timer = std::time::Instant::now();
-                let AlterResult(count, metrics, ids) = m.mutate(population, param.get());
-                let metric = Metric::new_operations(name, count, timer.elapsed());
-
-                let result = match metrics {
-                    Some(metrics) => metrics.into_iter().chain(vec![metric]).collect(),
-                    None => vec![metric],
-                };
-
-                AlterResult(count, Some(result), ids)
+                self.alter_with(name, population, param, |pop, rate| m.mutate(pop, rate))
             }
             Alterer::Crossover(name, param, c) => {
-                // self.alter_with(name, population, param, |pop, rate| c.crossover(pop, rate))
-                let timer = std::time::Instant::now();
-                let AlterResult(count, metrics, ids) = c.crossover(population, param.get());
-                let metric = Metric::new_operations(name, count, timer.elapsed());
-
-                let result = match metrics {
-                    Some(metrics) => metrics.into_iter().chain(vec![metric]).collect(),
-                    None => vec![metric],
-                };
-
-                AlterResult(count, Some(result), ids)
-            } // Alterer::Adaptive(rate, alterer) => {
-              //     alterer.alter_with(self.name(), population, rate, |pop, r| {
-              //         match alterer.as_ref() {
-              //             Alterer::Mutate(_, _, m) => m.mutate(pop, r),
-              //             Alterer::Crossover(_, _, c) => c.crossover(pop, r),
-              //             Alterer::Adaptive(_, inner) => {
-              //                 inner.alter_with(self.name(), pop, rate, |p, _| inner.alter(p))
-              //             }
-              //         }
-              //     })
-              // }
+                self.alter_with(name, population, param, |pop, rate| c.crossover(pop, rate))
+            }
         }
     }
 

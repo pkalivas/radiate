@@ -3,7 +3,7 @@ use crate::objectives::Score;
 use crate::sync::{RwCell, RwCellGuard, RwCellGuardMut};
 use crate::{Chromosome, Scored};
 use std::ops::Deref;
-use std::sync::atomic::AtomicU64;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 static PHENOTYPE_ID_COUNTER: AtomicU64 = AtomicU64::new(1);
 
@@ -12,7 +12,7 @@ pub struct PhenotypeId(u64);
 
 impl PhenotypeId {
     pub fn new() -> Self {
-        PhenotypeId(PHENOTYPE_ID_COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst))
+        PhenotypeId(PHENOTYPE_ID_COUNTER.fetch_add(1, Ordering::SeqCst))
     }
 }
 
@@ -78,9 +78,13 @@ impl<C: Chromosome> Phenotype<C> {
         self.score.set(score);
     }
 
-    pub fn score(&self) -> Option<Score> {
-        let lock = self.score.read();
-        lock.inner().clone()
+    // pub fn score(&self) -> Option<Score> {
+    //     let lock = self.score.read();
+    //     lock.inner().clone()
+    // }
+
+    pub fn score_ref(&self) -> RwCellGuard<Option<Score>> {
+        self.score.read()
     }
 
     /// Get the age of the individual in generations. The age is calculated as the
@@ -114,8 +118,10 @@ impl<C: Chromosome> Scored for Phenotype<C> {
 
         score.unwrap()
     }
+
     fn score(&self) -> Option<Score> {
-        self.score()
+        let lock = self.score_ref();
+        lock.inner().clone()
     }
 }
 
@@ -123,8 +129,8 @@ impl<C: Chromosome> Scored for Phenotype<C> {
 /// with other `Phenotype` instances. The comparison is based on the `Score` (fitness) of the `Phenotype`.
 impl<C: Chromosome> PartialOrd for Phenotype<C> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        let self_score = self.score();
-        let other_score = other.score();
+        let self_score = self.score_ref();
+        let other_score = other.score_ref();
 
         self_score.partial_cmp(&other_score)
     }

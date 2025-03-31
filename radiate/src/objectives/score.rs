@@ -4,6 +4,8 @@ use std::iter::Sum;
 use std::ops::{Add, Div, Mul, Sub};
 use std::sync::Arc;
 
+use crate::sync::RwCellGuard;
+
 pub trait Scored {
     fn values(&self) -> impl AsRef<[f32]>;
 
@@ -23,6 +25,22 @@ pub trait Scored {
     fn score(&self) -> Option<Score>;
 }
 
+impl Scored for Option<&Score> {
+    fn values(&self) -> impl AsRef<[f32]> {
+        match self {
+            Some(score) => score.values.clone(),
+            None => Score::default().values,
+        }
+    }
+
+    fn score(&self) -> Option<Score> {
+        match self {
+            Some(score) => Some((*score).clone()), // Return a clone of the Score
+            None => None,                          // Return None if no score is present
+        }
+    }
+}
+
 impl Scored for Option<Score> {
     fn values(&self) -> impl AsRef<[f32]> {
         match self {
@@ -35,6 +53,28 @@ impl Scored for Option<Score> {
         match self {
             Some(score) => Some(score.clone()),
             None => None,
+        }
+    }
+}
+
+impl Scored for RwCellGuard<'_, Option<Score>> {
+    fn values(&self) -> impl AsRef<[f32]> {
+        match self.inner() {
+            Some(score) => score.clone(),
+            None => Score::default(),
+        }
+    }
+
+    fn score(&self) -> Option<Score> {
+        self.inner().clone()
+    }
+}
+
+impl AsRef<[f32]> for RwCellGuard<'_, Option<Score>> {
+    fn as_ref(&self) -> &[f32] {
+        match self.inner() {
+            Some(score) => &score.values,
+            None => panic!("Score value cannot be None"),
         }
     }
 }

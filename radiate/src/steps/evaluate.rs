@@ -35,7 +35,7 @@ where
         let wg = WaitGroup::new();
 
         for pheno in population.iter() {
-            if pheno.score().is_some() {
+            if pheno.score_ref().is_some() {
                 continue;
             } else {
                 let problem = Arc::clone(&self.problem);

@@ -1,5 +1,5 @@
 use crate::objectives::{Objective, pareto};
-use crate::{Chromosome, Population, Select};
+use crate::{Chromosome, Population, Scored, Select};
 
 /// NSGA2 Selector. Selects individuals based on the NSGA2 algorithm.
 /// This algorithm ranks individuals based on their dominance relationships

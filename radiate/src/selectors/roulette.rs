@@ -26,7 +26,7 @@ impl<C: Chromosome> Select<C> for RouletteSelector {
             Objective::Single(opt) => {
                 let scores = population
                     .iter()
-                    .map(|score| score.score().as_f32())
+                    .map(|score| score.score_ref().as_f32())
                     .collect::<Vec<f32>>();
 
                 let total = scores.iter().sum::<f32>();

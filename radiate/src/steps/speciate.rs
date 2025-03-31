@@ -46,7 +46,7 @@ impl<C: Chromosome> SpeciateStep<C> {
             .population()
             .get_scores()
             .iter()
-            .map(|score| score.clone() / species.len() as f32)
+            .map(|score| score.inner().clone().unwrap() / species.len() as f32)
             .collect()
     }
 

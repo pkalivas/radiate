@@ -2,7 +2,7 @@ use crate::domain::timer::Timer;
 use crate::genome::population::Population;
 use crate::objectives::Front;
 use crate::sync::{RwCell, RwCellGuard};
-use crate::{Chromosome, Genotype, MetricSet, Objective, Phenotype, Score, Species};
+use crate::{Chromosome, Genotype, MetricSet, Objective, Phenotype, Score, Scored, Species};
 use std::fmt::Debug;
 use std::sync::Arc;
 use std::time::Duration;
@@ -97,7 +97,7 @@ where
     pub(crate) fn complete_epoch(&mut self) {
         let current_best = self.population.get(0);
 
-        if let (Some(best), Some(current)) = (current_best.score(), &self.score) {
+        if let (Some(best), Some(current)) = (current_best.score_ref().as_ref(), &self.score) {
             if self.objective().is_better(&best, &current) {
                 self.score = Some(best.clone());
                 self.best = (self.decoder)(&current_best.genotype());

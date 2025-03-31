@@ -1,5 +1,5 @@
 use crate::objectives::{Objective, Optimize};
-use crate::{Chromosome, Population, Select, pareto, random_provider};
+use crate::{Chromosome, Population, Scored, Select, pareto, random_provider};
 
 pub struct StochasticUniversalSamplingSelector;
 

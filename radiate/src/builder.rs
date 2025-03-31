@@ -2,7 +2,7 @@ use super::codexes::Codex;
 use super::thread_pool::ThreadPool;
 use super::{
     Alterer, Crossover, DiversityMeasure, EncodeReplace, EngineProblem, Front, GeneticEngineParams,
-    Mutate, Problem, ReplacementStrategy, RouletteSelector, Select, TournamentSelector, pareto,
+    Mutate, Problem, ReplacementStrategy, RouletteSelector, Select, TournamentSelector,
 };
 use crate::engine::GeneticEngine;
 use crate::genome::phenotype::Phenotype;
@@ -13,7 +13,7 @@ use crate::sync::RwCell;
 use crate::uniform::{UniformCrossover, UniformMutator};
 use crate::{
     AuditStep, Chromosome, EngineStep, EvaluateStep, FilterStep, FrontStep, RecombineStep,
-    SpeciateStep,
+    SpeciateStep, pareto,
 };
 use std::cmp::Ordering;
 use std::ops::Range;
@@ -336,17 +336,28 @@ where
             self.front_range.clone(),
             front_obj.clone(),
             move |one: &Phenotype<C>, two: &Phenotype<C>| {
-                if one.score().is_none() || two.score().is_none() {
+                if one.score_ref().is_none() || two.score_ref().is_none() {
                     return Ordering::Equal;
                 }
 
-                if let (Some(one), Some(two)) = (one.score(), two.score()) {
-                    if pareto::dominance(&one, &two, &front_obj) {
-                        return Ordering::Greater;
-                    } else if pareto::dominance(&two, &one, &front_obj) {
+                let one_score = one.score_ref();
+                let two_score = two.score_ref();
+
+                if let (Some(one), Some(two)) = (one_score.as_ref(), two_score.as_ref()) {
+                    if pareto::dominance(one, two, &front_obj) {
                         return Ordering::Less;
+                    } else if pareto::dominance(two, one, &front_obj) {
+                        return Ordering::Greater;
                     }
                 }
+
+                // if let (Some(one), Some(two)) = (one.score_ref(), two.score_ref()) {
+                //     if pareto::dominance(&one, &two, &front_obj) {
+                //         return Ordering::Greater;
+                //     } else if pareto::dominance(&two, &one, &front_obj) {
+                //         return Ordering::Less;
+                //     }
+                // }
                 Ordering::Equal
             },
         ));
