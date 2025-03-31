@@ -1,9 +1,8 @@
 use super::codexes::Codex;
 use super::thread_pool::ThreadPool;
 use super::{
-    Alter, AlterAction, Crossover, DiversityMeasure, EncodeReplace, EngineProblem, Front,
-    GeneticEngineParams, Mutate, Problem, ReplacementStrategy, RouletteSelector, Select,
-    TournamentSelector, pareto,
+    Alterer, Crossover, DiversityMeasure, EncodeReplace, EngineProblem, Front, GeneticEngineParams,
+    Mutate, Problem, ReplacementStrategy, RouletteSelector, Select, TournamentSelector, pareto,
 };
 use crate::engine::GeneticEngine;
 use crate::genome::phenotype::Phenotype;
@@ -18,7 +17,7 @@ use crate::{
 };
 use std::cmp::Ordering;
 use std::ops::Range;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 /// Parameters for the genetic engine.
 /// This struct is used to configure the genetic engine before it is created.
@@ -47,7 +46,7 @@ where
     pub objective: Objective,
     pub survivor_selector: Arc<dyn Select<C>>,
     pub offspring_selector: Arc<dyn Select<C>>,
-    pub alterers: Vec<Arc<dyn Alter<C>>>,
+    pub alterers: Vec<Arc<Alterer<C>>>,
     pub population: Option<Population<C>>,
     pub codex: Option<Arc<dyn Codex<C, T>>>,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
@@ -182,11 +181,11 @@ where
     /// and crossover operations to the offspring and will be used to create the next
     /// generation of the population. **Note**: the order of the alterers is important - the
     /// alterers will be applied in the order they are provided.
-    pub fn alter(mut self, alterers: Vec<Box<dyn Alter<C>>>) -> Self {
+    pub fn alter(mut self, alterers: Vec<Box<Alterer<C>>>) -> Self {
         self.alterers = alterers
             .into_iter()
             .map(|alter| alter.into())
-            .collect::<Vec<Arc<dyn Alter<C>>>>();
+            .collect::<Vec<Arc<Alterer<C>>>>();
         self
     }
 
@@ -198,7 +197,7 @@ where
     pub fn mutators(mut self, mutators: Vec<Box<dyn Mutate<C>>>) -> Self {
         let mutate_actions = mutators
             .into_iter()
-            .map(|m| Arc::new(AlterAction::Mutate(m.name(), m.rate(), m)) as Arc<dyn Alter<C>>)
+            .map(|m| Arc::new(Alterer::Mutate(m.name(), m.rate(), m)))
             .collect::<Vec<_>>();
 
         self.alterers.extend(mutate_actions);
@@ -213,9 +212,7 @@ where
     pub fn crossovers(mut self, crossovers: Vec<Box<dyn Crossover<C>>>) -> Self {
         let crossover_actions = crossovers
             .into_iter()
-            .map(|c| {
-                Arc::new(AlterAction::Crossover(c.name(), c.rate().into(), c)) as Arc<dyn Alter<C>>
-            })
+            .map(|c| Arc::new(Alterer::Crossover(c.name(), c.rate().into(), c)))
             .collect::<Vec<_>>();
 
         self.alterers.extend(crossover_actions);
@@ -322,8 +319,8 @@ where
             return;
         }
 
-        let crossover = Arc::new(UniformCrossover::new(0.5).alterer()) as Arc<dyn Alter<C>>;
-        let mutator = Arc::new(UniformMutator::new(0.1).alterer()) as Arc<dyn Alter<C>>;
+        let crossover = Arc::new(UniformCrossover::new(0.5).alterer());
+        let mutator = Arc::new(UniformMutator::new(0.1).alterer());
 
         self.alterers.push(crossover);
         self.alterers.push(mutator);

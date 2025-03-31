@@ -1,10 +1,10 @@
 use super::thread_pool::ThreadPool;
-use super::{Alter, DiversityMeasure, Front, Problem, ReplacementStrategy, Select};
-use crate::Chromosome;
+use super::{DiversityMeasure, Front, Problem, ReplacementStrategy, Select};
 use crate::genome::phenotype::Phenotype;
 use crate::genome::population::Population;
 use crate::objectives::Objective;
 use crate::sync::RwCell;
+use crate::{Alterer, Chromosome};
 use std::sync::Arc;
 
 pub struct GeneticEngineParams<C: Chromosome, T> {
@@ -14,7 +14,7 @@ pub struct GeneticEngineParams<C: Chromosome, T> {
     offspring_selector: Arc<dyn Select<C>>,
     replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     distance: Option<Arc<dyn DiversityMeasure<C>>>,
-    alterers: Vec<Arc<dyn Alter<C>>>,
+    alterers: Vec<Arc<Alterer<C>>>,
     objective: Objective,
     thread_pool: Arc<ThreadPool>,
     max_age: usize,
@@ -32,7 +32,7 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
         offspring_selector: Arc<dyn Select<C>>,
         replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
         distance: Option<Arc<dyn DiversityMeasure<C>>>,
-        alterers: Vec<Arc<dyn Alter<C>>>,
+        alterers: Vec<Arc<Alterer<C>>>,
         objective: Objective,
         thread_pool: Arc<ThreadPool>,
         max_age: usize,
@@ -83,7 +83,7 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
         self.distance.clone()
     }
 
-    pub fn alters(&self) -> &[Arc<dyn Alter<C>>] {
+    pub fn alters(&self) -> &[Arc<Alterer<C>>] {
         &self.alterers
     }
 

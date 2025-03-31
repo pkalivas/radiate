@@ -1,6 +1,6 @@
 use super::EngineStep;
 use crate::{
-    Alter, AlterResult, Chromosome, GeneticEngineParams, Metric, Objective, Population, Select,
+    AlterResult, Alterer, Chromosome, GeneticEngineParams, Metric, Objective, Population, Select,
     Species, metric_names, random_provider,
 };
 use std::sync::Arc;
@@ -8,7 +8,7 @@ use std::sync::Arc;
 pub struct RecombineStep<C: Chromosome> {
     survivor_selector: Arc<dyn Select<C>>,
     offspring_selector: Arc<dyn Select<C>>,
-    alters: Vec<Arc<dyn Alter<C>>>,
+    alters: Vec<Arc<Alterer<C>>>,
     survivor_count: usize,
     offspring_count: usize,
     objective: Objective,
@@ -18,7 +18,7 @@ impl<C: Chromosome> RecombineStep<C> {
     pub fn new(
         survivor_selector: Arc<dyn Select<C>>,
         offspring_selector: Arc<dyn Select<C>>,
-        alters: Vec<Arc<dyn Alter<C>>>,
+        alters: Vec<Arc<Alterer<C>>>,
         survivor_count: usize,
         offspring_count: usize,
         objective: Objective,
@@ -185,7 +185,7 @@ where
                 .alters()
                 .iter()
                 .map(|alter| Arc::clone(alter))
-                .collect::<Vec<Arc<dyn Alter<C>>>>(),
+                .collect::<Vec<Arc<Alterer<C>>>>(),
             survivor_count: params.survivor_count(),
             offspring_count: params.offspring_count(),
             objective: params.objective().clone(),

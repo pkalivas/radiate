@@ -1,9 +1,101 @@
 use super::{Crossover, Mutate};
 use crate::{Chromosome, Metric, Population, Rate};
-use std::{
-    collections::HashSet,
-    sync::{Arc, RwLock},
-};
+use std::collections::HashSet;
+
+/// The `AlterAction` enum is used to represent the different
+/// types of alterations that can be performed on a
+/// population - It can be either a mutation or a crossover operation.
+pub enum Alterer<C: Chromosome> {
+    Mutate(&'static str, Rate, Box<dyn Mutate<C>>),
+    Crossover(&'static str, Rate, Box<dyn Crossover<C>>),
+    // Adaptive(Rate, Box<Alterer<C>>),
+}
+
+impl<C: Chromosome> Alterer<C> {
+    pub fn alterer(self) -> Alterer<C>
+    where
+        Self: Sized + 'static,
+    {
+        self
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            Alterer::Mutate(name, _, _) => name,
+            Alterer::Crossover(name, _, _) => name,
+            // Alterer::Adaptive(_, alterer) => alterer.name(),
+        }
+    }
+
+    pub fn rate(&self) -> &Rate {
+        match self {
+            Alterer::Mutate(_, rate, _) => rate,
+            Alterer::Crossover(_, rate, _) => rate,
+            // Alterer::Adaptive(rate, _) => rate,
+        }
+    }
+
+    pub fn alter(&self, population: &mut Population<C>) -> AlterResult {
+        match &self {
+            Alterer::Mutate(name, param, m) => {
+                // self.alter_with(name, population, param, |pop, rate| m.mutate(pop, rate))
+
+                let timer = std::time::Instant::now();
+                let AlterResult(count, metrics, ids) = m.mutate(population, param.get());
+                let metric = Metric::new_operations(name, count, timer.elapsed());
+
+                let result = match metrics {
+                    Some(metrics) => metrics.into_iter().chain(vec![metric]).collect(),
+                    None => vec![metric],
+                };
+
+                AlterResult(count, Some(result), ids)
+            }
+            Alterer::Crossover(name, param, c) => {
+                // self.alter_with(name, population, param, |pop, rate| c.crossover(pop, rate))
+                let timer = std::time::Instant::now();
+                let AlterResult(count, metrics, ids) = c.crossover(population, param.get());
+                let metric = Metric::new_operations(name, count, timer.elapsed());
+
+                let result = match metrics {
+                    Some(metrics) => metrics.into_iter().chain(vec![metric]).collect(),
+                    None => vec![metric],
+                };
+
+                AlterResult(count, Some(result), ids)
+            } // Alterer::Adaptive(rate, alterer) => {
+              //     alterer.alter_with(self.name(), population, rate, |pop, r| {
+              //         match alterer.as_ref() {
+              //             Alterer::Mutate(_, _, m) => m.mutate(pop, r),
+              //             Alterer::Crossover(_, _, c) => c.crossover(pop, r),
+              //             Alterer::Adaptive(_, inner) => {
+              //                 inner.alter_with(self.name(), pop, rate, |p, _| inner.alter(p))
+              //             }
+              //         }
+              //     })
+              // }
+        }
+    }
+
+    fn alter_with<F: Fn(&mut Population<C>, f32) -> AlterResult>(
+        &self,
+        name: &'static str,
+        population: &mut Population<C>,
+        rate: &Rate,
+        alter_fn: F,
+    ) -> AlterResult {
+        let timer = std::time::Instant::now();
+        let AlterResult(count, metrics, ids) = alter_fn(population, rate.get());
+        let metric = Metric::new_operations(name, count, timer.elapsed());
+
+        let result = match metrics {
+            Some(metrics) => metrics.into_iter().chain(vec![metric]).collect(),
+            None => vec![metric],
+        };
+
+        AlterResult(count, Some(result), ids)
+    }
+}
 
 /// This is the main trait that is used to define the different types of alterations that can be
 /// performed on a population. The `Alter` trait is used to define the `alter` method that is used
@@ -25,9 +117,6 @@ use std::{
 /// In `radiate` the `alter` trait performs similar operations to a traditional genetic algorithm,
 /// but it is designed to be more flexible and extensible. Because an `Alter` can be of type `Mutate`
 /// or `Crossover`, it is abstracted out of those core traits into this trait.
-pub trait Alter<C: Chromosome> {
-    fn alter(&self, population: &mut Population<C>) -> AlterResult;
-}
 
 /// The `AlterResult` struct is used to represent the result of an
 /// alteration operation. It contains the number of operations
@@ -100,46 +189,5 @@ impl Into<AlterResult> for (usize, Vec<Metric>) {
 impl Into<AlterResult> for (usize, Metric) {
     fn into(self) -> AlterResult {
         AlterResult(self.0, Some(vec![self.1]), HashSet::new())
-    }
-}
-
-/// The `AlterAction` enum is used to represent the different
-/// types of alterations that can be performed on a
-/// population - It can be either a mutation or a crossover operation.
-pub enum AlterAction<C: Chromosome> {
-    Mutate(&'static str, Rate, Box<dyn Mutate<C>>),
-    Crossover(&'static str, Rate, Box<dyn Crossover<C>>),
-}
-
-impl<C: Chromosome> Alter<C> for AlterAction<C> {
-    fn alter(&self, population: &mut Population<C>) -> AlterResult {
-        match &self {
-            AlterAction::Mutate(name, param, m) => {
-                let timer = std::time::Instant::now();
-                let rate = param.get();
-                let AlterResult(count, metrics, ids) = m.mutate(population, rate);
-                let metric = Metric::new_operations(name, count, timer.elapsed());
-
-                let result_metrics = match metrics {
-                    Some(metrics) => metrics.into_iter().chain(vec![metric]).collect(),
-                    None => vec![metric],
-                };
-
-                AlterResult(count, Some(result_metrics), ids)
-            }
-            AlterAction::Crossover(name, param, c) => {
-                let timer = std::time::Instant::now();
-                let rate = param.get();
-                let AlterResult(count, metrics, ids) = c.crossover(population, rate);
-                let metric = Metric::new_operations(name, count, timer.elapsed());
-
-                let result = match metrics {
-                    Some(metrics) => metrics.into_iter().chain(vec![metric]).collect(),
-                    None => vec![metric],
-                };
-
-                AlterResult(count, Some(result), ids)
-            }
-        }
     }
 }

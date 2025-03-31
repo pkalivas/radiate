@@ -20,7 +20,7 @@ fn main() {
     let engine = GeneticEngine::from_problem(problem)
         .minimizing()
         .num_threads(10)
-        .diversity(NeatDistance::new(1.0, 1.0, 3.0))
+        // .diversity(NeatDistance::new(1.0, 1.0, 3.0))
         .species_threshold(1.8)
         .max_species_age(25)
         .alter(alters!(
@@ -33,8 +33,8 @@ fn main() {
     engine
         .iter()
         .take_while(|ctx| ctx.score().as_f32() > MIN_SCORE && ctx.seconds() < MAX_SECONDS)
-        .inspect(|ctx| log_species!(ctx))
-        // .inspect(|ctx| log_species(&ctx.species()))
+        // .inspect(|ctx| log_species!(ctx))
+        .inspect(|ctx| log_ctx!(&ctx))
         .last()
         .inspect(display)
         .unwrap();

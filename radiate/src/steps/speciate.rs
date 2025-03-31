@@ -1,7 +1,7 @@
 use super::EngineStep;
 use crate::{
     Chromosome, DiversityMeasure, GeneticEngineParams, Metric, Objective, Phenotype, Population,
-    Score, Species, metric_names, random_provider,
+    Rate, Score, Species, metric_names, random_provider,
     thread_pool::{ThreadPool, WaitGroup},
 };
 use std::{
@@ -12,7 +12,7 @@ use std::{
 pub struct SpeciateStep<C: Chromosome> {
     objective: Objective,
     diversity: Arc<dyn DiversityMeasure<C>>,
-    threshold: Cell<f32>,
+    rate: Rate,
     thread_pool: Arc<ThreadPool>,
 }
 
@@ -108,7 +108,7 @@ where
                 .collect::<Vec<Phenotype<C>>>();
             let species_snapshot = species.iter().cloned().collect::<Vec<Species<C>>>();
 
-            let threshold = self.threshold.get();
+            let threshold = self.rate.get();
             let diversity = Arc::clone(&self.diversity);
             let assignments = Arc::clone(&assignments);
             let distances = Arc::clone(&distances);
@@ -142,7 +142,7 @@ where
 
                     distances.push(dist);
 
-                    if dist < self.threshold.get() {
+                    if dist < self.rate.get() {
                         species.add_member(population.get(i));
                         found = true;
                         break;
@@ -179,10 +179,65 @@ where
             return Some(Box::new(SpeciateStep {
                 objective: params.objective().clone(),
                 diversity: Arc::clone(&distance),
-                threshold: Cell::new(params.species_threshold()),
                 thread_pool: Arc::clone(&params.thread_pool()),
+                rate: Rate::Static(Cell::new(params.species_threshold())),
             }));
         }
         None
     }
 }
+
+// let previous_best = if species.is_empty() {
+//     None
+// } else {
+//     species
+//         .iter()
+//         .map(|s| s.stagnation_tracker().current_score())
+//         .max_by(|a, b| {
+//             if let Objective::Single(Optimize::Maximize) = &self.objective {
+//                 a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)
+//             } else {
+//                 b.partial_cmp(a).unwrap_or(std::cmp::Ordering::Equal)
+//             }
+//         })
+//         .cloned()
+// };
+
+// let current_best = population.get(0).score();
+
+// println!("THRESHOLD: {}", self.rate.get());
+
+// let mean_distance = if distances.is_empty() {
+//     0.0
+// } else {
+//     distances.iter().sum::<f32>() / distances.len() as f32
+// };
+
+// if let (Some(previous), Some(current)) = (previous_best, current_best) {
+//     let prev = previous.as_f32();
+//     let curr = current.as_f32();
+
+//     let scaled_improvement = if prev > 0.0 {
+//         if let Objective::Single(Optimize::Minimize) = &self.objective {
+//             (prev - curr) / prev
+//         } else {
+//             (curr - prev) / prev
+//         }
+//     } else {
+//         curr
+//     };
+
+//     println!(
+//         "Previous Best: {:.4}, Current Best: {:.4}, Improvement: {:.4}",
+//         prev, curr, scaled_improvement
+//     );
+
+//     self.rate.update((1.0 - scaled_improvement) * mean_distance);
+// }
+
+// rate: Rate::Diversity {
+//     current: Cell::new(params.species_threshold()),
+//     alpha: 0.0001,
+//     min: 0.1,
+//     max: 100.0,
+// },

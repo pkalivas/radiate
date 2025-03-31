@@ -1,6 +1,4 @@
-use std::sync::{Arc, RwLock};
-
-use super::{AlterAction, AlterResult};
+use super::{AlterResult, Alterer};
 use crate::{Chromosome, Gene, Genotype, Population, Rate, random_provider};
 
 pub trait Mutate<C: Chromosome> {
@@ -12,11 +10,11 @@ pub trait Mutate<C: Chromosome> {
         1.0.into()
     }
 
-    fn alterer(self) -> AlterAction<C>
+    fn alterer(self) -> Alterer<C>
     where
         Self: Sized + 'static,
     {
-        AlterAction::Mutate(self.name(), self.rate(), Box::new(self))
+        Alterer::Mutate(self.name(), self.rate(), Box::new(self))
     }
 
     #[inline]

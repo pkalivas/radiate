@@ -1,4 +1,4 @@
-use super::Statistic;
+use super::{Statistic, metric_names};
 use crate::{Distribution, TimeStatistic};
 use std::{collections::BTreeMap, time::Duration};
 
@@ -104,6 +104,31 @@ impl MetricSet {
 
     pub fn iter(&self) -> impl Iterator<Item = (&'static str, &Metric)> {
         self.metrics.iter().map(|(name, metric)| (*name, metric))
+    }
+
+    pub fn score_distribution(&self) -> Option<&Distribution> {
+        self.get(metric_names::SCORE).map(|m| match m {
+            Metric::Distribution(_, dist) => dist,
+            Metric::Value(_, _, dist) => dist,
+            _ => panic!("Expected a distribution metric"),
+        })
+    }
+
+    pub fn diversity_distribution(&self) -> Option<&Distribution> {
+        self.get(metric_names::SPECIES_DISTANCE_DIST)
+            .map(|m| match m {
+                Metric::Distribution(_, dist) => dist,
+                Metric::Value(_, _, dist) => dist,
+                _ => panic!("Expected a distribution metric"),
+            })
+    }
+
+    pub fn improvement_statistic(&self) -> Option<&Statistic> {
+        self.get(metric_names::IMPROVEMENT).map(|m| match m {
+            Metric::Value(_, stat, _) => stat,
+            Metric::Operations(_, stat, _) => stat,
+            _ => panic!("Expected a statistic metric"),
+        })
     }
 }
 

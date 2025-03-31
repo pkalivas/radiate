@@ -1,6 +1,4 @@
-use std::sync::{Arc, RwLock};
-
-use super::{AlterAction, AlterResult};
+use super::{AlterResult, Alterer};
 use crate::{Chromosome, Gene, Population, indexes, random_provider};
 
 /// The `Crossover` trait is used to define the crossover operation for a genetic algorithm.
@@ -23,11 +21,11 @@ pub trait Crossover<C: Chromosome> {
         1.0
     }
 
-    fn alterer(self) -> AlterAction<C>
+    fn alterer(self) -> Alterer<C>
     where
         Self: Sized + 'static,
     {
-        AlterAction::Crossover(self.name(), self.rate().into(), Box::new(self))
+        Alterer::Crossover(self.name(), self.rate().into(), Box::new(self))
     }
 
     #[inline]

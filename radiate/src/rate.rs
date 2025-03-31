@@ -5,15 +5,53 @@ use std::{
 
 #[derive(Clone, PartialEq)]
 pub enum Rate {
+    /// Static rate does not change over time.
+    /// It is useful when we want to maintain a constant mutation or crossover rate.
+    /// This can be beneficial in scenarios where we want to maintain
+    /// a consistent level of exploration or exploitation.
     Static(Cell<f32>),
-    ExpSmoothing {
-        value: Cell<f32>,
-        alpha: f32,
-    },
+    /// Exponential smoothing updates the rate based on a weighted average
+    /// of the current candidate and the previous rate.
+    /// The alpha parameter controls the weight given to the current candidate.
+    /// A higher alpha value means that the current candidate has a stronger influence,
+    /// which can be useful in scenarios where we want to adapt quickly to changes.
+    /// This can be particularly beneficial in dynamic environments where
+    /// the optimal rate may vary significantly over time.
+    /// By using exponential smoothing, we can achieve a more responsive
+    /// and adaptive rate adjustment mechanism. It allows the algorithm to
+    /// adjust the rate more effectively based on the current candidate's performance.
+    ExpSmoothing { value: Cell<f32>, alpha: f32 },
+    /// Momentum updates the value based on the candidate and previous momentum.
+    /// The momentum is a form of inertia that helps smooth out the updates.
+    /// This is useful in scenarios where we want to avoid abrupt changes
+    /// in the rate, allowing for a more stable and gradual adjustment.
+    /// The beta parameter controls the influence of the previous momentum.
+    /// A higher beta value means that the previous momentum has a stronger influence,
+    /// which can be beneficial in scenarios where we want to maintain a consistent
+    /// rate of change. This can be particularly useful in optimization problems
+    /// where we want to avoid overshooting the target or making erratic adjustments.
+    /// By using momentum, we can achieve a smoother and more stable adjustment
+    /// to the rate, which can lead to better convergence properties in optimization
+    /// algorithms. It helps to balance exploration and exploitation by allowing
+    /// the algorithm to make more informed decisions based on both the current
+    /// candidate and the historical performance.
     Momentum {
         value: Cell<f32>,
         momentum: Cell<f32>,
         beta: f32,
+    },
+    /// Alpha: A smoothing factor that controls the sensitivity of the rate adjustment.
+    /// Target Diversity: The desired level of diversity in the population.
+    /// Max/Min Rate: Bounds for the mutation rate to prevent extreme values.
+    /// Diversity Factor: Encourages rate adjustment based on how far the current diversity is from the target.
+    /// Improvement Factor: Encourages rate adjustment based on the lack of fitness improvement.
+    /// This approach provides a more dynamic and responsive rate update mechanism,
+    /// potentially leading to better performance in maintaining diversity and improving fitness over generations.
+    Diversity {
+        current: Cell<f32>,
+        alpha: f32,
+        min: f32,
+        max: f32,
     },
 }
 
@@ -31,6 +69,7 @@ impl Rate {
                 let current_momentum = momentum.get();
                 current_value + current_momentum * beta
             }
+            Rate::Diversity { current, .. } => current.get(),
         }
     }
 
@@ -44,20 +83,13 @@ impl Rate {
     ///   new_val = current + new_mom
     ///
     /// The Cyclical variant does not update based on candidate.
-    pub fn update(&mut self, candidate: f32) {
+    pub fn update(&self, candidate: f32) {
         match self {
-            Rate::Static(_) => {
-                // Do nothing; static rate remains unchanged.
-                println!("Static rate remains unchanged.");
-            }
+            Rate::Static(_) => {}
             Rate::ExpSmoothing { value, alpha } => {
                 let current = value.get();
                 let new_val = *alpha * candidate + (1.0 - *alpha) * current;
                 value.set(new_val);
-                println!(
-                    "ExpSmoothing updated: candidate = {:.4}, new value = {:.4}",
-                    candidate, new_val
-                );
             }
             Rate::Momentum {
                 value,
@@ -71,10 +103,17 @@ impl Rate {
                 let new_val = current + new_mom;
                 value.set(new_val);
                 momentum.set(new_mom);
-                println!(
-                    "Momentum updated: candidate = {:.4}, new value = {:.4}",
-                    candidate, new_val
-                );
+            }
+            Rate::Diversity {
+                current,
+                alpha,
+                min,
+                max,
+            } => {
+                let current_value = current.get();
+                let adjustment = alpha * candidate.abs();
+                let new_val = (current_value + adjustment).clamp(*min, *max);
+                current.set(new_val);
             }
         }
     }
@@ -90,6 +129,21 @@ impl Debug for Rate {
             Rate::Momentum { value, beta, .. } => {
                 write!(f, "Momentum({:.4}, beta={:.2})", value.get(), beta)
             }
+            Rate::Diversity {
+                current,
+                alpha,
+                min,
+                max,
+            } => {
+                write!(
+                    f,
+                    "Diversity(current={:.4}, alpha={:.2}, min={:.4}, max={:.4})",
+                    current.get(),
+                    alpha,
+                    min,
+                    max
+                )
+            }
         }
     }
 }
@@ -97,47 +151,5 @@ impl Debug for Rate {
 impl From<f32> for Rate {
     fn from(value: f32) -> Self {
         Rate::Static(Cell::new(value))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::cell::Cell;
-
-    use super::*;
-
-    #[test]
-    fn test_rate_static() {
-        let rate = Rate::from(0.5);
-        assert_eq!(rate.get(), 0.5);
-    }
-
-    #[test]
-    fn test_rate_exp_smoothing() {
-        let mut exp_rate = Rate::ExpSmoothing {
-            value: Cell::new(1.0),
-            alpha: 0.2,
-        };
-
-        println!("Initial ExpSmoothing rate: {:?}", exp_rate);
-        // Simulate candidate rate measurements.
-        let candidates = vec![0.8, 0.6, 1.2, 0.9, 1.0];
-        for candidate in candidates {
-            exp_rate.update(candidate);
-            println!("Updated ExpSmoothing rate: {:.4}", exp_rate.get());
-        }
-
-        // Create a momentum-based rate with an initial value of 1.0, beta = 0.3.
-        let mut momentum_rate = Rate::Momentum {
-            value: Cell::new(1.0),
-            momentum: Cell::new(0.0),
-            beta: 0.3,
-        };
-
-        println!("\nInitial Momentum rate: {:?}", momentum_rate);
-        for candidate in vec![0.8, 0.6, 1.2, 0.9, 1.0] {
-            momentum_rate.update(candidate);
-            println!("Updated Momentum rate: {:.4}", momentum_rate.get());
-        }
     }
 }

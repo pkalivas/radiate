@@ -27,6 +27,7 @@ pub mod metric_names {
 
     pub const FITNESS: &str = "Fitness";
     pub const ALTERED: &str = "Altered";
+    pub const IMPROVEMENT: &str = "Improvement";
 
     pub const SPECIES_COUNT: &str = "Species(Count)";
     pub const SPECIES_AGE_FAIL: &str = "Species(Age Removed)";
