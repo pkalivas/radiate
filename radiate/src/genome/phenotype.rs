@@ -54,8 +54,8 @@ impl<C: Chromosome> Phenotype<C> {
 
     pub fn invalidate(&mut self, generation: usize) {
         self.score.set(None);
-        self.generation = generation;
         self.id.set(PhenotypeId::new());
+        self.generation = generation;
     }
 
     pub fn genotype(&self) -> RwCellGuard<Genotype<C>> {
@@ -82,8 +82,6 @@ impl<C: Chromosome> Phenotype<C> {
         self.score.read()
     }
 
-    /// Get the age of the individual in generations. The age is calculated as the
-    /// difference between the given generation and the generation in which the individual was created.
     pub fn age(&self, generation: usize) -> usize {
         generation - self.generation
     }
@@ -94,31 +92,53 @@ impl<C: Chromosome> Phenotype<C> {
 /// and will remove any invalid individuals from the population, replacing them with new individuals at the given generation.
 impl<C: Chromosome> Valid for Phenotype<C> {
     fn is_valid(&self) -> bool {
-        self.genotype().deref().is_valid()
-    }
-}
-
-impl<C: Chromosome> AsRef<Phenotype<C>> for Phenotype<C> {
-    fn as_ref(&self) -> &Phenotype<C> {
-        self
+        self.genotype().is_valid()
     }
 }
 
 impl<C: Chromosome> Scored for Phenotype<C> {
-    fn values(&self) -> impl AsRef<[f32]> {
-        let score = self.score();
-        if score.is_none() {
-            return Score::default();
-        }
+    type Score<'a>
+        = RwCellGuard<'a, Option<Score>>
+    where
+        Self: 'a;
 
-        score.unwrap()
-    }
-
-    fn score(&self) -> Option<Score> {
-        let lock = self.score_ref();
-        lock.inner().clone()
+    fn score<'a>(&'a self) -> Self::Score<'a> {
+        self.score.read()
     }
 }
+
+// impl<C: Chromosome> AsRef<Phenotype<C>> for Phenotype<C> {
+//     fn as_ref(&self) -> &Phenotype<C> {
+//         self
+//     }
+// }
+
+// impl<C: Chromosome> Scored for Phenotype<C>
+// where for<'a> {
+//     type Score = RwCellGuard<'_, Option<Score>>;
+
+//     fn values(&self) -> impl AsRef<[f32]> {
+//         // let score = self.score();
+//         // if score.is_none() {
+//         //     return Score::default();
+//         // }
+
+//         // score.unwrap()
+//         self.score().unwrap().values()
+//     }
+
+//     fn score(&self) -> Option<&Self::Score> {
+//         Some(self.score.read())
+//     }
+// }
+
+// trait Scored {
+//     type Score<'a>: ?Sized
+//     where
+//         Self: 'a;
+
+//     fn score<'a>(&'a self) -> &Self::Score<'a>;
+// }
 
 /// Implement the `PartialOrd` trait for the `Phenotype`. This allows the `Phenotype` to be compared
 /// with other `Phenotype` instances. The comparison is based on the `Score` (fitness) of the `Phenotype`.

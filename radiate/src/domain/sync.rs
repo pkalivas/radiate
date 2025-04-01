@@ -30,6 +30,10 @@ impl<T> RwCell<T> {
             .expect("RwLock poisoned")
     }
 
+    pub fn inner(&self) -> &Arc<RwLock<T>> {
+        &self.inner
+    }
+
     pub fn read(&self) -> RwCellGuard<T> {
         let read_lock = self.inner.read().unwrap();
         RwCellGuard { inner: read_lock }
