@@ -60,6 +60,17 @@ impl<'a> Deref for Score {
     }
 }
 
+impl Scored for &RwCellGuard<'_, Option<Score>> {
+    type Score<'a>
+        = Option<&'a Score>
+    where
+        Self: 'a;
+
+    fn score<'a>(&'a self) -> Self::Score<'a> {
+        self.inner().as_ref()
+    }
+}
+
 // impl<'a> AsRef<usize> for Score {
 //     fn as_ref(&self) -> &usize {
 //         if self.values.is_empty() {

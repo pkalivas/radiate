@@ -336,12 +336,12 @@ where
             self.front_range.clone(),
             front_obj.clone(),
             move |one: &Phenotype<C>, two: &Phenotype<C>| {
-                if one.score_ref().is_none() || two.score_ref().is_none() {
+                if one.score().is_none() || two.score().is_none() {
                     return Ordering::Equal;
                 }
 
-                let one_score = one.score_ref();
-                let two_score = two.score_ref();
+                let one_score = one.score();
+                let two_score = two.score();
 
                 if let (Some(one), Some(two)) = (one_score.as_ref(), two_score.as_ref()) {
                     if pareto::dominance(one, two, &front_obj) {

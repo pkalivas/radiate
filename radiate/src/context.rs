@@ -97,7 +97,7 @@ where
     pub(crate) fn complete_epoch(&mut self) {
         let current_best = self.population.get(0);
 
-        if let (Some(best), Some(current)) = (current_best.score_ref().as_ref(), &self.score) {
+        if let (Some(best), Some(current)) = (current_best.score().as_ref(), &self.score) {
             if self.objective().is_better(&best, &current) {
                 self.score = Some(best.clone());
                 self.best = (self.decoder)(&current_best.genotype());
