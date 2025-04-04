@@ -12,7 +12,7 @@ use crate::objectives::{Objective, Optimize};
 use crate::sync::RwCell;
 use crate::uniform::{UniformCrossover, UniformMutator};
 use crate::{
-    AuditStep, Chromosome, EngineStep, EvaluateStep, FilterStep, FrontStep, RecombineStep,
+    AuditStep, Chromosome, EngineStep, EvaluateStep, FilterStep, FrontStep, RecombineStep, Scored,
     SpeciateStep, pareto,
 };
 use std::cmp::Ordering;

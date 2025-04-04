@@ -98,8 +98,8 @@ where
         let current_best = self.population.get(0);
 
         if let (Some(best), Some(current)) = (current_best.score().as_ref(), &self.score) {
-            if self.objective().is_better(&best, &current) {
-                self.score = Some(best.clone());
+            if self.objective().is_better(best, &current) {
+                self.score = Some((*best).clone());
                 self.best = (self.decoder)(&current_best.genotype());
             }
         } else {

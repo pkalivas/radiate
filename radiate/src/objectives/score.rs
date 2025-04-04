@@ -1,75 +1,50 @@
-use std::borrow::Cow;
+use crate::sync::RwCellGuard;
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use std::iter::Sum;
-use std::ops::{Add, Deref, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Sub};
 use std::sync::Arc;
-
-use crate::sync::RwCellGuard;
-
-// pub trait Scored {
-//     type Score;
-
-//     fn values(&self) -> impl AsRef<[f32]>;
-
-//     fn as_f32(&self) -> f32 {
-//         let vals = self.values();
-//         if vals.as_ref().is_empty() {
-//             f32::NAN
-//         } else {
-//             vals.as_ref()[0]
-//         }
-//     }
-
-//     fn as_usize(&self) -> usize {
-//         self.as_f32() as usize
-//     }
-
-//     fn score(&self) -> Option<&Self::Score> {
-//         None
-//     }
-// }
 
 /// A trait for any type that can yield "score" data by reference.
 /// We define a generic associated type `Score<'a>` so we can return a reference
 /// that is tied to the lifetime `'a` of `self`.
-pub trait Scored {
-    type Score<'a>: ?Sized
-    where
-        Self: 'a;
+// pub trait Scored {
+//     type Score<'a>: ?Sized
+//     where
+//         Self: 'a;
 
-    fn score<'a>(&'a self) -> Self::Score<'a>;
-}
+//     fn score<'a>(&'a self) -> Self::Score<'a>;
+// }
 
-impl Scored for Score {
-    type Score<'a>
-        = &'a [f32]
-    where
-        Self: 'a;
+// impl Scored for Score {
+//     type Score<'a>
+//         = &'a [f32]
+//     where
+//         Self: 'a;
 
-    fn score<'a>(&'a self) -> Self::Score<'a> {
-        &self.values
-    }
-}
+//     fn score<'a>(&'a self) -> Self::Score<'a> {
+//         &self.values
+//     }
+// }
 
-impl<'a> Deref for Score {
-    type Target = [f32];
+// impl<'a> Deref for Score {
+//     type Target = [f32];
 
-    fn deref(&self) -> &Self::Target {
-        &self.values
-    }
-}
+//     fn deref(&self) -> &Self::Target {
+//         &self.values
+//     }
+// }
 
-impl Scored for &RwCellGuard<'_, Option<Score>> {
-    type Score<'a>
-        = Option<&'a Score>
-    where
-        Self: 'a;
+// impl Scored for &RwCellGuard<'_, Option<Score>> {
+//     type Score<'a>
+//         = Option<&'a Score>
+//     where
+//         Self: 'a;
 
-    fn score<'a>(&'a self) -> Self::Score<'a> {
-        self.inner().as_ref()
-    }
-}
+//     fn score<'a>(&'a self) -> Self::Score<'a> {
+//         self.inner().as_ref()
+//     }
+// }
 
 // impl<'a> AsRef<usize> for Score {
 //     fn as_ref(&self) -> &usize {
@@ -81,62 +56,78 @@ impl Scored for &RwCellGuard<'_, Option<Score>> {
 //     }
 // }
 
-// impl Scored for Option<&Score> {
-//     type Score = Score;
+pub trait Scored {
+    fn values(&self) -> impl AsRef<[f32]>;
 
-//     fn values(&self) -> impl AsRef<[f32]> {
-//         match self {
-//             Some(score) => score.values.clone(),
-//             None => Score::default().values,
-//         }
-//     }
+    fn as_f32(&self) -> f32 {
+        let vals = self.values();
+        if vals.as_ref().is_empty() {
+            f32::NAN
+        } else {
+            vals.as_ref()[0]
+        }
+    }
 
-//     fn score(&self) -> Option<&Self::Score> {
-//         self.as_ref().map(|score| *score)
-//     }
-// }
+    fn as_usize(&self) -> usize {
+        self.as_f32() as usize
+    }
 
-// impl Scored for Option<Score> {
-//     type Score = Score;
+    fn score(&self) -> Option<Score>;
+}
 
-//     fn values(&self) -> impl AsRef<[f32]> {
-//         match self {
-//             Some(score) => score.clone(),
-//             None => Score::default(),
-//         }
-//     }
+impl Scored for Option<&Score> {
+    fn values(&self) -> impl AsRef<[f32]> {
+        match self {
+            Some(score) => score.values.clone(),
+            None => Score::default().values,
+        }
+    }
 
-//     fn score(&self) -> Option<&Self::Score> {
-//         self.as_ref()
-//     }
-// }
+    fn score(&self) -> Option<Score> {
+        match self {
+            Some(score) => Some((*score).clone()),
+            None => None,
+        }
+    }
+}
 
-// impl Scored for RwCellGuard<'_, Option<Score>> {
-//     type Score = Score;
+impl Scored for Option<Score> {
+    fn values(&self) -> impl AsRef<[f32]> {
+        match self {
+            Some(score) => score.clone(),
+            None => Score::default(),
+        }
+    }
 
-//     fn values(&self) -> impl AsRef<[f32]> {
-//         match self.inner() {
-//             Some(score) => score.clone(),
-//             None => Score::default(),
-//         }
-//     }
+    fn score(&self) -> Option<Score> {
+        self.clone()
+    }
+}
 
-//     fn score(&self) -> Option<&Self::Score> {
-//         match self.inner() {
-//             Some(score) => Some(score),
-//             None => None,
-//         }
-//     }
-// }
+impl Scored for RwCellGuard<'_, Option<Score>> {
+    fn values(&self) -> impl AsRef<[f32]> {
+        match self.inner() {
+            Some(score) => score.clone(),
+            None => Score::default(),
+        }
+    }
 
-// impl AsRef<[f32]> for RwCellGuard<'_, Option<Score>> {
-//     fn as_ref(&self) -> &[f32] {
-//         match self.inner() {
-//             Some(score) => &score.values,
-//             None => panic!("Score value cannot be None"),
-//         }
-//     }
-// }
+    fn score(&self) -> Option<Score> {
+        match self.inner() {
+            Some(score) => Some((*score).clone()),
+            None => None,
+        }
+    }
+}
+
+impl AsRef<[f32]> for RwCellGuard<'_, Option<Score>> {
+    fn as_ref(&self) -> &[f32] {
+        match self.inner() {
+            Some(score) => &score.values,
+            None => panic!("Score value cannot be None"),
+        }
+    }
+}
 
 fn guard_nan(value: &f32) {
     if value.is_nan() {

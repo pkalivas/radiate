@@ -2,7 +2,6 @@ use super::{Valid, genotype::Genotype};
 use crate::objectives::Score;
 use crate::sync::{RwCell, RwCellGuard, RwCellGuardMut};
 use crate::{Chromosome, Scored};
-use std::ops::Deref;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static PHENOTYPE_ID_COUNTER: AtomicU64 = AtomicU64::new(1);
@@ -97,13 +96,17 @@ impl<C: Chromosome> Valid for Phenotype<C> {
 }
 
 impl<C: Chromosome> Scored for Phenotype<C> {
-    type Score<'a>
-        = RwCellGuard<'a, Option<Score>>
-    where
-        Self: 'a;
+    fn values(&self) -> impl AsRef<[f32]> {
+        let score = self.score();
+        if score.is_none() {
+            return Score::default();
+        }
 
-    fn score<'a>(&'a self) -> Self::Score<'a> {
-        self.score.read()
+        score.unwrap().clone()
+    }
+
+    fn score(&self) -> Option<Score> {
+        self.score_ref().inner().as_ref().cloned()
     }
 }
 
@@ -113,22 +116,20 @@ impl<C: Chromosome> Scored for Phenotype<C> {
 //     }
 // }
 
-// impl<C: Chromosome> Scored for Phenotype<C>
-// where for<'a> {
-//     type Score = RwCellGuard<'_, Option<Score>>;
+// impl<C: Chromosome> Scored for Phenotype<C> {
+//     type Score = Score
 
 //     fn values(&self) -> impl AsRef<[f32]> {
-//         // let score = self.score();
-//         // if score.is_none() {
-//         //     return Score::default();
-//         // }
+//         let score = self.score();
+//         if score.is_none() {
+//             return Score::default();
+//         }
 
-//         // score.unwrap()
-//         self.score().unwrap().values()
+//         score.values()
 //     }
 
 //     fn score(&self) -> Option<&Self::Score> {
-//         Some(self.score.read())
+//         self.score_ref().inner().as_ref()
 //     }
 // }
 
