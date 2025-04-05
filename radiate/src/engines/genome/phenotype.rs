@@ -1,8 +1,7 @@
-use std::sync::atomic::{AtomicU64, Ordering};
-
 use super::{Valid, genotype::Genotype};
 use crate::Chromosome;
 use crate::engines::objectives::Score;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 static PHENOTYPE_ID: AtomicU64 = AtomicU64::new(0);
 
@@ -41,11 +40,17 @@ pub struct Phenotype<C: Chromosome> {
 
 impl<C: Chromosome> Phenotype<C> {
     pub fn genotype(&self) -> &Genotype<C> {
-        self.genotype.as_ref().unwrap()
+        match &self.genotype {
+            Some(genotype) => genotype,
+            None => panic!("Genotype is None - this shouldn't happen."),
+        }
     }
 
     pub fn genotype_mut(&mut self) -> &mut Genotype<C> {
-        self.genotype.as_mut().unwrap()
+        match &mut self.genotype {
+            Some(genotype) => genotype,
+            None => panic!("Genotype mut is None - this shouldn't happen."),
+        }
     }
 
     pub fn take_genotype(&mut self) -> Genotype<C> {
@@ -98,12 +103,8 @@ impl<C: Chromosome> Valid for Phenotype<C> {
     }
 }
 
-impl<C: Chromosome> AsRef<Phenotype<C>> for Phenotype<C> {
-    fn as_ref(&self) -> &Phenotype<C> {
-        self
-    }
-}
-
+/// Implement the `AsRef<[f32]>` trait for the `Phenotype`. This allows the `Phenotype` to be converted to a slice of `f32`
+/// which will be the `Score` of the `Phenotype`. This is used when adding a `Phenotype` to a pareto `Front` for sorting.
 impl<C: Chromosome> AsRef<[f32]> for Phenotype<C> {
     fn as_ref(&self) -> &[f32] {
         self.score().unwrap().as_ref()
