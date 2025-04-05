@@ -1,6 +1,20 @@
 use super::{Valid, genotype::Genotype};
 use crate::Chromosome;
 use crate::engines::objectives::Score;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static PHENOTYPE_ID: AtomicU64 = AtomicU64::new(0);
+
+/// A unique identifier for a `Phenotype`. This is used to identify the `Phenotype` in the population.
+/// It is a simple wrapper around a `u64` value.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct PhenotypeId(u64);
+
+impl PhenotypeId {
+    pub fn new() -> Self {
+        PhenotypeId(PHENOTYPE_ID.fetch_add(1, Ordering::SeqCst))
+    }
+}
 
 /// A `Phenotype` is a representation of an individual in the population. It contains:
 /// * `Genotype` - the genetic representation of the individual
@@ -21,15 +35,22 @@ pub struct Phenotype<C: Chromosome> {
     genotype: Option<Genotype<C>>,
     score: Option<Score>,
     generation: usize,
+    id: PhenotypeId,
 }
 
 impl<C: Chromosome> Phenotype<C> {
     pub fn genotype(&self) -> &Genotype<C> {
-        self.genotype.as_ref().unwrap()
+        match &self.genotype {
+            Some(genotype) => genotype,
+            None => panic!("Genotype is None - this shouldn't happen."),
+        }
     }
 
     pub fn genotype_mut(&mut self) -> &mut Genotype<C> {
-        self.genotype.as_mut().unwrap()
+        match &mut self.genotype {
+            Some(genotype) => genotype,
+            None => panic!("Genotype mut is None - this shouldn't happen."),
+        }
     }
 
     pub fn take_genotype(&mut self) -> Genotype<C> {
@@ -56,6 +77,16 @@ impl<C: Chromosome> Phenotype<C> {
         self.score.as_ref()
     }
 
+    pub fn id(&self) -> PhenotypeId {
+        self.id
+    }
+
+    pub fn invalidate(&mut self, generation: usize) {
+        self.score = None;
+        self.generation = generation;
+        self.id = PhenotypeId::new();
+    }
+
     /// Get the age of the individual in generations. The age is calculated as the
     /// difference between the given generation and the generation in which the individual was created.
     pub fn age(&self, generation: usize) -> usize {
@@ -72,12 +103,8 @@ impl<C: Chromosome> Valid for Phenotype<C> {
     }
 }
 
-impl<C: Chromosome> AsRef<Phenotype<C>> for Phenotype<C> {
-    fn as_ref(&self) -> &Phenotype<C> {
-        self
-    }
-}
-
+/// Implement the `AsRef<[f32]>` trait for the `Phenotype`. This allows the `Phenotype` to be converted to a slice of `f32`
+/// which will be the `Score` of the `Phenotype`. This is used when adding a `Phenotype` to a pareto `Front` for sorting.
 impl<C: Chromosome> AsRef<[f32]> for Phenotype<C> {
     fn as_ref(&self) -> &[f32] {
         self.score().unwrap().as_ref()
@@ -101,6 +128,7 @@ impl<C: Chromosome> From<(Genotype<C>, usize)> for Phenotype<C> {
             genotype: Some(genotype),
             score: None,
             generation,
+            id: PhenotypeId::new(),
         }
     }
 }
@@ -114,6 +142,7 @@ impl<C: Chromosome> From<(Vec<C>, usize)> for Phenotype<C> {
             genotype: Some(Genotype::new(chromosomes)),
             score: None,
             generation,
+            id: PhenotypeId::new(),
         }
     }
 }

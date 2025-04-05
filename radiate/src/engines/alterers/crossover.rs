@@ -74,10 +74,8 @@ pub trait Crossover<C: Chromosome> {
         };
 
         if cross_result.count() > 0 {
-            one.set_generation(generation);
-            two.set_generation(generation);
-            one.set_score(None);
-            two.set_score(None);
+            one.invalidate(generation);
+            two.invalidate(generation);
             result.merge(cross_result);
         }
 

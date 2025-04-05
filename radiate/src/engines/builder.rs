@@ -322,6 +322,7 @@ where
                         return Ordering::Less;
                     }
                 }
+
                 Ordering::Equal
             },
         ));

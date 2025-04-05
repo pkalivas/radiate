@@ -341,9 +341,8 @@ impl Sum for Score {
             }
         }
 
-        Score { values:
-            // Convert the vector into an Arc<[f32]> for efficient sharing
-            Arc::from(values),
+        Score {
+            values: Arc::from(values),
         }
     }
 }
@@ -362,9 +361,8 @@ impl<'a> Sum<&'a Score> for Score {
             }
         }
 
-        Score { values:
-            // Convert the vector into an Arc<[f32]> for efficient sharing
-            Arc::from(values),
+        Score {
+            values: Arc::from(values),
         }
     }
 }
