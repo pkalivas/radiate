@@ -42,7 +42,7 @@ where
         let (parent_one, parent_two) = population.get_pair_mut(indexes[0], indexes[1]);
 
         let num_crosses = {
-            let mut geno_one = parent_one.genotype_mut();
+            let geno_one = parent_one.genotype_mut();
             let geno_two = parent_two.genotype();
 
             let chromo_index =

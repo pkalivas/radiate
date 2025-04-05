@@ -1,5 +1,3 @@
-use crate::Scored;
-
 use super::{Chromosome, Metric, Population, metric_names};
 use std::vec;
 
@@ -46,7 +44,7 @@ impl<C: Chromosome> Audit<C> for MetricAudit {
                 .sum::<usize>();
 
             age_metric.add_value(age as f32);
-            score_metric.add_value(score.as_f32());
+            score_metric.add_value(score.unwrap().as_f32());
             unique.push(score.clone());
             size_values.push(phenotype_size as f32);
         }

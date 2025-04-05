@@ -7,13 +7,12 @@ pub mod trees;
 pub use factory::*;
 pub use graphs::{
     Direction, Graph, GraphAggregate, GraphChromosome, GraphCodex, GraphCrossover, GraphEvaluator,
-    GraphIterator, GraphMutator, GraphNode, GraphReplacement, NeatDistance,
+    GraphIterator, GraphMutator, GraphNode, GraphReplacement,
 };
 pub use node::{Node, NodeType};
 pub use store::{NodeStore, NodeValue};
 pub use trees::{
-    HoistMutator, SubtreeHashDistance, Tree, TreeChromosome, TreeCodex, TreeCrossover,
-    TreeIterator, TreeNode,
+    HoistMutator, Tree, TreeChromosome, TreeCodex, TreeCrossover, TreeIterator, TreeNode,
 };
 
 /// `Eval` trait is used to evaluate a `Tree` or `Graph` of `Node`s.

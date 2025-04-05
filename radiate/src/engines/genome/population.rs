@@ -64,7 +64,7 @@ impl<C: Chromosome> Population<C> {
         self.individuals.swap(a, b);
     }
 
-    pub fn get_scores(&self) -> Vec<Score> {
+    pub fn get_scores(&self) -> Vec<&Score> {
         self.individuals
             .iter()
             .filter_map(|individual| individual.score())
@@ -197,9 +197,7 @@ impl<C: Chromosome + Debug> Debug for Population<C> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{
-        Score, Scored, char::CharChromosome, float::FloatChromosome, objectives::Optimize,
-    };
+    use crate::{Score, char::CharChromosome, float::FloatChromosome, objectives::Optimize};
 
     #[test]
     fn test_new() {
@@ -258,9 +256,9 @@ mod test {
         assert!(maximize_population.is_sorted);
 
         for i in 0..population.len() {
-            assert_eq!(minimize_population[i].score().as_usize(), i);
+            assert_eq!(minimize_population[i].score().unwrap().as_usize(), i);
             assert_eq!(
-                maximize_population[i].score().as_usize(),
+                maximize_population[i].score().unwrap().as_usize(),
                 population.len() - i - 1
             );
         }

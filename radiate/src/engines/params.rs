@@ -1,5 +1,5 @@
 use super::thread_pool::ThreadPool;
-use super::{Alter, Audit, Distance, Front, Problem, ReplacementStrategy, Select};
+use super::{Alter, Audit, Front, Problem, ReplacementStrategy, Select};
 use crate::Chromosome;
 use crate::engines::genome::phenotype::Phenotype;
 use crate::engines::genome::population::Population;
@@ -13,7 +13,6 @@ pub struct GeneticEngineParams<C: Chromosome, T> {
     offspring_selector: Box<dyn Select<C>>,
     replacement_strategy: Box<dyn ReplacementStrategy<C>>,
     audits: Vec<Arc<dyn Audit<C>>>,
-    distance: Option<Arc<dyn Distance<C>>>,
     alterers: Vec<Box<dyn Alter<C>>>,
     objective: Objective,
     thread_pool: ThreadPool,
@@ -30,7 +29,6 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
         offspring_selector: Box<dyn Select<C>>,
         replacement_strategy: Box<dyn ReplacementStrategy<C>>,
         audits: Vec<Arc<dyn Audit<C>>>,
-        distance: Option<Arc<dyn Distance<C>>>,
         alterers: Vec<Box<dyn Alter<C>>>,
         objective: Objective,
         thread_pool: ThreadPool,
@@ -45,7 +43,6 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
             offspring_selector,
             replacement_strategy,
             audits,
-            distance,
             alterers,
             objective,
             thread_pool,
@@ -77,10 +74,6 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
 
     pub fn audits(&self) -> &[Arc<dyn Audit<C>>] {
         &self.audits
-    }
-
-    pub fn distance(&self) -> Option<Arc<dyn Distance<C>>> {
-        self.distance.clone()
     }
 
     pub fn alters(&self) -> &[Box<dyn Alter<C>>] {

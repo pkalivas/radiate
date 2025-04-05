@@ -1,9 +1,9 @@
 use super::codexes::Codex;
 use super::thread_pool::ThreadPool;
 use super::{
-    Alter, AlterAction, Audit, Crossover, Distance, EncodeReplace, EngineProblem, Front,
-    GeneticEngineParams, MetricAudit, Mutate, Problem, ReplacementStrategy, RouletteSelector,
-    Select, TournamentSelector, pareto,
+    Alter, AlterAction, Audit, Crossover, EncodeReplace, EngineProblem, Front, GeneticEngineParams,
+    MetricAudit, Mutate, Problem, ReplacementStrategy, RouletteSelector, Select,
+    TournamentSelector, pareto,
 };
 use crate::Chromosome;
 use crate::engines::engine::GeneticEngine;
@@ -49,7 +49,6 @@ where
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
     pub problem: Option<Arc<dyn Problem<C, T>>>,
     pub replacement_strategy: Box<dyn ReplacementStrategy<C>>,
-    pub distance: Option<Arc<dyn Distance<C>>>,
     pub front: Option<Front<Phenotype<C>>>,
 }
 
@@ -96,11 +95,6 @@ where
 
     pub fn audits(mut self, audits: Vec<Arc<dyn Audit<C>>>) -> Self {
         self.audits.extend(audits);
-        self
-    }
-
-    pub fn distance<D: Distance<C> + 'static>(mut self, distance: D) -> Self {
-        self.distance = Some(Arc::new(distance));
         self
     }
 
@@ -268,7 +262,6 @@ where
                 self.offspring_selector,
                 self.replacement_strategy,
                 self.audits,
-                self.distance,
                 self.alterers,
                 self.objective,
                 self.thread_pool,
@@ -285,7 +278,7 @@ where
         self.population = match &self.population {
             None => Some(match self.problem.as_ref() {
                 Some(problem) => Population::from((self.population_size, || {
-                    Phenotype::from((problem.encode(), 0, None))
+                    Phenotype::from((problem.encode(), 0))
                 })),
                 None => panic!("Codex not set"),
             }),
@@ -341,7 +334,7 @@ where
     T: Clone + Send + 'static,
 {
     fn default() -> Self {
-        Self {
+        GeneticEngineBuilder {
             population_size: 100,
             max_age: 20,
             offspring_fraction: 0.8,
@@ -357,7 +350,6 @@ where
             population: None,
             fitness_fn: None,
             problem: None,
-            distance: None,
             front: None,
         }
     }

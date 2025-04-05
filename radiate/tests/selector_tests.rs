@@ -21,8 +21,8 @@ mod selector_tests {
         let selected = selector.select(&population, &Objective::Single(optimize), num);
 
         for i in 0..num {
-            let original = population[i].score().as_f32();
-            let selected = selected[i].score().as_f32();
+            let original = population[i].score().unwrap().as_f32();
+            let selected = selected[i].score().unwrap().as_f32();
 
             assert_eq!(original, selected);
         }

@@ -27,13 +27,12 @@ fn main() {
         ))
         .build();
 
-    engine
-        .iter()
-        .take_while(|ctx| ctx.score().as_f32() > MIN_SCORE && ctx.seconds() < MAX_SECONDS)
-        .inspect(|ctx| log_ctx!(ctx))
-        .last()
-        .inspect(|ctx| display(ctx))
-        .unwrap();
+    let result = engine.run(|ctx| {
+        log_ctx!(ctx);
+        ctx.score().as_f32() < MIN_SCORE || ctx.seconds() > MAX_SECONDS
+    });
+
+    display(&result);
 }
 
 fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {

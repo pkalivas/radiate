@@ -32,8 +32,6 @@ where
             .map(|chromosomee| chromosomee.new_instance(None))
             .collect::<Vec<GraphChromosome<T>>>();
 
-        drop(genotype); // Drop the genotype to avoid holding onto the old instance.
-
         population[replace_idx] = Phenotype::from((chromosomes, generation));
     }
 }

@@ -1,4 +1,3 @@
-use super::Scored;
 use crate::objectives::{Objective, pareto};
 use std::{cmp::Ordering, ops::Range, sync::Arc};
 
@@ -9,7 +8,7 @@ use std::{cmp::Ordering, ops::Range, sync::Arc};
 #[derive(Clone)]
 pub struct Front<T>
 where
-    T: PartialEq + Clone + Scored,
+    T: PartialEq + Clone + AsRef<[f32]>,
 {
     values: Vec<Arc<T>>,
     ord: Arc<dyn Fn(&T, &T) -> Ordering + Send + Sync>,
@@ -19,7 +18,7 @@ where
 
 impl<T> Front<T>
 where
-    T: PartialEq + Clone + Scored,
+    T: PartialEq + Clone + AsRef<[f32]>,
 {
     pub fn new<F>(range: Range<usize>, objective: Objective, comp: F) -> Self
     where
@@ -111,11 +110,7 @@ where
     }
 
     fn filter(&mut self) {
-        let values = self
-            .values
-            .iter()
-            .map(|s| s.score().unwrap())
-            .collect::<Vec<_>>();
+        let values = self.values.iter().map(|s| s.as_ref()).collect::<Vec<_>>();
         let crowding_distances = pareto::crowding_distance(&values, &self.objective);
 
         let mut enumerated = crowding_distances.iter().enumerate().collect::<Vec<_>>();
