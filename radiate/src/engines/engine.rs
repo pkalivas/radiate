@@ -1,6 +1,5 @@
 use super::codexes::Codex;
 use super::context::EngineContext;
-use super::sync::RwCell;
 use super::thread_pool::WaitGroup;
 use super::{GeneticEngineParams, MetricSet, Phenotype, Problem};
 use crate::engines::builder::GeneticEngineBuilder;
@@ -8,7 +7,7 @@ use crate::engines::domain::timer::Timer;
 use crate::engines::genome::population::Population;
 use crate::objectives::Objective;
 use crate::{Chromosome, Metric, Valid, metric_names};
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 /// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -351,6 +350,9 @@ where
         let thread_pool = self.params.thread_pool();
 
         if let Objective::Multi(_) = objective {
+            // TODO: Examine the clones here - it seems like we can reduce the number of clones of
+            // the population. The front is a cheap clone (the values are wrapped in an Arc), but
+            // the population is not.
             let timer = Timer::new();
             let wg = WaitGroup::new();
 
@@ -360,24 +362,25 @@ where
                 .filter(|pheno| pheno.generation() == ctx.index)
                 .collect::<Vec<&Phenotype<C>>>();
 
-            let front = RwCell::new(ctx.front.clone());
-            let dominates_vector = RwCell::new(vec![false; new_individuals.len()]);
-            let remove_vector = RwCell::new(Vec::new());
+            let front = Arc::new(RwLock::new(ctx.front.clone()));
+            let dominates_vector = Arc::new(RwLock::new(vec![false; new_individuals.len()]));
+            let remove_vector = Arc::new(RwLock::new(Vec::new()));
 
             for (idx, member) in new_individuals.iter().enumerate() {
                 let pheno = Phenotype::clone(member);
-                let front_clone = RwCell::clone(&front);
-                let doms_vector = RwCell::clone(&dominates_vector);
-                let remove_vector = RwCell::clone(&remove_vector);
+                let front_clone = Arc::clone(&front);
+                let doms_vector = Arc::clone(&dominates_vector);
+                let remove_vector = Arc::clone(&remove_vector);
 
                 thread_pool.group_submit(&wg, move || {
-                    let (dominates, to_remove) = front_clone.read().dominates(&pheno);
+                    let (dominates, to_remove) = front_clone.read().unwrap().dominates(&pheno);
 
                     if dominates {
-                        doms_vector.write().get_mut(idx).map(|v| *v = true);
+                        doms_vector.write().unwrap().get_mut(idx).map(|v| *v = true);
                         remove_vector
                             .write()
-                            .extend(to_remove.iter().map(|r| r.clone()));
+                            .unwrap()
+                            .extend(to_remove.iter().map(|r| Arc::clone(r)));
                     }
                 });
             }
@@ -386,12 +389,13 @@ where
 
             let dominates_vector = dominates_vector
                 .read()
+                .unwrap()
                 .iter()
                 .enumerate()
                 .filter(|(_, is_dominating)| **is_dominating)
                 .map(|(idx, _)| new_individuals[idx])
                 .collect::<Vec<&Phenotype<C>>>();
-            let mut remove_vector = remove_vector.write();
+            let mut remove_vector = remove_vector.write().unwrap();
 
             remove_vector.dedup();
 
