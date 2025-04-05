@@ -4,6 +4,21 @@ use std::sync::{
 };
 use std::{sync::mpsc, thread};
 
+/// `WorkResult` is a simple wrapper around a `Receiver` that allows the user to get
+/// the result of a job that was executed in the thread pool. It kinda acts like
+/// a `Future` in a synchronous way.
+pub struct WorkResult<T> {
+    receiver: mpsc::Receiver<T>,
+}
+
+impl<T> WorkResult<T> {
+    /// Get the result of the job.
+    /// **Note**: This method will block until the result is available.
+    pub fn result(&self) -> T {
+        self.receiver.recv().unwrap()
+    }
+}
+
 pub struct ThreadPool {
     sender: Arc<mpsc::Sender<Message>>,
     workers: Vec<Worker>,
@@ -37,6 +52,19 @@ impl ThreadPool {
             f();
             drop(guard);
         });
+    }
+
+    /// Execute a job in the thread pool and return a `WorkResult` that can be used to get the result of the job.
+    pub fn submit_with_result<F, T>(&self, f: F) -> WorkResult<T>
+    where
+        F: FnOnce() -> T + Send + 'static,
+        T: Send + 'static,
+    {
+        let (tx, rx) = mpsc::sync_channel(1);
+        let job = Box::new(move || tx.send(f()).unwrap());
+
+        self.sender.send(Message::NewJob(job)).unwrap();
+        WorkResult { receiver: rx }
     }
 
     pub fn submit_scoped<F>(&self, job: F)

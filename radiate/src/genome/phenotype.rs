@@ -110,37 +110,6 @@ impl<C: Chromosome> Scored for Phenotype<C> {
     }
 }
 
-// impl<C: Chromosome> AsRef<Phenotype<C>> for Phenotype<C> {
-//     fn as_ref(&self) -> &Phenotype<C> {
-//         self
-//     }
-// }
-
-// impl<C: Chromosome> Scored for Phenotype<C> {
-//     type Score = Score
-
-//     fn values(&self) -> impl AsRef<[f32]> {
-//         let score = self.score();
-//         if score.is_none() {
-//             return Score::default();
-//         }
-
-//         score.values()
-//     }
-
-//     fn score(&self) -> Option<&Self::Score> {
-//         self.score_ref().inner().as_ref()
-//     }
-// }
-
-// trait Scored {
-//     type Score<'a>: ?Sized
-//     where
-//         Self: 'a;
-
-//     fn score<'a>(&'a self) -> &Self::Score<'a>;
-// }
-
 /// Implement the `PartialOrd` trait for the `Phenotype`. This allows the `Phenotype` to be compared
 /// with other `Phenotype` instances. The comparison is based on the `Score` (fitness) of the `Phenotype`.
 impl<C: Chromosome> PartialOrd for Phenotype<C> {
