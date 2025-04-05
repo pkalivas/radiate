@@ -1,6 +1,21 @@
+use std::sync::atomic::{AtomicU64, Ordering};
+
 use super::{Valid, genotype::Genotype};
 use crate::Chromosome;
 use crate::engines::objectives::Score;
+
+static PHENOTYPE_ID: AtomicU64 = AtomicU64::new(0);
+
+/// A unique identifier for a `Phenotype`. This is used to identify the `Phenotype` in the population.
+/// It is a simple wrapper around a `u64` value.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct PhenotypeId(u64);
+
+impl PhenotypeId {
+    pub fn new() -> Self {
+        PhenotypeId(PHENOTYPE_ID.fetch_add(1, Ordering::SeqCst))
+    }
+}
 
 /// A `Phenotype` is a representation of an individual in the population. It contains:
 /// * `Genotype` - the genetic representation of the individual
@@ -21,6 +36,7 @@ pub struct Phenotype<C: Chromosome> {
     genotype: Option<Genotype<C>>,
     score: Option<Score>,
     generation: usize,
+    id: PhenotypeId,
 }
 
 impl<C: Chromosome> Phenotype<C> {
@@ -54,6 +70,16 @@ impl<C: Chromosome> Phenotype<C> {
 
     pub fn score(&self) -> Option<&Score> {
         self.score.as_ref()
+    }
+
+    pub fn id(&self) -> PhenotypeId {
+        self.id
+    }
+
+    pub fn invalidate(&mut self, generation: usize) {
+        self.score = None;
+        self.generation = generation;
+        self.id = PhenotypeId::new();
     }
 
     /// Get the age of the individual in generations. The age is calculated as the
@@ -101,6 +127,7 @@ impl<C: Chromosome> From<(Genotype<C>, usize)> for Phenotype<C> {
             genotype: Some(genotype),
             score: None,
             generation,
+            id: PhenotypeId::new(),
         }
     }
 }
@@ -114,6 +141,7 @@ impl<C: Chromosome> From<(Vec<C>, usize)> for Phenotype<C> {
             genotype: Some(Genotype::new(chromosomes)),
             score: None,
             generation,
+            id: PhenotypeId::new(),
         }
     }
 }

@@ -1,6 +1,6 @@
 use super::Statistic;
 use crate::{Distribution, TimeStatistic};
-use std::{collections::BTreeMap, time::Duration};
+use std::{collections::BTreeMap, fmt::Debug, time::Duration};
 
 #[derive(Default, Clone)]
 pub struct MetricSet {
@@ -32,12 +32,12 @@ impl MetricSet {
         }
     }
 
-    pub fn upsert_sequence(&mut self, name: &'static str, value: &[f32]) {
+    pub fn upsert_distribution(&mut self, name: &'static str, value: &[f32]) {
         if let Some(m) = self.metrics.get_mut(name) {
-            m.add_sequence(value);
+            m.add_distribution(value);
         } else {
             self.add(Metric::new_distribution(name));
-            self.upsert_sequence(name, value);
+            self.upsert_distribution(name, value);
         }
     }
 
@@ -107,7 +107,7 @@ impl MetricSet {
     }
 }
 
-impl std::fmt::Debug for MetricSet {
+impl Debug for MetricSet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "MetricSet {{\n")?;
 
@@ -186,7 +186,7 @@ impl Metric {
         }
     }
 
-    pub fn add_sequence(&mut self, value: &[f32]) {
+    pub fn add_distribution(&mut self, value: &[f32]) {
         if let Metric::Distribution(_, dist) = self {
             dist.add(value);
         }

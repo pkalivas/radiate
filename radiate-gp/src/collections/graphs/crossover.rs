@@ -78,8 +78,7 @@ where
         };
 
         if num_crosses > 0 {
-            parent_one.set_generation(generation);
-            parent_one.set_score(None);
+            parent_one.invalidate(generation);
         }
 
         num_crosses.into()

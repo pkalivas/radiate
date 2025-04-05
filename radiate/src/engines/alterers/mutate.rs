@@ -25,8 +25,7 @@ pub trait Mutate<C: Chromosome> {
             let mutate_result = self.mutate_genotype(&mut phenotype.genotype_mut(), rate);
 
             if mutate_result.count() > 0 {
-                phenotype.set_generation(generation);
-                phenotype.set_score(None);
+                phenotype.invalidate(generation);
             }
 
             result.merge(mutate_result);

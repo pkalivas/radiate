@@ -226,9 +226,8 @@ where
         ctx.upsert_operation(selector.name(), count as f32, timer);
         objective.sort(&mut offspring);
 
-        alters.iter().for_each(|alterer| {
-            alterer
-                .alter(&mut offspring, ctx.index)
+        alters.iter().for_each(|alt| {
+            alt.alter(&mut offspring, ctx.index)
                 .into_iter()
                 .for_each(|metric| {
                     ctx.upsert_metric(metric);
