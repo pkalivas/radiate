@@ -4,36 +4,6 @@ use std::iter::Sum;
 use std::ops::{Add, Div, Mul, Sub};
 use std::sync::Arc;
 
-pub trait Scored {
-    fn values(&self) -> impl AsRef<[f32]>;
-
-    fn as_f32(&self) -> f32 {
-        self.values().as_ref()[0]
-    }
-
-    fn as_usize(&self) -> usize {
-        self.as_f32() as usize
-    }
-
-    fn score(&self) -> Option<Score>;
-}
-
-impl Scored for Option<Score> {
-    fn values(&self) -> impl AsRef<[f32]> {
-        match self {
-            Some(score) => score.clone(),
-            None => Score::default(),
-        }
-    }
-
-    fn score(&self) -> Option<Score> {
-        match self {
-            Some(score) => Some(score.clone()),
-            None => None,
-        }
-    }
-}
-
 /// A score is a value that can be used to compare the fitness of two individuals and represents
 /// the 'fitness' of an individual within the genetic algorithm.
 /// The score can be a single value or multiple values, depending on the problem being solved.

@@ -19,7 +19,4 @@ pub mod metric_names {
     pub const GENOME_SIZE: &str = "Genome Size";
     pub const FRONT: &str = "Front";
     pub const NUM_EQUAL: &str = "Num Equal";
-    pub const SPECIATION: &str = "Speciation";
-    pub const SPECIES_FILTER: &str = "Species Filter";
-    pub const DISTANCE: &str = "Distance";
 }

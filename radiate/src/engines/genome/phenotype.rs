@@ -1,8 +1,6 @@
 use super::{Valid, genotype::Genotype};
+use crate::Chromosome;
 use crate::engines::objectives::Score;
-use crate::sync::{RwCell, RwCellGuard, RwCellGuardMut};
-use crate::{Chromosome, Scored};
-use std::ops::Deref;
 
 /// A `Phenotype` is a representation of an individual in the population. It contains:
 /// * `Genotype` - the genetic representation of the individual
@@ -20,28 +18,26 @@ use std::ops::Deref;
 ///
 #[derive(Clone, Debug, PartialEq)]
 pub struct Phenotype<C: Chromosome> {
-    genotype: RwCell<Genotype<C>>,
-    score: RwCell<Option<Score>>,
+    genotype: Option<Genotype<C>>,
+    score: Option<Score>,
     generation: usize,
-    species_id: Option<u64>,
 }
 
 impl<C: Chromosome> Phenotype<C> {
-    pub fn clone(other: &Phenotype<C>) -> Self {
-        Phenotype {
-            genotype: RwCell::clone(&other.genotype),
-            score: RwCell::clone(&other.score),
-            generation: other.generation,
-            species_id: other.species_id,
-        }
+    pub fn genotype(&self) -> &Genotype<C> {
+        self.genotype.as_ref().unwrap()
     }
 
-    pub fn genotype(&self) -> RwCellGuard<Genotype<C>> {
-        self.genotype.read()
+    pub fn genotype_mut(&mut self) -> &mut Genotype<C> {
+        self.genotype.as_mut().unwrap()
     }
 
-    pub fn genotype_mut(&mut self) -> RwCellGuardMut<Genotype<C>> {
-        self.genotype.write()
+    pub fn take_genotype(&mut self) -> Genotype<C> {
+        self.genotype.take().unwrap()
+    }
+
+    pub fn set_genotype(&mut self, genotype: Genotype<C>) {
+        self.genotype = Some(genotype);
     }
 
     pub fn generation(&self) -> usize {
@@ -52,21 +48,12 @@ impl<C: Chromosome> Phenotype<C> {
         self.generation = generation;
     }
 
-    pub fn species_id(&self) -> Option<u64> {
-        self.species_id
-    }
-
     pub fn set_score(&mut self, score: Option<Score>) {
-        self.score.set(score);
+        self.score = score;
     }
 
-    pub fn set_species_id(&mut self, species_id: Option<u64>) {
-        self.species_id = species_id;
-    }
-
-    pub fn score(&self) -> Option<Score> {
-        let lock = self.score.read();
-        lock.inner().clone()
+    pub fn score(&self) -> Option<&Score> {
+        self.score.as_ref()
     }
 
     /// Get the age of the individual in generations. The age is calculated as the
@@ -81,7 +68,7 @@ impl<C: Chromosome> Phenotype<C> {
 /// and will remove any invalid individuals from the population, replacing them with new individuals at the given generation.
 impl<C: Chromosome> Valid for Phenotype<C> {
     fn is_valid(&self) -> bool {
-        self.genotype().deref().is_valid()
+        self.genotype().is_valid()
     }
 }
 
@@ -91,17 +78,9 @@ impl<C: Chromosome> AsRef<Phenotype<C>> for Phenotype<C> {
     }
 }
 
-impl<C: Chromosome> Scored for Phenotype<C> {
-    fn values(&self) -> impl AsRef<[f32]> {
-        let score = self.score();
-        if score.is_none() {
-            return Score::default();
-        }
-
-        score.unwrap()
-    }
-    fn score(&self) -> Option<Score> {
-        self.score()
+impl<C: Chromosome> AsRef<[f32]> for Phenotype<C> {
+    fn as_ref(&self) -> &[f32] {
+        self.score().unwrap().as_ref()
     }
 }
 
@@ -116,13 +95,12 @@ impl<C: Chromosome> PartialOrd for Phenotype<C> {
     }
 }
 
-impl<C: Chromosome> From<(Genotype<C>, usize, Option<u64>)> for Phenotype<C> {
-    fn from((genotype, generation, species_id): (Genotype<C>, usize, Option<u64>)) -> Self {
+impl<C: Chromosome> From<(Genotype<C>, usize)> for Phenotype<C> {
+    fn from((genotype, generation): (Genotype<C>, usize)) -> Self {
         Phenotype {
-            genotype: RwCell::new(genotype),
-            score: RwCell::new(None),
+            genotype: Some(genotype),
+            score: None,
             generation,
-            species_id,
         }
     }
 }
@@ -133,10 +111,9 @@ impl<C: Chromosome> From<(Genotype<C>, usize, Option<u64>)> for Phenotype<C> {
 impl<C: Chromosome> From<(Vec<C>, usize)> for Phenotype<C> {
     fn from((chromosomes, generation): (Vec<C>, usize)) -> Self {
         Phenotype {
-            genotype: RwCell::new(Genotype::new(chromosomes)),
-            score: RwCell::new(None),
+            genotype: Some(Genotype::new(chromosomes)),
+            score: None,
             generation,
-            species_id: None,
         }
     }
 }

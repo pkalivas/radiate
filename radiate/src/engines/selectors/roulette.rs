@@ -1,7 +1,7 @@
 use super::Select;
 use crate::objectives::{Objective, Optimize};
 use crate::selectors::ProbabilityWheelIterator;
-use crate::{Chromosome, Population, Scored, pareto};
+use crate::{Chromosome, Population, pareto};
 
 pub struct RouletteSelector;
 
@@ -26,7 +26,7 @@ impl<C: Chromosome> Select<C> for RouletteSelector {
             Objective::Single(opt) => {
                 let scores = population
                     .iter()
-                    .map(|score| score.score().as_f32())
+                    .map(|score| score.score().unwrap().as_f32())
                     .collect::<Vec<f32>>();
 
                 let total = scores.iter().sum::<f32>();

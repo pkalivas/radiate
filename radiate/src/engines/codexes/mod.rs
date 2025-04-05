@@ -111,7 +111,7 @@ pub trait Codex<C: Chromosome, T> {
     /// Spawn a new instance of `Population<G, A>` from the `Codex`. This will encode `num` a new `Genotype`s
     fn spawn_population(&self, num: usize) -> Population<C> {
         (0..num)
-            .map(|_| Phenotype::from((self.encode(), 0, None)))
+            .map(|_| Phenotype::from((self.encode(), 0)))
             .collect::<Population<C>>()
     }
 }

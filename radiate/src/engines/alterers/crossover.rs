@@ -61,8 +61,8 @@ pub trait Crossover<C: Chromosome> {
         let (one, two) = population.get_pair_mut(parent_indexes[0], parent_indexes[1]);
 
         let cross_result = {
-            let mut geno_one = one.genotype_mut();
-            let mut geno_two = two.genotype_mut();
+            let geno_one = one.genotype_mut();
+            let geno_two = two.genotype_mut();
 
             let min_len = std::cmp::min(geno_one.len(), geno_two.len());
             let chromosome_index = random_provider::range(0..min_len);
