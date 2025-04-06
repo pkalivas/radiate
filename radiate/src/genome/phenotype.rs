@@ -20,6 +20,7 @@ impl PhenotypeId {
 /// * `Genotype` - the genetic representation of the individual
 /// * `Score` - the score (fitness) of the individual as calculated by the fitness function
 /// * `Generation` - the generation in which the individual was created
+/// * `id` - a unique identifier for the `Phenotype`
 ///
 /// The `Phenotype` is a wrapper around the `Genotype` that adds additional information about the individual.
 /// In traditional (biological) genetics, a phenotype is "the set of observable characteristics of an individual resulting
