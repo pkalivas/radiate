@@ -132,15 +132,5 @@ impl Eval<Vec<Tree<Op<f32>>>, f32> for Regression<TreeChromosome<Op<f32>>, Vec<T
     }
 }
 
-unsafe impl<C, T> Send for Regression<C, T>
-where
-    C: Chromosome,
-    T: Clone,
-{
-}
-unsafe impl<C, T> Sync for Regression<C, T>
-where
-    C: Chromosome,
-    T: Clone,
-{
-}
+unsafe impl<C: Chromosome, T: Clone> Send for Regression<C, T> {}
+unsafe impl<C: Chromosome, T: Clone> Sync for Regression<C, T> {}

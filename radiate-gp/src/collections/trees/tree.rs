@@ -73,10 +73,8 @@ mod test {
                 .attach(TreeNode::new(Op::constant(4.0))),
         );
 
-        // Swap the first child of each tree
         tree_one.as_mut().swap_subtrees(tree_two.as_mut(), 1, 1);
 
-        // Verify swap using breadth-first traversal
         let values_one = tree_one
             .iter_breadth_first()
             .filter_map(|n| match &n.value() {
