@@ -9,11 +9,11 @@ use std::sync::Arc;
 pub struct GeneticEngineParams<C: Chromosome, T> {
     population: Population<C>,
     problem: Arc<dyn Problem<C, T>>,
-    survivor_selector: Box<dyn Select<C>>,
-    offspring_selector: Box<dyn Select<C>>,
-    replacement_strategy: Box<dyn ReplacementStrategy<C>>,
+    survivor_selector: Arc<dyn Select<C>>,
+    offspring_selector: Arc<dyn Select<C>>,
+    replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     audits: Vec<Arc<dyn Audit<C>>>,
-    alterers: Vec<Box<dyn Alter<C>>>,
+    alterers: Vec<Arc<dyn Alter<C>>>,
     objective: Objective,
     thread_pool: ThreadPool,
     max_age: usize,
@@ -25,11 +25,11 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
     pub fn new(
         population: Population<C>,
         problem: Arc<dyn Problem<C, T>>,
-        survivor_selector: Box<dyn Select<C>>,
-        offspring_selector: Box<dyn Select<C>>,
-        replacement_strategy: Box<dyn ReplacementStrategy<C>>,
+        survivor_selector: Arc<dyn Select<C>>,
+        offspring_selector: Arc<dyn Select<C>>,
+        replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
         audits: Vec<Arc<dyn Audit<C>>>,
-        alterers: Vec<Box<dyn Alter<C>>>,
+        alterers: Vec<Arc<dyn Alter<C>>>,
         objective: Objective,
         thread_pool: ThreadPool,
         max_age: usize,
@@ -76,7 +76,7 @@ impl<C: Chromosome, T> GeneticEngineParams<C, T> {
         &self.audits
     }
 
-    pub fn alters(&self) -> &[Box<dyn Alter<C>>] {
+    pub fn alters(&self) -> &[Arc<dyn Alter<C>>] {
         &self.alterers
     }
 
