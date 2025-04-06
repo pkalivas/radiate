@@ -1,6 +1,6 @@
 use super::{Valid, genotype::Genotype};
 use crate::Chromosome;
-use crate::engines::objectives::Score;
+use crate::objectives::Score;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static PHENOTYPE_ID: AtomicU64 = AtomicU64::new(0);

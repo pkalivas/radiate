@@ -1,5 +1,5 @@
 use super::TreeChromosome;
-use radiate::engines::genome::*;
+use radiate::genome::*;
 use radiate::{AlterResult, Crossover, random_provider};
 
 pub struct TreeCrossover {

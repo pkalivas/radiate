@@ -6,10 +6,10 @@ use super::{
     TournamentSelector, pareto,
 };
 use crate::Chromosome;
-use crate::engines::engine::GeneticEngine;
-use crate::engines::genome::phenotype::Phenotype;
-use crate::engines::genome::population::Population;
-use crate::engines::objectives::Score;
+use crate::engine::GeneticEngine;
+use crate::genome::phenotype::Phenotype;
+use crate::genome::population::Population;
+use crate::objectives::Score;
 use crate::objectives::{Objective, Optimize};
 use crate::uniform::{UniformCrossover, UniformMutator};
 use std::cmp::Ordering;
