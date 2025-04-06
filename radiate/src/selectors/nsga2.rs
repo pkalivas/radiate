@@ -29,11 +29,7 @@ impl<C: Chromosome> Select<C> for NSGA2Selector {
         objective: &Objective,
         count: usize,
     ) -> Population<C> {
-        let scores = population
-            .iter()
-            .filter_map(|individual| individual.score())
-            .collect::<Vec<_>>();
-
+        let scores = population.get_scores();
         let ranks = pareto::rank(scores.as_slice(), objective);
         let distances = pareto::crowding_distance(&scores, objective);
 

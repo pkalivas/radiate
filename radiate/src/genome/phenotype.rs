@@ -3,8 +3,6 @@ use crate::Chromosome;
 use crate::objectives::Score;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-static PHENOTYPE_ID: AtomicU64 = AtomicU64::new(0);
-
 /// A unique identifier for a `Phenotype`. This is used to identify the `Phenotype` in the population.
 /// It is a simple wrapper around a `u64` value.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -12,6 +10,7 @@ pub struct PhenotypeId(u64);
 
 impl PhenotypeId {
     pub fn new() -> Self {
+        static PHENOTYPE_ID: AtomicU64 = AtomicU64::new(0);
         PhenotypeId(PHENOTYPE_ID.fetch_add(1, Ordering::SeqCst))
     }
 }
