@@ -121,7 +121,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-
     use crate::{NodeType, ops::Op};
     use radiate::codexes::Codex;
 
@@ -137,7 +136,7 @@ mod tests {
         let genotype = codex.encode();
         let tree = codex.decode(&genotype);
 
-        assert_eq!(tree.root().unwrap().height(), 3);
+        assert_eq!(tree.root().map(|root| root.height()), Some(3));
         assert!(tree.root().is_some());
     }
 }
