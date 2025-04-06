@@ -24,7 +24,7 @@ impl<C: Chromosome> Audit<C> for MetricAudit {
     fn audit(&self, generation: usize, population: &Population<C>) -> Vec<Metric> {
         let mut age_metric = Metric::new_value(metric_names::AGE);
         let mut score_metric = Metric::new_value(metric_names::SCORE);
-        let mut size_values = Vec::with_capacity(population.len());
+        let mut size_metric = Metric::new_distribution(metric_names::GENOME_SIZE);
         let mut unique_scores = Vec::with_capacity(population.len());
         let mut unique_members = HashSet::new();
 
@@ -42,17 +42,15 @@ impl<C: Chromosome> Audit<C> for MetricAudit {
             age_metric.add_value(age as f32);
             score_metric.add_value(score.unwrap().as_f32());
             unique_scores.push(score.clone());
-            size_values.push(phenotype_size as f32);
+            size_metric.add_value(phenotype_size as f32);
         }
 
         unique_scores.dedup();
 
         let mut unique_metric = Metric::new_value(metric_names::UNIQUE_SCORES);
-        let mut size_metric = Metric::new_distribution(metric_names::GENOME_SIZE);
         let mut equal_metric = Metric::new_value(metric_names::UNIQUE_MEMBERS);
 
         unique_metric.add_value(unique_scores.len() as f32);
-        size_metric.add_distribution(&size_values);
         equal_metric.add_value(unique_members.len() as f32);
 
         vec![
