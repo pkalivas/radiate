@@ -188,6 +188,6 @@ impl Codex<FloatChromosome, f32> for FloatCodex<f32> {
                     .collect::<Vec<f32>>()
             })
             .next()
-            .unwrap_or(0.0)
+            .unwrap_or_default()
     }
 }

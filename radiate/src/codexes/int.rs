@@ -25,6 +25,23 @@ impl<T: Integer<T>, D> IntCodex<T, D> {
         self.bounds = bounds;
         self
     }
+
+    /// The different variants of `IntCodex` are all the same, so this function is used to create
+    /// a new `Genotype` with the given number of chromosomes and genes. The only difference between
+    /// them is the type `D`, which is either a `Vec<Vec<T>>`, `Vec<T>`, or `T`.
+    fn encode_common(&self) -> Genotype<IntChromosome<T>> {
+        Genotype::from(
+            (0..self.num_chromosomes)
+                .map(|_| {
+                    IntChromosome::from((
+                        self.num_genes,
+                        self.value_range.clone(),
+                        self.bounds.clone(),
+                    ))
+                })
+                .collect::<Vec<IntChromosome<T>>>(),
+        )
+    }
 }
 
 impl<T: Integer<T>> IntCodex<T, Vec<Vec<T>>> {
@@ -69,19 +86,23 @@ impl<T: Integer<T>> IntCodex<T, T> {
     }
 }
 
+/// Implement the `Codex` trait for a `Genotype` of `IntGenes`. This will produce a `Genotype` with the given number of chromosomes
+/// and genes. The `decode` function will create a `Vec<Vec<T>>` or a matrix.
+///
+/// # Examples
+/// ```rust
+/// use radiate::*;
+///
+/// let codex = IntCodex::<i32>::matrix(10, 5, 0..100);
+/// let genotype: Genotype<IntChromosome<i32>> = codex.encode();
+/// let decoded: Vec<Vec<i32>> = codex.decode(&genotype);
+///
+/// assert_eq!(decoded.len(), 10);
+/// assert_eq!(decoded[0].len(), 5);
+/// ```
 impl<T: Integer<T>> Codex<IntChromosome<T>, Vec<Vec<T>>> for IntCodex<T, Vec<Vec<T>>> {
     fn encode(&self) -> Genotype<IntChromosome<T>> {
-        Genotype::from(
-            (0..self.num_chromosomes)
-                .map(|_| {
-                    IntChromosome::from((
-                        self.num_genes,
-                        self.value_range.clone(),
-                        self.bounds.clone(),
-                    ))
-                })
-                .collect::<Vec<IntChromosome<T>>>(),
-        )
+        self.encode_common()
     }
 
     fn decode(&self, genotype: &Genotype<IntChromosome<T>>) -> Vec<Vec<T>> {
@@ -97,15 +118,22 @@ impl<T: Integer<T>> Codex<IntChromosome<T>, Vec<Vec<T>>> for IntCodex<T, Vec<Vec
     }
 }
 
+/// Implement the `Codex` trait for a `Genotype` of `IntGenes`. This will produce a `Genotype` with a single
+/// chromosome and `num_genes` genes. The `decode` function will create a `Vec<T>` or a vector.
+///
+/// # Examples
+/// ```rust
+/// use radiate::*;
+///
+/// let codex = IntCodex::<i32>::vector(5, 0..100);
+/// let genotype: Genotype<IntChromosome<i32>> = codex.encode();
+/// let decoded: Vec<i32> = codex.decode(&genotype);
+///
+/// assert_eq!(decoded.len(), 5);
+/// ```
 impl<T: Integer<T>> Codex<IntChromosome<T>, Vec<T>> for IntCodex<T, Vec<T>> {
     fn encode(&self) -> Genotype<IntChromosome<T>> {
-        let chromosome = IntChromosome::from((
-            self.num_genes,
-            self.value_range.clone(),
-            self.bounds.clone(),
-        ));
-
-        Genotype::from(vec![chromosome])
+        self.encode_common()
     }
 
     fn decode(&self, genotype: &Genotype<IntChromosome<T>>) -> Vec<T> {
@@ -121,10 +149,20 @@ impl<T: Integer<T>> Codex<IntChromosome<T>, Vec<T>> for IntCodex<T, Vec<T>> {
     }
 }
 
+/// Implement the `Codex` trait for a `Genotype` of `IntGenes`. This will produce a `Genotype` with a single
+/// chromosome and a single gene. The `decode` function will create a `T` or a single value.
+///
+/// # Examples
+/// ```rust
+/// use radiate::*;
+///
+/// let codex = IntCodex::<i32, i32>::scalar(0..100);
+/// let genotype: Genotype<IntChromosome<i32>> = codex.encode();
+/// let decoded: i32 = codex.decode(&genotype);
+/// ```
 impl<T: Integer<T>> Codex<IntChromosome<T>, T> for IntCodex<T, T> {
     fn encode(&self) -> Genotype<IntChromosome<T>> {
-        let chromosome = IntChromosome::from((1, self.value_range.clone(), self.bounds.clone()));
-        Genotype::new(vec![chromosome])
+        self.encode_common()
     }
 
     fn decode(&self, genotype: &Genotype<IntChromosome<T>>) -> T {
