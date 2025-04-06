@@ -276,7 +276,8 @@ where
                 let problem = self.params.problem();
                 let encoder = Arc::new(move || problem.encode());
 
-                replacement.replace(i, generation, population, encoder);
+                let new_genotype = replacement.replace(population, encoder);
+                population[i] = Phenotype::from((new_genotype, generation));
             }
         }
 

@@ -1,6 +1,6 @@
 use super::GraphChromosome;
 use crate::Factory;
-use radiate::{Genotype, Phenotype, Population, ReplacementStrategy, random_provider};
+use radiate::{Genotype, Population, ReplacementStrategy, random_provider};
 use std::sync::Arc;
 
 /// Replacement strategy for replacing `GraphChromosome` individuals in a population.
@@ -19,18 +19,16 @@ where
 {
     fn replace(
         &self,
-        replace_idx: usize,
-        generation: usize,
-        population: &mut Population<GraphChromosome<T>>,
+        population: &Population<GraphChromosome<T>>,
         _: Arc<dyn Fn() -> Genotype<GraphChromosome<T>>>,
-    ) {
+    ) -> Genotype<GraphChromosome<T>> {
         let random_member = random_provider::range(0..population.len());
-        let chromosomes = population[random_member]
-            .genotype()
-            .iter()
-            .map(|chromosomee| chromosomee.new_instance(None))
-            .collect::<Vec<GraphChromosome<T>>>();
-
-        population[replace_idx] = Phenotype::from((chromosomes, generation));
+        Genotype::from(
+            population[random_member]
+                .genotype()
+                .iter()
+                .map(|chromosomee| chromosomee.new_instance(None))
+                .collect::<Vec<GraphChromosome<T>>>(),
+        )
     }
 }
