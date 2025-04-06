@@ -28,9 +28,7 @@ impl<C: Chromosome> Audit<C> for MetricAudit {
         let mut unique_scores = Vec::with_capacity(population.len());
         let mut unique_members = HashSet::new();
 
-        for i in 0..population.len() {
-            let phenotype = &population[i];
-
+        for phenotype in population.iter() {
             unique_members.insert(phenotype.id());
 
             let age = phenotype.age(generation);
