@@ -40,15 +40,15 @@ where
     pub offspring_fraction: f32,
     pub thread_pool: ThreadPool,
     pub objective: Objective,
-    pub survivor_selector: Box<dyn Select<C>>,
-    pub offspring_selector: Box<dyn Select<C>>,
-    pub alterers: Vec<Box<dyn Alter<C>>>,
+    pub survivor_selector: Arc<dyn Select<C>>,
+    pub offspring_selector: Arc<dyn Select<C>>,
+    pub alterers: Vec<Arc<dyn Alter<C>>>,
     pub audits: Vec<Arc<dyn Audit<C>>>,
     pub population: Option<Population<C>>,
     pub codex: Option<Arc<dyn Codex<C, T>>>,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
     pub problem: Option<Arc<dyn Problem<C, T>>>,
-    pub replacement_strategy: Box<dyn ReplacementStrategy<C>>,
+    pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     pub front: Option<Front<Phenotype<C>>>,
 }
 
@@ -83,7 +83,7 @@ where
     /// Default is `FilterStrategy::Encode`, which means that a new individual will be created
     /// be using the `Codex` to encode a new individual from scratch.
     pub fn replace_strategy<R: ReplacementStrategy<C> + 'static>(mut self, replace: R) -> Self {
-        self.replacement_strategy = Box::new(replace);
+        self.replacement_strategy = Arc::new(replace);
         self
     }
 
@@ -148,14 +148,14 @@ where
     /// be used to select the survivors of the population. Default is `TournamentSelector`
     /// with a group size of 3.
     pub fn survivor_selector<S: Select<C> + 'static>(mut self, selector: S) -> Self {
-        self.survivor_selector = Box::new(selector);
+        self.survivor_selector = Arc::new(selector);
         self
     }
 
     /// Set the offspring selector of the genetic engine. This is the selector that will
     /// be used to select the offspring of the population. Default is `RouletteSelector`.
     pub fn offspring_selector<S: Select<C> + 'static>(mut self, selector: S) -> Self {
-        self.offspring_selector = Box::new(selector);
+        self.offspring_selector = Arc::new(selector);
         self
     }
 
@@ -165,7 +165,7 @@ where
     /// generation of the population. **Note**: the order of the alterers is important - the
     /// alterers will be applied in the order they are provided.
     pub fn alter(mut self, alterers: Vec<Box<dyn Alter<C>>>) -> Self {
-        self.alterers = alterers;
+        self.alterers = alterers.into_iter().map(|alt| alt.into()).collect();
         self
     }
 
@@ -174,7 +174,7 @@ where
     /// mutators and crossovers are added is the order in which they will be applied during
     /// the evolution process.
     pub fn mutator<M: Mutate<C> + 'static>(mut self, mutator: M) -> Self {
-        self.alterers.push(Box::new(mutator.alterer()));
+        self.alterers.push(Arc::new(mutator.alterer()));
         self
     }
 
@@ -185,7 +185,7 @@ where
     pub fn mutators(mut self, mutators: Vec<Box<dyn Mutate<C>>>) -> Self {
         let mutate_actions = mutators
             .into_iter()
-            .map(|m| Box::new(AlterAction::Mutate(m.name(), m.rate(), m)) as Box<dyn Alter<C>>)
+            .map(|m| Arc::new(AlterAction::Mutate(m.name(), m.rate(), m)) as Arc<dyn Alter<C>>)
             .collect::<Vec<_>>();
 
         self.alterers.extend(mutate_actions);
@@ -197,7 +197,7 @@ where
     /// mutators and crossovers are added is the order in which they will be applied during
     /// the evolution process.s
     pub fn crossover<R: Crossover<C> + 'static>(mut self, crossover: R) -> Self {
-        self.alterers.push(Box::new(crossover.alterer()));
+        self.alterers.push(Arc::new(crossover.alterer()));
         self
     }
 
@@ -208,7 +208,7 @@ where
     pub fn crossovers(mut self, crossovers: Vec<Box<dyn Crossover<C>>>) -> Self {
         let crossover_actions = crossovers
             .into_iter()
-            .map(|c| Box::new(AlterAction::Crossover(c.name(), c.rate(), c)) as Box<dyn Alter<C>>)
+            .map(|c| Arc::new(AlterAction::Crossover(c.name(), c.rate(), c)) as Arc<dyn Alter<C>>)
             .collect::<Vec<_>>();
 
         self.alterers.extend(crossover_actions);
@@ -310,13 +310,16 @@ where
             return;
         }
 
-        let crossover = Box::new(UniformCrossover::new(0.5).alterer()) as Box<dyn Alter<C>>;
-        let mutator = Box::new(UniformMutator::new(0.1).alterer()) as Box<dyn Alter<C>>;
+        let crossover = Arc::new(UniformCrossover::new(0.5).alterer()) as Arc<dyn Alter<C>>;
+        let mutator = Arc::new(UniformMutator::new(0.1).alterer()) as Arc<dyn Alter<C>>;
 
         self.alterers.push(crossover);
         self.alterers.push(mutator);
     }
 
+    /// Build the pareto front of the genetic engine. This will create a new `Front`
+    /// if the front is not set. The `Front` is used to store the best individuals
+    /// in the population and is used for multi-objective optimization problems.
     fn build_front(&mut self) {
         if self.front.is_some() {
             return;
@@ -332,9 +335,9 @@ where
                 }
 
                 if let (Some(one), Some(two)) = (one.score(), two.score()) {
-                    if pareto::dominance(&one, &two, &front_obj) {
+                    if pareto::dominance(one, two, &front_obj) {
                         return Ordering::Greater;
-                    } else if pareto::dominance(&two, &one, &front_obj) {
+                    } else if pareto::dominance(two, one, &front_obj) {
                         return Ordering::Less;
                     }
                 }
@@ -358,9 +361,9 @@ where
             front_range: 800..900,
             thread_pool: ThreadPool::new(1),
             objective: Objective::Single(Optimize::Maximize),
-            survivor_selector: Box::new(TournamentSelector::new(3)),
-            offspring_selector: Box::new(RouletteSelector::new()),
-            replacement_strategy: Box::new(EncodeReplace),
+            survivor_selector: Arc::new(TournamentSelector::new(3)),
+            offspring_selector: Arc::new(RouletteSelector::new()),
+            replacement_strategy: Arc::new(EncodeReplace),
             audits: vec![Arc::new(MetricAudit)],
             alterers: Vec::new(),
             codex: None,
