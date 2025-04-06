@@ -10,7 +10,7 @@ pub mod stochastic_sampling;
 pub mod tournament;
 
 use crate::Chromosome;
-use crate::engines::genome::population::Population;
+use crate::genome::population::Population;
 use crate::objectives::Objective;
 pub use botzmann::*;
 pub use elite::*;
@@ -33,7 +33,7 @@ use super::random_provider;
 ///
 /// # Example
 /// ```
-/// use radiate::engines::selectors::{Select, RouletteSelector};
+/// use radiate::selectors::{Select, RouletteSelector};
 ///
 /// // Create a new instance of the RouletteSelector
 /// let selector = RouletteSelector::new();

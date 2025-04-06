@@ -1,8 +1,8 @@
 use super::thread_pool::ThreadPool;
 use super::{Alter, Audit, Front, Problem, ReplacementStrategy, Select};
 use crate::Chromosome;
-use crate::engines::genome::phenotype::Phenotype;
-use crate::engines::genome::population::Population;
+use crate::genome::phenotype::Phenotype;
+use crate::genome::population::Population;
 use crate::objectives::Objective;
 use std::sync::Arc;
 

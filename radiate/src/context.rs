@@ -1,8 +1,8 @@
 use super::objectives::Score;
 use super::{Metric, MetricSet, Phenotype};
 use crate::Chromosome;
-use crate::engines::domain::timer::Timer;
-use crate::engines::genome::population::Population;
+use crate::domain::timer::Timer;
+use crate::genome::population::Population;
 use crate::objectives::Front;
 use std::fmt::Debug;
 use std::time::Duration;

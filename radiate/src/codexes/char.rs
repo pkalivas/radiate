@@ -1,7 +1,7 @@
 use super::Codex;
-use crate::engines::genome::char::CharGene;
-use crate::engines::genome::gene::Gene;
-use crate::engines::genome::genotype::Genotype;
+use crate::genome::char::CharGene;
+use crate::genome::gene::Gene;
+use crate::genome::genotype::Genotype;
 use crate::{CharChromosome, Chromosome, char};
 use std::sync::Arc;
 

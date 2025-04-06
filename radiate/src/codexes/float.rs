@@ -1,6 +1,6 @@
 use super::Codex;
-use crate::engines::genome::gene::Gene;
-use crate::engines::genome::genotype::Genotype;
+use crate::genome::gene::Gene;
+use crate::genome::genotype::Genotype;
 use crate::{Chromosome, FloatChromosome};
 use std::ops::Range;
 

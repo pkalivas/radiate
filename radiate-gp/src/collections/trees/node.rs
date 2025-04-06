@@ -1,6 +1,6 @@
 use super::TreeIterator;
 use crate::{Arity, NodeType, node::Node};
-use radiate::engines::genome::gene::{Gene, Valid};
+use radiate::genome::gene::{Gene, Valid};
 use std::fmt::Debug;
 
 #[derive(PartialEq)]
