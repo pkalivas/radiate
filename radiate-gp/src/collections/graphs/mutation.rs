@@ -73,8 +73,7 @@ where
 
                 let result = graph.try_modify(|mut trans| {
                     let needed_insertions = match new_node.arity() {
-                        Arity::Zero => 1,
-                        Arity::Any => 1,
+                        Arity::Zero | Arity::Any => 1,
                         Arity::Exact(n) => n,
                     };
 
