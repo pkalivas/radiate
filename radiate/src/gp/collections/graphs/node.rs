@@ -27,7 +27,6 @@ pub struct GraphNode<T> {
     value: T,
     id: GraphNodeId,
     index: usize,
-    enabled: bool,
     direction: Direction,
     node_type: Option<NodeType>,
     arity: Option<Arity>,
@@ -41,7 +40,6 @@ impl<T> GraphNode<T> {
             id: GraphNodeId::new(),
             index,
             value,
-            enabled: true,
             direction: Direction::Forward,
             node_type: Some(node_type),
             arity: None,
@@ -55,7 +53,6 @@ impl<T> GraphNode<T> {
             id: GraphNodeId::new(),
             index,
             value,
-            enabled: true,
             direction: Direction::Forward,
             node_type: Some(node_type),
             arity: Some(arity),
@@ -70,18 +67,6 @@ impl<T> GraphNode<T> {
 
     pub fn set_direction(&mut self, direction: Direction) {
         self.direction = direction;
-    }
-
-    pub fn is_enabled(&self) -> bool {
-        self.enabled
-    }
-
-    pub fn enable(&mut self) {
-        self.enabled = true;
-    }
-
-    pub fn disable(&mut self) {
-        self.enabled = false;
     }
 
     pub fn index(&self) -> usize {
@@ -190,7 +175,6 @@ where
         GraphNode {
             id: GraphNodeId::new(),
             index: self.index,
-            enabled: self.enabled,
             value: self.value.clone(),
             direction: self.direction,
             node_type: self.node_type,
@@ -205,7 +189,6 @@ where
             id: GraphNodeId::new(),
             index: self.index,
             value: allele.clone(),
-            enabled: self.enabled,
             direction: self.direction,
             node_type: self.node_type,
             arity: self.arity,
@@ -258,7 +241,6 @@ impl<T: Default> From<(usize, T)> for GraphNode<T> {
             index,
             id: GraphNodeId::new(),
             value,
-            enabled: true,
             direction: Direction::Forward,
             node_type: None,
             arity: None,
@@ -281,7 +263,6 @@ impl<T: Default> From<(usize, T, Arity)> for GraphNode<T> {
             index,
             id: GraphNodeId::new(),
             value,
-            enabled: true,
             direction: Direction::Forward,
             node_type: None,
             arity: Some(arity),
@@ -296,7 +277,6 @@ impl<T: Default> Default for GraphNode<T> {
         GraphNode {
             id: GraphNodeId::new(),
             index: 0,
-            enabled: true,
             value: Default::default(),
             direction: Direction::Forward,
             node_type: None,
@@ -318,13 +298,12 @@ impl<T: Debug> Debug for GraphNode<T> {
 
         write!(
             f,
-            "[{:<3}] [{:<7?}] {:>10?} :: {:<10} {:<12} E: {:<5} V:{:<5} R:{:<5} {:<2} {:<2} < [{}]",
+            "[{:<3}] [{:<7?}] {:>10?} :: {:<10} {:<12} V:{:<5} R:{:<5} {:<2} {:<2} < [{}]",
             self.index,
             self.id.0,
             format!("{:?}", self.node_type())[..3].to_owned(),
             self.arity(),
             format!("{:?}", self.value).to_owned(),
-            self.enabled,
             self.is_valid(),
             self.is_recurrent(),
             self.incoming.len(),
@@ -348,7 +327,6 @@ mod tests {
         assert_eq!(node.node_type(), NodeType::Input);
         assert_eq!(node.arity(), Arity::Zero);
         assert!(!node.is_valid());
-        assert!(node.is_enabled());
         assert!(!node.is_recurrent());
         assert_eq!(node.incoming(), &BTreeSet::new());
         assert_eq!(node.outgoing(), &BTreeSet::new());
@@ -362,7 +340,6 @@ mod tests {
         assert_eq!(node.node_type(), NodeType::Input);
         assert_eq!(node.arity(), Arity::Zero);
         assert!(!node.is_valid());
-        assert!(node.is_enabled());
         assert!(!node.is_recurrent());
         assert_eq!(node.incoming(), &BTreeSet::new());
         assert_eq!(node.outgoing(), &BTreeSet::new());
@@ -377,7 +354,6 @@ mod tests {
         assert_eq!(new_node.node_type(), NodeType::Input);
         assert_eq!(new_node.arity(), Arity::Zero);
         assert!(!new_node.is_valid());
-        assert!(new_node.is_enabled());
         assert!(!new_node.is_recurrent());
         assert_eq!(new_node.incoming(), &BTreeSet::new());
         assert_eq!(new_node.outgoing(), &BTreeSet::new());
