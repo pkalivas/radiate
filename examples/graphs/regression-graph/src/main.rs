@@ -1,5 +1,4 @@
 use radiate::*;
-use radiate_gp::*;
 
 const MIN_SCORE: f32 = 0.001;
 const MAX_SECONDS: f64 = 5.0;

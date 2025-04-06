@@ -28,6 +28,9 @@ pub mod replace;
 pub mod selectors;
 pub mod stats;
 
+#[cfg(feature = "gp")]
+pub mod gp;
+
 pub use alterers::*;
 pub use audit::*;
 pub use builder::*;
@@ -44,3 +47,6 @@ pub use problem::*;
 pub use replace::*;
 pub use selectors::*;
 pub use stats::*;
+
+#[cfg(feature = "gp")]
+pub use gp::*;

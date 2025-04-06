@@ -13,6 +13,10 @@ homepage = "https://pkalivas.github.io/radiate/"
 
 [dependencies]
 rand = "0.9.0"
+uuid = { version = "1.10.0", features = ["v4"], optional = true }
 
 [dev-dependencies]
 rstest = "0.25.0"
+
+[features]
+gp = ["dep:uuid"]

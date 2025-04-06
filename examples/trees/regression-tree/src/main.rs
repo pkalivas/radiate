@@ -1,5 +1,4 @@
 use radiate::*;
-use radiate_gp::{trees::HoistMutator, *};
 
 const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 1.0;
