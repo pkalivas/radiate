@@ -25,9 +25,8 @@ where
         _: Arc<dyn Fn() -> Genotype<GraphChromosome<T>>>,
     ) {
         let random_member = random_provider::range(0..population.len());
-        let genotype = population[random_member].genotype();
-        let chromosomes = genotype
-            .chromosomes
+        let chromosomes = population[random_member]
+            .genotype()
             .iter()
             .map(|chromosomee| chromosomee.new_instance(None))
             .collect::<Vec<GraphChromosome<T>>>();

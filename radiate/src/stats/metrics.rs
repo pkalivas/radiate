@@ -174,6 +174,7 @@ impl Metric {
                 dist.push(value);
             }
             Metric::Operations(_, stat, _) => stat.add(value),
+            Metric::Distribution(_, dist) => dist.push(value),
             _ => {}
         }
     }
@@ -321,7 +322,7 @@ impl Metric {
         }
     }
 
-    pub fn sequence_mean(&self) -> Option<f32> {
+    pub fn distribution_mean(&self) -> Option<f32> {
         match self {
             Metric::Distribution(_, dist) => Some(dist.mean()),
             Metric::Value(_, _, dist) => Some(dist.mean()),
@@ -329,7 +330,7 @@ impl Metric {
         }
     }
 
-    pub fn sequence_variance(&self) -> Option<f32> {
+    pub fn distribution_variance(&self) -> Option<f32> {
         match self {
             Metric::Distribution(_, dist) => Some(dist.variance()),
             Metric::Value(_, _, dist) => Some(dist.variance()),
@@ -337,7 +338,7 @@ impl Metric {
         }
     }
 
-    pub fn sequence_std_dev(&self) -> Option<f32> {
+    pub fn distribution_std_dev(&self) -> Option<f32> {
         match self {
             Metric::Distribution(_, dist) => Some(dist.standard_deviation()),
             Metric::Value(_, _, dist) => Some(dist.standard_deviation()),
@@ -345,7 +346,7 @@ impl Metric {
         }
     }
 
-    pub fn sequence_skewness(&self) -> Option<f32> {
+    pub fn distribution_skewness(&self) -> Option<f32> {
         match self {
             Metric::Distribution(_, dist) => Some(dist.skewness()),
             Metric::Value(_, _, dist) => Some(dist.skewness()),
@@ -353,7 +354,7 @@ impl Metric {
         }
     }
 
-    pub fn sequence_kurtosis(&self) -> Option<f32> {
+    pub fn distribution_kurtosis(&self) -> Option<f32> {
         match self {
             Metric::Distribution(_, dist) => Some(dist.kurtosis()),
             Metric::Value(_, _, dist) => Some(dist.kurtosis()),
@@ -361,7 +362,7 @@ impl Metric {
         }
     }
 
-    pub fn sequence_min(&self) -> Option<f32> {
+    pub fn distribution_min(&self) -> Option<f32> {
         match self {
             Metric::Distribution(_, dist) => Some(dist.min()),
             Metric::Value(_, _, dist) => Some(dist.min()),
@@ -369,7 +370,7 @@ impl Metric {
         }
     }
 
-    pub fn sequence_max(&self) -> Option<f32> {
+    pub fn distribution_max(&self) -> Option<f32> {
         match self {
             Metric::Distribution(_, dist) => Some(dist.max()),
             Metric::Value(_, _, dist) => Some(dist.max()),

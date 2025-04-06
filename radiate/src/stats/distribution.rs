@@ -62,7 +62,6 @@ impl Distribution {
     }
 
     pub fn percentile(&self, p: f32) -> f32 {
-        // Ensure p is between 0 and 100
         if p < 0.0 || p > 100.0 {
             panic!("Percentile must be between 0 and 100");
         }
