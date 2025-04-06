@@ -169,11 +169,19 @@ where
         self
     }
 
+    /// Define a single mutator for the genetic engine - this will be  converted to
+    /// a `Box<dyn Alter<C>>` and added to the list of alterers. Note: The order in which
+    /// mutators and crossovers are added is the order in which they will be applied during
+    /// the evolution process.
     pub fn mutator<M: Mutate<C> + 'static>(mut self, mutator: M) -> Self {
         self.alterers.push(Box::new(mutator.alterer()));
         self
     }
 
+    /// Define a list of mutators for the genetic engine - this will be converted to a list
+    /// of `Box<dyn Alter<C>>` and added to the list of alterers. Just like adding a single mutator,
+    /// the order in which mutators and crossovers are added is the order in which they will be applied
+    /// during the evolution process.s
     pub fn mutators(mut self, mutators: Vec<Box<dyn Mutate<C>>>) -> Self {
         let mutate_actions = mutators
             .into_iter()
@@ -184,11 +192,19 @@ where
         self
     }
 
+    /// Define a single crossover for the genetic engine - this will be converted to
+    /// a `Box<dyn Alter<C>>` and added to the list of alterers. Note: The order in which
+    /// mutators and crossovers are added is the order in which they will be applied during
+    /// the evolution process.s
     pub fn crossover<R: Crossover<C> + 'static>(mut self, crossover: R) -> Self {
         self.alterers.push(Box::new(crossover.alterer()));
         self
     }
 
+    /// Define a list of crossovers for the genetic engine - this will be converted to a list
+    /// of `Box<dyn Alter<C>>` and added to the list of alterers. Just like adding a single crossover,
+    /// the order in which mutators and crossovers are added is the order in which they will be applied
+    /// during the evolution process.
     pub fn crossovers(mut self, crossovers: Vec<Box<dyn Crossover<C>>>) -> Self {
         let crossover_actions = crossovers
             .into_iter()
