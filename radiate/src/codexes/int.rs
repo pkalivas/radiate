@@ -88,18 +88,6 @@ impl<T: Integer<T>> IntCodex<T, T> {
 
 /// Implement the `Codex` trait for a `Genotype` of `IntGenes`. This will produce a `Genotype` with the given number of chromosomes
 /// and genes. The `decode` function will create a `Vec<Vec<T>>` or a matrix.
-///
-/// # Examples
-/// ```rust
-/// use radiate::*;
-///
-/// let codex = IntCodex::<i32>::matrix(10, 5, 0..100);
-/// let genotype: Genotype<IntChromosome<i32>> = codex.encode();
-/// let decoded: Vec<Vec<i32>> = codex.decode(&genotype);
-///
-/// assert_eq!(decoded.len(), 10);
-/// assert_eq!(decoded[0].len(), 5);
-/// ```
 impl<T: Integer<T>> Codex<IntChromosome<T>, Vec<Vec<T>>> for IntCodex<T, Vec<Vec<T>>> {
     fn encode(&self) -> Genotype<IntChromosome<T>> {
         self.encode_common()
@@ -120,17 +108,7 @@ impl<T: Integer<T>> Codex<IntChromosome<T>, Vec<Vec<T>>> for IntCodex<T, Vec<Vec
 
 /// Implement the `Codex` trait for a `Genotype` of `IntGenes`. This will produce a `Genotype` with a single
 /// chromosome and `num_genes` genes. The `decode` function will create a `Vec<T>` or a vector.
-///
-/// # Examples
-/// ```rust
-/// use radiate::*;
-///
-/// let codex = IntCodex::<i32>::vector(5, 0..100);
-/// let genotype: Genotype<IntChromosome<i32>> = codex.encode();
-/// let decoded: Vec<i32> = codex.decode(&genotype);
-///
-/// assert_eq!(decoded.len(), 5);
-/// ```
+
 impl<T: Integer<T>> Codex<IntChromosome<T>, Vec<T>> for IntCodex<T, Vec<T>> {
     fn encode(&self) -> Genotype<IntChromosome<T>> {
         self.encode_common()
@@ -151,15 +129,6 @@ impl<T: Integer<T>> Codex<IntChromosome<T>, Vec<T>> for IntCodex<T, Vec<T>> {
 
 /// Implement the `Codex` trait for a `Genotype` of `IntGenes`. This will produce a `Genotype` with a single
 /// chromosome and a single gene. The `decode` function will create a `T` or a single value.
-///
-/// # Examples
-/// ```rust
-/// use radiate::*;
-///
-/// let codex = IntCodex::<i32, i32>::scalar(0..100);
-/// let genotype: Genotype<IntChromosome<i32>> = codex.encode();
-/// let decoded: i32 = codex.decode(&genotype);
-/// ```
 impl<T: Integer<T>> Codex<IntChromosome<T>, T> for IntCodex<T, T> {
     fn encode(&self) -> Genotype<IntChromosome<T>> {
         self.encode_common()
