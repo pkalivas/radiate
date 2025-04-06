@@ -27,7 +27,7 @@ use super::TreeChromosome;
 ///
 /// # Example
 /// ```rust
-/// use radiate_gp::*;
+/// use radiate::*;
 ///
 /// // create a simple tree
 /// let tree = Tree::new(TreeNode::new(1)

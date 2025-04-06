@@ -1,9 +1,9 @@
+use super::node::GraphNodeId;
 use crate::{
     collections::{Graph, GraphNode, NodeType},
     node::Node,
 };
 use std::collections::BTreeMap;
-use uuid::Uuid;
 
 /// Building a `Graph<T>` can be a very complex task. Everything in this file exists
 /// to simplify the process of building a `Graph<T>` by allowing the user to do so
@@ -57,8 +57,8 @@ enum ConnectTypes {
 /// Represents a relationship between two `GraphNode`s where the `source_id` is the `GraphNode<T>`'s
 /// id that is incoming, or giving its value to the `target_id` `GraphNode<T>`.
 struct Relationship<'a> {
-    source_id: &'a Uuid,
-    target_id: &'a Uuid,
+    source_id: &'a GraphNodeId,
+    target_id: &'a GraphNodeId,
 }
 
 /// The `GraphArchitect` struct is a builder for `Graph<T>` that allows you to build a `Graph<T>`
@@ -70,8 +70,8 @@ struct Relationship<'a> {
 /// connections, etc.
 #[derive(Default)]
 pub struct GraphAggregate<'a, T: Clone> {
-    nodes: BTreeMap<&'a Uuid, &'a GraphNode<T>>,
-    node_order: BTreeMap<usize, &'a Uuid>,
+    nodes: BTreeMap<&'a GraphNodeId, &'a GraphNode<T>>,
+    node_order: BTreeMap<usize, &'a GraphNodeId>,
     relationships: Vec<Relationship<'a>>,
 }
 
@@ -131,7 +131,6 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
     /// # Example
     /// ```
     /// use radiate::*;
-    /// use radiate_gp::*;
     ///
     /// let source_nodes = vec![
     ///     GraphNode::new(0, NodeType::Input, 0),
@@ -169,7 +168,6 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
     /// # Example
     /// ```
     /// use radiate::*;
-    /// use radiate_gp::*;
     ///
     /// let source_nodes = vec![
     ///     GraphNode::new(0, NodeType::Input, 0),
@@ -210,7 +208,6 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
     /// # Example
     /// ```
     /// use radiate::*;
-    /// use radiate_gp::*;
     ///
     /// let source_nodes = vec![
     ///     GraphNode::new(0, NodeType::Input, 0),
@@ -252,7 +249,6 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
     /// # Example
     /// ```
     /// use radiate::*;
-    /// use radiate_gp::*;
     ///
     /// let source_nodes = vec![
     ///     GraphNode::new(0, NodeType::Input, 0),
@@ -294,7 +290,6 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
     /// # Example
     /// ```
     /// use radiate::*;
-    /// use radiate_gp::*;
     ///
     /// let source_nodes = vec![
     ///    GraphNode::new(0, NodeType::Vertex, 0),

@@ -11,7 +11,6 @@ impl<T: Clone + Default> Graph<T> {
     /// # Example
     /// ```
     /// use radiate::*;
-    /// use radiate_gp::*;
     ///
     /// let values = vec![
     ///     (NodeType::Input, vec![Op::var(0), Op::var(1), Op::var(2)]),
@@ -60,7 +59,6 @@ impl<T: Clone + Default> Graph<T> {
     /// # Example
     /// ```
     /// use radiate::*;
-    /// use radiate_gp::*;
     ///
     /// let values = vec![
     ///   (NodeType::Input, vec![Op::var(0), Op::var(1), Op::var(2)]),

@@ -1,5 +1,4 @@
-use crate::{Chromosome, Gene, Valid};
-use crate::{Factory, GraphNode, NodeStore, node::Node};
+use crate::{Chromosome, Factory, Gene, GraphNode, NodeStore, Valid, node::Node};
 use std::fmt::Debug;
 
 #[derive(Clone)]

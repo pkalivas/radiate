@@ -25,7 +25,7 @@ pub use trees::{
 ///
 /// # Example
 /// ```rust
-/// use radiate_gp::{Op, Eval, TreeNode};
+/// use radiate::{Op, Eval, TreeNode};
 ///
 /// let root = TreeNode::new(Op::add())
 ///     .attach(

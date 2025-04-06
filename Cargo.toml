@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "radiate",
-    "radiate-gp",
     
     "examples/min-sum",
     "examples/hello-world",
