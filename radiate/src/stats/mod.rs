@@ -13,8 +13,8 @@ pub mod metric_names {
     pub const SCORE: &str = "Score";
     pub const AGE: &str = "Age";
     pub const EVALUATION: &str = "Evaluation";
-    pub const AGE_FILTER: &str = "Age Filter";
-    pub const INVALID_FILTER: &str = "Invalid Filter";
+    pub const FILTER_AGE: &str = "Filter(Age)";
+    pub const FILTER_INVALID: &str = "Filter(Invalid)";
     pub const UNIQUE_SCORES: &str = "Unique(scores)";
     pub const GENOME_SIZE: &str = "Genome Size";
     pub const FRONT: &str = "Front";

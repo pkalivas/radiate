@@ -281,8 +281,8 @@ where
         }
 
         let duration = timer.duration();
-        ctx.upsert_operation(metric_names::AGE_FILTER, age_count, duration);
-        ctx.upsert_operation(metric_names::INVALID_FILTER, invalid_count, duration);
+        ctx.upsert_operation(metric_names::FILTER_AGE, age_count, duration);
+        ctx.upsert_operation(metric_names::FILTER_INVALID, invalid_count, duration);
     }
 
     /// Recombines the survivors and offspring populations to create the next generation. The survivors
