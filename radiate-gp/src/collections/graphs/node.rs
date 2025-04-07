@@ -4,7 +4,17 @@ use radiate::{Gene, Valid};
 use std::collections::BTreeSet;
 use std::fmt::Debug;
 use std::hash::Hash;
-use uuid::Uuid;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct GraphNodeId(u64);
+
+impl GraphNodeId {
+    pub fn new() -> Self {
+        static GRAPH_NODE_ID: AtomicU64 = AtomicU64::new(0);
+        GraphNodeId(GRAPH_NODE_ID.fetch_add(1, Ordering::SeqCst))
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Direction {
@@ -15,9 +25,8 @@ pub enum Direction {
 #[derive(Clone, PartialEq)]
 pub struct GraphNode<T> {
     value: T,
-    id: Uuid,
+    id: GraphNodeId,
     index: usize,
-    enabled: bool,
     direction: Direction,
     node_type: Option<NodeType>,
     arity: Option<Arity>,
@@ -28,10 +37,9 @@ pub struct GraphNode<T> {
 impl<T> GraphNode<T> {
     pub fn new(index: usize, node_type: NodeType, value: T) -> Self {
         GraphNode {
-            id: Uuid::new_v4(),
+            id: GraphNodeId::new(),
             index,
             value,
-            enabled: true,
             direction: Direction::Forward,
             node_type: Some(node_type),
             arity: None,
@@ -42,10 +50,9 @@ impl<T> GraphNode<T> {
 
     pub fn with_arity(index: usize, node_type: NodeType, value: T, arity: Arity) -> Self {
         GraphNode {
-            id: Uuid::new_v4(),
+            id: GraphNodeId::new(),
             index,
             value,
-            enabled: true,
             direction: Direction::Forward,
             node_type: Some(node_type),
             arity: Some(arity),
@@ -62,23 +69,11 @@ impl<T> GraphNode<T> {
         self.direction = direction;
     }
 
-    pub fn is_enabled(&self) -> bool {
-        self.enabled
-    }
-
-    pub fn enable(&mut self) {
-        self.enabled = true;
-    }
-
-    pub fn disable(&mut self) {
-        self.enabled = false;
-    }
-
     pub fn index(&self) -> usize {
         self.index
     }
 
-    pub fn id(&self) -> &Uuid {
+    pub fn id(&self) -> &GraphNodeId {
         &self.id
     }
 
@@ -178,9 +173,8 @@ where
 
     fn new_instance(&self) -> GraphNode<T> {
         GraphNode {
-            id: Uuid::new_v4(),
+            id: GraphNodeId::new(),
             index: self.index,
-            enabled: self.enabled,
             value: self.value.clone(),
             direction: self.direction,
             node_type: self.node_type,
@@ -192,10 +186,9 @@ where
 
     fn with_allele(&self, allele: &Self::Allele) -> GraphNode<T> {
         GraphNode {
-            id: Uuid::new_v4(),
+            id: GraphNodeId::new(),
             index: self.index,
             value: allele.clone(),
-            enabled: self.enabled,
             direction: self.direction,
             node_type: self.node_type,
             arity: self.arity,
@@ -246,9 +239,8 @@ impl<T: Default> From<(usize, T)> for GraphNode<T> {
     fn from((index, value): (usize, T)) -> Self {
         GraphNode {
             index,
-            id: Uuid::new_v4(),
+            id: GraphNodeId::new(),
             value,
-            enabled: true,
             direction: Direction::Forward,
             node_type: None,
             arity: None,
@@ -269,9 +261,8 @@ impl<T: Default> From<(usize, T, Arity)> for GraphNode<T> {
     fn from((index, value, arity): (usize, T, Arity)) -> Self {
         GraphNode {
             index,
-            id: Uuid::new_v4(),
+            id: GraphNodeId::new(),
             value,
-            enabled: true,
             direction: Direction::Forward,
             node_type: None,
             arity: Some(arity),
@@ -284,9 +275,8 @@ impl<T: Default> From<(usize, T, Arity)> for GraphNode<T> {
 impl<T: Default> Default for GraphNode<T> {
     fn default() -> Self {
         GraphNode {
-            id: Uuid::new_v4(),
+            id: GraphNodeId::new(),
             index: 0,
-            enabled: true,
             value: Default::default(),
             direction: Direction::Forward,
             node_type: None,
@@ -308,12 +298,12 @@ impl<T: Debug> Debug for GraphNode<T> {
 
         write!(
             f,
-            "[{:<3}] {:>10?} :: {:<10} {:<12} E: {:<5} V:{:<5} R:{:<5} {:<2} {:<2} < [{}]",
+            "[{:<3}] [{:<7?}] {:>10?} :: {:<10} {:<12} V:{:<5} R:{:<5} {:<2} {:<2} < [{}]",
             self.index,
+            self.id.0,
             format!("{:?}", self.node_type())[..3].to_owned(),
             self.arity(),
             format!("{:?}", self.value).to_owned(),
-            self.enabled,
             self.is_valid(),
             self.is_recurrent(),
             self.incoming.len(),
@@ -337,7 +327,6 @@ mod tests {
         assert_eq!(node.node_type(), NodeType::Input);
         assert_eq!(node.arity(), Arity::Zero);
         assert!(!node.is_valid());
-        assert!(node.is_enabled());
         assert!(!node.is_recurrent());
         assert_eq!(node.incoming(), &BTreeSet::new());
         assert_eq!(node.outgoing(), &BTreeSet::new());
@@ -351,7 +340,6 @@ mod tests {
         assert_eq!(node.node_type(), NodeType::Input);
         assert_eq!(node.arity(), Arity::Zero);
         assert!(!node.is_valid());
-        assert!(node.is_enabled());
         assert!(!node.is_recurrent());
         assert_eq!(node.incoming(), &BTreeSet::new());
         assert_eq!(node.outgoing(), &BTreeSet::new());
@@ -366,7 +354,6 @@ mod tests {
         assert_eq!(new_node.node_type(), NodeType::Input);
         assert_eq!(new_node.arity(), Arity::Zero);
         assert!(!new_node.is_valid());
-        assert!(new_node.is_enabled());
         assert!(!new_node.is_recurrent());
         assert_eq!(new_node.incoming(), &BTreeSet::new());
         assert_eq!(new_node.outgoing(), &BTreeSet::new());

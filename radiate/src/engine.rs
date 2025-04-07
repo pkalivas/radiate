@@ -325,16 +325,16 @@ where
             optimize.sort(&mut ctx.population);
         }
 
-        let current_best = ctx.population.get(0);
-
-        if let (Some(best), Some(current)) = (current_best.score(), &ctx.score) {
-            if optimize.is_better(best, current) {
-                ctx.score = Some(best.clone());
+        if let Some(current_best) = ctx.population.get(0) {
+            if let (Some(best), Some(current)) = (current_best.score(), &ctx.score) {
+                if optimize.is_better(best, current) {
+                    ctx.score = Some(best.clone());
+                    ctx.best = problem.decode(&current_best.genotype());
+                }
+            } else {
+                ctx.score = Some(current_best.score().unwrap().clone());
                 ctx.best = problem.decode(&current_best.genotype());
             }
-        } else {
-            ctx.score = Some(current_best.score().unwrap().clone());
-            ctx.best = problem.decode(&current_best.genotype());
         }
 
         ctx.index += 1;
@@ -405,7 +405,7 @@ where
         }
     }
 
-    pub(super) fn start(&self) -> EngineContext<C, T> {
+    fn start(&self) -> EngineContext<C, T> {
         let population = self.params.population().clone();
 
         EngineContext {

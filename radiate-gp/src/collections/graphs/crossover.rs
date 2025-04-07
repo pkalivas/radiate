@@ -48,8 +48,8 @@ where
             let chromo_index =
                 random_provider::range(0..std::cmp::min(geno_one.len(), geno_two.len()));
 
-            let chromo_one = geno_one.get_mut(chromo_index);
-            let chromo_two = geno_two.get(chromo_index);
+            let chromo_one = geno_one.get_mut(chromo_index).unwrap();
+            let chromo_two = geno_two.get(chromo_index).unwrap();
 
             let mut num_crosses = 0;
 

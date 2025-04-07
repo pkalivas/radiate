@@ -33,13 +33,13 @@ impl<C: Chromosome> Population<C> {
         }
     }
 
-    pub fn get(&self, index: usize) -> &Phenotype<C> {
-        &self.individuals[index]
+    pub fn get(&self, index: usize) -> Option<&Phenotype<C>> {
+        self.individuals.get(index)
     }
 
-    pub fn get_mut(&mut self, index: usize) -> &mut Phenotype<C> {
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut Phenotype<C>> {
         self.is_sorted = false;
-        &mut self.individuals[index]
+        self.individuals.get_mut(index)
     }
 
     pub fn iter(&self) -> std::slice::Iter<Phenotype<C>> {
