@@ -394,4 +394,20 @@ mod tests {
         let node = GraphNode::from((0, NodeType::Edge, 0.0, Arity::Exact(1)));
         assert_eq!(node.arity(), Arity::Exact(1));
     }
+
+    #[test]
+    fn test_graph_node_is_recurrent() {
+        let mut node = GraphNode::new(0, NodeType::Input, 0.0);
+        assert!(!node.is_recurrent());
+
+        node.set_direction(Direction::Backward);
+        assert!(node.is_recurrent());
+
+        node.set_direction(Direction::Forward);
+        node.incoming_mut().insert(1);
+        assert!(node.is_recurrent());
+
+        node.outgoing_mut().insert(1);
+        assert!(node.is_recurrent());
+    }
 }

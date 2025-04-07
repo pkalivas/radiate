@@ -110,9 +110,8 @@ where
     }
 
     fn filter(&mut self) {
-        let values = self.values.iter().map(|s| s.as_ref()).collect::<Vec<_>>();
+        let values = self.values.iter().map(|s| s.as_ref()).collect::<Vec<&T>>();
         let crowding_distances = pareto::crowding_distance(&values, &self.objective);
-
         let mut enumerated = crowding_distances.iter().enumerate().collect::<Vec<_>>();
 
         enumerated.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap_or(Ordering::Equal));
