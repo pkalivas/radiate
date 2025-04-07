@@ -405,7 +405,7 @@ where
         }
     }
 
-    pub(super) fn start(&self) -> EngineContext<C, T> {
+    fn start(&self) -> EngineContext<C, T> {
         let population = self.params.population().clone();
 
         EngineContext {

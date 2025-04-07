@@ -4,7 +4,17 @@ use radiate::{Gene, Valid};
 use std::collections::BTreeSet;
 use std::fmt::Debug;
 use std::hash::Hash;
-use uuid::Uuid;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct GraphNodeId(u64);
+
+impl GraphNodeId {
+    pub fn new() -> Self {
+        static GRAPH_NODE_ID: AtomicU64 = AtomicU64::new(0);
+        GraphNodeId(GRAPH_NODE_ID.fetch_add(1, Ordering::SeqCst))
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Direction {
@@ -15,7 +25,7 @@ pub enum Direction {
 #[derive(Clone, PartialEq)]
 pub struct GraphNode<T> {
     value: T,
-    id: Uuid,
+    id: GraphNodeId,
     index: usize,
     enabled: bool,
     direction: Direction,
@@ -28,7 +38,7 @@ pub struct GraphNode<T> {
 impl<T> GraphNode<T> {
     pub fn new(index: usize, node_type: NodeType, value: T) -> Self {
         GraphNode {
-            id: Uuid::new_v4(),
+            id: GraphNodeId::new(),
             index,
             value,
             enabled: true,
@@ -42,7 +52,7 @@ impl<T> GraphNode<T> {
 
     pub fn with_arity(index: usize, node_type: NodeType, value: T, arity: Arity) -> Self {
         GraphNode {
-            id: Uuid::new_v4(),
+            id: GraphNodeId::new(),
             index,
             value,
             enabled: true,
@@ -78,7 +88,7 @@ impl<T> GraphNode<T> {
         self.index
     }
 
-    pub fn id(&self) -> &Uuid {
+    pub fn id(&self) -> &GraphNodeId {
         &self.id
     }
 
@@ -178,7 +188,7 @@ where
 
     fn new_instance(&self) -> GraphNode<T> {
         GraphNode {
-            id: Uuid::new_v4(),
+            id: GraphNodeId::new(),
             index: self.index,
             enabled: self.enabled,
             value: self.value.clone(),
@@ -192,7 +202,7 @@ where
 
     fn with_allele(&self, allele: &Self::Allele) -> GraphNode<T> {
         GraphNode {
-            id: Uuid::new_v4(),
+            id: GraphNodeId::new(),
             index: self.index,
             value: allele.clone(),
             enabled: self.enabled,
@@ -246,7 +256,7 @@ impl<T: Default> From<(usize, T)> for GraphNode<T> {
     fn from((index, value): (usize, T)) -> Self {
         GraphNode {
             index,
-            id: Uuid::new_v4(),
+            id: GraphNodeId::new(),
             value,
             enabled: true,
             direction: Direction::Forward,
@@ -269,7 +279,7 @@ impl<T: Default> From<(usize, T, Arity)> for GraphNode<T> {
     fn from((index, value, arity): (usize, T, Arity)) -> Self {
         GraphNode {
             index,
-            id: Uuid::new_v4(),
+            id: GraphNodeId::new(),
             value,
             enabled: true,
             direction: Direction::Forward,
@@ -284,7 +294,7 @@ impl<T: Default> From<(usize, T, Arity)> for GraphNode<T> {
 impl<T: Default> Default for GraphNode<T> {
     fn default() -> Self {
         GraphNode {
-            id: Uuid::new_v4(),
+            id: GraphNodeId::new(),
             index: 0,
             enabled: true,
             value: Default::default(),
