@@ -18,24 +18,23 @@ comprehensive list of examples.
     use radiate::*;
 
     const MIN_SCORE: i32 = 0;
-    const NUM_CHROMOSOMES: usize = 1;
     const NUM_GENES: usize = 10;
     const MIN_GENE_VALUE: i32 = 0;
     const MAX_GENE_VALUE: i32 = 100;
 
     fn main() {
-        let codex = IntCodex::new(NUM_CHROMOSOMES, NUM_GENES, MIN_GENE_VALUE..MAX_GENE_VALUE);
+        let codex = IntCodex::vector(NUM_GENES, MIN_GENE_VALUE..MAX_GENE_VALUE);
 
         let engine = GeneticEngine::from_codex(codex)
             .population_size(150)
             .minimizing()
             .offspring_selector(EliteSelector::new())
             .alter(alters!(SwapMutator::new(0.05), UniformCrossover::new(0.5)))
-            .fitness_fn(|geno: Vec<Vec<i32>>| geno.iter().flatten().sum::<i32>())
+            .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
             .build();
 
         let result = engine.run(|ctx| {
-            println!("[ {:?} ]: {:?}", ctx.index, ctx.best.first().unwrap());
+            println!("[ {:?} ]: {:?}", ctx.index, ctx.best);
             ctx.score().as_i32() == MIN_SCORE
         });
 
@@ -65,18 +64,15 @@ comprehensive list of examples.
     fn main() {
         random_provider::set_seed(42);
 
-        let codex = IntCodex::<i8>::new(1, N_QUEENS, 0..N_QUEENS as i8);
+        let codex = IntCodex::<i8, Vec<i8>>::vector(N_QUEENS, 0..N_QUEENS as i8);
 
         let engine = GeneticEngine::from_codex(codex)
             .minimizing()
             .num_threads(5)
             .offspring_selector(BoltzmannSelector::new(4.0))
-            .alter(alters!( 
-                MultiPointCrossover::new(0.75, 2),
-                UniformMutator::new(0.05)
-            ))
-            .fitness_fn(|genotype: Vec<Vec<i8>>| {
-                let queens = &genotype[0];
+            .crossover(MultiPointCrossover::new(0.75, 2))
+            .mutator(UniformMutator::new(0.05))
+            .fitness_fn(|queens: Vec<i8>| {
                 let mut score = 0;
 
                 for i in 0..N_QUEENS {
@@ -101,7 +97,7 @@ comprehensive list of examples.
 
         println!("\nResult Queens Board ({:.3?}):", result.timer.duration());
 
-        let board = &result.best[0];
+        let board = &result.best;
         for i in 0..N_QUEENS {
             for j in 0..N_QUEENS {
                 if board[j] == i as i8 {
@@ -270,7 +266,7 @@ comprehensive list of examples.
     const N_GENES: usize = 2;
 
     fn main() {
-        let codex = FloatCodex::new(1, N_GENES, -RANGE..RANGE);
+        let codex = FloatCodex::vector(N_GENES, -RANGE..RANGE);
 
         let engine = GeneticEngine::from_codex(codex)
             .minimizing()
@@ -279,11 +275,10 @@ comprehensive list of examples.
                 UniformCrossover::new(0.5),
                 ArithmeticMutator::new(0.01)
             ))
-            .fitness_fn(move |genotype: Vec<Vec<f32>>| {
+            .fitness_fn(move |genotype: Vec<f32>| {
                 let mut value = A * N_GENES as f32;
                 for i in 0..N_GENES {
-                    value += genotype[0][i].powi(2)
-                        - A * (2.0 * std::f32::consts::PI * genotype[0][i]).cos();
+                    value += genotype[i].powi(2) - A * (2.0 * std::f32::consts::PI * genotype[i]).cos();
                 }
 
                 value
@@ -446,13 +441,12 @@ comprehensive list of examples.
 
 > Objective - Evolve a `Graph<Op<f32>>` to solve the XOR problem (NeuroEvolution).
 >
->  Warning - only available with the `radiate-gp` crate
+>  Warning - only available with the `gp` feature flag
 
 ??? example
 
     ```rust
     use radiate::*;
-    use radiate_gp::*;
 
     const MAX_INDEX: i32 = 500;
     const MIN_SCORE: f32 = 0.01;
@@ -463,21 +457,20 @@ comprehensive list of examples.
         let values = vec![
             (NodeType::Input, vec![Op::var(0), Op::var(1)]),
             (NodeType::Edge, vec![Op::weight(), Op::identity()]),
-            (NodeType::Vertex, ops::get_all_operations()),
+            (NodeType::Vertex, ops::all_ops()),
             (NodeType::Output, vec![Op::sigmoid()]),
         ];
 
-        let graph_codex = GraphCodex::asyclic(2, 1, values);
-        let regression = Regression::new(get_dataset(), Loss::MSE);
+        let graph_codex = GraphCodex::directed(2, 1, values);
+        let regression = Regression::new(get_dataset(), Loss::MSE, graph_codex);
 
-        let engine = GeneticEngine::from_codex(graph_codex)
+        let engine = GeneticEngine::from_problem(regression)
             .minimizing()
             .alter(alters!(
                 GraphCrossover::new(0.5, 0.5),
                 OperationMutator::new(0.05, 0.05),
-                GraphMutator::new(0.06, 0.01, false)
+                GraphMutator::new(0.06, 0.01).allow_recurrent(false),
             ))
-            .fitness_fn(move |genotype: Graph<Op<f32>>| regression.eval(&genotype))
             .build();
 
         let result = engine.run(|ctx| {
@@ -520,12 +513,13 @@ comprehensive list of examples.
 ## Tree - Regression
 
 > Objective - Evolve a `Tree<Op<f32>>` to solve the a regression problem (Genetic Programming).
+>
+> Warning - only available with the `gp` feature flag
 
 ??? example
 
     ```rust
     use radiate::*;
-    use radiate_gp::*;
 
     const MIN_SCORE: f32 = 0.01;
     const MAX_SECONDS: f64 = 1.0;
@@ -542,14 +536,12 @@ comprehensive list of examples.
         ];
 
         let tree_codex = TreeCodex::single(3, store).constraint(|root| root.size() < 30);
+        let problem = Regression::new(get_dataset(), Loss::MSE, tree_codex);
 
-        let regression = Regression::new(get_dataset(), Loss::MSE);
-
-        let engine = GeneticEngine::from_codex(tree_codex)
+        let engine = GeneticEngine::from_problem(problem)
             .minimizing()
-            .num_threads(10)
-            .alter(alters!(TreeCrossover::new(0.5)))
-            .fitness_fn(move |tree: Vec<Tree<Op<f32>>>| regression.eval(&tree))
+            .mutator(HoistMutator::new(0.04))
+            .crossover(TreeCrossover::new(0.7))
             .build();
 
         let result = engine.run(|ctx| {
@@ -560,10 +552,10 @@ comprehensive list of examples.
         display(&result);
     }
 
-    fn display(result: &EngineContext<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>) {
+    fn display(result: &EngineContext<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
         let data_set = get_dataset();
         let accuracy = Accuracy::new("reg", &data_set, Loss::MSE);
-        let accuracy_result = accuracy.calc(|input| result.best.eval(input));
+        let accuracy_result = accuracy.calc(|input| vec![result.best.eval(input)]);
 
         println!("{:?}", result);
         println!("{:?}", accuracy_result);

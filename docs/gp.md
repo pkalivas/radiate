@@ -1,7 +1,12 @@
 
 # Genetic Programming 
 
-The `radiate-gp` crate provides the fundamental building blocks for [Genetic Programming](https://en.wikipedia.org/wiki/Genetic_programming) (GP). It includes **data structures and algorithms** for building and evolving **`Tree`s** and **`Graph`s**.
+```toml
+[dependencies]
+radiate = { version = "1.2.9", features = ["gp"] }
+```
+
+The `gp` feature flag in `radiate` provides the fundamental building blocks for [Genetic Programming](https://en.wikipedia.org/wiki/Genetic_programming) (GP). It includes **data structures and algorithms** for building and evolving **`Tree`s** and **`Graph`s**.
 
 Genetic Programming (GP) is an evolutionary algorithm that **evolves programs** to solve problems. Programs are represented as **expression trees, decision trees, random forests, or neural networks** and evolved over generations.
 
@@ -167,7 +172,7 @@ Provided `Ops` include:
 
 ## Graphs
 
-Graphs are a powerful way to represent problems. They are used in many fields, such as Neural Networks, and can be used to solve complex problems. Radiate-gp thinks of graphs in a more general way than most implementations. Instead of being a collection of inputs, nodes, edges, and outputs, radiate-gp thinks of a graph as simply a bag of nodes that can be connected in any way. Why? Well, because it allows for more flexibility within the graph and it lends itself well to the evolutionary nature of genetic programming. However, this representation is not without it's drawbacks. It can be difficult to reason about the graph and it can be difficult to ensure that the graph is valid. Radiate-gp tries to mitigate these issues by sticking to a few simple rules that govern the graph.
+Graphs are a powerful way to represent problems. They are used in many fields, such as Neural Networks, and can be used to solve complex problems. Radiate thinks of graphs in a more general way than most implementations. Instead of being a collection of inputs, nodes, edges, and outputs, radiate thinks of a graph as simply a bag of nodes that can be connected in any way. Why? Well, because it allows for more flexibility within the graph and it lends itself well to the evolutionary nature of genetic programming. However, this representation is not without it's drawbacks. It can be difficult to reason about the graph and it can be difficult to ensure that the graph is valid. Radiate tries to mitigate these issues by sticking to a few simple rules that govern the graph.
 
 1. Each input node must have 0 incoming connections and at least 1 outgoing connection.
 2. Each output node must have at least 1 incoming connection and 0 outgoing connections.
@@ -176,7 +181,7 @@ Graphs are a powerful way to represent problems. They are used in many fields, s
 
 With these rules in mind, we can begin to build and evolve graphs. The graph typically relies on an underlying `GraphArchitect` to construct a valid graph. This architect is a builder pattern that keeps an aggregate of nodes added and their relationships to other nodes. Because of the architect's decoupled nature, we can easily create complex graphs, however it is up to the user to ensure that the desired end graph is valid. 
 
-Radiate-gp provides a few basic graph architectures, but it is also possible to construct your own graph through either the built in graph functions or by using the architect. In most cases building a graph requires a vec of tuples where the first element is the `NodeType` and the second element is a vec of values that the `GraphNode` can take. The `NodeType` is either `Input`, `Output`, `Vertex`, or `Edge`. The value of the `GraphNode` is picked at random from the vec of it's `NodeType`.
+Radiate provides a few basic graph architectures, but it is also possible to construct your own graph through either the built in graph functions or by using the architect. In most cases building a graph requires a vec of tuples where the first element is the `NodeType` and the second element is a vec of values that the `GraphNode` can take. The `NodeType` is either `Input`, `Output`, `Vertex`, or `Edge`. The value of the `GraphNode` is picked at random from the vec of it's `NodeType`.
 
 ??? info "Directed Acyclic Graphs (DAGs)"
 
@@ -227,10 +232,10 @@ Radiate-gp provides a few basic graph architectures, but it is also possible to 
     It will look like this:
 
     ```plaintext
-                     ___________________
-                    /                   \
+                   ____________________
+                  /                    \
     Input0 --- Vertex --- Vertex    Sigmoid
-            \_____________/
+                  \__________/
     ```
 
 ### Codex

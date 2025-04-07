@@ -405,7 +405,7 @@ where
         }
     }
 
-    pub(super) fn start(&self) -> EngineContext<C, T> {
+    fn start(&self) -> EngineContext<C, T> {
         let population = self.params.population().clone();
 
         EngineContext {
@@ -434,26 +434,6 @@ where
         GeneticEngineBuilder::<C, T>::default().build()
     }
 }
-
-// impl<'a, C, T> Iterator for GeneticEngineIterator<'a, C, T>
-// where
-//     C: Chromosome,
-//     T: Clone + Send,
-// {
-//     type Item = &'a EngineContext<C, T>;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         if self.done {
-//             return None;
-//         }
-
-//         self.engine.next(&mut self.ctx);
-//         Some(unsafe {
-//             // SAFETY: `self.ctx` lives as long as `self`, and we don’t mutate it outside
-//             &*(&self.ctx as *const EngineContext<C, T>)
-//         })
-//     }
-// }
 
 #[cfg(test)]
 mod engine_tests {
