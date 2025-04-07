@@ -404,10 +404,11 @@ mod tests {
         assert!(node.is_recurrent());
 
         node.set_direction(Direction::Forward);
-        node.incoming_mut().insert(1);
-        assert!(node.is_recurrent());
+        assert!(!node.is_recurrent());
 
-        node.outgoing_mut().insert(1);
+        node.incoming_mut().insert(0);
+        node.outgoing_mut().insert(0);
+
         assert!(node.is_recurrent());
     }
 }

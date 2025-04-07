@@ -78,7 +78,7 @@ where
                 self.outputs[node.index()] = node.eval(&self.inputs[node.index()]);
             }
 
-            if node.node_type() == NodeType::Output {
+            if matches!(node.node_type(), NodeType::Output) {
                 output.push(self.outputs[node.index()].clone());
             }
         }

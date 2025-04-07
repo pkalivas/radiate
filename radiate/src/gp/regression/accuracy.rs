@@ -3,16 +3,16 @@ use std::fmt::Debug;
 
 #[derive(Clone)]
 pub struct Accuracy<'a> {
-    name: String,
     data_set: &'a DataSet,
+    name: String,
     loss_fn: Loss,
 }
 
 impl<'a> Accuracy<'a> {
     pub fn new(name: impl Into<String>, data_set: &'a DataSet, loss_fn: Loss) -> Self {
         Accuracy {
-            name: name.into(),
             data_set,
+            name: name.into(),
             loss_fn,
         }
     }

@@ -11,8 +11,8 @@ where
     data_set: DataSet,
     loss: Loss,
     codex: Arc<dyn Codex<C, T>>,
-    _chrom: PhantomData<C>,
-    _val: PhantomData<T>,
+    _chrom_marker: PhantomData<C>,
+    _decode_marker: PhantomData<T>,
 }
 
 impl<C, T> Regression<C, T>
@@ -29,8 +29,8 @@ where
             data_set: sample_set.into(),
             loss,
             codex: Arc::new(codex),
-            _chrom: PhantomData,
-            _val: PhantomData,
+            _chrom_marker: PhantomData,
+            _decode_marker: PhantomData,
         }
     }
 }
