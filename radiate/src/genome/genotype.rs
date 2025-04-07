@@ -46,12 +46,12 @@ impl<C: Chromosome> Genotype<C> {
         self.chromosomes.is_empty()
     }
 
-    pub fn get(&self, index: usize) -> &C {
-        &self.chromosomes[index]
+    pub fn get(&self, index: usize) -> Option<&C> {
+        self.chromosomes.get(index)
     }
 
-    pub fn get_mut(&mut self, index: usize) -> &mut C {
-        &mut self.chromosomes[index]
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut C> {
+        self.chromosomes.get_mut(index)
     }
 }
 
