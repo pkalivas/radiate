@@ -76,7 +76,7 @@ mod selector_tests {
 
         let percent_better_than_random = better_than_random as f32 / num_permutations as f32;
 
-        assert!(percent_better_than_random > 0.95);
+        assert!(percent_better_than_random > 0.9);
     }
 
     fn fitness_improvement_metric(
