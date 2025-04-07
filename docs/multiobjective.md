@@ -30,7 +30,7 @@ To set up the engine to solve this type of problem, we supply the objective func
     const K: usize = VARIABLES - OBJECTIVES + 1;
 
     fn main() {
-        let codex = FloatCodex::new(1, VARIABLES, 0_f32..1_f32).with_bounds(-100.0, 100.0);
+        let codex = FloatCodex::vector(VARIABLES, 0_f32..1_f32).with_bounds(-100.0, 100.0);
 
         let engine = GeneticEngine::from_codex(codex)
             .num_threads(10)
@@ -42,8 +42,8 @@ To set up the engine to solve this type of problem, we supply the objective func
                 SimulatedBinaryCrossover::new(1_f32, 1.0),
                 UniformMutator::new(0.1_f32),
             ))
-            .fitness_fn(|geno: Vec<Vec<f32>>| {
-                let values = &geno[0];
+            .fitness_fn(|geno: Vec<f32>| {
+                let values = &geno;
                 let g = values[K..]
                     .iter()
                     .map(|&xi| (xi - 0.5).powi(2))
@@ -100,7 +100,7 @@ Again, to set up the engine to solve this type of problem, we supply the objecti
     const K: usize = VARIABLES - OBJECTIVES + 1;
 
     fn main() {
-        let codex = FloatCodex::new(1, VARIABLES, 0_f32..1_f32).with_bounds(-100.0, 100.0);
+        let codex = FloatCodex::vector(VARIABLES, 0_f32..1_f32).with_bounds(-100.0, 100.0);
 
         let engine = GeneticEngine::from_codex(codex)
             .num_threads(10)
@@ -111,8 +111,8 @@ Again, to set up the engine to solve this type of problem, we supply the objecti
                 SimulatedBinaryCrossover::new(1_f32, 1.0),
                 UniformMutator::new(0.1_f32),
             ))
-            .fitness_fn(|geno: Vec<Vec<f32>>| {
-                let values = &geno[0];
+            .fitness_fn(|geno: Vec<f32>| {
+                let values = &geno;
                 let g = values[K..]
                     .iter()
                     .map(|&xi| (xi - 0.5).powi(2))
