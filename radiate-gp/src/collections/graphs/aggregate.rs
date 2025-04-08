@@ -1,10 +1,9 @@
+use super::node::GraphNodeId;
 use crate::{
     collections::{Graph, GraphNode, NodeType},
     node::Node,
 };
 use std::collections::BTreeMap;
-
-use super::node::GraphNodeId;
 
 /// Building a `Graph<T>` can be a very complex task. Everything in this file exists
 /// to simplify the process of building a `Graph<T>` by allowing the user to do so

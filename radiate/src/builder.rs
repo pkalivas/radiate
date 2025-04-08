@@ -87,12 +87,15 @@ where
         self
     }
 
-    // pub fn audit<A: Audit<C> + 'static>(mut self, audit: A) -> Self {
+    /// Add a single audit to the algorithm that will produce additional metrics
+    /// to collect during the evolution process.
     pub fn audit(mut self, audit: impl Audit<C> + 'static) -> Self {
         self.audits.push(Arc::new(audit));
         self
     }
 
+    /// Add a list of audits to the algorithm that will produce additional metrics
+    /// to collect during the evolution process.
     pub fn audits(mut self, audits: Vec<Arc<dyn Audit<C>>>) -> Self {
         self.audits.extend(audits);
         self
