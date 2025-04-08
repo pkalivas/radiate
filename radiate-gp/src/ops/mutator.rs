@@ -142,6 +142,8 @@ where
                                 supplier: Arc::clone(get_value),
                                 operation: Arc::clone(operation),
                             };
+
+                            (*cloned_count.lock().unwrap()) += 1;
                         }
                         _ => {
                             let new_op: Op<T> = store.new_instance(node.node_type());

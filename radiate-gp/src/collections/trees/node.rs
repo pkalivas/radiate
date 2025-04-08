@@ -62,6 +62,7 @@ impl<T> TreeNode<T> {
                 return Some(children.remove(index));
             }
         }
+
         None
     }
 

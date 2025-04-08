@@ -1,6 +1,5 @@
-use std::sync::Arc;
-
 use super::Op;
+use std::sync::Arc;
 
 impl Op<bool> {
     pub fn and() -> Self {
