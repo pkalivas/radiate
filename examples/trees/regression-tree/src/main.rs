@@ -1,5 +1,5 @@
 use radiate::*;
-use radiate_gp::{trees::HoistMutator, *};
+use radiate_gp::*;
 
 const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 1.0;
@@ -17,7 +17,7 @@ fn main() {
 
     let engine = GeneticEngine::from_problem(problem)
         .minimizing()
-        .mutator(HoistMutator::new(0.04))
+        .mutator(HoistMutator::new(0.01))
         .crossover(TreeCrossover::new(0.7))
         .build();
 

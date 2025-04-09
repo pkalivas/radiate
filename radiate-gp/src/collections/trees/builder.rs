@@ -2,7 +2,7 @@ use crate::collections::{Tree, TreeNode};
 use crate::node::Node;
 use crate::{Arity, Factory, NodeStore, NodeType};
 
-impl<T> Tree<T> {
+impl<T: Clone + Default> Tree<T> {
     /// Create a tree with the given depth, where each node is a random node from the node store.
     /// This obeys the rules of the `NodeStore`'s `NodeType`'s arity, and will create a tree
     /// that is as balanced as possible.
@@ -19,10 +19,7 @@ impl<T> Tree<T> {
     ///
     /// # Returns
     /// A tree with the given depth, where each node is a random node from the node store.
-    pub fn with_depth(depth: usize, nodes: impl Into<NodeStore<T>>) -> Self
-    where
-        T: Default + Clone,
-    {
+    pub fn with_depth(depth: usize, nodes: impl Into<NodeStore<T>>) -> Self {
         let store = nodes.into();
 
         let mut root = if store.contains_type(NodeType::Root) {
@@ -56,10 +53,7 @@ impl<T> Tree<T> {
     ///
     /// # Returns
     /// A tree node with the given depth, where each node is a random node from the node store.
-    fn grow(current_depth: usize, store: &NodeStore<T>) -> TreeNode<T>
-    where
-        T: Default + Clone,
-    {
+    fn grow(current_depth: usize, store: &NodeStore<T>) -> TreeNode<T> {
         if current_depth == 0 {
             return store.new_instance(NodeType::Leaf);
         }

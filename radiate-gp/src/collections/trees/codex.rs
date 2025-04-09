@@ -10,7 +10,7 @@ pub struct TreeCodex<T: Clone, D = Vec<Tree<T>>> {
     num_trees: usize,
     store: Option<NodeStore<T>>,
     constraint: Option<Constraint<TreeNode<T>>>,
-    _phantom: std::marker::PhantomData<D>,
+    _marker: std::marker::PhantomData<D>,
 }
 
 impl<T: Clone + Default> TreeCodex<T> {
@@ -20,7 +20,7 @@ impl<T: Clone + Default> TreeCodex<T> {
             num_trees: 1,
             store: Some(store.into()),
             constraint: None,
-            _phantom: std::marker::PhantomData,
+            _marker: std::marker::PhantomData,
         }
     }
 
@@ -34,7 +34,7 @@ impl<T: Clone + Default> TreeCodex<T> {
             num_trees,
             store: Some(store.into()),
             constraint: None,
-            _phantom: std::marker::PhantomData,
+            _marker: std::marker::PhantomData,
         }
     }
 }

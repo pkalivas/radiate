@@ -1,10 +1,9 @@
+use super::node::GraphNodeId;
 use crate::{
     collections::{Graph, GraphNode, NodeType},
     node::Node,
 };
 use std::collections::BTreeMap;
-
-use super::node::GraphNodeId;
 
 /// Building a `Graph<T>` can be a very complex task. Everything in this file exists
 /// to simplify the process of building a `Graph<T>` by allowing the user to do so
@@ -362,8 +361,8 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
     /// the `GraphNode`s and any other inputs provided to the `GraphAggregate<T>`.
     pub fn attach(&mut self, group: &'a [GraphNode<T>]) {
         for node in group.iter() {
-            if !self.nodes.contains_key(&node.id()) {
-                let node_id = &node.id();
+            if !self.nodes.contains_key(node.id()) {
+                let node_id = node.id();
 
                 self.nodes.insert(node_id, node);
                 self.node_order.insert(self.node_order.len(), node_id);
@@ -493,7 +492,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
             .iter()
             .enumerate()
             .skip_while(|(_, node)| !node.outgoing().is_empty())
-            .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
+            .filter_map(|(idx, _)| collection.as_ref().get(idx))
             .collect::<Vec<&GraphNode<T>>>();
 
         if !outputs.is_empty() {
@@ -509,7 +508,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
                     && node.is_recurrent()
                     && (node.node_type() == NodeType::Vertex)
             })
-            .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
+            .filter_map(|(idx, _)| collection.as_ref().get(idx))
             .collect::<Vec<&GraphNode<T>>>();
 
         if !recurrent_outputs.is_empty() {
@@ -521,7 +520,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
             .iter()
             .enumerate()
             .filter(|(_, node)| node.incoming().is_empty())
-            .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
+            .filter_map(|(idx, _)| collection.as_ref().get(idx))
             .collect::<Vec<&GraphNode<T>>>()
     }
 
@@ -531,7 +530,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
             .iter()
             .enumerate()
             .take_while(|(_, node)| node.incoming().is_empty())
-            .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
+            .filter_map(|(idx, _)| collection.as_ref().get(idx))
             .collect::<Vec<&GraphNode<T>>>();
 
         if !inputs.is_empty() {
@@ -547,7 +546,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
                     && node.is_recurrent()
                     && node.node_type() == NodeType::Vertex
             })
-            .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
+            .filter_map(|(idx, _)| collection.as_ref().get(idx))
             .collect::<Vec<&GraphNode<T>>>();
 
         if !recurrent_inputs.is_empty() {
@@ -559,7 +558,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
             .iter()
             .enumerate()
             .filter(|(_, node)| node.outgoing().is_empty())
-            .map(|(idx, _)| collection.as_ref().get(idx).unwrap())
+            .filter_map(|(idx, _)| collection.as_ref().get(idx))
             .collect::<Vec<&GraphNode<T>>>()
     }
 }

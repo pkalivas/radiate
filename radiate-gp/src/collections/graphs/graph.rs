@@ -265,7 +265,7 @@ impl<T> Default for Graph<T> {
     }
 }
 
-impl<T: Debug + PartialEq + Clone> Debug for Graph<T> {
+impl<T: Debug> Debug for Graph<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Graph {{\n")?;
         for node in self.as_ref() {
@@ -314,7 +314,7 @@ mod test {
 
     #[test]
     fn test_graph_node_creations() {
-        let mut graph_one = Graph::new(vec![
+        let mut graph_one = Graph::from_iter(vec![
             GraphNode::new(0, NodeType::Input, 0),
             GraphNode::new(1, NodeType::Vertex, 1),
             GraphNode::new(2, NodeType::Output, 1),
