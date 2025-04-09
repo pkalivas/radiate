@@ -53,7 +53,7 @@ where
 
             let mut num_crosses = 0;
 
-            let edge_indies = (0..std::cmp::min(chromo_one.len(), chromo_two.len()))
+            let node_indices = (0..std::cmp::min(chromo_one.len(), chromo_two.len()))
                 .filter(|i| {
                     let node_one = chromo_one.get(*i);
                     let node_two = chromo_two.get(*i);
@@ -63,11 +63,11 @@ where
                 })
                 .collect::<Vec<usize>>();
 
-            if edge_indies.is_empty() {
+            if node_indices.is_empty() {
                 return num_crosses.into();
             }
 
-            for i in edge_indies {
+            for i in node_indices {
                 let node_two = chromo_two.get(i);
 
                 *chromo_one.as_mut()[i].value_mut() = node_two.value().clone();
