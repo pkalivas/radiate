@@ -127,7 +127,9 @@ impl<T> Node for GraphNode<T> {
         let arity = self.arity();
 
         if let Arity::Any = arity {
-            if self.outgoing.is_empty() {
+            if self.outgoing.is_empty() && self.incoming.is_empty() {
+                NodeType::Vertex
+            } else if self.outgoing.is_empty() {
                 NodeType::Output
             } else {
                 NodeType::Vertex
@@ -318,6 +320,19 @@ mod tests {
     use super::*;
     use crate::NodeType;
     use std::collections::BTreeSet;
+
+    #[test]
+    fn test_graph_node_default() {
+        let node = GraphNode::<usize>::default();
+
+        assert_eq!(node.index(), 0);
+        assert_eq!(node.node_type(), NodeType::Vertex);
+        assert_eq!(node.arity(), Arity::Any);
+        assert!(!node.is_valid());
+        assert!(!node.is_recurrent());
+        assert_eq!(node.incoming(), &BTreeSet::new());
+        assert_eq!(node.outgoing(), &BTreeSet::new());
+    }
 
     #[test]
     fn test_graph_node() {

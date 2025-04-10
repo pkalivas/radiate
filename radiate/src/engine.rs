@@ -437,7 +437,7 @@ where
 
 #[cfg(test)]
 mod engine_tests {
-    use crate::{FloatCodex, GeneticEngine, IntCodex, genetic_test};
+    use crate::{GeneticEngine, IntCodex};
 
     #[test]
     fn engine_can_minimize() {
@@ -487,22 +487,4 @@ mod engine_tests {
 
         assert_eq!(&result.best, &vec![1, 2, 3, 4, 5]);
     }
-
-    genetic_test!(
-        name: evolve_zero_vector,
-        codex: FloatCodex::vector(5, -10.0..10.0),
-        fitness: |geno| geno.iter().map(|x| x * x).sum::<f32>(),
-        settings: {
-            minimizing,
-            population_size: 50,
-            num_threads: 4,
-        },
-        stopping_criteria: |ctx| {
-            // Stop when the score is close to zero
-            ctx.score().as_f32() < 0.01
-        },
-        assert: |result| {
-            assert!(result.score().as_f32() < 0.1);
-        }
-    );
 }

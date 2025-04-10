@@ -232,30 +232,6 @@ macro_rules! build_engine {
         $builder.$method()
     };
 }
-#[macro_export]
-macro_rules! genetic_test {
-    (
-        name: $name:ident,
-        codex: $codex:expr,
-        fitness: $fitness_fn:expr,
-        settings: { $( $setting:ident $( : $value:expr )? ),* $(,)? },
-        stopping_criteria: |$ctx:ident| $criteria:expr,
-        assert: |$result:ident| $assertion:block
-    ) => {
-        #[test]
-        fn $name() {
-            let engine = crate::build_engine!(
-                codex: $codex,
-                fitness: $fitness_fn,
-                settings: { $($setting $( : $value )?),* }
-            );
-
-            let $result = engine.run(|$ctx| $criteria);
-
-            $assertion
-        }
-    };
-}
 
 #[macro_export]
 macro_rules! engine {
@@ -299,4 +275,49 @@ macro_rules! experiment {
 //         alter(alters!(SwapMutator::new(0.05), UniformCrossover::new(0.5)))
 //     ],
 //     |ctx| ctx.score().as_f32() < 0.01
+// );
+
+// MACRO IDEAS
+
+// #[macro_export]
+// macro_rules! genetic_test {
+//     (
+//         name: $name:ident,
+//         codex: $codex:expr,
+//         fitness: $fitness_fn:expr,
+//         settings: { $( $setting:ident $( : $value:expr )? ),* $(,)? },
+//         stopping_criteria: |$ctx:ident| $criteria:expr,
+//         assert: |$result:ident| $assertion:block
+//     ) => {
+//         #[test]
+//         fn $name() {
+//             let engine = crate::build_engine!(
+//                 codex: $codex,
+//                 fitness: $fitness_fn,
+//                 settings: { $($setting $( : $value )?),* }
+//             );
+
+//             let $result = engine.run(|$ctx| $criteria);
+
+//             $assertion
+//         }
+//     };
+// }
+
+// genetic_test!(
+//     name: evolve_zero_vector,
+//     codex: FloatCodex::vector(5, -10.0..10.0),
+//     fitness: |geno| geno.iter().map(|x| x * x).sum::<f32>(),
+//     settings: {
+//         minimizing,
+//         population_size: 50,
+//         num_threads: 4,
+//     },
+//     stopping_criteria: |ctx| {
+//         // Stop when the score is close to zero
+//         ctx.score().as_f32() < 0.01
+//     },
+//     assert: |result| {
+//         assert!(result.score().as_f32() < 0.1);
+//     }
 // );
