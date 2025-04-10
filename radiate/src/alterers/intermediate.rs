@@ -45,11 +45,11 @@ impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for IntermediateCrossover {
                 let gene_one = chrom_one.get(i);
                 let gene_two = chrom_two.get(i);
 
-                let allele1 = gene_one.allele();
-                let allele2 = gene_two.allele();
+                let allele_one = gene_one.allele();
+                let allele_two = gene_two.allele();
 
                 let alpha = random_provider::range(0.0..self.alpha);
-                let allele = allele1 * alpha + allele2 * (1.0 - alpha);
+                let allele = allele_one * alpha + allele_two * (1.0 - alpha);
 
                 chrom_one.set(i, gene_one.with_allele(&allele));
                 cross_count += 1;

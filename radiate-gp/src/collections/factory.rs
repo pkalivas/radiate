@@ -23,15 +23,10 @@ where
     T: Factory<(), T> + Default,
 {
     fn new_instance(&self, input: NodeType) -> T {
-        let new_node = self.map_by_type(input, |values| {
+        self.map_by_type(input, |values| {
             random_provider::choose(&values).new_instance(())
-        });
-
-        if let Some(new_value) = new_node {
-            return new_value;
-        }
-
-        T::default()
+        })
+        .unwrap_or(T::default())
     }
 }
 
@@ -39,7 +34,7 @@ impl<T: Default + Clone> Factory<(usize, NodeType), GraphNode<T>> for NodeStore<
     fn new_instance(&self, input: (usize, NodeType)) -> GraphNode<T> {
         let (index, node_type) = input;
 
-        let new_node = self.map_by_type(node_type, |values| {
+        self.map_by_type(node_type, |values| {
             let node_value = match node_type {
                 NodeType::Input => &values[index % values.len()],
                 _ => random_provider::choose(&values),
@@ -51,13 +46,8 @@ impl<T: Default + Clone> Factory<(usize, NodeType), GraphNode<T>> for NodeStore<
                 }
                 NodeValue::Unbound(value) => (index, node_type, value.clone()).into(),
             }
-        });
-
-        if let Some(new_value) = new_node {
-            return new_value;
-        }
-
-        GraphNode::new(index, node_type, T::default())
+        })
+        .unwrap_or(GraphNode::new(index, node_type, T::default()))
     }
 }
 
@@ -68,7 +58,7 @@ where
 {
     fn new_instance(&self, input: (usize, NodeType, F)) -> GraphNode<T> {
         let (index, node_type, filter) = input;
-        let new_node = self.map(|values| {
+        self.map(|values| {
             let mapped_values = values
                 .into_iter()
                 .filter(|value| match value {
@@ -85,31 +75,21 @@ where
                 }
                 NodeValue::Unbound(value) => GraphNode::new(index, node_type, value.clone()),
             }
-        });
-
-        if let Some(new_value) = new_node {
-            return new_value;
-        }
-
-        GraphNode::new(index, node_type, T::default())
+        })
+        .unwrap_or(GraphNode::new(index, node_type, T::default()))
     }
 }
 
 impl<T: Clone + Default> Factory<NodeType, TreeNode<T>> for NodeStore<T> {
     fn new_instance(&self, input: NodeType) -> TreeNode<T> {
-        let new_node = self.map_by_type(input, |values| {
+        self.map_by_type(input, |values| {
             let node_value = random_provider::choose(&values);
 
             match node_value {
                 NodeValue::Bounded(value, arity) => TreeNode::with_arity(value.clone(), *arity),
                 NodeValue::Unbound(value) => TreeNode::new(value.clone()),
             }
-        });
-
-        if let Some(new_value) = new_node {
-            return new_value;
-        }
-
-        TreeNode::new(T::default())
+        })
+        .unwrap_or(TreeNode::new(T::default()))
     }
 }

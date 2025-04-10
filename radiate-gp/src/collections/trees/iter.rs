@@ -41,14 +41,17 @@ use super::TreeChromosome;
 /// // iterate over the tree in pre-order
 /// // Output: 1, 2, 4, 5, 3, 6, 7
 /// let pre_order = tree.iter_pre_order().map(|n| n.value()).collect::<Vec<&i32>>();
+/// assert_eq!(pre_order, vec![&1, &2, &4, &5, &3, &6, &7]);
 ///
 /// // iterate over the tree in post-order
 /// // Output: 4, 5, 2, 6, 7, 3, 1
 /// let post_order = tree.iter_post_order().map(|n| n.value()).collect::<Vec<&i32>>();
+/// assert_eq!(post_order, vec![&4, &5, &2, &6, &7, &3, &1]);
 ///
 /// // iterate over the tree in breadth-first order
 /// // Output: 1, 2, 3, 4, 5, 6, 7
 /// let breadth_first = tree.iter_breadth_first().map(|n| n.value()).collect::<Vec<&i32>>();
+/// assert_eq!(breadth_first, vec![&1, &2, &3, &4, &5, &6, &7]);
 /// ```
 ///
 pub trait TreeIterator<T> {

@@ -19,10 +19,11 @@ where
     T: Eval<[V], V>,
     V: Default + Clone,
 {
-    /// Creates a new `GraphEvaluator` with the given `Graph`. Will cache the order of nodes in
-    /// the `Graph` on the first iteration. On initialization the `GraphEvaluator` will cache the
-    /// output size of the `Graph` to be used in the `reduce` method and create a vec of `Tracer`
-    /// which will be used to evaluate the `Graph` in the `reduce` method.
+    /// Creates a new `GraphEvaluator` with the given `Graph`. We pre-allocate a
+    /// `Vec<Vec<V>>` to hold the inputs for each node and a `Vec<V>` to hold the outputs
+    /// of nodes which serve as the inputs for their decendants. Then, iterating over
+    /// the nodes in topological order, we evaluate the nodes in one pass. Because of this,
+    /// the 'heavy lifting' is done upfront which makes subsequent evaluations much faster.
     ///
     /// # Arguments
     /// * `graph` - The `Graph` to reduce.
@@ -102,14 +103,11 @@ where
     /// * A `Vec<Vec<T>>` which is the output of the `Graph`.
     #[inline]
     fn eval(&self, input: &Vec<Vec<V>>) -> Vec<Vec<V>> {
-        let mut output = Vec::with_capacity(self.len());
         let mut evaluator = GraphEvaluator::new(self);
-
-        for inputs in input.iter() {
-            output.push(evaluator.eval_mut(inputs));
-        }
-
-        output
+        input
+            .iter()
+            .map(|input| evaluator.eval_mut(input))
+            .collect()
     }
 }
 
@@ -153,9 +151,9 @@ mod tests {
         let seven = graph.eval(&vec![vec![2_f32]]);
         let eight = graph.eval(&vec![vec![3_f32]]);
 
-        assert_eq!(six, vec![vec![6_f32]]);
-        assert_eq!(seven, vec![vec![7_f32]]);
-        assert_eq!(eight, vec![vec![8_f32]]);
+        assert_eq!(six, &[&[6_f32]]);
+        assert_eq!(seven, &[&[7_f32]]);
+        assert_eq!(eight, &[&[8_f32]]);
         assert_eq!(graph.len(), 4);
     }
 }

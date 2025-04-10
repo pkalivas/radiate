@@ -30,11 +30,11 @@ impl<T: Clone + Default> Tree<T> {
 
         if root.arity() == Arity::Any {
             for _ in 0..2 {
-                root.add_child(Tree::grow(depth - 1, &store));
+                root.add_child(Self::grow(depth - 1, &store));
             }
         } else {
             for _ in 0..*root.arity() {
-                root.add_child(Tree::grow(depth - 1, &store));
+                root.add_child(Self::grow(depth - 1, &store));
             }
         }
 
@@ -60,7 +60,7 @@ impl<T: Clone + Default> Tree<T> {
 
         let mut parent = store.new_instance(NodeType::Vertex);
         for _ in 0..*parent.arity() {
-            parent.add_child(Tree::grow(current_depth - 1, store));
+            parent.add_child(Self::grow(current_depth - 1, store));
         }
 
         parent

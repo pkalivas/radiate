@@ -1,7 +1,7 @@
 use super::Tree;
 use crate::{Eval, TreeNode, node::Node};
 
-/// Implements the `Reduce` trait for `Vec<Tree<T>>`. This is a wrapper around a `Vec<Tree<T>>`
+/// Implements the `Eval` trait for `Vec<Tree<T>>`. This is a wrapper around a `Vec<Tree<T>>`
 /// and allows for the evaluation of each `Tree` in the `Vec` with a single input.
 /// This is useful for things like `Ensemble` models where multiple models are used to make a prediction.
 ///
@@ -17,6 +17,9 @@ where
     }
 }
 
+/// Implements the `Eval` trait for `Vec<&TreeNode<T>>`. This is a wrapper around a `Vec<&TreeNode<T>>`
+/// and allows for the evaluation of each `TreeNode` in the `Vec` with a single input.
+/// The len of the input slice must equal the number of nodes in the `Vec`.
 impl<T, V> Eval<[V], Vec<V>> for Vec<&TreeNode<T>>
 where
     T: Eval<[V], V>,
@@ -28,7 +31,7 @@ where
     }
 }
 
-/// Implements the `Reduce` trait for `Tree<T>` where `T` is `Eval<[V], V>`. All this really does is
+/// Implements the `Eval` trait for `Tree<T>` where `T` is `Eval<[V], V>`. All this really does is
 /// call the `reduce` method on the root node of the `Tree`. The real work is
 /// done in the `TreeNode` implementation below.
 impl<T, V> Eval<[V], V> for Tree<T>
@@ -44,7 +47,7 @@ where
     }
 }
 
-/// Implements the `Reduce` trait for `TreeNode<T>` where `T` is `Eval<[V], V>`. This is where the real work is done.
+/// Implements the `Eval` trait for `TreeNode<T>` where `T` is `Eval<[V], V>`. This is where the real work is done.
 /// It recursively evaluates the `TreeNode` and its children until it reaches a leaf node,
 /// at which point it applies the `T`'s eval fn to the input.
 ///
