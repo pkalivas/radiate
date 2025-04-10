@@ -41,7 +41,7 @@ impl<C: Chromosome> Audit<C> for MetricAudit {
 
             age_metric.add_value(age as f32);
             score_metric.add_value(score.map(|sc| sc.as_f32()).unwrap_or_default());
-            unique_scores.push(score.clone());
+            unique_scores.push(score);
             size_metric.add_value(phenotype_size as f32);
         }
 

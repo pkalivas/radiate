@@ -26,7 +26,7 @@ where
         self.map_by_type(input, |values| {
             random_provider::choose(&values).new_instance(())
         })
-        .unwrap_or(T::default())
+        .unwrap_or_default()
     }
 }
 

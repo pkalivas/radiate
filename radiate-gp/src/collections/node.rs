@@ -55,11 +55,11 @@ pub enum NodeType {
 pub trait Node {
     type Value;
 
-    /// Get a mutable reference to the node's value.
-    fn value_mut(&mut self) -> &mut Self::Value;
-
     /// Get a reference to the node's value.
     fn value(&self) -> &Self::Value;
+
+    /// Get a mutable reference to the node's value.
+    fn value_mut(&mut self) -> &mut Self::Value;
 
     /// Get the `NodeType` of the node. As previously mentioned, if the `NodeType` is not supplied
     /// during creation, this value is determined by the node's relationship to the rest of
