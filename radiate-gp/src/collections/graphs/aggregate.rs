@@ -562,3 +562,46 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
             .collect::<Vec<&GraphNode<T>>>()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{GraphAggregate, GraphNode, Node, NodeType};
+    use radiate::Valid;
+
+    #[test]
+    fn test_graph_aggregate_one_to_one() {
+        let graph = GraphAggregate::new()
+            .one_to_one(
+                &vec![
+                    GraphNode::new(0, NodeType::Input, 0),
+                    GraphNode::new(1, NodeType::Input, 1),
+                ],
+                &vec![
+                    GraphNode::new(2, NodeType::Output, 0),
+                    GraphNode::new(3, NodeType::Output, 1),
+                ],
+            )
+            .build();
+
+        let input_nodes = graph
+            .iter()
+            .filter(|node| node.node_type() == NodeType::Input)
+            .collect::<Vec<&GraphNode<i32>>>();
+        let output_nodes = graph
+            .iter()
+            .filter(|node| node.node_type() == NodeType::Output)
+            .collect::<Vec<&GraphNode<i32>>>();
+
+        for (in_node, out_node) in input_nodes.iter().zip(output_nodes.iter()) {
+            assert!(in_node.outgoing().contains(&out_node.index()));
+            assert!(out_node.incoming().contains(&in_node.index()));
+
+            assert_eq!(in_node.outgoing().len(), 1);
+            assert_eq!(in_node.incoming().len(), 0);
+            assert_eq!(out_node.incoming().len(), 1);
+            assert_eq!(out_node.outgoing().len(), 0);
+        }
+
+        assert!(graph.is_valid());
+    }
+}

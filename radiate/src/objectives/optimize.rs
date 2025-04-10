@@ -37,15 +37,12 @@ impl Objective {
     pub fn sort<C: Chromosome>(&self, population: &mut Population<C>) {
         match self {
             Objective::Single(opt) => opt.sort(population),
-            Objective::Multi(_) => population.sort_by(|a, b| {
-                let one = a.score();
-                let two = b.score();
-
-                if one.is_none() || two.is_none() {
-                    return std::cmp::Ordering::Equal;
+            Objective::Multi(_) => population.sort_by(|one, two| {
+                if let (Some(score_one), Some(score_two)) = (one.score(), two.score()) {
+                    self.dominance_cmp(score_one.as_ref(), score_two.as_ref())
+                } else {
+                    std::cmp::Ordering::Equal
                 }
-
-                self.dominance_cmp(one.unwrap().as_ref(), two.unwrap().as_ref())
             }),
         }
     }
