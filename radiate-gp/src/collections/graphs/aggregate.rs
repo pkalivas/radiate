@@ -639,6 +639,13 @@ mod tests {
         assert!(output_three.incoming().contains(&input_one.index()));
         assert!(output_four.incoming().contains(&input_two.index()));
 
+        assert_eq!(input_one.outgoing().len(), 2);
+        assert_eq!(input_two.outgoing().len(), 2);
+        assert_eq!(output_one.incoming().len(), 1);
+        assert_eq!(output_two.incoming().len(), 1);
+        assert_eq!(output_three.incoming().len(), 1);
+        assert_eq!(output_four.incoming().len(), 1);
+
         assert!(graph.is_valid());
     }
 
@@ -675,6 +682,59 @@ mod tests {
         assert!(output_one.incoming().contains(&input_three.index()));
         assert!(output_two.incoming().contains(&input_two.index()));
         assert!(output_two.incoming().contains(&input_four.index()));
+
+        assert_eq!(input_one.outgoing().len(), 1);
+        assert_eq!(input_two.outgoing().len(), 1);
+        assert_eq!(input_three.outgoing().len(), 1);
+        assert_eq!(input_four.outgoing().len(), 1);
+        assert_eq!(output_one.incoming().len(), 2);
+        assert_eq!(output_two.incoming().len(), 2);
+
+        assert!(graph.is_valid());
+    }
+
+    #[test]
+    fn test_graph_aggregate_all_to_all() {
+        let graph = GraphAggregate::new()
+            .all_to_all(
+                &vec![
+                    GraphNode::new(0, NodeType::Input, 0),
+                    GraphNode::new(1, NodeType::Input, 1),
+                ],
+                &vec![
+                    GraphNode::new(2, NodeType::Output, 0),
+                    GraphNode::new(3, NodeType::Output, 1),
+                    GraphNode::new(4, NodeType::Output, 2),
+                ],
+            )
+            .build();
+
+        let input_one = &graph[0];
+        let input_two = &graph[1];
+
+        let output_one = &graph[2];
+        let output_two = &graph[3];
+        let output_three = &graph[4];
+
+        assert!(input_one.outgoing().contains(&output_one.index()));
+        assert!(input_one.outgoing().contains(&output_two.index()));
+        assert!(input_one.outgoing().contains(&output_three.index()));
+        assert!(input_two.outgoing().contains(&output_one.index()));
+        assert!(input_two.outgoing().contains(&output_two.index()));
+        assert!(input_two.outgoing().contains(&output_three.index()));
+
+        assert!(output_one.incoming().contains(&input_one.index()));
+        assert!(output_one.incoming().contains(&input_two.index()));
+        assert!(output_two.incoming().contains(&input_one.index()));
+        assert!(output_two.incoming().contains(&input_two.index()));
+        assert!(output_three.incoming().contains(&input_one.index()));
+        assert!(output_three.incoming().contains(&input_two.index()));
+
+        assert_eq!(input_one.outgoing().len(), 3);
+        assert_eq!(input_two.outgoing().len(), 3);
+        assert_eq!(output_one.incoming().len(), 2);
+        assert_eq!(output_two.incoming().len(), 2);
+        assert_eq!(output_three.incoming().len(), 2);
 
         assert!(graph.is_valid());
     }
