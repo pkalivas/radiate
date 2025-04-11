@@ -2,6 +2,7 @@ use super::Select;
 use crate::objectives::Objective;
 use crate::{Chromosome, Population, random_provider};
 
+#[derive(Debug, Default)]
 pub struct RandomSelector;
 
 impl RandomSelector {
@@ -24,11 +25,5 @@ impl<C: Chromosome> Select<C> for RandomSelector {
         }
 
         Population::new(selected)
-    }
-}
-
-impl Default for RandomSelector {
-    fn default() -> Self {
-        Self::new()
     }
 }

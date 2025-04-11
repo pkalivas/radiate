@@ -351,7 +351,7 @@ where
         if let Objective::Multi(_) = objective {
             // TODO: Examine the clones here - it seems like we can reduce the number of clones of
             // the population. The front is a cheap clone (the values are wrapped in an Arc), but
-            // the population is not.
+            // the population is not. But at the same time - this is still pretty damn fast.
             let timer = Timer::new();
             let wg = WaitGroup::new();
 
