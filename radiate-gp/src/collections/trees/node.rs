@@ -1,5 +1,5 @@
 use super::TreeIterator;
-use crate::{Arity, NodeType, node::Node};
+use crate::{Arity, Format, NodeType, node::Node};
 use radiate::genome::gene::{Gene, Valid};
 use std::fmt::Debug;
 
@@ -224,6 +224,22 @@ impl<T: Clone> Clone for TreeNode<T> {
 
 impl<T: Debug> Debug for TreeNode<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "{:>10?} :: {:<10} {:<12} C: {:?}",
+            format!("{:?}", self.node_type())[..3].to_owned(),
+            self.arity(),
+            format!("{:?}", self.value).to_owned(),
+            match &self.children {
+                Some(children) => children.len(),
+                None => 0,
+            }
+        )
+    }
+}
+
+impl<T: Debug> Format for TreeNode<T> {
+    fn format(&self) -> String {
         fn pretty_print_lines<T: Debug>(
             node: &TreeNode<T>,
             prefix: &str,
@@ -248,8 +264,13 @@ impl<T: Debug> Debug for TreeNode<T> {
             }
         }
         let mut result = String::new();
+        if self.children.is_some() {
+            result += "\n";
+        }
+
         pretty_print_lines(self, "", true, &mut result);
-        write!(f, "{}", result)
+
+        result
     }
 }
 

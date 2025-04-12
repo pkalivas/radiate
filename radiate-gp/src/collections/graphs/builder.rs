@@ -169,7 +169,7 @@ impl<T: Clone + Default> Graph<T> {
 }
 
 /// A simple builder struct for constructing nodes of a certain type. This is pretty much just a
-/// quality of life struct that removes boiler plate code when creating collections of nodes.
+/// quality of life struct that removes boilerplate code when creating collections of nodes.
 pub struct NodeBuilder<T> {
     store: NodeStore<T>,
 }

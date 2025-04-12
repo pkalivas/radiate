@@ -1,5 +1,5 @@
-use crate::NodeStore;
 use crate::collections::{Tree, TreeChromosome, TreeNode};
+use crate::NodeStore;
 use radiate::{Chromosome, Codex, Genotype};
 use std::sync::Arc;
 
@@ -114,14 +114,14 @@ where
             .iter()
             .next()
             .map(|chromosome| Tree::new(chromosome.root().clone()))
-            .unwrap_or_else(|| Tree::default())
+            .unwrap_or_default()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{NodeType, ops::Op};
+    use crate::{ops::Op, NodeType};
     use radiate::codexes::Codex;
 
     #[test]

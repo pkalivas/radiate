@@ -23,10 +23,8 @@ fn main() {
     let engine = GeneticEngine::from_problem(regression)
         .minimizing()
         .num_threads(10)
-        .alter(alters!(
-            TreeCrossover::new(0.5),
-            OperationMutator::new(0.03, 0.02),
-        ))
+        .crossover(TreeCrossover::new(0.5))
+        .mutator(OperationMutator::new(0.03, 0.02))
         .build();
 
     let result = engine.run(|ctx| {

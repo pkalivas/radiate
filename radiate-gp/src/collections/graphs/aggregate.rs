@@ -328,7 +328,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
     /// This method will take a collection of `GraphNode`s and insert them into the `GraphAggregate<T>` without connecting
     /// them to any other `GraphNode`s. Instead, it takes the relationships already represented within the `collection` and
     /// stores them for later use when connecting the `GraphNode`s together.
-    /// This is useful for when you already have a `Graph` that is built and you want to add it to the `GraphAggregate<T>`.
+    /// This is useful for when you already have a `Graph` that is built, and you want to add it to the `GraphAggregate<T>`.
     pub fn insert<G: AsRef<[GraphNode<T>]>>(mut self, collection: &'a G) -> Self {
         self.attach(collection.as_ref());
         self

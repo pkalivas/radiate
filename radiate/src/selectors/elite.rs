@@ -2,17 +2,12 @@ use super::Select;
 use crate::objectives::Objective;
 use crate::{Chromosome, Population};
 
+#[derive(Debug, Default)]
 pub struct EliteSelector;
 
 impl EliteSelector {
     pub fn new() -> Self {
         EliteSelector
-    }
-}
-
-impl Default for EliteSelector {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

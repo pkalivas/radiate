@@ -117,18 +117,18 @@ where
         }
     }
 
-    pub fn next(&self, mut ctx: &mut EngineContext<C, T>) {
-        self.evaluate(&mut ctx);
+    pub fn next(&self, ctx: &mut EngineContext<C, T>) {
+        self.evaluate(ctx);
 
-        let survivors = self.select_survivors(&mut ctx);
-        let offspring = self.create_offspring(&mut ctx);
+        let survivors = self.select_survivors(ctx);
+        let offspring = self.create_offspring(ctx);
 
-        self.recombine(&mut ctx, survivors, offspring);
+        self.recombine(ctx, survivors, offspring);
 
-        self.filter(&mut ctx);
-        self.evaluate(&mut ctx);
-        self.update_front(&mut ctx);
-        self.audit(&mut ctx);
+        self.filter(ctx);
+        self.evaluate(ctx);
+        self.update_front(ctx);
+        self.audit(ctx);
     }
 
     /// Evaluates the fitness of each individual in the population using the fitness function
@@ -234,7 +234,7 @@ where
                 });
         });
 
-        return offspring;
+        offspring
     }
 
     /// Filters the population to remove individuals that are too old or invalid. The maximum age
@@ -313,8 +313,7 @@ where
 
         let audit_metrics = audits
             .iter()
-            .map(|audit| audit.audit(ctx.index(), &ctx.population))
-            .flatten()
+            .flat_map(|audit| audit.audit(ctx.index(), &ctx.population))
             .collect::<Vec<Metric>>();
 
         for metric in audit_metrics {
@@ -329,11 +328,11 @@ where
             if let (Some(best), Some(current)) = (current_best.score(), &ctx.score) {
                 if optimize.is_better(best, current) {
                     ctx.score = Some(best.clone());
-                    ctx.best = problem.decode(&current_best.genotype());
+                    ctx.best = problem.decode(current_best.genotype());
                 }
             } else {
                 ctx.score = Some(current_best.score().unwrap().clone());
-                ctx.best = problem.decode(&current_best.genotype());
+                ctx.best = problem.decode(current_best.genotype());
             }
         }
 
@@ -352,7 +351,7 @@ where
         if let Objective::Multi(_) = objective {
             // TODO: Examine the clones here - it seems like we can reduce the number of clones of
             // the population. The front is a cheap clone (the values are wrapped in an Arc), but
-            // the population is not.
+            // the population is not. But at the same time - this is still pretty damn fast.
             let timer = Timer::new();
             let wg = WaitGroup::new();
 
@@ -380,7 +379,7 @@ where
                         remove_vector
                             .write()
                             .unwrap()
-                            .extend(to_remove.iter().map(|r| Arc::clone(r)));
+                            .extend(to_remove.iter().map(Arc::clone));
                     }
                 });
             }
@@ -410,7 +409,7 @@ where
 
         EngineContext {
             population: population.clone(),
-            best: self.params.problem().decode(&population[0].genotype()),
+            best: self.params.problem().decode(population[0].genotype()),
             index: 0,
             timer: Timer::new(),
             metrics: MetricSet::new(),
@@ -422,16 +421,6 @@ where
     fn stop(&self, output: &mut EngineContext<C, T>) -> EngineContext<C, T> {
         output.timer.stop();
         output.clone()
-    }
-}
-
-impl<C, T> Default for GeneticEngine<C, T>
-where
-    C: Chromosome,
-    T: Clone + Send,
-{
-    fn default() -> Self {
-        GeneticEngineBuilder::<C, T>::default().build()
     }
 }
 

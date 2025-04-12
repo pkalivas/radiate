@@ -35,6 +35,7 @@ fn display(result: &EngineContext<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
     let accuracy_result = accuracy.calc(|input| vec![result.best.eval(input)]);
 
     println!("{:?}", result);
+    println!("Best Tree: {}", result.best.format());
     println!("{:?}", accuracy_result);
 }
 

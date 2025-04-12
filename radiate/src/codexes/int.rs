@@ -108,7 +108,6 @@ impl<T: Integer<T>> Codex<IntChromosome<T>, Vec<Vec<T>>> for IntCodex<T, Vec<Vec
 
 /// Implement the `Codex` trait for a `Genotype` of `IntGenes`. This will produce a `Genotype` with a single
 /// chromosome and `num_genes` genes. The `decode` function will create a `Vec<T>` or a vector.
-
 impl<T: Integer<T>> Codex<IntChromosome<T>, Vec<T>> for IntCodex<T, Vec<T>> {
     fn encode(&self) -> Genotype<IntChromosome<T>> {
         self.encode_common()

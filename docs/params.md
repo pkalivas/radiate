@@ -9,6 +9,28 @@ The `GeneticEngine` will default as many parameters as it can, but it is recomme
 
 Without these there is no way to represent the problem space and no way to evaluate the fitness of the individuals in the population.
 
+By default, the engine will use a parameter set defined as such:
+```rust
+GeneticEngineBuilder {
+    population_size: 100,
+    max_age: 20,
+    offspring_fraction: 0.8,
+    front_range: 800..900,
+    thread_pool: ThreadPool::new(1),
+    objective: Objective::Single(Optimize::Maximize),
+    survivor_selector: Arc::new(TournamentSelector::new(3)),
+    offspring_selector: Arc::new(RouletteSelector::new()),
+    replacement_strategy: Arc::new(EncodeReplace),
+    audits: vec![Arc::new(MetricAudit)],
+    alterers: Vec::new(),
+    codex: None,
+    population: None,
+    fitness_fn: None,
+    problem: None,
+    front: None,
+}
+```
+
 ___
 
 * `population_size`
@@ -42,23 +64,15 @@ ___
         | 0.8 | f32 | 0.0..=1.0 |
 
 
-* `min_front_size`
+* `front_size`
 
-    :   Only used in multi-objective optimization. The minimum number of individuals that will be kept in a pareto front.
+    :   Only used in multi-objective optimization. The range of individuals to collect within a pareto front. The front will collect up to the end range and if the range is exceeded, the front will filter out individuals with the least dominating score until it settles within the provided range.
+    
     ??? info "Optional"
 
         | Default | Type | Range |
         |---------|------|-------|
-        | 1000 | usize | 1..=`max_front_size`|
-
-* `max_front_size`
-
-    :   Only used in multi-objective optimization. The maximum number of individuals that will be kept in a pareto front.
-    ??? info "Optional"
-
-        | Default | Type | Range |
-        |---------|------|-------|
-        | 1500 | usize | `min_front_size`..=usize::MAX |
+        | 800..900 | Range<usize> | 1..=`usize::MAX`|
 
 * `num_threads`
 
@@ -104,6 +118,65 @@ ___
         | Default | Type |
         |---------|------|
         | `UniformMutator::new(0.01)`, `UniformCrossover::new(0.5)` | `Vec<Box<dyn Alter<C: Chromosome>>` |
+
+* `mutator` 
+
+    :   The genetic operator used to mutate individuals in the population. This allows for the input of a single specific mutator to the engine. Unlike the `alters` parameter above, which allows for mulitple operators of either mutation or crossover, this parameter allwos just a single mutator.
+
+    ??? info "Optional"
+
+        | Default | Type |
+        |---------|------|
+        | `UniformMutator::new(0.01)` | `Option<Box<dyn Alter<C: Chromosome>>` |
+
+* `mutators`
+
+    :   The genetic operators used to mutate individuals in the population. This allows for the input of multiple specific mutators to the engine. Unlike the `alters` parameter above, which allows for both mutation and crossover operators, this parameter allwos just mutators.
+
+    ??? info "Optional"
+
+        | Default | Type |
+        |---------|------|
+        | `UniformMutator::new(0.01)` | `Vec<Box<dyn Alter<C: Chromosome>>` |
+
+* `crossover` 
+
+    :   The genetic operator used to crossover individuals in the population. This allows for the input of a single specific crossover operator to the engine. Unlike the `alters` parameter above, which allows for multiple operators of either mutation or crossover, this parameter allwos just a single crossover.
+
+    ??? info "Optional"
+
+        | Default | Type |
+        |---------|------|
+        | `UniformCrossover::new(0.5)` | `Option<Box<dyn Alter<C: Chromosome>>` |
+
+* `crossovers`
+  
+    :   The genetic operators used to crossover individuals in the population. This allows for the input of multiple specific crossover operators to the engine. Unlike the `alters` parameter above, which allows for both mutation and crossover operators, this parameter allwos just crossovers.
+
+    ??? info "Optional"
+
+        | Default | Type |
+        |---------|------|
+        | `UniformCrossover::new(0.5)` | `Vec<Box<dyn Alter<C: Chromosome>>` |
+
+* `audits`
+
+    :   An audit function which will be used to inject custom metrics into the engine's context during evolution. This has proven useful when tracking progress of the engine or attempting to understand the behavior of the genetic algorithm.
+
+    ??? info "Optional"
+
+        | Default | Type |
+        |---------|------|
+        | `None` | `Vec<Arc<dyn Audit<C>>>` |
+
+* `replacement_strategy`
+
+    :   During the evolution process certain individuals can reach the max age parameter or be deemed invalid by the chromosome or genes. Because of this, those individuals need to be replaced within the populationl. This parameter handles that. By default, the engine will use the provided `Codex` to simply encode a new individual, however custom replacements can be created and used. This can include strategies like `EncodeReplace`, `PopulationSampleReplace`, or other custom strategies.
+    ??? info "Optional"
+
+        | Default | Type |
+        |---------|------|
+        | `Elitism::new(1)` | `Arc<dyn ReplacementStrategy<C>>` |
 
 * `population`
 

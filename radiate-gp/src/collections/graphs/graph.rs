@@ -1,7 +1,7 @@
 use super::transaction::TransactionResult;
-use crate::NodeType;
 use crate::collections::graphs::GraphTransaction;
 use crate::collections::{Direction, GraphNode};
+use crate::NodeType;
 use radiate::Valid;
 use std::collections::{HashSet, VecDeque};
 use std::fmt::Debug;
@@ -9,13 +9,13 @@ use std::ops::{Index, IndexMut};
 
 /// A 'Graph' is simply a 'Vec' of 'GraphNode's.
 ///
-/// Its important to note that this graph differs from a traditional graph in that it is not
+/// It's important to note that this graph differs from a traditional graph in that it is not
 /// a collection of edges and vertices. Instead, it is a collection of nodes that are connected
 /// to one another. Each node has a unique index that is used to reference it in the graph
 /// and must be identical to its position in the 'Vec'.
 /// Each 'GraphNode' has a set of ordered incoming and outgoing connections. These connections are
 /// represented by the index of the connected node in the graph. Because of this representation,
-/// an edge is not a separate entity, its just a node. The 'NodeType' enum is used to distinguish
+/// an edge is not a separate entity, it's just a node. The 'NodeType' enum is used to distinguish
 /// different types of nodes. This allows for a more flexible representation of the graph
 /// while still maintaining the ability to represent traditional graphs.
 ///
@@ -155,7 +155,7 @@ impl<T> Graph<T> {
     }
 
     /// tries to modify the graph using a 'GraphTransaction'. If the transaction is successful,
-    /// we return true and do nothing. If the transaction is not successful, we rollback the transaction
+    /// we return true and do nothing. If the transaction is not successful, we roll back the transaction
     /// by undoing all the changes made by the transaction and return false.
     ///
     /// # Arguments
@@ -324,9 +324,9 @@ mod test {
 
         assert_eq!(graph_one.len(), 3);
         assert!(graph_one.is_valid());
-        assert!(graph_one[0].arity() == Arity::Zero);
-        assert!(graph_one[1].arity() == Arity::Any);
-        assert!(graph_one[2].arity() == Arity::Any);
+        assert_eq!(graph_one[0].arity(), Arity::Zero);
+        assert_eq!(graph_one[1].arity(), Arity::Any);
+        assert_eq!(graph_one[2].arity(), Arity::Any);
 
         let mut graph_two = Graph::new(vec![
             GraphNode::new(0, NodeType::Input, Op::var(0)),
@@ -339,10 +339,10 @@ mod test {
 
         assert_eq!(graph_two.len(), 4);
         assert!(graph_two.is_valid());
-        assert!(graph_two[0].arity() == Arity::Zero);
-        assert!(graph_two[1].arity() == Arity::Zero);
-        assert!(graph_two[2].arity() == Arity::Exact(2));
-        assert!(graph_two[3].arity() == Arity::Any);
+        assert_eq!(graph_two[0].arity(), Arity::Zero);
+        assert_eq!(graph_two[1].arity(), Arity::Zero);
+        assert_eq!(graph_two[2].arity(), Arity::Exact(2));
+        assert_eq!(graph_two[3].arity(), Arity::Any);
     }
 
     #[test]
