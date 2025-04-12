@@ -1,10 +1,12 @@
 pub mod factory;
+pub mod format;
 pub mod graphs;
 pub mod node;
 pub mod store;
 pub mod trees;
 
 pub use factory::*;
+pub use format::*;
 pub use graphs::{
     Direction, Graph, GraphAggregate, GraphChromosome, GraphCodex, GraphCrossover, GraphEvaluator,
     GraphIterator, GraphMutator, GraphNode, GraphReplacement,

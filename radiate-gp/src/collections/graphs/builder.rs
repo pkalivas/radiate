@@ -1,7 +1,7 @@
 use super::aggregate::GraphAggregate;
 use crate::{
-    collections::{Graph, GraphNode, NodeType}, Arity, Factory,
-    NodeStore,
+    Arity, Factory, NodeStore,
+    collections::{Graph, GraphNode, NodeType},
 };
 
 impl<T: Clone + Default> Graph<T> {

@@ -424,16 +424,6 @@ where
     }
 }
 
-impl<C, T> Default for GeneticEngine<C, T>
-where
-    C: Chromosome,
-    T: Clone + Send,
-{
-    fn default() -> Self {
-        GeneticEngineBuilder::<C, T>::default().build()
-    }
-}
-
 #[cfg(test)]
 mod engine_tests {
     use crate::{GeneticEngine, IntCodex};
