@@ -133,7 +133,7 @@ impl std::fmt::Debug for CharGene {
 }
 
 /// A `Chromosome` that contains `CharGenes`.
-#[derive(Clone, PartialEq, Default)]
+#[derive(Clone, PartialEq, Default, Debug)]
 pub struct CharChromosome {
     pub genes: Vec<CharGene>,
 }

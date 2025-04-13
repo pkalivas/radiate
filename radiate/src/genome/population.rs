@@ -55,15 +55,6 @@ impl<C: Chromosome> Population<C> {
         self.individuals.len()
     }
 
-    /// Swap the individuals at the given indices. This will set the is_sorted flag to false
-    /// because the order of the individuals has changed and we don't know if the order
-    /// has changed to benefit the order or not. Therefore, don't use this method to
-    /// sort the population, use the `sort_by` method instead.
-    pub fn swap(&mut self, a: usize, b: usize) {
-        self.is_sorted = false;
-        self.individuals.swap(a, b);
-    }
-
     pub fn get_scores(&self) -> Vec<&Score> {
         self.individuals
             .iter()
@@ -94,15 +85,13 @@ impl<C: Chromosome> Population<C> {
         first: usize,
         second: usize,
     ) -> (&mut Phenotype<C>, &mut Phenotype<C>) {
-        let (one, two) = if first < second {
+        if first < second {
             let (left, right) = self.individuals.split_at_mut(second);
             (&mut left[first], &mut right[0])
         } else {
             let (left, right) = self.individuals.split_at_mut(first);
             (&mut right[0], &mut left[second])
-        };
-
-        (one, two)
+        }
     }
 }
 
@@ -168,7 +157,7 @@ where
 
 impl<C: Chromosome + Debug> Debug for Population<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[")?;
+        write!(f, "Population [\n")?;
         for individual in &self.individuals {
             write!(f, "{:?},\n ", individual)?;
         }
