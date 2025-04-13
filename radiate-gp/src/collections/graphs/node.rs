@@ -7,6 +7,7 @@ use std::hash::Hash;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[repr(transparent)]
 pub struct GraphNodeId(u64);
 
 impl GraphNodeId {

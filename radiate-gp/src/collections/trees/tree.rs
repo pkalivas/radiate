@@ -1,4 +1,4 @@
-use crate::{Format, TreeIterator, collections::TreeNode};
+use crate::{TreeIterator, collections::TreeNode};
 use std::fmt::Debug;
 
 #[derive(Clone, PartialEq, Default)]
@@ -53,15 +53,6 @@ impl<T: Debug> Debug for Tree<T> {
             write!(f, "  {:?}\n", node)?;
         }
         write!(f, "}}")
-    }
-}
-
-impl<T: Debug> Format for Tree<T> {
-    fn format(&self) -> String {
-        self.root
-            .as_ref()
-            .map(|node| node.format())
-            .unwrap_or_else(|| "Empty Tree".to_string())
     }
 }
 
