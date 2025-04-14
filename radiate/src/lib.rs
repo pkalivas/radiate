@@ -44,3 +44,8 @@ pub use problem::*;
 pub use replace::*;
 pub use selectors::*;
 pub use stats::*;
+
+// #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+// # activate if you want serde support for Series and DataFrames
+// serde = { workspace = true, optional = true }
+// serde_json = { workspace = true, optional = true }

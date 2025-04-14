@@ -5,13 +5,13 @@ use super::{
 use crate::random_provider;
 use std::ops::{Add, Bound, Div, Mul, Range, RangeBounds, Sub};
 
-/// A `Gene` that represents an integer value. This gene just wraps an integer value and provides
-/// functionality for it to be used in a genetic algorithm. In this `Gene` implementation, the
+/// A [`Gene`] that represents an integer value. This gene just wraps an integer value and provides
+/// functionality for it to be used in a genetic algorithm. In this [`Gene`] implementation, the
 /// `allele` is the integer value itself, the min and max values are the minimum and maximum values
 /// that the integer can be generated from, and the upper and lower bounds are the upper and lower bounds the gene will
-/// be subject to during crossover and mutation. If the `allele` exceedes the bounds, the `Gene` will be considered invalid.
+/// be subject to during crossover and mutation. If the `allele` exceedes the bounds, the [`Gene`] will be considered invalid.
 ///
-/// `IntGene` is generic over `T` - the type of integer. The `Integer` trait is implemented
+/// [`IntGene`] is generic over `T` - the type of integer. The `Integer` trait is implemented
 /// for `i8`, `i16`, `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, and `u128`.
 ///
 /// # Example
@@ -45,7 +45,7 @@ pub struct IntGene<T: Integer<T>> {
     pub bounds: Range<T>,
 }
 
-/// Implement the `Gene` trait for `IntGene`. This allows the `IntGene` to be used in a genetic algorithm.
+/// Implement the [`Gene`] trait for [`IntGene`]. This allows the [`IntGene`] to be used in a genetic algorithm.
 impl<T: Integer<T>> Gene for IntGene<T> {
     type Allele = T;
 
@@ -53,7 +53,7 @@ impl<T: Integer<T>> Gene for IntGene<T> {
         &self.allele
     }
 
-    /// Create a new instance of the `IntGene` with a random allele between the min and max values.
+    /// Create a new instance of the [`IntGene`] with a random allele between the min and max values.
     fn new_instance(&self) -> IntGene<T> {
         IntGene {
             allele: random_provider::range(self.value_range.clone()),
@@ -71,8 +71,8 @@ impl<T: Integer<T>> Gene for IntGene<T> {
     }
 }
 
-/// Implement the `Valid` trait for `IntGene`. This allows the `IntGene` to be checked for validity.
-/// An `IntGene` is valid if the `allele` is between the `min` and `max` values.
+/// Implement the `Valid` trait for [`IntGene`]. This allows the [`IntGene`] to be checked for validity.
+/// An [`IntGene`] is valid if the `allele` is between the `min` and `max` values.
 ///
 /// Note: the bounds are used for crossover and mutation.
 impl<T: Integer<T>> Valid for IntGene<T> {
@@ -81,8 +81,8 @@ impl<T: Integer<T>> Valid for IntGene<T> {
     }
 }
 
-/// Implement the `ArithmeticGene` trait for `IntGene`. This allows the `IntGene` to be used in numeric
-/// operations. The `ArithmeticGene` trait is a superset of the `Gene` trait, and adds functionality
+/// Implement the `ArithmeticGene` trait for [`IntGene`]. This allows the [`IntGene`] to be used in numeric
+/// operations. The `ArithmeticGene` trait is a superset of the [`Gene`] trait, and adds functionality
 /// for numeric operations such as addition, subtraction, multiplication, division and mean.
 impl<T: Integer<T>> ArithmeticGene for IntGene<T> {
     fn min(&self) -> &T {
@@ -110,7 +110,7 @@ impl<T: Integer<T>> ArithmeticGene for IntGene<T> {
     }
 }
 
-/// Implement the `RangeBounds` trait for `IntGene`. This allows the `IntGene` to be used in range
+/// Implement the `RangeBounds` trait for [`IntGene`]. This allows the [`IntGene`] to be used in range
 impl<T: Integer<T>> RangeBounds<T> for IntGene<T> {
     fn start_bound(&self) -> Bound<&T> {
         self.bounds.start_bound()
@@ -215,7 +215,7 @@ impl<T: Integer<T>> std::fmt::Debug for IntGene<T> {
 
 /// Represents a chromosome composed of integer genes.
 ///
-/// An `IntChromosome` is generic over the integer type `T` and contains a vector of `IntGene<T>`
+/// An [`IntChromosome`] is generic over the integer type `T` and contains a vector of [`IntGene<T>`]
 /// instances. This structure is suitable for optimization problems where solutions are encoded
 /// as integers.
 ///
@@ -225,7 +225,7 @@ impl<T: Integer<T>> std::fmt::Debug for IntGene<T> {
 ///
 /// # Fields
 ///
-/// * `genes` - A vector of `IntGene<T>` representing the individual's genetic informationn.
+/// * `genes` - A vector of [`IntGene<T>`] representing the individual's genetic informationn.
 ///
 /// # Example
 /// ``` rust

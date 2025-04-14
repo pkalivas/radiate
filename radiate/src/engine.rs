@@ -70,31 +70,14 @@ where
     C: Chromosome,
     T: Clone + Send,
 {
-    /// Create a new instance of the `GeneticEngine` struct with the given parameters.
-    /// - `params`: An instance of `GeneticEngineParams` that holds configuration parameters for the genetic engine.
     pub fn new(params: GeneticEngineParams<C, T>) -> Self {
         GeneticEngine { params }
     }
 
-    /// Initializes a `GeneticEngineParams` using the provided codex, which defines how individuals
-    /// are represented in the population. Because the `Codex` is always needed, this
-    /// is a convenience method that allows users to create a `GeneticEngineParams` instance
-    /// which will then be 'built' resulting in a `GeneticEngine` instance.
-    ///
-    /// **Note** with this method, the `Codex` is supplied to the `GeneticEngineParams` and thus
-    /// the `GeneticEngineParams` also will need a `FitnessFn` to be supplied before building.
     pub fn from_codex(codex: impl Codex<C, T> + 'static) -> GeneticEngineBuilder<C, T> {
         GeneticEngineBuilder::default().codex(codex)
     }
 
-    /// Initializes a `GeneticEngineParams` using the provided problem, which defines the fitness function
-    /// used to evaluate the individuals in the population. Unlike the above method, this method
-    /// does not require a `Codex` to be supplied, as the `Problem` will provide the necessary
-    /// functionality. So in a sense, the supplying a `Problem` is a method that lets the
-    /// user do a little more work up front, but then have less to do when building the `GeneticEngine`.
-    ///
-    /// Similar to the `from_codex` method, this is a convenience method that allows users
-    /// to create a `GeneticEngineParams` instance.
     pub fn from_problem(problem: impl Problem<C, T> + 'static) -> GeneticEngineBuilder<C, T> {
         GeneticEngineBuilder::default().problem(problem)
     }

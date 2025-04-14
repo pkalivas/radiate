@@ -40,8 +40,8 @@ impl CharGene {
     }
 }
 
-/// Implement the `Gene` trait for the `CharGene`. This allows the `CharGene` to be used in
-/// a `Chromosome` - specifically the `CharChromosome`, thus allowing the `CharGene` to
+/// Implement the [`Gene`] trait for the [`CharGene`]. This allows the [`CharGene`] to be used in
+/// a [`Chromosome`] - specifically the [`CharChromosome`], thus allowing the [`CharGene`] to
 /// be used in the `GeneticEngine`.
 impl Gene for CharGene {
     type Allele = char;
@@ -132,7 +132,7 @@ impl std::fmt::Debug for CharGene {
     }
 }
 
-/// A `Chromosome` that contains `CharGenes`.
+/// A [`Chromosome`] that contains [`CharGene`].
 #[derive(Clone, PartialEq, Default, Debug)]
 pub struct CharChromosome {
     pub genes: Vec<CharGene>,
