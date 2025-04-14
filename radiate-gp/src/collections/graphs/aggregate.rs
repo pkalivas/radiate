@@ -5,16 +5,16 @@ use crate::{
 };
 use std::collections::BTreeMap;
 
-/// Building a `Graph<T>` can be a very complex task. Everything in this file exists
-/// to simplify the process of building a `Graph<T>` by allowing the user to do so
+/// Building a [`Graph<T>`] can be a very complex task. Everything in this file exists
+/// to simplify the process of building a [`Graph<T>`] by allowing the user to do so
 /// in a declarative way.
 ///
-/// The `ConnectTypes` are simply a set of available ways we can
-/// connect different `GraphNode`s together.
+/// The [`ConnectTypes`] are simply a set of available ways we can
+/// connect different [`GraphNode`]'s together.
 ///
 /// # Assumptions
 /// * The first collection is the 'source' collection and the second collection is the 'target' collection.
-/// * The target collection's `GraphNode`'s `Arity` is compatible with the `ConnectTypes`.
+/// * The target collection's [`GraphNode`]'s `Arity` is compatible with the [`ConnectTypes`].
 enum ConnectTypes {
     /// Connects each `GraphNode` in the first collection to the corresponding `GraphNode` in the
     /// second collection.
@@ -54,17 +54,17 @@ enum ConnectTypes {
     OneToSelf,
 }
 
-/// Represents a relationship between two `GraphNode`s where the `source_id` is the `GraphNode<T>`'s
-/// id that is incoming, or giving its value to the `target_id` `GraphNode<T>`.
+/// Represents a relationship between two `GraphNode`s where the `source_id` is the [`GraphNode<T>`]'s
+/// id that is incoming, or giving its value to the `target_id` [`GraphNode<T>`].
 struct Relationship<'a> {
     source_id: &'a GraphNodeId,
     target_id: &'a GraphNodeId,
 }
 
-/// The `GraphArchitect` struct is a builder for `Graph<T>` that allows you to build a `Graph<T>`
-/// in an extremely declarative way. It allows you to build a `Graph<T>` by connecting
+/// The [`GraphAggregate`] struct is a builder for [`Graph<T>`] that allows you to build a [`Graph<T>`]
+/// in an extremely declarative way. It allows you to build a [`Graph<T>`] by connecting
 /// `GraphNode`s together in all sorts of ways. This results in an extremely powerful tool.
-/// The `GraphArchitect` is ment to take a collection of `GraphNode`s and connect them together
+/// The [`GraphAggregate`] is ment to take a collection of `GraphNode`s and connect them together
 /// in a sudo 'layered' way. I say 'sudo' because the 'layers' can simply be connecting
 /// input nodes to output nodes, hidden nodes to weights, input nodes to output nodes, recurrent
 /// connections, etc.
@@ -84,25 +84,25 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         }
     }
 
-    /// Builds the `Graph<T>` from the `GraphAggregate<T>`.
-    /// This method will take the `GraphAggregate<T>` and build a `Graph<T>` from it.
+    /// Builds the [`Graph<T>`] from the [`GraphAggregate`].
+    /// This method will take the `GraphAggregate<T>` and build a [`Graph<T>`] from it.
     /// It will use the relationships between the `GraphNode`s to connect them together in the
     /// resulting graph in the desired way. Because we keep track of nodes without having them fully
     /// initialized (meaning the nodes themselves are not connected yet) we first have to build the nodes by
-    /// copying them into a new `GraphNode<T>` and then connecting them together using the relationships.
+    /// copying them into a new [`GraphNode<T>`] and then connecting them together using the relationships.
     ///
-    /// The upside for this is that we can build a `Graph<T>` in a very declarative and large way,
+    /// The upside for this is that we can build a [`Graph<T>`] in a very declarative and large way,
     /// enabling users to really create whatever type of graph they want. However, on the downside,
     /// it can sometimes be hard to keep ensure that a given node has a correct arity, or that the
-    /// relationships are correct. It is always advantagous to ensure a `Graph<T>` is valid after
+    /// relationships are correct. It is always advantagous to ensure a [`Graph<T>`] is valid after
     /// building it and to follow the rules of the `ConnectTypes` when connecting nodes together.
     ///
-    /// Usually the `GraphNode`'s Index is extremely important as it represents the position of the
-    /// node within the `Graph<T>`. However, when building a `Graph<T>` from a `GraphAggregate<T>`,
-    /// the index is not important as the `Graph<T>` will re-index the nodes when it is built.
+    /// Usually the [`GraphNode`]'s Index is extremely important as it represents the position of the
+    /// node within the [`Graph<T>`]. However, when building a [`Graph<T>`] from a [`GraphAggregate<T>`],
+    /// the index is not important as the [`Graph<T>`] will re-index the nodes when it is built.
     ///
     /// # Returns
-    /// A `Graph<T>` that has been built from the `GraphAggregate<T>`.
+    /// A [`Graph<T>`] that has been built from the [`GraphAggregate<T>`].
     pub fn build(&self) -> Graph<T> {
         let mut node_id_index_map = BTreeMap::new();
         let mut graph = Graph::<T>::default();
@@ -149,7 +149,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
     ///
     /// assert!(graph.is_valid());
     /// ```
-    /// This will create a `Graph<T>` that looks like this:
+    /// This will create a [`Graph<T>`] that looks like this:
     /// ``` text
     /// 0 -> 2
     /// 1 -> 3
@@ -190,7 +190,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
     /// assert!(graph.is_valid());
     /// ```
     ///
-    /// This will create a `Graph<T>` that looks like this:
+    /// This will create a [`Graph<T>`] that looks like this:
     /// ``` text
     /// 0 -> [2, 3]
     /// 1 -> [4, 5]
@@ -231,7 +231,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
     /// assert!(graph.is_valid());
     /// ```
     ///
-    /// This will create a `Graph<T>` that looks like this:
+    /// This will create a [`Graph<T>`] that looks like this:
     /// ``` text
     /// [0, 1] -> 4
     /// [2, 3] -> 5
@@ -272,7 +272,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
     /// assert!(graph.is_valid());
     /// ```
     ///
-    /// This will create a `Graph<T>` that looks like this:
+    /// This will create a [`Graph<T>`] that looks like this:
     /// ``` text
     /// 0 -> [3, 4, 5]
     /// 1 -> [3, 4, 5]
@@ -310,7 +310,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
     ///
     /// assert!(graph.is_valid());
     /// ```
-    /// This will create a `Graph<T>` that looks like this:
+    /// This will create a [`Graph<T>`] that looks like this:
     /// ``` text
     /// 0 -> 1
     /// 1 -> 0

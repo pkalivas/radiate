@@ -8,7 +8,7 @@ use std::{char, sync::Arc};
 pub const ALPHABET: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"$%&/()=?`{[]}\\+~*#';.:,-_<>|@^' ";
 
 /// A gene that represents a single character. The `allele` is a `char`
-/// that is randomly selected from the `ALPHABET` constant.
+/// that is randomly selected from the [`ALPHABET`] constant.
 ///
 /// # Example
 /// ``` rust
