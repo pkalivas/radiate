@@ -1,7 +1,7 @@
 use super::{Graph, GraphNode, iter::GraphIterator};
 use crate::{Eval, EvalMut, NodeType, node::Node};
 
-/// `GraphReducer` is a struct that is used to evaluate a [`Graph`] of [`GraphNode`]'s. It uses the `GraphIterator`
+/// [`GraphEvaluator`] is a struct that is used to evaluate a [`Graph`] of [`GraphNode`]'s. It uses the `GraphIterator`
 /// to traverse the [`Graph`] in a sudo-topological order and evaluate the nodes in the correct order.
 ///
 /// On the first iteration it caches the order of nodes in the [`Graph`] and then uses that order to
@@ -19,7 +19,7 @@ where
     T: Eval<[V], V>,
     V: Default + Clone,
 {
-    /// Creates a new `GraphEvaluator` with the given [`Graph`]. We pre-allocate a
+    /// Creates a new [`GraphEvaluator`] with the given [`Graph`]. We pre-allocate a
     /// `Vec<Vec<V>>` to hold the inputs for each node and a `Vec<V>` to hold the outputs
     /// of nodes which serve as the inputs for their descendants. Then, iterating over
     /// the nodes in topological order, we evaluate the nodes in one pass. Because of this,
@@ -49,7 +49,7 @@ where
     }
 }
 
-/// Implements the `EvalMut` trait for `GraphEvaluator`.
+/// Implements the `EvalMut` trait for [`GraphEvaluator`].
 impl<T, V> EvalMut<[V], Vec<V>> for GraphEvaluator<'_, T, V>
 where
     T: Eval<[V], V>,

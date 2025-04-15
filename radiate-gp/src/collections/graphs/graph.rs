@@ -1,13 +1,13 @@
 use super::transaction::TransactionResult;
+use crate::NodeType;
 use crate::collections::graphs::GraphTransaction;
 use crate::collections::{Direction, GraphNode};
-use crate::NodeType;
 use radiate::Valid;
 use std::collections::{HashSet, VecDeque};
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
 
-/// A 'Graph' is simply a 'Vec' of 'GraphNode's.
+/// A 'Graph' is simply a 'Vec' of 'GraphNode''s.
 ///
 /// It's important to note that this graph differs from a traditional graph in that it is not
 /// a collection of edges and vertices. Instead, it is a collection of nodes that are connected
