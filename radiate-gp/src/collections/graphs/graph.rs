@@ -1,7 +1,7 @@
 use super::transaction::TransactionResult;
-use crate::NodeType;
 use crate::collections::graphs::GraphTransaction;
 use crate::collections::{Direction, GraphNode};
+use crate::{Node, NodeType};
 use radiate::Valid;
 use std::collections::{HashSet, VecDeque};
 use std::fmt::Debug;
@@ -206,6 +206,30 @@ impl<T> Graph<T> {
         }
 
         Vec::new()
+    }
+
+    pub fn inputs(&self) -> Vec<&GraphNode<T>> {
+        self.get_nodes_of_type(NodeType::Input)
+    }
+
+    pub fn outputs(&self) -> Vec<&GraphNode<T>> {
+        self.get_nodes_of_type(NodeType::Output)
+    }
+
+    pub fn vertices(&self) -> Vec<&GraphNode<T>> {
+        self.get_nodes_of_type(NodeType::Vertex)
+    }
+
+    pub fn edges(&self) -> Vec<&GraphNode<T>> {
+        self.get_nodes_of_type(NodeType::Edge)
+    }
+
+    #[inline]
+    fn get_nodes_of_type(&self, node_type: NodeType) -> Vec<&GraphNode<T>> {
+        self.nodes
+            .iter()
+            .filter(|node| node.node_type() == node_type)
+            .collect()
     }
 }
 

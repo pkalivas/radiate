@@ -356,7 +356,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{GraphAggregate, GraphNode, Node, NodeType};
+    use crate::{GraphAggregate, GraphNode, NodeType};
     use radiate::Valid;
 
     #[test]
@@ -368,20 +368,14 @@ mod tests {
                     GraphNode::new(1, NodeType::Input, 1),
                 ],
                 &vec![
-                    GraphNode::new(2, NodeType::Output, 0),
-                    GraphNode::new(3, NodeType::Output, 1),
+                    GraphNode::new(0, NodeType::Output, 0),
+                    GraphNode::new(1, NodeType::Output, 1),
                 ],
             )
             .build();
 
-        let input_nodes = graph
-            .iter()
-            .filter(|node| node.node_type() == NodeType::Input)
-            .collect::<Vec<&GraphNode<i32>>>();
-        let output_nodes = graph
-            .iter()
-            .filter(|node| node.node_type() == NodeType::Output)
-            .collect::<Vec<&GraphNode<i32>>>();
+        let input_nodes = graph.inputs();
+        let output_nodes = graph.outputs();
 
         for (in_node, out_node) in input_nodes.iter().zip(output_nodes.iter()) {
             assert!(in_node.outgoing().contains(&out_node.index()));
