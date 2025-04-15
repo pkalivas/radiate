@@ -5,16 +5,16 @@ use crate::{
 };
 use std::collections::BTreeMap;
 
-/// Building a `Graph<T>` can be a very complex task. Everything in this file exists
-/// to simplify the process of building a `Graph<T>` by allowing the user to do so
+/// Building a [`Graph<T>`] can be a very complex task. Everything in this file exists
+/// to simplify the process of building a [`Graph<T>`] by allowing the user to do so
 /// in a declarative way.
 ///
-/// The `ConnectTypes` are simply a set of available ways we can
-/// connect different `GraphNode`s together.
+/// The [`ConnectTypes`] are simply a set of available ways we can
+/// connect different [`GraphNode`]'s together.
 ///
 /// # Assumptions
 /// * The first collection is the 'source' collection and the second collection is the 'target' collection.
-/// * The target collection's `GraphNode`'s `Arity` is compatible with the `ConnectTypes`.
+/// * The target collection's [`GraphNode`]'s `Arity` is compatible with the [`ConnectTypes`].
 enum ConnectTypes {
     /// Connects each `GraphNode` in the first collection to the corresponding `GraphNode` in the
     /// second collection.
@@ -54,17 +54,17 @@ enum ConnectTypes {
     OneToSelf,
 }
 
-/// Represents a relationship between two `GraphNode`s where the `source_id` is the `GraphNode<T>`'s
-/// id that is incoming, or giving its value to the `target_id` `GraphNode<T>`.
+/// Represents a relationship between two `GraphNode`s where the `source_id` is the [`GraphNode<T>`]'s
+/// id that is incoming, or giving its value to the `target_id` [`GraphNode<T>`].
 struct Relationship<'a> {
     source_id: &'a GraphNodeId,
     target_id: &'a GraphNodeId,
 }
 
-/// The `GraphArchitect` struct is a builder for `Graph<T>` that allows you to build a `Graph<T>`
-/// in an extremely declarative way. It allows you to build a `Graph<T>` by connecting
-/// `GraphNode`s together in all sorts of ways. This results in an extremely powerful tool.
-/// The `GraphArchitect` is ment to take a collection of `GraphNode`s and connect them together
+/// The [`GraphAggregate`] struct is a builder for [`Graph<T>`] that allows you to build a [`Graph<T>`]
+/// in an extremely declarative way. It allows you to build a [`Graph<T>`] by connecting
+/// [`GraphNode`]'s together in all sorts of ways. This results in an extremely powerful tool.
+/// The [`GraphAggregate`] is ment to take a collection of `GraphNode`s and connect them together
 /// in a sudo 'layered' way. I say 'sudo' because the 'layers' can simply be connecting
 /// input nodes to output nodes, hidden nodes to weights, input nodes to output nodes, recurrent
 /// connections, etc.
@@ -84,25 +84,6 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         }
     }
 
-    /// Builds the `Graph<T>` from the `GraphAggregate<T>`.
-    /// This method will take the `GraphAggregate<T>` and build a `Graph<T>` from it.
-    /// It will use the relationships between the `GraphNode`s to connect them together in the
-    /// resulting graph in the desired way. Because we keep track of nodes without having them fully
-    /// initialized (meaning the nodes themselves are not connected yet) we first have to build the nodes by
-    /// copying them into a new `GraphNode<T>` and then connecting them together using the relationships.
-    ///
-    /// The upside for this is that we can build a `Graph<T>` in a very declarative and large way,
-    /// enabling users to really create whatever type of graph they want. However, on the downside,
-    /// it can sometimes be hard to keep ensure that a given node has a correct arity, or that the
-    /// relationships are correct. It is always advantagous to ensure a `Graph<T>` is valid after
-    /// building it and to follow the rules of the `ConnectTypes` when connecting nodes together.
-    ///
-    /// Usually the `GraphNode`'s Index is extremely important as it represents the position of the
-    /// node within the `Graph<T>`. However, when building a `Graph<T>` from a `GraphAggregate<T>`,
-    /// the index is not important as the `Graph<T>` will re-index the nodes when it is built.
-    ///
-    /// # Returns
-    /// A `Graph<T>` that has been built from the `GraphAggregate<T>`.
     pub fn build(&self) -> Graph<T> {
         let mut node_id_index_map = BTreeMap::new();
         let mut graph = Graph::<T>::default();
@@ -125,220 +106,36 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         graph
     }
 
-    /// Connects the `GraphNode`s in the first collection to the `GraphNode`s in the second collection
-    /// in a one-to-one relationship.
-    ///
-    /// # Example
-    /// ```
-    /// use radiate::*;
-    /// use radiate_gp::*;
-    ///
-    /// let source_nodes = vec![
-    ///     GraphNode::new(0, NodeType::Input, 0),
-    ///     GraphNode::new(1, NodeType::Input, 1),
-    /// ];
-    ///
-    /// let target_nodes = vec![
-    ///     GraphNode::new(0, NodeType::Output, 0),
-    ///     GraphNode::new(1, NodeType::Output, 1),
-    /// ];
-    ///
-    /// let mut graph = GraphAggregate::new()
-    ///     .one_to_one(&source_nodes, &target_nodes)
-    ///     .build();
-    ///
-    /// assert!(graph.is_valid());
-    /// ```
-    /// This will create a `Graph<T>` that looks like this:
-    /// ``` text
-    /// 0 -> 2
-    /// 1 -> 3
-    /// ```
-    ///
-    /// # Arguments
-    /// * `one`: The first collection of `GraphNode`s.
-    /// * `two`: The second collection of `GraphNode`s.
     pub fn one_to_one<G: AsRef<[GraphNode<T>]>>(mut self, one: &'a G, two: &'a G) -> Self {
         self.connect(ConnectTypes::OneToOne, one, two);
         self
     }
 
-    /// Connects the `GraphNode`s in the first collection to the `GraphNode`s in the second collection
-    /// in a one-to-many relationship.
-    ///
-    /// # Example
-    /// ```
-    /// use radiate::*;
-    /// use radiate_gp::*;
-    ///
-    /// let source_nodes = vec![
-    ///     GraphNode::new(0, NodeType::Input, 0),
-    ///     GraphNode::new(1, NodeType::Input, 1),
-    /// ];
-    ///
-    /// let target_nodes = vec![
-    ///     GraphNode::new(0, NodeType::Output, 0),
-    ///     GraphNode::new(1, NodeType::Output, 1),
-    ///     GraphNode::new(2, NodeType::Output, 2),
-    ///     GraphNode::new(3, NodeType::Output, 3),
-    /// ];
-    ///
-    /// let mut graph = GraphAggregate::new()
-    ///    .one_to_many(&source_nodes, &target_nodes)
-    ///    .build();
-    ///
-    /// assert!(graph.is_valid());
-    /// ```
-    ///
-    /// This will create a `Graph<T>` that looks like this:
-    /// ``` text
-    /// 0 -> [2, 3]
-    /// 1 -> [4, 5]
-    /// ```
-    ///
-    /// # Arguments
-    /// * `one`: The first collection of `GraphNode`s.
-    /// * `two`: The second collection of `GraphNode`s.
     pub fn one_to_many<G: AsRef<[GraphNode<T>]>>(mut self, one: &'a G, two: &'a G) -> Self {
         self.connect(ConnectTypes::OneToMany, one, two);
         self
     }
 
-    /// Connects the `GraphNode`s in the first collection to the `GraphNode`s in the second collection
-    /// in a many-to-one relationship.
-    ///
-    /// # Example
-    /// ```
-    /// use radiate::*;
-    /// use radiate_gp::*;
-    ///
-    /// let source_nodes = vec![
-    ///     GraphNode::new(0, NodeType::Input, 0),
-    ///     GraphNode::new(1, NodeType::Input, 1),
-    ///     GraphNode::new(2, NodeType::Input, 2),
-    ///     GraphNode::new(3, NodeType::Input, 3),
-    /// ];
-    ///
-    /// let target_nodes = vec![
-    ///     GraphNode::new(0, NodeType::Output, 0),
-    ///     GraphNode::new(1, NodeType::Output, 1),
-    /// ];
-    ///
-    /// let mut graph = GraphAggregate::new()
-    ///     .many_to_one(&source_nodes, &target_nodes)
-    ///     .build();
-    ///
-    /// assert!(graph.is_valid());
-    /// ```
-    ///
-    /// This will create a `Graph<T>` that looks like this:
-    /// ``` text
-    /// [0, 1] -> 4
-    /// [2, 3] -> 5
-    /// ```
-    ///
-    /// # Arguments
-    /// * `one`: The first collection of `GraphNode`s.
-    /// * `two`: The second collection of `GraphNode`s.
     pub fn many_to_one<G: AsRef<[GraphNode<T>]>>(mut self, one: &'a G, two: &'a G) -> Self {
         self.connect(ConnectTypes::ManyToOne, one, two);
         self
     }
 
-    /// Connects the `GraphNode`s in the first collection to the `GraphNode`s in the second collection
-    /// in an all-to-all relationship. This means that each `GraphNode` in the first collection will be connected to each `GraphNode`
-    /// in the second collection.
-    ///
-    /// # Example
-    /// ```
-    /// use radiate::*;
-    /// use radiate_gp::*;
-    ///
-    /// let source_nodes = vec![
-    ///     GraphNode::new(0, NodeType::Input, 0),
-    ///     GraphNode::new(1, NodeType::Input, 1),
-    /// ];
-    ///
-    /// let target_nodes = vec![
-    ///   GraphNode::new(0, NodeType::Output, 0),
-    ///   GraphNode::new(1, NodeType::Output, 1),
-    ///   GraphNode::new(2, NodeType::Output, 2),
-    /// ];
-    ///
-    /// let mut graph = GraphAggregate::new()
-    ///     .all_to_all(&source_nodes, &target_nodes)
-    ///     .build();
-    ///
-    /// assert!(graph.is_valid());
-    /// ```
-    ///
-    /// This will create a `Graph<T>` that looks like this:
-    /// ``` text
-    /// 0 -> [3, 4, 5]
-    /// 1 -> [3, 4, 5]
-    /// ```
-    ///
-    /// # Arguments
-    /// * `one`: The first collection of `GraphNode`s.
-    /// * `two`: The second collection of `GraphNode`s.
     pub fn all_to_all<G: AsRef<[GraphNode<T>]>>(mut self, one: &'a G, two: &'a G) -> Self {
         self.connect(ConnectTypes::AllToAll, one, two);
         self
     }
 
-    /// Connects the `GraphNode`s in the first collection to the `GraphNode`s in the second collection
-    /// in a one-to-one-self relationship. This means that each `GraphNode` in the first collection
-    /// will be connected to the corresponding `GraphNode` in the second collection and then each `GraphNode`
-    /// in the second collection will be connected to the corresponding `GraphNode` in the first collection.
-    ///
-    /// # Example
-    /// ```
-    /// use radiate::*;
-    /// use radiate_gp::*;
-    ///
-    /// let source_nodes = vec![
-    ///    GraphNode::new(0, NodeType::Vertex, 0),
-    /// ];
-    ///
-    /// let target_nodes = vec![
-    ///   GraphNode::new(0, NodeType::Edge, 0),
-    /// ];
-    ///
-    /// let mut graph = GraphAggregate::new()
-    ///   .one_to_self(&source_nodes, &target_nodes)
-    ///   .build();
-    ///
-    /// assert!(graph.is_valid());
-    /// ```
-    /// This will create a `Graph<T>` that looks like this:
-    /// ``` text
-    /// 0 -> 1
-    /// 1 -> 0
-    /// ```
-    ///
-    /// # Arguments
-    /// * `one`: The first collection of `GraphNode`s.
-    /// * `two`: The second collection of `GraphNode`s.
     pub fn one_to_self<G: AsRef<[GraphNode<T>]>>(mut self, one: &'a G, two: &'a G) -> Self {
         self.connect(ConnectTypes::OneToSelf, one, two);
         self
     }
 
-    /// Inserts a collection of `GraphNode`s into the `GraphAggregate<T>`.
-    /// This method will take a collection of `GraphNode`s and insert them into the `GraphAggregate<T>` without connecting
-    /// them to any other `GraphNode`s. Instead, it takes the relationships already represented within the `collection` and
-    /// stores them for later use when connecting the `GraphNode`s together.
-    /// This is useful for when you already have a `Graph` that is built, and you want to add it to the `GraphAggregate<T>`.
     pub fn insert<G: AsRef<[GraphNode<T>]>>(mut self, collection: &'a G) -> Self {
         self.attach(collection.as_ref());
         self
     }
-}
 
-impl<'a, T: Clone> GraphAggregate<'a, T> {
-    /// Connects the collections of `GraphNode`s together in a layered way meaning each `Graph` is connected
-    /// `OneToOne` to the next `Graph` in the collection. This is useful for when you have a collection of `Graph`s
-    /// that you want to connect together in a traditional layered way.
     pub fn layer<G: AsRef<[GraphNode<T>]>>(&self, collections: Vec<&'a G>) -> Self {
         let mut conn = GraphAggregate::new();
         let mut previous = collections[0];
@@ -355,10 +152,6 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         conn
     }
 
-    /// Attaches a collection of `GraphNode`s to the `GraphAggregate<T>`. This method will take a collection of `GraphNode`s
-    /// and add them and their relationships to the `GraphAggregate<T>`. When you provide a `Graph` to the `GraphAggregate<T>`,
-    /// that already is internally connected, this method will take the relationships and store them for later use when connecting
-    /// the `GraphNode`s and any other inputs provided to the `GraphAggregate<T>`.
     pub fn attach(&mut self, group: &'a [GraphNode<T>]) {
         for node in group.iter() {
             if !self.nodes.contains_key(node.id()) {
@@ -379,9 +172,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
             }
         }
     }
-}
 
-impl<'a, T: Clone> GraphAggregate<'a, T> {
     fn connect<G: AsRef<[GraphNode<T>]>>(
         &mut self,
         connection: ConnectTypes,
@@ -565,7 +356,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{GraphAggregate, GraphNode, Node, NodeType};
+    use crate::{GraphAggregate, GraphNode, NodeType};
     use radiate::Valid;
 
     #[test]
@@ -577,20 +368,14 @@ mod tests {
                     GraphNode::new(1, NodeType::Input, 1),
                 ],
                 &vec![
-                    GraphNode::new(2, NodeType::Output, 0),
-                    GraphNode::new(3, NodeType::Output, 1),
+                    GraphNode::new(0, NodeType::Output, 0),
+                    GraphNode::new(1, NodeType::Output, 1),
                 ],
             )
             .build();
 
-        let input_nodes = graph
-            .iter()
-            .filter(|node| node.node_type() == NodeType::Input)
-            .collect::<Vec<&GraphNode<i32>>>();
-        let output_nodes = graph
-            .iter()
-            .filter(|node| node.node_type() == NodeType::Output)
-            .collect::<Vec<&GraphNode<i32>>>();
+        let input_nodes = graph.inputs();
+        let output_nodes = graph.outputs();
 
         for (in_node, out_node) in input_nodes.iter().zip(output_nodes.iter()) {
             assert!(in_node.outgoing().contains(&out_node.index()));

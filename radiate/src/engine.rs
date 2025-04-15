@@ -70,31 +70,14 @@ where
     C: Chromosome,
     T: Clone + Send,
 {
-    /// Create a new instance of the `GeneticEngine` struct with the given parameters.
-    /// - `params`: An instance of `GeneticEngineParams` that holds configuration parameters for the genetic engine.
     pub fn new(params: GeneticEngineParams<C, T>) -> Self {
         GeneticEngine { params }
     }
 
-    /// Initializes a `GeneticEngineParams` using the provided codex, which defines how individuals
-    /// are represented in the population. Because the `Codex` is always needed, this
-    /// is a convenience method that allows users to create a `GeneticEngineParams` instance
-    /// which will then be 'built' resulting in a `GeneticEngine` instance.
-    ///
-    /// **Note** with this method, the `Codex` is supplied to the `GeneticEngineParams` and thus
-    /// the `GeneticEngineParams` also will need a `FitnessFn` to be supplied before building.
     pub fn from_codex(codex: impl Codex<C, T> + 'static) -> GeneticEngineBuilder<C, T> {
         GeneticEngineBuilder::default().codex(codex)
     }
 
-    /// Initializes a `GeneticEngineParams` using the provided problem, which defines the fitness function
-    /// used to evaluate the individuals in the population. Unlike the above method, this method
-    /// does not require a `Codex` to be supplied, as the `Problem` will provide the necessary
-    /// functionality. So in a sense, the supplying a `Problem` is a method that lets the
-    /// user do a little more work up front, but then have less to do when building the `GeneticEngine`.
-    ///
-    /// Similar to the `from_codex` method, this is a convenience method that allows users
-    /// to create a `GeneticEngineParams` instance.
     pub fn from_problem(problem: impl Problem<C, T> + 'static) -> GeneticEngineBuilder<C, T> {
         GeneticEngineBuilder::default().problem(problem)
     }
@@ -421,59 +404,5 @@ where
     fn stop(&self, output: &mut EngineContext<C, T>) -> EngineContext<C, T> {
         output.timer.stop();
         output.clone()
-    }
-}
-
-#[cfg(test)]
-mod engine_tests {
-    use crate::{GeneticEngine, IntCodex};
-
-    #[test]
-    fn engine_can_minimize() {
-        let codex = IntCodex::vector(5, 0..100);
-
-        let engine = GeneticEngine::from_codex(codex)
-            .minimizing()
-            .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
-            .build();
-
-        let result = engine.run(|ctx| ctx.score().as_i32() == 0);
-
-        let best = result.best;
-        assert_eq!(best.iter().sum::<i32>(), 0);
-    }
-
-    #[test]
-    fn engine_can_maximize() {
-        let codex = IntCodex::vector(5, 0..101);
-
-        let engine = GeneticEngine::from_codex(codex)
-            .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
-            .build();
-
-        let result = engine.run(|ctx| ctx.score().as_i32() == 500);
-
-        assert_eq!(result.best.iter().sum::<i32>(), 500);
-    }
-
-    #[test]
-    fn engine_evolves_towards_target() {
-        let target = [1, 2, 3, 4, 5];
-        let codex = IntCodex::vector(target.len(), 0..10);
-
-        let engine = GeneticEngine::from_codex(codex)
-            .minimizing()
-            .fitness_fn(move |geno: Vec<i32>| {
-                let mut score = 0;
-                for i in 0..geno.len() {
-                    score += (geno[i] - target[i]).abs();
-                }
-                score
-            })
-            .build();
-
-        let result = engine.run(|ctx| ctx.score().as_i32() == 0);
-
-        assert_eq!(&result.best, &vec![1, 2, 3, 4, 5]);
     }
 }

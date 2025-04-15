@@ -35,9 +35,9 @@ impl BitGene {
     }
 }
 
-/// Implement the `Gene` trait for the `BitGene`.
-/// This allows the `BitGene` to be used in a `Chromosome` - specifically the
-/// `BitChromosome`, thus allowing the `BitGene` to be used in the `GeneticEngine`.
+/// Implement the [`Gene`] trait for the [`BitGene`].
+/// This allows the [`BitGene`] to be used in a [`Chromosome`] - specifically the
+/// [`BitChromosome`], thus allowing the [`BitGene`] to be used in the `GeneticEngine`.
 impl Gene for BitGene {
     type Allele = bool;
 
@@ -54,7 +54,7 @@ impl Gene for BitGene {
     }
 }
 
-/// Because a `BitGene` is either `true` or `false` it is always valid.
+/// Because a [`BitGene`] is either `true` or `false` it is always valid.
 impl Valid for BitGene {}
 
 impl Default for BitGene {
@@ -81,8 +81,8 @@ impl From<bool> for BitGene {
     }
 }
 
-/// A `Chromosome` that contains `BitGenes`.
-/// A `BitChromosome` is a collection of `BitGenes` that represent the genetic
+/// A [`Chromosome`] that contains [`BitGene`].
+/// A [`BitChromosome`] is a collection of [`BitGene`] that represent the genetic
 /// material of an individual in the population.
 ///
 #[derive(Clone, PartialEq, Default)]

@@ -8,11 +8,11 @@ use std::{
     ops::{Add, Bound, Div, Mul, Range, RangeBounds, Sub},
 };
 
-/// A `Gene` that represents a floating point number.
-/// The `allele` is the in the case of the `FloatGene` a f32. The `min` and `max` values
+/// A [`Gene`] that represents a floating point number.
+/// The `allele` is the in the case of the [`FloatGene`] a f32. The `min` and `max` values
 /// default to f32::MIN and f32::MAX respectively. The `min` and `max` values are used to
-/// generate a random number between the `min` and `max` values, which is the `allele` of the `FloatGene`.
-/// The `upper_bound` and `lower_bound` are used to set the bounds of the `FloatGene` when it is used
+/// generate a random number between the `min` and `max` values, which is the `allele` of the [`FloatGene`].
+/// The `upper_bound` and `lower_bound` are used to set the bounds of the [`FloatGene`] when it is used
 /// in a `BoundGene` context (crossover or mutation). The `upper_bound` and `lower_bound`
 /// default to f32::MAX and f32::MIN respectively.
 ///
@@ -36,10 +36,10 @@ pub struct FloatGene {
     pub bounds: Range<f32>,
 }
 
-/// Implement the `Valid` trait for the `FloatGene`.
+/// Implement the [`Valid`] trait for the [`FloatGene`].
 ///
-/// The `is_valid` method checks if the `allele` of the `FloatGene` is between the `min` and `max` values.
-/// The `GeneticEngine` will check the validity of the `Chromosome` and `Phenotype` and remove any
+/// The `is_valid` method checks if the `allele` of the [`FloatGene`] is between the `min` and `max` values.
+/// The `GeneticEngine` will check the validity of the [`Chromosome`] and `Phenotype` and remove any
 /// invalid individuals from the population, replacing them with new individuals at the given generation.
 impl Valid for FloatGene {
     fn is_valid(&self) -> bool {
@@ -209,13 +209,13 @@ impl Debug for FloatGene {
 
 /// Represents a chromosome composed of floating-point genes.
 ///
-/// A `FloatChromosome` contains a vector of `FloatGene` instances, each representing
+/// A [`FloatChromosome`] contains a vector of [`FloatGene`] instances, each representing
 /// a single floating-point value. This structure is typically used in problems where
 /// solutions are encoded as real numbers.
 ///
 /// # Fields
 ///
-/// * `genes` - A vector of `FloatGene` representing the individual's genetic information.
+/// * `genes` - A vector of [`FloatGene`] representing the individual's genetic information.
 ///
 /// # Example
 /// ```rust

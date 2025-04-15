@@ -218,15 +218,11 @@ where
     }
 
     pub fn visit(&self, node: &mut TreeNode<T>) {
-        self.visit_recursive(node);
-    }
-
-    fn visit_recursive(&self, node: &mut TreeNode<T>) {
         (self.visitor)(node);
 
         if let Some(children) = node.children_mut() {
             for child in children.iter_mut() {
-                self.visit_recursive(child);
+                self.visit(child);
             }
         }
     }
@@ -235,9 +231,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::collections::{Tree, TreeNode};
-
     use crate::Op;
+    use crate::collections::{Tree, TreeNode};
     use crate::node::Node;
 
     #[test]

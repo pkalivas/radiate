@@ -8,7 +8,7 @@ use std::{char, sync::Arc};
 pub const ALPHABET: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"$%&/()=?`{[]}\\+~*#';.:,-_<>|@^' ";
 
 /// A gene that represents a single character. The `allele` is a `char`
-/// that is randomly selected from the `ALPHABET` constant.
+/// that is randomly selected from the [`ALPHABET`] constant.
 ///
 /// # Example
 /// ``` rust
@@ -40,8 +40,8 @@ impl CharGene {
     }
 }
 
-/// Implement the `Gene` trait for the `CharGene`. This allows the `CharGene` to be used in
-/// a `Chromosome` - specifically the `CharChromosome`, thus allowing the `CharGene` to
+/// Implement the [`Gene`] trait for the [`CharGene`]. This allows the [`CharGene`] to be used in
+/// a [`Chromosome`] - specifically the [`CharChromosome`], thus allowing the [`CharGene`] to
 /// be used in the `GeneticEngine`.
 impl Gene for CharGene {
     type Allele = char;
@@ -132,8 +132,8 @@ impl std::fmt::Debug for CharGene {
     }
 }
 
-/// A `Chromosome` that contains `CharGenes`.
-#[derive(Clone, PartialEq, Default)]
+/// A [`Chromosome`] that contains [`CharGene`].
+#[derive(Clone, PartialEq, Default, Debug)]
 pub struct CharChromosome {
     pub genes: Vec<CharGene>,
 }

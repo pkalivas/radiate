@@ -21,7 +21,8 @@ impl GraphMutator {
     /// Create a new graph mutator with a set of mutations
     ///
     /// # Arguments
-    /// - `mutations` - a vector of `NodeMutate` that represent the mutations that can be applied
+    /// - `vertex_rate`: The probability of adding a vertex.
+    /// - `edge_rate`: The probability of adding an edge.
     pub fn new(vertex_rate: f32, edge_rate: f32) -> Self {
         GraphMutator {
             vertex_rate,

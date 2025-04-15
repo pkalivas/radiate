@@ -1,6 +1,6 @@
 use std::ops::{Add, Div, Mul, RangeBounds, Sub};
 
-/// A `Valid` type is a type that can be checked for validity. This is used for checking if a gene
+/// A [`Valid`] type is a type that can be checked for validity. This is used for checking if a gene
 /// or a chromosome is valid. For example, a gene that represents a number between 0 and 1 can be checked
 /// for validity by ensuring that the allele is between 0 and 1.
 ///
@@ -12,7 +12,7 @@ pub trait Valid {
     }
 }
 
-/// A `Gene` is a single unit of information in a `Chromosome`.
+/// A [`Gene`] is a single unit of information in a `Chromosome`.
 /// This is the most basic building block of this entire library.
 ///
 /// Any type that implements this trait can be used as a gene in a chromosome, as such
@@ -45,8 +45,8 @@ pub trait Valid {
 ///     }
 /// }
 ///
-/// // You must also implement the `Valid` trait for the gene.
-/// // The default implementation of the `Valid` trait is to return true.
+/// // You must also implement the [`Valid`] trait for the gene.
+/// // The default implementation of the [`Valid`] trait is to return true.
 /// impl Valid for PointGene {
 ///    fn is_valid(&self) -> bool {
 ///      let (x, y) = self.allele;
@@ -59,13 +59,13 @@ pub trait Valid {
 pub trait Gene: Clone + PartialEq + Valid {
     type Allele;
 
-    /// Get the `allele` of the `Gene`. This is the value that the `Gene` represents or "expresses".
+    /// Get the `allele` of the [`Gene`]. This is the value that the [`Gene`] represents or "expresses".
     fn allele(&self) -> &Self::Allele;
 
-    /// Create a new instance of the `Gene`.
+    /// Create a new instance of the [`Gene`].
     fn new_instance(&self) -> Self;
 
-    /// Create a new `Gene` with the given `allele`.
+    /// Create a new [`Gene`] with the given `allele`.
     fn with_allele(&self, allele: &Self::Allele) -> Self;
 }
 

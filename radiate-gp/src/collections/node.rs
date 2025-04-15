@@ -1,6 +1,6 @@
 use crate::Arity;
 
-/// NodeType is a soft identification for different nodes within a graph or tree structure.
+/// [NodeType] is a soft identification for different nodes within a graph or tree structure.
 ///
 /// Most of the time when reading a node's time, we can determine what kind of node it is
 /// by the connections around it. For example, in a graph, if a node has 0 incoming connections,

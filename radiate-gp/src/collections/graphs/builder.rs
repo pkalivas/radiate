@@ -175,8 +175,8 @@ pub struct NodeBuilder<T> {
 }
 
 impl<T: Clone + Default> NodeBuilder<T> {
-    /// Create a new `NodeBuilder` with the given store where 'store'
-    /// is anything that can be converted into a `NodeStore` - IE: the
+    /// Create a new [`NodeBuilder`] with the given store where 'store'
+    /// is anything that can be converted into a [`NodeStore`] - IE: the
     /// values that can be given to a node.
     ///
     /// # Arguments
@@ -188,8 +188,8 @@ impl<T: Clone + Default> NodeBuilder<T> {
     }
 
     /// Create a new collection of input nodes with the given size.
-    /// If the `NodeType::Input` is not found in the store, a new node
-    /// with a random value and an arity of `Arity::Zero` will be used.
+    /// If the [`NodeType::Input`] is not found in the store, a new node
+    /// with a random value and an arity of [`Arity::Zero`] will be used.
     ///
     /// # Arguments
     /// * `size` - The number of input nodes to create.
@@ -201,8 +201,8 @@ impl<T: Clone + Default> NodeBuilder<T> {
     }
 
     /// Create a new collection of output nodes with the given size.
-    /// We first look for the `NodeType::Output` in the store and if it is not found,
-    /// we create a new node with a random value with an arity of `Arity::Any`.
+    /// We first look for the [`NodeType::Output`] in the store and if it is not found,
+    /// we create a new node with a random value with an arity of [`Arity::Any`].
     ///
     /// # Arguments
     /// * `size` - The number of output nodes to create.
@@ -215,7 +215,7 @@ impl<T: Clone + Default> NodeBuilder<T> {
 
     /// Create a new collection of edge nodes with the given size.
     /// The arity of the edge nodes will be set to `Arity::Exact(1)` so
-    /// if there are no `NodeType::Edge` in the store, a random value with
+    /// if there are no [`NodeType::Edge`] in the store, a random value with
     /// arity of 1 will be used.
     ///
     /// # Arguments
@@ -228,8 +228,8 @@ impl<T: Clone + Default> NodeBuilder<T> {
     }
 
     /// Create a new collection of vertex nodes with the given size.
-    /// If the `NodeType::Vertex` is not found in the store, a new node
-    /// with a random value and an arity of `Arity::Any` will be used.
+    /// If the [`NodeType::Vertex`] is not found in the store, a new node
+    /// with a random value and an arity of [`Arity::Any`] will be used.
     ///
     /// # Arguments
     /// * `size` - The number of vertex nodes to create.

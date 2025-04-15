@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 /// A unique identifier for a `Phenotype`. This is used to identify the `Phenotype` in the population.
 /// It is a simple wrapper around a `u64` value.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[repr(transparent)]
 pub struct PhenotypeId(u64);
 
 impl PhenotypeId {
