@@ -524,3 +524,31 @@ mod tests {
         assert!(graph.is_valid());
     }
 }
+
+// let mut graph = Graph::<T>::default();
+
+// let res = graph.try_modify(|mut trans| {
+//     let mut node_id_index_map = BTreeMap::new();
+
+//     for (index, node_id) in self.node_order.values().enumerate() {
+//         let node = self.nodes.get(node_id).unwrap();
+
+//         trans.add_node((index, node.node_type(), node.value().clone(), node.arity()));
+//         node_id_index_map.insert(node_id, index);
+//     }
+
+//     for rel in self.relationships.iter() {
+//         let source_idx = node_id_index_map.get(&rel.source_id).unwrap();
+//         let target_idx = node_id_index_map.get(&rel.target_id).unwrap();
+
+//         trans.attach(*source_idx, *target_idx);
+//     }
+
+//     trans.set_cycles();
+//     trans.commit()
+// });
+
+// match res {
+//     TransactionResult::Valid(_) => graph,
+//     _ => panic!("Graph is not valid"),
+// }

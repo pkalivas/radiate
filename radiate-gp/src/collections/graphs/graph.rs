@@ -39,7 +39,6 @@ impl<T> Graph<T> {
         Graph { nodes }
     }
 
-    /// Push a 'GraphNode' onto the last position in the graph.
     pub fn push(&mut self, node: impl Into<GraphNode<T>>) {
         self.nodes.push(node.into());
     }
@@ -49,40 +48,48 @@ impl<T> Graph<T> {
         self.len() - 1
     }
 
-    /// Pop the last 'GraphNode' from the graph.
     pub fn pop(&mut self) -> Option<GraphNode<T>> {
         self.nodes.pop()
     }
 
-    /// Returns the number of nodes in the graph.
     pub fn len(&self) -> usize {
         self.nodes.len()
     }
 
-    /// Returns true if the graph is empty.
     pub fn is_empty(&self) -> bool {
         self.nodes.is_empty()
     }
 
-    /// Returns a mutable reference to the node at the specified index.
     pub fn get_mut(&mut self, index: usize) -> Option<&mut GraphNode<T>> {
         self.nodes.get_mut(index)
     }
 
-    /// Returns a reference to the node at the specified index.
     pub fn get(&self, index: usize) -> Option<&GraphNode<T>> {
         self.nodes.get(index)
     }
 
-    /// iterates over the nodes in the graph. The nodes are returned in the order they
-    /// were added, so there is no real order to this iterator.
     pub fn iter(&self) -> impl Iterator<Item = &GraphNode<T>> {
         self.nodes.iter()
     }
 
-    /// mutably iterates over the nodes in the graph. The nodes are returned in the order they
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut GraphNode<T>> {
         self.nodes.iter_mut()
+    }
+
+    pub fn inputs(&self) -> Vec<&GraphNode<T>> {
+        self.get_nodes_of_type(NodeType::Input)
+    }
+
+    pub fn outputs(&self) -> Vec<&GraphNode<T>> {
+        self.get_nodes_of_type(NodeType::Output)
+    }
+
+    pub fn vertices(&self) -> Vec<&GraphNode<T>> {
+        self.get_nodes_of_type(NodeType::Vertex)
+    }
+
+    pub fn edges(&self) -> Vec<&GraphNode<T>> {
+        self.get_nodes_of_type(NodeType::Edge)
     }
 
     /// Attach and detach nodes from one another. This is the primary way to modify the graph.
@@ -119,39 +126,6 @@ impl<T> Graph<T> {
         self.as_mut()[incoming].outgoing_mut().remove(&outgoing);
         self.as_mut()[outgoing].incoming_mut().remove(&incoming);
         self
-    }
-
-    /// Given a list of node indices, this function will set the 'direction' field of the nodes
-    /// at those indices to 'Direction::Backward' if they are part of a cycle. If they are not part
-    /// of a cycle, the 'direction' field will be set to 'Direction::Forward'.
-    /// If no indices are provided, the function will set the 'direction' field of all nodes in the graph.
-    #[inline]
-    pub fn set_cycles(&mut self, indecies: Vec<usize>) {
-        if indecies.is_empty() {
-            let all_indices = self
-                .as_ref()
-                .iter()
-                .map(|node| node.index())
-                .collect::<Vec<usize>>();
-
-            return self.set_cycles(all_indices);
-        }
-
-        for idx in indecies {
-            let node_cycles = self.get_cycles(idx);
-
-            if node_cycles.is_empty() {
-                if let Some(node) = self.get_mut(idx) {
-                    node.set_direction(Direction::Forward);
-                }
-            } else {
-                for cycle_idx in node_cycles {
-                    if let Some(node) = self.get_mut(cycle_idx) {
-                        node.set_direction(Direction::Backward);
-                    }
-                }
-            }
-        }
     }
 
     /// tries to modify the graph using a 'GraphTransaction'. If the transaction is successful,
@@ -208,20 +182,37 @@ impl<T> Graph<T> {
         Vec::new()
     }
 
-    pub fn inputs(&self) -> Vec<&GraphNode<T>> {
-        self.get_nodes_of_type(NodeType::Input)
-    }
+    /// Given a list of node indices, this function will set the 'direction' field of the nodes
+    /// at those indices to 'Direction::Backward' if they are part of a cycle. If they are not part
+    /// of a cycle, the 'direction' field will be set to 'Direction::Forward'.
+    /// If no indices are provided, the function will set the 'direction' field of all nodes in the graph.
+    #[inline]
+    pub fn set_cycles(&mut self, indecies: Vec<usize>) {
+        if indecies.is_empty() {
+            let all_indices = self
+                .as_ref()
+                .iter()
+                .map(|node| node.index())
+                .collect::<Vec<usize>>();
 
-    pub fn outputs(&self) -> Vec<&GraphNode<T>> {
-        self.get_nodes_of_type(NodeType::Output)
-    }
+            return self.set_cycles(all_indices);
+        }
 
-    pub fn vertices(&self) -> Vec<&GraphNode<T>> {
-        self.get_nodes_of_type(NodeType::Vertex)
-    }
+        for idx in indecies {
+            let node_cycles = self.get_cycles(idx);
 
-    pub fn edges(&self) -> Vec<&GraphNode<T>> {
-        self.get_nodes_of_type(NodeType::Edge)
+            if node_cycles.is_empty() {
+                if let Some(node) = self.get_mut(idx) {
+                    node.set_direction(Direction::Forward);
+                }
+            } else {
+                for cycle_idx in node_cycles {
+                    if let Some(node) = self.get_mut(cycle_idx) {
+                        node.set_direction(Direction::Backward);
+                    }
+                }
+            }
+        }
     }
 
     #[inline]

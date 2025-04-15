@@ -79,7 +79,7 @@ impl<'a, T> GraphTransaction<'a, T> {
         }
     }
 
-    pub fn add_node(&mut self, node: GraphNode<T>) -> usize {
+    pub fn add_node(&mut self, node: impl Into<GraphNode<T>>) -> usize {
         let index = self.graph.len();
         self.steps.push(MutationStep::AddNode(index));
         self.graph.push(node);
