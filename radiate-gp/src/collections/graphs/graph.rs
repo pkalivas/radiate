@@ -7,21 +7,21 @@ use std::collections::{HashSet, VecDeque};
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
 
-/// A 'Graph' is simply a 'Vec' of 'GraphNode''s.
+/// A [Graph] is simply a 'Vec' of [GraphNode]'s.
 ///
 /// It's important to note that this graph differs from a traditional graph in that it is not
 /// a collection of edges and vertices. Instead, it is a collection of nodes that are connected
 /// to one another. Each node has a unique index that is used to reference it in the graph
 /// and must be identical to its position in the 'Vec'.
-/// Each 'GraphNode' has a set of ordered incoming and outgoing connections. These connections are
+/// Each [GraphNode] has a set of ordered incoming and outgoing connections. These connections are
 /// represented by the index of the connected node in the graph. Because of this representation,
 /// an edge is not a separate entity, it's just a node. The 'NodeType' enum is used to distinguish
 /// different types of nodes. This allows for a more flexible representation of the graph
 /// while still maintaining the ability to represent traditional graphs.
 ///
-/// By default, a 'Graph' is a directed acyclic graph (DAG). However, it is possible to create
-/// cycles in the graph by setting the 'direction' field of a 'GraphNode' to 'Direction::Backward'.
-/// The 'Graph' struct provides methods for attaching and detaching nodes from one another.
+/// By default, a [Graph] is a directed acyclic graph (DAG). However, it is possible to create
+/// cycles in the graph by setting the 'direction' field of a [GraphNode] to 'Direction::Backward'.
+/// The [Graph] struct provides methods for attaching and detaching nodes from one another.
 /// It also provides methods for iterating over the nodes in the graph in a sudo topological order.
 //
 #[derive(Clone, PartialEq)]
@@ -29,12 +29,11 @@ pub struct Graph<T> {
     nodes: Vec<GraphNode<T>>,
 }
 
-/// The 'Graph' struct provides methods for creating, modifying, and iterating over a graph.
 impl<T> Graph<T> {
-    /// Create a new 'Graph' from a 'Vec' of 'GraphNode's.
+    /// Create a new 'Graph' from a 'Vec' of [GraphNode]s.
     ///
     /// # Arguments
-    /// - nodes: A 'Vec' of 'GraphNode's.
+    /// - nodes: A 'Vec' of [GraphNode]s.
     pub fn new(nodes: Vec<GraphNode<T>>) -> Self {
         Graph { nodes }
     }
@@ -94,12 +93,12 @@ impl<T> Graph<T> {
 
     /// Attach and detach nodes from one another. This is the primary way to modify the graph.
     /// Note that this method does not check if the nodes are already connected. This is because
-    /// the connections are represented by 'HashSet's which do not allow duplicates.
+    /// the connections are represented by 'BTreeSet's which do not allow duplicates.
     /// Its also important to note that the 'incoming' and 'outgoing' indices are the indices of the
-    /// nodes in the graph, not the indices of the connections in the 'incoming' and 'outgoing' 'HashSet's.
-    /// We must also remember that the 'GraphNode' cares about the 'Arity' of the 'Operation' it contains,
+    /// nodes in the graph, not the indices of the connections in the 'incoming' and 'outgoing' 'BTreeSet's.
+    /// We must also remember that the [GraphNode] cares about the 'Arity' of the 'Operation' it contains,
     /// so if we add a connection that would violate the 'Arity' of the 'Operation', the connection will result
-    /// in a 'GraphNode' that is not 'Valid'.
+    /// in a [GraphNode] that is not 'Valid'.
     ///
     /// Attaches the node at the 'incoming' index to the node at the 'outgoing' index.
     /// This means that the node at the 'incoming' index will have an outgoing connection
@@ -183,8 +182,8 @@ impl<T> Graph<T> {
     }
 
     /// Given a list of node indices, this function will set the 'direction' field of the nodes
-    /// at those indices to 'Direction::Backward' if they are part of a cycle. If they are not part
-    /// of a cycle, the 'direction' field will be set to 'Direction::Forward'.
+    /// at those indices to [Direction::Backward] if they are part of a cycle. If they are not part
+    /// of a cycle, the 'direction' field will be set to [Direction::Forward].
     /// If no indices are provided, the function will set the 'direction' field of all nodes in the graph.
     #[inline]
     pub fn set_cycles(&mut self, indecies: Vec<usize>) {

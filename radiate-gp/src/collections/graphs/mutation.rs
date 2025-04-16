@@ -7,9 +7,14 @@ use radiate::{AlterResult, Metric, Mutate, random_provider};
 
 const INVALID_MUTATION: &str = "GraphMutator(Ivld)";
 
-/// A graph mutator that can be used to alter the graph structure. This is used to add nodes
-/// to the graph, and can be used to add either edges or vertices. The mutator is created with
-/// a set of mutations that can be applied to the graph.
+/// A graph mutator that can be used to alter the graph structure within a [GraphChromosome<T>].
+/// By adding new vertices and edges to the graph, it can be used to explore the search space of a graph.
+///
+/// # Arguments
+/// - `vertex_rate`: The probability of adding a vertex.
+/// - `edge_rate`: The probability of adding an edge.
+/// - `allow_recurrent`: If true, recurrent nodes are allowed. If false, they are not.
+#[derive(Clone, Debug)]
 pub struct GraphMutator {
     vertex_rate: f32,
     edge_rate: f32,

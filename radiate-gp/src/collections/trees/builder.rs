@@ -4,14 +4,14 @@ use crate::{Arity, Factory, NodeStore, NodeType};
 
 impl<T: Clone + Default> Tree<T> {
     /// Create a tree with the given depth, where each node is a random node from the node store.
-    /// This obeys the rules of the `NodeStore`'s `NodeType`'s arity, and will create a tree
+    /// This obeys the rules of the [NodeStore]'s [NodeType]'s arity, and will create a tree
     /// that is as balanced as possible.
     ///
-    /// Note that the root node will try to be a `NodeType::Root` if it is available in the
-    /// `NodeStore`, otherwise it will be a `NodeType::Vertex`. This allows caller's to specify what
-    /// the root node is if desired, otherwise it will be a random vertex node from the `NodeStore`.
+    /// Note that the root node will try to be a [NodeType::Root] if it is available in the
+    /// [NodeStore], otherwise it will be a [NodeType::Vertex]. This allows caller's to specify what
+    /// the root node is if desired, otherwise it will be a random vertex node from the [NodeStore].
     ///
-    /// # The `NodeStore` must contain at least one `NodeType::Root` or one `NodeType::Vertex`
+    /// # The [NodeStore] must contain at least one [NodeType::Root] or one [NodeType::Vertex]
     ///
     /// # Arguments
     /// * `depth` - The depth of the tree.
@@ -44,7 +44,7 @@ impl<T: Clone + Default> Tree<T> {
     /// Recursively grow a tree from the given depth, where each node is a random node from the
     /// node store. If the depth is 0, then a leaf node is returned. Otherwise, a vertex node is
     /// returned with children that are grown from the given depth.
-    /// This obeys the rules of the `NodeStore`'s `NodeType`'s arity, and will create a tree
+    /// This obeys the rules of the [NodeStore]'s [NodeType]'s arity, and will create a tree
     /// that is as balanced as possible.
     ///
     /// # Arguments

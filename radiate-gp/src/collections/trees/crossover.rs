@@ -2,6 +2,7 @@ use super::TreeChromosome;
 use radiate::genome::*;
 use radiate::{AlterResult, Crossover, random_provider};
 
+#[derive(Clone, Debug)]
 pub struct TreeCrossover {
     rate: f32,
 }

@@ -5,16 +5,16 @@ use crate::{
 };
 use std::collections::BTreeMap;
 
-/// Building a [`Graph<T>`] can be a very complex task. Everything in this file exists
-/// to simplify the process of building a [`Graph<T>`] by allowing the user to do so
+/// Building a [Graph<T>] can be a very complex task. Everything in this file exists
+/// to simplify the process of building a [Graph<T>] by allowing the user to do so
 /// in a declarative way.
 ///
-/// The [`ConnectTypes`] are simply a set of available ways we can
-/// connect different [`GraphNode`]'s together.
+/// The [ConnectTypes] are simply a set of available ways we can
+/// connect different [GraphNode]'s together.
 ///
 /// # Assumptions
 /// * The first collection is the 'source' collection and the second collection is the 'target' collection.
-/// * The target collection's [`GraphNode`]'s `Arity` is compatible with the [`ConnectTypes`].
+/// * The target collection's [GraphNode]'s `Arity` is compatible with the [ConnectTypes].
 enum ConnectTypes {
     /// Connects each `GraphNode` in the first collection to the corresponding `GraphNode` in the
     /// second collection.
@@ -54,17 +54,17 @@ enum ConnectTypes {
     OneToSelf,
 }
 
-/// Represents a relationship between two `GraphNode`s where the `source_id` is the [`GraphNode<T>`]'s
-/// id that is incoming, or giving its value to the `target_id` [`GraphNode<T>`].
+/// Represents a relationship between two `GraphNode`s where the `source_id` is the [GraphNode<T>]'s
+/// id that is incoming, or giving its value to the `target_id` [GraphNode<T>].
 struct Relationship<'a> {
     source_id: &'a GraphNodeId,
     target_id: &'a GraphNodeId,
 }
 
-/// The [`GraphAggregate`] struct is a builder for [`Graph<T>`] that allows you to build a [`Graph<T>`]
-/// in an extremely declarative way. It allows you to build a [`Graph<T>`] by connecting
-/// [`GraphNode`]'s together in all sorts of ways. This results in an extremely powerful tool.
-/// The [`GraphAggregate`] is ment to take a collection of `GraphNode`s and connect them together
+/// The [GraphAggregate] struct is a builder for [Graph<T>] that allows you to build a [Graph<T>]
+/// in an extremely declarative way. It allows you to build a [Graph<T>] by connecting
+/// [GraphNode]'s together in all sorts of ways. This results in an extremely powerful tool.
+/// The [GraphAggregate] is ment to take a collection of `GraphNode`s and connect them together
 /// in a sudo 'layered' way. I say 'sudo' because the 'layers' can simply be connecting
 /// input nodes to output nodes, hidden nodes to weights, input nodes to output nodes, recurrent
 /// connections, etc.
