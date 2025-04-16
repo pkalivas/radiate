@@ -85,19 +85,19 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
     }
 
     pub fn build(&self) -> Graph<T> {
-        let mut node_id_index_map = BTreeMap::new();
+        let mut id_index_map = BTreeMap::new();
         let mut graph = Graph::<T>::default();
 
         for (index, node_id) in self.node_order.values().enumerate() {
             let node = self.nodes.get(node_id).unwrap();
 
             graph.push((index, node.node_type(), node.value().clone(), node.arity()));
-            node_id_index_map.insert(node_id, index);
+            id_index_map.insert(node_id, index);
         }
 
         for rel in self.relationships.iter() {
-            let source_idx = node_id_index_map.get(&rel.source_id).unwrap();
-            let target_idx = node_id_index_map.get(&rel.target_id).unwrap();
+            let source_idx = id_index_map.get(&rel.source_id).unwrap();
+            let target_idx = id_index_map.get(&rel.target_id).unwrap();
 
             graph.attach(*source_idx, *target_idx);
         }

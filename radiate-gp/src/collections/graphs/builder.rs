@@ -5,7 +5,7 @@ use crate::{
 };
 
 impl<T: Clone + Default> Graph<T> {
-    /// Creates a directed graph with the given input and output sizes.
+    /// Creates a directed graph with the given input, output sizes and values.
     /// The values are used to initialize the nodes in the graph with the given values.
     ///
     /// # Example

@@ -59,19 +59,19 @@ pub trait Valid {
 pub trait Gene: Clone + PartialEq + Valid {
     type Allele;
 
-    /// Get the `allele` of the [`Gene`]. This is the value that the [`Gene`] represents or "expresses".
+    /// Get the `allele` of the [Gene]. This is the value that the [Gene] represents or "expresses".
     fn allele(&self) -> &Self::Allele;
 
-    /// Create a new instance of the [`Gene`].
+    /// Create a new instance of the [Gene].
     fn new_instance(&self) -> Self;
 
-    /// Create a new [`Gene`] with the given `allele`.
+    /// Create a new [Gene] with the given `allele`.
     fn with_allele(&self, allele: &Self::Allele) -> Self;
 }
 
 /// A gene that represents a number. This gene can be used to represent any type of number,
 /// including integers, floats, etc. Essentially, any gene that can `Add`, `Sub`, `Mul`, and `Div`
-/// can be used as a `ArithmeticGene`.
+/// can be used as a [ArithmeticGene].
 pub trait ArithmeticGene:
     Gene
     + RangeBounds<Self::Allele>
