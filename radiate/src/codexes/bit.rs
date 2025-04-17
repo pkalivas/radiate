@@ -65,15 +65,15 @@ impl BitCodex<bool> {
 
 impl Codex<BitChromosome, Vec<Vec<bool>>> for BitCodex<Vec<Vec<bool>>> {
     fn encode(&self) -> Genotype<BitChromosome> {
-        Genotype {
-            chromosomes: (0..self.num_chromosomes)
+        Genotype::new(
+            (0..self.num_chromosomes)
                 .map(|_| BitChromosome {
                     genes: (0..self.num_genes)
                         .map(|_| BitGene::new())
                         .collect::<Vec<BitGene>>(),
                 })
                 .collect::<Vec<BitChromosome>>(),
-        }
+        )
     }
 
     fn decode(&self, genotype: &Genotype<BitChromosome>) -> Vec<Vec<bool>> {
@@ -91,15 +91,15 @@ impl Codex<BitChromosome, Vec<Vec<bool>>> for BitCodex<Vec<Vec<bool>>> {
 
 impl Codex<BitChromosome, Vec<bool>> for BitCodex<Vec<bool>> {
     fn encode(&self) -> Genotype<BitChromosome> {
-        Genotype {
-            chromosomes: (0..self.num_chromosomes)
+        Genotype::new(
+            (0..self.num_chromosomes)
                 .map(|_| BitChromosome {
                     genes: (0..self.num_genes)
                         .map(|_| BitGene::new())
                         .collect::<Vec<BitGene>>(),
                 })
                 .collect::<Vec<BitChromosome>>(),
-        }
+        )
     }
 
     fn decode(&self, genotype: &Genotype<BitChromosome>) -> Vec<bool> {
@@ -117,15 +117,15 @@ impl Codex<BitChromosome, Vec<bool>> for BitCodex<Vec<bool>> {
 
 impl Codex<BitChromosome, bool> for BitCodex<bool> {
     fn encode(&self) -> Genotype<BitChromosome> {
-        Genotype {
-            chromosomes: (0..self.num_chromosomes)
+        Genotype::new(
+            (0..self.num_chromosomes)
                 .map(|_| BitChromosome {
                     genes: (0..self.num_genes)
                         .map(|_| BitGene::new())
                         .collect::<Vec<BitGene>>(),
                 })
                 .collect::<Vec<BitChromosome>>(),
-        }
+        )
     }
 
     fn decode(&self, genotype: &Genotype<BitChromosome>) -> bool {

@@ -50,9 +50,7 @@ where
         Graph::new(
             genotype
                 .iter()
-                .next()
-                .unwrap()
-                .iter()
+                .flat_map(|chrom| chrom.iter())
                 .cloned()
                 .collect::<Vec<GraphNode<T>>>(),
         )

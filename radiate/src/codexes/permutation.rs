@@ -27,7 +27,6 @@ impl<A: PartialEq + Clone> Codex<PermutationChromosome<A>, Vec<A>> for Permutati
 
     fn decode(&self, genotype: &Genotype<PermutationChromosome<A>>) -> Vec<A> {
         genotype
-            .chromosomes
             .iter()
             .flat_map(|chromosome| chromosome.genes.iter().map(|gene| gene.allele().clone()))
             .collect()
