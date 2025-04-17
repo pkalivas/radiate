@@ -12,7 +12,7 @@ use std::ops::Range;
 /// The lower and upper bounds of the `IntGenes` can be set with the `with_bounds` function.
 /// The default bounds are equal to `min` and `max`.
 #[derive(Clone)]
-pub struct IntCodex<T: Integer<T>, D = ()> {
+pub struct IntCodex<T: Integer<T>, D = T> {
     num_chromosomes: usize,
     num_genes: usize,
     value_range: Range<T>,

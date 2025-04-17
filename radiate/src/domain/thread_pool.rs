@@ -174,7 +174,6 @@ impl WaitGroup {
     }
 
     pub fn get_count(&self) -> usize {
-        // Returns the current count of the wait group.
         self.total_count.load(Ordering::Acquire)
     }
 

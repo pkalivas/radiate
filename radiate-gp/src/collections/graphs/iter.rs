@@ -13,7 +13,7 @@ impl<'a, G: AsRef<[GraphNode<T>]>, T> GraphIterator<'a, T> for G {
     }
 }
 
-/// [GraphIterator] is an iterator that traverses a [[GraphNode<T>]] in sudo-topological order. I say
+/// [GraphIterator] is an iterator that traverses a &[[GraphNode<T>]] in sudo-topological order. I say
 /// "sudo-topological" because it is not a true topological order, but rather a topological order
 /// that allows for recurrent connections.
 pub struct GraphTopologicalIterator<'a, T> {
