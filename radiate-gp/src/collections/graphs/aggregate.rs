@@ -152,7 +152,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         conn
     }
 
-    pub fn attach(&mut self, group: &'a [GraphNode<T>]) {
+    fn attach(&mut self, group: &'a [GraphNode<T>]) {
         for node in group.iter() {
             let node_id = node.id();
 
