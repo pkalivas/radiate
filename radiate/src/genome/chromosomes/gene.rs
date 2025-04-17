@@ -69,7 +69,7 @@ pub trait Gene: Clone + PartialEq + Valid {
     fn with_allele(&self, allele: &Self::Allele) -> Self;
 }
 
-/// A gene that represents a number. This gene can be used to represent any type of number,
+/// A [Gene] that represents a number. This gene can be used to represent any type of number,
 /// including integers, floats, etc. Essentially, any gene that can `Add`, `Sub`, `Mul`, and `Div`
 /// can be used as a [ArithmeticGene].
 pub trait ArithmeticGene:
