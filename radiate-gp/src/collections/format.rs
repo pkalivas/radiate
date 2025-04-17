@@ -49,3 +49,14 @@ impl<T: Debug> Format for Tree<T> {
             .unwrap_or_else(|| "Empty Tree".to_string())
     }
 }
+
+impl<T: Debug> Format for Vec<Tree<T>> {
+    fn format(&self) -> String {
+        let mut result = String::new();
+        for (i, tree) in self.iter().enumerate() {
+            result += &format!("Tree {}:\n", i);
+            result += &tree.format();
+        }
+        result
+    }
+}

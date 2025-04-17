@@ -5,16 +5,16 @@ use crate::{
 };
 use std::collections::BTreeMap;
 
-/// Building a [`Graph<T>`] can be a very complex task. Everything in this file exists
-/// to simplify the process of building a [`Graph<T>`] by allowing the user to do so
+/// Building a [Graph<T>] can be a very complex task. Everything in this file exists
+/// to simplify the process of building a [Graph<T>] by allowing the user to do so
 /// in a declarative way.
 ///
-/// The [`ConnectTypes`] are simply a set of available ways we can
-/// connect different [`GraphNode`]'s together.
+/// The [ConnectTypes] are simply a set of available ways we can
+/// connect different [GraphNode]'s together.
 ///
 /// # Assumptions
 /// * The first collection is the 'source' collection and the second collection is the 'target' collection.
-/// * The target collection's [`GraphNode`]'s `Arity` is compatible with the [`ConnectTypes`].
+/// * The target collection's [GraphNode]'s `Arity` is compatible with the [ConnectTypes].
 enum ConnectTypes {
     /// Connects each `GraphNode` in the first collection to the corresponding `GraphNode` in the
     /// second collection.
@@ -54,17 +54,17 @@ enum ConnectTypes {
     OneToSelf,
 }
 
-/// Represents a relationship between two `GraphNode`s where the `source_id` is the [`GraphNode<T>`]'s
-/// id that is incoming, or giving its value to the `target_id` [`GraphNode<T>`].
+/// Represents a relationship between two `GraphNode`s where the `source_id` is the [GraphNode<T>]'s
+/// id that is incoming, or giving its value to the `target_id` [GraphNode<T>].
 struct Relationship<'a> {
     source_id: &'a GraphNodeId,
     target_id: &'a GraphNodeId,
 }
 
-/// The [`GraphAggregate`] struct is a builder for [`Graph<T>`] that allows you to build a [`Graph<T>`]
-/// in an extremely declarative way. It allows you to build a [`Graph<T>`] by connecting
-/// [`GraphNode`]'s together in all sorts of ways. This results in an extremely powerful tool.
-/// The [`GraphAggregate`] is ment to take a collection of `GraphNode`s and connect them together
+/// The [GraphAggregate] struct is a builder for [Graph<T>] that allows you to build a [Graph<T>]
+/// in an extremely declarative way. It allows you to build a [Graph<T>] by connecting
+/// [GraphNode]'s together in all sorts of ways. This results in an extremely powerful tool.
+/// The [GraphAggregate] is ment to take a collection of `GraphNode`s and connect them together
 /// in a sudo 'layered' way. I say 'sudo' because the 'layers' can simply be connecting
 /// input nodes to output nodes, hidden nodes to weights, input nodes to output nodes, recurrent
 /// connections, etc.
@@ -85,19 +85,19 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
     }
 
     pub fn build(&self) -> Graph<T> {
-        let mut node_id_index_map = BTreeMap::new();
+        let mut id_index_map = BTreeMap::new();
         let mut graph = Graph::<T>::default();
 
         for (index, node_id) in self.node_order.values().enumerate() {
             let node = self.nodes.get(node_id).unwrap();
 
             graph.push((index, node.node_type(), node.value().clone(), node.arity()));
-            node_id_index_map.insert(node_id, index);
+            id_index_map.insert(node_id, index);
         }
 
         for rel in self.relationships.iter() {
-            let source_idx = node_id_index_map.get(&rel.source_id).unwrap();
-            let target_idx = node_id_index_map.get(&rel.target_id).unwrap();
+            let source_idx = id_index_map.get(&rel.source_id).unwrap();
+            let target_idx = id_index_map.get(&rel.target_id).unwrap();
 
             graph.attach(*source_idx, *target_idx);
         }
@@ -160,15 +160,15 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
                 self.nodes.insert(node_id, node);
                 self.node_order.insert(self.node_order.len(), node_id);
 
-                for outgoing in group
+                group
                     .iter()
                     .filter(|item| node.outgoing().contains(&item.index()))
-                {
-                    self.relationships.push(Relationship {
-                        source_id: node.id(),
-                        target_id: outgoing.id(),
+                    .for_each(|item| {
+                        self.relationships.push(Relationship {
+                            source_id: node.id(),
+                            target_id: item.id(),
+                        });
                     });
-                }
             }
         }
     }
@@ -524,3 +524,31 @@ mod tests {
         assert!(graph.is_valid());
     }
 }
+
+// let mut graph = Graph::<T>::default();
+
+// let res = graph.try_modify(|mut trans| {
+//     let mut node_id_index_map = BTreeMap::new();
+
+//     for (index, node_id) in self.node_order.values().enumerate() {
+//         let node = self.nodes.get(node_id).unwrap();
+
+//         trans.add_node((index, node.node_type(), node.value().clone(), node.arity()));
+//         node_id_index_map.insert(node_id, index);
+//     }
+
+//     for rel in self.relationships.iter() {
+//         let source_idx = node_id_index_map.get(&rel.source_id).unwrap();
+//         let target_idx = node_id_index_map.get(&rel.target_id).unwrap();
+
+//         trans.attach(*source_idx, *target_idx);
+//     }
+
+//     trans.set_cycles();
+//     trans.commit()
+// });
+
+// match res {
+//     TransactionResult::Valid(_) => graph,
+//     _ => panic!("Graph is not valid"),
+// }

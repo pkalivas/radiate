@@ -21,7 +21,7 @@ use super::TreeChromosome;
 ///
 /// # Usage
 /// To use these iterators, you can call the `iter_pre_order`, `iter_post_order`,
-/// or `iter_breadth_first` methods on a `TreeNode` or `Tree` instance. These
+/// or `iter_breadth_first` methods on a [TreeNode] or [Tree] instance. These
 /// methods return an iterator that can be used to traverse the tree in the
 /// desired order.
 ///
@@ -61,7 +61,7 @@ pub trait TreeIterator<T> {
     fn apply<F: Fn(&mut TreeNode<T>)>(&mut self, visit_fn: F);
 }
 
-/// Implement the `TreeIterator` trait for `TreeNode`
+/// Implement the [TreeIterator] trait for [TreeNode]
 ///
 /// This allows for traversal of a single node and its children in pre-order, post-order, and breadth-first order.
 impl<T> TreeIterator<T> for TreeNode<T> {
@@ -87,7 +87,7 @@ impl<T> TreeIterator<T> for TreeNode<T> {
     }
 }
 
-/// Implement the `TreeIterator` trait for `Tree`
+/// Implement the [TreeIterator] trait for [Tree]
 ///
 /// This allows for traversal of the entire tree in pre-order, post-order, and breadth-first order.
 impl<T> TreeIterator<T> for Tree<T> {

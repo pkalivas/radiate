@@ -7,21 +7,21 @@ use std::collections::{HashSet, VecDeque};
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
 
-/// A 'Graph' is simply a 'Vec' of 'GraphNode''s.
+/// A [Graph] is simply a 'Vec' of [GraphNode]'s.
 ///
 /// It's important to note that this graph differs from a traditional graph in that it is not
 /// a collection of edges and vertices. Instead, it is a collection of nodes that are connected
 /// to one another. Each node has a unique index that is used to reference it in the graph
 /// and must be identical to its position in the 'Vec'.
-/// Each 'GraphNode' has a set of ordered incoming and outgoing connections. These connections are
+/// Each [GraphNode] has a set of ordered incoming and outgoing connections. These connections are
 /// represented by the index of the connected node in the graph. Because of this representation,
 /// an edge is not a separate entity, it's just a node. The 'NodeType' enum is used to distinguish
 /// different types of nodes. This allows for a more flexible representation of the graph
 /// while still maintaining the ability to represent traditional graphs.
 ///
-/// By default, a 'Graph' is a directed acyclic graph (DAG). However, it is possible to create
-/// cycles in the graph by setting the 'direction' field of a 'GraphNode' to 'Direction::Backward'.
-/// The 'Graph' struct provides methods for attaching and detaching nodes from one another.
+/// By default, a [Graph] is a directed acyclic graph (DAG). However, it is possible to create
+/// cycles in the graph by setting the 'direction' field of a [GraphNode] to 'Direction::Backward'.
+/// The [Graph] struct provides methods for attaching and detaching nodes from one another.
 /// It also provides methods for iterating over the nodes in the graph in a sudo topological order.
 //
 #[derive(Clone, PartialEq)]
@@ -29,17 +29,15 @@ pub struct Graph<T> {
     nodes: Vec<GraphNode<T>>,
 }
 
-/// The 'Graph' struct provides methods for creating, modifying, and iterating over a graph.
 impl<T> Graph<T> {
-    /// Create a new 'Graph' from a 'Vec' of 'GraphNode's.
+    /// Create a new 'Graph' from a 'Vec' of [GraphNode]s.
     ///
     /// # Arguments
-    /// - nodes: A 'Vec' of 'GraphNode's.
+    /// - nodes: A 'Vec' of [GraphNode]s.
     pub fn new(nodes: Vec<GraphNode<T>>) -> Self {
         Graph { nodes }
     }
 
-    /// Push a 'GraphNode' onto the last position in the graph.
     pub fn push(&mut self, node: impl Into<GraphNode<T>>) {
         self.nodes.push(node.into());
     }
@@ -49,50 +47,58 @@ impl<T> Graph<T> {
         self.len() - 1
     }
 
-    /// Pop the last 'GraphNode' from the graph.
     pub fn pop(&mut self) -> Option<GraphNode<T>> {
         self.nodes.pop()
     }
 
-    /// Returns the number of nodes in the graph.
     pub fn len(&self) -> usize {
         self.nodes.len()
     }
 
-    /// Returns true if the graph is empty.
     pub fn is_empty(&self) -> bool {
         self.nodes.is_empty()
     }
 
-    /// Returns a mutable reference to the node at the specified index.
     pub fn get_mut(&mut self, index: usize) -> Option<&mut GraphNode<T>> {
         self.nodes.get_mut(index)
     }
 
-    /// Returns a reference to the node at the specified index.
     pub fn get(&self, index: usize) -> Option<&GraphNode<T>> {
         self.nodes.get(index)
     }
 
-    /// iterates over the nodes in the graph. The nodes are returned in the order they
-    /// were added, so there is no real order to this iterator.
     pub fn iter(&self) -> impl Iterator<Item = &GraphNode<T>> {
         self.nodes.iter()
     }
 
-    /// mutably iterates over the nodes in the graph. The nodes are returned in the order they
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut GraphNode<T>> {
         self.nodes.iter_mut()
     }
 
+    pub fn inputs(&self) -> Vec<&GraphNode<T>> {
+        self.get_nodes_of_type(NodeType::Input)
+    }
+
+    pub fn outputs(&self) -> Vec<&GraphNode<T>> {
+        self.get_nodes_of_type(NodeType::Output)
+    }
+
+    pub fn vertices(&self) -> Vec<&GraphNode<T>> {
+        self.get_nodes_of_type(NodeType::Vertex)
+    }
+
+    pub fn edges(&self) -> Vec<&GraphNode<T>> {
+        self.get_nodes_of_type(NodeType::Edge)
+    }
+
     /// Attach and detach nodes from one another. This is the primary way to modify the graph.
     /// Note that this method does not check if the nodes are already connected. This is because
-    /// the connections are represented by 'HashSet's which do not allow duplicates.
+    /// the connections are represented by 'BTreeSet's which do not allow duplicates.
     /// Its also important to note that the 'incoming' and 'outgoing' indices are the indices of the
-    /// nodes in the graph, not the indices of the connections in the 'incoming' and 'outgoing' 'HashSet's.
-    /// We must also remember that the 'GraphNode' cares about the 'Arity' of the 'Operation' it contains,
+    /// nodes in the graph, not the indices of the connections in the 'incoming' and 'outgoing' 'BTreeSet's.
+    /// We must also remember that the [GraphNode] cares about the 'Arity' of the 'Operation' it contains,
     /// so if we add a connection that would violate the 'Arity' of the 'Operation', the connection will result
-    /// in a 'GraphNode' that is not 'Valid'.
+    /// in a [GraphNode] that is not 'Valid'.
     ///
     /// Attaches the node at the 'incoming' index to the node at the 'outgoing' index.
     /// This means that the node at the 'incoming' index will have an outgoing connection
@@ -121,50 +127,17 @@ impl<T> Graph<T> {
         self
     }
 
-    /// Given a list of node indices, this function will set the 'direction' field of the nodes
-    /// at those indices to 'Direction::Backward' if they are part of a cycle. If they are not part
-    /// of a cycle, the 'direction' field will be set to 'Direction::Forward'.
-    /// If no indices are provided, the function will set the 'direction' field of all nodes in the graph.
-    #[inline]
-    pub fn set_cycles(&mut self, indecies: Vec<usize>) {
-        if indecies.is_empty() {
-            let all_indices = self
-                .as_ref()
-                .iter()
-                .map(|node| node.index())
-                .collect::<Vec<usize>>();
-
-            return self.set_cycles(all_indices);
-        }
-
-        for idx in indecies {
-            let node_cycles = self.get_cycles(idx);
-
-            if node_cycles.is_empty() {
-                if let Some(node) = self.get_mut(idx) {
-                    node.set_direction(Direction::Forward);
-                }
-            } else {
-                for cycle_idx in node_cycles {
-                    if let Some(node) = self.get_mut(cycle_idx) {
-                        node.set_direction(Direction::Backward);
-                    }
-                }
-            }
-        }
-    }
-
-    /// tries to modify the graph using a 'GraphTransaction'. If the transaction is successful,
+    /// tries to modify the graph using a [GraphTransaction]. If the transaction is successful,
     /// we return true and do nothing. If the transaction is not successful, we roll back the transaction
     /// by undoing all the changes made by the transaction and return false.
     ///
     /// # Arguments
-    ///  - mutation: A closure that takes a mutable reference to a 'GraphTransaction' and returns a 'bool'.
+    ///  - mutation: A closure that takes a mutable reference to a [GraphTransaction] and returns a 'bool'.
     #[inline]
     pub fn try_modify<F>(&mut self, mutation: F) -> TransactionResult<T>
     where
         F: FnOnce(GraphTransaction<T>) -> TransactionResult<T>,
-        T: Clone + Default + PartialEq,
+        T: Clone,
     {
         mutation(GraphTransaction::new(self))
     }
@@ -208,20 +181,37 @@ impl<T> Graph<T> {
         Vec::new()
     }
 
-    pub fn inputs(&self) -> Vec<&GraphNode<T>> {
-        self.get_nodes_of_type(NodeType::Input)
-    }
+    /// Given a list of node indices, this function will set the 'direction' field of the nodes
+    /// at those indices to [Direction::Backward] if they are part of a cycle. If they are not part
+    /// of a cycle, the 'direction' field will be set to [Direction::Forward].
+    /// If no indices are provided, the function will set the 'direction' field of all nodes in the graph.
+    #[inline]
+    pub fn set_cycles(&mut self, indecies: Vec<usize>) {
+        if indecies.is_empty() {
+            let all_indices = self
+                .as_ref()
+                .iter()
+                .map(|node| node.index())
+                .collect::<Vec<usize>>();
 
-    pub fn outputs(&self) -> Vec<&GraphNode<T>> {
-        self.get_nodes_of_type(NodeType::Output)
-    }
+            return self.set_cycles(all_indices);
+        }
 
-    pub fn vertices(&self) -> Vec<&GraphNode<T>> {
-        self.get_nodes_of_type(NodeType::Vertex)
-    }
+        for idx in indecies {
+            let node_cycles = self.get_cycles(idx);
 
-    pub fn edges(&self) -> Vec<&GraphNode<T>> {
-        self.get_nodes_of_type(NodeType::Edge)
+            if node_cycles.is_empty() {
+                if let Some(node) = self.get_mut(idx) {
+                    node.set_direction(Direction::Forward);
+                }
+            } else {
+                for cycle_idx in node_cycles {
+                    if let Some(node) = self.get_mut(cycle_idx) {
+                        node.set_direction(Direction::Backward);
+                    }
+                }
+            }
+        }
     }
 
     #[inline]

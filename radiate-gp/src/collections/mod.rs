@@ -16,12 +16,12 @@ pub use store::{NodeStore, NodeValue};
 pub use trees::{
     HoistMutator, Tree, TreeChromosome, TreeCodex, TreeCrossover, TreeIterator, TreeNode,
 };
-/// `Eval` trait is used to evaluate a [`Tree`] or [`Graph`] of node's.
-/// It is implemented directly on the [`Tree`] and [`TreeNode`] types as well as
-/// on the [`GraphEvaluator`] struct.
+/// [Eval] trait is used to evaluate a [Tree] or [Graph] of node's.
+/// It is implemented directly on the [Tree] and [TreeNode] types as well as
+/// on the [GraphEvaluator] struct.
 ///
-/// The `Eval` trait and subsequent method is used to transform the `Input` into
-/// the `Output`. This is extremely useful for evaluating the [`Graph`] or [`Tree`] with a given input
+/// The [Eval] trait and subsequent method is used to transform the `Input` into
+/// the `Output`. This is extremely useful for evaluating the [Graph] or [Tree] with a given input
 /// as traversing each can be very slow or sometimes cumbersome to do manually.
 ///
 /// # Example

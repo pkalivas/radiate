@@ -31,3 +31,7 @@ pub use shuffle::*;
 pub use simulated_binary::*;
 pub use swap::*;
 pub use uniform::*;
+
+// https://ictactjournals.in/paper/IJSC_V6_I1_paper_4_pp_1083_1092.pdf
+
+// https://www.ijcsit.com/docs/Volume%205/vol5issue06/ijcsit2014050673.pdf

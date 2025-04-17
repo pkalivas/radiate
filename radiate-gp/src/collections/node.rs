@@ -18,7 +18,7 @@ use crate::Arity;
 /// specified in the `NodeType` enum - the only way this is possible is if the `NodeType` isn't supplied to
 /// the node during creation.
 ///
-/// Within each node (`GraphNode` or `TreeNode`), the `NodeType` is used to determine the validity of the
+/// Within each node (`GraphNode` or `TreeNode`), the [NodeType] is used to determine the validity of the
 /// node given the value it holds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NodeType {
