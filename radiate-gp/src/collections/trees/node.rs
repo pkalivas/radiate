@@ -238,38 +238,18 @@ impl<T: Debug> Debug for TreeNode<T> {
     }
 }
 
-impl From<i32> for TreeNode<i32> {
-    fn from(n: i32) -> Self {
-        TreeNode::new(n)
-    }
+macro_rules! impl_from {
+    ($($t:ty),+) => {
+        $(
+            impl From<$t> for TreeNode<$t> {
+                fn from(value: $t) -> Self {
+                    TreeNode::new(value)
+                }
+            }
+        )+
+    };
 }
 
-impl From<f64> for TreeNode<f64> {
-    fn from(value: f64) -> Self {
-        TreeNode::new(value)
-    }
-}
-
-impl From<String> for TreeNode<String> {
-    fn from(value: String) -> Self {
-        TreeNode::new(value)
-    }
-}
-
-impl From<bool> for TreeNode<bool> {
-    fn from(value: bool) -> Self {
-        TreeNode::new(value)
-    }
-}
-
-impl From<char> for TreeNode<char> {
-    fn from(value: char) -> Self {
-        TreeNode::new(value)
-    }
-}
-
-impl From<usize> for TreeNode<usize> {
-    fn from(value: usize) -> Self {
-        TreeNode::new(value)
-    }
-}
+impl_from!(
+    u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f64, String, bool, char, usize, isize
+);

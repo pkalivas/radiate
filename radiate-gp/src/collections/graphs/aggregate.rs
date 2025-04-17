@@ -154,9 +154,9 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
 
     pub fn attach(&mut self, group: &'a [GraphNode<T>]) {
         for node in group.iter() {
-            if !self.nodes.contains_key(node.id()) {
-                let node_id = node.id();
+            let node_id = node.id();
 
+            if !self.nodes.contains_key(node_id) {
                 self.nodes.insert(node_id, node);
                 self.node_order.insert(self.node_order.len(), node_id);
 

@@ -5,7 +5,7 @@ use crate::{Eval, TreeNode, node::Node};
 /// and allows for the evaluation of each [Tree] in the `Vec` with a single input.
 /// This is useful for things like `Ensemble` models where multiple models are used to make a prediction.
 ///
-/// This is a simple implementation that just maps over the `Vec` and calls [eval] on each [Tree].
+/// This is a simple implementation that just maps over the `Vec` and calls [Eval] on each [Tree].
 impl<T, V> Eval<[V], Vec<V>> for Vec<Tree<T>>
 where
     T: Eval<[V], V>,

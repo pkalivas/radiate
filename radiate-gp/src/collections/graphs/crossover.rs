@@ -11,9 +11,9 @@ pub struct GraphCrossover {
 }
 
 impl GraphCrossover {
-    pub fn new(crossover_rate: f32, crossover_parent_node_rate: f32) -> Self {
+    pub fn new(rate: f32, crossover_parent_node_rate: f32) -> Self {
         GraphCrossover {
-            crossover_rate,
+            crossover_rate: rate,
             crossover_parent_node_rate,
         }
     }
@@ -62,10 +62,6 @@ where
                         && random_provider::random::<f32>() < self.crossover_parent_node_rate
                 })
                 .collect::<Vec<usize>>();
-
-            if node_indices.is_empty() {
-                return num_crosses.into();
-            }
 
             for i in node_indices {
                 let node_two = chromo_two.get(i);
