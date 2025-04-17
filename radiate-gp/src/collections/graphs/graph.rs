@@ -127,12 +127,12 @@ impl<T> Graph<T> {
         self
     }
 
-    /// tries to modify the graph using a 'GraphTransaction'. If the transaction is successful,
+    /// tries to modify the graph using a [GraphTransaction]. If the transaction is successful,
     /// we return true and do nothing. If the transaction is not successful, we roll back the transaction
     /// by undoing all the changes made by the transaction and return false.
     ///
     /// # Arguments
-    ///  - mutation: A closure that takes a mutable reference to a 'GraphTransaction' and returns a 'bool'.
+    ///  - mutation: A closure that takes a mutable reference to a [GraphTransaction] and returns a 'bool'.
     #[inline]
     pub fn try_modify<F>(&mut self, mutation: F) -> TransactionResult<T>
     where

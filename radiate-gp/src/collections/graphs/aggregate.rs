@@ -160,15 +160,15 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
                 self.nodes.insert(node_id, node);
                 self.node_order.insert(self.node_order.len(), node_id);
 
-                for outgoing in group
+                group
                     .iter()
                     .filter(|item| node.outgoing().contains(&item.index()))
-                {
-                    self.relationships.push(Relationship {
-                        source_id: node.id(),
-                        target_id: outgoing.id(),
+                    .for_each(|item| {
+                        self.relationships.push(Relationship {
+                            source_id: node.id(),
+                            target_id: item.id(),
+                        });
                     });
-                }
             }
         }
     }

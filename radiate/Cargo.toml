@@ -7,7 +7,7 @@ description = "A Rust library for genetic algorithms and artificial evolution."
 repository = "https://github.com/pkalivas/radiate"
 readme = "../README.md"
 categories = ["science", "simulation", "algorithms"]
-keywords = ["search", "genetic", "learning", "artificial", "evolution"]
+keywords = ["simulation", "genetic", "learning", "artificial", "evolution"]
 license = "MIT"
 homepage = "https://pkalivas.github.io/radiate/"
 

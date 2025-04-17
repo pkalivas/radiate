@@ -59,7 +59,13 @@ impl<T: Clone + Default> Tree<T> {
         }
 
         let mut parent = store.new_instance(NodeType::Vertex);
-        for _ in 0..*parent.arity() {
+        let num_children = match parent.arity() {
+            Arity::Zero => 0,
+            Arity::Exact(n) => n,
+            Arity::Any => 2,
+        };
+
+        for _ in 0..num_children {
             parent.add_child(Self::grow(current_depth - 1, store));
         }
 
@@ -70,7 +76,7 @@ impl<T: Clone + Default> Tree<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Op;
+    use crate::{Op, TreeIterator};
 
     #[test]
     fn test_tree_builder_depth_two() {
@@ -84,6 +90,16 @@ mod tests {
         assert_eq!(tree.root().unwrap().children().unwrap().len(), 2);
         assert_eq!(tree.height(), 2);
         assert_eq!(tree.size(), 7);
+
+        for node in tree.iter_breadth_first() {
+            if node.arity() == Arity::Any {
+                assert_eq!(node.children().map(|c| c.len()), Some(2));
+            } else if let Arity::Exact(n) = node.arity() {
+                assert_eq!(node.children().map(|c| c.len()), Some(n));
+            } else {
+                assert_eq!(node.children(), None);
+            }
+        }
     }
 
     #[test]
@@ -100,5 +116,44 @@ mod tests {
         assert_eq!(tree.root().unwrap().children().unwrap().len(), 2);
         assert_eq!(tree.height(), 3);
         assert_eq!(tree.size(), 15);
+
+        for node in tree.iter_breadth_first() {
+            if node.arity() == Arity::Any {
+                assert_eq!(node.children().map(|c| c.len()), Some(2));
+            } else if let Arity::Exact(n) = node.arity() {
+                assert_eq!(node.children().map(|c| c.len()), Some(n));
+            } else {
+                assert_eq!(node.children(), None);
+            }
+        }
+    }
+
+    #[test]
+    fn test_vertex_with_any_arity_builds_correct_depth() {
+        let tree = Tree::with_depth(
+            2,
+            vec![
+                (
+                    NodeType::Vertex,
+                    vec![Op::sigmoid(), Op::relu(), Op::tanh()],
+                ),
+                (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
+            ],
+        );
+
+        assert!(tree.root().is_some());
+        assert_eq!(tree.root().unwrap().children().unwrap().len(), 2);
+        assert_eq!(tree.height(), 2);
+        assert_eq!(tree.size(), 7);
+
+        for node in tree.iter_breadth_first() {
+            if node.arity() == Arity::Any {
+                assert_eq!(node.children().map(|c| c.len()), Some(2));
+            } else if let Arity::Exact(n) = node.arity() {
+                assert_eq!(node.children().map(|c| c.len()), Some(n));
+            } else {
+                assert_eq!(node.children(), None);
+            }
+        }
     }
 }
