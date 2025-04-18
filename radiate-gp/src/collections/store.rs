@@ -63,8 +63,7 @@ impl<T> NodeStore<T> {
 
         for value in values {
             let node_value = value.into();
-            let node_type = node_value.allowed_node_types();
-            for node_type in node_type {
+            for node_type in node_value.allowed_node_types() {
                 store_values
                     .entry(node_type)
                     .or_default()
@@ -220,8 +219,7 @@ mod tests {
 
     #[test]
     fn test_node_store() {
-        let all_ops = ops::all_ops();
-        let store = NodeStore::from(all_ops);
+        let store = NodeStore::from(ops::all_ops());
 
         store.add((0..3).map(Op::var).collect());
 

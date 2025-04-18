@@ -440,13 +440,13 @@ mod tests {
             .many_to_one(
                 &vec![
                     GraphNode::new(0, NodeType::Input, 0),
-                    GraphNode::new(1, NodeType::Input, 1),
-                    GraphNode::new(2, NodeType::Input, 2),
+                    GraphNode::new(123, NodeType::Input, 1),
+                    GraphNode::new(111, NodeType::Input, 2),
                     GraphNode::new(3, NodeType::Input, 3),
                 ],
                 &vec![
-                    GraphNode::new(4, NodeType::Output, 0),
-                    GraphNode::new(5, NodeType::Output, 1),
+                    GraphNode::new(10000, NodeType::Output, 0),
+                    GraphNode::new(123, NodeType::Output, 1),
                 ],
             )
             .build();

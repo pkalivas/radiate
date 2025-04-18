@@ -109,23 +109,6 @@ impl<T> Op<T> {
 unsafe impl Send for Op<f32> {}
 unsafe impl Sync for Op<f32> {}
 
-impl<T> From<Op<T>> for NodeValue<Op<T>>
-where
-    T: Clone,
-{
-    fn from(value: Op<T>) -> Self {
-        let arity = value.arity();
-        NodeValue::Bounded(value, arity)
-    }
-}
-
-impl<T> From<Op<T>> for TreeNode<Op<T>> {
-    fn from(value: Op<T>) -> Self {
-        let arity = value.arity();
-        TreeNode::with_arity(value, arity)
-    }
-}
-
 impl<T> Eval<[T], T> for Op<T>
 where
     T: Clone,
@@ -247,6 +230,23 @@ where
             Op::MutableConst { name, value, .. } => write!(f, "{}({:.2?})", name, value),
             Op::Value(name, _, value, _) => write!(f, "{}({:.2?})", name, value),
         }
+    }
+}
+
+impl<T> From<Op<T>> for NodeValue<Op<T>>
+where
+    T: Clone,
+{
+    fn from(value: Op<T>) -> Self {
+        let arity = value.arity();
+        NodeValue::Bounded(value, arity)
+    }
+}
+
+impl<T> From<Op<T>> for TreeNode<Op<T>> {
+    fn from(value: Op<T>) -> Self {
+        let arity = value.arity();
+        TreeNode::with_arity(value, arity)
     }
 }
 

@@ -1,5 +1,5 @@
-use crate::collections::{Tree, TreeChromosome, TreeNode};
 use crate::NodeStore;
+use crate::collections::{Tree, TreeChromosome, TreeNode};
 use radiate::{Chromosome, Codex, Genotype};
 use std::sync::Arc;
 
@@ -121,7 +121,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{ops::Op, NodeType};
+    use crate::{NodeType, ops::Op};
     use radiate::codexes::Codex;
 
     #[test]
@@ -138,5 +138,24 @@ mod tests {
 
         assert_eq!(tree.root().map(|root| root.height()), Some(3));
         assert!(tree.root().is_some());
+    }
+
+    #[test]
+    fn test_tree_codex_multi() {
+        let store = vec![
+            (NodeType::Root, vec![Op::add(), Op::sub()]),
+            (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
+            (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
+        ];
+        let codex = TreeCodex::multi_root(3, 2, store);
+
+        let genotype = codex.encode();
+        let trees = codex.decode(&genotype);
+
+        assert_eq!(trees.len(), 2);
+        assert_eq!(trees[0].root().map(|root| root.height()), Some(3));
+        assert_eq!(trees[1].root().map(|root| root.height()), Some(3));
+        assert!(trees[0].root().is_some());
+        assert!(trees[1].root().is_some());
     }
 }

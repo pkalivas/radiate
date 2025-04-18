@@ -47,8 +47,8 @@ where
             return 0.into();
         }
 
-        for &i in mutation_indexes.iter() {
-            let current_node = chromosome.get(i);
+        for i in mutation_indexes.iter() {
+            let current_node = chromosome.get(*i);
 
             if current_node.node_type() == NodeType::Input
                 || current_node.node_type() == NodeType::Output
@@ -72,7 +72,7 @@ where
                         modifier(value)
                     };
 
-                    (*chromosome.as_mut()[i].value_mut()) = Op::MutableConst {
+                    (*chromosome.as_mut()[*i].value_mut()) = Op::MutableConst {
                         name,
                         arity: *arity,
                         value: new_value,
@@ -88,7 +88,7 @@ where
 
                     if let Some(new_op) = new_op {
                         if new_op.arity() == current_node.arity() {
-                            (*chromosome.as_mut()[i].value_mut()) = new_op;
+                            (*chromosome.as_mut()[*i].value_mut()) = new_op;
                         }
                     }
                 }
