@@ -61,7 +61,7 @@ pub trait Node {
     /// Get a mutable reference to the node's value.
     fn value_mut(&mut self) -> &mut Self::Value;
 
-    /// Get the `NodeType` of the node. As previously mentioned, if the `NodeType` is not supplied
+    /// Get the [NodeType] of the node. As previously mentioned, if the [NodeType] is not supplied
     /// during creation, this value is determined by the node's relationship to the rest of
     /// the structure holding it. IE, a `GraphNode` with 0 incoming connections is likely an `Input`,
     /// while a `TreeNode` with 0 children is likely a `Leaf`.

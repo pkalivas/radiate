@@ -98,12 +98,12 @@ impl<T: Clone + Default> Graph<T> {
 
         let input = builder.input(input_size);
         let aggregate = builder.vertecies(input_size);
-        let link = builder.vertecies(input_size);
+        let cycle_nodes = builder.vertecies(input_size);
         let output = builder.output(output_size);
 
         GraphAggregate::new()
             .one_to_one(&input, &aggregate)
-            .one_to_self(&aggregate, &link)
+            .one_to_self(&aggregate, &cycle_nodes)
             .all_to_all(&aggregate, &output)
             .build()
     }

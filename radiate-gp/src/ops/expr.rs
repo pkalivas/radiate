@@ -1,12 +1,12 @@
 use crate::{Op, Tree, TreeNode};
 
-impl From<&str> for Tree<Op<f32>> {
-    fn from(s: &str) -> Self {
-        if let Ok(node) = parse(s) {
-            Tree::new(node)
-        } else {
-            Tree::default()
-        }
+pub trait Expression<T> {
+    fn parse(expr: &str) -> Result<T, String>;
+}
+
+impl Expression<Tree<Op<f32>>> for Tree<Op<f32>> {
+    fn parse(expr: &str) -> Result<Tree<Op<f32>>, String> {
+        parse(expr).map(|node| Tree::new(node))
     }
 }
 
@@ -209,32 +209,38 @@ fn parse_factor(tokens: &[Token], pos: &mut usize) -> Result<TreeNode<Op<f32>>, 
 
 #[cfg(test)]
 mod test {
-    use crate::{Eval, Tree};
+    use crate::{Eval, Tree, ops::expr::Expression};
 
     #[test]
     fn test_tokenize() {
         let expr_str = "1 + 2 * (3 * 4)^5";
-        let tree = Tree::from(expr_str);
-
-        assert_eq!(tree.eval(&[]), 497665.0);
+        if let Ok(tree) = Tree::parse(expr_str) {
+            assert_eq!(tree.eval(&[]), 497665.0);
+        } else {
+            panic!("Failed to parse expression");
+        }
     }
 
     #[test]
     fn test_tokenize_with_vars() {
         let expr_str = "a + b * (c * d)^e";
-        let tree = Tree::from(expr_str);
 
-        let vars = vec![1.0, 2.0, 3.0, 4.0, 5.0];
-        assert_eq!(tree.eval(&vars), 497665.0);
+        if let Ok(tree) = Tree::parse(expr_str) {
+            assert_eq!(tree.eval(&[1.0, 2.0, 3.0, 4.0, 5.0]), 497665.0);
+        } else {
+            panic!("Failed to parse expression");
+        }
     }
 
     #[test]
     fn test_tokenize_with_vars_and_negation() {
         let expr_str = "5 - x * (34 * 3)^2";
-        let tree = Tree::from(expr_str);
 
-        let vars = vec![3.0];
-        assert_eq!(tree.eval(&vars), -31207.0);
+        if let Ok(tree) = Tree::parse(expr_str) {
+            assert_eq!(tree.eval(&[3.0]), -31207.0);
+        } else {
+            panic!("Failed to parse expression");
+        }
     }
 
     #[test]
@@ -242,13 +248,16 @@ mod test {
         let comp = |x: f32| 4.0 * x.powf(3.0) - 3.0 * x.powf(2.0) + x;
 
         let expr_str = "4 * x^3 - 3 * x^2 + x";
-        let tree = Tree::from(expr_str);
 
-        let mut input = -1.0;
-        for _ in -10..10 {
-            input += 0.1;
-            let output = tree.eval(&[input]);
-            assert!((output - comp(input)).abs() < 0.0001);
+        if let Ok(tree) = Tree::parse(expr_str) {
+            let mut input = -1.0;
+            for _ in -10..10 {
+                input += 0.1;
+                let output = tree.eval(&[input]);
+                assert!((output - comp(input)).abs() < 0.0001);
+            }
+        } else {
+            panic!("Failed to parse expression");
         }
     }
 }

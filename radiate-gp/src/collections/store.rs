@@ -63,8 +63,7 @@ impl<T> NodeStore<T> {
 
         for value in values {
             let node_value = value.into();
-            let node_type = node_value.allowed_node_types();
-            for node_type in node_type {
+            for node_type in node_value.allowed_node_types() {
                 store_values
                     .entry(node_type)
                     .or_default()
@@ -86,22 +85,16 @@ impl<T> NodeStore<T> {
         F: Fn(Vec<&NodeValue<T>>) -> K,
     {
         let values = self.values.read().unwrap();
-        let all_values = values.values().collect::<Vec<&Vec<NodeValue<T>>>>();
+        let all_values = values
+            .values()
+            .flat_map(|val| val)
+            .collect::<Vec<&NodeValue<T>>>();
 
         if all_values.is_empty() {
             return None;
         }
 
-        let values = all_values
-            .iter()
-            .flat_map(|x| x.iter())
-            .collect::<Vec<&NodeValue<T>>>();
-
-        if values.is_empty() {
-            return None;
-        }
-
-        Some(mapper(values))
+        Some(mapper(all_values))
     }
 
     pub fn map_by_type<F, K>(&self, node_type: NodeType, mapper: F) -> Option<K>
@@ -220,8 +213,7 @@ mod tests {
 
     #[test]
     fn test_node_store() {
-        let all_ops = ops::all_ops();
-        let store = NodeStore::from(all_ops);
+        let store = NodeStore::from(ops::all_ops());
 
         store.add((0..3).map(Op::var).collect());
 

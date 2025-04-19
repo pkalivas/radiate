@@ -47,15 +47,15 @@ impl CharCodex<Vec<char>> {
 
 impl Codex<CharChromosome, Vec<Vec<char>>> for CharCodex<Vec<Vec<char>>> {
     fn encode(&self) -> Genotype<CharChromosome> {
-        Genotype {
-            chromosomes: (0..self.num_chromosomes)
+        Genotype::new(
+            (0..self.num_chromosomes)
                 .map(|_| CharChromosome {
                     genes: (0..self.num_genes)
                         .map(|_| CharGene::new(Arc::clone(&self.char_set)))
                         .collect::<Vec<CharGene>>(),
                 })
                 .collect::<Vec<CharChromosome>>(),
-        }
+        )
     }
 
     fn decode(&self, genotype: &Genotype<CharChromosome>) -> Vec<Vec<char>> {
@@ -73,15 +73,15 @@ impl Codex<CharChromosome, Vec<Vec<char>>> for CharCodex<Vec<Vec<char>>> {
 
 impl Codex<CharChromosome, Vec<char>> for CharCodex<Vec<char>> {
     fn encode(&self) -> Genotype<CharChromosome> {
-        Genotype {
-            chromosomes: (0..self.num_chromosomes)
+        Genotype::new(
+            (0..self.num_chromosomes)
                 .map(|_| CharChromosome {
                     genes: (0..self.num_genes)
                         .map(|_| CharGene::new(Arc::clone(&self.char_set)))
                         .collect::<Vec<CharGene>>(),
                 })
                 .collect::<Vec<CharChromosome>>(),
-        }
+        )
     }
 
     fn decode(&self, genotype: &Genotype<CharChromosome>) -> Vec<char> {

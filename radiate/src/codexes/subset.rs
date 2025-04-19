@@ -25,15 +25,13 @@ impl<T> SubSetCodex<T> {
 
 impl<T> Codex<BitChromosome, Vec<Arc<T>>> for SubSetCodex<T> {
     fn encode(&self) -> Genotype<BitChromosome> {
-        Genotype {
-            chromosomes: vec![BitChromosome {
-                genes: self
-                    .items
-                    .iter()
-                    .map(|_| BitGene::new())
-                    .collect::<Vec<BitGene>>(),
-            }],
-        }
+        Genotype::new(vec![BitChromosome {
+            genes: self
+                .items
+                .iter()
+                .map(|_| BitGene::new())
+                .collect::<Vec<BitGene>>(),
+        }])
     }
 
     fn decode(&self, genotype: &Genotype<BitChromosome>) -> Vec<Arc<T>> {
