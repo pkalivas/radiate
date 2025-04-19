@@ -85,22 +85,16 @@ impl<T> NodeStore<T> {
         F: Fn(Vec<&NodeValue<T>>) -> K,
     {
         let values = self.values.read().unwrap();
-        let all_values = values.values().collect::<Vec<&Vec<NodeValue<T>>>>();
+        let all_values = values
+            .values()
+            .flat_map(|val| val)
+            .collect::<Vec<&NodeValue<T>>>();
 
         if all_values.is_empty() {
             return None;
         }
 
-        let values = all_values
-            .iter()
-            .flat_map(|x| x.iter())
-            .collect::<Vec<&NodeValue<T>>>();
-
-        if values.is_empty() {
-            return None;
-        }
-
-        Some(mapper(values))
+        Some(mapper(all_values))
     }
 
     pub fn map_by_type<F, K>(&self, node_type: NodeType, mapper: F) -> Option<K>

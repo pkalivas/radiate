@@ -12,6 +12,12 @@ fn main() {
         (NodeType::Leaf, vec![Op::var(0)]),
     ];
 
+    // let template = Tree::parse("4 * x^3 - 3 * x^2 + x").unwrap();
+
+    // let tree_codex = TreeCodex::single(3, store)
+    //     .with_tree(template)
+    //     .constraint(|root| root.size() < 30);
+
     let tree_codex = TreeCodex::single(3, store).constraint(|root| root.size() < 30);
     let problem = Regression::new(get_dataset(), Loss::MSE, tree_codex);
 
