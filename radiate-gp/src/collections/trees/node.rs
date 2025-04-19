@@ -251,5 +251,22 @@ macro_rules! impl_from {
 }
 
 impl_from!(
-    u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f64, String, bool, char, usize, isize
+    u8,
+    u16,
+    u32,
+    u64,
+    u128,
+    i8,
+    i16,
+    i32,
+    i64,
+    i128,
+    f32,
+    f64,
+    String,
+    bool,
+    char,
+    usize,
+    isize,
+    ()
 );

@@ -1,5 +1,7 @@
 use super::{DataSet, Loss};
-use crate::{Eval, EvalMut, Graph, GraphChromosome, GraphEvaluator, Op, Tree, TreeChromosome};
+use crate::{
+    Eval, EvalMut, Graph, GraphChromosome, GraphEvaluator, Op, Tree, TreeChromosome, TreeNode,
+};
 use radiate::{Chromosome, Codex, Genotype, Problem, Score};
 use std::{marker::PhantomData, sync::Arc};
 
@@ -71,7 +73,7 @@ impl Problem<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>
         let chrome = individual
             .iter()
             .map(|chrom| chrom.root())
-            .collect::<Vec<_>>();
+            .collect::<Vec<&TreeNode<Op<f32>>>>();
         self.loss
             .calculate(&self.data_set, &mut |input| chrome.eval(input))
             .into()
@@ -93,7 +95,7 @@ impl Problem<TreeChromosome<Op<f32>>, Tree<Op<f32>>>
         let chrome = individual
             .iter()
             .map(|chrom| chrom.root())
-            .collect::<Vec<_>>();
+            .collect::<Vec<&TreeNode<Op<f32>>>>();
         self.loss
             .calculate(&self.data_set, &mut |input| chrome.eval(input))
             .into()

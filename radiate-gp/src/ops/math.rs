@@ -166,7 +166,6 @@ impl ActivationOperation {
     }
 }
 
-/// Implementations of the `Operation` trait for `f32`.
 impl Op<f32> {
     pub fn weight() -> Self {
         let supplier = || random_provider::random::<f32>() * TWO - ONE;
