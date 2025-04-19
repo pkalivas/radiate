@@ -22,7 +22,7 @@ use std::ops::{Index, IndexMut};
 ///
 #[derive(Clone, PartialEq, Debug, Default)]
 pub struct Genotype<C: Chromosome> {
-    chromosomes: Vec<C>,
+    pub chromosomes: Vec<C>,
 }
 
 impl<C: Chromosome> Genotype<C> {
