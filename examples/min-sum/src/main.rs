@@ -9,7 +9,8 @@ fn main() {
         .population_size(150)
         .minimizing()
         .offspring_selector(EliteSelector::new())
-        .alter(alters!(SwapMutator::new(0.05), UniformCrossover::new(0.5)))
+        .mutator(SwapMutator::new(0.05))
+        .crossover(UniformCrossover::new(0.5))
         .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
         .build();
 

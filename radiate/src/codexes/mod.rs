@@ -50,7 +50,7 @@ pub use subset::SubSetCodex;
 ///     }
 ///
 ///     fn decode(&self, genotype: &Genotype<IntChromosome<i32>>) -> NQueens {
-///         NQueens(genotype.chromosomes[0].iter().map(|g| *g.allele()).collect())
+///         NQueens(genotype[0].iter().map(|g| *g.allele()).collect())
 ///     }
 /// }
 ///
