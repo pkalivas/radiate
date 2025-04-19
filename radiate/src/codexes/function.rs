@@ -23,7 +23,7 @@ use std::sync::Arc;
 ///             }])
 ///         })
 ///         .with_decoder(|genotype| {
-///             genotype.chromosomes[0]
+///             genotype[0]
 ///                 .genes
 ///                 .iter()
 ///                 .map(|g| *g.allele())
