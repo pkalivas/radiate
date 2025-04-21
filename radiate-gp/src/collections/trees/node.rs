@@ -222,6 +222,16 @@ impl<T: Clone> Clone for TreeNode<T> {
     }
 }
 
+impl<T: Default> Default for TreeNode<T> {
+    fn default() -> Self {
+        TreeNode {
+            value: T::default(),
+            arity: None,
+            children: None,
+        }
+    }
+}
+
 impl<T: Debug> Debug for TreeNode<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
@@ -268,5 +278,6 @@ impl_from!(
     char,
     usize,
     isize,
+    &'static str,
     ()
 );

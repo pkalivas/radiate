@@ -31,9 +31,7 @@ where
 }
 
 impl<T: Default + Clone> Factory<(usize, NodeType), GraphNode<T>> for NodeStore<T> {
-    fn new_instance(&self, input: (usize, NodeType)) -> GraphNode<T> {
-        let (index, node_type) = input;
-
+    fn new_instance(&self, (index, node_type): (usize, NodeType)) -> GraphNode<T> {
         self.map_by_type(node_type, |values| {
             let node_value = match node_type {
                 NodeType::Input => &values[index % values.len()],
@@ -56,8 +54,7 @@ where
     T: Default + Clone,
     F: Fn(Arity) -> bool,
 {
-    fn new_instance(&self, input: (usize, NodeType, F)) -> GraphNode<T> {
-        let (index, node_type, filter) = input;
+    fn new_instance(&self, (index, node_type, filter): (usize, NodeType, F)) -> GraphNode<T> {
         self.map(|values| {
             let mapped_values = values
                 .into_iter()
