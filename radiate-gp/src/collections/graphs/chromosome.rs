@@ -93,10 +93,7 @@ impl<T> FromIterator<GraphNode<T>> for GraphChromosome<T> {
     }
 }
 
-impl<T> Debug for GraphChromosome<T>
-where
-    T: Clone + PartialEq + Debug,
-{
+impl<T: Debug> Debug for GraphChromosome<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Graph {{\n")?;
         for node in self.as_ref() {

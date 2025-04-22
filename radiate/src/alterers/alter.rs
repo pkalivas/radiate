@@ -90,7 +90,7 @@ impl<C: Chromosome> Alter<C> for AlterAction<C> {
                 let metric = Metric::new_operations(name, count, timer);
 
                 match metrics {
-                    Some(metrics) => metrics.into_iter().chain(vec![metric]).collect(),
+                    Some(metrics) => metrics.into_iter().chain(std::iter::once(metric)).collect(),
                     None => vec![metric],
                 }
             }
@@ -100,7 +100,7 @@ impl<C: Chromosome> Alter<C> for AlterAction<C> {
                 let metric = Metric::new_operations(name, count, timer);
 
                 match metrics {
-                    Some(metrics) => metrics.into_iter().chain(vec![metric]).collect(),
+                    Some(metrics) => metrics.into_iter().chain(std::iter::once(metric)).collect(),
                     None => vec![metric],
                 }
             }
