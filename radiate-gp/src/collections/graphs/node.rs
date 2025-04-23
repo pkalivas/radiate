@@ -377,11 +377,17 @@ mod tests {
 
     #[test]
     fn test_graph_node_with_direction() {
-        let mut node = GraphNode::new(0, NodeType::Input, 0.0);
+        let mut node_one = GraphNode::new(0, NodeType::Input, 0.0);
 
-        assert_eq!(node.direction(), Direction::Forward);
-        node.set_direction(Direction::Backward);
-        assert_eq!(node.direction(), Direction::Backward);
+        assert!(!node_one.is_recurrent());
+        node_one.set_direction(Direction::Backward);
+        assert!(node_one.is_recurrent());
+
+        let mut node_two = GraphNode::new(0, NodeType::Input, 0.0);
+
+        assert!(!node_two.is_recurrent());
+        node_two.incoming_mut().insert(0);
+        assert!(node_two.is_recurrent());
     }
 
     #[test]

@@ -22,9 +22,11 @@ fn main() {
         target: target.clone(),
     };
 
-    let engine = GeneticEngine::from_codex(codex.clone())
+    // let engine = GeneticEngine::from_codex(codex.clone())
+    let engine = GeneticEngine::builder()
         .minimizing()
         .num_threads(5)
+        .codex(codex.clone())
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .crossover(IntermediateCrossover::new(0.75, 0.1))
         .mutators(vec![
