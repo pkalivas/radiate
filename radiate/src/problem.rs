@@ -32,3 +32,29 @@ impl<C: Chromosome, T> Problem<C, T> for EngineProblem<C, T> {
 
 unsafe impl<C: Chromosome, T> Send for EngineProblem<C, T> {}
 unsafe impl<C: Chromosome, T> Sync for EngineProblem<C, T> {}
+
+// #[allow(dead_code)]
+// pub(crate) struct GenotypeProblem<C>
+// where
+//     C: Chromosome,
+// {
+//     pub encoder: Arc<dyn Fn() -> Genotype<C>>,
+//     pub fitness_fn: Arc<dyn Fn(&Genotype<C>) -> Score + Send + Sync>,
+// }
+
+// impl<C: Chromosome> Problem<C, Genotype<C>> for GenotypeProblem<C> {
+//     fn encode(&self) -> Genotype<C> {
+//         (self.encoder)()
+//     }
+
+//     fn decode(&self, genotype: &Genotype<C>) -> Genotype<C> {
+//         genotype.clone()
+//     }
+
+//     fn eval(&self, individual: &Genotype<C>) -> Score {
+//         (self.fitness_fn)(individual)
+//     }
+// }
+
+// unsafe impl<C: Chromosome> Send for GenotypeProblem<C> {}
+// unsafe impl<C: Chromosome> Sync for GenotypeProblem<C> {}

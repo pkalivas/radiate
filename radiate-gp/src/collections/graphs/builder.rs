@@ -162,7 +162,7 @@ impl<T: Clone + Default> Graph<T> {
         GraphAggregate::new()
             .one_to_one(&input, &aggregate)
             .one_to_self(&aggregate, &link)
-            .one_to_many(&link, &weights)
+            .one_to_many(&aggregate, &weights)
             .many_to_one(&weights, &output)
             .build()
     }

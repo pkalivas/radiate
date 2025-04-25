@@ -35,6 +35,39 @@ impl<T> NodeValue<T> {
     }
 }
 
+macro_rules! impl_node_value {
+    ($($t:ty),*) => {
+        $(
+            impl From<$t> for NodeValue<$t> {
+                fn from(value: $t) -> Self {
+                    NodeValue::Unbound(value)
+                }
+            }
+        )*
+    };
+}
+
+impl_node_value!(
+    u8,
+    u16,
+    u32,
+    u64,
+    u128,
+    i8,
+    i16,
+    i32,
+    i64,
+    i128,
+    f32,
+    f64,
+    String,
+    bool,
+    char,
+    usize,
+    isize,
+    &'static str
+);
+
 #[derive(Default)]
 pub struct NodeStore<T> {
     values: Arc<RwLock<HashMap<NodeType, Vec<NodeValue<T>>>>>,
@@ -206,10 +239,23 @@ impl<T: Debug> Debug for NodeStore<T> {
     }
 }
 
+#[macro_export]
+macro_rules! node_store {
+    ($($node_type:ident => $values:expr),+) => {
+        {
+            let store = NodeStore::new();
+            $(
+                store.insert(NodeType::$node_type, $values);
+            )*
+            store
+        }
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ops;
+    use crate::{Factory, Node, ops};
 
     #[test]
     fn test_node_store() {
@@ -223,5 +269,49 @@ mod tests {
         assert!(store.contains_type(NodeType::Vertex));
         assert!(store.contains_type(NodeType::Leaf));
         assert!(store.contains_type(NodeType::Root));
+    }
+
+    #[test]
+    fn test_node_store_insert() {
+        let store = NodeStore::new();
+        let values = vec![1, 2, 3];
+        store.insert(NodeType::Input, values.clone());
+
+        assert!(store.contains_type(NodeType::Input));
+
+        for value in values {
+            assert!(
+                store
+                    .map_by_type(NodeType::Input, |values| {
+                        values.iter().any(|v| v.value() == &value)
+                    })
+                    .unwrap_or(false)
+            );
+        }
+    }
+
+    #[test]
+    fn test_node_store_macro() {
+        let store = node_store! {
+            Input => vec![1, 2, 3],
+            Output => vec![4, 5, 6],
+            Edge => vec![7, 8, 9],
+            Vertex => vec![10, 11, 12]
+        };
+
+        assert!(store.contains_type(NodeType::Input));
+        assert!(store.contains_type(NodeType::Output));
+        assert!(store.contains_type(NodeType::Edge));
+        assert!(store.contains_type(NodeType::Vertex));
+
+        let graph_node = store.new_instance((2, NodeType::Vertex));
+
+        assert_eq!(graph_node.index(), 2);
+        assert_eq!(graph_node.node_type(), NodeType::Vertex);
+
+        // hmmmm
+        let tree_node = store.new_instance(NodeType::Vertex);
+        assert_eq!(tree_node.node_type(), NodeType::Leaf);
+        assert!(tree_node.is_leaf());
     }
 }

@@ -72,7 +72,7 @@ where
                 .map(|node| TreeChromosome::new(node, Some(store.clone()), self.constraint.clone()))
                 .collect::<Vec<TreeChromosome<T>>>();
 
-            if let Some(constraint) = &self.constraint {
+            if let Some(constraint) = self.constraint.as_ref() {
                 for chromosome in new_chromosomes.iter() {
                     for node in chromosome.iter() {
                         if !constraint(node) {

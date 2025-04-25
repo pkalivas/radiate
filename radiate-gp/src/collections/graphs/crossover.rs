@@ -21,7 +21,7 @@ impl GraphCrossover {
 
 impl<T> Crossover<GraphChromosome<T>> for GraphCrossover
 where
-    T: Clone + PartialEq + Default,
+    T: Clone + PartialEq,
 {
     fn rate(&self) -> f32 {
         self.crossover_rate

@@ -74,6 +74,10 @@ where
         GeneticEngine { params }
     }
 
+    pub fn builder() -> GeneticEngineBuilder<C, T> {
+        GeneticEngineBuilder::default()
+    }
+
     pub fn from_codex(codex: impl Codex<C, T> + 'static) -> GeneticEngineBuilder<C, T> {
         GeneticEngineBuilder::default().codex(codex)
     }

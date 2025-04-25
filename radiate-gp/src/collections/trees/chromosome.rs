@@ -39,7 +39,7 @@ impl<T> TreeChromosome<T> {
 
 impl<T> Chromosome for TreeChromosome<T>
 where
-    T: Clone + PartialEq + Default,
+    T: Clone + PartialEq,
 {
     type Gene = TreeNode<T>;
 }

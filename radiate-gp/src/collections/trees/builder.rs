@@ -2,6 +2,8 @@ use crate::collections::{Tree, TreeNode};
 use crate::node::Node;
 use crate::{Arity, Factory, NodeStore, NodeType};
 
+const NUM_CHILDREN_ANY: usize = 2;
+
 impl<T: Clone + Default> Tree<T> {
     /// Create a tree with the given depth, where each node is a random node from the node store.
     /// This obeys the rules of the [NodeStore]'s [NodeType]'s arity, and will create a tree
@@ -29,7 +31,7 @@ impl<T: Clone + Default> Tree<T> {
         };
 
         if root.arity() == Arity::Any {
-            for _ in 0..2 {
+            for _ in 0..NUM_CHILDREN_ANY {
                 root.add_child(Self::grow(depth - 1, &store));
             }
         } else {
@@ -62,7 +64,7 @@ impl<T: Clone + Default> Tree<T> {
         let num_children = match parent.arity() {
             Arity::Zero => 0,
             Arity::Exact(n) => n,
-            Arity::Any => 2,
+            Arity::Any => NUM_CHILDREN_ANY,
         };
 
         for _ in 0..num_children {
