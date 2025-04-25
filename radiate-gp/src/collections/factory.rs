@@ -64,13 +64,17 @@ where
                 })
                 .collect::<Vec<&NodeValue<T>>>();
 
-            let node_value = random_provider::choose(&mapped_values);
+            if mapped_values.is_empty() {
+                self.new_instance((index, node_type))
+            } else {
+                let node_value = random_provider::choose(&mapped_values);
 
-            match node_value {
-                NodeValue::Bounded(value, arity) => {
-                    GraphNode::with_arity(index, node_type, value.clone(), *arity)
+                match node_value {
+                    NodeValue::Bounded(value, arity) => {
+                        GraphNode::with_arity(index, node_type, value.clone(), *arity)
+                    }
+                    NodeValue::Unbound(value) => GraphNode::new(index, node_type, value.clone()),
                 }
-                NodeValue::Unbound(value) => GraphNode::new(index, node_type, value.clone()),
             }
         })
         .unwrap_or(GraphNode::new(index, node_type, T::default()))

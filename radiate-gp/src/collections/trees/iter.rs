@@ -149,7 +149,6 @@ impl<'a, T> Iterator for PreOrderIterator<'a, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.stack.pop().inspect(|node| {
-            // Push children in reverse order for correct traversal
             if let Some(children) = node.children() {
                 for child in children.iter().rev() {
                     self.stack.push(child);

@@ -160,7 +160,7 @@ impl<T> Node for TreeNode<T> {
 
 impl<T> Gene for TreeNode<T>
 where
-    T: Clone + PartialEq + Default,
+    T: Clone + PartialEq,
 {
     type Allele = T;
 

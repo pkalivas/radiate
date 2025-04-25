@@ -166,7 +166,7 @@ impl<T> Node for GraphNode<T> {
 
 impl<T> Gene for GraphNode<T>
 where
-    T: Clone + PartialEq + Default,
+    T: Clone + PartialEq,
 {
     type Allele = T;
 
@@ -232,8 +232,7 @@ impl<T> Valid for GraphNode<T> {
 }
 
 impl<T> From<(usize, NodeType, T)> for GraphNode<T> {
-    fn from(value: (usize, NodeType, T)) -> Self {
-        let (index, node_type, value) = value;
+    fn from((index, node_type, value): (usize, NodeType, T)) -> Self {
         GraphNode::new(index, node_type, value)
     }
 }
@@ -254,8 +253,7 @@ impl<T: Default> From<(usize, T)> for GraphNode<T> {
 }
 
 impl<T> From<(usize, NodeType, T, Arity)> for GraphNode<T> {
-    fn from(value: (usize, NodeType, T, Arity)) -> Self {
-        let (index, node_type, value, arity) = value;
+    fn from((index, node_type, value, arity): (usize, NodeType, T, Arity)) -> Self {
         GraphNode::with_arity(index, node_type, value, arity)
     }
 }

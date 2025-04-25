@@ -17,7 +17,7 @@ impl HoistMutator {
 
 impl<T> Mutate<TreeChromosome<T>> for HoistMutator
 where
-    T: Clone + PartialEq + Default,
+    T: Clone + PartialEq,
 {
     fn rate(&self) -> f32 {
         self.rate

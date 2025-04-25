@@ -55,7 +55,7 @@ where
 
 impl<T> Chromosome for GraphChromosome<T>
 where
-    T: Clone + PartialEq + Default,
+    T: Clone + PartialEq,
 {
     type Gene = GraphNode<T>;
 }
