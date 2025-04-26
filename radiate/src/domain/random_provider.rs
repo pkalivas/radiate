@@ -19,20 +19,20 @@ impl RandomProvider {
     }
 
     pub(self) fn set_rng(other: StdRng) {
-        let instance = RandomProvider::global();
+        let instance = Self::global();
         let mut rng = instance.rng.lock().unwrap();
         *rng = other;
     }
 
     pub(self) fn get_rng() -> StdRng {
-        let instance = RandomProvider::global();
+        let instance = Self::global();
         let rng = instance.rng.lock().unwrap();
         rng.clone()
     }
 
     /// Sets a new seed for the global RNG.
     pub(self) fn set_seed(seed: u64) {
-        let instance = RandomProvider::global();
+        let instance = Self::global();
         let mut rng = instance.rng.lock().unwrap();
         *rng = StdRng::seed_from_u64(seed);
     }
@@ -43,7 +43,7 @@ impl RandomProvider {
         T: SampleUniform,
         StandardUniform: Distribution<T>,
     {
-        let instance = RandomProvider::global();
+        let instance = Self::global();
         let mut rng = instance.rng.lock().unwrap();
         rng.random()
     }
@@ -52,13 +52,13 @@ impl RandomProvider {
     where
         T: SampleUniform + PartialOrd,
     {
-        let instance = RandomProvider::global();
+        let instance = Self::global();
         let mut rng = instance.rng.lock().unwrap();
         rng.random_range(range)
     }
 
     pub(self) fn bool(prob: f64) -> bool {
-        let instance = RandomProvider::global();
+        let instance = Self::global();
         let mut rng = instance.rng.lock().unwrap();
         rng.random_bool(prob)
     }

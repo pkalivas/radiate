@@ -33,6 +33,8 @@ impl<C: Chromosome, T> Problem<C, T> for EngineProblem<C, T> {
 unsafe impl<C: Chromosome, T> Send for EngineProblem<C, T> {}
 unsafe impl<C: Chromosome, T> Sync for EngineProblem<C, T> {}
 
+// TODO: Maybe make a codex for decoding to &Genoty<C>
+
 // #[allow(dead_code)]
 // pub(crate) struct GenotypeProblem<C>
 // where

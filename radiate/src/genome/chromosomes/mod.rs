@@ -43,5 +43,4 @@ pub trait Integer<T>:
     fn from_i32(value: i32) -> T;
 }
 
-// Implement Integer for i8, i16, i32, i64, i128, u8, u16, u32, u64, and u128
 impl_integer!(i8, i16, i32, i64, i128, u8, u16, u32, u64, u128);

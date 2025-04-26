@@ -1,6 +1,4 @@
 use super::genome::genotype::Genotype;
-use super::genome::phenotype::Phenotype;
-use super::genome::population::Population;
 
 pub mod bit;
 pub mod char;
@@ -89,29 +87,4 @@ pub trait Codex<C: Chromosome, T> {
     fn encode(&self) -> Genotype<C>;
 
     fn decode(&self, genotype: &Genotype<C>) -> T;
-
-    /// Spawn a new instance of `T` from the `Codex`. This will encode `num` new `Genotype`s and then
-    /// decode it to a new instance of `T`.
-    fn spawn(&self, num: usize) -> Vec<T> {
-        (0..num)
-            .map(|_| {
-                let genotype = self.encode();
-                self.decode(&genotype)
-            })
-            .collect::<Vec<T>>()
-    }
-
-    /// Spawn a new instance of `Genotype<G, A>` from the `Codex`. This will encode `num` a new `Genotype`s.
-    fn spawn_genotypes(&self, num: usize) -> Vec<Genotype<C>> {
-        (0..num)
-            .map(|_| self.encode())
-            .collect::<Vec<Genotype<C>>>()
-    }
-
-    /// Spawn a new instance of `Population<G, A>` from the `Codex`. This will encode `num` a new `Genotype`s
-    fn spawn_population(&self, num: usize) -> Population<C> {
-        (0..num)
-            .map(|_| Phenotype::from((self.encode(), 0)))
-            .collect::<Population<C>>()
-    }
 }

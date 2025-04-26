@@ -80,12 +80,4 @@ impl<'a, T> Iterator for GraphTopologicalIterator<'a, T> {
         self.pending_index = min_pending_index;
         self.index_queue.pop_front().map(|idx| &self.graph[idx])
     }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (0, Some(self.graph.len()))
-    }
-
-    fn count(self) -> usize {
-        self.graph.len()
-    }
 }

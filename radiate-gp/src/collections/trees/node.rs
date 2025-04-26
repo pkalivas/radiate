@@ -135,7 +135,7 @@ impl<T> Node for TreeNode<T> {
     }
 
     fn node_type(&self) -> NodeType {
-        if self.children.as_ref().is_some() {
+        if self.children.is_some() {
             NodeType::Vertex
         } else {
             NodeType::Leaf
@@ -194,11 +194,7 @@ impl<T> Valid for TreeNode<T> {
     fn is_valid(&self) -> bool {
         for node in self.iter_breadth_first() {
             match node.arity() {
-                Arity::Zero => {
-                    if node.children.is_some() {
-                        return false;
-                    }
-                }
+                Arity::Zero => return node.children.is_none(),
                 Arity::Exact(n) => {
                     if node.children.is_none() || node.children.as_ref().unwrap().len() != n {
                         return false;

@@ -298,6 +298,8 @@ where
         let problem = self.params.problem();
         let optimize = self.params.objective();
 
+        optimize.sort(&mut ctx.population);
+
         let audit_metrics = audits
             .iter()
             .flat_map(|audit| audit.audit(ctx.index(), &ctx.population))
@@ -305,10 +307,6 @@ where
 
         for metric in audit_metrics {
             ctx.upsert_metric(metric);
-        }
-
-        if !ctx.population.is_sorted {
-            optimize.sort(&mut ctx.population);
         }
 
         if let Some(current_best) = ctx.population.get(0) {

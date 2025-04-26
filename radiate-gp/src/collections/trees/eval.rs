@@ -61,21 +61,17 @@ where
 {
     #[inline]
     fn eval(&self, input: &[V]) -> V {
-        if self.is_leaf() {
-            self.value().eval(input)
-        } else {
-            if let Some(children) = self.children() {
-                let mut inputs = Vec::with_capacity(children.len());
+        if let Some(children) = self.children() {
+            let mut inputs = Vec::with_capacity(children.len());
 
-                for child in children {
-                    inputs.push(child.eval(input));
-                }
-
-                return self.value().eval(&inputs);
+            for child in children {
+                inputs.push(child.eval(input));
             }
 
-            panic!("Node is not a leaf and has no children - this should never happen.");
+            return self.value().eval(&inputs);
         }
+
+        self.value().eval(input)
     }
 }
 
