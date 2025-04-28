@@ -3,6 +3,7 @@ pub mod audit;
 pub mod codexes;
 pub mod diversity;
 pub mod domain;
+pub mod engine;
 pub mod genome;
 pub mod objectives;
 pub mod problem;
@@ -17,6 +18,7 @@ pub use codexes::{
 };
 pub use diversity::Diversity;
 pub use domain::*;
+pub use engine::{Engine, Epoch};
 pub use genome::*;
 pub use objectives::{Front, Objective, Optimize, Score, pareto};
 pub use problem::{EngineProblem, Problem};

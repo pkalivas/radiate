@@ -1,3 +1,5 @@
+use radiate_core::Epoch;
+
 use super::objectives::Score;
 use super::{Metric, MetricSet, Phenotype};
 use crate::Chromosome;
@@ -101,5 +103,27 @@ where
         write!(f, "  duration: {:?},\n", self.timer.duration())?;
         write!(f, "  metrics: {:?},\n", self.metrics)?;
         write!(f, "}}")
+    }
+}
+
+impl<C: Chromosome, T> Epoch<C, T> for EngineContext<C, T> {
+    fn population(&self) -> &Population<C> {
+        &self.population
+    }
+
+    fn generation(&self) -> usize {
+        self.index
+    }
+
+    fn score(&self) -> &Score {
+        self.score()
+    }
+
+    fn best(&self) -> &T {
+        &self.best
+    }
+
+    fn metrics(&self) -> &MetricSet {
+        &self.metrics
     }
 }
