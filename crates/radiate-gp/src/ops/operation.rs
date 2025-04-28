@@ -271,7 +271,7 @@ impl From<bool> for Op<bool> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use radiate::random_provider;
+    use radiate_core::random_provider;
 
     #[test]
     fn test_ops() {

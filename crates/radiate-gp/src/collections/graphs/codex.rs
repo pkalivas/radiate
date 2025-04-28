@@ -1,6 +1,6 @@
 use super::{Graph, GraphChromosome, GraphNode};
 use crate::{Factory, NodeStore};
-use radiate::{Chromosome, Codex, Genotype};
+use radiate_core::{Chromosome, Codex, Genotype};
 
 #[derive(Clone, Debug)]
 pub struct GraphCodex<T> {

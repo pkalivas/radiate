@@ -1,6 +1,6 @@
 use super::TreeChromosome;
-use radiate::genome::*;
-use radiate::{AlterResult, Crossover, random_provider};
+use radiate_core::genome::*;
+use radiate_core::{AlterResult, Crossover, random_provider};
 
 #[derive(Clone, Debug)]
 pub struct TreeCrossover {

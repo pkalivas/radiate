@@ -1,6 +1,6 @@
 use super::GraphChromosome;
 use crate::Factory;
-use radiate::{Genotype, Population, ReplacementStrategy, random_provider};
+use radiate_core::{Genotype, Population, ReplacementStrategy, random_provider};
 use std::sync::Arc;
 
 pub struct GraphReplacement;

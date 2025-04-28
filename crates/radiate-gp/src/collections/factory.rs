@@ -1,6 +1,6 @@
 use super::{GraphNode, NodeStore, NodeType, NodeValue, TreeNode};
 use crate::Arity;
-use radiate::random_provider;
+use radiate_core::random_provider;
 
 pub trait Factory<I, O> {
     fn new_instance(&self, input: I) -> O;

@@ -1,5 +1,5 @@
 use super::TreeChromosome;
-use radiate::{AlterResult, Mutate, random_provider};
+use radiate_core::{AlterResult, Mutate, random_provider};
 
 pub struct HoistMutator {
     rate: f32,

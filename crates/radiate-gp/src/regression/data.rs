@@ -1,4 +1,4 @@
-use radiate::random_provider;
+use radiate_core::random_provider;
 
 #[derive(Debug, Clone, Default)]
 pub struct Row {

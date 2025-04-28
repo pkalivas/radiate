@@ -1,6 +1,9 @@
 [workspace]
 members = [
     "crates/radiate",
+    "crates/radiate-core",
+    "crates/radiate-selectors",
+    "crates/radiate-alters",
     "crates/radiate-gp",
     
     "examples/min-sum",

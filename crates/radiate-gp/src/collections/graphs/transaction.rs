@@ -1,6 +1,6 @@
 use super::{Direction, Graph, GraphNode};
 use crate::{Arity, NodeType, node::Node};
-use radiate::{Valid, random_provider};
+use radiate_core::{Valid, random_provider};
 use std::{collections::HashSet, fmt::Debug, ops::Deref};
 
 /// Represents a reversible change to the graph

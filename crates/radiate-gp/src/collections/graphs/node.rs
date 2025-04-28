@@ -1,6 +1,6 @@
 use crate::node::Node;
 use crate::{Arity, NodeType};
-use radiate::{Gene, Valid};
+use radiate_core::{Gene, Valid};
 use std::collections::BTreeSet;
 use std::fmt::Debug;
 use std::hash::Hash;

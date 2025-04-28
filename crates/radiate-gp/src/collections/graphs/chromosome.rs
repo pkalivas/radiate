@@ -1,5 +1,5 @@
 use crate::{Factory, GraphNode, NodeStore, node::Node};
-use radiate::{Chromosome, Gene, Valid};
+use radiate_core::{Chromosome, Gene, Valid};
 use std::fmt::Debug;
 
 #[derive(Clone)]

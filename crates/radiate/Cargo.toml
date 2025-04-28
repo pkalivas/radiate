@@ -13,6 +13,14 @@ homepage = "https://pkalivas.github.io/radiate/"
 
 [dependencies]
 rand = "0.9.0"
+radiate-core = { path = "../radiate-core" }
+radiate-alters = { path = "../radiate-alters" }
+radiate-selectors = { path = "../radiate-selectors" }
+radiate-gp = { path = "../radiate-gp", optional = true }
+
+[features]
+default = []
+gp = ["radiate-gp"]
 
 [dev-dependencies]
 rstest = "0.25.0"

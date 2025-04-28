@@ -1,9 +1,9 @@
 use crate::node::Node;
 use crate::ops::operation::Op;
 use crate::{Factory, GraphChromosome, NodeType, TreeChromosome, TreeIterator};
-use radiate::genome::gene::Gene;
-use radiate::{AlterResult, Mutate};
-use radiate::{Chromosome, random_provider};
+use radiate_core::genome::gene::Gene;
+use radiate_core::{AlterResult, Mutate};
+use radiate_core::{Chromosome, random_provider};
 use std::sync::{Arc, Mutex};
 
 pub struct OperationMutator {

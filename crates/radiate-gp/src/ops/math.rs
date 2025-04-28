@@ -1,6 +1,6 @@
 use super::Op;
 use crate::Arity;
-use radiate::random_provider;
+use radiate_core::random_provider;
 use std::sync::Arc;
 
 const MAX_VALUE: f32 = 1e+10_f32;

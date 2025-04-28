@@ -5,12 +5,12 @@ edition = "2024"
 authors = ["pkalivas <peterkalivas@gmail.com>"]
 description = "Extensions for radiate. Genetic Programming implementations for graphs (neural networks) and trees"
 repository = "https://github.com/pkalivas/radiate"
-readme = "../README.md"
+readme = "../../README.md"
 categories = ["science", "simulation", "algorithms"]
 keywords = ["search", "genetic", "learning", "artificial", "evolution"]
 license = "MIT"
 documentation = "https://pkalivas.github.io/radiate/"
 
 [dependencies]
-radiate = { path = "../radiate" }
+radiate-core = { path = "../radiate-core" }
 

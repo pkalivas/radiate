@@ -2,8 +2,8 @@ use super::transaction::{InsertStep, TransactionResult};
 use super::{Graph, GraphChromosome};
 use crate::node::Node;
 use crate::{Arity, Factory, NodeType};
-use radiate::Chromosome;
-use radiate::{AlterResult, Metric, Mutate, random_provider};
+use radiate_core::Chromosome;
+use radiate_core::{AlterResult, Metric, Mutate, random_provider};
 
 const INVALID_MUTATION: &str = "GraphMutator(Ivld)";
 

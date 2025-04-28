@@ -1,6 +1,6 @@
 use crate::NodeStore;
 use crate::collections::{Tree, TreeChromosome, TreeNode};
-use radiate::{Chromosome, Codex, Genotype};
+use radiate_core::{Chromosome, Codex, Genotype};
 use std::sync::Arc;
 
 type Constraint<N> = Arc<dyn Fn(&N) -> bool>;
@@ -138,7 +138,7 @@ where
 mod tests {
     use super::*;
     use crate::{NodeType, ops::Op};
-    use radiate::codexes::Codex;
+    use radiate_core::codexes::Codex;
 
     #[test]
     fn test_tree_codex() {

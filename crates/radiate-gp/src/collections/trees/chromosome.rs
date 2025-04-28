@@ -1,5 +1,5 @@
 use crate::{NodeStore, TreeNode};
-use radiate::{Chromosome, Valid};
+use radiate_core::{Chromosome, Valid};
 use std::sync::Arc;
 
 type Constraint<N> = Arc<dyn Fn(&N) -> bool>;

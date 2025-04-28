@@ -2,7 +2,7 @@ use super::transaction::TransactionResult;
 use crate::collections::graphs::GraphTransaction;
 use crate::collections::{Direction, GraphNode};
 use crate::{Node, NodeType};
-use radiate::Valid;
+use radiate_core::Valid;
 use std::collections::{HashSet, VecDeque};
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut};

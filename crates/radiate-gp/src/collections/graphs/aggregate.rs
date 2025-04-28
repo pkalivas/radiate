@@ -357,7 +357,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
 #[cfg(test)]
 mod tests {
     use crate::{GraphAggregate, GraphNode, NodeType};
-    use radiate::Valid;
+    use radiate_core::Valid;
 
     #[test]
     fn test_graph_aggregate_one_to_one() {

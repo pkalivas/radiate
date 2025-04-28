@@ -2,7 +2,7 @@ use super::{DataSet, Loss};
 use crate::{
     Eval, EvalMut, Graph, GraphChromosome, GraphEvaluator, Op, Tree, TreeChromosome, TreeNode,
 };
-use radiate::{Chromosome, Codex, Genotype, Problem, Score};
+use radiate_core::{Chromosome, Codex, Genotype, Problem, Score};
 use std::{marker::PhantomData, sync::Arc};
 
 pub struct Regression<C, T>
