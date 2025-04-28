@@ -18,6 +18,7 @@ pub mod audit;
 pub mod builder;
 pub mod codexes;
 pub mod context;
+pub mod diversity;
 pub mod domain;
 pub mod engine;
 pub mod genome;
@@ -35,6 +36,7 @@ pub use codexes::{
     BitCodex, CharCodex, Codex, FloatCodex, FnCodex, IntCodex, PermutationCodex, SubSetCodex,
 };
 pub use context::*;
+pub use diversity::*;
 pub use domain::*;
 pub use engine::*;
 pub use genome::*;
