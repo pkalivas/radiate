@@ -20,7 +20,7 @@ use std::ops::{Index, IndexMut};
 /// while still maintaining the ability to represent traditional graphs.
 ///
 /// By default, a [Graph] is a directed acyclic graph (DAG). However, it is possible to create
-/// cycles in the graph by setting the 'direction' field of a [GraphNode] to 'Direction::Backward'.
+/// cycles in the graph by setting the 'direction' field of a [GraphNode] to [Direction::Backward].
 /// The [Graph] struct provides methods for attaching and detaching nodes from one another.
 /// It also provides methods for iterating over the nodes in the graph in a sudo topological order.
 //
@@ -297,22 +297,17 @@ mod test {
 
     #[test]
     fn test_graph_is_valid() {
-        let mut graph = Graph::default();
-        graph.push((0, NodeType::Input, 0));
-        graph.push((1, NodeType::Output, 1));
-        graph.attach(0, 1);
+        let mut graph_one = Graph::default();
+        graph_one.push((0, NodeType::Input, 0));
+        graph_one.push((1, NodeType::Output, 1));
+        graph_one.attach(0, 1);
 
-        assert!(graph.is_valid());
-    }
+        let mut graph_two = Graph::default();
+        graph_two.push((0, NodeType::Input, 0));
+        graph_two.push((1, NodeType::Vertex, 1));
 
-    #[test]
-    fn test_graph_is_not_valid() {
-        let mut graph = Graph::default();
-        graph.push((0, NodeType::Input, 0));
-        graph.push((1, NodeType::Output, 1));
-        graph.attach(1, 0);
-
-        assert!(!graph.is_valid());
+        assert!(graph_one.is_valid());
+        assert!(!graph_two.is_valid());
     }
 
     #[test]
