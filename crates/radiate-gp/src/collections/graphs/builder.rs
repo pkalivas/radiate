@@ -10,7 +10,6 @@ impl<T: Clone + Default> Graph<T> {
     ///
     /// # Example
     /// ```
-    /// use radiate::*;
     /// use radiate_gp::*;
     ///
     /// let values = vec![
@@ -59,7 +58,6 @@ impl<T: Clone + Default> Graph<T> {
     ///
     /// # Example
     /// ```
-    /// use radiate::*;
     /// use radiate_gp::*;
     ///
     /// let values = vec![

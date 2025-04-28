@@ -10,14 +10,6 @@ use super::random_provider;
 /// population. The selection process can be based on the fitness of the individuals
 /// in the population, or it can be based on the individuals themselves.
 ///
-/// # Example
-/// ```
-/// use radiate::selectors::{Select, RouletteSelector};
-///
-/// // Create a new instance of the RouletteSelector
-/// let selector = RouletteSelector::new();
-/// ```
-///
 pub trait Select<C: Chromosome> {
     fn name(&self) -> &'static str;
     fn select(

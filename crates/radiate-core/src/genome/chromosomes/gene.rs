@@ -20,7 +20,7 @@ pub trait Valid {
 ///
 /// # Example
 /// ```
-/// use radiate::*;
+/// use radiate_core::*;
 ///
 /// // A simple gene that represents a point.
 /// #[derive(Clone, Debug, PartialEq)]

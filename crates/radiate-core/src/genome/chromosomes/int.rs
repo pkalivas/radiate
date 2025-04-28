@@ -16,7 +16,7 @@ use std::ops::{Add, Bound, Div, Mul, Range, RangeBounds, Sub};
 ///
 /// # Example
 /// ``` rust
-/// use radiate::*;
+/// use radiate_core::*;
 ///
 /// // Create a new IntGene with an allele of 5, the min value will be i32::MIN
 /// // and the max value will be i32::MAX - same for the upper and lower bounds.
@@ -229,7 +229,7 @@ impl<T: Integer<T>> std::fmt::Debug for IntGene<T> {
 ///
 /// # Example
 /// ``` rust
-/// use radiate::*;
+/// use radiate_core::*;
 ///
 /// // Create a new IntChromosome with a vector of IntGene instances.
 /// let genes = vec![IntGene::from(0..10), IntGene::from(10..20)];

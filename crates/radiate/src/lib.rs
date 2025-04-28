@@ -4,9 +4,7 @@
 //! and evolutionary computation in Rust. It includes core traits, selection strategies,
 //! and genetic operators.
 
-pub use radiate_alters::*;
-pub use radiate_core::*;
-pub use radiate_selectors::*;
+pub use radiate_engines::*;
 
 #[cfg(feature = "gp")]
 pub use radiate_gp::*;

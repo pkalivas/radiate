@@ -26,7 +26,7 @@ pub use subset::SubSetCodex;
 ///
 /// # Example
 /// ``` rust
-/// use radiate::*;
+/// use radiate_core::*;
 ///
 /// // A simple struct to represent the NQueens problem.
 /// #[derive(Clone, Debug, PartialEq)]

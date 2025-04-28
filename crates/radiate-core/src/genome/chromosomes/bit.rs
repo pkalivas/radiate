@@ -7,7 +7,7 @@ use std::fmt::Debug;
 ///
 /// # Example
 /// ``` rust
-/// use radiate::*;
+/// use radiate_core::*;
 ///
 /// // Craete a new BitGene from the allele `true`.
 /// let gene: BitGene = true.into();

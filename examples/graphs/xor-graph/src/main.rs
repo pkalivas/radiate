@@ -1,5 +1,4 @@
 use radiate::*;
-use radiate_gp::*;
 
 const MAX_INDEX: usize = 5000;
 const MIN_SCORE: f32 = 0.01;

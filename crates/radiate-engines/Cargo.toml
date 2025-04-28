@@ -1,25 +1,17 @@
 [package]
-name = "radiate"
-version = "1.2.10"
+name = "radiate-engines"
+version = "0.0.1"
 edition = "2024"
 authors = ["pkalivas <peterkalivas@gmail.com>"]
-description = "A Rust library for genetic algorithms and artificial evolution."
+description = "Engines for the Radiate genetic algorithm library"
 repository = "https://github.com/pkalivas/radiate"
-readme = "../README.md"
+readme = "../../README.md"
 categories = ["science", "simulation", "algorithms"]
 keywords = ["simulation", "genetic", "learning", "artificial", "evolution"]
 license = "MIT"
 homepage = "https://pkalivas.github.io/radiate/"
 
 [dependencies]
-rand = "0.9.0"
 radiate-core = { path = "../radiate-core" }
 radiate-alters = { path = "../radiate-alters" }
 radiate-selectors = { path = "../radiate-selectors" }
-radiate-engines = { path = "../radiate-engines" }
-radiate-gp = { path = "../radiate-gp", optional = true }
-
-[features]
-default = []
-gp = ["radiate-gp"]
-

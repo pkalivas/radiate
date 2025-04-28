@@ -18,7 +18,7 @@ use std::{
 ///
 /// # Example
 /// ``` rust
-/// use radiate::*;
+/// use radiate_core::*;
 ///
 /// // Create a new FloatGene with a min value of 0 and a max value of 1 meaning the
 /// // allele will be a random number between 0 and 1.
@@ -219,7 +219,7 @@ impl Debug for FloatGene {
 ///
 /// # Example
 /// ```rust
-/// use radiate::*;
+/// use radiate_core::*;
 ///
 /// let chromosome = FloatChromosome::from(vec![0.0, 1.0, 2.0]);
 /// let chromosome_allels = chromosome

@@ -94,7 +94,7 @@ impl FloatCodex<f32> {
 ///
 /// * Example:
 /// ``` rust
-/// use radiate::*;
+/// use radiate_core::*;
 ///
 /// // Create a new FloatCodex with 3 chromosomes and 4 genes
 /// // per chromosome - a 3x4 matrix of f32 values.
@@ -130,7 +130,7 @@ impl Codex<FloatChromosome, Vec<Vec<f32>>> for FloatCodex<Vec<Vec<f32>>> {
 ///
 /// # Example
 /// ``` rust
-/// use radiate::*;
+/// use radiate_core::*;
 ///
 /// // Create a new FloatCodex with 3 genes
 /// // per chromosome - a vector with 3 f32 values.
@@ -165,7 +165,7 @@ impl Codex<FloatChromosome, Vec<f32>> for FloatCodex<Vec<f32>> {
 ///
 /// # Example
 /// ``` rust
-/// use radiate::*;
+/// use radiate_core::*;
 ///
 /// // Create a new FloatCodex with a single gene
 /// // per chromosome - a single f32 value.

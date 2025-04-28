@@ -12,7 +12,7 @@ use super::Codex;
 /// ``` rust
 /// // In traditional genetic algorithms, a `BitCodex` would be used to create a `Genotype` of `BitGenes`, or a bit string.
 /// // This would simply be created by the following:
-/// use radiate::*;
+/// use radiate_core::*;
 ///
 /// // The number of bits (`BitGenes`) in the bit string
 /// let length = 10;

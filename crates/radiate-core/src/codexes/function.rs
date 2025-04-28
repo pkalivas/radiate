@@ -7,7 +7,7 @@ use std::sync::Arc;
 ///
 /// # Example
 /// ``` rust
-/// use radiate::*;
+/// use radiate_core::*;
 ///
 /// const N_QUEENS: usize = 8;
 ///

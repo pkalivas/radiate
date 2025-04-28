@@ -12,7 +12,7 @@ pub const ALPHABET: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP
 ///
 /// # Example
 /// ``` rust
-/// use radiate::*;
+/// use radiate_core::*;
 ///
 /// // Create a new CharGene with a random allele from the ALPHABET constant.
 /// let gene = CharGene::default();

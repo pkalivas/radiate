@@ -14,3 +14,5 @@ homepage = "https://pkalivas.github.io/radiate/"
 [dependencies]
 radiate-core = { path = "../radiate-core" }
 
+[dev-dependencies]
+rstest = "0.25.0"
