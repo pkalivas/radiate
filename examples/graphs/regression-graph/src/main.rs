@@ -16,7 +16,7 @@ fn main() {
     let graph_codex = GraphCodex::directed(1, 1, values);
     let problem = Regression::new(get_dataset(), Loss::MSE, graph_codex);
 
-    let engine = GeneticEngine::from_problem(problem)
+    let mut engine = GeneticEngine::from_problem(problem)
         .minimizing()
         .num_threads(10)
         .alter(alters!(
@@ -34,7 +34,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
+fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     let mut evaluator = GraphEvaluator::new(&result.best);
 
     let data_set = get_dataset();

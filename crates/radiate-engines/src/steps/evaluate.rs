@@ -24,10 +24,10 @@ impl<C: Chromosome, T> EvaluateStep<C, T> {
     }
 }
 
-impl<C, T> EngineStep<C, T> for EvaluateStep<C, T>
+impl<C, T> EngineStep<C> for EvaluateStep<C, T>
 where
     C: Chromosome + 'static,
-    T: Send + 'static,
+    T: Clone + Send + 'static,
 {
     fn execute(
         &self,

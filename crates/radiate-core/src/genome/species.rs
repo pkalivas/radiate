@@ -55,6 +55,10 @@ impl<C: Chromosome> Species<C> {
         self.tracker.current()
     }
 
+    pub fn age(&self, current: usize) -> usize {
+        current - self.generation
+    }
+
     pub fn update_score(&mut self, score: Score, objective: &Objective) {
         objective.sort(&mut self.population);
 

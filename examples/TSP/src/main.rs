@@ -14,7 +14,7 @@ fn main() -> io::Result<()> {
 
     let codex = PermutationCodex::new((0..distance_matrix.len()).collect());
 
-    let engine = GeneticEngine::from_codex(codex)
+    let mut engine = GeneticEngine::from_codex(codex)
         .minimizing()
         .population_size(250)
         .alter(alters!(PMXCrossover::new(0.4), SwapMutator::new(0.05)))

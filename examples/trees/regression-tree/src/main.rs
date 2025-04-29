@@ -20,7 +20,7 @@ fn main() {
     let tree_codex = TreeCodex::single(3, store).constraint(|root| root.size() < 30);
     let problem = Regression::new(get_dataset(), Loss::MSE, tree_codex);
 
-    let engine = GeneticEngine::from_problem(problem)
+    let mut engine = GeneticEngine::from_problem(problem)
         .minimizing()
         .mutator(HoistMutator::new(0.01))
         .crossover(TreeCrossover::new(0.7))
@@ -34,7 +34,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
+fn display(result: &Generation<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
     let data_set = get_dataset();
     let accuracy = Accuracy::new("reg", &data_set, Loss::MSE);
     let accuracy_result = accuracy.calc(|input| vec![result.best.eval(input)]);

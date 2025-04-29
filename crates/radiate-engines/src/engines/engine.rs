@@ -1,15 +1,11 @@
-use radiate_core::{Ecosystem, Engine};
-
-use super::codexes::Codex;
-use super::context::EngineContext;
-use super::thread_pool::WaitGroup;
-use super::{GeneticEngineParams, MetricSet, Phenotype, Problem};
+use crate::Problem;
 use crate::builder::GeneticEngineBuilder;
-use crate::domain::timer::Timer;
-use crate::genome::population::Population;
-use crate::objectives::Objective;
-use crate::{Chromosome, Metric, Valid, metric_names};
-use std::sync::{Arc, RwLock};
+use crate::codexes::Codex;
+use crate::{Chromosome, Pipeline};
+use radiate_core::engine::EngineContext;
+use radiate_core::timer::Timer;
+use radiate_core::{Ecosystem, Engine, Epoch, MetricSet, Score, metric_names};
+use std::fmt::Debug;
 
 /// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -59,12 +55,29 @@ use std::sync::{Arc, RwLock};
 /// # Type Parameters
 /// - `C`: The type of the chromosome used in the genotype, which must implement the `Chromosome` trait.
 /// - `T`: The type of the phenotype produced by the genetic algorithm, which must be `Clone`, `Send`, and `static`.
-pub struct GeneticEngine<C, T>
+pub struct GeneticEngine<C, T, E = Generation<C, T>>
 where
     C: Chromosome + 'static,
     T: Clone + Send + 'static,
 {
-    params: GeneticEngineParams<C, T>,
+    context: EngineContext<C, T>,
+    pipeline: Pipeline<C>,
+    _epoch: std::marker::PhantomData<E>,
+}
+
+impl<C, T, E> GeneticEngine<C, T, E>
+where
+    C: Chromosome,
+    T: Clone + Send,
+    E: Epoch<C> + for<'a> From<&'a EngineContext<C, T>>,
+{
+    pub fn new(context: EngineContext<C, T>, pipeline: Pipeline<C>) -> Self {
+        GeneticEngine {
+            context,
+            pipeline,
+            _epoch: std::marker::PhantomData,
+        }
+    }
 }
 
 impl<C, T> GeneticEngine<C, T>
@@ -72,349 +85,137 @@ where
     C: Chromosome,
     T: Clone + Send,
 {
-    pub fn new(params: GeneticEngineParams<C, T>) -> Self {
-        GeneticEngine { params }
-    }
-
-    pub fn builder() -> GeneticEngineBuilder<C, T> {
+    pub fn builder() -> GeneticEngineBuilder<C, T, Generation<C, T>, Self> {
         GeneticEngineBuilder::default()
     }
 
-    pub fn from_codex(codex: impl Codex<C, T> + 'static) -> GeneticEngineBuilder<C, T> {
+    pub fn from_codex(
+        codex: impl Codex<C, T> + 'static,
+    ) -> GeneticEngineBuilder<C, T, Generation<C, T>, Self> {
         GeneticEngineBuilder::default().codex(codex)
     }
 
-    pub fn from_problem(problem: impl Problem<C, T> + 'static) -> GeneticEngineBuilder<C, T> {
+    pub fn from_problem(
+        problem: impl Problem<C, T> + 'static,
+    ) -> GeneticEngineBuilder<C, T, Generation<C, T>, Self> {
         GeneticEngineBuilder::default().problem(problem)
     }
+}
 
-    /// Executes the genetic algorithm. The algorithm continues until a specified
-    /// stopping condition, 'limit', is met, such as reaching a target fitness score or
-    /// exceeding a maximum number of generations. When 'limit' returns true, the algorithm stops.
-    pub fn run<F>(&self, limit: F) -> EngineContext<C, T>
+impl<C, T, E> Engine<C, T> for GeneticEngine<C, T, E>
+where
+    C: Chromosome,
+    T: Clone + Send,
+    E: Epoch<C> + for<'a> From<&'a EngineContext<C, T>>,
+{
+    type Epoch = E;
+
+    fn run<F>(&mut self, limit: F) -> Self::Epoch
     where
-        F: Fn(&EngineContext<C, T>) -> bool,
+        F: Fn(&E) -> bool,
     {
-        let mut ctx = self.start();
-
         loop {
-            self.next(&mut ctx);
+            let epoch = self.next();
 
-            if limit(&ctx) {
-                break self.stop(&mut ctx);
+            if limit(&epoch) {
+                break epoch;
             }
         }
     }
 
-    pub fn next(&self, ctx: &mut EngineContext<C, T>) {
-        self.evaluate(ctx);
+    fn next(&mut self) -> Self::Epoch {
+        let timer = Timer::new();
+        self.pipeline.run(
+            self.context.index,
+            &mut self.context.metrics,
+            &mut self.context.ecosystem,
+        );
 
-        let survivors = self.select_survivors(ctx);
-        let offspring = self.create_offspring(ctx);
+        self.context
+            .metrics
+            .upsert_time(metric_names::EVOLUTION_TIME, timer.duration());
 
-        self.recombine(ctx, survivors, offspring);
+        let best = self.context.ecosystem.population.get(0);
+        if let Some(best) = best {
+            if let (Some(score), Some(current)) = (best.score(), &self.context.score) {
+                if self.context.objective.is_better(score, current) {
+                    self.context.score = Some(score.clone());
+                    self.context.best = self.context.problem.decode(best.genotype());
+                }
+            } else {
+                self.context.score = Some(best.score().unwrap().clone());
+                self.context.best = self.context.problem.decode(best.genotype());
+            }
+        }
 
-        self.filter(ctx);
-        self.evaluate(ctx);
-        self.update_front(ctx);
-        self.audit(ctx);
+        self.context.index += 1;
+
+        (&self.context).into()
+    }
+}
+
+pub struct Generation<C, T>
+where
+    C: Chromosome,
+{
+    pub ecosystem: Ecosystem<C>,
+    pub best: T,
+    pub index: usize,
+    pub metrics: MetricSet,
+    pub score: Score,
+}
+
+impl<C: Chromosome, T> Generation<C, T> {
+    pub fn score(&self) -> &Score {
+        &self.score
+    }
+}
+
+impl<C: Chromosome, T> Epoch<C> for Generation<C, T> {
+    type Result = T;
+
+    fn ecosystem(&self) -> &Ecosystem<C> {
+        &self.ecosystem
     }
 
-    /// Evaluates the fitness of each individual in the population using the fitness function
-    /// provided in the genetic engine parameters. The score is then used to rank the individuals
-    /// in the population.
-    ///
-    /// Importantly, this method uses a thread pool to evaluate the fitness of each individual in
-    /// parallel, which can significantly speed up the evaluation process for large populations.
-    /// It will also only evaluate individuals that have not yet been scored, which saves time
-    /// by avoiding redundant evaluations.
-    fn evaluate(&self, ctx: &mut EngineContext<C, T>) {
-        panic!()
-        // let objective = self.params.objective();
-        // let thread_pool = self.params.thread_pool();
-        // let timer = Timer::new();
-
-        // let mut work_results = Vec::new();
-        // for idx in 0..ctx.population.len() {
-        //     let individual = &mut ctx.population[idx];
-        //     if individual.score().is_some() {
-        //         continue;
-        //     } else {
-        //         let problem = self.params.problem();
-        //         let geno = individual.take_genotype();
-        //         let work = thread_pool.submit_with_result(move || {
-        //             let score = problem.eval(&geno);
-        //             (idx, score, geno)
-        //         });
-
-        //         work_results.push(work);
-        //     }
-        // }
-
-        // let count = work_results.len() as f32;
-        // for work_result in work_results {
-        //     let (idx, score, genotype) = work_result.result();
-        //     ctx.population[idx].set_score(Some(score));
-        //     ctx.population[idx].set_genotype(genotype);
-        // }
-
-        // ctx.upsert_operation(metric_names::EVALUATION, count, timer);
-
-        // objective.sort(&mut ctx.population);
+    fn result(&self) -> &Self::Result {
+        &self.best
     }
 
-    /// the `select_survivors` method selects the individuals that will survive
-    /// to the next generation. The number of survivors is determined by the population size and the
-    /// offspring fraction specified in the genetic engine parameters. The survivors
-    /// are selected using the survivor selector specified in the genetic engine parameters,
-    /// which is typically a selection algorithm like tournament selection
-    /// or roulette wheel selection. For example, if the population size is 100 and the offspring
-    /// fraction is 0.8, then 20 individuals will be selected as survivors.
-    ///
-    /// The reasoning behind this is to ensure that a subset of the population is retained
-    /// to the next generation, while the rest of the population is replaced with new individuals created
-    /// through crossover and mutation. By selecting a subset of the population to survive, the genetic algorithm
-    /// can maintain some of the best solutions found so far while also introducing new genetic material/genetic diversity.
-    ///
-    /// This method returns a new population containing only the selected survivors.
-    fn select_survivors(&self, ctx: &mut EngineContext<C, T>) -> Population<C> {
-        panic!()
-        // let selector = self.params.survivor_selector();
-        // let count = self.params.survivor_count();
-        // let objective = self.params.objective();
-
-        // let timer = Timer::new();
-        // let result = selector.select(&ctx.population, objective, count);
-
-        // ctx.upsert_operation(selector.name(), count as f32, timer);
-
-        // result
+    fn index(&self) -> usize {
+        self.index
     }
 
-    /// Create the offspring that will be used to create the next generation. The number of offspring
-    /// is determined by the population size and the offspring fraction specified in the genetic
-    /// engine parameters. The offspring are selected using the offspring selector specified in the
-    /// genetic engine parameters, which, like the survivor selector, is typically a selection algorithm
-    /// like tournament selection or roulette wheel selection. For example, if the population size is 100
-    /// and the offspring fraction is 0.8, then 80 individuals will be selected as offspring which will
-    /// be used to create the next generation through crossover and mutation.
-    ///
-    /// Once the parents are selected through the offspring selector, the `create_offspring` method
-    /// will apply the mutation and crossover operations specified during engine creation to the
-    /// selected parents, creating a new population of `Phenotypes` with the same size as the
-    /// `offspring_fraction` specifies. This process introduces new genetic material into the population,
-    /// which allows the genetic algorithm explore new solutions in the problem space and (hopefully)
-    /// avoid getting stuck in local minima.
-    fn create_offspring(&self, ctx: &mut EngineContext<C, T>) -> Population<C> {
-        panic!();
-        // let selector = self.params.offspring_selector();
-        // let count = self.params.offspring_count();
-        // let objective = self.params.objective();
-        // let alters = self.params.alters();
-
-        // let timer = Timer::new();
-        // let mut offspring = selector.select(&ctx.population, objective, count);
-
-        // ctx.upsert_operation(selector.name(), count as f32, timer);
-        // objective.sort(&mut offspring);
-
-        // alters.iter().for_each(|alt| {
-        //     alt.alter(&mut offspring, ctx.index)
-        //         .into_iter()
-        //         .for_each(|metric| {
-        //             ctx.upsert_metric(metric);
-        //         });
-        // });
-
-        // offspring
+    fn metrics(&self) -> &MetricSet {
+        &self.metrics
     }
+}
 
-    /// Filters the population to remove individuals that are too old or invalid. The maximum age
-    /// of an individual is determined by the 'max_age' parameter in the genetic engine parameters.
-    /// If an individual's age exceeds this limit, it is replaced with a new individual. Similarly,
-    /// if an individual is found to be invalid (i.e., its genotype is not valid, provided by the `valid` trait),
-    /// it is replaced with a new individual. This method ensures that the population remains
-    /// healthy and that only valid individuals are allowed to reproduce or survive to the next generation.
-    ///
-    /// The method in which a new individual is created is determined by the `filter_strategy`
-    /// parameter in the genetic engine parameters and is either `FilterStrategy::Encode` or
-    /// `FilterStrategy::PopulationSample`. If the `FilterStrategy` is `FilterStrategy::Encode`, then a new individual
-    /// is created using the `encode` method of the `Problem` trait, while if the `FilterStrategy`
-    /// is `FilterStrategy::PopulationSample`, then a new individual is created by randomly selecting
-    /// an individual from the population.
-    fn filter(&self, ctx: &mut EngineContext<C, T>) {
-        panic!();
-        // let max_age = self.params.max_age();
-
-        // let generation = ctx.index;
-        // let population = &mut ctx.population;
-
-        // let timer = Timer::new();
-        // let mut age_count = 0_f32;
-        // let mut invalid_count = 0_f32;
-        // for i in 0..population.len() {
-        //     let phenotype = &population[i];
-
-        //     let mut removed = false;
-        //     if phenotype.age(generation) > max_age {
-        //         removed = true;
-        //         age_count += 1_f32;
-        //     } else if !phenotype.genotype().is_valid() {
-        //         removed = true;
-        //         invalid_count += 1_f32;
-        //     }
-
-        //     if removed {
-        //         let replacement = self.params.replacement_strategy();
-        //         let problem = self.params.problem();
-        //         let encoder = Arc::new(move || problem.encode());
-
-        //         let new_genotype = replacement.replace(population, encoder);
-        //         population[i] = Phenotype::from((new_genotype, generation));
-        //     }
-        // }
-
-        // let duration = timer.duration();
-        // ctx.upsert_operation(metric_names::FILTER_AGE, age_count, duration);
-        // ctx.upsert_operation(metric_names::FILTER_INVALID, invalid_count, duration);
-    }
-
-    /// Recombines the survivors and offspring populations to create the next generation. The survivors
-    /// are the individuals from the previous generation that will survive to the next generation, while the
-    /// offspring are the individuals that were selected from the previous generation then altered.
-    /// This method combines the survivors and offspring populations into a single population that
-    /// will be used in the next iteration of the genetic algorithm.
-    fn recombine(
-        &self,
-        ctx: &mut EngineContext<C, T>,
-        survivors: Population<C>,
-        offspring: Population<C>,
-    ) {
-        panic!();
-        // ctx.population = survivors
-        //     .into_iter()
-        //     .chain(offspring)
-        //     .collect::<Population<C>>();
-    }
-
-    /// Audits the current state of the genetic algorithm, updating the best individual found so far
-    /// and calculating various metrics such as the age of individuals, the score of individuals, and the
-    /// number of unique scores in the population. This method is called at the end of each generation.
-    fn audit(&self, ctx: &mut EngineContext<C, T>) {
-        panic!();
-        // let audits = self.params.audits();
-        // let problem = self.params.problem();
-        // let optimize = self.params.objective();
-
-        // optimize.sort(&mut ctx.population);
-
-        // let audit_metrics = audits
-        //     .iter()
-        //     .flat_map(|audit| audit.audit(ctx.index(), &ctx.population))
-        //     .collect::<Vec<Metric>>();
-
-        // for metric in audit_metrics {
-        //     ctx.upsert_metric(metric);
-        // }
-
-        // if let Some(current_best) = ctx.population.get(0) {
-        //     if let (Some(best), Some(current)) = (current_best.score(), &ctx.score) {
-        //         if optimize.is_better(best, current) {
-        //             ctx.score = Some(best.clone());
-        //             ctx.best = problem.decode(current_best.genotype());
-        //         }
-        //     } else {
-        //         ctx.score = Some(current_best.score().unwrap().clone());
-        //         ctx.best = problem.decode(current_best.genotype());
-        //     }
-        // }
-
-        // ctx.index += 1;
-    }
-
-    /// Updates the front of the population using the scores of the individuals. The front is a collection
-    /// of individuals that are not dominated by any other individual in the population. This method is only
-    /// called if the objective is multi-objective, as the front is not relevant for single-objective optimization.
-    /// The front is updated in a separate thread to avoid blocking the main thread while the front is being calculated.
-    /// This can significantly speed up the calculation of the front for large populations.
-    fn update_front(&self, ctx: &mut EngineContext<C, T>) {
-        let objective = self.params.objective();
-        let thread_pool = self.params.thread_pool();
-
-        if let Objective::Multi(_) = objective {
-            // TODO: Examine the clones here - it seems like we can reduce the number of clones of
-            // the population. The front is a cheap clone (the values are wrapped in an Arc), but
-            // the population is not. But at the same time - this is still pretty damn fast.
-            // let timer = Timer::new();
-            // let wg = WaitGroup::new();
-
-            // let new_individuals = ctx
-            //     .population
-            //     .iter()
-            //     .filter(|pheno| pheno.generation() == ctx.index)
-            //     .collect::<Vec<&Phenotype<C>>>();
-
-            // let front = Arc::new(RwLock::new(ctx.front.clone()));
-            // let dominates_vector = Arc::new(RwLock::new(vec![false; new_individuals.len()]));
-            // let remove_vector = Arc::new(RwLock::new(Vec::new()));
-
-            // for (idx, member) in new_individuals.iter().enumerate() {
-            //     let pheno = Phenotype::clone(member);
-            //     let front_clone = Arc::clone(&front);
-            //     let doms_vector = Arc::clone(&dominates_vector);
-            //     let remove_vector = Arc::clone(&remove_vector);
-
-            //     thread_pool.group_submit(&wg, move || {
-            //         let (dominates, to_remove) = front_clone.read().unwrap().dominates(&pheno);
-
-            //         if dominates {
-            //             doms_vector.write().unwrap().get_mut(idx).map(|v| *v = true);
-            //             remove_vector
-            //                 .write()
-            //                 .unwrap()
-            //                 .extend(to_remove.iter().map(Arc::clone));
-            //         }
-            //     });
-            // }
-
-            // let count = wg.wait();
-
-            // let dominates_vector = dominates_vector
-            //     .read()
-            //     .unwrap()
-            //     .iter()
-            //     .enumerate()
-            //     .filter(|(_, is_dominating)| **is_dominating)
-            //     .map(|(idx, _)| new_individuals[idx])
-            //     .collect::<Vec<&Phenotype<C>>>();
-            // let mut remove_vector = remove_vector.write().unwrap();
-
-            // remove_vector.dedup();
-
-            // ctx.front.clean(dominates_vector, remove_vector.as_slice());
-
-            // ctx.upsert_operation(metric_names::FRONT, count as f32, timer);
+impl<C: Chromosome, T: Clone> From<&EngineContext<C, T>> for Generation<C, T> {
+    fn from(context: &EngineContext<C, T>) -> Self {
+        Generation {
+            ecosystem: context.ecosystem.clone(),
+            best: context.best.clone(),
+            index: context.index,
+            metrics: context.metrics.clone(),
+            score: context.score.clone().unwrap(),
         }
     }
+}
 
-    fn start(&self) -> EngineContext<C, T> {
-        let population = self.params.population().clone();
-
-        EngineContext {
-            // population: population.clone(),
-            ecosystem: Ecosystem::new(population.clone()),
-            best: self.params.problem().decode(population[0].genotype()),
-            index: 0,
-            timer: Timer::new(),
-            metrics: MetricSet::new(),
-            score: None,
-            front: self.params.front().clone(),
-        }
-    }
-
-    fn stop(&self, output: &mut EngineContext<C, T>) -> EngineContext<C, T> {
-        output.timer.stop();
-        output.clone()
+impl<C, T: Debug> Debug for Generation<C, T>
+where
+    C: Chromosome,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "EngineOutput {{\n")?;
+        write!(f, "  best: {:?},\n", self.best)?;
+        write!(f, "  score: {:?},\n", self.score)?;
+        write!(f, "  index: {:?},\n", self.index)?;
+        write!(f, "  size: {:?},\n", self.ecosystem.population.len())?;
+        write!(f, "  duration: {:?},\n", self.time())?;
+        write!(f, "  metrics: {:?},\n", self.metrics)?;
+        write!(f, "}}")
     }
 }
 

@@ -1,13 +1,13 @@
 use radiate_core::{
-    Alter, AlterAction, Chromosome, Ecosystem, MetricSet, Objective, Population, Select,
-    engine::EngineStep, timer::Timer,
+    Alter, Chromosome, Ecosystem, MetricSet, Objective, Population, Select, engine::EngineStep,
+    timer::Timer,
 };
 use std::sync::Arc;
 
 pub struct RecombineStep<C: Chromosome> {
     pub(crate) survivor_selector: Arc<dyn Select<C>>,
     pub(crate) offspring_selector: Arc<dyn Select<C>>,
-    pub(crate) alters: Vec<Arc<AlterAction<C>>>,
+    pub(crate) alters: Vec<Arc<dyn Alter<C>>>,
     pub(crate) survivor_count: usize,
     pub(crate) offspring_count: usize,
     pub(crate) objective: Objective,
@@ -24,7 +24,7 @@ impl<C: Chromosome> RecombineStep<C> {
             &population.population,
             &self.objective,
             metrics,
-            Arc::clone(&self.survivor_selector),
+            &self.survivor_selector,
         )
     }
 
@@ -39,7 +39,7 @@ impl<C: Chromosome> RecombineStep<C> {
             &population,
             &self.objective,
             metrics,
-            Arc::clone(&self.offspring_selector),
+            &self.offspring_selector,
         )
     }
 
@@ -91,6 +91,8 @@ impl<C: Chromosome> RecombineStep<C> {
             let mut offspring =
                 self.select_offspring(self.offspring_count, &ecosystem.population, metrics);
 
+            self.objective.sort(&mut offspring);
+
             self.apply_alterations(generation, &mut offspring, metrics);
             offspring
         }
@@ -101,7 +103,7 @@ impl<C: Chromosome> RecombineStep<C> {
         population: &Population<C>,
         objective: &Objective,
         metrics: &mut MetricSet,
-        selector: Arc<dyn Select<C>>,
+        selector: &Arc<dyn Select<C>>,
     ) -> Population<C> {
         let timer = Timer::new();
         let selected = selector.select(population, objective, count);
@@ -111,10 +113,9 @@ impl<C: Chromosome> RecombineStep<C> {
     }
 }
 
-impl<C, T> EngineStep<C, T> for RecombineStep<C>
+impl<C> EngineStep<C> for RecombineStep<C>
 where
     C: Chromosome + 'static,
-    T: Send + Sync + 'static,
 {
     fn execute(
         &self,

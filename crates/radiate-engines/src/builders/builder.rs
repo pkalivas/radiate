@@ -1,19 +1,20 @@
-use radiate_alters::{UniformCrossover, UniformMutator};
-
-use super::codexes::Codex;
-use super::thread_pool::ThreadPool;
-use super::{
-    Alter, AlterAction, Audit, Crossover, EncodeReplace, EngineProblem, Front, GeneticEngineParams,
-    MetricAudit, Mutate, Problem, ReplacementStrategy, RouletteSelector, Select,
-    TournamentSelector, pareto,
+use crate::codexes::Codex;
+use crate::thread_pool::ThreadPool;
+use crate::{
+    Alter, AlterAction, Audit, Crossover, EncodeReplace, EngineProblem, EngineStep, Front,
+    MetricAudit, MultiObjectiveEngine, MultiObjectiveGeneration, Mutate, Problem,
+    ReplacementStrategy, RouletteSelector, Select, TournamentSelector, pareto,
 };
-use crate::Chromosome;
-use crate::engine::GeneticEngine;
+// use crate::engine::GeneticEngine;
 use crate::genome::phenotype::Phenotype;
 use crate::genome::population::Population;
 use crate::objectives::Score;
 use crate::objectives::{Objective, Optimize};
-use crate::standard::StandardEngine;
+use crate::steps::{AuditStep, FilterStep, RecombineStep};
+use crate::{Chromosome, EngineConfig, EvaluateStep, GeneticEngine, Pipeline};
+use radiate_alters::{UniformCrossover, UniformMutator};
+use radiate_core::engine::EngineContext;
+use radiate_core::{Ecosystem, Engine, Epoch, MetricSet};
 use std::cmp::Ordering;
 use std::ops::Range;
 use std::sync::Arc;
@@ -31,16 +32,19 @@ use std::sync::Arc;
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 /// - `T`: The type of the best individual in the population.
 ///
-pub struct GeneticEngineBuilder<C, T>
+#[derive(Clone)]
+pub struct GeneticEngineBuilder<C, T, O, E>
 where
     C: Chromosome + 'static,
     T: Clone + 'static,
+    O: Epoch<C>,
+    E: Engine<C, T, Epoch = O>,
 {
     pub population_size: usize,
     pub max_age: usize,
     pub front_range: Range<usize>,
     pub offspring_fraction: f32,
-    pub thread_pool: ThreadPool,
+    pub thread_pool: Arc<ThreadPool>,
     pub objective: Objective,
     pub survivor_selector: Arc<dyn Select<C>>,
     pub offspring_selector: Arc<dyn Select<C>>,
@@ -52,12 +56,15 @@ where
     pub problem: Option<Arc<dyn Problem<C, T>>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     pub front: Option<Front<Phenotype<C>>>,
+    _phantom: std::marker::PhantomData<(O, E)>,
 }
 
-impl<C, T> GeneticEngineBuilder<C, T>
+impl<C, T, O, E> GeneticEngineBuilder<C, T, O, E>
 where
     C: Chromosome,
     T: Clone + Send,
+    O: Epoch<C>,
+    E: Engine<C, T, Epoch = O>,
 {
     /// Set the population size of the genetic engine. Default is 100.
     pub fn population_size(mut self, population_size: usize) -> Self {
@@ -232,9 +239,30 @@ where
         self
     }
 
-    pub fn multi_objective(mut self, objectives: Vec<Optimize>) -> Self {
+    pub fn multi_objective(
+        mut self,
+        objectives: Vec<Optimize>,
+    ) -> GeneticEngineBuilder<C, T, MultiObjectiveGeneration<C>, MultiObjectiveEngine<C, T>> {
         self.objective = Objective::Multi(objectives);
-        self
+        GeneticEngineBuilder::<C, T, MultiObjectiveGeneration<C>, MultiObjectiveEngine<C, T>> {
+            population_size: self.population_size,
+            max_age: self.max_age,
+            front_range: self.front_range,
+            offspring_fraction: self.offspring_fraction,
+            thread_pool: self.thread_pool,
+            objective: self.objective.clone(),
+            survivor_selector: self.survivor_selector.clone(),
+            offspring_selector: self.offspring_selector.clone(),
+            alterers: self.alterers.clone(),
+            audits: self.audits.clone(),
+            population: self.population.clone(),
+            codex: self.codex.clone(),
+            fitness_fn: self.fitness_fn.clone(),
+            problem: self.problem.clone(),
+            replacement_strategy: self.replacement_strategy.clone(),
+            front: self.front.clone(),
+            _phantom: std::marker::PhantomData,
+        }
     }
 
     /// Set the minimum and maximum size of the pareto front. This is used for
@@ -249,13 +277,16 @@ where
     /// to execute the fitness function in parallel. Some fitness functions may be computationally
     /// expensive and can benefit from parallel execution.
     pub fn num_threads(mut self, num_threads: usize) -> Self {
-        self.thread_pool = ThreadPool::new(num_threads);
+        self.thread_pool = Arc::new(ThreadPool::new(num_threads));
         self
     }
 
     /// Build the genetic engine with the given parameters. This will create a new
     /// instance of the `GeneticEngine` with the given parameters.
-    pub fn build(mut self) -> GeneticEngine<C, T> {
+    pub fn build(mut self) -> GeneticEngine<C, T, O>
+    where
+        for<'a> O: From<&'a EngineContext<C, T>>,
+    {
         if self.problem.is_none() {
             if self.codex.is_none() {
                 panic!("Codex not set");
@@ -276,21 +307,88 @@ where
             self.build_alterer();
             self.build_front();
 
-            GeneticEngine::new(GeneticEngineParams::new(
-                self.population.unwrap(),
-                self.problem.unwrap(),
-                self.survivor_selector,
-                self.offspring_selector,
-                self.replacement_strategy,
-                self.audits,
-                self.alterers,
-                self.objective,
-                self.thread_pool,
-                self.max_age,
-                self.front.clone().unwrap(),
-                self.offspring_fraction,
-            ))
+            let config = EngineConfig {
+                population: self.population.clone().unwrap(),
+                problem: self.problem.clone().unwrap(),
+                survivor_selector: self.survivor_selector.clone(),
+                offspring_selector: self.offspring_selector.clone(),
+                replacement_strategy: self.replacement_strategy.clone(),
+                audits: self.audits.clone(),
+                alterers: self.alterers.clone(),
+                objective: self.objective.clone(),
+                thread_pool: self.thread_pool.clone(),
+                max_age: self.max_age,
+                front: self.front.clone().unwrap(),
+                offspring_fraction: self.offspring_fraction,
+            };
+
+            let mut pipeline = Pipeline::<C>::default();
+
+            pipeline.add_step(Self::build_eval_step(&config));
+            pipeline.add_step(Self::build_recombine_step(&config));
+            pipeline.add_step(Self::build_filter_step(&config));
+            pipeline.add_step(Self::build_eval_step(&config));
+            pipeline.add_step(Self::build_audit_step(&config));
+
+            let context = EngineContext {
+                ecosystem: Ecosystem::new(config.population.clone()),
+                best: config.problem.decode(config.population()[0].genotype()),
+                index: 0,
+                metrics: MetricSet::new(),
+                score: None,
+                front: config.front.clone(),
+                objective: config.objective.clone(),
+                problem: config.problem.clone(),
+            };
+
+            GeneticEngine::<C, T, O>::new(context, pipeline)
         }
+    }
+
+    fn build_eval_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+        let eval_step = EvaluateStep {
+            objective: config.objective(),
+            thread_pool: config.thread_pool(),
+            problem: config.problem(),
+        };
+
+        Some(Box::new(eval_step))
+    }
+
+    fn build_recombine_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+        let recombine_step = RecombineStep {
+            survivor_selector: config.survivor_selector(),
+            offspring_selector: config.offspring_selector(),
+            alters: config.alters().to_vec(),
+            survivor_count: config.survivor_count(),
+            offspring_count: config.offspring_count(),
+            objective: config.objective(),
+        };
+
+        Some(Box::new(recombine_step))
+    }
+
+    fn build_filter_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+        let filter_step = FilterStep {
+            replacer: config.replacement_strategy(),
+            encoder: config.encoder(),
+            max_age: config.max_age(),
+            max_species_age: 25,
+        };
+
+        Some(Box::new(filter_step))
+    }
+
+    fn build_audit_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+        if config.audits().is_empty() {
+            return None;
+        }
+
+        let audit_step = AuditStep {
+            audits: config.audits().to_vec(),
+        };
+
+        Some(Box::new(audit_step))
     }
 
     // pub fn build2(mut self) -> StandardEngine<C, T> {
@@ -391,10 +489,12 @@ where
     }
 }
 
-impl<C, T> Default for GeneticEngineBuilder<C, T>
+impl<C, T, O, E> Default for GeneticEngineBuilder<C, T, O, E>
 where
     C: Chromosome + 'static,
     T: Clone + Send + 'static,
+    O: Epoch<C>,
+    E: Engine<C, T, Epoch = O>,
 {
     fn default() -> Self {
         GeneticEngineBuilder {
@@ -402,7 +502,7 @@ where
             max_age: 20,
             offspring_fraction: 0.8,
             front_range: 800..900,
-            thread_pool: ThreadPool::new(1),
+            thread_pool: Arc::new(ThreadPool::new(1)),
             objective: Objective::Single(Optimize::Maximize),
             survivor_selector: Arc::new(TournamentSelector::new(3)),
             offspring_selector: Arc::new(RouletteSelector::new()),
@@ -414,6 +514,7 @@ where
             fitness_fn: None,
             problem: None,
             front: None,
+            _phantom: std::marker::PhantomData,
         }
     }
 }

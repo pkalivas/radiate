@@ -2,7 +2,7 @@ use radiate::*;
 
 const MIN_SCORE: f32 = 0.0001;
 const MAX_INDEX: usize = 500;
-const MAX_SECONDS: u64 = 1;
+const MAX_SECONDS: f64 = 1.0;
 
 fn main() {
     random_provider::set_seed(12345);
@@ -23,7 +23,7 @@ fn main() {
     };
 
     // let engine = GeneticEngine::from_codex(codex.clone())
-    let engine = GeneticEngine::builder()
+    let mut engine = GeneticEngine::builder()
         .minimizing()
         .num_threads(5)
         .codex(codex.clone())
@@ -38,9 +38,7 @@ fn main() {
 
     let result = engine.run(|ctx| {
         println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32());
-        ctx.score().as_f32() < MIN_SCORE
-            || ctx.index == MAX_INDEX
-            || ctx.timer.duration().as_secs() > MAX_SECONDS
+        ctx.score().as_f32() < MIN_SCORE || ctx.index == MAX_INDEX || ctx.seconds() > MAX_SECONDS
     });
 
     println!("Seconds: {:?}", result.seconds());

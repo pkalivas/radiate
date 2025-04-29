@@ -1,24 +1,49 @@
-use crate::{Chromosome, Ecosystem, MetricSet, Population, Score};
+use std::{sync::Arc, time::Duration};
+
+use crate::{
+    Chromosome, Ecosystem, Front, MetricSet, Objective, Phenotype, Population, Problem, Score,
+    metric_names,
+};
 
 pub trait Engine<C: Chromosome, T> {
-    type Epoch: Epoch<C, T>;
+    type Epoch: Epoch<C>;
 
-    fn next(&mut self);
+    fn next(&mut self) -> Self::Epoch;
 
     fn run<F>(&mut self, limit: F) -> Self::Epoch
     where
         F: Fn(&Self::Epoch) -> bool;
 }
 
-pub trait Epoch<C: Chromosome, T> {
-    fn population(&self) -> &Population<C>;
-    fn generation(&self) -> usize;
-    fn score(&self) -> &Score;
-    fn best(&self) -> &T;
+pub trait Epoch<C: Chromosome> {
+    type Result;
+
+    fn ecosystem(&self) -> &Ecosystem<C>;
+    fn result(&self) -> &Self::Result;
+    fn index(&self) -> usize;
     fn metrics(&self) -> &MetricSet;
+
+    fn population(&self) -> &Population<C> {
+        &self.ecosystem().population
+    }
+
+    fn time(&self) -> Duration {
+        self.metrics()
+            .get(metric_names::EVOLUTION_TIME)
+            .unwrap()
+            .time_sum()
+            .unwrap()
+    }
+
+    fn seconds(&self) -> f64 {
+        self.time().as_secs_f64()
+    }
 }
 
-pub trait EngineStep<C: Chromosome, T> {
+pub trait EngineStep<C>
+where
+    C: Chromosome,
+{
     fn name(&self) -> &'static str {
         std::any::type_name::<Self>()
             .split("<")
@@ -30,4 +55,37 @@ pub trait EngineStep<C: Chromosome, T> {
     }
 
     fn execute(&self, generation: usize, metrics: &mut MetricSet, ecosystem: &mut Ecosystem<C>);
+}
+
+pub struct EngineContext<C, T>
+where
+    C: Chromosome,
+{
+    pub ecosystem: Ecosystem<C>,
+    pub best: T,
+    pub index: usize,
+    pub metrics: MetricSet,
+    pub score: Option<Score>,
+    pub front: Front<Phenotype<C>>,
+    pub objective: Objective,
+    pub problem: Arc<dyn Problem<C, T>>,
+}
+
+impl<C, T> Clone for EngineContext<C, T>
+where
+    C: Chromosome,
+    T: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            ecosystem: self.ecosystem.clone(),
+            best: self.best.clone(),
+            index: self.index,
+            metrics: self.metrics.clone(),
+            score: self.score.clone(),
+            front: self.front.clone(),
+            objective: self.objective.clone(),
+            problem: Arc::clone(&self.problem),
+        }
+    }
 }

@@ -10,7 +10,7 @@ fn main() {
 
     let codex = FloatCodex::vector(VARIABLES, 0_f32..1_f32).with_bounds(-100.0..100.0);
 
-    let engine = GeneticEngine::from_codex(codex)
+    let mut engine = GeneticEngine::from_codex(codex)
         .num_threads(10)
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
         .front_size(1100..1300)
@@ -30,7 +30,7 @@ fn main() {
 
     println!("{:?}", result.seconds());
     println!("{:?}", result.metrics);
-    plot_front(&result.front);
+    plot_front(&result.result());
 }
 
 fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {

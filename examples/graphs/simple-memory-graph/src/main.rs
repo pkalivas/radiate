@@ -16,7 +16,7 @@ fn main() {
     let graph_codex = GraphCodex::recurrent(1, 1, values);
     let regression = Regression::new(get_dataset(), Loss::MSE, graph_codex);
 
-    let engine = GeneticEngine::from_problem(regression)
+    let mut engine = GeneticEngine::from_problem(regression)
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .survivor_selector(TournamentSelector::new(4))
@@ -35,7 +35,7 @@ fn main() {
     display(&result);
 }
 
-fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
+fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     let mut reducer = GraphEvaluator::new(&result.best);
     for sample in get_dataset().iter() {
         let output = reducer.eval_mut(sample.input());

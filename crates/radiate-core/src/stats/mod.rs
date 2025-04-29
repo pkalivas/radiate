@@ -10,6 +10,7 @@ pub use statistics::*;
 pub use time_statistic::*;
 
 pub mod metric_names {
+    pub const EVOLUTION_TIME: &str = "Time";
     pub const SCORE: &str = "Score";
     pub const AGE: &str = "Age";
     pub const EVALUATION: &str = "Evaluation";

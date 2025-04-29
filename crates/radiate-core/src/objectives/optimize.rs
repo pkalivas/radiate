@@ -1,5 +1,3 @@
-use crate::{Chromosome, Population};
-
 use super::Scored;
 
 #[derive(Clone, Debug, PartialEq)]

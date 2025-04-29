@@ -17,6 +17,14 @@ impl<C: Chromosome> Ecosystem<C> {
         }
     }
 
+    pub fn population_len(&self) -> usize {
+        self.population.len()
+    }
+
+    pub fn species_len(&self) -> usize {
+        self.species.as_ref().map_or(0, |s| s.len())
+    }
+
     pub fn generate_mascots(&mut self) {
         if let Some(species) = &mut self.species {
             for spec in species {

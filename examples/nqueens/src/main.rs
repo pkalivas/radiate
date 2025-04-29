@@ -7,7 +7,7 @@ fn main() {
 
     let codex = IntCodex::vector(N_QUEENS, 0..N_QUEENS as i8);
 
-    let engine = GeneticEngine::from_codex(codex)
+    let mut engine = GeneticEngine::from_codex(codex)
         .minimizing()
         .num_threads(5)
         .offspring_selector(BoltzmannSelector::new(4.0))
@@ -36,7 +36,7 @@ fn main() {
         ctx.score().as_usize() == 0
     });
 
-    println!("\nResult Queens Board ({:.3?}):", result.timer.duration());
+    println!("\nResult Queens Board ({:.3?}):", result.time());
 
     let board = &result.best;
     for i in 0..N_QUEENS {
