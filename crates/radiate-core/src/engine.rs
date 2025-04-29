@@ -29,8 +29,8 @@ pub trait Engine<C: Chromosome, T> {
 pub trait Epoch<C: Chromosome> {
     type Result;
 
-    fn ecosystem(&self) -> &Ecosystem<C>;
     fn result(&self) -> &Self::Result;
+    fn ecosystem(&self) -> &Ecosystem<C>;
     fn index(&self) -> usize;
     fn metrics(&self) -> &MetricSet;
 

@@ -20,7 +20,7 @@ where
         ecosystem: &mut Ecosystem<C>,
     ) {
         for audit in &self.audits {
-            for metric in audit.audit(generation, &ecosystem.population) {
+            for metric in audit.audit(generation, &ecosystem) {
                 metrics.upsert(metric);
             }
         }

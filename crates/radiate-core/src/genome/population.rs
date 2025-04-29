@@ -3,7 +3,7 @@ use crate::cell::MutCell;
 use crate::objectives::Scored;
 use crate::{Chromosome, Score};
 use std::fmt::Debug;
-use std::ops::{Index, IndexMut};
+use std::ops::{Index, IndexMut, Range};
 
 /// A `Population` is a collection of `Phenotype` instances. This struct is the core collection of individuals
 /// being evolved by the `GeneticEngine`. It can be thought of as a Vec of `Phenotype`s and
@@ -44,9 +44,18 @@ impl<C: Chromosome> Population<C> {
         self.individuals.get_mut(index).map(|cell| cell.get_mut())
     }
 
-    pub fn push(&mut self, individual: Phenotype<C>) {
+    pub fn get_cell_mut(&mut self, index: usize) -> Option<&mut MutCell<Phenotype<C>>> {
         self.is_sorted = false;
-        self.individuals.push(MutCell::new(individual));
+        self.individuals.get_mut(index)
+    }
+
+    pub fn get_cell(&self, index: usize) -> Option<&MutCell<Phenotype<C>>> {
+        self.individuals.get(index)
+    }
+
+    pub fn push(&mut self, individual: impl Into<MutCell<Phenotype<C>>>) {
+        self.is_sorted = false;
+        self.individuals.push(individual.into());
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &Phenotype<C>> {
@@ -145,6 +154,13 @@ impl<C: Chromosome> AsMut<[MutCell<Phenotype<C>>]> for Population<C> {
     fn as_mut(&mut self) -> &mut [MutCell<Phenotype<C>>] {
         self.is_sorted = false;
         self.individuals.as_mut()
+    }
+}
+
+impl<C: Chromosome> Index<Range<usize>> for Population<C> {
+    type Output = [MutCell<Phenotype<C>>];
+    fn index(&self, index: Range<usize>) -> &Self::Output {
+        &self.individuals[index]
     }
 }
 

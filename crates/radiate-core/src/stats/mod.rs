@@ -20,4 +20,11 @@ pub mod metric_names {
     pub const GENOME_SIZE: &str = "Genome Size";
     pub const FRONT: &str = "Front";
     pub const UNIQUE_MEMBERS: &str = "Unique(members)";
+
+    pub const SPECIES_COUNT: &str = "Species(Count)";
+    pub const SPECIES_AGE_FAIL: &str = "Species(Age Removed)";
+    pub const SPECIES_DISTANCE_DIST: &str = "Species(Distance)";
+    pub const SPECIES_CREATED: &str = "Species(Created)";
+    pub const SPECIES_DIED: &str = "Species(Died)";
+    pub const SPECIES_AGE: &str = "Species(Age)";
 }

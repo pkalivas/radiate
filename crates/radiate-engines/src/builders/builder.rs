@@ -3,7 +3,7 @@ use crate::genome::phenotype::Phenotype;
 use crate::genome::population::Population;
 use crate::objectives::Score;
 use crate::objectives::{Objective, Optimize};
-use crate::steps::{AuditStep, FilterStep, FrontStep, RecombineStep};
+use crate::steps::{AuditStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
 use crate::thread_pool::ThreadPool;
 use crate::{
     Alter, AlterAction, Audit, Crossover, EncodeReplace, EngineProblem, EngineStep, Front,
@@ -13,7 +13,7 @@ use crate::{
 use crate::{Chromosome, EngineConfig, EvaluateStep, GeneticEngine, Pipeline};
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::engine::EngineContext;
-use radiate_core::{Ecosystem, Epoch, MetricSet};
+use radiate_core::{Diversity, Ecosystem, Epoch, MetricSet};
 use std::cmp::Ordering;
 use std::ops::Range;
 use std::sync::{Arc, RwLock};
@@ -28,10 +28,13 @@ where
     pub max_age: usize,
     pub front_range: Range<usize>,
     pub offspring_fraction: f32,
+    pub species_threshold: f32,
+    pub max_species_age: usize,
     pub thread_pool: Arc<ThreadPool>,
     pub objective: Objective,
     pub survivor_selector: Arc<dyn Select<C>>,
     pub offspring_selector: Arc<dyn Select<C>>,
+    pub diversity: Option<Arc<dyn Diversity<C>>>,
     pub alterers: Vec<Arc<dyn Alter<C>>>,
     pub audits: Vec<Arc<dyn Audit<C>>>,
     pub population: Option<Population<C>>,
@@ -89,6 +92,29 @@ where
         }
 
         self.params.max_age = max_age;
+        self
+    }
+
+    pub fn diversity<D: Diversity<C> + 'static>(mut self, diversity: D) -> Self {
+        self.params.diversity = Some(Arc::new(diversity));
+        self
+    }
+
+    pub fn species_threshold(mut self, threshold: f32) -> Self {
+        if threshold < 0.0 {
+            panic!("diversity_distance_threashold must be non-negative");
+        }
+
+        self.params.species_threshold = threshold;
+        self
+    }
+
+    pub fn max_species_age(mut self, max_species_age: usize) -> Self {
+        if max_species_age < 1 {
+            panic!("max_species_age must be greater than 0");
+        }
+
+        self.params.max_species_age = max_species_age;
         self
     }
 
@@ -315,6 +341,9 @@ where
                 objective: self.params.objective.clone(),
                 thread_pool: self.params.thread_pool.clone(),
                 max_age: self.params.max_age,
+                max_species_age: self.params.max_species_age,
+                species_threshold: self.params.species_threshold,
+                diversity: self.params.diversity.clone(),
                 front: Arc::new(RwLock::new(self.params.front.clone().unwrap())),
                 offspring_fraction: self.params.offspring_fraction,
             };
@@ -326,6 +355,7 @@ where
             pipeline.add_step(Self::build_filter_step(&config));
             pipeline.add_step(Self::build_eval_step(&config));
             pipeline.add_step(Self::build_front_step(&config));
+            pipeline.add_step(Self::build_species_step(&config));
             pipeline.add_step(Self::build_audit_step(&config));
 
             let context = EngineContext {
@@ -371,7 +401,7 @@ where
             replacer: config.replacement_strategy(),
             encoder: config.encoder(),
             max_age: config.max_age(),
-            max_species_age: 25,
+            max_species_age: config.max_species_age(),
         };
 
         Some(Box::new(filter_step))
@@ -402,43 +432,20 @@ where
         Some(Box::new(front_step))
     }
 
-    // pub fn build2(mut self) -> StandardEngine<C, T> {
-    //     if self.problem.is_none() {
-    //         if self.codex.is_none() {
-    //             panic!("Codex not set");
-    //         }
+    fn build_species_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+        if config.diversity().is_none() {
+            return None;
+        }
 
-    //         if self.fitness_fn.is_none() {
-    //             panic!("Fitness function not set");
-    //         }
+        let species_step = SpeciateStep {
+            threashold: config.species_threshold(),
+            diversity: config.diversity().clone().unwrap(),
+            thread_pool: config.thread_pool(),
+            objective: config.objective(),
+        };
 
-    //         let problem = EngineProblem {
-    //             codex: self.codex.clone().unwrap(),
-    //             fitness_fn: self.fitness_fn.clone().unwrap(),
-    //         };
-
-    //         self.problem(problem).build()
-    //     } else {
-    //         self.build_population();
-    //         self.build_alterer();
-    //         self.build_front();
-
-    //         GeneticEngine::new(GeneticEngineParams::new(
-    //             self.population.unwrap(),
-    //             self.problem.unwrap(),
-    //             self.survivor_selector,
-    //             self.offspring_selector,
-    //             self.replacement_strategy,
-    //             self.audits,
-    //             self.alterers,
-    //             self.objective,
-    //             self.thread_pool,
-    //             self.max_age,
-    //             self.front.clone().unwrap(),
-    //             self.offspring_fraction,
-    //         ))
-    //     }
-    // }
+        Some(Box::new(species_step))
+    }
 
     /// Build the population of the genetic engine. This will create a new population
     /// using the codex if the population is not set.
@@ -520,6 +527,9 @@ where
                 replacement_strategy: Arc::new(EncodeReplace),
                 audits: vec![Arc::new(MetricAudit)],
                 alterers: Vec::new(),
+                species_threshold: 1.5,
+                max_species_age: 25,
+                diversity: None,
                 codex: None,
                 population: None,
                 fitness_fn: None,

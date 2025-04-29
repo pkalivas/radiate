@@ -17,12 +17,61 @@ impl<C: Chromosome> Ecosystem<C> {
         }
     }
 
-    pub fn population_len(&self) -> usize {
-        self.population.len()
+    pub fn population(&self) -> &Population<C> {
+        &self.population
     }
 
-    pub fn species_len(&self) -> usize {
-        self.species.as_ref().map_or(0, |s| s.len())
+    pub fn population_mut(&mut self) -> &mut Population<C> {
+        &mut self.population
+    }
+
+    pub fn species(&self) -> Option<&Vec<Species<C>>> {
+        self.species.as_ref()
+    }
+
+    pub fn species_mut(&mut self) -> Option<&mut Vec<Species<C>>> {
+        self.species.as_mut()
+    }
+
+    pub fn get_phenotype(&self, index: usize) -> Option<&Phenotype<C>> {
+        self.population.get(index)
+    }
+
+    pub fn get_phenotype_mut(&mut self, index: usize) -> Option<&mut Phenotype<C>> {
+        self.population.get_mut(index)
+    }
+
+    pub fn get_species(&self, index: usize) -> Option<&Species<C>> {
+        self.species.as_ref().and_then(|s| s.get(index))
+    }
+
+    pub fn get_species_mut(&mut self, index: usize) -> Option<&mut Species<C>> {
+        self.species.as_mut().and_then(|s| s.get_mut(index))
+    }
+
+    pub fn species_mascots(&self) -> Vec<&Phenotype<C>> {
+        self.species
+            .as_ref()
+            .map(|s| s.iter().map(|spec| spec.mascot()).collect())
+            .unwrap_or_default()
+    }
+
+    pub fn push_species(&mut self, species: Species<C>) {
+        if let Some(species_list) = &mut self.species {
+            species_list.push(species);
+        } else {
+            self.species = Some(vec![species]);
+        }
+    }
+
+    pub fn add_species_member(&mut self, species_idx: usize, member_idx: usize) {
+        if let Some(species) = &mut self.species {
+            if let Some(spec) = species.get_mut(species_idx) {
+                if let Some(member) = self.population.get_cell(member_idx) {
+                    spec.population.push(member.clone());
+                }
+            }
+        }
     }
 
     pub fn generate_mascots(&mut self) {

@@ -71,6 +71,10 @@ impl ThreadPool {
         WorkResult { receiver: rx }
     }
 
+    pub fn num_workers(&self) -> usize {
+        self.workers.len()
+    }
+
     pub fn is_alive(&self) -> bool {
         self.workers.iter().any(|worker| worker.is_alive())
     }

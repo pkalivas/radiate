@@ -1,5 +1,6 @@
 use crate::Chromosome;
 use radiate_core::engine::EngineContext;
+use radiate_core::objectives::Scored;
 use radiate_core::{Ecosystem, Epoch, Front, MetricSet, Phenotype, Score};
 use std::fmt::Debug;
 
@@ -40,6 +41,12 @@ impl<C: Chromosome, T> Epoch<C> for Generation<C, T> {
     }
 }
 
+impl<C: Chromosome, T> Scored for Generation<C, T> {
+    fn score(&self) -> Option<&Score> {
+        Some(&self.score)
+    }
+}
+
 impl<C: Chromosome, T: Clone> From<&EngineContext<C, T>> for Generation<C, T> {
     fn from(context: &EngineContext<C, T>) -> Self {
         Generation {
@@ -63,6 +70,13 @@ where
         write!(f, "  index: {:?},\n", self.index)?;
         write!(f, "  size: {:?},\n", self.ecosystem.population.len())?;
         write!(f, "  duration: {:?},\n", self.time())?;
+
+        if let Some(species) = &self.ecosystem.species {
+            for s in species {
+                write!(f, "  species: {:?},\n", s)?;
+            }
+        }
+
         write!(f, "  metrics: {:?},\n", self.metrics)?;
         write!(f, "}}")
     }

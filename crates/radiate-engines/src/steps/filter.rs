@@ -53,7 +53,7 @@ where
             let species_count = (before_species - species.len()) as f32;
 
             if species_count > 0_f32 {
-                // metrics.upsert_value(name, value);Metric::new_value(metric_names::SPECIES_AGE_FAIL).with_value(species_count))
+                metrics.upsert_value(metric_names::SPECIES_AGE_FAIL, species_count);
             }
         }
 

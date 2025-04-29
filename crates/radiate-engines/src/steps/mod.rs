@@ -10,4 +10,4 @@ pub use evaluate::*;
 pub use filter::*;
 pub use front::*;
 pub use recombine::*;
-// pub use speciate::*;
+pub use speciate::*;

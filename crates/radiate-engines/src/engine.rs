@@ -1,6 +1,6 @@
 use crate::builder::GeneticEngineBuilder;
 use crate::codexes::Codex;
-use crate::{Chromosome, Pipeline};
+use crate::{Chromosome, EngineIterator, Pipeline};
 use crate::{Generation, Problem};
 use radiate_core::engine::EngineContext;
 use radiate_core::timer::Timer;
@@ -56,8 +56,8 @@ use radiate_core::{Engine, Epoch, metric_names};
 /// - `T`: The type of the phenotype produced by the genetic algorithm, which must be `Clone`, `Send`, and `static`.
 pub struct GeneticEngine<C, T, E = Generation<C, T>>
 where
-    C: Chromosome + 'static,
-    T: Clone + Send + 'static,
+    C: Chromosome,
+    T: Clone,
 {
     context: EngineContext<C, T>,
     pipeline: Pipeline<C>,
@@ -67,8 +67,8 @@ where
 impl<C, T, E> GeneticEngine<C, T, E>
 where
     C: Chromosome,
-    T: Clone + Send,
-    E: Epoch<C> + for<'a> From<&'a EngineContext<C, T>>,
+    T: Clone,
+    E: Epoch<C>,
 {
     pub fn new(context: EngineContext<C, T>, pipeline: Pipeline<C>) -> Self {
         GeneticEngine {
@@ -76,6 +76,10 @@ where
             pipeline,
             _epoch: std::marker::PhantomData,
         }
+    }
+
+    pub fn iter(self) -> EngineIterator<C, T, E> {
+        EngineIterator::new(self)
     }
 }
 
@@ -104,7 +108,7 @@ where
 impl<C, T, E> Engine<C, T> for GeneticEngine<C, T, E>
 where
     C: Chromosome,
-    T: Clone + Send,
+    T: Clone,
     E: Epoch<C> + for<'a> From<&'a EngineContext<C, T>>,
 {
     type Epoch = E;
@@ -121,7 +125,7 @@ where
             .metrics
             .upsert_time(metric_names::EVOLUTION_TIME, timer.duration());
 
-        let best = self.context.ecosystem.population.get(0);
+        let best = self.context.ecosystem.population().get(0);
         if let Some(best) = best {
             if let (Some(score), Some(current)) = (best.score(), &self.context.score) {
                 if self.context.objective.is_better(score, current) {

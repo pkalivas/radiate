@@ -1,4 +1,4 @@
-use radiate_core::Genotype;
+use radiate_core::{Diversity, Genotype};
 
 use super::thread_pool::ThreadPool;
 use super::{Alter, Audit, Front, Problem, ReplacementStrategy, Select};
@@ -17,9 +17,12 @@ pub struct EngineConfig<C: Chromosome, T> {
     pub(crate) replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     pub(crate) audits: Vec<Arc<dyn Audit<C>>>,
     pub(crate) alterers: Vec<Arc<dyn Alter<C>>>,
+    pub(crate) species_threshold: f32,
+    pub(crate) diversity: Option<Arc<dyn Diversity<C>>>,
     pub(crate) objective: Objective,
     pub(crate) thread_pool: Arc<ThreadPool>,
     pub(crate) max_age: usize,
+    pub(crate) max_species_age: usize,
     pub(crate) front: Arc<RwLock<Front<Phenotype<C>>>>,
     pub(crate) offspring_fraction: f32,
 }
@@ -63,6 +66,18 @@ impl<C: Chromosome, T> EngineConfig<C, T> {
 
     pub fn max_age(&self) -> usize {
         self.max_age
+    }
+
+    pub fn max_species_age(&self) -> usize {
+        self.max_species_age
+    }
+
+    pub fn species_threshold(&self) -> f32 {
+        self.species_threshold
+    }
+
+    pub fn diversity(&self) -> Option<Arc<dyn Diversity<C>>> {
+        self.diversity.clone()
     }
 
     pub fn front(&self) -> Arc<RwLock<Front<Phenotype<C>>>> {
