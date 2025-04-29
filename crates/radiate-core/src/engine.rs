@@ -7,7 +7,7 @@ use std::{
     time::Duration,
 };
 
-pub trait Engine<C: Chromosome, T> {
+pub trait Engine<C: Chromosome> {
     type Epoch: Epoch<C>;
 
     fn next(&mut self) -> Self::Epoch;

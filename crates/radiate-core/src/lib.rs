@@ -21,7 +21,7 @@ pub use domain::*;
 pub use engine::{Engine, EngineStep, Epoch};
 pub use genome::*;
 pub use objectives::{Front, Objective, Optimize, Score, pareto};
-pub use problem::{EngineProblem, Problem};
+pub use problem::{EngineProblem, GenotypeProblem, Problem};
 pub use replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
 pub use selector::{ProbabilityWheelIterator, Select};
 pub use stats::*;

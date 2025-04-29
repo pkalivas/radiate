@@ -4,7 +4,7 @@ use crate::{Chromosome, EngineIterator, Pipeline};
 use crate::{Generation, Problem};
 use radiate_core::engine::EngineContext;
 use radiate_core::timer::Timer;
-use radiate_core::{Engine, Epoch, metric_names};
+use radiate_core::{Engine, Epoch, FnCodex, Genotype, metric_names};
 
 /// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -26,7 +26,7 @@ use radiate_core::{Engine, Epoch, metric_names};
 /// // eg: [[1.0, 2.0, 3.0, 4.0, 5.0]]
 ///
 /// // Create a new instance of the genetic engine with the given codex.
-/// let engine = GeneticEngine::from_codex(codex)
+/// let mut engine = GeneticEngine::from_codex(codex)
 ///     .minimizing()  // Minimize the fitness function.
 ///     .population_size(150) // Set the population size to 150 individuals.
 ///     .max_age(15) // Set the maximum age of an individual to 15 generations before it is replaced with a new individual.
@@ -79,7 +79,8 @@ where
     }
 
     pub fn iter(self) -> EngineIterator<C, T, E> {
-        EngineIterator::new(self)
+        let objective = self.context.objective.clone();
+        EngineIterator::new(self, objective)
     }
 }
 
@@ -90,6 +91,16 @@ where
 {
     pub fn builder() -> GeneticEngineBuilder<C, T, Generation<C, T>> {
         GeneticEngineBuilder::default()
+    }
+
+    pub fn from_encoder(
+        encoder: impl Fn() -> Genotype<C> + 'static,
+    ) -> GeneticEngineBuilder<C, Genotype<C>, Generation<C, T>> {
+        GeneticEngineBuilder::default().codex(
+            FnCodex::new()
+                .with_encoder(encoder)
+                .with_decoder(|genotype| genotype.clone()),
+        )
     }
 
     pub fn from_codex(
@@ -105,7 +116,7 @@ where
     }
 }
 
-impl<C, T, E> Engine<C, T> for GeneticEngine<C, T, E>
+impl<C, T, E> Engine<C> for GeneticEngine<C, T, E>
 where
     C: Chromosome,
     T: Clone,
@@ -140,7 +151,7 @@ where
 
         self.context.index += 1;
 
-        (&self.context).into()
+        E::from(&self.context)
     }
 }
 
