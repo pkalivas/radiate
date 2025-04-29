@@ -102,15 +102,13 @@ impl<C: Chromosome> Ecosystem<C> {
         }
     }
 
-    pub fn sort_by<F>(&mut self, f: F)
-    where
-        F: FnMut(&Phenotype<C>, &Phenotype<C>) -> std::cmp::Ordering,
-    {
+    pub fn sort_by(&mut self, objective: &Objective) {
         if self.is_sorted {
             return;
         }
 
-        self.population.sort_by(f);
+        objective.sort(&mut self.population);
+        self.population.set_sorted(true);
         self.is_sorted = true;
     }
 

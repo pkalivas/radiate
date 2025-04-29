@@ -1,4 +1,7 @@
-use std::sync::{Arc, RwLock};
+use std::{
+    collections::HashSet,
+    sync::{Arc, RwLock},
+};
 
 use radiate_core::{
     Chromosome, Ecosystem, EngineStep, Front, MetricSet, Phenotype, metric_names, pareto,
@@ -44,7 +47,7 @@ where
 
         let front = Arc::clone(&self.front);
         let dominates_vector = Arc::new(RwLock::new(vec![false; new_individuals.len()]));
-        let remove_vector = Arc::new(RwLock::new(Vec::new()));
+        let remove_vector = Arc::new(RwLock::new(HashSet::new()));
 
         for (idx, member) in new_individuals.iter().enumerate() {
             let pheno = Phenotype::clone(member);
@@ -57,7 +60,10 @@ where
 
                 if dominates {
                     doms_vector.write().unwrap().get_mut(idx).map(|v| *v = true);
-                    remove_vector.write().unwrap().extend(to_remove.into_iter());
+                    let mut writer = remove_vector.write().unwrap();
+                    for r in to_remove {
+                        writer.insert(r);
+                    }
                 }
             });
         }
@@ -72,14 +78,12 @@ where
             .filter(|(_, is_dominating)| **is_dominating)
             .map(|(idx, _)| new_individuals[idx])
             .collect::<Vec<&Phenotype<C>>>();
-        let mut remove_vector = remove_vector.write().unwrap();
-
-        remove_vector.dedup();
+        let remove_vector = remove_vector.write().unwrap();
 
         self.front
             .write()
             .unwrap()
-            .clean(dominates_vector, remove_vector.as_slice());
+            .clean(dominates_vector, &remove_vector);
 
         metrics.upsert_operations(metric_names::FRONT, count as f32, timer);
     }

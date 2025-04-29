@@ -92,6 +92,9 @@ impl Objective {
     }
 }
 
+// Removed manual implementation of FnMut as it is experimental.
+// Use a closure or other stable approach where needed.
+
 impl AsRef<[Optimize]> for Objective {
     fn as_ref(&self) -> &[Optimize] {
         match self {

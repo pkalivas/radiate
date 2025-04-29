@@ -15,19 +15,19 @@ impl Loss {
     where
         F: FnMut(&Vec<f32>) -> Vec<f32>,
     {
+        let len = samples.len() as f32;
+
         match self {
             Loss::MSE => {
                 let mut sum = ZERO;
                 for sample in samples.iter() {
                     let output = eval_func(sample.input());
-
-                    for (i, val) in output.into_iter().enumerate() {
-                        let diff = sample.output()[i] - val;
+                    for (y_true, y_pred) in sample.output().iter().zip(output.iter()) {
+                        let diff = y_true - y_pred;
                         sum += diff * diff;
                     }
                 }
-
-                sum / (samples.len() as f32)
+                sum / len
             }
             Loss::MAE => {
                 let mut sum = ZERO;

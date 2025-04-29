@@ -58,11 +58,13 @@ impl<C: Chromosome> RecombineStep<C> {
             if let Objective::Single(crate::Optimize::Minimize) = &self.objective {
                 species_scores.reverse();
             }
-            let mut offspring = Vec::new();
+            let mut offspring = Vec::with_capacity(self.offspring_count);
             for (species, score) in species.iter().zip(species_scores.iter()) {
                 let count = (score.as_f32() * self.offspring_count as f32).round() as usize;
                 let mut selected_offspring =
                     self.select_offspring(count, &species.population, metrics);
+
+                self.objective.sort(&mut selected_offspring);
 
                 self.apply_alterations(generation, &mut selected_offspring, metrics);
 
@@ -126,9 +128,18 @@ where
         let survivors = self.select_survivors(ecosystem, metrics);
         let offspring = self.create_offspring(generation, ecosystem, metrics);
 
-        ecosystem.population = survivors
+        ecosystem.population_mut().clear();
+
+        survivors
             .into_iter()
             .chain(offspring.into_iter())
-            .collect::<Population<C>>();
+            .for_each(|individual| {
+                ecosystem.population_mut().push(individual);
+            });
+
+        // ecosystem.population = survivors
+        //     .into_iter()
+        //     .chain(offspring.into_iter())
+        //     .collect::<Population<C>>();
     }
 }

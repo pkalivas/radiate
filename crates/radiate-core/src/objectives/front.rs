@@ -2,7 +2,7 @@ use crate::{
     objectives::{Objective, pareto},
     thread_pool::ThreadPool,
 };
-use std::{cmp::Ordering, ops::Range, sync::Arc};
+use std::{cmp::Ordering, collections::HashSet, hash::Hash, ops::Range, sync::Arc};
 
 /// A front is a collection of scores that are non-dominated with respect to each other.
 /// This is useful for multi-objective optimization problems where the goal is to find
@@ -17,6 +17,7 @@ where
     ord: Arc<dyn Fn(&T, &T) -> Ordering + Send + Sync>,
     range: Range<usize>,
     objective: Objective,
+    #[allow(dead_code)]
     thread_pool: Arc<ThreadPool>,
 }
 
@@ -101,7 +102,10 @@ where
         (true, to_remove)
     }
 
-    pub fn clean(&mut self, new_values: Vec<&T>, to_remove: &[Arc<T>]) {
+    pub fn clean(&mut self, new_values: Vec<&T>, to_remove: &HashSet<Arc<T>>)
+    where
+        T: Eq + Hash,
+    {
         self.values.retain(|x| !to_remove.contains(x));
 
         for new_val in new_values {

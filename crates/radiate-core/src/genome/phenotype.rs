@@ -1,6 +1,7 @@
 use super::{Valid, genotype::Genotype};
 use crate::objectives::Score;
 use crate::{Chromosome, objectives::Scored};
+use std::hash::Hash;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 /// A unique identifier for a `Phenotype`. This is used to identify the `Phenotype` in the population.
@@ -126,6 +127,14 @@ impl<C: Chromosome> PartialOrd for Phenotype<C> {
         let other_score = other.score();
 
         self_score.partial_cmp(&other_score)
+    }
+}
+
+impl<C: Chromosome> Eq for Phenotype<C> {}
+
+impl<C: Chromosome> Hash for Phenotype<C> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
     }
 }
 
