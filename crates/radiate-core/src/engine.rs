@@ -1,8 +1,10 @@
-use std::{sync::Arc, time::Duration};
-
 use crate::{
     Chromosome, Ecosystem, Front, MetricSet, Objective, Phenotype, Population, Problem, Score,
     metric_names,
+};
+use std::{
+    sync::{Arc, RwLock},
+    time::Duration,
 };
 
 pub trait Engine<C: Chromosome, T> {
@@ -12,7 +14,16 @@ pub trait Engine<C: Chromosome, T> {
 
     fn run<F>(&mut self, limit: F) -> Self::Epoch
     where
-        F: Fn(&Self::Epoch) -> bool;
+        F: Fn(&Self::Epoch) -> bool,
+    {
+        loop {
+            let epoch = self.next();
+
+            if limit(&epoch) {
+                break epoch;
+            }
+        }
+    }
 }
 
 pub trait Epoch<C: Chromosome> {
@@ -54,7 +65,7 @@ where
             .unwrap_or("Unknown Step")
     }
 
-    fn execute(&self, generation: usize, metrics: &mut MetricSet, ecosystem: &mut Ecosystem<C>);
+    fn execute(&mut self, generation: usize, metrics: &mut MetricSet, ecosystem: &mut Ecosystem<C>);
 }
 
 pub struct EngineContext<C, T>
@@ -66,7 +77,7 @@ where
     pub index: usize,
     pub metrics: MetricSet,
     pub score: Option<Score>,
-    pub front: Front<Phenotype<C>>,
+    pub front: Arc<RwLock<Front<Phenotype<C>>>>,
     pub objective: Objective,
     pub problem: Arc<dyn Problem<C, T>>,
 }

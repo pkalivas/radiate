@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use radiate_core::{
-    Chromosome, EngineStep, Genotype, Phenotype, ReplacementStrategy, Valid, metric_names,
+    Chromosome, Ecosystem, EngineStep, Genotype, MetricSet, Phenotype, ReplacementStrategy, Valid,
+    metric_names,
 };
 
 pub struct FilterStep<C>
@@ -19,10 +20,10 @@ where
     C: Chromosome + 'static,
 {
     fn execute(
-        &self,
+        &mut self,
         generation: usize,
-        metrics: &mut radiate_core::MetricSet,
-        ecosystem: &mut radiate_core::Ecosystem<C>,
+        metrics: &mut MetricSet,
+        ecosystem: &mut Ecosystem<C>,
     ) {
         let mut age_count = 0_f32;
         let mut invalid_count = 0_f32;
@@ -39,10 +40,6 @@ where
             }
 
             if removed {
-                // let replacement = self.params.replacement_strategy();
-                // let problem = self.params.problem();
-                // let encoder = Arc::new(move || problem.encode());
-
                 let new_genotype = self
                     .replacer
                     .replace(&ecosystem.population, Arc::clone(&self.encoder));

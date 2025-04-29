@@ -21,8 +21,13 @@ where
         }
     }
 
-    pub fn run(&self, generation: usize, metrics: &mut MetricSet, ecosystem: &mut Ecosystem<C>) {
-        for step in &self.steps {
+    pub fn run(
+        &mut self,
+        generation: usize,
+        metrics: &mut MetricSet,
+        ecosystem: &mut Ecosystem<C>,
+    ) {
+        for step in self.steps.iter_mut() {
             let timer = Timer::new();
             step.execute(generation, metrics, ecosystem);
             let duration = timer.duration();

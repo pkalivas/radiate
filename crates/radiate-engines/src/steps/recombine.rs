@@ -43,21 +43,6 @@ impl<C: Chromosome> RecombineStep<C> {
         )
     }
 
-    fn apply_alterations(
-        &self,
-        generation: usize,
-        offspring: &mut Population<C>,
-        metrics: &mut MetricSet,
-    ) {
-        self.alters.iter().for_each(|alt| {
-            alt.alter(offspring, generation)
-                .into_iter()
-                .for_each(|metric| {
-                    metrics.upsert(metric);
-                });
-        });
-    }
-
     pub fn create_offspring(
         &self,
         generation: usize,
@@ -111,6 +96,21 @@ impl<C: Chromosome> RecombineStep<C> {
         metrics.upsert_operations(selector.name(), selected.len() as f32, timer);
         selected
     }
+
+    fn apply_alterations(
+        &self,
+        generation: usize,
+        offspring: &mut Population<C>,
+        metrics: &mut MetricSet,
+    ) {
+        self.alters.iter().for_each(|alt| {
+            alt.alter(offspring, generation)
+                .into_iter()
+                .for_each(|metric| {
+                    metrics.upsert(metric);
+                });
+        });
+    }
 }
 
 impl<C> EngineStep<C> for RecombineStep<C>
@@ -118,10 +118,10 @@ where
     C: Chromosome + 'static,
 {
     fn execute(
-        &self,
+        &mut self,
         generation: usize,
-        metrics: &mut radiate_core::MetricSet,
-        ecosystem: &mut radiate_core::Ecosystem<C>,
+        metrics: &mut MetricSet,
+        ecosystem: &mut Ecosystem<C>,
     ) {
         let survivors = self.select_survivors(ecosystem, metrics);
         let offspring = self.create_offspring(generation, ecosystem, metrics);

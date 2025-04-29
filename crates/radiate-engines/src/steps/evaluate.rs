@@ -1,6 +1,6 @@
 use radiate_core::{
-    Chromosome, Objective, Problem, engine::EngineStep, metric_names, thread_pool::ThreadPool,
-    timer::Timer,
+    Chromosome, Ecosystem, MetricSet, Objective, Problem, engine::EngineStep, metric_names,
+    thread_pool::ThreadPool, timer::Timer,
 };
 use std::sync::Arc;
 
@@ -29,12 +29,7 @@ where
     C: Chromosome + 'static,
     T: Clone + Send + 'static,
 {
-    fn execute(
-        &self,
-        _: usize,
-        metrics: &mut radiate_core::MetricSet,
-        ecosystem: &mut radiate_core::Ecosystem<C>,
-    ) {
+    fn execute(&mut self, _: usize, metrics: &mut MetricSet, ecosystem: &mut Ecosystem<C>) {
         let timer = Timer::new();
 
         let mut work_results = Vec::new();

@@ -1,13 +1,14 @@
 pub mod builders;
-pub mod context;
-pub mod engines;
-pub mod params;
+pub mod config;
+pub mod engine;
+pub mod epoch;
 pub mod pipeline;
 pub mod steps;
 
 pub use builders::*;
-pub use engines::*;
-pub use params::*;
+pub use config::*;
+pub use engine::GeneticEngine;
+pub use epoch::*;
 pub use pipeline::*;
 pub use steps::EvaluateStep;
 

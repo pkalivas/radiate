@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use radiate_core::{Audit, Chromosome, EngineStep};
+use radiate_core::{Audit, Chromosome, Ecosystem, EngineStep, MetricSet};
 
 pub struct AuditStep<C>
 where
@@ -14,10 +14,10 @@ where
     C: Chromosome,
 {
     fn execute(
-        &self,
+        &mut self,
         generation: usize,
-        metrics: &mut radiate_core::MetricSet,
-        ecosystem: &mut radiate_core::Ecosystem<C>,
+        metrics: &mut MetricSet,
+        ecosystem: &mut Ecosystem<C>,
     ) {
         for audit in &self.audits {
             for metric in audit.audit(generation, &ecosystem.population) {

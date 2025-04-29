@@ -13,7 +13,7 @@ fn main() {
     let mut engine = GeneticEngine::from_codex(codex)
         .num_threads(10)
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
-        .front_size(1100..1300)
+        // .front_size(1100..1300)
         .offspring_selector(TournamentSelector::new(5))
         .survivor_selector(NSGA2Selector::new())
         .alter(alters!(
@@ -38,6 +38,8 @@ fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {
     let mut y = vec![];
     let mut z = vec![];
     let mut color = vec![];
+
+    println!("Front size: {:?}", front.values().len());
 
     for (i, pheno) in front.values().iter().enumerate() {
         let score = pheno.score().unwrap();

@@ -1,11 +1,10 @@
-use crate::Problem;
 use crate::builder::GeneticEngineBuilder;
 use crate::codexes::Codex;
 use crate::{Chromosome, Pipeline};
+use crate::{Generation, Problem};
 use radiate_core::engine::EngineContext;
 use radiate_core::timer::Timer;
-use radiate_core::{Ecosystem, Engine, Epoch, MetricSet, Score, metric_names};
-use std::fmt::Debug;
+use radiate_core::{Engine, Epoch, metric_names};
 
 /// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -85,19 +84,19 @@ where
     C: Chromosome,
     T: Clone + Send,
 {
-    pub fn builder() -> GeneticEngineBuilder<C, T, Generation<C, T>, Self> {
+    pub fn builder() -> GeneticEngineBuilder<C, T, Generation<C, T>> {
         GeneticEngineBuilder::default()
     }
 
     pub fn from_codex(
         codex: impl Codex<C, T> + 'static,
-    ) -> GeneticEngineBuilder<C, T, Generation<C, T>, Self> {
+    ) -> GeneticEngineBuilder<C, T, Generation<C, T>> {
         GeneticEngineBuilder::default().codex(codex)
     }
 
     pub fn from_problem(
         problem: impl Problem<C, T> + 'static,
-    ) -> GeneticEngineBuilder<C, T, Generation<C, T>, Self> {
+    ) -> GeneticEngineBuilder<C, T, Generation<C, T>> {
         GeneticEngineBuilder::default().problem(problem)
     }
 }
@@ -109,19 +108,6 @@ where
     E: Epoch<C> + for<'a> From<&'a EngineContext<C, T>>,
 {
     type Epoch = E;
-
-    fn run<F>(&mut self, limit: F) -> Self::Epoch
-    where
-        F: Fn(&E) -> bool,
-    {
-        loop {
-            let epoch = self.next();
-
-            if limit(&epoch) {
-                break epoch;
-            }
-        }
-    }
 
     fn next(&mut self) -> Self::Epoch {
         let timer = Timer::new();
@@ -151,71 +137,6 @@ where
         self.context.index += 1;
 
         (&self.context).into()
-    }
-}
-
-pub struct Generation<C, T>
-where
-    C: Chromosome,
-{
-    pub ecosystem: Ecosystem<C>,
-    pub best: T,
-    pub index: usize,
-    pub metrics: MetricSet,
-    pub score: Score,
-}
-
-impl<C: Chromosome, T> Generation<C, T> {
-    pub fn score(&self) -> &Score {
-        &self.score
-    }
-}
-
-impl<C: Chromosome, T> Epoch<C> for Generation<C, T> {
-    type Result = T;
-
-    fn ecosystem(&self) -> &Ecosystem<C> {
-        &self.ecosystem
-    }
-
-    fn result(&self) -> &Self::Result {
-        &self.best
-    }
-
-    fn index(&self) -> usize {
-        self.index
-    }
-
-    fn metrics(&self) -> &MetricSet {
-        &self.metrics
-    }
-}
-
-impl<C: Chromosome, T: Clone> From<&EngineContext<C, T>> for Generation<C, T> {
-    fn from(context: &EngineContext<C, T>) -> Self {
-        Generation {
-            ecosystem: context.ecosystem.clone(),
-            best: context.best.clone(),
-            index: context.index,
-            metrics: context.metrics.clone(),
-            score: context.score.clone().unwrap(),
-        }
-    }
-}
-
-impl<C, T: Debug> Debug for Generation<C, T>
-where
-    C: Chromosome,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "EngineOutput {{\n")?;
-        write!(f, "  best: {:?},\n", self.best)?;
-        write!(f, "  score: {:?},\n", self.score)?;
-        write!(f, "  index: {:?},\n", self.index)?;
-        write!(f, "  size: {:?},\n", self.ecosystem.population.len())?;
-        write!(f, "  duration: {:?},\n", self.time())?;
-        write!(f, "  metrics: {:?},\n", self.metrics)?;
-        write!(f, "}}")
     }
 }
 
