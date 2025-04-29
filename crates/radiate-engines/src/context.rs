@@ -1,4 +1,4 @@
-use radiate_core::Epoch;
+use radiate_core::{Ecosystem, Epoch};
 
 use super::objectives::Score;
 use super::{Metric, MetricSet, Phenotype};
@@ -30,7 +30,8 @@ pub struct EngineContext<C, T>
 where
     C: Chromosome,
 {
-    pub population: Population<C>,
+    // pub population: Population<C>,
+    pub ecosystem: Ecosystem<C>,
     pub best: T,
     pub index: usize,
     pub timer: Timer,
@@ -79,7 +80,8 @@ where
 {
     fn clone(&self) -> Self {
         Self {
-            population: self.population.clone(),
+            // population: self.population.clone(),
+            ecosystem: self.ecosystem.clone(),
             best: self.best.clone(),
             index: self.index,
             timer: self.timer.clone(),
@@ -99,7 +101,7 @@ where
         write!(f, "  best: {:?},\n", self.best)?;
         write!(f, "  score: {:?},\n", self.score())?;
         write!(f, "  index: {:?},\n", self.index)?;
-        write!(f, "  size: {:?},\n", self.population.len())?;
+        write!(f, "  size: {:?},\n", self.ecosystem.population.len())?;
         write!(f, "  duration: {:?},\n", self.timer.duration())?;
         write!(f, "  metrics: {:?},\n", self.metrics)?;
         write!(f, "}}")
@@ -108,7 +110,7 @@ where
 
 impl<C: Chromosome, T> Epoch<C, T> for EngineContext<C, T> {
     fn population(&self) -> &Population<C> {
-        &self.population
+        &self.ecosystem.population
     }
 
     fn generation(&self) -> usize {

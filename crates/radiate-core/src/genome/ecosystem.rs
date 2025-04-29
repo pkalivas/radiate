@@ -1,6 +1,7 @@
 use super::{Chromosome, Phenotype, Population, Species};
 use crate::{Objective, Score, random_provider};
 
+#[derive(Clone, Debug)]
 pub struct Ecosystem<C: Chromosome> {
     pub population: Population<C>,
     pub species: Option<Vec<Species<C>>>,

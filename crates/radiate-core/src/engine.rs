@@ -29,5 +29,5 @@ pub trait EngineStep<C: Chromosome, T> {
             .unwrap_or("Unknown Step")
     }
 
-    fn execute(&mut self, generation: usize, metrics: &mut MetricSet, ecosystem: &mut Ecosystem<C>);
+    fn execute(&self, generation: usize, metrics: &mut MetricSet, ecosystem: &mut Ecosystem<C>);
 }

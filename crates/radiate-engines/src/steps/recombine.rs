@@ -117,7 +117,7 @@ where
     T: Send + Sync + 'static,
 {
     fn execute(
-        &mut self,
+        &self,
         generation: usize,
         metrics: &mut radiate_core::MetricSet,
         ecosystem: &mut radiate_core::Ecosystem<C>,

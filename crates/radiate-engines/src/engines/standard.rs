@@ -1,11 +1,14 @@
 use radiate_core::{Codex, Engine, thread_pool::WaitGroup};
-use radiate_core::{MetricSet, Phenotype, Problem};
+use radiate_core::{Ecosystem, EngineStep, MetricSet, Phenotype, Problem};
 
 use crate::builder::GeneticEngineBuilder;
 use crate::domain::timer::Timer;
 use crate::genome::population::Population;
 use crate::objectives::Objective;
-use crate::{Chromosome, EngineContext, GeneticEngineParams, Metric, Valid, metric_names};
+use crate::steps::RecombineStep;
+use crate::{
+    Chromosome, EngineContext, EvaluateStep, GeneticEngineParams, Metric, Valid, metric_names,
+};
 use std::sync::{Arc, RwLock};
 
 pub struct StandardEngine<C, T>
@@ -13,6 +16,8 @@ where
     C: Chromosome + 'static,
     T: Clone + Send + 'static,
 {
+    evaluate: EvaluateStep<C, T>,
+    recombine: RecombineStep<C>,
     params: GeneticEngineParams<C, T>,
 }
 
@@ -21,8 +26,16 @@ where
     C: Chromosome,
     T: Clone + Send,
 {
-    pub fn new(params: GeneticEngineParams<C, T>) -> Self {
-        StandardEngine { params }
+    pub fn new(
+        evaluate: EvaluateStep<C, T>,
+        recombine: RecombineStep<C>,
+        params: GeneticEngineParams<C, T>,
+    ) -> Self {
+        StandardEngine {
+            evaluate,
+            recombine,
+            params,
+        }
     }
 
     pub fn builder() -> GeneticEngineBuilder<C, T> {
@@ -56,7 +69,11 @@ where
     }
 
     pub fn next(&self, ctx: &mut EngineContext<C, T>) {
-        self.evaluate(ctx);
+        let generation = ctx.index;
+        let mut metrics = &ctx.metrics;
+
+        self.evaluate
+            .execute(ctx.index, &mut ctx.metrics, &mut ctx.ecosystem);
 
         let survivors = self.select_survivors(ctx);
         let offspring = self.create_offspring(ctx);
@@ -75,8 +92,8 @@ where
         let timer = Timer::new();
 
         let mut work_results = Vec::new();
-        for idx in 0..ctx.population.len() {
-            let individual = &mut ctx.population[idx];
+        for idx in 0..ctx.ecosystem.population.len() {
+            let individual = &mut ctx.ecosystem.population[idx];
             if individual.score().is_some() {
                 continue;
             } else {
@@ -94,13 +111,13 @@ where
         let count = work_results.len() as f32;
         for work_result in work_results {
             let (idx, score, genotype) = work_result.result();
-            ctx.population[idx].set_score(Some(score));
-            ctx.population[idx].set_genotype(genotype);
+            ctx.ecosystem.population[idx].set_score(Some(score));
+            ctx.ecosystem.population[idx].set_genotype(genotype);
         }
 
         ctx.upsert_operation(metric_names::EVALUATION, count, timer);
 
-        objective.sort(&mut ctx.population);
+        objective.sort(&mut ctx.ecosystem.population);
     }
 
     fn select_survivors(&self, ctx: &mut EngineContext<C, T>) -> Population<C> {
@@ -109,7 +126,7 @@ where
         let objective = self.params.objective();
 
         let timer = Timer::new();
-        let result = selector.select(&ctx.population, objective, count);
+        let result = selector.select(&ctx.ecosystem.population, objective, count);
 
         ctx.upsert_operation(selector.name(), count as f32, timer);
 
@@ -123,7 +140,7 @@ where
         let alters = self.params.alters();
 
         let timer = Timer::new();
-        let mut offspring = selector.select(&ctx.population, objective, count);
+        let mut offspring = selector.select(&ctx.ecosystem.population, objective, count);
 
         ctx.upsert_operation(selector.name(), count as f32, timer);
         objective.sort(&mut offspring);
@@ -143,7 +160,7 @@ where
         let max_age = self.params.max_age();
 
         let generation = ctx.index;
-        let population = &mut ctx.population;
+        let population = &mut ctx.ecosystem.population;
 
         let timer = Timer::new();
         let mut age_count = 0_f32;
@@ -181,7 +198,7 @@ where
         survivors: Population<C>,
         offspring: Population<C>,
     ) {
-        ctx.population = survivors
+        ctx.ecosystem.population = survivors
             .into_iter()
             .chain(offspring)
             .collect::<Population<C>>();
@@ -192,18 +209,18 @@ where
         let problem = self.params.problem();
         let optimize = self.params.objective();
 
-        optimize.sort(&mut ctx.population);
+        optimize.sort(&mut ctx.ecosystem.population);
 
         let audit_metrics = audits
             .iter()
-            .flat_map(|audit| audit.audit(ctx.index(), &ctx.population))
+            .flat_map(|audit| audit.audit(ctx.index(), &ctx.ecosystem.population))
             .collect::<Vec<Metric>>();
 
         for metric in audit_metrics {
             ctx.upsert_metric(metric);
         }
 
-        if let Some(current_best) = ctx.population.get(0) {
+        if let Some(current_best) = ctx.ecosystem.population.get(0) {
             if let (Some(best), Some(current)) = (current_best.score(), &ctx.score) {
                 if optimize.is_better(best, current) {
                     ctx.score = Some(best.clone());
@@ -230,6 +247,7 @@ where
             let wg = WaitGroup::new();
 
             let new_individuals = ctx
+                .ecosystem
                 .population
                 .iter()
                 .filter(|pheno| pheno.generation() == ctx.index)
@@ -282,7 +300,8 @@ where
         let population = self.params.population().clone();
 
         EngineContext {
-            population: population.clone(),
+            // population: population.clone(),
+            ecosystem: Ecosystem::new(population.clone()),
             best: self.params.problem().decode(population[0].genotype()),
             index: 0,
             timer: Timer::new(),

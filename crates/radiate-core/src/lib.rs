@@ -18,7 +18,7 @@ pub use codexes::{
 };
 pub use diversity::Diversity;
 pub use domain::*;
-pub use engine::{Engine, Epoch};
+pub use engine::{Engine, EngineStep, Epoch};
 pub use genome::*;
 pub use objectives::{Front, Objective, Optimize, Score, pareto};
 pub use problem::{EngineProblem, Problem};

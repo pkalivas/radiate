@@ -27,10 +27,10 @@ impl<C: Chromosome, T> EvaluateStep<C, T> {
 impl<C, T> EngineStep<C, T> for EvaluateStep<C, T>
 where
     C: Chromosome + 'static,
-    T: Send + Sync + 'static,
+    T: Send + 'static,
 {
     fn execute(
-        &mut self,
+        &self,
         _: usize,
         metrics: &mut radiate_core::MetricSet,
         ecosystem: &mut radiate_core::Ecosystem<C>,
