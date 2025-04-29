@@ -7,13 +7,13 @@ use crate::steps::{AuditStep, FilterStep, FrontStep, RecombineStep, SpeciateStep
 use crate::thread_pool::ThreadPool;
 use crate::{
     Alter, AlterAction, Audit, Crossover, EncodeReplace, EngineProblem, EngineStep, Front,
-    MetricAudit, MultiObjectiveGeneration, Mutate, Problem, ReplacementStrategy, RouletteSelector,
-    Select, TournamentSelector, pareto,
+    MetricAudit, Mutate, Problem, ReplacementStrategy, RouletteSelector, Select,
+    TournamentSelector, pareto,
 };
 use crate::{Chromosome, EngineConfig, EvaluateStep, GeneticEngine, Pipeline};
 use radiate_alters::{UniformCrossover, UniformMutator};
-use radiate_core::engine::EngineContext;
-use radiate_core::{Diversity, Ecosystem, Epoch, Genotype, MetricSet};
+use radiate_core::engine::Context;
+use radiate_core::{Diversity, Ecosystem, Genotype, MetricSet};
 use std::cmp::Ordering;
 use std::ops::Range;
 use std::sync::{Arc, RwLock};
@@ -60,21 +60,18 @@ where
 /// - `T`: The type of the best individual in the population.
 ///
 #[derive(Clone)]
-pub struct GeneticEngineBuilder<C, T, E>
+pub struct GeneticEngineBuilder<C, T>
 where
     C: Chromosome + 'static,
     T: Clone + 'static,
-    E: Epoch<C>,
 {
     pub(crate) params: EngineParams<C, T>,
-    _phantom: std::marker::PhantomData<E>,
 }
 
-impl<C, T, E> GeneticEngineBuilder<C, T, E>
+impl<C, T> GeneticEngineBuilder<C, T>
 where
     C: Chromosome,
     T: Clone + Send,
-    E: Epoch<C>,
 {
     /// Set the population size of the genetic engine. Default is 100.
     pub fn population_size(mut self, population_size: usize) -> Self {
@@ -160,44 +157,6 @@ where
         self.params.codex = Some(Arc::new(codex));
         self
     }
-
-    // pub fn encoder<F: Fn() -> Genotype<C> + 'static>(
-    //     mut self,
-    //     encoder: F,
-    // ) -> GeneticEngineBuilder<C, Genotype<C>, E> {
-    //     self.params.encoder = Some(Arc::new(encoder));
-
-    //     // GeneticEngineBuilder {
-    //     //     params: EngineParams {
-    //     //         population_size: self.params.population_size,
-    //     //         max_age: self.params.max_age,
-    //     //         front_range: self.params.front_range.clone(),
-    //     //         offspring_fraction: self.params.offspring_fraction,
-    //     //         species_threshold: self.params.species_threshold,
-    //     //         max_species_age: self.params.max_species_age,
-    //     //         thread_pool: self.params.thread_pool.clone(),
-    //     //         objective: self.params.objective.clone(),
-    //     //         survivor_selector: self.params.survivor_selector.clone(),
-    //     //         offspring_selector: self.params.offspring_selector.clone(),
-    //     //         diversity: self.params.diversity.clone(),
-    //     //         alterers: self.params.alterers.clone(),
-    //     //         audits: self.params.audits.clone(),
-    //     //         population: self.params.population.clone(),
-    //     //         codex: None,      // Reset codex to match Genotype<C>
-    //     //         fitness_fn: None, // Reset fitness_fn to match Genotype<C>
-    //     //         problem: None,    // Reset problem to match Genotype<C>
-    //     //         encoder: self.params.encoder.clone(),
-    //     //         replacement_strategy: self.params.replacement_strategy.clone(),
-    //     //         front: self.params.front.clone(),
-    //     //     },
-    //     //     _phantom: std::marker::PhantomData,
-    //     // }
-
-    //     GeneticEngineBuilder {
-    //         params: self.params,
-    //         _phantom: std::marker::PhantomData,
-    //     }
-    // }
 
     /// Set the problem of the genetic engine. This is useful if you want to provide a custom problem.
     pub fn problem<P: Problem<C, T> + 'static>(mut self, problem: P) -> Self {
@@ -310,29 +269,17 @@ where
         self
     }
 
-    pub fn multi_objective(
-        mut self,
-        objectives: Vec<Optimize>,
-    ) -> GeneticEngineBuilder<C, T, MultiObjectiveGeneration<C>> {
+    pub fn multi_objective(mut self, objectives: Vec<Optimize>) -> GeneticEngineBuilder<C, T> {
         self.params.objective = Objective::Multi(objectives);
-        GeneticEngineBuilder {
-            params: self.params,
-            _phantom: std::marker::PhantomData,
-        }
+        self
     }
 
     /// Set the minimum and maximum size of the pareto front. This is used for
     /// multi-objective optimization problems where the goal is to find the best
     /// solutions that are not dominated by any other solution.
-    pub fn front_size(
-        mut self,
-        range: Range<usize>,
-    ) -> GeneticEngineBuilder<C, T, MultiObjectiveGeneration<C>> {
+    pub fn front_size(mut self, range: Range<usize>) -> GeneticEngineBuilder<C, T> {
         self.params.front_range = range;
-        GeneticEngineBuilder {
-            params: self.params,
-            _phantom: std::marker::PhantomData,
-        }
+        self
     }
 
     /// Set the thread pool of the genetic engine. This is the thread pool that will be used
@@ -345,10 +292,7 @@ where
 
     /// Build the genetic engine with the given parameters. This will create a new
     /// instance of the `GeneticEngine` with the given parameters.
-    pub fn build(mut self) -> GeneticEngine<C, T, E>
-    where
-        for<'a> E: From<&'a EngineContext<C, T>>,
-    {
+    pub fn build(mut self) -> GeneticEngine<C, T> {
         if self.params.problem.is_none() {
             if self.params.codex.is_none() {
                 panic!("Codex not set");
@@ -397,7 +341,7 @@ where
             pipeline.add_step(Self::build_species_step(&config));
             pipeline.add_step(Self::build_audit_step(&config));
 
-            let context = EngineContext {
+            let context = Context {
                 ecosystem: Ecosystem::new(config.population.clone()),
                 best: config.problem.decode(config.population()[0].genotype()),
                 index: 0,
@@ -406,9 +350,23 @@ where
                 front: config.front.clone(),
                 objective: config.objective.clone(),
                 problem: config.problem.clone(),
+                // value_mapper: Arc::new(move |context: &EngineContext<C, T>| {
+                //     let best = context.ecosystem.population().get(0);
+                //     if let Some(best) = best {
+                //         if let (Some(score), Some(current)) = (best.score(), &self.context.score) {
+                //             if context.objective.is_better(score, current) {
+                //                 context.score = Some(score.clone());
+                //                 context.best = context.problem.decode(best.genotype());
+                //             }
+                //         } else {
+                //             context.score = Some(best.score().unwrap().clone());
+                //             context.best = context.problem.decode(best.genotype());
+                //         }
+                //     }
+                // }),
             };
 
-            GeneticEngine::<C, T, E>::new(context, pipeline)
+            GeneticEngine::<C, T>::new(context, pipeline)
         }
     }
 
@@ -527,6 +485,7 @@ where
         self.params.front = Some(Front::new(
             self.params.front_range.clone(),
             front_obj.clone(),
+            self.params.thread_pool.clone(),
             move |one: &Phenotype<C>, two: &Phenotype<C>| {
                 if one.score().is_none() || two.score().is_none() {
                     return Ordering::Equal;
@@ -546,11 +505,10 @@ where
     }
 }
 
-impl<C, T, E> Default for GeneticEngineBuilder<C, T, E>
+impl<C, T> Default for GeneticEngineBuilder<C, T>
 where
     C: Chromosome + 'static,
     T: Clone + Send + 'static,
-    E: Epoch<C>,
 {
     fn default() -> Self {
         GeneticEngineBuilder {
@@ -576,7 +534,6 @@ where
                 problem: None,
                 front: None,
             },
-            _phantom: std::marker::PhantomData,
         }
     }
 }

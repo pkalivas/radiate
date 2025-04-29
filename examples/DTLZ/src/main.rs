@@ -34,7 +34,7 @@ fn main() {
 
     println!("{:?}", result.seconds());
     println!("{:?}", result.metrics);
-    plot_front(&result.result());
+    plot_front(&result.front.read().unwrap());
 }
 
 fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {

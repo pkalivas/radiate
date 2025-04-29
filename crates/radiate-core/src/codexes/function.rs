@@ -38,7 +38,7 @@ use std::sync::Arc;
 /// # Type Parameters
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 /// - `T`: The type that the genotype will be decoded to.
-#[derive(Default, Clone)]
+#[derive(Default)]
 pub struct FnCodex<C: Chromosome, T> {
     encoder: Option<Arc<dyn Fn() -> Genotype<C>>>,
     decoder: Option<Arc<dyn Fn(&Genotype<C>) -> T>>,

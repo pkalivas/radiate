@@ -1,4 +1,7 @@
-use crate::objectives::{Objective, pareto};
+use crate::{
+    objectives::{Objective, pareto},
+    thread_pool::ThreadPool,
+};
 use std::{cmp::Ordering, ops::Range, sync::Arc};
 
 /// A front is a collection of scores that are non-dominated with respect to each other.
@@ -14,13 +17,14 @@ where
     ord: Arc<dyn Fn(&T, &T) -> Ordering + Send + Sync>,
     range: Range<usize>,
     objective: Objective,
+    thread_pool: Arc<ThreadPool>,
 }
 
 impl<T> Front<T>
 where
     T: PartialEq + Clone + AsRef<[f32]>,
 {
-    pub fn new<F>(range: Range<usize>, objective: Objective, comp: F) -> Self
+    pub fn new<F>(range: Range<usize>, objective: Objective, pool: Arc<ThreadPool>, comp: F) -> Self
     where
         F: Fn(&T, &T) -> Ordering + Send + Sync + 'static,
     {
@@ -28,12 +32,36 @@ where
             values: Vec::new(),
             range,
             objective,
+            thread_pool: pool,
             ord: Arc::new(comp),
         }
     }
 
+    pub fn range(&self) -> Range<usize> {
+        self.range.clone()
+    }
+
+    pub fn objective(&self) -> Objective {
+        self.objective.clone()
+    }
+
     pub fn values(&self) -> &[Arc<T>] {
         &self.values
+    }
+
+    pub fn extend<I>(&mut self, items: I)
+    where
+        I: IntoIterator<Item = T>,
+    {
+        let mut all = self.values.drain(..).collect::<Vec<_>>();
+        all.extend(items.into_iter().map(Arc::new));
+
+        let inner_refs: Vec<&T> = all.iter().map(|arc| arc.as_ref()).collect();
+        self.values = pareto::non_dominated(&inner_refs, &self.objective)
+            .into_iter()
+            .take(self.range.end)
+            .map(|idx| Arc::clone(&all[idx]))
+            .collect::<Vec<_>>();
     }
 
     pub fn update_front<V>(&mut self, values: &[V]) -> usize
@@ -109,7 +137,7 @@ where
         false
     }
 
-    fn filter(&mut self) {
+    pub fn filter(&mut self) {
         let values = self.values.iter().map(|s| s.as_ref()).collect::<Vec<_>>();
         let crowding_distances = pareto::crowding_distance(&values, &self.objective);
 

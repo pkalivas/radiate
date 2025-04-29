@@ -7,8 +7,10 @@ use std::{
     time::Duration,
 };
 
-pub trait Engine<C: Chromosome> {
+pub trait Engine<C: Chromosome, T> {
     type Epoch: Epoch<C>;
+
+    fn context(&self) -> &Context<C, T>;
 
     fn next(&mut self) -> Self::Epoch;
 
@@ -68,7 +70,7 @@ where
     fn execute(&mut self, generation: usize, metrics: &mut MetricSet, ecosystem: &mut Ecosystem<C>);
 }
 
-pub struct EngineContext<C, T>
+pub struct Context<C, T>
 where
     C: Chromosome,
 {
@@ -82,7 +84,7 @@ where
     pub problem: Arc<dyn Problem<C, T>>,
 }
 
-impl<C, T> Clone for EngineContext<C, T>
+impl<C, T> Clone for Context<C, T>
 where
     C: Chromosome,
     T: Clone,
