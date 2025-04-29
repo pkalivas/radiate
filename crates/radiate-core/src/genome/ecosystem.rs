@@ -102,16 +102,6 @@ impl<C: Chromosome> Ecosystem<C> {
         }
     }
 
-    pub fn sort_by(&mut self, objective: &Objective) {
-        if self.is_sorted {
-            return;
-        }
-
-        objective.sort(&mut self.population);
-        self.population.set_sorted(true);
-        self.is_sorted = true;
-    }
-
     fn adjust_scores(species: &Species<C>) -> Vec<Score> {
         species
             .population

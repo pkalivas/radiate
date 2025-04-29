@@ -5,3 +5,5 @@ pub mod random_provider;
 pub mod thread_pool;
 pub mod timer;
 pub mod tracker;
+
+pub use indexes::SubsetMode;

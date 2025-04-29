@@ -50,6 +50,7 @@ impl<C: Chromosome> RecombineStep<C> {
         metrics: &mut MetricSet,
     ) -> Population<C> {
         if let Some(species) = ecosystem.species.as_ref() {
+            let total_offspring = self.offspring_count as f32;
             let mut species_scores = species
                 .iter()
                 .filter_map(|spec| spec.score())
@@ -60,7 +61,7 @@ impl<C: Chromosome> RecombineStep<C> {
             }
             let mut offspring = Vec::with_capacity(self.offspring_count);
             for (species, score) in species.iter().zip(species_scores.iter()) {
-                let count = (score.as_f32() * self.offspring_count as f32).round() as usize;
+                let count = (score.as_f32() * total_offspring).round() as usize;
                 let mut selected_offspring =
                     self.select_offspring(count, &species.population, metrics);
 
@@ -68,9 +69,7 @@ impl<C: Chromosome> RecombineStep<C> {
 
                 self.apply_alterations(generation, &mut selected_offspring, metrics);
 
-                for individual in selected_offspring.into_iter() {
-                    offspring.push(individual);
-                }
+                offspring.extend(selected_offspring);
             }
 
             Population::new(offspring)
@@ -136,10 +135,5 @@ where
             .for_each(|individual| {
                 ecosystem.population_mut().push(individual);
             });
-
-        // ecosystem.population = survivors
-        //     .into_iter()
-        //     .chain(offspring.into_iter())
-        //     .collect::<Population<C>>();
     }
 }

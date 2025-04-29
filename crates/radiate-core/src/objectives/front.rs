@@ -1,13 +1,20 @@
 use crate::{
     objectives::{Objective, pareto},
-    thread_pool::ThreadPool,
+    thread_pool::{ThreadPool, WaitGroup},
 };
-use std::{cmp::Ordering, collections::HashSet, hash::Hash, ops::Range, sync::Arc};
+use std::{
+    cmp::Ordering,
+    collections::HashSet,
+    hash::Hash,
+    ops::Range,
+    sync::{Arc, RwLock},
+};
 
 /// A front is a collection of scores that are non-dominated with respect to each other.
 /// This is useful for multi-objective optimization problems where the goal is to find
 /// the best solutions that are not dominated by any other solution.
 /// This results in what is called the Pareto front.
+
 #[derive(Clone)]
 pub struct Front<T>
 where
@@ -17,7 +24,6 @@ where
     ord: Arc<dyn Fn(&T, &T) -> Ordering + Send + Sync>,
     range: Range<usize>,
     objective: Objective,
-    #[allow(dead_code)]
     thread_pool: Arc<ThreadPool>,
 }
 
@@ -25,7 +31,12 @@ impl<T> Front<T>
 where
     T: PartialEq + Clone + AsRef<[f32]>,
 {
-    pub fn new<F>(range: Range<usize>, objective: Objective, pool: Arc<ThreadPool>, comp: F) -> Self
+    pub fn new<F>(
+        range: Range<usize>,
+        objective: Objective,
+        thread_pool: Arc<ThreadPool>,
+        comp: F,
+    ) -> Self
     where
         F: Fn(&T, &T) -> Ordering + Send + Sync + 'static,
     {
@@ -33,8 +44,8 @@ where
             values: Vec::new(),
             range,
             objective,
-            thread_pool: pool,
             ord: Arc::new(comp),
+            thread_pool,
         }
     }
 
@@ -50,95 +61,65 @@ where
         &self.values
     }
 
-    pub fn extend<I>(&mut self, items: I)
+    pub fn add_all(&mut self, items: &[T]) -> usize
     where
-        I: IntoIterator<Item = T>,
+        T: Eq + Hash + Clone + Send + Sync + 'static,
     {
-        let mut all = self.values.drain(..).collect::<Vec<_>>();
-        all.extend(items.into_iter().map(Arc::new));
+        let wg = WaitGroup::new();
+        let ord = Arc::clone(&self.ord);
+        let values = Arc::new(RwLock::new(self.values.clone()));
+        let dominating_values = Arc::new(RwLock::new(vec![false; items.len()]));
+        let remove_values = Arc::new(RwLock::new(HashSet::new()));
+        let values_to_add = Arc::new(RwLock::new(Vec::new()));
 
-        let inner_refs: Vec<&T> = all.iter().map(|arc| arc.as_ref()).collect();
-        self.values = pareto::non_dominated(&inner_refs, &self.objective)
-            .into_iter()
-            .take(self.range.end)
-            .map(|idx| Arc::clone(&all[idx]))
-            .collect::<Vec<_>>();
-    }
+        for (idx, member) in items.iter().enumerate() {
+            let ord_clone = Arc::clone(&ord);
+            let values_clone = Arc::clone(&values);
+            let doms_vector = Arc::clone(&dominating_values);
+            let remove_vector = Arc::clone(&remove_values);
+            let new_member = member.clone();
+            let values_to_add = Arc::clone(&values_to_add);
 
-    pub fn update_front<V>(&mut self, values: &[V]) -> usize
-    where
-        V: AsRef<T>,
-    {
-        let mut count = 0;
-        for value in values {
-            if self.add(value.as_ref()) {
-                count += 1;
-            }
+            self.thread_pool.group_submit(&wg, move || {
+                let mut is_dominated = true;
+
+                for existing_val in values_clone.read().unwrap().iter() {
+                    if (ord_clone)(existing_val, &new_member) == Ordering::Greater {
+                        // If an existing value dominates the new value, return false
+                        is_dominated = false;
+                        break;
+                    } else if (ord_clone)(&new_member, existing_val) == Ordering::Greater {
+                        // If the new value dominates an existing value, continue checking
+                        // to_remove.push(Arc::clone(existing_val));
+                        remove_vector.write().unwrap().insert(existing_val.clone());
+                        continue;
+                    } else if &new_member == existing_val.as_ref() {
+                        // If they are equal, we consider it dominated
+                        is_dominated = false;
+                        break;
+                    }
+                }
+
+                if is_dominated {
+                    doms_vector.write().unwrap().get_mut(idx).map(|v| *v = true);
+                    let mut writer = values_to_add.write().unwrap();
+                    writer.push(new_member);
+                }
+            });
         }
+
+        let count = wg.wait();
+
+        self.values
+            .retain(|x| !remove_values.read().unwrap().contains(x));
+        self.values
+            .extend(values_to_add.write().unwrap().drain(..).map(Arc::new));
 
         if self.values.len() > self.range.end {
             self.filter();
         }
 
         count
-    }
-
-    pub fn dominates(&self, value: &T) -> (bool, Vec<Arc<T>>) {
-        let mut to_remove = Vec::new();
-        for existing_val in self.values.iter() {
-            if (self.ord)(existing_val.as_ref(), value) == Ordering::Greater {
-                // If an existing value dominates the new value, return false
-                return (false, to_remove);
-            } else if (self.ord)(value, existing_val.as_ref()) == Ordering::Greater {
-                // If the new value dominates an existing value, continue checking
-                to_remove.push(Arc::clone(existing_val));
-                continue;
-            } else if value == existing_val.as_ref() {
-                // If they are equal, we consider it dominated
-                return (false, to_remove);
-            }
-        }
-
-        (true, to_remove)
-    }
-
-    pub fn clean(&mut self, new_values: Vec<&T>, to_remove: &HashSet<Arc<T>>)
-    where
-        T: Eq + Hash,
-    {
-        self.values.retain(|x| !to_remove.contains(x));
-
-        for new_val in new_values {
-            self.values.push(Arc::new(new_val.clone()));
-        }
-
-        if self.values.len() > self.range.end {
-            self.filter();
-        }
-    }
-
-    pub fn add(&mut self, value: &T) -> bool {
-        let mut to_remove = Vec::new();
-        let mut is_dominated = false;
-
-        for existing_val in self.values.iter() {
-            if (self.ord)(value, existing_val) == Ordering::Greater {
-                to_remove.push(Arc::clone(existing_val));
-            } else if (self.ord)(existing_val, value) == Ordering::Greater
-                || value == existing_val.as_ref()
-            {
-                is_dominated = true;
-                break;
-            }
-        }
-
-        if !is_dominated {
-            self.values.retain(|x| !to_remove.contains(x));
-            self.values.push(Arc::new(value.clone()));
-            return true;
-        }
-
-        false
     }
 
     pub fn filter(&mut self) {

@@ -137,6 +137,23 @@ where
     RandomProvider::set_rng(current_rng);
 }
 
+pub fn weighted_choice(weights: &[f32]) -> usize {
+    let mut rng = RandomProvider::get_rng();
+
+    let mut cumulative_weights = vec![0.0; weights.len()];
+    cumulative_weights[0] = weights[0];
+
+    for i in 1..weights.len() {
+        cumulative_weights[i] = cumulative_weights[i - 1] + weights[i];
+    }
+
+    let random_value = rng.random_range(0.0..*cumulative_weights.last().unwrap());
+    cumulative_weights
+        .iter()
+        .position(|&x| x > random_value)
+        .unwrap_or(weights.len() - 1)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -423,7 +423,6 @@ where
 
         let front_step = FrontStep {
             front: config.front().clone(),
-            thread_pool: config.thread_pool(),
         };
 
         Some(Box::new(front_step))
