@@ -1,4 +1,6 @@
 use super::phenotype::Phenotype;
+use crate::cell::MutCell;
+use crate::objectives::Scored;
 use crate::{Chromosome, Score};
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
@@ -19,7 +21,7 @@ use std::ops::{Index, IndexMut};
 
 #[derive(Clone, Default)]
 pub struct Population<C: Chromosome> {
-    pub individuals: Vec<Phenotype<C>>,
+    pub individuals: Vec<MutCell<Phenotype<C>>>,
     pub is_sorted: bool,
 }
 
@@ -28,31 +30,48 @@ impl<C: Chromosome> Population<C> {
     /// This will set the is_sorted flag to false.
     pub fn new(individuals: Vec<Phenotype<C>>) -> Self {
         Population {
-            individuals,
+            individuals: individuals.into_iter().map(MutCell::from).collect(),
             is_sorted: false,
         }
     }
 
     pub fn get(&self, index: usize) -> Option<&Phenotype<C>> {
-        self.individuals.get(index)
+        self.individuals.get(index).map(|cell| cell.get())
     }
 
     pub fn get_mut(&mut self, index: usize) -> Option<&mut Phenotype<C>> {
         self.is_sorted = false;
-        self.individuals.get_mut(index)
+        self.individuals.get_mut(index).map(|cell| cell.get_mut())
     }
 
-    pub fn iter(&self) -> std::slice::Iter<Phenotype<C>> {
-        self.individuals.iter()
-    }
-
-    pub fn iter_mut(&mut self) -> std::slice::IterMut<Phenotype<C>> {
+    pub fn push(&mut self, individual: Phenotype<C>) {
         self.is_sorted = false;
-        self.individuals.iter_mut()
+        self.individuals.push(MutCell::new(individual));
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &Phenotype<C>> {
+        MemberIter {
+            population: self,
+            index: 0,
+        }
+    }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Phenotype<C>> {
+        self.is_sorted = false;
+        MemberIterMut {
+            population: self,
+            index: 0,
+            _marker: std::marker::PhantomData,
+        }
     }
 
     pub fn len(&self) -> usize {
         self.individuals.len()
+    }
+
+    pub fn clear(&mut self) {
+        self.is_sorted = false;
+        self.individuals.clear();
     }
 
     pub fn get_scores(&self) -> Vec<&Score> {
@@ -64,7 +83,7 @@ impl<C: Chromosome> Population<C> {
 
     /// Sort the individuals in the population using the given closure.
     /// This will set the is_sorted flag to true.
-    pub fn sort_by<F>(&mut self, f: F)
+    pub fn sort_by<F>(&mut self, mut f: F)
     where
         F: FnMut(&Phenotype<C>, &Phenotype<C>) -> std::cmp::Ordering,
     {
@@ -72,7 +91,10 @@ impl<C: Chromosome> Population<C> {
             return;
         }
 
-        self.individuals.sort_by(f);
+        let new_sort_fn =
+            move |a: &MutCell<Phenotype<C>>, b: &MutCell<Phenotype<C>>| f(a.get(), b.get());
+
+        self.individuals.sort_by(new_sort_fn);
         self.is_sorted = true;
     }
 
@@ -87,17 +109,42 @@ impl<C: Chromosome> Population<C> {
     ) -> (&mut Phenotype<C>, &mut Phenotype<C>) {
         if first < second {
             let (left, right) = self.individuals.split_at_mut(second);
-            (&mut left[first], &mut right[0])
+            (left[first].get_mut(), right[0].get_mut())
         } else {
             let (left, right) = self.individuals.split_at_mut(first);
-            (&mut right[0], &mut left[second])
+            (right[0].get_mut(), left[second].get_mut())
         }
     }
 }
 
-impl<C: Chromosome> AsRef<[Phenotype<C>]> for Population<C> {
-    fn as_ref(&self) -> &[Phenotype<C>] {
-        &self.individuals
+impl<C: Chromosome> From<Vec<Phenotype<C>>> for Population<C> {
+    fn from(individuals: Vec<Phenotype<C>>) -> Self {
+        Population {
+            individuals: individuals.into_iter().map(MutCell::from).collect(),
+            is_sorted: false,
+        }
+    }
+}
+
+impl<C: Chromosome> From<Vec<MutCell<Phenotype<C>>>> for Population<C> {
+    fn from(individuals: Vec<MutCell<Phenotype<C>>>) -> Self {
+        Population {
+            individuals,
+            is_sorted: false,
+        }
+    }
+}
+
+impl<C: Chromosome> AsRef<[MutCell<Phenotype<C>>]> for Population<C> {
+    fn as_ref(&self) -> &[MutCell<Phenotype<C>>] {
+        self.individuals.as_ref()
+    }
+}
+
+impl<C: Chromosome> AsMut<[MutCell<Phenotype<C>>]> for Population<C> {
+    fn as_mut(&mut self) -> &mut [MutCell<Phenotype<C>>] {
+        self.is_sorted = false;
+        self.individuals.as_mut()
     }
 }
 
@@ -112,7 +159,7 @@ impl<C: Chromosome> Index<usize> for Population<C> {
 impl<C: Chromosome> IndexMut<usize> for Population<C> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.is_sorted = false;
-        &mut self.individuals[index]
+        self.individuals[index].get_mut()
     }
 }
 
@@ -121,13 +168,20 @@ impl<C: Chromosome> IntoIterator for Population<C> {
     type IntoIter = std::vec::IntoIter<Phenotype<C>>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.individuals.into_iter()
+        self.individuals
+            .into_iter()
+            .map(|cell| cell.into_inner())
+            .collect::<Vec<_>>()
+            .into_iter()
     }
 }
 
 impl<C: Chromosome> FromIterator<Phenotype<C>> for Population<C> {
     fn from_iter<I: IntoIterator<Item = Phenotype<C>>>(iter: I) -> Self {
-        let individuals = iter.into_iter().collect();
+        let individuals = iter
+            .into_iter()
+            .map(MutCell::from)
+            .collect::<Vec<MutCell<Phenotype<C>>>>();
         Population {
             individuals,
             is_sorted: false,
@@ -149,7 +203,7 @@ where
         }
 
         Population {
-            individuals,
+            individuals: individuals.into_iter().map(MutCell::from).collect(),
             is_sorted: false,
         }
     }
@@ -159,9 +213,56 @@ impl<C: Chromosome + Debug> Debug for Population<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Population [\n")?;
         for individual in &self.individuals {
-            write!(f, "{:?},\n ", individual)?;
+            write!(f, "{:?},\n ", individual.get())?;
         }
         write!(f, "]")
+    }
+}
+
+impl<C: Chromosome> Scored for MutCell<Phenotype<C>> {
+    fn score(&self) -> Option<&Score> {
+        self.get().score()
+    }
+}
+
+struct MemberIter<'a, C: Chromosome> {
+    population: &'a Population<C>,
+    index: usize,
+}
+
+impl<'a, C: Chromosome> Iterator for MemberIter<'a, C> {
+    type Item = &'a Phenotype<C>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.population.len() {
+            let member = &self.population.individuals[self.index];
+            self.index += 1;
+            Some(member.get())
+        } else {
+            None
+        }
+    }
+}
+
+struct MemberIterMut<'a, C: Chromosome> {
+    population: *mut Population<C>,
+    index: usize,
+    _marker: std::marker::PhantomData<&'a mut Population<C>>,
+}
+impl<'a, C: Chromosome> Iterator for MemberIterMut<'a, C> {
+    type Item = &'a mut Phenotype<C>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        unsafe {
+            let population = &mut *self.population;
+            if self.index < population.len() {
+                let member = &mut population.individuals[self.index];
+                self.index += 1;
+                Some(member.get_mut())
+            } else {
+                None
+            }
+        }
     }
 }
 

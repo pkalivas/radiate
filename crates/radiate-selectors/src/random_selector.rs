@@ -22,6 +22,6 @@ impl<C: Chromosome> Select<C> for RandomSelector {
             selected.push(member.clone());
         }
 
-        Population::new(selected)
+        Population::from(selected)
     }
 }

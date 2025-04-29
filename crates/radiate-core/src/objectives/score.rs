@@ -4,6 +4,10 @@ use std::iter::Sum;
 use std::ops::{Add, Div, Mul, Sub};
 use std::sync::Arc;
 
+pub trait Scored {
+    fn score(&self) -> Option<&Score>;
+}
+
 /// A score is a value that can be used to compare the fitness of two individuals and represents
 /// the 'fitness' of an individual within the genetic algorithm.
 /// The score can be a single value or multiple values, depending on the problem being solved.

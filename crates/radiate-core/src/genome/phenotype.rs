@@ -1,6 +1,6 @@
 use super::{Valid, genotype::Genotype};
-use crate::Chromosome;
 use crate::objectives::Score;
+use crate::{Chromosome, objectives::Scored};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 /// A unique identifier for a `Phenotype`. This is used to identify the `Phenotype` in the population.
@@ -92,6 +92,12 @@ impl<C: Chromosome> Phenotype<C> {
     /// difference between the given generation and the generation in which the individual was created.
     pub fn age(&self, generation: usize) -> usize {
         generation - self.generation
+    }
+}
+
+impl<C: Chromosome> Scored for Phenotype<C> {
+    fn score(&self) -> Option<&Score> {
+        self.score.as_ref()
     }
 }
 

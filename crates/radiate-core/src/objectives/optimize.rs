@@ -1,5 +1,7 @@
 use crate::{Chromosome, Population};
 
+use super::Scored;
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Objective {
     Single(Optimize),
@@ -34,10 +36,10 @@ impl Objective {
         }
     }
 
-    pub fn sort<C: Chromosome>(&self, population: &mut Population<C>) {
+    pub fn sort<T: AsMut<[K]>, K: Scored + PartialOrd>(&self, population: &mut T) {
         match self {
             Objective::Single(opt) => opt.sort(population),
-            Objective::Multi(_) => population.sort_by(|one, two| {
+            Objective::Multi(_) => population.as_mut().sort_by(|one, two| {
                 if let (Some(score_one), Some(score_two)) = (one.score(), two.score()) {
                     self.dominance_cmp(score_one.as_ref(), score_two.as_ref())
                 } else {
@@ -108,10 +110,14 @@ pub enum Optimize {
 }
 
 impl Optimize {
-    pub fn sort<C: Chromosome>(&self, population: &mut Population<C>) {
+    pub fn sort<T: AsMut<[K]>, K: PartialOrd>(&self, population: &mut T) {
         match self {
-            Optimize::Minimize => population.sort_by(|a, b| a.partial_cmp(b).unwrap()),
-            Optimize::Maximize => population.sort_by(|a, b| b.partial_cmp(a).unwrap()),
+            Optimize::Minimize => population
+                .as_mut()
+                .sort_by(|a, b| a.partial_cmp(b).unwrap()),
+            Optimize::Maximize => population
+                .as_mut()
+                .sort_by(|a, b| b.partial_cmp(a).unwrap()),
         }
     }
 

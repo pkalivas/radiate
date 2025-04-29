@@ -411,33 +411,6 @@ where
     }
 }
 
-impl<C, T> Engine<C, T> for GeneticEngine<C, T>
-where
-    C: Chromosome,
-    T: Clone + Send,
-{
-    type Epoch = EngineContext<C, T>;
-
-    fn next(&mut self) {}
-
-    fn run<F>(&mut self, limit: F) -> Self::Epoch
-    where
-        F: Fn(&Self::Epoch) -> bool,
-    {
-        let mut ctx = self.start();
-
-        loop {
-            // self.next(&mut ctx);
-
-            panic!("Not implemented yet");
-
-            if limit(&ctx) {
-                break self.stop(&mut ctx);
-            }
-        }
-    }
-}
-
 // use radiate_core::Engine;
 
 // use super::codexes::Codex;
