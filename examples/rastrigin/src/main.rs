@@ -9,7 +9,8 @@ const N_GENES: usize = 2;
 fn main() {
     let codex = FloatCodex::vector(N_GENES, -RANGE..RANGE);
 
-    let engine = GeneticEngine::from_codex(codex)
+    let mut engine = GeneticEngine::builder()
+        .codex(codex)
         .minimizing()
         .population_size(500)
         .alter(alters!(
@@ -27,7 +28,7 @@ fn main() {
         .build();
 
     let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32());
+        println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_f32());
         ctx.score().as_f32() <= MIN_SCORE || ctx.seconds() > MAX_SECONDS
     });
 

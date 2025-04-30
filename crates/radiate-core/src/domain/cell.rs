@@ -20,6 +20,14 @@ impl<T> MutCell<T> {
         }
     }
 
+    pub fn is_unique(&self) -> bool {
+        unsafe { (*self.ref_count).load(Ordering::Acquire) == 1 }
+    }
+
+    pub fn is_shared(&self) -> bool {
+        !self.is_unique()
+    }
+
     pub fn get(&self) -> &T {
         unsafe { &*self.value }
     }
@@ -40,8 +48,10 @@ impl<T> MutCell<T> {
                 self.consumed = true;
                 *value
             } else {
-                // Multiple owners exist, clone
-                (*self.value).clone()
+                // Still need to decrement the ref count!
+                let clone = (*self.value).clone();
+                (*self.ref_count).fetch_sub(1, Ordering::Release);
+                clone
             }
         }
     }
@@ -55,7 +65,7 @@ impl<T> Deref for MutCell<T> {
     }
 }
 
-impl<T> DerefMut for MutCell<T> {
+impl<T: Clone> DerefMut for MutCell<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.get_mut()
     }
@@ -107,5 +117,62 @@ impl<T> Drop for MutCell<T> {
                 drop(Box::from_raw(self.ref_count as *mut AtomicUsize));
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mutcell_basic_clone_and_mutation() {
+        let mut cell = MutCell::new(5);
+        assert_eq!(*cell, 5);
+
+        // Clone the cell
+        let mut cell2 = cell.clone();
+        assert_eq!(*cell2, 5);
+
+        // Mutate original cell
+        *cell.get_mut() = 10;
+        assert_eq!(*cell, 10);
+        // The clone still sees the original value because this is not copy-on-write
+        assert_eq!(*cell2, 10);
+
+        // Mutate via clone
+        *cell2.get_mut() = 20;
+        assert_eq!(*cell2, 20);
+        assert_eq!(*cell, 20);
+    }
+
+    #[test]
+    fn mutcell_into_inner_unique() {
+        let cell = MutCell::new(String::from("hello"));
+        let inner = cell.into_inner();
+        assert_eq!(inner, "hello");
+    }
+
+    #[test]
+    fn mutcell_into_inner_clone_when_multiple() {
+        let cell = MutCell::new(String::from("hello"));
+        let cell2 = cell.clone();
+
+        let inner = cell.into_inner();
+        assert_eq!(inner, "hello");
+
+        // Drop cell2 to avoid leak
+        drop(cell2);
+    }
+
+    #[test]
+    fn mutcell_partial_eq_and_ord() {
+        let cell1 = MutCell::new(10);
+        let cell2 = MutCell::new(20);
+        let cell3 = MutCell::new(10);
+
+        assert!(cell1 == cell3);
+        assert!(cell1 != cell2);
+        assert!(cell1 < cell2);
+        assert!(cell2 > cell3);
     }
 }

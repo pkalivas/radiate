@@ -19,7 +19,8 @@ fn main() {
     let codex = TreeCodex::multi_root(3, 4, store).constraint(|node| node.size() < 40);
     let regression = Regression::new(train.clone(), Loss::MSE, codex);
 
-    let engine = GeneticEngine::from_problem(regression)
+    let mut engine = GeneticEngine::builder()
+        .problem(regression)
         .minimizing()
         .num_threads(10)
         .crossover(TreeCrossover::new(0.5))
@@ -27,7 +28,7 @@ fn main() {
         .build();
 
     let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32());
+        println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_f32());
         ctx.score().as_f32() < MIN_SCORE || ctx.seconds() > MAX_SECONDS
     });
 
@@ -37,11 +38,11 @@ fn main() {
 fn display(
     train: &DataSet,
     test: &DataSet,
-    result: &EngineContext<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>,
+    result: &Generation<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>,
 ) {
     let train_acc = Accuracy::new("train", &train, Loss::MSE);
     let test_acc = Accuracy::new("test", &test, Loss::MSE);
-    let best = result.best.clone();
+    let best = result.value().clone();
 
     let train_acc_result = train_acc.calc(|input| best.eval(input));
     let test_acc_result = test_acc.calc(|input| best.eval(input));

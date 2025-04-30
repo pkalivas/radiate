@@ -167,6 +167,66 @@ impl Metric {
         Metric::Operations(name, val.into(), time.into())
     }
 
+    pub fn with_value(mut self, value: impl Into<f32>) -> Self {
+        match &mut self {
+            Metric::Value(_, stat, dist) => {
+                let into_value = value.into();
+                stat.add(into_value);
+                dist.push(into_value);
+            }
+            Metric::Operations(_, stat, _) => {
+                let into_value = value.into();
+                stat.add(into_value);
+            }
+            _ => {}
+        }
+        self
+    }
+
+    pub fn with_distribution(mut self, values: &[f32]) -> Self {
+        match &mut self {
+            Metric::Value(_, _, dist) => {
+                dist.add(values);
+            }
+            Metric::Distribution(_, dist) => {
+                dist.add(values);
+            }
+            _ => {}
+        }
+        self
+    }
+
+    pub fn with_time(mut self, value: impl Into<Duration>) -> Self {
+        match &mut self {
+            Metric::Time(_, stat) => {
+                let into_value = value.into();
+                stat.add(into_value);
+            }
+            Metric::Operations(_, _, stat) => {
+                let into_value = value.into();
+                stat.add(into_value);
+            }
+            _ => {}
+        }
+        self
+    }
+
+    pub fn with_operations(mut self, value: impl Into<f32>, time: impl Into<Duration>) -> Self {
+        match &mut self {
+            Metric::Operations(_, stat, time_stat) => {
+                let into_value = value.into();
+                stat.add(into_value);
+                time_stat.add(time.into());
+            }
+            _ => {}
+        }
+        self
+    }
+
+    pub fn with_count_value(self, count: impl Into<usize>) -> Self {
+        self.with_value(count.into() as f32)
+    }
+
     pub fn add_value(&mut self, value: f32) {
         match self {
             Metric::Value(_, stat, dist) => {

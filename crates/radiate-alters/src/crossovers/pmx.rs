@@ -1,4 +1,6 @@
-use radiate_core::{AlterResult, Chromosome, Crossover, PermutationChromosome, indexes};
+use radiate_core::{
+    AlterResult, Chromosome, Crossover, PermutationChromosome, SubsetMode, indexes,
+};
 
 pub struct PMXCrossover {
     rate: f32,
@@ -27,7 +29,7 @@ impl<A: PartialEq + Clone> Crossover<PermutationChromosome<A>> for PMXCrossover 
             return 0.into();
         }
 
-        let subset = indexes::subset(chrom_one.genes.len(), 2);
+        let subset = indexes::subset(chrom_one.genes.len(), 2, SubsetMode::StratifiedCorrect);
         let start = subset[0] as usize;
         let end = subset[1] as usize;
 

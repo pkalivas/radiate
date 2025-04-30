@@ -44,6 +44,34 @@ pub fn crowding_distance<T: AsRef<[f32]>>(scores: &[T], objective: &Objective) -
     result
 }
 
+pub fn non_dominated<T: AsRef<[f32]>>(population: &[T], objective: &Objective) -> Vec<usize> {
+    let mut dominated_counts = vec![0; population.len()];
+    let mut dominates = vec![Vec::new(); population.len()];
+
+    for i in 0..population.len() {
+        for j in (i + 1)..population.len() {
+            let score_one = &population[i];
+            let score_two = &population[j];
+            if dominance(score_one, score_two, objective) {
+                dominates[i].push(j);
+                dominated_counts[j] += 1;
+            } else if dominance(score_two, score_one, objective) {
+                dominates[j].push(i);
+                dominated_counts[i] += 1;
+            }
+        }
+    }
+
+    let mut non_dominated = Vec::new();
+    for i in 0..population.len() {
+        if dominated_counts[i] == 0 {
+            non_dominated.push(i);
+        }
+    }
+
+    non_dominated
+}
+
 /// Rank the population based on the NSGA-II algorithm. This assigns a rank to each
 /// individual in the population based on their dominance relationships with other
 /// individuals in the population. The result is a vector of ranks, where the rank
@@ -140,9 +168,9 @@ pub fn dominance<K: PartialOrd, T: AsRef<[K]>>(
 ) -> bool {
     let mut better_in_any = false;
 
-    for (a, b) in score_a.as_ref().iter().zip(score_b.as_ref().iter()) {
-        match objective {
-            Objective::Single(opt) => {
+    match objective {
+        Objective::Single(opt) => {
+            for (a, b) in score_a.as_ref().iter().zip(score_b.as_ref().iter()) {
                 if opt == &Optimize::Minimize {
                     if a > b {
                         return false;
@@ -159,22 +187,22 @@ pub fn dominance<K: PartialOrd, T: AsRef<[K]>>(
                     }
                 }
             }
-            Objective::Multi(opts) => {
-                for ((a, b), opt) in score_a.as_ref().iter().zip(score_b.as_ref()).zip(opts) {
-                    if opt == &Optimize::Minimize {
-                        if a > b {
-                            return false;
-                        }
-                        if a < b {
-                            better_in_any = true;
-                        }
-                    } else {
-                        if a < b {
-                            return false;
-                        }
-                        if a > b {
-                            better_in_any = true;
-                        }
+        }
+        Objective::Multi(opts) => {
+            for ((a, b), opt) in score_a.as_ref().iter().zip(score_b.as_ref()).zip(opts) {
+                if opt == &Optimize::Minimize {
+                    if a > b {
+                        return false;
+                    }
+                    if a < b {
+                        better_in_any = true;
+                    }
+                } else {
+                    if a < b {
+                        return false;
+                    }
+                    if a > b {
+                        better_in_any = true;
                     }
                 }
             }

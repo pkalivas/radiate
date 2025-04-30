@@ -1,6 +1,9 @@
 use super::{Chromosome, Phenotype, Population};
 use crate::{Objective, Score, objectives::Scored, tracker::Tracker};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::{
+    fmt::{self, Debug, Formatter},
+    sync::atomic::{AtomicU64, Ordering},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[repr(transparent)]
@@ -13,7 +16,7 @@ impl SpeciesId {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Species<C: Chromosome> {
     pub id: SpeciesId,
     pub generation: usize,
@@ -29,10 +32,14 @@ impl<C: Chromosome> Species<C> {
             id: SpeciesId::new(),
             generation,
             tracker: Tracker::new(),
-            score: None,
+            score: Some(initial.score().unwrap().clone()),
             mascot: initial.clone(),
             population: Population::new(vec![initial.clone()]),
         }
+    }
+
+    pub fn id(&self) -> SpeciesId {
+        self.id
     }
 
     pub fn push(&mut self, individual: &Phenotype<C>) {
@@ -52,7 +59,11 @@ impl<C: Chromosome> Species<C> {
     }
 
     pub fn score(&self) -> Option<&Score> {
-        self.tracker.current()
+        self.score.as_ref()
+    }
+
+    pub fn age(&self, current: usize) -> usize {
+        current - self.generation
     }
 
     pub fn update_score(&mut self, score: Score, objective: &Objective) {
@@ -83,5 +94,20 @@ impl<C: Chromosome + PartialEq> PartialEq for Species<C> {
             && self.len() == other.len()
             && self.stagnation() == other.stagnation()
             && self.generation == other.generation
+    }
+}
+
+impl<C: Chromosome> Debug for Species<C> {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Species {{ members: {:?}, score: {:?}, best_score: {:?}, stagnation: {:?}, generation: {:?}, id: {:?} }}",
+            self.len(),
+            self.score,
+            self.tracker.current(),
+            self.tracker.stagnation(),
+            self.generation,
+            self.id
+        )
     }
 }

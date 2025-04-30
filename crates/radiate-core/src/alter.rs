@@ -1,6 +1,4 @@
-use crate::{
-    Chromosome, Gene, Genotype, Metric, Population, indexes, random_provider, timer::Timer,
-};
+use crate::{Chromosome, Gene, Genotype, Metric, Population, indexes, random_provider};
 
 /// This is the main trait that is used to define the different types of alterations that can be
 /// performed on a population. The `Alter` trait is used to define the `alter` method that is used
@@ -86,9 +84,9 @@ impl<C: Chromosome> Alter<C> for AlterAction<C> {
     fn alter(&self, population: &mut Population<C>, generation: usize) -> Vec<Metric> {
         match &self {
             AlterAction::Mutate(name, rate, m) => {
-                let timer = Timer::new();
+                let timer = std::time::Instant::now();
                 let AlterResult(count, metrics) = m.mutate(population, generation, *rate);
-                let metric = Metric::new_operations(name, count, timer);
+                let metric = Metric::new_operations(name, count, timer.elapsed());
 
                 match metrics {
                     Some(metrics) => metrics.into_iter().chain(std::iter::once(metric)).collect(),
@@ -96,9 +94,9 @@ impl<C: Chromosome> Alter<C> for AlterAction<C> {
                 }
             }
             AlterAction::Crossover(name, rate, c) => {
-                let timer = Timer::new();
+                let timer = std::time::Instant::now();
                 let AlterResult(count, metrics) = c.crossover(population, generation, *rate);
-                let metric = Metric::new_operations(name, count, timer);
+                let metric = Metric::new_operations(name, count, timer.elapsed());
 
                 match metrics {
                     Some(metrics) => metrics.into_iter().chain(std::iter::once(metric)).collect(),

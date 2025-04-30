@@ -1,6 +1,6 @@
 use radiate_core::{
-    Chromosome, Objective, Problem, engine::EngineStep, metric_names, thread_pool::ThreadPool,
-    timer::Timer,
+    Chromosome, Ecosystem, MetricSet, Objective, Problem, engine::EngineStep, metric_names,
+    thread_pool::ThreadPool,
 };
 use std::sync::Arc;
 
@@ -24,18 +24,13 @@ impl<C: Chromosome, T> EvaluateStep<C, T> {
     }
 }
 
-impl<C, T> EngineStep<C, T> for EvaluateStep<C, T>
+impl<C, T> EngineStep<C> for EvaluateStep<C, T>
 where
     C: Chromosome + 'static,
-    T: Send + 'static,
+    T: Clone + Send + 'static,
 {
-    fn execute(
-        &self,
-        _: usize,
-        metrics: &mut radiate_core::MetricSet,
-        ecosystem: &mut radiate_core::Ecosystem<C>,
-    ) {
-        let timer = Timer::new();
+    fn execute(&mut self, _: usize, metrics: &mut MetricSet, ecosystem: &mut Ecosystem<C>) {
+        let timer = std::time::Instant::now();
 
         let mut work_results = Vec::new();
         for idx in 0..ecosystem.population.len() {
@@ -63,6 +58,6 @@ where
 
         self.objective.sort(&mut ecosystem.population);
 
-        metrics.upsert_operations(metric_names::EVALUATION, count, timer);
+        metrics.upsert_operations(metric_names::FITNESS, count, timer.elapsed());
     }
 }

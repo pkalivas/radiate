@@ -1,13 +1,14 @@
-use super::{Chromosome, Metric, Population, metric_names};
+use super::{Chromosome, Metric, metric_names};
+use crate::Ecosystem;
 use std::{collections::HashSet, vec};
 
 pub trait Audit<C: Chromosome> {
-    fn audit(&self, generation: usize, population: &Population<C>) -> Vec<Metric>;
+    fn audit(&self, generation: usize, ecosystem: &Ecosystem<C>) -> Vec<Metric>;
 }
 
-impl<C: Chromosome, F: Fn(usize, &Population<C>) -> Vec<Metric>> Audit<C> for F {
-    fn audit(&self, generation: usize, population: &Population<C>) -> Vec<Metric> {
-        self(generation, population)
+impl<C: Chromosome, F: Fn(usize, &Ecosystem<C>) -> Vec<Metric>> Audit<C> for F {
+    fn audit(&self, generation: usize, ecosystem: &Ecosystem<C>) -> Vec<Metric> {
+        self(generation, ecosystem)
     }
 }
 
@@ -21,14 +22,28 @@ impl<C: Chromosome, F: Fn(usize, &Population<C>) -> Vec<Metric>> Audit<C> for F 
 pub struct MetricAudit;
 
 impl<C: Chromosome> Audit<C> for MetricAudit {
-    fn audit(&self, generation: usize, population: &Population<C>) -> Vec<Metric> {
+    fn audit(&self, generation: usize, ecosystem: &Ecosystem<C>) -> Vec<Metric> {
         let mut age_metric = Metric::new_value(metric_names::AGE);
         let mut score_metric = Metric::new_value(metric_names::SCORE);
         let mut size_metric = Metric::new_distribution(metric_names::GENOME_SIZE);
-        let mut unique_scores = Vec::with_capacity(population.len());
+        let mut unique_scores = Vec::with_capacity(ecosystem.population().len());
         let mut unique_members = HashSet::new();
+        let mut new_species_count = 0;
+        let mut species_ages = Metric::new_value(metric_names::SPECIES_AGE);
 
-        for phenotype in population.iter() {
+        if let Some(species) = ecosystem.species() {
+            for spec in species.iter() {
+                let spec_age = spec.age(generation);
+
+                if spec_age > 0 {
+                    new_species_count += 1;
+                }
+
+                species_ages.add_value(spec_age as f32);
+            }
+        }
+
+        for phenotype in ecosystem.population().iter() {
             unique_members.insert(phenotype.id());
 
             let age = phenotype.age(generation);
@@ -53,12 +68,31 @@ impl<C: Chromosome> Audit<C> for MetricAudit {
         unique_metric.add_value(unique_scores.len() as f32);
         equal_metric.add_value(unique_members.len() as f32);
 
-        vec![
+        let mut result = vec![
             age_metric,
             score_metric,
             unique_metric,
             size_metric,
             equal_metric,
-        ]
+        ];
+
+        if new_species_count > 0 {
+            result.push(
+                Metric::new_value(metric_names::SPECIES_CREATED)
+                    .with_value(new_species_count as f32),
+            );
+        }
+
+        if species_ages.count() > 0 {
+            result.push(species_ages);
+        }
+
+        if let Some(species) = ecosystem.species() {
+            result.push(
+                Metric::new_value(metric_names::SPECIES_COUNT).with_count_value(species.len()),
+            );
+        }
+
+        result
     }
 }
