@@ -84,14 +84,6 @@ where
     pub fn builder() -> GeneticEngineBuilder<C, T> {
         GeneticEngineBuilder::default()
     }
-
-    // pub fn from_codex(codex: impl Codex<C, T> + 'static) -> GeneticEngineBuilder<C, T> {
-    //     GeneticEngineBuilder::default().codex(codex)
-    // }
-
-    // pub fn from_problem(problem: impl Problem<C, T> + 'static) -> GeneticEngineBuilder<C, T> {
-    //     GeneticEngineBuilder::default().problem(problem)
-    // }
 }
 
 impl<C, T> Engine<C, T> for GeneticEngine<C, T>
@@ -100,10 +92,6 @@ where
     T: Clone,
 {
     type Epoch = Generation<C, T>;
-
-    fn context(&self) -> &Context<C, T> {
-        &self.context
-    }
 
     fn next(&mut self) -> Self::Epoch {
         let timer = Timer::new();

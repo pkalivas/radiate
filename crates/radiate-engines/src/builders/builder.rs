@@ -350,20 +350,6 @@ where
                 front: config.front.clone(),
                 objective: config.objective.clone(),
                 problem: config.problem.clone(),
-                // value_mapper: Arc::new(move |context: &EngineContext<C, T>| {
-                //     let best = context.ecosystem.population().get(0);
-                //     if let Some(best) = best {
-                //         if let (Some(score), Some(current)) = (best.score(), &self.context.score) {
-                //             if context.objective.is_better(score, current) {
-                //                 context.score = Some(score.clone());
-                //                 context.best = context.problem.decode(best.genotype());
-                //             }
-                //         } else {
-                //             context.score = Some(best.score().unwrap().clone());
-                //             context.best = context.problem.decode(best.genotype());
-                //         }
-                //     }
-                // }),
             };
 
             GeneticEngine::<C, T>::new(context, pipeline)

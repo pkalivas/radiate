@@ -10,13 +10,30 @@ use std::{
 pub trait Engine<C: Chromosome, T> {
     type Epoch: Epoch<C>;
 
-    fn context(&self) -> &Context<C, T>;
-
     fn next(&mut self) -> Self::Epoch;
+}
 
-    fn run<F>(&mut self, limit: F) -> Self::Epoch
+pub trait EngineExt<E: Engine<C, T>, C, T>
+where
+    C: Chromosome,
+    T: Clone,
+{
+    fn run<F>(&mut self, limit: F) -> E::Epoch
     where
-        F: Fn(&Self::Epoch) -> bool,
+        F: Fn(&E::Epoch) -> bool,
+        Self: Sized;
+}
+
+impl<E, C, T> EngineExt<E, C, T> for E
+where
+    E: Engine<C, T>,
+    C: Chromosome,
+    T: Clone,
+{
+    fn run<F>(&mut self, limit: F) -> E::Epoch
+    where
+        F: Fn(&E::Epoch) -> bool,
+        Self: Sized,
     {
         loop {
             let epoch = self.next();

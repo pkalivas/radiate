@@ -118,8 +118,8 @@ where
 //     }
 // }
 
-// impl<C: Chromosome, T: Clone> From<&EngineContext<C, T>> for MultiObjectiveGeneration<C> {
-//     fn from(context: &EngineContext<C, T>) -> Self {
+// impl<C: Chromosome, T: Clone> From<&Context<C, T>> for MultiObjectiveGeneration<C> {
+//     fn from(context: &Context<C, T>) -> Self {
 //         MultiObjectiveGeneration {
 //             ecosystem: context.ecosystem.clone(),
 //             front: context.front.read().unwrap().clone(),

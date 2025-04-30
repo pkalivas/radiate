@@ -64,6 +64,14 @@ where
         self.take_while(move |ctx| ctx.score() > &limit)
     }
 
+    fn until_score_equal(self, limit: impl Into<Score>) -> impl Iterator<Item = Generation<C, T>>
+    where
+        Self: Sized,
+    {
+        let limit = limit.into();
+        self.take_while(move |ctx| ctx.score() == &limit)
+    }
+
     fn until_converged(self, window: usize, epsilon: f32) -> impl Iterator<Item = Generation<C, T>>
     where
         Self: Sized,
