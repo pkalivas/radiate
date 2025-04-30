@@ -11,9 +11,11 @@ use crate::{
     RouletteSelector, Select, TournamentSelector, pareto,
 };
 use crate::{Chromosome, EngineConfig, EvaluateStep, GeneticEngine, Pipeline};
+use core::panic;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::engine::Context;
 use radiate_core::{Diversity, Ecosystem, Epoch, Genotype, MetricSet};
+use radiate_error::{RadiateError, radiate_err};
 use std::cmp::Ordering;
 use std::ops::Range;
 use std::sync::{Arc, RwLock};
@@ -67,6 +69,7 @@ where
     E: Epoch<C>,
 {
     pub(crate) params: EngineParams<C, T>,
+    errors: Vec<RadiateError>,
     _epoch: std::marker::PhantomData<E>,
 }
 
@@ -79,7 +82,8 @@ where
     /// Set the population size of the genetic engine. Default is 100.
     pub fn population_size(mut self, population_size: usize) -> Self {
         if population_size < 1 {
-            panic!("population_size must be greater than 0");
+            self.errors
+                .push(radiate_err!(InvalidConfig: "population_size must be greater than 0"));
         }
 
         self.params.population_size = population_size;
@@ -89,7 +93,8 @@ where
     /// Set the maximum age of an individual in the population. Default is 25.
     pub fn max_age(mut self, max_age: usize) -> Self {
         if max_age < 1 {
-            panic!("max_age must be greater than 0");
+            self.errors
+                .push(radiate_err!(InvalidConfig: "max_age must be greater than 0"));
         }
 
         self.params.max_age = max_age;
@@ -103,7 +108,8 @@ where
 
     pub fn species_threshold(mut self, threshold: f32) -> Self {
         if threshold < 0.0 {
-            panic!("diversity_distance_threashold must be non-negative");
+            self.errors
+                .push(radiate_err!(InvalidConfig: "species_threshold must be greater than 0"));
         }
 
         self.params.species_threshold = threshold;
@@ -112,7 +118,9 @@ where
 
     pub fn max_species_age(mut self, max_species_age: usize) -> Self {
         if max_species_age < 1 {
-            panic!("max_species_age must be greater than 0");
+            self.errors.push(radiate_err!(
+                InvalidConfig: "max_species_age must be greater than 0"
+            ));
         }
 
         self.params.max_species_age = max_species_age;
@@ -148,7 +156,9 @@ where
     /// population that will be replaced by offspring each generation. The remainder will 'survive' to the next generation.
     pub fn offspring_fraction(mut self, offspring_fraction: f32) -> Self {
         if !(0.0..=1.0).contains(&offspring_fraction) {
-            panic!("offspring_fraction must be between 0 and 1");
+            self.errors.push(radiate_err!(
+                InvalidConfig: "offspring_fraction must be between 0.0 and 1.0"
+            ));
         }
 
         self.params.offspring_fraction = offspring_fraction;
@@ -279,6 +289,7 @@ where
         self.params.objective = Objective::Multi(objectives);
         GeneticEngineBuilder {
             params: self.params,
+            errors: self.errors,
             _epoch: std::marker::PhantomData,
         }
     }
@@ -293,6 +304,7 @@ where
         self.params.front_range = range;
         GeneticEngineBuilder {
             params: self.params,
+            errors: self.errors,
             _epoch: std::marker::PhantomData,
         }
     }
@@ -535,6 +547,7 @@ where
                 problem: None,
                 front: None,
             },
+            errors: Vec::new(),
             _epoch: std::marker::PhantomData,
         }
     }

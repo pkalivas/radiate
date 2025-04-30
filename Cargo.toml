@@ -6,6 +6,7 @@ members = [
     "crates/radiate-selectors",
     "crates/radiate-alters",
     "crates/radiate-gp",
+    "crates/radiate-error",
     
     "examples/min-sum",
     "examples/hello-world",
