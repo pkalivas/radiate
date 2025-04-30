@@ -28,14 +28,14 @@ fn main() {
         .iter()
         .take(1000)
         .inspect(|ctx| {
-            println!("[ {:?} ]", ctx.index);
+            println!("[ {:?} ]", ctx.index());
         })
         .last()
         .unwrap();
 
     println!("{:?}", result.seconds());
-    println!("{:?}", result.metrics);
-    plot_front(&result.result());
+    println!("{:?}", result.metrics());
+    plot_front(&result.value());
 }
 
 fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {

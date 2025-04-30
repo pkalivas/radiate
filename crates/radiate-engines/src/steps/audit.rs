@@ -1,6 +1,5 @@
-use std::sync::Arc;
-
 use radiate_core::{Audit, Chromosome, Ecosystem, EngineStep, MetricSet};
+use std::sync::Arc;
 
 pub struct AuditStep<C>
 where

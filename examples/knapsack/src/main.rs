@@ -18,24 +18,26 @@ fn main() {
         .build();
 
     let result = engine.run(|ctx| {
-        let value_total = Knapsack::value_total(&ctx.best);
-        let weight_total = Knapsack::weight_total(&ctx.best);
+        let value_total = Knapsack::value_total(&ctx.value());
+        let weight_total = Knapsack::weight_total(&ctx.value());
 
         println!(
             "[ {:?} ]: Value={:?} Weight={:?}",
-            ctx.index, value_total, weight_total
+            ctx.index(),
+            value_total,
+            weight_total
         );
 
-        ctx.index == MAX_EPOCHS
+        ctx.index() == MAX_EPOCHS
     });
 
     println!(
         "Result Value Total=[ {:?} ]",
-        Knapsack::value_total(&result.best)
+        Knapsack::value_total(&result.value())
     );
     println!(
         "Result Weigh Total=[ {:?} ]",
-        Knapsack::weight_total(&result.best)
+        Knapsack::weight_total(&result.value())
     );
     println!("Max Weight=[{:?}]", capacity);
 }

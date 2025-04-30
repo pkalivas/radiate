@@ -15,7 +15,7 @@ mod engine_tests {
 
         let result = engine.iter().until_score_equal(0).last().unwrap();
 
-        let best = result.result();
+        let best = result.value();
         assert_eq!(best.iter().sum::<i32>(), 0);
     }
 
@@ -30,7 +30,7 @@ mod engine_tests {
 
         let result = engine.iter().until_score_equal(500).last().unwrap();
 
-        assert_eq!(result.result().iter().sum::<i32>(), 500);
+        assert_eq!(result.value().iter().sum::<i32>(), 500);
     }
 
     #[test]
@@ -52,6 +52,6 @@ mod engine_tests {
 
         let result = engine.iter().until_score_equal(0).last().unwrap();
 
-        assert_eq!(result.result(), &vec![1, 2, 3, 4, 5]);
+        assert_eq!(result.value(), &vec![1, 2, 3, 4, 5]);
     }
 }

@@ -37,10 +37,10 @@ fn main() {
 fn display(result: &Generation<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
     let data_set = get_dataset();
     let accuracy = Accuracy::new("reg", &data_set, Loss::MSE);
-    let accuracy_result = accuracy.calc(|input| vec![result.best.eval(input)]);
+    let accuracy_result = accuracy.calc(|input| vec![result.value().eval(input)]);
 
     println!("{:?}", result);
-    println!("Best Tree: {}", result.best.format());
+    println!("Best Tree: {}", result.value().format());
     println!("{:?}", accuracy_result);
 }
 

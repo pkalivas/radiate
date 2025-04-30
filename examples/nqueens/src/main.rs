@@ -36,14 +36,14 @@ fn main() {
         .iter()
         .until_score_equal(0)
         .inspect(|ctx| {
-            println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_usize());
+            println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_usize());
         })
         .last()
         .unwrap();
 
     println!("\nResult Queens Board ({:.3?}):", result.time());
 
-    let board = &result.best;
+    let board = &result.value();
     for i in 0..N_QUEENS {
         for j in 0..N_QUEENS {
             if board[j] == i as i8 {

@@ -40,7 +40,7 @@ fn main() {
 
     engine
         .iter()
-        .take_while(|epoch| epoch.score.as_f32() > MIN_SCORE && epoch.seconds() < MAX_SECONDS)
+        .take_while(|epoch| epoch.score().as_f32() > MIN_SCORE && epoch.seconds() < MAX_SECONDS)
         .inspect(|ctx| log_ctx!(ctx))
         .last()
         .inspect(|ctx| display(&train, &test, ctx));
@@ -51,7 +51,7 @@ fn display(
     test: &DataSet,
     result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>,
 ) {
-    let mut reducer = GraphEvaluator::new(&result.best);
+    let mut reducer = GraphEvaluator::new(result.value());
 
     let train_acc = Accuracy::new("train", &train, Loss::MSE);
     let test_acc = Accuracy::new("test", &test, Loss::MSE);

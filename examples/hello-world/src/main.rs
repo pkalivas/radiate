@@ -18,8 +18,8 @@ fn main() {
         .build();
 
     let result = engine.run(|ctx| {
-        let best_as_string = ctx.best.iter().collect::<String>();
-        println!("[ {:?} ]: {:?}", ctx.index, best_as_string);
+        let best_as_string = ctx.value().iter().collect::<String>();
+        println!("[ {:?} ]: {:?}", ctx.index(), best_as_string);
 
         ctx.score().as_usize() == target.len()
     });

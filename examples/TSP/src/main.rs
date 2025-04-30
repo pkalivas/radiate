@@ -31,13 +31,13 @@ fn main() -> io::Result<()> {
         .build();
 
     let result = engine.run(move |ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index, ctx.score());
-        ctx.index > 2500 || ctx.score().as_usize() == 2085
+        println!("[ {:?} ]: {:?}", ctx.index(), ctx.score());
+        ctx.index() > 2500 || ctx.score().as_usize() == 2085
     });
 
-    plot_tsp_solution(&result.best, &distance_points).unwrap();
+    plot_tsp_solution(&result.value(), &distance_points).unwrap();
 
-    println!("{:?}", result.metrics);
+    println!("{:?}", result.metrics());
 
     Ok(())
 }

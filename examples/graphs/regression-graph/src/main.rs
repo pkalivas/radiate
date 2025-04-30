@@ -39,7 +39,7 @@ fn main() {
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
-    let mut evaluator = GraphEvaluator::new(&result.best);
+    let mut evaluator = GraphEvaluator::new(result.value());
 
     let data_set = get_dataset();
     let accuracy = Accuracy::new("reg", &data_set, Loss::MSE);

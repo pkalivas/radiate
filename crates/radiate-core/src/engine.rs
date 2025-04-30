@@ -46,9 +46,9 @@ where
 }
 
 pub trait Epoch<C: Chromosome> {
-    type Result;
+    type Value;
 
-    fn result(&self) -> &Self::Result;
+    fn value(&self) -> &Self::Value;
     fn ecosystem(&self) -> &Ecosystem<C>;
     fn index(&self) -> usize;
     fn metrics(&self) -> &MetricSet;

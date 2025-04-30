@@ -29,15 +29,15 @@ fn main() {
         .build();
 
     let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32());
-        ctx.index == MAX_INDEX || ctx.score().as_f32() < MIN_SCORE
+        println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_f32());
+        ctx.index() == MAX_INDEX || ctx.score().as_f32() < MIN_SCORE
     });
 
     display(&result);
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
-    let mut reducer = GraphEvaluator::new(&result.best);
+    let mut reducer = GraphEvaluator::new(result.value());
     for sample in get_dataset().iter() {
         let output = reducer.eval_mut(sample.input());
         println!(

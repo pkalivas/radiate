@@ -133,14 +133,14 @@ where
             if let Some(species_id) = assignments[i] {
                 ecosystem.add_species_member(species_id, i);
             } else {
+                let genotype = ecosystem.get_genotype(i).unwrap();
                 let maybe_idx = ecosystem
                     .species()
                     .map(|specs| {
                         for (species_idx, species) in specs.iter().enumerate() {
-                            let dist = self.diversity.measure(
-                                ecosystem.population()[i].genotype(),
-                                &species.mascot().genotype(),
-                            );
+                            let dist = self
+                                .diversity
+                                .measure(genotype, &species.mascot().genotype());
 
                             distances.push(dist);
 

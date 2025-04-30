@@ -1,5 +1,6 @@
 use radiate_core::{
-    Alter, Chromosome, Ecosystem, MetricSet, Objective, Population, Select, engine::EngineStep,
+    Alter, Chromosome, Ecosystem, MetricSet, Objective, Optimize, Population, Select,
+    engine::EngineStep,
 };
 use std::sync::Arc;
 
@@ -55,9 +56,10 @@ impl<C: Chromosome> RecombineStep<C> {
                 .filter_map(|spec| spec.score())
                 .collect::<Vec<_>>();
 
-            if let Objective::Single(crate::Optimize::Minimize) = &self.objective {
+            if let Objective::Single(Optimize::Minimize) = &self.objective {
                 species_scores.reverse();
             }
+
             let mut offspring = Vec::with_capacity(self.offspring_count);
             for (species, score) in species.iter().zip(species_scores.iter()) {
                 let count = (score.as_f32() * total_offspring).round() as usize;
@@ -115,7 +117,7 @@ impl<C: Chromosome> RecombineStep<C> {
 
 impl<C> EngineStep<C> for RecombineStep<C>
 where
-    C: Chromosome + 'static,
+    C: Chromosome,
 {
     fn execute(
         &mut self,

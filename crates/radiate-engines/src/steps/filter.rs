@@ -17,7 +17,7 @@ where
 
 impl<C> EngineStep<C> for FilterStep<C>
 where
-    C: Chromosome + 'static,
+    C: Chromosome,
 {
     fn execute(
         &mut self,
@@ -42,12 +42,12 @@ where
             if removed {
                 let new_genotype = self
                     .replacer
-                    .replace(&ecosystem.population, Arc::clone(&self.encoder));
+                    .replace(ecosystem.population(), Arc::clone(&self.encoder));
                 ecosystem.population[i] = Phenotype::from((new_genotype, generation));
             }
         }
 
-        if let Some(species) = ecosystem.species.as_mut() {
+        if let Some(species) = ecosystem.species_mut() {
             let before_species = species.len();
             species.retain(|species| species.age(generation) < self.max_species_age);
             let species_count = (before_species - species.len()) as f32;

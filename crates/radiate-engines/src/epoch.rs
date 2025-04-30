@@ -8,11 +8,11 @@ pub struct Generation<C, T>
 where
     C: Chromosome,
 {
-    pub ecosystem: Ecosystem<C>,
-    pub best: T,
-    pub index: usize,
-    pub metrics: MetricSet,
-    pub score: Score,
+    ecosystem: Ecosystem<C>,
+    best: T,
+    index: usize,
+    metrics: MetricSet,
+    score: Score,
 }
 
 impl<C: Chromosome, T> Generation<C, T> {
@@ -22,13 +22,13 @@ impl<C: Chromosome, T> Generation<C, T> {
 }
 
 impl<C: Chromosome, T> Epoch<C> for Generation<C, T> {
-    type Result = T;
+    type Value = T;
 
     fn ecosystem(&self) -> &Ecosystem<C> {
         &self.ecosystem
     }
 
-    fn result(&self) -> &Self::Result {
+    fn value(&self) -> &Self::Value {
         &self.best
     }
 
@@ -86,23 +86,23 @@ pub struct MultiObjectiveGeneration<C>
 where
     C: Chromosome,
 {
-    pub ecosystem: Ecosystem<C>,
-    pub front: Front<Phenotype<C>>,
-    pub index: usize,
-    pub metrics: MetricSet,
+    ecosystem: Ecosystem<C>,
+    front: Front<Phenotype<C>>,
+    index: usize,
+    metrics: MetricSet,
 }
 
 impl<C: Chromosome> Epoch<C> for MultiObjectiveGeneration<C>
 where
     C: Chromosome,
 {
-    type Result = Front<Phenotype<C>>;
+    type Value = Front<Phenotype<C>>;
 
     fn ecosystem(&self) -> &Ecosystem<C> {
         &self.ecosystem
     }
 
-    fn result(&self) -> &Self::Result {
+    fn value(&self) -> &Self::Value {
         &self.front
     }
 

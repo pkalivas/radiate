@@ -16,7 +16,7 @@ fn main() {
         .build();
 
     let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index, ctx.best);
+        println!("[ {:?} ]: {:?}", ctx.index(), ctx.value());
         ctx.score().as_i32() == MIN_SCORE
     });
 

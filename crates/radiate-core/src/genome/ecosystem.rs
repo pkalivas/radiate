@@ -1,4 +1,4 @@
-use super::{Chromosome, Phenotype, Population, Species};
+use super::{Chromosome, Genotype, Phenotype, Population, Species};
 use crate::{Objective, Score, random_provider};
 
 #[derive(Clone, Debug)]
@@ -39,6 +39,14 @@ impl<C: Chromosome> Ecosystem<C> {
 
     pub fn get_phenotype_mut(&mut self, index: usize) -> Option<&mut Phenotype<C>> {
         self.population.get_mut(index)
+    }
+
+    pub fn get_genotype(&self, index: usize) -> Option<&Genotype<C>> {
+        self.population.get(index).map(|p| p.genotype())
+    }
+
+    pub fn get_genotype_mut(&mut self, index: usize) -> Option<&mut Genotype<C>> {
+        self.population.get_mut(index).map(|p| p.genotype_mut())
     }
 
     pub fn get_species(&self, index: usize) -> Option<&Species<C>> {

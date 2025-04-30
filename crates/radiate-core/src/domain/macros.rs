@@ -157,7 +157,7 @@ macro_rules! log_ctx {
     ($ctx:expr) => {{
         println!(
             "[ Iteration {:<4} ] Score: {:>8.4}, Elapsed: {:.2?}",
-            $ctx.index,
+            $ctx.index(),
             $ctx.score().as_f32(),
             $ctx.time()
         );
