@@ -1,5 +1,4 @@
 use radiate::*;
-use radiate_gp::*;
 
 const MAX_INDEX: usize = 500;
 const MIN_SCORE: f32 = 0.01;
@@ -17,7 +16,8 @@ fn main() {
     let graph_codex = GraphCodex::recurrent(1, 1, values);
     let regression = Regression::new(get_dataset(), Loss::MSE, graph_codex);
 
-    let engine = GeneticEngine::from_problem(regression)
+    let mut engine = GeneticEngine::builder()
+        .problem(regression)
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .survivor_selector(TournamentSelector::new(4))
@@ -29,15 +29,15 @@ fn main() {
         .build();
 
     let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32());
-        ctx.index == MAX_INDEX || ctx.score().as_f32() < MIN_SCORE
+        println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_f32());
+        ctx.index() == MAX_INDEX || ctx.score().as_f32() < MIN_SCORE
     });
 
     display(&result);
 }
 
-fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
-    let mut reducer = GraphEvaluator::new(&result.best);
+fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
+    let mut reducer = GraphEvaluator::new(result.value());
     for sample in get_dataset().iter() {
         let output = reducer.eval_mut(sample.input());
         println!(

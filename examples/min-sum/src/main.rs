@@ -5,7 +5,8 @@ const MIN_SCORE: i32 = 0;
 fn main() {
     let codex = IntCodex::vector(10, 0..100);
 
-    let engine = GeneticEngine::from_codex(codex)
+    let mut engine = GeneticEngine::builder()
+        .codex(codex)
         .population_size(150)
         .minimizing()
         .offspring_selector(EliteSelector::new())
@@ -15,7 +16,7 @@ fn main() {
         .build();
 
     let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index, ctx.best);
+        println!("[ {:?} ]: {:?}", ctx.index(), ctx.value());
         ctx.score().as_i32() == MIN_SCORE
     });
 

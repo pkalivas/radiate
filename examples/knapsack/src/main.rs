@@ -11,30 +11,33 @@ fn main() {
     let capacity = knapsack.capacity;
     let codex = SubSetCodex::new(knapsack.items);
 
-    let engine = GeneticEngine::from_codex(codex)
+    let mut engine = GeneticEngine::builder()
+        .codex(codex)
         .max_age(MAX_EPOCHS)
         .fitness_fn(move |genotype: Vec<Arc<Item>>| Knapsack::fitness(&capacity, &genotype))
         .build();
 
     let result = engine.run(|ctx| {
-        let value_total = Knapsack::value_total(&ctx.best);
-        let weight_total = Knapsack::weight_total(&ctx.best);
+        let value_total = Knapsack::value_total(&ctx.value());
+        let weight_total = Knapsack::weight_total(&ctx.value());
 
         println!(
             "[ {:?} ]: Value={:?} Weight={:?}",
-            ctx.index, value_total, weight_total
+            ctx.index(),
+            value_total,
+            weight_total
         );
 
-        ctx.index == MAX_EPOCHS
+        ctx.index() == MAX_EPOCHS
     });
 
     println!(
         "Result Value Total=[ {:?} ]",
-        Knapsack::value_total(&result.best)
+        Knapsack::value_total(&result.value())
     );
     println!(
         "Result Weigh Total=[ {:?} ]",
-        Knapsack::weight_total(&result.best)
+        Knapsack::weight_total(&result.value())
     );
     println!("Max Weight=[{:?}]", capacity);
 }
