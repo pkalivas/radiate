@@ -16,7 +16,8 @@ fn main() {
     let graph_codex = GraphCodex::directed(2, 1, values);
     let regression = Regression::new(get_dataset(), Loss::MSE, graph_codex);
 
-    let mut engine = GeneticEngine::from_problem(regression)
+    let mut engine = GeneticEngine::builder()
+        .problem(regression)
         .minimizing()
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),

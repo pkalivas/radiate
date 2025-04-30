@@ -10,7 +10,8 @@ const RANGE: f32 = 2.0;
 fn main() {
     let codex = FloatCodex::vector(NUM_GENES, -RANGE..RANGE);
 
-    let mut engine = GeneticEngine::from_codex(codex)
+    let mut engine = GeneticEngine::builder()
+        .codex(codex)
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .alter(alters!(

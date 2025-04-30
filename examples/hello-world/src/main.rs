@@ -4,7 +4,8 @@ fn main() {
     let target = "Hello, Radiate!";
     let codex = CharCodex::vector(target.len());
 
-    let mut engine = GeneticEngine::from_codex(codex)
+    let mut engine = GeneticEngine::builder()
+        .codex(codex)
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .fitness_fn(|geno: Vec<char>| {
             geno.into_iter().zip(target.chars()).fold(

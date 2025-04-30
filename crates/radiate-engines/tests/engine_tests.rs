@@ -7,8 +7,9 @@ mod engine_tests {
     fn engine_can_minimize() {
         let codex = IntCodex::vector(5, 0..100);
 
-        let mut engine = GeneticEngine::from_codex(codex)
+        let mut engine = GeneticEngine::builder()
             .minimizing()
+            .codex(codex)
             .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
             .build();
 
@@ -22,7 +23,8 @@ mod engine_tests {
     fn engine_can_maximize() {
         let codex = IntCodex::vector(5, 0..101);
 
-        let mut engine = GeneticEngine::from_codex(codex)
+        let mut engine = GeneticEngine::builder()
+            .codex(codex)
             .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
             .build();
 
@@ -36,8 +38,9 @@ mod engine_tests {
         let target = [1, 2, 3, 4, 5];
         let codex = IntCodex::vector(target.len(), 0..10);
 
-        let mut engine = GeneticEngine::from_codex(codex)
+        let mut engine = GeneticEngine::builder()
             .minimizing()
+            .codex(codex)
             .fitness_fn(move |geno: Vec<i32>| {
                 let mut score = 0;
                 for i in 0..geno.len() {

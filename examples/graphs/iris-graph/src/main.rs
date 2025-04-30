@@ -24,7 +24,8 @@ fn main() {
     let codex = GraphCodex::directed(4, 4, store);
     let regression = Regression::new(train.clone(), Loss::MSE, codex);
 
-    let mut engine = GeneticEngine::from_problem(regression)
+    let mut engine = GeneticEngine::builder()
+        .problem(regression)
         .minimizing()
         .num_threads(10)
         .offspring_fraction(0.92)

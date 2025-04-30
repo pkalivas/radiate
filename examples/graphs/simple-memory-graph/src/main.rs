@@ -16,7 +16,8 @@ fn main() {
     let graph_codex = GraphCodex::recurrent(1, 1, values);
     let regression = Regression::new(get_dataset(), Loss::MSE, graph_codex);
 
-    let mut engine = GeneticEngine::from_problem(regression)
+    let mut engine = GeneticEngine::builder()
+        .problem(regression)
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .survivor_selector(TournamentSelector::new(4))

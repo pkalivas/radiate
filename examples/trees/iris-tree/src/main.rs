@@ -19,7 +19,8 @@ fn main() {
     let codex = TreeCodex::multi_root(3, 4, store).constraint(|node| node.size() < 40);
     let regression = Regression::new(train.clone(), Loss::MSE, codex);
 
-    let mut engine = GeneticEngine::from_problem(regression)
+    let mut engine = GeneticEngine::builder()
+        .problem(regression)
         .minimizing()
         .num_threads(10)
         .crossover(TreeCrossover::new(0.5))

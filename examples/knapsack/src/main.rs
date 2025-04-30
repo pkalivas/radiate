@@ -11,7 +11,8 @@ fn main() {
     let capacity = knapsack.capacity;
     let codex = SubSetCodex::new(knapsack.items);
 
-    let mut engine = GeneticEngine::from_codex(codex)
+    let mut engine = GeneticEngine::builder()
+        .codex(codex)
         .max_age(MAX_EPOCHS)
         .fitness_fn(move |genotype: Vec<Arc<Item>>| Knapsack::fitness(&capacity, &genotype))
         .build();

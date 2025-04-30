@@ -16,7 +16,8 @@ fn main() {
     let graph_codex = GraphCodex::directed(1, 1, values);
     let problem = Regression::new(get_dataset(), Loss::MSE, graph_codex);
 
-    let engine = GeneticEngine::from_problem(problem)
+    let engine = GeneticEngine::builder()
+        .problem(problem)
         .minimizing()
         .num_threads(10)
         // .diversity(NeatDistance::new(1.0, 1.0, 3.0))

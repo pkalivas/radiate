@@ -7,7 +7,8 @@ fn main() {
 
     let codex = IntCodex::vector(N_QUEENS, 0..N_QUEENS as i8);
 
-    let mut engine = GeneticEngine::from_codex(codex)
+    let mut engine = GeneticEngine::builder()
+        .codex(codex)
         .minimizing()
         .num_threads(5)
         .offspring_selector(BoltzmannSelector::new(4.0))

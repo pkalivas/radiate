@@ -20,7 +20,8 @@ fn main() {
     let tree_codex = TreeCodex::single(3, store).constraint(|root| root.size() < 30);
     let problem = Regression::new(get_dataset(), Loss::MSE, tree_codex);
 
-    let mut engine = GeneticEngine::from_problem(problem)
+    let mut engine = GeneticEngine::builder()
+        .problem(problem)
         .minimizing()
         .mutator(HoistMutator::new(0.01))
         .crossover(TreeCrossover::new(0.7))

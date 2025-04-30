@@ -1,7 +1,6 @@
+use crate::Generation;
 use crate::builder::GeneticEngineBuilder;
-use crate::codexes::Codex;
 use crate::{Chromosome, EngineIterator, Pipeline};
-use crate::{Generation, Problem};
 use radiate_core::engine::Context;
 use radiate_core::timer::Timer;
 use radiate_core::{Engine, metric_names};
@@ -26,7 +25,8 @@ use radiate_core::{Engine, metric_names};
 /// // eg: [[1.0, 2.0, 3.0, 4.0, 5.0]]
 ///
 /// // Create a new instance of the genetic engine with the given codex.
-/// let mut engine = GeneticEngine::from_codex(codex)
+/// let mut engine = GeneticEngine::builder()
+///     .codex(codex) // Set the codex to be used for encoding and decoding individuals.
 ///     .minimizing()  // Minimize the fitness function.
 ///     .population_size(150) // Set the population size to 150 individuals.
 ///     .max_age(15) // Set the maximum age of an individual to 15 generations before it is replaced with a new individual.
@@ -85,13 +85,13 @@ where
         GeneticEngineBuilder::default()
     }
 
-    pub fn from_codex(codex: impl Codex<C, T> + 'static) -> GeneticEngineBuilder<C, T> {
-        GeneticEngineBuilder::default().codex(codex)
-    }
+    // pub fn from_codex(codex: impl Codex<C, T> + 'static) -> GeneticEngineBuilder<C, T> {
+    //     GeneticEngineBuilder::default().codex(codex)
+    // }
 
-    pub fn from_problem(problem: impl Problem<C, T> + 'static) -> GeneticEngineBuilder<C, T> {
-        GeneticEngineBuilder::default().problem(problem)
-    }
+    // pub fn from_problem(problem: impl Problem<C, T> + 'static) -> GeneticEngineBuilder<C, T> {
+    //     GeneticEngineBuilder::default().problem(problem)
+    // }
 }
 
 impl<C, T> Engine<C, T> for GeneticEngine<C, T>
