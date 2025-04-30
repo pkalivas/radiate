@@ -1,0 +1,13 @@
+[package]
+name = "radiate_py"
+version = "0.0.1"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]   # Required for Python modules
+
+[dependencies]
+pyo3 = { version = "0.24.2", features = ["extension-module"] }
+radiate-core = { path = "../radiate-core" }
+radiate-engines = { path = "../radiate-engines" }
+radiate-gp = { path = "../radiate-gp" }
