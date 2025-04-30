@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 use radiate::*;
-use radiate_gp::*;
 
 const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
@@ -25,7 +24,8 @@ fn main() {
     let codex = GraphCodex::directed(4, 4, store);
     let regression = Regression::new(train.clone(), Loss::MSE, codex);
 
-    let engine = GeneticEngine::from_problem(regression)
+    let engine = GeneticEngine::builder()
+        .problem(regression)
         .minimizing()
         .num_threads(10)
         .offspring_fraction(0.92)
@@ -38,20 +38,20 @@ fn main() {
         ))
         .build();
 
-    let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index, ctx.score());
-        ctx.score().as_f32() < MIN_SCORE || ctx.seconds() > MAX_SECONDS
-    });
-
-    display(&train, &test, &result);
+    engine
+        .iter()
+        .take_while(|epoch| epoch.score().as_f32() > MIN_SCORE && epoch.seconds() < MAX_SECONDS)
+        .inspect(|ctx| log_ctx!(ctx))
+        .last()
+        .inspect(|ctx| display(&train, &test, ctx));
 }
 
 fn display(
     train: &DataSet,
     test: &DataSet,
-    result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>,
+    result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>,
 ) {
-    let mut reducer = GraphEvaluator::new(&result.best);
+    let mut reducer = GraphEvaluator::new(result.value());
 
     let train_acc = Accuracy::new("train", &train, Loss::MSE);
     let test_acc = Accuracy::new("test", &test, Loss::MSE);

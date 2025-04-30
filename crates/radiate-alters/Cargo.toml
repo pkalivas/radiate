@@ -1,0 +1,15 @@
+[package]
+name = "radiate-alters"
+version = "0.0.1"
+edition = "2024"
+authors = ["pkalivas <peterkalivas@gmail.com>"]
+description = "Alter strategies such as Crossover and Mutation for the Radiate genetic algorithm library"
+repository = "https://github.com/pkalivas/radiate"
+readme = "../../README.md"
+categories = ["science", "simulation", "algorithms"]
+keywords = ["simulation", "genetic", "learning", "artificial", "evolution"]
+license = "MIT"
+homepage = "https://pkalivas.github.io/radiate/"
+
+[dependencies]
+radiate-core = { path = "../radiate-core" }

@@ -1,8 +1,7 @@
 use radiate::*;
-use radiate_gp::*;
 
 const MIN_SCORE: f32 = 0.001;
-const MAX_SECONDS: f64 = 5.0;
+// const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
     random_provider::set_seed(1000);
@@ -17,9 +16,13 @@ fn main() {
     let graph_codex = GraphCodex::directed(1, 1, values);
     let problem = Regression::new(get_dataset(), Loss::MSE, graph_codex);
 
-    let engine = GeneticEngine::from_problem(problem)
+    let engine = GeneticEngine::builder()
+        .problem(problem)
         .minimizing()
         .num_threads(10)
+        // .diversity(NeatDistance::new(1.0, 1.0, 3.0))
+        // .species_threshold(1.8)
+        // .max_species_age(25)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
@@ -27,16 +30,16 @@ fn main() {
         ))
         .build();
 
-    let result = engine.run(|ctx| {
-        log_ctx!(ctx);
-        ctx.score().as_f32() < MIN_SCORE || ctx.seconds() > MAX_SECONDS
-    });
-
-    display(&result);
+    engine
+        .iter()
+        .until_score_below(MIN_SCORE)
+        .inspect(|ctx| log_ctx!(ctx))
+        .last()
+        .inspect(display);
 }
 
-fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
-    let mut evaluator = GraphEvaluator::new(&result.best);
+fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
+    let mut evaluator = GraphEvaluator::new(result.value());
 
     let data_set = get_dataset();
     let accuracy = Accuracy::new("reg", &data_set, Loss::MSE);

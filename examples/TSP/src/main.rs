@@ -14,7 +14,8 @@ fn main() -> io::Result<()> {
 
     let codex = PermutationCodex::new((0..distance_matrix.len()).collect());
 
-    let engine = GeneticEngine::from_codex(codex)
+    let mut engine = GeneticEngine::builder()
+        .codex(codex)
         .minimizing()
         .population_size(250)
         .alter(alters!(PMXCrossover::new(0.4), SwapMutator::new(0.05)))
@@ -30,13 +31,13 @@ fn main() -> io::Result<()> {
         .build();
 
     let result = engine.run(move |ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index, ctx.score());
-        ctx.index > 2500 || ctx.score().as_usize() == 2085
+        println!("[ {:?} ]: {:?}", ctx.index(), ctx.score());
+        ctx.index() > 2500 || ctx.score().as_usize() == 2085
     });
 
-    plot_tsp_solution(&result.best, &distance_points).unwrap();
+    plot_tsp_solution(&result.value(), &distance_points).unwrap();
 
-    println!("{:?}", result.metrics);
+    println!("{:?}", result.metrics());
 
     Ok(())
 }

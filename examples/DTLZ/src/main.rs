@@ -10,10 +10,11 @@ fn main() {
 
     let codex = FloatCodex::vector(VARIABLES, 0_f32..1_f32).with_bounds(-100.0..100.0);
 
-    let engine = GeneticEngine::from_codex(codex)
+    let engine = GeneticEngine::builder()
+        .codex(codex)
         .num_threads(10)
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
-        .front_size(1100..1300)
+        // .front_size(1100..1300)
         .offspring_selector(TournamentSelector::new(5))
         .survivor_selector(NSGA2Selector::new())
         .alter(alters!(
@@ -23,14 +24,18 @@ fn main() {
         .fitness_fn(|geno: Vec<f32>| dtlz_1(&geno))
         .build();
 
-    let result = engine.run(|ctx| {
-        println!("[ {:?} ]", ctx.index);
-        ctx.index > 1000
-    });
+    let result = engine
+        .iter()
+        .take(1000)
+        .inspect(|ctx| {
+            println!("[ {:?} ]", ctx.index());
+        })
+        .last()
+        .unwrap();
 
     println!("{:?}", result.seconds());
-    println!("{:?}", result.metrics);
-    plot_front(&result.front);
+    println!("{:?}", result.metrics());
+    plot_front(&result.value());
 }
 
 fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {
@@ -38,6 +43,8 @@ fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {
     let mut y = vec![];
     let mut z = vec![];
     let mut color = vec![];
+
+    println!("Front size: {:?}", front.values().len());
 
     for (i, pheno) in front.values().iter().enumerate() {
         let score = pheno.score().unwrap();
