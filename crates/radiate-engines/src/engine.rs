@@ -2,8 +2,7 @@ use crate::Generation;
 use crate::builder::GeneticEngineBuilder;
 use crate::{Chromosome, EngineIterator, Pipeline};
 use radiate_core::engine::Context;
-use radiate_core::timer::Timer;
-use radiate_core::{Engine, metric_names};
+use radiate_core::{Engine, Epoch, metric_names};
 
 /// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -54,29 +53,36 @@ use radiate_core::{Engine, metric_names};
 /// # Type Parameters
 /// - `C`: The type of the chromosome used in the genotype, which must implement the `Chromosome` trait.
 /// - `T`: The type of the phenotype produced by the genetic algorithm, which must be `Clone`, `Send`, and `static`.
-pub struct GeneticEngine<C, T>
+pub struct GeneticEngine<C, T, E>
 where
     C: Chromosome,
+    E: Epoch<C>,
 {
     context: Context<C, T>,
     pipeline: Pipeline<C>,
+    _epoch: std::marker::PhantomData<E>,
 }
 
-impl<C, T> GeneticEngine<C, T>
+impl<C, T, E> GeneticEngine<C, T, E>
 where
     C: Chromosome,
-    T: Clone,
+    T: Clone + Send,
+    E: Epoch<C>,
 {
     pub fn new(context: Context<C, T>, pipeline: Pipeline<C>) -> Self {
-        GeneticEngine { context, pipeline }
+        GeneticEngine {
+            context,
+            pipeline,
+            _epoch: std::marker::PhantomData,
+        }
     }
 
-    pub fn iter(self) -> EngineIterator<C, T> {
+    pub fn iter(self) -> EngineIterator<C, T, E> {
         EngineIterator { engine: self }
     }
 }
 
-impl<C, T> GeneticEngine<C, T>
+impl<C, T> GeneticEngine<C, T, Generation<C, T>>
 where
     C: Chromosome,
     T: Clone + Send,
@@ -86,15 +92,16 @@ where
     }
 }
 
-impl<C, T> Engine<C, T> for GeneticEngine<C, T>
+impl<C, T, E> Engine<C, T> for GeneticEngine<C, T, E>
 where
     C: Chromosome,
     T: Clone,
+    E: Epoch<C> + for<'a> From<&'a Context<C, T>>,
 {
-    type Epoch = Generation<C, T>;
+    type Epoch = E;
 
     fn next(&mut self) -> Self::Epoch {
-        let timer = Timer::new();
+        let timer = std::time::Instant::now();
         self.pipeline.run(
             self.context.index,
             &mut self.context.metrics,
@@ -103,7 +110,7 @@ where
 
         self.context
             .metrics
-            .upsert_time(metric_names::EVOLUTION_TIME, timer.duration());
+            .upsert_time(metric_names::EVOLUTION_TIME, timer.elapsed());
 
         let best = self.context.ecosystem.population().get(0);
         if let Some(best) = best {
@@ -120,6 +127,6 @@ where
 
         self.context.index += 1;
 
-        Generation::from(&self.context)
+        E::from(&self.context)
     }
 }

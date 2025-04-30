@@ -58,11 +58,11 @@ where
         }
 
         if age_count > 0_f32 {
-            metrics.upsert_value(metric_names::FILTER_AGE, age_count);
+            metrics.upsert_value(metric_names::REPLACE_AGE, age_count);
         }
 
         if invalid_count > 0_f32 {
-            metrics.upsert_value(metric_names::FILTER_INVALID, invalid_count);
+            metrics.upsert_value(metric_names::REPLACE_INVALID, invalid_count);
         }
     }
 }

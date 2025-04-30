@@ -1,6 +1,5 @@
 use radiate_core::{
     Alter, Chromosome, Ecosystem, MetricSet, Objective, Population, Select, engine::EngineStep,
-    timer::Timer,
 };
 use std::sync::Arc;
 
@@ -91,10 +90,10 @@ impl<C: Chromosome> RecombineStep<C> {
         metrics: &mut MetricSet,
         selector: &Arc<dyn Select<C>>,
     ) -> Population<C> {
-        let timer = Timer::new();
+        let timer = std::time::Instant::now();
         let selected = selector.select(population, objective, count);
 
-        metrics.upsert_operations(selector.name(), selected.len() as f32, timer);
+        metrics.upsert_operations(selector.name(), selected.len() as f32, timer.elapsed());
         selected
     }
 

@@ -3,7 +3,6 @@ use radiate_core::engine::Context;
 use radiate_core::objectives::Scored;
 use radiate_core::{Ecosystem, Epoch, Front, MetricSet, Phenotype, Score};
 use std::fmt::Debug;
-use std::sync::{Arc, RwLock};
 
 pub struct Generation<C, T>
 where
@@ -14,7 +13,6 @@ where
     pub index: usize,
     pub metrics: MetricSet,
     pub score: Score,
-    pub front: Arc<RwLock<Front<Phenotype<C>>>>,
 }
 
 impl<C: Chromosome, T> Generation<C, T> {
@@ -57,7 +55,6 @@ impl<C: Chromosome, T: Clone> From<&Context<C, T>> for Generation<C, T> {
             index: context.index,
             metrics: context.metrics.clone(),
             score: context.score.clone().unwrap(),
-            front: context.front.clone(),
         }
     }
 }
@@ -85,46 +82,46 @@ where
     }
 }
 
-// pub struct MultiObjectiveGeneration<C>
-// where
-//     C: Chromosome,
-// {
-//     pub ecosystem: Ecosystem<C>,
-//     pub front: Front<Phenotype<C>>,
-//     pub index: usize,
-//     pub metrics: MetricSet,
-// }
+pub struct MultiObjectiveGeneration<C>
+where
+    C: Chromosome,
+{
+    pub ecosystem: Ecosystem<C>,
+    pub front: Front<Phenotype<C>>,
+    pub index: usize,
+    pub metrics: MetricSet,
+}
 
-// impl<C: Chromosome> Epoch<C> for MultiObjectiveGeneration<C>
-// where
-//     C: Chromosome,
-// {
-//     type Result = Front<Phenotype<C>>;
+impl<C: Chromosome> Epoch<C> for MultiObjectiveGeneration<C>
+where
+    C: Chromosome,
+{
+    type Result = Front<Phenotype<C>>;
 
-//     fn ecosystem(&self) -> &Ecosystem<C> {
-//         &self.ecosystem
-//     }
+    fn ecosystem(&self) -> &Ecosystem<C> {
+        &self.ecosystem
+    }
 
-//     fn result(&self) -> &Self::Result {
-//         &self.front
-//     }
+    fn result(&self) -> &Self::Result {
+        &self.front
+    }
 
-//     fn index(&self) -> usize {
-//         self.index
-//     }
+    fn index(&self) -> usize {
+        self.index
+    }
 
-//     fn metrics(&self) -> &MetricSet {
-//         &self.metrics
-//     }
-// }
+    fn metrics(&self) -> &MetricSet {
+        &self.metrics
+    }
+}
 
-// impl<C: Chromosome, T: Clone> From<&Context<C, T>> for MultiObjectiveGeneration<C> {
-//     fn from(context: &Context<C, T>) -> Self {
-//         MultiObjectiveGeneration {
-//             ecosystem: context.ecosystem.clone(),
-//             front: context.front.read().unwrap().clone(),
-//             index: context.index,
-//             metrics: context.metrics.clone(),
-//         }
-//     }
-// }
+impl<C: Chromosome, T: Clone> From<&Context<C, T>> for MultiObjectiveGeneration<C> {
+    fn from(context: &Context<C, T>) -> Self {
+        MultiObjectiveGeneration {
+            ecosystem: context.ecosystem.clone(),
+            front: context.front.read().unwrap().clone(),
+            index: context.index,
+            metrics: context.metrics.clone(),
+        }
+    }
+}

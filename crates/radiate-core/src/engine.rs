@@ -1,6 +1,6 @@
 use crate::{
     Chromosome, Ecosystem, Front, MetricSet, Objective, Phenotype, Population, Problem, Score,
-    metric_names,
+    Species, metric_names,
 };
 use std::{
     sync::{Arc, RwLock},
@@ -54,7 +54,11 @@ pub trait Epoch<C: Chromosome> {
     fn metrics(&self) -> &MetricSet;
 
     fn population(&self) -> &Population<C> {
-        &self.ecosystem().population
+        &self.ecosystem().population()
+    }
+
+    fn species(&self) -> Option<&Vec<Species<C>>> {
+        self.ecosystem().species()
     }
 
     fn time(&self) -> Duration {
@@ -107,7 +111,7 @@ where
     T: Clone,
 {
     fn clone(&self) -> Self {
-        Self {
+        Context {
             ecosystem: self.ecosystem.clone(),
             best: self.best.clone(),
             index: self.index,

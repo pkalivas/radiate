@@ -1,4 +1,4 @@
-use radiate_core::{Chromosome, Ecosystem, EngineStep, MetricSet, timer::Timer};
+use radiate_core::{Chromosome, Ecosystem, EngineStep, MetricSet};
 
 pub struct Pipeline<C>
 where
@@ -28,10 +28,10 @@ where
         ecosystem: &mut Ecosystem<C>,
     ) {
         for step in self.steps.iter_mut() {
-            let timer = Timer::new();
+            let timer = std::time::Instant::now();
             step.execute(generation, metrics, ecosystem);
-            let duration = timer.duration();
-            metrics.upsert_time(step.name(), duration);
+
+            metrics.upsert_time(step.name(), timer.elapsed());
         }
     }
 }

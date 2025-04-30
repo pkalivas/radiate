@@ -22,7 +22,6 @@ fn main() {
         target: target.clone(),
     };
 
-    // let engine = GeneticEngine::from_codex(codex.clone())
     let mut engine = GeneticEngine::builder()
         .minimizing()
         .num_threads(5)

@@ -1,6 +1,6 @@
 use radiate_core::{
     Chromosome, Ecosystem, MetricSet, Objective, Problem, engine::EngineStep, metric_names,
-    thread_pool::ThreadPool, timer::Timer,
+    thread_pool::ThreadPool,
 };
 use std::sync::Arc;
 
@@ -30,7 +30,7 @@ where
     T: Clone + Send + 'static,
 {
     fn execute(&mut self, _: usize, metrics: &mut MetricSet, ecosystem: &mut Ecosystem<C>) {
-        let timer = Timer::new();
+        let timer = std::time::Instant::now();
 
         let mut work_results = Vec::new();
         for idx in 0..ecosystem.population.len() {
@@ -58,6 +58,6 @@ where
 
         self.objective.sort(&mut ecosystem.population);
 
-        metrics.upsert_operations(metric_names::EVALUATION, count, timer);
+        metrics.upsert_operations(metric_names::FITNESS, count, timer.elapsed());
     }
 }

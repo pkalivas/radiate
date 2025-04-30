@@ -7,7 +7,7 @@ fn main() {
 
     let codex = IntCodex::vector(N_QUEENS, 0..N_QUEENS as i8);
 
-    let mut engine = GeneticEngine::builder()
+    let engine = GeneticEngine::builder()
         .codex(codex)
         .minimizing()
         .num_threads(5)
@@ -32,10 +32,14 @@ fn main() {
         })
         .build();
 
-    let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_usize());
-        ctx.score().as_usize() == 0
-    });
+    let result = engine
+        .iter()
+        .until_score_equal(0)
+        .inspect(|ctx| {
+            println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_usize());
+        })
+        .last()
+        .unwrap();
 
     println!("\nResult Queens Board ({:.3?}):", result.time());
 

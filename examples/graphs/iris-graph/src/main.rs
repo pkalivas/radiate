@@ -24,7 +24,7 @@ fn main() {
     let codex = GraphCodex::directed(4, 4, store);
     let regression = Regression::new(train.clone(), Loss::MSE, codex);
 
-    let mut engine = GeneticEngine::builder()
+    let engine = GeneticEngine::builder()
         .problem(regression)
         .minimizing()
         .num_threads(10)
@@ -38,12 +38,12 @@ fn main() {
         ))
         .build();
 
-    let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index, ctx.score());
-        ctx.score().as_f32() < MIN_SCORE || ctx.seconds() > MAX_SECONDS
-    });
-
-    display(&train, &test, &result);
+    engine
+        .iter()
+        .take_while(|epoch| epoch.score.as_f32() > MIN_SCORE && epoch.seconds() < MAX_SECONDS)
+        .inspect(|ctx| log_ctx!(ctx))
+        .last()
+        .inspect(|ctx| display(&train, &test, ctx));
 }
 
 fn display(

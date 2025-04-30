@@ -1,7 +1,6 @@
 use radiate::*;
 
 const MIN_SCORE: f32 = 0.01;
-const MAX_SECONDS: f64 = 1.0;
 
 fn main() {
     random_provider::set_seed(518);
@@ -20,19 +19,19 @@ fn main() {
     let tree_codex = TreeCodex::single(3, store).constraint(|root| root.size() < 30);
     let problem = Regression::new(get_dataset(), Loss::MSE, tree_codex);
 
-    let mut engine = GeneticEngine::builder()
+    let engine = GeneticEngine::builder()
         .problem(problem)
         .minimizing()
         .mutator(HoistMutator::new(0.01))
         .crossover(TreeCrossover::new(0.7))
         .build();
 
-    let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32());
-        ctx.score().as_f32() < MIN_SCORE || ctx.seconds() > MAX_SECONDS
-    });
-
-    display(&result);
+    engine
+        .iter()
+        .until_score_below(MIN_SCORE)
+        .inspect(|ctx| log_ctx!(ctx))
+        .last()
+        .inspect(display);
 }
 
 fn display(result: &Generation<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {

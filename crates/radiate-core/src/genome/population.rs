@@ -197,6 +197,16 @@ impl<C: Chromosome> FromIterator<Phenotype<C>> for Population<C> {
     }
 }
 
+impl<C: Chromosome> FromIterator<Member<C>> for Population<C> {
+    fn from_iter<I: IntoIterator<Item = Member<C>>>(iter: I) -> Self {
+        let individuals = iter.into_iter().collect::<Vec<Member<C>>>();
+        Population {
+            individuals,
+            is_sorted: false,
+        }
+    }
+}
+
 /// Create a new instance of the Population from the given size and closure.
 /// This will iterate the given closure `size` times and collect
 /// the results into a Vec of new individuals.
@@ -243,6 +253,10 @@ impl<C: Chromosome> Member<C> {
 
     pub fn into_inner(self) -> Phenotype<C> {
         self.cell.into_inner()
+    }
+
+    pub fn is_unique(&self) -> bool {
+        self.cell.is_unique()
     }
 }
 

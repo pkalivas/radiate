@@ -84,6 +84,10 @@ impl<C: Chromosome> Phenotype<C> {
     }
 
     pub fn invalidate(&mut self, generation: usize) {
+        if self.score.is_none() && self.generation == generation {
+            return;
+        }
+
         self.score = None;
         self.generation = generation;
         self.id = PhenotypeId::new();

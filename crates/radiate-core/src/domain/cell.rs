@@ -20,6 +20,14 @@ impl<T> MutCell<T> {
         }
     }
 
+    pub fn is_unique(&self) -> bool {
+        unsafe { (*self.ref_count).load(Ordering::Acquire) == 1 }
+    }
+
+    pub fn is_shared(&self) -> bool {
+        !self.is_unique()
+    }
+
     pub fn get(&self) -> &T {
         unsafe { &*self.value }
     }
@@ -40,9 +48,10 @@ impl<T> MutCell<T> {
                 self.consumed = true;
                 *value
             } else {
-                // If there are multiple references, we need to clone the value
-                // to avoid dropping the original value.
-                (*self.value).clone()
+                // Still need to decrement the ref count!
+                let clone = (*self.value).clone();
+                (*self.ref_count).fetch_sub(1, Ordering::Release);
+                clone
             }
         }
     }
@@ -56,7 +65,7 @@ impl<T> Deref for MutCell<T> {
     }
 }
 
-impl<T> DerefMut for MutCell<T> {
+impl<T: Clone> DerefMut for MutCell<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.get_mut()
     }

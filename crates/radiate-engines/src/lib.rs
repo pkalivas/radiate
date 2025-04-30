@@ -1,4 +1,4 @@
-pub mod builders;
+pub mod builder;
 pub mod config;
 pub mod engine;
 pub mod epoch;
@@ -6,7 +6,7 @@ pub mod iter;
 pub mod pipeline;
 pub mod steps;
 
-pub use builders::*;
+pub use builder::*;
 pub use config::*;
 pub use engine::GeneticEngine;
 pub use epoch::*;

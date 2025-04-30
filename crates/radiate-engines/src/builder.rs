@@ -7,13 +7,13 @@ use crate::steps::{AuditStep, FilterStep, FrontStep, RecombineStep, SpeciateStep
 use crate::thread_pool::ThreadPool;
 use crate::{
     Alter, AlterAction, Audit, Crossover, EncodeReplace, EngineProblem, EngineStep, Front,
-    MetricAudit, Mutate, Problem, ReplacementStrategy, RouletteSelector, Select,
-    TournamentSelector, pareto,
+    Generation, MetricAudit, MultiObjectiveGeneration, Mutate, Problem, ReplacementStrategy,
+    RouletteSelector, Select, TournamentSelector, pareto,
 };
 use crate::{Chromosome, EngineConfig, EvaluateStep, GeneticEngine, Pipeline};
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::engine::Context;
-use radiate_core::{Diversity, Ecosystem, Genotype, MetricSet};
+use radiate_core::{Diversity, Ecosystem, Epoch, Genotype, MetricSet};
 use std::cmp::Ordering;
 use std::ops::Range;
 use std::sync::{Arc, RwLock};
@@ -60,18 +60,21 @@ where
 /// - `T`: The type of the best individual in the population.
 ///
 #[derive(Clone)]
-pub struct GeneticEngineBuilder<C, T>
+pub struct GeneticEngineBuilder<C, T, E = Generation<C, T>>
 where
     C: Chromosome + 'static,
     T: Clone + 'static,
+    E: Epoch<C>,
 {
     pub(crate) params: EngineParams<C, T>,
+    _epoch: std::marker::PhantomData<E>,
 }
 
-impl<C, T> GeneticEngineBuilder<C, T>
+impl<C, T, E> GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome,
     T: Clone + Send,
+    E: Epoch<C>,
 {
     /// Set the population size of the genetic engine. Default is 100.
     pub fn population_size(mut self, population_size: usize) -> Self {
@@ -269,17 +272,29 @@ where
         self
     }
 
-    pub fn multi_objective(mut self, objectives: Vec<Optimize>) -> GeneticEngineBuilder<C, T> {
+    pub fn multi_objective(
+        mut self,
+        objectives: Vec<Optimize>,
+    ) -> GeneticEngineBuilder<C, T, MultiObjectiveGeneration<C>> {
         self.params.objective = Objective::Multi(objectives);
-        self
+        GeneticEngineBuilder {
+            params: self.params,
+            _epoch: std::marker::PhantomData,
+        }
     }
 
     /// Set the minimum and maximum size of the pareto front. This is used for
     /// multi-objective optimization problems where the goal is to find the best
     /// solutions that are not dominated by any other solution.
-    pub fn front_size(mut self, range: Range<usize>) -> GeneticEngineBuilder<C, T> {
+    pub fn front_size(
+        mut self,
+        range: Range<usize>,
+    ) -> GeneticEngineBuilder<C, T, MultiObjectiveGeneration<C>> {
         self.params.front_range = range;
-        self
+        GeneticEngineBuilder {
+            params: self.params,
+            _epoch: std::marker::PhantomData,
+        }
     }
 
     /// Set the thread pool of the genetic engine. This is the thread pool that will be used
@@ -292,7 +307,7 @@ where
 
     /// Build the genetic engine with the given parameters. This will create a new
     /// instance of the `GeneticEngine` with the given parameters.
-    pub fn build(mut self) -> GeneticEngine<C, T> {
+    pub fn build(mut self) -> GeneticEngine<C, T, E> {
         if self.params.problem.is_none() {
             if self.params.codex.is_none() {
                 panic!("Codex not set");
@@ -352,7 +367,7 @@ where
                 problem: config.problem.clone(),
             };
 
-            GeneticEngine::<C, T>::new(context, pipeline)
+            GeneticEngine::<C, T, E>::new(context, pipeline)
         }
     }
 
@@ -490,10 +505,11 @@ where
     }
 }
 
-impl<C, T> Default for GeneticEngineBuilder<C, T>
+impl<C, T, E> Default for GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome + 'static,
     T: Clone + Send + 'static,
+    E: Epoch<C>,
 {
     fn default() -> Self {
         GeneticEngineBuilder {
@@ -519,6 +535,7 @@ where
                 problem: None,
                 front: None,
             },
+            _epoch: std::marker::PhantomData,
         }
     }
 }
