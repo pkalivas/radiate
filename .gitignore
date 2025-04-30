@@ -9,3 +9,4 @@ radiate/.vs
 *.suo
 *.user
 *.DS_Store
+*/pyvenv

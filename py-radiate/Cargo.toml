@@ -1,8 +1,15 @@
 [package]
-name = "radiate-py"
+name = "py-radiate"
 version = "0.0.1"
 edition = "2024"
 
+[lib]
+name = "radiate"
+crate-type = ["cdylib"]
+
 [dependencies]
 pyo3 = { version = "0.24.2", features = ["extension-module"] }
-radiate = { path = "../radiate", features = ["gp"] }
+radiate-py = { path = "../crates/radiate-py" }
+
+
+
