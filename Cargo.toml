@@ -7,6 +7,8 @@ members = [
     "crates/radiate-alters",
     "crates/radiate-gp",
     "crates/radiate-error",
+
+    "py-radiate",
     
     "examples/min-sum",
     "examples/hello-world",
