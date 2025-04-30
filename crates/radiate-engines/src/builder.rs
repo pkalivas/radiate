@@ -552,3 +552,18 @@ where
         }
     }
 }
+
+impl<C, T, E> From<EngineParams<C, T>> for GeneticEngineBuilder<C, T, E>
+where
+    C: Chromosome + 'static,
+    T: Clone + Send + 'static,
+    E: Epoch<C>,
+{
+    fn from(params: EngineParams<C, T>) -> Self {
+        GeneticEngineBuilder {
+            params,
+            errors: Vec::new(),
+            _epoch: std::marker::PhantomData,
+        }
+    }
+}
