@@ -1,5 +1,5 @@
-use ::radiate_py::PyFloatGene;
 use pyo3::prelude::*;
+use radiate_py::PyFloatGene;
 
 #[pymodule]
 fn radiate(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
