@@ -1,8 +1,10 @@
+mod chromosome;
 mod conversion;
 mod engine;
 mod gene;
 mod problem;
 
+pub use chromosome::*;
 pub use engine::PyFloatEngine;
 pub use gene::*;
 pub use problem::PyProblem;

@@ -1,47 +1,9 @@
-use std::any::Any;
-
-use pyo3::{
-    Bound, PyAny, pyclass, pymethods,
-    types::{PyList, PySequence},
-};
-use radiate::{
-    AnyChromosome, AnyGene, BitGene, CharGene, FloatGene, Gene, Genotype, IntGene, object::AnyValue,
-};
-
-use crate::conversion::{ObjectValue, Wrap, py_object_to_any_value};
-
-#[derive(Clone, Debug)]
-pub enum GeneType {
-    Float,
-    Int,
-    Char,
-    Bit,
-}
-
-impl From<String> for GeneType {
-    fn from(gene_type: String) -> Self {
-        match gene_type.to_lowercase().trim() {
-            "float" => GeneType::Float,
-            "int" => GeneType::Int,
-            "char" => GeneType::Char,
-            "bit" => GeneType::Bit,
-            _ => panic!("Invalid gene type"),
-        }
-    }
-}
-
-impl From<GeneType> for String {
-    fn from(gene_type: GeneType) -> Self {
-        match gene_type {
-            GeneType::Float => "float".to_string(),
-            GeneType::Int => "int".to_string(),
-            GeneType::Char => "char".to_string(),
-            GeneType::Bit => "bit".to_string(),
-        }
-    }
-}
+use crate::conversion::{Wrap, any_value_into_py_object};
+use pyo3::{Bound, PyAny, PyResult, Python, pyclass, pymethods};
+use radiate::{AnyGene, BitGene, CharGene, FloatGene, Gene, IntGene, object::AnyValue};
 
 #[pyclass(name = "FloatGene")]
+#[repr(transparent)]
 #[derive(Clone, Debug)]
 pub struct PyFloatGene {
     pub inner: FloatGene,
@@ -50,14 +12,18 @@ pub struct PyFloatGene {
 #[pymethods]
 impl PyFloatGene {
     #[new]
-    #[pyo3(signature = (range, bounds=None))]
-    pub fn new(range: (f32, f32), bounds: Option<(f32, f32)>) -> Self {
-        let inner = if let Some(bounds) = bounds {
-            FloatGene::from((range.0..range.1, bounds.0..bounds.1))
+    #[pyo3(signature=(min=0.0, max=1.0, min_bound=None, max_bound=None))]
+    pub fn new(min: f32, max: f32, min_bound: Option<f32>, max_bound: Option<f32>) -> Self {
+        let range = min..max;
+        let bounds = if let (Some(min_bound), Some(max_bound)) = (min_bound, max_bound) {
+            min_bound..max_bound
         } else {
-            FloatGene::from(range.0..range.1)
+            range.clone()
         };
-        Self { inner }
+
+        Self {
+            inner: FloatGene::from((range, bounds)),
+        }
     }
 
     pub fn allele(&self) -> &f32 {
@@ -65,19 +31,14 @@ impl PyFloatGene {
     }
 }
 
-impl From<FloatGene> for PyFloatGene {
-    fn from(gene: FloatGene) -> Self {
-        Self { inner: gene }
-    }
-}
-
-impl From<PyFloatGene> for FloatGene {
-    fn from(gene: PyFloatGene) -> Self {
-        gene.inner
+impl AsRef<FloatGene> for PyFloatGene {
+    fn as_ref(&self) -> &FloatGene {
+        &self.inner
     }
 }
 
 #[pyclass(name = "IntGene")]
+#[repr(transparent)]
 #[derive(Clone, Debug)]
 pub struct PyIntGene {
     pub inner: IntGene<i32>,
@@ -86,14 +47,17 @@ pub struct PyIntGene {
 #[pymethods]
 impl PyIntGene {
     #[new]
-    #[pyo3(signature = (range, bounds=None))]
-    pub fn new(range: (i32, i32), bounds: Option<(i32, i32)>) -> Self {
+    #[pyo3(signature=(min=0, max=100, min_bound=None, max_bound=None))]
+    pub fn new(min: i32, max: i32, min_bound: Option<i32>, max_bound: Option<i32>) -> Self {
+        let range = min..max;
+        let bounds = if let (Some(min_bound), Some(max_bound)) = (min_bound, max_bound) {
+            min_bound..max_bound
+        } else {
+            range.clone()
+        };
+
         Self {
-            inner: if let Some(bounds) = bounds {
-                IntGene::from((range.0..range.1, bounds.0..bounds.1))
-            } else {
-                IntGene::from(range.0..range.1)
-            },
+            inner: IntGene::from((range, bounds)),
         }
     }
 
@@ -102,19 +66,8 @@ impl PyIntGene {
     }
 }
 
-impl From<IntGene<i32>> for PyIntGene {
-    fn from(gene: IntGene<i32>) -> Self {
-        Self { inner: gene }
-    }
-}
-
-impl From<PyIntGene> for IntGene<i32> {
-    fn from(gene: PyIntGene) -> Self {
-        gene.inner
-    }
-}
-
 #[pyclass(name = "CharGene")]
+#[repr(transparent)]
 #[derive(Clone, Debug)]
 pub struct PyCharGene {
     pub inner: CharGene,
@@ -123,15 +76,19 @@ pub struct PyCharGene {
 #[pymethods]
 impl PyCharGene {
     #[new]
-    #[pyo3(signature = (allele, char_set=None))]
-    pub fn new(allele: char, char_set: Option<String>) -> Self {
-        Self {
-            inner: if let Some(char_set) = char_set {
+    #[pyo3(signature=(allele=None, char_set=None))]
+    pub fn new(allele: Option<char>, char_set: Option<String>) -> Self {
+        let inner = if let Some(allele) = allele {
+            if let Some(char_set) = char_set {
                 CharGene::from((allele, char_set.chars().collect::<Vec<char>>().into()))
             } else {
                 CharGene::from(allele)
-            },
-        }
+            }
+        } else {
+            CharGene::default()
+        };
+
+        Self { inner }
     }
 
     pub fn allele(&self) -> &char {
@@ -139,19 +96,8 @@ impl PyCharGene {
     }
 }
 
-impl From<CharGene> for PyCharGene {
-    fn from(gene: CharGene) -> Self {
-        Self { inner: gene }
-    }
-}
-
-impl From<PyCharGene> for CharGene {
-    fn from(gene: PyCharGene) -> Self {
-        gene.inner
-    }
-}
-
 #[pyclass(name = "BitGene")]
+#[repr(transparent)]
 #[derive(Clone, Debug)]
 pub struct PyBitGene {
     pub inner: BitGene,
@@ -171,103 +117,33 @@ impl PyBitGene {
     }
 }
 
-impl From<BitGene> for PyBitGene {
-    fn from(gene: BitGene) -> Self {
-        Self { inner: gene }
-    }
-}
-
-impl From<PyBitGene> for BitGene {
-    fn from(gene: PyBitGene) -> Self {
-        gene.inner
-    }
-}
-
-pub enum InnerGene {
-    Float(FloatGene),
-    Int(IntGene<i32>),
-    Char(CharGene),
-    Bit(BitGene),
-    Any(AnyGene<'static>),
-    // Custom(String, Box<dyn Gene>),
-}
-
-#[pyclass]
+#[pyclass(name = "AnyGene")]
+#[repr(transparent)]
 #[derive(Clone, Debug)]
-pub struct PyGene {
-    inner: AnyGene<'static>,
+pub struct PyAnyGene {
+    pub inner: AnyGene<'static>,
 }
 
 #[pymethods]
-impl PyGene {
+impl PyAnyGene {
     #[new]
-    #[pyo3(signature = (allele=None))]
     pub fn new(allele: Option<Wrap<AnyValue<'_>>>) -> Self {
         let inner = if let Some(allele) = allele.as_ref() {
             AnyGene::new(allele.0.clone().into_static())
         } else {
             AnyGene::new(AnyValue::Null)
         };
-        Self { inner }
-    }
-}
 
-#[pyclass(name = "Chromosome")]
-#[derive(Clone, Debug)]
-pub struct PyChromosome {
-    inner: AnyChromosome<'static>,
-}
-
-#[pymethods]
-impl PyChromosome {
-    #[new]
-    #[pyo3(signature = (genes))]
-    pub fn new(genes: Vec<Wrap<AnyValue<'_>>>) -> Self {
-        let inner = AnyChromosome::new(
-            genes
-                .into_iter()
-                .map(|gene| gene.0.clone().into_static())
-                .collect::<Vec<_>>(),
-        );
         Self { inner }
     }
 
-    pub fn __str__(&self) -> String {
-        self.inner
-            .as_ref()
-            .iter()
-            .map(|gene| gene.allele().type_name())
-            .collect::<Vec<_>>()
-            .join(", ")
+    pub fn allele<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        any_value_into_py_object(self.inner.allele().clone(), py)
     }
 }
 
-#[pyclass(name = "Geneotype")]
-#[derive(Clone, Debug)]
-pub struct PyGeneotype {
-    inner: Vec<AnyChromosome<'static>>,
-}
-
-#[pymethods]
-impl PyGeneotype {
-    #[new]
-    #[pyo3(signature = (chromosomes=None ))]
-    pub fn new(chromosomes: Option<Vec<PyChromosome>>) -> Self {
-        Self {
-            inner: chromosomes
-                .map(|chromosomes| {
-                    chromosomes
-                        .into_iter()
-                        .map(|chromosome| chromosome.inner)
-                        .collect::<Vec<_>>()
-                })
-                .unwrap_or_default(),
-        }
-    }
-}
-
-impl PyGeneotype {
-    pub fn take(self) -> Vec<AnyChromosome<'static>> {
-        self.inner
+impl AsRef<AnyGene<'static>> for PyAnyGene {
+    fn as_ref(&self) -> &AnyGene<'static> {
+        &self.inner
     }
 }

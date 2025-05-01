@@ -1,80 +1,108 @@
-from dataclasses import dataclass
-from typing import Optional, TypeVar, Generic
-from abc import ABC, abstractmethod
+# from dataclasses import dataclass
+# from typing import Optional, TypeVar, Generic
+# from abc import ABC, abstractmethod
+# from radiate.radiate import FloatGene, IntGene, BitGene, CharGene, AnyGene
 
-T = TypeVar('T')
+# T = TypeVar('T')
 
-@dataclass
-class GeneConfig:
-    type: str
-    num_genes: int = 1
-    num_chromosomes: int = 1
-    min_value: Optional[float | int] = None
-    max_value: Optional[float | int] = None
-    min_bound: Optional[float | int] = None
-    max_bound: Optional[float | int] = None
-    alleles: Optional[list] = None
+# @dataclass
+# class GeneConfig:
+#     type: str
+#     num_genes: int = 1
+#     num_chromosomes: int = 1
+#     min_value: Optional[float | int] = None
+#     max_value: Optional[float | int] = None
+#     min_bound: Optional[float | int] = None
+#     max_bound: Optional[float | int] = None
+#     alleles: Optional[list] = None
 
-@dataclass
-class Gene:
-    """Base class for all gene types"""
+# @dataclass
+# class Gene:
+#     """Base class for all gene types"""
     
-    def __init__(self, config: GeneConfig):
-        self.config = config
-        self._type = config.type
-        self._kwargs = {k: v for k, v in config.__dict__.items() if v is not None}
+#     def __init__(self,
+#                     type: str = None,
+#                     min_value: Optional[float | int] = None,
+#                     max_value: Optional[float | int] = None,
+#                     min_bound: Optional[float | int] = None,
+#                     max_bound: Optional[float | int] = None,
+#                     allele = None,
+#                     **kwargs):
+#         """Create a new gene with the given type and range."""
+#         if type is not None:
+#             gene_type = type.lower().strip()
+#             if gene_type == 'float':
+#                 self.__gene = PyGene.new_float(
+#                     range=(float(min_value or 0.0), float(max_value or 1.0)),
+#                     bounds=(float(min_bound or min_value or 0.0), float(max_bound or max_value or 1.0))
+#                 )
+#             elif gene_type == 'int':
+
+#                 self.__gene = PyGene.new_int(
+#                     range=(int(min_value or 0), int(max_value or 100)),
+#                     bounds=(int(min_bound or min_value or 0), int(max_bound or max_value or 100))
+#                 )
+#             elif gene_type == 'bit':
+#                 self.__gene = PyGene.new_bit()
+#             elif gene_type == 'char':
+#                 self.__gene = PyGene.new_char(allele=allele)
+#             elif gene_type == 'any':
+#                 self.__gene = PyGene.new_any(allele=allele)
+#             else:
+#                 raise ValueError(f"Unknown gene type: {type}")
+#             return
+        
+#         # Type inference mode
+#         if allele is not None:
+#             # Infer from allele
+#             if isinstance(allele, str) and len(allele) == 1:
+#                 self.__gene = PyGene.new_char(allele=allele)
+#             else:
+#                 self.__gene = PyGene.new_any(allele=allele)
+#             return
+
+#         if min_value is not None and max_value is not None:
+#             if isinstance(min_value, int) and isinstance(max_value, int):
+#                 self.__gene = PyGene.new_int(
+#                     range=(min_value, max_value),
+#                     bounds=(min_bound or min_value, max_bound or max_value)
+#                 )
+#             elif isinstance(min_value, float) and isinstance(max_value, float):
+#                 self.__gene = PyGene.new_float(
+#                     range=(min_value, max_value),
+#                     bounds=(min_bound or min_value, max_bound or max_value)
+#                 )
+#             else:
+#                 raise TypeError("min_value and max_value must be of the same type (int or float)")
+#         else:
+#             raise ValueError("Unable to determine gene type — provide `type`, `allele`, or `min_value` and `max_value`")
     
-    def __repr__(self):
-        return f"Gene({self._kwargs})"
+#     def __repr__(self):
+#         return f"Gene({self.__gene})"
     
-    def __getattr__(self, name):
-        """Get the value of an attribute."""
-        if name in self._kwargs:
-            return self._kwargs[name]
-        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+#     def allele(self) -> T:
+#         return self.__gene.allele()
     
-    @staticmethod
-    def float(num_genes=1, 
-              num_chromosomes=1,
-              min_value=0.0,
-              max_value=1.0, 
-              min_bound=None, 
-              max_bound=None):
-        """Create a gene for float values."""
-        if min_bound is None:
-            min_bound = min_value
-        if max_bound is None:
-            max_bound = max_value
-        return Gene(
-            GeneConfig(
-                type='float',
-                num_genes=num_genes,
-                num_chromosomes=num_chromosomes,
-                min_value=min_value,
-                max_value=max_value,
-                min_bound=min_bound,
-                max_bound=max_bound
-            )
-        )
+
 
     
-class GeneBase(ABC, Generic[T]):
-    """Base class for all gene types"""
+# class GeneBase(ABC, Generic[T]):
+#     """Base class for all gene types"""
     
-    @abstractmethod
-    def allele(self, index: int) -> T:
-        """Return the allele at the given index."""
-        pass
+#     @abstractmethod
+#     def allele(self, index: int) -> T:
+#         """Return the allele at the given index."""
+#         pass
 
-    @abstractmethod
-    def with_allele(self, value: T):
-        """Return a new gene with the allele at the given index set to the given value."""
-        pass
+#     @abstractmethod
+#     def with_allele(self, value: T):
+#         """Return a new gene with the allele at the given index set to the given value."""
+#         pass
 
-    @abstractmethod
-    def new_instance(self) -> 'GeneBase':
-        """Return a new instance of the gene."""
-        pass
+#     @abstractmethod
+#     def new_instance(self) -> 'GeneBase':
+#         """Return a new instance of the gene."""
+#         pass
 
 
 

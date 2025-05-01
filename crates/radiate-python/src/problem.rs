@@ -2,7 +2,7 @@ use pyo3::types::PyAny;
 use pyo3::{prelude::*, types::PyDict};
 use radiate::{AnyChromosome, Chromosome, Genotype, Problem, Score};
 
-use crate::gene::PyGeneotype;
+// use crate::gene::PyGeneotype;
 
 #[pyclass(name = "Problem", unsendable)]
 pub struct PyProblem {
