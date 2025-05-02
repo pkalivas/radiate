@@ -1,13 +1,13 @@
 use super::Wrap;
+use crate::object::{AnyValue, Field};
 use pyo3::{
     Bound, IntoPyObject, IntoPyObjectExt, Py, PyAny, PyResult, Python,
     exceptions::{PyOverflowError, PyValueError},
     types::{
-        PyAnyMethods, PyBool, PyBytes, PyDict, PyDictMethods, PyFloat, PyInt, PyList, PySequence,
-        PyString, PyTuple, PyType, PyTypeMethods,
+        PyAnyMethods, PyBool, PyBytes, PyDict, PyDictMethods, PyFloat, PyInt, PyList,
+        PyListMethods, PySequence, PyString, PyTuple, PyType, PyTypeMethods,
     },
 };
-use radiate::object::{AnyValue, Field};
 use std::{
     borrow::{Borrow, Cow},
     collections::HashMap,
@@ -30,6 +30,20 @@ pub fn any_value_into_py_object<'py>(av: AnyValue, py: Python<'py>) -> PyResult<
         AnyValue::Int128(v) => v.into_bound_py_any(py),
         AnyValue::Float32(v) => v.into_bound_py_any(py),
         AnyValue::Float64(v) => v.into_bound_py_any(py),
+        AnyValue::Slice(v, _) => {
+            let list = PyList::empty(py);
+            for item in v.iter() {
+                list.append(any_value_into_py_object(item.clone(), py)?)?;
+            }
+            Ok(list.into_any())
+        }
+        AnyValue::VecOwned(v) => {
+            let list = PyList::empty(py);
+            for item in v.0.into_iter() {
+                list.append(any_value_into_py_object(item, py)?)?;
+            }
+            Ok(list.into_any())
+        }
         AnyValue::Null => py.None().into_bound_py_any(py),
         AnyValue::Boolean(v) => v.into_bound_py_any(py),
         AnyValue::String(v) => v.into_bound_py_any(py),
@@ -116,6 +130,8 @@ pub fn py_object_to_any_value<'py>(
             }
 
             Ok(AnyValue::Null)
+        } else if !strict {
+            Ok(AnyValue::Null)
         } else {
             Err(PyValueError::new_err(format!(
                 "Cannot convert Python object of type {} to AnyValue",
@@ -128,7 +144,7 @@ pub fn py_object_to_any_value<'py>(
     ///
     /// Note: This function is only ran if the object's type is not already in the
     /// lookup table.
-    fn get_conversion_function(ob: &Bound<'_, PyAny>) -> PyResult<InitFn> {
+    fn get_conversion_function(ob: &Bound<'_, PyAny>, strict: bool) -> PyResult<InitFn> {
         if ob.is_none() {
             Ok(get_null)
         }
@@ -160,16 +176,20 @@ pub fn py_object_to_any_value<'py>(
                 }
                 Ok(AnyValue::StructOwned(Box::new((vals, keys))))
             })
-
-            // Ok(get_struct)
         } else {
             let ob_type = ob.get_type();
             let type_name = ob_type.qualname()?.to_string();
             match type_name.as_str() {
                 "range" => Ok(get_list as InitFn),
-                _ => Err(PyValueError::new_err(format!(
-                    "Cannot convert Python object of type {type_name} to AnyValue"
-                ))),
+                _ => {
+                    if !strict {
+                        Ok(get_null)
+                    } else {
+                        Err(PyValueError::new_err(format!(
+                            "Cannot convert Python object of type {type_name} to AnyValue"
+                        )))
+                    }
+                }
             }
         }
     }
@@ -177,17 +197,18 @@ pub fn py_object_to_any_value<'py>(
     let py_type = ob.get_type();
     let py_type_address = py_type.as_ptr() as usize;
 
-    Python::with_gil(move |py| {
+    Python::with_gil(|py| {
         if !LUT.is_initialized() {
             LUT.set(py, Default::default()).unwrap();
         }
-        LUT.with_gil(py, move |lut| {
+
+        LUT.with_gil(py, |lut| {
             if !lut.contains_key(&py_type_address) {
                 let k = TypeObjectKey::new(py_type.clone().unbind());
 
                 assert_eq!(k.address, py_type_address);
 
-                lut.insert(k, get_conversion_function(ob)?);
+                lut.insert(k, get_conversion_function(ob, strict)?);
             }
 
             let conversion_func = lut.get(&py_type_address).unwrap();

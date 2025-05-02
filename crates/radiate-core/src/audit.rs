@@ -2,11 +2,14 @@ use super::{Chromosome, Metric, metric_names};
 use crate::Ecosystem;
 use std::{collections::HashSet, vec};
 
-pub trait Audit<C: Chromosome> {
+pub trait Audit<C: Chromosome>: Send + Sync {
     fn audit(&self, generation: usize, ecosystem: &Ecosystem<C>) -> Vec<Metric>;
 }
 
-impl<C: Chromosome, F: Fn(usize, &Ecosystem<C>) -> Vec<Metric>> Audit<C> for F {
+impl<C: Chromosome, F: Fn(usize, &Ecosystem<C>) -> Vec<Metric>> Audit<C> for F
+where
+    F: Send + Sync,
+{
     fn audit(&self, generation: usize, ecosystem: &Ecosystem<C>) -> Vec<Metric> {
         self(generation, ecosystem)
     }

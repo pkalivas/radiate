@@ -1,23 +1,13 @@
-from radiate.engine import Engine
-from radiate.radiate import FloatGene, IntGene
-from radiate.codec import Codec
-from radiate.selector import Selector
-from radiate.problem import Problem, SingleObjectiveProblem, MultiObjectiveProblem
+
+from .engine import Engine
+from .problem import Problem
+from .genome import Genome
 
 
 __all__ = [
     'Engine',
-
-    'FloatGene',
-    'IntGene',
-
-    'Codec',
-
-    'Selector',
-
+    'Genome',
     'Problem',
-    
-    'SingleObjectiveProblem',
-    'MultiObjectiveProblem'
 ]
             
+print(__all__)

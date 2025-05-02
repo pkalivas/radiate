@@ -9,5 +9,7 @@ name = "radiate"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = "0.24.1"
+pyo3 = { version="0.24.1", features = ["extension-module", "abi3-py38", "multiple-pymethods"] }
 radiate-python = { path = "../crates/radiate-python" }
+
+

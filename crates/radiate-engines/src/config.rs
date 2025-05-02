@@ -92,7 +92,7 @@ impl<C: Chromosome, T> EngineConfig<C, T> {
         (self.population.len() as f32 * self.offspring_fraction) as usize
     }
 
-    pub fn encoder(&self) -> Arc<dyn Fn() -> Genotype<C>>
+    pub fn encoder(&self) -> Arc<dyn Fn() -> Genotype<C> + Send + Sync>
     where
         C: 'static,
         T: 'static,

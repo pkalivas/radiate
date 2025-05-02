@@ -5,7 +5,6 @@ pub mod diversity;
 pub mod domain;
 pub mod engine;
 pub mod genome;
-pub mod object;
 pub mod objectives;
 pub mod problem;
 pub mod replacement;

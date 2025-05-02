@@ -10,7 +10,7 @@ where
     C: Chromosome,
 {
     pub(crate) replacer: Arc<dyn ReplacementStrategy<C>>,
-    pub(crate) encoder: Arc<dyn Fn() -> Genotype<C>>,
+    pub(crate) encoder: Arc<dyn Fn() -> Genotype<C> + Send + Sync>,
     pub(crate) max_age: usize,
     pub(crate) max_species_age: usize,
 }

@@ -74,7 +74,7 @@ pub trait Epoch<C: Chromosome> {
     }
 }
 
-pub trait EngineStep<C>
+pub trait EngineStep<C>: Send + Sync
 where
     C: Chromosome,
 {

@@ -1,7 +1,7 @@
+use crate::AnyValue;
 use pyo3::{
     Bound, FromPyObject, IntoPyObject, PyAny, PyErr, PyResult, Python, exceptions::PyValueError,
 };
-use radiate::object::AnyValue;
 
 pub(crate) fn reinterpret_vec<T: Transparent>(input: Vec<T>) -> Vec<T::Target> {
     assert_eq!(size_of::<T>(), size_of::<T::Target>());

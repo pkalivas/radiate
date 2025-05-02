@@ -31,6 +31,10 @@ pub enum AnyValue<'a> {
     /// A 64-bit floating point number.
     Float64(f64),
 
+    Slice(&'a [AnyValue<'a>], &'a Field),
+
+    VecOwned(Box<(Vec<AnyValue<'a>>, Field)>),
+
     StringOwned(String),
 
     Binary(&'a [u8]),
@@ -57,6 +61,8 @@ impl<'a> AnyValue<'a> {
             Self::Int128(_) => "i128",
             Self::Float32(_) => "f32",
             Self::Float64(_) => "f64",
+            Self::Slice(_, _) => "list",
+            Self::VecOwned(_) => "list",
             Self::StringOwned(_) => "string",
             Self::Binary(_) => "binary",
             Self::BinaryOwned(_) => "binary",
@@ -80,6 +86,11 @@ impl<'a> AnyValue<'a> {
             Self::Int128(_) => DataType::Int128,
             Self::Float32(_) => DataType::Float32,
             Self::Float64(_) => DataType::Float64,
+            Self::Slice(_, flds) => DataType::List(Box::new((*flds).clone())),
+            Self::VecOwned(vals) => DataType::List(Box::new(Field::new(
+                vals.1.name().clone(),
+                vals.1.dtype().clone(),
+            ))),
             Self::StringOwned(_) | Self::BinaryOwned(_) | Self::Binary(_) => DataType::Binary,
             Self::StructOwned(vals) => DataType::Struct(vals.1.iter().cloned().collect::<Vec<_>>()),
         }
@@ -105,6 +116,14 @@ impl<'a> AnyValue<'a> {
             Float32(v) => Float32(v),
             Float64(v) => Float64(v),
             String(v) => StringOwned(v.to_string()),
+            Slice(v, f) => VecOwned(Box::new((
+                v.iter().cloned().map(AnyValue::into_static).collect(),
+                f.clone(),
+            ))),
+            VecOwned(v) => VecOwned(Box::new((
+                v.0.iter().cloned().map(AnyValue::into_static).collect(),
+                v.1.clone(),
+            ))),
             StringOwned(v) => StringOwned(v),
             Binary(v) => BinaryOwned(v.to_vec()),
             BinaryOwned(v) => BinaryOwned(v),
@@ -113,6 +132,21 @@ impl<'a> AnyValue<'a> {
                 v.1.iter().cloned().collect(),
             ))),
         }
+    }
+}
+
+impl<'a, T> From<Vec<T>> for AnyValue<'a>
+where
+    T: Into<AnyValue<'a>>,
+{
+    fn from(value: Vec<T>) -> Self {
+        Self::VecOwned(Box::new((
+            value.into_iter().map(Into::into).collect(),
+            Field::new(
+                std::any::type_name::<Vec<T>>().to_string(),
+                DataType::List(Box::new(Field::new("item".to_string(), DataType::Null))),
+            ),
+        )))
     }
 }
 
@@ -142,7 +176,6 @@ impl_from!(
     f32 => Float32,
     f64 => Float64,
     String => StringOwned,
-    Vec<u8> => BinaryOwned,
     &'a str => String,
     &'a [u8] => Binary,
 );

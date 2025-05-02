@@ -1,17 +1,16 @@
 mod chromosome;
+mod codec;
 mod conversion;
 mod engine;
-mod gene;
-mod problem;
+mod epoch;
+mod genotype;
+mod object;
 
-pub use chromosome::*;
-pub use engine::PyFloatEngine;
-pub use gene::*;
-pub use problem::PyProblem;
-
-use std::cell::UnsafeCell;
-
+pub use codec::*;
+pub use engine::*;
+pub use object::*;
 use pyo3::{PyResult, Python};
+use std::cell::UnsafeCell;
 
 // Adapted from PYO3 with the only change that
 // we allow mutable access with when the GIL is held

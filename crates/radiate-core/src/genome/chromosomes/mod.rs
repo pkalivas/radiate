@@ -1,8 +1,6 @@
-pub mod any;
 pub mod bit;
 pub mod chromosome;
 
-pub use any::{AnyChromosome, AnyGene};
 pub use bit::{BitChromosome, BitGene};
 pub use chromosome::*;
 pub mod char;

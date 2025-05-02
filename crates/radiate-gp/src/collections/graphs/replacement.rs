@@ -12,7 +12,7 @@ where
     fn replace(
         &self,
         population: &Population<GraphChromosome<T>>,
-        _: Arc<dyn Fn() -> Genotype<GraphChromosome<T>>>,
+        _: Arc<dyn Fn() -> Genotype<GraphChromosome<T>> + Send + Sync>,
     ) -> Genotype<GraphChromosome<T>> {
         let random_member = random_provider::range(0..population.len());
         Genotype::from(
