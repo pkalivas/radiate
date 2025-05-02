@@ -1,12 +1,8 @@
-mod chromosome;
-mod codec;
 mod conversion;
 mod engine;
 mod epoch;
-mod genotype;
 mod object;
 
-pub use codec::*;
 pub use engine::*;
 pub use object::*;
 use pyo3::{PyResult, Python};

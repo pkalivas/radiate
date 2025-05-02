@@ -3,23 +3,9 @@ use pyo3::{
     Bound, FromPyObject, IntoPyObject, PyAny, PyErr, PyResult, Python, exceptions::PyValueError,
 };
 
-pub(crate) fn reinterpret_vec<T: Transparent>(input: Vec<T>) -> Vec<T::Target> {
-    assert_eq!(size_of::<T>(), size_of::<T::Target>());
-    assert_eq!(align_of::<T>(), align_of::<T::Target>());
-    let len = input.len();
-    let cap = input.capacity();
-    let mut manual_drop_vec = std::mem::ManuallyDrop::new(input);
-    let vec_ptr: *mut T = manual_drop_vec.as_mut_ptr();
-    let ptr: *mut T::Target = vec_ptr as *mut T::Target;
-    unsafe { Vec::from_raw_parts(ptr, len, cap) }
-}
-
-pub(crate) fn vec_extract_wrapped<T>(buf: Vec<Wrap<T>>) -> Vec<T> {
-    reinterpret_vec(buf)
-}
-
 /// # Safety
 /// Should only be implemented for transparent types
+#[allow(dead_code)]
 pub(crate) unsafe trait Transparent {
     type Target;
 }

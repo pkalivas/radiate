@@ -3,11 +3,16 @@ use crate::{
     conversion::{Wrap, py_object_to_any_value},
 };
 use pyo3::{PyObject, PyResult, Python, pyclass, pymethods};
-use radiate::{EngineExt, Epoch, FloatChromosome, FloatCodex, GeneticEngine, Score};
+use radiate::{
+    Chromosome, Ecosystem, EngineExt, Epoch, FloatChromosome, FloatCodex, Gene, GeneticEngine,
+    Genotype, Problem, Score,
+    steps::{Evaluator, SequenctialEvaluator},
+    thread_pool::ThreadPool,
+};
 
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
-use std::sync::Arc;
+use std::{borrow::Borrow, os::unix::thread, sync::Arc};
 
 #[derive(Clone, Debug)]
 pub struct ThreadSafePythonFn {
@@ -21,27 +26,30 @@ impl ThreadSafePythonFn {
         }
     }
 
-    pub fn call(&self, input: AnyValue<'static>) -> Score {
+    pub fn call<'py>(&self, outer: Python<'py>, input: AnyValue<'static>) -> Score {
         let func = self.func.clone();
-        Python::with_gil(|py| {
-            let arg = Wrap(input);
-            let value = func.call1(py, (arg,)).expect("Python call failed");
-            let av = py_object_to_any_value(&value.bind(py), true)
-                .unwrap()
-                .into_static();
-            match av {
-                AnyValue::Float32(score) => Score::from(score),
-                AnyValue::Float64(score) => Score::from(score as f32),
-                AnyValue::Int32(score) => Score::from(score as f32),
-                AnyValue::Int64(score) => Score::from(score as f32),
-                AnyValue::Int128(score) => Score::from(score as f32),
-                AnyValue::Int16(score) => Score::from(score as f32),
-                AnyValue::Int8(score) => Score::from(score as f32),
-                AnyValue::Boolean(score) => Score::from(if score { 1.0 } else { 0.0 }),
-                AnyValue::Null => Score::from(0.0),
-                _ => panic!("Fitness function must return a number"),
-            }
-        })
+
+        let av = outer.allow_threads(|| {
+            Python::with_gil(|py| {
+                let arg = Wrap(input);
+                func.call1(py, (arg,)).expect("Python call failed")
+            })
+        });
+
+        let av = py_object_to_any_value(&av.bind_borrowed(outer), true).unwrap();
+
+        match av {
+            AnyValue::Float32(score) => Score::from(score),
+            AnyValue::Float64(score) => Score::from(score as f32),
+            AnyValue::Int32(score) => Score::from(score as f32),
+            AnyValue::Int64(score) => Score::from(score as f32),
+            AnyValue::Int128(score) => Score::from(score as f32),
+            AnyValue::Int16(score) => Score::from(score as f32),
+            AnyValue::Int8(score) => Score::from(score as f32),
+            AnyValue::Boolean(score) => Score::from(if score { 1.0 } else { 0.0 }),
+            AnyValue::Null => Score::from(0.0),
+            _ => panic!("Fitness function must return a number"),
+        }
     }
 }
 
@@ -77,44 +85,7 @@ impl PyEngine {
                 println!("Generation: {}", epoch.index());
                 epoch.index() < generations
             });
-            // Python::with_gil(|py| unsafe {
-            //     py.allow_threads(|| unsafe {
-            //         engine.run(|epoch| {
-            //             println!("Generation: {}", epoch.index());
-            //             epoch.index() < generations
-            //         })
-            //     });
-            // });
-
-            // let result = engine
-            //     .iter()
-            //     .inspect(|ctx| log_ctx!(ctx))
-            //     .take(generations)
-            //     .last()
-            //     .unwrap();
         }
-        // if let Some(engine) = self.engine.as_mut() {}
-        // Python::with_gil(|py| {
-        //     let mut engine = self.engine.as_mut();
-        //     for _ in 0..generations {
-        //         engine.next();
-        //     }
-        //     let best = engine.best().unwrap();
-        //     let best = best
-        //         .iter()
-        //         .map(|chromosome| {
-        //             Wrap(AnyValue::from(
-        //                 chromosome
-        //                     .as_ref()
-        //                     .iter()
-        //                     .map(|gene| gene.allele().clone())
-        //                     .collect::<Vec<_>>(),
-        //             ))
-        //         })
-        //         .collect::<Vec<_>>();
-        //     let best = Wrap(AnyValue::from(best));
-        //     best.into_pyobject(py).unwrap()
-        // });
     }
 }
 
@@ -142,39 +113,14 @@ impl PyEngine {
 
         let engine = GeneticEngine::builder()
             .codex(codex)
+            .evaluator(SequenctialEvaluator)
             .fitness_fn(move |decoded: Vec<Vec<f32>>| {
-                fitness_fn.call(AnyValue::from(decoded))
+                Python::with_gil(|py| {
+                    let wrapped_decoded = AnyValue::from(decoded);
+                    let result = fitness_fn.call(py, wrapped_decoded);
 
-                // Python::with_gil(|py| {
-                //     let wrapped_decoded = Wrap(AnyValue::from(decoded));
-                //     let result = fitness_fn.call1(py, (wrapped_decoded,));
-
-                //     let fitness = match result {
-                //         Ok(value) => {
-                //             // let value = value.extract::<Wrap<AnyValue<'_>>>(py).unwrap();
-                //             // value.0
-                //             let borrowed_value = value.bind(py);
-                //             py_object_to_any_value(borrowed_value, true)
-                //                 .unwrap()
-                //                 .into_static()
-                //         }
-                //         Err(e) => panic!("Error evaluating fitness function: {}", e),
-                //     };
-                //     let score = match fitness {
-                //         AnyValue::Float32(score) => Score::from(score),
-                //         AnyValue::Float64(score) => Score::from(score as f32),
-                //         AnyValue::Int32(score) => Score::from(score as f32),
-                //         AnyValue::Int64(score) => Score::from(score as f32),
-                //         AnyValue::Int128(score) => Score::from(score as f32),
-                //         AnyValue::Int16(score) => Score::from(score as f32),
-                //         AnyValue::Int8(score) => Score::from(score as f32),
-                //         AnyValue::Boolean(score) => Score::from(if score { 1.0 } else { 0.0 }),
-                //         AnyValue::Null => Score::from(0.0),
-                //         _ => panic!("Fitness function must return a number"),
-                //     };
-                //     score
-
-                // })
+                    result
+                })
             })
             .build();
 
@@ -221,3 +167,85 @@ macro_rules! impl_py_eng {
 }
 
 impl_py_eng!(GeneticEngine<FloatChromosome, Vec<Vec<f32>>>);
+
+pub struct PythonEvaluator(pub ThreadSafePythonFn);
+
+impl<C, T> Evaluator<C, T> for PythonEvaluator
+where
+    C: Chromosome + 'static,
+    T: Clone + Send + Sync + 'static,
+    AnyValue<'static>: From<T>,
+{
+    fn eval(
+        &self,
+        ecosystem: &mut Ecosystem<C>,
+        thread_pool: Arc<ThreadPool>,
+        problem: Arc<dyn Problem<C, T>>,
+    ) -> usize {
+        let genotypes = ecosystem
+            .population
+            .iter_mut()
+            .enumerate()
+            .filter(|(_, individual)| individual.score().is_none())
+            .map(|(idx, individual)| {
+                let geno = individual.take_genotype();
+                let decoded = problem.decode(&geno);
+                (idx, geno, AnyValue::from(decoded))
+            })
+            .collect::<Vec<_>>();
+
+        let mut work_results = Vec::new();
+        for (idx, geno, new_problem) in genotypes {
+            let prob = self.0.clone();
+            let handle = thread_pool.submit_with_result(move || {
+                Python::with_gil(|py| {
+                    let score = prob.call(py, new_problem);
+                    (idx, score, geno)
+                })
+                // Acquire GIL in thread for Python call
+            });
+
+            work_results.push(handle);
+        }
+
+        let count = work_results.len();
+        for work_result in work_results {
+            let (idx, score, genotype) = work_result.result();
+            ecosystem.population[idx].set_score(Some(score));
+            ecosystem.population[idx].set_genotype(genotype);
+        }
+
+        count
+    }
+}
+
+// Python::with_gil(|py| {
+//     let wrapped_decoded = Wrap(AnyValue::from(decoded));
+//     let result = fitness_fn.call1(py, (wrapped_decoded,));
+
+//     let fitness = match result {
+//         Ok(value) => {
+//             // let value = value.extract::<Wrap<AnyValue<'_>>>(py).unwrap();
+//             // value.0
+//             let borrowed_value = value.bind(py);
+//             py_object_to_any_value(borrowed_value, true)
+//                 .unwrap()
+//                 .into_static()
+//         }
+//         Err(e) => panic!("Error evaluating fitness function: {}", e),
+//     };
+//     let score = match fitness {
+//         AnyValue::Float32(score) => Score::from(score),
+//         AnyValue::Float64(score) => Score::from(score as f32),
+//         AnyValue::Int32(score) => Score::from(score as f32),
+//         AnyValue::Int64(score) => Score::from(score as f32),
+//         AnyValue::Int128(score) => Score::from(score as f32),
+//         AnyValue::Int16(score) => Score::from(score as f32),
+//         AnyValue::Int8(score) => Score::from(score as f32),
+//         AnyValue::Boolean(score) => Score::from(if score { 1.0 } else { 0.0 }),
+//         AnyValue::Null => Score::from(0.0),
+//         _ => panic!("Fitness function must return a number"),
+//     };
+//     score
+
+// })

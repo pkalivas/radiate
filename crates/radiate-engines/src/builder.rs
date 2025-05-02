@@ -3,7 +3,10 @@ use crate::genome::phenotype::Phenotype;
 use crate::genome::population::Population;
 use crate::objectives::Score;
 use crate::objectives::{Objective, Optimize};
-use crate::steps::{AuditStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
+use crate::steps::{
+    AuditStep, Evaluator, FilterStep, FrontStep, RecombineStep, SequenctialEvaluator, SpeciateStep,
+    WorkerPoolEvaluator,
+};
 use crate::thread_pool::ThreadPool;
 use crate::{
     Alter, AlterAction, Audit, Crossover, EncodeReplace, EngineProblem, EngineStep, Front,
@@ -41,6 +44,7 @@ where
     pub audits: Vec<Arc<dyn Audit<C>>>,
     pub population: Option<Population<C>>,
     pub codex: Option<Arc<dyn Codex<C, T>>>,
+    pub evaluator: Arc<dyn Evaluator<C, T>>,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
     pub problem: Option<Arc<dyn Problem<C, T>>>,
     pub encoder: Option<Arc<dyn Fn() -> Genotype<C>>>,
@@ -148,6 +152,11 @@ where
     /// to collect during the evolution process.
     pub fn audits(mut self, audits: Vec<Arc<dyn Audit<C>>>) -> Self {
         self.params.audits.extend(audits);
+        self
+    }
+
+    pub fn evaluator<EV: Evaluator<C, T> + 'static>(mut self, evaluator: EV) -> Self {
+        self.params.evaluator = Arc::new(evaluator);
         self
     }
 
@@ -312,8 +321,12 @@ where
     /// Set the thread pool of the genetic engine. This is the thread pool that will be used
     /// to execute the fitness function in parallel. Some fitness functions may be computationally
     /// expensive and can benefit from parallel execution.
-    pub fn num_threads(mut self, num_threads: usize) -> Self {
+    pub fn num_threads(mut self, num_threads: usize) -> Self
+    where
+        T: Send + Sync,
+    {
         self.params.thread_pool = Arc::new(ThreadPool::new(num_threads));
+        self.params.evaluator = Arc::new(WorkerPoolEvaluator);
         self
     }
 
@@ -356,6 +369,7 @@ where
                 diversity: self.params.diversity.clone(),
                 front: Arc::new(RwLock::new(self.params.front.clone().unwrap())),
                 offspring_fraction: self.params.offspring_fraction,
+                evaluator: self.params.evaluator.clone(),
             };
 
             let mut pipeline = Pipeline::<C>::default();
@@ -384,10 +398,12 @@ where
     }
 
     fn build_eval_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+        let evaluator = config.evaluator.clone();
         let eval_step = EvaluateStep {
-            objective: config.objective(),
-            thread_pool: config.thread_pool(),
-            problem: config.problem(),
+            objective: config.objective.clone(),
+            thread_pool: config.thread_pool.clone(),
+            problem: config.problem.clone(),
+            evaluator: evaluator.clone(),
         };
 
         Some(Box::new(eval_step))
@@ -539,6 +555,7 @@ where
                 alterers: Vec::new(),
                 species_threshold: 1.5,
                 max_species_age: 25,
+                evaluator: Arc::new(SequenctialEvaluator),
                 encoder: None,
                 diversity: None,
                 codex: None,

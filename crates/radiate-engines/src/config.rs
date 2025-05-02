@@ -6,6 +6,7 @@ use crate::Chromosome;
 use crate::genome::phenotype::Phenotype;
 use crate::genome::population::Population;
 use crate::objectives::Objective;
+use crate::steps::Evaluator;
 use std::sync::{Arc, RwLock};
 
 #[derive(Clone)]
@@ -19,6 +20,7 @@ pub struct EngineConfig<C: Chromosome, T> {
     pub(crate) alterers: Vec<Arc<dyn Alter<C>>>,
     pub(crate) species_threshold: f32,
     pub(crate) diversity: Option<Arc<dyn Diversity<C>>>,
+    pub(crate) evaluator: Arc<dyn Evaluator<C, T>>,
     pub(crate) objective: Objective,
     pub(crate) thread_pool: Arc<ThreadPool>,
     pub(crate) max_age: usize,
@@ -99,5 +101,13 @@ impl<C: Chromosome, T> EngineConfig<C, T> {
     {
         let problem = Arc::clone(&self.problem);
         Arc::new(move || problem.encode())
+    }
+
+    pub fn evaluator(&self) -> Arc<dyn Evaluator<C, T>>
+    where
+        C: 'static,
+        T: Send + Sync + 'static,
+    {
+        Arc::clone(&self.evaluator)
     }
 }
