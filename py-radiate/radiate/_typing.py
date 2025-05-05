@@ -11,3 +11,5 @@ class GeneType:
     BOOL = 'bool'
     CHAR = 'char'
     ANY = 'any'
+
+    ALL = [FLOAT, INT, BOOL, CHAR, ANY]

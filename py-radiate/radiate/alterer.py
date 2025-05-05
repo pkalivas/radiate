@@ -2,7 +2,6 @@ from ._typing import GeneType
 from .param import EngineParam
 from typing import Dict, List
 
-from radiate.radiate import PyEngineParam
 
 class Alterer(EngineParam):
     """
@@ -82,6 +81,24 @@ class IntermediateCrossover(Alterer):
         :param alpha: Alpha value for the intermediate crossover.
         """
         super().__init__(name=self.name, args={'rate': rate, 'alpha': alpha}, gene_types=self.gene_types)
+
+
+class UniformCrossover(Alterer):
+    """
+    Uniform Crossover alterer.
+    """
+    gene_types = GeneType.ALL
+    name = 'uniform_crossover'
+    args = {
+        'rate': 0.1,
+    }
+
+    def __init__(self, rate: float=0.1, alpha: float = 0.5):
+        """
+        Initialize the uniform crossover alterer.
+        :param alpha: Alpha value for the uniform crossover.
+        """
+        super().__init__(name=self.name, args={'rate': rate}, gene_types=self.gene_types)
 
 
 

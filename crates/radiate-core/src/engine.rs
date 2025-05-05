@@ -7,28 +7,23 @@ use std::{
     time::Duration,
 };
 
-pub trait Engine<C: Chromosome, T> {
-    type Epoch: Epoch<C>;
+pub trait Engine {
+    type Chromosome: Chromosome;
+    type Epoch: Epoch<Chromosome = Self::Chromosome>;
 
     fn next(&mut self) -> Self::Epoch;
 }
 
-pub trait EngineExt<E: Engine<C, T>, C, T>
-where
-    C: Chromosome,
-    T: Clone,
-{
+pub trait EngineExt<E: Engine> {
     fn run<F>(&mut self, limit: F) -> E::Epoch
     where
         F: Fn(&E::Epoch) -> bool,
         Self: Sized;
 }
 
-impl<E, C, T> EngineExt<E, C, T> for E
+impl<E> EngineExt<E> for E
 where
-    E: Engine<C, T>,
-    C: Chromosome,
-    T: Clone,
+    E: Engine,
 {
     fn run<F>(&mut self, limit: F) -> E::Epoch
     where
@@ -45,19 +40,20 @@ where
     }
 }
 
-pub trait Epoch<C: Chromosome> {
+pub trait Epoch {
+    type Chromosome: Chromosome;
     type Value;
 
     fn value(&self) -> &Self::Value;
-    fn ecosystem(&self) -> &Ecosystem<C>;
+    fn ecosystem(&self) -> &Ecosystem<Self::Chromosome>;
     fn index(&self) -> usize;
     fn metrics(&self) -> &MetricSet;
 
-    fn population(&self) -> &Population<C> {
+    fn population(&self) -> &Population<Self::Chromosome> {
         &self.ecosystem().population()
     }
 
-    fn species(&self) -> Option<&Vec<Species<C>>> {
+    fn species(&self) -> Option<&Vec<Species<Self::Chromosome>>> {
         self.ecosystem().species()
     }
 

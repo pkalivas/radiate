@@ -11,12 +11,13 @@ from radiate.radiate import PyEngine, PyEngineParam
 class Engine:
 
     def __init__(self,
-                 genome=None | Union[Genome, Dict[str, Any]],
+                 genome: None | Genome = None,
                  problem: None | Problem | Callable[[Any], Any] = None,
                  survivor_selector: None | Selector = None,
                  offspring_selector: None | Selector = None,
                  alters: None | Alterer | List[Alterer] = None,
                  objective: str | List[str] = None,
+                 population_size: int = 100,
                    **kwargs):
         """Initialize the engine with genome and problem."""
         self._genome = genome
@@ -55,6 +56,7 @@ class Engine:
         """Run the engine for a number of generations."""
         self._engine.run(num_generations)
 
+
     def __build_float_engine(self) -> PyEngine:
         """Build a float engine."""
         return PyEngine.try_build_float_engine(
@@ -68,4 +70,13 @@ class Engine:
             offspring_selector=self._offspring_selector.selector,
             alters=self._alters
         )
+    
+
+    def __iter__(self):
+        """Iterate over the engine."""
+        return self
+    
+    def __next__(self):
+        """Get the next generation."""
+        return self._engine.next()
 

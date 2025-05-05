@@ -10,7 +10,7 @@ pub(crate) fn map_objectives<C, T, E>(
 where
     C: Chromosome,
     T: Clone + Send + Sync,
-    E: Epoch<C>,
+    E: Epoch<Chromosome = C>,
 {
     let mut directions = Vec::new();
     for obj in objectives.iter() {

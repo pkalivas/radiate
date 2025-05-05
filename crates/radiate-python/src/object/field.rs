@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::{collections::BTreeMap, fmt::Display, sync::Arc};
 
 use super::DataType;
 
@@ -61,5 +61,15 @@ impl Field {
     #[inline]
     pub fn name(&self) -> &String {
         &self.name
+    }
+}
+
+impl Display for Field {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Field {{\n name: {},\n dtype: {:?},\n metadata: {:?}\n }}",
+            self.name, self.dtype, self.metadata,
+        )
     }
 }

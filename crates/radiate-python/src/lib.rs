@@ -6,6 +6,7 @@ mod epoch;
 mod fitness;
 mod gene;
 mod object;
+mod random;
 mod selector;
 
 pub use alter::*;
@@ -15,6 +16,7 @@ pub use fitness::ThreadSafePythonFn;
 pub use gene::*;
 pub use object::*;
 use pyo3::{PyResult, Python};
+pub use random::PyRandomProvider;
 pub use selector::*;
 use std::cell::UnsafeCell;
 

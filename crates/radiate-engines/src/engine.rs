@@ -56,7 +56,7 @@ use radiate_core::{Engine, Epoch, metric_names};
 pub struct GeneticEngine<C, T, E = Generation<C, T>>
 where
     C: Chromosome,
-    E: Epoch<C>,
+    E: Epoch,
 {
     context: Context<C, T>,
     pipeline: Pipeline<C>,
@@ -67,7 +67,7 @@ impl<C, T, E> GeneticEngine<C, T, E>
 where
     C: Chromosome,
     T: Clone + Send,
-    E: Epoch<C>,
+    E: Epoch,
 {
     pub fn new(context: Context<C, T>, pipeline: Pipeline<C>) -> Self {
         GeneticEngine {
@@ -92,12 +92,12 @@ where
     }
 }
 
-impl<C, T, E> Engine<C, T> for GeneticEngine<C, T, E>
+impl<C, T, E> Engine for GeneticEngine<C, T, E>
 where
     C: Chromosome,
-    T: Clone,
-    E: Epoch<C> + for<'a> From<&'a Context<C, T>>,
+    E: Epoch<Chromosome = C> + for<'a> From<&'a Context<C, T>>,
 {
+    type Chromosome = C;
     type Epoch = E;
 
     fn next(&mut self) -> Self::Epoch {

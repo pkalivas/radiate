@@ -23,6 +23,16 @@ use std::cmp::Ordering;
 use std::ops::Range;
 use std::sync::{Arc, RwLock};
 
+pub trait EngineBuilder<C, T, E>
+where
+    C: Chromosome + 'static,
+    T: Clone + Send + 'static,
+    E: Epoch,
+{
+    fn add_parameter(&mut self, adder: impl FnOnce(&mut EngineParams<C, T>));
+    fn build(self) -> GeneticEngine<C, T, E>;
+}
+
 #[derive(Clone)]
 pub struct EngineParams<C, T = Genotype<C>>
 where
@@ -70,7 +80,7 @@ pub struct GeneticEngineBuilder<C, T, E = Generation<C, T>>
 where
     C: Chromosome + 'static,
     T: Clone + 'static,
-    E: Epoch<C>,
+    E: Epoch,
 {
     pub(crate) params: EngineParams<C, T>,
     errors: Vec<RadiateError>,
@@ -81,7 +91,7 @@ impl<C, T, E> GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome,
     T: Clone + Send,
-    E: Epoch<C>,
+    E: Epoch,
 {
     /// Set the population size of the genetic engine. Default is 100.
     pub fn population_size(mut self, population_size: usize) -> Self {
@@ -533,11 +543,30 @@ where
     }
 }
 
+impl<C, T, E> EngineBuilder<C, T, E> for GeneticEngineBuilder<C, T, E>
+where
+    C: Chromosome + 'static,
+    T: Clone + Send + 'static,
+    E: Epoch,
+{
+    fn add_parameter(&mut self, adder: impl FnOnce(&mut EngineParams<C, T>)) {
+        adder(&mut self.params);
+    }
+
+    fn build(self) -> GeneticEngine<C, T, E> {
+        if !self.errors.is_empty() {
+            panic!("Errors found in builder: {:?}", self.errors);
+        }
+
+        self.build()
+    }
+}
+
 impl<C, T, E> Default for GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome + 'static,
     T: Clone + Send + 'static,
-    E: Epoch<C>,
+    E: Epoch,
 {
     fn default() -> Self {
         GeneticEngineBuilder {
@@ -574,7 +603,7 @@ impl<C, T, E> From<EngineParams<C, T>> for GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome + 'static,
     T: Clone + Send + 'static,
-    E: Epoch<C>,
+    E: Epoch,
 {
     fn from(params: EngineParams<C, T>) -> Self {
         GeneticEngineBuilder {

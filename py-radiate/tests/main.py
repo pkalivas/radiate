@@ -9,6 +9,8 @@ sys.path.insert(0, project_root)
 import math
 import radiate as rd
 
+rd.random(123)
+
 A = 10.0
 RANGE = 5.12
 N_GENES = 2
@@ -29,13 +31,20 @@ engine = rd.Engine(
         max_value=RANGE,
     ),
     problem=fitness_fn,
+    population_size=500,
     alters=[
-        rd.IntermediateCrossover(rate=0.5, alpha=0.1),
+        rd.UniformCrossover(rate=0.5),
         rd.ArithmeticMutator(rate=0.01)
     ],
 )
 
 engine.run(num_generations=100)
+
+# for epoch in engine:
+#     print(f"Epoch {epoch}")
+#     if epoch['index'] == 100:
+#         break
+    
 
 
 

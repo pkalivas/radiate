@@ -5,7 +5,7 @@ use std::{collections::VecDeque, time::Duration};
 pub struct EngineIterator<C, T, E>
 where
     C: Chromosome,
-    E: Epoch<C>,
+    E: Epoch,
 {
     pub(crate) engine: GeneticEngine<C, T, E>,
 }
@@ -14,7 +14,7 @@ impl<C, T, E> Iterator for EngineIterator<C, T, E>
 where
     C: Chromosome,
     T: Clone,
-    E: Epoch<C> + for<'a> From<&'a Context<C, T>>,
+    E: Epoch<Chromosome = C> + for<'a> From<&'a Context<C, T>>,
 {
     type Item = E;
 
@@ -27,7 +27,7 @@ impl<C, T, E> EngineIteratorExt<C, T, E> for EngineIterator<C, T, E>
 where
     C: Chromosome,
     T: Clone,
-    E: Epoch<C> + for<'a> From<&'a Context<C, T>>,
+    E: Epoch<Chromosome = C> + for<'a> From<&'a Context<C, T>>,
 {
 }
 
@@ -35,7 +35,7 @@ pub trait EngineIteratorExt<C, T, E>: Iterator<Item = E>
 where
     C: Chromosome,
     T: Clone,
-    E: Epoch<C>,
+    E: Epoch<Chromosome = C>,
 {
     fn until_seconds(self, limit: f64) -> impl Iterator<Item = E>
     where
@@ -99,7 +99,7 @@ struct ConverganceIterator<I, C, E>
 where
     I: Iterator<Item = E>,
     C: Chromosome,
-    E: Epoch<C>,
+    E: Epoch<Chromosome = C>,
 {
     iter: I,
     history: VecDeque<f32>,
@@ -113,7 +113,7 @@ impl<I, C, E> Iterator for ConverganceIterator<I, C, E>
 where
     I: Iterator<Item = E>,
     C: Chromosome,
-    E: Scored + Epoch<C>,
+    E: Scored + Epoch<Chromosome = C>,
 {
     type Item = E;
 

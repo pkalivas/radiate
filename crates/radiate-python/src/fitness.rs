@@ -26,7 +26,12 @@ impl ThreadSafePythonFn {
             .call1(outer, (Wrap(input),))
             .expect("Python call failed");
 
-        let av = py_object_to_any_value(&any_value.bind_borrowed(outer), true).unwrap();
+        let av = any_value
+            .extract::<Wrap<AnyValue<'_>>>(outer)
+            .expect("Python function must return a valid value")
+            .0;
+
+        // let av = py_object_to_any_value(&any_value.bind_borrowed(outer), true).unwrap();
 
         match av {
             AnyValue::Float32(score) => Score::from(score),

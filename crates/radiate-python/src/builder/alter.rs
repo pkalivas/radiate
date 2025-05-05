@@ -1,7 +1,7 @@
 use crate::PyEngineParam;
 use radiate::{
     Alter, ArithmeticMutator, BlendCrossover, Chromosome, Crossover, FloatGene,
-    IntermediateCrossover, Mutate, alters,
+    IntermediateCrossover, Mutate, UniformCrossover, alters,
 };
 
 pub fn get_alters_with_arithmetic_gene<C: Chromosome<Gene = FloatGene>>(
@@ -45,6 +45,13 @@ where
                     .map(|s| s.parse::<f32>().unwrap())
                     .unwrap_or(0.5);
                 alters!(IntermediateCrossover::new(rate, alpha))
+            }
+            "uniform_crossover" => {
+                let rate = args
+                    .get("rate".into())
+                    .map(|s| s.parse::<f32>().unwrap())
+                    .unwrap_or(0.5);
+                alters!(UniformCrossover::new(rate))
             }
             _ => panic!("Unknown alter type"),
         });
