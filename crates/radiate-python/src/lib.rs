@@ -1,11 +1,21 @@
+mod alter;
+mod builder;
 mod conversion;
 mod engine;
 mod epoch;
+mod fitness;
+mod gene;
 mod object;
+mod selector;
 
+pub use alter::*;
+pub use builder::*;
 pub use engine::*;
+pub use fitness::ThreadSafePythonFn;
+pub use gene::*;
 pub use object::*;
 use pyo3::{PyResult, Python};
+pub use selector::*;
 use std::cell::UnsafeCell;
 
 // Adapted from PYO3 with the only change that

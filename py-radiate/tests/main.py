@@ -5,28 +5,44 @@ import sys
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, project_root)
 
-print(project_root)
 
-
+import math
 import radiate as rd
 
-codec = rd.Genome(
-    gene_type='float',
-    num_genes=5,
-    num_chromosomes=1,
-    min_value=0.0,
-    max_value=1.0,
-    min_bound=0.0,
-    max_bound=1.0,
+A = 10.0
+RANGE = 5.12
+N_GENES = 2
+
+def fitness_fn(x):
+    """Fitness function to maximize the sum of the input list."""
+    x = x[0]
+    value = A * N_GENES
+    for i in range(N_GENES):
+        value += x[i]**2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
+    return value
+
+
+engine = rd.Engine(
+    genome=rd.FloatGenome(
+        num_genes=N_GENES,
+        min_value=-RANGE,
+        max_value=RANGE,
+    ),
+    problem=fitness_fn,
+    alters=[
+        rd.IntermediateCrossover(rate=0.5, alpha=0.1),
+        rd.ArithmeticMutator(rate=0.01)
+    ],
 )
-# print(codec.encode())
-# print(codec.decode([0.1, 0.2, 0.3, 0.4, 0.5]))
 
-encoder = lambda: rd.AnyChromosome(["a", "b", "c", "d", "e", 1, 2, 3, 4, 5])
+engine.run(num_generations=100)
 
 
-import inspect
-import ast
+
+
+
+# import inspect
+# import ast
 
 # def test_fn(*args):
 #     return args
@@ -79,75 +95,3 @@ import ast
 
 # for name, param in bound.parameters.items():
 #     print(f"{name=}, {param.kind=}, {param.default=}")
-
-def fitness_fn(x):
-    """Fitness function to maximize the sum of the input list."""
-    return sum(x[0])
-
-
-engine = rd.Engine(
-    genome=rd.Genome(
-        gene_type='float',
-        num_genes=100,
-        num_chromosomes=1,
-        min_value=0.0,
-        max_value=1.0,
-        min_bound=0.0,
-        max_bound=1.0,
-    ),
-    problem=rd.Problem(
-        fitness_fn=fitness_fn
-    ),
-)
-
-engine.run(num_generations=100)
-
-# print(engine.encode())
-
-# any_genes = rd.AnyGene(allele=12333)
-
-# print(any_genes.allele())
-
-
-# float = Gene(
-    
-#     min_value=0.0,
-#     max_value=1.0,
-# )
-
-# int = Gene(
-    
-#     min_value=0,
-#     max_value=10,
-# )
-# bool = Gene(
-#     type='bit',
-# )
-# char = Gene(
-    
-#     allele='a',
-# )
-# any = Gene(
-    
-#     allele=12333,
-# )
-
-# print(repr(float))
-# print(int)
-# print(bool)
-# print(char)
-# print(any)
-
-
-# chromosome = Chromosome(
-#     num_genes=5,
-#     type='float',
-#     min_value=0.0,
-#     max_value=1.0,
-# )
-
-# print(chromosome)
-
-# for gene in chromosome:
-#     print(gene)
-    

@@ -1,52 +1,76 @@
+from radiate.radiate import PySelector
 
 class Selector:
 
-    def __init__(self, type: str, **kwargs):
-        self._type = type
-        self._kwargs = kwargs
-
-    def __repr__(self):
-        return f"Selector({self._kwargs})"
-    
-    def __getattr__(self, name):
-        """Get the value of an attribute."""
-        if name in self._kwargs:
-            return self._kwargs[name]
-        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+    def __init__(self, selector: PySelector):
+        self.selector = selector   
     
     @staticmethod
     def tournament(k=3):
         """Create a tournament selector."""
-        return Selector(
+        selector = PySelector(
             'tournament',
-            k=k
+            args={'k': str(k)}
+        )
+        return Selector(
+            selector
         )
     
     @staticmethod
     def roulette():
         """Create a roulette selector."""
-        return Selector(
+        selector = PySelector(
             'roulette'
+        )
+        return Selector(
+            selector
         )
     
     @staticmethod
     def rank():
         """Create a rank selector."""
-        return Selector(
+        selector = PySelector(
             'rank'
+        )
+        return Selector(
+            selector
         )
     
     @staticmethod
     def elitism():
         """Create an elitism selector."""
-        return Selector(
+        selector = PySelector(
             'elitism'
         )
-    
-    @staticmethod
-    def boltzmann(temp=1.0):
-        """Create a Boltzmann selector."""
         return Selector(
-            'boltzmann',
-            temp=temp
+            selector
         )
+    
+    # @staticmethod
+    # def roulette():
+    #     """Create a roulette selector."""
+    #     return Selector(
+    #         'roulette'
+    #     )
+    
+    # @staticmethod
+    # def rank():
+    #     """Create a rank selector."""
+    #     return Selector(
+    #         'rank'
+    #     )
+    
+    # @staticmethod
+    # def elitism():
+    #     """Create an elitism selector."""
+    #     return Selector(
+    #         'elitism'
+    #     )
+    
+    # @staticmethod
+    # def boltzmann(temp=1.0):
+    #     """Create a Boltzmann selector."""
+    #     return Selector(
+    #         'boltzmann',
+    #         temp=temp
+    #     )

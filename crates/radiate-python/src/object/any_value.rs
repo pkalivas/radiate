@@ -177,5 +177,5 @@ impl_from!(
     f64 => Float64,
     String => StringOwned,
     &'a str => String,
-    &'a [u8] => Binary,
+
 );
