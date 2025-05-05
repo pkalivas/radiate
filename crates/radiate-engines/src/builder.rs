@@ -4,7 +4,7 @@ use crate::genome::population::Population;
 use crate::objectives::Score;
 use crate::objectives::{Objective, Optimize};
 use crate::steps::{
-    AuditStep, Evaluator, FilterStep, FrontStep, RecombineStep, SequenctialEvaluator, SpeciateStep,
+    AuditStep, Evaluator, FilterStep, FrontStep, RecombineStep, SequentialEvaluator, SpeciateStep,
     WorkerPoolEvaluator,
 };
 use crate::thread_pool::ThreadPool;
@@ -584,7 +584,7 @@ where
                 alterers: Vec::new(),
                 species_threshold: 1.5,
                 max_species_age: 25,
-                evaluator: Arc::new(SequenctialEvaluator),
+                evaluator: Arc::new(SequentialEvaluator),
                 encoder: None,
                 diversity: None,
                 codex: None,

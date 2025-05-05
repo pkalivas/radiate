@@ -13,9 +13,9 @@ pub trait Evaluator<C: Chromosome, T>: Send + Sync {
     ) -> usize;
 }
 
-pub struct SequenctialEvaluator;
+pub struct SequentialEvaluator;
 
-impl<C: Chromosome, T> Evaluator<C, T> for SequenctialEvaluator
+impl<C: Chromosome, T> Evaluator<C, T> for SequentialEvaluator
 where
     C: Chromosome + 'static,
 {

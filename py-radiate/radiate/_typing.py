@@ -1,6 +1,4 @@
-from typing import TypeAlias, Any, Union
 
-# GeneType: TypeAlias = Union[type[float], type[int], type[bool], type[str], type[Any]]
 
 class GeneType:
     """

@@ -7,7 +7,7 @@ use pyo3::{
 };
 use radiate::{
     Engine, EngineExt, Epoch, FloatChromosome, FloatCodex, GeneticEngine, log_ctx,
-    steps::SequenctialEvaluator,
+    steps::SequentialEvaluator,
 };
 
 pub trait PyEngineTrait {
@@ -88,7 +88,7 @@ impl PyEngine {
         let mut builder = GeneticEngine::builder()
             .codex(codex)
             .minimizing()
-            .evaluator(SequenctialEvaluator)
+            .evaluator(SequentialEvaluator)
             .fitness_fn(move |decoded: Vec<Vec<f32>>| {
                 Python::with_gil(|py| {
                     let wrapped_decoded = AnyValue::from(decoded);
