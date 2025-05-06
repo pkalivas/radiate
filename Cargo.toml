@@ -9,7 +9,6 @@ members = [
     "crates/radiate-error",
     "crates/radiate-python",
 
-    "py-radiate",
     
     "examples/min-sum",
     "examples/hello-world",
@@ -21,12 +20,11 @@ members = [
     "examples/rastrigin",
     "examples/rosenbrock",
 
-    "examples/trees/regression-tree",
-
     "examples/graphs/iris-graph",
     "examples/graphs/xor-graph",
     "examples/graphs/regression-graph",
     "examples/graphs/simple-memory-graph",
 
+    "examples/trees/regression-tree",
     "examples/trees/iris-tree",
 ]

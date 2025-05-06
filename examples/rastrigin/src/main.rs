@@ -29,8 +29,7 @@ fn main() {
 
     let result = engine.run(|ctx| {
         println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_f32());
-        ctx.index() > 100
-        // ctx.score().as_f32() <= MIN_SCORE || ctx.seconds() > MAX_SECONDS
+        ctx.score().as_f32() <= MIN_SCORE || ctx.seconds() > MAX_SECONDS
     });
 
     println!("{:?}", result);

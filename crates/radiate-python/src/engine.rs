@@ -115,7 +115,7 @@ impl PyEngine {
             builder = builder.alter(alters);
         }
 
-        if let Some(objectives) = objective {
+        if let Some(_) = objective {
             builder = builder.minimizing();
         }
 

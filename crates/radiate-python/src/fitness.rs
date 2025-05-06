@@ -3,10 +3,7 @@ use std::sync::Arc;
 use pyo3::{Py, PyAny, PyObject, Python};
 use radiate::Score;
 
-use crate::{
-    AnyValue,
-    conversion::{Wrap, py_object_to_any_value},
-};
+use crate::{AnyValue, conversion::Wrap};
 
 #[derive(Clone, Debug)]
 pub struct ThreadSafePythonFn {
@@ -30,8 +27,6 @@ impl ThreadSafePythonFn {
             .extract::<Wrap<AnyValue<'_>>>(outer)
             .expect("Python function must return a valid value")
             .0;
-
-        // let av = py_object_to_any_value(&any_value.bind_borrowed(outer), true).unwrap();
 
         match av {
             AnyValue::Float32(score) => Score::from(score),

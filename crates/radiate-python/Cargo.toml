@@ -6,5 +6,5 @@ authors = ["pkalivas <peterkalivas@gmail.com>"]
 
 [dependencies]
 radiate = { path = "../radiate", features = ["gp"] }
-pyo3 = "0.24.1"
+pyo3 = {version = "0.24.1", features = ["multiple-pymethods"] }
 

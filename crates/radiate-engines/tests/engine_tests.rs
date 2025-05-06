@@ -13,7 +13,12 @@ mod engine_tests {
             .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
             .build();
 
-        let result = engine.iter().until_score_equal(0).last().unwrap();
+        let result = engine
+            .iter()
+            .skip_while(|generation| generation.score().as_i32() > 0)
+            .take(1)
+            .last()
+            .unwrap();
 
         let best = result.value();
         assert_eq!(best.iter().sum::<i32>(), 0);
@@ -23,12 +28,12 @@ mod engine_tests {
     fn engine_can_maximize() {
         let codex = IntCodex::vector(5, 0..101);
 
-        let engine = GeneticEngine::builder()
+        let mut engine = GeneticEngine::builder()
             .codex(codex)
             .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
             .build();
 
-        let result = engine.iter().until_score_equal(500).last().unwrap();
+        let result = engine.run(|ctx| ctx.score().as_i32() == 500);
 
         assert_eq!(result.value().iter().sum::<i32>(), 500);
     }
@@ -38,7 +43,7 @@ mod engine_tests {
         let target = [1, 2, 3, 4, 5];
         let codex = IntCodex::vector(target.len(), 0..10);
 
-        let engine = GeneticEngine::builder()
+        let mut engine = GeneticEngine::builder()
             .minimizing()
             .codex(codex)
             .fitness_fn(move |geno: Vec<i32>| {
@@ -50,7 +55,7 @@ mod engine_tests {
             })
             .build();
 
-        let result = engine.iter().until_score_equal(0).last().unwrap();
+        let result = engine.run(|ctx| ctx.score().as_i32() == 0);
 
         assert_eq!(result.value(), &vec![1, 2, 3, 4, 5]);
     }
