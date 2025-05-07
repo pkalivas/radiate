@@ -8,36 +8,44 @@ sys.path.insert(0, project_root)
 import math
 import radiate as rd
 
-rd.random(42)
+rd.random(100)
 
 A = 10.0
 RANGE = 5.12
 N_GENES = 2
 
 def fitness_fn(x):
-    """Fitness function to maximize the sum of the input list."""
+    '''The fitness function for the Rastrigin function.'''
     x = x[0]
     value = A * N_GENES
     for i in range(N_GENES):
         value += x[i]**2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
     return value
 
+codex = rd.FloatCodex([1, 1, 1], (-5.12, 5.12))
 
-engine = rd.Engine(
-    genome=rd.FloatGenome(
-        num_genes=N_GENES,
-        min_value=-RANGE,
-        max_value=RANGE,
-    ),
-    problem=fitness_fn,
-    population_size=500,
-    alters=[
-        rd.UniformCrossover(rate=0.5),
-        rd.ArithmeticMutator(rate=0.01)
-    ],
-)
+engine_two = rd.Engine(codex, fitness_fn)
 
-engine.run(num_generations=100)
+print(engine_two)
+
+# print(engine_two)
+
+
+# engine = rd.Engine(
+#     genome=rd.FloatGenome(
+#         num_genes=N_GENES,
+#         min_value=-RANGE,
+#         max_value=RANGE,
+#     ),
+#     problem=fitness_fn,
+#     population_size=500,
+#     alters=[
+#         rd.UniformCrossover(rate=0.5),
+#         rd.ArithmeticMutator(rate=0.01)
+#     ],
+# )
+
+# engine.run(num_generations=100)
 
 # for epoch in engine:
 #     print(f"Epoch {epoch}")

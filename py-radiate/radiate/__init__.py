@@ -2,25 +2,43 @@
 from .engine import Engine
 from .problem import Problem
 from .genome import Genome, FloatGenome
-from .selector import Selector
+from .codex import FloatCodex
 from .random import set_seed as random
+
+from .selector import (
+    TournamentSelector, 
+    RouletteSelector, 
+    RankSelector, 
+    ElitismSelector
+)
+
 from .alterer import (
     BlendCrossover, 
     IntermediateCrossover, 
     ArithmeticMutator,
-    UniformCrossover
+    UniformCrossover,
+    UniformMutator
 )
 
 __all__ = [
+
+    'FloatCodex',
+
     'Engine',
     'Genome',
     'FloatGenome',
     'Problem',
-    'Selector',
+
+    'TournamentSelector',
+    'RouletteSelector',
+    'RankSelector',
+    'ElitismSelector',    
+
     'BlendCrossover',
     'IntermediateCrossover',
-    'ArithmeticMutator'
     'UniformCrossover',
+    'ArithmeticMutator'
+    'UniformMutator',
 
     'random',
 ]

@@ -1,20 +1,22 @@
-mod alter;
 mod builder;
+mod codex;
 mod conversion;
 mod engine;
 mod epoch;
 mod fitness;
 mod gene;
 mod object;
+mod params;
 mod random;
 mod selector;
 
-pub use alter::*;
 pub use builder::*;
+pub use codex::*;
 pub use engine::*;
 pub use fitness::ThreadSafePythonFn;
 pub use gene::*;
 pub use object::*;
+pub use params::*;
 use pyo3::{PyResult, Python};
 pub use random::PyRandomProvider;
 pub use selector::*;

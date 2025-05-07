@@ -9,8 +9,6 @@ class Alterer(EngineParam):
     """
     gene_types: List[GeneType] = []
     name: str = None
-    args: Dict[str, any] = None
-
 
     def __init__(self, name: str, args: Dict[str, any] = None, gene_types: List[GeneType] = None):
         """
@@ -19,7 +17,7 @@ class Alterer(EngineParam):
         :param args: Arguments for the alterer.
         :param gene_types: List of gene types for the alterer.
         """
-        super().__init__(name=name, args={k: str(v) for k, v in (args or self.args).items()})
+        super().__init__(name=name, args={k: str(v) for k, v in args.items()})
         self.gene_types = gene_types or self.gene_types
         
 
@@ -50,15 +48,12 @@ class BlendCrossover(Alterer):
     """
     gene_types = [GeneType.FLOAT, GeneType.INT]
     name = 'blend_crossover'
-    args = {
-        'rate': 0.1,
-        'alpha': 0.5
-    }
 
     def __init__(self, rate: float = 0.1, alpha: float = 0.5):
         """
         Initialize the blend crossover alterer.
         :param alpha: Alpha value for the blend crossover.
+        :param rate: Rate of crossover.
         """
         super().__init__(name=self.name, args={'rate': rate, 'alpha': alpha}, gene_types=self.gene_types)
 
@@ -68,12 +63,8 @@ class IntermediateCrossover(Alterer):
     """
     Intermediate Crossover alterer.
     """
-    gene_types = ['float', 'int']
+    gene_types = [GeneType.FLOAT, GeneType.INT]
     name = 'intermediate_crossover'
-    args = {
-        'rate': 0.1,
-        'alpha': 0.5
-    }
 
     def __init__(self, rate: float=0.1, alpha: float = 0.5):
         """
@@ -89,28 +80,36 @@ class UniformCrossover(Alterer):
     """
     gene_types = GeneType.ALL
     name = 'uniform_crossover'
-    args = {
-        'rate': 0.1,
-    }
 
     def __init__(self, rate: float=0.1, alpha: float = 0.5):
         """
         Initialize the uniform crossover alterer.
         :param alpha: Alpha value for the uniform crossover.
         """
+        super().__init__(name=self.name, args={'rate': rate, 'alpha': alpha}, gene_types=self.gene_types)
+
+
+class UniformMutator(Alterer):
+    """
+    Uniform Mutator alterer.
+    """
+    gene_types = GeneType.ALL
+    name = 'uniform_mutator'
+
+    def __init__(self, rate: float=0.1):
+        """
+        Initialize the uniform mutator alterer.
+        :param rate: Rate of mutation.
+        """
         super().__init__(name=self.name, args={'rate': rate}, gene_types=self.gene_types)
-
-
+        
 
 class ArithmeticMutator(Alterer):
     """
     Arithmetic Mutator alterer.
     """
-    gene_types = ['float', 'int']
+    gene_types = [GeneType.FLOAT, GeneType.INT]
     name = 'arithmetic_mutator'
-    args = {
-        'rate': 0.1,
-    }
 
     def __init__(self, rate: float = 0.1):
         """
