@@ -22,37 +22,15 @@ def fitness_fn(x):
         value += x[i]**2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
     return value
 
-codex = rd.FloatCodex([1, 1, 1], (-5.12, 5.12))
+codex = rd.FloatCodex([2], (-5.12, 5.12))
+engine = rd.Engine(codex, fitness_fn)
 
-engine_two = rd.Engine(codex, fitness_fn)
+engine.alters([
+    rd.UniformCrossover(0.5), 
+    rd.ArithmeticMutator(0.01)
+])
 
-print(engine_two)
-
-# print(engine_two)
-
-
-# engine = rd.Engine(
-#     genome=rd.FloatGenome(
-#         num_genes=N_GENES,
-#         min_value=-RANGE,
-#         max_value=RANGE,
-#     ),
-#     problem=fitness_fn,
-#     population_size=500,
-#     alters=[
-#         rd.UniformCrossover(rate=0.5),
-#         rd.ArithmeticMutator(rate=0.01)
-#     ],
-# )
-
-# engine.run(num_generations=100)
-
-# for epoch in engine:
-#     print(f"Epoch {epoch}")
-#     if epoch['index'] == 100:
-#         break
-    
-
+engine.run(num_generations=100)
 
 
 

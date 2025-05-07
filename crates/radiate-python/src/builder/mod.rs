@@ -1,6 +1,8 @@
 mod alter;
+mod selector;
 
 pub use alter::*;
+pub(crate) use selector::set_selector;
 // use radiate::{Chromosome, Epoch, Generation, GeneticEngineBuilder, Optimize};
 
 // pub(crate) fn map_objectives<C, T, E>(

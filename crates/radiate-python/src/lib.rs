@@ -2,13 +2,11 @@ mod builder;
 mod codex;
 mod conversion;
 mod engine;
-mod epoch;
 mod fitness;
 mod gene;
 mod object;
 mod params;
 mod random;
-mod selector;
 
 pub use builder::*;
 pub use codex::*;
@@ -19,7 +17,6 @@ pub use object::*;
 pub use params::*;
 use pyo3::{PyResult, Python};
 pub use random::PyRandomProvider;
-pub use selector::*;
 use std::cell::UnsafeCell;
 
 // Adapted from PYO3 with the only change that

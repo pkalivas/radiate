@@ -62,4 +62,20 @@ impl PyEngineBuilder {
             population_size,
         }
     }
+
+    pub fn set_population_size(&mut self, size: usize) {
+        self.population_size = size;
+    }
+
+    pub fn set_survivor_selector(&mut self, selector: PyEngineParam) {
+        self.survivor_selector = selector;
+    }
+
+    pub fn set_offspring_selector(&mut self, selector: PyEngineParam) {
+        self.offspring_selector = selector;
+    }
+
+    pub fn set_alters(&mut self, alters: Vec<PyEngineParam>) {
+        self.alters = alters;
+    }
 }

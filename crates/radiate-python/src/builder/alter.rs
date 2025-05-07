@@ -1,14 +1,16 @@
 use crate::PyEngineParam;
 use radiate::{
     Alter, ArithmeticMutator, BlendCrossover, Chromosome, Crossover, FloatGene,
-    IntermediateCrossover, Mutate, UniformCrossover, alters,
+    GeneticEngineBuilder, IntermediateCrossover, Mutate, UniformCrossover, UniformMutator, alters,
 };
 
-pub fn get_alters_with_arithmetic_gene<C: Chromosome<Gene = FloatGene>>(
-    alters: Vec<PyEngineParam>,
-) -> Vec<Box<dyn Alter<C>>>
+pub fn get_alters_with_arithmetic_gene<C: Chromosome<Gene = FloatGene>, T>(
+    builder: GeneticEngineBuilder<C, T>,
+    alters: &Vec<PyEngineParam>,
+) -> GeneticEngineBuilder<C, T>
 where
     C: 'static,
+    T: Clone + Send + Sync,
 {
     let mut alters_vec = Vec::new();
 
@@ -53,9 +55,17 @@ where
                     .unwrap_or(0.5);
                 alters!(UniformCrossover::new(rate))
             }
+            "uniform_mutator" => {
+                let rate = args
+                    .get("rate".into())
+                    .map(|s| s.parse::<f32>().unwrap())
+                    .unwrap_or(0.5);
+                alters!(UniformMutator::new(rate))
+            }
             _ => panic!("Unknown alter type"),
         });
     }
 
-    alters_vec.into_iter().flatten().collect::<Vec<_>>()
+    let alters = alters_vec.into_iter().flatten().collect::<Vec<_>>();
+    builder.alter(alters)
 }

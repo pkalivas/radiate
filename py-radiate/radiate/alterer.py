@@ -81,12 +81,12 @@ class UniformCrossover(Alterer):
     gene_types = GeneType.ALL
     name = 'uniform_crossover'
 
-    def __init__(self, rate: float=0.1, alpha: float = 0.5):
+    def __init__(self, rate: float=0.5):
         """
         Initialize the uniform crossover alterer.
         :param alpha: Alpha value for the uniform crossover.
         """
-        super().__init__(name=self.name, args={'rate': rate, 'alpha': alpha}, gene_types=self.gene_types)
+        super().__init__(name=self.name, args={'rate': rate}, gene_types=self.gene_types)
 
 
 class UniformMutator(Alterer):
@@ -102,7 +102,7 @@ class UniformMutator(Alterer):
         :param rate: Rate of mutation.
         """
         super().__init__(name=self.name, args={'rate': rate}, gene_types=self.gene_types)
-        
+
 
 class ArithmeticMutator(Alterer):
     """

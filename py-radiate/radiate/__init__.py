@@ -1,7 +1,5 @@
 
 from .engine import Engine
-from .problem import Problem
-from .genome import Genome, FloatGenome
 from .codex import FloatCodex
 from .random import set_seed as random
 
@@ -21,13 +19,9 @@ from .alterer import (
 )
 
 __all__ = [
-
     'FloatCodex',
 
     'Engine',
-    'Genome',
-    'FloatGenome',
-    'Problem',
 
     'TournamentSelector',
     'RouletteSelector',
