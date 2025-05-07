@@ -54,6 +54,17 @@ class ElitismSelector(Selector):
             name='elitism'
         )
 
+class BoltzmannSelector(Selector):
+    def __init__(self, temp: float = 1.0):
+        """
+        Initialize the Boltzmann selector with temperature.
+        :param temp: Temperature for the Boltzmann selector.
+        """
+        super().__init__(
+            name='boltzmann',
+            args={'temp': str(temp)}
+        )
+
 
 
 
