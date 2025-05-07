@@ -13,7 +13,8 @@ class Engine:
                  fitness_func: Callable[[Any], Any],
                  offspring_selector: Selector = None,
                  survivor_selector: Selector = None,
-                 alters: None | Alterer | List[Alterer] = None,):
+                 alters: None | Alterer | List[Alterer] = None,
+                 population_size: int = 100):
         self.codex = codex
         self.fitness_func = fitness_func
 
@@ -31,7 +32,7 @@ class Engine:
             survivor_selector=survivor_selector,
             offspring_selector=offspring_selector,
             alters=alters,
-            population_size=100,
+            population_size=population_size,
         )
 
     def run(self, num_generations=100):
