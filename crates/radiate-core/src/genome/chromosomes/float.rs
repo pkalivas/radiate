@@ -302,6 +302,12 @@ impl From<(usize, Range<f32>, Range<f32>)> for FloatChromosome {
     }
 }
 
+impl Debug for FloatChromosome {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.genes)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

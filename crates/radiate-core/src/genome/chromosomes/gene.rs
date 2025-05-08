@@ -56,7 +56,7 @@ pub trait Valid {
 /// }
 /// ```
 ///
-pub trait Gene: Clone + PartialEq + Valid {
+pub trait Gene: Clone + Valid {
     type Allele;
 
     /// Get the `allele` of the [Gene]. This is the value that the [Gene] represents or "expresses".

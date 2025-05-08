@@ -21,7 +21,8 @@ impl<C: Chromosome, T> Generation<C, T> {
     }
 }
 
-impl<C: Chromosome, T> Epoch<C> for Generation<C, T> {
+impl<C: Chromosome, T> Epoch for Generation<C, T> {
+    type Chromosome = C;
     type Value = T;
 
     fn ecosystem(&self) -> &Ecosystem<C> {
@@ -92,10 +93,11 @@ where
     metrics: MetricSet,
 }
 
-impl<C: Chromosome> Epoch<C> for MultiObjectiveGeneration<C>
+impl<C: Chromosome> Epoch for MultiObjectiveGeneration<C>
 where
     C: Chromosome,
 {
+    type Chromosome = C;
     type Value = Front<Phenotype<C>>;
 
     fn ecosystem(&self) -> &Ecosystem<C> {

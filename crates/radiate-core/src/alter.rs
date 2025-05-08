@@ -20,7 +20,7 @@ use crate::{Chromosome, Gene, Genotype, Metric, Population, indexes, random_prov
 /// In `radiate` the `alter` trait performs similar operations to a traditional genetic algorithm,
 /// but it is designed to be more flexible and extensible. Because an `Alter` can be of type `Mutate`
 /// or `Crossover`, it is abstracted out of those core traits into this trait.
-pub trait Alter<C: Chromosome> {
+pub trait Alter<C: Chromosome>: Send + Sync {
     fn alter(&self, population: &mut Population<C>, generation: usize) -> Vec<Metric>;
 }
 
@@ -118,7 +118,7 @@ impl<C: Chromosome> Alter<C> for AlterAction<C> {
 /// or a subset of the population. If a struct implements the `Crossover` trait but does not override
 /// any of the methods, the default implementation will perform a simple crossover operation on the
 /// entire population. This is the case with the `UniformCrossover` struct.
-pub trait Crossover<C: Chromosome> {
+pub trait Crossover<C: Chromosome>: Send + Sync {
     fn name(&self) -> &'static str {
         std::any::type_name::<Self>().split("::").last().unwrap()
     }
@@ -211,7 +211,7 @@ pub trait Crossover<C: Chromosome> {
     }
 }
 
-pub trait Mutate<C: Chromosome> {
+pub trait Mutate<C: Chromosome>: Send + Sync {
     fn name(&self) -> &'static str {
         std::any::type_name::<Self>().split("::").last().unwrap()
     }

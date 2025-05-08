@@ -85,7 +85,7 @@ impl From<bool> for BitGene {
 /// A [`BitChromosome`] is a collection of [`BitGene`] that represent the genetic
 /// material of an individual in the population.
 ///
-#[derive(Clone, PartialEq, Default)]
+#[derive(Clone, PartialEq, Default, Debug)]
 pub struct BitChromosome {
     pub genes: Vec<BitGene>,
 }

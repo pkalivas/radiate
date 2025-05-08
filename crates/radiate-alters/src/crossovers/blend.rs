@@ -21,8 +21,10 @@ impl BlendCrossover {
     }
 }
 
-impl<C: Chromosome<Gene = G>, G: ArithmeticGene> Crossover<C> for BlendCrossover
+impl<C, G> Crossover<C> for BlendCrossover
 where
+    C: Chromosome<Gene = G>,
+    G: ArithmeticGene,
     G::Allele: Into<f32> + Clone,
 {
     fn rate(&self) -> f32 {

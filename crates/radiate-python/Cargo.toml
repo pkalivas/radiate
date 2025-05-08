@@ -1,0 +1,10 @@
+[package]
+name = "radiate-python"
+version = "0.0.1"
+edition = "2024"
+authors = ["pkalivas <peterkalivas@gmail.com>"]
+
+[dependencies]
+radiate = { path = "../radiate", features = ["gp"] }
+pyo3 = {version = "0.24.1", features = ["multiple-pymethods"] }
+
