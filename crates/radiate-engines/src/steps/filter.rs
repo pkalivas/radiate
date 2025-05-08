@@ -1,16 +1,15 @@
-use std::sync::Arc;
-
 use radiate_core::{
     Chromosome, Ecosystem, EngineStep, Genotype, MetricSet, Phenotype, ReplacementStrategy, Valid,
     metric_names,
 };
+use std::sync::Arc;
 
 pub struct FilterStep<C>
 where
     C: Chromosome,
 {
     pub(crate) replacer: Arc<dyn ReplacementStrategy<C>>,
-    pub(crate) encoder: Arc<dyn Fn() -> Genotype<C>>,
+    pub(crate) encoder: Arc<dyn Fn() -> Genotype<C> + Send + Sync>,
     pub(crate) max_age: usize,
     pub(crate) max_species_age: usize,
 }

@@ -286,6 +286,9 @@ impl<C: Chromosome> Scored for Member<C> {
     }
 }
 
+unsafe impl<C: Chromosome> Send for Member<C> {}
+unsafe impl<C: Chromosome> Sync for Member<C> {}
+
 #[cfg(test)]
 mod test {
     use super::*;

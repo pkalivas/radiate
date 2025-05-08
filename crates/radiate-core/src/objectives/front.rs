@@ -14,7 +14,6 @@ use std::{
 /// This is useful for multi-objective optimization problems where the goal is to find
 /// the best solutions that are not dominated by any other solution.
 /// This results in what is called the Pareto front.
-
 #[derive(Clone)]
 pub struct Front<T>
 where

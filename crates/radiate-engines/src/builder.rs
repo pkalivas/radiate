@@ -3,7 +3,10 @@ use crate::genome::phenotype::Phenotype;
 use crate::genome::population::Population;
 use crate::objectives::Score;
 use crate::objectives::{Objective, Optimize};
-use crate::steps::{AuditStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
+use crate::steps::{
+    AuditStep, Evaluator, FilterStep, FrontStep, RecombineStep, SequentialEvaluator, SpeciateStep,
+    WorkerPoolEvaluator,
+};
 use crate::thread_pool::ThreadPool;
 use crate::{
     Alter, AlterAction, Audit, Crossover, EncodeReplace, EngineProblem, EngineStep, Front,
@@ -19,6 +22,16 @@ use radiate_error::{RadiateError, radiate_err};
 use std::cmp::Ordering;
 use std::ops::Range;
 use std::sync::{Arc, RwLock};
+
+pub trait EngineBuilder<C, T, E>
+where
+    C: Chromosome + 'static,
+    T: Clone + Send + 'static,
+    E: Epoch,
+{
+    fn add_parameter(&mut self, adder: impl FnOnce(&mut EngineParams<C, T>));
+    fn build(self) -> GeneticEngine<C, T, E>;
+}
 
 #[derive(Clone)]
 pub struct EngineParams<C, T = Genotype<C>>
@@ -41,6 +54,7 @@ where
     pub audits: Vec<Arc<dyn Audit<C>>>,
     pub population: Option<Population<C>>,
     pub codex: Option<Arc<dyn Codex<C, T>>>,
+    pub evaluator: Arc<dyn Evaluator<C, T>>,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
     pub problem: Option<Arc<dyn Problem<C, T>>>,
     pub encoder: Option<Arc<dyn Fn() -> Genotype<C>>>,
@@ -66,7 +80,7 @@ pub struct GeneticEngineBuilder<C, T, E = Generation<C, T>>
 where
     C: Chromosome + 'static,
     T: Clone + 'static,
-    E: Epoch<C>,
+    E: Epoch,
 {
     pub(crate) params: EngineParams<C, T>,
     errors: Vec<RadiateError>,
@@ -77,7 +91,7 @@ impl<C, T, E> GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome,
     T: Clone + Send,
-    E: Epoch<C>,
+    E: Epoch,
 {
     /// Set the population size of the genetic engine. Default is 100.
     pub fn population_size(mut self, population_size: usize) -> Self {
@@ -148,6 +162,11 @@ where
     /// to collect during the evolution process.
     pub fn audits(mut self, audits: Vec<Arc<dyn Audit<C>>>) -> Self {
         self.params.audits.extend(audits);
+        self
+    }
+
+    pub fn evaluator<EV: Evaluator<C, T> + 'static>(mut self, evaluator: EV) -> Self {
+        self.params.evaluator = Arc::new(evaluator);
         self
     }
 
@@ -312,8 +331,12 @@ where
     /// Set the thread pool of the genetic engine. This is the thread pool that will be used
     /// to execute the fitness function in parallel. Some fitness functions may be computationally
     /// expensive and can benefit from parallel execution.
-    pub fn num_threads(mut self, num_threads: usize) -> Self {
+    pub fn num_threads(mut self, num_threads: usize) -> Self
+    where
+        T: Send + Sync,
+    {
         self.params.thread_pool = Arc::new(ThreadPool::new(num_threads));
+        self.params.evaluator = Arc::new(WorkerPoolEvaluator);
         self
     }
 
@@ -356,6 +379,7 @@ where
                 diversity: self.params.diversity.clone(),
                 front: Arc::new(RwLock::new(self.params.front.clone().unwrap())),
                 offspring_fraction: self.params.offspring_fraction,
+                evaluator: self.params.evaluator.clone(),
             };
 
             let mut pipeline = Pipeline::<C>::default();
@@ -384,10 +408,12 @@ where
     }
 
     fn build_eval_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+        let evaluator = config.evaluator.clone();
         let eval_step = EvaluateStep {
-            objective: config.objective(),
-            thread_pool: config.thread_pool(),
-            problem: config.problem(),
+            objective: config.objective.clone(),
+            thread_pool: config.thread_pool.clone(),
+            problem: config.problem.clone(),
+            evaluator: evaluator.clone(),
         };
 
         Some(Box::new(eval_step))
@@ -517,11 +543,30 @@ where
     }
 }
 
+impl<C, T, E> EngineBuilder<C, T, E> for GeneticEngineBuilder<C, T, E>
+where
+    C: Chromosome + 'static,
+    T: Clone + Send + 'static,
+    E: Epoch,
+{
+    fn add_parameter(&mut self, adder: impl FnOnce(&mut EngineParams<C, T>)) {
+        adder(&mut self.params);
+    }
+
+    fn build(self) -> GeneticEngine<C, T, E> {
+        if !self.errors.is_empty() {
+            panic!("Errors found in builder: {:?}", self.errors);
+        }
+
+        self.build()
+    }
+}
+
 impl<C, T, E> Default for GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome + 'static,
     T: Clone + Send + 'static,
-    E: Epoch<C>,
+    E: Epoch,
 {
     fn default() -> Self {
         GeneticEngineBuilder {
@@ -539,6 +584,7 @@ where
                 alterers: Vec::new(),
                 species_threshold: 1.5,
                 max_species_age: 25,
+                evaluator: Arc::new(SequentialEvaluator),
                 encoder: None,
                 diversity: None,
                 codex: None,
@@ -547,6 +593,21 @@ where
                 problem: None,
                 front: None,
             },
+            errors: Vec::new(),
+            _epoch: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<C, T, E> From<EngineParams<C, T>> for GeneticEngineBuilder<C, T, E>
+where
+    C: Chromosome + 'static,
+    T: Clone + Send + 'static,
+    E: Epoch,
+{
+    fn from(params: EngineParams<C, T>) -> Self {
+        GeneticEngineBuilder {
+            params,
             errors: Vec::new(),
             _epoch: std::marker::PhantomData,
         }

@@ -10,7 +10,7 @@ use super::random_provider;
 /// population. The selection process can be based on the fitness of the individuals
 /// in the population, or it can be based on the individuals themselves.
 ///
-pub trait Select<C: Chromosome> {
+pub trait Select<C: Chromosome>: Send + Sync {
     fn name(&self) -> &'static str;
     fn select(
         &self,

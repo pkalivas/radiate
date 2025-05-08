@@ -53,6 +53,10 @@ impl<C: Chromosome> Genotype<C> {
     pub fn get_mut(&mut self, index: usize) -> Option<&mut C> {
         self.chromosomes.get_mut(index)
     }
+
+    pub fn take_chromosomes(&mut self) -> Vec<C> {
+        std::mem::take(&mut self.chromosomes)
+    }
 }
 
 impl<C: Chromosome> Valid for Genotype<C> {

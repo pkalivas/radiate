@@ -9,3 +9,6 @@ radiate/.vs
 *.suo
 *.user
 *.DS_Store
+*/.venv
+*__pycache__
+*.so
