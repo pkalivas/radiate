@@ -1,31 +1,31 @@
 use crate::{AnyValue, PyEngineBuilder, ThreadSafePythonFn};
 use pyo3::{PyObject, Python, pyclass, pymethods};
 use radiate::{
-    Chromosome, EngineExt, Epoch, FloatChromosome, FnCodex, Gene, GeneticEngine, log_ctx,
+    Chromosome, EngineExt, Epoch, FnCodex, Gene, GeneticEngine, IntChromosome, log_ctx,
     steps::SequentialEvaluator,
 };
 use std::ops::Range;
 
 #[pyclass]
 #[derive(Clone)]
-pub struct PyFloatCodex {
+pub struct PyIntCodex {
     pub chromosome_lengths: Vec<usize>,
-    pub value_range: Range<f32>,
-    pub bound_range: Range<f32>,
+    pub value_range: Range<i32>,
+    pub bound_range: Range<i32>,
 }
 
 #[pymethods]
-impl PyFloatCodex {
+impl PyIntCodex {
     #[new]
     #[pyo3(signature = (chromosome_lengths=None, value_range=None, bound_range=None))]
     pub fn new(
         chromosome_lengths: Option<Vec<usize>>,
-        value_range: Option<(f32, f32)>,
-        bound_range: Option<(f32, f32)>,
+        value_range: Option<(i32, i32)>,
+        bound_range: Option<(i32, i32)>,
     ) -> Self {
-        let val_range = value_range.unwrap_or((0.0, 1.0));
+        let val_range = value_range.unwrap_or((0, 1));
         let bound_range = bound_range.unwrap_or(val_range);
-        PyFloatCodex {
+        PyIntCodex {
             chromosome_lengths: chromosome_lengths.unwrap_or(vec![1]),
             value_range: val_range.0..val_range.1,
             bound_range: bound_range.0..bound_range.1,
@@ -34,28 +34,28 @@ impl PyFloatCodex {
 }
 
 #[pyclass]
-pub struct PyFloatEngine {
-    pub engine: GeneticEngine<FloatChromosome, Vec<Vec<f32>>>,
+pub struct PyIntEngine {
+    pub engine: GeneticEngine<IntChromosome<i32>, Vec<Vec<i32>>>,
 }
 
 #[pymethods]
-impl PyFloatEngine {
+impl PyIntEngine {
     #[new]
     #[pyo3(signature = (codex, fitness_func, builder))]
-    pub fn new(codex: PyFloatCodex, fitness_func: PyObject, builder: PyEngineBuilder) -> Self {
+    pub fn new(codex: PyIntCodex, fitness_func: PyObject, builder: PyEngineBuilder) -> Self {
         let codex = FnCodex::new()
             .with_encoder(move || {
                 codex
                     .chromosome_lengths
                     .iter()
                     .map(|len| {
-                        FloatChromosome::from((
+                        IntChromosome::from((
                             *len,
                             codex.value_range.clone(),
                             codex.bound_range.clone(),
                         ))
                     })
-                    .collect::<Vec<FloatChromosome>>()
+                    .collect::<Vec<IntChromosome<i32>>>()
                     .into()
             })
             .with_decoder(|geno| {
@@ -64,9 +64,9 @@ impl PyFloatEngine {
                         chromo
                             .iter()
                             .map(|gene| *gene.allele())
-                            .collect::<Vec<f32>>()
+                            .collect::<Vec<i32>>()
                     })
-                    .collect::<Vec<Vec<f32>>>()
+                    .collect::<Vec<Vec<i32>>>()
             });
 
         let fitness = ThreadSafePythonFn::new(fitness_func);
@@ -75,7 +75,7 @@ impl PyFloatEngine {
             .codex(codex)
             .minimizing()
             .evaluator(SequentialEvaluator)
-            .fitness_fn(move |decoded: Vec<Vec<f32>>| {
+            .fitness_fn(move |decoded: Vec<Vec<i32>>| {
                 Python::with_gil(|py| {
                     let wrapped_decoded = AnyValue::from(decoded);
                     fitness.call(py, wrapped_decoded)
@@ -85,9 +85,9 @@ impl PyFloatEngine {
 
         engine = crate::set_selector(engine, &builder.offspring_selector, true);
         engine = crate::set_selector(engine, &builder.survivor_selector, false);
-        engine = crate::get_alters_with_float_gene(engine, &builder.alters);
+        engine = crate::get_alters_with_int_gene(engine, &builder.alters);
 
-        PyFloatEngine {
+        PyIntEngine {
             engine: engine.build(),
         }
     }

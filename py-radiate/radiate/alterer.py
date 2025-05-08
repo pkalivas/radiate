@@ -72,6 +72,21 @@ class IntermediateCrossover(Alterer):
         :param alpha: Alpha value for the intermediate crossover.
         """
         super().__init__(name=self.name, args={'rate': rate, 'alpha': alpha}, gene_types=self.gene_types)
+        
+
+class MultiPointCrossover(Alterer):
+    """
+    Multi Point Crossover alterer.
+    """
+    gene_types = GeneType.ALL
+    name = 'multi_point_crossover'
+
+    def __init__(self, rate: float=0.1, num_points: int=2):
+        """
+        Initialize the multi point crossover alterer.
+        :param alpha: Alpha value for the multi point crossover.
+        """
+        super().__init__(name=self.name, args={'rate': rate, 'num_points': num_points}, gene_types=self.gene_types)
 
 
 class UniformCrossover(Alterer):

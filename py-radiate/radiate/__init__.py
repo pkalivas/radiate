@@ -1,6 +1,6 @@
 
 from .engine import Engine
-from .codex import FloatCodex
+from .codex import FloatCodex, IntCodex
 from .random import RandomProvider as random
 
 from .selector import (
@@ -8,7 +8,8 @@ from .selector import (
     RouletteSelector, 
     RankSelector, 
     ElitismSelector,
-    StocasticSamplingSelector
+    StocasticSamplingSelector,
+    BoltzmannSelector
 )
 
 from .alterer import (
@@ -16,11 +17,13 @@ from .alterer import (
     IntermediateCrossover, 
     ArithmeticMutator,
     UniformCrossover,
-    UniformMutator
+    UniformMutator,
+    MultiPointCrossover,
 )
 
 __all__ = [
     'FloatCodex',
+    'IntCodex',
 
     'Engine',
 
@@ -29,12 +32,14 @@ __all__ = [
     'RankSelector',
     'ElitismSelector',
     'StocasticSamplingSelector', 
+    'BoltzmannSelector',
 
     'BlendCrossover',
     'IntermediateCrossover',
     'UniformCrossover',
     'ArithmeticMutator'
     'UniformMutator',
+    'MultiPointCrossover',
 
     'random',
 ]

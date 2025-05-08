@@ -2,14 +2,14 @@ from typing import Any, Callable, List
 from .selector import Selector, TournamentSelector, RouletteSelector
 from .alterer import Alterer, UniformCrossover, UniformMutator
 from ._typing import GeneType
-from .codex import FloatCodex
+from .codex import FloatCodex, IntCodex 
 
-from radiate.radiate import PyEngineBuilder, PyFloatEngine
+from radiate.radiate import PyEngineBuilder, PyFloatEngine, PyIntEngine
 
 class Engine:
 
     def __init__(self, 
-                 codex: FloatCodex,
+                 codex: FloatCodex | IntCodex,
                  fitness_func: Callable[[Any], Any],
                  offspring_selector: Selector = None,
                  survivor_selector: Selector = None,
@@ -20,6 +20,8 @@ class Engine:
 
         if isinstance(self.codex, FloatCodex):
             self.gene_type = GeneType.FLOAT
+        elif isinstance(self.codex, IntCodex):
+            self.gene_type = GeneType.INT
         else:
             raise TypeError(f"Codex type {type(self.codex)} is not supported.")
 
@@ -36,7 +38,7 @@ class Engine:
         )
 
     def run(self, num_generations=100):
-        engine = PyFloatEngine(self.codex.codex, self.fitness_func, self.builder)
+        engine = self.__get_engine()
         engine.run(generations=num_generations)
 
     def population_size(self, size: int):
@@ -62,6 +64,15 @@ class Engine:
         if alters is None:
             raise ValueError("Alters must be provided.")
         self.builder.set_alters(self.__get_params(alters))
+
+    def __get_engine(self):
+        """Get the engine."""
+        if self.gene_type == GeneType.FLOAT:
+            return PyFloatEngine(self.codex.codex, self.fitness_func, self.builder)
+        elif self.gene_type == GeneType.INT:
+            return PyIntEngine(self.codex.codex, self.fitness_func, self.builder)
+        else:
+            raise TypeError(f"Gene type {self.gene_type} is not supported.")
 
     def __get_params(self, value):
         if isinstance(value, Selector):

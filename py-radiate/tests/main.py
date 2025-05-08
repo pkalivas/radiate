@@ -10,27 +10,39 @@ import radiate as rd
 
 rd.random.set_seed(100)
 
-A = 10.0
-RANGE = 5.12
-N_GENES = 2
 
-def fitness_fn(x):
-    '''The fitness function for the Rastrigin function.'''
-    x = x[0]
-    value = A * N_GENES
-    for i in range(N_GENES):
-        value += x[i]**2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
-    return value
-
-codex = rd.FloatCodex([2], (-5.12, 5.12))
-engine = rd.Engine(codex, fitness_fn)
-
+codex = rd.IntCodex([10], (0, 10))
+engine = rd.Engine(codex, lambda x: sum(x[0]))
+engine.offspring_selector(rd.BoltzmannSelector(4))
 engine.alters([
-    rd.UniformCrossover(0.5), 
-    rd.ArithmeticMutator(0.01)
+    rd.MultiPointCrossover(0.75, 2), 
+    rd.UniformMutator(0.01)
 ])
 
 engine.run(num_generations=100)
+
+
+# A = 10.0
+# RANGE = 5.12
+# N_GENES = 2
+
+# def fitness_fn(x):
+#     '''The fitness function for the Rastrigin function.'''
+#     x = x[0]
+#     value = A * N_GENES
+#     for i in range(N_GENES):
+#         value += x[i]**2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
+#     return value
+
+# codex = rd.FloatCodex([2], (-5.12, 5.12))
+# engine = rd.Engine(codex, fitness_fn)
+
+# engine.alters([
+#     rd.UniformCrossover(0.5), 
+#     rd.ArithmeticMutator(0.01)
+# ])
+
+# engine.run(num_generations=100)
 
 
 
