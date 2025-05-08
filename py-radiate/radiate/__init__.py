@@ -2,6 +2,11 @@
 from .engine import Engine
 from .codex import FloatCodex, IntCodex
 from .random import RandomProvider as random
+from .limit import (
+    SecondsLimit,
+    GenerationsLimit,
+    ScoreLimit
+)
 
 from .selector import (
     TournamentSelector, 
@@ -26,6 +31,10 @@ __all__ = [
     'IntCodex',
 
     'Engine',
+
+    'SecondsLimit',
+    'GenerationsLimit',
+    'ScoreLimit',
 
     'TournamentSelector',
     'RouletteSelector',

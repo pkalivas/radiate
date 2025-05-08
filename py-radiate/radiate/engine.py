@@ -3,6 +3,7 @@ from .selector import Selector, TournamentSelector, RouletteSelector
 from .alterer import Alterer, UniformCrossover, UniformMutator
 from ._typing import GeneType
 from .codex import FloatCodex, IntCodex 
+from .limit import Limit
 
 from radiate.radiate import (
     PyEngineBuilder,
@@ -41,9 +42,11 @@ class Engine:
             population_size=population_size,
         )
 
-    def run(self, num_generations=100):
+    def run(self, limits: Limit | List[Limit]):
+        limits = [lim.params for lim in (limits if isinstance(limits, list) else [limits])]
         engine = self.__get_engine()
-        engine.run(generations=num_generations)
+        print(limits)
+        engine.run(limits)
 
     def population_size(self, size: int):
         """Set the population size."""

@@ -1,6 +1,9 @@
 from typing import List, Optional, Tuple
 
-from radiate.radiate import PyFloatCodex, PyIntCodex
+from radiate.radiate import (
+    PyFloatCodex,
+    PyIntCodex
+)
 
 
 class FloatCodex:

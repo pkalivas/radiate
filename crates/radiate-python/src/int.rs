@@ -1,4 +1,4 @@
-use crate::{AnyValue, PyEngineBuilder, ThreadSafePythonFn};
+use crate::{AnyValue, Limit, PyEngineBuilder, PyEngineParam, ThreadSafePythonFn};
 use pyo3::{PyObject, Python, pyclass, pymethods};
 use radiate::{
     Chromosome, EngineExt, Epoch, FnCodex, Gene, GeneticEngine, IntChromosome, log_ctx,
@@ -92,11 +92,36 @@ impl PyIntEngine {
         }
     }
 
-    pub fn run(&mut self, generations: usize) {
+    pub fn run(&mut self, limits: Vec<PyEngineParam>) {
+        let lims = limits
+            .into_iter()
+            .map(|lim| Limit::from(lim))
+            .collect::<Vec<_>>();
         let engine = &mut self.engine;
         engine.run(|epoch| {
             log_ctx!(epoch);
-            epoch.index() > generations
+
+            for limit in lims.iter() {
+                match limit {
+                    Limit::Generations(lim) => {
+                        if epoch.index() >= *lim {
+                            return true;
+                        }
+                    }
+                    Limit::Score(lim) => {
+                        if epoch.score().as_f32() <= *lim {
+                            return true;
+                        }
+                    }
+                    Limit::Seconds(val) => {
+                        if epoch.seconds() >= *val {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            false
         });
     }
 }

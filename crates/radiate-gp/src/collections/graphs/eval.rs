@@ -1,5 +1,6 @@
 use super::{Graph, GraphNode, iter::GraphIterator};
 use crate::{Eval, EvalMut, NodeType, node::Node};
+use std::ops::Range;
 
 /// [GraphEvaluator] is a struct that is used to evaluate a [Graph] of [GraphNode]'s. It uses the [GraphIterator]
 /// to traverse the [Graph] in a sudo-topological order and evaluate the nodes in the correct order.
@@ -12,7 +13,7 @@ pub struct GraphEvaluator<'a, T, V> {
     outputs: Vec<V>,
     inputs: Vec<V>,
     output_outs: Vec<V>,
-    input_ranges: Vec<std::ops::Range<usize>>,
+    input_ranges: Vec<Range<usize>>,
 }
 
 impl<'a, T, V> GraphEvaluator<'a, T, V>
