@@ -1,17 +1,15 @@
 mod builder;
-mod codex;
 mod conversion;
-mod engine;
 mod fitness;
+mod float;
 mod gene;
 mod object;
 mod params;
 mod random;
 
 pub use builder::*;
-pub use codex::*;
-pub use engine::*;
 pub use fitness::ThreadSafePythonFn;
+pub use float::*;
 pub use gene::*;
 pub use object::*;
 pub use params::*;

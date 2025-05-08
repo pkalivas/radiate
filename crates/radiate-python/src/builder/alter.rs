@@ -30,13 +30,6 @@ where
 
                 alters!(BlendCrossover::new(rate, alpha))
             }
-            "arithmetic_mutator" => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                alters!(ArithmeticMutator::new(rate))
-            }
             "intermediate_crossover" => {
                 let rate = args
                     .get("rate".into())
@@ -61,6 +54,13 @@ where
                     .map(|s| s.parse::<f32>().unwrap())
                     .unwrap_or(0.5);
                 alters!(UniformMutator::new(rate))
+            }
+            "arithmetic_mutator" => {
+                let rate = args
+                    .get("rate".into())
+                    .map(|s| s.parse::<f32>().unwrap())
+                    .unwrap_or(0.5);
+                alters!(ArithmeticMutator::new(rate))
             }
             _ => panic!("Unknown alter type"),
         });

@@ -1,13 +1,14 @@
 
 from .engine import Engine
 from .codex import FloatCodex
-from .random import set_seed as random
+from .random import RandomProvider as random
 
 from .selector import (
     TournamentSelector, 
     RouletteSelector, 
     RankSelector, 
-    ElitismSelector
+    ElitismSelector,
+    StocasticSamplingSelector
 )
 
 from .alterer import (
@@ -26,7 +27,8 @@ __all__ = [
     'TournamentSelector',
     'RouletteSelector',
     'RankSelector',
-    'ElitismSelector',    
+    'ElitismSelector',
+    'StocasticSamplingSelector', 
 
     'BlendCrossover',
     'IntermediateCrossover',

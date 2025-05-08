@@ -1,7 +1,7 @@
 use crate::PyEngineParam;
 use radiate::{
     BoltzmannSelector, Chromosome, EliteSelector, GeneticEngineBuilder, RankSelector,
-    RouletteSelector, TournamentSelector,
+    RouletteSelector, StochasticUniversalSamplingSelector, TournamentSelector,
 };
 
 pub(crate) fn set_selector<C, T>(
@@ -47,6 +47,11 @@ where
         return match is_offspring {
             true => builder.offspring_selector(BoltzmannSelector::new(temperature)),
             false => builder.survivor_selector(BoltzmannSelector::new(temperature)),
+        };
+    } else if selector.name() == "stocastic_universal_sampling" {
+        return match is_offspring {
+            true => builder.offspring_selector(StochasticUniversalSamplingSelector::new()),
+            false => builder.survivor_selector(StochasticUniversalSamplingSelector::new()),
         };
     }
 

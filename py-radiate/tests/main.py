@@ -8,7 +8,7 @@ sys.path.insert(0, project_root)
 import math
 import radiate as rd
 
-rd.random(100)
+rd.random.set_seed(100)
 
 A = 10.0
 RANGE = 5.12
