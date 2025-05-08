@@ -14,7 +14,6 @@ pub use fitness::ThreadSafePythonFn;
 pub use float::*;
 pub use gene::*;
 pub use int::*;
-pub use limit::*;
 pub use object::*;
 pub use params::*;
 use pyo3::{PyResult, Python};
