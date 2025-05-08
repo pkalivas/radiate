@@ -4,7 +4,11 @@ from .alterer import Alterer, UniformCrossover, UniformMutator
 from ._typing import GeneType
 from .codex import FloatCodex, IntCodex 
 
-from radiate.radiate import PyEngineBuilder, PyFloatEngine, PyIntEngine
+from radiate.radiate import (
+    PyEngineBuilder,
+    PyFloatEngine, 
+    PyIntEngine
+)
 
 class Engine:
 
