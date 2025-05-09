@@ -46,7 +46,7 @@ class BlendCrossover(Alterer):
     """
     Blend Crossover alterer.
     """
-    gene_types = [GeneType.FLOAT, GeneType.INT]
+    gene_types = [GeneType.FLOAT]
     name = 'blend_crossover'
 
     def __init__(self, rate: float = 0.1, alpha: float = 0.5):
@@ -72,6 +72,66 @@ class IntermediateCrossover(Alterer):
         :param alpha: Alpha value for the intermediate crossover.
         """
         super().__init__(name=self.name, args={'rate': rate, 'alpha': alpha}, gene_types=self.gene_types)
+
+
+class MeanCrossover(Alterer):
+    """
+    Mean Crossover alterer.
+    """
+    gene_types = [GeneType.FLOAT, GeneType.INT]
+    name = 'mean_crossover'
+
+    def __init__(self, rate: float=0.5):
+        """
+        Initialize the mean crossover alterer.
+        :param alpha: Alpha value for the mean crossover.
+        """
+        super().__init__(name=self.name, args={'rate': rate}, gene_types=self.gene_types)
+
+
+class ShuffleCrossover(Alterer):
+    """
+    Shuffle Crossover alterer.
+    """
+    gene_types = GeneType.ALL
+    name = 'shuffle_crossover'
+
+    def __init__(self, rate: float=0.1):
+        """
+        Initialize the shuffle crossover alterer.
+        :param alpha: Alpha value for the shuffle crossover.
+        """
+        super().__init__(name=self.name, args={'rate': rate}, gene_types=self.gene_types)
+
+
+class SimulatedBinaryCrossover(Alterer):
+    """
+    Simulated Binary Crossover alterer.
+    """
+    gene_types = [GeneType.FLOAT]
+    name = 'simulated_binary_crossover'
+
+    def __init__(self, rate: float=0.1, contiguty: float=0.5):
+        """
+        Initialize the simulated binary crossover alterer.
+        :param alpha: Alpha value for the simulated binary crossover.
+        """
+        super().__init__(name=self.name, args={'rate': rate, 'contiguty': contiguty}, gene_types=self.gene_types)
+
+
+class PartiallyMatchedCrossover(Alterer):
+    """
+    Partially Matched Crossover alterer.
+    """
+    gene_types = GeneType.ALL
+    name = 'partially_matched_crossover'
+
+    def __init__(self, rate: float=0.1):
+        """
+        Initialize the partially matched crossover alterer.
+        :param alpha: Alpha value for the partially matched crossover.
+        """
+        super().__init__(name=self.name, args={'rate': rate}, gene_types=self.gene_types)
         
 
 class MultiPointCrossover(Alterer):
@@ -130,5 +190,50 @@ class ArithmeticMutator(Alterer):
         """
         Initialize the arithmetic mutator alterer.
         :param alpha: Alpha value for the arithmetic mutator.
+        """
+        super().__init__(name=self.name, args={'rate': rate}, gene_types=self.gene_types)
+
+
+class GaussianMutator(Alterer):
+    """
+    Gaussian Mutator alterer.
+    """
+    gene_types = [GeneType.FLOAT]
+    name = 'gaussian_mutator'
+
+    def __init__(self, rate: float=0.1):
+        """
+        Initialize the gaussian mutator alterer.
+        :param alpha: Alpha value for the gaussian mutator.
+        """
+        super().__init__(name=self.name, args={'rate': rate}, gene_types=self.gene_types)
+
+
+class ScrambleMutator(Alterer):
+    """
+    Scramble Mutator alterer.
+    """
+    gene_types = GeneType.ALL
+    name = 'scramble_mutator'
+
+    def __init__(self, rate: float=0.1):
+        """
+        Initialize the scramble mutator alterer.
+        :param alpha: Alpha value for the scramble mutator.
+        """
+        super().__init__(name=self.name, args={'rate': rate}, gene_types=self.gene_types)
+
+
+class SwapMutator(Alterer):
+    """
+    Swap Mutator alterer.
+    """
+    gene_types = GeneType.ALL
+    name = 'swap_mutator'
+
+    def __init__(self, rate: float=0.1):
+        """
+        Initialize the swap mutator alterer.
+        :param alpha: Alpha value for the swap mutator.
         """
         super().__init__(name=self.name, args={'rate': rate}, gene_types=self.gene_types)

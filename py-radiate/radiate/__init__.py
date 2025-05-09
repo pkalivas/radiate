@@ -24,6 +24,13 @@ from .alterer import (
     UniformCrossover,
     UniformMutator,
     MultiPointCrossover,
+    MeanCrossover,
+    ShuffleCrossover,
+    SimulatedBinaryCrossover,
+    PartiallyMatchedCrossover,
+    GaussianMutator,
+    ScrambleMutator,
+    SwapMutator
 )
 
 __all__ = [
@@ -49,6 +56,13 @@ __all__ = [
     'ArithmeticMutator'
     'UniformMutator',
     'MultiPointCrossover',
+    'MeanCrossover',
+    'ShuffleCrossover',
+    'SimulatedBinaryCrossover',
+    'PartiallyMatchedCrossover',
+    'GaussianMutator',
+    'ScrambleMutator',
+    'SwapMutator',
 
     'random',
 ]

@@ -19,7 +19,8 @@ class Engine:
                  offspring_selector: Selector = None,
                  survivor_selector: Selector = None,
                  alters: None | Alterer | List[Alterer] = None,
-                 population_size: int = 100):
+                 population_size: int = 100,
+                 offspring_fraction: float = 0.8):
         self.codex = codex
         self.fitness_func = fitness_func
 
@@ -40,6 +41,7 @@ class Engine:
             offspring_selector=offspring_selector,
             alters=alters,
             population_size=population_size,
+            offspring_fraction=offspring_fraction,
         )
 
     def run(self, limits: Limit | List[Limit]):
@@ -70,6 +72,12 @@ class Engine:
         if alters is None:
             raise ValueError("Alters must be provided.")
         self.builder.set_alters(self.__get_params(alters))
+
+    def offspring_fraction(self, fraction: float):
+        """Set the offspring fraction."""
+        if not (0 < fraction <= 1):
+            raise ValueError("Offspring fraction must be between 0 and 1.")
+        self.builder.set_offspring_fraction(fraction)
 
     def __get_engine(self):
         """Get the engine."""

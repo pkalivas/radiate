@@ -1,8 +1,9 @@
 use crate::PyEngineParam;
 use radiate::{
     Alter, ArithmeticGene, ArithmeticMutator, BlendCrossover, Chromosome, Crossover, FloatGene,
-    GeneticEngineBuilder, IntermediateCrossover, MultiPointCrossover, Mutate, UniformCrossover,
-    UniformMutator, alters,
+    GaussianMutator, GeneticEngineBuilder, IntermediateCrossover, MeanCrossover,
+    MultiPointCrossover, Mutate, ScrambleMutator, ShuffleCrossover, SimulatedBinaryCrossover,
+    SwapMutator, UniformCrossover, UniformMutator, alters,
 };
 
 pub fn get_alters_with_float_gene<C: Chromosome<Gene = FloatGene>, T>(
@@ -63,6 +64,52 @@ where
                     .unwrap_or(0.5);
                 alters!(ArithmeticMutator::new(rate))
             }
+            "mean_crossover" => {
+                let rate = args
+                    .get("rate".into())
+                    .map(|s| s.parse::<f32>().unwrap())
+                    .unwrap_or(0.5);
+                alters!(MeanCrossover::new(rate))
+            }
+            "shuffle_crossover" => {
+                let rate = args
+                    .get("rate".into())
+                    .map(|s| s.parse::<f32>().unwrap())
+                    .unwrap_or(0.5);
+                alters!(ShuffleCrossover::new(rate))
+            }
+            "simulated_binary_crossover" => {
+                let rate = args
+                    .get("rate".into())
+                    .map(|s| s.parse::<f32>().unwrap())
+                    .unwrap_or(0.5);
+                let contiguty = args
+                    .get("contiguty".into())
+                    .map(|s| s.parse::<f32>().unwrap())
+                    .unwrap_or(0.5);
+                alters!(SimulatedBinaryCrossover::new(contiguty, rate))
+            }
+            "gaussian_mutator" => {
+                let rate = args
+                    .get("rate".into())
+                    .map(|s| s.parse::<f32>().unwrap())
+                    .unwrap_or(0.5);
+                alters!(GaussianMutator::new(rate))
+            }
+            "scramble_mutator" => {
+                let rate = args
+                    .get("rate".into())
+                    .map(|s| s.parse::<f32>().unwrap())
+                    .unwrap_or(0.5);
+                alters!(ScrambleMutator::new(rate))
+            }
+            "swap_mutator" => {
+                let rate = args
+                    .get("rate".into())
+                    .map(|s| s.parse::<f32>().unwrap())
+                    .unwrap_or(0.5);
+                alters!(SwapMutator::new(rate))
+            }
             _ => panic!("Unknown alter type"),
         });
     }
@@ -87,18 +134,6 @@ where
         let args = alter.get_args();
 
         alters_vec.push(match alter.name() {
-            // "blend_crossover" => {
-            //     let alpha = args
-            //         .get("alpha".into())
-            //         .map(|s| s.parse::<f32>().unwrap())
-            //         .unwrap_or(0.5);
-            //     let rate = args
-            //         .get("rate".into())
-            //         .map(|s| s.parse::<f32>().unwrap())
-            //         .unwrap_or(0.5);
-
-            //     alters!(BlendCrossover::new(rate, alpha))
-            // }
             "multi_point_crossover" => {
                 let rate = args
                     .get("rate".into())
@@ -130,6 +165,34 @@ where
                     .map(|s| s.parse::<f32>().unwrap())
                     .unwrap_or(0.5);
                 alters!(ArithmeticMutator::new(rate))
+            }
+            "mean_crossover" => {
+                let rate = args
+                    .get("rate".into())
+                    .map(|s| s.parse::<f32>().unwrap())
+                    .unwrap_or(0.5);
+                alters!(MeanCrossover::new(rate))
+            }
+            "shuffle_crossover" => {
+                let rate = args
+                    .get("rate".into())
+                    .map(|s| s.parse::<f32>().unwrap())
+                    .unwrap_or(0.5);
+                alters!(ShuffleCrossover::new(rate))
+            }
+            "scramble_mutator" => {
+                let rate = args
+                    .get("rate".into())
+                    .map(|s| s.parse::<f32>().unwrap())
+                    .unwrap_or(0.5);
+                alters!(ScrambleMutator::new(rate))
+            }
+            "swap_mutator" => {
+                let rate = args
+                    .get("rate".into())
+                    .map(|s| s.parse::<f32>().unwrap())
+                    .unwrap_or(0.5);
+                alters!(SwapMutator::new(rate))
             }
             _ => panic!("Unknown alter type"),
         });
