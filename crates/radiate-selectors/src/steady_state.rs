@@ -11,10 +11,6 @@ impl SteadyStateSelector {
 }
 
 impl<C: Chromosome> Select<C> for SteadyStateSelector {
-    fn name(&self) -> &'static str {
-        "SteadyStateSelector"
-    }
-
     fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {
         let mut selected_population = population.clone();
         let slice = population.as_ref();

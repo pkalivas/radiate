@@ -10,10 +10,6 @@ impl RandomSelector {
 }
 
 impl<C: Chromosome> Select<C> for RandomSelector {
-    fn name(&self) -> &'static str {
-        "RandomSelector"
-    }
-
     fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {
         let mut selected = Vec::with_capacity(count);
 

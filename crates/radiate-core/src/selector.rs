@@ -11,7 +11,16 @@ use super::random_provider;
 /// in the population, or it can be based on the individuals themselves.
 ///
 pub trait Select<C: Chromosome>: Send + Sync {
-    fn name(&self) -> &'static str;
+    fn name(&self) -> &'static str {
+        std::any::type_name::<Self>()
+            .split("<")
+            .next()
+            .unwrap_or(std::any::type_name::<Self>())
+            .split("::")
+            .last()
+            .unwrap_or("Unknown Selector")
+    }
+
     fn select(
         &self,
         population: &Population<C>,

@@ -18,10 +18,6 @@ impl NSGA2Selector {
 }
 
 impl<C: Chromosome> Select<C> for NSGA2Selector {
-    fn name(&self) -> &'static str {
-        "NSGA2Selector"
-    }
-
     fn select(
         &self,
         population: &Population<C>,
