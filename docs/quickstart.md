@@ -9,7 +9,7 @@ Radiate is inspired from a multitude of other genetic algorithm libraries, all o
 ## Configuration
 ```toml
 [dependencies]
-radiate = "1.2.10"
+radiate = "1.2.11"
 ```
 
 ## Core Implementations
@@ -37,15 +37,15 @@ Fitness Function
 
   * The fitness function evaluates how well an individual solves the problem at hand. It is a critical component that guides the evolutionary process by assigning scores to individuals based on their performance.
 
-## Extensions
+## Features
 
-Radiate offers a separate crate called [radiate-gp](https://crates.io/crates/radiate-gp) which extend the core library with additional features. Mainly it provides data structures and algorithms which facilitate [Genetic Programming](https://en.wikipedia.org/wiki/Genetic_programming#:~:text=In%20artificial%20intelligence%2C%20genetic%20programming,to%20the%20population%20of%20programs.) (GP) - probems that are represented as Trees or Graphs. This is a powerful extension to the core library, allowing users to tackle even more complex or unique problems. 
+Radiate offers a feature called `gp` which extend the core library with additional features. Mainly it provides data structures and algorithms which facilitate [Genetic Programming](https://en.wikipedia.org/wiki/Genetic_programming#:~:text=In%20artificial%20intelligence%2C%20genetic%20programming,to%20the%20population%20of%20programs.) (GP) - probems that are represented as Trees or Graphs. This is a powerful extension to the core library, allowing users to tackle even more complex or unique problems. 
 
 To use it, add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-radiate-gp = "0.0.4"
+radiate = { version = "1.2.11", features = ["gp"] }
 ```
 
 !!! note
