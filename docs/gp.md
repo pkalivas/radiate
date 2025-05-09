@@ -1,7 +1,7 @@
 
 # Genetic Programming 
 
-The `radiate-gp` crate provides the fundamental building blocks for [Genetic Programming](https://en.wikipedia.org/wiki/Genetic_programming) (GP). It includes **data structures and algorithms** for building and evolving **`Tree`s** and **`Graph`s**.
+The `gp` feature provides the fundamental building blocks for [Genetic Programming](https://en.wikipedia.org/wiki/Genetic_programming) (GP). It includes **data structures and algorithms** for building and evolving **`Tree`s** and **`Graph`s**.
 
 Genetic Programming (GP) is an evolutionary algorithm that **evolves programs** to solve problems. Programs are represented as **expression trees, decision trees, random forests, or neural networks** and evolved over generations.
 

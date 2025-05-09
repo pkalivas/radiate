@@ -6,7 +6,7 @@ As such, the choice of alterer can have a significant impact on the performance 
 Adding alterers to the engine can be done in a few ways. The simplest way is to add a single mutator and a single crossover to the engine as such:
 
 ```rust
-    let engine = GeneticEngine::from_codex(codex)
+    let engine = GeneticEngine::builder()
 		...
         .crossover(MultiPointCrossover::new(0.75, 2))
         .mutator(UniformMutator::new(0.05))
@@ -16,7 +16,7 @@ Adding alterers to the engine can be done in a few ways. The simplest way is to 
 However, if more than one is desired it can be done as such:
 
 ```rust
-	let engine = GeneticEngine::from_codex(codex)
+	let engine = GeneticEngine::builder()
 		...
 		.mutators(vec![
 			Box::new(ScrambleMuator::new(0.75)),
@@ -32,7 +32,7 @@ However, if more than one is desired it can be done as such:
 Alternatively, the `alterers` method and macro can be used to add both mutators and crossovers at the same time:
 
 ```rust
-	let engine = GeneticEngine::from_codex(codex)
+	let engine = GeneticEngine::builder()
 		...
 		.alterers(alters![
 			ScrambleMuator::new(0.75),

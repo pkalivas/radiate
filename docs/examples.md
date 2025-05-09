@@ -25,7 +25,8 @@ comprehensive list of examples.
     fn main() {
         let codex = IntCodex::vector(NUM_GENES, MIN_GENE_VALUE..MAX_GENE_VALUE);
 
-        let engine = GeneticEngine::from_codex(codex)
+        let engine = GeneticEngine::builder()
+            .codex(codex)
             .population_size(150)
             .minimizing()
             .offspring_selector(EliteSelector::new())
@@ -66,7 +67,8 @@ comprehensive list of examples.
 
         let codex = IntCodex::<i8, Vec<i8>>::vector(N_QUEENS, 0..N_QUEENS as i8);
 
-        let engine = GeneticEngine::from_codex(codex)
+        let engine = GeneticEngine::builder()
+            .codex(codex)
             .minimizing()
             .num_threads(5)
             .offspring_selector(BoltzmannSelector::new(4.0))
@@ -131,7 +133,8 @@ comprehensive list of examples.
         let capacity = knapsack.capacity;
         let codex = SubSetCodex::new(knapsack.items);
 
-        let engine = GeneticEngine::from_codex(codex)
+        let engine = GeneticEngine::builder()
+            .codex(codex)
             .max_age(MAX_EPOCHS)
             .fitness_fn(move |genotype: Vec<Arc<Item>>| Knapsack::fitness(&capacity, &genotype))
             .build();
@@ -268,7 +271,8 @@ comprehensive list of examples.
     fn main() {
         let codex = FloatCodex::vector(N_GENES, -RANGE..RANGE);
 
-        let engine = GeneticEngine::from_codex(codex)
+        let engine = GeneticEngine::builder()
+            .codex(codex)
             .minimizing()
             .population_size(500)
             .alter(alters!(
@@ -325,7 +329,8 @@ comprehensive list of examples.
             target: target.clone(),
         };
 
-        let engine = GeneticEngine::from_codex(codex.clone())
+        let engine = GeneticEngine::builder()
+            .codex(codex.clone())
             .minimizing()
             .num_threads(5)
             .offspring_selector(BoltzmannSelector::new(4_f32))
@@ -442,13 +447,12 @@ comprehensive list of examples.
 
 > Objective - Evolve a `Graph<Op<f32>>` to solve the XOR problem (NeuroEvolution).
 >
->  Warning - only available with the `radiate-gp` crate
+>  Warning - only available with the `gp` feature flag.
 
 ??? example
 
     ```rust
     use radiate::*;
-    use radiate_gp::*;
 
     const MAX_INDEX: i32 = 500;
     const MIN_SCORE: f32 = 0.01;
@@ -466,7 +470,8 @@ comprehensive list of examples.
         let graph_codex = GraphCodex::directed(2, 1, values);
         let regression = Regression::new(get_dataset(), Loss::MSE, graph_codex);
 
-        let engine = GeneticEngine::from_problem(regression)
+        let engine = GeneticEngine::builder()
+            .problem(regression)
             .minimizing()
             .alter(alters!(
                 GraphCrossover::new(0.5, 0.5),
@@ -515,13 +520,12 @@ comprehensive list of examples.
 
 ## Tree - Regression
 
-> Objective - Evolve a `Tree<Op<f32>>` to solve the a regression problem (Genetic Programming).
+> Objective - Evolve a `Tree<Op<f32>>` to solve the a regression problem (Genetic Programming) - `gp` feature flag.
 
 ??? example
 
     ```rust
     use radiate::*;
-    use radiate_gp::*;
 
     const MIN_SCORE: f32 = 0.01;
     const MAX_SECONDS: f64 = 1.0;
@@ -537,7 +541,8 @@ comprehensive list of examples.
         let tree_codex = TreeCodex::single(3, store).constraint(|root| root.size() < 30);
         let problem = Regression::new(get_dataset(), Loss::MSE, tree_codex);
 
-        let engine = GeneticEngine::from_problem(problem)
+        let engine = GeneticEngine::builder()
+            .problem(problem)
             .minimizing()
             .mutator(HoistMutator::new(0.01))
             .crossover(TreeCrossover::new(0.7))
