@@ -64,8 +64,7 @@ where
             }
         }
 
-        let problem = Arc::clone(&problem);
-        let work_results: Vec<_> = jobs
+        let work_results = jobs
             .into_iter()
             .map(|(idx, geno)| {
                 let problem = Arc::clone(&problem);
@@ -74,7 +73,7 @@ where
                     (idx, score, geno)
                 })
             })
-            .collect();
+            .collect::<Vec<_>>();
 
         let count = work_results.len();
         for work_result in work_results {
