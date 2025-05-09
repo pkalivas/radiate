@@ -44,7 +44,7 @@ impl<T> MutCell<T> {
             if (*self.ref_count).load(Ordering::Acquire) == 1 {
                 self.consumed = true;
                 std::sync::atomic::fence(Ordering::SeqCst);
-                let value = Box::from_raw(self.value);
+                let value = Box::from_raw(self.value).clone();
                 drop(Box::from_raw(self.ref_count as *mut AtomicUsize));
                 *value
             } else {
