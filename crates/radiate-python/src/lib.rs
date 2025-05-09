@@ -4,7 +4,6 @@ mod fitness;
 mod float;
 mod gene;
 mod int;
-mod limit;
 mod object;
 mod params;
 mod random;

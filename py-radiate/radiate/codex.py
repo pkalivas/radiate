@@ -5,7 +5,6 @@ from radiate.radiate import (
     PyIntCodex
 )
 
-
 class FloatCodex:
 
     def __init__(self,
