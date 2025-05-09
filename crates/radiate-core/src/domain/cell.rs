@@ -42,10 +42,10 @@ impl<T> MutCell<T> {
     {
         unsafe {
             if (*self.ref_count).load(Ordering::Acquire) == 1 {
+                self.consumed = true;
                 std::sync::atomic::fence(Ordering::SeqCst);
                 let value = Box::from_raw(self.value);
                 drop(Box::from_raw(self.ref_count as *mut AtomicUsize));
-                self.consumed = true;
                 *value
             } else {
                 // Still need to decrement the ref count!
