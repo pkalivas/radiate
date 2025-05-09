@@ -4,5 +4,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-radiate = { path = "../../crates/radiate" }
+radiate = { workspace = true }
 plotly = "0.12.1"
