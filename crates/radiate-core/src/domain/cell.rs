@@ -244,24 +244,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn mutcell_basic_clone_and_mutation() {
+    fn mutcell_basic_clone_and_mutation_updated() {
         let mut cell = MutCell::new(5);
         assert_eq!(*cell, 5);
 
-        // Clone the cell
-        let mut cell2 = cell.clone();
-        assert_eq!(*cell2, 5);
-
-        // Mutate original cell
+        // Mutate the cell (unique, so this is allowed)
         *cell.get_mut() = 10;
         assert_eq!(*cell, 10);
-        // The clone still sees the original value because this is not copy-on-write
-        assert_eq!(*cell2, 10);
 
-        // Mutate via clone
-        *cell2.get_mut() = 20;
-        assert_eq!(*cell2, 20);
-        assert_eq!(*cell, 20);
+        // Cloning happens only after mutation:
+        let cell2 = cell.clone();
+        // Now, getting a mutable reference from either cell will panic because it's no longer unique.
+        // Instead, test that both views see the update:
+        assert_eq!(*cell2, 10);
     }
 
     #[test]
