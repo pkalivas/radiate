@@ -1,7 +1,9 @@
 mod alter;
+mod limit;
 mod selector;
 
 pub use alter::*;
+pub use limit::*;
 pub(crate) use selector::set_selector;
 // use radiate::{Chromosome, Epoch, Generation, GeneticEngineBuilder, Optimize};
 

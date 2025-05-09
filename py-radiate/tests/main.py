@@ -10,7 +10,6 @@ import radiate as rd
 
 rd.random.set_seed(100)
 
-
 codex = rd.IntCodex([10], (0, 10))
 engine = rd.Engine(codex, lambda x: sum(x[0]))
 engine.offspring_selector(rd.BoltzmannSelector(4))
@@ -19,7 +18,7 @@ engine.alters([
     rd.UniformMutator(0.01)
 ])
 
-engine.run(num_generations=100)
+engine.run(rd.ScoreLimit(0))
 
 
 # A = 10.0
@@ -42,7 +41,7 @@ engine.run(num_generations=100)
 #     rd.ArithmeticMutator(0.01)
 # ])
 
-# engine.run(num_generations=100)
+# engine.run(rd.ScoreLimit(0.0001))
 
 
 
