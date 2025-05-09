@@ -1,16 +1,9 @@
 [workspace]
 resolver = "3"
 members = [
-    "crates/radiate",
-    "crates/radiate-core",
-    "crates/radiate-engines",
-    "crates/radiate-selectors",
-    "crates/radiate-alters",
-    "crates/radiate-gp",
-    "crates/radiate-error",
-    "crates/radiate-python",
+    "crates/*",
+    "py-radiate",
 
-    
     "examples/min-sum",
     "examples/hello-world",
     "examples/knapsack",    
@@ -29,3 +22,50 @@ members = [
     "examples/trees/regression-tree",
     "examples/trees/iris-tree",
 ]
+default-members = [
+    "crates/*"
+]
+exclude = [
+    "examples/min-sum",
+    "examples/hello-world",
+    "examples/knapsack",    
+    "examples/nqueens",
+    "examples/simple-nn",
+    "examples/TSP",
+    "examples/DTLZ",
+    "examples/rastrigin",
+    "examples/rosenbrock",
+
+    "examples/graphs/iris-graph",
+    "examples/graphs/xor-graph",
+    "examples/graphs/regression-graph",
+    "examples/graphs/simple-memory-graph",
+
+    "examples/trees/regression-tree",
+    "examples/trees/iris-tree",
+]
+
+[workspace.package]
+name = "radiate"
+version = "1.2.11"
+edition = "2024"
+authors = ["pkalivas <peterkalivas@gmail.com>"]
+description = "A Rust library for genetic algorithms and artificial evolution."
+repository = "https://github.com/pkalivas/radiate"
+readme = "README.md"
+categories = ["science", "simulation", "algorithms"]
+keywords = ["simulation", "genetic", "learning", "artificial", "evolution"]
+license = "MIT"
+homepage = "https://pkalivas.github.io/radiate/"
+
+[workspace.dependencies]
+rand = "0.9.1"
+pyo3 = "0.24.1"
+radiate = { version = "1.2.11", path = "crates/radiate", default-features = false }
+radiate-core = { version = "1.2.11", path = "crates/radiate-core", default-features = false }
+radiate-alters = { version = "1.2.11", path = "crates/radiate-alters", default-features = false }
+radiate-selectors = { version = "1.2.11", path = "crates/radiate-selectors", default-features = false }
+radiate-engines = { version = "1.2.11", path = "crates/radiate-engines", default-features = false }
+radiate-gp = { version = "1.2.11", path = "crates/radiate-gp", default-features = false }
+radiate-error = { version = "1.2.11", path = "crates/radiate-error", default-features = false }
+radiate-python = { version = "1.2.11", path = "crates/radiate-python", default-features = false }

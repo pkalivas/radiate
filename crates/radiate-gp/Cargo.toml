@@ -1,16 +1,16 @@
 [package]
 name = "radiate-gp"
-version = "0.0.4"
-edition = "2024"
-authors = ["pkalivas <peterkalivas@gmail.com>"]
-description = "Extensions for radiate. Genetic Programming implementations for graphs (neural networks) and trees"
-repository = "https://github.com/pkalivas/radiate"
+version = { workspace = true }
+edition = { workspace = true }
+authors = { workspace = true }
+description = "Extensions for radiate. Genetic Programming implementations for graphs (neural networks) and trees."
+repository = { workspace = true }
 readme = "../../README.md"
-categories = ["science", "simulation", "algorithms"]
-keywords = ["search", "genetic", "learning", "artificial", "evolution"]
-license = "MIT"
-documentation = "https://pkalivas.github.io/radiate/"
+categories = { workspace = true }
+keywords = ["simulation", "genetic", "learning", "artificial", "evolution"]
+license = { workspace = true }
+homepage = { workspace = true }
 
 [dependencies]
-radiate-core = { path = "../radiate-core" }
+radiate-core = { workspace = true }
 

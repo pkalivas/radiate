@@ -1,10 +1,10 @@
 [package]
 name = "radiate-python"
-version = "0.0.1"
-edition = "2024"
-authors = ["pkalivas <peterkalivas@gmail.com>"]
+version = { workspace = true}
+edition = { workspace = true }
+authors = { workspace = true }
 
 [dependencies]
-radiate = { path = "../radiate", features = ["gp"] }
-pyo3 = {version = "0.24.1", features = ["multiple-pymethods"] }
+radiate = { workspace = true, features = ["gp"] }
+pyo3 = { workspace = true, features = ["multiple-pymethods"] }
 
