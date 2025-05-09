@@ -1,27 +1,159 @@
+// use std::{
+//     ops::{Deref, DerefMut},
+//     sync::atomic::{AtomicUsize, Ordering},
+// };
+
+// pub struct MutCell<T> {
+//     value: *mut T,
+//     ref_count: *const AtomicUsize,
+//     consumed: bool,
+// }
+
+// impl<T> MutCell<T> {
+//     pub fn new(value: T) -> Self {
+//         let value = Box::into_raw(Box::new(value));
+//         let ref_count = Box::into_raw(Box::new(AtomicUsize::new(1)));
+//         MutCell {
+//             value,
+//             ref_count,
+//             consumed: false,
+//         }
+//     }
+
+//     pub fn is_unique(&self) -> bool {
+//         unsafe { (*self.ref_count).load(Ordering::Acquire) == 1 }
+//     }
+
+//     pub fn is_shared(&self) -> bool {
+//         !self.is_unique()
+//     }
+
+//     pub fn get(&self) -> &T {
+//         unsafe { &*self.value }
+//     }
+
+//     pub fn get_mut(&mut self) -> &mut T {
+//         unsafe { &mut *self.value }
+//     }
+
+//     pub fn into_inner(mut self) -> T
+//     where
+//         T: Clone,
+//     {
+//         unsafe {
+//             if (*self.ref_count).load(Ordering::Acquire) == 1 {
+//                 self.consumed = true;
+//                 std::sync::atomic::fence(Ordering::SeqCst);
+//                 let value = Box::from_raw(self.value);
+//                 drop(Box::from_raw(self.ref_count as *mut AtomicUsize));
+//                 *value
+//             } else {
+//                 // Still need to decrement the ref count!
+//                 let clone = (*self.value).clone();
+//                 (*self.ref_count).fetch_sub(1, Ordering::Release);
+//                 clone
+//             }
+//         }
+//     }
+// }
+
+// impl<T> Deref for MutCell<T> {
+//     type Target = T;
+
+//     fn deref(&self) -> &Self::Target {
+//         self.get()
+//     }
+// }
+
+// impl<T: Clone> DerefMut for MutCell<T> {
+//     fn deref_mut(&mut self) -> &mut Self::Target {
+//         self.get_mut()
+//     }
+// }
+
+// impl<T> PartialEq for MutCell<T>
+// where
+//     T: PartialEq,
+// {
+//     fn eq(&self, other: &Self) -> bool {
+//         self.get() == other.get()
+//     }
+// }
+
+// impl<T: PartialOrd> PartialOrd for MutCell<T> {
+//     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+//         self.get().partial_cmp(other.get())
+//     }
+// }
+
+// impl<T> From<T> for MutCell<T> {
+//     fn from(value: T) -> Self {
+//         MutCell::new(value)
+//     }
+// }
+
+// impl<T> Clone for MutCell<T> {
+//     fn clone(&self) -> Self {
+//         unsafe {
+//             (*self.ref_count).fetch_add(1, Ordering::Relaxed);
+//         }
+//         MutCell {
+//             value: self.value,
+//             ref_count: self.ref_count,
+//             consumed: false,
+//         }
+//     }
+// }
+
+// impl<T> Drop for MutCell<T> {
+//     fn drop(&mut self) {
+//         if self.consumed {
+//             return;
+//         }
+//         unsafe {
+//             if (*self.ref_count).fetch_sub(1, Ordering::Release) == 1 {
+//                 std::sync::atomic::fence(Ordering::Acquire);
+//                 drop(Box::from_raw(self.value));
+//                 drop(Box::from_raw(self.ref_count as *mut AtomicUsize));
+//             }
+//         }
+//     }
+// }
+
 use std::{
-    ops::{Deref, DerefMut},
+    cell::UnsafeCell,
+    ops::Deref,
     sync::atomic::{AtomicUsize, Ordering},
 };
 
 pub struct MutCell<T> {
-    value: *mut T,
-    ref_count: *const AtomicUsize,
+    inner: *const ArcInner<T>,
     consumed: bool,
 }
 
+struct ArcInner<T> {
+    value: UnsafeCell<T>,
+    ref_count: AtomicUsize,
+}
+
+// Ensure MutCell<T> is safe to send/sync if T is
+unsafe impl<T: Send> Send for MutCell<T> {}
+unsafe impl<T: Sync> Sync for MutCell<T> {}
+
 impl<T> MutCell<T> {
     pub fn new(value: T) -> Self {
-        let value = Box::into_raw(Box::new(value));
-        let ref_count = Box::into_raw(Box::new(AtomicUsize::new(1)));
-        MutCell {
-            value,
-            ref_count,
+        let inner = Box::into_raw(Box::new(ArcInner {
+            value: UnsafeCell::new(value),
+            ref_count: AtomicUsize::new(1),
+        }));
+        Self {
+            inner,
             consumed: false,
         }
     }
 
     pub fn is_unique(&self) -> bool {
-        unsafe { (*self.ref_count).load(Ordering::Acquire) == 1 }
+        unsafe { (*self.inner).ref_count.load(Ordering::Acquire) == 1 }
     }
 
     pub fn is_shared(&self) -> bool {
@@ -29,11 +161,12 @@ impl<T> MutCell<T> {
     }
 
     pub fn get(&self) -> &T {
-        unsafe { &*self.value }
+        unsafe { &*(*self.inner).value.get() }
     }
 
     pub fn get_mut(&mut self) -> &mut T {
-        unsafe { &mut *self.value }
+        assert!(self.is_unique(), "Cannot mutably borrow shared MutCell");
+        unsafe { &mut *(*self.inner).value.get() }
     }
 
     pub fn into_inner(mut self) -> T
@@ -41,17 +174,41 @@ impl<T> MutCell<T> {
         T: Clone,
     {
         unsafe {
-            if (*self.ref_count).load(Ordering::Acquire) == 1 {
+            if (*self.inner).ref_count.load(Ordering::Acquire) == 1 {
                 self.consumed = true;
                 std::sync::atomic::fence(Ordering::SeqCst);
-                let value = Box::from_raw(self.value).clone();
-                drop(Box::from_raw(self.ref_count as *mut AtomicUsize));
-                *value
+                let boxed = Box::from_raw(self.inner as *mut ArcInner<T>);
+                boxed.value.into_inner()
             } else {
-                // Still need to decrement the ref count!
-                let clone = (*self.value).clone();
-                (*self.ref_count).fetch_sub(1, Ordering::Release);
+                let clone = (*(*self.inner).value.get()).clone();
+                (*self.inner).ref_count.fetch_sub(1, Ordering::Release);
                 clone
+            }
+        }
+    }
+}
+
+impl<T> Clone for MutCell<T> {
+    fn clone(&self) -> Self {
+        unsafe {
+            (*self.inner).ref_count.fetch_add(1, Ordering::Relaxed);
+        }
+        Self {
+            inner: self.inner,
+            consumed: false,
+        }
+    }
+}
+
+impl<T> Drop for MutCell<T> {
+    fn drop(&mut self) {
+        if self.consumed {
+            return;
+        }
+        unsafe {
+            if (*self.inner).ref_count.fetch_sub(1, Ordering::Release) == 1 {
+                std::sync::atomic::fence(Ordering::Acquire);
+                drop(Box::from_raw(self.inner as *mut ArcInner<T>));
             }
         }
     }
@@ -59,22 +216,12 @@ impl<T> MutCell<T> {
 
 impl<T> Deref for MutCell<T> {
     type Target = T;
-
     fn deref(&self) -> &Self::Target {
         self.get()
     }
 }
 
-impl<T: Clone> DerefMut for MutCell<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.get_mut()
-    }
-}
-
-impl<T> PartialEq for MutCell<T>
-where
-    T: PartialEq,
-{
+impl<T: PartialEq> PartialEq for MutCell<T> {
     fn eq(&self, other: &Self) -> bool {
         self.get() == other.get()
     }
@@ -88,35 +235,7 @@ impl<T: PartialOrd> PartialOrd for MutCell<T> {
 
 impl<T> From<T> for MutCell<T> {
     fn from(value: T) -> Self {
-        MutCell::new(value)
-    }
-}
-
-impl<T> Clone for MutCell<T> {
-    fn clone(&self) -> Self {
-        unsafe {
-            (*self.ref_count).fetch_add(1, Ordering::Relaxed);
-        }
-        MutCell {
-            value: self.value,
-            ref_count: self.ref_count,
-            consumed: false,
-        }
-    }
-}
-
-impl<T> Drop for MutCell<T> {
-    fn drop(&mut self) {
-        if self.consumed {
-            return;
-        }
-        unsafe {
-            if (*self.ref_count).fetch_sub(1, Ordering::Release) == 1 {
-                std::sync::atomic::fence(Ordering::Acquire);
-                drop(Box::from_raw(self.value));
-                drop(Box::from_raw(self.ref_count as *mut AtomicUsize));
-            }
-        }
+        Self::new(value)
     }
 }
 

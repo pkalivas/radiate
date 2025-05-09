@@ -55,22 +55,26 @@ where
         thread_pool: Arc<ThreadPool>,
         problem: Arc<dyn Problem<C, T>>,
     ) -> usize {
-        let mut work_results = Vec::new();
-        for idx in 0..ecosystem.population.len() {
-            let individual = &mut ecosystem.population[idx];
-            if individual.score().is_some() {
-                continue;
-            } else {
-                let problem = Arc::clone(&problem);
-                let geno = individual.take_genotype();
-                let work = thread_pool.submit_with_result(move || {
-                    let score = problem.eval(&geno);
-                    (idx, score, geno)
-                });
-
-                work_results.push(work);
+        let mut jobs = Vec::new();
+        let len = ecosystem.population.len();
+        for idx in 0..len {
+            if ecosystem.population[idx].score().is_none() {
+                let geno = ecosystem.population[idx].take_genotype();
+                jobs.push((idx, geno));
             }
         }
+
+        let problem = Arc::clone(&problem);
+        let work_results: Vec<_> = jobs
+            .into_iter()
+            .map(|(idx, geno)| {
+                let problem = Arc::clone(&problem);
+                thread_pool.submit_with_result(move || {
+                    let score = problem.eval(&geno);
+                    (idx, score, geno)
+                })
+            })
+            .collect();
 
         let count = work_results.len();
         for work_result in work_results {
