@@ -45,7 +45,6 @@ class Engine:
     def run(self, limits: Limit | List[Limit]):
         limits = [lim.params for lim in (limits if isinstance(limits, list) else [limits])]
         engine = self.__get_engine()
-        print(limits)
         engine.run(limits)
 
     def population_size(self, size: int):
