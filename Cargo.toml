@@ -10,6 +10,7 @@ members = [
     "crates/radiate-error",
     "crates/radiate-python",
 
+    "py-radiate",
     
     "examples/min-sum",
     "examples/hello-world",
