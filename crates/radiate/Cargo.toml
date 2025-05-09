@@ -1,23 +1,23 @@
 [package]
 name = "radiate"
-version = "1.2.10"
-edition = "2024"
-authors = ["pkalivas <peterkalivas@gmail.com>"]
+version = { workspace = true }
+edition = { workspace = true }
+authors = { workspace = true }
 description = "A Rust library for genetic algorithms and artificial evolution."
-repository = "https://github.com/pkalivas/radiate"
-readme = "../README.md"
-categories = ["science", "simulation", "algorithms"]
+repository = { workspace = true }
+readme = "../../README.md"
+categories = { workspace = true }
 keywords = ["simulation", "genetic", "learning", "artificial", "evolution"]
-license = "MIT"
-homepage = "https://pkalivas.github.io/radiate/"
+license = { workspace = true }
+homepage = { workspace = true }
 
 [dependencies]
-rand = "0.9.0"
-radiate-core = { path = "../radiate-core" }
-radiate-alters = { path = "../radiate-alters" }
-radiate-selectors = { path = "../radiate-selectors" }
-radiate-engines = { path = "../radiate-engines" }
-radiate-gp = { path = "../radiate-gp", optional = true }
+rand = { workspace = true }
+radiate-core = { workspace = true }
+radiate-alters = { workspace = true }
+radiate-selectors = { workspace = true }
+radiate-engines = { workspace = true }
+radiate-gp = { workspace = true, optional = true }
 
 [features]
 default = []

@@ -1,18 +1,18 @@
 [package]
 name = "radiate-selectors"
-version = "0.0.1"
-edition = "2024"
-authors = ["pkalivas <peterkalivas@gmail.com>"]
-description = "Selection strategies for the Radiate genetic algorithm library"
-repository = "https://github.com/pkalivas/radiate"
+version = { workspace = true }
+edition = { workspace = true }
+authors = { workspace = true }
+description = "Selection strategies for the Radiate genetic algorithm library."
+repository = { workspace = true }
 readme = "../../README.md"
-categories = ["science", "simulation", "algorithms"]
+categories = { workspace = true }
 keywords = ["simulation", "genetic", "learning", "artificial", "evolution"]
-license = "MIT"
-homepage = "https://pkalivas.github.io/radiate/"
+license = { workspace = true }
+homepage = { workspace = true }
 
 [dependencies]
-radiate-core = { path = "../radiate-core" }
+radiate-core = { workspace = true }
 
 [dev-dependencies]
 rstest = "0.25.0"

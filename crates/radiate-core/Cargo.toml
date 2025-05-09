@@ -1,15 +1,15 @@
 [package]
 name = "radiate-core"
-version = "0.0.1"
-edition = "2024"
-authors = ["pkalivas <peterkalivas@gmail.com>"]
-description = "Core traits and interfaces for the Radiate genetic algorithm library"
-repository = "https://github.com/pkalivas/radiate"
+version = { workspace = true }
+edition = { workspace = true }
+authors = { workspace = true }
+description = "Core traits and interfaces for the Radiate genetic algorithm library."
+repository = { workspace = true }
 readme = "../../README.md"
-categories = ["science", "simulation", "algorithms"]
+categories = { workspace = true }
 keywords = ["simulation", "genetic", "learning", "artificial", "evolution"]
-license = "MIT"
-homepage = "https://pkalivas.github.io/radiate/"
+license = { workspace = true }
+homepage = { workspace = true }
 
 [dependencies]
-rand = "0.9.0" 
+rand = { workspace = true }

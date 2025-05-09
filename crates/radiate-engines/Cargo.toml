@@ -1,18 +1,18 @@
 [package]
 name = "radiate-engines"
-version = "0.0.1"
-edition = "2024"
-authors = ["pkalivas <peterkalivas@gmail.com>"]
-description = "Engines for the Radiate genetic algorithm library"
-repository = "https://github.com/pkalivas/radiate"
+version = { workspace = true }
+edition = { workspace = true }
+authors = { workspace = true }
+description = "Engines for the Radiate genetic algorithm library."
+repository = { workspace = true }
 readme = "../../README.md"
-categories = ["science", "simulation", "algorithms"]
+categories = { workspace = true }
 keywords = ["simulation", "genetic", "learning", "artificial", "evolution"]
-license = "MIT"
-homepage = "https://pkalivas.github.io/radiate/"
+license = { workspace = true }
+homepage = { workspace = true }
 
 [dependencies]
-radiate-core = { path = "../radiate-core" }
-radiate-alters = { path = "../radiate-alters" }
-radiate-selectors = { path = "../radiate-selectors" }
-radiate-error = { path = "../radiate-error" }
+radiate-core = { workspace = true }
+radiate-alters = { workspace = true }
+radiate-selectors = { workspace = true }
+radiate-error = { workspace = true }
