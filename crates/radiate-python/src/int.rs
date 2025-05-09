@@ -98,7 +98,7 @@ impl PyIntEngine {
             .map(|lim| Limit::from(lim))
             .collect::<Vec<_>>();
         let engine = &mut self.engine;
-        engine.run(|epoch| {
+        let result = engine.run(|epoch| {
             log_ctx!(epoch);
 
             for limit in lims.iter() {
@@ -123,5 +123,7 @@ impl PyIntEngine {
 
             false
         });
+
+        println!("{:?}", result);
     }
 }
