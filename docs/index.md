@@ -18,6 +18,8 @@
 [pypi_badge]: https://img.shields.io/pypi/v/radiate?color=blue
 
 ___
+As of `05/09/2025` Python bindings are in active development.
+
 Radiate is a powerful Rust library designed for implementing genetic algorithms and artificial evolution techniques. It
 provides a fast and flexible framework for creating, evolving, and optimizing solutions to complex problems using principles
 inspired by natural selection and genetics. With an intuitive, 'plug and play' style API, Radiate allows you to quickly test a multitude of evolutionary strategies and configurations.
