@@ -1,17 +1,17 @@
 import os
 import sys
+import math
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, project_root)
 
 
-import math
 import radiate as rd
 
 rd.random.set_seed(100)
 
 codex = rd.IntCodex([10], (0, 10))
-engine = rd.Engine(codex, lambda x: sum(x[0]))
+engine = rd.GeneticEngine(codex, lambda x: sum(x[0]))
 engine.offspring_selector(rd.BoltzmannSelector(4))
 engine.alters([
     rd.MultiPointCrossover(0.75, 2), 

@@ -8,7 +8,7 @@ from .limit import Limit
 from radiate.radiate import PyEngineBuilder, PyFloatEngine, PyIntEngine
 
 
-class Engine:
+class GeneticEngine:
     def __init__(
         self,
         codex: FloatCodex | IntCodex,
