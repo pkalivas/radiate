@@ -1,7 +1,8 @@
 use crate::PyEngineParam;
 use radiate::{
-    BoltzmannSelector, Chromosome, EliteSelector, GeneticEngineBuilder, RankSelector,
-    RouletteSelector, StochasticUniversalSamplingSelector, TournamentSelector,
+    BoltzmannSelector, Chromosome, EliteSelector, GeneticEngineBuilder, LinearRankSelector,
+    NSGA2Selector, RankSelector, RouletteSelector, StochasticUniversalSamplingSelector,
+    TournamentSelector,
 };
 
 pub(crate) fn set_selector<C, T>(
@@ -52,6 +53,21 @@ where
         return match is_offspring {
             true => builder.offspring_selector(StochasticUniversalSamplingSelector::new()),
             false => builder.survivor_selector(StochasticUniversalSamplingSelector::new()),
+        };
+    } else if selector.name() == "linear_rank" {
+        let args = selector.get_args();
+        let selection_pressure = args
+            .get("pressure")
+            .and_then(|s| s.parse::<f32>().ok())
+            .unwrap_or(1.0);
+        return match is_offspring {
+            true => builder.offspring_selector(LinearRankSelector::new(selection_pressure)),
+            false => builder.survivor_selector(LinearRankSelector::new(selection_pressure)),
+        };
+    } else if selector.name() == "nsga2" {
+        return match is_offspring {
+            true => builder.offspring_selector(NSGA2Selector::new()),
+            false => builder.survivor_selector(NSGA2Selector::new()),
         };
     }
 

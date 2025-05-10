@@ -14,7 +14,9 @@ from .selector import (
     RankSelector, 
     ElitismSelector,
     StocasticSamplingSelector,
-    BoltzmannSelector
+    BoltzmannSelector,
+    LinearRankSelector,
+    NSGA2Selector
 )
 
 from .alterer import (
@@ -49,6 +51,8 @@ __all__ = [
     'ElitismSelector',
     'StocasticSamplingSelector', 
     'BoltzmannSelector',
+    'LinearRankSelector',
+    'NSGA2Selector',
 
     'BlendCrossover',
     'IntermediateCrossover',
