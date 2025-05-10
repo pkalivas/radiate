@@ -1,11 +1,14 @@
-use crate::{AnyValue, DataType, Field};
-use pyo3::{pyclass, pymethods};
+use crate::conversion::ObjectValue;
+use pyo3::{
+    Python, pyclass, pymethods,
+    types::{PyList, PyListMethods},
+};
 use radiate::{Chromosome, FnCodex, Gene, IntChromosome};
 
 #[pyclass]
 #[derive(Clone)]
 pub struct PyIntCodex {
-    pub codex: FnCodex<IntChromosome<i32>, AnyValue<'static>>,
+    pub codex: FnCodex<IntChromosome<i32>, ObjectValue>,
 }
 
 unsafe impl Send for PyIntCodex {}
@@ -21,10 +24,11 @@ impl PyIntCodex {
         bound_range: Option<(i32, i32)>,
     ) -> Self {
         let lengths = chromosome_lengths.unwrap_or(vec![1]);
-        let val_range = value_range.unwrap_or((0, 1));
-        let bound_range = bound_range.unwrap_or(val_range);
-        let val_range = val_range.0..val_range.1;
-        let bound_range = bound_range.0..bound_range.1;
+        let val_range = value_range.map(|rng| rng.0..rng.1).unwrap_or(0..1);
+        let bound_range = bound_range
+            .map(|rng| rng.0..rng.1)
+            .unwrap_or(val_range.clone());
+
         PyIntCodex {
             codex: FnCodex::new()
                 .with_encoder(move || {
@@ -37,34 +41,22 @@ impl PyIntCodex {
                         .into()
                 })
                 .with_decoder(|geno| {
-                    let mut list = Vec::new();
-                    for chromo in geno.iter() {
-                        let mut genes = Vec::new();
-                        for gene in chromo.iter() {
-                            genes.push(AnyValue::from(*gene.allele()));
+                    let res = Python::with_gil(|py| {
+                        let outer = PyList::empty(py);
+                        for chromo in geno.iter() {
+                            let inner = PyList::empty(py);
+                            for gene in chromo.iter() {
+                                inner.append(*gene.allele()).unwrap();
+                            }
+                            outer.append(inner).unwrap();
                         }
-                        list.push(AnyValue::VecOwned(Box::new((
-                            genes,
-                            Field::new(
-                                std::any::type_name::<Vec<i32>>().to_string(),
-                                DataType::List(Box::new(Field::new(
-                                    "item".to_string(),
-                                    DataType::Null,
-                                ))),
-                            ),
-                        ))));
-                    }
 
-                    AnyValue::VecOwned(Box::new((
-                        list,
-                        Field::new(
-                            std::any::type_name::<Vec<Vec<i32>>>().to_string(),
-                            DataType::List(Box::new(Field::new(
-                                "item".to_string(),
-                                DataType::Null,
-                            ))),
-                        ),
-                    )))
+                        outer.unbind()
+                    });
+
+                    ObjectValue {
+                        inner: res.into_any(),
+                    }
                 }),
         }
     }

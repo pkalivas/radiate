@@ -1,6 +1,6 @@
 use crate::{
-    AnyValue, PyEngineBuilder, PyEngineParam, PyFloatCodex, PyGeneration, ThreadSafePythonFn,
-    conversion::any_value_into_py_object, run_single_objective_engine,
+    PyEngineBuilder, PyEngineParam, PyFloatCodex, PyGeneration, ThreadSafePythonFn,
+    conversion::ObjectValue, run_single_objective_engine,
 };
 use pyo3::{
     PyObject, PyResult, Python, pyclass, pymethods,
@@ -10,7 +10,7 @@ use radiate::{Epoch, FloatChromosome, Generation, GeneticEngine, steps::Sequenti
 
 #[pyclass]
 pub struct PyFloatEngine {
-    pub engine: Option<GeneticEngine<FloatChromosome, AnyValue<'static>>>,
+    pub engine: Option<GeneticEngine<FloatChromosome, ObjectValue>>,
 }
 
 #[pymethods]
@@ -19,12 +19,11 @@ impl PyFloatEngine {
     #[pyo3(signature = (codex, fitness_func, builder))]
     pub fn new(codex: PyFloatCodex, fitness_func: PyObject, builder: PyEngineBuilder) -> Self {
         let fitness = ThreadSafePythonFn::new(fitness_func);
-
         let mut engine = GeneticEngine::builder()
             .codex(codex.codex)
             .num_threads(builder.num_threads)
             .evaluator(SequentialEvaluator)
-            .fitness_fn(move |decoded: AnyValue<'_>| {
+            .fitness_fn(move |decoded: ObjectValue| {
                 Python::with_gil(|py| fitness.call(py, decoded))
             })
             .population_size(builder.population_size);
@@ -44,7 +43,7 @@ impl PyFloatEngine {
     }
 }
 
-impl Into<PyGeneration> for Generation<FloatChromosome, AnyValue<'static>> {
+impl Into<PyGeneration> for Generation<FloatChromosome, ObjectValue> {
     fn into(self) -> PyGeneration {
         Python::with_gil(|py| {
             let score = PyList::empty(py);
@@ -55,9 +54,7 @@ impl Into<PyGeneration> for Generation<FloatChromosome, AnyValue<'static>> {
 
             PyGeneration {
                 score: score.unbind(),
-                value: any_value_into_py_object(self.value().clone(), py)
-                    .unwrap()
-                    .unbind(),
+                value: self.value().clone().inner,
                 metrics: self.metrics().clone().into(),
             }
         })
