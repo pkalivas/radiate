@@ -9,10 +9,6 @@ impl StochasticUniversalSamplingSelector {
 }
 
 impl<C: Chromosome> Select<C> for StochasticUniversalSamplingSelector {
-    fn name(&self) -> &'static str {
-        "StochasticUniversalSamplingSelector"
-    }
-
     fn select(
         &self,
         population: &Population<C>,

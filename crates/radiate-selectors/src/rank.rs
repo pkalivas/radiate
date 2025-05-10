@@ -14,10 +14,6 @@ impl RankSelector {
 }
 
 impl<C: Chromosome> Select<C> for RankSelector {
-    fn name(&self) -> &'static str {
-        "RankSelector"
-    }
-
     fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {
         let mut selected = Vec::with_capacity(count);
 

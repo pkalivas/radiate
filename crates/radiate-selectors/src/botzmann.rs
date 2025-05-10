@@ -13,10 +13,6 @@ impl BoltzmannSelector {
 }
 
 impl<C: Chromosome> Select<C> for BoltzmannSelector {
-    fn name(&self) -> &'static str {
-        "BoltzmannSelector"
-    }
-
     fn select(
         &self,
         population: &Population<C>,

@@ -40,19 +40,21 @@ pub struct PyEngineBuilder {
     pub offspring_selector: PyEngineParam,
     pub alters: Vec<PyEngineParam>,
     pub population_size: usize,
+    pub offspring_fraction: f32,
 }
 
 #[pymethods]
 impl PyEngineBuilder {
     #[new]
     #[pyo3(signature = (objectives, survivor_selector, offspring_selector, alters,
-    population_size))]
+    population_size, offspring_fraction))]
     pub fn new(
         objectives: Vec<String>,
         survivor_selector: PyEngineParam,
         offspring_selector: PyEngineParam,
         alters: Vec<PyEngineParam>,
         population_size: usize,
+        offspring_fraction: f32,
     ) -> Self {
         Self {
             objectives,
@@ -60,6 +62,7 @@ impl PyEngineBuilder {
             offspring_selector,
             alters,
             population_size,
+            offspring_fraction,
         }
     }
 
@@ -77,5 +80,9 @@ impl PyEngineBuilder {
 
     pub fn set_alters(&mut self, alters: Vec<PyEngineParam>) {
         self.alters = alters;
+    }
+
+    pub fn set_offspring_fraction(&mut self, fraction: f32) {
+        self.offspring_fraction = fraction;
     }
 }

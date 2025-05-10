@@ -12,10 +12,6 @@ impl RouletteSelector {
 }
 
 impl<C: Chromosome> Select<C> for RouletteSelector {
-    fn name(&self) -> &'static str {
-        "RouletteSelector"
-    }
-
     fn select(
         &self,
         population: &Population<C>,

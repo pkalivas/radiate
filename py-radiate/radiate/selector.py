@@ -73,3 +73,22 @@ class StocasticSamplingSelector(Selector):
         super().__init__(
             name='stocastic_universal_sampling'
         )
+
+class LinearRankSelector(Selector):
+    def __init__(self, pressure: float = 0.5):
+        """
+        Initialize the linear rank selector.
+        """
+        super().__init__(
+            name='linear_rank',
+            args={'pressure': str(pressure)}
+        )
+
+class NSGA2Selector(Selector):
+    def __init__(self):
+        """
+        Initialize the NSGA2 selector.
+        """
+        super().__init__(
+            name='nsga2',
+        )

@@ -14,7 +14,9 @@ from .selector import (
     RankSelector, 
     ElitismSelector,
     StocasticSamplingSelector,
-    BoltzmannSelector
+    BoltzmannSelector,
+    LinearRankSelector,
+    NSGA2Selector
 )
 
 from .alterer import (
@@ -24,6 +26,13 @@ from .alterer import (
     UniformCrossover,
     UniformMutator,
     MultiPointCrossover,
+    MeanCrossover,
+    ShuffleCrossover,
+    SimulatedBinaryCrossover,
+    PartiallyMatchedCrossover,
+    GaussianMutator,
+    ScrambleMutator,
+    SwapMutator
 )
 
 __all__ = [
@@ -42,6 +51,8 @@ __all__ = [
     'ElitismSelector',
     'StocasticSamplingSelector', 
     'BoltzmannSelector',
+    'LinearRankSelector',
+    'NSGA2Selector',
 
     'BlendCrossover',
     'IntermediateCrossover',
@@ -49,6 +60,13 @@ __all__ = [
     'ArithmeticMutator'
     'UniformMutator',
     'MultiPointCrossover',
+    'MeanCrossover',
+    'ShuffleCrossover',
+    'SimulatedBinaryCrossover',
+    'PartiallyMatchedCrossover',
+    'GaussianMutator',
+    'ScrambleMutator',
+    'SwapMutator',
 
     'random',
 ]

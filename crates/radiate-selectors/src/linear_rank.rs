@@ -11,10 +11,6 @@ impl LinearRankSelector {
 }
 
 impl<C: Chromosome> Select<C> for LinearRankSelector {
-    fn name(&self) -> &'static str {
-        "LinearRankSelector"
-    }
-
     fn select(
         &self,
         population: &Population<C>,
