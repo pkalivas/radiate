@@ -9,6 +9,12 @@ from radiate.radiate import PyEngineBuilder, PyFloatEngine, PyIntEngine
 
 
 class GeneticEngine:
+    """
+    Genetic Engine for optimization problems.
+    This class serves as the main interface for running genetic algorithms, allowing
+    the customization of various parameters of the engine.
+    """
+
     def __init__(
         self,
         codex: FloatCodex | IntCodex,
