@@ -35,7 +35,7 @@ impl PyGeneration {
         let value = self.value(py)?;
 
         Ok(format!(
-            "Generation(score={}, value={}, metrics={})",
+            "Generation(\n\tscore={},\n\tvalue={},\n\t metrics={})",
             score,
             value,
             self.metrics.__repr__()

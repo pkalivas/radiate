@@ -31,6 +31,7 @@ pub enum DataType {
     Float32,
     /// A [`f64`]
     Float64,
+    Char,
     /// Opaque binary data of variable length whose offsets are represented as [`i32`].
     Binary,
     /// Opaque binary data of fixed size.

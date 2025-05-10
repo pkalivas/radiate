@@ -48,6 +48,7 @@ pub trait Epoch {
     fn ecosystem(&self) -> &Ecosystem<Self::Chromosome>;
     fn index(&self) -> usize;
     fn metrics(&self) -> &MetricSet;
+    fn objective(&self) -> &Objective;
 
     fn population(&self) -> &Population<Self::Chromosome> {
         &self.ecosystem().population()

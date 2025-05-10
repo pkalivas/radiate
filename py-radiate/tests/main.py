@@ -10,6 +10,25 @@ import radiate as rd
 
 rd.random.set_seed(100)
 
+# target = "Hello, Radiate!"
+# def fitness_fn(x):
+#     '''The fitness function for the string matching problem.'''
+#     x = x[0]
+#     value = 0
+#     for i in range(len(x)):
+#         if x[i] == target[i]:
+#             value += 1
+#     return value
+
+# codex = rd.CharCodex([len(target)])
+# engine = rd.GeneticEngine(codex, fitness_fn)
+# engine.maximizing()
+# engine.offspring_selector(rd.BoltzmannSelector(4))
+
+# result = engine.run(rd.ScoreLimit(len(target)), log=False)
+
+# print(result)
+
 codex = rd.IntCodex([10], (0, 10))
 engine = rd.GeneticEngine(codex, lambda x: sum(x[0]))
 engine.offspring_selector(rd.BoltzmannSelector(4))

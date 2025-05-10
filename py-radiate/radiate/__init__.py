@@ -1,5 +1,5 @@
 from .engine import GeneticEngine
-from .codex import FloatCodex, IntCodex
+from .codex import FloatCodex, IntCodex, CharCodex
 from .random import RandomProvider as random
 from .limit import SecondsLimit, GenerationsLimit, ScoreLimit
 
@@ -33,6 +33,7 @@ from .alterer import (
 __all__ = [
     "FloatCodex",
     "IntCodex",
+    "CharCodex",
     "GeneticEngine",
     "SecondsLimit",
     "GenerationsLimit",

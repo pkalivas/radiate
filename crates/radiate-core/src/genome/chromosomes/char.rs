@@ -160,12 +160,36 @@ impl AsMut<[CharGene]> for CharChromosome {
     }
 }
 
-impl<T: Into<String>> From<T> for CharChromosome {
-    fn from(alleles: T) -> Self {
-        let char_set: Arc<[char]> = alleles.into().chars().collect::<Vec<char>>().into();
+impl From<String> for CharChromosome {
+    fn from(alleles: String) -> Self {
+        let char_set: Arc<[char]> = alleles.chars().collect::<Vec<char>>().into();
         let genes = char_set
             .iter()
             .map(|&allele| CharGene::from((allele, Arc::clone(&char_set))))
+            .collect();
+        CharChromosome { genes }
+    }
+}
+
+impl From<&str> for CharChromosome {
+    fn from(alleles: &str) -> Self {
+        let char_set: Arc<[char]> = alleles.chars().collect::<Vec<char>>().into();
+        let genes = char_set
+            .iter()
+            .map(|&allele| CharGene::from((allele, Arc::clone(&char_set))))
+            .collect();
+        CharChromosome { genes }
+    }
+}
+
+impl<T: Into<String>> From<(usize, Option<T>)> for CharChromosome {
+    fn from((length, alleles): (usize, Option<T>)) -> Self {
+        let char_set: Arc<[char]> = alleles
+            .map(|chars| chars.into().chars().collect::<Vec<char>>())
+            .unwrap_or_else(|| ALPHABET.chars().collect::<Vec<char>>())
+            .into();
+        let genes = (0..length)
+            .map(|_| CharGene::new(Arc::clone(&char_set)))
             .collect();
         CharChromosome { genes }
     }
