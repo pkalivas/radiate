@@ -153,6 +153,19 @@ macro_rules! print_metrics {
 }
 
 #[macro_export]
+macro_rules! metricset_to_string {
+    ($metric_set:expr) => {{
+        use std::collections::HashSet;
+        let mut result = String::new();
+
+        for (name, metric) in $metric_set.iter() {
+            result.push_str(&format!("{:?}\n", metric));
+        }
+        result
+    }};
+}
+
+#[macro_export]
 macro_rules! log_ctx {
     ($ctx:expr) => {{
         println!(

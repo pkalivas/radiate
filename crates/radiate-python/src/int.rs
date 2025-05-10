@@ -1,7 +1,13 @@
-use crate::{AnyValue, Limit, PyEngineBuilder, PyEngineParam, ThreadSafePythonFn};
-use pyo3::{PyObject, Python, pyclass, pymethods};
+use crate::{
+    AnyValue, DataType, Field, Limit, PyEngineBuilder, PyEngineParam, PyGeneration,
+    ThreadSafePythonFn, conversion::any_value_into_py_object,
+};
+use pyo3::{
+    PyObject, PyResult, Python, pyclass, pymethods,
+    types::{PyList, PyListMethods},
+};
 use radiate::{
-    Chromosome, EngineExt, Epoch, FnCodex, Gene, GeneticEngine, IntChromosome, log_ctx,
+    Chromosome, EngineExt, Epoch, FnCodex, Gene, Generation, GeneticEngine, IntChromosome, log_ctx,
     steps::SequentialEvaluator,
 };
 use std::ops::Range;
@@ -35,7 +41,7 @@ impl PyIntCodex {
 
 #[pyclass]
 pub struct PyIntEngine {
-    pub engine: GeneticEngine<IntChromosome<i32>, Vec<Vec<i32>>>,
+    pub engine: GeneticEngine<IntChromosome<i32>, AnyValue<'static>>,
 }
 
 #[pymethods]
@@ -59,14 +65,40 @@ impl PyIntEngine {
                     .into()
             })
             .with_decoder(|geno| {
-                geno.iter()
-                    .map(|chromo| {
-                        chromo
-                            .iter()
-                            .map(|gene| *gene.allele())
-                            .collect::<Vec<i32>>()
-                    })
-                    .collect::<Vec<Vec<i32>>>()
+                let mut list = Vec::new();
+                for chromo in geno.iter() {
+                    let mut genes = Vec::new();
+                    for gene in chromo.iter() {
+                        genes.push(AnyValue::from(*gene.allele()));
+                    }
+                    list.push(AnyValue::VecOwned(Box::new((
+                        genes,
+                        Field::new(
+                            std::any::type_name::<Vec<i32>>().to_string(),
+                            DataType::List(Box::new(Field::new(
+                                "item".to_string(),
+                                DataType::Null,
+                            ))),
+                        ),
+                    ))));
+                }
+
+                AnyValue::VecOwned(Box::new((
+                    list,
+                    Field::new(
+                        std::any::type_name::<Vec<Vec<i32>>>().to_string(),
+                        DataType::List(Box::new(Field::new("item".to_string(), DataType::Null))),
+                    ),
+                )))
+
+                // geno.iter()
+                //     .map(|chromo| {
+                //         chromo
+                //             .iter()
+                //             .map(|gene| *gene.allele())
+                //             .collect::<Vec<i32>>()
+                //     })
+                //     .collect::<Vec<Vec<i32>>>()
             });
 
         let fitness = ThreadSafePythonFn::new(fitness_func);
@@ -75,11 +107,8 @@ impl PyIntEngine {
             .codex(codex)
             .minimizing()
             .evaluator(SequentialEvaluator)
-            .fitness_fn(move |decoded: Vec<Vec<i32>>| {
-                Python::with_gil(|py| {
-                    let wrapped_decoded = AnyValue::from(decoded);
-                    fitness.call(py, wrapped_decoded)
-                })
+            .fitness_fn(move |decoded: AnyValue<'_>| {
+                Python::with_gil(|py| fitness.call(py, decoded))
             })
             .population_size(builder.population_size);
 
@@ -92,14 +121,16 @@ impl PyIntEngine {
         }
     }
 
-    pub fn run(&mut self, limits: Vec<PyEngineParam>) {
+    pub fn run(&mut self, limits: Vec<PyEngineParam>, log: bool) -> PyResult<PyGeneration> {
         let lims = limits
             .into_iter()
             .map(|lim| Limit::from(lim))
             .collect::<Vec<_>>();
         let engine = &mut self.engine;
         let result = engine.run(|epoch| {
-            log_ctx!(epoch);
+            if log {
+                log_ctx!(epoch);
+            }
 
             for limit in lims.iter() {
                 match limit {
@@ -124,6 +155,30 @@ impl PyIntEngine {
             false
         });
 
-        println!("{:?}", result);
+        if log {
+            println!("{:?}", result);
+        }
+
+        Ok(result.into())
+    }
+}
+
+impl Into<PyGeneration> for Generation<IntChromosome<i32>, AnyValue<'static>> {
+    fn into(self) -> PyGeneration {
+        Python::with_gil(|py| {
+            let score = PyList::empty(py);
+
+            for val in self.score().values.iter() {
+                score.append(*val).unwrap();
+            }
+
+            PyGeneration {
+                score: score.unbind(),
+                value: any_value_into_py_object(self.value().clone(), py)
+                    .unwrap()
+                    .unbind(),
+                metrics: self.metrics().clone().into(),
+            }
+        })
     }
 }

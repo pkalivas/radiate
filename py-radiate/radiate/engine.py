@@ -5,7 +5,7 @@ from ._typing import GeneType
 from .codex import FloatCodex, IntCodex
 from .limit import Limit
 
-from radiate.radiate import PyEngineBuilder, PyFloatEngine, PyIntEngine
+from radiate.radiate import PyEngineBuilder, PyFloatEngine, PyIntEngine, PyGeneration
 
 
 class GeneticEngine:
@@ -50,7 +50,7 @@ class GeneticEngine:
             offspring_fraction=offspring_fraction,
         )
 
-    def run(self, limits: Limit | List[Limit]):
+    def run(self, limits: Limit | List[Limit], log: bool = False) -> PyGeneration:
         """Run the engine with the given limits."""
         if limits is None:
             raise ValueError("Limits must be provided.")
@@ -58,7 +58,7 @@ class GeneticEngine:
             lim.params for lim in (limits if isinstance(limits, list) else [limits])
         ]
         engine = self.__get_engine()
-        engine.run(limits)
+        return engine.run(limits, log)
 
     def population_size(self, size: int):
         """Set the population size."""

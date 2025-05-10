@@ -18,7 +18,9 @@ engine.alters([
     rd.UniformMutator(0.01)
 ])
 
-engine.run(rd.ScoreLimit(0))
+result = engine.run(rd.ScoreLimit(0), log=False)
+
+print(result)
 
 
 # A = 10.0
