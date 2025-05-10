@@ -1,24 +1,45 @@
 import os
 import sys
+import math
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, project_root)
 
 
-import math
 import radiate as rd
 
 rd.random.set_seed(100)
 
+# target = "Hello, Radiate!"
+# def fitness_fn(x):
+#     '''The fitness function for the string matching problem.'''
+#     x = x[0]
+#     value = 0
+#     for i in range(len(x)):
+#         if x[i] == target[i]:
+#             value += 1
+#     return value
+
+# codex = rd.CharCodex([len(target)])
+# engine = rd.GeneticEngine(codex, fitness_fn)
+# engine.maximizing()
+# engine.offspring_selector(rd.BoltzmannSelector(4))
+
+# result = engine.run(rd.ScoreLimit(len(target)), log=False)
+
+# print(result)
+
 codex = rd.IntCodex([10], (0, 10))
-engine = rd.Engine(codex, lambda x: sum(x[0]))
+engine = rd.GeneticEngine(codex, lambda x: sum(x[0]))
 engine.offspring_selector(rd.BoltzmannSelector(4))
 engine.alters([
     rd.MultiPointCrossover(0.75, 2), 
     rd.UniformMutator(0.01)
 ])
 
-engine.run(rd.ScoreLimit(0))
+result = engine.run(rd.ScoreLimit(0), log=False)
+
+print(result)
 
 
 # A = 10.0

@@ -1,7 +1,7 @@
 use crate::Chromosome;
 use radiate_core::engine::Context;
 use radiate_core::objectives::Scored;
-use radiate_core::{Ecosystem, Epoch, Front, MetricSet, Phenotype, Score};
+use radiate_core::{Ecosystem, Epoch, Front, MetricSet, Objective, Phenotype, Score};
 use std::fmt::Debug;
 
 pub struct Generation<C, T>
@@ -13,6 +13,7 @@ where
     index: usize,
     metrics: MetricSet,
     score: Score,
+    objective: Objective,
 }
 
 impl<C: Chromosome, T> Generation<C, T> {
@@ -40,6 +41,10 @@ impl<C: Chromosome, T> Epoch for Generation<C, T> {
     fn metrics(&self) -> &MetricSet {
         &self.metrics
     }
+
+    fn objective(&self) -> &Objective {
+        &self.objective
+    }
 }
 
 impl<C: Chromosome, T> Scored for Generation<C, T> {
@@ -56,6 +61,7 @@ impl<C: Chromosome, T: Clone> From<&Context<C, T>> for Generation<C, T> {
             index: context.index,
             metrics: context.metrics.clone(),
             score: context.score.clone().unwrap(),
+            objective: context.objective.clone(),
         }
     }
 }
@@ -91,6 +97,7 @@ where
     front: Front<Phenotype<C>>,
     index: usize,
     metrics: MetricSet,
+    objective: Objective,
 }
 
 impl<C: Chromosome> Epoch for MultiObjectiveGeneration<C>
@@ -115,6 +122,10 @@ where
     fn metrics(&self) -> &MetricSet {
         &self.metrics
     }
+
+    fn objective(&self) -> &Objective {
+        &self.objective
+    }
 }
 
 impl<C: Chromosome, T: Clone> From<&Context<C, T>> for MultiObjectiveGeneration<C> {
@@ -124,6 +135,7 @@ impl<C: Chromosome, T: Clone> From<&Context<C, T>> for MultiObjectiveGeneration<
             front: context.front.read().unwrap().clone(),
             index: context.index,
             metrics: context.metrics.clone(),
+            objective: context.objective.clone(),
         }
     }
 }

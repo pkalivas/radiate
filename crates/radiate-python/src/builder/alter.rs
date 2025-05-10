@@ -1,7 +1,7 @@
 use crate::PyEngineParam;
 use radiate::{
     Alter, ArithmeticGene, ArithmeticMutator, BlendCrossover, Chromosome, Crossover, FloatGene,
-    GaussianMutator, GeneticEngineBuilder, IntermediateCrossover, MeanCrossover,
+    GaussianMutator, Gene, GeneticEngineBuilder, IntermediateCrossover, MeanCrossover,
     MultiPointCrossover, Mutate, ScrambleMutator, ShuffleCrossover, SimulatedBinaryCrossover,
     SwapMutator, UniformCrossover, UniformMutator, alters,
 };
@@ -172,6 +172,76 @@ where
                     .map(|s| s.parse::<f32>().unwrap())
                     .unwrap_or(0.5);
                 alters!(MeanCrossover::new(rate))
+            }
+            "shuffle_crossover" => {
+                let rate = args
+                    .get("rate".into())
+                    .map(|s| s.parse::<f32>().unwrap())
+                    .unwrap_or(0.5);
+                alters!(ShuffleCrossover::new(rate))
+            }
+            "scramble_mutator" => {
+                let rate = args
+                    .get("rate".into())
+                    .map(|s| s.parse::<f32>().unwrap())
+                    .unwrap_or(0.5);
+                alters!(ScrambleMutator::new(rate))
+            }
+            "swap_mutator" => {
+                let rate = args
+                    .get("rate".into())
+                    .map(|s| s.parse::<f32>().unwrap())
+                    .unwrap_or(0.5);
+                alters!(SwapMutator::new(rate))
+            }
+            _ => panic!("Unknown alter type"),
+        });
+    }
+
+    let alters = alters_vec.into_iter().flatten().collect::<Vec<_>>();
+    builder.alter(alters)
+}
+
+pub fn get_alters_with_char_gene<C, G, T>(
+    builder: GeneticEngineBuilder<C, T>,
+    alters: &Vec<PyEngineParam>,
+) -> GeneticEngineBuilder<C, T>
+where
+    C: Chromosome<Gene = G> + 'static,
+    T: Clone + Send + Sync,
+    G: Gene,
+    G::Allele: Clone,
+{
+    let mut alters_vec = Vec::new();
+
+    for alter in alters {
+        let args = alter.get_args();
+
+        alters_vec.push(match alter.name() {
+            "multi_point_crossover" => {
+                let rate = args
+                    .get("rate".into())
+                    .map(|s| s.parse::<f32>().unwrap())
+                    .unwrap_or(0.5);
+                let points = args
+                    .get("num_points".into())
+                    .map(|s| s.parse::<usize>().unwrap())
+                    .unwrap_or(2);
+                alters!(MultiPointCrossover::new(rate, points))
+            }
+            "uniform_crossover" => {
+                let rate = args
+                    .get("rate".into())
+                    .map(|s| s.parse::<f32>().unwrap())
+                    .unwrap_or(0.5);
+                alters!(UniformCrossover::new(rate))
+            }
+            "uniform_mutator" => {
+                let rate = args
+                    .get("rate".into())
+                    .map(|s| s.parse::<f32>().unwrap())
+                    .unwrap_or(0.5);
+                alters!(UniformMutator::new(rate))
             }
             "shuffle_crossover" => {
                 let rate = args

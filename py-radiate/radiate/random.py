@@ -1,8 +1,7 @@
-
 from radiate.radiate import PyRandomProvider
 
-class RandomProvider:
 
+class RandomProvider:
     def set_seed(seed: int):
         """
         Set the seed for the random number generator.

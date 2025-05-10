@@ -1,27 +1,22 @@
-
-from .engine import Engine
-from .codex import FloatCodex, IntCodex
+from .engine import GeneticEngine
+from .codex import FloatCodex, IntCodex, CharCodex
 from .random import RandomProvider as random
-from .limit import (
-    SecondsLimit,
-    GenerationsLimit,
-    ScoreLimit
-)
+from .limit import SecondsLimit, GenerationsLimit, ScoreLimit
 
 from .selector import (
-    TournamentSelector, 
-    RouletteSelector, 
-    RankSelector, 
+    TournamentSelector,
+    RouletteSelector,
+    RankSelector,
     ElitismSelector,
     StocasticSamplingSelector,
     BoltzmannSelector,
     LinearRankSelector,
-    NSGA2Selector
+    NSGA2Selector,
 )
 
 from .alterer import (
-    BlendCrossover, 
-    IntermediateCrossover, 
+    BlendCrossover,
+    IntermediateCrossover,
     ArithmeticMutator,
     UniformCrossover,
     UniformMutator,
@@ -32,42 +27,37 @@ from .alterer import (
     PartiallyMatchedCrossover,
     GaussianMutator,
     ScrambleMutator,
-    SwapMutator
+    SwapMutator,
 )
 
 __all__ = [
-    'FloatCodex',
-    'IntCodex',
-
-    'Engine',
-
-    'SecondsLimit',
-    'GenerationsLimit',
-    'ScoreLimit',
-
-    'TournamentSelector',
-    'RouletteSelector',
-    'RankSelector',
-    'ElitismSelector',
-    'StocasticSamplingSelector', 
-    'BoltzmannSelector',
-    'LinearRankSelector',
-    'NSGA2Selector',
-
-    'BlendCrossover',
-    'IntermediateCrossover',
-    'UniformCrossover',
-    'ArithmeticMutator'
-    'UniformMutator',
-    'MultiPointCrossover',
-    'MeanCrossover',
-    'ShuffleCrossover',
-    'SimulatedBinaryCrossover',
-    'PartiallyMatchedCrossover',
-    'GaussianMutator',
-    'ScrambleMutator',
-    'SwapMutator',
-
-    'random',
+    "FloatCodex",
+    "IntCodex",
+    "CharCodex",
+    "GeneticEngine",
+    "SecondsLimit",
+    "GenerationsLimit",
+    "ScoreLimit",
+    "TournamentSelector",
+    "RouletteSelector",
+    "RankSelector",
+    "ElitismSelector",
+    "StocasticSamplingSelector",
+    "BoltzmannSelector",
+    "LinearRankSelector",
+    "NSGA2Selector",
+    "BlendCrossover",
+    "IntermediateCrossover",
+    "UniformCrossover",
+    "ShuffleCrossover",
+    "ArithmeticMutator",
+    "UniformMutator",
+    "MultiPointCrossover",
+    "MeanCrossover",
+    "SimulatedBinaryCrossover",
+    "PartiallyMatchedCrossover",
+    "GaussianMutator",
+    "ScrambleMutator",
+    "SwapMutator",
+    "random",
 ]
-            

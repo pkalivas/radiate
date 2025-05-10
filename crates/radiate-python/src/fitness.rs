@@ -1,9 +1,7 @@
-use std::sync::Arc;
-
+use crate::{AnyValue, conversion::Wrap};
 use pyo3::{Py, PyAny, PyObject, Python};
 use radiate::Score;
-
-use crate::{AnyValue, conversion::Wrap};
+use std::sync::Arc;
 
 #[derive(Clone, Debug)]
 pub struct ThreadSafePythonFn {

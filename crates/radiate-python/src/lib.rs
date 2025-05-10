@@ -1,16 +1,20 @@
 mod builder;
+mod codex;
 mod conversion;
+mod engines;
+mod epoch;
 mod fitness;
-mod float;
-mod int;
+mod metric;
 mod object;
 mod params;
 mod random;
 
 pub use builder::*;
+pub use codex::{PyCharCodex, PyFloatCodex, PyIntCodex};
+pub use engines::*;
+pub use epoch::*;
 pub use fitness::ThreadSafePythonFn;
-pub use float::*;
-pub use int::*;
+pub use metric::*;
 pub use object::*;
 pub use params::*;
 use pyo3::{PyResult, Python};

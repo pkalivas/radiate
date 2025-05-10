@@ -31,6 +31,8 @@ pub enum AnyValue<'a> {
     /// A 64-bit floating point number.
     Float64(f64),
 
+    Char(char),
+
     Slice(&'a [AnyValue<'a>], &'a Field),
 
     VecOwned(Box<(Vec<AnyValue<'a>>, Field)>),
@@ -61,6 +63,7 @@ impl<'a> AnyValue<'a> {
             Self::Int128(_) => "i128",
             Self::Float32(_) => "f32",
             Self::Float64(_) => "f64",
+            Self::Char(_) => "char",
             Self::Slice(_, _) => "list",
             Self::VecOwned(_) => "list",
             Self::StringOwned(_) => "string",
@@ -86,6 +89,7 @@ impl<'a> AnyValue<'a> {
             Self::Int128(_) => DataType::Int128,
             Self::Float32(_) => DataType::Float32,
             Self::Float64(_) => DataType::Float64,
+            Self::Char(_) => DataType::Char,
             Self::Slice(_, flds) => DataType::List(Box::new((*flds).clone())),
             Self::VecOwned(vals) => DataType::List(Box::new(Field::new(
                 vals.1.name().clone(),
@@ -115,6 +119,7 @@ impl<'a> AnyValue<'a> {
             Boolean(v) => Boolean(v),
             Float32(v) => Float32(v),
             Float64(v) => Float64(v),
+            Char(v) => Char(v),
             String(v) => StringOwned(v.to_string()),
             Slice(v, f) => VecOwned(Box::new((
                 v.iter().cloned().map(AnyValue::into_static).collect(),
@@ -176,6 +181,7 @@ impl_from!(
     f32 => Float32,
     f64 => Float64,
     String => StringOwned,
+    char => Char,
     &'a str => String,
 
 );

@@ -1,6 +1,6 @@
 from typing import Dict, Any
-
 from radiate.radiate import PyEngineParam
+
 
 class EngineParam:
     """
@@ -14,7 +14,6 @@ class EngineParam:
             args={k: str(v) for k, v in args.items()},
         )
 
-
     def __getattr__(self, name):
         """
         Get the value of an attribute.
@@ -22,14 +21,14 @@ class EngineParam:
         :return: Value of the attribute.
         """
         self.params.get_arg(name)
-        
+
     def __repr__(self):
-        args = ', '.join(f"{k}={v}" for k, v in self.params.get_args().items())
+        args = ", ".join(f"{k}={v}" for k, v in self.params.get_args().items())
         return f"{self.name}({args})"
 
     def __str__(self):
-        args = ', '.join(f"{k}={v}" for k, v in self.params.get_args().items())
+        args = ", ".join(f"{k}={v}" for k, v in self.params.get_args().items())
         return f"{self.name}({args})"
-    
+
     def name(self):
         return self.params.get_name()
