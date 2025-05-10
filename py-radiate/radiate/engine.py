@@ -2,25 +2,23 @@ from typing import Any, Callable, List
 from .selector import Selector, TournamentSelector, RouletteSelector
 from .alterer import Alterer, UniformCrossover, UniformMutator
 from ._typing import GeneType
-from .codex import FloatCodex, IntCodex 
+from .codex import FloatCodex, IntCodex
 from .limit import Limit
 
-from radiate.radiate import (
-    PyEngineBuilder,
-    PyFloatEngine, 
-    PyIntEngine
-)
+from radiate.radiate import PyEngineBuilder, PyFloatEngine, PyIntEngine
+
 
 class Engine:
-
-    def __init__(self, 
-                 codex: FloatCodex | IntCodex,
-                 fitness_func: Callable[[Any], Any],
-                 offspring_selector: Selector = None,
-                 survivor_selector: Selector = None,
-                 alters: None | Alterer | List[Alterer] = None,
-                 population_size: int = 100,
-                 offspring_fraction: float = 0.8):
+    def __init__(
+        self,
+        codex: FloatCodex | IntCodex,
+        fitness_func: Callable[[Any], Any],
+        offspring_selector: Selector = None,
+        survivor_selector: Selector = None,
+        alters: None | Alterer | List[Alterer] = None,
+        population_size: int = 100,
+        offspring_fraction: float = 0.8,
+    ):
         self.codex = codex
         self.fitness_func = fitness_func
 
@@ -31,12 +29,14 @@ class Engine:
         else:
             raise TypeError(f"Codex type {type(self.codex)} is not supported.")
 
-        survivor_selector = self.__get_params(survivor_selector or TournamentSelector(k=3))
+        survivor_selector = self.__get_params(
+            survivor_selector or TournamentSelector(k=3)
+        )
         offspring_selector = self.__get_params(offspring_selector or RouletteSelector())
         alters = self.__get_params(alters or [UniformCrossover(), UniformMutator()])
 
         self.builder = PyEngineBuilder(
-            objectives=['min'],
+            objectives=["min"],
             survivor_selector=survivor_selector,
             offspring_selector=offspring_selector,
             alters=alters,
@@ -48,7 +48,9 @@ class Engine:
         """Run the engine with the given limits."""
         if limits is None:
             raise ValueError("Limits must be provided.")
-        limits = [lim.params for lim in (limits if isinstance(limits, list) else [limits])]
+        limits = [
+            lim.params for lim in (limits if isinstance(limits, list) else [limits])
+        ]
         engine = self.__get_engine()
         engine.run(limits)
 
@@ -68,7 +70,7 @@ class Engine:
         """Set the offspring selector."""
         if selector is None:
             raise ValueError("Selector must be provided.")
-        self.builder.set_offspring_selector(self.__get_params(selector)) 
+        self.builder.set_offspring_selector(self.__get_params(selector))
 
     def alters(self, alters: Alterer | List[Alterer]):
         """Set the alters."""
@@ -100,12 +102,11 @@ class Engine:
             if all(isinstance(alter, Alterer) for alter in value):
                 for alter in value:
                     if not alter.is_valid(self.gene_type):
-                        raise TypeError(f"Alterer {alter} is not valid for genome type {GeneType.FLOAT}.")
+                        raise TypeError(
+                            f"Alterer {alter} is not valid for genome type {GeneType.FLOAT}."
+                        )
                 return [alter.params for alter in value]
         raise TypeError(f"Param type {type(value)} is not supported.")
-    
 
     def __repr__(self):
         return f"EngineTest(codex={self.gene_type})"
-    
-

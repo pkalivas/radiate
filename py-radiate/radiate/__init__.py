@@ -1,27 +1,22 @@
-
 from .engine import Engine
 from .codex import FloatCodex, IntCodex
 from .random import RandomProvider as random
-from .limit import (
-    SecondsLimit,
-    GenerationsLimit,
-    ScoreLimit
-)
+from .limit import SecondsLimit, GenerationsLimit, ScoreLimit
 
 from .selector import (
-    TournamentSelector, 
-    RouletteSelector, 
-    RankSelector, 
+    TournamentSelector,
+    RouletteSelector,
+    RankSelector,
     ElitismSelector,
     StocasticSamplingSelector,
     BoltzmannSelector,
     LinearRankSelector,
-    NSGA2Selector
+    NSGA2Selector,
 )
 
 from .alterer import (
-    BlendCrossover, 
-    IntermediateCrossover, 
+    BlendCrossover,
+    IntermediateCrossover,
     ArithmeticMutator,
     UniformCrossover,
     UniformMutator,
@@ -32,42 +27,35 @@ from .alterer import (
     PartiallyMatchedCrossover,
     GaussianMutator,
     ScrambleMutator,
-    SwapMutator
+    SwapMutator,
 )
 
 __all__ = [
-    'FloatCodex',
-    'IntCodex',
-
-    'Engine',
-
-    'SecondsLimit',
-    'GenerationsLimit',
-    'ScoreLimit',
-
-    'TournamentSelector',
-    'RouletteSelector',
-    'RankSelector',
-    'ElitismSelector',
-    'StocasticSamplingSelector', 
-    'BoltzmannSelector',
-    'LinearRankSelector',
-    'NSGA2Selector',
-
-    'BlendCrossover',
-    'IntermediateCrossover',
-    'UniformCrossover',
-    'ArithmeticMutator'
-    'UniformMutator',
-    'MultiPointCrossover',
-    'MeanCrossover',
-    'ShuffleCrossover',
-    'SimulatedBinaryCrossover',
-    'PartiallyMatchedCrossover',
-    'GaussianMutator',
-    'ScrambleMutator',
-    'SwapMutator',
-
-    'random',
+    "FloatCodex",
+    "IntCodex",
+    "Engine",
+    "SecondsLimit",
+    "GenerationsLimit",
+    "ScoreLimit",
+    "TournamentSelector",
+    "RouletteSelector",
+    "RankSelector",
+    "ElitismSelector",
+    "StocasticSamplingSelector",
+    "BoltzmannSelector",
+    "LinearRankSelector",
+    "NSGA2Selector",
+    "BlendCrossover",
+    "IntermediateCrossover",
+    "UniformCrossover",
+    "ArithmeticMutatorUniformMutator",
+    "MultiPointCrossover",
+    "MeanCrossover",
+    "ShuffleCrossover",
+    "SimulatedBinaryCrossover",
+    "PartiallyMatchedCrossover",
+    "GaussianMutator",
+    "ScrambleMutator",
+    "SwapMutator",
+    "random",
 ]
-            

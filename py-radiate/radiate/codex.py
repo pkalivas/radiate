@@ -1,16 +1,15 @@
 from typing import List, Optional, Tuple
 
-from radiate.radiate import (
-    PyFloatCodex,
-    PyIntCodex
-)
+from radiate.radiate import PyFloatCodex, PyIntCodex
+
 
 class FloatCodex:
-
-    def __init__(self,
-                 chromosomes: List[int],
-                 value_range: Optional[Tuple[float, float]] = None,
-                 bound_range: Optional[Tuple[float, float]] = None):
+    def __init__(
+        self,
+        chromosomes: List[int],
+        value_range: Optional[Tuple[float, float]] = None,
+        bound_range: Optional[Tuple[float, float]] = None,
+    ):
         """
         Initialize the float codex with number of chromosomes and value bounds.
         :param chromosomes: Number of chromosomes with the number of genes in each chromosome.
@@ -27,7 +26,7 @@ class FloatCodex:
                 raise ValueError("Bound range must be a tuple of (min, max).")
             if bound_range[0] >= bound_range[1]:
                 raise ValueError("Minimum bound must be less than maximum bound.")
-            
+
         self.codex = PyFloatCodex(
             chromosome_lengths=chromosomes,
             value_range=value_range,
@@ -36,11 +35,12 @@ class FloatCodex:
 
 
 class IntCodex:
-
-    def __init__(self,
-                 chromosomes: List[int],
-                 value_range: Optional[Tuple[int, int]] = None,
-                 bound_range: Optional[Tuple[int, int]] = None):
+    def __init__(
+        self,
+        chromosomes: List[int],
+        value_range: Optional[Tuple[int, int]] = None,
+        bound_range: Optional[Tuple[int, int]] = None,
+    ):
         """
         Initialize the int codex with number of chromosomes and value bounds.
         :param chromosomes: Number of chromosomes with the number of genes in each chromosome.
@@ -57,7 +57,7 @@ class IntCodex:
                 raise ValueError("Bound range must be a tuple of (min, max).")
             if bound_range[0] >= bound_range[1]:
                 raise ValueError("Minimum bound must be less than maximum bound.")
-            
+
         self.codex = PyIntCodex(
             chromosome_lengths=chromosomes,
             value_range=value_range,
