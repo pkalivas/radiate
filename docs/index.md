@@ -8,13 +8,14 @@
 </figure>
 
 <center>
-![master branch checks][master_branch_checks] ![Crates.io][crates_link] ![Crates.io License][license] ![Static badge][static_evolution_badge]
+![master branch checks][master_branch_checks] ![Crates.io][crates_link] ![pypi.org][pypi_badge] ![Crates.io License][license] ![Static badge][static_evolution_badge]
 </center>
 
 [crates_link]: https://img.shields.io/crates/v/radiate
 [master_branch_checks]: https://img.shields.io/github/check-runs/pkalivas/radiate/master
 [license]: https://img.shields.io/crates/l/radiate
 [static_evolution_badge]: https://img.shields.io/badge/evolution-genetics-default
+[pypi_badge]: https://img.shields.io/pypi/v/radiate?color=blue
 
 ___
 Radiate is a powerful Rust library designed for implementing genetic algorithms and artificial evolution techniques. It
