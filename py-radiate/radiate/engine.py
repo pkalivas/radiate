@@ -45,6 +45,9 @@ class Engine:
         )
 
     def run(self, limits: Limit | List[Limit]):
+        """Run the engine with the given limits."""
+        if limits is None:
+            raise ValueError("Limits must be provided.")
         limits = [lim.params for lim in (limits if isinstance(limits, list) else [limits])]
         engine = self.__get_engine()
         engine.run(limits)
