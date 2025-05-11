@@ -11,9 +11,6 @@ pub struct PyIntCodex {
     pub codex: FnCodex<IntChromosome<i32>, ObjectValue>,
 }
 
-unsafe impl Send for PyIntCodex {}
-unsafe impl Sync for PyIntCodex {}
-
 #[pymethods]
 impl PyIntCodex {
     #[new]
@@ -61,3 +58,6 @@ impl PyIntCodex {
         }
     }
 }
+
+unsafe impl Send for PyIntCodex {}
+unsafe impl Sync for PyIntCodex {}

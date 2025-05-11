@@ -1,19 +1,15 @@
+use crate::conversion::ObjectValue;
 use pyo3::{
     Python, pyclass, pymethods,
     types::{PyList, PyListMethods},
 };
 use radiate::{CharChromosome, Chromosome, FnCodex, Gene};
 
-use crate::conversion::ObjectValue;
-
 #[pyclass]
 #[derive(Clone)]
 pub struct PyCharCodex {
     pub codex: FnCodex<CharChromosome, ObjectValue>,
 }
-
-unsafe impl Send for PyCharCodex {}
-unsafe impl Sync for PyCharCodex {}
 
 #[pymethods]
 impl PyCharCodex {
@@ -52,3 +48,6 @@ impl PyCharCodex {
         }
     }
 }
+
+unsafe impl Send for PyCharCodex {}
+unsafe impl Sync for PyCharCodex {}

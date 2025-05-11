@@ -11,9 +11,6 @@ pub struct PyFloatCodex {
     pub codex: FnCodex<FloatChromosome, ObjectValue>,
 }
 
-unsafe impl Send for PyFloatCodex {}
-unsafe impl Sync for PyFloatCodex {}
-
 #[pymethods]
 impl PyFloatCodex {
     #[new]
@@ -61,3 +58,6 @@ impl PyFloatCodex {
         }
     }
 }
+
+unsafe impl Send for PyFloatCodex {}
+unsafe impl Sync for PyFloatCodex {}

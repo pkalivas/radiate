@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::PyEngineParam;
 use radiate::{
     Alter, ArithmeticGene, ArithmeticMutator, BlendCrossover, CharChromosome, Chromosome,
@@ -8,6 +6,7 @@ use radiate::{
     ScrambleMutator, ShuffleCrossover, SimulatedBinaryCrossover, SwapMutator, UniformCrossover,
     UniformMutator, alters,
 };
+use std::collections::HashMap;
 
 pub fn get_alters_with_float_gene<C: Chromosome<Gene = FloatGene>, T>(
     builder: GeneticEngineBuilder<C, T>,

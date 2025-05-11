@@ -1,6 +1,6 @@
 use crate::{
     PyEngineBuilder, PyEngineParam, PyGeneration, ThreadSafePythonFn, codex::PyCharCodex,
-    conversion::ObjectValue, run_single_objective_engine,
+    conversion::ObjectValue,
 };
 use pyo3::{
     PyObject, PyResult, Python, pyclass, pymethods,
@@ -40,7 +40,7 @@ impl PyCharEngine {
     }
 
     pub fn run(&mut self, limits: Vec<PyEngineParam>, log: bool) -> PyResult<PyGeneration> {
-        run_single_objective_engine(&mut self.engine, limits, log)
+        crate::run_single_objective_engine(&mut self.engine, limits, log)
     }
 }
 

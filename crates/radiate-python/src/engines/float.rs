@@ -1,6 +1,6 @@
 use crate::{
     PyEngineBuilder, PyEngineParam, PyFloatCodex, PyGeneration, ThreadSafePythonFn,
-    conversion::ObjectValue, run_single_objective_engine,
+    conversion::ObjectValue,
 };
 use pyo3::{
     PyObject, PyResult, Python, pyclass, pymethods,
@@ -19,6 +19,7 @@ impl PyFloatEngine {
     #[pyo3(signature = (codex, fitness_func, builder))]
     pub fn new(codex: PyFloatCodex, fitness_func: PyObject, builder: PyEngineBuilder) -> Self {
         let fitness = ThreadSafePythonFn::new(fitness_func);
+
         let mut engine = GeneticEngine::builder()
             .codex(codex.codex)
             .num_threads(builder.num_threads)
@@ -39,7 +40,7 @@ impl PyFloatEngine {
     }
 
     pub fn run(&mut self, limits: Vec<PyEngineParam>, log: bool) -> PyResult<PyGeneration> {
-        run_single_objective_engine(&mut self.engine, limits, log)
+        crate::run_single_objective_engine(&mut self.engine, limits, log)
     }
 }
 
