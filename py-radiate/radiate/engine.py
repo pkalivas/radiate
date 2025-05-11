@@ -5,7 +5,13 @@ from ._typing import GeneType, ObjectiveType
 from .codex import FloatCodex, IntCodex, CharCodex
 from .limit import Limit
 
-from radiate.radiate import PyEngineBuilder, PyFloatEngine, PyIntEngine, PyGeneration, PyCharEngine
+from radiate.radiate import (
+    PyEngineBuilder,
+    PyFloatEngine,
+    PyIntEngine,
+    PyGeneration,
+    PyCharEngine,
+)
 
 
 class GeneticEngine:
@@ -25,7 +31,7 @@ class GeneticEngine:
         population_size: int = 100,
         offspring_fraction: float = 0.8,
         objectives: str | List[str] = ObjectiveType.MIN,
-        num_threads: int = 1
+        num_threads: int = 1,
     ):
         self.codex = codex
         self.fitness_func = fitness_func
@@ -45,7 +51,7 @@ class GeneticEngine:
         offspring_selector = self.__get_params(offspring_selector or RouletteSelector())
         alters = self.__get_params(alters or [UniformCrossover(), UniformMutator()])
         objectives = self.__get_objectives(objectives)
-  
+
         self.builder = PyEngineBuilder(
             objectives=objectives,
             survivor_selector=survivor_selector,
@@ -120,7 +126,7 @@ class GeneticEngine:
             return PyCharEngine(self.codex.codex, self.fitness_func, self.builder)
         else:
             raise TypeError(f"Gene type {self.gene_type} is not supported.")
-        
+
     def __get_objectives(self, objectives: str | List[str]) -> List[str]:
         """Get the objectives."""
         if objectives is None:
