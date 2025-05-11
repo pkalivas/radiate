@@ -20,7 +20,7 @@ where
         );
 
         let phenotypes = new_individuals
-            .iter()
+            .into_iter()
             .map(|pheno| Phenotype::clone(pheno))
             .collect::<Vec<Phenotype<C>>>();
         let count = self.front.write().unwrap().add_all(&phenotypes);
