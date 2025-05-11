@@ -1,4 +1,7 @@
-use crate::{AnyValue, conversion::Wrap};
+use crate::{
+    AnyValue,
+    conversion::{ObjectValue, Wrap},
+};
 use pyo3::{Py, PyAny, PyObject, Python};
 use radiate::Score;
 use std::sync::Arc;
@@ -15,10 +18,10 @@ impl ThreadSafePythonFn {
         }
     }
 
-    pub fn call<'py>(&self, outer: Python<'py>, input: AnyValue<'static>) -> Score {
+    pub fn call<'py>(&self, outer: Python<'py>, input: ObjectValue) -> Score {
         let any_value = self
             .func
-            .call1(outer, (Wrap(input),))
+            .call1(outer, (input.inner,))
             .expect("Python call failed");
 
         let av = any_value

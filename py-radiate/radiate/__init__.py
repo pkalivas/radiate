@@ -1,7 +1,8 @@
 from .engine import GeneticEngine
 from .codex import FloatCodex, IntCodex, CharCodex
-from .random import RandomProvider as random
 from .limit import SecondsLimit, GenerationsLimit, ScoreLimit
+from .random import RandomProvider as random
+from ._typing import GeneType, ObjectiveType
 
 from .selector import (
     TournamentSelector,
@@ -60,4 +61,6 @@ __all__ = [
     "ScrambleMutator",
     "SwapMutator",
     "random",
+    "GeneType",
+    "ObjectiveType",
 ]

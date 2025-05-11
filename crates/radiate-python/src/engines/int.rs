@@ -1,6 +1,6 @@
 use crate::{
-    AnyValue, PyEngineBuilder, PyEngineParam, PyGeneration, PyIntCodex, ThreadSafePythonFn,
-    conversion::any_value_into_py_object,
+    PyEngineBuilder, PyEngineParam, PyGeneration, PyIntCodex, ThreadSafePythonFn,
+    conversion::ObjectValue,
 };
 use pyo3::{
     PyObject, PyResult, Python, pyclass, pymethods,
@@ -10,7 +10,7 @@ use radiate::{Epoch, Generation, GeneticEngine, IntChromosome, steps::Sequential
 
 #[pyclass]
 pub struct PyIntEngine {
-    pub engine: Option<GeneticEngine<IntChromosome<i32>, AnyValue<'static>>>,
+    pub engine: Option<GeneticEngine<IntChromosome<i32>, ObjectValue>>,
 }
 
 #[pymethods]
@@ -24,7 +24,7 @@ impl PyIntEngine {
             .codex(codex.codex)
             .num_threads(builder.num_threads)
             .evaluator(SequentialEvaluator)
-            .fitness_fn(move |decoded: AnyValue<'_>| {
+            .fitness_fn(move |decoded: ObjectValue| {
                 Python::with_gil(|py| fitness.call(py, decoded))
             })
             .population_size(builder.population_size);
@@ -44,7 +44,7 @@ impl PyIntEngine {
     }
 }
 
-impl Into<PyGeneration> for Generation<IntChromosome<i32>, AnyValue<'static>> {
+impl Into<PyGeneration> for Generation<IntChromosome<i32>, ObjectValue> {
     fn into(self) -> PyGeneration {
         Python::with_gil(|py| {
             let score = PyList::empty(py);
@@ -55,9 +55,7 @@ impl Into<PyGeneration> for Generation<IntChromosome<i32>, AnyValue<'static>> {
 
             PyGeneration {
                 score: score.unbind(),
-                value: any_value_into_py_object(self.value().clone(), py)
-                    .unwrap()
-                    .unbind(),
+                value: self.value().clone().inner,
                 metrics: self.metrics().clone().into(),
             }
         })

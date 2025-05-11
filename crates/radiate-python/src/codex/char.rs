@@ -1,16 +1,15 @@
-use pyo3::{pyclass, pymethods};
+use crate::conversion::ObjectValue;
+use pyo3::{
+    Python, pyclass, pymethods,
+    types::{PyList, PyListMethods},
+};
 use radiate::{CharChromosome, Chromosome, FnCodex, Gene};
-
-use crate::{AnyValue, DataType, Field};
 
 #[pyclass]
 #[derive(Clone)]
 pub struct PyCharCodex {
-    pub codex: FnCodex<CharChromosome, AnyValue<'static>>,
+    pub codex: FnCodex<CharChromosome, ObjectValue>,
 }
-
-unsafe impl Send for PyCharCodex {}
-unsafe impl Sync for PyCharCodex {}
 
 #[pymethods]
 impl PyCharCodex {
@@ -29,35 +28,26 @@ impl PyCharCodex {
                         .into()
                 })
                 .with_decoder(|geno| {
-                    let mut list = Vec::new();
-                    for chromo in geno.iter() {
-                        let mut genes = Vec::new();
-                        for gene in chromo.iter() {
-                            genes.push(AnyValue::from(*gene.allele()));
+                    let res = Python::with_gil(|py| {
+                        let outer = PyList::empty(py);
+                        for chromo in geno.iter() {
+                            let inner = PyList::empty(py);
+                            for gene in chromo.iter() {
+                                inner.append(*gene.allele()).unwrap();
+                            }
+                            outer.append(inner).unwrap();
                         }
-                        list.push(AnyValue::VecOwned(Box::new((
-                            genes,
-                            Field::new(
-                                std::any::type_name::<Vec<char>>().to_string(),
-                                DataType::List(Box::new(Field::new(
-                                    "item".to_string(),
-                                    DataType::Null,
-                                ))),
-                            ),
-                        ))));
-                    }
 
-                    AnyValue::VecOwned(Box::new((
-                        list,
-                        Field::new(
-                            std::any::type_name::<Vec<Vec<char>>>().to_string(),
-                            DataType::List(Box::new(Field::new(
-                                "item".to_string(),
-                                DataType::Null,
-                            ))),
-                        ),
-                    )))
+                        outer.unbind()
+                    });
+
+                    ObjectValue {
+                        inner: res.into_any(),
+                    }
                 }),
         }
     }
 }
+
+unsafe impl Send for PyCharCodex {}
+unsafe impl Sync for PyCharCodex {}
