@@ -47,7 +47,7 @@ exclude = [
 
 [workspace.package]
 name = "radiate"
-version = "1.2.11"
+version = "1.2.12"
 edition = "2024"
 authors = ["pkalivas <peterkalivas@gmail.com>"]
 description = "A Rust library for genetic algorithms and artificial evolution."
@@ -61,11 +61,11 @@ homepage = "https://pkalivas.github.io/radiate/"
 [workspace.dependencies]
 rand = "0.9.1"
 pyo3 = "0.24.1"
-radiate = { version = "1.2.11", path = "crates/radiate", default-features = false }
-radiate-core = { version = "1.2.11", path = "crates/radiate-core", default-features = false }
-radiate-alters = { version = "1.2.11", path = "crates/radiate-alters", default-features = false }
-radiate-selectors = { version = "1.2.11", path = "crates/radiate-selectors", default-features = false }
-radiate-engines = { version = "1.2.11", path = "crates/radiate-engines", default-features = false }
-radiate-gp = { version = "1.2.11", path = "crates/radiate-gp", default-features = false }
-radiate-error = { version = "1.2.11", path = "crates/radiate-error", default-features = false }
-radiate-python = { version = "1.2.11", path = "crates/radiate-python", default-features = false }
+radiate = { version = "1.2.12", path = "crates/radiate", default-features = false }
+radiate-core = { version = "1.2.12", path = "crates/radiate-core", default-features = false }
+radiate-alters = { version = "1.2.12", path = "crates/radiate-alters", default-features = false }
+radiate-selectors = { version = "1.2.12", path = "crates/radiate-selectors", default-features = false }
+radiate-engines = { version = "1.2.12", path = "crates/radiate-engines", default-features = false }
+radiate-gp = { version = "1.2.12", path = "crates/radiate-gp", default-features = false }
+radiate-error = { version = "1.2.12", path = "crates/radiate-error", default-features = false }
+radiate-python = { version = "1.2.12", path = "crates/radiate-python", default-features = false }
