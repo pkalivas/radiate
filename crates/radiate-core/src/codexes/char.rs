@@ -96,3 +96,34 @@ impl Codex<CharChromosome, Vec<char>> for CharCodex<Vec<char>> {
             .collect::<Vec<char>>()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Codex;
+    use crate::genome::gene::Gene;
+
+    #[test]
+    fn test_char_codex_matrix() {
+        let char_set = "abcde".chars().collect::<Vec<char>>();
+        let codex = CharCodex::matrix(3, 5).with_char_set(char_set.clone());
+        let genotype = codex.encode();
+        assert_eq!(genotype.len(), 3);
+        assert_eq!(genotype[0].len(), 5);
+        for gene in genotype[0].iter() {
+            assert!(gene.char_set.eq(&Arc::from(char_set.clone())));
+            assert!(char_set.contains(gene.allele()));
+        }
+    }
+
+    #[test]
+    fn test_char_codex() {
+        let codex = CharCodex::vector(5);
+        let genotype = codex.encode();
+        assert_eq!(genotype.len(), 1);
+        assert_eq!(genotype[0].len(), 5);
+        for gene in genotype[0].iter() {
+            assert!(codex.char_set.contains(gene.allele()));
+        }
+    }
+}

@@ -141,3 +141,46 @@ impl Codex<BitChromosome, bool> for BitCodex<bool> {
             .unwrap_or(false)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Codex;
+
+    #[test]
+    fn test_bit_codex() {
+        let codex = BitCodex::matrix(2, 3);
+        let genotype = codex.encode();
+        assert_eq!(genotype.len(), 2);
+        assert_eq!(genotype[0].len(), 3);
+        assert_eq!(genotype[1].len(), 3);
+
+        let decoded = codex.decode(&genotype);
+        assert_eq!(decoded.len(), 2);
+        assert_eq!(decoded[0].len(), 3);
+        assert_eq!(decoded[1].len(), 3);
+    }
+
+    #[test]
+    fn test_bit_codex_vector() {
+        let codex = BitCodex::vector(5);
+        let genotype = codex.encode();
+        assert_eq!(genotype.len(), 1);
+        assert_eq!(genotype[0].len(), 5);
+
+        let decoded = codex.decode(&genotype);
+        assert_eq!(decoded.len(), 5);
+    }
+
+    #[test]
+    fn test_bit_codex_scalar() {
+        let codex = BitCodex::scalar();
+        let genotype = codex.encode();
+        assert_eq!(genotype.len(), 1);
+        assert_eq!(genotype[0].len(), 1);
+
+        let decoded = codex.decode(&genotype);
+
+        assert!(vec![true, false].contains(&decoded));
+    }
+}
