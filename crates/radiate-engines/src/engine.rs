@@ -4,7 +4,7 @@ use crate::{Chromosome, EngineIterator, Pipeline};
 use radiate_core::engine::Context;
 use radiate_core::{Engine, Epoch, metric_names};
 
-/// The `GeneticEngine` is the core component of the Radiate library's genetic algorithm implementation.
+/// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
 /// customize various aspects of the genetic algorithm to suit their specific needs.
 ///
@@ -50,8 +50,9 @@ use radiate_core::{Engine, Epoch, metric_names};
 /// ```
 ///
 /// # Type Parameters
-/// - `C`: The type of the chromosome used in the genotype, which must implement the `Chromosome` trait.
+/// - `C`: The type of the chromosome used in the genotype, which must implement the [Chromosome] trait.
 /// - `T`: The type of the phenotype produced by the genetic algorithm, which must be `Clone`, `Send`, and `static`.
+/// - `E`: The type of the epoch produced by the genetic algorithm, which must implement the [Epoch] trait.
 pub struct GeneticEngine<C, T, E = Generation<C, T>>
 where
     C: Chromosome,
