@@ -1,5 +1,6 @@
 use radiate_core::{Chromosome, Objective, Population, Select, random_provider};
 
+#[derive(Debug, Clone)]
 pub struct TournamentSelector {
     num: usize,
 }

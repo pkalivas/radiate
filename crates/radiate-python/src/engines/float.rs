@@ -54,6 +54,7 @@ impl Into<PyGeneration> for Generation<FloatChromosome, ObjectValue> {
             }
 
             PyGeneration {
+                index: self.index(),
                 score: score.unbind(),
                 value: self.value().clone().inner,
                 metrics: self.metrics().clone().into(),

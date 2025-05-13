@@ -51,6 +51,10 @@ impl<T> MutCell<T> {
     where
         T: Clone,
     {
+        // SAFTEY: This is safe because if there is more than one reference to the
+        // inner value, we will clone it and decrement the ref count.
+        // If there is only one reference, we will consume the inner value and
+        // drop the inner box.
         unsafe {
             if (*self.inner).ref_count.load(Ordering::Acquire) == 1 {
                 self.consumed = true;

@@ -3,38 +3,28 @@ use pyo3::{
     Python, pyclass, pymethods,
     types::{PyList, PyListMethods},
 };
-use radiate::{Chromosome, FloatChromosome, FnCodex, Gene};
+use radiate::{BitChromosome, Chromosome, FnCodex, Gene};
 
 #[pyclass]
 #[derive(Clone)]
-pub struct PyFloatCodex {
-    pub codex: FnCodex<FloatChromosome, ObjectValue>,
+pub struct PyBitCodex {
+    pub codex: FnCodex<BitChromosome, ObjectValue>,
 }
 
 #[pymethods]
-impl PyFloatCodex {
+impl PyBitCodex {
     #[new]
-    #[pyo3(signature = (chromosome_lengths=None, value_range=None, bound_range=None))]
-    pub fn new(
-        chromosome_lengths: Option<Vec<usize>>,
-        value_range: Option<(f32, f32)>,
-        bound_range: Option<(f32, f32)>,
-    ) -> Self {
+    #[pyo3(signature = (chromosome_lengths=None))]
+    pub fn new(chromosome_lengths: Option<Vec<usize>>) -> Self {
         let lengths = chromosome_lengths.unwrap_or(vec![1]);
-        let val_range = value_range.map(|rng| rng.0..rng.1).unwrap_or(0.0..1.0);
-        let bound_range = bound_range
-            .map(|rng| rng.0..rng.1)
-            .unwrap_or(val_range.clone());
 
-        PyFloatCodex {
+        PyBitCodex {
             codex: FnCodex::new()
                 .with_encoder(move || {
                     lengths
                         .iter()
-                        .map(|len| {
-                            FloatChromosome::from((*len, val_range.clone(), bound_range.clone()))
-                        })
-                        .collect::<Vec<FloatChromosome>>()
+                        .map(|len| BitChromosome::new(*len))
+                        .collect::<Vec<BitChromosome>>()
                         .into()
                 })
                 .with_decoder(|geno| {
@@ -57,5 +47,5 @@ impl PyFloatCodex {
     }
 }
 
-unsafe impl Send for PyFloatCodex {}
-unsafe impl Sync for PyFloatCodex {}
+unsafe impl Send for PyBitCodex {}
+unsafe impl Sync for PyBitCodex {}

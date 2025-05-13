@@ -10,7 +10,7 @@ mod params;
 mod random;
 
 pub use builder::*;
-pub use codex::{PyCharCodex, PyFloatCodex, PyIntCodex};
+pub use codex::{PyBitCodex, PyCharCodex, PyFloatCodex, PyIntCodex};
 pub use engines::*;
 pub use epoch::*;
 pub use fitness::ThreadSafePythonFn;

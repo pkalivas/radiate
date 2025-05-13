@@ -2,7 +2,7 @@ from typing import Any, Callable, List
 from .selector import Selector, TournamentSelector, RouletteSelector
 from .alterer import Alterer, UniformCrossover, UniformMutator
 from ._typing import GeneType, ObjectiveType
-from .codex import FloatCodex, IntCodex, CharCodex
+from .codex import FloatCodex, IntCodex, CharCodex, BitCodex
 from .limit import Limit
 
 from radiate.radiate import (
@@ -11,6 +11,7 @@ from radiate.radiate import (
     PyIntEngine,
     PyGeneration,
     PyCharEngine,
+    PyBitEngine,
 )
 
 
@@ -23,7 +24,7 @@ class GeneticEngine:
 
     def __init__(
         self,
-        codex: FloatCodex | IntCodex | CharCodex,
+        codex: FloatCodex | IntCodex | CharCodex | BitCodex,
         fitness_func: Callable[[Any], Any],
         offspring_selector: Selector = None,
         survivor_selector: Selector = None,
@@ -42,6 +43,8 @@ class GeneticEngine:
             self.gene_type = GeneType.INT
         elif isinstance(self.codex, CharCodex):
             self.gene_type = GeneType.CHAR
+        elif isinstance(self.codex, BitCodex):
+            self.gene_type = GeneType.BIT
         else:
             raise TypeError(f"Codex type {type(self.codex)} is not supported.")
 
@@ -124,6 +127,8 @@ class GeneticEngine:
             return PyIntEngine(self.codex.codex, self.fitness_func, self.builder)
         elif self.gene_type == GeneType.CHAR:
             return PyCharEngine(self.codex.codex, self.fitness_func, self.builder)
+        elif self.gene_type == GeneType.BIT:
+            return PyBitEngine(self.codex.codex, self.fitness_func, self.builder)
         else:
             raise TypeError(f"Gene type {self.gene_type} is not supported.")
 

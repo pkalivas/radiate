@@ -30,10 +30,9 @@ where
             if individual.score().is_some() {
                 continue;
             } else {
-                let geno = individual.take_genotype();
-                let score = problem.eval(&geno);
+                let score = problem.eval(&individual.genotype());
                 individual.set_score(Some(score));
-                individual.set_genotype(geno);
+
                 count += 1;
             }
         }

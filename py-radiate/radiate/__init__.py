@@ -1,5 +1,5 @@
 from .engine import GeneticEngine
-from .codex import FloatCodex, IntCodex, CharCodex
+from .codex import FloatCodex, IntCodex, CharCodex, BitCodex
 from .limit import SecondsLimit, GenerationsLimit, ScoreLimit
 from .random import RandomProvider as random
 from ._typing import GeneType, ObjectiveType
@@ -35,6 +35,7 @@ __all__ = [
     "FloatCodex",
     "IntCodex",
     "CharCodex",
+    "BitCodex",
     "GeneticEngine",
     "SecondsLimit",
     "GenerationsLimit",

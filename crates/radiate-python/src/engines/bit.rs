@@ -1,23 +1,23 @@
 use crate::{
-    PyEngineBuilder, PyEngineParam, PyGeneration, PyIntCodex, ThreadSafePythonFn,
+    PyBitCodex, PyEngineBuilder, PyEngineParam, PyGeneration, ThreadSafePythonFn,
     conversion::ObjectValue,
 };
 use pyo3::{
     PyObject, PyResult, Python, pyclass, pymethods,
     types::{PyList, PyListMethods},
 };
-use radiate::{Epoch, Generation, GeneticEngine, IntChromosome, steps::SequentialEvaluator};
+use radiate::{BitChromosome, Epoch, Generation, GeneticEngine, steps::SequentialEvaluator};
 
 #[pyclass]
-pub struct PyIntEngine {
-    pub engine: Option<GeneticEngine<IntChromosome<i32>, ObjectValue>>,
+pub struct PyBitEngine {
+    pub engine: Option<GeneticEngine<BitChromosome, ObjectValue>>,
 }
 
 #[pymethods]
-impl PyIntEngine {
+impl PyBitEngine {
     #[new]
     #[pyo3(signature = (codex, fitness_func, builder))]
-    pub fn new(codex: PyIntCodex, fitness_func: PyObject, builder: PyEngineBuilder) -> Self {
+    pub fn new(codex: PyBitCodex, fitness_func: PyObject, builder: PyEngineBuilder) -> Self {
         let fitness = ThreadSafePythonFn::new(fitness_func);
 
         let mut engine = GeneticEngine::builder()
@@ -31,10 +31,10 @@ impl PyIntEngine {
 
         engine = crate::set_selector(engine, &builder.offspring_selector, true);
         engine = crate::set_selector(engine, &builder.survivor_selector, false);
-        engine = crate::get_alters_with_int_gene(engine, &builder.alters);
+        engine = crate::get_alters_with_char_gene(engine, &builder.alters);
         engine = crate::set_single_objective(engine, &builder.objectives);
 
-        PyIntEngine {
+        PyBitEngine {
             engine: Some(engine.build()),
         }
     }
@@ -44,7 +44,7 @@ impl PyIntEngine {
     }
 }
 
-impl Into<PyGeneration> for Generation<IntChromosome<i32>, ObjectValue> {
+impl Into<PyGeneration> for Generation<BitChromosome, ObjectValue> {
     fn into(self) -> PyGeneration {
         Python::with_gil(|py| {
             let score = PyList::empty(py);

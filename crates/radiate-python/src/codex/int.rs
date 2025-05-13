@@ -38,7 +38,7 @@ impl PyIntCodex {
                         .into()
                 })
                 .with_decoder(|geno| {
-                    let res = Python::with_gil(|py| {
+                    Python::with_gil(|py| {
                         let outer = PyList::empty(py);
                         for chromo in geno.iter() {
                             let inner = PyList::empty(py);
@@ -48,12 +48,10 @@ impl PyIntCodex {
                             outer.append(inner).unwrap();
                         }
 
-                        outer.unbind()
-                    });
-
-                    ObjectValue {
-                        inner: res.into_any(),
-                    }
+                        ObjectValue {
+                            inner: outer.unbind().into_any(),
+                        }
+                    })
                 }),
         }
     }

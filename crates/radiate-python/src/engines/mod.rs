@@ -1,7 +1,9 @@
+mod bit;
 mod char;
 mod float;
 mod int;
 
+pub use bit::PyBitEngine;
 pub use char::PyCharEngine;
 pub use float::PyFloatEngine;
 pub use int::PyIntEngine;
