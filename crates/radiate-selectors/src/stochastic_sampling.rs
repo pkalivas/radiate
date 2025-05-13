@@ -1,5 +1,6 @@
 use radiate_core::{Chromosome, Objective, Optimize, Population, Select, pareto, random_provider};
 
+#[derive(Debug, Clone)]
 pub struct StochasticUniversalSamplingSelector;
 
 impl StochasticUniversalSamplingSelector {

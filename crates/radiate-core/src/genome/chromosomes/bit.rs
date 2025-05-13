@@ -90,6 +90,15 @@ pub struct BitChromosome {
     pub genes: Vec<BitGene>,
 }
 
+impl BitChromosome {
+    /// Create a new [`BitChromosome`] with the given length.
+    /// The length is the number of genes in the chromosome.
+    pub fn new(length: usize) -> Self {
+        let genes = (0..length).map(|_| BitGene::new()).collect();
+        BitChromosome { genes }
+    }
+}
+
 impl Chromosome for BitChromosome {
     type Gene = BitGene;
 }

@@ -5,11 +5,11 @@ class GeneType:
 
     FLOAT = "float"
     INT = "int"
-    BOOL = "bool"
+    BIT = "bit"
     CHAR = "char"
     ANY = "any"
 
-    ALL = [FLOAT, INT, BOOL, CHAR, ANY]
+    ALL = [FLOAT, INT, BIT, CHAR, ANY]
 
 
 class ObjectiveType:

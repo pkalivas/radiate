@@ -9,6 +9,7 @@ use radiate_core::{Chromosome, Objective, Population, Select, pareto};
 /// neighbors in the objective space. Individuals with a higher crowding distance
 /// are more desirable because they are more spread out. This is useful for selecting
 /// diverse solutions in a multi-objective optimization problem. It uses 'fast non-dominated sorting'
+#[derive(Debug, Clone)]
 pub struct NSGA2Selector;
 
 impl NSGA2Selector {
@@ -25,7 +26,7 @@ impl<C: Chromosome> Select<C> for NSGA2Selector {
         count: usize,
     ) -> Population<C> {
         let scores = population.get_scores();
-        let ranks = pareto::rank(scores.as_slice(), objective);
+        let ranks = pareto::rank(&scores, objective);
         let distances = pareto::crowding_distance(&scores, objective);
 
         let mut indices = (0..population.len()).collect::<Vec<usize>>();

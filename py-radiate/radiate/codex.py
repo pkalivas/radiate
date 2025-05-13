@@ -1,6 +1,6 @@
 from typing import List, Optional, Tuple
 
-from radiate.radiate import PyFloatCodex, PyIntCodex, PyCharCodex
+from radiate.radiate import PyFloatCodex, PyIntCodex, PyCharCodex, PyBitCodex
 
 
 class FloatCodex:
@@ -86,4 +86,20 @@ class CharCodex:
         self.codex = PyCharCodex(
             chromosome_lengths=chromosomes,
             char_set=char_set,
+        )
+
+
+class BitCodex:
+    """
+    BitCodex is a class that represents a codex for bit-based chromosomes.
+    It is used to encode and decode chromosomes into bit strings.
+    """
+
+    def __init__(self, chromosomes: List[int]):
+        """
+        Initialize the bit codex with number of chromosomes and value bounds.
+        :param chromosomes: Number of chromosomes with the number of genes in each chromosome.
+        """
+        self.codex = PyBitCodex(
+            chromosome_lengths=chromosomes,
         )
