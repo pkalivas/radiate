@@ -8,6 +8,19 @@ use radiate::{
 };
 use std::collections::HashMap;
 
+const BLEND_CROSSOVER: &str = "blend_crossover";
+const INTERMEDIATE_CROSSOVER: &str = "intermediate_crossover";
+const UNIFORM_CROSSOVER: &str = "uniform_crossover";
+const MEAN_CROSSOVER: &str = "mean_crossover";
+const SHUFFLE_CROSSOVER: &str = "shuffle_crossover";
+const MULTI_POINT_CROSSOVER: &str = "multi_point_crossover";
+const SIMULATED_BINARY_CROSSOVER: &str = "simulated_binary_crossover";
+const UNIFORM_MUTATOR: &str = "uniform_mutator";
+const ARITHMETIC_MUTATOR: &str = "arithmetic_mutator";
+const GAUSSIAN_MUTATOR: &str = "gaussian_mutator";
+const SCRAMBLE_MUTATOR: &str = "scramble_mutator";
+const SWAP_MUTATOR: &str = "swap_mutator";
+
 pub fn get_alters_with_float_gene<C: Chromosome<Gene = FloatGene>, T>(
     builder: GeneticEngineBuilder<C, T>,
     alters: &Vec<PyEngineParam>,
@@ -22,7 +35,7 @@ where
         let args = alter.get_args();
 
         alters_vec.push(match alter.name() {
-            "blend_crossover" => {
+            BLEND_CROSSOVER => {
                 let alpha = args
                     .get("alpha".into())
                     .map(|s| s.parse::<f32>().unwrap())
@@ -34,7 +47,7 @@ where
 
                 alters!(BlendCrossover::new(rate, alpha))
             }
-            "intermediate_crossover" => {
+            INTERMEDIATE_CROSSOVER => {
                 let rate = args
                     .get("rate".into())
                     .map(|s| s.parse::<f32>().unwrap())
@@ -45,42 +58,42 @@ where
                     .unwrap_or(0.5);
                 alters!(IntermediateCrossover::new(rate, alpha))
             }
-            "uniform_crossover" => {
+            UNIFORM_CROSSOVER => {
                 let rate = args
                     .get("rate".into())
                     .map(|s| s.parse::<f32>().unwrap())
                     .unwrap_or(0.5);
                 alters!(UniformCrossover::new(rate))
             }
-            "uniform_mutator" => {
+            UNIFORM_MUTATOR => {
                 let rate = args
                     .get("rate".into())
                     .map(|s| s.parse::<f32>().unwrap())
                     .unwrap_or(0.5);
                 alters!(UniformMutator::new(rate))
             }
-            "arithmetic_mutator" => {
+            ARITHMETIC_MUTATOR => {
                 let rate = args
                     .get("rate".into())
                     .map(|s| s.parse::<f32>().unwrap())
                     .unwrap_or(0.5);
                 alters!(ArithmeticMutator::new(rate))
             }
-            "mean_crossover" => {
+            MEAN_CROSSOVER => {
                 let rate = args
                     .get("rate".into())
                     .map(|s| s.parse::<f32>().unwrap())
                     .unwrap_or(0.5);
                 alters!(MeanCrossover::new(rate))
             }
-            "shuffle_crossover" => {
+            SHUFFLE_CROSSOVER => {
                 let rate = args
                     .get("rate".into())
                     .map(|s| s.parse::<f32>().unwrap())
                     .unwrap_or(0.5);
                 alters!(ShuffleCrossover::new(rate))
             }
-            "simulated_binary_crossover" => {
+            SIMULATED_BINARY_CROSSOVER => {
                 let rate = args
                     .get("rate".into())
                     .map(|s| s.parse::<f32>().unwrap())
@@ -91,21 +104,21 @@ where
                     .unwrap_or(0.5);
                 alters!(SimulatedBinaryCrossover::new(contiguty, rate))
             }
-            "gaussian_mutator" => {
+            GAUSSIAN_MUTATOR => {
                 let rate = args
                     .get("rate".into())
                     .map(|s| s.parse::<f32>().unwrap())
                     .unwrap_or(0.5);
                 alters!(GaussianMutator::new(rate))
             }
-            "scramble_mutator" => {
+            SCRAMBLE_MUTATOR => {
                 let rate = args
                     .get("rate".into())
                     .map(|s| s.parse::<f32>().unwrap())
                     .unwrap_or(0.5);
                 alters!(ScrambleMutator::new(rate))
             }
-            "swap_mutator" => {
+            SWAP_MUTATOR => {
                 let rate = args
                     .get("rate".into())
                     .map(|s| s.parse::<f32>().unwrap())
@@ -136,7 +149,7 @@ where
         let args = alter.get_args();
 
         alters_vec.push(match alter.name() {
-            "multi_point_crossover" => {
+            MULTI_POINT_CROSSOVER => {
                 let rate = args
                     .get("rate".into())
                     .map(|s| s.parse::<f32>().unwrap())
@@ -147,49 +160,49 @@ where
                     .unwrap_or(2);
                 alters!(MultiPointCrossover::new(rate, points))
             }
-            "uniform_crossover" => {
+            UNIFORM_CROSSOVER => {
                 let rate = args
                     .get("rate".into())
                     .map(|s| s.parse::<f32>().unwrap())
                     .unwrap_or(0.5);
                 alters!(UniformCrossover::new(rate))
             }
-            "uniform_mutator" => {
+            UNIFORM_MUTATOR => {
                 let rate = args
                     .get("rate".into())
                     .map(|s| s.parse::<f32>().unwrap())
                     .unwrap_or(0.5);
                 alters!(UniformMutator::new(rate))
             }
-            "arithmetic_mutator" => {
+            ARITHMETIC_MUTATOR => {
                 let rate = args
                     .get("rate".into())
                     .map(|s| s.parse::<f32>().unwrap())
                     .unwrap_or(0.5);
                 alters!(ArithmeticMutator::new(rate))
             }
-            "mean_crossover" => {
+            MEAN_CROSSOVER => {
                 let rate = args
                     .get("rate".into())
                     .map(|s| s.parse::<f32>().unwrap())
                     .unwrap_or(0.5);
                 alters!(MeanCrossover::new(rate))
             }
-            "shuffle_crossover" => {
+            SHUFFLE_CROSSOVER => {
                 let rate = args
                     .get("rate".into())
                     .map(|s| s.parse::<f32>().unwrap())
                     .unwrap_or(0.5);
                 alters!(ShuffleCrossover::new(rate))
             }
-            "scramble_mutator" => {
+            SCRAMBLE_MUTATOR => {
                 let rate = args
                     .get("rate".into())
                     .map(|s| s.parse::<f32>().unwrap())
                     .unwrap_or(0.5);
                 alters!(ScrambleMutator::new(rate))
             }
-            "swap_mutator" => {
+            SWAP_MUTATOR => {
                 let rate = args
                     .get("rate".into())
                     .map(|s| s.parse::<f32>().unwrap())
@@ -220,7 +233,7 @@ where
         let args = alter.get_args();
 
         alters_vec.push(match alter.name() {
-            "multi_point_crossover" => {
+            MULTI_POINT_CROSSOVER => {
                 let rate = args
                     .get("rate".into())
                     .map(|s| s.parse::<f32>().unwrap())
@@ -231,35 +244,35 @@ where
                     .unwrap_or(2);
                 alters!(MultiPointCrossover::new(rate, points))
             }
-            "uniform_crossover" => {
+            UNIFORM_CROSSOVER => {
                 let rate = args
                     .get("rate".into())
                     .map(|s| s.parse::<f32>().unwrap())
                     .unwrap_or(0.5);
                 alters!(UniformCrossover::new(rate))
             }
-            "uniform_mutator" => {
+            UNIFORM_MUTATOR => {
                 let rate = args
                     .get("rate".into())
                     .map(|s| s.parse::<f32>().unwrap())
                     .unwrap_or(0.5);
                 alters!(UniformMutator::new(rate))
             }
-            "shuffle_crossover" => {
+            SHUFFLE_CROSSOVER => {
                 let rate = args
                     .get("rate".into())
                     .map(|s| s.parse::<f32>().unwrap())
                     .unwrap_or(0.5);
                 alters!(ShuffleCrossover::new(rate))
             }
-            "scramble_mutator" => {
+            SCRAMBLE_MUTATOR => {
                 let rate = args
                     .get("rate".into())
                     .map(|s| s.parse::<f32>().unwrap())
                     .unwrap_or(0.5);
                 alters!(ScrambleMutator::new(rate))
             }
-            "swap_mutator" => {
+            SWAP_MUTATOR => {
                 let rate = args
                     .get("rate".into())
                     .map(|s| s.parse::<f32>().unwrap())
@@ -291,39 +304,39 @@ impl EngineRegistry {
         };
 
         // Register default float alters
-        registry.register_float_alter_mapper("blend_crossover", BlendCrossoverMapper);
-        registry.register_float_alter_mapper("intermediate_crossover", IntermediateCrossoverMapper);
-        registry.register_float_alter_mapper("uniform_crossover", UniformCrossoverMapper);
-        registry.register_float_alter_mapper("mean_crossover", MeanCrossoverMapper);
-        registry.register_float_alter_mapper("shuffle_crossover", ShuffleCrossoverMapper);
-        registry.register_float_alter_mapper("multi_point_crossover", MultiPointCrossoverMapper);
+        registry.register_float_alter_mapper(BLEND_CROSSOVER, BlendCrossoverMapper);
+        registry.register_float_alter_mapper(INTERMEDIATE_CROSSOVER, IntermediateCrossoverMapper);
+        registry.register_float_alter_mapper(UNIFORM_CROSSOVER, UniformCrossoverMapper);
+        registry.register_float_alter_mapper(MEAN_CROSSOVER, MeanCrossoverMapper);
+        registry.register_float_alter_mapper(SHUFFLE_CROSSOVER, ShuffleCrossoverMapper);
+        registry.register_float_alter_mapper(MULTI_POINT_CROSSOVER, MultiPointCrossoverMapper);
         registry.register_float_alter_mapper(
-            "simulated_binary_crossover",
+            SIMULATED_BINARY_CROSSOVER,
             SimulatedBinaryCrossoverMapper,
         );
-        registry.register_float_alter_mapper("uniform_mutator", UniformMutatorMapper);
-        registry.register_float_alter_mapper("arithmetic_mutator", ArithmeticMutatorMapper);
-        registry.register_float_alter_mapper("gaussian_mutator", GaussianMutatorMapper);
-        registry.register_float_alter_mapper("scramble_mutator", ScrambleMutatorMapper);
-        registry.register_float_alter_mapper("swap_mutator", SwapMutatorMapper);
+        registry.register_float_alter_mapper(UNIFORM_MUTATOR, UniformMutatorMapper);
+        registry.register_float_alter_mapper(ARITHMETIC_MUTATOR, ArithmeticMutatorMapper);
+        registry.register_float_alter_mapper(GAUSSIAN_MUTATOR, GaussianMutatorMapper);
+        registry.register_float_alter_mapper(SCRAMBLE_MUTATOR, ScrambleMutatorMapper);
+        registry.register_float_alter_mapper(SWAP_MUTATOR, SwapMutatorMapper);
 
         // Register default int alters
-        registry.register_int_alter_mapper("multi_point_crossover", MultiPointCrossoverMapper);
-        registry.register_int_alter_mapper("uniform_crossover", UniformCrossoverMapper);
-        registry.register_int_alter_mapper("mean_crossover", MeanCrossoverMapper);
-        registry.register_int_alter_mapper("shuffle_crossover", ShuffleCrossoverMapper);
-        registry.register_int_alter_mapper("uniform_mutator", UniformMutatorMapper);
-        registry.register_int_alter_mapper("arithmetic_mutator", ArithmeticMutatorMapper);
-        registry.register_int_alter_mapper("scramble_mutator", ScrambleMutatorMapper);
-        registry.register_int_alter_mapper("swap_mutator", SwapMutatorMapper);
+        registry.register_int_alter_mapper(MULTI_POINT_CROSSOVER, MultiPointCrossoverMapper);
+        registry.register_int_alter_mapper(UNIFORM_CROSSOVER, UniformCrossoverMapper);
+        registry.register_int_alter_mapper(MEAN_CROSSOVER, MeanCrossoverMapper);
+        registry.register_int_alter_mapper(SHUFFLE_CROSSOVER, ShuffleCrossoverMapper);
+        registry.register_int_alter_mapper(UNIFORM_MUTATOR, UniformMutatorMapper);
+        registry.register_int_alter_mapper(ARITHMETIC_MUTATOR, ArithmeticMutatorMapper);
+        registry.register_int_alter_mapper(SCRAMBLE_MUTATOR, ScrambleMutatorMapper);
+        registry.register_int_alter_mapper(SWAP_MUTATOR, SwapMutatorMapper);
 
         // Register default char alters
-        registry.register_char_alter_mapper("multi_point_crossover", MultiPointCrossoverMapper);
-        registry.register_char_alter_mapper("uniform_crossover", UniformCrossoverMapper);
-        registry.register_char_alter_mapper("shuffle_crossover", ShuffleCrossoverMapper);
-        registry.register_char_alter_mapper("uniform_mutator", UniformMutatorMapper);
-        registry.register_char_alter_mapper("scramble_mutator", ScrambleMutatorMapper);
-        registry.register_char_alter_mapper("swap_mutator", SwapMutatorMapper);
+        registry.register_char_alter_mapper(MULTI_POINT_CROSSOVER, MultiPointCrossoverMapper);
+        registry.register_char_alter_mapper(UNIFORM_CROSSOVER, UniformCrossoverMapper);
+        registry.register_char_alter_mapper(SHUFFLE_CROSSOVER, ShuffleCrossoverMapper);
+        registry.register_char_alter_mapper(UNIFORM_MUTATOR, UniformMutatorMapper);
+        registry.register_char_alter_mapper(SCRAMBLE_MUTATOR, ScrambleMutatorMapper);
+        registry.register_char_alter_mapper(SWAP_MUTATOR, SwapMutatorMapper);
 
         registry
     }
