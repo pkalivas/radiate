@@ -5,6 +5,7 @@ use pyo3::{
 
 #[pyclass(unsendable)]
 pub struct PyGeneration {
+    pub index: usize,
     pub score: Py<PyList>,
     pub value: Py<PyAny>,
     pub metrics: PyMetricSet,
@@ -13,13 +14,18 @@ pub struct PyGeneration {
 #[pymethods]
 impl PyGeneration {
     #[new]
-    #[pyo3(signature = (score, value, metrics))]
-    pub fn new(score: Py<PyList>, value: Py<PyAny>, metrics: PyMetricSet) -> Self {
+    #[pyo3(signature = (index, score, value, metrics))]
+    pub fn new(index: usize, score: Py<PyList>, value: Py<PyAny>, metrics: PyMetricSet) -> Self {
         Self {
+            index,
             score,
             value,
             metrics,
         }
+    }
+
+    pub fn index(&self) -> usize {
+        self.index
     }
 
     pub fn score<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
@@ -35,7 +41,8 @@ impl PyGeneration {
         let value = self.value(py)?;
 
         Ok(format!(
-            "Generation(\n\tscore={},\n\tvalue={},\n\t metrics={})",
+            "Generation(\n\tindex={},\n\tscore={},\n\tvalue={},\n\t metrics={})",
+            self.index,
             score,
             value,
             self.metrics.__repr__()
