@@ -22,24 +22,6 @@ pub struct Score {
 }
 
 impl Score {
-    pub fn from_any(value: &dyn std::any::Any) -> Self {
-        if let Some(value) = value.downcast_ref::<f32>() {
-            Score::from_f32(*value)
-        } else if let Some(value) = value.downcast_ref::<i32>() {
-            Score::from_int(*value)
-        } else if let Some(value) = value.downcast_ref::<usize>() {
-            Score::from_usize(*value)
-        } else if let Some(value) = value.downcast_ref::<String>() {
-            Score::from_string(value)
-        } else if let Some(value) = value.downcast_ref::<Score>() {
-            value.clone()
-        } else if let Some(value) = value.downcast_ref::<Vec<f32>>() {
-            Score::from_vec(value.clone())
-        } else {
-            panic!("Invalid type for Score")
-        }
-    }
-
     pub fn from_vec(values: Vec<f32>) -> Self {
         for value in &values {
             if value.is_nan() {
@@ -49,36 +31,6 @@ impl Score {
 
         Score {
             values: Arc::from(values),
-        }
-    }
-
-    pub fn from_f32(value: f32) -> Self {
-        if value.is_nan() {
-            panic!("Score value cannot be NaN")
-        }
-
-        Score {
-            values: Arc::from(vec![value]),
-        }
-    }
-
-    pub fn from_int(value: i32) -> Self {
-        Score {
-            values: Arc::from(vec![value as f32]),
-        }
-    }
-
-    pub fn from_usize(value: usize) -> Self {
-        Score {
-            values: Arc::from(vec![value as f32]),
-        }
-    }
-
-    pub fn from_string(value: &str) -> Self {
-        Score {
-            values: Arc::from(vec![
-                value.parse::<f32>().expect("Failed to parse string to f32"),
-            ]),
         }
     }
 
@@ -132,31 +84,49 @@ impl Hash for Score {
 
 impl From<f32> for Score {
     fn from(value: f32) -> Self {
-        Score::from_f32(value)
+        if value.is_nan() {
+            panic!("Score value cannot be NaN")
+        }
+
+        Score {
+            values: Arc::from(vec![value]),
+        }
     }
 }
 
 impl From<i32> for Score {
     fn from(value: i32) -> Self {
-        Score::from_int(value)
+        Score {
+            values: Arc::from(vec![value as f32]),
+        }
     }
 }
 
 impl From<usize> for Score {
     fn from(value: usize) -> Self {
-        Score::from_usize(value)
+        Score {
+            values: Arc::from(vec![value as f32]),
+        }
     }
 }
 
 impl From<String> for Score {
     fn from(value: String) -> Self {
-        Score::from_string(&value)
+        Score {
+            values: Arc::from(vec![
+                value.parse::<f32>().expect("Failed to parse string to f32"),
+            ]),
+        }
     }
 }
 
 impl From<&str> for Score {
     fn from(value: &str) -> Self {
-        Score::from_string(value)
+        Score {
+            values: Arc::from(vec![
+                value.parse::<f32>().expect("Failed to parse string to f32"),
+            ]),
+        }
     }
 }
 
@@ -223,7 +193,7 @@ impl Add<f32> for Score {
 
     fn add(self, other: f32) -> Self {
         if self.values.is_empty() {
-            return Score::from_f32(other);
+            return Score::from(other);
         }
 
         let values = self.values.iter().map(|a| a + other).collect();
@@ -256,7 +226,7 @@ impl Sub<f32> for Score {
 
     fn sub(self, other: f32) -> Self {
         if self.values.is_empty() {
-            return Score::from_f32(-other);
+            return Score::from(-other);
         }
 
         let values = self.values.iter().map(|a| a - other).collect();
@@ -289,7 +259,7 @@ impl Mul<f32> for Score {
 
     fn mul(self, other: f32) -> Self {
         if self.values.is_empty() {
-            return Score::from_f32(other);
+            return Score::from(other);
         }
 
         let values = self.values.iter().map(|a| a * other).collect();
@@ -322,7 +292,7 @@ impl Div<f32> for Score {
 
     fn div(self, other: f32) -> Self {
         if self.values.is_empty() {
-            return Score::from_f32(other);
+            return Score::from(other);
         }
 
         let values = self.values.iter().map(|a| a / other).collect();
