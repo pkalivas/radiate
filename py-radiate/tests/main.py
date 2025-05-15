@@ -18,7 +18,7 @@ engine.alters([
     rd.UniformMutator(0.01)
 ])
 
-result = engine.run([rd.ScoreLimit(0)])
+result = engine.run(rd.ScoreLimit(0))
 
 print(result)
 

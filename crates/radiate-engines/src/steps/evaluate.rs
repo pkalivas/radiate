@@ -25,16 +25,27 @@ where
         _thread_pool: Arc<ThreadPool>,
         problem: Arc<dyn Problem<C, T>>,
     ) -> usize {
-        let mut count = 0;
-        for individual in ecosystem.population.iter_mut() {
-            if individual.score().is_some() {
-                continue;
-            } else {
-                let score = problem.eval(&individual.genotype());
-                individual.set_score(Some(score));
-
-                count += 1;
+        let mut jobs = Vec::new();
+        let len = ecosystem.population.len();
+        for idx in 0..len {
+            if ecosystem.population[idx].score().is_none() {
+                let geno = ecosystem.population[idx].take_genotype();
+                jobs.push((idx, geno));
             }
+        }
+
+        let work_results = jobs
+            .into_iter()
+            .map(|(idx, geno)| {
+                let score = problem.eval(&geno);
+                (idx, score, geno)
+            })
+            .collect::<Vec<_>>();
+
+        let count = work_results.len();
+        for (idx, score, genotype) in work_results {
+            ecosystem.population[idx].set_score(Some(score));
+            ecosystem.population[idx].set_genotype(genotype);
         }
 
         count
