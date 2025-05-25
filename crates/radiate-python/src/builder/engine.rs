@@ -25,6 +25,7 @@ where
     engine
 }
 
+#[allow(dead_code)]
 pub(crate) fn build_multi_objective_engine<C>(
     codex: PyCodex<C>,
     fitness_func: PyObject,

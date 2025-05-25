@@ -113,6 +113,14 @@ class GeneticEngine:
         """Set the objectives."""
         self.builder.set_objectives(self.__get_objectives(ObjectiveType.MAX))
 
+    def multi_objective(self, objectives: List[str]):
+        """Set the objectives for a multiobjective problem"""
+        if not isinstance(objectives, list) or not all(
+            obj in [ObjectiveType.MIN, ObjectiveType.MAX] for obj in objectives
+        ):
+            raise ValueError("Objectives must be a list of 'min' or 'max'.")
+        self.builder.set_objectives(self.__get_objectives(objectives))
+
     def num_threads(self, num_threads: int):
         """Set the number of threads."""
         if num_threads <= 0:

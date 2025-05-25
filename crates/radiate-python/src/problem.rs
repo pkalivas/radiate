@@ -56,7 +56,7 @@ impl ThreadSafePythonFn {
     pub fn call<'py>(&self, outer: Python<'py>, input: ObjectValue) -> Score {
         let any_value = self
             .func
-            .call1(outer, (input.inner,))
+            .call1(outer, (input.inner.bind_borrowed(outer),))
             .expect("Python call failed");
 
         let av = any_value
@@ -67,7 +67,7 @@ impl ThreadSafePythonFn {
         match av {
             AnyValue::Float32(score) => Score::from(score),
             AnyValue::Float64(score) => Score::from(score as f32),
-            AnyValue::Int32(score) => Score::from(score as f32),
+            AnyValue::Int32(score) => Score::from(score),
             AnyValue::Int64(score) => Score::from(score as f32),
             AnyValue::Int128(score) => Score::from(score as f32),
             AnyValue::Int16(score) => Score::from(score as f32),

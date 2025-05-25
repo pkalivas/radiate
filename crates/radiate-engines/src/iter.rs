@@ -23,8 +23,9 @@ where
     }
 }
 
-impl<C, T, E> EngineIteratorExt<C, T, E> for EngineIterator<C, T, E>
+impl<I, C, T, E> EngineIteratorExt<C, T, E> for I
 where
+    I: Iterator<Item = E>,
     C: Chromosome,
     T: Clone,
     E: Epoch<Chromosome = C> + for<'a> From<&'a Context<C, T>>,
@@ -41,7 +42,7 @@ where
     where
         Self: Sized,
     {
-        self.take_while(move |ctx| ctx.seconds() < limit)
+        self.skip_while(move |ctx| ctx.seconds() < limit)
     }
 
     fn until_duration(self, limit: impl Into<Duration>) -> impl Iterator<Item = E>
@@ -49,7 +50,7 @@ where
         Self: Sized,
     {
         let limit = limit.into();
-        self.take_while(move |ctx| ctx.time() < limit)
+        self.skip_while(move |ctx| ctx.time() < limit)
     }
 
     fn until_score_above(self, limit: impl Into<Score>) -> impl Iterator<Item = E>
@@ -57,8 +58,8 @@ where
         Self: Sized,
         E: Scored,
     {
-        let limit = limit.into();
-        self.take_while(move |ctx| ctx.score().unwrap() < &limit)
+        let lim = limit.into();
+        self.skip_while(move |ctx| ctx.score().unwrap() < &lim)
     }
 
     fn until_score_below(self, limit: impl Into<Score>) -> impl Iterator<Item = E>
@@ -66,17 +67,19 @@ where
         Self: Sized,
         E: Scored,
     {
-        let limit = limit.into();
-        self.take_while(move |ctx| ctx.score().unwrap() > &limit)
+        let lim = limit.into();
+        self.skip_while(move |ctx| ctx.score().unwrap() > &lim)
     }
 
-    fn until_score_equal(self, limit: impl Into<Score>) -> impl Iterator<Item = E>
+    fn until_score_equal(self, limit: impl Into<Score>) -> Option<E>
     where
         Self: Sized,
         E: Scored,
     {
         let limit = limit.into();
-        self.take_while(move |ctx| ctx.score().unwrap() != &limit)
+        self.skip_while(move |ctx| ctx.score().unwrap() != &limit)
+            .take(1)
+            .last()
     }
 
     fn until_converged(self, window: usize, epsilon: f32) -> impl Iterator<Item = E>
