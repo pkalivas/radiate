@@ -26,8 +26,8 @@ class GeneticEngine:
         self,
         codex: FloatCodex | IntCodex | CharCodex | BitCodex,
         fitness_func: Callable[[Any], Any],
-        offspring_selector: Selector = None,
-        survivor_selector: Selector = None,
+        offspring_selector: Selector | None = None,
+        survivor_selector: Selector | None = None,
         alters: None | Alterer | List[Alterer] = None,
         population_size: int = 100,
         offspring_fraction: float = 0.8,
@@ -147,7 +147,7 @@ class GeneticEngine:
             return objectives
         raise TypeError(f"Objectives type {type(objectives)} is not supported.")
 
-    def __get_params(self, value):
+    def __get_params(self, value: Selector | Alterer | List[Alterer]) -> List[Any]:
         if isinstance(value, Selector):
             return value.params
         if isinstance(value, Alterer):
@@ -157,7 +157,7 @@ class GeneticEngine:
                 for alter in value:
                     if not alter.is_valid(self.gene_type):
                         raise TypeError(
-                            f"Alterer {alter} is not valid for genome type {GeneType.FLOAT}."
+                            f"Alterer {alter} is not valid for genome type {self.gene_type}."
                         )
                 return [alter.params for alter in value]
         raise TypeError(f"Param type {type(value)} is not supported.")

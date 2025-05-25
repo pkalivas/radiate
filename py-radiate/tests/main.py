@@ -12,13 +12,14 @@ rd.random.set_seed(100)
 
 codex = rd.IntCodex([10], (0, 10))
 engine = rd.GeneticEngine(codex, lambda x: sum(x[0]))
+# engine.num_threads(1)
 engine.offspring_selector(rd.BoltzmannSelector(4))
 engine.alters([
     rd.MultiPointCrossover(0.75, 2), 
     rd.UniformMutator(0.01)
 ])
 
-result = engine.run(rd.ScoreLimit(0))
+result = engine.run(rd.ScoreLimit(0), log=False)
 
 print(result)
 
