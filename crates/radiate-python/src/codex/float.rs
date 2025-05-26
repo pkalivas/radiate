@@ -1,14 +1,15 @@
+use super::PyCodex;
 use crate::conversion::ObjectValue;
 use pyo3::{
-    Python, pyclass, pymethods,
+    pyclass, pymethods,
     types::{PyList, PyListMethods},
 };
-use radiate::{Chromosome, FloatChromosome, FnCodex, Gene};
+use radiate::{Chromosome, FloatChromosome, Gene};
 
 #[pyclass]
 #[derive(Clone)]
 pub struct PyFloatCodex {
-    pub codex: FnCodex<FloatChromosome, ObjectValue>,
+    pub codex: PyCodex<FloatChromosome>,
 }
 
 #[pymethods]
@@ -27,7 +28,7 @@ impl PyFloatCodex {
             .unwrap_or(val_range.clone());
 
         PyFloatCodex {
-            codex: FnCodex::new()
+            codex: PyCodex::new()
                 .with_encoder(move || {
                     lengths
                         .iter()
@@ -37,21 +38,19 @@ impl PyFloatCodex {
                         .collect::<Vec<FloatChromosome>>()
                         .into()
                 })
-                .with_decoder(|geno| {
-                    Python::with_gil(|py| {
-                        let outer = PyList::empty(py);
-                        for chromo in geno.iter() {
-                            let inner = PyList::empty(py);
-                            for gene in chromo.iter() {
-                                inner.append(*gene.allele()).unwrap();
-                            }
-                            outer.append(inner).unwrap();
+                .with_decoder(|py, geno| {
+                    let outer = PyList::empty(py);
+                    for chromo in geno.iter() {
+                        let inner = PyList::empty(py);
+                        for gene in chromo.iter() {
+                            inner.append(*gene.allele()).unwrap();
                         }
+                        outer.append(inner).unwrap();
+                    }
 
-                        ObjectValue {
-                            inner: outer.unbind().into_any(),
-                        }
-                    })
+                    ObjectValue {
+                        inner: outer.unbind().into_any(),
+                    }
                 }),
         }
     }

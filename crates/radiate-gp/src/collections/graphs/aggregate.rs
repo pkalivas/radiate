@@ -6,11 +6,9 @@ use crate::{
 use std::collections::BTreeMap;
 
 /// Building a [Graph<T>] can be a very complex task. Everything in this file exists
-/// to simplify the process of building a [Graph<T>] by allowing the user to do so
-/// in a declarative way.
+/// to simplify the process by allowing the user to do so in a declarative way.
 ///
-/// The [ConnectTypes] are simply a set of available ways we can
-/// connect different [GraphNode]'s together.
+/// The [ConnectTypes] are a set of available ways we can connect different [GraphNode]'s together.
 ///
 /// # Assumptions
 /// * The first collection is the 'source' collection and the second collection is the 'target' collection.
@@ -54,7 +52,7 @@ enum ConnectTypes {
     OneToSelf,
 }
 
-/// Represents a relationship between two `GraphNode`s where the `source_id` is the [GraphNode<T>]'s
+/// Represents a relationship between two [GraphNode<T>]'s where the `source_id` is the [GraphNode<T>]'s
 /// id that is incoming, or giving its value to the `target_id` [GraphNode<T>].
 struct Relationship<'a> {
     source_id: &'a GraphNodeId,
@@ -62,12 +60,12 @@ struct Relationship<'a> {
 }
 
 /// The [GraphAggregate] struct is a builder for [Graph<T>] that allows you to build a [Graph<T>]
-/// in an extremely declarative way. It allows you to build a [Graph<T>] by connecting
-/// [GraphNode]'s together in all sorts of ways. This results in an extremely powerful tool.
-/// The [GraphAggregate] is ment to take a collection of `GraphNode`s and connect them together
-/// in a sudo 'layered' way. I say 'sudo' because the 'layers' can simply be connecting
-/// input nodes to output nodes, hidden nodes to weights, input nodes to output nodes, recurrent
-/// connections, etc.
+/// in an declarative way. It allows you to build a [Graph<T>] by connecting [GraphNode]'s together in
+/// a multitude of ways.
+///
+/// We do this by maintaining a map of nodes with an aggregate of thir relationships or how they are
+/// connected to each other. Because of the nature of this aggregate, verifying the correctness of a
+/// [Graph<T>] can truly only be done after building the final [Graph<T>].
 #[derive(Default)]
 pub struct GraphAggregate<'a, T: Clone> {
     nodes: BTreeMap<&'a GraphNodeId, &'a GraphNode<T>>,
@@ -89,17 +87,17 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         let mut graph = Graph::<T>::default();
 
         for (index, node_id) in self.node_order.values().enumerate() {
-            let node = self.nodes.get(node_id).unwrap();
+            let node = self.nodes[node_id];
 
             graph.push((index, node.node_type(), node.value().clone(), node.arity()));
             id_index_map.insert(node_id, index);
         }
 
         for rel in self.relationships.iter() {
-            let source_idx = id_index_map.get(&rel.source_id).unwrap();
-            let target_idx = id_index_map.get(&rel.target_id).unwrap();
+            let source_idx = id_index_map[&rel.source_id];
+            let target_idx = id_index_map[&rel.target_id];
 
-            graph.attach(*source_idx, *target_idx);
+            graph.attach(source_idx, target_idx);
         }
 
         graph.set_cycles(vec![]);
@@ -297,7 +295,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
             .filter(|(_, node)| {
                 node.outgoing().len() == 1
                     && node.is_recurrent()
-                    && (node.node_type() == NodeType::Vertex)
+                    && node.node_type() == NodeType::Vertex
             })
             .filter_map(|(idx, _)| collection.as_ref().get(idx))
             .collect::<Vec<&GraphNode<T>>>();
@@ -376,6 +374,16 @@ mod tests {
 
         let input_nodes = graph.inputs();
         let output_nodes = graph.outputs();
+
+        let input_one = &graph[0];
+        let input_two = &graph[1];
+        let output_one = &graph[2];
+        let output_two = &graph[3];
+
+        assert_eq!(input_one.index(), 0);
+        assert_eq!(input_two.index(), 1);
+        assert_eq!(output_one.index(), 2);
+        assert_eq!(output_two.index(), 3);
 
         for (in_node, out_node) in input_nodes.iter().zip(output_nodes.iter()) {
             assert!(in_node.outgoing().contains(&out_node.index()));
@@ -458,6 +466,13 @@ mod tests {
 
         let output_one = &graph[4];
         let output_two = &graph[5];
+
+        assert_eq!(input_one.index(), 0);
+        assert_eq!(input_two.index(), 1);
+        assert_eq!(input_three.index(), 2);
+        assert_eq!(input_four.index(), 3);
+        assert_eq!(output_one.index(), 4);
+        assert_eq!(output_two.index(), 5);
 
         assert!(input_one.outgoing().contains(&output_one.index()));
         assert!(input_three.outgoing().contains(&output_one.index()));

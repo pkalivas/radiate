@@ -31,6 +31,7 @@ impl<T> MutCell<T> {
     }
 
     pub fn is_unique(&self) -> bool {
+        // SAFETY: We're only reading the ref_count
         unsafe { (*self.inner).ref_count.load(Ordering::Acquire) == 1 }
     }
 

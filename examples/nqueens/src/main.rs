@@ -38,7 +38,6 @@ fn main() {
         .inspect(|ctx| {
             println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_usize());
         })
-        .last()
         .unwrap();
 
     println!("\nResult Queens Board ({:.3?}):", result.time());

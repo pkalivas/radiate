@@ -1,5 +1,9 @@
 use crate::PyEngineParam;
 
+const SECONDS_LIMIT: &str = "seconds";
+const GENERATIONS_LIMIT: &str = "generations";
+const SCORE_LIMIT: &str = "score";
+
 pub enum Limit {
     Seconds(f64),
     Generations(usize),
@@ -23,21 +27,21 @@ impl Limit {
 impl From<PyEngineParam> for Limit {
     fn from(param: PyEngineParam) -> Self {
         match param.name() {
-            "seconds" => Limit::seconds(
+            SECONDS_LIMIT => Limit::seconds(
                 param
                     .get_args()
                     .get("seconds")
                     .map(|s| s.parse::<f64>().unwrap())
                     .unwrap_or(0.0),
             ),
-            "generations" => Limit::generations(
+            GENERATIONS_LIMIT => Limit::generations(
                 param
                     .get_args()
                     .get("generations")
                     .map(|s| s.parse::<usize>().unwrap())
                     .unwrap_or(0),
             ),
-            "score" => Limit::score(
+            SCORE_LIMIT => Limit::score(
                 param
                     .get_args()
                     .get("score")

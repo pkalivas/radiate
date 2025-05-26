@@ -14,12 +14,11 @@ fn main() {
         .codex(codex)
         .num_threads(10)
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
-        // .front_size(1100..1300)
         .offspring_selector(TournamentSelector::new(5))
         .survivor_selector(NSGA2Selector::new())
         .alter(alters!(
-            SimulatedBinaryCrossover::new(1_f32, 1.0),
-            UniformMutator::new(0.1_f32),
+            SimulatedBinaryCrossover::new(2.5_f32, 1.0),
+            UniformMutator::new(1.0 / VARIABLES as f32),
         ))
         .fitness_fn(|geno: Vec<f32>| dtlz_1(&geno))
         .build();

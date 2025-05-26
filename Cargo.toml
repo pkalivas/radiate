@@ -60,7 +60,7 @@ homepage = "https://pkalivas.github.io/radiate/"
 
 [workspace.dependencies]
 rand = "0.9.1"
-pyo3 = "0.24.1"
+pyo3 = "0.25.0"
 radiate = { version = "1.2.12", path = "crates/radiate", default-features = false }
 radiate-core = { version = "1.2.12", path = "crates/radiate-core", default-features = false }
 radiate-alters = { version = "1.2.12", path = "crates/radiate-alters", default-features = false }

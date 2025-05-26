@@ -1,14 +1,15 @@
+use super::PyCodex;
 use crate::conversion::ObjectValue;
 use pyo3::{
-    Python, pyclass, pymethods,
+    pyclass, pymethods,
     types::{PyList, PyListMethods},
 };
-use radiate::{BitChromosome, Chromosome, FnCodex, Gene};
+use radiate::{BitChromosome, Chromosome, Gene};
 
 #[pyclass]
 #[derive(Clone)]
 pub struct PyBitCodex {
-    pub codex: FnCodex<BitChromosome, ObjectValue>,
+    pub codex: PyCodex<BitChromosome>,
 }
 
 #[pymethods]
@@ -19,7 +20,7 @@ impl PyBitCodex {
         let lengths = chromosome_lengths.unwrap_or(vec![1]);
 
         PyBitCodex {
-            codex: FnCodex::new()
+            codex: PyCodex::new()
                 .with_encoder(move || {
                     lengths
                         .iter()
@@ -27,21 +28,19 @@ impl PyBitCodex {
                         .collect::<Vec<BitChromosome>>()
                         .into()
                 })
-                .with_decoder(|geno| {
-                    Python::with_gil(|py| {
-                        let outer = PyList::empty(py);
-                        for chromo in geno.iter() {
-                            let inner = PyList::empty(py);
-                            for gene in chromo.iter() {
-                                inner.append(*gene.allele()).unwrap();
-                            }
-                            outer.append(inner).unwrap();
+                .with_decoder(|py, geno| {
+                    let outer = PyList::empty(py);
+                    for chromo in geno.iter() {
+                        let inner = PyList::empty(py);
+                        for gene in chromo.iter() {
+                            inner.append(*gene.allele()).unwrap();
                         }
+                        outer.append(inner).unwrap();
+                    }
 
-                        ObjectValue {
-                            inner: outer.unbind().into_any(),
-                        }
-                    })
+                    ObjectValue {
+                        inner: outer.unbind().into_any(),
+                    }
                 }),
         }
     }

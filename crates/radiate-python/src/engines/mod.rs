@@ -36,21 +36,17 @@ where
                     }
                 })
                 .skip_while(|epoch| {
-                    for limit in lims.iter() {
-                        match limit {
-                            Limit::Generations(lim) => return epoch.index() >= *lim,
-                            Limit::Score(lim) => match epoch.objective() {
-                                Objective::Single(opt) => match opt {
-                                    Optimize::Minimize => return epoch.score().as_f32() > *lim,
-                                    Optimize::Maximize => return epoch.score().as_f32() < *lim,
-                                },
-                                Objective::Multi(_) => return false,
+                    lims.iter().all(|limit| match limit {
+                        Limit::Generations(lim) => epoch.index() < *lim,
+                        Limit::Score(lim) => match epoch.objective() {
+                            Objective::Single(opt) => match opt {
+                                Optimize::Minimize => epoch.score().as_f32() > *lim,
+                                Optimize::Maximize => epoch.score().as_f32() < *lim,
                             },
-                            Limit::Seconds(val) => return epoch.seconds() < *val,
-                        }
-                    }
-
-                    true
+                            Objective::Multi(_) => false,
+                        },
+                        Limit::Seconds(val) => return epoch.seconds() < *val,
+                    })
                 })
                 .take(1)
                 .last()

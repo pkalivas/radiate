@@ -249,10 +249,10 @@ macro_rules! build_engine {
 #[macro_export]
 macro_rules! engine {
     ($codex:expr, $fitness:expr) => {
-        GeneticEngine::from_codex($codex).fitness_fn($fitness).build()
+        GeneticEngine::builder().codex($codex).fitness_fn($fitness).build()
     };
     ($codex:expr, $fitness:expr, $($extra:tt)+) => {
-        GeneticEngine::from_codex($codex).fitness_fn($fitness).$($extra)+.build()
+        GeneticEngine::builder().codex($codex).fitness_fn($fitness).$($extra)+.build()
     };
 }
 
@@ -267,7 +267,8 @@ macro_rules! experiment {
     ) => {
         (0..$reps)
             .map(|_| {
-                let engine = GeneticEngine::from_codex($codex)
+                let engine = GeneticEngine::builder()
+                    .codex($codex)
                     .fitness_fn($fitness)
                     $( .$setting($($value),*) )*
                     .build();

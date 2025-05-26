@@ -338,7 +338,7 @@ mod test {
         }));
 
         for i in 0..population.len() {
-            population[i].set_score(Some(Score::from_usize(i)));
+            population[i].set_score(Some(Score::from(i)));
         }
 
         let mut minimize_population = population.clone();
@@ -346,9 +346,6 @@ mod test {
 
         Optimize::Minimize.sort(&mut minimize_population);
         Optimize::Maximize.sort(&mut maximize_population);
-
-        // assert!(minimize_population.is_sorted);
-        // assert!(maximize_population.is_sorted);
 
         for i in 0..population.len() {
             assert_eq!(minimize_population[i].score().unwrap().as_usize(), i);

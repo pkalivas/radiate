@@ -10,34 +10,35 @@ import radiate as rd
 
 rd.random.set_seed(100)
 
-# target = "Hello, Radiate!"
-# def fitness_fn(x):
-#     '''The fitness function for the string matching problem.'''
-#     x = x[0]
-#     value = 0
-#     for i in range(len(x)):
-#         if x[i] == target[i]:
-#             value += 1
-#     return value
-
-# codex = rd.CharCodex([len(target)])
-# engine = rd.GeneticEngine(codex, fitness_fn)
-# engine.maximizing()
+# codex = rd.IntCodex([10], (0, 10))
+# engine = rd.GeneticEngine(codex, lambda x: sum(x[0]))
+# # engine.num_threads(1)
 # engine.offspring_selector(rd.BoltzmannSelector(4))
+# engine.alters([
+#     rd.MultiPointCrossover(0.75, 2), 
+#     rd.UniformMutator(0.01)
+# ])
 
-# result = engine.run(rd.ScoreLimit(len(target)), log=False)
+# result = engine.run(rd.ScoreLimit(0), log=False)
 
 # print(result)
 
-codex = rd.IntCodex([10], (0, 10))
-engine = rd.GeneticEngine(codex, lambda x: sum(x[0]))
-engine.offspring_selector(rd.BoltzmannSelector(4))
-engine.alters([
-    rd.MultiPointCrossover(0.75, 2), 
-    rd.UniformMutator(0.01)
-])
+target = "Hello, Radiate!"
+def fitness_fn(x):
+    '''The fitness function for the string matching problem.'''
+    x = x[0]
+    value = 0
+    for i in range(len(x)):
+        if x[i] == target[i]:
+            value += 1
+    return value
 
-result = engine.run(rd.ScoreLimit(0))
+codex = rd.CharCodex([len(target)])
+engine = rd.GeneticEngine(codex, fitness_fn)
+engine.maximizing()
+engine.offspring_selector(rd.BoltzmannSelector(4))
+
+result = engine.run(rd.ScoreLimit(len(target)))
 
 print(result)
 
@@ -62,6 +63,29 @@ print(result)
 # ])
 
 # engine.run(rd.ScoreLimit(0.0001))
+
+# variables = 4
+# objectives = 3
+# k = variables - objectives + 1
+
+
+# def dtlz_1(val):
+#     g = sum((x - 0.5) ** 2 for x in val[k:])
+#     f1 = (1.0 + g) * (val[0] * val[1])
+#     f2 = (1.0 + g) * (val[0] * (1.0 - val[1]))
+#     f3 = (1.0 + g) * (1.0 - val[0])
+
+#     return [f1, f2, f3]
+
+# codex = rd.FloatCodex([variables], (0.0, 1.0), (-100.0, 100.0))
+# engine = rd.GeneticEngine(codex, dtlz_1)
+# engine.multi_objective([rd.ObjectiveType.MIN, rd.ObjectiveType.MIN, rd.ObjectiveType.MIN])
+# engine.offspring_selector(rd.TournamentSelector(k=5))
+# engine.survivor_selector(rd.NSGA2Selector())
+# engine.alters([
+#     rd.SimulatedBinaryCrossover(1.0, 1.0),
+#     rd.UniformMutator(0.1)
+# ])
 
 
 
