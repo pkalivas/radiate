@@ -1,16 +1,20 @@
 
-Radiate is inspired from a multitude of other genetic algorithm libraries, all of which have their own unique features and capabilities. Some of the most notable inspirations include:
+## Installing Radiate
 
-* [carrot](https://github.com/liquidcarrot/carrot): An architecture-free neural network library built around neuroevolution built in javascript
-* [Genevo](https://github.com/innoave/genevo): A Rust library which provides building blocks to run simulations of optimization and search problems using genetic algorithms (GA).
-* [Sharpneat](https://github.com/colgreen/sharpneat): A C# library for evolutionary computation, primarily focused on neuroevolution and artificial neural networks
-* [Jenetics](https://jenetics.io): A Genetic Algorithm, Evolutionary Algorithm, Grammatical Evolution, Genetic Programming, and Multi-objective Optimization library, written in modern day Java
+=== ":fontawesome-brands-python: Python"
 
-## Configuration
-```toml
-[dependencies]
-radiate = "1.2.12"
-```
+    ```bash
+    pip install radiate
+    ```
+
+=== ":fontawesome-brands-rust: Rust"
+    ```shell
+    cargo add radiate -F gp
+
+    # Or Cargo.toml
+    [dependencies]
+    radiate = { version = "1.2.12", features = ["gp"] }
+    ```
 
 ## Core Implementations
 
