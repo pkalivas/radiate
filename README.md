@@ -4,21 +4,11 @@
 </p>
 
 <div align="center">
-    <a href="https://github.com/pkalivas/radiate/actions/workflows/unit-tests.yml">
-        <img src="https://img.shields.io/github/check-runs/pkalivas/radiate/master" alt="master branch checks" />
-    </a>
-    <a href="https://crates.io/crates/radiate">
-        <img src="https://img.shields.io/crates/v/radiate" alt="Crates.io" />
-    </a>
-    <a href="https://pypi.org/project/radiate/">
-        <img src="https://img.shields.io/pypi/v/radiate?color=blue" alt="pypi.org" />
-    </a>
-    <a href="https://github.com/pkalivas/radiate?tab=MIT-1-ov-file">
-        <img src="https://img.shields.io/crates/l/radiate" alt="Crates.io License" />
-    </a>
-    <a href="">
-        <img src="https://img.shields.io/badge/evolution-genetics-default" alt="Static badge" />
-    </a>
+  <img src="https://img.shields.io/github/check-runs/pkalivas/radiate/master" alt="master branch checks" />
+  <img src="https://img.shields.io/crates/v/radiate" alt="Crates.io" />
+  <img src="https://img.shields.io/pypi/v/radiate?color=blue" alt="pypi.org" />
+  <img src="https://img.shields.io/crates/l/radiate" alt="Crates.io License" />
+  <img src="https://img.shields.io/badge/evolution-genetics-default" alt="Static badge" />
 </div>
 
 ___
