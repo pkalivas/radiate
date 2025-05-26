@@ -36,5 +36,5 @@ The `Distribution` metric is used to represent a distribution of values. The dis
     Just as a quick demo, here is the output of the `GeneticEngine`'s `MetricSet` from the [simple_nn](https://github.com/pkalivas/radiate/blob/master/radiate-examples/simple-nn/src/main.rs) example in the [radiate-examples](https://github.com/pkalivas/radiate/tree/master/radiate-examples) in the gh repo.
 
     <figure markdown="span">
-        ![Metrics](assets/metrics_console.png)
+        ![Metrics](../assets/metrics_console.png)
     </figure>

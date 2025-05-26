@@ -13,7 +13,7 @@
 
 ___
 
-For more details check radiate's [website](https://pkalivas.github.io/radiate/) or cargo [docs](https://docs.rs/radiate/latest/radiate/).
+For more details check radiate's [user guide](https://pkalivas.github.io/radiate/) or cargo [docs](https://docs.rs/radiate/latest/radiate/).
 
 
 Radiate is a powerful library for implementing genetic algorithms and artificial evolution techniques. It provides a fast and flexible framework for creating, evolving, and optimizing solutions to complex problems using principles

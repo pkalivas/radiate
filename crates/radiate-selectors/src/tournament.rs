@@ -16,11 +16,9 @@ impl<C: Chromosome> Select<C> for TournamentSelector {
         let mut selected = Vec::with_capacity(count);
 
         for _ in 0..count {
-            let mut tournament = Vec::with_capacity(self.num);
-            for _ in 0..self.num {
-                let idx = random_provider::range(0..population.len());
-                tournament.push(idx);
-            }
+            let mut tournament = (0..self.num)
+                .map(|_| random_provider::range(0..population.len()))
+                .collect::<Vec<usize>>();
 
             tournament.sort();
 

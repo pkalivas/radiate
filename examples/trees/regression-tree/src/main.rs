@@ -30,6 +30,7 @@ fn main() {
         .iter()
         .until_score_below(MIN_SCORE)
         .inspect(|ctx| log_ctx!(ctx))
+        .take(1)
         .last()
         .inspect(display);
 }

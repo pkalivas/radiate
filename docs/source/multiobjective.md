@@ -1,6 +1,6 @@
 # Multiobjective Optimization
 
-Multiobjective optimization is a type of optimization problem that involves multiple objective functions. The goal is to find a set of solutions that are optimal with respect to all objectives. These solutions are called Pareto optimal solutions while the set of all Pareto optimal solutions is called the Pareto front.
+The goal of MultiObjective optimization is to find a set of solutions that are optimal with respect to all objectives. These solutions are called Pareto optimal solutions while the set of all Pareto optimal solutions is called the Pareto front.
 
 `radiate` supports this type of optimization through simply supplying a list of objectives instead of a single one. This also means the result of the engine's `fitness_fn` must be a list of values equal to the number of objectives. The pareto front will collect as many solutions as specified by the `front_size` parameter, which is a range of values. If the number of solutions collected is greater than the upper bound of the range, the front will filter out the solutions based on their pareto dominance to ensure only the best solutions are kept.
 

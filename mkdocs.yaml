@@ -1,18 +1,20 @@
 site_name: Radiate
 repo_url: http://github.com/pkalivas/radiate
 repo_name: radiate
+
 nav:
   - Home: index.md
-  - Quick Start: quickstart.md
-  - Genome: genome.md
-  - Codex: codex.md
-  - Parameters: params.md
-  - Selectors: selectors.md
-  - Alterers: alterers.md
-  - Metrics: metrics.md
-  - Multiobjective: multiobjective.md
-  - Genetic Programming: gp.md
-  - Examples: examples.md
+  - Quick Start: source/quickstart.md
+  - Genome: source/genome.md
+  - Codex: source/codex.md
+  - Parameters: source/params.md
+  - Selectors: source/selectors.md
+  - Alterers: source/alterers.md
+  - Metrics: source/metrics.md
+  - Multiobjective: source/multiobjective.md
+  - Genetic Programming: source/gp.md
+  - Examples: source/examples.md
+
 theme:
   favicon: assets/radiate.ico
   logo: assets/radiate.png
@@ -45,6 +47,7 @@ theme:
         name: Switch to dark mode
       primary: deep-orange
       accent: light-green 
+
 markdown_extensions:
   - attr_list
   - md_in_html
@@ -72,8 +75,10 @@ markdown_extensions:
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.arithmatex:
       generic: true
+
 extra_css:
   - stylesheets/extra.css
+  
 extra:
   social:
     - icon: fontawesome/brands/github
