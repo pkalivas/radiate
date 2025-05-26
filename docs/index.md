@@ -60,7 +60,7 @@ inspired by natural selection and genetics. The core is written in Rust and is a
 
 ## Key Features
 
-- **Genetic Engine**: The central component orchestrating the genetic algorithm. It manages the population, evaluates fitness, and handles selection, crossover, and mutation processes. It is designed to be flexible and extensible, allowing customization to fit specific optimization requirements.
+- **Genetic Engine**: The central component orchestrating the genetic algorithm. It manages the ecosystem, evaluates fitness, and handles selection, crossover, and mutation processes. It is designed to be flexible and extensible, allowing customization to fit specific optimization requirements.
 
 - **Codex**: Responsible for encoding and decoding genetic information. It acts as a bridge between the problem space and the solution space, allowing the genetic algorithm to operate on abstract genetic representations while solving real-world problems.
 
