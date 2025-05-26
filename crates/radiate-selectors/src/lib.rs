@@ -12,7 +12,7 @@ pub mod tournament;
 pub use botzmann::BoltzmannSelector;
 pub use elite::EliteSelector;
 pub use linear_rank::LinearRankSelector;
-pub use nsga2::NSGA2Selector;
+pub use nsga2::{NSGA2Selector, TournamentNSGA2Selector};
 pub use random_selector::RandomSelector;
 pub use rank::RankSelector;
 pub use roulette::RouletteSelector;

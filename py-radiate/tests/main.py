@@ -38,7 +38,7 @@ engine = rd.GeneticEngine(codex, fitness_fn)
 engine.maximizing()
 engine.offspring_selector(rd.BoltzmannSelector(4))
 
-result = engine.run(rd.ScoreLimit(len(target)), log=False)
+result = engine.run(rd.ScoreLimit(len(target)))
 
 print(result)
 

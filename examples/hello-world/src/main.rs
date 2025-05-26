@@ -1,7 +1,8 @@
-use radiate::{steps::SequentialEvaluator, *};
+use radiate::*;
 
 fn main() {
     random_provider::set_seed(100);
+
     let target = "Hello, Radiate!";
     let codex = CharCodex::vector(target.len());
 
@@ -18,18 +19,9 @@ fn main() {
         })
         .build();
 
-    let result = engine
+    engine
         .iter()
-        // .inspect(|generation| log_ctx!(generation))
         .until_score_equal(target.len())
+        .inspect(|generation| println!("{:?}", generation))
         .unwrap();
-
-    // let result = engine.run(|ctx| {
-    //     let best_as_string = ctx.value().iter().collect::<String>();
-    //     println!("[ {:?} ]: {:?}", ctx.index(), best_as_string);
-
-    //     ctx.score().as_usize() == target.len()
-    // });
-
-    println!("{:?}", result);
 }
