@@ -26,11 +26,9 @@
 </div>
 
 ___
-As of `05/09/2025` Python bindings are in active development.
 
-Radiate is a powerful Rust library designed for implementing genetic algorithms and artificial evolution techniques. It
-provides a fast and flexible framework for creating, evolving, and optimizing solutions to complex problems using principles
-inspired by natural selection and genetics. With an intuitive, 'plug and play' style API, Radiate allows you to quickly test a multitude of evolutionary strategies and configurations.
+Radiate is a powerful library for implementing genetic algorithms and artificial evolution techniques. It provides a fast and flexible framework for creating, evolving, and optimizing solutions to complex problems using principles
+inspired by natural selection and genetics. The core is written in Rust and is available for Python.
 
 <div class="grid cards" markdown>
     
@@ -50,7 +48,7 @@ inspired by natural selection and genetics. With an intuitive, 'plug and play' s
 
     ---
 
-    Leveraging Rust's performance capabilities, Radiate ensures efficient execution of genetic operations, even for large populations and complex problem spaces. 
+    Between Rust's performance capabilities, a multi-threaded architecture, and hours spent optimizing code, Radiate ensures efficient execution of genetic operations, even for large populations and complex problem spaces. 
 
 -   **Flexibility** :material-domain:{ .right }
 
