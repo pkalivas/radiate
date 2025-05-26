@@ -58,7 +58,89 @@ inspired by natural selection and genetics. The core is written in Rust and is a
 
 </div>
 
----
+## Key Features
+
+- **Genetic Engine**: The central component orchestrating the genetic algorithm. It manages the population, evaluates fitness, and handles selection, crossover, and mutation processes. It is designed to be flexible and extensible, allowing customization to fit specific optimization requirements.
+
+- **Codex**: Responsible for encoding and decoding genetic information. It acts as a bridge between the problem space and the solution space, allowing the genetic algorithm to operate on abstract genetic representations while solving real-world problems.
+
+- **Selectors**: Used to choose individuals for reproduction and survival. They play a crucial role in determining the evolutionary pressure applied to the population.
+
+- **Alterers**: Crossover and mutation operators that introduce genetic diversity and enable exploration of the solution space. The library provides a variety of built-in alterers.
+
+- **Fitness Function**: Evaluates how well an individual solves the problem at hand. It is a critical component that guides the evolutionary process by assigning scores to individuals based on their performance.
+
+## Example
+
+This simple maximizing problem demonstrates how to use Radiate to solve a string matching problem, where the goal is to evolve a population of chars to match a target string.
+
+!!! example "Hello, Radiate!"
+
+    === ":fontawesome-brands-python: Python"
+
+        ```python
+        from typing import List
+        import radiate as rd 
+        
+        target = "Hello, Radiate!"
+        def fitness_fn(phenotype: List[List[str]]):
+            '''The fitness function for the string matching problem.'''
+            inner = phenotype[0]
+            return sum(1 for i in range(len(inner)) if inner[i] == target[i])
+
+        codex = rd.CharCodex([len(target)])
+        engine = rd.GeneticEngine(codex, fitness_fn)
+        engine.maximizing()
+        engine.offspring_selector(rd.BoltzmannSelector(4))
+
+        result = engine.run(rd.ScoreLimit(len(target)))
+
+        print(result)
+        ```
+
+    === ":fontawesome-brands-rust: Rust"
+    
+        ```rust
+        use radiate::*;
+
+        fn main() {
+            let target = "Hello, Radiate!";
+            let codex = CharCodex::new(1, target.len());
+
+            let engine = GeneticEngine::from_codex(codex)
+                .offspring_selector(BoltzmannSelector::new(4_f32)) // optional
+                .fitness_fn(|geno: Vec<Vec<char>>| {
+                    geno.into_iter()
+                        .flatten()
+                        .zip(target.chars())
+                        .fold(
+                            0,
+                            |acc, (geno, targ)| {
+                                if geno == targ {
+                                    acc + 1
+                                } else {
+                                    acc
+                                }
+                            },
+                        )
+                })
+                .build();
+
+            let result = engine.run(|ctx| {
+                let best_as_string = ctx.best.iter().flatten().collect::<String>();
+                println!("[ {:?} ]: {:?}", ctx.index, best_as_string);
+
+                ctx.score().as_usize() == target.len()
+            });
+
+            // prints the final `EvolutionContext` which contains the final population, best individual,
+            // the number of generations (index), best score, and the `MetricSet` (a collection of 
+            // evolution metrics the engine maintains throughout the run)
+            println!("{:?}", result); 
+        }
+        ```
+
+## Outside Inspirations
 
 Radiate is inspired from a multitude of other genetic algorithm libraries, all of which have their own unique features and capabilities. Some of the most notable inspirations include:
 

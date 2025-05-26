@@ -27,11 +27,7 @@ target = "Hello, Radiate!"
 def fitness_fn(x):
     '''The fitness function for the string matching problem.'''
     x = x[0]
-    value = 0
-    for i in range(len(x)):
-        if x[i] == target[i]:
-            value += 1
-    return value
+    return sum(1 for i in range(len(target)) if x[i] == target[i])
 
 codex = rd.CharCodex([len(target)])
 engine = rd.GeneticEngine(codex, fitness_fn)
