@@ -1,7 +1,6 @@
 use radiate::*;
 
 const MIN_SCORE: f32 = 0.001;
-// const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
     random_provider::set_seed(1000);
@@ -34,6 +33,7 @@ fn main() {
         .iter()
         .until_score_below(MIN_SCORE)
         .inspect(|ctx| log_ctx!(ctx))
+        .take(1)
         .last()
         .inspect(display);
 }

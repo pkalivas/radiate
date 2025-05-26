@@ -15,7 +15,7 @@ impl<C: Chromosome> Select<C> for RandomSelector {
 
         for _ in 0..count {
             let member = random_provider::choose(&population.individuals);
-            selected.push(member.clone());
+            selected.push(member.get().clone());
         }
 
         Population::from(selected)

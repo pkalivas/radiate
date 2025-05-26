@@ -17,7 +17,7 @@ impl<C: Chromosome> Select<C> for SteadyStateSelector {
         let slice = population.as_ref();
 
         for _ in 0..self.replacement_count {
-            let new_individual = random_provider::choose(slice).clone();
+            let new_individual = random_provider::choose(slice);
             let replace_index = random_provider::range(0..selected_population.len());
             selected_population[replace_index] = new_individual.get().clone();
         }
