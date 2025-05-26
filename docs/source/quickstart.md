@@ -13,7 +13,7 @@
 
     # Or Cargo.toml
     [dependencies]
-    radiate = { version = "1.2.12", features = ["gp"] }
+    radiate = { version = "x", features = ["gp"] }
     ```
 
 ## Core Implementations

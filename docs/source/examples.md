@@ -54,7 +54,7 @@ comprehensive list of examples.
     For example, a solution for `n=8` would be:
 
     <figure>
-        ![8-Queens](assets/nqueens.png){ width="400" }
+        ![8-Queens](../assets/nqueens.png){ width="400" }
     </figure>
 
     ```rust
@@ -256,7 +256,7 @@ comprehensive list of examples.
     - The global minimum occurs at \( x = 0 \) for all dimensions, where the function value is \( 0 \).
 
     <figure>
-        ![Rastrigin](assets/Rastrigin_function.png){ width="400" }
+        ![Rastrigin](../assets/Rastrigin_function.png){ width="400" }
     </figure>
 
     ```rust
