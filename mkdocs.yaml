@@ -3,8 +3,8 @@ repo_url: http://github.com/pkalivas/radiate
 repo_name: radiate
 
 nav:
-  - Home: index.md
-  - Quick Start: source/quickstart.md
+  - User Guide: index.md
+  - Installation: source/installation.md
   - Genome: source/genome.md
   - Codex: source/codex.md
   - Parameters: source/params.md
