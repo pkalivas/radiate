@@ -3,30 +3,32 @@
   <img src="/docs/assets/radiate.png" height="100">
 </p>
 
-<span align="center">
+<div align="center">
+    <a href="https://github.com/pkalivas/radiate/actions/workflows/unit-tests.yml">
+        <img src="https://img.shields.io/github/check-runs/pkalivas/radiate/master" alt="master branch checks" />
+    </a>
+    <a href="https://crates.io/crates/radiate">
+        <img src="https://img.shields.io/crates/v/radiate" alt="Crates.io" />
+    </a>
+    <a href="https://pypi.org/project/radiate/">
+        <img src="https://img.shields.io/pypi/v/radiate?color=blue" alt="pypi.org" />
+    </a>
+    <a href="https://github.com/pkalivas/radiate?tab=MIT-1-ov-file">
+        <img src="https://img.shields.io/crates/l/radiate" alt="Crates.io License" />
+    </a>
+    <a href="">
+        <img src="https://img.shields.io/badge/evolution-genetics-default" alt="Static badge" />
+    </a>
+</div>
 
-  ![master branch checks][master_branch_checks] ![Crates.io][crates_link] ![pypi.org][pypi_badge] ![License][license] ![Static badge][static_evolution_badge]
+___
 
-</span>
-
-[crates_link]: https://img.shields.io/crates/v/radiate
-[master_branch_checks]: https://img.shields.io/github/check-runs/pkalivas/radiate/master
-[license]: https://img.shields.io/crates/l/radiate
-[static_evolution_badge]: https://img.shields.io/badge/evolution-genetics-default
-[pypi_badge]: https://img.shields.io/pypi/v/radiate?color=blue
-[rust_badge]: https://img.shields.io/badge/rust-%23000000.svg?logo=rust&logoColor=orange
-[jenetics_link]: https://github.com/jenetics/jenetics
-[genevo_link]: https://github.com/innoave/genevo
-[radiate_legacy]: https://github.com/pkalivas/radiate.legacy
- 
 For more details check radiate's [website](https://pkalivas.github.io/radiate/) or cargo [docs](https://docs.rs/radiate/latest/radiate/).
 
-As of `05/09/2025` Python bindings are in active development.
 
-Radiate is a powerful Rust library designed for implementing genetic algorithms and artificial evolution techniques. It
-provides a fast and flexible framework for creating, evolving, and optimizing solutions to complex problems using principles
-inspired by natural selection and genetics. With an intuitive, 'plug and play' style API, Radiate allows you to quickly test a multitude of evolutionary strategies and configurations.
-
+Radiate is a powerful library for implementing genetic algorithms and artificial evolution techniques. It provides a fast and flexible framework for creating, evolving, and optimizing solutions to complex problems using principles
+inspired by natural selection and genetics. The core is written in Rust and is available for Python.
+ 
 * Traditional genetic algorithm implementation.
 * Single & Multi-objective optimization support.
 * Neuroevolution (graph-based representation - [evolving neural networks](http://www.scholarpedia.org/article/Neuroevolution)) support. Simmilar to [NEAT](https://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf).
