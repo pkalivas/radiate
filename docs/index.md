@@ -105,24 +105,18 @@ This simple maximizing problem demonstrates how to use Radiate to solve a string
 
         fn main() {
             let target = "Hello, Radiate!";
-            let codec = CharCodec::new(1, target.len());
+            let codec = CharCodec::vector(target.len());
 
-            let engine = GeneticEngine::from_codec(codec)
-                .offspring_selector(BoltzmannSelector::new(4_f32)) // optional
-                .fitness_fn(|geno: Vec<Vec<char>>| {
-                    geno.into_iter()
-                        .flatten()
-                        .zip(target.chars())
-                        .fold(
-                            0,
-                            |acc, (geno, targ)| {
-                                if geno == targ {
-                                    acc + 1
-                                } else {
-                                    acc
-                                }
-                            },
-                        )
+            let mut engine = GeneticEngine::builder()
+                .codec(codec)
+                .offspring_selector(BoltzmannSelector::new(4_f32))
+                .fitness_fn(|geno: Vec<char>| {
+                    geno.into_iter().zip(target.chars()).fold(
+                        0,
+                        |acc, (allele, targ)| {
+                            if allele == targ { acc + 1 } else { acc }
+                        },
+                    )
                 })
                 .build();
 
@@ -133,9 +127,6 @@ This simple maximizing problem demonstrates how to use Radiate to solve a string
                 ctx.score().as_usize() == target.len()
             });
 
-            // prints the final `EvolutionContext` which contains the final population, best individual,
-            // the number of generations (index), best score, and the `MetricSet` (a collection of 
-            // evolution metrics the engine maintains throughout the run)
             println!("{:?}", result); 
         }
         ```
