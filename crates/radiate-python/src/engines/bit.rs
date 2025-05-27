@@ -1,4 +1,4 @@
-use crate::{PyBitCodex, PyEngineBuilder, PyEngineParam, PyGeneration, conversion::ObjectValue};
+use crate::{PyBitCodec, PyEngineBuilder, PyEngineParam, PyGeneration, conversion::ObjectValue};
 use pyo3::{
     PyObject, PyResult, Python, pyclass, pymethods,
     types::{PyList, PyListMethods},
@@ -13,9 +13,9 @@ pub struct PyBitEngine {
 #[pymethods]
 impl PyBitEngine {
     #[new]
-    #[pyo3(signature = (codex, fitness_func, builder))]
-    pub fn new(codex: PyBitCodex, fitness_func: PyObject, builder: PyEngineBuilder) -> Self {
-        let mut engine = crate::build_single_objective_engine(codex.codex, fitness_func, &builder);
+    #[pyo3(signature = (codec, fitness_func, builder))]
+    pub fn new(codec: PyBitCodec, fitness_func: PyObject, builder: PyEngineBuilder) -> Self {
+        let mut engine = crate::build_single_objective_engine(codec.codec, fitness_func, &builder);
         engine = crate::get_alters_with_char_gene(engine, &builder.alters);
 
         PyBitEngine {

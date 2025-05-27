@@ -1,4 +1,4 @@
-use crate::codexes::Codex;
+use crate::codecs::Codec;
 use crate::genome::phenotype::Phenotype;
 use crate::genome::population::Population;
 use crate::objectives::Score;
@@ -53,7 +53,7 @@ where
     pub alterers: Vec<Arc<dyn Alter<C>>>,
     pub audits: Vec<Arc<dyn Audit<C>>>,
     pub population: Option<Population<C>>,
-    pub codex: Option<Arc<dyn Codex<C, T>>>,
+    pub codec: Option<Arc<dyn Codec<C, T>>>,
     pub evaluator: Arc<dyn Evaluator<C, T>>,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
     pub problem: Option<Arc<dyn Problem<C, T>>>,
@@ -67,7 +67,7 @@ where
 ///
 /// When the `GeneticEngineParams`  calls the `build` method, it will create a new instance
 /// of the `GeneticEngine` with the given parameters. If any of the required parameters are not
-/// set, the `build` method will panic. At a minimum, the `codex` and `fitness_fn` must be set.
+/// set, the `build` method will panic. At a minimum, the `codec` and `fitness_fn` must be set.
 /// The `GeneticEngineParams` struct is a builder pattern that allows you to set the parameters of
 /// the `GeneticEngine` in a fluent and functional way.
 ///
@@ -145,7 +145,7 @@ where
     /// if an individual is deemed to be either invalid or reaches the maximum age.
     ///
     /// Default is `FilterStrategy::Encode`, which means that a new individual will be created
-    /// be using the `Codex` to encode a new individual from scratch.
+    /// be using the `Codec` to encode a new individual from scratch.
     pub fn replace_strategy<R: ReplacementStrategy<C> + 'static>(mut self, replace: R) -> Self {
         self.params.replacement_strategy = Arc::new(replace);
         self
@@ -184,9 +184,9 @@ where
         self
     }
 
-    /// Set the codex that will be used to encode and decode the genotype of the population.
-    pub fn codex<D: Codex<C, T> + 'static>(mut self, codex: D) -> Self {
-        self.params.codex = Some(Arc::new(codex));
+    /// Set the codec that will be used to encode and decode the genotype of the population.
+    pub fn codec<D: Codec<C, T> + 'static>(mut self, codec: D) -> Self {
+        self.params.codec = Some(Arc::new(codec));
         self
     }
 
@@ -197,7 +197,7 @@ where
     }
 
     /// Set the population of the genetic engine. This is useful if you want to provide a custom population.
-    /// If this is not set, the genetic engine will create a new population of `population_size` using the codex.
+    /// If this is not set, the genetic engine will create a new population of `population_size` using the codec.
     pub fn population(mut self, population: Population<C>) -> Self {
         self.params.population = Some(population);
         self
@@ -344,8 +344,8 @@ where
     /// instance of the `GeneticEngine` with the given parameters.
     pub fn build(mut self) -> GeneticEngine<C, T, E> {
         if self.params.problem.is_none() {
-            if self.params.codex.is_none() {
-                panic!("Codex not set");
+            if self.params.codec.is_none() {
+                panic!("Codec not set");
             }
 
             if self.params.fitness_fn.is_none() {
@@ -353,7 +353,7 @@ where
             }
 
             let problem = EngineProblem {
-                codex: self.params.codex.clone().unwrap(),
+                codec: self.params.codec.clone().unwrap(),
                 fitness_fn: self.params.fitness_fn.clone().unwrap(),
             };
 
@@ -483,14 +483,14 @@ where
     }
 
     /// Build the population of the genetic engine. This will create a new population
-    /// using the codex if the population is not set.
+    /// using the codec if the population is not set.
     fn build_population(&mut self) {
         self.params.population = match &self.params.population {
             None => Some(match self.params.problem.as_ref() {
                 Some(problem) => Population::from((self.params.population_size, || {
                     Phenotype::from((problem.encode(), 0))
                 })),
-                None => panic!("Codex not set"),
+                None => panic!("Codec not set"),
             }),
             Some(pop) => Some(pop.clone()),
         };
@@ -587,7 +587,7 @@ where
                 evaluator: Arc::new(SequentialEvaluator),
                 encoder: None,
                 diversity: None,
-                codex: None,
+                codec: None,
                 population: None,
                 fitness_fn: None,
                 problem: None,

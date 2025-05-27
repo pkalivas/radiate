@@ -1,4 +1,4 @@
-use super::PyCodex;
+use super::PyCodec;
 use crate::conversion::ObjectValue;
 use pyo3::{
     pyclass, pymethods,
@@ -8,19 +8,19 @@ use radiate::{BitChromosome, Chromosome, Gene};
 
 #[pyclass]
 #[derive(Clone)]
-pub struct PyBitCodex {
-    pub codex: PyCodex<BitChromosome>,
+pub struct PyBitCodec {
+    pub codec: PyCodec<BitChromosome>,
 }
 
 #[pymethods]
-impl PyBitCodex {
+impl PyBitCodec {
     #[new]
     #[pyo3(signature = (chromosome_lengths=None))]
     pub fn new(chromosome_lengths: Option<Vec<usize>>) -> Self {
         let lengths = chromosome_lengths.unwrap_or(vec![1]);
 
-        PyBitCodex {
-            codex: PyCodex::new()
+        PyBitCodec {
+            codec: PyCodec::new()
                 .with_encoder(move || {
                     lengths
                         .iter()
@@ -46,5 +46,5 @@ impl PyBitCodex {
     }
 }
 
-unsafe impl Send for PyBitCodex {}
-unsafe impl Sync for PyBitCodex {}
+unsafe impl Send for PyBitCodec {}
+unsafe impl Sync for PyBitCodec {}

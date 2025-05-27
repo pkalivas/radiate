@@ -4,7 +4,7 @@ Configuring genetic algorithms can be a complex task, requiring careful consider
 
 The `GeneticEngine` will default as many parameters as it can, but it is recommended to set the parameters that are relevant to your problem space. To get the engine off the ground there are two required parameters:
 
-* [`codex`](codex.md)
+* [`codec`](codec.md)
 * `fitness_fn`
 
 Without these there is no way to represent the problem space and no way to evaluate the fitness of the individuals in the population.
@@ -23,7 +23,7 @@ GeneticEngineBuilder {
     replacement_strategy: Arc::new(EncodeReplace),
     audits: vec![Arc::new(MetricAudit)],
     alterers: Vec::new(),
-    codex: None,
+    codec: None,
     population: None,
     fitness_fn: None,
     problem: None,
@@ -171,7 +171,7 @@ ___
 
 * `replacement_strategy`
 
-    :   During the evolution process certain individuals can reach the max age parameter or be deemed invalid by the chromosome or genes. Because of this, those individuals need to be replaced within the populationl. This parameter handles that. By default, the engine will use the provided `Codex` to simply encode a new individual, however custom replacements can be created and used. This can include strategies like `EncodeReplace`, `PopulationSampleReplace`, or other custom strategies.
+    :   During the evolution process certain individuals can reach the max age parameter or be deemed invalid by the chromosome or genes. Because of this, those individuals need to be replaced within the populationl. This parameter handles that. By default, the engine will use the provided `Codec` to simply encode a new individual, however custom replacements can be created and used. This can include strategies like `EncodeReplace`, `PopulationSampleReplace`, or other custom strategies.
     ??? info "Optional"
 
         | Default | Type |
@@ -180,21 +180,21 @@ ___
 
 * `population`
 
-    :   The initial population of individuals to start the genetic algorithm. If no initial population is provided, the genetic algorithm will generate a random initial population based on the codex.
+    :   The initial population of individuals to start the genetic algorithm. If no initial population is provided, the genetic algorithm will generate a random initial population based on the codec.
     ??? info "Optional"
 
         | Default | Type |
         |---------|------|
         | `None` | `Option<Vec<Phenotype<C: Chromosome>>` |
 
-* `codex`
+* `codec`
 
-    :   The codex that defines how individuals are represented in the genetic algorithm. The codex is responsible for encoding and decoding the genetic information of individuals, allowing the genetic algorithm to operate on the genetic information in a meaningful way.
+    :   The codec that defines how individuals are represented in the genetic algorithm. The codec is responsible for encoding and decoding the genetic information of individuals, allowing the genetic algorithm to operate on the genetic information in a meaningful way.
     ???+ warning "Required"
 
         | Default | Type |
         |---------|------|
-        | `None` | `Box<dyn Codex<C: Chromosome, T>` |
+        | `None` | `Box<dyn Codec<C: Chromosome, T>` |
 
 * `fitness_fn`
 

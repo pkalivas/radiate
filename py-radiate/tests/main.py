@@ -10,8 +10,8 @@ import radiate as rd
 
 rd.random.set_seed(100)
 
-# codex = rd.IntCodex([10], (0, 10))
-# engine = rd.GeneticEngine(codex, lambda x: sum(x[0]))
+# codec = rd.IntCodec([10], (0, 10))
+# engine = rd.GeneticEngine(codec, lambda x: sum(x[0]))
 # # engine.num_threads(1)
 # engine.offspring_selector(rd.BoltzmannSelector(4))
 # engine.alters([
@@ -29,8 +29,8 @@ def fitness_fn(x):
     x = x[0]
     return sum(1 for i in range(len(target)) if x[i] == target[i])
 
-codex = rd.CharCodex([len(target)])
-engine = rd.GeneticEngine(codex, fitness_fn)
+codec = rd.CharCodec([len(target)])
+engine = rd.GeneticEngine(codec, fitness_fn)
 engine.maximizing()
 engine.offspring_selector(rd.BoltzmannSelector(4))
 
@@ -50,8 +50,8 @@ print(result)
 #         value += x[i]**2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
 #     return value
 
-# codex = rd.FloatCodex([2], (-5.12, 5.12))
-# engine = rd.Engine(codex, fitness_fn)
+# codec = rd.FloatCodec([2], (-5.12, 5.12))
+# engine = rd.Engine(codec, fitness_fn)
 
 # engine.alters([
 #     rd.UniformCrossover(0.5), 
@@ -73,8 +73,8 @@ print(result)
 
 #     return [f1, f2, f3]
 
-# codex = rd.FloatCodex([variables], (0.0, 1.0), (-100.0, 100.0))
-# engine = rd.GeneticEngine(codex, dtlz_1)
+# codec = rd.FloatCodec([variables], (0.0, 1.0), (-100.0, 100.0))
+# engine = rd.GeneticEngine(codec, dtlz_1)
 # engine.multi_objective([rd.ObjectiveType.MIN, rd.ObjectiveType.MIN, rd.ObjectiveType.MIN])
 # engine.offspring_selector(rd.TournamentSelector(k=5))
 # engine.survivor_selector(rd.NSGA2Selector())

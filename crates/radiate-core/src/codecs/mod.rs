@@ -9,13 +9,13 @@ pub mod permutation;
 pub mod subset;
 
 use crate::Chromosome;
-pub use bit::BitCodex;
-pub use char::CharCodex;
-pub use float::FloatCodex;
-pub use function::FnCodex;
-pub use int::IntCodex;
-pub use permutation::PermutationCodex;
-pub use subset::SubSetCodex;
+pub use bit::BitCodec;
+pub use char::CharCodec;
+pub use float::FloatCodec;
+pub use function::FnCodec;
+pub use int::IntCodec;
+pub use permutation::PermutationCodec;
+pub use subset::SubSetCodec;
 
 /// The `Codex` is a core concept in Radiate, as it allows for the encoding and decoding from
 /// a `Genotype` to the type `T` (commonly called Phenotype in biology) that is being optimized.
@@ -83,7 +83,7 @@ pub use subset::SubSetCodex;
 /// - `C`: The type of the Chromosome that is being optimized - the 'problem space'.
 /// - `T`: The type of the Phenotype that is being optimized the expression of the 'problem space'.
 ///
-pub trait Codex<C: Chromosome, T> {
+pub trait Codec<C: Chromosome, T> {
     fn encode(&self) -> Genotype<C>;
 
     fn decode(&self, genotype: &Genotype<C>) -> T;

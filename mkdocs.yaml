@@ -6,7 +6,7 @@ nav:
   - User Guide: index.md
   - Installation: source/installation.md
   - Genome: source/genome.md
-  - Codex: source/codex.md
+  - Codec: source/codec.md
   - Parameters: source/params.md
   - Selectors: source/selectors.md
   - Alterers: source/alterers.md

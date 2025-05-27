@@ -225,11 +225,11 @@ macro_rules! dbg_ctx {
 #[macro_export]
 macro_rules! build_engine {
     (
-        codex: $codex:expr,
+        codec: $codec:expr,
         fitness: $fitness_fn:expr,
         settings: { $( $setting:ident $( : $value:expr )? ),* $(,)? }
     ) => {{
-        let builder = GeneticEngine::from_codex($codex).fitness_fn($fitness_fn);
+        let builder = GeneticEngine::builder().codec($codec).fitness_fn($fitness_fn);
         $(
             #[allow(unused_mut)]
             let builder = crate::build_engine!(@apply_setting builder, $setting $(, $value)?);
@@ -248,11 +248,11 @@ macro_rules! build_engine {
 
 #[macro_export]
 macro_rules! engine {
-    ($codex:expr, $fitness:expr) => {
-        GeneticEngine::builder().codex($codex).fitness_fn($fitness).build()
+    ($codec:expr, $fitness:expr) => {
+        GeneticEngine::builder().codec($codec).fitness_fn($fitness).build()
     };
-    ($codex:expr, $fitness:expr, $($extra:tt)+) => {
-        GeneticEngine::builder().codex($codex).fitness_fn($fitness).$($extra)+.build()
+    ($codec:expr, $fitness:expr, $($extra:tt)+) => {
+        GeneticEngine::builder().codec($codec).fitness_fn($fitness).$($extra)+.build()
     };
 }
 
@@ -260,7 +260,7 @@ macro_rules! engine {
 macro_rules! experiment {
     (
         repeat: $reps:expr,
-        $codex:expr,
+        $codec:expr,
         $fitness:expr,
         [$( $setting:ident ( $($value:expr),* ) ),* $(,)?],
         $condition:expr
@@ -268,7 +268,7 @@ macro_rules! experiment {
         (0..$reps)
             .map(|_| {
                 let engine = GeneticEngine::builder()
-                    .codex($codex)
+                    .codec($codec)
                     .fitness_fn($fitness)
                     $( .$setting($($value),*) )*
                     .build();
@@ -280,7 +280,7 @@ macro_rules! experiment {
 
 // let results = experiment!(
 //     repeat: 10,
-//     FloatCodex::vector(5, -10.0..10.0),
+//     FloatCodec::vector(5, -10.0..10.0),
 //     |geno: Vec<f32>| geno.iter().sum::<f32>(),
 //     [
 //         minimizing(),
@@ -297,7 +297,7 @@ macro_rules! experiment {
 // macro_rules! genetic_test {
 //     (
 //         name: $name:ident,
-//         codex: $codex:expr,
+//         codec: $codec:expr,
 //         fitness: $fitness_fn:expr,
 //         settings: { $( $setting:ident $( : $value:expr )? ),* $(,)? },
 //         stopping_criteria: |$ctx:ident| $criteria:expr,
@@ -306,7 +306,7 @@ macro_rules! experiment {
 //         #[test]
 //         fn $name() {
 //             let engine = crate::build_engine!(
-//                 codex: $codex,
+//                 codec: $codec,
 //                 fitness: $fitness_fn,
 //                 settings: { $($setting $( : $value )?),* }
 //             );
@@ -320,7 +320,7 @@ macro_rules! experiment {
 
 // genetic_test!(
 //     name: evolve_zero_vector,
-//     codex: FloatCodex::vector(5, -10.0..10.0),
+//     codec: FloatCodec::vector(5, -10.0..10.0),
 //     fitness: |geno| geno.iter().map(|x| x * x).sum::<f32>(),
 //     settings: {
 //         minimizing,

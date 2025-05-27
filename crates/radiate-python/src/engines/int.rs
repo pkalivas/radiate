@@ -1,4 +1,4 @@
-use crate::{PyEngineBuilder, PyEngineParam, PyGeneration, PyIntCodex, conversion::ObjectValue};
+use crate::{PyEngineBuilder, PyEngineParam, PyGeneration, PyIntCodec, conversion::ObjectValue};
 use pyo3::{
     PyObject, PyResult, Python, pyclass, pymethods,
     types::{PyList, PyListMethods},
@@ -13,9 +13,9 @@ pub struct PyIntEngine {
 #[pymethods]
 impl PyIntEngine {
     #[new]
-    #[pyo3(signature = (codex, fitness_func, builder))]
-    pub fn new(codex: PyIntCodex, fitness_func: PyObject, builder: PyEngineBuilder) -> Self {
-        let mut engine = crate::build_single_objective_engine(codex.codex, fitness_func, &builder);
+    #[pyo3(signature = (codec, fitness_func, builder))]
+    pub fn new(codec: PyIntCodec, fitness_func: PyObject, builder: PyEngineBuilder) -> Self {
+        let mut engine = crate::build_single_objective_engine(codec.codec, fitness_func, &builder);
         engine = crate::get_alters_with_int_gene(engine, &builder.alters);
 
         PyIntEngine {

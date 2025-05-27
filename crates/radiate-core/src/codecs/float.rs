@@ -1,17 +1,17 @@
-use super::Codex;
+use super::Codec;
 use crate::genome::gene::Gene;
 use crate::genome::genotype::Genotype;
 use crate::{Chromosome, FloatChromosome};
 use std::ops::Range;
 
-/// A `Codex` for a `Genotype` of `FloatGenes`. The `encode` function creates a `Genotype` with `num_chromosomes` chromosomes
+/// A `Codec` for a `Genotype` of `FloatGenes`. The `encode` function creates a `Genotype` with `num_chromosomes` chromosomes
 /// and `num_genes` genes per chromosome. The `decode` function creates a `Vec<Vec<f32>>` from the `Genotype` where the inner `Vec`
 /// contains the alleles of the `FloatGenes` in the chromosome - the `f32` values.
 ///
 /// The lower and upper bounds of the `FloatGenes` can be set with the `with_bounds` function.
 /// The default bounds are equal to `min` and `max` values.
 #[derive(Clone)]
-pub struct FloatCodex<T = f32> {
+pub struct FloatCodec<T = f32> {
     num_chromosomes: usize,
     num_genes: usize,
     value_range: Range<f32>,
@@ -19,7 +19,7 @@ pub struct FloatCodex<T = f32> {
     _marker: std::marker::PhantomData<T>,
 }
 
-impl<T> FloatCodex<T> {
+impl<T> FloatCodec<T> {
     /// Set the bounds of the `FloatGenes` in the `Genotype`. The default bounds
     /// are equal to the min and max values.
     pub fn with_bounds(mut self, range: Range<f32>) -> Self {
@@ -45,11 +45,11 @@ impl<T> FloatCodex<T> {
     }
 }
 
-impl FloatCodex<Vec<Vec<f32>>> {
+impl FloatCodec<Vec<Vec<f32>>> {
     /// Create a new `FloatCodex` with the given number of chromosomes, genes, min, and max values.
     /// The f_32 values for each `FloatGene` will be randomly generated between the min and max values.
     pub fn matrix(rows: usize, cols: usize, range: Range<f32>) -> Self {
-        FloatCodex {
+        FloatCodec {
             num_chromosomes: rows,
             num_genes: cols,
             value_range: range.clone(),
@@ -59,11 +59,11 @@ impl FloatCodex<Vec<Vec<f32>>> {
     }
 }
 
-impl FloatCodex<Vec<f32>> {
+impl FloatCodec<Vec<f32>> {
     /// Create a new `FloatCodex` with the given number of chromosomes, genes, min, and max values.
     /// The f_32 values for each `FloatGene` will be randomly generated between the min and max values.
     pub fn vector(count: usize, range: Range<f32>) -> Self {
-        FloatCodex {
+        FloatCodec {
             num_chromosomes: 1,
             num_genes: count,
             value_range: range.clone(),
@@ -73,11 +73,11 @@ impl FloatCodex<Vec<f32>> {
     }
 }
 
-impl FloatCodex<f32> {
+impl FloatCodec<f32> {
     /// Create a new `FloatCodex` with the given number of chromosomes, genes, min, and max values.
     /// The f_32 values for each `FloatGene` will be randomly generated between the min and max values.
     pub fn scalar(range: Range<f32>) -> Self {
-        FloatCodex {
+        FloatCodec {
             num_chromosomes: 1,
             num_genes: 1,
             value_range: range.clone(),
@@ -105,7 +105,7 @@ impl FloatCodex<f32> {
 /// assert_eq!(decoded.len(), 3);
 /// assert_eq!(decoded[0].len(), 4);
 /// ```
-impl Codex<FloatChromosome, Vec<Vec<f32>>> for FloatCodex<Vec<Vec<f32>>> {
+impl Codec<FloatChromosome, Vec<Vec<f32>>> for FloatCodec<Vec<Vec<f32>>> {
     fn encode(&self) -> Genotype<FloatChromosome> {
         self.common_encode()
     }
@@ -140,7 +140,7 @@ impl Codex<FloatChromosome, Vec<Vec<f32>>> for FloatCodex<Vec<Vec<f32>>> {
 ///
 /// assert_eq!(decoded.len(), 3);
 /// ```
-impl Codex<FloatChromosome, Vec<f32>> for FloatCodex<Vec<f32>> {
+impl Codec<FloatChromosome, Vec<f32>> for FloatCodec<Vec<f32>> {
     fn encode(&self) -> Genotype<FloatChromosome> {
         self.common_encode()
     }
@@ -173,7 +173,7 @@ impl Codex<FloatChromosome, Vec<f32>> for FloatCodex<Vec<f32>> {
 /// let genotype: Genotype<FloatChromosome> = codex.encode();
 /// let decoded: f32 = codex.decode(&genotype);
 /// ```
-impl Codex<FloatChromosome, f32> for FloatCodex<f32> {
+impl Codec<FloatChromosome, f32> for FloatCodec<f32> {
     fn encode(&self) -> Genotype<FloatChromosome> {
         self.common_encode()
     }

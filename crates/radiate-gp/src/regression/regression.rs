@@ -2,7 +2,7 @@ use super::{DataSet, Loss};
 use crate::{
     Eval, EvalMut, Graph, GraphChromosome, GraphEvaluator, Op, Tree, TreeChromosome, TreeNode,
 };
-use radiate_core::{Chromosome, Codex, Genotype, Problem, Score};
+use radiate_core::{Chromosome, Codec, Genotype, Problem, Score};
 use std::{marker::PhantomData, sync::Arc};
 
 pub struct Regression<C, T>
@@ -12,7 +12,7 @@ where
 {
     data_set: DataSet,
     loss: Loss,
-    codex: Arc<dyn Codex<C, T>>,
+    codec: Arc<dyn Codec<C, T>>,
     _chrom: PhantomData<C>,
     _val: PhantomData<T>,
 }
@@ -22,15 +22,15 @@ where
     C: Chromosome,
     T: Clone,
 {
-    pub fn new<G: Codex<C, T> + 'static>(
+    pub fn new<G: Codec<C, T> + 'static>(
         sample_set: impl Into<DataSet>,
         loss: Loss,
-        codex: G,
+        codec: G,
     ) -> Self {
         Regression {
             data_set: sample_set.into(),
             loss,
-            codex: Arc::new(codex),
+            codec: Arc::new(codec),
             _chrom: PhantomData,
             _val: PhantomData,
         }
@@ -41,11 +41,11 @@ impl Problem<GraphChromosome<Op<f32>>, Graph<Op<f32>>>
     for Regression<GraphChromosome<Op<f32>>, Graph<Op<f32>>>
 {
     fn encode(&self) -> Genotype<GraphChromosome<Op<f32>>> {
-        self.codex.encode()
+        self.codec.encode()
     }
 
     fn decode(&self, genotype: &Genotype<GraphChromosome<Op<f32>>>) -> Graph<Op<f32>> {
-        self.codex.decode(genotype)
+        self.codec.decode(genotype)
     }
 
     fn eval(&self, individual: &Genotype<GraphChromosome<Op<f32>>>) -> Score {
@@ -62,11 +62,11 @@ impl Problem<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>
     for Regression<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>
 {
     fn encode(&self) -> Genotype<TreeChromosome<Op<f32>>> {
-        self.codex.encode()
+        self.codec.encode()
     }
 
     fn decode(&self, genotype: &Genotype<TreeChromosome<Op<f32>>>) -> Vec<Tree<Op<f32>>> {
-        self.codex.decode(genotype)
+        self.codec.decode(genotype)
     }
 
     fn eval(&self, individual: &Genotype<TreeChromosome<Op<f32>>>) -> Score {
@@ -84,11 +84,11 @@ impl Problem<TreeChromosome<Op<f32>>, Tree<Op<f32>>>
     for Regression<TreeChromosome<Op<f32>>, Tree<Op<f32>>>
 {
     fn encode(&self) -> Genotype<TreeChromosome<Op<f32>>> {
-        self.codex.encode()
+        self.codec.encode()
     }
 
     fn decode(&self, genotype: &Genotype<TreeChromosome<Op<f32>>>) -> Tree<Op<f32>> {
-        self.codex.decode(genotype)
+        self.codec.decode(genotype)
     }
 
     fn eval(&self, individual: &Genotype<TreeChromosome<Op<f32>>>) -> Score {

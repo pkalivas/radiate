@@ -1,8 +1,8 @@
-use crate::{Chromosome, Codex, Genotype};
+use crate::{Chromosome, Codec, Genotype};
 use std::sync::Arc;
 
-/// A `Codex` that uses functions to encode and decode a `Genotype` to and from a type `T`.
-/// Most of the other codexes in this module are more specialized and are used to create `Genotypes` of specific types of `Chromosomes`.
+/// A `Codec` that uses functions to encode and decode a `Genotype` to and from a type `T`.
+/// Most of the other codecs in this module are more specialized and are used to create `Genotypes` of specific types of `Chromosomes`.
 /// This one, however, is more general and can be used to create `Genotypes` of any type of `Chromosome`.
 ///
 /// # Example
@@ -39,14 +39,14 @@ use std::sync::Arc;
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 /// - `T`: The type that the genotype will be decoded to.
 #[derive(Default, Clone)]
-pub struct FnCodex<C: Chromosome, T> {
+pub struct FnCodec<C: Chromosome, T> {
     encoder: Option<Arc<dyn Fn() -> Genotype<C>>>,
     decoder: Option<Arc<dyn Fn(&Genotype<C>) -> T>>,
 }
 
-impl<C: Chromosome, T> FnCodex<C, T> {
+impl<C: Chromosome, T> FnCodec<C, T> {
     pub fn new() -> Self {
-        FnCodex {
+        FnCodec {
             encoder: None,
             decoder: None,
         }
@@ -69,7 +69,7 @@ impl<C: Chromosome, T> FnCodex<C, T> {
     }
 }
 
-impl<C: Chromosome, T> Codex<C, T> for FnCodex<C, T> {
+impl<C: Chromosome, T> Codec<C, T> for FnCodec<C, T> {
     fn encode(&self) -> Genotype<C> {
         match &self.encoder {
             Some(encoder) => encoder(),

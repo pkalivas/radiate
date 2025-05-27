@@ -30,9 +30,9 @@ To set up the engine to solve this type of problem, we supply the objective func
     const K: usize = VARIABLES - OBJECTIVES + 1;
 
     fn main() {
-        let codex = FloatCodex::vector(VARIABLES, 0_f32..1_f32).with_bounds(-100.0, 100.0);
+        let codec = FloatCodec::vector(VARIABLES, 0_f32..1_f32).with_bounds(-100.0, 100.0);
 
-        let engine = GeneticEngine::from_codex(codex)
+        let engine = GeneticEngine::from_codec(codec)
             .num_threads(10)
             .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
             .front_size(1100..1300)
@@ -100,9 +100,9 @@ Again, to set up the engine to solve this type of problem, we supply the objecti
     const K: usize = VARIABLES - OBJECTIVES + 1;
 
     fn main() {
-        let codex = FloatCodex::vector(VARIABLES, 0_f32..1_f32).with_bounds(-100.0, 100.0);
+        let codec = FloatCodec::vector(VARIABLES, 0_f32..1_f32).with_bounds(-100.0, 100.0);
 
-        let engine = GeneticEngine::from_codex(codex)
+        let engine = GeneticEngine::from_codec(codec)
             .num_threads(10)
             .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
             .front_size(1000..1100)

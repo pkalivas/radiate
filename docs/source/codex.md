@@ -1,24 +1,17 @@
 
 Encoding and Decoding Genetic Information
 
---- 
-<figure markdown="span">
-  ![Codex](../assets/super_man_codex.png){ width="300" }
-</figure>
+Because Radiate has such a specific domain language, there needs to be a way to convert between the domain language or 'problem space' and the 'solution space'. For example, if you are trying to evolve a list of floating-point numbers, the `GeneticEngine` needs to know how to interact with that list of numbers, but from our perspective, we are only interested in the real-world problem that the list of numbers represents. This is where the `Codec` comes in.
 
----
+ When the `GeneticEngine` is evolving a population of individuals, it uses the `Codec` to encode the genetic information of the individuals into a `Genotype`, and then decode the `Genotype` back into the domain language when evaluating the fitness of the individuals. This process of encoding and decoding genetic information is what allows the `GeneticEngine` to operate on the genetic information of the individuals while still allowing us to work with the real-world problem that the genetic information represents. This allows the `fitness_fn` to accept the real-world representation of the individual we defined in the `Codec`.
 
-Because Radiate has such a specific domain language, there needs to be a way to convert between the domain language or 'problem space' and the 'solution space'. For example, if you are trying to evolve a list of floating-point numbers, the `GeneticEngine` needs to know how to interact with that list of numbers, but from our perspective, we are only interested in the real-world problem that the list of numbers represents. This is where the `Codex` comes in.
+In other words, the `Codec` is the bridge between the domain language of Radiate and the real-world problem that you are trying to solve. 
 
- When the `GeneticEngine` is evolving a population of individuals, it uses the `Codex` to encode the genetic information of the individuals into a `Genotype`, and then decode the `Genotype` back into the domain language when evaluating the fitness of the individuals. This process of encoding and decoding genetic information is what allows the `GeneticEngine` to operate on the genetic information of the individuals while still allowing us to work with the real-world problem that the genetic information represents. This allows the `fitness_fn` to accept the real-world representation of the individual we defined in the `Codex`.
+???+ info "Core library `Codec` implementations"
 
-In other words, the `Codex` is the bridge between the domain language of Radiate and the real-world problem that you are trying to solve. 
-
-???+ info "Core library `Codex` implementations"
-
-    === "BitCodex"
+    === "BitCodec"
         ```rust
-        pub struct BitCodex {
+        pub struct BitCodec {
             pub num_chromosomes: usize,
             pub num_genes: usize,
         }
@@ -27,11 +20,11 @@ In other words, the `Codex` is the bridge between the domain language of Radiate
         * **Encodes**: `Genotype` of `BitChromosomes` with `BitGenes`
         * **Decodes**: `Vec<Vec<bool>>`
   
-        When people traditionally think of genetic algorithms, they often think of binary strings. The `BitCodex` is a simple way to encode and decode a `Genotype` of binary strings so in essence, it is the most basic `Codex` implementation.
+        When people traditionally think of genetic algorithms, they often think of binary strings. The `BitCodec` is a simple way to encode and decode a `Genotype` of binary strings so in essence, it is the most basic `Codec` implementation.
 
         ```mermaid
         classDiagram 
-            class BitCodex {
+            class BitCodec {
                 num_chromosomes: usize
                 num_genes: usize
                 
@@ -40,9 +33,9 @@ In other words, the `Codex` is the bridge between the domain language of Radiate
             }
         ```
 
-    === "CharCodex"
+    === "CharCodec"
         ```rust
-        pub struct CharCodex {
+        pub struct CharCodec {
             num_chromosomes: usize,
             num_genes: usize,
             char_set: Arc<[char]>,
@@ -54,7 +47,7 @@ In other words, the `Codex` is the bridge between the domain language of Radiate
     
         ```mermaid
         classDiagram
-            class CharCodex {
+            class CharCodec {
                 num_chromosomes: usize
                 num_genes: usize
                 char_set: Arc~[char]~
@@ -64,9 +57,9 @@ In other words, the `Codex` is the bridge between the domain language of Radiate
             }
         ```
 
-    === "FloatCodex"
+    === "FloatCodec"
         ```rust
-        pub struct FloatCodex {
+        pub struct FloatCodec {
             pub num_chromosomes: usize,
             pub num_genes: usize,
             pub min: f32,
@@ -81,7 +74,7 @@ In other words, the `Codex` is the bridge between the domain language of Radiate
 
         ```mermaid
         classDiagram
-            class FloatCodex {
+            class FloatCodec {
                 num_chromosomes: usize
                 num_genes: usize
                 min: f32
@@ -89,15 +82,15 @@ In other words, the `Codex` is the bridge between the domain language of Radiate
                 lower_bound: f32
                 upper_bound: f32
                 
-                with_bounds(mut self, f32, f32) FloatCodex
-                scalar(f32, f32) FloatCodex
+                with_bounds(mut self, f32, f32) FloatCodec
+                scalar(f32, f32) FloatCodec
                 encode() Genotype~CharChromosome~
                 decode(&Genotype~CharChromosome~) Vec~Vec~char~~
             }
         ```
-    === "IntCodex"
+    === "IntCodec"
         ```rust
-        pub struct IntCodex<T: Integer<T>> {
+        pub struct IntCodec<T: Integer<T>> {
             pub num_chromosomes: usize,
             pub num_genes: usize,
             pub min: T,
@@ -113,7 +106,7 @@ In other words, the `Codex` is the bridge between the domain language of Radiate
         **Note**: `T` must implement the `Integer` trait. Integer is a trait in Radiate and is implemented for `i8`, `i16`, `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, `u128`.
         ```mermaid
         classDiagram
-            class IntCodex~T~ {
+            class IntCodec~T~ {
                 num_chromosomes: usize
                 num_genes: usize
                 min: T
@@ -121,15 +114,15 @@ In other words, the `Codex` is the bridge between the domain language of Radiate
                 lower_bound: T
                 upper_bound: T
                 
-                with_bounds(mut self, T, T) IntCodex~T~
+                with_bounds(mut self, T, T) IntCodec~T~
                 encode() Genotype~IntChromosome~
                 decode(&Genotype~IntChromosome~T~~) Vec~Vec~char~~
             }
         ```
 
-    === "PermutationCodex"
+    === "PermutationCodec"
         ```rust
-        pub struct PermutationCodex<A: PartialEq + Clone> {
+        pub struct PermutationCodec<A: PartialEq + Clone> {
             pub alleles: Arc<Vec<A>>,
         }
         ```
@@ -142,7 +135,7 @@ In other words, the `Codex` is the bridge between the domain language of Radiate
 
         ```mermaid
         classDiagram
-            class PermutationCodex~A~ {
+            class PermutationCodec~A~ {
                 alleles: Arc~Vec~A~~
                 
                 encode() Genotype~PermutationChromosome~A~~
@@ -150,9 +143,9 @@ In other words, the `Codex` is the bridge between the domain language of Radiate
             }
         ```
 
-    === "SubsetCodex"
+    === "SubsetCodec"
         ```rust
-        pub struct SubSetCodex<'a, T> {
+        pub struct SubSetCodec<'a, T> {
             pub items: &'a Vec<T>,
         }
         ```
@@ -160,20 +153,20 @@ In other words, the `Codex` is the bridge between the domain language of Radiate
         * **Encodes**: `Genotype` of `BitChromosome` with `BitGene`
         * **Decodes**: `Vec<&'a T>`
 
-        The `SubsetCodex` is a specialized `Codex` that is used for subset selection problems. In subset selection problems, the goal is to select a subset of items from a larger set of items that maximizes some objective function. The Knapsack Problem is a classic example of a subset selection problem.
+        The `SubsetCodec` is a specialized `Codec` that is used for subset selection problems. In subset selection problems, the goal is to select a subset of items from a larger set of items that maximizes some objective function. The Knapsack Problem is a classic example of a subset selection problem.
 
         ```mermaid
         classDiagram
-            class SubSetCodex~'a, T~ {
+            class SubSetCodec~'a, T~ {
                 items: &'a Vec~T~
                 
                 encode() Genotype~BitChromosome~
                 decode(&Genotype~BitChromosome~) Vec~&'a T~
             }
         ```
-    === "FnCodex"
+    === "FnCodec"
         ```rust
-        pub struct FnCodex<C: Chromosome, T> {
+        pub struct FnCodec<C: Chromosome, T> {
             pub encoder: Option<Box<dyn Fn() -> Genotype<C>>>,
             pub decoder: Option<Box<dyn Fn(&Genotype<C>) -> T>>,
         }
@@ -182,20 +175,20 @@ In other words, the `Codex` is the bridge between the domain language of Radiate
         * **Encodes**: `Genotype` of `C` with `C::GeneType`
         * **Decodes**: `T`
 
-        The `FnCodex` is a generic `Codex` that allows you to define your own encoding and decoding functions. This is useful if you have a custom problem that doesn't fit into the other `Codex` implementations and don't want to create a new `Codex` implementation.
+        The `FnCodec` is a generic `Codec` that allows you to define your own encoding and decoding functions. This is useful if you have a custom problem that doesn't fit into the other `Codec` implementations and don't want to create a new `Codec` implementation.
 
 ___
-### Build your own Codex
+### Build your own Codec
 
-??? example "FloatCodex"
+??? example "FloatCodec"
 
-    Let's take a look at a simplified version of Raditate's built-in `FloatCodex` which encodes and decodes floating-point numbers. The `FloatCodex` takes in the number of chromosomes, number of genes per chromosome, the max allele value, and the min allele value. The `encode` method creates a new `Genotype` of `FloatChromosomes` with `FloatGenes` that have random alleles between the max and min. The `decode` method takes a `Genotype` and returns a `Vec<Vec<f32>>` of the gene values.
+    Let's take a look at a simplified version of Raditate's built-in `FloatCodec` which encodes and decodes floating-point numbers. The `FloatCodec` takes in the number of chromosomes, number of genes per chromosome, the max allele value, and the min allele value. The `encode` method creates a new `Genotype` of `FloatChromosomes` with `FloatGenes` that have random alleles between the max and min. The `decode` method takes a `Genotype` and returns a `Vec<Vec<f32>>` of the gene values.
 
     ```rust
     use std::ops::Range;
     use radiate::*;
 
-    pub struct FloatCodex {
+    pub struct FloatCodec {
         pub num_chromosomes: usize,
         pub num_genes: usize,
         pub min: f32,
@@ -204,12 +197,12 @@ ___
         pub upper_bound: f32,
     }
 
-    impl FloatCodex {
-        /// Create a new `FloatCodex` with the given number of chromosomes, genes, min, and max values.
+    impl FloatCodec {
+        /// Create a new `FloatCodec` with the given number of chromosomes, genes, min, and max values.
         /// The f_32 values for each `FloatGene` will be randomly generated between the min and max values.
         pub fn new(num_chromosomes: usize, num_genes: usize, range: Range<f32>) -> Self {
             let (min, max) = (range.start, range.end);
-            FloatCodex {
+            FloatCodec {
                 num_chromosomes,
                 num_genes,
                 min,
@@ -220,7 +213,7 @@ ___
         }
     }
 
-    impl Codex<FloatChromosome, Vec<Vec<f32>>> for FloatCodex {
+    impl Codec<FloatChromosome, Vec<Vec<f32>>> for FloatCodec {
         fn encode(&self) -> Genotype<FloatChromosome> {
             Genotype {
                 chromosomes: (0..self.num_chromosomes)
@@ -251,15 +244,15 @@ ___
     }
     ```
 
-    Lets take a look at how we can use the `FloatCodex` to encode and decode a `Genotype` of `FloatChromosomes`
+    Lets take a look at how we can use the `FloatCodec` to encode and decode a `Genotype` of `FloatChromosomes`
     with 2 chromosomes and 3 genes per chromosome:
 
     ```rust
     fn main() {
-        let codex = FloatCodex::new(2, 3, 0.0..1.0);
+        let codec = FloatCodec::new(2, 3, 0.0..1.0);
 
-        let genotype: Genotype<FloatChromosome> = codex.encode();
-        let decoded: Vec<Vec<f32>> = codex.decode(&genotype);
+        let genotype: Genotype<FloatChromosome> = codec.encode();
+        let decoded: Vec<Vec<f32>> = codec.decode(&genotype);
     }
     ```
 
@@ -295,7 +288,7 @@ ___
     ]
     ```
 
-??? example "FnCodex - NQueens" 
+??? example "FnCodec - NQueens" 
     
     ```rust
     use radiate::*;
@@ -304,8 +297,8 @@ ___
 
     fn main() {
         // this is a simple example of the NQueens problem.
-        // The resulting codex type will be FnCodex<IntChromosome<i8>, Vec<i8>>.
-        let codex = FnCodex::new()
+        // The resulting codec type will be FnCodec<IntChromosome<i8>, Vec<i8>>.
+        let codec = FnCodec::new()
             .with_encoder(|| {
                 Genotype::from_chromosomes(vec![IntChromosome {
                     genes: (0..N_QUEENS)
@@ -321,8 +314,8 @@ ___
                     .collect::<Vec<i8>>()
             });
         // encode and decode
-        let genotype = codex.encode(); // Genotype<IntChromosome<i8>>
-        let decoded = codex.decode(&genotype); // Vec<i8>
+        let genotype = codec.encode(); // Genotype<IntChromosome<i8>>
+        let decoded = codec.decode(&genotype); // Vec<i8>
     }
     ```
 
@@ -336,18 +329,18 @@ ___
     struct NQueens(Vec<i32>);
     ```
 
-    A Codex for the NQueens problem.
+    A Codec for the NQueens problem.
     ```rust
-    struct NQueensCodex {
+    struct NQueensCodec {
         size: i32,
     }
     ```
 
-    Implement the Codex trait for the NQueensCodex. The `encode` function creates a `Genotype`
+    Implement the Codec trait for the NQueensCodec. The `encode` function creates a `Genotype`
     with a single chromosome of `size` genes. The `decode` function creates a `NQueens` from the
     `Genotype`.
     ```rust
-    impl Codex<IntChromosome<i32>, NQueens> for NQueensCodex {
+    impl Codec<IntChromosome<i32>, NQueens> for NQueensCodec {
         fn encode(&self) -> Genotype<IntChromosome<i32>> {
             let genes = (0..self.size).map(|_| IntGene::from(0..self.size)).collect();
             let chromosomes = vec![IntChromosome { genes }];
@@ -359,9 +352,9 @@ ___
         }
     }
     ```
-    Create a new NQueensCodex with a size of 5.
+    Create a new NQueensCodec with a size of 5.
     ```rust
-    let codex = NQueensCodex { size: 5 };
+    let codec = NQueensCodec { size: 5 };
     ```
 
     encode a new Genotype of IntGenes with a size of 5. The result will be a genotype with a single chromosome with 5 genes.
@@ -383,7 +376,7 @@ ___
     }
     ```
     ```rust
-    let genotype = codex.encode();
+    let genotype = codec.encode();
     ```
     decode the genotype to a NQueens. The result will be a NQueens struct with a Vec<i32> of 8 random values between 0 and 8.
     It will look something like:
@@ -391,5 +384,5 @@ ___
     NQueens([3, 7, 1, 5, 2])
     ```
     ```rust
-    let nqueens = codex.decode(&genotype);
+    let nqueens = codec.decode(&genotype);
     ```

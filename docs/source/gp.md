@@ -233,21 +233,21 @@ Radiate-gp provides a few basic graph architectures, but it is also possible to 
             \_____________/
     ```
 
-### Codex
+### Codec
 
-The `GraphCodex` is much the same as other codexes gone over previously. It's encode function will produce a Genotype with a single `GraphChromosome` representing one graph, while the decode function will take a Genotype and produce a single `Graph`. The graph codex can be created similar to how a graph is created. It requires a set of values that a `GraphNode` can take the type of graph that is desired. 
+The `GraphCodec` is much the same as other codeces gone over previously. It's encode function will produce a Genotype with a single `GraphChromosome` representing one graph, while the decode function will take a Genotype and produce a single `Graph`. The graph codec can be created similar to how a graph is created. It requires a set of values that a `GraphNode` can take the type of graph that is desired. 
 
-A codex for a directed graph with 2 inputs and 1 output might look like this:
+A codec for a directed graph with 2 inputs and 1 output might look like this:
 ```rust
 let values = vec![
     (NodeType::Input, vec![Op::var(0), Op::var(1)]),
     (NodeType::Output, vec![Op::sigmoid()]),
 ];
 
-let codex = GraphCodex::directed(2, 1, values);
+let codec = GraphCodec::directed(2, 1, values);
 ```
 
-while a codex for a directed cyclic graph with 2 inputs and 2 outputs might look like this:
+while a codec for a directed cyclic graph with 2 inputs and 2 outputs might look like this:
 ```rust
 let values = vec![
     (NodeType::Input, vec![Op::var(0), Op::var(1)]),
@@ -256,7 +256,7 @@ let values = vec![
     (NodeType::Output, vec![Op::sigmoid(), Op::tanh()]),
 ];
 
-let codex = GraphCodex::recurrent(2, 2, values);
+let codec = GraphCodec::recurrent(2, 2, values);
 ``` 
 
 ### Alters

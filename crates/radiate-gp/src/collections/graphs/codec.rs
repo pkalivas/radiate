@@ -1,21 +1,21 @@
 use super::{Graph, GraphChromosome, GraphNode};
 use crate::{Factory, NodeStore};
-use radiate_core::{Chromosome, Codex, Genotype};
+use radiate_core::{Chromosome, Codec, Genotype};
 
 #[derive(Clone, Debug)]
-pub struct GraphCodex<T> {
+pub struct GraphCodec<T> {
     store: NodeStore<T>,
     template: GraphChromosome<T>,
 }
 
-impl<T> GraphCodex<T> {
+impl<T> GraphCodec<T> {
     pub fn directed(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Self
     where
         T: Clone + Default,
     {
         let new_store = store.into();
 
-        GraphCodex {
+        GraphCodec {
             store: new_store.clone(),
             template: Graph::directed(input_size, output_size, &new_store)
                 .into_iter()
@@ -29,7 +29,7 @@ impl<T> GraphCodex<T> {
     {
         let new_store = store.into();
 
-        GraphCodex {
+        GraphCodec {
             store: new_store.clone(),
             template: Graph::recurrent(input_size, output_size, &new_store)
                 .into_iter()
@@ -38,7 +38,7 @@ impl<T> GraphCodex<T> {
     }
 }
 
-impl<T> Codex<GraphChromosome<T>, Graph<T>> for GraphCodex<T>
+impl<T> Codec<GraphChromosome<T>, Graph<T>> for GraphCodec<T>
 where
     T: Clone + PartialEq + Default,
 {

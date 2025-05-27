@@ -8,10 +8,10 @@ const K: usize = VARIABLES - OBJECTIVES + 1;
 fn main() {
     random_provider::set_seed(501);
 
-    let codex = FloatCodex::vector(VARIABLES, 0_f32..1_f32).with_bounds(-100.0..100.0);
+    let codec = FloatCodec::vector(VARIABLES, 0_f32..1_f32).with_bounds(-100.0..100.0);
 
     let engine = GeneticEngine::builder()
-        .codex(codex)
+        .codec(codec)
         .num_threads(10)
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
         .offspring_selector(TournamentSelector::new(5))

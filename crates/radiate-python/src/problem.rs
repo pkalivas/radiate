@@ -1,38 +1,38 @@
 use crate::{
     AnyValue,
-    codex::PyCodex,
+    codec::PyCodec,
     conversion::{ObjectValue, Wrap},
 };
 use pyo3::{Py, PyAny, PyObject, Python};
-use radiate::{Chromosome, Codex, Genotype, Problem, Score};
+use radiate::{Chromosome, Codec, Genotype, Problem, Score};
 use std::sync::Arc;
 
 pub struct PyProblem<C: Chromosome> {
     pub fitness_func: ThreadSafePythonFn,
-    pub codex: PyCodex<C>,
+    pub codec: PyCodec<C>,
 }
 
 impl<C: Chromosome> PyProblem<C> {
-    pub fn new(fitness_func: PyObject, codex: PyCodex<C>) -> Self {
+    pub fn new(fitness_func: PyObject, codec: PyCodec<C>) -> Self {
         PyProblem {
             fitness_func: ThreadSafePythonFn::new(fitness_func),
-            codex,
+            codec,
         }
     }
 }
 
 impl<C: Chromosome> Problem<C, ObjectValue> for PyProblem<C> {
     fn encode(&self) -> Genotype<C> {
-        self.codex.encode()
+        self.codec.encode()
     }
 
     fn decode(&self, genotype: &Genotype<C>) -> ObjectValue {
-        self.codex.decode(genotype)
+        self.codec.decode(genotype)
     }
 
     fn eval(&self, individual: &Genotype<C>) -> Score {
         Python::with_gil(|py| {
-            let phenotype = self.codex.decode_with_py(py, individual);
+            let phenotype = self.codec.decode_with_py(py, individual);
             self.fitness_func.call(py, phenotype)
         })
     }

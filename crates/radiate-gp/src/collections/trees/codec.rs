@@ -1,11 +1,11 @@
 use crate::NodeStore;
 use crate::collections::{Tree, TreeChromosome, TreeNode};
-use radiate_core::{Chromosome, Codex, Genotype};
+use radiate_core::{Chromosome, Codec, Genotype};
 use std::sync::Arc;
 
 type Constraint<N> = Arc<dyn Fn(&N) -> bool>;
 
-pub struct TreeCodex<T: Clone, D = Vec<Tree<T>>> {
+pub struct TreeCodec<T: Clone, D = Vec<Tree<T>>> {
     depth: usize,
     num_trees: usize,
     store: Option<NodeStore<T>>,
@@ -14,9 +14,9 @@ pub struct TreeCodex<T: Clone, D = Vec<Tree<T>>> {
     _marker: std::marker::PhantomData<D>,
 }
 
-impl<T: Clone + Default> TreeCodex<T> {
-    pub fn single(depth: usize, store: impl Into<NodeStore<T>>) -> TreeCodex<T, Tree<T>> {
-        TreeCodex {
+impl<T: Clone + Default> TreeCodec<T> {
+    pub fn single(depth: usize, store: impl Into<NodeStore<T>>) -> TreeCodec<T, Tree<T>> {
+        TreeCodec {
             depth,
             num_trees: 1,
             store: Some(store.into()),
@@ -30,8 +30,8 @@ impl<T: Clone + Default> TreeCodex<T> {
         depth: usize,
         num_trees: usize,
         store: impl Into<NodeStore<T>>,
-    ) -> TreeCodex<T, Vec<Tree<T>>> {
-        TreeCodex {
+    ) -> TreeCodec<T, Vec<Tree<T>>> {
+        TreeCodec {
             depth,
             num_trees,
             store: Some(store.into()),
@@ -42,7 +42,7 @@ impl<T: Clone + Default> TreeCodex<T> {
     }
 }
 
-impl<T: Clone, D> TreeCodex<T, D> {
+impl<T: Clone, D> TreeCodec<T, D> {
     pub fn constraint<F>(mut self, constraint: F) -> Self
     where
         F: Fn(&TreeNode<T>) -> bool + 'static,
@@ -57,7 +57,7 @@ impl<T: Clone, D> TreeCodex<T, D> {
     }
 }
 
-impl<T> Codex<TreeChromosome<T>, Vec<Tree<T>>> for TreeCodex<T, Vec<Tree<T>>>
+impl<T> Codec<TreeChromosome<T>, Vec<Tree<T>>> for TreeCodec<T, Vec<Tree<T>>>
 where
     T: Clone + PartialEq + Default,
 {
@@ -96,7 +96,7 @@ where
     }
 }
 
-impl<T> Codex<TreeChromosome<T>, Tree<T>> for TreeCodex<T, Tree<T>>
+impl<T> Codec<TreeChromosome<T>, Tree<T>> for TreeCodec<T, Tree<T>>
 where
     T: Clone + PartialEq + Default,
 {
@@ -138,7 +138,7 @@ where
 mod tests {
     use super::*;
     use crate::{NodeType, ops::Op};
-    use radiate_core::codexes::Codex;
+    use radiate_core::codecs::Codec;
 
     #[test]
     fn test_tree_codex() {
@@ -147,7 +147,7 @@ mod tests {
             (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
             (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
         ];
-        let codex = TreeCodex::single(3, store);
+        let codex = TreeCodec::single(3, store);
 
         let genotype = codex.encode();
         let tree = codex.decode(&genotype);
@@ -163,7 +163,7 @@ mod tests {
             (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
             (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
         ];
-        let codex = TreeCodex::multi_root(3, 2, store);
+        let codex = TreeCodec::multi_root(3, 2, store);
 
         let genotype = codex.encode();
         let trees = codex.decode(&genotype);

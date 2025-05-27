@@ -21,8 +21,8 @@ fn main() {
         (NodeType::Output, outputs.clone()),
     ];
 
-    let codex = GraphCodex::directed(4, 4, store);
-    let regression = Regression::new(train.clone(), Loss::MSE, codex);
+    let codec = GraphCodec::directed(4, 4, store);
+    let regression = Regression::new(train.clone(), Loss::MSE, codec);
 
     let engine = GeneticEngine::builder()
         .problem(regression)

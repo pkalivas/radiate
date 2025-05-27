@@ -12,10 +12,10 @@ fn main() -> io::Result<()> {
     let tsp_file_path = std::env::current_dir()?.join("radiate-examples/TSP/gr17.txt");
     let (distance_matrix, distance_points) = read_tsp_file(&tsp_file_path)?;
 
-    let codex = PermutationCodex::new((0..distance_matrix.len()).collect());
+    let codec = PermutationCodec::new((0..distance_matrix.len()).collect());
 
     let mut engine = GeneticEngine::builder()
-        .codex(codex)
+        .codec(codec)
         .minimizing()
         .population_size(250)
         .alter(alters!(PMXCrossover::new(0.4), SwapMutator::new(0.05)))

@@ -23,10 +23,10 @@ comprehensive list of examples.
     const MAX_GENE_VALUE: i32 = 100;
 
     fn main() {
-        let codex = IntCodex::vector(NUM_GENES, MIN_GENE_VALUE..MAX_GENE_VALUE);
+        let codec = IntCodec::vector(NUM_GENES, MIN_GENE_VALUE..MAX_GENE_VALUE);
 
         let engine = GeneticEngine::builder()
-            .codex(codex)
+            .codec(codec)
             .population_size(150)
             .minimizing()
             .offspring_selector(EliteSelector::new())
@@ -65,10 +65,10 @@ comprehensive list of examples.
     fn main() {
         random_provider::set_seed(500);
 
-        let codex = IntCodex::<i8, Vec<i8>>::vector(N_QUEENS, 0..N_QUEENS as i8);
+        let codec = IntCodec::<i8, Vec<i8>>::vector(N_QUEENS, 0..N_QUEENS as i8);
 
         let engine = GeneticEngine::builder()
-            .codex(codex)
+            .codec(codec)
             .minimizing()
             .num_threads(5)
             .offspring_selector(BoltzmannSelector::new(4.0))
@@ -131,10 +131,10 @@ comprehensive list of examples.
         random_provider::set_seed(12345);
         let knapsack = Knapsack::new(KNAPSACK_SIZE);
         let capacity = knapsack.capacity;
-        let codex = SubSetCodex::new(knapsack.items);
+        let codec = SubSetCodec::new(knapsack.items);
 
         let engine = GeneticEngine::builder()
-            .codex(codex)
+            .codec(codec)
             .max_age(MAX_EPOCHS)
             .fitness_fn(move |genotype: Vec<Arc<Item>>| Knapsack::fitness(&capacity, &genotype))
             .build();
@@ -269,10 +269,10 @@ comprehensive list of examples.
     const N_GENES: usize = 2;
 
     fn main() {
-        let codex = FloatCodex::vector(N_GENES, -RANGE..RANGE);
+        let codec = FloatCodec::vector(N_GENES, -RANGE..RANGE);
 
         let engine = GeneticEngine::builder()
-            .codex(codex)
+            .codec(codec)
             .minimizing()
             .population_size(500)
             .alter(alters!(
@@ -323,14 +323,14 @@ comprehensive list of examples.
 
         let target = vec![0.0, 0.0, 1.0, 1.0];
 
-        let codex = NeuralNetCodex {
+        let codec = NeuralNetCodec {
             shapes: vec![(2, 8), (8, 8), (8, 1)],
             inputs: inputs.clone(),
             target: target.clone(),
         };
 
         let engine = GeneticEngine::builder()
-            .codex(codex.clone())
+            .codec(codec.clone())
             .minimizing()
             .num_threads(5)
             .offspring_selector(BoltzmannSelector::new(4_f32))
@@ -352,7 +352,7 @@ comprehensive list of examples.
         println!("Seconds: {:?}", result.seconds());
         println!("{:?}", result.metrics);
         let best = result.best;
-        for (input, target) in codex.inputs.iter().zip(codex.target.iter()) {
+        for (input, target) in codec.inputs.iter().zip(codec.target.iter()) {
             let output = best.feed_forward(input.clone());
             println!(
                 "{:?} -> expected: {:?}, actual: {:.3?}",
@@ -410,13 +410,13 @@ comprehensive list of examples.
     }
 
     #[derive(Clone)]
-    pub struct NeuralNetCodex {
+    pub struct NeuralNetCodec {
         pub shapes: Vec<(usize, usize)>,
         pub inputs: Vec<Vec<f32>>,
         pub target: Vec<f32>,
     }
 
-    impl Codex<FloatChromosome, NeuralNet> for NeuralNetCodex {
+    impl Codec<FloatChromosome, NeuralNet> for NeuralNetCodec {
         fn encode(&self) -> Genotype<FloatChromosome> {
             self.shapes
                 .iter()
@@ -467,8 +467,8 @@ comprehensive list of examples.
             (NodeType::Output, vec![Op::sigmoid()]),
         ];
 
-        let graph_codex = GraphCodex::directed(2, 1, values);
-        let regression = Regression::new(get_dataset(), Loss::MSE, graph_codex);
+        let graph_codec = GraphCodec::directed(2, 1, values);
+        let regression = Regression::new(get_dataset(), Loss::MSE, graph_codec);
 
         let engine = GeneticEngine::builder()
             .problem(regression)
@@ -538,8 +538,8 @@ comprehensive list of examples.
             (NodeType::Leaf, vec![Op::var(0)]),
         ];
 
-        let tree_codex = TreeCodex::single(3, store).constraint(|root| root.size() < 30);
-        let problem = Regression::new(get_dataset(), Loss::MSE, tree_codex);
+        let tree_codec = TreeCodec::single(3, store).constraint(|root| root.size() < 30);
+        let problem = Regression::new(get_dataset(), Loss::MSE, tree_codec);
 
         let engine = GeneticEngine::builder()
             .problem(problem)
