@@ -1,31 +1,31 @@
-use super::Codex;
+use super::Codec;
 use crate::genome::char::CharGene;
 use crate::genome::gene::Gene;
 use crate::genome::genotype::Genotype;
 use crate::{CharChromosome, Chromosome, char};
 use std::sync::Arc;
 
-/// A `Codex` for a `Genotype` of `CharGenes`. The `encode` function creates a `Genotype` with `num_chromosomes` chromosomes
+/// A `Codec` for a `Genotype` of `CharGenes`. The `encode` function creates a `Genotype` with `num_chromosomes` chromosomes
 /// and `num_genes` genes per chromosome. The `decode` function creates a `String` from the `Genotype` where the `String`
 /// contains the alleles of the `CharGenes` in the chromosome.
 #[derive(Clone)]
-pub struct CharCodex<T = ()> {
+pub struct CharCodec<T = ()> {
     num_chromosomes: usize,
     num_genes: usize,
     char_set: Arc<[char]>,
     _marker: std::marker::PhantomData<T>,
 }
 
-impl<T> CharCodex<T> {
+impl<T> CharCodec<T> {
     pub fn with_char_set(mut self, char_set: impl Into<Arc<[char]>>) -> Self {
         self.char_set = char_set.into();
         self
     }
 }
 
-impl CharCodex<Vec<Vec<char>>> {
+impl CharCodec<Vec<Vec<char>>> {
     pub fn matrix(num_chromosomes: usize, num_genes: usize) -> Self {
-        CharCodex {
+        CharCodec {
             num_chromosomes,
             num_genes,
             char_set: char::ALPHABET.chars().collect::<Vec<char>>().into(),
@@ -34,9 +34,9 @@ impl CharCodex<Vec<Vec<char>>> {
     }
 }
 
-impl CharCodex<Vec<char>> {
+impl CharCodec<Vec<char>> {
     pub fn vector(num_genes: usize) -> Self {
-        CharCodex {
+        CharCodec {
             num_chromosomes: 1,
             num_genes,
             char_set: char::ALPHABET.chars().collect::<Vec<char>>().into(),
@@ -45,7 +45,7 @@ impl CharCodex<Vec<char>> {
     }
 }
 
-impl Codex<CharChromosome, Vec<Vec<char>>> for CharCodex<Vec<Vec<char>>> {
+impl Codec<CharChromosome, Vec<Vec<char>>> for CharCodec<Vec<Vec<char>>> {
     fn encode(&self) -> Genotype<CharChromosome> {
         Genotype::new(
             (0..self.num_chromosomes)
@@ -71,7 +71,7 @@ impl Codex<CharChromosome, Vec<Vec<char>>> for CharCodex<Vec<Vec<char>>> {
     }
 }
 
-impl Codex<CharChromosome, Vec<char>> for CharCodex<Vec<char>> {
+impl Codec<CharChromosome, Vec<char>> for CharCodec<Vec<char>> {
     fn encode(&self) -> Genotype<CharChromosome> {
         Genotype::new(
             (0..self.num_chromosomes)
@@ -100,14 +100,14 @@ impl Codex<CharChromosome, Vec<char>> for CharCodex<Vec<char>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Codex;
+    use crate::Codec;
     use crate::genome::gene::Gene;
 
     #[test]
-    fn test_char_codex_matrix() {
+    fn test_char_codec_matrix() {
         let char_set = "abcde".chars().collect::<Vec<char>>();
-        let codex = CharCodex::matrix(3, 5).with_char_set(char_set.clone());
-        let genotype = codex.encode();
+        let codec = CharCodec::matrix(3, 5).with_char_set(char_set.clone());
+        let genotype = codec.encode();
         assert_eq!(genotype.len(), 3);
         assert_eq!(genotype[0].len(), 5);
         for gene in genotype[0].iter() {
@@ -117,13 +117,13 @@ mod tests {
     }
 
     #[test]
-    fn test_char_codex() {
-        let codex = CharCodex::vector(5);
-        let genotype = codex.encode();
+    fn test_char_codec_vector() {
+        let codec = CharCodec::vector(5);
+        let genotype = codec.encode();
         assert_eq!(genotype.len(), 1);
         assert_eq!(genotype[0].len(), 5);
         for gene in genotype[0].iter() {
-            assert!(codex.char_set.contains(gene.allele()));
+            assert!(codec.char_set.contains(gene.allele()));
         }
     }
 }

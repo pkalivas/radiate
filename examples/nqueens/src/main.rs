@@ -5,10 +5,10 @@ const N_QUEENS: usize = 32;
 fn main() {
     random_provider::set_seed(500);
 
-    let codex = IntCodex::vector(N_QUEENS, 0..N_QUEENS as i8);
+    let codec = IntCodec::vector(N_QUEENS, 0..N_QUEENS as i8);
 
     let engine = GeneticEngine::builder()
-        .codex(codex)
+        .codec(codec)
         .minimizing()
         .num_threads(5)
         .offspring_selector(BoltzmannSelector::new(4.0))

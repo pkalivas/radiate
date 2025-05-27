@@ -13,8 +13,8 @@ fn main() {
         (NodeType::Output, vec![Op::sigmoid()]),
     ];
 
-    let graph_codex = GraphCodex::directed(2, 1, values);
-    let regression = Regression::new(get_dataset(), Loss::MSE, graph_codex);
+    let graph_codec = GraphCodec::directed(2, 1, values);
+    let regression = Regression::new(get_dataset(), Loss::MSE, graph_codec);
 
     let mut engine = GeneticEngine::builder()
         .problem(regression)

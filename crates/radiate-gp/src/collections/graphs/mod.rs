@@ -1,7 +1,7 @@
 mod aggregate;
 mod builder;
 mod chromosome;
-mod codex;
+mod codec;
 mod crossover;
 mod diversity;
 mod eval;
@@ -14,7 +14,7 @@ mod transaction;
 
 pub use aggregate::GraphAggregate;
 pub use chromosome::GraphChromosome;
-pub use codex::GraphCodex;
+pub use codec::GraphCodec;
 pub use crossover::GraphCrossover;
 pub use diversity::NeatDistance;
 pub use eval::GraphEvaluator;

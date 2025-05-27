@@ -2,7 +2,7 @@ from typing import Any, Callable, List
 from .selector import Selector, TournamentSelector, RouletteSelector
 from .alterer import Alterer, UniformCrossover, UniformMutator
 from ._typing import GeneType, ObjectiveType
-from .codex import FloatCodex, IntCodex, CharCodex, BitCodex
+from .codec import FloatCodec, IntCodec, CharCodec, BitCodec
 from .limit import Limit
 
 from radiate.radiate import (
@@ -24,7 +24,7 @@ class GeneticEngine:
 
     def __init__(
         self,
-        codex: FloatCodex | IntCodex | CharCodex | BitCodex,
+        codec: FloatCodec | IntCodec | CharCodec | BitCodec,
         fitness_func: Callable[[Any], Any],
         offspring_selector: Selector | None = None,
         survivor_selector: Selector | None = None,
@@ -34,19 +34,19 @@ class GeneticEngine:
         objectives: str | List[str] = ObjectiveType.MIN,
         num_threads: int = 1,
     ):
-        self.codex = codex
+        self.codec = codec
         self.fitness_func = fitness_func
 
-        if isinstance(self.codex, FloatCodex):
+        if isinstance(self.codec, FloatCodec):
             self.gene_type = GeneType.FLOAT
-        elif isinstance(self.codex, IntCodex):
+        elif isinstance(self.codec, IntCodec):
             self.gene_type = GeneType.INT
-        elif isinstance(self.codex, CharCodex):
+        elif isinstance(self.codec, CharCodec):
             self.gene_type = GeneType.CHAR
-        elif isinstance(self.codex, BitCodex):
+        elif isinstance(self.codec, BitCodec):
             self.gene_type = GeneType.BIT
         else:
-            raise TypeError(f"Codex type {type(self.codex)} is not supported.")
+            raise TypeError(f"Codec type {type(self.codec)} is not supported.")
 
         survivor_selector = self.__get_params(
             survivor_selector or TournamentSelector(k=3)
@@ -130,13 +130,13 @@ class GeneticEngine:
     def __get_engine(self):
         """Get the engine."""
         if self.gene_type == GeneType.FLOAT:
-            return PyFloatEngine(self.codex.codex, self.fitness_func, self.builder)
+            return PyFloatEngine(self.codec.codec, self.fitness_func, self.builder)
         elif self.gene_type == GeneType.INT:
-            return PyIntEngine(self.codex.codex, self.fitness_func, self.builder)
+            return PyIntEngine(self.codec.codec, self.fitness_func, self.builder)
         elif self.gene_type == GeneType.CHAR:
-            return PyCharEngine(self.codex.codex, self.fitness_func, self.builder)
+            return PyCharEngine(self.codec.codec, self.fitness_func, self.builder)
         elif self.gene_type == GeneType.BIT:
-            return PyBitEngine(self.codex.codex, self.fitness_func, self.builder)
+            return PyBitEngine(self.codec.codec, self.fitness_func, self.builder)
         else:
             raise TypeError(f"Gene type {self.gene_type} is not supported.")
 
@@ -171,4 +171,4 @@ class GeneticEngine:
         raise TypeError(f"Param type {type(value)} is not supported.")
 
     def __repr__(self):
-        return f"EngineTest(codex={self.gene_type})"
+        return f"EngineTest(codec={self.gene_type})"

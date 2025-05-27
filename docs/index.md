@@ -62,7 +62,7 @@ inspired by natural selection and genetics. The core is written in Rust and is a
 
 - **Genetic Engine**: The central component orchestrating the genetic algorithm. It manages the ecosystem, evaluates fitness, and handles selection, crossover, and mutation processes. It is designed to be flexible and extensible, allowing customization to fit specific optimization requirements.
 
-- **Codex**: Responsible for encoding and decoding genetic information. It acts as a bridge between the problem space and the solution space, allowing the genetic algorithm to operate on abstract genetic representations while solving real-world problems.
+- **Codec**: Responsible for encoding and decoding genetic information. It acts as a bridge between the problem space and the solution space, allowing the genetic algorithm to operate on abstract genetic representations while solving real-world problems.
 
 - **Selectors**: Used to choose individuals for reproduction and survival. They play a crucial role in determining the evolutionary pressure applied to the population.
 
@@ -72,7 +72,7 @@ inspired by natural selection and genetics. The core is written in Rust and is a
 
 ## Example
 
-This simple maximizing problem demonstrates how to use Radiate to solve a string matching problem, where the goal is to evolve a population of chars to match a target string.
+This simple maximizing problem demonstrates how to use Radiate to solve a string matching problem, where the goal is to evolve a genotype of chars to match a target string.
 
 !!! example "Hello, Radiate!"
 
@@ -88,8 +88,8 @@ This simple maximizing problem demonstrates how to use Radiate to solve a string
             inner = phenotype[0]
             return sum(1 for i in range(len(inner)) if inner[i] == target[i])
 
-        codex = rd.CharCodex([len(target)])
-        engine = rd.GeneticEngine(codex, fitness_fn)
+        codec = rd.CharCodec([len(target)])
+        engine = rd.GeneticEngine(codec, fitness_fn)
         engine.maximizing()
         engine.offspring_selector(rd.BoltzmannSelector(4))
 
@@ -105,24 +105,18 @@ This simple maximizing problem demonstrates how to use Radiate to solve a string
 
         fn main() {
             let target = "Hello, Radiate!";
-            let codex = CharCodex::new(1, target.len());
+            let codec = CharCodec::vector(target.len());
 
-            let engine = GeneticEngine::from_codex(codex)
-                .offspring_selector(BoltzmannSelector::new(4_f32)) // optional
-                .fitness_fn(|geno: Vec<Vec<char>>| {
-                    geno.into_iter()
-                        .flatten()
-                        .zip(target.chars())
-                        .fold(
-                            0,
-                            |acc, (geno, targ)| {
-                                if geno == targ {
-                                    acc + 1
-                                } else {
-                                    acc
-                                }
-                            },
-                        )
+            let mut engine = GeneticEngine::builder()
+                .codec(codec)
+                .offspring_selector(BoltzmannSelector::new(4_f32))
+                .fitness_fn(|geno: Vec<char>| {
+                    geno.into_iter().zip(target.chars()).fold(
+                        0,
+                        |acc, (allele, targ)| {
+                            if allele == targ { acc + 1 } else { acc }
+                        },
+                    )
                 })
                 .build();
 
@@ -133,9 +127,6 @@ This simple maximizing problem demonstrates how to use Radiate to solve a string
                 ctx.score().as_usize() == target.len()
             });
 
-            // prints the final `EvolutionContext` which contains the final population, best individual,
-            // the number of generations (index), best score, and the `MetricSet` (a collection of 
-            // evolution metrics the engine maintains throughout the run)
             println!("{:?}", result); 
         }
         ```

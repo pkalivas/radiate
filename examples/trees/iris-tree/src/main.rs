@@ -16,8 +16,8 @@ fn main() {
         (NodeType::Leaf, (0..4).map(Op::var).collect()),
     ];
 
-    let codex = TreeCodex::multi_root(3, 4, store).constraint(|node| node.size() < 40);
-    let regression = Regression::new(train.clone(), Loss::MSE, codex);
+    let codec = TreeCodec::multi_root(3, 4, store).constraint(|node| node.size() < 40);
+    let regression = Regression::new(train.clone(), Loss::MSE, codec);
 
     let mut engine = GeneticEngine::builder()
         .problem(regression)

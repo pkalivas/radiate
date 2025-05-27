@@ -1,4 +1,4 @@
-use super::PyCodex;
+use super::PyCodec;
 use crate::conversion::ObjectValue;
 use pyo3::{
     pyclass, pymethods,
@@ -8,12 +8,12 @@ use radiate::{Chromosome, Gene, IntChromosome};
 
 #[pyclass]
 #[derive(Clone)]
-pub struct PyIntCodex {
-    pub codex: PyCodex<IntChromosome<i32>>,
+pub struct PyIntCodec {
+    pub codec: PyCodec<IntChromosome<i32>>,
 }
 
 #[pymethods]
-impl PyIntCodex {
+impl PyIntCodec {
     #[new]
     #[pyo3(signature = (chromosome_lengths=None, value_range=None, bound_range=None))]
     pub fn new(
@@ -27,8 +27,8 @@ impl PyIntCodex {
             .map(|rng| rng.0..rng.1)
             .unwrap_or(val_range.clone());
 
-        PyIntCodex {
-            codex: PyCodex::new()
+        PyIntCodec {
+            codec: PyCodec::new()
                 .with_encoder(move || {
                     lengths
                         .iter()
@@ -56,5 +56,5 @@ impl PyIntCodex {
     }
 }
 
-unsafe impl Send for PyIntCodex {}
-unsafe impl Sync for PyIntCodex {}
+unsafe impl Send for PyIntCodec {}
+unsafe impl Sync for PyIntCodec {}

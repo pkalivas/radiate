@@ -1,5 +1,5 @@
 mod builder;
-mod codex;
+mod codec;
 mod conversion;
 mod engines;
 mod epoch;
@@ -11,7 +11,7 @@ mod problem;
 mod random;
 
 pub use builder::*;
-pub use codex::{PyBitCodex, PyCharCodex, PyFloatCodex, PyIntCodex};
+pub use codec::{PyBitCodec, PyCharCodec, PyFloatCodec, PyIntCodec};
 pub use engines::*;
 pub use epoch::*;
 pub use evaluator::PyEvaluator;

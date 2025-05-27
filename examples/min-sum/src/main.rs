@@ -3,10 +3,10 @@ use radiate::*;
 const MIN_SCORE: i32 = 0;
 
 fn main() {
-    let codex = IntCodex::vector(10, 0..100);
+    let codec = IntCodec::vector(10, 0..100);
 
     let mut engine = GeneticEngine::builder()
-        .codex(codex)
+        .codec(codec)
         .population_size(150)
         .minimizing()
         .offspring_selector(EliteSelector::new())

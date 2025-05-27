@@ -1,4 +1,4 @@
-use super::PyCodex;
+use super::PyCodec;
 use crate::conversion::ObjectValue;
 use pyo3::{
     pyclass, pymethods,
@@ -8,19 +8,19 @@ use radiate::{CharChromosome, Chromosome, Gene};
 
 #[pyclass]
 #[derive(Clone)]
-pub struct PyCharCodex {
-    pub codex: PyCodex<CharChromosome>,
+pub struct PyCharCodec {
+    pub codec: PyCodec<CharChromosome>,
 }
 
 #[pymethods]
-impl PyCharCodex {
+impl PyCharCodec {
     #[new]
     #[pyo3(signature = (chromosome_lengths=None, char_set=None))]
     pub fn new(chromosome_lengths: Option<Vec<usize>>, char_set: Option<String>) -> Self {
         let lengths = chromosome_lengths.unwrap_or(vec![1]);
 
-        PyCharCodex {
-            codex: PyCodex::new()
+        PyCharCodec {
+            codec: PyCodec::new()
                 .with_encoder(move || {
                     lengths
                         .iter()
@@ -46,5 +46,5 @@ impl PyCharCodex {
     }
 }
 
-unsafe impl Send for PyCharCodex {}
-unsafe impl Sync for PyCharCodex {}
+unsafe impl Send for PyCharCodec {}
+unsafe impl Sync for PyCharCodec {}

@@ -1,9 +1,9 @@
 from typing import List, Optional, Tuple
 
-from radiate.radiate import PyFloatCodex, PyIntCodex, PyCharCodex, PyBitCodex
+from radiate.radiate import PyFloatCodec, PyIntCodec, PyCharCodec, PyBitCodec
 
 
-class FloatCodex:
+class FloatCodec:
     def __init__(
         self,
         chromosomes: List[int],
@@ -11,7 +11,7 @@ class FloatCodex:
         bound_range: Optional[Tuple[float, float]] = None,
     ):
         """
-        Initialize the float codex with number of chromosomes and value bounds.
+        Initialize the float codec with number of chromosomes and value bounds.
         :param chromosomes: Number of chromosomes with the number of genes in each chromosome.
         :param value_range: Minimum and maximum value for the genes.
         :param bound_range: Minimum and maximum bound for the genes.
@@ -27,14 +27,14 @@ class FloatCodex:
             if bound_range[0] >= bound_range[1]:
                 raise ValueError("Minimum bound must be less than maximum bound.")
 
-        self.codex = PyFloatCodex(
+        self.codec = PyFloatCodec(
             chromosome_lengths=chromosomes,
             value_range=value_range,
             bound_range=bound_range,
         )
 
 
-class IntCodex:
+class IntCodec:
     def __init__(
         self,
         chromosomes: List[int],
@@ -42,7 +42,7 @@ class IntCodex:
         bound_range: Optional[Tuple[int, int]] = None,
     ):
         """
-        Initialize the int codex with number of chromosomes and value bounds.
+        Initialize the int codec with number of chromosomes and value bounds.
         :param chromosomes: Number of chromosomes with the number of genes in each chromosome.
         :param value_range: Minimum and maximum value for the genes.
         :param bound_range: Minimum and maximum bound for the genes.
@@ -58,17 +58,17 @@ class IntCodex:
             if bound_range[0] >= bound_range[1]:
                 raise ValueError("Minimum bound must be less than maximum bound.")
 
-        self.codex = PyIntCodex(
+        self.codec = PyIntCodec(
             chromosome_lengths=chromosomes,
             value_range=value_range,
             bound_range=bound_range,
         )
 
 
-class CharCodex:
+class CharCodec:
     def __init__(self, chromosomes: List[int], char_set: str | List[str] = None):
         """
-        Initialize the char codex with number of chromosomes and value bounds.
+        Initialize the char codec with number of chromosomes and value bounds.
         :param chromosomes: Number of chromosomes with the number of genes in each chromosome.
         :param value_range: Minimum and maximum value for the genes.
         """
@@ -83,23 +83,23 @@ class CharCodex:
                         "Character set must be a string or list of single-character strings."
                     )
 
-        self.codex = PyCharCodex(
+        self.codec = PyCharCodec(
             chromosome_lengths=chromosomes,
             char_set=char_set,
         )
 
 
-class BitCodex:
+class BitCodec:
     """
-    BitCodex is a class that represents a codex for bit-based chromosomes.
+    BitCodec is a class that represents a codec for bit-based chromosomes.
     It is used to encode and decode chromosomes into bit strings.
     """
 
     def __init__(self, chromosomes: List[int]):
         """
-        Initialize the bit codex with number of chromosomes and value bounds.
+        Initialize the bit codec with number of chromosomes and value bounds.
         :param chromosomes: Number of chromosomes with the number of genes in each chromosome.
         """
-        self.codex = PyBitCodex(
+        self.codec = PyBitCodec(
             chromosome_lengths=chromosomes,
         )

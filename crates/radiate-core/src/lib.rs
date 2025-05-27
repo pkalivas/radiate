@@ -1,6 +1,6 @@
 pub mod alter;
 pub mod audit;
-pub mod codexes;
+pub mod codecs;
 pub mod diversity;
 pub mod domain;
 pub mod engine;
@@ -13,8 +13,8 @@ pub mod stats;
 
 pub use alter::{Alter, AlterAction, AlterResult, Crossover, Mutate};
 pub use audit::{Audit, MetricAudit};
-pub use codexes::{
-    BitCodex, CharCodex, Codex, FloatCodex, FnCodex, IntCodex, PermutationCodex, SubSetCodex,
+pub use codecs::{
+    BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PermutationCodec, SubSetCodec,
 };
 pub use diversity::Diversity;
 pub use domain::*;

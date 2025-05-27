@@ -9,10 +9,10 @@ fn main() {
     random_provider::set_seed(12345);
     let knapsack = Knapsack::new(KNAPSACK_SIZE);
     let capacity = knapsack.capacity;
-    let codex = SubSetCodex::new(knapsack.items);
+    let codec = SubSetCodec::new(knapsack.items);
 
     let mut engine = GeneticEngine::builder()
-        .codex(codex)
+        .codec(codec)
         .max_age(MAX_EPOCHS)
         .fitness_fn(move |genotype: Vec<Arc<Item>>| Knapsack::fitness(&capacity, &genotype))
         .build();

@@ -1,6 +1,6 @@
 mod builder;
 mod chromosome;
-mod codex;
+mod codec;
 mod crossover;
 mod eval;
 mod iter;
@@ -9,7 +9,7 @@ mod node;
 mod tree;
 
 pub use chromosome::TreeChromosome;
-pub use codex::TreeCodex;
+pub use codec::TreeCodec;
 pub use crossover::TreeCrossover;
 pub use iter::TreeIterator;
 pub use mutator::HoistMutator;
