@@ -72,7 +72,7 @@ inspired by natural selection and genetics. The core is written in Rust and is a
 
 ## Example
 
-This simple maximizing problem demonstrates how to use Radiate to solve a string matching problem, where the goal is to evolve a population of chars to match a target string.
+This simple maximizing problem demonstrates how to use Radiate to solve a string matching problem, where the goal is to evolve a genotype of chars to match a target string.
 
 !!! example "Hello, Radiate!"
 

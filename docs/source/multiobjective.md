@@ -32,7 +32,8 @@ To set up the engine to solve this type of problem, we supply the objective func
     fn main() {
         let codec = FloatCodec::vector(VARIABLES, 0_f32..1_f32).with_bounds(-100.0, 100.0);
 
-        let engine = GeneticEngine::from_codec(codec)
+        let engine = GeneticEngine::builder()
+            .codec(codec)
             .num_threads(10)
             .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
             .front_size(1100..1300)
@@ -102,7 +103,8 @@ Again, to set up the engine to solve this type of problem, we supply the objecti
     fn main() {
         let codec = FloatCodec::vector(VARIABLES, 0_f32..1_f32).with_bounds(-100.0, 100.0);
 
-        let engine = GeneticEngine::from_codec(codec)
+        let engine = GeneticEngine::builder()
+            .codec(codec)
             .num_threads(10)
             .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
             .front_size(1000..1100)
@@ -152,8 +154,8 @@ The resulting Pareto front can be seen below:
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <script>
 Promise.all([
-    fetch("../assets/dtlz_1.json").then(response => response.json()),
-    fetch("../assets/dtlz_2.json").then(response => response.json())
+    fetch("../../assets/dtlz_1.json").then(response => response.json()),
+    fetch("../../assets/dtlz_2.json").then(response => response.json())
 ])
 .then(([dtlz1, dtlz2]) => {
     let x1 = [], y1 = [], z1 = [];
