@@ -12,8 +12,8 @@ fn main() {
         (NodeType::Output, vec![Op::linear()]),
     ];
 
-    let graph_codex = GraphCodex::directed(1, 1, values);
-    let problem = Regression::new(get_dataset(), Loss::MSE, graph_codex);
+    let graph_codec = GraphCodec::directed(1, 1, values);
+    let problem = Regression::new(get_dataset(), Loss::MSE, graph_codec);
 
     let engine = GeneticEngine::builder()
         .problem(problem)

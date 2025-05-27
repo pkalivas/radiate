@@ -16,7 +16,7 @@ fn main() {
 
     let target = vec![0.0, 0.0, 1.0, 1.0];
 
-    let codex = NeuralNetCodex {
+    let codec = NeuralNetCodec {
         shapes: vec![(2, 8), (8, 8), (8, 1)],
         inputs: inputs.clone(),
         target: target.clone(),
@@ -25,7 +25,7 @@ fn main() {
     let mut engine = GeneticEngine::builder()
         .minimizing()
         .num_threads(5)
-        .codex(codex.clone())
+        .codec(codec.clone())
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .crossover(IntermediateCrossover::new(0.75, 0.1))
         .mutators(vec![
@@ -43,7 +43,7 @@ fn main() {
     println!("Seconds: {:?}", result.seconds());
     println!("{:?}", result.metrics());
     let best = result.value().clone();
-    for (input, target) in codex.inputs.iter().zip(codex.target.iter()) {
+    for (input, target) in codec.inputs.iter().zip(codec.target.iter()) {
         let output = best.feed_forward(input.clone());
         println!(
             "{:?} -> expected: {:?}, actual: {:.3?}",
@@ -101,13 +101,13 @@ impl NeuralNet {
 }
 
 #[derive(Clone)]
-pub struct NeuralNetCodex {
+pub struct NeuralNetCodec {
     pub shapes: Vec<(usize, usize)>,
     pub inputs: Vec<Vec<f32>>,
     pub target: Vec<f32>,
 }
 
-impl Codex<FloatChromosome, NeuralNet> for NeuralNetCodex {
+impl Codec<FloatChromosome, NeuralNet> for NeuralNetCodec {
     fn encode(&self) -> Genotype<FloatChromosome> {
         self.shapes
             .iter()

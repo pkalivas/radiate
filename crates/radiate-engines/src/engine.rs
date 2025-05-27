@@ -17,15 +17,15 @@ use radiate_core::{Engine, Epoch, metric_names};
 /// ``` no_run
 /// use radiate_engines::*;
 ///
-/// // Define a codex that encodes and decodes individuals in the population, in this case using floats.
-/// let codex = FloatCodex::matrix(1, 5, 0.0..100.0);
-/// // This codex will encode Genotype instances with 1 Chromosome and 5 FloatGenes,
+/// // Define a codec that encodes and decodes individuals in the population, in this case using floats.
+/// let codec = FloatCodec::matrix(1, 5, 0.0..100.0);
+/// // This codec will encode Genotype instances with 1 Chromosome and 5 FloatGenes,
 /// // with random alleles between 0.0 and 100.0. It will decode into a Vec<Vec<f32>>.
 /// // eg: [[1.0, 2.0, 3.0, 4.0, 5.0]]
 ///
-/// // Create a new instance of the genetic engine with the given codex.
+/// // Create a new instance of the genetic engine with the given codec.
 /// let mut engine = GeneticEngine::builder()
-///     .codex(codex) // Set the codex to be used for encoding and decoding individuals.
+///     .codec(codec) // Set the codec to be used for encoding and decoding individuals.
 ///     .minimizing()  // Minimize the fitness function.
 ///     .population_size(150) // Set the population size to 150 individuals.
 ///     .max_age(15) // Set the maximum age of an individual to 15 generations before it is replaced with a new individual.

@@ -8,10 +8,10 @@ const NUM_GENES: usize = 2;
 const RANGE: f32 = 2.0;
 
 fn main() {
-    let codex = FloatCodex::vector(NUM_GENES, -RANGE..RANGE);
+    let codec = FloatCodec::vector(NUM_GENES, -RANGE..RANGE);
 
     let mut engine = GeneticEngine::builder()
-        .codex(codex)
+        .codec(codec)
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .alter(alters!(

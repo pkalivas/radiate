@@ -1,5 +1,5 @@
 use crate::{
-    PyEngineBuilder, PyEngineParam, PyGeneration, codex::PyCharCodex, conversion::ObjectValue,
+    PyEngineBuilder, PyEngineParam, PyGeneration, codec::PyCharCodec, conversion::ObjectValue,
 };
 use pyo3::{
     PyObject, PyResult, Python, pyclass, pymethods,
@@ -15,9 +15,9 @@ pub struct PyCharEngine {
 #[pymethods]
 impl PyCharEngine {
     #[new]
-    #[pyo3(signature = (codex, fitness_func, builder))]
-    pub fn new(codex: PyCharCodex, fitness_func: PyObject, builder: PyEngineBuilder) -> Self {
-        let mut engine = crate::build_single_objective_engine(codex.codex, fitness_func, &builder);
+    #[pyo3(signature = (codec, fitness_func, builder))]
+    pub fn new(codec: PyCharCodec, fitness_func: PyObject, builder: PyEngineBuilder) -> Self {
+        let mut engine = crate::build_single_objective_engine(codec.codec, fitness_func, &builder);
         engine = crate::get_alters_with_char_gene(engine, &builder.alters);
 
         PyCharEngine {

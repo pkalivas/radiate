@@ -6,22 +6,22 @@ mod int;
 use std::sync::Arc;
 
 use crate::conversion::ObjectValue;
-pub use bit::PyBitCodex;
-pub use char::PyCharCodex;
-pub use float::PyFloatCodex;
-pub use int::PyIntCodex;
+pub use bit::PyBitCodec;
+pub use char::PyCharCodec;
+pub use float::PyFloatCodec;
+pub use int::PyIntCodec;
 use pyo3::Python;
-use radiate::{Chromosome, Codex, Genotype};
+use radiate::{Chromosome, Codec, Genotype};
 
 #[derive(Clone)]
-pub struct PyCodex<C: Chromosome> {
+pub struct PyCodec<C: Chromosome> {
     encoder: Option<Arc<dyn Fn() -> Genotype<C>>>,
     decoder: Option<Arc<dyn Fn(Python<'_>, &Genotype<C>) -> ObjectValue>>,
 }
 
-impl<C: Chromosome> PyCodex<C> {
+impl<C: Chromosome> PyCodec<C> {
     pub fn new() -> Self {
-        PyCodex {
+        PyCodec {
             encoder: None,
             decoder: None,
         }
@@ -51,7 +51,7 @@ impl<C: Chromosome> PyCodex<C> {
     }
 }
 
-impl<C: Chromosome> Codex<C, ObjectValue> for PyCodex<C> {
+impl<C: Chromosome> Codec<C, ObjectValue> for PyCodec<C> {
     fn encode(&self) -> Genotype<C> {
         match &self.encoder {
             Some(encoder) => encoder(),

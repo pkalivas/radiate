@@ -1,4 +1,4 @@
-use super::PyCodex;
+use super::PyCodec;
 use crate::conversion::ObjectValue;
 use pyo3::{
     pyclass, pymethods,
@@ -8,12 +8,12 @@ use radiate::{Chromosome, FloatChromosome, Gene};
 
 #[pyclass]
 #[derive(Clone)]
-pub struct PyFloatCodex {
-    pub codex: PyCodex<FloatChromosome>,
+pub struct PyFloatCodec {
+    pub codec: PyCodec<FloatChromosome>,
 }
 
 #[pymethods]
-impl PyFloatCodex {
+impl PyFloatCodec {
     #[new]
     #[pyo3(signature = (chromosome_lengths=None, value_range=None, bound_range=None))]
     pub fn new(
@@ -27,8 +27,8 @@ impl PyFloatCodex {
             .map(|rng| rng.0..rng.1)
             .unwrap_or(val_range.clone());
 
-        PyFloatCodex {
-            codex: PyCodex::new()
+        PyFloatCodec {
+            codec: PyCodec::new()
                 .with_encoder(move || {
                     lengths
                         .iter()
@@ -56,5 +56,5 @@ impl PyFloatCodex {
     }
 }
 
-unsafe impl Send for PyFloatCodex {}
-unsafe impl Sync for PyFloatCodex {}
+unsafe impl Send for PyFloatCodec {}
+unsafe impl Sync for PyFloatCodec {}

@@ -1,8 +1,8 @@
-use crate::{Chromosome, Codex, Genotype};
+use crate::{Chromosome, Codec, Genotype};
 use std::sync::Arc;
 
-/// A `Codex` that uses functions to encode and decode a `Genotype` to and from a type `T`.
-/// Most of the other codexes in this module are more specialized and are used to create `Genotypes` of specific types of `Chromosomes`.
+/// A `Codec` that uses functions to encode and decode a `Genotype` to and from a type `T`.
+/// Most of the other codecs in this module are more specialized and are used to create `Genotypes` of specific types of `Chromosomes`.
 /// This one, however, is more general and can be used to create `Genotypes` of any type of `Chromosome`.
 ///
 /// # Example
@@ -13,8 +13,8 @@ use std::sync::Arc;
 ///
 /// fn main() {
 ///     // this is a simple example of the NQueens problem.
-///     // The resulting codex type will be FnCodex<IntChromosome<i8>, Vec<i8>>.
-///     let codex = FnCodex::new()
+///     // The resulting codec type will be FnCodec<IntChromosome<i8>, Vec<i8>>.
+///     let codec = FnCodec::new()
 ///         .with_encoder(|| {
 ///             Genotype::new(vec![IntChromosome {
 ///                genes: (0..N_QUEENS)
@@ -31,22 +31,22 @@ use std::sync::Arc;
 ///         });
 ///
 ///     // encode and decode
-///     let genotype: Genotype<IntChromosome<i8>> = codex.encode();
-///     let decoded: Vec<i8> = codex.decode(&genotype);
+///     let genotype: Genotype<IntChromosome<i8>> = codec.encode();
+///     let decoded: Vec<i8> = codec.decode(&genotype);
 /// }
 /// ```
 /// # Type Parameters
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 /// - `T`: The type that the genotype will be decoded to.
 #[derive(Default, Clone)]
-pub struct FnCodex<C: Chromosome, T> {
+pub struct FnCodec<C: Chromosome, T> {
     encoder: Option<Arc<dyn Fn() -> Genotype<C>>>,
     decoder: Option<Arc<dyn Fn(&Genotype<C>) -> T>>,
 }
 
-impl<C: Chromosome, T> FnCodex<C, T> {
+impl<C: Chromosome, T> FnCodec<C, T> {
     pub fn new() -> Self {
-        FnCodex {
+        FnCodec {
             encoder: None,
             decoder: None,
         }
@@ -69,7 +69,7 @@ impl<C: Chromosome, T> FnCodex<C, T> {
     }
 }
 
-impl<C: Chromosome, T> Codex<C, T> for FnCodex<C, T> {
+impl<C: Chromosome, T> Codec<C, T> for FnCodec<C, T> {
     fn encode(&self) -> Genotype<C> {
         match &self.encoder {
             Some(encoder) => encoder(),

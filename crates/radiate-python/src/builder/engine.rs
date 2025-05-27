@@ -1,4 +1,4 @@
-use crate::{PyEngineBuilder, PyEvaluator, PyProblem, codex::PyCodex, conversion::ObjectValue};
+use crate::{PyEngineBuilder, PyEvaluator, PyProblem, codec::PyCodec, conversion::ObjectValue};
 use pyo3::PyObject;
 use radiate::{
     Chromosome, GeneticEngine, GeneticEngineBuilder, MultiObjectiveGeneration, Optimize,
@@ -6,7 +6,7 @@ use radiate::{
 };
 
 pub(crate) fn build_single_objective_engine<C>(
-    codex: PyCodex<C>,
+    codec: PyCodec<C>,
     fitness_func: PyObject,
     builder: &PyEngineBuilder,
 ) -> GeneticEngineBuilder<C, ObjectValue>
@@ -14,7 +14,7 @@ where
     C: Chromosome,
 {
     let mut engine = GeneticEngine::builder()
-        .problem(PyProblem::new(fitness_func, codex))
+        .problem(PyProblem::new(fitness_func, codec))
         .population_size(builder.population_size);
 
     engine = set_evaluator(engine, &builder.num_threads);
@@ -27,7 +27,7 @@ where
 
 #[allow(dead_code)]
 pub(crate) fn build_multi_objective_engine<C>(
-    codex: PyCodex<C>,
+    codec: PyCodec<C>,
     fitness_func: PyObject,
     builder: &PyEngineBuilder,
 ) -> GeneticEngineBuilder<C, ObjectValue, MultiObjectiveGeneration<C>>
@@ -35,7 +35,7 @@ where
     C: Chromosome,
 {
     let mut engine = GeneticEngine::builder()
-        .problem(PyProblem::new(fitness_func, codex))
+        .problem(PyProblem::new(fitness_func, codec))
         .population_size(builder.population_size);
 
     engine = set_evaluator(engine, &builder.num_threads);
