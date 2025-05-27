@@ -147,38 +147,38 @@ mod tests {
     use crate::Codec;
 
     #[test]
-    fn test_bit_codex() {
-        let codex = BitCodec::matrix(2, 3);
-        let genotype = codex.encode();
+    fn test_bit_codec() {
+        let codec = BitCodec::matrix(2, 3);
+        let genotype = codec.encode();
         assert_eq!(genotype.len(), 2);
         assert_eq!(genotype[0].len(), 3);
         assert_eq!(genotype[1].len(), 3);
 
-        let decoded = codex.decode(&genotype);
+        let decoded = codec.decode(&genotype);
         assert_eq!(decoded.len(), 2);
         assert_eq!(decoded[0].len(), 3);
         assert_eq!(decoded[1].len(), 3);
     }
 
     #[test]
-    fn test_bit_codex_vector() {
-        let codex = BitCodec::vector(5);
-        let genotype = codex.encode();
+    fn test_bit_codec_vector() {
+        let codec = BitCodec::vector(5);
+        let genotype = codec.encode();
         assert_eq!(genotype.len(), 1);
         assert_eq!(genotype[0].len(), 5);
 
-        let decoded = codex.decode(&genotype);
+        let decoded = codec.decode(&genotype);
         assert_eq!(decoded.len(), 5);
     }
 
     #[test]
-    fn test_bit_codex_scalar() {
-        let codex = BitCodec::scalar();
-        let genotype = codex.encode();
+    fn test_bit_codec_scalar() {
+        let codec = BitCodec::scalar();
+        let genotype = codec.encode();
         assert_eq!(genotype.len(), 1);
         assert_eq!(genotype[0].len(), 1);
 
-        let decoded = codex.decode(&genotype);
+        let decoded = codec.decode(&genotype);
 
         assert!(vec![true, false].contains(&decoded));
     }

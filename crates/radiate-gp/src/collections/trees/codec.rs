@@ -76,7 +76,7 @@ where
                 for chromosome in new_chromosomes.iter() {
                     for node in chromosome.iter() {
                         if !constraint(node) {
-                            panic!("TreeCodex.encode() - Root node does not meet constraint.");
+                            panic!("TreeCodec.encode() - Root node does not meet constraint.");
                         }
                     }
                 }
@@ -115,7 +115,7 @@ where
 
             if let Some(constraint) = &self.constraint {
                 if !constraint(new_chromosome.root()) {
-                    panic!("TreeCodex.encode() - Root node does not meet constraint.");
+                    panic!("TreeCodec.encode() - Root node does not meet constraint.");
                 }
             }
 
@@ -141,32 +141,32 @@ mod tests {
     use radiate_core::codecs::Codec;
 
     #[test]
-    fn test_tree_codex() {
+    fn test_tree_codec() {
         let store = vec![
             (NodeType::Root, vec![Op::add(), Op::sub()]),
             (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
             (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
         ];
-        let codex = TreeCodec::single(3, store);
+        let codec = TreeCodec::single(3, store);
 
-        let genotype = codex.encode();
-        let tree = codex.decode(&genotype);
+        let genotype = codec.encode();
+        let tree = codec.decode(&genotype);
 
         assert_eq!(tree.root().map(|root| root.height()), Some(3));
         assert!(tree.root().is_some());
     }
 
     #[test]
-    fn test_tree_codex_multi() {
+    fn test_tree_codec_multi() {
         let store = vec![
             (NodeType::Root, vec![Op::add(), Op::sub()]),
             (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
             (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
         ];
-        let codex = TreeCodec::multi_root(3, 2, store);
+        let codec = TreeCodec::multi_root(3, 2, store);
 
-        let genotype = codex.encode();
-        let trees = codex.decode(&genotype);
+        let genotype = codec.encode();
+        let trees = codec.decode(&genotype);
 
         assert_eq!(trees.len(), 2);
         assert_eq!(trees[0].root().map(|root| root.height()), Some(3));

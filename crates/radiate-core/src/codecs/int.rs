@@ -26,7 +26,7 @@ impl<T: Integer<T>, D> IntCodec<T, D> {
         self
     }
 
-    /// The different variants of `IntCodex` are all the same, so this function is used to create
+    /// The different variants of `IntCodec` are all the same, so this function is used to create
     /// a new `Genotype` with the given number of chromosomes and genes. The only difference between
     /// them is the type `D`, which is either a `Vec<Vec<T>>`, `Vec<T>`, or `T`.
     fn encode_common(&self) -> Genotype<IntChromosome<T>> {
@@ -45,7 +45,7 @@ impl<T: Integer<T>, D> IntCodec<T, D> {
 }
 
 impl<T: Integer<T>> IntCodec<T, Vec<Vec<T>>> {
-    /// Create a new `IntCodex` with the given number of chromosomes, genes, min, and max values.
+    /// Create a new `IntCodec` with the given number of chromosomes, genes, min, and max values.
     /// The f_32 values for each `IntGene` will be randomly generated between the min and max values.
     pub fn matrix(rows: usize, cols: usize, range: Range<T>) -> Self {
         IntCodec {
@@ -59,7 +59,7 @@ impl<T: Integer<T>> IntCodec<T, Vec<Vec<T>>> {
 }
 
 impl<T: Integer<T>> IntCodec<T, Vec<T>> {
-    /// Create a new `IntCodex` with the given number of chromosomes, genes, min, and max values.
+    /// Create a new `IntCodec` with the given number of chromosomes, genes, min, and max values.
     /// The f_32 values for each `IntGene` will be randomly generated between the min and max values.
     pub fn vector(count: usize, range: Range<T>) -> Self {
         IntCodec {
@@ -73,7 +73,7 @@ impl<T: Integer<T>> IntCodec<T, Vec<T>> {
 }
 
 impl<T: Integer<T>> IntCodec<T, T> {
-    /// Create a new `IntCodex` with the given number of chromosomes, genes, min, and max values.
+    /// Create a new `IntCodec` with the given number of chromosomes, genes, min, and max values.
     /// The f_32 values for each `IntGene` will be randomly generated between the min and max values.
     pub fn scalar(range: Range<T>) -> Self {
         IntCodec {

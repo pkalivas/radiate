@@ -13,8 +13,8 @@ use std::sync::Arc;
 ///
 /// fn main() {
 ///     // this is a simple example of the NQueens problem.
-///     // The resulting codex type will be FnCodex<IntChromosome<i8>, Vec<i8>>.
-///     let codex = FnCodex::new()
+///     // The resulting codec type will be FnCodec<IntChromosome<i8>, Vec<i8>>.
+///     let codec = FnCodec::new()
 ///         .with_encoder(|| {
 ///             Genotype::new(vec![IntChromosome {
 ///                genes: (0..N_QUEENS)
@@ -31,8 +31,8 @@ use std::sync::Arc;
 ///         });
 ///
 ///     // encode and decode
-///     let genotype: Genotype<IntChromosome<i8>> = codex.encode();
-///     let decoded: Vec<i8> = codex.decode(&genotype);
+///     let genotype: Genotype<IntChromosome<i8>> = codec.encode();
+///     let decoded: Vec<i8> = codec.decode(&genotype);
 /// }
 /// ```
 /// # Type Parameters
