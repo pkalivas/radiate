@@ -12,6 +12,8 @@ use std::{
     collections::HashMap,
 };
 
+use super::ObjectValue;
+
 type InitFn = for<'py> fn(&Bound<'py, PyAny>, bool) -> PyResult<AnyValue<'py>>;
 pub(crate) static LUT: crate::GILOnceCell<HashMap<TypeObjectKey, InitFn>> =
     crate::GILOnceCell::new();
@@ -57,6 +59,10 @@ pub fn any_value_into_py_object<'py>(av: AnyValue, py: Python<'py>) -> PyResult<
         AnyValue::StructRef(v) => {
             let dict = struct_dict(py, v.iter().cloned())?;
             dict.into_bound_py_any(py)
+        }
+        AnyValue::Object(v) => {
+            let object = v.0.as_any().downcast_ref::<ObjectValue>().unwrap();
+            Ok(object.inner.clone_ref(py).into_bound(py))
         }
     }
 }

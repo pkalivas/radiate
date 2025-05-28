@@ -1,4 +1,4 @@
-use super::{Chromosome, FloatChromosome, Gene, Valid};
+use super::{Chromosome, Gene, Valid};
 use crate::object::*;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -40,15 +40,14 @@ impl Valid for AnyGene<'_> {
     }
 }
 
-impl<'a> From<AnyValue<'a>> for AnyGene<'a> {
-    fn from(value: AnyValue<'a>) -> Self {
-        Self { inner: value }
-    }
-}
-
-impl<'a> From<AnyGene<'a>> for AnyValue<'a> {
-    fn from(gene: AnyGene<'a>) -> Self {
-        gene.inner
+impl<'a, T> From<T> for AnyGene<'a>
+where
+    T: Into<AnyValue<'a>>,
+{
+    fn from(value: T) -> Self {
+        Self {
+            inner: value.into(),
+        }
     }
 }
 
@@ -87,12 +86,13 @@ impl<'a> AsRef<[AnyGene<'a>]> for AnyChromosome<'a> {
     }
 }
 
-impl<'a> From<FloatChromosome> for AnyChromosome<'a> {
-    fn from(chromosome: FloatChromosome) -> Self {
-        let temp = chromosome
-            .iter()
-            .map(|gene| AnyGene::new(gene.allele().clone()))
-            .collect::<Vec<AnyGene<'a>>>();
-        todo!()
+impl<'a, T> From<Vec<T>> for AnyChromosome<'a>
+where
+    T: Into<AnyValue<'a>>,
+{
+    fn from(genes: Vec<T>) -> Self {
+        Self {
+            inner: genes.into_iter().map(AnyGene::new).collect(),
+        }
     }
 }

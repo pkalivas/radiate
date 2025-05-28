@@ -206,18 +206,15 @@ impl From<(Range<f32>, Range<f32>)> for FloatGene {
 
 impl<'a> From<FloatGene> for AnyValue<'a> {
     fn from(gene: FloatGene) -> AnyValue<'a> {
-        let allele = AnyValue::Float32(gene.allele().clone());
-        let value_range_min = AnyValue::Float32(gene.value_range.start);
-        let value_range_max = AnyValue::Float32(gene.value_range.end);
-        let bounds_min = AnyValue::Float32(gene.bounds.start);
-        let bounds_max = AnyValue::Float32(gene.bounds.end);
-
         AnyValue::StructOwned(vec![
-            ("allele".into(), allele),
-            ("value_range_min".into(), value_range_min),
-            ("value_range_max".into(), value_range_max),
-            ("bounds_min".into(), bounds_min),
-            ("bounds_max".into(), bounds_max),
+            ("allele".into(), AnyValue::Float32(gene.allele)),
+            (
+                "value_min".into(),
+                AnyValue::Float32(gene.value_range.start),
+            ),
+            ("value_max".into(), AnyValue::Float32(gene.value_range.end)),
+            ("bounds_min".into(), AnyValue::Float32(gene.bounds.start)),
+            ("bounds_max".into(), AnyValue::Float32(gene.bounds.end)),
         ])
     }
 }
@@ -332,6 +329,7 @@ impl Debug for FloatChromosome {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     #[test]
