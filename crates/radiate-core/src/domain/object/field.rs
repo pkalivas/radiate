@@ -14,27 +14,15 @@ pub type Metadata = BTreeMap<String, String>;
 /// to be serialized.
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
 pub struct Field {
-    /// Its name
     pub name: String,
-    /// Its logical [`DataType`]
-    pub dtype: DataType,
-    /// Additional custom (opaque) metadata.
     pub metadata: Option<Arc<Metadata>>,
-}
-
-/// Support for `ArrowSchema::from_iter([field, ..])`
-impl From<Field> for (String, Field) {
-    fn from(value: Field) -> Self {
-        (value.name.clone(), value)
-    }
 }
 
 impl Field {
     /// Creates a new [`Field`].
-    pub fn new(name: String, dtype: DataType) -> Self {
+    pub fn new(name: String) -> Self {
         Field {
             name,
-            dtype,
             metadata: Default::default(),
         }
     }
@@ -47,15 +35,8 @@ impl Field {
         }
         Self {
             name: self.name,
-            dtype: self.dtype,
             metadata: Some(Arc::new(metadata)),
         }
-    }
-
-    /// Returns the [`Field`]'s [`DataType`].
-    #[inline]
-    pub fn dtype(&self) -> &DataType {
-        &self.dtype
     }
 
     #[inline]
@@ -64,12 +45,36 @@ impl Field {
     }
 }
 
+impl From<Field> for (String, Field) {
+    fn from(value: Field) -> Self {
+        (value.name.clone(), value)
+    }
+}
+
+impl From<String> for Field {
+    fn from(name: String) -> Self {
+        Field::new(name)
+    }
+}
+
+impl From<&str> for Field {
+    fn from(name: &str) -> Self {
+        Field::new(name.to_string())
+    }
+}
+
+impl From<(&str, Metadata)> for Field {
+    fn from((name, metadata): (&str, Metadata)) -> Self {
+        Field::new(name.to_string()).with_metadata(metadata)
+    }
+}
+
 impl Display for Field {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Field {{\n name: {},\n dtype: {:?},\n metadata: {:?}\n }}",
-            self.name, self.dtype, self.metadata,
+            "Field {{\n name: {},\n metadata: {:?}\n }}",
+            self.name, self.metadata,
         )
     }
 }

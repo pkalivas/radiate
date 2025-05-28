@@ -1,13 +1,12 @@
-use super::Wrap;
-use crate::object::{AnyValue, Field};
 use pyo3::{
-    Bound, IntoPyObject, IntoPyObjectExt, Py, PyAny, PyResult, Python,
+    Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python,
     exceptions::{PyOverflowError, PyValueError},
     types::{
         PyAnyMethods, PyBool, PyBytes, PyDict, PyDictMethods, PyFloat, PyInt, PyList,
         PyListMethods, PySequence, PyString, PyTuple, PyType, PyTypeMethods,
     },
 };
+use radiate::object::{AnyValue, Field};
 use std::{
     borrow::{Borrow, Cow},
     collections::HashMap,
@@ -47,13 +46,16 @@ pub fn any_value_into_py_object<'py>(av: AnyValue, py: Python<'py>) -> PyResult<
         }
         AnyValue::Null => py.None().into_bound_py_any(py),
         AnyValue::Boolean(v) => v.into_bound_py_any(py),
-        AnyValue::String(v) => v.into_bound_py_any(py),
+        AnyValue::Str(v) => v.into_bound_py_any(py),
         AnyValue::StringOwned(v) => v.into_bound_py_any(py),
         AnyValue::Binary(v) => PyBytes::new(py, v).into_bound_py_any(py),
         AnyValue::BinaryOwned(v) => PyBytes::new(py, &v).into_bound_py_any(py),
         AnyValue::StructOwned(v) => {
-            let (vals, flds) = *v;
-            let dict = struct_dict(py, vals.into_iter(), &flds)?;
+            let dict = struct_dict(py, v.into_iter())?;
+            dict.into_bound_py_any(py)
+        }
+        AnyValue::StructRef(v) => {
+            let dict = struct_dict(py, v.iter().cloned())?;
             dict.into_bound_py_any(py)
         }
     }
@@ -171,11 +173,10 @@ pub fn py_object_to_any_value<'py>(
                 for (k, v) in dict.into_iter() {
                     let key = k.extract::<Cow<str>>()?;
                     let val = py_object_to_any_value(&v, strict)?;
-                    let dtype = val.dtype();
-                    keys.push(Field::new(key.as_ref().into(), dtype));
+                    keys.push(Field::new(key.as_ref().into()));
                     vals.push(val)
                 }
-                Ok(AnyValue::StructOwned(Box::new((vals, keys))))
+                Ok(AnyValue::StructOwned(keys.into_iter().zip(vals).collect()))
             })
         } else {
             let ob_type = ob.get_type();
@@ -220,13 +221,16 @@ pub fn py_object_to_any_value<'py>(
 
 fn struct_dict<'py, 'a>(
     py: Python<'py>,
-    vals: impl Iterator<Item = AnyValue<'a>>,
-    flds: &[Field],
+    vals: impl Iterator<Item = (Field, AnyValue<'a>)>,
 ) -> PyResult<Bound<'py, PyDict>> {
     let dict = PyDict::new(py);
-    flds.iter().zip(vals).try_for_each(|(fld, val)| {
-        dict.set_item(fld.name().as_str(), Wrap(val).into_pyobject(py)?)
-    })?;
+
+    for (fld, val) in vals {
+        let key = fld.name().to_string();
+        let value = any_value_into_py_object(val, py)?;
+        dict.set_item(key, value)?;
+    }
+
     Ok(dict)
 }
 

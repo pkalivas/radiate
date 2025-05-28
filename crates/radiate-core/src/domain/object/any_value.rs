@@ -1,49 +1,40 @@
-use super::{DataType, Field};
+use super::{DataType, Field, ObjectSafe};
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug)]
+pub struct OwnedObject(pub Box<dyn ObjectSafe>);
+
+impl Clone for OwnedObject {
+    fn clone(&self) -> Self {
+        OwnedObject(self.0.to_boxed())
+    }
+}
+
+#[derive(Debug, Clone, Default)]
 pub enum AnyValue<'a> {
     #[default]
     Null,
-    /// A binary true or false.
     Boolean(bool),
-    /// A UTF8 encoded string type.
-    String(&'a str),
-    /// An unsigned 8-bit integer number.
     UInt8(u8),
-    /// An unsigned 16-bit integer number.
     UInt16(u16),
-    /// An unsigned 32-bit integer number.
     UInt32(u32),
-    /// An unsigned 64-bit integer number.
     UInt64(u64),
-    /// An 8-bit integer number.
     Int8(i8),
-    /// A 16-bit integer number.
     Int16(i16),
-    /// A 32-bit integer number.
     Int32(i32),
-    /// A 64-bit integer number.
     Int64(i64),
-    /// A 128-bit integer number.
     Int128(i128),
-    /// A 32-bit floating point number.
     Float32(f32),
-    /// A 64-bit floating point number.
     Float64(f64),
-
-    Char(char),
-
-    Slice(&'a [AnyValue<'a>], &'a Field),
-
-    VecOwned(Box<(Vec<AnyValue<'a>>, Field)>),
-
-    StringOwned(String),
-
     Binary(&'a [u8]),
-
     BinaryOwned(Vec<u8>),
-
-    StructOwned(Box<(Vec<AnyValue<'a>>, Vec<Field>)>),
+    Char(char),
+    Str(&'a str),
+    StringOwned(String),
+    Slice(&'a [AnyValue<'a>], &'a Field),
+    VecOwned(Box<(Vec<AnyValue<'a>>, Field)>),
+    StructOwned(Vec<(Field, AnyValue<'a>)>),
+    StructRef(&'a [(Field, AnyValue<'a>)]),
+    Object(OwnedObject),
 }
 
 impl<'a> AnyValue<'a> {
@@ -51,7 +42,7 @@ impl<'a> AnyValue<'a> {
         match self {
             Self::Null => "null",
             Self::Boolean(_) => "bool",
-            Self::String(_) => "string",
+            Self::Str(_) => "string",
             Self::UInt8(_) => "u8",
             Self::UInt16(_) => "u16",
             Self::UInt32(_) => "u32",
@@ -70,6 +61,8 @@ impl<'a> AnyValue<'a> {
             Self::Binary(_) => "binary",
             Self::BinaryOwned(_) => "binary",
             Self::StructOwned(_) => "struct",
+            Self::StructRef(_) => "struct_ref",
+            Self::Object(_) => "object",
         }
     }
 
@@ -77,7 +70,7 @@ impl<'a> AnyValue<'a> {
         match self {
             Self::Null => DataType::Null,
             Self::Boolean(_) => DataType::Boolean,
-            Self::String(_) => DataType::Utf8,
+            Self::Str(_) => DataType::Utf8,
             Self::UInt8(_) => DataType::UInt8,
             Self::UInt16(_) => DataType::UInt16,
             Self::UInt32(_) => DataType::UInt32,
@@ -91,12 +84,21 @@ impl<'a> AnyValue<'a> {
             Self::Float64(_) => DataType::Float64,
             Self::Char(_) => DataType::Char,
             Self::Slice(_, flds) => DataType::List(Box::new((*flds).clone())),
-            Self::VecOwned(vals) => DataType::List(Box::new(Field::new(
-                vals.1.name().clone(),
-                vals.1.dtype().clone(),
-            ))),
+            Self::VecOwned(vals) => DataType::List(Box::new(Field::new(vals.1.name().clone()))),
             Self::StringOwned(_) | Self::BinaryOwned(_) | Self::Binary(_) => DataType::Binary,
-            Self::StructOwned(vals) => DataType::Struct(vals.1.iter().cloned().collect::<Vec<_>>()),
+            Self::StructOwned(fields) => DataType::Struct(
+                fields
+                    .iter()
+                    .map(|(field, _)| field.clone())
+                    .collect::<Vec<_>>(),
+            ),
+            Self::StructRef(fields) => DataType::Struct(
+                fields
+                    .iter()
+                    .map(|(field, _)| field.clone())
+                    .collect::<Vec<_>>(),
+            ),
+            Self::Object(_) => DataType::Struct(vec![Field::new("object".to_string())]),
         }
     }
 
@@ -120,7 +122,7 @@ impl<'a> AnyValue<'a> {
             Float32(v) => Float32(v),
             Float64(v) => Float64(v),
             Char(v) => Char(v),
-            String(v) => StringOwned(v.to_string()),
+            Str(v) => StringOwned(v.to_string()),
             Slice(v, f) => VecOwned(Box::new((
                 v.iter().cloned().map(AnyValue::into_static).collect(),
                 f.clone(),
@@ -132,10 +134,71 @@ impl<'a> AnyValue<'a> {
             StringOwned(v) => StringOwned(v),
             Binary(v) => BinaryOwned(v.to_vec()),
             BinaryOwned(v) => BinaryOwned(v),
-            StructOwned(v) => StructOwned(Box::new((
-                v.0.iter().cloned().map(AnyValue::into_static).collect(),
-                v.1.iter().cloned().collect(),
-            ))),
+            StructOwned(v) => StructOwned(
+                v.into_iter()
+                    .map(|(field, value)| (field, value.into_static()))
+                    .collect(),
+            ),
+            StructRef(v) => StructOwned(
+                v.iter()
+                    .map(|(field, value)| (field.clone(), value.clone().into_static()))
+                    .collect(),
+            ),
+            Object(obj) => Object(obj.clone()),
+        }
+    }
+}
+
+impl<'a> PartialEq for AnyValue<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        use AnyValue::*;
+        match (self, other) {
+            (Null, Null) => true,
+            (Boolean(a), Boolean(b)) => a == b,
+            (UInt8(a), UInt8(b)) => a == b,
+            (UInt16(a), UInt16(b)) => a == b,
+            (UInt32(a), UInt32(b)) => a == b,
+            (UInt64(a), UInt64(b)) => a == b,
+            (Int8(a), Int8(b)) => a == b,
+            (Int16(a), Int16(b)) => a == b,
+            (Int32(a), Int32(b)) => a == b,
+            (Int64(a), Int64(b)) => a == b,
+            (Int128(a), Int128(b)) => a == b,
+            (Float32(a), Float32(b)) => a == b,
+            (Float64(a), Float64(b)) => a == b,
+            (Char(a), Char(b)) => a == b,
+            (Str(a), Str(b)) => a == b,
+            (StringOwned(a), StringOwned(b)) => a == b,
+            (Binary(a), Binary(b)) => a == b,
+            (BinaryOwned(a), BinaryOwned(b)) => a == b,
+            (Slice(a, _), Slice(b, _)) if a.len() == b.len() => {
+                a.iter().zip(b.iter()).all(|(x, y)| x == y)
+            }
+            (VecOwned(a), VecOwned(b)) if a.0.len() == b.0.len() && a.1.name() == b.1.name() => {
+                a.0.iter().zip(&b.0).all(|(x, y)| x == y)
+            }
+            (StructOwned(a), StructOwned(b))
+                if a.len() == b.len()
+                    && a.iter()
+                        .map(|(f, _)| f.name())
+                        .eq(b.iter().map(|(f, _)| f.name())) =>
+            {
+                a.iter()
+                    .zip(b.iter())
+                    .all(|((f1, v1), (f2, v2))| f1.name() == f2.name() && v1 == v2)
+            }
+            (StructRef(a), StructRef(b))
+                if a.len() == b.len()
+                    && a.iter()
+                        .map(|(f, _)| f.name())
+                        .eq(b.iter().map(|(f, _)| f.name())) =>
+            {
+                a.iter()
+                    .zip(b.iter())
+                    .all(|((f1, v1), (f2, v2))| f1.name() == f2.name() && v1 == v2)
+            }
+            (Object(a), Object(b)) => a.0.equals(&*b.0),
+            _ => false,
         }
     }
 }
@@ -147,10 +210,7 @@ where
     fn from(value: Vec<T>) -> Self {
         Self::VecOwned(Box::new((
             value.into_iter().map(Into::into).collect(),
-            Field::new(
-                std::any::type_name::<Vec<T>>().to_string(),
-                DataType::List(Box::new(Field::new("item".to_string(), DataType::Null))),
-            ),
+            Field::new(std::any::type_name::<Vec<T>>().to_string()),
         )))
     }
 }
@@ -182,6 +242,5 @@ impl_from!(
     f64 => Float64,
     String => StringOwned,
     char => Char,
-    &'a str => String,
-
+    &'a str => Str,
 );

@@ -92,15 +92,6 @@ pub enum DataType {
 }
 
 impl DataType {
-    pub fn inner_dtype(&self) -> Option<&DataType> {
-        match self {
-            DataType::List(inner) => Some(inner.dtype()),
-            DataType::LargeList(inner) => Some(inner.dtype()),
-            DataType::FixedSizeList(inner, _) => Some(inner.dtype()),
-            _ => None,
-        }
-    }
-
     pub fn is_nested(&self) -> bool {
         use DataType as D;
 

@@ -1,10 +1,9 @@
 use crate::{
-    AnyValue,
     codec::PyCodec,
     conversion::{ObjectValue, Wrap},
 };
 use pyo3::{Py, PyAny, PyObject, Python};
-use radiate::{Chromosome, Codec, Genotype, Problem, Score};
+use radiate::{AnyValue, Chromosome, Codec, Genotype, Problem, Score};
 use std::sync::Arc;
 
 pub struct PyProblem<C: Chromosome> {

@@ -2,7 +2,7 @@ use super::{
     Chromosome,
     gene::{ArithmeticGene, Gene, Valid},
 };
-use crate::random_provider;
+use crate::{AnyValue, random_provider};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{
@@ -201,6 +201,24 @@ impl From<(Range<f32>, Range<f32>)> for FloatGene {
             value_range,
             bounds,
         }
+    }
+}
+
+impl<'a> From<FloatGene> for AnyValue<'a> {
+    fn from(gene: FloatGene) -> AnyValue<'a> {
+        let allele = AnyValue::Float32(gene.allele().clone());
+        let value_range_min = AnyValue::Float32(gene.value_range.start);
+        let value_range_max = AnyValue::Float32(gene.value_range.end);
+        let bounds_min = AnyValue::Float32(gene.bounds.start);
+        let bounds_max = AnyValue::Float32(gene.bounds.end);
+
+        AnyValue::StructOwned(vec![
+            ("allele".into(), allele),
+            ("value_range_min".into(), value_range_min),
+            ("value_range_max".into(), value_range_max),
+            ("bounds_min".into(), bounds_min),
+            ("bounds_max".into(), bounds_max),
+        ])
     }
 }
 
