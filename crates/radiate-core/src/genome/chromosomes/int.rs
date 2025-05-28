@@ -3,6 +3,8 @@ use super::{
     gene::{ArithmeticGene, Gene, Valid},
 };
 use crate::random_provider;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::ops::{Add, Bound, Div, Mul, Range, RangeBounds, Sub};
 
 /// A [`Gene`] that represents an integer value. This gene just wraps an integer value and provides
@@ -39,6 +41,7 @@ use std::ops::{Add, Bound, Div, Mul, Range, RangeBounds, Sub};
 /// - `T`: The type of integer used in the gene.
 ///
 #[derive(Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct IntGene<T: Integer<T>> {
     pub allele: T,
     pub value_range: Range<T>,
@@ -239,6 +242,7 @@ impl<T: Integer<T>> std::fmt::Debug for IntGene<T> {
 /// assert!(chromosome.is_valid());
 ///
 #[derive(Clone, PartialEq, Default, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct IntChromosome<I: Integer<I>> {
     pub genes: Vec<IntGene<I>>,
 }

@@ -1,6 +1,9 @@
 use crate::{Chromosome, Gene, Valid, random_provider};
 use std::fmt::Debug;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// A gene that represents a single bit. The `allele` is a `bool` that is randomly assigned.
 /// The `allele` is either `true` or `false`. This is the simplest form of a gene and
 /// in traditional genetic algorithms is the gene that is used to represent the individuals.
@@ -23,6 +26,7 @@ use std::fmt::Debug;
 /// ```
 ///
 #[derive(Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BitGene {
     allele: bool,
 }
@@ -86,6 +90,7 @@ impl From<bool> for BitGene {
 /// material of an individual in the population.
 ///
 #[derive(Clone, PartialEq, Default, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BitChromosome {
     pub genes: Vec<BitGene>,
 }

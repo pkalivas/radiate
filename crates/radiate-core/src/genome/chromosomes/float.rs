@@ -3,6 +3,8 @@ use super::{
     gene::{ArithmeticGene, Gene, Valid},
 };
 use crate::random_provider;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::{
     fmt::Debug,
     ops::{Add, Bound, Div, Mul, Range, RangeBounds, Sub},
@@ -30,6 +32,7 @@ use std::{
 /// let gene = FloatGene::from((0_f32..1_f32, 0_f32..100_f32));
 /// ```
 #[derive(Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct FloatGene {
     pub allele: f32,
     pub value_range: Range<f32>,
@@ -244,6 +247,7 @@ impl Debug for FloatGene {
 /// }
 ///```
 #[derive(Clone, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct FloatChromosome {
     pub genes: Vec<FloatGene>,
 }

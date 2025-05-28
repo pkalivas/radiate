@@ -54,10 +54,12 @@ radiate=0.0.2
 
 ```toml
 [dependencies]
-radiate = { version = "1.2.12", features = ["gp"] }
+radiate = { version = "1.2.12", features = ["gp", "serde"] }
 ```
 
 opt-in features include:
 
 - `gp`: Enables the [genetic programming](https://en.wikipedia.org/wiki/Genetic_programming#:~:text=In%20artificial%20intelligence%2C%20genetic%20programming,to%20the%20population%20of%20programs.) features, allowing you to work with tree and graph-based representations.
+- `serde`: **This feature is still in development and is not 100% supported yet**. Enables serialization and deserialization features, allowing you to save and load your models.
+
     
