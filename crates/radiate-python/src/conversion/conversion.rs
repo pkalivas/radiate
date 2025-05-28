@@ -6,7 +6,7 @@ use pyo3::{
         PyListMethods, PySequence, PyString, PyTuple, PyType, PyTypeMethods,
     },
 };
-use radiate::object::{AnyValue, Field};
+use radiate::{AnyValue, Field};
 use std::{
     borrow::{Borrow, Cow},
     collections::HashMap,

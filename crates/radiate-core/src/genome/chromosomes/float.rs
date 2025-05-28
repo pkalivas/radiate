@@ -2,7 +2,7 @@ use super::{
     Chromosome,
     gene::{ArithmeticGene, Gene, Valid},
 };
-use crate::{AnyValue, random_provider};
+use crate::random_provider;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{
@@ -204,6 +204,8 @@ impl From<(Range<f32>, Range<f32>)> for FloatGene {
     }
 }
 
+#[cfg(feature = "object")]
+use radiate_object::AnyValue;
 impl<'a> From<FloatGene> for AnyValue<'a> {
     fn from(gene: FloatGene) -> AnyValue<'a> {
         AnyValue::StructOwned(vec![

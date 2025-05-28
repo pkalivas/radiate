@@ -1,9 +1,9 @@
 [package]
-name = "radiate-core"
+name = "radiate-object"
 version = { workspace = true }
 edition = { workspace = true }
 authors = { workspace = true }
-description = "Core traits and interfaces for the Radiate genetic algorithm library."
+description = "Extensions to Radiate to allow for any values to be evolved."
 repository = { workspace = true }
 readme = "../../README.md"
 categories = { workspace = true }
@@ -12,9 +12,7 @@ license = { workspace = true }
 homepage = { workspace = true }
 
 [dependencies]
-rand = { workspace = true }
 serde = { workspace = true, optional = true }
-radiate-object = { workspace = true, optional = true }
 
 [dev-dependencies]
 serde = { workspace = true }
@@ -22,4 +20,3 @@ serde_json = { workspace = true }
 
 [features]
 serde = ["dep:serde"]
-object = ["dep:radiate-object"]

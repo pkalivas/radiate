@@ -18,9 +18,10 @@ radiate-alters = { workspace = true }
 radiate-selectors = { workspace = true }
 radiate-engines = { workspace = true }
 radiate-gp = { workspace = true, optional = true }
+radiate-object = { workspace = true, optional = true }
 
 [features]
 default = []
 gp = ["radiate-gp"]
-serde = ["radiate-core/serde"]
-
+object = ["radiate-core/object"]
+serde = ["radiate-core/serde", "radiate-object/serde"]

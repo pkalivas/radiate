@@ -1,5 +1,5 @@
 use super::{Chromosome, Gene, Valid};
-use crate::object::*;
+use radiate_object::AnyValue;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct AnyGene<'a> {

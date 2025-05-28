@@ -70,4 +70,5 @@ radiate-selectors = { version = "1.2.12", path = "crates/radiate-selectors", def
 radiate-engines = { version = "1.2.12", path = "crates/radiate-engines", default-features = false }
 radiate-gp = { version = "1.2.12", path = "crates/radiate-gp", default-features = false }
 radiate-error = { version = "1.2.12", path = "crates/radiate-error", default-features = false }
+radiate-object = { version = "1.2.12", path = "crates/radiate-object", default-features = false }
 radiate-python = { version = "1.2.12", path = "crates/radiate-python", default-features = false }

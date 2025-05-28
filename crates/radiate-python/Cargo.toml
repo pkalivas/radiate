@@ -5,6 +5,6 @@ edition = { workspace = true }
 authors = { workspace = true }
 
 [dependencies]
-radiate = { workspace = true, features = ["gp"] }
+radiate = { workspace = true, features = ["gp", "object"] }
 pyo3 = { workspace = true, features = ["multiple-pymethods"] }
 
