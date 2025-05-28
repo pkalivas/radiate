@@ -17,8 +17,8 @@ fn main() {
         .offspring_selector(TournamentSelector::new(5))
         .survivor_selector(NSGA2Selector::new())
         .alter(alters!(
-            SimulatedBinaryCrossover::new(2.5_f32, 1.0),
-            UniformMutator::new(1.0 / VARIABLES as f32),
+            SimulatedBinaryCrossover::new(1_f32, 1.0),
+            UniformMutator::new(0.1),
         ))
         .fitness_fn(|geno: Vec<f32>| dtlz_1(&geno))
         .build();
@@ -64,16 +64,26 @@ fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {
 }
 
 pub fn dtlz_1(values: &[f32]) -> Vec<f32> {
-    let g = values[K..]
-        .iter()
-        .map(|&xi| (xi - 0.5).powi(2))
-        .sum::<f32>();
+    let mut g = 0.0;
+    for i in VARIABLES - K..VARIABLES {
+        g += (values[i] - 0.5).powi(2) - (20.0 * std::f32::consts::PI * (values[i] - 0.5)).cos();
+    }
 
-    let f1 = (1.0 + g) * (values[0] * values[1]);
-    let f2 = (1.0 + g) * (values[0] * (1.0 - values[1]));
-    let f3 = (1.0 + g) * (1.0 - values[0]);
+    g = 100.0 * (K as f32 + g);
 
-    vec![f1, f2, f3]
+    let mut f = vec![0.0; OBJECTIVES];
+    for i in 0..OBJECTIVES {
+        f[i] = 0.5 * (1.0 + g);
+        for j in 0..OBJECTIVES - 1 - i {
+            f[i] *= values[j];
+        }
+
+        if i != 0 {
+            f[i] *= 1.0 - values[OBJECTIVES - 1 - i];
+        }
+    }
+
+    f
 }
 
 pub fn dtlz_2(values: &[f32]) -> Vec<f32> {

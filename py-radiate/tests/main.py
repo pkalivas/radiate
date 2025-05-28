@@ -25,14 +25,12 @@ rd.random.set_seed(100)
 
 target = "Hello, Radiate!"
 def fitness_fn(x):
-    '''The fitness function for the string matching problem.'''
-    x = x[0]
-    return sum(1 for i in range(len(target)) if x[i] == target[i])
+    return sum(1 for i in range(len(target)) if x[0][i] == target[i])
 
 codec = rd.CharCodec([len(target)])
-engine = rd.GeneticEngine(codec, fitness_fn)
-engine.maximizing()
-engine.offspring_selector(rd.BoltzmannSelector(4))
+engine = rd.GeneticEngine(codec, fitness_fn,
+                          objectives=rd.ObjectiveType.MAX,
+                          offspring_selector=rd.BoltzmannSelector(4))
 
 result = engine.run(rd.ScoreLimit(len(target)))
 

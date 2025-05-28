@@ -29,6 +29,7 @@ where
                 jobs.push((idx, geno));
             }
         }
+
         Python::with_gil(|outer| {
             outer.allow_threads(|| {
                 let work_results = jobs

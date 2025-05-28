@@ -5,7 +5,7 @@ use super::{
 use crate::random_provider;
 use std::{char, sync::Arc};
 
-pub const ALPHABET: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"$%&/()=?`{[]}\\+~*#';.:,-_<>|@^' ";
+pub(crate) const ALPHABET: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"$%&/()=?`{[]}\\+~*#';.:,-_<>|@^' ";
 
 /// A gene that represents a single character. The `allele` is a `char`
 /// that is randomly selected from the [`ALPHABET`] constant.

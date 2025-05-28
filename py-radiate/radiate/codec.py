@@ -85,7 +85,7 @@ class CharCodec:
 
         self.codec = PyCharCodec(
             chromosome_lengths=chromosomes,
-            char_set=char_set,
+            char_set=''.join(set(char_set)) if char_set else None,
         )
 
 

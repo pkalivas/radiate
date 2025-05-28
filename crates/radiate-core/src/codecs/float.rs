@@ -4,7 +4,7 @@ use crate::genome::genotype::Genotype;
 use crate::{Chromosome, FloatChromosome};
 use std::ops::Range;
 
-/// A `Codec` for a `Genotype` of `FloatGenes`. The `encode` function creates a `Genotype` with `num_chromosomes` chromosomes
+/// A [Codec] for a `Genotype` of `FloatGenes`. The `encode` function creates a `Genotype` with `num_chromosomes` chromosomes
 /// and `num_genes` genes per chromosome. The `decode` function creates a `Vec<Vec<f32>>` from the `Genotype` where the inner `Vec`
 /// contains the alleles of the `FloatGenes` in the chromosome - the `f32` values.
 ///
@@ -27,7 +27,7 @@ impl<T> FloatCodec<T> {
         self
     }
 
-    /// Every impl of `Codec` uses the same encode function for the `FloatCodec`, jsut with a few
+    /// Every impl of `Codec` uses the same encode function for the `FloatCodec`, just with a few
     /// different parameters (e.g. `num_chromosomes` and `num_genes`). So, we can just use
     /// the same function for all of them.
     fn common_encode(&self) -> Genotype<FloatChromosome> {

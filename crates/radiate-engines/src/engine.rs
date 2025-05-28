@@ -25,25 +25,24 @@ use radiate_core::{Engine, Epoch, metric_names};
 ///
 /// // Create a new instance of the genetic engine with the given codec.
 /// let mut engine = GeneticEngine::builder()
-///     .codec(codec) // Set the codec to be used for encoding and decoding individuals.
-///     .minimizing()  // Minimize the fitness function.
-///     .population_size(150) // Set the population size to 150 individuals.
-///     .max_age(15) // Set the maximum age of an individual to 15 generations before it is replaced with a new individual.
-///     .offspring_fraction(0.5) // Set the fraction of the population that will be replaced by offspring each generation.
-///     .num_threads(4) // Set the number of threads to use in the thread pool for parallel fitness evaluation.
-///     .offspring_selector(BoltzmannSelector::new(4_f32)) // Use boltzmann selection to select offspring.
-///     .survivor_selector(TournamentSelector::new(3)) // Use tournament selection to select survivors.
+///     .codec(codec)
+///     .minimizing()
+///     .population_size(150)
+///     .max_age(15)
+///     .offspring_fraction(0.5)
+///     .num_threads(4)
+///     .offspring_selector(BoltzmannSelector::new(4_f32))
+///     .survivor_selector(TournamentSelector::new(3))
 ///     .alter(alters![
-///         ArithmeticMutator::new(0.01), // Specific mutator for numeric values.
-///         MeanCrossover::new(0.5) // Specific crossover operation for numeric values.
+///         ArithmeticMutator::new(0.01),
+///         MeanCrossover::new(0.5)
 ///     ])
-///     .fitness_fn(|genotype: Vec<Vec<f32>>| { // Define the fitness function to be minimized.
-///         // Calculate the fitness score of the individual based on the decoded genotype.
+///     .fitness_fn(|genotype: Vec<Vec<f32>>| {
 ///         genotype.iter().fold(0.0, |acc, chromosome| {
 ///             acc + chromosome.iter().sum::<f32>()
 ///         })
 ///    })
-///   .build(); // Build the genetic engine.
+///   .build();
 ///
 /// // Run the genetic algorithm until the score of the best individual is 0, then return the result.
 /// let result = engine.run(|output| output.score().as_i32() == 0);
