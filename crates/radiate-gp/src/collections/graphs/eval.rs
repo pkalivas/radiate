@@ -49,13 +49,10 @@ where
             .filter(|node| node.node_type() == NodeType::Output)
             .count();
 
-        let inputs = vec![V::default(); total_inputs];
-        let output_outs = vec![V::default(); output_size];
-
         GraphEvaluator {
             nodes,
-            inputs,
-            output_outs,
+            inputs: vec![V::default(); total_inputs],
+            output_outs: vec![V::default(); output_size],
             eval_order: nodes.iter_topological().map(|node| node.index()).collect(),
             outputs: vec![V::default(); nodes.len()],
             input_ranges,

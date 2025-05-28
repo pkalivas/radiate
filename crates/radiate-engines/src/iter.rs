@@ -87,6 +87,9 @@ where
         Self: Sized,
         E: Scored,
     {
+        assert!(window > 0, "Window size must be greater than 0");
+        assert!(epsilon >= 0.0, "Epsilon must be non-negative");
+
         ConverganceIterator {
             iter: self,
             history: VecDeque::new(),

@@ -5,11 +5,9 @@ mod engine_tests {
 
     #[test]
     fn engine_can_minimize() {
-        let codec = IntCodec::vector(5, 0..100);
-
         let engine = GeneticEngine::builder()
             .minimizing()
-            .codec(codec)
+            .codec(IntCodec::vector(5, 0..100))
             .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
             .build();
 
@@ -26,10 +24,8 @@ mod engine_tests {
 
     #[test]
     fn engine_can_maximize() {
-        let codec = IntCodec::vector(5, 0..101);
-
         let mut engine = GeneticEngine::builder()
-            .codec(codec)
+            .codec(IntCodec::vector(5, 0..101))
             .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
             .build();
 
@@ -41,11 +37,10 @@ mod engine_tests {
     #[test]
     fn engine_evolves_towards_target() {
         let target = [1, 2, 3, 4, 5];
-        let codec = IntCodec::vector(target.len(), 0..10);
 
         let mut engine = GeneticEngine::builder()
             .minimizing()
-            .codec(codec)
+            .codec(IntCodec::vector(target.len(), 0..10))
             .fitness_fn(move |geno: Vec<i32>| {
                 let mut score = 0;
                 for i in 0..geno.len() {

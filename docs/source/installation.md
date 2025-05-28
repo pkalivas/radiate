@@ -1,7 +1,7 @@
 
 ## Installing
 
-Installing Radiate is straightforward, and it supports both Python and Rust. Below are the instructions for each language - use whichever applicable package manager you prefer.
+Installing Radiate is straightforward. Below are the instructions for each language - use whichever applicable package manager you prefer.
 
 === ":fontawesome-brands-python: Python"
 
@@ -37,6 +37,18 @@ To use Radiate, simply import it in your project as such:
 ## Feature Flags
 
 By installing the above, you will get the core library. However, Radiate has a few optional features that you can enable to extend its functionality.
+
+### Python
+
+```text
+# requirements.txt
+radiate=0.0.2
+```
+
+!!! warning ":construction: Under Construction :construction:"
+
+    The features for Python are still in development and will be available in future releases.
+
 
 ### Rust
 

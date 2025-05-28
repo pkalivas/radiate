@@ -1,9 +1,9 @@
 use super::{Valid, gene::Gene};
 
-/// The [Chromosome] struct represents a collection of [Gene] instances. The [Chromosome] is part of the
-/// genetic makeup of an individual. It is a collection of [Gene] instances, it is essentially a
+/// The [Chromosome] is part of the genetic makeup of an individual.
+/// It is a collection of [Gene] instances, it is essentially a
 /// light wrapper around a Vec of [Gene]s. The [Chromosome] struct, however, has some additional
-/// functionality and terminology that aligns with the biological concept of achromosome
+/// functionality and terminology that aligns with the biological concept of a chromosome
 ///
 /// In traditional biological terms, a [Chromosome] is a long DNA molecule with part or all of the
 /// genetic material of an organism. The [Chromosome] is the 'genetic' part of the individual that is
