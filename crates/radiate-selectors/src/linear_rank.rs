@@ -10,7 +10,7 @@ impl LinearRankSelector {
     }
 }
 
-impl<C: Chromosome> Select<C> for LinearRankSelector {
+impl<C: Chromosome + Clone> Select<C> for LinearRankSelector {
     fn select(
         &self,
         population: &Population<C>,

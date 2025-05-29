@@ -10,7 +10,7 @@ impl ShuffleCrossover {
     }
 }
 
-impl<C: Chromosome> Crossover<C> for ShuffleCrossover {
+impl<C: Chromosome + Clone> Crossover<C> for ShuffleCrossover {
     fn rate(&self) -> f32 {
         self.rate
     }

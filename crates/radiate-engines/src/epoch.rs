@@ -53,7 +53,7 @@ impl<C: Chromosome, T> Scored for Generation<C, T> {
     }
 }
 
-impl<C: Chromosome, T: Clone> From<&Context<C, T>> for Generation<C, T> {
+impl<C: Chromosome + Clone, T: Clone> From<&Context<C, T>> for Generation<C, T> {
     fn from(context: &Context<C, T>) -> Self {
         Generation {
             ecosystem: context.ecosystem.clone(),
@@ -128,7 +128,7 @@ where
     }
 }
 
-impl<C: Chromosome, T: Clone> From<&Context<C, T>> for MultiObjectiveGeneration<C> {
+impl<C: Chromosome + Clone, T: Clone> From<&Context<C, T>> for MultiObjectiveGeneration<C> {
     fn from(context: &Context<C, T>) -> Self {
         MultiObjectiveGeneration {
             ecosystem: context.ecosystem.clone(),

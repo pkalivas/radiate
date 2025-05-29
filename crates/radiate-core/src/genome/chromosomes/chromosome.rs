@@ -14,7 +14,7 @@ use super::{Valid, gene::Gene};
 /// ```text
 /// Chromosome: [Gene, Gene, Gene]
 /// ```
-pub trait Chromosome: Clone + Valid {
+pub trait Chromosome: Valid {
     type Gene: Gene;
 
     fn genes(&self) -> &[Self::Gene];

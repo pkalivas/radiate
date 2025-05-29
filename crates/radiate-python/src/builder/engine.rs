@@ -11,7 +11,7 @@ pub(crate) fn build_single_objective_engine<C>(
     builder: &PyEngineBuilder,
 ) -> GeneticEngineBuilder<C, ObjectValue>
 where
-    C: Chromosome + PartialEq,
+    C: Chromosome + PartialEq + Clone,
 {
     let mut engine = GeneticEngine::builder()
         .problem(PyProblem::new(fitness_func, codec))
@@ -32,7 +32,7 @@ pub(crate) fn build_multi_objective_engine<C>(
     builder: &PyEngineBuilder,
 ) -> GeneticEngineBuilder<C, ObjectValue, MultiObjectiveGeneration<C>>
 where
-    C: Chromosome + PartialEq,
+    C: Chromosome + PartialEq + Clone,
 {
     let mut engine = GeneticEngine::builder()
         .problem(PyProblem::new(fitness_func, codec))
@@ -60,7 +60,7 @@ fn set_evaluator<C, T>(
     num_threads: &usize,
 ) -> GeneticEngineBuilder<C, T>
 where
-    C: Chromosome + PartialEq,
+    C: Chromosome + PartialEq + Clone,
     T: Clone + Send + Sync,
 {
     match num_threads {

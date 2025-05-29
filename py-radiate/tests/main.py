@@ -36,27 +36,27 @@ print(result)
 
 # print(result)
 
-A = 10.0
-RANGE = 5.12
-N_GENES = 2
+# A = 10.0
+# RANGE = 5.12
+# N_GENES = 2
 
-def fitness_fn(x):
-    '''The fitness function for the Rastrigin function.'''
-    x = x[0]
-    value = A * N_GENES
-    for i in range(N_GENES):
-        value += x[i]**2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
-    return value
+# def fitness_fn(x):
+#     '''The fitness function for the Rastrigin function.'''
+#     x = x[0]
+#     value = A * N_GENES
+#     for i in range(N_GENES):
+#         value += x[i]**2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
+#     return value
 
-codec = rd.FloatCodec([2], (-5.12, 5.12))
-engine = rd.GeneticEngine(codec, fitness_fn)
+# codec = rd.FloatCodec([2], (-5.12, 5.12))
+# engine = rd.GeneticEngine(codec, fitness_fn)
 
-engine.alters([
-    rd.UniformCrossover(0.5), 
-    rd.ArithmeticMutator(0.01)
-])
+# engine.alters([
+#     rd.UniformCrossover(0.5), 
+#     rd.ArithmeticMutator(0.01)
+# ])
 
-engine.run(rd.ScoreLimit(0.0001))
+# engine.run(rd.ScoreLimit(0.0001))
 
 # variables = 4
 # objectives = 3

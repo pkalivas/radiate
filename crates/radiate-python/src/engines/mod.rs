@@ -19,7 +19,7 @@ pub(crate) fn run_single_objective_engine<C, T>(
     log: bool,
 ) -> PyResult<PyGeneration>
 where
-    C: Chromosome,
+    C: Chromosome + Clone,
     T: Debug + Clone + Send + Sync,
     Generation<C, T>: Into<PyGeneration>,
 {

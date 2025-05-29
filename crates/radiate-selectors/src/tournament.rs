@@ -11,7 +11,7 @@ impl TournamentSelector {
     }
 }
 
-impl<C: Chromosome> Select<C> for TournamentSelector {
+impl<C: Chromosome + Clone> Select<C> for TournamentSelector {
     fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {
         let mut selected = Vec::with_capacity(count);
 

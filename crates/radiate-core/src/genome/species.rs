@@ -27,7 +27,10 @@ pub struct Species<C: Chromosome> {
 }
 
 impl<C: Chromosome> Species<C> {
-    pub fn new(generation: usize, initial: &Phenotype<C>) -> Self {
+    pub fn new(generation: usize, initial: &Phenotype<C>) -> Self
+    where
+        C: Clone,
+    {
         Species {
             id: SpeciesId::new(),
             generation,
@@ -42,7 +45,10 @@ impl<C: Chromosome> Species<C> {
         self.id
     }
 
-    pub fn push(&mut self, individual: &Phenotype<C>) {
+    pub fn push(&mut self, individual: &Phenotype<C>)
+    where
+        C: Clone,
+    {
         self.population.push(individual.clone());
     }
 

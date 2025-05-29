@@ -48,7 +48,10 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
         generation: usize,
         ecosystem: &Ecosystem<C>,
         metrics: &mut MetricSet,
-    ) -> Population<C> {
+    ) -> Population<C>
+    where
+        C: Clone,
+    {
         if let Some(species) = ecosystem.species.as_ref() {
             let total_offspring = self.offspring_count as f32;
             let mut species_scores = species
@@ -117,7 +120,7 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
 
 impl<C> EngineStep<C> for RecombineStep<C>
 where
-    C: Chromosome + PartialEq,
+    C: Chromosome + PartialEq + Clone,
 {
     fn execute(
         &mut self,

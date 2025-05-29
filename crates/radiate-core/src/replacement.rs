@@ -36,7 +36,7 @@ impl<C: Chromosome> ReplacementStrategy<C> for EncodeReplace {
 /// in a member that that lacks significant diversity.
 pub struct PopulationSampleReplace;
 
-impl<C: Chromosome> ReplacementStrategy<C> for PopulationSampleReplace {
+impl<C: Chromosome + Clone> ReplacementStrategy<C> for PopulationSampleReplace {
     fn replace(
         &self,
         population: &Population<C>,

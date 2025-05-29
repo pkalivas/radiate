@@ -72,7 +72,10 @@ impl<C: Chromosome> Ecosystem<C> {
         }
     }
 
-    pub fn add_species_member(&mut self, species_idx: usize, member_idx: usize) {
+    pub fn add_species_member(&mut self, species_idx: usize, member_idx: usize)
+    where
+        C: Clone,
+    {
         if let Some(species) = &mut self.species {
             if let Some(spec) = species.get_mut(species_idx) {
                 if let Some(member) = self.population.get_cell(member_idx) {
@@ -82,7 +85,10 @@ impl<C: Chromosome> Ecosystem<C> {
         }
     }
 
-    pub fn generate_mascots(&mut self) {
+    pub fn generate_mascots(&mut self)
+    where
+        C: Clone,
+    {
         if let Some(species) = &mut self.species {
             for spec in species {
                 let mascot = random_provider::choose(&spec.population.as_ref());

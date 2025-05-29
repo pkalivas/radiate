@@ -159,7 +159,7 @@ impl<C: Chromosome> IndexMut<usize> for Population<C> {
     }
 }
 
-impl<C: Chromosome> IntoIterator for Population<C> {
+impl<C: Chromosome + Clone> IntoIterator for Population<C> {
     type Item = Phenotype<C>;
     type IntoIter = std::vec::IntoIter<Phenotype<C>>;
 
@@ -239,7 +239,10 @@ impl<C: Chromosome> Member<C> {
         self.cell.get_mut()
     }
 
-    pub fn into_inner(self) -> Phenotype<C> {
+    pub fn into_inner(self) -> Phenotype<C>
+    where
+        C: Clone,
+    {
         self.cell.into_inner()
     }
 

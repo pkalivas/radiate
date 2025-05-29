@@ -78,7 +78,7 @@ where
 #[derive(Clone)]
 pub struct GeneticEngineBuilder<C, T, E = Generation<C, T>>
 where
-    C: Chromosome + 'static,
+    C: Chromosome + Clone + 'static,
     T: Clone + 'static,
     E: Epoch,
 {
@@ -89,7 +89,7 @@ where
 
 impl<C, T, E> GeneticEngineBuilder<C, T, E>
 where
-    C: Chromosome + PartialEq,
+    C: Chromosome + PartialEq + Clone,
     T: Clone + Send,
     E: Epoch,
 {
@@ -545,7 +545,7 @@ where
 
 impl<C, T, E> EngineBuilder<C, T, E> for GeneticEngineBuilder<C, T, E>
 where
-    C: Chromosome + 'static,
+    C: Chromosome + Clone + 'static,
     T: Clone + Send + 'static,
     E: Epoch,
 {
@@ -564,7 +564,7 @@ where
 
 impl<C, T, E> Default for GeneticEngineBuilder<C, T, E>
 where
-    C: Chromosome + 'static,
+    C: Chromosome + Clone + 'static,
     T: Clone + Send + 'static,
     E: Epoch,
 {
@@ -601,7 +601,7 @@ where
 
 impl<C, T, E> From<EngineParams<C, T>> for GeneticEngineBuilder<C, T, E>
 where
-    C: Chromosome + 'static,
+    C: Chromosome + Clone + 'static,
     T: Clone + Send + 'static,
     E: Epoch,
 {

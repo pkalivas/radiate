@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use super::PyCodec;
 use crate::conversion::ObjectValue;
 use pyo3::{
@@ -60,5 +58,3 @@ impl PyFloatCodec {
 
 unsafe impl Send for PyFloatCodec {}
 unsafe impl Sync for PyFloatCodec {}
-
-pub struct PyChromosome(pub Arc<dyn Chromosome>);

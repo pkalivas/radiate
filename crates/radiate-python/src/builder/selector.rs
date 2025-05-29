@@ -20,7 +20,7 @@ pub(crate) fn set_selector<C, T>(
     is_offspring: bool,
 ) -> GeneticEngineBuilder<C, T>
 where
-    C: Chromosome + PartialEq,
+    C: Chromosome + PartialEq + Clone,
     T: Clone + Send + Sync,
 {
     if selector.name() == TOURNAMENT_SELECTOR {

@@ -17,7 +17,7 @@ use std::{
 #[derive(Clone)]
 pub struct Front<T>
 where
-    T: Clone + AsRef<[f32]>,
+    T: AsRef<[f32]>,
 {
     values: Vec<Arc<T>>,
     ord: Arc<dyn Fn(&T, &T) -> Ordering + Send + Sync>,
@@ -28,7 +28,7 @@ where
 
 impl<T> Front<T>
 where
-    T: Clone + AsRef<[f32]>,
+    T: AsRef<[f32]>,
 {
     pub fn new<F>(
         range: Range<usize>,

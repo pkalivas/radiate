@@ -26,7 +26,7 @@ where
         for idx in 0..len {
             if ecosystem.population[idx].score().is_none() {
                 let geno = ecosystem.population[idx].take_genotype();
-                jobs.push((idx, geno));
+                jobs.push((idx, Some(geno)));
             }
         }
 
@@ -40,7 +40,14 @@ where
         let mut batches = Vec::new();
         for i in (0..jobs.len()).step_by(batch_size) {
             let end = std::cmp::min(i + batch_size, jobs.len());
-            let batch = jobs[i..end].to_vec();
+
+            let batch = jobs
+                .iter_mut()
+                .skip(i)
+                .take(end - i)
+                .map(|(idx, geno)| (*idx, geno.take().unwrap()))
+                .collect::<Vec<_>>();
+
             batches.push((
                 batch.iter().map(|(idx, _)| *idx).collect::<Vec<_>>(),
                 batch.into_iter().map(|(_, geno)| geno).collect::<Vec<_>>(),
@@ -53,6 +60,7 @@ where
                     .into_iter()
                     .map(|batch| {
                         let problem = Arc::clone(&problem);
+
                         thread_pool.submit_with_result(move || {
                             let scores = problem.eval_batch(&batch.1);
                             (batch, scores)
