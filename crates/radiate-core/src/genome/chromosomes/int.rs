@@ -255,23 +255,19 @@ impl<I: Integer<I>> IntChromosome<I> {
 
 impl<I: Integer<I>> Chromosome for IntChromosome<I> {
     type Gene = IntGene<I>;
+
+    fn genes(&self) -> &[Self::Gene] {
+        &self.genes
+    }
+
+    fn genes_mut(&mut self) -> &mut [Self::Gene] {
+        &mut self.genes
+    }
 }
 
 impl<T: Integer<T>> Valid for IntChromosome<T> {
     fn is_valid(&self) -> bool {
         self.genes.iter().all(|gene| gene.is_valid())
-    }
-}
-
-impl<T: Integer<T>> AsRef<[IntGene<T>]> for IntChromosome<T> {
-    fn as_ref(&self) -> &[IntGene<T>] {
-        &self.genes
-    }
-}
-
-impl<T: Integer<T>> AsMut<[IntGene<T>]> for IntChromosome<T> {
-    fn as_mut(&mut self) -> &mut [IntGene<T>] {
-        &mut self.genes
     }
 }
 

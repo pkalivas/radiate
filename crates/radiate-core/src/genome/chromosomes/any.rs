@@ -129,23 +129,19 @@ impl<'a> AnyChromosome<'a> {
 
 impl<'a> Chromosome for AnyChromosome<'a> {
     type Gene = AnyGene<'a>;
+
+    fn genes(&self) -> &[Self::Gene] {
+        &self.inner
+    }
+
+    fn genes_mut(&mut self) -> &mut [Self::Gene] {
+        &mut self.inner
+    }
 }
 
 impl<'a> Valid for AnyChromosome<'_> {
     fn is_valid(&self) -> bool {
         true
-    }
-}
-
-impl<'a> AsMut<[AnyGene<'a>]> for AnyChromosome<'a> {
-    fn as_mut(&mut self) -> &mut [AnyGene<'a>] {
-        &mut self.inner
-    }
-}
-
-impl<'a> AsRef<[AnyGene<'a>]> for AnyChromosome<'a> {
-    fn as_ref(&self) -> &[AnyGene<'a>] {
-        &self.inner
     }
 }
 

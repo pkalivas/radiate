@@ -106,23 +106,19 @@ impl BitChromosome {
 
 impl Chromosome for BitChromosome {
     type Gene = BitGene;
+
+    fn genes(&self) -> &[Self::Gene] {
+        &self.genes
+    }
+
+    fn genes_mut(&mut self) -> &mut [Self::Gene] {
+        &mut self.genes
+    }
 }
 
 impl Valid for BitChromosome {
     fn is_valid(&self) -> bool {
         self.genes.iter().all(|gene| gene.is_valid())
-    }
-}
-
-impl AsRef<[BitGene]> for BitChromosome {
-    fn as_ref(&self) -> &[BitGene] {
-        &self.genes
-    }
-}
-
-impl AsMut<[BitGene]> for BitChromosome {
-    fn as_mut(&mut self) -> &mut [BitGene] {
-        &mut self.genes
     }
 }
 

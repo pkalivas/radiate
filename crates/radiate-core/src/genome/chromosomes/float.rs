@@ -260,23 +260,19 @@ impl FloatChromosome {
 
 impl Chromosome for FloatChromosome {
     type Gene = FloatGene;
+
+    fn genes(&self) -> &[Self::Gene] {
+        &self.genes
+    }
+
+    fn genes_mut(&mut self) -> &mut [Self::Gene] {
+        &mut self.genes
+    }
 }
 
 impl Valid for FloatChromosome {
     fn is_valid(&self) -> bool {
         self.genes.iter().all(|gene| gene.is_valid())
-    }
-}
-
-impl AsRef<[FloatGene]> for FloatChromosome {
-    fn as_ref(&self) -> &[FloatGene] {
-        &self.genes
-    }
-}
-
-impl AsMut<[FloatGene]> for FloatChromosome {
-    fn as_mut(&mut self) -> &mut [FloatGene] {
-        &mut self.genes
     }
 }
 
