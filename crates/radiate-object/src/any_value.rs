@@ -1,5 +1,9 @@
 use super::{DataType, Field, ObjectSafe};
 
+pub trait IntoAnyValue<'a> {
+    fn into_any_value(self) -> AnyValue<'a>;
+}
+
 #[derive(Debug)]
 pub struct OwnedObject(pub Box<dyn ObjectSafe>);
 
@@ -35,9 +39,35 @@ pub enum AnyValue<'a> {
     StructOwned(Vec<(Field, AnyValue<'a>)>),
     StructRef(&'a [(Field, AnyValue<'a>)]),
     Object(OwnedObject),
+    ObjectView(&'a dyn ObjectSafe),
 }
 
 impl<'a> AnyValue<'a> {
+    pub fn is_null(&self) -> bool {
+        matches!(self, Self::Null)
+    }
+
+    pub fn is_boolean(&self) -> bool {
+        matches!(self, Self::Boolean(_))
+    }
+
+    pub fn is_numeric(&self) -> bool {
+        matches!(
+            self,
+            Self::UInt8(_)
+                | Self::UInt16(_)
+                | Self::UInt32(_)
+                | Self::UInt64(_)
+                | Self::Int8(_)
+                | Self::Int16(_)
+                | Self::Int32(_)
+                | Self::Int64(_)
+                | Self::Int128(_)
+                | Self::Float32(_)
+                | Self::Float64(_)
+        )
+    }
+
     pub fn type_name(&self) -> &'static str {
         match self {
             Self::Null => "null",
@@ -63,6 +93,7 @@ impl<'a> AnyValue<'a> {
             Self::StructOwned(_) => "struct",
             Self::StructRef(_) => "struct_ref",
             Self::Object(_) => "object",
+            Self::ObjectView(_) => "object_view",
         }
     }
 
@@ -70,7 +101,7 @@ impl<'a> AnyValue<'a> {
         match self {
             Self::Null => DataType::Null,
             Self::Boolean(_) => DataType::Boolean,
-            Self::Str(_) => DataType::Utf8,
+            Self::Str(_) => DataType::StringView,
             Self::UInt8(_) => DataType::UInt8,
             Self::UInt16(_) => DataType::UInt16,
             Self::UInt32(_) => DataType::UInt32,
@@ -83,9 +114,11 @@ impl<'a> AnyValue<'a> {
             Self::Float32(_) => DataType::Float32,
             Self::Float64(_) => DataType::Float64,
             Self::Char(_) => DataType::Char,
-            Self::Slice(_, flds) => DataType::List(Box::new((*flds).clone())),
-            Self::VecOwned(vals) => DataType::List(Box::new(Field::new(vals.1.name().clone()))),
-            Self::StringOwned(_) | Self::BinaryOwned(_) | Self::Binary(_) => DataType::Binary,
+            Self::Slice(_, _) => DataType::VecView,
+            Self::VecOwned(_) => DataType::Vec,
+            Self::StringOwned(_) => DataType::String,
+            Self::Binary(_) => DataType::BinaryView,
+            Self::BinaryOwned(_) => DataType::BinaryView,
             Self::StructOwned(fields) => DataType::Struct(
                 fields
                     .iter()
@@ -99,6 +132,7 @@ impl<'a> AnyValue<'a> {
                     .collect::<Vec<_>>(),
             ),
             Self::Object(_) => DataType::Struct(vec![Field::new("object".to_string())]),
+            Self::ObjectView(_) => DataType::Struct(vec![Field::new("object_view".to_string())]),
         }
     }
 
@@ -145,6 +179,7 @@ impl<'a> AnyValue<'a> {
                     .collect(),
             ),
             Object(obj) => Object(obj.clone()),
+            ObjectView(obj) => Object(OwnedObject(obj.to_boxed())),
         }
     }
 }

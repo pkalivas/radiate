@@ -1,12 +1,14 @@
 mod any_value;
 mod dtype;
 mod field;
+mod numeric;
 
 use std::{any::Any, fmt::Debug};
 
-pub use any_value::AnyValue;
+pub use any_value::{AnyValue, IntoAnyValue};
 pub use dtype::DataType;
 pub use field::Field;
+pub use numeric::*;
 
 pub trait Object: Any + Debug + Clone + PartialEq + Send + Sync {
     fn type_name() -> &'static str;

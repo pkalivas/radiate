@@ -204,23 +204,6 @@ impl From<(Range<f32>, Range<f32>)> for FloatGene {
     }
 }
 
-#[cfg(feature = "object")]
-use radiate_object::AnyValue;
-impl<'a> From<FloatGene> for AnyValue<'a> {
-    fn from(gene: FloatGene) -> AnyValue<'a> {
-        AnyValue::StructOwned(vec![
-            ("allele".into(), AnyValue::Float32(gene.allele)),
-            (
-                "value_min".into(),
-                AnyValue::Float32(gene.value_range.start),
-            ),
-            ("value_max".into(), AnyValue::Float32(gene.value_range.end)),
-            ("bounds_min".into(), AnyValue::Float32(gene.bounds.start)),
-            ("bounds_max".into(), AnyValue::Float32(gene.bounds.end)),
-        ])
-    }
-}
-
 impl Debug for FloatGene {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.allele)

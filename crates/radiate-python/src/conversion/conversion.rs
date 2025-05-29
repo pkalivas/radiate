@@ -64,6 +64,10 @@ pub fn any_value_into_py_object<'py>(av: AnyValue, py: Python<'py>) -> PyResult<
             let object = v.0.as_any().downcast_ref::<ObjectValue>().unwrap();
             Ok(object.inner.clone_ref(py).into_bound(py))
         }
+        AnyValue::ObjectView(v) => {
+            let object = v.as_any().downcast_ref::<ObjectValue>().unwrap();
+            Ok(object.inner.clone_ref(py).into_bound(py))
+        }
     }
 }
 
@@ -138,7 +142,20 @@ pub fn py_object_to_any_value<'py>(
                 avs.push(av)
             }
 
-            Ok(AnyValue::Null)
+            if avs.is_empty() {
+                return Ok(AnyValue::Null);
+            } else {
+                if !strict {
+                    return Ok(AnyValue::VecOwned(Box::new((
+                        avs.into_iter().map(|av| av.into_static()).collect(),
+                        Field::new("List of mixed types".into()),
+                    ))));
+                } else {
+                    return Err(PyValueError::new_err(
+                        "Cannot convert Python list with mixed types to AnyValue",
+                    ));
+                }
+            }
         } else if !strict {
             Ok(AnyValue::Null)
         } else {

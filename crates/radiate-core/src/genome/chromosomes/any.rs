@@ -1,5 +1,6 @@
-use super::{Chromosome, Gene, Valid};
+use super::{ArithmeticGene, Chromosome, Gene, Valid};
 use radiate_object::AnyValue;
+use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct AnyGene<'a> {
@@ -47,6 +48,68 @@ where
     fn from(value: T) -> Self {
         Self {
             inner: value.into(),
+        }
+    }
+}
+
+impl Add for AnyGene<'_> {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Self {
+            inner: self.inner + other.inner,
+        }
+    }
+}
+
+impl Sub for AnyGene<'_> {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self {
+        Self {
+            inner: self.inner - other.inner,
+        }
+    }
+}
+
+impl Mul for AnyGene<'_> {
+    type Output = Self;
+
+    fn mul(self, other: Self) -> Self {
+        Self {
+            inner: self.inner * other.inner,
+        }
+    }
+}
+
+impl Div for AnyGene<'_> {
+    type Output = Self;
+
+    fn div(self, other: Self) -> Self {
+        Self {
+            inner: self.inner / other.inner,
+        }
+    }
+}
+
+impl ArithmeticGene for AnyGene<'_> {
+    fn min(&self) -> &Self::Allele {
+        &self.inner
+    }
+
+    fn max(&self) -> &Self::Allele {
+        &self.inner
+    }
+
+    fn mean(&self, other: &Self) -> Self {
+        Self {
+            inner: (self.inner.clone() + other.inner.clone()) / AnyValue::Float32(2.0),
+        }
+    }
+
+    fn from_f32(&self, value: f32) -> Self {
+        Self {
+            inner: AnyValue::<'_>::from_numeric(value),
         }
     }
 }

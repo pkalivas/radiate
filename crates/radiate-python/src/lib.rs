@@ -18,7 +18,7 @@ pub use evaluator::PyEvaluator;
 pub use genome::{PyFloatChromosome, PyFloatGene};
 pub use metric::*;
 pub use params::*;
-pub use problem::{PyProblem, ThreadSafePythonFn};
+pub use problem::PyProblem;
 use pyo3::{PyResult, Python};
 pub use random::PyRandomProvider;
 use std::cell::UnsafeCell;

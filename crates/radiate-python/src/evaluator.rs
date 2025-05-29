@@ -30,24 +30,50 @@ where
             }
         }
 
+        let num_workers = thread_pool.num_workers();
+        let batch_size = (jobs.len() + num_workers - 1) / num_workers;
+
+        if batch_size == 0 {
+            return 0;
+        }
+
+        let mut batches = Vec::new();
+        for i in (0..jobs.len()).step_by(batch_size) {
+            let end = std::cmp::min(i + batch_size, jobs.len());
+            let batch = jobs[i..end].to_vec();
+            batches.push((
+                batch.iter().map(|(idx, _)| *idx).collect::<Vec<_>>(),
+                batch.into_iter().map(|(_, geno)| geno).collect::<Vec<_>>(),
+            ));
+        }
+
         Python::with_gil(|outer| {
             outer.allow_threads(|| {
-                let work_results = jobs
+                let work_results = batches
                     .into_iter()
-                    .map(|(idx, geno)| {
+                    .map(|batch| {
                         let problem = Arc::clone(&problem);
                         thread_pool.submit_with_result(move || {
-                            let score = problem.eval(&geno);
-                            (idx, score, geno)
+                            let scores = problem.eval_batch(&batch.1);
+                            (batch, scores)
                         })
                     })
                     .collect::<Vec<_>>();
 
-                let count = work_results.len();
+                let mut count = 0;
                 for work_result in work_results {
-                    let (idx, score, genotype) = work_result.result();
-                    ecosystem.population[idx].set_score(Some(score));
-                    ecosystem.population[idx].set_genotype(genotype);
+                    let (batch, scores) = work_result.result();
+
+                    for ((idx, geno), score) in batch
+                        .0
+                        .iter()
+                        .zip(batch.1.into_iter())
+                        .zip(scores.into_iter())
+                    {
+                        count += 1;
+                        ecosystem.population[*idx].set_genotype(geno);
+                        ecosystem.population[*idx].set_score(Some(score));
+                    }
                 }
 
                 count

@@ -1,4 +1,5 @@
 from typing import Any, Callable, List
+import copy
 from .selector import Selector, TournamentSelector, RouletteSelector
 from .alterer import Alterer, UniformCrossover, UniformMutator
 from ._typing import GeneType, ObjectiveType

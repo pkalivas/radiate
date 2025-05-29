@@ -1,6 +1,9 @@
 use std::{
-    sync::atomic::{AtomicUsize, Ordering},
-    sync::{Arc, Condvar, Mutex},
+    fmt::Debug,
+    sync::{
+        Arc, Condvar, Mutex,
+        atomic::{AtomicUsize, Ordering},
+    },
 };
 use std::{sync::mpsc, thread};
 
@@ -35,7 +38,7 @@ impl ThreadPool {
         ThreadPool {
             sender,
             workers: (0..size)
-                .map(|_| Worker::new(Arc::clone(&receiver)))
+                .map(|id| Worker::new(id, Arc::clone(&receiver)))
                 .collect(),
         }
     }
@@ -109,6 +112,7 @@ enum Message {
 
 /// Worker struct that listens for incoming `Message`s and executes the `Job`s or terminates.
 struct Worker {
+    id: usize,
     thread: Option<thread::JoinHandle<()>>,
 }
 
@@ -118,8 +122,9 @@ impl Worker {
     /// The Worker will listen for incoming jobs on the given receiver.
     /// When a job is received, it will be executed in a new thread and the
     /// mutex will release allowing another job to be received from a different worker.
-    fn new(receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Self {
+    fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Self {
         Worker {
+            id,
             thread: Some(thread::spawn(move || {
                 loop {
                     let message = receiver.lock().unwrap().recv().unwrap();
@@ -137,6 +142,15 @@ impl Worker {
     /// So if the thread is 'None' the worker is no longer alive.
     pub fn is_alive(&self) -> bool {
         self.thread.is_some()
+    }
+}
+
+impl Debug for Worker {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Worker")
+            .field("id", &self.id)
+            .field("is_alive", &self.is_alive())
+            .finish()
     }
 }
 
