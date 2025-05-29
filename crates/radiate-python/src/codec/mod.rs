@@ -66,3 +66,6 @@ impl<C: Chromosome> Codec<C, ObjectValue> for PyCodec<C> {
         })
     }
 }
+
+unsafe impl<C: Chromosome> Send for PyCodec<C> {}
+unsafe impl<C: Chromosome> Sync for PyCodec<C> {}

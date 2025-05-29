@@ -1,6 +1,6 @@
 use crate::{codec::PyCodec, conversion::ObjectValue};
 use pyo3::{
-    Bound, PyAny, PyObject, Python,
+    Borrowed, PyAny, PyObject, Python,
     types::{PyAnyMethods, PyFloat, PyInt},
 };
 use radiate::{Chromosome, Codec, Genotype, Problem, Score};
@@ -31,20 +31,20 @@ impl<C: Chromosome> Problem<C, ObjectValue> for PyProblem<C> {
     fn eval(&self, individual: &Genotype<C>) -> Score {
         Python::with_gil(|py| {
             let phenotype = self.codec.decode_with_py(py, individual);
-            let func = self.fitness_func.bind(py);
+            let func = self.fitness_func.bind_borrowed(py);
 
-            call(&func, phenotype)
+            call(py, &func, phenotype)
         })
     }
 
     fn eval_batch(&self, individuals: &[Genotype<C>]) -> Vec<Score> {
         Python::with_gil(|py| {
-            let func = self.fitness_func.bind(py);
+            let func = self.fitness_func.bind_borrowed(py);
             individuals
                 .iter()
                 .map(|ind| {
                     let phenotype = self.codec.decode_with_py(py, ind);
-                    call(&func, phenotype)
+                    call(py, &func, phenotype)
                 })
                 .collect()
         })
@@ -54,8 +54,14 @@ impl<C: Chromosome> Problem<C, ObjectValue> for PyProblem<C> {
 unsafe impl<C: Chromosome> Send for PyProblem<C> {}
 unsafe impl<C: Chromosome> Sync for PyProblem<C> {}
 
-pub fn call<'py>(func: &Bound<'py, PyAny>, input: ObjectValue) -> Score {
-    let any_value = func.call1((input.inner,)).expect("Python call failed");
+pub fn call<'py, 'a>(
+    py: Python<'py>,
+    func: &Borrowed<'py, 'a, PyAny>,
+    input: ObjectValue,
+) -> Score {
+    let any_value = func
+        .call1((input.inner.bind_borrowed(py),))
+        .expect("Python call failed");
 
     let temp = any_value;
 

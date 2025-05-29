@@ -121,7 +121,7 @@ impl<C: Chromosome, T> EvaluateStep<C, T> {
 
 impl<C, T> EngineStep<C> for EvaluateStep<C, T>
 where
-    C: Chromosome + 'static,
+    C: Chromosome + PartialEq + 'static,
 {
     fn execute(&mut self, _: usize, metrics: &mut MetricSet, ecosystem: &mut Ecosystem<C>) {
         let timer = std::time::Instant::now();

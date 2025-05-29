@@ -1,7 +1,7 @@
 use super::phenotype::Phenotype;
 use crate::cell::MutCell;
 use crate::objectives::Scored;
-use crate::{Chromosome, Objective, Score};
+use crate::{Chromosome, Score};
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut, Range};
 
@@ -85,18 +85,6 @@ impl<C: Chromosome> Population<C> {
 
     pub fn set_sorted(&mut self, is_sorted: bool) {
         self.is_sorted = is_sorted;
-    }
-
-    /// Sort the individuals in the population using the given closure.
-    /// This will set the is_sorted flag to true.
-    pub fn sort_by(&mut self, objective: &Objective) {
-        if self.is_sorted {
-            return;
-        }
-
-        objective.sort(self);
-
-        self.is_sorted = true;
     }
 
     pub fn is_empty(&self) -> bool {
@@ -266,7 +254,7 @@ impl<C: Chromosome + Debug> Debug for Member<C> {
     }
 }
 
-impl<C: Chromosome> PartialOrd for Member<C> {
+impl<C: Chromosome + PartialEq> PartialOrd for Member<C> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.get().partial_cmp(other.get())
     }

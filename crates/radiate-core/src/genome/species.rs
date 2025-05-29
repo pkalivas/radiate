@@ -66,7 +66,10 @@ impl<C: Chromosome> Species<C> {
         current - self.generation
     }
 
-    pub fn update_score(&mut self, score: Score, objective: &Objective) {
+    pub fn update_score(&mut self, score: Score, objective: &Objective)
+    where
+        C: PartialEq,
+    {
         objective.sort(&mut self.population);
 
         self.score = Some(score);
@@ -81,7 +84,7 @@ impl<C: Chromosome> Scored for Species<C> {
     }
 }
 
-impl<C: Chromosome> PartialOrd for Species<C> {
+impl<C: Chromosome + PartialEq> PartialOrd for Species<C> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.score.as_ref().partial_cmp(&other.score.as_ref())
     }

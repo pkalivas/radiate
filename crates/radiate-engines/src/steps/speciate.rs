@@ -50,7 +50,7 @@ where
 
 impl<C> EngineStep<C> for SpeciateStep<C>
 where
-    C: Chromosome + 'static,
+    C: Chromosome + PartialEq + 'static,
 {
     fn execute(
         &mut self,

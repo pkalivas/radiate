@@ -5,7 +5,7 @@ pub(crate) fn set_single_objective<C, T>(
     objectives: &[String],
 ) -> GeneticEngineBuilder<C, T, Generation<C, T>>
 where
-    C: Chromosome,
+    C: Chromosome + PartialEq,
     T: Clone + Send + Sync,
 {
     if objectives.len() != 1 {

@@ -13,7 +13,7 @@ pub struct RecombineStep<C: Chromosome> {
     pub(crate) objective: Objective,
 }
 
-impl<C: Chromosome> RecombineStep<C> {
+impl<C: Chromosome + PartialEq> RecombineStep<C> {
     pub fn select_survivors(
         &self,
         population: &Ecosystem<C>,
@@ -117,7 +117,7 @@ impl<C: Chromosome> RecombineStep<C> {
 
 impl<C> EngineStep<C> for RecombineStep<C>
 where
-    C: Chromosome,
+    C: Chromosome + PartialEq,
 {
     fn execute(
         &mut self,

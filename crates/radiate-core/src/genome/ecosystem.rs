@@ -92,7 +92,10 @@ impl<C: Chromosome> Ecosystem<C> {
         }
     }
 
-    pub fn fitness_share(&mut self, objective: &Objective) {
+    pub fn fitness_share(&mut self, objective: &Objective)
+    where
+        C: PartialEq,
+    {
         if let Some(species) = &mut self.species {
             let mut scores = Vec::with_capacity(species.len());
             for spec in species.iter() {

@@ -14,9 +14,7 @@ use super::{Valid, gene::Gene};
 /// ```text
 /// Chromosome: [Gene, Gene, Gene]
 /// ```
-pub trait Chromosome:
-    Clone + PartialEq + Valid + AsRef<[Self::Gene]> + AsMut<[Self::Gene]>
-{
+pub trait Chromosome: Clone + Valid + AsRef<[Self::Gene]> + AsMut<[Self::Gene]> {
     type Gene: Gene;
     /// Retrieves the gene at the specified index.
     ///

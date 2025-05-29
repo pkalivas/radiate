@@ -78,3 +78,6 @@ impl Default for ObjectValue {
         Python::with_gil(|py| ObjectValue { inner: py.None() })
     }
 }
+
+unsafe impl Send for ObjectValue {}
+unsafe impl Sync for ObjectValue {}

@@ -89,7 +89,7 @@ where
 
 impl<C, T, E> GeneticEngineBuilder<C, T, E>
 where
-    C: Chromosome,
+    C: Chromosome + PartialEq,
     T: Clone + Send,
     E: Epoch,
 {

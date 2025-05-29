@@ -25,7 +25,7 @@ pub fn get_alters_with_float_gene<C: Chromosome<Gene = FloatGene>, T>(
     alters: &Vec<PyEngineParam>,
 ) -> GeneticEngineBuilder<C, T>
 where
-    C: 'static,
+    C: PartialEq + 'static,
     T: Clone + Send + Sync,
 {
     let mut alters_vec = Vec::new();
@@ -137,7 +137,7 @@ pub fn get_alters_with_int_gene<C, G, T>(
     alters: &Vec<PyEngineParam>,
 ) -> GeneticEngineBuilder<C, T>
 where
-    C: Chromosome<Gene = G> + 'static,
+    C: Chromosome<Gene = G> + PartialEq + 'static,
     T: Clone + Send + Sync,
     G: ArithmeticGene + Clone,
     G::Allele: Clone,
@@ -221,7 +221,7 @@ pub fn get_alters_with_char_gene<C, G, T>(
     alters: &Vec<PyEngineParam>,
 ) -> GeneticEngineBuilder<C, T>
 where
-    C: Chromosome<Gene = G> + 'static,
+    C: Chromosome<Gene = G> + PartialEq + 'static,
     T: Clone + Send + Sync,
     G: Gene,
     G::Allele: Clone,

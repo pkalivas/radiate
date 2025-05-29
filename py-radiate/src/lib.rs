@@ -11,6 +11,8 @@ fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     m.add_class::<PyRandomProvider>()?;
 
+    // m.add_class::<PyProblem>()?;
+
     m.add_class::<PyFloatCodec>()?;
     m.add_class::<PyIntCodec>()?;
 
