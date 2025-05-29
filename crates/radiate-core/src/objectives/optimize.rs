@@ -7,6 +7,14 @@ pub enum Objective {
 }
 
 impl Objective {
+    pub fn is_single(&self) -> bool {
+        matches!(self, Objective::Single(_))
+    }
+
+    pub fn is_multi(&self) -> bool {
+        matches!(self, Objective::Multi(_))
+    }
+
     pub fn cmp<T>(&self, a: &T, b: &T) -> std::cmp::Ordering
     where
         T: PartialOrd,

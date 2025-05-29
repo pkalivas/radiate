@@ -1,7 +1,7 @@
 use crate::{PyEngineBuilder, PyEvaluator, PyProblem, codec::PyCodec, conversion::ObjectValue};
 use pyo3::PyObject;
 use radiate::{
-    Chromosome, GeneticEngine, GeneticEngineBuilder, MultiObjectiveGeneration, Optimize,
+    Chromosome, Epoch, GeneticEngine, GeneticEngineBuilder, MultiObjectiveGeneration, Optimize,
     steps::SequentialEvaluator,
 };
 
@@ -35,13 +35,14 @@ where
     )
 }
 
-pub fn set_evaluator<C, T>(
-    builder: GeneticEngineBuilder<C, T>,
+pub fn set_evaluator<C, T, E>(
+    builder: GeneticEngineBuilder<C, T, E>,
     num_threads: &usize,
-) -> GeneticEngineBuilder<C, T>
+) -> GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send + Sync,
+    E: Epoch<Chromosome = C>,
 {
     match num_threads {
         1 => builder.evaluator(SequentialEvaluator),

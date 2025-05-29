@@ -9,7 +9,7 @@ where
     C: Chromosome,
 {
     ecosystem: Ecosystem<C>,
-    best: T,
+    value: T,
     index: usize,
     metrics: MetricSet,
     score: Score,
@@ -31,7 +31,7 @@ impl<C: Chromosome, T> Epoch for Generation<C, T> {
     }
 
     fn value(&self) -> &Self::Value {
-        &self.best
+        &self.value
     }
 
     fn index(&self) -> usize {
@@ -57,7 +57,7 @@ impl<C: Chromosome + Clone, T: Clone> From<&Context<C, T>> for Generation<C, T> 
     fn from(context: &Context<C, T>) -> Self {
         Generation {
             ecosystem: context.ecosystem.clone(),
-            best: context.best.clone(),
+            value: context.best.clone(),
             index: context.index,
             metrics: context.metrics.clone(),
             score: context.score.clone().unwrap(),
@@ -72,7 +72,7 @@ where
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "EngineOutput {{\n")?;
-        write!(f, "  best: {:?},\n", self.best)?;
+        write!(f, "  value: {:?},\n", self.value)?;
         write!(f, "  score: {:?},\n", self.score)?;
         write!(f, "  index: {:?},\n", self.index)?;
         write!(f, "  size: {:?},\n", self.ecosystem.population.len())?;

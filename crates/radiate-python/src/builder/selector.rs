@@ -1,6 +1,6 @@
 use crate::PyEngineParam;
 use radiate::{
-    BoltzmannSelector, Chromosome, EliteSelector, GeneticEngineBuilder, LinearRankSelector,
+    BoltzmannSelector, Chromosome, EliteSelector, Epoch, GeneticEngineBuilder, LinearRankSelector,
     NSGA2Selector, RankSelector, RouletteSelector, StochasticUniversalSamplingSelector,
     TournamentSelector,
 };
@@ -141,14 +141,15 @@ impl<C: Chromosome> ParamMapper<C> for NSGA2SelectorMapper {
     }
 }
 
-pub(crate) fn set_selector<C, T>(
-    builder: GeneticEngineBuilder<C, T>,
+pub(crate) fn set_selector<C, T, E>(
+    builder: GeneticEngineBuilder<C, T, E>,
     selector: &PyEngineParam,
     is_offspring: bool,
-) -> GeneticEngineBuilder<C, T>
+) -> GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send + Sync,
+    E: Epoch<Chromosome = C>,
 {
     if selector.name() == TOURNAMENT_SELECTOR {
         let args = selector.get_args();

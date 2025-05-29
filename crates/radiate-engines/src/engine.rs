@@ -86,12 +86,12 @@ where
     C: Chromosome + Clone,
     T: Clone + Send,
 {
-    pub fn builder() -> GeneticEngineBuilder<C, T> {
+    pub fn builder() -> GeneticEngineBuilder<C, T, Generation<C, T>> {
         GeneticEngineBuilder::default()
     }
 }
 
-impl<C, T, E> Engine for GeneticEngine<C, T, E>
+impl<C, T, E> Engine<E> for GeneticEngine<C, T, E>
 where
     C: Chromosome,
     E: Epoch<Chromosome = C> + for<'a> From<&'a Context<C, T>>,

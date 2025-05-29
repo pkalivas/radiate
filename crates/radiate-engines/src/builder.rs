@@ -30,7 +30,7 @@ where
     E: Epoch,
 {
     fn add_parameter(&mut self, adder: impl FnOnce(&mut EngineParams<C, T>));
-    fn build(self) -> GeneticEngine<C, T, E>;
+    // fn build(self) -> GeneticEngine<C, T, E>;
 }
 
 #[derive(Clone)]
@@ -76,11 +76,10 @@ where
 /// - `T`: The type of the best individual in the population.
 ///
 #[derive(Clone)]
-pub struct GeneticEngineBuilder<C, T, E = Generation<C, T>>
+pub struct GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome + Clone + 'static,
     T: Clone + 'static,
-    E: Epoch,
 {
     pub(crate) params: EngineParams<C, T>,
     errors: Vec<RadiateError>,
@@ -91,7 +90,7 @@ impl<C, T, E> GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send,
-    E: Epoch,
+    E: Epoch<Chromosome = C>,
 {
     /// Set the population size of the genetic engine. Default is 100.
     pub fn population_size(mut self, population_size: usize) -> Self {
@@ -316,10 +315,7 @@ where
     /// Set the minimum and maximum size of the pareto front. This is used for
     /// multi-objective optimization problems where the goal is to find the best
     /// solutions that are not dominated by any other solution.
-    pub fn front_size(
-        mut self,
-        range: Range<usize>,
-    ) -> GeneticEngineBuilder<C, T, MultiObjectiveGeneration<C>> {
+    pub fn front_size(mut self, range: Range<usize>) -> GeneticEngineBuilder<C, T, E> {
         self.params.front_range = range;
         GeneticEngineBuilder {
             params: self.params,
@@ -338,73 +334,6 @@ where
         self.params.thread_pool = Arc::new(ThreadPool::new(num_threads));
         self.params.evaluator = Arc::new(WorkerPoolEvaluator);
         self
-    }
-
-    /// Build the genetic engine with the given parameters. This will create a new
-    /// instance of the `GeneticEngine` with the given parameters.
-    pub fn build(mut self) -> GeneticEngine<C, T, E> {
-        if self.params.problem.is_none() {
-            if self.params.codec.is_none() {
-                panic!("Codec not set");
-            }
-
-            if self.params.fitness_fn.is_none() {
-                panic!("Fitness function not set");
-            }
-
-            let problem = EngineProblem {
-                codec: self.params.codec.clone().unwrap(),
-                fitness_fn: self.params.fitness_fn.clone().unwrap(),
-            };
-
-            self.problem(problem).build()
-        } else {
-            self.build_population();
-            self.build_alterer();
-            self.build_front();
-
-            let config = EngineConfig {
-                population: self.params.population.clone().unwrap(),
-                problem: self.params.problem.clone().unwrap(),
-                survivor_selector: self.params.survivor_selector.clone(),
-                offspring_selector: self.params.offspring_selector.clone(),
-                replacement_strategy: self.params.replacement_strategy.clone(),
-                audits: self.params.audits.clone(),
-                alterers: self.params.alterers.clone(),
-                objective: self.params.objective.clone(),
-                thread_pool: self.params.thread_pool.clone(),
-                max_age: self.params.max_age,
-                max_species_age: self.params.max_species_age,
-                species_threshold: self.params.species_threshold,
-                diversity: self.params.diversity.clone(),
-                front: Arc::new(RwLock::new(self.params.front.clone().unwrap())),
-                offspring_fraction: self.params.offspring_fraction,
-                evaluator: self.params.evaluator.clone(),
-            };
-
-            let mut pipeline = Pipeline::<C>::default();
-
-            pipeline.add_step(Self::build_eval_step(&config));
-            pipeline.add_step(Self::build_recombine_step(&config));
-            pipeline.add_step(Self::build_filter_step(&config));
-            pipeline.add_step(Self::build_eval_step(&config));
-            pipeline.add_step(Self::build_front_step(&config));
-            pipeline.add_step(Self::build_species_step(&config));
-            pipeline.add_step(Self::build_audit_step(&config));
-
-            let context = Context {
-                ecosystem: Ecosystem::new(config.population.clone()),
-                best: config.problem.decode(config.population()[0].genotype()),
-                index: 0,
-                metrics: MetricSet::new(),
-                score: None,
-                front: config.front.clone(),
-                objective: config.objective.clone(),
-                problem: config.problem.clone(),
-            };
-
-            GeneticEngine::<C, T, E>::new(context, pipeline)
-        }
     }
 
     fn build_eval_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
@@ -543,22 +472,149 @@ where
     }
 }
 
-impl<C, T, E> EngineBuilder<C, T, E> for GeneticEngineBuilder<C, T, E>
+impl<C, T> GeneticEngineBuilder<C, T, Generation<C, T>>
 where
-    C: Chromosome + Clone + 'static,
+    C: Chromosome + Clone + PartialEq + 'static,
     T: Clone + Send + 'static,
-    E: Epoch,
 {
-    fn add_parameter(&mut self, adder: impl FnOnce(&mut EngineParams<C, T>)) {
-        adder(&mut self.params);
-    }
+    /// Build the genetic engine with the given parameters. This will create a new
+    /// instance of the `GeneticEngine` with the given parameters.
+    pub fn build(mut self) -> GeneticEngine<C, T> {
+        if self.params.problem.is_none() {
+            if self.params.codec.is_none() {
+                panic!("Codec not set");
+            }
 
-    fn build(self) -> GeneticEngine<C, T, E> {
-        if !self.errors.is_empty() {
-            panic!("Errors found in builder: {:?}", self.errors);
+            if self.params.fitness_fn.is_none() {
+                panic!("Fitness function not set");
+            }
+
+            let problem = EngineProblem {
+                codec: self.params.codec.clone().unwrap(),
+                fitness_fn: self.params.fitness_fn.clone().unwrap(),
+            };
+
+            self.problem(problem).build()
+        } else {
+            self.build_population();
+            self.build_alterer();
+            self.build_front();
+
+            let config = EngineConfig {
+                population: self.params.population.clone().unwrap(),
+                problem: self.params.problem.clone().unwrap(),
+                survivor_selector: self.params.survivor_selector.clone(),
+                offspring_selector: self.params.offspring_selector.clone(),
+                replacement_strategy: self.params.replacement_strategy.clone(),
+                audits: self.params.audits.clone(),
+                alterers: self.params.alterers.clone(),
+                objective: self.params.objective.clone(),
+                thread_pool: self.params.thread_pool.clone(),
+                max_age: self.params.max_age,
+                max_species_age: self.params.max_species_age,
+                species_threshold: self.params.species_threshold,
+                diversity: self.params.diversity.clone(),
+                front: Arc::new(RwLock::new(self.params.front.clone().unwrap())),
+                offspring_fraction: self.params.offspring_fraction,
+                evaluator: self.params.evaluator.clone(),
+            };
+
+            let mut pipeline = Pipeline::<C>::default();
+
+            pipeline.add_step(Self::build_eval_step(&config));
+            pipeline.add_step(Self::build_recombine_step(&config));
+            pipeline.add_step(Self::build_filter_step(&config));
+            pipeline.add_step(Self::build_eval_step(&config));
+            pipeline.add_step(Self::build_front_step(&config));
+            pipeline.add_step(Self::build_species_step(&config));
+            pipeline.add_step(Self::build_audit_step(&config));
+
+            let context = Context {
+                ecosystem: Ecosystem::new(config.population.clone()),
+                best: config.problem.decode(config.population()[0].genotype()),
+                index: 0,
+                metrics: MetricSet::new(),
+                score: None,
+                front: config.front.clone(),
+                objective: config.objective.clone(),
+                problem: config.problem.clone(),
+            };
+
+            GeneticEngine::<C, T>::new(context, pipeline)
         }
+    }
+}
 
-        self.build()
+impl<C, T> GeneticEngineBuilder<C, T, MultiObjectiveGeneration<C>>
+where
+    C: Chromosome + Clone + PartialEq + 'static,
+    T: Clone + Send + 'static,
+{
+    /// Build the genetic engine with the given parameters. This will create a new
+    /// instance of the `GeneticEngine` with the given parameters.
+    pub fn build(mut self) -> GeneticEngine<C, T> {
+        if self.params.problem.is_none() {
+            if self.params.codec.is_none() {
+                panic!("Codec not set");
+            }
+
+            if self.params.fitness_fn.is_none() {
+                panic!("Fitness function not set");
+            }
+
+            let problem = EngineProblem {
+                codec: self.params.codec.clone().unwrap(),
+                fitness_fn: self.params.fitness_fn.clone().unwrap(),
+            };
+
+            self.problem(problem).build()
+        } else {
+            self.build_population();
+            self.build_alterer();
+            self.build_front();
+
+            let config = EngineConfig {
+                population: self.params.population.clone().unwrap(),
+                problem: self.params.problem.clone().unwrap(),
+                survivor_selector: self.params.survivor_selector.clone(),
+                offspring_selector: self.params.offspring_selector.clone(),
+                replacement_strategy: self.params.replacement_strategy.clone(),
+                audits: self.params.audits.clone(),
+                alterers: self.params.alterers.clone(),
+                objective: self.params.objective.clone(),
+                thread_pool: self.params.thread_pool.clone(),
+                max_age: self.params.max_age,
+                max_species_age: self.params.max_species_age,
+                species_threshold: self.params.species_threshold,
+                diversity: self.params.diversity.clone(),
+                front: Arc::new(RwLock::new(self.params.front.clone().unwrap())),
+                offspring_fraction: self.params.offspring_fraction,
+                evaluator: self.params.evaluator.clone(),
+            };
+
+            let mut pipeline = Pipeline::<C>::default();
+
+            pipeline.add_step(Self::build_eval_step(&config));
+            pipeline.add_step(Self::build_recombine_step(&config));
+            pipeline.add_step(Self::build_filter_step(&config));
+            pipeline.add_step(Self::build_eval_step(&config));
+            pipeline.add_step(Self::build_front_step(&config));
+            pipeline.add_step(Self::build_species_step(&config));
+            pipeline.add_step(Self::build_audit_step(&config));
+
+            let context = Context {
+                ecosystem: Ecosystem::new(config.population.clone()),
+                best: config.problem.decode(config.population()[0].genotype()),
+                index: 0,
+                metrics: MetricSet::new(),
+                score: None,
+                front: config.front.clone(),
+                objective: config.objective.clone(),
+                problem: config.problem.clone(),
+            };
+
+            GeneticEngine::<C, T>::new(context, pipeline)
+        }
     }
 }
 

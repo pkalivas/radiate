@@ -1,7 +1,7 @@
 use radiate::{Chromosome, Generation, GeneticEngineBuilder};
 
 pub(crate) fn set_single_objective<C, T>(
-    builder: GeneticEngineBuilder<C, T>,
+    builder: GeneticEngineBuilder<C, T, Generation<C, T>>,
     objectives: &[String],
 ) -> GeneticEngineBuilder<C, T, Generation<C, T>>
 where

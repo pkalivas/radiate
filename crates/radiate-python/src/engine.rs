@@ -95,7 +95,7 @@ pub(crate) fn build_single_objective_engine<C>(
     codec: PyCodec<C>,
     fitness_func: PyObject,
     builder: &PyEngineBuilder,
-) -> GeneticEngineBuilder<C, ObjectValue>
+) -> GeneticEngineBuilder<C, ObjectValue, Generation<C, ObjectValue>>
 where
     C: Chromosome + PartialEq + Clone,
 {
