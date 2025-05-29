@@ -1,9 +1,10 @@
 mod builder;
 mod codec;
 mod conversion;
-mod engines;
+mod engine;
 mod epoch;
 mod evaluator;
+mod gene;
 mod metric;
 mod params;
 mod problem;
@@ -11,9 +12,10 @@ mod random;
 
 pub use builder::*;
 pub use codec::{PyBitCodec, PyCharCodec, PyFloatCodec, PyIntCodec};
-pub use engines::*;
+pub use engine::*;
 pub use epoch::*;
 pub use evaluator::PyEvaluator;
+pub use gene::PyGeneType;
 pub use metric::*;
 pub use params::*;
 pub use problem::PyProblem;

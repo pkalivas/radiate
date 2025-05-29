@@ -105,6 +105,10 @@ impl MetricSet {
     pub fn iter(&self) -> impl Iterator<Item = (&'static str, &Metric)> {
         self.metrics.iter().map(|(name, metric)| (*name, metric))
     }
+
+    pub fn get_from_string(&self, name: String) -> Option<&Metric> {
+        self.metrics.get(name.as_str())
+    }
 }
 
 impl Debug for MetricSet {

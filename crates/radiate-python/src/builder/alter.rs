@@ -1,11 +1,8 @@
-use crate::PyEngineParam;
+use super::{EngineRegistry, ParamMapper};
+use crate::{PyEngineParam, PyGeneType};
 use core::panic;
-use radiate::{
-    Alter, ArithmeticGene, ArithmeticMutator, BlendCrossover, Chromosome, Crossover, FloatGene,
-    GaussianMutator, Gene, GeneticEngineBuilder, IntermediateCrossover, MeanCrossover,
-    MultiPointCrossover, Mutate, ScrambleMutator, ShuffleCrossover, SimulatedBinaryCrossover,
-    SwapMutator, UniformCrossover, UniformMutator, alters,
-};
+use radiate::*;
+use std::hash::Hash;
 
 const BLEND_CROSSOVER: &str = "blend_crossover";
 const INTERMEDIATE_CROSSOVER: &str = "intermediate_crossover";
@@ -20,587 +17,401 @@ const GAUSSIAN_MUTATOR: &str = "gaussian_mutator";
 const SCRAMBLE_MUTATOR: &str = "scramble_mutator";
 const SWAP_MUTATOR: &str = "swap_mutator";
 
-pub fn get_alters_with_float_gene<C: Chromosome<Gene = FloatGene>, T>(
-    builder: GeneticEngineBuilder<C, T>,
-    alters: &Vec<PyEngineParam>,
-) -> GeneticEngineBuilder<C, T>
-where
-    C: PartialEq + Clone + 'static,
-    T: Clone + Send + Sync,
-{
-    let mut alters_vec = Vec::new();
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum AlterType {
+    // Crossovers
+    BlendCrossover,
+    IntermediateCrossover,
+    UniformCrossover,
+    MeanCrossover,
+    ShuffleCrossover,
+    MultiPointCrossover,
+    SimulatedBinaryCrossover,
 
-    for alter in alters {
-        let args = alter.get_args();
-
-        alters_vec.push(match alter.name() {
-            BLEND_CROSSOVER => {
-                let alpha = args
-                    .get("alpha".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-
-                alters!(BlendCrossover::new(rate, alpha))
-            }
-            INTERMEDIATE_CROSSOVER => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                let alpha = args
-                    .get("alpha".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                alters!(IntermediateCrossover::new(rate, alpha))
-            }
-            UNIFORM_CROSSOVER => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                alters!(UniformCrossover::new(rate))
-            }
-            UNIFORM_MUTATOR => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                alters!(UniformMutator::new(rate))
-            }
-            ARITHMETIC_MUTATOR => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                alters!(ArithmeticMutator::new(rate))
-            }
-            MEAN_CROSSOVER => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                alters!(MeanCrossover::new(rate))
-            }
-            SHUFFLE_CROSSOVER => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                alters!(ShuffleCrossover::new(rate))
-            }
-            SIMULATED_BINARY_CROSSOVER => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                let contiguty = args
-                    .get("contiguty".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                alters!(SimulatedBinaryCrossover::new(contiguty, rate))
-            }
-            GAUSSIAN_MUTATOR => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                alters!(GaussianMutator::new(rate))
-            }
-            SCRAMBLE_MUTATOR => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                alters!(ScrambleMutator::new(rate))
-            }
-            SWAP_MUTATOR => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                alters!(SwapMutator::new(rate))
-            }
-            _ => panic!("Unknown alter type"),
-        });
-    }
-
-    let alters = alters_vec.into_iter().flatten().collect::<Vec<_>>();
-    builder.alter(alters)
+    // Mutators
+    UniformMutator,
+    ArithmeticMutator,
+    GaussianMutator,
+    ScrambleMutator,
+    SwapMutator,
 }
 
-pub fn get_alters_with_int_gene<C, G, T>(
-    builder: GeneticEngineBuilder<C, T>,
-    alters: &Vec<PyEngineParam>,
-) -> GeneticEngineBuilder<C, T>
-where
-    C: Chromosome<Gene = G> + PartialEq + Clone + 'static,
-    T: Clone + Send + Sync,
-    G: ArithmeticGene + Clone,
-    G::Allele: Clone,
-{
-    let mut alters_vec = Vec::new();
-
-    for alter in alters {
-        let args = alter.get_args();
-
-        alters_vec.push(match alter.name() {
-            MULTI_POINT_CROSSOVER => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                let points = args
-                    .get("num_points".into())
-                    .map(|s| s.parse::<usize>().unwrap())
-                    .unwrap_or(2);
-                alters!(MultiPointCrossover::new(rate, points))
-            }
-            UNIFORM_CROSSOVER => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                alters!(UniformCrossover::new(rate))
-            }
-            UNIFORM_MUTATOR => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                alters!(UniformMutator::new(rate))
-            }
-            ARITHMETIC_MUTATOR => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                alters!(ArithmeticMutator::new(rate))
-            }
-            MEAN_CROSSOVER => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                alters!(MeanCrossover::new(rate))
-            }
-            SHUFFLE_CROSSOVER => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                alters!(ShuffleCrossover::new(rate))
-            }
-            SCRAMBLE_MUTATOR => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                alters!(ScrambleMutator::new(rate))
-            }
-            SWAP_MUTATOR => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                alters!(SwapMutator::new(rate))
-            }
-            _ => panic!("Unknown alter type"),
-        });
+pub(super) fn alter_name_to_type(name: &str) -> AlterType {
+    match name {
+        BLEND_CROSSOVER => AlterType::BlendCrossover,
+        INTERMEDIATE_CROSSOVER => AlterType::IntermediateCrossover,
+        UNIFORM_CROSSOVER => AlterType::UniformCrossover,
+        MEAN_CROSSOVER => AlterType::MeanCrossover,
+        SHUFFLE_CROSSOVER => AlterType::ShuffleCrossover,
+        MULTI_POINT_CROSSOVER => AlterType::MultiPointCrossover,
+        SIMULATED_BINARY_CROSSOVER => AlterType::SimulatedBinaryCrossover,
+        UNIFORM_MUTATOR => AlterType::UniformMutator,
+        ARITHMETIC_MUTATOR => AlterType::ArithmeticMutator,
+        GAUSSIAN_MUTATOR => AlterType::GaussianMutator,
+        SCRAMBLE_MUTATOR => AlterType::ScrambleMutator,
+        SWAP_MUTATOR => AlterType::SwapMutator,
+        _ => panic!("Unknown alter type: {}", name),
     }
-
-    let alters = alters_vec.into_iter().flatten().collect::<Vec<_>>();
-    builder.alter(alters)
 }
 
-pub fn get_alters_with_char_gene<C, G, T>(
-    builder: GeneticEngineBuilder<C, T>,
-    alters: &Vec<PyEngineParam>,
-) -> GeneticEngineBuilder<C, T>
-where
-    C: Chromosome<Gene = G> + PartialEq + Clone + 'static,
-    T: Clone + Send + Sync,
-    G: Gene,
-    G::Allele: Clone,
-{
-    let mut alters_vec = Vec::new();
-
-    for alter in alters {
-        let args = alter.get_args();
-
-        alters_vec.push(match alter.name() {
-            MULTI_POINT_CROSSOVER => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                let points = args
-                    .get("num_points".into())
-                    .map(|s| s.parse::<usize>().unwrap())
-                    .unwrap_or(2);
-                alters!(MultiPointCrossover::new(rate, points))
-            }
-            UNIFORM_CROSSOVER => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                alters!(UniformCrossover::new(rate))
-            }
-            UNIFORM_MUTATOR => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                alters!(UniformMutator::new(rate))
-            }
-            SHUFFLE_CROSSOVER => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                alters!(ShuffleCrossover::new(rate))
-            }
-            SCRAMBLE_MUTATOR => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                alters!(ScrambleMutator::new(rate))
-            }
-            SWAP_MUTATOR => {
-                let rate = args
-                    .get("rate".into())
-                    .map(|s| s.parse::<f32>().unwrap())
-                    .unwrap_or(0.5);
-                alters!(SwapMutator::new(rate))
-            }
-            _ => panic!("Unknown alter type"),
-        });
-    }
-
-    let alters = alters_vec.into_iter().flatten().collect::<Vec<_>>();
-    builder.alter(alters)
+pub enum AlterConfig {
+    Float(Box<dyn Fn(&PyEngineParam) -> Vec<Box<dyn Alter<FloatChromosome> + 'static>>>),
+    Int(Box<dyn Fn(&PyEngineParam) -> Vec<Box<dyn Alter<IntChromosome<i32>> + 'static>>>),
+    Char(Box<dyn Fn(&PyEngineParam) -> Vec<Box<dyn Alter<CharChromosome> + 'static>>>),
+    Bit(Box<dyn Fn(&PyEngineParam) -> Vec<Box<dyn Alter<BitChromosome> + 'static>>>),
 }
 
-// type AlterMapper<C> = Box<dyn ParamMapper<C, Output = Vec<Box<dyn Alter<C> + 'static>>>>;
+impl EngineRegistry {
+    pub fn register_float_alters(registry: &mut EngineRegistry) {
+        registry.register_alter_mapper::<FloatChromosome, BlendCrossoverMapper>(
+            PyGeneType::Float,
+            AlterType::BlendCrossover,
+            BlendCrossoverMapper,
+        );
+        registry.register_alter_mapper::<FloatChromosome, IntermediateCrossoverMapper>(
+            PyGeneType::Float,
+            AlterType::IntermediateCrossover,
+            IntermediateCrossoverMapper,
+        );
+        registry.register_alter_mapper::<FloatChromosome, UniformCrossoverMapper>(
+            PyGeneType::Float,
+            AlterType::UniformCrossover,
+            UniformCrossoverMapper,
+        );
+        registry.register_alter_mapper::<FloatChromosome, MeanCrossoverMapper>(
+            PyGeneType::Float,
+            AlterType::MeanCrossover,
+            MeanCrossoverMapper,
+        );
+        registry.register_alter_mapper::<FloatChromosome, ShuffleCrossoverMapper>(
+            PyGeneType::Float,
+            AlterType::ShuffleCrossover,
+            ShuffleCrossoverMapper,
+        );
+        registry.register_alter_mapper::<FloatChromosome, SimulatedBinaryCrossoverMapper>(
+            PyGeneType::Float,
+            AlterType::SimulatedBinaryCrossover,
+            SimulatedBinaryCrossoverMapper,
+        );
+        registry.register_alter_mapper::<FloatChromosome, MultiPointCrossoverMapper>(
+            PyGeneType::Float,
+            AlterType::MultiPointCrossover,
+            MultiPointCrossoverMapper,
+        );
+        registry.register_alter_mapper::<FloatChromosome, UniformMutatorMapper>(
+            PyGeneType::Float,
+            AlterType::UniformMutator,
+            UniformMutatorMapper,
+        );
+        registry.register_alter_mapper::<FloatChromosome, ArithmeticMutatorMapper>(
+            PyGeneType::Float,
+            AlterType::ArithmeticMutator,
+            ArithmeticMutatorMapper,
+        );
+        registry.register_alter_mapper::<FloatChromosome, GaussianMutatorMapper>(
+            PyGeneType::Float,
+            AlterType::GaussianMutator,
+            GaussianMutatorMapper,
+        );
+        registry.register_alter_mapper::<FloatChromosome, ScrambleMutatorMapper>(
+            PyGeneType::Float,
+            AlterType::ScrambleMutator,
+            ScrambleMutatorMapper,
+        );
+        registry.register_alter_mapper::<FloatChromosome, SwapMutatorMapper>(
+            PyGeneType::Float,
+            AlterType::SwapMutator,
+            SwapMutatorMapper,
+        );
+    }
 
-// pub struct EngineRegistry {
-//     pub float_alters: HashMap<String, Vec<AlterMapper<FloatChromosome>>>,
-//     pub int_alters: HashMap<String, Vec<AlterMapper<IntChromosome<i32>>>>,
-//     pub char_alters: HashMap<String, Vec<AlterMapper<CharChromosome>>>,
-// }
+    pub fn register_int_alters(registry: &mut EngineRegistry) {
+        registry.register_alter_mapper::<IntChromosome<i32>, MultiPointCrossoverMapper>(
+            PyGeneType::Int,
+            AlterType::MultiPointCrossover,
+            MultiPointCrossoverMapper,
+        );
+        registry.register_alter_mapper::<IntChromosome<i32>, UniformCrossoverMapper>(
+            PyGeneType::Int,
+            AlterType::UniformCrossover,
+            UniformCrossoverMapper,
+        );
+        registry.register_alter_mapper::<IntChromosome<i32>, UniformMutatorMapper>(
+            PyGeneType::Int,
+            AlterType::UniformMutator,
+            UniformMutatorMapper,
+        );
+        registry.register_alter_mapper::<IntChromosome<i32>, ArithmeticMutatorMapper>(
+            PyGeneType::Int,
+            AlterType::ArithmeticMutator,
+            ArithmeticMutatorMapper,
+        );
+        registry.register_alter_mapper::<IntChromosome<i32>, MeanCrossoverMapper>(
+            PyGeneType::Int,
+            AlterType::MeanCrossover,
+            MeanCrossoverMapper,
+        );
+        registry.register_alter_mapper::<IntChromosome<i32>, ShuffleCrossoverMapper>(
+            PyGeneType::Int,
+            AlterType::ShuffleCrossover,
+            ShuffleCrossoverMapper,
+        );
+        registry.register_alter_mapper::<IntChromosome<i32>, ScrambleMutatorMapper>(
+            PyGeneType::Int,
+            AlterType::ScrambleMutator,
+            ScrambleMutatorMapper,
+        );
+        registry.register_alter_mapper::<IntChromosome<i32>, SwapMutatorMapper>(
+            PyGeneType::Int,
+            AlterType::SwapMutator,
+            SwapMutatorMapper,
+        );
+    }
 
-// impl EngineRegistry {
-//     pub fn new() -> Self {
-//         let mut registry = EngineRegistry {
-//             float_alters: HashMap::new(),
-//             int_alters: HashMap::new(),
-//             char_alters: HashMap::new(),
-//         };
+    pub fn register_char_alters(registry: &mut EngineRegistry) {
+        registry.register_alter_mapper::<CharChromosome, MultiPointCrossoverMapper>(
+            PyGeneType::Char,
+            AlterType::MultiPointCrossover,
+            MultiPointCrossoverMapper,
+        );
+        registry.register_alter_mapper::<CharChromosome, UniformCrossoverMapper>(
+            PyGeneType::Char,
+            AlterType::UniformCrossover,
+            UniformCrossoverMapper,
+        );
+        registry.register_alter_mapper::<CharChromosome, UniformMutatorMapper>(
+            PyGeneType::Char,
+            AlterType::UniformMutator,
+            UniformMutatorMapper,
+        );
+        registry.register_alter_mapper::<CharChromosome, ShuffleCrossoverMapper>(
+            PyGeneType::Char,
+            AlterType::ShuffleCrossover,
+            ShuffleCrossoverMapper,
+        );
+        registry.register_alter_mapper::<CharChromosome, ScrambleMutatorMapper>(
+            PyGeneType::Char,
+            AlterType::ScrambleMutator,
+            ScrambleMutatorMapper,
+        );
+        registry.register_alter_mapper::<CharChromosome, SwapMutatorMapper>(
+            PyGeneType::Char,
+            AlterType::SwapMutator,
+            SwapMutatorMapper,
+        );
+    }
 
-//         // Register default float alters
-//         registry.register_float_alter_mapper(BLEND_CROSSOVER, BlendCrossoverMapper);
-//         registry.register_float_alter_mapper(INTERMEDIATE_CROSSOVER, IntermediateCrossoverMapper);
-//         registry.register_float_alter_mapper(UNIFORM_CROSSOVER, UniformCrossoverMapper);
-//         registry.register_float_alter_mapper(MEAN_CROSSOVER, MeanCrossoverMapper);
-//         registry.register_float_alter_mapper(SHUFFLE_CROSSOVER, ShuffleCrossoverMapper);
-//         registry.register_float_alter_mapper(MULTI_POINT_CROSSOVER, MultiPointCrossoverMapper);
-//         registry.register_float_alter_mapper(UNIFORM_MUTATOR, UniformMutatorMapper);
-//         registry.register_float_alter_mapper(ARITHMETIC_MUTATOR, ArithmeticMutatorMapper);
-//         registry.register_float_alter_mapper(GAUSSIAN_MUTATOR, GaussianMutatorMapper);
-//         registry.register_float_alter_mapper(SCRAMBLE_MUTATOR, ScrambleMutatorMapper);
-//         registry.register_float_alter_mapper(SWAP_MUTATOR, SwapMutatorMapper);
-//         registry.register_float_alter_mapper(
-//             SIMULATED_BINARY_CROSSOVER,
-//             SimulatedBinaryCrossoverMapper,
-//         );
+    pub fn register_bit_alters(registry: &mut EngineRegistry) {
+        registry.register_alter_mapper::<BitChromosome, MultiPointCrossoverMapper>(
+            PyGeneType::Bit,
+            AlterType::MultiPointCrossover,
+            MultiPointCrossoverMapper,
+        );
+        registry.register_alter_mapper::<BitChromosome, UniformCrossoverMapper>(
+            PyGeneType::Bit,
+            AlterType::UniformCrossover,
+            UniformCrossoverMapper,
+        );
+        registry.register_alter_mapper::<BitChromosome, UniformMutatorMapper>(
+            PyGeneType::Bit,
+            AlterType::UniformMutator,
+            UniformMutatorMapper,
+        );
+        registry.register_alter_mapper::<BitChromosome, ShuffleCrossoverMapper>(
+            PyGeneType::Bit,
+            AlterType::ShuffleCrossover,
+            ShuffleCrossoverMapper,
+        );
+        registry.register_alter_mapper::<BitChromosome, ScrambleMutatorMapper>(
+            PyGeneType::Bit,
+            AlterType::ScrambleMutator,
+            ScrambleMutatorMapper,
+        );
+        registry.register_alter_mapper::<BitChromosome, SwapMutatorMapper>(
+            PyGeneType::Bit,
+            AlterType::SwapMutator,
+            SwapMutatorMapper,
+        );
+    }
+}
 
-//         // Register default int alters
-//         registry.register_int_alter_mapper(MULTI_POINT_CROSSOVER, MultiPointCrossoverMapper);
-//         registry.register_int_alter_mapper(UNIFORM_CROSSOVER, UniformCrossoverMapper);
-//         registry.register_int_alter_mapper(MEAN_CROSSOVER, MeanCrossoverMapper);
-//         registry.register_int_alter_mapper(SHUFFLE_CROSSOVER, ShuffleCrossoverMapper);
-//         registry.register_int_alter_mapper(UNIFORM_MUTATOR, UniformMutatorMapper);
-//         registry.register_int_alter_mapper(ARITHMETIC_MUTATOR, ArithmeticMutatorMapper);
-//         registry.register_int_alter_mapper(SCRAMBLE_MUTATOR, ScrambleMutatorMapper);
-//         registry.register_int_alter_mapper(SWAP_MUTATOR, SwapMutatorMapper);
+struct BlendCrossoverMapper;
 
-//         // Register default char alters
-//         registry.register_char_alter_mapper(MULTI_POINT_CROSSOVER, MultiPointCrossoverMapper);
-//         registry.register_char_alter_mapper(UNIFORM_CROSSOVER, UniformCrossoverMapper);
-//         registry.register_char_alter_mapper(SHUFFLE_CROSSOVER, ShuffleCrossoverMapper);
-//         registry.register_char_alter_mapper(UNIFORM_MUTATOR, UniformMutatorMapper);
-//         registry.register_char_alter_mapper(SCRAMBLE_MUTATOR, ScrambleMutatorMapper);
-//         registry.register_char_alter_mapper(SWAP_MUTATOR, SwapMutatorMapper);
+impl<C> ParamMapper<C> for BlendCrossoverMapper
+where
+    C: Chromosome<Gene = FloatGene> + 'static,
+{
+    type Output = Vec<Box<dyn Alter<C>>>;
+    fn map(&self, param: &PyEngineParam) -> Self::Output {
+        let alpha = param
+            .get_arg("alpha")
+            .map(|s| s.parse::<f32>().unwrap())
+            .unwrap_or(0.5);
+        let rate = param
+            .get_arg("rate")
+            .map(|s| s.parse::<f32>().unwrap())
+            .unwrap_or(0.5);
+        alters!(BlendCrossover::new(rate, alpha))
+    }
+}
 
-//         registry
-//     }
+struct IntermediateCrossoverMapper;
 
-//     pub fn get_alters<C: Chromosome>(&self, params: &[PyEngineParam]) -> Vec<Box<dyn Alter<C>>> {
-//         let c_type = std::any::type_name::<C>()
-//             .split("::")
-//             .last()
-//             .map(|maybe_name| {
-//                 maybe_name
-//                     .split("<")
-//                     .into_iter()
-//                     .map(|val| val.to_string())
-//                     .collect::<Vec<String>>()
-//             })
-//             .map(|val| val.first().cloned())
-//             .flatten();
+impl ParamMapper<FloatChromosome> for IntermediateCrossoverMapper {
+    type Output = Vec<Box<dyn Alter<FloatChromosome>>>;
+    fn map(&self, param: &PyEngineParam) -> Self::Output {
+        let rate = param
+            .get_arg("rate")
+            .map(|s| s.parse::<f32>().unwrap())
+            .unwrap_or(0.5);
+        let alpha = param
+            .get_arg("alpha")
+            .map(|s| s.parse::<f32>().unwrap())
+            .unwrap_or(0.5);
+        alters!(IntermediateCrossover::new(rate, alpha))
+    }
+}
 
-//         println!("{:?}", c_type);
+struct UniformCrossoverMapper;
 
-//         match c_type {
-//             Some(c_val) => {
-//                 if c_val == "IntChromosome" {
-//                     let mut alters = Vec::new();
-//                     for param in params {
-//                         if let Some(mappers) = self.int_alters.get(param.name()) {
-//                             for mapper in mappers {
-//                                 alters.extend(mapper.map(param));
-//                             }
-//                         }
-//                     }
+impl<C: Chromosome + 'static> ParamMapper<C> for UniformCrossoverMapper {
+    type Output = Vec<Box<dyn Alter<C>>>;
+    fn map(&self, param: &PyEngineParam) -> Self::Output {
+        let rate = param
+            .get_arg("rate".into())
+            .map(|s| s.parse::<f32>().unwrap())
+            .unwrap_or(0.5);
+        alters!(UniformCrossover::new(rate))
+    }
+}
 
-//                     // return alters;
-//                 } else {
-//                     panic!("Unknown chromosome type: {}", c_val);
-//                 }
-//             }
-//             _ => panic!(""),
-//         }
+struct MeanCrossoverMapper;
 
-//         panic!()
-//     }
+impl<C: Chromosome + 'static> ParamMapper<C> for MeanCrossoverMapper
+where
+    C::Gene: ArithmeticGene,
+{
+    type Output = Vec<Box<dyn Alter<C>>>;
+    fn map(&self, param: &PyEngineParam) -> Self::Output {
+        let rate = param
+            .get_arg("rate".into())
+            .map(|s| s.parse::<f32>().unwrap())
+            .unwrap_or(0.5);
+        alters!(MeanCrossover::new(rate))
+    }
+}
 
-//     pub fn register_float_alter_mapper<
-//         M: ParamMapper<FloatChromosome, Output = Vec<Box<dyn Alter<FloatChromosome>>>> + 'static,
-//     >(
-//         &mut self,
-//         name: &str,
-//         mapper: M,
-//     ) {
-//         self.float_alters
-//             .entry(name.to_string())
-//             .or_insert_with(Vec::new)
-//             .push(Box::new(mapper));
-//     }
+struct ShuffleCrossoverMapper;
 
-//     pub fn register_int_alter_mapper<
-//         M: ParamMapper<IntChromosome<i32>, Output = Vec<Box<dyn Alter<IntChromosome<i32>>>>> + 'static,
-//     >(
-//         &mut self,
-//         name: &str,
-//         mapper: M,
-//     ) {
-//         self.int_alters
-//             .entry(name.to_string())
-//             .or_insert_with(Vec::new)
-//             .push(Box::new(mapper));
-//     }
+impl<C: Chromosome + Clone + 'static> ParamMapper<C> for ShuffleCrossoverMapper {
+    type Output = Vec<Box<dyn Alter<C>>>;
+    fn map(&self, param: &PyEngineParam) -> Self::Output {
+        let rate = param
+            .get_arg("rate".into())
+            .map(|s| s.parse::<f32>().unwrap())
+            .unwrap_or(0.5);
+        alters!(ShuffleCrossover::new(rate))
+    }
+}
 
-//     pub fn register_char_alter_mapper<
-//         M: ParamMapper<CharChromosome, Output = Vec<Box<dyn Alter<CharChromosome>>>> + 'static,
-//     >(
-//         &mut self,
-//         name: &str,
-//         mapper: M,
-//     ) {
-//         self.char_alters
-//             .entry(name.to_string())
-//             .or_insert_with(Vec::new)
-//             .push(Box::new(mapper));
-//     }
-// }
+struct SimulatedBinaryCrossoverMapper;
 
-// pub trait ParamMapper<C: Chromosome + 'static> {
-//     type Output;
-//     fn map(&self, param: &PyEngineParam) -> Self::Output;
-// }
+impl<C: Chromosome<Gene = FloatGene> + 'static> ParamMapper<C> for SimulatedBinaryCrossoverMapper {
+    type Output = Vec<Box<dyn Alter<C>>>;
+    fn map(&self, param: &PyEngineParam) -> Self::Output {
+        let rate = param
+            .get_arg("rate".into())
+            .map(|s| s.parse::<f32>().unwrap())
+            .unwrap_or(0.5);
+        let contiguty = param
+            .get_arg("contiguty".into())
+            .map(|s| s.parse::<f32>().unwrap())
+            .unwrap_or(0.5);
+        alters!(SimulatedBinaryCrossover::new(contiguty, rate))
+    }
+}
 
-// struct BlendCrossoverMapper;
+struct MultiPointCrossoverMapper;
 
-// impl<C> ParamMapper<C> for BlendCrossoverMapper
-// where
-//     C: Chromosome<Gene = FloatGene> + 'static,
-// {
-//     type Output = Vec<Box<dyn Alter<C>>>;
-//     fn map(&self, param: &PyEngineParam) -> Self::Output {
-//         let alpha = param
-//             .get_arg("alpha")
-//             .map(|s| s.parse::<f32>().unwrap())
-//             .unwrap_or(0.5);
-//         let rate = param
-//             .get_arg("rate")
-//             .map(|s| s.parse::<f32>().unwrap())
-//             .unwrap_or(0.5);
-//         alters!(BlendCrossover::new(rate, alpha))
-//     }
-// }
+impl<C: Chromosome + 'static> ParamMapper<C> for MultiPointCrossoverMapper {
+    type Output = Vec<Box<dyn Alter<C>>>;
+    fn map(&self, param: &PyEngineParam) -> Self::Output {
+        let rate = param
+            .get_arg("rate".into())
+            .map(|s| s.parse::<f32>().unwrap())
+            .unwrap_or(0.5);
+        let points = param
+            .get_arg("num_points".into())
+            .map(|s| s.parse::<usize>().unwrap())
+            .unwrap_or(2);
+        alters!(MultiPointCrossover::new(rate, points))
+    }
+}
 
-// struct IntermediateCrossoverMapper;
+struct UniformMutatorMapper;
 
-// impl ParamMapper<FloatChromosome> for IntermediateCrossoverMapper {
-//     type Output = Vec<Box<dyn Alter<FloatChromosome>>>;
-//     fn map(&self, param: &PyEngineParam) -> Self::Output {
-//         let rate = param
-//             .get_arg("rate")
-//             .map(|s| s.parse::<f32>().unwrap())
-//             .unwrap_or(0.5);
-//         let alpha = param
-//             .get_arg("alpha")
-//             .map(|s| s.parse::<f32>().unwrap())
-//             .unwrap_or(0.5);
-//         alters!(IntermediateCrossover::new(rate, alpha))
-//     }
-// }
+impl<C: Chromosome + 'static> ParamMapper<C> for UniformMutatorMapper {
+    type Output = Vec<Box<dyn Alter<C>>>;
+    fn map(&self, param: &PyEngineParam) -> Self::Output {
+        let rate = param
+            .get_arg("rate".into())
+            .map(|s| s.parse::<f32>().unwrap())
+            .unwrap_or(0.5);
+        alters!(UniformMutator::new(rate))
+    }
+}
 
-// struct UniformCrossoverMapper;
+struct ArithmeticMutatorMapper;
 
-// impl<C: Chromosome + 'static> ParamMapper<C> for UniformCrossoverMapper {
-//     type Output = Vec<Box<dyn Alter<C>>>;
-//     fn map(&self, param: &PyEngineParam) -> Self::Output {
-//         let rate = param
-//             .get_arg("rate".into())
-//             .map(|s| s.parse::<f32>().unwrap())
-//             .unwrap_or(0.5);
-//         alters!(UniformCrossover::new(rate))
-//     }
-// }
+impl<C: Chromosome + 'static> ParamMapper<C> for ArithmeticMutatorMapper
+where
+    C::Gene: ArithmeticGene,
+{
+    type Output = Vec<Box<dyn Alter<C>>>;
+    fn map(&self, param: &PyEngineParam) -> Self::Output {
+        let rate = param
+            .get_arg("rate".into())
+            .map(|s| s.parse::<f32>().unwrap())
+            .unwrap_or(0.5);
+        alters!(ArithmeticMutator::new(rate))
+    }
+}
 
-// struct MeanCrossoverMapper;
+struct GaussianMutatorMapper;
 
-// impl<C: Chromosome + 'static> ParamMapper<C> for MeanCrossoverMapper
-// where
-//     C::Gene: ArithmeticGene,
-// {
-//     type Output = Vec<Box<dyn Alter<C>>>;
-//     fn map(&self, param: &PyEngineParam) -> Self::Output {
-//         let rate = param
-//             .get_arg("rate".into())
-//             .map(|s| s.parse::<f32>().unwrap())
-//             .unwrap_or(0.5);
-//         alters!(MeanCrossover::new(rate))
-//     }
-// }
+impl<C: Chromosome<Gene = FloatGene> + 'static> ParamMapper<C> for GaussianMutatorMapper {
+    type Output = Vec<Box<dyn Alter<C>>>;
+    fn map(&self, param: &PyEngineParam) -> Self::Output {
+        let rate = param
+            .get_arg("rate".into())
+            .map(|s| s.parse::<f32>().unwrap())
+            .unwrap_or(0.5);
+        alters!(GaussianMutator::new(rate))
+    }
+}
 
-// struct ShuffleCrossoverMapper;
+struct ScrambleMutatorMapper;
 
-// impl<C: Chromosome + 'static> ParamMapper<C> for ShuffleCrossoverMapper {
-//     type Output = Vec<Box<dyn Alter<C>>>;
-//     fn map(&self, param: &PyEngineParam) -> Self::Output {
-//         let rate = param
-//             .get_arg("rate".into())
-//             .map(|s| s.parse::<f32>().unwrap())
-//             .unwrap_or(0.5);
-//         alters!(ShuffleCrossover::new(rate))
-//     }
-// }
+impl<C: Chromosome + 'static> ParamMapper<C> for ScrambleMutatorMapper {
+    type Output = Vec<Box<dyn Alter<C>>>;
+    fn map(&self, param: &PyEngineParam) -> Self::Output {
+        let rate = param
+            .get_arg("rate".into())
+            .map(|s| s.parse::<f32>().unwrap())
+            .unwrap_or(0.5);
+        alters!(ScrambleMutator::new(rate))
+    }
+}
 
-// struct SimulatedBinaryCrossoverMapper;
+struct SwapMutatorMapper;
 
-// impl<C: Chromosome<Gene = FloatGene> + 'static> ParamMapper<C> for SimulatedBinaryCrossoverMapper {
-//     type Output = Vec<Box<dyn Alter<C>>>;
-//     fn map(&self, param: &PyEngineParam) -> Self::Output {
-//         let rate = param
-//             .get_arg("rate".into())
-//             .map(|s| s.parse::<f32>().unwrap())
-//             .unwrap_or(0.5);
-//         let contiguty = param
-//             .get_arg("contiguty".into())
-//             .map(|s| s.parse::<f32>().unwrap())
-//             .unwrap_or(0.5);
-//         alters!(SimulatedBinaryCrossover::new(contiguty, rate))
-//     }
-// }
-
-// struct MultiPointCrossoverMapper;
-
-// impl<C: Chromosome + 'static> ParamMapper<C> for MultiPointCrossoverMapper {
-//     type Output = Vec<Box<dyn Alter<C>>>;
-//     fn map(&self, param: &PyEngineParam) -> Self::Output {
-//         let rate = param
-//             .get_arg("rate".into())
-//             .map(|s| s.parse::<f32>().unwrap())
-//             .unwrap_or(0.5);
-//         let points = param
-//             .get_arg("num_points".into())
-//             .map(|s| s.parse::<usize>().unwrap())
-//             .unwrap_or(2);
-//         alters!(MultiPointCrossover::new(rate, points))
-//     }
-// }
-
-// struct UniformMutatorMapper;
-
-// impl<C: Chromosome + 'static> ParamMapper<C> for UniformMutatorMapper {
-//     type Output = Vec<Box<dyn Alter<C>>>;
-//     fn map(&self, param: &PyEngineParam) -> Self::Output {
-//         let rate = param
-//             .get_arg("rate".into())
-//             .map(|s| s.parse::<f32>().unwrap())
-//             .unwrap_or(0.5);
-//         alters!(UniformMutator::new(rate))
-//     }
-// }
-
-// struct ArithmeticMutatorMapper;
-
-// impl<C: Chromosome + 'static> ParamMapper<C> for ArithmeticMutatorMapper
-// where
-//     C::Gene: ArithmeticGene,
-// {
-//     type Output = Vec<Box<dyn Alter<C>>>;
-//     fn map(&self, param: &PyEngineParam) -> Self::Output {
-//         let rate = param
-//             .get_arg("rate".into())
-//             .map(|s| s.parse::<f32>().unwrap())
-//             .unwrap_or(0.5);
-//         alters!(ArithmeticMutator::new(rate))
-//     }
-// }
-
-// struct GaussianMutatorMapper;
-
-// impl<C: Chromosome<Gene = FloatGene> + 'static> ParamMapper<C> for GaussianMutatorMapper {
-//     type Output = Vec<Box<dyn Alter<C>>>;
-//     fn map(&self, param: &PyEngineParam) -> Self::Output {
-//         let rate = param
-//             .get_arg("rate".into())
-//             .map(|s| s.parse::<f32>().unwrap())
-//             .unwrap_or(0.5);
-//         alters!(GaussianMutator::new(rate))
-//     }
-// }
-
-// struct ScrambleMutatorMapper;
-
-// impl<C: Chromosome + 'static> ParamMapper<C> for ScrambleMutatorMapper {
-//     type Output = Vec<Box<dyn Alter<C>>>;
-//     fn map(&self, param: &PyEngineParam) -> Self::Output {
-//         let rate = param
-//             .get_arg("rate".into())
-//             .map(|s| s.parse::<f32>().unwrap())
-//             .unwrap_or(0.5);
-//         alters!(ScrambleMutator::new(rate))
-//     }
-// }
-
-// struct SwapMutatorMapper;
-
-// impl<C: Chromosome + 'static> ParamMapper<C> for SwapMutatorMapper {
-//     type Output = Vec<Box<dyn Alter<C>>>;
-//     fn map(&self, param: &PyEngineParam) -> Self::Output {
-//         let rate = param
-//             .get_arg("rate".into())
-//             .map(|s| s.parse::<f32>().unwrap())
-//             .unwrap_or(0.5);
-//         alters!(SwapMutator::new(rate))
-//     }
-// }
+impl<C: Chromosome + 'static> ParamMapper<C> for SwapMutatorMapper {
+    type Output = Vec<Box<dyn Alter<C>>>;
+    fn map(&self, param: &PyEngineParam) -> Self::Output {
+        let rate = param
+            .get_arg("rate".into())
+            .map(|s| s.parse::<f32>().unwrap())
+            .unwrap_or(0.5);
+        alters!(SwapMutator::new(rate))
+    }
+}

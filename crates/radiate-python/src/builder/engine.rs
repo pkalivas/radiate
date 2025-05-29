@@ -5,26 +5,6 @@ use radiate::{
     steps::SequentialEvaluator,
 };
 
-pub(crate) fn build_single_objective_engine<C>(
-    codec: PyCodec<C>,
-    fitness_func: PyObject,
-    builder: &PyEngineBuilder,
-) -> GeneticEngineBuilder<C, ObjectValue>
-where
-    C: Chromosome + PartialEq + Clone,
-{
-    let mut engine = GeneticEngine::builder()
-        .problem(PyProblem::new(fitness_func, codec))
-        .population_size(builder.population_size);
-
-    engine = set_evaluator(engine, &builder.num_threads);
-    engine = crate::set_selector(engine, &builder.offspring_selector, true);
-    engine = crate::set_selector(engine, &builder.survivor_selector, false);
-    engine = crate::set_single_objective(engine, &builder.objectives);
-
-    engine
-}
-
 #[allow(dead_code)]
 pub(crate) fn build_multi_objective_engine<C>(
     codec: PyCodec<C>,
@@ -55,7 +35,7 @@ where
     )
 }
 
-fn set_evaluator<C, T>(
+pub fn set_evaluator<C, T>(
     builder: GeneticEngineBuilder<C, T>,
     num_threads: &usize,
 ) -> GeneticEngineBuilder<C, T>

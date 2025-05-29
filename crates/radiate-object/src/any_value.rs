@@ -1,10 +1,11 @@
+use std::fmt::{Debug, Formatter};
+
 use super::{DataType, Field, ObjectSafe};
 
 pub trait IntoAnyValue<'a> {
     fn into_any_value(self) -> AnyValue<'a>;
 }
 
-#[derive(Debug)]
 pub struct OwnedObject(pub Box<dyn ObjectSafe>);
 
 impl Clone for OwnedObject {
@@ -13,7 +14,7 @@ impl Clone for OwnedObject {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub enum AnyValue<'a> {
     #[default]
     Null,
@@ -279,3 +280,35 @@ impl_from!(
     char => Char,
     &'a str => Str,
 );
+
+impl<'a> Debug for AnyValue<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AnyValue::Null => write!(f, "null"),
+            AnyValue::Boolean(v) => write!(f, "{}", v),
+            AnyValue::UInt8(v) => write!(f, "{}", v),
+            AnyValue::UInt16(v) => write!(f, "{}", v),
+            AnyValue::UInt32(v) => write!(f, "{}", v),
+            AnyValue::UInt64(v) => write!(f, "{}", v),
+            AnyValue::Int8(v) => write!(f, "{}", v),
+            AnyValue::Int16(v) => write!(f, "{}", v),
+            AnyValue::Int32(v) => write!(f, "{}", v),
+            AnyValue::Int64(v) => write!(f, "{}", v),
+            AnyValue::Int128(v) => write!(f, "{}", v),
+            AnyValue::Float32(v) => write!(f, "{}", v),
+            AnyValue::Float64(v) => write!(f, "{}", v),
+            AnyValue::Char(v) => write!(f, "{}", v),
+            AnyValue::Str(v) => write!(f, "{}", v),
+            AnyValue::StringOwned(v) => write!(f, "{}", v),
+            AnyValue::Binary(v) => write!(f, "{:?}", v),
+            AnyValue::BinaryOwned(v) => write!(f, "{:?}", v),
+            AnyValue::VecOwned(v) => write!(f, "{:?} ({})", v.0, v.1.name()),
+            AnyValue::StructOwned(v) => write!(f, "{:?}", v),
+            AnyValue::StructRef(v) => write!(f, "{:?}", v),
+            _ => {
+                // For Object and ObjectView, we can use the type name
+                write!(f, "{} (Object)", self.type_name())
+            }
+        }
+    }
+}

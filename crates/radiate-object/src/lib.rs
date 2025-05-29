@@ -3,27 +3,27 @@ mod dtype;
 mod field;
 mod numeric;
 
-use std::{any::Any, fmt::Debug};
+use std::any::Any;
 
 pub use any_value::{AnyValue, IntoAnyValue};
 pub use dtype::DataType;
 pub use field::Field;
 pub use numeric::*;
 
-pub trait Object: Any + Debug + Clone + PartialEq + Send + Sync {
+pub trait Object: Any + Clone + PartialEq + Send + Sync {
     fn type_name() -> &'static str;
 }
 
 impl<T> Object for T
 where
-    T: Any + Debug + Clone + PartialEq + Send + Sync,
+    T: Any + Clone + PartialEq + Send + Sync,
 {
     fn type_name() -> &'static str {
         std::any::type_name::<T>()
     }
 }
 
-pub trait ObjectSafe: Any + Debug + Send + Sync {
+pub trait ObjectSafe: Any + Send + Sync {
     fn type_name(&self) -> &'static str;
 
     fn as_any(&self) -> &dyn Any;
