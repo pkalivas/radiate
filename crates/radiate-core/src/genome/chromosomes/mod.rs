@@ -1,10 +1,6 @@
-pub mod any;
 pub mod bit;
-pub mod chromosome;
-
-pub use bit::{BitChromosome, BitGene};
-pub use chromosome::*;
 pub mod char;
+pub mod chromosome;
 pub mod float;
 pub mod gene;
 pub mod int;
@@ -19,7 +15,9 @@ use std::{
 
 use crate::impl_integer;
 
+pub use bit::{BitChromosome, BitGene};
 pub use char::{CharChromosome, CharGene};
+pub use chromosome::*;
 pub use float::{FloatChromosome, FloatGene};
 pub use gene::{ArithmeticGene, Gene, Valid};
 pub use int::{IntChromosome, IntGene};

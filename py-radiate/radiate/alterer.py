@@ -43,6 +43,10 @@ class Alterer(EngineParam):
         :param gene_type: Gene type to validate.
         :return: True if the gene type is valid, False otherwise.
         """
+        if not isinstance(gene_type, GeneType):
+            raise TypeError(
+                f"Gene type {type(gene_type)} is not supported. Expected GeneType."
+            )
         return gene_type in self.gene_types
 
 
@@ -51,7 +55,7 @@ class BlendCrossover(Alterer):
     Blend Crossover alterer.
     """
 
-    gene_types = [GeneType.FLOAT]
+    gene_types = [GeneType.FLOAT()]
     name = "blend_crossover"
 
     def __init__(self, rate: float = 0.1, alpha: float = 0.5):
@@ -72,7 +76,7 @@ class IntermediateCrossover(Alterer):
     Intermediate Crossover alterer.
     """
 
-    gene_types = [GeneType.FLOAT, GeneType.INT]
+    gene_types = [GeneType.FLOAT(), GeneType.INT()]
     name = "intermediate_crossover"
 
     def __init__(self, rate: float = 0.1, alpha: float = 0.5):
@@ -92,7 +96,7 @@ class MeanCrossover(Alterer):
     Mean Crossover alterer.
     """
 
-    gene_types = [GeneType.FLOAT, GeneType.INT]
+    gene_types = [GeneType.FLOAT(), GeneType.INT()]
     name = "mean_crossover"
 
     def __init__(self, rate: float = 0.5):
@@ -110,7 +114,7 @@ class ShuffleCrossover(Alterer):
     Shuffle Crossover alterer.
     """
 
-    gene_types = GeneType.ALL
+    gene_types = [GeneType.INT(), GeneType.CHAR(), GeneType.BIT(), GeneType.FLOAT()]
     name = "shuffle_crossover"
 
     def __init__(self, rate: float = 0.1):
@@ -128,7 +132,7 @@ class SimulatedBinaryCrossover(Alterer):
     Simulated Binary Crossover alterer.
     """
 
-    gene_types = [GeneType.FLOAT]
+    gene_types = [GeneType.FLOAT()]
     name = "simulated_binary_crossover"
 
     def __init__(self, rate: float = 0.1, contiguty: float = 0.5):
@@ -148,7 +152,7 @@ class PartiallyMatchedCrossover(Alterer):
     Partially Matched Crossover alterer.
     """
 
-    gene_types = GeneType.ALL
+    gene_types = [GeneType.INT(), GeneType.CHAR(), GeneType.BIT(), GeneType.FLOAT()]
     name = "partially_matched_crossover"
 
     def __init__(self, rate: float = 0.1):
@@ -166,7 +170,7 @@ class MultiPointCrossover(Alterer):
     Multi Point Crossover alterer.
     """
 
-    gene_types = GeneType.ALL
+    gene_types = [GeneType.INT(), GeneType.CHAR(), GeneType.BIT(), GeneType.FLOAT()]
     name = "multi_point_crossover"
 
     def __init__(self, rate: float = 0.1, num_points: int = 2):
@@ -186,7 +190,7 @@ class UniformCrossover(Alterer):
     Uniform Crossover alterer.
     """
 
-    gene_types = GeneType.ALL
+    gene_types = [GeneType.INT(), GeneType.CHAR(), GeneType.BIT(), GeneType.FLOAT()]
     name = "uniform_crossover"
 
     def __init__(self, rate: float = 0.5):
@@ -204,7 +208,7 @@ class UniformMutator(Alterer):
     Uniform Mutator alterer.
     """
 
-    gene_types = GeneType.ALL
+    gene_types = [GeneType.INT(), GeneType.CHAR(), GeneType.BIT(), GeneType.FLOAT()]
     name = "uniform_mutator"
 
     def __init__(self, rate: float = 0.1):
@@ -222,7 +226,7 @@ class ArithmeticMutator(Alterer):
     Arithmetic Mutator alterer.
     """
 
-    gene_types = [GeneType.FLOAT, GeneType.INT]
+    gene_types = [GeneType.FLOAT(), GeneType.INT()]
     name = "arithmetic_mutator"
 
     def __init__(self, rate: float = 0.1):
@@ -240,7 +244,7 @@ class GaussianMutator(Alterer):
     Gaussian Mutator alterer.
     """
 
-    gene_types = [GeneType.FLOAT]
+    gene_types = [GeneType.FLOAT()]
     name = "gaussian_mutator"
 
     def __init__(self, rate: float = 0.1):
@@ -258,7 +262,7 @@ class ScrambleMutator(Alterer):
     Scramble Mutator alterer.
     """
 
-    gene_types = GeneType.ALL
+    gene_types = [GeneType.INT(), GeneType.CHAR(), GeneType.BIT(), GeneType.FLOAT()]
     name = "scramble_mutator"
 
     def __init__(self, rate: float = 0.1):
@@ -276,7 +280,7 @@ class SwapMutator(Alterer):
     Swap Mutator alterer.
     """
 
-    gene_types = GeneType.ALL
+    gene_types = [GeneType.INT(), GeneType.CHAR(), GeneType.BIT(), GeneType.FLOAT()]
     name = "swap_mutator"
 
     def __init__(self, rate: float = 0.1):

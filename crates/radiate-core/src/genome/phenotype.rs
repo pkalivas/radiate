@@ -125,7 +125,10 @@ impl<C: Chromosome> AsRef<[f32]> for Phenotype<C> {
 
 /// Implement the `PartialOrd` trait for the `Phenotype`. This allows the `Phenotype` to be compared
 /// with other `Phenotype` instances. The comparison is based on the `Score` (fitness) of the `Phenotype`.
-impl<C: Chromosome> PartialOrd for Phenotype<C> {
+impl<C> PartialOrd for Phenotype<C>
+where
+    C: Chromosome + PartialEq,
+{
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         let self_score = self.score();
         let other_score = other.score();
@@ -134,7 +137,7 @@ impl<C: Chromosome> PartialOrd for Phenotype<C> {
     }
 }
 
-impl<C: Chromosome> Eq for Phenotype<C> {}
+impl<C> Eq for Phenotype<C> where C: Chromosome + PartialEq {}
 
 impl<C: Chromosome> Hash for Phenotype<C> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

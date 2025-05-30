@@ -23,4 +23,3 @@ radiate-gp = { workspace = true, optional = true }
 default = []
 gp = ["radiate-gp"]
 serde = ["radiate-core/serde"]
-

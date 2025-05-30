@@ -1,4 +1,4 @@
-use std::ops::{Add, Div, Mul, RangeBounds, Sub};
+use std::ops::{Add, Div, Mul, Sub};
 
 /// A [`Valid`] type is a type that can be checked for validity. This is used for checking if a gene
 /// or a chromosome is valid. For example, a gene that represents a number between 0 and 1 can be checked
@@ -73,12 +73,7 @@ pub trait Gene: Clone + Valid {
 /// including integers, floats, etc. Essentially, any gene that can `Add`, `Sub`, `Mul`, and `Div`
 /// can be used as a [ArithmeticGene].
 pub trait ArithmeticGene:
-    Gene
-    + RangeBounds<Self::Allele>
-    + Add<Output = Self>
-    + Sub<Output = Self>
-    + Mul<Output = Self>
-    + Div<Output = Self>
+    Gene + Add<Output = Self> + Sub<Output = Self> + Mul<Output = Self> + Div<Output = Self>
 {
     /// Get the min value of the gene as a number.
     fn min(&self) -> &Self::Allele;

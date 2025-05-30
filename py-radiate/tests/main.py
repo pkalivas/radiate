@@ -1,6 +1,7 @@
 import os
 import sys
 import math
+import matplotlib.pyplot as plt
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, project_root)
@@ -10,31 +11,34 @@ import radiate as rd
 
 rd.random.set_seed(100)
 
-# codec = rd.IntCodec([10], (0, 10))
-# engine = rd.GeneticEngine(codec, lambda x: sum(x[0]))
-# # engine.num_threads(1)
-# engine.offspring_selector(rd.BoltzmannSelector(4))
-# engine.alters([
-#     rd.MultiPointCrossover(0.75, 2), 
-#     rd.UniformMutator(0.01)
-# ])
+codec = rd.IntCodec([10], (0, 10))
+engine = rd.GeneticEngine(codec, lambda x: sum(x[0]))
+engine.num_threads(1)
+engine.offspring_selector(rd.BoltzmannSelector(4))
+engine.alters([
+    rd.MultiPointCrossover(0.75, 2), 
+    rd.UniformMutator(0.01)
+])
 
-# result = engine.run(rd.ScoreLimit(0), log=False)
-
-# print(result)
-
-target = "Hello, Radiate!"
-def fitness_fn(x):
-    return sum(1 for i in range(len(target)) if x[0][i] == target[i])
-
-codec = rd.CharCodec([len(target)])
-engine = rd.GeneticEngine(codec, fitness_fn,
-                          objectives=rd.ObjectiveType.MAX,
-                          offspring_selector=rd.BoltzmannSelector(4))
-
-result = engine.run(rd.ScoreLimit(len(target)))
+result = engine.run(rd.ScoreLimit(0), log=False)
 
 print(result)
+
+
+
+
+# target = "Hello, Radiate!"
+# def fitness_fn(x):
+#     return sum(1 for i in range(len(target)) if x[0][i] == target[i])
+
+# codec = rd.CharCodec([len(target)])
+# engine = rd.GeneticEngine(codec, fitness_fn,
+#                           objectives=rd.ObjectiveType.MAX,
+#                           offspring_selector=rd.BoltzmannSelector(4))
+
+# result = engine.run(rd.ScoreLimit(len(target)))
+
+# print(result)
 
 # A = 10.0
 # RANGE = 5.12
@@ -49,7 +53,7 @@ print(result)
 #     return value
 
 # codec = rd.FloatCodec([2], (-5.12, 5.12))
-# engine = rd.Engine(codec, fitness_fn)
+# engine = rd.GeneticEngine(codec, fitness_fn)
 
 # engine.alters([
 #     rd.UniformCrossover(0.5), 
@@ -58,30 +62,47 @@ print(result)
 
 # engine.run(rd.ScoreLimit(0.0001))
 
-variables = 4
-objectives = 3
-k = variables - objectives + 1
+# variables = 4
+# objectives = 3
+# k = variables - objectives + 1
 
-def dtlz_1(val):
-    g = sum((x - 0.5) ** 2 for x in val[k:])
-    f1 = (1.0 + g) * (val[0] * val[1])
-    f2 = (1.0 + g) * (val[0] * (1.0 - val[1]))
-    f3 = (1.0 + g) * (1.0 - val[0])
+# def dtlz_1(val):
+#     val = val[0]
+#     g = 0.0
+#     for i in range(variables - k, variables):
+#         g += (val[i] - 0.5) ** 2 - math.cos(20.0 * math.pi * (val[i] - 0.5))
+#     g = 100.0 * (k + g)
+#     f = [0.0] * objectives
+#     for i in range(objectives):
+#         f[i] = 0.5 * (1.0 + g)
+#         for j in range(objectives - 1 - i):
+#             f[i] *= val[j]
+#         if i != 0:
+#             f[i] *= 1.0 - val[objectives - 1 - i]
+#     return f
 
-    return [f1, f2, f3]
+# codec = rd.FloatCodec([variables], (0.0, 1.0), (-100.0, 100.0))
+# engine = rd.GeneticEngine(codec, dtlz_1)
+# engine.multi_objective([rd.ObjectiveType.MIN, rd.ObjectiveType.MIN, rd.ObjectiveType.MIN])
+# engine.offspring_selector(rd.TournamentSelector(k=5))
+# engine.survivor_selector(rd.NSGA2Selector())
+# engine.alters([
+#     rd.SimulatedBinaryCrossover(1.0, 1.0),
+#     rd.UniformMutator(0.1)
+# ])
 
-codec = rd.FloatCodec([variables], (0.0, 1.0), (-100.0, 100.0))
-engine = rd.GeneticEngine(codec, dtlz_1)
-engine.multi_objective([rd.ObjectiveType.MIN, rd.ObjectiveType.MIN, rd.ObjectiveType.MIN])
-engine.offspring_selector(rd.TournamentSelector(k=5))
-engine.survivor_selector(rd.NSGA2Selector())
-engine.alters([
-    rd.SimulatedBinaryCrossover(1.0, 1.0),
-    rd.UniformMutator(0.1)
-])
+# result = engine.run(rd.GenerationsLimit(1000), log=False)
+# print(result)
 
-result = engine.run(rd.GenerationsLimit(1000), log=False)
-print(result)
+# front = result.get_pareto_front()
+# fig = plt.figure()
+# ax = plt.axes(projection='3d')
+
+# x = [member['fitness'][0] for member in front]
+# y = [member['fitness'][1] for member in front]
+# z = [member['fitness'][2] for member in front]
+# ax.scatter(x, y, z, c='r', marker='o')
+# plt.show()
 
 
 # import inspect

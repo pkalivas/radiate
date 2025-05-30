@@ -7,11 +7,9 @@ from .limit import Limit
 
 from radiate.radiate import (
     PyEngineBuilder,
-    PyFloatEngine,
-    PyIntEngine,
-    PyGeneration,
-    PyCharEngine,
-    PyBitEngine,
+    Generation,
+    PyEngine,
+    PyGeneType
 )
 
 
@@ -38,13 +36,13 @@ class GeneticEngine:
         self.fitness_func = fitness_func
 
         if isinstance(self.codec, FloatCodec):
-            self.gene_type = GeneType.FLOAT
+            self.gene_type = GeneType.FLOAT()
         elif isinstance(self.codec, IntCodec):
-            self.gene_type = GeneType.INT
+            self.gene_type = GeneType.INT()
         elif isinstance(self.codec, CharCodec):
-            self.gene_type = GeneType.CHAR
+            self.gene_type = GeneType.CHAR()
         elif isinstance(self.codec, BitCodec):
-            self.gene_type = GeneType.BIT
+            self.gene_type = GeneType.BIT()
         else:
             raise TypeError(f"Codec type {type(self.codec)} is not supported.")
 
@@ -65,7 +63,7 @@ class GeneticEngine:
             num_threads=num_threads,
         )
 
-    def run(self, limits: Limit | List[Limit], log: bool = False) -> PyGeneration:
+    def run(self, limits: Limit | List[Limit], log: bool = False) -> Generation:
         """Run the engine with the given limits."""
         if limits is None:
             raise ValueError("Limits must be provided.")
@@ -129,16 +127,8 @@ class GeneticEngine:
 
     def __get_engine(self):
         """Get the engine."""
-        if self.gene_type == GeneType.FLOAT:
-            return PyFloatEngine(self.codec.codec, self.fitness_func, self.builder)
-        elif self.gene_type == GeneType.INT:
-            return PyIntEngine(self.codec.codec, self.fitness_func, self.builder)
-        elif self.gene_type == GeneType.CHAR:
-            return PyCharEngine(self.codec.codec, self.fitness_func, self.builder)
-        elif self.gene_type == GeneType.BIT:
-            return PyBitEngine(self.codec.codec, self.fitness_func, self.builder)
-        else:
-            raise TypeError(f"Gene type {self.gene_type} is not supported.")
+        return PyEngine(self.gene_type.gene_type, self.codec.codec, self.fitness_func, self.builder)
+        
 
     def __get_objectives(self, objectives: str | List[str]) -> List[str]:
         """Get the objectives."""
@@ -165,7 +155,7 @@ class GeneticEngine:
                 for alter in value:
                     if not alter.is_valid(self.gene_type):
                         raise TypeError(
-                            f"Alterer {alter} is not valid for genome type {self.gene_type}."
+                            f"Alterer {alter} is not valid for genome type {self.gene_type.gene_type}."
                         )
                 return [alter.params for alter in value]
         raise TypeError(f"Param type {type(value)} is not supported.")

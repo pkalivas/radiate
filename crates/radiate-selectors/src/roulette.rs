@@ -11,7 +11,7 @@ impl RouletteSelector {
     }
 }
 
-impl<C: Chromosome> Select<C> for RouletteSelector {
+impl<C: Chromosome + Clone> Select<C> for RouletteSelector {
     fn select(
         &self,
         population: &Population<C>,

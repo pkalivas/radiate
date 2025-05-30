@@ -23,7 +23,7 @@ impl<C: Chromosome> Mutate<C> for ScrambleMutator {
             let start = random_provider::range(0..chromosome.len());
             let end = random_provider::range(start..chromosome.len());
 
-            let segment = &mut chromosome.as_mut()[start..end];
+            let segment = &mut chromosome.genes_mut()[start..end];
             random_provider::shuffle(segment);
             mutations += 1;
         }

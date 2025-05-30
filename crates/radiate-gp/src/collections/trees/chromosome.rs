@@ -42,6 +42,14 @@ where
     T: Clone + PartialEq,
 {
     type Gene = TreeNode<T>;
+
+    fn genes(&self) -> &[Self::Gene] {
+        &self.nodes
+    }
+
+    fn genes_mut(&mut self) -> &mut [Self::Gene] {
+        &mut self.nodes
+    }
 }
 
 impl<T> Valid for TreeChromosome<T> {

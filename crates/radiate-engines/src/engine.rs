@@ -83,10 +83,10 @@ where
 
 impl<C, T> GeneticEngine<C, T, Generation<C, T>>
 where
-    C: Chromosome,
+    C: Chromosome + Clone,
     T: Clone + Send,
 {
-    pub fn builder() -> GeneticEngineBuilder<C, T> {
+    pub fn builder() -> GeneticEngineBuilder<C, T, Generation<C, T>> {
         GeneticEngineBuilder::default()
     }
 }

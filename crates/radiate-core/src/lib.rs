@@ -20,7 +20,7 @@ pub use diversity::Diversity;
 pub use domain::*;
 pub use engine::{Engine, EngineExt, EngineStep, Epoch};
 pub use genome::*;
-pub use objectives::{Front, Objective, Optimize, Score, pareto};
+pub use objectives::{Front, Objective, Optimize, ParetoFront, Score, pareto};
 pub use problem::{EngineProblem, Problem};
 pub use replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
 pub use selector::{ProbabilityWheelIterator, Select};

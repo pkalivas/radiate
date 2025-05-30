@@ -104,7 +104,7 @@ where
 
 impl<C, T> Clone for Context<C, T>
 where
-    C: Chromosome,
+    C: Chromosome + Clone,
     T: Clone,
 {
     fn clone(&self) -> Self {

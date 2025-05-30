@@ -140,23 +140,19 @@ pub struct CharChromosome {
 
 impl Chromosome for CharChromosome {
     type Gene = CharGene;
+
+    fn genes(&self) -> &[Self::Gene] {
+        &self.genes
+    }
+
+    fn genes_mut(&mut self) -> &mut [Self::Gene] {
+        &mut self.genes
+    }
 }
 
 impl Valid for CharChromosome {
     fn is_valid(&self) -> bool {
         self.genes.iter().all(|gene| gene.is_valid())
-    }
-}
-
-impl AsRef<[CharGene]> for CharChromosome {
-    fn as_ref(&self) -> &[CharGene] {
-        &self.genes
-    }
-}
-
-impl AsMut<[CharGene]> for CharChromosome {
-    fn as_mut(&mut self) -> &mut [CharGene] {
-        &mut self.genes
     }
 }
 

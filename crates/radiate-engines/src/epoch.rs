@@ -9,7 +9,7 @@ where
     C: Chromosome,
 {
     ecosystem: Ecosystem<C>,
-    best: T,
+    value: T,
     index: usize,
     metrics: MetricSet,
     score: Score,
@@ -31,7 +31,7 @@ impl<C: Chromosome, T> Epoch for Generation<C, T> {
     }
 
     fn value(&self) -> &Self::Value {
-        &self.best
+        &self.value
     }
 
     fn index(&self) -> usize {
@@ -53,11 +53,11 @@ impl<C: Chromosome, T> Scored for Generation<C, T> {
     }
 }
 
-impl<C: Chromosome, T: Clone> From<&Context<C, T>> for Generation<C, T> {
+impl<C: Chromosome + Clone, T: Clone> From<&Context<C, T>> for Generation<C, T> {
     fn from(context: &Context<C, T>) -> Self {
         Generation {
             ecosystem: context.ecosystem.clone(),
-            best: context.best.clone(),
+            value: context.best.clone(),
             index: context.index,
             metrics: context.metrics.clone(),
             score: context.score.clone().unwrap(),
@@ -72,7 +72,7 @@ where
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "EngineOutput {{\n")?;
-        write!(f, "  best: {:?},\n", self.best)?;
+        write!(f, "  value: {:?},\n", self.value)?;
         write!(f, "  score: {:?},\n", self.score)?;
         write!(f, "  index: {:?},\n", self.index)?;
         write!(f, "  size: {:?},\n", self.ecosystem.population.len())?;
@@ -128,7 +128,7 @@ where
     }
 }
 
-impl<C: Chromosome, T: Clone> From<&Context<C, T>> for MultiObjectiveGeneration<C> {
+impl<C: Chromosome + Clone, T: Clone> From<&Context<C, T>> for MultiObjectiveGeneration<C> {
     fn from(context: &Context<C, T>) -> Self {
         MultiObjectiveGeneration {
             ecosystem: context.ecosystem.clone(),
@@ -137,5 +137,27 @@ impl<C: Chromosome, T: Clone> From<&Context<C, T>> for MultiObjectiveGeneration<
             metrics: context.metrics.clone(),
             objective: context.objective.clone(),
         }
+    }
+}
+
+impl<C> Debug for MultiObjectiveGeneration<C>
+where
+    C: Chromosome,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "MultiObjectiveGeneration {{\n")?;
+        write!(f, "  front: {:?},\n", self.front.values().len())?;
+        write!(f, "  index: {:?},\n", self.index)?;
+        write!(f, "  size: {:?},\n", self.ecosystem.population.len())?;
+        write!(f, "  duration: {:?},\n", self.time())?;
+
+        if let Some(species) = &self.ecosystem.species {
+            for s in species {
+                write!(f, "  species: {:?},\n", s)?;
+            }
+        }
+
+        write!(f, "  metrics: {:?},\n", self.metrics)?;
+        write!(f, "}}")
     }
 }

@@ -1,7 +1,5 @@
 use std::{collections::BTreeMap, fmt::Display, sync::Arc};
 
-use super::DataType;
-
 pub type Metadata = BTreeMap<String, String>;
 
 /// Represents Arrow's metadata of a "column".

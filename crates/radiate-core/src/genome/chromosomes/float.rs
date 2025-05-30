@@ -2,7 +2,7 @@ use super::{
     Chromosome,
     gene::{ArithmeticGene, Gene, Valid},
 };
-use crate::{AnyValue, random_provider};
+use crate::random_provider;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{
@@ -204,24 +204,6 @@ impl From<(Range<f32>, Range<f32>)> for FloatGene {
     }
 }
 
-impl<'a> From<FloatGene> for AnyValue<'a> {
-    fn from(gene: FloatGene) -> AnyValue<'a> {
-        let allele = AnyValue::Float32(gene.allele().clone());
-        let value_range_min = AnyValue::Float32(gene.value_range.start);
-        let value_range_max = AnyValue::Float32(gene.value_range.end);
-        let bounds_min = AnyValue::Float32(gene.bounds.start);
-        let bounds_max = AnyValue::Float32(gene.bounds.end);
-
-        AnyValue::StructOwned(vec![
-            ("allele".into(), allele),
-            ("value_range_min".into(), value_range_min),
-            ("value_range_max".into(), value_range_max),
-            ("bounds_min".into(), bounds_min),
-            ("bounds_max".into(), bounds_max),
-        ])
-    }
-}
-
 impl Debug for FloatGene {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.allele)
@@ -278,23 +260,19 @@ impl FloatChromosome {
 
 impl Chromosome for FloatChromosome {
     type Gene = FloatGene;
+
+    fn genes(&self) -> &[Self::Gene] {
+        &self.genes
+    }
+
+    fn genes_mut(&mut self) -> &mut [Self::Gene] {
+        &mut self.genes
+    }
 }
 
 impl Valid for FloatChromosome {
     fn is_valid(&self) -> bool {
         self.genes.iter().all(|gene| gene.is_valid())
-    }
-}
-
-impl AsRef<[FloatGene]> for FloatChromosome {
-    fn as_ref(&self) -> &[FloatGene] {
-        &self.genes
-    }
-}
-
-impl AsMut<[FloatGene]> for FloatChromosome {
-    fn as_mut(&mut self) -> &mut [FloatGene] {
-        &mut self.genes
     }
 }
 
@@ -332,6 +310,7 @@ impl Debug for FloatChromosome {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     #[test]

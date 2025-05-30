@@ -33,7 +33,7 @@ impl<C: Chromosome> Mutate<C> for InversionMutator {
             let start = random_provider::range(0..chromosome.len());
             let end = random_provider::range(start..chromosome.len());
 
-            chromosome.as_mut()[start..end].reverse();
+            chromosome.genes_mut()[start..end].reverse();
             mutations += 1;
         }
 

@@ -5,7 +5,7 @@ mod int;
 
 use std::sync::Arc;
 
-use crate::conversion::ObjectValue;
+use crate::ObjectValue;
 pub use bit::PyBitCodec;
 pub use char::PyCharCodec;
 pub use float::PyFloatCodec;
@@ -66,3 +66,6 @@ impl<C: Chromosome> Codec<C, ObjectValue> for PyCodec<C> {
         })
     }
 }
+
+unsafe impl<C: Chromosome> Send for PyCodec<C> {}
+unsafe impl<C: Chromosome> Sync for PyCodec<C> {}

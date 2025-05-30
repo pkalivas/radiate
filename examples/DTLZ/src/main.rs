@@ -29,15 +29,14 @@ fn main() {
         .inspect(|ctx| {
             println!("[ {:?} ]", ctx.index());
         })
-        .last()
-        .unwrap();
+        .collect::<ParetoFront<Phenotype<FloatChromosome>>>();
 
-    println!("{:?}", result.seconds());
-    println!("{:?}", result.metrics());
-    plot_front(&result.value());
+    // println!("{:?}", result.seconds());
+    // println!("{:?}", result.metrics());
+    plot_front(&result);
 }
 
-fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {
+fn plot_front(front: &ParetoFront<Phenotype<FloatChromosome>>) {
     let mut x = vec![];
     let mut y = vec![];
     let mut z = vec![];

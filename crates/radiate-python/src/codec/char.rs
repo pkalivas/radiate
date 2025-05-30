@@ -1,5 +1,5 @@
 use super::PyCodec;
-use crate::conversion::ObjectValue;
+use crate::ObjectValue;
 use pyo3::{
     pyclass, pymethods,
     types::{PyList, PyListMethods},
