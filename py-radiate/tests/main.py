@@ -1,6 +1,7 @@
 import os
 import sys
 import math
+import matplotlib.pyplot as plt
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, project_root)
@@ -22,6 +23,8 @@ engine.alters([
 result = engine.run(rd.ScoreLimit(0), log=False)
 
 print(result)
+
+
 
 
 # target = "Hello, Radiate!"
@@ -64,12 +67,19 @@ print(result)
 # k = variables - objectives + 1
 
 # def dtlz_1(val):
-#     g = sum((x - 0.5) ** 2 for x in val[k:])
-#     f1 = (1.0 + g) * (val[0] * val[1])
-#     f2 = (1.0 + g) * (val[0] * (1.0 - val[1]))
-#     f3 = (1.0 + g) * (1.0 - val[0])
-
-#     return [f1, f2, f3]
+#     val = val[0]
+#     g = 0.0
+#     for i in range(variables - k, variables):
+#         g += (val[i] - 0.5) ** 2 - math.cos(20.0 * math.pi * (val[i] - 0.5))
+#     g = 100.0 * (k + g)
+#     f = [0.0] * objectives
+#     for i in range(objectives):
+#         f[i] = 0.5 * (1.0 + g)
+#         for j in range(objectives - 1 - i):
+#             f[i] *= val[j]
+#         if i != 0:
+#             f[i] *= 1.0 - val[objectives - 1 - i]
+#     return f
 
 # codec = rd.FloatCodec([variables], (0.0, 1.0), (-100.0, 100.0))
 # engine = rd.GeneticEngine(codec, dtlz_1)
@@ -83,6 +93,16 @@ print(result)
 
 # result = engine.run(rd.GenerationsLimit(1000), log=False)
 # print(result)
+
+# front = result.get_pareto_front()
+# fig = plt.figure()
+# ax = plt.axes(projection='3d')
+
+# x = [member['fitness'][0] for member in front]
+# y = [member['fitness'][1] for member in front]
+# z = [member['fitness'][2] for member in front]
+# ax.scatter(x, y, z, c='r', marker='o')
+# plt.show()
 
 
 # import inspect

@@ -139,3 +139,25 @@ impl<C: Chromosome + Clone, T: Clone> From<&Context<C, T>> for MultiObjectiveGen
         }
     }
 }
+
+impl<C> Debug for MultiObjectiveGeneration<C>
+where
+    C: Chromosome,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "MultiObjectiveGeneration {{\n")?;
+        write!(f, "  front: {:?},\n", self.front.values().len())?;
+        write!(f, "  index: {:?},\n", self.index)?;
+        write!(f, "  size: {:?},\n", self.ecosystem.population.len())?;
+        write!(f, "  duration: {:?},\n", self.time())?;
+
+        if let Some(species) = &self.ecosystem.species {
+            for s in species {
+                write!(f, "  species: {:?},\n", s)?;
+            }
+        }
+
+        write!(f, "  metrics: {:?},\n", self.metrics)?;
+        write!(f, "}}")
+    }
+}

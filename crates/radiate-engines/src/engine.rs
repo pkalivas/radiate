@@ -91,7 +91,7 @@ where
     }
 }
 
-impl<C, T, E> Engine<E> for GeneticEngine<C, T, E>
+impl<C, T, E> Engine for GeneticEngine<C, T, E>
 where
     C: Chromosome,
     E: Epoch<Chromosome = C> + for<'a> From<&'a Context<C, T>>,

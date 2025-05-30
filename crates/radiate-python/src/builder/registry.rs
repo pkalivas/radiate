@@ -4,14 +4,10 @@ use super::{
         BoltzmannSelectorMapper, EliteSelectorMapper, LinearRankSelectorMapper,
         NSGA2SelectorMapper, RankSelectorMapper, RouletteSelectorMapper, SelectorConfig,
         SelectorType, StochasticUniversalSamplingSelectorMapper, TournamentSelectorMapper,
-        selector_name_to_type,
     },
 };
 use crate::{PyEngineParam, PyGeneType};
-use radiate::{
-    Alter, BitChromosome, CharChromosome, Chromosome, FloatChromosome, IntChromosome, Select,
-    selector,
-};
+use radiate::{Alter, BitChromosome, CharChromosome, Chromosome, FloatChromosome, IntChromosome};
 use std::collections::HashMap;
 
 pub struct EngineRegistry {
@@ -32,25 +28,6 @@ impl EngineRegistry {
         Self::register_bit_alters(&mut registry);
 
         registry
-    }
-
-    pub fn get_selectors<C: Chromosome + Clone>(&self, params: PyEngineParam) {
-        //-> impl Select<C> {
-        let selector_config = self.selectors.get(&selector_name_to_type(params.name()));
-        if let Some(config) = selector_config {
-            // match config {
-            //     SelectorConfig::Tournament(mapper) => mapper.map(&params),
-            //     SelectorConfig::Roulette(mapper) => mapper.map(&params),
-            //     SelectorConfig::Rank(mapper) => mapper.map(&params),
-            //     SelectorConfig::Elitism(mapper) => mapper.map(&params),
-            //     SelectorConfig::Boltzmann(mapper) => mapper.map(&params),
-            //     SelectorConfig::StochasticUniversalSampling(mapper) => mapper.map(&params),
-            //     SelectorConfig::LinearRank(mapper) => mapper.map(&params),
-            //     SelectorConfig::NSGA2(mapper) => mapper.map(&params),
-            // }
-        } else {
-            panic!("Unknown selector type")
-        }
     }
 
     pub fn get_alters<C: Chromosome + Clone + 'static>(

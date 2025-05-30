@@ -3,21 +3,21 @@ use crate::{
     EngineRegistry, Limit, PyBitCodec, PyCharCodec, PyEngineParam, PyGeneType, PyGeneration,
     PyProblem,
 };
-use crate::{PyEngineBuilder, PyFloatCodec, PyIntCodec, conversion::ObjectValue};
-use pyo3::PyResult;
-use pyo3::{PyObject, Python, pyclass, pymethods};
-use radiate::{
-    BitChromosome, CharChromosome, Chromosome, Epoch, Generation, GeneticEngine,
-    GeneticEngineBuilder, Objective, Optimize, log_ctx,
-};
-use radiate::{FloatChromosome, IntChromosome};
+use crate::{ObjectValue, PyEngineBuilder, PyFloatCodec, PyIntCodec};
+use pyo3::{PyObject, PyResult, Python, pyclass, pymethods};
+use radiate::prelude::*;
 use std::fmt::Debug;
 
+type SingleEngine<C> = GeneticEngine<C, ObjectValue, Generation<C, ObjectValue>>;
+type MultiEngine<C> = GeneticEngine<C, ObjectValue, MultiObjectiveGeneration<C>>;
+
 pub enum EngineInner {
-    Int(GeneticEngine<IntChromosome<i32>, ObjectValue>),
-    Float(GeneticEngine<FloatChromosome, ObjectValue>),
-    Char(GeneticEngine<CharChromosome, ObjectValue>),
-    Bit(GeneticEngine<BitChromosome, ObjectValue>),
+    Int(SingleEngine<IntChromosome<i32>>),
+    IntMulti(MultiEngine<IntChromosome<i32>>),
+    Float(SingleEngine<FloatChromosome>),
+    FloatMulti(MultiEngine<FloatChromosome>),
+    Char(SingleEngine<CharChromosome>),
+    Bit(SingleEngine<BitChromosome>),
 }
 
 #[pyclass]
@@ -36,16 +36,51 @@ impl PyEngine {
         fitness_func: PyObject,
         builder: PyEngineBuilder,
     ) -> Self {
+        let is_multi_objective = builder.objectives.len() > 1;
         let inner = if let Ok(int_codec) = codec.extract::<PyIntCodec>(py) {
-            EngineInner::Int(
-                build_single_objective_engine(gene_type, int_codec.codec, fitness_func, &builder)
+            if is_multi_objective {
+                EngineInner::IntMulti(
+                    build_multi_objective_engine(
+                        gene_type,
+                        int_codec.codec,
+                        fitness_func,
+                        &builder,
+                    )
                     .build(),
-            )
+                )
+            } else {
+                EngineInner::Int(
+                    build_single_objective_engine(
+                        gene_type,
+                        int_codec.codec,
+                        fitness_func,
+                        &builder,
+                    )
+                    .build(),
+                )
+            }
         } else if let Ok(float_codec) = codec.extract::<PyFloatCodec>(py) {
-            EngineInner::Float(
-                build_single_objective_engine(gene_type, float_codec.codec, fitness_func, &builder)
+            if is_multi_objective {
+                EngineInner::FloatMulti(
+                    build_multi_objective_engine(
+                        gene_type,
+                        float_codec.codec,
+                        fitness_func,
+                        &builder,
+                    )
                     .build(),
-            )
+                )
+            } else {
+                EngineInner::Float(
+                    build_single_objective_engine(
+                        gene_type,
+                        float_codec.codec,
+                        fitness_func,
+                        &builder,
+                    )
+                    .build(),
+                )
+            }
         } else if let Ok(char_codec) = codec.extract::<PyCharCodec>(py) {
             EngineInner::Char(
                 build_single_objective_engine(gene_type, char_codec.codec, fitness_func, &builder)
@@ -81,6 +116,12 @@ impl PyEngine {
                 EngineInner::Bit(engine) => {
                     run_single_objective_engine(&mut Some(engine), limits, log)
                 }
+                EngineInner::IntMulti(engine) => {
+                    run_multi_objective_engine(&mut Some(engine), limits, log)
+                }
+                EngineInner::FloatMulti(engine) => {
+                    run_multi_objective_engine(&mut Some(engine), limits, log)
+                }
             })
             .unwrap_or_else(|| {
                 Err(pyo3::exceptions::PyRuntimeError::new_err(
@@ -88,6 +129,19 @@ impl PyEngine {
                 ))
             })
     }
+}
+
+pub(crate) fn build_multi_objective_engine<C>(
+    gene_type: PyGeneType,
+    codec: PyCodec<C>,
+    fitness_func: PyObject,
+    builder: &PyEngineBuilder,
+) -> GeneticEngineBuilder<C, ObjectValue, MultiObjectiveGeneration<C>>
+where
+    C: Chromosome + PartialEq + Clone,
+{
+    let engine = build_single_objective_engine(gene_type, codec, fitness_func, builder);
+    crate::set_multi_objective(engine, &builder.objectives)
 }
 
 pub(crate) fn build_single_objective_engine<C>(
@@ -113,7 +167,41 @@ where
     engine
 }
 
-pub(crate) fn run_single_objective_engine<C, T>(
+fn run_multi_objective_engine<C, T>(
+    engine: &mut Option<GeneticEngine<C, T, MultiObjectiveGeneration<C>>>,
+    limits: Vec<PyEngineParam>,
+    _: bool,
+) -> PyResult<PyGeneration>
+where
+    C: Chromosome + Clone,
+    T: Debug + Clone + Send + Sync,
+    MultiObjectiveGeneration<C>: Into<PyGeneration>,
+{
+    let lims = limits.into_iter().map(Limit::from).collect::<Vec<_>>();
+
+    engine
+        .take()
+        .map(|engine| {
+            engine
+                .iter()
+                .skip_while(|epoch| {
+                    lims.iter().all(|limit| match limit {
+                        Limit::Generations(lim) => epoch.index() < *lim,
+                        Limit::Score(_) => false,
+                        Limit::Seconds(val) => return epoch.seconds() < *val,
+                    })
+                })
+                .take(1)
+                .last()
+                .map(|epoch| epoch.into())
+        })
+        .flatten()
+        .ok_or(pyo3::exceptions::PyRuntimeError::new_err(
+            "No generation found that meets the limits",
+        ))
+}
+
+fn run_single_objective_engine<C, T>(
     engine: &mut Option<GeneticEngine<C, T, Generation<C, T>>>,
     limits: Vec<PyEngineParam>,
     log: bool,

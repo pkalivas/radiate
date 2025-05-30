@@ -1,5 +1,4 @@
 from typing import Any, Callable, List
-import copy
 from .selector import Selector, TournamentSelector, RouletteSelector
 from .alterer import Alterer, UniformCrossover, UniformMutator
 from ._typing import GeneType, ObjectiveType
@@ -8,7 +7,7 @@ from .limit import Limit
 
 from radiate.radiate import (
     PyEngineBuilder,
-    PyGeneration,
+    Generation,
     PyEngine,
     PyGeneType
 )
@@ -64,7 +63,7 @@ class GeneticEngine:
             num_threads=num_threads,
         )
 
-    def run(self, limits: Limit | List[Limit], log: bool = False) -> PyGeneration:
+    def run(self, limits: Limit | List[Limit], log: bool = False) -> Generation:
         """Run the engine with the given limits."""
         if limits is None:
             raise ValueError("Limits must be provided.")

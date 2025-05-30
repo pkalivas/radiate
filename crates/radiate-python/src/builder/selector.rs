@@ -39,20 +39,6 @@ pub enum SelectorConfig {
     NSGA2(NSGA2SelectorMapper),
 }
 
-pub(super) fn selector_name_to_type(name: &str) -> SelectorType {
-    match name {
-        TOURNAMENT_SELECTOR => SelectorType::Tournament,
-        ROULETTE_SELECTOR => SelectorType::Roulette,
-        RANK_SELECTOR => SelectorType::Rank,
-        ELITISM_SELECTOR => SelectorType::Elitism,
-        BOLTZMANN_SELECTOR => SelectorType::Boltzmann,
-        STOCHASTIC_UNIVERSAL_SAMPLING_SELECTOR => SelectorType::StochasticUniversalSampling,
-        LINEAR_RANK_SELECTOR => SelectorType::LinearRank,
-        NSGA2_SELECTOR => SelectorType::NSGA2,
-        _ => panic!("Unknown selector type"),
-    }
-}
-
 pub struct TournamentSelectorMapper;
 
 impl<C: Chromosome> ParamMapper<C> for TournamentSelectorMapper {

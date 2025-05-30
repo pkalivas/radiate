@@ -25,6 +25,3 @@ pub use problem::{EngineProblem, Problem};
 pub use replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
 pub use selector::{ProbabilityWheelIterator, Select};
 pub use stats::*;
-
-#[cfg(feature = "object")]
-pub use radiate_object::*;

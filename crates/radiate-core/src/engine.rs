@@ -7,27 +7,23 @@ use std::{
     time::Duration,
 };
 
-pub trait Engine<E>
-where
-    E: Epoch,
-{
+pub trait Engine {
     type Chromosome: Chromosome;
     type Epoch: Epoch<Chromosome = Self::Chromosome>;
 
     fn next(&mut self) -> Self::Epoch;
 }
 
-pub trait EngineExt<T: Epoch, E: Engine<T>> {
+pub trait EngineExt<E: Engine> {
     fn run<F>(&mut self, limit: F) -> E::Epoch
     where
         F: Fn(&E::Epoch) -> bool,
         Self: Sized;
 }
 
-impl<T, E> EngineExt<T, E> for E
+impl<E> EngineExt<E> for E
 where
-    E: Engine<T>,
-    T: Epoch,
+    E: Engine,
 {
     fn run<F>(&mut self, limit: F) -> E::Epoch
     where

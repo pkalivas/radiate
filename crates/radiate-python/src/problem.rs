@@ -1,7 +1,7 @@
-use crate::{codec::PyCodec, conversion::ObjectValue};
+use crate::{ObjectValue, codec::PyCodec};
 use pyo3::{
     Borrowed, PyAny, PyObject, Python,
-    types::{PyAnyMethods, PyFloat, PyInt},
+    types::{PyAnyMethods, PyFloat, PyInt, PyList},
 };
 use radiate::{Chromosome, Codec, Genotype, Problem, Score};
 
@@ -70,6 +70,27 @@ pub fn call<'py, 'a>(
     } else if temp.is_instance_of::<PyInt>() {
         if let Ok(score) = temp.extract::<i64>() {
             return Score::from(score as f32);
+        }
+    } else if temp.is_instance_of::<PyList>() {
+        let list = temp.downcast::<PyList>().expect("Expected a list");
+        let mut score = Vec::new();
+        if let Ok(iter) = list.try_iter() {
+            for item in iter {
+                let it = item.expect("Expected an item in the list");
+                if it.is_instance_of::<PyFloat>() {
+                    if let Ok(value) = it.extract::<f64>() {
+                        score.push(value as f32);
+                    }
+                } else if it.is_instance_of::<PyInt>() {
+                    if let Ok(value) = it.extract::<i64>() {
+                        score.push(value as f32);
+                    }
+                }
+            }
+        }
+
+        if !score.is_empty() {
+            return Score::from(score);
         }
     }
 

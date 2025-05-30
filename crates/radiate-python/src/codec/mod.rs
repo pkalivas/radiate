@@ -5,7 +5,7 @@ mod int;
 
 use std::sync::Arc;
 
-use crate::conversion::ObjectValue;
+use crate::ObjectValue;
 pub use bit::PyBitCodec;
 pub use char::PyCharCodec;
 pub use float::PyFloatCodec;

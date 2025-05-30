@@ -1,22 +1,64 @@
 use pyo3::{
-    Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python,
+    Bound, IntoPyObject, IntoPyObjectExt, Py, PyAny, PyResult, Python,
     exceptions::{PyOverflowError, PyValueError},
     types::{
         PyAnyMethods, PyBool, PyBytes, PyDict, PyDictMethods, PyFloat, PyInt, PyList,
         PyListMethods, PySequence, PyString, PyTuple, PyType, PyTypeMethods,
     },
 };
-use radiate::{AnyValue, Field};
+use radiate::{Chromosome, Gene, Phenotype};
 use std::{
     borrow::{Borrow, Cow},
     collections::HashMap,
 };
 
-use super::ObjectValue;
+use crate::{AnyValue, ObjectValue, object::Field};
 
 type InitFn = for<'py> fn(&Bound<'py, PyAny>, bool) -> PyResult<AnyValue<'py>>;
 pub(crate) static LUT: crate::GILOnceCell<HashMap<TypeObjectKey, InitFn>> =
     crate::GILOnceCell::new();
+
+pub fn pareto_front_to_py_object<'py, C: Chromosome<Gene = G>, G: Gene>(
+    py: Python<'py>,
+    front: &[Phenotype<C>],
+) -> PyResult<Bound<'py, PyList>>
+where
+    G::Allele: Into<AnyValue<'static>> + Clone,
+{
+    let result = PyList::empty(py);
+    for member in front.iter() {
+        let genotype = member
+            .genotype()
+            .iter()
+            .map(|chromosome| {
+                let list = PyList::empty(py);
+                for gene in chromosome.iter() {
+                    let allele = gene.allele().clone();
+                    let any_value = any_value_into_py_object(allele.into(), py)
+                        .expect("Failed to convert allele to AnyValue");
+                    list.append(any_value).unwrap();
+                }
+
+                list.into_pyobject(py).unwrap()
+            })
+            .collect::<Vec<_>>();
+
+        let fitness = member
+            .score()
+            .unwrap()
+            .values
+            .iter()
+            .cloned()
+            .collect::<Vec<_>>();
+        let member = PyDict::new(py);
+        member.set_item("genotype", genotype)?;
+        member.set_item("fitness", fitness)?;
+
+        result.append(member)?;
+    }
+
+    Ok(result)
+}
 
 pub fn any_value_into_py_object<'py>(av: AnyValue, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
     match av {

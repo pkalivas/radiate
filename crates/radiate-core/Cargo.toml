@@ -15,7 +15,6 @@ homepage = { workspace = true }
 rand = { workspace = true }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
-radiate-object = { workspace = true, optional = true }
 
 [dev-dependencies]
 serde = { workspace = true }
@@ -23,4 +22,3 @@ serde_json = { workspace = true }
 
 [features]
 serde = ["dep:serde", "dep:serde_json"]
-object = ["dep:radiate-object"]

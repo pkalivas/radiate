@@ -1,39 +1,5 @@
-use crate::{PyEngineBuilder, PyEvaluator, PyProblem, codec::PyCodec, conversion::ObjectValue};
-use pyo3::PyObject;
-use radiate::{
-    Chromosome, Epoch, GeneticEngine, GeneticEngineBuilder, MultiObjectiveGeneration, Optimize,
-    steps::SequentialEvaluator,
-};
-
-#[allow(dead_code)]
-pub(crate) fn build_multi_objective_engine<C>(
-    codec: PyCodec<C>,
-    fitness_func: PyObject,
-    builder: &PyEngineBuilder,
-) -> GeneticEngineBuilder<C, ObjectValue, MultiObjectiveGeneration<C>>
-where
-    C: Chromosome + PartialEq + Clone,
-{
-    let mut engine = GeneticEngine::builder()
-        .problem(PyProblem::new(fitness_func, codec))
-        .population_size(builder.population_size);
-
-    engine = set_evaluator(engine, &builder.num_threads);
-    engine = crate::set_selector(engine, &builder.offspring_selector, true);
-    engine = crate::set_selector(engine, &builder.survivor_selector, false);
-
-    engine.multi_objective(
-        builder
-            .objectives
-            .iter()
-            .map(|ob| match ob.to_lowercase().trim() {
-                "min" => Optimize::Minimize,
-                "max" => Optimize::Maximize,
-                _ => panic!("Invalid objective {}", ob),
-            })
-            .collect::<Vec<Optimize>>(),
-    )
-}
+use crate::PyEvaluator;
+use radiate::{Chromosome, Epoch, GeneticEngineBuilder, steps::SequentialEvaluator};
 
 pub fn set_evaluator<C, T, E>(
     builder: GeneticEngineBuilder<C, T, E>,

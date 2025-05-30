@@ -1,7 +1,7 @@
+use crate::AnyValue;
 use pyo3::{
     Bound, FromPyObject, IntoPyObject, PyAny, PyErr, PyResult, Python, exceptions::PyValueError,
 };
-use radiate::AnyValue;
 
 /// # Safety
 /// Should only be implemented for transparent types

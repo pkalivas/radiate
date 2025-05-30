@@ -74,6 +74,7 @@ where
 /// # Type Parameters
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 /// - `T`: The type of the best individual in the population.
+/// - `E`: The type of epoch used in the genetic engine, which must implement the `Epoch` trait.
 ///
 #[derive(Clone)]
 pub struct GeneticEngineBuilder<C, T, E>
@@ -315,7 +316,10 @@ where
     /// Set the minimum and maximum size of the pareto front. This is used for
     /// multi-objective optimization problems where the goal is to find the best
     /// solutions that are not dominated by any other solution.
-    pub fn front_size(mut self, range: Range<usize>) -> GeneticEngineBuilder<C, T, E> {
+    pub fn front_size(
+        mut self,
+        range: Range<usize>,
+    ) -> GeneticEngineBuilder<C, T, MultiObjectiveGeneration<C>> {
         self.params.front_range = range;
         GeneticEngineBuilder {
             params: self.params,
@@ -552,7 +556,7 @@ where
 {
     /// Build the genetic engine with the given parameters. This will create a new
     /// instance of the `GeneticEngine` with the given parameters.
-    pub fn build(mut self) -> GeneticEngine<C, T> {
+    pub fn build(mut self) -> GeneticEngine<C, T, MultiObjectiveGeneration<C>> {
         if self.params.problem.is_none() {
             if self.params.codec.is_none() {
                 panic!("Codec not set");
@@ -613,7 +617,7 @@ where
                 problem: config.problem.clone(),
             };
 
-            GeneticEngine::<C, T>::new(context, pipeline)
+            GeneticEngine::<C, T, MultiObjectiveGeneration<C>>::new(context, pipeline)
         }
     }
 }
