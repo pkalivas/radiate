@@ -1,6 +1,6 @@
 use radiate_core::{Chromosome, Ecosystem, EngineStep, MetricSet};
 
-pub struct Pipeline<C>
+pub(crate) struct Pipeline<C>
 where
     C: Chromosome,
 {
@@ -11,10 +11,6 @@ impl<C> Pipeline<C>
 where
     C: Chromosome,
 {
-    pub fn new(steps: Vec<Box<dyn EngineStep<C>>>) -> Self {
-        Pipeline { steps }
-    }
-
     pub fn add_step(&mut self, step: Option<Box<dyn EngineStep<C>>>) {
         if let Some(step) = step {
             self.steps.push(step);

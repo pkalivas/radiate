@@ -1,5 +1,7 @@
 use radiate::{Chromosome, Generation, GeneticEngineBuilder, MultiObjectiveGeneration, Optimize};
 
+use crate::PyEngineBuilder;
+
 pub(crate) fn set_single_objective<C, T>(
     builder: GeneticEngineBuilder<C, T, Generation<C, T>>,
     objectives: &[String],
@@ -19,20 +21,23 @@ where
 
 pub(crate) fn set_multi_objective<C, T>(
     builder: GeneticEngineBuilder<C, T, Generation<C, T>>,
-    objectives: &[String],
+    py_builder: &PyEngineBuilder,
 ) -> GeneticEngineBuilder<C, T, MultiObjectiveGeneration<C>>
 where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send + Sync,
 {
-    builder.multi_objective(
-        objectives
-            .iter()
-            .map(|ob| match ob.to_lowercase().trim() {
-                "min" => Optimize::Minimize,
-                "max" => Optimize::Maximize,
-                _ => panic!("Invalid objective {}", ob),
-            })
-            .collect::<Vec<Optimize>>(),
-    )
+    builder
+        .front_size(py_builder.front_range.clone())
+        .multi_objective(
+            py_builder
+                .objectives
+                .iter()
+                .map(|ob| match ob.to_lowercase().trim() {
+                    "min" => Optimize::Minimize,
+                    "max" => Optimize::Maximize,
+                    _ => panic!("Invalid objective {}", ob),
+                })
+                .collect::<Vec<Optimize>>(),
+        )
 }

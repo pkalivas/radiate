@@ -45,11 +45,11 @@ impl<C: Chromosome> Species<C> {
         self.id
     }
 
-    pub fn push(&mut self, individual: &Phenotype<C>)
+    pub fn push(&mut self, individual: Phenotype<C>)
     where
         C: Clone,
     {
-        self.population.push(individual.clone());
+        self.population.push(individual);
     }
 
     pub fn stagnation(&self) -> usize {

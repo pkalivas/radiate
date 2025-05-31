@@ -1,5 +1,14 @@
 use pyo3::{pyclass, pymethods};
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, ops::Range};
+
+#[pyclass]
+#[derive(Clone, Debug)]
+pub enum PyEngineInput {
+    Alters,
+    SurvivorSelector,
+    OffspringSelector,
+    Diversity,
+}
 
 #[pyclass]
 #[derive(Clone, Debug, Default)]
@@ -39,16 +48,19 @@ pub struct PyEngineBuilder {
     pub survivor_selector: PyEngineParam,
     pub offspring_selector: PyEngineParam,
     pub alters: Vec<PyEngineParam>,
+    pub diversity: Option<PyEngineParam>,
     pub population_size: usize,
     pub offspring_fraction: f32,
+    pub species_threshold: f32,
     pub num_threads: usize,
+    pub front_range: Range<usize>,
 }
 
 #[pymethods]
 impl PyEngineBuilder {
     #[new]
     #[pyo3(signature = (objectives, survivor_selector, offspring_selector, alters,
-    population_size, offspring_fraction, num_threads))]
+    population_size, offspring_fraction, num_threads, front_range, species_threshold, diversity=None))]
     pub fn new(
         objectives: Vec<String>,
         survivor_selector: PyEngineParam,
@@ -57,6 +69,9 @@ impl PyEngineBuilder {
         population_size: usize,
         offspring_fraction: f32,
         num_threads: usize,
+        front_range: (usize, usize),
+        species_threshold: f32,
+        diversity: Option<PyEngineParam>,
     ) -> Self {
         Self {
             objectives,
@@ -66,6 +81,9 @@ impl PyEngineBuilder {
             population_size,
             offspring_fraction,
             num_threads,
+            front_range: front_range.0..front_range.1,
+            species_threshold,
+            diversity,
         }
     }
 
@@ -95,5 +113,17 @@ impl PyEngineBuilder {
 
     pub fn set_num_threads(&mut self, num_threads: usize) {
         self.num_threads = num_threads;
+    }
+
+    pub fn set_front_range(&mut self, front_range: (usize, usize)) {
+        self.front_range = front_range.0..front_range.1;
+    }
+
+    pub fn set_diversity(&mut self, diversity: Option<PyEngineParam>) {
+        self.diversity = diversity;
+    }
+
+    pub fn set_species_threshold(&mut self, threshold: f32) {
+        self.species_threshold = threshold;
     }
 }

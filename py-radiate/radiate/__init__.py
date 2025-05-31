@@ -4,6 +4,11 @@ from .limit import SecondsLimit, GenerationsLimit, ScoreLimit
 from .random import RandomProvider as random
 from ._typing import GeneType, ObjectiveType
 
+from .diversity import (
+    Hammingdistance,
+    EuclideanDistance,
+)
+
 from .selector import (
     TournamentSelector,
     RouletteSelector,
@@ -64,4 +69,6 @@ __all__ = [
     "random",
     "GeneType",
     "ObjectiveType",
+    "Hammingdistance",
+    "EuclideanDistance",
 ]

@@ -10,7 +10,7 @@ use crate::steps::Evaluator;
 use std::sync::{Arc, RwLock};
 
 #[derive(Clone)]
-pub struct EngineConfig<C: Chromosome, T> {
+pub(crate) struct EngineConfig<C: Chromosome, T> {
     pub(crate) population: Population<C>,
     pub(crate) problem: Arc<dyn Problem<C, T>>,
     pub(crate) survivor_selector: Arc<dyn Select<C>>,
@@ -32,10 +32,6 @@ pub struct EngineConfig<C: Chromosome, T> {
 impl<C: Chromosome, T> EngineConfig<C, T> {
     pub fn population(&self) -> &Population<C> {
         &self.population
-    }
-
-    pub fn problem(&self) -> Arc<dyn Problem<C, T>> {
-        Arc::clone(&self.problem)
     }
 
     pub fn survivor_selector(&self) -> Arc<dyn Select<C>> {
@@ -101,13 +97,5 @@ impl<C: Chromosome, T> EngineConfig<C, T> {
     {
         let problem = Arc::clone(&self.problem);
         Arc::new(move || problem.encode())
-    }
-
-    pub fn evaluator(&self) -> Arc<dyn Evaluator<C, T>>
-    where
-        C: 'static,
-        T: Send + Sync + 'static,
-    {
-        Arc::clone(&self.evaluator)
     }
 }

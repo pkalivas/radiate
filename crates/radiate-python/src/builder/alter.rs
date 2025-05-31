@@ -1,7 +1,7 @@
 use super::{EngineRegistry, ParamMapper};
 use crate::{PyEngineParam, PyGeneType};
 use core::panic;
-use radiate::*;
+use radiate::prelude::*;
 use std::hash::Hash;
 
 const BLEND_CROSSOVER: &str = "blend_crossover";

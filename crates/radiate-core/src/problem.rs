@@ -16,7 +16,7 @@ pub trait Problem<C: Chromosome, T>: Send + Sync {
     }
 }
 
-/// [EngineProblem] is a generic, concrete implementation of the [Problem] trait that is the
+/// [EngineProblem] is a generic, base level concrete implementation of the [Problem] trait that is the
 /// default problem used by the engine if none other is specified during building. We take the
 /// [Codec] and the fitness function from the user and simply wrap them into this struct.
 pub struct EngineProblem<C, T>

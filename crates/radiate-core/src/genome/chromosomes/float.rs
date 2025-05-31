@@ -31,7 +31,7 @@ use std::{
 /// // and lower_bound to 0 and 100 respectively.
 /// let gene = FloatGene::from((0_f32..1_f32, 0_f32..100_f32));
 /// ```
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct FloatGene {
     pub allele: f32,

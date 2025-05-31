@@ -40,6 +40,13 @@ impl<T> MutCell<T> {
     }
 
     pub fn get(&self) -> &T {
+        // SAFETY: This is inherently unsafe because we don't know if there exists a mutable
+        // reference to the inner value elsewhere.
+        //
+        // We assume that the caller has ensured that there are no mutable references
+        // to the inner value when calling this method. So straight up - make sure that you don't have
+        // any mutable references to the inner value when calling this method.
+        assert!(!self.consumed, "Cannot access consumed MutCell");
         unsafe { &*(*self.inner).value.get() }
     }
 

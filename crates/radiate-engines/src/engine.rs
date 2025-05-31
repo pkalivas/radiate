@@ -1,6 +1,7 @@
 use crate::Generation;
 use crate::builder::GeneticEngineBuilder;
-use crate::{Chromosome, EngineIterator, Pipeline};
+use crate::pipeline::Pipeline;
+use crate::{Chromosome, EngineIterator};
 use radiate_core::engine::Context;
 use radiate_core::{Engine, Epoch, metric_names};
 
@@ -68,7 +69,7 @@ where
     T: Clone + Send,
     E: Epoch,
 {
-    pub fn new(context: Context<C, T>, pipeline: Pipeline<C>) -> Self {
+    pub(crate) fn new(context: Context<C, T>, pipeline: Pipeline<C>) -> Self {
         GeneticEngine {
             context,
             pipeline,

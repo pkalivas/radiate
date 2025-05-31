@@ -1,8 +1,10 @@
 use crate::codecs::Codec;
+use crate::config::EngineConfig;
 use crate::genome::phenotype::Phenotype;
 use crate::genome::population::Population;
 use crate::objectives::Score;
 use crate::objectives::{Objective, Optimize};
+use crate::pipeline::Pipeline;
 use crate::steps::{
     AuditStep, Evaluator, FilterStep, FrontStep, RecombineStep, SequentialEvaluator, SpeciateStep,
     WorkerPoolEvaluator,
@@ -13,7 +15,7 @@ use crate::{
     Generation, MetricAudit, MultiObjectiveGeneration, Mutate, Problem, ReplacementStrategy,
     RouletteSelector, Select, TournamentSelector, pareto,
 };
-use crate::{Chromosome, EngineConfig, EvaluateStep, GeneticEngine, Pipeline};
+use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use core::panic;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::engine::Context;
@@ -22,16 +24,6 @@ use radiate_error::{RadiateError, radiate_err};
 use std::cmp::Ordering;
 use std::ops::Range;
 use std::sync::{Arc, RwLock};
-
-pub trait EngineBuilder<C, T, E>
-where
-    C: Chromosome + 'static,
-    T: Clone + Send + 'static,
-    E: Epoch,
-{
-    fn add_parameter(&mut self, adder: impl FnOnce(&mut EngineParams<C, T>));
-    // fn build(self) -> GeneticEngine<C, T, E>;
-}
 
 #[derive(Clone)]
 pub struct EngineParams<C, T = Genotype<C>>
@@ -337,6 +329,14 @@ where
     {
         self.params.thread_pool = Arc::new(ThreadPool::new(num_threads));
         self.params.evaluator = Arc::new(WorkerPoolEvaluator);
+        self
+    }
+
+    pub fn with_values<F>(mut self, f: F) -> Self
+    where
+        F: FnOnce(&mut EngineParams<C, T>),
+    {
+        f(&mut self.params);
         self
     }
 

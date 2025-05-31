@@ -1,7 +1,7 @@
 use crate::node::Node;
 use crate::ops::operation::Op;
 use crate::{Factory, GraphChromosome, NodeType, TreeChromosome, TreeIterator};
-use radiate_core::genome::gene::Gene;
+use radiate_core::genome::Gene;
 use radiate_core::{AlterResult, Mutate};
 use radiate_core::{Chromosome, random_provider};
 use std::sync::{Arc, Mutex};

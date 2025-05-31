@@ -1,5 +1,5 @@
 use super::Codec;
-use crate::genome::gene::Gene;
+use crate::genome::Gene;
 use crate::genome::genotype::Genotype;
 use crate::{Chromosome, FloatChromosome};
 use std::ops::Range;

@@ -40,7 +40,7 @@ use std::ops::{Add, Bound, Div, Mul, Range, RangeBounds, Sub};
 /// # Type Parameters
 /// - `T`: The type of integer used in the gene.
 ///
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct IntGene<T: Integer<T>> {
     pub allele: T,

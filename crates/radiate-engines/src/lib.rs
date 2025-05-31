@@ -6,12 +6,10 @@ pub mod iter;
 pub mod pipeline;
 pub mod steps;
 
-pub use builder::*;
-pub use config::*;
+pub use builder::GeneticEngineBuilder;
 pub use engine::GeneticEngine;
-pub use epoch::*;
-pub use iter::*;
-pub use pipeline::*;
+pub use epoch::{Generation, MultiObjectiveGeneration};
+pub use iter::{EngineIterator, EngineIteratorExt};
 pub use steps::EvaluateStep;
 
 pub use radiate_alters::*;

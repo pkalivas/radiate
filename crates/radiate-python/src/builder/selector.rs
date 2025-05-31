@@ -39,6 +39,20 @@ pub enum SelectorConfig {
     NSGA2(NSGA2SelectorMapper),
 }
 
+pub fn selector_string_to_type(s: &str) -> Option<SelectorType> {
+    match s {
+        TOURNAMENT_SELECTOR => Some(SelectorType::Tournament),
+        ROULETTE_SELECTOR => Some(SelectorType::Roulette),
+        RANK_SELECTOR => Some(SelectorType::Rank),
+        ELITISM_SELECTOR => Some(SelectorType::Elitism),
+        BOLTZMANN_SELECTOR => Some(SelectorType::Boltzmann),
+        STOCHASTIC_UNIVERSAL_SAMPLING_SELECTOR => Some(SelectorType::StochasticUniversalSampling),
+        LINEAR_RANK_SELECTOR => Some(SelectorType::LinearRank),
+        NSGA2_SELECTOR => Some(SelectorType::NSGA2),
+        _ => None,
+    }
+}
+
 pub struct TournamentSelectorMapper;
 
 impl<C: Chromosome> ParamMapper<C> for TournamentSelectorMapper {

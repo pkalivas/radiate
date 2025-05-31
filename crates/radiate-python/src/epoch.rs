@@ -8,7 +8,7 @@ use pyo3::{
 use radiate::MultiObjectiveGeneration;
 use radiate::{BitChromosome, CharChromosome, Epoch, FloatChromosome, Generation, IntChromosome};
 
-#[pyclass(unsendable, name = "Generation")]
+#[pyclass(unsendable)]
 pub struct PyGeneration {
     pub index: usize,
     pub score: Py<PyList>,
@@ -81,13 +81,6 @@ impl PyGeneration {
             self.metrics.__repr__()
         ))
     }
-}
-
-#[pyclass(unsendable, name = "MultiObjectiveGeneration")]
-pub struct PyMultiObjectiveGeneration {
-    pub index: usize,
-    pub score: Py<PyList>,
-    pub metrics: PyMetricSet,
 }
 
 impl Into<PyGeneration> for Generation<FloatChromosome, ObjectValue> {

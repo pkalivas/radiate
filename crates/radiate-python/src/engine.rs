@@ -141,30 +141,31 @@ where
     C: Chromosome + PartialEq + Clone,
 {
     let engine = build_single_objective_engine(gene_type, codec, fitness_func, builder);
-    crate::set_multi_objective(engine, &builder.objectives)
+    crate::set_multi_objective(engine, &builder)
 }
 
 pub(crate) fn build_single_objective_engine<C>(
     gene_type: PyGeneType,
     codec: PyCodec<C>,
     fitness_func: PyObject,
-    builder: &PyEngineBuilder,
+    py_builder: &PyEngineBuilder,
 ) -> GeneticEngineBuilder<C, ObjectValue, Generation<C, ObjectValue>>
 where
     C: Chromosome + PartialEq + Clone,
 {
     let registry = EngineRegistry::new();
-    let mut engine = GeneticEngine::builder()
+    let mut builder = GeneticEngine::builder()
         .problem(PyProblem::new(fitness_func, codec))
-        .population_size(builder.population_size)
-        .alter(registry.get_alters::<C>(gene_type, &builder.alters));
+        .population_size(py_builder.population_size);
 
-    engine = crate::set_evaluator(engine, &builder.num_threads);
-    engine = crate::set_selector(engine, &builder.offspring_selector, true);
-    engine = crate::set_selector(engine, &builder.survivor_selector, false);
-    engine = crate::set_single_objective(engine, &builder.objectives);
+    builder = registry.set_engine_diversity(builder, py_builder, gene_type);
+    builder = registry.set_engine_alters(builder, &py_builder, gene_type);
+    builder = crate::set_evaluator(builder, &py_builder.num_threads);
+    builder = crate::set_selector(builder, &py_builder.offspring_selector, true);
+    builder = crate::set_selector(builder, &py_builder.survivor_selector, false);
+    builder = crate::set_single_objective(builder, &py_builder.objectives);
 
-    engine
+    builder
 }
 
 fn run_multi_objective_engine<C, T>(
