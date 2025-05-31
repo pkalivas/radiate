@@ -30,6 +30,8 @@ class GeneticEngine:
         diversity: None | Hammingdistance | EuclideanDistance = None,
         population_size: int = 100,
         offspring_fraction: float = 0.8,
+        max_phenotype_age: int = 20,
+        max_species_age: int = 20,
         species_threshold: float = 1.5,
         objectives: str | List[str] = ObjectiveType.MIN,
         num_threads: int = 1,
@@ -68,6 +70,8 @@ class GeneticEngine:
             num_threads=num_threads,
             front_range=front_range,
             diversity=diversity,
+            max_phenotype_age=max_phenotype_age,
+            max_species_age=max_species_age,
             species_threshold=species_threshold,
         )
 
@@ -117,6 +121,13 @@ class GeneticEngine:
         if not (0 < fraction <= 1):
             raise ValueError("Offspring fraction must be between 0 and 1.")
         self.builder.set_offspring_fraction(fraction)
+
+    def max_age(self, max_phenotype_age: int = 20, max_species_age: int = 20):
+        """Set the maximum age for phenotypes and species."""
+        if max_phenotype_age <= 0 or max_species_age <= 0:
+            raise ValueError("Maximum age must be greater than 0.")
+        self.builder.set_max_phenotype_age(max_phenotype_age)
+        self.builder.set_max_species_age(max_species_age)
 
     def minimizing(self):
         """Set the objectives."""

@@ -2,15 +2,6 @@ use pyo3::{pyclass, pymethods};
 use std::{collections::BTreeMap, ops::Range};
 
 #[pyclass]
-#[derive(Clone, Debug)]
-pub enum PyEngineInput {
-    Alters,
-    SurvivorSelector,
-    OffspringSelector,
-    Diversity,
-}
-
-#[pyclass]
 #[derive(Clone, Debug, Default)]
 pub struct PyEngineParam {
     pub name: String,
@@ -53,6 +44,8 @@ pub struct PyEngineBuilder {
     pub offspring_fraction: f32,
     pub species_threshold: f32,
     pub num_threads: usize,
+    pub max_phenotype_age: usize,
+    pub max_species_age: usize,
     pub front_range: Range<usize>,
 }
 
@@ -60,7 +53,7 @@ pub struct PyEngineBuilder {
 impl PyEngineBuilder {
     #[new]
     #[pyo3(signature = (objectives, survivor_selector, offspring_selector, alters,
-    population_size, offspring_fraction, num_threads, front_range, species_threshold, diversity=None))]
+    population_size, offspring_fraction, num_threads, front_range, species_threshold, max_phenotype_age, max_species_age, diversity=None))]
     pub fn new(
         objectives: Vec<String>,
         survivor_selector: PyEngineParam,
@@ -71,6 +64,8 @@ impl PyEngineBuilder {
         num_threads: usize,
         front_range: (usize, usize),
         species_threshold: f32,
+        max_phenotype_age: usize,
+        max_species_age: usize,
         diversity: Option<PyEngineParam>,
     ) -> Self {
         Self {
@@ -83,6 +78,8 @@ impl PyEngineBuilder {
             num_threads,
             front_range: front_range.0..front_range.1,
             species_threshold,
+            max_phenotype_age,
+            max_species_age,
             diversity,
         }
     }
@@ -125,5 +122,13 @@ impl PyEngineBuilder {
 
     pub fn set_species_threshold(&mut self, threshold: f32) {
         self.species_threshold = threshold;
+    }
+
+    pub fn set_max_phenotype_age(&mut self, age: usize) {
+        self.max_phenotype_age = age;
+    }
+
+    pub fn set_max_species_age(&mut self, age: usize) {
+        self.max_species_age = age;
     }
 }

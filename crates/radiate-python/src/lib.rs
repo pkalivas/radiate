@@ -1,4 +1,3 @@
-mod builder;
 mod codec;
 mod conversion;
 mod engine;
@@ -10,8 +9,8 @@ mod object;
 mod params;
 mod problem;
 mod random;
+mod registry;
 
-pub use builder::*;
 pub use codec::{PyBitCodec, PyCharCodec, PyFloatCodec, PyIntCodec};
 pub use engine::*;
 pub use epoch::*;
@@ -23,6 +22,7 @@ pub use params::*;
 pub use problem::PyProblem;
 use pyo3::{PyResult, Python};
 pub use random::PyRandomProvider;
+pub use registry::*;
 use std::cell::UnsafeCell;
 
 // Adapted from PYO3 with the only change that

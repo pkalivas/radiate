@@ -1,7 +1,7 @@
 use crate::codec::PyCodec;
 use crate::{
-    EngineRegistry, Limit, PyBitCodec, PyCharCodec, PyEngineParam, PyGeneType, PyGeneration,
-    PyProblem,
+    ComponentRegistry, EngineRegistry, Limit, PyBitCodec, PyCharCodec, PyEngineParam, PyGeneType,
+    PyGeneration, PyProblem,
 };
 use crate::{ObjectValue, PyEngineBuilder, PyFloatCodec, PyIntCodec};
 use pyo3::{PyObject, PyResult, Python, pyclass, pymethods};
@@ -156,13 +156,13 @@ where
     let registry = EngineRegistry::new();
     let mut builder = GeneticEngine::builder()
         .problem(PyProblem::new(fitness_func, codec))
-        .population_size(py_builder.population_size);
+        .population_size(py_builder.population_size)
+        .offspring_fraction(py_builder.offspring_fraction)
+        .max_age(py_builder.max_phenotype_age);
 
-    builder = registry.set_engine_diversity(builder, py_builder, gene_type);
-    builder = registry.set_engine_alters(builder, &py_builder, gene_type);
+    builder = registry.apply(builder, py_builder, gene_type);
+
     builder = crate::set_evaluator(builder, &py_builder.num_threads);
-    builder = crate::set_selector(builder, &py_builder.offspring_selector, true);
-    builder = crate::set_selector(builder, &py_builder.survivor_selector, false);
     builder = crate::set_single_objective(builder, &py_builder.objectives);
 
     builder
