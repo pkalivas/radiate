@@ -13,7 +13,7 @@ where
 impl<C, T, E> Iterator for EngineIterator<C, T, E>
 where
     C: Chromosome,
-    T: Clone,
+    T: Clone + Send + Sync + 'static,
     E: Epoch<Chromosome = C> + for<'a> From<&'a Context<C, T>>,
 {
     type Item = E;

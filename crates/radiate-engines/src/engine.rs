@@ -1,7 +1,7 @@
-use crate::Generation;
 use crate::builder::GeneticEngineBuilder;
 use crate::pipeline::Pipeline;
-use crate::{Chromosome, EngineIterator};
+use crate::{Chromosome, EngineEvent, EngineIterator};
+use crate::{EventBus, Generation};
 use radiate_core::engine::Context;
 use radiate_core::{Engine, Epoch, metric_names};
 
@@ -60,6 +60,7 @@ where
 {
     context: Context<C, T>,
     pipeline: Pipeline<C>,
+    bus: EventBus<EngineEvent<T>>,
     _epoch: std::marker::PhantomData<E>,
 }
 
@@ -69,10 +70,15 @@ where
     T: Clone + Send,
     E: Epoch,
 {
-    pub(crate) fn new(context: Context<C, T>, pipeline: Pipeline<C>) -> Self {
+    pub(crate) fn new(
+        context: Context<C, T>,
+        pipeline: Pipeline<C>,
+        bus: EventBus<EngineEvent<T>>,
+    ) -> Self {
         GeneticEngine {
             context,
             pipeline,
+            bus,
             _epoch: std::marker::PhantomData,
         }
     }
@@ -95,15 +101,19 @@ where
 impl<C, T, E> Engine for GeneticEngine<C, T, E>
 where
     C: Chromosome,
+    T: Send + Sync + 'static,
     E: Epoch<Chromosome = C> + for<'a> From<&'a Context<C, T>>,
 {
     type Chromosome = C;
     type Epoch = E;
 
     fn next(&mut self) -> Self::Epoch {
+        self.bus.emit(EngineEvent::epoch_start(&self.context));
+
         let timer = std::time::Instant::now();
         self.pipeline.run(
             self.context.index,
+            &self.bus,
             &mut self.context.metrics,
             &mut self.context.ecosystem,
         );
@@ -124,6 +134,8 @@ where
                 self.context.best = self.context.problem.decode(best.genotype());
             }
         }
+
+        self.bus.emit(EngineEvent::epoch_complete(&self.context));
 
         self.context.index += 1;
 

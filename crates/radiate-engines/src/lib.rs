@@ -2,6 +2,7 @@ pub mod builder;
 pub mod config;
 pub mod engine;
 pub mod epoch;
+mod events;
 pub mod iter;
 pub mod pipeline;
 pub mod steps;
@@ -9,6 +10,7 @@ pub mod steps;
 pub use builder::GeneticEngineBuilder;
 pub use engine::GeneticEngine;
 pub use epoch::{Generation, MultiObjectiveGeneration};
+pub use events::{EngineEvent, EventBus, EventHandler, EventLogger};
 pub use iter::{EngineIterator, EngineIteratorExt};
 pub use steps::EvaluateStep;
 

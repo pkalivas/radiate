@@ -14,7 +14,7 @@ mod registry;
 pub use codec::{PyBitCodec, PyCharCodec, PyFloatCodec, PyIntCodec};
 pub use engine::*;
 pub use epoch::*;
-pub use evaluator::PyEvaluator;
+pub use evaluator::FreeThreadPyEvaluator;
 pub use gene::PyGeneType;
 pub use metric::*;
 pub use object::{AnyValue, IntoAnyValue, Object, ObjectSafe, ObjectValue};

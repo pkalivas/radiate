@@ -1,30 +1,32 @@
 use radiate_core::{
-    Chromosome, Ecosystem, MetricSet, Objective, Problem, engine::EngineStep, metric_names,
-    thread_pool::ThreadPool,
+    Chromosome, Ecosystem, Executor, MetricSet, Objective, Problem, SerialExecutor,
+    WorkerPoolExecutor, engine::EngineStep, metric_names,
 };
 use std::sync::Arc;
 
 pub trait Evaluator<C: Chromosome, T>: Send + Sync {
-    fn eval(
-        &self,
-        ecosystem: &mut Ecosystem<C>,
-        thread_pool: Arc<ThreadPool>,
-        problem: Arc<dyn Problem<C, T>>,
-    ) -> usize;
+    fn eval(&self, ecosystem: &mut Ecosystem<C>, problem: Arc<dyn Problem<C, T>>) -> usize;
 }
 
-pub struct SequentialEvaluator;
+#[derive(Clone, Default)]
+pub struct SequentialEvaluator {
+    executor: SerialExecutor,
+}
+
+impl SequentialEvaluator {
+    pub fn new() -> Self {
+        Self {
+            executor: SerialExecutor::new(),
+        }
+    }
+}
 
 impl<C: Chromosome, T> Evaluator<C, T> for SequentialEvaluator
 where
+    T: 'static,
     C: Chromosome + 'static,
 {
-    fn eval(
-        &self,
-        ecosystem: &mut Ecosystem<C>,
-        _thread_pool: Arc<ThreadPool>,
-        problem: Arc<dyn Problem<C, T>>,
-    ) -> usize {
+    fn eval(&self, ecosystem: &mut Ecosystem<C>, problem: Arc<dyn Problem<C, T>>) -> usize {
         let mut jobs = Vec::new();
         let len = ecosystem.population.len();
         for idx in 0..len {
@@ -34,16 +36,20 @@ where
             }
         }
 
-        let work_results = jobs
-            .into_iter()
-            .map(|(idx, geno)| {
-                let score = problem.eval(&geno);
-                (idx, score, geno)
-            })
-            .collect::<Vec<_>>();
+        let results = self.executor.execute_batch(
+            jobs.into_iter()
+                .map(|(idx, geno)| {
+                    let problem = Arc::clone(&problem);
+                    move || {
+                        let score = problem.eval(&geno);
+                        (idx, score, geno)
+                    }
+                })
+                .collect::<Vec<_>>(),
+        );
 
-        let count = work_results.len();
-        for (idx, score, genotype) in work_results {
+        let count = results.len();
+        for (idx, score, genotype) in results {
             ecosystem.population[idx].set_score(Some(score));
             ecosystem.population[idx].set_genotype(genotype);
         }
@@ -52,19 +58,24 @@ where
     }
 }
 
-pub struct WorkerPoolEvaluator;
+pub struct WorkerPoolEvaluator {
+    executor: WorkerPoolExecutor,
+}
+
+impl WorkerPoolEvaluator {
+    pub fn new(num_threads: usize) -> Self {
+        Self {
+            executor: WorkerPoolExecutor::new(num_threads),
+        }
+    }
+}
 
 impl<C: Chromosome, T> Evaluator<C, T> for WorkerPoolEvaluator
 where
     C: Chromosome + 'static,
     T: Send + Sync + 'static,
 {
-    fn eval(
-        &self,
-        ecosystem: &mut Ecosystem<C>,
-        thread_pool: Arc<ThreadPool>,
-        problem: Arc<dyn Problem<C, T>>,
-    ) -> usize {
+    fn eval(&self, ecosystem: &mut Ecosystem<C>, problem: Arc<dyn Problem<C, T>>) -> usize {
         let mut jobs = Vec::new();
         let len = ecosystem.population.len();
         for idx in 0..len {
@@ -74,20 +85,21 @@ where
             }
         }
 
-        let work_results = jobs
-            .into_iter()
-            .map(|(idx, geno)| {
-                let problem = Arc::clone(&problem);
-                thread_pool.submit_with_result(move || {
-                    let score = problem.eval(&geno);
-                    (idx, score, geno)
+        let results = self.executor.execute_batch(
+            jobs.into_iter()
+                .map(|(idx, geno)| {
+                    let problem = Arc::clone(&problem);
+                    move || {
+                        let score = problem.eval(&geno);
+                        (idx, score, geno)
+                    }
                 })
-            })
-            .collect::<Vec<_>>();
+                .collect::<Vec<_>>(),
+        );
 
-        let count = work_results.len();
-        for work_result in work_results {
-            let (idx, score, genotype) = work_result.result();
+        let count = results.len();
+        for result in results {
+            let (idx, score, genotype) = result;
             ecosystem.population[idx].set_score(Some(score));
             ecosystem.population[idx].set_genotype(genotype);
         }
@@ -100,13 +112,11 @@ pub struct EvaluateStep<C: Chromosome, T> {
     pub(crate) objective: Objective,
     pub(crate) evaluator: Arc<dyn Evaluator<C, T>>,
     pub(crate) problem: Arc<dyn Problem<C, T>>,
-    pub(crate) thread_pool: Arc<ThreadPool>,
 }
 
 impl<C: Chromosome, T> EvaluateStep<C, T> {
     pub fn new(
         objective: Objective,
-        thread_pool: Arc<ThreadPool>,
         problem: Arc<dyn Problem<C, T>>,
         evaluator: Arc<dyn Evaluator<C, T>>,
     ) -> Self {
@@ -114,7 +124,6 @@ impl<C: Chromosome, T> EvaluateStep<C, T> {
             objective,
             evaluator,
             problem,
-            thread_pool,
         }
     }
 }
@@ -126,11 +135,7 @@ where
     fn execute(&mut self, _: usize, metrics: &mut MetricSet, ecosystem: &mut Ecosystem<C>) {
         let timer = std::time::Instant::now();
 
-        let count = self.evaluator.eval(
-            ecosystem,
-            Arc::clone(&self.thread_pool),
-            Arc::clone(&self.problem),
-        ) as f32;
+        let count = self.evaluator.eval(ecosystem, Arc::clone(&self.problem)) as f32;
 
         self.objective.sort(&mut ecosystem.population);
 

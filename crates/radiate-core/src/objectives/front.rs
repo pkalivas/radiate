@@ -1,7 +1,6 @@
 use crate::{
-    Chromosome, Epoch, Phenotype,
+    Chromosome, Epoch, Executor, Phenotype, WorkerPoolExecutor,
     objectives::{Objective, pareto},
-    thread_pool::{ThreadPool, WaitGroup},
 };
 use std::{
     cmp::Ordering,
@@ -24,7 +23,7 @@ where
     ord: Arc<dyn Fn(&T, &T) -> Ordering + Send + Sync>,
     range: Range<usize>,
     objective: Objective,
-    thread_pool: Arc<ThreadPool>,
+    thread_pool: WorkerPoolExecutor,
 }
 
 impl<T> Front<T>
@@ -34,7 +33,7 @@ where
     pub fn new<F>(
         range: Range<usize>,
         objective: Objective,
-        thread_pool: Arc<ThreadPool>,
+        thread_pool: WorkerPoolExecutor,
         comp: F,
     ) -> Self
     where
@@ -65,13 +64,13 @@ where
     where
         T: Eq + Hash + Clone + Send + Sync + 'static,
     {
-        let wg = WaitGroup::new();
         let ord = Arc::clone(&self.ord);
         let values = Arc::new(RwLock::new(self.values.clone()));
         let dominating_values = Arc::new(RwLock::new(vec![false; items.len()]));
         let remove_values = Arc::new(RwLock::new(HashSet::new()));
         let values_to_add = Arc::new(RwLock::new(Vec::new()));
 
+        let mut jobs = Vec::new();
         for (idx, member) in items.iter().enumerate() {
             let ord_clone = Arc::clone(&ord);
             let values_clone = Arc::clone(&values);
@@ -80,7 +79,8 @@ where
             let new_member = member.clone();
             let values_to_add = Arc::clone(&values_to_add);
 
-            self.thread_pool.group_submit(&wg, move || {
+            // self.thread_pool.group_submit(&wg, move || {
+            jobs.push(move || {
                 let mut is_dominated = true;
 
                 for existing_val in values_clone.read().unwrap().iter() {
@@ -108,7 +108,9 @@ where
             });
         }
 
-        let count = wg.wait();
+        let count = jobs.len();
+
+        self.thread_pool.submit_batch(jobs);
 
         self.values
             .retain(|x| !remove_values.read().unwrap().contains(x));

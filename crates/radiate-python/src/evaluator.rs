@@ -1,5 +1,5 @@
 use pyo3::Python;
-use radiate::{Chromosome, Ecosystem, Problem, steps::Evaluator, thread_pool::ThreadPool};
+use radiate::{Chromosome, Ecosystem, Executor, Problem, WorkerPoolExecutor, steps::Evaluator};
 use std::sync::Arc;
 
 /// Based off of the pyo3 docuntation: https://pyo3.rs/v0.24.2/parallelism
@@ -7,20 +7,24 @@ use std::sync::Arc;
 /// The [PyEvaluator] is an [Evaluator<C, T>] implementation that allows for free-threaded evaluation.
 /// We avoid Python's GIL by using the `allow_threads` method, bypassing the
 /// GIL for the duration of the evaluation.
-#[derive(Default)]
-pub struct PyEvaluator;
+pub struct FreeThreadPyEvaluator {
+    executor: WorkerPoolExecutor,
+}
 
-impl<C: Chromosome, T> Evaluator<C, T> for PyEvaluator
+impl FreeThreadPyEvaluator {
+    pub fn new(num_threads: usize) -> Self {
+        FreeThreadPyEvaluator {
+            executor: WorkerPoolExecutor::new(num_threads),
+        }
+    }
+}
+
+impl<C: Chromosome, T> Evaluator<C, T> for FreeThreadPyEvaluator
 where
     C: Chromosome + 'static,
     T: Send + Sync + 'static,
 {
-    fn eval(
-        &self,
-        ecosystem: &mut Ecosystem<C>,
-        thread_pool: Arc<ThreadPool>,
-        problem: Arc<dyn Problem<C, T>>,
-    ) -> usize {
+    fn eval(&self, ecosystem: &mut Ecosystem<C>, problem: Arc<dyn Problem<C, T>>) -> usize {
         let mut jobs = Vec::new();
         let len = ecosystem.population.len();
         for idx in 0..len {
@@ -30,7 +34,7 @@ where
             }
         }
 
-        let num_workers = thread_pool.num_workers();
+        let num_workers = self.executor.num_workers();
         let batch_size = (jobs.len() + num_workers - 1) / num_workers;
 
         if batch_size == 0 {
@@ -56,22 +60,22 @@ where
 
         Python::with_gil(|outer| {
             outer.allow_threads(|| {
-                let work_results = batches
+                let jobs = batches
                     .into_iter()
                     .map(|batch| {
                         let problem = Arc::clone(&problem);
 
-                        thread_pool.submit_with_result(move || {
+                        move || {
                             let scores = problem.eval_batch(&batch.1);
                             (batch, scores)
-                        })
+                        }
                     })
                     .collect::<Vec<_>>();
 
-                let mut count = 0;
-                for work_result in work_results {
-                    let (batch, scores) = work_result.result();
+                let results = self.executor.execute_batch(jobs);
 
+                let mut count = 0;
+                for (batch, scores) in results {
                     for ((idx, geno), score) in batch
                         .0
                         .iter()

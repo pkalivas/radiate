@@ -175,7 +175,7 @@ fn run_multi_objective_engine<C, T>(
 ) -> PyResult<PyGeneration>
 where
     C: Chromosome + Clone,
-    T: Debug + Clone + Send + Sync,
+    T: Debug + Clone + Send + Sync + 'static,
     MultiObjectiveGeneration<C>: Into<PyGeneration>,
 {
     let lims = limits.into_iter().map(Limit::from).collect::<Vec<_>>();
@@ -209,7 +209,7 @@ fn run_single_objective_engine<C, T>(
 ) -> PyResult<PyGeneration>
 where
     C: Chromosome + Clone,
-    T: Debug + Clone + Send + Sync,
+    T: Debug + Clone + Send + Sync + 'static,
     Generation<C, T>: Into<PyGeneration>,
 {
     let lims = limits.into_iter().map(Limit::from).collect::<Vec<_>>();

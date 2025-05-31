@@ -7,19 +7,18 @@ use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
 use crate::steps::{
     AuditStep, Evaluator, FilterStep, FrontStep, RecombineStep, SequentialEvaluator, SpeciateStep,
-    WorkerPoolEvaluator,
 };
 use crate::thread_pool::ThreadPool;
 use crate::{
-    Alter, AlterAction, Audit, Crossover, EncodeReplace, EngineProblem, EngineStep, Front,
-    Generation, MetricAudit, MultiObjectiveGeneration, Mutate, Problem, ReplacementStrategy,
-    RouletteSelector, Select, TournamentSelector, pareto,
+    Alter, AlterAction, Audit, Crossover, EncodeReplace, EngineEvent, EngineProblem, EngineStep,
+    EventBus, EventHandler, Front, Generation, MetricAudit, MultiObjectiveGeneration, Mutate,
+    Problem, ReplacementStrategy, RouletteSelector, Select, TournamentSelector, pareto,
 };
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use core::panic;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::engine::Context;
-use radiate_core::{Diversity, Ecosystem, Epoch, Genotype, MetricSet};
+use radiate_core::{Diversity, Ecosystem, Epoch, Genotype, MetricSet, WorkerPoolExecutor};
 use radiate_error::{RadiateError, radiate_err};
 use std::cmp::Ordering;
 use std::ops::Range;
@@ -52,6 +51,7 @@ where
     pub encoder: Option<Arc<dyn Fn() -> Genotype<C>>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     pub front: Option<Front<Phenotype<C>>>,
+    pub handlers: Vec<Arc<dyn EventHandler<EngineEvent<T>>>>,
 }
 
 /// Parameters for the genetic engine.
@@ -157,8 +157,16 @@ where
         self
     }
 
-    pub fn evaluator<EV: Evaluator<C, T> + 'static>(mut self, evaluator: EV) -> Self {
+    pub fn executor<EV: Evaluator<C, T> + 'static>(mut self, evaluator: EV) -> Self {
         self.params.evaluator = Arc::new(evaluator);
+        self
+    }
+
+    pub fn subscribe<H>(mut self, handler: H) -> Self
+    where
+        H: EventHandler<EngineEvent<T>> + 'static,
+    {
+        self.params.handlers.push(Arc::new(handler));
         self
     }
 
@@ -328,7 +336,6 @@ where
         T: Send + Sync,
     {
         self.params.thread_pool = Arc::new(ThreadPool::new(num_threads));
-        self.params.evaluator = Arc::new(WorkerPoolEvaluator);
         self
     }
 
@@ -344,7 +351,6 @@ where
         let evaluator = config.evaluator.clone();
         let eval_step = EvaluateStep {
             objective: config.objective.clone(),
-            thread_pool: config.thread_pool.clone(),
             problem: config.problem.clone(),
             evaluator: evaluator.clone(),
         };
@@ -408,7 +414,9 @@ where
         let species_step = SpeciateStep {
             threashold: config.species_threshold(),
             diversity: config.diversity().clone().unwrap(),
-            thread_pool: config.thread_pool(),
+            executor: Arc::new(WorkerPoolExecutor::with_thread_pool(
+                config.thread_pool().clone(),
+            )),
             objective: config.objective(),
         };
 
@@ -456,7 +464,7 @@ where
         self.params.front = Some(Front::new(
             self.params.front_range.clone(),
             front_obj.clone(),
-            self.params.thread_pool.clone(),
+            WorkerPoolExecutor::with_thread_pool(self.params.thread_pool.clone()),
             move |one: &Phenotype<C>, two: &Phenotype<C>| {
                 if one.score().is_none() || two.score().is_none() {
                     return Ordering::Equal;
@@ -479,7 +487,7 @@ where
 impl<C, T> GeneticEngineBuilder<C, T, Generation<C, T>>
 where
     C: Chromosome + Clone + PartialEq + 'static,
-    T: Clone + Send + 'static,
+    T: Clone + Send + Sync + 'static,
 {
     /// Build the genetic engine with the given parameters. This will create a new
     /// instance of the `GeneticEngine` with the given parameters.
@@ -544,7 +552,9 @@ where
                 problem: config.problem.clone(),
             };
 
-            GeneticEngine::<C, T>::new(context, pipeline)
+            let event_bus = EventBus::new(self.params.handlers.clone());
+
+            GeneticEngine::<C, T>::new(context, pipeline, event_bus)
         }
     }
 }
@@ -552,7 +562,7 @@ where
 impl<C, T> GeneticEngineBuilder<C, T, MultiObjectiveGeneration<C>>
 where
     C: Chromosome + Clone + PartialEq + 'static,
-    T: Clone + Send + 'static,
+    T: Clone + Send + Sync + 'static,
 {
     /// Build the genetic engine with the given parameters. This will create a new
     /// instance of the `GeneticEngine` with the given parameters.
@@ -617,7 +627,9 @@ where
                 problem: config.problem.clone(),
             };
 
-            GeneticEngine::<C, T, MultiObjectiveGeneration<C>>::new(context, pipeline)
+            let event_bus = EventBus::new(self.params.handlers.clone());
+
+            GeneticEngine::<C, T, MultiObjectiveGeneration<C>>::new(context, pipeline, event_bus)
         }
     }
 }
@@ -644,7 +656,7 @@ where
                 alterers: Vec::new(),
                 species_threshold: 1.5,
                 max_species_age: 25,
-                evaluator: Arc::new(SequentialEvaluator),
+                evaluator: Arc::new(SequentialEvaluator::new()),
                 encoder: None,
                 diversity: None,
                 codec: None,
@@ -652,6 +664,7 @@ where
                 fitness_fn: None,
                 problem: None,
                 front: None,
+                handlers: Vec::new(),
             },
             errors: Vec::new(),
             _epoch: std::marker::PhantomData,

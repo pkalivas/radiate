@@ -1,4 +1,4 @@
-use crate::PyEvaluator;
+use crate::FreeThreadPyEvaluator;
 use radiate::{Chromosome, Epoch, GeneticEngineBuilder, steps::SequentialEvaluator};
 
 pub fn set_evaluator<C, T, E>(
@@ -11,7 +11,9 @@ where
     E: Epoch<Chromosome = C>,
 {
     match num_threads {
-        1 => builder.evaluator(SequentialEvaluator),
-        _ => builder.num_threads(*num_threads).evaluator(PyEvaluator),
+        1 => builder.executor(SequentialEvaluator::new()),
+        _ => builder
+            .num_threads(*num_threads)
+            .executor(FreeThreadPyEvaluator::new(*num_threads)),
     }
 }

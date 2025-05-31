@@ -1,4 +1,4 @@
-use radiate::*;
+use radiate::{steps::WorkerPoolEvaluator, *};
 
 const MIN_SCORE: f32 = 0.001;
 
@@ -19,6 +19,8 @@ fn main() {
         .problem(problem)
         .minimizing()
         .num_threads(10)
+        .executor(WorkerPoolEvaluator::new(10))
+        .subscribe(EventLogger::default())
         // .diversity(NeatDistance::new(1.0, 1.0, 3.0))
         // .species_threshold(1.8)
         // .max_species_age(25)
