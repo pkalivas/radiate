@@ -1,6 +1,6 @@
 use radiate_core::{
-    Chromosome, Ecosystem, Executor, MetricSet, Objective, Problem, SerialExecutor,
-    WorkerPoolExecutor, engine::EngineStep, metric_names,
+    Chromosome, Ecosystem, Executor, MetricSet, Objective, Problem, engine::EngineStep,
+    metric_names, thread_pool::ThreadPool,
 };
 use std::sync::Arc;
 
@@ -8,15 +8,15 @@ pub trait Evaluator<C: Chromosome, T>: Send + Sync {
     fn eval(&self, ecosystem: &mut Ecosystem<C>, problem: Arc<dyn Problem<C, T>>) -> usize;
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct SequentialEvaluator {
-    executor: SerialExecutor,
+    executor: Arc<Executor>,
 }
 
 impl SequentialEvaluator {
     pub fn new() -> Self {
         Self {
-            executor: SerialExecutor::new(),
+            executor: Arc::new(Executor::Serial),
         }
     }
 }
@@ -59,13 +59,13 @@ where
 }
 
 pub struct WorkerPoolEvaluator {
-    executor: WorkerPoolExecutor,
+    executor: Arc<Executor>,
 }
 
 impl WorkerPoolEvaluator {
     pub fn new(num_threads: usize) -> Self {
         Self {
-            executor: WorkerPoolExecutor::new(num_threads),
+            executor: Arc::new(Executor::WorkerPool(ThreadPool::new(num_threads))),
         }
     }
 }

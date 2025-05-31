@@ -20,7 +20,7 @@ pub use codecs::{
 pub use diversity::{Diversity, EuclideanDistance, HammingDistance};
 pub use domain::*;
 pub use engine::{Engine, EngineExt, EngineStep, Epoch};
-pub use executors::{BatchExecutor, Executor, ExecutorHandle, SerialExecutor, WorkerPoolExecutor};
+pub use executors::Executor;
 pub use genome::*;
 pub use objectives::{Front, Objective, Optimize, ParetoFront, Score, pareto};
 pub use problem::{EngineProblem, Problem};
@@ -37,9 +37,7 @@ pub mod prelude {
     pub use super::diversity::{Diversity, EuclideanDistance, HammingDistance};
     pub use super::domain::random_provider;
     pub use super::engine::{Engine, EngineExt, EngineStep, Epoch};
-    pub use super::executors::{
-        BatchExecutor, Executor, ExecutorHandle, SerialExecutor, WorkerPoolExecutor,
-    };
+    pub use super::executors::Executor;
     pub use super::genome::{
         ArithmeticGene, BitChromosome, BitGene, CharChromosome, CharGene, Chromosome,
         FloatChromosome, FloatGene, Gene, IntChromosome, IntGene, Integer, Valid,

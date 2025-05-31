@@ -5,6 +5,7 @@ use std::{collections::VecDeque, time::Duration};
 pub struct EngineIterator<C, T, E>
 where
     C: Chromosome,
+    T: Clone + Send + Sync + 'static,
     E: Epoch,
 {
     pub(crate) engine: GeneticEngine<C, T, E>,

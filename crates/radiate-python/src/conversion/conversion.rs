@@ -6,7 +6,7 @@ use pyo3::{
         PyListMethods, PySequence, PyString, PyTuple, PyType, PyTypeMethods,
     },
 };
-use radiate::{Chromosome, Gene, Phenotype};
+use radiate::{Chromosome, Gene, Metric, MetricSet, Phenotype};
 use std::{
     borrow::{Borrow, Cow},
     collections::HashMap,
@@ -58,6 +58,55 @@ where
     }
 
     Ok(result)
+}
+
+pub fn metric_set_to_py_dict<'py, 'a>(
+    py: Python<'py>,
+    metric_set: &MetricSet,
+) -> PyResult<Bound<'py, PyDict>> {
+    let dict = PyDict::new(py);
+    for (name, metric) in metric_set.iter() {
+        let metric_dict = metric_to_py_dict(py, metric)?;
+        dict.set_item(name, metric_dict)?;
+    }
+
+    Ok(dict)
+}
+
+pub fn metric_to_py_dict<'py, 'a>(
+    py: Python<'py>,
+    metric: &Metric,
+) -> PyResult<Bound<'py, PyDict>> {
+    let dict = PyDict::new(py);
+    dict.set_item("name", metric.name())?;
+
+    dict.set_item("value_last", metric.last_value())?;
+    dict.set_item("value_mean", metric.value_mean())?;
+    dict.set_item("value_stddev", metric.value_std_dev())?;
+    dict.set_item("value_variance", metric.value_variance())?;
+    dict.set_item("value_skewness", metric.value_skewness())?;
+    dict.set_item("value_min", metric.value_min())?;
+    dict.set_item("value_max", metric.value_max())?;
+    dict.set_item("value_count", metric.count())?;
+
+    dict.set_item("sequence_last", metric.last_sequence())?;
+    dict.set_item("sequence_mean", metric.distribution_mean())?;
+    dict.set_item("sequence_stddev", metric.distribution_std_dev())?;
+    dict.set_item("sequence_min", metric.distribution_min())?;
+    dict.set_item("sequence_max", metric.distribution_max())?;
+    dict.set_item("sequence_variance", metric.distribution_variance())?;
+    dict.set_item("sequence_skewness", metric.distribution_skewness())?;
+    dict.set_item("sequence_kurtosis", metric.distribution_kurtosis())?;
+
+    dict.set_item("time_last", metric.last_time())?;
+    dict.set_item("time_sum", metric.time_sum())?;
+    dict.set_item("time_mean", metric.time_mean())?;
+    dict.set_item("time_std_dev", metric.time_std_dev())?;
+    dict.set_item("time_min", metric.time_min())?;
+    dict.set_item("time_max", metric.time_max())?;
+    dict.set_item("time_variance", metric.time_variance())?;
+
+    Ok(dict)
 }
 
 pub fn any_value_into_py_object<'py>(av: AnyValue, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {

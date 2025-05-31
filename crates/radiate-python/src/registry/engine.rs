@@ -1,19 +1,23 @@
-use crate::FreeThreadPyEvaluator;
-use radiate::{Chromosome, Epoch, GeneticEngineBuilder, steps::SequentialEvaluator};
+use std::sync::Arc;
+
+use crate::{FreeThreadPyEvaluator, PyEngineBuilder};
+use radiate::{Chromosome, Epoch, Executor, GeneticEngineBuilder, steps::SequentialEvaluator};
 
 pub fn set_evaluator<C, T, E>(
     builder: GeneticEngineBuilder<C, T, E>,
-    num_threads: &usize,
+    py_builder: &PyEngineBuilder,
 ) -> GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send + Sync,
     E: Epoch<Chromosome = C>,
 {
-    match num_threads {
-        1 => builder.executor(SequentialEvaluator::new()),
-        _ => builder
-            .num_threads(*num_threads)
-            .executor(FreeThreadPyEvaluator::new(*num_threads)),
+    match py_builder.num_threads {
+        1 => builder.evaluator(SequentialEvaluator::new()),
+        n => {
+            let executor = Arc::new(Executor::worker_pool(n));
+            builder.executor(executor.clone())
+            // .evaluator(FreeThreadPyEvaluator::new(executor))
+        }
     }
 }

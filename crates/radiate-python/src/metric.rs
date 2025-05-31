@@ -1,4 +1,7 @@
-use pyo3::{pyclass, pymethods};
+use pyo3::{
+    Bound, PyResult, Python, pyclass, pymethods,
+    types::{PyDict, PyDictMethods},
+};
 use radiate::{Metric, MetricSet};
 use std::time::Duration;
 

@@ -18,11 +18,11 @@ use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use core::panic;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::engine::Context;
-use radiate_core::{Diversity, Ecosystem, Epoch, Genotype, MetricSet, WorkerPoolExecutor};
+use radiate_core::{Diversity, Ecosystem, Epoch, Executor, Genotype, MetricSet};
 use radiate_error::{RadiateError, radiate_err};
 use std::cmp::Ordering;
 use std::ops::Range;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 
 #[derive(Clone)]
 pub struct EngineParams<C, T = Genotype<C>>
@@ -36,7 +36,7 @@ where
     pub offspring_fraction: f32,
     pub species_threshold: f32,
     pub max_species_age: usize,
-    pub thread_pool: Arc<ThreadPool>,
+    // pub thread_pool: Arc<ThreadPool>,
     pub objective: Objective,
     pub survivor_selector: Arc<dyn Select<C>>,
     pub offspring_selector: Arc<dyn Select<C>>,
@@ -46,12 +46,13 @@ where
     pub population: Option<Population<C>>,
     pub codec: Option<Arc<dyn Codec<C, T>>>,
     pub evaluator: Arc<dyn Evaluator<C, T>>,
+    pub executor: Arc<Executor>,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
     pub problem: Option<Arc<dyn Problem<C, T>>>,
     pub encoder: Option<Arc<dyn Fn() -> Genotype<C>>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     pub front: Option<Front<Phenotype<C>>>,
-    pub handlers: Vec<Arc<dyn EventHandler<EngineEvent<T>>>>,
+    pub handlers: Vec<Arc<Mutex<dyn EventHandler<EngineEvent<T>>>>>,
 }
 
 /// Parameters for the genetic engine.
@@ -157,16 +158,21 @@ where
         self
     }
 
-    pub fn executor<EV: Evaluator<C, T> + 'static>(mut self, evaluator: EV) -> Self {
+    pub fn evaluator<EV: Evaluator<C, T> + 'static>(mut self, evaluator: EV) -> Self {
         self.params.evaluator = Arc::new(evaluator);
         self
     }
 
-    pub fn subscribe<H>(mut self, handler: H) -> Self
+    pub fn executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
+        self.params.executor = executor.into();
+        self
+    }
+
+    pub fn register<H>(mut self, handler: H) -> Self
     where
         H: EventHandler<EngineEvent<T>> + 'static,
     {
-        self.params.handlers.push(Arc::new(handler));
+        self.params.handlers.push(Arc::new(Mutex::new(handler)));
         self
     }
 
@@ -335,7 +341,7 @@ where
     where
         T: Send + Sync,
     {
-        self.params.thread_pool = Arc::new(ThreadPool::new(num_threads));
+        // self.params.thread_pool = Arc::new(ThreadPool::new(num_threads));
         self
     }
 
@@ -414,9 +420,7 @@ where
         let species_step = SpeciateStep {
             threashold: config.species_threshold(),
             diversity: config.diversity().clone().unwrap(),
-            executor: Arc::new(WorkerPoolExecutor::with_thread_pool(
-                config.thread_pool().clone(),
-            )),
+            executor: config.executor(),
             objective: config.objective(),
         };
 
@@ -464,7 +468,7 @@ where
         self.params.front = Some(Front::new(
             self.params.front_range.clone(),
             front_obj.clone(),
-            WorkerPoolExecutor::with_thread_pool(self.params.thread_pool.clone()),
+            self.params.executor.clone(),
             move |one: &Phenotype<C>, two: &Phenotype<C>| {
                 if one.score().is_none() || two.score().is_none() {
                     return Ordering::Equal;
@@ -521,7 +525,7 @@ where
                 audits: self.params.audits.clone(),
                 alterers: self.params.alterers.clone(),
                 objective: self.params.objective.clone(),
-                thread_pool: self.params.thread_pool.clone(),
+                // thread_pool: self.params.thread_pool.clone(),
                 max_age: self.params.max_age,
                 max_species_age: self.params.max_species_age,
                 species_threshold: self.params.species_threshold,
@@ -529,6 +533,7 @@ where
                 front: Arc::new(RwLock::new(self.params.front.clone().unwrap())),
                 offspring_fraction: self.params.offspring_fraction,
                 evaluator: self.params.evaluator.clone(),
+                executor: self.params.executor.clone(),
             };
 
             let mut pipeline = Pipeline::<C>::default();
@@ -552,7 +557,8 @@ where
                 problem: config.problem.clone(),
             };
 
-            let event_bus = EventBus::new(self.params.handlers.clone());
+            let event_bus =
+                EventBus::new(self.params.executor.clone(), self.params.handlers.clone());
 
             GeneticEngine::<C, T>::new(context, pipeline, event_bus)
         }
@@ -596,7 +602,7 @@ where
                 audits: self.params.audits.clone(),
                 alterers: self.params.alterers.clone(),
                 objective: self.params.objective.clone(),
-                thread_pool: self.params.thread_pool.clone(),
+                // thread_pool: self.params.thread_pool.clone(),
                 max_age: self.params.max_age,
                 max_species_age: self.params.max_species_age,
                 species_threshold: self.params.species_threshold,
@@ -604,6 +610,7 @@ where
                 front: Arc::new(RwLock::new(self.params.front.clone().unwrap())),
                 offspring_fraction: self.params.offspring_fraction,
                 evaluator: self.params.evaluator.clone(),
+                executor: self.params.executor.clone(),
             };
 
             let mut pipeline = Pipeline::<C>::default();
@@ -627,7 +634,8 @@ where
                 problem: config.problem.clone(),
             };
 
-            let event_bus = EventBus::new(self.params.handlers.clone());
+            let event_bus =
+                EventBus::new(self.params.executor.clone(), self.params.handlers.clone());
 
             GeneticEngine::<C, T, MultiObjectiveGeneration<C>>::new(context, pipeline, event_bus)
         }
@@ -647,7 +655,7 @@ where
                 max_age: 20,
                 offspring_fraction: 0.8,
                 front_range: 800..900,
-                thread_pool: Arc::new(ThreadPool::new(1)),
+                // thread_pool: Arc::new(ThreadPool::new(1)),
                 objective: Objective::Single(Optimize::Maximize),
                 survivor_selector: Arc::new(TournamentSelector::new(3)),
                 offspring_selector: Arc::new(RouletteSelector::new()),
@@ -665,6 +673,7 @@ where
                 problem: None,
                 front: None,
                 handlers: Vec::new(),
+                executor: Arc::new(Executor::Serial),
             },
             errors: Vec::new(),
             _epoch: std::marker::PhantomData,

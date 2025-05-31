@@ -56,6 +56,7 @@ use radiate_core::{Engine, Epoch, metric_names};
 pub struct GeneticEngine<C, T, E = Generation<C, T>>
 where
     C: Chromosome,
+    T: Clone + Send + Sync + 'static,
     E: Epoch,
 {
     context: Context<C, T>,
@@ -67,7 +68,7 @@ where
 impl<C, T, E> GeneticEngine<C, T, E>
 where
     C: Chromosome,
-    T: Clone + Send,
+    T: Clone + Send + Sync + 'static,
     E: Epoch,
 {
     pub(crate) fn new(
@@ -91,7 +92,7 @@ where
 impl<C, T> GeneticEngine<C, T, Generation<C, T>>
 where
     C: Chromosome + Clone,
-    T: Clone + Send,
+    T: Clone + Send + Sync + 'static,
 {
     pub fn builder() -> GeneticEngineBuilder<C, T, Generation<C, T>> {
         GeneticEngineBuilder::default()
@@ -101,22 +102,21 @@ where
 impl<C, T, E> Engine for GeneticEngine<C, T, E>
 where
     C: Chromosome,
-    T: Send + Sync + 'static,
+    T: Clone + Send + Sync + 'static,
     E: Epoch<Chromosome = C> + for<'a> From<&'a Context<C, T>>,
 {
     type Chromosome = C;
     type Epoch = E;
 
     fn next(&mut self) -> Self::Epoch {
+        if matches!(self.context.index, 0) {
+            self.bus.emit(EngineEvent::start());
+        }
+
         self.bus.emit(EngineEvent::epoch_start(&self.context));
 
         let timer = std::time::Instant::now();
-        self.pipeline.run(
-            self.context.index,
-            &self.bus,
-            &mut self.context.metrics,
-            &mut self.context.ecosystem,
-        );
+        self.pipeline.run(&mut self.context, &self.bus);
 
         self.context
             .metrics
@@ -128,6 +128,7 @@ where
                 if self.context.objective.is_better(score, current) {
                     self.context.score = Some(score.clone());
                     self.context.best = self.context.problem.decode(best.genotype());
+                    self.bus.emit(EngineEvent::improvement(&self.context));
                 }
             } else {
                 self.context.score = Some(best.score().unwrap().clone());
@@ -140,5 +141,16 @@ where
         self.context.index += 1;
 
         E::from(&self.context)
+    }
+}
+
+impl<C, T, E> Drop for GeneticEngine<C, T, E>
+where
+    C: Chromosome,
+    T: Clone + Send + Sync + 'static,
+    E: Epoch,
+{
+    fn drop(&mut self) {
+        self.bus.emit(EngineEvent::stop(&self.context));
     }
 }

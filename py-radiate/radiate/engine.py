@@ -2,6 +2,7 @@ from typing import Any, Callable, List, Tuple
 from .selector import Selector, TournamentSelector, RouletteSelector
 from .alterer import Alterer, UniformCrossover, UniformMutator
 from .diversity import Diversity, Hammingdistance, EuclideanDistance
+from .handlers import EventHandler
 from ._typing import GeneType, ObjectiveType
 from .codec import FloatCodec, IntCodec, CharCodec, BitCodec
 from .limit import Limit
@@ -153,6 +154,12 @@ class GeneticEngine:
         if num_threads <= 0:
             raise ValueError("Number of threads must be greater than 0.")
         self.builder.set_num_threads(num_threads)
+
+    def register(self, event_handler: Callable[[Any], None]):
+        """Register an event handler."""
+        if not callable(event_handler):
+            raise TypeError("Event handler must be a callable.")
+        self.builder.set_event_handlers([EventHandler(event_handler).handler])
 
     def __get_engine(self):
         """Get the engine."""

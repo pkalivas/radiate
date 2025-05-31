@@ -14,6 +14,39 @@ impl MetricSet {
         }
     }
 
+    pub fn merge(&mut self, other: &MetricSet) {
+        for (name, metric) in other.iter() {
+            if let Some(existing_metric) = self.metrics.get_mut(name) {
+                match (existing_metric, metric) {
+                    (Metric::Value(_, stat, dist), Metric::Value(_, new_stat, new_dist)) => {
+                        stat.add(new_stat.last_value());
+                        for value in new_dist.last_sequence() {
+                            dist.push(*value);
+                        }
+                    }
+                    (Metric::Time(_, stat), Metric::Time(_, new_stat)) => {
+                        stat.add(new_stat.last_time());
+                    }
+                    (Metric::Distribution(_, dist), Metric::Distribution(_, new_dist)) => {
+                        for value in new_dist.last_sequence() {
+                            dist.push(*value);
+                        }
+                    }
+                    (
+                        Metric::Operations(_, stat, time_stat),
+                        Metric::Operations(_, new_stat, new_time_stat),
+                    ) => {
+                        stat.add(new_stat.last_value());
+                        time_stat.add(new_time_stat.last_time());
+                    }
+                    _ => {}
+                }
+            } else {
+                self.add(metric.clone());
+            }
+        }
+    }
+
     pub fn upsert_value(&mut self, name: &'static str, value: f32) {
         if let Some(m) = self.metrics.get_mut(name) {
             m.add_value(value);

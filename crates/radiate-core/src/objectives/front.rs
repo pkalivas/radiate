@@ -1,5 +1,5 @@
 use crate::{
-    Chromosome, Epoch, Executor, Phenotype, WorkerPoolExecutor,
+    Chromosome, Epoch, Executor, Phenotype,
     objectives::{Objective, pareto},
 };
 use std::{
@@ -23,7 +23,7 @@ where
     ord: Arc<dyn Fn(&T, &T) -> Ordering + Send + Sync>,
     range: Range<usize>,
     objective: Objective,
-    thread_pool: WorkerPoolExecutor,
+    thread_pool: Arc<Executor>,
 }
 
 impl<T> Front<T>
@@ -33,7 +33,7 @@ where
     pub fn new<F>(
         range: Range<usize>,
         objective: Objective,
-        thread_pool: WorkerPoolExecutor,
+        thread_pool: Arc<Executor>,
         comp: F,
     ) -> Self
     where

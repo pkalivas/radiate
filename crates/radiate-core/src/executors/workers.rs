@@ -24,51 +24,51 @@ impl WorkerPoolExecutor {
     }
 }
 
-impl Executor for WorkerPoolExecutor {
-    fn execute<F, R>(&self, f: F) -> R
-    where
-        F: FnOnce() -> R + Send + 'static,
-        R: Send + 'static,
-    {
-        self.thread_pool.submit_with_result(f).result()
-    }
+// impl Executor for WorkerPoolExecutor {
+//     fn execute<F, R>(&self, f: F) -> R
+//     where
+//         F: FnOnce() -> R + Send + 'static,
+//         R: Send + 'static,
+//     {
+//         self.thread_pool.submit_with_result(f).result()
+//     }
 
-    fn execute_batch<F, R>(&self, f: Vec<F>) -> Vec<R>
-    where
-        F: FnOnce() -> R + Send + 'static,
-        R: Send + 'static,
-    {
-        let mut results = Vec::with_capacity(f.len());
-        for job in f {
-            let result = self.thread_pool.submit_with_result(move || job());
-            results.push(result);
-        }
+//     fn execute_batch<F, R>(&self, f: Vec<F>) -> Vec<R>
+//     where
+//         F: FnOnce() -> R + Send + 'static,
+//         R: Send + 'static,
+//     {
+//         let mut results = Vec::with_capacity(f.len());
+//         for job in f {
+//             let result = self.thread_pool.submit_with_result(move || job());
+//             results.push(result);
+//         }
 
-        results.into_iter().map(|r| r.result()).collect()
-    }
+//         results.into_iter().map(|r| r.result()).collect()
+//     }
 
-    fn submit<F>(&self, f: F)
-    where
-        F: FnOnce() + Send + 'static,
-    {
-        self.thread_pool.submit(f);
-    }
+//     fn submit<F>(&self, f: F)
+//     where
+//         F: FnOnce() + Send + 'static,
+//     {
+//         self.thread_pool.submit(f);
+//     }
 
-    fn submit_batch<F>(&self, f: Vec<F>)
-    where
-        F: FnOnce() + Send + 'static,
-    {
-        let wg = WaitGroup::new();
-        for job in f {
-            let wg_clone = wg.guard();
-            self.thread_pool.submit(move || {
-                job();
-                drop(wg_clone);
-            });
-        }
-        wg.wait();
-    }
-}
+//     fn submit_batch<F>(&self, f: Vec<F>)
+//     where
+//         F: FnOnce() + Send + 'static,
+//     {
+//         let wg = WaitGroup::new();
+//         for job in f {
+//             let wg_clone = wg.guard();
+//             self.thread_pool.submit(move || {
+//                 job();
+//                 drop(wg_clone);
+//             });
+//         }
+//         wg.wait();
+//     }
+// }
 
 impl Default for WorkerPoolExecutor {
     fn default() -> Self {

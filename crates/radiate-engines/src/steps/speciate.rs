@@ -1,6 +1,6 @@
 use radiate_core::{
     Chromosome, Diversity, Ecosystem, EngineStep, Executor, Genotype, MetricSet, Objective,
-    Species, WorkerPoolExecutor, metric_names,
+    Species, metric_names,
 };
 use std::sync::{Arc, Mutex, RwLock};
 
@@ -11,7 +11,7 @@ where
     pub(crate) threashold: f32,
     pub(crate) objective: Objective,
     pub(crate) diversity: Arc<dyn Diversity<C>>,
-    pub(crate) executor: Arc<WorkerPoolExecutor>,
+    pub(crate) executor: Arc<Executor>,
 }
 
 impl<C> SpeciateStep<C>

@@ -1,5 +1,7 @@
-use pyo3::{pyclass, pymethods};
+use pyo3::{PyObject, pyclass, pymethods};
 use std::{collections::BTreeMap, ops::Range};
+
+use crate::ObjectValue;
 
 #[pyclass]
 #[derive(Clone, Debug, Default)]
@@ -34,6 +36,20 @@ impl PyEngineParam {
 
 #[pyclass]
 #[derive(Clone)]
+pub struct PyFunc {
+    pub func: ObjectValue,
+}
+
+#[pymethods]
+impl PyFunc {
+    #[new]
+    pub fn new(func: ObjectValue) -> Self {
+        Self { func }
+    }
+}
+
+#[pyclass]
+#[derive(Clone)]
 pub struct PyEngineBuilder {
     pub objectives: Vec<String>,
     pub survivor_selector: PyEngineParam,
@@ -46,6 +62,7 @@ pub struct PyEngineBuilder {
     pub num_threads: usize,
     pub max_phenotype_age: usize,
     pub max_species_age: usize,
+    pub event_handlers: Option<Vec<PyFunc>>,
     pub front_range: Range<usize>,
 }
 
@@ -53,7 +70,7 @@ pub struct PyEngineBuilder {
 impl PyEngineBuilder {
     #[new]
     #[pyo3(signature = (objectives, survivor_selector, offspring_selector, alters,
-    population_size, offspring_fraction, num_threads, front_range, species_threshold, max_phenotype_age, max_species_age, diversity=None))]
+    population_size, offspring_fraction, num_threads, front_range, species_threshold, max_phenotype_age, max_species_age, event_handlers=None, diversity=None))]
     pub fn new(
         objectives: Vec<String>,
         survivor_selector: PyEngineParam,
@@ -66,6 +83,7 @@ impl PyEngineBuilder {
         species_threshold: f32,
         max_phenotype_age: usize,
         max_species_age: usize,
+        event_handlers: Option<Vec<PyFunc>>,
         diversity: Option<PyEngineParam>,
     ) -> Self {
         Self {
@@ -80,6 +98,7 @@ impl PyEngineBuilder {
             species_threshold,
             max_phenotype_age,
             max_species_age,
+            event_handlers,
             diversity,
         }
     }
@@ -130,5 +149,9 @@ impl PyEngineBuilder {
 
     pub fn set_max_species_age(&mut self, age: usize) {
         self.max_species_age = age;
+    }
+
+    pub fn set_event_handlers(&mut self, handlers: Option<Vec<PyFunc>>) {
+        self.event_handlers = handlers;
     }
 }

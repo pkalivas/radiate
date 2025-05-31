@@ -1,26 +1,23 @@
 use super::{EventHandler, events::Event};
-use radiate_core::{Executor, WorkerPoolExecutor};
-use std::sync::Arc;
+use radiate_core::Executor;
+use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
 pub struct EventBus<T> {
-    handlers: Vec<Arc<dyn EventHandler<T>>>,
-    executor: Arc<WorkerPoolExecutor>,
+    handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
+    executor: Arc<Executor>,
 }
 
 impl<T> EventBus<T> {
-    pub fn new(handlers: Vec<Arc<dyn EventHandler<T>>>) -> Self {
-        EventBus {
-            handlers,
-            executor: Arc::new(WorkerPoolExecutor::default()),
-        }
+    pub fn new(executor: Arc<Executor>, handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>) -> Self {
+        EventBus { handlers, executor }
     }
 
     pub fn clear(&mut self) {
         self.handlers.clear();
     }
 
-    pub fn register(&mut self, handler: Arc<dyn EventHandler<T>>) {
+    pub fn register(&mut self, handler: Arc<Mutex<dyn EventHandler<T>>>) {
         self.handlers.push(handler);
     }
 
@@ -37,20 +34,8 @@ impl<T> EventBus<T> {
             let clone_handler = Arc::clone(handler);
             let clone_event = wrapped_event.clone();
             self.executor.submit(move || {
-                clone_handler.handle(clone_event);
+                clone_handler.lock().unwrap().handle(clone_event);
             });
-        }
-    }
-}
-
-impl<T> Default for EventBus<T>
-where
-    T: Send + Sync + 'static,
-{
-    fn default() -> Self {
-        EventBus {
-            handlers: Vec::new(),
-            executor: Arc::new(WorkerPoolExecutor::new(4)),
         }
     }
 }

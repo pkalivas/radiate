@@ -1,5 +1,6 @@
 use std::{
     fmt::{Debug, Display},
+    ops::Deref,
     sync::{
         Arc,
         atomic::{AtomicUsize, Ordering},
@@ -16,6 +17,14 @@ impl EventId {
     pub fn next() -> Self {
         static EVENT_ID: AtomicUsize = AtomicUsize::new(0);
         EventId(EVENT_ID.fetch_add(1, Ordering::SeqCst))
+    }
+}
+
+impl Deref for EventId {
+    type Target = usize;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -66,7 +75,11 @@ impl<T: Debug> Debug for Event<T> {
 #[derive(Debug, Clone)]
 pub enum EngineEvent<T> {
     Start,
-    Stop,
+    Stop {
+        metrics: MetricSet,
+        best: T,
+        score: Score,
+    },
     EpochStart(usize),
     EpochComplete {
         index: usize,
@@ -76,6 +89,11 @@ pub enum EngineEvent<T> {
     },
     StepStart(&'static str),
     StepComplete(&'static str),
+    EngineImprovement {
+        index: usize,
+        best: T,
+        score: Score,
+    },
 }
 
 impl<T> EngineEvent<T> {
@@ -86,8 +104,13 @@ impl<T> EngineEvent<T> {
     pub fn stop<C>(context: &Context<C, T>) -> Self
     where
         C: Chromosome,
+        T: Clone,
     {
-        EngineEvent::Stop
+        EngineEvent::Stop {
+            metrics: context.metrics.clone(),
+            best: context.best.clone(),
+            score: context.score.clone().unwrap_or_default(),
+        }
     }
 
     pub fn epoch_start<C>(context: &Context<C, T>) -> Self
@@ -100,13 +123,12 @@ impl<T> EngineEvent<T> {
     pub fn epoch_complete<C>(context: &Context<C, T>) -> Self
     where
         C: Chromosome,
+        T: Clone,
     {
         EngineEvent::EpochComplete {
             index: context.index,
             metrics: context.metrics.clone(),
-            best: context
-                .problem
-                .decode(context.ecosystem.population().get(0).unwrap().genotype()),
+            best: context.best.clone(),
             score: context.score.clone().unwrap_or_default(),
         }
     }
@@ -118,19 +140,34 @@ impl<T> EngineEvent<T> {
     pub fn step_complete(step: &'static str) -> Self {
         EngineEvent::StepComplete(step)
     }
+
+    pub fn improvement<C>(context: &Context<C, T>) -> Self
+    where
+        C: Chromosome,
+        T: Clone,
+    {
+        EngineEvent::EngineImprovement {
+            index: context.index,
+            best: context.best.clone(),
+            score: context.score.clone().unwrap_or_default(),
+        }
+    }
 }
 
 impl<T> Display for EngineEvent<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             EngineEvent::Start => write!(f, "EngineEvent::Started"),
-            EngineEvent::Stop => write!(f, "EngineEvent::Stopped"),
+            EngineEvent::Stop { .. } => write!(f, "EngineEvent::Stopped"),
             EngineEvent::EpochStart(index) => write!(f, "EngineEvent::EpochStarted [{}]", index),
             EngineEvent::EpochComplete { index, .. } => {
                 write!(f, "EngineEvent::EpochComplete [{}]", index)
             }
             EngineEvent::StepStart(step) => write!(f, "EngineEvent::StepStarted [{}]", step),
             EngineEvent::StepComplete(step) => write!(f, "EngineEvent::StepCompleted [{}]", step),
+            EngineEvent::EngineImprovement { index, .. } => {
+                write!(f, "EngineEvent::EngineImprovement [{}]", index)
+            }
         }
     }
 }

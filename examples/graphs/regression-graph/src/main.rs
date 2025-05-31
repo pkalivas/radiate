@@ -15,12 +15,15 @@ fn main() {
     let graph_codec = GraphCodec::directed(1, 1, values);
     let problem = Regression::new(get_dataset(), Loss::MSE, graph_codec);
 
+    let metric_aggregator = MetricsAggregator::new();
+
     let engine = GeneticEngine::builder()
         .problem(problem)
         .minimizing()
         .num_threads(10)
-        .executor(WorkerPoolEvaluator::new(10))
-        .subscribe(EventLogger::default())
+        .evaluator(WorkerPoolEvaluator::new(10))
+        .register(EventLogger::default())
+        .register(metric_aggregator.clone())
         // .diversity(NeatDistance::new(1.0, 1.0, 3.0))
         // .species_threshold(1.8)
         // .max_species_age(25)
@@ -36,6 +39,9 @@ fn main() {
         .until_score_below(MIN_SCORE)
         .take(1)
         .last()
+        .inspect(|_| {
+            println!("{:?}", metric_aggregator.aggregate());
+        })
         .inspect(display);
 }
 
