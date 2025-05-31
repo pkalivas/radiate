@@ -24,7 +24,7 @@ fn main() {
 
     let mut engine = GeneticEngine::builder()
         .minimizing()
-        .num_threads(5)
+        .executor(Executor::worker_pool(10))
         .codec(codec.clone())
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .crossover(IntermediateCrossover::new(0.75, 0.1))

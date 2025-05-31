@@ -21,7 +21,7 @@ pub use metric::*;
 pub use object::{AnyValue, IntoAnyValue, Object, ObjectSafe, ObjectValue};
 pub use params::*;
 pub use problem::PyProblem;
-use pyo3::{PyResult, Python, prepare_freethreaded_python};
+use pyo3::{PyResult, Python};
 pub use random::PyRandomProvider;
 pub use registry::*;
 use std::cell::UnsafeCell;

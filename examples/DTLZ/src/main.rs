@@ -12,7 +12,7 @@ fn main() {
 
     let engine = GeneticEngine::builder()
         .codec(codec)
-        .num_threads(10)
+        .executor(Executor::worker_pool(10))
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
         .offspring_selector(TournamentSelector::new(5))
         .survivor_selector(NSGA2Selector::new())

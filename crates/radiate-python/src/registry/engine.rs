@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{FreeThreadPyEvaluator, PyEngineBuilder};
-use radiate::{Chromosome, Epoch, Executor, GeneticEngineBuilder, steps::SequentialEvaluator};
+use radiate::{Chromosome, Epoch, Executor, GeneticEngineBuilder};
 
 pub fn set_evaluator<C, T, E>(
     builder: GeneticEngineBuilder<C, T, E>,
@@ -13,11 +13,12 @@ where
     E: Epoch<Chromosome = C>,
 {
     match py_builder.num_threads {
-        1 => builder.evaluator(SequentialEvaluator::new()),
+        1 => builder.evaluator(FreeThreadPyEvaluator::new(Arc::new(Executor::Serial))),
         n => {
             let executor = Arc::new(Executor::worker_pool(n));
-            builder.executor(executor.clone())
-            // .evaluator(FreeThreadPyEvaluator::new(executor))
+            builder
+                .executor(executor.clone())
+                .evaluator(FreeThreadPyEvaluator::new(executor))
         }
     }
 }

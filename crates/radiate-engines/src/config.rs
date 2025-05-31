@@ -1,6 +1,5 @@
 use radiate_core::{Diversity, Executor, Genotype};
 
-use super::thread_pool::ThreadPool;
 use super::{Alter, Audit, Front, Problem, ReplacementStrategy, Select};
 use crate::Chromosome;
 use crate::genome::phenotype::Phenotype;
@@ -22,7 +21,6 @@ pub(crate) struct EngineConfig<C: Chromosome, T> {
     pub(crate) diversity: Option<Arc<dyn Diversity<C>>>,
     pub(crate) evaluator: Arc<dyn Evaluator<C, T>>,
     pub(crate) objective: Objective,
-    // pub(crate) thread_pool: Arc<ThreadPool>,
     pub(crate) max_age: usize,
     pub(crate) max_species_age: usize,
     pub(crate) front: Arc<RwLock<Front<Phenotype<C>>>>,
@@ -58,10 +56,6 @@ impl<C: Chromosome, T> EngineConfig<C, T> {
     pub fn objective(&self) -> Objective {
         self.objective.clone()
     }
-
-    // // pub fn thread_pool(&self) -> Arc<ThreadPool> {
-    //     Arc::clone(&self.thread_pool)
-    // }
 
     pub fn max_age(&self) -> usize {
         self.max_age

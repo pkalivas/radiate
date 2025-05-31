@@ -10,7 +10,7 @@ fn main() {
     let engine = GeneticEngine::builder()
         .codec(codec)
         .minimizing()
-        .num_threads(5)
+        .executor(Executor::worker_pool(10))
         .offspring_selector(BoltzmannSelector::new(4.0))
         .crossover(MultiPointCrossover::new(0.75, 2))
         .mutator(UniformMutator::new(0.05))

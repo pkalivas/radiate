@@ -1,10 +1,3 @@
-mod batch;
-mod serial;
-mod workers;
-
-// pub use batch::BatchExecutor;
-// pub use serial::SerialExecutor;
-
 use crate::thread_pool::{ThreadPool, WaitGroup};
 
 pub trait Processor: Send + Sync {
@@ -26,6 +19,7 @@ impl Executor {
         let pool = ThreadPool::new(num_workers);
         Executor::WorkerPool(pool)
     }
+
     pub fn num_workers(&self) -> usize {
         match self {
             Executor::Serial => 1,

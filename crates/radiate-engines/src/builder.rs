@@ -8,7 +8,6 @@ use crate::pipeline::Pipeline;
 use crate::steps::{
     AuditStep, Evaluator, FilterStep, FrontStep, RecombineStep, SequentialEvaluator, SpeciateStep,
 };
-use crate::thread_pool::ThreadPool;
 use crate::{
     Alter, AlterAction, Audit, Crossover, EncodeReplace, EngineEvent, EngineProblem, EngineStep,
     EventBus, EventHandler, Front, Generation, MetricAudit, MultiObjectiveGeneration, Mutate,
@@ -36,7 +35,6 @@ where
     pub offspring_fraction: f32,
     pub species_threshold: f32,
     pub max_species_age: usize,
-    // pub thread_pool: Arc<ThreadPool>,
     pub objective: Objective,
     pub survivor_selector: Arc<dyn Select<C>>,
     pub offspring_selector: Arc<dyn Select<C>>,
@@ -332,17 +330,6 @@ where
             errors: self.errors,
             _epoch: std::marker::PhantomData,
         }
-    }
-
-    /// Set the thread pool of the genetic engine. This is the thread pool that will be used
-    /// to execute the fitness function in parallel. Some fitness functions may be computationally
-    /// expensive and can benefit from parallel execution.
-    pub fn num_threads(mut self, num_threads: usize) -> Self
-    where
-        T: Send + Sync,
-    {
-        // self.params.thread_pool = Arc::new(ThreadPool::new(num_threads));
-        self
     }
 
     pub fn with_values<F>(mut self, f: F) -> Self

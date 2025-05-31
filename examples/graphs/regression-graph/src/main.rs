@@ -1,4 +1,4 @@
-use radiate::{steps::WorkerPoolEvaluator, *};
+use radiate::*;
 
 const MIN_SCORE: f32 = 0.001;
 
@@ -20,8 +20,7 @@ fn main() {
     let engine = GeneticEngine::builder()
         .problem(problem)
         .minimizing()
-        .num_threads(10)
-        .evaluator(WorkerPoolEvaluator::new(10))
+        .executor(Executor::worker_pool(10))
         .register(EventLogger::default())
         .register(metric_aggregator.clone())
         // .diversity(NeatDistance::new(1.0, 1.0, 3.0))

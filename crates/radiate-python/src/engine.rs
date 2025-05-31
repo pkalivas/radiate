@@ -1,71 +1,13 @@
 use crate::codec::PyCodec;
-use crate::conversion::metric_set_to_py_dict;
+use crate::events::PyEventHandler;
 use crate::{
-    AnyValue, ComponentRegistry, EngineRegistry, Limit, PyBitCodec, PyCharCodec, PyEngineParam,
-    PyFunc, PyGeneType, PyGeneration, PyProblem,
+    ComponentRegistry, EngineRegistry, Limit, PyBitCodec, PyCharCodec, PyEngineParam, PyGeneType,
+    PyGeneration, PyProblem,
 };
 use crate::{ObjectValue, PyEngineBuilder, PyFloatCodec, PyIntCodec};
-use pyo3::types::{PyDict, PyDictMethods};
-use pyo3::{Borrowed, IntoPyObject, PyAny, PyObject, PyResult, Python, pyclass, pymethods};
+use pyo3::{PyObject, PyResult, Python, pyclass, pymethods};
 use radiate::prelude::*;
 use std::fmt::Debug;
-
-pub struct PyEventHandler {
-    handler: PyFunc,
-}
-
-impl PyEventHandler {
-    pub fn new(handler: PyFunc) -> Self {
-        PyEventHandler { handler }
-    }
-}
-
-impl<'py, 'a> EventHandler<EngineEvent<ObjectValue>> for PyEventHandler {
-    fn handle(&mut self, event: Event<EngineEvent<ObjectValue>>) {
-        Python::with_gil(|py| {
-            py.allow_threads(|| {
-                Python::with_gil(|inner| {
-                    let py = inner;
-                    let dict = PyDict::new(py);
-                    dict.set_item("id", *event.id()).unwrap();
-                    match event.data() {
-                        EngineEvent::Start => {
-                            dict.set_item("type", "start").unwrap();
-                        }
-                        EngineEvent::Stop {
-                            metrics,
-                            best,
-                            score,
-                        } => {
-                            dict.set_item("type", "stop").unwrap();
-                            dict.set_item("metrics", metric_set_to_py_dict(py, metrics).unwrap())
-                                .unwrap();
-                            dict.set_item("best", best.inner.bind_borrowed(py)).unwrap();
-                            dict.set_item("score", score.as_f32()).unwrap();
-                        }
-                        // EngineEvent::Generation(gen) => {
-                        //     dict.set_item("generation", gen.index()).unwrap();
-                        //     dict.set_item("seconds", gen.seconds()).unwrap();
-                        //     dict.set_item("population_size", gen.population_size()).unwrap();
-                        // }
-                        _ => {
-                            dict.set_item("type", "other").unwrap();
-                            // dict.set_item("data", format!("{:?}", event.data()))
-                            //     .unwrap();
-                        }
-                    }
-
-                    self.handler
-                        .func
-                        .inner
-                        .call1(py, (dict,))
-                        // .call_method1(py, "handle_event", (dict,))
-                        .expect("Failed to call event handler");
-                });
-            })
-        })
-    }
-}
 
 type SingleEngine<C> = GeneticEngine<C, ObjectValue, Generation<C, ObjectValue>>;
 type MultiEngine<C> = GeneticEngine<C, ObjectValue, MultiObjectiveGeneration<C>>;

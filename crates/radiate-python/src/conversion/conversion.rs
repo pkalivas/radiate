@@ -50,6 +50,7 @@ where
             .iter()
             .cloned()
             .collect::<Vec<_>>();
+
         let member = PyDict::new(py);
         member.set_item("genotype", genotype)?;
         member.set_item("fitness", fitness)?;

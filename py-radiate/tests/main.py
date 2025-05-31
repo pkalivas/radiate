@@ -13,7 +13,7 @@ rd.random.set_seed(100)
 codec = rd.IntCodec.vector(10, (0, 10))
 engine = rd.GeneticEngine(codec, lambda x: sum(x))
 engine.offspring_selector(rd.BoltzmannSelector(4))
-engine.register(lambda x: print(x))
+# engine.register(lambda x: print(x))
 engine.alters([
     rd.MultiPointCrossover(0.75, 2), 
     rd.UniformMutator(0.01)
@@ -83,7 +83,7 @@ engine = rd.GeneticEngine(codec, dtlz_1)
 engine.multi_objective([rd.ObjectiveType.MIN, rd.ObjectiveType.MIN, rd.ObjectiveType.MIN])
 engine.offspring_selector(rd.TournamentSelector(k=5))
 engine.survivor_selector(rd.NSGA2Selector())
-# engine.num_threads(4)
+engine.num_threads(4)
 engine.alters([
     rd.SimulatedBinaryCrossover(1.0, 1.0),
     rd.UniformMutator(0.1)

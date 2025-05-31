@@ -1,4 +1,4 @@
-use pyo3::{PyObject, pyclass, pymethods};
+use pyo3::{pyclass, pymethods};
 use std::{collections::BTreeMap, ops::Range};
 
 use crate::ObjectValue;

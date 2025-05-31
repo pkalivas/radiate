@@ -27,7 +27,7 @@ fn main() {
     let engine = GeneticEngine::builder()
         .problem(regression)
         .minimizing()
-        .num_threads(10)
+        .executor(Executor::worker_pool(10))
         .offspring_fraction(0.92)
         .replace_strategy(GraphReplacement)
         .offspring_selector(BoltzmannSelector::new(4.0))
