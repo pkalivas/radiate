@@ -1,6 +1,5 @@
-use radiate::{Chromosome, Generation, GeneticEngineBuilder, MultiObjectiveGeneration, Optimize};
-
 use crate::PyEngineBuilder;
+use radiate::{Chromosome, Generation, GeneticEngineBuilder, MultiObjectiveGeneration, Optimize};
 
 pub(crate) fn set_single_objective<C, T>(
     builder: GeneticEngineBuilder<C, T, Generation<C, T>>,

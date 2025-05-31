@@ -1,4 +1,4 @@
-use crate::{ObjectValue, PyFunc, conversion::metric_set_to_py_dict};
+use crate::{AnyValue, ObjectSafe, ObjectValue, PyFunc, conversion::metric_set_to_py_dict};
 use pyo3::{
     Python,
     types::{PyAnyMethods, PyDict},
@@ -21,6 +21,7 @@ impl<'py, 'a> EventHandler<EngineEvent<ObjectValue>> for PyEventHandler {
             py.allow_threads(|| {
                 Python::with_gil(|inner| {
                     let py = inner;
+
                     let dict = PyDict::new(py);
                     dict.set_item("id", *event.id()).unwrap();
                     match event.data() {

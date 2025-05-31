@@ -140,7 +140,7 @@ impl ComponentRegistry for AlterRegistry {
     ) -> GeneticEngineBuilder<C, T, E>
     where
         C: Chromosome + Clone + PartialEq + 'static,
-        T: Clone + Send + 'static,
+        T: Clone + Send + Sync + 'static,
         E: Epoch<Chromosome = C> + 'static,
     {
         let mut result = Vec::new();

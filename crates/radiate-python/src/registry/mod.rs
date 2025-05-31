@@ -1,6 +1,6 @@
 mod alters;
 mod diversity;
-mod engine;
+mod evaluator;
 mod limit;
 mod objective;
 mod registry;
@@ -8,7 +8,7 @@ mod selector;
 
 pub use alters::*;
 pub use diversity::*;
-pub(crate) use engine::set_evaluator;
+pub use evaluator::*;
 pub use limit::*;
 pub(crate) use objective::{set_multi_objective, set_single_objective};
 use radiate::{Chromosome, Epoch, GeneticEngineBuilder};

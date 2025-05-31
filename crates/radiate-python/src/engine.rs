@@ -168,8 +168,6 @@ where
     }
 
     builder = registry.apply(builder, py_builder, gene_type);
-
-    builder = crate::set_evaluator(builder, &py_builder);
     builder = crate::set_single_objective(builder, &py_builder.objectives);
 
     builder
