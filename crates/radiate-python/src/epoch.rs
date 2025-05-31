@@ -1,6 +1,7 @@
 use crate::ObjectValue;
 use crate::PyMetricSet;
-use crate::conversion;
+use crate::conversion::Wrap;
+use pyo3::IntoPyObject;
 use pyo3::{
     Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods,
     types::{PyList, PyListMethods},
@@ -172,15 +173,12 @@ impl Into<PyGeneration> for MultiObjectiveGeneration<IntChromosome<i32>> {
                 .map(|phenotype| (*(*phenotype)).clone())
                 .collect::<Vec<_>>();
 
-            let pareto_front = conversion::pareto_front_to_py_object(py, &pareto_front)
-                .expect("Failed to convert pareto front to PyObject");
-
             PyGeneration {
                 index: self.index(),
                 score: score.unbind(),
                 value: py.None(),
                 metrics: self.metrics().clone().into(),
-                pareto_front: Some(pareto_front.unbind()),
+                pareto_front: Some(Wrap(pareto_front).into_pyobject(py).unwrap().unbind()),
             }
         })
     }
@@ -196,15 +194,12 @@ impl Into<PyGeneration> for MultiObjectiveGeneration<FloatChromosome> {
                 .map(|phenotype| (*(*phenotype)).clone())
                 .collect::<Vec<_>>();
 
-            let pareto_front = conversion::pareto_front_to_py_object(py, &pareto_front)
-                .expect("Failed to convert pareto front to PyObject");
-
             PyGeneration {
                 index: self.index(),
                 score: score.unbind(),
                 value: py.None(),
                 metrics: self.metrics().clone().into(),
-                pareto_front: Some(pareto_front.unbind()),
+                pareto_front: Some(Wrap(pareto_front).into_pyobject(py).unwrap().unbind()),
             }
         })
     }

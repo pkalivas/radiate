@@ -1,5 +1,6 @@
 use crate::{
-    ParamMapper, PyEngineBuilder, PyEngineParam, PyGeneType, registry::registry::ComponentRegistry,
+    ObjectValue, ParamMapper, PyEngineBuilder, PyEngineParam, PyGeneType,
+    registry::registry::ComponentRegistry,
 };
 use radiate::{
     BitChromosome, CharChromosome, Chromosome, Diversity, Epoch, FloatChromosome,
@@ -94,15 +95,14 @@ impl DiversityRegistry {
 }
 
 impl ComponentRegistry for DiversityRegistry {
-    fn apply<C, T, E>(
+    fn apply<C, E>(
         &self,
-        engine_builder: GeneticEngineBuilder<C, T, E>,
+        engine_builder: GeneticEngineBuilder<C, ObjectValue, E>,
         py_builder: &PyEngineBuilder,
         gene_type: PyGeneType,
-    ) -> GeneticEngineBuilder<C, T, E>
+    ) -> GeneticEngineBuilder<C, ObjectValue, E>
     where
         C: Chromosome + Clone + PartialEq + 'static,
-        T: Clone + Send + 'static,
         E: Epoch<Chromosome = C> + 'static,
     {
         let diversity_type = py_builder

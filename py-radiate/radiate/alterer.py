@@ -2,6 +2,38 @@ from ._typing import GeneType
 from .param import EngineParam
 from typing import Dict, List
 
+from radiate.radiate import Operator
+
+class AlterTemp:
+    def __init__(self, operator: Operator):
+        """
+        Initialize the alterer with an operator.
+        :param operator: Operator to be used for the alterer.
+        """
+        self.operator = operator
+
+    def __repr__(self):
+        """
+        String representation of the alterer.
+        :return: String representation of the alterer.
+        """
+        return f"{self.__class__.__name__}(operator={self.operator})"
+    
+    def __str__(self):
+        """
+        String representation of the alterer.
+        :return: String representation of the alterer.
+        """
+        return f"{self.__class__.__name__}(operator={self.operator})"
+
+class BlendCrossoverTemp(AlterTemp):
+    def __init__(self, rate: float = 0.1, alpha: float = 0.5):
+        super().__init__(
+            operator=Operator.blend_crossover(rate=rate, alpha=alpha),
+        )
+
+
+
 
 class Alterer(EngineParam):
     """

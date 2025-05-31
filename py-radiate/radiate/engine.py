@@ -11,6 +11,7 @@ from radiate.radiate import (
     PyEngineBuilder,
     PyGeneration,
     PyEngine,
+    EngineBuilderTemp
 )
 
 
@@ -60,6 +61,8 @@ class GeneticEngine:
         diversity = self.__get_params(diversity, allow_none=True)
         objectives = self.__get_objectives(objectives)
         front_range = self.__get_front_range(front_range)
+
+        self.temp_builder = EngineBuilderTemp(population_size, objectives)
 
         self.builder = PyEngineBuilder(
             objectives=objectives,

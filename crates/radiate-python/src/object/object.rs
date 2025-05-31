@@ -5,8 +5,6 @@ use pyo3::{
 use std::fmt::{Display, Formatter};
 use std::hash::{Hash, Hasher};
 
-use super::ObjectSafe;
-
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct ObjectValue {

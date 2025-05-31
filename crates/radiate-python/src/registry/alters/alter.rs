@@ -1,5 +1,6 @@
 use crate::{
-    ParamMapper, PyEngineBuilder, PyEngineParam, PyGeneType, registry::registry::ComponentRegistry,
+    ObjectValue, ParamMapper, PyEngineBuilder, PyEngineParam, PyGeneType,
+    registry::registry::ComponentRegistry,
 };
 use core::panic;
 use radiate::prelude::*;
@@ -132,15 +133,14 @@ impl AlterRegistry {
 }
 
 impl ComponentRegistry for AlterRegistry {
-    fn apply<C, T, E>(
+    fn apply<C, E>(
         &self,
-        engine_builder: GeneticEngineBuilder<C, T, E>,
+        engine_builder: GeneticEngineBuilder<C, ObjectValue, E>,
         py_builder: &PyEngineBuilder,
         gene_type: PyGeneType,
-    ) -> GeneticEngineBuilder<C, T, E>
+    ) -> GeneticEngineBuilder<C, ObjectValue, E>
     where
         C: Chromosome + Clone + PartialEq + 'static,
-        T: Clone + Send + Sync + 'static,
         E: Epoch<Chromosome = C> + 'static,
     {
         let mut result = Vec::new();

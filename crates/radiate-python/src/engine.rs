@@ -1,5 +1,4 @@
 use crate::codec::PyCodec;
-use crate::events::PyEventHandler;
 use crate::{
     ComponentRegistry, EngineRegistry, Limit, PyBitCodec, PyCharCodec, PyEngineParam, PyGeneType,
     PyGeneration, PyProblem,
@@ -161,16 +160,8 @@ where
         .offspring_fraction(py_builder.offspring_fraction)
         .max_age(py_builder.max_phenotype_age);
 
-    if let Some(handlers) = &py_builder.event_handlers {
-        for handler in handlers {
-            builder = builder.register(PyEventHandler::new(handler.clone()));
-        }
-    }
-
     builder = registry.apply(builder, py_builder, gene_type);
-    builder = crate::set_single_objective(builder, &py_builder.objectives);
-
-    builder
+    crate::set_single_objective(builder, &py_builder.objectives)
 }
 
 fn run_multi_objective_engine<C, T>(

@@ -1,3 +1,4 @@
+use crate::{AnyValue, ObjectValue, object::Field};
 use pyo3::{
     Bound, IntoPyObject, IntoPyObjectExt, Py, PyAny, PyResult, Python,
     exceptions::{PyOverflowError, PyValueError},
@@ -11,8 +12,6 @@ use std::{
     borrow::{Borrow, Cow},
     collections::HashMap,
 };
-
-use crate::{AnyValue, ObjectValue, object::Field};
 
 type InitFn = for<'py> fn(&Bound<'py, PyAny>, bool) -> PyResult<AnyValue<'py>>;
 pub(crate) static LUT: crate::GILOnceCell<HashMap<TypeObjectKey, InitFn>> =

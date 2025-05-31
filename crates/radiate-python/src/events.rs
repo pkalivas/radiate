@@ -1,4 +1,4 @@
-use crate::{AnyValue, ObjectSafe, ObjectValue, PyFunc, conversion::metric_set_to_py_dict};
+use crate::{ObjectValue, PyFunc, conversion::metric_set_to_py_dict};
 use pyo3::{
     Python,
     types::{PyAnyMethods, PyDict},

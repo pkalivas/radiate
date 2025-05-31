@@ -1,5 +1,5 @@
 use super::ComponentRegistry;
-use crate::{FreeThreadPyEvaluator, PyEngineBuilder};
+use crate::{FreeThreadPyEvaluator, ObjectValue, PyEngineBuilder};
 use radiate::{Chromosome, Epoch, Executor, GeneticEngineBuilder};
 use std::sync::Arc;
 
@@ -13,15 +13,14 @@ impl EvaluatorRegistry {
 }
 
 impl ComponentRegistry for EvaluatorRegistry {
-    fn apply<C, T, E>(
+    fn apply<C, E>(
         &self,
-        engine_builder: GeneticEngineBuilder<C, T, E>,
+        engine_builder: GeneticEngineBuilder<C, ObjectValue, E>,
         py_builder: &PyEngineBuilder,
         _: crate::PyGeneType,
-    ) -> GeneticEngineBuilder<C, T, E>
+    ) -> GeneticEngineBuilder<C, ObjectValue, E>
     where
         C: Chromosome + Clone + PartialEq + 'static,
-        T: Clone + Send + Sync + 'static,
         E: Epoch<Chromosome = C> + 'static,
     {
         match py_builder.num_threads {

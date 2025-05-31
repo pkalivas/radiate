@@ -3,15 +3,14 @@ use crate::{ObjectValue, PyEngineBuilder, PyGeneType, events::PyEventHandler};
 use radiate::{Chromosome, Epoch, GeneticEngineBuilder};
 
 pub trait ComponentRegistry {
-    fn apply<C, T, E>(
+    fn apply<C, E>(
         &self,
-        engine_builder: GeneticEngineBuilder<C, T, E>,
+        engine_builder: GeneticEngineBuilder<C, ObjectValue, E>,
         py_builder: &PyEngineBuilder,
         gene_type: PyGeneType,
-    ) -> GeneticEngineBuilder<C, T, E>
+    ) -> GeneticEngineBuilder<C, ObjectValue, E>
     where
         C: Chromosome + Clone + PartialEq + 'static,
-        T: Clone + Send + Sync + 'static,
         E: Epoch<Chromosome = C> + 'static;
 }
 
@@ -20,6 +19,7 @@ pub struct EngineRegistry {
     pub diversity: DiversityRegistry,
     pub selectors: SelectorRegistry,
     pub evaluators: EvaluatorRegistry,
+    pub handlers: EventHandlerRegistry,
 }
 
 impl EngineRegistry {
@@ -29,26 +29,27 @@ impl EngineRegistry {
             diversity: DiversityRegistry::new(),
             selectors: SelectorRegistry::new(),
             evaluators: EvaluatorRegistry::new(),
+            handlers: EventHandlerRegistry::new(),
         }
     }
 }
 
 impl ComponentRegistry for EngineRegistry {
-    fn apply<C, T, E>(
+    fn apply<C, E>(
         &self,
-        engine_builder: GeneticEngineBuilder<C, T, E>,
+        engine_builder: GeneticEngineBuilder<C, ObjectValue, E>,
         py_builder: &PyEngineBuilder,
         gene_type: PyGeneType,
-    ) -> GeneticEngineBuilder<C, T, E>
+    ) -> GeneticEngineBuilder<C, ObjectValue, E>
     where
         C: Chromosome + Clone + PartialEq + 'static,
-        T: Clone + Send + Sync + 'static,
         E: Epoch<Chromosome = C> + 'static,
     {
         let engine_builder = self.alters.apply(engine_builder, py_builder, gene_type);
         let engine_builder = self.diversity.apply(engine_builder, py_builder, gene_type);
         let engine_builder = self.selectors.apply(engine_builder, py_builder, gene_type);
         let engine_builder = self.evaluators.apply(engine_builder, py_builder, gene_type);
+        let engine_builder = self.handlers.apply(engine_builder, py_builder, gene_type);
 
         engine_builder
     }
@@ -63,21 +64,20 @@ impl EventHandlerRegistry {
 }
 
 impl ComponentRegistry for EventHandlerRegistry {
-    fn apply<C, T, E>(
+    fn apply<C, E>(
         &self,
-        engine_builder: GeneticEngineBuilder<C, T, E>,
+        engine_builder: GeneticEngineBuilder<C, ObjectValue, E>,
         py_builder: &PyEngineBuilder,
         _: PyGeneType,
-    ) -> GeneticEngineBuilder<C, T, E>
+    ) -> GeneticEngineBuilder<C, ObjectValue, E>
     where
         C: Chromosome + Clone + PartialEq + 'static,
-        T: Clone + Send + Sync + 'static,
         E: Epoch<Chromosome = C> + 'static,
     {
         if let Some(handlers) = py_builder.event_handlers.as_ref() {
             let mut builder = engine_builder;
             for handler in handlers {
-                // builder = builder.register(
+                builder = builder.register(PyEventHandler::new(handler.clone()));
             }
             builder
         } else {

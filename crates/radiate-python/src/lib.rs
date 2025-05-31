@@ -1,3 +1,4 @@
+mod builder;
 mod codec;
 mod conversion;
 mod engine;
@@ -12,6 +13,7 @@ mod problem;
 mod random;
 mod registry;
 
+pub use builder::*;
 pub use codec::{PyBitCodec, PyCharCodec, PyFloatCodec, PyIntCodec};
 pub use engine::*;
 pub use epoch::*;

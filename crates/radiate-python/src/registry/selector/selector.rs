@@ -1,5 +1,7 @@
 use super::{mappers::*, register::register_selector_mappers};
-use crate::{ParamMapper, PyEngineBuilder, PyGeneType, registry::registry::ComponentRegistry};
+use crate::{
+    ObjectValue, ParamMapper, PyEngineBuilder, PyGeneType, registry::registry::ComponentRegistry,
+};
 use radiate::{Chromosome, Epoch, GeneticEngineBuilder};
 use std::collections::HashMap;
 
@@ -70,15 +72,14 @@ impl SelectorRegistry {
 }
 
 impl ComponentRegistry for SelectorRegistry {
-    fn apply<C, T, E>(
+    fn apply<C, E>(
         &self,
-        engine_builder: GeneticEngineBuilder<C, T, E>,
+        engine_builder: GeneticEngineBuilder<C, ObjectValue, E>,
         py_builder: &PyEngineBuilder,
         _: PyGeneType,
-    ) -> GeneticEngineBuilder<C, T, E>
+    ) -> GeneticEngineBuilder<C, ObjectValue, E>
     where
         C: Chromosome + Clone + PartialEq + 'static,
-        T: Clone + Send + 'static,
         E: Epoch<Chromosome = C> + 'static,
     {
         let map_types = vec![

@@ -5,6 +5,7 @@ from .handlers import LogHandler
 from .random import RandomProvider as random
 from ._typing import GeneType, ObjectiveType
 
+
 from .diversity import (
     Hammingdistance,
     EuclideanDistance,
@@ -35,9 +36,11 @@ from .alterer import (
     GaussianMutator,
     ScrambleMutator,
     SwapMutator,
+    BlendCrossoverTemp
 )
 
 __all__ = [
+    "BlendCrossoverTemp",
     "FloatCodec",
     "IntCodec",
     "CharCodec",
