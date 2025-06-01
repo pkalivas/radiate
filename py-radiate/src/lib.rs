@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 use radiate_python::{
-    EngineBuilderTemp, PyAlterer, PyBitCodec, PyCharCodec, PyFloatCodec, PyFunc, PyGeneType,
-    PyGeneration, PyIntCodec, PyLimit, PyObjective, PyRandomProvider, PySelector,
+    PyAlterer, PyBitCodec, PyCharCodec, PyDiversity, PyEngineBuilder, PyFloatCodec, PyFunc,
+    PyGeneType, PyGeneration, PyIntCodec, PyLimit, PyObjective, PyRandomProvider, PySelector,
 };
 
 #[pymodule]
@@ -21,9 +21,10 @@ fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     m.add_class::<PyAlterer>()?;
     m.add_class::<PySelector>()?;
+    m.add_class::<PyDiversity>()?;
     m.add_class::<PyObjective>()?;
     m.add_class::<PyLimit>()?;
-    m.add_class::<EngineBuilderTemp>()?;
+    m.add_class::<PyEngineBuilder>()?;
 
     Ok(())
 }

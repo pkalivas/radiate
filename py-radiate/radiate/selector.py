@@ -1,8 +1,8 @@
-from radiate.radiate import Selector
+from radiate.radiate import PySelector
 
 
 class SelectorBase:
-    def __init__(self, selector: Selector):
+    def __init__(self, selector: PySelector):
         """
         Initialize the selector base with a Selector instance.
         :param selector: An instance of Selector.
@@ -30,7 +30,7 @@ class TournamentSelector(SelectorBase):
         Initialize the tournament selector with tournament size.
         :param k: Tournament size.
         """
-        selector = Selector.tournament_selector(tournament_size=k)
+        selector = PySelector.tournament_selector(tournament_size=k)
         super().__init__(selector)
 
 
@@ -39,16 +39,16 @@ class RouletteSelector(SelectorBase):
         """
         Initialize the roulette selector.
         """
-        selector = Selector.roulette_wheel_selector()
+        selector = PySelector.roulette_wheel_selector()
         super().__init__(selector)
 
 
 class RankSelector(SelectorBase):
-    def __init__(self):
+    def __init__(self): 
         """
         Initialize the rank selector.
         """
-        selector = Selector.rank_selector()
+        selector = PySelector.rank_selector()
         super().__init__(selector)
 
 
@@ -57,7 +57,7 @@ class EliteSelector(SelectorBase):
         """
         Initialize the elite selector.
         """
-        selector = Selector.elite_selector()
+        selector = PySelector.elite_selector()
         super().__init__(selector)
 
 
@@ -67,7 +67,7 @@ class BoltzmannSelector(SelectorBase):
         Initialize the Boltzmann selector with temperature.
         :param temp: Temperature for the Boltzmann selector.
         """
-        selector = Selector.boltzmann_selector(temp=temp)
+        selector = PySelector.boltzmann_selector(temp=temp)
         super().__init__(selector)
 
 
@@ -76,7 +76,7 @@ class StochasticSamplingSelector(SelectorBase):
         """
         Initialize the stochastic sampling selector.
         """
-        selector = Selector.stochastic_sampling_selector()
+        selector = PySelector.stochastic_sampling_selector()
         super().__init__(selector)
 
 
@@ -86,7 +86,7 @@ class LinearRankSelector(SelectorBase):
         Initialize the linear rank selector.
         :param pressure: Pressure for the linear rank selector.
         """
-        selector = Selector.linear_rank_selector(pressure=pressure)
+        selector = PySelector.linear_rank_selector(pressure=pressure)
         super().__init__(selector)
 
 
@@ -95,5 +95,5 @@ class NSGA2Selector(SelectorBase):
         """
         Initialize the NSGA2 selector.
         """
-        selector = Selector.nsga2_selector()
+        selector = PySelector.nsga2_selector()
         super().__init__(selector)

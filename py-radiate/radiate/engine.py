@@ -1,7 +1,8 @@
 from typing import Any, Callable, List, Tuple
 from .selector import SelectorBase, TournamentSelector, RouletteSelector
 from .alterer import AlterBase, UniformCrossover, UniformMutator
-# from .diversity import Diversity, Hammingdistance, EuclideanDistance
+
+from .diversity import Diversity, HammingDistance, EuclideanDistance
 from .handlers import EventHandler
 from ._typing import GeneType, ObjectiveType
 from .codec import FloatCodec, IntCodec, CharCodec, BitCodec
@@ -9,8 +10,8 @@ from .limit import LimitBase
 
 from radiate.radiate import (
     PyGeneration,
-    EngineBuilderTemp,
-    Objective,
+    PyEngineBuilder,
+    PyObjective,
 )
 
 
@@ -28,7 +29,7 @@ class GeneticEngine:
         offspring_selector: SelectorBase | None = None,
         survivor_selector: SelectorBase | None = None,
         alters: None | AlterBase | List[AlterBase] = None,
-        # diversity: None | Hammingdistance | EuclideanDistance = None,
+        diversity: None | HammingDistance | EuclideanDistance = None,
         population_size: int = 100,
         offspring_fraction: float = 0.8,
         max_phenotype_age: int = 20,
@@ -40,6 +41,7 @@ class GeneticEngine:
     ):
         self.codec = codec
         self.fitness_func = fitness_func
+        self.engine = None
 
         if isinstance(self.codec, FloatCodec):
             self.gene_type = GeneType.FLOAT()
@@ -57,16 +59,16 @@ class GeneticEngine:
         )
         offspring_selector = self.__get_params(offspring_selector or RouletteSelector())
         alters = self.__get_params(alters or [UniformCrossover(), UniformMutator()])
-        # diversity = self.__get_params(diversity, allow_none=True)
+        diversity = self.__get_params(diversity, allow_none=True)
         objectives = self.__get_objectives(objectives)
         front_range = self.__get_front_range(front_range)
 
-        self.builder = EngineBuilderTemp(
+        self.builder = PyEngineBuilder(
             fitness_func,
             codec.codec,
             population_size=population_size,
             offspring_fraction=offspring_fraction,
-            objective=Objective.min(),
+            objective=PyObjective.min(),
             front_range=front_range,
             num_threads=num_threads,
             max_phenotype_age=max_phenotype_age,
@@ -78,15 +80,15 @@ class GeneticEngine:
             ],
         )
 
-    def run(self, limits: LimitBase | List[LimitBase], log: bool = False) -> PyGeneration:  
+    def run(
+        self, limits: LimitBase | List[LimitBase] | None, log: bool = False
+    ) -> PyGeneration:
         """Run the engine with the given limits."""
-        if limits is None:
-            raise ValueError("Limits must be provided.")
-        limits = [
-            lim.limit for lim in (limits if isinstance(limits, list) else [limits])
-        ]
+        if limits is not None:
+            self.limits(limits)
         
-        return self.builder.run(limits=limits)
+        self.engine = self.builder.build()
+        return self.engine.run(log=log) 
 
     def population_size(self, size: int):
         """Set the population size."""
@@ -102,7 +104,7 @@ class GeneticEngine:
 
     def offspring_selector(self, selector: SelectorBase):
         """Set the offspring selector."""
-        if selector is None:    
+        if selector is None:
             raise ValueError("Selector must be provided.")
         self.builder.set_offspring_selector(self.__get_params(selector))
 
@@ -112,12 +114,19 @@ class GeneticEngine:
             raise ValueError("Alters must be provided.")
         self.builder.set_alters(self.__get_params(alters))
 
-    # def diversity(self, diversity: Diversity, species_threshold: float = 1.5):
-    #     """Set the diversity."""
-    #     if diversity is None:
-    #         raise ValueError("Diversity must be provided.")
-    #     self.builder.set_diversity(self.__get_params(diversity, allow_none=True))
-    #     self.builder.set_species_threshold(species_threshold)
+    def limits(self, limits: LimitBase | List[LimitBase]):
+        """Set the limits."""
+        if limits is None:
+            raise ValueError("Limits must be provided.")
+        lims = [lim.limit for lim in (limits if isinstance(limits, list) else [limits])]
+        self.builder.set_limits(lims)
+
+    def diversity(self, diversity: Diversity, species_threshold: float = 1.5):
+        """Set the diversity."""
+        if diversity is None:
+            raise ValueError("Diversity must be provided.")
+        self.builder.set_diversity(self.__get_params(diversity, allow_none=True))
+        self.builder.set_species_threshold(species_threshold)
 
     def offspring_fraction(self, fraction: float):
         """Set the offspring fraction."""
@@ -134,22 +143,21 @@ class GeneticEngine:
 
     def minimizing(self):
         """Set the objectives."""
-        self.builder.set_objective(Objective.min())
+        self.builder.set_objective(PyObjective.min())
 
     def maximizing(self):
         """Set the objectives."""
-        self.builder.set_objective(Objective.max())
+        self.builder.set_objective(PyObjective.max())
 
     def multi_objective(
         self, objectives: List[str], front_range: Tuple[int, int] | None = None
     ):
         """Set the objectives for a multiobjective problem"""
-
         if not isinstance(objectives, list) or not all(
             obj in [ObjectiveType.MIN, ObjectiveType.MAX] for obj in objectives
         ):
             raise ValueError("Objectives must be a list of 'min' or 'max'.")
-        self.builder.set_objective(Objective.multi(self.__get_objectives(objectives)))
+        self.builder.set_objective(PyObjective.multi(self.__get_objectives(objectives)))
         self.builder.set_front_range(self.__get_front_range(front_range))
 
     def num_threads(self, num_threads: int):
@@ -163,7 +171,6 @@ class GeneticEngine:
         if not callable(event_handler):
             raise TypeError("Event handler must be a callable.")
         self.builder.set_event_handlers([EventHandler(event_handler).handler])
-
 
     def __get_front_range(self, front_range: Tuple[int, int] | None) -> Tuple[int, int]:
         """Get the front range."""
@@ -202,12 +209,8 @@ class GeneticEngine:
             return value.selector
         if isinstance(value, AlterBase):
             return [value.alterer]
-        # if isinstance(value, Diversity):
-        #     if not value.is_valid(self.gene_type):
-        #         raise TypeError(
-        #             f"Diversity {value} is not valid for genome type {self.gene_type.gene_type}."
-        #         )
-        #     return value.params
+        if isinstance(value, Diversity):
+            return value.diversity
         if isinstance(value, list):
             if all(isinstance(alter, AlterBase) for alter in value):
                 return [alter.alterer for alter in value]
@@ -216,7 +219,6 @@ class GeneticEngine:
             return None
         else:
             raise TypeError(f"Param type {type(value)} is not supported.")
-
 
     def __repr__(self):
         return f"EngineTest(codec={self.gene_type})"

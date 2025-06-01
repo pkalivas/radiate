@@ -389,22 +389,3 @@ impl std::hash::Hash for TypeObjectKey {
         v.hash(state)
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use pyo3::types::PyList;
-
-//     #[test]
-//     fn test_type_object_key() {
-//         let vec = vec![1, 2, 3];
-//         let any_val = AnyValue::from(vec);
-
-//         let mut matrix = Vec::new();
-//         matrix.push(vec![1, 2, 3]);
-//         matrix.push(vec![4, 5, 6]);
-//         let any_val = AnyValue::from(matrix);
-
-//         println!("AnyValue: {:?}", any_val);
-//     }
-// }

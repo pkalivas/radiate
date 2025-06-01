@@ -1,15 +1,12 @@
-use crate::{ObjectValue, PyGeneType, PyIntCodec, PyProblem, conversion::Wrap};
+use crate::conversion::Wrap;
 use pyo3::{
-    Borrowed, Bound, FromPyObject, IntoPyObject, IntoPyObjectExt, Py, PyAny, PyErr, PyObject,
-    PyResult, Python,
-    conversion::FromPyObjectBound,
-    pyclass, pymethods,
-    types::{PyAnyMethods, PyDict, PyDictMethods, PyList, PyListMethods, PyString},
+    Bound, FromPyObject, IntoPyObjectExt, PyAny, PyErr, PyResult, Python, pyclass, pymethods,
+    types::{PyAnyMethods, PyString},
 };
-use radiate::{GeneticEngine, GeneticEngineBuilder, Objective, Optimize};
-use std::{borrow::Borrow, iter::FlatMap, vec};
+use radiate::{Objective, Optimize};
+use std::vec;
 
-#[pyclass(unsendable, name = "Objective")]
+#[pyclass(unsendable)]
 #[derive(Clone, Debug)]
 pub struct PyObjective {
     optimize: Vec<String>,
@@ -66,7 +63,6 @@ impl PyObjective {
 
 impl<'py> FromPyObject<'py> for Wrap<Objective> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        println!("Extracting Objective from: {:?}", ob);
         if let Ok(optimize) = ob.extract::<String>() {
             match optimize.as_str() {
                 "min" => Ok(Wrap(Objective::Single(Optimize::Minimize))),

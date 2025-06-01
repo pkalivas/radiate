@@ -4,7 +4,7 @@ use pyo3::{
     exceptions::PyValueError,
     types::{PyAnyMethods, PyDict, PyList},
 };
-use radiate::{BlendCrossover, Chromosome, Gene, Metric, MetricSet, Optimize, Phenotype};
+use radiate::{Chromosome, Gene, Metric, MetricSet, Optimize, Phenotype};
 
 use super::{conversion::metric_to_py_dict, metric_set_to_py_dict};
 
@@ -84,7 +84,6 @@ impl<'py> FromPyObject<'py> for Wrap<Optimize> {
     }
 }
 
-/// Converts a `MetricSet` to a Python dictionary.
 impl<'py> IntoPyObject<'py> for Wrap<MetricSet> {
     type Target = PyDict;
     type Output = Bound<'py, Self::Target>;
@@ -99,7 +98,6 @@ impl<'py> IntoPyObject<'py> for Wrap<MetricSet> {
     }
 }
 
-/// Converts a `Metric` to a Python dictionary.
 impl<'py> IntoPyObject<'py> for Wrap<Metric> {
     type Target = PyDict;
     type Output = Bound<'py, Self::Target>;
@@ -130,20 +128,3 @@ where
         })
     }
 }
-
-// impl<'py> FromPyObject<'py> for Wrap<BlendCrossover> {
-//     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-//         let gene_type = ob.getattr("gene_type")?.extract::<String>()?;
-//         let rate = ob.getattr("rate")?.extract::<f32>()?;
-//         let alpha = ob.getattr("alpha")?.extract::<f32>()?;
-
-//         if !(0.0..=1.0).contains(&rate) {
-//             return Err(PyValueError::new_err("Rate must be between 0 and 1"));
-//         }
-//         if !(0.0..=1.0).contains(&alpha) {
-//             return Err(PyValueError::new_err("Alpha must be between 0 and 1"));
-//         }
-
-//         Ok(Wrap(BlendCrossover::new(rate, alpha)))
-//     }
-// }

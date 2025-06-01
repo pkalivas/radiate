@@ -13,7 +13,7 @@ use radiate::{
 };
 use std::vec;
 
-#[pyclass(unsendable, name = "Alterer")]
+#[pyclass(unsendable)]
 #[derive(Clone, Debug)]
 pub struct PyAlterer {
     name: String,
@@ -411,7 +411,6 @@ impl<'py> FromPyObject<'py> for Wrap<MultiPointCrossover> {
     }
 }
 
-// SHuffleCrossover
 impl<'py> FromPyObject<'py> for Wrap<ShuffleCrossover> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let alter = ob.extract::<PyAlterer>()?;
@@ -430,7 +429,6 @@ impl<'py> FromPyObject<'py> for Wrap<ShuffleCrossover> {
     }
 }
 
-// SimulatedBinaryCrossover
 impl<'py> FromPyObject<'py> for Wrap<SimulatedBinaryCrossover> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let alter = ob.extract::<PyAlterer>()?;
@@ -453,8 +451,6 @@ impl<'py> FromPyObject<'py> for Wrap<SimulatedBinaryCrossover> {
             .get_item("contiguty")?
             .extract::<f32>()?;
 
-        println!("Rate: {}, Contiguity: {}", rate, contiguity);
-
         if !(0.0..=1.0).contains(&rate) {
             return Err(PyValueError::new_err("Rate must be between 0 and 1"));
         }
@@ -466,7 +462,6 @@ impl<'py> FromPyObject<'py> for Wrap<SimulatedBinaryCrossover> {
     }
 }
 
-// UniformCrossover
 impl<'py> FromPyObject<'py> for Wrap<UniformCrossover> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let alter = ob.extract::<PyAlterer>()?;
@@ -485,7 +480,6 @@ impl<'py> FromPyObject<'py> for Wrap<UniformCrossover> {
     }
 }
 
-// ArithmeticMutator
 impl<'py> FromPyObject<'py> for Wrap<ArithmeticMutator> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let alter = ob.extract::<PyAlterer>()?;
@@ -504,7 +498,6 @@ impl<'py> FromPyObject<'py> for Wrap<ArithmeticMutator> {
     }
 }
 
-// GaussianMutator
 impl<'py> FromPyObject<'py> for Wrap<GaussianMutator> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let alter = ob.extract::<PyAlterer>()?;
@@ -513,6 +506,7 @@ impl<'py> FromPyObject<'py> for Wrap<GaussianMutator> {
                 "GaussianMutator must be created using the static method",
             ));
         }
+
         let rate = alter.args(ob.py())?.get_item("rate")?.extract::<f32>()?;
 
         if !(0.0..=1.0).contains(&rate) {
@@ -523,7 +517,6 @@ impl<'py> FromPyObject<'py> for Wrap<GaussianMutator> {
     }
 }
 
-// ScrambleMutator
 impl<'py> FromPyObject<'py> for Wrap<ScrambleMutator> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let alter = ob.extract::<PyAlterer>()?;
@@ -542,7 +535,6 @@ impl<'py> FromPyObject<'py> for Wrap<ScrambleMutator> {
     }
 }
 
-// SwapMutator
 impl<'py> FromPyObject<'py> for Wrap<SwapMutator> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let alter = ob.extract::<PyAlterer>()?;
@@ -562,7 +554,6 @@ impl<'py> FromPyObject<'py> for Wrap<SwapMutator> {
     }
 }
 
-// UniformMutator
 impl<'py> FromPyObject<'py> for Wrap<UniformMutator> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let alter = ob.extract::<PyAlterer>()?;

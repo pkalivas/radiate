@@ -1,8 +1,6 @@
 use crate::{ObjectValue, PyGeneType, conversion::Wrap, gene::PyChromosomeType};
 use pyo3::{
-    Bound, FromPyObject, IntoPyObjectExt, PyAny, PyErr, PyResult, Python,
-    conversion::FromPyObjectBound,
-    pyclass, pymethods,
+    Bound, FromPyObject, IntoPyObjectExt, PyAny, PyErr, PyResult, Python, pyclass, pymethods,
     types::{PyAnyMethods, PyDict, PyDictMethods, PyString},
 };
 use radiate::{
@@ -11,7 +9,7 @@ use radiate::{
 };
 use std::vec;
 
-#[pyclass(unsendable, name = "Selector")]
+#[pyclass(unsendable)]
 #[derive(Clone, Debug)]
 pub struct PySelector {
     name: String,
@@ -301,7 +299,6 @@ impl<'py> FromPyObject<'py> for Wrap<RankSelector> {
     }
 }
 
-// Steady state selector
 impl<'py> FromPyObject<'py> for Wrap<StochasticUniversalSamplingSelector> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let selector: PySelector = ob.extract()?;
@@ -315,7 +312,6 @@ impl<'py> FromPyObject<'py> for Wrap<StochasticUniversalSamplingSelector> {
     }
 }
 
-// bOltzmann selector
 impl<'py> FromPyObject<'py> for Wrap<BoltzmannSelector> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let selector: PySelector = ob.extract()?;
@@ -332,7 +328,6 @@ impl<'py> FromPyObject<'py> for Wrap<BoltzmannSelector> {
     }
 }
 
-// Elite selector
 impl<'py> FromPyObject<'py> for Wrap<EliteSelector> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let selector: PySelector = ob.extract()?;
@@ -346,7 +341,6 @@ impl<'py> FromPyObject<'py> for Wrap<EliteSelector> {
     }
 }
 
-// Random selector
 impl<'py> FromPyObject<'py> for Wrap<RandomSelector> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let selector: PySelector = ob.extract()?;
@@ -360,7 +354,6 @@ impl<'py> FromPyObject<'py> for Wrap<RandomSelector> {
     }
 }
 
-// NSGA-II selector
 impl<'py> FromPyObject<'py> for Wrap<NSGA2Selector> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let selector: PySelector = ob.extract()?;

@@ -6,10 +6,10 @@ from .random import RandomProvider as random
 from ._typing import GeneType, ObjectiveType
 
 
-# from .diversity import (
-#     Hammingdistance,
-#     EuclideanDistance,
-# )
+from .diversity import (
+    HammingDistance,
+    EuclideanDistance,
+)
 
 from .selector import (
     TournamentSelector,
@@ -71,7 +71,7 @@ __all__ = [
     "random",
     "GeneType",
     "ObjectiveType",
-    # "Hammingdistance",
-    # "EuclideanDistance",
+    "HammingDistance",
+    "EuclideanDistance",
     # "LogHandler",
 ]

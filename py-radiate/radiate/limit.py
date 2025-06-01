@@ -1,4 +1,5 @@
-from radiate.radiate import PyLimit 
+from radiate.radiate import PyLimit
+
 
 class LimitBase:
     def __init__(self, limit: PyLimit):
@@ -21,7 +22,6 @@ class LimitBase:
         :return: Detailed string representation of the limit.
         """
         return f"LimitBase(limit={self.limit})"
-
 
 
 class SecondsLimit(LimitBase):
