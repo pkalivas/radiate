@@ -24,8 +24,6 @@ result = engine.run(rd.ScoreLimit(0), log=False)
 print(result)
 
 
-blend = rd.BlendCrossoverTemp(0.5, 0.5)
-print(blend)
 
 
 # target = "Hello, Radiate!"

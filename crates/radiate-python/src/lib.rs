@@ -12,6 +12,9 @@ mod params;
 mod problem;
 mod random;
 mod registry;
+mod runner;
+
+pub use runner::*;
 
 pub use builder::*;
 pub use codec::{PyBitCodec, PyCharCodec, PyFloatCodec, PyIntCodec};

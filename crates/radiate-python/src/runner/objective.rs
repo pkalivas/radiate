@@ -1,0 +1,133 @@
+use crate::{ObjectValue, PyGeneType, PyIntCodec, PyProblem, conversion::Wrap};
+use pyo3::{
+    Borrowed, Bound, FromPyObject, IntoPyObject, IntoPyObjectExt, Py, PyAny, PyErr, PyObject,
+    PyResult, Python,
+    conversion::FromPyObjectBound,
+    pyclass, pymethods,
+    types::{PyAnyMethods, PyDict, PyDictMethods, PyList, PyListMethods, PyString},
+};
+use radiate::{GeneticEngine, GeneticEngineBuilder, Objective, Optimize};
+use std::{borrow::Borrow, iter::FlatMap, vec};
+
+#[pyclass(unsendable, name = "Objective")]
+#[derive(Clone, Debug)]
+pub struct PyObjective {
+    optimize: Vec<String>,
+}
+
+#[pymethods]
+impl PyObjective {
+    pub fn optimize(&self) -> Vec<String> {
+        self.optimize.clone()
+    }
+
+    pub fn is_multi(&self) -> bool {
+        self.optimize.len() > 1
+    }
+
+    pub fn is_single(&self) -> bool {
+        self.optimize.len() == 1
+    }
+
+    pub fn __str__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        self.__repr__(py)
+    }
+
+    pub fn __repr__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let repr = format!("Objective(optimize={})", self.optimize.join(", "));
+        PyString::new(py, &repr).into_bound_py_any(py)
+    }
+
+    #[staticmethod]
+    pub fn max() -> PyResult<PyObjective> {
+        Ok(PyObjective {
+            optimize: vec!["max".to_string()],
+        })
+    }
+
+    #[staticmethod]
+    pub fn min() -> PyResult<PyObjective> {
+        Ok(PyObjective {
+            optimize: vec!["min".to_string()],
+        })
+    }
+
+    #[staticmethod]
+    pub fn multi(optimize: Vec<String>) -> PyResult<PyObjective> {
+        if optimize.is_empty() {
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                "At least one optimization direction must be specified",
+            ));
+        }
+
+        Ok(PyObjective { optimize })
+    }
+}
+
+impl<'py> FromPyObject<'py> for Wrap<Objective> {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        println!("Extracting Objective from: {:?}", ob);
+        if let Ok(optimize) = ob.extract::<String>() {
+            match optimize.as_str() {
+                "min" => Ok(Wrap(Objective::Single(Optimize::Minimize))),
+                "max" => Ok(Wrap(Objective::Single(Optimize::Maximize))),
+                _ => Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                    "Invalid optimization direction. Use 'min' or 'max'.",
+                )),
+            }
+        } else if let Ok(obj) = ob.extract::<Vec<String>>() {
+            Ok(Wrap(Objective::Multi(
+                obj.into_iter()
+                    .map(|s| {
+                        Ok(match s.as_str() {
+                            "min" => Optimize::Minimize,
+                            "max" => Optimize::Maximize,
+                            _ => {
+                                return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                                    "Invalid optimization direction in list. Use 'min' or 'max'.",
+                                ));
+                            }
+                        })
+                    })
+                    .filter_map(|opt| opt.ok())
+                    .collect(),
+            )))
+        } else if let Ok(obj) = ob.extract::<PyObjective>() {
+            if obj.is_single() {
+                Ok(Wrap(Objective::Single(match obj.optimize[0].as_str() {
+                    "min" => Optimize::Minimize,
+                    "max" => Optimize::Maximize,
+                    _ => {
+                        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                            "Invalid optimization direction in PyObjective. Use 'min' or 'max'.",
+                        ));
+                    }
+                })))
+            } else if obj.is_multi() {
+                Ok(Wrap(Objective::Multi(
+                    obj.optimize
+                        .into_iter()
+                        .map(|s| Ok(match s.as_str() {
+                            "min" => Optimize::Minimize,
+                            "max" => Optimize::Maximize,
+                            _ => {
+                                return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                                    "Invalid optimization direction in PyObjective. Use 'min' or 'max'.",
+                                ));
+                            }
+                        }))
+                        .filter_map(|opt| opt.ok())
+                        .collect(),
+                )))
+            } else {
+                Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                    "PyObjective must have at least one optimization direction.",
+                ))
+            }
+        } else {
+            Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                "Expected a string or an Objective instance.",
+            ))
+        }
+    }
+}

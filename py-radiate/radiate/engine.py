@@ -7,12 +7,8 @@ from ._typing import GeneType, ObjectiveType
 from .codec import FloatCodec, IntCodec, CharCodec, BitCodec
 from .limit import Limit
 
-from radiate.radiate import (
-    PyEngineBuilder,
-    PyGeneration,
-    PyEngine,
-    EngineBuilderTemp
-)
+from .alterer import UniformCrossoverTemp, UniformMutatorTemp
+from radiate.radiate import PyEngineBuilder, PyGeneration, PyEngine, EngineBuilderTemp, PyLimit, Objective 
 
 
 class GeneticEngine:
@@ -62,7 +58,17 @@ class GeneticEngine:
         objectives = self.__get_objectives(objectives)
         front_range = self.__get_front_range(front_range)
 
-        self.temp_builder = EngineBuilderTemp(population_size, objectives)
+        self.temp_builder = EngineBuilderTemp(
+            fitness_func,
+            codec.codec,
+            population_size=population_size,
+            offspring_fraction=offspring_fraction,
+            objective=Objective.min(),
+            alters=[
+                UniformCrossoverTemp().operator,
+                UniformMutatorTemp().operator,
+            ],
+        )
 
         self.builder = PyEngineBuilder(
             objectives=objectives,
@@ -87,6 +93,7 @@ class GeneticEngine:
             lim.params for lim in (limits if isinstance(limits, list) else [limits])
         ]
         engine = self.__get_engine()
+        self.temp_builder.run(PyLimit.Generation(10))
         return engine.run(limits, log)
 
     def population_size(self, size: int):
@@ -221,7 +228,7 @@ class GeneticEngine:
                             f"Alterer {alter} is not valid for genome type {self.gene_type.gene_type}."
                         )
                 return [alter.params for alter in value]
-            
+
         if allow_none and value is None:
             return None
         else:

@@ -131,19 +131,19 @@ where
     }
 }
 
-impl<'py> FromPyObject<'py> for Wrap<BlendCrossover> {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let gene_type = ob.getattr("gene_type")?.extract::<String>()?;
-        let rate = ob.getattr("rate")?.extract::<f32>()?;
-        let alpha = ob.getattr("alpha")?.extract::<f32>()?;
+// impl<'py> FromPyObject<'py> for Wrap<BlendCrossover> {
+//     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+//         let gene_type = ob.getattr("gene_type")?.extract::<String>()?;
+//         let rate = ob.getattr("rate")?.extract::<f32>()?;
+//         let alpha = ob.getattr("alpha")?.extract::<f32>()?;
 
-        if !(0.0..=1.0).contains(&rate) {
-            return Err(PyValueError::new_err("Rate must be between 0 and 1"));
-        }
-        if !(0.0..=1.0).contains(&alpha) {
-            return Err(PyValueError::new_err("Alpha must be between 0 and 1"));
-        }
+//         if !(0.0..=1.0).contains(&rate) {
+//             return Err(PyValueError::new_err("Rate must be between 0 and 1"));
+//         }
+//         if !(0.0..=1.0).contains(&alpha) {
+//             return Err(PyValueError::new_err("Alpha must be between 0 and 1"));
+//         }
 
-        Ok(Wrap(BlendCrossover::new(rate, alpha)))
-    }
-}
+//         Ok(Wrap(BlendCrossover::new(rate, alpha)))
+//     }
+// }

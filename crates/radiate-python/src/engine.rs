@@ -198,7 +198,7 @@ where
         ))
 }
 
-fn run_single_objective_engine<C, T>(
+pub fn run_single_objective_engine<C, T>(
     engine: &mut Option<GeneticEngine<C, T, Generation<C, T>>>,
     limits: Vec<PyEngineParam>,
     log: bool,

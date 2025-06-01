@@ -2,7 +2,7 @@ from ._typing import GeneType
 from .param import EngineParam
 from typing import Dict, List
 
-from radiate.radiate import Operator
+from radiate.radiate import Alterer as Operator
 
 class AlterTemp:
     def __init__(self, operator: Operator):
@@ -32,7 +32,78 @@ class BlendCrossoverTemp(AlterTemp):
             operator=Operator.blend_crossover(rate=rate, alpha=alpha),
         )
 
+class IntermediateCrossoverTemp(AlterTemp):
+    def __init__(self, rate: float = 0.1, alpha: float = 0.5):
+        super().__init__(
+            operator=Operator.intermediate_crossover(rate=rate, alpha=alpha),
+        )
 
+class MeanCrossoverTemp(AlterTemp):
+    def __init__(self, rate: float = 0.5):
+        super().__init__(
+            operator=Operator.mean_crossover(rate=rate),
+        )
+
+class ShuffleCrossoverTemp(AlterTemp):
+    def __init__(self, rate: float = 0.1):
+        super().__init__(
+            operator=Operator.shuffle_crossover(rate=rate),
+        )
+
+class SimulatedBinaryCrossoverTemp(AlterTemp):
+    def __init__(self, rate: float = 0.1, contiguty: float = 0.5):
+        super().__init__(
+            operator=Operator.simulated_binary_crossover(rate=rate, contiguty=contiguty),
+        )
+
+class PartiallyMatchedCrossoverTemp(AlterTemp):
+    def __init__(self, rate: float = 0.1):
+        super().__init__(
+            operator=Operator.partially_matched_crossover(rate=rate),
+        )
+
+class MultiPointCrossoverTemp(AlterTemp):
+    def __init__(self, rate: float = 0.1, num_points: int = 2):
+        super().__init__(
+            operator=Operator.multi_point_crossover(rate=rate, num_points=num_points),
+        )
+
+class UniformCrossoverTemp(AlterTemp):
+    def __init__(self, rate: float = 0.5):
+        super().__init__(
+            operator=Operator.uniform_crossover(rate=rate),
+        )
+
+
+class UniformMutatorTemp(AlterTemp):
+    def __init__(self, rate: float = 0.1):
+        super().__init__(
+            operator=Operator.uniform_mutator(rate=rate),
+        )
+
+class ArithmeticMutatorTemp(AlterTemp):
+    def __init__(self, rate: float = 0.1):
+        super().__init__(
+            operator=Operator.arithmetic_mutator(rate=rate),
+        )
+
+class GaussianMutatorTemp(AlterTemp):
+    def __init__(self, rate: float = 0.1):
+        super().__init__(
+            operator=Operator.gaussian_mutator(rate=rate),
+        )
+
+class ScrambleMutatorTemp(AlterTemp):
+    def __init__(self, rate: float = 0.1):
+        super().__init__(
+            operator=Operator.scramble_mutator(rate=rate),
+        )
+
+class SwapMutatorTemp(AlterTemp):
+    def __init__(self, rate: float = 0.1):
+        super().__init__(
+            operator=Operator.swap_mutator(rate=rate),
+        )
 
 
 class Alterer(EngineParam):
