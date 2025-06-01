@@ -1,15 +1,15 @@
 from .engine import GeneticEngine
 from .codec import FloatCodec, IntCodec, CharCodec, BitCodec
 from .limit import SecondsLimit, GenerationsLimit, ScoreLimit
-from .handlers import LogHandler
+# from .handlers import LogHandler
 from .random import RandomProvider as random
 from ._typing import GeneType, ObjectiveType
 
 
-from .diversity import (
-    Hammingdistance,
-    EuclideanDistance,
-)
+# from .diversity import (
+#     Hammingdistance,
+#     EuclideanDistance,
+# )
 
 from .selector import (
     TournamentSelector,
@@ -71,7 +71,7 @@ __all__ = [
     "random",
     "GeneType",
     "ObjectiveType",
-    "Hammingdistance",
-    "EuclideanDistance",
-    "LogHandler",
+    # "Hammingdistance",
+    # "EuclideanDistance",
+    # "LogHandler",
 ]

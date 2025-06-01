@@ -1,5 +1,3 @@
-from typing import Dict
-
 from radiate.radiate import PyLimit 
 
 class LimitBase:

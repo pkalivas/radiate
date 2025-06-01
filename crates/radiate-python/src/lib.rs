@@ -11,7 +11,6 @@ mod object;
 mod params;
 mod problem;
 mod random;
-mod registry;
 mod runner;
 
 pub use runner::*;
@@ -28,7 +27,6 @@ pub use params::*;
 pub use problem::PyProblem;
 use pyo3::{PyResult, Python};
 pub use random::PyRandomProvider;
-pub use registry::*;
 use std::cell::UnsafeCell;
 
 // Adapted from PYO3 with the only change that

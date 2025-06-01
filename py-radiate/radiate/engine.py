@@ -1,18 +1,15 @@
 from typing import Any, Callable, List, Tuple
 from .selector import SelectorBase, TournamentSelector, RouletteSelector
 from .alterer import AlterBase, UniformCrossover, UniformMutator
-from .diversity import Diversity, Hammingdistance, EuclideanDistance
+# from .diversity import Diversity, Hammingdistance, EuclideanDistance
 from .handlers import EventHandler
 from ._typing import GeneType, ObjectiveType
 from .codec import FloatCodec, IntCodec, CharCodec, BitCodec
 from .limit import LimitBase
 
 from radiate.radiate import (
-    PyEngineBuilder,
     PyGeneration,
-    PyEngine,
     EngineBuilderTemp,
-    PyLimit,
     Objective,
 )
 
@@ -31,7 +28,7 @@ class GeneticEngine:
         offspring_selector: SelectorBase | None = None,
         survivor_selector: SelectorBase | None = None,
         alters: None | AlterBase | List[AlterBase] = None,
-        diversity: None | Hammingdistance | EuclideanDistance = None,
+        # diversity: None | Hammingdistance | EuclideanDistance = None,
         population_size: int = 100,
         offspring_fraction: float = 0.8,
         max_phenotype_age: int = 20,
@@ -115,12 +112,12 @@ class GeneticEngine:
             raise ValueError("Alters must be provided.")
         self.builder.set_alters(self.__get_params(alters))
 
-    def diversity(self, diversity: Diversity, species_threshold: float = 1.5):
-        """Set the diversity."""
-        if diversity is None:
-            raise ValueError("Diversity must be provided.")
-        self.builder.set_diversity(self.__get_params(diversity, allow_none=True))
-        self.builder.set_species_threshold(species_threshold)
+    # def diversity(self, diversity: Diversity, species_threshold: float = 1.5):
+    #     """Set the diversity."""
+    #     if diversity is None:
+    #         raise ValueError("Diversity must be provided.")
+    #     self.builder.set_diversity(self.__get_params(diversity, allow_none=True))
+    #     self.builder.set_species_threshold(species_threshold)
 
     def offspring_fraction(self, fraction: float):
         """Set the offspring fraction."""
@@ -197,7 +194,7 @@ class GeneticEngine:
 
     def __get_params(
         self,
-        value: SelectorBase | Diversity | AlterBase | List[AlterBase],
+        value: SelectorBase | AlterBase | List[AlterBase],
         allow_none: bool = False,
     ) -> List[Any] | None:
         """Get the parameters from the value."""
@@ -205,12 +202,12 @@ class GeneticEngine:
             return value.selector
         if isinstance(value, AlterBase):
             return [value.alterer]
-        if isinstance(value, Diversity):
-            if not value.is_valid(self.gene_type):
-                raise TypeError(
-                    f"Diversity {value} is not valid for genome type {self.gene_type.gene_type}."
-                )
-            return value.params
+        # if isinstance(value, Diversity):
+        #     if not value.is_valid(self.gene_type):
+        #         raise TypeError(
+        #             f"Diversity {value} is not valid for genome type {self.gene_type.gene_type}."
+        #         )
+        #     return value.params
         if isinstance(value, list):
             if all(isinstance(alter, AlterBase) for alter in value):
                 return [alter.alterer for alter in value]
