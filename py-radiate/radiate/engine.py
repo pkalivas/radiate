@@ -1,14 +1,20 @@
 from typing import Any, Callable, List, Tuple
-from .selector import Selector, TournamentSelector, RouletteSelector
-from .alterer import Alterer, UniformCrossover, UniformMutator
+from .selector import SelectorBase, TournamentSelector, RouletteSelector
+from .alterer import AlterBase, UniformCrossover, UniformMutator
 from .diversity import Diversity, Hammingdistance, EuclideanDistance
 from .handlers import EventHandler
 from ._typing import GeneType, ObjectiveType
 from .codec import FloatCodec, IntCodec, CharCodec, BitCodec
-from .limit import Limit
+from .limit import LimitBase
 
-from .alterer import UniformCrossoverTemp, UniformMutatorTemp
-from radiate.radiate import PyEngineBuilder, PyGeneration, PyEngine, EngineBuilderTemp, PyLimit, Objective 
+from radiate.radiate import (
+    PyEngineBuilder,
+    PyGeneration,
+    PyEngine,
+    EngineBuilderTemp,
+    PyLimit,
+    Objective,
+)
 
 
 class GeneticEngine:
@@ -22,9 +28,9 @@ class GeneticEngine:
         self,
         codec: FloatCodec | IntCodec | CharCodec | BitCodec,
         fitness_func: Callable[[Any], Any],
-        offspring_selector: Selector | None = None,
-        survivor_selector: Selector | None = None,
-        alters: None | Alterer | List[Alterer] = None,
+        offspring_selector: SelectorBase | None = None,
+        survivor_selector: SelectorBase | None = None,
+        alters: None | AlterBase | List[AlterBase] = None,
         diversity: None | Hammingdistance | EuclideanDistance = None,
         population_size: int = 100,
         offspring_fraction: float = 0.8,
@@ -54,47 +60,36 @@ class GeneticEngine:
         )
         offspring_selector = self.__get_params(offspring_selector or RouletteSelector())
         alters = self.__get_params(alters or [UniformCrossover(), UniformMutator()])
-        diversity = self.__get_params(diversity, allow_none=True)
+        # diversity = self.__get_params(diversity, allow_none=True)
         objectives = self.__get_objectives(objectives)
         front_range = self.__get_front_range(front_range)
 
-        self.temp_builder = EngineBuilderTemp(
+        self.builder = EngineBuilderTemp(
             fitness_func,
             codec.codec,
             population_size=population_size,
             offspring_fraction=offspring_fraction,
             objective=Objective.min(),
-            alters=[
-                UniformCrossoverTemp().operator,
-                UniformMutatorTemp().operator,
-            ],
-        )
-
-        self.builder = PyEngineBuilder(
-            objectives=objectives,
-            survivor_selector=survivor_selector,
-            offspring_selector=offspring_selector,
-            alters=alters,
-            population_size=population_size,
-            offspring_fraction=offspring_fraction,
-            num_threads=num_threads,
             front_range=front_range,
-            diversity=diversity,
+            num_threads=num_threads,
             max_phenotype_age=max_phenotype_age,
             max_species_age=max_species_age,
             species_threshold=species_threshold,
+            alters=[
+                UniformCrossover().alterer,
+                UniformMutator().alterer,
+            ],
         )
 
-    def run(self, limits: Limit | List[Limit], log: bool = False) -> PyGeneration:
+    def run(self, limits: LimitBase | List[LimitBase], log: bool = False) -> PyGeneration:  
         """Run the engine with the given limits."""
         if limits is None:
             raise ValueError("Limits must be provided.")
         limits = [
-            lim.params for lim in (limits if isinstance(limits, list) else [limits])
+            lim.limit for lim in (limits if isinstance(limits, list) else [limits])
         ]
-        engine = self.__get_engine()
-        self.temp_builder.run(PyLimit.Generation(10))
-        return engine.run(limits, log)
+        
+        return self.builder.run(limits=limits)
 
     def population_size(self, size: int):
         """Set the population size."""
@@ -102,19 +97,19 @@ class GeneticEngine:
             raise ValueError("Population size must be greater than 0.")
         self.builder.set_population_size(size)
 
-    def survivor_selector(self, selector: Selector):
+    def survivor_selector(self, selector: SelectorBase):
         """Set the survivor selector."""
         if selector is None:
             raise ValueError("Selector must be provided.")
         self.builder.set_survivor_selector(self.__get_params(selector))
 
-    def offspring_selector(self, selector: Selector):
+    def offspring_selector(self, selector: SelectorBase):
         """Set the offspring selector."""
-        if selector is None:
+        if selector is None:    
             raise ValueError("Selector must be provided.")
         self.builder.set_offspring_selector(self.__get_params(selector))
 
-    def alters(self, alters: Alterer | List[Alterer]):
+    def alters(self, alters: AlterBase | List[AlterBase]):
         """Set the alters."""
         if alters is None:
             raise ValueError("Alters must be provided.")
@@ -142,21 +137,22 @@ class GeneticEngine:
 
     def minimizing(self):
         """Set the objectives."""
-        self.builder.set_objectives(self.__get_objectives(ObjectiveType.MIN))
+        self.builder.set_objective(Objective.min())
 
     def maximizing(self):
         """Set the objectives."""
-        self.builder.set_objectives(self.__get_objectives(ObjectiveType.MAX))
+        self.builder.set_objective(Objective.max())
 
     def multi_objective(
         self, objectives: List[str], front_range: Tuple[int, int] | None = None
     ):
         """Set the objectives for a multiobjective problem"""
+
         if not isinstance(objectives, list) or not all(
             obj in [ObjectiveType.MIN, ObjectiveType.MAX] for obj in objectives
         ):
             raise ValueError("Objectives must be a list of 'min' or 'max'.")
-        self.builder.set_objectives(self.__get_objectives(objectives))
+        self.builder.set_objective(Objective.multi(self.__get_objectives(objectives)))
         self.builder.set_front_range(self.__get_front_range(front_range))
 
     def num_threads(self, num_threads: int):
@@ -171,11 +167,6 @@ class GeneticEngine:
             raise TypeError("Event handler must be a callable.")
         self.builder.set_event_handlers([EventHandler(event_handler).handler])
 
-    def __get_engine(self):
-        """Get the engine."""
-        return PyEngine(
-            self.gene_type.gene_type, self.codec.codec, self.fitness_func, self.builder
-        )
 
     def __get_front_range(self, front_range: Tuple[int, int] | None) -> Tuple[int, int]:
         """Get the front range."""
@@ -206,14 +197,14 @@ class GeneticEngine:
 
     def __get_params(
         self,
-        value: Selector | Diversity | Alterer | List[Alterer],
+        value: SelectorBase | Diversity | AlterBase | List[AlterBase],
         allow_none: bool = False,
     ) -> List[Any] | None:
         """Get the parameters from the value."""
-        if isinstance(value, Selector):
-            return value.params
-        if isinstance(value, Alterer):
-            return [value.params]
+        if isinstance(value, SelectorBase):
+            return value.selector
+        if isinstance(value, AlterBase):
+            return [value.alterer]
         if isinstance(value, Diversity):
             if not value.is_valid(self.gene_type):
                 raise TypeError(
@@ -221,18 +212,14 @@ class GeneticEngine:
                 )
             return value.params
         if isinstance(value, list):
-            if all(isinstance(alter, Alterer) for alter in value):
-                for alter in value:
-                    if not alter.is_valid(self.gene_type):
-                        raise TypeError(
-                            f"Alterer {alter} is not valid for genome type {self.gene_type.gene_type}."
-                        )
-                return [alter.params for alter in value]
+            if all(isinstance(alter, AlterBase) for alter in value):
+                return [alter.alterer for alter in value]
 
         if allow_none and value is None:
             return None
         else:
             raise TypeError(f"Param type {type(value)} is not supported.")
+
 
     def __repr__(self):
         return f"EngineTest(codec={self.gene_type})"

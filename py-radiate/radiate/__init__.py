@@ -15,8 +15,8 @@ from .selector import (
     TournamentSelector,
     RouletteSelector,
     RankSelector,
-    ElitismSelector,
-    StocasticSamplingSelector,
+    EliteSelector,
+    StochasticSamplingSelector,
     BoltzmannSelector,
     LinearRankSelector,
     NSGA2Selector,
@@ -36,11 +36,9 @@ from .alterer import (
     GaussianMutator,
     ScrambleMutator,
     SwapMutator,
-    BlendCrossoverTemp
 )
 
 __all__ = [
-    "BlendCrossoverTemp",
     "FloatCodec",
     "IntCodec",
     "CharCodec",
@@ -52,8 +50,8 @@ __all__ = [
     "TournamentSelector",
     "RouletteSelector",
     "RankSelector",
-    "ElitismSelector",
-    "StocasticSamplingSelector",
+    "EliteSelector",
+    "StochasticSamplingSelector",
     "BoltzmannSelector",
     "LinearRankSelector",
     "NSGA2Selector",

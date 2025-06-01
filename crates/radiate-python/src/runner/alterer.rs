@@ -42,7 +42,7 @@ impl PyAlterer {
 
     pub fn __repr__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let repr = format!(
-            "Operator(name={}, args={})",
+            "Alterer(name={}, args={})",
             self.name,
             self.args.inner.bind(py)
         );
@@ -113,11 +113,31 @@ impl PyAlterer {
     }
 
     #[staticmethod]
-    #[pyo3(signature = (rate=None))]
-    pub fn multi_point_crossover<'py>(py: Python<'py>, rate: Option<f32>) -> PyResult<PyAlterer> {
+    #[pyo3(signature = (rate=None, num_points=None))]
+    pub fn multi_point_crossover<'py>(
+        py: Python<'py>,
+        rate: Option<f32>,
+        num_points: Option<usize>,
+    ) -> PyResult<PyAlterer> {
         let args = PyDict::new(py);
         if let Some(r) = rate {
             args.set_item("rate", r)?;
+        }
+        if let Some(n) = num_points {
+            args.set_item("num_points", n)?;
+        }
+        if let Some(r) = rate {
+            if !(0.0..=1.0).contains(&r) {
+                return Err(PyValueError::new_err("Rate must be between 0 and 1"));
+            }
+        }
+
+        if let Some(n) = num_points {
+            if !(1..=usize::MAX).contains(&n) {
+                return Err(PyValueError::new_err(
+                    "Num points must be a positive integer",
+                ));
+            }
         }
 
         Ok(PyAlterer {
@@ -296,8 +316,16 @@ impl PyAlterer {
 
 impl<'py> FromPyObject<'py> for Wrap<BlendCrossover> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let rate = ob.getattr("rate")?.extract::<f32>()?;
-        let alpha = ob.getattr("alpha")?.extract::<f32>()?;
+        let alter = ob.extract::<PyAlterer>()?;
+
+        if alter.name() != "blend_crossover" {
+            return Err(PyValueError::new_err(
+                "BlendCrossover must be created using the static method",
+            ));
+        }
+
+        let rate = alter.args(ob.py())?.get_item("rate")?.extract::<f32>()?;
+        let alpha = alter.args(ob.py())?.get_item("alpha")?.extract::<f32>()?;
 
         if !(0.0..=1.0).contains(&rate) {
             return Err(PyValueError::new_err("Rate must be between 0 and 1"));
@@ -312,8 +340,16 @@ impl<'py> FromPyObject<'py> for Wrap<BlendCrossover> {
 
 impl<'py> FromPyObject<'py> for Wrap<IntermediateCrossover> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let rate = ob.getattr("rate")?.extract::<f32>()?;
-        let alpha = ob.getattr("alpha")?.extract::<f32>()?;
+        let alter = ob.extract::<PyAlterer>()?;
+
+        if alter.name() != "intermediate_crossover" {
+            return Err(PyValueError::new_err(
+                "IntermediateCrossover must be created using the static method",
+            ));
+        }
+
+        let rate = alter.args(ob.py())?.get_item("rate")?.extract::<f32>()?;
+        let alpha = alter.args(ob.py())?.get_item("alpha")?.extract::<f32>()?;
 
         if !(0.0..=1.0).contains(&rate) {
             return Err(PyValueError::new_err("Rate must be between 0 and 1"));
@@ -328,7 +364,15 @@ impl<'py> FromPyObject<'py> for Wrap<IntermediateCrossover> {
 
 impl<'py> FromPyObject<'py> for Wrap<MeanCrossover> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let rate = ob.getattr("rate")?.extract::<f32>()?;
+        let alter = ob.extract::<PyAlterer>()?;
+
+        if alter.name() != "mean_crossover" {
+            return Err(PyValueError::new_err(
+                "MeanCrossover must be created using the static method",
+            ));
+        }
+
+        let rate = alter.args(ob.py())?.get_item("rate")?.extract::<f32>()?;
 
         if !(0.0..=1.0).contains(&rate) {
             return Err(PyValueError::new_err("Rate must be between 0 and 1"));
@@ -340,8 +384,18 @@ impl<'py> FromPyObject<'py> for Wrap<MeanCrossover> {
 
 impl<'py> FromPyObject<'py> for Wrap<MultiPointCrossover> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let rate = ob.getattr("rate")?.extract::<f32>()?;
-        let num_points = ob.getattr("num_points")?.extract::<usize>()?;
+        let alter = ob.extract::<PyAlterer>()?;
+        if alter.name() != "multi_point_crossover" {
+            return Err(PyValueError::new_err(
+                "MultiPointCrossover must be created using the static method",
+            ));
+        }
+
+        let rate = alter.args(ob.py())?.get_item("rate")?.extract::<f32>()?;
+        let num_points = alter
+            .args(ob.py())?
+            .get_item("num_points")?
+            .extract::<usize>()?;
 
         if !(0.0..=1.0).contains(&rate) {
             return Err(PyValueError::new_err("Rate must be between 0 and 1"));
@@ -360,7 +414,13 @@ impl<'py> FromPyObject<'py> for Wrap<MultiPointCrossover> {
 // SHuffleCrossover
 impl<'py> FromPyObject<'py> for Wrap<ShuffleCrossover> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let rate = ob.getattr("rate")?.extract::<f32>()?;
+        let alter = ob.extract::<PyAlterer>()?;
+        if alter.name() != "shuffle_crossover" {
+            return Err(PyValueError::new_err(
+                "ShuffleCrossover must be created using the static method",
+            ));
+        }
+        let rate = alter.args(ob.py())?.get_item("rate")?.extract::<f32>()?;
 
         if !(0.0..=1.0).contains(&rate) {
             return Err(PyValueError::new_err("Rate must be between 0 and 1"));
@@ -373,24 +433,49 @@ impl<'py> FromPyObject<'py> for Wrap<ShuffleCrossover> {
 // SimulatedBinaryCrossover
 impl<'py> FromPyObject<'py> for Wrap<SimulatedBinaryCrossover> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let rate = ob.getattr("rate")?.extract::<f32>()?;
-        let contiguty = ob.getattr("contiguty")?.extract::<f32>()?;
+        let alter = ob.extract::<PyAlterer>()?;
+
+        if !alter.allowed_genes.contains(&PyGeneType::Float) {
+            return Err(PyValueError::new_err(
+                "SimulatedBinaryCrossover requires Float genes",
+            ));
+        }
+
+        if alter.name() != "simulated_binary_crossover" {
+            return Err(PyValueError::new_err(
+                "SimulatedBinaryCrossover must be created using the static method",
+            ));
+        }
+
+        let rate = alter.args(ob.py())?.get_item("rate")?.extract::<f32>()?;
+        let contiguity = alter
+            .args(ob.py())?
+            .get_item("contiguty")?
+            .extract::<f32>()?;
+
+        println!("Rate: {}, Contiguity: {}", rate, contiguity);
 
         if !(0.0..=1.0).contains(&rate) {
             return Err(PyValueError::new_err("Rate must be between 0 and 1"));
         }
-        if !(0.0..=1.0).contains(&contiguty) {
-            return Err(PyValueError::new_err("Contiguty must be between 0 and 1"));
+        if !(0.0..=1.0).contains(&contiguity) {
+            return Err(PyValueError::new_err("Contiguity must be between 0 and 1"));
         }
 
-        Ok(Wrap(SimulatedBinaryCrossover::new(rate, contiguty)))
+        Ok(Wrap(SimulatedBinaryCrossover::new(rate, contiguity)))
     }
 }
 
 // UniformCrossover
 impl<'py> FromPyObject<'py> for Wrap<UniformCrossover> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let rate = ob.getattr("rate")?.extract::<f32>()?;
+        let alter = ob.extract::<PyAlterer>()?;
+        if alter.name() != "uniform_crossover" {
+            return Err(PyValueError::new_err(
+                "UniformCrossover must be created using the static method",
+            ));
+        }
+        let rate = alter.args(ob.py())?.get_item("rate")?.extract::<f32>()?;
 
         if !(0.0..=1.0).contains(&rate) {
             return Err(PyValueError::new_err("Rate must be between 0 and 1"));
@@ -403,7 +488,13 @@ impl<'py> FromPyObject<'py> for Wrap<UniformCrossover> {
 // ArithmeticMutator
 impl<'py> FromPyObject<'py> for Wrap<ArithmeticMutator> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let rate = ob.getattr("rate")?.extract::<f32>()?;
+        let alter = ob.extract::<PyAlterer>()?;
+        if alter.name() != "arithmetic_mutator" {
+            return Err(PyValueError::new_err(
+                "ArithmeticMutator must be created using the static method",
+            ));
+        }
+        let rate = alter.args(ob.py())?.get_item("rate")?.extract::<f32>()?;
 
         if !(0.0..=1.0).contains(&rate) {
             return Err(PyValueError::new_err("Rate must be between 0 and 1"));
@@ -416,7 +507,13 @@ impl<'py> FromPyObject<'py> for Wrap<ArithmeticMutator> {
 // GaussianMutator
 impl<'py> FromPyObject<'py> for Wrap<GaussianMutator> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let rate = ob.getattr("rate")?.extract::<f32>()?;
+        let alter = ob.extract::<PyAlterer>()?;
+        if alter.name() != "gaussian_mutator" {
+            return Err(PyValueError::new_err(
+                "GaussianMutator must be created using the static method",
+            ));
+        }
+        let rate = alter.args(ob.py())?.get_item("rate")?.extract::<f32>()?;
 
         if !(0.0..=1.0).contains(&rate) {
             return Err(PyValueError::new_err("Rate must be between 0 and 1"));
@@ -429,7 +526,13 @@ impl<'py> FromPyObject<'py> for Wrap<GaussianMutator> {
 // ScrambleMutator
 impl<'py> FromPyObject<'py> for Wrap<ScrambleMutator> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let rate = ob.getattr("rate")?.extract::<f32>()?;
+        let alter = ob.extract::<PyAlterer>()?;
+        if alter.name() != "scramble_mutator" {
+            return Err(PyValueError::new_err(
+                "ScrambleMutator must be created using the static method",
+            ));
+        }
+        let rate = alter.args(ob.py())?.get_item("rate")?.extract::<f32>()?;
 
         if !(0.0..=1.0).contains(&rate) {
             return Err(PyValueError::new_err("Rate must be between 0 and 1"));
@@ -442,7 +545,14 @@ impl<'py> FromPyObject<'py> for Wrap<ScrambleMutator> {
 // SwapMutator
 impl<'py> FromPyObject<'py> for Wrap<SwapMutator> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let rate = ob.getattr("rate")?.extract::<f32>()?;
+        let alter = ob.extract::<PyAlterer>()?;
+
+        if alter.name() != "swap_mutator" {
+            return Err(PyValueError::new_err(
+                "SwapMutator must be created using the static method",
+            ));
+        }
+        let rate = alter.args(ob.py())?.get_item("rate")?.extract::<f32>()?;
 
         if !(0.0..=1.0).contains(&rate) {
             return Err(PyValueError::new_err("Rate must be between 0 and 1"));
@@ -455,7 +565,14 @@ impl<'py> FromPyObject<'py> for Wrap<SwapMutator> {
 // UniformMutator
 impl<'py> FromPyObject<'py> for Wrap<UniformMutator> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let rate = ob.getattr("rate")?.extract::<f32>()?;
+        let alter = ob.extract::<PyAlterer>()?;
+
+        if alter.name() != "uniform_mutator" {
+            return Err(PyValueError::new_err(
+                "UniformMutator must be created using the static method",
+            ));
+        }
+        let rate = alter.args(ob.py())?.get_item("rate")?.extract::<f32>()?;
 
         if !(0.0..=1.0).contains(&rate) {
             return Err(PyValueError::new_err("Rate must be between 0 and 1"));

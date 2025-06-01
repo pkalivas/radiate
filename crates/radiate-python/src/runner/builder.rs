@@ -1,20 +1,22 @@
-use super::{PyAlterer, PyObjective, PySelector};
+use super::{PyAlterer, PyObjective, PySelector, objective};
 use crate::{
-    ObjectValue, PyBitCodec, PyCharCodec, PyFloatCodec, PyGeneType, PyGeneration, PyIntCodec,
-    PyLimit, PyProblem, codec::PyCodec, conversion::Wrap,
+    FreeThreadPyEvaluator, ObjectValue, PyBitCodec, PyCharCodec, PyFloatCodec, PyGeneType,
+    PyGeneration, PyIntCodec, PyLimit, PyProblem,
+    codec::PyCodec,
+    conversion::{Wrap, py_object_to_any_value},
 };
 use core::panic;
 use pyo3::{
     Bound, FromPyObject, IntoPyObjectExt, Py, PyAny, PyErr, PyObject, PyResult, Python, pyclass,
     pymethods,
-    types::{PyAnyMethods, PyDict, PyDictMethods, PyList, PyListMethods, PyString},
+    types::{PyAnyMethods, PyDict, PyDictMethods, PyList, PyListMethods, PyString, PyTuple},
 };
 use radiate::{
-    Alter, BitChromosome, CharChromosome, Chromosome, Epoch, FloatChromosome, Generation,
+    Alter, BitChromosome, CharChromosome, Chromosome, Epoch, Executor, FloatChromosome, Generation,
     GeneticEngine, GeneticEngineBuilder, IntChromosome, MultiObjectiveGeneration, Objective,
-    Optimize, Select, log_ctx,
+    Optimize, Select, log_ctx, ops,
 };
-use std::{fmt::Debug, vec};
+use std::{fmt::Debug, sync::Arc, vec};
 
 #[pyclass]
 pub struct EngineBuilderTemp {
@@ -50,7 +52,9 @@ impl EngineBuilderTemp {
                 alters={},
                 survivor_selector={},
                 offspring_selector={},
-                objective={})",
+                objective={},
+                front_range={}
+                )",
             self.get_population_size(py)?,
             self.get_offspring_fraction(py)?,
             self.get_alters(py)?
@@ -60,7 +64,18 @@ impl EngineBuilderTemp {
                 .join(", "),
             self.get_survivor_selector(py)?.name(),
             self.get_offspring_selector(py)?.name(),
-            self.get_objective(py)?.optimize().join(", ")
+            self.get_objective(py)?.optimize().join(", "),
+            self.get_front_range(py)?
+                .bind_borrowed(py)
+                .try_iter()
+                .iter()
+                .take(2)
+                .map(|v| v.extract::<usize>().unwrap_or(0))
+                .collect::<Vec<_>>()
+                .iter()
+                .map(|v| v.to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
         );
 
         PyString::new(py, &repr).into_bound_py_any(py)
@@ -91,9 +106,6 @@ impl EngineBuilderTemp {
         let param_dict = self.create_param_dict(py)?;
 
         if let Ok(_) = self.get_gene_type(py) {
-            for (key, value) in param_dict.bind(py).iter() {
-                println!("{}: {:?}", key, value);
-            }
             let engine = param_dict.extract::<Wrap<EngineWrapper>>(py)?.0;
 
             match engine {
@@ -102,27 +114,46 @@ impl EngineBuilderTemp {
                     let generation = run_single_objective_engine(&mut engine, limits, true)?;
                     return Ok(generation);
                 }
+                EngineWrapper::Float(float_engine) => {
+                    let mut engine = Some(float_engine);
+                    let generation = run_single_objective_engine(&mut engine, limits, true)?;
+                    return Ok(generation);
+                }
+                EngineWrapper::Char(char_engine) => {
+                    let mut engine = Some(char_engine);
+                    let generation = run_single_objective_engine(&mut engine, limits, true)?;
+                    return Ok(generation);
+                }
+                EngineWrapper::Bit(bit_engine) => {
+                    let mut engine = Some(bit_engine);
+                    let generation = run_single_objective_engine(&mut engine, limits, true)?;
+                    return Ok(generation);
+                }
+                EngineWrapper::IntMulti(int_multi_engine) => {
+                    let mut engine = Some(int_multi_engine);
+                    let generation = run_multi_objective_engine(&mut engine, limits, true)?;
+                    return Ok(generation.into());
+                }
+                EngineWrapper::FloatMulti(float_multi_engine) => {
+                    let mut engine = Some(float_multi_engine);
+                    let generation = run_multi_objective_engine(&mut engine, limits, true)?;
+                    return Ok(generation.into());
+                }
                 _ => {
                     return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                         "Unsupported engine type",
                     ));
                 }
             }
-
-            panic!("Unsupported engine type");
-
-            // engine
-            //     .iter()
-            //     .inspect(|val| println!("Generation: {:?}", val.index()))
-            //     .until_score_equal(0)
-            //     .inspect(|res| println!("{res:?}"));
         }
 
-        panic!()
+        Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+            "Unsupported gene type",
+        ))
     }
 
     #[pyo3(signature = (size=100))]
-    pub fn population_size<'py>(&self, py: Python<'py>, size: usize) -> PyResult<()> {
+    pub fn set_population_size<'py>(&self, py: Python<'py>, size: usize) -> PyResult<()> {
         self.params
             .bind(py)
             .set_item("population_size", size)
@@ -130,46 +161,21 @@ impl EngineBuilderTemp {
     }
 
     #[pyo3(signature = (fraction=0.8))]
-    pub fn offspring_fraction<'py>(&self, py: Python<'py>, fraction: f32) -> PyResult<()> {
+    pub fn set_offspring_fraction<'py>(&self, py: Python<'py>, fraction: f32) -> PyResult<()> {
         self.params
             .bind(py)
             .set_item("offspring_fraction", fraction)
             .map_err(|e| e.into())
     }
 
-    pub fn alters<'py>(&self, py: Python<'py>, alters: Py<PyAny>) -> PyResult<()> {
-        let new_alters = if let Ok(alters) = alters.extract::<Vec<PyAlterer>>(py) {
-            if alters.is_empty() {
-                return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                    "At least one alterer must be specified",
-                ));
-            }
-            alters
-        } else if let Ok(alters) = alters.extract::<Bound<'_, PyList>>(py) {
-            if alters.is_empty() {
-                return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                    "At least one alterer must be specified",
-                ));
-            }
-            alters
-                .iter()
-                .map(|a| a.extract::<PyAlterer>())
-                .collect::<PyResult<Vec<_>>>()?
-        } else if let Ok(alters) = alters.extract::<PyAlterer>(py) {
-            vec![alters]
-        } else {
-            return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
-                "Expected a list of Alterers",
-            ));
-        };
-
+    pub fn set_alters<'py>(&self, py: Python<'py>, alters: Vec<PyAlterer>) -> PyResult<()> {
         self.params
             .bind(py)
-            .set_item("alters", PyList::new(py, new_alters)?)
+            .set_item("alters", PyList::new(py, alters)?)
             .map_err(|e| e.into())
     }
 
-    pub fn survivor_selector<'py>(&self, py: Python<'py>, selector: Py<PyAny>) -> PyResult<()> {
+    pub fn set_survivor_selector<'py>(&self, py: Python<'py>, selector: Py<PyAny>) -> PyResult<()> {
         let selector = selector.extract::<PySelector>(py)?;
         self.params
             .bind(py)
@@ -177,7 +183,11 @@ impl EngineBuilderTemp {
             .map_err(|e| e.into())
     }
 
-    pub fn offspring_selector<'py>(&self, py: Python<'py>, selector: Py<PyAny>) -> PyResult<()> {
+    pub fn set_offspring_selector<'py>(
+        &self,
+        py: Python<'py>,
+        selector: Py<PyAny>,
+    ) -> PyResult<()> {
         let selector = selector.extract::<PySelector>(py)?;
         self.params
             .bind(py)
@@ -185,11 +195,54 @@ impl EngineBuilderTemp {
             .map_err(|e| e.into())
     }
 
-    pub fn objective<'py>(&self, py: Python<'py>, objective: Py<PyAny>) -> PyResult<()> {
+    pub fn set_objective<'py>(&self, py: Python<'py>, objective: Py<PyAny>) -> PyResult<()> {
         let objective = objective.extract::<PyObjective>(py)?;
         self.params
             .bind(py)
             .set_item("objective", objective)
+            .map_err(|e| e.into())
+    }
+
+    pub fn set_species_threshold<'py>(&self, py: Python<'py>, threshold: f32) -> PyResult<()> {
+        self.params
+            .bind(py)
+            .set_item("species_threshold", threshold)
+            .map_err(|e| e.into())
+    }
+
+    pub fn set_max_phenotype_age<'py>(&self, py: Python<'py>, max_age: usize) -> PyResult<()> {
+        self.params
+            .bind(py)
+            .set_item("max_phenotype_age", max_age)
+            .map_err(|e| e.into())
+    }
+
+    pub fn set_front_range<'py>(&self, py: Python<'py>, front_range: Py<PyAny>) -> PyResult<()> {
+        let front_range = front_range.extract::<Py<PyTuple>>(py)?;
+
+        if front_range.bind_borrowed(py).len()? != 2 {
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                "front_range must be a tuple of twqwdwo values (min, maxssss)",
+            ));
+        }
+
+        self.params
+            .bind(py)
+            .set_item("front_range", front_range)
+            .map_err(|e| e.into())
+    }
+
+    pub fn set_num_threads<'py>(&self, py: Python<'py>, num_threads: usize) -> PyResult<()> {
+        self.params
+            .bind(py)
+            .set_item("num_threads", num_threads)
+            .map_err(|e| e.into())
+    }
+
+    pub fn set_max_species_age<'py>(&self, py: Python<'py>, max_age: usize) -> PyResult<()> {
+        self.params
+            .bind(py)
+            .set_item("max_species_age", max_age)
             .map_err(|e| e.into())
     }
 
@@ -207,6 +260,30 @@ impl EngineBuilderTemp {
             .get_item("offspring_fraction")?
             .map(|v| v.extract::<f32>())
             .unwrap_or(Ok(0.8))
+    }
+
+    pub fn get_max_phenotype_age<'py>(&self, py: Python<'py>) -> PyResult<usize> {
+        self.params
+            .bind(py)
+            .get_item("max_phenotype_age")?
+            .map(|v| v.extract::<usize>())
+            .unwrap_or(Ok(20))
+    }
+
+    pub fn get_species_threshold<'py>(&self, py: Python<'py>) -> PyResult<f32> {
+        self.params
+            .bind(py)
+            .get_item("species_threshold")?
+            .map(|v| v.extract::<f32>())
+            .unwrap_or(Ok(0.1))
+    }
+
+    pub fn get_max_species_age<'py>(&self, py: Python<'py>) -> PyResult<usize> {
+        self.params
+            .bind(py)
+            .get_item("max_species_age")?
+            .map(|v| v.extract::<usize>())
+            .unwrap_or(Ok(10))
     }
 
     pub fn get_alters<'py>(&self, py: Python<'py>) -> PyResult<Vec<PyAlterer>> {
@@ -246,6 +323,26 @@ impl EngineBuilderTemp {
             .unwrap_or(Ok(PyObjective::min()?))
     }
 
+    pub fn get_front_range<'py>(&self, py: Python<'py>) -> PyResult<Py<PyTuple>> {
+        let range = self.params.bind(py).get_item("front_range")?;
+        if let Some(range) = range {
+            if let Ok(tuple) = range.extract::<Py<PyTuple>>() {
+                return Ok(tuple);
+            }
+        }
+
+        let result = PyTuple::new(py, vec![800, 900])?.unbind();
+        Ok(result)
+    }
+
+    pub fn get_num_threads<'py>(&self, py: Python<'py>) -> PyResult<usize> {
+        self.params
+            .bind(py)
+            .get_item("num_threads")?
+            .map(|v| v.extract::<usize>())
+            .unwrap_or(Ok(1))
+    }
+
     pub fn get_gene_type<'py>(&self, py: Python<'py>) -> PyResult<PyGeneType> {
         let codec_obj = self.codec.bind(py);
 
@@ -275,6 +372,11 @@ impl EngineBuilderTemp {
         dict.set_item("gene_type", self.get_gene_type(py)?)?;
         dict.set_item("fitness_func", self.fitness_func.clone_ref(py))?;
         dict.set_item("codec", self.codec.clone_ref(py))?;
+        dict.set_item("front_range", self.get_front_range(py)?)?;
+        dict.set_item("num_threads", self.get_num_threads(py)?)?;
+        dict.set_item("max_phenotype_age", self.get_max_phenotype_age(py)?)?;
+        dict.set_item("species_threshold", self.get_species_threshold(py)?)?;
+        dict.set_item("max_species_age", self.get_max_species_age(py)?)?;
 
         Ok(dict.into())
     }
@@ -308,13 +410,22 @@ impl<'py> FromPyObject<'py> for Wrap<EngineWrapper> {
             .get_item("fitness_func")?
             .extract::<Py<PyAny>>()?;
         let codec_obj = params.bind(ob.py()).get_item("codec")?;
+        let objective = params
+            .bind(ob.py())
+            .get_item("objective")?
+            .extract::<PyObjective>()?;
 
         let engine = match gene_type {
             PyGeneType::Int => {
                 if let Ok(codec) = codec_obj.extract::<PyIntCodec>() {
-                    Ok(EngineWrapper::Int(
-                        create_engine(ob.py(), codec.codec, fitness_fn, &params)?.build(),
-                    ))
+                    match objective.is_multi() {
+                        true => Ok(EngineWrapper::IntMulti(
+                            create_multi_engine(ob.py(), codec.codec, fitness_fn, &params)?.build(),
+                        )),
+                        false => Ok(EngineWrapper::Int(
+                            create_engine(ob.py(), codec.codec, fitness_fn, &params)?.build(),
+                        )),
+                    }
                 } else {
                     return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                         "Expected an IntCodec for IntChromosome",
@@ -323,9 +434,14 @@ impl<'py> FromPyObject<'py> for Wrap<EngineWrapper> {
             }
             PyGeneType::Float => {
                 if let Ok(codec) = codec_obj.extract::<PyFloatCodec>() {
-                    Ok(EngineWrapper::Float(
-                        create_engine(ob.py(), codec.codec, fitness_fn, &params)?.build(),
-                    ))
+                    match objective.is_multi() {
+                        true => Ok(EngineWrapper::FloatMulti(
+                            create_multi_engine(ob.py(), codec.codec, fitness_fn, &params)?.build(),
+                        )),
+                        false => Ok(EngineWrapper::Float(
+                            create_engine(ob.py(), codec.codec, fitness_fn, &params)?.build(),
+                        )),
+                    }
                 } else {
                     return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                         "Expected a FloatCodec for FloatChromosome",
@@ -354,7 +470,6 @@ impl<'py> FromPyObject<'py> for Wrap<EngineWrapper> {
                     ));
                 }
             }
-
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                     "Unsupported gene type",
@@ -364,6 +479,108 @@ impl<'py> FromPyObject<'py> for Wrap<EngineWrapper> {
 
         engine.map(Wrap)
     }
+}
+
+fn create_multi_engine<C, T>(
+    py: Python<'_>,
+    codec: PyCodec<C>,
+    fitness_fn: Py<PyAny>,
+    params: &Py<PyAny>,
+) -> PyResult<GeneticEngineBuilder<C, T, MultiObjectiveGeneration<C>>>
+where
+    C: Chromosome + Clone + PartialEq + 'static,
+    T: Clone + Send + Sync + 'static,
+{
+    let population_size = params
+        .bind(py)
+        .get_item("population_size")?
+        .extract::<usize>()?;
+
+    let offspring_fraction = params
+        .bind(py)
+        .get_item("offspring_fraction")?
+        .extract::<f32>()?;
+
+    let alters = params
+        .bind(py)
+        .get_item("alters")?
+        .into_bound_py_any(py)?
+        .extract::<Wrap<Vec<Box<dyn Alter<C>>>>>()?
+        .0;
+
+    let survivor_selector = params
+        .bind(py)
+        .get_item("survivor_selector")?
+        .extract::<Wrap<Box<dyn Select<C>>>>()?
+        .0;
+
+    let offspring_selector = params
+        .bind(py)
+        .get_item("offspring_selector")?
+        .extract::<Wrap<Box<dyn Select<C>>>>()?
+        .0;
+
+    let objective = params
+        .bind(py)
+        .get_item("objective")?
+        .extract::<Wrap<Objective>>()?
+        .0;
+
+    let front_range = params
+        .bind(py)
+        .get_item("front_range")?
+        .extract::<Py<PyTuple>>()?;
+
+    let num_threads = params
+        .bind(py)
+        .get_item("num_threads")?
+        .extract::<usize>()?;
+
+    let max_age = params
+        .bind(py)
+        .get_item("max_phenotype_age")?
+        .extract::<usize>()?;
+
+    let max_species_age = params
+        .bind(py)
+        .get_item("max_species_age")?
+        .extract::<usize>()?;
+
+    let species_threshold = params
+        .bind(py)
+        .get_item("species_threshold")?
+        .extract::<f32>()?;
+
+    let executor = if num_threads > 1 {
+        Arc::new(Executor::worker_pool(num_threads))
+    } else {
+        Arc::new(Executor::Serial)
+    };
+
+    let first_front = front_range.bind(py).get_item(0)?.extract::<usize>()?;
+    let second_front = front_range.bind(py).get_item(1)?.extract::<usize>()?;
+
+    let builder = GeneticEngine::builder()
+        .problem(PyProblem::new(fitness_fn, codec))
+        .population_size(population_size)
+        .offspring_fraction(offspring_fraction)
+        .max_age(max_age)
+        .max_species_age(max_species_age)
+        .species_threshold(species_threshold)
+        .with_values(|config| {
+            config.survivor_selector = survivor_selector.into();
+            config.offspring_selector = offspring_selector.into();
+        })
+        .alter(alters)
+        .multi_objective(match objective {
+            Objective::Multi(opts) => opts,
+            _ => vec![Optimize::Minimize],
+        })
+        .front_size(first_front..second_front)
+        .evaluator(FreeThreadPyEvaluator::new(executor.clone()))
+        .executor(executor.clone());
+
+    Ok(unsafe { std::mem::transmute(builder) })
 }
 
 fn create_engine<C, T>(
@@ -411,15 +628,46 @@ where
         .extract::<Wrap<Objective>>()?
         .0;
 
+    let max_age = params
+        .bind(py)
+        .get_item("max_phenotype_age")?
+        .extract::<usize>()?;
+
+    let max_species_age = params
+        .bind(py)
+        .get_item("max_species_age")?
+        .extract::<usize>()?;
+
+    let species_threshold = params
+        .bind(py)
+        .get_item("species_threshold")?
+        .extract::<f32>()?;
+
+    let num_threads = params
+        .bind(py)
+        .get_item("num_threads")?
+        .extract::<usize>()?;
+
+    let executor = if num_threads > 1 {
+        Arc::new(Executor::worker_pool(num_threads))
+    } else {
+        Arc::new(Executor::Serial)
+    };
+
     let builder = GeneticEngine::builder()
         .problem(PyProblem::new(fitness_fn, codec))
         .population_size(population_size)
         .offspring_fraction(offspring_fraction)
+        .max_age(max_age)
+        .max_species_age(max_species_age)
+        .species_threshold(species_threshold)
+        .evaluator(FreeThreadPyEvaluator::new(executor.clone()))
+        .executor(executor.clone())
+        .alter(alters)
         .with_values(|config| {
             config.survivor_selector = survivor_selector.into();
             config.offspring_selector = offspring_selector.into();
-        })
-        .alter(alters);
+        });
 
     Ok(unsafe {
         std::mem::transmute(match objective {
@@ -472,6 +720,38 @@ where
                         println!("{:?}", epoch);
                     }
                 })
+                .map(|epoch| epoch.into())
+        })
+        .flatten()
+        .ok_or(pyo3::exceptions::PyRuntimeError::new_err(
+            "No generation found that meets the limits",
+        ))
+}
+
+fn run_multi_objective_engine<C, T>(
+    engine: &mut Option<GeneticEngine<C, T, MultiObjectiveGeneration<C>>>,
+    limits: Vec<PyLimit>,
+    _: bool,
+) -> PyResult<PyGeneration>
+where
+    C: Chromosome + Clone,
+    T: Debug + Clone + Send + Sync + 'static,
+    MultiObjectiveGeneration<C>: Into<PyGeneration>,
+{
+    engine
+        .take()
+        .map(|engine| {
+            engine
+                .iter()
+                .skip_while(|epoch| {
+                    limits.iter().all(|limit| match limit {
+                        PyLimit::Generation(lim) => epoch.index() < *lim,
+                        PyLimit::Score(_) => false,
+                        PyLimit::Seconds(val) => return epoch.seconds() < *val,
+                    })
+                })
+                .take(1)
+                .last()
                 .map(|epoch| epoch.into())
         })
         .flatten()

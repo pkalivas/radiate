@@ -455,7 +455,7 @@ where
         self.params.front = Some(Front::new(
             self.params.front_range.clone(),
             front_obj.clone(),
-            self.params.executor.clone(),
+            Arc::new(Executor::worker_pool(10)),
             move |one: &Phenotype<C>, two: &Phenotype<C>| {
                 if one.score().is_none() || two.score().is_none() {
                     return Ordering::Equal;

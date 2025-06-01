@@ -1,80 +1,94 @@
 from typing import Dict, Any
 from .param import EngineParam
 
+from radiate.radiate import Selector
 
-class Selector(EngineParam):
-    def __init__(self, name: str, args: Dict[str, Any] = None):
+class SelectorBase:
+    def __init__(self, selector: Selector):
         """
-        Initialize the selector with name and additional parameters.
-        :param name: Name of the selector.
-        :param args: Additional parameters for the selector.
+        Initialize the selector base with a Selector instance.
+        :param selector: An instance of Selector.
         """
-        super().__init__(name=name, args=args)
+        self.selector = selector
 
+    def __str__(self):
+        """
+        Return a string representation of the selector.
+        :return: String representation of the selector.
+        """
+        return f"Selector(name={self.selector.name}, args={self.selector.args})"
+    
+    def __repr__(self):
+        """
+        Return a detailed string representation of the selector.
+        :return: Detailed string representation of the selector.
+        """
+        return f"SelectorBase(selector={self.selector})"
+    
 
-class TournamentSelector(Selector):
+class TournamentSelector(SelectorBase):
     def __init__(self, k: int = 3):
         """
         Initialize the tournament selector with tournament size.
         :param k: Tournament size.
         """
-        super().__init__(name="tournament", args={"k": str(k)})
+        selector = Selector.tournament_selector(tournament_size=k)
+        super().__init__(selector)
 
-
-class RouletteSelector(Selector):
+class RouletteSelector(SelectorBase):
     def __init__(self):
         """
         Initialize the roulette selector.
         """
-        super().__init__(name="roulette")
+        selector = Selector.roulette_wheel_selector()
+        super().__init__(selector)
 
-
-class RankSelector(Selector):
+class RankSelector(SelectorBase):
     def __init__(self):
         """
         Initialize the rank selector.
         """
-        super().__init__(name="rank")
+        selector = Selector.rank_selector()
+        super().__init__(selector)
 
-
-class ElitismSelector(Selector):
+class EliteSelector(SelectorBase):
     def __init__(self):
         """
-        Initialize the elitism selector.
+        Initialize the elite selector.
         """
-        super().__init__(name="elitism")
+        selector = Selector.elite_selector()
+        super().__init__(selector)
 
-
-class BoltzmannSelector(Selector):
+class BoltzmannSelector(SelectorBase):
     def __init__(self, temp: float = 1.0):
         """
         Initialize the Boltzmann selector with temperature.
         :param temp: Temperature for the Boltzmann selector.
         """
-        super().__init__(name="boltzmann", args={"temp": str(temp)})
+        selector = Selector.boltzmann_selector(temp=temp)
+        super().__init__(selector)
 
-
-class StocasticSamplingSelector(Selector):
+class StochasticSamplingSelector(SelectorBase):
     def __init__(self):
         """
         Initialize the stochastic sampling selector.
         """
-        super().__init__(name="stocastic_universal_sampling")
+        selector = Selector.stochastic_sampling_selector()
+        super().__init__(selector)
 
-
-class LinearRankSelector(Selector):
+class LinearRankSelector(SelectorBase):
     def __init__(self, pressure: float = 0.5):
         """
         Initialize the linear rank selector.
+        :param pressure: Pressure for the linear rank selector.
         """
-        super().__init__(name="linear_rank", args={"pressure": str(pressure)})
+        selector = Selector.linear_rank_selector(pressure=pressure)
+        super().__init__(selector)
 
-
-class NSGA2Selector(Selector):
+class NSGA2Selector(SelectorBase):
     def __init__(self):
         """
         Initialize the NSGA2 selector.
         """
-        super().__init__(
-            name="nsga2",
-        )
+        selector = Selector.nsga2_selector()
+        super().__init__(selector)
