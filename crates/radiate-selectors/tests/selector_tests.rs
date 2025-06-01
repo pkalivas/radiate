@@ -87,13 +87,13 @@ mod selector_tests {
     ) -> f32 {
         let population_avg: f32 = population
             .iter()
-            .map(|ind| ind.genotype()[0].genes[0].allele)
+            .map(|ind| ind.genotype()[0].genes[0].allele())
             .sum::<f32>()
             / population.len() as f32;
 
         let selected_avg: f32 = selected
             .iter()
-            .map(|ind| ind.genotype()[0].genes[0].allele)
+            .map(|ind| ind.genotype()[0].genes[0].allele())
             .sum::<f32>()
             / selected.len() as f32;
 

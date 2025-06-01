@@ -1,23 +1,17 @@
 mod bindings;
 mod codec;
 mod conversion;
-mod epoch;
 mod evaluator;
 mod events;
-mod function;
 mod gene;
-mod metric;
 mod object;
 mod problem;
 mod random;
 
 pub use bindings::*;
 pub use codec::{PyBitCodec, PyCharCodec, PyFloatCodec, PyIntCodec};
-pub use epoch::*;
 pub use evaluator::FreeThreadPyEvaluator;
-pub use function::*;
 pub use gene::PyGeneType;
-pub use metric::*;
 pub use object::{AnyValue, IntoAnyValue, Object, ObjectSafe, ObjectValue};
 pub use problem::PyProblem;
 use pyo3::{PyResult, Python};

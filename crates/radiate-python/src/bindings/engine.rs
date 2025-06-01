@@ -1,7 +1,8 @@
-use super::PyObjective;
+use super::{PyObjective, subscriber::PySubscriber};
 use crate::{
     FreeThreadPyEvaluator, ObjectValue, PyBitCodec, PyCharCodec, PyFloatCodec, PyGeneType,
     PyGeneration, PyIntCodec, PyLimit, PyProblem, codec::PyCodec, conversion::Wrap,
+    events::PyEventHandler,
 };
 use pyo3::{
     Bound, FromPyObject, IntoPyObjectExt, Py, PyAny, PyErr, PyResult, Python,
@@ -357,13 +358,19 @@ where
         .get_item("num_threads")?
         .extract::<usize>()?;
 
+    let subscribers = params
+        .bind(py)
+        .get_item("subscribers")?
+        .into_bound_py_any(py)?
+        .extract::<Vec<PySubscriber>>()?;
+
     let executor = if num_threads > 1 {
         Arc::new(Executor::worker_pool(num_threads))
     } else {
         Arc::new(Executor::Serial)
     };
 
-    let builder = GeneticEngine::builder()
+    let mut builder = GeneticEngine::builder()
         .problem(PyProblem::new(fitness_fn, codec))
         .population_size(population_size)
         .offspring_fraction(offspring_fraction)
@@ -378,6 +385,11 @@ where
             config.offspring_selector = offspring_selector.into();
             config.diversity = diversity.map(|d| d.into());
         });
+
+    builder = match subscribers.len() > 0 {
+        true => builder.subscribe(PyEventHandler::new(subscribers)),
+        false => builder,
+    };
 
     Ok(unsafe {
         std::mem::transmute(match objective {

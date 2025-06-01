@@ -1,8 +1,9 @@
 from .engine import GeneticEngine
 from .codec import FloatCodec, IntCodec, CharCodec, BitCodec
 from .limit import SecondsLimit, GenerationsLimit, ScoreLimit
-# from .handlers import LogHandler
+from .handlers import EventHandler, OnEpochCompleteHandler
 from .random import RandomProvider as random
+from .gene import Gene
 from ._typing import GeneType, ObjectiveType
 
 
@@ -39,6 +40,9 @@ from .alterer import (
 )
 
 __all__ = [
+    "EventHandler",
+    "Gene",
+    "OnEpochCompleteHandler",
     "FloatCodec",
     "IntCodec",
     "CharCodec",

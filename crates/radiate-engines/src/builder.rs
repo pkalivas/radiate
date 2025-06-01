@@ -166,7 +166,7 @@ where
         self
     }
 
-    pub fn register<H>(mut self, handler: H) -> Self
+    pub fn subscribe<H>(mut self, handler: H) -> Self
     where
         H: EventHandler<EngineEvent<T>> + 'static,
     {

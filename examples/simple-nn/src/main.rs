@@ -124,7 +124,12 @@ impl Codec<FloatChromosome, NeuralNet> for NeuralNetCodec {
                     .iter()
                     .as_slice()
                     .chunks(self.shapes[i].1 as usize)
-                    .map(|chunk| chunk.iter().map(|gene| gene.allele).collect::<Vec<f32>>())
+                    .map(|chunk| {
+                        chunk
+                            .iter()
+                            .map(|gene| *gene.allele())
+                            .collect::<Vec<f32>>()
+                    })
                     .collect::<Vec<Vec<f32>>>(),
             );
         }

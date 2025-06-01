@@ -1,4 +1,4 @@
-use super::{PyAlterer, PyDiversity, PyEngine, PyObjective, PySelector};
+use super::{PyAlterer, PyDiversity, PyEngine, PyObjective, PySelector, subscriber::PySubscriber};
 use crate::{
     PyBitCodec, PyCharCodec, PyFloatCodec, PyGeneType, PyIntCodec, PyLimit, conversion::Wrap,
 };
@@ -36,15 +36,23 @@ impl PyEngineBuilder {
 
     pub fn __repr__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let repr = format!(
-            "EngineBuilderTemp(
+            "Engine(
+                gene_type={:?},
                 population_size={},
                 offspring_fraction={},
                 alters={},
                 survivor_selector={},
                 offspring_selector={},
                 objective={},
-                front_range={}
-                )",
+                front_range={},
+                diversity={},
+                limits={},
+                num_threads={},
+                max_phenotype_age={},
+                species_threshold={},
+                max_species_age={}
+            )",
+            self.get_gene_type(py)?,
             self.get_population_size(py)?,
             self.get_offspring_fraction(py)?,
             self.get_alters(py)?
@@ -65,7 +73,19 @@ impl PyEngineBuilder {
                 .iter()
                 .map(|v| v.to_string())
                 .collect::<Vec<_>>()
-                .join(", ")
+                .join(", "),
+            self.get_diversity(py)?
+                .map(|d| d.name().to_string())
+                .unwrap_or_else(|| "None".to_string()),
+            self.get_limits(py)?
+                .iter()
+                .map(|l| format!("{:?}", l))
+                .collect::<Vec<_>>()
+                .join(", "),
+            self.get_num_threads(py)?,
+            self.get_max_phenotype_age(py)?,
+            self.get_species_threshold(py)?,
+            self.get_max_species_age(py)?.to_string()
         );
 
         PyString::new(py, &repr).into_bound_py_any(py)
@@ -108,6 +128,19 @@ impl PyEngineBuilder {
         self.params
             .bind(py)
             .set_item("survivor_selector", selector)
+            .map_err(|e| e.into())
+    }
+
+    pub fn set_subscribers<'py>(
+        &self,
+        py: Python<'py>,
+        subscribers: Vec<PySubscriber>,
+    ) -> PyResult<()> {
+        let mut current_subscribers = self.get_subscribers(py)?;
+        current_subscribers.extend(subscribers);
+        self.params
+            .bind(py)
+            .set_item("subscribers", PyList::new(py, current_subscribers)?)
             .map_err(|e| e.into())
     }
 
@@ -272,6 +305,14 @@ impl PyEngineBuilder {
             .transpose()
     }
 
+    pub fn get_subscribers<'py>(&self, py: Python<'py>) -> PyResult<Vec<PySubscriber>> {
+        self.params
+            .bind(py)
+            .get_item("subscribers")?
+            .map(|v| v.extract::<Vec<PySubscriber>>())
+            .unwrap_or(Ok(vec![]))
+    }
+
     pub fn get_front_range<'py>(&self, py: Python<'py>) -> PyResult<Py<PyTuple>> {
         let range = self.params.bind(py).get_item("front_range")?;
         if let Some(range) = range {
@@ -338,6 +379,7 @@ impl PyEngineBuilder {
         dict.set_item("max_species_age", self.get_max_species_age(py)?)?;
         dict.set_item("limits", self.get_limits(py)?)?;
         dict.set_item("diversity", self.get_diversity(py)?)?;
+        dict.set_item("subscribers", self.get_subscribers(py)?)?;
 
         Ok(dict.into())
     }

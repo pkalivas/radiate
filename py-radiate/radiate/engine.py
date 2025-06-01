@@ -1,10 +1,8 @@
 from typing import Any, Callable, List, Tuple
 from .selector import SelectorBase, TournamentSelector, RouletteSelector
 from .alterer import AlterBase, UniformCrossover, UniformMutator
-
 from .diversity import Diversity, HammingDistance, EuclideanDistance
-from .handlers import EventHandler
-from ._typing import GeneType, ObjectiveType
+from ._typing import ObjectiveType
 from .codec import FloatCodec, IntCodec, CharCodec, BitCodec
 from .limit import LimitBase
 
@@ -12,6 +10,7 @@ from radiate.radiate import (
     PyGeneration,
     PyEngineBuilder,
     PyObjective,
+    PySubscriber
 )
 
 
@@ -39,20 +38,7 @@ class GeneticEngine:
         num_threads: int = 1,
         front_range: Tuple[int, int] | None = (800, 900),
     ):
-        self.codec = codec
-        self.fitness_func = fitness_func
         self.engine = None
-
-        if isinstance(self.codec, FloatCodec):
-            self.gene_type = GeneType.FLOAT()
-        elif isinstance(self.codec, IntCodec):
-            self.gene_type = GeneType.INT()
-        elif isinstance(self.codec, CharCodec):
-            self.gene_type = GeneType.CHAR()
-        elif isinstance(self.codec, BitCodec):
-            self.gene_type = GeneType.BIT()
-        else:
-            raise TypeError(f"Codec type {type(self.codec)} is not supported.")
 
         survivor_selector = self.__get_params(
             survivor_selector or TournamentSelector(k=3)
@@ -166,11 +152,15 @@ class GeneticEngine:
             raise ValueError("Number of threads must be greater than 0.")
         self.builder.set_num_threads(num_threads)
 
-    def register(self, event_handler: Callable[[Any], None]):
+    def subscribe(self, event_handler: List[Callable[[Any], None]] | Callable[[Any], None]):
         """Register an event handler."""
-        if not callable(event_handler):
-            raise TypeError("Event handler must be a callable.")
-        self.builder.set_event_handlers([EventHandler(event_handler).handler])
+        if callable(event_handler):
+            print("Event handler is a single callable.")
+            self.builder.set_subscribers([PySubscriber(event_handler)])
+        elif all(callable(handler) for handler in event_handler):
+            self.builder.set_subscribers([PySubscriber(handler) for handler in event_handler])
+        else:
+            raise TypeError("Event handler must be a callable or a list of callables.")
 
     def __get_front_range(self, front_range: Tuple[int, int] | None) -> Tuple[int, int]:
         """Get the front range."""
@@ -221,4 +211,6 @@ class GeneticEngine:
             raise TypeError(f"Param type {type(value)} is not supported.")
 
     def __repr__(self):
-        return f"EngineTest(codec={self.gene_type})"
+        if self.engine is None:
+            return f'{self.builder.__repr__()}'
+        return f'{self.engine.__repr__()}'

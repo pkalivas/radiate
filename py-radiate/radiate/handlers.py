@@ -1,32 +1,46 @@
+import abc
 from typing import Callable, Any
 
-from radiate.radiate import PyFunc
+from radiate.radiate import PySubscriber
 
-class EventHandler:
+class EventHandler(abc.ABC):
     """
     Base class for event handlers.
+    """       
+    def __call__(self, event: Any) -> None:
+        """
+        Call the handler with the event.
+        """
+        self.on_event(event)
+
+
+    @abc.abstractmethod
+    def on_event(self, event: Any) -> None:
+        """
+        Handle the event.
+        """
+        pass
+
+
+
+class OnEpochCompleteHandler(EventHandler):
+    """
+    Handler for the end of an epoch.
     """
 
-    def __init__(self, handler: Callable[[Any], None]):
+    def __init__(self, callback: Callable[[Any], None]):
         """
-        Initialize the event handler.
+        Initialize the handler with a callback function.
+        :param callback: Function to call when the epoch is complete.
         """
-        self.handler = PyFunc(handler)
+        super().__init__()
+        self.callback = callback
+
+    def on_event(self, event: Any) -> None:
+        """
+        Call the callback function with the event.
+        :param event: The event data.
+        """
+        self.callback(event)
 
 
-class LogHandler(EventHandler):
-    """
-    Handler for log events.
-    """
-
-    def __init__(self):
-        """
-        Initialize the log handler.
-        """
-        super().__init__(self.handle_event)
-
-    def handle_event(self, event: Any) -> None:
-        """
-        Handle a log event.
-        """
-        print(f"Log event: {event}")

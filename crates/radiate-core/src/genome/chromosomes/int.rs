@@ -48,6 +48,17 @@ pub struct IntGene<T: Integer<T>> {
     pub bounds: Range<T>,
 }
 
+impl<T: Integer<T>> IntGene<T> {
+    /// Create a new [`IntGene`] with the given allele, value range and bounds.
+    pub fn new(allele: T, value_range: Range<T>, bounds: Range<T>) -> Self {
+        IntGene {
+            allele,
+            value_range,
+            bounds,
+        }
+    }
+}
+
 /// Implement the [`Gene`] trait for [`IntGene`]. This allows the [`IntGene`] to be used in a genetic algorithm.
 impl<T: Integer<T>> Gene for IntGene<T> {
     type Allele = T;

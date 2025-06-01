@@ -2,6 +2,7 @@ use super::{Valid, genotype::Genotype};
 use crate::objectives::Score;
 use crate::{Chromosome, objectives::Scored};
 use std::hash::Hash;
+use std::ops::Deref;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 /// A unique identifier for a `Phenotype`. This is used to identify the `Phenotype` in the population.
@@ -14,6 +15,14 @@ impl PhenotypeId {
     pub fn new() -> Self {
         static PHENOTYPE_ID: AtomicU64 = AtomicU64::new(0);
         PhenotypeId(PHENOTYPE_ID.fetch_add(1, Ordering::SeqCst))
+    }
+}
+
+impl Deref for PhenotypeId {
+    type Target = u64;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 

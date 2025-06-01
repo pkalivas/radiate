@@ -32,6 +32,12 @@ impl PySelector {
         Ok(self.allowed_genes.clone())
     }
 
+    pub fn is_valid_for_chromosome(&self, chromosome_type: &str) -> bool {
+        self.chromosome_types
+            .iter()
+            .any(|c| c.name() == chromosome_type)
+    }
+
     pub fn __str__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         self.__repr__(py)
     }

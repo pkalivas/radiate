@@ -13,16 +13,23 @@ rd.random.set_seed(100)
 codec = rd.IntCodec.vector(10, (0, 10))
 engine = rd.GeneticEngine(codec, lambda x: sum(x))
 engine.offspring_selector(rd.BoltzmannSelector(4))
-# engine.register(lambda x: print(x))
+# engine.subscribe(rd.OnEpochCompleteHandler(lambda x: print(x)))
 engine.alters([
     rd.MultiPointCrossover(0.75, 2), 
     rd.UniformMutator(0.01)
 ])
 
+print(engine)
+
 result = engine.run(rd.ScoreLimit(0), log=False)
 
 print(result)
 
+print()
+print()
+gene = rd.Gene.char(allele='a', char_set={'a', 'b', 'c'})
+
+print(gene)
 
 
 
