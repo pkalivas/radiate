@@ -10,11 +10,11 @@ use pyo3::{
     types::{PyAnyMethods, PyDict, PyDictMethods, PyList, PyListMethods, PyString},
 };
 use radiate::{
-    Alter, BitChromosome, CharChromosome, Chromosome, Engine, EngineIteratorExt, Epoch,
-    FloatChromosome, Generation, GeneticEngine, GeneticEngineBuilder, IntChromosome,
-    MultiObjectiveGeneration, Objective, Optimize, Select, log_ctx,
+    Alter, BitChromosome, CharChromosome, Chromosome, Epoch, FloatChromosome, Generation,
+    GeneticEngine, GeneticEngineBuilder, IntChromosome, MultiObjectiveGeneration, Objective,
+    Optimize, Select, log_ctx,
 };
-use std::{fmt::Debug, thread::panicking, vec};
+use std::{fmt::Debug, vec};
 
 #[pyclass]
 pub struct EngineBuilderTemp {
@@ -280,10 +280,8 @@ impl EngineBuilderTemp {
     }
 }
 
-type SingleObjectiveEngine<C: Chromosome> =
-    GeneticEngine<C, ObjectValue, Generation<C, ObjectValue>>;
-type MultiObjectiveEngine<C: Chromosome> =
-    GeneticEngine<C, ObjectValue, MultiObjectiveGeneration<C>>;
+type SingleObjectiveEngine<C> = GeneticEngine<C, ObjectValue, Generation<C, ObjectValue>>;
+type MultiObjectiveEngine<C> = GeneticEngine<C, ObjectValue, MultiObjectiveGeneration<C>>;
 
 pub enum EngineWrapper {
     Int(SingleObjectiveEngine<IntChromosome<i32>>),
@@ -323,6 +321,39 @@ impl<'py> FromPyObject<'py> for Wrap<EngineWrapper> {
                     ));
                 }
             }
+            PyGeneType::Float => {
+                if let Ok(codec) = codec_obj.extract::<PyFloatCodec>() {
+                    Ok(EngineWrapper::Float(
+                        create_engine(ob.py(), codec.codec, fitness_fn, &params)?.build(),
+                    ))
+                } else {
+                    return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                        "Expected a FloatCodec for FloatChromosome",
+                    ));
+                }
+            }
+            PyGeneType::Char => {
+                if let Ok(codec) = codec_obj.extract::<PyCharCodec>() {
+                    Ok(EngineWrapper::Char(
+                        create_engine(ob.py(), codec.codec, fitness_fn, &params)?.build(),
+                    ))
+                } else {
+                    return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                        "Expected a CharCodec for CharChromosome",
+                    ));
+                }
+            }
+            PyGeneType::Bit => {
+                if let Ok(codec) = codec_obj.extract::<PyBitCodec>() {
+                    Ok(EngineWrapper::Bit(
+                        create_engine(ob.py(), codec.codec, fitness_fn, &params)?.build(),
+                    ))
+                } else {
+                    return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                        "Expected a BitCodec for BitChromosome",
+                    ));
+                }
+            }
 
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
@@ -334,72 +365,6 @@ impl<'py> FromPyObject<'py> for Wrap<EngineWrapper> {
         engine.map(Wrap)
     }
 }
-
-// impl<'py, C, T, E> FromPyObject<'py> for Wrap<GeneticEngine<C, T, E>>
-// where
-//     C: Chromosome,
-//     T: Clone + Send + Sync,
-//     E: Epoch,
-// {
-//     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-//         let params = ob.extract::<Py<PyAny>>()?;
-
-//         let gene_type = params
-//             .bind(ob.py())
-//             .get_item("gene_type")?
-//             .extract::<PyGeneType>()?;
-
-//         let requested_chromosome = std::any::type_name::<C>()
-//             .split("::")
-//             .last()
-//             .map(|s| s.split('<').next())
-//             .flatten()
-//             .unwrap_or("UnknownChromosome");
-
-//         let is_valid = match gene_type {
-//             PyGeneType::Int => requested_chromosome == "IntChromosome",
-//             PyGeneType::Float => requested_chromosome == "FloatChromosome",
-//             PyGeneType::Bit => requested_chromosome == "BitChromosome",
-//             PyGeneType::Char => requested_chromosome == "CharChromosome",
-//             _ => false,
-//         };
-
-//         if !is_valid {
-//             return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
-//                 "Expected a {} chromosome, but got {:?}",
-//                 requested_chromosome, gene_type
-//             )));
-//         }
-
-//         let fitness_fn = params
-//             .bind(ob.py())
-//             .get_item("fitness_func")?
-//             .extract::<Py<PyAny>>()?;
-//         let codec_obj = params.bind(ob.py()).get_item("codec")?;
-
-//         let engine: PyResult<GeneticEngine<C, T, E>> = match gene_type {
-//             PyGeneType::Int => {
-//                 if let Ok(codec) = codec_obj.extract::<PyIntCodec>() {
-//                     let engine = create_engine(ob.py(), codec.codec, fitness_fn, &params)?.build();
-
-//                     Ok(trans)
-//                 } else {
-//                     Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
-//                         "Expected an IntCodec for IntChromosome",
-//                     ))
-//                 }
-//             }
-
-//             _ => {
-//                 return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
-//                     "Unsupported gene type",
-//                 ));
-//             }
-//         };
-
-//         engine.map(Wrap)
-//     }
-// }
 
 fn create_engine<C, T>(
     py: Python<'_>,
@@ -450,6 +415,10 @@ where
         .problem(PyProblem::new(fitness_fn, codec))
         .population_size(population_size)
         .offspring_fraction(offspring_fraction)
+        .with_values(|config| {
+            config.survivor_selector = survivor_selector.into();
+            config.offspring_selector = offspring_selector.into();
+        })
         .alter(alters);
 
     Ok(unsafe {
