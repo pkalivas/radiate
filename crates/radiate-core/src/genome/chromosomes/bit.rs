@@ -1,5 +1,5 @@
 use crate::{Chromosome, Gene, Valid, random_provider};
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 /// let gene = gene.with_allele(allele);
 /// ```
 ///
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BitGene {
     allele: bool,
@@ -67,7 +67,7 @@ impl Default for BitGene {
     }
 }
 
-impl Debug for BitGene {
+impl Display for BitGene {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", if self.allele { 1 } else { 0 })
     }
@@ -119,6 +119,12 @@ impl Chromosome for BitChromosome {
 impl Valid for BitChromosome {
     fn is_valid(&self) -> bool {
         self.genes.iter().all(|gene| gene.is_valid())
+    }
+}
+
+impl From<Vec<BitGene>> for BitChromosome {
+    fn from(genes: Vec<BitGene>) -> Self {
+        BitChromosome { genes }
     }
 }
 

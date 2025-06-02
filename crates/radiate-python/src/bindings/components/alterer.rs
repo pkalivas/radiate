@@ -1,4 +1,4 @@
-use crate::{ObjectValue, PyGeneType, conversion::Wrap, gene::PyChromosomeType};
+use crate::{ObjectValue, PyGeneType, PyPopulation, conversion::Wrap, gene::PyChromosomeType};
 use pyo3::{
     Bound, FromPyObject, IntoPyObjectExt, PyAny, PyErr, PyResult, Python,
     exceptions::PyValueError,
@@ -8,8 +8,8 @@ use pyo3::{
 use radiate::{
     Alter, ArithmeticMutator, BitChromosome, BlendCrossover, CharChromosome, Chromosome, Crossover,
     FloatChromosome, GaussianMutator, IntChromosome, IntermediateCrossover, MeanCrossover,
-    MultiPointCrossover, Mutate, ScrambleMutator, ShuffleCrossover, SimulatedBinaryCrossover,
-    SwapMutator, UniformCrossover, UniformMutator, alters,
+    MultiPointCrossover, Mutate, Population, ScrambleMutator, ShuffleCrossover,
+    SimulatedBinaryCrossover, SwapMutator, UniformCrossover, UniformMutator, alters,
 };
 use std::vec;
 
@@ -36,6 +36,10 @@ impl PyAlterer {
         Ok(self.allowed_genes.clone())
     }
 
+    pub fn is_valid_for_gene(&self, gene_type: &str) -> bool {
+        self.allowed_genes.iter().any(|g| g.name() == gene_type)
+    }
+
     pub fn __str__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         self.__repr__(py)
     }
@@ -50,6 +54,26 @@ impl PyAlterer {
         PyString::new(py, &repr).into_bound_py_any(py)
     }
 
+    pub fn alter<'py>(&self, py: Python<'py>, population: PyPopulation) -> PyResult<PyPopulation> {
+        if population.gene_type() == String::from("FloatGene") {
+            return alter_population::<FloatChromosome>(py, vec![self.clone()], population);
+        } else if population.gene_type() == String::from("IntGene") {
+            return alter_population::<IntChromosome<i32>>(py, vec![self.clone()], population);
+        } else if population.gene_type() == String::from("BitGene") {
+            return alter_population::<BitChromosome>(py, vec![self.clone()], population);
+        } else if population.gene_type() == String::from("CharGene") {
+            return alter_population::<CharChromosome>(py, vec![self.clone()], population);
+        } else {
+            return Err(PyValueError::new_err(format!(
+                "Unsupported gene type: {}",
+                population.gene_type()
+            )));
+        }
+    }
+}
+
+#[pymethods]
+impl PyAlterer {
     #[staticmethod]
     #[pyo3(signature = (rate=None, alpha=None))]
     pub fn blend_crossover<'py>(
@@ -169,8 +193,18 @@ impl PyAlterer {
         Ok(PyAlterer {
             name: "shuffle_crossover".into(),
             args: ObjectValue { inner: args.into() },
-            allowed_genes: vec![PyGeneType::Bit, PyGeneType::Char],
-            chromosomes: vec![PyChromosomeType::Bit, PyChromosomeType::Char],
+            allowed_genes: vec![
+                PyGeneType::Bit,
+                PyGeneType::Char,
+                PyGeneType::Float,
+                PyGeneType::Int,
+            ],
+            chromosomes: vec![
+                PyChromosomeType::Bit,
+                PyChromosomeType::Char,
+                PyChromosomeType::Float,
+                PyChromosomeType::Int,
+            ],
         })
     }
 
@@ -282,8 +316,18 @@ impl PyAlterer {
         Ok(PyAlterer {
             name: "swap_mutator".into(),
             args: ObjectValue { inner: args.into() },
-            allowed_genes: vec![PyGeneType::Bit, PyGeneType::Char],
-            chromosomes: vec![PyChromosomeType::Bit, PyChromosomeType::Char],
+            allowed_genes: vec![
+                PyGeneType::Bit,
+                PyGeneType::Char,
+                PyGeneType::Float,
+                PyGeneType::Int,
+            ],
+            chromosomes: vec![
+                PyChromosomeType::Bit,
+                PyChromosomeType::Char,
+                PyChromosomeType::Float,
+                PyChromosomeType::Int,
+            ],
         })
     }
 
@@ -312,6 +356,45 @@ impl PyAlterer {
             ],
         })
     }
+}
+
+fn alter_population<C>(
+    py: Python<'_>,
+    alters: Vec<PyAlterer>,
+    population: PyPopulation,
+) -> PyResult<PyPopulation>
+where
+    C: Chromosome + 'static,
+    Population<C>: From<PyPopulation>,
+    PyPopulation: From<Population<C>>,
+{
+    for alter in alters.iter() {
+        if !alter.is_valid_for_gene(population.gene_type().as_str()) {
+            return Err(PyValueError::new_err(format!(
+                "Alterer '{}' does not support gene type '{}'",
+                alter.name(),
+                population.gene_type()
+            )));
+        }
+    }
+    let alter2 = alters
+        .into_bound_py_any(py)?
+        .extract::<Wrap<Vec<Box<dyn Alter<C>>>>>()?
+        .0;
+
+    if alter2.is_empty() {
+        return Err(PyValueError::new_err(
+            "At least one alterer must be specified",
+        ));
+    }
+
+    let mut pop = Population::<C>::from(population);
+
+    for alter in alter2 {
+        alter.alter(&mut pop, 0);
+    }
+
+    Ok(PyPopulation::from(pop))
 }
 
 impl<'py> FromPyObject<'py> for Wrap<BlendCrossover> {

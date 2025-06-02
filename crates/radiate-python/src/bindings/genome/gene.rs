@@ -9,18 +9,84 @@ use radiate::{
 #[repr(transparent)]
 pub struct PyPopulation {
     #[pyo3(get)]
-    phenotypes: Vec<PyPhenotype>,
+    pub phenotypes: Vec<PyPhenotype>,
+}
+
+#[pymethods]
+impl PyPopulation {
+    #[new]
+    pub fn new(phenotypes: Vec<PyPhenotype>) -> Self {
+        PyPopulation { phenotypes }
+    }
+
+    pub fn __repr__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let repr = format!(
+            "Population(phenotypes={:?})",
+            self.phenotypes
+                .iter()
+                .map(|p| format!("{:?}", p.__repr__(py)))
+                .collect::<Vec<_>>()
+        );
+        PyString::new(py, &repr).into_bound_py_any(py)
+    }
+
+    pub fn __str__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        self.__repr__(py)
+    }
+
+    pub fn gene_type(&self) -> String {
+        if self.phenotypes.is_empty() {
+            "EmptyPopulation".to_string()
+        } else {
+            self.phenotypes[0].gene_type()
+        }
+    }
 }
 
 #[pyclass]
 #[derive(Clone, Debug)]
 pub struct PyPhenotype {
     #[pyo3(get)]
-    genotype: PyGenotype,
+    pub genotype: PyGenotype,
     #[pyo3(get)]
     score: Vec<f32>,
     #[pyo3(get)]
     id: u64,
+}
+
+#[pymethods]
+impl PyPhenotype {
+    #[new]
+    #[pyo3(signature = (genotype, score=None, id=0))]
+    pub fn new(genotype: PyGenotype, score: Option<Vec<f32>>, id: u64) -> Self {
+        PyPhenotype {
+            genotype,
+            score: score.unwrap_or_default(),
+            id,
+        }
+    }
+
+    pub fn __repr__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let repr = format!(
+            "Phenotype(id={}, score={:?}, genotype={:?})",
+            self.id,
+            self.score,
+            self.genotype.__repr__(py)
+        );
+        PyString::new(py, &repr).into_bound_py_any(py)
+    }
+
+    pub fn __str__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        self.__repr__(py)
+    }
+
+    pub fn gene_type(&self) -> String {
+        if self.genotype.chromosomes.is_empty() {
+            "EmptyPhenotype".to_string()
+        } else {
+            self.genotype.gene_type()
+        }
+    }
 }
 
 #[pyclass]
@@ -31,12 +97,93 @@ pub struct PyGenotype {
     chromosomes: Vec<PyChromosome>,
 }
 
+#[pymethods]
+impl PyGenotype {
+    #[new]
+    pub fn new(chromosomes: Vec<PyChromosome>) -> Self {
+        PyGenotype { chromosomes }
+    }
+
+    pub fn __repr__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let repr = format!(
+            "Genotype(chromosomes={:?})",
+            self.chromosomes
+                .iter()
+                .map(|c| format!("{:?}", c.__repr__(py)))
+                .collect::<Vec<_>>()
+        );
+
+        PyString::new(py, &repr).into_bound_py_any(py)
+    }
+
+    pub fn __str__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        self.__repr__(py)
+    }
+
+    pub fn gene_type(&self) -> String {
+        if self.chromosomes.is_empty() {
+            "EmptyGenotype".to_string()
+        } else {
+            self.chromosomes[0].gene_type()
+        }
+    }
+}
+
+impl IntoIterator for PyGenotype {
+    type Item = PyChromosome;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.chromosomes.into_iter()
+    }
+}
+
 #[pyclass]
 #[derive(Clone, Debug)]
 #[repr(transparent)]
 pub struct PyChromosome {
     #[pyo3(get)]
     genes: Vec<PyGene>,
+}
+
+#[pymethods]
+impl PyChromosome {
+    #[new]
+    pub fn new(genes: Vec<PyGene>) -> Self {
+        PyChromosome { genes }
+    }
+
+    pub fn __repr__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let repr = format!(
+            "Chromosome(genes={:?})",
+            self.genes
+                .iter()
+                .map(|g| format!("{:?}", g.__repr__(py)))
+                .collect::<Vec<_>>()
+        );
+        PyString::new(py, &repr).into_bound_py_any(py)
+    }
+
+    pub fn __str__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        self.__repr__(py)
+    }
+
+    pub fn gene_type(&self) -> String {
+        if self.genes.is_empty() {
+            "EmptyChromosome".to_string()
+        } else {
+            self.genes[0].gene_type()
+        }
+    }
+}
+
+impl IntoIterator for PyChromosome {
+    type Item = PyGene;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.genes.into_iter()
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -78,9 +225,9 @@ impl PyGene {
         let repr = format!(
             "{}",
             match &self.inner {
-                GeneInner::Float(gene) => format!("{:?}", gene),
-                GeneInner::Int(gene) => format!("{:?}", gene),
-                GeneInner::Bit(gene) => format!("{:?}", gene),
+                GeneInner::Float(gene) => format!("{}", gene),
+                GeneInner::Int(gene) => format!("{}", gene),
+                GeneInner::Bit(gene) => format!("{}", gene),
                 GeneInner::Char(gene) => format!("{:?}", gene),
             }
         );
@@ -153,12 +300,55 @@ impl PyGene {
     }
 }
 
+impl PyGene {
+    pub fn into_float_gene(self) -> Option<FloatGene> {
+        if let GeneInner::Float(gene) = self.inner {
+            Some(gene)
+        } else {
+            None
+        }
+    }
+
+    pub fn into_int_gene(self) -> Option<IntGene<i32>> {
+        if let GeneInner::Int(gene) = self.inner {
+            Some(gene)
+        } else {
+            None
+        }
+    }
+
+    pub fn into_bit_gene(self) -> Option<BitGene> {
+        if let GeneInner::Bit(gene) = self.inner {
+            Some(gene)
+        } else {
+            None
+        }
+    }
+
+    pub fn into_char_gene(self) -> Option<CharGene> {
+        if let GeneInner::Char(gene) = self.inner {
+            Some(gene)
+        } else {
+            None
+        }
+    }
+}
+
 macro_rules! impl_into_py_gene {
     ($gene_type:ty, $gene_variant:ident) => {
         impl From<$gene_type> for PyGene {
             fn from(gene: $gene_type) -> Self {
                 PyGene {
                     inner: GeneInner::$gene_variant(gene),
+                }
+            }
+        }
+
+        impl From<PyGene> for $gene_type {
+            fn from(py_gene: PyGene) -> Self {
+                match py_gene.inner {
+                    GeneInner::$gene_variant(gene) => gene,
+                    _ => panic!("Cannot convert PyGene to {}", stringify!($gene_type)),
                 }
             }
         }
@@ -171,7 +361,7 @@ impl_into_py_gene!(BitGene, Bit);
 impl_into_py_gene!(CharGene, Char);
 
 macro_rules! impl_into_py_chromosome {
-    ($chromosome_type:ty, $chromosome_variant:ident) => {
+    ($chromosome_type:ty, $gene_type:ty) => {
         impl From<$chromosome_type> for PyChromosome {
             fn from(chromosome: $chromosome_type) -> Self {
                 PyChromosome {
@@ -183,13 +373,24 @@ macro_rules! impl_into_py_chromosome {
                 }
             }
         }
+
+        impl From<PyChromosome> for $chromosome_type {
+            fn from(py_chromosome: PyChromosome) -> Self {
+                let genes = py_chromosome
+                    .genes
+                    .into_iter()
+                    .map(|gene| <$gene_type>::from(gene))
+                    .collect::<Vec<_>>();
+                <$chromosome_type>::from(genes)
+            }
+        }
     };
 }
 
-impl_into_py_chromosome!(FloatChromosome, Float);
-impl_into_py_chromosome!(IntChromosome<i32>, Int);
-impl_into_py_chromosome!(BitChromosome, Bit);
-impl_into_py_chromosome!(CharChromosome, Char);
+impl_into_py_chromosome!(FloatChromosome, FloatGene);
+impl_into_py_chromosome!(IntChromosome<i32>, IntGene<i32>);
+impl_into_py_chromosome!(BitChromosome, BitGene);
+impl_into_py_chromosome!(CharChromosome, CharGene);
 
 macro_rules! impl_into_py_genotype {
     ($chromosome:ty) => {
@@ -212,6 +413,20 @@ macro_rules! impl_into_py_genotype {
                 }
             }
         }
+
+        impl From<PyGenotype> for Genotype<$chromosome>
+        where
+            $chromosome: Chromosome + Clone,
+        {
+            fn from(py_genotype: PyGenotype) -> Self {
+                let chromosomes = py_genotype
+                    .chromosomes
+                    .into_iter()
+                    .map(|chromosome| <$chromosome>::from(chromosome))
+                    .collect::<Vec<_>>();
+                Genotype::from(chromosomes)
+            }
+        }
     };
 }
 
@@ -229,9 +444,23 @@ macro_rules! impl_from_py_phenotype {
             fn from(phenotype: Phenotype<$chromosome>) -> Self {
                 PyPhenotype {
                     genotype: PyGenotype::from(phenotype.genotype().clone()),
-                    score: phenotype.score().unwrap().as_ref().to_vec(),
+                    score: phenotype
+                        .score()
+                        .map(|score| score.as_ref().to_vec())
+                        .unwrap_or_default(),
                     id: *phenotype.id(),
                 }
+            }
+        }
+
+        impl From<PyPhenotype> for Phenotype<$chromosome>
+        where
+            $chromosome: Chromosome + Clone,
+        {
+            fn from(py_phenotype: PyPhenotype) -> Self {
+                let mut result = Phenotype::from((Genotype::from(py_phenotype.genotype), 0));
+                result.set_score(Some(py_phenotype.score.into()));
+                result
             }
         }
     };
@@ -266,11 +495,28 @@ macro_rules! impl_into_py_population {
                                     })
                                     .collect(),
                             },
-                            score: phenotype.score().unwrap().as_ref().to_vec(),
+                            score: phenotype
+                                .score()
+                                .map(|score| score.as_ref().to_vec())
+                                .unwrap_or_default(),
                             id: *phenotype.id(),
                         })
                         .collect(),
                 }
+            }
+        }
+
+        impl From<PyPopulation> for Population<$chromosome>
+        where
+            $chromosome: Chromosome + Clone,
+        {
+            fn from(py_population: PyPopulation) -> Self {
+                let phenotypes = py_population
+                    .phenotypes
+                    .into_iter()
+                    .map(|py_phenotype| Phenotype::from(py_phenotype))
+                    .collect::<Vec<_>>();
+                Population::from(phenotypes)
             }
         }
     };

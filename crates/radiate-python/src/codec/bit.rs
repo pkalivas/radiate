@@ -1,10 +1,10 @@
 use super::PyCodec;
-use crate::ObjectValue;
+use crate::{ObjectValue, PyGenotype};
 use pyo3::{
     pyclass, pymethods,
     types::{PyList, PyListMethods},
 };
-use radiate::{BitChromosome, Chromosome, Gene};
+use radiate::{BitChromosome, Chromosome, Codec, Gene};
 
 #[pyclass]
 #[derive(Clone)]
@@ -43,6 +43,11 @@ impl PyBitCodec {
                     }
                 }),
         }
+    }
+
+    pub fn py_encode(&self) -> PyGenotype {
+        let encoded = self.codec.encode();
+        PyGenotype::from(encoded)
     }
 }
 

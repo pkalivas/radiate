@@ -10,10 +10,10 @@ import radiate as rd
 
 rd.random.set_seed(100)
 
-codec = rd.IntCodec.vector(10, (0, 10))
+# codec = rd.IntCodec.vector(10, (0, 10))
 engine = rd.GeneticEngine(
-    codec,
-    lambda x: sum(x),
+    codec=lambda: [rd.Gene.float(value_range=(0.0, 10.0)) for _ in range(10)],
+    fitness_func=lambda x: sum(x),
     offspring_selector=rd.BoltzmannSelector(4),
     alters=[rd.MultiPointCrossover(0.75, 2), rd.UniformMutator(0.01)],
 )
@@ -28,14 +28,9 @@ result = engine.run(rd.ScoreLimit(0), log=False)
 
 print(result)
 
-print()
-print()
-gene = rd.Gene.char(allele="a", char_set={"a", "b", "c"})
 
-print(gene)
-
-population = result.population()
-print(population)
+# for i in population:
+#     print(i)
 
 
 # target = "Hello, Radiate!"
@@ -115,57 +110,39 @@ print(population)
 # plt.show()
 
 
-# import inspect
-# import ast
-
-# def test_fn(*args):
-#     return args
-
-# bound = inspect.signature(test_fn).bind([1, 2, 3])
-# print(bound)
-# print(bound.arguments)
-
-# def fitness(x):
-#     return sum(x)
-
-# def get_expr_body(fn):
-#     tree = ast.parse(inspect.getsource(fn))
-#     fn_node = tree.body[0]
-
-#     if isinstance(fn_node, ast.FunctionDef):
-#         body = fn_node.body[0]
-#         if isinstance(body, ast.Return):
-#             return body.value  # the actual expression returned
-#     raise ValueError("Unsupported function format")
-
-# class Expr:
-#     def __init__(self, op, args):
-#         self.op = op
-#         self.args = args
-
-#     def __repr__(self):
-#         return f"Expr({self.op}, {self.args})"
-
-# def ast_to_expr(node):
-#     if isinstance(node, ast.Call):
-#         func_name = node.func.id  # assuming no nested calls
-#         args = [ast_to_expr(arg) for arg in node.args]
-#         return Expr(func_name, args)
-#     elif isinstance(node, ast.Name):
-#         return node.id
-#     elif isinstance(node, ast.Constant):
-#         return node.value
-#     else:
-#         raise NotImplementedError(f"Unsupported node: {ast.dump(node)}")
-
-# source = inspect.getsource(fitness)
-# tree = ast.parse(source)
-# print(ast.dump(tree, indent=4))
-
-# expr_node = get_expr_body(fitness)
-# expr = ast_to_expr(expr_node)
-# print(expr)
 
 
-# for name, param in bound.parameters.items():
-#     print(f"{name=}, {param.kind=}, {param.default=}")
+# print()
+# print()
+# gene = rd.Gene.char(allele="a", char_set={"a", "b", "c"})
+
+# print(gene)
+
+
+
+# chrom = rd.Chromosome.float(length=4, value_range=(-10.0, 10.0))
+# chrom2 = rd.Chromosome.float(length=4, value_range=(-10.0, 10.0))
+# chrom3 = rd.Chromosome.float(length=4, value_range=(-10.0, 10.0))
+# chrom4 = rd.Chromosome.float(length=4, value_range=(-10.0, 10.0))
+
+# inputs = [chrom, chrom2, chrom3, chrom4]
+
+# for i in inputs:
+#     for gene in i.genes():
+#         print(gene)
+    
+
+# print()
+# math_mutator = rd.SwapMutator(.5)
+# print()
+
+# mutated = math_mutator.alter([chrom, chrom2, chrom3, chrom4])
+# for gene in mutated.phenotypes():
+#     for chrom in gene.genotype().chromosomes():
+#         for g in chrom.genes():
+#             print(g)
+#     # for chrom in gene.genotype():
+#     #     print(chrom)
+#         # break
+
+

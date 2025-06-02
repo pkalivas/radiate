@@ -156,6 +156,12 @@ impl Valid for CharChromosome {
     }
 }
 
+impl From<Vec<CharGene>> for CharChromosome {
+    fn from(genes: Vec<CharGene>) -> Self {
+        CharChromosome { genes }
+    }
+}
+
 impl From<String> for CharChromosome {
     fn from(alleles: String) -> Self {
         let char_set: Arc<[char]> = alleles.chars().collect::<Vec<char>>().into();

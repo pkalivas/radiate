@@ -2,8 +2,7 @@ from typing import Any, Callable, List, Tuple
 from .selector import SelectorBase, TournamentSelector, RouletteSelector
 from .alterer import AlterBase, UniformCrossover, UniformMutator
 from .diversity import Diversity, HammingDistance, EuclideanDistance
-from ._typing import ObjectiveType
-from .codec import FloatCodec, IntCodec, CharCodec, BitCodec
+from .codec import CodecBase
 from .limit import LimitBase
 from .generation import Generation
 
@@ -23,7 +22,7 @@ class GeneticEngine:
 
     def __init__(
         self,
-        codec: FloatCodec | IntCodec | CharCodec | BitCodec,
+        codec: CodecBase | Callable[[], List[Any]],
         fitness_func: Callable[[Any], Any],
         offspring_selector: SelectorBase | None = None,
         survivor_selector: SelectorBase | None = None,
@@ -34,7 +33,7 @@ class GeneticEngine:
         max_phenotype_age: int = 20,
         max_species_age: int = 20,
         species_threshold: float = 1.5,
-        objectives: str | List[str] = [ObjectiveType.MIN],
+        objectives: str | List[str] = ['min'],
         num_threads: int = 1,
         front_range: Tuple[int, int] | None = (800, 900),
     ):
@@ -48,6 +47,12 @@ class GeneticEngine:
         diversity = self.__get_params(diversity, allow_none=True)
         objectives = self.__get_objectives(objectives)
         front_range = self.__get_front_range(front_range)
+
+        if not isinstance(codec, CodecBase):
+            if not callable(codec):
+                raise TypeError("Codec must be a CodecBase instance or a callable.")
+            codec = codec()
+            print(codec)
 
         self.builder = PyEngineBuilder(
             fitness_func,
@@ -63,7 +68,6 @@ class GeneticEngine:
             alters= alters,
             offspring_selector=offspring_selector,
             survivor_selector=survivor_selector,
-            diversity=diversity,
         )
 
     def run(
@@ -140,7 +144,7 @@ class GeneticEngine:
     ):
         """Set the objectives for a multiobjective problem"""
         if not isinstance(objectives, list) or not all(
-            obj in [ObjectiveType.MIN, ObjectiveType.MAX] for obj in objectives
+            obj in ['min', 'max'] for obj in objectives
         ):
             raise ValueError("Objectives must be a list of 'min' or 'max'.")
         self.builder.set_objective(PyObjective.multi(self.__get_objectives(objectives)))
@@ -155,7 +159,6 @@ class GeneticEngine:
     def subscribe(self, event_handler: List[Callable[[Any], None]] | Callable[[Any], None]):
         """Register an event handler."""
         if callable(event_handler):
-            print("Event handler is a single callable.")
             self.builder.set_subscribers([PySubscriber(event_handler)])
         elif all(callable(handler) for handler in event_handler):
             self.builder.set_subscribers([PySubscriber(handler) for handler in event_handler])
@@ -174,19 +177,19 @@ class GeneticEngine:
             )
         return front_range
 
-    def __get_objectives(self, objectives: str | List[str]) -> List[str]:
+    def __get_objectives(self, objectives: str | List[str]) -> PyObjective:
         """Get the objectives."""
         if objectives is None:
             raise ValueError("Objectives must be provided.")
         if isinstance(objectives, str):
-            if objectives not in [ObjectiveType.MIN, ObjectiveType.MAX]:
+            if objectives not in ['min', 'max']:
                 raise ValueError("Objectives must be 'min' or 'max'.")
-            return [objectives]
+            return PyObjective([objectives])
         if isinstance(objectives, list):
             for obj in objectives:
-                if obj not in [ObjectiveType.MIN, ObjectiveType.MAX]:
+                if obj not in ['min', 'max']:
                     raise ValueError("Objectives must be 'min' or 'max'.")
-            return objectives
+            return PyObjective(objectives)
         raise TypeError(f"Objectives type {type(objectives)} is not supported.")
 
     def __get_params(

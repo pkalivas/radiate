@@ -1,3 +1,4 @@
+from .genome import Population
 from radiate.radiate import PyGeneration
 
 class Generation:
@@ -25,12 +26,12 @@ class Generation:
         """
         return self.inner.metrics()
     
-    def population(self):
+    def population(self) -> Population:
         """
         Get the population of the generation.
         :return: The population of the generation.
         """
-        return self.inner.population()
+        return Population(self.inner.population())
     
 
     

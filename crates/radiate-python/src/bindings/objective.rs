@@ -6,6 +6,9 @@ use pyo3::{
 use radiate::{Objective, Optimize};
 use std::vec;
 
+const MIN: &str = "min";
+const MAX: &str = "max";
+
 #[pyclass(unsendable)]
 #[derive(Clone, Debug)]
 pub struct PyObjective {
@@ -14,6 +17,23 @@ pub struct PyObjective {
 
 #[pymethods]
 impl PyObjective {
+    #[new]
+    #[pyo3(signature = (optimize=None))]
+    pub fn new(optimize: Option<Vec<String>>) -> PyResult<Self> {
+        let optimize = match optimize {
+            Some(opt) => opt,
+            None => vec![MIN.to_string()],
+        };
+
+        if optimize.is_empty() || optimize.iter().any(|s| s != MIN && s != MAX) {
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                "At least one optimization direction must be specified",
+            ));
+        }
+
+        Ok(PyObjective { optimize })
+    }
+
     pub fn optimize(&self) -> Vec<String> {
         self.optimize.clone()
     }
@@ -38,14 +58,14 @@ impl PyObjective {
     #[staticmethod]
     pub fn max() -> PyResult<PyObjective> {
         Ok(PyObjective {
-            optimize: vec!["max".to_string()],
+            optimize: vec![MAX.to_string()],
         })
     }
 
     #[staticmethod]
     pub fn min() -> PyResult<PyObjective> {
         Ok(PyObjective {
-            optimize: vec!["min".to_string()],
+            optimize: vec![MIN.to_string()],
         })
     }
 
@@ -65,8 +85,8 @@ impl<'py> FromPyObject<'py> for Wrap<Objective> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         if let Ok(optimize) = ob.extract::<String>() {
             match optimize.as_str() {
-                "min" => Ok(Wrap(Objective::Single(Optimize::Minimize))),
-                "max" => Ok(Wrap(Objective::Single(Optimize::Maximize))),
+                MIN => Ok(Wrap(Objective::Single(Optimize::Minimize))),
+                MAX => Ok(Wrap(Objective::Single(Optimize::Maximize))),
                 _ => Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
                     "Invalid optimization direction. Use 'min' or 'max'.",
                 )),
@@ -76,8 +96,8 @@ impl<'py> FromPyObject<'py> for Wrap<Objective> {
                 obj.into_iter()
                     .map(|s| {
                         Ok(match s.as_str() {
-                            "min" => Optimize::Minimize,
-                            "max" => Optimize::Maximize,
+                            MIN => Optimize::Minimize,
+                            MAX => Optimize::Maximize,
                             _ => {
                                 return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
                                     "Invalid optimization direction in list. Use 'min' or 'max'.",
@@ -92,8 +112,8 @@ impl<'py> FromPyObject<'py> for Wrap<Objective> {
             // Convert PyObjective to Objective
             if obj.is_single() {
                 Ok(Wrap(Objective::Single(match obj.optimize[0].as_str() {
-                    "min" => Optimize::Minimize,
-                    "max" => Optimize::Maximize,
+                    MIN => Optimize::Minimize,
+                    MAX => Optimize::Maximize,
                     _ => {
                         return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
                             "Invalid optimization direction in PyObjective. Use 'min' or 'max'.",
@@ -105,8 +125,8 @@ impl<'py> FromPyObject<'py> for Wrap<Objective> {
                     obj.optimize
                         .into_iter()
                         .map(|s| Ok(match s.as_str() {
-                            "min" => Optimize::Minimize,
-                            "max" => Optimize::Maximize,
+                            MIN => Optimize::Minimize,
+                            MAX => Optimize::Maximize,
                             _ => {
                                 return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
                                     "Invalid optimization direction in PyObjective. Use 'min' or 'max'.",
