@@ -272,6 +272,7 @@ class Gene:
         """
         return hash(self.__inner)
 
+
     def py_gene(self) -> PyGene:
         """
         Get the underlying PyGene instance.

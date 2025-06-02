@@ -1,7 +1,6 @@
-from typing import List, Any
+from typing import List
 
 from .codec import CodecBase
-from ..genome import Chromosome
 from radiate.radiate import PyCharCodec
 
 class CharCodec(CodecBase):
@@ -26,10 +25,3 @@ class CharCodec(CodecBase):
             chromosome_lengths=chromosomes,
             char_set="".join(set(char_set)) if char_set else None,
         )
-
-    def encode(self) -> List[Any]:
-        """
-        Encode the chromosomes into a list of Chromosome objects.
-        :return: A list of Chromosome objects.
-        """
-        return [Chromosome(chromosome=chromosome) for chromosome in self.codec.py_encode().chromosomes]

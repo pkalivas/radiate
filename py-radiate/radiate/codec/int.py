@@ -1,6 +1,5 @@
-from typing import List, Optional, Tuple, Any
+from typing import List, Optional, Tuple
 from .codec import CodecBase
-from ..genome import Chromosome
 
 from radiate.radiate import PyIntCodec
 
@@ -13,9 +12,6 @@ class IntCodec(CodecBase):
         if not isinstance(codec, PyIntCodec):
             raise TypeError("codec must be an instance of PyIntCodec.")
         self.codec = codec
-
-    def encode(self) -> List[Any]:
-        return [Chromosome(chromosome=chromosome) for chromosome in self.codec.py_encode().chromosomes]
 
     @staticmethod
     def matrix(

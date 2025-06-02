@@ -10,9 +10,15 @@ import radiate as rd
 
 rd.random.set_seed(100)
 
-# codec = rd.IntCodec.vector(10, (0, 10))
+c = rd.AnyCodec()
+
+res = c.test([1, 2, 3, 4, 5, "a", "b", "c", {"a": 1, "b": 2, "c": [1, 2, 3, 5]}, (1, 2, 3)])
+print(res)
+
+
+codec = rd.IntCodec.vector(10, (0, 10))
 engine = rd.GeneticEngine(
-    codec=lambda: [rd.Gene.float(value_range=(0.0, 10.0)) for _ in range(10)],
+    codec=codec,
     fitness_func=lambda x: sum(x),
     offspring_selector=rd.BoltzmannSelector(4),
     alters=[rd.MultiPointCrossover(0.75, 2), rd.UniformMutator(0.01)],
@@ -27,6 +33,22 @@ print(engine)
 result = engine.run(rd.ScoreLimit(0), log=False)
 
 print(result)
+
+
+# from radiate import PyAnyCodec
+
+# codec = PyAnyCodec()
+
+# # Create a chromosome from any Python object
+# genotype = codec.encode({
+#     "numbers": [1, 2, 3],
+#     "text": "hello",
+#     "nested": {"key": [True, False]}
+# })
+
+# # The genotype can be safely passed between threads
+# # When decoded, it will be converted back to Python objects
+# value = codec.decode(genotype)
 
 
 # for i in population:
@@ -110,14 +132,11 @@ print(result)
 # plt.show()
 
 
-
-
 # print()
 # print()
 # gene = rd.Gene.char(allele="a", char_set={"a", "b", "c"})
 
 # print(gene)
-
 
 
 # chrom = rd.Chromosome.float(length=4, value_range=(-10.0, 10.0))
@@ -130,7 +149,7 @@ print(result)
 # for i in inputs:
 #     for gene in i.genes():
 #         print(gene)
-    
+
 
 # print()
 # math_mutator = rd.SwapMutator(.5)
@@ -144,5 +163,3 @@ print(result)
 #     # for chrom in gene.genotype():
 #     #     print(chrom)
 #         # break
-
-

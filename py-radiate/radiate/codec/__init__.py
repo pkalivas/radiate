@@ -2,7 +2,7 @@ from .float import FloatCodec
 from .int import IntCodec
 from .char import CharCodec
 from .bit import BitCodec
-from .codec import CodecBase 
+from .codec import CodecBase, AnyCodec
 
 __all__ = [
     "FloatCodec",
@@ -10,4 +10,5 @@ __all__ = [
     "CharCodec",
     "BitCodec",
     "CodecBase",
+    "AnyCodec",
 ]

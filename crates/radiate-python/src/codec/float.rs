@@ -1,10 +1,10 @@
 use super::PyCodec;
-use crate::{ObjectValue, PyGenotype};
+use crate::ObjectValue;
 use pyo3::{
     pyclass, pymethods,
     types::{PyFloat, PyList, PyListMethods},
 };
-use radiate::{Chromosome, Codec, FloatChromosome, Gene, Genotype};
+use radiate::{Chromosome, FloatChromosome, Gene, Genotype};
 
 #[pyclass]
 #[derive(Clone)]
@@ -14,11 +14,6 @@ pub struct PyFloatCodec {
 
 #[pymethods]
 impl PyFloatCodec {
-    pub fn py_encode(&self) -> PyGenotype {
-        let encoded = self.codec.encode();
-        PyGenotype::from(encoded)
-    }
-
     #[staticmethod]
     #[pyo3(signature = (chromosome_lengths=None, value_range=None, bound_range=None))]
     pub fn matrix(

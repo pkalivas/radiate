@@ -1,6 +1,5 @@
-from typing import List, Any
+from typing import List
 from .codec import CodecBase
-from ..genome import Chromosome
 
 from radiate.radiate import PyBitCodec
 
@@ -18,10 +17,3 @@ class BitCodec(CodecBase):
         self.codec = PyBitCodec(
             chromosome_lengths=chromosomes,
         )
-
-    def encode(self) -> List[Any]:
-        """
-        Encode the chromosomes into a list of Chromosome objects.
-        :return: A list of Chromosome objects.
-        """
-        return [Chromosome(chromosome=chromosome) for chromosome in self.codec.py_encode().chromosomes]

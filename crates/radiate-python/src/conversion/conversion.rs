@@ -1,4 +1,4 @@
-use crate::{AnyValue, ObjectValue, object::Field};
+use crate::{AnyValue, object::Field};
 use pyo3::{
     Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python,
     exceptions::{PyOverflowError, PyValueError},
@@ -30,41 +30,21 @@ pub fn any_value_into_py_object<'py>(av: AnyValue, py: Python<'py>) -> PyResult<
         AnyValue::Float32(v) => v.into_bound_py_any(py),
         AnyValue::Float64(v) => v.into_bound_py_any(py),
         AnyValue::Char(v) => v.into_bound_py_any(py),
-        AnyValue::Slice(v, _) => {
+        AnyValue::Vec(v) => {
             let list = PyList::empty(py);
-            for item in v.iter() {
-                list.append(any_value_into_py_object(item.clone(), py)?)?;
-            }
-            Ok(list.into_any())
-        }
-        AnyValue::VecOwned(v) => {
-            let list = PyList::empty(py);
-            for item in v.0.into_iter() {
+            for item in v.into_iter() {
                 list.append(any_value_into_py_object(item, py)?)?;
             }
             Ok(list.into_any())
         }
         AnyValue::Null => py.None().into_bound_py_any(py),
-        AnyValue::Boolean(v) => v.into_bound_py_any(py),
+        AnyValue::Bool(v) => v.into_bound_py_any(py),
         AnyValue::Str(v) => v.into_bound_py_any(py),
-        AnyValue::StringOwned(v) => v.into_bound_py_any(py),
-        AnyValue::Binary(v) => PyBytes::new(py, v).into_bound_py_any(py),
-        AnyValue::BinaryOwned(v) => PyBytes::new(py, &v).into_bound_py_any(py),
-        AnyValue::StructOwned(v) => {
+        AnyValue::StrOwned(v) => v.into_bound_py_any(py),
+        AnyValue::Binary(v) => PyBytes::new(py, &v).into_bound_py_any(py),
+        AnyValue::Struct(v) => {
             let dict = struct_dict(py, v.into_iter())?;
             dict.into_bound_py_any(py)
-        }
-        AnyValue::StructRef(v) => {
-            let dict = struct_dict(py, v.iter().cloned())?;
-            dict.into_bound_py_any(py)
-        }
-        AnyValue::Object(v) => {
-            let object = v.0.as_any().downcast_ref::<ObjectValue>().unwrap();
-            Ok(object.inner.clone_ref(py).into_bound(py))
-        }
-        AnyValue::ObjectView(v) => {
-            let object = v.as_any().downcast_ref::<ObjectValue>().unwrap();
-            Ok(object.inner.clone_ref(py).into_bound(py))
         }
     }
 }
@@ -81,7 +61,7 @@ pub fn py_object_to_any_value<'py>(
 
     fn get_bool(ob: &Bound<'_, PyAny>, _strict: bool) -> PyResult<AnyValue<'static>> {
         let b = ob.extract::<bool>()?;
-        Ok(AnyValue::Boolean(b))
+        Ok(AnyValue::Bool(b))
     }
 
     fn get_int(ob: &Bound<'_, PyAny>, strict: bool) -> PyResult<AnyValue<'static>> {
@@ -115,12 +95,12 @@ pub fn py_object_to_any_value<'py>(
         // Once Python 3.10 is the minimum supported version, converting to &str
         // will be cheaper, and we should do that. Python 3.9 security updates
         // end-of-life is Oct 31, 2025.
-        Ok(AnyValue::StringOwned(ob.extract::<String>()?.into()))
+        Ok(AnyValue::StrOwned(ob.extract::<String>()?.into()))
     }
 
     fn get_bytes<'py>(ob: &Bound<'py, PyAny>, _strict: bool) -> PyResult<AnyValue<'py>> {
         let value = ob.extract::<Vec<u8>>()?;
-        Ok(AnyValue::BinaryOwned(value))
+        Ok(AnyValue::Binary(value))
     }
 
     fn get_list(ob: &Bound<'_, PyAny>, strict: bool) -> PyResult<AnyValue<'static>> {
@@ -144,14 +124,23 @@ pub fn py_object_to_any_value<'py>(
                 return Ok(AnyValue::Null);
             } else {
                 if !strict {
-                    return Ok(AnyValue::VecOwned(Box::new((
+                    return Ok(AnyValue::Vec(Box::new(
                         avs.into_iter().map(|av| av.into_static()).collect(),
-                        Field::new("List of mixed types".into()),
-                    ))));
+                    )));
                 } else {
-                    return Err(PyValueError::new_err(
-                        "Cannot convert Python list with mixed types to AnyValue",
-                    ));
+                    // Push the rest.
+                    let length = list.len()?;
+                    avs.reserve(length);
+                    let mut rest = Vec::with_capacity(length);
+                    for item in iter {
+                        rest.push(item?);
+                        let av = py_object_to_any_value(rest.last().unwrap(), strict)?;
+                        avs.push(av)
+                    }
+
+                    Ok(AnyValue::Vec(Box::new(
+                        avs.into_iter().map(|av| av.into_static()).collect(),
+                    )))
                 }
             }
         } else if !strict {
@@ -197,7 +186,7 @@ pub fn py_object_to_any_value<'py>(
                     keys.push(Field::new(key.as_ref().into()));
                     vals.push(val)
                 }
-                Ok(AnyValue::StructOwned(keys.into_iter().zip(vals).collect()))
+                Ok(AnyValue::Struct(vals.into_iter().zip(keys).collect()))
             })
         } else {
             let ob_type = ob.get_type();
@@ -242,11 +231,11 @@ pub fn py_object_to_any_value<'py>(
 
 fn struct_dict<'py, 'a>(
     py: Python<'py>,
-    vals: impl Iterator<Item = (Field, AnyValue<'a>)>,
+    vals: impl Iterator<Item = (AnyValue<'a>, Field)>,
 ) -> PyResult<Bound<'py, PyDict>> {
     let dict = PyDict::new(py);
 
-    for (fld, val) in vals {
+    for (val, fld) in vals {
         let key = fld.name().to_string();
         let value = any_value_into_py_object(val, py)?;
         dict.set_item(key, value)?;

@@ -5,6 +5,7 @@ from .diversity import Diversity, HammingDistance, EuclideanDistance
 from .codec import CodecBase
 from .limit import LimitBase
 from .generation import Generation
+from .genome import Gene, Chromosome
 
 from radiate.radiate import (
     PyEngineBuilder,
@@ -22,7 +23,7 @@ class GeneticEngine:
 
     def __init__(
         self,
-        codec: CodecBase | Callable[[], List[Any]],
+        codec: CodecBase,
         fitness_func: Callable[[Any], Any],
         offspring_selector: SelectorBase | None = None,
         survivor_selector: SelectorBase | None = None,
@@ -48,15 +49,11 @@ class GeneticEngine:
         objectives = self.__get_objectives(objectives)
         front_range = self.__get_front_range(front_range)
 
-        if not isinstance(codec, CodecBase):
-            if not callable(codec):
-                raise TypeError("Codec must be a CodecBase instance or a callable.")
-            codec = codec()
-            print(codec)
+        codec = self.__get_codec(codec)
 
         self.builder = PyEngineBuilder(
             fitness_func,
-            codec.codec,
+            codec,
             population_size=population_size,
             offspring_fraction=offspring_fraction,
             objective=objectives,
@@ -217,3 +214,22 @@ class GeneticEngine:
         if self.engine is None:
             return f'{self.builder.__repr__()}'
         return f'{self.engine.__repr__()}'
+    
+
+    def __get_codec(self, codec: CodecBase | Callable[[], List[Any]]) -> Any:
+        """Get the codec."""
+        from .codec import FloatCodec, IntCodec, CharCodec, BitCodec
+        if isinstance(codec, FloatCodec):
+            return codec.codec
+        if isinstance(codec, IntCodec):
+            return codec.codec
+        if isinstance(codec, CharCodec):
+            return codec.codec
+        if isinstance(codec, BitCodec):
+            return codec.codec
+  
+        else:
+            raise TypeError(
+                f"Codec type {type(codec)} is not supported. "
+                "Use FloatCodec, IntCodec, CharCodec, or BitCodec."
+            )

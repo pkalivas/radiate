@@ -5,7 +5,7 @@ mod object;
 
 use std::any::Any;
 
-pub use any_value::{AnyValue, IntoAnyValue};
+pub use any_value::AnyValue;
 pub use dtype::DataType;
 pub use field::Field;
 pub use object::ObjectValue;

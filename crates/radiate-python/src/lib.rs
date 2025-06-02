@@ -9,10 +9,10 @@ mod problem;
 mod random;
 
 pub use bindings::*;
-pub use codec::{PyBitCodec, PyCharCodec, PyFloatCodec, PyIntCodec};
+pub use codec::{PyAnyCodec, PyBitCodec, PyCharCodec, PyFloatCodec, PyIntCodec};
 pub use evaluator::FreeThreadPyEvaluator;
 pub use gene::PyGeneType;
-pub use object::{AnyValue, IntoAnyValue, Object, ObjectSafe, ObjectValue};
+pub use object::{AnyValue, Object, ObjectSafe, ObjectValue};
 pub use problem::PyProblem;
 use pyo3::{PyResult, Python};
 pub use random::PyRandomProvider;

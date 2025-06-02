@@ -1,6 +1,5 @@
-from typing import List, Optional, Tuple, Any
+from typing import List, Optional, Tuple
 from .codec import CodecBase
-from ..genome import Chromosome
 
 from radiate.radiate import PyFloatCodec
 
@@ -14,13 +13,6 @@ class FloatCodec(CodecBase):
         if not isinstance(codec, PyFloatCodec):
             raise TypeError("codec must be an instance of PyFloatCodec.")
         self.codec = codec
-
-    def encode(self) -> List[Any]:
-        """
-        Encode the chromosomes into a list of Chromosome objects.
-        :return: A list of Chromosome objects.
-        """
-        return [Chromosome(chromosome=chromosome) for chromosome in self.codec.py_encode().chromosomes]
 
     @staticmethod
     def matrix(
