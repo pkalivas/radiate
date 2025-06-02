@@ -5,7 +5,6 @@ from .diversity import Diversity, HammingDistance, EuclideanDistance
 from .codec import CodecBase
 from .limit import LimitBase
 from .generation import Generation
-from .genome import Gene, Chromosome
 
 from radiate.radiate import (
     PyEngineBuilder,
@@ -144,7 +143,8 @@ class GeneticEngine:
             obj in ['min', 'max'] for obj in objectives
         ):
             raise ValueError("Objectives must be a list of 'min' or 'max'.")
-        self.builder.set_objective(PyObjective.multi(self.__get_objectives(objectives)))
+        
+        self.builder.set_objective(self.__get_objectives(objectives))
         self.builder.set_front_range(self.__get_front_range(front_range))
 
     def num_threads(self, num_threads: int):
@@ -186,7 +186,7 @@ class GeneticEngine:
             for obj in objectives:
                 if obj not in ['min', 'max']:
                     raise ValueError("Objectives must be 'min' or 'max'.")
-            return PyObjective(objectives)
+            return PyObjective.multi(objectives)
         raise TypeError(f"Objectives type {type(objectives)} is not supported.")
 
     def __get_params(

@@ -268,8 +268,8 @@ impl PyAlterer {
         Ok(PyAlterer {
             name: "arithmetic_mutator".into(),
             args: ObjectValue { inner: args.into() },
-            allowed_genes: vec![PyGeneType::Float],
-            chromosomes: vec![PyChromosomeType::Float],
+            allowed_genes: vec![PyGeneType::Float, PyGeneType::Int],
+            chromosomes: vec![PyChromosomeType::Float, PyChromosomeType::Int],
         })
     }
 

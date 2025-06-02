@@ -8,31 +8,66 @@ sys.path.insert(0, project_root)
 
 import radiate as rd
 
-rd.random.set_seed(100)
+rd.random.set_seed(500)
 
-c = rd.AnyCodec()
-
-res = c.test([1, 2, 3, 4, 5, "a", "b", "c", {"a": 1, "b": 2, "c": [1, 2, 3, 5]}, (1, 2, 3)])
-print(res)
-
-
-codec = rd.IntCodec.vector(10, (0, 10))
 engine = rd.GeneticEngine(
-    codec=codec,
+    codec=rd.IntCodec.vector(10, (0, 10)),
     fitness_func=lambda x: sum(x),
     offspring_selector=rd.BoltzmannSelector(4),
-    alters=[rd.MultiPointCrossover(0.75, 2), rd.UniformMutator(0.01)],
+    alters=[
+        rd.MultiPointCrossover(0.75, 2),
+        rd.UniformMutator(0.01)
+    ],
 )
-
-# engine.offspring_selector(rd.BoltzmannSelector(4))
-# # engine.subscribe(rd.OnEpochCompleteHandler(lambda x: print(x)))
-# engine.alters([rd.MultiPointCrossover(0.75, 2), rd.UniformMutator(0.01)])
-
-print(engine)
 
 result = engine.run(rd.ScoreLimit(0), log=False)
 
 print(result)
+
+
+
+# Example of using the Radiate library for a simple genetic algorithm for N-Queens problem
+
+
+N_QUEENS = 32
+
+def fitness_fn(queens):
+    """Calculate the fitness score for the N-Queens problem."""
+    print(queens)
+    raise NotImplementedError("This is a placeholder for the fitness function.")    
+
+    score = 0
+    for i in range(N_QUEENS):
+        for j in range(i + 1, N_QUEENS):
+            if queens[i] == queens[j]:
+                score += 1
+            if abs(i - j) == abs(queens[i] - queens[j]):
+                score += 1
+    return score
+
+codec = rd.IntCodec.vector(N_QUEENS, (0, N_QUEENS ))
+engine = rd.GeneticEngine(
+    codec=codec,
+    fitness_func=fitness_fn,
+    offspring_selector=rd.BoltzmannSelector(4.0),
+    alters=[
+        rd.MultiPointCrossover(0.75, 2),
+        rd.UniformMutator(0.05)
+    ]
+)
+result = engine.run(rd.ScoreLimit(0), log=False)
+print(result)
+# print("\nResult Queens Board (Time: {:.3f} seconds):".format(result.time()))
+# Print the result board
+board = result.value()
+for i in range(N_QUEENS):
+    for j in range(N_QUEENS):
+        if board[j] == i:
+            print("Q ", end="")
+        else:
+            print(". ", end="")
+    print()
+# Example of using the Radiate library for a simple genetic algorithm
 
 
 # from radiate import PyAnyCodec
@@ -109,7 +144,7 @@ print(result)
 
 # codec = rd.FloatCodec.vector(variables, (0.0, 1.0), (-100.0, 100.0))
 # engine = rd.GeneticEngine(codec, dtlz_1)
-# engine.multi_objective([rd.ObjectiveType.MIN, rd.ObjectiveType.MIN, rd.ObjectiveType.MIN])
+# engine.multi_objective(['min' for _ in range(objectives)])
 # engine.offspring_selector(rd.TournamentSelector(k=5))
 # engine.survivor_selector(rd.NSGA2Selector())
 # engine.num_threads(1)

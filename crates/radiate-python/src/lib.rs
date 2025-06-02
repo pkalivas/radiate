@@ -9,7 +9,7 @@ mod problem;
 mod random;
 
 pub use bindings::*;
-pub use codec::{PyAnyCodec, PyBitCodec, PyCharCodec, PyFloatCodec, PyIntCodec};
+pub use codec::{PyBitCodec, PyCharCodec, PyFloatCodec, PyIntCodec};
 pub use evaluator::FreeThreadPyEvaluator;
 pub use gene::PyGeneType;
 pub use object::{AnyValue, Object, ObjectSafe, ObjectValue};

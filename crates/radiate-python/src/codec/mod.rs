@@ -5,15 +5,12 @@ mod int;
 
 use std::sync::Arc;
 
-use crate::{
-    ObjectValue,
-    conversion::{any_value_into_py_object, py_object_to_any_value},
-};
+use crate::ObjectValue;
 pub use bit::PyBitCodec;
 pub use char::PyCharCodec;
 pub use float::PyFloatCodec;
 pub use int::PyIntCodec;
-use pyo3::{Bound, Py, PyAny, PyResult, Python, pyclass, pymethods};
+use pyo3::Python;
 use radiate::{Chromosome, Codec, Genotype};
 
 #[derive(Clone)]
@@ -72,26 +69,3 @@ impl<C: Chromosome> Codec<C, ObjectValue> for PyCodec<C> {
 
 unsafe impl<C: Chromosome> Send for PyCodec<C> {}
 unsafe impl<C: Chromosome> Sync for PyCodec<C> {}
-
-#[pyclass]
-pub struct PyAnyCodec;
-
-#[pymethods]
-impl PyAnyCodec {
-    #[new]
-    pub fn new() -> Self {
-        PyAnyCodec
-    }
-
-    pub fn test<'py>(&self, py: Python<'py>, value: Py<PyAny>) -> PyResult<Bound<'py, PyAny>> {
-        // This is a placeholder for any operation you want to perform with the value.
-        // For now, it just returns the value back.
-
-        let any_vals = py_object_to_any_value(value.bind(py), true).unwrap();
-        println!("Received value: {:?}", any_vals);
-
-        let result = any_value_into_py_object(any_vals, py).unwrap();
-
-        Ok(result)
-    }
-}

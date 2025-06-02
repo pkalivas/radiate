@@ -1,5 +1,5 @@
 from .engine import GeneticEngine
-from .codec import FloatCodec, IntCodec, CharCodec, BitCodec, CodecBase, AnyCodec
+from .codec import FloatCodec, IntCodec, CharCodec, BitCodec, CodecBase
 from .limit import SecondsLimit, GenerationsLimit, ScoreLimit
 from .handlers import EventHandler, OnEpochCompleteHandler
 from .random import RandomProvider as random
@@ -41,7 +41,6 @@ from .alterer import (
 
 __all__ = [
     "EventHandler",
-    "AnyCodec",
     "CodecBase",
     "Generation",
     "Genotype",

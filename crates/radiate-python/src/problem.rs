@@ -1,4 +1,4 @@
-use crate::{ObjectValue, codec::PyCodec};
+use crate::{AnyValue, ObjectValue, codec::PyCodec, conversion::py_object_to_any_value};
 use pyo3::{
     Py, PyAny, PyObject, Python,
     sync::GILOnceCell,
@@ -48,6 +48,7 @@ impl<C: Chromosome> Problem<C, ObjectValue> for PyProblem<C> {
     fn eval_batch(&self, individuals: &[Genotype<C>]) -> Vec<Score> {
         Python::with_gil(|py| {
             let func = self.fitness_fn_cell.get(py).unwrap();
+
             individuals
                 .iter()
                 .map(|ind| {
@@ -63,43 +64,31 @@ unsafe impl<C: Chromosome> Send for PyProblem<C> {}
 unsafe impl<C: Chromosome> Sync for PyProblem<C> {}
 
 pub fn call<'py, 'a>(py: Python<'py>, func: &Py<PyAny>, input: ObjectValue) -> Score {
-    let any_value = func
-        .call1(py, (input.inner.bind_borrowed(py),))
-        .expect("Python call failed");
+    let any_value = func.call1(py, (input.inner,)).expect("Python call failed");
 
-    let temp = any_value.bind_borrowed(py);
+    let output = py_object_to_any_value(any_value.bind(py), true).unwrap();
 
-    if temp.is_instance_of::<PyFloat>() {
-        return Score::from(temp.extract::<f64>().expect("Expected a float") as f32);
-    } else if temp.is_instance_of::<PyInt>() {
-        if let Ok(score) = temp.extract::<i64>() {
-            return Score::from(score as f32);
+    if let AnyValue::Float64(score) = output {
+        return Score::from(score as f32);
+    }
+    if let AnyValue::Int64(score) = output {
+        return Score::from(score as f32);
+    }
+    if let AnyValue::Vec(scores) = output {
+        if scores.is_empty() {
+            return Score::from(0.0);
         }
-    } else if temp.is_instance_of::<PyList>() {
-        let list = temp.downcast::<PyList>().expect("Expected a list");
-        let mut score = Vec::new();
-        if let Ok(iter) = list.try_iter() {
-            for item in iter {
-                let it = item.expect("Expected an item in the list");
-                if it.is_instance_of::<PyFloat>() {
-                    if let Ok(value) = it.extract::<f64>() {
-                        score.push(value as f32);
-                    }
-                } else if it.is_instance_of::<PyInt>() {
-                    if let Ok(value) = it.extract::<i64>() {
-                        score.push(value as f32);
-                    }
-                }
-            }
-        }
-
-        if !score.is_empty() {
-            return Score::from(score);
-        }
+        return Score::from(
+            scores
+                .into_iter()
+                .map(|s| match s {
+                    AnyValue::Float64(f) => f as f32,
+                    AnyValue::Int64(i) => i as f32,
+                    _ => panic!("Expected a float or int in the list, got: {:?}", s),
+                })
+                .collect::<Vec<_>>(),
+        );
     }
 
-    panic!(
-        "Fitness function must return a float value, got: {:?}",
-        temp
-    );
+    panic!("Fitness function must return a float value, got");
 }
