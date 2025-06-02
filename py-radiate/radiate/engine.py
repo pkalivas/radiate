@@ -5,9 +5,9 @@ from .diversity import Diversity, HammingDistance, EuclideanDistance
 from ._typing import ObjectiveType
 from .codec import FloatCodec, IntCodec, CharCodec, BitCodec
 from .limit import LimitBase
+from .generation import Generation
 
 from radiate.radiate import (
-    PyGeneration,
     PyEngineBuilder,
     PyObjective,
     PySubscriber
@@ -34,7 +34,7 @@ class GeneticEngine:
         max_phenotype_age: int = 20,
         max_species_age: int = 20,
         species_threshold: float = 1.5,
-        objectives: str | List[str] = ObjectiveType.MIN,
+        objectives: str | List[str] = [ObjectiveType.MIN],
         num_threads: int = 1,
         front_range: Tuple[int, int] | None = (800, 900),
     ):
@@ -54,27 +54,27 @@ class GeneticEngine:
             codec.codec,
             population_size=population_size,
             offspring_fraction=offspring_fraction,
-            objective=PyObjective.min(),
+            objective=objectives,
             front_range=front_range,
             num_threads=num_threads,
             max_phenotype_age=max_phenotype_age,
             max_species_age=max_species_age,
             species_threshold=species_threshold,
-            alters=[
-                UniformCrossover().alterer,
-                UniformMutator().alterer,
-            ],
+            alters= alters,
+            offspring_selector=offspring_selector,
+            survivor_selector=survivor_selector,
+            diversity=diversity,
         )
 
     def run(
         self, limits: LimitBase | List[LimitBase] | None, log: bool = False
-    ) -> PyGeneration:
+    ) -> Generation:
         """Run the engine with the given limits."""
         if limits is not None:
             self.limits(limits)
         
         self.engine = self.builder.build()
-        return self.engine.run(log=log) 
+        return Generation(self.engine.run(log=log))
 
     def population_size(self, size: int):
         """Set the population size."""

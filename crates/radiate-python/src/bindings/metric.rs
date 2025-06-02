@@ -1,107 +1,129 @@
-use pyo3::{pyclass, pymethods};
+use crate::conversion::Wrap;
+use pyo3::exceptions::PyValueError;
+use pyo3::prelude::*;
+use pyo3::types::PyDict;
+use pyo3::{IntoPyObject, PyErr, PyResult, Python};
 use radiate::{Metric, MetricSet};
-use std::time::Duration;
 
 #[pyclass]
 #[derive(Clone)]
 #[repr(transparent)]
 pub struct PyMetricSet {
-    pub metrics: MetricSet,
+    inner: MetricSet,
 }
 
 #[pymethods]
 impl PyMetricSet {
     pub fn __repr__(&self) -> String {
-        format!("{:?}", &self.metrics)
+        format!("{:?}", &self.inner)
     }
 
-    pub fn get_metric(&self, name: String) -> Option<PyMetric> {
-        self.metrics
+    pub fn get_metric<'py>(
+        &self,
+        py: Python<'py>,
+        name: String,
+    ) -> PyResult<Option<Bound<'py, PyDict>>> {
+        self.inner
             .get_from_string(name)
-            .map(|metric| PyMetric(metric.clone()))
+            .map(|metric| Wrap(metric).into_pyobject(py))
+            .transpose()
+            .map_err(|e| {
+                PyValueError::new_err(format!(
+                    "{e}\n\nHint: Try setting `strict=False` to allow passing data with mixed types."
+                ))
+            })
     }
 }
 
-impl Into<PyMetricSet> for MetricSet {
-    fn into(self) -> PyMetricSet {
-        PyMetricSet { metrics: self }
+impl From<MetricSet> for PyMetricSet {
+    fn from(metric_set: MetricSet) -> Self {
+        PyMetricSet { inner: metric_set }
     }
 }
 
-#[pyclass]
-#[derive(Clone)]
-#[repr(transparent)]
-pub struct PyMetric(pub Metric);
+impl<'py> IntoPyObject<'py> for Wrap<&MetricSet> {
+    type Target = PyMetricSet;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
 
-#[pymethods]
-impl PyMetric {
-    pub fn name(&self) -> String {
-        self.0.name().to_string()
-    }
-
-    pub fn last_value(&self) -> f32 {
-        self.0.last_value()
-    }
-
-    pub fn last_time(&self) -> Duration {
-        self.0.last_time()
-    }
-
-    pub fn value_mean(&self) -> Option<f32> {
-        self.0.value_mean()
-    }
-
-    pub fn value_stddev(&self) -> Option<f32> {
-        self.0.value_std_dev()
-    }
-
-    pub fn variance(&self) -> Option<f32> {
-        self.0.value_variance()
-    }
-
-    pub fn value_min(&self) -> Option<f32> {
-        self.0.value_min()
-    }
-
-    pub fn value_max(&self) -> Option<f32> {
-        self.0.value_max()
-    }
-
-    pub fn value_count(&self) -> i32 {
-        self.0.count()
-    }
-
-    pub fn time_sum(&self) -> Option<Duration> {
-        self.0.time_sum()
-    }
-
-    pub fn time_mean(&self) -> Option<Duration> {
-        self.0.time_mean()
-    }
-
-    pub fn time_std_dev(&self) -> Option<Duration> {
-        self.0.time_std_dev()
-    }
-
-    pub fn time_min(&self) -> Option<Duration> {
-        self.0.time_min()
-    }
-
-    pub fn time_max(&self) -> Option<Duration> {
-        self.0.time_max()
-    }
-
-    pub fn __repr__(&self) -> String {
-        format!("{:?}", &self.0)
-    }
-
-    pub fn __str__(&self) -> String {
-        format!("{:?}", &self.0)
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        let metric_set = self.0.clone();
+        Bound::new(py, PyMetricSet::from(metric_set))
     }
 }
 
-impl Into<PyMetric> for Metric {
-    fn into(self) -> PyMetric {
-        PyMetric(self)
+impl<'py> IntoPyObject<'py> for Wrap<MetricSet> {
+    type Target = PyMetricSet;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        let metric_set = self.0;
+        Bound::new(py, PyMetricSet::from(metric_set))
     }
+}
+
+impl<'py> IntoPyObject<'py> for Wrap<Metric> {
+    type Target = PyDict;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        metric_to_py_dict(py, &self.0).map_err(|e| {
+            PyValueError::new_err(format!(
+                "{e}\n\nHint: Try setting `strict=False` to allow passing data with mixed types."
+            ))
+        })
+    }
+}
+
+impl<'py> IntoPyObject<'py> for Wrap<&Metric> {
+    type Target = PyDict;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        metric_to_py_dict(py, &self.0).map_err(|e| {
+            PyValueError::new_err(format!(
+                "{e}\n\nHint: Try setting `strict=False` to allow passing data with mixed types."
+            ))
+        })
+    }
+}
+
+fn metric_to_py_dict<'py, 'a>(py: Python<'py>, metric: &Metric) -> PyResult<Bound<'py, PyDict>> {
+    let dict = PyDict::new(py);
+
+    dict.set_item("value_last", metric.last_value())?;
+    dict.set_item("value_mean", metric.value_mean())?;
+    dict.set_item("value_stddev", metric.value_std_dev())?;
+    dict.set_item("value_variance", metric.value_variance())?;
+    dict.set_item("value_skewness", metric.value_skewness())?;
+    dict.set_item("value_min", metric.value_min())?;
+    dict.set_item("value_max", metric.value_max())?;
+    dict.set_item("value_count", metric.count())?;
+
+    dict.set_item("sequence_last", metric.last_sequence())?;
+    dict.set_item("sequence_mean", metric.distribution_mean())?;
+    dict.set_item("sequence_stddev", metric.distribution_std_dev())?;
+    dict.set_item("sequence_min", metric.distribution_min())?;
+    dict.set_item("sequence_max", metric.distribution_max())?;
+    dict.set_item("sequence_variance", metric.distribution_variance())?;
+    dict.set_item("sequence_skewness", metric.distribution_skewness())?;
+    dict.set_item("sequence_kurtosis", metric.distribution_kurtosis())?;
+
+    dict.set_item("time_last", metric.last_time())?;
+    dict.set_item("time_sum", metric.time_sum())?;
+    dict.set_item("time_mean", metric.time_mean())?;
+    dict.set_item("time_std_dev", metric.time_std_dev())?;
+    dict.set_item("time_min", metric.time_min())?;
+    dict.set_item("time_max", metric.time_max())?;
+    dict.set_item("time_variance", metric.time_variance())?;
+
+    let result = PyDict::new(py);
+    result.set_item("name", metric.name())?;
+    result.set_item("type", metric.metric_type())?;
+    result.set_item("metrics", dict)?;
+
+    Ok(result)
 }

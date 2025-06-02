@@ -3,9 +3,7 @@ use std::fmt::Debug;
 use crate::AnyValue;
 use pyo3::{
     Bound, FromPyObject, IntoPyObject, PyAny, PyErr, PyResult, Python, exceptions::PyValueError,
-    types::PyList,
 };
-use radiate::{Chromosome, Gene, Phenotype};
 
 /// # Safety
 /// Should only be implemented for transparent types
@@ -80,22 +78,5 @@ impl<'py> IntoPyObject<'py> for &Wrap<AnyValue<'_>> {
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         self.clone().into_pyobject(py)
-    }
-}
-
-impl<'py, G: Gene, C: Chromosome<Gene = G>> IntoPyObject<'py> for Wrap<Vec<Phenotype<C>>>
-where
-    G::Allele: Into<AnyValue<'static>> + Clone,
-{
-    type Target = PyList;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        super::pareto_front_to_py_object(py, &self.0).map_err(|e| {
-            PyValueError::new_err(format!(
-                "{e}\n\nHint: Try setting `strict=False` to allow passing data with mixed types."
-            ))
-        })
     }
 }

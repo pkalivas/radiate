@@ -175,6 +175,11 @@ impl Debug for MetricSet {
     }
 }
 
+const VALUE_METRIC: &str = "value";
+const TIME_METRIC: &str = "time";
+const DISTRIBUTION_METRIC: &str = "distribution";
+const OPERATIONS_METRIC: &str = "operations";
+
 #[derive(Clone, PartialEq)]
 pub enum Metric {
     Value(&'static str, Statistic, Distribution),
@@ -184,6 +189,15 @@ pub enum Metric {
 }
 
 impl Metric {
+    pub fn metric_type(&self) -> &'static str {
+        match self {
+            Metric::Value(_, _, _) => VALUE_METRIC,
+            Metric::Time(_, _) => TIME_METRIC,
+            Metric::Distribution(_, _) => DISTRIBUTION_METRIC,
+            Metric::Operations(_, _, _) => OPERATIONS_METRIC,
+        }
+    }
+
     pub fn new_value(name: &'static str) -> Self {
         Metric::Value(name, Statistic::default(), Distribution::default())
     }

@@ -28,7 +28,7 @@ class Gene:
         Return a string representation of the Gene instance.
         :return: String representation of the Gene instance.
         """
-        return f"Gene({self.py_gene})"
+        return f"Gene({self.py_gene.__repr__()})"
 
     def __hash__(self) -> int:
         """

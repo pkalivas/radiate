@@ -1,25 +1,25 @@
-use pyo3::{
-    Borrowed, Bound, IntoPyObject, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass,
-    pymethods,
-    types::{PyList, PyString},
-};
+use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods, types::PyString};
 use radiate::{
-    BitChromosome, BitGene, CharChromosome, CharGene, Chromosome, FloatChromosome, FloatGene,
-    Genotype, IntChromosome, IntGene,
+    BitChromosome, BitGene, CharChromosome, CharGene, Chromosome, FloatChromosome, FloatGene, Gene,
+    Genotype, IntChromosome, IntGene, Phenotype, Population,
 };
 
 #[pyclass]
 #[derive(Clone, Debug)]
 #[repr(transparent)]
 pub struct PyPopulation {
+    #[pyo3(get)]
     phenotypes: Vec<PyPhenotype>,
 }
 
 #[pyclass]
 #[derive(Clone, Debug)]
 pub struct PyPhenotype {
+    #[pyo3(get)]
     genotype: PyGenotype,
+    #[pyo3(get)]
     score: Vec<f32>,
+    #[pyo3(get)]
     id: u64,
 }
 
@@ -27,6 +27,7 @@ pub struct PyPhenotype {
 #[derive(Clone, Debug)]
 #[repr(transparent)]
 pub struct PyGenotype {
+    #[pyo3(get)]
     chromosomes: Vec<PyChromosome>,
 }
 
@@ -34,6 +35,7 @@ pub struct PyGenotype {
 #[derive(Clone, Debug)]
 #[repr(transparent)]
 pub struct PyChromosome {
+    #[pyo3(get)]
     genes: Vec<PyGene>,
 }
 
@@ -60,6 +62,15 @@ impl PyGene {
             GeneInner::Int(_) => "IntGene".to_string(),
             GeneInner::Bit(_) => "BitGene".to_string(),
             GeneInner::Char(_) => "CharGene".to_string(),
+        }
+    }
+
+    pub fn allele<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        match &self.inner {
+            GeneInner::Float(gene) => gene.allele().into_bound_py_any(py),
+            GeneInner::Int(gene) => gene.allele().into_bound_py_any(py),
+            GeneInner::Bit(gene) => gene.allele().into_bound_py_any(py),
+            GeneInner::Char(gene) => gene.allele().into_bound_py_any(py),
         }
     }
 
@@ -181,9 +192,12 @@ impl_into_py_chromosome!(BitChromosome, Bit);
 impl_into_py_chromosome!(CharChromosome, Char);
 
 macro_rules! impl_into_py_genotype {
-    ($genotype_type:ty) => {
-        impl From<$genotype_type> for PyGenotype {
-            fn from(genotype: $genotype_type) -> Self {
+    ($chromosome:ty) => {
+        impl From<Genotype<$chromosome>> for PyGenotype
+        where
+            $chromosome: Chromosome + Clone,
+        {
+            fn from(genotype: Genotype<$chromosome>) -> Self {
                 PyGenotype {
                     chromosomes: genotype
                         .iter()
@@ -201,15 +215,40 @@ macro_rules! impl_into_py_genotype {
     };
 }
 
-impl_into_py_genotype!(Genotype<FloatChromosome>);
-impl_into_py_genotype!(Genotype<IntChromosome<i32>>);
-impl_into_py_genotype!(Genotype<BitChromosome>);
-impl_into_py_genotype!(Genotype<CharChromosome>);
+impl_into_py_genotype!(FloatChromosome);
+impl_into_py_genotype!(IntChromosome<i32>);
+impl_into_py_genotype!(BitChromosome);
+impl_into_py_genotype!(CharChromosome);
+
+macro_rules! impl_from_py_phenotype {
+    ($chromosome:ty) => {
+        impl From<Phenotype<$chromosome>> for PyPhenotype
+        where
+            $chromosome: Chromosome + Clone,
+        {
+            fn from(phenotype: Phenotype<$chromosome>) -> Self {
+                PyPhenotype {
+                    genotype: PyGenotype::from(phenotype.genotype().clone()),
+                    score: phenotype.score().unwrap().as_ref().to_vec(),
+                    id: *phenotype.id(),
+                }
+            }
+        }
+    };
+}
+
+impl_from_py_phenotype!(FloatChromosome);
+impl_from_py_phenotype!(IntChromosome<i32>);
+impl_from_py_phenotype!(BitChromosome);
+impl_from_py_phenotype!(CharChromosome);
 
 macro_rules! impl_into_py_population {
-    ($population_type:ty, $population_variant:ident) => {
-        impl From<$population_type> for PyPopulation {
-            fn from(population: $population_type) -> Self {
+    ($chromosome:ty) => {
+        impl From<Population<$chromosome>> for PyPopulation
+        where
+            $chromosome: Chromosome + Clone,
+        {
+            fn from(population: Population<$chromosome>) -> Self {
                 PyPopulation {
                     phenotypes: population
                         .iter()
@@ -237,7 +276,7 @@ macro_rules! impl_into_py_population {
     };
 }
 
-impl_into_py_population!(radiate::Population<FloatChromosome>, Float);
-impl_into_py_population!(radiate::Population<IntChromosome<i32>>, Int);
-impl_into_py_population!(radiate::Population<BitChromosome>, Bit);
-impl_into_py_population!(radiate::Population<CharChromosome>, Char);
+impl_into_py_population!(FloatChromosome);
+impl_into_py_population!(IntChromosome<i32>);
+impl_into_py_population!(BitChromosome);
+impl_into_py_population!(CharChromosome);
