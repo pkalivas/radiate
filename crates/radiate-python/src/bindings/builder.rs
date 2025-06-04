@@ -301,8 +301,8 @@ impl PyEngineBuilder {
         self.params
             .bind(py)
             .get_item("diversity")?
-            .map(|v| v.extract::<PyDiversity>())
-            .transpose()
+            .map(|v| v.extract::<Option<PyDiversity>>())
+            .unwrap_or(Ok(None))
     }
 
     pub fn get_subscribers<'py>(&self, py: Python<'py>) -> PyResult<Vec<PySubscriber>> {

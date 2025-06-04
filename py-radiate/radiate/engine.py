@@ -1,7 +1,7 @@
 from typing import Any, Callable, List, Tuple
 from .selector import SelectorBase, TournamentSelector, RouletteSelector
 from .alterer import AlterBase, UniformCrossover, UniformMutator
-from .diversity import Diversity, HammingDistance, EuclideanDistance
+from .diversity import DiversityBase, HammingDistance, EuclideanDistance
 from .codec import CodecBase
 from .limit import LimitBase
 from .generation import Generation
@@ -24,7 +24,7 @@ class GeneticEngine:
         offspring_selector: SelectorBase | None = None,
         survivor_selector: SelectorBase | None = None,
         alters: None | AlterBase | List[AlterBase] = None,
-        diversity: None | HammingDistance | EuclideanDistance = None,
+        diversity: None | DiversityBase = None,
         population_size: int = 100,
         offspring_fraction: float = 0.8,
         max_phenotype_age: int = 20,
@@ -62,6 +62,7 @@ class GeneticEngine:
             alters=alters,
             offspring_selector=offspring_selector,
             survivor_selector=survivor_selector,
+            diversity=diversity,
         )
 
     def run(
@@ -105,7 +106,7 @@ class GeneticEngine:
         lims = [lim.limit for lim in (limits if isinstance(limits, list) else [limits])]
         self.builder.set_limits(lims)
 
-    def diversity(self, diversity: Diversity, species_threshold: float = 1.5):
+    def diversity(self, diversity: DiversityBase, species_threshold: float = 1.5):
         """Set the diversity."""
         if diversity is None:
             raise ValueError("Diversity must be provided.")
@@ -193,7 +194,7 @@ class GeneticEngine:
 
     def __get_params(
         self,
-        value: SelectorBase | AlterBase | List[AlterBase],
+        value: SelectorBase | DiversityBase | AlterBase | List[AlterBase],
         allow_none: bool = False,
     ) -> List[Any] | None:
         """Get the parameters from the value."""
@@ -201,7 +202,7 @@ class GeneticEngine:
             return value.selector
         if isinstance(value, AlterBase):
             return [value.alterer]
-        if isinstance(value, Diversity):
+        if isinstance(value, DiversityBase):
             return value.diversity
         if isinstance(value, list):
             if all(isinstance(alter, AlterBase) for alter in value):

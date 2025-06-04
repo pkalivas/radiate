@@ -217,7 +217,6 @@ where
     let diversity = params
         .bind(py)
         .get_item("diversity")?
-        .into_bound_py_any(py)?
         .extract::<Wrap<Option<Box<dyn Diversity<C>>>>>()?
         .0;
 
@@ -334,7 +333,6 @@ where
     let diversity = params
         .bind(py)
         .get_item("diversity")?
-        .into_bound_py_any(py)?
         .extract::<Wrap<Option<Box<dyn Diversity<C>>>>>()?
         .0;
 

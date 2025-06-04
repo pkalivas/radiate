@@ -1,7 +1,7 @@
 from radiate.radiate import PyDiversity
 
 
-class Diversity:
+class DiversityBase:
     """
     Base class for diversity parameters.
     """
@@ -28,7 +28,7 @@ class Diversity:
         return f"Diversity(diversity={self.diversity})"
 
 
-class HammingDistance(Diversity):
+class HammingDistance(DiversityBase):
     """
     Hamming Distance diversity parameter.
     """
@@ -40,7 +40,7 @@ class HammingDistance(Diversity):
         super().__init__(diversity=PyDiversity.hamming_distance())
 
 
-class EuclideanDistance(Diversity):
+class EuclideanDistance(DiversityBase):
     """
     Euclidean Distance diversity parameter.
     """
