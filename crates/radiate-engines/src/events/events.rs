@@ -1,3 +1,4 @@
+use radiate_core::{Chromosome, MetricSet, Score, engine::Context};
 use std::{
     fmt::{Debug, Display},
     ops::Deref,
@@ -6,8 +7,6 @@ use std::{
         atomic::{AtomicUsize, Ordering},
     },
 };
-
-use radiate_core::{Chromosome, MetricSet, Score, engine::Context};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[repr(transparent)]
