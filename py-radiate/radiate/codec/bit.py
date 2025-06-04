@@ -1,8 +1,9 @@
 from typing import List
+from .codec import CodecBase
 
 from radiate.radiate import PyBitCodec
 
-class BitCodec:
+class BitCodec(CodecBase):
     """
     BitCodec is a class that represents a codec for bit-based chromosomes.
     It is used to encode and decode chromosomes into bit strings.

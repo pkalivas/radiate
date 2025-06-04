@@ -78,10 +78,17 @@ impl PyIntCodec {
                     .into()
                 })
                 .with_decoder(|py, geno| {
-                    let outer = PyList::empty(py);
-                    for gene in geno.iter().next().unwrap().iter() {
-                        outer.append(*gene.allele()).unwrap();
-                    }
+                    let values = geno
+                        .iter()
+                        .next()
+                        .map(|chrom| {
+                            chrom
+                                .iter()
+                                .map(|gene| *gene.allele() as i64)
+                                .collect::<Vec<_>>()
+                        })
+                        .unwrap_or_default();
+                    let outer = PyList::new(py, values).unwrap();
 
                     ObjectValue {
                         inner: outer.unbind().into_any(),

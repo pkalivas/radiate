@@ -63,13 +63,23 @@ pub enum PyGeneType {
 
 #[pymethods]
 impl PyGeneType {
+    pub fn name(&self) -> String {
+        match self {
+            PyGeneType::Int => "IntGene".into(),
+            PyGeneType::Float => "FloatGene".into(),
+            PyGeneType::Bit => "BitGene".into(),
+            PyGeneType::Char => "CharGene".into(),
+            PyGeneType::Any => "AnyGene".into(),
+        }
+    }
+
     pub fn __repr__(&self) -> String {
         match self {
-            PyGeneType::Int => "GeneType.Int".into(),
-            PyGeneType::Float => "GeneType.Float".into(),
-            PyGeneType::Bit => "GeneType.Bit".into(),
-            PyGeneType::Char => "GeneType.Char".into(),
-            PyGeneType::Any => "GeneType.Any".into(),
+            PyGeneType::Int => "IntGene".into(),
+            PyGeneType::Float => "FloatGene".into(),
+            PyGeneType::Bit => "BitGene".into(),
+            PyGeneType::Char => "CharGene".into(),
+            PyGeneType::Any => "AnyGene".into(),
         }
     }
 

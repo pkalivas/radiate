@@ -1,13 +1,12 @@
-use crate::{AnyValue, ObjectValue, object::Field};
+use crate::{AnyValue, object::Field};
 use pyo3::{
-    Bound, IntoPyObject, IntoPyObjectExt, Py, PyAny, PyResult, Python,
+    Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python,
     exceptions::{PyOverflowError, PyValueError},
     types::{
         PyAnyMethods, PyBool, PyBytes, PyDict, PyDictMethods, PyFloat, PyInt, PyList,
         PyListMethods, PySequence, PyString, PyTuple, PyType, PyTypeMethods,
     },
 };
-use radiate::{Chromosome, Gene, Metric, MetricSet, Phenotype};
 use std::{
     borrow::{Borrow, Cow},
     collections::HashMap,
@@ -16,98 +15,6 @@ use std::{
 type InitFn = for<'py> fn(&Bound<'py, PyAny>, bool) -> PyResult<AnyValue<'py>>;
 pub(crate) static LUT: crate::GILOnceCell<HashMap<TypeObjectKey, InitFn>> =
     crate::GILOnceCell::new();
-
-pub fn pareto_front_to_py_object<'py, C: Chromosome<Gene = G>, G: Gene>(
-    py: Python<'py>,
-    front: &[Phenotype<C>],
-) -> PyResult<Bound<'py, PyList>>
-where
-    G::Allele: Into<AnyValue<'static>> + Clone,
-{
-    let result = PyList::empty(py);
-    for member in front.iter() {
-        let genotype = member
-            .genotype()
-            .iter()
-            .map(|chromosome| {
-                let list = PyList::empty(py);
-                for gene in chromosome.iter() {
-                    let allele = gene.allele().clone();
-                    let any_value = any_value_into_py_object(allele.into(), py)
-                        .expect("Failed to convert allele to AnyValue");
-                    list.append(any_value).unwrap();
-                }
-
-                list.into_pyobject(py).unwrap()
-            })
-            .collect::<Vec<_>>();
-
-        let fitness = member
-            .score()
-            .unwrap()
-            .values
-            .iter()
-            .cloned()
-            .collect::<Vec<_>>();
-
-        let member = PyDict::new(py);
-        member.set_item("genotype", genotype)?;
-        member.set_item("fitness", fitness)?;
-
-        result.append(member)?;
-    }
-
-    Ok(result)
-}
-
-pub fn metric_set_to_py_dict<'py, 'a>(
-    py: Python<'py>,
-    metric_set: &MetricSet,
-) -> PyResult<Bound<'py, PyDict>> {
-    let dict = PyDict::new(py);
-    for (name, metric) in metric_set.iter() {
-        let metric_dict = metric_to_py_dict(py, metric)?;
-        dict.set_item(name, metric_dict)?;
-    }
-
-    Ok(dict)
-}
-
-pub fn metric_to_py_dict<'py, 'a>(
-    py: Python<'py>,
-    metric: &Metric,
-) -> PyResult<Bound<'py, PyDict>> {
-    let dict = PyDict::new(py);
-    dict.set_item("name", metric.name())?;
-
-    dict.set_item("value_last", metric.last_value())?;
-    dict.set_item("value_mean", metric.value_mean())?;
-    dict.set_item("value_stddev", metric.value_std_dev())?;
-    dict.set_item("value_variance", metric.value_variance())?;
-    dict.set_item("value_skewness", metric.value_skewness())?;
-    dict.set_item("value_min", metric.value_min())?;
-    dict.set_item("value_max", metric.value_max())?;
-    dict.set_item("value_count", metric.count())?;
-
-    dict.set_item("sequence_last", metric.last_sequence())?;
-    dict.set_item("sequence_mean", metric.distribution_mean())?;
-    dict.set_item("sequence_stddev", metric.distribution_std_dev())?;
-    dict.set_item("sequence_min", metric.distribution_min())?;
-    dict.set_item("sequence_max", metric.distribution_max())?;
-    dict.set_item("sequence_variance", metric.distribution_variance())?;
-    dict.set_item("sequence_skewness", metric.distribution_skewness())?;
-    dict.set_item("sequence_kurtosis", metric.distribution_kurtosis())?;
-
-    dict.set_item("time_last", metric.last_time())?;
-    dict.set_item("time_sum", metric.time_sum())?;
-    dict.set_item("time_mean", metric.time_mean())?;
-    dict.set_item("time_std_dev", metric.time_std_dev())?;
-    dict.set_item("time_min", metric.time_min())?;
-    dict.set_item("time_max", metric.time_max())?;
-    dict.set_item("time_variance", metric.time_variance())?;
-
-    Ok(dict)
-}
 
 pub fn any_value_into_py_object<'py>(av: AnyValue, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
     match av {
@@ -123,41 +30,21 @@ pub fn any_value_into_py_object<'py>(av: AnyValue, py: Python<'py>) -> PyResult<
         AnyValue::Float32(v) => v.into_bound_py_any(py),
         AnyValue::Float64(v) => v.into_bound_py_any(py),
         AnyValue::Char(v) => v.into_bound_py_any(py),
-        AnyValue::Slice(v, _) => {
+        AnyValue::Vec(v) => {
             let list = PyList::empty(py);
-            for item in v.iter() {
-                list.append(any_value_into_py_object(item.clone(), py)?)?;
-            }
-            Ok(list.into_any())
-        }
-        AnyValue::VecOwned(v) => {
-            let list = PyList::empty(py);
-            for item in v.0.into_iter() {
+            for item in v.into_iter() {
                 list.append(any_value_into_py_object(item, py)?)?;
             }
             Ok(list.into_any())
         }
         AnyValue::Null => py.None().into_bound_py_any(py),
-        AnyValue::Boolean(v) => v.into_bound_py_any(py),
+        AnyValue::Bool(v) => v.into_bound_py_any(py),
         AnyValue::Str(v) => v.into_bound_py_any(py),
-        AnyValue::StringOwned(v) => v.into_bound_py_any(py),
-        AnyValue::Binary(v) => PyBytes::new(py, v).into_bound_py_any(py),
-        AnyValue::BinaryOwned(v) => PyBytes::new(py, &v).into_bound_py_any(py),
-        AnyValue::StructOwned(v) => {
+        AnyValue::StrOwned(v) => v.into_bound_py_any(py),
+        AnyValue::Binary(v) => PyBytes::new(py, &v).into_bound_py_any(py),
+        AnyValue::Struct(v) => {
             let dict = struct_dict(py, v.into_iter())?;
             dict.into_bound_py_any(py)
-        }
-        AnyValue::StructRef(v) => {
-            let dict = struct_dict(py, v.iter().cloned())?;
-            dict.into_bound_py_any(py)
-        }
-        AnyValue::Object(v) => {
-            let object = v.0.as_any().downcast_ref::<ObjectValue>().unwrap();
-            Ok(object.inner.clone_ref(py).into_bound(py))
-        }
-        AnyValue::ObjectView(v) => {
-            let object = v.as_any().downcast_ref::<ObjectValue>().unwrap();
-            Ok(object.inner.clone_ref(py).into_bound(py))
         }
     }
 }
@@ -174,7 +61,7 @@ pub fn py_object_to_any_value<'py>(
 
     fn get_bool(ob: &Bound<'_, PyAny>, _strict: bool) -> PyResult<AnyValue<'static>> {
         let b = ob.extract::<bool>()?;
-        Ok(AnyValue::Boolean(b))
+        Ok(AnyValue::Bool(b))
     }
 
     fn get_int(ob: &Bound<'_, PyAny>, strict: bool) -> PyResult<AnyValue<'static>> {
@@ -208,12 +95,12 @@ pub fn py_object_to_any_value<'py>(
         // Once Python 3.10 is the minimum supported version, converting to &str
         // will be cheaper, and we should do that. Python 3.9 security updates
         // end-of-life is Oct 31, 2025.
-        Ok(AnyValue::StringOwned(ob.extract::<String>()?.into()))
+        Ok(AnyValue::StrOwned(ob.extract::<String>()?.into()))
     }
 
     fn get_bytes<'py>(ob: &Bound<'py, PyAny>, _strict: bool) -> PyResult<AnyValue<'py>> {
         let value = ob.extract::<Vec<u8>>()?;
-        Ok(AnyValue::BinaryOwned(value))
+        Ok(AnyValue::Binary(value))
     }
 
     fn get_list(ob: &Bound<'_, PyAny>, strict: bool) -> PyResult<AnyValue<'static>> {
@@ -237,14 +124,23 @@ pub fn py_object_to_any_value<'py>(
                 return Ok(AnyValue::Null);
             } else {
                 if !strict {
-                    return Ok(AnyValue::VecOwned(Box::new((
+                    return Ok(AnyValue::Vec(Box::new(
                         avs.into_iter().map(|av| av.into_static()).collect(),
-                        Field::new("List of mixed types".into()),
-                    ))));
+                    )));
                 } else {
-                    return Err(PyValueError::new_err(
-                        "Cannot convert Python list with mixed types to AnyValue",
-                    ));
+                    // Push the rest.
+                    let length = list.len()?;
+                    avs.reserve(length);
+                    let mut rest = Vec::with_capacity(length);
+                    for item in iter {
+                        rest.push(item?);
+                        let av = py_object_to_any_value(rest.last().unwrap(), strict)?;
+                        avs.push(av)
+                    }
+
+                    Ok(AnyValue::Vec(Box::new(
+                        avs.into_iter().map(|av| av.into_static()).collect(),
+                    )))
                 }
             }
         } else if !strict {
@@ -290,7 +186,7 @@ pub fn py_object_to_any_value<'py>(
                     keys.push(Field::new(key.as_ref().into()));
                     vals.push(val)
                 }
-                Ok(AnyValue::StructOwned(keys.into_iter().zip(vals).collect()))
+                Ok(AnyValue::Struct(vals.into_iter().zip(keys).collect()))
             })
         } else {
             let ob_type = ob.get_type();
@@ -335,11 +231,11 @@ pub fn py_object_to_any_value<'py>(
 
 fn struct_dict<'py, 'a>(
     py: Python<'py>,
-    vals: impl Iterator<Item = (Field, AnyValue<'a>)>,
+    vals: impl Iterator<Item = (AnyValue<'a>, Field)>,
 ) -> PyResult<Bound<'py, PyDict>> {
     let dict = PyDict::new(py);
 
-    for (fld, val) in vals {
+    for (val, fld) in vals {
         let key = fld.name().to_string();
         let value = any_value_into_py_object(val, py)?;
         dict.set_item(key, value)?;
@@ -389,22 +285,3 @@ impl std::hash::Hash for TypeObjectKey {
         v.hash(state)
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use pyo3::types::PyList;
-
-//     #[test]
-//     fn test_type_object_key() {
-//         let vec = vec![1, 2, 3];
-//         let any_val = AnyValue::from(vec);
-
-//         let mut matrix = Vec::new();
-//         matrix.push(vec![1, 2, 3]);
-//         matrix.push(vec![4, 5, 6]);
-//         let any_val = AnyValue::from(matrix);
-
-//         println!("AnyValue: {:?}", any_val);
-//     }
-// }

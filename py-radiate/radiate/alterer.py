@@ -1,374 +1,132 @@
-from radiate.radiate import Alterer
+from radiate.radiate import PyAlterer
+from .genome import Genotype, Chromosome, Population, Phenotype, Gene
+from typing import List
 
 
 class AlterBase:
-    def __init__(self, alterer: Alterer):
+    def __init__(self, alterer: PyAlterer):
         """
         Initialize the base alterer class.
-        :param alterer: An instance of the Alterer class.
+        :param alterer: An instance of the PyAlterer class.
         """
         self.alterer = alterer
-        if not isinstance(alterer, Alterer):
-            raise TypeError(f"Expected an instance of Alterer, got {type(alterer)}")
+        if not isinstance(alterer, PyAlterer):
+            raise TypeError(f"Expected an instance of PyAlterer, got {type(alterer)}")
 
     def __repr__(self):
         return f"{self.__class__.__name__}(alterer={self.alterer})"
 
+    def alter(
+        self,
+        population: Population
+        | List[Phenotype]
+        | List[Genotype]
+        | List[Chromosome]
+        | List[Gene],
+    ) -> Population:
+        """
+        Apply the alterer to the provided genotypes or chromosomes.
+        :param genotypes: A list of Genotype or Chromosome instances.
+        :return: A Population instance containing the altered individuals.
+        """
+        population_to_alter = population
+
+        if all(isinstance(pheno, Phenotype) for pheno in population):
+            population_to_alter = Population(
+                [phenotype.py_phenotype for phenotype in population_to_alter]
+            )
+        elif all(isinstance(geno, Genotype) for geno in population):
+            phenotypes = [
+                Phenotype(genotype=genotype.genotype())
+                for genotype in population_to_alter
+            ]
+            population_to_alter = Population(phenotypes)
+        elif all(isinstance(chromo, Chromosome) for chromo in population):
+            genotypes = [
+                Genotype(chromosomes=[chromo]) for chromo in population_to_alter
+            ]
+            phenotypes = [Phenotype(genotype=genotype) for genotype in genotypes]
+            population_to_alter = Population(phenotypes)
+        elif all(isinstance(gene, Gene) for gene in population):
+            chromosomes = [Chromosome(genes=[gene]) for gene in population_to_alter]
+            genotypes = [Genotype(chromosomes=chromosomes)]
+            phenotypes = [Phenotype(genotype=genotype) for genotype in genotypes]
+            population_to_alter = Population(phenotypes)
+        elif isinstance(population, Population):
+            population_to_alter = population
+        else:
+            raise TypeError(
+                f"Expected a Population, list of Phenotypes, Genotypes, Chromosomes, or Genes, got {type(population)}"
+            )
+
+        altered_population = self.alterer.alter(population_to_alter.py_population())
+        return Population(altered_population)
+
 
 class BlendCrossover(AlterBase):
     def __init__(self, rate: float = 0.1, alpha: float = 0.5):
-        super().__init__(Alterer.blend_crossover(rate=rate, alpha=alpha))
+        super().__init__(PyAlterer.blend_crossover(rate=rate, alpha=alpha))
 
 
 class IntermediateCrossover(AlterBase):
     def __init__(self, rate: float = 0.1, alpha: float = 0.5):
-        super().__init__(Alterer.intermediate_crossover(rate=rate, alpha=alpha))
+        super().__init__(PyAlterer.intermediate_crossover(rate=rate, alpha=alpha))
 
 
 class MeanCrossover(AlterBase):
     def __init__(self, rate: float = 0.5):
-        super().__init__(Alterer.mean_crossover(rate=rate))
+        super().__init__(PyAlterer.mean_crossover(rate=rate))
 
 
 class ShuffleCrossover(AlterBase):
     def __init__(self, rate: float = 0.1):
-        super().__init__(Alterer.shuffle_crossover(rate=rate))
+        super().__init__(PyAlterer.shuffle_crossover(rate=rate))
 
 
 class SimulatedBinaryCrossover(AlterBase):
     def __init__(self, rate: float = 0.1, contiguty: float = 0.5):
         super().__init__(
-            Alterer.simulated_binary_crossover(rate=rate, contiguty=contiguty)
+            PyAlterer.simulated_binary_crossover(rate=rate, contiguty=contiguty)
         )
 
 
 class PartiallyMatchedCrossover(AlterBase):
     def __init__(self, rate: float = 0.1):
-        super().__init__(Alterer.partially_matched_crossover(rate=rate))
+        super().__init__(PyAlterer.partially_matched_crossover(rate=rate))
 
 
 class MultiPointCrossover(AlterBase):
     def __init__(self, rate: float = 0.1, num_points: int = 2):
         super().__init__(
-            Alterer.multi_point_crossover(rate=rate, num_points=num_points)
+            PyAlterer.multi_point_crossover(rate=rate, num_points=num_points)
         )
 
 
 class UniformCrossover(AlterBase):
     def __init__(self, rate: float = 0.5):
-        super().__init__(Alterer.uniform_crossover(rate=rate))
+        super().__init__(PyAlterer.uniform_crossover(rate=rate))
 
 
 class UniformMutator(AlterBase):
     def __init__(self, rate: float = 0.1):
-        super().__init__(Alterer.uniform_mutator(rate=rate))
+        super().__init__(PyAlterer.uniform_mutator(rate=rate))
 
 
 class ArithmeticMutator(AlterBase):
     def __init__(self, rate: float = 0.1):
-        super().__init__(Alterer.arithmetic_mutator(rate=rate))
+        super().__init__(PyAlterer.arithmetic_mutator(rate=rate))
 
 
 class GaussianMutator(AlterBase):
     def __init__(self, rate: float = 0.1):
-        super().__init__(Alterer.gaussian_mutator(rate=rate))
+        super().__init__(PyAlterer.gaussian_mutator(rate=rate))
 
 
 class ScrambleMutator(AlterBase):
     def __init__(self, rate: float = 0.1):
-        super().__init__(Alterer.scramble_mutator(rate=rate))
+        super().__init__(PyAlterer.scramble_mutator(rate=rate))
 
 
 class SwapMutator(AlterBase):
     def __init__(self, rate: float = 0.1):
-        super().__init__(Alterer.swap_mutator(rate=rate))
-
-
-# class Alterer(EngineParam):
-#     """
-#     Base class for all alterers.
-#     """
-
-#     gene_types: List[GeneType] = []
-#     name: str = None
-
-#     def __init__(
-#         self, name: str, args: Dict[str, any] = None, gene_types: List[GeneType] = None
-#     ):
-#         """
-#         Initialize the alterer.
-#         :param name: Name of the alterer.
-#         :param args: Arguments for the alterer.
-#         :param gene_types: List of gene types for the alterer.
-#         """
-#         super().__init__(name=name, args={k: str(v) for k, v in args.items()})
-#         self.gene_types = gene_types or self.gene_types
-
-#     def __getattr__(self, name):
-#         """
-#         Get the value of an attribute.
-#         :param name: Name of the attribute.
-#         :return: Value of the attribute.
-#         """
-#         if name in self.args:
-#             return self.args[name]
-#         if name in self.__dict__:
-#             return self.__dict__[name]
-#         raise AttributeError(
-#             f"'{self.__class__.__name__}' object has no attribute '{name}'"
-#         )
-
-#     def is_valid(self, gene_type: GeneType):
-#         """
-#         Validate the gene type.
-#         :param gene_type: Gene type to validate.
-#         :return: True if the gene type is valid, False otherwise.
-#         """
-#         if not isinstance(gene_type, GeneType):
-#             raise TypeError(
-#                 f"Gene type {type(gene_type)} is not supported. Expected GeneType."
-#             )
-#         return gene_type in self.gene_types
-
-
-# class BlendCrossover(Alterer):
-#     """
-#     Blend Crossover alterer.
-#     """
-
-#     gene_types = [GeneType.FLOAT()]
-#     name = "blend_crossover"
-
-#     def __init__(self, rate: float = 0.1, alpha: float = 0.5):
-#         """
-#         Initialize the blend crossover alterer.
-#         :param alpha: Alpha value for the blend crossover.
-#         :param rate: Rate of crossover.
-#         """
-#         super().__init__(
-#             name=self.name,
-#             args={"rate": rate, "alpha": alpha},
-#             gene_types=self.gene_types,
-#         )
-
-
-# class IntermediateCrossover(Alterer):
-#     """
-#     Intermediate Crossover alterer.
-#     """
-
-#     gene_types = [GeneType.FLOAT(), GeneType.INT()]
-#     name = "intermediate_crossover"
-
-#     def __init__(self, rate: float = 0.1, alpha: float = 0.5):
-#         """
-#         Initialize the intermediate crossover alterer.
-#         :param alpha: Alpha value for the intermediate crossover.
-#         """
-#         super().__init__(
-#             name=self.name,
-#             args={"rate": rate, "alpha": alpha},
-#             gene_types=self.gene_types,
-#         )
-
-
-# class MeanCrossover(Alterer):
-#     """
-#     Mean Crossover alterer.
-#     """
-
-#     gene_types = [GeneType.FLOAT(), GeneType.INT()]
-#     name = "mean_crossover"
-
-#     def __init__(self, rate: float = 0.5):
-#         """
-#         Initialize the mean crossover alterer.
-#         :param alpha: Alpha value for the mean crossover.
-#         """
-#         super().__init__(
-#             name=self.name, args={"rate": rate}, gene_types=self.gene_types
-#         )
-
-
-# class ShuffleCrossover(Alterer):
-#     """
-#     Shuffle Crossover alterer.
-#     """
-
-#     gene_types = [GeneType.INT(), GeneType.CHAR(), GeneType.BIT(), GeneType.FLOAT()]
-#     name = "shuffle_crossover"
-
-#     def __init__(self, rate: float = 0.1):
-#         """
-#         Initialize the shuffle crossover alterer.
-#         :param alpha: Alpha value for the shuffle crossover.
-#         """
-#         super().__init__(
-#             name=self.name, args={"rate": rate}, gene_types=self.gene_types
-#         )
-
-
-# class SimulatedBinaryCrossover(Alterer):
-#     """
-#     Simulated Binary Crossover alterer.
-#     """
-
-#     gene_types = [GeneType.FLOAT()]
-#     name = "simulated_binary_crossover"
-
-#     def __init__(self, rate: float = 0.1, contiguty: float = 0.5):
-#         """
-#         Initialize the simulated binary crossover alterer.
-#         :param alpha: Alpha value for the simulated binary crossover.
-#         """
-#         super().__init__(
-#             name=self.name,
-#             args={"rate": rate, "contiguty": contiguty},
-#             gene_types=self.gene_types,
-#         )
-
-
-# class PartiallyMatchedCrossover(Alterer):
-#     """
-#     Partially Matched Crossover alterer.
-#     """
-
-#     gene_types = [GeneType.INT(), GeneType.CHAR(), GeneType.BIT(), GeneType.FLOAT()]
-#     name = "partially_matched_crossover"
-
-#     def __init__(self, rate: float = 0.1):
-#         """
-#         Initialize the partially matched crossover alterer.
-#         :param alpha: Alpha value for the partially matched crossover.
-#         """
-#         super().__init__(
-#             name=self.name, args={"rate": rate}, gene_types=self.gene_types
-#         )
-
-
-# class MultiPointCrossover(Alterer):
-#     """
-#     Multi Point Crossover alterer.
-#     """
-
-#     gene_types = [GeneType.INT(), GeneType.CHAR(), GeneType.BIT(), GeneType.FLOAT()]
-#     name = "multi_point_crossover"
-
-#     def __init__(self, rate: float = 0.1, num_points: int = 2):
-#         """
-#         Initialize the multi point crossover alterer.
-#         :param alpha: Alpha value for the multi point crossover.
-#         """
-#         super().__init__(
-#             name=self.name,
-#             args={"rate": rate, "num_points": num_points},
-#             gene_types=self.gene_types,
-#         )
-
-
-# class UniformCrossover(Alterer):
-#     """
-#     Uniform Crossover alterer.
-#     """
-
-#     gene_types = [GeneType.INT(), GeneType.CHAR(), GeneType.BIT(), GeneType.FLOAT()]
-#     name = "uniform_crossover"
-
-#     def __init__(self, rate: float = 0.5):
-#         """
-#         Initialize the uniform crossover alterer.
-#         :param alpha: Alpha value for the uniform crossover.
-#         """
-#         super().__init__(
-#             name=self.name, args={"rate": rate}, gene_types=self.gene_types
-#         )
-
-
-# class UniformMutator(Alterer):
-#     """
-#     Uniform Mutator alterer.
-#     """
-
-#     gene_types = [GeneType.INT(), GeneType.CHAR(), GeneType.BIT(), GeneType.FLOAT()]
-#     name = "uniform_mutator"
-
-#     def __init__(self, rate: float = 0.1):
-#         """
-#         Initialize the uniform mutator alterer.
-#         :param rate: Rate of mutation.
-#         """
-#         super().__init__(
-#             name=self.name, args={"rate": rate}, gene_types=self.gene_types
-#         )
-
-
-# class ArithmeticMutator(Alterer):
-#     """
-#     Arithmetic Mutator alterer.
-#     """
-
-#     gene_types = [GeneType.FLOAT(), GeneType.INT()]
-#     name = "arithmetic_mutator"
-
-#     def __init__(self, rate: float = 0.1):
-#         """
-#         Initialize the arithmetic mutator alterer.
-#         :param alpha: Alpha value for the arithmetic mutator.
-#         """
-#         super().__init__(
-#             name=self.name, args={"rate": rate}, gene_types=self.gene_types
-#         )
-
-
-# class GaussianMutator(Alterer):
-#     """
-#     Gaussian Mutator alterer.
-#     """
-
-#     gene_types = [GeneType.FLOAT()]
-#     name = "gaussian_mutator"
-
-#     def __init__(self, rate: float = 0.1):
-#         """
-#         Initialize the gaussian mutator alterer.
-#         :param alpha: Alpha value for the gaussian mutator.
-#         """
-#         super().__init__(
-#             name=self.name, args={"rate": rate}, gene_types=self.gene_types
-#         )
-
-
-# class ScrambleMutator(Alterer):
-#     """
-#     Scramble Mutator alterer.
-#     """
-
-#     gene_types = [GeneType.INT(), GeneType.CHAR(), GeneType.BIT(), GeneType.FLOAT()]
-#     name = "scramble_mutator"
-
-#     def __init__(self, rate: float = 0.1):
-#         """
-#         Initialize the scramble mutator alterer.
-#         :param alpha: Alpha value for the scramble mutator.
-#         """
-#         super().__init__(
-#             name=self.name, args={"rate": rate}, gene_types=self.gene_types
-#         )
-
-
-# class SwapMutator(Alterer):
-#     """
-#     Swap Mutator alterer.
-#     """
-
-#     gene_types = [GeneType.INT(), GeneType.CHAR(), GeneType.BIT(), GeneType.FLOAT()]
-#     name = "swap_mutator"
-
-#     def __init__(self, rate: float = 0.1):
-#         """
-#         Initialize the swap mutator alterer.
-#         :param alpha: Alpha value for the swap mutator.
-#         """
-#         super().__init__(
-#             name=self.name, args={"rate": rate}, gene_types=self.gene_types
-#         )
+        super().__init__(PyAlterer.swap_mutator(rate=rate))

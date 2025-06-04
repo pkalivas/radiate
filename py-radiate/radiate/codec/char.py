@@ -1,8 +1,9 @@
 from typing import List
 
+from .codec import CodecBase
 from radiate.radiate import PyCharCodec
 
-class CharCodec:
+class CharCodec(CodecBase):
     def __init__(self, chromosomes: List[int], char_set: str | List[str] = None):
         """
         Initialize the char codec with number of chromosomes and value bounds.
@@ -24,4 +25,3 @@ class CharCodec:
             chromosome_lengths=chromosomes,
             char_set="".join(set(char_set)) if char_set else None,
         )
-

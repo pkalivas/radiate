@@ -10,7 +10,6 @@ fn main() {
     let engine = GeneticEngine::builder()
         .codec(codec)
         .minimizing()
-        .executor(Executor::worker_pool(10))
         .offspring_selector(BoltzmannSelector::new(4.0))
         .crossover(MultiPointCrossover::new(0.75, 2))
         .mutator(UniformMutator::new(0.05))
@@ -39,6 +38,8 @@ fn main() {
             println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_usize());
         })
         .unwrap();
+
+    println!("Best Score: {:?}", result);
 
     println!("\nResult Queens Board ({:.3?}):", result.time());
 

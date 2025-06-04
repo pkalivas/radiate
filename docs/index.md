@@ -83,15 +83,17 @@ This simple maximizing problem demonstrates how to use Radiate to solve a string
         import radiate as rd 
         
         target = "Hello, Radiate!"
-        def fitness_fn(phenotype: List[List[str]]):
-            '''The fitness function for the string matching problem.'''
-            inner = phenotype[0]
-            return sum(1 for i in range(len(inner)) if inner[i] == target[i])
+
+        def fitness_func(x):
+            return sum(1 for i in range(len(target)) if x[0][i] == target[i])
 
         codec = rd.CharCodec([len(target)])
-        engine = rd.GeneticEngine(codec, fitness_fn)
-        engine.maximizing()
-        engine.offspring_selector(rd.BoltzmannSelector(4))
+        engine = rd.GeneticEngine(
+            codec=rd.CharCodec([len(target)]),
+            fitness_func=fitness_func,
+            objectives='max',
+            offspring_selector=rd.BoltzmannSelector(4),
+        )
 
         result = engine.run(rd.ScoreLimit(len(target)))
 

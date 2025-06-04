@@ -40,12 +40,23 @@ use std::ops::{Add, Bound, Div, Mul, Range, RangeBounds, Sub};
 /// # Type Parameters
 /// - `T`: The type of integer used in the gene.
 ///
-#[derive(Clone, PartialEq, Default)]
+#[derive(Clone, PartialEq, Default, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct IntGene<T: Integer<T>> {
     pub allele: T,
     pub value_range: Range<T>,
     pub bounds: Range<T>,
+}
+
+impl<T: Integer<T>> IntGene<T> {
+    /// Create a new [`IntGene`] with the given allele, value range and bounds.
+    pub fn new(allele: T, value_range: Range<T>, bounds: Range<T>) -> Self {
+        IntGene {
+            allele,
+            value_range,
+            bounds,
+        }
+    }
 }
 
 /// Implement the [`Gene`] trait for [`IntGene`]. This allows the [`IntGene`] to be used in a genetic algorithm.
@@ -210,7 +221,7 @@ impl<T: Integer<T>> From<(Range<T>, Range<T>)> for IntGene<T> {
     }
 }
 
-impl<T: Integer<T>> std::fmt::Debug for IntGene<T> {
+impl<T: Integer<T>> std::fmt::Display for IntGene<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.allele)
     }
@@ -268,6 +279,12 @@ impl<I: Integer<I>> Chromosome for IntChromosome<I> {
 impl<T: Integer<T>> Valid for IntChromosome<T> {
     fn is_valid(&self) -> bool {
         self.genes.iter().all(|gene| gene.is_valid())
+    }
+}
+
+impl<T: Integer<T>> From<Vec<IntGene<T>>> for IntChromosome<T> {
+    fn from(genes: Vec<IntGene<T>>) -> Self {
+        IntChromosome { genes }
     }
 }
 

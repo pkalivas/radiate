@@ -1,11 +1,9 @@
+use super::{EngineEvent, events::Event};
+use radiate_core::MetricSet;
 use std::{
     fmt::{Debug, Display},
     sync::{Arc, RwLock, RwLockReadGuard},
 };
-
-use radiate_core::MetricSet;
-
-use super::{EngineEvent, events::Event};
 
 pub trait EventHandler<T>: Send + Sync {
     fn handle(&mut self, event: Event<T>);

@@ -1,24 +1,11 @@
-use std::fmt::{Debug, Formatter};
+use super::{DataType, Field};
+use std::fmt::Debug;
 
-use super::{DataType, Field, ObjectSafe};
-
-pub trait IntoAnyValue<'a> {
-    fn into_any_value(self) -> AnyValue<'a>;
-}
-
-pub struct OwnedObject(pub Box<dyn ObjectSafe>);
-
-impl Clone for OwnedObject {
-    fn clone(&self) -> Self {
-        OwnedObject(self.0.to_boxed())
-    }
-}
-
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub enum AnyValue<'a> {
     #[default]
     Null,
-    Boolean(bool),
+    Bool(bool),
     UInt8(u8),
     UInt16(u16),
     UInt32(u32),
@@ -30,17 +17,12 @@ pub enum AnyValue<'a> {
     Int128(i128),
     Float32(f32),
     Float64(f64),
-    Binary(&'a [u8]),
-    BinaryOwned(Vec<u8>),
+    Binary(Vec<u8>),
     Char(char),
     Str(&'a str),
-    StringOwned(String),
-    Slice(&'a [AnyValue<'a>], &'a Field),
-    VecOwned(Box<(Vec<AnyValue<'a>>, Field)>),
-    StructOwned(Vec<(Field, AnyValue<'a>)>),
-    StructRef(&'a [(Field, AnyValue<'a>)]),
-    Object(OwnedObject),
-    ObjectView(&'a dyn ObjectSafe),
+    StrOwned(String),
+    Vec(Box<Vec<AnyValue<'a>>>),
+    Struct(Vec<(AnyValue<'a>, Field)>),
 }
 
 impl<'a> AnyValue<'a> {
@@ -49,7 +31,7 @@ impl<'a> AnyValue<'a> {
     }
 
     pub fn is_boolean(&self) -> bool {
-        matches!(self, Self::Boolean(_))
+        matches!(self, Self::Bool(_))
     }
 
     pub fn is_numeric(&self) -> bool {
@@ -72,7 +54,7 @@ impl<'a> AnyValue<'a> {
     pub fn type_name(&self) -> &'static str {
         match self {
             Self::Null => "null",
-            Self::Boolean(_) => "bool",
+            Self::Bool(_) => "bool",
             Self::Str(_) => "string",
             Self::UInt8(_) => "u8",
             Self::UInt16(_) => "u16",
@@ -86,22 +68,17 @@ impl<'a> AnyValue<'a> {
             Self::Float32(_) => "f32",
             Self::Float64(_) => "f64",
             Self::Char(_) => "char",
-            Self::Slice(_, _) => "list",
-            Self::VecOwned(_) => "list",
-            Self::StringOwned(_) => "string",
+            Self::Vec(_) => "list",
+            Self::StrOwned(_) => "string",
             Self::Binary(_) => "binary",
-            Self::BinaryOwned(_) => "binary",
-            Self::StructOwned(_) => "struct",
-            Self::StructRef(_) => "struct_ref",
-            Self::Object(_) => "object",
-            Self::ObjectView(_) => "object_view",
+            Self::Struct(_) => "struct",
         }
     }
 
     pub fn dtype(&self) -> DataType {
         match self {
             Self::Null => DataType::Null,
-            Self::Boolean(_) => DataType::Boolean,
+            Self::Bool(_) => DataType::Boolean,
             Self::Str(_) => DataType::StringView,
             Self::UInt8(_) => DataType::UInt8,
             Self::UInt16(_) => DataType::UInt16,
@@ -115,25 +92,15 @@ impl<'a> AnyValue<'a> {
             Self::Float32(_) => DataType::Float32,
             Self::Float64(_) => DataType::Float64,
             Self::Char(_) => DataType::Char,
-            Self::Slice(_, _) => DataType::VecView,
-            Self::VecOwned(_) => DataType::Vec,
-            Self::StringOwned(_) => DataType::String,
+            Self::Vec(_) => DataType::Vec,
+            Self::StrOwned(_) => DataType::String,
             Self::Binary(_) => DataType::BinaryView,
-            Self::BinaryOwned(_) => DataType::BinaryView,
-            Self::StructOwned(fields) => DataType::Struct(
+            Self::Struct(fields) => DataType::Struct(
                 fields
                     .iter()
-                    .map(|(field, _)| field.clone())
+                    .map(|(_, field)| field.clone())
                     .collect::<Vec<_>>(),
             ),
-            Self::StructRef(fields) => DataType::Struct(
-                fields
-                    .iter()
-                    .map(|(field, _)| field.clone())
-                    .collect::<Vec<_>>(),
-            ),
-            Self::Object(_) => DataType::Struct(vec![Field::new("object".to_string())]),
-            Self::ObjectView(_) => DataType::Struct(vec![Field::new("object_view".to_string())]),
         }
     }
 
@@ -153,34 +120,21 @@ impl<'a> AnyValue<'a> {
             UInt16(v) => UInt16(v),
             UInt32(v) => UInt32(v),
             UInt64(v) => UInt64(v),
-            Boolean(v) => Boolean(v),
+            Bool(v) => Bool(v),
             Float32(v) => Float32(v),
             Float64(v) => Float64(v),
             Char(v) => Char(v),
-            Str(v) => StringOwned(v.to_string()),
-            Slice(v, f) => VecOwned(Box::new((
+            Str(v) => StrOwned(v.to_string()),
+            Vec(v) => Vec(Box::new(
                 v.iter().cloned().map(AnyValue::into_static).collect(),
-                f.clone(),
-            ))),
-            VecOwned(v) => VecOwned(Box::new((
-                v.0.iter().cloned().map(AnyValue::into_static).collect(),
-                v.1.clone(),
-            ))),
-            StringOwned(v) => StringOwned(v),
-            Binary(v) => BinaryOwned(v.to_vec()),
-            BinaryOwned(v) => BinaryOwned(v),
-            StructOwned(v) => StructOwned(
+            )),
+            StrOwned(v) => StrOwned(v),
+            Binary(v) => Binary(v),
+            Struct(v) => Struct(
                 v.into_iter()
-                    .map(|(field, value)| (field, value.into_static()))
+                    .map(|(val, field)| (val.into_static(), field))
                     .collect(),
             ),
-            StructRef(v) => StructOwned(
-                v.iter()
-                    .map(|(field, value)| (field.clone(), value.clone().into_static()))
-                    .collect(),
-            ),
-            Object(obj) => Object(obj.clone()),
-            ObjectView(obj) => Object(OwnedObject(obj.to_boxed())),
         }
     }
 }
@@ -190,7 +144,7 @@ impl<'a> PartialEq for AnyValue<'a> {
         use AnyValue::*;
         match (self, other) {
             (Null, Null) => true,
-            (Boolean(a), Boolean(b)) => a == b,
+            (Bool(a), Bool(b)) => a == b,
             (UInt8(a), UInt8(b)) => a == b,
             (UInt16(a), UInt16(b)) => a == b,
             (UInt32(a), UInt32(b)) => a == b,
@@ -204,36 +158,19 @@ impl<'a> PartialEq for AnyValue<'a> {
             (Float64(a), Float64(b)) => a == b,
             (Char(a), Char(b)) => a == b,
             (Str(a), Str(b)) => a == b,
-            (StringOwned(a), StringOwned(b)) => a == b,
+            (StrOwned(a), StrOwned(b)) => a == b,
             (Binary(a), Binary(b)) => a == b,
-            (BinaryOwned(a), BinaryOwned(b)) => a == b,
-            (Slice(a, _), Slice(b, _)) if a.len() == b.len() => {
-                a.iter().zip(b.iter()).all(|(x, y)| x == y)
-            }
-            (VecOwned(a), VecOwned(b)) if a.0.len() == b.0.len() && a.1.name() == b.1.name() => {
-                a.0.iter().zip(&b.0).all(|(x, y)| x == y)
-            }
-            (StructOwned(a), StructOwned(b))
+            (Vec(a), Vec(b)) if a.len() == b.len() => a.iter().zip(b.iter()).all(|(x, y)| x == y),
+            (Struct(a), Struct(b))
                 if a.len() == b.len()
                     && a.iter()
-                        .map(|(f, _)| f.name())
-                        .eq(b.iter().map(|(f, _)| f.name())) =>
+                        .map(|(_, f)| f.name())
+                        .eq(b.iter().map(|(_, f)| f.name())) =>
             {
                 a.iter()
                     .zip(b.iter())
-                    .all(|((f1, v1), (f2, v2))| f1.name() == f2.name() && v1 == v2)
+                    .all(|((v1, f1), (v2, f2))| f1.name() == f2.name() && v1 == v2)
             }
-            (StructRef(a), StructRef(b))
-                if a.len() == b.len()
-                    && a.iter()
-                        .map(|(f, _)| f.name())
-                        .eq(b.iter().map(|(f, _)| f.name())) =>
-            {
-                a.iter()
-                    .zip(b.iter())
-                    .all(|((f1, v1), (f2, v2))| f1.name() == f2.name() && v1 == v2)
-            }
-            (Object(a), Object(b)) => a.0.equals(&*b.0),
             _ => false,
         }
     }
@@ -244,10 +181,7 @@ where
     T: Into<AnyValue<'a>>,
 {
     fn from(value: Vec<T>) -> Self {
-        Self::VecOwned(Box::new((
-            value.into_iter().map(Into::into).collect(),
-            Field::new(std::any::type_name::<Vec<T>>().to_string()),
-        )))
+        Self::Vec(Box::new(value.into_iter().map(Into::into).collect()))
     }
 }
 
@@ -264,7 +198,7 @@ macro_rules! impl_from {
 }
 
 impl_from!(
-    bool => Boolean,
+    bool => Bool,
     u8 => UInt8,
     u16 => UInt16,
     u32 => UInt32,
@@ -276,39 +210,7 @@ impl_from!(
     i128 => Int128,
     f32 => Float32,
     f64 => Float64,
-    String => StringOwned,
+    String => StrOwned,
     char => Char,
     &'a str => Str,
 );
-
-impl<'a> Debug for AnyValue<'a> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AnyValue::Null => write!(f, "null"),
-            AnyValue::Boolean(v) => write!(f, "{}", v),
-            AnyValue::UInt8(v) => write!(f, "{}", v),
-            AnyValue::UInt16(v) => write!(f, "{}", v),
-            AnyValue::UInt32(v) => write!(f, "{}", v),
-            AnyValue::UInt64(v) => write!(f, "{}", v),
-            AnyValue::Int8(v) => write!(f, "{}", v),
-            AnyValue::Int16(v) => write!(f, "{}", v),
-            AnyValue::Int32(v) => write!(f, "{}", v),
-            AnyValue::Int64(v) => write!(f, "{}", v),
-            AnyValue::Int128(v) => write!(f, "{}", v),
-            AnyValue::Float32(v) => write!(f, "{}", v),
-            AnyValue::Float64(v) => write!(f, "{}", v),
-            AnyValue::Char(v) => write!(f, "{}", v),
-            AnyValue::Str(v) => write!(f, "{}", v),
-            AnyValue::StringOwned(v) => write!(f, "{}", v),
-            AnyValue::Binary(v) => write!(f, "{:?}", v),
-            AnyValue::BinaryOwned(v) => write!(f, "{:?}", v),
-            AnyValue::VecOwned(v) => write!(f, "{:?} ({})", v.0, v.1.name()),
-            AnyValue::StructOwned(v) => write!(f, "{:?}", v),
-            AnyValue::StructRef(v) => write!(f, "{:?}", v),
-            _ => {
-                // For Object and ObjectView, we can use the type name
-                write!(f, "{} (Object)", self.type_name())
-            }
-        }
-    }
-}

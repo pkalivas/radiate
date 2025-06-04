@@ -1,6 +1,4 @@
-use std::{collections::BTreeMap, fmt::Display, sync::Arc};
-
-pub type Metadata = BTreeMap<String, String>;
+use std::fmt::Display;
 
 /// Represents Arrow's metadata of a "column".
 ///
@@ -13,28 +11,12 @@ pub type Metadata = BTreeMap<String, String>;
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
 pub struct Field {
     pub name: String,
-    pub metadata: Option<Arc<Metadata>>,
 }
 
 impl Field {
     /// Creates a new [`Field`].
     pub fn new(name: String) -> Self {
-        Field {
-            name,
-            metadata: Default::default(),
-        }
-    }
-
-    /// Creates a new [`Field`] with metadata.
-    #[inline]
-    pub fn with_metadata(self, metadata: Metadata) -> Self {
-        if metadata.is_empty() {
-            return self;
-        }
-        Self {
-            name: self.name,
-            metadata: Some(Arc::new(metadata)),
-        }
+        Field { name }
     }
 
     #[inline]
@@ -61,18 +43,8 @@ impl From<&str> for Field {
     }
 }
 
-impl From<(&str, Metadata)> for Field {
-    fn from((name, metadata): (&str, Metadata)) -> Self {
-        Field::new(name.to_string()).with_metadata(metadata)
-    }
-}
-
 impl Display for Field {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Field {{\n name: {},\n metadata: {:?}\n }}",
-            self.name, self.metadata,
-        )
+        write!(f, "Field {{\n name: {},\n }}", self.name)
     }
 }

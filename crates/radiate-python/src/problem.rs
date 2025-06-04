@@ -1,9 +1,5 @@
 use crate::{ObjectValue, codec::PyCodec};
-use pyo3::{
-    Py, PyAny, PyObject, Python,
-    sync::GILOnceCell,
-    types::{PyAnyMethods, PyFloat, PyInt, PyList},
-};
+use pyo3::{Py, PyAny, PyObject, Python, sync::GILOnceCell};
 use radiate::{Chromosome, Codec, Genotype, Problem, Score};
 
 pub struct PyProblem<C: Chromosome> {
@@ -38,23 +34,21 @@ impl<C: Chromosome> Problem<C, ObjectValue> for PyProblem<C> {
 
     fn eval(&self, individual: &Genotype<C>) -> Score {
         Python::with_gil(|py| {
-            let phenotype = self.codec.decode_with_py(py, individual);
             let func = self.fitness_fn_cell.get(py).unwrap();
-
-            call(py, func, phenotype)
+            let phenotype = self.codec.decode_with_py(py, individual);
+            call(py, &func, &phenotype.inner)
         })
     }
 
     fn eval_batch(&self, individuals: &[Genotype<C>]) -> Vec<Score> {
         Python::with_gil(|py| {
             let func = self.fitness_fn_cell.get(py).unwrap();
+
             individuals
                 .iter()
-                .map(|ind| {
-                    let phenotype = self.codec.decode_with_py(py, ind);
-                    call(py, &func, phenotype)
-                })
-                .collect()
+                .map(|ind| self.codec.decode_with_py(py, ind).inner)
+                .map(|phenotype| call(py, &func, &phenotype))
+                .collect::<Vec<Score>>()
         })
     }
 }
@@ -62,44 +56,32 @@ impl<C: Chromosome> Problem<C, ObjectValue> for PyProblem<C> {
 unsafe impl<C: Chromosome> Send for PyProblem<C> {}
 unsafe impl<C: Chromosome> Sync for PyProblem<C> {}
 
-pub fn call<'py, 'a>(py: Python<'py>, func: &Py<PyAny>, input: ObjectValue) -> Score {
-    let any_value = func
-        .call1(py, (input.inner.bind_borrowed(py),))
-        .expect("Python call failed");
+pub fn call<'py, 'a>(py: Python<'py>, func: &Py<PyAny>, input: &Py<PyAny>) -> Score {
+    let any_value = func.call1(py, (input,)).expect("Python call failed");
 
-    let temp = any_value.bind_borrowed(py);
-
-    if temp.is_instance_of::<PyFloat>() {
-        return Score::from(temp.extract::<f64>().expect("Expected a float") as f32);
-    } else if temp.is_instance_of::<PyInt>() {
-        if let Ok(score) = temp.extract::<i64>() {
-            return Score::from(score as f32);
+    if let Ok(parsed) = any_value.extract::<f32>(py) {
+        return Score::from(parsed);
+    } else if let Ok(parsed) = any_value.extract::<i32>(py) {
+        return Score::from(parsed as f32);
+    } else if let Ok(parsed) = any_value.extract::<f64>(py) {
+        return Score::from(parsed as f32);
+    } else if let Ok(parsed) = any_value.extract::<i64>(py) {
+        return Score::from(parsed as f32);
+    } else if let Ok(scores_vec) = any_value.extract::<Vec<f32>>(py) {
+        if scores_vec.is_empty() {
+            return Score::from(0.0);
+        } else {
+            return Score::from(scores_vec);
         }
-    } else if temp.is_instance_of::<PyList>() {
-        let list = temp.downcast::<PyList>().expect("Expected a list");
-        let mut score = Vec::new();
-        if let Ok(iter) = list.try_iter() {
-            for item in iter {
-                let it = item.expect("Expected an item in the list");
-                if it.is_instance_of::<PyFloat>() {
-                    if let Ok(value) = it.extract::<f64>() {
-                        score.push(value as f32);
-                    }
-                } else if it.is_instance_of::<PyInt>() {
-                    if let Ok(value) = it.extract::<i64>() {
-                        score.push(value as f32);
-                    }
-                }
-            }
-        }
-
-        if !score.is_empty() {
-            return Score::from(score);
+    } else if let Ok(scores_vec) = any_value.extract::<Vec<i32>>(py) {
+        if scores_vec.is_empty() {
+            return Score::from(0.0);
+        } else {
+            return Score::from(scores_vec.into_iter().map(|s| s as f32).collect::<Vec<_>>());
         }
     }
 
     panic!(
-        "Fitness function must return a float value, got: {:?}",
-        temp
+        "Failed to extract scores from Python function call. Ensure the function returns a valid score type."
     );
 }

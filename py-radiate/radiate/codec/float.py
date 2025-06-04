@@ -1,9 +1,10 @@
 from typing import List, Optional, Tuple
+from .codec import CodecBase
 
 from radiate.radiate import PyFloatCodec
 
 
-class FloatCodec:
+class FloatCodec(CodecBase):
     def __init__(self, codec: PyFloatCodec):
         """
         Initialize the float codec with a PyFloatCodec instance.

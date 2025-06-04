@@ -31,7 +31,7 @@ use radiate_core::{Engine, Epoch, metric_names};
 ///     .population_size(150)
 ///     .max_age(15)
 ///     .offspring_fraction(0.5)
-///     .num_threads(4)
+///     .executor(Executor::worker_pool(8))
 ///     .offspring_selector(BoltzmannSelector::new(4_f32))
 ///     .survivor_selector(TournamentSelector::new(3))
 ///     .alter(alters![

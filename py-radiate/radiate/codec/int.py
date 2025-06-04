@@ -1,8 +1,9 @@
 from typing import List, Optional, Tuple
+from .codec import CodecBase
 
 from radiate.radiate import PyIntCodec
 
-class IntCodec:
+class IntCodec(CodecBase):
     def __init__(self, codec: PyIntCodec):
         """
         Initialize the int codec with a PyIntCodec instance.
@@ -11,7 +12,6 @@ class IntCodec:
         if not isinstance(codec, PyIntCodec):
             raise TypeError("codec must be an instance of PyIntCodec.")
         self.codec = codec
-
 
     @staticmethod
     def matrix(
