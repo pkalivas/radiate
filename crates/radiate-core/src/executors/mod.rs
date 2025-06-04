@@ -1,13 +1,8 @@
 use crate::thread_pool::{ThreadPool, WaitGroup};
 
-pub trait Processor: Send + Sync {
-    fn num_workers(&self) -> usize;
-}
-
 pub enum Executor {
     Serial,
     WorkerPool(ThreadPool),
-    Other(Box<dyn Processor>),
 }
 
 impl Executor {
@@ -24,7 +19,6 @@ impl Executor {
         match self {
             Executor::Serial => 1,
             Executor::WorkerPool(pool) => pool.num_workers(),
-            Executor::Other(processor) => processor.num_workers(),
         }
     }
 
@@ -36,7 +30,6 @@ impl Executor {
         match self {
             Executor::Serial => f(),
             Executor::WorkerPool(pool) => pool.submit_with_result(f).result(),
-            Executor::Other(_) => f(),
         }
     }
 
@@ -48,15 +41,22 @@ impl Executor {
         match self {
             Executor::Serial => f.into_iter().map(|func| func()).collect(),
             Executor::WorkerPool(pool) => {
+                let wg = WaitGroup::new();
                 let mut results = Vec::with_capacity(f.len());
                 for job in f {
-                    let result = pool.submit_with_result(move || job());
+                    let wg_clone = wg.guard();
+                    let result = pool.submit_with_result(move || {
+                        let res = job();
+                        drop(wg_clone);
+                        res
+                    });
                     results.push(result);
                 }
 
+                wg.wait();
+
                 results.into_iter().map(|r| r.result()).collect()
             }
-            Executor::Other(_) => f.into_iter().map(|func| func()).collect(),
         }
     }
 
@@ -67,7 +67,6 @@ impl Executor {
         match self {
             Executor::Serial => f(),
             Executor::WorkerPool(pool) => pool.submit(f),
-            Executor::Other(_) => f(),
         }
     }
 
@@ -91,11 +90,6 @@ impl Executor {
                     });
                 }
                 wg.wait();
-            }
-            Executor::Other(_) => {
-                for func in f {
-                    func();
-                }
             }
         }
     }

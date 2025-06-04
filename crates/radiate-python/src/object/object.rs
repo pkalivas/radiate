@@ -1,7 +1,4 @@
-use pyo3::{
-    Borrowed, Bound, FromPyObject, IntoPyObject, PyAny, PyObject, PyResult, Python,
-    basic::CompareOp, types::PyAnyMethods,
-};
+use pyo3::{Borrowed, IntoPyObject, PyAny, PyObject, Python, types::PyAnyMethods};
 use std::fmt::{Display, Formatter};
 use std::hash::{Hash, Hasher};
 

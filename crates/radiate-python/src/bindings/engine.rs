@@ -13,7 +13,7 @@ use pyo3::{
 use radiate::{
     Alter, BitChromosome, CharChromosome, Chromosome, Diversity, Epoch, Executor, FloatChromosome,
     Generation, GeneticEngine, GeneticEngineBuilder, IntChromosome, MultiObjectiveGeneration,
-    Objective, Optimize, Select, log_ctx,
+    Objective, Optimize, Select, log_ctx, steps::SequentialEvaluator,
 };
 use std::{fmt::Debug, sync::Arc, vec};
 
@@ -280,7 +280,8 @@ where
             _ => vec![Optimize::Minimize],
         })
         .front_size(first_front..second_front)
-        .evaluator(FreeThreadPyEvaluator::new(executor.clone()))
+        .evaluator(SequentialEvaluator::new())
+        // .evaluator(FreeThreadPyEvaluator::new(executor.clone()))
         .executor(executor.clone());
 
     Ok(unsafe { std::mem::transmute(builder) })
@@ -377,7 +378,7 @@ where
         .max_age(max_age)
         .max_species_age(max_species_age)
         .species_threshold(species_threshold)
-        .evaluator(FreeThreadPyEvaluator::new(executor.clone()))
+        .evaluator(SequentialEvaluator::new())
         .executor(executor.clone())
         .alter(alters)
         .with_values(|config| {

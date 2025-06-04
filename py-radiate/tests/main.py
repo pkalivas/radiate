@@ -1,23 +1,23 @@
 import os
 import sys
 import math
+import numpy as np
 import matplotlib.pyplot as plt
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, project_root)
 
 import radiate as rd
+from numba import jit, cfunc, vectorize
 
-rd.random.set_seed(500)
+
+rd.random.set_seed(501)
 
 engine = rd.GeneticEngine(
     codec=rd.IntCodec.vector(10, (0, 10)),
     fitness_func=lambda x: sum(x),
     offspring_selector=rd.BoltzmannSelector(4),
-    alters=[
-        rd.MultiPointCrossover(0.75, 2),
-        rd.UniformMutator(0.01)
-    ],
+    alters=[rd.MultiPointCrossover(0.75, 2), rd.UniformMutator(0.01)],
 )
 
 result = engine.run(rd.ScoreLimit(0), log=False)
@@ -25,49 +25,42 @@ result = engine.run(rd.ScoreLimit(0), log=False)
 print(result)
 
 
+# N_QUEENS = 32
 
-# Example of using the Radiate library for a simple genetic algorithm for N-Queens problem
+# @jit(nopython=True, nogil=True)
+# def fitness_fn(queens):
+#     """Calculate the fitness score for the N-Queens problem."""
+#     score = 0
+#     for i in range(N_QUEENS):
+#         for j in range(i + 1, N_QUEENS):
+#             if queens[i] == queens[j]:
+#                 score += 1
+#             if abs(i - j) == abs(queens[i] - queens[j]):
+#                 score += 1
+#     return score
 
+# codec = rd.IntCodec.vector(N_QUEENS, (0, N_QUEENS ))
+# engine = rd.GeneticEngine(
+#     codec=codec,
+#     fitness_func=fitness_fn,
+#     num_threads=1,
+#     offspring_selector=rd.BoltzmannSelector(4.0),
+#     alters=[
+#         rd.MultiPointCrossover(0.75, 2),
+#         rd.UniformMutator(0.05)
+#     ]
+# )
+# result = engine.run(rd.ScoreLimit(0), log=False)
+# print(result)
 
-N_QUEENS = 32
-
-def fitness_fn(queens):
-    """Calculate the fitness score for the N-Queens problem."""
-    print(queens)
-    raise NotImplementedError("This is a placeholder for the fitness function.")    
-
-    score = 0
-    for i in range(N_QUEENS):
-        for j in range(i + 1, N_QUEENS):
-            if queens[i] == queens[j]:
-                score += 1
-            if abs(i - j) == abs(queens[i] - queens[j]):
-                score += 1
-    return score
-
-codec = rd.IntCodec.vector(N_QUEENS, (0, N_QUEENS ))
-engine = rd.GeneticEngine(
-    codec=codec,
-    fitness_func=fitness_fn,
-    offspring_selector=rd.BoltzmannSelector(4.0),
-    alters=[
-        rd.MultiPointCrossover(0.75, 2),
-        rd.UniformMutator(0.05)
-    ]
-)
-result = engine.run(rd.ScoreLimit(0), log=False)
-print(result)
-# print("\nResult Queens Board (Time: {:.3f} seconds):".format(result.time()))
-# Print the result board
-board = result.value()
-for i in range(N_QUEENS):
-    for j in range(N_QUEENS):
-        if board[j] == i:
-            print("Q ", end="")
-        else:
-            print(". ", end="")
-    print()
-# Example of using the Radiate library for a simple genetic algorithm
+# board = result.value()
+# for i in range(N_QUEENS):
+#     for j in range(N_QUEENS):
+#         if board[j] == i:
+#             print("Q ", end="")
+#         else:
+#             print(". ", end="")
+#     print()
 
 
 # from radiate import PyAnyCodec
@@ -91,13 +84,19 @@ for i in range(N_QUEENS):
 
 
 # target = "Hello, Radiate!"
-# def fitness_fn(x):
+
+
+# def fitness_func(x):
 #     return sum(1 for i in range(len(target)) if x[0][i] == target[i])
 
+
 # codec = rd.CharCodec([len(target)])
-# engine = rd.GeneticEngine(codec, fitness_fn,
-#                           objectives=rd.ObjectiveType.MAX,
-#                           offspring_selector=rd.BoltzmannSelector(4))
+# engine = rd.GeneticEngine(
+#     codec=rd.CharCodec([len(target)]),
+#     fitness_func=fitness_func,
+#     objectives='max',
+#     offspring_selector=rd.BoltzmannSelector(4),
+# )
 
 # result = engine.run(rd.ScoreLimit(len(target)))
 
@@ -128,6 +127,7 @@ for i in range(N_QUEENS):
 # objectives = 3
 # k = variables - objectives + 1
 
+# @jit(nopython=True, nogil=True)
 # def dtlz_1(val):
 #     g = 0.0
 #     for i in range(variables - k, variables):
@@ -142,19 +142,19 @@ for i in range(N_QUEENS):
 #             f[i] *= 1.0 - val[objectives - 1 - i]
 #     return f
 
-# codec = rd.FloatCodec.vector(variables, (0.0, 1.0), (-100.0, 100.0))
-# engine = rd.GeneticEngine(codec, dtlz_1)
-# engine.multi_objective(['min' for _ in range(objectives)])
-# engine.offspring_selector(rd.TournamentSelector(k=5))
-# engine.survivor_selector(rd.NSGA2Selector())
-# engine.num_threads(1)
-# engine.alters([
-#     rd.SimulatedBinaryCrossover(1.0, 1.0),
-#     rd.UniformMutator(0.1)
-# ])
+# engine = rd.GeneticEngine(
+#     codec=rd.FloatCodec.vector(variables, (0.0, 1.0), (-100.0, 100.0)),
+#     fitness_func=dtlz_1,
+#     offspring_selector=rd.TournamentSelector(k=5),
+#     survivor_selector=rd.NSGA2Selector(),
+#     objectives=['min' for _ in range(objectives)],
+#     alters=[
+#         rd.SimulatedBinaryCrossover(1.0, 1.0),
+#         rd.UniformMutator(0.1)
+#     ],
+# )
 
-# result = engine.run(rd.GenerationsLimit(1000), log=False)
-# print(result)
+# result = engine.run(rd.GenerationsLimit(1000))
 
 # front = result.value()
 # fig = plt.figure()

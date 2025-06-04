@@ -6,6 +6,7 @@ from .codec import CodecBase
 from .limit import LimitBase
 from .generation import Generation
 
+
 from radiate.radiate import (
     PyEngineBuilder,
     PyObjective,
@@ -49,6 +50,7 @@ class GeneticEngine:
         front_range = self.__get_front_range(front_range)
 
         codec = self.__get_codec(codec)
+        fitness_func = fitness_func
 
         self.builder = PyEngineBuilder(
             fitness_func,
