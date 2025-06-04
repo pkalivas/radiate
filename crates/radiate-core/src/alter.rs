@@ -164,25 +164,25 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
     ) -> AlterResult {
         let mut result = AlterResult::default();
 
-        let (one, two) = population.get_pair_mut(parent_indexes[0], parent_indexes[1]);
+        if let Some((one, two)) = population.get_pair_mut(parent_indexes[0], parent_indexes[1]) {
+            let cross_result = {
+                let geno_one = one.genotype_mut();
+                let geno_two = two.genotype_mut();
 
-        let cross_result = {
-            let geno_one = one.genotype_mut();
-            let geno_two = two.genotype_mut();
+                let min_len = std::cmp::min(geno_one.len(), geno_two.len());
+                let chromosome_index = random_provider::range(0..min_len);
 
-            let min_len = std::cmp::min(geno_one.len(), geno_two.len());
-            let chromosome_index = random_provider::range(0..min_len);
+                let chrom_one = &mut geno_one[chromosome_index];
+                let chrom_two = &mut geno_two[chromosome_index];
 
-            let chrom_one = &mut geno_one[chromosome_index];
-            let chrom_two = &mut geno_two[chromosome_index];
+                self.cross_chromosomes(chrom_one, chrom_two, rate)
+            };
 
-            self.cross_chromosomes(chrom_one, chrom_two, rate)
-        };
-
-        if cross_result.count() > 0 {
-            one.invalidate(generation);
-            two.invalidate(generation);
-            result.merge(cross_result);
+            if cross_result.count() > 0 {
+                one.invalidate(generation);
+                two.invalidate(generation);
+                result.merge(cross_result);
+            }
         }
 
         result

@@ -7,6 +7,14 @@ pub enum Objective {
 }
 
 impl Objective {
+    pub fn is_single(&self) -> bool {
+        matches!(self, Objective::Single(_))
+    }
+
+    pub fn is_multi(&self) -> bool {
+        matches!(self, Objective::Multi(_))
+    }
+
     pub fn cmp<T>(&self, a: &T, b: &T) -> std::cmp::Ordering
     where
         T: PartialOrd,
@@ -126,6 +134,28 @@ impl Optimize {
         match self {
             Optimize::Minimize => a < b,
             Optimize::Maximize => a > b,
+        }
+    }
+}
+
+impl From<Vec<String>> for Objective {
+    fn from(optimize: Vec<String>) -> Self {
+        if optimize.len() == 1 {
+            match optimize[0].as_str() {
+                "min" => Objective::Single(Optimize::Minimize),
+                "max" => Objective::Single(Optimize::Maximize),
+                _ => panic!("Invalid optimization direction: {}", optimize[0]),
+            }
+        } else {
+            let opts = optimize
+                .into_iter()
+                .map(|s| match s.as_str() {
+                    "min" => Optimize::Minimize,
+                    "max" => Optimize::Maximize,
+                    _ => panic!("Invalid optimization direction: {}", s),
+                })
+                .collect();
+            Objective::Multi(opts)
         }
     }
 }

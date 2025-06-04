@@ -1,8 +1,9 @@
 use super::Codec;
-use crate::genome::char::CharGene;
-use crate::genome::gene::Gene;
+use crate::chromosomes::char;
+use crate::genome::CharGene;
+use crate::genome::Gene;
 use crate::genome::genotype::Genotype;
-use crate::{CharChromosome, Chromosome, char};
+use crate::{CharChromosome, Chromosome};
 use std::sync::Arc;
 
 /// A `Codec` for a `Genotype` of `CharGenes`. The `encode` function creates a `Genotype` with `num_chromosomes` chromosomes
@@ -101,7 +102,7 @@ impl Codec<CharChromosome, Vec<char>> for CharCodec<Vec<char>> {
 mod tests {
     use super::*;
     use crate::Codec;
-    use crate::genome::gene::Gene;
+    use crate::genome::Gene;
 
     #[test]
     fn test_char_codec_matrix() {

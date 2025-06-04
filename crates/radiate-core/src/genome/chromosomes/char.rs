@@ -5,7 +5,7 @@ use super::{
 use crate::random_provider;
 use std::{char, sync::Arc};
 
-pub const ALPHABET: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"$%&/()=?`{[]}\\+~*#';.:,-_<>|@^' ";
+pub(crate) const ALPHABET: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"$%&/()=?`{[]}\\+~*#';.:,-_<>|@^' ";
 
 /// A gene that represents a single character. The `allele` is a `char`
 /// that is randomly selected from the [`ALPHABET`] constant.
@@ -140,6 +140,14 @@ pub struct CharChromosome {
 
 impl Chromosome for CharChromosome {
     type Gene = CharGene;
+
+    fn genes(&self) -> &[Self::Gene] {
+        &self.genes
+    }
+
+    fn genes_mut(&mut self) -> &mut [Self::Gene] {
+        &mut self.genes
+    }
 }
 
 impl Valid for CharChromosome {
@@ -148,15 +156,9 @@ impl Valid for CharChromosome {
     }
 }
 
-impl AsRef<[CharGene]> for CharChromosome {
-    fn as_ref(&self) -> &[CharGene] {
-        &self.genes
-    }
-}
-
-impl AsMut<[CharGene]> for CharChromosome {
-    fn as_mut(&mut self) -> &mut [CharGene] {
-        &mut self.genes
+impl From<Vec<CharGene>> for CharChromosome {
+    fn from(genes: Vec<CharGene>) -> Self {
+        CharChromosome { genes }
     }
 }
 

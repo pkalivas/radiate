@@ -54,16 +54,16 @@ pub trait Epoch {
         &self.ecosystem().population()
     }
 
-    fn species(&self) -> Option<&Vec<Species<Self::Chromosome>>> {
-        self.ecosystem().species()
+    fn species(&self) -> Option<&[Species<Self::Chromosome>]> {
+        self.ecosystem().species().map(|s| s.as_slice())
     }
 
     fn time(&self) -> Duration {
         self.metrics()
             .get(metric_names::EVOLUTION_TIME)
-            .unwrap()
-            .time_sum()
-            .unwrap()
+            .map(|m| m.time_sum())
+            .flatten()
+            .unwrap_or_default()
     }
 
     fn seconds(&self) -> f64 {
@@ -104,7 +104,7 @@ where
 
 impl<C, T> Clone for Context<C, T>
 where
-    C: Chromosome,
+    C: Chromosome + Clone,
     T: Clone,
 {
     fn clone(&self) -> Self {

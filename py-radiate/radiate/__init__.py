@@ -1,15 +1,23 @@
 from .engine import GeneticEngine
-from .codec import FloatCodec, IntCodec, CharCodec, BitCodec
+from .codec import FloatCodec, IntCodec, CharCodec, BitCodec, CodecBase
 from .limit import SecondsLimit, GenerationsLimit, ScoreLimit
+from .handlers import EventHandler, OnEpochCompleteHandler
 from .random import RandomProvider as random
-from ._typing import GeneType, ObjectiveType
+from .generation import Generation
+from .genome import Gene, Chromosome, Genotype, Population, Phenotype
+
+
+from .diversity import (
+    HammingDistance,
+    EuclideanDistance,
+)
 
 from .selector import (
     TournamentSelector,
     RouletteSelector,
     RankSelector,
-    ElitismSelector,
-    StocasticSamplingSelector,
+    EliteSelector,
+    StochasticSamplingSelector,
     BoltzmannSelector,
     LinearRankSelector,
     NSGA2Selector,
@@ -32,6 +40,15 @@ from .alterer import (
 )
 
 __all__ = [
+    "EventHandler",
+    "CodecBase",
+    "Generation",
+    "Genotype",
+    "Gene",
+    "Population",
+    "Phenotype",
+    "Chromosome",
+    "OnEpochCompleteHandler",
     "FloatCodec",
     "IntCodec",
     "CharCodec",
@@ -43,8 +60,8 @@ __all__ = [
     "TournamentSelector",
     "RouletteSelector",
     "RankSelector",
-    "ElitismSelector",
-    "StocasticSamplingSelector",
+    "EliteSelector",
+    "StochasticSamplingSelector",
     "BoltzmannSelector",
     "LinearRankSelector",
     "NSGA2Selector",
@@ -62,6 +79,8 @@ __all__ = [
     "ScrambleMutator",
     "SwapMutator",
     "random",
-    "GeneType",
-    "ObjectiveType",
+    "HammingDistance",
+    "EuclideanDistance",
 ]
+
+

@@ -14,6 +14,39 @@ impl MetricSet {
         }
     }
 
+    pub fn merge(&mut self, other: &MetricSet) {
+        for (name, metric) in other.iter() {
+            if let Some(existing_metric) = self.metrics.get_mut(name) {
+                match (existing_metric, metric) {
+                    (Metric::Value(_, stat, dist), Metric::Value(_, new_stat, new_dist)) => {
+                        stat.add(new_stat.last_value());
+                        for value in new_dist.last_sequence() {
+                            dist.push(*value);
+                        }
+                    }
+                    (Metric::Time(_, stat), Metric::Time(_, new_stat)) => {
+                        stat.add(new_stat.last_time());
+                    }
+                    (Metric::Distribution(_, dist), Metric::Distribution(_, new_dist)) => {
+                        for value in new_dist.last_sequence() {
+                            dist.push(*value);
+                        }
+                    }
+                    (
+                        Metric::Operations(_, stat, time_stat),
+                        Metric::Operations(_, new_stat, new_time_stat),
+                    ) => {
+                        stat.add(new_stat.last_value());
+                        time_stat.add(new_time_stat.last_time());
+                    }
+                    _ => {}
+                }
+            } else {
+                self.add(metric.clone());
+            }
+        }
+    }
+
     pub fn upsert_value(&mut self, name: &'static str, value: f32) {
         if let Some(m) = self.metrics.get_mut(name) {
             m.add_value(value);
@@ -105,6 +138,10 @@ impl MetricSet {
     pub fn iter(&self) -> impl Iterator<Item = (&'static str, &Metric)> {
         self.metrics.iter().map(|(name, metric)| (*name, metric))
     }
+
+    pub fn get_from_string(&self, name: String) -> Option<&Metric> {
+        self.metrics.get(name.as_str())
+    }
 }
 
 impl Debug for MetricSet {
@@ -138,6 +175,11 @@ impl Debug for MetricSet {
     }
 }
 
+const VALUE_METRIC: &str = "value";
+const TIME_METRIC: &str = "time";
+const DISTRIBUTION_METRIC: &str = "distribution";
+const OPERATIONS_METRIC: &str = "operations";
+
 #[derive(Clone, PartialEq)]
 pub enum Metric {
     Value(&'static str, Statistic, Distribution),
@@ -147,6 +189,15 @@ pub enum Metric {
 }
 
 impl Metric {
+    pub fn metric_type(&self) -> &'static str {
+        match self {
+            Metric::Value(_, _, _) => VALUE_METRIC,
+            Metric::Time(_, _) => TIME_METRIC,
+            Metric::Distribution(_, _) => DISTRIBUTION_METRIC,
+            Metric::Operations(_, _, _) => OPERATIONS_METRIC,
+        }
+    }
+
     pub fn new_value(name: &'static str) -> Self {
         Metric::Value(name, Statistic::default(), Distribution::default())
     }

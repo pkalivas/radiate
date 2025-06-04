@@ -1,5 +1,8 @@
 use crate::{Chromosome, Gene, Valid, random_provider};
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
+
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 /// A gene that represents a single bit. The `allele` is a `bool` that is randomly assigned.
 /// The `allele` is either `true` or `false`. This is the simplest form of a gene and
@@ -22,7 +25,8 @@ use std::fmt::Debug;
 /// let gene = gene.with_allele(allele);
 /// ```
 ///
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BitGene {
     allele: bool,
 }
@@ -63,7 +67,7 @@ impl Default for BitGene {
     }
 }
 
-impl Debug for BitGene {
+impl Display for BitGene {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", if self.allele { 1 } else { 0 })
     }
@@ -86,6 +90,7 @@ impl From<bool> for BitGene {
 /// material of an individual in the population.
 ///
 #[derive(Clone, PartialEq, Default, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BitChromosome {
     pub genes: Vec<BitGene>,
 }
@@ -101,6 +106,14 @@ impl BitChromosome {
 
 impl Chromosome for BitChromosome {
     type Gene = BitGene;
+
+    fn genes(&self) -> &[Self::Gene] {
+        &self.genes
+    }
+
+    fn genes_mut(&mut self) -> &mut [Self::Gene] {
+        &mut self.genes
+    }
 }
 
 impl Valid for BitChromosome {
@@ -109,15 +122,9 @@ impl Valid for BitChromosome {
     }
 }
 
-impl AsRef<[BitGene]> for BitChromosome {
-    fn as_ref(&self) -> &[BitGene] {
-        &self.genes
-    }
-}
-
-impl AsMut<[BitGene]> for BitChromosome {
-    fn as_mut(&mut self) -> &mut [BitGene] {
-        &mut self.genes
+impl From<Vec<BitGene>> for BitChromosome {
+    fn from(genes: Vec<BitGene>) -> Self {
+        BitChromosome { genes }
     }
 }
 

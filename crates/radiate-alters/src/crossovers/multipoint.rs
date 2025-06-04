@@ -51,11 +51,11 @@ impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
 
         for &point in selected_points {
             if current_parent == 1 {
-                offspring_one.extend_from_slice(&chrom_one.as_ref()[last_point..point]);
-                offspring_two.extend_from_slice(&chrom_two.as_ref()[last_point..point]);
+                offspring_one.extend_from_slice(&chrom_one.genes()[last_point..point]);
+                offspring_two.extend_from_slice(&chrom_two.genes()[last_point..point]);
             } else {
-                offspring_one.extend_from_slice(&chrom_two.as_ref()[last_point..point]);
-                offspring_two.extend_from_slice(&chrom_one.as_ref()[last_point..point]);
+                offspring_one.extend_from_slice(&chrom_two.genes()[last_point..point]);
+                offspring_two.extend_from_slice(&chrom_one.genes()[last_point..point]);
             }
 
             current_parent = 3 - current_parent;
@@ -63,11 +63,11 @@ impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
         }
 
         if current_parent == 1 {
-            offspring_one.extend_from_slice(&chrom_one.as_ref()[last_point..]);
-            offspring_two.extend_from_slice(&chrom_two.as_ref()[last_point..]);
+            offspring_one.extend_from_slice(&chrom_one.genes()[last_point..]);
+            offspring_two.extend_from_slice(&chrom_two.genes()[last_point..]);
         } else {
-            offspring_one.extend_from_slice(&chrom_two.as_ref()[last_point..]);
-            offspring_two.extend_from_slice(&chrom_one.as_ref()[last_point..]);
+            offspring_one.extend_from_slice(&chrom_two.genes()[last_point..]);
+            offspring_two.extend_from_slice(&chrom_one.genes()[last_point..]);
         }
 
         for i in 0..length {

@@ -26,17 +26,17 @@ impl<'a> Accuracy<'a> {
         let mut correct_predictions = 0.0;
         let mut is_regression = true;
 
-        let mut mae = 0.0; // Mean Absolute Error
-        let mut mse = 0.0; // Mean Squared Error
+        let mut mae = 0.0;
+        let mut mse = 0.0;
         let mut min_output = f32::MAX;
         let mut max_output = f32::MIN;
-        let mut ss_total = 0.0; // Sum of squares total for R²
-        let mut ss_residual = 0.0; // Sum of squares residual for R²
+        let mut ss_total = 0.0;
+        let mut ss_residual = 0.0;
         let mut y_mean = 0.0;
 
-        let mut tp = 0.0; // True Positives (for classification)
-        let mut fp = 0.0; // False Positives
-        let mut fn_ = 0.0; // False Negatives
+        let mut tp = 0.0;
+        let mut fp = 0.0;
+        let mut fn_ = 0.0;
 
         let loss = self.loss_fn.calculate(self.data_set, &mut eval);
 
@@ -52,7 +52,6 @@ impl<'a> Accuracy<'a> {
             outputs.push(output.clone());
 
             if output.len() == 1 {
-                // Regression case
                 is_regression = true;
                 let y_true = row.output()[0];
                 let y_pred = output[0];
@@ -66,7 +65,6 @@ impl<'a> Accuracy<'a> {
                 max_output = max_output.max(y_true);
                 total_samples += 1.0;
             } else {
-                // Classification case
                 is_regression = false;
                 if let Some((max_idx, _)) = output
                     .iter()
@@ -91,7 +89,7 @@ impl<'a> Accuracy<'a> {
         // Compute final accuracy
         let accuracy = if is_regression {
             if total_samples > 0.0 && (max_output - min_output) > 0.0 {
-                1.0 - (mae / total_samples) / (max_output - min_output) // Scaled MAE-based accuracy
+                1.0 - (mae / total_samples) / (max_output - min_output)
             } else {
                 0.0
             }
@@ -125,7 +123,7 @@ impl<'a> Accuracy<'a> {
         let r_squared = if ss_total > 0.0 {
             1.0 - (ss_residual / ss_total)
         } else {
-            0.0 // If ss_total is 0, all y_true are the same, meaning the model is perfect (or there's no variance)
+            0.0
         };
 
         AccuracyResult {

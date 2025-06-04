@@ -5,6 +5,7 @@ use std::{collections::VecDeque, time::Duration};
 pub struct EngineIterator<C, T, E>
 where
     C: Chromosome,
+    T: Clone + Send + Sync + 'static,
     E: Epoch,
 {
     pub(crate) engine: GeneticEngine<C, T, E>,
@@ -13,7 +14,7 @@ where
 impl<C, T, E> Iterator for EngineIterator<C, T, E>
 where
     C: Chromosome,
-    T: Clone,
+    T: Clone + Send + Sync + 'static,
     E: Epoch<Chromosome = C> + for<'a> From<&'a Context<C, T>>,
 {
     type Item = E;
@@ -87,6 +88,9 @@ where
         Self: Sized,
         E: Scored,
     {
+        assert!(window > 0, "Window size must be greater than 0");
+        assert!(epsilon >= 0.0, "Epsilon must be non-negative");
+
         ConverganceIterator {
             iter: self,
             history: VecDeque::new(),

@@ -3,18 +3,23 @@ use super::{
     gene::{ArithmeticGene, Gene, Valid},
 };
 use crate::random_provider;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::{
-    fmt::Debug,
+    fmt::{Debug, Display},
     ops::{Add, Bound, Div, Mul, Range, RangeBounds, Sub},
 };
 
+const MIN: f32 = -1e10;
+const MAX: f32 = 1e10;
+
 /// A [`Gene`] that represents a floating point number.
 /// The `allele` is the in the case of the [`FloatGene`] a f32. The `min` and `max` values
-/// default to f32::MIN and f32::MAX respectively. The `min` and `max` values are used to
+/// default to MIN and MAX respectively. The `min` and `max` values are used to
 /// generate a random number between the `min` and `max` values, which is the `allele` of the [`FloatGene`].
 /// The `upper_bound` and `lower_bound` are used to set the bounds of the [`FloatGene`] when it is used
 /// in a `BoundGene` context (crossover or mutation). The `upper_bound` and `lower_bound`
-/// default to f32::MAX and f32::MIN respectively.
+/// default to MAX and MIN respectively.
 ///
 /// # Example
 /// ``` rust
@@ -29,11 +34,33 @@ use std::{
 /// // and lower_bound to 0 and 100 respectively.
 /// let gene = FloatGene::from((0_f32..1_f32, 0_f32..100_f32));
 /// ```
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct FloatGene {
-    pub allele: f32,
-    pub value_range: Range<f32>,
-    pub bounds: Range<f32>,
+    allele: f32,
+    value_range: Range<f32>,
+    bounds: Range<f32>,
+}
+
+impl FloatGene {
+    /// Creates a new [`FloatGene`] with the given `allele`, `value_range`, and `bounds`.
+    pub fn new(allele: f32, value_range: Range<f32>, bounds: Range<f32>) -> Self {
+        FloatGene {
+            allele,
+            value_range: (value_range.start.max(MIN)..value_range.end.min(MAX)),
+            bounds: (bounds.start.max(MIN)..bounds.end.min(MAX)),
+        }
+    }
+
+    /// Returns the value range of the [`FloatGene`].
+    pub fn value_range(&self) -> &Range<f32> {
+        &self.value_range
+    }
+
+    /// Returns the bounds of the [`FloatGene`].
+    pub fn bounds(&self) -> &Range<f32> {
+        &self.bounds
+    }
 }
 
 /// Implement the [`Valid`] trait for the [`FloatGene`].
@@ -161,6 +188,16 @@ impl Div for FloatGene {
     }
 }
 
+impl Default for FloatGene {
+    fn default() -> Self {
+        FloatGene {
+            allele: 0.0,
+            value_range: MIN..MAX,
+            bounds: MIN..MAX,
+        }
+    }
+}
+
 impl From<FloatGene> for f32 {
     fn from(gene: FloatGene) -> f32 {
         gene.allele
@@ -171,15 +208,15 @@ impl From<f32> for FloatGene {
     fn from(allele: f32) -> Self {
         FloatGene {
             allele,
-            value_range: f32::MIN..f32::MAX,
-            bounds: f32::MIN..f32::MAX,
+            value_range: MIN..MAX,
+            bounds: MIN..MAX,
         }
     }
 }
 
 impl From<Range<f32>> for FloatGene {
     fn from(range: Range<f32>) -> Self {
-        let (min, max) = (range.start, range.end);
+        let (min, max) = (range.start.max(MIN), range.end.min(MAX));
 
         FloatGene {
             allele: random_provider::range(range),
@@ -191,6 +228,8 @@ impl From<Range<f32>> for FloatGene {
 
 impl From<(Range<f32>, Range<f32>)> for FloatGene {
     fn from((value_range, bounds): (Range<f32>, Range<f32>)) -> Self {
+        let value_range = value_range.start.max(MIN)..value_range.end.min(MAX);
+        let bounds = bounds.start.max(MIN)..bounds.end.min(MAX);
         let allele = random_provider::range(value_range.clone());
 
         FloatGene {
@@ -201,7 +240,7 @@ impl From<(Range<f32>, Range<f32>)> for FloatGene {
     }
 }
 
-impl Debug for FloatGene {
+impl Display for FloatGene {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.allele)
     }
@@ -244,6 +283,7 @@ impl Debug for FloatGene {
 /// }
 ///```
 #[derive(Clone, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct FloatChromosome {
     pub genes: Vec<FloatGene>,
 }
@@ -256,6 +296,14 @@ impl FloatChromosome {
 
 impl Chromosome for FloatChromosome {
     type Gene = FloatGene;
+
+    fn genes(&self) -> &[Self::Gene] {
+        &self.genes
+    }
+
+    fn genes_mut(&mut self) -> &mut [Self::Gene] {
+        &mut self.genes
+    }
 }
 
 impl Valid for FloatChromosome {
@@ -264,15 +312,9 @@ impl Valid for FloatChromosome {
     }
 }
 
-impl AsRef<[FloatGene]> for FloatChromosome {
-    fn as_ref(&self) -> &[FloatGene] {
-        &self.genes
-    }
-}
-
-impl AsMut<[FloatGene]> for FloatChromosome {
-    fn as_mut(&mut self) -> &mut [FloatGene] {
-        &mut self.genes
+impl From<Vec<FloatGene>> for FloatChromosome {
+    fn from(genes: Vec<FloatGene>) -> Self {
+        FloatChromosome { genes }
     }
 }
 
@@ -310,6 +352,7 @@ impl Debug for FloatChromosome {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     #[test]

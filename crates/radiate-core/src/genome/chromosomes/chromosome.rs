@@ -1,9 +1,9 @@
 use super::{Valid, gene::Gene};
 
-/// The [Chromosome] struct represents a collection of [Gene] instances. The [Chromosome] is part of the
-/// genetic makeup of an individual. It is a collection of [Gene] instances, it is essentially a
+/// The [Chromosome] is part of the genetic makeup of an individual.
+/// It is a collection of [Gene] instances, it is essentially a
 /// light wrapper around a Vec of [Gene]s. The [Chromosome] struct, however, has some additional
-/// functionality and terminology that aligns with the biological concept of achromosome
+/// functionality and terminology that aligns with the biological concept of a chromosome
 ///
 /// In traditional biological terms, a [Chromosome] is a long DNA molecule with part or all of the
 /// genetic material of an organism. The [Chromosome] is the 'genetic' part of the individual that is
@@ -14,10 +14,12 @@ use super::{Valid, gene::Gene};
 /// ```text
 /// Chromosome: [Gene, Gene, Gene]
 /// ```
-pub trait Chromosome:
-    Clone + PartialEq + Valid + AsRef<[Self::Gene]> + AsMut<[Self::Gene]>
-{
+pub trait Chromosome: Valid {
     type Gene: Gene;
+
+    fn genes(&self) -> &[Self::Gene];
+    fn genes_mut(&mut self) -> &mut [Self::Gene];
+
     /// Retrieves the gene at the specified index.
     ///
     /// # Arguments
@@ -25,7 +27,7 @@ pub trait Chromosome:
     /// * `index` - The position of the gene to retrieve.
     ///
     fn get(&self, index: usize) -> &Self::Gene {
-        &self.as_ref()[index]
+        &self.genes()[index]
     }
 
     /// Sets the gene at the specified index.
@@ -36,18 +38,18 @@ pub trait Chromosome:
     /// * [`Gene`] - The gene to replace at the specified index.
     ///
     fn set(&mut self, index: usize, gene: Self::Gene) {
-        self.as_mut()[index] = gene;
+        self.genes_mut()[index] = gene;
     }
 
     fn len(&self) -> usize {
-        self.as_ref().len()
+        self.genes().len()
     }
 
     fn iter(&self) -> std::slice::Iter<Self::Gene> {
-        self.as_ref().iter()
+        self.genes().iter()
     }
 
     fn iter_mut(&mut self) -> std::slice::IterMut<Self::Gene> {
-        self.as_mut().iter_mut()
+        self.genes_mut().iter_mut()
     }
 }

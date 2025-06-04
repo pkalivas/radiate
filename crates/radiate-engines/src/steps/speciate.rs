@@ -1,7 +1,6 @@
 use radiate_core::{
-    Chromosome, Diversity, Ecosystem, EngineStep, Genotype, MetricSet, Objective, Species,
-    metric_names,
-    thread_pool::{ThreadPool, WaitGroup},
+    Chromosome, Diversity, Ecosystem, EngineStep, Executor, Genotype, MetricSet, Objective,
+    Species, metric_names,
 };
 use std::sync::{Arc, Mutex, RwLock};
 
@@ -12,7 +11,7 @@ where
     pub(crate) threashold: f32,
     pub(crate) objective: Objective,
     pub(crate) diversity: Arc<dyn Diversity<C>>,
-    pub(crate) thread_pool: Arc<ThreadPool>,
+    pub(crate) executor: Arc<Executor>,
 }
 
 impl<C> SpeciateStep<C>
@@ -50,7 +49,7 @@ where
 
 impl<C> EngineStep<C> for SpeciateStep<C>
 where
-    C: Chromosome + 'static,
+    C: Chromosome + PartialEq + Clone + 'static,
 {
     fn execute(
         &mut self,
@@ -60,8 +59,8 @@ where
     ) {
         ecosystem.generate_mascots();
 
-        let wg = WaitGroup::new();
-        let num_threads = self.thread_pool.num_workers();
+        // let wg = WaitGroup::new();
+        let num_threads = self.executor.num_workers();
         let pop_len = ecosystem.population().len();
         let chunk_size = (pop_len as f32 / num_threads as f32).ceil() as usize;
         let mut chunked_members = Vec::new();
@@ -78,6 +77,7 @@ where
         )));
         let assignments = Arc::new(Mutex::new(vec![None; pop_len]));
 
+        let mut batches = Vec::new();
         for chunk_start in (0..pop_len).step_by(chunk_size) {
             let chunk_end = (chunk_start + chunk_size).min(pop_len);
             let chunk_range = chunk_start..chunk_end;
@@ -100,7 +100,7 @@ where
             let population = Arc::clone(&chunk_population);
             let species_snapshot = Arc::clone(&species_snapshot);
 
-            self.thread_pool.group_submit(&wg, move || {
+            batches.push(move || {
                 Self::process_chunk(
                     chunk_range,
                     population,
@@ -112,10 +112,24 @@ where
                 );
             });
 
+            // self.thread_pool.submit_batch(&wg, move || {
+            //     Self::process_chunk(
+            //         chunk_range,
+            //         population,
+            //         species_snapshot,
+            //         threshold,
+            //         diversity,
+            //         assignments,
+            //         distances,
+            //     );
+            // });
+
             chunked_members.push(chunk_population);
         }
 
-        wg.wait();
+        self.executor.submit_batch(batches);
+
+        // wg.wait();
 
         for chunks in chunked_members {
             let mut chunks = chunks.write().unwrap();

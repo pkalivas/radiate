@@ -22,4 +22,4 @@ radiate-gp = { workspace = true, optional = true }
 [features]
 default = []
 gp = ["radiate-gp"]
-
+serde = ["radiate-core/serde"]

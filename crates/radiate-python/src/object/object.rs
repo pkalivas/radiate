@@ -1,7 +1,4 @@
-use pyo3::{
-    Borrowed, Bound, FromPyObject, IntoPyObject, PyAny, PyObject, PyResult, Python,
-    basic::CompareOp, types::PyAnyMethods,
-};
+use pyo3::{Borrowed, IntoPyObject, PyAny, PyObject, Python, types::PyAnyMethods};
 use std::fmt::{Display, Formatter};
 use std::hash::{Hash, Hasher};
 
@@ -26,23 +23,6 @@ impl Hash for ObjectValue {
     }
 }
 
-impl Eq for ObjectValue {}
-
-impl PartialEq for ObjectValue {
-    fn eq(&self, other: &Self) -> bool {
-        Python::with_gil(|py| {
-            match self
-                .inner
-                .bind(py)
-                .rich_compare(other.inner.bind(py), CompareOp::Eq)
-            {
-                Ok(result) => result.is_truthy().unwrap(),
-                Err(_) => false,
-            }
-        })
-    }
-}
-
 impl Display for ObjectValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.inner)
@@ -52,14 +32,6 @@ impl Display for ObjectValue {
 impl From<PyObject> for ObjectValue {
     fn from(p: PyObject) -> Self {
         Self { inner: p }
-    }
-}
-
-impl<'a> FromPyObject<'a> for ObjectValue {
-    fn extract_bound(ob: &Bound<'a, PyAny>) -> PyResult<Self> {
-        Ok(ObjectValue {
-            inner: ob.to_owned().unbind(),
-        })
     }
 }
 
@@ -78,3 +50,6 @@ impl Default for ObjectValue {
         Python::with_gil(|py| ObjectValue { inner: py.None() })
     }
 }
+
+unsafe impl Send for ObjectValue {}
+unsafe impl Sync for ObjectValue {}

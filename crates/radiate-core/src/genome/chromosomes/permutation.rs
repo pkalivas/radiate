@@ -66,6 +66,14 @@ impl<A: PartialEq + Clone> PermutationChromosome<A> {
 
 impl<A: PartialEq + Clone> Chromosome for PermutationChromosome<A> {
     type Gene = PermutationGene<A>;
+
+    fn genes(&self) -> &[Self::Gene] {
+        &self.genes
+    }
+
+    fn genes_mut(&mut self) -> &mut [Self::Gene] {
+        &mut self.genes
+    }
 }
 
 impl<A: PartialEq + Clone> Valid for PermutationChromosome<A> {
@@ -80,18 +88,6 @@ impl<A: PartialEq + Clone> Valid for PermutationChromosome<A> {
             bit_set[index] = true;
             true
         })
-    }
-}
-
-impl<A: PartialEq + Clone> AsRef<[PermutationGene<A>]> for PermutationChromosome<A> {
-    fn as_ref(&self) -> &[PermutationGene<A>] {
-        &self.genes
-    }
-}
-
-impl<A: PartialEq + Clone> AsMut<[PermutationGene<A>]> for PermutationChromosome<A> {
-    fn as_mut(&mut self) -> &mut [PermutationGene<A>] {
-        &mut self.genes
     }
 }
 

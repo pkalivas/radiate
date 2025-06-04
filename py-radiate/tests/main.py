@@ -1,38 +1,83 @@
 import os
 import sys
 import math
+import numpy as np
+import matplotlib.pyplot as plt
 
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, project_root)
 
-
 import radiate as rd
+from numba import jit, cfunc, vectorize
 
-rd.random.set_seed(100)
 
-# codec = rd.IntCodec([10], (0, 10))
-# engine = rd.GeneticEngine(codec, lambda x: sum(x[0]))
-# # engine.num_threads(1)
-# engine.offspring_selector(rd.BoltzmannSelector(4))
-# engine.alters([
-#     rd.MultiPointCrossover(0.75, 2), 
-#     rd.UniformMutator(0.01)
-# ])
+rd.random.set_seed(501)
 
+engine = rd.GeneticEngine(
+    codec=rd.IntCodec.vector(10, (0, 10)),
+    fitness_func=lambda x: sum(x),
+    offspring_selector=rd.BoltzmannSelector(4),
+    alters=[rd.MultiPointCrossover(0.75, 2), rd.UniformMutator(0.01)],
+)
+
+result = engine.run(rd.ScoreLimit(0), log=False)
+
+print(result)
+
+
+# N_QUEENS = 32
+
+# @jit(nopython=True, nogil=True)
+# def fitness_fn(queens):
+#     """Calculate the fitness score for the N-Queens problem."""
+#     score = 0
+#     for i in range(N_QUEENS):
+#         for j in range(i + 1, N_QUEENS):
+#             if queens[i] == queens[j]:
+#                 score += 1
+#             if abs(i - j) == abs(queens[i] - queens[j]):
+#                 score += 1
+#     return score
+
+# codec = rd.IntCodec.vector(N_QUEENS, (0, N_QUEENS ))
+# engine = rd.GeneticEngine(
+#     codec=codec,
+#     fitness_func=fitness_fn,
+#     num_threads=1,
+#     offspring_selector=rd.BoltzmannSelector(4.0),
+#     alters=[
+#         rd.MultiPointCrossover(0.75, 2),
+#         rd.UniformMutator(0.05)
+#     ]
+# )
 # result = engine.run(rd.ScoreLimit(0), log=False)
-
 # print(result)
 
+# board = result.value()
+# for i in range(N_QUEENS):
+#     for j in range(N_QUEENS):
+#         if board[j] == i:
+#             print("Q ", end="")
+#         else:
+#             print(". ", end="")
+#     print()
+
+
+
+
 target = "Hello, Radiate!"
-def fitness_fn(x):
-    '''The fitness function for the string matching problem.'''
-    x = x[0]
+
+
+def fitness_func(x):
     return sum(1 for i in range(len(target)) if x[i] == target[i])
 
-codec = rd.CharCodec([len(target)])
-engine = rd.GeneticEngine(codec, fitness_fn)
-engine.maximizing()
-engine.offspring_selector(rd.BoltzmannSelector(4))
+
+engine = rd.GeneticEngine(
+    codec=rd.CharCodec.vector(len(target)),
+    fitness_func=fitness_func,
+    objectives='max',
+    offspring_selector=rd.BoltzmannSelector(4),
+)
 
 result = engine.run(rd.ScoreLimit(len(target)))
 
@@ -44,99 +89,93 @@ print(result)
 
 # def fitness_fn(x):
 #     '''The fitness function for the Rastrigin function.'''
-#     x = x[0]
 #     value = A * N_GENES
 #     for i in range(N_GENES):
 #         value += x[i]**2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
 #     return value
 
-# codec = rd.FloatCodec([2], (-5.12, 5.12))
-# engine = rd.Engine(codec, fitness_fn)
+# codec = rd.FloatCodec.vector(2, (-5.12, 5.12))
+# engine = rd.GeneticEngine(codec, fitness_fn)
 
 # engine.alters([
-#     rd.UniformCrossover(0.5), 
+#     rd.UniformCrossover(0.5),
 #     rd.ArithmeticMutator(0.01)
 # ])
 
-# engine.run(rd.ScoreLimit(0.0001))
+# print(engine.run(rd.ScoreLimit(0.0001)))
 
 # variables = 4
 # objectives = 3
 # k = variables - objectives + 1
 
-
+# @jit(nopython=True, nogil=True)
 # def dtlz_1(val):
-#     g = sum((x - 0.5) ** 2 for x in val[k:])
-#     f1 = (1.0 + g) * (val[0] * val[1])
-#     f2 = (1.0 + g) * (val[0] * (1.0 - val[1]))
-#     f3 = (1.0 + g) * (1.0 - val[0])
+#     g = 0.0
+#     for i in range(variables - k, variables):
+#         g += (val[i] - 0.5) ** 2 - math.cos(20.0 * math.pi * (val[i] - 0.5))
+#     g = 100.0 * (k + g)
+#     f = [0.0] * objectives
+#     for i in range(objectives):
+#         f[i] = 0.5 * (1.0 + g)
+#         for j in range(objectives - 1 - i):
+#             f[i] *= val[j]
+#         if i != 0:
+#             f[i] *= 1.0 - val[objectives - 1 - i]
+#     return f
 
-#     return [f1, f2, f3]
+# engine = rd.GeneticEngine(
+#     codec=rd.FloatCodec.vector(variables, (0.0, 1.0), (-100.0, 100.0)),
+#     fitness_func=dtlz_1,
+#     offspring_selector=rd.TournamentSelector(k=5),
+#     survivor_selector=rd.NSGA2Selector(),
+#     objectives=['min' for _ in range(objectives)],
+#     alters=[
+#         rd.SimulatedBinaryCrossover(1.0, 1.0),
+#         rd.UniformMutator(0.1)
+#     ],
+# )
 
-# codec = rd.FloatCodec([variables], (0.0, 1.0), (-100.0, 100.0))
-# engine = rd.GeneticEngine(codec, dtlz_1)
-# engine.multi_objective([rd.ObjectiveType.MIN, rd.ObjectiveType.MIN, rd.ObjectiveType.MIN])
-# engine.offspring_selector(rd.TournamentSelector(k=5))
-# engine.survivor_selector(rd.NSGA2Selector())
-# engine.alters([
-#     rd.SimulatedBinaryCrossover(1.0, 1.0),
-#     rd.UniformMutator(0.1)
-# ])
+# result = engine.run(rd.GenerationsLimit(1000))
 
+# front = result.value()
+# fig = plt.figure()
+# ax = plt.axes(projection='3d')
 
-
-
-# import inspect
-# import ast
-
-# def test_fn(*args):
-#     return args
-
-# bound = inspect.signature(test_fn).bind([1, 2, 3])
-# print(bound)
-# print(bound.arguments) 
-
-# def fitness(x):
-#     return sum(x)
-
-# def get_expr_body(fn):
-#     tree = ast.parse(inspect.getsource(fn))
-#     fn_node = tree.body[0]
-
-#     if isinstance(fn_node, ast.FunctionDef):
-#         body = fn_node.body[0]
-#         if isinstance(body, ast.Return):
-#             return body.value  # the actual expression returned
-#     raise ValueError("Unsupported function format")
-
-# class Expr:
-#     def __init__(self, op, args):
-#         self.op = op
-#         self.args = args
-
-#     def __repr__(self):
-#         return f"Expr({self.op}, {self.args})"
-
-# def ast_to_expr(node):
-#     if isinstance(node, ast.Call):
-#         func_name = node.func.id  # assuming no nested calls
-#         args = [ast_to_expr(arg) for arg in node.args]
-#         return Expr(func_name, args)
-#     elif isinstance(node, ast.Name):
-#         return node.id
-#     elif isinstance(node, ast.Constant):
-#         return node.value
-#     else:
-#         raise NotImplementedError(f"Unsupported node: {ast.dump(node)}")
-
-# source = inspect.getsource(fitness)
-# tree = ast.parse(source)
-# print(ast.dump(tree, indent=4))
-
-# expr_node = get_expr_body(fitness)
-# expr = ast_to_expr(expr_node)
-# print(expr)  
+# x = [member['fitness'][0] for member in front]
+# y = [member['fitness'][1] for member in front]
+# z = [member['fitness'][2] for member in front]
+# ax.scatter(x, y, z, c='r', marker='o')
+# plt.show()
 
 
-# for name, param in bound.parameters.items():
-#     print(f"{name=}, {param.kind=}, {param.default=}")
+# print()
+# print()
+# gene = rd.Gene.char(allele="a", char_set={"a", "b", "c"})
+
+# print(gene)
+
+
+# chrom = rd.Chromosome.float(length=4, value_range=(-10.0, 10.0))
+# chrom2 = rd.Chromosome.float(length=4, value_range=(-10.0, 10.0))
+# chrom3 = rd.Chromosome.float(length=4, value_range=(-10.0, 10.0))
+# chrom4 = rd.Chromosome.float(length=4, value_range=(-10.0, 10.0))
+
+# inputs = [chrom, chrom2, chrom3, chrom4]
+
+# for i in inputs:
+#     for gene in i.genes():
+#         print(gene)
+
+
+# print()
+# math_mutator = rd.SwapMutator(.5)
+# print()
+
+# mutated = math_mutator.alter([chrom, chrom2, chrom3, chrom4])
+# for gene in mutated.phenotypes():
+#     for chrom in gene.genotype().chromosomes():
+#         for g in chrom.genes():
+#             print(g)
+#     # for chrom in gene.genotype():
+#     #     print(chrom)
+#         # break

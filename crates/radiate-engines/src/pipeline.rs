@@ -1,6 +1,8 @@
-use radiate_core::{Chromosome, Ecosystem, EngineStep, MetricSet};
+use radiate_core::{Chromosome, EngineStep, engine::Context};
 
-pub struct Pipeline<C>
+use crate::{EngineEvent, EventBus};
+
+pub(crate) struct Pipeline<C>
 where
     C: Chromosome,
 {
@@ -11,27 +13,23 @@ impl<C> Pipeline<C>
 where
     C: Chromosome,
 {
-    pub fn new(steps: Vec<Box<dyn EngineStep<C>>>) -> Self {
-        Pipeline { steps }
-    }
-
     pub fn add_step(&mut self, step: Option<Box<dyn EngineStep<C>>>) {
         if let Some(step) = step {
             self.steps.push(step);
         }
     }
 
-    pub fn run(
-        &mut self,
-        generation: usize,
-        metrics: &mut MetricSet,
-        ecosystem: &mut Ecosystem<C>,
-    ) {
+    pub fn run<T>(&mut self, context: &mut Context<C, T>, bus: &EventBus<EngineEvent<T>>)
+    where
+        T: Send + Sync + 'static,
+    {
         for step in self.steps.iter_mut() {
+            bus.emit(EngineEvent::step_start(step.name()));
             let timer = std::time::Instant::now();
-            step.execute(generation, metrics, ecosystem);
+            step.execute(context.index, &mut context.metrics, &mut context.ecosystem);
+            bus.emit(EngineEvent::step_complete(step.name()));
 
-            metrics.upsert_time(step.name(), timer.elapsed());
+            context.metrics.upsert_time(step.name(), timer.elapsed());
         }
     }
 }

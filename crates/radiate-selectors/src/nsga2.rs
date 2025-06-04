@@ -18,7 +18,7 @@ impl NSGA2Selector {
     }
 }
 
-impl<C: Chromosome> Select<C> for NSGA2Selector {
+impl<C: Chromosome + Clone> Select<C> for NSGA2Selector {
     fn select(
         &self,
         population: &Population<C>,
@@ -63,7 +63,7 @@ impl TournamentNSGA2Selector {
     }
 }
 
-impl<C: Chromosome> Select<C> for TournamentNSGA2Selector {
+impl<C: Chromosome + Clone> Select<C> for TournamentNSGA2Selector {
     fn select(
         &self,
         population: &Population<C>,

@@ -1,11 +1,11 @@
 use super::phenotype::Phenotype;
 use crate::cell::MutCell;
 use crate::objectives::Scored;
-use crate::{Chromosome, Objective, Score};
+use crate::{Chromosome, Score};
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut, Range};
 
-/// A `Population` is a collection of `Phenotype` instances. This struct is the core collection of individuals
+/// A [Population] is a collection of [Phenotype] instances. This struct is the core collection of individuals
 /// being evolved by the `GeneticEngine`. It can be thought of as a Vec of `Phenotype`s and
 /// is essentially a light wrapper around such a Vec. The `Population` struct, however, has some
 /// additional functionality that allows for sorting and iteration over the individuals in the population.
@@ -18,20 +18,15 @@ use std::ops::{Index, IndexMut, Range};
 ///
 /// # Type Parameters
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
-
 #[derive(Clone, Default)]
 pub struct Population<C: Chromosome> {
     pub individuals: Vec<Member<C>>,
-    pub is_sorted: bool,
 }
 
 impl<C: Chromosome> Population<C> {
-    /// Create a new instance of the Population with the given individuals.
-    /// This will set the is_sorted flag to false.
     pub fn new(individuals: Vec<Phenotype<C>>) -> Self {
         Population {
             individuals: individuals.into_iter().map(Member::from).collect(),
-            is_sorted: false,
         }
     }
 
@@ -40,12 +35,10 @@ impl<C: Chromosome> Population<C> {
     }
 
     pub fn get_mut(&mut self, index: usize) -> Option<&mut Phenotype<C>> {
-        self.is_sorted = false;
         self.individuals.get_mut(index).map(|cell| cell.get_mut())
     }
 
     pub fn get_cell_mut(&mut self, index: usize) -> Option<&mut Member<C>> {
-        self.is_sorted = false;
         self.individuals.get_mut(index)
     }
 
@@ -54,7 +47,6 @@ impl<C: Chromosome> Population<C> {
     }
 
     pub fn push(&mut self, individual: impl Into<Member<C>>) {
-        self.is_sorted = false;
         self.individuals.push(individual.into());
     }
 
@@ -63,7 +55,6 @@ impl<C: Chromosome> Population<C> {
     }
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Phenotype<C>> {
-        self.is_sorted = false;
         self.individuals.iter_mut().map(Member::get_mut)
     }
 
@@ -72,7 +63,6 @@ impl<C: Chromosome> Population<C> {
     }
 
     pub fn clear(&mut self) {
-        self.is_sorted = false;
         self.individuals.clear();
     }
 
@@ -83,22 +73,6 @@ impl<C: Chromosome> Population<C> {
             .collect()
     }
 
-    pub fn set_sorted(&mut self, is_sorted: bool) {
-        self.is_sorted = is_sorted;
-    }
-
-    /// Sort the individuals in the population using the given closure.
-    /// This will set the is_sorted flag to true.
-    pub fn sort_by(&mut self, objective: &Objective) {
-        if self.is_sorted {
-            return;
-        }
-
-        objective.sort(self);
-
-        self.is_sorted = true;
-    }
-
     pub fn is_empty(&self) -> bool {
         self.individuals.is_empty()
     }
@@ -107,13 +81,15 @@ impl<C: Chromosome> Population<C> {
         &mut self,
         first: usize,
         second: usize,
-    ) -> (&mut Phenotype<C>, &mut Phenotype<C>) {
-        if first < second {
+    ) -> Option<(&mut Phenotype<C>, &mut Phenotype<C>)> {
+        if first == second {
+            None
+        } else if first < second {
             let (left, right) = self.individuals.split_at_mut(second);
-            (left[first].get_mut(), right[0].get_mut())
+            Some((left[first].get_mut(), right[0].get_mut()))
         } else {
             let (left, right) = self.individuals.split_at_mut(first);
-            (right[0].get_mut(), left[second].get_mut())
+            Some((right[0].get_mut(), left[second].get_mut()))
         }
     }
 }
@@ -122,17 +98,13 @@ impl<C: Chromosome> From<Vec<Phenotype<C>>> for Population<C> {
     fn from(individuals: Vec<Phenotype<C>>) -> Self {
         Population {
             individuals: individuals.into_iter().map(Member::from).collect(),
-            is_sorted: false,
         }
     }
 }
 
 impl<C: Chromosome> From<Vec<Member<C>>> for Population<C> {
     fn from(individuals: Vec<Member<C>>) -> Self {
-        Population {
-            individuals,
-            is_sorted: false,
-        }
+        Population { individuals }
     }
 }
 
@@ -144,7 +116,6 @@ impl<C: Chromosome> AsRef<[Member<C>]> for Population<C> {
 
 impl<C: Chromosome> AsMut<[Member<C>]> for Population<C> {
     fn as_mut(&mut self) -> &mut [Member<C>] {
-        self.is_sorted = false;
         self.individuals.as_mut()
     }
 }
@@ -166,12 +137,11 @@ impl<C: Chromosome> Index<usize> for Population<C> {
 
 impl<C: Chromosome> IndexMut<usize> for Population<C> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        self.is_sorted = false;
         self.individuals[index].get_mut()
     }
 }
 
-impl<C: Chromosome> IntoIterator for Population<C> {
+impl<C: Chromosome + Clone> IntoIterator for Population<C> {
     type Item = Phenotype<C>;
     type IntoIter = std::vec::IntoIter<Phenotype<C>>;
 
@@ -186,13 +156,11 @@ impl<C: Chromosome> IntoIterator for Population<C> {
 
 impl<C: Chromosome> FromIterator<Phenotype<C>> for Population<C> {
     fn from_iter<I: IntoIterator<Item = Phenotype<C>>>(iter: I) -> Self {
-        let individuals = iter
-            .into_iter()
-            .map(Member::from)
-            .collect::<Vec<Member<C>>>();
         Population {
-            individuals,
-            is_sorted: false,
+            individuals: iter
+                .into_iter()
+                .map(Member::from)
+                .collect::<Vec<Member<C>>>(),
         }
     }
 }
@@ -200,10 +168,7 @@ impl<C: Chromosome> FromIterator<Phenotype<C>> for Population<C> {
 impl<C: Chromosome> FromIterator<Member<C>> for Population<C> {
     fn from_iter<I: IntoIterator<Item = Member<C>>>(iter: I) -> Self {
         let individuals = iter.into_iter().collect::<Vec<Member<C>>>();
-        Population {
-            individuals,
-            is_sorted: false,
-        }
+        Population { individuals }
     }
 }
 
@@ -222,7 +187,6 @@ where
 
         Population {
             individuals: individuals.into_iter().map(Member::from).collect(),
-            is_sorted: false,
         }
     }
 }
@@ -251,7 +215,10 @@ impl<C: Chromosome> Member<C> {
         self.cell.get_mut()
     }
 
-    pub fn into_inner(self) -> Phenotype<C> {
+    pub fn into_inner(self) -> Phenotype<C>
+    where
+        C: Clone,
+    {
         self.cell.into_inner()
     }
 
@@ -266,7 +233,7 @@ impl<C: Chromosome + Debug> Debug for Member<C> {
     }
 }
 
-impl<C: Chromosome> PartialOrd for Member<C> {
+impl<C: Chromosome + PartialEq> PartialOrd for Member<C> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.get().partial_cmp(other.get())
     }
@@ -292,7 +259,7 @@ unsafe impl<C: Chromosome> Sync for Member<C> {}
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{Score, char::CharChromosome, float::FloatChromosome, objectives::Optimize};
+    use crate::{CharChromosome, FloatChromosome, Score, objectives::Optimize};
 
     #[test]
     fn test_new() {

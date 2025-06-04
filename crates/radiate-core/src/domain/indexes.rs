@@ -190,9 +190,6 @@ fn index_of(a: &[usize], start: usize, value: usize) -> Option<usize> {
 }
 
 fn check_subset(n: usize, k: usize) {
-    if k <= 0 {
-        panic!("Subset size smaller or equal to zero: {}", k);
-    }
     if n < k {
         panic!("n smaller than k: {} < {}.", n, k);
     }

@@ -1,5 +1,6 @@
 use radiate_core::{AlterResult, ArithmeticGene, Chromosome, Crossover, random_provider};
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct BlendCrossover {
     rate: f32,
     alpha: f32,

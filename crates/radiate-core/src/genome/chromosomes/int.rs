@@ -3,6 +3,8 @@ use super::{
     gene::{ArithmeticGene, Gene, Valid},
 };
 use crate::random_provider;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::ops::{Add, Bound, Div, Mul, Range, RangeBounds, Sub};
 
 /// A [`Gene`] that represents an integer value. This gene just wraps an integer value and provides
@@ -38,11 +40,23 @@ use std::ops::{Add, Bound, Div, Mul, Range, RangeBounds, Sub};
 /// # Type Parameters
 /// - `T`: The type of integer used in the gene.
 ///
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Default, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct IntGene<T: Integer<T>> {
     pub allele: T,
     pub value_range: Range<T>,
     pub bounds: Range<T>,
+}
+
+impl<T: Integer<T>> IntGene<T> {
+    /// Create a new [`IntGene`] with the given allele, value range and bounds.
+    pub fn new(allele: T, value_range: Range<T>, bounds: Range<T>) -> Self {
+        IntGene {
+            allele,
+            value_range,
+            bounds,
+        }
+    }
 }
 
 /// Implement the [`Gene`] trait for [`IntGene`]. This allows the [`IntGene`] to be used in a genetic algorithm.
@@ -207,7 +221,7 @@ impl<T: Integer<T>> From<(Range<T>, Range<T>)> for IntGene<T> {
     }
 }
 
-impl<T: Integer<T>> std::fmt::Debug for IntGene<T> {
+impl<T: Integer<T>> std::fmt::Display for IntGene<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.allele)
     }
@@ -239,6 +253,7 @@ impl<T: Integer<T>> std::fmt::Debug for IntGene<T> {
 /// assert!(chromosome.is_valid());
 ///
 #[derive(Clone, PartialEq, Default, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct IntChromosome<I: Integer<I>> {
     pub genes: Vec<IntGene<I>>,
 }
@@ -251,6 +266,14 @@ impl<I: Integer<I>> IntChromosome<I> {
 
 impl<I: Integer<I>> Chromosome for IntChromosome<I> {
     type Gene = IntGene<I>;
+
+    fn genes(&self) -> &[Self::Gene] {
+        &self.genes
+    }
+
+    fn genes_mut(&mut self) -> &mut [Self::Gene] {
+        &mut self.genes
+    }
 }
 
 impl<T: Integer<T>> Valid for IntChromosome<T> {
@@ -259,15 +282,9 @@ impl<T: Integer<T>> Valid for IntChromosome<T> {
     }
 }
 
-impl<T: Integer<T>> AsRef<[IntGene<T>]> for IntChromosome<T> {
-    fn as_ref(&self) -> &[IntGene<T>] {
-        &self.genes
-    }
-}
-
-impl<T: Integer<T>> AsMut<[IntGene<T>]> for IntChromosome<T> {
-    fn as_mut(&mut self) -> &mut [IntGene<T>] {
-        &mut self.genes
+impl<T: Integer<T>> From<Vec<IntGene<T>>> for IntChromosome<T> {
+    fn from(genes: Vec<IntGene<T>>) -> Self {
+        IntChromosome { genes }
     }
 }
 

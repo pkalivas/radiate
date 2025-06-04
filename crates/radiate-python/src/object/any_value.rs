@@ -1,57 +1,61 @@
 use super::{DataType, Field};
+use std::fmt::Debug;
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Clone, Default, Debug)]
 pub enum AnyValue<'a> {
     #[default]
     Null,
-    /// A binary true or false.
-    Boolean(bool),
-    /// A UTF8 encoded string type.
-    String(&'a str),
-    /// An unsigned 8-bit integer number.
+    Bool(bool),
     UInt8(u8),
-    /// An unsigned 16-bit integer number.
     UInt16(u16),
-    /// An unsigned 32-bit integer number.
     UInt32(u32),
-    /// An unsigned 64-bit integer number.
     UInt64(u64),
-    /// An 8-bit integer number.
     Int8(i8),
-    /// A 16-bit integer number.
     Int16(i16),
-    /// A 32-bit integer number.
     Int32(i32),
-    /// A 64-bit integer number.
     Int64(i64),
-    /// A 128-bit integer number.
     Int128(i128),
-    /// A 32-bit floating point number.
     Float32(f32),
-    /// A 64-bit floating point number.
     Float64(f64),
-
+    Binary(Vec<u8>),
     Char(char),
-
-    Slice(&'a [AnyValue<'a>], &'a Field),
-
-    VecOwned(Box<(Vec<AnyValue<'a>>, Field)>),
-
-    StringOwned(String),
-
-    Binary(&'a [u8]),
-
-    BinaryOwned(Vec<u8>),
-
-    StructOwned(Box<(Vec<AnyValue<'a>>, Vec<Field>)>),
+    Str(&'a str),
+    StrOwned(String),
+    Vec(Box<Vec<AnyValue<'a>>>),
+    Struct(Vec<(AnyValue<'a>, Field)>),
 }
 
 impl<'a> AnyValue<'a> {
+    pub fn is_null(&self) -> bool {
+        matches!(self, Self::Null)
+    }
+
+    pub fn is_boolean(&self) -> bool {
+        matches!(self, Self::Bool(_))
+    }
+
+    pub fn is_numeric(&self) -> bool {
+        matches!(
+            self,
+            Self::UInt8(_)
+                | Self::UInt16(_)
+                | Self::UInt32(_)
+                | Self::UInt64(_)
+                | Self::Int8(_)
+                | Self::Int16(_)
+                | Self::Int32(_)
+                | Self::Int64(_)
+                | Self::Int128(_)
+                | Self::Float32(_)
+                | Self::Float64(_)
+        )
+    }
+
     pub fn type_name(&self) -> &'static str {
         match self {
             Self::Null => "null",
-            Self::Boolean(_) => "bool",
-            Self::String(_) => "string",
+            Self::Bool(_) => "bool",
+            Self::Str(_) => "string",
             Self::UInt8(_) => "u8",
             Self::UInt16(_) => "u16",
             Self::UInt32(_) => "u32",
@@ -64,20 +68,18 @@ impl<'a> AnyValue<'a> {
             Self::Float32(_) => "f32",
             Self::Float64(_) => "f64",
             Self::Char(_) => "char",
-            Self::Slice(_, _) => "list",
-            Self::VecOwned(_) => "list",
-            Self::StringOwned(_) => "string",
+            Self::Vec(_) => "list",
+            Self::StrOwned(_) => "string",
             Self::Binary(_) => "binary",
-            Self::BinaryOwned(_) => "binary",
-            Self::StructOwned(_) => "struct",
+            Self::Struct(_) => "struct",
         }
     }
 
     pub fn dtype(&self) -> DataType {
         match self {
             Self::Null => DataType::Null,
-            Self::Boolean(_) => DataType::Boolean,
-            Self::String(_) => DataType::Utf8,
+            Self::Bool(_) => DataType::Boolean,
+            Self::Str(_) => DataType::StringView,
             Self::UInt8(_) => DataType::UInt8,
             Self::UInt16(_) => DataType::UInt16,
             Self::UInt32(_) => DataType::UInt32,
@@ -90,13 +92,15 @@ impl<'a> AnyValue<'a> {
             Self::Float32(_) => DataType::Float32,
             Self::Float64(_) => DataType::Float64,
             Self::Char(_) => DataType::Char,
-            Self::Slice(_, flds) => DataType::List(Box::new((*flds).clone())),
-            Self::VecOwned(vals) => DataType::List(Box::new(Field::new(
-                vals.1.name().clone(),
-                vals.1.dtype().clone(),
-            ))),
-            Self::StringOwned(_) | Self::BinaryOwned(_) | Self::Binary(_) => DataType::Binary,
-            Self::StructOwned(vals) => DataType::Struct(vals.1.iter().cloned().collect::<Vec<_>>()),
+            Self::Vec(_) => DataType::Vec,
+            Self::StrOwned(_) => DataType::String,
+            Self::Binary(_) => DataType::BinaryView,
+            Self::Struct(fields) => DataType::Struct(
+                fields
+                    .iter()
+                    .map(|(_, field)| field.clone())
+                    .collect::<Vec<_>>(),
+            ),
         }
     }
 
@@ -116,26 +120,58 @@ impl<'a> AnyValue<'a> {
             UInt16(v) => UInt16(v),
             UInt32(v) => UInt32(v),
             UInt64(v) => UInt64(v),
-            Boolean(v) => Boolean(v),
+            Bool(v) => Bool(v),
             Float32(v) => Float32(v),
             Float64(v) => Float64(v),
             Char(v) => Char(v),
-            String(v) => StringOwned(v.to_string()),
-            Slice(v, f) => VecOwned(Box::new((
+            Str(v) => StrOwned(v.to_string()),
+            Vec(v) => Vec(Box::new(
                 v.iter().cloned().map(AnyValue::into_static).collect(),
-                f.clone(),
-            ))),
-            VecOwned(v) => VecOwned(Box::new((
-                v.0.iter().cloned().map(AnyValue::into_static).collect(),
-                v.1.clone(),
-            ))),
-            StringOwned(v) => StringOwned(v),
-            Binary(v) => BinaryOwned(v.to_vec()),
-            BinaryOwned(v) => BinaryOwned(v),
-            StructOwned(v) => StructOwned(Box::new((
-                v.0.iter().cloned().map(AnyValue::into_static).collect(),
-                v.1.iter().cloned().collect(),
-            ))),
+            )),
+            StrOwned(v) => StrOwned(v),
+            Binary(v) => Binary(v),
+            Struct(v) => Struct(
+                v.into_iter()
+                    .map(|(val, field)| (val.into_static(), field))
+                    .collect(),
+            ),
+        }
+    }
+}
+
+impl<'a> PartialEq for AnyValue<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        use AnyValue::*;
+        match (self, other) {
+            (Null, Null) => true,
+            (Bool(a), Bool(b)) => a == b,
+            (UInt8(a), UInt8(b)) => a == b,
+            (UInt16(a), UInt16(b)) => a == b,
+            (UInt32(a), UInt32(b)) => a == b,
+            (UInt64(a), UInt64(b)) => a == b,
+            (Int8(a), Int8(b)) => a == b,
+            (Int16(a), Int16(b)) => a == b,
+            (Int32(a), Int32(b)) => a == b,
+            (Int64(a), Int64(b)) => a == b,
+            (Int128(a), Int128(b)) => a == b,
+            (Float32(a), Float32(b)) => a == b,
+            (Float64(a), Float64(b)) => a == b,
+            (Char(a), Char(b)) => a == b,
+            (Str(a), Str(b)) => a == b,
+            (StrOwned(a), StrOwned(b)) => a == b,
+            (Binary(a), Binary(b)) => a == b,
+            (Vec(a), Vec(b)) if a.len() == b.len() => a.iter().zip(b.iter()).all(|(x, y)| x == y),
+            (Struct(a), Struct(b))
+                if a.len() == b.len()
+                    && a.iter()
+                        .map(|(_, f)| f.name())
+                        .eq(b.iter().map(|(_, f)| f.name())) =>
+            {
+                a.iter()
+                    .zip(b.iter())
+                    .all(|((v1, f1), (v2, f2))| f1.name() == f2.name() && v1 == v2)
+            }
+            _ => false,
         }
     }
 }
@@ -145,13 +181,7 @@ where
     T: Into<AnyValue<'a>>,
 {
     fn from(value: Vec<T>) -> Self {
-        Self::VecOwned(Box::new((
-            value.into_iter().map(Into::into).collect(),
-            Field::new(
-                std::any::type_name::<Vec<T>>().to_string(),
-                DataType::List(Box::new(Field::new("item".to_string(), DataType::Null))),
-            ),
-        )))
+        Self::Vec(Box::new(value.into_iter().map(Into::into).collect()))
     }
 }
 
@@ -168,7 +198,7 @@ macro_rules! impl_from {
 }
 
 impl_from!(
-    bool => Boolean,
+    bool => Bool,
     u8 => UInt8,
     u16 => UInt16,
     u32 => UInt32,
@@ -180,8 +210,7 @@ impl_from!(
     i128 => Int128,
     f32 => Float32,
     f64 => Float64,
-    String => StringOwned,
+    String => StrOwned,
     char => Char,
-    &'a str => String,
-
+    &'a str => Str,
 );

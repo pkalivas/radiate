@@ -1,18 +1,30 @@
-from typing import Dict
-from .param import EngineParam
+from radiate.radiate import PyLimit
 
 
-class Limit(EngineParam):
-    def __init__(self, name: str, args: Dict[str, any] = None):
+class LimitBase:
+    def __init__(self, limit: PyLimit):
         """
-        Initialize the limit.
-        :param name: Name of the limit.
-        :param args: Arguments for the limit.
+        Initialize the limit base with a Limit instance.
+        :param limit: An instance of Limit.
         """
-        super().__init__(name=name, args=args)
+        self.limit = limit
+
+    def __str__(self):
+        """
+        Return a string representation of the limit.
+        :return: String representation of the limit.
+        """
+        return f"Limit(name={self.limit.name}, args={self.limit.args})"
+
+    def __repr__(self):
+        """
+        Return a detailed string representation of the limit.
+        :return: Detailed string representation of the limit.
+        """
+        return f"LimitBase(limit={self.limit})"
 
 
-class SecondsLimit(Limit):
+class SecondsLimit(LimitBase):
     """
     Limit the execution time of the engine.
     """
@@ -22,10 +34,10 @@ class SecondsLimit(Limit):
         Initialize the seconds limit.
         :param seconds: Number of seconds to limit the execution time.
         """
-        super().__init__(name="seconds", args={"seconds": str(seconds)})
+        super().__init__(limit=PyLimit.Seconds(seconds))
 
 
-class ScoreLimit(Limit):
+class ScoreLimit(LimitBase):
     """
     Limit the score of the engine.
     """
@@ -35,10 +47,10 @@ class ScoreLimit(Limit):
         Initialize the score limit.
         :param score: Score to limit the execution time.
         """
-        super().__init__(name="score", args={"score": str(score)})
+        super().__init__(limit=PyLimit.Score(score))
 
 
-class GenerationsLimit(Limit):
+class GenerationsLimit(LimitBase):
     """
     Limit the number of generations of the engine.
     """
@@ -48,4 +60,4 @@ class GenerationsLimit(Limit):
         Initialize the generations limit.
         :param generations: Number of generations to limit the execution time.
         """
-        super().__init__(name="generations", args={"generations": str(generations)})
+        super().__init__(limit=PyLimit.Generation(generations))

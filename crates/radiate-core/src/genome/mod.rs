@@ -5,9 +5,13 @@ pub mod phenotype;
 pub mod population;
 pub mod species;
 
-pub use chromosomes::*;
-pub use ecosystem::*;
-pub use genotype::*;
-pub use phenotype::*;
-pub use population::*;
-pub use species::*;
+pub use chromosomes::{
+    ArithmeticGene, BitChromosome, BitGene, CharChromosome, CharGene, Chromosome, FloatChromosome,
+    FloatGene, Gene, IntChromosome, IntGene, Integer, PermutationChromosome, PermutationGene,
+    Valid,
+};
+pub use ecosystem::Ecosystem;
+pub use genotype::Genotype;
+pub use phenotype::Phenotype;
+pub use population::{Member, Population};
+pub use species::Species;

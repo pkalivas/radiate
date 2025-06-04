@@ -89,5 +89,14 @@ impl<C: Chromosome> From<Vec<C>> for Genotype<C> {
     }
 }
 
+impl<C: Chromosome> IntoIterator for Genotype<C> {
+    type Item = C;
+    type IntoIter = std::vec::IntoIter<C>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.chromosomes.into_iter()
+    }
+}
+
 unsafe impl<C: Chromosome> Send for Genotype<C> {}
 unsafe impl<C: Chromosome> Sync for Genotype<C> {}

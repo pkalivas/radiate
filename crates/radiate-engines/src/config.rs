@@ -1,6 +1,5 @@
-use radiate_core::{Diversity, Genotype};
+use radiate_core::{Diversity, Executor, Genotype};
 
-use super::thread_pool::ThreadPool;
 use super::{Alter, Audit, Front, Problem, ReplacementStrategy, Select};
 use crate::Chromosome;
 use crate::genome::phenotype::Phenotype;
@@ -10,7 +9,7 @@ use crate::steps::Evaluator;
 use std::sync::{Arc, RwLock};
 
 #[derive(Clone)]
-pub struct EngineConfig<C: Chromosome, T> {
+pub(crate) struct EngineConfig<C: Chromosome, T> {
     pub(crate) population: Population<C>,
     pub(crate) problem: Arc<dyn Problem<C, T>>,
     pub(crate) survivor_selector: Arc<dyn Select<C>>,
@@ -22,20 +21,16 @@ pub struct EngineConfig<C: Chromosome, T> {
     pub(crate) diversity: Option<Arc<dyn Diversity<C>>>,
     pub(crate) evaluator: Arc<dyn Evaluator<C, T>>,
     pub(crate) objective: Objective,
-    pub(crate) thread_pool: Arc<ThreadPool>,
     pub(crate) max_age: usize,
     pub(crate) max_species_age: usize,
     pub(crate) front: Arc<RwLock<Front<Phenotype<C>>>>,
     pub(crate) offspring_fraction: f32,
+    pub(crate) executor: Arc<Executor>,
 }
 
 impl<C: Chromosome, T> EngineConfig<C, T> {
     pub fn population(&self) -> &Population<C> {
         &self.population
-    }
-
-    pub fn problem(&self) -> Arc<dyn Problem<C, T>> {
-        Arc::clone(&self.problem)
     }
 
     pub fn survivor_selector(&self) -> Arc<dyn Select<C>> {
@@ -60,10 +55,6 @@ impl<C: Chromosome, T> EngineConfig<C, T> {
 
     pub fn objective(&self) -> Objective {
         self.objective.clone()
-    }
-
-    pub fn thread_pool(&self) -> Arc<ThreadPool> {
-        Arc::clone(&self.thread_pool)
     }
 
     pub fn max_age(&self) -> usize {
@@ -94,6 +85,10 @@ impl<C: Chromosome, T> EngineConfig<C, T> {
         (self.population.len() as f32 * self.offspring_fraction) as usize
     }
 
+    pub fn executor(&self) -> Arc<Executor> {
+        Arc::clone(&self.executor)
+    }
+
     pub fn encoder(&self) -> Arc<dyn Fn() -> Genotype<C> + Send + Sync>
     where
         C: 'static,
@@ -101,13 +96,5 @@ impl<C: Chromosome, T> EngineConfig<C, T> {
     {
         let problem = Arc::clone(&self.problem);
         Arc::new(move || problem.encode())
-    }
-
-    pub fn evaluator(&self) -> Arc<dyn Evaluator<C, T>>
-    where
-        C: 'static,
-        T: Send + Sync + 'static,
-    {
-        Arc::clone(&self.evaluator)
     }
 }

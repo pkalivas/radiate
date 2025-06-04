@@ -27,7 +27,10 @@ pub struct Species<C: Chromosome> {
 }
 
 impl<C: Chromosome> Species<C> {
-    pub fn new(generation: usize, initial: &Phenotype<C>) -> Self {
+    pub fn new(generation: usize, initial: &Phenotype<C>) -> Self
+    where
+        C: Clone,
+    {
         Species {
             id: SpeciesId::new(),
             generation,
@@ -42,8 +45,11 @@ impl<C: Chromosome> Species<C> {
         self.id
     }
 
-    pub fn push(&mut self, individual: &Phenotype<C>) {
-        self.population.push(individual.clone());
+    pub fn push(&mut self, individual: Phenotype<C>)
+    where
+        C: Clone,
+    {
+        self.population.push(individual);
     }
 
     pub fn stagnation(&self) -> usize {
@@ -66,7 +72,10 @@ impl<C: Chromosome> Species<C> {
         current - self.generation
     }
 
-    pub fn update_score(&mut self, score: Score, objective: &Objective) {
+    pub fn update_score(&mut self, score: Score, objective: &Objective)
+    where
+        C: PartialEq,
+    {
         objective.sort(&mut self.population);
 
         self.score = Some(score);
@@ -81,7 +90,7 @@ impl<C: Chromosome> Scored for Species<C> {
     }
 }
 
-impl<C: Chromosome> PartialOrd for Species<C> {
+impl<C: Chromosome + PartialEq> PartialOrd for Species<C> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.score.as_ref().partial_cmp(&other.score.as_ref())
     }

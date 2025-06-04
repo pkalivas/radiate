@@ -58,6 +58,14 @@ where
     T: Clone + PartialEq,
 {
     type Gene = GraphNode<T>;
+
+    fn genes(&self) -> &[GraphNode<T>] {
+        &self.nodes
+    }
+
+    fn genes_mut(&mut self) -> &mut [GraphNode<T>] {
+        &mut self.nodes
+    }
 }
 
 impl<T> Valid for GraphChromosome<T> {

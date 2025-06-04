@@ -1,6 +1,7 @@
-use crate::Generation;
 use crate::builder::GeneticEngineBuilder;
-use crate::{Chromosome, EngineIterator, Pipeline};
+use crate::pipeline::Pipeline;
+use crate::{Chromosome, EngineEvent, EngineIterator};
+use crate::{EventBus, Generation};
 use radiate_core::engine::Context;
 use radiate_core::{Engine, Epoch, metric_names};
 
@@ -25,25 +26,24 @@ use radiate_core::{Engine, Epoch, metric_names};
 ///
 /// // Create a new instance of the genetic engine with the given codec.
 /// let mut engine = GeneticEngine::builder()
-///     .codec(codec) // Set the codec to be used for encoding and decoding individuals.
-///     .minimizing()  // Minimize the fitness function.
-///     .population_size(150) // Set the population size to 150 individuals.
-///     .max_age(15) // Set the maximum age of an individual to 15 generations before it is replaced with a new individual.
-///     .offspring_fraction(0.5) // Set the fraction of the population that will be replaced by offspring each generation.
-///     .num_threads(4) // Set the number of threads to use in the thread pool for parallel fitness evaluation.
-///     .offspring_selector(BoltzmannSelector::new(4_f32)) // Use boltzmann selection to select offspring.
-///     .survivor_selector(TournamentSelector::new(3)) // Use tournament selection to select survivors.
+///     .codec(codec)
+///     .minimizing()
+///     .population_size(150)
+///     .max_age(15)
+///     .offspring_fraction(0.5)
+///     .executor(Executor::worker_pool(8))
+///     .offspring_selector(BoltzmannSelector::new(4_f32))
+///     .survivor_selector(TournamentSelector::new(3))
 ///     .alter(alters![
-///         ArithmeticMutator::new(0.01), // Specific mutator for numeric values.
-///         MeanCrossover::new(0.5) // Specific crossover operation for numeric values.
+///         ArithmeticMutator::new(0.01),
+///         MeanCrossover::new(0.5)
 ///     ])
-///     .fitness_fn(|genotype: Vec<Vec<f32>>| { // Define the fitness function to be minimized.
-///         // Calculate the fitness score of the individual based on the decoded genotype.
+///     .fitness_fn(|genotype: Vec<Vec<f32>>| {
 ///         genotype.iter().fold(0.0, |acc, chromosome| {
 ///             acc + chromosome.iter().sum::<f32>()
 ///         })
 ///    })
-///   .build(); // Build the genetic engine.
+///   .build();
 ///
 /// // Run the genetic algorithm until the score of the best individual is 0, then return the result.
 /// let result = engine.run(|output| output.score().as_i32() == 0);
@@ -56,23 +56,30 @@ use radiate_core::{Engine, Epoch, metric_names};
 pub struct GeneticEngine<C, T, E = Generation<C, T>>
 where
     C: Chromosome,
+    T: Clone + Send + Sync + 'static,
     E: Epoch,
 {
     context: Context<C, T>,
     pipeline: Pipeline<C>,
+    bus: EventBus<EngineEvent<T>>,
     _epoch: std::marker::PhantomData<E>,
 }
 
 impl<C, T, E> GeneticEngine<C, T, E>
 where
     C: Chromosome,
-    T: Clone + Send,
+    T: Clone + Send + Sync + 'static,
     E: Epoch,
 {
-    pub fn new(context: Context<C, T>, pipeline: Pipeline<C>) -> Self {
+    pub(crate) fn new(
+        context: Context<C, T>,
+        pipeline: Pipeline<C>,
+        bus: EventBus<EngineEvent<T>>,
+    ) -> Self {
         GeneticEngine {
             context,
             pipeline,
+            bus,
             _epoch: std::marker::PhantomData,
         }
     }
@@ -84,10 +91,10 @@ where
 
 impl<C, T> GeneticEngine<C, T, Generation<C, T>>
 where
-    C: Chromosome,
-    T: Clone + Send,
+    C: Chromosome + Clone,
+    T: Clone + Send + Sync + 'static,
 {
-    pub fn builder() -> GeneticEngineBuilder<C, T> {
+    pub fn builder() -> GeneticEngineBuilder<C, T, Generation<C, T>> {
         GeneticEngineBuilder::default()
     }
 }
@@ -95,18 +102,21 @@ where
 impl<C, T, E> Engine for GeneticEngine<C, T, E>
 where
     C: Chromosome,
+    T: Clone + Send + Sync + 'static,
     E: Epoch<Chromosome = C> + for<'a> From<&'a Context<C, T>>,
 {
     type Chromosome = C;
     type Epoch = E;
 
     fn next(&mut self) -> Self::Epoch {
+        if matches!(self.context.index, 0) {
+            self.bus.emit(EngineEvent::start());
+        }
+
+        self.bus.emit(EngineEvent::epoch_start(&self.context));
+
         let timer = std::time::Instant::now();
-        self.pipeline.run(
-            self.context.index,
-            &mut self.context.metrics,
-            &mut self.context.ecosystem,
-        );
+        self.pipeline.run(&mut self.context, &self.bus);
 
         self.context
             .metrics
@@ -118,6 +128,7 @@ where
                 if self.context.objective.is_better(score, current) {
                     self.context.score = Some(score.clone());
                     self.context.best = self.context.problem.decode(best.genotype());
+                    self.bus.emit(EngineEvent::improvement(&self.context));
                 }
             } else {
                 self.context.score = Some(best.score().unwrap().clone());
@@ -125,8 +136,21 @@ where
             }
         }
 
+        self.bus.emit(EngineEvent::epoch_complete(&self.context));
+
         self.context.index += 1;
 
         E::from(&self.context)
+    }
+}
+
+impl<C, T, E> Drop for GeneticEngine<C, T, E>
+where
+    C: Chromosome,
+    T: Clone + Send + Sync + 'static,
+    E: Epoch,
+{
+    fn drop(&mut self) {
+        self.bus.emit(EngineEvent::stop(&self.context));
     }
 }

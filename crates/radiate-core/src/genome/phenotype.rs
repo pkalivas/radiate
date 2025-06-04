@@ -2,6 +2,7 @@ use super::{Valid, genotype::Genotype};
 use crate::objectives::Score;
 use crate::{Chromosome, objectives::Scored};
 use std::hash::Hash;
+use std::ops::Deref;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 /// A unique identifier for a `Phenotype`. This is used to identify the `Phenotype` in the population.
@@ -14,6 +15,14 @@ impl PhenotypeId {
     pub fn new() -> Self {
         static PHENOTYPE_ID: AtomicU64 = AtomicU64::new(0);
         PhenotypeId(PHENOTYPE_ID.fetch_add(1, Ordering::SeqCst))
+    }
+}
+
+impl Deref for PhenotypeId {
+    type Target = u64;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -125,7 +134,10 @@ impl<C: Chromosome> AsRef<[f32]> for Phenotype<C> {
 
 /// Implement the `PartialOrd` trait for the `Phenotype`. This allows the `Phenotype` to be compared
 /// with other `Phenotype` instances. The comparison is based on the `Score` (fitness) of the `Phenotype`.
-impl<C: Chromosome> PartialOrd for Phenotype<C> {
+impl<C> PartialOrd for Phenotype<C>
+where
+    C: Chromosome + PartialEq,
+{
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         let self_score = self.score();
         let other_score = other.score();
@@ -134,7 +146,7 @@ impl<C: Chromosome> PartialOrd for Phenotype<C> {
     }
 }
 
-impl<C: Chromosome> Eq for Phenotype<C> {}
+impl<C> Eq for Phenotype<C> where C: Chromosome + PartialEq {}
 
 impl<C: Chromosome> Hash for Phenotype<C> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

@@ -1,6 +1,6 @@
 use crate::{
+    Chromosome, Epoch, Executor, Phenotype,
     objectives::{Objective, pareto},
-    thread_pool::{ThreadPool, WaitGroup},
 };
 use std::{
     cmp::Ordering,
@@ -17,23 +17,23 @@ use std::{
 #[derive(Clone)]
 pub struct Front<T>
 where
-    T: PartialEq + Clone + AsRef<[f32]>,
+    T: AsRef<[f32]>,
 {
     values: Vec<Arc<T>>,
     ord: Arc<dyn Fn(&T, &T) -> Ordering + Send + Sync>,
     range: Range<usize>,
     objective: Objective,
-    thread_pool: Arc<ThreadPool>,
+    thread_pool: Arc<Executor>,
 }
 
 impl<T> Front<T>
 where
-    T: PartialEq + Clone + AsRef<[f32]>,
+    T: AsRef<[f32]>,
 {
     pub fn new<F>(
         range: Range<usize>,
         objective: Objective,
-        thread_pool: Arc<ThreadPool>,
+        thread_pool: Arc<Executor>,
         comp: F,
     ) -> Self
     where
@@ -64,13 +64,13 @@ where
     where
         T: Eq + Hash + Clone + Send + Sync + 'static,
     {
-        let wg = WaitGroup::new();
         let ord = Arc::clone(&self.ord);
         let values = Arc::new(RwLock::new(self.values.clone()));
         let dominating_values = Arc::new(RwLock::new(vec![false; items.len()]));
         let remove_values = Arc::new(RwLock::new(HashSet::new()));
         let values_to_add = Arc::new(RwLock::new(Vec::new()));
 
+        let mut jobs = Vec::new();
         for (idx, member) in items.iter().enumerate() {
             let ord_clone = Arc::clone(&ord);
             let values_clone = Arc::clone(&values);
@@ -79,7 +79,8 @@ where
             let new_member = member.clone();
             let values_to_add = Arc::clone(&values_to_add);
 
-            self.thread_pool.group_submit(&wg, move || {
+            // self.thread_pool.group_submit(&wg, move || {
+            jobs.push(move || {
                 let mut is_dominated = true;
 
                 for existing_val in values_clone.read().unwrap().iter() {
@@ -107,7 +108,9 @@ where
             });
         }
 
-        let count = wg.wait();
+        let count = jobs.len();
+
+        self.thread_pool.submit_batch(jobs);
 
         self.values
             .retain(|x| !remove_values.read().unwrap().contains(x));
@@ -134,5 +137,43 @@ where
             .take(self.range.end)
             .map(|(i, _)| Arc::clone(&self.values[*i]))
             .collect::<Vec<Arc<T>>>();
+    }
+}
+
+#[derive(Clone, Default)]
+pub struct ParetoFront<T> {
+    front: Vec<T>,
+}
+
+impl<T> ParetoFront<T> {
+    pub fn new() -> Self {
+        ParetoFront { front: Vec::new() }
+    }
+
+    pub fn add(&mut self, item: T) {
+        self.front.push(item);
+    }
+
+    pub fn values(&self) -> &[T] {
+        &self.front
+    }
+}
+
+impl<C, E> FromIterator<E> for ParetoFront<Phenotype<C>>
+where
+    C: Chromosome + Clone,
+    E: Epoch<Chromosome = C, Value = Front<Phenotype<C>>>,
+{
+    fn from_iter<I: IntoIterator<Item = E>>(iter: I) -> Self {
+        let mut result = ParetoFront::new();
+        let final_epoch = iter.into_iter().last();
+        if let Some(epoch) = final_epoch {
+            let front = epoch.value();
+            for value in front.values() {
+                result.add((*(*value)).clone());
+            }
+        }
+
+        result
     }
 }

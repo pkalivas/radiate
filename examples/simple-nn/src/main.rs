@@ -24,7 +24,7 @@ fn main() {
 
     let mut engine = GeneticEngine::builder()
         .minimizing()
-        .num_threads(5)
+        .executor(Executor::worker_pool(10))
         .codec(codec.clone())
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .crossover(IntermediateCrossover::new(0.75, 0.1))
@@ -124,7 +124,12 @@ impl Codec<FloatChromosome, NeuralNet> for NeuralNetCodec {
                     .iter()
                     .as_slice()
                     .chunks(self.shapes[i].1 as usize)
-                    .map(|chunk| chunk.iter().map(|gene| gene.allele).collect::<Vec<f32>>())
+                    .map(|chunk| {
+                        chunk
+                            .iter()
+                            .map(|gene| *gene.allele())
+                            .collect::<Vec<f32>>()
+                    })
                     .collect::<Vec<Vec<f32>>>(),
             );
         }

@@ -1,9 +1,9 @@
 use super::Codec;
-use crate::genome::gene::Gene;
+use crate::genome::Gene;
 use crate::genome::genotype::Genotype;
 use crate::{BitChromosome, BitGene, Chromosome};
 
-/// A `Codec` for a `Genotype` of `BitGenes`. The `encode` function creates a `Genotype` with `num_chromosomes` chromosomes
+/// A [Codec] for a `Genotype` of `BitGenes`. The `encode` function creates a `Genotype` with `num_chromosomes` chromosomes
 /// and `num_genes` genes per chromosome. The `decode` function creates a `Vec<Vec<bool>>` from the `Genotype` where the inner `Vec`
 /// contains the alleles of the `BitGenes` in the chromosome - the `bool` values.
 ///
@@ -16,7 +16,7 @@ use crate::{BitChromosome, BitGene, Chromosome};
 /// // The number of bits (`BitGenes`) in the bit string
 /// let length = 10;
 ///
-/// // Create a new `BitCodec` with a single chromosome and `length` genes
+/// // Create a new matrix `BitCodec` with a single chromosome and `length` genes
 /// let codec = BitCodec::matrix(1, length);
 ///
 /// // Create a new `Genotype` of `BitGenes` with a single chromosome and `length` genes

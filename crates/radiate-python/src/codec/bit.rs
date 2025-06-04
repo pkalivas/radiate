@@ -1,10 +1,10 @@
 use super::PyCodec;
-use crate::conversion::ObjectValue;
+use crate::ObjectValue;
 use pyo3::{
     pyclass, pymethods,
     types::{PyList, PyListMethods},
 };
-use radiate::{BitChromosome, Chromosome, Gene};
+use radiate::{BitChromosome, Chromosome, Gene, Genotype};
 
 #[pyclass]
 #[derive(Clone)]
@@ -14,9 +14,9 @@ pub struct PyBitCodec {
 
 #[pymethods]
 impl PyBitCodec {
-    #[new]
+    #[staticmethod]
     #[pyo3(signature = (chromosome_lengths=None))]
-    pub fn new(chromosome_lengths: Option<Vec<usize>>) -> Self {
+    pub fn matrix(chromosome_lengths: Option<Vec<usize>>) -> Self {
         let lengths = chromosome_lengths.unwrap_or(vec![1]);
 
         PyBitCodec {
@@ -36,6 +36,29 @@ impl PyBitCodec {
                             inner.append(*gene.allele()).unwrap();
                         }
                         outer.append(inner).unwrap();
+                    }
+
+                    ObjectValue {
+                        inner: outer.unbind().into_any(),
+                    }
+                }),
+        }
+    }
+
+    #[staticmethod]
+    #[pyo3(signature = (chromosome_length=1))]
+    pub fn vector(chromosome_length: Option<usize>) -> Self {
+        let length = chromosome_length.unwrap_or(1);
+
+        PyBitCodec {
+            codec: PyCodec::new()
+                .with_encoder(move || Genotype::from(vec![BitChromosome::new(length)]))
+                .with_decoder(|py, geno| {
+                    let outer = PyList::empty(py);
+                    for chrom in geno.iter() {
+                        for gene in chrom.iter() {
+                            outer.append(*gene.allele()).unwrap();
+                        }
                     }
 
                     ObjectValue {
