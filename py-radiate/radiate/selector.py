@@ -44,7 +44,7 @@ class RouletteSelector(SelectorBase):
 
 
 class RankSelector(SelectorBase):
-    def __init__(self): 
+    def __init__(self):
         """
         Initialize the rank selector.
         """

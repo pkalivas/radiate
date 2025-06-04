@@ -216,7 +216,7 @@ impl From<f32> for FloatGene {
 
 impl From<Range<f32>> for FloatGene {
     fn from(range: Range<f32>) -> Self {
-        let (min, max) = (range.start.min(MIN), range.end.max(MAX));
+        let (min, max) = (range.start.max(MIN), range.end.min(MAX));
 
         FloatGene {
             allele: random_provider::range(range),

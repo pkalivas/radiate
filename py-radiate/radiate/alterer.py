@@ -1,6 +1,6 @@
 from radiate.radiate import PyAlterer
 from .genome import Genotype, Chromosome, Population, Phenotype, Gene
-from typing import List, Tuple, Union
+from typing import List
 
 
 class AlterBase:
@@ -37,11 +37,14 @@ class AlterBase:
             )
         elif all(isinstance(geno, Genotype) for geno in population):
             phenotypes = [
-                Phenotype(genotype=genotype.genotype()) for genotype in population_to_alter
+                Phenotype(genotype=genotype.genotype())
+                for genotype in population_to_alter
             ]
             population_to_alter = Population(phenotypes)
         elif all(isinstance(chromo, Chromosome) for chromo in population):
-            genotypes = [Genotype(chromosomes=[chromo]) for chromo in population_to_alter]
+            genotypes = [
+                Genotype(chromosomes=[chromo]) for chromo in population_to_alter
+            ]
             phenotypes = [Phenotype(genotype=genotype) for genotype in genotypes]
             population_to_alter = Population(phenotypes)
         elif all(isinstance(gene, Gene) for gene in population):
@@ -55,7 +58,7 @@ class AlterBase:
             raise TypeError(
                 f"Expected a Population, list of Phenotypes, Genotypes, Chromosomes, or Genes, got {type(population)}"
             )
-        
+
         altered_population = self.alterer.alter(population_to_alter.py_population())
         return Population(altered_population)
 

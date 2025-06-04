@@ -3,16 +3,17 @@ from typing import Callable, Any
 
 from radiate.radiate import PySubscriber
 
+
 class EventHandler(abc.ABC):
     """
     Base class for event handlers.
-    """       
+    """
+
     def __call__(self, event: Any) -> None:
         """
         Call the handler with the event.
         """
         self.on_event(event)
-
 
     @abc.abstractmethod
     def on_event(self, event: Any) -> None:
@@ -20,7 +21,6 @@ class EventHandler(abc.ABC):
         Handle the event.
         """
         pass
-
 
 
 class OnEpochCompleteHandler(EventHandler):
@@ -42,5 +42,3 @@ class OnEpochCompleteHandler(EventHandler):
         :param event: The event data.
         """
         self.callback(event)
-
-

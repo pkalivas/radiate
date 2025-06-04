@@ -42,7 +42,7 @@ class Population:
         :return: The PyPopulation instance associated with this Population.
         """
         return self.__inner
-    
+
     def phenotypes(self) -> List[Phenotype]:
         """
         Returns the phenotypes in the population.
@@ -73,15 +73,14 @@ class Phenotype:
 
     def __repr__(self):
         return f"Phenotype(genotype={self.__inner})"
-    
+
     def __len__(self):
         """
         Returns the length of the phenotype.
         :return: Length of the phenotype.
         """
         return len(self.__inner.genotype.chromosomes)
-    
-    
+
     def py_phenotype(self) -> PyPhenotype:
         """
         Returns the underlying PyPhenotype instance.
@@ -143,20 +142,22 @@ class Genotype:
         :return: Length of the genotype.
         """
         return len(self.__inner.chromosomes)
-    
+
     def py_genotype(self) -> PyGenotype:
         """
         Returns the underlying PyGenotype instance.
         :return: The PyGenotype instance associated with this Genotype.
         """
         return self.__inner
-    
+
     def chromosomes(self) -> List[Chromosome]:
         """
         Returns the chromosomes of the genotype.
         :return: A list of Chromosome instances.
         """
-        return [Chromosome(chromosome=chromosome) for chromosome in self.__inner.chromosomes]
+        return [
+            Chromosome(chromosome=chromosome) for chromosome in self.__inner.chromosomes
+        ]
 
 
 class Chromosome:
@@ -204,14 +205,14 @@ class Chromosome:
         :return: Length of the chromosome.
         """
         return len(self.__inner.genes)
-    
+
     def py_chromosome(self) -> PyChromosome:
         """
         Returns the underlying PyChromosome instance.
         :return: The PyChromosome instance associated with this Chromosome.
         """
         return self.__inner
-    
+
     def genes(self) -> List[Gene]:
         """
         Returns the genes of the chromosome.
@@ -271,7 +272,6 @@ class Gene:
         :return: Hash of the Gene instance.
         """
         return hash(self.__inner)
-
 
     def py_gene(self) -> PyGene:
         """

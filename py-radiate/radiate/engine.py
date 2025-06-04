@@ -7,11 +7,7 @@ from .limit import LimitBase
 from .generation import Generation
 
 
-from radiate.radiate import (
-    PyEngineBuilder,
-    PyObjective,
-    PySubscriber
-)
+from radiate.radiate import PyEngineBuilder, PyObjective, PySubscriber
 
 
 class GeneticEngine:
@@ -34,7 +30,7 @@ class GeneticEngine:
         max_phenotype_age: int = 20,
         max_species_age: int = 20,
         species_threshold: float = 1.5,
-        objectives: str | List[str] = ['min'],
+        objectives: str | List[str] = ["min"],
         num_threads: int = 1,
         front_range: Tuple[int, int] | None = (800, 900),
     ):
@@ -63,7 +59,7 @@ class GeneticEngine:
             max_phenotype_age=max_phenotype_age,
             max_species_age=max_species_age,
             species_threshold=species_threshold,
-            alters= alters,
+            alters=alters,
             offspring_selector=offspring_selector,
             survivor_selector=survivor_selector,
         )
@@ -74,7 +70,7 @@ class GeneticEngine:
         """Run the engine with the given limits."""
         if limits is not None:
             self.limits(limits)
-        
+
         self.engine = self.builder.build()
         return Generation(self.engine.run(log=log))
 
@@ -142,10 +138,10 @@ class GeneticEngine:
     ):
         """Set the objectives for a multiobjective problem"""
         if not isinstance(objectives, list) or not all(
-            obj in ['min', 'max'] for obj in objectives
+            obj in ["min", "max"] for obj in objectives
         ):
             raise ValueError("Objectives must be a list of 'min' or 'max'.")
-        
+
         self.builder.set_objective(self.__get_objectives(objectives))
         self.builder.set_front_range(self.__get_front_range(front_range))
 
@@ -155,12 +151,16 @@ class GeneticEngine:
             raise ValueError("Number of threads must be greater than 0.")
         self.builder.set_num_threads(num_threads)
 
-    def subscribe(self, event_handler: List[Callable[[Any], None]] | Callable[[Any], None]):
+    def subscribe(
+        self, event_handler: List[Callable[[Any], None]] | Callable[[Any], None]
+    ):
         """Register an event handler."""
         if callable(event_handler):
             self.builder.set_subscribers([PySubscriber(event_handler)])
         elif all(callable(handler) for handler in event_handler):
-            self.builder.set_subscribers([PySubscriber(handler) for handler in event_handler])
+            self.builder.set_subscribers(
+                [PySubscriber(handler) for handler in event_handler]
+            )
         else:
             raise TypeError("Event handler must be a callable or a list of callables.")
 
@@ -181,12 +181,12 @@ class GeneticEngine:
         if objectives is None:
             raise ValueError("Objectives must be provided.")
         if isinstance(objectives, str):
-            if objectives not in ['min', 'max']:
+            if objectives not in ["min", "max"]:
                 raise ValueError("Objectives must be 'min' or 'max'.")
             return PyObjective([objectives])
         if isinstance(objectives, list):
             for obj in objectives:
-                if obj not in ['min', 'max']:
+                if obj not in ["min", "max"]:
                     raise ValueError("Objectives must be 'min' or 'max'.")
             return PyObjective.multi(objectives)
         raise TypeError(f"Objectives type {type(objectives)} is not supported.")
@@ -214,13 +214,13 @@ class GeneticEngine:
 
     def __repr__(self):
         if self.engine is None:
-            return f'{self.builder.__repr__()}'
-        return f'{self.engine.__repr__()}'
-    
+            return f"{self.builder.__repr__()}"
+        return f"{self.engine.__repr__()}"
 
     def __get_codec(self, codec: CodecBase | Callable[[], List[Any]]) -> Any:
         """Get the codec."""
         from .codec import FloatCodec, IntCodec, CharCodec, BitCodec
+
         if isinstance(codec, FloatCodec):
             return codec.codec
         if isinstance(codec, IntCodec):
@@ -229,7 +229,7 @@ class GeneticEngine:
             return codec.codec
         if isinstance(codec, BitCodec):
             return codec.codec
-  
+
         else:
             raise TypeError(
                 f"Codec type {type(codec)} is not supported. "

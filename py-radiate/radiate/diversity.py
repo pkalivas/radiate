@@ -1,6 +1,5 @@
-
-
 from radiate.radiate import PyDiversity
+
 
 class Diversity:
     """
@@ -27,7 +26,7 @@ class Diversity:
         :return: Detailed string representation of the diversity parameter.
         """
         return f"Diversity(diversity={self.diversity})"
-    
+
 
 class HammingDistance(Diversity):
     """

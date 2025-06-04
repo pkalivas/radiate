@@ -1,8 +1,7 @@
 use super::{PyObjective, subscriber::PySubscriber};
 use crate::{
-    FreeThreadPyEvaluator, ObjectValue, PyBitCodec, PyCharCodec, PyFloatCodec, PyGeneType,
-    PyGeneration, PyIntCodec, PyLimit, PyProblem, codec::PyCodec, conversion::Wrap,
-    events::PyEventHandler,
+    ObjectValue, PyBitCodec, PyCharCodec, PyFloatCodec, PyGeneType, PyGeneration, PyIntCodec,
+    PyLimit, PyProblem, codec::PyCodec, conversion::Wrap, events::PyEventHandler,
 };
 use pyo3::{
     Bound, FromPyObject, IntoPyObjectExt, Py, PyAny, PyErr, PyResult, Python,
