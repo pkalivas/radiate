@@ -1,10 +1,16 @@
 from typing import List
-
 from .codec import CodecBase
 from radiate.radiate import PyCharCodec
 
+
 class CharCodec(CodecBase):
-    def __init__(self, chromosomes: List[int], char_set: str | List[str] = None):
+    def __init__(self, codec: PyCharCodec):
+        if not isinstance(codec, PyCharCodec):
+            raise TypeError("codec must be an instance of PyCharCodec.")
+        self.codec = codec
+
+    @staticmethod
+    def matrix(chromosomes: List[int], char_set: str | List[str] = None):
         """
         Initialize the char codec with number of chromosomes and value bounds.
         :param chromosomes: Number of chromosomes with the number of genes in each chromosome.
@@ -21,7 +27,13 @@ class CharCodec(CodecBase):
                         "Character set must be a string or list of single-character strings."
                     )
 
-        self.codec = PyCharCodec(
-            chromosome_lengths=chromosomes,
-            char_set="".join(set(char_set)) if char_set else None,
-        )
+        return CharCodec(PyCharCodec.matrix(chromosomes, char_set))
+
+    @staticmethod
+    def vector(length: int, char_set: str | List[str] = None):
+        """
+        Initialize the char codec with a single chromosome of specified length.
+        :param length: Length of the chromosome.
+        :param char_set: Character set to use for encoding.
+        """
+        return CharCodec(PyCharCodec.vector(length, char_set))

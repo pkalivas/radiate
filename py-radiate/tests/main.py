@@ -63,44 +63,25 @@ print(result)
 #     print()
 
 
-# from radiate import PyAnyCodec
-
-# codec = PyAnyCodec()
-
-# # Create a chromosome from any Python object
-# genotype = codec.encode({
-#     "numbers": [1, 2, 3],
-#     "text": "hello",
-#     "nested": {"key": [True, False]}
-# })
-
-# # The genotype can be safely passed between threads
-# # When decoded, it will be converted back to Python objects
-# value = codec.decode(genotype)
 
 
-# for i in population:
-#     print(i)
+target = "Hello, Radiate!"
 
 
-# target = "Hello, Radiate!"
+def fitness_func(x):
+    return sum(1 for i in range(len(target)) if x[i] == target[i])
 
 
-# def fitness_func(x):
-#     return sum(1 for i in range(len(target)) if x[0][i] == target[i])
+engine = rd.GeneticEngine(
+    codec=rd.CharCodec.vector(len(target)),
+    fitness_func=fitness_func,
+    objectives='max',
+    offspring_selector=rd.BoltzmannSelector(4),
+)
 
+result = engine.run(rd.ScoreLimit(len(target)))
 
-# codec = rd.CharCodec([len(target)])
-# engine = rd.GeneticEngine(
-#     codec=rd.CharCodec([len(target)]),
-#     fitness_func=fitness_func,
-#     objectives='max',
-#     offspring_selector=rd.BoltzmannSelector(4),
-# )
-
-# result = engine.run(rd.ScoreLimit(len(target)))
-
-# print(result)
+print(result)
 
 # A = 10.0
 # RANGE = 5.12

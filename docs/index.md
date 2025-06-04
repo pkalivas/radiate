@@ -85,11 +85,10 @@ This simple maximizing problem demonstrates how to use Radiate to solve a string
         target = "Hello, Radiate!"
 
         def fitness_func(x):
-            return sum(1 for i in range(len(target)) if x[0][i] == target[i])
+            return sum(1 for i in range(len(target)) if x[i] == target[i])
 
-        codec = rd.CharCodec([len(target)])
         engine = rd.GeneticEngine(
-            codec=rd.CharCodec([len(target)]),
+            codec=rd.CharCodec.vector(len(target)),
             fitness_func=fitness_func,
             objectives='max',
             offspring_selector=rd.BoltzmannSelector(4),
