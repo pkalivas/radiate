@@ -1,11 +1,14 @@
 use super::{Chromosome, Phenotype, Population};
 use crate::{Objective, Score, objectives::Scored, tracker::Tracker};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Debug, Formatter},
     sync::atomic::{AtomicU64, Ordering},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[repr(transparent)]
 pub struct SpeciesId(u64);
 
@@ -17,6 +20,7 @@ impl SpeciesId {
 }
 
 #[derive(Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Species<C: Chromosome> {
     pub id: SpeciesId,
     pub generation: usize,
