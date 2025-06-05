@@ -1,5 +1,5 @@
 use super::Codec;
-use crate::{BitChromosome, BitGene, Chromosome, Gene, Genotype};
+use crate::{BitChromosome, Chromosome, Gene, Genotype};
 use std::sync::Arc;
 
 /// A `Codec` for a subset of items. This is useful for problems where the goal is to find the best subset of items
@@ -25,13 +25,7 @@ impl<T> SubSetCodec<T> {
 
 impl<T> Codec<BitChromosome, Vec<Arc<T>>> for SubSetCodec<T> {
     fn encode(&self) -> Genotype<BitChromosome> {
-        Genotype::new(vec![BitChromosome {
-            genes: self
-                .items
-                .iter()
-                .map(|_| BitGene::new())
-                .collect::<Vec<BitGene>>(),
-        }])
+        Genotype::new(vec![BitChromosome::new(self.items.len())])
     }
 
     fn decode(&self, genotype: &Genotype<BitChromosome>) -> Vec<Arc<T>> {

@@ -19,7 +19,7 @@ class BitCodec(CodecBase):
         self.codec = codec
 
     @staticmethod
-    def matrix(chromosome_lengths: List[int]):
+    def matrix(chromosome_lengths: List[int]) -> 'BitCodec':
         """
         Initialize the bit codec with a matrix of chromosomes.
         :param chromosome_lengths: List of integers representing the lengths of each chromosome.
@@ -27,7 +27,7 @@ class BitCodec(CodecBase):
         return BitCodec(PyBitCodec.matrix(chromosome_lengths=chromosome_lengths))
 
     @staticmethod
-    def vector(length: int):
+    def vector(length: int) -> 'BitCodec':
         """
         Initialize the bit codec with a single chromosome of specified length.
         :param length: Length of the chromosome.

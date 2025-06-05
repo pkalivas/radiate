@@ -2,6 +2,8 @@ use super::phenotype::Phenotype;
 use crate::cell::MutCell;
 use crate::objectives::Scored;
 use crate::{Chromosome, Score};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut, Range};
 
@@ -18,9 +20,10 @@ use std::ops::{Index, IndexMut, Range};
 ///
 /// # Type Parameters
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
-#[derive(Clone, Default)]
+#[derive(Clone, Default, PartialEq)]
+#[repr(transparent)]
 pub struct Population<C: Chromosome> {
-    pub individuals: Vec<Member<C>>,
+    individuals: Vec<Member<C>>,
 }
 
 impl<C: Chromosome> Population<C> {
@@ -28,6 +31,10 @@ impl<C: Chromosome> Population<C> {
         Population {
             individuals: individuals.into_iter().map(Member::from).collect(),
         }
+    }
+
+    pub fn members(&self) -> &[Member<C>] {
+        &self.individuals
     }
 
     pub fn get(&self, index: usize) -> Option<&Phenotype<C>> {
@@ -201,6 +208,31 @@ impl<C: Chromosome + Debug> Debug for Population<C> {
     }
 }
 
+#[cfg(feature = "serde")]
+impl<C: Chromosome + Serialize> Serialize for Population<C> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let phenotypes: Vec<&Phenotype<C>> = self.individuals.iter().map(Member::get).collect();
+        phenotypes.serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de, C: Chromosome + Deserialize<'de>> Deserialize<'de> for Population<C> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let phenotypes = Vec::<Phenotype<C>>::deserialize(deserializer)?;
+
+        Ok(Population {
+            individuals: phenotypes.into_iter().map(Member::from).collect(),
+        })
+    }
+}
+
 #[derive(Clone, PartialEq)]
 pub struct Member<C: Chromosome> {
     cell: MutCell<Phenotype<C>>,
@@ -321,5 +353,22 @@ mod test {
                 population.len() - i - 1
             );
         }
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn test_population_can_serialize() {
+        let individuals = vec![
+            Phenotype::from((vec![CharChromosome::from("hello")], 0)),
+            Phenotype::from((vec![CharChromosome::from("world")], 0)),
+        ];
+        let population = Population::new(individuals.clone());
+
+        let serialized =
+            serde_json::to_string(&population).expect("Failed to serialize Population");
+        let deserialized: Population<CharChromosome> =
+            serde_json::from_str(&serialized).expect("Failed to deserialize Population");
+
+        assert_eq!(population, deserialized);
     }
 }

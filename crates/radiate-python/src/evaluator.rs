@@ -2,6 +2,8 @@ use pyo3::Python;
 use radiate::{Chromosome, Ecosystem, Executor, Genotype, Problem, steps::Evaluator};
 use std::sync::Arc;
 
+/// Simple wrapper around the batch that will be evaluated
+/// together on the same thread or in the same scope
 struct PyBatch<C: Chromosome> {
     indices: Vec<usize>,
     genotypes: Vec<Genotype<C>>,

@@ -1,4 +1,6 @@
 use crate::{Chromosome, Valid};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::ops::{Index, IndexMut};
 
 /// The [Genotype] struct represents the genetic makeup of an individual. It is a collection of [Chromosome] instances, it is
@@ -21,6 +23,8 @@ use std::ops::{Index, IndexMut};
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 ///
 #[derive(Clone, PartialEq, Debug, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[repr(transparent)]
 pub struct Genotype<C: Chromosome> {
     chromosomes: Vec<C>,
 }

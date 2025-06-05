@@ -1,7 +1,6 @@
 import os
 import sys
 import math
-import numpy as np
 import matplotlib.pyplot as plt
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -17,10 +16,13 @@ engine = rd.GeneticEngine(
     codec=rd.IntCodec.vector(10, (0, 10)),
     fitness_func=lambda x: sum(x),
     offspring_selector=rd.BoltzmannSelector(4),
-    alters=[rd.MultiPointCrossover(0.75, 2), rd.UniformMutator(0.01)],
+    alters=[
+        rd.MultiPointCrossover(0.75, 2), 
+        rd.UniformMutator(0.01)
+    ],
 )
 
-result = engine.run(rd.ScoreLimit(0), log=False)
+result = engine.run(rd.ScoreLimit(0))
 
 print(result)
 
@@ -63,25 +65,25 @@ print(result)
 #     print()
 
 
+# target = "Hello, Radiate!"
 
 
-target = "Hello, Radiate!"
+# def fitness_func(x):
+#     return sum(1 for i in range(len(target)) if x[i] == target[i])
 
 
-def fitness_func(x):
-    return sum(1 for i in range(len(target)) if x[i] == target[i])
+# engine = rd.GeneticEngine(
+#     codec=rd.CharCodec.vector(len(target)),
+#     fitness_func=fitness_func,
+#     diversity=rd.HammingDistance(),
+#     species_threshold=.5,
+#     objectives="max",
+#     offspring_selector=rd.BoltzmannSelector(4),
+# )
 
+# result = engine.run(rd.ScoreLimit(len(target)))
 
-engine = rd.GeneticEngine(
-    codec=rd.CharCodec.vector(len(target)),
-    fitness_func=fitness_func,
-    objectives='max',
-    offspring_selector=rd.BoltzmannSelector(4),
-)
-
-result = engine.run(rd.ScoreLimit(len(target)))
-
-print(result)
+# print(result)
 
 # A = 10.0
 # RANGE = 5.12
@@ -108,6 +110,7 @@ print(result)
 # objectives = 3
 # k = variables - objectives + 1
 
+
 # @jit(nopython=True, nogil=True)
 # def dtlz_1(val):
 #     g = 0.0
@@ -123,12 +126,13 @@ print(result)
 #             f[i] *= 1.0 - val[objectives - 1 - i]
 #     return f
 
+
 # engine = rd.GeneticEngine(
 #     codec=rd.FloatCodec.vector(variables, (0.0, 1.0), (-100.0, 100.0)),
 #     fitness_func=dtlz_1,
 #     offspring_selector=rd.TournamentSelector(k=5),
 #     survivor_selector=rd.NSGA2Selector(),
-#     objectives=['min' for _ in range(objectives)],
+#     objectives=["min" for _ in range(objectives)],
 #     alters=[
 #         rd.SimulatedBinaryCrossover(1.0, 1.0),
 #         rd.UniformMutator(0.1)
@@ -136,15 +140,16 @@ print(result)
 # )
 
 # result = engine.run(rd.GenerationsLimit(1000))
+# print(result)
 
 # front = result.value()
 # fig = plt.figure()
-# ax = plt.axes(projection='3d')
+# ax = plt.axes(projection="3d")
 
-# x = [member['fitness'][0] for member in front]
-# y = [member['fitness'][1] for member in front]
-# z = [member['fitness'][2] for member in front]
-# ax.scatter(x, y, z, c='r', marker='o')
+# x = [member["fitness"][0] for member in front]
+# y = [member["fitness"][1] for member in front]
+# z = [member["fitness"][2] for member in front]
+# ax.scatter(x, y, z, c="r", marker="o")
 # plt.show()
 
 
@@ -153,6 +158,30 @@ print(result)
 # gene = rd.Gene.char(allele="a", char_set={"a", "b", "c"})
 
 # print(gene)
+
+
+########### Test for basic functionality of the library
+## Weird test - not sure if this functionality should even be enabled
+
+# float_gene = rd.Gene.float(value_range=(-10.0, 10.0))
+# int_gene = rd.Gene.int(value_range=(0, 10))
+# char_gene = rd.Gene.char(char_set={"a", "b", "c"})
+# bit_gene = rd.Gene.bit()
+
+# print(float_gene)
+# print(int_gene)
+# print(char_gene)
+# print(bit_gene)
+
+# float_chrom = rd.Chromosome.float(length=4, value_range=(-10.0, 10.0))
+# int_chrom = rd.Chromosome.int(length=4, value_range=(0, 10))
+# char_chrom = rd.Chromosome.char(length=4, char_set={"a", "b", "c"})
+# bit_chrom = rd.Chromosome.bit(length=4)
+
+# print(float_chrom)
+# print(int_chrom)
+# print(char_chrom)
+# print(bit_chrom)
 
 
 # chrom = rd.Chromosome.float(length=4, value_range=(-10.0, 10.0))
@@ -176,6 +205,3 @@ print(result)
 #     for chrom in gene.genotype().chromosomes():
 #         for g in chrom.genes():
 #             print(g)
-#     # for chrom in gene.genotype():
-#     #     print(chrom)
-#         # break

@@ -24,7 +24,7 @@ impl<A: PartialEq + Clone> Crossover<PermutationChromosome<A>> for PMXCrossover 
         chrom_two: &mut PermutationChromosome<A>,
         _: f32,
     ) -> AlterResult {
-        let length = std::cmp::min(chrom_one.genes.len(), chrom_two.genes.len());
+        let length = std::cmp::min(chrom_one.genes().len(), chrom_two.genes().len());
         if length < 2 {
             return 0.into();
         }

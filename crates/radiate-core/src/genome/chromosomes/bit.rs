@@ -1,8 +1,7 @@
 use crate::{Chromosome, Gene, Valid, random_provider};
-use std::fmt::{Debug, Display};
-
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use std::fmt::{Debug, Display};
 
 /// A gene that represents a single bit. The `allele` is a `bool` that is randomly assigned.
 /// The `allele` is either `true` or `false`. This is the simplest form of a gene and
@@ -27,11 +26,13 @@ use serde::{Deserialize, Serialize};
 ///
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[repr(transparent)]
 pub struct BitGene {
     allele: bool,
 }
 
 impl BitGene {
+    /// Create a new [`BitGene`] with a random allele.
     pub fn new() -> Self {
         BitGene {
             allele: random_provider::bool(0.5),
@@ -88,11 +89,11 @@ impl From<bool> for BitGene {
 /// A [`Chromosome`] that contains [`BitGene`].
 /// A [`BitChromosome`] is a collection of [`BitGene`] that represent the genetic
 /// material of an individual in the population.
-///
 #[derive(Clone, PartialEq, Default, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[repr(transparent)]
 pub struct BitChromosome {
-    pub genes: Vec<BitGene>,
+    genes: Vec<BitGene>,
 }
 
 impl BitChromosome {
@@ -130,8 +131,9 @@ impl From<Vec<BitGene>> for BitChromosome {
 
 impl From<Vec<bool>> for BitChromosome {
     fn from(alleles: Vec<bool>) -> Self {
-        let genes = alleles.into_iter().map(BitGene::from).collect();
-        BitChromosome { genes }
+        BitChromosome {
+            genes: alleles.into_iter().map(BitGene::from).collect(),
+        }
     }
 }
 
@@ -162,5 +164,23 @@ mod test {
         let allele = gene.allele();
         let new_gene = gene.with_allele(allele);
         assert_eq!(new_gene, copy);
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn test_bit_gene_serialization() {
+        let gene = BitGene::new();
+        let serialized = serde_json::to_string(&gene).expect("Failed to serialize BitGene");
+        let deserialized: BitGene =
+            serde_json::from_str(&serialized).expect("Failed to deserialize BitGene");
+
+        let chromosome = BitChromosome::new(10);
+        let serialized_chromosome =
+            serde_json::to_string(&chromosome).expect("Failed to serialize BitChromosome");
+        let deserialized_chromosome: BitChromosome = serde_json::from_str(&serialized_chromosome)
+            .expect("Failed to deserialize BitChromosome");
+
+        assert_eq!(gene, deserialized);
+        assert_eq!(chromosome, deserialized_chromosome);
     }
 }

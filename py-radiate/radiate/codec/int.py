@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple
 from .codec import CodecBase
-
 from radiate.radiate import PyIntCodec
+
 
 class IntCodec(CodecBase):
     def __init__(self, codec: PyIntCodec):
@@ -18,7 +18,7 @@ class IntCodec(CodecBase):
         shape: Tuple[int, int] | List[int],
         value_range: Optional[Tuple[int, int]] = None,
         bound_range: Optional[Tuple[int, int]] = None,
-    ):
+    ) -> "IntCodec":
         """
         Initialize the int codec with number of chromosomes and value bounds.
         :param chromosomes: Number of chromosomes with the number of genes in each chromosome.
@@ -51,13 +51,13 @@ class IntCodec(CodecBase):
                 bound_range=bound_range,
             )
         )
-    
+
     @staticmethod
     def vector(
         length: int,
         value_range: Optional[Tuple[int, int]] = None,
         bound_range: Optional[Tuple[int, int]] = None,
-    ):
+    ) -> "IntCodec":
         """
         Create a vector codec with specified length.
         :param length: Length of the vector.
@@ -74,12 +74,12 @@ class IntCodec(CodecBase):
                 bound_range=bound_range,
             )
         )
-    
+
     @staticmethod
     def scalar(
         value_range: Optional[Tuple[int, int]] = None,
         bound_range: Optional[Tuple[int, int]] = None,
-    ):
+    ) -> "IntCodec":
         """
         Create a scalar codec with specified value and bound ranges.
         :param value_range: Minimum and maximum value for the gene.
@@ -92,5 +92,3 @@ class IntCodec(CodecBase):
                 bound_range=bound_range,
             )
         )
-    
-

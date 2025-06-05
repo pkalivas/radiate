@@ -3,8 +3,16 @@ use super::{
     gene::{Gene, Valid},
 };
 use crate::random_provider;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::{char, sync::Arc};
 
+/// This is the default character set used for the `CharGene` and `CharChromosome`.
+/// It includes digits, lowercase and uppercase letters, and a selection of special characters.
+/// The character set is designed to be broad enough for most applications while still being
+/// manageable in size to ensure good performance in genetic algorithms.
+///
+/// If no character set is provided, this default will be used.
 pub(crate) const ALPHABET: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"$%&/()=?`{[]}\\+~*#';.:,-_<>|@^' ";
 
 /// A gene that represents a single character. The `allele` is a `char`
@@ -26,17 +34,24 @@ pub(crate) const ALPHABET: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHI
 ///
 #[derive(Clone, PartialEq)]
 pub struct CharGene {
-    pub allele: char,
-    pub char_set: Arc<[char]>,
+    allele: char,
+    char_set: Arc<[char]>,
 }
 
 impl CharGene {
+    /// Given a slice of possible alleles, create a new [CharGene] by
+    /// randomly picking a char from the char_set
     pub fn new(char_set: Arc<[char]>) -> Self {
         let index = random_provider::range(0..char_set.len());
         CharGene {
             allele: char_set[index],
             char_set,
         }
+    }
+
+    /// Get this [CharGene]'s set of possible alleles
+    pub fn char_set(&self) -> &[char] {
+        &self.char_set
     }
 }
 
@@ -132,10 +147,54 @@ impl std::fmt::Debug for CharGene {
     }
 }
 
+/// Manual implementation of seralize and deserialzie for the [CharGene]
+/// needed because of the [Arc] type in the char_set field.
+#[cfg(feature = "serde")]
+impl Serialize for CharGene {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut state = serializer.serialize_struct("CharGene", 2)?;
+        state.serialize_field("allele", &self.allele)?;
+        state.serialize_field("char_set", &self.char_set.to_vec())?;
+        state.end()
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for CharGene {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct CharGeneData {
+            allele: char,
+            char_set: Vec<char>,
+        }
+
+        let data = CharGeneData::deserialize(deserializer)?;
+        Ok(CharGene {
+            allele: data.allele,
+            char_set: data.char_set.into(),
+        })
+    }
+}
+
 /// A [`Chromosome`] that contains [`CharGene`].
 #[derive(Clone, PartialEq, Default, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[repr(transparent)]
 pub struct CharChromosome {
-    pub genes: Vec<CharGene>,
+    genes: Vec<CharGene>,
+}
+
+impl CharChromosome {
+    pub fn new(genes: Vec<CharGene>) -> Self {
+        CharChromosome { genes }
+    }
 }
 
 impl Chromosome for CharChromosome {

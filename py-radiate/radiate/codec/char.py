@@ -10,7 +10,7 @@ class CharCodec(CodecBase):
         self.codec = codec
 
     @staticmethod
-    def matrix(chromosomes: List[int], char_set: str | List[str] = None):
+    def matrix(chromosomes: List[int], char_set: str | List[str] = None) -> 'CharCodec':
         """
         Initialize the char codec with number of chromosomes and value bounds.
         :param chromosomes: Number of chromosomes with the number of genes in each chromosome.
@@ -30,7 +30,7 @@ class CharCodec(CodecBase):
         return CharCodec(PyCharCodec.matrix(chromosomes, char_set))
 
     @staticmethod
-    def vector(length: int, char_set: str | List[str] = None):
+    def vector(length: int, char_set: str | List[str] = None) -> 'CharCodec':
         """
         Initialize the char codec with a single chromosome of specified length.
         :param length: Length of the chromosome.

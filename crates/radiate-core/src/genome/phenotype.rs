@@ -1,6 +1,8 @@
 use super::{Valid, genotype::Genotype};
 use crate::objectives::Score;
 use crate::{Chromosome, objectives::Scored};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::hash::Hash;
 use std::ops::Deref;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -8,6 +10,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 /// A unique identifier for a `Phenotype`. This is used to identify the `Phenotype` in the population.
 /// It is a simple wrapper around a `u64` value.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[repr(transparent)]
 pub struct PhenotypeId(u64);
 
@@ -42,6 +45,7 @@ impl Deref for PhenotypeId {
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 ///
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Phenotype<C: Chromosome> {
     genotype: Option<Genotype<C>>,
     score: Option<Score>,
@@ -176,5 +180,47 @@ impl<C: Chromosome> From<(Vec<C>, usize)> for Phenotype<C> {
             generation,
             id: PhenotypeId::new(),
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::{FloatChromosome, FloatGene};
+
+    #[test]
+    fn test_phenotype_creation() {
+        let phenotype = Phenotype::from((
+            vec![
+                FloatChromosome::new(vec![FloatGene::from(0.0..5.0)]),
+                FloatChromosome::new(vec![FloatGene::from(5.0..10.0)]),
+            ],
+            0,
+        ));
+
+        assert_eq!(phenotype.generation(), 0);
+        assert!(phenotype.score().is_none());
+        assert!(phenotype.is_valid());
+    }
+
+    #[test]
+    fn test_phenotype_age() {
+        let genotype = Genotype::new(vec![FloatChromosome::new(vec![FloatGene::from(0.0..5.0)])]);
+        let phenotype = Phenotype::from((genotype, 5));
+
+        assert_eq!(phenotype.age(10), 5);
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn test_phenotype_can_serialize() {
+        let genotype = Genotype::new(vec![FloatChromosome::new(vec![FloatGene::from(0.0..5.0)])]);
+        let phenotype = Phenotype::from((genotype, 0));
+
+        let serialized = serde_json::to_string(&phenotype).expect("Failed to serialize Phenotype");
+        let deserialized: Phenotype<FloatChromosome> =
+            serde_json::from_str(&serialized).expect("Failed to deserialize Phenotype");
+
+        assert_eq!(phenotype, deserialized);
     }
 }

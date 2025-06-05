@@ -50,10 +50,12 @@ impl Codec<CharChromosome, Vec<Vec<char>>> for CharCodec<Vec<Vec<char>>> {
     fn encode(&self) -> Genotype<CharChromosome> {
         Genotype::new(
             (0..self.num_chromosomes)
-                .map(|_| CharChromosome {
-                    genes: (0..self.num_genes)
-                        .map(|_| CharGene::new(Arc::clone(&self.char_set)))
-                        .collect::<Vec<CharGene>>(),
+                .map(|_| {
+                    CharChromosome::new(
+                        (0..self.num_genes)
+                            .map(|_| CharGene::new(Arc::clone(&self.char_set)))
+                            .collect::<Vec<CharGene>>(),
+                    )
                 })
                 .collect::<Vec<CharChromosome>>(),
         )
@@ -76,10 +78,12 @@ impl Codec<CharChromosome, Vec<char>> for CharCodec<Vec<char>> {
     fn encode(&self) -> Genotype<CharChromosome> {
         Genotype::new(
             (0..self.num_chromosomes)
-                .map(|_| CharChromosome {
-                    genes: (0..self.num_genes)
-                        .map(|_| CharGene::new(Arc::clone(&self.char_set)))
-                        .collect::<Vec<CharGene>>(),
+                .map(|_| {
+                    CharChromosome::new(
+                        (0..self.num_genes)
+                            .map(|_| CharGene::new(Arc::clone(&self.char_set)))
+                            .collect::<Vec<CharGene>>(),
+                    )
                 })
                 .collect::<Vec<CharChromosome>>(),
         )
@@ -112,7 +116,7 @@ mod tests {
         assert_eq!(genotype.len(), 3);
         assert_eq!(genotype[0].len(), 5);
         for gene in genotype[0].iter() {
-            assert!(gene.char_set.eq(&Arc::from(char_set.clone())));
+            assert!(gene.char_set().eq(&char_set));
             assert!(char_set.contains(gene.allele()));
         }
     }

@@ -1,7 +1,7 @@
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods, types::PyString};
 use radiate::{
     BitChromosome, BitGene, CharChromosome, CharGene, Chromosome, FloatChromosome, FloatGene, Gene,
-    Genotype, IntChromosome, IntGene, Phenotype, Population,
+    Genotype, IntChromosome, IntGene, Phenotype, Population, random_provider,
 };
 
 #[pyclass]
@@ -278,7 +278,7 @@ impl PyGene {
     #[staticmethod]
     pub fn bit(allele: Option<bool>) -> PyGene {
         PyGene {
-            inner: GeneInner::Bit(BitGene::from(allele.unwrap_or(false))),
+            inner: GeneInner::Bit(BitGene::from(allele.unwrap_or(random_provider::bool(0.5)))),
         }
     }
 
