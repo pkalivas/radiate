@@ -10,16 +10,19 @@ use std::{
     ops::{Add, Bound, Div, Mul, Range, RangeBounds, Sub},
 };
 
+/// Minimum and maximum values for the `FloatGene` allele.
+/// This should be large enough to cover most practical use cases
+/// but small enough to avoid overflow or underflow issues in calculations.
 const MIN: f32 = -1e10;
 const MAX: f32 = 1e10;
 
 /// A [`Gene`] that represents a floating point number.
 /// The `allele` is the in the case of the [`FloatGene`] a f32. The `min` and `max` values
-/// default to MIN and MAX respectively. The `min` and `max` values are used to
+/// default to [MIN] and [MAX] respectively. The `min` and `max` values are used to
 /// generate a random number between the `min` and `max` values, which is the `allele` of the [`FloatGene`].
 /// The `upper_bound` and `lower_bound` are used to set the bounds of the [`FloatGene`] when it is used
 /// in a `BoundGene` context (crossover or mutation). The `upper_bound` and `lower_bound`
-/// default to MAX and MIN respectively.
+/// default to [MAX] and [MIN] respectively.
 ///
 /// # Example
 /// ``` rust
@@ -47,19 +50,9 @@ impl FloatGene {
     pub fn new(allele: f32, value_range: Range<f32>, bounds: Range<f32>) -> Self {
         FloatGene {
             allele,
-            value_range: (value_range.start.max(MIN)..value_range.end.min(MAX)),
-            bounds: (bounds.start.max(MIN)..bounds.end.min(MAX)),
+            value_range: (MIN.max(value_range.start)..MAX.min(value_range.end)),
+            bounds: (MIN.max(bounds.start)..MAX.min(bounds.end)),
         }
-    }
-
-    /// Returns the value range of the [`FloatGene`].
-    pub fn value_range(&self) -> &Range<f32> {
-        &self.value_range
-    }
-
-    /// Returns the bounds of the [`FloatGene`].
-    pub fn bounds(&self) -> &Range<f32> {
-        &self.bounds
     }
 }
 
@@ -284,8 +277,9 @@ impl Display for FloatGene {
 ///```
 #[derive(Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[repr(transparent)]
 pub struct FloatChromosome {
-    pub genes: Vec<FloatGene>,
+    genes: Vec<FloatGene>,
 }
 
 impl FloatChromosome {
@@ -359,6 +353,7 @@ mod tests {
     fn test_new() {
         let gene_one = FloatGene::from(0_f32..1_f32);
         let gene_two = FloatGene::from((-1.0..1.0, -100.0..100.0));
+        let gene_three = FloatGene::new(10.0, (MIN * 10.0)..(MAX * 10.0), -1000.0..1000.0);
 
         assert_eq!(*gene_one.min(), 0_f32);
         assert_eq!(*gene_one.max(), 1_f32);
@@ -371,6 +366,12 @@ mod tests {
         assert_eq!(gene_two.start_bound(), Bound::Included(&-100.0));
         assert_eq!(gene_two.end_bound(), Bound::Excluded(&100.0));
         assert!(gene_two.is_valid());
+
+        assert_eq!(*gene_three.allele(), 10.0);
+        assert_eq!(*gene_three.min(), MIN);
+        assert_eq!(*gene_three.max(), MAX);
+        assert_eq!(gene_three.start_bound(), Bound::Included(&-1000.0));
+        assert_eq!(gene_three.end_bound(), Bound::Excluded(&1000.0));
     }
 
     #[test]
@@ -451,5 +452,26 @@ mod tests {
         assert_eq!(div.allele, 0.5_f32);
         assert_eq!(mean.allele, 7.5_f32);
         assert_eq!(div_zero.allele, 5_f32);
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn test_float_gene_serialization() {
+        let gene = FloatGene::from(0.5_f32..1.5_f32);
+
+        assert!(gene.is_valid());
+
+        let serialized = serde_json::to_string(&gene).expect("Failed to serialize FloatGene");
+        let deserialized: FloatGene =
+            serde_json::from_str(&serialized).expect("Failed to deserialize FloatGene");
+
+        let chromosome = FloatChromosome::from((10, 0.0..1.0, -1.0..1.0));
+        let serialized_chromosome =
+            serde_json::to_string(&chromosome).expect("Failed to serialize FloatChromosome");
+        let deserialized_chromosome: FloatChromosome = serde_json::from_str(&serialized_chromosome)
+            .expect("Failed to deserialize FloatChromosome");
+
+        assert_eq!(gene, deserialized);
+        assert_eq!(chromosome, deserialized_chromosome);
     }
 }

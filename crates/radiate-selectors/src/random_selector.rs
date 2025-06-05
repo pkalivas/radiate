@@ -14,7 +14,7 @@ impl<C: Chromosome + Clone> Select<C> for RandomSelector {
         let mut selected = Vec::with_capacity(count);
 
         for _ in 0..count {
-            let member = random_provider::choose(&population.individuals);
+            let member = random_provider::choose(population.members());
             selected.push(member.get().clone());
         }
 

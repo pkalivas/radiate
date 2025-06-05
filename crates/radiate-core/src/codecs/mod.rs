@@ -43,7 +43,7 @@ pub use subset::SubSetCodec;
 /// impl Codec<IntChromosome<i32>, NQueens> for NQueensCodec {
 ///     fn encode(&self) -> Genotype<IntChromosome<i32>> {
 ///         let genes = (0..self.size).map(|_| IntGene::from(0..self.size)).collect();
-///         let chromosomes = vec![IntChromosome { genes }];
+///         let chromosomes = vec![IntChromosome::new(genes)];
 ///         Genotype::new(chromosomes)
 ///     }
 ///

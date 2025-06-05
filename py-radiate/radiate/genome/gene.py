@@ -239,6 +239,51 @@ class Chromosome:
             for _ in range(length)
         ]
         return Chromosome(genes=genes)
+    
+    @staticmethod
+    def int(
+        length: int,
+        value_range: Tuple[int, int] | None = None,
+        bound_range: Tuple[int, int] | None = None,
+    ) -> "Chromosome":
+        """
+        Create an integer chromosome with specified length and optional parameters.
+        :param length: Length of the chromosome.
+        :param allele: Initial value of the gene.
+        :param value_range: Minimum and maximum value for the gene.
+        :param bound_range: Minimum and maximum bound for the gene.
+        :return: A new Chromosome instance configured as an integer chromosome.
+        """
+        genes = [
+            Gene.int(value_range=value_range, bound_range=bound_range)
+            for _ in range(length)
+        ]
+        return Chromosome(genes=genes)
+    
+    @staticmethod
+    def bit(length: int) -> "Chromosome":
+        """
+        Create a bit chromosome with specified length and optional allele.
+        :param length: Length of the chromosome.
+        :param allele: Initial value of the gene.
+        :return: A new Chromosome instance configured as a bit chromosome.
+        """
+        genes = [Gene.bit() for _ in range(length)]
+        return Chromosome(genes=genes)
+    
+    @staticmethod
+    def char(
+        length: int,
+        char_set: set[str] | None = None
+    ) -> "Chromosome":
+        """
+        Create a character chromosome with specified length and optional character set.
+        :param length: Length of the chromosome.
+        :param char_set: Set of characters to choose from.
+        :return: A new Chromosome instance configured as a character chromosome.
+        """
+        genes = [Gene.char(char_set=char_set) for _ in range(length)]
+        return Chromosome(genes=genes)
 
 
 class Gene:

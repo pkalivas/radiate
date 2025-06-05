@@ -6,7 +6,7 @@ pub fn float_population(num: usize) -> Population<FloatChromosome> {
 
     for i in 0..num {
         let gene = (i as f32).into();
-        let chromosome = FloatChromosome { genes: vec![gene] };
+        let chromosome = FloatChromosome::new(vec![gene]);
         let mut phenotype = Phenotype::from((vec![chromosome], 0));
         phenotype.set_score(Some(Score::from(i as f32)));
 
@@ -23,7 +23,7 @@ pub fn random_float_population(num: usize) -> Population<FloatChromosome> {
     for _ in 0..num {
         let gene = FloatGene::from(0.0..100.0);
         let copy = gene.clone();
-        let chromosome = FloatChromosome { genes: vec![gene] };
+        let chromosome = FloatChromosome::new(vec![gene]);
         let mut phenotype = Phenotype::from((vec![chromosome], 0));
         phenotype.set_score(Some(Score::from(*copy.allele())));
 

@@ -1,7 +1,7 @@
 from typing import Any, Callable, List, Tuple
 from .selector import SelectorBase, TournamentSelector, RouletteSelector
 from .alterer import AlterBase, UniformCrossover, UniformMutator
-from .diversity import DiversityBase, HammingDistance, EuclideanDistance
+from .diversity import DiversityBase
 from .codec import CodecBase
 from .limit import LimitBase
 from .generation import Generation
@@ -33,6 +33,7 @@ class GeneticEngine:
         objectives: str | List[str] = ["min"],
         num_threads: int = 1,
         front_range: Tuple[int, int] | None = (800, 900),
+        subscribe: List[Callable[[Any], None]] | Callable[[Any], None] | None = None,
     ):
         self.engine = None
 
@@ -213,11 +214,6 @@ class GeneticEngine:
         else:
             raise TypeError(f"Param type {type(value)} is not supported.")
 
-    def __repr__(self):
-        if self.engine is None:
-            return f"{self.builder.__repr__()}"
-        return f"{self.engine.__repr__()}"
-
     def __get_codec(self, codec: CodecBase | Callable[[], List[Any]]) -> Any:
         """Get the codec."""
         from .codec import FloatCodec, IntCodec, CharCodec, BitCodec
@@ -236,3 +232,8 @@ class GeneticEngine:
                 f"Codec type {type(codec)} is not supported. "
                 "Use FloatCodec, IntCodec, CharCodec, or BitCodec."
             )
+
+    def __repr__(self):
+        if self.engine is None:
+            return f"{self.builder.__repr__()}"
+        return f"{self.engine.__repr__()}"

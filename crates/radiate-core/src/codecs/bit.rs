@@ -1,7 +1,7 @@
 use super::Codec;
 use crate::genome::Gene;
 use crate::genome::genotype::Genotype;
-use crate::{BitChromosome, BitGene, Chromosome};
+use crate::{BitChromosome, Chromosome};
 
 /// A [Codec] for a `Genotype` of `BitGenes`. The `encode` function creates a `Genotype` with `num_chromosomes` chromosomes
 /// and `num_genes` genes per chromosome. The `decode` function creates a `Vec<Vec<bool>>` from the `Genotype` where the inner `Vec`
@@ -66,11 +66,7 @@ impl Codec<BitChromosome, Vec<Vec<bool>>> for BitCodec<Vec<Vec<bool>>> {
     fn encode(&self) -> Genotype<BitChromosome> {
         Genotype::new(
             (0..self.num_chromosomes)
-                .map(|_| BitChromosome {
-                    genes: (0..self.num_genes)
-                        .map(|_| BitGene::new())
-                        .collect::<Vec<BitGene>>(),
-                })
+                .map(|_| BitChromosome::new(self.num_genes))
                 .collect::<Vec<BitChromosome>>(),
         )
     }
@@ -92,11 +88,7 @@ impl Codec<BitChromosome, Vec<bool>> for BitCodec<Vec<bool>> {
     fn encode(&self) -> Genotype<BitChromosome> {
         Genotype::new(
             (0..self.num_chromosomes)
-                .map(|_| BitChromosome {
-                    genes: (0..self.num_genes)
-                        .map(|_| BitGene::new())
-                        .collect::<Vec<BitGene>>(),
-                })
+                .map(|_| BitChromosome::new(self.num_genes))
                 .collect::<Vec<BitChromosome>>(),
         )
     }
@@ -118,11 +110,7 @@ impl Codec<BitChromosome, bool> for BitCodec<bool> {
     fn encode(&self) -> Genotype<BitChromosome> {
         Genotype::new(
             (0..self.num_chromosomes)
-                .map(|_| BitChromosome {
-                    genes: (0..self.num_genes)
-                        .map(|_| BitGene::new())
-                        .collect::<Vec<BitGene>>(),
-                })
+                .map(|_| BitChromosome::new(self.num_genes))
                 .collect::<Vec<BitChromosome>>(),
         )
     }

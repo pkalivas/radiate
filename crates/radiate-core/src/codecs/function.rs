@@ -16,15 +16,14 @@ use std::sync::Arc;
 ///     // The resulting codec type will be FnCodec<IntChromosome<i8>, Vec<i8>>.
 ///     let codec = FnCodec::new()
 ///         .with_encoder(|| {
-///             Genotype::new(vec![IntChromosome {
-///                genes: (0..N_QUEENS)
+///             Genotype::new(vec![IntChromosome::new((0..N_QUEENS)
 ///                     .map(|_| IntGene::from(0..N_QUEENS as i8))
 ///                     .collect(),
-///             }])
+///             )])
 ///         })
 ///         .with_decoder(|genotype| {
 ///             genotype[0]
-///                 .genes
+///                 .genes()
 ///                 .iter()
 ///                 .map(|g| *g.allele())
 ///                 .collect::<Vec<i8>>()

@@ -39,13 +39,12 @@ use std::ops::{Add, Bound, Div, Mul, Range, RangeBounds, Sub};
 ///
 /// # Type Parameters
 /// - `T`: The type of integer used in the gene.
-///
 #[derive(Clone, PartialEq, Default, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct IntGene<T: Integer<T>> {
-    pub allele: T,
-    pub value_range: Range<T>,
-    pub bounds: Range<T>,
+    allele: T,
+    value_range: Range<T>,
+    bounds: Range<T>,
 }
 
 impl<T: Integer<T>> IntGene<T> {
@@ -255,10 +254,11 @@ impl<T: Integer<T>> std::fmt::Display for IntGene<T> {
 #[derive(Clone, PartialEq, Default, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct IntChromosome<I: Integer<I>> {
-    pub genes: Vec<IntGene<I>>,
+    genes: Vec<IntGene<I>>,
 }
 
 impl<I: Integer<I>> IntChromosome<I> {
+    /// Given a vec of [IntGene<T>]'s, create a new [IntChromosome<T>].
     pub fn new(genes: Vec<IntGene<I>>) -> Self {
         IntChromosome { genes }
     }
@@ -434,5 +434,27 @@ mod tests {
         assert_eq!(div.allele, 1);
         assert_eq!(div_zero.allele, 5);
         assert_eq!(mean.allele, 5);
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn test_int_gene_serialization() {
+        let gene = IntGene::from(-5_i32..5_i32);
+
+        assert!(gene.is_valid());
+
+        let serialized = serde_json::to_string(&gene).expect("Failed to serialize IntGene");
+        let deserialized: IntGene<i32> =
+            serde_json::from_str(&serialized).expect("Failed to deserialize IntGene");
+
+        let chromosome = IntChromosome::from((10, 0..10, -10..10));
+        let serialized_chromosome =
+            serde_json::to_string(&chromosome).expect("Failed to serialize IntChromosome");
+        let deserialized_chromosome: IntChromosome<i32> =
+            serde_json::from_str(&serialized_chromosome)
+                .expect("Failed to deserialize IntChromosome");
+
+        assert_eq!(gene, deserialized);
+        assert_eq!(chromosome, deserialized_chromosome);
     }
 }

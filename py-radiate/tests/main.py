@@ -22,7 +22,7 @@ engine = rd.GeneticEngine(
     ],
 )
 
-result = engine.run(rd.ScoreLimit(0), log=False)
+result = engine.run(rd.ScoreLimit(0))
 
 print(result)
 
@@ -162,6 +162,26 @@ print(result)
 
 ########### Test for basic functionality of the library
 ## Weird test - not sure if this functionality should even be enabled
+
+# float_gene = rd.Gene.float(value_range=(-10.0, 10.0))
+# int_gene = rd.Gene.int(value_range=(0, 10))
+# char_gene = rd.Gene.char(char_set={"a", "b", "c"})
+# bit_gene = rd.Gene.bit()
+
+# print(float_gene)
+# print(int_gene)
+# print(char_gene)
+# print(bit_gene)
+
+# float_chrom = rd.Chromosome.float(length=4, value_range=(-10.0, 10.0))
+# int_chrom = rd.Chromosome.int(length=4, value_range=(0, 10))
+# char_chrom = rd.Chromosome.char(length=4, char_set={"a", "b", "c"})
+# bit_chrom = rd.Chromosome.bit(length=4)
+
+# print(float_chrom)
+# print(int_chrom)
+# print(char_chrom)
+# print(bit_chrom)
 
 
 # chrom = rd.Chromosome.float(length=4, value_range=(-10.0, 10.0))

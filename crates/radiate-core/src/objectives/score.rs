@@ -1,3 +1,5 @@
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::iter::Sum;
@@ -17,6 +19,7 @@ pub trait Scored {
 /// Note: The reason it is a Vec is for multi-objective optimization problems. This allows for multiple
 /// fitness values to be returned from the fitness function.
 #[derive(Clone, PartialEq, Default)]
+#[repr(transparent)]
 pub struct Score {
     pub values: Arc<[f32]>,
 }
@@ -338,5 +341,77 @@ impl<'a> Sum<&'a Score> for Score {
         Score {
             values: Arc::from(values),
         }
+    }
+}
+
+#[cfg(feature = "serde")]
+impl Serialize for Score {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.values.as_ref().serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for Score {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let vec = Vec::<f32>::deserialize(deserializer)?;
+        for value in &vec {
+            if value.is_nan() {
+                return Err(serde::de::Error::custom("Score value cannot be NaN"));
+            }
+        }
+
+        Ok(Score {
+            values: Arc::from(vec),
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_score_from_vec() {
+        let score = Score::from(vec![1.0, 2.0, 3.0]);
+        assert_eq!(score.values.len(), 3);
+    }
+
+    #[test]
+    fn test_score_from_usize() {
+        let score = Score::from(3);
+        assert_eq!(score.values.len(), 1);
+        assert_eq!(score.as_f32(), 3.0);
+        assert_eq!(score.as_i32(), 3);
+    }
+
+    #[test]
+    fn test_score_from_f32() {
+        let score = Score::from(1.0);
+        assert_eq!(score.as_f32(), 1.0);
+        assert_eq!(score.as_i32(), 1)
+    }
+
+    #[test]
+    fn test_score_from_i32() {
+        let score = Score::from(-5);
+        assert_eq!(score.as_f32(), -5.0);
+        assert_eq!(score.as_i32(), -5);
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn test_score_can_serialize() {
+        let score = Score::from(vec![1.0, 2.0, 3.0]);
+        let serialized = serde_json::to_string(&score).expect("Failed to serialize Score");
+        let deserialized: Score =
+            serde_json::from_str(&serialized).expect("Failed to deserialize Score");
+        assert_eq!(score, deserialized);
     }
 }

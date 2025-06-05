@@ -1,4 +1,6 @@
-use crate::{Codec, Gene, Genotype, PermutationChromosome, PermutationGene, random_provider};
+use crate::{
+    Chromosome, Codec, Gene, Genotype, PermutationChromosome, PermutationGene, random_provider,
+};
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -16,19 +18,19 @@ impl<A: PartialEq + Clone> PermutationCodec<A> {
 
 impl<A: PartialEq + Clone> Codec<PermutationChromosome<A>, Vec<A>> for PermutationCodec<A> {
     fn encode(&self) -> Genotype<PermutationChromosome<A>> {
-        Genotype::new(vec![PermutationChromosome {
-            genes: random_provider::indexes(0..self.alleles.len())
+        Genotype::new(vec![PermutationChromosome::new(
+            random_provider::indexes(0..self.alleles.len())
                 .iter()
                 .map(|i| PermutationGene::new(*i, Arc::clone(&self.alleles)))
                 .collect(),
-            alleles: Arc::clone(&self.alleles),
-        }])
+            Arc::clone(&self.alleles),
+        )])
     }
 
     fn decode(&self, genotype: &Genotype<PermutationChromosome<A>>) -> Vec<A> {
         genotype
             .iter()
-            .flat_map(|chromosome| chromosome.genes.iter().map(|gene| gene.allele().clone()))
+            .flat_map(|chromosome| chromosome.genes().iter().map(|gene| gene.allele().clone()))
             .collect()
     }
 }
