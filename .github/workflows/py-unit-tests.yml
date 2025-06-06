@@ -37,10 +37,9 @@ jobs:
           pip install pytest
 
       - name: Run tests
-        with:
-          working-directory: py-radiate
         run: |
           pytest
+        working-directory: py-radiate
 
 
 # python3 -m venv .venv
