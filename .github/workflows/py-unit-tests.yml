@@ -30,7 +30,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           args: --release --out dist
-        working-directory: py-radiate
+          working-directory: py-radiate
 
       - name: Install wheel and dependencies
         run: |
