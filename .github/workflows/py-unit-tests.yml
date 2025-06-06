@@ -36,7 +36,7 @@ jobs:
         run: |
           python3 -m venv .venv
           source .venv/bin/activate
-          pip install radiate --find-links radiate/dist --force-reinstall
+          pip install radiate --find-links py-radiate/dist --force-reinstall
           pip install pytest
 
       - name: Run tests
