@@ -1,4 +1,4 @@
-from .radiate import PySelector
+from radiate.radiate import PySelector
 
 
 class SelectorBase:
