@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import List
 from .codec import CodecBase
 from radiate.radiate import PyBitCodec
@@ -19,17 +20,33 @@ class BitCodec(CodecBase):
         self.codec = codec
 
     @staticmethod
-    def matrix(chromosome_lengths: List[int]) -> 'BitCodec':
+    def matrix(chromosome_lengths: List[int]) -> "BitCodec":
         """
         Initialize the bit codec with a matrix of chromosomes.
-        :param chromosome_lengths: List of integers representing the lengths of each chromosome.
+        Args:
+            chromosome_lengths: A list of integers specifying the lengths of each chromosome.
+        Returns:
+            A new BitCodec instance with matrix configuration.
+
+        Example
+        --------
+        >>> rd.BitCodec.matrix(chromosome_lengths=[5, 5])
+        BitCodec(...)
         """
         return BitCodec(PyBitCodec.matrix(chromosome_lengths=chromosome_lengths))
 
     @staticmethod
-    def vector(length: int) -> 'BitCodec':
+    def vector(length: int) -> "BitCodec":
         """
         Initialize the bit codec with a single chromosome of specified length.
-        :param length: Length of the chromosome.
+        Args:
+            length: Length of the chromosome.
+        Returns:
+            A new BitCodec instance with vector configuration.
+
+        Example
+        --------
+        >>> rd.BitCodec.vector(length=5)
+        BitCodec(...)
         """
         return BitCodec(PyBitCodec.vector(length=length))

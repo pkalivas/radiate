@@ -9,7 +9,7 @@ use radiate::{
 #[repr(transparent)]
 pub struct PyPopulation {
     #[pyo3(get)]
-    pub phenotypes: Vec<PyPhenotype>,
+    phenotypes: Vec<PyPhenotype>,
 }
 
 #[pymethods]
@@ -27,11 +27,16 @@ impl PyPopulation {
                 .map(|p| format!("{:?}", p.__repr__(py)))
                 .collect::<Vec<_>>()
         );
+
         PyString::new(py, &repr).into_bound_py_any(py)
     }
 
     pub fn __str__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         self.__repr__(py)
+    }
+
+    pub fn __len__(&self) -> usize {
+        self.phenotypes.len()
     }
 
     pub fn gene_type(&self) -> String {
@@ -47,7 +52,7 @@ impl PyPopulation {
 #[derive(Clone, Debug)]
 pub struct PyPhenotype {
     #[pyo3(get)]
-    pub genotype: PyGenotype,
+    genotype: PyGenotype,
     #[pyo3(get)]
     score: Vec<f32>,
     #[pyo3(get)]
@@ -73,6 +78,7 @@ impl PyPhenotype {
             self.score,
             self.genotype.__repr__(py)
         );
+
         PyString::new(py, &repr).into_bound_py_any(py)
     }
 
@@ -168,6 +174,14 @@ impl PyChromosome {
         self.__repr__(py)
     }
 
+    pub fn __len__(&self) -> usize {
+        self.genes.len()
+    }
+
+    pub fn __eq__(&self, other: &Self) -> bool {
+        self.genes.iter().zip(&other.genes).all(|(a, b)| a == b)
+    }
+
     pub fn gene_type(&self) -> String {
         if self.genes.is_empty() {
             "EmptyChromosome".to_string()
@@ -177,16 +191,7 @@ impl PyChromosome {
     }
 }
 
-impl IntoIterator for PyChromosome {
-    type Item = PyGene;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.genes.into_iter()
-    }
-}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 enum GeneInner {
     Float(FloatGene),
     Int(IntGene<i32>),
@@ -195,7 +200,7 @@ enum GeneInner {
 }
 
 #[pyclass]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 #[repr(transparent)]
 pub struct PyGene {
     inner: GeneInner,
@@ -237,6 +242,10 @@ impl PyGene {
 
     pub fn __repr__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         self.__str__(py)
+    }
+
+    pub fn __eq__(&self, other: &Self) -> bool {
+        self.inner == other.inner
     }
 
     #[staticmethod]
@@ -296,40 +305,6 @@ impl PyGene {
                     None => CharGene::default(),
                 },
             }),
-        }
-    }
-}
-
-impl PyGene {
-    pub fn into_float_gene(self) -> Option<FloatGene> {
-        if let GeneInner::Float(gene) = self.inner {
-            Some(gene)
-        } else {
-            None
-        }
-    }
-
-    pub fn into_int_gene(self) -> Option<IntGene<i32>> {
-        if let GeneInner::Int(gene) = self.inner {
-            Some(gene)
-        } else {
-            None
-        }
-    }
-
-    pub fn into_bit_gene(self) -> Option<BitGene> {
-        if let GeneInner::Bit(gene) = self.inner {
-            Some(gene)
-        } else {
-            None
-        }
-    }
-
-    pub fn into_char_gene(self) -> Option<CharGene> {
-        if let GeneInner::Char(gene) = self.inner {
-            Some(gene)
-        } else {
-            None
         }
     }
 }

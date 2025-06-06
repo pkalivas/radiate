@@ -56,7 +56,7 @@ impl<C: Chromosome> Problem<C, ObjectValue> for PyProblem<C> {
 unsafe impl<C: Chromosome> Send for PyProblem<C> {}
 unsafe impl<C: Chromosome> Sync for PyProblem<C> {}
 
-pub fn call<'py, 'a>(py: Python<'py>, func: &Py<PyAny>, input: &Py<PyAny>) -> Score {
+pub fn call<'py>(py: Python<'py>, func: &Py<PyAny>, input: &Py<PyAny>) -> Score {
     let any_value = func.call1(py, (input,)).expect("Python call failed");
 
     if let Ok(parsed) = any_value.extract::<f32>(py) {

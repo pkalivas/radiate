@@ -91,6 +91,10 @@ impl PyEngineBuilder {
         PyString::new(py, &repr).into_bound_py_any(py)
     }
 
+    pub fn __dict__<'py>(&self, py: Python<'py>) -> PyResult<Py<PyDict>> {
+        self.create_param_dict(py)
+    }
+
     pub fn build<'py>(&self, py: Python<'py>) -> PyResult<PyEngine> {
         let param_dict = self.create_param_dict(py)?;
         let limits = self.get_limits(py)?;
