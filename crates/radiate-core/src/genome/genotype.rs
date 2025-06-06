@@ -38,11 +38,11 @@ impl<C: Chromosome> Genotype<C> {
         self.chromosomes.len()
     }
 
-    pub fn iter(&self) -> std::slice::Iter<C> {
+    pub fn iter(&self) -> std::slice::Iter<'_, C> {
         self.chromosomes.iter()
     }
 
-    pub fn iter_mut(&mut self) -> std::slice::IterMut<C> {
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, C> {
         self.chromosomes.iter_mut()
     }
 

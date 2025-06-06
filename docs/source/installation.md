@@ -42,7 +42,7 @@ By installing the above, you will get the core library. However, Radiate has a f
 
 ```text
 # requirements.txt
-radiate=0.0.2
+radiate=0.0.3
 ```
 
 !!! warning ":construction: Under Construction :construction:"
@@ -54,7 +54,7 @@ radiate=0.0.2
 
 ```toml
 [dependencies]
-radiate = { version = "1.2.12", features = ["gp", "serde"] }
+radiate = { version = "1.2.13", features = ["gp", "serde"] }
 ```
 
 opt-in features include:
