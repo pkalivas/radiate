@@ -37,6 +37,8 @@ jobs:
           pip install pytest
 
       - name: Run tests
+        with:
+          working-directory: py-radiate
         run: |
           pytest
 
