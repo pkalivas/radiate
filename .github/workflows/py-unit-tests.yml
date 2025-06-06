@@ -1,14 +1,10 @@
-# .github/workflows/py-unit-tests.yml
-
 name: py-unit-tests
 
 on:
   push:
-    branches:
-      - main
-      - master
+    branches: [ "master" ]
   pull_request:
-  workflow_dispatch:
+    branches: [ "master" ]
 
 permissions:
   contents: read
