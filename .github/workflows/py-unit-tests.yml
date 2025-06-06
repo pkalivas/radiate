@@ -2,9 +2,9 @@ name: py-unit-tests
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main", "master" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main", "master" ]
 
 permissions:
   contents: read
