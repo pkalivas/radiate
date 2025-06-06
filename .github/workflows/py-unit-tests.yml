@@ -39,5 +39,6 @@ jobs:
           pip install pytest
 
       - name: Run tests
+        working-directory: py-radiate
         run: |
-          pytest
+          pytest tests --import-mode=importlib
