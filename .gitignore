@@ -12,3 +12,4 @@ radiate/.vs
 */.venv
 *__pycache__
 *.so
+*.pytest_cache

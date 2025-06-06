@@ -297,40 +297,6 @@ impl PyGene {
     }
 }
 
-impl PyGene {
-    pub fn into_float_gene(self) -> Option<FloatGene> {
-        if let GeneInner::Float(gene) = self.inner {
-            Some(gene)
-        } else {
-            None
-        }
-    }
-
-    pub fn into_int_gene(self) -> Option<IntGene<i32>> {
-        if let GeneInner::Int(gene) = self.inner {
-            Some(gene)
-        } else {
-            None
-        }
-    }
-
-    pub fn into_bit_gene(self) -> Option<BitGene> {
-        if let GeneInner::Bit(gene) = self.inner {
-            Some(gene)
-        } else {
-            None
-        }
-    }
-
-    pub fn into_char_gene(self) -> Option<CharGene> {
-        if let GeneInner::Char(gene) = self.inner {
-            Some(gene)
-        } else {
-            None
-        }
-    }
-}
-
 macro_rules! impl_into_py_gene {
     ($gene_type:ty, $gene_variant:ident) => {
         impl From<$gene_type> for PyGene {

@@ -67,6 +67,6 @@ def test_bit_chromosome_creation():
 
     assert len(chromosome.genes()) == 5
     for gene in chromosome.genes():
-        assert isinstance(gene.allele(), int)
-        assert gene.allele() in {0, 1}
+        assert isinstance(gene.allele(), bool)
+        assert gene.allele() in {True, False}
 
