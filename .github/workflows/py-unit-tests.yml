@@ -34,7 +34,9 @@ jobs:
 
       - name: Install wheel and dependencies
         run: |
+          maturin build --release
           pip install pytest
+        working-directory: py-radiate
 
       - name: Run tests
         run: |
