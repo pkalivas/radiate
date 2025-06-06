@@ -239,7 +239,7 @@ class Chromosome:
             for _ in range(length)
         ]
         return Chromosome(genes=genes)
-    
+
     @staticmethod
     def int(
         length: int,
@@ -259,7 +259,7 @@ class Chromosome:
             for _ in range(length)
         ]
         return Chromosome(genes=genes)
-    
+
     @staticmethod
     def bit(length: int) -> "Chromosome":
         """
@@ -270,12 +270,9 @@ class Chromosome:
         """
         genes = [Gene.bit() for _ in range(length)]
         return Chromosome(genes=genes)
-    
+
     @staticmethod
-    def char(
-        length: int,
-        char_set: set[str] | None = None
-    ) -> "Chromosome":
+    def char(length: int, char_set: set[str] | None = None) -> "Chromosome":
         """
         Create a character chromosome with specified length and optional character set.
         :param length: Length of the chromosome.
@@ -325,7 +322,6 @@ class Gene:
         """
         return self.__inner
 
-    @property
     def gene_type(self) -> str:
         """
         Get the type of the gene.
@@ -333,7 +329,6 @@ class Gene:
         """
         return self.__inner.gene_type()
 
-    @property
     def allele(self) -> float | int | bool | str | None:
         """
         Get the allele of the gene.

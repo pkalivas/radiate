@@ -34,6 +34,10 @@ impl PyPopulation {
         self.__repr__(py)
     }
 
+    pub fn __len__(&self) -> usize {
+        self.phenotypes.len()
+    }
+
     pub fn gene_type(&self) -> String {
         if self.phenotypes.is_empty() {
             "EmptyPopulation".to_string()

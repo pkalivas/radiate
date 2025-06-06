@@ -66,6 +66,10 @@ class GeneticEngine:
             diversity=diversity,
         )
 
+    def __dict__(self):
+        """Return the internal state of the engine builder for debugging."""
+        return self.builder.__dict__()
+
     def run(
         self, limits: LimitBase | List[LimitBase] | None = None, log: bool = False
     ) -> Generation:
