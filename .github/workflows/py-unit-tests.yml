@@ -26,10 +26,11 @@ jobs:
         with:
           toolchain: stable
 
-      - name: Build and install wheel
+      - name: Build and install (develop)
         uses: PyO3/maturin-action@v1
         with:
-          args: --release --out dist --pip
+          command: develop
+          args: --release
           working-directory: py-radiate
 
       - name: Install test dependencies
