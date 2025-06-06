@@ -27,6 +27,7 @@ impl PyPopulation {
                 .map(|p| format!("{:?}", p.__repr__(py)))
                 .collect::<Vec<_>>()
         );
+
         PyString::new(py, &repr).into_bound_py_any(py)
     }
 
@@ -77,6 +78,7 @@ impl PyPhenotype {
             self.score,
             self.genotype.__repr__(py)
         );
+
         PyString::new(py, &repr).into_bound_py_any(py)
     }
 
@@ -178,15 +180,6 @@ impl PyChromosome {
         } else {
             self.genes[0].gene_type()
         }
-    }
-}
-
-impl IntoIterator for PyChromosome {
-    type Item = PyGene;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.genes.into_iter()
     }
 }
 
