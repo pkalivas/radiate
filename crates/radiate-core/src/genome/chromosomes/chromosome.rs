@@ -45,11 +45,11 @@ pub trait Chromosome: Valid {
         self.genes().len()
     }
 
-    fn iter(&self) -> std::slice::Iter<Self::Gene> {
+    fn iter(&self) -> std::slice::Iter<'_, Self::Gene> {
         self.genes().iter()
     }
 
-    fn iter_mut(&mut self) -> std::slice::IterMut<Self::Gene> {
+    fn iter_mut(&mut self) -> std::slice::IterMut<'_, Self::Gene> {
         self.genes_mut().iter_mut()
     }
 }
