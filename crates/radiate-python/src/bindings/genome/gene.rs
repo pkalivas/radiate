@@ -9,7 +9,7 @@ use radiate::{
 #[repr(transparent)]
 pub struct PyPopulation {
     #[pyo3(get)]
-    pub phenotypes: Vec<PyPhenotype>,
+    phenotypes: Vec<PyPhenotype>,
 }
 
 #[pymethods]
@@ -52,7 +52,7 @@ impl PyPopulation {
 #[derive(Clone, Debug)]
 pub struct PyPhenotype {
     #[pyo3(get)]
-    pub genotype: PyGenotype,
+    genotype: PyGenotype,
     #[pyo3(get)]
     score: Vec<f32>,
     #[pyo3(get)]
@@ -174,6 +174,14 @@ impl PyChromosome {
         self.__repr__(py)
     }
 
+    pub fn __len__(&self) -> usize {
+        self.genes.len()
+    }
+
+    pub fn __eq__(&self, other: &Self) -> bool {
+        self.genes.iter().zip(&other.genes).all(|(a, b)| a == b)
+    }
+
     pub fn gene_type(&self) -> String {
         if self.genes.is_empty() {
             "EmptyChromosome".to_string()
@@ -183,7 +191,7 @@ impl PyChromosome {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 enum GeneInner {
     Float(FloatGene),
     Int(IntGene<i32>),
@@ -192,7 +200,7 @@ enum GeneInner {
 }
 
 #[pyclass]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 #[repr(transparent)]
 pub struct PyGene {
     inner: GeneInner,
@@ -234,6 +242,10 @@ impl PyGene {
 
     pub fn __repr__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         self.__str__(py)
+    }
+
+    pub fn __eq__(&self, other: &Self) -> bool {
+        self.inner == other.inner
     }
 
     #[staticmethod]

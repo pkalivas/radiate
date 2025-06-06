@@ -7,7 +7,7 @@ use radiate::{
     BoltzmannSelector, Chromosome, EliteSelector, NSGA2Selector, RandomSelector, RankSelector,
     RouletteSelector, Select, StochasticUniversalSamplingSelector, TournamentSelector,
 };
-use std::vec;
+use std::{hash::Hash, vec};
 
 #[pyclass(unsendable)]
 #[derive(Clone, Debug)]
@@ -24,20 +24,6 @@ impl PySelector {
         &self.name
     }
 
-    pub fn args<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        self.args.inner.bind(py).into_bound_py_any(py)
-    }
-
-    pub fn allowed_genes(&self) -> PyResult<Vec<PyGeneType>> {
-        Ok(self.allowed_genes.clone())
-    }
-
-    pub fn is_valid_for_chromosome(&self, chromosome_type: &str) -> bool {
-        self.chromosome_types
-            .iter()
-            .any(|c| c.name() == chromosome_type)
-    }
-
     pub fn __str__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         self.__repr__(py)
     }
@@ -50,6 +36,25 @@ impl PySelector {
         );
 
         PyString::new(py, &repr).into_bound_py_any(py)
+    }
+
+    pub fn __eq__<'py>(&self, other: &Self) -> bool {
+        let mut state = std::hash::DefaultHasher::new();
+        self.name == other.name && self.args.hash(&mut state) == other.args.hash(&mut state)
+    }
+
+    pub fn args<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        self.args.inner.bind(py).into_bound_py_any(py)
+    }
+
+    pub fn allowed_genes(&self) -> PyResult<Vec<PyGeneType>> {
+        Ok(self.allowed_genes.clone())
+    }
+
+    pub fn is_valid_for_chromosome(&self, chromosome_type: &str) -> bool {
+        self.chromosome_types
+            .iter()
+            .any(|c| c.name() == chromosome_type)
     }
 
     #[staticmethod]

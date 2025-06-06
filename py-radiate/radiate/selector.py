@@ -23,6 +23,11 @@ class SelectorBase:
         """
         return f"SelectorBase(selector={self.selector})"
 
+    def __eq__(self, value):
+        if not isinstance(value, SelectorBase):
+            return False
+        return self.selector == value.selector
+
 
 class TournamentSelector(SelectorBase):
     def __init__(self, k: int = 3):

@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import List
 from .codec import CodecBase
 from radiate.radiate import PyCharCodec
@@ -10,11 +11,19 @@ class CharCodec(CodecBase):
         self.codec = codec
 
     @staticmethod
-    def matrix(chromosomes: List[int], char_set: str | List[str] = None) -> 'CharCodec':
+    def matrix(chromosomes: List[int], char_set: str | List[str] = None) -> "CharCodec":
         """
         Initialize the char codec with number of chromosomes and value bounds.
-        :param chromosomes: Number of chromosomes with the number of genes in each chromosome.
-        :param value_range: Minimum and maximum value for the genes.
+        Args:
+            chromosomes: A list of integers specifying the lengths of each chromosome.
+            char_set: A string or list of strings representing the character set.
+        Returns:
+            A new CharCodec instance with matrix configuration.
+
+        Example
+        --------
+        >>> rd.CharCodec.matrix(chromosomes=[5, 5], char_set="01")
+        CharCodec(...)
         """
 
         if isinstance(char_set, str):
@@ -30,10 +39,18 @@ class CharCodec(CodecBase):
         return CharCodec(PyCharCodec.matrix(chromosomes, char_set))
 
     @staticmethod
-    def vector(length: int, char_set: str | List[str] = None) -> 'CharCodec':
+    def vector(length: int, char_set: str | List[str] = None) -> "CharCodec":
         """
         Initialize the char codec with a single chromosome of specified length.
-        :param length: Length of the chromosome.
-        :param char_set: Character set to use for encoding.
+        Args:
+            length: Length of the chromosome.
+            char_set: Character set to use for encoding.
+        Returns:
+            A new CharCodec instance with vector configuration.
+
+        Example
+        --------
+        >>> rd.CharCodec.vector(length=5, char_set="01")
+        CharCodec(...)
         """
         return CharCodec(PyCharCodec.vector(length, char_set))

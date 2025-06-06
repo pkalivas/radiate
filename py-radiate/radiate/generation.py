@@ -13,14 +13,14 @@ class Generation:
 
     def __repr__(self):
         return f"{self.inner.__repr__()}"
-    
+
     def score(self):
         """
         Get the fitness of the generation.
         :return: The fitness of the generation.
         """
         return self.inner.score()
-    
+
     def index(self):
         """
         Get the index of the generation.

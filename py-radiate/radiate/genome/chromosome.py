@@ -50,6 +50,13 @@ class Chromosome:
         :return: Length of the chromosome.
         """
         return len(self.__inner.genes)
+    
+    def __eq__(self, value):
+        if not isinstance(value, Chromosome):
+            return False
+        if len(self) != len(value):
+            return False
+        return all(a == b for a, b in zip(self.__inner.genes, value.__inner.genes))
 
     def py_chromosome(self) -> PyChromosome:
         """

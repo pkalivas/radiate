@@ -66,6 +66,11 @@ class GeneticEngine:
             diversity=diversity,
         )
 
+    def __repr__(self):
+        if self.engine is None:
+            return f"{self.builder.__repr__()}"
+        return f"{self.engine.__repr__()}"
+
     def __dict__(self):
         """Return the internal state of the engine builder for debugging."""
         return self.builder.__dict__()
@@ -213,7 +218,7 @@ class GeneticEngine:
             max_species_age (int): The maximum age for species.
         Raises:
             ValueError: If max_phenotype_age or max_species_age is less than or equal to 0.
-        
+
         Example:
         ---------
         >>> engine.max_age(max_phenotype_age=30, max_species_age=25)
@@ -366,8 +371,3 @@ class GeneticEngine:
                 f"Codec type {type(codec)} is not supported. "
                 "Use FloatCodec, IntCodec, CharCodec, or BitCodec."
             )
-
-    def __repr__(self):
-        if self.engine is None:
-            return f"{self.builder.__repr__()}"
-        return f"{self.engine.__repr__()}"

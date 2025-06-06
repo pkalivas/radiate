@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import radiate as rd
 
 
@@ -70,3 +68,13 @@ def test_bit_chromosome_creation():
         assert isinstance(gene.allele(), bool)
         assert gene.allele() in {True, False}
 
+
+def test_genotype_creation_from_chromosomes():
+    chromosome1 = rd.Chromosome.int(length=3, value_range=(0, 10))
+    chromosome2 = rd.Chromosome.int(length=4, value_range=(0, 5))
+
+    genotype = rd.Genotype(chromosomes=[chromosome1, chromosome2])
+
+    assert len(genotype) == 2
+    assert genotype.chromosomes()[0] == chromosome1
+    assert genotype.chromosomes()[1] == chromosome2
