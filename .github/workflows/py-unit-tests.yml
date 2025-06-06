@@ -26,24 +26,19 @@ jobs:
         with:
           toolchain: stable
 
-      - name: Build wheel
+      - name: Build and install wheel
         uses: PyO3/maturin-action@v1
         with:
-          args: --release --out dist
+          args: --release --out dist --pip
           working-directory: py-radiate
 
-      - name: Install wheel and dependencies
+      - name: Install test dependencies
         run: |
-          maturin build --release
           pip install pytest
-        working-directory: py-radiate
 
       - name: Run tests
         run: |
           pytest
-        working-directory: py-radiate
-
-
 # python3 -m venv .venv
 # source .venv/bin/activate
 # pip install radiate --find-links py-radiate/dist --force-reinstall
