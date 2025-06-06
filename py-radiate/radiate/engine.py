@@ -7,7 +7,7 @@ from .limit import LimitBase
 from .generation import Generation
 
 
-from radiate.radiate import PyEngineBuilder, PyObjective, PySubscriber
+from .radiate import PyEngineBuilder, PyObjective, PySubscriber
 
 
 class GeneticEngine:

@@ -2,9 +2,9 @@ name: py-unit-tests
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main", "master" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main", "master" ]
 
 permissions:
   contents: read
@@ -29,17 +29,16 @@ jobs:
       - name: Build wheel
         uses: PyO3/maturin-action@v1
         with:
+          command: build
           args: --release --out dist
-        working-directory: py-radiate
+          working-directory: py-radiate
 
-      - name: Install wheel and dependencies
+      - name: Install wheel and test dependencies
         run: |
-          python3 -m venv .venv
-          source .venv/bin/activate
-          pip install radiate --find-links radiate/dist --force-reinstall
+          pip install radiate --find-links py-radiate/dist --force-reinstall
           pip install pytest
 
       - name: Run tests
+        working-directory: py-radiate
         run: |
-          source .venv/bin/activate
-          pytest
+          pytest tests --import-mode=importlib
