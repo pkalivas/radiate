@@ -32,13 +32,15 @@ jobs:
           args: --release --out dist
           working-directory: py-radiate
 
-      # - name: Install wheel and dependencies
-      #   run: |
-      #     python3 -m venv .venv
-      #     source .venv/bin/activate
-      #     pip install radiate --find-links py-radiate/dist --force-reinstall
-      #     pip install pytest
+      - name: Install wheel and dependencies
+        run: |
+          pip install pytest
 
       - name: Run tests
         run: |
           pytest
+
+
+# python3 -m venv .venv
+# source .venv/bin/activate
+# pip install radiate --find-links py-radiate/dist --force-reinstall
