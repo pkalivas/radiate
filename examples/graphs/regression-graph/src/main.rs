@@ -53,6 +53,24 @@ fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
 
     println!("{:?}", result);
     println!("{:?}", accuracy_result);
+
+    let result_graph = result.value().clone();
+    let serialized = serde_json::to_string(&result_graph).unwrap();
+
+    // just a quick test to ensure serialization works
+    std::fs::write("best_graph.json", serialized).expect("Unable to write file");
+
+    // read the graph from a file
+    let read_graph: Graph<Op<f32>> = serde_json::from_str(
+        &std::fs::read_to_string("best_graph.json").expect("Unable to read file"),
+    )
+    .unwrap();
+
+    // evaluate the read graph
+    let mut read_evaluator = GraphEvaluator::new(&read_graph);
+    let read_accuracy_result = accuracy.calc(|input| read_evaluator.eval_mut(input));
+
+    println!("Read Graph Accuracy: {:?}", read_accuracy_result);
 }
 
 fn get_dataset() -> DataSet {
