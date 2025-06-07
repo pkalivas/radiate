@@ -25,3 +25,4 @@ inspired by natural selection and genetics. The core is written in Rust and is a
 * Genetic programming support ([tree-based representation](https://en.wikipedia.org/wiki/Gene_expression_programming#:~:text=In%20computer%20programming%2C%20gene%20expression,much%20like%20a%20living%20organism.)) 
 * Built-in support for parallelism.
 * Extensive selection, crossover, and mutation operators.
+* Opt-in speciation for maintaining diversity.
