@@ -3,6 +3,92 @@ use crate::{Arity, NodeType, node::Node};
 use radiate_core::genome::{Gene, Valid};
 use std::fmt::Debug;
 
+/// A node in a tree structure that represents a single element with optional children.
+///
+/// The [TreeNode] struct is a fundamental building block for tree-based genetic programming in Radiate.
+/// It represents a node in a tree that can have zero or more child nodes, forming a hierarchical structure.
+/// Each node has a value of type T and maintains an optional list of child nodes.
+///
+/// # Type Parameters
+/// * `T` - The type of value stored in the node. This type must implement `Clone`, `PartialEq`, and other traits
+///         required by the genetic programming operations.
+///
+/// # Fields
+/// * `value` - The actual value stored in the node
+/// * `arity` - Optional Arity that specifies how many children the node can have
+/// * `children` - Optional vector of child nodes
+///
+/// # Examples
+/// ```
+/// use radiate_gp::{collections::{TreeNode}, Arity};
+///
+/// // Create a new node with value 42
+/// let node = TreeNode::new(42);
+///
+/// // Create a node with specific arity
+/// let node_with_arity = TreeNode::with_arity(42, Arity::Exact(2));
+///
+/// // Create a node with children
+/// let node_with_children = TreeNode::with_children(42, vec![
+///     TreeNode::new(1),
+///     TreeNode::new(2)
+/// ]);
+/// ```
+///
+/// # Node Types and [Arity]
+/// The node's type and arity determine its behavior and validity:
+/// * `Leaf` nodes have no children (arity is [Arity::Zero])
+/// * `Vertex` nodes can have any number of children (arity is [Arity::Any])
+/// * `Root` nodes are the starting point of the tree and can have any number of children
+///
+/// # Tree Operations
+/// The struct provides several methods for tree manipulation:
+/// * `new()` - Creates a new node with no children
+/// * `with_arity()` - Creates a node with a specific arity
+/// * `with_children()` - Creates a node with a list of children
+/// * `add_child()` - Adds a child to the node
+/// * `attach()` - Attaches a child and returns self for method chaining
+/// * `detach()` - Removes a child at a specific index
+/// * `swap_subtrees()` - Swaps subtrees between two nodes
+///
+/// # Tree Traversal
+/// The struct implements the [TreeIterator] trait, providing three traversal methods:
+/// * `iter_pre_order()` - Traverses the tree in pre-order (root, then children)
+/// * `iter_post_order()` - Traverses the tree in post-order (children, then root)
+/// * `iter_breadth_first()` - Traverses the tree level by level
+///
+/// # Tree Properties
+/// The struct provides methods to query tree properties:
+/// * `is_leaf()` - Checks if the node has no children - must have [Arity::Zero]
+/// * `size()` - Returns the total number of nodes in the subtree
+/// * `height()` - Returns the height of the subtree
+///
+/// # Validity
+/// A node is considered valid based on its arity:
+/// * Nodes with [Arity::Zero] must have no children
+/// * Nodes with [Arity::Exact()] must have exactly n children
+/// * Nodes with [Arity::Any] can have any number of children
+///
+/// # Implementation Details
+/// The struct implements several traits:
+/// * `Node` - Provides common node behavior and access to value and type information
+/// * `Gene` - Enables genetic operations for the node making it compatible with genetic algorithms
+/// * `Valid` - Defines validity rules for the node
+/// * `Debug` - Provides debug formatting
+/// * `Clone`, `PartialEq` - Required for genetic programming operations
+/// * `Format` - Provides pretty-printing of the tree structure
+///
+/// # Evaluation
+/// When `T` implements the `Eval` trait, the node can be evaluated with input data:
+/// ```rust
+/// use radiate_gp::{Op, Eval, TreeNode};
+///
+/// let tree = TreeNode::new(Op::add())
+///     .attach(TreeNode::new(Op::constant(2.0)))
+///     .attach(TreeNode::new(Op::constant(3.0)));
+///
+/// let result = tree.eval(&[]); // Evaluates to 5.0
+/// ```
 #[derive(PartialEq)]
 pub struct TreeNode<T> {
     value: T,
@@ -277,3 +363,173 @@ impl_from!(
     &'static str,
     ()
 );
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{Arity, Eval, NodeType, Op};
+
+    #[test]
+    fn test_node_creation() {
+        let node = TreeNode::new(42);
+
+        assert_eq!(node.value(), &42);
+        assert!(node.is_leaf());
+        assert_eq!(node.arity(), Arity::Zero);
+        assert_eq!(node.node_type(), NodeType::Leaf);
+
+        let node = TreeNode::with_arity(42, Arity::Exact(2));
+
+        assert_eq!(node.value(), &42);
+        assert!(node.is_leaf());
+        assert_eq!(node.arity(), Arity::Exact(2));
+        assert_eq!(node.node_type(), NodeType::Leaf);
+
+        let node = TreeNode::with_children(42, vec![TreeNode::new(1), TreeNode::new(2)]);
+
+        assert_eq!(node.value(), &42);
+        assert!(!node.is_leaf());
+        assert_eq!(node.arity(), Arity::Exact(2));
+        assert_eq!(node.node_type(), NodeType::Vertex);
+    }
+
+    #[test]
+    fn test_node_manipulation() {
+        let mut node = TreeNode::new(42);
+        node.add_child(TreeNode::new(1));
+
+        assert!(!node.is_leaf());
+        assert_eq!(node.children().unwrap().len(), 1);
+        assert_eq!(node.children().unwrap()[0].value(), &1);
+
+        let node = TreeNode::new(42)
+            .attach(TreeNode::new(1))
+            .attach(TreeNode::new(2));
+
+        assert_eq!(node.children().unwrap().len(), 2);
+        assert_eq!(node.children().unwrap()[0].value(), &1);
+        assert_eq!(node.children().unwrap()[1].value(), &2);
+
+        let mut node = TreeNode::with_children(42, vec![TreeNode::new(1), TreeNode::new(2)]);
+        let detached = node.detach(0);
+
+        assert!(detached.is_some());
+        assert_eq!(detached.unwrap().value(), &1);
+        assert_eq!(node.children().unwrap().len(), 1);
+        assert_eq!(node.children().unwrap()[0].value(), &2);
+
+        assert!(node.detach(5).is_none());
+    }
+
+    #[test]
+    fn test_tree_properties() {
+        let node = TreeNode::new(42).attach(TreeNode::new(1)).attach(
+            TreeNode::new(2)
+                .attach(TreeNode::new(3))
+                .attach(TreeNode::new(4)),
+        );
+
+        assert_eq!(node.size(), 5);
+        assert_eq!(node.height(), 2);
+
+        let leaf = TreeNode::new(42);
+
+        assert_eq!(leaf.size(), 1);
+        assert_eq!(leaf.height(), 0);
+    }
+
+    #[test]
+    fn test_tree_traversal() {
+        // Create a tree:
+        //       42
+        //      /  \
+        //     1    2
+        //         / \
+        //        3   4
+        let node = TreeNode::new(42).attach(TreeNode::new(1)).attach(
+            TreeNode::new(2)
+                .attach(TreeNode::new(3))
+                .attach(TreeNode::new(4)),
+        );
+
+        let pre_order: Vec<i32> = node.iter_pre_order().map(|n| *n.value()).collect();
+        assert_eq!(pre_order, vec![42, 1, 2, 3, 4]);
+
+        let post_order: Vec<i32> = node.iter_post_order().map(|n| *n.value()).collect();
+        assert_eq!(post_order, vec![1, 3, 4, 2, 42]);
+
+        let bfs: Vec<i32> = node.iter_breadth_first().map(|n| *n.value()).collect();
+        assert_eq!(bfs, vec![42, 1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn test_node_validity() {
+        let node = TreeNode::with_arity(42, Arity::Zero);
+        assert!(node.is_valid());
+
+        let mut node = TreeNode::with_arity(42, Arity::Zero);
+        node.add_child(TreeNode::new(1));
+        assert!(!node.is_valid());
+
+        let node = TreeNode::with_arity(42, Arity::Exact(2))
+            .attach(TreeNode::new(1))
+            .attach(TreeNode::new(2));
+        assert!(node.is_valid());
+
+        let mut node = TreeNode::with_arity(42, Arity::Exact(2));
+        node.add_child(TreeNode::new(1));
+        assert!(!node.is_valid());
+
+        let node = TreeNode::with_arity(42, Arity::Any)
+            .attach(TreeNode::new(1))
+            .attach(TreeNode::new(2))
+            .attach(TreeNode::new(3));
+        assert!(node.is_valid());
+    }
+
+    #[test]
+    fn test_node_evaluation() {
+        // Test simple arithmetic expression: (1 + 2) * 3
+        let node = TreeNode::new(Op::mul())
+            .attach(
+                TreeNode::new(Op::add())
+                    .attach(TreeNode::new(Op::constant(1.0)))
+                    .attach(TreeNode::new(Op::constant(2.0))),
+            )
+            .attach(TreeNode::new(Op::constant(3.0)));
+
+        let result = node.eval(&[]);
+        assert_eq!(result, 9.0);
+
+        // Test expression with variables: (x + 2) * 3
+        let node = TreeNode::new(Op::mul())
+            .attach(
+                TreeNode::new(Op::add())
+                    .attach(TreeNode::new(Op::var(0)))
+                    .attach(TreeNode::new(Op::constant(2.0))),
+            )
+            .attach(TreeNode::new(Op::constant(3.0)));
+
+        assert_eq!(node.eval(&[1.0]), 9.0);
+        assert_eq!(node.eval(&[2.0]), 12.0);
+        assert_eq!(node.eval(&[3.0]), 15.0);
+    }
+
+    #[test]
+    fn test_cloning_and_equality() {
+        let node1 = TreeNode::new(42)
+            .attach(TreeNode::new(1))
+            .attach(TreeNode::new(2));
+
+        let node2 = node1.clone();
+        assert_eq!(node1, node2);
+
+        let node3 = TreeNode::new(43)
+            .attach(TreeNode::new(1))
+            .attach(TreeNode::new(2));
+        assert_ne!(node1, node3);
+
+        let node4 = TreeNode::new(42).attach(TreeNode::new(1));
+        assert_ne!(node1, node4);
+    }
+}
