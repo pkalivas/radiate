@@ -25,7 +25,6 @@ use std::ops::{Index, IndexMut};
 /// cycles in the graph by setting the 'direction' field of a [GraphNode] to [Direction::Backward].
 /// The [Graph] struct provides methods for attaching and detaching nodes from one another.
 /// It also provides methods for iterating over the nodes in the graph in a sudo topological order.
-//
 #[derive(Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Graph<T> {
@@ -450,5 +449,22 @@ mod test {
         assert_eq!(graph[1].direction(), Direction::Backward);
         assert_eq!(graph[2].direction(), Direction::Backward);
         assert_eq!(graph[3].direction(), Direction::Backward);
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn test_graph_serde() {
+        let mut graph = Graph::default();
+
+        graph.insert(NodeType::Input, 0);
+        graph.insert(NodeType::Vertex, 1);
+        graph.insert(NodeType::Output, 2);
+        graph.attach(0, 1);
+        graph.attach(1, 2);
+
+        let serialized = serde_json::to_string(&graph).unwrap();
+        let deserialized: Graph<i32> = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(graph, deserialized);
     }
 }

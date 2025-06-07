@@ -134,7 +134,7 @@ def test_engine_can_minimize():
 
 
 def test_engine_can_maximize():
-    target = "Hello, Radiate!"
+    target = "Testing, Radiate!"
 
     def fitness_func(x: List[str]) -> int:
         return sum(1 for i in range(len(target)) if x[i] == target[i])
