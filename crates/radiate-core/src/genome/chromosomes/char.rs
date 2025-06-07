@@ -31,7 +31,6 @@ pub(crate) const ALPHABET: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHI
 /// // Create a new CharGene from the allele.
 /// let gene = gene.with_allele(allele);
 /// ```
-///
 #[derive(Clone, PartialEq)]
 pub struct CharGene {
     allele: char,

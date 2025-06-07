@@ -18,6 +18,7 @@ impl<C> SpeciateStep<C>
 where
     C: Chromosome + 'static,
 {
+    #[inline]
     fn process_chunk(
         chunk_range: std::ops::Range<usize>,
         population: Arc<RwLock<Vec<(usize, Genotype<C>)>>>,
@@ -51,6 +52,7 @@ impl<C> EngineStep<C> for SpeciateStep<C>
 where
     C: Chromosome + PartialEq + Clone + 'static,
 {
+    #[inline]
     fn execute(
         &mut self,
         generation: usize,
@@ -59,7 +61,6 @@ where
     ) {
         ecosystem.generate_mascots();
 
-        // let wg = WaitGroup::new();
         let num_threads = self.executor.num_workers();
         let pop_len = ecosystem.population().len();
         let chunk_size = (pop_len as f32 / num_threads as f32).ceil() as usize;
@@ -112,24 +113,10 @@ where
                 );
             });
 
-            // self.thread_pool.submit_batch(&wg, move || {
-            //     Self::process_chunk(
-            //         chunk_range,
-            //         population,
-            //         species_snapshot,
-            //         threshold,
-            //         diversity,
-            //         assignments,
-            //         distances,
-            //     );
-            // });
-
             chunked_members.push(chunk_population);
         }
 
         self.executor.submit_batch(batches);
-
-        // wg.wait();
 
         for chunks in chunked_members {
             let mut chunks = chunks.write().unwrap();

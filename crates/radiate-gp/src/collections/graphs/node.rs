@@ -1,12 +1,15 @@
 use crate::node::Node;
 use crate::{Arity, NodeType};
 use radiate_core::{Gene, Valid};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[repr(transparent)]
 pub struct GraphNodeId(u64);
 
@@ -18,12 +21,14 @@ impl GraphNodeId {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Direction {
     Forward,
     Backward,
 }
 
 #[derive(Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct GraphNode<T> {
     value: T,
     id: GraphNodeId,

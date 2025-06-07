@@ -6,12 +6,15 @@ pub use collections::*;
 pub use ops::{Op, OperationMutator, activation_ops, all_ops, math_ops};
 pub use regression::{Accuracy, AccuracyResult, DataSet, Loss, Regression};
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::ops::Deref;
 
 /// Arity is a way to describe how many inputs an operation expects.
 /// It can be zero, a specific number, or any number.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Arity {
     Zero,
     Exact(usize),

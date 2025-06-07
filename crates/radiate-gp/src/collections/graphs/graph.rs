@@ -3,6 +3,8 @@ use crate::collections::graphs::GraphTransaction;
 use crate::collections::{Direction, GraphNode};
 use crate::{Node, NodeType};
 use radiate_core::Valid;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::collections::{HashSet, VecDeque};
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
@@ -25,6 +27,7 @@ use std::ops::{Index, IndexMut};
 /// It also provides methods for iterating over the nodes in the graph in a sudo topological order.
 //
 #[derive(Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Graph<T> {
     nodes: Vec<GraphNode<T>>,
 }

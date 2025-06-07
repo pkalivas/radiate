@@ -122,6 +122,7 @@ impl<C> EngineStep<C> for RecombineStep<C>
 where
     C: Chromosome + PartialEq + Clone,
 {
+    #[inline]
     fn execute(
         &mut self,
         generation: usize,

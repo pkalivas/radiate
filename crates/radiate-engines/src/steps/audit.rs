@@ -12,6 +12,7 @@ impl<C> EngineStep<C> for AuditStep<C>
 where
     C: Chromosome,
 {
+    #[inline]
     fn execute(
         &mut self,
         generation: usize,
