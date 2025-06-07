@@ -1,8 +1,68 @@
 use crate::{Factory, GraphNode, NodeStore, node::Node};
 use radiate_core::{Chromosome, Gene, Valid};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
+/// A chromosome type that represents a directed graph structure for genetic programming.
+/// This chromosome is essentially just a graph, the only difference is the name of the struct.
+/// The graph and the [GraphChromosome] are interchangeable, the only difference is who holds
+/// the vector of nodes. For instance, to create a graph from the [GraphChromosome], just take
+/// the vector of nodes and give them to a new graph instance - boom, you have a graph.
+///
+/// [GraphChromosome<T>] is a specialized chromosome type that maintains a collection of graph nodes
+/// and their connections. It's designed for genetic programming applications where the solution
+/// space can be represented as a directed graph.
+///
+/// # Type Parameters
+/// * `T` - The type of value stored in each node. Must implement `Clone` and `PartialEq`.
+///
+/// # Structure
+/// The chromosome consists of:
+/// * A vector of `GraphNode<T>` instances representing the graph structure
+/// * An optional `NodeStore<T>` for managing node creation and validation. This makes
+/// the creation of new nodes easier and more uniform across the genetic algorithm.
+///
+/// # Features
+/// * Maintains graph connectivity through node connections
+/// * Provides factory methods for creating new instances
+/// * Implements serialization when the "serde" feature is enabled
+/// * Allows the graph nodes, essentially the graph, to be evolved through the genetic algorithm
+///
+/// # Examples
+/// ```
+/// use radiate_gp::collections::graphs::{GraphChromosome, GraphNode, Graph};
+/// use radiate_gp::{NodeStore, node_store, NodeType};
+///
+/// // Create a new chromosome with some nodes
+///let store = node_store! {
+///     Input => vec![1, 2, 3],
+///     Output => vec![4, 5, 6],
+///     Edge => vec![7, 8, 9],
+///     Vertex => vec![10, 11, 12]
+/// };
+///
+/// let graph = Graph::directed(1, 1, store.clone());
+///
+/// let chromosome = GraphChromosome::new(graph.into_iter().collect::<Vec<_>>(), store);
+/// ```
+///
+/// # Genetic Operations
+/// The chromosome supports several genetic operations:
+/// * Crossover through `GraphCrossover`
+/// * Mutation through `GraphMutator`
+/// * Replacement through `GraphReplacement`
+///
+/// # Serialization
+/// When the "serde" feature is enabled, the chromosome can be serialized and deserialized.
+/// The serialization preserves the graph structure and node values, but not the node store.
+///
+/// # Performance
+/// * Node access is O(1) through vector indexing
+/// * Graph operations (adding/removing nodes/edges) are O(log n) due to BTreeSet usage
+/// * Memory usage is O(V + E) where V is the number of nodes and E is the number of edges
 #[derive(Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct GraphChromosome<T> {
     nodes: Vec<GraphNode<T>>,
     store: Option<NodeStore<T>>,

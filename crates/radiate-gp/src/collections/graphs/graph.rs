@@ -117,7 +117,7 @@ use std::ops::{Index, IndexMut};
 ///
 /// # Genetic Programming
 /// The [Graph] struct is particularly useful in genetic programming as it can represent:
-/// * Neural networks
+/// * Neural networks (using Op<f32> or Op<bool> for values)
 /// * Decision graphs
 /// * Program flow graphs
 /// * Other interconnected structures

@@ -60,6 +60,7 @@ radiate = { version = "1.2.13", features = ["gp", "serde"] }
 opt-in features include:
 
 - `gp`: Enables the [genetic programming](https://en.wikipedia.org/wiki/Genetic_programming#:~:text=In%20artificial%20intelligence%2C%20genetic%20programming,to%20the%20population%20of%20programs.) features, allowing you to work with tree and graph-based representations.
-- `serde`: **This feature is still in development and is not 100% supported yet**. Enables serialization and deserialization features, allowing you to save and load the Ecosystem state to/from disk. This is useful for long-running evolutionary processes or for resuming experiments.
+- `serde`: Enables serialization and deserialization features, allowing you to save and load the Ecosystem state to/from disk. This is useful for long-running evolutionary processes or for resuming experiments.
+    * Includes support for: Ecosystem, Population, Species, Phenotype, Genotype, all Chromosomes and their associated Genes, plus `gp`'s Graph<T> and Tree<T> structures.
 
     

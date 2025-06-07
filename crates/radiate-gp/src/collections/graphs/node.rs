@@ -241,6 +241,8 @@ impl<T> GraphNode<T> {
     }
 }
 
+// Implementing the Node trait for GraphNode
+// This joins common functionality for nodes in a graph structure together.
 impl<T> Node for GraphNode<T> {
     type Value = T;
 
@@ -333,6 +335,16 @@ where
     }
 }
 
+/// Implementing the Valid trait for GraphNode
+/// This trait checks if the node is valid based on its type and connections.
+/// A valid node must have the correct number of incoming and outgoing connections
+/// according to its arity and node type.
+///
+/// A node is considered valid based on its type and connections:
+/// * `Input` nodes are valid when they have no incoming connections and at least one outgoing connection
+/// * `Output` nodes are valid when they have at least one incoming connection
+/// * `Vertex` nodes are valid when they have both incoming and outgoing connections
+/// * `Edge` nodes are valid when they have exactly one incoming and one outgoing connection
 impl<T> Valid for GraphNode<T> {
     fn is_valid(&self) -> bool {
         match self.node_type() {
