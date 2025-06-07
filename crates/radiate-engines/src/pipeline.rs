@@ -1,12 +1,11 @@
-use radiate_core::{Chromosome, EngineStep, engine::Context};
-
 use crate::{EngineEvent, EventBus};
+use radiate_core::{Chromosome, EngineStep, engine::Context};
 
 pub(crate) struct Pipeline<C>
 where
     C: Chromosome,
 {
-    pub steps: Vec<Box<dyn EngineStep<C>>>,
+    steps: Vec<Box<dyn EngineStep<C>>>,
 }
 
 impl<C> Pipeline<C>
@@ -19,6 +18,7 @@ where
         }
     }
 
+    #[inline]
     pub fn run<T>(&mut self, context: &mut Context<C, T>, bus: &EventBus<EngineEvent<T>>)
     where
         T: Send + Sync + 'static,

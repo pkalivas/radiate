@@ -18,6 +18,7 @@ impl<C> EngineStep<C> for FilterStep<C>
 where
     C: Chromosome,
 {
+    #[inline]
     fn execute(
         &mut self,
         generation: usize,

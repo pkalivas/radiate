@@ -11,6 +11,7 @@ impl<C> EngineStep<C> for FrontStep<C>
 where
     C: Chromosome + PartialEq + Clone + 'static,
 {
+    #[inline]
     fn execute(&mut self, _: usize, metrics: &mut MetricSet, ecosystem: &mut Ecosystem<C>) {
         let timer = std::time::Instant::now();
 

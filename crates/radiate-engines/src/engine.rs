@@ -108,6 +108,7 @@ where
     type Chromosome = C;
     type Epoch = E;
 
+    #[inline]
     fn next(&mut self) -> Self::Epoch {
         if matches!(self.context.index, 0) {
             self.bus.emit(EngineEvent::start());

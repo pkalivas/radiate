@@ -26,6 +26,7 @@ where
     T: 'static,
     C: Chromosome + 'static,
 {
+    #[inline]
     fn eval(&self, ecosystem: &mut Ecosystem<C>, problem: Arc<dyn Problem<C, T>>) -> usize {
         let mut jobs = Vec::new();
         let len = ecosystem.population.len();
@@ -75,6 +76,7 @@ where
     C: Chromosome + 'static,
     T: Send + Sync + 'static,
 {
+    #[inline]
     fn eval(&self, ecosystem: &mut Ecosystem<C>, problem: Arc<dyn Problem<C, T>>) -> usize {
         let mut jobs = Vec::new();
         let len = ecosystem.population.len();
@@ -132,6 +134,7 @@ impl<C, T> EngineStep<C> for EvaluateStep<C, T>
 where
     C: Chromosome + PartialEq + 'static,
 {
+    #[inline]
     fn execute(&mut self, _: usize, metrics: &mut MetricSet, ecosystem: &mut Ecosystem<C>) {
         let timer = std::time::Instant::now();
 

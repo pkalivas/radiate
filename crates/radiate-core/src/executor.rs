@@ -89,6 +89,7 @@ impl Executor {
                         drop(wg_clone);
                     });
                 }
+
                 wg.wait();
             }
         }

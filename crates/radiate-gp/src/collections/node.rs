@@ -1,4 +1,6 @@
 use crate::Arity;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 /// [NodeType] is a soft identification for different nodes within a graph or tree structure.
 ///
@@ -21,6 +23,7 @@ use crate::Arity;
 /// Within each node (`GraphNode` or `TreeNode`), the [NodeType] is used to determine the validity of the
 /// node given the value it holds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum NodeType {
     /// `Input` types are only used within graph structrues and are
     /// the starting point for data flow within the graph.
