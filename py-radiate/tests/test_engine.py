@@ -1,14 +1,14 @@
-from typing import List
+from typing import List, Callable, Any
 import radiate as rd
 
 
-def __int_fitness_func(x: List[int]) -> int:
-    """A simple fitness function for testing."""
-    return sum(x)
+def _int_fitness_func() -> Callable[[List[int]], Any]:
+    def inner(x: List[int]) -> int:
+        return sum(x)
+    return inner
 
 
-def __int_codec() -> rd.IntCodec:
-    """Create an IntCodec for testing."""
+def _int_codec() -> rd.IntCodec:
     return rd.IntCodec.vector(10, value_range=(0, 10))
 
 
@@ -16,10 +16,10 @@ def test_engine_set_population_size():
     pop_size = 123
 
     engine_one = rd.GeneticEngine(
-        __int_codec(), __int_fitness_func, population_size=pop_size
+        _int_codec(), _int_fitness_func(), population_size=pop_size
     )
 
-    engine_two = rd.GeneticEngine(__int_codec(), __int_fitness_func)
+    engine_two = rd.GeneticEngine(_int_codec(), _int_fitness_func())
     engine_two.population_size(pop_size)
 
     assert engine_one.__dict__()["population_size"] == pop_size
@@ -30,10 +30,10 @@ def test_engine_set_offspring_fraction():
     offspring_frac = 0.5
 
     engine_one = rd.GeneticEngine(
-        __int_codec(), __int_fitness_func, offspring_fraction=offspring_frac
+        _int_codec(), _int_fitness_func(), offspring_fraction=offspring_frac
     )
 
-    engine_two = rd.GeneticEngine(__int_codec(), __int_fitness_func)
+    engine_two = rd.GeneticEngine(_int_codec(), _int_fitness_func())
     engine_two.offspring_fraction(offspring_frac)
 
     assert engine_one.__dict__()["offspring_fraction"] == offspring_frac
@@ -46,14 +46,14 @@ def test_engine_set_ages():
     species_threshold = 1.5
 
     engine_one = rd.GeneticEngine(
-        __int_codec(),
-        __int_fitness_func,
+        _int_codec(),
+        _int_fitness_func(),
         max_phenotype_age=max_phenotype_age,
         max_species_age=max_species_age,
         species_threshold=species_threshold,
     )
 
-    engine_two = rd.GeneticEngine(__int_codec(), __int_fitness_func)
+    engine_two = rd.GeneticEngine(_int_codec(), _int_fitness_func())
     engine_two.max_age(
         max_phenotype_age=max_phenotype_age, max_species_age=max_species_age
     )
@@ -70,9 +70,9 @@ def test_engine_set_ages():
 def test_engine_set_alters():
     alters = [rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.01)]
 
-    engine_one = rd.GeneticEngine(__int_codec(), __int_fitness_func, alters=alters)
+    engine_one = rd.GeneticEngine(_int_codec(), _int_fitness_func(), alters=alters)
 
-    engine_two = rd.GeneticEngine(__int_codec(), __int_fitness_func)
+    engine_two = rd.GeneticEngine(_int_codec(), _int_fitness_func())
     engine_two.alters(alters)
 
     engine_one_alters = engine_one.__dict__()["alters"]
@@ -97,13 +97,13 @@ def test_engine_set_selector():
     offspring_selector = rd.BoltzmannSelector(4)
 
     engine_one = rd.GeneticEngine(
-        __int_codec(),
-        __int_fitness_func,
+        _int_codec(),
+        _int_fitness_func(),
         survivor_selector=survivor_selector,
         offspring_selector=offspring_selector,
     )
 
-    engine_two = rd.GeneticEngine(__int_codec(), __int_fitness_func)
+    engine_two = rd.GeneticEngine(_int_codec(), _int_fitness_func())
     engine_two.survivor_selector(survivor_selector)
     engine_two.offspring_selector(offspring_selector)
 
