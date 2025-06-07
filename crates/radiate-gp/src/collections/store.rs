@@ -1,10 +1,18 @@
 use super::NodeType;
 use crate::{Arity, Op};
+#[cfg(feature = "serde")]
+use serde::{
+    Deserialize, Serialize,
+    de::Deserializer,
+    ser::{Error as SerError, Serializer},
+};
+
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::{Arc, RwLock};
 
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum NodeValue<T> {
     Bounded(T, Arity),
     Unbound(T),
@@ -239,6 +247,53 @@ impl<T: Debug> Debug for NodeStore<T> {
     }
 }
 
+#[cfg(feature = "serde")]
+impl<T> Serialize for NodeStore<T>
+where
+    T: Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // Read the values from the RwLock
+        let values = self
+            .values
+            .read()
+            .map_err(|_| S::Error::custom("Failed to acquire read lock"))?;
+
+        // Convert the HashMap into a serializable format
+        let serializable: Vec<_> = values
+            .iter()
+            .map(|(node_type, values)| (node_type, values))
+            .collect();
+
+        serializable.serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de, T> Deserialize<'de> for NodeStore<T>
+where
+    T: Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let values: Vec<(NodeType, Vec<NodeValue<T>>)> = Vec::deserialize(deserializer)?;
+
+        let mut map = HashMap::new();
+        for (node_type, node_values) in values {
+            map.insert(node_type, node_values);
+        }
+
+        Ok(NodeStore {
+            values: Arc::new(RwLock::new(map)),
+        })
+    }
+}
+
 #[macro_export]
 macro_rules! node_store {
     ($($node_type:ident => $values:expr),+) => {
@@ -256,6 +311,31 @@ macro_rules! node_store {
 mod tests {
     use super::*;
     use crate::{Factory, Node, ops};
+
+    // Helper function to create a test NodeStore
+    fn create_test_store() -> NodeStore<i32> {
+        let store = NodeStore::new();
+
+        // Add some test values for different node types
+        store.insert(NodeType::Input, vec![1, 2, 3]);
+        store.insert(NodeType::Output, vec![4, 5]);
+        store.insert(NodeType::Vertex, vec![6, 7, 8, 9]);
+
+        // Add some bounded values
+        let bounded_values = vec![
+            NodeValue::Bounded(10, Arity::Exact(2)),
+            NodeValue::Bounded(11, Arity::Zero),
+        ];
+        store.insert(
+            NodeType::Edge,
+            bounded_values
+                .into_iter()
+                .map(|v| v.value().clone())
+                .collect(),
+        );
+
+        store
+    }
 
     #[test]
     fn test_node_store() {
@@ -313,5 +393,264 @@ mod tests {
         let tree_node = store.new_instance(NodeType::Vertex);
         assert_eq!(tree_node.node_type(), NodeType::Leaf);
         assert!(tree_node.is_leaf());
+    }
+
+    #[test]
+    fn test_insert_and_contains() {
+        let store = NodeStore::new();
+
+        store.insert(NodeType::Input, vec![1, 2, 3]);
+        assert!(store.contains_type(NodeType::Input));
+
+        store.insert(NodeType::Output, vec![4, 5]);
+        assert!(store.contains_type(NodeType::Output));
+
+        assert!(!store.contains_type(NodeType::Vertex));
+    }
+
+    #[test]
+    fn test_new_store_is_empty() {
+        let store: NodeStore<i32> = NodeStore::new();
+        assert!(!store.contains_type(NodeType::Input));
+        assert!(!store.contains_type(NodeType::Output));
+        assert!(!store.contains_type(NodeType::Vertex));
+    }
+
+    #[test]
+    fn test_map_operation() {
+        let store = NodeStore::new();
+        store.insert(NodeType::Input, vec![1, 2, 3]);
+        store.insert(NodeType::Output, vec![4, 5]);
+
+        // Test map operation that counts total values
+        let total = store.map(|values| values.len()).unwrap();
+        assert_eq!(total, 5);
+
+        // Test map operation that sums all values
+        let sum: i32 = store
+            .map(|values| values.iter().map(|v| v.value()).sum())
+            .unwrap();
+        assert_eq!(sum, 15);
+    }
+
+    #[test]
+    fn test_map_by_type() {
+        let store = NodeStore::new();
+        store.insert(NodeType::Input, vec![1, 2, 3]);
+        store.insert(NodeType::Output, vec![4, 5]);
+
+        // Test map_by_type for Input
+        let input_sum: i32 = store
+            .map_by_type(NodeType::Input, |values| {
+                values.iter().map(|v| v.value()).sum()
+            })
+            .unwrap();
+        assert_eq!(input_sum, 6);
+
+        // Test map_by_type for Output
+        let output_sum: i32 = store
+            .map_by_type(NodeType::Output, |values| {
+                values.iter().map(|v| v.value()).sum()
+            })
+            .unwrap();
+        assert_eq!(output_sum, 9);
+
+        // Test map_by_type for non-existent type
+        let result = store.map_by_type(NodeType::Vertex, |values| values.len());
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_from_hashmap() {
+        let mut map = HashMap::new();
+        map.insert(NodeType::Input, vec![1, 2, 3]);
+        map.insert(NodeType::Output, vec![4, 5]);
+
+        let store: NodeStore<i32> = map.into();
+
+        assert!(store.contains_type(NodeType::Input));
+        assert!(store.contains_type(NodeType::Output));
+        assert!(!store.contains_type(NodeType::Vertex));
+    }
+
+    #[test]
+    fn test_from_vec_of_tuples() {
+        let values = vec![
+            (NodeType::Input, vec![1, 2, 3]),
+            (NodeType::Output, vec![4, 5]),
+        ];
+
+        let store: NodeStore<i32> = values.into();
+
+        assert!(store.contains_type(NodeType::Input));
+        assert!(store.contains_type(NodeType::Output));
+        assert!(!store.contains_type(NodeType::Vertex));
+    }
+
+    #[test]
+    fn test_empty_map_returns_none() {
+        let store: NodeStore<i32> = NodeStore::new();
+
+        // map should return None for empty store
+        assert!(store.map(|_| 42).is_none());
+
+        // map_by_type should return None for empty store
+        assert!(store.map_by_type(NodeType::Input, |_| 42).is_none());
+    }
+
+    #[test]
+    fn test_insert_overwrites_existing() {
+        let store = NodeStore::new();
+
+        // First insert
+        store.insert(NodeType::Input, vec![1, 2, 3]);
+
+        // Second insert should overwrite
+        store.insert(NodeType::Input, vec![4, 5]);
+
+        // Verify only new values exist
+        let values: Vec<i32> = store
+            .map_by_type(NodeType::Input, |values| {
+                values.iter().map(|v| v.value().clone()).collect()
+            })
+            .unwrap();
+
+        assert_eq!(values, vec![4, 5]);
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn test_serialize_deserialize_basic() {
+        let store = create_test_store();
+
+        // Serialize to JSON
+        let serialized = serde_json::to_string(&store).unwrap();
+
+        // Deserialize back
+        let deserialized: NodeStore<i32> = serde_json::from_str(&serialized).unwrap();
+
+        // Verify the contents
+        assert_eq!(store, deserialized);
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn test_serialize_deserialize_empty() {
+        let store: NodeStore<i32> = NodeStore::new();
+
+        let serialized = serde_json::to_string(&store).unwrap();
+        let deserialized: NodeStore<i32> = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(store, deserialized);
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn test_serialize_deserialize_with_bounded_values() {
+        let store = NodeStore::new();
+
+        // Create a store with only bounded values
+        let bounded_values = vec![
+            NodeValue::Bounded(1, Arity::Exact(2)),
+            NodeValue::Bounded(2, Arity::Zero),
+            NodeValue::Bounded(3, Arity::Any),
+        ];
+
+        store.insert(
+            NodeType::Vertex,
+            bounded_values
+                .into_iter()
+                .map(|v| v.value().clone())
+                .collect(),
+        );
+
+        let serialized = serde_json::to_string(&store).unwrap();
+        let deserialized: NodeStore<i32> = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(store, deserialized);
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn test_serialize_deserialize_with_unbound_values() {
+        let store = NodeStore::new();
+
+        // Create a store with only unbound values
+        let unbound_values = vec![1, 2, 3, 4, 5];
+        store.insert(NodeType::Vertex, unbound_values);
+
+        let serialized = serde_json::to_string(&store).unwrap();
+        let deserialized: NodeStore<i32> = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(store, deserialized);
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn test_serialize_deserialize_mixed_values() {
+        let store = NodeStore::new();
+
+        // Mix of bounded and unbound values
+        let mixed_values = vec![
+            NodeValue::Bounded(1, Arity::Exact(2)),
+            NodeValue::Unbound(2),
+            NodeValue::Bounded(3, Arity::Zero),
+            NodeValue::Unbound(4),
+        ];
+
+        store.insert(
+            NodeType::Vertex,
+            mixed_values
+                .into_iter()
+                .map(|v| v.value().clone())
+                .collect(),
+        );
+
+        let serialized = serde_json::to_string(&store).unwrap();
+        let deserialized: NodeStore<i32> = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(store, deserialized);
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn test_serialize_deserialize_all_node_types() {
+        let store = NodeStore::new();
+
+        // Add values for all node types
+        store.insert(NodeType::Input, vec![1, 2]);
+        store.insert(NodeType::Output, vec![3, 4]);
+        store.insert(NodeType::Vertex, vec![5, 6]);
+        store.insert(NodeType::Edge, vec![7, 8]);
+        store.insert(NodeType::Leaf, vec![9, 10]);
+        store.insert(NodeType::Root, vec![11, 12]);
+
+        let serialized = serde_json::to_string(&store).unwrap();
+        let deserialized: NodeStore<i32> = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(store, deserialized);
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn test_serialize_deserialize_complex_type() {
+        // Test with a more complex type (String)
+        let store = NodeStore::new();
+
+        let values = vec![
+            NodeValue::Bounded("hello".to_string(), Arity::Exact(2)),
+            NodeValue::Unbound("world".to_string()),
+            NodeValue::Bounded("test".to_string(), Arity::Zero),
+        ];
+
+        store.insert(
+            NodeType::Vertex,
+            values.into_iter().map(|v| v.value().clone()).collect(),
+        );
+
+        let serialized = serde_json::to_string(&store).unwrap();
+        let deserialized: NodeStore<String> = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(store, deserialized);
     }
 }
