@@ -185,9 +185,9 @@ mod tests {
 
     #[test]
     fn test_shuffle() {
-        let mut items = vec![1, 2, 3, 4, 5];
+        let mut items = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
         shuffle(&mut items);
-        assert_ne!(items, vec![1, 2, 3, 4, 5]);
+        assert_ne!(items, vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     }
 
     #[test]
