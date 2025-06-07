@@ -1,4 +1,6 @@
 use crate::{TreeIterator, collections::TreeNode};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 /// A tree structure that represents a hierarchical collection of nodes.
@@ -109,6 +111,7 @@ use std::fmt::Debug;
 /// * Decision trees
 /// * Other hierarchical structures
 #[derive(Clone, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Tree<T> {
     root: Option<TreeNode<T>>,
 }
@@ -371,5 +374,45 @@ mod test {
         // Test take_root()
         let root = tree.take_root().unwrap();
         assert_eq!(root.value(), &Op::add());
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn test_tree_can_serde() {
+        use crate::Eval;
+
+        let store = vec![
+            (
+                NodeType::Vertex,
+                vec![
+                    Op::add(),
+                    Op::sub(),
+                    Op::mul(),
+                    Op::div(),
+                    Op::sigmoid(),
+                    Op::tanh(),
+                ],
+            ),
+            (
+                NodeType::Leaf,
+                vec![Op::constant(1.0), Op::constant(2.0), Op::var(0)],
+            ),
+        ];
+
+        let tree = Tree::with_depth(5, store);
+
+        let eval_before = tree.eval(&[3.0]);
+
+        let serialized = serde_json::to_string(&tree).expect("Failed to serialize tree");
+        let deserialized: Tree<Op<f32>> =
+            serde_json::from_str(&serialized).expect("Failed to deserialize tree");
+
+        let eval_after = deserialized.eval(&[3.0]);
+
+        assert_eq!(
+            eval_before, eval_after,
+            "Tree evaluation should match before and after serialization"
+        );
+        assert_eq!(tree, deserialized);
     }
 }

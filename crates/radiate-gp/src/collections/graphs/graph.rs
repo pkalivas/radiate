@@ -719,7 +719,9 @@ mod test {
 
     #[test]
     #[cfg(feature = "serde")]
-    fn test_graph_serde() {
+    fn test_graph_eval_serde() {
+        use crate::Eval;
+
         let mut graph = Graph::default();
 
         graph.insert(NodeType::Input, 0);
@@ -732,5 +734,64 @@ mod test {
         let deserialized: Graph<i32> = serde_json::from_str(&serialized).unwrap();
 
         assert_eq!(graph, deserialized);
+
+        let values = vec![
+            (NodeType::Input, vec![Op::var(0), Op::var(1)]),
+            (NodeType::Edge, vec![Op::weight()]),
+            (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::linear()]),
+            (NodeType::Output, vec![Op::linear()]),
+        ];
+
+        let op_graph = Graph::directed(2, 2, values);
+        let eval_one = op_graph.eval(&vec![vec![0.5, 1.5]]);
+
+        let serialized_op = serde_json::to_string(&op_graph).unwrap();
+        let deserialized_op: Graph<Op<f32>> = serde_json::from_str(&serialized_op).unwrap();
+
+        let deserialized_eval = deserialized_op.eval(&vec![vec![0.5, 1.5]]);
+
+        assert_eq!(eval_one, deserialized_eval);
+        assert_eq!(op_graph, deserialized_op);
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn test_graph_pre_built_serde() {
+        use crate::Eval;
+
+        let mut graph = Graph::<Op<f32>>::default();
+
+        let idx_one = graph.insert(NodeType::Input, Op::var(0));
+        let idx_two = graph.insert(NodeType::Input, Op::constant(5_f32));
+        let idx_three = graph.insert(NodeType::Vertex, Op::add());
+        let idx_four = graph.insert(NodeType::Output, Op::linear());
+
+        graph
+            .attach(idx_one, idx_three)
+            .attach(idx_two, idx_three)
+            .attach(idx_three, idx_four);
+
+        let eval_to_six_one = graph.eval(&vec![vec![1_f32]]);
+        let eval_to_seven_one = graph.eval(&vec![vec![2_f32]]);
+        let eval_to_eight_one = graph.eval(&vec![vec![3_f32]]);
+
+        assert_eq!(eval_to_six_one, &[&[6_f32]]);
+        assert_eq!(eval_to_seven_one, &[&[7_f32]]);
+        assert_eq!(eval_to_eight_one, &[&[8_f32]]);
+        assert_eq!(graph.len(), 4);
+
+        let serialized = serde_json::to_string(&graph).unwrap();
+        let deserialized: Graph<Op<f32>> = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(graph, deserialized);
+
+        let eval_to_six_two = deserialized.eval(&vec![vec![1_f32]]);
+        let eval_to_seven_two = deserialized.eval(&vec![vec![2_f32]]);
+        let eval_to_eight_two = deserialized.eval(&vec![vec![3_f32]]);
+
+        assert_eq!(eval_to_six_two, &[&[6_f32]]);
+        assert_eq!(eval_to_seven_two, &[&[7_f32]]);
+        assert_eq!(eval_to_eight_two, &[&[8_f32]]);
+        assert_eq!(deserialized.len(), 4);
     }
 }
