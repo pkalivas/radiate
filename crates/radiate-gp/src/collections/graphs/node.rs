@@ -8,6 +8,26 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+/// A unique identifier for nodes in a graph structure.
+///
+/// `GraphNodeId` is a newtype wrapper around a `u64` that provides a unique identifier
+/// for each node in a graph. The ID is automatically generated using an atomic counter,
+/// ensuring thread-safe unique ID generation across the application.
+///
+/// # Examples
+/// ```
+/// use radiate_gp::collections::GraphNodeId;
+///
+/// let id1 = GraphNodeId::new();
+/// let id2 = GraphNodeId::new();
+/// assert_ne!(id1, id2); // Each ID is unique
+/// ```
+///
+/// # Implementation Details
+/// * Uses an atomic counter (`AtomicU64`) to ensure thread-safe ID generation
+/// * Implements `Debug`, `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`, `PartialOrd`, and `Ord`
+/// * When the "serde" feature is enabled, implements `Serialize` and `Deserialize`
+/// * Uses `#[repr(transparent)]` to ensure the same memory layout as `u64`
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[repr(transparent)]
@@ -20,6 +40,41 @@ impl GraphNodeId {
     }
 }
 
+/// Represents the direction of connections in a graph node.
+///
+/// The [Direction] enum is used to specify whether a node's connections follow the
+/// normal forward direction or create a backward (recurrent) connection. This is
+/// particularly important for creating cyclic graphs and recurrent neural networks.
+///
+/// # Variants
+/// * `Forward` - The default direction for normal graph connections. In a forward
+///   connection, data flows from input nodes through intermediate nodes to output nodes.
+/// * `Backward` - Indicates a recurrent connection where data can flow backwards,
+///   creating cycles in the graph. This is used to implement recurrent neural networks
+///   and other cyclic graph structures.
+///
+/// # Examples
+/// ```
+/// use radiate_gp::collections::{graphs::Direction, GraphNode, NodeType};
+///
+/// let mut node = GraphNode::new(0, NodeType::Vertex, 42);
+/// assert_eq!(node.direction(), Direction::Forward);
+///
+/// // Create a recurrent connection
+/// node.set_direction(Direction::Backward);
+/// assert!(node.is_recurrent());
+/// ```
+///
+/// # Usage in Graphs
+/// * By default, graphs are directed acyclic graphs (DAGs) with all connections in the
+///   `Forward` direction
+/// * Setting a node's direction to `Backward` allows for cyclic connections
+/// * The `Graph::set_cycles` method automatically sets appropriate nodes to `Backward`
+///   direction when cycles are detected
+///
+/// # Implementation Details
+/// * Implements `Debug`, `Clone`, `Copy`, `PartialEq`, `Eq`, and `Hash`
+/// * When the "serde" feature is enabled, implements `Serialize` and `Deserialize`
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Direction {
@@ -27,6 +82,69 @@ pub enum Direction {
     Backward,
 }
 
+/// A node in a graph structure that represents a single element with connections to other nodes.
+///
+/// The [GraphNode] struct is a fundamental building block for graph-based genetic programming in Radiate.
+/// It represents a node in a directed graph that can have both incoming and outgoing connections to other nodes.
+/// Each node has a unique identifier, an index in the graph, a value of type T, and maintains sets of incoming
+/// and outgoing connections.
+///
+/// # Type Parameters
+/// * `T` - The type of value stored in the node. This type must implement `Clone`, `PartialEq`, and other traits
+///         required by the genetic programming operations.
+///
+/// # Fields
+/// * `value` - The actual value stored in the node
+/// * `id` - A unique identifier for the node ([GraphNodeId])
+/// * `index` - The position of the node in the graph's node collection
+/// * `direction` - The direction of the node's connections (Forward or Backward)
+/// * `node_type` - Optional NodeType that specifies the role of the node (Input, Output, Vertex, Edge, etc.)
+/// * `arity` - Optional Arity that specifies how many incoming connections the node can have. If
+/// the arity is not supplied, the node will try it's best to determine it based on the node type and
+/// the number of connections.
+/// * `incoming` - Set of indices of nodes that have connections to this node
+/// * `outgoing` - Set of indices of nodes that this node has connections to
+///
+/// # Examples
+/// ```
+/// use radiate_gp::{collections::{GraphNode, NodeType}, Arity};
+///
+/// // Create a new input node with value 42
+/// let node = GraphNode::new(0, NodeType::Input, 42);
+///
+/// // Create a node with specific arity
+/// let node_with_arity = GraphNode::with_arity(1, NodeType::Vertex, 42, Arity::Exact(2));
+/// ```
+///
+/// # Node Types and Arity
+/// The node's type and arity determine its behavior and validity:
+/// * `Input` nodes should have no incoming connections and at least one outgoing connection
+/// * `Output` nodes should have at least one incoming connection
+/// * `Vertex` nodes can have both incoming and outgoing connections
+/// * `Edge` nodes should have exactly one incoming and one outgoing connection
+///
+/// # Recurrent Connections
+/// Nodes can form recurrent connections (cycles) in the graph by:
+/// * Setting the node's direction to `Direction::Backward`
+/// * Having a connection to itself (index in incoming/outgoing sets)
+///
+/// # Validity
+/// A node is considered valid based on its type and connections:
+/// * `Input` nodes are valid when they have no incoming connections and at least one outgoing connection
+/// * `Output` nodes are valid when they have at least one incoming connection
+/// * `Vertex` nodes are valid when they have both incoming and outgoing connections
+/// * `Edge` nodes are valid when they have exactly one incoming and one outgoing connection
+///
+/// # Implementation Details
+/// The struct implements several traits:
+/// * `Node` - Provides common node behavior and access to value and type information
+/// * `Gene` - Enables genetic operations for the node making it compatible with genetic algorithms
+/// * `Valid` - Defines validity rules for the node
+/// * `Debug` - Provides debug formatting
+/// * `Clone`, `PartialEq` - Required for genetic programming operations
+///
+/// # Serialization
+/// When the "serde" feature is enabled, the struct implements `Serialize` and `Deserialize` traits.
 #[derive(Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct GraphNode<T> {
@@ -41,6 +159,10 @@ pub struct GraphNode<T> {
 }
 
 impl<T> GraphNode<T> {
+    /// Creates a new [GraphNode] with the specified index, node type, and value.
+    ///
+    /// This is the most basic constructor for a graph node, initializing it with
+    /// default direction (Forward) and no specific arity or node type.
     pub fn new(index: usize, node_type: NodeType, value: T) -> Self {
         GraphNode {
             id: GraphNodeId::new(),
@@ -54,6 +176,11 @@ impl<T> GraphNode<T> {
         }
     }
 
+    /// Creates a new [GraphNode] with the specified index, node type, value, and arity.
+    ///
+    /// This constructor allows for more control over the node's behavior by specifying
+    /// the arity, which defines how many incoming connections the node can accept - if the
+    /// number of connections does not match the arity, the node will be considered invalid.
     pub fn with_arity(index: usize, node_type: NodeType, value: T, arity: Arity) -> Self {
         GraphNode {
             id: GraphNodeId::new(),
@@ -418,5 +545,17 @@ mod tests {
 
         let node = GraphNode::from((0, NodeType::Edge, 0.0, Arity::Exact(1)));
         assert_eq!(node.arity(), Arity::Exact(1));
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn test_graph_node_serde() {
+        let node = GraphNode::new(0, NodeType::Input, 42.0);
+        let serialized = serde_json::to_string(&node).unwrap();
+        let deserialized: GraphNode<f32> = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(node, deserialized);
+        assert_eq!(node.value(), &42.0);
+        assert_eq!(deserialized.value(), &42.0);
     }
 }

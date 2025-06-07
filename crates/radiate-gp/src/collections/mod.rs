@@ -9,7 +9,7 @@ pub use factory::*;
 pub use format::*;
 pub use graphs::{
     Direction, Graph, GraphAggregate, GraphChromosome, GraphCodec, GraphCrossover, GraphEvaluator,
-    GraphIterator, GraphMutator, GraphNode, GraphReplacement, NeatDistance,
+    GraphIterator, GraphMutator, GraphNode, GraphNodeId, GraphReplacement, NeatDistance,
 };
 pub use node::{Node, NodeType};
 pub use store::{NodeStore, NodeValue};

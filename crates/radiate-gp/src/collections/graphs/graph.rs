@@ -9,6 +9,18 @@ use std::collections::{HashSet, VecDeque};
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
 
+/// A graph structure that represents a collection of interconnected nodes.
+///
+/// The [Graph] struct is a fundamental data structure in Radiate's genetic programming system.
+/// Unlike traditional graphs that separate edges and vertices, this graph is a collection of nodes
+/// where each node maintains its own connections. Each node has a unique index that corresponds
+/// to its position in the internal vector, and connections are represented by these indices.
+///
+/// # Type Parameters
+/// * `T` - The type of value stored in each node. This type must implement `Clone`, `PartialEq`,
+///         and other traits required by the genetic programming operations.
+///
+/// # Structure
 /// A [Graph] is simply a 'Vec' of [GraphNode]'s.
 ///
 /// It's important to note that this graph differs from a traditional graph in that it is not
@@ -25,7 +37,104 @@ use std::ops::{Index, IndexMut};
 /// cycles in the graph by setting the 'direction' field of a [GraphNode] to [Direction::Backward].
 /// The [Graph] struct provides methods for attaching and detaching nodes from one another.
 /// It also provides methods for iterating over the nodes in the graph in a sudo topological order.
-//
+///
+/// Each node:
+/// * Has a unique index matching its position in the vector
+/// * Maintains sets of incoming and outgoing connections
+/// * Can be of different types (Input, Output, Vertex, Edge) as defined by `NodeType`
+/// * Can have a direction (Forward or Backward) for handling cycles
+///
+/// # Examples
+/// ```
+/// use radiate_gp::{Graph, NodeType, Op};
+///
+/// // Create a simple graph with one input and one output node
+/// let mut graph = Graph::default();
+/// let input_idx = graph.insert(NodeType::Input, Op::var(0));
+/// let output_idx = graph.insert(NodeType::Output, Op::linear());
+/// graph.attach(input_idx, output_idx);
+///
+/// // Create a directed graph with 2 inputs and 2 outputs
+/// let values = vec![
+///     (NodeType::Input, vec![Op::var(0), Op::var(1)]),
+///     (NodeType::Output, vec![Op::sigmoid(), Op::tanh()]),
+/// ];
+/// let graph = Graph::directed(2, 2, values);
+/// ```
+///
+/// # Graph Types
+/// The struct provides several factory methods for creating different types of graphs:
+/// * `directed()` - Creates a directed acyclic graph (DAG) with specified input and output nodes
+/// * `recurrent()` - Creates a graph with recurrent connections
+/// * `weighted_directed()` - Creates a directed graph with weighted edges
+/// * `weighted_recurrent()` - Creates a recurrent graph with weighted edges
+///
+/// # Node Operations
+/// The struct provides methods for manipulating nodes:
+/// * `insert()` - Adds a new node and returns its index
+/// * `push()` - Adds a node to the end of the graph
+/// * `pop()` - Removes and returns the last node
+/// * `get()` - Returns a reference to a node by index
+/// * `get_mut()` - Returns a mutable reference to a node by index
+///
+/// # Connection Management
+/// The struct provides methods for managing node connections:
+/// * `attach()` - Creates a connection between two nodes
+/// * `detach()` - Removes a connection between two nodes
+/// * `set_cycles()` - Configures nodes to support cyclic connections
+///
+/// # Graph Traversal
+/// The struct implements the `GraphIterator` trait, providing:
+/// * `iter_topological()` - Traverses the graph in a pseudo-topological order
+/// * `iter()` - Iterates over all nodes
+/// * `iter_mut()` - Iterates over all nodes with mutable references
+///
+/// # Node Type Queries
+/// The struct provides methods to get nodes by type:
+/// * `inputs()` - Returns all input nodes
+/// * `outputs()` - Returns all output nodes
+/// * `vertices()` - Returns all vertex nodes
+/// * `edges()` - Returns all edge nodes
+///
+/// # Graph Properties
+/// The struct provides methods to query graph properties:
+/// * `len()` - Returns the number of nodes
+/// * `is_empty()` - Checks if the graph is empty
+/// * `is_valid()` - Checks if all nodes in the graph are valid
+///
+/// # Implementation Details
+/// The struct implements several traits:
+/// * `Clone` - Allows cloning of the entire graph
+/// * `PartialEq` - Enables equality comparison between graphs
+/// * `Default` - Provides a way to create an empty graph
+/// * `Debug` - Provides debug formatting
+/// * `AsRef<[GraphNode<T>]>` - Allows treating the graph as a slice of nodes
+/// * `AsMut<[GraphNode<T>]>` - Allows treating the graph as a mutable slice of nodes
+/// * `Index<usize>` - Enables indexing with `graph[index]`
+/// * `IndexMut<usize>` - Enables mutable indexing with `graph[index]`
+/// * `IntoIterator` - Allows iterating over nodes
+/// * `FromIterator<GraphNode<T>>` - Allows creating a graph from an iterator of nodes
+///
+/// # Genetic Programming
+/// The [Graph] struct is particularly useful in genetic programming as it can represent:
+/// * Neural networks
+/// * Decision graphs
+/// * Program flow graphs
+/// * Other interconnected structures
+///
+/// It supports genetic operations through the `GraphChromosome` type, including:
+///
+/// # Serialization
+/// When the "serde" feature is enabled, the struct implements `Serialize` and `Deserialize` traits.
+///
+/// # Performance Considerations
+/// * All nodes (vertices, edges, inputs, outputs) are represented as [GraphNode<T>] instances
+/// * Node lookups are O(1) due to vector indexing
+/// * Connection operations (attach/detach) are O(log n) due to BTreeSet usage for incoming/outgoing connections
+/// * Graph traversal is O(V + E) where V is the number of nodes and E is the total number of connections
+/// * Memory usage is O(V + E) for storing nodes and their connections
+/// * The distinction between node types (Vertex, Edge, Input, Output) is purely semantic and
+///   does not affect the underlying data structure or performance characteristics
 #[derive(Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Graph<T> {
@@ -450,5 +559,178 @@ mod test {
         assert_eq!(graph[1].direction(), Direction::Backward);
         assert_eq!(graph[2].direction(), Direction::Backward);
         assert_eq!(graph[3].direction(), Direction::Backward);
+    }
+
+    #[test]
+    fn test_graph_clone_and_partial_eq() {
+        let mut graph1 = Graph::default();
+        let input_idx = graph1.insert(NodeType::Input, 42);
+        let output_idx = graph1.insert(NodeType::Output, 24);
+        graph1.attach(input_idx, output_idx);
+
+        let graph2 = graph1.clone();
+        assert_eq!(graph1, graph2);
+
+        let mut graph3 = graph1.clone();
+        graph3[input_idx].set_direction(Direction::Backward);
+        assert_ne!(graph1, graph3);
+
+        let mut graph4 = graph1.clone();
+        if let Some(node) = graph4.get_mut(input_idx) {
+            *node.value_mut() = 100;
+        }
+        assert_ne!(graph1, graph4);
+    }
+
+    #[test]
+    fn test_graph_arity_validation() {
+        let mut graph = Graph::default();
+        let input_idx = graph.insert(NodeType::Input, 0);
+        graph.push((1, NodeType::Vertex, 1, Arity::Exact(2)));
+        let output_idx = graph.insert(NodeType::Output, 2);
+
+        graph.attach(input_idx, 1);
+        graph.attach(1, output_idx);
+
+        // Should be invalid - vertex needs exactly 2 incoming connections
+        assert!(!graph.is_valid());
+
+        // Add one connection - should still be invalid, connections are unique so this just
+        // replaces the existing one with the same index
+        graph.attach(input_idx, 1);
+        assert!(!graph.is_valid());
+
+        // Add third connection - should still be valid with Arity::Any
+        let input3_idx = graph.insert(NodeType::Input, 3);
+        graph.attach(input3_idx, 1);
+        println!("{:?}", graph);
+        assert!(graph.is_valid());
+    }
+
+    #[test]
+    fn test_graph_indexing() {
+        let mut graph = Graph::default();
+        let input_idx = graph.insert(NodeType::Input, 42);
+        let output_idx = graph.insert(NodeType::Output, 24);
+
+        // Test Index trait
+        assert_eq!(graph[input_idx].value(), &42);
+        assert_eq!(graph[output_idx].value(), &24);
+
+        // Test IndexMut trait
+        graph[input_idx].set_direction(Direction::Backward);
+        assert_eq!(graph[input_idx].direction(), Direction::Backward);
+
+        // Test get() and get_mut()
+        assert_eq!(graph.get(input_idx).unwrap().value(), &42);
+        assert_eq!(graph.get_mut(output_idx).unwrap().value(), &24);
+
+        // Test out of bounds
+        assert!(graph.get(999).is_none());
+        assert!(graph.get_mut(999).is_none());
+    }
+
+    #[test]
+    fn test_graph_node_type_queries() {
+        let mut graph = Graph::default();
+        graph.insert(NodeType::Input, 0);
+        graph.insert(NodeType::Input, 1);
+        graph.insert(NodeType::Vertex, 2);
+        graph.insert(NodeType::Vertex, 3);
+        graph.insert(NodeType::Output, 4);
+        graph.insert(NodeType::Output, 5);
+
+        // Test inputs()
+        let inputs = graph.inputs();
+        assert_eq!(inputs.len(), 2);
+        assert!(
+            inputs
+                .iter()
+                .all(|node| node.node_type() == NodeType::Input)
+        );
+
+        // Test vertices()
+        let vertices = graph.vertices();
+        assert_eq!(vertices.len(), 2);
+        assert!(
+            vertices
+                .iter()
+                .all(|node| node.node_type() == NodeType::Vertex)
+        );
+
+        // Test outputs()
+        let outputs = graph.outputs();
+        assert_eq!(outputs.len(), 2);
+        assert!(
+            outputs
+                .iter()
+                .all(|node| node.node_type() == NodeType::Output)
+        );
+    }
+
+    #[test]
+    fn test_graph_iterators() {
+        let mut graph = Graph::default();
+        let input_idx = graph.insert(NodeType::Input, 0);
+        let vertex_idx = graph.insert(NodeType::Vertex, 1);
+        let output_idx = graph.insert(NodeType::Output, 2);
+
+        graph.attach(input_idx, vertex_idx);
+        graph.attach(vertex_idx, output_idx);
+
+        // Test iter()
+        let nodes: Vec<_> = graph.iter().collect();
+        assert_eq!(nodes.len(), 3);
+        assert_eq!(nodes[0].value(), &0);
+        assert_eq!(nodes[1].value(), &1);
+        assert_eq!(nodes[2].value(), &2);
+
+        // Test iter_mut()
+        for node in graph.iter_mut() {
+            if node.node_type() == NodeType::Vertex {
+                node.set_direction(Direction::Backward);
+            }
+        }
+        assert_eq!(graph[vertex_idx].direction(), Direction::Backward);
+
+        // Test into_iter()
+        let values: Vec<_> = graph.into_iter().map(|node| *node.value()).collect();
+        assert_eq!(values, vec![0, 1, 2]);
+    }
+
+    #[test]
+    fn test_graph_detach() {
+        let mut graph = Graph::default();
+        let input_idx = graph.insert(NodeType::Input, 0);
+        let output_idx = graph.insert(NodeType::Output, 1);
+
+        // Test attaching and detaching
+        graph.attach(input_idx, output_idx);
+        assert!(graph[input_idx].outgoing().contains(&output_idx));
+        assert!(graph[output_idx].incoming().contains(&input_idx));
+
+        graph.detach(input_idx, output_idx);
+        assert!(!graph[input_idx].outgoing().contains(&output_idx));
+        assert!(!graph[output_idx].incoming().contains(&input_idx));
+
+        // Test detaching non-existent connection
+        graph.detach(input_idx, output_idx); // Should not panic
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn test_graph_serde() {
+        let mut graph = Graph::default();
+
+        graph.insert(NodeType::Input, 0);
+        graph.insert(NodeType::Vertex, 1);
+        graph.insert(NodeType::Output, 2);
+        graph.attach(0, 1);
+        graph.attach(1, 2);
+
+        let serialized = serde_json::to_string(&graph).unwrap();
+        let deserialized: Graph<i32> = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(graph, deserialized);
     }
 }
