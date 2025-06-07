@@ -165,8 +165,9 @@ impl<T: Debug> Debug for Tree<T> {
 
 #[cfg(test)]
 mod test {
+
     use super::*;
-    use crate::{Node, NodeType, Op, TreeIterator};
+    use crate::{Arity, Node, NodeType, Op, TreeIterator};
 
     #[test]
     fn test_swap_subtrees() {
@@ -215,5 +216,157 @@ mod test {
 
         let tree = Tree::with_depth(5, store);
         assert_eq!(tree.height(), 5);
+    }
+
+    #[test]
+    fn test_tree_with_mixed_arity() {
+        let store = vec![
+            (
+                NodeType::Vertex,
+                vec![
+                    Op::add(),         // Binary operator
+                    Op::constant(1.0), // Constant
+                    Op::sigmoid(),     // Unary operator - gets treated as arity 2
+                ],
+            ),
+            (NodeType::Leaf, vec![Op::constant(2.0)]),
+        ];
+        let tree = Tree::with_depth(3, store);
+
+        // Verify that nodes have appropriate arity based on their type
+        for node in tree.iter_breadth_first() {
+            match node.value() {
+                Op::Fn(name, arity, _) if *name == "add" || *name == "sub" || *name == "mul" => {
+                    assert_eq!(**arity, 2, "Binary operator should have arity 2")
+                }
+                Op::Const(_, _) => assert_eq!(*node.arity(), 0, "Constant should have arity 0"),
+                Op::Fn(name, arity, _) if *name == "sigmoid" => {
+                    assert_eq!(**arity, 2, "Unary operator should have arity 2")
+                }
+                _ => (), // Other ops can be ignored for this test
+            }
+        }
+    }
+
+    #[test]
+    fn test_tree_with_zero_arity() {
+        let store = vec![
+            (NodeType::Vertex, vec![Op::constant(1.0)]), // Constants have zero arity
+            (NodeType::Leaf, vec![Op::constant(2.0)]),
+        ];
+        let tree = Tree::with_depth(2, store);
+
+        // Verify that each vertex node has no children
+        for node in tree.iter_breadth_first() {
+            println!("Node: {:?}", node);
+
+            assert_eq!(*node.arity(), 0, "Vertex node should have zero arity");
+            assert!(
+                node.children().is_none(),
+                "Vertex node should have no children"
+            );
+        }
+    }
+
+    #[test]
+    fn test_tree_with_exact_arity() {
+        let store = vec![
+            (NodeType::Vertex, vec![Op::add(), Op::sub()]), // Binary operators
+            (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
+        ];
+        let tree = Tree::with_depth(2, store);
+
+        // Verify that each vertex node has exactly 2 children
+        for node in tree.iter_breadth_first() {
+            if node.node_type() == NodeType::Vertex {
+                assert_eq!(node.arity(), Arity::Exact(2));
+                assert_eq!(node.children().unwrap().len(), 2);
+            }
+        }
+    }
+
+    #[test]
+    fn test_tree_with_only_leaf_nodes() {
+        let store = vec![(NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)])];
+        let tree = Tree::with_depth(3, store);
+        assert!(tree.root().is_some());
+        assert_eq!(tree.root().unwrap().node_type(), NodeType::Leaf);
+        assert_eq!(tree.size(), 1);
+        assert_eq!(tree.height(), 0);
+    }
+
+    #[test]
+    fn test_tree_with_empty_store() {
+        let empty_store: Vec<(NodeType, Vec<Op<f32>>)> = vec![];
+        let tree = Tree::with_depth(3, empty_store);
+
+        // Root will be a default node since no valid nodes were provided
+        assert!(tree.root().is_some());
+        assert_eq!(tree.size(), 1);
+        assert_eq!(tree.height(), 0);
+    }
+
+    #[test]
+    fn test_tree_debug() {
+        let tree = Tree::new(
+            TreeNode::new(Op::add())
+                .attach(TreeNode::new(Op::constant(1.0)))
+                .attach(TreeNode::new(Op::constant(2.0))),
+        );
+
+        let debug_str = format!("{:?}", tree);
+        assert!(debug_str.contains("Tree {"));
+        assert!(debug_str.contains("add"));
+        assert!(debug_str.contains("C"));
+    }
+
+    #[test]
+    fn test_tree_as_ref_as_mut() {
+        let mut tree = Tree::new(
+            TreeNode::new(Op::add())
+                .attach(TreeNode::new(Op::constant(1.0)))
+                .attach(TreeNode::new(Op::constant(2.0))),
+        );
+
+        // Test AsRef
+        let root_ref: &TreeNode<Op<f32>> = tree.as_ref();
+        assert_eq!(root_ref.value(), &Op::add());
+        assert_eq!(root_ref.children().unwrap().len(), 2);
+
+        // Test AsMut
+        let root_mut: &mut TreeNode<Op<f32>> = tree.as_mut();
+        assert_eq!(root_mut.value(), &Op::add());
+
+        root_mut
+            .children_mut()
+            .unwrap()
+            .push(TreeNode::new(Op::constant(3.0))); // Add a new child
+        assert_eq!(root_mut.children().unwrap().len(), 3); // Now should have 3 children
+        // assert!(!tree.as_ref().is_valid()); // Invalid since we added a child without updating size
+    }
+
+    #[test]
+    fn test_tree_root_operations() {
+        // Test root operations on empty tree
+        let mut empty_tree = Tree::<Op<f32>>::default();
+        assert!(empty_tree.root().is_none());
+        assert!(empty_tree.root_mut().is_none());
+        assert!(empty_tree.take_root().is_none());
+
+        // Test root operations on non-empty tree
+        let tree = Tree::new(
+            TreeNode::new(Op::add())
+                .attach(TreeNode::new(Op::constant(1.0)))
+                .attach(TreeNode::new(Op::constant(2.0))),
+        );
+
+        // Test root()
+        let root = tree.root().unwrap();
+        assert_eq!(root.value(), &Op::add());
+        assert_eq!(root.children().unwrap().len(), 2);
+
+        // Test take_root()
+        let root = tree.take_root().unwrap();
+        assert_eq!(root.value(), &Op::add());
     }
 }
