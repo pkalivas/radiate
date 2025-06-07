@@ -562,6 +562,162 @@ mod test {
     }
 
     #[test]
+    fn test_graph_clone_and_partial_eq() {
+        let mut graph1 = Graph::default();
+        let input_idx = graph1.insert(NodeType::Input, 42);
+        let output_idx = graph1.insert(NodeType::Output, 24);
+        graph1.attach(input_idx, output_idx);
+
+        let graph2 = graph1.clone();
+        assert_eq!(graph1, graph2);
+
+        let mut graph3 = graph1.clone();
+        graph3[input_idx].set_direction(Direction::Backward);
+        assert_ne!(graph1, graph3);
+
+        let mut graph4 = graph1.clone();
+        if let Some(node) = graph4.get_mut(input_idx) {
+            *node.value_mut() = 100;
+        }
+        assert_ne!(graph1, graph4);
+    }
+
+    #[test]
+    fn test_graph_arity_validation() {
+        let mut graph = Graph::default();
+        let input_idx = graph.insert(NodeType::Input, 0);
+        graph.push((1, NodeType::Vertex, 1, Arity::Exact(2)));
+        let output_idx = graph.insert(NodeType::Output, 2);
+
+        graph.attach(input_idx, 1);
+        graph.attach(1, output_idx);
+
+        // Should be invalid - vertex needs exactly 2 incoming connections
+        assert!(!graph.is_valid());
+
+        // Add one connection - should still be invalid, connections are unique so this just
+        // replaces the existing one with the same index
+        graph.attach(input_idx, 1);
+        assert!(!graph.is_valid());
+
+        // Add third connection - should still be valid with Arity::Any
+        let input3_idx = graph.insert(NodeType::Input, 3);
+        graph.attach(input3_idx, 1);
+        println!("{:?}", graph);
+        assert!(graph.is_valid());
+    }
+
+    #[test]
+    fn test_graph_indexing() {
+        let mut graph = Graph::default();
+        let input_idx = graph.insert(NodeType::Input, 42);
+        let output_idx = graph.insert(NodeType::Output, 24);
+
+        // Test Index trait
+        assert_eq!(graph[input_idx].value(), &42);
+        assert_eq!(graph[output_idx].value(), &24);
+
+        // Test IndexMut trait
+        graph[input_idx].set_direction(Direction::Backward);
+        assert_eq!(graph[input_idx].direction(), Direction::Backward);
+
+        // Test get() and get_mut()
+        assert_eq!(graph.get(input_idx).unwrap().value(), &42);
+        assert_eq!(graph.get_mut(output_idx).unwrap().value(), &24);
+
+        // Test out of bounds
+        assert!(graph.get(999).is_none());
+        assert!(graph.get_mut(999).is_none());
+    }
+
+    #[test]
+    fn test_graph_node_type_queries() {
+        let mut graph = Graph::default();
+        graph.insert(NodeType::Input, 0);
+        graph.insert(NodeType::Input, 1);
+        graph.insert(NodeType::Vertex, 2);
+        graph.insert(NodeType::Vertex, 3);
+        graph.insert(NodeType::Output, 4);
+        graph.insert(NodeType::Output, 5);
+
+        // Test inputs()
+        let inputs = graph.inputs();
+        assert_eq!(inputs.len(), 2);
+        assert!(
+            inputs
+                .iter()
+                .all(|node| node.node_type() == NodeType::Input)
+        );
+
+        // Test vertices()
+        let vertices = graph.vertices();
+        assert_eq!(vertices.len(), 2);
+        assert!(
+            vertices
+                .iter()
+                .all(|node| node.node_type() == NodeType::Vertex)
+        );
+
+        // Test outputs()
+        let outputs = graph.outputs();
+        assert_eq!(outputs.len(), 2);
+        assert!(
+            outputs
+                .iter()
+                .all(|node| node.node_type() == NodeType::Output)
+        );
+    }
+
+    #[test]
+    fn test_graph_iterators() {
+        let mut graph = Graph::default();
+        let input_idx = graph.insert(NodeType::Input, 0);
+        let vertex_idx = graph.insert(NodeType::Vertex, 1);
+        let output_idx = graph.insert(NodeType::Output, 2);
+
+        graph.attach(input_idx, vertex_idx);
+        graph.attach(vertex_idx, output_idx);
+
+        // Test iter()
+        let nodes: Vec<_> = graph.iter().collect();
+        assert_eq!(nodes.len(), 3);
+        assert_eq!(nodes[0].value(), &0);
+        assert_eq!(nodes[1].value(), &1);
+        assert_eq!(nodes[2].value(), &2);
+
+        // Test iter_mut()
+        for node in graph.iter_mut() {
+            if node.node_type() == NodeType::Vertex {
+                node.set_direction(Direction::Backward);
+            }
+        }
+        assert_eq!(graph[vertex_idx].direction(), Direction::Backward);
+
+        // Test into_iter()
+        let values: Vec<_> = graph.into_iter().map(|node| *node.value()).collect();
+        assert_eq!(values, vec![0, 1, 2]);
+    }
+
+    #[test]
+    fn test_graph_detach() {
+        let mut graph = Graph::default();
+        let input_idx = graph.insert(NodeType::Input, 0);
+        let output_idx = graph.insert(NodeType::Output, 1);
+
+        // Test attaching and detaching
+        graph.attach(input_idx, output_idx);
+        assert!(graph[input_idx].outgoing().contains(&output_idx));
+        assert!(graph[output_idx].incoming().contains(&input_idx));
+
+        graph.detach(input_idx, output_idx);
+        assert!(!graph[input_idx].outgoing().contains(&output_idx));
+        assert!(!graph[output_idx].incoming().contains(&input_idx));
+
+        // Test detaching non-existent connection
+        graph.detach(input_idx, output_idx); // Should not panic
+    }
+
+    #[test]
     #[cfg(feature = "serde")]
     fn test_graph_serde() {
         let mut graph = Graph::default();
