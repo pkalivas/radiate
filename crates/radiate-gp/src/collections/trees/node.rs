@@ -1,6 +1,8 @@
 use super::TreeIterator;
 use crate::{Arity, NodeType, node::Node};
 use radiate_core::genome::{Gene, Valid};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 /// A node in a tree structure that represents a single element with optional children.
@@ -90,6 +92,7 @@ use std::fmt::Debug;
 /// let result = tree.eval(&[]); // Evaluates to 5.0
 /// ```
 #[derive(PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct TreeNode<T> {
     value: T,
     arity: Option<Arity>,
@@ -531,5 +534,24 @@ mod tests {
 
         let node4 = TreeNode::new(42).attach(TreeNode::new(1));
         assert_ne!(node1, node4);
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn test_node_can_serialize() {
+        let root = TreeNode::new(42)
+            .attach(TreeNode::new(1))
+            .attach(
+                TreeNode::new(2)
+                    .attach(TreeNode::new(3))
+                    .attach(TreeNode::new(4)),
+            )
+            .attach(TreeNode::with_arity(3, Arity::Exact(2)));
+
+        let serialized = serde_json::to_string(&root).unwrap();
+        let deserialized: TreeNode<i32> = serde_json::from_str(&serialized).unwrap();
+
+        println!("Serialized: {}", serialized);
+        assert_eq!(root, deserialized);
     }
 }
