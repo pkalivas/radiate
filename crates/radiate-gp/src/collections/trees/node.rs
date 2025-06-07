@@ -551,7 +551,6 @@ mod tests {
         let serialized = serde_json::to_string(&root).unwrap();
         let deserialized: TreeNode<i32> = serde_json::from_str(&serialized).unwrap();
 
-        println!("Serialized: {}", serialized);
         assert_eq!(root, deserialized);
     }
 }
