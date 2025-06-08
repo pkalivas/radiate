@@ -6,7 +6,6 @@ from .codec import CodecBase
 from .limit import LimitBase
 from .generation import Generation
 
-
 from .radiate import PyEngineBuilder, PyObjective, PySubscriber
 
 

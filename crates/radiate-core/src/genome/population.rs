@@ -9,14 +9,14 @@ use std::ops::{Index, IndexMut, Range};
 
 /// A [Population] is a collection of [Phenotype] instances. This struct is the core collection of individuals
 /// being evolved by the `GeneticEngine`. It can be thought of as a Vec of `Phenotype`s and
-/// is essentially a light wrapper around such a Vec. The `Population` struct, however, has some
+/// is essentially a light wrapper around such a Vec. The [Population] struct, however, has some
 /// additional functionality that allows for sorting and iteration over the individuals in the population.
 ///
-/// Note: Although the `Population` offers mut methods to mut the individuals in the population, the `Population`
-/// itself offers no way to increase or decrease the number of individuals in the population. As such, the `Population`
+/// Note: Although the [Population] offers mut methods to mut the individuals in the population, the [Population]
+/// itself offers no way to increase or decrease the number of individuals in the population. As such, the [Population]
 /// should be thought of as an 'immutable' data structure. If you need to add or remove individuals from the population,
-/// you should create a new `Population` instance with the new individuals. To further facilitate this way of
-/// thinking, the `Population` struct and everything it contains implements the `Clone` trait.
+/// you should create a new [Population] instance with the new individuals. To further facilitate this way of
+/// thinking, the [Population] struct and everything it contains implements the `Clone` trait.
 ///
 /// # Type Parameters
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
