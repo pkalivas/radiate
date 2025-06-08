@@ -5,8 +5,8 @@ repo_name: radiate
 nav:
   - User Guide: index.md
   - Getting Started: source/installation.md
-  - Genome: source/genome.md
   - Codec: source/codec.md
+  - Genome: source/genome.md
   - Parameters: source/params.md
   - Selectors: source/selectors.md
   - Alterers: source/alterers.md
