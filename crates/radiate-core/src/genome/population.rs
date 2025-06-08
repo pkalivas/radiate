@@ -21,7 +21,6 @@ use std::ops::{Index, IndexMut, Range};
 /// # Type Parameters
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 #[derive(Clone, Default, PartialEq)]
-#[repr(transparent)]
 pub struct Population<C: Chromosome> {
     individuals: Vec<Member<C>>,
 }
