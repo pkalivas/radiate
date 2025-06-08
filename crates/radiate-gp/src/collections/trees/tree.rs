@@ -35,6 +35,7 @@ use std::fmt::Debug;
 ///
 /// // Evaluate the tree
 /// let result = tree.eval(&[]); // Evaluates to 9.0
+/// assert_eq!(result, 9.0);
 /// ```
 ///
 /// # Tree Creation

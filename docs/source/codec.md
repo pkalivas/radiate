@@ -1,181 +1,285 @@
 
-Encoding and Decoding Genetic Information
+# Codecs
 
-Because Radiate has such a specific domain language, there needs to be a way to convert between the domain language or 'problem space' and the 'solution space'. For example, if you are trying to evolve a list of floating-point numbers, the `GeneticEngine` needs to know how to interact with that list of numbers, but from our perspective, we are only interested in the real-world problem that the list of numbers represents. This is where the `Codec` comes in.
+## What is a Codec?
 
- When the `GeneticEngine` is evolving a population of individuals, it uses the `Codec` to encode the genetic information of the individuals into a `Genotype`, and then decode the `Genotype` back into the domain language when evaluating the fitness of the individuals. This process of encoding and decoding genetic information is what allows the `GeneticEngine` to operate on the genetic information of the individuals while still allowing us to work with the real-world problem that the genetic information represents. This allows the `fitness_fn` to accept the real-world representation of the individual we defined in the `Codec`.
+Radiate's `GeneticEngine` operates on an abstract representation of your domain problem using its own domain language we can term the 'Genome'. To bridge the gap between your domain and radiate's, we use a `Codec` - encoder-decoder. A `Codec` is a mechanism that encodes and decodes genetic information between the 'problem space' (your domain) and the 'solution space' (Radiate's internal representation).
 
-In other words, the `Codec` is the bridge between the domain language of Radiate and the real-world problem that you are trying to solve. 
+Essentially, this is a component that defines how genetic information is structured and represented in your evolutionary algorithm. Think of it as a blueprint that tells the algorithm:
 
-???+ info "Core library `Codec` implementations"
+- What type of data you're evolving (numbers, characters, etc.)
+- How that data is organized (single values, arrays, matrices, etc.)
+- Any other chromosome or gene level information needed for the algorithm to work effectively.
 
-    === "BitCodec"
-        ```rust
-        pub struct BitCodec {
-            pub num_chromosomes: usize,
-            pub num_genes: usize,
-        }
-        ```
+## Why Do We Need Codecs?
 
-        * **Encodes**: `Genotype` of `BitChromosomes` with `BitGenes`
-        * **Decodes**: `Vec<Vec<bool>>`
+In genetic algorithms, we need to represent potential solutions to our problem in a way that can be:
+
+1. **Evolved**: Modified through operations like mutation and crossover
+2. **Evaluated**: Tested to see how good the solution is
+3. **Consistent**: Able to be encoded to chromosomes and genes which the engine can understand and operate on, then decoded back into a format that can be used in the real-world problem (e.g., your fitness function).
+
+For example, if you're evolving neural network weights, you need to:
+
+- Represent the weights as numbers
+- Organize them in the correct structure (matrices for layers)
+- Keep them within reasonable ranges (e.g., between -1 and 1)
   
-        When people traditionally think of genetic algorithms, they often think of binary strings. The `BitCodec` is a simple way to encode and decode a `Genotype` of binary strings so in essence, it is the most basic `Codec` implementation.
+See [this example](https://github.com/pkalivas/radiate/blob/master/examples/simple-nn/src/main.rs) for a simple neural network evolution using Radiate.
 
-        ```mermaid
-        classDiagram 
-            class BitCodec {
-                num_chromosomes: usize
-                num_genes: usize
-                
-                encode() Genotype~BitChromosome~
-                decode(&Genotype~BitChromosome~) Vec~Vec~bool~~
-            }
-        ```
+## How Codecs Fit Into the Genetic Algorithm
 
-    === "CharCodec"
-        ```rust
-        pub struct CharCodec {
-            num_chromosomes: usize,
-            num_genes: usize,
-            char_set: Arc<[char]>,
-        }
-        ```
+Here's a simple breakdown of how codecs work in the evolution process:
 
-        * **Encodes**: `Genotype` of `CharChromosomes` with `CharGenes`
-        * **Decodes**: `Vec<Vec<char>>`
-    
-        ```mermaid
-        classDiagram
-            class CharCodec {
-                num_chromosomes: usize
-                num_genes: usize
-                char_set: Arc~[char]~
-                
-                encode() Genotype~CharChromosome~
-                decode(&Genotype~CharChromosome~) Vec~Vec~char~~
-            }
-        ```
+1. **Initialization**: When you create a population, the codec defines how each individual's genetic information is structured and created within the population. For example, if you're evolving a list of floating-point numbers, the codec will specify how many numbers, their ranges, and how they are represented.
+2. **Evaluation**: Your fitness function receives the decoded values in a format you can work with and have possibly defined.
 
-    === "FloatCodec"
-        ```rust
-        pub struct FloatCodec {
-            pub num_chromosomes: usize,
-            pub num_genes: usize,
-            pub min: f32,
-            pub max: f32,
-            pub lower_bound: f32,
-            pub upper_bound: f32,
-        }
-        ```
+## Types of Codecs
 
-        * **Encodes**: `Genotype` of `FloatChromosomes` with `FloatGenes`
-        * **Decodes**: `Vec<Vec<f32>>`
+Radiate provides several codec types out of the box that should be able to cover most use cases. Each codec type is designed to handle specific data types and structures, making it easier to evolve solutions for various problems. They include:
 
-        ```mermaid
-        classDiagram
-            class FloatCodec {
-                num_chromosomes: usize
-                num_genes: usize
-                min: f32
-                max: f32
-                lower_bound: f32
-                upper_bound: f32
-                
-                with_bounds(mut self, f32, f32) FloatCodec
-                scalar(f32, f32) FloatCodec
-                encode() Genotype~CharChromosome~
-                decode(&Genotype~CharChromosome~) Vec~Vec~char~~
-            }
-        ```
-    === "IntCodec"
-        ```rust
-        pub struct IntCodec<T: Integer<T>> {
-            pub num_chromosomes: usize,
-            pub num_genes: usize,
-            pub min: T,
-            pub max: T,
-            pub lower_bound: T,
-            pub upper_bound: T,
-        }
-        ```
+### 1. FloatCodec
+Use this when you need to evolve floating-point numbers. Perfect for:
 
-        * **Encodes**: `Genotype` of `IntChromosome<T>` with `IntGene<T>`
-        * **Decodes**: `Vec<Vec<T>>`
-        
-        **Note**: `T` must implement the `Integer` trait. Integer is a trait in Radiate and is implemented for `i8`, `i16`, `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, `u128`.
-        ```mermaid
-        classDiagram
-            class IntCodec~T~ {
-                num_chromosomes: usize
-                num_genes: usize
-                min: T
-                max: T
-                lower_bound: T
-                upper_bound: T
-                
-                with_bounds(mut self, T, T) IntCodec~T~
-                encode() Genotype~IntChromosome~
-                decode(&Genotype~IntChromosome~T~~) Vec~Vec~char~~
-            }
-        ```
+- Neural network weights
+- Mathematical function parameters
+- Continuous optimization problems
+- Real-valued parameters
 
-    === "PermutationCodec"
-        ```rust
-        pub struct PermutationCodec<A: PartialEq + Clone> {
-            pub alleles: Arc<Vec<A>>,
-        }
-        ```
-
-        * **Encodes**: `Genotype` of `PermutationChromosomes<A>` with `PermutationGene<A>`
-        * **Decodes**: `Vec<A>`
-
-        Permutation problems are problems where the order of the elements in the solution is important. The Travelling Salesman Problem is a classic example of a permutation problem.
+In all `FloatCodec` varients, the `bound_range` is optional and defaults to the `value_range` if not specified.
 
 
-        ```mermaid
-        classDiagram
-            class PermutationCodec~A~ {
-                alleles: Arc~Vec~A~~
-                
-                encode() Genotype~PermutationChromosome~A~~
-                decode(&Genotype~PermutationChromosome~A~~) Vec~A~~
-            }
-        ```
+=== ":fontawesome-brands-python: Python"
 
-    === "SubsetCodec"
-        ```rust
-        pub struct SubSetCodec<'a, T> {
-            pub items: &'a Vec<T>,
-        }
-        ```
+    ```python
+    import radiate as rd
 
-        * **Encodes**: `Genotype` of `BitChromosome` with `BitGene`
-        * **Decodes**: `Vec<&'a T>`
+    # For a single parameter
+    codec = rd.FloatCodec.scalar(value_range=(0.0, 1.0), bound_range=(-10.0, 10.0))
 
-        The `SubsetCodec` is a specialized `Codec` that is used for subset selection problems. In subset selection problems, the goal is to select a subset of items from a larger set of items that maximizes some objective function. The Knapsack Problem is a classic example of a subset selection problem.
+    # For a list of parameters
+    codec = rd.FloatCodec.vector(length=5, value_range=(-1.0, 1.0), bound_range=(-10.0, 10.0))
 
-        ```mermaid
-        classDiagram
-            class SubSetCodec~'a, T~ {
-                items: &'a Vec~T~
-                
-                encode() Genotype~BitChromosome~
-                decode(&Genotype~BitChromosome~) Vec~&'a T~
-            }
-        ```
-    === "FnCodec"
-        ```rust
-        pub struct FnCodec<C: Chromosome, T> {
-            pub encoder: Option<Box<dyn Fn() -> Genotype<C>>>,
-            pub decoder: Option<Box<dyn Fn(&Genotype<C>) -> T>>,
-        }
-        ```
+    # For a matrix of parameters (like neural network weights)
+    codec = rd.FloatCodec.matrix(shape=(3, 2), value_range=(-0.1, 0.1), bound_range=(-1.0, 1.0))
+    # -- or --
+    # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes)
+    codec = rd.FloatCodec.matrix([2, 2, 2], value_range=(-0.1, 0.1), bound_range=(-1.0, 1.0))
+    ```
 
-        * **Encodes**: `Genotype` of `C` with `C::GeneType`
-        * **Decodes**: `T`
+=== ":fontawesome-brands-rust: Rust"
 
-        The `FnCodec` is a generic `Codec` that allows you to define your own encoding and decoding functions. This is useful if you have a custom problem that doesn't fit into the other `Codec` implementations and don't want to create a new `Codec` implementation.
+    ```rust
+    use radiate::*;
+
+    // single float parameter
+    let codec_scalar = FloatCodec::scalar(-1.0..1.0).with_bounds(-10.0..10.0);      
+
+    // vector of 5 floats
+    let codec_vector = FloatCodec::vector(5, -1.0..1.0).with_bounds(-10.0..10.0);   
+
+    // 3x2 matrix of floats
+    let codec_matrix = FloatCodec::matrix(3, 2, -0.1..0.1).with_bounds(-1.0..1.0);  
+    ```
+
+### 2. IntCodec
+Use this when you need to evolve integer values. Good for:
+
+- Discrete optimization problems
+- Array indices
+- Configuration parameters that must be whole numbers
+
+In all `IntCodec` varients, the `bound_range` is optional and defaults to the `value_range` if not specified. 
+
+=== ":fontawesome-brands-python: Python"
+
+    ```python
+    import radiate as rd
+
+    # For a single parameter
+    codec = rd.IntCodec.scalar(value_range=(0, 1), bound_range=(-10, 10))
+
+    # For a list of parameters
+    codec = rd.IntCodec.vector(length=5, value_range=(-1, 1), bound_range=(-10, 10))
+
+    # For a matrix of ints
+    codec = rd.IntCodec.matrix(shape=(3, 2), value_range=(-1, 1), bound_range=(-10, 10))
+    # -- or --
+    # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes)
+    codec = rd.IntCodec.matrix([2, 2, 2], value_range=(-1, 1), bound_range=(-10, 10))
+    ```
+
+=== ":fontawesome-brands-rust: Rust"
+
+    The type of int can be specified as `i8`, `i16`, `i32`, `i64`, `i128` or `u8`, `u16`, `u32`, `u64`, `u128` depending on your needs.
+
+    ```rust
+    use radiate::*;
+
+    // single float parameter
+    let codec_scalar = IntCodec::scalar(-1..1).with_bounds(-10..10);
+
+    // vector of 5 floats - specify the int type
+    let codec_vector = IntCodec::<i128>::vector(5, -1..1).with_bounds(-10..10);
+
+    // 3x2 matrix of floats
+    let codec_matrix = IntCodec::matrix(3, 2, -1..1).with_bounds(-10..10);
+    ```
+
+### 3. CharCodec
+Use this when you need to evolve character strings. Useful for:
+
+- Text generation
+- String-based problems
+
+There is an optional `char_set` parameter that allows you to specify the set of characters to use for encoding. If not specified, it defaults to lowercase letters (a-z), uppercase letters (A-Z), digits (0-9), and common punctuation ( !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~).
+
+=== ":fontawesome-brands-python: Python"
+
+    ```python
+    import radiate as rd
+
+    # For a list of parameters
+    codec = rd.CharCodec.vector(length=5, char_set='abcdefghijklmnopqrstuvwxyz')
+
+    # For a matrix of chars
+    codec = rd.CharCodec.matrix(shape=(3, 2), char_set={'a', 'b', 'c', 'd'})
+    # -- or --
+    # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes) - use the default char_set
+    codec = rd.CharCodec.matrix([2, 2, 2])
+    ```
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    // vector of 5 chars - specify the char set
+    let codec_vector = CharCodec::vector(5).with_char_set("abcdefghijklmnopqrstuvwxyz");
+
+    // 3x2 matrix of chars
+    let codec_matrix = CharCodec::matrix(3, 2);
+    ```
+
+### 4. BitCodec
+Use this when you need to evolve binary data. Each `Gene` is a `BitGene` where the `Allele`, or value being evolved, is a bool. Ideal for:
+
+- Binary optimization problems
+- Feature selection
+- Boolean configurations
+- Subset selection problems (e.g., Knapsack problem)
+
+=== ":fontawesome-brands-python: Python"
+
+    ```python
+    import radiate as rd
+
+    # For a list of parameters
+    codec = rd.BitCodec.vector(5)
+
+    # For a matrix of bools
+    codec = rd.BitCodec.matrix(shape=(3, 2))
+    # -- or --
+    # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes) - use the default char_set
+    codec = rd.BitCodec.matrix([2, 2, 2])
+    ```
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    // vector of 5 chars - specify the char set
+    let codec_vector = BitCodec::vector(5);
+
+    // 3x2 matrix of chars
+    let codec_matrix = BitCodec::matrix(3, 2);
+    ```
+
+
+## A Simple Example
+
+Let's look at a basic example of evolving a simple function: finding the best values for `y = ax + b` where we want to find optimal values for `a` and `b`.
+
+=== ":fontawesome-brands-python: Python"
+
+    ```python
+    from typing import List
+    import radiate as rd
+
+    # Define a fitness function that uses the decoded values
+    def fitness_function(individual: List[float]) -> float:    
+        # Calculate how well these parameters fit your data
+        return calculate_error(individual[0], individual[1])  # Your error calculation here
+
+    # Create a codec for two parameters (a and b)
+    codec = rd.FloatCodec.vector(
+        length=2,                   # We need two parameters: a and b
+        value_range=(-1.0, 1.0),    # Start with values between -1 and 1
+        bound_range=(-10.0, 10.0)   # Allow evolution to modify the values between -10 and 10
+    )
+
+    # Create the evolution engine
+    engine = rd.EvolutionEngine(
+        codec=codec,
+        fitness_func=fitness_function,
+        # ... other parameters ...
+    )
+
+    # Run the engine
+    result = engine.run([rd.ScoreLimit(0.01), rd.GenerationsLimit(1000)])
+    ```
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    let mut engine = GeneticEngine::builder()
+        .codec(FloatCodec::vector(2, -1.0..1.0).with_bounds(-10.0..10.0))   // a and b
+        .fitness_function(|individual: Vec<f32>| {
+            // Calculate how well these parameters fit your data
+            calculate_error(individual[0], individual[1])                   // Your error calculation here
+        })
+        .build();
+
+    // Run the engine
+    let result = engine.run(|generation| {
+        generation.index() >= 1000 || generation.score().as_f32() <= 0.01
+    });
+    ```
+
+## Best Practices
+
+1. **Start Simple**: Begin with a simple codec structure and expand as needed
+2. **Choose Appropriate Ranges (IntCodec & FloatCodec)**:
+   >- `value_range`: Set this to reasonable initial values
+   >- `bound_range`: Set this to the valid range for your problem
+3. **Match Your Problem**: Choose the codec type that best represents your solution space
+4. **Consider Structure**: Use the appropriate configuration (scalar/vector/matrix) for your problem
+
+## Common Pitfalls to Avoid
+
+1. **Too Wide Ranges**: Starting with very wide value ranges can make evolution slower
+2. **Too Narrow Bounds**: Restrictive bound ranges might prevent finding optimal solutions
+3. **Mismatched Structure**: Using the wrong codec structure can make it impossible to represent valid solutions
+
+## Next Steps
+
+Now that you understand codecs, you can:
+
+1. Define your problem's solution space
+2. Choose the appropriate codec type and structure
+3. Set up your evolution engine
+4. Define your fitness function to work with the decoded values
+
+Remember: The codec is your bridge between the genetic algorithm's internal representation and your problem's solution space. Choose it wisely!
+
+
+!!! warning ":construction: Under Construction :construction:"
+
+    These docs are under construction - anything below this point is subject to change and is currently being worked on.
+
 
 ___
 ### Build your own Codec

@@ -113,6 +113,7 @@ pub enum Direction {
 /// let node = GraphNode::new(0, NodeType::Input, 42);
 ///
 /// // Create a node with specific arity
+/// // This node will be invalid if it has a number of incoming connections other than 2
 /// let node_with_arity = GraphNode::with_arity(1, NodeType::Vertex, 42, Arity::Exact(2));
 /// ```
 ///
@@ -564,7 +565,7 @@ mod tests {
     fn test_graph_node_serde() {
         let node = GraphNode::new(0, NodeType::Input, 42.0);
         let serialized = serde_json::to_string(&node).unwrap();
-        let deserialized: GraphNode<f32> = serde_json::from_str(&serialized).unwrap();
+        let deserialized = serde_json::from_str::<GraphNode<f32>>(&serialized).unwrap();
 
         assert_eq!(node, deserialized);
         assert_eq!(node.value(), &42.0);
