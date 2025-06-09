@@ -34,150 +34,158 @@ A `Gene` is a wrapper around an `allele` that adds functionality which is compat
 
 Certain `Genes` have additional functionality that allows them to be manipulated in specific ways, such as the `FloatGene` and `IntGene<I>` which implement the `ArithmeticGene`. The `ArithmeticGene` trait provides methods for performing arithmetic operations on the `Gene`. Radiate provides several built-in gene types, however, you can also create custom genes to suit your specific needs. The built-in genes include:
 
-#### FloatGene
+<!-- #### FloatGene -->
 
-For evolving floating-point numbers. If the `allele` is not specified, it will be randomly initialized within the `value_range`. If the `value_range` is not specified, it will default to (`-1e10`, `1e10`). If the `bound_range` is not specified, it will default to `value_range`.
+??? info "FloatGene"
 
-=== ":fontawesome-brands-python: Python"
+    For evolving floating-point numbers. If the `allele` is not specified, it will be randomly initialized within the `value_range`. If the `value_range` is not specified, it will default to (`-1e10`, `1e10`). If the `bound_range` is not specified, it will default to `value_range`.
 
-    ```python
-    import radiate as rd
+    === ":fontawesome-brands-python: Python"
 
-    # Create a float gene that can evolve between -1.0 and 1.0 but 
-    # must stay within -10.0 to 10.0 during evolution
-    gene = rd.Gene.float(
-        allele=0.5,                   # Current value
-        value_range=(-1.0, 1.0),      # Initial range
-        bound_range=(-10.0, 10.0)     # Evolution bounds
-    )
-    ```
+        ```python
+        import radiate as rd
 
-=== ":fontawesome-brands-rust: Rust"
+        # Create a float gene that can evolve between -1.0 and 1.0 but 
+        # must stay within -10.0 to 10.0 during evolution
+        gene = rd.Gene.float(
+            allele=0.5,                   # Current value
+            value_range=(-1.0, 1.0),      # Initial range
+            bound_range=(-10.0, 10.0)     # Evolution bounds
+        )
+        ```
 
-    ```rust
-    use radiate::*;
+    === ":fontawesome-brands-rust: Rust"
 
-    // Create a float gene that can evolve between -1.0 and 1.0 but 
-    // must stay within -10.0 to 10.0 during evolution
-    let gene = FloatGene::new(0.5, -1.0..1.0, -10.0..10.0);
+        ```rust
+        use radiate::*;
 
-    // Create a float gene with a randomly generated allele between -1.0 and 1.0
-    // and bounds between -1.0 and 1.0
-    let gene = FloatGene::from(-1.0..1.0)
+        // Create a float gene that can evolve between -1.0 and 1.0 but 
+        // must stay within -10.0 to 10.0 during evolution
+        let gene = FloatGene::new(0.5, -1.0..1.0, -10.0..10.0);
 
-    // Create a float gene with a randomly generated allele between -1.0 and 1.0 with bounds between -10.0 and 10.0
-    let gene = FloatGene::from(-1.0..1.0, -10.0..10.0);
+        // Create a float gene with a randomly generated allele between -1.0 and 1.0
+        // and bounds between -1.0 and 1.0
+        let gene = FloatGene::from(-1.0..1.0)
 
-    // Create a float gene with an allele of 0.5 allele between -1.0 and 1.0 with bounds between -10.0 and 10.0
-    let gene = FloatGene::from((0.5, -1.0..1.0, -10.0..10.0));
-    ```
+        // Create a float gene with a randomly generated allele between -1.0 and 1.0 with bounds between -10.0 and 10.0
+        let gene = FloatGene::from(-1.0..1.0, -10.0..10.0);
+
+        // Create a float gene with an allele of 0.5 allele between -1.0 and 1.0 with bounds between -10.0 and 10.0
+        let gene = FloatGene::from((0.5, -1.0..1.0, -10.0..10.0));
+        ```
 
 
-#### IntGene
-For evolving integer values. If the `allele` is not specified, it will be randomly initialized within the `value_range`. If the `value_range` is not specified, it will default to (`-1e10`, `1e10`). If the `bound_range` is not specified, it will default to `value_range`. The `IntGene` holds a generic type `I` that implements the `Integer<I>` trait, which allows it to work with various integer types such as `i8`, `i16`, `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, and `u128`.
+<!-- #### IntGene -->
+??? info "IntGene"
 
-=== ":fontawesome-brands-python: Python"
+    For evolving integer values. If the `allele` is not specified, it will be randomly initialized within the `value_range`. If the `value_range` is not specified, it will default to (`-1e10`, `1e10`). If the `bound_range` is not specified, it will default to `value_range`. The `IntGene` holds a generic type `I` that implements the `Integer<I>` trait, which allows it to work with various integer types such as `i8`, `i16`, `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, and `u128`.
 
-    ```python
-    # Create an integer gene that can evolve between -100 and 100
-    gene = rd.Gene.int(
-        allele=42,                     # Current value
-        value_range=(-10, 10),        # Initial range
-        bound_range=(-100, 100)       # Evolution bounds
-    )
-    ```
+    === ":fontawesome-brands-python: Python"
 
-=== ":fontawesome-brands-rust: Rust"
+        ```python
+        # Create an integer gene that can evolve between -100 and 100
+        gene = rd.Gene.int(
+            allele=42,                     # Current value
+            value_range=(-10, 10),        # Initial range
+            bound_range=(-100, 100)       # Evolution bounds
+        )
+        ```
 
-    ```rust
-    use radiate::*;
+    === ":fontawesome-brands-rust: Rust"
 
-    // Create an integer gene that can evolve between -100 and 100
-    let gene = IntGene::new(42, -10..10, -100..100);
+        ```rust
+        use radiate::*;
 
-    // Create an integer gene with a randomly generated allele between -10 and 10 - specify the int type
-    let gene = IntGene::<i8>::from(-10..10);
+        // Create an integer gene that can evolve between -100 and 100
+        let gene = IntGene::new(42, -10..10, -100..100);
 
-    // Create an integer gene with a randomly generated allele between -10 and 10 with bounds between -100 and 100
-    let gene = IntGene::from(-10..10, -100..100);
+        // Create an integer gene with a randomly generated allele between -10 and 10 - specify the int type
+        let gene = IntGene::<i8>::from(-10..10);
 
-    // Create an integer gene with an allele of 42 between -10 and 10 with bounds between -100 and 100
-    let gene = IntGene::from((42, -10..10, -100..100));
-    ``` 
+        // Create an integer gene with a randomly generated allele between -10 and 10 with bounds between -100 and 100
+        let gene = IntGene::from(-10..10, -100..100);
 
-#### BitGene
-For evolving binary values. Radiate uses a `bool` as the allele for `BitGene`, which can be either `True` or `False`. 
+        // Create an integer gene with an allele of 42 between -10 and 10 with bounds between -100 and 100
+        let gene = IntGene::from((42, -10..10, -100..100));
+        ``` 
 
-=== ":fontawesome-brands-python: Python"
+<!-- #### BitGene -->
+??? info "BitGene"
 
-    ```python
-    # Create an bit gene with an allele of True - if the allele isn't specified, it will 
-    # be randomly initialized to True or False
-    gene = rd.Gene.bool(allele=True)
-    ```
+    For evolving binary values. Radiate uses a `bool` as the allele for `BitGene`, which can be either `True` or `False`. 
 
-=== ":fontawesome-brands-rust: Rust"
+    === ":fontawesome-brands-python: Python"
 
-    ```rust
-    use radiate::*;
+        ```python
+        # Create an bit gene with an allele of True - if the allele isn't specified, it will 
+        # be randomly initialized to True or False
+        gene = rd.Gene.bool(allele=True)
+        ```
 
-    // Create an bit gene with a randomly generated allele of true or false.
-    let gene = BitGene::new();
+    === ":fontawesome-brands-rust: Rust"
 
-    // Create a bit gene with an allele of true
-    let gene = BitGene::from(true); 
-    ```
+        ```rust
+        use radiate::*;
 
-#### CharGene
+        // Create an bit gene with a randomly generated allele of true or false.
+        let gene = BitGene::new();
 
-For evolving character values. The `CharGene` uses a `char` as its allele, which can represent any single Unicode character. If the `allele` is not specified, it will be randomly initialized to a character within the specified `char_set`. If the `char_set` is not specified, it will default to the ASCII printable characters.
+        // Create a bit gene with an allele of true
+        let gene = BitGene::from(true); 
+        ```
 
-=== ":fontawesome-brands-python: Python"
+<!-- #### CharGene -->
+??? info "CharGene"
 
-    ```python
-    # Create a character gene with an allele of 'A'
-    gene = rd.Gene.char(allele='A')
+    For evolving character values. The `CharGene` uses a `char` as its allele, which can represent any single Unicode character. If the `allele` is not specified, it will be randomly initialized to a character within the specified `char_set`. If the `char_set` is not specified, it will default to the ASCII printable characters.
 
-    # Create a character gene with a randomly generated allele from the set 'abc'
-    gene = rd.Gene.char(char_set='abc')  
-    ```
+    === ":fontawesome-brands-python: Python"
 
-=== ":fontawesome-brands-rust: Rust"
+        ```python
+        # Create a character gene with an allele of 'A'
+        gene = rd.Gene.char(allele='A')
 
-    ```rust
-    use radiate::*;
+        # Create a character gene with a randomly generated allele from the set 'abc'
+        gene = rd.Gene.char(char_set='abc')  
+        ```
 
-    // Create an char gene with a randomly generated allele from the ASCII printable characters
-    let gene = CharGene::default();
+    === ":fontawesome-brands-rust: Rust"
 
-    // Create a char gene with a char_set of 'abc' of which the allele will be randomly chosen from
-    let gene = CharGene::from("abc");
-    ```
+        ```rust
+        use radiate::*;
 
-#### PermuatationGene
+        // Create an char gene with a randomly generated allele from the ASCII printable characters
+        let gene = CharGene::default();
 
-For evolving permutations of a set of values. The `PermutationGene` allows you to represent a single value from a list of unique values. It is useful for problems where the order of elements matters, such as the Traveling Salesman Problem.
+        // Create a char gene with a char_set of 'abc' of which the allele will be randomly chosen from
+        let gene = CharGene::from("abc");
+        ```
 
-=== ":fontawesome-brands-python: Python"
+<!-- #### PermuatationGene -->
+??? info "PermutationGene"
 
-    !!! warning ":construction: Under Construction :construction:"
+    For evolving permutations of a set of values. The `PermutationGene` allows you to represent a single value from a list of unique values. It is useful for problems where the order of elements matters, such as the Traveling Salesman Problem.
 
-        This Gene is currently under construction and not yet available in the Python API.
+    === ":fontawesome-brands-python: Python"
 
-=== ":fontawesome-brands-rust: Rust"
+        !!! warning ":construction: Under Construction :construction:"
 
-    ```rust
-    use radiate::*;
+            This Gene is currently under construction and not yet available in the Python API.
 
-    // Define a list of alleles the associated genes
-    let alleles = Arc::new(vec![1, 2, 3, 4]);
-    let genes = vec![
-        PermutationGene::new(0, Arc::clone(&alleles)),
-        PermutationGene::new(1, Arc::clone(&alleles)),
-        PermutationGene::new(2, Arc::clone(&alleles)),
-        PermutationGene::new(3, Arc::clone(&alleles)),
-    ];
-    ```
+    === ":fontawesome-brands-rust: Rust"
+
+        ```rust
+        use radiate::*;
+
+        // Define a list of alleles the associated genes
+        let alleles = Arc::new(vec![1, 2, 3, 4]);
+        let genes = vec![
+            PermutationGene::new(0, Arc::clone(&alleles)),
+            PermutationGene::new(1, Arc::clone(&alleles)),
+            PermutationGene::new(2, Arc::clone(&alleles)),
+            PermutationGene::new(3, Arc::clone(&alleles)),
+        ];
+        ```
 
 ---
 
