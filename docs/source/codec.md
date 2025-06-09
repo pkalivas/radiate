@@ -488,24 +488,24 @@ The tree codec creates a tree with:
 #### Best Practices for Graph and Tree Codecs
 
 1. **Node Store Design**:
-   >- Carefully choose operations for each node type
-   >- Ensure operations have appropriate arity
-   >- Include a good mix of operations for exploration
+    - Carefully choose operations for each node type
+    - Ensure operations have appropriate arity
+    - Include a good mix of operations for exploration
 
 2. **Structure Constraints**:
-   >- Set appropriate depth limits for trees
-   >- Define valid node connections for graphs
-   >- Use constraints for `Tree<T>` to maintain valid structures and keep trees within a reasonable size
+    - Set appropriate depth limits for trees
+    - Define valid node connections for graphs
+    - Use constraints for `Tree<T>` to maintain valid structures and keep trees within a reasonable size
 
 3. **Evolution Parameters**:
-   >- Adjust mutation and crossover rates for your problem
-   >- Consider using specialized operators (e.g., `HoistMutator` for trees)
-   >- Monitor structure validity during evolution
+    - Adjust mutation and crossover rates for your problem
+    - Consider using specialized operators (e.g., `HoistMutator` for trees)
+    - Monitor structure validity during evolution
 
 4. **Evaluation**:
-   >- Implement appropriate fitness functions for your structure
-   >- Consider using `GraphEvaluator` for graphs
-   >- Use the `Eval` trait for tree evaluation
+    - Implement appropriate fitness functions for your structure
+    - Consider using `GraphEvaluator` for graphs
+    - Use the `Eval` trait for tree evaluation
 
 <!--
 #### Example: Symbolic Regression with TreeCodec
@@ -605,8 +605,8 @@ Let's look at a basic example of how to use the `Codec` for evolving a simple fu
 
 1. **Start Simple**: Begin with a simple codec structure and expand as needed
 2. **Choose Appropriate Ranges (IntCodec & FloatCodec)**:
-   >- `value_range`: Set this to reasonable initial values
-   >- `bound_range`: Set this to the valid range for your problem
+    - `value_range`: Set this to reasonable initial values
+    - `bound_range`: Set this to the valid range for your problem
 3. **Match Your Problem**: Choose the codec type that best represents your solution space
 4. **Consider Structure**: Use the appropriate configuration (scalar/vector/matrix) for your problem
 
