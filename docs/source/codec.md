@@ -38,452 +38,470 @@ Here's a simple breakdown of how codecs work in the evolution process:
 
 Radiate provides several codec types out of the box that should be able to cover most use cases. Each codec type is designed to handle specific data types and structures, making it easier to evolve solutions for various problems. They include:
 
-### 1. FloatCodec
-Use this when you need to evolve floating-point numbers. Perfect for:
+<!-- ### 1. FloatCodec -->
+??? note "FloatCodec"
 
-- Neural network weights
-- Mathematical function parameters
-- Continuous optimization problems
-- Real-valued parameters
+    Use this when you need to evolve floating-point numbers. Perfect for:
 
-In all `FloatCodec` varients, the `bound_range` is optional and defaults to the `value_range` if not specified.
+    - Neural network weights
+    - Mathematical function parameters
+    - Continuous optimization problems
+    - Real-valued parameters
 
+    In all `FloatCodec` varients, the `bound_range` is optional and defaults to the `value_range` if not specified.
 
-=== ":fontawesome-brands-python: Python"
 
-    ```python
-    import radiate as rd
+    === ":fontawesome-brands-python: Python"
 
-    # For a single parameter
-    codec = rd.FloatCodec.scalar(value_range=(0.0, 1.0), bound_range=(-10.0, 10.0))
+        ```python
+        import radiate as rd
 
-    # For a list of parameters
-    codec = rd.FloatCodec.vector(length=5, value_range=(-1.0, 1.0), bound_range=(-10.0, 10.0))
+        # For a single parameter
+        codec = rd.FloatCodec.scalar(value_range=(0.0, 1.0), bound_range=(-10.0, 10.0))
 
-    # For a matrix of parameters (like neural network weights)
-    codec = rd.FloatCodec.matrix(shape=(3, 2), value_range=(-0.1, 0.1), bound_range=(-1.0, 1.0))
-    # -- or --
-    # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes)
-    codec = rd.FloatCodec.matrix([2, 2, 2], value_range=(-0.1, 0.1), bound_range=(-1.0, 1.0))
-    ```
+        # For a list of parameters
+        codec = rd.FloatCodec.vector(length=5, value_range=(-1.0, 1.0), bound_range=(-10.0, 10.0))
 
-=== ":fontawesome-brands-rust: Rust"
+        # For a matrix of parameters (like neural network weights)
+        codec = rd.FloatCodec.matrix(shape=(3, 2), value_range=(-0.1, 0.1), bound_range=(-1.0, 1.0))
+        # -- or --
+        # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes)
+        codec = rd.FloatCodec.matrix([2, 2, 2], value_range=(-0.1, 0.1), bound_range=(-1.0, 1.0))
+        ```
 
-    ```rust
-    use radiate::*;
+    === ":fontawesome-brands-rust: Rust"
 
-    // single float parameter
-    let codec_scalar = FloatCodec::scalar(-1.0..1.0).with_bounds(-10.0..10.0);      
+        ```rust
+        use radiate::*;
 
-    // vector of 5 floats
-    let codec_vector = FloatCodec::vector(5, -1.0..1.0).with_bounds(-10.0..10.0);   
+        // single float parameter
+        let codec_scalar = FloatCodec::scalar(-1.0..1.0).with_bounds(-10.0..10.0);      
 
-    // 3x2 matrix of floats
-    let codec_matrix = FloatCodec::matrix(3, 2, -0.1..0.1).with_bounds(-1.0..1.0);  
-    ```
+        // vector of 5 floats
+        let codec_vector = FloatCodec::vector(5, -1.0..1.0).with_bounds(-10.0..10.0);   
 
-### 2. IntCodec
-Use this when you need to evolve integer values. Good for:
+        // 3x2 matrix of floats
+        let codec_matrix = FloatCodec::matrix(3, 2, -0.1..0.1).with_bounds(-1.0..1.0);  
+        ```
 
-- Discrete optimization problems
-- Array indices
-- Configuration parameters that must be whole numbers
+<!-- ### 2. IntCodec -->
+??? note "IntCodec"
 
-In all `IntCodec` varients, the `bound_range` is optional and defaults to the `value_range` if not specified. 
+    Use this when you need to evolve integer values. Good for:
 
-=== ":fontawesome-brands-python: Python"
+    - Discrete optimization problems
+    - Array indices
+    - Configuration parameters that must be whole numbers
 
-    ```python
-    import radiate as rd
+    In all `IntCodec` varients, the `bound_range` is optional and defaults to the `value_range` if not specified. 
 
-    # For a single parameter
-    codec = rd.IntCodec.scalar(value_range=(0, 1), bound_range=(-10, 10))
+    === ":fontawesome-brands-python: Python"
 
-    # For a list of parameters
-    codec = rd.IntCodec.vector(length=5, value_range=(-1, 1), bound_range=(-10, 10))
+        ```python
+        import radiate as rd
 
-    # For a matrix of ints
-    codec = rd.IntCodec.matrix(shape=(3, 2), value_range=(-1, 1), bound_range=(-10, 10))
-    # -- or --
-    # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes)
-    codec = rd.IntCodec.matrix([2, 2, 2], value_range=(-1, 1), bound_range=(-10, 10))
-    ```
+        # For a single parameter
+        codec = rd.IntCodec.scalar(value_range=(0, 1), bound_range=(-10, 10))
 
-=== ":fontawesome-brands-rust: Rust"
+        # For a list of parameters
+        codec = rd.IntCodec.vector(length=5, value_range=(-1, 1), bound_range=(-10, 10))
 
-    The type of int can be specified as `i8`, `i16`, `i32`, `i64`, `i128` or `u8`, `u16`, `u32`, `u64`, `u128` depending on your needs.
+        # For a matrix of ints
+        codec = rd.IntCodec.matrix(shape=(3, 2), value_range=(-1, 1), bound_range=(-10, 10))
+        # -- or --
+        # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes)
+        codec = rd.IntCodec.matrix([2, 2, 2], value_range=(-1, 1), bound_range=(-10, 10))
+        ```
 
-    ```rust
-    use radiate::*;
+    === ":fontawesome-brands-rust: Rust"
 
-    // single float parameter
-    let codec_scalar = IntCodec::scalar(-1..1).with_bounds(-10..10);
+        The type of int can be specified as `i8`, `i16`, `i32`, `i64`, `i128` or `u8`, `u16`, `u32`, `u64`, `u128` depending on your needs.
 
-    // vector of 5 floats - specify the int type
-    let codec_vector = IntCodec::<i128>::vector(5, -1..1).with_bounds(-10..10);
+        ```rust
+        use radiate::*;
 
-    // 3x2 matrix of floats
-    let codec_matrix = IntCodec::matrix(3, 2, -1..1).with_bounds(-10..10);
-    ```
+        // single float parameter
+        let codec_scalar = IntCodec::scalar(-1..1).with_bounds(-10..10);
 
-### 3. CharCodec
-Use this when you need to evolve character strings. Useful for:
+        // vector of 5 floats - specify the int type
+        let codec_vector = IntCodec::<i128>::vector(5, -1..1).with_bounds(-10..10);
 
-- Text generation
-- String-based problems
+        // 3x2 matrix of floats
+        let codec_matrix = IntCodec::matrix(3, 2, -1..1).with_bounds(-10..10);
+        ```
 
-There is an optional `char_set` parameter that allows you to specify the set of characters to use for encoding. If not specified, it defaults to lowercase letters (a-z), uppercase letters (A-Z), digits (0-9), and common punctuation ( !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~).
+<!-- ### 3. CharCodec -->
+??? note "CharCodec"
 
-=== ":fontawesome-brands-python: Python"
+    Use this when you need to evolve character strings. Useful for:
 
-    ```python
-    import radiate as rd
+    - Text generation
+    - String-based problems
 
-    # For a list of parameters
-    codec = rd.CharCodec.vector(length=5, char_set='abcdefghijklmnopqrstuvwxyz')
+    There is an optional `char_set` parameter that allows you to specify the set of characters to use for encoding. If not specified, it defaults to lowercase letters (a-z), uppercase letters (A-Z), digits (0-9), and common punctuation ( !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~).
 
-    # For a matrix of chars
-    codec = rd.CharCodec.matrix(shape=(3, 2), char_set={'a', 'b', 'c', 'd'})
-    # -- or --
-    # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes) - use the default char_set
-    codec = rd.CharCodec.matrix([2, 2, 2])
-    ```
+    === ":fontawesome-brands-python: Python"
 
-=== ":fontawesome-brands-rust: Rust"
+        ```python
+        import radiate as rd
 
-    ```rust
-    use radiate::*;
+        # For a list of parameters
+        codec = rd.CharCodec.vector(length=5, char_set='abcdefghijklmnopqrstuvwxyz')
 
-    // vector of 5 chars - specify the char set
-    let codec_vector = CharCodec::vector(5).with_char_set("abcdefghijklmnopqrstuvwxyz");
+        # For a matrix of chars
+        codec = rd.CharCodec.matrix(shape=(3, 2), char_set={'a', 'b', 'c', 'd'})
+        # -- or --
+        # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes) - use the default char_set
+        codec = rd.CharCodec.matrix([2, 2, 2])
+        ```
 
-    // 3x2 matrix of chars
-    let codec_matrix = CharCodec::matrix(3, 2);
-    ```
+    === ":fontawesome-brands-rust: Rust"
 
-### 4. BitCodec
-Use this when you need to evolve binary data. Each `Gene` is a `BitGene` where the `Allele`, or value being evolved, is a bool. Ideal for:
+        ```rust
+        use radiate::*;
 
-- Binary optimization problems
-- Feature selection
-- Boolean configurations
-- Subset selection problems (e.g., Knapsack problem)
+        // vector of 5 chars - specify the char set
+        let codec_vector = CharCodec::vector(5).with_char_set("abcdefghijklmnopqrstuvwxyz");
 
-=== ":fontawesome-brands-python: Python"
+        // 3x2 matrix of chars
+        let codec_matrix = CharCodec::matrix(3, 2);
+        ```
 
-    ```python
-    import radiate as rd
+<!-- ### 4. BitCodec -->
+??? note "BitCodec"
 
-    # For a list of parameters
-    codec = rd.BitCodec.vector(5)
+    Use this when you need to evolve binary data. Each `Gene` is a `BitGene` where the `Allele`, or value being evolved, is a bool. Ideal for:
 
-    # For a matrix of bools
-    codec = rd.BitCodec.matrix(shape=(3, 2))
-    # -- or --
-    # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes) - use the default char_set
-    codec = rd.BitCodec.matrix([2, 2, 2])
-    ```
+    - Binary optimization problems
+    - Feature selection
+    - Boolean configurations
+    - Subset selection problems (e.g., Knapsack problem)
 
-=== ":fontawesome-brands-rust: Rust"
+    === ":fontawesome-brands-python: Python"
 
-    ```rust
-    use radiate::*;
+        ```python
+        import radiate as rd
 
-    // vector of 5 chars - specify the char set
-    let codec_vector = BitCodec::vector(5);
+        # For a list of parameters
+        codec = rd.BitCodec.vector(5)
 
-    // 3x2 matrix of chars
-    let codec_matrix = BitCodec::matrix(3, 2);
-    ```
+        # For a matrix of bools
+        codec = rd.BitCodec.matrix(shape=(3, 2))
+        # -- or --
+        # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes) - use the default char_set
+        codec = rd.BitCodec.matrix([2, 2, 2])
+        ```
 
-### 5. SubSetCodec
-For when you need to optimize a subset or smaller collection from a larger set. Underneath the hood, the `SubSetCodec` uses a `BitCodec` to represent the selection of items. This codec allows you to evolve a selection of items from a larger pool, where each gene represents whether an item is included (1) or excluded (0) in the subset.
+    === ":fontawesome-brands-rust: Rust"
 
-- Feature selection in machine learning
-- Knapsack problem
-- Combinatorial optimization
+        ```rust
+        use radiate::*;
 
-=== ":fontawesome-brands-python: Python"
+        // vector of 5 chars - specify the char set
+        let codec_vector = BitCodec::vector(5);
 
-    !!! warning ":construction: Under Construction :construction:"
+        // 3x2 matrix of chars
+        let codec_matrix = BitCodec::matrix(3, 2);
+        ```
 
-        This codec is currently under construction and not yet available in the Python API.
+<!-- ### 5. SubSetCodec -->
+??? note "SubSetCodec"
 
-=== ":fontawesome-brands-rust: Rust"
+    For when you need to optimize a subset or smaller collection from a larger set. Underneath the hood, the `SubSetCodec` uses a `BitCodec` to represent the selection of items. This codec allows you to evolve a selection of items from a larger pool, where each gene represents whether an item is included (1) or excluded (0) in the subset.
 
-    ```rust
-    use radiate::*;
+    - Feature selection in machine learning
+    - Knapsack problem
+    - Combinatorial optimization
 
-    #[derive(Debug, Clone)]
-    pub struct Item {
-        pub weight: f32,
-        pub value: f32,
-    }
+    === ":fontawesome-brands-python: Python"
 
-    let items = vec![
-        Item { weight: 2.0, value: 3.0 },
-        Item { weight: 3.0, value: 4.0 },
-        Item { weight: 4.0, value: 5.0 },
-        Item { weight: 5.0, value: 6.0 },
-        Item { weight: 6.0, value: 7.0 },
-        Item { weight: 7.0, value: 8.0 },
-        Item { weight: 8.0, value: 9.0 },
-        Item { weight: 9.0, value: 10.0 },
-    ];
+        !!! warning ":construction: Under Construction :construction:"
 
-    let subset_codec = SubSetCodec::vector(items);
+            This codec is currently under construction and not yet available in the Python API.
 
-    // encoding for this subset will produce a genotype with a single BitChromosome while decoding will return
-    // a Vec<Arc<Item>> of the selected items.
-    let genotype = subset_codec.encode();           // Genotype<BitChromosome>
-    let decoded = subset_codec.decode(&genotype);   // Vec<Arc<Item>>
-    ```
+    === ":fontawesome-brands-rust: Rust"
 
-### 6. PermutationCodec
-The `PermutationCodec<T>` ensures that each gene in the chromosome is a unique item from the set. Use this when you need to evolve permutations of a set of items. This codec is particularly useful for problems where the order of items matters, such as:
+        ```rust
+        use radiate::*;
 
-- Traveling Salesman Problem (TSP)
-- Job scheduling
-- Sequence alignment
+        #[derive(Debug, Clone)]
+        pub struct Item {
+            pub weight: f32,
+            pub value: f32,
+        }
 
-=== ":fontawesome-brands-python: Python"
+        let items = vec![
+            Item { weight: 2.0, value: 3.0 },
+            Item { weight: 3.0, value: 4.0 },
+            Item { weight: 4.0, value: 5.0 },
+            Item { weight: 5.0, value: 6.0 },
+            Item { weight: 6.0, value: 7.0 },
+            Item { weight: 7.0, value: 8.0 },
+            Item { weight: 8.0, value: 9.0 },
+            Item { weight: 9.0, value: 10.0 },
+        ];
 
-    !!! warning ":construction: Under Construction :construction:"
+        let subset_codec = SubSetCodec::vector(items);
 
-        This codec is currently under construction and not yet available in the Python API.
+        // encoding for this subset will produce a genotype with a single BitChromosome while decoding will return
+        // a Vec<Arc<Item>> of the selected items.
+        let genotype = subset_codec.encode();           // Genotype<BitChromosome>
+        let decoded = subset_codec.decode(&genotype);   // Vec<Arc<Item>>
+        ```
 
-=== ":fontawesome-brands-rust: Rust"
+<!-- ### 6. PermutationCodec -->
+??? note "PermutationCodec"
 
-    ```rust
-    use radiate::*;
+    The `PermutationCodec<T>` ensures that each gene in the chromosome is a unique item from the set. Use this when you need to evolve permutations of a set of items. This codec is particularly useful for problems where the order of items matters, such as:
 
-    let codec: PermutationCodec<usize> = PermutationCodec::new((0..10).collect());
+    - Traveling Salesman Problem (TSP)
+    - Job scheduling
+    - Sequence alignment
 
-    // Encode a genotype of Genotype<PermutationChromosome> and decode to a Vec<usize> where each usize is a unique index
-    // from the original value_range.
-    // This will ensure that the permutation is valid and does not contain duplicates.
-    let genotype: Genotype<PermutationChromosome<usize>> = codec.encode();
-    let decoded: Vec<usize> = codec.decode(&genotype);
+    === ":fontawesome-brands-python: Python"
 
-    ```
+        !!! warning ":construction: Under Construction :construction:"
 
-### 7. FnCodec
-The `FnCodec` is a flexible codec that allows you to define custom encoding and decoding functions for your problem. This is particularly useful when your solution space does not fit neatly into the other codec types or when you need to handle complex data structures. It allows you to specify how to encode and decode your genetic information using user-defined functions. This codec is ideal for:
+            This codec is currently under construction and not yet available in the Python API.
 
-- Complex data structures that don't fit into standard codecs
-- Custom encoding/decoding logic
-- Problems where the representation is not easily defined by simple types
+    === ":fontawesome-brands-rust: Rust"
 
-=== ":fontawesome-brands-python: Python"
+        ```rust
+        use radiate::*;
 
-    !!! warning ":construction: Under Construction :construction:"
+        let codec: PermutationCodec<usize> = PermutationCodec::new((0..10).collect());
 
-        This codec is currently under construction and not yet available in the Python API.
+        // Encode a genotype of Genotype<PermutationChromosome> and decode to a Vec<usize> where each usize is a unique index
+        // from the original value_range.
+        // This will ensure that the permutation is valid and does not contain duplicates.
+        let genotype: Genotype<PermutationChromosome<usize>> = codec.encode();
+        let decoded: Vec<usize> = codec.decode(&genotype);
 
-=== ":fontawesome-brands-rust: Rust"
+        ```
 
-    ```rust
-    use radiate::*;
+<!-- ### 7. FnCodec -->
+??? note "FnCodec"
 
-    // A simple struct to represent the NQueens problem - this struct will be the input to your fitness function.
-    const N_QUEENS: usize = 8;
+    The `FnCodec` is a flexible codec that allows you to define custom encoding and decoding functions for your problem. This is particularly useful when your solution space does not fit neatly into the other codec types or when you need to handle complex data structures. It allows you to specify how to encode and decode your genetic information using user-defined functions. This codec is ideal for:
 
-    #[derive(Clone, Debug, PartialEq)]
-    struct NQueens(Vec<i8>);
+    - Complex data structures that don't fit into standard codecs
+    - Custom encoding/decoding logic
+    - Problems where the representation is not easily defined by simple types
 
-    // this is a simple example of the NQueens problem.
-    // The resulting codec type will be FnCodec<IntChromosome<i8>, NQueens>.
-    let codec: FnCodec<IntChromosome<i8>, NQueens> = FnCodec::new()
-        .with_encoder(|| {
-            Genotype::new(vec![IntChromosome::new((0..N_QUEENS)
-                    .map(|_| IntGene::from(0..N_QUEENS as i8))
-                    .collect(),
-            )])
-        })
-        .with_decoder(|genotype| {
-            NQueens(genotype[0]
-                .genes()
-                .iter()
-                .map(|g| *g.allele())
-                .collect::<Vec<i8>>())
-        });
+    === ":fontawesome-brands-python: Python"
 
-    // encode and decode
-    let genotype: Genotype<IntChromosome<i8>> = codec.encode();
-    let decoded: NQueens = codec.decode(&genotype);
-    ```
+        !!! warning ":construction: Under Construction :construction:"
 
-### 6. GraphCodec
+            This codec is currently under construction and not yet available in the Python API.
 
-The `GraphCodec` is used for evolving graph-based structures, particularly useful in neural network evolution and other graph-based genetic programming tasks. The codec itself can create both directed and recurrent graph structures. While the evolution of the graph can produce recurrent connections, cycles, and other complex structures. The codec simply provides a way to define a 'base' graph structure that can be evolved.
+    === ":fontawesome-brands-rust: Rust"
 
-#### Key Features
-- Supports directed and recurrent graph architectures
-- Handles input/output nodes and internal vertices & edges
-- Allows custom operations for different node types
-- Can be used for both feedforward and recurrent neural networks
+        ```rust
+        use radiate::*;
 
-#### Graph Structure
-The `GraphCodec` creates a graph with:
+        // A simple struct to represent the NQueens problem - this struct will be the input to your fitness function.
+        const N_QUEENS: usize = 8;
 
-- Input nodes: Receive external input
-- Output nodes: Produce the final output
-- Vertex nodes: Internal nodes that perform operations
-- Edges: Connections between nodes
+        #[derive(Clone, Debug, PartialEq)]
+        struct NQueens(Vec<i8>);
 
-#### Use Cases
-- Neural network evolution
-- Complex function optimization
-- Recurrent network structures
-- Any problem that can be represented as a graph
+        // this is a simple example of the NQueens problem.
+        // The resulting codec type will be FnCodec<IntChromosome<i8>, NQueens>.
+        let codec: FnCodec<IntChromosome<i8>, NQueens> = FnCodec::new()
+            .with_encoder(|| {
+                Genotype::new(vec![IntChromosome::new((0..N_QUEENS)
+                        .map(|_| IntGene::from(0..N_QUEENS as i8))
+                        .collect(),
+                )])
+            })
+            .with_decoder(|genotype| {
+                NQueens(genotype[0]
+                    .genes()
+                    .iter()
+                    .map(|g| *g.allele())
+                    .collect::<Vec<i8>>())
+            });
 
-#### Usage Examples
+        // encode and decode
+        let genotype: Genotype<IntChromosome<i8>> = codec.encode();
+        let decoded: NQueens = codec.decode(&genotype);
+        ```
 
-=== ":fontawesome-brands-python: Python"
+<!-- ### 6. GraphCodec -->
+??? note "GraphCodec"
 
-    !!! warning ":construction: Under Construction :construction:"
+    The `GraphCodec` is used for evolving graph-based structures, particularly useful in neural network evolution and other graph-based genetic programming tasks. The codec itself can create both directed and recurrent graph structures. While the evolution of the graph can produce recurrent connections, cycles, and other complex structures. The codec simply provides a way to define a 'base' graph structure that can be evolved.
 
-        This codec is currently under construction and not yet available in the Python API.
+    #### Key Features
+    - Supports directed and recurrent graph architectures
+    - Handles input/output nodes and internal vertices & edges
+    - Allows custom operations for different node types
+    - Can be used for both feedforward and recurrent neural networks
 
-    <!-- 
-    ```python
-    import radiate as rd
-    from radiate.gp import Op, NodeType
+    #### Graph Structure
+    The `GraphCodec` creates a graph with:
 
-    # Create a node store with different operations for different node types
-    store = [
-        (NodeType.Input, [Op.var(0), Op.var(1)]),  # Input nodes
-        (NodeType.Vertex, [Op.add(), Op.mul(), Op.sub()]),  # Internal nodes
-        (NodeType.Output, [Op.identity()])  # Output nodes
-    ]
+    - Input nodes: Receive external input
+    - Output nodes: Produce the final output
+    - Vertex nodes: Internal nodes that perform operations
+    - Edges: Connections between nodes
 
-    # Create a directed graph codec
-    codec = rd.GraphCodec.directed(
-        input_size=2,    # Number of input nodes
-        output_size=1,   # Number of output nodes
-        store=store      # Node store defining available operations
-    )
+    #### Use Cases
+    - Neural network evolution
+    - Complex function optimization
+    - Recurrent network structures
+    - Any problem that can be represented as a graph
 
-    # Create a recurrent graph codec
-    recurrent_codec = rd.GraphCodec.recurrent(
-        input_size=2,    # Number of input nodes
-        output_size=1,   # Number of output nodes
-        store=store      # Node store defining available operations
-    )
-    ```
-    -->
+    #### Usage Examples
 
-=== ":fontawesome-brands-rust: Rust"
+    === ":fontawesome-brands-python: Python"
 
-    !!! note "Only available with the `gp` feature enabled."
+        !!! warning ":construction: Under Construction :construction:"
 
-    More details on the `Graph<T>` can be found later in the documentation.
+            This codec is currently under construction and not yet available in the Python API.
 
+        <!-- 
+        ```python
+        import radiate as rd
+        from radiate.gp import Op, NodeType
 
-    ```rust
-    use radiate::*;
+        # Create a node store with different operations for different node types
+        store = [
+            (NodeType.Input, [Op.var(0), Op.var(1)]),  # Input nodes
+            (NodeType.Vertex, [Op.add(), Op.mul(), Op.sub()]),  # Internal nodes
+            (NodeType.Output, [Op.identity()])  # Output nodes
+        ]
 
-    // Create a node store with different operations for different node types
-    let store = vec![
-        (NodeType::Input, vec![Op::var(0), Op::var(1)]),            // Input nodes
-        (NodeType::Vertex, vec![Op::add(), Op::mul(), Op::sub()]),  // Internal nodes
-        (NodeType::Edge, vec![Op::identity(), Op::weight()]),       // Edge nodes
-        (NodeType::Output, vec![Op::sigmoid()])                     // Output nodes
-    ];
+        # Create a directed graph codec
+        codec = rd.GraphCodec.directed(
+            input_size=2,    # Number of input nodes
+            output_size=1,   # Number of output nodes
+            store=store      # Node store defining available operations
+        )
 
-    // Create a directed graph codec
-    let codec = GraphCodec::directed(2, 1, store.clone());  // 2 inputs, 1 output
+        # Create a recurrent graph codec
+        recurrent_codec = rd.GraphCodec.recurrent(
+            input_size=2,    # Number of input nodes
+            output_size=1,   # Number of output nodes
+            store=store      # Node store defining available operations
+        )
+        ```
+        -->
 
-    // Create a recurrent graph codec
-    let recurrent_codec = GraphCodec::recurrent(2, 1, store);  // 2 inputs, 1 output
-    ```
+    === ":fontawesome-brands-rust: Rust"
 
-### 7. TreeCodec
-The `TreeCodec` is used for evolving tree-based structures, which are fundamental in genetic programming. It's particularly useful for evolving mathematical expressions, program syntax trees, and decision trees.
+        !!! note "Only available with the `gp` feature enabled."
 
-#### Key Features
-- Supports single and multi-root tree structures
-- Maintains tree validity during evolution
-- Allows custom constraints on tree structure
-- Preserves tree depth and node relationships
+            More details on the `Graph<T>` can be found later in the documentation.
 
-#### Tree Structure
-The tree codec creates a tree with:
 
-- Root nodes: Starting points of the tree
-- Vertex nodes: Internal nodes that perform operations
-- Leaf nodes: Terminal nodes with constant values or variables
+        ```rust
+        use radiate::*;
 
-#### Use Cases
-- Mathematical expression evolution
-- Program synthesis
-- Decision tree evolution
-- Symbolic regression
-- Any problem that can be represented as a tree structure
+        // Create a node store with different operations for different node types
+        let store = vec![
+            (NodeType::Input, vec![Op::var(0), Op::var(1)]),            // Input nodes
+            (NodeType::Vertex, vec![Op::add(), Op::mul(), Op::sub()]),  // Internal nodes
+            (NodeType::Edge, vec![Op::identity(), Op::weight()]),       // Edge nodes
+            (NodeType::Output, vec![Op::sigmoid()])                     // Output nodes
+        ];
 
-#### Usage Examples
+        // Create a directed graph codec
+        let codec = GraphCodec::directed(2, 1, store.clone());  // 2 inputs, 1 output
 
-=== ":fontawesome-brands-python: Python"
+        // Create a recurrent graph codec
+        let recurrent_codec = GraphCodec::recurrent(2, 1, store);  // 2 inputs, 1 output
+        ```
 
-    !!! warning ":construction: Under Construction :construction:"
+<!-- ### 7. TreeCodec -->
+??? note "TreeCodec"
 
-        This codec is currently under construction and not yet available in the Python API.
+    The `TreeCodec` is used for evolving tree-based structures, which are fundamental in genetic programming. It's particularly useful for evolving mathematical expressions, program syntax trees, and decision trees.
 
-    <!--
-    ```python
-    import radiate as rd
-    from radiate.gp import Op, NodeType
+    #### Key Features
+    - Supports single and multi-root tree structures
+    - Maintains tree validity during evolution
+    - Allows custom constraints on tree structure
+    - Preserves tree depth and node relationships
 
-    # Create a node store with different operations for different node types
-    store = [
-        (NodeType.Root, [Op.add(), Op.sub()]),  # Root nodes
-        (NodeType.Vertex, [Op.add(), Op.mul(), Op.sub()]),  # Internal nodes
-        (NodeType.Leaf, [Op.constant(1.0), Op.constant(2.0)])  # Leaf nodes
-    ]
+    #### Tree Structure
 
-    # Create a single tree codec with depth 3
-    codec = rd.TreeCodec.single(
-        depth=3,     # Maximum tree depth
-        store=store  # Node store defining available operations
-    )
+    The tree codec creates a tree with:
 
-    # Create a multi-root tree codec
-    multi_codec = rd.TreeCodec.multi_root(
-        depth=3,     # Maximum tree depth
-        num_trees=2, # Number of trees to evolve
-        store=store  # Node store defining available operations
-    )
+    - Root nodes: Starting points of the tree
+    - Vertex nodes: Internal nodes that perform operations
+    - Leaf nodes: Terminal nodes with constant values or variables
 
-    # Add a custom constraint
-    codec = codec.constraint(lambda node: node.height() <= 3)
-    ```
-    -->
+    #### Use Cases
+    - Mathematical expression evolution
+    - Program synthesis
+    - Decision tree evolution
+    - Symbolic regression
+    - Any problem that can be represented as a tree structure
 
-=== ":fontawesome-brands-rust: Rust"
+    #### Usage Examples
 
-    !!! note "Only available with the `gp` feature enabled."
+    === ":fontawesome-brands-python: Python"
 
-    More details on the `Tree<T>` can be found later in the documentation.
+        !!! warning ":construction: Under Construction :construction:"
 
-    ```rust
-    use radiate::*;
+            This codec is currently under construction and not yet available in the Python API.
 
-    // Create a node store with different operations for different node types
-    let store = vec![
-        (NodeType::Root, vec![Op::add(), Op::sub()]),                   // Root nodes  
-        (NodeType::Vertex, vec![Op::add(), Op::mul(), Op::sub()]),      // Internal nodes
-        (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)])    // Leaf nodes
-    ];
+        <!--
+        ```python
+        import radiate as rd
+        from radiate.gp import Op, NodeType
 
-    // Create a single tree codec that produces trees with a starting depth of 3
-    let codec = TreeCodec::single(3, store);
+        # Create a node store with different operations for different node types
+        store = [
+            (NodeType.Root, [Op.add(), Op.sub()]),  # Root nodes
+            (NodeType.Vertex, [Op.add(), Op.mul(), Op.sub()]),  # Internal nodes
+            (NodeType.Leaf, [Op.constant(1.0), Op.constant(2.0)])  # Leaf nodes
+        ]
 
-    // Create a multi-root tree codec that produces 2 trees with a starting depth of 3
-    let multi_codec = TreeCodec::multi_root(3, 2, store);  
+        # Create a single tree codec with depth 3
+        codec = rd.TreeCodec.single(
+            depth=3,     # Maximum tree depth
+            store=store  # Node store defining available operations
+        )
 
-    // Add a custom constraint. A tree will be 'invalid' if it's height exceeds 3.
-    let codec = codec.with_constraint(|node| node.height() <= 3);
-    ```
+        # Create a multi-root tree codec
+        multi_codec = rd.TreeCodec.multi_root(
+            depth=3,     # Maximum tree depth
+            num_trees=2, # Number of trees to evolve
+            store=store  # Node store defining available operations
+        )
+
+        # Add a custom constraint
+        codec = codec.constraint(lambda node: node.height() <= 3)
+        ```
+        -->
+
+    === ":fontawesome-brands-rust: Rust"
+
+        !!! note "Only available with the `gp` feature enabled."
+
+        More details on the `Tree<T>` can be found later in the documentation.
+
+        ```rust
+        use radiate::*;
+
+        // Create a node store with different operations for different node types
+        let store = vec![
+            (NodeType::Root, vec![Op::add(), Op::sub()]),                   // Root nodes  
+            (NodeType::Vertex, vec![Op::add(), Op::mul(), Op::sub()]),      // Internal nodes
+            (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)])    // Leaf nodes
+        ];
+
+        // Create a single tree codec that produces trees with a starting depth of 3
+        let codec = TreeCodec::single(3, store);
+
+        // Create a multi-root tree codec that produces 2 trees with a starting depth of 3
+        let multi_codec = TreeCodec::multi_root(3, 2, store);  
+
+        // Add a custom constraint. A tree will be 'invalid' if it's height exceeds 3.
+        let codec = codec.with_constraint(|node| node.height() <= 3);
+        ```
 
 #### Best Practices for Graph and Tree Codecs
 
