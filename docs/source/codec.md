@@ -196,10 +196,126 @@ Use this when you need to evolve binary data. Each `Gene` is a `BitGene` where t
     let codec_matrix = BitCodec::matrix(3, 2);
     ```
 
+### 5. SubSetCodec
+For when you need to optimize a subset or smaller collection from a larger set. Underneath the hood, the `SubSetCodec` uses a `BitCodec` to represent the selection of items. This codec allows you to evolve a selection of items from a larger pool, where each gene represents whether an item is included (1) or excluded (0) in the subset.
+
+- Feature selection in machine learning
+- Knapsack problem
+- Combinatorial optimization
+
+=== ":fontawesome-brands-python: Python"
+
+    !!! warning ":construction: Under Construction :construction:"
+
+        This codec is currently under construction and not yet available in the Python API.
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    #[derive(Debug, Clone)]
+    pub struct Item {
+        pub weight: f32,
+        pub value: f32,
+    }
+
+    let items = vec![
+        Item { weight: 2.0, value: 3.0 },
+        Item { weight: 3.0, value: 4.0 },
+        Item { weight: 4.0, value: 5.0 },
+        Item { weight: 5.0, value: 6.0 },
+        Item { weight: 6.0, value: 7.0 },
+        Item { weight: 7.0, value: 8.0 },
+        Item { weight: 8.0, value: 9.0 },
+        Item { weight: 9.0, value: 10.0 },
+    ];
+
+    let subset_codec = SubSetCodec::vector(items);
+
+    // encoding for this subset will produce a genotype with a single BitChromosome while decoding will return
+    // a Vec<Arc<Item>> of the selected items.
+    let genotype = subset_codec.encode();           // Genotype<BitChromosome>
+    let decoded = subset_codec.decode(&genotype);   // Vec<Arc<Item>>
+    ```
+
+### 6. PermutationCodec
+The `PermutationCodec<T>` ensures that each gene in the chromosome is a unique item from the set. Use this when you need to evolve permutations of a set of items. This codec is particularly useful for problems where the order of items matters, such as:
+
+- Traveling Salesman Problem (TSP)
+- Job scheduling
+- Sequence alignment
+
+=== ":fontawesome-brands-python: Python"
+
+    !!! warning ":construction: Under Construction :construction:"
+
+        This codec is currently under construction and not yet available in the Python API.
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    let codec: PermutationCodec<usize> = PermutationCodec::new((0..10).collect());
+
+    // Encode a genotype of Genotype<PermutationChromosome> and decode to a Vec<usize> where each usize is a unique index
+    // from the original value_range.
+    // This will ensure that the permutation is valid and does not contain duplicates.
+    let genotype: Genotype<PermutationChromosome<usize>> = codec.encode();
+    let decoded: Vec<usize> = codec.decode(&genotype);
+
+    ```
+
+### 7. FnCodec
+The `FnCodec` is a flexible codec that allows you to define custom encoding and decoding functions for your problem. This is particularly useful when your solution space does not fit neatly into the other codec types or when you need to handle complex data structures. It allows you to specify how to encode and decode your genetic information using user-defined functions. This codec is ideal for:
+
+- Complex data structures that don't fit into standard codecs
+- Custom encoding/decoding logic
+- Problems where the representation is not easily defined by simple types
+
+=== ":fontawesome-brands-python: Python"
+
+    !!! warning ":construction: Under Construction :construction:"
+
+        This codec is currently under construction and not yet available in the Python API.
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    // A simple struct to represent the NQueens problem - this struct will be the input to your fitness function.
+    const N_QUEENS: usize = 8;
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct NQueens(Vec<i8>);
+
+    // this is a simple example of the NQueens problem.
+    // The resulting codec type will be FnCodec<IntChromosome<i8>, NQueens>.
+    let codec: FnCodec<IntChromosome<i8>, NQueens> = FnCodec::new()
+        .with_encoder(|| {
+            Genotype::new(vec![IntChromosome::new((0..N_QUEENS)
+                    .map(|_| IntGene::from(0..N_QUEENS as i8))
+                    .collect(),
+            )])
+        })
+        .with_decoder(|genotype| {
+            NQueens(genotype[0]
+                .genes()
+                .iter()
+                .map(|g| *g.allele())
+                .collect::<Vec<i8>>())
+        });
+
+    // encode and decode
+    let genotype: Genotype<IntChromosome<i8>> = codec.encode();
+    let decoded: NQueens = codec.decode(&genotype);
+    ```
 
 ## A Simple Example
 
-Let's look at a basic example of evolving a simple function: finding the best values for `y = ax + b` where we want to find optimal values for `a` and `b`.
+Let's look at a basic example of how to use the `Codec` for evolving a simple function: finding the best values for `y = ax + b` where we want to find optimal values for `a` and `b`.
 
 === ":fontawesome-brands-python: Python"
 
