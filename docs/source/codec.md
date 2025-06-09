@@ -313,6 +313,242 @@ The `FnCodec` is a flexible codec that allows you to define custom encoding and 
     let decoded: NQueens = codec.decode(&genotype);
     ```
 
+### 6. GraphCodec
+
+The `GraphCodec` is used for evolving graph-based structures, particularly useful in neural network evolution and other graph-based genetic programming tasks. The codec itself can create both directed and recurrent graph structures. While the evolution of the graph can produce recurrent connections, cycles, and other complex structures. The codec simply provides a way to define a 'base' graph structure that can be evolved.
+
+#### Key Features
+- Supports directed and recurrent graph architectures
+- Handles input/output nodes and internal vertices & edges
+- Allows custom operations for different node types
+- Can be used for both feedforward and recurrent neural networks
+
+#### Graph Structure
+The `GraphCodec` creates a graph with:
+
+- Input nodes: Receive external input
+- Output nodes: Produce the final output
+- Vertex nodes: Internal nodes that perform operations
+- Edges: Connections between nodes
+
+#### Use Cases
+- Neural network evolution
+- Complex function optimization
+- Recurrent network structures
+- Any problem that can be represented as a graph
+
+#### Usage Examples
+
+=== ":fontawesome-brands-python: Python"
+
+    !!! warning ":construction: Under Construction :construction:"
+
+        This codec is currently under construction and not yet available in the Python API.
+
+    <!-- 
+    ```python
+    import radiate as rd
+    from radiate.gp import Op, NodeType
+
+    # Create a node store with different operations for different node types
+    store = [
+        (NodeType.Input, [Op.var(0), Op.var(1)]),  # Input nodes
+        (NodeType.Vertex, [Op.add(), Op.mul(), Op.sub()]),  # Internal nodes
+        (NodeType.Output, [Op.identity()])  # Output nodes
+    ]
+
+    # Create a directed graph codec
+    codec = rd.GraphCodec.directed(
+        input_size=2,    # Number of input nodes
+        output_size=1,   # Number of output nodes
+        store=store      # Node store defining available operations
+    )
+
+    # Create a recurrent graph codec
+    recurrent_codec = rd.GraphCodec.recurrent(
+        input_size=2,    # Number of input nodes
+        output_size=1,   # Number of output nodes
+        store=store      # Node store defining available operations
+    )
+    ```
+    -->
+
+=== ":fontawesome-brands-rust: Rust"
+
+    !!! note "Only available with the `gp` feature enabled."
+
+    More details on the `Graph<T>` can be found later in the documentation.
+
+
+    ```rust
+    use radiate::*;
+
+    // Create a node store with different operations for different node types
+    let store = vec![
+        (NodeType::Input, vec![Op::var(0), Op::var(1)]),            // Input nodes
+        (NodeType::Vertex, vec![Op::add(), Op::mul(), Op::sub()]),  // Internal nodes
+        (NodeType::Edge, vec![Op::identity(), Op::weight()]),       // Edge nodes
+        (NodeType::Output, vec![Op::sigmoid()])                     // Output nodes
+    ];
+
+    // Create a directed graph codec
+    let codec = GraphCodec::directed(2, 1, store.clone());  // 2 inputs, 1 output
+
+    // Create a recurrent graph codec
+    let recurrent_codec = GraphCodec::recurrent(2, 1, store);  // 2 inputs, 1 output
+    ```
+
+### 7. TreeCodec
+The `TreeCodec` is used for evolving tree-based structures, which are fundamental in genetic programming. It's particularly useful for evolving mathematical expressions, program syntax trees, and decision trees.
+
+#### Key Features
+- Supports single and multi-root tree structures
+- Maintains tree validity during evolution
+- Allows custom constraints on tree structure
+- Preserves tree depth and node relationships
+
+#### Tree Structure
+The tree codec creates a tree with:
+
+- Root nodes: Starting points of the tree
+- Vertex nodes: Internal nodes that perform operations
+- Leaf nodes: Terminal nodes with constant values or variables
+
+#### Use Cases
+- Mathematical expression evolution
+- Program synthesis
+- Decision tree evolution
+- Symbolic regression
+- Any problem that can be represented as a tree structure
+
+#### Usage Examples
+
+=== ":fontawesome-brands-python: Python"
+
+    !!! warning ":construction: Under Construction :construction:"
+
+        This codec is currently under construction and not yet available in the Python API.
+
+    <!--
+    ```python
+    import radiate as rd
+    from radiate.gp import Op, NodeType
+
+    # Create a node store with different operations for different node types
+    store = [
+        (NodeType.Root, [Op.add(), Op.sub()]),  # Root nodes
+        (NodeType.Vertex, [Op.add(), Op.mul(), Op.sub()]),  # Internal nodes
+        (NodeType.Leaf, [Op.constant(1.0), Op.constant(2.0)])  # Leaf nodes
+    ]
+
+    # Create a single tree codec with depth 3
+    codec = rd.TreeCodec.single(
+        depth=3,     # Maximum tree depth
+        store=store  # Node store defining available operations
+    )
+
+    # Create a multi-root tree codec
+    multi_codec = rd.TreeCodec.multi_root(
+        depth=3,     # Maximum tree depth
+        num_trees=2, # Number of trees to evolve
+        store=store  # Node store defining available operations
+    )
+
+    # Add a custom constraint
+    codec = codec.constraint(lambda node: node.height() <= 3)
+    ```
+    -->
+
+=== ":fontawesome-brands-rust: Rust"
+
+    !!! note "Only available with the `gp` feature enabled."
+
+    More details on the `Tree<T>` can be found later in the documentation.
+
+    ```rust
+    use radiate::*;
+
+    // Create a node store with different operations for different node types
+    let store = vec![
+        (NodeType::Root, vec![Op::add(), Op::sub()]),                   // Root nodes  
+        (NodeType::Vertex, vec![Op::add(), Op::mul(), Op::sub()]),      // Internal nodes
+        (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)])    // Leaf nodes
+    ];
+
+    // Create a single tree codec that produces trees with a starting depth of 3
+    let codec = TreeCodec::single(3, store);
+
+    // Create a multi-root tree codec that produces 2 trees with a starting depth of 3
+    let multi_codec = TreeCodec::multi_root(3, 2, store);  
+
+    // Add a custom constraint. A tree will be 'invalid' if it's height exceeds 3.
+    let codec = codec.with_constraint(|node| node.height() <= 3);
+    ```
+
+#### Best Practices for Graph and Tree Codecs
+
+1. **Node Store Design**:
+   >- Carefully choose operations for each node type
+   >- Ensure operations have appropriate arity
+   >- Include a good mix of operations for exploration
+
+2. **Structure Constraints**:
+   >- Set appropriate depth limits for trees
+   >- Define valid node connections for graphs
+   >- Use constraints for `Tree<T>` to maintain valid structures and keep trees within a reasonable size
+
+3. **Evolution Parameters**:
+   >- Adjust mutation and crossover rates for your problem
+   >- Consider using specialized operators (e.g., `HoistMutator` for trees)
+   >- Monitor structure validity during evolution
+
+4. **Evaluation**:
+   >- Implement appropriate fitness functions for your structure
+   >- Consider using `GraphEvaluator` for graphs
+   >- Use the `Eval` trait for tree evaluation
+
+<!--
+#### Example: Symbolic Regression with TreeCodec
+
+```python
+import radiate as rd
+from radiate.gp import Op, NodeType
+
+# Create a node store for symbolic regression
+store = [
+    (NodeType.Root, [Op.add(), Op.sub(), Op.mul()]),
+    (NodeType.Vertex, [Op.add(), Op.sub(), Op.mul(), Op.div()]),
+    (NodeType.Leaf, [Op.var(0), Op.constant(1.0), Op.constant(2.0)])
+]
+
+# Create a tree codec
+codec = rd.TreeCodec.single(
+    depth=4,     # Allow expressions up to depth 4
+    store=store
+)
+
+# Create the evolution engine
+engine = rd.EvolutionEngine(
+    codec=codec,
+    population_size=100,
+    # ... other parameters ...
+)
+
+# Define a fitness function for symbolic regression
+def fitness_function(individual):
+    tree = individual.genes[0]  # Get the tree
+    error = 0.0
+    for x in range(-10, 11):
+        # Calculate error between tree output and target function (e.g., x^2 + 2x + 1)
+        target = x * x + 2 * x + 1
+        output = tree.eval([x])
+        error += abs(output - target)
+    return -error  # Negative because we want to minimize error
+
+# Run the evolution
+engine.evolve(fitness_function)
+```
+-->
 ## A Simple Example
 
 Let's look at a basic example of how to use the `Codec` for evolving a simple function: finding the best values for `y = ax + b` where we want to find optimal values for `a` and `b`.
@@ -391,218 +627,3 @@ Now that you understand codecs, you can:
 
 Remember: The codec is your bridge between the genetic algorithm's internal representation and your problem's solution space. Choose it wisely!
 
-
-!!! warning ":construction: Under Construction :construction:"
-
-    These docs are under construction - anything below this point is subject to change and is currently being worked on.
-
-
-___
-### Build your own Codec
-
-??? example "FloatCodec"
-
-    Let's take a look at a simplified version of Raditate's built-in `FloatCodec` which encodes and decodes floating-point numbers. The `FloatCodec` takes in the number of chromosomes, number of genes per chromosome, the max allele value, and the min allele value. The `encode` method creates a new `Genotype` of `FloatChromosomes` with `FloatGenes` that have random alleles between the max and min. The `decode` method takes a `Genotype` and returns a `Vec<Vec<f32>>` of the gene values.
-
-    ```rust
-    use std::ops::Range;
-    use radiate::*;
-
-    pub struct FloatCodec {
-        pub num_chromosomes: usize,
-        pub num_genes: usize,
-        pub min: f32,
-        pub max: f32,
-        pub lower_bound: f32,
-        pub upper_bound: f32,
-    }
-
-    impl FloatCodec {
-        /// Create a new `FloatCodec` with the given number of chromosomes, genes, min, and max values.
-        /// The f_32 values for each `FloatGene` will be randomly generated between the min and max values.
-        pub fn new(num_chromosomes: usize, num_genes: usize, range: Range<f32>) -> Self {
-            let (min, max) = (range.start, range.end);
-            FloatCodec {
-                num_chromosomes,
-                num_genes,
-                min,
-                max,
-                lower_bound: f32::MIN,
-                upper_bound: f32::MAX,
-            }
-        }
-    }
-
-    impl Codec<FloatChromosome, Vec<Vec<f32>>> for FloatCodec {
-        fn encode(&self) -> Genotype<FloatChromosome> {
-            Genotype {
-                chromosomes: (0..self.num_chromosomes)
-                    .map(|_| {
-                        FloatChromosome {
-                            genes: (0..self.num_genes)
-                                .map(|_| {
-                                    FloatGene::from((self.min..self.max, self.lower_bound..self.upper_bound))
-                                })
-                                .collect::<Vec<FloatGene>>(),
-                        }
-                    })
-                    .collect::<Vec<FloatChromosome>>(),
-            }
-        }
-
-        fn decode(&self, genotype: &Genotype<FloatChromosome>) -> Vec<Vec<f32>> {
-            genotype
-                .iter()
-                .map(|chromosome| {
-                    chromosome
-                        .iter()
-                        .map(|gene| *gene.allele())
-                        .collect::<Vec<f32>>()
-                })
-                .collect::<Vec<Vec<f32>>>()
-        }
-    }
-    ```
-
-    Lets take a look at how we can use the `FloatCodec` to encode and decode a `Genotype` of `FloatChromosomes`
-    with 2 chromosomes and 3 genes per chromosome:
-
-    ```rust
-    fn main() {
-        let codec = FloatCodec::new(2, 3, 0.0..1.0);
-
-        let genotype: Genotype<FloatChromosome> = codec.encode();
-        let decoded: Vec<Vec<f32>> = codec.decode(&genotype);
-    }
-    ```
-
-    The `genotype` in this case will look something like this:
-
-    ``` rust
-    Genotype {
-        chromosomes: [
-            FloatChromosome {
-                genes: [
-                    FloatGene { allele: 0.123, min: 0.0, max: 1.0, lower_bound: f32::MIN, upper_bound: f32::MAX },
-                    FloatGene { allele: 0.456, min: 0.0, max: 1.0, lower_bound: f32::MIN, upper_bound: f32::MAX }, 
-                    FloatGene { allele: 0.789, min: 0.0, max: 1.0, lower_bound: f32::MIN, upper_bound: f32::MAX },
-                ],
-            },
-            FloatChromosome {
-                genes: [
-                    FloatGene { allele: 0.321, min: 0.0, max: 1.0, lower_bound: f32::MIN, upper_bound: f32::MAX },
-                    FloatGene { allele: 0.654, min: 0.0, max: 1.0, lower_bound: f32::MIN, upper_bound: f32::MAX },
-                    FloatGene { allele: 0.987, min: 0.0, max: 1.0, lower_bound: f32::MIN, upper_bound: f32::MAX },
-                ],
-            },
-        ],
-    }
-    ```
-
-    And the `decoded` is a `Vec<Vec<f32>>` of the gene values and is what will be passed to the `fitness_fn`:
-
-    ``` rust
-    [
-        [0.123, 0.456, 0.789],
-        [0.321, 0.654, 0.987],
-    ]
-    ```
-
-??? example "FnCodec - NQueens" 
-    
-    ```rust
-    use radiate::*;
-
-    const N_QUEENS: usize = 8;
-
-    fn main() {
-        // this is a simple example of the NQueens problem.
-        // The resulting codec type will be FnCodec<IntChromosome<i8>, Vec<i8>>.
-        let codec = FnCodec::new()
-            .with_encoder(|| {
-                Genotype::from_chromosomes(vec![IntChromosome {
-                    genes: (0..N_QUEENS)
-                        .map(|_| IntGene::from(0..N_QUEENS as i8))
-                        .collect(),
-                }])
-            })
-            .with_decoder(|genotype| {
-                genotype.chromosomes[0]
-                    .genes
-                    .iter()
-                    .map(|g| *g.allele())
-                    .collect::<Vec<i8>>()
-            });
-        // encode and decode
-        let genotype = codec.encode(); // Genotype<IntChromosome<i8>>
-        let decoded = codec.decode(&genotype); // Vec<i8>
-    }
-    ```
-
-??? example "NQueens"
-
-    A simple struct to represent the NQueens problem.
-    ```rust
-    use radiate::*;
-
-    #[derive(Clone, Debug, PartialEq)]
-    struct NQueens(Vec<i32>);
-    ```
-
-    A Codec for the NQueens problem.
-    ```rust
-    struct NQueensCodec {
-        size: i32,
-    }
-    ```
-
-    Implement the Codec trait for the NQueensCodec. The `encode` function creates a `Genotype`
-    with a single chromosome of `size` genes. The `decode` function creates a `NQueens` from the
-    `Genotype`.
-    ```rust
-    impl Codec<IntChromosome<i32>, NQueens> for NQueensCodec {
-        fn encode(&self) -> Genotype<IntChromosome<i32>> {
-            let genes = (0..self.size).map(|_| IntGene::from(0..self.size)).collect();
-            let chromosomes = vec![IntChromosome { genes }];
-            Genotype::from_chromosomes(chromosomes)
-        }
-
-        fn decode(&self, genotype: &Genotype<IntChromosome<i32>>) -> NQueens {
-            NQueens(genotype.chromosomes[0].iter().map(|g| *g.allele()).collect())
-        }
-    }
-    ```
-    Create a new NQueensCodec with a size of 5.
-    ```rust
-    let codec = NQueensCodec { size: 5 };
-    ```
-
-    encode a new Genotype of IntGenes with a size of 5. The result will be a genotype with a single chromosome with 5 genes.
-    The genes will have a min value of 0, a max value of 5, an upper_bound of 5, and a lower_bound of 0
-    The alleles will be random values between 0 and 5. It will look something like:
-    ```text
-    Genotype {
-        chromosomes: [
-            IntChromosome<i32> {
-                genes: [
-                    IntGene { allele: 3, min: 0, max: 5, ... },
-                    IntGene { allele: 7, min: 0, max: 5, ... },
-                    IntGene { allele: 1, min: 0, max: 5, ... },
-                    IntGene { allele: 5, min: 0, max: 5, ... },
-                    IntGene { allele: 2, min: 0, max: 5, ... },
-                ]
-            }
-        ]
-    }
-    ```
-    ```rust
-    let genotype = codec.encode();
-    ```
-    decode the genotype to a NQueens. The result will be a NQueens struct with a Vec<i32> of 8 random values between 0 and 8.
-    It will look something like:
-    ```text
-    NQueens([3, 7, 1, 5, 2])
-    ```
-    ```rust
-    let nqueens = codec.decode(&genotype);
-    ```
