@@ -70,17 +70,25 @@ Radiate provides several codec types out of the box that should be able to cover
 
     === ":fontawesome-brands-rust: Rust"
 
+        Every `FloatCodec` will `encode()` a `Genotype<FloatChromosome>`.
+
         ```rust
         use radiate::*;
 
         // single float parameter
-        let codec_scalar = FloatCodec::scalar(-1.0..1.0).with_bounds(-10.0..10.0);      
+        let codec_scalar = FloatCodec::scalar(-1.0..1.0).with_bounds(-10.0..10.0); 
+        let encoded_scalar: Genotype<FloatChromosome> = codec_scalar.encode();
+        let decoded_scalar: f32 = codec_scalar.decode(&encoded_scalar);     
 
         // vector of 5 floats
         let codec_vector = FloatCodec::vector(5, -1.0..1.0).with_bounds(-10.0..10.0);   
+        let encoded_vector: Genotype<FloatChromosome> = codec_vector.encode();
+        let decoded_vector: Vec<f32> = codec_vector.decode(&encoded_vector);
 
         // 3x2 matrix of floats
         let codec_matrix = FloatCodec::matrix(3, 2, -0.1..0.1).with_bounds(-1.0..1.0);  
+        let encoded_matrix: Genotype<FloatChromosome> = codec_matrix.encode();
+        let decoded_matrix: Vec<Vec<f32>> = codec_matrix.decode(&encoded_matrix);
         ```
 
 ??? note "IntCodec"
@@ -113,19 +121,25 @@ Radiate provides several codec types out of the box that should be able to cover
 
     === ":fontawesome-brands-rust: Rust"
 
-        The type of int can be specified as `i8`, `i16`, `i32`, `i64`, `i128` or `u8`, `u16`, `u32`, `u64`, `u128` depending on your needs.
+        The type of int can be specified as `i8`, `i16`, `i32`, `i64`, `i128` or `u8`, `u16`, `u32`, `u64`, `u128` depending on your needs. Every `IntCodec<I>` will `encode()` a `Genotype<IntChromosome<I>>`.
 
         ```rust
         use radiate::*;
 
         // single float parameter
         let codec_scalar = IntCodec::scalar(-1..1).with_bounds(-10..10);
+        let encoded_scalar: Genotype<IntChromosome<i32>> = codec_scalar.encode();
+        let decoded_scalar: i32 = codec_scalar.decode(&encoded_scalar);
 
         // vector of 5 floats - specify the int type
         let codec_vector = IntCodec::<i128>::vector(5, -1..1).with_bounds(-10..10);
+        let encoded_vector: Genotype<IntChromosome<i128>> = codec_vector.encode();
+        let decoded_vector: Vec<i128> = codec_vector.decode(&encoded_vector);
 
         // 3x2 matrix of floats
         let codec_matrix = IntCodec::matrix(3, 2, -1..1).with_bounds(-10..10);
+        let encoded_matrix: Genotype<IntChromosome<i32>> = codec_matrix.encode();
+        let decoded_matrix: Vec<Vec<i32>> = codec_matrix.decode(&encoded_matrix);
         ```
 
 ??? note "CharCodec"
@@ -154,14 +168,20 @@ Radiate provides several codec types out of the box that should be able to cover
 
     === ":fontawesome-brands-rust: Rust"
 
+        Every `CharCodec` will `encode()` a `Genotype<CharChromosome>`.
+
         ```rust
         use radiate::*;
 
         // vector of 5 chars - specify the char set
         let codec_vector = CharCodec::vector(5).with_char_set("abcdefghijklmnopqrstuvwxyz");
+        let encoded_vector: Genotype<CharChromosome> = codec_vector.encode();
+        let decoded_vector: Vec<char> = codec_vector.decode(&encoded_vector);
 
         // 3x2 matrix of chars
         let codec_matrix = CharCodec::matrix(3, 2);
+        let encoded_matrix: Genotype<CharChromosome> = codec_matrix.encode();
+        let decoded_matrix: Vec<Vec<char>> = codec_matrix.decode(&encoded_matrix);
         ```
 
 ??? note "BitCodec"
@@ -172,6 +192,8 @@ Radiate provides several codec types out of the box that should be able to cover
     - Feature selection
     - Boolean configurations
     - Subset selection problems (e.g., Knapsack problem)
+
+    There is no `scalar` varient of the `BitCodec` because...that doesn't seem useful at all.
 
     === ":fontawesome-brands-python: Python"
 
@@ -190,14 +212,20 @@ Radiate provides several codec types out of the box that should be able to cover
 
     === ":fontawesome-brands-rust: Rust"
 
+        Every `BitCodec` will `encode()` a `Genotype<BitChromosome>`.
+
         ```rust
         use radiate::*;
 
         // vector of 5 chars - specify the char set
         let codec_vector = BitCodec::vector(5);
+        let encoded_vector: Genotype<BitChromosome> = codec_vector.encode();
+        let decoded_vector: Vec<bool> = codec_vector.decode(&encoded_vector);
 
         // 3x2 matrix of chars
         let codec_matrix = BitCodec::matrix(3, 2);
+        let encoded_matrix: Genotype<BitChromosome> = codec_matrix.encode();
+        let decoded_matrix: Vec<Vec<bool>> = codec_matrix.decode(&encoded_matrix);
         ```
 
 ??? note "SubSetCodec"
@@ -215,6 +243,9 @@ Radiate provides several codec types out of the box that should be able to cover
             This codec is currently under construction and not yet available in the Python API.
 
     === ":fontawesome-brands-rust: Rust"
+
+        Each `SubSetCodec` will `encode()` a `Genotype<BitChromosome>` and `decode()` to a `Vec<Arc<T>>` of the selected items, 
+        where a selected item is "selected" if the corresponding gene in the `BitChromosome` is `true`.
 
         ```rust
         use radiate::*;
@@ -238,10 +269,8 @@ Radiate provides several codec types out of the box that should be able to cover
 
         let subset_codec = SubSetCodec::vector(items);
 
-        // encoding for this subset will produce a genotype with a single BitChromosome while decoding will return
-        // a Vec<Arc<Item>> of the selected items.
-        let genotype = subset_codec.encode();           // Genotype<BitChromosome>
-        let decoded = subset_codec.decode(&genotype);   // Vec<Arc<Item>>
+        let genotype: Genotype<BitChromosome> = subset_codec.encode();
+        let decoded: Vec<Arc<Item>> = subset_codec.decode(&genotype);
         ```
 
 ??? note "PermutationCodec"
@@ -259,6 +288,8 @@ Radiate provides several codec types out of the box that should be able to cover
             This codec is currently under construction and not yet available in the Python API.
 
     === ":fontawesome-brands-rust: Rust"
+
+        Every `PermutationCodec<T>` will `encode()` a `Genotype<PermutationChromosome<T>>` and `decode()` to a `Vec<T>` where each `T` is a unique item from the given set of `allele`s.
 
         ```rust
         use radiate::*;
@@ -288,6 +319,8 @@ Radiate provides several codec types out of the box that should be able to cover
             This codec is currently under construction and not yet available in the Python API.
 
     === ":fontawesome-brands-rust: Rust"
+
+        Each `FnCodec<I, O>` will `encode()` a `Genotype<C>` where `C` is the `chromosome` that you choose and `decode()` to an `O`. In the below case, the type `C` is an `IntChromosome<i8>` and `O` is the output type (e.g., `NQueens`).
 
         ```rust
         use radiate::*;
