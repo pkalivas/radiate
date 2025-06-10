@@ -84,7 +84,7 @@ This simple maximizing problem demonstrates how to use Radiate to solve a string
         
         target = "Hello, Radiate!"
 
-        def fitness_func(x):
+        def fitness_func(x: List[str]) -> int:
             return sum(1 for i in range(len(target)) if x[i] == target[i])
 
         engine = rd.GeneticEngine(
@@ -122,8 +122,8 @@ This simple maximizing problem demonstrates how to use Radiate to solve a string
                 .build();
 
             let result = engine.run(|ctx| {
-                let best_as_string = ctx.best.iter().flatten().collect::<String>();
-                println!("[ {:?} ]: {:?}", ctx.index, best_as_string);
+                let best_as_string = ctx.best.iter().collect::<String>();
+                println!("[ {:?} ]: {:?}", ctx.index(), best_as_string);
 
                 ctx.score().as_usize() == target.len()
             });

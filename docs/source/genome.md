@@ -479,11 +479,11 @@ The `Ecosystem` is created and managed by the `GeneticEngine`, and you shouldn't
 ## Summary
 The genome system in Radiate provides a structured way to represent and manipulate genetic information. By understanding the components of the genome system, you can effectively design and evolve solutions to complex problems using genetic algorithms. The key components include:
 
-- **Allele**: The basic unit of genetic information.
-- **Gene**: A container for an allele with additional functionality.
-- **Chromosome**: A collection of genes that represent a part or the whole of the genetic information of an individual.
-- **Genotype**: A collection of chromosomes that represent the complete genetic makeup of an individual.
-- **Phenotype**: The representation of an individual in the population that holds additional information like fitness scores.
-- **Population**: A collection of phenotypes that represent the current group being evolved
-- **Species**: An optional grouping of similar phenotypes to manage diversity.
-- **Ecosystem**: The highest level that wraps the entire genetic algorithm environment.
+- **[Allele](#allele)**: The basic unit of genetic information.
+- **[Gene](#gene)**: A container for an allele with additional functionality.
+- **[Chromosome](#chromosome)**: A collection of genes that represent a part or the whole of the genetic information of an individual.
+- **[Genotype](#genotype)**: A collection of chromosomes that represent the complete genetic makeup of an individual.
+- **[Phenotype](#phenotype)**: The representation of an individual in the population that holds additional information like fitness scores.
+- **[Population](#population)**: A collection of phenotypes that represent the current group being evolved
+- **[Species](#species)**: An optional grouping of similar phenotypes to manage diversity.
+- **[Ecosystem](#ecosystem)**: The highest level that wraps the entire genetic algorithm environment.
