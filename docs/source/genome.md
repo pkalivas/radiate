@@ -421,6 +421,33 @@ The `Population` is a collection of `Phenotype`s that represent the current stat
 The `Population` is created and managed by the `GeneticEngine`, and you shouldn't need to create a `Population` directly. Instead, you will interact with the `GeneticEngine` to manage the population and evolve the individuals.
 
 ---
+### Species
+
+> The Diverse Groups
+
+The `Species` is an optional component of the genome system that contains a `Population` of `Phenotype`s that are similar to each other. It is used to group individuals that are similar in some way, such as having similar `Genotype` structures or fitness scores. The `Species` is responsible for:
+
+- Grouping individuals that are similar to each other
+- Allowing the `GeneticEngine` to evolve individuals within a specific group
+- Providing a way to manage diversity within the population
+- Sharing fitness information between individuals in the same species
+
+The `Species` is not required for the genome system to function, but it can be useful for certain types of problems where grouping similar individuals can help improve the evolution process. For different `Species` to be created, your `GeneticEngine` must contain a struct which implements the `Diversity` trait - this will allow the `GeneticEngine` to create and manage `Species` based on the diversity of the individuals in the population. More on this later.
+
+---
+### Ecosystem
+
+> The Environment
+
+The `Ecosystem` is the highest level of the genome system and represents the entire environment in which the genetic algorithm operates. It contains zero to many `Species`, each with its own `Population` of `Phenotype`s, and a single `Population` containing all `Phenotype`s. The `Ecosystem` is responsible for:
+
+- Wrapping the entire genetic algorithm environment
+- Managing the overall population of individuals
+- Optionally Coordinating the interactions between different `Species` and managing their diversity
+
+The `Ecosystem` is created and managed by the `GeneticEngine`, and you shouldn't need to create an `Ecosystem` directly. Instead, you will interact with the `GeneticEngine` to manage the ecosystem and evolve the individuals within it.
+
+---
 
 ## Best Practices
 
@@ -458,3 +485,5 @@ The genome system in Radiate provides a structured way to represent and manipula
 - **Genotype**: A collection of chromosomes that represent the complete genetic makeup of an individual.
 - **Phenotype**: The representation of an individual in the population that holds additional information like fitness scores.
 - **Population**: A collection of phenotypes that represent the current group being evolved
+- **Species**: An optional grouping of similar phenotypes to manage diversity.
+- **Ecosystem**: The highest level that wraps the entire genetic algorithm environment.
