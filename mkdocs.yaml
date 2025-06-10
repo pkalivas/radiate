@@ -9,6 +9,7 @@ nav:
   - Codec: source/codec.md
   - Selectors: source/selectors.md
   - Alterers: source/alterers.md
+  - Diversity: source/diversity.md
   - Parameters: source/params.md
   - Metrics: source/metrics.md
   - Multiobjective: source/multiobjective.md
