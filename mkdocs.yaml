@@ -7,9 +7,9 @@ nav:
   - Getting Started: source/installation.md
   - Genome: source/genome.md
   - Codec: source/codec.md
-  - Parameters: source/params.md
   - Selectors: source/selectors.md
   - Alterers: source/alterers.md
+  - Parameters: source/params.md
   - Metrics: source/metrics.md
   - Multiobjective: source/multiobjective.md
   - Genetic Programming: source/gp.md
