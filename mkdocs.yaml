@@ -14,6 +14,7 @@ nav:
   - Multiobjective: source/multiobjective.md
   - Genetic Programming: source/gp.md
   - Examples: source/examples.md
+  # - Test: source/test.md
 
 theme:
   favicon: assets/radiate.ico

@@ -1,6 +1,8 @@
 
 # Codecs
 
+---
+
 ## What is a Codec?
 
 Radiate's `GeneticEngine` operates on an abstract representation of your domain problem using the 'Genome'. To bridge the gap between your domain and radiate's, we use a `Codec` - encoder-decoder. A `Codec` is a mechanism that encodes and decodes genetic information between the 'problem space' (your domain) and the 'solution space' (Radiate's internal representation).
@@ -10,6 +12,8 @@ Essentially, this is a component that defines how genetic information is structu
 - What type of data you're evolving (numbers, characters, etc.)
 - How that data is organized (single values, arrays, matrices, etc.)
 - Any other chromosome or gene level information needed for the algorithm to work effectively.
+
+---
 
 ## Why Do We Need Codecs?
 
@@ -27,12 +31,16 @@ For example, if you're evolving neural network weights, you need to:
   
 See [this example](https://github.com/pkalivas/radiate/blob/master/examples/simple-nn/src/main.rs) for a simple neural network evolution using Radiate.
 
+---
+
 ## How Codecs Fit Into the Genetic Algorithm
 
 Here's a simple breakdown of how codecs work in the evolution process:
 
 1. **Initialization**: When you create a population, the codec defines how each individual's genetic information is structured and created within the population. For example, if you're evolving a list of floating-point numbers, the codec will specify how many numbers, their ranges, and how they are represented.
 2. **Evaluation**: Your fitness function receives the decoded values in a format you can work with and have possibly defined.
+
+---
 
 ## Types of Codecs
 
@@ -353,7 +361,26 @@ Radiate provides several codec types out of the box that should be able to cover
         let decoded: NQueens = codec.decode(&genotype);
         ```
 
-## A Simple Example
+---
+
+## Best Practices
+
+1. **Start Simple**: Begin with a simple codec structure and expand as needed
+2. **Choose Appropriate Ranges (IntCodec & FloatCodec)**:
+    - `value_range`: Set this to reasonable initial values
+    - `bound_range`: Set this to the valid range for your problem
+3. **Match Your Problem**: Choose the codec type that best represents your solution space
+4. **Consider Structure**: Use the appropriate configuration (scalar/vector/matrix) for your problem
+
+## Common Pitfalls to Avoid
+
+1. **Too Wide Ranges**: Starting with very wide value ranges can make evolution slower
+2. **Too Narrow Bounds**: Restrictive bound ranges might prevent finding optimal solutions
+3. **Mismatched Structure**: Using the wrong codec structure can make it impossible to represent valid solutions
+
+---
+
+## Example
 
 Let's look at a basic example of how to use the `Codec` for evolving a simple function: finding the best values for `y = ax + b` where we want to find optimal values for `a` and `b`.
 
@@ -393,14 +420,21 @@ Let's look at a basic example of how to use the `Codec` for evolving a simple fu
     ```rust
     use radiate::*;
 
+    // Define a fitness function that uses the decoded values
+    fn fitness_fn(individual: Vec<f32>) -> f32 {
+        let a = individual[0];
+        let b = individual[1];
+        calculate_error(a, b)  // Your error calculation here
+    }
+
+    // This will produce a Genotype<FloatChromosome> with 1 FloatChromosome which
+    // holds 2 FloatGenes (a and b), each with a value between -1.0 and 1.0 and a bound between -10.0 and 10.0
+    let codec = FloatCodec::vector(2, -1.0..1.0).with_bounds(-10.0..10.0);
+
     let mut engine = GeneticEngine::builder()
-        .codec(FloatCodec::vector(2, -1.0..1.0).with_bounds(-10.0..10.0))   // a and b
-        .fitness_function(|individual: Vec<f32>| {
-            // Calculate how well these parameters fit your data
-            let a = individual[0];
-            let b = individual[1];
-            calculate_error(a, b)                   // Your error calculation here
-        })
+        .codec(codec)
+        .fitness_fn(fitness_fn)
+        // ... other parameters ...
         .build();
 
     // Run the engine
@@ -408,32 +442,6 @@ Let's look at a basic example of how to use the `Codec` for evolving a simple fu
         generation.index() >= 1000 || generation.score().as_f32() <= 0.01
     });
     ```
-
-## Best Practices
-
-1. **Start Simple**: Begin with a simple codec structure and expand as needed
-2. **Choose Appropriate Ranges (IntCodec & FloatCodec)**:
-    - `value_range`: Set this to reasonable initial values
-    - `bound_range`: Set this to the valid range for your problem
-3. **Match Your Problem**: Choose the codec type that best represents your solution space
-4. **Consider Structure**: Use the appropriate configuration (scalar/vector/matrix) for your problem
-
-## Common Pitfalls to Avoid
-
-1. **Too Wide Ranges**: Starting with very wide value ranges can make evolution slower
-2. **Too Narrow Bounds**: Restrictive bound ranges might prevent finding optimal solutions
-3. **Mismatched Structure**: Using the wrong codec structure can make it impossible to represent valid solutions
-
-## Next Steps
-
-Now that you understand codecs, you can:
-
-1. Define your problem's solution space
-2. Choose the appropriate codec type and structure
-3. Set up your evolution engine
-4. Define your fitness function to work with the decoded values
-
-Remember: The codec is your bridge between the genetic algorithm's internal representation and your problem's solution space. Choose it wisely!
 
 <!-- 
 

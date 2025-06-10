@@ -4,8 +4,7 @@
 
 # Alterers
 
-Alterers are the operators that modify the population of individuals through either mutation or crossover. Crossover and mutation are two powerful ways to create new individuals from the existing population, and they are essential for the genetic algorithm to explore the search space effectively.
-As such, the choice of alterer can have a significant impact on the performance of the genetic algorithm, so it is important to choose an alterer that is well-suited to the problem being solved.
+Alterers are the operators that modify the `population` of individuals through either `mutation` or `crossover`. `Crossover` and `mutation` are two powerful ways to create new individuals from the existing `population`, and they are essential for the genetic algorithm to explore the search space effectively. As such, the choice of `alterer` can have a significant impact on the performance of the genetic algorithm, so it is important to choose an `alterer` that is well-suited to the problem being solved.
 
 Adding alterers to the engine can be done in a few ways. The simplest way is to add a single mutator and a single crossover to the engine as such:
 
