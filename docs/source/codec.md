@@ -327,18 +327,19 @@ Radiate provides several codec types out of the box that should be able to cover
         let decoded: NQueens = codec.decode(&genotype);
         ```
 
-<!-- ### 6. GraphCodec -->
+The below codecs are more specialized and are used for evolving graph and tree structures, which are common in genetic programming tasks.
+
 ??? note "GraphCodec"
 
     The `GraphCodec` is used for evolving graph-based structures, particularly useful in neural network evolution and other graph-based genetic programming tasks. The codec itself can create both directed and recurrent graph structures. While the evolution of the graph can produce recurrent connections, cycles, and other complex structures. The codec simply provides a way to define a 'base' graph structure that can be evolved.
 
-    #### Key Features
+    <b>Key Features</b>
     - Supports directed and recurrent graph architectures
     - Handles input/output nodes and internal vertices & edges
     - Allows custom operations for different node types
     - Can be used for both feedforward and recurrent neural networks
 
-    #### Graph Structure
+    <b>Graph Structure</b>
     The `GraphCodec` creates a graph with:
 
     - Input nodes: Receive external input
@@ -346,13 +347,14 @@ Radiate provides several codec types out of the box that should be able to cover
     - Vertex nodes: Internal nodes that perform operations
     - Edges: Connections between nodes
 
-    #### Use Cases
+    <b>Use Cases</b>
+
     - Neural network evolution
     - Complex function optimization
     - Recurrent network structures
     - Any problem that can be represented as a graph
 
-    #### Usage Examples
+    <b>Usage Examples</b>
 
     === ":fontawesome-brands-python: Python"
 
@@ -418,28 +420,29 @@ Radiate provides several codec types out of the box that should be able to cover
 
     The `TreeCodec` is used for evolving tree-based structures, which are fundamental in genetic programming. It's particularly useful for evolving mathematical expressions, program syntax trees, and decision trees.
 
-    #### Key Features
+    <b>Key Features</b>
+
     - Supports single and multi-root tree structures
     - Maintains tree validity during evolution
     - Allows custom constraints on tree structure
     - Preserves tree depth and node relationships
 
-    #### Tree Structure
-
+    <b>Tree Structure</b>
     The tree codec creates a tree with:
 
     - Root nodes: Starting points of the tree
     - Vertex nodes: Internal nodes that perform operations
     - Leaf nodes: Terminal nodes with constant values or variables
 
-    #### Use Cases
+    <b>Use Cases</b>
+
     - Mathematical expression evolution
     - Program synthesis
     - Decision tree evolution
     - Symbolic regression
     - Any problem that can be represented as a tree structure
 
-    #### Usage Examples
+    <b>Usage Examples</b>
 
     === ":fontawesome-brands-python: Python"
 
@@ -503,28 +506,6 @@ Radiate provides several codec types out of the box that should be able to cover
         let codec = codec.with_constraint(|node| node.height() <= 3);
         ```
 
-#### Best Practices for Graph and Tree Codecs
-
-1. **Node Store Design**:
-    - Carefully choose operations for each node type
-    - Ensure operations have appropriate arity
-    - Include a good mix of operations for exploration
-
-2. **Structure Constraints**:
-    - Set appropriate depth limits for trees
-    - Define valid node connections for graphs
-    - Use constraints for `Tree<T>` to maintain valid structures and keep trees within a reasonable size
-
-3. **Evolution Parameters**:
-    - Adjust mutation and crossover rates for your problem
-    - Consider using specialized operators (e.g., `HoistMutator` for trees)
-    - Monitor structure validity during evolution
-
-4. **Evaluation**:
-    - Implement appropriate fitness functions for your structure
-    - Consider using `GraphEvaluator` for graphs
-    - Use the `Eval` trait for tree evaluation
-
 <!--
 #### Example: Symbolic Regression with TreeCodec
 
@@ -580,7 +561,9 @@ Let's look at a basic example of how to use the `Codec` for evolving a simple fu
     # Define a fitness function that uses the decoded values
     def fitness_function(individual: List[float]) -> float:    
         # Calculate how well these parameters fit your data
-        return calculate_error(individual[0], individual[1])  # Your error calculation here
+        a = individual[0]
+        b = individual[1]
+        return calculate_error(a, b)  # Your error calculation here
 
     # Create a codec for two parameters (a and b)
     codec = rd.FloatCodec.vector(
@@ -609,7 +592,9 @@ Let's look at a basic example of how to use the `Codec` for evolving a simple fu
         .codec(FloatCodec::vector(2, -1.0..1.0).with_bounds(-10.0..10.0))   // a and b
         .fitness_function(|individual: Vec<f32>| {
             // Calculate how well these parameters fit your data
-            calculate_error(individual[0], individual[1])                   // Your error calculation here
+            let a = individual[0];
+            let b = individual[1];
+            calculate_error(a, b)                   // Your error calculation here
         })
         .build();
 
