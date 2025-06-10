@@ -32,7 +32,7 @@ A `Gene` is a wrapper around an `allele` that adds functionality which is compat
 - Perform operations on its `allele` like addition, subtraction, or mutation
 - Maintain constraints (like value ranges)
 
-Certain `Genes` have additional functionality that allows them to be manipulated in specific ways, such as the `FloatGene` and `IntGene<I>` which implement the `ArithmeticGene`. The `ArithmeticGene` trait provides methods for performing arithmetic operations on the `Gene`. Radiate provides several built-in gene types, however, you can also create custom genes to suit your specific needs. The built-in genes include:
+Certain `Genes` have additional functionality that allows them to be manipulated in specific ways, such as the `FloatGene` and `IntGene<I>` which implement the `ArithmeticGene`. The `ArithmeticGene` trait provides methods for performing arithmetic operations on the `Gene`. Radiate provides several built-in gene types, however, you can also create custom genes to suit your specific needs. The core built-in genes include:
 
 ??? info "FloatGene"
 
