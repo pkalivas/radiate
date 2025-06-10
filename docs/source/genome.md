@@ -14,9 +14,9 @@ In genetic algorithms, we need a way to represent and manipulate potential solut
 
 The `allele` is the smallest unit of genetic information in Radiate. It is a single value that can be used to represent a trait or characteristic of an individual. For example, an `allele` could represent a single bit in a binary string, a single character in a string, or a single number in a list of numbers. At its most basic level, an `allele` is the "atom" of genetic information that is used to express the genetic makeup of an individual - think of it as the "letter" in a genetic "word". For example, it could be:
 
-- A number (like 42 or 3.14)
-- A character (like 'A' or '?')
-- A boolean value (true/false)
+- A number (like `42` or `3.14`)
+- A character (like `A` or `?`)
+- A boolean value (`true`/`false`)
 - Any other basic value type
 
 ---
@@ -80,6 +80,8 @@ Certain `Genes` have additional functionality that allows them to be manipulated
     === ":fontawesome-brands-python: Python"
 
         ```python
+        import radiate as rd
+
         # Create an integer gene that can evolve between -100 and 100
         gene = rd.Gene.int(
             allele=42,                     # Current value
@@ -113,6 +115,8 @@ Certain `Genes` have additional functionality that allows them to be manipulated
     === ":fontawesome-brands-python: Python"
 
         ```python
+        import radiate as rd
+
         # Create an bit gene with an allele of True - if the allele isn't specified, it will 
         # be randomly initialized to True or False
         gene = rd.Gene.bool(allele=True)
@@ -137,6 +141,8 @@ Certain `Genes` have additional functionality that allows them to be manipulated
     === ":fontawesome-brands-python: Python"
 
         ```python
+        import radiate as rd
+
         # Create a character gene with an allele of 'A'
         gene = rd.Gene.char(allele='A')
 
@@ -205,6 +211,8 @@ Because each `Chromosome` has an associated `Gene`, the built int chromosomes ar
     === ":fontawesome-brands-python: Python"
 
         ```python
+        import radiate as rd
+
         # Create a float chromosome with 5 genes, each initialized to a random value between -1.0 and 1.0
         chromosome = rd.Chromosome.float(
             length=5, 
@@ -231,6 +239,8 @@ Because each `Chromosome` has an associated `Gene`, the built int chromosomes ar
     === ":fontawesome-brands-python: Python"
 
         ```python
+        import radiate as rd
+
         # Create an integer chromosome with 5 genes, each initialized to a random value between -10 and 10
         chromosome = rd.Chromosome.int(
             length=5, 
@@ -257,6 +267,8 @@ Because each `Chromosome` has an associated `Gene`, the built int chromosomes ar
     === ":fontawesome-brands-python: Python"
 
         ```python
+        import radiate as rd
+
         # Create a bit chromosome with 5 genes, each initialized to a random value of True or False
         chromosome = rd.Chromosome.bit(length=5)
         ```
@@ -277,6 +289,8 @@ Because each `Chromosome` has an associated `Gene`, the built int chromosomes ar
     === ":fontawesome-brands-python: Python"
 
         ```python
+        import radiate as rd
+
         # Create a character chromosome with 5 genes, each initialized to a random character from the ASCII printable characters
         chromosome = rd.Chromosome.char(length=5)
 
@@ -320,11 +334,61 @@ Because each `Chromosome` has an associated `Gene`, the built int chromosomes ar
 
 > The Complete Blueprint
 
-!!! warning ":construction: Under Construction :construction:"
+The `Genotype` is a collection of `Chromosomes` that represent the complete genetic makeup of an individual. A `Genotype` can be thought of as a "blueprint" for an individual that contains all of the genetic information necessary to fully express the traits and characteristics of that individual.  In essance, the `Genotype` is the "sentence" made up of multiple "words" (chromosomes). Each `Genotype` contains one or more `Chromosomes`, and each `Chromosome` contains one or more `Genes`. It is the "DNA" of the individual that the `GeneticEngine` is evolving.
 
-    This section is currently under construction 
+Because of the typed nature of the `Genotype`, it can only hold a collection of the same type of `Chromosome`. This means that you can have a `Genotype` that contains only `FloatChromosome`s, or only `IntChromosome`s. You cannot have a `Genotype` that contains both `FloatChromosome`s and `IntChromosome`s at the same time - this is by design.
 
-The `Genotype` is a collection of `Chromosomes` that represent the complete genetic makeup of an individual. A `Genotype` can be thought of as a "blueprint" for an individual that contains all of the genetic information necessary to fully express the traits and characteristics of that individual. Because the `Genotype` is a collection of `Chromosomes`, it can be used to represent complex genetic information that is composed of multiple parts. 
+=== ":fontawesome-brands-python: Python"
+
+    ```python
+    import radiate as rd
+
+    # Create a genotype with a single FloatChromosome and a 5 FloatGenes
+    genotype = rd.Genotype(
+        rd.Chromosome.float(length=5, value_range=(-1.0, 1.0))
+    )
+
+    # Create a genotype with a single FloatChromosome and a single FloatGene with a 
+    # randomly generated allele between -1.0 and 1.0
+    genotype = rd.Genotype(
+        rd.Chromosome.float(genes=rd.Gene.float(value_range=(-1.0, 1.0)))
+    )
+
+    # Create a genotype with multiple chromosomes of lengths 5, 15, and 3
+    three_chromosome_genotype = rd.Genotype([
+        rd.Chromosome.float(length=5, value_range=(-1.0, 1.0)),
+        rd.Chromosome.float(length=15, value_range=(-1.0, 1.0)),
+        rd.Chromosome.float(length=3, value_range=(-1.0, 1.0))
+    ])
+    ```
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    // Create a genotype with a single FloatChromosome and a 5 FloatGenes 
+    let genotype = Genotype::from(vec![FloatChromosome::from((5, -1.0..1.0))]);
+    // -- or --
+    let genotype = Genotype::from(vec![FloatChromosome::new(vec![FloatGene::new(0.1, -1.0..1.0)])]);
+
+    // Create a genotype with multiple chromosomes of lengths 5, 15, and 3
+    let three_chromosome_genotype = Genotype::new(vec![
+        FloatChromosome::from((5, -1.0..1.0)),
+        FloatChromosome::from((15, -1.0..1.0)),
+        FloatChromosome::from((3, -1.0..1.0))
+    ])
+
+    let genotype_length = three_chromosome_genotype.len(); // 3
+
+    // Get the second chromosome from the genotype
+    let second_chromosome = three_chromosome_genotype.get(1).unwrap(); // or use `three_chromosome_genotype[1]`
+    let mut second_chromosome_mut = three_chromosome_genotype.get_mut(1).unwrap();
+
+    for chromosome in three_chromosome_genotype.iter() { // or iter_mut()
+        // Do something with each chromosome
+    }
+    ```
 
 ---
 
@@ -332,21 +396,31 @@ The `Genotype` is a collection of `Chromosomes` that represent the complete gene
 
 > The Living Solution
 
-!!! warning ":construction: Under Construction :construction:"
+The `Phenotype` is the representation of an individual in the population that is being evolved by the `GeneticEngine`. It is a concrete implementation of a `Genotype` that includes additional functionality for the individual, such as calculating its fitness score. The `Phenotype` is the "living" version of the `Genotype`, and it is what the `GeneticEngine` interacts with during the evolution process.
 
-    This section is currently under construction 
+The `Phenotype` is responsible for:
 
-In Radiate, the `Phenotype` is the primary interface between the `GeneticEngine` and the individuals that it is evolving. It is responsible for managing the genetic information of the individual, evaluating the fitness of the individual, and providing a way for the `GeneticEngine` to interact with the individual. The `Phenotype` is the "body" of the individual that the `GeneticEngine` is evolving, and it is the main data structure that the `GeneticEngine` operates on.
+- Providing a way for the `GeneticEngine` to interact with the individual
+- Holding the genetic information of the individual, including its `Genotype` and fitness or `score`
+- Managing the individual's state during the evolution process
+
+You shouldn't need to create a `Phenotype` directly, as the `GeneticEngine` will handle this for you.
 
 ---
 
 ### Population
 
-> The Community of Solutions
+> The Community
 
-!!! warning ":construction: Under Construction :construction:"
+The `Population` is a collection of `Phenotype`s that represent the current state of the genetic algorithm. It is the "community" of solutions that the `GeneticEngine` is evolving. Its really just a vector of `Phenotype`s. The `Population` is responsible for:
 
-    This section is currently under construction 
+- Sorting individuals based on their fitness scores
+- Holding the current individuals that are being evolved
+- Providing a way for the `GeneticEngine` to interact with the individuals being evolved
+
+The `Population` is created and managed by the `GeneticEngine`, and you shouldn't need to create a `Population` directly. Instead, you will interact with the `GeneticEngine` to manage the population and evolve the individuals.
+
+---
 
 ## Best Practices
 
@@ -364,12 +438,6 @@ In Radiate, the `Phenotype` is the primary interface between the `GeneticEngine`
 3. **Design Your Genotype**:
     - Make sure it can represent all possible solutions
     - Keep it as simple as possible
-    - Consider using different chromosome types for different parts of your solution
-
-4. **Create Meaningful Phenotypes**:
-    - Make evaluation efficient
-    - Include all necessary functionality
-    - Consider caching if evaluation is expensive
 
 ## Common Pitfalls to Avoid
 
@@ -379,10 +447,14 @@ In Radiate, the `Phenotype` is the primary interface between the `GeneticEngine`
 
 2. **Poor Gene Constraints**:
     - Always set appropriate value ranges and bounds
-    - Consider the impact of constraints on evolution
+    <!-- - Consider the impact of constraints on evolution -->
 
-3. **Population Size**:
-    - Too small: May not explore enough of the solution space
-    - Too large: May be computationally expensive
-    - Start with 100-1000 individuals and adjust based on results# Understanding the Genome System
+## Summary
+The genome system in Radiate provides a structured way to represent and manipulate genetic information. By understanding the components of the genome system, you can effectively design and evolve solutions to complex problems using genetic algorithms. The key components include:
 
+- **Allele**: The basic unit of genetic information.
+- **Gene**: A container for an allele with additional functionality.
+- **Chromosome**: A collection of genes that represent a part or the whole of the genetic information of an individual.
+- **Genotype**: A collection of chromosomes that represent the complete genetic makeup of an individual.
+- **Phenotype**: The representation of an individual in the population that holds additional information like fitness scores.
+- **Population**: A collection of phenotypes that represent the current group being evolved
