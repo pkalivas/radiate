@@ -9,7 +9,9 @@ Radiate provides an event system that allows you to monitor and react to the evo
 
 ## Overview
 
-The event system in Radiate is built around the concept of event handlers or subscribers that can be attached to the `GeneticEngine`. These subscribers receive events at key points during the evolution process, allowing you to monitor and react to changes in the environment in real-time. The event system is designed to be flexible and extensible, allowing you to create custom event handlers that can perform various actions based on the evolution state. 
+The event system in Radiate is built around the concept of event handlers or subscribers that can be attached to the `GeneticEngine`. These subscribers receive events at key points during the evolution process, allowing you to monitor and react to changes in the environment in real-time. The event system is designed to be flexible and extensible, allowing you to create custom event handlers that can perform various actions based on the evolution state.
+
+The `GeneticEngine` tries its best to off-load almost the entire compute workload of the subscribers (handlers) to the user - be aware of this when implementing your handlers.
 
 !!! note "Threading Behavior"
     
@@ -266,21 +268,20 @@ For more complex event handling, you can create a custom event handler class:
 1. **Keep Event Handlers Light**:
     - Event handlers are called frequently during evolution
     - Avoid heavy computations in event handlers
-    - Use event handlers primarily for monitoring and logging
 
 2. **Use Multiple Subscribers**:
     - You can subscribe multiple handlers to the same engine
     - Separate concerns into different handlers
-    - Example: one for logging, one for metrics, one for visualization
+        - Example: one for logging, one for metrics, one for visualization
 
 3. **Handle Errors Gracefully**:
     - Event handlers should not crash the evolution process
-    - Log errors instead of raising exceptions
+    - Log errors instead of raising exceptions - do not expect the `GeneticEngine` to throw exceptions
 
 4. **Monitor Performance**:
     - Be aware that event handling adds some overhead depending on your implementation
-    - Use metrics to track the impact on evolution speed
-    - Consider disabling event handling in production if not needed
+    - Use built in `metrics` to track certain metrics or performance characteristics if possible
+    - Be cautious of your implementation - consider disabling event handling in production if not essential
 
 
 <!-- ## Available Metrics
