@@ -1,13 +1,13 @@
 import os
 import sys
-import math
-import matplotlib.pyplot as plt
+# import math
+# import matplotlib.pyplot as plt
+# from numba import jit, cfunc, vectorize
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, project_root)
 
 import radiate as rd
-from numba import jit, cfunc, vectorize
 
 class TestHandler(rd.EventHandler):
     def __init__(self):
