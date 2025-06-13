@@ -138,14 +138,19 @@ impl PyEngineBuilder {
     pub fn set_subscribers<'py>(
         &self,
         py: Python<'py>,
-        subscribers: Vec<PySubscriber>,
+        subscribers: Option<Vec<PySubscriber>>,
     ) -> PyResult<()> {
-        let mut current_subscribers = self.get_subscribers(py)?;
-        current_subscribers.extend(subscribers);
-        self.params
-            .bind(py)
-            .set_item("subscribers", PyList::new(py, current_subscribers)?)
-            .map_err(|e| e.into())
+        if let Some(subscribers) = subscribers {
+            let mut current_subscribers = self.get_subscribers(py)?;
+            current_subscribers.extend(subscribers);
+            return self
+                .params
+                .bind(py)
+                .set_item("subscribers", PyList::new(py, current_subscribers)?)
+                .map_err(|e| e.into());
+        }
+
+        Ok(())
     }
 
     pub fn set_offspring_selector<'py>(

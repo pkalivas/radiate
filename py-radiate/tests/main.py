@@ -9,6 +9,13 @@ sys.path.insert(0, project_root)
 import radiate as rd
 from numba import jit, cfunc, vectorize
 
+class TestHandler(rd.EventHandler):
+    def __init__(self):
+        super().__init__(rd.EventType.ENGINE_IMPROVEMENT)
+
+    def on_event(self, event):
+        print(event)
+
 
 rd.random.set_seed(501)
 
@@ -16,6 +23,7 @@ engine = rd.GeneticEngine(
     codec=rd.IntCodec.vector(10, (0, 10)),
     fitness_func=lambda x: sum(x),
     offspring_selector=rd.BoltzmannSelector(4),
+    subscribe=TestHandler(),
     alters=[
         rd.MultiPointCrossover(0.75, 2), 
         rd.UniformMutator(0.01)

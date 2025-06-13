@@ -277,7 +277,6 @@ impl Display for FloatGene {
 ///```
 #[derive(Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[repr(transparent)]
 pub struct FloatChromosome {
     genes: Vec<FloatGene>,
 }

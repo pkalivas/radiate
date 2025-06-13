@@ -44,7 +44,7 @@ where
 {
     fn encode(&self) -> Genotype<GraphChromosome<T>> {
         let chromosome = self.template.new_instance(Some(self.store.clone()));
-        Genotype::new(vec![chromosome])
+        Genotype::from(chromosome)
     }
 
     fn decode(&self, genotype: &Genotype<GraphChromosome<T>>) -> Graph<T> {

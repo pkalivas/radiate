@@ -21,10 +21,8 @@ use std::ops::{Index, IndexMut};
 ///
 /// # Type Parameters
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
-///
 #[derive(Clone, PartialEq, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[repr(transparent)]
 pub struct Genotype<C: Chromosome> {
     chromosomes: Vec<C>,
 }
@@ -84,6 +82,14 @@ impl<C: Chromosome> Index<usize> for Genotype<C> {
 impl<C: Chromosome> IndexMut<usize> for Genotype<C> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.chromosomes[index]
+    }
+}
+
+impl<C: Chromosome> From<C> for Genotype<C> {
+    fn from(chromosome: C) -> Self {
+        Genotype {
+            chromosomes: vec![chromosome],
+        }
     }
 }
 

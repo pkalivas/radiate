@@ -11,11 +11,13 @@ use serde::{Deserialize, Serialize};
 /// building either a graph or tree, we usually want to specify which type of node we want to create.
 /// Thus, we typically use this enum more for writing (building nodes) rather than reading (traversing nodes).
 ///
-/// See the `GraphNode` and `TreeNode` implementations for more details or rules around how this is handled.
+/// See the [GraphNode](crate::collections::GraphNode) and [TreeNode](crate::collections::TreeNode)
+/// implementations for more details or rules around how this is handled.
 ///
 /// Because of this, the `NodeType` enum is a soft identification, and should be used as a hint rather than a strict rule.
-/// The `node_type` method in the `Node` trait has guards around it within the `GraphNode` and `TreeNode` implementations
-/// which handle this ambiguity and provide a more accurate node type when traversing the graph or tree. All that being
+/// The `node_type` method in the `Node` trait has guards around it within the [GraphNode](crate::collections::GraphNode)
+/// and [TreeNode](crate::collections::TreeNode) implementations which handle this ambiguity and provide a
+/// more accurate node type when traversing the graph or tree. All that being
 /// said, it is a very very rare case where the `node_type` method would return a different value than what is
 /// specified in the `NodeType` enum - the only way this is possible is if the `NodeType` isn't supplied to
 /// the node during creation.

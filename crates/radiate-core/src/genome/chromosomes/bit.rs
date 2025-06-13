@@ -26,7 +26,6 @@ use std::fmt::{Debug, Display};
 ///
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[repr(transparent)]
 pub struct BitGene {
     allele: bool,
 }
@@ -91,7 +90,6 @@ impl From<bool> for BitGene {
 /// material of an individual in the population.
 #[derive(Clone, PartialEq, Default, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[repr(transparent)]
 pub struct BitChromosome {
     genes: Vec<BitGene>,
 }

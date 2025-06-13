@@ -4,10 +4,9 @@ fn main() {
     random_provider::set_seed(100);
 
     let target = "Hello, Radiate!";
-    let codec = CharCodec::vector(target.len());
 
     let engine = GeneticEngine::builder()
-        .codec(codec)
+        .codec(CharCodec::vector(target.len()))
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .fitness_fn(|geno: Vec<char>| {
             geno.into_iter().zip(target.chars()).fold(

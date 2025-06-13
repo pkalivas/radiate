@@ -1,12 +1,16 @@
-from typing import Any, Callable, List, Tuple
+from typing import Any, Callable, List, Tuple, TypeAlias, Union
 from .selector import SelectorBase, TournamentSelector, RouletteSelector
 from .alterer import AlterBase, UniformCrossover, UniformMutator
 from .diversity import DiversityBase
 from .codec import CodecBase
 from .limit import LimitBase
 from .generation import Generation
-
+from .handlers import EventHandler
 from .radiate import PyEngineBuilder, PyObjective, PySubscriber
+
+Subscriber: TypeAlias = Union[
+    Callable[[Any], None], List[Callable[[Any], None]], EventHandler, List[EventHandler]
+]
 
 
 class GeneticEngine:
@@ -28,11 +32,11 @@ class GeneticEngine:
         offspring_fraction: float = 0.8,
         max_phenotype_age: int = 20,
         max_species_age: int = 20,
-        species_threshold: float = .5,
+        species_threshold: float = 0.5,
         objectives: str | List[str] = ["min"],
         num_threads: int = 1,
         front_range: Tuple[int, int] | None = (800, 900),
-        subscribe: List[Callable[[Any], None]] | Callable[[Any], None] | None = None,
+        subscribe: Subscriber | None = None,
     ):
         self.engine = None
 
@@ -44,6 +48,7 @@ class GeneticEngine:
         diversity = self.__get_params(diversity, allow_none=True)
         objectives = self.__get_objectives(objectives)
         front_range = self.__get_front_range(front_range)
+        handlers = self.__get_event_handler(subscribe)
 
         codec = self.__get_codec(codec)
         fitness_func = fitness_func
@@ -64,6 +69,9 @@ class GeneticEngine:
             survivor_selector=survivor_selector,
             diversity=diversity,
         )
+
+        if handlers:
+            self.builder.set_subscribers(handlers)
 
     def __repr__(self):
         if self.engine is None:
@@ -281,9 +289,7 @@ class GeneticEngine:
             raise ValueError("Number of threads must be greater than 0.")
         self.builder.set_num_threads(num_threads)
 
-    def subscribe(
-        self, event_handler: List[Callable[[Any], None]] | Callable[[Any], None]
-    ):
+    def subscribe(self, event_handler: Subscriber | None = None):
         """Register an event handler.
         Args:
             event_handler (Callable[[Any], None] | List[Callable[[Any], None]]): The event handler(s) to register.
@@ -295,14 +301,12 @@ class GeneticEngine:
         >>> engine.subscribe(my_event_handler)
         >>> engine.subscribe([handler1, handler2])
         """
-        if callable(event_handler):
-            self.builder.set_subscribers([PySubscriber(event_handler)])
-        elif all(callable(handler) for handler in event_handler):
-            self.builder.set_subscribers(
-                [PySubscriber(handler) for handler in event_handler]
-            )
-        else:
+        if event_handler is None:
+            return
+        handlers = self.__get_event_handler(event_handler)
+        if handlers is None:
             raise TypeError("Event handler must be a callable or a list of callables.")
+        self.builder.set_subscribers(handlers)
 
     def __get_front_range(self, front_range: Tuple[int, int] | None) -> Tuple[int, int]:
         """Get the front range."""
@@ -370,3 +374,27 @@ class GeneticEngine:
                 f"Codec type {type(codec)} is not supported. "
                 "Use FloatCodec, IntCodec, CharCodec, or BitCodec."
             )
+
+    def __get_event_handler(
+        self,
+        handler: List[Callable[[Any], None]]
+        | Callable[[Any], None]
+        | List[EventHandler]
+        | EventHandler,
+    ) -> List[PySubscriber]:
+        """Get the event handler."""
+        if isinstance(handler, EventHandler):
+            return [handler.subscriber]
+        if isinstance(handler, list):
+            if all(isinstance(h, EventHandler) for h in handler):
+                return [h.subscriber for h in handler if isinstance(h, EventHandler)]
+        if callable(handler):
+            return [PySubscriber(handler)]
+        if isinstance(handler, list):
+            if all(callable(h) for h in handler):
+                return [PySubscriber(h) for h in handler]
+            else:
+                raise TypeError(
+                    "Event handler must be a callable or a list of callables."
+                )
+        return None
