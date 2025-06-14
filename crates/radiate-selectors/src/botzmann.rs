@@ -1,6 +1,5 @@
-use radiate_core::{
-    Chromosome, Objective, Optimize, Population, ProbabilityWheelIterator, Select, pareto,
-};
+use crate::ProbabilityWheelIterator;
+use radiate_core::{Chromosome, Objective, Optimize, Population, Select, pareto};
 
 pub struct BoltzmannSelector {
     temperature: f32,

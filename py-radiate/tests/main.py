@@ -9,12 +9,14 @@ sys.path.insert(0, project_root)
 
 import radiate as rd
 
+
 class TestHandler(rd.EventHandler):
     def __init__(self):
-        super().__init__(rd.EventType.ENGINE_IMPROVEMENT)
+        super().__init__(rd.EventType.EPOCH_COMPLETE)
 
     def on_event(self, event):
-        print(event)
+        print(event['score'])
+        # print(event['metrics'].get_metric('Score')['metrics']['value_min'])
 
 
 rd.random.set_seed(501)

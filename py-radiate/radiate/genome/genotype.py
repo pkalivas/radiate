@@ -51,7 +51,7 @@ class Genotype:
         :return: Length of the genotype.
         """
         return len(self.__inner.chromosomes)
-    
+
     def __eq__(self, value):
         if not isinstance(value, Genotype):
             return False
