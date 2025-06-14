@@ -9,7 +9,7 @@ use std::io::{self, BufRead};
 use std::path::PathBuf;
 
 fn main() -> io::Result<()> {
-    let tsp_file_path = std::env::current_dir()?.join("radiate-examples/TSP/gr17.txt");
+    let tsp_file_path = std::env::current_dir()?.join("examples/TSP/gr17.txt");
     let (distance_matrix, distance_points) = read_tsp_file(&tsp_file_path)?;
 
     let codec = PermutationCodec::new((0..distance_matrix.len()).collect());
