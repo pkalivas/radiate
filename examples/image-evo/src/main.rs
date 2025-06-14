@@ -4,7 +4,6 @@ mod polygon;
 // use radiate::*;
 
 fn main() {
-    // read the monalisa.png from file
     let image_file_path = std::env::current_dir()
         .unwrap()
         .join("examples/image-evo/monalisa.png");
