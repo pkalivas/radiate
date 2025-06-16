@@ -1,6 +1,5 @@
-use std::collections::HashSet;
-
 use radiate::*;
+use std::collections::HashSet;
 
 const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
