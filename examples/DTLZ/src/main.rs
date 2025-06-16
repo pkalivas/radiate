@@ -31,8 +31,6 @@ fn main() {
         })
         .collect::<ParetoFront<Phenotype<FloatChromosome>>>();
 
-    // println!("{:?}", result.seconds());
-    // println!("{:?}", result.metrics());
     plot_front(&result);
 }
 

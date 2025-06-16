@@ -25,7 +25,7 @@ pub use genome::*;
 pub use objectives::{Front, Objective, Optimize, ParetoFront, Score, pareto};
 pub use problem::{EngineProblem, Problem};
 pub use replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
-pub use selector::{ProbabilityWheelIterator, Select};
+pub use selector::Select;
 pub use stats::*;
 
 pub mod prelude {
@@ -45,6 +45,6 @@ pub mod prelude {
     pub use super::objectives::{Front, Objective, Optimize, ParetoFront, Score, pareto};
     pub use super::problem::{EngineProblem, Problem};
     pub use super::replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
-    pub use super::selector::{ProbabilityWheelIterator, Select};
+    pub use super::selector::Select;
     pub use super::stats::{Distribution, Metric, MetricSet, Statistic, TimeStatistic};
 }

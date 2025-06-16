@@ -71,7 +71,7 @@ where
     C: Chromosome,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "EngineOutput {{\n")?;
+        write!(f, "Generation {{\n")?;
         write!(f, "  value: {:?},\n", self.value)?;
         write!(f, "  score: {:?},\n", self.score)?;
         write!(f, "  index: {:?},\n", self.index)?;

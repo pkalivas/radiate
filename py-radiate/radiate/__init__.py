@@ -1,10 +1,10 @@
 from .engine import GeneticEngine
 from .codec import FloatCodec, IntCodec, CharCodec, BitCodec, CodecBase
 from .limit import SecondsLimit, GenerationsLimit, ScoreLimit
-from .handlers import EventHandler, OnEpochCompleteHandler
 from .random import RandomProvider as random
 from .generation import Generation
 from .genome import Gene, Chromosome, Genotype, Population, Phenotype
+from .handlers import EventHandler, EventType
 
 
 from .diversity import (
@@ -41,6 +41,7 @@ from .alterer import (
 
 __all__ = [
     "EventHandler",
+    "EventType",
     "CodecBase",
     "Generation",
     "Genotype",
@@ -82,5 +83,3 @@ __all__ = [
     "HammingDistance",
     "EuclideanDistance",
 ]
-
-

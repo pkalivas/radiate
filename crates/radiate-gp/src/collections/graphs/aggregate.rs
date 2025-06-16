@@ -190,8 +190,8 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
     }
 
     fn one_to_one_connect<G: AsRef<[GraphNode<T>]>>(&mut self, one: &'a G, two: &'a G) {
-        let one_outputs = self.get_outputs(one);
-        let two_inputs = self.get_inputs(two);
+        let one_outputs = Self::get_outputs(one);
+        let two_inputs = Self::get_inputs(two);
 
         if one_outputs.len() != two_inputs.len() {
             panic!("OneToOne - oneGroup outputs must be the same length as twoGroup inputs.");
@@ -206,8 +206,8 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
     }
 
     fn one_to_many_connect<G: AsRef<[GraphNode<T>]>>(&mut self, one: &'a G, two: &'a G) {
-        let one_outputs = self.get_outputs(one);
-        let two_inputs = self.get_inputs(two);
+        let one_outputs = Self::get_outputs(one);
+        let two_inputs = Self::get_inputs(two);
 
         if two_inputs.len() % one_outputs.len() != 0 {
             panic!("OneToMany - TwoGroup inputs must be a multiple of OneGroup outputs.");
@@ -224,8 +224,8 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
     }
 
     fn many_to_one_connect<G: AsRef<[GraphNode<T>]>>(&mut self, one: &'a G, two: &'a G) {
-        let one_outputs = self.get_outputs(one);
-        let two_inputs = self.get_inputs(two);
+        let one_outputs = Self::get_outputs(one);
+        let two_inputs = Self::get_inputs(two);
 
         if one_outputs.len() % two_inputs.len() != 0 {
             panic!("ManyToOne - OneGroup outputs must be a multiple of TwoGroup inputs.");
@@ -242,8 +242,8 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
     }
 
     fn all_to_all_connect<G: AsRef<[GraphNode<T>]>>(&mut self, one: &'a G, two: &'a G) {
-        let one_outputs = self.get_outputs(one);
-        let two_inputs = self.get_inputs(two);
+        let one_outputs = Self::get_outputs(one);
+        let two_inputs = Self::get_inputs(two);
 
         for source in one_outputs {
             for target in two_inputs.iter() {
@@ -256,8 +256,8 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
     }
 
     fn one_to_self_connect<G: AsRef<[GraphNode<T>]>>(&mut self, one: &'a G, two: &'a G) {
-        let one_outputs = self.get_outputs(one);
-        let two_inputs = self.get_inputs(two);
+        let one_outputs = Self::get_outputs(one);
+        let two_inputs = Self::get_inputs(two);
 
         if one_outputs.len() != two_inputs.len() {
             panic!("Self - oneGroup outputs must be the same length as twoGroup inputs.");
@@ -275,7 +275,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         }
     }
 
-    fn get_outputs<G: AsRef<[GraphNode<T>]>>(&self, collection: &'a G) -> Vec<&'a GraphNode<T>> {
+    fn get_outputs<G: AsRef<[GraphNode<T>]>>(collection: &'a G) -> Vec<&'a GraphNode<T>> {
         let outputs = collection
             .as_ref()
             .iter()
@@ -313,7 +313,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
             .collect::<Vec<&GraphNode<T>>>()
     }
 
-    fn get_inputs<G: AsRef<[GraphNode<T>]>>(&self, collection: &'a G) -> Vec<&'a GraphNode<T>> {
+    fn get_inputs<G: AsRef<[GraphNode<T>]>>(collection: &'a G) -> Vec<&'a GraphNode<T>> {
         let inputs = collection
             .as_ref()
             .iter()

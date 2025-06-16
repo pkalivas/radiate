@@ -1,7 +1,21 @@
 import abc
-from typing import Callable, Any
-
+from typing import Any
 from radiate.radiate import PySubscriber
+
+
+class EventType:
+    """
+    Enum-like class for event types.
+    """
+
+    ALL = "all"
+    START = "on_start"
+    STOP = "on_stop"
+    EPOCH_START = "on_epoch_start"
+    EPOCH_COMPLETE = "on_epoch_complete"
+    STEP_START = "on_step_start"
+    STEP_COMPLETE = "on_step_complete"
+    ENGINE_IMPROVEMENT = "on_engine_improvement"
 
 
 class EventHandler(abc.ABC):
@@ -9,11 +23,13 @@ class EventHandler(abc.ABC):
     Base class for event handlers.
     """
 
-    def __call__(self, event: Any) -> None:
+    def __init__(self, event_type: EventType = EventType.ALL):
         """
-        Call the handler with the event.
+        Initialize the event handler.
+        :param event_type: Type of the event to handle.
         """
-        self.on_event(event)
+        self.event_type = event_type if event_type != EventType.ALL else None
+        self.subscriber = PySubscriber(self.on_event, self.event_type)
 
     @abc.abstractmethod
     def on_event(self, event: Any) -> None:
@@ -21,24 +37,3 @@ class EventHandler(abc.ABC):
         Handle the event.
         """
         pass
-
-
-class OnEpochCompleteHandler(EventHandler):
-    """
-    Handler for the end of an epoch.
-    """
-
-    def __init__(self, callback: Callable[[Any], None]):
-        """
-        Initialize the handler with a callback function.
-        :param callback: Function to call when the epoch is complete.
-        """
-        super().__init__()
-        self.callback = callback
-
-    def on_event(self, event: Any) -> None:
-        """
-        Call the callback function with the event.
-        :param event: The event data.
-        """
-        self.callback(event)

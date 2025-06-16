@@ -15,7 +15,7 @@ class AlterBase:
 
     def __repr__(self):
         return f"{self.__class__.__name__}(alterer={self.alterer})"
-    
+
     def __eq__(self, value):
         if not isinstance(value, AlterBase):
             return False

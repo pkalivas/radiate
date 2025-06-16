@@ -44,22 +44,18 @@ fn display(result: &Generation<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
     println!("Best Tree: {}", result.value().format());
     println!("{:?}", accuracy_result);
 
-    // just a quick test to ensure serialization works
-    let serialized = serde_json::to_string(&result.value()).unwrap();
-    println!("Serialized Tree: {}", serialized);
+    // // just a quick test to ensure serialization works
+    // let serialized = serde_json::to_string(&result.value()).unwrap();
+    // std::fs::write("best_tree.json", serialized).expect("Unable to write file");
 
-    // save the tree to a file
-    std::fs::write("best_tree.json", serialized).expect("Unable to write file");
+    // let read_tree: Tree<Op<f32>> = serde_json::from_str(
+    //     &std::fs::read_to_string("best_tree.json").expect("Unable to read file"),
+    // )
+    // .unwrap();
 
-    // read the tree from a file
-    let read_tree: Tree<Op<f32>> = serde_json::from_str(
-        &std::fs::read_to_string("best_tree.json").expect("Unable to read file"),
-    )
-    .unwrap();
-
-    // evaluate the read tree
-    let read_accuracy_result = accuracy.calc(|input| vec![read_tree.eval(input)]);
-    println!("{:?}", read_accuracy_result);
+    // // evaluate the read tree
+    // let read_accuracy_result = accuracy.calc(|input| vec![read_tree.eval(input)]);
+    // println!("{:?}", read_accuracy_result);
 }
 
 fn get_dataset() -> DataSet {

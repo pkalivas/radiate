@@ -1,13 +1,22 @@
 import os
 import sys
-import math
-import matplotlib.pyplot as plt
+# import math
+# import matplotlib.pyplot as plt
+# from numba import jit, cfunc, vectorize
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, project_root)
 
 import radiate as rd
-from numba import jit, cfunc, vectorize
+
+
+class TestHandler(rd.EventHandler):
+    def __init__(self):
+        super().__init__(rd.EventType.EPOCH_COMPLETE)
+
+    def on_event(self, event):
+        print(event['score'])
+        # print(event['metrics'].get_metric('Score')['metrics']['value_min'])
 
 
 rd.random.set_seed(501)
@@ -16,6 +25,7 @@ engine = rd.GeneticEngine(
     codec=rd.IntCodec.vector(10, (0, 10)),
     fitness_func=lambda x: sum(x),
     offspring_selector=rd.BoltzmannSelector(4),
+    subscribe=TestHandler(),
     alters=[
         rd.MultiPointCrossover(0.75, 2), 
         rd.UniformMutator(0.01)

@@ -4,8 +4,8 @@ use crate::genome::genotype::Genotype;
 use crate::{Chromosome, FloatChromosome};
 use std::ops::Range;
 
-/// A [Codec] for a `Genotype` of `FloatGenes`. The `encode` function creates a `Genotype` with `num_chromosomes` chromosomes
-/// and `num_genes` genes per chromosome. The `decode` function creates a `Vec<Vec<f32>>` from the `Genotype` where the inner `Vec`
+/// A [Codec] for a [Genotype] of `FloatGenes`. The `encode` function creates a [Genotype] with `num_chromosomes` chromosomes
+/// and `num_genes` genes per chromosome. The `decode` function creates a `Vec<Vec<f32>>` from the [Genotype] where the inner `Vec`
 /// contains the alleles of the `FloatGenes` in the chromosome - the `f32` values.
 ///
 /// The lower and upper bounds of the `FloatGenes` can be set with the `with_bounds` function.
@@ -20,7 +20,7 @@ pub struct FloatCodec<T = f32> {
 }
 
 impl<T> FloatCodec<T> {
-    /// Set the bounds of the `FloatGenes` in the `Genotype`. The default bounds
+    /// Set the bounds of the `FloatGenes` in the [Genotype]. The default bounds
     /// are equal to the min and max values.
     pub fn with_bounds(mut self, range: Range<f32>) -> Self {
         self.bounds = range;
@@ -89,7 +89,7 @@ impl FloatCodec<f32> {
 
 /// Implement the `Codec` trait for a `FloatCodec` with a `Vec<Vec<f32>>` type.
 /// This will decode to a matrix of `f32` values.
-/// The `encode` function creates a `Genotype` with `num_chromosomes` chromosomes
+/// The `encode` function creates a [Genotype] with `num_chromosomes` chromosomes
 /// and `num_genes` genes per chromosome.
 ///
 /// * Example:
@@ -125,7 +125,7 @@ impl Codec<FloatChromosome, Vec<Vec<f32>>> for FloatCodec<Vec<Vec<f32>>> {
 
 /// Implement the `Codec` trait for a `FloatCodec` with a `Vec<f32>` type.
 /// This will decode to a vector of `f32` values.
-/// The `encode` function creates a `Genotype` with a single chromosomes
+/// The `encode` function creates a [Genotype] with a single chromosomes
 /// and `num_genes` genes per chromosome.
 ///
 /// # Example
@@ -160,7 +160,7 @@ impl Codec<FloatChromosome, Vec<f32>> for FloatCodec<Vec<f32>> {
 
 /// Implement the `Codec` trait for a `FloatCodec` with a `f32` type.
 /// This will decode to a single `f32` value.
-/// The `encode` function creates a `Genotype` with a single chromosomes
+/// The `encode` function creates a [Genotype] with a single chromosomes
 /// and a single gene per chromosome.
 ///
 /// # Example

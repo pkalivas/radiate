@@ -368,7 +368,7 @@ Because of the typed nature of the `Genotype`, it can only hold a collection of 
     use radiate::*;
 
     // Create a genotype with a single FloatChromosome and a 5 FloatGenes 
-    let genotype = Genotype::from(vec![FloatChromosome::from((5, -1.0..1.0))]);
+    let genotype = Genotype::from(FloatChromosome::from((5, -1.0..1.0)));
     // -- or --
     let genotype = Genotype::from(vec![FloatChromosome::new(vec![FloatGene::new(0.1, -1.0..1.0)])]);
 

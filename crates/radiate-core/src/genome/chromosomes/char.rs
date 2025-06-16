@@ -185,7 +185,6 @@ impl<'de> Deserialize<'de> for CharGene {
 /// A [`Chromosome`] that contains [`CharGene`].
 #[derive(Clone, PartialEq, Default, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[repr(transparent)]
 pub struct CharChromosome {
     genes: Vec<CharGene>,
 }

@@ -26,7 +26,7 @@ class DiversityBase:
         :return: Detailed string representation of the diversity parameter.
         """
         return f"Diversity(diversity={self.diversity})"
-    
+
     def __eq__(self, value):
         if not isinstance(value, DiversityBase):
             return False

@@ -50,7 +50,7 @@ class Chromosome:
         :return: Length of the chromosome.
         """
         return len(self.__inner.genes)
-    
+
     def __eq__(self, value):
         if not isinstance(value, Chromosome):
             return False
