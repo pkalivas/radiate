@@ -410,8 +410,8 @@ mod test {
     #[test]
     fn test_graph_is_valid() {
         let mut graph_one = Graph::default();
-        graph_one.push((0, NodeType::Input, 0));
-        graph_one.push((1, NodeType::Output, 1));
+        graph_one.push((0, NodeType::Input, 123));
+        graph_one.push((1, NodeType::Output, 42));
         graph_one.attach(0, 1);
 
         let mut graph_two = Graph::default();
