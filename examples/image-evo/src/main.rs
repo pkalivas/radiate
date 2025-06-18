@@ -1,12 +1,12 @@
 use crate::{mutator::ImageMutator, problem::ImageProblem};
-use radiate::{steps::WorkerPoolEvaluator, *};
+use radiate::*;
 
 mod chromosome;
 mod mutator;
 mod polygon;
 mod problem;
 
-const NUM_GENES: usize = 150;
+const NUM_GENES: usize = 175;
 const POLYGON_SIZE: usize = 5;
 
 fn main() {

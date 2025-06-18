@@ -5,6 +5,7 @@ use crate::{
 use image::{DynamicImage, ImageBuffer, Rgba};
 use radiate::*;
 
+#[derive(Debug, Clone)]
 pub struct ImageProblem {
     target_pixels: Vec<Rgba<u8>>,
     num_genes: usize,
@@ -16,8 +17,7 @@ pub struct ImageProblem {
 impl ImageProblem {
     pub fn new(num_genes: usize, polygon_size: usize, image_path: DynamicImage) -> Self {
         let target_image = image_path.to_rgba8();
-        let image_height = target_image.height();
-        let image_width = target_image.width();
+        let (image_width, image_height) = target_image.dimensions();
 
         Self {
             target_pixels: target_image.pixels().cloned().collect(),
@@ -46,7 +46,6 @@ impl Problem<ImageChromosome, ImageBuffer<Rgba<u8>, Vec<u8>>> for ImageProblem {
         let decoded = self.decode(individual);
 
         let mut diff = 0.0;
-
         for (p1, p2) in decoded.pixels().zip(self.target_pixels.iter()) {
             let dr = p2[0] as f32 - p1[0] as f32;
             let dg = p2[1] as f32 - p1[1] as f32;
