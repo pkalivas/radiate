@@ -1,14 +1,49 @@
-mod gene;
-mod polygon;
+use crate::{mutator::ImageMutator, problem::ImageProblem};
+use radiate::*;
 
-// use radiate::*;
+mod chromosome;
+mod mutator;
+mod polygon;
+mod problem;
+
+const NUM_GENES: usize = 175;
+const POLYGON_SIZE: usize = 5;
 
 fn main() {
-    let image_file_path = std::env::current_dir()
-        .unwrap()
-        .join("examples/image-evo/monalisa.png");
+    random_provider::set_seed(50);
 
-    let image = image::open(image_file_path).unwrap();
-    let image = image.to_rgba8();
-    let _ = image.pixels().collect::<Vec<_>>();
+    let image_bytes = include_bytes!("../monalisa.png");
+
+    let problem = ImageProblem::new(
+        NUM_GENES,
+        POLYGON_SIZE,
+        image::load_from_memory(image_bytes).unwrap(),
+    );
+
+    let engine = GeneticEngine::builder()
+        .problem(problem)
+        .minimizing()
+        .survivor_selector(RouletteSelector::new())
+        .offspring_selector(TournamentSelector::new(3))
+        .evaluator(WorkerPoolEvaluator::new(10))
+        .alter(alters!(
+            MeanCrossover::new(0.3),
+            ImageMutator::new(0.01, 0.15),
+            UniformCrossover::new(0.4)
+        ))
+        .build();
+
+    let result = engine
+        .iter()
+        .inspect(|generation| {
+            log_ctx!(generation);
+        })
+        .take(1000)
+        .last()
+        .unwrap();
+
+    println!("{:?}", result.metrics());
+
+    let save_path = std::env::current_dir().unwrap().join("output.png");
+    result.value().save(save_path).unwrap();
 }
