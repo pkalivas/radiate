@@ -38,7 +38,7 @@ fn main() {
         .inspect(|generation| {
             log_ctx!(generation);
         })
-        .take(5000)
+        .take(1000)
         .last()
         .unwrap();
 
