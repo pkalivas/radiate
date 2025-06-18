@@ -7,7 +7,10 @@ use radiate::*;
 
 pub struct ImageProblem {
     target_pixels: Vec<Rgba<u8>>,
-    codec: FnCodec<ImageChromosome, ImageBuffer<Rgba<u8>, Vec<u8>>>,
+    num_genes: usize,
+    polygon_size: usize,
+    width: u32,
+    height: u32,
 }
 
 impl ImageProblem {
@@ -18,28 +21,25 @@ impl ImageProblem {
 
         Self {
             target_pixels: target_image.pixels().cloned().collect(),
-            codec: FnCodec::new()
-                .with_encoder(move || {
-                    Genotype::from(ImageChromosome::new(
-                        (0..num_genes)
-                            .map(|_| ImageGene::new(Polygon::new_random(polygon_size)))
-                            .collect(),
-                    ))
-                })
-                .with_decoder(move |genotype: &Genotype<ImageChromosome>| {
-                    genotype[0].draw(image_width, image_height)
-                }),
+            num_genes,
+            polygon_size,
+            width: image_width,
+            height: image_height,
         }
     }
 }
 
 impl Problem<ImageChromosome, ImageBuffer<Rgba<u8>, Vec<u8>>> for ImageProblem {
     fn encode(&self) -> Genotype<ImageChromosome> {
-        self.codec.encode()
+        Genotype::from(ImageChromosome::new(
+            (0..self.num_genes)
+                .map(|_| ImageGene::new(Polygon::new(self.polygon_size)))
+                .collect(),
+        ))
     }
 
     fn decode(&self, genotype: &Genotype<ImageChromosome>) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
-        self.codec.decode(genotype)
+        genotype[0].draw(self.width, self.height)
     }
 
     fn eval(&self, individual: &Genotype<ImageChromosome>) -> Score {
@@ -55,7 +55,7 @@ impl Problem<ImageChromosome, ImageBuffer<Rgba<u8>, Vec<u8>>> for ImageProblem {
             diff += dr * dr + dg * dg + db * db;
         }
 
-        let score = diff / (decoded.width() * decoded.height() * 3) as f32;
+        let score = diff / ((decoded.width() * decoded.height()) * 3) as f32;
 
         Score::from(score)
     }

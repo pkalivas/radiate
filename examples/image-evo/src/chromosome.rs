@@ -33,7 +33,7 @@ impl Gene for ImageGene {
 
     fn new_instance(&self) -> Self {
         Self {
-            allele: Polygon::new_random(self.allele.len()),
+            allele: Polygon::new(self.allele.len()),
         }
     }
 
@@ -60,7 +60,7 @@ impl ArithmeticGene for ImageGene {
 
     fn from_f32(&self, _: f32) -> Self {
         Self {
-            allele: Polygon::new_random(self.allele.len()),
+            allele: Polygon::new(self.allele.len()),
         }
     }
 }
@@ -71,9 +71,15 @@ impl Add for ImageGene {
     fn add(self, other: Self) -> Self::Output {
         let mut allele = self.allele.clone();
 
-        allele[0] = (self.allele[0] + other.allele[0]).min(1.0);
-        allele[1] = (self.allele[1] + other.allele[1]).min(1.0);
-        allele[2] = (self.allele[2] + other.allele[2]).min(1.0);
+        allele[0] = (self.allele[0] + other.allele[0]).clamp(0.0, 1.0); // r
+        allele[1] = (self.allele[1] + other.allele[1]).clamp(0.0, 1.0); // g
+        allele[2] = (self.allele[2] + other.allele[2]).clamp(0.0, 1.0); // b
+        allele[3] = (self.allele[3] + other.allele[3]).clamp(0.0, 1.0); // a
+
+        // Position addition (average positions)
+        for i in 4..allele.len() {
+            allele[i] = (self.allele[i] + other.allele[i]) * 0.5;
+        }
 
         Self { allele }
     }
@@ -85,9 +91,16 @@ impl Sub for ImageGene {
     fn sub(self, other: Self) -> Self::Output {
         let mut allele = self.allele.clone();
 
-        allele[0] = (self.allele[0] - other.allele[0]).max(0.0);
-        allele[1] = (self.allele[1] - other.allele[1]).max(0.0);
-        allele[2] = (self.allele[2] - other.allele[2]).max(0.0);
+        allele[0] = (self.allele[0] - other.allele[0]).clamp(0.0, 1.0); // r
+        allele[1] = (self.allele[1] - other.allele[1]).clamp(0.0, 1.0); // g
+        allele[2] = (self.allele[2] - other.allele[2]).clamp(0.0, 1.0); // b
+        allele[3] = (self.allele[3] - other.allele[3] * 0.5).clamp(0.0, 1.0); // a
+
+        // Position subtraction (move away from other polygon)
+        for i in 4..allele.len() {
+            let diff = self.allele[i] - other.allele[i];
+            allele[i] = (self.allele[i] + diff * 0.1).clamp(0.0, 1.0);
+        }
 
         Self { allele }
     }
@@ -99,9 +112,26 @@ impl Mul for ImageGene {
     fn mul(self, other: Self) -> Self::Output {
         let mut allele = self.allele.clone();
 
-        allele[0] *= other.allele[0];
-        allele[1] *= other.allele[1];
-        allele[2] *= other.allele[2];
+        // Color multiplication (component-wise)
+        allele[0] = (self.allele[0] * other.allele[0]).clamp(0.0, 1.0); // r
+        allele[1] = (self.allele[1] * other.allele[1]).clamp(0.0, 1.0); // g
+        allele[2] = (self.allele[2] * other.allele[2]).clamp(0.0, 1.0); // b
+        allele[3] = (self.allele[3] * other.allele[3]).clamp(0.0, 1.0); // a
+
+        // Position multiplication (scale positions relative to center)
+        let center_x =
+            allele.iter().skip(4).step_by(2).sum::<f32>() / (allele.len() - 4) as f32 * 0.5;
+        let center_y =
+            allele.iter().skip(5).step_by(2).sum::<f32>() / (allele.len() - 4) as f32 * 0.5;
+
+        for i in (4..allele.len()).step_by(2) {
+            let rel_x = allele[i] - center_x;
+            allele[i] = (center_x + rel_x * other.allele[0]).clamp(0.0, 1.0);
+        }
+        for i in (5..allele.len()).step_by(2) {
+            let rel_y = allele[i] - center_y;
+            allele[i] = (center_y + rel_y * other.allele[1]).clamp(0.0, 1.0);
+        }
 
         Self { allele }
     }
@@ -113,10 +143,34 @@ impl Div for ImageGene {
     fn div(self, other: Self) -> Self::Output {
         let mut allele = self.allele.clone();
 
-        allele[0] /= other.allele[0].max(0.001);
-        allele[1] /= other.allele[1].max(0.001);
-        allele[2] /= other.allele[2].max(0.001);
+        allele[0] = (self.allele[0] / other.allele[0].max(0.001)).clamp(0.0, 1.0); // r
+        allele[1] = (self.allele[1] / other.allele[1].max(0.001)).clamp(0.0, 1.0); // g
+        allele[2] = (self.allele[2] / other.allele[2].max(0.001)).clamp(0.0, 1.0); // b
+        allele[3] = (self.allele[3] / other.allele[3].max(0.001)).clamp(0.0, 1.0); // a
 
+        // Position division (inverse scaling)
+        let center_x =
+            allele.iter().skip(4).step_by(2).sum::<f32>() / (allele.len() - 4) as f32 * 0.5;
+        let center_y =
+            allele.iter().skip(5).step_by(2).sum::<f32>() / (allele.len() - 4) as f32 * 0.5;
+
+        for i in (4..allele.len()).step_by(2) {
+            let rel_x = allele[i] - center_x;
+            let scale = other.allele[0].max(0.001);
+            allele[i] = (center_x + rel_x / scale).clamp(0.0, 1.0);
+        }
+        for i in (5..allele.len()).step_by(2) {
+            let rel_y = allele[i] - center_y;
+            let scale = other.allele[1].max(0.001);
+            allele[i] = (center_y + rel_y / scale).clamp(0.0, 1.0);
+        }
+
+        Self { allele }
+    }
+}
+
+impl From<Polygon> for ImageGene {
+    fn from(allele: Polygon) -> Self {
         Self { allele }
     }
 }

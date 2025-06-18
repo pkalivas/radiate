@@ -7,7 +7,7 @@ mod polygon;
 mod problem;
 
 const NUM_GENES: usize = 150;
-const POLYGON_SIZE: usize = 4;
+const POLYGON_SIZE: usize = 5;
 
 fn main() {
     random_provider::set_seed(50);
@@ -27,26 +27,19 @@ fn main() {
         .offspring_selector(TournamentSelector::new(3))
         .evaluator(WorkerPoolEvaluator::new(10))
         .alter(alters!(
-            MeanCrossover::new(0.17),
-            ImageMutator::new(0.001, 0.15),
-            UniformCrossover::new(0.7)
+            MeanCrossover::new(0.3),
+            ImageMutator::new(0.01, 0.15),
+            UniformCrossover::new(0.4)
         ))
         .build();
 
     let result = engine
         .iter()
         .inspect(|generation| {
-            println!(
-                "Generation: {}, Best Score: {:?}",
-                generation.index(),
-                generation.score()
-            );
+            log_ctx!(generation);
         })
         .take(1000)
         .last()
-        .inspect(|generation| {
-            println!("Seconds: {:?}", generation.seconds());
-        })
         .unwrap();
 
     let save_path = std::env::current_dir().unwrap().join("output.png");
