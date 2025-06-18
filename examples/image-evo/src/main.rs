@@ -42,6 +42,8 @@ fn main() {
         .last()
         .unwrap();
 
+    println!("{:?}", result.metrics());
+
     let save_path = std::env::current_dir().unwrap().join("output.png");
     result.value().save(save_path).unwrap();
 }

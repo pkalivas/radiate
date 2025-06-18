@@ -9,11 +9,12 @@ pub mod steady_state;
 pub mod stochastic_sampling;
 pub mod tournament;
 
+use radiate_core::random_provider;
+
 pub use botzmann::BoltzmannSelector;
 pub use elite::EliteSelector;
 pub use linear_rank::LinearRankSelector;
 pub use nsga2::{NSGA2Selector, TournamentNSGA2Selector};
-use radiate_core::random_provider;
 pub use random_selector::RandomSelector;
 pub use rank::RankSelector;
 pub use roulette::RouletteSelector;
