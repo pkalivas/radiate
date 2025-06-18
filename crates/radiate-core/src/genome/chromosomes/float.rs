@@ -50,8 +50,8 @@ impl FloatGene {
     pub fn new(allele: f32, value_range: Range<f32>, bounds: Range<f32>) -> Self {
         FloatGene {
             allele,
-            value_range: (MIN.max(value_range.start)..MAX.min(value_range.end)),
-            bounds: (MIN.max(bounds.start)..MAX.min(bounds.end)),
+            value_range: MIN.max(value_range.start)..MAX.min(value_range.end),
+            bounds: MIN.max(bounds.start)..MAX.min(bounds.end),
         }
     }
 }

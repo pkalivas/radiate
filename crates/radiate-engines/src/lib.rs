@@ -12,7 +12,7 @@ pub use engine::GeneticEngine;
 pub use epoch::{Generation, MultiObjectiveGeneration};
 pub use events::{EngineEvent, Event, EventBus, EventHandler, EventLogger, MetricsAggregator};
 pub use iter::{EngineIterator, EngineIteratorExt};
-pub use steps::EvaluateStep;
+pub use steps::{EvaluateStep, SequentialEvaluator, WorkerPoolEvaluator};
 
 pub use radiate_alters::*;
 pub use radiate_core::*;
