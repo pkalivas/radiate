@@ -55,9 +55,9 @@ impl Problem<ImageChromosome, ImageBuffer<Rgba<u8>, Vec<u8>>> for ImageProblem {
             diff += dr * dr + dg * dg + db * db;
         }
 
-        let score = diff / ((decoded.width() * decoded.height()) * 3) as f32;
+        let score = diff / (self.target_pixels.len() * 3) as f32;
 
-        Score::from(score)
+        Score::from(score.sqrt())
     }
 }
 
