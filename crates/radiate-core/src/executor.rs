@@ -50,6 +50,7 @@ impl Executor {
                         drop(wg_clone);
                         res
                     });
+
                     results.push(result);
                 }
 
