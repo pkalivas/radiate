@@ -18,13 +18,13 @@ impl PyMetricSet {
         format!("{:?}", &self.inner)
     }
 
-    pub fn get_metric<'py>(
+    pub fn __getitem__<'py>(
         &self,
         py: Python<'py>,
-        name: String,
+        key: String,
     ) -> PyResult<Option<Bound<'py, PyDict>>> {
         self.inner
-            .get_from_string(name)
+            .get_from_string(key)
             .map(|metric| Wrap(metric).into_pyobject(py))
             .transpose()
             .map_err(|e| {
@@ -94,6 +94,9 @@ impl<'py> IntoPyObject<'py> for Wrap<&Metric> {
 fn metric_to_py_dict<'py, 'a>(py: Python<'py>, metric: &Metric) -> PyResult<Bound<'py, PyDict>> {
     let dict = PyDict::new(py);
 
+    dict.set_item("name", metric.name().to_lowercase())?;
+    dict.set_item("type", metric.metric_type().to_lowercase())?;
+
     dict.set_item("value_last", metric.last_value())?;
     dict.set_item("value_mean", metric.value_mean())?;
     dict.set_item("value_stddev", metric.value_std_dev())?;
@@ -120,10 +123,5 @@ fn metric_to_py_dict<'py, 'a>(py: Python<'py>, metric: &Metric) -> PyResult<Boun
     dict.set_item("time_max", metric.time_max())?;
     dict.set_item("time_variance", metric.time_variance())?;
 
-    let result = PyDict::new(py);
-    result.set_item("name", metric.name())?;
-    result.set_item("type", metric.metric_type())?;
-    result.set_item("metrics", dict)?;
-
-    Ok(result)
+    Ok(dict)
 }
