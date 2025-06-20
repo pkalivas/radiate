@@ -14,6 +14,25 @@ impl ImageMutator {
 }
 
 impl Mutate<ImageChromosome> for ImageMutator {
+    // fn rate(&self) -> f32 {
+    //     self.rate
+    // }
+
+    // fn mutate_chromosome(&self, chromosome: &mut ImageChromosome, rate: f32) -> AlterResult {
+    //     let mut alter_count = 0;
+    //     for gene in chromosome.genes_mut() {
+    //         for i in 0..gene.allele().len() {
+    //             if random_provider::random::<f32>() < self.rate {
+    //                 let change = (random_provider::random::<f32>() * 2.0 - 1.0) * self.magnitude;
+    //                 gene.polygon_mut()[i] = (gene.allele()[i] + change).clamp(0.0, 1.0);
+    //                 alter_count += 1;
+    //             }
+    //         }
+    //     }
+
+    //     alter_count.into()
+    // }
+
     fn mutate_gene(&self, gene: &ImageGene) -> ImageGene {
         let mut new_polygon = gene.allele().clone();
 

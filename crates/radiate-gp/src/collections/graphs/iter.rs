@@ -42,13 +42,13 @@ impl<'a, T> GraphTopologicalIterator<'a, T> {
 /// The `Item` type is a reference to a [GraphNode].
 ///
 /// This implementation is a bit more complex than the typical iterator implementation. The iterator
-/// must traverse the graph in a sudo-topological order. This means that it must iterate over the
+/// must traverse the graph in a pseudo-topological order. This means that it must iterate over the
 /// nodes in the graph in an order that respects the dependencies between the nodes. We
 /// do this by keeping track of which nodes have been completed and which nodes are pending, it
 /// then iterates over the nodes in the graph, checking the dependencies of each node to determine
 /// if it can be completed. If a node can be completed, it is added to the index queue, which is
 /// used to determine the order in which the nodes are returned by the iterator.
-/// It is a 'sudo' topological order because it allows for recurrent connections in the graph.
+/// It is a 'pseudo' topological order because it allows for recurrent connections in the graph.
 impl<'a, T> Iterator for GraphTopologicalIterator<'a, T> {
     type Item = &'a GraphNode<T>;
 

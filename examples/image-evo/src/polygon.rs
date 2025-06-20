@@ -128,13 +128,11 @@ impl Polygon {
 
                     let existing = canvas.get_pixel(canvas_x, canvas_y);
                     let alpha = color[3] as f32 / 255.0;
+                    let inverse = 1.0 - alpha;
 
-                    let new_r =
-                        (color[0] as f32 * alpha + existing[0] as f32 * (1.0 - alpha)) as u8;
-                    let new_g =
-                        (color[1] as f32 * alpha + existing[1] as f32 * (1.0 - alpha)) as u8;
-                    let new_b =
-                        (color[2] as f32 * alpha + existing[2] as f32 * (1.0 - alpha)) as u8;
+                    let new_r = (color[0] as f32 * alpha + existing[0] as f32 * inverse) as u8;
+                    let new_g = (color[1] as f32 * alpha + existing[1] as f32 * inverse) as u8;
+                    let new_b = (color[2] as f32 * alpha + existing[2] as f32 * inverse) as u8;
 
                     canvas.put_pixel(canvas_x, canvas_y, Rgba([new_r, new_g, new_b, 255]));
                 }
