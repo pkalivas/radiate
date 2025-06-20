@@ -16,7 +16,7 @@ class TestHandler(rd.EventHandler):
 
     def on_event(self, event):
         print(event['score'])
-        # print(event['metrics'].get_metric('Score')['metrics']['value_min'])
+        # print(event['metrics']['Fitness']['value_min'])
 
 
 rd.random.set_seed(501)

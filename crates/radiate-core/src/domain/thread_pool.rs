@@ -7,7 +7,7 @@ use std::{
 };
 use std::{sync::mpsc, thread};
 
-/// `WorkResult` is a simple wrapper around a `Receiver` that allows the user to get
+/// [WorkResult] is a simple wrapper around a `Receiver` that allows the user to get
 /// the result of a job that was executed in the thread pool. It kinda acts like
 /// a `Future` in a synchronous way.
 pub struct WorkResult<T> {

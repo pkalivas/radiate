@@ -47,7 +47,6 @@ where
     pub executor: Arc<Executor>,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
     pub problem: Option<Arc<dyn Problem<C, T>>>,
-    pub encoder: Option<Arc<dyn Fn() -> Genotype<C>>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     pub front: Option<Front<Phenotype<C>>>,
     pub handlers: Vec<Arc<Mutex<dyn EventHandler<EngineEvent<T>>>>>,
@@ -512,7 +511,6 @@ where
                 audits: self.params.audits.clone(),
                 alterers: self.params.alterers.clone(),
                 objective: self.params.objective.clone(),
-                // thread_pool: self.params.thread_pool.clone(),
                 max_age: self.params.max_age,
                 max_species_age: self.params.max_species_age,
                 species_threshold: self.params.species_threshold,
@@ -544,8 +542,7 @@ where
                 problem: config.problem.clone(),
             };
 
-            let event_bus =
-                EventBus::new(self.params.executor.clone(), self.params.handlers.clone());
+            let event_bus = EventBus::new(config.executor(), self.params.handlers.clone());
 
             GeneticEngine::<C, T>::new(context, pipeline, event_bus)
         }
@@ -589,7 +586,6 @@ where
                 audits: self.params.audits.clone(),
                 alterers: self.params.alterers.clone(),
                 objective: self.params.objective.clone(),
-                // thread_pool: self.params.thread_pool.clone(),
                 max_age: self.params.max_age,
                 max_species_age: self.params.max_species_age,
                 species_threshold: self.params.species_threshold,
@@ -621,8 +617,7 @@ where
                 problem: config.problem.clone(),
             };
 
-            let event_bus =
-                EventBus::new(self.params.executor.clone(), self.params.handlers.clone());
+            let event_bus = EventBus::new(config.executor(), self.params.handlers.clone());
 
             GeneticEngine::<C, T, MultiObjectiveGeneration<C>>::new(context, pipeline, event_bus)
         }
@@ -642,17 +637,15 @@ where
                 max_age: 20,
                 offspring_fraction: 0.8,
                 front_range: 800..900,
-                // thread_pool: Arc::new(ThreadPool::new(1)),
                 objective: Objective::Single(Optimize::Maximize),
                 survivor_selector: Arc::new(TournamentSelector::new(3)),
                 offspring_selector: Arc::new(RouletteSelector::new()),
                 replacement_strategy: Arc::new(EncodeReplace),
                 audits: vec![Arc::new(MetricAudit)],
                 alterers: Vec::new(),
-                species_threshold: 1.5,
+                species_threshold: 0.5,
                 max_species_age: 25,
                 evaluator: Arc::new(SequentialEvaluator::new()),
-                encoder: None,
                 diversity: None,
                 codec: None,
                 population: None,

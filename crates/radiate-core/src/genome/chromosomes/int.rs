@@ -99,11 +99,11 @@ impl<T: Integer<T>> Valid for IntGene<T> {
 /// for numeric operations such as addition, subtraction, multiplication, division and mean.
 impl<T: Integer<T>> ArithmeticGene for IntGene<T> {
     fn min(&self) -> &T {
-        &self.value_range.start
+        &self.bounds.start
     }
 
     fn max(&self) -> &T {
-        &self.value_range.end
+        &self.bounds.end
     }
 
     fn mean(&self, other: &IntGene<T>) -> IntGene<T> {
@@ -351,8 +351,8 @@ mod tests {
 
         assert_eq!(*gene_one.min(), 0);
         assert_eq!(*gene_one.max(), 10);
-        assert_eq!(*gene_two.min(), 0);
-        assert_eq!(*gene_two.max(), 10);
+        assert_eq!(*gene_two.min(), -100);
+        assert_eq!(*gene_two.max(), 100);
         assert_eq!(gene_one.start_bound(), Bound::Included(&0));
         assert_eq!(gene_one.end_bound(), Bound::Excluded(&10));
         assert_eq!(gene_two.start_bound(), Bound::Included(&-100));

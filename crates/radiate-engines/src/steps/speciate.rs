@@ -66,16 +66,14 @@ where
         let chunk_size = (pop_len as f32 / num_threads as f32).ceil() as usize;
         let mut chunked_members = Vec::new();
 
-        let species_snapshot = Arc::new(
+        let mascots = Arc::new(
             ecosystem
                 .species_mascots()
                 .into_iter()
                 .map(|spec| spec.genotype().clone())
                 .collect::<Vec<Genotype<C>>>(),
         );
-        let distances = Arc::new(Mutex::new(Vec::with_capacity(
-            pop_len * species_snapshot.len(),
-        )));
+        let distances = Arc::new(Mutex::new(Vec::with_capacity(pop_len * mascots.len())));
         let assignments = Arc::new(Mutex::new(vec![None; pop_len]));
 
         let mut batches = Vec::new();
@@ -99,7 +97,7 @@ where
             let assignments = Arc::clone(&assignments);
             let distances = Arc::clone(&distances);
             let population = Arc::clone(&chunk_population);
-            let species_snapshot = Arc::clone(&species_snapshot);
+            let species_snapshot = Arc::clone(&mascots);
 
             batches.push(move || {
                 Self::process_chunk(
@@ -149,6 +147,7 @@ where
                                 return Some(species_idx);
                             }
                         }
+
                         None
                     })
                     .flatten();
