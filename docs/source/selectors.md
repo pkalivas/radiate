@@ -27,6 +27,8 @@ Radiate provides a number of built-in selectors that can be used to customize th
 | [Rank](#rank) | Erratic fitness | Medium | High |
 | [Linear Rank](#linear-rank) | Linear scaling | Adjustable (via pressure) | Medium-High |
 | [Random](#random) | Testing | Low | High |
+| [Steady State](#steady-state) | Maintaining population stability | Low | Medium |
+| [Tournament NSGA-II](#tournament-nsga-ii) | Multi-objective problems | Balanced | High |
 
 ___
 
@@ -170,6 +172,31 @@ The `NSGA2Selector` is a selection strategy used in multi-objective optimization
 
     let selector = NSGA2Selector::new();
     ```
+---
+
+## Tournament NSGA-II
+
+The `TournamentNSGA2Selector` is a selection strategy that combines the principles of tournament selection with the NSGA-II algorithm. It selects individuals based on their Pareto dominance rank and crowding distance, but uses a tournament-style approach to select individuals from each Pareto front.
+
+* Individuals are first sorted into Pareto fronts based on their dominance relationships.
+* A tournament is held within each Pareto front, where a random subset of individuals is selected.
+* The winner of the tournament is selected based on their crowding distance, which measures the density of solutions around them.
+  
+=== ":fontawesome-brands-python: Python"
+
+    ```python
+    import radiate as rd
+
+    selector = rd.TournamentNSGA2Selector()
+    ```
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    let selector = TournamentNSGA2Selector::new();
+    ```
+
 ---
 
 ## Stochastic Universal Sampling

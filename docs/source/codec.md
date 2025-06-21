@@ -29,7 +29,7 @@ For example, if you're evolving neural network weights, you need to:
 - Organize them in the correct structure (matrices for layers)
 - Keep them within reasonable ranges (e.g., between -1 and 1)
   
-See [this example](https://github.com/pkalivas/radiate/blob/master/examples/simple-nn/src/main.rs) for a simple neural network evolution using Radiate.
+See [this example](https://github.com/pkalivas/radiate/blob/master/examples/simple-nn/src/main.rs) for a simple neural network evolution using a custom codec.
 
 ---
 

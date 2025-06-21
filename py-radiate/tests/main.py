@@ -25,6 +25,7 @@ engine = rd.GeneticEngine(
     codec=rd.IntCodec.vector(10, (0, 10)),
     fitness_func=lambda x: sum(x),
     offspring_selector=rd.BoltzmannSelector(4),
+    objectives="min",
     subscribe=TestHandler(),
     alters=[
         rd.MultiPointCrossover(0.75, 2), 

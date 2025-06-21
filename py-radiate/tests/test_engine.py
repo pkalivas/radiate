@@ -124,6 +124,7 @@ def test_engine_can_minimize():
     engine = rd.GeneticEngine(
         codec=rd.IntCodec.vector(num_genes, value_range=(0, 10)),
         fitness_func=lambda x: sum(x),
+        objectives="min",
     )
 
     result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])
@@ -142,7 +143,6 @@ def test_engine_can_maximize():
     engine = rd.GeneticEngine(
         codec=rd.CharCodec.vector(len(target)),
         fitness_func=fitness_func,
-        objectives="max",
         offspring_selector=rd.BoltzmannSelector(4),
     )
 
@@ -167,6 +167,7 @@ def test_engine_minimizing_limits():
         return value
 
     engine = rd.GeneticEngine(rd.FloatCodec.vector(2, (-RANGE, RANGE)), fitness_fn)
+    engine.minimizing()
     engine.alters([rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.01)])
 
     result = engine.run([rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000)])

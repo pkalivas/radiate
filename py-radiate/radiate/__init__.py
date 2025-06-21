@@ -21,6 +21,8 @@ from .selector import (
     BoltzmannSelector,
     LinearRankSelector,
     NSGA2Selector,
+    TournamentNSGA2Selector,
+    SteadyStateSelector
 )
 
 from .alterer import (
@@ -66,6 +68,8 @@ __all__ = [
     "BoltzmannSelector",
     "LinearRankSelector",
     "NSGA2Selector",
+    "TournamentNSGA2Selector",
+    "SteadyStateSelector",
     "BlendCrossover",
     "IntermediateCrossover",
     "UniformCrossover",

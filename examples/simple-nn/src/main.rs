@@ -24,14 +24,13 @@ fn main() {
 
     let mut engine = GeneticEngine::builder()
         .minimizing()
-        .executor(Executor::worker_pool(10))
         .codec(codec.clone())
         .offspring_selector(BoltzmannSelector::new(4_f32))
-        .crossover(IntermediateCrossover::new(0.75, 0.1))
-        .mutators(vec![
-            Box::new(ArithmeticMutator::new(0.03)),
-            Box::new(GaussianMutator::new(0.03)),
-        ])
+        .alter(alters!(
+            IntermediateCrossover::new(0.75, 0.1),
+            ArithmeticMutator::new(0.03),
+            GaussianMutator::new(0.03)
+        ))
         .fitness_fn(move |net: NeuralNet| net.error(&inputs, &target))
         .build();
 
@@ -109,11 +108,12 @@ pub struct NeuralNetCodec {
 
 impl Codec<FloatChromosome, NeuralNet> for NeuralNetCodec {
     fn encode(&self) -> Genotype<FloatChromosome> {
-        self.shapes
-            .iter()
-            .map(|shape| FloatChromosome::from((shape.0 * shape.1, -1.0..1.0, -100.0..100.0)))
-            .collect::<Vec<FloatChromosome>>()
-            .into()
+        Genotype::from(
+            self.shapes
+                .iter()
+                .map(|shape| FloatChromosome::from((shape.0 * shape.1, -1.0..1.0, -100.0..100.0)))
+                .collect::<Vec<FloatChromosome>>(),
+        )
     }
 
     fn decode(&self, genotype: &Genotype<FloatChromosome>) -> NeuralNet {
@@ -137,8 +137,3 @@ impl Codec<FloatChromosome, NeuralNet> for NeuralNetCodec {
         NeuralNet { layers }
     }
 }
-
-// .alter(alters!(
-//     IntermediateCrossover::new(0.75, 0.1),
-//     ArithmeticMutator::new(0.03),
-// ))

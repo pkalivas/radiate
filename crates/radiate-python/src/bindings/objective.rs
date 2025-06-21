@@ -109,7 +109,6 @@ impl<'py> FromPyObject<'py> for Wrap<Objective> {
                     .collect(),
             )))
         } else if let Ok(obj) = ob.extract::<PyObjective>() {
-            // Convert PyObjective to Objective
             if obj.is_single() {
                 Ok(Wrap(Objective::Single(match obj.optimize[0].as_str() {
                     MIN => Optimize::Minimize,

@@ -76,7 +76,7 @@ To set up the engine to solve this type of problem, we supply the objective func
 
 The resulting Pareto front can be seen below:
 
-<div id="dtlz_1"></div>
+<!-- <div id="dtlz_1"></div> -->
 
 
 ## DTLZ 2
@@ -153,8 +153,9 @@ Again, to set up the engine to solve this type of problem, we supply the objecti
 
 The resulting Pareto front can be seen below:
 
-<div id="dtlz_2"></div>
+<!-- <div id="dtlz_2"></div> -->
 
+<!-- 
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <script>
 Promise.all([
@@ -202,3 +203,5 @@ Promise.all([
 })
 .catch(error => console.error(error));
 </script>
+
+-->
