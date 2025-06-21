@@ -5,7 +5,8 @@ use pyo3::{
 };
 use radiate::{
     BoltzmannSelector, Chromosome, EliteSelector, NSGA2Selector, RandomSelector, RankSelector,
-    RouletteSelector, Select, StochasticUniversalSamplingSelector, TournamentSelector,
+    RouletteSelector, Select, SteadyStateSelector, StochasticUniversalSamplingSelector,
+    TournamentNSGA2Selector, TournamentSelector,
 };
 use std::{hash::Hash, vec};
 
@@ -131,8 +132,14 @@ impl PySelector {
     }
 
     #[staticmethod]
-    pub fn steady_state_selector<'py>(py: Python<'py>) -> PyResult<PySelector> {
+    pub fn steady_state_selector<'py>(
+        py: Python<'py>,
+        replacement_count: Option<usize>,
+    ) -> PyResult<PySelector> {
         let args = PyDict::new(py);
+        if let Some(count) = replacement_count {
+            args.set_item("replacement_count", count)?;
+        }
 
         Ok(PySelector {
             name: "steady_state_selector".into(),
@@ -265,6 +272,47 @@ impl PySelector {
             ],
         })
     }
+
+    #[staticmethod]
+    pub fn tournamen_nsga2_selector<'py>(py: Python<'py>) -> PyResult<PySelector> {
+        let args = PyDict::new(py);
+
+        Ok(PySelector {
+            name: "tournament_nsga2_selector".into(),
+            args: ObjectValue { inner: args.into() },
+            allowed_genes: vec![
+                PyGeneType::Float,
+                PyGeneType::Int,
+                PyGeneType::Bit,
+                PyGeneType::Char,
+            ],
+            chromosome_types: vec![
+                PyChromosomeType::Float,
+                PyChromosomeType::Int,
+                PyChromosomeType::Bit,
+                PyChromosomeType::Char,
+            ],
+        })
+    }
+}
+
+impl<'py> FromPyObject<'py> for Wrap<SteadyStateSelector> {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let selector: PySelector = ob.extract()?;
+        if selector.name != "steady_state_selector" {
+            return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                "Expected a steady_state_selector",
+            ));
+        }
+
+        let args = selector.args.inner.bind(ob.py());
+        let replacement_count = args
+            .get_item("replacement_count")
+            .and_then(|v| v.extract())
+            .unwrap_or(10);
+
+        Ok(Wrap(SteadyStateSelector::new(replacement_count)))
+    }
 }
 
 impl<'py> FromPyObject<'py> for Wrap<TournamentSelector> {
@@ -378,6 +426,19 @@ impl<'py> FromPyObject<'py> for Wrap<NSGA2Selector> {
     }
 }
 
+impl<'py> FromPyObject<'py> for Wrap<TournamentNSGA2Selector> {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let selector: PySelector = ob.extract()?;
+        if selector.name != "tournament_nsga2_selector" {
+            return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                "Expected a tournament_nsga2_selector",
+            ));
+        }
+
+        Ok(Wrap(TournamentNSGA2Selector::new()))
+    }
+}
+
 impl<'py, C> FromPyObject<'py> for Wrap<Box<dyn Select<C>>>
 where
     C: Chromosome + Clone + 'static,
@@ -395,6 +456,10 @@ where
             "elite_selector" => Box::new(ob.extract::<Wrap<EliteSelector>>()?.0),
             "random_selector" => Box::new(ob.extract::<Wrap<RandomSelector>>()?.0),
             "nsga2_selector" => Box::new(ob.extract::<Wrap<NSGA2Selector>>()?.0),
+            "tournament_nsga2_selector" => {
+                Box::new(ob.extract::<Wrap<TournamentNSGA2Selector>>()?.0)
+            }
+            "steady_state_selector" => Box::new(ob.extract::<Wrap<SteadyStateSelector>>()?.0),
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                     "Unknown selector type",
