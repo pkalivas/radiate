@@ -5,9 +5,13 @@ Objectives define the direction of optimization for your genetic algorithm. They
 
 The choice of objective is fundamental to the genetic algorithm's behavior, as it directly influences how individuals are ranked, selected, and evolved. Understanding how to properly configure objectives is essential for achieving optimal results in your optimization problems.
 
+!!! note "**The default objective is to maximize a single objective**."
+
+    This means that if you do not specify an objective, the algorithm will assume you want to maximize a single fitness function. If you want to minimize or use multi-objective optimization, you must explicitly configure it - see below.
+
 ## Overview
 
-| Objective Type | Use Case | Complexity | Performance |
+| Objective Type | Ex. Use Cases | Complexity | Performance |
 |----------------|----------|------------|-------------|
 | [Single Minimize](#single-objective-minimization) | Error/loss functions, cost optimization | Low | High |
 | [Single Maximize](#single-objective-maximization) | Profit/revenue, performance metrics | Low | High |
@@ -17,7 +21,8 @@ ___
 
 ## Single-Objective Optimization
 
-Single-objective optimization focuses on optimizing one specific goal. This is the most common use case and provides the best performance characteristics.
+Single-objective optimization focuses on optimizing one specific goal. This is by far the most common use case for genetic algorithms. 
+When using a single objective, you must return only a single value from your fitness function, which represents the fitness score for that individual.
 
 ---
 
@@ -32,8 +37,10 @@ The `minimizing()` method configures the genetic algorithm to find the minimum v
     ```python
     import radiate as rd
 
+    codec = rd.FloatCodec.vector(10, (0.0, 1.0))  # Example codec
+
     engine = rd.GeneticEngine(
-        # ... codec and other parameters ...
+        codec=codec,
         fitness_func=lambda x: sum(x),  # Sum to minimize
         objectives="min" # Configure for minimization
         # ... other parameters ...
@@ -50,7 +57,7 @@ The `minimizing()` method configures the genetic algorithm to find the minimum v
     use radiate::*;
 
     let engine = GeneticEngine::builder()
-        // ... codec and other parameters ...
+        .codec(FloatCodec::vector(10, 0.0..1.0))  // Example codec
         .minimizing() // Configure for minimization
         .fitness_fn(|genotype| {
             // Return a value to minimize
@@ -73,15 +80,17 @@ The `minimizing()` method configures the genetic algorithm to find the minimum v
 
 > **Purpose**: Find the maximum value of the fitness function
 
-The `maximizing()` method configures the genetic algorithm to find the maximum value of your fitness function. This is commonly used for profit optimization, performance metrics, and any scenario where you want to increase a metric.
+This is the default option for the `GeneticEngine`, so you don't really need to explicitly set this, but the functionality is provided for clarity and explicitness. The `maximizing()` method configures the genetic algorithm to find the maximum value of your fitness function. This is commonly used for profit optimization, performance metrics, and any scenario where you want to increase a metric.
 
 === ":fontawesome-brands-python: Python"
 
     ```python
     import radiate as rd
 
+    codec = rd.FloatCodec.vector(10, (0.0, 1.0))  # Example codec
+
     engine = rd.GeneticEngine(
-        # ... codec and other parameters ...
+        codec=codec,
         fitness_func=lambda x: -sum(x),  # Negative sum to maximize
         objectives="max"
         # ... other parameters ...
@@ -98,7 +107,7 @@ The `maximizing()` method configures the genetic algorithm to find the maximum v
     use radiate::*;
 
     let engine = GeneticEngine::builder()
-        // ... codec and other parameters ...
+        .codec(FloatCodec::vector(10, 0.0..1.0))  // Example codec
         .maximizing()  // Configure for maximization
         .fitness_fn(|genotype| {
             // Return a value to maximize
@@ -119,7 +128,7 @@ The `maximizing()` method configures the genetic algorithm to find the maximum v
 
 ## Multi-Objective Optimization
 
-Multi-objective optimization allows you to optimize multiple conflicting objectives simultaneously. Instead of finding a single "best" solution, you find a set of Pareto-optimal solutions that represent different trade-offs between objectives.
+Multi-objective optimization allows you to optimize multiple conflicting objectives simultaneously. Instead of finding a single "best" solution, you find a set of Pareto-optimal solutions that represent different trade-offs between objectives. You'll notice in the examples below that the fitness function returns a list of values, each representing a different objective. The number of objectives should match the number of directions specified.
 
 > **Purpose**: Optimize multiple conflicting objectives simultaneously
 
@@ -133,17 +142,19 @@ Use `multi_objective()` with a list of optimization directions to configure mult
 
     ```python
     import radiate as rd
+    
+    codec = rd.FloatCodec.vector(10, (0.0, 1.0))  # Example codec
 
     engine = rd.GeneticEngine(
-        # ... codec and other parameters ...
-        fitness_func=lambda x: [cost(x), quality(x)],  # Return list of objectives
-        objectives=["min", "max"]  # Minimize cost, maximize quality
+        codec=codec,
+        fitness_func=lambda x: [obj1_fitness_func(x), obj2_fitness_func(x)],  # Return list of objectives
+        objectives=["min", "max"]  # Minimize obj1, maximize obj2
         front_range=(800, 900)  # Pareto front size range
         # ... other parameters ...
     )
     
     # Or using builder pattern
-    engine = rd.GeneticEngine(codec=codec, fitness_func=lambda x: [cost(x), quality(x)])
+    engine = rd.GeneticEngine(codec=codec, fitness_func=lambda x: [obj1_fitness_func(x), obj2_fitness_func(x)])
     engine.multi_objective(["min", "max"], front_range=(800, 900))
     ```
 
@@ -153,7 +164,7 @@ Use `multi_objective()` with a list of optimization directions to configure mult
     use radiate::*;
 
     let engine = GeneticEngine::builder()
-        // ... codec and other parameters ...
+        .codec(FloatCodec::vector(10, 0.0..1.0))  // Example codec
         .multi_objective(vec![Optimize::Minimize, Optimize::Maximize])
         .front_size(800..900)  // Pareto front size range
         .fitness_fn(|genotype| {
@@ -178,7 +189,7 @@ Because of the complexity of multi-objective problems, specialized selectors are
 - `NSGA2Selector`: Implements the NSGA-II algorithm for non-dominated sorting and crowding distance
 - `TournamentNSGA2Selector`: Uses tournament selection with Pareto dominance
 
-Although, any selector can be used, these are optimized for multi-objective problems.
+Although, any selector can be used, these are optimized for multi-objective problems. The other selectors will work by computing a 'weight' based off of the pareto dominance and crowding distance, but they are not backed by any specific multi-objective algorithm.
 
 === ":fontawesome-brands-python: Python"
 
@@ -186,11 +197,12 @@ Although, any selector can be used, these are optimized for multi-objective prob
     import radiate as rd
 
     engine = rd.GeneticEngine(
-        # ... codec and other parameters ...
+        codec=rd.FloatCodec.vector(10, (0.0, 1.0)),  # Example codec
         fitness_func=lambda x: [obj1(x), obj2(x)],
         front_range=(800, 900),  # Pareto front size range
         objectives=["min", "max"]
     )
+
     engine.survivor_selector(rd.NSGA2Selector())                # NSGA-II for Pareto ranking
     engine.offspring_selector(rd.TournamentNSGA2Selector(k=3))  # Tournament selection with Pareto dominance
     ```
@@ -201,7 +213,7 @@ Although, any selector can be used, these are optimized for multi-objective prob
     use radiate::*;
 
     let engine = GeneticEngine::builder()
-        // ... codec and other parameters ...
+        .codec(FloatCodec::vector(10, 0.0..1.0))  // Example codec
         .multi_objective(vec![Optimize::Minimize, Optimize::Maximize])
         .survivor_selector(NSGA2Selector::new())                // NSGA-II for Pareto ranking
         .offspring_selector(TournamentNSGA2Selector::new(3))    // Tournament selection with Pareto dominance
@@ -240,14 +252,8 @@ Although, any selector can be used, these are optimized for multi-objective prob
 
 ### Common Issues
 
-**Problem**: Algorithm converges to poor solutions
-**Solution**: Check objective direction (minimize vs maximize)
+1. **Problem**: Algorithm converges to poor solutions
+    - Solution: Check objective direction (minimize vs maximize)
 
-**Problem**: Multi-objective front is too small
-**Solution**: Increase front size range or adjust selection pressure
-
-**Problem**: Solutions cluster in one area
-**Solution**: Use crowding distance or diversity maintenance
-
-**Problem**: Slow convergence in multi-objective
-**Solution**: Use NSGA-II selector and appropriate crossover/mutation rates
+2. **Problem**: Multi-objective front is too small
+    - Solution: Increase front size range or adjust selection pressure

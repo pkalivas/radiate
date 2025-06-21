@@ -33,7 +33,7 @@ class GeneticEngine:
         max_phenotype_age: int = 20,
         max_species_age: int = 20,
         species_threshold: float = 0.5,
-        objectives: str | List[str] = ["min"],
+        objectives: str | List[str] = ["max"],
         num_threads: int = 1,
         front_range: Tuple[int, int] | None = (800, 900),
         subscribe: Subscriber | None = None,
