@@ -326,27 +326,3 @@ Lets add on to our example - evolving a simple function: finding the best values
     });
     ```
 
-<!-- ## Monitoring Diversity
-
-You can monitor diversity during evolution by subscribing to the engine's events:
-
-```python
-def diversity_callback(generation):
-    # Access diversity metrics
-    unique_scores = generation.metrics.get("unique_scores")
-    unique_members = generation.metrics.get("unique_members")
-    species_age = generation.metrics.get("species_age")
-    
-    print(f"Generation {generation.number}:")
-    print(f"Unique scores: {unique_scores}")
-    print(f"Unique members: {unique_members}")
-    print(f"Average species age: {species_age}")
-
-engine.subscribe(diversity_callback)
-```
-
-This allows you to:
-- Track population diversity over time
-- Adjust parameters if needed
-- Identify potential issues early
-- Validate your diversity settings -->

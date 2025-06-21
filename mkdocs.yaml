@@ -10,6 +10,7 @@ nav:
   - Selectors: source/selectors.md
   - Alterers: source/alterers.md
   - Diversity: source/diversity.md
+  - Objectives: source/objectives.md
   - Events: source/events.md
   - Parameters: source/params.md
   - Metrics: source/metrics.md
