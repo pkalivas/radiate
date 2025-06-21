@@ -32,11 +32,11 @@ fn main() {
     });
 
     println!(
-        "Result Value Total=[ {:?} ]",
+        "Value Total=[ {:?} ]",
         Knapsack::value_total(&result.value())
     );
     println!(
-        "Result Weigh Total=[ {:?} ]",
+        "Weight Total=[ {:?} ]",
         Knapsack::weight_total(&result.value())
     );
     println!("Max Weight=[{:?}]", capacity);

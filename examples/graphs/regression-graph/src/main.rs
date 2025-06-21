@@ -57,10 +57,8 @@ fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     let result_graph = result.value().clone();
     let serialized = serde_json::to_string(&result_graph).unwrap();
 
-    // just a quick test to ensure serialization works
     std::fs::write("best_graph.json", serialized).expect("Unable to write file");
 
-    // read the graph from a file
     let read_graph: Graph<Op<f32>> = serde_json::from_str(
         &std::fs::read_to_string("best_graph.json").expect("Unable to read file"),
     )
