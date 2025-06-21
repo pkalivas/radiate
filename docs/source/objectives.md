@@ -13,8 +13,8 @@ The choice of objective is fundamental to the genetic algorithm's behavior, as i
 
 | Objective Type | Ex. Use Cases | Complexity | Performance |
 |----------------|----------|------------|-------------|
-| [Single Minimize](#single-objective-minimization) | Error/loss functions, cost optimization | Low | High |
-| [Single Maximize](#single-objective-maximization) | Profit/revenue, performance metrics | Low | High |
+| [Single Minimize](#minimization) | Error/loss functions, cost optimization | Low | High |
+| [Single Maximize](#maximization) | Profit/revenue, performance metrics | Low | High |
 | [Multi-Objective](#multi-objective-optimization) | Conflicting objectives, trade-off analysis | High | Medium |
 
 ___
@@ -178,9 +178,13 @@ Use `multi_objective()` with a list of optimization directions to configure mult
         .build();
     ```
 
+---
+
 ### Pareto Front Management
 
 The `front_size()` parameter controls the size of the Pareto front. When the pareto front is full (reaches the upper bound), the algorithm will truncate down to the lower bound by removing solutions based on Pareto dominance and crowding distance.
+
+---
 
 ### Multi-Objective Selectors
 
