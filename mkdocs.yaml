@@ -14,7 +14,7 @@ nav:
   - Events: source/events.md
   - Parameters: source/params.md
   - Metrics: source/metrics.md
-  - Multiobjective: source/multiobjective.md
+  # - Multiobjective: source/multiobjective.md
   - Genetic Programming: source/gp.md
   - Examples: source/examples.md
   # - Test: source/test.md
