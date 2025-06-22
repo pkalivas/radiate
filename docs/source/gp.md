@@ -5,30 +5,67 @@
     These docs are a work in progress and may not be complete or accurate. Please check back later for updates.
 
 ___
+
 Genetic Programming (GP) in Radiate enables the evolution of programs represented as **expression trees** and **computational graphs**. This powerful feature allows you to solve complex problems by evolving mathematical expressions, decision trees, neural network topologies, and more.
 
 Radiate's GP implementation provides two core data structures: **Trees** for hierarchical expressions and **Graphs** for complex computational networks. Each offers unique capabilities for different problem domains. Both the `tree` and `graph` modules come with their own specific chromosomes, codecs and alters to evolve these structures effectively.
+
+## Installation
+
+To use Radiate's Genetic Programming features, you need to install the library with the appropriate feature flags.
+
+=== ":fontawesome-brands-python: Python"
+
+    ```bash
+    pip install radiate
+    ```
+
+=== ":fontawesome-brands-rust: Rust"
+    ```shell
+    cargo add radiate -F gp
+
+    # Or Cargo.toml
+    [dependencies]
+    radiate = { version = "x", features = ["gp", ...] }
+    ```
 
 ## Overview
 
 | Structure | Best For | Complexity | Use Cases |
 |-----------|----------|------------|-----------|
-| **Trees** | Symbolic regression, mathematical expressions | Low-Medium | Formula discovery, decision trees |
-| **Graphs** | Neural networks, complex computations | Medium-High | Neural evolution, complex programs |
-| **Advanced Graphs** | Memory, recurrence, complex topologies | High | Recurrent networks, stateful programs |
+| **[Trees](#Trees)** | Symbolic regression, mathematical expressions | Low-Medium | Formula discovery, decision trees |
+| **[Graphs](#graphs)** | Neural networks, complex computations | Medium-High | Neural evolution, complex programs |
 
 ## Core Data Structures
 
 ### Trees
 
-#### Tree Structure
 A `Tree<T>` represents a hierarchical structure where each node has exactly one parent (except the root) and zero or more children.
 
-```rust
-pub struct Tree<T> {
-    root: Option<TreeNode<T>>,
-}
-```
+=== ":fontawesome-brands-python: Python"
+
+    !!! warning ":construction: Under Construction :construction:"
+
+        Python's GP is still under development and will be available in a future release.
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    // create a simple tree:
+    //              42
+    //           /  |   \
+    //          1   2    3
+    //             / \    
+    //            3   4    
+    let tree: Tree<i32> = Tree::new(TreeNode::new(42)
+        .attach(TreeNode::new(1))
+        .attach(TreeNode::new(2)
+            .attach(TreeNode::new(3))
+            .attach(TreeNode::new(4))
+        .attach(TreeNode::new(3))));
+    ```
 
 **Key Properties:**
 
@@ -36,7 +73,7 @@ pub struct Tree<T> {
 - **Acyclic**: No node is its own ancestor
 - **Hierarchical**: Parent-child relationships
 
-#### TreeNode
+### Node
 Each node in a tree contains a value and optional children & arity. The `TreeNode<T>` also implements the `gene` trait, making the node itself a `gene` and it's value the `allele`. 
 
 ```rust
@@ -68,7 +105,7 @@ let size = tree.size();      // Total number of nodes
 let height = tree.height();  // Maximum depth
 ```
 
-#### TreeChromosome
+### Chromosome
 A chromosome that represents a tree structure for genetic operations:
 
 ```rust
