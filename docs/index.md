@@ -90,7 +90,6 @@ This simple maximizing problem demonstrates how to use Radiate to solve a string
         engine = rd.GeneticEngine(
             codec=rd.CharCodec.vector(len(target)),
             fitness_func=fitness_func,
-            objectives='max',
             offspring_selector=rd.BoltzmannSelector(4),
         )
 
@@ -106,10 +105,9 @@ This simple maximizing problem demonstrates how to use Radiate to solve a string
 
         fn main() {
             let target = "Hello, Radiate!";
-            let codec = CharCodec::vector(target.len());
 
             let mut engine = GeneticEngine::builder()
-                .codec(codec)
+                .codec(CharCodec::vector(target.len()))
                 .offspring_selector(BoltzmannSelector::new(4_f32))
                 .fitness_fn(|geno: Vec<char>| {
                     geno.into_iter().zip(target.chars()).fold(

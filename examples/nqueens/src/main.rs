@@ -33,10 +33,10 @@ fn main() {
 
     let result = engine
         .iter()
-        .until_score_equal(0)
         .inspect(|ctx| {
             println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_usize());
         })
+        .until_score_equal(0)
         .unwrap();
 
     println!("Best Score: {:?}", result);
