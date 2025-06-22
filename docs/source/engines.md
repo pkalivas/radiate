@@ -8,8 +8,6 @@ The `GeneticEngine` is the core component. Once built, it manages the entire evo
 
 Each epoch represents a single generation in the evolutionary process. An epoch contains information related not only the current generation, but also the engine's state at that point in time. This is the primary output of the engine, and it can be used to track progress, visualize results, or make decisions based on the evolutionary process. Because there are two main types of optimization problems the engine can solve (single-objective and multi-objective), the engine produces different types of epochs depending on the objective type.
 
----
-
 ### Single-Objective Epoch
 
 This is the default epoch for the engine - `Generation`. It contains:
@@ -98,8 +96,6 @@ This is the default epoch for the engine - `Generation`. It contains:
     let time: Duration = result.time();
     ```
 
----
-
 ### Multi-Objective Epoch
 
 When the engine is configured for multi-objective optimization, the engine produces `MultiObjectiveGeneration` objects. When building the engine, once you specify multi-objective optimization or a front_size, the engine will change types from `Generation` to `MultiObjectiveGeneration`. This epoch contains:
@@ -172,6 +168,55 @@ When the engine is configured for multi-objective optimization, the engine produ
 
 ---
 
+## Iterator API
+
+The `GeneticEngine` is an inherently iterable concept, as such we can treat the engine as an iterato. Because of this we can use it in a `for` loop or with iterator methods like `map`, `filter`, etc. We can also extend the iterator with custom methods to provide additional functionality, such as running until a certain fitness (score) is reached, time limit, or convergence. These custom methods are essentially sytactic sugar for 'take_until' or 'skip_while' style iterators.
+
+!!! warning "Stopping Condition"
+
+    The engine's iterator is an 'infinite iterator', meaning it will continue to produce epochs until a stopping condition, a `break` or a `return` is met. So, unless you want to run the engine indefinitely, you should always use a method like `take`, `until`, or `last` to limit the number of epochs produced.
+    
+
+=== ":fontawesome-brands-python: Python"
+
+    !!! warning ":construction: Under Construction :construction:"
+
+        The iteration API in Python is still under construction and is not yet available.
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+    use std::time::Duration;
+
+    // Create an engine
+    let mut engine = GeneticEngine::builder()
+        .codec(FloatCodec::scalar(0.0..1.0)) 
+        .fitness_fn(|genotype: f32| my_fitness_fn(genotype))
+        // ... other parameters ...
+        .build();
+
+    // 1.) use a simple for loop to iterate through 100 generations
+    for epoch in engine.iter().take(100) {
+        println!("Generation {}: Score = {}", epoch.index(), epoch.score().as_f32());
+    }
+
+    // 2.) use the iterator's custom methods to run until a score target is reached
+    let target_score = 0.01;
+    let result = engine.iter().until_score_equal(target_score).take(1).last().unwrap();
+    let result = engine.iter().until_score_below(target_score).take(1).last().unwrap();
+    let result = engine.iter().until_score_above(target_score).take(1).last().unwrap();
+
+    // 3.) run until a time limit is reached
+    let time_limit = Duration::from_secs(60);
+    let result = engine.iter().until_duration(time_limit).take(1).last().unwrap();
+
+    // 4.) run until convergence
+    let window = 50;
+    let epsilon = 0.01; // how close the scores must be over the window to consider convergence
+    let result = engine.iter().until_convergence(window, epsilon).take(1).last().unwrap();
+    ```
+
 <!-- ## Execution Models
 
 ### Iterator Pattern
@@ -229,7 +274,7 @@ The engine supports different execution strategies:
 
 --- -->
 
-#### Engine Tips
+## Engine Tips
 
 * Use appropriate population sizes (100-500 for most problems)
 * Enable parallel execution for expensive fitness functions
