@@ -216,63 +216,56 @@ The `GeneticEngine` is an inherently iterable concept, as such we can treat the 
     let epsilon = 0.01; // how close the scores must be over the window to consider convergence
     let result = engine.iter().until_convergence(window, epsilon).take(1).last().unwrap();
     ```
-
-<!-- ## Execution Models
-
-### Iterator Pattern
-
-The engine implements the `Iterator` trait, allowing fine-grained control:
-
-```rust
-let mut engine = GeneticEngine::builder()
-    .codec(codec)
-    .fitness_fn(fitness_fn)
-    .build();
-
-// Manual iteration
-for epoch in engine.iter().take(100) {
-    println!("Generation {}: Score = {}", epoch.index(), epoch.score().as_f32());
-}
-```
-
-### Run Until Condition
-
-Execute until a stopping condition is met:
-
-```rust
-let result = engine.run(|epoch| {
-    epoch.score().as_f32() < 0.01 || epoch.index() >= 1000
-});
-```
-
 ---
 
-### Convenience Iterators
+## Metrics
 
-The engine provides specialized iterators for common patterns:
+The `MetricSet`, included in the engine's epoch, provides a number of built-in metrics that can be used to evaluate the performance of the `GeneticEngine`. These metrics can be used to monitor the progress of the engine, compare different runs, and tune hyperparameters. During evolution, the engine collects various metrics from it's different components as well as the overall performance of the engine. 
 
-```rust
-// Run until score target
-engine.iter().until_score_equal(target);
+A metric is defined as:
 
-// Run for time limit
-engine.iter().until_time_limit(Duration::from_secs(60));
+1. `Value` - Represents a single value metric with a name and a `Statistic`.
+2. `Time` - Represents a time metric with a name and a `TimeStatistic`.
+3. `Distribution` - Represents a distribution metric with a name and a `Distribution`.
+4. `Operations` - Represents a metric that combines a `Statistic` and a `TimeStatistic` where the `Statistic` represents the number of operations performed and the `TimeStatistic` represents the time taken to perform those operations.
 
-// Run until convergence
-engine.iter().until_convergence(50);
-``` -->
+### Statistic 
 
-<!-- --- -->
-<!-- 
-## Threading and Parallelism
+The `Statistic` exposes a number of different statistical measures that can be used to summarize the data, such as, `last_value`, `count`, `min`, `max`, `mean`, `sum`, `variance`, `std_dev`, `skewness`, and `kurtosis`. 
 
-The engine supports different execution strategies:
+### TimeStatistic
 
-* **Serial Execution**: Single-threaded execution (default)
-* **Worker Pool**: Multi-threaded execution with configurable thread count
-* **Custom Executors**: User-defined parallel execution strategies
+Similarly, the `TimeStatistic` exposes the same measures, however the data is assumed to be time-based. As such, the results are expressed as a `Duration::from_secs_f32(value)`.
 
---- -->
+### Distribution
+
+The `Distribution` metric is used to represent a distribution of values. The distribution is stored as a `Vec<f32>` and produces the same statistical measures as the `Statistic` and `TimeStatistic` with the exception of `last_value` which is changed to `last_sequence`.
+
+The default metrics collected by the engine are:
+
+
+| Name                | Type          | Description                                                                 |
+|---------------------|---------------|-----------------------------------------------------------------------------|
+| `Time`              | TimeStatistic | The time taken for the evolution process.                                   |
+| `Score`             | Statistic     | The scores (fitness) of all the individuals evolved throughout the evolution process. |
+| `Age`               | Statistic     | The age of all the individuals in the `Ecosystem`. |
+| `Replace(Age)`      | Statistic     | The number of individuals replaced based on age. |
+| `Replace(Invalid)`  | Statistic     | The number of individuals replaced based on invalid structure (e.g. Bounds) |
+| `Genome Size`       | Distribution     | The size of each genome over the evolution process. This is usually static and doesn't change. |
+| `Front`             | Distribution | The number of members added to the Pareto front throughout the evolution process. |
+| `Unique(members)`   | Statistic     | The number of unique members in the `Ecosystem`. |
+| `Unique(scores)`    | Statistic     | The number of unique scores in the `Ecosystem`. |
+| `Fitness`           | Statistic     | The number of individuals evaluated each epoch during the evolution process. |
+| `Species(Count)`    | Statistic     | The number of `species` in the 'Ecosystem`. |
+| `Species(Age Removed)` | Statistic | The number of `species` removed based on stagnation. |
+| `Species(Distance)` | Distribution | The distance between `species` in the `Ecosystem`. |
+| `Species(Created)`  | Statistic     | The number of `species` created in the `Ecosystem`. |
+| `Species(Died)` | Statistic | The number of `species` that have died in the `Ecosystem`. |
+| `Species(Age)` | Statistic | The age of all the `species` in the `Ecosystem`. |
+
+Along with the default metrics, each component will also collect operation metrics (statistics and time statistics) for the operations it performs. For example, each `Alterer` and `Selector` will collect metrics and be iditified by their name. Its also important to note that `species` level metrics will only be collected if the engine is configured to use species-based diversity.
+
+---
 
 ## Engine Tips
 
