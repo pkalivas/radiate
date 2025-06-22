@@ -13,12 +13,8 @@ nav:
   - Objectives: source/objectives.md
   - Events: source/events.md
   - Engine: source/engines.md
-  # - Parameters: source/params.md
-  # - Metrics: source/metrics.md
-  # - Multiobjective: source/multiobjective.md
-  # - Genetic Programming: source/gp.md
+  - Genetic Programming: source/gp.md
   - Examples: source/examples.md
-  # - Test: source/test.md
 
 theme:
   favicon: assets/radiate.ico
