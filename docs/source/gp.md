@@ -2,13 +2,15 @@
 
 !!! warning ":construction: Under Construction :construction:"
 
-    These docs are a work in progress and may not be complete or accurate. Please check back later for updates.
+    As of `6/22/2025`: These docs are a work in progress and may not be complete or fully accurate. Please check back later for updates.
 
 ___
 
 Genetic Programming (GP) in Radiate enables the evolution of programs represented as **expression trees** and **computational graphs**. This powerful feature allows you to solve complex problems by evolving mathematical expressions, decision trees, neural network topologies, and more.
 
 Radiate's GP implementation provides two core data structures: **Trees** for hierarchical expressions and **Graphs** for complex computational networks. Each offers unique capabilities for different problem domains. Both the `tree` and `graph` modules come with their own specific chromosomes, codecs and alters to evolve these structures effectively.
+
+---
 
 ## Installation
 
@@ -29,16 +31,18 @@ To use Radiate's Genetic Programming features, you need to install the library w
     radiate = { version = "x", features = ["gp", ...] }
     ```
 
+---
+
 ## Overview
 
 | Structure | Best For | Complexity | Use Cases |
 |-----------|----------|------------|-----------|
-| **[Trees](#Trees)** | Symbolic regression, mathematical expressions | Low-Medium | Formula discovery, decision trees |
+| **[Trees](#trees)** | Symbolic regression, mathematical expressions | Low-Medium | Formula discovery, decision trees |
 | **[Graphs](#graphs)** | Neural networks, complex computations | Medium-High | Neural evolution, complex programs |
 
-## Core Data Structures
+---
 
-### Trees
+## Trees
 
 A `Tree<T>` represents a hierarchical structure where each node has exactly one parent (except the root) and zero or more children.
 
@@ -74,15 +78,8 @@ A `Tree<T>` represents a hierarchical structure where each node has exactly one 
 - **Hierarchical**: Parent-child relationships
 
 ### Node
-Each node in a tree contains a value and optional children & arity. The `TreeNode<T>` also implements the `gene` trait, making the node itself a `gene` and it's value the `allele`. 
 
-```rust
-pub struct TreeNode<T> {
-    value: T,                    // The value
-    arity: Option<Arity>,        // How many children this node can have
-    children: Option<Vec<TreeNode<T>>>, // Child nodes
-}
-```
+Each node in a tree contains a value and optional children & arity. The `TreeNode<T>` also implements the `gene` trait, making the node itself a `gene` and it's value the `allele`. 
 
 **Node Types:**
 
@@ -90,118 +87,58 @@ pub struct TreeNode<T> {
 - **Vertex**: Internal computation nodes (can have any number of children)
 - **Leaf**: Terminal nodes with no children (arity is `Arity::Zero`)
 
-**Tree Operations:**
-```rust
-// Create a tree
-let tree = Tree::new(TreeNode::new(Op::add()));
-
-// Add children
-let node = TreeNode::new(Op::add())
-    .attach(TreeNode::new(Op::constant(1.0)))
-    .attach(TreeNode::new(Op::constant(2.0)));
-
-// Tree properties
-let size = tree.size();      // Total number of nodes
-let height = tree.height();  // Maximum depth
-```
-
 ### Chromosome
+
 A chromosome that represents a tree structure for genetic operations:
 
-```rust
-pub struct TreeChromosome<T> {
-    nodes: Vec<TreeNode<T>>,                    // The tree nodes
-    store: Option<NodeStore<T>>,                // Available operations
-    constraint: Option<Constraint<TreeNode<T>>>, // Validation rules
-}
-```
+### Codec
 
-**Features:**
+### Alters
 
-- **Gene Collection**: Contains a single node in it's `nodes` vector - the root node
-- **Node Store**: Manages available `alleles` for mutation
-- **Constraints**: Enforces `tree` validity rules
-- **Serialization**: Supports saving/loading evolved trees
+---
 
-### Graphs
+## Graphs
 
-#### Graph Structure
-A `Graph<T>` represents a collection of interconnected nodes with flexible connections:
+Graphs are a powerful way to represent problems. They are used in many fields, such as Neural Networks, and can be used to solve complex problems. Radiate thinks of graphs in a more general way than most implementations. Instead of being a collection of inputs, nodes, edges, and outputs, radiate thinks of a graph as simply a bag of nodes that can be connected in any way. Why? Well, because it allows for more flexibility within the graph and it lends itself well to the evolutionary nature of genetic programming. However, this representation is not without it's drawbacks. It can be difficult to reason about the graph and it can be difficult to ensure that the graph is valid. Radiate tries to mitigate these issues by sticking to a few simple rules that govern the graph.
 
-```rust
-pub struct Graph<T> {
-    nodes: Vec<GraphNode<T>>,
-}
-```
+1. Each input node must have 0 incoming connections and at least 1 outgoing connection.
+2. Each output node must have at least 1 incoming connection and 0 outgoing connections.
+3. Each edge node must have exactly 1 incoming connection and 1 outgoing connection.
+4. Each vertex node must have at least 1 incoming connection and at least 1 outgoing connection.
+
+With these rules in mind, we can begin to build and evolve graphs. The graph typically relies on an underlying `GraphArchitect` to construct a valid graph. This architect is a builder pattern that keeps an aggregate of nodes added and their relationships to other nodes. Because of the architect's decoupled nature, we can easily create complex graphs, however it is up to the user to ensure that the desired end graph is valid. 
+
+Radiate provides a few basic graph architectures, but it is also possible to construct your own graph through either the built in graph functions or by using the architect. In most cases building a graph requires a vec of tuples where the first element is the `NodeType` and the second element is a vec of values that the `GraphNode` can take. The `NodeType` is either `Input`, `Output`, `Vertex`, or `Edge`. The value of the `GraphNode` is picked at random from the vec of it's `NodeType`.
 
 **Key Properties:**
+
 - **Flexible Connections**: Nodes can have multiple inputs/outputs
 - **Indexed Access**: Each node has a unique index in the vector
 - **Connection Sets**: Each node maintains incoming/outgoing connections
 - **Direction Support**: Can be directed acyclic (DAG) or cyclic
 
-#### GraphNode
+### Node
+
 Each node in a graph contains a value and connection information:
 
-```rust
-pub struct GraphNode<T> {
-    value: T,                           // The operation or value
-    id: GraphNodeId,                    // Unique identifier
-    index: usize,                       // Position in graph vector
-    direction: Direction,               // Forward or Backward
-    node_type: Option<NodeType>,        // Input, Output, Vertex, Edge
-    arity: Option<Arity>,               // Expected number of inputs
-    incoming: BTreeSet<usize>,          // Indices of input nodes
-    outgoing: BTreeSet<usize>,          // Indices of output nodes
-}
-```
-
 **Node Types:**
+
 - **Input**: Entry points (no incoming, one or more outgoing)
 - **Output**: Exit points (one or more incoming, no outgoing)
 - **Vertex**: Internal computation (both incoming and outgoing)
 - **Edge**: Connection nodes (exactly one incoming and one outgoing)
 
-**Connection Direction:**
-- **Forward**: Normal data flow (default)
-- **Backward**: Recurrent connections for cycles
+### Chromosome
 
-**Graph Operations:**
-```rust
-// Create a graph
-let mut graph = Graph::default();
-
-// Add nodes
-let input_idx = graph.insert(NodeType::Input, Op::var(0));
-let output_idx = graph.insert(NodeType::Output, Op::sigmoid());
-
-// Connect nodes
-graph.attach(input_idx, output_idx);
-
-// Graph properties
-let len = graph.len();           // Number of nodes
-let inputs = graph.inputs();     // All input nodes
-let outputs = graph.outputs();   // All output nodes
-```
-
-#### GraphChromosome
 A chromosome that represents a graph structure for genetic operations:
 
-```rust
-pub struct GraphChromosome<T> {
-    nodes: Vec<GraphNode<T>>,    // The graph nodes
-    store: Option<NodeStore<T>>, // Available operations
-}
-```
+### Codec
 
-**Features:**
-- **Gene Collection**: Contains all graph nodes as genes
-- **Node Store**: Manages available operations for mutation
-- **Factory Pattern**: Can create new instances with different operations
-- **Graph Conversion**: Easily convertible to/from Graph structure
+### Alters
 
-## Codecs
+---
 
+<!-- 
 ### TreeCodec
 Encodes and decodes tree structures for genetic algorithms:
 
@@ -604,589 +541,11 @@ fn main() {
         println!("{:?} -> {:.3}", input, output);
     }
 }
-```
+``` -->
 
+<--
 
-
-<!-- # Genetic Programming
-
-___
-Genetic Programming (GP) in Radiate enables the evolution of programs represented as **expression trees** and **computational graphs**. This powerful feature allows you to solve complex problems by evolving mathematical expressions, decision trees, neural network topologies, and more.
-
-Radiate's GP implementation provides two core data structures: **Trees** for hierarchical expressions and **Graphs** for complex computational networks. Each offers unique capabilities for different problem domains.
-
-## Overview
-
-| Structure | Best For | Complexity | Performance | Use Cases |
-|-----------|----------|------------|-------------|-----------|
-| **Trees** | Symbolic regression, mathematical expressions | Low-Medium | High | Formula discovery, decision trees |
-| **Graphs** | Neural networks, complex computations | Medium-High | Medium | Neural evolution, complex programs |
-| **Advanced Graphs** | Memory, recurrence, complex topologies | High | Lower | Recurrent networks, stateful programs |
-
-## Quick Start
-
-### Symbolic Regression with Trees
-
-Evolve mathematical expressions to fit your data:
-
-```rust
-use radiate::*;
-
-// Define available operations
-let store = vec![
-    (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
-    (NodeType::Leaf, vec![Op::var(0)]),
-];
-
-// Create tree codec with size constraints
-let tree_codec = TreeCodec::single(3, store)
-    .constraint(|root| root.size() < 30);
-
-// Set up regression problem
-let problem = Regression::new(dataset, Loss::MSE, tree_codec);
-
-// Build and run genetic engine
-let engine = GeneticEngine::builder()
-    .problem(problem)
-    .minimizing()
-    .mutator(HoistMutator::new(0.01))
-    .crossover(TreeCrossover::new(0.7))
-    .build();
-
-let result = engine.iter()
-    .until_score_below(0.01)
-    .take(1)
-    .last()
-    .unwrap();
-
-println!("Best expression: {}", result.value().format());
-```
-
-### Neural Network Evolution with Graphs
-
-Evolve neural network topologies:
-
-```rust
-use radiate::*;
-
-// Define graph structure
-let values = vec![
-    (NodeType::Input, vec![Op::var(0)]),
-    (NodeType::Edge, vec![Op::weight()]),
-    (NodeType::Vertex, vec![Op::sigmoid(), Op::tanh()]),
-    (NodeType::Output, vec![Op::linear()]),
-];
-
-let graph_codec = GraphCodec::directed(1, 1, values);
-let problem = Regression::new(dataset, Loss::MSE, graph_codec);
-
-let engine = GeneticEngine::builder()
-    .problem(problem)
-    .minimizing()
-    .alter(alters!(
-        GraphCrossover::new(0.5, 0.5),
-        OperationMutator::new(0.07, 0.05),
-        GraphMutator::new(0.1, 0.1).allow_recurrent(false),
-    ))
-    .build();
-```
-
-## Core Concepts
-
-### Operations (Ops)
-
-Operations are the fundamental building blocks of genetic programs. Each node in a tree or graph contains an operation that defines its behavior and computation.
-
-#### Operation Types
-
-**Function Operations** (`Op::Fn`)
-- Stateless functions that transform inputs
-- Examples: `add`, `multiply`, `sigmoid`, `sin`
-- Arity: Fixed number of inputs
-
-**Variable Operations** (`Op::Var`)
-- Input variables that read from external data
-- Examples: `Op::var(0)` reads the first input
-- Arity: Zero (no inputs, reads from context)
-
-**Constant Operations** (`Op::Const`)
-- Fixed values that don't change
-- Examples: `Op::constant(3.14)`
-- Arity: Zero
-
-**Mutable Constants** (`Op::MutableConst`)
-- Values that can change during evolution
-- Examples: Learnable parameters, weights
-- Arity: Variable
-
-**Value Operations** (`Op::Value`)
-- Stateful operations that maintain internal state
-- Examples: Memory cells, accumulators
-- Arity: Variable
-
-#### Arity System
-
-Arity defines how many inputs an operation expects:
-
-```rust
-pub enum Arity {
-    Zero,           // No inputs (constants, variables)
-    Exact(usize),   // Exactly N inputs
-    Any,            // Any number of inputs
-}
-```
-
-### Trees vs Graphs
-
-#### Trees
-- **Structure**: Hierarchical with single parent per node
-- **Evaluation**: Top-down, deterministic
-- **Best for**: Mathematical expressions, decision trees
-- **Advantages**: Fast evaluation, easy to understand
-- **Limitations**: Limited expressiveness, no cycles
-
-#### Graphs
-- **Structure**: Flexible connections between nodes
-- **Evaluation**: Topological sort or iteration
-- **Best for**: Neural networks, complex computations
-- **Advantages**: High expressiveness, supports cycles
-- **Limitations**: Slower evaluation, more complex
-
-## Tree Programming
-
-### Tree Structure
-
-Trees represent hierarchical expressions where each node has exactly one parent (except the root) and zero or more children.
-
-```rust
-// Example tree: (x + y) * 2
-//      *
-//     / \
-//    +   2
-//   / \
-//  x   y
-```
-
-### Tree Codecs
-
-**Single Root Trees**
-```rust
-let codec = TreeCodec::single(max_depth, operations);
-```
-
-**Multi-Root Trees**
-```rust
-let codec = TreeCodec::multi_root(max_depth, num_roots, operations);
-```
-
-**Constrained Trees**
-```rust
-let codec = TreeCodec::single(3, operations)
-    .constraint(|root| root.size() < 30)
-    .constraint(|root| root.depth() < 10);
-```
-
-### Tree Operations
-
-**Hoist Mutation**
-- Moves a subtree to a new position
-- Preserves tree structure
-- Good for exploring different arrangements
-
-**Tree Crossover**
-- Swaps subtrees between parents
-- Maintains valid tree structure
-- Primary recombination operator
-
-**Operation Mutation**
-- Changes operation types at nodes
-- Maintains arity compatibility
-- Explores different functions
-
-### Tree Examples
-
-#### Symbolic Regression
-```rust
-let store = vec![
-    (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul(), Op::div()]),
-    (NodeType::Leaf, vec![Op::var(0), Op::var(1)]),
-];
-
-let codec = TreeCodec::single(5, store);
-let problem = Regression::new(dataset, Loss::MSE, codec);
-```
-
-#### Classification
-```rust
-let store = vec![
-    (NodeType::Root, vec![Op::sigmoid()]),
-    (NodeType::Vertex, ops::math_ops()),
-    (NodeType::Leaf, (0..4).map(Op::var).collect()),
-];
-
-let codec = TreeCodec::multi_root(3, 4, store);
-```
-
-## Graph Programming
-
-### Graph Structure
-
-Graphs represent computational networks with flexible connections between nodes. They can form complex topologies including cycles and shared computations.
-
-### Node Types
-
-**Input Nodes**
-- Entry points for external data
-- Zero incoming connections
-- One or more outgoing connections
-
-**Output Nodes**
-- Final results of computation
-- One or more incoming connections
-- Zero outgoing connections
-
-**Vertex Nodes**
-- Internal computation nodes
-- One or more incoming connections
-- One or more outgoing connections
-
-**Edge Nodes**
-- Connection/weight nodes
-- Exactly one incoming connection
-- Exactly one outgoing connection
-
-### Graph Codecs
-
-**Directed Acyclic Graphs (DAGs)**
-```rust
-let codec = GraphCodec::directed(num_inputs, num_outputs, operations);
-```
-
-**Recurrent Graphs**
-```rust
-let codec = GraphCodec::recurrent(num_inputs, num_outputs, operations);
-```
-
-**Memory Graphs**
-```rust
-let codec = GraphCodec::memory(num_inputs, num_outputs, operations);
-```
-
-### Graph Operations
-
-**Graph Crossover**
-- Combines subgraphs from parents
-- Maintains graph validity
-- Preserves topological constraints
-
-**Graph Mutation**
-- Adds/removes nodes and connections
-- Modifies graph topology
-- Can enable/disable recurrence
-
-**Operation Mutation**
-- Changes node operations
-- Maintains arity compatibility
-- Explores different functions
-
-### Graph Examples
-
-#### XOR Problem
-```rust
-let values = vec![
-    (NodeType::Input, vec![Op::var(0), Op::var(1)]),
-    (NodeType::Edge, vec![Op::weight(), Op::identity()]),
-    (NodeType::Vertex, ops::all_ops()),
-    (NodeType::Output, vec![Op::sigmoid()]),
-];
-
-let codec = GraphCodec::directed(2, 1, values);
-```
-
-#### Neural Network Evolution
-```rust
-let values = vec![
-    (NodeType::Input, vec![Op::var(0)]),
-    (NodeType::Edge, vec![Op::weight()]),
-    (NodeType::Vertex, vec![Op::sigmoid(), Op::tanh(), Op::relu()]),
-    (NodeType::Output, vec![Op::linear()]),
-];
-
-let codec = GraphCodec::directed(1, 1, values);
-```
-
-## Advanced Features
-
-### Constraints
-
-Apply constraints to control program structure:
-
-```rust
-let codec = TreeCodec::single(5, operations)
-    .constraint(|root| root.size() < 50)           // Limit tree size
-    .constraint(|root| root.depth() < 8)           // Limit depth
-    .constraint(|root| root.leaf_count() > 2);     // Ensure minimum leaves
-```
-
-### Custom Operations
-
-Define your own operations:
-
-```rust
-let custom_op = Op::Fn("custom", Arity::Exact(2), Arc::new(|inputs| {
-    let x = inputs[0];
-    let y = inputs[1];
-    x * x + y * y  // Custom function
-}));
-```
-
-### Evaluation Strategies
-
-**Tree Evaluation**
-```rust
-let result = tree.eval(&[1.0, 2.0, 3.0]);
-```
-
-**Graph Evaluation**
-```rust
-let mut evaluator = GraphEvaluator::new(&graph);
-let result = evaluator.eval_mut(&[1.0, 2.0, 3.0]);
-```
-
-### Serialization
-
-Save and load evolved programs:
-
-```rust
-// Save
-let serialized = serde_json::to_string(&tree).unwrap();
-std::fs::write("best_tree.json", serialized).unwrap();
-
-// Load
-let tree: Tree<Op<f32>> = serde_json::from_str(&content).unwrap();
-```
-
-## Best Practices
-
-### Problem Selection
-
-**Use Trees When:**
-- You need interpretable expressions
-- The problem has clear mathematical structure
-- Performance is critical
-- You want to understand the solution
-
-**Use Graphs When:**
-- You need complex computational patterns
-- The problem requires memory or state
-- You want maximum expressiveness
-- Neural network evolution is the goal
-
-### Configuration Tips
-
-**Population Size**
-- Start with 100-500 individuals
-- Increase for complex problems
-- Balance between exploration and computation cost
-
-**Mutation Rates**
-- Tree operations: 0.01-0.1
-- Graph operations: 0.05-0.2
-- Operation changes: 0.02-0.1
-
-**Constraints**
-- Always limit program size to prevent bloat
-- Use depth constraints for trees
-- Consider computational complexity
-
-**Operations**
-- Include only relevant operations
-- Balance between expressiveness and search space
-- Consider domain-specific operations
-
-### Common Pitfalls
-
-**Overfitting**
-- Use validation sets
-- Limit program complexity
-- Apply regularization constraints
-
-**Premature Convergence**
-- Increase population diversity
-- Adjust selection pressure
-- Use multiple mutation operators
-
-**Computational Bloat**
-- Apply size constraints
-- Use parsimony pressure
-- Monitor program complexity
-
-## Examples
-
-### Complete Symbolic Regression
-```rust
-use radiate::*;
-
-fn main() {
-    // Generate dataset: y = 2x^2 + 3x + 1
-    let dataset = generate_dataset();
-    
-    // Define operations
-    let store = vec![
-        (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul(), Op::pow()]),
-        (NodeType::Leaf, vec![Op::var(0), Op::constant(1.0), Op::constant(2.0)]),
-    ];
-    
-    // Create codec with constraints
-    let codec = TreeCodec::single(5, store)
-        .constraint(|root| root.size() < 20);
-    
-    // Set up problem
-    let problem = Regression::new(dataset, Loss::MSE, codec);
-    
-    // Build engine
-    let engine = GeneticEngine::builder()
-        .problem(problem)
-        .minimizing()
-        .mutator(HoistMutator::new(0.05))
-        .crossover(TreeCrossover::new(0.7))
-        .build();
-    
-    // Run evolution
-    let result = engine.iter()
-        .until_score_below(0.001)
-        .take(1)
-        .last()
-        .unwrap();
-    
-    println!("Best expression: {}", result.value().format());
-    println!("Final score: {:?}", result.score());
-}
-```
-
-### Neural Network Evolution
-```rust
-use radiate::*;
-
-fn main() {
-    // XOR dataset
-    let dataset = DataSet::new(
-        vec![vec![0.0, 0.0], vec![1.0, 1.0], vec![1.0, 0.0], vec![0.0, 1.0]],
-        vec![vec![0.0], vec![0.0], vec![1.0], vec![1.0]]
-    );
-    
-    // Define graph operations
-    let values = vec![
-        (NodeType::Input, vec![Op::var(0), Op::var(1)]),
-        (NodeType::Edge, vec![Op::weight()]),
-        (NodeType::Vertex, vec![Op::sigmoid(), Op::tanh()]),
-        (NodeType::Output, vec![Op::sigmoid()]),
-    ];
-    
-    // Create graph codec
-    let codec = GraphCodec::directed(2, 1, values);
-    let problem = Regression::new(dataset, Loss::MSE, codec);
-    
-    // Build engine with graph-specific operators
-    let engine = GeneticEngine::builder()
-        .problem(problem)
-        .minimizing()
-        .alter(alters!(
-            GraphCrossover::new(0.5, 0.5),
-            OperationMutator::new(0.05, 0.05),
-            GraphMutator::new(0.1, 0.1).allow_recurrent(false),
-        ))
-        .build();
-    
-    // Run evolution
-    let result = engine.iter()
-        .until_score_below(0.01)
-        .take(1)
-        .last()
-        .unwrap();
-    
-    // Test the evolved network
-    let mut evaluator = GraphEvaluator::new(result.value());
-    for input in &[[0.0, 0.0], [1.0, 1.0], [1.0, 0.0], [0.0, 1.0]] {
-        let output = evaluator.eval_mut(input)[0];
-        println!("{:?} -> {:.3}", input, output);
-    }
-}
-```
-
-## Performance Considerations
-
-### Evaluation Speed
-- **Trees**: Very fast, O(n) where n is number of nodes
-- **Graphs**: Slower, depends on topology and evaluation strategy
-- **Memory graphs**: Slowest due to state management
-
-### Memory Usage
-- **Trees**: Minimal memory overhead
-- **Graphs**: Higher memory usage for complex topologies
-- **Large populations**: Consider memory constraints
-
-### Parallelization
-- Use `Executor::worker_pool()` for parallel evaluation
-- GP operations are naturally parallelizable
-- Balance between cores and memory usage
-
-## Integration with Radiate
-
-### Engine Integration
-GP programs integrate seamlessly with Radiate's genetic engine:
-
-```rust
-let engine = GeneticEngine::builder()
-    .problem(gp_problem)
-    .minimizing()
-    .executor(Executor::worker_pool(8))
-    .diversity(NeatDistance::new(1.0, 1.0, 3.0))
-    .species_threshold(1.8)
-    .build();
-```
-
-### Event System
-Monitor GP evolution with events:
-
-```rust
-let engine = GeneticEngine::builder()
-    .problem(problem)
-    .subscribe(EventLogger::default())
-    .subscribe(MetricsAggregator::new())
-    .build();
-```
-
-### Diversity and Speciation
-Apply diversity measures to GP populations:
-
-```rust
-let engine = GeneticEngine::builder()
-    .problem(problem)
-    .diversity(TreeDistance::new())
-    .species_threshold(2.0)
-    .build();
-```
-
-This comprehensive documentation provides a complete guide to using Genetic Programming in Radiate, from basic concepts to advanced techniques and best practices. -->
-
-<!-- 
-!!! warning ":construction: Under Construction :construction:"
-
-    These docs are a work in progress and may not be complete or accurate. Please check back later for updates.
-
-# Genetic Programming 
-
-The `gp` feature provides the fundamental building blocks for [Genetic Programming](https://en.wikipedia.org/wiki/Genetic_programming) (GP). It includes **data structures and algorithms** for building and evolving **`Tree`s** and **`Graph`s**.
-
-Genetic Programming (GP) is an evolutionary algorithm that **evolves programs** to solve problems. Programs are represented as **expression trees, decision trees, random forests, or neural networks** and evolved over generations.
-
-**Typical Use Cases**
-
-1. Symbolic Regression (finding equations that fit data)
-2. Evolving Decision Trees (classification, optimization)
-3. Neural Network Topology Evolution (similar to NEAT)
-4. Evolving Graph-Based Programs
+####### HERE
 
 !!! warning 
 
@@ -1492,3 +851,6 @@ The `Architect` for trees, grows a tree given a desired starting minimum depth.
 * `TreeCrossover` - Crossover two subtrees of a `Tree`.
 * `NodeMutator` - Mutate a `Node` by editing its internal (its `Allele`) properties.
 * `NodeCrossover` - Crossover two `Node`s by swapping their internal properties. -->
+
+
+-->

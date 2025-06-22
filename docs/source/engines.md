@@ -218,6 +218,57 @@ The `GeneticEngine` is an inherently iterable concept, as such we can treat the 
     ```
 ---
 
+## Problem API
+
+For certain optimization problems, it is useful to have a more structured way to define a `problem`. For instance, it may be useful to hold stateful information within a fitness function, store data in a more unified way, or evaluate a `Genotype<C>` directly without decoding. The `problem` interface provides a way to do just that. Under the hood of the `GeneticEngine`, the builder constructs a `problem` object that holds the `codec` and fitness function. Because of this, when using the `problem` API, we don't need a `codec` or a fitness function - the `problem` will take care of that for us. 
+
+=== ":fontawesome-brands-python: Python"
+
+    !!! warning ":construction: Under Construction :construction:"
+
+        The problem API in Python is still under construction and is not yet available.
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    // Define a problem struct that holds stateful information
+    struct MyFloatProblem {
+        num_genes: usize,
+        value_range: Range<f32>,
+    }
+
+    impl Problem<FloatChromosome, Vec<f32>> for MyFloatProblem {
+        fn encode(&self) -> Genotype<FloatChromosome> {
+            Genotype::from(FloatChromosome::from((self.num_genes, self.value_range.clone())))
+        }
+        
+        fn decode(&self, genotype: &Genotype<FloatChromosome>) -> Vec<f32> {
+            genotype.genes().iter().map(|gene| gene.value()).collect()
+        }
+
+        fn eval(&self, genotype: &Genotype<FloatChromosome>) -> Score {
+            // Evaluate the genotype directly without decoding
+            my_fitness_fn(&decoded_value)
+        }
+    }
+
+    // The `Problem<C, T>` trait requires `Send` and `Sync` implementations
+    unsafe impl Send for MyFloatProblem {}
+    unsafe impl Sync for MyFloatProblem {}
+
+    // Create an engine with the problem
+    let mut engine = GeneticEngine::builder()
+        .problem(MyProblem { num_genes: 10, value_range: 0.0..1.0 })
+        .build();
+
+    // Run the engine
+    let result = engine.run(|epoch| epoch.index() >= 100);
+    ```
+
+---
+
 ## Metrics
 
 The `MetricSet`, included in the engine's epoch, provides a number of built-in metrics that can be used to evaluate the performance of the `GeneticEngine`. These metrics can be used to monitor the progress of the engine, compare different runs, and tune hyperparameters. During evolution, the engine collects various metrics from it's different components as well as the overall performance of the engine. 
@@ -267,7 +318,7 @@ Along with the default metrics, each component will also collect operation metri
 
 ---
 
-## Engine Tips
+## Tips
 
 * Use appropriate population sizes (100-500 for most problems)
 * Enable parallel execution for expensive fitness functions
