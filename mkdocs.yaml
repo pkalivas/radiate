@@ -15,6 +15,7 @@ nav:
   - Engine: source/engines.md
   - Genetic Programming: source/gp.md
   - Examples: source/examples.md
+  - Release Notes: source/releases.md
 
 theme:
   favicon: assets/radiate.ico

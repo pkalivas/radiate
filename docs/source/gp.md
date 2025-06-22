@@ -37,8 +37,254 @@ To use Radiate's Genetic Programming features, you need to install the library w
 
 | Structure | Best For | Complexity | Use Cases |
 |-----------|----------|------------|-----------|
+| **[Arity](#arity)** | Number of inputs for nodes and ops | Low | Function arguments, input counts |
+| **[Ops](#ops)** | Operations and functions for nodes | Low | Mathematical, logical, activation functions |
+| **[Nodes](#nodes)** | Building blocks for trees and graphs | Low | Node types, arity, operations |
 | **[Trees](#trees)** | Symbolic regression, mathematical expressions | Low-Medium | Formula discovery, decision trees |
 | **[Graphs](#graphs)** | Neural networks, complex computations | Medium-High | Neural evolution, complex programs |
+
+---
+
+## Arity
+
+[Arity](https://en.wikipedia.org/wiki/Arity) is a term used to describe the number of arguments or inputs a function takes. In the context of genetic programming, arity is crucial for defining how many inputs a `node` or an `op` can accept in both `trees` and `graphs`. For `graphs` `arity` is used to determine how many incoming connections a `GraphNode` can have, while for `trees` it determines how many children a `TreeNode` can have. Radiate uses an enum to express `arity` defined in three variants:
+
+1. **Zero**: The operation takes no inputs (e.g., constants).
+2. **Exact(usize)**: The operation takes a specific number of inputs.
+3. **Any**: The operation can take any number of inputs (e.g., functions like sum or product).
+
+In most cases, the `tree` or `graph` will try it's best ensure that their node's `arity` is not violated, but it will ultimately be up to the user to ensure that the `arity` is correct.
+
+---
+
+## Ops
+
+The `ops` module provides sets of operations and formats for building and evolve genetic programs including `graphs` and `trees`. In the language of radiate, when using an `op`, it is the `Allele` of the `GraphNode` or `TreeNode`.
+An `op` is a function that takes a number of inputs and returns a single output. The `op` can be a constant value, a variable, or a function that operates on the inputs.   
+
+The `op` comes in five flavors:
+
+1. **Function Operations**: Stateless functions that take inputs and return a value.
+2. **Variable Operations**: Read from an input index, returning the value at that index.
+3. **Constant Operations**: Fixed values that do not change - returning the value when called.
+4. **Mutable Constant Operations**: Constants that can change over time, allowing for learnable parameters.
+5. **Value Operations**: Stateful operations that maintain internal state and can take inputs to produce a value.
+
+Each `op` has an `arity`, definingt the number of inputs it accepts. For example, the `Add` operation has an `arity` of 2 because it takes two inputs and returns their sum. The `Const` operation has an arity of 0 because it does not take any inputs, it just returns it's value. The `Var` operation has an arity of 0 because it takes an index as a parameter, and returns the value of the input at that index. 
+
+Provided `Ops` include:
+
+??? info "Basic ops"
+    | Name | Arity | Description | Initalize | Type |
+    |------|-------|-------------|----------|---- |
+    | `const` | 0 | x | `Op::constant()` | Const |
+    | `named_const` | 0 | x | `Op::named_constant(name)` | Const |
+    | `var` | 0 | input[i] - return the value of the input at index `i` | `Op::var(i)` | Var |
+    | `identity` |1| return the input value | `Op::identity()` | Fn |
+
+
+??? info "Basic math operations"
+    | Name | Arity | Description | Initalize | Type |
+    |------|-------|-------------|----------|---- |
+    | `Add` | 2 | x + y | `Op::add()` | Fn |
+    | `Sub` | 2 | x - y | `Op::sub()` | Fn |
+    | `Mul` | 2 | x * y | `Op::mul()` | Fn |
+    | `Div` | 2 | x / y | `Op::div()` | Fn |
+    | `Sum` | Any | Sum of n values | `Op::sum()` | Fn |
+    | `Product` | Any | Product of n values | `Op::prod()` | Fn |
+    | `Difference` | Any | Difference of n values | `Op::diff()` | Fn |
+    | `Neg` | 1 | -x | `Op::neg()` | Fn |
+    | `Abs` | 1 | abs(x) | `Op::abs()` | Fn |
+    | `pow` | 2 | x^y | `Op::pow()` | Fn |
+    | `Sqrt` | 1 | sqrt(x) | `Op::sqrt()` | Fn |
+    | `Abs` | 1 | abs(x) | `Op::abs()` | Fn |
+    | `Exp` | 1 | e^x | `Op::exp()` | Fn |
+    | `Log` | 1 | log(x) | `Op::log()` | Fn |
+    | `Sin` | 1 | sin(x) | `Op::sin()` | Fn |
+    | `Cos` | 1 | cos(x) | `Op::cos()` | Fn |
+    | `Tan` | 1 | tan(x) | `Op::tan()` | Fn |
+    | `Max` | Any | Max of n values | `Op::max()` | Fn |
+    | `Min` | Any | Min of n values | `Op::min()` | Fn |
+    | `Ceil` | 1 | ceil(x) | `Op::ceil()` | Fn |
+    | `Floor` | 1 | floor(x) | `Op::floor()` | Fn |
+    | `Weight` | 1 | Weighted sum of n values | `Op::weight()` | MutableConst |
+
+??? info "Activation Ops"
+
+    These are the most common activation functions used in Neural Networks.
+
+    | Name | Arity | Description | Initalize | Type |
+    |------|-------|-------------|----------|---- |
+    | `Sigmoid` | Any | 1 / (1 + e^-x) | `Op::sigmoid()` | Fn |
+    | `Tanh` | Any | tanh(x) | `Op::tanh()` | Fn |
+    | `ReLU` | Any | max(0, x) | `Op::relu()` | Fn |
+    | `LeakyReLU` | Any | x if x > 0 else 0.01x | `Op::leaky_relu()` | Fn |
+    | `ELU` | Any | x if x > 0 else a(e^x - 1) | `Op::elu()` | Fn |
+    | `Linear` | Any | Linear combination of n values | `Op::linear()` | Fn |
+    | `Softmax` | Any | Softmax of n values | `Op::softmax()` | Fn |
+    | `Softplus` | Any | log(1 + e^x) | `Op::softplus()` | Fn |
+    | `SELU` | Any | x if x > 0 else a(e^x - 1) | `Op::selu()` | Fn |
+    | `Swish` | Any | x / (1 + e^-x) | `Op::swish()` | Fn |
+    | `Mish` | Any | x * tanh(ln(1 + e^x)) | `Op::mish()` | Fn |
+    
+??? info "bool Ops"
+    | Name | Arity | Description | Initalize | Type |
+    |------|-------|-------------|----------|---- |
+    | `And` | 2 | x && y | `Op::and()` | Fn |
+    | `Or` | 2 | `x || y` | `Op::or()` | Fn |
+    | `Not` | 1 | !x | `Op::not()` | Fn |
+    | `Xor` | 2 | x ^ y | `Op::xor()` | Fn |
+    | `Nand` | 2 | !(x && y) | `Op::nand()` | Fn |
+    | `Nor` | 2 | `!(x || y)` | `Op::nor()` | Fn |
+    | `Xnor` | 2 | !(x ^ y) | `Op::xnor()` | Fn |
+    | `Equal` | 2 | x == y | `Op::eq()` | Fn |
+    | `NotEqual` | 2 | x != y | `Op::ne()` | Fn |
+    | `Greater` | 2 | x > y | `Op::gt()` | Fn |
+    | `Less` | 2 | x < y | `Op::lt()` | Fn |
+    | `GreaterEqual` | 2 | x >= y | `Op::ge()` | Fn |
+    | `LessEqual` | 2 | x <= y | `Op::le()` | Fn |
+    | `IfElse` | 3 | if x then y else z | `Op::if_else()` | Fn |
+
+=== ":fontawesome-brands-python: Python"
+
+    !!! warning ":construction: Under Construction :construction:"
+
+        Python's GP is still under development and will be available in a future release.
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    // Example usage of an Op
+    let fn_op = Op::add();
+    let result = fn_op.eval(&[1.0, 2.0]); // result is 3.0
+
+    // Example usage of a constant Op
+    let const_op = Op::constant(42.0);
+    let result = const_op.eval(&[]); // result is 42.0
+
+    // Example usage of a variable Op
+    let var_op = Op::var(0); // Read from input at index 0
+    let inputs = var_op.eval(&[5.0, 10.0]); // result is 5.0 when evaluated with inputs
+    ```
+
+---
+
+## Nodes 
+
+Nodes are not only the `gene` of the `graph` and `tree`, but the fundamental building blocks of them. Each `node` represents a connection, computation, or operation, and has explicit rules depending on its role in the structure. 
+
+### Roles
+
+Nodes in the `gp` system come in different types (roles) depending on whether you're working with trees or graphs:
+
+**Tree Node Types:**
+
+- **Root**: The starting point of a tree (can have any number of children)
+- **Vertex**: Internal computation nodes (can have any number of children)
+- **Leaf**: Terminal nodes with no children (arity is `Arity::Zero`)
+
+**Graph Node Types:**
+
+- **Input**: Entry points (no incoming connections, one or more outgoing)
+- **Output**: Exit points (one or more incoming connections, no outgoing)
+- **Vertex**: Internal computation nodes (both incoming and outgoing connections)
+- **Edge**: Connection nodes (exactly one incoming and one outgoing connection)
+
+Each node type is defined by the `NodeType` enum:
+
+=== ":fontawesome-brands-python: Python"
+
+    !!! warning ":construction: Under Construction :construction:"
+
+        Python's GP is still under development and will be available in a future release.
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    pub enum NodeType {
+        Root,    // Tree-specific
+        Vertex,  // Both trees and graphs
+        Leaf,    // Tree-specific
+        Input,   // Graph-specific
+        Output,  // Graph-specific
+        Edge,    // Graph-specific
+    }
+    ```
+
+### Store
+
+The `NodeStore<T>` manages available values for different node types, providing a centralized way to define what values can be used in each position of your genetic program. This makes it super easy to create `trees` or `graphs` from a specific template or with a specific structure.
+
+**Usage Examples:**
+
+=== ":fontawesome-brands-python: Python"
+
+    !!! warning ":construction: Under Construction :construction:"
+
+        Python's GP is still under development and will be available in a future release.
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+    
+    // Create a store for tree operations
+    // Each vertex node created will have a random value chosen from [1, 2, 3]
+    // Each leaf node created will have a random value chosen from [4, 5, 6]
+    let tree_store: NodeStore<i32> = vec![
+        (NodeType::Vertex, vec![1, 2, 3]),
+        (NodeType::Leaf, vec![4, 5, 6]),
+    ].into();
+
+    // -- or use the macro --
+
+    let tree_store: NodeStore<i32> = node_store! {
+        Root => [1, 2, 3],
+        Vertex => [1, 2, 3],
+        Leaf => [4, 5, 6],
+    }
+
+    // Create a new vertex tree node 
+    let tree_node: TreeNode<i32> = tree_store.new_instance(NodeType::Vertex);
+    
+    // Create a store for graph operations
+    // Each input node created will have a random value chosen from [1, 2]
+    // Each edge node created will have a random value chosen from [3, 4]
+    // Each vertex node created will have a random value chosen from [5, 6, 7]
+    // Each output node created will have a random value chosen from [8, 9, 10]
+    let graph_store: NodeStore<i32> = vec![
+        (NodeType::Input, vec![1, 2]),
+        (NodeType::Edge, vec![3, 4]),
+        (NodeType::Vertex, vec![5, 6, 7]),
+        (NodeType::Output, vec![8, 9, 10]),
+    ].into();
+
+    // -- or use the macro --
+
+    let graph_store: NodeStore<i32> = node_store! {
+        Input => [1, 2],
+        Edge => [3, 4],
+        Vertex => [5, 6, 7],
+        Output => [8, 9, 10],
+    };
+
+    // Create a new vertex graph node at index 0
+    let graph_node: GraphNode<i32> = graph_store.new_instance((0, NodeType::Vertex));
+    ```
+
+**Node Type Mapping:**
+
+- **Tree**: `Root`, `Vertex`, `Leaf`
+- **Graph**: `Input`, `Output`, `Vertex`, `Edge`
+
+**Store Validation:**
+The node store ensures that:
+
+- Each node type has appropriate value
+- Values have compatible arity for their node type
+- Invalid combinations are prevented during evolution
 
 ---
 
