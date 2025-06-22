@@ -66,7 +66,6 @@ impl Distribution {
             panic!("Percentile must be between 0 and 100");
         }
 
-        // Calculate the index for the percentile
         let count = self.last_sequence.len() as f32;
         if count == 0 as f32 {
             panic!("Cannot calculate percentile for an empty distribution");
@@ -78,12 +77,11 @@ impl Distribution {
             values
         };
 
-        // Ensure the index is within bounds
         let index = index as usize;
         if index >= sorted_values.len() {
             panic!("Index out of bounds for the sorted values");
         }
-        // Return the value at the calculated index
+
         sorted_values[index]
     }
 }
