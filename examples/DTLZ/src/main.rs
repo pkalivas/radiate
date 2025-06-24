@@ -14,7 +14,6 @@ fn main() {
         .codec(codec)
         .executor(Executor::worker_pool(10))
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
-        .front_size(100..250)
         .offspring_selector(TournamentSelector::new(5))
         .survivor_selector(NSGA2Selector::new())
         .alter(alters!(
