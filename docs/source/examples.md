@@ -162,7 +162,6 @@ For example, a solution for `n=8` would be:
             .unwrap();
 
         println!("Result: {:?}", result);
-
         println!("\nResult Queens Board ({:.3?}):", result.time());
 
         let board = &result.value();
@@ -237,7 +236,7 @@ where:
     const RANGE: f32 = 5.12;
     const N_GENES: usize = 2;
 
-    let engine = GeneticEngine::builder()
+    let mut engine = GeneticEngine::builder()
         .codec(FloatCodec::vector(N_GENES, -RANGE..RANGE))
         .minimizing()
         .population_size(500)
@@ -363,7 +362,7 @@ $$
 
     let codec = FloatCodec::vector(VARIABLES, 0_f32..1_f32).with_bounds(-100.0, 100.0);
 
-    let engine = GeneticEngine::builder()
+    let mut engine = GeneticEngine::builder()
         .codec(codec)
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
         .offspring_selector(TournamentSelector::new(5))
@@ -424,7 +423,7 @@ Evolve a `Graph<Op<f32>>` to solve the XOR problem (NeuroEvolution).
         let graph_codec = GraphCodec::directed(2, 1, values);
         let regression = Regression::new(get_dataset(), Loss::MSE, graph_codec);
 
-        let engine = GeneticEngine::builder()
+        let mut engine = GeneticEngine::builder()
             .problem(regression)
             .minimizing()
             .alter(alters!(
@@ -504,7 +503,7 @@ Evolve a `Tree<Op<f32>>` to solve the a regression problem (Genetic Programming)
         let tree_codec = TreeCodec::single(3, store).constraint(|root| root.size() < 30);
         let problem = Regression::new(get_dataset(), Loss::MSE, tree_codec);
 
-        let engine = GeneticEngine::builder()
+        let mut engine = GeneticEngine::builder()
             .problem(problem)
             .minimizing()
             .mutator(HoistMutator::new(0.01))
