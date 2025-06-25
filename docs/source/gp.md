@@ -740,9 +740,9 @@ This crossover operator is used to combine two parent graphs by swapping the val
 
 ## Regression
 
-In machine learning its common, if not required, to have a regression task. This is where you have a set of inputs and outputs, and you want to find a function that maps the inputs to the outputs. In Radiate, we can use genetic programming to evolve a tree or graph that fits the data. The regression `problem` is a special type of `problem` that allows you to define a set of inputs and outputs, and then evolve a tree or graph that fits the data. The regression problem can be used with both trees and graphs, and it will automatically handle the encoding and decoding of the data.
+In machine learning its common to have a regression task. This is where you have a set of inputs and outputs, and you want to find a function that maps the inputs to the outputs. In Radiate, we can use genetic programming to evolve a `tree` or `graph` that fits the data. The regression `problem` is a special type of `problem` that allows you to define a set of inputs and outputs, and then evolve a `tree` or `graph` that fits the data. The regression problem can be used with both trees and graphs, and it will automatically handle the encoding and decoding of the data.
 
-Lets take a quick look at how we would put together a regression problem using a tree and a graph.
+Lets take a quick look at how we would put together a regression problem using a `tree` and a `graph`.
 
 === ":fontawesome-brands-python: Python"
 
