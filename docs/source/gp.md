@@ -246,8 +246,19 @@ The `NodeStore<T>` manages available values for different node types, providing 
         Leaf => [4, 5, 6],
     }
 
+    // -- with ops --
+    // for trees, the input nodes are always the leaf nodes, so we can use the `Op::var` to represent them
+    let op_store: NodeStore<Op<f32>> = node_store! {
+        Root => [Op::sigmoid()],
+        Vertex => [Op::add(), Op::mul()],
+        Leaf => (0..3).map(Op::var).collect::<Vec<_>>(),
+    };
+
     // Create a new vertex tree node 
     let tree_node: TreeNode<i32> = tree_store.new_instance(NodeType::Vertex);
+
+    // Create a new leaf tree node
+    let leaf_node: TreeNode<Op<f32>> = op_store.new_instance(NodeType::Leaf);
     
     // Create a store for graph operations
     // Each input node created will have a random value chosen from [1, 2]
@@ -270,8 +281,19 @@ The `NodeStore<T>` manages available values for different node types, providing 
         Output => [8, 9, 10],
     };
 
+    // -- with ops --
+    let op_store: NodeStore<Op<f32>> = node_store! {
+        Input => [Op::var(0), Op::var(1)],
+        Edge => [Op::add(), Op::mul()],
+        Vertex => [Op::sub(), Op::div(), Op::max()],
+        Output => [Op::sigmoid(), Op::tanh(), Op::relu()],
+    };
+
     // Create a new vertex graph node at index 0
     let graph_node: GraphNode<i32> = graph_store.new_instance((0, NodeType::Vertex));
+
+    // Createa a new edge graph node at index 1
+    let edge_node: GraphNode<Op<f32>> = op_store.new_instance((1, NodeType::Edge));
     ```
 
 **Node Type Mapping:**
@@ -325,7 +347,7 @@ A `Tree<T>` represents a hierarchical structure where each node has exactly one 
 
 ### Node
 
-Each node in a tree contains a value and optional children & arity. The `TreeNode<T>` also implements the `gene` trait, making the node itself a `gene` and it's value the `allele`. 
+Each node in a tree contains a value and optional children & arity. The `TreeNode` also implements the `gene` trait, making the node itself a `gene` and it's value the `allele`. 
 
 **Node Types:**
 
@@ -333,13 +355,100 @@ Each node in a tree contains a value and optional children & arity. The `TreeNod
 - **Vertex**: Internal computation nodes (can have any number of children)
 - **Leaf**: Terminal nodes with no children (arity is `Arity::Zero`)
 
-### Chromosome
-
-A chromosome that represents a tree structure for genetic operations:
-
 ### Codec
 
+The `TreeCodec` is simply a `codec` that encodes a `TreeChromosome` and decodes it back into a `Tree`. The `TreeCodec` can be configured to create a single `tree` or a multi-root `tree` structure. 
+
+**Codec Types:**
+
+- **Single Root**: Creates one tree per `genotype`
+- **Multi-Root**: Creates multiple trees per `genotype`
+
+=== ":fontawesome-brands-python: Python"
+
+    !!! warning ":construction: Under Construction :construction:"
+
+        Python's GP is still under development and will be available in a future release.
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    let store = vec![
+        (NodeType::Root, vec![Op::add(), Op::sub()]),
+        (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
+        (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
+    ];
+
+    // Create a single rooted tree codec with a starting (minimum) depth of 3
+    let codec = TreeCodec::single(3, store);
+    let genotype: Genotype<TreeChromosome<Op<f32>>> = single_root_codec.encode();
+    let tree: Tree<Op<f32>> = codec.decode(&genotype);
+
+    // Create a multi-rooted tree codec with a starting (minimum) depth of 3 and 2 trees
+    let codec = TreeCodec::multi_root(3, 2, store);
+    let genotype: Genotype<TreeChromosome<Op<f32>>> = codec.encode();
+    // multi-rooted codec decodes to a Vec of Trees
+    // one for each root in the genotype
+    let trees: Vec<Tree<Op<f32>>> = codec.decode(&genotype); 
+    ```
+
 ### Alters
+
+#### HoistMutator
+
+> Inputs
+> 
+>   * `rate`: f32 - Mutation rate (0.0 to 1.0)
+
+- **Purpose**:  Randomly hoists subtrees from one part of the tree to another.
+- **Best for**: Evolving trees with complex structures.
+- **Example**: Symbolic regression or decision trees.
+- **Compatible with**: `TreeNode`, `TreeChromosome`
+
+The `HoistMutator` is a mutation operator that randomly selects a subtree from the tree and moves it to a different location in the tree. This can create new structures and relationships between nodes, allowing for more complex solutions to emerge.
+
+=== ":fontawesome-brands-python: Python"
+
+    !!! warning ":construction: Under Construction :construction:"
+
+        Python's GP is still under development and will be available in a future release.
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    let mutator = HoistMutator::new(0.1);
+    ```
+
+#### TreeCrossover
+
+> Inputs
+> 
+>   * `rate`: f32 - Mutation rate (0.0 to 1.0)
+
+- **Purpose**: Swaps two subtrees between two trees.
+- **Best for**: Combining structures from two parent trees.
+- **Example**: Evolving decision trees or symbolic expressions.
+- **Compatible with**: `TreeNode`, `TreeChromosome`
+
+The `TreeCrossover` is a crossover operator that randomly selects a subtree from one parent tree and swaps it with a subtree from another parent tree.
+
+=== ":fontawesome-brands-python: Python"
+
+    !!! warning ":construction: Under Construction :construction:"
+
+        Python's GP is still under development and will be available in a future release.
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    let mutator = TreeCrossover::new(0.1);
+    ```
 
 ---
 
@@ -354,7 +463,7 @@ Graphs are a powerful way to represent problems. They are used in many fields, s
 
 With these rules in mind, we can begin to build and evolve graphs. The graph typically relies on an underlying `GraphArchitect` to construct a valid graph. This architect is a builder pattern that keeps an aggregate of nodes added and their relationships to other nodes. Because of the architect's decoupled nature, we can easily create complex graphs, however it is up to the user to ensure that the desired end graph is valid. 
 
-Radiate provides a few basic graph architectures, but it is also possible to construct your own graph through either the built in graph functions or by using the architect. In most cases building a graph requires a vec of tuples where the first element is the `NodeType` and the second element is a vec of values that the `GraphNode` can take. The `NodeType` is either `Input`, `Output`, `Vertex`, or `Edge`. The value of the `GraphNode` is picked at random from the vec of it's `NodeType`.
+Radiate provides a few basic graph architectures, but it is also possible to construct your own graph through either the built in graph functions or by using the architect. In most cases building a graph requires a vec of tuples (or a `NodeStore`) where the first element is the `NodeType` and the second element is a vec of values that the `GraphNode` can take. The `NodeType` is either `Input`, `Output`, `Vertex`, or `Edge`. The value of the `GraphNode` is picked at random from the vec of it's `NodeType`.
 
 **Key Properties:**
 
@@ -363,9 +472,89 @@ Radiate provides a few basic graph architectures, but it is also possible to con
 - **Connection Sets**: Each node maintains incoming/outgoing connections
 - **Direction Support**: Can be directed acyclic (DAG) or cyclic
 
+Manually create a simple graph:
+
+=== ":fontawesome-brands-python: Python"
+
+    !!! warning ":construction: Under Construction :construction:"
+
+        Python's GP is still under development and will be available in a future release.
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    // create a simple graph:
+    // 0 -> 1 -> 2
+    let mut graph = Graph::<i32>::default();
+
+    let idx_one = graph.insert(NodeType::Input, 0);
+    let idx_two = graph.insert(NodeType::Vertex, 1);
+    let idx_three = graph.insert(NodeType::Output, 2);
+
+    graph.attach(idx_one, idx_two).attach(idx_two, idx_three);
+
+    // Set cycles in a cyclic graph:
+    let mut graph = Graph::<i32>::default();
+
+    let idx_one = graph.insert(NodeType::Input, 0);
+    let idx_two = graph.insert(NodeType::Vertex, 1);
+    let idx_three = graph.insert(NodeType::Vertex, 2);
+    let idx_four = graph.insert(NodeType::Output, 3);
+
+    graph
+        .attach(idx_one, idx_two)
+        .attach(idx_two, idx_three)
+        .attach(idx_three, idx_two)
+        .attach(idx_three, idx_four)
+        .attach(idx_four, idx_two);
+
+    graph.set_cycles(vec![]);
+    ```
+
+Now, the above works just fine, but can become cumbersome quickly. To ease the process of creating a `graph`, we can use the default `graph` types to create graphs in a better way. All we need to do is define a `NodeStore` that contains the possible values for each node given a `NodeType`. 
+
+=== ":fontawesome-brands-python: Python"
+
+    !!! warning ":construction: Under Construction :construction:"
+
+        Python's GP is still under development and will be available in a future release.
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    // Input nodes are picked in order while the rest of the node's values
+    // are picked at random.
+
+    // Take note that the NodeType::Input has two variables, [0, 1] 
+    // and we create a graph with two input nodes.
+    let values = vec![
+        (NodeType::Input, vec![Op::var(0), Op::var(1)]),
+        (NodeType::Edge, vec![Op::weight()]),
+        (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::linear()]),
+        (NodeType::Output, vec![Op::linear()]),
+    ];
+
+    // create a directed graph with 2 input nodes and 2 output nodes
+    let dag = Graph::directed(2, 2, values);
+
+    // create a recurrent graph with 2 input nodes and 2 output nodes
+    let recurrent = Graph::recurrent(2, 2, values);
+
+    // create a weighted directed graph with 2 input nodes and 2 output nodes
+    let weighted_dag = Graph::weighted_directed(2, 2, values);
+
+    // create a weighted recurrent graph with 2 input nodes and 2 output nodes
+    let weighted_recurrent = Graph::weighted_recurrent(2, 2, values);
+    ```
+
+
 ### Node
 
-Each node in a graph contains a value and connection information:
+The `GraphNode` struct is a fundamental building block for graph-based genetic programming in Radiate. It represents a node in a directed graph that can have both incoming and outgoing connections to other nodes. Each node has a unique identifier, an index in the graph, a value of type T, and maintains sets of incoming and outgoing connections. The `GraphNode` can be of different types, such as `Input`, `Output`, `Vertex`, or `Edge`, each serving a specific role in the graph structure. To ensure the integrity of the graph, the `GraphNode` enforces rules based on its type, such as the number of incoming and outgoing connections it can have. In order to facilitate genetic programming, the `GraphNode` implements the `Gene` trait, where it's `allele` is the value of the node, and its `gene` is the node itself. 
 
 **Node Types:**
 
@@ -374,13 +563,115 @@ Each node in a graph contains a value and connection information:
 - **Vertex**: Internal computation (both incoming and outgoing)
 - **Edge**: Connection nodes (exactly one incoming and one outgoing)
 
-### Chromosome
+=== ":fontawesome-brands-python: Python"
 
-A chromosome that represents a graph structure for genetic operations:
+    !!! warning ":construction: Under Construction :construction:"
+
+        Python's GP is still under development and will be available in a future release.
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    // Create a new input node with value 42
+    let node = GraphNode::new(0, NodeType::Input, 42);
+
+    // Create a node with specific arity
+    // This node will be invalid if it has a number of incoming connections other than 2
+    let node_with_arity = GraphNode::with_arity(1, NodeType::Vertex, 42, Arity::Exact(2));
+    ```
 
 ### Codec
 
+The `GraphCodec` is a codec that encodes a `GraphChromosome` and decodes it back into a `Graph`. The `GraphCodec` can be configured to create directed or recurrent graphs.
+
+=== ":fontawesome-brands-python: Python"
+
+    !!! warning ":construction: Under Construction :construction:"
+
+        Python's GP is still under development and will be available in a future release.
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    // Create a store for graph operations
+    let store = vec![
+        (NodeType::Input, vec![Op::var(0), Op::var(1)]),
+        (NodeType::Edge, vec![Op::add(), Op::mul()]),
+        (NodeType::Vertex, vec![Op::sub(), Op::div()]),
+        (NodeType::Output, vec![Op::sigmoid(), Op::tanh()]),
+    ];
+
+    // Create a directed graph codec with 2 input nodes and 2 output nodes
+    let codec = GraphCodec::directed(2, 2, store);
+    let genotype: Genotype<GraphChromosome<Op<f32>>> = codec.encode();
+    let graph: Graph<Op<f32>> = codec.decode(&genotype);
+
+    // Create a recurrent graph codec with 2 input nodes and 2 output nodes
+    let recurrent_codec = GraphCodec::recurrent(2, 2, store);
+    let recurrent_genotype: Genotype<GraphChromosome<Op<f32>>> = recurrent_codec.encode();
+    let recurrent_graph: Graph<Op<f32>> = recurrent_codec.decode(&recurrent_genotype);
+    ```
+
 ### Alters
+
+#### GraphMutator
+
+> Inputs
+> 
+>   * `vertex_rate`: f32 - Probabilty of adding a vertex to the graph (0.0 to 1.0)
+>   * `edge_rate`: f32 - Probabilty of adding an edge to the graph (0.0 to 1.0)
+>   * `allow_recurrent`: bool - Whether to allow recurrent connections in the graph. The default is `false`, meaning the graph will be a directed acyclic graph (DAG).
+
+- **Purpose**: Randomly adds vertices and edges to the graph.
+
+This mutator is used to add new nodes and connections to the graph. It can be used to evolve the graph structure over time, allowing for more complex solutions to emerge.
+
+=== ":fontawesome-brands-python: Python"
+
+    !!! warning ":construction: Under Construction :construction:"
+
+        Python's GP is still under development and will be available in a future release.
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    // Create a mutator that adds vertices and edges with a 10% chance for either
+    let mutator = GraphMutator::new(0.1, 0.1);
+
+    let mutator = GraphMutator::new(0.1, 0.1).allow_recurrent(true); // Allow recurrent connections
+    ```
+
+#### GraphCrossover
+
+> Inputs
+> 
+>   * `rate`: f32 - Crossover rate (0.0 to 1.0)
+>   * `cross_parent_node_rate`: f32 - Probability of the less fit parent taking a node from the more fit parent (0.0 to 1.0)
+
+- **Purpose**: Swaps node value's (`alleles`) between two graphs.
+
+This crossover operator is used to combine two parent graphs by swapping the values of their nodes. It can be used to create new graphs that inherit the structure and values of their parents. Given that a more fit parent's node's `arity` matches the less fit parent's node's `arity`, the less fit parent will take (inherit) the more fit parent's node's value. This means the child is guaranteed to have the same structure as the less fit parent, but with some of the more fit parent's values (`alleles`). This process is extremely similar to how the [NEAT](https://en.wikipedia.org/wiki/NeuroEvolution_of_Augmenting_Topologies) algorithm works.
+
+=== ":fontawesome-brands-python: Python"
+
+    !!! warning ":construction: Under Construction :construction:"
+
+        Python's GP is still under development and will be available in a future release.
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    // Create a mutator that adds vertices and edges with a 10% chance for either
+    let crossover = GraphCrossover::new(0.1, 0.5);
+    ```
 
 ---
 

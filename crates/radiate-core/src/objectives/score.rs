@@ -97,8 +97,28 @@ impl From<f32> for Score {
     }
 }
 
+impl From<f64> for Score {
+    fn from(value: f64) -> Self {
+        if value.is_nan() {
+            panic!("Score value cannot be NaN")
+        }
+
+        Score {
+            values: Arc::from(vec![value as f32]),
+        }
+    }
+}
+
 impl From<i32> for Score {
     fn from(value: i32) -> Self {
+        Score {
+            values: Arc::from(vec![value as f32]),
+        }
+    }
+}
+
+impl From<i64> for Score {
+    fn from(value: i64) -> Self {
         Score {
             values: Arc::from(vec![value as f32]),
         }
@@ -139,8 +159,20 @@ impl From<Vec<f32>> for Score {
     }
 }
 
+impl From<Vec<f64>> for Score {
+    fn from(value: Vec<f64>) -> Self {
+        Score::from_vec(value.into_iter().map(|v| v as f32).collect())
+    }
+}
+
 impl From<Vec<i32>> for Score {
     fn from(value: Vec<i32>) -> Self {
+        Score::from_vec(value.into_iter().map(|v| v as f32).collect())
+    }
+}
+
+impl From<Vec<i64>> for Score {
+    fn from(value: Vec<i64>) -> Self {
         Score::from_vec(value.into_iter().map(|v| v as f32).collect())
     }
 }

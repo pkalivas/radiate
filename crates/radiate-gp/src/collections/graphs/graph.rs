@@ -36,7 +36,7 @@ use std::ops::{Index, IndexMut};
 /// By default, a [Graph] is a directed acyclic graph (DAG). However, it is possible to create
 /// cycles in the graph by setting the 'direction' field of a [GraphNode] to [Direction::Backward].
 /// The [Graph] struct provides methods for attaching and detaching nodes from one another.
-/// It also provides methods for iterating over the nodes in the graph in a sudo topological order.
+/// It also provides methods for iterating over the nodes in the graph in a pseudo-topological order.
 ///
 /// Each node:
 /// * Has a unique index matching its position in the vector

@@ -18,18 +18,6 @@ where
     ) {
         let timer = std::time::Instant::now();
 
-        // TODO: Check this out - these two varients are comparable.
-
-        // let new_individuals = pareto::pareto_front(
-        //     &ecosystem.population().iter().collect::<Vec<_>>(),
-        //     &self.front.read().unwrap().objective(),
-        // );
-
-        // let phenotypes = new_individuals
-        //     .into_iter()
-        //     .map(|pheno| Phenotype::clone(pheno))
-        //     .collect::<Vec<Phenotype<C>>>();
-
         let phenotypes = ecosystem
             .population()
             .iter()

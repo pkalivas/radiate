@@ -79,7 +79,6 @@ where
             let new_member = member.clone();
             let values_to_add = Arc::clone(&values_to_add);
 
-            // self.thread_pool.group_submit(&wg, move || {
             jobs.push(move || {
                 let mut is_dominated = true;
 
