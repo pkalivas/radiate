@@ -341,7 +341,11 @@ The node store ensures that:
 
 ## Trees
 
-A `Tree<T>` represents a hierarchical structure where each node has exactly one parent (except the root) and zero or more children.
+A `tree` represents a hierarchical structure where each node has exactly one parent (except the root) and zero or more children. When combined with the [ops](#ops), it allows for the evolution of mathematical expressions, decision trees, and symbolic regression.
+
+<figure markdown="span">
+    ![op-tree](../assets/Genetic_Program_Tree.png){ width="300" }
+</figure>
 
 === ":fontawesome-brands-python: Python"
 
@@ -366,6 +370,35 @@ A `Tree<T>` represents a hierarchical structure where each node has exactly one 
             .attach(TreeNode::new(3))
             .attach(TreeNode::new(4))
         .attach(TreeNode::new(3))));
+
+    // The tree can be evaluated with a function that takes a vector of inputs
+    // This creates a `Tree` that looks like:
+    //      +
+    //    /   \
+    //   *     +
+    //  / \   / \
+    // 2  3  2   x
+    //
+    // Where `x` is the first variable in the input.
+    // This can also be thought of (and is functionally equivalent) as:
+    //
+    // f(x) = (2 * 3) + (2 + x)
+    //
+    let root = TreeNode::new(Op::add())
+        .attach(
+            TreeNode::new(Op::mul())
+                .attach(TreeNode::new(Op::constant(2.0)))
+                .attach(TreeNode::new(Op::constant(3.0))),
+        )
+        .attach(
+            TreeNode::new(Op::add())
+                .attach(TreeNode::new(Op::constant(2.0)))
+                .attach(TreeNode::new(Op::var(0))),
+        );
+
+    // And the result of evaluating this tree with an input of `1` would be:
+    let result = root.eval(&vec![1_f32]);
+    assert_eq!(result, 9.0);
     ```
 
 **Key Properties:**
@@ -484,7 +517,11 @@ Graphs are a powerful way to represent problems. They are used in many fields, s
 3. Each edge node must have exactly 1 incoming connection and 1 outgoing connection.
 4. Each vertex node must have at least 1 incoming connection and at least 1 outgoing connection.
 
-With these rules in mind, we can begin to build and evolve graphs. The graph typically relies on an underlying `GraphArchitect` to construct a valid graph. This architect is a builder pattern that keeps an aggregate of nodes added and their relationships to other nodes. Because of the architect's decoupled nature, we can easily create complex graphs, however it is up to the user to ensure that the desired end graph is valid. 
+With these rules in mind, we can begin to build and evolve graphs. The graph typically relies on an underlying `GraphArchitect` to construct a valid graph. This architect is a builder pattern that keeps an aggregate of nodes added and their relationships to other nodes. Because of the architect's decoupled nature, we can easily create complex graphs. When combined with the [op](#ops) functionality, the `graph` module allows for the creation of complex computational graphs that can be evolved to solve or eval regression problems. 
+
+<figure markdown="span">
+    ![op-grpah](../assets/graph_gp.png){ width="300" }
+</figure>
 
 Radiate provides a few basic graph architectures, but it is also possible to construct your own graph through either the built in graph functions or by using the architect. In most cases building a graph requires a vec of tuples (or a `NodeStore`) where the first element is the `NodeType` and the second element is a vec of values that the `GraphNode` can take. The `NodeType` is either `Input`, `Output`, `Vertex`, or `Edge`. The value of the `GraphNode` is picked at random from the vec of it's `NodeType`.
 
@@ -562,18 +599,21 @@ Now, the above works just fine, but can become cumbersome quickly. To ease the p
     ];
 
     // create a directed graph with 2 input nodes and 2 output nodes
-    let dag = Graph::directed(2, 2, values);
+    let graph: Graph<Op<f32>> = Graph::directed(2, 2, values);
 
     // create a recurrent graph with 2 input nodes and 2 output nodes
-    let recurrent = Graph::recurrent(2, 2, values);
+    let graph: Graph<Op<f32>> = Graph::recurrent(2, 2, values);
 
     // create a weighted directed graph with 2 input nodes and 2 output nodes
-    let weighted_dag = Graph::weighted_directed(2, 2, values);
+    let graph: Graph<Op<f32>> = Graph::weighted_directed(2, 2, values);
 
     // create a weighted recurrent graph with 2 input nodes and 2 output nodes
-    let weighted_recurrent = Graph::weighted_recurrent(2, 2, values);
-    ```
+    let graph: Graph<Op<f32>> = Graph::weighted_recurrent(2, 2, values);
 
+    // Op graphs can be evaluated much like trees, but with the added complexity of connections.
+    let inputs = vec![vec![1.0, 2.0]];
+    let outputs = graph.eval(&inputs);
+    ```
 
 ### Node
 
@@ -700,9 +740,9 @@ This crossover operator is used to combine two parent graphs by swapping the val
 
 ## Regression
 
-In machine learning its common, if not required, to have a regression task. This is where you have a set of inputs and outputs, and you want to find a function that maps the inputs to the outputs. In Radiate, we can use genetic programming to evolve a tree or graph that fits the data. The regression `problem` is a special type of `problem` that allows you to define a set of inputs and outputs, and then evolve a tree or graph that fits the data. The regression problem can be used with both trees and graphs, and it will automatically handle the encoding and decoding of the data.
+In machine learning its common to have a regression task. This is where you have a set of inputs and outputs, and you want to find a function that maps the inputs to the outputs. In Radiate, we can use genetic programming to evolve a `tree` or `graph` that fits the data. The regression `problem` is a special type of `problem` that allows you to define a set of inputs and outputs, and then evolve a `tree` or `graph` that fits the data. The regression problem can be used with both trees and graphs, and it will automatically handle the encoding and decoding of the data.
 
-Lets take a quick look at how we would put together a regression problem using a tree and a graph.
+Lets take a quick look at how we would put together a regression problem using a `tree` and a `graph`.
 
 === ":fontawesome-brands-python: Python"
 
