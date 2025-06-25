@@ -169,6 +169,34 @@ Provided `Ops` include:
     let inputs = var_op.eval(&[5.0, 10.0]); // result is 5.0 when evaluated with inputs
     ```
 
+### Alters
+
+#### OperationMutator
+
+> Inputs
+> 
+>   * `rate`: f32 - Mutation rate (0.0 to 1.0)
+>   * `replace_rate`: f32 - Rate at which to replace an old `op` with a completely new one (0.0 to 1.0)
+
+- **Purpose**: Randomly mutate an operation within a `TreeNode` or `GraphNode`.
+
+This mutator randomly changes or alters the `op` of a node within a `TreeChromosome` or `GraphChromosome`. It can replace the `op` with a new one from the [store](#store) or modify its parameters.
+
+=== ":fontawesome-brands-python: Python"
+
+    !!! warning ":construction: Under Construction :construction:"
+
+        Python's GP is still under development and will be available in a future release.
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    // Create a mutator that has a 10% chance to mutate an op and a 50% chance to replace it with a new one
+    let mutator = OperationMutator::new(0.1, 0.5);
+    ```
+
 ---
 
 ## Nodes 
@@ -403,9 +431,6 @@ The `TreeCodec` is simply a `codec` that encodes a `TreeChromosome` and decodes 
 >   * `rate`: f32 - Mutation rate (0.0 to 1.0)
 
 - **Purpose**:  Randomly hoists subtrees from one part of the tree to another.
-- **Best for**: Evolving trees with complex structures.
-- **Example**: Symbolic regression or decision trees.
-- **Compatible with**: `TreeNode`, `TreeChromosome`
 
 The `HoistMutator` is a mutation operator that randomly selects a subtree from the tree and moves it to a different location in the tree. This can create new structures and relationships between nodes, allowing for more complex solutions to emerge.
 
@@ -430,9 +455,6 @@ The `HoistMutator` is a mutation operator that randomly selects a subtree from t
 >   * `rate`: f32 - Mutation rate (0.0 to 1.0)
 
 - **Purpose**: Swaps two subtrees between two trees.
-- **Best for**: Combining structures from two parent trees.
-- **Example**: Evolving decision trees or symbolic expressions.
-- **Compatible with**: `TreeNode`, `TreeChromosome`
 
 The `TreeCrossover` is a crossover operator that randomly selects a subtree from one parent tree and swaps it with a subtree from another parent tree.
 
@@ -672,6 +694,11 @@ This crossover operator is used to combine two parent graphs by swapping the val
     // Create a mutator that adds vertices and edges with a 10% chance for either
     let crossover = GraphCrossover::new(0.1, 0.5);
     ```
+
+---
+
+## Regression
+
 
 ---
 
