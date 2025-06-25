@@ -599,18 +599,21 @@ Now, the above works just fine, but can become cumbersome quickly. To ease the p
     ];
 
     // create a directed graph with 2 input nodes and 2 output nodes
-    let dag = Graph::directed(2, 2, values);
+    let graph: Graph<Op<f32>> = Graph::directed(2, 2, values);
 
     // create a recurrent graph with 2 input nodes and 2 output nodes
-    let recurrent = Graph::recurrent(2, 2, values);
+    let graph: Graph<Op<f32>> = Graph::recurrent(2, 2, values);
 
     // create a weighted directed graph with 2 input nodes and 2 output nodes
-    let weighted_dag = Graph::weighted_directed(2, 2, values);
+    let graph: Graph<Op<f32>> = Graph::weighted_directed(2, 2, values);
 
     // create a weighted recurrent graph with 2 input nodes and 2 output nodes
-    let weighted_recurrent = Graph::weighted_recurrent(2, 2, values);
-    ```
+    let graph: Graph<Op<f32>> = Graph::weighted_recurrent(2, 2, values);
 
+    // Op graphs can be evaluated much like trees, but with the added complexity of connections.
+    let inputs = vec![vec![1.0, 2.0]];
+    let outputs = graph.eval(&inputs);
+    ```
 
 ### Node
 
