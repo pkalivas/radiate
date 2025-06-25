@@ -138,28 +138,6 @@ impl Optimize {
     }
 }
 
-impl From<Vec<String>> for Objective {
-    fn from(optimize: Vec<String>) -> Self {
-        if optimize.len() == 1 {
-            match optimize[0].as_str() {
-                "min" => Objective::Single(Optimize::Minimize),
-                "max" => Objective::Single(Optimize::Maximize),
-                _ => panic!("Invalid optimization direction: {}", optimize[0]),
-            }
-        } else {
-            let opts = optimize
-                .into_iter()
-                .map(|s| match s.as_str() {
-                    "min" => Optimize::Minimize,
-                    "max" => Optimize::Maximize,
-                    _ => panic!("Invalid optimization direction: {}", s),
-                })
-                .collect();
-            Objective::Multi(opts)
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
