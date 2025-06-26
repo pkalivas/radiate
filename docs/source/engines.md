@@ -250,7 +250,7 @@ For certain optimization problems, it is useful to have a more structured way to
 
         fn eval(&self, genotype: &Genotype<FloatChromosome>) -> Score {
             // Evaluate the genotype directly without decoding
-            my_fitness_fn(&decoded_value)
+            my_fitness_fn(&genotype)
         }
     }
 
