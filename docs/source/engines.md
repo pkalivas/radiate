@@ -63,7 +63,7 @@ This is the default epoch for the engine - `Generation`. It contains:
     // Where the `epoch` is `Generation<FloatChromosome, f32>`
     let mut engine = GeneticEngine::builder()
         .codec(FloatCodec::scalar(0.0..1.0)) 
-        .fitness_fn(|genotype: Vec<f32>| my_fitness_fn(genotype)) // Return a single fitness score
+        .fitness_fn(|genotype: f32| my_fitness_fn(genotype)) // Return a single fitness score
         // ... other parameters ...
         .build();
 
@@ -146,7 +146,7 @@ When the engine is configured for multi-objective optimization, the engine produ
     let mut engine = GeneticEngine::builder()
         .codec(FloatCodec::scalar(0.0..1.0)) 
         .multi_objective(vec![Objective::Min, Objective::Max]) // Specify multi-objective optimization
-        .fitness_fn(|genotype: Vec<f32>| my_fitness_fn(genotype)) // Return a multi-objective fitness score
+        .fitness_fn(|genotype: f32| my_fitness_fn(genotype)) // Return a multi-objective fitness score
         // ... other parameters ...
         .build();
 
