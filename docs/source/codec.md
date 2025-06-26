@@ -214,7 +214,7 @@ Radiate provides several codec types out of the box that should be able to cover
         # For a matrix of bools
         codec = rd.BitCodec.matrix(shape=(3, 2))
         # -- or --
-        # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes) - use the default char_set
+        # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes)
         codec = rd.BitCodec.matrix([2, 2, 2])
         ```
 
@@ -225,12 +225,12 @@ Radiate provides several codec types out of the box that should be able to cover
         ```rust
         use radiate::*;
 
-        // vector of 5 chars - specify the char set
+        // vector of 5 bools
         let codec_vector = BitCodec::vector(5);
         let encoded_vector: Genotype<BitChromosome> = codec_vector.encode();
         let decoded_vector: Vec<bool> = codec_vector.decode(&encoded_vector);
 
-        // 3x2 matrix of chars
+        // 3x2 matrix of bools
         let codec_matrix = BitCodec::matrix(3, 2);
         let encoded_matrix: Genotype<BitChromosome> = codec_matrix.encode();
         let decoded_matrix: Vec<Vec<bool>> = codec_matrix.decode(&encoded_matrix);

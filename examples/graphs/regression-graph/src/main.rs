@@ -15,14 +15,10 @@ fn main() {
     let graph_codec = GraphCodec::directed(1, 1, values);
     let problem = Regression::new(get_dataset(), Loss::MSE, graph_codec);
 
-    // let metric_aggregator = MetricsAggregator::new();
-
     let engine = GeneticEngine::builder()
         .problem(problem)
         .minimizing()
         .executor(Executor::worker_pool(10))
-        // .subscribe(EventLogger::default())
-        // .subscribe(metric_aggregator.clone())
         // .diversity(NeatDistance::new(1.0, 1.0, 3.0))
         // .species_threshold(1.8)
         // .max_species_age(25)
@@ -35,12 +31,10 @@ fn main() {
 
     engine
         .iter()
+        .inspect(|generation| log_ctx!(generation))
         .until_score_below(MIN_SCORE)
         .take(1)
         .last()
-        // .inspect(|_| {
-        //     println!("{:?}", metric_aggregator.aggregate());
-        // })
         .inspect(display);
 }
 
@@ -53,22 +47,6 @@ fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
 
     println!("{:?}", result);
     println!("{:?}", accuracy_result);
-
-    let result_graph = result.value().clone();
-    let serialized = serde_json::to_string(&result_graph).unwrap();
-
-    std::fs::write("best_graph.json", serialized).expect("Unable to write file");
-
-    let read_graph: Graph<Op<f32>> = serde_json::from_str(
-        &std::fs::read_to_string("best_graph.json").expect("Unable to read file"),
-    )
-    .unwrap();
-
-    // evaluate the read graph
-    let mut read_evaluator = GraphEvaluator::new(&read_graph);
-    let read_accuracy_result = accuracy.calc(|input| read_evaluator.eval_mut(input));
-
-    println!("Read Graph Accuracy: {:?}", read_accuracy_result);
 }
 
 fn get_dataset() -> DataSet {

@@ -1,9 +1,4 @@
 
-!!! warning ":construction: Under Construction :construction:"
-
-    These docs are a work in progress and may not be complete or accurate. Please check back later for updates.
-    Check the [GitHub repository](https://github.com/pkalivas/radiate/trees/master/examples) for the latest examples
-
 Check the git repo [examples](https://github.com/pkalivas/radiate/tree/master/examples) for a more 
 comprehensive list of examples.
 
@@ -394,8 +389,6 @@ The resulting Pareto front can be visualized using Plotly or matplotlib, as show
 
 Evolve a `Graph<Op<f32>>` to solve the XOR problem (NeuroEvolution).
 
-!!! warning "Requires `gp` feature flag"
-
 === ":fontawesome-brands-python: Python"
 
     !!! warning ":construction: Under Construction :construction:"
@@ -403,6 +396,8 @@ Evolve a `Graph<Op<f32>>` to solve the XOR problem (NeuroEvolution).
         Python's gp feature is still under development and not yet available.
 
 === ":fontawesome-brands-rust: Rust"
+
+    !!! note "Requires `gp` feature flag"
 
     ```rust
     use radiate::*;
@@ -476,8 +471,6 @@ Evolve a `Graph<Op<f32>>` to solve the XOR problem (NeuroEvolution).
 
 Evolve a `Tree<Op<f32>>` to solve the a regression problem (Genetic Programming).
 
-!!! warning "Requires `gp` feature flag"
-
 === ":fontawesome-brands-python: Python"
 
     !!! warning ":construction: Under Construction :construction:"
@@ -485,6 +478,9 @@ Evolve a `Tree<Op<f32>>` to solve the a regression problem (Genetic Programming)
         Python's gp feature is still under development and not yet available.
 
 === ":fontawesome-brands-rust: Rust"
+
+    !!! note "Requires `gp` feature flag"
+
 
     ```rust
     use radiate::*;

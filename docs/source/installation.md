@@ -45,10 +45,7 @@ By installing the above, you will get the core library. However, Radiate has a f
 radiate=0.0.3
 ```
 
-!!! warning ":construction: Under Construction :construction:"
-
-    The features for Python are still in development and will be available in future releases.
-
+Python's radiate package does not have any optional features - it is a single package that includes all functionality.
 
 ### Rust
 

@@ -8,7 +8,6 @@ use serde::{Deserialize, Serialize};
 pub struct Ecosystem<C: Chromosome> {
     pub population: Population<C>,
     pub species: Option<Vec<Species<C>>>,
-    pub is_sorted: bool,
 }
 
 impl<C: Chromosome> Ecosystem<C> {
@@ -16,7 +15,6 @@ impl<C: Chromosome> Ecosystem<C> {
         Ecosystem {
             population,
             species: None,
-            is_sorted: false,
         }
     }
 

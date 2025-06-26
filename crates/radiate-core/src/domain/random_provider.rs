@@ -18,12 +18,6 @@ impl RandomProvider {
         })
     }
 
-    pub(self) fn set_rng(other: StdRng) {
-        let instance = Self::global();
-        let mut rng = instance.rng.lock().unwrap();
-        *rng = other;
-    }
-
     pub(self) fn get_rng() -> StdRng {
         let instance = Self::global();
         let rng = instance.rng.lock().unwrap();
@@ -122,19 +116,6 @@ pub fn indexes(range: std::ops::Range<usize>) -> Vec<usize> {
     let mut indexes = range.collect::<Vec<usize>>();
     shuffle(&mut indexes);
     indexes
-}
-
-/// Executes the given function with a new random number generator with the given seed.
-/// The original random number generator is restored after the function has been executed
-pub fn scoped_seed<F>(seed: u64, func: F)
-where
-    F: FnOnce(),
-{
-    let current_rng = RandomProvider::get_rng();
-
-    RandomProvider::set_rng(StdRng::seed_from_u64(seed));
-    func();
-    RandomProvider::set_rng(current_rng);
 }
 
 pub fn weighted_choice(weights: &[f32]) -> usize {

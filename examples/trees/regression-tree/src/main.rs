@@ -10,12 +10,6 @@ fn main() {
         (NodeType::Leaf, vec![Op::var(0)]),
     ];
 
-    // let template = Tree::parse("4 * x^3 - 3 * x^2 + x").unwrap();
-
-    // let tree_codec = TreeCodec::single(3, store)
-    //     .with_tree(template)
-    //     .constraint(|root| root.size() < 30);
-
     let tree_codec = TreeCodec::single(3, store).constraint(|root| root.size() < 30);
     let problem = Regression::new(get_dataset(), Loss::MSE, tree_codec);
 
@@ -43,19 +37,6 @@ fn display(result: &Generation<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
     println!("{:?}", result);
     println!("Best Tree: {}", result.value().format());
     println!("{:?}", accuracy_result);
-
-    // // just a quick test to ensure serialization works
-    // let serialized = serde_json::to_string(&result.value()).unwrap();
-    // std::fs::write("best_tree.json", serialized).expect("Unable to write file");
-
-    // let read_tree: Tree<Op<f32>> = serde_json::from_str(
-    //     &std::fs::read_to_string("best_tree.json").expect("Unable to read file"),
-    // )
-    // .unwrap();
-
-    // // evaluate the read tree
-    // let read_accuracy_result = accuracy.calc(|input| vec![read_tree.eval(input)]);
-    // println!("{:?}", read_accuracy_result);
 }
 
 fn get_dataset() -> DataSet {
