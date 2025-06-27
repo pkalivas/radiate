@@ -18,9 +18,7 @@ use crate::genome::population::Population;
 use crate::objectives::Score;
 use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
-use crate::steps::{
-    AuditStep, Evaluator, FilterStep, FrontStep, RecombineStep, SequentialEvaluator, SpeciateStep,
-};
+use crate::steps::{AuditStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
 use crate::{
     Alter, Audit, Crossover, EncodeReplace, EngineEvent, EngineProblem, EngineStep, EventBus,
     EventHandler, Front, MetricAudit, Mutate, Problem, ReplacementStrategy, RouletteSelector,
@@ -30,7 +28,9 @@ use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use core::panic;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::engine::Context;
-use radiate_core::{Diversity, Ecosystem, Epoch, Executor, Genotype, MetricSet};
+use radiate_core::{
+    Diversity, Ecosystem, Epoch, Evaluator, Executor, FitnessEvaluator, Genotype, MetricSet,
+};
 use radiate_error::RadiateError;
 use std::cmp::Ordering;
 use std::sync::{Arc, Mutex, RwLock};
@@ -334,7 +334,8 @@ where
                     max_species_age: 25,
                 },
                 evaluation_params: EvaluationParams {
-                    evaluator: Arc::new(SequentialEvaluator::new()),
+                    evaluator: Arc::new(FitnessEvaluator::new(Arc::new(Executor::default()))),
+                    fitness_executor: Arc::new(Executor::default()),
                     species_executor: Arc::new(Executor::default()),
                     front_executor: Arc::new(Executor::default()),
                     bus_executor: Arc::new(Executor::default()),

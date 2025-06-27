@@ -4,7 +4,7 @@ pub mod codecs;
 pub mod diversity;
 pub mod domain;
 pub mod engine;
-mod executor;
+pub mod evaluator;
 pub mod genome;
 pub mod objectives;
 pub mod problem;
@@ -20,6 +20,7 @@ pub use codecs::{
 pub use diversity::{Diversity, EuclideanDistance, HammingDistance};
 pub use domain::*;
 pub use engine::{Engine, EngineExt, EngineStep, Epoch};
+pub use evaluator::{Evaluator, FitnessEvaluator};
 pub use executor::Executor;
 pub use genome::*;
 pub use objectives::{Front, Objective, Optimize, ParetoFront, Score, pareto};

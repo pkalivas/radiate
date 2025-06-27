@@ -1,7 +1,7 @@
 use super::{PyObjective, subscriber::PySubscriber};
 use crate::{
-    ObjectValue, PyBitCodec, PyCharCodec, PyFloatCodec, PyGeneType, PyGeneration, PyIntCodec,
-    PyLimit, PyProblem,
+    FreeThreadPyEvaluator, ObjectValue, PyBitCodec, PyCharCodec, PyFloatCodec, PyGeneType,
+    PyGeneration, PyIntCodec, PyLimit, PyProblem,
     bindings::{builder::*, codec::PyCodec},
     conversion::Wrap,
     events::PyEventHandler,
@@ -237,6 +237,7 @@ where
         })
         .front_size(first_front..second_front)
         .num_threads(num_threads.min(1))
+        .evaluator(FitnessEvaluator::new(Arc::new(Executor::default())))
         .bus_executor(Executor::default());
 
     builder = match subscribers.len() > 0 {
@@ -294,23 +295,20 @@ where
         .into_bound_py_any(py)?
         .extract::<Vec<PySubscriber>>()?;
 
-    let executor = if num_threads > 1 {
-        Arc::new(Executor::worker_pool(num_threads))
-    } else {
-        Arc::new(Executor::Serial)
-    };
-
     let mut builder = GeneticEngine::builder()
-        .problem(PyProblem::new(fitness_fn, codec))
+        .problem(PyProblem::new(fitness_fn.clone_ref(py), codec.clone()))
         .population_size(population_size)
         .offspring_fraction(offspring_fraction)
         .max_age(max_age)
         .max_species_age(max_species_age)
         .species_threshold(species_threshold)
-        .evaluator(SequentialEvaluator::new())
-        .executor(executor.clone())
         .alter(alters)
-        .num_threads(num_threads.min(1))
+        .num_threads(num_threads.max(1))
+        // .evaluator(FitnessEvaluator::new(Arc::new(Executor::default())))
+        .evaluator(FreeThreadPyEvaluator::new(
+            Arc::new(Executor::worker_pool(num_threads.max(1))),
+            Arc::new(PyProblem::new(fitness_fn, codec)),
+        ))
         .bus_executor(Executor::default())
         .boxed_diversity(diversity)
         .boxed_offspring_selector(offspring_selector)

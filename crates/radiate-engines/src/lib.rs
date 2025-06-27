@@ -9,9 +9,9 @@ pub mod steps;
 pub use builder::GeneticEngineBuilder;
 pub use engine::GeneticEngine;
 pub use epoch::{Generation, ParetoGeneration};
-pub use events::{EngineEvent, Event, EventBus, EventHandler, EventLogger, MetricsAggregator};
+pub use events::{EngineEvent, Event, EventBus, EventHandler};
 pub use iter::{EngineIterator, EngineIteratorExt};
-pub use steps::{EvaluateStep, SequentialEvaluator, WorkerPoolEvaluator};
+pub use steps::EvaluateStep;
 
 pub use radiate_alters::*;
 pub use radiate_core::*;

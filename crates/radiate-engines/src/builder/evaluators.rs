@@ -1,5 +1,7 @@
-use crate::{GeneticEngineBuilder, SequentialEvaluator, WorkerPoolEvaluator, steps::Evaluator};
-use radiate_core::{Chromosome, Epoch, Executor, thread_pool::ThreadPool};
+use crate::GeneticEngineBuilder;
+use radiate_core::{
+    Chromosome, Epoch, Evaluator, Executor, FitnessEvaluator, thread_pool::ThreadPool,
+};
 use radiate_error::radiate_err;
 use std::sync::Arc;
 
@@ -10,6 +12,7 @@ where
     T: Clone,
 {
     pub evaluator: Arc<dyn Evaluator<C, T>>,
+    pub fitness_executor: Arc<Executor>,
     pub species_executor: Arc<Executor>,
     pub front_executor: Arc<Executor>,
     pub bus_executor: Arc<Executor>,
@@ -21,7 +24,7 @@ where
     T: Clone + Send,
     E: Epoch<C>,
 {
-    pub fn evaluator<EV: Evaluator<C, T> + 'static>(mut self, evaluator: EV) -> Self {
+    pub fn evaluator<V: Evaluator<C, T> + 'static>(mut self, evaluator: V) -> Self {
         self.params.evaluation_params.evaluator = Arc::new(evaluator);
         self
     }
@@ -42,11 +45,8 @@ where
         };
 
         self.params.evaluation_params = EvaluationParams {
-            evaluator: if num_threads == 1 {
-                Arc::new(SequentialEvaluator::new())
-            } else {
-                Arc::new(WorkerPoolEvaluator::new(num_threads))
-            },
+            evaluator: Arc::new(FitnessEvaluator::new(executor.clone())),
+            fitness_executor: executor.clone(),
             species_executor: executor.clone(),
             front_executor: executor.clone(),
             bus_executor: executor,
@@ -57,11 +57,17 @@ where
     pub fn executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
         let executor = executor.into();
         self.params.evaluation_params = EvaluationParams {
-            evaluator: self.params.evaluation_params.evaluator.clone(),
+            evaluator: Arc::new(FitnessEvaluator::new(executor.clone())),
+            fitness_executor: executor.clone(),
             species_executor: executor.clone(),
             front_executor: executor.clone(),
-            bus_executor: executor.clone(),
+            bus_executor: executor,
         };
+        self
+    }
+
+    pub fn fitness_executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
+        self.params.evaluation_params.fitness_executor = executor.into();
         self
     }
 

@@ -45,6 +45,7 @@ impl Executor {
             Executor::WorkerPool(pool) => {
                 let wg = WaitGroup::new();
                 let mut results = Vec::with_capacity(f.len());
+
                 for job in f {
                     let wg_clone = wg.guard();
                     let result = pool.submit_with_result(move || {

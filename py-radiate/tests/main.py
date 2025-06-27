@@ -9,7 +9,7 @@ sys.path.insert(0, project_root)
 
 import radiate as rd
 
-rd.random.set_seed(501)
+rd.random.set_seed(500)
 
 
 # codec = rd.IntCodec.matrix((2, 3), value_range=(0, 100), bound_range=(-1, 200))
@@ -28,60 +28,61 @@ class TestHandler(rd.EventHandler):
 
 
 
-engine = rd.GeneticEngine(
-    codec=rd.IntCodec.vector(10, (0, 10)),
-    fitness_func=lambda x: sum(x),
-    offspring_selector=rd.BoltzmannSelector(4),
-    objectives="min",
-    subscribe=TestHandler(),
-    num_threads=10,
-    alters=[
-        rd.MultiPointCrossover(0.75, 2), 
-        rd.UniformMutator(0.01)
-    ],
-)
-
-result = engine.run(rd.ScoreLimit(0))
-
-print(result)
-
-
-# N_QUEENS = 32
-
-# @jit(nopython=True, nogil=True)
-# def fitness_fn(queens):
-#     """Calculate the fitness score for the N-Queens problem."""
-#     score = 0
-#     for i in range(N_QUEENS):
-#         for j in range(i + 1, N_QUEENS):
-#             if queens[i] == queens[j]:
-#                 score += 1
-#             if abs(i - j) == abs(queens[i] - queens[j]):
-#                 score += 1
-#     return score
-
-# codec = rd.IntCodec.vector(N_QUEENS, (0, N_QUEENS ))
 # engine = rd.GeneticEngine(
-#     codec=codec,
-#     fitness_func=fitness_fn,
-#     num_threads=1,
-#     offspring_selector=rd.BoltzmannSelector(4.0),
+#     codec=rd.IntCodec.vector(10, (0, 10)),
+#     fitness_func=lambda x: sum(x),
+#     offspring_selector=rd.BoltzmannSelector(4),
+#     objectives="min",
+#     subscribe=TestHandler(),
+#     num_threads=10,
 #     alters=[
-#         rd.MultiPointCrossover(0.75, 2),
-#         rd.UniformMutator(0.05)
-#     ]
+#         rd.MultiPointCrossover(0.75, 2), 
+#         rd.UniformMutator(0.01)
+#     ],
 # )
-# result = engine.run(rd.ScoreLimit(0), log=False)
+
+# result = engine.run(rd.ScoreLimit(0))
+
 # print(result)
 
-# board = result.value()
-# for i in range(N_QUEENS):
-#     for j in range(N_QUEENS):
-#         if board[j] == i:
-#             print("Q ", end="")
-#         else:
-#             print(". ", end="")
-#     print()
+
+N_QUEENS = 32
+
+# @jit(nopython=True, nogil=True)
+def fitness_fn(queens):
+    """Calculate the fitness score for the N-Queens problem."""
+    score = 0
+    for i in range(N_QUEENS):
+        for j in range(i + 1, N_QUEENS):
+            if queens[i] == queens[j]:
+                score += 1
+            if abs(i - j) == abs(queens[i] - queens[j]):
+                score += 1
+    return score
+
+codec = rd.IntCodec.vector(N_QUEENS, (0, N_QUEENS ))
+engine = rd.GeneticEngine(
+    codec=codec,
+    fitness_func=fitness_fn,
+    num_threads=10,
+    objectives="min",
+    offspring_selector=rd.BoltzmannSelector(4.0),
+    alters=[
+        rd.MultiPointCrossover(0.75, 2),
+        rd.UniformMutator(0.05)
+    ]
+)
+result = engine.run(rd.ScoreLimit(0), log=False)
+print(result)
+
+board = result.value()
+for i in range(N_QUEENS):
+    for j in range(N_QUEENS):
+        if board[j] == i:
+            print("Q ", end="")
+        else:
+            print(". ", end="")
+    print()
 
 
 # target = "Hello, Radiate!"

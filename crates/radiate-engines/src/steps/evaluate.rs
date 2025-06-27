@@ -1,114 +1,8 @@
 use radiate_core::{
-    Chromosome, Ecosystem, Executor, MetricSet, Objective, Problem, engine::EngineStep,
-    metric_names, thread_pool::ThreadPool,
+    Chromosome, Ecosystem, Evaluator, MetricSet, Objective, Problem, engine::EngineStep,
+    metric_names,
 };
 use std::sync::Arc;
-
-pub trait Evaluator<C: Chromosome, T>: Send + Sync {
-    fn eval(&self, ecosystem: &mut Ecosystem<C>, problem: Arc<dyn Problem<C, T>>) -> usize;
-}
-
-#[derive(Clone)]
-pub struct SequentialEvaluator {
-    executor: Arc<Executor>,
-}
-
-impl SequentialEvaluator {
-    pub fn new() -> Self {
-        Self {
-            executor: Arc::new(Executor::Serial),
-        }
-    }
-}
-
-impl<C: Chromosome, T> Evaluator<C, T> for SequentialEvaluator
-where
-    T: 'static,
-    C: Chromosome + 'static,
-{
-    #[inline]
-    fn eval(&self, ecosystem: &mut Ecosystem<C>, problem: Arc<dyn Problem<C, T>>) -> usize {
-        let mut jobs = Vec::new();
-        let len = ecosystem.population.len();
-        for idx in 0..len {
-            if ecosystem.population[idx].score().is_none() {
-                let geno = ecosystem.population[idx].take_genotype();
-                jobs.push((idx, geno));
-            }
-        }
-
-        let results = self.executor.execute_batch(
-            jobs.into_iter()
-                .map(|(idx, geno)| {
-                    let problem = Arc::clone(&problem);
-                    move || {
-                        let score = problem.eval(&geno);
-                        (idx, score, geno)
-                    }
-                })
-                .collect::<Vec<_>>(),
-        );
-
-        let count = results.len();
-        for (idx, score, genotype) in results {
-            ecosystem.population[idx].set_score(Some(score));
-            ecosystem.population[idx].set_genotype(genotype);
-        }
-
-        count
-    }
-}
-
-pub struct WorkerPoolEvaluator {
-    executor: Arc<Executor>,
-}
-
-impl WorkerPoolEvaluator {
-    pub fn new(num_threads: usize) -> Self {
-        Self {
-            executor: Arc::new(Executor::WorkerPool(ThreadPool::new(num_threads))),
-        }
-    }
-}
-
-impl<C: Chromosome, T> Evaluator<C, T> for WorkerPoolEvaluator
-where
-    C: Chromosome + 'static,
-    T: Send + Sync + 'static,
-{
-    #[inline]
-    fn eval(&self, ecosystem: &mut Ecosystem<C>, problem: Arc<dyn Problem<C, T>>) -> usize {
-        let mut jobs = Vec::new();
-        let len = ecosystem.population.len();
-        for idx in 0..len {
-            if ecosystem.population[idx].score().is_none() {
-                let geno = ecosystem.population[idx].take_genotype();
-                jobs.push((idx, geno));
-            }
-        }
-
-        let results = self.executor.execute_batch(
-            jobs.into_iter()
-                .map(|(idx, geno)| {
-                    let problem = Arc::clone(&problem);
-                    move || {
-                        let score = problem.eval(&geno);
-                        (idx, score, geno)
-                    }
-                })
-                .collect::<Vec<_>>(),
-        );
-
-        let count = results.len();
-        for result in results {
-            let (idx, score, genotype) = result;
-            ecosystem.population[idx].set_score(Some(score));
-            ecosystem.population[idx].set_genotype(genotype);
-        }
-
-        count
-    }
-}
 
 pub struct EvaluateStep<C: Chromosome, T> {
     pub(crate) objective: Objective,
@@ -145,3 +39,166 @@ where
         metrics.upsert_operations(metric_names::FITNESS, count, timer.elapsed());
     }
 }
+
+// pub trait Evaluator<C: Chromosome, T>: Send + Sync {
+//     fn eval(&self, ecosystem: &mut Ecosystem<C>, problem: Arc<dyn Problem<C, T>>) -> usize;
+// }
+
+// #[derive(Clone)]
+// pub struct SequentialEvaluator {
+//     executor: Arc<Executor>,
+// }
+
+// impl SequentialEvaluator {
+//     pub fn new() -> Self {
+//         Self {
+//             executor: Arc::new(Executor::Serial),
+//         }
+//     }
+// }
+
+// impl<C: Chromosome, T> Evaluator<C, T> for SequentialEvaluator
+// where
+//     T: 'static,
+//     C: Chromosome + 'static,
+// {
+//     #[inline]
+//     fn eval(&self, ecosystem: &mut Ecosystem<C>, problem: Arc<dyn Problem<C, T>>) -> usize {
+//         let mut jobs = Vec::new();
+//         let len = ecosystem.population.len();
+//         for idx in 0..len {
+//             if ecosystem.population[idx].score().is_none() {
+//                 let geno = ecosystem.population[idx].take_genotype();
+//                 jobs.push((idx, geno));
+//             }
+//         }
+
+//         let results = self.executor.execute_batch(
+//             jobs.into_iter()
+//                 .map(|(idx, geno)| {
+//                     let problem = Arc::clone(&problem);
+//                     move || {
+//                         let score = problem.eval(&geno);
+//                         (idx, score, geno)
+//                     }
+//                 })
+//                 .collect::<Vec<_>>(),
+//         );
+
+//         let count = results.len();
+//         for (idx, score, genotype) in results {
+//             ecosystem.population[idx].set_score(Some(score));
+//             ecosystem.population[idx].set_genotype(genotype);
+//         }
+
+//         count
+//     }
+// }
+
+// pub struct WorkerPoolEvaluator {
+//     executor: Arc<Executor>,
+// }
+
+// impl WorkerPoolEvaluator {
+//     pub fn new(num_threads: usize) -> Self {
+//         Self {
+//             executor: Arc::new(Executor::WorkerPool(ThreadPool::new(num_threads))),
+//         }
+//     }
+// }
+
+// impl<C: Chromosome, T> Evaluator<C, T> for WorkerPoolEvaluator
+// where
+//     C: Chromosome + 'static,
+//     T: Send + Sync + 'static,
+// {
+//     #[inline]
+//     fn eval(&self, ecosystem: &mut Ecosystem<C>, problem: Arc<dyn Problem<C, T>>) -> usize {
+//         let mut jobs = Vec::new();
+//         let len = ecosystem.population.len();
+//         for idx in 0..len {
+//             if ecosystem.population[idx].score().is_none() {
+//                 let geno = ecosystem.population[idx].take_genotype();
+//                 jobs.push((idx, geno));
+//             }
+//         }
+
+//         let results = self.executor.execute_batch(
+//             jobs.into_iter()
+//                 .map(|(idx, geno)| {
+//                     let problem = Arc::clone(&problem);
+//                     move || {
+//                         let score = problem.eval(&geno);
+//                         (idx, score, geno)
+//                     }
+//                 })
+//                 .collect::<Vec<_>>(),
+//         );
+
+//         let count = results.len();
+//         for result in results {
+//             let (idx, score, genotype) = result;
+//             ecosystem.population[idx].set_score(Some(score));
+//             ecosystem.population[idx].set_genotype(genotype);
+//         }
+
+//         count
+//     }
+// }
+
+// pub struct FitnessEvaluator {
+//     executor: Arc<Executor>,
+// }
+
+// impl FitnessEvaluator {
+//     pub fn new(executor: Arc<Executor>) -> Self {
+//         Self { executor }
+//     }
+// }
+
+// impl<C: Chromosome, T> Evaluator<C, T> for FitnessEvaluator
+// where
+//     C: Chromosome + 'static,
+//     T: 'static,
+// {
+//     #[inline]
+//     fn eval(&self, ecosystem: &mut Ecosystem<C>, problem: Arc<dyn Problem<C, T>>) -> usize {
+//         let mut jobs = Vec::new();
+//         let len = ecosystem.population.len();
+//         for idx in 0..len {
+//             if ecosystem.population[idx].score().is_none() {
+//                 let geno = ecosystem.population[idx].take_genotype();
+//                 jobs.push((idx, geno));
+//             }
+//         }
+
+//         let results = self.executor.execute_batch(
+//             jobs.into_iter()
+//                 .map(|(idx, geno)| {
+//                     let problem = Arc::clone(&problem);
+//                     move || {
+//                         let score = problem.eval(&geno);
+//                         (idx, score, geno)
+//                     }
+//                 })
+//                 .collect::<Vec<_>>(),
+//         );
+
+//         let count = results.len();
+//         for result in results {
+//             let (idx, score, genotype) = result;
+//             ecosystem.population[idx].set_score(Some(score));
+//             ecosystem.population[idx].set_genotype(genotype);
+//         }
+
+//         count
+//     }
+// }
+
+// impl Default for FitnessEvaluator {
+//     fn default() -> Self {
+//         Self {
+//             executor: Arc::new(Executor::Serial),
+//         }
+//     }
+// }
