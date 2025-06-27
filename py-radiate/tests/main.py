@@ -9,33 +9,38 @@ sys.path.insert(0, project_root)
 
 import radiate as rd
 
+codec = rd.IntCodec.matrix((2, 3), value_range=(0, 100), bound_range=(-1, 200))
 
-class TestHandler(rd.EventHandler):
-    def __init__(self):
-        super().__init__(rd.EventType.EPOCH_COMPLETE)
-
-    def on_event(self, event):
-        print(event['score'])
-        # print(event['metrics']['Fitness']['value_min'])
+print(codec.encode())
+print(codec.decode(codec.encode()))
 
 
-rd.random.set_seed(501)
+# class TestHandler(rd.EventHandler):
+#     def __init__(self):
+#         super().__init__(rd.EventType.EPOCH_COMPLETE)
 
-engine = rd.GeneticEngine(
-    codec=rd.IntCodec.vector(10, (0, 10)),
-    fitness_func=lambda x: sum(x),
-    offspring_selector=rd.BoltzmannSelector(4),
-    objectives="min",
-    subscribe=TestHandler(),
-    alters=[
-        rd.MultiPointCrossover(0.75, 2), 
-        rd.UniformMutator(0.01)
-    ],
-)
+#     def on_event(self, event):
+#         print(event['score'])
+#         # print(event['metrics']['Fitness']['value_min'])
 
-result = engine.run(rd.ScoreLimit(0))
 
-print(result)
+# rd.random.set_seed(501)
+
+# engine = rd.GeneticEngine(
+#     codec=rd.IntCodec.vector(10, (0, 10)),
+#     fitness_func=lambda x: sum(x),
+#     offspring_selector=rd.BoltzmannSelector(4),
+#     objectives="min",
+#     subscribe=TestHandler(),
+#     alters=[
+#         rd.MultiPointCrossover(0.75, 2), 
+#         rd.UniformMutator(0.01)
+#     ],
+# )
+
+# result = engine.run(rd.ScoreLimit(0))
+
+# print(result)
 
 
 # N_QUEENS = 32

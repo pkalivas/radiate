@@ -1,41 +1,55 @@
 use super::PyCodec;
-use crate::ObjectValue;
+use crate::{ObjectValue, PyGenotype};
 use pyo3::{
-    pyclass, pymethods,
-    types::{PyInt, PyList, PyListMethods},
+    Bound, IntoPyObjectExt, PyAny, PyResult, pyclass, pymethods,
+    types::{PyFloat, PyList, PyListMethods},
 };
-use radiate::{Chromosome, Gene, IntChromosome};
+use radiate::{Chromosome, Codec, FloatChromosome, Gene, Genotype};
 
 #[pyclass]
 #[derive(Clone)]
-pub struct PyIntCodec {
-    pub codec: PyCodec<IntChromosome<i32>>,
+pub struct PyFloatCodec {
+    pub codec: PyCodec<FloatChromosome>,
 }
 
 #[pymethods]
-impl PyIntCodec {
+impl PyFloatCodec {
+    pub fn encode_py(&self) -> PyGenotype {
+        PyGenotype::from(self.codec.encode())
+    }
+
+    pub fn decode_py<'py>(
+        &self,
+        py: pyo3::Python<'py>,
+        genotype: &PyGenotype,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let genotype: Genotype<FloatChromosome> = genotype.clone().into();
+        let obj_value = self.codec.decode_with_py(py, &genotype);
+        obj_value.into_bound_py_any(py)
+    }
+
     #[staticmethod]
     #[pyo3(signature = (chromosome_lengths=None, value_range=None, bound_range=None))]
     pub fn matrix(
         chromosome_lengths: Option<Vec<usize>>,
-        value_range: Option<(i32, i32)>,
-        bound_range: Option<(i32, i32)>,
+        value_range: Option<(f32, f32)>,
+        bound_range: Option<(f32, f32)>,
     ) -> Self {
         let lengths = chromosome_lengths.unwrap_or(vec![1]);
-        let val_range = value_range.map(|rng| rng.0..rng.1).unwrap_or(0..1);
+        let val_range = value_range.map(|rng| rng.0..rng.1).unwrap_or(0.0..1.0);
         let bound_range = bound_range
             .map(|rng| rng.0..rng.1)
             .unwrap_or(val_range.clone());
 
-        PyIntCodec {
+        PyFloatCodec {
             codec: PyCodec::new()
                 .with_encoder(move || {
                     lengths
                         .iter()
                         .map(|len| {
-                            IntChromosome::from((*len, val_range.clone(), bound_range.clone()))
+                            FloatChromosome::from((*len, val_range.clone(), bound_range.clone()))
                         })
-                        .collect::<Vec<IntChromosome<i32>>>()
+                        .collect::<Vec<FloatChromosome>>()
                         .into()
                 })
                 .with_decoder(|py, geno| {
@@ -59,36 +73,30 @@ impl PyIntCodec {
     #[pyo3(signature = (length=1, value_range=None, bound_range=None))]
     pub fn vector(
         length: usize,
-        value_range: Option<(i32, i32)>,
-        bound_range: Option<(i32, i32)>,
+        value_range: Option<(f32, f32)>,
+        bound_range: Option<(f32, f32)>,
     ) -> Self {
-        let val_range = value_range.map(|rng| rng.0..rng.1).unwrap_or(0..1);
+        let val_range = value_range.map(|rng| rng.0..rng.1).unwrap_or(0.0..1.0);
         let bound_range = bound_range
             .map(|rng| rng.0..rng.1)
             .unwrap_or(val_range.clone());
 
-        PyIntCodec {
+        PyFloatCodec {
             codec: PyCodec::new()
                 .with_encoder(move || {
-                    vec![IntChromosome::from((
+                    Genotype::from(vec![FloatChromosome::from((
                         length,
                         val_range.clone(),
                         bound_range.clone(),
-                    ))]
-                    .into()
+                    ))])
                 })
                 .with_decoder(|py, geno| {
-                    let values = geno
-                        .iter()
-                        .next()
-                        .map(|chrom| {
-                            chrom
-                                .iter()
-                                .map(|gene| *gene.allele() as i64)
-                                .collect::<Vec<_>>()
-                        })
-                        .unwrap_or_default();
-                    let outer = PyList::new(py, values).unwrap();
+                    let outer = PyList::empty(py);
+                    for chrom in geno.iter() {
+                        for gene in chrom.iter() {
+                            outer.append(*gene.allele()).unwrap();
+                        }
+                    }
 
                     ObjectValue {
                         inner: outer.unbind().into_any(),
@@ -99,29 +107,28 @@ impl PyIntCodec {
 
     #[staticmethod]
     #[pyo3(signature = (value_range=None, bound_range=None))]
-    pub fn scalar(value_range: Option<(i32, i32)>, bound_range: Option<(i32, i32)>) -> Self {
-        let val_range = value_range.map(|rng| rng.0..rng.1).unwrap_or(0..1);
+    pub fn scalar(value_range: Option<(f32, f32)>, bound_range: Option<(f32, f32)>) -> Self {
+        let val_range = value_range.map(|rng| rng.0..rng.1).unwrap_or(0.0..1.0);
         let bound_range = bound_range
             .map(|rng| rng.0..rng.1)
             .unwrap_or(val_range.clone());
 
-        PyIntCodec {
+        PyFloatCodec {
             codec: PyCodec::new()
                 .with_encoder(move || {
-                    vec![IntChromosome::from((
+                    Genotype::from(vec![FloatChromosome::from((
                         1,
                         val_range.clone(),
                         bound_range.clone(),
-                    ))]
-                    .into()
+                    ))])
                 })
                 .with_decoder(|py, geno| {
                     let val = geno
                         .iter()
                         .next()
                         .and_then(|chrom| chrom.iter().next())
-                        .map_or(0, |gene| *gene.allele());
-                    let outer = PyInt::new(py, val as i64);
+                        .map_or(0.0, |gene| *gene.allele());
+                    let outer = PyFloat::new(py, val as f64);
 
                     ObjectValue {
                         inner: outer.unbind().into_any(),
@@ -131,5 +138,5 @@ impl PyIntCodec {
     }
 }
 
-unsafe impl Send for PyIntCodec {}
-unsafe impl Sync for PyIntCodec {}
+unsafe impl Send for PyFloatCodec {}
+unsafe impl Sync for PyFloatCodec {}

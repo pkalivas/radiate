@@ -1,10 +1,10 @@
 use super::PyCodec;
-use crate::ObjectValue;
+use crate::{ObjectValue, PyGenotype};
 use pyo3::{
-    pyclass, pymethods,
+    Bound, IntoPyObjectExt, PyAny, PyResult, pyclass, pymethods,
     types::{PyList, PyListMethods},
 };
-use radiate::{BitChromosome, Chromosome, Gene, Genotype};
+use radiate::{BitChromosome, Chromosome, Codec, Gene, Genotype};
 
 #[pyclass]
 #[derive(Clone)]
@@ -14,6 +14,20 @@ pub struct PyBitCodec {
 
 #[pymethods]
 impl PyBitCodec {
+    pub fn encode_py(&self) -> PyGenotype {
+        PyGenotype::from(self.codec.encode())
+    }
+
+    pub fn decode_py<'py>(
+        &self,
+        py: pyo3::Python<'py>,
+        genotype: &PyGenotype,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let genotype: Genotype<BitChromosome> = genotype.clone().into();
+        let obj_value = self.codec.decode_with_py(py, &genotype);
+        obj_value.into_bound_py_any(py)
+    }
+
     #[staticmethod]
     #[pyo3(signature = (chromosome_lengths=None))]
     pub fn matrix(chromosome_lengths: Option<Vec<usize>>) -> Self {

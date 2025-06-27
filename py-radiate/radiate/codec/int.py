@@ -1,5 +1,6 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Any
 from .codec import CodecBase
+from radiate.genome import Genotype
 from radiate.radiate import PyIntCodec
 
 
@@ -9,9 +10,27 @@ class IntCodec(CodecBase):
         Initialize the int codec with a PyIntCodec instance.
         :param codec: An instance of PyIntCodec.
         """
+        super().__init__()
         if not isinstance(codec, PyIntCodec):
             raise TypeError("codec must be an instance of PyIntCodec.")
         self.codec = codec
+
+    def encode(self) -> Genotype:
+        """
+        Encode the codec into a Genotype.
+        :return: A Genotype instance.
+        """
+        return Genotype(self.codec.encode_py())
+    
+    def decode(self, genotype: Genotype) -> Any:
+        """
+        Decode a Genotype into its integer representation.
+        :param genotype: A Genotype instance to decode.
+        :return: The decoded integer representation of the Genotype.
+        """
+        if not isinstance(genotype, Genotype):
+            raise TypeError("genotype must be an instance of Genotype.")
+        return self.codec.decode_py(genotype.py_genotype())
 
     @staticmethod
     def matrix(

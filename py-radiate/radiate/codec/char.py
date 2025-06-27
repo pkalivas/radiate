@@ -1,7 +1,8 @@
 from __future__ import annotations
-from typing import List
+from typing import List, Any
 from .codec import CodecBase
 from radiate.radiate import PyCharCodec
+from radiate.genome import Genotype
 
 
 class CharCodec(CodecBase):
@@ -9,6 +10,23 @@ class CharCodec(CodecBase):
         if not isinstance(codec, PyCharCodec):
             raise TypeError("codec must be an instance of PyCharCodec.")
         self.codec = codec
+
+    def encode(self) -> Genotype:
+        """
+        Encode the codec into a Genotype.
+        :return: A Genotype instance.
+        """
+        return Genotype(self.codec.encode_py())
+
+    def decode(self, genotype: Genotype) -> Any:
+        """
+        Decode a Genotype into its character representation.
+        :param genotype: A Genotype instance to decode.
+        :return: The decoded character representation of the Genotype.
+        """
+        if not isinstance(genotype, Genotype):
+            raise TypeError("genotype must be an instance of Genotype.")
+        return self.codec.decode_py(genotype.py_genotype())
 
     @staticmethod
     def matrix(chromosomes: List[int], char_set: str | List[str] = None) -> "CharCodec":

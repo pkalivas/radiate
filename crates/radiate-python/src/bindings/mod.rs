@@ -1,4 +1,5 @@
 mod builder;
+mod codec;
 mod components;
 mod engine;
 mod epoch;
@@ -9,6 +10,7 @@ mod objective;
 mod subscriber;
 
 pub use builder::PyEngineBuilder;
+pub use codec::{PyBitCodec, PyCharCodec, PyCodec, PyFloatCodec, PyIntCodec};
 pub use components::*;
 pub use engine::PyEngine;
 pub use epoch::PyGeneration;

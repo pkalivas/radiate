@@ -1,4 +1,4 @@
-use crate::{ObjectValue, codec::PyCodec};
+use crate::{ObjectValue, bindings::PyCodec};
 use pyo3::{Py, PyAny, PyObject, Python, sync::GILOnceCell};
 use radiate::{Chromosome, Codec, Genotype, Problem, Score};
 

@@ -1,7 +1,8 @@
 from __future__ import annotations
-from typing import List
+from typing import List, Any
 from .codec import CodecBase
 from radiate.radiate import PyBitCodec
+from radiate.genome import Genotype
 
 
 class BitCodec(CodecBase):
@@ -18,6 +19,23 @@ class BitCodec(CodecBase):
         if not isinstance(codec, PyBitCodec):
             raise TypeError("codec must be an instance of PyBitCodec.")
         self.codec = codec
+
+    def encode(self) -> Genotype:
+        """
+        Encode the codec into a Genotype.
+        :return: A Genotype instance.
+        """
+        return Genotype(self.codec.encode_py())
+
+    def decode(self, genotype: Genotype) -> Any:
+        """
+        Decode a Genotype into its bit representation.
+        :param genotype: A Genotype instance to decode.
+        :return: The decoded bit representation of the Genotype.
+        """
+        if not isinstance(genotype, Genotype):
+            raise TypeError("genotype must be an instance of Genotype.")
+        return self.codec.decode_py(genotype.py_genotype())
 
     @staticmethod
     def matrix(chromosome_lengths: List[int]) -> "BitCodec":
