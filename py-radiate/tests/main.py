@@ -1,46 +1,49 @@
 import os
 import sys
-# import math
-# import matplotlib.pyplot as plt
-# from numba import jit, cfunc, vectorize
+import math
+import matplotlib.pyplot as plt
+from numba import jit, cfunc, vectorize
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, project_root)
 
 import radiate as rd
 
-codec = rd.IntCodec.matrix((2, 3), value_range=(0, 100), bound_range=(-1, 200))
-
-print(codec.encode())
-print(codec.decode(codec.encode()))
+rd.random.set_seed(501)
 
 
-# class TestHandler(rd.EventHandler):
-#     def __init__(self):
-#         super().__init__(rd.EventType.EPOCH_COMPLETE)
+# codec = rd.IntCodec.matrix((2, 3), value_range=(0, 100), bound_range=(-1, 200))
 
-#     def on_event(self, event):
-#         print(event['score'])
-#         # print(event['metrics']['Fitness']['value_min'])
+# print(codec.encode())
+# print(codec.decode(codec.encode()))
 
 
-# rd.random.set_seed(501)
+class TestHandler(rd.EventHandler):
+    def __init__(self):
+        super().__init__(rd.EventType.EPOCH_COMPLETE)
 
-# engine = rd.GeneticEngine(
-#     codec=rd.IntCodec.vector(10, (0, 10)),
-#     fitness_func=lambda x: sum(x),
-#     offspring_selector=rd.BoltzmannSelector(4),
-#     objectives="min",
-#     subscribe=TestHandler(),
-#     alters=[
-#         rd.MultiPointCrossover(0.75, 2), 
-#         rd.UniformMutator(0.01)
-#     ],
-# )
+    def on_event(self, event):
+        print(event['score'])
+        # print(event['metrics']['Fitness']['value_min'])
 
-# result = engine.run(rd.ScoreLimit(0))
 
-# print(result)
+
+engine = rd.GeneticEngine(
+    codec=rd.IntCodec.vector(10, (0, 10)),
+    fitness_func=lambda x: sum(x),
+    offspring_selector=rd.BoltzmannSelector(4),
+    objectives="min",
+    subscribe=TestHandler(),
+    num_threads=10,
+    alters=[
+        rd.MultiPointCrossover(0.75, 2), 
+        rd.UniformMutator(0.01)
+    ],
+)
+
+result = engine.run(rd.ScoreLimit(0))
+
+print(result)
 
 
 # N_QUEENS = 32
@@ -149,6 +152,7 @@ print(codec.decode(codec.encode()))
 #     offspring_selector=rd.TournamentSelector(k=5),
 #     survivor_selector=rd.NSGA2Selector(),
 #     objectives=["min" for _ in range(objectives)],
+#     num_threads=10,
 #     alters=[
 #         rd.SimulatedBinaryCrossover(1.0, 1.0),
 #         rd.UniformMutator(0.1)

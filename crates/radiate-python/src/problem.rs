@@ -1,23 +1,16 @@
 use crate::{ObjectValue, bindings::PyCodec};
-use pyo3::{Py, PyAny, PyObject, Python, sync::GILOnceCell};
+use pyo3::{Py, PyAny, PyObject, Python};
 use radiate::{Chromosome, Codec, Genotype, Problem, Score};
 
 pub struct PyProblem<C: Chromosome> {
-    fitness_fn_cell: GILOnceCell<PyObject>,
+    fitness_func: PyObject,
     codec: PyCodec<C>,
 }
 
 impl<C: Chromosome> PyProblem<C> {
     pub fn new(fitness_func: PyObject, codec: PyCodec<C>) -> Self {
-        let cell = Python::with_gil(|py| {
-            let cell = GILOnceCell::new();
-            cell.set(py, fitness_func)
-                .expect("Failed to set fitness function in GILOnceCell");
-            cell
-        });
-
         PyProblem {
-            fitness_fn_cell: cell,
+            fitness_func,
             codec,
         }
     }
@@ -34,20 +27,17 @@ impl<C: Chromosome> Problem<C, ObjectValue> for PyProblem<C> {
 
     fn eval(&self, individual: &Genotype<C>) -> Score {
         Python::with_gil(|py| {
-            let func = self.fitness_fn_cell.get(py).unwrap();
             let phenotype = self.codec.decode_with_py(py, individual);
-            call(py, &func, &phenotype.inner)
+            call(py, &self.fitness_func, &phenotype.inner)
         })
     }
 
     fn eval_batch(&self, individuals: &[Genotype<C>]) -> Vec<Score> {
         Python::with_gil(|py| {
-            let func = self.fitness_fn_cell.get(py).unwrap();
-
             individuals
                 .iter()
                 .map(|ind| self.codec.decode_with_py(py, ind).inner)
-                .map(|phenotype| call(py, &func, &phenotype))
+                .map(|phenotype| call(py, &self.fitness_func, &phenotype))
                 .collect::<Vec<Score>>()
         })
     }

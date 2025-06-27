@@ -1,6 +1,4 @@
-use std::hash::Hash;
-
-use crate::{ObjectValue, PyGeneType, conversion::Wrap, gene::PyChromosomeType};
+use crate::{ObjectValue, PyChromosomeType, PyGeneType, conversion::Wrap};
 use pyo3::{
     Bound, FromPyObject, IntoPyObjectExt, PyAny, PyErr, PyResult, Python, pyclass, pymethods,
     types::{PyAnyMethods, PyString},
@@ -9,6 +7,7 @@ use radiate::{
     BitChromosome, CharChromosome, Chromosome, Diversity, EuclideanDistance, FloatChromosome, Gene,
     HammingDistance, IntChromosome,
 };
+use std::hash::Hash;
 
 #[pyclass]
 #[derive(Clone, Debug)]

@@ -2,14 +2,12 @@ mod bindings;
 mod conversion;
 mod evaluator;
 mod events;
-mod gene;
 mod object;
 mod problem;
 mod random;
 
 pub use bindings::*;
 pub use evaluator::FreeThreadPyEvaluator;
-pub use gene::PyGeneType;
 pub use object::{AnyValue, Object, ObjectSafe, ObjectValue};
 pub use problem::PyProblem;
 use pyo3::{PyResult, Python};

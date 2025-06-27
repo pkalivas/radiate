@@ -1,6 +1,8 @@
 use crate::thread_pool::{ThreadPool, WaitGroup};
 
+#[derive(Default)]
 pub enum Executor {
+    #[default]
     Serial,
     WorkerPool(ThreadPool),
 }

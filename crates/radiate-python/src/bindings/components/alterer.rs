@@ -1,4 +1,4 @@
-use crate::{ObjectValue, PyGeneType, PyPopulation, conversion::Wrap, gene::PyChromosomeType};
+use crate::{ObjectValue, PyChromosomeType, PyGeneType, PyPopulation, conversion::Wrap};
 use pyo3::{
     Bound, FromPyObject, IntoPyObjectExt, PyAny, PyErr, PyResult, Python,
     exceptions::PyValueError,

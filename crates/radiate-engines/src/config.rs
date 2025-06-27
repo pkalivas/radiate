@@ -1,11 +1,11 @@
-use radiate_core::{Diversity, Executor, Genotype};
+use radiate_core::{Diversity, Genotype};
 
 use super::{Alter, Audit, Front, Problem, ReplacementStrategy, Select};
-use crate::Chromosome;
 use crate::genome::phenotype::Phenotype;
 use crate::genome::population::Population;
 use crate::objectives::Objective;
 use crate::steps::Evaluator;
+use crate::{Chromosome, builder::ExecutorParams};
 use std::sync::{Arc, RwLock};
 
 #[derive(Clone)]
@@ -25,7 +25,7 @@ pub(crate) struct EngineConfig<C: Chromosome, T> {
     pub(crate) max_species_age: usize,
     pub(crate) front: Arc<RwLock<Front<Phenotype<C>>>>,
     pub(crate) offspring_fraction: f32,
-    pub(crate) executor: Arc<Executor>,
+    pub(crate) executor: ExecutorParams,
 }
 
 impl<C: Chromosome, T> EngineConfig<C, T> {
@@ -85,8 +85,8 @@ impl<C: Chromosome, T> EngineConfig<C, T> {
         (self.population.len() as f32 * self.offspring_fraction) as usize
     }
 
-    pub fn executor(&self) -> Arc<Executor> {
-        Arc::clone(&self.executor)
+    pub fn executor(&self) -> &ExecutorParams {
+        &self.executor
     }
 
     pub fn encoder(&self) -> Arc<dyn Fn() -> Genotype<C> + Send + Sync>

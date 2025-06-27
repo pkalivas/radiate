@@ -9,12 +9,14 @@ mod metric;
 mod objective;
 mod subscriber;
 
-pub use builder::PyEngineBuilder;
+pub use builder::*;
 pub use codec::{PyBitCodec, PyCharCodec, PyCodec, PyFloatCodec, PyIntCodec};
 pub use components::*;
 pub use engine::PyEngine;
 pub use epoch::PyGeneration;
-pub use genome::{PyChromosome, PyGene, PyGenotype, PyPhenotype, PyPopulation};
+pub use genome::{
+    PyChromosome, PyChromosomeType, PyGene, PyGeneType, PyGenotype, PyPhenotype, PyPopulation,
+};
 pub use limit::PyLimit;
 pub use metric::PyMetricSet;
 pub use objective::PyObjective;

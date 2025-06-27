@@ -1,7 +1,10 @@
 use super::{PyObjective, subscriber::PySubscriber};
 use crate::{
     ObjectValue, PyBitCodec, PyCharCodec, PyFloatCodec, PyGeneType, PyGeneration, PyIntCodec,
-    PyLimit, PyProblem, bindings::codec::PyCodec, conversion::Wrap, events::PyEventHandler,
+    PyLimit, PyProblem,
+    bindings::{builder::*, codec::PyCodec},
+    conversion::Wrap,
+    events::PyEventHandler,
 };
 use pyo3::{
     Bound, FromPyObject, IntoPyObjectExt, Py, PyAny, PyErr, PyResult, Python,
@@ -162,9 +165,6 @@ impl<'py> FromPyObject<'py> for Wrap<EngineInner> {
                     ));
                 }
             }
-            _ => {
-                return Err(PyErr::new::<PyTypeError, _>("Unsupported gene type"));
-            }
         };
 
         engine.map(Wrap)
@@ -175,88 +175,52 @@ fn create_multi_engine<C, T>(
     py: Python<'_>,
     codec: PyCodec<C>,
     fitness_fn: Py<PyAny>,
-    params: &Py<PyAny>,
+    parameters: &Py<PyAny>,
 ) -> PyResult<GeneticEngineBuilder<C, T, MultiObjectiveGeneration<C>>>
 where
     C: Chromosome + Clone + PartialEq + 'static,
     T: Clone + Send + Sync + 'static,
 {
-    let population_size = params
-        .bind(py)
-        .get_item("population_size")?
-        .extract::<usize>()?;
+    let params = parameters.bind(py);
 
-    let offspring_fraction = params
-        .bind(py)
-        .get_item("offspring_fraction")?
-        .extract::<f32>()?;
+    let population_size = params.get_item(POPULATION_SIZE)?.extract::<usize>()?;
+    let offspring_fraction = params.get_item(OFFSPRING_FRACTION)?.extract::<f32>()?;
+    let objective = params.get_item(OBJECTIVE)?.extract::<Wrap<Objective>>()?.0;
+    let front_range = params.get_item(FRONT_RANGE)?.extract::<Py<PyTuple>>()?;
+    let num_threads = params.get_item(NUM_THREADS)?.extract::<usize>()?;
+    let max_age = params.get_item(MAX_PHENOTYPE_AGE)?.extract::<usize>()?;
+    let max_species_age = params.get_item(MAX_SPECIES_AGE)?.extract::<usize>()?;
+    let species_threshold = params.get_item(SPECIES_THRESHOLD)?.extract::<f32>()?;
+    let first_front = front_range.bind(py).get_item(0)?.extract::<usize>()?;
+    let second_front = front_range.bind(py).get_item(1)?.extract::<usize>()?;
 
     let alters = params
-        .bind(py)
-        .get_item("alters")?
+        .get_item(ALTERS)?
         .into_bound_py_any(py)?
         .extract::<Wrap<Vec<Box<dyn Alter<C>>>>>()?
         .0;
 
     let survivor_selector = params
-        .bind(py)
-        .get_item("survivor_selector")?
+        .get_item(SURVIVOR_SELECTOR)?
         .extract::<Wrap<Box<dyn Select<C>>>>()?
         .0;
 
     let offspring_selector = params
-        .bind(py)
-        .get_item("offspring_selector")?
+        .get_item(OFFSPRING_SELECTOR)?
         .extract::<Wrap<Box<dyn Select<C>>>>()?
         .0;
 
     let diversity = params
-        .bind(py)
-        .get_item("diversity")?
+        .get_item(DIVERSITY)?
         .extract::<Wrap<Option<Box<dyn Diversity<C>>>>>()?
         .0;
 
-    let objective = params
-        .bind(py)
-        .get_item("objective")?
-        .extract::<Wrap<Objective>>()?
-        .0;
+    let subscribers = params
+        .get_item(SUBSCRIBERS)?
+        .into_bound_py_any(py)?
+        .extract::<Vec<PySubscriber>>()?;
 
-    let front_range = params
-        .bind(py)
-        .get_item("front_range")?
-        .extract::<Py<PyTuple>>()?;
-
-    let num_threads = params
-        .bind(py)
-        .get_item("num_threads")?
-        .extract::<usize>()?;
-
-    let max_age = params
-        .bind(py)
-        .get_item("max_phenotype_age")?
-        .extract::<usize>()?;
-
-    let max_species_age = params
-        .bind(py)
-        .get_item("max_species_age")?
-        .extract::<usize>()?;
-
-    let species_threshold = params
-        .bind(py)
-        .get_item("species_threshold")?
-        .extract::<f32>()?;
-
-    let executor = if num_threads > 1 {
-        Arc::new(Executor::worker_pool(num_threads))
-    } else {
-        Arc::new(Executor::Serial)
-    };
-
-    let first_front = front_range.bind(py).get_item(0)?.extract::<usize>()?;
-    let second_front = front_range.bind(py).get_item(1)?.extract::<usize>()?;
-
-    let builder = GeneticEngine::builder()
+    let mut builder = GeneticEngine::builder()
         .problem(PyProblem::new(fitness_fn, codec))
         .population_size(population_size)
         .offspring_fraction(offspring_fraction)
@@ -274,9 +238,13 @@ where
             _ => vec![Optimize::Minimize],
         })
         .front_size(first_front..second_front)
-        .evaluator(SequentialEvaluator::new())
-        // .evaluator(FreeThreadPyEvaluator::new(executor.clone()))
-        .executor(executor.clone());
+        .num_threads(num_threads.min(1))
+        .bus_executor(Executor::default());
+
+    builder = match subscribers.len() > 0 {
+        true => builder.subscribe(PyEventHandler::new(subscribers)),
+        false => builder,
+    };
 
     Ok(unsafe { std::mem::transmute(builder) })
 }
@@ -285,76 +253,46 @@ fn create_engine<C, T>(
     py: Python<'_>,
     codec: PyCodec<C>,
     fitness_fn: Py<PyAny>,
-    params: &Py<PyAny>,
+    parameters: &Py<PyAny>,
 ) -> PyResult<GeneticEngineBuilder<C, T, Generation<C, T>>>
 where
     C: Chromosome + Clone + PartialEq + 'static,
     T: Clone + Send + Sync + 'static,
 {
-    let population_size = params
-        .bind(py)
-        .get_item("population_size")?
-        .extract::<usize>()?;
+    let params = parameters.bind(py);
 
-    let offspring_fraction = params
-        .bind(py)
-        .get_item("offspring_fraction")?
-        .extract::<f32>()?;
+    let population_size = params.get_item(POPULATION_SIZE)?.extract::<usize>()?;
+    let offspring_fraction = params.get_item(OFFSPRING_FRACTION)?.extract::<f32>()?;
+    let max_age = params.get_item(MAX_PHENOTYPE_AGE)?.extract::<usize>()?;
+    let max_species_age = params.get_item(MAX_SPECIES_AGE)?.extract::<usize>()?;
+    let species_threshold = params.get_item(SPECIES_THRESHOLD)?.extract::<f32>()?;
+    let num_threads = params.get_item(NUM_THREADS)?.extract::<usize>()?;
 
     let alters = params
-        .bind(py)
-        .get_item("alters")?
+        .get_item(ALTERS)?
         .into_bound_py_any(py)?
         .extract::<Wrap<Vec<Box<dyn Alter<C>>>>>()?
         .0;
 
     let survivor_selector = params
-        .bind(py)
-        .get_item("survivor_selector")?
+        .get_item(SURVIVOR_SELECTOR)?
         .extract::<Wrap<Box<dyn Select<C>>>>()?
         .0;
 
     let offspring_selector = params
-        .bind(py)
-        .get_item("offspring_selector")?
+        .get_item(OFFSPRING_SELECTOR)?
         .extract::<Wrap<Box<dyn Select<C>>>>()?
         .0;
 
-    let objective = params
-        .bind(py)
-        .get_item("objective")?
-        .extract::<Wrap<Objective>>()?
-        .0;
+    let objective = params.get_item(OBJECTIVE)?.extract::<Wrap<Objective>>()?.0;
 
     let diversity = params
-        .bind(py)
-        .get_item("diversity")?
+        .get_item(DIVERSITY)?
         .extract::<Wrap<Option<Box<dyn Diversity<C>>>>>()?
         .0;
 
-    let max_age = params
-        .bind(py)
-        .get_item("max_phenotype_age")?
-        .extract::<usize>()?;
-
-    let max_species_age = params
-        .bind(py)
-        .get_item("max_species_age")?
-        .extract::<usize>()?;
-
-    let species_threshold = params
-        .bind(py)
-        .get_item("species_threshold")?
-        .extract::<f32>()?;
-
-    let num_threads = params
-        .bind(py)
-        .get_item("num_threads")?
-        .extract::<usize>()?;
-
     let subscribers = params
-        .bind(py)
-        .get_item("subscribers")?
+        .get_item(SUBSCRIBERS)?
         .into_bound_py_any(py)?
         .extract::<Vec<PySubscriber>>()?;
 
@@ -374,6 +312,8 @@ where
         .evaluator(SequentialEvaluator::new())
         .executor(executor.clone())
         .alter(alters)
+        .num_threads(num_threads.min(1))
+        .bus_executor(Executor::default())
         .with_values(|config| {
             config.survivor_selector = survivor_selector.into();
             config.offspring_selector = offspring_selector.into();

@@ -5,6 +5,14 @@ use pyo3::{
 };
 use radiate::{EngineEvent, Event, EventHandler};
 
+const ON_START: &'static str = "on_start";
+const ON_STOP: &'static str = "on_stop";
+const ON_EPOCH_START: &'static str = "on_epoch_start";
+const ON_EPOCH_COMPLETE: &'static str = "on_epoch_complete";
+const ON_STEP_START: &'static str = "on_step_start";
+const ON_STEP_COMPLETE: &'static str = "on_step_complete";
+const ON_ENGINE_IMPROVEMENT: &'static str = "on_engine_improvement";
+
 pub struct PyEventHandler {
     handlers: Vec<PySubscriber>,
 }
@@ -25,19 +33,19 @@ impl<'py, 'a> EventHandler<EngineEvent<ObjectValue>> for PyEventHandler {
                     .event_name()
                     .map(|name| {
                         if matches!(event.data(), EngineEvent::Start) {
-                            name == "on_start"
+                            name == ON_START
                         } else if matches!(event.data(), EngineEvent::Stop { .. }) {
-                            name == "on_stop"
+                            name == ON_STOP
                         } else if matches!(event.data(), EngineEvent::EpochStart(_)) {
-                            name == "on_epoch_start"
+                            name == ON_EPOCH_START
                         } else if matches!(event.data(), EngineEvent::EpochComplete { .. }) {
-                            name == "on_epoch_complete"
+                            name == ON_EPOCH_COMPLETE
                         } else if matches!(event.data(), EngineEvent::StepStart(_)) {
-                            name == "on_step_start"
+                            name == ON_STEP_START
                         } else if matches!(event.data(), EngineEvent::StepComplete(_)) {
-                            name == "on_step_complete"
+                            name == ON_STEP_COMPLETE
                         } else if matches!(event.data(), EngineEvent::EngineImprovement { .. }) {
-                            name == "on_engine_improvement"
+                            name == ON_ENGINE_IMPROVEMENT
                         } else {
                             false
                         }

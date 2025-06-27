@@ -11,17 +11,26 @@ use crate::steps::{
 use crate::{
     Alter, AlterAction, Audit, Crossover, EncodeReplace, EngineEvent, EngineProblem, EngineStep,
     EventBus, EventHandler, Front, Generation, MetricAudit, MultiObjectiveGeneration, Mutate,
-    Problem, ReplacementStrategy, RouletteSelector, Select, TournamentSelector, pareto,
+    Problem, ReplacementStrategy, RouletteSelector, Select, TournamentSelector,
+    WorkerPoolEvaluator, pareto,
 };
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use core::panic;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::engine::Context;
+use radiate_core::thread_pool::ThreadPool;
 use radiate_core::{Diversity, Ecosystem, Epoch, Executor, Genotype, MetricSet};
 use radiate_error::{RadiateError, radiate_err};
 use std::cmp::Ordering;
 use std::ops::Range;
 use std::sync::{Arc, Mutex, RwLock};
+
+#[derive(Clone)]
+pub struct ExecutorParams {
+    pub species_executor: Arc<Executor>,
+    pub front_executor: Arc<Executor>,
+    pub bus_executor: Arc<Executor>,
+}
 
 #[derive(Clone)]
 pub struct EngineParams<C, T = Genotype<C>>
@@ -44,7 +53,7 @@ where
     pub population: Option<Population<C>>,
     pub codec: Option<Arc<dyn Codec<C, T>>>,
     pub evaluator: Arc<dyn Evaluator<C, T>>,
-    pub executor: Arc<Executor>,
+    pub executor: ExecutorParams,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
     pub problem: Option<Arc<dyn Problem<C, T>>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
@@ -157,11 +166,6 @@ where
 
     pub fn evaluator<EV: Evaluator<C, T> + 'static>(mut self, evaluator: EV) -> Self {
         self.params.evaluator = Arc::new(evaluator);
-        self
-    }
-
-    pub fn executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
-        self.params.executor = executor.into();
         self
     }
 
@@ -331,6 +335,60 @@ where
         }
     }
 
+    pub fn num_threads(mut self, num_threads: usize) -> Self
+    where
+        T: Send + Sync + 'static,
+    {
+        if num_threads < 1 {
+            self.errors
+                .push(radiate_err!(InvalidConfig: "num_threads must be greater than 0"));
+        }
+
+        let executor = if num_threads == 1 {
+            Arc::new(Executor::Serial)
+        } else {
+            Arc::new(Executor::WorkerPool(ThreadPool::new(num_threads)))
+        };
+
+        if num_threads == 1 {
+            self.params.evaluator = Arc::new(SequentialEvaluator::new());
+        } else {
+            self.params.evaluator = Arc::new(WorkerPoolEvaluator::new(num_threads));
+        }
+
+        self.params.executor = ExecutorParams {
+            species_executor: executor.clone(),
+            front_executor: executor.clone(),
+            bus_executor: executor,
+        };
+        self
+    }
+
+    pub fn executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
+        let executor = executor.into();
+        self.params.executor = ExecutorParams {
+            species_executor: executor.clone(),
+            front_executor: executor.clone(),
+            bus_executor: executor.clone(),
+        };
+        self
+    }
+
+    pub fn species_executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
+        self.params.executor.species_executor = executor.into();
+        self
+    }
+
+    pub fn front_executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
+        self.params.executor.front_executor = executor.into();
+        self
+    }
+
+    pub fn bus_executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
+        self.params.executor.bus_executor = executor.into();
+        self
+    }
+
     pub fn with_values<F>(mut self, f: F) -> Self
     where
         F: FnOnce(&mut EngineParams<C, T>),
@@ -338,7 +396,15 @@ where
         f(&mut self.params);
         self
     }
+}
 
+/// Static step builder for the genetic engine.
+impl<C, T, E> GeneticEngineBuilder<C, T, E>
+where
+    C: Chromosome + Clone + PartialEq + 'static,
+    T: Clone + Send + Sync + 'static,
+    E: Epoch<Chromosome = C>,
+{
     fn build_eval_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
         let evaluator = config.evaluator.clone();
         let eval_step = EvaluateStep {
@@ -406,7 +472,7 @@ where
         let species_step = SpeciateStep {
             threashold: config.species_threshold(),
             diversity: config.diversity().clone().unwrap(),
-            executor: config.executor(),
+            executor: config.executor().species_executor.clone(),
             objective: config.objective(),
         };
 
@@ -450,11 +516,12 @@ where
             return;
         }
 
+        let front_executor = self.params.executor.front_executor.clone();
         let front_obj = self.params.objective.clone();
         self.params.front = Some(Front::new(
             self.params.front_range.clone(),
             front_obj.clone(),
-            Arc::new(Executor::worker_pool(10)),
+            front_executor,
             move |one: &Phenotype<C>, two: &Phenotype<C>| {
                 if one.score().is_none() || two.score().is_none() {
                     return Ordering::Equal;
@@ -542,7 +609,10 @@ where
                 problem: config.problem.clone(),
             };
 
-            let event_bus = EventBus::new(config.executor(), self.params.handlers.clone());
+            let event_bus = EventBus::new(
+                config.executor().bus_executor.clone(),
+                self.params.handlers.clone(),
+            );
 
             GeneticEngine::<C, T>::new(context, pipeline, event_bus)
         }
@@ -617,7 +687,10 @@ where
                 problem: config.problem.clone(),
             };
 
-            let event_bus = EventBus::new(config.executor(), self.params.handlers.clone());
+            let event_bus = EventBus::new(
+                config.executor().bus_executor.clone(),
+                self.params.handlers.clone(),
+            );
 
             GeneticEngine::<C, T, MultiObjectiveGeneration<C>>::new(context, pipeline, event_bus)
         }
@@ -653,7 +726,11 @@ where
                 problem: None,
                 front: None,
                 handlers: Vec::new(),
-                executor: Arc::new(Executor::Serial),
+                executor: ExecutorParams {
+                    species_executor: Arc::new(Executor::default()),
+                    front_executor: Arc::new(Executor::default()),
+                    bus_executor: Arc::new(Executor::default()),
+                },
             },
             errors: Vec::new(),
             _epoch: std::marker::PhantomData,
