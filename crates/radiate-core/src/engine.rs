@@ -9,7 +9,7 @@ use std::{
 
 pub trait Engine {
     type Chromosome: Chromosome;
-    type Epoch: Epoch<Chromosome = Self::Chromosome>;
+    type Epoch: Epoch<Self::Chromosome>;
 
     fn next(&mut self) -> Self::Epoch;
 }
@@ -40,21 +40,20 @@ where
     }
 }
 
-pub trait Epoch {
-    type Chromosome: Chromosome;
+pub trait Epoch<C: Chromosome> {
     type Value;
 
     fn value(&self) -> &Self::Value;
-    fn ecosystem(&self) -> &Ecosystem<Self::Chromosome>;
+    fn ecosystem(&self) -> &Ecosystem<C>;
     fn index(&self) -> usize;
     fn metrics(&self) -> &MetricSet;
     fn objective(&self) -> &Objective;
 
-    fn population(&self) -> &Population<Self::Chromosome> {
+    fn population(&self) -> &Population<C> {
         &self.ecosystem().population()
     }
 
-    fn species(&self) -> Option<&[Species<Self::Chromosome>]> {
+    fn species(&self) -> Option<&[Species<C>]> {
         self.ecosystem().species().map(|s| s.as_slice())
     }
 

@@ -39,3 +39,13 @@ impl<C: Chromosome> Default for Pipeline<C> {
         Pipeline { steps: Vec::new() }
     }
 }
+
+impl<C: Chromosome> From<Vec<Option<Box<dyn EngineStep<C>>>>> for Pipeline<C> {
+    fn from(steps: Vec<Option<Box<dyn EngineStep<C>>>>) -> Self {
+        let mut pipeline = Pipeline::default();
+        for step in steps {
+            pipeline.add_step(step);
+        }
+        pipeline
+    }
+}

@@ -1,5 +1,18 @@
+mod alters;
+mod audit;
+mod evaluators;
+mod objectives;
+mod population;
+mod problem;
+mod selectors;
+mod species;
+
+use crate::builder::evaluators::EvaluationParams;
+use crate::builder::objectives::OptimizeParams;
+use crate::builder::population::PopulationParams;
+use crate::builder::selectors::SelectionParams;
+use crate::builder::species::SpeciesParams;
 use crate::codecs::Codec;
-use crate::config::EngineConfig;
 use crate::genome::phenotype::Phenotype;
 use crate::genome::population::Population;
 use crate::objectives::Score;
@@ -9,28 +22,18 @@ use crate::steps::{
     AuditStep, Evaluator, FilterStep, FrontStep, RecombineStep, SequentialEvaluator, SpeciateStep,
 };
 use crate::{
-    Alter, AlterAction, Audit, Crossover, EncodeReplace, EngineEvent, EngineProblem, EngineStep,
-    EventBus, EventHandler, Front, Generation, MetricAudit, MultiObjectiveGeneration, Mutate,
-    Problem, ReplacementStrategy, RouletteSelector, Select, TournamentSelector,
-    WorkerPoolEvaluator, pareto,
+    Alter, Audit, Crossover, EncodeReplace, EngineEvent, EngineProblem, EngineStep, EventBus,
+    EventHandler, Front, MetricAudit, Mutate, Problem, ReplacementStrategy, RouletteSelector,
+    Select, TournamentSelector, pareto,
 };
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use core::panic;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::engine::Context;
-use radiate_core::thread_pool::ThreadPool;
 use radiate_core::{Diversity, Ecosystem, Epoch, Executor, Genotype, MetricSet};
-use radiate_error::{RadiateError, radiate_err};
+use radiate_error::RadiateError;
 use std::cmp::Ordering;
-use std::ops::Range;
 use std::sync::{Arc, Mutex, RwLock};
-
-#[derive(Clone)]
-pub struct ExecutorParams {
-    pub species_executor: Arc<Executor>,
-    pub front_executor: Arc<Executor>,
-    pub bus_executor: Arc<Executor>,
-}
 
 #[derive(Clone)]
 pub struct EngineParams<C, T = Genotype<C>>
@@ -38,26 +41,18 @@ where
     C: Chromosome + 'static,
     T: Clone + 'static,
 {
-    pub population_size: usize,
-    pub max_age: usize,
-    pub front_range: Range<usize>,
-    pub offspring_fraction: f32,
-    pub species_threshold: f32,
-    pub max_species_age: usize,
-    pub objective: Objective,
-    pub survivor_selector: Arc<dyn Select<C>>,
-    pub offspring_selector: Arc<dyn Select<C>>,
-    pub diversity: Option<Arc<dyn Diversity<C>>>,
+    pub population_params: PopulationParams<C>,
+    pub evaluation_params: EvaluationParams<C, T>,
+    pub species_params: SpeciesParams<C>,
+    pub selection_params: SelectionParams<C>,
+    pub optimization_params: OptimizeParams<C>,
+
     pub alterers: Vec<Arc<dyn Alter<C>>>,
     pub audits: Vec<Arc<dyn Audit<C>>>,
-    pub population: Option<Population<C>>,
     pub codec: Option<Arc<dyn Codec<C, T>>>,
-    pub evaluator: Arc<dyn Evaluator<C, T>>,
-    pub executor: ExecutorParams,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
     pub problem: Option<Arc<dyn Problem<C, T>>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
-    pub front: Option<Front<Phenotype<C>>>,
     pub handlers: Vec<Arc<Mutex<dyn EventHandler<EngineEvent<T>>>>>,
 }
 
@@ -81,7 +76,7 @@ where
     C: Chromosome + Clone + 'static,
     T: Clone + 'static,
 {
-    pub(crate) params: EngineParams<C, T>,
+    params: EngineParams<C, T>,
     errors: Vec<RadiateError>,
     _epoch: std::marker::PhantomData<E>,
 }
@@ -90,56 +85,8 @@ impl<C, T, E> GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send,
-    E: Epoch<Chromosome = C>,
+    E: Epoch<C>,
 {
-    /// Set the population size of the genetic engine. Default is 100.
-    pub fn population_size(mut self, population_size: usize) -> Self {
-        if population_size < 1 {
-            self.errors
-                .push(radiate_err!(InvalidConfig: "population_size must be greater than 0"));
-        }
-
-        self.params.population_size = population_size;
-        self
-    }
-
-    /// Set the maximum age of an individual in the population. Default is 25.
-    pub fn max_age(mut self, max_age: usize) -> Self {
-        if max_age < 1 {
-            self.errors
-                .push(radiate_err!(InvalidConfig: "max_age must be greater than 0"));
-        }
-
-        self.params.max_age = max_age;
-        self
-    }
-
-    pub fn diversity<D: Diversity<C> + 'static>(mut self, diversity: D) -> Self {
-        self.params.diversity = Some(Arc::new(diversity));
-        self
-    }
-
-    pub fn species_threshold(mut self, threshold: f32) -> Self {
-        if threshold < 0.0 {
-            self.errors
-                .push(radiate_err!(InvalidConfig: "species_threshold must be greater than 0"));
-        }
-
-        self.params.species_threshold = threshold;
-        self
-    }
-
-    pub fn max_species_age(mut self, max_species_age: usize) -> Self {
-        if max_species_age < 1 {
-            self.errors.push(radiate_err!(
-                InvalidConfig: "max_species_age must be greater than 0"
-            ));
-        }
-
-        self.params.max_species_age = max_species_age;
-        self
-    }
-
     /// The `FilterStrategy` is used to determine how a new individual is added to the `Population`
     /// if an individual is deemed to be either invalid or reaches the maximum age.
     ///
@@ -150,242 +97,11 @@ where
         self
     }
 
-    /// Add a single audit to the algorithm that will produce additional metrics
-    /// to collect during the evolution process.
-    pub fn audit(mut self, audit: impl Audit<C> + 'static) -> Self {
-        self.params.audits.push(Arc::new(audit));
-        self
-    }
-
-    /// Add a list of audits to the algorithm that will produce additional metrics
-    /// to collect during the evolution process.
-    pub fn audits(mut self, audits: Vec<Arc<dyn Audit<C>>>) -> Self {
-        self.params.audits.extend(audits);
-        self
-    }
-
-    pub fn evaluator<EV: Evaluator<C, T> + 'static>(mut self, evaluator: EV) -> Self {
-        self.params.evaluator = Arc::new(evaluator);
-        self
-    }
-
     pub fn subscribe<H>(mut self, handler: H) -> Self
     where
         H: EventHandler<EngineEvent<T>> + 'static,
     {
         self.params.handlers.push(Arc::new(Mutex::new(handler)));
-        self
-    }
-
-    /// Set the fraction of the population that will be replaced by offspring each generation.
-    /// Default is 0.8. This is a value from 0...=1 that represents the fraction of
-    /// population that will be replaced by offspring each generation. The remainder will 'survive' to the next generation.
-    pub fn offspring_fraction(mut self, offspring_fraction: f32) -> Self {
-        if !(0.0..=1.0).contains(&offspring_fraction) {
-            self.errors.push(radiate_err!(
-                InvalidConfig: "offspring_fraction must be between 0.0 and 1.0"
-            ));
-        }
-
-        self.params.offspring_fraction = offspring_fraction;
-        self
-    }
-
-    /// Set the codec that will be used to encode and decode the genotype of the population.
-    pub fn codec<D: Codec<C, T> + 'static>(mut self, codec: D) -> Self {
-        self.params.codec = Some(Arc::new(codec));
-        self
-    }
-
-    /// Set the problem of the genetic engine. This is useful if you want to provide a custom problem.
-    pub fn problem<P: Problem<C, T> + 'static>(mut self, problem: P) -> Self {
-        self.params.problem = Some(Arc::new(problem));
-        self
-    }
-
-    /// Set the population of the genetic engine. This is useful if you want to provide a custom population.
-    /// If this is not set, the genetic engine will create a new population of `population_size` using the codec.
-    pub fn population(mut self, population: Population<C>) -> Self {
-        self.params.population = Some(population);
-        self
-    }
-
-    /// Set the fitness function of the genetic engine. This is the function that will be
-    /// used to evaluate the fitness of each individual in the population. This function should
-    /// take a single argument of type T and return a `Score`. The `Score` is used to
-    /// evaluate or rank the fitness of the individual.
-    ///
-    /// This method is required and must be set before calling the `build` method.
-    pub fn fitness_fn<S: Into<Score>>(
-        mut self,
-        fitness_func: impl Fn(T) -> S + Send + Sync + 'static,
-    ) -> Self {
-        let other = move |x| fitness_func(x).into();
-        self.params.fitness_fn = Some(Arc::new(other));
-        self
-    }
-
-    /// Set the survivor selector of the genetic engine. This is the selector that will
-    /// be used to select the survivors of the population. Default is `TournamentSelector`
-    /// with a group size of 3.
-    pub fn survivor_selector<S: Select<C> + 'static>(mut self, selector: S) -> Self {
-        self.params.survivor_selector = Arc::new(selector);
-        self
-    }
-
-    /// Set the offspring selector of the genetic engine. This is the selector that will
-    /// be used to select the offspring of the population. Default is `RouletteSelector`.
-    pub fn offspring_selector<S: Select<C> + 'static>(mut self, selector: S) -> Self {
-        self.params.offspring_selector = Arc::new(selector);
-        self
-    }
-
-    /// Set the alterer of the genetic engine. This is the alterer that will be used to
-    /// alter the offspring of the population. The alterer is used to apply mutations
-    /// and crossover operations to the offspring and will be used to create the next
-    /// generation of the population. **Note**: the order of the alterers is important - the
-    /// alterers will be applied in the order they are provided.
-    pub fn alter(mut self, alterers: Vec<Box<dyn Alter<C>>>) -> Self {
-        self.params.alterers = alterers.into_iter().map(|alt| alt.into()).collect();
-        self
-    }
-
-    /// Define a single mutator for the genetic engine - this will be  converted to
-    /// a `Box<dyn Alter<C>>` and added to the list of alterers. Note: The order in which
-    /// mutators and crossovers are added is the order in which they will be applied during
-    /// the evolution process.
-    pub fn mutator<M: Mutate<C> + 'static>(mut self, mutator: M) -> Self {
-        self.params.alterers.push(Arc::new(mutator.alterer()));
-        self
-    }
-
-    /// Define a list of mutators for the genetic engine - this will be converted to a list
-    /// of `Box<dyn Alter<C>>` and added to the list of alterers. Just like adding a single mutator,
-    /// the order in which mutators and crossovers are added is the order in which they will be applied
-    /// during the evolution process.s
-    pub fn mutators(mut self, mutators: Vec<Box<dyn Mutate<C>>>) -> Self {
-        let mutate_actions = mutators
-            .into_iter()
-            .map(|m| Arc::new(AlterAction::Mutate(m.name(), m.rate(), m)) as Arc<dyn Alter<C>>)
-            .collect::<Vec<_>>();
-
-        self.params.alterers.extend(mutate_actions);
-        self
-    }
-
-    /// Define a single crossover for the genetic engine - this will be converted to
-    /// a `Box<dyn Alter<C>>` and added to the list of alterers. Note: The order in which
-    /// mutators and crossovers are added is the order in which they will be applied during
-    /// the evolution process.s
-    pub fn crossover<R: Crossover<C> + 'static>(mut self, crossover: R) -> Self {
-        self.params.alterers.push(Arc::new(crossover.alterer()));
-        self
-    }
-
-    /// Define a list of crossovers for the genetic engine - this will be converted to a list
-    /// of `Box<dyn Alter<C>>` and added to the list of alterers. Just like adding a single crossover,
-    /// the order in which mutators and crossovers are added is the order in which they will be applied
-    /// during the evolution process.
-    pub fn crossovers(mut self, crossovers: Vec<Box<dyn Crossover<C>>>) -> Self {
-        let crossover_actions = crossovers
-            .into_iter()
-            .map(|c| Arc::new(AlterAction::Crossover(c.name(), c.rate(), c)) as Arc<dyn Alter<C>>)
-            .collect::<Vec<_>>();
-
-        self.params.alterers.extend(crossover_actions);
-        self
-    }
-
-    /// Set the optimization goal of the genetic engine to minimize the fitness function.
-    pub fn minimizing(mut self) -> Self {
-        self.params.objective = Objective::Single(Optimize::Minimize);
-        self
-    }
-
-    /// Set the optimization goal of the genetic engine to maximize the fitness function.
-    pub fn maximizing(mut self) -> Self {
-        self.params.objective = Objective::Single(Optimize::Maximize);
-        self
-    }
-
-    pub fn multi_objective(
-        mut self,
-        objectives: Vec<Optimize>,
-    ) -> GeneticEngineBuilder<C, T, MultiObjectiveGeneration<C>> {
-        self.params.objective = Objective::Multi(objectives);
-        GeneticEngineBuilder {
-            params: self.params,
-            errors: self.errors,
-            _epoch: std::marker::PhantomData,
-        }
-    }
-
-    /// Set the minimum and maximum size of the pareto front. This is used for
-    /// multi-objective optimization problems where the goal is to find the best
-    /// solutions that are not dominated by any other solution.
-    pub fn front_size(
-        mut self,
-        range: Range<usize>,
-    ) -> GeneticEngineBuilder<C, T, MultiObjectiveGeneration<C>> {
-        self.params.front_range = range;
-        GeneticEngineBuilder {
-            params: self.params,
-            errors: self.errors,
-            _epoch: std::marker::PhantomData,
-        }
-    }
-
-    pub fn num_threads(mut self, num_threads: usize) -> Self
-    where
-        T: Send + Sync + 'static,
-    {
-        if num_threads < 1 {
-            self.errors
-                .push(radiate_err!(InvalidConfig: "num_threads must be greater than 0"));
-        }
-
-        let executor = if num_threads == 1 {
-            Arc::new(Executor::Serial)
-        } else {
-            Arc::new(Executor::WorkerPool(ThreadPool::new(num_threads)))
-        };
-
-        if num_threads == 1 {
-            self.params.evaluator = Arc::new(SequentialEvaluator::new());
-        } else {
-            self.params.evaluator = Arc::new(WorkerPoolEvaluator::new(num_threads));
-        }
-
-        self.params.executor = ExecutorParams {
-            species_executor: executor.clone(),
-            front_executor: executor.clone(),
-            bus_executor: executor,
-        };
-        self
-    }
-
-    pub fn executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
-        let executor = executor.into();
-        self.params.executor = ExecutorParams {
-            species_executor: executor.clone(),
-            front_executor: executor.clone(),
-            bus_executor: executor.clone(),
-        };
-        self
-    }
-
-    pub fn species_executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
-        self.params.executor.species_executor = executor.into();
-        self
-    }
-
-    pub fn front_executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
-        self.params.executor.front_executor = executor.into();
-        self
-    }
-
-    pub fn bus_executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
-        self.params.executor.bus_executor = executor.into();
         self
     }
 
@@ -403,8 +119,63 @@ impl<C, T, E> GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome + Clone + PartialEq + 'static,
     T: Clone + Send + Sync + 'static,
-    E: Epoch<Chromosome = C>,
+    E: Epoch<C>,
 {
+    /// Build the genetic engine with the given parameters. This will create a new
+    /// instance of the `GeneticEngine` with the given parameters.
+    pub fn build(mut self) -> GeneticEngine<C, T, E> {
+        if self.params.problem.is_none() {
+            if self.params.codec.is_none() {
+                panic!("Codec not set");
+            }
+
+            if self.params.fitness_fn.is_none() {
+                panic!("Fitness function not set");
+            }
+
+            let problem = EngineProblem {
+                codec: self.params.codec.clone().unwrap(),
+                fitness_fn: self.params.fitness_fn.clone().unwrap(),
+            };
+
+            self.problem(problem).build()
+        } else {
+            self.build_population();
+            self.build_alterer();
+            self.build_front();
+
+            let config = EngineConfig::<C, T>::from(&self.params);
+
+            let mut pipeline = Pipeline::<C>::default();
+
+            pipeline.add_step(Self::build_eval_step(&config));
+            pipeline.add_step(Self::build_recombine_step(&config));
+            pipeline.add_step(Self::build_filter_step(&config));
+            pipeline.add_step(Self::build_eval_step(&config));
+            pipeline.add_step(Self::build_front_step(&config));
+            pipeline.add_step(Self::build_species_step(&config));
+            pipeline.add_step(Self::build_audit_step(&config));
+
+            let context = Context {
+                ecosystem: Ecosystem::new(config.population.clone()),
+                best: config.problem.decode(config.population()[0].genotype()),
+                index: 0,
+                metrics: MetricSet::new(),
+                score: None,
+                front: config.front.clone(),
+                objective: config.objective.clone(),
+                problem: config.problem.clone(),
+            };
+
+            let event_bus = EventBus::new(
+                config.executor().bus_executor.clone(),
+                self.params.handlers.clone(),
+            );
+
+            GeneticEngine::<C, T, E>::new(context, pipeline, event_bus)
+        }
+    }
+
     fn build_eval_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
         let evaluator = config.evaluator.clone();
         let eval_step = EvaluateStep {
@@ -482,11 +253,13 @@ where
     /// Build the population of the genetic engine. This will create a new population
     /// using the codec if the population is not set.
     fn build_population(&mut self) {
-        self.params.population = match &self.params.population {
+        self.params.population_params.population = match &self.params.population_params.population {
             None => Some(match self.params.problem.as_ref() {
-                Some(problem) => Population::from((self.params.population_size, || {
-                    Phenotype::from((problem.encode(), 0))
-                })),
+                Some(problem) => {
+                    Population::from((self.params.population_params.population_size, || {
+                        Phenotype::from((problem.encode(), 0))
+                    }))
+                }
                 None => panic!("Codec not set"),
             }),
             Some(pop) => Some(pop.clone()),
@@ -512,14 +285,14 @@ where
     /// if the front is not set. The `Front` is used to store the best individuals
     /// in the population and is used for multi-objective optimization problems.
     fn build_front(&mut self) {
-        if self.params.front.is_some() {
+        if self.params.optimization_params.front.is_some() {
             return;
         }
 
-        let front_executor = self.params.executor.front_executor.clone();
-        let front_obj = self.params.objective.clone();
-        self.params.front = Some(Front::new(
-            self.params.front_range.clone(),
+        let front_executor = self.params.evaluation_params.front_executor.clone();
+        let front_obj = self.params.optimization_params.objectives.clone();
+        self.params.optimization_params.front = Some(Front::new(
+            self.params.optimization_params.front_range.clone(),
             front_obj.clone(),
             front_executor,
             move |one: &Phenotype<C>, two: &Phenotype<C>| {
@@ -541,196 +314,48 @@ where
     }
 }
 
-impl<C, T> GeneticEngineBuilder<C, T, Generation<C, T>>
-where
-    C: Chromosome + Clone + PartialEq + 'static,
-    T: Clone + Send + Sync + 'static,
-{
-    /// Build the genetic engine with the given parameters. This will create a new
-    /// instance of the `GeneticEngine` with the given parameters.
-    pub fn build(mut self) -> GeneticEngine<C, T> {
-        if self.params.problem.is_none() {
-            if self.params.codec.is_none() {
-                panic!("Codec not set");
-            }
-
-            if self.params.fitness_fn.is_none() {
-                panic!("Fitness function not set");
-            }
-
-            let problem = EngineProblem {
-                codec: self.params.codec.clone().unwrap(),
-                fitness_fn: self.params.fitness_fn.clone().unwrap(),
-            };
-
-            self.problem(problem).build()
-        } else {
-            self.build_population();
-            self.build_alterer();
-            self.build_front();
-
-            let config = EngineConfig {
-                population: self.params.population.clone().unwrap(),
-                problem: self.params.problem.clone().unwrap(),
-                survivor_selector: self.params.survivor_selector.clone(),
-                offspring_selector: self.params.offspring_selector.clone(),
-                replacement_strategy: self.params.replacement_strategy.clone(),
-                audits: self.params.audits.clone(),
-                alterers: self.params.alterers.clone(),
-                objective: self.params.objective.clone(),
-                max_age: self.params.max_age,
-                max_species_age: self.params.max_species_age,
-                species_threshold: self.params.species_threshold,
-                diversity: self.params.diversity.clone(),
-                front: Arc::new(RwLock::new(self.params.front.clone().unwrap())),
-                offspring_fraction: self.params.offspring_fraction,
-                evaluator: self.params.evaluator.clone(),
-                executor: self.params.executor.clone(),
-            };
-
-            let mut pipeline = Pipeline::<C>::default();
-
-            pipeline.add_step(Self::build_eval_step(&config));
-            pipeline.add_step(Self::build_recombine_step(&config));
-            pipeline.add_step(Self::build_filter_step(&config));
-            pipeline.add_step(Self::build_eval_step(&config));
-            pipeline.add_step(Self::build_front_step(&config));
-            pipeline.add_step(Self::build_species_step(&config));
-            pipeline.add_step(Self::build_audit_step(&config));
-
-            let context = Context {
-                ecosystem: Ecosystem::new(config.population.clone()),
-                best: config.problem.decode(config.population()[0].genotype()),
-                index: 0,
-                metrics: MetricSet::new(),
-                score: None,
-                front: config.front.clone(),
-                objective: config.objective.clone(),
-                problem: config.problem.clone(),
-            };
-
-            let event_bus = EventBus::new(
-                config.executor().bus_executor.clone(),
-                self.params.handlers.clone(),
-            );
-
-            GeneticEngine::<C, T>::new(context, pipeline, event_bus)
-        }
-    }
-}
-
-impl<C, T> GeneticEngineBuilder<C, T, MultiObjectiveGeneration<C>>
-where
-    C: Chromosome + Clone + PartialEq + 'static,
-    T: Clone + Send + Sync + 'static,
-{
-    /// Build the genetic engine with the given parameters. This will create a new
-    /// instance of the `GeneticEngine` with the given parameters.
-    pub fn build(mut self) -> GeneticEngine<C, T, MultiObjectiveGeneration<C>> {
-        if self.params.problem.is_none() {
-            if self.params.codec.is_none() {
-                panic!("Codec not set");
-            }
-
-            if self.params.fitness_fn.is_none() {
-                panic!("Fitness function not set");
-            }
-
-            let problem = EngineProblem {
-                codec: self.params.codec.clone().unwrap(),
-                fitness_fn: self.params.fitness_fn.clone().unwrap(),
-            };
-
-            self.problem(problem).build()
-        } else {
-            self.build_population();
-            self.build_alterer();
-            self.build_front();
-
-            let config = EngineConfig {
-                population: self.params.population.clone().unwrap(),
-                problem: self.params.problem.clone().unwrap(),
-                survivor_selector: self.params.survivor_selector.clone(),
-                offspring_selector: self.params.offspring_selector.clone(),
-                replacement_strategy: self.params.replacement_strategy.clone(),
-                audits: self.params.audits.clone(),
-                alterers: self.params.alterers.clone(),
-                objective: self.params.objective.clone(),
-                max_age: self.params.max_age,
-                max_species_age: self.params.max_species_age,
-                species_threshold: self.params.species_threshold,
-                diversity: self.params.diversity.clone(),
-                front: Arc::new(RwLock::new(self.params.front.clone().unwrap())),
-                offspring_fraction: self.params.offspring_fraction,
-                evaluator: self.params.evaluator.clone(),
-                executor: self.params.executor.clone(),
-            };
-
-            let mut pipeline = Pipeline::<C>::default();
-
-            pipeline.add_step(Self::build_eval_step(&config));
-            pipeline.add_step(Self::build_recombine_step(&config));
-            pipeline.add_step(Self::build_filter_step(&config));
-            pipeline.add_step(Self::build_eval_step(&config));
-            pipeline.add_step(Self::build_front_step(&config));
-            pipeline.add_step(Self::build_species_step(&config));
-            pipeline.add_step(Self::build_audit_step(&config));
-
-            let context = Context {
-                ecosystem: Ecosystem::new(config.population.clone()),
-                best: config.problem.decode(config.population()[0].genotype()),
-                index: 0,
-                metrics: MetricSet::new(),
-                score: None,
-                front: config.front.clone(),
-                objective: config.objective.clone(),
-                problem: config.problem.clone(),
-            };
-
-            let event_bus = EventBus::new(
-                config.executor().bus_executor.clone(),
-                self.params.handlers.clone(),
-            );
-
-            GeneticEngine::<C, T, MultiObjectiveGeneration<C>>::new(context, pipeline, event_bus)
-        }
-    }
-}
-
 impl<C, T, E> Default for GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + 'static,
-    E: Epoch,
+    E: Epoch<C>,
 {
     fn default() -> Self {
         GeneticEngineBuilder {
             params: EngineParams {
-                population_size: 100,
-                max_age: 20,
-                offspring_fraction: 0.8,
-                front_range: 800..900,
-                objective: Objective::Single(Optimize::Maximize),
-                survivor_selector: Arc::new(TournamentSelector::new(3)),
-                offspring_selector: Arc::new(RouletteSelector::new()),
-                replacement_strategy: Arc::new(EncodeReplace),
-                audits: vec![Arc::new(MetricAudit)],
-                alterers: Vec::new(),
-                species_threshold: 0.5,
-                max_species_age: 25,
-                evaluator: Arc::new(SequentialEvaluator::new()),
-                diversity: None,
-                codec: None,
-                population: None,
-                fitness_fn: None,
-                problem: None,
-                front: None,
-                handlers: Vec::new(),
-                executor: ExecutorParams {
+                population_params: PopulationParams {
+                    population_size: 100,
+                    max_age: 20,
+                    population: None,
+                },
+                species_params: SpeciesParams {
+                    diversity: None,
+                    species_threshold: 0.5,
+                    max_species_age: 25,
+                },
+                evaluation_params: EvaluationParams {
+                    evaluator: Arc::new(SequentialEvaluator::new()),
                     species_executor: Arc::new(Executor::default()),
                     front_executor: Arc::new(Executor::default()),
                     bus_executor: Arc::new(Executor::default()),
                 },
+                selection_params: SelectionParams {
+                    offspring_fraction: 0.8,
+                    survivor_selector: Arc::new(TournamentSelector::new(3)),
+                    offspring_selector: Arc::new(RouletteSelector::new()),
+                },
+                optimization_params: OptimizeParams {
+                    objectives: Objective::Single(Optimize::Maximize),
+                    front_range: 800..900,
+                    front: None,
+                },
+                replacement_strategy: Arc::new(EncodeReplace),
+                audits: vec![Arc::new(MetricAudit)],
+                alterers: Vec::new(),
+                codec: None,
+                fitness_fn: None,
+                problem: None,
+                handlers: Vec::new(),
             },
             errors: Vec::new(),
             _epoch: std::marker::PhantomData,
@@ -738,17 +363,122 @@ where
     }
 }
 
-impl<C, T, E> From<EngineParams<C, T>> for GeneticEngineBuilder<C, T, E>
+#[derive(Clone)]
+struct EngineConfig<C: Chromosome, T: Clone> {
+    population: Population<C>,
+    problem: Arc<dyn Problem<C, T>>,
+    survivor_selector: Arc<dyn Select<C>>,
+    offspring_selector: Arc<dyn Select<C>>,
+    replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
+    audits: Vec<Arc<dyn Audit<C>>>,
+    alterers: Vec<Arc<dyn Alter<C>>>,
+    species_threshold: f32,
+    diversity: Option<Arc<dyn Diversity<C>>>,
+    evaluator: Arc<dyn Evaluator<C, T>>,
+    objective: Objective,
+    max_age: usize,
+    max_species_age: usize,
+    front: Arc<RwLock<Front<Phenotype<C>>>>,
+    offspring_fraction: f32,
+    executor: EvaluationParams<C, T>,
+}
+
+impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
+    pub fn population(&self) -> &Population<C> {
+        &self.population
+    }
+
+    pub fn survivor_selector(&self) -> Arc<dyn Select<C>> {
+        Arc::clone(&self.survivor_selector)
+    }
+
+    pub fn offspring_selector(&self) -> Arc<dyn Select<C>> {
+        Arc::clone(&self.offspring_selector)
+    }
+
+    pub fn replacement_strategy(&self) -> Arc<dyn ReplacementStrategy<C>> {
+        Arc::clone(&self.replacement_strategy)
+    }
+
+    pub fn audits(&self) -> &[Arc<dyn Audit<C>>] {
+        &self.audits
+    }
+
+    pub fn alters(&self) -> &[Arc<dyn Alter<C>>] {
+        &self.alterers
+    }
+
+    pub fn objective(&self) -> Objective {
+        self.objective.clone()
+    }
+
+    pub fn max_age(&self) -> usize {
+        self.max_age
+    }
+
+    pub fn max_species_age(&self) -> usize {
+        self.max_species_age
+    }
+
+    pub fn species_threshold(&self) -> f32 {
+        self.species_threshold
+    }
+
+    pub fn diversity(&self) -> Option<Arc<dyn Diversity<C>>> {
+        self.diversity.clone()
+    }
+
+    pub fn front(&self) -> Arc<RwLock<Front<Phenotype<C>>>> {
+        Arc::clone(&self.front)
+    }
+
+    pub fn survivor_count(&self) -> usize {
+        self.population.len() - self.offspring_count()
+    }
+
+    pub fn offspring_count(&self) -> usize {
+        (self.population.len() as f32 * self.offspring_fraction) as usize
+    }
+
+    pub fn executor(&self) -> &EvaluationParams<C, T> {
+        &self.executor
+    }
+
+    pub fn encoder(&self) -> Arc<dyn Fn() -> Genotype<C> + Send + Sync>
+    where
+        C: 'static,
+        T: 'static,
+    {
+        let problem = Arc::clone(&self.problem);
+        Arc::new(move || problem.encode())
+    }
+}
+
+impl<C, T> From<&EngineParams<C, T>> for EngineConfig<C, T>
 where
     C: Chromosome + Clone + 'static,
-    T: Clone + Send + 'static,
-    E: Epoch,
+    T: Clone + Send + Sync + 'static,
 {
-    fn from(params: EngineParams<C, T>) -> Self {
-        GeneticEngineBuilder {
-            params,
-            errors: Vec::new(),
-            _epoch: std::marker::PhantomData,
+    fn from(params: &EngineParams<C, T>) -> Self {
+        Self {
+            population: params.population_params.population.clone().unwrap(),
+            problem: params.problem.clone().unwrap(),
+            survivor_selector: params.selection_params.survivor_selector.clone(),
+            offspring_selector: params.selection_params.offspring_selector.clone(),
+            replacement_strategy: params.replacement_strategy.clone(),
+            audits: params.audits.clone(),
+            alterers: params.alterers.clone(),
+            objective: params.optimization_params.objectives.clone(),
+            max_age: params.population_params.max_age,
+            max_species_age: params.species_params.max_species_age,
+            species_threshold: params.species_params.species_threshold,
+            diversity: params.species_params.diversity.clone(),
+            front: Arc::new(RwLock::new(
+                params.optimization_params.front.clone().unwrap(),
+            )),
+            offspring_fraction: params.selection_params.offspring_fraction,
+            evaluator: params.evaluation_params.evaluator.clone(),
+            executor: params.evaluation_params.clone(),
         }
     }
 }

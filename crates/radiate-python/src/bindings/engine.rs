@@ -80,7 +80,7 @@ impl PyEngine {
 }
 
 type SingleObjectiveEngine<C> = GeneticEngine<C, ObjectValue, Generation<C, ObjectValue>>;
-type MultiObjectiveEngine<C> = GeneticEngine<C, ObjectValue, MultiObjectiveGeneration<C>>;
+type MultiObjectiveEngine<C> = GeneticEngine<C, ObjectValue, ParetoGeneration<C>>;
 
 enum EngineInner {
     Int(SingleObjectiveEngine<IntChromosome<i32>>),
@@ -176,7 +176,7 @@ fn create_multi_engine<C, T>(
     codec: PyCodec<C>,
     fitness_fn: Py<PyAny>,
     parameters: &Py<PyAny>,
-) -> PyResult<GeneticEngineBuilder<C, T, MultiObjectiveGeneration<C>>>
+) -> PyResult<GeneticEngineBuilder<C, T, ParetoGeneration<C>>>
 where
     C: Chromosome + Clone + PartialEq + 'static,
     T: Clone + Send + Sync + 'static,
@@ -227,11 +227,9 @@ where
         .max_age(max_age)
         .max_species_age(max_species_age)
         .species_threshold(species_threshold)
-        .with_values(|config| {
-            config.survivor_selector = survivor_selector.into();
-            config.offspring_selector = offspring_selector.into();
-            config.diversity = diversity.map(|d| d.into());
-        })
+        .boxed_diversity(diversity)
+        .boxed_offspring_selector(offspring_selector)
+        .boxed_survivor_selector(survivor_selector)
         .alter(alters)
         .multi_objective(match objective {
             Objective::Multi(opts) => opts,
@@ -314,11 +312,9 @@ where
         .alter(alters)
         .num_threads(num_threads.min(1))
         .bus_executor(Executor::default())
-        .with_values(|config| {
-            config.survivor_selector = survivor_selector.into();
-            config.offspring_selector = offspring_selector.into();
-            config.diversity = diversity.map(|d| d.into());
-        });
+        .boxed_diversity(diversity)
+        .boxed_offspring_selector(offspring_selector)
+        .boxed_survivor_selector(survivor_selector);
 
     builder = match subscribers.len() > 0 {
         true => builder.subscribe(PyEventHandler::new(subscribers)),
@@ -385,14 +381,14 @@ where
 }
 
 fn run_multi_objective_engine<C, T>(
-    engine: &mut Option<GeneticEngine<C, T, MultiObjectiveGeneration<C>>>,
+    engine: &mut Option<GeneticEngine<C, T, ParetoGeneration<C>>>,
     limits: Vec<PyLimit>,
     _: bool,
 ) -> PyResult<PyGeneration>
 where
     C: Chromosome + Clone,
     T: Debug + Clone + Send + Sync + 'static,
-    MultiObjectiveGeneration<C>: Into<PyGeneration>,
+    ParetoGeneration<C>: Into<PyGeneration>,
 {
     engine
         .take()

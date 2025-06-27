@@ -93,7 +93,7 @@ where
     }
 }
 
-impl<C: Chromosome + Clone> Into<PyGeneration> for MultiObjectiveGeneration<C>
+impl<C: Chromosome + Clone> Into<PyGeneration> for ParetoGeneration<C>
 where
     PyPopulation: From<Population<C>>,
     PyGenotype: From<Genotype<C>>,
