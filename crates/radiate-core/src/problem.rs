@@ -11,9 +11,6 @@ pub trait Problem<C: Chromosome, T>: Send + Sync {
     fn encode(&self) -> Genotype<C>;
     fn decode(&self, genotype: &Genotype<C>) -> T;
     fn eval(&self, individual: &Genotype<C>) -> Score;
-    fn eval_batch(&self, individuals: &[Genotype<C>]) -> Vec<Score> {
-        individuals.iter().map(|ind| self.eval(ind)).collect()
-    }
 }
 
 /// [EngineProblem] is a generic, base level concrete implementation of the [Problem] trait that is the

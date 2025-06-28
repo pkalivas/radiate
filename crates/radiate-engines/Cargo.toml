@@ -12,7 +12,11 @@ license = { workspace = true }
 homepage = { workspace = true }
 
 [dependencies]
-radiate-core = { workspace = true }
+radiate-core = { workspace = true}
 radiate-alters = { workspace = true }
 radiate-selectors = { workspace = true }
 radiate-error = { workspace = true }
+rayon = { workspace = true, optional = true }
+
+[features]
+rayon = [ "radiate-core/rayon", "dep:rayon" ]

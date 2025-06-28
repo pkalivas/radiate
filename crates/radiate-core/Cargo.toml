@@ -15,6 +15,7 @@ homepage = { workspace = true }
 rand = { workspace = true }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
+rayon = { workspace = true, optional = true }
 
 [dev-dependencies]
 serde = { workspace = true }
@@ -22,3 +23,4 @@ serde_json = { workspace = true }
 
 [features]
 serde = ["dep:serde", "dep:serde_json"]
+rayon = ["dep:rayon"]

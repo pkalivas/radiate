@@ -38,6 +38,18 @@ where
                 .push(radiate_err!(InvalidConfig: "num_threads must be greater than 0"));
         }
 
+        #[cfg(feature = "rayon")]
+        let executor = if num_threads == 1 {
+            Arc::new(Executor::Serial)
+        } else {
+            rayon::ThreadPoolBuilder::new()
+                .num_threads(num_threads)
+                .build_global()
+                .map(|_| Arc::new(Executor::Rayon))
+                .unwrap_or_else(|_| Arc::new(Executor::WorkerPool(ThreadPool::new(num_threads))))
+        };
+
+        #[cfg(not(feature = "rayon"))]
         let executor = if num_threads == 1 {
             Arc::new(Executor::Serial)
         } else {

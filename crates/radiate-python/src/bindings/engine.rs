@@ -307,6 +307,7 @@ where
         // .evaluator(FitnessEvaluator::new(Arc::new(Executor::default())))
         .evaluator(FreeThreadPyEvaluator::new(
             Arc::new(Executor::worker_pool(num_threads.max(1))),
+            // Arc::new(Executor::Rayon),
             Arc::new(PyProblem::new(fitness_fn, codec)),
         ))
         .bus_executor(Executor::default())
