@@ -117,10 +117,10 @@ impl PyGenotype {
 
     pub fn __repr__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let repr = format!(
-            "Genotype(chromosomes={:?})",
+            "{:?}",
             self.chromosomes
                 .iter()
-                .map(|c| format!("{:?}", c.__repr__(py)))
+                .map(|c| format!("{:?}", c.__repr__(py).unwrap()))
                 .collect::<Vec<_>>()
         );
 
@@ -169,7 +169,7 @@ impl PyChromosome {
             "Chromosome(genes={:?})",
             self.genes
                 .iter()
-                .map(|g| format!("{:?}", g.__repr__(py)))
+                .map(|g| format!("{:?}", g.__repr__(py).unwrap()))
                 .collect::<Vec<_>>()
         );
         PyString::new(py, &repr).into_bound_py_any(py)

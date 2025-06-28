@@ -14,8 +14,9 @@ const VERTEX_NODE_TYPE: &str = "vertex";
 const EDGE_NODE_TYPE: &str = "edge";
 
 #[pyclass]
+#[derive(Clone)]
 pub struct PyGraphCodec {
-    codec: PyCodec<GraphChromosome<Op<f32>>>,
+    pub codec: PyCodec<GraphChromosome<Op<f32>>>,
 }
 
 #[pymethods]

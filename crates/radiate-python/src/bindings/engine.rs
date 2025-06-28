@@ -165,6 +165,9 @@ impl<'py> FromPyObject<'py> for Wrap<EngineInner> {
                     ));
                 }
             }
+            _ => Err(PyErr::new::<PyTypeError, _>(
+                "Unsupported gene type for engine",
+            )),
         };
 
         engine.map(Wrap)

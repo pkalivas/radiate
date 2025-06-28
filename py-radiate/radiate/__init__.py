@@ -7,6 +7,7 @@ from .genome import Gene, Chromosome, Genotype, Population, Phenotype
 from .handlers import EventHandler, EventType
 from .executor import Executor
 from .gp import Op
+from .problem import ProblemBase, Regression
 
 from .diversity import (
     HammingDistance,
@@ -45,6 +46,8 @@ from .alterer import (
 __all__ = [
     "Op",
     "GraphCodec",
+    "ProblemBase",
+    "Regression",
     "Executor",
     "EventHandler",
     "EventType",

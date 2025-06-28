@@ -1,4 +1,3 @@
-mod float;
 mod gene;
 
 pub use gene::{PyChromosome, PyGene, PyGenotype, PyPhenotype, PyPopulation};
@@ -9,11 +8,13 @@ pub const FLOAT_GENE_TYPE: &'static str = "FloatGene";
 pub const INT_GENE_TYPE: &'static str = "IntGene";
 pub const BIT_GENE_TYPE: &'static str = "BitGene";
 pub const CHAR_GENE_TYPE: &'static str = "CharGene";
+pub const GRAPH_GENE_TYPE: &'static str = "GraphNode";
 
 pub const FLOAT_CHROMOSOME_TYPE: &'static str = "FloatChromosome";
 pub const INT_CHROMOSOME_TYPE: &'static str = "IntChromosome";
 pub const BIT_CHROMOSOME_TYPE: &'static str = "BitChromosome";
 pub const CHAR_CHROMOSOME_TYPE: &'static str = "CharChromosome";
+pub const GRAPH_CHROMOSOME_TYPE: &'static str = "GraphChromosome";
 
 #[pyclass]
 #[derive(Clone, Debug, PartialEq)]
@@ -22,6 +23,7 @@ pub enum PyChromosomeType {
     Int,
     Bit,
     Char,
+    Graph,
 }
 
 #[pymethods]
@@ -32,6 +34,7 @@ impl PyChromosomeType {
             PyChromosomeType::Int => INT_CHROMOSOME_TYPE.into(),
             PyChromosomeType::Bit => BIT_CHROMOSOME_TYPE.into(),
             PyChromosomeType::Char => CHAR_CHROMOSOME_TYPE.into(),
+            PyChromosomeType::Graph => GRAPH_CHROMOSOME_TYPE.into(),
         }
     }
 
@@ -41,6 +44,7 @@ impl PyChromosomeType {
             PyChromosomeType::Int => INT_CHROMOSOME_TYPE.into(),
             PyChromosomeType::Bit => BIT_CHROMOSOME_TYPE.into(),
             PyChromosomeType::Char => CHAR_CHROMOSOME_TYPE.into(),
+            PyChromosomeType::Graph => GRAPH_CHROMOSOME_TYPE.into(),
         }
     }
 
@@ -54,6 +58,7 @@ impl PyChromosomeType {
             PyChromosomeType::Int => 1,
             PyChromosomeType::Bit => 2,
             PyChromosomeType::Char => 3,
+            PyChromosomeType::Graph => 4,
         }
     }
 
@@ -73,6 +78,7 @@ pub enum PyGeneType {
     Float,
     Bit,
     Char,
+    Graph,
 }
 
 #[pymethods]
@@ -83,6 +89,7 @@ impl PyGeneType {
             PyGeneType::Float => FLOAT_GENE_TYPE.into(),
             PyGeneType::Bit => BIT_GENE_TYPE.into(),
             PyGeneType::Char => CHAR_GENE_TYPE.into(),
+            PyGeneType::Graph => GRAPH_GENE_TYPE.into(),
         }
     }
 
@@ -92,6 +99,7 @@ impl PyGeneType {
             PyGeneType::Float => FLOAT_GENE_TYPE.into(),
             PyGeneType::Bit => BIT_GENE_TYPE.into(),
             PyGeneType::Char => CHAR_GENE_TYPE.into(),
+            PyGeneType::Graph => GRAPH_GENE_TYPE.into(),
         }
     }
 
@@ -105,6 +113,7 @@ impl PyGeneType {
             PyGeneType::Float => 1,
             PyGeneType::Bit => 2,
             PyGeneType::Char => 3,
+            PyGeneType::Graph => 4,
         }
     }
 

@@ -94,33 +94,3 @@ pub(crate) fn call_fitness<'a, 'py>(
         "Failed to extract scores from Python function call. Ensure the function returns a valid score type."
     );
 }
-
-// pub fn call<'py>(py: Python<'py>, func: &Py<PyAny>, input: &Py<PyAny>) -> Score {
-//     let any_value = func.call1(py, (input,)).expect("Python call failed");
-
-//     if let Ok(parsed) = any_value.extract::<f32>(py) {
-//         return Score::from(parsed);
-//     } else if let Ok(parsed) = any_value.extract::<i32>(py) {
-//         return Score::from(parsed as f32);
-//     } else if let Ok(parsed) = any_value.extract::<f64>(py) {
-//         return Score::from(parsed as f32);
-//     } else if let Ok(parsed) = any_value.extract::<i64>(py) {
-//         return Score::from(parsed as f32);
-//     } else if let Ok(scores_vec) = any_value.extract::<Vec<f32>>(py) {
-//         if scores_vec.is_empty() {
-//             return Score::from(0.0);
-//         } else {
-//             return Score::from(scores_vec);
-//         }
-//     } else if let Ok(scores_vec) = any_value.extract::<Vec<i32>>(py) {
-//         if scores_vec.is_empty() {
-//             return Score::from(0.0);
-//         } else {
-//             return Score::from(scores_vec.into_iter().map(|s| s as f32).collect::<Vec<_>>());
-//         }
-//     }
-
-//     panic!(
-//         "Failed to extract scores from Python function call. Ensure the function returns a valid score type."
-//     );
-// }

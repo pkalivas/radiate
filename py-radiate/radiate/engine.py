@@ -7,6 +7,7 @@ from .limit import LimitBase
 from .generation import Generation
 from .handlers import EventHandler
 from .executor import Executor
+from .problem import ProblemBase
 from .radiate import (
     PyEngineBuilder,
     PyObjective,
@@ -33,6 +34,7 @@ class GeneticEngine:
         self,
         codec: CodecBase,
         fitness_func: Callable[[Any], Any],
+        problem: ProblemBase | None = None,
         offspring_selector: SelectorBase | None = None,
         survivor_selector: SelectorBase | None = None,
         alters: AlterBase | List[AlterBase] | None = None,
@@ -313,7 +315,7 @@ class GeneticEngine:
 def get_executor(executor: Executor | None) -> PyExecutor:
     """Get the executor."""
     if executor is None:
-        return Executor.serial().executor
+        return Executor.Serial().executor
     if isinstance(executor, Executor):
         return executor.executor
     raise TypeError("Executor must be an instance of Executor.")

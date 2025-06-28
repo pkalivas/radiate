@@ -4,7 +4,7 @@ use crate::{
     conversion::Wrap,
 };
 use pyo3::{
-    Bound, IntoPyObjectExt, Py, PyAny, PyErr, PyObject, PyResult, Python, pyclass, pymethods,
+    Bound, IntoPyObjectExt, Py, PyAny, PyErr, PyResult, Python, pyclass, pymethods,
     types::{PyAnyMethods, PyDict, PyDictMethods, PyList, PyString, PyTuple},
 };
 use std::vec;
@@ -45,22 +45,6 @@ impl PyEngineBuilder {
             params: params.into(),
         })
     }
-    // #[new]
-    // #[pyo3(signature = (fitness_func, codec, **kwds))]
-    // pub fn new<'py>(
-    //     py: Python<'py>,
-    //     fitness_func: PyObject,
-    //     codec: PyObject,
-    //     kwds: Option<&Bound<'_, PyDict>>,
-    // ) -> PyResult<Self> {
-    //     let params = kwds.map(|d| d.to_owned()).unwrap_or(PyDict::new(py));
-
-    //     Ok(Self {
-    //         fitness_func,
-    //         codec,
-    //         params: params.into(),
-    //     })
-    // }
 
     pub fn __repr__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let repr = format!(

@@ -8,6 +8,7 @@ mod genome;
 mod limit;
 mod metric;
 mod objective;
+mod problem;
 mod subscriber;
 
 pub use builder::*;
