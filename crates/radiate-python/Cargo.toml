@@ -6,5 +6,9 @@ authors = { workspace = true }
 
 [dependencies]
 pyo3 = { workspace = true, features = ["multiple-pymethods"] }
-radiate = { workspace = true }
+radiate = { workspace = true, features = ["gp", "rayon"] }
 
+[features]
+default = []
+gp = ["radiate/gp"]
+rayon = ["radiate/rayon"]

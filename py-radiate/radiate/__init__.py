@@ -1,12 +1,12 @@
 from .engine import GeneticEngine
-from .codec import FloatCodec, IntCodec, CharCodec, BitCodec, CodecBase
+from .codec import FloatCodec, IntCodec, CharCodec, BitCodec, CodecBase, GraphCodec
 from .limit import SecondsLimit, GenerationsLimit, ScoreLimit
 from .random import RandomProvider as random
 from .generation import Generation
 from .genome import Gene, Chromosome, Genotype, Population, Phenotype
 from .handlers import EventHandler, EventType
 from .executor import Executor
-
+from .gp import Op
 
 from .diversity import (
     HammingDistance,
@@ -43,6 +43,8 @@ from .alterer import (
 )
 
 __all__ = [
+    "Op",
+    "GraphCodec",
     "Executor",
     "EventHandler",
     "EventType",

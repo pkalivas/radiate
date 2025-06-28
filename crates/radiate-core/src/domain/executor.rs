@@ -4,19 +4,14 @@ use crate::thread_pool::get_thread_pool;
 #[cfg(feature = "rayon")]
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub enum Executor {
+    #[default]
     Serial,
     #[cfg(feature = "rayon")]
     WorkerPool,
     #[cfg(not(feature = "rayon"))]
     WorkerPool(usize),
-}
-
-impl Default for Executor {
-    fn default() -> Self {
-        Executor::Serial
-    }
 }
 
 impl Executor {

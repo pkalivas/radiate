@@ -45,45 +45,55 @@ class TestHandler(rd.EventHandler):
 
 # print(result)
 
-
-N_QUEENS = 32
-
-# @jit(nopython=True, nogil=True)
-def fitness_fn(queens):
-    """Calculate the fitness score for the N-Queens problem."""
-    score = 0
-    for i in range(N_QUEENS):
-        for j in range(i + 1, N_QUEENS):
-            if queens[i] == queens[j]:
-                score += 1
-            if abs(i - j) == abs(queens[i] - queens[j]):
-                score += 1
-    return score
-
-codec = rd.IntCodec.vector(N_QUEENS, (0, N_QUEENS ))
-engine = rd.GeneticEngine(
-    codec=codec,
-    fitness_func=fitness_fn,
-    executor=rd.Executor.WorkerPool(),
-    objectives="min",
-    offspring_selector=rd.BoltzmannSelector(4.0),
-    alters=[
-        rd.MultiPointCrossover(0.75, 2),
-        rd.UniformMutator(0.05)
-    ]
+cod = rd.GraphCodec.directed(
+    input_size=5,
+    output_size=5,
+    vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul(), rd.Op.div()],
+    edge=[rd.Op.weight()],
+    output=[rd.Op.sigmoid()]
 )
-result = engine.run(rd.ScoreLimit(0), log=False)
-print(result)
-print(engine)
 
-board = result.value()
-for i in range(N_QUEENS):
-    for j in range(N_QUEENS):
-        if board[j] == i:
-            print("Q ", end="")
-        else:
-            print(". ", end="")
-    print()
+print(cod.encode())
+
+
+# N_QUEENS = 32
+
+# # @jit(nopython=True, nogil=True)
+# def fitness_fn(queens):
+#     """Calculate the fitness score for the N-Queens problem."""
+#     score = 0
+#     for i in range(N_QUEENS):
+#         for j in range(i + 1, N_QUEENS):
+#             if queens[i] == queens[j]:
+#                 score += 1
+#             if abs(i - j) == abs(queens[i] - queens[j]):
+#                 score += 1
+#     return score
+
+# codec = rd.IntCodec.vector(N_QUEENS, (0, N_QUEENS ))
+# engine = rd.GeneticEngine(
+#     codec=codec,
+#     fitness_func=fitness_fn,
+#     executor=rd.Executor.WorkerPool(),
+#     objectives="min",
+#     offspring_selector=rd.BoltzmannSelector(4.0),
+#     alters=[
+#         rd.MultiPointCrossover(0.75, 2),
+#         rd.UniformMutator(0.05)
+#     ]
+# )
+# result = engine.run(rd.ScoreLimit(0), log=False)
+# print(result)
+# print(engine)
+
+# board = result.value()
+# for i in range(N_QUEENS):
+#     for j in range(N_QUEENS):
+#         if board[j] == i:
+#             print("Q ", end="")
+#         else:
+#             print(". ", end="")
+#     print()
 
 
 # target = "Hello, Radiate!"

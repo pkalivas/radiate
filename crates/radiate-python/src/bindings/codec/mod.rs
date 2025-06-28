@@ -1,6 +1,7 @@
 mod bit;
 mod char;
 mod float;
+mod graph;
 mod int;
 
 use std::sync::Arc;
@@ -9,6 +10,7 @@ use crate::ObjectValue;
 pub use bit::PyBitCodec;
 pub use char::PyCharCodec;
 pub use float::PyFloatCodec;
+pub use graph::PyGraphCodec;
 pub use int::PyIntCodec;
 use pyo3::Python;
 use radiate::{Chromosome, Codec, Genotype};

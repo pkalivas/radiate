@@ -1,4 +1,4 @@
-use radiate::{thread_pool::ThreadPool, *};
+use radiate::*;
 
 const MIN_SCORE: f32 = 0.001;
 
@@ -18,7 +18,7 @@ fn main() {
     let engine = GeneticEngine::builder()
         .problem(problem)
         .minimizing()
-        .executor(Executor::WorkerPool)
+        .executor(Executor::WorkerPool(10))
         // .diversity(NeatDistance::new(1.0, 1.0, 3.0))
         // .species_threshold(1.8)
         // .max_species_age(25)

@@ -11,7 +11,7 @@ mod objective;
 mod subscriber;
 
 pub use builder::*;
-pub use codec::{PyBitCodec, PyCharCodec, PyCodec, PyFloatCodec, PyIntCodec};
+pub use codec::{PyBitCodec, PyCharCodec, PyCodec, PyFloatCodec, PyGraphCodec, PyIntCodec};
 pub use components::*;
 pub use engine::PyEngine;
 pub use epoch::PyGeneration;

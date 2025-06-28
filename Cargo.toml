@@ -10,17 +10,13 @@ members = [
     "examples/nqueens",
     "examples/simple-nn",
     "examples/TSP",
-    "examples/DTLZ",
     "examples/rastrigin",
     "examples/rosenbrock",
 
-    "examples/graphs/iris-graph",
     "examples/graphs/xor-graph",
-    "examples/graphs/regression-graph",
     "examples/graphs/simple-memory-graph",
 
     "examples/trees/regression-tree",
-    "examples/trees/iris-tree",
     "examples/image-evo",
 ]
 default-members = [
@@ -73,3 +69,4 @@ radiate-engines = { version = "1.2.13", path = "crates/radiate-engines", default
 radiate-gp = { version = "1.2.13", path = "crates/radiate-gp", default-features = false }
 radiate-error = { version = "1.2.13", path = "crates/radiate-error", default-features = false }
 radiate-python = { version = "1.2.13", path = "crates/radiate-python", default-features = false }
+
