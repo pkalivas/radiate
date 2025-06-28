@@ -29,29 +29,38 @@ pub(crate) const EXECUTOR: &'static str = "executor";
 
 #[pyclass]
 pub struct PyEngineBuilder {
-    fitness_func: PyObject,
-    codec: PyObject,
+    // fitness_func: PyObject,
+    // codec: PyObject,
     params: Py<PyDict>,
 }
 
 #[pymethods]
 impl PyEngineBuilder {
     #[new]
-    #[pyo3(signature = (fitness_func, codec, **kwds))]
-    pub fn new<'py>(
-        py: Python<'py>,
-        fitness_func: PyObject,
-        codec: PyObject,
-        kwds: Option<&Bound<'_, PyDict>>,
-    ) -> PyResult<Self> {
+    #[pyo3(signature = (**kwds))]
+    pub fn new<'py>(py: Python<'py>, kwds: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
         let params = kwds.map(|d| d.to_owned()).unwrap_or(PyDict::new(py));
 
         Ok(Self {
-            fitness_func,
-            codec,
             params: params.into(),
         })
     }
+    // #[new]
+    // #[pyo3(signature = (fitness_func, codec, **kwds))]
+    // pub fn new<'py>(
+    //     py: Python<'py>,
+    //     fitness_func: PyObject,
+    //     codec: PyObject,
+    //     kwds: Option<&Bound<'_, PyDict>>,
+    // ) -> PyResult<Self> {
+    //     let params = kwds.map(|d| d.to_owned()).unwrap_or(PyDict::new(py));
+
+    //     Ok(Self {
+    //         fitness_func,
+    //         codec,
+    //         params: params.into(),
+    //     })
+    // }
 
     pub fn __repr__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let repr = format!(
@@ -118,6 +127,22 @@ impl PyEngineBuilder {
         let param_dict = self.create_param_dict(py)?;
         let limits = self.get_limits(py)?;
         PyEngine::new(py, limits, param_dict)
+    }
+
+    #[pyo3(signature = (codec))]
+    pub fn set_codec<'py>(&self, py: Python<'py>, codec: Py<PyAny>) -> PyResult<()> {
+        self.params
+            .bind(py)
+            .set_item(CODEC, codec)
+            .map_err(|e| e.into())
+    }
+
+    #[pyo3(signature = (fitness_func))]
+    pub fn set_fitness_func<'py>(&self, py: Python<'py>, fitness_func: Py<PyAny>) -> PyResult<()> {
+        self.params
+            .bind(py)
+            .set_item(FITNESS_FUNC, fitness_func)
+            .map_err(|e| e.into())
     }
 
     #[pyo3(signature = (size=100))]
@@ -370,8 +395,32 @@ impl PyEngineBuilder {
             .map(|wrap| wrap.0)
     }
 
+    pub fn get_codec<'py>(&self, py: Python<'py>) -> PyResult<Py<PyAny>> {
+        self.params
+            .bind(py)
+            .get_item(CODEC)?
+            .map(|v| v.extract::<Py<PyAny>>())
+            .unwrap_or_else(|| {
+                Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                    "Codec not set or invalid type",
+                ))
+            })
+    }
+
+    pub fn get_fitness_func<'py>(&self, py: Python<'py>) -> PyResult<Py<PyAny>> {
+        self.params
+            .bind(py)
+            .get_item(FITNESS_FUNC)?
+            .map(|v| v.extract::<Py<PyAny>>())
+            .unwrap_or_else(|| {
+                Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                    "Fitness function not set or invalid type",
+                ))
+            })
+    }
+
     pub fn get_gene_type<'py>(&self, py: Python<'py>) -> PyResult<PyGeneType> {
-        let codec_obj = self.codec.bind(py);
+        let codec_obj = self.get_codec(py)?.into_bound_py_any(py)?;
 
         if let Ok(_) = codec_obj.extract::<PyIntCodec>() {
             Ok(PyGeneType::Int)
@@ -398,8 +447,8 @@ impl PyEngineBuilder {
         dict.set_item(OFFSPRING_SELECTOR, self.get_offspring_selector(py)?)?;
         dict.set_item(OBJECTIVE, self.get_objective(py)?)?;
         dict.set_item(GENE_TYPE, self.get_gene_type(py)?)?;
-        dict.set_item(FITNESS_FUNC, self.fitness_func.clone_ref(py))?;
-        dict.set_item(CODEC, self.codec.clone_ref(py))?;
+        dict.set_item(FITNESS_FUNC, self.get_fitness_func(py)?)?;
+        dict.set_item(CODEC, self.get_codec(py)?)?;
         dict.set_item(FRONT_RANGE, self.get_front_range(py)?)?;
         dict.set_item(MAX_PHENOTYPE_AGE, self.get_max_phenotype_age(py)?)?;
         dict.set_item(SPECIES_THRESHOLD, self.get_species_threshold(py)?)?;
