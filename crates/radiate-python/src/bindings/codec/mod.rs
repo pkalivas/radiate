@@ -6,17 +6,28 @@ mod int;
 
 use std::sync::Arc;
 
-use crate::{ObjectValue, conversion::Wrap};
+use crate::{ObjectValue, PyChromosomeType, PyGeneType, conversion::Wrap};
 pub use bit::PyBitCodec;
 pub use char::PyCharCodec;
 pub use float::PyFloatCodec;
 pub use graph::PyGraphCodec;
 pub use int::PyIntCodec;
-use pyo3::{Bound, FromPyObject, PyAny, PyResult, Python, types::PyAnyMethods};
+
+use pyo3::{Bound, FromPyObject, PyAny, PyResult, Python, pyclass, types::PyAnyMethods};
 use radiate::{
     BitChromosome, CharChromosome, Chromosome, Codec, FloatChromosome, Genotype, GraphChromosome,
     IntChromosome, Op,
 };
+
+#[pyclass(unsendable)]
+#[derive(Clone, Debug)]
+pub struct PyCodecInner {
+    pub name: String,
+    pub type_name: String,
+    pub args: ObjectValue,
+    pub gene_types: Vec<PyGeneType>,
+    pub chromosome_types: Vec<PyChromosomeType>,
+}
 
 #[derive(Clone)]
 pub struct PyCodec<C: Chromosome> {

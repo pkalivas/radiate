@@ -10,9 +10,10 @@ pub use bindings::*;
 pub use evaluator::FreeThreadPyEvaluator;
 pub use object::{AnyValue, Object, ObjectSafe, ObjectValue};
 pub use problem::PyProblem;
-use pyo3::{PyResult, Python};
 pub use random::PyRandomProvider;
 use std::cell::UnsafeCell;
+
+pub use pyo3::prelude::*;
 
 // Adapted from PYO3 with the only change that
 // we allow mutable access with when the GIL is held

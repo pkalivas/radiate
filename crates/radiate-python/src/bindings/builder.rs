@@ -1,7 +1,7 @@
 use super::{PyAlterer, PyDiversity, PyEngine, PyObjective, PySelector, subscriber::PySubscriber};
 use crate::{
     PyBitCodec, PyCharCodec, PyExecutor, PyFloatCodec, PyGeneType, PyIntCodec, PyLimit,
-    conversion::Wrap,
+    PyTestProblem, conversion::Wrap,
 };
 use pyo3::{
     Bound, IntoPyObjectExt, Py, PyAny, PyErr, PyResult, Python, pyclass, pymethods,
@@ -26,6 +26,7 @@ pub(crate) const GENE_TYPE: &'static str = "gene_type";
 pub(crate) const FITNESS_FUNC: &'static str = "fitness_func";
 pub(crate) const CODEC: &'static str = "codec";
 pub(crate) const EXECUTOR: &'static str = "executor";
+pub(crate) const PROBLEM: &'static str = "problem";
 
 #[pyclass]
 pub struct PyEngineBuilder {
@@ -257,6 +258,25 @@ impl PyEngineBuilder {
             .map_err(|e| e.into())
     }
 
+    pub fn set_problem<'py>(&self, py: Python<'py>, problem: Py<PyTestProblem>) -> PyResult<()> {
+        self.params
+            .bind(py)
+            .set_item(PROBLEM, problem)
+            .map_err(|e| e.into())
+    }
+
+    pub fn get_problem<'py>(&self, py: Python<'py>) -> PyResult<PyTestProblem> {
+        self.params
+            .bind(py)
+            .get_item(PROBLEM)?
+            .map(|v| v.extract::<PyTestProblem>())
+            .unwrap_or_else(|| {
+                Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                    "Problem not set or invalid type",
+                ))
+            })
+    }
+
     pub fn get_executor<'py>(&self, py: Python<'py>) -> PyResult<PyExecutor> {
         self.params
             .bind(py)
@@ -441,6 +461,7 @@ impl PyEngineBuilder {
         dict.set_item(DIVERSITY, self.get_diversity(py)?)?;
         dict.set_item(SUBSCRIBERS, self.get_subscribers(py)?)?;
         dict.set_item(EXECUTOR, self.get_executor(py)?)?;
+        dict.set_item(PROBLEM, self.get_problem(py)?)?;
 
         Ok(dict.into())
     }

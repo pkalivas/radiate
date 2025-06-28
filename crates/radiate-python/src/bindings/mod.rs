@@ -23,4 +23,5 @@ pub use genome::{
 pub use limit::PyLimit;
 pub use metric::PyMetricSet;
 pub use objective::PyObjective;
+pub use problem::PyTestProblem;
 pub use subscriber::PySubscriber;

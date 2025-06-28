@@ -3,12 +3,14 @@ use radiate_python::{
     PyAlterer, PyBitCodec, PyCharCodec, PyChromosome, PyDiversity, PyEngineBuilder, PyExecutor,
     PyFloatCodec, PyGene, PyGeneType, PyGeneration, PyGenotype, PyGraphCodec, PyIntCodec, PyLimit,
     PyObjective, PyPhenotype, PyPopulation, PyRandomProvider, PySelector, PySubscriber,
+    PyTestProblem,
 };
 
 #[pymodule]
 fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyRandomProvider>()?;
     m.add_class::<PyExecutor>()?;
+    m.add_class::<PyTestProblem>()?;
 
     m.add_class::<PyGeneType>()?;
     m.add_class::<PyGene>()?;
