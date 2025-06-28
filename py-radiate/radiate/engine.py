@@ -6,6 +6,7 @@ from .codec import CodecBase
 from .limit import LimitBase
 from .generation import Generation
 from .handlers import EventHandler
+from .executor import Executor
 from .radiate import PyEngineBuilder, PyObjective, PySubscriber
 
 Subscriber: TypeAlias = Union[
@@ -34,7 +35,7 @@ class GeneticEngine:
         max_species_age: int = 20,
         species_threshold: float = 0.5,
         objectives: str | List[str] = "max",
-        num_threads: int = 1,
+        executor: Executor | None = None,
         front_range: Tuple[int, int] | None = (800, 900),
         subscribe: Subscriber | None = None,
     ):
@@ -60,7 +61,7 @@ class GeneticEngine:
             offspring_fraction=offspring_fraction,
             objective=objectives,
             front_range=front_range,
-            num_threads=num_threads,
+            executor=executor.executor if executor else None,
             max_phenotype_age=max_phenotype_age,
             max_species_age=max_species_age,
             species_threshold=species_threshold,
@@ -275,19 +276,17 @@ class GeneticEngine:
         self.builder.set_objective(self.__get_objectives(objectives))
         self.builder.set_front_range(self.__get_front_range(front_range))
 
-    def num_threads(self, num_threads: int):
-        """Set the number of threads.
+    def executor(self, executor: Executor):
+        """Set the executor.
         Args:
-            num_threads (int): The number of threads to use.
-        Raises:
-            ValueError: If num_threads is less than or equal to 0.
+            executor (Executor): The executor to use.
         Example:
         ---------
-        >>> engine.num_threads(4)
+        >>> engine.executor(Executor.worker_pool())
         """
-        if num_threads <= 0:
-            raise ValueError("Number of threads must be greater than 0.")
-        self.builder.set_num_threads(num_threads)
+        if not isinstance(executor, Executor):
+            raise TypeError("Executor must be an instance of Executor.")
+        self.builder.set_executor(executor)
 
     def subscribe(self, event_handler: Subscriber | None = None):
         """Register an event handler.

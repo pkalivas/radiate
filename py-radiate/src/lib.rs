@@ -1,13 +1,14 @@
 use pyo3::prelude::*;
 use radiate_python::{
-    PyAlterer, PyBitCodec, PyCharCodec, PyChromosome, PyDiversity, PyEngineBuilder, PyFloatCodec,
-    PyGene, PyGeneType, PyGeneration, PyGenotype, PyIntCodec, PyLimit, PyObjective, PyPhenotype,
-    PyPopulation, PyRandomProvider, PySelector, PySubscriber,
+    PyAlterer, PyBitCodec, PyCharCodec, PyChromosome, PyDiversity, PyEngineBuilder, PyExecutor,
+    PyFloatCodec, PyGene, PyGeneType, PyGeneration, PyGenotype, PyIntCodec, PyLimit, PyObjective,
+    PyPhenotype, PyPopulation, PyRandomProvider, PySelector, PySubscriber,
 };
 
 #[pymodule]
 fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyRandomProvider>()?;
+    m.add_class::<PyExecutor>()?;
 
     m.add_class::<PyGeneType>()?;
     m.add_class::<PyGene>()?;

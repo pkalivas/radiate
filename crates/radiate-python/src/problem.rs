@@ -42,6 +42,19 @@ impl<C: Chromosome> Problem<C, ObjectValue> for PyProblem<C> {
     }
 }
 
+impl<C: Chromosome + Clone> Clone for PyProblem<C> {
+    fn clone(&self) -> Self {
+        Python::with_gil(|py| {
+            let fitness_func = self.fitness_func.clone_ref(py);
+            let codec = self.codec.clone();
+            PyProblem {
+                fitness_func,
+                codec,
+            }
+        })
+    }
+}
+
 unsafe impl<C: Chromosome> Send for PyProblem<C> {}
 unsafe impl<C: Chromosome> Sync for PyProblem<C> {}
 

@@ -13,7 +13,7 @@ use pyo3::{
     types::{PyAnyMethods, PyDict, PyString, PyTuple},
 };
 use radiate::*;
-use std::{fmt::Debug, sync::Arc, vec};
+use std::{fmt::Debug, vec};
 
 #[pyclass]
 pub struct PyEngine {
@@ -187,7 +187,6 @@ where
     let offspring_fraction = params.get_item(OFFSPRING_FRACTION)?.extract::<f32>()?;
     let objective = params.get_item(OBJECTIVE)?.extract::<Wrap<Objective>>()?.0;
     let front_range = params.get_item(FRONT_RANGE)?.extract::<Py<PyTuple>>()?;
-    let num_threads = params.get_item(NUM_THREADS)?.extract::<usize>()?;
     let max_age = params.get_item(MAX_PHENOTYPE_AGE)?.extract::<usize>()?;
     let max_species_age = params.get_item(MAX_SPECIES_AGE)?.extract::<usize>()?;
     let species_threshold = params.get_item(SPECIES_THRESHOLD)?.extract::<f32>()?;
@@ -220,8 +219,11 @@ where
         .into_bound_py_any(py)?
         .extract::<Vec<PySubscriber>>()?;
 
+    let executor = params.get_item(EXECUTOR)?.extract::<Wrap<Executor>>()?.0;
+    let problem = PyProblem::new(fitness_fn, codec);
+
     let mut builder = GeneticEngine::builder()
-        .problem(PyProblem::new(fitness_fn, codec))
+        .problem(problem.clone())
         .population_size(population_size)
         .offspring_fraction(offspring_fraction)
         .max_age(max_age)
@@ -236,8 +238,8 @@ where
             _ => vec![Optimize::Minimize],
         })
         .front_size(first_front..second_front)
-        .num_threads(num_threads.min(1))
-        .evaluator(FitnessEvaluator::new(Arc::new(Executor::default())))
+        .executor(executor.clone())
+        .evaluator(FreeThreadPyEvaluator::new(executor, problem))
         .bus_executor(Executor::default());
 
     builder = match subscribers.len() > 0 {
@@ -265,7 +267,6 @@ where
     let max_age = params.get_item(MAX_PHENOTYPE_AGE)?.extract::<usize>()?;
     let max_species_age = params.get_item(MAX_SPECIES_AGE)?.extract::<usize>()?;
     let species_threshold = params.get_item(SPECIES_THRESHOLD)?.extract::<f32>()?;
-    let num_threads = params.get_item(NUM_THREADS)?.extract::<usize>()?;
 
     let alters = params
         .get_item(ALTERS)?
@@ -295,21 +296,19 @@ where
         .into_bound_py_any(py)?
         .extract::<Vec<PySubscriber>>()?;
 
+    let executor = params.get_item(EXECUTOR)?.extract::<Wrap<Executor>>()?.0;
+    let problem = PyProblem::new(fitness_fn, codec);
+
     let mut builder = GeneticEngine::builder()
-        .problem(PyProblem::new(fitness_fn.clone_ref(py), codec.clone()))
+        .problem(problem.clone())
         .population_size(population_size)
         .offspring_fraction(offspring_fraction)
         .max_age(max_age)
         .max_species_age(max_species_age)
         .species_threshold(species_threshold)
         .alter(alters)
-        .num_threads(num_threads.max(1))
-        // .evaluator(FitnessEvaluator::new(Arc::new(Executor::default())))
-        .evaluator(FreeThreadPyEvaluator::new(
-            Arc::new(Executor::worker_pool(num_threads.max(1))),
-            // Arc::new(Executor::Rayon),
-            Arc::new(PyProblem::new(fitness_fn, codec)),
-        ))
+        .executor(executor.clone())
+        .evaluator(FreeThreadPyEvaluator::new(executor.clone(), problem))
         .bus_executor(Executor::default())
         .boxed_diversity(diversity)
         .boxed_offspring_selector(offspring_selector)

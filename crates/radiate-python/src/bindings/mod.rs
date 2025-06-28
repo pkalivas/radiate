@@ -3,6 +3,7 @@ mod codec;
 mod components;
 mod engine;
 mod epoch;
+mod executor;
 mod genome;
 mod limit;
 mod metric;
@@ -14,6 +15,7 @@ pub use codec::{PyBitCodec, PyCharCodec, PyCodec, PyFloatCodec, PyIntCodec};
 pub use components::*;
 pub use engine::PyEngine;
 pub use epoch::PyGeneration;
+pub use executor::*;
 pub use genome::{
     PyChromosome, PyChromosomeType, PyGene, PyGeneType, PyGenotype, PyPhenotype, PyPopulation,
 };

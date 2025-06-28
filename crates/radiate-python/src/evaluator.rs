@@ -17,12 +17,12 @@ struct PyBatch {
 /// We avoid Python's GIL by using the `allow_threads` method, bypassing the
 /// GIL for the duration of the evaluation.
 pub struct FreeThreadPyEvaluator<C: Chromosome> {
-    executor: Arc<Executor>,
-    problem: Arc<PyProblem<C>>,
+    executor: Executor,
+    problem: PyProblem<C>,
 }
 
 impl<C: Chromosome> FreeThreadPyEvaluator<C> {
-    pub fn new(executor: Arc<Executor>, problem: Arc<PyProblem<C>>) -> Self {
+    pub fn new(executor: Executor, problem: PyProblem<C>) -> Self {
         FreeThreadPyEvaluator { executor, problem }
     }
 }

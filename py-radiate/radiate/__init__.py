@@ -5,6 +5,7 @@ from .random import RandomProvider as random
 from .generation import Generation
 from .genome import Gene, Chromosome, Genotype, Population, Phenotype
 from .handlers import EventHandler, EventType
+from .executor import Executor
 
 
 from .diversity import (
@@ -42,6 +43,7 @@ from .alterer import (
 )
 
 __all__ = [
+    "Executor",
     "EventHandler",
     "EventType",
     "CodecBase",

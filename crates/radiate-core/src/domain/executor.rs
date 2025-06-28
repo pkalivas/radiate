@@ -1,53 +1,56 @@
 use crate::thread_pool::{ThreadPool, WaitGroup};
 #[cfg(feature = "rayon")]
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use std::sync::{Arc, OnceLock};
 
-#[derive(Default)]
+struct FixedThreadPool {
+    inner: Arc<ThreadPool>,
+}
+
+impl AsRef<ThreadPool> for FixedThreadPool {
+    fn as_ref(&self) -> &ThreadPool {
+        &self.inner
+    }
+}
+
+impl FixedThreadPool {
+    /// Returns the global instance of the registry.
+    pub(self) fn instance(num_workers: usize) -> &'static FixedThreadPool {
+        static INSTANCE: OnceLock<FixedThreadPool> = OnceLock::new();
+
+        INSTANCE.get_or_init(|| FixedThreadPool {
+            inner: Arc::new(ThreadPool::new(num_workers)),
+        })
+    }
+}
+
+fn get_thread_pool(num_workers: usize) -> &'static FixedThreadPool {
+    &FixedThreadPool::instance(num_workers)
+}
+
+#[derive(Clone, Debug)]
 pub enum Executor {
-    #[default]
     Serial,
-    WorkerPool(ThreadPool),
     #[cfg(feature = "rayon")]
-    Rayon,
+    WorkerPool,
+    #[cfg(not(feature = "rayon"))]
+    WorkerPool(usize),
+}
+
+impl Default for Executor {
+    fn default() -> Self {
+        Executor::Serial
+    }
 }
 
 impl Executor {
-    pub fn serial() -> Self {
-        Executor::Serial
-    }
-
-    #[cfg(not(feature = "rayon"))]
-    pub fn worker_pool(num_workers: usize) -> Self {
-        if num_workers == 1 {
-            return Executor::Serial;
-        }
-
-        let pool = ThreadPool::new(num_workers);
-        Executor::WorkerPool(pool)
-    }
-
-    #[cfg(feature = "rayon")]
-    pub fn worker_pool(num_workers: usize) -> Self {
-        rayon::ThreadPoolBuilder::new()
-            .num_threads(num_workers)
-            .build()
-            .map(|_| Executor::Rayon)
-            .unwrap_or_else(|_| {
-                if num_workers == 1 {
-                    Executor::Serial
-                } else {
-                    let pool = ThreadPool::new(num_workers);
-                    Executor::WorkerPool(pool)
-                }
-            })
-    }
-
     pub fn num_workers(&self) -> usize {
         match self {
             Executor::Serial => 1,
-            Executor::WorkerPool(pool) => pool.num_workers(),
+            #[cfg(not(feature = "rayon"))]
+            Executor::WorkerPool(num_workers) => *num_workers,
             #[cfg(feature = "rayon")]
-            Executor::Rayon => rayon::current_num_threads(),
+            Executor::WorkerPool => rayon::current_num_threads(),
         }
     }
 
@@ -58,9 +61,13 @@ impl Executor {
     {
         match self {
             Executor::Serial => f(),
-            Executor::WorkerPool(pool) => pool.submit_with_result(f).result(),
+            #[cfg(not(feature = "rayon"))]
+            Executor::WorkerPool(num_workers) => get_thread_pool(*num_workers)
+                .as_ref()
+                .submit_with_result(f)
+                .result(),
             #[cfg(feature = "rayon")]
-            Executor::Rayon => {
+            Executor::WorkerPool => {
                 use std::sync::{Arc, Mutex};
 
                 let result: Arc<Mutex<Option<R>>> = Arc::new(Mutex::new(None));
@@ -88,7 +95,9 @@ impl Executor {
     {
         match self {
             Executor::Serial => f.into_iter().map(|func| func()).collect(),
-            Executor::WorkerPool(pool) => {
+            #[cfg(not(feature = "rayon"))]
+            Executor::WorkerPool(num_workers) => {
+                let pool = get_thread_pool(*num_workers).as_ref();
                 let wg = WaitGroup::new();
                 let mut results = Vec::with_capacity(f.len());
 
@@ -108,7 +117,7 @@ impl Executor {
                 results.into_iter().map(|r| r.result()).collect()
             }
             #[cfg(feature = "rayon")]
-            Executor::Rayon => f.into_par_iter().map(|func| func()).collect(),
+            Executor::WorkerPool => f.into_par_iter().map(|func| func()).collect(),
         }
     }
 
@@ -118,9 +127,13 @@ impl Executor {
     {
         match self {
             Executor::Serial => f(),
-            Executor::WorkerPool(pool) => pool.submit(f),
+            #[cfg(not(feature = "rayon"))]
+            Executor::WorkerPool(num_workers) => {
+                let pool = get_thread_pool(*num_workers).as_ref();
+                pool.submit(f)
+            }
             #[cfg(feature = "rayon")]
-            Executor::Rayon => {
+            Executor::WorkerPool => {
                 rayon::spawn_fifo(move || {
                     f();
                 });
@@ -138,7 +151,9 @@ impl Executor {
                     func();
                 }
             }
-            Executor::WorkerPool(pool) => {
+            #[cfg(not(feature = "rayon"))]
+            Executor::WorkerPool(num_workers) => {
+                let pool = get_thread_pool(*num_workers).as_ref();
                 let wg = WaitGroup::new();
                 for job in f {
                     let wg_clone = wg.guard();
@@ -151,7 +166,7 @@ impl Executor {
                 wg.wait();
             }
             #[cfg(feature = "rayon")]
-            Executor::Rayon => {
+            Executor::WorkerPool => {
                 let wg = WaitGroup::new();
                 let with_guards = f
                     .into_iter()

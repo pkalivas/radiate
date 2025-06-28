@@ -22,5 +22,6 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 
 [features]
+default = []
 serde = ["dep:serde", "dep:serde_json"]
 rayon = ["dep:rayon"]

@@ -64,7 +64,7 @@ codec = rd.IntCodec.vector(N_QUEENS, (0, N_QUEENS ))
 engine = rd.GeneticEngine(
     codec=codec,
     fitness_func=fitness_fn,
-    num_threads=10,
+    executor=rd.Executor.WorkerPool(),
     objectives="min",
     offspring_selector=rd.BoltzmannSelector(4.0),
     alters=[
@@ -74,6 +74,7 @@ engine = rd.GeneticEngine(
 )
 result = engine.run(rd.ScoreLimit(0), log=False)
 print(result)
+print(engine)
 
 board = result.value()
 for i in range(N_QUEENS):

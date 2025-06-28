@@ -16,7 +16,7 @@ radiate-core = { workspace = true}
 radiate-alters = { workspace = true }
 radiate-selectors = { workspace = true }
 radiate-error = { workspace = true }
-rayon = { workspace = true, optional = true }
 
 [features]
-rayon = [ "radiate-core/rayon", "dep:rayon" ]
+default = []
+rayon = [ "radiate-core/rayon" ]

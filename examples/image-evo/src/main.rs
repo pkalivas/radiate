@@ -27,7 +27,7 @@ fn main() {
         .minimizing()
         .survivor_selector(RouletteSelector::new())
         .offspring_selector(TournamentSelector::new(3))
-        .num_threads(10)
+        .executor(Executor::WorkerPool)
         .alter(alters!(
             MeanCrossover::new(0.3),
             ImageMutator::new(0.01, 0.15),

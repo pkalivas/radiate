@@ -1,8 +1,5 @@
 use crate::GeneticEngineBuilder;
-use radiate_core::{
-    Chromosome, Epoch, Evaluator, Executor, FitnessEvaluator, thread_pool::ThreadPool,
-};
-use radiate_error::radiate_err;
+use radiate_core::{Chromosome, Epoch, Evaluator, Executor, FitnessEvaluator};
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -29,45 +26,8 @@ where
         self
     }
 
-    pub fn num_threads(mut self, num_threads: usize) -> Self
-    where
-        T: Send + Sync + 'static,
-    {
-        if num_threads < 1 {
-            self.errors
-                .push(radiate_err!(InvalidConfig: "num_threads must be greater than 0"));
-        }
-
-        #[cfg(feature = "rayon")]
-        let executor = if num_threads == 1 {
-            Arc::new(Executor::Serial)
-        } else {
-            rayon::ThreadPoolBuilder::new()
-                .num_threads(num_threads)
-                .build_global()
-                .map(|_| Arc::new(Executor::Rayon))
-                .unwrap_or_else(|_| Arc::new(Executor::WorkerPool(ThreadPool::new(num_threads))))
-        };
-
-        #[cfg(not(feature = "rayon"))]
-        let executor = if num_threads == 1 {
-            Arc::new(Executor::Serial)
-        } else {
-            Arc::new(Executor::WorkerPool(ThreadPool::new(num_threads)))
-        };
-
-        self.params.evaluation_params = EvaluationParams {
-            evaluator: Arc::new(FitnessEvaluator::new(executor.clone())),
-            fitness_executor: executor.clone(),
-            species_executor: executor.clone(),
-            front_executor: executor.clone(),
-            bus_executor: executor,
-        };
-        self
-    }
-
-    pub fn executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
-        let executor = executor.into();
+    pub fn executor(mut self, executor: Executor) -> Self {
+        let executor = Arc::new(executor);
         self.params.evaluation_params = EvaluationParams {
             evaluator: Arc::new(FitnessEvaluator::new(executor.clone())),
             fitness_executor: executor.clone(),

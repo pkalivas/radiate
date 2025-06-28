@@ -1,6 +1,7 @@
 use super::{PyAlterer, PyDiversity, PyEngine, PyObjective, PySelector, subscriber::PySubscriber};
 use crate::{
-    PyBitCodec, PyCharCodec, PyFloatCodec, PyGeneType, PyIntCodec, PyLimit, conversion::Wrap,
+    PyBitCodec, PyCharCodec, PyExecutor, PyFloatCodec, PyGeneType, PyIntCodec, PyLimit,
+    conversion::Wrap,
 };
 use pyo3::{
     Bound, IntoPyObjectExt, Py, PyAny, PyErr, PyObject, PyResult, Python, pyclass, pymethods,
@@ -20,11 +21,11 @@ pub(crate) const SPECIES_THRESHOLD: &'static str = "species_threshold";
 pub(crate) const MAX_PHENOTYPE_AGE: &'static str = "max_phenotype_age";
 pub(crate) const FRONT_RANGE: &'static str = "front_range";
 pub(crate) const LIMITS: &'static str = "limits";
-pub(crate) const NUM_THREADS: &'static str = "num_threads";
 pub(crate) const MAX_SPECIES_AGE: &'static str = "max_species_age";
 pub(crate) const GENE_TYPE: &'static str = "gene_type";
 pub(crate) const FITNESS_FUNC: &'static str = "fitness_func";
 pub(crate) const CODEC: &'static str = "codec";
+pub(crate) const EXECUTOR: &'static str = "executor";
 
 #[pyclass]
 pub struct PyEngineBuilder {
@@ -65,7 +66,7 @@ impl PyEngineBuilder {
                 front_range={},
                 diversity={},
                 limits={},
-                num_threads={},
+                executor={},
                 max_phenotype_age={},
                 species_threshold={},
                 max_species_age={}
@@ -100,7 +101,7 @@ impl PyEngineBuilder {
                 .map(|l| format!("{:?}", l))
                 .collect::<Vec<_>>()
                 .join(", "),
-            self.get_num_threads(py)?,
+            self.get_executor(py)?,
             self.get_max_phenotype_age(py)?,
             self.get_species_threshold(py)?,
             self.get_max_species_age(py)?.to_string()
@@ -233,18 +234,26 @@ impl PyEngineBuilder {
             .map_err(|e| e.into())
     }
 
-    pub fn set_num_threads<'py>(&self, py: Python<'py>, num_threads: usize) -> PyResult<()> {
-        self.params
-            .bind(py)
-            .set_item(NUM_THREADS, num_threads)
-            .map_err(|e| e.into())
-    }
-
     pub fn set_max_species_age<'py>(&self, py: Python<'py>, max_age: usize) -> PyResult<()> {
         self.params
             .bind(py)
             .set_item(MAX_SPECIES_AGE, max_age)
             .map_err(|e| e.into())
+    }
+
+    pub fn set_executor<'py>(&self, py: Python<'py>, executor: PyExecutor) -> PyResult<()> {
+        self.params
+            .bind(py)
+            .set_item(EXECUTOR, executor)
+            .map_err(|e| e.into())
+    }
+
+    pub fn get_executor<'py>(&self, py: Python<'py>) -> PyResult<PyExecutor> {
+        self.params
+            .bind(py)
+            .get_item(EXECUTOR)?
+            .map(|v| v.extract::<PyExecutor>())
+            .unwrap_or(Ok(PyExecutor::Serial))
     }
 
     fn get_population_size<'py>(&self, py: Python<'py>) -> PyResult<usize> {
@@ -352,14 +361,6 @@ impl PyEngineBuilder {
         Ok(result)
     }
 
-    pub fn get_num_threads<'py>(&self, py: Python<'py>) -> PyResult<usize> {
-        self.params
-            .bind(py)
-            .get_item(NUM_THREADS)?
-            .map(|v| v.extract::<usize>())
-            .unwrap_or(Ok(1))
-    }
-
     pub fn get_limits<'py>(&self, py: Python<'py>) -> PyResult<Vec<PyLimit>> {
         self.params
             .bind(py)
@@ -400,13 +401,13 @@ impl PyEngineBuilder {
         dict.set_item(FITNESS_FUNC, self.fitness_func.clone_ref(py))?;
         dict.set_item(CODEC, self.codec.clone_ref(py))?;
         dict.set_item(FRONT_RANGE, self.get_front_range(py)?)?;
-        dict.set_item(NUM_THREADS, self.get_num_threads(py)?)?;
         dict.set_item(MAX_PHENOTYPE_AGE, self.get_max_phenotype_age(py)?)?;
         dict.set_item(SPECIES_THRESHOLD, self.get_species_threshold(py)?)?;
         dict.set_item(MAX_SPECIES_AGE, self.get_max_species_age(py)?)?;
         dict.set_item(LIMITS, self.get_limits(py)?)?;
         dict.set_item(DIVERSITY, self.get_diversity(py)?)?;
         dict.set_item(SUBSCRIBERS, self.get_subscribers(py)?)?;
+        dict.set_item(EXECUTOR, self.get_executor(py)?)?;
 
         Ok(dict.into())
     }
