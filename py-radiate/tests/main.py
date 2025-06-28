@@ -18,31 +18,31 @@ rd.random.set_seed(500)
 # print(codec.decode(codec.encode()))
 
 
-# class TestHandler(rd.EventHandler):
-#     def __init__(self):
-#         super().__init__(rd.EventType.EPOCH_COMPLETE)
+class TestHandler(rd.EventHandler):
+    def __init__(self):
+        super().__init__(rd.EventType.EPOCH_COMPLETE)
 
-#     def on_event(self, event):
-#         print(event['score'])
-#         # print(event['metrics']['Fitness']['value_min'])
+    def on_event(self, event):
+        print(event['score'])
+        # print(event['metrics']['Fitness']['value_min'])
 
 
-# engine = rd.GeneticEngine(
-#     codec=rd.IntCodec.vector(10, (0, 10)),
-#     fitness_func=lambda x: sum(x),
-#     offspring_selector=rd.BoltzmannSelector(4),
-#     objectives="min",
-#     # subscribe=TestHandler(),
-#     # executor=rd.Executor.WorkerPool(),
-#     alters=[
-#         rd.MultiPointCrossover(0.75, 2),
-#         rd.UniformMutator(0.01)
-#     ],
-# )
+engine = rd.GeneticEngine(
+    codec=rd.IntCodec.vector(10, (0, 10)),
+    fitness_func=lambda x: sum(x),
+    offspring_selector=rd.BoltzmannSelector(4),
+    objectives="min",
+    # subscribe=TestHandler(),
+    # executor=rd.Executor.WorkerPool(),
+    alters=[
+        rd.MultiPointCrossover(0.75, 2),
+        rd.UniformMutator(0.01)
+    ],
+)
 
-# result = engine.run(rd.ScoreLimit(0))
+result = engine.run(rd.ScoreLimit(0))
 
-# print(result)
+print(result)
 
 codec = rd.GraphCodec.directed(
     input_size=2,

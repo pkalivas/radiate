@@ -825,23 +825,12 @@ where
             ));
         }
 
-        // let chromosome_name = std::any::type_name::<C>()
-        //     .split("::")
-        //     .last()
-        //     .map(|s| s.split('<').next())
-        //     .flatten()
-        //     .unwrap_or_default();
-
         let chromosome_name = std::any::type_name::<C>()
             .split("::")
             .filter(|s| s.contains("Chromosome"))
             .map(|s| s.split('<').next().unwrap_or_default())
             .next()
             .unwrap_or_default();
-
-        // for name in t.iter() {
-        //     println!("Type part: {}", name);
-        // }
 
         let typed_params = alters
             .into_iter()

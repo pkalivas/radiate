@@ -2,9 +2,7 @@ use super::{PyObjective, subscriber::PySubscriber};
 use crate::{
     FreeThreadPyEvaluator, ObjectValue, PyBitCodec, PyCharCodec, PyFloatCodec, PyGeneType,
     PyGeneration, PyGraphCodec, PyIntCodec, PyLimit, PyProblem, PyTestProblem,
-    bindings::{builder::*, codec::PyCodec},
-    conversion::Wrap,
-    events::PyEventHandler,
+    bindings::builder::*, conversion::Wrap, events::PyEventHandler,
 };
 use pyo3::{
     Bound, FromPyObject, IntoPyObjectExt, Py, PyAny, PyErr, PyResult, Python,
@@ -102,109 +100,146 @@ impl<'py> FromPyObject<'py> for Wrap<EngineInner> {
 
         let gene_type = params
             .bind(ob.py())
-            .get_item("gene_type")?
+            .get_item(GENE_TYPE)?
             .extract::<PyGeneType>()?;
 
-        let fitness_fn = params
-            .bind(ob.py())
-            .get_item("fitness_func")?
-            .extract::<Py<PyAny>>()?;
-        let codec_obj = params.bind(ob.py()).get_item("codec")?;
+        let codec_obj = params.bind(ob.py()).get_item(CODEC)?;
         let objective = params
             .bind(ob.py())
-            .get_item("objective")?
+            .get_item(OBJECTIVE)?
             .extract::<PyObjective>()?;
 
         let problem = params
             .bind(ob.py())
-            .get_item("problem")?
+            .get_item(PROBLEM)?
             .extract::<PyTestProblem>()?;
 
-        println!("Creating engine with gene type: {:?}", problem);
+        let engine = if problem.name() == "DefaultProblem" {
+            let fitness_fn = problem
+                .args(ob.py())
+                .and_then(|args| args.get_item("fitness_func"))
+                .and_then(|f| f.extract::<Py<PyAny>>())?;
 
-        let engine = match gene_type {
-            PyGeneType::Int => {
-                if let Ok(codec) = codec_obj.extract::<PyIntCodec>() {
-                    match objective.is_multi() {
-                        true => Ok(EngineInner::IntMulti(
-                            create_multi_engine(ob.py(), codec.codec, fitness_fn, &params)?.build(),
-                        )),
-                        false => Ok(EngineInner::Int(
-                            create_engine(ob.py(), codec.codec, fitness_fn, &params)?.build(),
-                        )),
+            match gene_type {
+                PyGeneType::Int => {
+                    if let Ok(codec) = codec_obj.extract::<PyIntCodec>() {
+                        let int_problem = PyProblem::new(fitness_fn, codec.codec);
+                        match objective.is_multi() {
+                            true => Ok(EngineInner::IntMulti(
+                                create_multi_engine(ob.py(), int_problem, &params)?.build(),
+                            )),
+                            false => Ok(EngineInner::Int(
+                                create_engine(ob.py(), int_problem, &params)?.build(),
+                            )),
+                        }
+                    } else {
+                        return Err(PyErr::new::<PyTypeError, _>(
+                            "Expected an IntCodec for IntChromosome",
+                        ));
                     }
-                } else {
-                    return Err(PyErr::new::<PyTypeError, _>(
-                        "Expected an IntCodec for IntChromosome",
-                    ));
                 }
-            }
-            PyGeneType::Float => {
-                if let Ok(codec) = codec_obj.extract::<PyFloatCodec>() {
-                    match objective.is_multi() {
-                        true => Ok(EngineInner::FloatMulti(
-                            create_multi_engine(ob.py(), codec.codec, fitness_fn, &params)?.build(),
-                        )),
-                        false => Ok(EngineInner::Float(
-                            create_engine(ob.py(), codec.codec, fitness_fn, &params)?.build(),
-                        )),
+                PyGeneType::Float => {
+                    if let Ok(codec) = codec_obj.extract::<PyFloatCodec>() {
+                        let float_problem = PyProblem::new(fitness_fn, codec.codec);
+                        match objective.is_multi() {
+                            true => Ok(EngineInner::FloatMulti(
+                                create_multi_engine(ob.py(), float_problem, &params)?.build(),
+                            )),
+                            false => Ok(EngineInner::Float(
+                                create_engine(ob.py(), float_problem, &params)?.build(),
+                            )),
+                        }
+                    } else {
+                        return Err(PyErr::new::<PyTypeError, _>(
+                            "Expected a FloatCodec for FloatChromosome",
+                        ));
                     }
-                } else {
-                    return Err(PyErr::new::<PyTypeError, _>(
-                        "Expected a FloatCodec for FloatChromosome",
-                    ));
                 }
-            }
-            PyGeneType::Char => {
-                if let Ok(codec) = codec_obj.extract::<PyCharCodec>() {
-                    Ok(EngineInner::Char(
-                        create_engine(ob.py(), codec.codec, fitness_fn, &params)?.build(),
-                    ))
-                } else {
-                    return Err(PyErr::new::<PyTypeError, _>(
-                        "Expected a CharCodec for CharChromosome",
-                    ));
-                }
-            }
-            PyGeneType::Bit => {
-                if let Ok(codec) = codec_obj.extract::<PyBitCodec>() {
-                    Ok(EngineInner::Bit(
-                        create_engine(ob.py(), codec.codec, fitness_fn, &params)?.build(),
-                    ))
-                } else {
-                    return Err(PyErr::new::<PyTypeError, _>(
-                        "Expected a BitCodec for BitChromosome",
-                    ));
-                }
-            }
-            PyGeneType::Graph => {
-                if let Ok(codec) = codec_obj.extract::<PyGraphCodec>() {
-                    if problem.name() == "Regression" {
-                        let features = problem
-                            .args(ob.py())
-                            .and_then(|args| args.get_item("features"))
-                            .and_then(|f| f.extract::<Vec<Vec<f32>>>())?;
-                        let targets = problem
-                            .args(ob.py())
-                            .and_then(|args| args.get_item("targets"))
-                            .and_then(|t| t.extract::<Vec<Vec<f32>>>())?;
-
-                        let data_set = DataSet::new(features, targets);
-                        let problem = Regression::new(data_set, Loss::MSE, codec.codec);
-                        Ok(EngineInner::GraphRegression(
-                            create_regression_engine(ob.py(), problem, &params)?.build(),
+                PyGeneType::Char => {
+                    if let Ok(codec) = codec_obj.extract::<PyCharCodec>() {
+                        let char_problem = PyProblem::new(fitness_fn, codec.codec);
+                        Ok(EngineInner::Char(
+                            create_engine(ob.py(), char_problem, &params)?.build(),
                         ))
                     } else {
                         return Err(PyErr::new::<PyTypeError, _>(
-                            "GraphChromosome only supports regression problems",
+                            "Expected a CharCodec for CharChromosome",
                         ));
                     }
-                } else {
-                    return Err(PyErr::new::<PyTypeError, _>(
-                        "Expected a GraphCodec for GraphChromosome",
-                    ));
+                }
+                PyGeneType::Bit => {
+                    if let Ok(codec) = codec_obj.extract::<PyBitCodec>() {
+                        let bit_problem = PyProblem::new(fitness_fn, codec.codec);
+                        Ok(EngineInner::Bit(
+                            create_engine(ob.py(), bit_problem, &params)?.build(),
+                        ))
+                    } else {
+                        return Err(PyErr::new::<PyTypeError, _>(
+                            "Expected a BitCodec for BitChromosome",
+                        ));
+                    }
+                }
+                PyGeneType::Graph => {
+                    if let Ok(_) = codec_obj.extract::<PyGraphCodec>() {
+                        return Err(PyErr::new::<PyTypeError, _>(
+                            "GraphChromosome only supports regression problems",
+                        ));
+                    } else {
+                        return Err(PyErr::new::<PyTypeError, _>(
+                            "Expected a GraphCodec for GraphChromosome",
+                        ));
+                    }
                 }
             }
+        } else if problem.name() == "Regression" {
+            let features = problem
+                .args(ob.py())
+                .and_then(|args| args.get_item("features"))
+                .and_then(|f| f.extract::<Vec<Vec<f32>>>())?;
+            let targets = problem
+                .args(ob.py())
+                .and_then(|args| args.get_item("targets"))
+                .and_then(|t| t.extract::<Vec<Vec<f32>>>())?;
+
+            let data_set = DataSet::new(features, targets);
+
+            match gene_type {
+                PyGeneType::Graph => {
+                    if let Ok(codec) = codec_obj.extract::<PyGraphCodec>() {
+                        let loss_str = problem
+                            .args(ob.py())
+                            .and_then(|args| args.get_item("loss"))
+                            .and_then(|l| l.extract::<String>())
+                            .map(|s| s.to_uppercase())
+                            .unwrap_or("MSE".into());
+                        let loss = match loss_str.as_str() {
+                            "MSE" => Loss::MSE,
+                            "MAE" => Loss::MAE,
+                            _ => {
+                                return Err(PyErr::new::<PyTypeError, _>(
+                                    "Unsupported loss function for regression",
+                                ));
+                            }
+                        };
+
+                        let regression = Regression::new(data_set, loss, codec.codec);
+                        Ok(EngineInner::GraphRegression(
+                            create_regression_engine(ob.py(), regression, &params)?.build(),
+                        ))
+                    } else {
+                        return Err(PyErr::new::<PyTypeError, _>(
+                            "Expected a GraphCodec for GraphChromosome",
+                        ));
+                    }
+                }
+                _ => Err(PyErr::new::<PyTypeError, _>(
+                    "Regression problem only supports GraphChromosome",
+                )),
+            }
+        } else {
+            return Err(PyErr::new::<PyTypeError, _>(
+                "Unsupported problem type. Only 'DefaultProblem' and 'Regression' are supported",
+            ));
         };
 
         engine.map(Wrap)
@@ -213,8 +248,7 @@ impl<'py> FromPyObject<'py> for Wrap<EngineInner> {
 
 fn create_multi_engine<C>(
     py: Python<'_>,
-    codec: PyCodec<C, ObjectValue>,
-    fitness_fn: Py<PyAny>,
+    problem: PyProblem<C>,
     parameters: &Py<PyAny>,
 ) -> PyResult<GeneticEngineBuilder<C, ObjectValue, ParetoGeneration<C>>>
 where
@@ -259,7 +293,6 @@ where
         .extract::<Vec<PySubscriber>>()?;
 
     let executor = params.get_item(EXECUTOR)?.extract::<Wrap<Executor>>()?.0;
-    let problem = PyProblem::new(fitness_fn, codec);
 
     let mut builder = GeneticEngine::builder()
         .problem(problem.clone())
@@ -291,8 +324,7 @@ where
 
 fn create_engine<C>(
     py: Python<'_>,
-    codec: PyCodec<C, ObjectValue>,
-    fitness_fn: Py<PyAny>,
+    problem: PyProblem<C>,
     parameters: &Py<PyAny>,
 ) -> PyResult<GeneticEngineBuilder<C, ObjectValue, Generation<C, ObjectValue>>>
 where
@@ -335,7 +367,7 @@ where
         .extract::<Vec<PySubscriber>>()?;
 
     let executor = params.get_item(EXECUTOR)?.extract::<Wrap<Executor>>()?.0;
-    let problem = PyProblem::new(fitness_fn, codec);
+    // let problem = PyProblem::new(fitness_fn, codec);
 
     let mut builder = GeneticEngine::builder()
         .problem(problem.clone())

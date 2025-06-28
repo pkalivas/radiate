@@ -63,7 +63,7 @@ class GeneticEngine:
     
         self.engine = None
         self.builder = PyEngineBuilder(
-            fitness_func=fitness_func,
+            
             codec=codec,
             problem=problem,
             population_size=population_size,

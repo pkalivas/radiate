@@ -23,15 +23,12 @@ pub(crate) const FRONT_RANGE: &'static str = "front_range";
 pub(crate) const LIMITS: &'static str = "limits";
 pub(crate) const MAX_SPECIES_AGE: &'static str = "max_species_age";
 pub(crate) const GENE_TYPE: &'static str = "gene_type";
-pub(crate) const FITNESS_FUNC: &'static str = "fitness_func";
 pub(crate) const CODEC: &'static str = "codec";
 pub(crate) const EXECUTOR: &'static str = "executor";
 pub(crate) const PROBLEM: &'static str = "problem";
 
 #[pyclass]
 pub struct PyEngineBuilder {
-    // fitness_func: PyObject,
-    // codec: PyObject,
     params: Py<PyDict>,
 }
 
@@ -119,14 +116,6 @@ impl PyEngineBuilder {
         self.params
             .bind(py)
             .set_item(CODEC, codec)
-            .map_err(|e| e.into())
-    }
-
-    #[pyo3(signature = (fitness_func))]
-    pub fn set_fitness_func<'py>(&self, py: Python<'py>, fitness_func: Py<PyAny>) -> PyResult<()> {
-        self.params
-            .bind(py)
-            .set_item(FITNESS_FUNC, fitness_func)
             .map_err(|e| e.into())
     }
 
@@ -411,18 +400,6 @@ impl PyEngineBuilder {
             })
     }
 
-    pub fn get_fitness_func<'py>(&self, py: Python<'py>) -> PyResult<Py<PyAny>> {
-        self.params
-            .bind(py)
-            .get_item(FITNESS_FUNC)?
-            .map(|v| v.extract::<Py<PyAny>>())
-            .unwrap_or_else(|| {
-                Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
-                    "Fitness function not set or invalid type",
-                ))
-            })
-    }
-
     pub fn get_gene_type<'py>(&self, py: Python<'py>) -> PyResult<PyGeneType> {
         let codec_obj = self.get_codec(py)?.into_bound_py_any(py)?;
 
@@ -453,7 +430,6 @@ impl PyEngineBuilder {
         dict.set_item(OFFSPRING_SELECTOR, self.get_offspring_selector(py)?)?;
         dict.set_item(OBJECTIVE, self.get_objective(py)?)?;
         dict.set_item(GENE_TYPE, self.get_gene_type(py)?)?;
-        dict.set_item(FITNESS_FUNC, self.get_fitness_func(py)?)?;
         dict.set_item(CODEC, self.get_codec(py)?)?;
         dict.set_item(FRONT_RANGE, self.get_front_range(py)?)?;
         dict.set_item(MAX_PHENOTYPE_AGE, self.get_max_phenotype_age(py)?)?;
