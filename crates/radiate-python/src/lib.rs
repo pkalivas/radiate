@@ -8,14 +8,27 @@ mod random;
 
 pub use bindings::*;
 pub use evaluator::FreeThreadPyEvaluator;
-pub use object::{AnyValue, Object, ObjectSafe, ObjectValue};
+pub use object::{AnyValue, IntoPyObjectValue, Object, ObjectSafe, ObjectValue};
 pub use problem::PyProblem;
 pub use random::PyRandomProvider;
 use std::cell::UnsafeCell;
 
-pub use pyo3::prelude::*;
-pub use pyo3::types::PyAny;
-pub use pyo3::{Bound, PyErr, PyResult, Python};
+pub mod prelude {
+
+    pub use super::{IntoPyObjectValue, Object, ObjectValue, PyProblem};
+    pub use crate::{
+        PyBitCodec, PyCharCodec, PyExecutor, PyFloatCodec, PyGeneType, PyGraphCodec, PyIntCodec,
+        PyLimit, PyProblemBuilder, conversion::Wrap,
+    };
+    pub use pyo3::prelude::*;
+    pub use pyo3::types::PyAny;
+    pub use pyo3::{
+        Bound, IntoPyObjectExt, Py, PyErr, PyResult, Python, pyclass, pymethods,
+        types::{PyAnyMethods, PyDict, PyDictMethods, PyList, PyString, PyTuple},
+    };
+}
+
+use crate::prelude::*;
 
 // Adapted from PYO3 with the only change that
 // we allow mutable access with when the GIL is held

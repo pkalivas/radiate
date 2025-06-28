@@ -1,6 +1,7 @@
 from .op import Op
+from .graph import Graph
 
-__all__ = ["Op"]
+__all__ = ["Op", "Graph"]
 
     # MAX_INDEX = 500
     # MIN_SCORE = 0.01

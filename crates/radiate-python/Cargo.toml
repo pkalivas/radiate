@@ -6,9 +6,12 @@ authors = { workspace = true }
 
 [dependencies]
 pyo3 = { workspace = true, features = ["multiple-pymethods"] }
-radiate = { workspace = true, features = ["gp", "rayon"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+radiate = { workspace = true, features = ["gp", "rayon", "serde"] }
 
 [features]
 default = []
 gp = ["radiate/gp"]
 rayon = ["radiate/rayon"]
+serde = ["radiate/serde"]

@@ -6,7 +6,7 @@ from .generation import Generation
 from .genome import Gene, Chromosome, Genotype, Population, Phenotype
 from .handlers import EventHandler, EventType
 from .executor import Executor
-from .gp import Op
+from .gp import Op, Graph
 from .problem import ProblemBase, Regression
 
 from .diversity import (
@@ -48,7 +48,8 @@ from .alterer import (
 
 __all__ = [
     "Op",
-    GraphMutator,
+    "Graph",
+    "GraphMutator",
     "OperationMutator",
     "GraphCrossover",
     "GraphCodec",

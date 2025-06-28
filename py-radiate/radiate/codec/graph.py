@@ -1,10 +1,10 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, TypeAlias, Union
 from .codec import CodecBase
 from ..gp import Op
 from radiate.genome import Genotype
-
 from radiate.radiate import PyGraphCodec
 
+NodeValues: TypeAlias = Union[List[Op], Op]
 
 class GraphCodec(CodecBase):
     def __init__(self, codec: PyGraphCodec):
@@ -17,10 +17,21 @@ class GraphCodec(CodecBase):
     def directed(
         input_size: int,
         output_size: int,
-        vertex: Optional[List[Op]] = None,
-        edge: Optional[List[Op]] = None,
-        output: Optional[List[Op]] = None,
+        vertex: Optional[NodeValues] = None,
+        edge: Optional[NodeValues] = None,
+        output: Optional[NodeValues] = None,
+        values: Optional[Dict[str, List[Op]]] = None,
     ) -> "GraphCodec":
         inputs = [Op.var(i) for i in range(input_size)]
-        ops_map = {"input": inputs, "vertex": vertex, "edge": edge, "output": output}
+        if values is not None:
+            ops_map = values | {"input": inputs}
+        else:
+            if isinstance(vertex, Op):
+                vertex = [vertex]                
+            if isinstance(edge, Op):
+                edge = [edge]
+            if isinstance(output, Op):
+                output = [output]
+                            
+            ops_map = {"input": inputs, "vertex": vertex, "edge": edge, "output": output}
         return GraphCodec(PyGraphCodec.directed(input_size, output_size, ops_map))

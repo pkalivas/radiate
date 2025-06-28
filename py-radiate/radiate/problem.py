@@ -1,19 +1,19 @@
 import abc
 from typing import List
-from radiate.radiate import PyTestProblem
+from radiate.radiate import PyProblemBuilder
 
 
 class ProblemBase(abc.ABC):
     """A class representing a problem to be solved using evolutionary algorithms."""
 
-    def __init__(self, problem: PyTestProblem):
+    def __init__(self, problem: PyProblemBuilder):
         self.problem = problem
 
 
 class Regression(ProblemBase):
     """A class representing a regression problem."""
 
-    def __init__(self, fetures: List[List[float]], targets: List[List[float]]):
+    def __init__(self, features: List[List[float]], targets: List[List[float]], loss: str = "mse"):
         """
         Initializes the Regression problem instance.
 
@@ -22,7 +22,7 @@ class Regression(ProblemBase):
         :param kwargs: Additional keyword arguments for problem configuration.
         """
         super().__init__(
-            PyTestProblem.regression(features=fetures, targets=targets, loss="mse")
+            PyProblemBuilder.regression(features=features, targets=targets, loss=loss)
         )
 
     # def evaluate(self, genotype: "Genotype") -> float:

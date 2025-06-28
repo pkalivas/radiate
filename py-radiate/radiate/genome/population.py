@@ -36,6 +36,14 @@ class Population:
         :return: Number of individuals in the population.
         """
         return len(self.__inner)
+    
+    def __iter__(self):
+        """
+        Returns an iterator over the individuals in the population.
+        :return: An iterator over the individuals in the population.
+        """
+        for phenotype in self.__inner.phenotypes:
+            yield Phenotype(phenotype=phenotype)
 
     def py_population(self) -> PyPopulation:
         """

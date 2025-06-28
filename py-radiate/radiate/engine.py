@@ -16,7 +16,7 @@ from .radiate import (
     PySelector,
     PyAlterer,
     PyDiversity,
-    PyTestProblem,
+    PyProblemBuilder,
 )
 
 Subscriber: TypeAlias = Union[
@@ -59,11 +59,10 @@ class GeneticEngine:
         handlers = get_event_handler(subscribe)
         codec = get_codec(codec)
         executor = get_executor(executor)
-        problem = get_problem(fitness_func, codec, problem)
+        problem = get_problem(fitness_func, problem)
     
         self.engine = None
         self.builder = PyEngineBuilder(
-            
             codec=codec,
             problem=problem,
             population_size=population_size,
@@ -317,16 +316,13 @@ class GeneticEngine:
 
 def get_problem(
     fitness_func: Callable[[Any], Any],
-    codec: CodecBase,
-    problem: ProblemBase | None = None) -> PyTestProblem:
+    problem: ProblemBase | None = None) -> PyProblemBuilder:
     """Get the problem."""
     if problem is None:
         if fitness_func is None:
             raise ValueError("Fitness function must be provided.")
-        if codec is None:
-            raise ValueError("Codec must be provided.")
         
-        return PyTestProblem.default(fitness_func)
+        return PyProblemBuilder.custom(fitness_func)
     if isinstance(problem, ProblemBase):
         return problem.problem
     raise TypeError("Problem must be an instance of ProblemBase.")

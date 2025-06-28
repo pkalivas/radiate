@@ -9,13 +9,7 @@ sys.path.insert(0, project_root)
 
 import radiate as rd
 
-rd.random.set_seed(500)
-
-
-# codec = rd.IntCodec.matrix((2, 3), value_range=(0, 100), bound_range=(-1, 200))
-
-# print(codec.encode())
-# print(codec.decode(codec.encode()))
+rd.random.set_seed(100)
 
 
 class TestHandler(rd.EventHandler):
@@ -23,54 +17,82 @@ class TestHandler(rd.EventHandler):
         super().__init__(rd.EventType.EPOCH_COMPLETE)
 
     def on_event(self, event):
-        print(event['score'])
+        print(event["score"])
         # print(event['metrics']['Fitness']['value_min'])
 
 
-engine = rd.GeneticEngine(
-    codec=rd.IntCodec.vector(10, (0, 10)),
-    fitness_func=lambda x: sum(x),
-    offspring_selector=rd.BoltzmannSelector(4),
-    objectives="min",
-    # subscribe=TestHandler(),
-    # executor=rd.Executor.WorkerPool(),
-    alters=[
-        rd.MultiPointCrossover(0.75, 2),
-        rd.UniformMutator(0.01)
-    ],
-)
+# engine = rd.GeneticEngine(
+#     codec=rd.IntCodec.vector(10, (0, 10)),
+#     fitness_func=lambda x: sum(x),
+#     offspring_selector=rd.BoltzmannSelector(4),
+#     objectives="min",
+#     # subscribe=TestHandler(),
+#     # executor=rd.Executor.WorkerPool(),
+#     alters=[
+#         rd.MultiPointCrossover(0.75, 2),
+#         rd.UniformMutator(0.01)
+#     ],
+# )
 
-result = engine.run(rd.ScoreLimit(0))
+# result = engine.run(rd.ScoreLimit(0))
 
-print(result)
+# print(result)
+
+# inputs = [[1.0, 1.0], [1.0, 0.0], [0.0, 1.0], [0.0, 0.0]]
+# answers = [[0.0], [1.0], [1.0], [0.0]]
+
+
+def compute(x: float) -> float:
+    return 4.0 * x**3 - 3.0 * x**2 + x
+
+
+def get_dataset():
+    inputs = []
+    answers = []
+
+    input = -1.0
+    for _ in range(-10, 10):
+        input += 0.1
+        inputs.append([input])
+        answers.append([compute(input)])
+
+    return inputs, answers
+
+
+inputs, answers = get_dataset()
 
 codec = rd.GraphCodec.directed(
-    input_size=2,
+    input_size=1,
     output_size=1,
-    vertex=rd.Op.all_ops(),
-    edge=[rd.Op.weight()],
-    output=[rd.Op.sigmoid()],
+    vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
+    edge=rd.Op.weight(),
+    output=rd.Op.linear(),
 )
 
-
-inputs = [[1.0, 1.0], [1.0, 0.0], [0.0, 1.0], [0.0, 0.0]]
-answers = [[0.0], [1.0], [1.0], [0.0]]
-
 engine = rd.GeneticEngine(
-    problem=rd.Regression(
-        fetures=inputs,
-        targets=answers,
-    ),
-    objectives="min",
     codec=codec,
+    problem=rd.Regression(inputs, answers),
+    objectives="min",
     alters=[
         rd.GraphCrossover(0.5, 0.5),
-        rd.OperationMutator(0.05, 0.05),
-        rd.GraphMutator(0.06, 0.01),
+        rd.OperationMutator(0.07, 0.05),
+        rd.GraphMutator(0.1, 0.1),
     ],
 )
 
-result = engine.run([rd.ScoreLimit(0.01), rd.SecondsLimit(10)], log=True)
+result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)], log=True)
+
+print(result.value())
+
+# print(result.value().eval([[0.5], [0.25], [0.75], [0.1], [0.9]]))
+
+# save the value to json
+with open("best_graph.json", "w") as f:
+    f.write(result.value().to_json())
+
+# for member in result.population():
+#     print(member.score())
+
 
 # N_QUEENS = 32
 

@@ -1,7 +1,7 @@
 use super::{PyAlterer, PyDiversity, PyEngine, PyObjective, PySelector, subscriber::PySubscriber};
 use crate::{
     PyBitCodec, PyCharCodec, PyExecutor, PyFloatCodec, PyGeneType, PyGraphCodec, PyIntCodec,
-    PyLimit, PyTestProblem, conversion::Wrap,
+    PyLimit, PyProblemBuilder, conversion::Wrap,
 };
 use pyo3::{
     Bound, IntoPyObjectExt, Py, PyAny, PyErr, PyResult, Python, pyclass, pymethods,
@@ -247,18 +247,18 @@ impl PyEngineBuilder {
             .map_err(|e| e.into())
     }
 
-    pub fn set_problem<'py>(&self, py: Python<'py>, problem: Py<PyTestProblem>) -> PyResult<()> {
+    pub fn set_problem<'py>(&self, py: Python<'py>, problem: Py<PyProblemBuilder>) -> PyResult<()> {
         self.params
             .bind(py)
             .set_item(PROBLEM, problem)
             .map_err(|e| e.into())
     }
 
-    pub fn get_problem<'py>(&self, py: Python<'py>) -> PyResult<PyTestProblem> {
+    pub fn get_problem<'py>(&self, py: Python<'py>) -> PyResult<PyProblemBuilder> {
         self.params
             .bind(py)
             .get_item(PROBLEM)?
-            .map(|v| v.extract::<PyTestProblem>())
+            .map(|v| v.extract::<PyProblemBuilder>())
             .unwrap_or_else(|| {
                 Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                     "Problem not set or invalid type",

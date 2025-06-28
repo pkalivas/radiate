@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+from typing import List
 from radiate.radiate import PyPhenotype
 from .genotype import Genotype
 
@@ -10,7 +10,10 @@ class Phenotype:
     """
 
     def __init__(
-        self, phenotype: PyPhenotype | None = None, genotype: Genotype | None = None
+        self, phenotype: PyPhenotype | None = None, 
+        genotype: Genotype | None = None,
+        score: List[float] | None = None,
+        id: int | None = None
     ):
         """
         Initializes a Phenotype instance.
@@ -40,6 +43,13 @@ class Phenotype:
         :return: The PyPhenotype instance associated with this Phenotype.
         """
         return self.__inner
+    
+    def score(self) -> List[float]:
+        """
+        Returns the score of the phenotype.
+        :return: The score of the phenotype.
+        """
+        return self.__inner.score
 
     def genotype(self) -> Genotype:
         """

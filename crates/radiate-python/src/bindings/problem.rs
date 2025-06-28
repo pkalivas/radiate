@@ -6,7 +6,7 @@ use pyo3::{
 
 #[pyclass]
 #[derive(Clone, Debug)]
-pub struct PyTestProblem {
+pub struct PyProblemBuilder {
     pub name: String,
     pub args: ObjectValue,
     pub allowed_genes: Vec<PyGeneType>,
@@ -14,7 +14,7 @@ pub struct PyTestProblem {
 }
 
 #[pymethods]
-impl PyTestProblem {
+impl PyProblemBuilder {
     pub fn __repr__(&self) -> String {
         format!(
             "PyTestProblem(name='{}', args={:?}, allowed_genes={:?}, allowed_chromosomes={:?})",
@@ -35,17 +35,27 @@ impl PyTestProblem {
     }
 
     #[staticmethod]
-    pub fn default<'py>(py: Python<'py>, fitness_fn: Py<PyAny>) -> Self {
+    pub fn custom<'py>(py: Python<'py>, fitness_fn: Py<PyAny>) -> Self {
         let args = PyDict::new(py);
         args.set_item("fitness_func", fitness_fn).unwrap();
 
-        PyTestProblem {
-            name: "DefaultProblem".into(),
+        PyProblemBuilder {
+            name: "Custom".into(),
             args: ObjectValue {
                 inner: args.unbind().into_any(),
             },
-            allowed_genes: vec![],
-            allowed_chromosomes: vec![],
+            allowed_genes: vec![
+                PyGeneType::Float,
+                PyGeneType::Int,
+                PyGeneType::Char,
+                PyGeneType::Bit,
+            ],
+            allowed_chromosomes: vec![
+                PyChromosomeType::Float,
+                PyChromosomeType::Int,
+                PyChromosomeType::Char,
+                PyChromosomeType::Bit,
+            ],
         }
     }
 
@@ -62,7 +72,7 @@ impl PyTestProblem {
         args.set_item("targets", targets).unwrap();
         args.set_item("loss", loss).unwrap();
 
-        PyTestProblem {
+        PyProblemBuilder {
             name: "Regression".into(),
             args: ObjectValue {
                 inner: args.unbind().into_any(),

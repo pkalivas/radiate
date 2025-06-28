@@ -1,0 +1,525 @@
+{
+    "nodes": [
+        {
+            "value": {
+                "type": "Var",
+                "data": {
+                    "name": "0",
+                    "index": 0
+                }
+            },
+            "id": 320,
+            "index": 0,
+            "direction": "Forward",
+            "node_type": "Input",
+            "arity": "Zero",
+            "incoming": [],
+            "outgoing": [
+                1,
+                2,
+                3,
+                4,
+                5
+            ]
+        },
+        {
+            "value": {
+                "type": "Fn",
+                "data": {
+                    "name": "linear",
+                    "arity": "Any"
+                }
+            },
+            "id": 323,
+            "index": 1,
+            "direction": "Forward",
+            "node_type": "Output",
+            "arity": "Any",
+            "incoming": [
+                0,
+                3,
+                5,
+                6,
+                7,
+                9,
+                13,
+                19,
+                20
+            ],
+            "outgoing": []
+        },
+        {
+            "value": {
+                "type": "MutableConst",
+                "data": {
+                    "name": "w",
+                    "arity": {
+                        "Exact": 1
+                    },
+                    "value": -0.5069093
+                }
+            },
+            "id": 606,
+            "index": 2,
+            "direction": "Forward",
+            "node_type": "Edge",
+            "arity": {
+                "Exact": 1
+            },
+            "incoming": [
+                0
+            ],
+            "outgoing": [
+                12
+            ]
+        },
+        {
+            "value": {
+                "type": "Fn",
+                "data": {
+                    "name": "add",
+                    "arity": {
+                        "Exact": 2
+                    }
+                }
+            },
+            "id": 760,
+            "index": 3,
+            "direction": "Forward",
+            "node_type": "Vertex",
+            "arity": {
+                "Exact": 2
+            },
+            "incoming": [
+                0,
+                16
+            ],
+            "outgoing": [
+                1,
+                6
+            ]
+        },
+        {
+            "value": {
+                "type": "MutableConst",
+                "data": {
+                    "name": "w",
+                    "arity": {
+                        "Exact": 1
+                    },
+                    "value": -1.4428092
+                }
+            },
+            "id": 952,
+            "index": 4,
+            "direction": "Forward",
+            "node_type": "Edge",
+            "arity": {
+                "Exact": 1
+            },
+            "incoming": [
+                0
+            ],
+            "outgoing": [
+                18
+            ]
+        },
+        {
+            "value": {
+                "type": "Fn",
+                "data": {
+                    "name": "mul",
+                    "arity": {
+                        "Exact": 2
+                    }
+                }
+            },
+            "id": 3284,
+            "index": 5,
+            "direction": "Forward",
+            "node_type": "Vertex",
+            "arity": {
+                "Exact": 2
+            },
+            "incoming": [
+                0,
+                12
+            ],
+            "outgoing": [
+                1,
+                8,
+                11
+            ]
+        },
+        {
+            "value": {
+                "type": "Fn",
+                "data": {
+                    "name": "linear",
+                    "arity": "Any"
+                }
+            },
+            "id": 3542,
+            "index": 6,
+            "direction": "Forward",
+            "node_type": "Vertex",
+            "arity": "Any",
+            "incoming": [
+                3,
+                8,
+                10
+            ],
+            "outgoing": [
+                1,
+                7
+            ]
+        },
+        {
+            "value": {
+                "type": "Fn",
+                "data": {
+                    "name": "mul",
+                    "arity": {
+                        "Exact": 2
+                    }
+                }
+            },
+            "id": 4156,
+            "index": 7,
+            "direction": "Forward",
+            "node_type": "Vertex",
+            "arity": {
+                "Exact": 2
+            },
+            "incoming": [
+                6,
+                18
+            ],
+            "outgoing": [
+                1,
+                9
+            ]
+        },
+        {
+            "value": {
+                "type": "Fn",
+                "data": {
+                    "name": "linear",
+                    "arity": "Any"
+                }
+            },
+            "id": 4300,
+            "index": 8,
+            "direction": "Forward",
+            "node_type": "Vertex",
+            "arity": "Any",
+            "incoming": [
+                5
+            ],
+            "outgoing": [
+                6,
+                10,
+                19
+            ]
+        },
+        {
+            "value": {
+                "type": "MutableConst",
+                "data": {
+                    "name": "w",
+                    "arity": {
+                        "Exact": 1
+                    },
+                    "value": 0.9252808
+                }
+            },
+            "id": 4402,
+            "index": 9,
+            "direction": "Forward",
+            "node_type": "Edge",
+            "arity": {
+                "Exact": 1
+            },
+            "incoming": [
+                7
+            ],
+            "outgoing": [
+                1
+            ]
+        },
+        {
+            "value": {
+                "type": "MutableConst",
+                "data": {
+                    "name": "w",
+                    "arity": {
+                        "Exact": 1
+                    },
+                    "value": 1.6502292
+                }
+            },
+            "id": 5012,
+            "index": 10,
+            "direction": "Forward",
+            "node_type": "Edge",
+            "arity": {
+                "Exact": 1
+            },
+            "incoming": [
+                8
+            ],
+            "outgoing": [
+                6
+            ]
+        },
+        {
+            "value": {
+                "type": "MutableConst",
+                "data": {
+                    "name": "w",
+                    "arity": {
+                        "Exact": 1
+                    },
+                    "value": -0.35010374
+                }
+            },
+            "id": 5278,
+            "index": 11,
+            "direction": "Forward",
+            "node_type": "Edge",
+            "arity": {
+                "Exact": 1
+            },
+            "incoming": [
+                5
+            ],
+            "outgoing": [
+                19
+            ]
+        },
+        {
+            "value": {
+                "type": "Fn",
+                "data": {
+                    "name": "linear",
+                    "arity": "Any"
+                }
+            },
+            "id": 5746,
+            "index": 12,
+            "direction": "Forward",
+            "node_type": "Vertex",
+            "arity": "Any",
+            "incoming": [
+                2
+            ],
+            "outgoing": [
+                5,
+                13
+            ]
+        },
+        {
+            "value": {
+                "type": "MutableConst",
+                "data": {
+                    "name": "w",
+                    "arity": {
+                        "Exact": 1
+                    },
+                    "value": 1.2956753
+                }
+            },
+            "id": 5772,
+            "index": 13,
+            "direction": "Forward",
+            "node_type": "Edge",
+            "arity": {
+                "Exact": 1
+            },
+            "incoming": [
+                12
+            ],
+            "outgoing": [
+                1
+            ]
+        },
+        {
+            "value": {
+                "type": "MutableConst",
+                "data": {
+                    "name": "w",
+                    "arity": {
+                        "Exact": 1
+                    },
+                    "value": 0.71925265
+                }
+            },
+            "id": 5942,
+            "index": 14,
+            "direction": "Forward",
+            "node_type": "Edge",
+            "arity": {
+                "Exact": 1
+            },
+            "incoming": [
+                15
+            ],
+            "outgoing": [
+                17
+            ]
+        },
+        {
+            "value": {
+                "type": "MutableConst",
+                "data": {
+                    "name": "w",
+                    "arity": {
+                        "Exact": 1
+                    },
+                    "value": 0.79677397
+                }
+            },
+            "id": 6098,
+            "index": 15,
+            "direction": "Forward",
+            "node_type": "Edge",
+            "arity": {
+                "Exact": 1
+            },
+            "incoming": [
+                18
+            ],
+            "outgoing": [
+                14
+            ]
+        },
+        {
+            "value": {
+                "type": "MutableConst",
+                "data": {
+                    "name": "w",
+                    "arity": {
+                        "Exact": 1
+                    },
+                    "value": 1.0292343
+                }
+            },
+            "id": 6232,
+            "index": 16,
+            "direction": "Forward",
+            "node_type": "Edge",
+            "arity": {
+                "Exact": 1
+            },
+            "incoming": [
+                17
+            ],
+            "outgoing": [
+                3
+            ]
+        },
+        {
+            "value": {
+                "type": "MutableConst",
+                "data": {
+                    "name": "w",
+                    "arity": {
+                        "Exact": 1
+                    },
+                    "value": 0.707911
+                }
+            },
+            "id": 6242,
+            "index": 17,
+            "direction": "Forward",
+            "node_type": "Edge",
+            "arity": {
+                "Exact": 1
+            },
+            "incoming": [
+                14
+            ],
+            "outgoing": [
+                16
+            ]
+        },
+        {
+            "value": {
+                "type": "Fn",
+                "data": {
+                    "name": "add",
+                    "arity": {
+                        "Exact": 2
+                    }
+                }
+            },
+            "id": 6428,
+            "index": 18,
+            "direction": "Forward",
+            "node_type": "Vertex",
+            "arity": {
+                "Exact": 2
+            },
+            "incoming": [
+                4,
+                19
+            ],
+            "outgoing": [
+                7,
+                15
+            ]
+        },
+        {
+            "value": {
+                "type": "Fn",
+                "data": {
+                    "name": "mul",
+                    "arity": {
+                        "Exact": 2
+                    }
+                }
+            },
+            "id": 6834,
+            "index": 19,
+            "direction": "Forward",
+            "node_type": "Vertex",
+            "arity": {
+                "Exact": 2
+            },
+            "incoming": [
+                8,
+                11
+            ],
+            "outgoing": [
+                1,
+                18,
+                20
+            ]
+        },
+        {
+            "value": {
+                "type": "MutableConst",
+                "data": {
+                    "name": "w",
+                    "arity": {
+                        "Exact": 1
+                    },
+                    "value": 0.5117146
+                }
+            },
+            "id": 7132,
+            "index": 20,
+            "direction": "Forward",
+            "node_type": "Edge",
+            "arity": {
+                "Exact": 1
+            },
+            "incoming": [
+                19
+            ],
+            "outgoing": [
+                1
+            ]
+        }
+    ]
+}

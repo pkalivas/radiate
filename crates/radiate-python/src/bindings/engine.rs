@@ -1,7 +1,7 @@
 use super::{PyObjective, subscriber::PySubscriber};
 use crate::{
-    FreeThreadPyEvaluator, ObjectValue, PyBitCodec, PyCharCodec, PyFloatCodec, PyGeneType,
-    PyGeneration, PyGraphCodec, PyIntCodec, PyLimit, PyProblem, PyTestProblem,
+    FreeThreadPyEvaluator, IntoPyObjectValue, ObjectValue, PyBitCodec, PyCharCodec, PyFloatCodec,
+    PyGeneType, PyGeneration, PyGraphCodec, PyIntCodec, PyLimit, PyProblem, PyProblemBuilder,
     bindings::builder::*, conversion::Wrap, events::PyEventHandler,
 };
 use pyo3::{
@@ -112,9 +112,9 @@ impl<'py> FromPyObject<'py> for Wrap<EngineInner> {
         let problem = params
             .bind(ob.py())
             .get_item(PROBLEM)?
-            .extract::<PyTestProblem>()?;
+            .extract::<PyProblemBuilder>()?;
 
-        let engine = if problem.name() == "DefaultProblem" {
+        let engine = if problem.name() == "Custom" {
             let fitness_fn = problem
                 .args(ob.py())
                 .and_then(|args| args.get_item("fitness_func"))
@@ -407,7 +407,7 @@ fn create_regression_engine<C, T>(
 ) -> PyResult<GeneticEngineBuilder<C, T, Generation<C, T>>>
 where
     C: Chromosome + Clone + PartialEq + 'static,
-    T: Clone + Send + Sync + 'static,
+    T: IntoPyObjectValue + Clone + Send + Sync + 'static,
 {
     let params = parameters.bind(py);
 
@@ -440,14 +440,14 @@ where
         .extract::<Wrap<Option<Box<dyn Diversity<C>>>>>()?
         .0;
 
-    // let subscribers = params
-    //     .get_item(SUBSCRIBERS)?
-    //     .into_bound_py_any(py)?
-    //     .extract::<Vec<PySubscriber>>()?;
+    let subscribers = params
+        .get_item(SUBSCRIBERS)?
+        .into_bound_py_any(py)?
+        .extract::<Vec<PySubscriber>>()?;
 
     let executor = params.get_item(EXECUTOR)?.extract::<Wrap<Executor>>()?.0;
 
-    let builder = GeneticEngine::builder()
+    let mut builder = GeneticEngine::builder()
         .problem(regression)
         .population_size(population_size)
         .offspring_fraction(offspring_fraction)
@@ -461,10 +461,10 @@ where
         .boxed_offspring_selector(offspring_selector)
         .boxed_survivor_selector(survivor_selector);
 
-    // builder = match subscribers.len() > 0 {
-    //     true => builder.subscribe(PyEventHandler::new(subscribers)),
-    //     false => builder,
-    // };
+    builder = match subscribers.len() > 0 {
+        true => builder.subscribe(PyEventHandler::new(subscribers)),
+        false => builder,
+    };
 
     Ok(unsafe {
         std::mem::transmute(match objective {

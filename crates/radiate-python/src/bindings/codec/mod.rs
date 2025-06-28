@@ -6,28 +6,17 @@ mod int;
 
 use std::sync::Arc;
 
-use crate::{ObjectValue, PyChromosomeType, PyGeneType, conversion::Wrap};
+use crate::{ObjectValue, conversion::Wrap};
 pub use bit::PyBitCodec;
 pub use char::PyCharCodec;
 pub use float::PyFloatCodec;
 pub use graph::{PyGraph, PyGraphCodec};
 pub use int::PyIntCodec;
 
-use pyo3::{Bound, FromPyObject, PyAny, PyResult, Python, pyclass, types::PyAnyMethods};
+use pyo3::{Bound, FromPyObject, PyAny, PyResult, Python, types::PyAnyMethods};
 use radiate::{
-    BitChromosome, CharChromosome, Chromosome, Codec, FloatChromosome, Genotype, Graph,
-    GraphChromosome, IntChromosome, Op,
+    BitChromosome, CharChromosome, Chromosome, Codec, FloatChromosome, Genotype, IntChromosome,
 };
-
-#[pyclass(unsendable)]
-#[derive(Clone, Debug)]
-pub struct PyCodecInner {
-    pub name: String,
-    pub type_name: String,
-    pub args: ObjectValue,
-    pub gene_types: Vec<PyGeneType>,
-    pub chromosome_types: Vec<PyChromosomeType>,
-}
 
 #[derive(Clone)]
 pub struct PyCodec<C: Chromosome, T> {
@@ -146,17 +135,17 @@ impl<'py> FromPyObject<'py> for Wrap<PyCodec<BitChromosome, ObjectValue>> {
     }
 }
 
-impl<'py> FromPyObject<'py> for Wrap<PyCodec<GraphChromosome<Op<f32>>, Graph<Op<f32>>>> {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let codec_attr = ob.getattr("codec")?;
+// impl<'py> FromPyObject<'py> for Wrap<PyCodec<GraphChromosome<Op<f32>>, Graph<Op<f32>>>> {
+//     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+//         let codec_attr = ob.getattr("codec")?;
 
-        if codec_attr.is_instance_of::<PyGraphCodec>() {
-            let codec = codec_attr.extract::<PyGraphCodec>()?.codec;
-            return Ok(Wrap(codec));
-        }
+//         if codec_attr.is_instance_of::<PyGraphCodec>() {
+//             let codec = codec_attr.extract::<PyGraphCodec>()?.codec;
+//             return Ok(Wrap(codec));
+//         }
 
-        Err(pyo3::exceptions::PyTypeError::new_err(
-            "Expected a PyCharCodec, but got a different codec type",
-        ))
-    }
-}
+//         Err(pyo3::exceptions::PyTypeError::new_err(
+//             "Expected a PyCharCodec, but got a different codec type",
+//         ))
+//     }
+// }
