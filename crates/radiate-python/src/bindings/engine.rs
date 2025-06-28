@@ -1,7 +1,7 @@
 use super::{PyObjective, subscriber::PySubscriber};
 use crate::{
     FreeThreadPyEvaluator, ObjectValue, PyBitCodec, PyCharCodec, PyFloatCodec, PyGeneType,
-    PyGeneration, PyIntCodec, PyLimit, PyProblem,
+    PyGeneration, PyGraphCodec, PyIntCodec, PyLimit, PyProblem, PyTestProblem,
     bindings::{builder::*, codec::PyCodec},
     conversion::Wrap,
     events::PyEventHandler,
@@ -70,6 +70,9 @@ impl PyEngine {
                 EngineInner::FloatMulti(engine) => {
                     run_multi_objective_engine(&mut Some(engine), limits, log)
                 }
+                EngineInner::GraphRegression(engine) => {
+                    run_single_objective_engine(&mut Some(engine), limits, log)
+                }
             }
         } else {
             Err(PyErr::new::<PyRuntimeError, _>(
@@ -81,6 +84,7 @@ impl PyEngine {
 
 type SingleObjectiveEngine<C> = GeneticEngine<C, ObjectValue, Generation<C, ObjectValue>>;
 type MultiObjectiveEngine<C> = GeneticEngine<C, ObjectValue, ParetoGeneration<C>>;
+type RegressionEngine<C, T> = GeneticEngine<C, T, Generation<C, T>>;
 
 enum EngineInner {
     Int(SingleObjectiveEngine<IntChromosome<i32>>),
@@ -89,6 +93,7 @@ enum EngineInner {
     Bit(SingleObjectiveEngine<BitChromosome>),
     IntMulti(MultiObjectiveEngine<IntChromosome<i32>>),
     FloatMulti(MultiObjectiveEngine<FloatChromosome>),
+    GraphRegression(RegressionEngine<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
 }
 
 impl<'py> FromPyObject<'py> for Wrap<EngineInner> {
@@ -109,6 +114,13 @@ impl<'py> FromPyObject<'py> for Wrap<EngineInner> {
             .bind(ob.py())
             .get_item("objective")?
             .extract::<PyObjective>()?;
+
+        let problem = params
+            .bind(ob.py())
+            .get_item("problem")?
+            .extract::<PyTestProblem>()?;
+
+        println!("Creating engine with gene type: {:?}", problem);
 
         let engine = match gene_type {
             PyGeneType::Int => {
@@ -165,24 +177,48 @@ impl<'py> FromPyObject<'py> for Wrap<EngineInner> {
                     ));
                 }
             }
-            _ => Err(PyErr::new::<PyTypeError, _>(
-                "Unsupported gene type for engine",
-            )),
+            PyGeneType::Graph => {
+                if let Ok(codec) = codec_obj.extract::<PyGraphCodec>() {
+                    if problem.name() == "Regression" {
+                        let features = problem
+                            .args(ob.py())
+                            .and_then(|args| args.get_item("features"))
+                            .and_then(|f| f.extract::<Vec<Vec<f32>>>())?;
+                        let targets = problem
+                            .args(ob.py())
+                            .and_then(|args| args.get_item("targets"))
+                            .and_then(|t| t.extract::<Vec<Vec<f32>>>())?;
+
+                        let data_set = DataSet::new(features, targets);
+                        let problem = Regression::new(data_set, Loss::MSE, codec.codec);
+                        Ok(EngineInner::GraphRegression(
+                            create_regression_engine(ob.py(), problem, &params)?.build(),
+                        ))
+                    } else {
+                        return Err(PyErr::new::<PyTypeError, _>(
+                            "GraphChromosome only supports regression problems",
+                        ));
+                    }
+                } else {
+                    return Err(PyErr::new::<PyTypeError, _>(
+                        "Expected a GraphCodec for GraphChromosome",
+                    ));
+                }
+            }
         };
 
         engine.map(Wrap)
     }
 }
 
-fn create_multi_engine<C, T>(
+fn create_multi_engine<C>(
     py: Python<'_>,
-    codec: PyCodec<C>,
+    codec: PyCodec<C, ObjectValue>,
     fitness_fn: Py<PyAny>,
     parameters: &Py<PyAny>,
-) -> PyResult<GeneticEngineBuilder<C, T, ParetoGeneration<C>>>
+) -> PyResult<GeneticEngineBuilder<C, ObjectValue, ParetoGeneration<C>>>
 where
     C: Chromosome + Clone + PartialEq + 'static,
-    T: Clone + Send + Sync + 'static,
 {
     let params = parameters.bind(py);
 
@@ -253,15 +289,14 @@ where
     Ok(unsafe { std::mem::transmute(builder) })
 }
 
-fn create_engine<C, T>(
+fn create_engine<C>(
     py: Python<'_>,
-    codec: PyCodec<C>,
+    codec: PyCodec<C, ObjectValue>,
     fitness_fn: Py<PyAny>,
     parameters: &Py<PyAny>,
-) -> PyResult<GeneticEngineBuilder<C, T, Generation<C, T>>>
+) -> PyResult<GeneticEngineBuilder<C, ObjectValue, Generation<C, ObjectValue>>>
 where
     C: Chromosome + Clone + PartialEq + 'static,
-    T: Clone + Send + Sync + 'static,
 {
     let params = parameters.bind(py);
 
@@ -321,6 +356,83 @@ where
         true => builder.subscribe(PyEventHandler::new(subscribers)),
         false => builder,
     };
+
+    Ok(unsafe {
+        std::mem::transmute(match objective {
+            Objective::Single(opt) => match opt {
+                Optimize::Minimize => builder.minimizing(),
+                Optimize::Maximize => builder.maximizing(),
+            },
+            _ => builder,
+        })
+    })
+}
+
+fn create_regression_engine<C, T>(
+    py: Python<'_>,
+    regression: impl Problem<C, T> + 'static,
+    parameters: &Py<PyAny>,
+) -> PyResult<GeneticEngineBuilder<C, T, Generation<C, T>>>
+where
+    C: Chromosome + Clone + PartialEq + 'static,
+    T: Clone + Send + Sync + 'static,
+{
+    let params = parameters.bind(py);
+
+    let population_size = params.get_item(POPULATION_SIZE)?.extract::<usize>()?;
+    let offspring_fraction = params.get_item(OFFSPRING_FRACTION)?.extract::<f32>()?;
+    let max_age = params.get_item(MAX_PHENOTYPE_AGE)?.extract::<usize>()?;
+    let max_species_age = params.get_item(MAX_SPECIES_AGE)?.extract::<usize>()?;
+    let species_threshold = params.get_item(SPECIES_THRESHOLD)?.extract::<f32>()?;
+
+    let alters = params
+        .get_item(ALTERS)?
+        .into_bound_py_any(py)?
+        .extract::<Wrap<Vec<Box<dyn Alter<C>>>>>()?
+        .0;
+
+    let survivor_selector = params
+        .get_item(SURVIVOR_SELECTOR)?
+        .extract::<Wrap<Box<dyn Select<C>>>>()?
+        .0;
+
+    let offspring_selector = params
+        .get_item(OFFSPRING_SELECTOR)?
+        .extract::<Wrap<Box<dyn Select<C>>>>()?
+        .0;
+
+    let objective = params.get_item(OBJECTIVE)?.extract::<Wrap<Objective>>()?.0;
+
+    let diversity = params
+        .get_item(DIVERSITY)?
+        .extract::<Wrap<Option<Box<dyn Diversity<C>>>>>()?
+        .0;
+
+    // let subscribers = params
+    //     .get_item(SUBSCRIBERS)?
+    //     .into_bound_py_any(py)?
+    //     .extract::<Vec<PySubscriber>>()?;
+
+    let executor = params.get_item(EXECUTOR)?.extract::<Wrap<Executor>>()?.0;
+
+    let builder = GeneticEngine::builder()
+        .problem(regression)
+        .population_size(population_size)
+        .offspring_fraction(offspring_fraction)
+        .max_age(max_age)
+        .max_species_age(max_species_age)
+        .species_threshold(species_threshold)
+        .alter(alters)
+        .executor(executor.clone())
+        .bus_executor(Executor::default())
+        .boxed_diversity(diversity)
+        .boxed_offspring_selector(offspring_selector)
+        .boxed_survivor_selector(survivor_selector);
+
+    // builder = match subscribers.len() > 0 {
+    //     true => builder.subscribe(PyEventHandler::new(subscribers)),
+    //     false => builder,
+    // };
 
     Ok(unsafe {
         std::mem::transmute(match objective {

@@ -34,7 +34,7 @@ class GeneticEngine:
     def __init__(
         self,
         codec: CodecBase,
-        fitness_func: Callable[[Any], Any],
+        fitness_func: Callable[[Any], Any] | None = None,
         problem: ProblemBase | None = None,
         offspring_selector: SelectorBase | None = None,
         survivor_selector: SelectorBase | None = None,
@@ -343,7 +343,7 @@ def get_executor(executor: Executor | None) -> PyExecutor:
 
 def get_codec(codec: CodecBase | Callable[[], List[Any]]) -> Any:
     """Get the codec."""
-    from .codec import FloatCodec, IntCodec, CharCodec, BitCodec
+    from .codec import FloatCodec, IntCodec, CharCodec, BitCodec, GraphCodec
 
     if isinstance(codec, FloatCodec):
         return codec.codec
@@ -352,6 +352,8 @@ def get_codec(codec: CodecBase | Callable[[], List[Any]]) -> Any:
     if isinstance(codec, CharCodec):
         return codec.codec
     if isinstance(codec, BitCodec):
+        return codec.codec
+    if isinstance(codec, GraphCodec):
         return codec.codec
 
     else:
@@ -437,67 +439,3 @@ def get_selector(selector: SelectorBase | None) -> PySelector:
     if isinstance(selector, SelectorBase):
         return selector.selector
     raise TypeError("Selector must be an instance of SelectorBase.")
-
-    # def __get_params(
-    #     self,
-    #     value: SelectorBase | DiversityBase | AlterBase | List[AlterBase],
-    #     allow_none: bool = False,
-    # ) -> List[Any] | None:
-    #     """Get the parameters from the value."""
-    #     if isinstance(value, SelectorBase):
-    #         return value.selector
-    #     if isinstance(value, AlterBase):
-    #         return [value.alterer]
-    #     if isinstance(value, DiversityBase):
-    #         return value.diversity
-    #     if isinstance(value, list):
-    #         if all(isinstance(alter, AlterBase) for alter in value):
-    #             return [alter.alterer for alter in value]
-
-    #     if allow_none and value is None:
-    #         return None
-    #     else:
-    #         raise TypeError(f"Param type {type(value)} is not supported.")
-
-    # def __get_codec(self, codec: CodecBase | Callable[[], List[Any]]) -> Any:
-    #     """Get the codec."""
-    #     from .codec import FloatCodec, IntCodec, CharCodec, BitCodec
-
-    #     if isinstance(codec, FloatCodec):
-    #         return codec.codec
-    #     if isinstance(codec, IntCodec):
-    #         return codec.codec
-    #     if isinstance(codec, CharCodec):
-    #         return codec.codec
-    #     if isinstance(codec, BitCodec):
-    #         return codec.codec
-
-    #     else:
-    #         raise TypeError(
-    #             f"Codec type {type(codec)} is not supported. "
-    #             "Use FloatCodec, IntCodec, CharCodec, or BitCodec."
-    #         )
-
-    # def __get_event_handler(
-    #     self,
-    #     handler: List[Callable[[Any], None]]
-    #     | Callable[[Any], None]
-    #     | List[EventHandler]
-    #     | EventHandler,
-    # ) -> List[PySubscriber]:
-    #     """Get the event handler."""
-    #     if isinstance(handler, EventHandler):
-    #         return [handler.subscriber]
-    #     if isinstance(handler, list):
-    #         if all(isinstance(h, EventHandler) for h in handler):
-    #             return [h.subscriber for h in handler if isinstance(h, EventHandler)]
-    #     if callable(handler):
-    #         return [PySubscriber(handler)]
-    #     if isinstance(handler, list):
-    #         if all(callable(h) for h in handler):
-    #             return [PySubscriber(h) for h in handler]
-    #         else:
-    #             raise TypeError(
-    #                 "Event handler must be a callable or a list of callables."
-    #             )
-    #     return None

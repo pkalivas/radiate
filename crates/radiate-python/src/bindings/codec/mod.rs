@@ -10,13 +10,13 @@ use crate::{ObjectValue, PyChromosomeType, PyGeneType, conversion::Wrap};
 pub use bit::PyBitCodec;
 pub use char::PyCharCodec;
 pub use float::PyFloatCodec;
-pub use graph::PyGraphCodec;
+pub use graph::{PyGraph, PyGraphCodec};
 pub use int::PyIntCodec;
 
 use pyo3::{Bound, FromPyObject, PyAny, PyResult, Python, pyclass, types::PyAnyMethods};
 use radiate::{
-    BitChromosome, CharChromosome, Chromosome, Codec, FloatChromosome, Genotype, GraphChromosome,
-    IntChromosome, Op,
+    BitChromosome, CharChromosome, Chromosome, Codec, FloatChromosome, Genotype, Graph,
+    GraphChromosome, IntChromosome, Op,
 };
 
 #[pyclass(unsendable)]
@@ -30,12 +30,12 @@ pub struct PyCodecInner {
 }
 
 #[derive(Clone)]
-pub struct PyCodec<C: Chromosome> {
+pub struct PyCodec<C: Chromosome, T> {
     encoder: Option<Arc<dyn Fn() -> Genotype<C>>>,
-    decoder: Option<Arc<dyn Fn(Python<'_>, &Genotype<C>) -> ObjectValue>>,
+    decoder: Option<Arc<dyn Fn(Python<'_>, &Genotype<C>) -> T>>,
 }
 
-impl<C: Chromosome> PyCodec<C> {
+impl<C: Chromosome, T> PyCodec<C, T> {
     pub fn new() -> Self {
         PyCodec {
             encoder: None,
@@ -43,7 +43,7 @@ impl<C: Chromosome> PyCodec<C> {
         }
     }
 
-    pub fn decode_with_py(&self, py: Python<'_>, genotype: &Genotype<C>) -> ObjectValue {
+    pub fn decode_with_py(&self, py: Python<'_>, genotype: &Genotype<C>) -> T {
         match &self.decoder {
             Some(decoder) => decoder(py, genotype),
             None => panic!("Decoder function is not set"),
@@ -60,14 +60,14 @@ impl<C: Chromosome> PyCodec<C> {
 
     pub fn with_decoder<F>(mut self, decoder: F) -> Self
     where
-        F: Fn(Python<'_>, &Genotype<C>) -> ObjectValue + 'static,
+        F: Fn(Python<'_>, &Genotype<C>) -> T + 'static,
     {
         self.decoder = Some(Arc::new(decoder));
         self
     }
 }
 
-impl<C: Chromosome> Codec<C, ObjectValue> for PyCodec<C> {
+impl<C: Chromosome, T> Codec<C, T> for PyCodec<C, T> {
     fn encode(&self) -> Genotype<C> {
         match &self.encoder {
             Some(encoder) => encoder(),
@@ -75,7 +75,7 @@ impl<C: Chromosome> Codec<C, ObjectValue> for PyCodec<C> {
         }
     }
 
-    fn decode(&self, genotype: &Genotype<C>) -> ObjectValue {
+    fn decode(&self, genotype: &Genotype<C>) -> T {
         Python::with_gil(|py| match &self.decoder {
             Some(decoder) => decoder(py, genotype),
             None => panic!("Decoder function is not set"),
@@ -83,10 +83,10 @@ impl<C: Chromosome> Codec<C, ObjectValue> for PyCodec<C> {
     }
 }
 
-unsafe impl<C: Chromosome> Send for PyCodec<C> {}
-unsafe impl<C: Chromosome> Sync for PyCodec<C> {}
+unsafe impl<C: Chromosome, T> Send for PyCodec<C, T> {}
+unsafe impl<C: Chromosome, T> Sync for PyCodec<C, T> {}
 
-impl<'py> FromPyObject<'py> for Wrap<PyCodec<FloatChromosome>> {
+impl<'py> FromPyObject<'py> for Wrap<PyCodec<FloatChromosome, ObjectValue>> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let codec_attr = ob.getattr("codec")?;
 
@@ -101,7 +101,7 @@ impl<'py> FromPyObject<'py> for Wrap<PyCodec<FloatChromosome>> {
     }
 }
 
-impl<'py> FromPyObject<'py> for Wrap<PyCodec<CharChromosome>> {
+impl<'py> FromPyObject<'py> for Wrap<PyCodec<CharChromosome, ObjectValue>> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let codec_attr = ob.getattr("codec")?;
 
@@ -116,7 +116,7 @@ impl<'py> FromPyObject<'py> for Wrap<PyCodec<CharChromosome>> {
     }
 }
 
-impl<'py> FromPyObject<'py> for Wrap<PyCodec<IntChromosome<i32>>> {
+impl<'py> FromPyObject<'py> for Wrap<PyCodec<IntChromosome<i32>, ObjectValue>> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let codec_attr = ob.getattr("codec")?;
 
@@ -131,7 +131,7 @@ impl<'py> FromPyObject<'py> for Wrap<PyCodec<IntChromosome<i32>>> {
     }
 }
 
-impl<'py> FromPyObject<'py> for Wrap<PyCodec<BitChromosome>> {
+impl<'py> FromPyObject<'py> for Wrap<PyCodec<BitChromosome, ObjectValue>> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let codec_attr = ob.getattr("codec")?;
 
@@ -146,7 +146,7 @@ impl<'py> FromPyObject<'py> for Wrap<PyCodec<BitChromosome>> {
     }
 }
 
-impl<'py> FromPyObject<'py> for Wrap<PyCodec<GraphChromosome<Op<f32>>>> {
+impl<'py> FromPyObject<'py> for Wrap<PyCodec<GraphChromosome<Op<f32>>, Graph<Op<f32>>>> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let codec_attr = ob.getattr("codec")?;
 

@@ -1,6 +1,7 @@
 use super::PyGenotype;
 use super::PyPopulation;
 use crate::ObjectValue;
+use crate::bindings::codec::PyGraph;
 use crate::conversion::Wrap;
 use pyo3::IntoPyObject;
 use pyo3::types::PyAnyMethods;
@@ -83,6 +84,34 @@ where
                 .into_py_any(py)
                 .unwrap(),
             value: self.value().clone().inner,
+            metrics: Wrap(self.metrics())
+                .into_pyobject(py)
+                .unwrap()
+                .into_py_any(py)
+                .unwrap(),
+            population: PyPopulation::from(self.ecosystem().population().clone()),
+        })
+    }
+}
+
+impl<C> Into<PyGeneration> for Generation<C, Graph<Op<f32>>>
+where
+    C: Chromosome + Clone,
+    PyPopulation: From<Population<C>>,
+{
+    fn into(self) -> PyGeneration {
+        Python::with_gil(|py| PyGeneration {
+            generation_type: SINGLE_OBJECTIVE_GENERATION.to_string(),
+            index: self.index(),
+            score: PyList::new(py, (*self.score().values).to_vec())
+                .unwrap()
+                .into_py_any(py)
+                .unwrap(),
+            value: PyGraph {
+                inner: self.value().clone(),
+            }
+            .into_py_any(py)
+            .unwrap(),
             metrics: Wrap(self.metrics())
                 .into_pyobject(py)
                 .unwrap()

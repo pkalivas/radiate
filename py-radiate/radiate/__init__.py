@@ -41,10 +41,16 @@ from .alterer import (
     GaussianMutator,
     ScrambleMutator,
     SwapMutator,
+    GraphMutator,
+    OperationMutator,
+    GraphCrossover
 )
 
 __all__ = [
     "Op",
+    GraphMutator,
+    "OperationMutator",
+    "GraphCrossover",
     "GraphCodec",
     "ProblemBase",
     "Regression",

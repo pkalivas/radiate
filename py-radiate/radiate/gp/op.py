@@ -46,3 +46,69 @@ class Op:
     @staticmethod
     def weight() -> "Op":
         return Op("weight")
+    
+    @staticmethod
+    def relu() -> "Op":
+        return Op("relu")
+    
+    @staticmethod
+    def tanh() -> "Op":
+        return Op("tanh")
+    
+    @staticmethod
+    def linear() -> "Op":
+        return Op("linear")
+    
+    @staticmethod
+    def sum() -> "Op":
+        return Op("sum")
+    
+    @staticmethod
+    def prod() -> "Op":
+        return Op("prod")
+    
+    @staticmethod
+    def diff() -> "Op":
+        return Op("diff")
+    
+    @staticmethod
+    def pow() -> "Op":
+        return Op("pow")
+    
+    @staticmethod
+    def log() -> "Op":
+        return Op("log")
+    
+    @staticmethod
+    def sin() -> "Op":
+        return Op("sin")
+    
+    @staticmethod
+    def cos() -> "Op":
+        return Op("cos")
+    
+    @staticmethod
+    def identity() -> "Op":
+        return Op("identity")
+    
+    @staticmethod
+    def all_ops() -> list["Op"]:
+        return [
+            Op.add(),
+            Op.sub(),
+            Op.mul(),
+            Op.div(),
+            Op.linear(),
+            Op.relu(),
+            Op.tanh(),
+            Op.sigmoid(),
+            Op.sum(),
+            Op.prod(),
+            Op.diff(),
+            Op.pow(),
+            Op.log(),
+            Op.sin(),
+            Op.cos(),
+            Op.identity(),
+            Op.weight(),
+        ]

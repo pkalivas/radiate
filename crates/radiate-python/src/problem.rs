@@ -4,11 +4,11 @@ use radiate::{Chromosome, Codec, Genotype, Problem, Score};
 
 pub struct PyProblem<C: Chromosome> {
     fitness_func: PyObject,
-    codec: PyCodec<C>,
+    codec: PyCodec<C, ObjectValue>,
 }
 
 impl<C: Chromosome> PyProblem<C> {
-    pub fn new(fitness_func: PyObject, codec: PyCodec<C>) -> Self {
+    pub fn new(fitness_func: PyObject, codec: PyCodec<C, ObjectValue>) -> Self {
         PyProblem {
             fitness_func,
             codec,

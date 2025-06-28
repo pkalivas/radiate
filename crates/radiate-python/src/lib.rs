@@ -14,6 +14,8 @@ pub use random::PyRandomProvider;
 use std::cell::UnsafeCell;
 
 pub use pyo3::prelude::*;
+pub use pyo3::types::PyAny;
+pub use pyo3::{Bound, PyErr, PyResult, Python};
 
 // Adapted from PYO3 with the only change that
 // we allow mutable access with when the GIL is held

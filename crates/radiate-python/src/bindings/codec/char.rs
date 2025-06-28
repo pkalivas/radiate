@@ -9,7 +9,7 @@ use radiate::{CharChromosome, Chromosome, Codec, Gene, Genotype};
 #[pyclass]
 #[derive(Clone)]
 pub struct PyCharCodec {
-    pub codec: PyCodec<CharChromosome>,
+    pub codec: PyCodec<CharChromosome, ObjectValue>,
 }
 
 #[pymethods]

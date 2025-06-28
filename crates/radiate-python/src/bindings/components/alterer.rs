@@ -7,9 +7,10 @@ use pyo3::{
 };
 use radiate::{
     Alter, ArithmeticMutator, BitChromosome, BlendCrossover, CharChromosome, Chromosome, Crossover,
-    FloatChromosome, GaussianMutator, IntChromosome, IntermediateCrossover, MeanCrossover,
-    MultiPointCrossover, Mutate, Population, ScrambleMutator, ShuffleCrossover,
-    SimulatedBinaryCrossover, SwapMutator, UniformCrossover, UniformMutator, alters,
+    FloatChromosome, GaussianMutator, GraphChromosome, GraphMutator, IntChromosome,
+    IntermediateCrossover, MeanCrossover, MultiPointCrossover, Mutate, Op, Population,
+    ScrambleMutator, ShuffleCrossover, SimulatedBinaryCrossover, SwapMutator, UniformCrossover,
+    UniformMutator, alters,
 };
 use std::{hash::Hash, vec};
 
@@ -361,6 +362,77 @@ impl PyAlterer {
             ],
         })
     }
+
+    #[staticmethod]
+    #[pyo3(signature = (vertex_rate=None, edge_rate=None, allow_recurrent=None))]
+    pub fn graph_mutator<'py>(
+        py: Python<'py>,
+        vertex_rate: Option<f32>,
+        edge_rate: Option<f32>,
+        allow_recurrent: Option<bool>,
+    ) -> PyResult<PyAlterer> {
+        let args = PyDict::new(py);
+        if let Some(r) = vertex_rate {
+            args.set_item("vertex_rate", r)?;
+        }
+        if let Some(r) = edge_rate {
+            args.set_item("edge_rate", r)?;
+        }
+        if let Some(ar) = allow_recurrent {
+            args.set_item("allow_recurrent", ar)?;
+        }
+
+        Ok(PyAlterer {
+            name: "graph_mutator".into(),
+            args: ObjectValue { inner: args.into() },
+            allowed_genes: vec![PyGeneType::Graph],
+            chromosomes: vec![PyChromosomeType::Graph],
+        })
+    }
+
+    #[staticmethod]
+    pub fn graph_crossover<'py>(
+        py: Python<'py>,
+        rate: Option<f32>,
+        parent_node_rate: Option<f32>,
+    ) -> PyResult<PyAlterer> {
+        let args = PyDict::new(py);
+        if let Some(r) = rate {
+            args.set_item("rate", r)?;
+        }
+        if let Some(r) = parent_node_rate {
+            args.set_item("parent_node_rate", r)?;
+        }
+
+        Ok(PyAlterer {
+            name: "graph_crossover".into(),
+            args: ObjectValue { inner: args.into() },
+            allowed_genes: vec![PyGeneType::Graph],
+            chromosomes: vec![PyChromosomeType::Graph],
+        })
+    }
+
+    #[staticmethod]
+    pub fn op_mutator<'py>(
+        py: Python<'py>,
+        rate: Option<f32>,
+        replace_rate: Option<f32>,
+    ) -> PyResult<PyAlterer> {
+        let args = PyDict::new(py);
+        if let Some(r) = rate {
+            args.set_item("rate", r)?;
+        }
+        if let Some(r) = replace_rate {
+            args.set_item("replace_rate", r)?;
+        }
+
+        Ok(PyAlterer {
+            name: "operation_mutator".into(),
+            args: ObjectValue { inner: args.into() },
+            allowed_genes: vec![PyGeneType::Graph],
+            chromosomes: vec![PyChromosomeType::Graph],
+        })
+    }
 }
 
 fn alter_population<C>(
@@ -661,6 +733,86 @@ impl<'py> FromPyObject<'py> for Wrap<UniformMutator> {
     }
 }
 
+impl<'py> FromPyObject<'py> for Wrap<GraphMutator> {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let alter = ob.extract::<PyAlterer>()?;
+        if alter.name() != "graph_mutator" {
+            return Err(PyValueError::new_err(
+                "GraphMutator must be created using the static method",
+            ));
+        }
+        let rate = alter
+            .args(ob.py())?
+            .get_item("vertex_rate")?
+            .extract::<f32>()?;
+
+        let parent_node_rate = alter
+            .args(ob.py())?
+            .get_item("edge_rate")?
+            .extract::<f32>()?;
+
+        let allow_recurrent = alter
+            .args(ob.py())?
+            .get_item("allow_recurrent")?
+            .extract::<bool>()
+            .unwrap_or(false);
+
+        if !(0.0..=1.0).contains(&rate) {
+            return Err(PyValueError::new_err("Rate must be between 0 and 1"));
+        }
+
+        Ok(Wrap(
+            GraphMutator::new(rate, parent_node_rate).allow_recurrent(allow_recurrent),
+        ))
+    }
+}
+
+impl<'py> FromPyObject<'py> for Wrap<radiate::GraphCrossover> {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let alter = ob.extract::<PyAlterer>()?;
+        if alter.name() != "graph_crossover" {
+            return Err(PyValueError::new_err(
+                "GraphCrossover must be created using the static method",
+            ));
+        }
+        let rate = alter.args(ob.py())?.get_item("rate")?.extract::<f32>()?;
+
+        let parent_node_rate = alter
+            .args(ob.py())?
+            .get_item("parent_node_rate")?
+            .extract::<f32>()?;
+
+        if !(0.0..=1.0).contains(&rate) {
+            return Err(PyValueError::new_err("Rate must be between 0 and 1"));
+        }
+
+        Ok(Wrap(radiate::GraphCrossover::new(rate, parent_node_rate)))
+    }
+}
+
+impl<'py> FromPyObject<'py> for Wrap<radiate::OperationMutator> {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let alter = ob.extract::<PyAlterer>()?;
+        if alter.name() != "operation_mutator" {
+            return Err(PyValueError::new_err(
+                "OperationMutator must be created using the static method",
+            ));
+        }
+        let rate = alter.args(ob.py())?.get_item("rate")?.extract::<f32>()?;
+
+        let parent_node_rate = alter
+            .args(ob.py())?
+            .get_item("replace_rate")?
+            .extract::<f32>()?;
+
+        if !(0.0..=1.0).contains(&rate) {
+            return Err(PyValueError::new_err("Rate must be between 0 and 1"));
+        }
+
+        Ok(Wrap(radiate::OperationMutator::new(rate, parent_node_rate)))
+    }
+}
+
 impl<'py, C> FromPyObject<'py> for Wrap<Vec<Box<dyn Alter<C>>>>
 where
     C: Chromosome + 'static,
@@ -673,12 +825,23 @@ where
             ));
         }
 
+        // let chromosome_name = std::any::type_name::<C>()
+        //     .split("::")
+        //     .last()
+        //     .map(|s| s.split('<').next())
+        //     .flatten()
+        //     .unwrap_or_default();
+
         let chromosome_name = std::any::type_name::<C>()
             .split("::")
-            .last()
-            .map(|s| s.split('<').next())
-            .flatten()
+            .filter(|s| s.contains("Chromosome"))
+            .map(|s| s.split('<').next().unwrap_or_default())
+            .next()
             .unwrap_or_default();
+
+        // for name in t.iter() {
+        //     println!("Type part: {}", name);
+        // }
 
         let typed_params = alters
             .into_iter()
@@ -836,6 +999,36 @@ where
                     std::mem::transmute::<Vec<Box<dyn Alter<BitChromosome>>>, Vec<Box<dyn Alter<C>>>>(
                         alters,
                     )
+                }));
+            }
+            "GraphChromosome" => {
+                let alters = typed_params
+                    .into_iter()
+                    .map(|alter| alter.into_bound_py_any(ob.py()))
+                    .filter_map(|alter| alter.ok())
+                    .map(|alter| {
+                        if let Ok(graph_mutator) = alter.extract::<Wrap<GraphMutator>>() {
+                            return alters!(graph_mutator.0);
+                        } else if let Ok(graph_crossover) =
+                            alter.extract::<Wrap<radiate::GraphCrossover>>()
+                        {
+                            return alters!(graph_crossover.0);
+                        } else if let Ok(op_mutator) =
+                            alter.extract::<Wrap<radiate::OperationMutator>>()
+                        {
+                            return alters!(op_mutator.0);
+                        } else {
+                            return Vec::<Box<dyn Alter<GraphChromosome<Op<f32>>>>>::new();
+                        }
+                    })
+                    .flat_map(|alters| alters.into_iter())
+                    .collect::<Vec<_>>();
+
+                return Ok(Wrap(unsafe {
+                    std::mem::transmute::<
+                        Vec<Box<dyn Alter<GraphChromosome<Op<f32>>>>>,
+                        Vec<Box<dyn Alter<C>>>,
+                    >(alters)
                 }));
             }
             _ => {

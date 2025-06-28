@@ -1,7 +1,7 @@
 use super::{PyAlterer, PyDiversity, PyEngine, PyObjective, PySelector, subscriber::PySubscriber};
 use crate::{
-    PyBitCodec, PyCharCodec, PyExecutor, PyFloatCodec, PyGeneType, PyIntCodec, PyLimit,
-    PyTestProblem, conversion::Wrap,
+    PyBitCodec, PyCharCodec, PyExecutor, PyFloatCodec, PyGeneType, PyGraphCodec, PyIntCodec,
+    PyLimit, PyTestProblem, conversion::Wrap,
 };
 use pyo3::{
     Bound, IntoPyObjectExt, Py, PyAny, PyErr, PyResult, Python, pyclass, pymethods,
@@ -434,6 +434,8 @@ impl PyEngineBuilder {
             Ok(PyGeneType::Bit)
         } else if let Ok(_) = codec_obj.extract::<PyCharCodec>() {
             Ok(PyGeneType::Char)
+        } else if let Ok(_) = codec_obj.extract::<PyGraphCodec>() {
+            Ok(PyGeneType::Graph)
         } else {
             Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                 "Unsupported gene type",

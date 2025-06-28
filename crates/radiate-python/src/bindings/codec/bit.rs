@@ -9,7 +9,7 @@ use radiate::{BitChromosome, Chromosome, Codec, Gene, Genotype};
 #[pyclass]
 #[derive(Clone)]
 pub struct PyBitCodec {
-    pub codec: PyCodec<BitChromosome>,
+    pub codec: PyCodec<BitChromosome, ObjectValue>,
 }
 
 #[pymethods]

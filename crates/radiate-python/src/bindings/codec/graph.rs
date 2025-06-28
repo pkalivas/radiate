@@ -1,7 +1,6 @@
-use crate::{ObjectValue, PyCodec, PyGenotype, conversion::Wrap};
+use crate::{PyCodec, PyGenotype, conversion::Wrap};
 use pyo3::{
-    Bound, FromPyObject, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods,
-    types::PyAnyMethods,
+    Bound, FromPyObject, Py, PyAny, PyResult, Python, pyclass, pymethods, types::PyAnyMethods,
 };
 use radiate::{
     Chromosome, Codec, Graph, GraphChromosome, GraphCodec, GraphNode, NodeStore, NodeType, Op,
@@ -16,7 +15,7 @@ const EDGE_NODE_TYPE: &str = "edge";
 #[pyclass]
 #[derive(Clone)]
 pub struct PyGraphCodec {
-    pub codec: PyCodec<GraphChromosome<Op<f32>>>,
+    pub codec: PyCodec<GraphChromosome<Op<f32>>, Graph<Op<f32>>>,
 }
 
 #[pymethods]
@@ -62,7 +61,7 @@ impl PyGraphCodec {
         PyGraphCodec {
             codec: PyCodec::new()
                 .with_encoder(move || codec.encode())
-                .with_decoder(|py, genotype| {
+                .with_decoder(|_, genotype| {
                     let graph = Graph::new(
                         genotype
                             .iter()
@@ -70,9 +69,7 @@ impl PyGraphCodec {
                             .cloned()
                             .collect::<Vec<GraphNode<Op<f32>>>>(),
                     );
-                    ObjectValue {
-                        inner: PyGraph { inner: graph }.into_py_any(py).unwrap(),
-                    }
+                    graph
                 }),
         }
     }
@@ -81,7 +78,7 @@ impl PyGraphCodec {
 #[pyclass]
 #[derive(Clone)]
 pub struct PyGraph {
-    inner: Graph<Op<f32>>,
+    pub inner: Graph<Op<f32>>,
 }
 
 #[pymethods]
@@ -122,6 +119,10 @@ impl<'py> FromPyObject<'py> for Wrap<Op<f32>> {
         } else if name == "var" {
             let index: usize = ob.get_item("index")?.extract()?;
             return Ok(Wrap(Op::var(index)));
+        } else if name == "identity" {
+            return Ok(Wrap(Op::identity()));
+        } else if name == "weight" {
+            return Ok(Wrap(Op::weight()));
         } else if name == "add" {
             return Ok(Wrap(Op::add()));
         } else if name == "sub" {
@@ -130,16 +131,36 @@ impl<'py> FromPyObject<'py> for Wrap<Op<f32>> {
             return Ok(Wrap(Op::mul()));
         } else if name == "div" {
             return Ok(Wrap(Op::div()));
-        } else if name == "sin" {
-            return Ok(Wrap(Op::sin()));
-        } else if name == "cos" {
-            return Ok(Wrap(Op::cos()));
-        } else if name == "exp" {
-            return Ok(Wrap(Op::exp()));
+        } else if name == "sum" {
+            return Ok(Wrap(Op::sum()));
+        } else if name == "prod" {
+            return Ok(Wrap(Op::prod()));
+        } else if name == "diff" {
+            return Ok(Wrap(Op::diff()));
+        } else if name == "pow" {
+            return Ok(Wrap(Op::pow()));
         } else if name == "sqrt" {
             return Ok(Wrap(Op::sqrt()));
         } else if name == "neg" {
             return Ok(Wrap(Op::neg()));
+        } else if name == "exp" {
+            return Ok(Wrap(Op::exp()));
+        } else if name == "log" {
+            return Ok(Wrap(Op::log()));
+        } else if name == "sin" {
+            return Ok(Wrap(Op::sin()));
+        } else if name == "cos" {
+            return Ok(Wrap(Op::cos()));
+        } else if name == "tan" {
+            return Ok(Wrap(Op::tan()));
+        } else if name == "ceil" {
+            return Ok(Wrap(Op::ceil()));
+        } else if name == "floor" {
+            return Ok(Wrap(Op::floor()));
+        } else if name == "max" {
+            return Ok(Wrap(Op::max()));
+        } else if name == "min" {
+            return Ok(Wrap(Op::min()));
         } else if name == "abs" {
             return Ok(Wrap(Op::abs()));
         } else if name == "sigmoid" {
@@ -150,8 +171,18 @@ impl<'py> FromPyObject<'py> for Wrap<Op<f32>> {
             return Ok(Wrap(Op::relu()));
         } else if name == "leaky_relu" {
             return Ok(Wrap(Op::leaky_relu()));
-        } else if name == "weight" {
-            return Ok(Wrap(Op::weight()));
+        } else if name == "elu" {
+            return Ok(Wrap(Op::elu()));
+        } else if name == "linear" {
+            return Ok(Wrap(Op::linear()));
+        } else if name == "mish" {
+            return Ok(Wrap(Op::mish()));
+        } else if name == "swish" {
+            return Ok(Wrap(Op::swish()));
+        } else if name == "softplus" {
+            return Ok(Wrap(Op::softplus()));
+        } else if name == "softmax" {
+            return Ok(Wrap(Op::softmax()));
         }
 
         Ok(Wrap(Op::abs()))

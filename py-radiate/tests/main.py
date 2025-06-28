@@ -18,43 +18,59 @@ rd.random.set_seed(500)
 # print(codec.decode(codec.encode()))
 
 
-class TestHandler(rd.EventHandler):
-    def __init__(self):
-        super().__init__(rd.EventType.EPOCH_COMPLETE)
+# class TestHandler(rd.EventHandler):
+#     def __init__(self):
+#         super().__init__(rd.EventType.EPOCH_COMPLETE)
 
-    def on_event(self, event):
-        print(event['score'])
-        # print(event['metrics']['Fitness']['value_min'])
+#     def on_event(self, event):
+#         print(event['score'])
+#         # print(event['metrics']['Fitness']['value_min'])
 
 
+# engine = rd.GeneticEngine(
+#     codec=rd.IntCodec.vector(10, (0, 10)),
+#     fitness_func=lambda x: sum(x),
+#     offspring_selector=rd.BoltzmannSelector(4),
+#     objectives="min",
+#     # subscribe=TestHandler(),
+#     # executor=rd.Executor.WorkerPool(),
+#     alters=[
+#         rd.MultiPointCrossover(0.75, 2),
+#         rd.UniformMutator(0.01)
+#     ],
+# )
+
+# result = engine.run(rd.ScoreLimit(0))
+
+# print(result)
+
+codec = rd.GraphCodec.directed(
+    input_size=2,
+    output_size=1,
+    vertex=rd.Op.all_ops(),
+    edge=[rd.Op.weight()],
+    output=[rd.Op.sigmoid()],
+)
+
+
+inputs = [[1.0, 1.0], [1.0, 0.0], [0.0, 1.0], [0.0, 0.0]]
+answers = [[0.0], [1.0], [1.0], [0.0]]
 
 engine = rd.GeneticEngine(
-    codec=rd.IntCodec.vector(10, (0, 10)),
-    fitness_func=lambda x: sum(x),
-    offspring_selector=rd.BoltzmannSelector(4),
+    problem=rd.Regression(
+        fetures=inputs,
+        targets=answers,
+    ),
     objectives="min",
-    # subscribe=TestHandler(),
-    # executor=rd.Executor.WorkerPool(),
+    codec=codec,
     alters=[
-        rd.MultiPointCrossover(0.75, 2), 
-        rd.UniformMutator(0.01)
+        rd.GraphCrossover(0.5, 0.5),
+        rd.OperationMutator(0.05, 0.05),
+        rd.GraphMutator(0.06, 0.01),
     ],
 )
 
-result = engine.run(rd.ScoreLimit(0))
-
-print(result)
-
-cod = rd.GraphCodec.directed(
-    input_size=5,
-    output_size=5,
-    vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul(), rd.Op.div()],
-    edge=[rd.Op.weight()],
-    output=[rd.Op.sigmoid()]
-)
-
-print(cod.encode())
-
+result = engine.run([rd.ScoreLimit(0.01), rd.SecondsLimit(10)], log=True)
 
 # N_QUEENS = 32
 
