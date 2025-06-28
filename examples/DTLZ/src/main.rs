@@ -1,5 +1,5 @@
 use plotly::{Plot, Scatter3D};
-use radiate::{prelude::*, thread_pool::ThreadPool};
+use radiate::prelude::*;
 
 const VARIABLES: usize = 4;
 const OBJECTIVES: usize = 3;

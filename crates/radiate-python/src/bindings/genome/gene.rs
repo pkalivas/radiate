@@ -1,8 +1,13 @@
-use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods, types::PyString};
+use pyo3::{
+    Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyErr, PyResult, Python, pyclass, pymethods,
+    types::PyString,
+};
 use radiate::{
     BitChromosome, BitGene, CharChromosome, CharGene, Chromosome, FloatChromosome, FloatGene, Gene,
     Genotype, IntChromosome, IntGene, Phenotype, Population, random_provider,
 };
+
+use crate::conversion::Wrap;
 
 #[pyclass]
 #[derive(Clone, Debug)]
