@@ -1,4 +1,4 @@
-use crate::{ObjectValue, PyChromosomeType, PyGeneType, conversion::Wrap};
+use crate::{ObjectValue, PyChromosomeType, PyEngineInput, PyGeneType, conversion::Wrap};
 use pyo3::{
     Bound, FromPyObject, IntoPyObjectExt, PyAny, PyErr, PyResult, Python, pyclass, pymethods,
     types::{PyAnyMethods, PyDict, PyDictMethods, PyString},
@@ -9,6 +9,17 @@ use radiate::{
     TournamentNSGA2Selector, TournamentSelector,
 };
 use std::{hash::Hash, vec};
+
+const TOURNAMENT_SELECTOR: &str = "TournamentSelector";
+const ROULETTE_WHEEL_SELECTOR: &str = "RouletteWheelSelector";
+const RANK_SELECTOR: &str = "RankSelector";
+const STEADY_STATE_SELECTOR: &str = "SteadyStateSelector";
+const STOCHASTIC_UNIVERSAL_SELECTOR: &str = "StochasticUniversalSamplingSelector";
+const BOLTZMANN_SELECTOR: &str = "BoltzmannSelector";
+const ELITE_SELECTOR: &str = "EliteSelector";
+const RANDOM_SELECTOR: &str = "RandomSelector";
+const NSGA2_SELECTOR: &str = "NSGA2Selector";
+const TOURNAMENT_NSGA2_SELECTOR: &str = "TournamentNSGA2Selector";
 
 #[pyclass(unsendable)]
 #[derive(Clone, Debug)]
@@ -298,17 +309,17 @@ impl PySelector {
 
 impl<'py> FromPyObject<'py> for Wrap<SteadyStateSelector> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let selector: PySelector = ob.extract()?;
-        if selector.name != "steady_state_selector" {
+        let selector: PyEngineInput = ob.extract()?;
+        if selector.component != STEADY_STATE_SELECTOR {
             return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                 "Expected a steady_state_selector",
             ));
         }
 
-        let args = selector.args.inner.bind(ob.py());
-        let replacement_count = args
-            .get_item("replacement_count")
-            .and_then(|v| v.extract())
+        let replacement_count = selector
+            .args
+            .get("replacement_count")
+            .and_then(|val| val.parse::<usize>().ok())
             .unwrap_or(10);
 
         Ok(Wrap(SteadyStateSelector::new(replacement_count)))
@@ -317,15 +328,18 @@ impl<'py> FromPyObject<'py> for Wrap<SteadyStateSelector> {
 
 impl<'py> FromPyObject<'py> for Wrap<TournamentSelector> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let selector: PySelector = ob.extract()?;
-        if selector.name != "tournament_selector" {
+        let selector: PyEngineInput = ob.extract()?;
+        if selector.component != TOURNAMENT_SELECTOR {
             return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                 "Expected a tournament_selector",
             ));
         }
 
-        let args = selector.args.inner.bind(ob.py());
-        let tournament_size = args.get_item("tournament_size").and_then(|v| v.extract())?;
+        let tournament_size = selector
+            .args
+            .get("tournament_size")
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(3);
 
         Ok(Wrap(TournamentSelector::new(tournament_size)))
     }
@@ -334,7 +348,7 @@ impl<'py> FromPyObject<'py> for Wrap<TournamentSelector> {
 impl<'py> FromPyObject<'py> for Wrap<RouletteSelector> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let selector: PySelector = ob.extract()?;
-        if selector.name != "roulette_wheel_selector" {
+        if selector.name != ROULETTE_WHEEL_SELECTOR {
             return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                 "Expected a roulette_wheel_selector",
             ));
@@ -347,8 +361,8 @@ impl<'py> FromPyObject<'py> for Wrap<RouletteSelector> {
 // Rank selector
 impl<'py> FromPyObject<'py> for Wrap<RankSelector> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let selector: PySelector = ob.extract()?;
-        if selector.name != "rank_selector" {
+        let selector: PyEngineInput = ob.extract()?;
+        if selector.component != RANK_SELECTOR {
             return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                 "Expected a rank_selector",
             ));
@@ -360,8 +374,8 @@ impl<'py> FromPyObject<'py> for Wrap<RankSelector> {
 
 impl<'py> FromPyObject<'py> for Wrap<StochasticUniversalSamplingSelector> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let selector: PySelector = ob.extract()?;
-        if selector.name != "stochastic_universal_sampling_selector" {
+        let selector: PyEngineInput = ob.extract()?;
+        if selector.component != STOCHASTIC_UNIVERSAL_SELECTOR {
             return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                 "Expected a stochastic_universal_sampling_selector",
             ));
@@ -373,15 +387,18 @@ impl<'py> FromPyObject<'py> for Wrap<StochasticUniversalSamplingSelector> {
 
 impl<'py> FromPyObject<'py> for Wrap<BoltzmannSelector> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let selector: PySelector = ob.extract()?;
-        if selector.name != "boltzmann_selector" {
+        let selector: PyEngineInput = ob.extract()?;
+        if selector.component != BOLTZMANN_SELECTOR {
             return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                 "Expected a boltzmann_selector",
             ));
         }
 
-        let args = selector.args.inner.bind(ob.py());
-        let temp = args.get_item("temp").and_then(|v| v.extract())?;
+        let temp = selector
+            .args
+            .get("temp")
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(1.0);
 
         Ok(Wrap(BoltzmannSelector::new(temp)))
     }
@@ -389,8 +406,8 @@ impl<'py> FromPyObject<'py> for Wrap<BoltzmannSelector> {
 
 impl<'py> FromPyObject<'py> for Wrap<EliteSelector> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let selector: PySelector = ob.extract()?;
-        if selector.name != "elite_selector" {
+        let selector: PyEngineInput = ob.extract()?;
+        if selector.component != ELITE_SELECTOR {
             return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                 "Expected a elite_selector",
             ));
@@ -402,8 +419,8 @@ impl<'py> FromPyObject<'py> for Wrap<EliteSelector> {
 
 impl<'py> FromPyObject<'py> for Wrap<RandomSelector> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let selector: PySelector = ob.extract()?;
-        if selector.name != "random_selector" {
+        let selector: PyEngineInput = ob.extract()?;
+        if selector.component != RANDOM_SELECTOR {
             return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                 "Expected a random_selector",
             ));
@@ -415,8 +432,8 @@ impl<'py> FromPyObject<'py> for Wrap<RandomSelector> {
 
 impl<'py> FromPyObject<'py> for Wrap<NSGA2Selector> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let selector: PySelector = ob.extract()?;
-        if selector.name != "nsga2_selector" {
+        let selector: PyEngineInput = ob.extract()?;
+        if selector.component != NSGA2_SELECTOR {
             return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                 "Expected a nsga2_selector",
             ));
@@ -428,8 +445,8 @@ impl<'py> FromPyObject<'py> for Wrap<NSGA2Selector> {
 
 impl<'py> FromPyObject<'py> for Wrap<TournamentNSGA2Selector> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let selector: PySelector = ob.extract()?;
-        if selector.name != "tournament_nsga2_selector" {
+        let selector: PyEngineInput = ob.extract()?;
+        if selector.component != TOURNAMENT_NSGA2_SELECTOR {
             return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                 "Expected a tournament_nsga2_selector",
             ));
@@ -444,22 +461,20 @@ where
     C: Chromosome + Clone + 'static,
 {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let selector: PySelector = ob.extract()?;
-        let py_selector: Box<dyn Select<C>> = match selector.name.as_str() {
-            "tournament_selector" => Box::new(ob.extract::<Wrap<TournamentSelector>>()?.0),
-            "roulette_wheel_selector" => Box::new(ob.extract::<Wrap<RouletteSelector>>()?.0),
-            "rank_selector" => Box::new(ob.extract::<Wrap<RankSelector>>()?.0),
-            "stochastic_universal_sampling_selector" => {
+        let selector: PyEngineInput = ob.extract()?;
+        let py_selector: Box<dyn Select<C>> = match selector.component.as_str() {
+            TOURNAMENT_SELECTOR => Box::new(ob.extract::<Wrap<TournamentSelector>>()?.0),
+            ROULETTE_WHEEL_SELECTOR => Box::new(ob.extract::<Wrap<RouletteSelector>>()?.0),
+            RANK_SELECTOR => Box::new(ob.extract::<Wrap<RankSelector>>()?.0),
+            STOCHASTIC_UNIVERSAL_SELECTOR => {
                 Box::new(ob.extract::<Wrap<StochasticUniversalSamplingSelector>>()?.0)
             }
-            "boltzmann_selector" => Box::new(ob.extract::<Wrap<BoltzmannSelector>>()?.0),
-            "elite_selector" => Box::new(ob.extract::<Wrap<EliteSelector>>()?.0),
-            "random_selector" => Box::new(ob.extract::<Wrap<RandomSelector>>()?.0),
-            "nsga2_selector" => Box::new(ob.extract::<Wrap<NSGA2Selector>>()?.0),
-            "tournament_nsga2_selector" => {
-                Box::new(ob.extract::<Wrap<TournamentNSGA2Selector>>()?.0)
-            }
-            "steady_state_selector" => Box::new(ob.extract::<Wrap<SteadyStateSelector>>()?.0),
+            BOLTZMANN_SELECTOR => Box::new(ob.extract::<Wrap<BoltzmannSelector>>()?.0),
+            ELITE_SELECTOR => Box::new(ob.extract::<Wrap<EliteSelector>>()?.0),
+            RANDOM_SELECTOR => Box::new(ob.extract::<Wrap<RandomSelector>>()?.0),
+            NSGA2_SELECTOR => Box::new(ob.extract::<Wrap<NSGA2Selector>>()?.0),
+            TOURNAMENT_NSGA2_SELECTOR => Box::new(ob.extract::<Wrap<TournamentNSGA2Selector>>()?.0),
+            STEADY_STATE_SELECTOR => Box::new(ob.extract::<Wrap<SteadyStateSelector>>()?.0),
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                     "Unknown selector type",

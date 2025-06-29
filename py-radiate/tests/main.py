@@ -33,22 +33,22 @@ class TestHandler(rd.EventHandler):
         
 
 
-# engine = rd.GeneticEngine(
-#     codec=rd.IntCodec.vector(10, (0, 10)),
-#     fitness_func=lambda x: sum(x),
-#     offspring_selector=rd.BoltzmannSelector(4),
-#     objectives="min",
-#     # subscribe=TestHandler(),
-#     # executor=rd.Executor.WorkerPool(),
-#     alters=[
-#         rd.MultiPointCrossover(0.75, 2),
-#         rd.UniformMutator(0.01)
-#     ],
-# )
+engine = rd.GeneticEngine(
+    codec=rd.IntCodec.vector(10, (0, 10)),
+    fitness_func=lambda x: sum(x),
+    offspring_selector=rd.BoltzmannSelector(4),
+    objectives="min",
+    # subscribe=TestHandler(),
+    # executor=rd.Executor.WorkerPool(),
+    alters=[
+        rd.MultiPointCrossover(0.75, 2),
+        rd.UniformMutator(0.01)
+    ],
+)
 
-# result = engine.run(rd.ScoreLimit(0))
+result = engine.run(rd.ScoreLimit(0))
 
-# print(result)
+print(result)
 
 # inputs = [[1.0, 1.0], [1.0, 0.0], [0.0, 1.0], [0.0, 0.0]]
 # answers = [[0.0], [1.0], [1.0], [0.0]]
@@ -76,34 +76,34 @@ inputs, answers = get_dataset()
 # inputs = [[0.0], [0.0], [0.0], [1.0], [0.0], [0.0], [0.0]]
 # answers = [[0.0], [0.0], [1.0], [0.0], [0.0], [0.0], [1.0]]
 
-codec = rd.GraphCodec.directed(
-    shape=(1, 1),
-    vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
-    edge=rd.Op.weight(),
-    output=rd.Op.linear(),
-)
+# codec = rd.GraphCodec.directed(
+#     shape=(1, 1),
+#     vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+#     edge=rd.Op.weight(),
+#     output=rd.Op.linear(),
+# )
 
-engine = rd.GeneticEngine(
-    codec=codec,
-    problem=rd.Regression(inputs, answers),
-    objectives="min",
-    offspring_selector=rd.BoltzmannSelector(4.0),
-    # subscribe=TestHandler(),
-    executor=rd.Executor.FixedSizedWorkerPool(4),
-    alters=[
-        rd.GraphCrossover(0.75, 0.3),
-        rd.OperationMutator(0.07, 0.05),
-        rd.GraphMutator(0.1, 0.1),
+# engine = rd.GeneticEngine(
+#     codec=codec,
+#     problem=rd.Regression(inputs, answers),
+#     objectives="min",
+#     offspring_selector=rd.BoltzmannSelector(4.0),
+#     # subscribe=TestHandler(),
+#     executor=rd.Executor.FixedSizedWorkerPool(4),
+#     alters=[
+#         rd.GraphCrossover(0.75, 0.3),
+#         rd.OperationMutator(0.07, 0.05),
+#         rd.GraphMutator(0.1, 0.1),
         
-    ],
-)
+#     ],
+# )
 
-result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(10)], log=True)
+# result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(10)], log=True)
 
-print(result.value())
+# print(result.value())
 
-for input, target in zip(inputs, answers): 
-    print(f"Input: {round(input[0], 2)}, Target: {round(target[0], 2)}, Output: {round(result.value().eval([input])[0][0], 2)}")
+# for input, target in zip(inputs, answers): 
+#     print(f"Input: {round(input[0], 2)}, Target: {round(target[0], 2)}, Output: {round(result.value().eval([input])[0][0], 2)}")
 
 # print(result.value().eval([[0.5], [0.25], [0.75], [0.1], [0.9]]))
 

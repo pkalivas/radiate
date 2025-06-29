@@ -27,6 +27,18 @@ macro_rules! alters {
     };
 }
 
+#[macro_export]
+macro_rules! filter_alters {
+    ($chromosome_type:ty; $($input:expr),* $(,)?) => {{
+        trait IsCompatibleWithChromosomeType {}
+        impl<T: Alter<$chromosome_type>> IsCompatibleWithChromosomeType for T {}
+
+        let mut vec: Vec<Box<dyn Alter<$chromosome_type>>> = Vec::new();
+
+        vec
+    }};
+}
+
 // #[macro_export]
 // macro_rules! alterers {
 //     ($($name:ident $( ( $($args:expr),* ) )?),* $(,)?) => {

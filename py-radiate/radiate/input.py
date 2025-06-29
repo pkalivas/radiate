@@ -196,11 +196,11 @@ class EngineBuilder:
             EngineInput(
                 input_type=EngineInputType.Objective,
                 component="Objective",
-                objective=objective,
+                objective='|'.join(objective)
             )
         )
 
-        if front_range is not None:
+        if front_range is not None and len(objective) > 1:
             self._inputs.append(
                 EngineInput(
                     input_type=EngineInputType.FrontRange,
@@ -210,12 +210,15 @@ class EngineBuilder:
                 )
             )
 
-    def set_executor(self, Executor: Executor):
+    def set_executor(self, executor: Executor):
+        if executor is None:
+            executor = Executor.Serial()
+
         self._inputs.append(
             EngineInput(
                 input_type=EngineInputType.Executor,
-                component=Executor.component,
-                **Executor.args,
+                component=executor.component,
+                **executor.args,
             )
         )
 
