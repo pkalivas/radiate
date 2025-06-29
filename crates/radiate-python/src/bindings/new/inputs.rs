@@ -1,5 +1,5 @@
 use crate::{PyChromosomeType, PyGeneType};
-use pyo3::{pyclass, pymethods};
+use pyo3::{Py, PyAny, pyclass, pymethods};
 use std::collections::{HashMap, HashSet};
 
 #[pyclass]
@@ -81,8 +81,49 @@ impl PyEngineInput {
 }
 
 #[pyclass]
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct PyEngineBuilderTwo {
     pub gene_type: PyGeneType,
+    pub codec: Py<PyAny>,
+    pub problem_builder: Py<PyAny>,
     pub inputs: Vec<PyEngineInput>,
+}
+
+#[pymethods]
+impl PyEngineBuilderTwo {
+    #[new]
+    pub fn new(
+        gene_type: String,
+        codec: Py<PyAny>,
+        problem_builder: Py<PyAny>,
+        inputs: Vec<PyEngineInput>,
+    ) -> Self {
+        let gene_type = match gene_type.as_str() {
+            "float" => PyGeneType::Float,
+            "int" => PyGeneType::Int,
+            "bit" => PyGeneType::Bit,
+            "char" => PyGeneType::Char,
+            "graph" => PyGeneType::Graph,
+            _ => panic!("Invalid gene type: {}", gene_type),
+        };
+        PyEngineBuilderTwo {
+            gene_type,
+            codec,
+            problem_builder,
+            inputs,
+        }
+    }
+
+    pub fn build(&self) {
+        for input in self.inputs.iter() {
+            if !input.is_valid_gene(self.gene_type) {
+                panic!(
+                    "Input component {} of type {:?} is not valid for gene type {:?}",
+                    input.component, input.input_type, self.gene_type
+                );
+            }
+
+            println!("{:?}", input);
+        }
+    }
 }

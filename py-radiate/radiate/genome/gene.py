@@ -10,6 +10,8 @@ class GeneType:
     CHAR = 'char'
     GRAPH = 'graph'
 
+    ALL = {FLOAT, INT, BIT, CHAR, GRAPH}
+
 
 class Gene:
     def __init__(self, py_gene: PyGene):

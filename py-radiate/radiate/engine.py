@@ -19,8 +19,11 @@ from .radiate import (
     PyAlterer,
     PyDiversity,
     PyProblemBuilder,
+    PyEngineBuilderTwo
 )
-from .input import EngineInput, EngineInputType
+from .input import EngineInput, EngineInputType, EngineBuilder
+from .codec import FloatCodec, IntCodec, CharCodec, BitCodec, GraphCodec
+
 
 Subscriber: TypeAlias = Union[
     Callable[[Any], None], List[Callable[[Any], None]], EventHandler, List[EventHandler]
@@ -53,44 +56,69 @@ class GeneticEngine:
         front_range: Tuple[int, int] | None = (800, 900),
         subscribe: Subscriber | None = None,
     ):
-        temp = EngineInput(
-            input_type=EngineInputType.OffspringSelector,
-            component="TournamentSelector",
-            allowed_genes={GeneType.INT, GeneType.FLOAT, GeneType.BIT, GeneType.CHAR},
-            k=3,
-        )
-
-        print(temp)
-
-        survivor_selector = get_selector(survivor_selector or TournamentSelector(k=3))
-        offspring_selector = get_selector(offspring_selector or RouletteSelector())
-        alters = get_alters(alters or [UniformCrossover(), UniformMutator()])
-        diversity = get_diversity(diversity)
-        objectives = get_objectives(objectives)
-        front_range = get_front_range(front_range)
-        handlers = get_event_handler(subscribe)
+        self.gene_type = None
+        if isinstance(codec, IntCodec):
+            self.gene_type = GeneType.INT
+        elif isinstance(codec, FloatCodec):
+            self.gene_type = GeneType.FLOAT
+        elif isinstance(codec, CharCodec):
+            self.gene_type = GeneType.CHAR
+        elif isinstance(codec, BitCodec):
+            self.gene_type = GeneType.BIT
+        elif isinstance(codec, GraphCodec):
+            self.gene_type = GeneType.GRAPH
+        else:
+            raise TypeError(
+                f"Codec type {type(codec)} is not supported. "
+                "Use FloatCodec, IntCodec, CharCodec, BitCodec, or GraphCodec."
+            )
+        
         codec = get_codec(codec)
-        executor = get_executor(executor)
-        problem = get_problem(fitness_func, problem)
+        problem_builder = get_problem(fitness_func, problem)
+
+        self.builder = EngineBuilder(self.gene_type, codec, problem_builder)
+
+        self.builder.set_survivor_selector(survivor_selector or TournamentSelector(k=3))
+        self.builder.set_offspring_selector(offspring_selector or RouletteSelector())
+        self.builder.set_alters(alters or [UniformCrossover(), UniformMutator()])
+        self.builder.set_diversity(diversity, species_threshold, max_species_age)
+        self.builder.set_population_size(population_size)
+        self.builder.set_offspring_fraction(offspring_fraction)
+        self.builder.set_max_phenotype_age(max_phenotype_age)
+        self.builder.set_objective(objectives, front_range)
+        self.builder.set_executor(executor)
+
+        print(self.builder)
+
+        # survivor_selector = get_selector(survivor_selector or TournamentSelector(k=3))
+        # offspring_selector = get_selector(offspring_selector or RouletteSelector())
+        # alters = get_alters(alters or [UniformCrossover(), UniformMutator()])
+        # diversity = get_diversity(diversity)
+        # objectives = get_objectives(objectives)
+        # front_range = get_front_range(front_range)
+        # handlers = get_event_handler(subscribe)
+        # codec = get_codec(codec)
+        # executor = get_executor(executor)
+        # problem = get_problem(fitness_func, problem)
     
-        self.engine = None
-        self.builder = PyEngineBuilder(
-            codec=codec,
-            problem=problem,
-            population_size=population_size,
-            offspring_fraction=offspring_fraction,
-            objective=objectives,
-            front_range=front_range,
-            executor=executor,
-            max_phenotype_age=max_phenotype_age,
-            max_species_age=max_species_age,
-            species_threshold=species_threshold,
-            alters=alters,
-            offspring_selector=offspring_selector,
-            survivor_selector=survivor_selector,
-            diversity=diversity,
-            subscribers=handlers
-        )
+        # self.engine = None
+        # self.builder = PyEngineBuilder(
+        #     codec=codec,
+        #     problem=problem,
+        #     population_size=population_size,
+        #     offspring_fraction=offspring_fraction,
+        #     objective=objectives,
+        #     front_range=front_range,
+        #     executor=executor,
+        #     max_phenotype_age=max_phenotype_age,
+        #     max_species_age=max_species_age,
+        #     species_threshold=species_threshold,
+        #     alters=alters,
+        #     offspring_selector=offspring_selector,
+        #     survivor_selector=survivor_selector,
+        #     diversity=diversity,
+        #     subscribers=handlers
+        # )
 
     def __repr__(self):
         if self.engine is None:
@@ -117,25 +145,36 @@ class GeneticEngine:
         ---------
         >>> engine.run(rd.ScoreLimit(0.0001), log=True)
         """
-        if limits is not None:
-            self.limits(limits)
-        else:
-            limits = self.builder.get_limits()
-            if not limits or len(limits) == 0:
-                raise ValueError(
-                    "At least one limit must be provided to run the engine."
-                )
+
+        engine = PyEngineBuilderTwo(
+            gene_type=self.gene_type,
+            codec=self.builder._codec,
+            problem_builder=self.builder._problem_builder,
+            inputs=[inp.py_input() for inp in self.builder.inputs()]
+        )
+
+        engine.build()
+
+        raise NotImplementedError("The run method is not yet implemented.")
+        # if limits is not None:
+        #     self.limits(limits)
+        # else:
+        #     limits = self.builder.get_limits()
+        #     if not limits or len(limits) == 0:
+        #         raise ValueError(
+        #             "At least one limit must be provided to run the engine."
+        #         )
             
-        gene_type = self.builder.get_gene_type()
+        # gene_type = self.builder.get_gene_type()
 
-        for alter in self.builder.get_alters():
-            if alter.is_valid_for_gene(gene_type) is False:
-                raise ValueError(
-                    f"Alterer {alter} does not support gene type {gene_type}."
-                )
+        # for alter in self.builder.get_alters():
+        #     if alter.is_valid_for_gene(gene_type) is False:
+        #         raise ValueError(
+        #             f"Alterer {alter} does not support gene type {gene_type}."
+        #         )
 
-        self.engine = self.builder.build()
-        return Generation(self.engine.run(log=log))
+        # self.engine = self.builder.build()
+        # return Generation(self.engine.run(log=log))
 
     def population_size(self, size: int):
         """Set the population size.
@@ -448,10 +487,10 @@ def get_alters(
         raise TypeError(f"Param type {type(value)} is not supported.")
 
 
-def get_selector(selector: SelectorBase | None) -> PySelector:
+def get_selector(selector: SelectorBase | None) -> SelectorBase:
     """Get the selector."""
     if selector is None:
         raise ValueError("Selector must be provided.")
     if isinstance(selector, SelectorBase):
-        return selector.selector
+        return selector
     raise TypeError("Selector must be an instance of SelectorBase.")
