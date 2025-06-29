@@ -175,3 +175,31 @@ def test_engine_minimizing_limits():
     assert all(i < 0.001 for i in result.value())
     assert len(result.value()) == N_GENES
     assert result.index() < 1000
+
+def test_engine_minimizing_graph():
+
+    inputs = [[1.0, 1.0], [1.0, 0.0], [0.0, 1.0], [0.0, 0.0]]
+    answers = [[0.0], [1.0], [1.0], [0.0]]
+
+    codec = rd.GraphCodec.directed(
+        shape=(2, 1),
+        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
+        edge=rd.Op.weight(),
+        output=rd.Op.linear(),
+    )
+
+    engine = rd.GeneticEngine(
+        codec=codec,
+        problem=rd.Regression(inputs, answers),
+        objectives="min",
+        alters=[
+            rd.GraphCrossover(0.5, 0.5),
+            rd.OperationMutator(0.07, 0.05),
+            rd.GraphMutator(0.1, 0.1),
+        ],
+    )
+
+    result = engine.run([rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000)], log=False)
+
+    assert result.score()[0] < 0.001
+    assert result.index() < 1000

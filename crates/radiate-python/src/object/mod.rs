@@ -8,7 +8,7 @@ use std::any::Any;
 pub use any_value::AnyValue;
 pub use dtype::DataType;
 pub use field::Field;
-pub use object::ObjectValue;
+pub use object::{IntoPyObjectValue, ObjectValue};
 
 pub trait Object: Any + Clone + PartialEq + Send + Sync {
     fn type_name() -> &'static str;

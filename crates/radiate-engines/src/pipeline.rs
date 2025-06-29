@@ -23,13 +23,19 @@ where
     where
         T: Send + Sync + 'static,
     {
+        context.epoch_metrics.clear();
+
         for step in self.steps.iter_mut() {
             bus.emit(EngineEvent::step_start(step.name()));
             let timer = std::time::Instant::now();
-            step.execute(context.index, &mut context.metrics, &mut context.ecosystem);
+            step.execute(
+                context.index,
+                &mut context.epoch_metrics,
+                &mut context.ecosystem,
+            );
             bus.emit(EngineEvent::step_complete(step.name()));
 
-            context.metrics.upsert_time(step.name(), timer.elapsed());
+            context.epoch_metrics.upsert(step.name(), timer.elapsed());
         }
     }
 }
@@ -37,5 +43,15 @@ where
 impl<C: Chromosome> Default for Pipeline<C> {
     fn default() -> Self {
         Pipeline { steps: Vec::new() }
+    }
+}
+
+impl<C: Chromosome> From<Vec<Option<Box<dyn EngineStep<C>>>>> for Pipeline<C> {
+    fn from(steps: Vec<Option<Box<dyn EngineStep<C>>>>) -> Self {
+        let mut pipeline = Pipeline::default();
+        for step in steps {
+            pipeline.add_step(step);
+        }
+        pipeline
     }
 }

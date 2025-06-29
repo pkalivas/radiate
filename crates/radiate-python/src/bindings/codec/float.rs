@@ -9,7 +9,7 @@ use radiate::{Chromosome, Codec, FloatChromosome, Gene, Genotype};
 #[pyclass]
 #[derive(Clone)]
 pub struct PyFloatCodec {
-    pub codec: PyCodec<FloatChromosome>,
+    pub codec: PyCodec<FloatChromosome, ObjectValue>,
 }
 
 #[pymethods]

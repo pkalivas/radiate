@@ -22,8 +22,7 @@ impl<C: Chromosome, T> Generation<C, T> {
     }
 }
 
-impl<C: Chromosome, T> Epoch for Generation<C, T> {
-    type Chromosome = C;
+impl<C: Chromosome, T> Epoch<C> for Generation<C, T> {
     type Value = T;
 
     fn ecosystem(&self) -> &Ecosystem<C> {
@@ -89,7 +88,7 @@ where
     }
 }
 
-pub struct MultiObjectiveGeneration<C>
+pub struct ParetoGeneration<C>
 where
     C: Chromosome,
 {
@@ -100,11 +99,10 @@ where
     objective: Objective,
 }
 
-impl<C: Chromosome> Epoch for MultiObjectiveGeneration<C>
+impl<C: Chromosome> Epoch<C> for ParetoGeneration<C>
 where
     C: Chromosome,
 {
-    type Chromosome = C;
     type Value = Front<Phenotype<C>>;
 
     fn ecosystem(&self) -> &Ecosystem<C> {
@@ -128,9 +126,9 @@ where
     }
 }
 
-impl<C: Chromosome + Clone, T: Clone> From<&Context<C, T>> for MultiObjectiveGeneration<C> {
+impl<C: Chromosome + Clone, T: Clone> From<&Context<C, T>> for ParetoGeneration<C> {
     fn from(context: &Context<C, T>) -> Self {
-        MultiObjectiveGeneration {
+        ParetoGeneration {
             ecosystem: context.ecosystem.clone(),
             front: context.front.read().unwrap().clone(),
             index: context.index,
@@ -140,7 +138,7 @@ impl<C: Chromosome + Clone, T: Clone> From<&Context<C, T>> for MultiObjectiveGen
     }
 }
 
-impl<C> Debug for MultiObjectiveGeneration<C>
+impl<C> Debug for ParetoGeneration<C>
 where
     C: Chromosome,
 {

@@ -1,9 +1,15 @@
-use crate::{ObjectValue, PySubscriber, conversion::Wrap};
-use pyo3::{
-    Python,
-    types::{PyAnyMethods, PyDict},
-};
+use crate::prelude::*;
+use crate::{PySubscriber, conversion::Wrap};
+use pyo3::{Python, types::PyDict};
 use radiate::{EngineEvent, Event, EventHandler};
+
+const ON_START: &'static str = "on_start";
+const ON_STOP: &'static str = "on_stop";
+const ON_EPOCH_START: &'static str = "on_epoch_start";
+const ON_EPOCH_COMPLETE: &'static str = "on_epoch_complete";
+const ON_STEP_START: &'static str = "on_step_start";
+const ON_STEP_COMPLETE: &'static str = "on_step_complete";
+const ON_ENGINE_IMPROVEMENT: &'static str = "on_engine_improvement";
 
 pub struct PyEventHandler {
     handlers: Vec<PySubscriber>,
@@ -15,8 +21,11 @@ impl PyEventHandler {
     }
 }
 
-impl<'py, 'a> EventHandler<EngineEvent<ObjectValue>> for PyEventHandler {
-    fn handle(&mut self, event: Event<EngineEvent<ObjectValue>>) {
+impl<T> EventHandler<EngineEvent<T>> for PyEventHandler
+where
+    T: IntoPyObjectValue + Clone,
+{
+    fn handle(&mut self, event: Event<EngineEvent<T>>) {
         let subscribers = self
             .handlers
             .iter()
@@ -25,19 +34,19 @@ impl<'py, 'a> EventHandler<EngineEvent<ObjectValue>> for PyEventHandler {
                     .event_name()
                     .map(|name| {
                         if matches!(event.data(), EngineEvent::Start) {
-                            name == "on_start"
+                            name == ON_START
                         } else if matches!(event.data(), EngineEvent::Stop { .. }) {
-                            name == "on_stop"
+                            name == ON_STOP
                         } else if matches!(event.data(), EngineEvent::EpochStart(_)) {
-                            name == "on_epoch_start"
+                            name == ON_EPOCH_START
                         } else if matches!(event.data(), EngineEvent::EpochComplete { .. }) {
-                            name == "on_epoch_complete"
+                            name == ON_EPOCH_COMPLETE
                         } else if matches!(event.data(), EngineEvent::StepStart(_)) {
-                            name == "on_step_start"
+                            name == ON_STEP_START
                         } else if matches!(event.data(), EngineEvent::StepComplete(_)) {
-                            name == "on_step_complete"
+                            name == ON_STEP_COMPLETE
                         } else if matches!(event.data(), EngineEvent::EngineImprovement { .. }) {
-                            name == "on_engine_improvement"
+                            name == ON_ENGINE_IMPROVEMENT
                         } else {
                             false
                         }
@@ -62,9 +71,11 @@ impl<'py, 'a> EventHandler<EngineEvent<ObjectValue>> for PyEventHandler {
                     best,
                     score,
                 } => {
+                    let best = best.clone().into_py();
+
                     dict.set_item("type", "stop").unwrap();
                     dict.set_item("metrics", Wrap(metrics.clone())).unwrap();
-                    dict.set_item("best", best.inner.bind_borrowed(py)).unwrap();
+                    dict.set_item("best", best.inner).unwrap();
                     dict.set_item("score", score.as_f32()).unwrap();
                 }
                 EngineEvent::EpochStart(index) => {
@@ -77,10 +88,11 @@ impl<'py, 'a> EventHandler<EngineEvent<ObjectValue>> for PyEventHandler {
                     best,
                     score,
                 } => {
+                    let best = best.clone().into_py();
                     dict.set_item("type", "epoch_complete").unwrap();
                     dict.set_item("index", index).unwrap();
                     dict.set_item("metrics", Wrap(metrics.clone())).unwrap();
-                    dict.set_item("best", best.inner.bind_borrowed(py)).unwrap();
+                    dict.set_item("best", best.inner).unwrap();
                     dict.set_item("score", score.as_f32()).unwrap();
                 }
                 EngineEvent::StepStart(step) => {
@@ -92,9 +104,10 @@ impl<'py, 'a> EventHandler<EngineEvent<ObjectValue>> for PyEventHandler {
                     dict.set_item("step", step).unwrap();
                 }
                 EngineEvent::EngineImprovement { index, best, score } => {
+                    let best = best.clone().into_py();
                     dict.set_item("type", "engine_improvement").unwrap();
                     dict.set_item("index", index).unwrap();
-                    dict.set_item("best", best.inner.bind_borrowed(py)).unwrap();
+                    dict.set_item("best", best.inner).unwrap();
                     dict.set_item("score", score.as_f32()).unwrap();
                 }
             }

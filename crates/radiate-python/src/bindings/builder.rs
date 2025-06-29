@@ -1,35 +1,45 @@
 use super::{PyAlterer, PyDiversity, PyEngine, PyObjective, PySelector, subscriber::PySubscriber};
 use crate::{
-    PyBitCodec, PyCharCodec, PyFloatCodec, PyGeneType, PyIntCodec, PyLimit, conversion::Wrap,
+    PyBitCodec, PyCharCodec, PyExecutor, PyFloatCodec, PyGeneType, PyGraphCodec, PyIntCodec,
+    PyLimit, PyProblemBuilder, conversion::Wrap,
 };
 use pyo3::{
-    Bound, IntoPyObjectExt, Py, PyAny, PyErr, PyObject, PyResult, Python, pyclass, pymethods,
+    Bound, IntoPyObjectExt, Py, PyAny, PyErr, PyResult, Python, pyclass, pymethods,
     types::{PyAnyMethods, PyDict, PyDictMethods, PyList, PyString, PyTuple},
 };
 use std::vec;
 
+pub(crate) const POPULATION_SIZE: &'static str = "population_size";
+pub(crate) const OFFSPRING_FRACTION: &'static str = "offspring_fraction";
+pub(crate) const ALTERS: &'static str = "alters";
+pub(crate) const SURVIVOR_SELECTOR: &'static str = "survivor_selector";
+pub(crate) const OFFSPRING_SELECTOR: &'static str = "offspring_selector";
+pub(crate) const SUBSCRIBERS: &'static str = "subscribers";
+pub(crate) const DIVERSITY: &'static str = "diversity";
+pub(crate) const OBJECTIVE: &'static str = "objective";
+pub(crate) const SPECIES_THRESHOLD: &'static str = "species_threshold";
+pub(crate) const MAX_PHENOTYPE_AGE: &'static str = "max_phenotype_age";
+pub(crate) const FRONT_RANGE: &'static str = "front_range";
+pub(crate) const LIMITS: &'static str = "limits";
+pub(crate) const MAX_SPECIES_AGE: &'static str = "max_species_age";
+pub(crate) const GENE_TYPE: &'static str = "gene_type";
+pub(crate) const CODEC: &'static str = "codec";
+pub(crate) const EXECUTOR: &'static str = "executor";
+pub(crate) const PROBLEM: &'static str = "problem";
+
 #[pyclass]
 pub struct PyEngineBuilder {
-    fitness_func: PyObject,
-    codec: PyObject,
     params: Py<PyDict>,
 }
 
 #[pymethods]
 impl PyEngineBuilder {
     #[new]
-    #[pyo3(signature = (fitness_func, codec, **kwds))]
-    pub fn new<'py>(
-        py: Python<'py>,
-        fitness_func: PyObject,
-        codec: PyObject,
-        kwds: Option<&Bound<'_, PyDict>>,
-    ) -> PyResult<Self> {
+    #[pyo3(signature = (**kwds))]
+    pub fn new<'py>(py: Python<'py>, kwds: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
         let params = kwds.map(|d| d.to_owned()).unwrap_or(PyDict::new(py));
 
         Ok(Self {
-            fitness_func,
-            codec,
             params: params.into(),
         })
     }
@@ -47,7 +57,7 @@ impl PyEngineBuilder {
                 front_range={},
                 diversity={},
                 limits={},
-                num_threads={},
+                executor={},
                 max_phenotype_age={},
                 species_threshold={},
                 max_species_age={}
@@ -82,7 +92,7 @@ impl PyEngineBuilder {
                 .map(|l| format!("{:?}", l))
                 .collect::<Vec<_>>()
                 .join(", "),
-            self.get_num_threads(py)?,
+            self.get_executor(py)?,
             self.get_max_phenotype_age(py)?,
             self.get_species_threshold(py)?,
             self.get_max_species_age(py)?.to_string()
@@ -101,11 +111,19 @@ impl PyEngineBuilder {
         PyEngine::new(py, limits, param_dict)
     }
 
+    #[pyo3(signature = (codec))]
+    pub fn set_codec<'py>(&self, py: Python<'py>, codec: Py<PyAny>) -> PyResult<()> {
+        self.params
+            .bind(py)
+            .set_item(CODEC, codec)
+            .map_err(|e| e.into())
+    }
+
     #[pyo3(signature = (size=100))]
     pub fn set_population_size<'py>(&self, py: Python<'py>, size: usize) -> PyResult<()> {
         self.params
             .bind(py)
-            .set_item("population_size", size)
+            .set_item(POPULATION_SIZE, size)
             .map_err(|e| e.into())
     }
 
@@ -113,14 +131,14 @@ impl PyEngineBuilder {
     pub fn set_offspring_fraction<'py>(&self, py: Python<'py>, fraction: f32) -> PyResult<()> {
         self.params
             .bind(py)
-            .set_item("offspring_fraction", fraction)
+            .set_item(OFFSPRING_FRACTION, fraction)
             .map_err(|e| e.into())
     }
 
     pub fn set_alters<'py>(&self, py: Python<'py>, alters: Vec<PyAlterer>) -> PyResult<()> {
         self.params
             .bind(py)
-            .set_item("alters", PyList::new(py, alters)?)
+            .set_item(ALTERS, PyList::new(py, alters)?)
             .map_err(|e| e.into())
     }
 
@@ -131,7 +149,18 @@ impl PyEngineBuilder {
     ) -> PyResult<()> {
         self.params
             .bind(py)
-            .set_item("survivor_selector", selector)
+            .set_item(SURVIVOR_SELECTOR, selector)
+            .map_err(|e| e.into())
+    }
+
+    pub fn set_offspring_selector<'py>(
+        &self,
+        py: Python<'py>,
+        selector: Py<PySelector>,
+    ) -> PyResult<()> {
+        self.params
+            .bind(py)
+            .set_item(OFFSPRING_SELECTOR, selector)
             .map_err(|e| e.into())
     }
 
@@ -146,28 +175,17 @@ impl PyEngineBuilder {
             return self
                 .params
                 .bind(py)
-                .set_item("subscribers", PyList::new(py, current_subscribers)?)
+                .set_item(SUBSCRIBERS, PyList::new(py, current_subscribers)?)
                 .map_err(|e| e.into());
         }
 
         Ok(())
     }
 
-    pub fn set_offspring_selector<'py>(
-        &self,
-        py: Python<'py>,
-        selector: Py<PySelector>,
-    ) -> PyResult<()> {
-        self.params
-            .bind(py)
-            .set_item("offspring_selector", selector)
-            .map_err(|e| e.into())
-    }
-
     pub fn set_diversity<'py>(&self, py: Python<'py>, diversity: Py<PyDiversity>) -> PyResult<()> {
         self.params
             .bind(py)
-            .set_item("diversity", diversity)
+            .set_item(DIVERSITY, diversity)
             .map_err(|e| e.into())
     }
 
@@ -175,21 +193,21 @@ impl PyEngineBuilder {
         let objective = objective.extract::<PyObjective>(py)?;
         self.params
             .bind(py)
-            .set_item("objective", objective)
+            .set_item(OBJECTIVE, objective)
             .map_err(|e| e.into())
     }
 
     pub fn set_species_threshold<'py>(&self, py: Python<'py>, threshold: f32) -> PyResult<()> {
         self.params
             .bind(py)
-            .set_item("species_threshold", threshold)
+            .set_item(SPECIES_THRESHOLD, threshold)
             .map_err(|e| e.into())
     }
 
     pub fn set_max_phenotype_age<'py>(&self, py: Python<'py>, max_age: usize) -> PyResult<()> {
         self.params
             .bind(py)
-            .set_item("max_phenotype_age", max_age)
+            .set_item(MAX_PHENOTYPE_AGE, max_age)
             .map_err(|e| e.into())
     }
 
@@ -204,35 +222,62 @@ impl PyEngineBuilder {
 
         self.params
             .bind(py)
-            .set_item("front_range", front_range)
+            .set_item(FRONT_RANGE, front_range)
             .map_err(|e| e.into())
     }
 
     pub fn set_limits<'py>(&self, py: Python<'py>, limits: Py<PyAny>) -> PyResult<()> {
         self.params
             .bind(py)
-            .set_item("limits", limits)
-            .map_err(|e| e.into())
-    }
-
-    pub fn set_num_threads<'py>(&self, py: Python<'py>, num_threads: usize) -> PyResult<()> {
-        self.params
-            .bind(py)
-            .set_item("num_threads", num_threads)
+            .set_item(LIMITS, limits)
             .map_err(|e| e.into())
     }
 
     pub fn set_max_species_age<'py>(&self, py: Python<'py>, max_age: usize) -> PyResult<()> {
         self.params
             .bind(py)
-            .set_item("max_species_age", max_age)
+            .set_item(MAX_SPECIES_AGE, max_age)
             .map_err(|e| e.into())
+    }
+
+    pub fn set_executor<'py>(&self, py: Python<'py>, executor: PyExecutor) -> PyResult<()> {
+        self.params
+            .bind(py)
+            .set_item(EXECUTOR, executor)
+            .map_err(|e| e.into())
+    }
+
+    pub fn set_problem<'py>(&self, py: Python<'py>, problem: Py<PyProblemBuilder>) -> PyResult<()> {
+        self.params
+            .bind(py)
+            .set_item(PROBLEM, problem)
+            .map_err(|e| e.into())
+    }
+
+    pub fn get_problem<'py>(&self, py: Python<'py>) -> PyResult<PyProblemBuilder> {
+        self.params
+            .bind(py)
+            .get_item(PROBLEM)?
+            .map(|v| v.extract::<PyProblemBuilder>())
+            .unwrap_or_else(|| {
+                Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                    "Problem not set or invalid type",
+                ))
+            })
+    }
+
+    pub fn get_executor<'py>(&self, py: Python<'py>) -> PyResult<PyExecutor> {
+        self.params
+            .bind(py)
+            .get_item(EXECUTOR)?
+            .map(|v| v.extract::<PyExecutor>())
+            .unwrap_or(Ok(PyExecutor::serial()))
     }
 
     fn get_population_size<'py>(&self, py: Python<'py>) -> PyResult<usize> {
         self.params
             .bind(py)
-            .get_item("population_size")?
+            .get_item(POPULATION_SIZE)?
             .map(|v| v.extract::<usize>())
             .unwrap_or(Ok(100))
     }
@@ -240,7 +285,7 @@ impl PyEngineBuilder {
     pub fn get_offspring_fraction<'py>(&self, py: Python<'py>) -> PyResult<f32> {
         self.params
             .bind(py)
-            .get_item("offspring_fraction")?
+            .get_item(OFFSPRING_FRACTION)?
             .map(|v| v.extract::<f32>())
             .unwrap_or(Ok(0.8))
     }
@@ -248,7 +293,7 @@ impl PyEngineBuilder {
     pub fn get_max_phenotype_age<'py>(&self, py: Python<'py>) -> PyResult<usize> {
         self.params
             .bind(py)
-            .get_item("max_phenotype_age")?
+            .get_item(MAX_PHENOTYPE_AGE)?
             .map(|v| v.extract::<usize>())
             .unwrap_or(Ok(20))
     }
@@ -256,7 +301,7 @@ impl PyEngineBuilder {
     pub fn get_species_threshold<'py>(&self, py: Python<'py>) -> PyResult<f32> {
         self.params
             .bind(py)
-            .get_item("species_threshold")?
+            .get_item(SPECIES_THRESHOLD)?
             .map(|v| v.extract::<f32>())
             .unwrap_or(Ok(0.1))
     }
@@ -264,7 +309,7 @@ impl PyEngineBuilder {
     pub fn get_max_species_age<'py>(&self, py: Python<'py>) -> PyResult<usize> {
         self.params
             .bind(py)
-            .get_item("max_species_age")?
+            .get_item(MAX_SPECIES_AGE)?
             .map(|v| v.extract::<usize>())
             .unwrap_or(Ok(10))
     }
@@ -273,7 +318,7 @@ impl PyEngineBuilder {
         Ok(self
             .params
             .bind(py)
-            .get_item("alters")?
+            .get_item(ALTERS)?
             .map(|v| v.extract::<Vec<PyAlterer>>().ok())
             .flatten()
             .unwrap_or(vec![
@@ -285,7 +330,7 @@ impl PyEngineBuilder {
     pub fn get_survivor_selector<'py>(&self, py: Python<'py>) -> PyResult<PySelector> {
         self.params
             .bind(py)
-            .get_item("survivor_selector")?
+            .get_item(SURVIVOR_SELECTOR)?
             .map(|v| v.extract::<PySelector>())
             .unwrap_or(Ok(PySelector::tournament_selector(py, Some(2))?))
     }
@@ -293,7 +338,7 @@ impl PyEngineBuilder {
     pub fn get_offspring_selector<'py>(&self, py: Python<'py>) -> PyResult<PySelector> {
         self.params
             .bind(py)
-            .get_item("offspring_selector")?
+            .get_item(OFFSPRING_SELECTOR)?
             .map(|v| v.extract::<PySelector>())
             .unwrap_or(Ok(PySelector::roulette_wheel_selector(py)?))
     }
@@ -301,7 +346,7 @@ impl PyEngineBuilder {
     pub fn get_objective<'py>(&self, py: Python<'py>) -> PyResult<PyObjective> {
         self.params
             .bind(py)
-            .get_item("objective")?
+            .get_item(OBJECTIVE)?
             .map(|v| v.extract::<PyObjective>())
             .unwrap_or(Ok(PyObjective::min()?))
     }
@@ -309,7 +354,7 @@ impl PyEngineBuilder {
     pub fn get_diversity<'py>(&self, py: Python<'py>) -> PyResult<Option<PyDiversity>> {
         self.params
             .bind(py)
-            .get_item("diversity")?
+            .get_item(DIVERSITY)?
             .map(|v| v.extract::<Option<PyDiversity>>())
             .unwrap_or(Ok(None))
     }
@@ -317,13 +362,13 @@ impl PyEngineBuilder {
     pub fn get_subscribers<'py>(&self, py: Python<'py>) -> PyResult<Vec<PySubscriber>> {
         self.params
             .bind(py)
-            .get_item("subscribers")?
+            .get_item(SUBSCRIBERS)?
             .map(|v| v.extract::<Vec<PySubscriber>>())
             .unwrap_or(Ok(vec![]))
     }
 
     pub fn get_front_range<'py>(&self, py: Python<'py>) -> PyResult<Py<PyTuple>> {
-        let range = self.params.bind(py).get_item("front_range")?;
+        let range = self.params.bind(py).get_item(FRONT_RANGE)?;
         if let Some(range) = range {
             if let Ok(tuple) = range.extract::<Py<PyTuple>>() {
                 return Ok(tuple);
@@ -334,25 +379,29 @@ impl PyEngineBuilder {
         Ok(result)
     }
 
-    pub fn get_num_threads<'py>(&self, py: Python<'py>) -> PyResult<usize> {
-        self.params
-            .bind(py)
-            .get_item("num_threads")?
-            .map(|v| v.extract::<usize>())
-            .unwrap_or(Ok(1))
-    }
-
     pub fn get_limits<'py>(&self, py: Python<'py>) -> PyResult<Vec<PyLimit>> {
         self.params
             .bind(py)
-            .get_item("limits")?
+            .get_item(LIMITS)?
             .map(|v| v.extract::<Wrap<Vec<PyLimit>>>())
             .unwrap_or(Ok(Wrap(vec![])))
             .map(|wrap| wrap.0)
     }
 
+    pub fn get_codec<'py>(&self, py: Python<'py>) -> PyResult<Py<PyAny>> {
+        self.params
+            .bind(py)
+            .get_item(CODEC)?
+            .map(|v| v.extract::<Py<PyAny>>())
+            .unwrap_or_else(|| {
+                Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                    "Codec not set or invalid type",
+                ))
+            })
+    }
+
     pub fn get_gene_type<'py>(&self, py: Python<'py>) -> PyResult<PyGeneType> {
-        let codec_obj = self.codec.bind(py);
+        let codec_obj = self.get_codec(py)?.into_bound_py_any(py)?;
 
         if let Ok(_) = codec_obj.extract::<PyIntCodec>() {
             Ok(PyGeneType::Int)
@@ -362,6 +411,8 @@ impl PyEngineBuilder {
             Ok(PyGeneType::Bit)
         } else if let Ok(_) = codec_obj.extract::<PyCharCodec>() {
             Ok(PyGeneType::Char)
+        } else if let Ok(_) = codec_obj.extract::<PyGraphCodec>() {
+            Ok(PyGeneType::Graph)
         } else {
             Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                 "Unsupported gene type",
@@ -372,23 +423,23 @@ impl PyEngineBuilder {
     fn create_param_dict<'py>(&self, py: Python<'py>) -> PyResult<Py<PyDict>> {
         let dict = PyDict::new(py);
 
-        dict.set_item("population_size", self.get_population_size(py)?)?;
-        dict.set_item("offspring_fraction", self.get_offspring_fraction(py)?)?;
-        dict.set_item("alters", self.get_alters(py)?)?;
-        dict.set_item("survivor_selector", self.get_survivor_selector(py)?)?;
-        dict.set_item("offspring_selector", self.get_offspring_selector(py)?)?;
-        dict.set_item("objective", self.get_objective(py)?)?;
-        dict.set_item("gene_type", self.get_gene_type(py)?)?;
-        dict.set_item("fitness_func", self.fitness_func.clone_ref(py))?;
-        dict.set_item("codec", self.codec.clone_ref(py))?;
-        dict.set_item("front_range", self.get_front_range(py)?)?;
-        dict.set_item("num_threads", self.get_num_threads(py)?)?;
-        dict.set_item("max_phenotype_age", self.get_max_phenotype_age(py)?)?;
-        dict.set_item("species_threshold", self.get_species_threshold(py)?)?;
-        dict.set_item("max_species_age", self.get_max_species_age(py)?)?;
-        dict.set_item("limits", self.get_limits(py)?)?;
-        dict.set_item("diversity", self.get_diversity(py)?)?;
-        dict.set_item("subscribers", self.get_subscribers(py)?)?;
+        dict.set_item(POPULATION_SIZE, self.get_population_size(py)?)?;
+        dict.set_item(OFFSPRING_FRACTION, self.get_offspring_fraction(py)?)?;
+        dict.set_item(ALTERS, self.get_alters(py)?)?;
+        dict.set_item(SURVIVOR_SELECTOR, self.get_survivor_selector(py)?)?;
+        dict.set_item(OFFSPRING_SELECTOR, self.get_offspring_selector(py)?)?;
+        dict.set_item(OBJECTIVE, self.get_objective(py)?)?;
+        dict.set_item(GENE_TYPE, self.get_gene_type(py)?)?;
+        dict.set_item(CODEC, self.get_codec(py)?)?;
+        dict.set_item(FRONT_RANGE, self.get_front_range(py)?)?;
+        dict.set_item(MAX_PHENOTYPE_AGE, self.get_max_phenotype_age(py)?)?;
+        dict.set_item(SPECIES_THRESHOLD, self.get_species_threshold(py)?)?;
+        dict.set_item(MAX_SPECIES_AGE, self.get_max_species_age(py)?)?;
+        dict.set_item(LIMITS, self.get_limits(py)?)?;
+        dict.set_item(DIVERSITY, self.get_diversity(py)?)?;
+        dict.set_item(SUBSCRIBERS, self.get_subscribers(py)?)?;
+        dict.set_item(EXECUTOR, self.get_executor(py)?)?;
+        dict.set_item(PROBLEM, self.get_problem(py)?)?;
 
         Ok(dict.into())
     }

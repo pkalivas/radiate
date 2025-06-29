@@ -186,6 +186,7 @@ pub fn py_object_to_any_value<'py>(
                     keys.push(Field::new(key.as_ref().into()));
                     vals.push(val)
                 }
+
                 Ok(AnyValue::Struct(vals.into_iter().zip(keys).collect()))
             })
         } else {

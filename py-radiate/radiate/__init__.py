@@ -1,15 +1,18 @@
 from .engine import GeneticEngine
-from .codec import FloatCodec, IntCodec, CharCodec, BitCodec, CodecBase
+from .codec import FloatCodec, IntCodec, CharCodec, BitCodec, CodecBase, GraphCodec
 from .limit import SecondsLimit, GenerationsLimit, ScoreLimit
 from .random import RandomProvider as random
 from .generation import Generation
 from .genome import Gene, Chromosome, Genotype, Population, Phenotype
 from .handlers import EventHandler, EventType
-
+from .executor import Executor
+from .gp import Op, Graph
+from .problem import ProblemBase, Regression
 
 from .diversity import (
     HammingDistance,
     EuclideanDistance,
+    NeatDistance
 )
 
 from .selector import (
@@ -39,9 +42,22 @@ from .alterer import (
     GaussianMutator,
     ScrambleMutator,
     SwapMutator,
+    GraphMutator,
+    OperationMutator,
+    GraphCrossover
 )
 
 __all__ = [
+    "Op",
+    "Graph",
+    "GraphMutator",
+    "OperationMutator",
+    "GraphCrossover",
+    "NeatDistance",
+    "GraphCodec",
+    "ProblemBase",
+    "Regression",
+    "Executor",
     "EventHandler",
     "EventType",
     "CodecBase",

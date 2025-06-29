@@ -1,8 +1,11 @@
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods, types::PyString};
 use radiate::{
     BitChromosome, BitGene, CharChromosome, CharGene, Chromosome, FloatChromosome, FloatGene, Gene,
-    Genotype, IntChromosome, IntGene, Phenotype, Population, random_provider,
+    Genotype, GraphChromosome, GraphNode, IntChromosome, IntGene, Op, Phenotype, Population,
+    random_provider,
 };
+
+use crate::PyGeneType;
 
 #[pyclass]
 #[derive(Clone, Debug)]
@@ -39,9 +42,9 @@ impl PyPopulation {
         self.phenotypes.len()
     }
 
-    pub fn gene_type(&self) -> String {
+    pub fn gene_type(&self) -> PyGeneType {
         if self.phenotypes.is_empty() {
-            "EmptyPopulation".to_string()
+            PyGeneType::Empty
         } else {
             self.phenotypes[0].gene_type()
         }
@@ -86,9 +89,9 @@ impl PyPhenotype {
         self.__repr__(py)
     }
 
-    pub fn gene_type(&self) -> String {
+    pub fn gene_type(&self) -> PyGeneType {
         if self.genotype.chromosomes.is_empty() {
-            "EmptyPhenotype".to_string()
+            PyGeneType::Empty
         } else {
             self.genotype.gene_type()
         }
@@ -112,10 +115,10 @@ impl PyGenotype {
 
     pub fn __repr__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let repr = format!(
-            "Genotype(chromosomes={:?})",
+            "{:?}",
             self.chromosomes
                 .iter()
-                .map(|c| format!("{:?}", c.__repr__(py)))
+                .map(|c| format!("{:?}", c.__repr__(py).unwrap()))
                 .collect::<Vec<_>>()
         );
 
@@ -126,9 +129,9 @@ impl PyGenotype {
         self.__repr__(py)
     }
 
-    pub fn gene_type(&self) -> String {
+    pub fn gene_type(&self) -> PyGeneType {
         if self.chromosomes.is_empty() {
-            "EmptyGenotype".to_string()
+            PyGeneType::Empty
         } else {
             self.chromosomes[0].gene_type()
         }
@@ -164,7 +167,7 @@ impl PyChromosome {
             "Chromosome(genes={:?})",
             self.genes
                 .iter()
-                .map(|g| format!("{:?}", g.__repr__(py)))
+                .map(|g| format!("{:?}", g.__repr__(py).unwrap()))
                 .collect::<Vec<_>>()
         );
         PyString::new(py, &repr).into_bound_py_any(py)
@@ -182,9 +185,9 @@ impl PyChromosome {
         self.genes.iter().zip(&other.genes).all(|(a, b)| a == b)
     }
 
-    pub fn gene_type(&self) -> String {
+    pub fn gene_type(&self) -> PyGeneType {
         if self.genes.is_empty() {
-            "EmptyChromosome".to_string()
+            PyGeneType::Empty
         } else {
             self.genes[0].gene_type()
         }
@@ -197,6 +200,7 @@ enum GeneInner {
     Int(IntGene<i32>),
     Bit(BitGene),
     Char(CharGene),
+    GraphNode(GraphNode<Op<f32>>),
 }
 
 #[pyclass]
@@ -208,12 +212,13 @@ pub struct PyGene {
 
 #[pymethods]
 impl PyGene {
-    pub fn gene_type(&self) -> String {
+    pub fn gene_type(&self) -> PyGeneType {
         match &self.inner {
-            GeneInner::Float(_) => "FloatGene".to_string(),
-            GeneInner::Int(_) => "IntGene".to_string(),
-            GeneInner::Bit(_) => "BitGene".to_string(),
-            GeneInner::Char(_) => "CharGene".to_string(),
+            GeneInner::Float(_) => PyGeneType::Float,
+            GeneInner::Int(_) => PyGeneType::Int,
+            GeneInner::Bit(_) => PyGeneType::Bit,
+            GeneInner::Char(_) => PyGeneType::Char,
+            GeneInner::GraphNode(_) => PyGeneType::Graph,
         }
     }
 
@@ -223,6 +228,7 @@ impl PyGene {
             GeneInner::Int(gene) => gene.allele().into_bound_py_any(py),
             GeneInner::Bit(gene) => gene.allele().into_bound_py_any(py),
             GeneInner::Char(gene) => gene.allele().into_bound_py_any(py),
+            GeneInner::GraphNode(gene) => gene.allele().name().into_bound_py_any(py),
         }
     }
 
@@ -234,6 +240,7 @@ impl PyGene {
                 GeneInner::Int(gene) => format!("{}", gene),
                 GeneInner::Bit(gene) => format!("{}", gene),
                 GeneInner::Char(gene) => format!("{:?}", gene),
+                GeneInner::GraphNode(gene) => format!("{:?}", gene),
             }
         );
 
@@ -334,6 +341,7 @@ impl_into_py_gene!(FloatGene, Float);
 impl_into_py_gene!(IntGene<i32>, Int);
 impl_into_py_gene!(BitGene, Bit);
 impl_into_py_gene!(CharGene, Char);
+impl_into_py_gene!(GraphNode<Op<f32>>, GraphNode);
 
 macro_rules! impl_into_py_chromosome {
     ($chromosome_type:ty, $gene_type:ty) => {
@@ -366,6 +374,7 @@ impl_into_py_chromosome!(FloatChromosome, FloatGene);
 impl_into_py_chromosome!(IntChromosome<i32>, IntGene<i32>);
 impl_into_py_chromosome!(BitChromosome, BitGene);
 impl_into_py_chromosome!(CharChromosome, CharGene);
+impl_into_py_chromosome!(GraphChromosome<Op<f32>>, GraphNode<Op<f32>>);
 
 macro_rules! impl_into_py_genotype {
     ($chromosome:ty) => {
@@ -409,6 +418,7 @@ impl_into_py_genotype!(FloatChromosome);
 impl_into_py_genotype!(IntChromosome<i32>);
 impl_into_py_genotype!(BitChromosome);
 impl_into_py_genotype!(CharChromosome);
+impl_into_py_genotype!(GraphChromosome<Op<f32>>);
 
 macro_rules! impl_from_py_phenotype {
     ($chromosome:ty) => {
@@ -445,6 +455,7 @@ impl_from_py_phenotype!(FloatChromosome);
 impl_from_py_phenotype!(IntChromosome<i32>);
 impl_from_py_phenotype!(BitChromosome);
 impl_from_py_phenotype!(CharChromosome);
+impl_from_py_phenotype!(GraphChromosome<Op<f32>>);
 
 macro_rules! impl_into_py_population {
     ($chromosome:ty) => {
@@ -501,3 +512,4 @@ impl_into_py_population!(FloatChromosome);
 impl_into_py_population!(IntChromosome<i32>);
 impl_into_py_population!(BitChromosome);
 impl_into_py_population!(CharChromosome);
+impl_into_py_population!(GraphChromosome<Op<f32>>);

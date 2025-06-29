@@ -9,7 +9,7 @@ use std::{
 
 pub trait Engine {
     type Chromosome: Chromosome;
-    type Epoch: Epoch<Chromosome = Self::Chromosome>;
+    type Epoch: Epoch<Self::Chromosome>;
 
     fn next(&mut self) -> Self::Epoch;
 }
@@ -40,27 +40,26 @@ where
     }
 }
 
-pub trait Epoch {
-    type Chromosome: Chromosome;
+pub trait Epoch<C: Chromosome> {
     type Value;
 
     fn value(&self) -> &Self::Value;
-    fn ecosystem(&self) -> &Ecosystem<Self::Chromosome>;
+    fn ecosystem(&self) -> &Ecosystem<C>;
     fn index(&self) -> usize;
     fn metrics(&self) -> &MetricSet;
     fn objective(&self) -> &Objective;
 
-    fn population(&self) -> &Population<Self::Chromosome> {
+    fn population(&self) -> &Population<C> {
         &self.ecosystem().population()
     }
 
-    fn species(&self) -> Option<&[Species<Self::Chromosome>]> {
+    fn species(&self) -> Option<&[Species<C>]> {
         self.ecosystem().species().map(|s| s.as_slice())
     }
 
     fn time(&self) -> Duration {
         self.metrics()
-            .get(metric_names::EVOLUTION_TIME)
+            .get(metric_names::TIME)
             .map(|m| m.time_sum())
             .flatten()
             .unwrap_or_default()
@@ -96,11 +95,18 @@ where
     pub best: T,
     pub index: usize,
     pub metrics: MetricSet,
+    pub epoch_metrics: MetricSet,
     pub score: Option<Score>,
     pub front: Arc<RwLock<Front<Phenotype<C>>>>,
     pub objective: Objective,
     pub problem: Arc<dyn Problem<C, T>>,
 }
+
+// impl<C: Chromosome, T> Context<C, T> {
+//     pub fn upsert_time(&mut self, name: &'static str, value: Duration) {
+//         self.metrics.upsert_time(name, value);
+//     }
+// }
 
 impl<C, T> Clone for Context<C, T>
 where
@@ -113,6 +119,7 @@ where
             best: self.best.clone(),
             index: self.index,
             metrics: self.metrics.clone(),
+            epoch_metrics: self.epoch_metrics.clone(),
             score: self.score.clone(),
             front: self.front.clone(),
             objective: self.objective.clone(),

@@ -4,4 +4,4 @@ mod handlers;
 
 pub use bus::EventBus;
 pub use events::{EngineEvent, Event};
-pub use handlers::{EventHandler, EventLogger, MetricsAggregator};
+pub use handlers::EventHandler;

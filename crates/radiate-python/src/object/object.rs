@@ -2,6 +2,16 @@ use pyo3::{Borrowed, IntoPyObject, PyAny, PyObject, Python, types::PyAnyMethods}
 use std::fmt::{Display, Formatter};
 use std::hash::{Hash, Hasher};
 
+pub trait IntoPyObjectValue {
+    fn into_py(self) -> ObjectValue;
+}
+
+impl IntoPyObjectValue for ObjectValue {
+    fn into_py(self) -> ObjectValue {
+        self
+    }
+}
+
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct ObjectValue {

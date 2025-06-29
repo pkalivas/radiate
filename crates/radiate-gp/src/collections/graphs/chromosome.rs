@@ -152,6 +152,12 @@ impl<T: PartialEq> PartialEq for GraphChromosome<T> {
     }
 }
 
+impl<T> From<Vec<GraphNode<T>>> for GraphChromosome<T> {
+    fn from(nodes: Vec<GraphNode<T>>) -> Self {
+        GraphChromosome { nodes, store: None }
+    }
+}
+
 impl<T> FromIterator<GraphNode<T>> for GraphChromosome<T> {
     fn from_iter<I: IntoIterator<Item = GraphNode<T>>>(iter: I) -> Self {
         GraphChromosome {

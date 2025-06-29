@@ -43,7 +43,7 @@ class Genotype:
             raise ValueError("Either genotype or chromosomes must be provided")
 
     def __repr__(self):
-        return f"Genotype(chromosomes={self.__inner.chromosomes})"
+        return f"Genotype({self.__inner.chromosomes})"
 
     def __len__(self):
         """

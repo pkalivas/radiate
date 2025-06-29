@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use radiate::*;
+use radiate::{thread_pool::ThreadPool, *};
 
 const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
@@ -22,7 +22,7 @@ fn main() {
     let mut engine = GeneticEngine::builder()
         .problem(regression)
         .minimizing()
-        .executor(Executor::worker_pool(10))
+        .executor(Executor::WorkerPool(8))
         .crossover(TreeCrossover::new(0.5))
         .mutator(OperationMutator::new(0.03, 0.02))
         .build();

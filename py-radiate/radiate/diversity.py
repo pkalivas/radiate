@@ -55,3 +55,17 @@ class EuclideanDistance(DiversityBase):
         Initialize the Euclidean Distance diversity parameter.
         """
         super().__init__(diversity=PyDiversity.euclidean_distance())
+
+class NeatDistance(DiversityBase):
+    """
+    Neat Distance diversity parameter.
+    """
+
+    def __init__(self, excess: float = 1.0, disjoint: float = 1.0, weight_diff: float = 3.0):
+        """
+        Initialize the Neat Distance diversity parameter.
+        :param excess: Excess coefficient.
+        :param disjoint: Disjoint coefficient.
+        :param weight_diff: Weight difference coefficient.
+        """
+        super().__init__(diversity=PyDiversity.neat_distance(excess, disjoint, weight_diff))

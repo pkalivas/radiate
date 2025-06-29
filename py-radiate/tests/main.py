@@ -1,39 +1,47 @@
 import os
 import sys
-# import math
-# import matplotlib.pyplot as plt
-# from numba import jit, cfunc, vectorize
+import math
+import matplotlib.pyplot as plt
+from numba import jit, cfunc, vectorize
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, project_root)
 
 import radiate as rd
 
-codec = rd.IntCodec.matrix((2, 3), value_range=(0, 100), bound_range=(-1, 200))
-
-print(codec.encode())
-print(codec.decode(codec.encode()))
+rd.random.set_seed(1000)
 
 
-# class TestHandler(rd.EventHandler):
-#     def __init__(self):
-#         super().__init__(rd.EventType.EPOCH_COMPLETE)
+class TestHandler(rd.EventHandler):
+    def __init__(self):
+        super().__init__()
+        self.scores = []
 
-#     def on_event(self, event):
-#         print(event['score'])
-#         # print(event['metrics']['Fitness']['value_min'])
+    def on_event(self, event):
+        
+        if event["type"] == "epoch_complete":
+            # self.scores.append(event["score"])
+            self.scores.append(event['metrics']['unique_members']['value_last'])
+        elif event["type"] == "stop":
+            plt.plot(self.scores)
+            plt.xlabel("Generation")
+            plt.ylabel("Best Fitness")
+            plt.title("Fitness over Generations")
+            plt.show()
+        elif event["type"] == "engine_improvement":
+            print(f"New best score: {event}")
+        
 
-
-# rd.random.set_seed(501)
 
 # engine = rd.GeneticEngine(
 #     codec=rd.IntCodec.vector(10, (0, 10)),
 #     fitness_func=lambda x: sum(x),
 #     offspring_selector=rd.BoltzmannSelector(4),
 #     objectives="min",
-#     subscribe=TestHandler(),
+#     # subscribe=TestHandler(),
+#     # executor=rd.Executor.WorkerPool(),
 #     alters=[
-#         rd.MultiPointCrossover(0.75, 2), 
+#         rd.MultiPointCrossover(0.75, 2),
 #         rd.UniformMutator(0.01)
 #     ],
 # )
@@ -42,10 +50,74 @@ print(codec.decode(codec.encode()))
 
 # print(result)
 
+# inputs = [[1.0, 1.0], [1.0, 0.0], [0.0, 1.0], [0.0, 0.0]]
+# answers = [[0.0], [1.0], [1.0], [0.0]]
+
+
+def compute(x: float) -> float:
+    return 4.0 * x**3 - 3.0 * x**2 + x
+
+
+def get_dataset():
+    inputs = []
+    answers = []
+
+    input = -1.0
+    for _ in range(-10, 10):
+        input += 0.1
+        inputs.append([input])
+        answers.append([compute(input)])
+
+    return inputs, answers
+
+
+inputs, answers = get_dataset()
+
+# inputs = [[0.0], [0.0], [0.0], [1.0], [0.0], [0.0], [0.0]]
+# answers = [[0.0], [0.0], [1.0], [0.0], [0.0], [0.0], [1.0]]
+
+codec = rd.GraphCodec.directed(
+    shape=(1, 1),
+    vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+    edge=rd.Op.weight(),
+    output=rd.Op.linear(),
+)
+
+engine = rd.GeneticEngine(
+    codec=codec,
+    problem=rd.Regression(inputs, answers),
+    objectives="min",
+    offspring_selector=rd.BoltzmannSelector(4.0),
+    subscribe=TestHandler(),
+    executor=rd.Executor.FixedSizedWorkerPool(4),
+    alters=[
+        rd.GraphCrossover(0.75, 0.3),
+        rd.OperationMutator(0.07, 0.05),
+        rd.GraphMutator(0.1, 0.1),
+        
+    ],
+)
+
+result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)], log=True)
+
+print(result.value())
+
+for input, target in zip(inputs, answers): 
+    print(f"Input: {round(input[0], 2)}, Target: {round(target[0], 2)}, Output: {round(result.value().eval([input])[0][0], 2)}")
+
+# print(result.value().eval([[0.5], [0.25], [0.75], [0.1], [0.9]]))
+
+# save the value to json
+# with open("best_graph.json", "w") as f:
+#     f.write(result.value().to_json())
+
+# for member in result.population():
+#     print(member.score())
+
 
 # N_QUEENS = 32
 
-# @jit(nopython=True, nogil=True)
+# # @jit(nopython=True, nogil=True)
 # def fitness_fn(queens):
 #     """Calculate the fitness score for the N-Queens problem."""
 #     score = 0
@@ -61,7 +133,8 @@ print(codec.decode(codec.encode()))
 # engine = rd.GeneticEngine(
 #     codec=codec,
 #     fitness_func=fitness_fn,
-#     num_threads=1,
+#     executor=rd.Executor.WorkerPool(),
+#     objectives="min",
 #     offspring_selector=rd.BoltzmannSelector(4.0),
 #     alters=[
 #         rd.MultiPointCrossover(0.75, 2),
@@ -70,6 +143,7 @@ print(codec.decode(codec.encode()))
 # )
 # result = engine.run(rd.ScoreLimit(0), log=False)
 # print(result)
+# print(engine)
 
 # board = result.value()
 # for i in range(N_QUEENS):
@@ -149,6 +223,7 @@ print(codec.decode(codec.encode()))
 #     offspring_selector=rd.TournamentSelector(k=5),
 #     survivor_selector=rd.NSGA2Selector(),
 #     objectives=["min" for _ in range(objectives)],
+#     num_threads=10,
 #     alters=[
 #         rd.SimulatedBinaryCrossover(1.0, 1.0),
 #         rd.UniformMutator(0.1)

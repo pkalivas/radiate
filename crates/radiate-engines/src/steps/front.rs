@@ -27,6 +27,10 @@ where
 
         let count = self.front.write().unwrap().add_all(&phenotypes);
 
-        metrics.upsert_operations(metric_names::FRONT, count as f32, timer.elapsed());
+        if count == 0 {
+            return;
+        }
+
+        metrics.upsert(metric_names::FRONT, (count, timer.elapsed()));
     }
 }

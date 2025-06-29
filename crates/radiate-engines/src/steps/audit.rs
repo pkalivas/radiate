@@ -21,7 +21,7 @@ where
     ) {
         for audit in &self.audits {
             for metric in audit.audit(generation, &ecosystem) {
-                metrics.upsert(metric);
+                metrics.add_or_update(metric);
             }
         }
     }

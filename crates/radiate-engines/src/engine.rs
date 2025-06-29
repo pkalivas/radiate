@@ -31,7 +31,6 @@ use radiate_core::{Engine, Epoch, metric_names};
 ///     .population_size(150)
 ///     .max_age(15)
 ///     .offspring_fraction(0.5)
-///     .executor(Executor::worker_pool(8))
 ///     .offspring_selector(BoltzmannSelector::new(4_f32))
 ///     .survivor_selector(TournamentSelector::new(3))
 ///     .alter(alters![
@@ -53,11 +52,11 @@ use radiate_core::{Engine, Epoch, metric_names};
 /// - `C`: The type of the chromosome used in the genotype, which must implement the [Chromosome] trait.
 /// - `T`: The type of the phenotype produced by the genetic algorithm, which must be `Clone`, `Send`, and `static`.
 /// - `E`: The type of the epoch produced by the genetic algorithm, which must implement the [Epoch] trait.
-pub struct GeneticEngine<C, T, E = Generation<C, T>>
+pub struct GeneticEngine<C, T, E>
 where
     C: Chromosome,
     T: Clone + Send + Sync + 'static,
-    E: Epoch,
+    E: Epoch<C>,
 {
     context: Context<C, T>,
     pipeline: Pipeline<C>,
@@ -69,7 +68,7 @@ impl<C, T, E> GeneticEngine<C, T, E>
 where
     C: Chromosome,
     T: Clone + Send + Sync + 'static,
-    E: Epoch,
+    E: Epoch<C>,
 {
     pub(crate) fn new(
         context: Context<C, T>,
@@ -84,7 +83,10 @@ where
         }
     }
 
-    pub fn iter(self) -> EngineIterator<C, T, E> {
+    pub fn iter(self) -> EngineIterator<C, T, E>
+    where
+        E: for<'a> From<&'a Context<C, T>>,
+    {
         EngineIterator { engine: self }
     }
 }
@@ -103,7 +105,7 @@ impl<C, T, E> Engine for GeneticEngine<C, T, E>
 where
     C: Chromosome,
     T: Clone + Send + Sync + 'static,
-    E: Epoch<Chromosome = C> + for<'a> From<&'a Context<C, T>>,
+    E: Epoch<C> + for<'a> From<&'a Context<C, T>>,
 {
     type Chromosome = C;
     type Epoch = E;
@@ -118,15 +120,23 @@ where
 
         let timer = std::time::Instant::now();
         self.pipeline.run(&mut self.context, &self.bus);
+        let elapsed = timer.elapsed();
 
         self.context
-            .metrics
-            .upsert_time(metric_names::EVOLUTION_TIME, timer.elapsed());
+            .epoch_metrics
+            .upsert(metric_names::TIME, elapsed);
+
+        self.context.metrics.merge(&self.context.epoch_metrics);
 
         let best = self.context.ecosystem.population().get(0);
         if let Some(best) = best {
             if let (Some(score), Some(current)) = (best.score(), &self.context.score) {
                 if self.context.objective.is_better(score, current) {
+                    let score_improvement = current.as_f32() - score.as_f32();
+                    self.context
+                        .metrics
+                        .upsert(metric_names::SCORE_IMPROVEMENT_RATE, score_improvement);
+
                     self.context.score = Some(score.clone());
                     self.context.best = self.context.problem.decode(best.genotype());
                     self.bus.emit(EngineEvent::improvement(&self.context));
@@ -149,7 +159,7 @@ impl<C, T, E> Drop for GeneticEngine<C, T, E>
 where
     C: Chromosome,
     T: Clone + Send + Sync + 'static,
-    E: Epoch,
+    E: Epoch<C>,
 {
     fn drop(&mut self) {
         self.bus.emit(EngineEvent::stop(&self.context));

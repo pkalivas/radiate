@@ -10,17 +10,14 @@ members = [
     "examples/nqueens",
     "examples/simple-nn",
     "examples/TSP",
-    "examples/DTLZ",
     "examples/rastrigin",
     "examples/rosenbrock",
 
-    "examples/graphs/iris-graph",
-    "examples/graphs/xor-graph",
     "examples/graphs/regression-graph",
+    "examples/graphs/xor-graph",
     "examples/graphs/simple-memory-graph",
 
     "examples/trees/regression-tree",
-    "examples/trees/iris-tree",
     "examples/image-evo",
 ]
 default-members = [
@@ -62,6 +59,7 @@ homepage = "https://pkalivas.github.io/radiate/"
 [workspace.dependencies]
 rand = "0.9.1"
 pyo3 = "0.25.1"
+rayon = "1.10.0"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = { version = "1.0" }
 radiate = { version = "1.2.13", path = "crates/radiate", default-features = false }
@@ -72,3 +70,4 @@ radiate-engines = { version = "1.2.13", path = "crates/radiate-engines", default
 radiate-gp = { version = "1.2.13", path = "crates/radiate-gp", default-features = false }
 radiate-error = { version = "1.2.13", path = "crates/radiate-error", default-features = false }
 radiate-python = { version = "1.2.13", path = "crates/radiate-python", default-features = false }
+

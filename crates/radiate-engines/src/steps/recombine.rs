@@ -1,6 +1,6 @@
 use radiate_core::{
     Alter, Chromosome, Ecosystem, MetricSet, Objective, Optimize, Population, Select,
-    engine::EngineStep,
+    engine::EngineStep, labels,
 };
 use std::sync::Arc;
 
@@ -19,13 +19,25 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
         population: &Ecosystem<C>,
         metrics: &mut MetricSet,
     ) -> Population<C> {
-        Self::select(
+        let selected = Self::select(
             self.survivor_count,
             &population.population,
             &self.objective,
             metrics,
             &self.survivor_selector,
-        )
+        );
+
+        let name = self.survivor_selector.name();
+        metrics.add_labels(
+            name,
+            labels![
+                "operator" => "selector",
+                "type" => "survivor",
+                "method" => name,
+            ],
+        );
+
+        selected
     }
 
     pub fn select_offspring(
@@ -34,13 +46,25 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
         population: &Population<C>,
         metrics: &mut MetricSet,
     ) -> Population<C> {
-        Self::select(
+        let selected = Self::select(
             count,
             &population,
             &self.objective,
             metrics,
             &self.offspring_selector,
-        )
+        );
+
+        let name = self.offspring_selector.name();
+        metrics.add_labels(
+            name,
+            labels![
+                "operator" => "selector",
+                "type" => "offspring",
+                "method" => name,
+            ],
+        );
+
+        selected
     }
 
     pub fn create_offspring(
@@ -98,7 +122,16 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
         let timer = std::time::Instant::now();
         let selected = selector.select(population, objective, count);
 
-        metrics.upsert_operations(selector.name(), selected.len() as f32, timer.elapsed());
+        metrics.upsert(selector.name(), (selected.len(), timer.elapsed()));
+        metrics.upsert(
+            selector.name(),
+            selected
+                .iter()
+                .map(|p| *p.id() as f32)
+                .collect::<Vec<_>>()
+                .as_slice(),
+        );
+
         selected
     }
 
@@ -112,7 +145,7 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
             alt.alter(offspring, generation)
                 .into_iter()
                 .for_each(|metric| {
-                    metrics.upsert(metric);
+                    metrics.add_or_update(metric);
                 });
         });
     }

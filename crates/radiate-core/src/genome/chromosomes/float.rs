@@ -54,6 +54,10 @@ impl FloatGene {
             bounds: MIN.max(bounds.start)..MAX.min(bounds.end),
         }
     }
+
+    pub fn bounds(&self) -> &Range<f32> {
+        &self.bounds
+    }
 }
 
 /// Implement the [`Valid`] trait for the [`FloatGene`].

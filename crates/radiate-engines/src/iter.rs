@@ -6,7 +6,7 @@ pub struct EngineIterator<C, T, E>
 where
     C: Chromosome,
     T: Clone + Send + Sync + 'static,
-    E: Epoch,
+    E: Epoch<C>,
 {
     pub(crate) engine: GeneticEngine<C, T, E>,
 }
@@ -15,7 +15,7 @@ impl<C, T, E> Iterator for EngineIterator<C, T, E>
 where
     C: Chromosome,
     T: Clone + Send + Sync + 'static,
-    E: Epoch<Chromosome = C> + for<'a> From<&'a Context<C, T>>,
+    E: Epoch<C> + for<'a> From<&'a Context<C, T>>,
 {
     type Item = E;
 
@@ -29,7 +29,7 @@ where
     I: Iterator<Item = E>,
     C: Chromosome,
     T: Clone,
-    E: Epoch<Chromosome = C> + for<'a> From<&'a Context<C, T>>,
+    E: Epoch<C> + for<'a> From<&'a Context<C, T>>,
 {
 }
 
@@ -37,7 +37,7 @@ pub trait EngineIteratorExt<C, T, E>: Iterator<Item = E>
 where
     C: Chromosome,
     T: Clone,
-    E: Epoch<Chromosome = C>,
+    E: Epoch<C>,
 {
     fn until_seconds(self, limit: f64) -> impl Iterator<Item = E>
     where
@@ -106,7 +106,7 @@ struct ConverganceIterator<I, C, E>
 where
     I: Iterator<Item = E>,
     C: Chromosome,
-    E: Epoch<Chromosome = C>,
+    E: Epoch<C>,
 {
     iter: I,
     history: VecDeque<f32>,
@@ -120,7 +120,7 @@ impl<I, C, E> Iterator for ConverganceIterator<I, C, E>
 where
     I: Iterator<Item = E>,
     C: Chromosome,
-    E: Scored + Epoch<Chromosome = C>,
+    E: Scored + Epoch<C>,
 {
     type Item = E;
 

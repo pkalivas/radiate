@@ -168,11 +168,8 @@ where
         ecosystem.species_mut().unwrap().retain(|s| s.len() > 0);
         let after_species = ecosystem.species().unwrap().len();
 
-        metrics.upsert_distribution(metric_names::SPECIES_DISTANCE_DIST, &distances);
-        metrics.upsert_value(
-            metric_names::SPECIES_DIED,
-            (before_species - after_species) as f32,
-        );
+        metrics.upsert(metric_names::SPECIES_DISTANCE_DIST, &*distances);
+        metrics.upsert(metric_names::SPECIES_DIED, before_species - after_species);
 
         ecosystem.fitness_share(&self.objective);
     }
