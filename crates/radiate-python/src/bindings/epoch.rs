@@ -109,6 +109,7 @@ where
                 .unwrap(),
             value: PyGraph {
                 inner: self.value().clone(),
+                eval_cache: None,
             }
             .into_py_any(py)
             .unwrap(),

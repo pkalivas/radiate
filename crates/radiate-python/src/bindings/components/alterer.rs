@@ -56,22 +56,22 @@ impl PyAlterer {
         Ok(self.allowed_genes.clone())
     }
 
-    pub fn is_valid_for_gene(&self, gene_type: &str) -> bool {
-        self.allowed_genes.iter().any(|g| g.name() == gene_type)
+    pub fn is_valid_for_gene(&self, gene_type: PyGeneType) -> bool {
+        self.allowed_genes.iter().any(|g| g == &gene_type)
     }
 
     pub fn alter<'py>(&self, py: Python<'py>, population: PyPopulation) -> PyResult<PyPopulation> {
-        if population.gene_type() == String::from("FloatGene") {
+        if population.gene_type() == PyGeneType::Float {
             return alter_population::<FloatChromosome>(py, vec![self.clone()], population);
-        } else if population.gene_type() == String::from("IntGene") {
+        } else if population.gene_type() == PyGeneType::Int {
             return alter_population::<IntChromosome<i32>>(py, vec![self.clone()], population);
-        } else if population.gene_type() == String::from("BitGene") {
+        } else if population.gene_type() == PyGeneType::Bit {
             return alter_population::<BitChromosome>(py, vec![self.clone()], population);
-        } else if population.gene_type() == String::from("CharGene") {
+        } else if population.gene_type() == PyGeneType::Char {
             return alter_population::<CharChromosome>(py, vec![self.clone()], population);
         } else {
             return Err(PyValueError::new_err(format!(
-                "Unsupported gene type: {}",
+                "Unsupported gene type: {:?}",
                 population.gene_type()
             )));
         }
@@ -446,9 +446,9 @@ where
     PyPopulation: From<Population<C>>,
 {
     for alter in alters.iter() {
-        if !alter.is_valid_for_gene(population.gene_type().as_str()) {
+        if !alter.is_valid_for_gene(population.gene_type()) {
             return Err(PyValueError::new_err(format!(
-                "Alterer '{}' does not support gene type '{}'",
+                "Alterer '{}' does not support gene type '{:?}'",
                 alter.name(),
                 population.gene_type()
             )));

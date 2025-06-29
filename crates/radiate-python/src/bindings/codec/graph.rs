@@ -1,6 +1,6 @@
 use crate::{IntoPyObjectValue, ObjectValue, PyGenotype, conversion::Wrap};
 use pyo3::{IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
-use radiate::{Codec, Eval, Graph, GraphCodec, NodeType, Op};
+use radiate::{Codec, EvalMut, Graph, GraphCodec, GraphEvaluator, NodeType, Op};
 use std::collections::HashMap;
 
 const INPUT_NODE_TYPE: &str = "input";
@@ -20,10 +20,11 @@ impl PyGraphCodec {
         PyGenotype::from(self.codec.encode())
     }
 
-    #[staticmethod]
-    #[pyo3(signature = (input_size=1, output_size=1, ops=None))]
-    pub fn directed<'py>(
+    #[new]
+    #[pyo3(signature = (graph_type=None, input_size=1, output_size=1, ops=None))]
+    pub fn new<'py>(
         py: Python<'py>,
+        graph_type: Option<&'py str>,
         input_size: usize,
         output_size: usize,
         ops: Option<HashMap<String, Vec<Py<PyAny>>>>,
@@ -53,15 +54,24 @@ impl PyGraphCodec {
             }
         }
 
-        let codec = GraphCodec::directed(input_size, output_size, values);
-        PyGraphCodec { codec }
+        Self {
+            codec: match graph_type {
+                Some("recurrent") => GraphCodec::recurrent(input_size, output_size, values),
+                _ => GraphCodec::directed(input_size, output_size, values),
+            },
+        }
     }
 }
 
 impl IntoPyObjectValue for Graph<Op<f32>> {
     fn into_py(self) -> ObjectValue {
         Python::with_gil(|py| ObjectValue {
-            inner: PyGraph { inner: self }.into_py_any(py).unwrap(),
+            inner: PyGraph {
+                inner: self,
+                eval_cache: None,
+            }
+            .into_py_any(py)
+            .unwrap(),
         })
     }
 }
@@ -70,6 +80,7 @@ impl IntoPyObjectValue for Graph<Op<f32>> {
 #[derive(Clone)]
 pub struct PyGraph {
     pub inner: Graph<Op<f32>>,
+    pub eval_cache: Option<(Vec<f32>, Vec<f32>)>,
 }
 
 #[pymethods]
@@ -95,7 +106,23 @@ impl PyGraph {
     }
 
     pub fn eval(&mut self, inputs: Vec<Vec<f32>>) -> PyResult<Vec<Vec<f32>>> {
-        let outputs = self.inner.eval(&inputs);
+        if let Some(cache) = &self.eval_cache {
+            let mut evaluator = GraphEvaluator::from((&self.inner, cache.clone()));
+            let outputs = inputs
+                .into_iter()
+                .map(|input| evaluator.eval_mut(&input))
+                .collect::<Vec<Vec<f32>>>();
+
+            self.eval_cache = Some(evaluator.cache());
+            return Ok(outputs);
+        }
+
+        let mut evaluator = GraphEvaluator::new(&self.inner);
+        let outputs = inputs
+            .into_iter()
+            .map(|input| evaluator.eval_mut(&input))
+            .collect::<Vec<Vec<f32>>>();
+        self.eval_cache = Some(evaluator.cache());
         Ok(outputs)
     }
 

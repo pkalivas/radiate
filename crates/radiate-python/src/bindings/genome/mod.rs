@@ -74,6 +74,7 @@ impl PyChromosomeType {
 #[pyclass]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum PyGeneType {
+    Empty,
     Int,
     Float,
     Bit,
@@ -85,6 +86,7 @@ pub enum PyGeneType {
 impl PyGeneType {
     pub fn name(&self) -> String {
         match self {
+            PyGeneType::Empty => "NONE".into(),
             PyGeneType::Int => INT_GENE_TYPE.into(),
             PyGeneType::Float => FLOAT_GENE_TYPE.into(),
             PyGeneType::Bit => BIT_GENE_TYPE.into(),
@@ -95,6 +97,7 @@ impl PyGeneType {
 
     pub fn __repr__(&self) -> String {
         match self {
+            PyGeneType::Empty => "NONE".into(),
             PyGeneType::Int => INT_GENE_TYPE.into(),
             PyGeneType::Float => FLOAT_GENE_TYPE.into(),
             PyGeneType::Bit => BIT_GENE_TYPE.into(),
@@ -109,11 +112,12 @@ impl PyGeneType {
 
     pub fn __hash__(&self) -> usize {
         match self {
-            PyGeneType::Int => 0,
-            PyGeneType::Float => 1,
-            PyGeneType::Bit => 2,
-            PyGeneType::Char => 3,
-            PyGeneType::Graph => 4,
+            PyGeneType::Empty => 0,
+            PyGeneType::Int => 1,
+            PyGeneType::Float => 2,
+            PyGeneType::Bit => 3,
+            PyGeneType::Char => 4,
+            PyGeneType::Graph => 5,
         }
     }
 

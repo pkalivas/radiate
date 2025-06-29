@@ -136,14 +136,30 @@ class SwapMutator(AlterBase):
     def __init__(self, rate: float = 0.1):
         super().__init__(PyAlterer.swap_mutator(rate=rate))
 
+
 class GraphMutator(AlterBase):
-    def __init__(self, vertex_rate: float = 0.1, edge_rate: float = 0.1, allow_recurrent: bool = False):
-        super().__init__(PyAlterer.graph_mutator(vertex_rate=vertex_rate, edge_rate=edge_rate, allow_recurrent=allow_recurrent))
+    def __init__(
+        self,
+        vertex_rate: float = 0.1,
+        edge_rate: float = 0.1,
+        allow_recurrent: bool = False,
+    ):
+        super().__init__(
+            PyAlterer.graph_mutator(
+                vertex_rate=vertex_rate,
+                edge_rate=edge_rate,
+                allow_recurrent=allow_recurrent,
+            )
+        )
+
 
 class OperationMutator(AlterBase):
     def __init__(self, rate: float = 0.1, replace_rate: float = 0.1):
         super().__init__(PyAlterer.op_mutator(rate=rate, replace_rate=replace_rate))
 
+
 class GraphCrossover(AlterBase):
     def __init__(self, rate: float = 0.5, parent_node_rate: float = 0.5):
-        super().__init__(PyAlterer.graph_crossover(rate=rate, parent_node_rate=parent_node_rate))
+        super().__init__(
+            PyAlterer.graph_crossover(rate=rate, parent_node_rate=parent_node_rate)
+        )

@@ -103,6 +103,7 @@ class NSGA2Selector(SelectorBase):
         selector = PySelector.nsga2_selector()
         super().__init__(selector)
 
+
 class TournamentNSGA2Selector(SelectorBase):
     def __init__(self, k: int = 3):
         """
@@ -111,6 +112,7 @@ class TournamentNSGA2Selector(SelectorBase):
         """
         selector = PySelector.tournament_nsga2_selector(tournament_size=k)
         super().__init__(selector)
+
 
 class SteadyStateSelector(SelectorBase):
     def __init__(self, replacement_count: int = 10):

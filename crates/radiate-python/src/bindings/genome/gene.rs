@@ -1,13 +1,11 @@
-use crate::conversion::Wrap;
-use pyo3::{
-    Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyErr, PyResult, Python, pyclass, pymethods,
-    types::{PyDict, PyDictMethods, PyString},
-};
+use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods, types::PyString};
 use radiate::{
-    ArithmeticGene, BitChromosome, BitGene, CharChromosome, CharGene, Chromosome, FloatChromosome,
-    FloatGene, Gene, Genotype, GraphChromosome, GraphNode, IntChromosome, IntGene, Op, Phenotype,
-    Population, random_provider,
+    BitChromosome, BitGene, CharChromosome, CharGene, Chromosome, FloatChromosome, FloatGene, Gene,
+    Genotype, GraphChromosome, GraphNode, IntChromosome, IntGene, Op, Phenotype, Population,
+    random_provider,
 };
+
+use crate::PyGeneType;
 
 #[pyclass]
 #[derive(Clone, Debug)]
@@ -44,9 +42,9 @@ impl PyPopulation {
         self.phenotypes.len()
     }
 
-    pub fn gene_type(&self) -> String {
+    pub fn gene_type(&self) -> PyGeneType {
         if self.phenotypes.is_empty() {
-            "EmptyPopulation".to_string()
+            PyGeneType::Empty
         } else {
             self.phenotypes[0].gene_type()
         }
@@ -91,9 +89,9 @@ impl PyPhenotype {
         self.__repr__(py)
     }
 
-    pub fn gene_type(&self) -> String {
+    pub fn gene_type(&self) -> PyGeneType {
         if self.genotype.chromosomes.is_empty() {
-            "EmptyPhenotype".to_string()
+            PyGeneType::Empty
         } else {
             self.genotype.gene_type()
         }
@@ -131,9 +129,9 @@ impl PyGenotype {
         self.__repr__(py)
     }
 
-    pub fn gene_type(&self) -> String {
+    pub fn gene_type(&self) -> PyGeneType {
         if self.chromosomes.is_empty() {
-            "EmptyGenotype".to_string()
+            PyGeneType::Empty
         } else {
             self.chromosomes[0].gene_type()
         }
@@ -187,9 +185,9 @@ impl PyChromosome {
         self.genes.iter().zip(&other.genes).all(|(a, b)| a == b)
     }
 
-    pub fn gene_type(&self) -> String {
+    pub fn gene_type(&self) -> PyGeneType {
         if self.genes.is_empty() {
-            "EmptyChromosome".to_string()
+            PyGeneType::Empty
         } else {
             self.genes[0].gene_type()
         }
@@ -214,13 +212,13 @@ pub struct PyGene {
 
 #[pymethods]
 impl PyGene {
-    pub fn gene_type(&self) -> String {
+    pub fn gene_type(&self) -> PyGeneType {
         match &self.inner {
-            GeneInner::Float(_) => "FloatGene".to_string(),
-            GeneInner::Int(_) => "IntGene".to_string(),
-            GeneInner::Bit(_) => "BitGene".to_string(),
-            GeneInner::Char(_) => "CharGene".to_string(),
-            GeneInner::GraphNode(_) => "GraphNode".to_string(),
+            GeneInner::Float(_) => PyGeneType::Float,
+            GeneInner::Int(_) => PyGeneType::Int,
+            GeneInner::Bit(_) => PyGeneType::Bit,
+            GeneInner::Char(_) => PyGeneType::Char,
+            GeneInner::GraphNode(_) => PyGeneType::Graph,
         }
     }
 
@@ -230,7 +228,7 @@ impl PyGene {
             GeneInner::Int(gene) => gene.allele().into_bound_py_any(py),
             GeneInner::Bit(gene) => gene.allele().into_bound_py_any(py),
             GeneInner::Char(gene) => gene.allele().into_bound_py_any(py),
-            GeneInner::GraphNode(_) => panic!("GraphNode allele access not implemented"),
+            GeneInner::GraphNode(gene) => gene.allele().name().into_bound_py_any(py),
         }
     }
 
@@ -515,134 +513,3 @@ impl_into_py_population!(IntChromosome<i32>);
 impl_into_py_population!(BitChromosome);
 impl_into_py_population!(CharChromosome);
 impl_into_py_population!(GraphChromosome<Op<f32>>);
-
-// #[pyclass(unsendable)]
-// pub struct PyGeneTemp {
-//     type_name: String,
-//     allele: PyAny,
-//     args: PyDict,
-// }
-
-impl<'py> IntoPyObject<'py> for Wrap<FloatGene> {
-    type Target = PyAny;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        let gene = self.0;
-
-        let min_value = gene.min();
-        let max_value = gene.max();
-        let bounds = gene.bounds();
-
-        let dict = PyDict::new(py);
-        dict.set_item("type", "FloatGene")?;
-        dict.set_item("allele", gene.allele())?;
-        dict.set_item("value_range", (min_value, max_value))?;
-        dict.set_item("bound_range", (bounds.start, bounds.end))?;
-
-        Ok(dict.into_any())
-    }
-}
-
-impl<'py> IntoPyObject<'py> for Wrap<FloatChromosome> {
-    type Target = PyAny;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        let chromosome = self.0;
-
-        let genes = chromosome
-            .genes()
-            .iter()
-            .map(|gene| Wrap(gene.clone()).into_pyobject(py))
-            .collect::<Result<Vec<_>, _>>()?;
-
-        let dict = PyDict::new(py);
-        dict.set_item("type", "FloatChromosome")?;
-        dict.set_item("genes", genes)?;
-
-        Ok(dict.into_any())
-    }
-}
-
-impl<'py, C> IntoPyObject<'py> for Wrap<Genotype<C>>
-where
-    C: Chromosome + Clone,
-    Wrap<C>: IntoPyObject<'py, Target = PyAny, Output = Bound<'py, PyAny>, Error = PyErr>,
-{
-    type Target = PyAny;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        let genotype = self.0;
-
-        let chromosomes = genotype
-            .into_iter()
-            .map(|chromosome| Wrap(chromosome).into_pyobject(py))
-            .collect::<Result<Vec<_>, _>>()?;
-
-        let dict = PyDict::new(py);
-
-        dict.set_item("type", "Genotype")?;
-        dict.set_item("chromosomes", chromosomes)?;
-
-        Ok(dict.into_any())
-    }
-}
-
-impl<'py, C> IntoPyObject<'py> for Wrap<Phenotype<C>>
-where
-    C: Chromosome + Clone,
-    Wrap<C>: IntoPyObject<'py, Target = PyAny, Output = Bound<'py, PyAny>, Error = PyErr>,
-{
-    type Target = PyAny;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        let phenotype = self.0;
-
-        let genotype: Wrap<Genotype<C>> = Wrap(phenotype.genotype().clone());
-        let genotype_py = genotype.into_pyobject(py)?;
-        let score = phenotype
-            .score()
-            .map(|s| s.as_ref().to_vec())
-            .unwrap_or_default();
-
-        let dict = PyDict::new(py);
-        dict.set_item("type", "Phenotype")?;
-        dict.set_item("genotype", genotype_py)?;
-        dict.set_item("score", score)?;
-        dict.set_item("id", *phenotype.id())?;
-
-        Ok(dict.into_any())
-    }
-}
-
-impl<'py, C> IntoPyObject<'py> for Wrap<Population<C>>
-where
-    C: Chromosome + Clone,
-    Wrap<C>: IntoPyObject<'py, Target = PyAny, Output = Bound<'py, PyAny>, Error = PyErr>,
-{
-    type Target = PyAny;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        let population = self.0;
-
-        let phenotypes = population
-            .into_iter()
-            .map(|phenotype| Wrap(phenotype).into_pyobject(py))
-            .collect::<Result<Vec<_>, _>>()?;
-
-        let dict = PyDict::new(py);
-        dict.set_item("type", "Population")?;
-        dict.set_item("phenotypes", phenotypes)?;
-
-        Ok(dict.into_any())
-    }
-}

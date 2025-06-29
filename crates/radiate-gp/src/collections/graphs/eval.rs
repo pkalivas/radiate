@@ -58,6 +58,10 @@ where
             input_ranges,
         }
     }
+
+    pub fn cache(self) -> (Vec<V>, Vec<V>) {
+        (self.inputs, self.outputs)
+    }
 }
 
 /// Implements the `EvalMut` trait for [GraphEvaluator].
@@ -141,6 +145,52 @@ where
     #[inline]
     fn eval(&self, inputs: &[V]) -> V {
         self.value().eval(inputs)
+    }
+}
+
+impl<'a, G, T, V> From<(&'a G, (Vec<V>, Vec<V>))> for GraphEvaluator<'a, T, V>
+where
+    G: AsRef<[GraphNode<T>]>,
+    T: Eval<[V], V>,
+    V: Default + Clone,
+{
+    fn from((graph, cache): (&'a G, (Vec<V>, Vec<V>))) -> Self {
+        let nodes = graph.as_ref();
+
+        let mut input_ranges = Vec::with_capacity(nodes.len());
+        let mut total_inputs = 0;
+
+        for node in nodes {
+            let input_len = node.incoming().len();
+            input_ranges.push(total_inputs..total_inputs + input_len);
+            total_inputs += input_len;
+        }
+
+        let output_size = nodes
+            .iter()
+            .filter(|node| node.node_type() == NodeType::Output)
+            .count();
+
+        let inputs = if total_inputs == cache.0.len() {
+            cache.0
+        } else {
+            vec![V::default(); total_inputs]
+        };
+
+        let outputs = if nodes.len() == cache.1.len() {
+            cache.1
+        } else {
+            vec![V::default(); output_size]
+        };
+
+        GraphEvaluator {
+            nodes,
+            inputs,
+            output_outs: vec![V::default(); output_size],
+            eval_order: nodes.iter_topological().map(|node| node.index()).collect(),
+            outputs,
+            input_ranges,
+        }
     }
 }
 

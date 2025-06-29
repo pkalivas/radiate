@@ -190,6 +190,11 @@ impl<'py> FromPyObject<'py> for Wrap<EngineInner> {
                         ));
                     }
                 }
+                _ => {
+                    return Err(PyErr::new::<PyTypeError, _>(
+                        "Unsupported gene type for Custom problem",
+                    ));
+                }
             }
         } else if problem.name() == "Regression" {
             let features = problem
@@ -367,7 +372,6 @@ where
         .extract::<Vec<PySubscriber>>()?;
 
     let executor = params.get_item(EXECUTOR)?.extract::<Wrap<Executor>>()?.0;
-    // let problem = PyProblem::new(fitness_fn, codec);
 
     let mut builder = GeneticEngine::builder()
         .problem(problem.clone())

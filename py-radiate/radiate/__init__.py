@@ -12,6 +12,7 @@ from .problem import ProblemBase, Regression
 from .diversity import (
     HammingDistance,
     EuclideanDistance,
+    NeatDistance
 )
 
 from .selector import (
@@ -52,6 +53,7 @@ __all__ = [
     "GraphMutator",
     "OperationMutator",
     "GraphCrossover",
+    "NeatDistance",
     "GraphCodec",
     "ProblemBase",
     "Regression",

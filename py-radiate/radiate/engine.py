@@ -113,6 +113,14 @@ class GeneticEngine:
                 raise ValueError(
                     "At least one limit must be provided to run the engine."
                 )
+            
+        gene_type = self.builder.get_gene_type()
+
+        for alter in self.builder.get_alters():
+            if alter.is_valid_for_gene(gene_type) is False:
+                raise ValueError(
+                    f"Alterer {alter} does not support gene type {gene_type}."
+                )
 
         self.engine = self.builder.build()
         return Generation(self.engine.run(log=log))

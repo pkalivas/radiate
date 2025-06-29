@@ -9,16 +9,27 @@ sys.path.insert(0, project_root)
 
 import radiate as rd
 
-rd.random.set_seed(100)
+rd.random.set_seed(1000)
 
 
 class TestHandler(rd.EventHandler):
     def __init__(self):
-        super().__init__(rd.EventType.EPOCH_COMPLETE)
+        super().__init__()
+        self.scores = []
 
     def on_event(self, event):
-        print(event["score"])
-        # print(event['metrics']['Fitness']['value_min'])
+        if event["type"] == "epoch_complete":
+            # self.scores.append(event["score"])
+            self.scores.append(event['metrics']['Score']['value_last'])
+        elif event["type"] == "stop":
+            plt.plot(self.scores)
+            plt.xlabel("Generation")
+            plt.ylabel("Best Fitness")
+            plt.title("Fitness over Generations")
+            plt.show()
+        elif event["type"] == "engine_improvement":
+            print(f"New best score: {event}")
+        
 
 
 # engine = rd.GeneticEngine(
@@ -61,10 +72,12 @@ def get_dataset():
 
 inputs, answers = get_dataset()
 
+# inputs = [[0.0], [0.0], [0.0], [1.0], [0.0], [0.0], [0.0]]
+# answers = [[0.0], [0.0], [1.0], [0.0], [0.0], [0.0], [1.0]]
+
 codec = rd.GraphCodec.directed(
-    input_size=1,
-    output_size=1,
-    vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
+    shape=(1, 1),
+    vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
     edge=rd.Op.weight(),
     output=rd.Op.linear(),
 )
@@ -73,10 +86,12 @@ engine = rd.GeneticEngine(
     codec=codec,
     problem=rd.Regression(inputs, answers),
     objectives="min",
+    subscribe=TestHandler(),
     alters=[
         rd.GraphCrossover(0.5, 0.5),
         rd.OperationMutator(0.07, 0.05),
         rd.GraphMutator(0.1, 0.1),
+        
     ],
 )
 
@@ -84,11 +99,14 @@ result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)], log=True)
 
 print(result.value())
 
+for input, target in zip(inputs, answers):
+    print(f"Input: {round(input[0], 2)}, Target: {round(target[0], 2)}, Output: {round(result.value().eval([input])[0][0], 2)}")
+
 # print(result.value().eval([[0.5], [0.25], [0.75], [0.1], [0.9]]))
 
 # save the value to json
-with open("best_graph.json", "w") as f:
-    f.write(result.value().to_json())
+# with open("best_graph.json", "w") as f:
+#     f.write(result.value().to_json())
 
 # for member in result.population():
 #     print(member.score())

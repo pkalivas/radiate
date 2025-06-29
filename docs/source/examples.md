@@ -391,9 +391,35 @@ Evolve a `Graph<Op<f32>>` to solve the XOR problem (NeuroEvolution).
 
 === ":fontawesome-brands-python: Python"
 
-    !!! warning ":construction: Under Construction :construction:"
+    ```python
+    import radiate as rd
 
-        Python's gp feature is still under development and not yet available.
+    inputs = [[0.0, 0.0], [1.0, 1.0], [1.0, 0.0], [0.0, 1.0]]
+    answers = [[0.0], [0.0], [1.0], [1.0]]
+
+    codec = rd.GraphCodec.directed(
+        shape=(2, 1),
+        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
+        edge=rd.Op.weight(),
+        output=rd.Op.linear(),
+    )
+
+    engine = rd.GeneticEngine(
+        codec=codec,
+        problem=rd.Regression(inputs, answers, loss='mse'),
+        objectives="min",
+        alters=[
+            rd.GraphCrossover(0.5, 0.5),
+            rd.OperationMutator(0.07, 0.05),
+            rd.GraphMutator(0.1, 0.1),
+        ],
+    )
+
+    result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)], log=True)
+
+    for input, target in zip(inputs, answers):
+        print(f"Input: {input}, Target: {target}, Output: {result.value().eval([input])}")
+    ```
 
 === ":fontawesome-brands-rust: Rust"
 

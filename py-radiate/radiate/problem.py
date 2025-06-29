@@ -24,22 +24,3 @@ class Regression(ProblemBase):
         super().__init__(
             PyProblemBuilder.regression(features=features, targets=targets, loss=loss)
         )
-
-    # def evaluate(self, genotype: "Genotype") -> float:
-    #     """
-    #     Evaluates the fitness of a given genotype using Mean Squared Error (MSE).
-
-    #     :param genotype: An instance of Genotype to be evaluated.
-    #     :return: The Mean Squared Error (MSE) of the genotype on the provided data.
-    #     """
-    #     # Decode the genotype to obtain the model parameters
-    #     model = self.codec.decode(genotype)
-
-    #     # Calculate Mean Squared Error (MSE)
-    #     mse = 0.0
-    #     for inputs, target in self.data:
-    #         prediction = model.predict(inputs)
-    #         mse += (prediction - target) ** 2
-    #     mse /= len(self.data)
-
-    #     return mse
