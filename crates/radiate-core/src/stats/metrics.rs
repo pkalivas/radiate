@@ -180,6 +180,50 @@ const TIME_METRIC: &str = "time";
 const DISTRIBUTION_METRIC: &str = "distribution";
 const OPERATIONS_METRIC: &str = "operations";
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct MetricLabel {
+    pub key: &'static str,
+    pub value: String,
+}
+
+impl MetricLabel {
+    pub fn new(key: &'static str, value: impl Into<String>) -> Self {
+        Self {
+            key,
+            value: value.into(),
+        }
+    }
+}
+
+// Convenience macro for creating labels
+#[macro_export]
+macro_rules! labels {
+    ($($key:expr => $value:expr),* $(,)?) => {
+        vec![
+            $(
+                MetricLabel::new($key, $value)
+            ),*
+        ]
+    };
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MetricKind {
+    Statistic,
+    Timing,
+    Distribution,
+}
+
+#[derive(Clone, PartialEq)]
+struct MetricInner {
+    name: &'static str,
+    kind: MetricKind,
+    value_statistic: Option<Statistic>,
+    time_statistic: Option<TimeStatistic>,
+    distribution: Option<Distribution>,
+    labels: Option<Vec<MetricLabel>>,
+}
+
 #[derive(Clone, PartialEq)]
 pub enum Metric {
     Value(&'static str, Statistic, Distribution),

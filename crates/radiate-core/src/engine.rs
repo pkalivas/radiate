@@ -95,11 +95,16 @@ where
     pub best: T,
     pub index: usize,
     pub metrics: MetricSet,
-    pub engine_metrics: MetricSet,
     pub score: Option<Score>,
     pub front: Arc<RwLock<Front<Phenotype<C>>>>,
     pub objective: Objective,
     pub problem: Arc<dyn Problem<C, T>>,
+}
+
+impl<C: Chromosome, T> Context<C, T> {
+    pub fn upsert_time(&mut self, name: &'static str, value: Duration) {
+        self.metrics.upsert_time(name, value);
+    }
 }
 
 impl<C, T> Clone for Context<C, T>
@@ -113,7 +118,6 @@ where
             best: self.best.clone(),
             index: self.index,
             metrics: self.metrics.clone(),
-            engine_metrics: self.engine_metrics.clone(),
             score: self.score.clone(),
             front: self.front.clone(),
             objective: self.objective.clone(),
