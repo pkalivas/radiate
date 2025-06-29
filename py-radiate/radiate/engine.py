@@ -12,10 +12,7 @@ from .executor import Executor
 from .problem import ProblemBase
 from .radiate import (
     PyEngineBuilder,
-    PyObjective,
     PySubscriber,
-    PyExecutor,
-    PySelector,
     PyAlterer,
     PyDiversity,
     PyProblemBuilder,
@@ -171,34 +168,7 @@ class GeneticEngine:
         ).py_input() for lim in limits]
 
         engine = builder.build()
-
-        result = engine.run(limit_inputs, log)
-        print(result)
-        print(engine)
-        # engine.run(limit_inputs)
-
-        # engine.build()
-
-        raise NotImplementedError("The run method is not yet implemented.")
-        # if limits is not None:
-        #     self.limits(limits)
-        # else:
-        #     limits = self.builder.get_limits()
-        #     if not limits or len(limits) == 0:
-        #         raise ValueError(
-        #             "At least one limit must be provided to run the engine."
-        #         )
-            
-        # gene_type = self.builder.get_gene_type()
-
-        # for alter in self.builder.get_alters():
-        #     if alter.is_valid_for_gene(gene_type) is False:
-        #         raise ValueError(
-        #             f"Alterer {alter} does not support gene type {gene_type}."
-        #         )
-
-        # self.engine = self.builder.build()
-        # return Generation(self.engine.run(log=log))
+        return Generation(engine.run(limit_inputs, log))
 
     def population_size(self, size: int):
         """Set the population size.
@@ -332,7 +302,8 @@ class GeneticEngine:
         ---------
         >>> engine.minimizing()
         """
-        self.builder.set_objective(PyObjective.min())
+        # self.builder.set_objective(PyObjective.min())
+        raise NotImplementedError("Minimizing is not implemented yet.")
 
     def maximizing(self):
         """Set the objectives to maximize.
@@ -341,7 +312,7 @@ class GeneticEngine:
         ---------
         >>> engine.maximizing()
         """
-        self.builder.set_objective(PyObjective.max())
+        raise NotImplementedError("Maximizing is not implemented yet.")
 
     def multi_objective(
         self, objectives: List[str], front_range: Tuple[int, int] | None = None
@@ -362,8 +333,10 @@ class GeneticEngine:
         ):
             raise ValueError("Objectives must be a list of 'min' or 'max'.")
 
-        self.builder.set_objective(get_objectives(objectives))
-        self.builder.set_front_range(get_front_range(front_range))
+        # self.builder.set_objective(get_objectives(objectives))
+        # self.builder.set_front_range(get_front_range(front_range))
+
+        raise NotImplementedError("Multi-objective is not implemented yet.")
 
     def executor(self, executor: Executor):
         """Set the executor.
@@ -411,12 +384,12 @@ def get_problem(
     raise TypeError("Problem must be an instance of ProblemBase.")
 
 
-def get_executor(executor: Executor | None) -> PyExecutor:
+def get_executor(executor: Executor | None) -> Executor:
     """Get the executor."""
     if executor is None:
-        return Executor.Serial().executor
+        return Executor.Serial()
     if isinstance(executor, Executor):
-        return executor.executor
+        return executor
     raise TypeError("Executor must be an instance of Executor.")
 
 
@@ -470,20 +443,20 @@ def get_front_range(front_range: Tuple[int, int] | None) -> Tuple[int, int]:
     return front_range
 
 
-def get_objectives(objectives: str | List[str]) -> PyObjective:
-    """Get the objectives."""
-    if objectives is None:
-        raise ValueError("Objectives must be provided.")
-    if isinstance(objectives, str):
-        if objectives not in ["min", "max"]:
-            raise ValueError("Objectives must be 'min' or 'max'.")
-        return PyObjective([objectives])
-    if isinstance(objectives, list):
-        for obj in objectives:
-            if obj not in ["min", "max"]:
-                raise ValueError("Objectives must be 'min' or 'max'.")
-        return PyObjective.multi(objectives)
-    raise TypeError(f"Objectives type {type(objectives)} is not supported.")
+# def get_objectives(objectives: str | List[str]) -> PyObjective:
+#     """Get the objectives."""
+#     if objectives is None:
+#         raise ValueError("Objectives must be provided.")
+#     if isinstance(objectives, str):
+#         if objectives not in ["min", "max"]:
+#             raise ValueError("Objectives must be 'min' or 'max'.")
+#         return PyObjective([objectives])
+#     if isinstance(objectives, list):
+#         for obj in objectives:
+#             if obj not in ["min", "max"]:
+#                 raise ValueError("Objectives must be 'min' or 'max'.")
+#         return PyObjective.multi(objectives)
+#     raise TypeError(f"Objectives type {type(objectives)} is not supported.")
 
 
 def get_diversity(

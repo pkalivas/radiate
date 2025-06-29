@@ -17,8 +17,8 @@ pub mod prelude {
 
     pub use super::{IntoPyObjectValue, Object, ObjectValue, PyProblem};
     pub use crate::{
-        PyBitCodec, PyCharCodec, PyExecutor, PyFloatCodec, PyGeneType, PyGraphCodec, PyIntCodec,
-        PyLimit, PyProblemBuilder, conversion::Wrap,
+        PyBitCodec, PyCharCodec, PyFloatCodec, PyGeneType, PyGraphCodec, PyIntCodec,
+        PyProblemBuilder, conversion::Wrap,
     };
     pub use pyo3::prelude::*;
     pub use pyo3::types::PyAny;

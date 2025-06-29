@@ -1,5 +1,4 @@
 from typing import Dict
-from radiate.radiate import PyLimit
 from .component import ComponentBase
 
 class LimitBase(ComponentBase):

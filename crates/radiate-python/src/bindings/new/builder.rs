@@ -386,13 +386,17 @@ impl PyEngineBuilder {
                         .get("num_workers")
                     .and_then(|s| s.parse::<usize>().ok())
                     .unwrap_or(1);
-                Executor::FixedSizedWorkerPool(num_workers)
+                    
+                    Executor::FixedSizedWorkerPool(num_workers)
                 }
                 "WorkerPool" => Executor::WorkerPool,
                 _ => panic!("Executor type {} not yet implemented", input.component),
             };
 
             apply_to_builder!(builder, executor(executor))
+                .and_then(|builder| {
+                    apply_to_builder!(builder, bus_executor(Executor::default()))
+                })
         })
     }
 

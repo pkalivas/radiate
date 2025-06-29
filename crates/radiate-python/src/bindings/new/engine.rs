@@ -29,17 +29,13 @@ impl PyEngine {
             .filter_map(|input| input.into_limit())
             .collect::<Vec<_>>();
 
-        for lim in &limits {
-            println!("Limit: {:?}", lim);
-        }
-
         let engine = self.engine.take().ok_or_else(|| {
             pyo3::exceptions::PyRuntimeError::new_err("Engine has already been run")
         })?;
 
         let result = match engine {
             EngineHandle::Int(eng) => {
-                let output = run_single_objective_engine(eng, limits, true);
+                let output = run_single_objective_engine(eng, limits, log);
                 EpochHandle::Int(output)
             }
             EngineHandle::Float(eng) => {
@@ -59,8 +55,7 @@ impl PyEngine {
             EngineHandle::GraphRegression(_) => panic!("Not implemented yet"),
         };
 
-        let t = PyGeneration::new(result);
-        Ok(t)
+        Ok(PyGeneration::new(result))
     }
 }
 

@@ -20,6 +20,7 @@ pub enum PyEngineInputType {
     FrontRange,
     Codec,
     Executor,
+    Evaluator,
     Problem,
     SpeciesThreshold,
 }
