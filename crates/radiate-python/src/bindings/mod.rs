@@ -18,7 +18,7 @@ pub use codec::{
     PyBitCodec, PyCharCodec, PyCodec, PyFloatCodec, PyGraph, PyGraphCodec, PyIntCodec,
 };
 pub use components::*;
-pub use engine::PyEngine;
+// pub use engine::PyEngine;
 pub use epoch::PyGeneration;
 pub use executor::*;
 pub use genome::{

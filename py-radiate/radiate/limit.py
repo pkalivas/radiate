@@ -1,27 +1,24 @@
+from typing import Dict
 from radiate.radiate import PyLimit
+from .component import ComponentBase
 
-
-class LimitBase:
-    def __init__(self, limit: PyLimit):
-        """
-        Initialize the limit base with a Limit instance.
-        :param limit: An instance of Limit.
-        """
-        self.limit = limit
+class LimitBase(ComponentBase):
+    def __init__(self, component: str, args: Dict[str, str] = {}):
+        super().__init__(component=component, args=args)
 
     def __str__(self):
         """
         Return a string representation of the limit.
         :return: String representation of the limit.
         """
-        return f"Limit(name={self.limit.name}, args={self.limit.args})"
+        return f"Limit(name={self.component}, args={self.args})"
 
     def __repr__(self):
         """
         Return a detailed string representation of the limit.
         :return: Detailed string representation of the limit.
         """
-        return f"LimitBase(limit={self.limit})"
+        return self.__str__()
 
 
 class SecondsLimit(LimitBase):
@@ -34,7 +31,7 @@ class SecondsLimit(LimitBase):
         Initialize the seconds limit.
         :param seconds: Number of seconds to limit the execution time.
         """
-        super().__init__(limit=PyLimit.Seconds(seconds))
+        super().__init__(component="seconds", args={"seconds": seconds})
 
 
 class ScoreLimit(LimitBase):
@@ -47,7 +44,7 @@ class ScoreLimit(LimitBase):
         Initialize the score limit.
         :param score: Score to limit the execution time.
         """
-        super().__init__(limit=PyLimit.Score(score))
+        super().__init__(component="score", args={"score": score})
 
 
 class GenerationsLimit(LimitBase):
@@ -60,4 +57,4 @@ class GenerationsLimit(LimitBase):
         Initialize the generations limit.
         :param generations: Number of generations to limit the execution time.
         """
-        super().__init__(limit=PyLimit.Generation(generations))
+        super().__init__(component="generations", args={"generations": generations})

@@ -9,7 +9,7 @@ sys.path.insert(0, project_root)
 
 import radiate as rd
 
-rd.random.set_seed(1000)
+rd.random.set_seed(500)
 
 
 class TestHandler(rd.EventHandler):

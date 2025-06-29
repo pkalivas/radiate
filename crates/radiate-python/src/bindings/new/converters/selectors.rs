@@ -1,4 +1,4 @@
-use crate::{PyEngineInput, PyEngineInputType};
+use crate::{InputConverter, PyEngineInput, PyEngineInputType};
 use radiate::*;
 
 const TOURNAMENT_SELECTOR: &str = "TournamentSelector";
@@ -11,10 +11,6 @@ const ELITE_SELECTOR: &str = "EliteSelector";
 const RANDOM_SELECTOR: &str = "RandomSelector";
 const NSGA2_SELECTOR: &str = "NSGA2Selector";
 const TOURNAMENT_NSGA2_SELECTOR: &str = "TournamentNSGA2Selector";
-
-pub trait InputConverter<C: Chromosome, O> {
-    fn convert(&self) -> O;
-}
 
 impl<C> InputConverter<C, Box<dyn Select<C>>> for PyEngineInput
 where

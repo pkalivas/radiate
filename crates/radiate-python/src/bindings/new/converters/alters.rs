@@ -1,6 +1,23 @@
 use crate::{InputConverter, PyEngineInput, PyEngineInputType};
 use radiate::*;
 
+const MULTI_POINT_CROSSOVER: &str = "MultiPointCrossover";
+const UNIFORM_CROSSOVER: &str = "UniformCrossover";
+const MEAN_CROSSOVER: &str = "MeanCrossover";
+const INTERMEDIATE_CROSSOVER: &str = "IntermediateCrossover";
+const BLEND_CROSSOVER: &str = "BlendCrossover";
+const SHUFFLE_CROSSOVER: &str = "ShuffleCrossover";
+const SIMULATED_BINARY_CROSSOVER: &str = "SimulatedBinaryCrossover";
+const GRAPH_CROSSOVER: &str = "GraphCrossover";
+
+const UNIFORM_MUTATOR: &str = "UniformMutator";
+const SCRAMBLE_MUTATOR: &str = "ScrambleMutator";
+const SWAP_MUTATOR: &str = "SwapMutator";
+const ARITHMETIC_MUTATOR: &str = "ArithmeticMutator";
+const GAUSSIAN_MUTATOR: &str = "GaussianMutator";
+const GRAPH_MUTATOR: &str = "GraphMutator";
+const OPERATION_MUTATOR: &str = "OperationMutator";
+
 impl<C> InputConverter<C, Vec<Box<dyn Alter<C>>>> for &[&PyEngineInput]
 where
     C: Chromosome + Clone,
@@ -29,14 +46,14 @@ impl InputConverter<IntChromosome<i32>, Vec<Box<dyn Alter<IntChromosome<i32>>>>>
         }
 
         match self.component.as_str() {
-            "MultiPointCrossover" => alters!(convert_multi_point_crossover(&self)),
-            "UniformCrossover" => alters!(convert_uniform_crossover(&self)),
-            "MeanCrossover" => alters!(convert_mean_crossover(&self)),
-            "ShuffleCrossover" => alters!(convert_shuffle_crossover(&self)),
-            "ArithmeticMutator" => alters!(convert_arithmetic_mutator(&self)),
-            "SwapMutator" => alters!(convert_swap_mutator(&self)),
-            "ScrambleMutator" => alters!(convert_scramble_mutator(&self)),
-            "UniformMutator" => alters!(convert_uniform_mutator(&self)),
+            MULTI_POINT_CROSSOVER => alters!(convert_multi_point_crossover(&self)),
+            UNIFORM_CROSSOVER => alters!(convert_uniform_crossover(&self)),
+            MEAN_CROSSOVER => alters!(convert_mean_crossover(&self)),
+            SHUFFLE_CROSSOVER => alters!(convert_shuffle_crossover(&self)),
+            ARITHMETIC_MUTATOR => alters!(convert_arithmetic_mutator(&self)),
+            SWAP_MUTATOR => alters!(convert_swap_mutator(&self)),
+            SCRAMBLE_MUTATOR => alters!(convert_scramble_mutator(&self)),
+            UNIFORM_MUTATOR => alters!(convert_uniform_mutator(&self)),
             _ => panic!("Alterer type {} not yet implemented", self.component),
         }
     }
@@ -49,17 +66,70 @@ impl InputConverter<FloatChromosome, Vec<Box<dyn Alter<FloatChromosome>>>> for P
         }
 
         match self.component.as_str() {
-            "MultiPointCrossover" => alters!(convert_multi_point_crossover(&self)),
-            "UniformCrossover" => alters!(convert_uniform_crossover(&self)),
-            "MeanCrossover" => alters!(convert_mean_crossover(&self)),
-            "IntermediateCrossover" => alters!(convert_intermediate_crossover(&self)),
-            "BlendCrossover" => alters!(convert_blend_crossover(&self)),
-            "SimulatedBinaryCrossover" => alters!(convert_simulated_binary_crossover(&self)),
-            "GaussianMutator" => alters!(convert_gaussian_mutator(&self)),
-            "ArithmeticMutator" => alters!(convert_arithmetic_mutator(&self)),
-            "SwapMutator" => alters!(convert_swap_mutator(&self)),
-            "ScrambleMutator" => alters!(convert_scramble_mutator(&self)),
-            "UniformMutator" => alters!(convert_uniform_mutator(&self)),
+            MULTI_POINT_CROSSOVER => alters!(convert_multi_point_crossover(&self)),
+            UNIFORM_CROSSOVER => alters!(convert_uniform_crossover(&self)),
+            MEAN_CROSSOVER => alters!(convert_mean_crossover(&self)),
+            INTERMEDIATE_CROSSOVER => alters!(convert_intermediate_crossover(&self)),
+            BLEND_CROSSOVER => alters!(convert_blend_crossover(&self)),
+            SIMULATED_BINARY_CROSSOVER => alters!(convert_simulated_binary_crossover(&self)),
+            GAUSSIAN_MUTATOR => alters!(convert_gaussian_mutator(&self)),
+            ARITHMETIC_MUTATOR => alters!(convert_arithmetic_mutator(&self)),
+            SWAP_MUTATOR => alters!(convert_swap_mutator(&self)),
+            SCRAMBLE_MUTATOR => alters!(convert_scramble_mutator(&self)),
+            UNIFORM_MUTATOR => alters!(convert_uniform_mutator(&self)),
+            _ => panic!("Alterer type {} not yet implemented", self.component),
+        }
+    }
+}
+
+impl InputConverter<CharChromosome, Vec<Box<dyn Alter<CharChromosome>>>> for PyEngineInput {
+    fn convert(&self) -> Vec<Box<dyn Alter<CharChromosome>>> {
+        if self.input_type != PyEngineInputType::Alterer {
+            panic!("Input type {:?} not an alterer", self.input_type);
+        }
+
+        match self.component.as_str() {
+            MULTI_POINT_CROSSOVER => alters!(convert_multi_point_crossover(&self)),
+            UNIFORM_CROSSOVER => alters!(convert_uniform_crossover(&self)),
+            SHUFFLE_CROSSOVER => alters!(convert_shuffle_crossover(&self)),
+            SWAP_MUTATOR => alters!(convert_swap_mutator(&self)),
+            SCRAMBLE_MUTATOR => alters!(convert_scramble_mutator(&self)),
+            UNIFORM_MUTATOR => alters!(convert_uniform_mutator(&self)),
+            _ => panic!("Alterer type {} not yet implemented", self.component),
+        }
+    }
+}
+
+impl InputConverter<BitChromosome, Vec<Box<dyn Alter<BitChromosome>>>> for PyEngineInput {
+    fn convert(&self) -> Vec<Box<dyn Alter<BitChromosome>>> {
+        if self.input_type != PyEngineInputType::Alterer {
+            panic!("Input type {:?} not an alterer", self.input_type);
+        }
+
+        match self.component.as_str() {
+            MULTI_POINT_CROSSOVER => alters!(convert_multi_point_crossover(&self)),
+            UNIFORM_CROSSOVER => alters!(convert_uniform_crossover(&self)),
+            SHUFFLE_CROSSOVER => alters!(convert_shuffle_crossover(&self)),
+            SWAP_MUTATOR => alters!(convert_swap_mutator(&self)),
+            SCRAMBLE_MUTATOR => alters!(convert_scramble_mutator(&self)),
+            UNIFORM_MUTATOR => alters!(convert_uniform_mutator(&self)),
+            _ => panic!("Alterer type {} not yet implemented", self.component),
+        }
+    }
+}
+
+impl InputConverter<GraphChromosome<Op<f32>>, Vec<Box<dyn Alter<GraphChromosome<Op<f32>>>>>>
+    for PyEngineInput
+{
+    fn convert(&self) -> Vec<Box<dyn Alter<GraphChromosome<Op<f32>>>>> {
+        if self.input_type != PyEngineInputType::Alterer {
+            panic!("Input type {:?} not an alterer", self.input_type);
+        }
+
+        match self.component.as_str() {
+            GRAPH_CROSSOVER => alters!(convert_graph_crossover(&self)),
+            GRAPH_MUTATOR => alters!(convert_graph_mutator(&self)),
+            OPERATION_MUTATOR => alters!(convert_operation_mutator(&self)),
             _ => panic!("Alterer type {} not yet implemented", self.component),
         }
     }

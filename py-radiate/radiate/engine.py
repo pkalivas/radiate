@@ -19,7 +19,6 @@ from .radiate import (
     PyAlterer,
     PyDiversity,
     PyProblemBuilder,
-    PyEngineBuilderTwo
 )
 from .input import EngineInput, EngineInputType, EngineBuilder
 from .codec import FloatCodec, IntCodec, CharCodec, BitCodec, GraphCodec
@@ -130,7 +129,7 @@ class GeneticEngine:
         return self.builder.__dict__()
 
     def run(
-        self, limits: LimitBase | List[LimitBase] | None = None, log: bool = False
+        self, limits: LimitBase | List[LimitBase], log: bool = False
     ) -> Generation:
         """Run the engine with the given limits.
         Args:
@@ -146,14 +145,39 @@ class GeneticEngine:
         >>> engine.run(rd.ScoreLimit(0.0001), log=True)
         """
 
-        engine = PyEngineBuilderTwo(
+        if limits is not None:
+            if isinstance(limits, LimitBase):
+                limits = [limits]
+            elif isinstance(limits, list):
+                if len(limits) == 0:
+                    raise ValueError("At least one limit must be provided to run the engine.")
+            else:
+                raise TypeError("Limits must be a LimitBase or a list of LimitBase instances.")
+        else:
+            raise ValueError("At least one limit must be provided to run the engine.")
+
+        builder = PyEngineBuilder(
             gene_type=self.gene_type,
             codec=self.builder._codec,
             problem_builder=self.builder._problem_builder,
             inputs=[inp.py_input() for inp in self.builder.inputs()]
         )
 
-        engine.build()
+        limit_inputs = [EngineInput(
+            input_type=EngineInputType.Limit,
+            component=lim.component,
+            allowed_genes=[self.gene_type],
+            **lim.args
+        ).py_input() for lim in limits]
+
+        engine = builder.build()
+
+        result = engine.run(limit_inputs, log)
+        print(result)
+        print(engine)
+        # engine.run(limit_inputs)
+
+        # engine.build()
 
         raise NotImplementedError("The run method is not yet implemented.")
         # if limits is not None:
