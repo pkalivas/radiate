@@ -1,4 +1,6 @@
 from typing import Any, Callable, List, Tuple, TypeAlias, Union
+
+from radiate.genome.gene import GeneType
 from .selector import SelectorBase, TournamentSelector, RouletteSelector
 from .alterer import AlterBase, UniformCrossover, UniformMutator
 from .diversity import DiversityBase
@@ -18,6 +20,7 @@ from .radiate import (
     PyDiversity,
     PyProblemBuilder,
 )
+from .input import EngineInput, EngineInputType
 
 Subscriber: TypeAlias = Union[
     Callable[[Any], None], List[Callable[[Any], None]], EventHandler, List[EventHandler]
@@ -50,6 +53,15 @@ class GeneticEngine:
         front_range: Tuple[int, int] | None = (800, 900),
         subscribe: Subscriber | None = None,
     ):
+        temp = EngineInput(
+            input_type=EngineInputType.OffspringSelector,
+            component="TournamentSelector",
+            allowed_genes={GeneType.INT, GeneType.FLOAT, GeneType.BIT, GeneType.CHAR},
+            k=3,
+        )
+
+        print(temp)
+
         survivor_selector = get_selector(survivor_selector or TournamentSelector(k=3))
         offspring_selector = get_selector(offspring_selector or RouletteSelector())
         alters = get_alters(alters or [UniformCrossover(), UniformMutator()])

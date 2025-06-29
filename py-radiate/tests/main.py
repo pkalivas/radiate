@@ -88,7 +88,7 @@ engine = rd.GeneticEngine(
     problem=rd.Regression(inputs, answers),
     objectives="min",
     offspring_selector=rd.BoltzmannSelector(4.0),
-    subscribe=TestHandler(),
+    # subscribe=TestHandler(),
     executor=rd.Executor.FixedSizedWorkerPool(4),
     alters=[
         rd.GraphCrossover(0.75, 0.3),
@@ -98,7 +98,7 @@ engine = rd.GeneticEngine(
     ],
 )
 
-result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)], log=True)
+result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(10)], log=True)
 
 print(result.value())
 

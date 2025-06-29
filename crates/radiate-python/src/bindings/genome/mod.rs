@@ -17,7 +17,7 @@ pub const CHAR_CHROMOSOME_TYPE: &'static str = "CharChromosome";
 pub const GRAPH_CHROMOSOME_TYPE: &'static str = "GraphChromosome";
 
 #[pyclass]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Copy)]
 pub enum PyChromosomeType {
     Float,
     Int,

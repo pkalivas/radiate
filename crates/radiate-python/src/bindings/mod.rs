@@ -7,6 +7,7 @@ mod executor;
 mod genome;
 mod limit;
 mod metric;
+mod new;
 mod objective;
 mod ops;
 mod problem;
@@ -25,6 +26,7 @@ pub use genome::{
 };
 pub use limit::PyLimit;
 pub use metric::PyMetricSet;
+pub use new::*;
 pub use objective::PyObjective;
 pub use problem::PyProblemBuilder;
 pub use subscriber::PySubscriber;
