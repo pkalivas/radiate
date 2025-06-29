@@ -161,6 +161,7 @@ where
                 best: config.problem.decode(config.population()[0].genotype()),
                 index: 0,
                 metrics: MetricSet::new(),
+                epoch_metrics: MetricSet::new(),
                 score: None,
                 front: config.front.clone(),
                 objective: config.objective.clone(),

@@ -22,7 +22,7 @@ fn main() {
         // .diversity(NeatDistance::new(1.0, 1.0, 3.0))
         // .species_threshold(1.8)
         // .max_species_age(25)
-        .executor(Executor::Serial)
+        // .executor(Executor::Serial)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),

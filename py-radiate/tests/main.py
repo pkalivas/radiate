@@ -18,9 +18,10 @@ class TestHandler(rd.EventHandler):
         self.scores = []
 
     def on_event(self, event):
+        
         if event["type"] == "epoch_complete":
             # self.scores.append(event["score"])
-            self.scores.append(event['metrics']['Score']['value_last'])
+            self.scores.append(event['metrics']['unique_members']['value_last'])
         elif event["type"] == "stop":
             plt.plot(self.scores)
             plt.xlabel("Generation")
@@ -86,9 +87,10 @@ engine = rd.GeneticEngine(
     codec=codec,
     problem=rd.Regression(inputs, answers),
     objectives="min",
+    offspring_selector=rd.BoltzmannSelector(4.0),
     subscribe=TestHandler(),
     alters=[
-        rd.GraphCrossover(0.5, 0.5),
+        rd.GraphCrossover(0.75, 0.3),
         rd.OperationMutator(0.07, 0.05),
         rd.GraphMutator(0.1, 0.1),
         
@@ -99,7 +101,7 @@ result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)], log=True)
 
 print(result.value())
 
-for input, target in zip(inputs, answers):
+for input, target in zip(inputs, answers): 
     print(f"Input: {round(input[0], 2)}, Target: {round(target[0], 2)}, Output: {round(result.value().eval([input])[0][0], 2)}")
 
 # print(result.value().eval([[0.5], [0.25], [0.75], [0.1], [0.9]]))

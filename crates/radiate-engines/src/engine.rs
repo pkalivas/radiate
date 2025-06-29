@@ -120,15 +120,23 @@ where
 
         let timer = std::time::Instant::now();
         self.pipeline.run(&mut self.context, &self.bus);
+        let elapsed = timer.elapsed();
 
         self.context
-            .metrics
-            .upsert_time(metric_names::EVOLUTION_TIME, timer.elapsed());
+            .epoch_metrics
+            .upsert(metric_names::TIME, elapsed);
+
+        self.context.metrics.merge(&self.context.epoch_metrics);
 
         let best = self.context.ecosystem.population().get(0);
         if let Some(best) = best {
             if let (Some(score), Some(current)) = (best.score(), &self.context.score) {
                 if self.context.objective.is_better(score, current) {
+                    let score_improvement = current.as_f32() - score.as_f32();
+                    self.context
+                        .metrics
+                        .upsert(metric_names::SCORE_IMPROVEMENT_RATE, score_improvement);
+
                     self.context.score = Some(score.clone());
                     self.context.best = self.context.problem.decode(best.genotype());
                     self.bus.emit(EngineEvent::improvement(&self.context));

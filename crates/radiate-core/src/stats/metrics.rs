@@ -1,6 +1,54 @@
 use super::Statistic;
 use crate::{Distribution, TimeStatistic};
-use std::{collections::BTreeMap, fmt::Debug, time::Duration};
+use std::sync::OnceLock;
+use std::{
+    collections::{BTreeMap, HashSet},
+    fmt::Debug,
+    sync::Mutex,
+    time::Duration,
+};
+
+static INTERNED: OnceLock<Mutex<HashSet<&'static str>>> = OnceLock::new();
+
+pub fn intern(name: String) -> &'static str {
+    let mut interned = INTERNED
+        .get_or_init(|| Mutex::new(HashSet::new()))
+        .lock()
+        .unwrap();
+    if let Some(&existing) = interned.get(&*name) {
+        return existing;
+    }
+    let static_name: &'static str = Box::leak(name.into_boxed_str());
+    interned.insert(static_name);
+    static_name
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct MetricLabel {
+    pub key: &'static str,
+    pub value: String,
+}
+
+impl MetricLabel {
+    pub fn new(key: &'static str, value: impl Into<String>) -> Self {
+        Self {
+            key,
+            value: value.into(),
+        }
+    }
+}
+
+// Convenience macro for creating labels
+#[macro_export]
+macro_rules! labels {
+    ($($key:expr => $value:expr),* $(,)?) => {
+        vec![
+            $(
+                $crate::stats::metrics::MetricLabel::new($key, $value)
+            ),*
+        ]
+    };
+}
 
 #[derive(Default, Clone)]
 pub struct MetricSet {
@@ -17,29 +65,32 @@ impl MetricSet {
     pub fn merge(&mut self, other: &MetricSet) {
         for (name, metric) in other.iter() {
             if let Some(existing_metric) = self.metrics.get_mut(name) {
-                match (existing_metric, metric) {
-                    (Metric::Value(_, stat, dist), Metric::Value(_, new_stat, new_dist)) => {
-                        stat.add(new_stat.last_value());
-                        for value in new_dist.last_sequence() {
-                            dist.push(*value);
-                        }
+                if let Some(value_stat) = &metric.inner.value_statistic {
+                    if let Some(existing_value_stat) = &mut existing_metric.inner.value_statistic {
+                        existing_value_stat.add(value_stat.last_value());
+                    } else {
+                        existing_metric.inner.value_statistic = Some(value_stat.clone());
                     }
-                    (Metric::Time(_, stat), Metric::Time(_, new_stat)) => {
-                        stat.add(new_stat.last_time());
+                }
+
+                if let Some(time_stat) = &metric.inner.time_statistic {
+                    if let Some(existing_time_stat) = &mut existing_metric.inner.time_statistic {
+                        existing_time_stat.add(time_stat.last_time());
+                    } else {
+                        existing_metric.inner.time_statistic = Some(time_stat.clone());
                     }
-                    (Metric::Distribution(_, dist), Metric::Distribution(_, new_dist)) => {
-                        for value in new_dist.last_sequence() {
-                            dist.push(*value);
-                        }
+                }
+
+                if let Some(dist) = &metric.inner.distribution {
+                    if let Some(existing_dist) = &mut existing_metric.inner.distribution {
+                        existing_dist.add(&dist.last_sequence());
+                    } else {
+                        existing_metric.inner.distribution = Some(dist.clone());
                     }
-                    (
-                        Metric::Operations(_, stat, time_stat),
-                        Metric::Operations(_, new_stat, new_time_stat),
-                    ) => {
-                        stat.add(new_stat.last_value());
-                        time_stat.add(new_time_stat.last_time());
-                    }
-                    _ => {}
+                }
+
+                if let Some(labels) = &metric.labels {
+                    existing_metric.labels = Some(labels.clone());
                 }
             } else {
                 self.add(metric.clone());
@@ -47,73 +98,26 @@ impl MetricSet {
         }
     }
 
-    pub fn upsert_value(&mut self, name: &'static str, value: f32) {
+    pub fn add_labels(&mut self, name: &'static str, labels: Vec<MetricLabel>) {
         if let Some(m) = self.metrics.get_mut(name) {
-            m.add_value(value);
-        } else {
-            self.add(Metric::new_value(name));
-            self.upsert_value(name, value);
-        }
-    }
-
-    pub fn upsert_time(&mut self, name: &'static str, value: Duration) {
-        if let Some(m) = self.metrics.get_mut(name) {
-            m.add_duration(value);
-        } else {
-            self.add(Metric::new_time(name));
-            self.upsert_time(name, value);
-        }
-    }
-
-    pub fn upsert_distribution(&mut self, name: &'static str, value: &[f32]) {
-        if let Some(m) = self.metrics.get_mut(name) {
-            m.add_distribution(value);
-        } else {
-            self.add(Metric::new_distribution(name));
-            self.upsert_distribution(name, value);
-        }
-    }
-
-    pub fn upsert_operations(
-        &mut self,
-        name: &'static str,
-        value: impl Into<f32>,
-        time: impl Into<Duration>,
-    ) {
-        if let Some(m) = self.metrics.get_mut(name) {
-            m.add_value(value.into());
-            m.add_duration(time.into());
-        } else {
-            self.add(Metric::new_operations(name, value.into(), time.into()));
-        }
-    }
-
-    pub fn upsert(&mut self, metric: Metric) {
-        if let Some(m) = self.metrics.get_mut(metric.name()) {
-            match m {
-                Metric::Value(_, stat, dist) => {
-                    if let Metric::Value(_, new_stat, new_dist) = metric {
-                        stat.add(new_stat.last_value());
-                        dist.add(new_dist.last_sequence());
-                    }
-                }
-                Metric::Time(_, stat) => {
-                    if let Metric::Time(_, new_stat) = metric {
-                        stat.add(new_stat.last_time());
-                    }
-                }
-                Metric::Distribution(_, dist) => {
-                    if let Metric::Distribution(_, new_dist) = metric {
-                        dist.add(new_dist.last_sequence());
-                    }
-                }
-                Metric::Operations(_, stat, time_stat) => {
-                    if let Metric::Operations(_, new_stat, new_time_stat) = metric {
-                        stat.add(new_stat.last_value());
-                        time_stat.add(new_time_stat.last_time());
-                    }
-                }
+            for label in labels {
+                m.add_label(label);
             }
+        }
+    }
+
+    pub fn upsert<'a>(&mut self, name: &'static str, update: impl Into<MetricUpdate<'a>>) {
+        if let Some(m) = self.metrics.get_mut(name) {
+            m.apply_update(update);
+        } else {
+            self.add(Metric::new(name));
+            self.upsert(name, update);
+        }
+    }
+
+    pub fn add_or_update<'a>(&mut self, metric: Metric) {
+        if let Some(m) = self.metrics.get_mut(metric.name()) {
+            m.apply_update(metric.last_value());
         } else {
             self.add(metric);
         }
@@ -142,456 +146,475 @@ impl MetricSet {
     pub fn get_from_string(&self, name: String) -> Option<&Metric> {
         self.metrics.get(name.as_str())
     }
+
+    pub fn clear(&mut self) {
+        self.metrics.clear();
+    }
 }
 
 impl Debug for MetricSet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "MetricSet {{\n")?;
-
-        for meteric in self
-            .iter()
-            .filter(|(_, m)| matches!(m, Metric::Operations(_, _, _)))
-        {
-            write!(f, "\t{:?},\n", meteric.1)?;
-        }
-
-        for metric in self
-            .iter()
-            .filter(|(_, m)| matches!(m, Metric::Value(_, _, _)))
-        {
-            write!(f, "\t{:?},\n", metric.1)?;
-        }
-        for metric in self
-            .iter()
-            .filter(|(_, m)| matches!(m, Metric::Distribution(_, _)))
-        {
-            write!(f, "\t{:?},\n", metric.1)?;
-        }
-        for metric in self.iter().filter(|(_, m)| matches!(m, Metric::Time(_, _))) {
-            write!(f, "\t{:?},\n", metric.1)?;
-        }
-
+        write!(f, "{}", format_metrics_table(&self))?;
         write!(f, "}}")
     }
 }
 
-const VALUE_METRIC: &str = "value";
-const TIME_METRIC: &str = "time";
-const DISTRIBUTION_METRIC: &str = "distribution";
-const OPERATIONS_METRIC: &str = "operations";
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct MetricLabel {
-    pub key: &'static str,
-    pub value: String,
-}
-
-impl MetricLabel {
-    pub fn new(key: &'static str, value: impl Into<String>) -> Self {
-        Self {
-            key,
-            value: value.into(),
-        }
-    }
-}
-
-// Convenience macro for creating labels
-#[macro_export]
-macro_rules! labels {
-    ($($key:expr => $value:expr),* $(,)?) => {
-        vec![
-            $(
-                MetricLabel::new($key, $value)
-            ),*
-        ]
-    };
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum MetricKind {
-    Statistic,
-    Timing,
-    Distribution,
+#[derive(Clone, PartialEq)]
+pub struct MetricInner {
+    pub(crate) value_statistic: Option<Statistic>,
+    pub(crate) time_statistic: Option<TimeStatistic>,
+    pub(crate) distribution: Option<Distribution>,
 }
 
 #[derive(Clone, PartialEq)]
-struct MetricInner {
+pub struct Metric {
     name: &'static str,
-    kind: MetricKind,
-    value_statistic: Option<Statistic>,
-    time_statistic: Option<TimeStatistic>,
-    distribution: Option<Distribution>,
-    labels: Option<Vec<MetricLabel>>,
-}
-
-#[derive(Clone, PartialEq)]
-pub enum Metric {
-    Value(&'static str, Statistic, Distribution),
-    Time(&'static str, TimeStatistic),
-    Distribution(&'static str, Distribution),
-    Operations(&'static str, Statistic, TimeStatistic),
+    inner: MetricInner,
+    dependencies: Option<Vec<&'static str>>,
+    labels: Option<HashSet<MetricLabel>>,
+    children: Option<Vec<Metric>>,
 }
 
 impl Metric {
-    pub fn metric_type(&self) -> &'static str {
-        match self {
-            Metric::Value(_, _, _) => VALUE_METRIC,
-            Metric::Time(_, _) => TIME_METRIC,
-            Metric::Distribution(_, _) => DISTRIBUTION_METRIC,
-            Metric::Operations(_, _, _) => OPERATIONS_METRIC,
+    pub fn new(name: &'static str) -> Self {
+        Self {
+            name,
+            inner: MetricInner {
+                value_statistic: None,
+                time_statistic: None,
+                distribution: None,
+            },
+            dependencies: None,
+            labels: None,
+            children: None,
         }
     }
 
-    pub fn new_value(name: &'static str) -> Self {
-        Metric::Value(name, Statistic::default(), Distribution::default())
+    pub fn inner(&self) -> &MetricInner {
+        &self.inner
     }
 
-    pub fn new_time(name: &'static str) -> Self {
-        Metric::Time(name, TimeStatistic::default())
+    pub fn labels(&self) -> Option<&HashSet<MetricLabel>> {
+        self.labels.as_ref()
     }
 
-    pub fn new_distribution(name: &'static str) -> Self {
-        Metric::Distribution(name, Distribution::default())
-    }
-
-    pub fn new_operations(
-        name: &'static str,
-        val: impl Into<Statistic>,
-        time: impl Into<TimeStatistic>,
-    ) -> Self {
-        Metric::Operations(name, val.into(), time.into())
-    }
-
-    pub fn with_value(mut self, value: impl Into<f32>) -> Self {
-        match &mut self {
-            Metric::Value(_, stat, dist) => {
-                let into_value = value.into();
-                stat.add(into_value);
-                dist.push(into_value);
-            }
-            Metric::Operations(_, stat, _) => {
-                let into_value = value.into();
-                stat.add(into_value);
-            }
-            _ => {}
-        }
+    pub fn with_labels(mut self, labels: Vec<MetricLabel>) -> Self {
+        self.labels.get_or_insert_with(HashSet::new).extend(labels);
         self
     }
 
-    pub fn with_distribution(mut self, values: &[f32]) -> Self {
-        match &mut self {
-            Metric::Value(_, _, dist) => {
-                dist.add(values);
-            }
-            Metric::Distribution(_, dist) => {
-                dist.add(values);
-            }
-            _ => {}
-        }
+    pub fn add_label(&mut self, label: MetricLabel) {
+        self.labels.get_or_insert_with(HashSet::new).insert(label);
+    }
+
+    pub fn children(&self) -> Option<&Vec<Metric>> {
+        self.children.as_ref()
+    }
+
+    pub fn children_mut(&mut self) -> &mut Vec<Metric> {
+        self.children.get_or_insert_with(Vec::new)
+    }
+
+    pub fn with_children(mut self, children: Vec<Metric>) -> Self {
+        self.children.get_or_insert_with(Vec::new).extend(children);
         self
     }
 
-    pub fn with_time(mut self, value: impl Into<Duration>) -> Self {
-        match &mut self {
-            Metric::Time(_, stat) => {
-                let into_value = value.into();
-                stat.add(into_value);
-            }
-            Metric::Operations(_, _, stat) => {
-                let into_value = value.into();
-                stat.add(into_value);
-            }
-            _ => {}
+    pub fn upsert_child<'a>(&mut self, name: &'static str, update: impl Into<MetricUpdate<'a>>) {
+        let children = self.children_mut();
+        if let Some(child) = children.iter_mut().find(|m| m.name() == name) {
+            child.apply_update(update);
+        } else {
+            let mut child = Metric::new(name);
+            child.apply_update(update);
+            children.push(child);
         }
+    }
+
+    pub fn upsert<'a>(mut self, update: impl Into<MetricUpdate<'a>>) -> Self {
+        self.apply_update(update);
         self
     }
 
-    pub fn with_operations(mut self, value: impl Into<f32>, time: impl Into<Duration>) -> Self {
-        match &mut self {
-            Metric::Operations(_, stat, time_stat) => {
-                let into_value = value.into();
-                stat.add(into_value);
-                time_stat.add(time.into());
+    pub fn apply_update<'a>(&mut self, update: impl Into<MetricUpdate<'a>>) {
+        let update = update.into();
+        match update {
+            MetricUpdate::Float(value) => {
+                if let Some(stat) = &mut self.inner.value_statistic {
+                    stat.add(value);
+                } else {
+                    self.inner.value_statistic = Some(Statistic::from(value));
+                }
             }
-            _ => {}
-        }
-        self
-    }
-
-    pub fn with_count_value(self, count: impl Into<usize>) -> Self {
-        self.with_value(count.into() as f32)
-    }
-
-    pub fn add_value(&mut self, value: f32) {
-        match self {
-            Metric::Value(_, stat, dist) => {
-                stat.add(value);
-                dist.push(value);
+            MetricUpdate::Usize(value) => {
+                if let Some(stat) = &mut self.inner.value_statistic {
+                    stat.add(value as f32);
+                } else {
+                    self.inner.value_statistic = Some(Statistic::from(value as f32));
+                }
             }
-            Metric::Operations(_, stat, _) => stat.add(value),
-            Metric::Distribution(_, dist) => dist.push(value),
-            _ => {}
-        }
-    }
+            MetricUpdate::Duration(value) => {
+                if let Some(stat) = &mut self.inner.time_statistic {
+                    stat.add(value);
+                } else {
+                    self.inner.time_statistic = Some(TimeStatistic::from(value));
+                }
+            }
+            MetricUpdate::Distribution(values) => {
+                if let Some(stat) = &mut self.inner.distribution {
+                    stat.add(values);
+                } else {
+                    self.inner.distribution = Some(Distribution::from(values));
+                }
+            }
+            MetricUpdate::FloatOperation(value, time) => {
+                if let Some(stat) = &mut self.inner.value_statistic {
+                    stat.add(value);
+                } else {
+                    self.inner.value_statistic = Some(Statistic::from(value));
+                }
 
-    pub fn add_duration(&mut self, value: Duration) {
-        match self {
-            Metric::Time(_, stat) => stat.add(value),
-            Metric::Operations(_, _, stat) => stat.add(value),
-            _ => {}
-        }
-    }
+                if let Some(time_stat) = &mut self.inner.time_statistic {
+                    time_stat.add(time);
+                } else {
+                    self.inner.time_statistic = Some(TimeStatistic::from(time));
+                }
+            }
+            MetricUpdate::UsizeOperation(value, time) => {
+                if let Some(stat) = &mut self.inner.value_statistic {
+                    stat.add(value as f32);
+                } else {
+                    self.inner.value_statistic = Some(Statistic::from(value as f32));
+                }
 
-    pub fn add_distribution(&mut self, value: &[f32]) {
-        if let Metric::Distribution(_, dist) = self {
-            dist.add(value);
+                if let Some(time_stat) = &mut self.inner.time_statistic {
+                    time_stat.add(time);
+                } else {
+                    self.inner.time_statistic = Some(TimeStatistic::from(time));
+                }
+            }
+            MetricUpdate::DistributionRef(values) => {
+                if let Some(stat) = &mut self.inner.distribution {
+                    stat.add(values);
+                } else {
+                    self.inner.distribution = Some(Distribution::from(values.as_slice()));
+                }
+            }
+            MetricUpdate::DistributionOwned(values) => {
+                if let Some(stat) = &mut self.inner.distribution {
+                    stat.add(&values);
+                } else {
+                    self.inner.distribution = Some(Distribution::from(values.as_slice()));
+                }
+            }
         }
     }
 
     pub fn name(&self) -> &'static str {
-        match self {
-            Metric::Value(name, _, _) => name,
-            Metric::Time(name, _) => name,
-            Metric::Distribution(name, _) => name,
-            Metric::Operations(name, _, _) => name,
-        }
+        self.name
     }
 
     pub fn last_value(&self) -> f32 {
-        match self {
-            Metric::Value(_, stat, _) => stat.last_value(),
-            Metric::Operations(_, stat, _) => stat.last_value(),
-            _ => 0.0,
+        if let Some(stat) = &self.inner.value_statistic {
+            stat.last_value()
+        } else {
+            0.0
         }
     }
 
     pub fn last_time(&self) -> Duration {
-        match self {
-            Metric::Time(_, stat) => stat.last_time(),
-            Metric::Operations(_, _, stat) => stat.last_time(),
-            _ => Duration::from_secs_f32(0.0),
+        if let Some(stat) = &self.inner.time_statistic {
+            stat.last_time()
+        } else {
+            Duration::ZERO
         }
     }
 
     pub fn value_mean(&self) -> Option<f32> {
-        match self {
-            Metric::Value(_, stat, _) => Some(stat.mean()),
-            Metric::Operations(_, stat, _) => Some(stat.mean()),
-            _ => None,
+        if let Some(stat) = &self.inner.value_statistic {
+            Some(stat.mean())
+        } else {
+            None
         }
     }
 
     pub fn value_variance(&self) -> Option<f32> {
-        match self {
-            Metric::Value(_, stat, _) => Some(stat.variance()),
-            Metric::Operations(_, stat, _) => Some(stat.variance()),
-            _ => None,
+        if let Some(stat) = &self.inner.value_statistic {
+            Some(stat.variance())
+        } else {
+            None
         }
     }
 
     pub fn value_std_dev(&self) -> Option<f32> {
-        match self {
-            Metric::Value(_, stat, _) => Some(stat.std_dev()),
-            Metric::Operations(_, stat, _) => Some(stat.std_dev()),
-            _ => None,
+        if let Some(stat) = &self.inner.value_statistic {
+            Some(stat.std_dev())
+        } else {
+            None
         }
     }
 
     pub fn value_skewness(&self) -> Option<f32> {
-        match self {
-            Metric::Value(_, stat, _) => Some(stat.skewness()),
-            Metric::Operations(_, stat, _) => Some(stat.skewness()),
-            _ => None,
+        if let Some(stat) = &self.inner.value_statistic {
+            Some(stat.skewness())
+        } else {
+            None
         }
     }
 
     pub fn value_min(&self) -> Option<f32> {
-        match self {
-            Metric::Value(_, stat, _) => Some(stat.min()),
-            Metric::Operations(_, stat, _) => Some(stat.min()),
-            _ => None,
+        if let Some(stat) = &self.inner.value_statistic {
+            Some(stat.min())
+        } else {
+            None
         }
     }
 
     pub fn value_max(&self) -> Option<f32> {
-        match self {
-            Metric::Value(_, stat, _) => Some(stat.max()),
-            Metric::Operations(_, stat, _) => Some(stat.max()),
-            _ => None,
+        if let Some(stat) = &self.inner.value_statistic {
+            Some(stat.max())
+        } else {
+            None
         }
     }
 
     pub fn time_mean(&self) -> Option<Duration> {
-        match self {
-            Metric::Time(_, stat) => Some(stat.mean()),
-            Metric::Operations(_, _, stat) => Some(stat.mean()),
-            _ => None,
-        }
+        self.inner.time_statistic.as_ref().map(|stat| stat.mean())
     }
 
     pub fn time_variance(&self) -> Option<Duration> {
-        match self {
-            Metric::Time(_, stat) => Some(stat.variance()),
-            Metric::Operations(_, _, stat) => Some(stat.variance()),
-            _ => None,
-        }
+        self.inner
+            .time_statistic
+            .as_ref()
+            .map(|stat| stat.variance())
     }
 
     pub fn time_std_dev(&self) -> Option<Duration> {
-        match self {
-            Metric::Time(_, stat) => Some(stat.standard_deviation()),
-            Metric::Operations(_, _, stat) => Some(stat.standard_deviation()),
-            _ => None,
-        }
+        self.inner
+            .time_statistic
+            .as_ref()
+            .map(|stat| stat.standard_deviation())
     }
 
     pub fn time_min(&self) -> Option<Duration> {
-        match self {
-            Metric::Time(_, stat) => Some(stat.min()),
-            Metric::Operations(_, _, stat) => Some(stat.min()),
-            _ => None,
-        }
+        self.inner.time_statistic.as_ref().map(|stat| stat.min())
     }
 
     pub fn time_max(&self) -> Option<Duration> {
-        match self {
-            Metric::Time(_, stat) => Some(stat.max()),
-            Metric::Operations(_, _, stat) => Some(stat.max()),
-            _ => None,
-        }
+        self.inner.time_statistic.as_ref().map(|stat| stat.max())
     }
 
     pub fn time_sum(&self) -> Option<Duration> {
-        match self {
-            Metric::Time(_, stat) => Some(stat.sum()),
-            Metric::Operations(_, _, stat) => Some(stat.sum()),
-            _ => None,
-        }
+        self.inner.time_statistic.as_ref().map(|stat| stat.sum())
     }
 
     pub fn last_sequence(&self) -> Option<&Vec<f32>> {
-        match self {
-            Metric::Distribution(_, dist) => Some(dist.last_sequence()),
-            Metric::Value(_, _, dist) => Some(dist.last_sequence()),
-            _ => None,
-        }
+        self.inner
+            .distribution
+            .as_ref()
+            .map(|dist| dist.last_sequence())
     }
 
     pub fn distribution_mean(&self) -> Option<f32> {
-        match self {
-            Metric::Distribution(_, dist) => Some(dist.mean()),
-            Metric::Value(_, _, dist) => Some(dist.mean()),
-            _ => None,
-        }
+        self.inner.distribution.as_ref().map(|dist| dist.mean())
     }
 
     pub fn distribution_variance(&self) -> Option<f32> {
-        match self {
-            Metric::Distribution(_, dist) => Some(dist.variance()),
-            Metric::Value(_, _, dist) => Some(dist.variance()),
-            _ => None,
-        }
+        self.inner.distribution.as_ref().map(|dist| dist.variance())
     }
 
     pub fn distribution_std_dev(&self) -> Option<f32> {
-        match self {
-            Metric::Distribution(_, dist) => Some(dist.standard_deviation()),
-            Metric::Value(_, _, dist) => Some(dist.standard_deviation()),
-            _ => None,
-        }
+        self.inner
+            .distribution
+            .as_ref()
+            .map(|dist| dist.standard_deviation())
     }
 
     pub fn distribution_skewness(&self) -> Option<f32> {
-        match self {
-            Metric::Distribution(_, dist) => Some(dist.skewness()),
-            Metric::Value(_, _, dist) => Some(dist.skewness()),
-            _ => None,
-        }
+        self.inner.distribution.as_ref().map(|dist| dist.skewness())
     }
 
     pub fn distribution_kurtosis(&self) -> Option<f32> {
-        match self {
-            Metric::Distribution(_, dist) => Some(dist.kurtosis()),
-            Metric::Value(_, _, dist) => Some(dist.kurtosis()),
-            _ => None,
-        }
+        self.inner.distribution.as_ref().map(|dist| dist.kurtosis())
     }
 
     pub fn distribution_min(&self) -> Option<f32> {
-        match self {
-            Metric::Distribution(_, dist) => Some(dist.min()),
-            Metric::Value(_, _, dist) => Some(dist.min()),
-            _ => None,
-        }
+        self.inner.distribution.as_ref().map(|dist| dist.min())
     }
 
     pub fn distribution_max(&self) -> Option<f32> {
-        match self {
-            Metric::Distribution(_, dist) => Some(dist.max()),
-            Metric::Value(_, _, dist) => Some(dist.max()),
-            _ => None,
-        }
+        self.inner.distribution.as_ref().map(|dist| dist.max())
     }
 
     pub fn count(&self) -> i32 {
-        match self {
-            Metric::Value(_, stat, _) => stat.count(),
-            Metric::Time(_, stat) => stat.count(),
-            Metric::Distribution(_, dist) => dist.count(),
-            Metric::Operations(_, stat, _) => stat.count(),
-        }
+        self.inner
+            .value_statistic
+            .as_ref()
+            .map(|stat| stat.count())
+            .unwrap_or(0)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum MetricUpdate<'a> {
+    Float(f32),
+    Usize(usize),
+    Duration(Duration),
+    Distribution(&'a [f32]),
+    DistributionRef(&'a Vec<f32>),
+    DistributionOwned(Vec<f32>),
+    FloatOperation(f32, Duration),
+    UsizeOperation(usize, Duration),
+}
+
+impl From<f32> for MetricUpdate<'_> {
+    fn from(value: f32) -> Self {
+        MetricUpdate::Float(value)
+    }
+}
+
+impl From<usize> for MetricUpdate<'_> {
+    fn from(value: usize) -> Self {
+        MetricUpdate::Usize(value)
+    }
+}
+
+impl From<Duration> for MetricUpdate<'_> {
+    fn from(value: Duration) -> Self {
+        MetricUpdate::Duration(value)
+    }
+}
+
+impl<'a> From<&'a [f32]> for MetricUpdate<'a> {
+    fn from(value: &'a [f32]) -> Self {
+        MetricUpdate::Distribution(value)
+    }
+}
+
+impl From<(f32, Duration)> for MetricUpdate<'_> {
+    fn from(value: (f32, Duration)) -> Self {
+        MetricUpdate::FloatOperation(value.0, value.1)
+    }
+}
+
+impl From<(usize, Duration)> for MetricUpdate<'_> {
+    fn from(value: (usize, Duration)) -> Self {
+        MetricUpdate::UsizeOperation(value.0, value.1)
+    }
+}
+
+impl<'a> From<&'a Vec<f32>> for MetricUpdate<'a> {
+    fn from(value: &'a Vec<f32>) -> Self {
+        MetricUpdate::DistributionRef(value)
+    }
+}
+
+impl From<Vec<f32>> for MetricUpdate<'_> {
+    fn from(value: Vec<f32>) -> Self {
+        MetricUpdate::DistributionOwned(value)
     }
 }
 
 impl std::fmt::Debug for Metric {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Metric::Value(name, stat, dist) => write!(
-                f,
-                "{:<20} | Mean: {:>8.3}, Min: {:>8.3}, Max: {:>8.3}, N: {:>3} | Dist. Mean: {:>8.3}, Dist. StdDev: {:>8.3}, Dist. Min: {:>8.3}, Dist. Max: {:>8.3}",
+        write!(f, "Metric {{ name: {}, }}", self.name)
+    }
+}
+
+/// Formats a table of metrics, grouping by name and aligning columns for readability.
+pub fn format_metrics_table(metrics: &MetricSet) -> String {
+    use std::fmt::Write;
+
+    let mut grouped: std::collections::BTreeMap<&str, &Metric> = std::collections::BTreeMap::new();
+    for metric in metrics.iter().map(|(_, m)| m) {
+        grouped.insert(metric.name(), metric);
+    }
+
+    let mut output = String::new();
+    writeln!(
+        output,
+        "{:<24} | {:<6} | {:<10} | {:<10} | {:<10} | {:<6} | {:<12} | {:<10} | {:<10} | {:<10} | {:<10}",
+        "Name", "Type", "Mean", "Min", "Max", "N", "Total", "StdDev", "Skew", "Kurt", "Entr"
+    )
+    .unwrap();
+    writeln!(output, "{}", "-".repeat(145)).unwrap();
+
+    for (name, metric) in grouped {
+        let inner = metric.inner();
+
+        // Value row
+        if let Some(stat) = &inner.value_statistic {
+            writeln!(
+                output,
+                "{:<24} | {:<6} | {:<10.3} | {:<10.3} | {:<10.3} | {:<6} | {:<12} | {:<10.3} | {:<10.3} | {:<10.3} | {:<10.3}",
                 name,
+                "value",
                 stat.mean(),
                 stat.min(),
                 stat.max(),
                 stat.count(),
-                dist.mean(),
-                dist.standard_deviation(),
-                dist.min(),
-                dist.max(),
-            ),
-            Metric::Time(name, stat) => write!(
-                f,
-                "{:<20} | Avg Time: {:>9.3?}, Min Time: {:>9.3?}, Max Time: {:>9.3?}, N: {:>3} | Total Time: {:>9.3?}",
+                "-",
+                stat.std_dev(),
+                stat.skewness(),
+                stat.kurtosis(),
+                "-",
+            )
+            .unwrap();
+        }
+
+        // Time row
+        if let Some(time) = &inner.time_statistic {
+            writeln!(
+                output,
+                "{:<24} | {:<6} | {:<10} | {:<10} | {:<10} | {:<6} | {:<12} | {:<10} | {:<10} | {:<10} | {:<10}",
                 name,
-                stat.mean(),
-                stat.min(),
-                stat.max(),
-                stat.count(),
-                stat.sum(),
-            ),
-            Metric::Distribution(name, dist) => write!(
-                f,
-                "{:<20} | Mean: {:>8.3}, StdDev: {:>8.3}, Min: {:>8.3}, Max: {:>8.3}, N: {:>3}",
+                "time",
+                format!("{:?}", time.mean()),
+                format!("{:?}", time.min()),
+                format!("{:?}", time.max()),
+                time.count(),
+                format!("{:?}", time.sum()),
+                format!("{:?}", time.standard_deviation()),
+                "-",
+                "-",
+                "-",
+
+            )
+            .unwrap();
+        }
+
+        // Distribution row
+        if let Some(dist) = &inner.distribution {
+            writeln!(
+                output,
+                "{:<24} | {:<6} | {:<10.3} | {:<10.3} | {:<10.3} | {:<6} | {:<12} | {:<10.3} | {:<10.3} | {:<10.3} | {:<10.3}",
                 name,
+                "dist",
                 dist.mean(),
-                dist.standard_deviation(),
                 dist.min(),
                 dist.max(),
                 dist.count(),
-            ),
-            Metric::Operations(name, stat, time_stat) => write!(
-                f,
-                "{:<20} | Mean: {:>8.3}, Min: {:>8.3}, Max: {:>8.3}, N: {:>3} | Avg Time: {:>9.3?}, Total Time: {:>9.3?}",
-                name,
-                stat.mean(),
-                stat.min(),
-                stat.max(),
-                stat.count(),
-                time_stat.mean(),
-                time_stat.sum(),
-            ),
+                format!("{:.3}", dist.entropy()),
+                dist.standard_deviation(),
+                dist.skewness(),
+                dist.kurtosis(),
+                format!("{:.3}", dist.entropy()),
+            )
+            .unwrap();
+        }
+
+        if let Some(labels) = &metric.labels {
+            let labels_str = labels
+                .iter()
+                .map(|l| format!("{}={}", l.key, l.value))
+                .collect::<Vec<String>>()
+                .join(", ");
+            writeln!(output, "{:<24} | Labels: {}", "", labels_str).unwrap();
         }
     }
+
+    output
 }
 
 #[cfg(test)]
@@ -600,12 +623,12 @@ mod tests {
 
     #[test]
     fn test_metric() {
-        let mut metric = Metric::Value("test", Statistic::default(), Distribution::default());
-        metric.add_value(1.0);
-        metric.add_value(2.0);
-        metric.add_value(3.0);
-        metric.add_value(4.0);
-        metric.add_value(5.0);
+        let mut metric = Metric::new("test");
+        metric.apply_update(1.0);
+        metric.apply_update(2.0);
+        metric.apply_update(3.0);
+        metric.apply_update(4.0);
+        metric.apply_update(5.0);
 
         assert_eq!(metric.count(), 5);
         assert_eq!(metric.last_value(), 5.0);
@@ -620,11 +643,11 @@ mod tests {
     #[test]
     fn test_metric_set() {
         let mut metric_set = MetricSet::new();
-        metric_set.upsert_value("test", 1.0);
-        metric_set.upsert_value("test", 2.0);
-        metric_set.upsert_value("test", 3.0);
-        metric_set.upsert_value("test", 4.0);
-        metric_set.upsert_value("test", 5.0);
+        metric_set.upsert("test", 1.0);
+        metric_set.upsert("test", 2.0);
+        metric_set.upsert("test", 3.0);
+        metric_set.upsert("test", 4.0);
+        metric_set.upsert("test", 5.0);
 
         let metric = metric_set.get("test").unwrap();
 

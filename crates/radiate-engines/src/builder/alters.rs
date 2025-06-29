@@ -34,7 +34,9 @@ where
     pub fn mutators(mut self, mutators: Vec<Box<dyn Mutate<C>>>) -> Self {
         let mutate_actions = mutators
             .into_iter()
-            .map(|m| Arc::new(AlterAction::Mutate(m.name(), m.rate(), m)) as Arc<dyn Alter<C>>)
+            .map(|m| {
+                Arc::new(AlterAction::Mutate(m.name().leak(), m.rate(), m)) as Arc<dyn Alter<C>>
+            })
             .collect::<Vec<_>>();
 
         self.params.alterers.extend(mutate_actions);
@@ -57,7 +59,9 @@ where
     pub fn crossovers(mut self, crossovers: Vec<Box<dyn Crossover<C>>>) -> Self {
         let crossover_actions = crossovers
             .into_iter()
-            .map(|c| Arc::new(AlterAction::Crossover(c.name(), c.rate(), c)) as Arc<dyn Alter<C>>)
+            .map(|c| {
+                Arc::new(AlterAction::Crossover(c.name().leak(), c.rate(), c)) as Arc<dyn Alter<C>>
+            })
             .collect::<Vec<_>>();
 
         self.params.alterers.extend(crossover_actions);
