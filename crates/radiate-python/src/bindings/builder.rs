@@ -271,7 +271,7 @@ impl PyEngineBuilder {
             .bind(py)
             .get_item(EXECUTOR)?
             .map(|v| v.extract::<PyExecutor>())
-            .unwrap_or(Ok(PyExecutor::Serial))
+            .unwrap_or(Ok(PyExecutor::serial()))
     }
 
     fn get_population_size<'py>(&self, py: Python<'py>) -> PyResult<usize> {

@@ -18,6 +18,7 @@ pub fn intern(name: String) -> &'static str {
     if let Some(&existing) = interned.get(&*name) {
         return existing;
     }
+
     let static_name: &'static str = Box::leak(name.into_boxed_str());
     interned.insert(static_name);
     static_name

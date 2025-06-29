@@ -1,5 +1,4 @@
 use crate::thread_pool::WaitGroup;
-#[cfg(not(feature = "rayon"))]
 use crate::thread_pool::get_thread_pool;
 #[cfg(feature = "rayon")]
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
@@ -10,18 +9,16 @@ pub enum Executor {
     Serial,
     #[cfg(feature = "rayon")]
     WorkerPool,
-    #[cfg(not(feature = "rayon"))]
-    WorkerPool(usize),
+    FixedSizedWorkerPool(usize),
 }
 
 impl Executor {
     pub fn num_workers(&self) -> usize {
         match self {
             Executor::Serial => 1,
-            #[cfg(not(feature = "rayon"))]
-            Executor::WorkerPool(num_workers) => *num_workers,
             #[cfg(feature = "rayon")]
             Executor::WorkerPool => rayon::current_num_threads(),
+            Executor::FixedSizedWorkerPool(num_workers) => *num_workers,
         }
     }
 
@@ -32,8 +29,7 @@ impl Executor {
     {
         match self {
             Executor::Serial => f(),
-            #[cfg(not(feature = "rayon"))]
-            Executor::WorkerPool(num_workers) => {
+            Executor::FixedSizedWorkerPool(num_workers) => {
                 get_thread_pool(*num_workers).submit_with_result(f).result()
             }
             #[cfg(feature = "rayon")]
@@ -65,8 +61,7 @@ impl Executor {
     {
         match self {
             Executor::Serial => f.into_iter().map(|func| func()).collect(),
-            #[cfg(not(feature = "rayon"))]
-            Executor::WorkerPool(num_workers) => {
+            Executor::FixedSizedWorkerPool(num_workers) => {
                 let pool = get_thread_pool(*num_workers);
                 let wg = WaitGroup::new();
                 let mut results = Vec::with_capacity(f.len());
@@ -97,8 +92,7 @@ impl Executor {
     {
         match self {
             Executor::Serial => f(),
-            #[cfg(not(feature = "rayon"))]
-            Executor::WorkerPool(num_workers) => {
+            Executor::FixedSizedWorkerPool(num_workers) => {
                 let pool = get_thread_pool(*num_workers);
                 pool.submit(f)
             }
@@ -121,8 +115,7 @@ impl Executor {
                     func();
                 }
             }
-            #[cfg(not(feature = "rayon"))]
-            Executor::WorkerPool(num_workers) => {
+            Executor::FixedSizedWorkerPool(num_workers) => {
                 let pool = get_thread_pool(*num_workers);
                 let wg = WaitGroup::new();
                 for job in f {

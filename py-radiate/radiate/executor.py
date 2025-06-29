@@ -27,3 +27,12 @@ class Executor:
         :return: An Executor instance configured for worker pool execution.
         """
         return Executor(PyExecutor.worker_pool())
+    
+    @staticmethod
+    def FixedSizedWorkerPool(num_workers: int) -> "Executor":
+        """
+        Fixed-sized worker pool executor.
+        :param num_workers: The number of worker threads in the pool.
+        :return: An Executor instance configured for a fixed-sized worker pool.
+        """
+        return Executor(PyExecutor.fixed_sized_worker_pool(num_workers))

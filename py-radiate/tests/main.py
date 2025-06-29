@@ -89,6 +89,7 @@ engine = rd.GeneticEngine(
     objectives="min",
     offspring_selector=rd.BoltzmannSelector(4.0),
     subscribe=TestHandler(),
+    executor=rd.Executor.FixedSizedWorkerPool(4),
     alters=[
         rd.GraphCrossover(0.75, 0.3),
         rd.OperationMutator(0.07, 0.05),
