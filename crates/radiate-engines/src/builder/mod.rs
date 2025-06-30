@@ -148,6 +148,8 @@ where
 
             let config = EngineConfig::<C, T>::from(&self.params);
 
+            println!("Engine Config: {:?}", config);
+
             let mut pipeline = Pipeline::<C>::default();
 
             pipeline.add_step(Self::build_eval_step(&config));
@@ -276,8 +278,6 @@ where
         if !self.params.alterers.is_empty() {
             return;
         }
-
-        println!("Building default alterers");
 
         let crossover = Arc::new(UniformCrossover::new(0.5).alterer()) as Arc<dyn Alter<C>>;
         let mutator = Arc::new(UniformMutator::new(0.1).alterer()) as Arc<dyn Alter<C>>;
@@ -486,5 +486,42 @@ where
             evaluator: params.evaluation_params.evaluator.clone(),
             executor: params.evaluation_params.clone(),
         }
+    }
+}
+
+impl<C, T> std::fmt::Debug for EngineConfig<C, T>
+where
+    C: Chromosome + Clone + 'static,
+    T: Clone + Send + Sync + 'static,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("EngineConfig")
+            .field("population_size", &self.population.len())
+            .field("problem", &"EngineProblem")
+            .field(
+                "survivor_selector",
+                &self.survivor_selector.name().to_string(),
+            )
+            .field(
+                "offspring_selector",
+                &self.offspring_selector.name().to_string(),
+            )
+            .field("audits", &self.audits.len())
+            .field("alterers", &self.alterers.len())
+            .field("objective", &self.objective)
+            .field("max_age", &self.max_age)
+            .field("max_species_age", &self.max_species_age)
+            .field("species_threshold", &self.species_threshold)
+            .field(
+                "diversity",
+                if self.diversity.is_some() {
+                    &"Some(Diversity)"
+                } else {
+                    &"None"
+                },
+            )
+            .field("front_range", &self.front.read().unwrap().range())
+            .field("offspring_fraction", &self.offspring_fraction)
+            .finish()
     }
 }

@@ -177,7 +177,7 @@ impl PyEngineBuilder {
         inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
         self.process_single_value(builder, inputs, |builder, input| {
-            let max_age = input.get_usize("max_age").unwrap_or(usize::MAX);
+            let max_age = input.get_usize("age").unwrap_or(usize::MAX);
             apply_to_builder!(builder, max_species_age(max_age))
         })
     }
@@ -221,7 +221,7 @@ impl PyEngineBuilder {
         inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
         self.process_single_value(builder, inputs, |builder, input| {
-            let max_age = input.get_usize("max_age").unwrap_or(usize::MAX);
+            let max_age = input.get_usize("age").unwrap_or(usize::MAX);
             apply_to_builder!(builder, max_age(max_age))
         })
     }
@@ -450,8 +450,6 @@ impl PyEngineBuilder {
                 }
                 None => Objective::Single(Optimize::Maximize),
             };
-
-            println!("Processing objective: {:?}", opt);
 
             match opt {
                 Objective::Single(opt) => match opt {

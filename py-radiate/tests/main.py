@@ -216,7 +216,7 @@ objectives = 3
 k = variables - objectives + 1
 
 
-@jit(nopython=True, nogil=True)
+# @jit(nopython=True, nogil=True)
 def dtlz_1(val):
     g = 0.0
     for i in range(variables - k, variables):

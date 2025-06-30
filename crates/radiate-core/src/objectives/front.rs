@@ -105,6 +105,8 @@ where
                     writer.push(new_member);
                 }
             });
+
+            // });
         }
 
         let count = jobs.len();
@@ -120,7 +122,44 @@ where
             self.filter();
         }
 
+        // let mut count = 0;
+
+        // for new_member in items {
+        //     let mut is_dominated = false;
+        //     let mut to_remove = Vec::new();
+
+        //     // Check if new member is dominated by any existing member
+        //     for existing_val in &self.values {
+        //         if (self.ord)(existing_val, new_member) == Ordering::Greater {
+        //             // Existing value dominates new member
+        //             is_dominated = true;
+        //             break;
+        //         } else if (self.ord)(new_member, existing_val) == Ordering::Greater {
+        //             // New member dominates existing value
+        //             to_remove.push(Arc::clone(existing_val));
+        //         }
+        //     }
+
+        //     // Remove dominated existing values
+        //     for val in to_remove {
+        //         self.values.retain(|x| !Arc::ptr_eq(x, &val));
+        //     }
+
+        //     // Add new member if not dominated
+        //     if !is_dominated {
+        //         self.values.push(Arc::new(new_member.clone()));
+        //         count += 1;
+        //     }
+        // }
+
+        // Filter if front is too large
+        if self.values.len() > self.range.end {
+            self.filter();
+        }
+
         count
+
+        // self.values.len()
     }
 
     pub fn filter(&mut self) {

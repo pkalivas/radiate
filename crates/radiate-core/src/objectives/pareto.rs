@@ -159,6 +159,69 @@ pub fn weights<T: AsRef<[f32]>>(scores: &[T], objective: &Objective) -> Vec<f32>
         .collect::<Vec<f32>>()
 }
 
+// pub fn dominance<K: PartialOrd, T: AsRef<[K]>>(
+//     score_a: T,
+//     score_b: T,
+//     objective: &Objective,
+// ) -> bool {
+//     let score_a_ref = score_a.as_ref();
+//     let score_b_ref = score_b.as_ref();
+
+//     if score_a_ref.len() != score_b_ref.len() {
+//         return false;
+//     }
+
+//     let mut better_in_any = false;
+//     let mut worse_in_any = false;
+
+//     match objective {
+//         Objective::Single(opt) => {
+//             for (a, b) in score_a_ref.iter().zip(score_b_ref.iter()) {
+//                 match opt {
+//                     Optimize::Minimize => {
+//                         if a > b {
+//                             worse_in_any = true;
+//                         } else if a < b {
+//                             better_in_any = true;
+//                         }
+//                     }
+//                     Optimize::Maximize => {
+//                         if a < b {
+//                             worse_in_any = true;
+//                         } else if a > b {
+//                             better_in_any = true;
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+
+//         Objective::Multi(opts) => {
+//             for ((a, b), opt) in score_a_ref.iter().zip(score_b_ref.iter()).zip(opts) {
+//                 match opt {
+//                     Optimize::Minimize => {
+//                         if a > b {
+//                             worse_in_any = true;
+//                         } else if a < b {
+//                             better_in_any = true;
+//                         }
+//                     }
+//                     Optimize::Maximize => {
+//                         if a < b {
+//                             worse_in_any = true;
+//                         } else if a > b {
+//                             better_in_any = true;
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
+
+//     // a dominates b if it's at least as good in all objectives and better in at least one
+//     better_in_any && !worse_in_any
+// }
+
 /// Determine if one score dominates another score. A score `a` dominates a score `b`
 /// if it is better in every objective and at least one objective is strictly better.
 pub fn dominance<K: PartialOrd, T: AsRef<[K]>>(

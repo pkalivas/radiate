@@ -97,6 +97,21 @@ impl<'a> AnyValue<'a> {
         }
     }
 
+    pub fn to_usize(&self) -> Option<usize> {
+        match self {
+            AnyValue::UInt8(v) => Some((*v).into()),
+            AnyValue::UInt16(v) => Some((*v).into()),
+            AnyValue::UInt32(v) => Some((*v) as usize),
+            AnyValue::UInt64(v) => Some((*v).try_into().ok()?),
+            AnyValue::Int8(v) => Some((*v) as usize),
+            AnyValue::Int16(v) => Some((*v) as usize),
+            AnyValue::Int32(v) => Some((*v) as usize),
+            AnyValue::Int64(v) => Some((*v).try_into().ok()?),
+            AnyValue::Int128(v) => Some((*v).try_into().ok()?),
+            _ => None,
+        }
+    }
+
     pub fn is_null(&self) -> bool {
         matches!(self, Self::Null)
     }
