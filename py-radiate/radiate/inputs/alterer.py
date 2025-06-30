@@ -1,6 +1,6 @@
 from typing import Dict
 from .component import ComponentBase
-from .genome.gene import GeneType
+from ..genome.gene import GeneType
 
 
 class AlterBase(ComponentBase):

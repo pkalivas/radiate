@@ -74,7 +74,7 @@ macro_rules! apply_selector_to_builder {
 pub struct PyEngineBuilder {
     pub gene_type: PyGeneType,
     pub codec: Py<PyAny>,
-    pub problem_builder: Py<PyAny>,
+    pub problem: Py<PyAny>,
     pub inputs: Vec<PyEngineInput>,
 }
 
@@ -84,7 +84,7 @@ impl PyEngineBuilder {
     pub fn new(
         gene_type: String,
         codec: Py<PyAny>,
-        problem_builder: Py<PyAny>,
+        problem: Py<PyAny>,
         inputs: Vec<PyEngineInput>,
     ) -> Self {
         let gene_type = match gene_type.as_str() {
@@ -98,23 +98,15 @@ impl PyEngineBuilder {
         PyEngineBuilder {
             gene_type,
             codec,
-            problem_builder,
+            problem,
             inputs,
         }
-    }
-
-    pub fn run<'py>(&mut self, py: Python<'py>, limits: Vec<PyEngineInput>) -> PyResult<Py<PyAny>> {
-        for limit in limits.iter() {
-            println!("Applying limit: {:?}", limit);
-        }
-        self.build(py)?;
-        Ok(py.None())
     }
 
     pub fn build<'py>(&mut self, py: Python<'py>) -> PyResult<PyEngine> {
         let mut inner = EngineBuilderHandle::Empty;
         let problem = self
-            .problem_builder
+            .problem
             .bind(py)
             .extract::<PyProblemBuilder>()?;
         let codec = self.codec.bind(py);
@@ -523,27 +515,3 @@ impl PyEngineBuilder {
     }
 }
 
-impl<C> InputConverter<C, Executor> for PyEngineInput
-where
-    C: Chromosome,
-{
-    fn convert(&self) -> Executor {
-        if self.input_type != PyEngineInputType::Executor {
-            panic!("Input type {:?} not an executor", self.input_type);
-        }
-
-        match self.component.as_str() {
-            "Serial" => Executor::Serial,
-            "FixedSizedWorkerPool" => {
-                let num_workers = self
-                    .args
-                    .get("num_workers")
-                    .and_then(|s| s.parse::<usize>().ok())
-                    .unwrap_or(1);
-                Executor::FixedSizedWorkerPool(num_workers)
-            }
-            "WorkerPool" => Executor::WorkerPool,
-            _ => panic!("Executor type {} not yet implemented", self.component),
-        }
-    }
-}

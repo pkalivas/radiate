@@ -1,7 +1,7 @@
 from typing import Dict
-from radiate.radiate import PyDiversity
+
 from .component import ComponentBase
-from .genome.gene import GeneType
+from ..genome.gene import GeneType
 
 
 class DiversityBase(ComponentBase):

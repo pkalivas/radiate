@@ -1,6 +1,6 @@
 from typing import Dict
 from .component import ComponentBase
-from .genome.gene import GeneType
+from ..genome.gene import GeneType
 
 class SelectorBase(ComponentBase):
     def __init__(self, component: str, args: Dict[str, str] = {}, allowed_genes: set[str] = {}):

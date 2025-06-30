@@ -1,5 +1,5 @@
 import abc
-from typing import List
+from typing import List, Callable, Any
 from radiate.radiate import PyProblemBuilder
 
 
@@ -10,10 +10,24 @@ class ProblemBase(abc.ABC):
         self.problem = problem
 
 
+class CallableProblem(ProblemBase):
+    """A class representing a custom problem defined by the user."""
+
+    def __init__(self, problem: Callable[[Any], Any]):
+        """
+        Initializes the CallableProblem instance.
+
+        :param problem: A callable defining the custom problem.
+        """
+        super().__init__(problem=PyProblemBuilder.custom(problem))
+
+
 class Regression(ProblemBase):
     """A class representing a regression problem."""
 
-    def __init__(self, features: List[List[float]], targets: List[List[float]], loss: str = "mse"):
+    def __init__(
+        self, features: List[List[float]], targets: List[List[float]], loss: str = "mse"
+    ):
         """
         Initializes the Regression problem instance.
 

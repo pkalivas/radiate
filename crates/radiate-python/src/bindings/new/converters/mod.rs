@@ -1,5 +1,4 @@
 mod alters;
-mod objectives;
 mod selectors;
 
 use radiate::Chromosome;

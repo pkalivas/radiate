@@ -1,21 +1,14 @@
 from .engine import GeneticEngine
 from .codec import FloatCodec, IntCodec, CharCodec, BitCodec, CodecBase, GraphCodec
-from .limit import SecondsLimit, GenerationsLimit, ScoreLimit
 from .random import RandomProvider as random
 from .generation import Generation
 from .genome import Gene, Chromosome, Genotype, Population, Phenotype
 from .handlers import EventHandler, EventType
-from .executor import Executor
 from .gp import Op, Graph
-from .problem import ProblemBase, Regression
 
-from .diversity import (
-    HammingDistance,
-    EuclideanDistance,
-    NeatDistance
-)
-
-from .selector import (
+from .inputs.executor import Executor
+from .inputs.problem import Regression
+from .inputs.selector import (
     TournamentSelector,
     RouletteSelector,
     RankSelector,
@@ -28,7 +21,7 @@ from .selector import (
     SteadyStateSelector
 )
 
-from .alterer import (
+from .inputs.alterer import (
     BlendCrossover,
     IntermediateCrossover,
     ArithmeticMutator,
@@ -46,6 +39,19 @@ from .alterer import (
     OperationMutator,
     GraphCrossover
 )
+
+from .inputs.diversity import (
+    HammingDistance,
+    EuclideanDistance,
+    NeatDistance
+)
+
+from .inputs.limit import (
+    SecondsLimit,
+    GenerationsLimit,
+    ScoreLimit
+)
+
 
 __all__ = [
     "Op",

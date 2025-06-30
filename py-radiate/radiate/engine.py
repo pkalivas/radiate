@@ -1,15 +1,20 @@
 from typing import Any, Callable, List, Tuple, TypeAlias, Union
 
-from radiate.genome.gene import GeneType
-from .selector import SelectorBase, TournamentSelector, RouletteSelector
-from .alterer import AlterBase, UniformCrossover, UniformMutator
-from .diversity import DiversityBase
-from .codec import CodecBase
-from .limit import LimitBase
+from .builder import EngineBuilder
 from .generation import Generation
 from .handlers import EventHandler
-from .executor import Executor
-from .problem import ProblemBase
+from .codec import FloatCodec, IntCodec, CharCodec, BitCodec, GraphCodec, CodecBase
+
+from .inputs.input import EngineInput, EngineInputType
+from .inputs.selector import SelectorBase, TournamentSelector, RouletteSelector
+from .inputs.alterer import AlterBase, UniformCrossover, UniformMutator
+from .inputs.diversity import DiversityBase
+from .inputs.executor import Executor
+from .inputs.problem import CallableProblem, ProblemBase
+from .inputs.limit import LimitBase
+
+from .genome.gene import GeneType
+
 from .radiate import (
     PyEngineBuilder,
     PySubscriber,
@@ -17,8 +22,6 @@ from .radiate import (
     PyDiversity,
     PyProblemBuilder,
 )
-from .input import EngineInput, EngineInputType, EngineBuilder
-from .codec import FloatCodec, IntCodec, CharCodec, BitCodec, GraphCodec
 
 
 Subscriber: TypeAlias = Union[
@@ -36,8 +39,7 @@ class GeneticEngine:
     def __init__(
         self,
         codec: CodecBase,
-        fitness_func: Callable[[Any], Any] | None = None,
-        problem: ProblemBase | None = None,
+        fitness_func: Callable[[Any], Any] | ProblemBase | None = None,
         offspring_selector: SelectorBase | None = None,
         survivor_selector: SelectorBase | None = None,
         alters: AlterBase | List[AlterBase] | None = None,
@@ -68,11 +70,8 @@ class GeneticEngine:
                 f"Codec type {type(codec)} is not supported. "
                 "Use FloatCodec, IntCodec, CharCodec, BitCodec, or GraphCodec."
             )
-        
-        codec = get_codec(codec)
-        problem_builder = get_problem(fitness_func, problem)
 
-        self.builder = EngineBuilder(self.gene_type, codec, problem_builder)
+        self.builder = EngineBuilder(self.gene_type, codec, fitness_func)
 
         self.builder.set_survivor_selector(survivor_selector or TournamentSelector(k=3))
         self.builder.set_offspring_selector(offspring_selector or RouletteSelector())
@@ -96,7 +95,7 @@ class GeneticEngine:
         # codec = get_codec(codec)
         # executor = get_executor(executor)
         # problem = get_problem(fitness_func, problem)
-    
+
         # self.engine = None
         # self.builder = PyEngineBuilder(
         #     codec=codec,
@@ -125,9 +124,7 @@ class GeneticEngine:
         """Return the internal state of the engine builder for debugging."""
         return self.builder.__dict__()
 
-    def run(
-        self, limits: LimitBase | List[LimitBase], log: bool = False
-    ) -> Generation:
+    def run(self, limits: LimitBase | List[LimitBase], log: bool = False) -> Generation:
         """Run the engine with the given limits.
         Args:
             limits: A single Limit or a list of Limits to apply to the engine.
@@ -147,27 +144,36 @@ class GeneticEngine:
                 limits = [limits]
             elif isinstance(limits, list):
                 if len(limits) == 0:
-                    raise ValueError("At least one limit must be provided to run the engine.")
+                    raise ValueError(
+                        "At least one limit must be provided to run the engine."
+                    )
             else:
-                raise TypeError("Limits must be a LimitBase or a list of LimitBase instances.")
+                raise TypeError(
+                    "Limits must be a LimitBase or a list of LimitBase instances."
+                )
         else:
             raise ValueError("At least one limit must be provided to run the engine.")
+        
+        engine = self.builder.build()
 
-        builder = PyEngineBuilder(
-            gene_type=self.gene_type,
-            codec=self.builder._codec,
-            problem_builder=self.builder._problem_builder,
-            inputs=[inp.py_input() for inp in self.builder.inputs()]
-        )
+        # builder = PyEngineBuilder(
+        #     gene_type=self.gene_type,
+        #     codec=self.builder._codec,
+        #     problem_builder=self.builder._problem_builder,
+        #     inputs=[inp.py_input() for inp in self.builder.inputs()],
+        # )
 
-        limit_inputs = [EngineInput(
-            input_type=EngineInputType.Limit,
-            component=lim.component,
-            allowed_genes=[self.gene_type],
-            **lim.args
-        ).py_input() for lim in limits]
+        limit_inputs = [
+            EngineInput(
+                input_type=EngineInputType.Limit,
+                component=lim.component,
+                allowed_genes=[self.gene_type],
+                **lim.args,
+            ).py_input()
+            for lim in limits
+        ]
 
-        engine = builder.build()
+        # engine = builder.build()
         return Generation(engine.run(limit_inputs, log))
 
     def population_size(self, size: int):
@@ -371,16 +377,16 @@ class GeneticEngine:
 
 
 def get_problem(
-    fitness_func: Callable[[Any], Any],
-    problem: ProblemBase | None = None) -> PyProblemBuilder:
+    fitness_func: Callable[[Any], Any] | ProblemBase | None = None
+) -> ProblemBase:
     """Get the problem."""
-    if problem is None:
-        if fitness_func is None:
-            raise ValueError("Fitness function must be provided.")
-        
-        return PyProblemBuilder.custom(fitness_func)
-    if isinstance(problem, ProblemBase):
-        return problem.problem
+    if fitness_func is None:
+        raise ValueError("Fitness function must be provided.")
+
+    if callable(fitness_func):
+        return CallableProblem(fitness_func)
+    if isinstance(fitness_func, ProblemBase):
+        return fitness_func
     raise TypeError("Problem must be an instance of ProblemBase.")
 
 
