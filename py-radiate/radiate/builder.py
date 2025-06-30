@@ -180,8 +180,8 @@ class EngineBuilder:
                 EngineInput(
                     input_type=EngineInputType.FrontRange,
                     component="FrontRange",
-                    front_min=front_range[0],
-                    front_max=front_range[1],
+                    min=front_range[0],
+                    max=front_range[1],
                 )
             )
 

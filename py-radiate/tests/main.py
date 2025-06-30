@@ -9,7 +9,7 @@ sys.path.insert(0, project_root)
 
 import radiate as rd
 
-rd.random.set_seed(1000)
+rd.random.set_seed(501)
 
 
 class TestHandler(rd.EventHandler):
@@ -33,22 +33,22 @@ class TestHandler(rd.EventHandler):
         
 
 
-engine = rd.GeneticEngine(
-    codec=rd.IntCodec.vector(10, (0, 10)),
-    fitness_func=lambda x: sum(x),
-    offspring_selector=rd.BoltzmannSelector(4),
-    objectives="min",
-    # subscribe=TestHandler(),
-    # executor=rd.Executor.WorkerPool(),
-    alters=[
-        rd.MultiPointCrossover(0.75, 2),
-        rd.UniformMutator(0.01)
-    ],
-)
+# engine = rd.GeneticEngine(
+#     codec=rd.IntCodec.vector(50, (0, 10)),
+#     fitness_func=lambda x: sum(x),
+#     offspring_selector=rd.BoltzmannSelector(4),
+#     objectives="min",
+#     # subscribe=TestHandler(),
+#     # executor=rd.Executor.WorkerPool(),
+#     alters=[
+#         rd.MultiPointCrossover(0.75, 2),
+#         rd.UniformMutator(0.01)
+#     ],
+# )
 
-result = engine.run(rd.ScoreLimit(0), log=True)
+# result = engine.run(rd.ScoreLimit(0), log=True)
 
-print(result)
+# print(result)
 
 inputs = [[1.0, 1.0], [1.0, 0.0], [0.0, 1.0], [0.0, 0.0]]
 answers = [[0.0], [1.0], [1.0], [0.0]]
@@ -132,7 +132,7 @@ inputs, answers = get_dataset()
 
 # N_QUEENS = 32
 
-# # @jit(nopython=True, nogil=True)
+# @jit(nopython=True, nogil=True)
 # def fitness_fn(queens):
 #     """Calculate the fitness score for the N-Queens problem."""
 #     score = 0
@@ -148,7 +148,7 @@ inputs, answers = get_dataset()
 # engine = rd.GeneticEngine(
 #     codec=codec,
 #     fitness_func=fitness_fn,
-#     executor=rd.Executor.WorkerPool(),
+#     # executor=rd.Executor.WorkerPool(),
 #     objectives="min",
 #     offspring_selector=rd.BoltzmannSelector(4.0),
 #     alters=[
@@ -156,9 +156,9 @@ inputs, answers = get_dataset()
 #         rd.UniformMutator(0.05)
 #     ]
 # )
-# result = engine.run(rd.ScoreLimit(0), log=False)
+# result = engine.run(rd.ScoreLimit(0), log=True)
 # print(result)
-# print(engine)
+
 
 # board = result.value()
 # for i in range(N_QUEENS):
@@ -211,52 +211,52 @@ inputs, answers = get_dataset()
 
 # print(engine.run(rd.ScoreLimit(0.0001)))
 
-# variables = 4
-# objectives = 3
-# k = variables - objectives + 1
+variables = 4
+objectives = 3
+k = variables - objectives + 1
 
 
-# @jit(nopython=True, nogil=True)
-# def dtlz_1(val):
-#     g = 0.0
-#     for i in range(variables - k, variables):
-#         g += (val[i] - 0.5) ** 2 - math.cos(20.0 * math.pi * (val[i] - 0.5))
-#     g = 100.0 * (k + g)
-#     f = [0.0] * objectives
-#     for i in range(objectives):
-#         f[i] = 0.5 * (1.0 + g)
-#         for j in range(objectives - 1 - i):
-#             f[i] *= val[j]
-#         if i != 0:
-#             f[i] *= 1.0 - val[objectives - 1 - i]
-#     return f
+@jit(nopython=True, nogil=True)
+def dtlz_1(val):
+    g = 0.0
+    for i in range(variables - k, variables):
+        g += (val[i] - 0.5) ** 2 - math.cos(20.0 * math.pi * (val[i] - 0.5))
+    g = 100.0 * (k + g)
+    f = [0.0] * objectives
+    for i in range(objectives):
+        f[i] = 0.5 * (1.0 + g)
+        for j in range(objectives - 1 - i):
+            f[i] *= val[j]
+        if i != 0:
+            f[i] *= 1.0 - val[objectives - 1 - i]
+    return f
 
 
-# engine = rd.GeneticEngine(
-#     codec=rd.FloatCodec.vector(variables, (0.0, 1.0), (-100.0, 100.0)),
-#     fitness_func=dtlz_1,
-#     offspring_selector=rd.TournamentSelector(k=5),
-#     survivor_selector=rd.NSGA2Selector(),
-#     objectives=["min" for _ in range(objectives)],
-#     executor=rd.Executor.WorkerPool(),
-#     alters=[
-#         rd.SimulatedBinaryCrossover(1.0, 1.0),
-#         rd.UniformMutator(0.1)
-#     ],
-# )
+engine = rd.GeneticEngine(
+    codec=rd.FloatCodec.vector(variables, (0.0, 1.0), (-100.0, 100.0)),
+    fitness_func=dtlz_1,
+    offspring_selector=rd.TournamentSelector(k=5),
+    survivor_selector=rd.NSGA2Selector(),
+    objectives=["min" for _ in range(objectives)],
+    # executor=rd.Executor.WorkerPool(),
+    alters=[
+        rd.SimulatedBinaryCrossover(1.0, 1.0),
+        rd.UniformMutator(0.1)
+    ],
+)
 
-# result = engine.run(rd.GenerationsLimit(1000), log=True)
-# print(result)
+result = engine.run(rd.GenerationsLimit(1000), log=True)
+print(result)
 
-# front = result.value()
-# fig = plt.figure()
-# ax = plt.axes(projection="3d")
+front = result.value()
+fig = plt.figure()
+ax = plt.axes(projection="3d")
 
-# x = [member["fitness"][0] for member in front]
-# y = [member["fitness"][1] for member in front]
-# z = [member["fitness"][2] for member in front]
-# ax.scatter(x, y, z, c="r", marker="o")
-# plt.show()
+x = [member["fitness"][0] for member in front]
+y = [member["fitness"][1] for member in front]
+z = [member["fitness"][2] for member in front]
+ax.scatter(x, y, z, c="r", marker="o")
+plt.show()
 
 
 # print()

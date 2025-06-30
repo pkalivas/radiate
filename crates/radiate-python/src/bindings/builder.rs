@@ -102,9 +102,18 @@ impl PyEngineBuilder {
     }
 
     pub fn __repr__(&self) -> String {
+        let inputs = self
+            .inputs
+            .iter()
+            .map(|i| i.__repr__())
+            .collect::<Vec<String>>();
         format!(
-            "EngineBuilder(gene_type={:?}, codec={:?}, problem={:?}, subscribers={:?}, inputs={:?})",
-            self.gene_type, self.codec, self.problem, self.subscribers, self.inputs
+            "EngineBuilder(\ngene_type={:?}, \ncodec={:?}, \nproblem={:?}, \nsubscribers={:?}, \ninputs=[{}])",
+            self.gene_type,
+            self.codec,
+            self.problem,
+            self.subscribers,
+            inputs.join(", ")
         )
     }
 }
@@ -442,6 +451,8 @@ impl PyEngineBuilder {
                 None => Objective::Single(Optimize::Maximize),
             };
 
+            println!("Processing objective: {:?}", opt);
+
             match opt {
                 Objective::Single(opt) => match opt {
                     Optimize::Minimize => apply_to_builder!(builder, minimizing()),
@@ -481,6 +492,8 @@ impl PyEngineBuilder {
             let max = input
                 .get_usize("max")
                 .unwrap_or(1000);
+
+            println!("Processing front range with min: {}, max: {}", min, max);
 
             match builder {
                 EngineBuilderHandle::Int(b) => {

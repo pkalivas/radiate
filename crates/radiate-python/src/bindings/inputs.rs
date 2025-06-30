@@ -1,7 +1,10 @@
 use crate::{AnyValue, PyGeneType, prelude::Wrap};
 use pyo3::{pyclass, pymethods};
 use radiate::{Executor, Limit};
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Debug,
+};
 
 #[pyclass]
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Copy)]
@@ -23,7 +26,7 @@ pub enum PyEngineInputType {
 }
 
 #[pyclass]
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct PyEngineInput {
     pub component: String,
     pub input_type: PyEngineInputType,
@@ -60,10 +63,7 @@ impl PyEngineInput {
     }
 
     pub fn __repr__(&self) -> String {
-        format!(
-            "EngineParam(component={}, input_type={:?}, allowed_genes={:?}, temp={:?})",
-            self.component, self.input_type, self.allowed_genes, self.temp
-        )
+        format!("{:?}", self)
     }
     pub fn __str__(&self) -> String {
         self.__repr__()
@@ -141,5 +141,31 @@ impl Into<Option<Limit>> for PyEngineInput {
         }
 
         None
+    }
+}
+
+impl Debug for PyEngineInput {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut args = self
+            .temp
+            .iter()
+            .map(|(k, v)| format!("\t\t{}: {:?}", k, v))
+            .collect::<Vec<String>>()
+            .join("\n");
+        if args.len() > 0 {
+            args = format!("\n{}", args);
+            args.push('\n');
+        }
+        write!(
+            f,
+            "PyEngineInput {{ \n\tcomponent: {}, \n\tinput_type: {:?}, \n\tallowed_genes: {:?}, \n\ttemp: {{{}}} \n}}",
+            self.component, self.input_type, self.allowed_genes, args
+        )
+        // f.debug_struct("PyEngineInput")
+        //     .field("component", &self.component)
+        //     .field("input_type", &self.input_type)
+        //     .field("allowed_genes", &self.allowed_genes)
+        //     .field("temp", &self.temp)
+        //     .finish()
     }
 }

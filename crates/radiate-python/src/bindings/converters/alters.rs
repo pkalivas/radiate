@@ -198,13 +198,11 @@ fn convert_gaussian_mutator(input: &PyEngineInput) -> GaussianMutator {
 fn convert_simulated_binary_crossover(input: &PyEngineInput) -> SimulatedBinaryCrossover {
     let rate = input.get_f32("rate").unwrap_or(0.5);
     let contiguity = input.get_f32("contiguity").unwrap_or(0.5);
-
     SimulatedBinaryCrossover::new(rate, contiguity)
 }
 
 fn convert_graph_crossover(input: &PyEngineInput) -> GraphCrossover {
     let rate = input.get_f32("rate").unwrap_or(0.5);
-
     let parent_node_rate = input.get_f32("parent_node_rate").unwrap_or(0.5);
 
     GraphCrossover::new(rate, parent_node_rate)

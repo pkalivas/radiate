@@ -60,6 +60,10 @@ impl<'a> AnyValue<'a> {
         match self {
             AnyValue::Float32(v) => Some((*v).into()),
             AnyValue::Float64(v) => Some(*v),
+            AnyValue::Int8(v) => Some((*v).into()),
+            AnyValue::Int16(v) => Some((*v).into()),
+            AnyValue::Int32(v) => Some((*v).into()),
+            AnyValue::Int64(v) => Some((*v) as f64),
             _ => None,
         }
     }
@@ -68,6 +72,10 @@ impl<'a> AnyValue<'a> {
         match self {
             AnyValue::Float32(v) => Some(*v),
             AnyValue::Float64(v) => Some((*v) as f32),
+            AnyValue::Int8(v) => Some((*v).into()),
+            AnyValue::Int16(v) => Some((*v).into()),
+            AnyValue::Int32(v) => Some((*v) as f32),
+            AnyValue::Int64(v) => Some((*v) as f32),
             _ => None,
         }
     }

@@ -4,6 +4,7 @@ members = [
     "crates/*",
     "py-radiate",
 
+    "examples/DTLZ",
     "examples/min-sum",
     "examples/hello-world",
     "examples/knapsack",    
