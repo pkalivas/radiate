@@ -148,8 +148,6 @@ where
 
             let config = EngineConfig::<C, T>::from(&self.params);
 
-            println!("Engine Config: {:?}", config);
-
             let mut pipeline = Pipeline::<C>::default();
 
             pipeline.add_step(Self::build_eval_step(&config));

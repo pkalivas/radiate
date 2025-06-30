@@ -88,6 +88,7 @@ where
     }
 }
 
+#[derive(Clone)]
 pub struct ParetoGeneration<C>
 where
     C: Chromosome,

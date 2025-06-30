@@ -17,6 +17,8 @@ const ARITHMETIC_MUTATOR: &str = "ArithmeticMutator";
 const GAUSSIAN_MUTATOR: &str = "GaussianMutator";
 const GRAPH_MUTATOR: &str = "GraphMutator";
 const OPERATION_MUTATOR: &str = "OperationMutator";
+const TREE_CROSSOVER: &str = "TreeCrossover";
+const HOIST_MUTATOR: &str = "HoistMutator";
 
 impl<C> InputConverter<Vec<Box<dyn Alter<C>>>> for &[PyEngineInput]
 where
@@ -54,7 +56,7 @@ impl InputConverter<Vec<Box<dyn Alter<IntChromosome<i32>>>>> for PyEngineInput {
             SWAP_MUTATOR => alters!(convert_swap_mutator(&self)),
             SCRAMBLE_MUTATOR => alters!(convert_scramble_mutator(&self)),
             UNIFORM_MUTATOR => alters!(convert_uniform_mutator(&self)),
-            _ => panic!("Alterer type {} not yet implemented", self.component),
+            _ => panic!("Invalid alterer type {}", self.component),
         }
     }
 }
@@ -77,7 +79,7 @@ impl InputConverter<Vec<Box<dyn Alter<FloatChromosome>>>> for PyEngineInput {
             SWAP_MUTATOR => alters!(convert_swap_mutator(&self)),
             SCRAMBLE_MUTATOR => alters!(convert_scramble_mutator(&self)),
             UNIFORM_MUTATOR => alters!(convert_uniform_mutator(&self)),
-            _ => panic!("Alterer type {} not yet implemented", self.component),
+            _ => panic!("Invalid alterer type {}", self.component),
         }
     }
 }
@@ -95,7 +97,7 @@ impl InputConverter<Vec<Box<dyn Alter<CharChromosome>>>> for PyEngineInput {
             SWAP_MUTATOR => alters!(convert_swap_mutator(&self)),
             SCRAMBLE_MUTATOR => alters!(convert_scramble_mutator(&self)),
             UNIFORM_MUTATOR => alters!(convert_uniform_mutator(&self)),
-            _ => panic!("Alterer type {} not yet implemented", self.component),
+            _ => panic!("Invalid alterer type {}", self.component),
         }
     }
 }
@@ -113,7 +115,7 @@ impl InputConverter<Vec<Box<dyn Alter<BitChromosome>>>> for PyEngineInput {
             SWAP_MUTATOR => alters!(convert_swap_mutator(&self)),
             SCRAMBLE_MUTATOR => alters!(convert_scramble_mutator(&self)),
             UNIFORM_MUTATOR => alters!(convert_uniform_mutator(&self)),
-            _ => panic!("Alterer type {} not yet implemented", self.component),
+            _ => panic!("Invalid alterer type {}", self.component),
         }
     }
 }
@@ -128,9 +130,34 @@ impl InputConverter<Vec<Box<dyn Alter<GraphChromosome<Op<f32>>>>>> for PyEngineI
             GRAPH_CROSSOVER => alters!(convert_graph_crossover(&self)),
             GRAPH_MUTATOR => alters!(convert_graph_mutator(&self)),
             OPERATION_MUTATOR => alters!(convert_operation_mutator(&self)),
-            _ => panic!("Alterer type {} not yet implemented", self.component),
+            _ => panic!("Invalid alterer type {}", self.component),
         }
     }
+}
+
+impl InputConverter<Vec<Box<dyn Alter<TreeChromosome<Op<f32>>>>>> for PyEngineInput {
+    fn convert(&self) -> Vec<Box<dyn Alter<TreeChromosome<Op<f32>>>>> {
+        if self.input_type != PyEngineInputType::Alterer {
+            panic!("Input type {:?} not an alterer", self.input_type);
+        }
+
+        match self.component.as_str() {
+            TREE_CROSSOVER => alters!(convert_tree_crossover(&self)),
+            HOIST_MUTATOR => alters!(convert_hoist_mutator(&self)),
+            OPERATION_MUTATOR => alters!(convert_operation_mutator(&self)),
+            _ => panic!("Invalid alterer type {}", self.component),
+        }
+    }
+}
+
+fn convert_hoist_mutator(input: &PyEngineInput) -> HoistMutator {
+    let rate = input.get_f32("rate").unwrap_or(0.5);
+    HoistMutator::new(rate)
+}
+
+fn convert_tree_crossover(input: &PyEngineInput) -> TreeCrossover {
+    let rate = input.get_f32("rate").unwrap_or(0.5);
+    TreeCrossover::new(rate)
 }
 
 fn convert_multi_point_crossover(input: &PyEngineInput) -> MultiPointCrossover {

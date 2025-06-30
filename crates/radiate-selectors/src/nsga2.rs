@@ -27,7 +27,7 @@ impl<C: Chromosome + Clone> Select<C> for NSGA2Selector {
     ) -> Population<C> {
         let scores = population.get_scores();
         let ranks = pareto::rank(&scores, objective);
-        let distances = pareto::crowding_distance(&scores, objective);
+        let distances = pareto::crowding_distance(&scores);
 
         let mut indices = (0..population.len()).collect::<Vec<usize>>();
 
@@ -72,7 +72,7 @@ impl<C: Chromosome + Clone> Select<C> for TournamentNSGA2Selector {
     ) -> Population<C> {
         let scores = population.get_scores();
         let ranks = pareto::rank(&scores, objective);
-        let distances = pareto::crowding_distance(&scores, objective);
+        let distances = pareto::crowding_distance(&scores);
 
         let mut indices = (0..population.len()).collect::<Vec<usize>>();
 

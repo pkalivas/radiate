@@ -7,7 +7,7 @@ use crate::objectives::{Objective, Optimize};
 /// desirable because they are more spread out. This is useful for selecting
 /// diverse solutions in a multi-objective optimization problem and is a
 /// key component of the NSGA-II algorithm.
-pub fn crowding_distance<T: AsRef<[f32]>>(scores: &[T], objective: &Objective) -> Vec<f32> {
+pub fn crowding_distance<T: AsRef<[f32]>>(scores: &[T]) -> Vec<f32> {
     let indices = scores
         .iter()
         .enumerate()
@@ -18,12 +18,13 @@ pub fn crowding_distance<T: AsRef<[f32]>>(scores: &[T], objective: &Objective) -
 
     for i in 0..indices[0].0.len() {
         let mut distance_values = indices.clone();
-        distance_values.sort_by(|a, b| b.0[i].partial_cmp(&a.0[i]).unwrap());
+        // distance_values.sort_by(|a, b| b.0[i].partial_cmp(&a.0[i]).unwrap());
+        distance_values.sort_by(|a, b| a.0[i].partial_cmp(&b.0[i]).unwrap());
 
         let min = indices[distance_values[0].1];
         let max = indices[distance_values[distance_values.len() - 1].1];
 
-        let dm = distance(max.0, min.0, objective.as_ref(), i);
+        let dm = distance(max.0, min.0, i);
 
         if dm == 0.0 {
             continue;
@@ -35,9 +36,9 @@ pub fn crowding_distance<T: AsRef<[f32]>>(scores: &[T], objective: &Objective) -
         for j in 1..distance_values.len() - 1 {
             let prev = indices[distance_values[j - 1].1];
             let next = indices[distance_values[j + 1].1];
-            let dp = distance(next.0, prev.0, objective.as_ref(), i);
+            let dp = distance(next.0, prev.0, i);
 
-            result[distance_values[j].1] += dp / dm;
+            result[distance_values[j].1] += dp;
         }
     }
 
@@ -140,7 +141,7 @@ pub fn rank<T: AsRef<[f32]>>(population: &[T], objective: &Objective) -> Vec<usi
 
 pub fn weights<T: AsRef<[f32]>>(scores: &[T], objective: &Objective) -> Vec<f32> {
     let ranks = rank(scores, objective);
-    let distances = crowding_distance(scores, objective);
+    let distances = crowding_distance(scores);
 
     let rank_weight = ranks
         .iter()
@@ -222,8 +223,8 @@ pub fn weights<T: AsRef<[f32]>>(scores: &[T], objective: &Objective) -> Vec<f32>
 //     better_in_any && !worse_in_any
 // }
 
-/// Determine if one score dominates another score. A score `a` dominates a score `b`
-/// if it is better in every objective and at least one objective is strictly better.
+// Determine if one score dominates another score. A score `a` dominates a score `b`
+// if it is better in every objective and at least one objective is strictly better.
 pub fn dominance<K: PartialOrd, T: AsRef<[K]>>(
     score_a: T,
     score_b: T,
@@ -301,25 +302,28 @@ pub fn pareto_front<K: PartialOrd, T: AsRef<[K]> + Clone>(
 
 /// Calculate the distance between two scores in the objective space. This is used
 /// to calculate the crowding distance for each score in a population.
-fn distance<K: PartialOrd, T: AsRef<[K]>>(one: T, two: T, opts: &[Optimize], index: usize) -> f32 {
-    match opts[index] {
-        Optimize::Minimize => {
-            if one.as_ref()[index] > two.as_ref()[index] {
-                1.0
-            } else if one.as_ref()[index] < two.as_ref()[index] {
-                -1.0
-            } else {
-                0.0
-            }
-        }
-        Optimize::Maximize => {
-            if one.as_ref()[index] < two.as_ref()[index] {
-                1.0
-            } else if one.as_ref()[index] > two.as_ref()[index] {
-                -1.0
-            } else {
-                0.0
-            }
-        }
-    }
+fn distance<T: AsRef<[f32]>>(a: T, b: T, index: usize) -> f32 {
+    (a.as_ref()[index] - b.as_ref()[index]).abs()
 }
+// fn distance<K: PartialOrd, T: AsRef<[K]>>(one: T, two: T, opts: &[Optimize], index: usize) -> f32 {
+//     match opts[index] {
+//         Optimize::Minimize => {
+//             if one.as_ref()[index] > two.as_ref()[index] {
+//                 1.0
+//             } else if one.as_ref()[index] < two.as_ref()[index] {
+//                 -1.0
+//             } else {
+//                 0.0
+//             }
+//         }
+//         Optimize::Maximize => {
+//             if one.as_ref()[index] < two.as_ref()[index] {
+//                 1.0
+//             } else if one.as_ref()[index] > two.as_ref()[index] {
+//                 -1.0
+//             } else {
+//                 0.0
+//             }
+//         }
+//     }
+// }

@@ -2,10 +2,85 @@ use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods, 
 use radiate::{
     BitChromosome, BitGene, CharChromosome, CharGene, Chromosome, FloatChromosome, FloatGene, Gene,
     Genotype, GraphChromosome, GraphNode, IntChromosome, IntGene, Op, Phenotype, Population,
-    random_provider,
+    TreeChromosome, TreeNode, random_provider,
 };
 
-use crate::PyGeneType;
+use crate::{AnyGene, any::AnyChromosome, prelude::Wrap};
+
+pub const FLOAT_GENE_TYPE: &'static str = "FloatGene";
+pub const INT_GENE_TYPE: &'static str = "IntGene";
+pub const BIT_GENE_TYPE: &'static str = "BitGene";
+pub const CHAR_GENE_TYPE: &'static str = "CharGene";
+pub const GRAPH_GENE_TYPE: &'static str = "GraphNode";
+pub const TREE_GENE_TYPE: &'static str = "TreeNode";
+pub const ANY_GENE_TYPE: &'static str = "AnyGene";
+
+#[pyclass]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
+pub enum PyGeneType {
+    Empty,
+    Int,
+    Float,
+    Bit,
+    Char,
+    Graph,
+    Tree,
+    Any,
+}
+
+#[pymethods]
+impl PyGeneType {
+    pub fn name(&self) -> String {
+        match self {
+            PyGeneType::Empty => "NONE".into(),
+            PyGeneType::Int => INT_GENE_TYPE.into(),
+            PyGeneType::Float => FLOAT_GENE_TYPE.into(),
+            PyGeneType::Bit => BIT_GENE_TYPE.into(),
+            PyGeneType::Char => CHAR_GENE_TYPE.into(),
+            PyGeneType::Graph => GRAPH_GENE_TYPE.into(),
+            PyGeneType::Tree => TREE_GENE_TYPE.into(),
+            PyGeneType::Any => ANY_GENE_TYPE.into(),
+        }
+    }
+
+    pub fn __repr__(&self) -> String {
+        match self {
+            PyGeneType::Empty => "NONE".into(),
+            PyGeneType::Int => INT_GENE_TYPE.into(),
+            PyGeneType::Float => FLOAT_GENE_TYPE.into(),
+            PyGeneType::Bit => BIT_GENE_TYPE.into(),
+            PyGeneType::Char => CHAR_GENE_TYPE.into(),
+            PyGeneType::Graph => GRAPH_GENE_TYPE.into(),
+            PyGeneType::Tree => TREE_GENE_TYPE.into(),
+            PyGeneType::Any => ANY_GENE_TYPE.into(),
+        }
+    }
+
+    pub fn __str__(&self) -> String {
+        self.__repr__()
+    }
+
+    pub fn __hash__(&self) -> usize {
+        match self {
+            PyGeneType::Empty => 0,
+            PyGeneType::Int => 1,
+            PyGeneType::Float => 2,
+            PyGeneType::Bit => 3,
+            PyGeneType::Char => 4,
+            PyGeneType::Graph => 5,
+            PyGeneType::Tree => 6,
+            PyGeneType::Any => 7,
+        }
+    }
+
+    pub fn __eq__(&self, other: &PyGeneType) -> bool {
+        self == other
+    }
+
+    pub fn __ne__(&self, other: &PyGeneType) -> bool {
+        self != other
+    }
+}
 
 #[pyclass]
 #[derive(Clone, Debug)]
@@ -201,6 +276,8 @@ enum GeneInner {
     Bit(BitGene),
     Char(CharGene),
     GraphNode(GraphNode<Op<f32>>),
+    TreeNode(TreeNode<Op<f32>>),
+    Any(AnyGene<'static>),
 }
 
 #[pyclass]
@@ -219,6 +296,8 @@ impl PyGene {
             GeneInner::Bit(_) => PyGeneType::Bit,
             GeneInner::Char(_) => PyGeneType::Char,
             GeneInner::GraphNode(_) => PyGeneType::Graph,
+            GeneInner::TreeNode(_) => PyGeneType::Tree,
+            GeneInner::Any(_) => PyGeneType::Any,
         }
     }
 
@@ -229,6 +308,8 @@ impl PyGene {
             GeneInner::Bit(gene) => gene.allele().into_bound_py_any(py),
             GeneInner::Char(gene) => gene.allele().into_bound_py_any(py),
             GeneInner::GraphNode(gene) => gene.allele().name().into_bound_py_any(py),
+            GeneInner::TreeNode(gene) => gene.allele().name().into_bound_py_any(py),
+            GeneInner::Any(gene) => Wrap(gene.allele()).into_bound_py_any(py),
         }
     }
 
@@ -241,6 +322,8 @@ impl PyGene {
                 GeneInner::Bit(gene) => format!("{}", gene),
                 GeneInner::Char(gene) => format!("{:?}", gene),
                 GeneInner::GraphNode(gene) => format!("{:?}", gene),
+                GeneInner::TreeNode(gene) => format!("{:?}", gene),
+                GeneInner::Any(gene) => format!("{:?}", gene),
             }
         );
 
@@ -342,6 +425,8 @@ impl_into_py_gene!(IntGene<i32>, Int);
 impl_into_py_gene!(BitGene, Bit);
 impl_into_py_gene!(CharGene, Char);
 impl_into_py_gene!(GraphNode<Op<f32>>, GraphNode);
+impl_into_py_gene!(TreeNode<Op<f32>>, TreeNode);
+impl_into_py_gene!(AnyGene<'static>, Any);
 
 macro_rules! impl_into_py_chromosome {
     ($chromosome_type:ty, $gene_type:ty) => {
@@ -375,6 +460,8 @@ impl_into_py_chromosome!(IntChromosome<i32>, IntGene<i32>);
 impl_into_py_chromosome!(BitChromosome, BitGene);
 impl_into_py_chromosome!(CharChromosome, CharGene);
 impl_into_py_chromosome!(GraphChromosome<Op<f32>>, GraphNode<Op<f32>>);
+impl_into_py_chromosome!(TreeChromosome<Op<f32>>, TreeNode<Op<f32>>);
+impl_into_py_chromosome!(AnyChromosome<'static>, AnyGene<'static>);
 
 macro_rules! impl_into_py_genotype {
     ($chromosome:ty) => {
@@ -419,6 +506,8 @@ impl_into_py_genotype!(IntChromosome<i32>);
 impl_into_py_genotype!(BitChromosome);
 impl_into_py_genotype!(CharChromosome);
 impl_into_py_genotype!(GraphChromosome<Op<f32>>);
+impl_into_py_genotype!(TreeChromosome<Op<f32>>);
+impl_into_py_genotype!(AnyChromosome<'static>);
 
 macro_rules! impl_from_py_phenotype {
     ($chromosome:ty) => {
@@ -456,6 +545,8 @@ impl_from_py_phenotype!(IntChromosome<i32>);
 impl_from_py_phenotype!(BitChromosome);
 impl_from_py_phenotype!(CharChromosome);
 impl_from_py_phenotype!(GraphChromosome<Op<f32>>);
+impl_from_py_phenotype!(TreeChromosome<Op<f32>>);
+impl_from_py_phenotype!(AnyChromosome<'static>);
 
 macro_rules! impl_into_py_population {
     ($chromosome:ty) => {
@@ -513,3 +604,5 @@ impl_into_py_population!(IntChromosome<i32>);
 impl_into_py_population!(BitChromosome);
 impl_into_py_population!(CharChromosome);
 impl_into_py_population!(GraphChromosome<Op<f32>>);
+impl_into_py_population!(TreeChromosome<Op<f32>>);
+impl_into_py_population!(AnyChromosome<'static>);

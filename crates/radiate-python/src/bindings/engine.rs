@@ -2,8 +2,9 @@ use crate::{EngineHandle, EpochHandle, PyEngineInput, PyGeneration};
 use pyo3::{PyResult, pyclass, pymethods};
 use radiate::{
     Chromosome, Engine, Epoch, Generation, GeneticEngine, Limit, Objective, Optimize,
-    ParetoGeneration, log_ctx,
+    ParetoGeneration,
 };
+use tracing::info;
 
 #[pyclass(unsendable)]
 pub struct PyEngine {
@@ -65,6 +66,10 @@ impl PyEngine {
                 let output = run_single_objective_engine(eng, limits, log);
                 EpochHandle::GraphRegression(output)
             }
+            EngineHandle::TreeRegression(eng) => {
+                let output = run_single_objective_engine(eng, limits, log);
+                EpochHandle::TreeRegression(output)
+            }
         };
 
         Ok(PyGeneration::new(result))
@@ -89,6 +94,7 @@ impl PyEngine {
             EngineHandle::IntMulti(eng) => EpochHandle::IntMulti(eng.next()),
             EngineHandle::FloatMulti(eng) => EpochHandle::FloatMulti(eng.next()),
             EngineHandle::GraphRegression(eng) => EpochHandle::GraphRegression(eng.next()),
+            EngineHandle::TreeRegression(eng) => EpochHandle::TreeRegression(eng.next()),
         };
 
         Ok(PyGeneration::new(result))
@@ -108,7 +114,12 @@ where
         .iter()
         .inspect(|epoch| {
             if log {
-                log_ctx!(epoch);
+                info!(
+                    "Epoch {:<4} | Score: {:>8.4} | Time: {:>5.2?}",
+                    epoch.index(),
+                    epoch.score().as_f32(),
+                    epoch.time()
+                );
             }
         })
         .skip_while(|epoch| {
@@ -142,7 +153,12 @@ where
         .iter()
         .inspect(|epoch| {
             if log {
-                println!("{}", epoch.index());
+                info!(
+                    "Epoch {:<4} | Front Size: {:>4} | Time: {:>5.2?}",
+                    epoch.index(),
+                    epoch.value().values().len(),
+                    epoch.time()
+                );
             }
         })
         .skip_while(|epoch| {

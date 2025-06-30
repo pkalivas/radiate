@@ -41,7 +41,11 @@ class DiversityBase(ComponentBase):
     def __eq__(self, value):
         if not isinstance(value, DiversityBase):
             return False
-        return self.component == value.component and self.args == value.args and self.allowed_genes == value.allowed_genes
+        return (
+            self.component == value.component
+            and self.args == value.args
+            and self.allowed_genes == value.allowed_genes
+        )
 
 
 class HammingDistance(DiversityBase):
@@ -91,8 +95,6 @@ class NeatDistance(DiversityBase):
             },
             allowed_genes=GeneType.GRAPH,
         )
-
-
 
 
 # from radiate.radiate import PyDiversity

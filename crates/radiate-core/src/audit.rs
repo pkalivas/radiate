@@ -30,9 +30,11 @@ impl<C: Chromosome> Audit<C> for MetricAudit {
         let mut score_metric = Metric::new(metric_names::SCORES);
         let mut size_metric = Metric::new(metric_names::GENOME_SIZE);
         let mut unique_scores = Vec::with_capacity(ecosystem.population().len());
+        let mut species_ages = Metric::new(metric_names::SPECIES_AGE);
+        let mut unique_metric = Metric::new(metric_names::UNIQUE_SCORES);
+        let mut equal_metric = Metric::new(metric_names::UNIQUE_MEMBERS);
         let mut unique_members = HashSet::new();
         let mut new_species_count = 0;
-        let mut species_ages = Metric::new(metric_names::SPECIES_AGE);
 
         if let Some(species) = ecosystem.species() {
             for spec in species.iter() {
@@ -68,9 +70,6 @@ impl<C: Chromosome> Audit<C> for MetricAudit {
 
         unique_scores.dedup();
         score_metric.apply_update(&score_distribution);
-
-        let mut unique_metric = Metric::new(metric_names::UNIQUE_SCORES);
-        let mut equal_metric = Metric::new(metric_names::UNIQUE_MEMBERS);
 
         unique_metric.apply_update(unique_scores.len() as f32);
         equal_metric.apply_update(unique_members.len() as f32);

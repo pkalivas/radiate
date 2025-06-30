@@ -2,8 +2,11 @@ from typing import Any, Dict
 from .component import ComponentBase
 from ..genome.gene import GeneType
 
+
 class SelectorBase(ComponentBase):
-    def __init__(self, component: str, args: Dict[str, Any] = {}, allowed_genes: set[str] = {}):
+    def __init__(
+        self, component: str, args: Dict[str, Any] = {}, allowed_genes: set[str] = {}
+    ):
         super().__init__(component=component, args=args)
         self.allowed_genes = allowed_genes if allowed_genes else GeneType.ALL
 
@@ -24,7 +27,11 @@ class SelectorBase(ComponentBase):
     def __eq__(self, value):
         if not isinstance(value, SelectorBase):
             return False
-        return self.component == value.component and self.args == value.args and self.allowed_genes == value.allowed_genes
+        return (
+            self.component == value.component
+            and self.args == value.args
+            and self.allowed_genes == value.allowed_genes
+        )
 
 
 class TournamentSelector(SelectorBase):
@@ -44,7 +51,6 @@ class RouletteSelector(SelectorBase):
         super().__init__(component="RouletteSelector")
 
 
-
 class RankSelector(SelectorBase):
     def __init__(self):
         """
@@ -53,14 +59,12 @@ class RankSelector(SelectorBase):
         super().__init__(component="RankSelector")
 
 
-
 class EliteSelector(SelectorBase):
     def __init__(self):
         """
         Initialize the elite selector.
         """
         super().__init__(component="EliteSelector")
-
 
 
 class BoltzmannSelector(SelectorBase):
@@ -72,14 +76,12 @@ class BoltzmannSelector(SelectorBase):
         super().__init__(component="BoltzmannSelector", args={"temp": temp})
 
 
-
 class StochasticSamplingSelector(SelectorBase):
     def __init__(self):
         """
         Initialize the stochastic sampling selector.
         """
         super().__init__(component="StochasticSamplingSelector")
-
 
 
 class LinearRankSelector(SelectorBase):
@@ -91,14 +93,12 @@ class LinearRankSelector(SelectorBase):
         super().__init__(component="LinearRankSelector", args={"pressure": pressure})
 
 
-
 class NSGA2Selector(SelectorBase):
     def __init__(self):
         """
         Initialize the NSGA2 selector.
         """
         super().__init__(component="NSGA2Selector")
-
 
 
 class TournamentNSGA2Selector(SelectorBase):
@@ -110,15 +110,15 @@ class TournamentNSGA2Selector(SelectorBase):
         super().__init__(component="TournamentNSGA2Selector", args={"k": k})
 
 
-
 class SteadyStateSelector(SelectorBase):
     def __init__(self, replacement_count: int = 10):
         """
         Initialize the steady state selector.
         """
-        super().__init__(component="SteadyStateSelector", args={"replacement_count": replacement_count})
-
-
+        super().__init__(
+            component="SteadyStateSelector",
+            args={"replacement_count": replacement_count},
+        )
 
 
 # from radiate.radiate import PySelector

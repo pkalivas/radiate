@@ -1,10 +1,19 @@
 from .engine import GeneticEngine
-from .codec import FloatCodec, IntCodec, CharCodec, BitCodec, CodecBase, GraphCodec
+from .codec import (
+    FloatCodec,
+    IntCodec,
+    CharCodec,
+    BitCodec,
+    CodecBase,
+    GraphCodec,
+    TreeCodec,
+    AnyCodec,
+)
 from .random import RandomProvider as random
 from .generation import Generation
 from .genome import Gene, Chromosome, Genotype, Population, Phenotype
 from .handlers import EventHandler, EventType
-from .gp import Op, Graph
+from .gp import Op, Graph, Tree
 
 from .inputs.executor import Executor
 from .inputs.problem import Regression
@@ -18,7 +27,7 @@ from .inputs.selector import (
     LinearRankSelector,
     NSGA2Selector,
     TournamentNSGA2Selector,
-    SteadyStateSelector
+    SteadyStateSelector,
 )
 
 from .inputs.alterer import (
@@ -37,23 +46,19 @@ from .inputs.alterer import (
     SwapMutator,
     GraphMutator,
     OperationMutator,
-    GraphCrossover
+    GraphCrossover,
+    TreeCrossover,
+    HoistMutator
 )
 
-from .inputs.diversity import (
-    HammingDistance,
-    EuclideanDistance,
-    NeatDistance
-)
+from .inputs.diversity import HammingDistance, EuclideanDistance, NeatDistance
 
-from .inputs.limit import (
-    SecondsLimit,
-    GenerationsLimit,
-    ScoreLimit
-)
+from .inputs.limit import SecondsLimit, GenerationsLimit, ScoreLimit
 
 
 __all__ = [
+    "TreeCodec",
+    "AnyCodec",
     "Op",
     "Graph",
     "GraphMutator",
@@ -75,6 +80,9 @@ __all__ = [
     "Chromosome",
     "OnEpochCompleteHandler",
     "FloatCodec",
+    "Tree",
+    "TreeCrossover",
+    "HoistMutator",
     "IntCodec",
     "CharCodec",
     "BitCodec",

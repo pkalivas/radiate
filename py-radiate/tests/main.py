@@ -3,6 +3,7 @@ import sys
 import math
 import matplotlib.pyplot as plt
 from numba import jit, cfunc, vectorize
+import numpy as np
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, project_root)
@@ -83,39 +84,74 @@ inputs, answers = get_dataset()
 #         error += (output[0] - target[0]) ** 2
 #     return error / len(answers)
 
-# codec = rd.GraphCodec.directed(
+codec = rd.GraphCodec.directed(
+    shape=(1, 1),
+    vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+    edge=rd.Op.weight(),
+    output=rd.Op.linear(),
+)
+
+engine = rd.GeneticEngine(
+    codec=codec,
+    fitness_func=rd.Regression(inputs, answers),
+    objectives="min",
+    alters=[
+        rd.GraphCrossover(0.5, 0.5),
+        rd.OperationMutator(0.07, 0.05),
+        rd.GraphMutator(0.1, 0.1),
+    ],
+)
+
+result = engine.run([rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000)], log=True)
+print(result)
+
+# codec = rd.TreeCodec(
 #     shape=(1, 1),
-#     vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
-#     edge=rd.Op.weight(),
-#     output=rd.Op.linear(),
+#     vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.add()],
+#     root=rd.Op.linear(),
 # )
 
 # engine = rd.GeneticEngine(
 #     codec=codec,
 #     fitness_func=rd.Regression(inputs, answers),
 #     objectives="min",
-#     # offspring_selector=rd.BoltzmannSelector(4.0),
-#     subscribe=TestHandler(),
-#     # executor=rd.Executor.FixedSizedWorkerPool(4),
-    
 #     alters=[
-#         rd.GraphCrossover(0.5, 0.5),
-#         rd.OperationMutator(0.07, 0.05),
-#         rd.GraphMutator(0.1, 0.1),
-        
+#         rd.TreeCrossover(0.7),
+#         rd.HoistMutator(0.01),
 #     ],
 # )
 
-# result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(500)], log=True)
+# result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(100)], log=True)
+# print(result)
+# print(result.value().__repr__())
 
-# # result = None
-# # for generation in engine:
-# #     if generation.index() == 10:
-# #         result = generation
-# #         break
+# function_inputs = [4.0, -2.0, 3.5, 5.0, -11.0, -4.7]
+# desired_output = 44.0
 
+# def genetic_fitness(solution):
+#     output = np.sum(np.array(solution) * function_inputs)
+#     return np.abs(output - desired_output) + 0.000001
+
+
+# engine = rd.GeneticEngine(
+#     codec=rd.FloatCodec.vector(len(function_inputs), (-4.0, 4.0)),
+#     fitness_func=genetic_fitness,
+#     objectives="min",
+# )
+
+# result = engine.run(rd.ScoreLimit(0.01), log=True)
 # print(result)
 
+# #
+# print(genetic_fitness(result.value()))
+
+# def encoder():
+#     return [1, 'hi', 3.0, True, [1, 2, 3], {'a': 1, 'b': 2}]
+
+# any_codec = rd.AnyCodec(encoder)
+
+# print(any_codec.encode())
+# print(any_codec.decode(any_codec.encode()))
 
 # for input, target in zip(inputs, answers): 
 #     print(f"Input: {round(input[0], 2)}, Target: {round(target[0], 2)}, Output: {round(result.value().eval([input])[0][0], 2)}")
@@ -232,31 +268,34 @@ def dtlz_1(val):
     return f
 
 
-engine = rd.GeneticEngine(
-    codec=rd.FloatCodec.vector(variables, (0.0, 1.0), (-100.0, 100.0)),
-    fitness_func=dtlz_1,
-    offspring_selector=rd.TournamentSelector(k=5),
-    survivor_selector=rd.NSGA2Selector(),
-    objectives=["min" for _ in range(objectives)],
-    # executor=rd.Executor.WorkerPool(),
-    alters=[
-        rd.SimulatedBinaryCrossover(1.0, 1.0),
-        rd.UniformMutator(0.1)
-    ],
-)
+# engine = rd.GeneticEngine(
+#     codec=rd.FloatCodec.vector(variables, (0.0, 1.0), (-2.0, 2.0)),
+#     fitness_func=dtlz_1,
+#     offspring_selector=rd.TournamentSelector(k=8),
+#     survivor_selector=rd.NSGA2Selector(),
+#     objectives=["min" for _ in range(objectives)],
+#     alters=[
+#         rd.SimulatedBinaryCrossover(1.0, 2.0),
+#         rd.UniformMutator(0.1),
+#     ],
+# )
 
-result = engine.run(rd.GenerationsLimit(1000), log=True)
-print(result)
+# result = engine.run(rd.GenerationsLimit(5000), log=True)
+# print(result)
 
-front = result.value()
-fig = plt.figure()
-ax = plt.axes(projection="3d")
+# front = result.value()
+# print(f"Front size: {len(front)}")
+# fig = plt.figure()
+# ax = plt.axes(projection="3d")
 
-x = [member["fitness"][0] for member in front]
-y = [member["fitness"][1] for member in front]
-z = [member["fitness"][2] for member in front]
-ax.scatter(x, y, z, c="r", marker="o")
-plt.show()
+# x = [member["fitness"][0] for member in front]
+# y = [member["fitness"][1] for member in front]
+# z = [member["fitness"][2] for member in front]
+# ax.scatter(x, y, z, c="r", marker="o")
+# ax.set_xlim([0, 0.5])
+# ax.set_ylim([0, 0.5])
+# ax.set_zlim([0, 0.5])
+# plt.show()
 
 
 # print()

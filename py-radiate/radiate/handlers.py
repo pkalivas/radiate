@@ -37,7 +37,6 @@ class EventHandler(abc.ABC):
         :param event: The event to handle.
         """
         self.on_event(event)
-        
 
     @abc.abstractmethod
     def on_event(self, event: Any) -> None:

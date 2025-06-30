@@ -1,3 +1,4 @@
+mod any;
 mod bindings;
 mod conversion;
 mod evaluator;
@@ -6,6 +7,7 @@ mod object;
 mod problem;
 mod random;
 
+pub use any::AnyGene;
 pub use bindings::*;
 pub use evaluator::FreeThreadPyEvaluator;
 pub use object::{AnyValue, IntoPyObjectValue, Object, ObjectSafe, ObjectValue};
@@ -30,6 +32,26 @@ pub mod prelude {
 
 use crate::prelude::*;
 
+use std::sync::Once;
+
+static INIT_LOGGING: Once = Once::new();
+
+pub fn init_logging() {
+    INIT_LOGGING.call_once(|| {
+        use tracing_subscriber::fmt::format::FmtSpan;
+        std::panic::set_hook(Box::new(|info| {
+            tracing::error!("PANIC: {}", info);
+        }));
+
+        tracing_subscriber::fmt()
+            .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
+            .with_target(false)
+            .with_thread_ids(false)
+            .with_level(true)
+            .compact()
+            .init();
+    });
+}
 // Adapted from PYO3 with the only change that
 // we allow mutable access with when the GIL is held
 

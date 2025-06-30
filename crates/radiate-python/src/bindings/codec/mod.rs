@@ -1,16 +1,20 @@
+mod any;
 mod bit;
 mod char;
 mod float;
 mod graph;
 mod int;
+mod tree;
 
 use std::sync::Arc;
 
+pub use any::PyAnyCodec;
 pub use bit::PyBitCodec;
 pub use char::PyCharCodec;
 pub use float::PyFloatCodec;
 pub use graph::{PyGraph, PyGraphCodec};
 pub use int::PyIntCodec;
+pub use tree::{PyTree, PyTreeCodec};
 
 use pyo3::Python;
 use radiate::{Chromosome, Codec, Genotype};

@@ -1,3 +1,4 @@
+use crate::bindings::codec::PyTreeCodec;
 use crate::bindings::{EngineBuilderHandle, EngineHandle};
 use crate::events::PyEventHandler;
 use crate::{
@@ -21,6 +22,7 @@ macro_rules! apply_to_builder {
             EngineBuilderHandle::IntMulti(b) => Ok(EngineBuilderHandle::IntMulti(b.$method($($args),*))),
             EngineBuilderHandle::FloatMulti(b) => Ok(EngineBuilderHandle::FloatMulti(b.$method($($args),*))),
             EngineBuilderHandle::GraphRegression(b) => Ok(EngineBuilderHandle::GraphRegression(b.$method($($args),*))),
+            EngineBuilderHandle::TreeRegression(b) => Ok(EngineBuilderHandle::TreeRegression(b.$method($($args),*))),
             EngineBuilderHandle::Empty => Err(PyTypeError::new_err(
                 "EngineBuilder must have a problem and codec before processing other inputs",
             )),
@@ -53,6 +55,7 @@ impl PyEngineBuilder {
             "bit" => PyGeneType::Bit,
             "char" => PyGeneType::Char,
             "graph" => PyGeneType::Graph,
+            "tree" => PyGeneType::Tree,
             _ => panic!("Invalid gene type: {}", gene_type),
         };
         PyEngineBuilder {
@@ -90,6 +93,9 @@ impl PyEngineBuilder {
             EngineBuilderHandle::FloatMulti(builder) => EngineHandle::FloatMulti(builder.build()),
             EngineBuilderHandle::GraphRegression(builder) => {
                 EngineHandle::GraphRegression(builder.build())
+            }
+            EngineBuilderHandle::TreeRegression(builder) => {
+                EngineHandle::TreeRegression(builder.build())
             }
             _ => {
                 return Err(PyTypeError::new_err(
@@ -162,13 +168,15 @@ impl PyEngineBuilder {
     where
         F: Fn(EngineBuilderHandle, &PyEngineInput) -> PyResult<EngineBuilderHandle>,
     {
-        if inputs.len() != 1 {
-            return Err(PyTypeError::new_err(format!(
-                "Only one input of type {:?} can be processed at a time",
-                inputs[0].input_type()
-            )));
+        if inputs.len() > 1 {
+            processor(builder, &inputs[inputs.len() - 1])
+        } else if inputs.len() == 1 {
+            processor(builder, &inputs[0])
+        } else {
+            Err(PyTypeError::new_err(
+                "Expected exactly one input for this configuration",
+            ))
         }
-        processor(builder, &inputs[0])
     }
 
     fn process_max_species_age(
@@ -334,6 +342,22 @@ impl PyEngineBuilder {
                     )),
                 }
             }
+            EngineBuilderHandle::TreeRegression(builder) => {
+                let selector: Box<dyn Select<TreeChromosome<Op<f32>>>> = input.convert();
+                match input.input_type() {
+                    PyEngineInputType::SurvivorSelector => Ok(EngineBuilderHandle::TreeRegression(
+                        builder.boxed_survivor_selector(selector),
+                    )),
+                    PyEngineInputType::OffspringSelector => {
+                        Ok(EngineBuilderHandle::TreeRegression(
+                            builder.boxed_offspring_selector(selector),
+                        ))
+                    }
+                    _ => Err(PyTypeError::new_err(
+                        "process_selector only implemented for Survivor and Offspring selectors",
+                    )),
+                }
+            }
             _ => Err(PyTypeError::new_err(
                 "process_alterer only implemented for Int gene type",
             )),
@@ -374,9 +398,14 @@ impl PyEngineBuilder {
                 let alters: Vec<Box<dyn Alter<GraphChromosome<Op<f32>>>>> = inputs.convert();
                 Ok(EngineBuilderHandle::GraphRegression(builder.alter(alters)))
             }
-            _ => Err(PyTypeError::new_err(
-                "process_alterer only implemented for Int gene type",
-            )),
+            EngineBuilderHandle::TreeRegression(builder) => {
+                let alters: Vec<Box<dyn Alter<TreeChromosome<Op<f32>>>>> = inputs.convert();
+                Ok(EngineBuilderHandle::TreeRegression(builder.alter(alters)))
+            }
+            _ => Err(PyTypeError::new_err(format!(
+                "Process Alterer not imiplemented for {:?} gene type",
+                self.gene_type
+            ))),
         }
     }
 
@@ -521,6 +550,11 @@ impl PyEngineBuilder {
                         "process_front_range not implemented for Graph gene type",
                     ))
                 }
+                EngineBuilderHandle::TreeRegression(_) => {
+                    Err(PyTypeError::new_err(
+                        "process_front_range not implemented for Tree gene type",
+                    ))
+                }
                 _ => Err(PyTypeError::new_err(
                     "process_front_range only implemented for single and multi objective Int, Float, Char, and Bit gene types",
                 )),
@@ -634,6 +668,27 @@ impl PyEngineBuilder {
                         ))
                     }
                 }
+                PyGeneType::Tree => {
+                    if let Ok(codec) = codec.extract::<PyTreeCodec>() {
+                        let cloned_codec = codec.codec.clone();
+                        let py_codec = PyCodec::new()
+                            .with_encoder(move || cloned_codec.encode())
+                            .with_decoder(move |_, genotype| codec.codec.decode(genotype));
+
+                        let tree_problem = PyProblem::new(fitness_fn, py_codec);
+                        Ok(EngineBuilderHandle::TreeRegression(
+                            GeneticEngine::builder()
+                                .problem(tree_problem.clone())
+                                .executor(executor.clone())
+                                .evaluator(FreeThreadPyEvaluator::new(executor, tree_problem))
+                                .bus_executor(Executor::default()),
+                        ))
+                    } else {
+                        Err(PyTypeError::new_err(
+                            "Expected a PyTreeCodec for gene_type Tree",
+                        ))
+                    }
+                }
                 _ => Err(PyTypeError::new_err(format!(
                     "Unsupported gene_type {:?} for Custom problem",
                     self.gene_type
@@ -648,28 +703,27 @@ impl PyEngineBuilder {
                 .args(py)
                 .and_then(|args| args.get_item("targets"))
                 .and_then(|t| t.extract::<Vec<Vec<f32>>>())?;
+            let loss_str = problem
+                .args(py)
+                .and_then(|args| args.get_item("loss"))
+                .and_then(|l| l.extract::<String>())
+                .map(|s| s.to_uppercase())
+                .unwrap_or("MSE".into());
+            let loss = match loss_str.as_str() {
+                "MSE" => Loss::MSE,
+                "MAE" => Loss::MAE,
+                _ => {
+                    return Err(PyErr::new::<PyTypeError, _>(
+                        "Unsupported loss function for regression",
+                    ));
+                }
+            };
 
             let data_set = DataSet::new(features, targets);
 
             match self.gene_type {
                 PyGeneType::Graph => {
                     if let Ok(codec) = codec.extract::<PyGraphCodec>() {
-                        let loss_str = problem
-                            .args(py)
-                            .and_then(|args| args.get_item("loss"))
-                            .and_then(|l| l.extract::<String>())
-                            .map(|s| s.to_uppercase())
-                            .unwrap_or("MSE".into());
-                        let loss = match loss_str.as_str() {
-                            "MSE" => Loss::MSE,
-                            "MAE" => Loss::MAE,
-                            _ => {
-                                return Err(PyErr::new::<PyTypeError, _>(
-                                    "Unsupported loss function for regression",
-                                ));
-                            }
-                        };
-
                         let regression = Regression::new(data_set, loss, codec.codec);
 
                         Ok(EngineBuilderHandle::GraphRegression(
@@ -681,6 +735,22 @@ impl PyEngineBuilder {
                     } else {
                         Err(PyTypeError::new_err(
                             "Expected a PyGraphCodec for gene_type Graph",
+                        ))
+                    }
+                }
+                PyGeneType::Tree => {
+                    if let Ok(codec) = codec.extract::<PyTreeCodec>() {
+                        let regression = Regression::new(data_set, loss, codec.codec);
+
+                        Ok(EngineBuilderHandle::TreeRegression(
+                            GeneticEngine::builder()
+                                .problem(regression)
+                                .executor(executor)
+                                .bus_executor(Executor::default()),
+                        ))
+                    } else {
+                        Err(PyTypeError::new_err(
+                            "Expected a PyTreeCodec for gene_type Tree",
                         ))
                     }
                 }

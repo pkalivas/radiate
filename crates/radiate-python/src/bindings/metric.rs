@@ -23,13 +23,17 @@ impl PyMetricSet {
         py: Python<'py>,
         key: String,
     ) -> PyResult<Option<Bound<'py, PyDict>>> {
+        if !self.inner.contains_key(&key) {
+            return Ok(None);
+        }
+
         self.inner
             .get_from_string(key)
             .map(|metric| Wrap(metric).into_pyobject(py))
             .transpose()
             .map_err(|e| {
                 PyValueError::new_err(format!(
-                    "{e}\n\nHint: Try setting `strict=False` to allow passing data with mixed types."
+                    "{e} Unknown error occurred while converting Metric to Python dict."
                 ))
             })
     }

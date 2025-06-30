@@ -92,7 +92,7 @@ impl PyEngineInput {
     }
 
     pub fn get_usize(&self, key: &str) -> Option<usize> {
-        self.temp.get(key).and_then(|v| v.extract::<usize>())
+        self.temp.get(key).and_then(|v| v.to_usize())
     }
 
     pub fn get_bool(&self, key: &str) -> Option<bool> {

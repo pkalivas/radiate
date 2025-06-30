@@ -151,6 +151,10 @@ impl MetricSet {
     pub fn clear(&mut self) {
         self.metrics.clear();
     }
+
+    pub fn contains_key(&self, name: impl Into<String>) -> bool {
+        self.metrics.contains_key(intern(name.into()))
+    }
 }
 
 impl Debug for MetricSet {

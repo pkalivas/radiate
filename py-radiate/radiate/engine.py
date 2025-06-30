@@ -1,5 +1,7 @@
 from typing import Any, Callable, List, Tuple, TypeAlias, Union
 
+from radiate.codec.tree import TreeCodec
+
 from .builder import EngineBuilder
 from .generation import Generation
 from .handlers import EventHandler
@@ -31,7 +33,7 @@ class GeneticEngine:
     def __init__(
         self,
         codec: CodecBase,
-        fitness_func: Callable[[Any], Any] | ProblemBase | None = None,
+        fitness_func: Callable[[Any], Any] | ProblemBase,
         offspring_selector: SelectorBase | None = None,
         survivor_selector: SelectorBase | None = None,
         alters: AlterBase | List[AlterBase] | None = None,
@@ -57,11 +59,10 @@ class GeneticEngine:
             self.gene_type = GeneType.BIT
         elif isinstance(codec, GraphCodec):
             self.gene_type = GeneType.GRAPH
+        elif isinstance(codec, TreeCodec):
+            self.gene_type = GeneType.TREE
         else:
-            raise TypeError(
-                f"Codec type {type(codec)} is not supported. "
-                "Use FloatCodec, IntCodec, CharCodec, BitCodec, or GraphCodec."
-            )
+            raise TypeError(f"Codec type {type(codec)} is not supported.")
 
         self.builder = EngineBuilder(self.gene_type, codec, fitness_func)
 
@@ -274,8 +275,7 @@ class GeneticEngine:
         ---------
         >>> engine.minimizing()
         """
-        # self.builder.set_objective(PyObjective.min())
-        raise NotImplementedError("Minimizing is not implemented yet.")
+        self.builder.set_objective(["min"], None)
 
     def maximizing(self):
         """Set the objectives to maximize.
@@ -284,7 +284,7 @@ class GeneticEngine:
         ---------
         >>> engine.maximizing()
         """
-        raise NotImplementedError("Maximizing is not implemented yet.")
+        self.builder.set_objective(["max"], None)
 
     def multi_objective(
         self, objectives: List[str], front_range: Tuple[int, int] | None = None

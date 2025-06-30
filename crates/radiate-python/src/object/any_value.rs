@@ -1,5 +1,3 @@
-use num_traits::NumCast;
-
 use super::{DataType, Field};
 use std::fmt::Debug;
 
@@ -28,35 +26,7 @@ pub enum AnyValue<'a> {
 }
 
 impl<'a> AnyValue<'a> {
-    #[inline]
-    pub fn extract<T: NumCast>(&self) -> Option<T> {
-        use AnyValue::*;
-        match self {
-            Int8(v) => NumCast::from(*v),
-            Int16(v) => NumCast::from(*v),
-            Int32(v) => NumCast::from(*v),
-            Int64(v) => NumCast::from(*v),
-            Int128(v) => NumCast::from(*v),
-            UInt8(v) => NumCast::from(*v),
-            UInt16(v) => NumCast::from(*v),
-            UInt32(v) => NumCast::from(*v),
-            UInt64(v) => NumCast::from(*v),
-            Float32(v) => NumCast::from(*v),
-            Float64(v) => NumCast::from(*v),
-            Bool(v) => NumCast::from(if *v { 1 } else { 0 }),
-            Str(v) => {
-                if let Ok(val) = (*v).parse::<i128>() {
-                    NumCast::from(val)
-                } else {
-                    NumCast::from((*v).parse::<f64>().ok()?)
-                }
-            }
-            StrOwned(v) => Str(v.as_str()).extract(),
-            _ => None,
-        }
-    }
-
-    pub(crate) fn to_f64(&self) -> Option<f64> {
+    pub fn to_f64(&self) -> Option<f64> {
         match self {
             AnyValue::Float32(v) => Some((*v).into()),
             AnyValue::Float64(v) => Some(*v),

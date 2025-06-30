@@ -80,3 +80,13 @@ impl<'py> IntoPyObject<'py> for &Wrap<AnyValue<'_>> {
         self.clone().into_pyobject(py)
     }
 }
+
+impl<'py> IntoPyObject<'py> for Wrap<&AnyValue<'_>> {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Wrap(self.0.clone()).into_pyobject(py)
+    }
+}

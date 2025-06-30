@@ -3,7 +3,7 @@ mod codec;
 mod converters;
 mod engine;
 mod epoch;
-mod genome;
+mod gene;
 mod inputs;
 mod metric;
 mod ops;
@@ -12,14 +12,13 @@ mod subscriber;
 
 pub use builder::PyEngineBuilder;
 pub use codec::{
-    PyBitCodec, PyCharCodec, PyCodec, PyFloatCodec, PyGraph, PyGraphCodec, PyIntCodec,
+    PyAnyCodec, PyBitCodec, PyCharCodec, PyCodec, PyFloatCodec, PyGraph, PyGraphCodec, PyIntCodec,
+    PyTree, PyTreeCodec,
 };
 pub use converters::InputConverter;
 pub use engine::PyEngine;
 pub use epoch::PyGeneration;
-pub use genome::{
-    PyChromosome, PyChromosomeType, PyGene, PyGeneType, PyGenotype, PyPhenotype, PyPopulation,
-};
+pub use gene::{PyChromosome, PyGene, PyGeneType, PyGenotype, PyPhenotype, PyPopulation};
 pub use inputs::{PyEngineInput, PyEngineInputType};
 
 pub use metric::PyMetricSet;
@@ -29,7 +28,8 @@ pub use subscriber::PySubscriber;
 use crate::ObjectValue;
 use radiate::{
     BitChromosome, CharChromosome, FloatChromosome, Generation, GeneticEngine,
-    GeneticEngineBuilder, Graph, GraphChromosome, IntChromosome, Op, ParetoGeneration,
+    GeneticEngineBuilder, Graph, GraphChromosome, IntChromosome, Op, ParetoGeneration, Tree,
+    TreeChromosome,
 };
 
 type SingleObjBuilder<C, T> = GeneticEngineBuilder<C, T, Generation<C, T>>;
@@ -49,6 +49,7 @@ pub enum EngineBuilderHandle {
     IntMulti(MultiObjBuilder<IntChromosome<i32>, ObjectValue>),
     FloatMulti(MultiObjBuilder<FloatChromosome, ObjectValue>),
     GraphRegression(RegressionBuilder<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
+    TreeRegression(RegressionBuilder<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
 }
 
 pub enum EngineHandle {
@@ -59,6 +60,7 @@ pub enum EngineHandle {
     IntMulti(MultiObjectiveEngine<IntChromosome<i32>>),
     FloatMulti(MultiObjectiveEngine<FloatChromosome>),
     GraphRegression(RegressionEngine<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
+    TreeRegression(RegressionEngine<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
 }
 
 pub enum EpochHandle {
@@ -69,4 +71,5 @@ pub enum EpochHandle {
     IntMulti(ParetoGeneration<IntChromosome<i32>>),
     FloatMulti(ParetoGeneration<FloatChromosome>),
     GraphRegression(Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
+    TreeRegression(Generation<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
 }

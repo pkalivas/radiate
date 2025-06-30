@@ -26,6 +26,7 @@ gene_type_mapping = {
     "graph": PyGeneType.Graph,
 }
 
+
 class EngineInputType:
     Alterer = "Alterer"
     SurvivorSelector = "SurvivorSelector"
@@ -58,7 +59,9 @@ class EngineInput:
         self._py_input = PyEngineInput(
             input_type=input_type_mapping[input_type],
             component=component,
-            allowed_genes={gene_type_mapping[gt] for gt in allowed_genes if gt in gene_type_mapping},
+            allowed_genes={
+                gene_type_mapping[gt] for gt in allowed_genes if gt in gene_type_mapping
+            },
             args={k: v for k, v in kwargs.items()},
         )
 

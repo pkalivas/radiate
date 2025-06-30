@@ -1,17 +1,18 @@
 from typing import List, Optional, Tuple, Callable
 from radiate.codec.codec import CodecBase
+from radiate.genome.gene import GeneType
 from radiate.handlers import EventHandler
 from radiate.inputs.problem import ProblemBase
 from radiate.radiate import PyEngine, PyEngineBuilder
 from .inputs.input import EngineInput, EngineInputType
 from .inputs.selector import SelectorBase
 from .inputs.alterer import AlterBase
-from .inputs.diversity import DiversityBase 
+from .inputs.diversity import DiversityBase
 from .inputs.executor import Executor
 from .inputs.problem import CallableProblem
 
-class EngineBuilder:
 
+class EngineBuilder:
     def __init__(self, gene_type: str, codec: CodecBase, problem: ProblemBase):
         self._inputs = []
         self._subscribers = []
@@ -31,13 +32,11 @@ class EngineBuilder:
             subscribers=[subscriber._py_handler for subscriber in self._subscribers],
             inputs=[self_input.py_input() for self_input in self._inputs],
         )
-        
-        print(builder)
         return builder.build()
 
     def inputs(self) -> List[EngineInput]:
         return self._inputs
-    
+
     def set_subscribers(self, subscribers: List[EventHandler] | EventHandler | None):
         if subscribers is None:
             return
@@ -48,8 +47,10 @@ class EngineBuilder:
 
     def set_survivor_selector(self, selector: SelectorBase):
         if self._gene_type not in selector.allowed_genes:
-            raise ValueError(f"Selector {selector.component} does not support gene type {self._gene_type}")
-        
+            raise ValueError(
+                f"Selector {selector.component} does not support gene type {self._gene_type}"
+            )
+
         self._inputs.append(
             EngineInput(
                 input_type=EngineInputType.SurvivorSelector,
@@ -61,8 +62,10 @@ class EngineBuilder:
 
     def set_offspring_selector(self, selector: SelectorBase):
         if self._gene_type not in selector.allowed_genes:
-            raise ValueError(f"Selector {selector.component} does not support gene type {self._gene_type}")
-        
+            raise ValueError(
+                f"Selector {selector.component} does not support gene type {self._gene_type}"
+            )
+
         self._inputs.append(
             EngineInput(
                 input_type=EngineInputType.OffspringSelector,
@@ -75,23 +78,38 @@ class EngineBuilder:
     def set_alters(self, alters: List[AlterBase]):
         for alter in alters:
             if self._gene_type not in alter.allowed_genes:
-                raise ValueError(f"Alterer {alter.component} does not support gene type {self._gene_type}")
+                base_error_msg = (
+                    f"Alterer {alter.component} does not support gene type {self._gene_type}."
+                )
+                if self._gene_type is GeneType.GRAPH:
+                    raise ValueError(
+                        base_error_msg
+                        + " Use GraphCrossover, GraphMutator, or OperationMutator instead."
+                    )
+                elif self._gene_type is GeneType.TREE:
+                    raise ValueError(
+                        base_error_msg
+                        + " Use TreeCrossover or HoistMutator instead."
+                    )
+                raise ValueError(base_error_msg)
 
             self._inputs.append(
                 EngineInput(
-                input_type=EngineInputType.Alterer,
-                component=alter.component,
-                allowed_genes=alter.allowed_genes,
-                **alter.args,
+                    input_type=EngineInputType.Alterer,
+                    component=alter.component,
+                    allowed_genes=alter.allowed_genes,
+                    **alter.args,
+                )
             )
-        )
 
     def set_diversity(self, diversity: DiversityBase, species_threshold: float):
         if diversity is None:
             return
-        
+
         if self._gene_type not in diversity.allowed_genes:
-            raise ValueError(f"Diversity {diversity.component} does not support gene type {self._gene_type}")
+            raise ValueError(
+                f"Diversity {diversity.component} does not support gene type {self._gene_type}"
+            )
 
         self._inputs.append(
             EngineInput(
@@ -100,7 +118,7 @@ class EngineBuilder:
                 allowed_genes=diversity.allowed_genes,
                 **diversity.args,
             )
-        ) 
+        )
 
         self._inputs.append(
             EngineInput(
@@ -114,7 +132,7 @@ class EngineBuilder:
     def set_population_size(self, size: int):
         if size <= 0:
             raise ValueError("Population size must be greater than 0.")
-        
+
         self._inputs.append(
             EngineInput(
                 input_type=EngineInputType.PopulationSize,
@@ -126,7 +144,7 @@ class EngineBuilder:
     def set_offspring_fraction(self, fraction: float):
         if not (0.0 < fraction <= 1.0):
             raise ValueError("Offspring fraction must be in the range (0.0, 1.0].")
-        
+
         self._inputs.append(
             EngineInput(
                 input_type=EngineInputType.OffspringFraction,
@@ -158,20 +176,21 @@ class EngineBuilder:
                     component="MaxSpeciesAge",
                     age=age,
                 )
-            )   
-        
-    
-    def set_objective(self, objective: List[str] | str, front_range: Optional[Tuple[int, int]] = None):
+            )
+
+    def set_objective(
+        self, objective: List[str] | str, front_range: Optional[Tuple[int, int]] = None
+    ):
         if isinstance(objective, str):
             objective = [objective]
         if not all(obj in {"min", "max"} for obj in objective):
             raise ValueError("Objective must be 'min' or 'max'.")
-        
+
         self._inputs.append(
             EngineInput(
                 input_type=EngineInputType.Objective,
                 component="Objective",
-                objective='|'.join(objective)
+                objective="|".join(objective),
             )
         )
 
@@ -198,5 +217,5 @@ class EngineBuilder:
         )
 
     def __repr__(self):
-        input_strs = ', \n'.join(repr(inp) for inp in self._inputs)
+        input_strs = ", \n".join(repr(inp) for inp in self._inputs)
         return f"EngineBuilder(gene_type={self._gene_type}, inputs=[{input_strs}])"

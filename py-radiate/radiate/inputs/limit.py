@@ -1,6 +1,7 @@
 from typing import Dict
 from .component import ComponentBase
 
+
 class LimitBase(ComponentBase):
     def __init__(self, component: str, args: Dict[str, str] = {}):
         super().__init__(component=component, args=args)

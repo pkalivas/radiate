@@ -9,8 +9,10 @@ class GeneType:
     BIT = 'bit'
     CHAR = 'char'
     GRAPH = 'graph'
+    TREE = 'tree'
 
-    ALL = {FLOAT, INT, BIT, CHAR, GRAPH}
+    CORE = {FLOAT, INT, BIT, CHAR}
+    ALL = {FLOAT, INT, BIT, CHAR, GRAPH, TREE}
 
 
 class Gene:

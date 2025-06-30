@@ -2,19 +2,14 @@ use crate::{
     Chromosome, Epoch, Executor, Phenotype,
     objectives::{Objective, pareto},
 };
-use std::{
-    cmp::Ordering,
-    collections::HashSet,
-    hash::Hash,
-    ops::Range,
-    sync::{Arc, RwLock},
-};
+use std::{cmp::Ordering, hash::Hash, ops::Range, sync::Arc};
 
 /// A front is a collection of scores that are non-dominated with respect to each other.
 /// This is useful for multi-objective optimization problems where the goal is to find
 /// the best solutions that are not dominated by any other solution.
 /// This results in what is called the Pareto front.
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct Front<T>
 where
     T: AsRef<[f32]>,
@@ -64,107 +59,48 @@ where
     where
         T: Eq + Hash + Clone + Send + Sync + 'static,
     {
-        let ord = Arc::clone(&self.ord);
-        let values = Arc::new(RwLock::new(self.values.clone()));
-        let dominating_values = Arc::new(RwLock::new(vec![false; items.len()]));
-        let remove_values = Arc::new(RwLock::new(HashSet::new()));
-        let values_to_add = Arc::new(RwLock::new(Vec::new()));
+        let mut updated = false;
+        let mut to_remove = Vec::new();
 
-        let mut jobs = Vec::new();
-        for (idx, member) in items.iter().enumerate() {
-            let ord_clone = Arc::clone(&ord);
-            let values_clone = Arc::clone(&values);
-            let doms_vector = Arc::clone(&dominating_values);
-            let remove_vector = Arc::clone(&remove_values);
-            let new_member = member.clone();
-            let values_to_add = Arc::clone(&values_to_add);
+        for i in 0..items.len() {
+            let new_member = &items[i];
+            let mut is_dominated = true;
 
-            jobs.push(move || {
-                let mut is_dominated = true;
-
-                for existing_val in values_clone.read().unwrap().iter() {
-                    if (ord_clone)(existing_val, &new_member) == Ordering::Greater {
-                        // If an existing value dominates the new value, return false
-                        is_dominated = false;
-                        break;
-                    } else if (ord_clone)(&new_member, existing_val) == Ordering::Greater {
-                        // If the new value dominates an existing value, continue checking
-                        // to_remove.push(Arc::clone(existing_val));
-                        remove_vector.write().unwrap().insert(existing_val.clone());
-                        continue;
-                    } else if &new_member == existing_val.as_ref() {
-                        // If they are equal, we consider it dominated
-                        is_dominated = false;
-                        break;
-                    }
+            for existing_val in self.values.iter() {
+                let equals = new_member == existing_val.as_ref();
+                if (self.ord)(existing_val.as_ref(), new_member) == Ordering::Greater || equals {
+                    // If an existing value dominates the new value, return false
+                    is_dominated = false;
+                    break;
+                } else if (self.ord)(new_member, existing_val.as_ref()) == Ordering::Greater {
+                    // If the new value dominates an existing value, continue checking
+                    to_remove.push(Arc::clone(existing_val));
+                    continue;
                 }
+            }
 
-                if is_dominated {
-                    doms_vector.write().unwrap().get_mut(idx).map(|v| *v = true);
-                    let mut writer = values_to_add.write().unwrap();
-                    writer.push(new_member);
+            if is_dominated {
+                updated = true;
+                self.values.push(Arc::new(new_member.clone()));
+                for rem in to_remove.drain(..) {
+                    self.values.retain(|x| x.as_ref() != rem.as_ref());
                 }
-            });
+            }
 
-            // });
+            if updated && self.values.len() > self.range.end {
+                self.filter();
+            }
+
+            to_remove.clear();
+            updated = false;
         }
 
-        let count = jobs.len();
-
-        self.thread_pool.submit_batch(jobs);
-
-        self.values
-            .retain(|x| !remove_values.read().unwrap().contains(x));
-        self.values
-            .extend(values_to_add.write().unwrap().drain(..).map(Arc::new));
-
-        if self.values.len() > self.range.end {
-            self.filter();
-        }
-
-        // let mut count = 0;
-
-        // for new_member in items {
-        //     let mut is_dominated = false;
-        //     let mut to_remove = Vec::new();
-
-        //     // Check if new member is dominated by any existing member
-        //     for existing_val in &self.values {
-        //         if (self.ord)(existing_val, new_member) == Ordering::Greater {
-        //             // Existing value dominates new member
-        //             is_dominated = true;
-        //             break;
-        //         } else if (self.ord)(new_member, existing_val) == Ordering::Greater {
-        //             // New member dominates existing value
-        //             to_remove.push(Arc::clone(existing_val));
-        //         }
-        //     }
-
-        //     // Remove dominated existing values
-        //     for val in to_remove {
-        //         self.values.retain(|x| !Arc::ptr_eq(x, &val));
-        //     }
-
-        //     // Add new member if not dominated
-        //     if !is_dominated {
-        //         self.values.push(Arc::new(new_member.clone()));
-        //         count += 1;
-        //     }
-        // }
-
-        // Filter if front is too large
-        if self.values.len() > self.range.end {
-            self.filter();
-        }
-
-        count
-
-        // self.values.len()
+        self.values.len()
     }
 
     pub fn filter(&mut self) {
         let values = self.values.iter().map(|s| s.as_ref()).collect::<Vec<_>>();
-        let crowding_distances = pareto::crowding_distance(&values, &self.objective);
+        let crowding_distances = pareto::crowding_distance(&values);
 
         let mut enumerated = crowding_distances.iter().enumerate().collect::<Vec<_>>();
 
@@ -215,3 +151,59 @@ where
         result
     }
 }
+
+// let ord = Arc::clone(&self.ord);
+// let values = Arc::new(RwLock::new(self.values.clone()));
+// let dominating_values = Arc::new(RwLock::new(vec![false; items.len()]));
+// let remove_values = Arc::new(RwLock::new(HashSet::new()));
+// let values_to_add = Arc::new(RwLock::new(Vec::new()));
+
+// let mut jobs = Vec::new();
+// for (idx, member) in items.iter().enumerate() {
+//     let ord_clone = Arc::clone(&ord);
+//     let values_clone = Arc::clone(&values);
+//     let doms_vector = Arc::clone(&dominating_values);
+//     let remove_vector = Arc::clone(&remove_values);
+//     let new_member = member.clone();
+//     let values_to_add = Arc::clone(&values_to_add);
+
+//     jobs.push(move || {
+//         let mut is_dominated = true;
+
+//         for existing_val in values_clone.read().unwrap().iter() {
+//             if (ord_clone)(existing_val, &new_member) == Ordering::Greater {
+//                 // If an existing value dominates the new value, return false
+//                 is_dominated = false;
+//                 break;
+//             } else if (ord_clone)(&new_member, existing_val) == Ordering::Greater {
+//                 // If the new value dominates an existing value, continue checking
+//                 // to_remove.push(Arc::clone(existing_val));
+//                 remove_vector.write().unwrap().insert(existing_val.clone());
+//                 continue;
+//             } else if &new_member == existing_val.as_ref() {
+//                 // If they are equal, we consider it dominated
+//                 is_dominated = false;
+//                 break;
+//             }
+//         }
+
+//         if is_dominated {
+//             doms_vector.write().unwrap().get_mut(idx).map(|v| *v = true);
+//             let mut writer = values_to_add.write().unwrap();
+//             writer.push(new_member);
+//         }
+//     });
+// }
+
+// let count = jobs.len();
+
+// self.thread_pool.submit_batch(jobs);
+
+// self.values
+//     .retain(|x| !remove_values.read().unwrap().contains(x));
+// self.values
+//     .extend(values_to_add.write().unwrap().drain(..).map(Arc::new));
+
+// if self.values.len() > self.range.end {
+//     self.filter();
+// }
