@@ -19,6 +19,7 @@ class EngineBuilder:
         if isinstance(problem, Callable):
             self.problem = CallableProblem(problem)
         else:
+            print("Using provided problem instance")
             self.problem = problem
 
     def build(self) -> PyEngine:

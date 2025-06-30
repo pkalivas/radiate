@@ -50,8 +50,8 @@ result = engine.run(rd.ScoreLimit(0))
 
 print(result)
 
-# inputs = [[1.0, 1.0], [1.0, 0.0], [0.0, 1.0], [0.0, 0.0]]
-# answers = [[0.0], [1.0], [1.0], [0.0]]
+inputs = [[1.0, 1.0], [1.0, 0.0], [0.0, 1.0], [0.0, 0.0]]
+answers = [[0.0], [1.0], [1.0], [0.0]]
 
 
 def compute(x: float) -> float:
@@ -71,13 +71,13 @@ def get_dataset():
     return inputs, answers
 
 
-inputs, answers = get_dataset()
+# inputs, answers = get_dataset()
 
-inputs = [[0.0], [0.0], [0.0], [1.0], [0.0], [0.0], [0.0]]
-answers = [[0.0], [0.0], [1.0], [0.0], [0.0], [0.0], [1.0]]
+# inputs = [[0.0], [0.0], [0.0], [1.0], [0.0], [0.0], [0.0]]
+# answers = [[0.0], [0.0], [1.0], [0.0], [0.0], [0.0], [1.0]]
 
 codec = rd.GraphCodec.directed(
-    shape=(1, 1),
+    shape=(2, 1),
     vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
     edge=rd.Op.weight(),
     output=rd.Op.linear(),

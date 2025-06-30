@@ -348,6 +348,10 @@ where
 /// * `Edge` nodes are valid when they have exactly one incoming and one outgoing connection
 impl<T> Valid for GraphNode<T> {
     fn is_valid(&self) -> bool {
+        println!("Validating node: {:?}", self.arity());
+        println!("Incoming connections: {:?}", self.incoming);
+        println!("Outgoing connections: {:?}", self.outgoing);
+        println!("Node type: {:?}", self.node_type());
         match self.node_type() {
             NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
             NodeType::Output => {

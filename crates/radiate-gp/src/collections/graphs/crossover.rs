@@ -71,6 +71,9 @@ where
                     })
                     .collect::<Vec<usize>>();
 
+                println!("Valid: {:?}", chromo_one.is_valid());
+                println!("Node indices for crossover: {:?}", chromo_two.is_valid());
+
                 for i in node_indices {
                     println!("Crossover at node index: {}", i);
                     println!("OneLen: {}, TwoLen: {}", chromo_one.len(), chromo_two.len());
