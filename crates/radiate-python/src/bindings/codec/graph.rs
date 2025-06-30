@@ -54,6 +54,11 @@ impl PyGraphCodec {
             }
         }
 
+        println!("Graph type: {:?}", graph_type);
+        println!("Input size: {}", input_size);
+        println!("Output size: {}", output_size);
+        println!("Operations: {:?}", values);
+
         Self {
             codec: match graph_type {
                 Some("recurrent") => GraphCodec::recurrent(input_size, output_size, values),

@@ -23,16 +23,20 @@ where
     where
         T: Send + Sync + 'static,
     {
+        println!("1");
         context.epoch_metrics.clear();
 
+        println!("2");
         for step in self.steps.iter_mut() {
             bus.emit(EngineEvent::step_start(step.name()));
             let timer = std::time::Instant::now();
+            println!("Executing step: {}", step.name());
             step.execute(
                 context.index,
                 &mut context.epoch_metrics,
                 &mut context.ecosystem,
             );
+            println!("Completed step: {}", step.name());
             bus.emit(EngineEvent::step_complete(step.name()));
 
             context.epoch_metrics.upsert(step.name(), timer.elapsed());

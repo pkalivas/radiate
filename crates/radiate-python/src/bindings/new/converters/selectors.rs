@@ -2,7 +2,7 @@ use crate::{InputConverter, PyEngineInput, PyEngineInputType};
 use radiate::*;
 
 const TOURNAMENT_SELECTOR: &str = "TournamentSelector";
-const ROULETTE_WHEEL_SELECTOR: &str = "RouletteWheelSelector";
+const ROULETTE_WHEEL_SELECTOR: &str = "RouletteSelector";
 const RANK_SELECTOR: &str = "RankSelector";
 const STEADY_STATE_SELECTOR: &str = "SteadyStateSelector";
 const STOCHASTIC_UNIVERSAL_SELECTOR: &str = "StochasticUniversalSamplingSelector";
@@ -12,7 +12,7 @@ const RANDOM_SELECTOR: &str = "RandomSelector";
 const NSGA2_SELECTOR: &str = "NSGA2Selector";
 const TOURNAMENT_NSGA2_SELECTOR: &str = "TournamentNSGA2Selector";
 
-impl<C> InputConverter<C, Box<dyn Select<C>>> for PyEngineInput
+impl<C> InputConverter<Box<dyn Select<C>>> for PyEngineInput
 where
     C: Chromosome + Clone,
 {

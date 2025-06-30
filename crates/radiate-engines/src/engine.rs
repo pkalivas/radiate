@@ -112,9 +112,12 @@ where
 
     #[inline]
     fn next(&mut self) -> Self::Epoch {
+        println!("1");
         if matches!(self.context.index, 0) {
             self.bus.emit(EngineEvent::start());
         }
+
+        println!("2");
 
         self.bus.emit(EngineEvent::epoch_start(&self.context));
 
@@ -122,11 +125,15 @@ where
         self.pipeline.run(&mut self.context, &self.bus);
         let elapsed = timer.elapsed();
 
+        println!("3");
+
         self.context
             .epoch_metrics
             .upsert(metric_names::TIME, elapsed);
 
         self.context.metrics.merge(&self.context.epoch_metrics);
+
+        println!("4");
 
         let best = self.context.ecosystem.population().get(0);
         if let Some(best) = best {

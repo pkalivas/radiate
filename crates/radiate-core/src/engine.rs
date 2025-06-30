@@ -3,6 +3,7 @@ use crate::{
     Species, metric_names,
 };
 use std::{
+    fmt::{Debug, Formatter},
     sync::{Arc, RwLock},
     time::Duration,
 };

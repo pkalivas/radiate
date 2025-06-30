@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::collections::GraphChromosome;
 use crate::node::Node;
 use radiate_core::genome::*;
@@ -21,7 +23,7 @@ impl GraphCrossover {
 
 impl<T> Crossover<GraphChromosome<T>> for GraphCrossover
 where
-    T: Clone + PartialEq,
+    T: Clone + PartialEq + Debug,
 {
     fn rate(&self) -> f32 {
         self.crossover_rate
@@ -35,15 +37,22 @@ where
         generation: usize,
         _: f32,
     ) -> AlterResult {
+        println!("Crossover between individuals: {:?}", indexes);
         if population.len() <= NUM_PARENTS {
             return 0.into();
         }
 
         if let Some((parent_one, parent_two)) = population.get_pair_mut(indexes[0], indexes[1]) {
             let num_crosses = {
+                println!(
+                    "Crossover between individuals: {:?}",
+                    (parent_one.id(), parent_two.id())
+                );
                 let geno_one = parent_one.genotype_mut();
                 let geno_two = parent_two.genotype();
 
+                println!("Parent one genotype length: {}", geno_one.len());
+                println!("Parent two genotype length: {}", geno_two.len());
                 let chromo_index =
                     random_provider::range(0..std::cmp::min(geno_one.len(), geno_two.len()));
 
@@ -63,11 +72,20 @@ where
                     .collect::<Vec<usize>>();
 
                 for i in node_indices {
+                    println!("Crossover at node index: {}", i);
+                    println!("OneLen: {}, TwoLen: {}", chromo_one.len(), chromo_two.len());
+
+                    println!("HERE");
+                    println!("NodeType: {:?}", chromo_two.get(i));
+                    println!("NodeArity: {}", chromo_two.get(i).arity());
+
                     let node_two = chromo_two.get(i);
 
                     *chromo_one.as_mut()[i].value_mut() = node_two.value().clone();
                     num_crosses += 1;
                 }
+
+                println!("Number of crosses: {}", num_crosses);
 
                 num_crosses
             };

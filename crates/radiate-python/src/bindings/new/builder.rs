@@ -1,5 +1,5 @@
 use crate::bindings::new::{EngineBuilderHandle, EngineHandle};
-use crate::{prelude::*, InputConverter, PyEngineInput, PyEngineInputType, PyEngine};
+use crate::{prelude::*, FreeThreadPyEvaluator, InputConverter, PyEngine, PyEngineInput, PyEngineInputType};
 use crate::{PyGeneType};
 use core::panic;
 use pyo3::exceptions::PyTypeError;
@@ -57,9 +57,11 @@ macro_rules! apply_selector_to_builder {
                     unsafe { std::mem::transmute($selector) };
                 Ok(EngineBuilderHandle::FloatMulti(b.$method(selector)))
             }
-            EngineBuilderHandle::GraphRegression(_) => Err(PyTypeError::new_err(
-                "process_selector not implemented for Graph gene type",
-            )),
+            EngineBuilderHandle::GraphRegression(b) => {
+                let selector: Box<dyn Select<GraphChromosome<Op<f32>>>> =
+                    unsafe { std::mem::transmute($selector) };
+                Ok(EngineBuilderHandle::GraphRegression(b.$method(selector)))
+            }
             EngineBuilderHandle::Empty => Err(PyTypeError::new_err(
                 "EngineBuilder must have a problem and codec before processing other inputs",
             )),
@@ -104,85 +106,20 @@ impl PyEngineBuilder {
     }
 
     pub fn build<'py>(&mut self, py: Python<'py>) -> PyResult<PyEngine> {
-        let mut inner = EngineBuilderHandle::Empty;
-        let problem = self
-            .problem
-            .bind(py)
-            .extract::<PyProblemBuilder>()?;
-        let codec = self.codec.bind(py);
+        
+        let mut inner = self.create_builder(py)?;
 
-        if problem.name() == "Custom" {
-            let fitness_fn = problem
-                .args(py)?
-                .get_item("fitness_func")?
-                .extract::<Py<PyAny>>()?;
-
-            match self.gene_type {
-                PyGeneType::Float => {
-                    if let Ok(codec) = codec.extract::<PyFloatCodec>() {
-                        let float_problem = PyProblem::new(fitness_fn, codec.codec);
-                        let builder = GeneticEngine::builder().problem(float_problem);
-                        inner = EngineBuilderHandle::Float(builder);
-                    } else {
-                        return Err(PyTypeError::new_err(
-                            "Expected a PyFloatCodec for gene_type Float",
-                        ));
-                    }
-                }
-                PyGeneType::Int => {
-                    if let Ok(codec) = codec.extract::<PyIntCodec>() {
-                        let int_problem = PyProblem::new(fitness_fn, codec.codec);
-                        let builder = GeneticEngine::builder().problem(int_problem);
-                        inner = EngineBuilderHandle::Int(builder);
-                    } else {
-                        return Err(PyTypeError::new_err(
-                            "Expected a PyIntCodec for gene_type Int",
-                        ));
-                    }
-                }
-                _ => {
-                    return Err(PyTypeError::new_err(format!(
-                        "Unsupported gene_type {:?} for Custom problem",
-                        self.gene_type
-                    )));
-                }
-            }
-        }
-
+        let mut accum = HashMap::<PyEngineInputType, Vec<PyEngineInput>>::new();
         let input_groups = self.inputs.iter().fold(
-            HashMap::<PyEngineInputType, Vec<&PyEngineInput>>::new(),
-            |mut acc, input| {
-                acc.entry(input.input_type()).or_default().push(input);
+            &mut accum,
+            |acc, input| {
+                acc.entry(input.input_type()).or_default().push(input.clone());
                 acc
             },
         );
 
         for (input_type, inputs) in input_groups.iter() {
-            inner = match *input_type {
-                PyEngineInputType::SurvivorSelector => self.process_selector(inner, inputs)?,
-                PyEngineInputType::OffspringSelector => self.process_selector(inner, inputs)?,
-                PyEngineInputType::Alterer => self.process_alterser(inner, inputs)?,
-                PyEngineInputType::Objective => self.process_objective(inner, inputs)?,
-                PyEngineInputType::Executor => self.process_executor(inner, inputs)?,
-                PyEngineInputType::MaxPhenotypeAge => {
-                    self.process_max_phenotype_age(inner, inputs)?
-                }
-                PyEngineInputType::PopulationSize => self.process_population_size(inner, inputs)?,
-                PyEngineInputType::MaxSpeciesAge => self.process_max_species_age(inner, inputs)?,
-                PyEngineInputType::SpeciesThreshold => {
-                    self.process_species_threshold(inner, inputs)?
-                }
-                PyEngineInputType::OffspringFraction => {
-                    self.process_offspring_fraction(inner, inputs)?
-                }
-                PyEngineInputType::FrontRange => self.process_front_range(inner, inputs)?,
-                _ => {
-                    return Err(PyTypeError::new_err(format!(
-                        "Input type {:?} not yet implemented",
-                        input_type
-                    )));
-                }
-            }
+            inner = self.process_inputs(inner, *input_type, inputs)?;
         }
 
         let engine_handle = match inner {
@@ -208,10 +145,220 @@ impl PyEngineBuilder {
 
 impl PyEngineBuilder {
 
+    fn create_builder<'py>(&self, py: Python<'py>) -> PyResult<EngineBuilderHandle> {
+        
+        let problem = self
+            .problem
+            .bind(py)
+            .extract::<PyProblemBuilder>()?;
+        
+        let codec = self.codec.bind(py);
+
+        let input = self.inputs
+            .iter()
+            .filter(|i| i.input_type == PyEngineInputType::Executor)
+            .next();
+
+        let executor = if let Some(input) = input {
+            match input.component.as_str() {
+                "Serial" => Executor::Serial,
+                "FixedSizedWorkerPool" => {
+                    let num_workers = input
+                        .args()
+                        .get("num_workers")
+                        .and_then(|s| s.parse::<usize>().ok())
+                        .unwrap_or(1);
+
+                    Executor::FixedSizedWorkerPool(num_workers)
+                }
+                "WorkerPool" => Executor::WorkerPool,
+                _ => panic!("Executor type {} not yet implemented", input.component),
+            }
+        } else {
+            Executor::Serial
+        };
+        
+        let builder = if problem.name() == "Custom" {
+            let fitness_fn = problem
+                .args(py)?
+                .get_item("fitness_func")?
+                .extract::<Py<PyAny>>()?;
+
+             match self.gene_type {
+                PyGeneType::Float => {
+                    if let Ok(codec) = codec.extract::<PyFloatCodec>() {
+                        let float_problem = PyProblem::new(fitness_fn, codec.codec);
+                         Ok(EngineBuilderHandle::Float(
+                            GeneticEngine::builder()
+                                .problem(float_problem.clone())
+                                .executor(executor.clone())
+                                .evaluator(FreeThreadPyEvaluator::new(executor, float_problem))
+                                .bus_executor(Executor::default())
+                        ))
+                    } else {
+                         Err(PyTypeError::new_err(
+                            "Expected a PyFloatCodec for gene_type Float",
+                        ))
+                    }
+                }
+                PyGeneType::Int => {
+                    if let Ok(codec) = codec.extract::<PyIntCodec>() {
+                        let int_problem = PyProblem::new(fitness_fn, codec.codec);
+                         Ok(EngineBuilderHandle::Int(
+                            GeneticEngine::builder()
+                                .problem(int_problem.clone())
+                                .executor(executor.clone())
+                                .evaluator(FreeThreadPyEvaluator::new(executor, int_problem))
+                                .bus_executor(Executor::default())
+                        ))
+                    } else {
+                         Err(PyTypeError::new_err(
+                            "Expected a PyIntCodec for gene_type Int",
+                        ))
+                    }
+                }
+                PyGeneType::Char => {
+                    if let Ok(codec) = codec.extract::<PyCharCodec>() {
+                      let char_problem = PyProblem::new(fitness_fn, codec.codec);
+                       Ok(EngineBuilderHandle::Char(
+                          GeneticEngine::builder()
+                              .problem(char_problem.clone())
+                              .executor(executor.clone())
+                              .evaluator(FreeThreadPyEvaluator::new(executor, char_problem))
+                              .bus_executor(Executor::default())
+                      ))
+                    } else {
+                         Err(PyTypeError::new_err(
+                            "Expected a PyCharCodec for gene_type Char",
+                        ))
+                    }
+                }
+                PyGeneType::Bit => {
+                    if let Ok(codec) = codec.extract::<PyBitCodec>() {
+                        let bit_problem = PyProblem::new(fitness_fn, codec.codec);
+                        
+                         Ok(EngineBuilderHandle::Bit(
+                            GeneticEngine::builder()
+                                .problem(bit_problem.clone())
+                                .executor(executor.clone())
+                                .evaluator(FreeThreadPyEvaluator::new(executor, bit_problem))
+                                .bus_executor(Executor::default())
+                        ))
+                    } else {
+                        Err(PyTypeError::new_err(
+                            "Expected a PyBitCodec for gene_type Bit",
+                        ))
+                    }
+                }
+                _ => {
+                    Err(PyTypeError::new_err(format!(
+                        "Unsupported gene_type {:?} for Custom problem",
+                        self.gene_type
+                    )))
+                }
+            }
+        } else if problem.name() == "Regression" {
+            let features = problem
+                .args(py)
+                .and_then(|args| args.get_item("features"))
+                .and_then(|f| f.extract::<Vec<Vec<f32>>>())?;
+            let targets = problem
+                .args(py)
+                .and_then(|args| args.get_item("targets"))
+                .and_then(|t| t.extract::<Vec<Vec<f32>>>())?;
+
+            println!("Features: {:?}", features);
+            println!("Targets: {:?}", targets);
+
+            let data_set = DataSet::new(features, targets);
+
+            match self.gene_type {
+                PyGeneType::Graph => {
+                    if let Ok(codec) = codec.extract::<PyGraphCodec>() {
+                        let loss_str = problem
+                            .args(py)
+                            .and_then(|args| args.get_item("loss"))
+                            .and_then(|l| l.extract::<String>())
+                            .map(|s| s.to_uppercase())
+                            .unwrap_or("MSE".into());
+                        let loss = match loss_str.as_str() {
+                            "MSE" => Loss::MSE,
+                            "MAE" => Loss::MAE,
+                            _ => {
+                                return Err(PyErr::new::<PyTypeError, _>(
+                                    "Unsupported loss function for regression",
+                                ));
+                            }
+                        };
+
+                        let regression = Regression::new(data_set, loss, codec.codec);
+
+                        println!("{:?}", regression.encode());
+
+                         Ok(EngineBuilderHandle::GraphRegression(
+                            GeneticEngine::builder()
+                                .problem(regression)
+                                .executor(executor)
+                                .bus_executor(Executor::default())
+                        ))
+                    } else {
+                        Err(PyTypeError::new_err(
+                            "Expected a PyGraphCodec for gene_type Graph",
+                        ))
+                    }
+                }
+                _ => return Err(PyErr::new::<PyTypeError, _>(
+                    "Regression problem only supports GraphChromosome",
+                )),
+            }
+        } else {
+            return Err(PyErr::new::<PyTypeError, _>(
+                "Unsupported problem type. Only 'DefaultProblem' and 'Regression' are supported",
+            ));
+        };
+
+        builder
+    }
+
+    fn process_inputs(
+        &self,
+        builder: EngineBuilderHandle,
+        input_type: PyEngineInputType,
+        inputs: &[PyEngineInput],
+    ) -> PyResult<EngineBuilderHandle> {
+        match input_type {
+            PyEngineInputType::SurvivorSelector | PyEngineInputType::OffspringSelector => {
+                self.process_selector(builder, inputs)
+            }
+            PyEngineInputType::Alterer => self.process_alterers(builder, inputs),
+            PyEngineInputType::Objective => self.process_objective(builder, inputs),
+            // PyEngineInputType::Executor => self.process_executor(builder, inputs),
+            // PyEngineInputType::Evaluator => self.proce(builder, inputs), // Add this
+            PyEngineInputType::MaxPhenotypeAge => self.process_max_phenotype_age(builder, inputs),
+            PyEngineInputType::PopulationSize => self.process_population_size(builder, inputs),
+            PyEngineInputType::MaxSpeciesAge => self.process_max_species_age(builder, inputs),
+            PyEngineInputType::SpeciesThreshold => self.process_species_threshold(builder, inputs),
+            PyEngineInputType::OffspringFraction => self.process_offspring_fraction(builder, inputs),
+            PyEngineInputType::FrontRange => self.process_front_range(builder, inputs),
+            // PyEngineInputType::Diversity => self.process_diversity(builder, inputs),
+            // PyEngineInputType::Limit => self.process_limit(builder, inputs),
+            // PyEngineInputType::Subscriber => self.process_subscriber(builder, inputs),
+            PyEngineInputType::Codec | PyEngineInputType::Problem => {
+                // These are handled separately in the build method
+                Ok(builder)
+            }
+            _ => Ok(builder),
+            // _ => Err(PyTypeError::new_err(format!(
+            //     "Input type {:?} not yet implemented",
+            //     input_type
+            // ))),
+        }
+    }
+
     fn process_single_value<F>(
         &self,
         builder: EngineBuilderHandle,
-        inputs: &[&PyEngineInput],
+        inputs: &[PyEngineInput],
         processor: F,
     ) -> PyResult<EngineBuilderHandle>
     where
@@ -222,14 +369,14 @@ impl PyEngineBuilder {
                 "Only one input of this type can be processed at a time",
             ));
         }
-        processor(builder, inputs[0])
+        processor(builder, &inputs[0])
     }
 
 
     fn process_max_species_age(
         &self,
         builder: EngineBuilderHandle,
-        inputs: &[&PyEngineInput],
+        inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
         self.process_single_value(builder, inputs, |builder, input| {
             let max_age = input
@@ -245,7 +392,7 @@ impl PyEngineBuilder {
     fn process_species_threshold(
         &self,
         builder: EngineBuilderHandle,
-        inputs: &[&PyEngineInput],
+        inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
         self.process_single_value(builder, inputs, |builder, input| {
             let threshold = input
@@ -261,7 +408,7 @@ impl PyEngineBuilder {
     fn process_offspring_fraction(
         &self,
         builder: EngineBuilderHandle,
-        inputs: &[&PyEngineInput],
+        inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
         self.process_single_value(builder, inputs, |builder, input| {
             let fraction = input
@@ -277,7 +424,7 @@ impl PyEngineBuilder {
     fn process_population_size(
         &self,
         builder: EngineBuilderHandle,
-        inputs: &[&PyEngineInput],
+        inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
         self.process_single_value(builder, inputs, |builder, input| {
             let size = input
@@ -293,7 +440,7 @@ impl PyEngineBuilder {
     fn process_selector(
         &self,
         builder: EngineBuilderHandle,
-        inputs: &[&PyEngineInput],
+        inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
         self.process_single_value(builder, inputs, |builder, input| {
             let selector: Box<dyn Select<FloatChromosome> + 'static> = match builder {
@@ -324,38 +471,38 @@ impl PyEngineBuilder {
         })
     }
 
-    fn process_alterser(
+    fn process_alterers(
         &self,
         builder: EngineBuilderHandle,
-        input: &[&PyEngineInput],
+        inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
         match builder {
             EngineBuilderHandle::Int(builder) => {
-                let alters: Vec<Box<dyn Alter<IntChromosome<i32>>>> = input.convert();
+                let alters: Vec<Box<dyn Alter<IntChromosome<i32>>>> = inputs.convert();
                 Ok(EngineBuilderHandle::Int(builder.alter(alters)))
             }
             EngineBuilderHandle::Float(builder) => {
-                let alters: Vec<Box<dyn Alter<FloatChromosome>>> = input.convert();
+                let alters: Vec<Box<dyn Alter<FloatChromosome>>> = inputs.convert();
                 Ok(EngineBuilderHandle::Float(builder.alter(alters)))
             }
             EngineBuilderHandle::Char(builder) => {
-                let alters: Vec<Box<dyn Alter<CharChromosome>>> = input.convert();
+                let alters: Vec<Box<dyn Alter<CharChromosome>>> = inputs.convert();
                 Ok(EngineBuilderHandle::Char(builder.alter(alters)))
             }
             EngineBuilderHandle::Bit(builder) => {
-                let alters: Vec<Box<dyn Alter<BitChromosome>>> = input.convert();
+                let alters: Vec<Box<dyn Alter<BitChromosome>>> = inputs.convert();
                 Ok(EngineBuilderHandle::Bit(builder.alter(alters)))
             }
             EngineBuilderHandle::IntMulti(builder) => {
-                let alters: Vec<Box<dyn Alter<IntChromosome<i32>>>> = input.convert();
+                let alters: Vec<Box<dyn Alter<IntChromosome<i32>>>> = inputs.convert();
                 Ok(EngineBuilderHandle::IntMulti(builder.alter(alters)))
             }
             EngineBuilderHandle::FloatMulti(builder) => {
-                let alters: Vec<Box<dyn Alter<FloatChromosome>>> = input.convert();
+                let alters: Vec<Box<dyn Alter<FloatChromosome>>> = inputs.convert();
                 Ok(EngineBuilderHandle::FloatMulti(builder.alter(alters)))
             }
             EngineBuilderHandle::GraphRegression(builder) => {
-                let alters: Vec<Box<dyn Alter<GraphChromosome<Op<f32>>>>> = input.convert();
+                let alters: Vec<Box<dyn Alter<GraphChromosome<Op<f32>>>>> = inputs.convert();
                 Ok(EngineBuilderHandle::GraphRegression(builder.alter(alters)))
             }
             _ => Err(PyTypeError::new_err(
@@ -367,9 +514,9 @@ impl PyEngineBuilder {
     fn process_executor(
         &self,
         builder: EngineBuilderHandle,
-        input: &[&PyEngineInput],
+        inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
-        self.process_single_value(builder, input, |builder, input| {
+        self.process_single_value(builder, inputs, |builder, input| {
             let executor = match input.component.as_str() {
                 "Serial" => Executor::Serial,
                 "FixedSizedWorkerPool" => {
@@ -395,9 +542,9 @@ impl PyEngineBuilder {
     fn process_max_phenotype_age(
         &self,
         builder: EngineBuilderHandle,
-        input: &[&PyEngineInput],
+        inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
-        self.process_single_value(builder, input, |builder, input| {
+        self.process_single_value(builder, inputs, |builder, input| {
             let max_age = input
                 .args
                 .get("max_age")
@@ -411,7 +558,7 @@ impl PyEngineBuilder {
     fn process_objective(
         &self,
         builder: EngineBuilderHandle,
-        inputs: &[&PyEngineInput],
+        inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
         self.process_single_value(builder, inputs, |builder, input| {
             let objectives = input.args().get("objective").map(|objs| {
@@ -464,7 +611,7 @@ impl PyEngineBuilder {
     fn process_front_range(
         &self,
         builder: EngineBuilderHandle,
-        inputs: &[&PyEngineInput],
+        inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
         self.process_single_value(builder, inputs, |builder, input| {
             let min = input

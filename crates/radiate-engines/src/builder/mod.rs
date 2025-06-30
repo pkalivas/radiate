@@ -33,6 +33,7 @@ use radiate_core::{
 };
 use radiate_error::RadiateError;
 use std::cmp::Ordering;
+use std::fmt::{Debug, Formatter};
 use std::sync::{Arc, Mutex, RwLock};
 
 #[derive(Clone)]
@@ -155,6 +156,8 @@ where
             pipeline.add_step(Self::build_front_step(&config));
             pipeline.add_step(Self::build_species_step(&config));
             pipeline.add_step(Self::build_audit_step(&config));
+
+            println!("Ecosystem Size: {}", config.population.len());
 
             let context = Context {
                 ecosystem: Ecosystem::new(config.population.clone()),

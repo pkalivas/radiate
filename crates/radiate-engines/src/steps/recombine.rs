@@ -28,6 +28,7 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
         );
 
         let name = self.survivor_selector.name();
+        println!("Survivor selection complete: {}", name);
         metrics.add_labels(
             name,
             labels![
@@ -55,6 +56,7 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
         );
 
         let name = self.offspring_selector.name();
+        println!("Offspring selection complete: {}", name);
         metrics.add_labels(
             name,
             labels![
@@ -104,6 +106,8 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
         } else {
             let mut offspring =
                 self.select_offspring(self.offspring_count, &ecosystem.population, metrics);
+
+            println!("Offspring selection complete: Count = {}", offspring.len());
 
             self.objective.sort(&mut offspring);
 

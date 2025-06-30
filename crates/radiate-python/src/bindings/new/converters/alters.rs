@@ -18,10 +18,10 @@ const GAUSSIAN_MUTATOR: &str = "GaussianMutator";
 const GRAPH_MUTATOR: &str = "GraphMutator";
 const OPERATION_MUTATOR: &str = "OperationMutator";
 
-impl<C> InputConverter<C, Vec<Box<dyn Alter<C>>>> for &[&PyEngineInput]
+impl<C> InputConverter<Vec<Box<dyn Alter<C>>>> for &[PyEngineInput]
 where
     C: Chromosome + Clone,
-    PyEngineInput: InputConverter<C, Vec<Box<dyn Alter<C>>>>,
+    PyEngineInput: InputConverter<Vec<Box<dyn Alter<C>>>>,
 {
     fn convert(&self) -> Vec<Box<dyn Alter<C>>> {
         let mut alters: Vec<Box<dyn Alter<C>>> = Vec::new();
@@ -39,7 +39,7 @@ where
     }
 }
 
-impl InputConverter<IntChromosome<i32>, Vec<Box<dyn Alter<IntChromosome<i32>>>>> for PyEngineInput {
+impl InputConverter<Vec<Box<dyn Alter<IntChromosome<i32>>>>> for PyEngineInput {
     fn convert(&self) -> Vec<Box<dyn Alter<IntChromosome<i32>>>> {
         if self.input_type != PyEngineInputType::Alterer {
             panic!("Input type {:?} not an alterer", self.input_type);
@@ -59,7 +59,7 @@ impl InputConverter<IntChromosome<i32>, Vec<Box<dyn Alter<IntChromosome<i32>>>>>
     }
 }
 
-impl InputConverter<FloatChromosome, Vec<Box<dyn Alter<FloatChromosome>>>> for PyEngineInput {
+impl InputConverter<Vec<Box<dyn Alter<FloatChromosome>>>> for PyEngineInput {
     fn convert(&self) -> Vec<Box<dyn Alter<FloatChromosome>>> {
         if self.input_type != PyEngineInputType::Alterer {
             panic!("Input type {:?} not an alterer", self.input_type);
@@ -82,7 +82,7 @@ impl InputConverter<FloatChromosome, Vec<Box<dyn Alter<FloatChromosome>>>> for P
     }
 }
 
-impl InputConverter<CharChromosome, Vec<Box<dyn Alter<CharChromosome>>>> for PyEngineInput {
+impl InputConverter<Vec<Box<dyn Alter<CharChromosome>>>> for PyEngineInput {
     fn convert(&self) -> Vec<Box<dyn Alter<CharChromosome>>> {
         if self.input_type != PyEngineInputType::Alterer {
             panic!("Input type {:?} not an alterer", self.input_type);
@@ -100,7 +100,7 @@ impl InputConverter<CharChromosome, Vec<Box<dyn Alter<CharChromosome>>>> for PyE
     }
 }
 
-impl InputConverter<BitChromosome, Vec<Box<dyn Alter<BitChromosome>>>> for PyEngineInput {
+impl InputConverter<Vec<Box<dyn Alter<BitChromosome>>>> for PyEngineInput {
     fn convert(&self) -> Vec<Box<dyn Alter<BitChromosome>>> {
         if self.input_type != PyEngineInputType::Alterer {
             panic!("Input type {:?} not an alterer", self.input_type);
@@ -118,9 +118,7 @@ impl InputConverter<BitChromosome, Vec<Box<dyn Alter<BitChromosome>>>> for PyEng
     }
 }
 
-impl InputConverter<GraphChromosome<Op<f32>>, Vec<Box<dyn Alter<GraphChromosome<Op<f32>>>>>>
-    for PyEngineInput
-{
+impl InputConverter<Vec<Box<dyn Alter<GraphChromosome<Op<f32>>>>>> for PyEngineInput {
     fn convert(&self) -> Vec<Box<dyn Alter<GraphChromosome<Op<f32>>>>> {
         if self.input_type != PyEngineInputType::Alterer {
             panic!("Input type {:?} not an alterer", self.input_type);

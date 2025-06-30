@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, Callable, Any
+from typing import List, Optional, Tuple, Callable
 from radiate.codec.codec import CodecBase
 from radiate.inputs.problem import ProblemBase
 from radiate.radiate import PyEngine, PyEngineBuilder
@@ -25,7 +25,7 @@ class EngineBuilder:
         builder = PyEngineBuilder(
             gene_type=self._gene_type,
             codec=self._codec.codec,
-            problem_builder=self.problem.problem,
+            problem=self.problem.problem,
             inputs=[self_input.py_input() for self_input in self._inputs],
         )
         return builder.build()

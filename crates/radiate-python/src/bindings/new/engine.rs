@@ -1,6 +1,8 @@
 use crate::{EngineHandle, EpochHandle, PyEngineInput, PyGeneration};
 use pyo3::{PyResult, pyclass, pymethods};
-use radiate::{Chromosome, Epoch, Generation, GeneticEngine, Limit, Objective, Optimize, log_ctx};
+use radiate::{
+    Chromosome, EngineExt, Epoch, Generation, GeneticEngine, Limit, Objective, Optimize, log_ctx,
+};
 
 #[pyclass(unsendable)]
 pub struct PyEngine {
@@ -52,15 +54,26 @@ impl PyEngine {
             }
             EngineHandle::IntMulti(_) => panic!("Not implemented yet"),
             EngineHandle::FloatMulti(_) => panic!("Not implemented yet"),
-            EngineHandle::GraphRegression(_) => panic!("Not implemented yet"),
+            EngineHandle::GraphRegression(eng) => {
+                let output = run_single_objective_engine(eng, limits, log);
+                EpochHandle::GraphRegression(output)
+            }
         };
 
-        Ok(PyGeneration::new(result))
+        Ok(match result {
+            EpochHandle::Int(epoch) => epoch.into(),
+            EpochHandle::Float(epoch) => epoch.into(),
+            EpochHandle::Char(epoch) => epoch.into(),
+            EpochHandle::Bit(epoch) => epoch.into(),
+            EpochHandle::IntMulti(_) => panic!("Not implemented yet"),
+            EpochHandle::FloatMulti(_) => panic!("Not implemented yet"),
+            EpochHandle::GraphRegression(epoch) => epoch.into(),
+        })
     }
 }
 
 fn run_single_objective_engine<C, T>(
-    engine: GeneticEngine<C, T, Generation<C, T>>,
+    mut engine: GeneticEngine<C, T, Generation<C, T>>,
     limits: Vec<Limit>,
     log: bool,
 ) -> Generation<C, T>
@@ -68,29 +81,40 @@ where
     C: Chromosome + Clone,
     T: Clone + Send + Sync + 'static,
 {
-    engine
-        .iter()
-        .inspect(|epoch| {
-            if log {
-                log_ctx!(epoch);
-            }
-        })
-        .skip_while(|epoch| {
-            limits.iter().all(|limit| match limit {
-                Limit::Generation(lim) => epoch.index() < *lim,
-                Limit::Score(lim) => match epoch.objective() {
-                    Objective::Single(opt) => match opt {
-                        Optimize::Minimize => epoch.score().as_f32() > *lim,
-                        Optimize::Maximize => epoch.score().as_f32() < *lim,
-                    },
-                    Objective::Multi(_) => false,
-                },
-                Limit::Seconds(val) => return epoch.seconds() < *val,
-            })
-        })
-        .take(1)
-        .last()
-        .expect("No generation found that meets the limits")
+    engine.run(|epoch| {
+        if log {
+            log_ctx!(epoch);
+        }
+
+        if epoch.index() == 10 {
+            return true;
+        }
+
+        false
+    })
+    // engine
+    //     .iter()
+    //     .inspect(|epoch| {
+    //         if log {
+    //             log_ctx!(epoch);
+    //         }
+    //     })
+    //     .skip_while(|epoch| {
+    //         limits.iter().all(|limit| match limit {
+    //             Limit::Generation(lim) => epoch.index() < *lim,
+    //             Limit::Score(lim) => match epoch.objective() {
+    //                 Objective::Single(opt) => match opt {
+    //                     Optimize::Minimize => epoch.score().as_f32() > *lim,
+    //                     Optimize::Maximize => epoch.score().as_f32() < *lim,
+    //                 },
+    //                 Objective::Multi(_) => false,
+    //             },
+    //             Limit::Seconds(val) => return epoch.seconds() < *val,
+    //         })
+    //     })
+    //     .take(1)
+    //     .last()
+    //     .expect("No generation found that meets the limits")
 }
 
 // fn run_multi_objective_engine<C, T>(
