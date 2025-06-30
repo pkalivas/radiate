@@ -13,6 +13,7 @@ where
     pub species_executor: Arc<Executor>,
     pub front_executor: Arc<Executor>,
     pub bus_executor: Arc<Executor>,
+    pub novelty_executor: Arc<Executor>,
 }
 
 impl<C, T, E> GeneticEngineBuilder<C, T, E>
@@ -33,7 +34,8 @@ where
             fitness_executor: executor.clone(),
             species_executor: executor.clone(),
             front_executor: executor.clone(),
-            bus_executor: executor,
+            bus_executor: executor.clone(),
+            novelty_executor: executor,
         };
         self
     }

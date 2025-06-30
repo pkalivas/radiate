@@ -28,8 +28,8 @@ impl FixedThreadPool {
     }
 }
 
-pub fn get_thread_pool(num_workers: usize) -> &'static ThreadPool {
-    &FixedThreadPool::instance(num_workers).inner
+pub fn get_thread_pool(num_workers: usize) -> Arc<ThreadPool> {
+    Arc::clone(&FixedThreadPool::instance(num_workers).inner)
 }
 
 /// [WorkResult] is a simple wrapper around a `Receiver` that allows the user to get

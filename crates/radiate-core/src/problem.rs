@@ -4,19 +4,23 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-pub trait FitnessFn<T> {
-    fn eval(&self, phenotype: &T) -> impl Into<Score>;
+pub trait FitnessFunction<T, S>: Send + Sync
+where
+    S: Into<Score>,
+{
+    fn evaluate(&self, individual: T) -> S;
 }
 
-pub struct NoveltyObjective<T> {
-    descriptor_fn: Arc<dyn Fn(&T) -> Vec<f32> + Send + Sync>,
-    distance_fn: Arc<dyn Fn(&[f32], &[f32]) -> f32 + Send + Sync>,
-    archive: Arc<RwLock<VecDeque<Vec<f32>>>>,
-    k: usize,
+impl<T, S, F> FitnessFunction<T, S> for F
+where
+    F: Fn(T) -> S + Send + Sync,
+    S: Into<Score>,
+{
+    fn evaluate(&self, individual: T) -> S {
+        (self)(individual)
+    }
 }
 
-//
-//
 /// [Problem] represents the interface for the fitness function or evaluation and encoding/decoding
 /// of a genotype to a phenotype within the genetic algorithm framework.
 ///
@@ -58,94 +62,90 @@ impl<C: Chromosome, T> Problem<C, T> for EngineProblem<C, T> {
 unsafe impl<C: Chromosome, T> Send for EngineProblem<C, T> {}
 unsafe impl<C: Chromosome, T> Sync for EngineProblem<C, T> {}
 
-// pub struct NoveltyProblem<C, T>
-// where
-//     C: Chromosome,
-// {
-//     pub codec: Arc<dyn Codec<C, T>>,
-//     pub fitness_fn: Arc<dyn Fn(T) -> Score + Send + Sync>,
-//     pub novelty: NoveltyObjective<T>,
-// }
+#[derive(Clone)]
+pub struct NoveltySearch<T> {
+    pub descriptor: Arc<dyn Fn(&T) -> Vec<f32> + Send + Sync>,
+    pub distance: Arc<dyn Fn(&[f32], &[f32]) -> f32 + Send + Sync>,
+    pub archive: Arc<RwLock<VecDeque<Vec<f32>>>>,
+    pub k: usize,
+    pub threshold: f32,
+}
 
-// impl<T> NoveltyObjective<T> {
-//     pub fn new<F, G>(descriptor_fn: F, distance_fn: G, k: usize) -> Self
-//     where
-//         F: Fn(&T) -> Vec<f32> + Send + Sync + 'static,
-//         G: Fn(&[f32], &[f32]) -> f32 + Send + Sync + 'static,
-//     {
-//         NoveltyObjective {
-//             descriptor_fn: Arc::new(descriptor_fn),
-//             distance_fn: Arc::new(distance_fn),
-//             archive: Arc::new(RwLock::new(VecDeque::new())),
-//             k,
-//         }
-//     }
-// }
+impl<T> NoveltySearch<T> {
+    pub fn new<F, G>(descriptor_fn: F, distance_fn: G, k: usize, threshold: f32) -> Self
+    where
+        F: Fn(&T) -> Vec<f32> + Send + Sync + 'static,
+        G: Fn(&[f32], &[f32]) -> f32 + Send + Sync + 'static,
+    {
+        NoveltySearch {
+            descriptor: Arc::new(descriptor_fn),
+            distance: Arc::new(distance_fn),
+            archive: Arc::new(RwLock::new(VecDeque::new())),
+            k,
+            threshold,
+        }
+    }
 
-// impl<T> FitnessFn<T> for NoveltyObjective<T> {
-//     fn eval(&self, phenotype: &T) -> impl Into<Score> {
-//         let descriptor = (self.descriptor_fn)(phenotype);
+    fn normalized_novelty_score(&self, descriptor: &Vec<f32>, archive: &VecDeque<Vec<f32>>) -> f32 {
+        if archive.is_empty() {
+            return 1.0;
+        }
 
-//         let archive = self.archive.read().unwrap();
-//         if archive.is_empty() {
-//             return 1.0; // base novelty
-//         }
+        let mut distances: Vec<f32> = archive
+            .iter()
+            .map(|archived| (self.distance)(descriptor, archived))
+            .collect();
 
-//         let mut distances = archive
-//             .iter()
-//             .map(|past| (self.distance_fn)(&descriptor, past))
-//             .collect::<Vec<f32>>();
+        let min_distance = distances.iter().fold(f32::INFINITY, |a, &b| a.min(b));
+        let max_distance = distances.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
 
-//         distances.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        if max_distance == min_distance {
+            return 0.0;
+        }
 
-//         let k = self.k.min(distances.len());
-//         let novelty = distances.iter().take(k).sum::<f32>() / (k as f32);
+        distances.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        let k = std::cmp::min(self.k, distances.len());
+        let k_nearest_distances = &distances[..k];
+        let avg_distance = k_nearest_distances.iter().sum::<f32>() / k as f32;
 
-//         drop(archive);
+        (avg_distance - min_distance) / (max_distance - min_distance)
+    }
+}
 
-//         let mut writer = self.archive.write().unwrap();
+impl<T> FitnessFunction<T, Vec<f32>> for NoveltySearch<T> {
+    fn evaluate(&self, individual: T) -> Vec<f32> {
+        let descriptor = (self.descriptor)(&individual);
 
-//         if writer.len() > 1000 {
-//             writer.pop_front();
-//         }
+        let is_empty = {
+            let archive = self.archive.read().unwrap();
+            archive.is_empty()
+        };
 
-//         writer.push_back(descriptor);
+        if is_empty {
+            let mut writer = self.archive.write().unwrap();
+            writer.push_back(descriptor);
+            return vec![1.0];
+        }
 
-//         novelty
-//     }
-// }
+        let novelty = {
+            let archive = self.archive.read().unwrap();
+            self.normalized_novelty_score(&descriptor, &archive)
+        };
 
-// impl<C: Chromosome> Problem<C, f32> for NoveltyObjective<C> {
-//     fn eval(&self, individual: &C) -> f32 {
-//         let descriptor = (self.descriptor_fn)(individual);
+        println!("Novelty: {}", novelty);
 
-//         let archive = self.archive.read().unwrap();
-//         if archive.is_empty() {
-//             return 1.0; // base novelty
-//         }
+        let mut writer = self.archive.write().unwrap();
 
-//         let mut distances: Vec<f32> = archive
-//             .iter()
-//             .map(|past| (self.distance_fn)(&descriptor, past))
-//             .collect();
+        println!("Archive size after pop: {}", writer.len());
 
-//         distances.sort_by(|a, b| a.partial_cmp(b).unwrap());
-//         let k = self.k.min(distances.len());
-//         let novelty = distances.iter().take(k).sum::<f32>() / (k as f32);
-//         drop(archive);
+        if novelty > self.threshold || writer.len() < self.k {
+            println!("Adding to archive with novelty: {}", novelty);
+            writer.push_back(descriptor);
+        }
 
-//         self.archive.write().unwrap().push(descriptor);
-
-//         novelty
-//     }
-// }
-
-// pub struct NoveltyObjective<C> {
-//     descriptor_fn: Arc<dyn Fn(&C) -> Vec<f32> + Send + Sync>,
-//     distance_fn: Arc<dyn Fn(&[f32], &[f32]) -> f32 + Send + Sync>,
-//     archive: RwLock<Vec<Vec<f32>>>,
-//     k: usize,
-// }
+        vec![novelty]
+    }
+}
 
 // pub fn cosine_distance(a: &[f32], b: &[f32]) -> f32 {
 //     let dot = a.iter().zip(b).map(|(x, y)| x * y).sum::<f32>();

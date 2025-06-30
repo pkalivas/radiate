@@ -12,22 +12,18 @@ fn main() {
         (NodeType::Output, vec![Op::linear()]),
     ];
 
-    let graph_codec = GraphCodec::directed(1, 1, values);
-    let problem = Regression::new(get_dataset(), Loss::MSE, graph_codec);
+    // let graph_codec = GraphCodec::directed(1, 1, values);
+    // let problem = Regression::new(get_dataset(), Loss::MSE, graph_codec);
 
     let engine = GeneticEngine::builder()
-        .problem(problem)
+        .codec(GraphCodec::directed(1, 1, values))
         .minimizing()
-        // .executor(Executor::WorkerPool(10))
-        // .diversity(NeatDistance::new(1.0, 1.0, 3.0))
-        // .species_threshold(1.8)
-        // .max_species_age(25)
-        // .executor(Executor::Serial)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
             GraphMutator::new(0.1, 0.1).allow_recurrent(false),
         ))
+        .fitness_fn(Regression2::new(get_dataset(), Loss::MSE))
         .build();
 
     engine

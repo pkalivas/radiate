@@ -6,6 +6,7 @@ pub mod domain;
 pub mod engine;
 pub mod evaluator;
 pub mod genome;
+pub mod novelty;
 pub mod objectives;
 pub mod problem;
 pub mod replacement;

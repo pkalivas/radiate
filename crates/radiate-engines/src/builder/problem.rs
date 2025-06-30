@@ -1,5 +1,5 @@
 use crate::GeneticEngineBuilder;
-use radiate_core::{Chromosome, Codec, Epoch, Problem, Score};
+use radiate_core::{Chromosome, Codec, Epoch, Problem, Score, problem::FitnessFunction};
 use std::sync::Arc;
 
 impl<C, T, E> GeneticEngineBuilder<C, T, E>
@@ -28,9 +28,9 @@ where
     /// This method is required and must be set before calling the `build` method.
     pub fn fitness_fn<S: Into<Score>>(
         mut self,
-        fitness_func: impl Fn(T) -> S + Send + Sync + 'static,
+        fitness_func: impl FitnessFunction<T, S> + 'static,
     ) -> Self {
-        let other = move |x| fitness_func(x).into();
+        let other = move |x| fitness_func.evaluate(x).into();
         self.params.fitness_fn = Some(Arc::new(other));
         self
     }

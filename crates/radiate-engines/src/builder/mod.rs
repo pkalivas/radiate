@@ -1,6 +1,7 @@
 mod alters;
 mod audit;
 mod evaluators;
+mod novelty;
 mod objectives;
 mod population;
 mod problem;
@@ -138,8 +139,6 @@ where
                 fitness_fn: self.params.fitness_fn.clone().unwrap(),
             };
 
-            println!("Building default problem");
-
             self.problem(problem).build()
         } else {
             self.build_population();
@@ -181,6 +180,7 @@ where
 
     fn build_eval_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
         let evaluator = config.evaluator.clone();
+
         let eval_step = EvaluateStep {
             objective: config.objective.clone(),
             problem: config.problem.clone(),
@@ -189,6 +189,44 @@ where
 
         Some(Box::new(eval_step))
     }
+
+    // if let Some(novelty) = &self.params.novelty_params {
+    //     let inner_problem = self.params.problem.clone().unwrap();
+    //     let novelty_objective = NoveltyObjective {
+    //         descriptor_fn: novelty.descriptor_fn.clone(),
+    //         distance_fn: novelty.distance_fn.clone(),
+    //         archive: Arc::new(RwLock::new(std::collections::VecDeque::new())),
+    //         k: novelty.k_nearest,
+    //         threshold: novelty.novelty_threshold,
+    //     };
+
+    //     let novelty_problem = NoveltyProblem {
+    //         inner_problem,
+    //         novelty: novelty_objective,
+    //         fitness_weight: novelty.fitness_weight,
+    //         novelty_weight: novelty.novelty_weight,
+    //     };
+
+    //     self.params.problem = Some(Arc::new(novelty_problem));
+    // }
+    // fn build_novelty_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+    //     if config.novelty.descriptor_fn.is_none() || config.novelty.distance_fn.is_none() {
+    //         return None;
+    //     }
+
+    //     let novelty_step = NoveltyStep {
+    //         objective: config.objective.clone(),
+    //         executor: config.executor().novelty_executor.clone(),
+    //         descriptor: config.novelty.descriptor_fn.clone().unwrap(),
+    //         distance: config.novelty.distance_fn.clone().unwrap(),
+    //         archive: Arc::new(RwLock::new(Vec::new())),
+    //         k_nearest: config.novelty.k_nearest,
+    //         threshold: config.novelty.novelty_threshold,
+    //         weights: (config.novelty.fitness_weight, config.novelty.novelty_weight),
+    //     };
+
+    //     Some(Box::new(novelty_step))
+    // }
 
     fn build_recombine_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
         let recombine_step = RecombineStep {
@@ -269,6 +307,61 @@ where
         };
     }
 
+    // fn build_problem(&mut self) {
+    //     // if !self.params.problem.is_some() {
+    //     //     if self.params.codec.is_none() {
+    //     //         panic!("Codec not set");
+    //     //     }
+
+    //     //     if self.params.fitness_fn.is_none() {
+    //     //         panic!("Fitness function not set");
+    //     //     }
+
+    //     //     let problem = EngineProblem {
+    //     //         codec: self.params.codec.clone().unwrap(),
+    //     //         fitness_fn: self.params.fitness_fn.clone().unwrap(),
+    //     //     };
+    //     // }
+
+    //     // if self.params.codec.is_none() || self.params.fitness_fn.is_none() {
+    //     //     panic!("Codec or fitness function not set");
+    //     // }
+
+    //     let codec = self.params.codec.clone();
+    //     let fitness_fn = self.params.fitness_fn.clone();
+    //     let descriptor = self.params.novelty_params.descriptor_fn.clone();
+    //     let distance = self.params.novelty_params.distance_fn.clone();
+
+    //     let k_nearest = self.params.novelty_params.k_nearest;
+    //     let threshold = self.params.novelty_params.novelty_threshold;
+    //     let (fitness_weight, novelty_weight) = (
+    //         self.params.novelty_params.fitness_weight,
+    //         self.params.novelty_params.novelty_weight,
+    //     );
+
+    //     if descriptor.is_none() || distance.is_none() {
+    //         return;
+    //     }
+
+    //     let inner_problem = self.params.problem.clone().unwrap();
+    //     let novelty_objective = NoveltyObjective {
+    //         descriptor_fn: descriptor.clone().unwrap(),
+    //         distance_fn: distance.clone().unwrap(),
+    //         archive: Arc::new(RwLock::new(VecDeque::new())),
+    //         k: k_nearest,
+    //         threshold,
+    //     };
+
+    //     let problem = NoveltyProblem {
+    //         inner_problem,
+    //         novelty: novelty_objective,
+    //         fitness_weight,
+    //         novelty_weight,
+    //     };
+
+    //     self.params.problem = Some(Arc::new(problem));
+    // }
+
     /// Build the alterer of the genetic engine. This will create a
     /// new `UniformCrossover` and `UniformMutator` if the alterer is not set.
     /// with a 0.5 crossover rate and a 0.1 mutation rate.
@@ -342,6 +435,7 @@ where
                     species_executor: Arc::new(Executor::default()),
                     front_executor: Arc::new(Executor::default()),
                     bus_executor: Arc::new(Executor::default()),
+                    novelty_executor: Arc::new(Executor::default()),
                 },
                 selection_params: SelectionParams {
                     offspring_fraction: 0.8,
@@ -353,6 +447,15 @@ where
                     front_range: 800..900,
                     front: None,
                 },
+                // novelty_params: NoveltyParams {
+                //     descriptor_fn: None,
+                //     distance_fn: None,
+                //     k_nearest: 15,
+                //     archive_size: 1000,
+                //     novelty_threshold: 0.1,
+                //     fitness_weight: 0.5,
+                //     novelty_weight: 0.5,
+                // },
                 replacement_strategy: Arc::new(EncodeReplace),
                 audits: vec![Arc::new(MetricAudit)],
                 alterers: Vec::new(),

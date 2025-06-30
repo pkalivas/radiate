@@ -2,7 +2,7 @@ use super::{DataSet, Loss};
 use crate::{
     Eval, EvalMut, Graph, GraphChromosome, GraphEvaluator, Op, Tree, TreeChromosome, TreeNode,
 };
-use radiate_core::{Chromosome, Codec, Genotype, Problem, Score};
+use radiate_core::{Chromosome, Codec, Genotype, Problem, Score, problem::FitnessFunction};
 use std::{marker::PhantomData, sync::Arc};
 
 pub struct Regression<C, T>
@@ -34,6 +34,29 @@ where
             _chrom: PhantomData,
             _val: PhantomData,
         }
+    }
+}
+
+pub struct Regression2 {
+    data_set: DataSet,
+    loss: Loss,
+}
+
+impl Regression2 {
+    pub fn new(sample_set: impl Into<DataSet>, loss: Loss) -> Self {
+        Regression2 {
+            data_set: sample_set.into(),
+            loss,
+        }
+    }
+}
+
+impl FitnessFunction<Graph<Op<f32>>, f32> for Regression2 {
+    fn evaluate(&self, input: Graph<Op<f32>>) -> f32 {
+        let mut evaluator = GraphEvaluator::new(&input);
+
+        self.loss
+            .calculate(&self.data_set, &mut |input| evaluator.eval_mut(input))
     }
 }
 
