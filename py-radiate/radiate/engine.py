@@ -15,11 +15,6 @@ from .inputs.limit import LimitBase
 
 from .genome.gene import GeneType
 
-from .radiate import (
-    PySubscriber,
-
-)
-
 
 Subscriber: TypeAlias = Union[
     Callable[[Any], None], List[Callable[[Any], None]], EventHandler, List[EventHandler]
@@ -91,6 +86,17 @@ class GeneticEngine:
         """Return the internal state of the engine builder for debugging."""
         return self.builder.__dict__()
 
+    def __iter__(self):
+        """Return an iterator over the engine's generations."""
+        self.engine = self.builder.build()
+        return self
+
+    def __next__(self):
+        """Return the next generation from the engine."""
+        if not hasattr(self, "engine"):
+            self.engine = self.builder.build()
+        return Generation(self.engine.next())
+
     def run(self, limits: LimitBase | List[LimitBase], log: bool = False) -> Generation:
         """Run the engine with the given limits.
         Args:
@@ -120,7 +126,7 @@ class GeneticEngine:
                 )
         else:
             raise ValueError("At least one limit must be provided to run the engine.")
-                
+
         engine = self.builder.build()
 
         limit_inputs = [
@@ -244,7 +250,6 @@ class GeneticEngine:
             raise ValueError("Offspring fraction must be between 0 and 1.")
         self.builder.set_offspring_fraction(fraction)
 
-
     def max_age(self, max_phenotype_age: int = 20, max_species_age: int = 20):
         """Set the maximum age for phenotypes and species.
         Args:
@@ -326,66 +331,3 @@ class GeneticEngine:
         >>> engine.subscribe([handler1, handler2])
         """
         self.builder.set_subscribers(event_handler or [])
-
-
-# def get_problem(
-#     fitness_func: Callable[[Any], Any] | ProblemBase | None = None
-# ) -> ProblemBase:
-#     """Get the problem."""
-#     if fitness_func is None:
-#         raise ValueError("Fitness function must be provided.")
-
-#     if callable(fitness_func):
-#         return CallableProblem(fitness_func)
-#     if isinstance(fitness_func, ProblemBase):
-#         return fitness_func
-#     raise TypeError("Problem must be an instance of ProblemBase.")
-
-
-# def get_executor(executor: Executor | None) -> Executor:
-#     """Get the executor."""
-#     if executor is None:
-#         return Executor.Serial()
-#     if isinstance(executor, Executor):
-#         return executor
-#     raise TypeError("Executor must be an instance of Executor.")
-
-
-# def get_codec(codec: CodecBase | Callable[[], List[Any]]) -> Any:
-#     """Get the codec."""
-#     from .codec import FloatCodec, IntCodec, CharCodec, BitCodec, GraphCodec
-
-#     if isinstance(codec, FloatCodec):
-#         return codec.codec
-#     if isinstance(codec, IntCodec):
-#         return codec.codec
-#     if isinstance(codec, CharCodec):
-#         return codec.codec
-#     if isinstance(codec, BitCodec):
-#         return codec.codec
-#     if isinstance(codec, GraphCodec):
-#         return codec.codec
-
-#     else:
-#         raise TypeError(
-#             f"Codec type {type(codec)} is not supported. "
-#             "Use FloatCodec, IntCodec, CharCodec, or BitCodec."
-#         )
-
-
-def get_event_handler(handler: Subscriber) -> List[PySubscriber]:
-    """Get the event handler."""
-    if isinstance(handler, EventHandler):
-        return [handler.subscriber]
-    if isinstance(handler, list):
-        if all(isinstance(h, EventHandler) for h in handler):
-            return [h.subscriber for h in handler if isinstance(h, EventHandler)]
-    if callable(handler):
-        return [PySubscriber(handler)]
-    if isinstance(handler, list):
-        if all(callable(h) for h in handler):
-            return [PySubscriber(h) for h in handler]
-        else:
-            raise TypeError("Event handler must be a callable or a list of callables.")
-    return []
-

@@ -1,7 +1,8 @@
 use crate::bindings::{EngineBuilderHandle, EngineHandle};
 use crate::events::PyEventHandler;
 use crate::{
-    FreeThreadPyEvaluator, InputConverter, PyEngine, PyEngineInput, PyEngineInputType, prelude::*,
+    FreeThreadPyEvaluator, InputConverter, PyCodec, PyEngine, PyEngineInput, PyEngineInputType,
+    prelude::*,
 };
 use crate::{PyGeneType, PySubscriber};
 use core::panic;
@@ -598,6 +599,27 @@ impl PyEngineBuilder {
                     } else {
                         Err(PyTypeError::new_err(
                             "Expected a PyBitCodec for gene_type Bit",
+                        ))
+                    }
+                }
+                PyGeneType::Graph => {
+                    if let Ok(codec) = codec.extract::<PyGraphCodec>() {
+                        let cloned_codec = codec.codec.clone();
+                        let py_codec = PyCodec::new()
+                            .with_encoder(move || cloned_codec.encode())
+                            .with_decoder(move |_, genotype| codec.codec.decode(genotype));
+
+                        let graph_problem = PyProblem::new(fitness_fn, py_codec);
+                        Ok(EngineBuilderHandle::GraphRegression(
+                            GeneticEngine::builder()
+                                .problem(graph_problem.clone())
+                                .executor(executor.clone())
+                                .evaluator(FreeThreadPyEvaluator::new(executor, graph_problem))
+                                .bus_executor(Executor::default()),
+                        ))
+                    } else {
+                        Err(PyTypeError::new_err(
+                            "Expected a PyGraphCodec for gene_type Graph",
                         ))
                     }
                 }

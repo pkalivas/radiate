@@ -31,13 +31,16 @@ class EngineBuilder:
             subscribers=[subscriber._py_handler for subscriber in self._subscribers],
             inputs=[self_input.py_input() for self_input in self._inputs],
         )
+        
         print(builder)
         return builder.build()
 
     def inputs(self) -> List[EngineInput]:
         return self._inputs
     
-    def set_subscribers(self, subscribers: List[EventHandler] | EventHandler):
+    def set_subscribers(self, subscribers: List[EventHandler] | EventHandler | None):
+        if subscribers is None:
+            return
         if isinstance(subscribers, list):
             self._subscribers.extend(subscribers)
         else:

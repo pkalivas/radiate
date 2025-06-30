@@ -9,6 +9,9 @@ class Graph:
     def __repr__(self):
         return self.py_graph.__repr__()
     
+    def __len__(self):
+        return len(self.py_graph)
+    
     def eval(self, inputs: List[float] | List[List[float]]) -> List[float] | List[List[float]]:
         if isinstance(inputs, list) and all(isinstance(i, (float, int)) for i in inputs):
             inputs = [inputs]

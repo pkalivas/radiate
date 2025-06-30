@@ -1,8 +1,8 @@
 use crate::{EngineHandle, EpochHandle, PyEngineInput, PyGeneration};
 use pyo3::{PyResult, pyclass, pymethods};
 use radiate::{
-    Chromosome, Epoch, Generation, GeneticEngine, Limit, Objective, Optimize, ParetoGeneration,
-    log_ctx,
+    Chromosome, Engine, Epoch, Generation, GeneticEngine, Limit, Objective, Optimize,
+    ParetoGeneration, log_ctx,
 };
 
 #[pyclass(unsendable)]
@@ -65,6 +65,30 @@ impl PyEngine {
                 let output = run_single_objective_engine(eng, limits, log);
                 EpochHandle::GraphRegression(output)
             }
+        };
+
+        Ok(PyGeneration::new(result))
+    }
+
+    pub fn next(&mut self) -> PyResult<PyGeneration> {
+        if self.engine.is_none() {
+            return Err(pyo3::exceptions::PyRuntimeError::new_err(
+                "Engine has already been run",
+            ));
+        }
+
+        let engine = self.engine.as_mut().ok_or_else(|| {
+            pyo3::exceptions::PyRuntimeError::new_err("Engine has already been run")
+        })?;
+
+        let result = match engine {
+            EngineHandle::Int(eng) => EpochHandle::Int(eng.next()),
+            EngineHandle::Float(eng) => EpochHandle::Float(eng.next()),
+            EngineHandle::Char(eng) => EpochHandle::Char(eng.next()),
+            EngineHandle::Bit(eng) => EpochHandle::Bit(eng.next()),
+            EngineHandle::IntMulti(eng) => EpochHandle::IntMulti(eng.next()),
+            EngineHandle::FloatMulti(eng) => EpochHandle::FloatMulti(eng.next()),
+            EngineHandle::GraphRegression(eng) => EpochHandle::GraphRegression(eng.next()),
         };
 
         Ok(PyGeneration::new(result))

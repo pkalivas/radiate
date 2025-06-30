@@ -158,8 +158,6 @@ where
             pipeline.add_step(Self::build_species_step(&config));
             pipeline.add_step(Self::build_audit_step(&config));
 
-            println!("Ecosystem Size: {}", config.population.len());
-
             let context = Context {
                 ecosystem: Ecosystem::new(config.population.clone()),
                 best: config.problem.decode(config.population()[0].genotype()),

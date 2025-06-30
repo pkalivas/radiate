@@ -1,7 +1,6 @@
-use std::fmt::Debug;
-
 use crate::ObjectValue;
 use pyo3::{Py, PyAny, pyclass, pymethods};
+use std::fmt::Debug;
 
 #[pyclass]
 #[derive(Clone)]
