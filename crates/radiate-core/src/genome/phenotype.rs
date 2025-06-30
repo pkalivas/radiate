@@ -101,8 +101,6 @@ impl<C: Chromosome> Phenotype<C> {
             return;
         }
 
-        println!("Invalidating phenotype: {:?}", self.id());
-
         self.score = None;
         self.generation = generation;
         self.id = PhenotypeId::new();

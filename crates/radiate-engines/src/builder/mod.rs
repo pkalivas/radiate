@@ -139,6 +139,8 @@ where
                 fitness_fn: self.params.fitness_fn.clone().unwrap(),
             };
 
+            println!("Building default problem");
+
             self.problem(problem).build()
         } else {
             self.build_population();
@@ -277,6 +279,8 @@ where
         if !self.params.alterers.is_empty() {
             return;
         }
+
+        println!("Building default alterers");
 
         let crossover = Arc::new(UniformCrossover::new(0.5).alterer()) as Arc<dyn Alter<C>>;
         let mutator = Arc::new(UniformMutator::new(0.1).alterer()) as Arc<dyn Alter<C>>;

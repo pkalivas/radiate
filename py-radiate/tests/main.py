@@ -33,22 +33,22 @@ class TestHandler(rd.EventHandler):
         
 
 
-engine = rd.GeneticEngine(
-    codec=rd.IntCodec.vector(10, (0, 10)),
-    fitness_func=lambda x: sum(x),
-    offspring_selector=rd.BoltzmannSelector(4),
-    objectives="min",
-    # subscribe=TestHandler(),
-    # executor=rd.Executor.WorkerPool(),
-    alters=[
-        rd.MultiPointCrossover(0.75, 2),
-        rd.UniformMutator(0.01)
-    ],
-)
+# engine = rd.GeneticEngine(
+#     codec=rd.IntCodec.vector(10, (0, 10)),
+#     fitness_func=lambda x: sum(x),
+#     offspring_selector=rd.BoltzmannSelector(4),
+#     objectives="min",
+#     # subscribe=TestHandler(),
+#     # executor=rd.Executor.WorkerPool(),
+#     alters=[
+#         rd.MultiPointCrossover(0.75, 2),
+#         rd.UniformMutator(0.01)
+#     ],
+# )
 
-result = engine.run(rd.ScoreLimit(0))
+# result = engine.run(rd.ScoreLimit(0))
 
-print(result)
+# print(result)
 
 inputs = [[1.0, 1.0], [1.0, 0.0], [0.0, 1.0], [0.0, 0.0]]
 answers = [[0.0], [1.0], [1.0], [0.0]]
