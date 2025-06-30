@@ -65,20 +65,11 @@ where
                     .collect::<Vec<usize>>();
 
                 for i in node_indices {
-                    println!("Crossover at node index: {}", i);
-                    println!("OneLen: {}, TwoLen: {}", chromo_one.len(), chromo_two.len());
-
-                    println!("HERE");
-                    println!("NodeType: {:?}", chromo_two.get(i));
-                    println!("NodeArity: {}", chromo_two.get(i).arity());
-
                     let node_two = chromo_two.get(i);
 
                     *chromo_one.as_mut()[i].value_mut() = node_two.value().clone();
                     num_crosses += 1;
                 }
-
-                println!("Number of crosses: {}", num_crosses);
 
                 num_crosses
             };

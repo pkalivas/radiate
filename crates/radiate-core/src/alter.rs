@@ -86,8 +86,6 @@ impl<C: Chromosome> Alter<C> for AlterAction<C> {
     fn alter(&self, population: &mut Population<C>, generation: usize) -> Vec<Metric> {
         match &self {
             AlterAction::Mutate(name, rate, m) => {
-                println!("Applying alteration: {}", name);
-
                 let timer = std::time::Instant::now();
                 let AlterResult(count, metrics) = m.mutate(population, generation, *rate);
                 let metric = Metric::new(name)
@@ -115,7 +113,6 @@ impl<C: Chromosome> Alter<C> for AlterAction<C> {
                 }
             }
             AlterAction::Crossover(name, rate, c) => {
-                println!("Applying alteration: {}", name);
                 let timer = std::time::Instant::now();
                 let AlterResult(count, metrics) = c.crossover(population, generation, *rate);
                 let metric = Metric::new(name)

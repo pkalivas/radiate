@@ -115,7 +115,6 @@ where
 
                 return match result {
                     TransactionResult::Invalid(_, _) => {
-                        println!("Invalid mutation detected");
                         let metric = Metric::new(INVALID_MUTATION)
                             .with_labels(labels![
                                 "domain" => "graph",

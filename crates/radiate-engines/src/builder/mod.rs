@@ -33,7 +33,6 @@ use radiate_core::{
 };
 use radiate_error::RadiateError;
 use std::cmp::Ordering;
-use std::fmt::{Debug, Formatter};
 use std::sync::{Arc, Mutex, RwLock};
 
 #[derive(Clone)]

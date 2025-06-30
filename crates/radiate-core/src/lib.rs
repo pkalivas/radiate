@@ -19,7 +19,7 @@ pub use codecs::{
 };
 pub use diversity::{Diversity, EuclideanDistance, HammingDistance};
 pub use domain::*;
-pub use engine::{Engine, EngineExt, EngineStep, Epoch};
+pub use engine::{Context, Engine, EngineExt, EngineStep, Epoch};
 pub use evaluator::{Evaluator, FitnessEvaluator};
 pub use executor::Executor;
 pub use genome::*;

@@ -1,5 +1,5 @@
 use radiate_core::{
-    Alter, Chromosome, Ecosystem, MetricSet, Objective, Optimize, Population, Select, Valid,
+    Alter, Chromosome, Ecosystem, MetricSet, Objective, Optimize, Population, Select,
     engine::EngineStep, labels,
 };
 use std::sync::Arc;
@@ -102,32 +102,8 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
 
             Population::new(offspring)
         } else {
-            for off in ecosystem.population().iter() {
-                println!("Offspring ID: {:?}", off.is_valid());
-            }
-            let count_unique = ecosystem
-                .population
-                .iter()
-                .cloned()
-                .collect::<std::collections::HashSet<_>>()
-                .len();
             let mut offspring =
                 self.select_offspring(self.offspring_count, &ecosystem.population, metrics);
-
-            println!("Offspring selection complete: Count = {}", offspring.len());
-
-            let count_unique_after = offspring
-                .iter()
-                .cloned()
-                .collect::<std::collections::HashSet<_>>()
-                .len();
-            println!(
-                "Unique individuals before: {}, after: {}",
-                count_unique, count_unique_after
-            );
-            for off in offspring.iter() {
-                println!("Offspring ID: {:?}", off.is_valid());
-            }
 
             self.objective.sort(&mut offspring);
 

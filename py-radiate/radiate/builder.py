@@ -19,7 +19,6 @@ class EngineBuilder:
         if isinstance(problem, Callable):
             self.problem = CallableProblem(problem)
         else:
-            print("Using provided problem instance")
             self.problem = problem
 
     def build(self) -> PyEngine:
@@ -74,7 +73,7 @@ class EngineBuilder:
             )
         )
 
-    def set_diversity(self, diversity: DiversityBase, species_threshold: float, max_species_age: int):
+    def set_diversity(self, diversity: DiversityBase, species_threshold: float):
         if diversity is None:
             return
         
@@ -96,7 +95,6 @@ class EngineBuilder:
                 component="SpeciesThreshold",
                 allowed_genes=diversity.allowed_genes,
                 threshold=species_threshold,
-                max_species_age=max_species_age,
             )
         )
 
@@ -124,7 +122,7 @@ class EngineBuilder:
             )
         )
 
-    def set_max_phenotype_age(self, age: int):
+    def set_max_age(self, age: int):
         if age <= 0:
             raise ValueError("Max phenotype age must be greater than 0.")
 
@@ -136,6 +134,20 @@ class EngineBuilder:
             )
         )
 
+    def set_max_species_age(self, age: Optional[int] = None):
+        if age is not None and age <= 0:
+            raise ValueError("Max species age must be greater than 0.")
+
+        if age is not None:
+            self._inputs.append(
+                EngineInput(
+                    input_type=EngineInputType.MaxSpeciesAge,
+                    component="MaxSpeciesAge",
+                    age=age,
+                )
+            )   
+        
+    
     def set_objective(self, objective: List[str] | str, front_range: Optional[Tuple[int, int]] = None):
         if isinstance(objective, str):
             objective = [objective]

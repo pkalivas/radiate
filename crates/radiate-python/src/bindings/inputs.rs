@@ -1,6 +1,6 @@
 use crate::PyGeneType;
 use pyo3::{pyclass, pymethods};
-use radiate::Limit;
+use radiate::{Executor, Limit};
 use std::collections::{HashMap, HashSet};
 
 #[pyclass]
@@ -82,13 +82,36 @@ impl PyEngineInput {
     }
 }
 
-impl PyEngineInput {
-    pub fn into_limit(self) -> Option<Limit> {
+impl Into<Option<Executor>> for PyEngineInput {
+    fn into(self) -> Option<Executor> {
+        if self.input_type != PyEngineInputType::Executor {
+            return None;
+        }
+
+        Some(match self.component.as_str() {
+            "Serial" => Executor::Serial,
+            "FixedSizedWorkerPool" => {
+                let num_workers = self
+                    .args
+                    .get("num_workers")
+                    .and_then(|s| s.parse::<usize>().ok())
+                    .unwrap_or(1);
+
+                Executor::FixedSizedWorkerPool(num_workers)
+            }
+            "WorkerPool" => Executor::WorkerPool,
+            _ => panic!("Executor type {} not yet implemented", self.component),
+        })
+    }
+}
+
+impl Into<Option<Limit>> for PyEngineInput {
+    fn into(self) -> Option<Limit> {
         if self.input_type != PyEngineInputType::Limit {
             return None;
         }
 
-        if let Some(generation) = self.args.get("generation") {
+        if let Some(generation) = self.args.get("generations") {
             if let Ok(g) = generation.parse::<usize>() {
                 return Some(Limit::Generation(g));
             }

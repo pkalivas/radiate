@@ -3,7 +3,6 @@ use crate::{
     Species, metric_names,
 };
 use std::{
-    fmt::{Debug, Formatter},
     sync::{Arc, RwLock},
     time::Duration,
 };
@@ -102,12 +101,6 @@ where
     pub objective: Objective,
     pub problem: Arc<dyn Problem<C, T>>,
 }
-
-// impl<C: Chromosome, T> Context<C, T> {
-//     pub fn upsert_time(&mut self, name: &'static str, value: Duration) {
-//         self.metrics.upsert_time(name, value);
-//     }
-// }
 
 impl<C, T> Clone for Context<C, T>
 where

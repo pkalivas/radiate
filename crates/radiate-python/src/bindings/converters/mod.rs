@@ -3,6 +3,7 @@ use radiate::Executor;
 use crate::{PyEngineInput, PyEngineInputType};
 
 mod alters;
+mod diversity;
 mod selectors;
 
 pub trait InputConverter<O> {

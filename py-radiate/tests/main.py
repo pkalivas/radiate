@@ -9,7 +9,7 @@ sys.path.insert(0, project_root)
 
 import radiate as rd
 
-rd.random.set_seed(500)
+rd.random.set_seed(10)
 
 
 class TestHandler(rd.EventHandler):
@@ -87,7 +87,7 @@ engine = rd.GeneticEngine(
     codec=codec,
     fitness_func=rd.Regression(inputs, answers),
     objectives="min",
-    # offspring_selector=rd.BoltzmannSelector(4.0),
+    offspring_selector=rd.BoltzmannSelector(4.0),
     # subscribe=TestHandler(),
     # executor=rd.Executor.FixedSizedWorkerPool(4),
     alters=[
@@ -98,10 +98,11 @@ engine = rd.GeneticEngine(
     ],
 )
 
-result = engine.run(rd.GenerationsLimit(10), log=True)
+result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(100)], log=True)
 
-# print(result.value())
-print("done")
+print(result.value())
+print(result)
+
 
 # for input, target in zip(inputs, answers): 
 #     print(f"Input: {round(input[0], 2)}, Target: {round(target[0], 2)}, Output: {round(result.value().eval([input])[0][0], 2)}")
@@ -224,14 +225,14 @@ print("done")
 #     offspring_selector=rd.TournamentSelector(k=5),
 #     survivor_selector=rd.NSGA2Selector(),
 #     objectives=["min" for _ in range(objectives)],
-#     num_threads=10,
+#     executor=rd.Executor.WorkerPool(),
 #     alters=[
 #         rd.SimulatedBinaryCrossover(1.0, 1.0),
 #         rd.UniformMutator(0.1)
 #     ],
 # )
 
-# result = engine.run(rd.GenerationsLimit(1000))
+# result = engine.run(rd.GenerationsLimit(1000), log=True)
 # print(result)
 
 # front = result.value()
