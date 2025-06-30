@@ -134,199 +134,93 @@ impl InputConverter<Vec<Box<dyn Alter<GraphChromosome<Op<f32>>>>>> for PyEngineI
 }
 
 fn convert_multi_point_crossover(input: &PyEngineInput) -> MultiPointCrossover {
-    let rate = input
-        .args
-        .get("rate")
-        .and_then(|s| s.parse::<f32>().ok())
-        .unwrap_or(0.5);
-
-    let points = input
-        .args
-        .get("num_points")
-        .and_then(|s| s.parse::<usize>().ok())
-        .unwrap_or(2);
+    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let points = input.get_usize("num_points").unwrap_or(2);
 
     MultiPointCrossover::new(rate, points)
 }
 
 fn convert_uniform_crossover(input: &PyEngineInput) -> UniformCrossover {
-    let rate = input
-        .args
-        .get("rate")
-        .and_then(|s| s.parse::<f32>().ok())
-        .unwrap_or(0.5);
-
+    let rate = input.get_f32("rate").unwrap_or(0.5);
     UniformCrossover::new(rate)
 }
 
 fn convert_uniform_mutator(input: &PyEngineInput) -> UniformMutator {
-    let rate = input
-        .args
-        .get("rate")
-        .and_then(|s| s.parse::<f32>().ok())
-        .unwrap_or(0.5);
-
+    let rate = input.get_f32("rate").unwrap_or(0.5);
     UniformMutator::new(rate)
 }
 
 fn convert_mean_crossover(input: &PyEngineInput) -> MeanCrossover {
-    let rate = input
-        .args
-        .get("rate")
-        .and_then(|s| s.parse::<f32>().ok())
-        .unwrap_or(0.5);
-
+    let rate = input.get_f32("rate").unwrap_or(0.5);
     MeanCrossover::new(rate)
 }
 
 fn convert_intermediate_crossover(input: &PyEngineInput) -> IntermediateCrossover {
-    let rate = input
-        .args
-        .get("rate")
-        .and_then(|s| s.parse::<f32>().ok())
-        .unwrap_or(0.5);
-
-    let alpha = input
-        .args
-        .get("alpha")
-        .and_then(|s| s.parse::<f32>().ok())
-        .unwrap_or(0.5);
-
+    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let alpha = input.get_f32("alpha").unwrap_or(0.5);
     IntermediateCrossover::new(rate, alpha)
 }
 
 fn convert_blend_crossover(input: &PyEngineInput) -> BlendCrossover {
-    let rate = input
-        .args
-        .get("rate")
-        .and_then(|s| s.parse::<f32>().ok())
-        .unwrap_or(0.5);
-
-    let alpha = input
-        .args
-        .get("alpha")
-        .and_then(|s| s.parse::<f32>().ok())
-        .unwrap_or(0.5);
-
+    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let alpha = input.get_f32("alpha").unwrap_or(0.5);
     BlendCrossover::new(rate, alpha)
 }
 
 fn convert_shuffle_crossover(input: &PyEngineInput) -> ShuffleCrossover {
-    let rate = input
-        .args
-        .get("rate")
-        .and_then(|s| s.parse::<f32>().ok())
-        .unwrap_or(0.5);
+    let rate = input.get_f32("rate").unwrap_or(0.5);
 
     ShuffleCrossover::new(rate)
 }
 
 fn convert_scramble_mutator(input: &PyEngineInput) -> ScrambleMutator {
-    let rate = input
-        .args
-        .get("rate")
-        .and_then(|s| s.parse::<f32>().ok())
-        .unwrap_or(0.5);
-
+    let rate = input.get_f32("rate").unwrap_or(0.5);
     ScrambleMutator::new(rate)
 }
 
 fn convert_swap_mutator(input: &PyEngineInput) -> SwapMutator {
-    let rate = input
-        .args
-        .get("rate")
-        .and_then(|s| s.parse::<f32>().ok())
-        .unwrap_or(0.5);
+    let rate = input.get_f32("rate").unwrap_or(0.5);
 
     SwapMutator::new(rate)
 }
 
 fn convert_arithmetic_mutator(input: &PyEngineInput) -> ArithmeticMutator {
-    let rate = input
-        .args
-        .get("rate")
-        .and_then(|s| s.parse::<f32>().ok())
-        .unwrap_or(0.5);
-
+    let rate = input.get_f32("rate").unwrap_or(0.5);
     ArithmeticMutator::new(rate)
 }
 
 fn convert_gaussian_mutator(input: &PyEngineInput) -> GaussianMutator {
-    let rate = input
-        .args
-        .get("rate")
-        .and_then(|s| s.parse::<f32>().ok())
-        .unwrap_or(0.5);
+    let rate = input.get_f32("rate").unwrap_or(0.5);
 
     GaussianMutator::new(rate)
 }
 
 fn convert_simulated_binary_crossover(input: &PyEngineInput) -> SimulatedBinaryCrossover {
-    let rate = input
-        .args
-        .get("rate")
-        .and_then(|s| s.parse::<f32>().ok())
-        .unwrap_or(0.5);
-
-    let contiguity = input
-        .args
-        .get("contiguty")
-        .and_then(|s| s.parse::<f32>().ok())
-        .unwrap_or(0.5);
+    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let contiguity = input.get_f32("contiguity").unwrap_or(0.5);
 
     SimulatedBinaryCrossover::new(rate, contiguity)
 }
 
 fn convert_graph_crossover(input: &PyEngineInput) -> GraphCrossover {
-    let rate = input
-        .args
-        .get("rate")
-        .and_then(|s| s.parse::<f32>().ok())
-        .unwrap_or(0.5);
+    let rate = input.get_f32("rate").unwrap_or(0.5);
 
-    let parent_node_rate = input
-        .args
-        .get("parent_node_rate")
-        .and_then(|s| s.parse::<f32>().ok())
-        .unwrap_or(0.5);
+    let parent_node_rate = input.get_f32("parent_node_rate").unwrap_or(0.5);
 
     GraphCrossover::new(rate, parent_node_rate)
 }
 
 fn convert_graph_mutator(input: &PyEngineInput) -> GraphMutator {
-    let vertex_rate = input
-        .args
-        .get("vertex_rate")
-        .and_then(|s| s.parse::<f32>().ok())
-        .unwrap_or(0.5);
-
-    let edge_rate = input
-        .args
-        .get("edge_rate")
-        .and_then(|s| s.parse::<f32>().ok())
-        .unwrap_or(0.5);
-
-    let allow_recurrent = input
-        .args
-        .get("allow_recurrent")
-        .and_then(|s| s.parse::<bool>().ok())
-        .unwrap_or(false);
+    let vertex_rate = input.get_f32("vertex_rate").unwrap_or(0.5);
+    let edge_rate = input.get_f32("edge_rate").unwrap_or(0.5);
+    let allow_recurrent = input.get_bool("allow_recurrent").unwrap_or(false);
 
     GraphMutator::new(vertex_rate, edge_rate).allow_recurrent(allow_recurrent)
 }
 
 fn convert_operation_mutator(input: &PyEngineInput) -> OperationMutator {
-    let rate = input
-        .args
-        .get("rate")
-        .and_then(|s| s.parse::<f32>().ok())
-        .unwrap_or(0.5);
-
-    let replace_rate = input
-        .args
-        .get("replace_rate")
-        .and_then(|s| s.parse::<f32>().ok())
-        .unwrap_or(0.5);
+    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let replace_rate = input.get_f32("replace_rate").unwrap_or(0.5);
 
     OperationMutator::new(rate, replace_rate)
 }

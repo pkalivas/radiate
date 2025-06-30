@@ -80,6 +80,7 @@ class GeneticEngine:
         self.builder.set_max_species_age(max_species_age)
         self.builder.set_objective(objectives, front_range)
         self.builder.set_executor(executor)
+        self.builder.set_subscribers(subscribe)
 
     def __repr__(self):
         if self.engine is None:
@@ -324,12 +325,7 @@ class GeneticEngine:
         >>> engine.subscribe(my_event_handler)
         >>> engine.subscribe([handler1, handler2])
         """
-        if event_handler is None:
-            return
-        handlers = get_event_handler(event_handler)
-        if handlers is None:
-            raise TypeError("Event handler must be a callable or a list of callables.")
-        self.builder.set_subscribers(handlers)
+        self.builder.set_subscribers(event_handler or [])
 
 
 # def get_problem(

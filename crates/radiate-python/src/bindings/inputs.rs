@@ -1,4 +1,4 @@
-use crate::PyGeneType;
+use crate::{AnyValue, PyGeneType, prelude::Wrap};
 use pyo3::{pyclass, pymethods};
 use radiate::{Executor, Limit};
 use std::collections::{HashMap, HashSet};
@@ -12,16 +12,13 @@ pub enum PyEngineInputType {
     Diversity,
     Objective,
     Limit,
-    Subscriber,
     PopulationSize,
     OffspringFraction,
     MaxSpeciesAge,
     MaxPhenotypeAge,
     FrontRange,
-    Codec,
     Executor,
     Evaluator,
-    Problem,
     SpeciesThreshold,
 }
 
@@ -30,8 +27,8 @@ pub enum PyEngineInputType {
 pub struct PyEngineInput {
     pub component: String,
     pub input_type: PyEngineInputType,
-    pub args: HashMap<String, String>,
     pub allowed_genes: HashSet<PyGeneType>,
+    pub temp: HashMap<String, AnyValue<'static>>,
 }
 
 #[pymethods]
@@ -40,14 +37,17 @@ impl PyEngineInput {
     pub fn new(
         component: String,
         input_type: PyEngineInputType,
-        args: HashMap<String, String>,
         allowed_genes: HashSet<PyGeneType>,
+        args: HashMap<String, Wrap<AnyValue<'_>>>,
     ) -> Self {
         PyEngineInput {
             component,
             input_type,
-            args,
             allowed_genes,
+            temp: args
+                .into_iter()
+                .map(|(k, v)| (k, v.0.into_static()))
+                .collect(),
         }
     }
 
@@ -59,26 +59,47 @@ impl PyEngineInput {
         self.input_type.clone()
     }
 
-    pub fn args(&self) -> HashMap<String, String> {
-        self.args.clone()
-    }
-
-    pub fn allowed_genes(&self) -> HashSet<PyGeneType> {
-        self.allowed_genes.clone()
-    }
-
-    pub fn is_valid_gene(&self, gene_type: PyGeneType) -> bool {
-        self.allowed_genes.contains(&gene_type)
-    }
-
     pub fn __repr__(&self) -> String {
         format!(
-            "EngineParam(component={}, input_type={:?}, args={:?}, allowed_genes={:?})",
-            self.component, self.input_type, self.args, self.allowed_genes
+            "EngineParam(component={}, input_type={:?}, allowed_genes={:?}, temp={:?})",
+            self.component, self.input_type, self.allowed_genes, self.temp
         )
     }
     pub fn __str__(&self) -> String {
         self.__repr__()
+    }
+}
+
+impl PyEngineInput {
+    pub fn get(&self, key: &str) -> Option<&AnyValue<'static>> {
+        self.temp.get(key)
+    }
+
+    pub fn get_string(&self, key: &str) -> Option<String> {
+        self.temp.get(key).and_then(|v| v.to_string())
+    }
+
+    pub fn get_i32(&self, key: &str) -> Option<i32> {
+        self.temp.get(key).and_then(|v| v.to_i32())
+    }
+
+    pub fn get_f32(&self, key: &str) -> Option<f32> {
+        self.temp.get(key).and_then(|v| v.to_f32())
+    }
+
+    pub fn get_f64(&self, key: &str) -> Option<f64> {
+        self.temp.get(key).and_then(|v| v.to_f64())
+    }
+
+    pub fn get_usize(&self, key: &str) -> Option<usize> {
+        self.temp.get(key).and_then(|v| v.extract::<usize>())
+    }
+
+    pub fn get_bool(&self, key: &str) -> Option<bool> {
+        self.temp.get(key).and_then(|v| match v {
+            AnyValue::Bool(b) => Some(*b),
+            _ => None,
+        })
     }
 }
 
@@ -91,11 +112,7 @@ impl Into<Option<Executor>> for PyEngineInput {
         Some(match self.component.as_str() {
             "Serial" => Executor::Serial,
             "FixedSizedWorkerPool" => {
-                let num_workers = self
-                    .args
-                    .get("num_workers")
-                    .and_then(|s| s.parse::<usize>().ok())
-                    .unwrap_or(1);
+                let num_workers = self.get_usize("num_workers").unwrap_or(1);
 
                 Executor::FixedSizedWorkerPool(num_workers)
             }
@@ -111,22 +128,16 @@ impl Into<Option<Limit>> for PyEngineInput {
             return None;
         }
 
-        if let Some(generation) = self.args.get("generations") {
-            if let Ok(g) = generation.parse::<usize>() {
-                return Some(Limit::Generation(g));
-            }
+        if let Some(generation) = self.get_usize("generations") {
+            return Some(Limit::Generation(generation));
         }
 
-        if let Some(sec) = self.args.get("seconds") {
-            if let Ok(s) = sec.parse::<f64>() {
-                return Some(Limit::Seconds(s));
-            }
+        if let Some(sec) = self.get_f64("seconds") {
+            return Some(Limit::Seconds(sec));
         }
 
-        if let Some(score) = self.args.get("score") {
-            if let Ok(s) = score.parse::<f32>() {
-                return Some(Limit::Score(s));
-            }
+        if let Some(score) = self.get_f32("score") {
+            return Some(Limit::Score(score));
         }
 
         None

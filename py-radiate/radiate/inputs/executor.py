@@ -1,9 +1,9 @@
-from typing import Dict
+from typing import Any, Dict
 from .component import ComponentBase
 
 class Executor(ComponentBase):
 
-    def __init__(self, component: str, args: Dict[str, str] = {}):
+    def __init__(self, component: str, args: Dict[str, Any] = {}):
         super().__init__(component=component, args=args)
 
     @staticmethod
@@ -29,7 +29,7 @@ class Executor(ComponentBase):
         :param num_workers: The number of worker threads in the pool.
         :return: An Executor instance configured for a fixed-sized worker pool.
         """
-        return Executor(component="FixedSizedWorkerPool", args={"num_workers": str(num_workers)})
+        return Executor(component="FixedSizedWorkerPool", args={"num_workers": num_workers})
 
 # from radiate.radiate import PyExecutor
 

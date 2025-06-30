@@ -26,31 +26,18 @@ where
 
         match self.component.as_str() {
             TOURNAMENT_SELECTOR => {
-                let tournament_size = self
-                    .args
-                    .get("tournament_size")
-                    .and_then(|s| s.parse::<usize>().ok())
-                    .unwrap_or(3);
+                let tournament_size = self.get_usize("tournament_size").unwrap_or(3);
                 Box::new(TournamentSelector::new(tournament_size))
             }
             ROULETTE_WHEEL_SELECTOR => Box::new(RouletteSelector::new()),
             RANK_SELECTOR => Box::new(RankSelector::new()),
             STEADY_STATE_SELECTOR => {
-                let steady_state_size = self
-                    .args
-                    .get("replacement_count")
-                    .and_then(|s| s.parse::<usize>().ok())
-                    .unwrap_or(1);
+                let steady_state_size = self.get_usize("replacement_count").unwrap_or(1);
                 Box::new(SteadyStateSelector::new(steady_state_size))
             }
             STOCHASTIC_UNIVERSAL_SELECTOR => Box::new(StochasticUniversalSamplingSelector::new()),
             BOLTZMANN_SELECTOR => {
-                let temp = self
-                    .args
-                    .get("temp")
-                    .and_then(|s| s.parse::<f32>().ok())
-                    .unwrap_or(1.0);
-
+                let temp = self.get_f32("temp").unwrap_or(1.0);
                 Box::new(BoltzmannSelector::new(temp))
             }
             ELITE_SELECTOR => Box::new(EliteSelector::new()),

@@ -59,7 +59,7 @@ class EngineInput:
             input_type=input_type_mapping[input_type],
             component=component,
             allowed_genes={gene_type_mapping[gt] for gt in allowed_genes if gt in gene_type_mapping},
-            args={k: str(v) for k, v in kwargs.items()},
+            args={k: v for k, v in kwargs.items()},
         )
 
     def py_input(self) -> PyEngineInput:

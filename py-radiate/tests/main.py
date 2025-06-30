@@ -9,7 +9,7 @@ sys.path.insert(0, project_root)
 
 import radiate as rd
 
-rd.random.set_seed(10)
+rd.random.set_seed(1000)
 
 
 class TestHandler(rd.EventHandler):
@@ -20,8 +20,8 @@ class TestHandler(rd.EventHandler):
     def on_event(self, event):
         
         if event["type"] == "epoch_complete":
-            # self.scores.append(event["score"])
-            self.scores.append(event['metrics']['unique_members']['value_last'])
+            self.scores.append(event["score"])
+            # self.scores.append(event['metrics']['unique_members']['value_last'])
         elif event["type"] == "stop":
             plt.plot(self.scores)
             plt.xlabel("Generation")
@@ -71,13 +71,13 @@ def get_dataset():
     return inputs, answers
 
 
-# inputs, answers = get_dataset()
+inputs, answers = get_dataset()
 
 # inputs = [[0.0], [0.0], [0.0], [1.0], [0.0], [0.0], [0.0]]
 # answers = [[0.0], [0.0], [1.0], [0.0], [0.0], [0.0], [1.0]]
 
 codec = rd.GraphCodec.directed(
-    shape=(2, 1),
+    shape=(1, 1),
     vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
     edge=rd.Op.weight(),
     output=rd.Op.linear(),
@@ -87,18 +87,18 @@ engine = rd.GeneticEngine(
     codec=codec,
     fitness_func=rd.Regression(inputs, answers),
     objectives="min",
-    offspring_selector=rd.BoltzmannSelector(4.0),
-    # subscribe=TestHandler(),
+    # offspring_selector=rd.BoltzmannSelector(4.0),
+    subscribe=TestHandler(),
     # executor=rd.Executor.FixedSizedWorkerPool(4),
     alters=[
-        rd.GraphCrossover(0.75, 0.3),
+        rd.GraphCrossover(0.5, 0.5),
         rd.OperationMutator(0.07, 0.05),
         rd.GraphMutator(0.1, 0.1),
         
     ],
 )
 
-result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(100)], log=True)
+result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(500)], log=True)
 
 print(result.value())
 print(result)

@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Any, Dict
 
 from .component import ComponentBase
 from ..genome.gene import GeneType
@@ -12,7 +12,7 @@ class DiversityBase(ComponentBase):
     def __init__(
         self,
         component: str,
-        args: Dict[str, str] = {},
+        args: Dict[str, Any] = {},
         allowed_genes: set[str] | str = {},
     ):
         """
@@ -85,9 +85,9 @@ class NeatDistance(DiversityBase):
         super().__init__(
             component="NeatDistance",
             args={
-                "excess": str(excess),
-                "disjoint": str(disjoint),
-                "weight_diff": str(weight_diff),
+                "excess": excess,
+                "disjoint": disjoint,
+                "weight_diff": weight_diff,
             },
             allowed_genes=GeneType.GRAPH,
         )

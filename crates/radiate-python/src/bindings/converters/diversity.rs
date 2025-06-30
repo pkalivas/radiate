@@ -48,21 +48,9 @@ impl InputConverter<Option<Box<dyn Diversity<GraphChromosome<Op<f32>>>>>> for Py
     fn convert(&self) -> Option<Box<dyn Diversity<GraphChromosome<Op<f32>>>>> {
         match self.component.as_str() {
             NEAT_DISTANCE => {
-                let excess = self
-                    .args
-                    .get("excess")
-                    .and_then(|s| s.parse::<f32>().ok())
-                    .unwrap_or(1.0);
-                let disjoint = self
-                    .args
-                    .get("disjoint")
-                    .and_then(|s| s.parse::<f32>().ok())
-                    .unwrap_or(1.0);
-                let weight_diff = self
-                    .args
-                    .get("weight_diff")
-                    .and_then(|s| s.parse::<f32>().ok())
-                    .unwrap_or(0.4);
+                let excess = self.get_f32("excess").unwrap_or(1.0);
+                let disjoint = self.get_f32("disjoint").unwrap_or(1.0);
+                let weight_diff = self.get_f32("weight_diff").unwrap_or(0.4);
                 Some(Box::new(NeatDistance::new(excess, disjoint, weight_diff)))
             }
             HAMMING_DISTANCE => Some(Box::new(HammingDistance)),

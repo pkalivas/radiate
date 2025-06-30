@@ -1,3 +1,5 @@
+use num_traits::NumCast;
+
 use super::{DataType, Field};
 use std::fmt::Debug;
 
@@ -26,6 +28,67 @@ pub enum AnyValue<'a> {
 }
 
 impl<'a> AnyValue<'a> {
+    #[inline]
+    pub fn extract<T: NumCast>(&self) -> Option<T> {
+        use AnyValue::*;
+        match self {
+            Int8(v) => NumCast::from(*v),
+            Int16(v) => NumCast::from(*v),
+            Int32(v) => NumCast::from(*v),
+            Int64(v) => NumCast::from(*v),
+            Int128(v) => NumCast::from(*v),
+            UInt8(v) => NumCast::from(*v),
+            UInt16(v) => NumCast::from(*v),
+            UInt32(v) => NumCast::from(*v),
+            UInt64(v) => NumCast::from(*v),
+            Float32(v) => NumCast::from(*v),
+            Float64(v) => NumCast::from(*v),
+            Bool(v) => NumCast::from(if *v { 1 } else { 0 }),
+            Str(v) => {
+                if let Ok(val) = (*v).parse::<i128>() {
+                    NumCast::from(val)
+                } else {
+                    NumCast::from((*v).parse::<f64>().ok()?)
+                }
+            }
+            StrOwned(v) => Str(v.as_str()).extract(),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn to_f64(&self) -> Option<f64> {
+        match self {
+            AnyValue::Float32(v) => Some((*v).into()),
+            AnyValue::Float64(v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    pub fn to_f32(&self) -> Option<f32> {
+        match self {
+            AnyValue::Float32(v) => Some(*v),
+            AnyValue::Float64(v) => Some((*v) as f32),
+            _ => None,
+        }
+    }
+
+    pub fn to_string(&self) -> Option<String> {
+        match self {
+            AnyValue::Str(v) => Some(v.to_string()),
+            AnyValue::StrOwned(v) => Some(v.clone()),
+            _ => None,
+        }
+    }
+
+    pub fn to_i32(&self) -> Option<i32> {
+        match self {
+            AnyValue::Int8(v) => Some((*v).into()),
+            AnyValue::Int16(v) => Some((*v).into()),
+            AnyValue::Int32(v) => Some(*v),
+            _ => None,
+        }
+    }
+
     pub fn is_null(&self) -> bool {
         matches!(self, Self::Null)
     }
@@ -191,6 +254,16 @@ macro_rules! impl_from {
             impl<'a> From<$dtype> for AnyValue<'a> {
                 fn from(value: $dtype) -> Self {
                     Self::$variant(value)
+                }
+            }
+
+            impl<'a> From<AnyValue<'a>> for Option<$dtype> {
+                fn from(value: AnyValue<'a>) -> Self {
+                    if let AnyValue::$variant(v) = value {
+                        Some(v)
+                    } else {
+                        None
+                    }
                 }
             }
         )*

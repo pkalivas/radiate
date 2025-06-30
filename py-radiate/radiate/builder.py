@@ -1,5 +1,6 @@
 from typing import List, Optional, Tuple, Callable
 from radiate.codec.codec import CodecBase
+from radiate.handlers import EventHandler
 from radiate.inputs.problem import ProblemBase
 from radiate.radiate import PyEngine, PyEngineBuilder
 from .inputs.input import EngineInput, EngineInputType
@@ -13,6 +14,7 @@ class EngineBuilder:
 
     def __init__(self, gene_type: str, codec: CodecBase, problem: ProblemBase):
         self._inputs = []
+        self._subscribers = []
         self._gene_type = gene_type
         self._codec = codec
 
@@ -26,12 +28,20 @@ class EngineBuilder:
             gene_type=self._gene_type,
             codec=self._codec.codec,
             problem=self.problem.problem,
+            subscribers=[subscriber._py_handler for subscriber in self._subscribers],
             inputs=[self_input.py_input() for self_input in self._inputs],
         )
+        print(builder)
         return builder.build()
 
     def inputs(self) -> List[EngineInput]:
         return self._inputs
+    
+    def set_subscribers(self, subscribers: List[EventHandler] | EventHandler):
+        if isinstance(subscribers, list):
+            self._subscribers.extend(subscribers)
+        else:
+            self._subscribers.append(subscribers)
 
     def set_survivor_selector(self, selector: SelectorBase):
         if self._gene_type not in selector.allowed_genes:

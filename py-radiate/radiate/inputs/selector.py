@@ -1,9 +1,9 @@
-from typing import Dict
+from typing import Any, Dict
 from .component import ComponentBase
 from ..genome.gene import GeneType
 
 class SelectorBase(ComponentBase):
-    def __init__(self, component: str, args: Dict[str, str] = {}, allowed_genes: set[str] = {}):
+    def __init__(self, component: str, args: Dict[str, Any] = {}, allowed_genes: set[str] = {}):
         super().__init__(component=component, args=args)
         self.allowed_genes = allowed_genes if allowed_genes else GeneType.ALL
 

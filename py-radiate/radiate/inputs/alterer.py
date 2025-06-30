@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Any, Dict
 from .component import ComponentBase
 from ..genome.gene import GeneType
 
@@ -7,7 +7,7 @@ class AlterBase(ComponentBase):
     def __init__(
         self,
         component: str,
-        args: Dict[str, str] = {},
+        args: Dict[str, Any] = {},
         allowed_genes: set[GeneType] | GeneType = {},
     ):
         """
@@ -35,7 +35,7 @@ class AlterBase(ComponentBase):
 class BlendCrossover(AlterBase):
     def __init__(self, rate: float = 0.1, alpha: float = 0.5):
         super().__init__(
-            component="BlendCrossover", args={"rate": str(rate), "alpha": str(alpha)}
+            component="BlendCrossover", args={"rate": rate, "alpha": alpha}
         )
 
 
@@ -43,32 +43,32 @@ class IntermediateCrossover(AlterBase):
     def __init__(self, rate: float = 0.1, alpha: float = 0.5):
         super().__init__(
             component="IntermediateCrossover",
-            args={"rate": str(rate), "alpha": str(alpha)},
+            args={"rate": str(rate), "alpha": alpha},
         )
 
 
 class MeanCrossover(AlterBase):
     def __init__(self, rate: float = 0.5):
-        super().__init__(component="MeanCrossover", args={"rate": str(rate)})
+        super().__init__(component="MeanCrossover", args={"rate": rate})
 
 
 class ShuffleCrossover(AlterBase):
     def __init__(self, rate: float = 0.1):
-        super().__init__(component="ShuffleCrossover", args={"rate": str(rate)})
+        super().__init__(component="ShuffleCrossover", args={"rate": rate})
 
 
 class SimulatedBinaryCrossover(AlterBase):
     def __init__(self, rate: float = 0.1, contiguity: float = 0.5):
         super().__init__(
             component="SimulatedBinaryCrossover",
-            args={"rate": str(rate), "contiguity": str(contiguity)},
+            args={"rate": rate, "contiguity": contiguity},
         )
 
 
 class PartiallyMatchedCrossover(AlterBase):
     def __init__(self, rate: float = 0.1):
         super().__init__(
-            component="PartiallyMatchedCrossover", args={"rate": str(rate)}
+            component="PartiallyMatchedCrossover", args={"rate": rate}
         )
 
 
@@ -76,38 +76,38 @@ class MultiPointCrossover(AlterBase):
     def __init__(self, rate: float = 0.1, num_points: int = 2):
         super().__init__(
             component="MultiPointCrossover",
-            args={"rate": str(rate), "num_points": str(num_points)},
+            args={"rate": rate, "num_points": num_points},
         )
 
 
 class UniformCrossover(AlterBase):
     def __init__(self, rate: float = 0.5):
-        super().__init__(component="UniformCrossover", args={"rate": str(rate)})
+        super().__init__(component="UniformCrossover", args={"rate": rate})
 
 
 class UniformMutator(AlterBase):
     def __init__(self, rate: float = 0.1):
-        super().__init__(component="UniformMutator", args={"rate": str(rate)})
+        super().__init__(component="UniformMutator", args={"rate": rate})
 
 
 class ArithmeticMutator(AlterBase):
     def __init__(self, rate: float = 0.1):
-        super().__init__(component="ArithmeticMutator", args={"rate": str(rate)})
+        super().__init__(component="ArithmeticMutator", args={"rate": rate})
 
 
 class GaussianMutator(AlterBase):
     def __init__(self, rate: float = 0.1):
-        super().__init__(component="GaussianMutator", args={"rate": str(rate)})
+        super().__init__(component="GaussianMutator", args={"rate": rate})
 
 
 class ScrambleMutator(AlterBase):
     def __init__(self, rate: float = 0.1):
-        super().__init__(component="ScrambleMutator", args={"rate": str(rate)})
+        super().__init__(component="ScrambleMutator", args={"rate": rate})
 
 
 class SwapMutator(AlterBase):
     def __init__(self, rate: float = 0.1):
-        super().__init__(component="SwapMutator", args={"rate": str(rate)})
+        super().__init__(component="SwapMutator", args={"rate": rate})
 
 
 class GraphMutator(AlterBase):
@@ -120,9 +120,9 @@ class GraphMutator(AlterBase):
         super().__init__(
             component="GraphMutator",
             args={
-                "vertex_rate": str(vertex_rate),
-                "edge_rate": str(edge_rate),
-                "allow_recurrent": str(allow_recurrent),
+                "vertex_rate": vertex_rate,
+                "edge_rate": edge_rate,
+                "allow_recurrent": allow_recurrent,
             },
             allowed_genes=GeneType.GRAPH,
         )
@@ -132,7 +132,7 @@ class OperationMutator(AlterBase):
     def __init__(self, rate: float = 0.1, replace_rate: float = 0.1):
         super().__init__(
             component="OperationMutator",
-            args={"rate": str(rate), "replace_rate": str(replace_rate)},
+            args={"rate": rate, "replace_rate": replace_rate},
             allowed_genes=GeneType.GRAPH,
         )
 
@@ -141,7 +141,7 @@ class GraphCrossover(AlterBase):
     def __init__(self, rate: float = 0.5, parent_node_rate: float = 0.5):
         super().__init__(
             component="GraphCrossover",
-            args={"rate": str(rate), "parent_node_rate": str(parent_node_rate)},
+            args={"rate": rate, "parent_node_rate": parent_node_rate},
             allowed_genes=GeneType.GRAPH,
         )
 
