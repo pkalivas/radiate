@@ -14,10 +14,11 @@ fn main() {
     ];
 
     let graph_codec = GraphCodec::recurrent(1, 1, values);
-    let regression = Regression::new(get_dataset(), Loss::MSE, graph_codec);
+    let regression = Regression::new(get_dataset(), Loss::MSE);
 
     let mut engine = GeneticEngine::builder()
-        .problem(regression)
+        .codec(graph_codec)
+        .fitness_fn(regression)
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .survivor_selector(TournamentSelector::new(4))

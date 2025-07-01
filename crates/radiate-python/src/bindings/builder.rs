@@ -724,11 +724,12 @@ impl PyEngineBuilder {
             match self.gene_type {
                 PyGeneType::Graph => {
                     if let Ok(codec) = codec.extract::<PyGraphCodec>() {
-                        let regression = Regression::new(data_set, loss, codec.codec);
+                        let regression = Regression::new(data_set, loss);
 
                         Ok(EngineBuilderHandle::GraphRegression(
                             GeneticEngine::builder()
-                                .problem(regression)
+                                .codec(codec.codec.clone())
+                                .fitness_fn(regression)
                                 .executor(executor)
                                 .bus_executor(Executor::default()),
                         ))
@@ -740,11 +741,12 @@ impl PyEngineBuilder {
                 }
                 PyGeneType::Tree => {
                     if let Ok(codec) = codec.extract::<PyTreeCodec>() {
-                        let regression = Regression::new(data_set, loss, codec.codec);
+                        let regression = Regression::new(data_set, loss);
 
                         Ok(EngineBuilderHandle::TreeRegression(
                             GeneticEngine::builder()
-                                .problem(regression)
+                                .codec(codec.codec.clone())
+                                .fitness_fn(regression)
                                 .executor(executor)
                                 .bus_executor(Executor::default()),
                         ))

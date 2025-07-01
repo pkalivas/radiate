@@ -303,6 +303,20 @@ impl Mul<f32> for Score {
     }
 }
 
+impl Mul<Score> for f32 {
+    type Output = Score;
+
+    fn mul(self, other: Score) -> Score {
+        if other.values.is_empty() {
+            return Score::from(self);
+        }
+
+        let values = other.values.iter().map(|a| a * self).collect();
+
+        Score { values }
+    }
+}
+
 impl Div for Score {
     type Output = Self;
 

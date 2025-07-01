@@ -6,4 +6,4 @@ mod regression;
 pub use accuracy::{Accuracy, AccuracyResult};
 pub use data::DataSet;
 pub use loss::Loss;
-pub use regression::{Regression, Regression2};
+pub use regression::Regression;

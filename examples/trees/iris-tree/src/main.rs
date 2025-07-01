@@ -17,10 +17,11 @@ fn main() {
     ];
 
     let codec = TreeCodec::multi_root(3, 4, store).constraint(|node| node.size() < 40);
-    let regression = Regression::new(train.clone(), Loss::MSE, codec);
+    let regression = Regression::new(train.clone(), Loss::MSE);
 
     let mut engine = GeneticEngine::builder()
-        .problem(regression)
+        .codec(codec)
+        .fitness_fn(regression)
         .minimizing()
         .executor(Executor::WorkerPool(8))
         .crossover(TreeCrossover::new(0.5))

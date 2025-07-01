@@ -1,6 +1,10 @@
 #[cfg(test)]
 mod engine_tests {
-    use radiate_core::{IntCodec, problem::NoveltySearch};
+    use radiate_core::{
+        IntCodec,
+        diversity::CosineDistance,
+        problem::{MultiObjectiveFitness, NoveltySearch},
+    };
     use radiate_engines::*;
 
     #[test]
@@ -51,9 +55,8 @@ mod engine_tests {
     }
 
     use radiate_core::{
-        Chromosome, Codec, Gene, Genotype, Problem, Score, genome::FloatChromosome, random_provider,
+        Chromosome, Codec, Gene, Genotype, Problem, Score, genome::FloatChromosome,
     };
-    use std::sync::Arc;
 
     /// Test problem: Evolve functions that produce diverse output patterns
     /// We want to find functions that behave differently, not necessarily optimally
@@ -111,17 +114,6 @@ mod engine_tests {
     unsafe impl Send for FunctionDiversityProblem {}
     unsafe impl Sync for FunctionDiversityProblem {}
 
-    /// Distance function: Euclidean distance between output vectors
-    pub fn euclidean_distance(a: &[f32], b: &[f32]) -> f32 {
-        if a.len() != b.len() {
-            return f32::INFINITY;
-        }
-
-        let sum_squared_diff: f32 = a.iter().zip(b.iter()).map(|(x, y)| (x - y).powi(2)).sum();
-
-        sum_squared_diff.sqrt()
-    }
-
     /// Test novelty search
     #[test]
     fn test_novelty_search() {
@@ -134,12 +126,14 @@ mod engine_tests {
 
         let base_problem = FunctionDiversityProblem::new(codec.clone(), test_inputs);
 
-        // let search = NoveltySearch::new(|vals| vals.clone(), euclidean_distance, 10, 0.03);
-
         let base_population = (0..100)
             .map(|_| Phenotype::from((base_problem.encode(), 0)))
             .collect::<Population<FloatChromosome>>();
         let second_population = base_population
+            .iter()
+            .map(|ind| ind.clone())
+            .collect::<Population<FloatChromosome>>();
+        let third_population = base_population
             .iter()
             .map(|ind| ind.clone())
             .collect::<Population<FloatChromosome>>();
@@ -166,8 +160,9 @@ mod engine_tests {
             .build();
 
         let novelty_engine = GeneticEngine::builder()
-            .codec(codec)
+            .codec(codec.clone())
             .population(second_population)
+            .executor(Executor::FixedSizedWorkerPool(10))
             .survivor_selector(TournamentSelector::new(3))
             .offspring_selector(EliteSelector::new())
             .alter(alters![
@@ -175,19 +170,45 @@ mod engine_tests {
                 GaussianMutator::new(0.2),
             ])
             .minimizing()
-            .fitness_fn(NoveltySearch::new(
-                |vals: &Vec<f32>| vals.clone(),
-                euclidean_distance,
-                10,
-                0.03,
-            ))
+            .fitness_fn(NoveltySearch::new(CosineDistance, 10, 0.03))
+            .build();
+
+        let combined_engine = GeneticEngine::builder()
+            .codec(codec)
+            .population(third_population)
+            .executor(Executor::FixedSizedWorkerPool(10))
+            .survivor_selector(TournamentSelector::new(3))
+            .offspring_selector(EliteSelector::new())
+            .alter(alters![
+                UniformCrossover::new(0.7),
+                GaussianMutator::new(0.2),
+            ])
+            .minimizing()
+            .fitness_fn(
+                MultiObjectiveFitness::new()
+                    .add_objective_fn(
+                        |geno: &Vec<f32>| {
+                            let target = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+                            1.0 / (1.0
+                                + geno
+                                    .iter()
+                                    .zip(target.iter())
+                                    .map(|(a, b)| (a - b).powi(2))
+                                    .sum::<f32>())
+                        },
+                        1.0,
+                    )
+                    .add_objective(NoveltySearch::new(CosineDistance, 10, 0.03), 0.5),
+            )
             .build();
 
         let regular_generation = regular_engine.iter().take(20).last().unwrap();
         let novelty_generation = novelty_engine.iter().take(20).last().unwrap();
+        let combined_generation = combined_engine.iter().take(20).last().unwrap();
 
         println!("{:?}", regular_generation);
         println!("{:?}", novelty_generation);
+        println!("{:?}", combined_generation);
 
         println!(
             "Regular evolution best fitness: {:?}",
@@ -198,12 +219,18 @@ mod engine_tests {
             "Novelty search best fitness: {:?}",
             novelty_generation.score()
         );
+        println!(
+            "Combined evolution best fitness: {:?}",
+            combined_generation.score()
+        );
 
         let regular_diversity = calculate_diversity(regular_generation.population());
         let novelty_diversity = calculate_diversity(novelty_generation.population());
+        let combined_diversity = calculate_diversity(combined_generation.population());
 
         println!("Regular evolution diversity: {}", regular_diversity);
         println!("Novelty search diversity: {}", novelty_diversity);
+        println!("Combined evolution diversity: {}", combined_diversity);
 
         assert!(novelty_diversity > regular_diversity);
     }
@@ -212,7 +239,6 @@ mod engine_tests {
         let descriptors: Vec<Vec<f32>> = population
             .iter()
             .map(|individual| {
-                println!("SCORE: {:?}", individual.score());
                 let genotype = individual.genotype();
                 genotype
                     .iter()
