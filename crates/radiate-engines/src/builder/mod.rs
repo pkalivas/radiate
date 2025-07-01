@@ -69,7 +69,7 @@ where
 }
 
 #[derive(Clone)]
-pub struct EngineParams<C, T = Genotype<C>>
+pub struct EngineParams<C, T>
 where
     C: Chromosome + 'static,
     T: Clone + 'static,

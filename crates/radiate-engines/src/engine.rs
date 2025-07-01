@@ -66,7 +66,7 @@ where
 
 impl<C, T, E> GeneticEngine<C, T, E>
 where
-    C: Chromosome,
+    C: Chromosome + 'static,
     T: Clone + Send + Sync + 'static,
     E: Epoch<C>,
 {
@@ -85,7 +85,7 @@ where
 
     pub fn iter(self) -> EngineIterator<C, T, E>
     where
-        E: for<'a> From<&'a Context<C, T>>,
+        E: for<'a> From<&'a Context<C, T>> + 'static,
     {
         EngineIterator { engine: self }
     }

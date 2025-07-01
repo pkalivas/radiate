@@ -14,10 +14,10 @@ fn main() {
         .codec(codec)
         .fitness_fn(|geno: Vec<f32>| dtlz_1(&geno))
         .executor(Executor::FixedSizedWorkerPool(10))
-        .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
+        // .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
         .offspring_selector(TournamentSelector::new(5))
         .survivor_selector(NSGA2Selector::new())
-        .front_size(250..350)
+        .test_front(250..350)
         .alter(alters!(
             SimulatedBinaryCrossover::new(1_f32, 1.0),
             UniformMutator::new(0.1),
@@ -31,9 +31,11 @@ fn main() {
             println!("[ {:?} ]", ctx.index());
             println!("{:?}", ctx);
         })
-        .collect::<ParetoFront<Phenotype<FloatChromosome>>>();
+        .last()
+        .unwrap();
+    // .collect::<ParetoFront<Phenotype<FloatChromosome>>>();
 
-    plot_front(&result);
+    // plot_front(&result);
 }
 
 fn plot_front(front: &ParetoFront<Phenotype<FloatChromosome>>) {

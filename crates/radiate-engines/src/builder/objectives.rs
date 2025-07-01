@@ -42,10 +42,31 @@ where
     /// Set the minimum and maximum size of the pareto front. This is used for
     /// multi-objective optimization problems where the goal is to find the best
     /// solutions that are not dominated by any other solution.
+    // pub fn front_size(
+    //     mut self,
+    //     range: Range<usize>,
+    // ) -> GeneticEngineBuilder<C, T, ParetoGeneration<C>> {
+    //     self.params.optimization_params.front_range = range;
+    //     GeneticEngineBuilder {
+    //         params: self.params,
+    //         errors: self.errors,
+    //         _epoch: std::marker::PhantomData,
+    //     }
+    // }
+
     pub fn front_size(
         mut self,
         range: Range<usize>,
     ) -> GeneticEngineBuilder<C, T, ParetoGeneration<C>> {
+        self.params.optimization_params.front_range = range;
+        GeneticEngineBuilder {
+            params: self.params,
+            errors: self.errors,
+            _epoch: std::marker::PhantomData,
+        }
+    }
+
+    pub fn test_front(mut self, range: Range<usize>) -> GeneticEngineBuilder<C, T, E> {
         self.params.optimization_params.front_range = range;
         GeneticEngineBuilder {
             params: self.params,

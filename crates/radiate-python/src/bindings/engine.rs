@@ -107,7 +107,7 @@ fn run_single_objective_engine<C, T>(
     log: bool,
 ) -> Generation<C, T>
 where
-    C: Chromosome + Clone,
+    C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
     engine
@@ -146,7 +146,7 @@ fn run_multi_objective_engine<C, T>(
     log: bool,
 ) -> ParetoGeneration<C>
 where
-    C: Chromosome + Clone,
+    C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
     engine
