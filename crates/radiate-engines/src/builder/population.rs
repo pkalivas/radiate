@@ -39,8 +39,8 @@ where
 
     /// Set the population of the genetic engine. This is useful if you want to provide a custom population.
     /// If this is not set, the genetic engine will create a new population of `population_size` using the codec.
-    pub fn population(mut self, population: Population<C>) -> Self {
-        self.params.population_params.population = Some(population);
+    pub fn population(mut self, population: impl Into<Population<C>>) -> Self {
+        self.params.population_params.population = Some(population.into());
         self
     }
 }

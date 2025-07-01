@@ -11,9 +11,7 @@ where
     pub evaluator: Arc<dyn Evaluator<C, T>>,
     pub fitness_executor: Arc<Executor>,
     pub species_executor: Arc<Executor>,
-    pub front_executor: Arc<Executor>,
     pub bus_executor: Arc<Executor>,
-    pub novelty_executor: Arc<Executor>,
 }
 
 impl<C, T, E> GeneticEngineBuilder<C, T, E>
@@ -33,9 +31,7 @@ where
             evaluator: Arc::new(FitnessEvaluator::new(executor.clone())),
             fitness_executor: executor.clone(),
             species_executor: executor.clone(),
-            front_executor: executor.clone(),
             bus_executor: executor.clone(),
-            novelty_executor: executor,
         };
         self
     }
@@ -47,11 +43,6 @@ where
 
     pub fn species_executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
         self.params.evaluation_params.species_executor = executor.into();
-        self
-    }
-
-    pub fn front_executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
-        self.params.evaluation_params.front_executor = executor.into();
         self
     }
 

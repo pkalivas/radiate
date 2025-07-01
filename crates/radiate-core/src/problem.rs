@@ -21,60 +21,6 @@ where
     }
 }
 
-/// Multi-objective fitness function that combines multiple objectives
-pub struct MultiObjectiveFitness<T, S> {
-    objectives: Vec<Arc<dyn for<'a> FitnessFunction<&'a T, S>>>,
-    weights: Vec<f32>,
-}
-
-impl<T, S> MultiObjectiveFitness<T, S>
-where
-    S: Into<Score> + Clone,
-{
-    pub fn new() -> Self {
-        Self {
-            objectives: Vec::new(),
-            weights: Vec::new(),
-        }
-    }
-
-    pub fn add_objective<F>(mut self, fitness_fn: F, weight: f32) -> Self
-    where
-        F: for<'a> FitnessFunction<&'a T, S> + 'static,
-    {
-        self.objectives.push(Arc::new(fitness_fn));
-        self.weights.push(weight);
-        self
-    }
-
-    pub fn add_objective_fn(
-        mut self,
-        fitness_fn: impl for<'a> FitnessFunction<&'a T, S> + 'static,
-        weight: f32,
-    ) -> Self
-    where
-        S: Into<Score>,
-    {
-        self.objectives.push(Arc::new(fitness_fn));
-        self.weights.push(weight);
-        self
-    }
-}
-
-impl<T> FitnessFunction<T> for MultiObjectiveFitness<T, f32> {
-    fn evaluate(&self, individual: T) -> f32 {
-        let mut total_score = 0.0;
-        let mut total_weight = 0.0;
-        for (objective, weight) in self.objectives.iter().zip(&self.weights) {
-            let score = objective.evaluate(&individual);
-            total_score += score * weight;
-            total_weight += weight;
-        }
-
-        total_score / total_weight.max(1e-6)
-    }
-}
-
 /// [Problem] represents the interface for the fitness function or evaluation and encoding/decoding
 /// of a genotype to a phenotype within the genetic algorithm framework.
 ///
@@ -116,10 +62,66 @@ impl<C: Chromosome, T> Problem<C, T> for EngineProblem<C, T> {
 unsafe impl<C: Chromosome, T> Send for EngineProblem<C, T> {}
 unsafe impl<C: Chromosome, T> Sync for EngineProblem<C, T> {}
 
+pub struct CompositeFitnessFn<T, S> {
+    objectives: Vec<Arc<dyn for<'a> FitnessFunction<&'a T, S>>>,
+    weights: Vec<f32>,
+}
+
+impl<T, S> CompositeFitnessFn<T, S>
+where
+    S: Into<Score> + Clone,
+{
+    pub fn new() -> Self {
+        Self {
+            objectives: Vec::new(),
+            weights: Vec::new(),
+        }
+    }
+
+    pub fn add_weighted_fn(
+        mut self,
+        fitness_fn: impl for<'a> FitnessFunction<&'a T, S> + 'static,
+        weight: f32,
+    ) -> Self
+    where
+        S: Into<Score>,
+    {
+        self.objectives.push(Arc::new(fitness_fn));
+        self.weights.push(weight);
+        self
+    }
+
+    pub fn add_fitness_fn(
+        mut self,
+        fitness_fn: impl for<'a> FitnessFunction<&'a T, S> + 'static,
+    ) -> Self
+    where
+        S: Into<Score>,
+    {
+        self.objectives.push(Arc::new(fitness_fn));
+        self.weights.push(1.0);
+        self
+    }
+}
+
+impl<T> FitnessFunction<T> for CompositeFitnessFn<T, f32> {
+    fn evaluate(&self, individual: T) -> f32 {
+        let mut total_score = 0.0;
+        let mut total_weight = 0.0;
+        for (objective, weight) in self.objectives.iter().zip(&self.weights) {
+            let score = objective.evaluate(&individual);
+            total_score += score * weight;
+            total_weight += weight;
+        }
+
+        total_score / total_weight.max(1e-8)
+    }
+}
+
 #[derive(Clone)]
 pub struct NoveltySearch<T, BD>
 where
-    BD: BehavioralDescriptor<T> + Send + Sync,
+    BD: Novelty<T> + Send + Sync,
 {
     pub behavior: Arc<BD>,
     pub archive: Arc<RwLock<VecDeque<BD::Descriptor>>>,
@@ -131,7 +133,7 @@ where
 
 impl<T, BD> NoveltySearch<T, BD>
 where
-    BD: BehavioralDescriptor<T> + Send + Sync,
+    BD: Novelty<T> + Send + Sync,
 {
     pub fn new(behavior: BD, k: usize, threshold: f32) -> Self {
         NoveltySearch {
@@ -165,13 +167,16 @@ where
             return 1.0;
         }
 
+        let mut min_distance = f32::INFINITY;
+        let mut max_distance = f32::NEG_INFINITY;
         let mut distances = archive
             .iter()
             .map(|archived| self.behavior.distance(descriptor, archived))
+            .inspect(|&d| {
+                max_distance = max_distance.max(d);
+                min_distance = min_distance.min(d);
+            })
             .collect::<Vec<f32>>();
-
-        let min_distance = distances.iter().fold(f32::INFINITY, |a, &b| a.min(b));
-        let max_distance = distances.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
 
         if max_distance == min_distance {
             return 0.0;
@@ -186,7 +191,7 @@ where
     }
 
     fn evaluate_internal(&self, individual: &T) -> f32 {
-        let description = self.behavior.extract_descriptor(&individual);
+        let description = self.behavior.description(&individual);
 
         let is_empty = {
             let archive = self.archive.read().unwrap();
@@ -222,7 +227,7 @@ where
 
 impl<T, BD> FitnessFunction<T, f32> for NoveltySearch<T, BD>
 where
-    BD: BehavioralDescriptor<T> + Send + Sync,
+    BD: Novelty<T> + Send + Sync,
     T: Send + Sync,
 {
     fn evaluate(&self, individual: T) -> f32 {
@@ -232,7 +237,7 @@ where
 
 impl<T, BD> FitnessFunction<&T, f32> for NoveltySearch<T, BD>
 where
-    BD: BehavioralDescriptor<T> + Send + Sync,
+    BD: Novelty<T> + Send + Sync,
     T: Send + Sync,
 {
     fn evaluate(&self, individual: &T) -> f32 {
@@ -240,12 +245,63 @@ where
     }
 }
 
-pub trait BehavioralDescriptor<T>: Send + Sync {
+pub trait Novelty<T>: Send + Sync {
     type Descriptor: Send + Sync;
 
-    /// Extract a behavioral descriptor from a phenotype
-    fn extract_descriptor(&self, phenotype: &T) -> Self::Descriptor;
+    fn description(&self, phenotype: &T) -> Self::Descriptor;
 
-    /// Calculate distance between two behavioral descriptors
     fn distance(&self, a: &Self::Descriptor, b: &Self::Descriptor) -> f32;
+}
+
+pub struct FitnessDescriptor<F, T, S>
+where
+    F: for<'a> FitnessFunction<&'a T, S>,
+    S: Into<Score>,
+{
+    fitness_fn: Arc<F>,
+    _score_phantom: std::marker::PhantomData<S>,
+    _phantom: std::marker::PhantomData<T>,
+}
+
+impl<F, T, S> FitnessDescriptor<F, T, S>
+where
+    F: for<'a> FitnessFunction<&'a T, S> + 'static,
+    T: Send + Sync + 'static,
+    S: Into<Score> + Send + Sync,
+{
+    /// Create a new fitness descriptor that uses the output of a fitness function as the behavioral descriptor.
+    /// This allows you to use fitness scores directly as behavioral descriptors for novelty search or diversity measurement.
+    pub fn new(fitness_fn: F) -> Self {
+        Self {
+            fitness_fn: Arc::new(fitness_fn),
+            _score_phantom: std::marker::PhantomData,
+            _phantom: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<F, T, S> Novelty<T> for FitnessDescriptor<F, T, S>
+where
+    F: for<'a> FitnessFunction<&'a T, S> + 'static,
+    T: Send + Sync + 'static,
+    S: Into<Score> + Send + Sync,
+{
+    type Descriptor = Vec<f32>;
+
+    fn description(&self, phenotype: &T) -> Self::Descriptor {
+        let score = self.fitness_fn.evaluate(phenotype);
+        score.into().into()
+    }
+
+    fn distance(&self, a: &Self::Descriptor, b: &Self::Descriptor) -> f32 {
+        if a.len() != b.len() {
+            return f32::INFINITY;
+        }
+
+        a.iter()
+            .zip(b.iter())
+            .map(|(x, y)| (x - y).powi(2))
+            .sum::<f32>()
+            .sqrt()
+    }
 }

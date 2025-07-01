@@ -1,5 +1,4 @@
 mod alters;
-mod audit;
 mod evaluators;
 mod objectives;
 mod population;
@@ -20,9 +19,9 @@ use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
 use crate::steps::{AuditStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
 use crate::{
-    Alter, Audit, Crossover, EncodeReplace, EngineEvent, EngineProblem, EngineStep, EventBus,
-    EventHandler, Front, Generation, MetricAudit, Mutate, Problem, ReplacementStrategy,
-    RouletteSelector, Select, TournamentSelector, pareto,
+    Alter, Crossover, EncodeReplace, EngineEvent, EngineProblem, EngineStep, EventBus,
+    EventHandler, Front, Generation, Mutate, Problem, ReplacementStrategy, RouletteSelector,
+    Select, TournamentSelector, pareto,
 };
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use core::panic;
@@ -82,7 +81,6 @@ where
     pub optimization_params: OptimizeParams<C>,
 
     pub alterers: Vec<Arc<dyn Alter<C>>>,
-    pub audits: Vec<Arc<dyn Audit<C>>>,
     pub codec: Option<Arc<dyn Codec<C, T>>>,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
     pub problem: Option<Arc<dyn Problem<C, T>>>,
@@ -247,16 +245,8 @@ where
         Some(Box::new(filter_step))
     }
 
-    fn build_audit_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
-        if config.audits().is_empty() {
-            return None;
-        }
-
-        let audit_step = AuditStep {
-            audits: config.audits().to_vec(),
-        };
-
-        Some(Box::new(audit_step))
+    fn build_audit_step(_: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+        Some(Box::new(AuditStep))
     }
 
     fn build_front_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
@@ -325,12 +315,10 @@ where
             return;
         }
 
-        let front_executor = self.params.evaluation_params.front_executor.clone();
         let front_obj = self.params.optimization_params.objectives.clone();
         self.params.optimization_params.front = Some(Front::new(
             self.params.optimization_params.front_range.clone(),
             front_obj.clone(),
-            front_executor,
             move |one: &Phenotype<C>, two: &Phenotype<C>| {
                 if one.score().is_none() || two.score().is_none() {
                     return Ordering::Equal;
@@ -373,9 +361,7 @@ where
                     evaluator: Arc::new(FitnessEvaluator::new(Arc::new(Executor::default()))),
                     fitness_executor: Arc::new(Executor::default()),
                     species_executor: Arc::new(Executor::default()),
-                    front_executor: Arc::new(Executor::default()),
                     bus_executor: Arc::new(Executor::default()),
-                    novelty_executor: Arc::new(Executor::default()),
                 },
                 selection_params: SelectionParams {
                     offspring_fraction: 0.8,
@@ -389,7 +375,6 @@ where
                 },
 
                 replacement_strategy: Arc::new(EncodeReplace),
-                audits: vec![Arc::new(MetricAudit)],
                 alterers: Vec::new(),
                 codec: None,
                 fitness_fn: None,
@@ -409,7 +394,6 @@ struct EngineConfig<C: Chromosome, T: Clone> {
     survivor_selector: Arc<dyn Select<C>>,
     offspring_selector: Arc<dyn Select<C>>,
     replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
-    audits: Vec<Arc<dyn Audit<C>>>,
     alterers: Vec<Arc<dyn Alter<C>>>,
     species_threshold: f32,
     diversity: Option<Arc<dyn Diversity<C>>>,
@@ -437,10 +421,6 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
 
     pub fn replacement_strategy(&self) -> Arc<dyn ReplacementStrategy<C>> {
         Arc::clone(&self.replacement_strategy)
-    }
-
-    pub fn audits(&self) -> &[Arc<dyn Audit<C>>] {
-        &self.audits
     }
 
     pub fn alters(&self) -> &[Arc<dyn Alter<C>>] {
@@ -505,7 +485,6 @@ where
             survivor_selector: params.selection_params.survivor_selector.clone(),
             offspring_selector: params.selection_params.offspring_selector.clone(),
             replacement_strategy: params.replacement_strategy.clone(),
-            audits: params.audits.clone(),
             alterers: params.alterers.clone(),
             objective: params.optimization_params.objectives.clone(),
             max_age: params.population_params.max_age,
@@ -539,7 +518,6 @@ where
                 "offspring_selector",
                 &self.offspring_selector.name().to_string(),
             )
-            .field("audits", &self.audits.len())
             .field("alterers", &self.alterers.len())
             .field("objective", &self.objective)
             .field("max_age", &self.max_age)

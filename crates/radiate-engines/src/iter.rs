@@ -1,5 +1,7 @@
 use crate::GeneticEngine;
-use radiate_core::{Chromosome, Engine, Epoch, Score, engine::Context, objectives::Scored};
+use radiate_core::{
+    Chromosome, Engine, Epoch, Objective, Optimize, Score, engine::Context, objectives::Scored,
+};
 use std::{collections::VecDeque, time::Duration};
 
 pub struct EngineIterator<C, T, E>
@@ -54,33 +56,34 @@ where
         self.skip_while(move |ctx| ctx.time() < limit)
     }
 
-    fn until_score_above(self, limit: impl Into<Score>) -> impl Iterator<Item = E>
+    fn until_score(self, limit: impl Into<Score>) -> impl Iterator<Item = E>
     where
         Self: Sized,
         E: Scored,
     {
         let lim = limit.into();
-        self.skip_while(move |ctx| ctx.score().unwrap() < &lim)
-    }
+        self.skip_while(move |ctx| match ctx.objective() {
+            Objective::Single(obj) => match obj {
+                Optimize::Minimize => ctx.score().unwrap() >= &lim,
+                Optimize::Maximize => ctx.score().unwrap() <= &lim,
+            },
+            Objective::Multi(objs) => {
+                let mut all_pass = true;
+                for (i, score) in ctx.score().unwrap().iter().enumerate() {
+                    let passed = match objs[i] {
+                        Optimize::Minimize => score >= &lim[i],
+                        Optimize::Maximize => score <= &lim[i],
+                    };
 
-    fn until_score_below(self, limit: impl Into<Score>) -> impl Iterator<Item = E>
-    where
-        Self: Sized,
-        E: Scored,
-    {
-        let lim = limit.into();
-        self.skip_while(move |ctx| ctx.score().unwrap() > &lim)
-    }
+                    if !passed {
+                        all_pass = false;
+                        break;
+                    }
+                }
 
-    fn until_score_equal(self, limit: impl Into<Score>) -> Option<E>
-    where
-        Self: Sized,
-        E: Scored,
-    {
-        let limit = limit.into();
-        self.skip_while(move |ctx| ctx.score().unwrap() != &limit)
-            .take(1)
-            .last()
+                all_pass
+            }
+        })
     }
 
     fn until_converged(self, window: usize, epsilon: f32) -> impl Iterator<Item = E>

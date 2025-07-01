@@ -15,18 +15,19 @@ fn main() {
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(1, 1, values))
         .fitness_fn(Regression::new(dataset(), Loss::MSE))
+        // .diversity(NeatDistance::new(0.1, 0.1, 0.5))
         .minimizing()
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
-            GraphMutator::new(0.1, 0.1).allow_recurrent(false),
+            GraphMutator::new(0.1, 0.1).allow_recurrent(false)
         ))
         .build();
 
     engine
         .iter()
         .inspect(|generation| log_ctx!(generation))
-        .until_score_below(MIN_SCORE)
+        .until_score(MIN_SCORE)
         .take(1)
         .last()
         .inspect(display);

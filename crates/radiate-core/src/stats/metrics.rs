@@ -24,7 +24,16 @@ pub fn intern(name: String) -> &'static str {
     static_name
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[macro_export]
+macro_rules! metric {
+    ($name:expr, $time:expr) => {{
+        let mut metric = $crate::Metric::new($name);
+        metric.apply_update($time);
+        metric
+    }};
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct MetricLabel {
     pub key: &'static str,
     pub value: String,
@@ -165,14 +174,14 @@ impl Debug for MetricSet {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Default)]
 pub struct MetricInner {
     pub(crate) value_statistic: Option<Statistic>,
     pub(crate) time_statistic: Option<TimeStatistic>,
     pub(crate) distribution: Option<Distribution>,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Default)]
 pub struct Metric {
     name: &'static str,
     inner: MetricInner,
@@ -412,6 +421,18 @@ impl Metric {
 
     pub fn time_sum(&self) -> Option<Duration> {
         self.inner.time_statistic.as_ref().map(|stat| stat.sum())
+    }
+
+    pub fn distribution(&self) -> Option<&Distribution> {
+        self.inner.distribution.as_ref()
+    }
+
+    pub fn statistic(&self) -> Option<&Statistic> {
+        self.inner.value_statistic.as_ref()
+    }
+
+    pub fn time_statistic(&self) -> Option<&TimeStatistic> {
+        self.inner.time_statistic.as_ref()
     }
 
     pub fn last_sequence(&self) -> Option<&Vec<f32>> {

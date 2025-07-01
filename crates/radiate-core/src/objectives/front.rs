@@ -1,5 +1,5 @@
 use crate::{
-    Chromosome, Epoch, Executor, Phenotype,
+    Chromosome, Epoch, Phenotype,
     objectives::{Objective, pareto},
 };
 use std::{cmp::Ordering, hash::Hash, ops::Range, sync::Arc};
@@ -18,19 +18,13 @@ where
     ord: Arc<dyn Fn(&T, &T) -> Ordering + Send + Sync>,
     range: Range<usize>,
     objective: Objective,
-    thread_pool: Arc<Executor>,
 }
 
 impl<T> Front<T>
 where
     T: AsRef<[f32]>,
 {
-    pub fn new<F>(
-        range: Range<usize>,
-        objective: Objective,
-        thread_pool: Arc<Executor>,
-        comp: F,
-    ) -> Self
+    pub fn new<F>(range: Range<usize>, objective: Objective, comp: F) -> Self
     where
         F: Fn(&T, &T) -> Ordering + Send + Sync + 'static,
     {
@@ -39,7 +33,6 @@ where
             range,
             objective,
             ord: Arc::new(comp),
-            thread_pool,
         }
     }
 
@@ -61,6 +54,7 @@ where
     {
         let mut updated = false;
         let mut to_remove = Vec::new();
+        let mut added_count = 0;
 
         for i in 0..items.len() {
             let new_member = &items[i];
@@ -82,6 +76,7 @@ where
             if is_dominated {
                 updated = true;
                 self.values.push(Arc::new(new_member.clone()));
+                added_count += 1;
                 for rem in to_remove.drain(..) {
                     self.values.retain(|x| x.as_ref() != rem.as_ref());
                 }
@@ -95,7 +90,7 @@ where
             updated = false;
         }
 
-        self.values.len()
+        added_count
     }
 
     pub fn filter(&mut self) {

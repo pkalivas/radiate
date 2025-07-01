@@ -20,7 +20,9 @@ fn main() {
 
     engine
         .iter()
-        .until_score_equal(target.len())
+        .until_score(target.len())
         .inspect(|generation| println!("{:?}", generation))
+        .take(1)
+        .last()
         .unwrap();
 }

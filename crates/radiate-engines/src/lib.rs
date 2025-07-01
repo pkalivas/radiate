@@ -7,7 +7,7 @@ mod limit;
 pub mod pipeline;
 pub mod steps;
 
-pub use builder::{EngineBuilder, GeneticEngineBuilder};
+pub use builder::GeneticEngineBuilder;
 pub use engine::GeneticEngine;
 pub use epoch::{Generation, ParetoGeneration};
 pub use events::{EngineEvent, Event, EventBus, EventHandler};

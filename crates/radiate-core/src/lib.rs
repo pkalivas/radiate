@@ -1,5 +1,4 @@
 pub mod alter;
-pub mod audit;
 pub mod codecs;
 pub mod diversity;
 pub mod domain;
@@ -13,29 +12,27 @@ pub mod selector;
 pub mod stats;
 
 pub use alter::{Alter, AlterAction, AlterResult, Crossover, Mutate};
-pub use audit::{Audit, MetricAudit};
 pub use codecs::{
     BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PermutationCodec, SubSetCodec,
 };
-pub use diversity::{Diversity, EuclideanDistance, HammingDistance};
+pub use diversity::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
 pub use domain::*;
 pub use engine::{Context, Engine, EngineExt, EngineStep, Epoch};
 pub use evaluator::{Evaluator, FitnessEvaluator};
 pub use executor::Executor;
 pub use genome::*;
 pub use objectives::{Front, Objective, Optimize, ParetoFront, Score, pareto};
-pub use problem::{EngineProblem, Problem};
+pub use problem::{CompositeFitnessFn, EngineProblem, FitnessFunction, NoveltySearch, Problem};
 pub use replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
 pub use selector::Select;
 pub use stats::*;
 
 pub mod prelude {
     pub use super::alter::{Alter, Crossover, Mutate};
-    pub use super::audit::{Audit, MetricAudit};
     pub use super::codecs::{
         BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PermutationCodec, SubSetCodec,
     };
-    pub use super::diversity::{Diversity, EuclideanDistance, HammingDistance};
+    pub use super::diversity::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
     pub use super::domain::random_provider;
     pub use super::engine::{Engine, EngineExt, EngineStep, Epoch};
     pub use super::executor::Executor;

@@ -22,7 +22,7 @@ where
     fn process_chunk(
         chunk_range: std::ops::Range<usize>,
         population: Arc<RwLock<Vec<(usize, Genotype<C>)>>>,
-        species_snapshot: Arc<Vec<Genotype<C>>>,
+        species_mascots: Arc<Vec<Genotype<C>>>,
         threshold: f32,
         diversity: Arc<dyn Diversity<C>>,
         assignments: Arc<Mutex<Vec<Option<usize>>>>,
@@ -31,7 +31,7 @@ where
         let mut inner_distances = Vec::new();
         for (i, individual) in population.read().unwrap().iter().enumerate() {
             let mut assigned = None;
-            for (idx, sp) in species_snapshot.iter().enumerate() {
+            for (idx, sp) in species_mascots.iter().enumerate() {
                 let dist = diversity.measure(&individual.1, &sp);
                 inner_distances.push(dist);
 
@@ -128,6 +128,7 @@ where
 
         let assignments = assignments.lock().unwrap();
         let mut distances = distances.lock().unwrap();
+
         for i in 0..ecosystem.population().len() {
             if let Some(species_id) = assignments[i] {
                 ecosystem.add_species_member(species_id, i);

@@ -11,12 +11,6 @@ struct FixedThreadPool {
     inner: Arc<ThreadPool>,
 }
 
-impl AsRef<ThreadPool> for FixedThreadPool {
-    fn as_ref(&self) -> &ThreadPool {
-        &self.inner
-    }
-}
-
 impl FixedThreadPool {
     /// Returns the global instance of the registry.
     pub(self) fn instance(num_workers: usize) -> &'static FixedThreadPool {

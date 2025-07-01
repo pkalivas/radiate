@@ -39,21 +39,6 @@ macro_rules! filter_alters {
     }};
 }
 
-// #[macro_export]
-// macro_rules! alterers {
-//     ($($name:ident $( ( $($args:expr),* ) )?),* $(,)?) => {
-//         vec![
-//             $(Box::new($name $( ( $($args),* ) )? .alterer())),*
-//         ]
-//     };
-// }
-
-// .alter(alterers![
-//     ArithmeticMutator(0.01),
-//     MeanCrossover(0.5),
-//     UniformMutator, // uses default arguments, if defined
-// ])
-
 #[macro_export]
 macro_rules! bench {
     ($name:literal, $operation:expr) => {
@@ -186,26 +171,6 @@ macro_rules! log_ctx {
             $ctx.score().as_f32(),
             $ctx.time()
         );
-    }};
-}
-
-#[macro_export]
-macro_rules! metric {
-    ($name:expr, $val:expr, $time:expr) => {{ Metric::new_operations($name, $val, $time) }};
-    ($name:expr, $val:expr) => {{
-        let mut metric = Metric::new_value($name);
-        metric.add_value($val);
-        metric
-    }};
-    ($name:expr, $dist:expr) => {{
-        let mut metric = Metric::new_distribution($name)
-        metric.add_distribution($dist);
-        metric
-    }};
-    ($name:expr, $time:expr) => {{
-        let mut metric = Metric::new_time($name);
-        metric.add_time($time);
-        metric
     }};
 }
 

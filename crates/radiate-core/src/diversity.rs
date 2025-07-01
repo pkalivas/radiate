@@ -1,4 +1,4 @@
-use crate::{ArithmeticGene, Chromosome, Gene, Genotype, problem::BehavioralDescriptor};
+use crate::{ArithmeticGene, Chromosome, Gene, Genotype, problem::Novelty};
 
 /// Trait for measuring diversity between two [Genotype]s.
 /// Within radiate this is mostly used for speciation and determining how genetically
@@ -33,13 +33,13 @@ where
     }
 }
 
-impl<T> BehavioralDescriptor<Vec<T>> for HammingDistance
+impl<T> Novelty<Vec<T>> for HammingDistance
 where
     T: PartialEq + Send + Sync + Clone,
 {
     type Descriptor = Vec<T>;
 
-    fn extract_descriptor(&self, phenotype: &Vec<T>) -> Self::Descriptor {
+    fn description(&self, phenotype: &Vec<T>) -> Self::Descriptor {
         phenotype.clone()
     }
 
@@ -92,10 +92,10 @@ where
     }
 }
 
-impl BehavioralDescriptor<Vec<f32>> for EuclideanDistance {
+impl Novelty<Vec<f32>> for EuclideanDistance {
     type Descriptor = Vec<f32>;
 
-    fn extract_descriptor(&self, phenotype: &Vec<f32>) -> Self::Descriptor {
+    fn description(&self, phenotype: &Vec<f32>) -> Self::Descriptor {
         phenotype.clone()
     }
 
@@ -139,17 +139,17 @@ where
         }
 
         if norm_one == 0.0 || norm_two == 0.0 {
-            return 1.0; // Max distance if either vector is zero
+            return 1.0;
         }
 
         1.0 - (dot_product / (norm_one.sqrt() * norm_two.sqrt()))
     }
 }
 
-impl BehavioralDescriptor<Vec<f32>> for CosineDistance {
+impl Novelty<Vec<f32>> for CosineDistance {
     type Descriptor = Vec<f32>;
 
-    fn extract_descriptor(&self, phenotype: &Vec<f32>) -> Self::Descriptor {
+    fn description(&self, phenotype: &Vec<f32>) -> Self::Descriptor {
         phenotype.clone()
     }
 
@@ -163,7 +163,7 @@ impl BehavioralDescriptor<Vec<f32>> for CosineDistance {
         let norm_b = b.iter().map(|x| x * x).sum::<f32>().sqrt();
 
         if norm_a == 0.0 || norm_b == 0.0 {
-            return 1.0; // Max distance if either vector is zero
+            return 1.0;
         }
 
         1.0 - (dot_product / (norm_a * norm_b + 1e-8))

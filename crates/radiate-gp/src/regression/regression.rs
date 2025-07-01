@@ -1,6 +1,6 @@
 use super::{DataSet, Loss};
 use crate::{Eval, EvalMut, Graph, GraphChromosome, GraphEvaluator, Op, Tree, TreeNode};
-use radiate_core::problem::FitnessFunction;
+use radiate_core::problem::{FitnessFunction, Novelty};
 
 pub struct Regression {
     data_set: DataSet,
@@ -57,5 +57,26 @@ impl FitnessFunction<Vec<&TreeNode<Op<f32>>>, f32> for Regression {
     }
 }
 
-unsafe impl Send for Regression {}
-unsafe impl Sync for Regression {}
+impl Novelty<Graph<Op<f32>>> for Regression {
+    type Descriptor = Vec<f32>;
+
+    fn description(&self, phenotype: &Graph<Op<f32>>) -> Self::Descriptor {
+        let mut evaluator = GraphEvaluator::new(phenotype);
+        let res = self
+            .data_set
+            .iter()
+            .map(|sample| evaluator.eval_mut(sample.input()))
+            .flatten()
+            .collect::<Vec<f32>>();
+
+        res
+    }
+
+    fn distance(&self, a: &Self::Descriptor, b: &Self::Descriptor) -> f32 {
+        a.iter()
+            .zip(b.iter())
+            .map(|(x, y)| (x - y).powi(2))
+            .sum::<f32>()
+            .sqrt()
+    }
+}

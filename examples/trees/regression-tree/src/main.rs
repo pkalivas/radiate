@@ -24,7 +24,7 @@ fn main() {
     engine
         .iter()
         .inspect(|ctx| log_ctx!(ctx))
-        .until_score_below(MIN_SCORE)
+        .until_score(MIN_SCORE)
         .take(1)
         .last()
         .inspect(display);

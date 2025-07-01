@@ -60,7 +60,7 @@ pub trait Epoch<C: Chromosome> {
     fn time(&self) -> Duration {
         self.metrics()
             .get(metric_names::TIME)
-            .map(|m| m.time_sum())
+            .map(|m| m.time_statistic().map(|t| t.sum()))
             .flatten()
             .unwrap_or_default()
     }

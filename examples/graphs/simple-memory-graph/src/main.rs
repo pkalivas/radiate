@@ -14,7 +14,7 @@ fn main() {
     ];
 
     let graph_codec = GraphCodec::recurrent(1, 1, values);
-    let regression = Regression::new(get_dataset(), Loss::MSE);
+    let regression = Regression::new(dataset(), Loss::MSE);
 
     let mut engine = GeneticEngine::builder()
         .codec(graph_codec)
@@ -39,7 +39,7 @@ fn main() {
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     let mut reducer = GraphEvaluator::new(result.value());
-    for sample in get_dataset().iter() {
+    for sample in dataset().iter() {
         let output = reducer.eval_mut(sample.input());
         println!(
             "{:?} -> epected: {:?}, actual: {:.3?}",
@@ -52,7 +52,7 @@ fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     println!("{:?}", result)
 }
 
-fn get_dataset() -> DataSet {
+fn dataset() -> DataSet {
     let inputs = vec![
         vec![0.0],
         vec![0.0],

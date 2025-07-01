@@ -54,7 +54,7 @@ impl PyGeneration {
         };
 
         match inner_score {
-            Some(score) => Ok(PyList::new(py, (*score.values).to_vec())
+            Some(score) => Ok(PyList::new(py, score.iter().cloned().collect::<Vec<_>>())
                 .unwrap()
                 .into_any()),
 
@@ -157,13 +157,7 @@ where
     for member in generation.value().values().iter() {
         let temp = PyGenotype::from(member.genotype().clone());
 
-        let fitness = member
-            .score()
-            .unwrap()
-            .values
-            .iter()
-            .cloned()
-            .collect::<Vec<_>>();
+        let fitness = member.score().unwrap().iter().cloned().collect::<Vec<_>>();
 
         let member = PyDict::new(py);
         member.set_item("genotype", temp).unwrap();
