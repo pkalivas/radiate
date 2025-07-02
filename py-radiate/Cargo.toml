@@ -2,7 +2,7 @@
 name = "py-radiate"
 version = "0.0.3"
 edition = "2024"
-readme = "README.md"
+readme = "../README.md"
 authors = ["pkalivas <peterkalivas@gmail.com>"]
 description = "Python bindings for the Radiate genetic algorithm library."
 repository = "https://github.com/pkalivas/radiate"
