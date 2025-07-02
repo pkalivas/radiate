@@ -37,6 +37,7 @@ class IntCodec(CodecBase):
         shape: Tuple[int, int] | List[int],
         value_range: Optional[Tuple[int, int]] = None,
         bound_range: Optional[Tuple[int, int]] = None,
+        use_numpy: bool = False,
     ) -> "IntCodec":
         """
         Initialize the int codec with number of chromosomes and value bounds.
@@ -68,6 +69,7 @@ class IntCodec(CodecBase):
                 chromosome_lengths=shapes,
                 value_range=value_range,
                 bound_range=bound_range,
+                use_numpy=use_numpy,
             )
         )
 
@@ -76,6 +78,7 @@ class IntCodec(CodecBase):
         length: int,
         value_range: Optional[Tuple[int, int]] = None,
         bound_range: Optional[Tuple[int, int]] = None,
+        use_numpy: bool = False,
     ) -> "IntCodec":
         """
         Create a vector codec with specified length.
@@ -91,6 +94,7 @@ class IntCodec(CodecBase):
                 length=length,
                 value_range=value_range,
                 bound_range=bound_range,
+                use_numpy=use_numpy,
             )
         )
 

@@ -2,7 +2,7 @@ use super::PyCodec;
 use crate::{ObjectValue, PyGenotype};
 use pyo3::{
     Bound, IntoPyObjectExt, PyAny, PyResult, pyclass, pymethods,
-    types::{PyFloat, PyList, PyListMethods},
+    types::{PyAnyMethods, PyFloat, PyList, PyListMethods},
 };
 use radiate::{Chromosome, Codec, FloatChromosome, Gene, Genotype};
 
@@ -29,11 +29,12 @@ impl PyFloatCodec {
     }
 
     #[staticmethod]
-    #[pyo3(signature = (chromosome_lengths=None, value_range=None, bound_range=None))]
+    #[pyo3(signature = (chromosome_lengths=None, value_range=None, bound_range=None, use_numpy=false))]
     pub fn matrix(
         chromosome_lengths: Option<Vec<usize>>,
         value_range: Option<(f32, f32)>,
         bound_range: Option<(f32, f32)>,
+        use_numpy: bool,
     ) -> Self {
         let lengths = chromosome_lengths.unwrap_or(vec![1]);
         let val_range = value_range.map(|rng| rng.0..rng.1).unwrap_or(0.0..1.0);
@@ -41,6 +42,7 @@ impl PyFloatCodec {
             .map(|rng| rng.0..rng.1)
             .unwrap_or(val_range.clone());
 
+        let decoder_lengths = lengths.iter().map(|len| *len).collect::<Vec<usize>>();
         PyFloatCodec {
             codec: PyCodec::new()
                 .with_encoder(move || {
@@ -52,29 +54,53 @@ impl PyFloatCodec {
                         .collect::<Vec<FloatChromosome>>()
                         .into()
                 })
-                .with_decoder(|py, geno| {
-                    let outer = PyList::empty(py);
-                    for chromo in geno.iter() {
-                        let inner = PyList::empty(py);
-                        for gene in chromo.iter() {
-                            inner.append(*gene.allele()).unwrap();
-                        }
-                        outer.append(inner).unwrap();
-                    }
+                .with_decoder(move |py, geno| {
+                    if use_numpy {
+                        let np = py.import("numpy").unwrap();
+                        let values: Vec<f32> = geno
+                            .iter()
+                            .flat_map(|chrom| chrom.iter().map(|gene| *gene.allele()))
+                            .collect();
+                        let outer = np.getattr("array").unwrap().call1((values,)).unwrap();
 
-                    ObjectValue {
-                        inner: outer.unbind().into_any(),
+                        if decoder_lengths.len() > 1 {
+                            let reshaped = outer
+                                .call_method1("reshape", (decoder_lengths.clone(),))
+                                .unwrap();
+
+                            ObjectValue {
+                                inner: reshaped.unbind().into_any(),
+                            }
+                        } else {
+                            ObjectValue {
+                                inner: outer.unbind().into_any(),
+                            }
+                        }
+                    } else {
+                        let outer = PyList::empty(py);
+                        for chromo in geno.iter() {
+                            let inner = PyList::empty(py);
+                            for gene in chromo.iter() {
+                                inner.append(*gene.allele()).unwrap();
+                            }
+                            outer.append(inner).unwrap();
+                        }
+
+                        return ObjectValue {
+                            inner: outer.unbind().into_any(),
+                        };
                     }
                 }),
         }
     }
 
     #[staticmethod]
-    #[pyo3(signature = (length=1, value_range=None, bound_range=None))]
+    #[pyo3(signature = (length=1, value_range=None, bound_range=None, use_numpy=false))]
     pub fn vector(
         length: usize,
         value_range: Option<(f32, f32)>,
         bound_range: Option<(f32, f32)>,
+        use_numpy: bool,
     ) -> Self {
         let val_range = value_range.map(|rng| rng.0..rng.1).unwrap_or(0.0..1.0);
         let bound_range = bound_range
@@ -90,16 +116,30 @@ impl PyFloatCodec {
                         bound_range.clone(),
                     ))])
                 })
-                .with_decoder(|py, geno| {
-                    let outer = PyList::empty(py);
-                    for chrom in geno.iter() {
-                        for gene in chrom.iter() {
-                            outer.append(*gene.allele()).unwrap();
-                        }
-                    }
+                .with_decoder(move |py, geno| {
+                    if use_numpy {
+                        let values: Vec<f32> = geno
+                            .iter()
+                            .flat_map(|chrom| chrom.iter().map(|gene| *gene.allele()))
+                            .collect();
 
-                    ObjectValue {
-                        inner: outer.unbind().into_any(),
+                        let np = py.import("numpy").unwrap();
+                        let outer = np.getattr("array").unwrap().call1((values,)).unwrap();
+
+                        return ObjectValue {
+                            inner: outer.unbind().into_any(),
+                        };
+                    } else {
+                        let outer = PyList::empty(py);
+                        for chrom in geno.iter() {
+                            for gene in chrom.iter() {
+                                outer.append(*gene.allele()).unwrap();
+                            }
+                        }
+
+                        return ObjectValue {
+                            inner: outer.unbind().into_any(),
+                        };
                     }
                 }),
         }

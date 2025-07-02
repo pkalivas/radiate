@@ -3,6 +3,12 @@ from .codec import CodecBase
 from radiate.genome import Genotype
 from radiate.radiate import PyFloatCodec
 
+try:
+    import numpy as np
+    HAS_NUMPY = True
+except ImportError:
+    HAS_NUMPY = False
+
 
 class FloatCodec(CodecBase):
     def __init__(self, codec: PyFloatCodec):
@@ -36,6 +42,7 @@ class FloatCodec(CodecBase):
         shape: Tuple[int, int] | List[int],
         value_range: Optional[Tuple[float, float]] = None,
         bound_range: Optional[Tuple[float, float]] = None,
+        use_numpy: bool = False,
     ) -> "FloatCodec":
         """
         Create a matrix codec with specified rows and columns.
@@ -82,6 +89,7 @@ class FloatCodec(CodecBase):
                 chromosome_lengths=shapes,
                 value_range=value_range,
                 bound_range=bound_range,
+                use_numpy=use_numpy,  
             )
         )
 
@@ -90,6 +98,7 @@ class FloatCodec(CodecBase):
         length: int,
         value_range: Optional[Tuple[float, float]] = None,
         bound_range: Optional[Tuple[float, float]] = None,
+        use_numpy: bool = False,
     ) -> "FloatCodec":
         """
         Create a vector codec with specified length.
@@ -125,6 +134,7 @@ class FloatCodec(CodecBase):
                 length=length,
                 value_range=value_range,
                 bound_range=bound_range,
+                use_numpy=use_numpy,
             )
         )
 

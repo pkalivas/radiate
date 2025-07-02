@@ -1,0 +1,12 @@
+[package]
+name = "neural-network-evolution"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+radiate = { path = "../../crates/radiate" }
+radiate-core = { path = "../../crates/radiate-core" }
+radiate-engines = { path = "../../crates/radiate-engines" }
+radiate-alters = { path = "../../crates/radiate-alters" }
+radiate-selectors = { path = "../../crates/radiate-selectors" }
+rand = "0.8" 

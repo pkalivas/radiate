@@ -29,7 +29,7 @@ class CharCodec(CodecBase):
         return self.codec.decode_py(genotype.py_genotype())
 
     @staticmethod
-    def matrix(chromosomes: List[int], char_set: str | List[str] = None) -> "CharCodec":
+    def matrix(chromosomes: List[int], char_set: str | List[str] = None, use_numpy: bool = False) -> "CharCodec":
         """
         Initialize the char codec with number of chromosomes and value bounds.
         Args:
@@ -54,10 +54,10 @@ class CharCodec(CodecBase):
                         "Character set must be a string or list of single-character strings."
                     )
 
-        return CharCodec(PyCharCodec.matrix(chromosomes, char_set))
+        return CharCodec(PyCharCodec.matrix(chromosomes, char_set, use_numpy=use_numpy))
 
     @staticmethod
-    def vector(length: int, char_set: str | List[str] = None) -> "CharCodec":
+    def vector(length: int, char_set: str | List[str] = None, use_numpy: bool = False) -> "CharCodec":
         """
         Initialize the char codec with a single chromosome of specified length.
         Args:
@@ -71,4 +71,4 @@ class CharCodec(CodecBase):
         >>> rd.CharCodec.vector(length=5, char_set="01")
         CharCodec(...)
         """
-        return CharCodec(PyCharCodec.vector(length, char_set))
+        return CharCodec(PyCharCodec.vector(length, char_set, use_numpy=use_numpy))

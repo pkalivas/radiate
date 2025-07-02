@@ -1,6 +1,7 @@
 use super::PyGenotype;
 use crate::EpochHandle;
 use crate::ObjectValue;
+use crate::PyPopulation;
 use crate::bindings::codec::PyGraph;
 use crate::bindings::codec::PyTree;
 use crate::conversion::Wrap;
@@ -95,17 +96,16 @@ impl PyGeneration {
             .map(|b| b.into_bound(py))
     }
 
-    // pub fn population<'py>(&self, py: Python<'py>) -> PyPopulation {
-    //     match &self.inner {
-    //         EpochHandle::Int(epoch) => PyPopulation::new(epoch.population().clone()),
-    //         EpochHandle::Float(epoch) => epoch.population(),
-    //         EpochHandle::Char(epoch) => epoch.population(),
-    //         EpochHandle::Bit(epoch) => epoch.population(),
-    //         EpochHandle::IntMulti(epoch) => epoch.population(),
-    //         EpochHandle::FloatMulti(epoch) => epoch.population(),
-    //         EpochHandle::GraphRegression(epoch) => epoch.population(),
-    //     }
-    // }
+    pub fn population<'py>(&self, py: Python<'py>) -> PyPopulation {
+        match &self.inner {
+            EpochHandle::Int(epoch) => PyPopulation::from(epoch.population()),
+            EpochHandle::Float(epoch) => PyPopulation::from(epoch.population()),
+            EpochHandle::Char(epoch) => PyPopulation::from(epoch.population()),
+            EpochHandle::Bit(epoch) => PyPopulation::from(epoch.population()),
+            EpochHandle::GraphRegression(epoch) => PyPopulation::from(epoch.population()),
+            EpochHandle::TreeRegression(epoch) => PyPopulation::from(epoch.population()),
+        }
+    }
 
     pub fn __repr__(&self, py: Python) -> PyResult<String> {
         let score = self.score(py)?;

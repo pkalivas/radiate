@@ -550,11 +550,11 @@ impl_from_py_phenotype!(AnyChromosome<'static>);
 
 macro_rules! impl_into_py_population {
     ($chromosome:ty) => {
-        impl From<Population<$chromosome>> for PyPopulation
+        impl From<&Population<$chromosome>> for PyPopulation
         where
             $chromosome: Chromosome + Clone,
         {
-            fn from(population: Population<$chromosome>) -> Self {
+            fn from(population: &Population<$chromosome>) -> Self {
                 PyPopulation {
                     phenotypes: population
                         .iter()

@@ -25,6 +25,8 @@ impl PyEngine {
             ));
         }
 
+        println!("Running engine with limits: {:?}", limits);
+
         let limits = limits
             .into_iter()
             .filter_map(|input| input.into())

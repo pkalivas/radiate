@@ -34,6 +34,12 @@ impl<'a> AnyValue<'a> {
             AnyValue::Int16(v) => Some((*v).into()),
             AnyValue::Int32(v) => Some((*v).into()),
             AnyValue::Int64(v) => Some((*v) as f64),
+            AnyValue::Int128(v) => Some((*v) as f64),
+            AnyValue::UInt8(v) => Some((*v).into()),
+            AnyValue::UInt16(v) => Some((*v).into()),
+            AnyValue::UInt32(v) => Some((*v) as f64),
+            AnyValue::UInt64(v) => Some((*v) as f64),
+            AnyValue::Bool(v) => Some(if *v { 1.0 } else { 0.0 }),
             _ => None,
         }
     }
@@ -46,6 +52,11 @@ impl<'a> AnyValue<'a> {
             AnyValue::Int16(v) => Some((*v).into()),
             AnyValue::Int32(v) => Some((*v) as f32),
             AnyValue::Int64(v) => Some((*v) as f32),
+            AnyValue::Int128(v) => Some((*v) as f32),
+            AnyValue::UInt8(v) => Some((*v).into()),
+            AnyValue::UInt16(v) => Some((*v).into()),
+            AnyValue::UInt32(v) => Some((*v) as f32),
+            AnyValue::UInt64(v) => Some((*v) as f32),
             _ => None,
         }
     }

@@ -38,7 +38,7 @@ class BitCodec(CodecBase):
         return self.codec.decode_py(genotype.py_genotype())
 
     @staticmethod
-    def matrix(chromosome_lengths: List[int]) -> "BitCodec":
+    def matrix(chromosome_lengths: List[int], use_numpy: bool = False) -> "BitCodec":
         """
         Initialize the bit codec with a matrix of chromosomes.
         Args:
@@ -51,10 +51,10 @@ class BitCodec(CodecBase):
         >>> rd.BitCodec.matrix(chromosome_lengths=[5, 5])
         BitCodec(...)
         """
-        return BitCodec(PyBitCodec.matrix(chromosome_lengths=chromosome_lengths))
+        return BitCodec(PyBitCodec.matrix(chromosome_lengths=chromosome_lengths, use_numpy=use_numpy))
 
     @staticmethod
-    def vector(length: int) -> "BitCodec":
+    def vector(length: int, use_numpy: bool = False) -> "BitCodec":
         """
         Initialize the bit codec with a single chromosome of specified length.
         Args:
@@ -67,4 +67,4 @@ class BitCodec(CodecBase):
         >>> rd.BitCodec.vector(length=5)
         BitCodec(...)
         """
-        return BitCodec(PyBitCodec.vector(length=length))
+        return BitCodec(PyBitCodec.vector(length=length, use_numpy=use_numpy))
