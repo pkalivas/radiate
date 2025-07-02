@@ -43,4 +43,4 @@ jobs:
       - name: Run tests
         working-directory: py-radiate
         run: |
-          pytest tests --import-mode=importlib --all
+          python run_tests.py --all
