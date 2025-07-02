@@ -1,4 +1,7 @@
-use crate::problem::{PyProblem, call_fitness};
+use crate::{
+    IntoPyObjectValue,
+    problem::{PyProblem, call_fitness},
+};
 use pyo3::{IntoPyObjectExt, Py, PyAny, Python};
 use radiate::{Chromosome, Ecosystem, Evaluator, Executor, Problem};
 use std::sync::Arc;
@@ -16,18 +19,18 @@ struct PyBatch {
 /// The [PyEvaluator] is an [Evaluator<C, T>] implementation that allows for free-threaded evaluation.
 /// We avoid Python's GIL by using the `allow_threads` method, bypassing the
 /// GIL for the duration of the evaluation.
-pub struct FreeThreadPyEvaluator<C: Chromosome> {
+pub struct FreeThreadPyEvaluator<C: Chromosome, T: IntoPyObjectValue> {
     executor: Executor,
-    problem: PyProblem<C>,
+    problem: PyProblem<C, T>,
 }
 
-impl<C: Chromosome> FreeThreadPyEvaluator<C> {
-    pub fn new(executor: Executor, problem: PyProblem<C>) -> Self {
+impl<C: Chromosome, T: IntoPyObjectValue> FreeThreadPyEvaluator<C, T> {
+    pub fn new(executor: Executor, problem: PyProblem<C, T>) -> Self {
         FreeThreadPyEvaluator { executor, problem }
     }
 }
 
-impl<C: Chromosome, T> Evaluator<C, T> for FreeThreadPyEvaluator<C>
+impl<C: Chromosome, T: IntoPyObjectValue> Evaluator<C, T> for FreeThreadPyEvaluator<C, T>
 where
     C: Chromosome + 'static,
     T: Send + Sync + 'static,
@@ -40,7 +43,8 @@ where
                 if ecosystem.population[idx].score().is_none() {
                     let geno = self
                         .problem
-                        .decode_with_py(outer, ecosystem.population[idx].genotype());
+                        .decode_with_py(outer, ecosystem.population[idx].genotype())
+                        .into_py(outer);
                     jobs.push((idx, Some(geno)));
                 }
             }

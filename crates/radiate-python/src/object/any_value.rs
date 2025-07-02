@@ -26,6 +26,62 @@ pub enum AnyValue<'a> {
 }
 
 impl<'a> AnyValue<'a> {
+    pub fn to_f64(&self) -> Option<f64> {
+        match self {
+            AnyValue::Float32(v) => Some((*v).into()),
+            AnyValue::Float64(v) => Some(*v),
+            AnyValue::Int8(v) => Some((*v).into()),
+            AnyValue::Int16(v) => Some((*v).into()),
+            AnyValue::Int32(v) => Some((*v).into()),
+            AnyValue::Int64(v) => Some((*v) as f64),
+            _ => None,
+        }
+    }
+
+    pub fn to_f32(&self) -> Option<f32> {
+        match self {
+            AnyValue::Float32(v) => Some(*v),
+            AnyValue::Float64(v) => Some((*v) as f32),
+            AnyValue::Int8(v) => Some((*v).into()),
+            AnyValue::Int16(v) => Some((*v).into()),
+            AnyValue::Int32(v) => Some((*v) as f32),
+            AnyValue::Int64(v) => Some((*v) as f32),
+            _ => None,
+        }
+    }
+
+    pub fn to_string(&self) -> Option<String> {
+        match self {
+            AnyValue::Str(v) => Some(v.to_string()),
+            AnyValue::StrOwned(v) => Some(v.clone()),
+            _ => None,
+        }
+    }
+
+    pub fn to_i32(&self) -> Option<i32> {
+        match self {
+            AnyValue::Int8(v) => Some((*v).into()),
+            AnyValue::Int16(v) => Some((*v).into()),
+            AnyValue::Int32(v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    pub fn to_usize(&self) -> Option<usize> {
+        match self {
+            AnyValue::UInt8(v) => Some((*v).into()),
+            AnyValue::UInt16(v) => Some((*v).into()),
+            AnyValue::UInt32(v) => Some((*v) as usize),
+            AnyValue::UInt64(v) => Some((*v).try_into().ok()?),
+            AnyValue::Int8(v) => Some((*v) as usize),
+            AnyValue::Int16(v) => Some((*v) as usize),
+            AnyValue::Int32(v) => Some((*v) as usize),
+            AnyValue::Int64(v) => Some((*v).try_into().ok()?),
+            AnyValue::Int128(v) => Some((*v).try_into().ok()?),
+            _ => None,
+        }
+    }
+
     pub fn is_null(&self) -> bool {
         matches!(self, Self::Null)
     }
@@ -191,6 +247,16 @@ macro_rules! impl_from {
             impl<'a> From<$dtype> for AnyValue<'a> {
                 fn from(value: $dtype) -> Self {
                     Self::$variant(value)
+                }
+            }
+
+            impl<'a> From<AnyValue<'a>> for Option<$dtype> {
+                fn from(value: AnyValue<'a>) -> Self {
+                    if let AnyValue::$variant(v) = value {
+                        Some(v)
+                    } else {
+                        None
+                    }
                 }
             }
         )*

@@ -1,9 +1,10 @@
 use crate::builder::GeneticEngineBuilder;
+use crate::iter::EngineIterator;
 use crate::pipeline::Pipeline;
-use crate::{Chromosome, EngineEvent, EngineIterator};
+use crate::{Chromosome, EngineEvent};
 use crate::{EventBus, Generation};
 use radiate_core::engine::Context;
-use radiate_core::{Engine, Epoch, metric_names};
+use radiate_core::{Engine, metric_names};
 
 /// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -52,23 +53,20 @@ use radiate_core::{Engine, Epoch, metric_names};
 /// - `C`: The type of the chromosome used in the genotype, which must implement the [Chromosome] trait.
 /// - `T`: The type of the phenotype produced by the genetic algorithm, which must be `Clone`, `Send`, and `static`.
 /// - `E`: The type of the epoch produced by the genetic algorithm, which must implement the [Epoch] trait.
-pub struct GeneticEngine<C, T, E>
+pub struct GeneticEngine<C, T>
 where
     C: Chromosome,
     T: Clone + Send + Sync + 'static,
-    E: Epoch<C>,
 {
     context: Context<C, T>,
     pipeline: Pipeline<C>,
     bus: EventBus<EngineEvent<T>>,
-    _epoch: std::marker::PhantomData<E>,
 }
 
-impl<C, T, E> GeneticEngine<C, T, E>
+impl<C, T> GeneticEngine<C, T>
 where
-    C: Chromosome,
+    C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
-    E: Epoch<C>,
 {
     pub(crate) fn new(
         context: Context<C, T>,
@@ -79,39 +77,27 @@ where
             context,
             pipeline,
             bus,
-            _epoch: std::marker::PhantomData,
         }
     }
 
-    pub fn iter(self) -> EngineIterator<C, T, E>
-    where
-        E: for<'a> From<&'a Context<C, T>>,
-    {
+    pub fn builder() -> GeneticEngineBuilder<C, T> {
+        GeneticEngineBuilder::default()
+    }
+
+    pub fn iter(self) -> impl Iterator<Item = Generation<C, T>> {
         EngineIterator { engine: self }
     }
 }
 
-impl<C, T> GeneticEngine<C, T, Generation<C, T>>
+impl<C, T> Engine for GeneticEngine<C, T>
 where
     C: Chromosome + Clone,
     T: Clone + Send + Sync + 'static,
 {
-    pub fn builder() -> GeneticEngineBuilder<C, T, Generation<C, T>> {
-        GeneticEngineBuilder::default()
-    }
-}
-
-impl<C, T, E> Engine for GeneticEngine<C, T, E>
-where
-    C: Chromosome,
-    T: Clone + Send + Sync + 'static,
-    E: Epoch<C> + for<'a> From<&'a Context<C, T>>,
-{
-    type Chromosome = C;
-    type Epoch = E;
+    type Epoch = Generation<C, T>;
 
     #[inline]
-    fn next(&mut self) -> Self::Epoch {
+    fn next(&mut self) -> Generation<C, T> {
         if matches!(self.context.index, 0) {
             self.bus.emit(EngineEvent::start());
         }
@@ -151,15 +137,14 @@ where
 
         self.context.index += 1;
 
-        E::from(&self.context)
+        Generation::from(&self.context)
     }
 }
 
-impl<C, T, E> Drop for GeneticEngine<C, T, E>
+impl<C, T> Drop for GeneticEngine<C, T>
 where
     C: Chromosome,
     T: Clone + Send + Sync + 'static,
-    E: Epoch<C>,
 {
     fn drop(&mut self) {
         self.bus.emit(EngineEvent::stop(&self.context));

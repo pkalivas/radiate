@@ -12,28 +12,22 @@ fn main() {
         (NodeType::Output, vec![Op::linear()]),
     ];
 
-    let graph_codec = GraphCodec::directed(1, 1, values);
-    let problem = Regression::new(get_dataset(), Loss::MSE, graph_codec);
-
     let engine = GeneticEngine::builder()
-        .problem(problem)
+        .codec(GraphCodec::directed(1, 1, values))
+        .fitness_fn(Regression::new(dataset(), Loss::MSE))
+        // .diversity(NeatDistance::new(0.1, 0.1, 0.5))
         .minimizing()
-        // .executor(Executor::WorkerPool(10))
-        // .diversity(NeatDistance::new(1.0, 1.0, 3.0))
-        // .species_threshold(1.8)
-        // .max_species_age(25)
-        // .executor(Executor::Serial)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
-            GraphMutator::new(0.1, 0.1).allow_recurrent(false),
+            GraphMutator::new(0.1, 0.1).allow_recurrent(false)
         ))
         .build();
 
     engine
         .iter()
         .inspect(|generation| log_ctx!(generation))
-        .until_score_below(MIN_SCORE)
+        .until_score(MIN_SCORE)
         .take(1)
         .last()
         .inspect(display);
@@ -42,7 +36,7 @@ fn main() {
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     let mut evaluator = GraphEvaluator::new(result.value());
 
-    let data_set = get_dataset();
+    let data_set = dataset().into();
     let accuracy = Accuracy::new("reg", &data_set, Loss::MSE);
     let accuracy_result = accuracy.calc(|input| evaluator.eval_mut(input));
 
@@ -50,7 +44,7 @@ fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     println!("{:?}", accuracy_result);
 }
 
-fn get_dataset() -> DataSet {
+fn dataset() -> impl Into<DataSet> {
     let mut inputs = Vec::new();
     let mut answers = Vec::new();
 
@@ -61,7 +55,7 @@ fn get_dataset() -> DataSet {
         answers.push(vec![compute(input)]);
     }
 
-    DataSet::new(inputs, answers)
+    (inputs, answers)
 }
 
 fn compute(x: f32) -> f32 {

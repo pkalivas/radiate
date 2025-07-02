@@ -3,13 +3,14 @@ import sys
 import math
 import matplotlib.pyplot as plt
 from numba import jit, cfunc, vectorize
+import numpy as np
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, project_root)
 
 import radiate as rd
 
-rd.random.set_seed(1000)
+rd.random.set_seed(501)
 
 
 class TestHandler(rd.EventHandler):
@@ -20,8 +21,8 @@ class TestHandler(rd.EventHandler):
     def on_event(self, event):
         
         if event["type"] == "epoch_complete":
-            # self.scores.append(event["score"])
-            self.scores.append(event['metrics']['unique_members']['value_last'])
+            self.scores.append(event["score"])
+            # self.scores.append(event['metrics']['unique_members']['value_last'])
         elif event["type"] == "stop":
             plt.plot(self.scores)
             plt.xlabel("Generation")
@@ -34,7 +35,7 @@ class TestHandler(rd.EventHandler):
 
 
 # engine = rd.GeneticEngine(
-#     codec=rd.IntCodec.vector(10, (0, 10)),
+#     codec=rd.IntCodec.vector(50, (0, 10)),
 #     fitness_func=lambda x: sum(x),
 #     offspring_selector=rd.BoltzmannSelector(4),
 #     objectives="min",
@@ -46,12 +47,12 @@ class TestHandler(rd.EventHandler):
 #     ],
 # )
 
-# result = engine.run(rd.ScoreLimit(0))
+# result = engine.run(rd.ScoreLimit(0), log=True)
 
 # print(result)
 
-# inputs = [[1.0, 1.0], [1.0, 0.0], [0.0, 1.0], [0.0, 0.0]]
-# answers = [[0.0], [1.0], [1.0], [0.0]]
+inputs = [[1.0, 1.0], [1.0, 0.0], [0.0, 1.0], [0.0, 0.0]]
+answers = [[0.0], [1.0], [1.0], [0.0]]
 
 
 def compute(x: float) -> float:
@@ -76,34 +77,84 @@ inputs, answers = get_dataset()
 # inputs = [[0.0], [0.0], [0.0], [1.0], [0.0], [0.0], [0.0]]
 # answers = [[0.0], [0.0], [1.0], [0.0], [0.0], [0.0], [1.0]]
 
-codec = rd.GraphCodec.directed(
-    shape=(1, 1),
-    vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
-    edge=rd.Op.weight(),
-    output=rd.Op.linear(),
-)
+# def fitness_func(graph: rd.Graph) -> float:
+#     error = 0.0
+#     outputs = graph.eval(inputs)
+#     for output, target in zip(outputs, answers):
+#         error += (output[0] - target[0]) ** 2
+#     return error / len(answers)
 
-engine = rd.GeneticEngine(
-    codec=codec,
-    problem=rd.Regression(inputs, answers),
-    objectives="min",
-    offspring_selector=rd.BoltzmannSelector(4.0),
-    subscribe=TestHandler(),
-    executor=rd.Executor.FixedSizedWorkerPool(4),
-    alters=[
-        rd.GraphCrossover(0.75, 0.3),
-        rd.OperationMutator(0.07, 0.05),
-        rd.GraphMutator(0.1, 0.1),
-        
-    ],
-)
+# codec = rd.GraphCodec.directed(
+#     shape=(1, 1),
+#     vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+#     edge=rd.Op.weight(),
+#     output=rd.Op.linear(),
+# )
 
-result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)], log=True)
+# engine = rd.GeneticEngine(
+#     codec=codec,
+#     fitness_func=rd.Regression(inputs, answers),
+#     objectives="min",
+#     alters=[
+#         rd.GraphCrossover(0.5, 0.5),
+#         rd.OperationMutator(0.07, 0.05),
+#         rd.GraphMutator(0.1, 0.1),
+#     ],
+# )
 
-print(result.value())
+# result = engine.run([rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000)], log=True)
+# print(result)
 
-for input, target in zip(inputs, answers): 
-    print(f"Input: {round(input[0], 2)}, Target: {round(target[0], 2)}, Output: {round(result.value().eval([input])[0][0], 2)}")
+# codec = rd.TreeCodec(
+#     shape=(1, 1),
+#     vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.add()],
+#     root=rd.Op.linear(),
+# )
+
+# engine = rd.GeneticEngine(
+#     codec=codec,
+#     fitness_func=rd.Regression(inputs, answers),
+#     objectives="min",
+#     alters=[
+#         rd.TreeCrossover(0.7),
+#         rd.HoistMutator(0.01),
+#     ],
+# )
+
+# result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(100)], log=True)
+# print(result)
+# print(result.value().__repr__())
+
+# function_inputs = [4.0, -2.0, 3.5, 5.0, -11.0, -4.7]
+# desired_output = 44.0
+
+# def genetic_fitness(solution):
+#     output = np.sum(np.array(solution) * function_inputs)
+#     return np.abs(output - desired_output) + 0.000001
+
+
+# engine = rd.GeneticEngine(
+#     codec=rd.FloatCodec.vector(len(function_inputs), (-4.0, 4.0)),
+#     fitness_func=genetic_fitness,
+#     objectives="min",
+# )
+
+# result = engine.run(rd.ScoreLimit(0.01), log=True)
+# print(result)
+
+# #
+# print(genetic_fitness(result.value()))
+
+# def encoder():
+#     return [1, 'hi', 3.0, True, [1, 2, 3], {'a': 1, 'b': 2}]
+
+# any_codec = rd.AnyCodec(encoder)
+
+# print(any_codec.encode())
+# print(any_codec.decode(any_codec.encode()))
+
+# for input, target in zip(inputs, answers): 
+#     print(f"Input: {round(input[0], 2)}, Target: {round(target[0], 2)}, Output: {round(result.value().eval([input])[0][0], 2)}")
 
 # print(result.value().eval([[0.5], [0.25], [0.75], [0.1], [0.9]]))
 
@@ -117,7 +168,7 @@ for input, target in zip(inputs, answers):
 
 # N_QUEENS = 32
 
-# # @jit(nopython=True, nogil=True)
+# @jit(nopython=True, nogil=True)
 # def fitness_fn(queens):
 #     """Calculate the fitness score for the N-Queens problem."""
 #     score = 0
@@ -133,7 +184,7 @@ for input, target in zip(inputs, answers):
 # engine = rd.GeneticEngine(
 #     codec=codec,
 #     fitness_func=fitness_fn,
-#     executor=rd.Executor.WorkerPool(),
+#     # executor=rd.Executor.WorkerPool(),
 #     objectives="min",
 #     offspring_selector=rd.BoltzmannSelector(4.0),
 #     alters=[
@@ -141,9 +192,9 @@ for input, target in zip(inputs, answers):
 #         rd.UniformMutator(0.05)
 #     ]
 # )
-# result = engine.run(rd.ScoreLimit(0), log=False)
+# result = engine.run(rd.ScoreLimit(0), log=True)
 # print(result)
-# print(engine)
+
 
 # board = result.value()
 # for i in range(N_QUEENS):
@@ -196,44 +247,44 @@ for input, target in zip(inputs, answers):
 
 # print(engine.run(rd.ScoreLimit(0.0001)))
 
-# variables = 4
-# objectives = 3
-# k = variables - objectives + 1
+variables = 4
+objectives = 3
+k = variables - objectives + 1
 
 
 # @jit(nopython=True, nogil=True)
-# def dtlz_1(val):
-#     g = 0.0
-#     for i in range(variables - k, variables):
-#         g += (val[i] - 0.5) ** 2 - math.cos(20.0 * math.pi * (val[i] - 0.5))
-#     g = 100.0 * (k + g)
-#     f = [0.0] * objectives
-#     for i in range(objectives):
-#         f[i] = 0.5 * (1.0 + g)
-#         for j in range(objectives - 1 - i):
-#             f[i] *= val[j]
-#         if i != 0:
-#             f[i] *= 1.0 - val[objectives - 1 - i]
-#     return f
+def dtlz_1(val):
+    g = 0.0
+    for i in range(variables - k, variables):
+        g += (val[i] - 0.5) ** 2 - math.cos(20.0 * math.pi * (val[i] - 0.5))
+    g = 100.0 * (k + g)
+    f = [0.0] * objectives
+    for i in range(objectives):
+        f[i] = 0.5 * (1.0 + g)
+        for j in range(objectives - 1 - i):
+            f[i] *= val[j]
+        if i != 0:
+            f[i] *= 1.0 - val[objectives - 1 - i]
+    return f
 
 
 # engine = rd.GeneticEngine(
-#     codec=rd.FloatCodec.vector(variables, (0.0, 1.0), (-100.0, 100.0)),
+#     codec=rd.FloatCodec.vector(variables, (0.0, 1.0), (-2.0, 2.0)),
 #     fitness_func=dtlz_1,
-#     offspring_selector=rd.TournamentSelector(k=5),
+#     offspring_selector=rd.TournamentSelector(k=8),
 #     survivor_selector=rd.NSGA2Selector(),
 #     objectives=["min" for _ in range(objectives)],
-#     num_threads=10,
 #     alters=[
-#         rd.SimulatedBinaryCrossover(1.0, 1.0),
-#         rd.UniformMutator(0.1)
+#         rd.SimulatedBinaryCrossover(1.0, 2.0),
+#         rd.UniformMutator(0.1),
 #     ],
 # )
 
-# result = engine.run(rd.GenerationsLimit(1000))
+# result = engine.run(rd.GenerationsLimit(5000), log=True)
 # print(result)
 
 # front = result.value()
+# print(f"Front size: {len(front)}")
 # fig = plt.figure()
 # ax = plt.axes(projection="3d")
 
@@ -241,6 +292,9 @@ for input, target in zip(inputs, answers):
 # y = [member["fitness"][1] for member in front]
 # z = [member["fitness"][2] for member in front]
 # ax.scatter(x, y, z, c="r", marker="o")
+# ax.set_xlim([0, 0.5])
+# ax.set_ylim([0, 0.5])
+# ax.set_zlim([0, 0.5])
 # plt.show()
 
 

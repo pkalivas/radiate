@@ -49,12 +49,10 @@ pub fn any_value_into_py_object<'py>(av: AnyValue, py: Python<'py>) -> PyResult<
     }
 }
 
-/// Convert a Python object to an [`AnyValue`].
 pub fn py_object_to_any_value<'py>(
     ob: &Bound<'py, PyAny>,
     strict: bool,
 ) -> PyResult<AnyValue<'py>> {
-    // Conversion functions.
     fn get_null(_ob: &Bound<'_, PyAny>, _strict: bool) -> PyResult<AnyValue<'static>> {
         Ok(AnyValue::Null)
     }
@@ -153,16 +151,10 @@ pub fn py_object_to_any_value<'py>(
         }
     }
 
-    /// Determine which conversion function to use for the given object.
-    ///
-    /// Note: This function is only ran if the object's type is not already in the
-    /// lookup table.
     fn get_conversion_function(ob: &Bound<'_, PyAny>, strict: bool) -> PyResult<InitFn> {
         if ob.is_none() {
             Ok(get_null)
-        }
-        // bool must be checked before int because Python bool is an instance of int.
-        else if ob.is_instance_of::<PyBool>() {
+        } else if ob.is_instance_of::<PyBool>() {
             Ok(get_bool)
         } else if ob.is_instance_of::<PyInt>() {
             Ok(get_int)

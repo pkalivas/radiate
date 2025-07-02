@@ -1,14 +1,19 @@
 from __future__ import annotations
 
 from typing import Tuple
-from radiate.radiate import PyGene, PyGeneType
+from radiate.radiate import PyGene
 
 class GeneType:
-    FLOAT = PyGeneType.Float
-    INT = PyGeneType.Int
-    BIT = PyGeneType.Bit
-    CHAR = PyGeneType.Char
-    GRAPH = PyGeneType.Graph
+    FLOAT = 'float'
+    INT = 'int'
+    BIT = 'bit'
+    CHAR = 'char'
+    GRAPH = 'graph'
+    TREE = 'tree'
+
+    CORE = {FLOAT, INT, BIT, CHAR}
+    ALL = {FLOAT, INT, BIT, CHAR, GRAPH, TREE}
+
 
 class Gene:
     def __init__(self, py_gene: PyGene):

@@ -3,11 +3,11 @@ use std::fmt::{Display, Formatter};
 use std::hash::{Hash, Hasher};
 
 pub trait IntoPyObjectValue {
-    fn into_py(self) -> ObjectValue;
+    fn into_py<'py>(self, py: Python<'py>) -> ObjectValue;
 }
 
 impl IntoPyObjectValue for ObjectValue {
-    fn into_py(self) -> ObjectValue {
+    fn into_py<'py>(self, _: Python<'py>) -> ObjectValue {
         self
     }
 }

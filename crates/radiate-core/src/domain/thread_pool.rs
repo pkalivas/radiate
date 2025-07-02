@@ -11,12 +11,6 @@ struct FixedThreadPool {
     inner: Arc<ThreadPool>,
 }
 
-impl AsRef<ThreadPool> for FixedThreadPool {
-    fn as_ref(&self) -> &ThreadPool {
-        &self.inner
-    }
-}
-
 impl FixedThreadPool {
     /// Returns the global instance of the registry.
     pub(self) fn instance(num_workers: usize) -> &'static FixedThreadPool {
@@ -28,8 +22,8 @@ impl FixedThreadPool {
     }
 }
 
-pub fn get_thread_pool(num_workers: usize) -> &'static ThreadPool {
-    &FixedThreadPool::instance(num_workers).inner
+pub fn get_thread_pool(num_workers: usize) -> Arc<ThreadPool> {
+    Arc::clone(&FixedThreadPool::instance(num_workers).inner)
 }
 
 /// [WorkResult] is a simple wrapper around a `Receiver` that allows the user to get

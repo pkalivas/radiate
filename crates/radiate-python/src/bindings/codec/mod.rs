@@ -1,22 +1,23 @@
+mod any;
 mod bit;
 mod char;
 mod float;
 mod graph;
 mod int;
+mod tree;
 
 use std::sync::Arc;
 
-use crate::{ObjectValue, conversion::Wrap};
+pub use any::PyAnyCodec;
 pub use bit::PyBitCodec;
 pub use char::PyCharCodec;
 pub use float::PyFloatCodec;
 pub use graph::{PyGraph, PyGraphCodec};
 pub use int::PyIntCodec;
+pub use tree::{PyTree, PyTreeCodec};
 
-use pyo3::{Bound, FromPyObject, PyAny, PyResult, Python, types::PyAnyMethods};
-use radiate::{
-    BitChromosome, CharChromosome, Chromosome, Codec, FloatChromosome, Genotype, IntChromosome,
-};
+use pyo3::Python;
+use radiate::{Chromosome, Codec, Genotype};
 
 #[derive(Clone)]
 pub struct PyCodec<C: Chromosome, T> {
@@ -74,78 +75,3 @@ impl<C: Chromosome, T> Codec<C, T> for PyCodec<C, T> {
 
 unsafe impl<C: Chromosome, T> Send for PyCodec<C, T> {}
 unsafe impl<C: Chromosome, T> Sync for PyCodec<C, T> {}
-
-impl<'py> FromPyObject<'py> for Wrap<PyCodec<FloatChromosome, ObjectValue>> {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let codec_attr = ob.getattr("codec")?;
-
-        if codec_attr.is_instance_of::<PyFloatCodec>() {
-            let codec = codec_attr.extract::<PyFloatCodec>()?.codec;
-            return Ok(Wrap(codec));
-        }
-
-        Err(pyo3::exceptions::PyTypeError::new_err(
-            "Expected a PyFloatCodec, but got a different codec type",
-        ))
-    }
-}
-
-impl<'py> FromPyObject<'py> for Wrap<PyCodec<CharChromosome, ObjectValue>> {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let codec_attr = ob.getattr("codec")?;
-
-        if codec_attr.is_instance_of::<PyCharCodec>() {
-            let codec = codec_attr.extract::<PyCharCodec>()?.codec;
-            return Ok(Wrap(codec));
-        }
-
-        Err(pyo3::exceptions::PyTypeError::new_err(
-            "Expected a PyCharCodec, but got a different codec type",
-        ))
-    }
-}
-
-impl<'py> FromPyObject<'py> for Wrap<PyCodec<IntChromosome<i32>, ObjectValue>> {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let codec_attr = ob.getattr("codec")?;
-
-        if codec_attr.is_instance_of::<PyIntCodec>() {
-            let codec = codec_attr.extract::<PyIntCodec>()?.codec;
-            return Ok(Wrap(codec));
-        }
-
-        Err(pyo3::exceptions::PyTypeError::new_err(
-            "Expected a PyIntCodec, but got a different codec type",
-        ))
-    }
-}
-
-impl<'py> FromPyObject<'py> for Wrap<PyCodec<BitChromosome, ObjectValue>> {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let codec_attr = ob.getattr("codec")?;
-
-        if codec_attr.is_instance_of::<PyBitCodec>() {
-            let codec = codec_attr.extract::<PyBitCodec>()?.codec;
-            return Ok(Wrap(codec));
-        }
-
-        Err(pyo3::exceptions::PyTypeError::new_err(
-            "Expected a PyBitCodec, but got a different codec type",
-        ))
-    }
-}
-
-// impl<'py> FromPyObject<'py> for Wrap<PyCodec<GraphChromosome<Op<f32>>, Graph<Op<f32>>>> {
-//     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-//         let codec_attr = ob.getattr("codec")?;
-
-//         if codec_attr.is_instance_of::<PyGraphCodec>() {
-//             let codec = codec_attr.extract::<PyGraphCodec>()?.codec;
-//             return Ok(Wrap(codec));
-//         }
-
-//         Err(pyo3::exceptions::PyTypeError::new_err(
-//             "Expected a PyCharCodec, but got a different codec type",
-//         ))
-//     }
-// }

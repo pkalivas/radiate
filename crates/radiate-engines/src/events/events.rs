@@ -126,7 +126,7 @@ impl<T> EngineEvent<T> {
     {
         EngineEvent::EpochComplete {
             index: context.index,
-            metrics: context.metrics.clone(),
+            metrics: context.epoch_metrics.clone(),
             best: context.best.clone(),
             score: context.score.clone().unwrap_or_default(),
         }

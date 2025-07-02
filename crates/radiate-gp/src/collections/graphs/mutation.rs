@@ -125,7 +125,6 @@ where
                     }
                     TransactionResult::Valid(steps) => {
                         chromosome.set_nodes(graph.into_iter().collect());
-
                         steps.len().into()
                     }
                 };

@@ -1,5 +1,5 @@
 use crate::GeneticEngineBuilder;
-use radiate_core::{Chromosome, Epoch, Select};
+use radiate_core::{Chromosome, Select};
 use radiate_error::radiate_err;
 use std::sync::Arc;
 
@@ -10,11 +10,10 @@ pub struct SelectionParams<C: Chromosome> {
     pub offspring_selector: Arc<dyn Select<C>>,
 }
 
-impl<C, T, E> GeneticEngineBuilder<C, T, E>
+impl<C, T> GeneticEngineBuilder<C, T>
 where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send,
-    E: Epoch<C>,
 {
     /// Set the fraction of the population that will be replaced by offspring each generation.
     /// Default is 0.8. This is a value from 0...=1 that represents the fraction of

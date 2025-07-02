@@ -1,5 +1,5 @@
-use crate::{GeneticEngineBuilder, ParetoGeneration};
-use radiate_core::{Chromosome, Epoch, Front, Objective, Optimize, Phenotype};
+use crate::GeneticEngineBuilder;
+use radiate_core::{Chromosome, Front, Objective, Optimize, Phenotype};
 use std::ops::Range;
 
 #[derive(Clone)]
@@ -9,11 +9,10 @@ pub struct OptimizeParams<C: Chromosome> {
     pub front: Option<Front<Phenotype<C>>>,
 }
 
-impl<C, T, E> GeneticEngineBuilder<C, T, E>
+impl<C, T> GeneticEngineBuilder<C, T>
 where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send,
-    E: Epoch<C>,
 {
     /// Set the optimization goal of the genetic engine to minimize the fitness function.
     pub fn minimizing(mut self) -> Self {
@@ -27,30 +26,16 @@ where
         self
     }
 
-    pub fn multi_objective(
-        mut self,
-        objectives: Vec<Optimize>,
-    ) -> GeneticEngineBuilder<C, T, ParetoGeneration<C>> {
+    pub fn multi_objective(mut self, objectives: Vec<Optimize>) -> GeneticEngineBuilder<C, T> {
         self.params.optimization_params.objectives = Objective::Multi(objectives);
-        GeneticEngineBuilder {
-            params: self.params,
-            errors: self.errors,
-            _epoch: std::marker::PhantomData,
-        }
+        self
     }
 
     /// Set the minimum and maximum size of the pareto front. This is used for
     /// multi-objective optimization problems where the goal is to find the best
     /// solutions that are not dominated by any other solution.
-    pub fn front_size(
-        mut self,
-        range: Range<usize>,
-    ) -> GeneticEngineBuilder<C, T, ParetoGeneration<C>> {
+    pub fn front_size(mut self, range: Range<usize>) -> GeneticEngineBuilder<C, T> {
         self.params.optimization_params.front_range = range;
-        GeneticEngineBuilder {
-            params: self.params,
-            errors: self.errors,
-            _epoch: std::marker::PhantomData,
-        }
+        self
     }
 }

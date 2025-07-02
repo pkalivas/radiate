@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::collections::GraphChromosome;
 use crate::node::Node;
 use radiate_core::genome::*;
@@ -21,7 +23,7 @@ impl GraphCrossover {
 
 impl<T> Crossover<GraphChromosome<T>> for GraphCrossover
 where
-    T: Clone + PartialEq,
+    T: Clone + PartialEq + Debug,
 {
     fn rate(&self) -> f32 {
         self.crossover_rate

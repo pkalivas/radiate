@@ -1,5 +1,4 @@
 mod alters;
-mod audit;
 mod evaluators;
 mod objectives;
 mod population;
@@ -20,23 +19,23 @@ use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
 use crate::steps::{AuditStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
 use crate::{
-    Alter, Audit, Crossover, EncodeReplace, EngineEvent, EngineProblem, EngineStep, EventBus,
-    EventHandler, Front, MetricAudit, Mutate, Problem, ReplacementStrategy, RouletteSelector,
-    Select, TournamentSelector, pareto,
+    Alter, Crossover, EncodeReplace, EngineEvent, EngineProblem, EngineStep, EventBus,
+    EventHandler, Front, Mutate, Problem, ReplacementStrategy, RouletteSelector, Select,
+    TournamentSelector, pareto,
 };
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use core::panic;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::engine::Context;
 use radiate_core::{
-    Diversity, Ecosystem, Epoch, Evaluator, Executor, FitnessEvaluator, Genotype, MetricSet,
+    Diversity, Ecosystem, Evaluator, Executor, FitnessEvaluator, Genotype, MetricSet,
 };
 use radiate_error::RadiateError;
 use std::cmp::Ordering;
 use std::sync::{Arc, Mutex, RwLock};
 
 #[derive(Clone)]
-pub struct EngineParams<C, T = Genotype<C>>
+pub struct EngineParams<C, T>
 where
     C: Chromosome + 'static,
     T: Clone + 'static,
@@ -48,7 +47,6 @@ where
     pub optimization_params: OptimizeParams<C>,
 
     pub alterers: Vec<Arc<dyn Alter<C>>>,
-    pub audits: Vec<Arc<dyn Audit<C>>>,
     pub codec: Option<Arc<dyn Codec<C, T>>>,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
     pub problem: Option<Arc<dyn Problem<C, T>>>,
@@ -71,21 +69,19 @@ where
 /// - `E`: The type of epoch used in the genetic engine, which must implement the `Epoch` trait.
 ///
 #[derive(Clone)]
-pub struct GeneticEngineBuilder<C, T, E>
+pub struct GeneticEngineBuilder<C, T>
 where
     C: Chromosome + Clone + 'static,
     T: Clone + 'static,
 {
     params: EngineParams<C, T>,
     errors: Vec<RadiateError>,
-    _epoch: std::marker::PhantomData<E>,
 }
 
-impl<C, T, E> GeneticEngineBuilder<C, T, E>
+impl<C, T> GeneticEngineBuilder<C, T>
 where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send,
-    E: Epoch<C>,
 {
     /// The `FilterStrategy` is used to determine how a new individual is added to the `Population`
     /// if an individual is deemed to be either invalid or reaches the maximum age.
@@ -115,15 +111,14 @@ where
 }
 
 /// Static step builder for the genetic engine.
-impl<C, T, E> GeneticEngineBuilder<C, T, E>
+impl<C, T> GeneticEngineBuilder<C, T>
 where
     C: Chromosome + Clone + PartialEq + 'static,
     T: Clone + Send + Sync + 'static,
-    E: Epoch<C>,
 {
     /// Build the genetic engine with the given parameters. This will create a new
     /// instance of the `GeneticEngine` with the given parameters.
-    pub fn build(mut self) -> GeneticEngine<C, T, E> {
+    pub fn build(mut self) -> GeneticEngine<C, T> {
         if self.params.problem.is_none() {
             if self.params.codec.is_none() {
                 panic!("Codec not set");
@@ -173,12 +168,13 @@ where
                 self.params.handlers.clone(),
             );
 
-            GeneticEngine::<C, T, E>::new(context, pipeline, event_bus)
+            GeneticEngine::<C, T>::new(context, pipeline, event_bus)
         }
     }
 
     fn build_eval_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
         let evaluator = config.evaluator.clone();
+
         let eval_step = EvaluateStep {
             objective: config.objective.clone(),
             problem: config.problem.clone(),
@@ -212,16 +208,8 @@ where
         Some(Box::new(filter_step))
     }
 
-    fn build_audit_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
-        if config.audits().is_empty() {
-            return None;
-        }
-
-        let audit_step = AuditStep {
-            audits: config.audits().to_vec(),
-        };
-
-        Some(Box::new(audit_step))
+    fn build_audit_step(_: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+        Some(Box::new(AuditStep))
     }
 
     fn build_front_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
@@ -290,12 +278,10 @@ where
             return;
         }
 
-        let front_executor = self.params.evaluation_params.front_executor.clone();
         let front_obj = self.params.optimization_params.objectives.clone();
         self.params.optimization_params.front = Some(Front::new(
             self.params.optimization_params.front_range.clone(),
             front_obj.clone(),
-            front_executor,
             move |one: &Phenotype<C>, two: &Phenotype<C>| {
                 if one.score().is_none() || two.score().is_none() {
                     return Ordering::Equal;
@@ -315,11 +301,10 @@ where
     }
 }
 
-impl<C, T, E> Default for GeneticEngineBuilder<C, T, E>
+impl<C, T> Default for GeneticEngineBuilder<C, T>
 where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + 'static,
-    E: Epoch<C>,
 {
     fn default() -> Self {
         GeneticEngineBuilder {
@@ -338,7 +323,6 @@ where
                     evaluator: Arc::new(FitnessEvaluator::new(Arc::new(Executor::default()))),
                     fitness_executor: Arc::new(Executor::default()),
                     species_executor: Arc::new(Executor::default()),
-                    front_executor: Arc::new(Executor::default()),
                     bus_executor: Arc::new(Executor::default()),
                 },
                 selection_params: SelectionParams {
@@ -351,8 +335,8 @@ where
                     front_range: 800..900,
                     front: None,
                 },
+
                 replacement_strategy: Arc::new(EncodeReplace),
-                audits: vec![Arc::new(MetricAudit)],
                 alterers: Vec::new(),
                 codec: None,
                 fitness_fn: None,
@@ -360,7 +344,6 @@ where
                 handlers: Vec::new(),
             },
             errors: Vec::new(),
-            _epoch: std::marker::PhantomData,
         }
     }
 }
@@ -372,7 +355,6 @@ struct EngineConfig<C: Chromosome, T: Clone> {
     survivor_selector: Arc<dyn Select<C>>,
     offspring_selector: Arc<dyn Select<C>>,
     replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
-    audits: Vec<Arc<dyn Audit<C>>>,
     alterers: Vec<Arc<dyn Alter<C>>>,
     species_threshold: f32,
     diversity: Option<Arc<dyn Diversity<C>>>,
@@ -400,10 +382,6 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
 
     pub fn replacement_strategy(&self) -> Arc<dyn ReplacementStrategy<C>> {
         Arc::clone(&self.replacement_strategy)
-    }
-
-    pub fn audits(&self) -> &[Arc<dyn Audit<C>>] {
-        &self.audits
     }
 
     pub fn alters(&self) -> &[Arc<dyn Alter<C>>] {
@@ -468,7 +446,6 @@ where
             survivor_selector: params.selection_params.survivor_selector.clone(),
             offspring_selector: params.selection_params.offspring_selector.clone(),
             replacement_strategy: params.replacement_strategy.clone(),
-            audits: params.audits.clone(),
             alterers: params.alterers.clone(),
             objective: params.optimization_params.objectives.clone(),
             max_age: params.population_params.max_age,
@@ -482,5 +459,41 @@ where
             evaluator: params.evaluation_params.evaluator.clone(),
             executor: params.evaluation_params.clone(),
         }
+    }
+}
+
+impl<C, T> std::fmt::Debug for EngineConfig<C, T>
+where
+    C: Chromosome + Clone + 'static,
+    T: Clone + Send + Sync + 'static,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("EngineConfig")
+            .field("population_size", &self.population.len())
+            .field("problem", &"EngineProblem")
+            .field(
+                "survivor_selector",
+                &self.survivor_selector.name().to_string(),
+            )
+            .field(
+                "offspring_selector",
+                &self.offspring_selector.name().to_string(),
+            )
+            .field("alterers", &self.alterers.len())
+            .field("objective", &self.objective)
+            .field("max_age", &self.max_age)
+            .field("max_species_age", &self.max_species_age)
+            .field("species_threshold", &self.species_threshold)
+            .field(
+                "diversity",
+                if self.diversity.is_some() {
+                    &"Some(Diversity)"
+                } else {
+                    &"None"
+                },
+            )
+            .field("front_range", &self.front.read().unwrap().range())
+            .field("offspring_fraction", &self.offspring_fraction)
+            .finish()
     }
 }

@@ -71,7 +71,7 @@ where
                     best,
                     score,
                 } => {
-                    let best = best.clone().into_py();
+                    let best = best.clone().into_py(py);
 
                     dict.set_item("type", "stop").unwrap();
                     dict.set_item("metrics", Wrap(metrics.clone())).unwrap();
@@ -88,7 +88,7 @@ where
                     best,
                     score,
                 } => {
-                    let best = best.clone().into_py();
+                    let best = best.clone().into_py(py);
                     dict.set_item("type", "epoch_complete").unwrap();
                     dict.set_item("index", index).unwrap();
                     dict.set_item("metrics", Wrap(metrics.clone())).unwrap();
@@ -104,7 +104,7 @@ where
                     dict.set_item("step", step).unwrap();
                 }
                 EngineEvent::EngineImprovement { index, best, score } => {
-                    let best = best.clone().into_py();
+                    let best = best.clone().into_py(py);
                     dict.set_item("type", "engine_improvement").unwrap();
                     dict.set_item("index", index).unwrap();
                     dict.set_item("best", best.inner).unwrap();

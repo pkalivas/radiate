@@ -1,122 +1,5 @@
-from typing import List, Callable, Any
+from typing import List
 import radiate as rd
-
-
-def _int_fitness_func() -> Callable[[List[int]], Any]:
-    def inner(x: List[int]) -> int:
-        return sum(x)
-    return inner
-
-
-def _int_codec() -> rd.IntCodec:
-    return rd.IntCodec.vector(10, value_range=(0, 10))
-
-
-def test_engine_set_population_size():
-    pop_size = 123
-
-    engine_one = rd.GeneticEngine(
-        _int_codec(), _int_fitness_func(), population_size=pop_size
-    )
-
-    engine_two = rd.GeneticEngine(_int_codec(), _int_fitness_func())
-    engine_two.population_size(pop_size)
-
-    assert engine_one.__dict__()["population_size"] == pop_size
-    assert engine_two.__dict__()["population_size"] == pop_size
-
-
-def test_engine_set_offspring_fraction():
-    offspring_frac = 0.5
-
-    engine_one = rd.GeneticEngine(
-        _int_codec(), _int_fitness_func(), offspring_fraction=offspring_frac
-    )
-
-    engine_two = rd.GeneticEngine(_int_codec(), _int_fitness_func())
-    engine_two.offspring_fraction(offspring_frac)
-
-    assert engine_one.__dict__()["offspring_fraction"] == offspring_frac
-    assert engine_two.__dict__()["offspring_fraction"] == offspring_frac
-
-
-def test_engine_set_ages():
-    max_phenotype_age = 20
-    max_species_age = 20
-    species_threshold = 1.5
-
-    engine_one = rd.GeneticEngine(
-        _int_codec(),
-        _int_fitness_func(),
-        max_phenotype_age=max_phenotype_age,
-        max_species_age=max_species_age,
-        species_threshold=species_threshold,
-    )
-
-    engine_two = rd.GeneticEngine(_int_codec(), _int_fitness_func())
-    engine_two.max_age(
-        max_phenotype_age=max_phenotype_age, max_species_age=max_species_age
-    )
-    engine_two.diversity(rd.HammingDistance(), species_threshold)
-
-    assert engine_one.__dict__()["max_phenotype_age"] == max_phenotype_age
-    assert engine_two.__dict__()["max_phenotype_age"] == max_phenotype_age
-    assert engine_one.__dict__()["max_species_age"] == max_species_age
-    assert engine_two.__dict__()["max_species_age"] == max_species_age
-    assert engine_one.__dict__()["species_threshold"] == species_threshold
-    assert engine_two.__dict__()["species_threshold"] == species_threshold
-
-
-def test_engine_set_alters():
-    alters = [rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.01)]
-
-    engine_one = rd.GeneticEngine(_int_codec(), _int_fitness_func(), alters=alters)
-
-    engine_two = rd.GeneticEngine(_int_codec(), _int_fitness_func())
-    engine_two.alters(alters)
-
-    engine_one_alters = engine_one.__dict__()["alters"]
-    engine_two_alters = engine_two.__dict__()["alters"]
-
-    assert len(engine_one_alters) == len(alters)
-    assert len(engine_two_alters) == len(alters)
-    assert all(
-        a1.__class__ == a2.__class__
-        for a1, a2 in zip(engine_one_alters, engine_two_alters)
-    )
-    assert all(
-        a1.args() == a2.alterer.args() for a1, a2 in zip(engine_one_alters, alters)
-    )
-    assert all(
-        a1.args() == a2.alterer.args() for a1, a2 in zip(engine_two_alters, alters)
-    )
-
-
-def test_engine_set_selector():
-    survivor_selector = rd.EliteSelector()
-    offspring_selector = rd.BoltzmannSelector(4)
-
-    engine_one = rd.GeneticEngine(
-        _int_codec(),
-        _int_fitness_func(),
-        survivor_selector=survivor_selector,
-        offspring_selector=offspring_selector,
-    )
-
-    engine_two = rd.GeneticEngine(_int_codec(), _int_fitness_func())
-    engine_two.survivor_selector(survivor_selector)
-    engine_two.offspring_selector(offspring_selector)
-
-    engine_one_survivor_selector = engine_one.__dict__()["survivor_selector"]
-    engine_two_survivor_selector = engine_two.__dict__()["survivor_selector"]
-
-    engine_one_offspring_selector = engine_one.__dict__()["offspring_selector"]
-    engine_two_offspring_selector = engine_two.__dict__()["offspring_selector"]
-
-    assert engine_one_survivor_selector.args() == survivor_selector.selector.args()
-    assert engine_two_survivor_selector.args() == survivor_selector.selector.args()
-    assert engine_one_offspring_selector.args() == offspring_selector.selector.args()
-    assert engine_two_offspring_selector.args() == offspring_selector.selector.args()
 
 
 def test_engine_can_minimize():
@@ -176,8 +59,8 @@ def test_engine_minimizing_limits():
     assert len(result.value()) == N_GENES
     assert result.index() < 1000
 
-def test_engine_minimizing_graph():
 
+def test_engine_minimizing_graph():
     inputs = [[1.0, 1.0], [1.0, 0.0], [0.0, 1.0], [0.0, 0.0]]
     answers = [[0.0], [1.0], [1.0], [0.0]]
 
@@ -190,7 +73,7 @@ def test_engine_minimizing_graph():
 
     engine = rd.GeneticEngine(
         codec=codec,
-        problem=rd.Regression(inputs, answers),
+        fitness_func=rd.Regression(inputs, answers),
         objectives="min",
         alters=[
             rd.GraphCrossover(0.5, 0.5),
@@ -203,3 +86,58 @@ def test_engine_minimizing_graph():
 
     assert result.score()[0] < 0.001
     assert result.index() < 1000
+
+
+def test_engine_minimizing_tree():
+    inputs = [[1.0, 1.0], [1.0, 0.0], [0.0, 1.0], [0.0, 0.0]]
+    answers = [[0.0], [1.0], [1.0], [0.0]]
+
+    codec = rd.TreeCodec(
+        shape=(2, 1),
+        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sub()],
+        leaf=[rd.Op.var(0), rd.Op.var(1)],
+        root=rd.Op.linear(),
+    )
+
+    engine = rd.GeneticEngine(
+        codec=codec,
+        fitness_func=rd.Regression(inputs, answers),
+        objectives="min",
+        alters=[rd.TreeCrossover(0.5), rd.HoistMutator(0.1)],
+    )
+
+    result = engine.run([rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000)], log=False)
+
+    assert result.score()[0] < 0.001
+    assert result.index() < 1000
+
+
+def test_engine_raises_on_invalid_alterer():
+    engine = rd.GeneticEngine(
+        rd.IntCodec.vector(5, (0, 10)),
+        lambda x: sum(x),
+    )
+
+    try:
+        engine.alters([rd.GraphCrossover(0.5, 0.5)])
+        assert False, "Expected ValueError for invalid alterer"
+    except ValueError as e:
+        assert "Alterer GraphCrossover does not support gene type int" in str(e)
+
+
+def test_engine_raises_on_invalid_codec():
+    class DummyCodec(rd.CodecBase):
+        def encode(self, value):
+            pass
+
+        def decode(self, genome):
+            pass
+
+    try:
+        rd.GeneticEngine(
+            codec=DummyCodec(),
+            fitness_func=lambda x: x,
+        )
+        assert False, "Expected TypeError for unsupported codec"
+    except TypeError as e:
+        assert "Codec type" in str(e) and "is not supported" in str(e)

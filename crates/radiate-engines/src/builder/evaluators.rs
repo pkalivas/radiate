@@ -1,5 +1,5 @@
 use crate::GeneticEngineBuilder;
-use radiate_core::{Chromosome, Epoch, Evaluator, Executor, FitnessEvaluator};
+use radiate_core::{Chromosome, Evaluator, Executor, FitnessEvaluator};
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -11,15 +11,13 @@ where
     pub evaluator: Arc<dyn Evaluator<C, T>>,
     pub fitness_executor: Arc<Executor>,
     pub species_executor: Arc<Executor>,
-    pub front_executor: Arc<Executor>,
     pub bus_executor: Arc<Executor>,
 }
 
-impl<C, T, E> GeneticEngineBuilder<C, T, E>
+impl<C, T> GeneticEngineBuilder<C, T>
 where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send,
-    E: Epoch<C>,
 {
     pub fn evaluator<V: Evaluator<C, T> + 'static>(mut self, evaluator: V) -> Self {
         self.params.evaluation_params.evaluator = Arc::new(evaluator);
@@ -32,8 +30,7 @@ where
             evaluator: Arc::new(FitnessEvaluator::new(executor.clone())),
             fitness_executor: executor.clone(),
             species_executor: executor.clone(),
-            front_executor: executor.clone(),
-            bus_executor: executor,
+            bus_executor: executor.clone(),
         };
         self
     }
@@ -45,11 +42,6 @@ where
 
     pub fn species_executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
         self.params.evaluation_params.species_executor = executor.into();
-        self
-    }
-
-    pub fn front_executor(mut self, executor: impl Into<Arc<Executor>>) -> Self {
-        self.params.evaluation_params.front_executor = executor.into();
         self
     }
 

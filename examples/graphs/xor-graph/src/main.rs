@@ -14,10 +14,11 @@ fn main() {
     ];
 
     let graph_codec = GraphCodec::directed(2, 1, values);
-    let regression = Regression::new(get_dataset(), Loss::MSE, graph_codec);
+    let regression = Regression::new(get_dataset(), Loss::MSE);
 
     let mut engine = GeneticEngine::builder()
-        .problem(regression)
+        .codec(graph_codec)
+        .fitness_fn(regression)
         .minimizing()
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),

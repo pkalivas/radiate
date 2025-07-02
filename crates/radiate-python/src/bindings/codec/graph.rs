@@ -54,25 +54,25 @@ impl PyGraphCodec {
             }
         }
 
-        Self {
-            codec: match graph_type {
-                Some("recurrent") => GraphCodec::recurrent(input_size, output_size, values),
-                _ => GraphCodec::directed(input_size, output_size, values),
-            },
-        }
+        let codec = match graph_type {
+            Some("recurrent") => GraphCodec::recurrent(input_size, output_size, values),
+            _ => GraphCodec::directed(input_size, output_size, values),
+        };
+
+        Self { codec: codec }
     }
 }
 
 impl IntoPyObjectValue for Graph<Op<f32>> {
-    fn into_py(self) -> ObjectValue {
-        Python::with_gil(|py| ObjectValue {
+    fn into_py<'py>(self, py: Python<'py>) -> ObjectValue {
+        ObjectValue {
             inner: PyGraph {
                 inner: self,
                 eval_cache: None,
             }
             .into_py_any(py)
             .unwrap(),
-        })
+        }
     }
 }
 
@@ -103,6 +103,10 @@ impl PyGraph {
         }
         result.push(')');
         Ok(result)
+    }
+
+    pub fn __len__(&self) -> PyResult<usize> {
+        Ok(self.inner.len())
     }
 
     pub fn eval(&mut self, inputs: Vec<Vec<f32>>) -> PyResult<Vec<Vec<f32>>> {

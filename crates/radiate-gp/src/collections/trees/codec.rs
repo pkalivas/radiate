@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 type Constraint<N> = Arc<dyn Fn(&N) -> bool>;
 
+#[derive(Clone)]
 pub struct TreeCodec<T: Clone, D = Vec<Tree<T>>> {
     depth: usize,
     num_trees: usize,

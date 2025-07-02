@@ -70,6 +70,27 @@ impl<T> Valid for TreeChromosome<T> {
     }
 }
 
+impl<T> From<Vec<TreeNode<T>>> for TreeChromosome<T> {
+    fn from(nodes: Vec<TreeNode<T>>) -> Self {
+        TreeChromosome {
+            nodes,
+            store: None,
+            constraint: None,
+        }
+    }
+}
+
+impl<T> FromIterator<TreeNode<T>> for TreeChromosome<T> {
+    fn from_iter<I: IntoIterator<Item = TreeNode<T>>>(iter: I) -> Self {
+        let nodes: Vec<TreeNode<T>> = iter.into_iter().collect();
+        TreeChromosome {
+            nodes,
+            store: None,
+            constraint: None,
+        }
+    }
+}
+
 impl<T> AsRef<[TreeNode<T>]> for TreeChromosome<T> {
     fn as_ref(&self) -> &[TreeNode<T>] {
         &self.nodes

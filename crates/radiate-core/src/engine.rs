@@ -1,16 +1,8 @@
-use crate::{
-    Chromosome, Ecosystem, Front, MetricSet, Objective, Phenotype, Population, Problem, Score,
-    Species, metric_names,
-};
-use std::{
-    sync::{Arc, RwLock},
-    time::Duration,
-};
+use crate::{Chromosome, Ecosystem, Front, MetricSet, Objective, Phenotype, Problem, Score};
+use std::sync::{Arc, RwLock};
 
 pub trait Engine {
-    type Chromosome: Chromosome;
-    type Epoch: Epoch<Self::Chromosome>;
-
+    type Epoch;
     fn next(&mut self) -> Self::Epoch;
 }
 
@@ -37,36 +29,6 @@ where
                 break epoch;
             }
         }
-    }
-}
-
-pub trait Epoch<C: Chromosome> {
-    type Value;
-
-    fn value(&self) -> &Self::Value;
-    fn ecosystem(&self) -> &Ecosystem<C>;
-    fn index(&self) -> usize;
-    fn metrics(&self) -> &MetricSet;
-    fn objective(&self) -> &Objective;
-
-    fn population(&self) -> &Population<C> {
-        &self.ecosystem().population()
-    }
-
-    fn species(&self) -> Option<&[Species<C>]> {
-        self.ecosystem().species().map(|s| s.as_slice())
-    }
-
-    fn time(&self) -> Duration {
-        self.metrics()
-            .get(metric_names::TIME)
-            .map(|m| m.time_sum())
-            .flatten()
-            .unwrap_or_default()
-    }
-
-    fn seconds(&self) -> f64 {
-        self.time().as_secs_f64()
     }
 }
 
@@ -101,12 +63,6 @@ where
     pub objective: Objective,
     pub problem: Arc<dyn Problem<C, T>>,
 }
-
-// impl<C: Chromosome, T> Context<C, T> {
-//     pub fn upsert_time(&mut self, name: &'static str, value: Duration) {
-//         self.metrics.upsert_time(name, value);
-//     }
-// }
 
 impl<C, T> Clone for Context<C, T>
 where

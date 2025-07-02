@@ -88,3 +88,25 @@ pub trait Codec<C: Chromosome, T> {
 
     fn decode(&self, genotype: &Genotype<C>) -> T;
 }
+
+pub trait RefCodec<C: Chromosome, O>: Codec<C, O> {
+    fn decode<'a, 'b>(&self, genotype: &'a Genotype<C>) -> &'b Genotype<C>
+    where
+        'a: 'b;
+}
+
+// impl<T, F> RefCodec<GraphChromosome<T>, Graph<T>> for F
+// where
+//     T: Clone + PartialEq + Default,
+//     F: Codec<GraphChromosome<T>, Graph<T>>,
+// {
+//     fn decode<'a, 'b>(
+//         &self,
+//         genotype: &'a Genotype<GraphChromosome<T>>,
+//     ) -> &'b Genotype<GraphChromosome<T>>
+//     where
+//         'a: 'b,
+//     {
+//         genotype
+//     }
+// }

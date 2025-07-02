@@ -1,5 +1,5 @@
 use crate::GeneticEngineBuilder;
-use radiate_core::{Chromosome, Diversity, Epoch};
+use radiate_core::{Chromosome, Diversity};
 use radiate_error::radiate_err;
 use std::sync::Arc;
 
@@ -10,11 +10,10 @@ pub struct SpeciesParams<C: Chromosome> {
     pub max_species_age: usize,
 }
 
-impl<C, T, E> GeneticEngineBuilder<C, T, E>
+impl<C, T> GeneticEngineBuilder<C, T>
 where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send,
-    E: Epoch<C>,
 {
     pub fn boxed_diversity(mut self, diversity: Option<Box<dyn Diversity<C>>>) -> Self {
         self.params.species_params.diversity = diversity.map(|d| d.into());

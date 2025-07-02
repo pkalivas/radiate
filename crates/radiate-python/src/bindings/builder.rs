@@ -1,446 +1,678 @@
-use super::{PyAlterer, PyDiversity, PyEngine, PyObjective, PySelector, subscriber::PySubscriber};
+use crate::bindings::codec::PyTreeCodec;
+use crate::bindings::{EngineBuilderHandle, EngineHandle};
+use crate::events::PyEventHandler;
 use crate::{
-    PyBitCodec, PyCharCodec, PyExecutor, PyFloatCodec, PyGeneType, PyGraphCodec, PyIntCodec,
-    PyLimit, PyProblemBuilder, conversion::Wrap,
+    FreeThreadPyEvaluator, InputConverter, PyCodec, PyEngine, PyEngineInput, PyEngineInputType,
+    prelude::*,
 };
-use pyo3::{
-    Bound, IntoPyObjectExt, Py, PyAny, PyErr, PyResult, Python, pyclass, pymethods,
-    types::{PyAnyMethods, PyDict, PyDictMethods, PyList, PyString, PyTuple},
-};
-use std::vec;
+use crate::{PyGeneType, PySubscriber};
+use core::panic;
+use pyo3::exceptions::PyTypeError;
+use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
+use radiate::prelude::*;
+use std::collections::HashMap;
 
-pub(crate) const POPULATION_SIZE: &'static str = "population_size";
-pub(crate) const OFFSPRING_FRACTION: &'static str = "offspring_fraction";
-pub(crate) const ALTERS: &'static str = "alters";
-pub(crate) const SURVIVOR_SELECTOR: &'static str = "survivor_selector";
-pub(crate) const OFFSPRING_SELECTOR: &'static str = "offspring_selector";
-pub(crate) const SUBSCRIBERS: &'static str = "subscribers";
-pub(crate) const DIVERSITY: &'static str = "diversity";
-pub(crate) const OBJECTIVE: &'static str = "objective";
-pub(crate) const SPECIES_THRESHOLD: &'static str = "species_threshold";
-pub(crate) const MAX_PHENOTYPE_AGE: &'static str = "max_phenotype_age";
-pub(crate) const FRONT_RANGE: &'static str = "front_range";
-pub(crate) const LIMITS: &'static str = "limits";
-pub(crate) const MAX_SPECIES_AGE: &'static str = "max_species_age";
-pub(crate) const GENE_TYPE: &'static str = "gene_type";
-pub(crate) const CODEC: &'static str = "codec";
-pub(crate) const EXECUTOR: &'static str = "executor";
-pub(crate) const PROBLEM: &'static str = "problem";
+macro_rules! apply_to_builder {
+    ($builder:expr, $method:ident($($args:expr),*)) => {
+        match $builder {
+            EngineBuilderHandle::Int(b) => Ok(EngineBuilderHandle::Int(b.$method($($args),*))),
+            EngineBuilderHandle::Float(b) => Ok(EngineBuilderHandle::Float(b.$method($($args),*))),
+            EngineBuilderHandle::Char(b) => Ok(EngineBuilderHandle::Char(b.$method($($args),*))),
+            EngineBuilderHandle::Bit(b) => Ok(EngineBuilderHandle::Bit(b.$method($($args),*))),
+            EngineBuilderHandle::GraphRegression(b) => Ok(EngineBuilderHandle::GraphRegression(b.$method($($args),*))),
+            EngineBuilderHandle::TreeRegression(b) => Ok(EngineBuilderHandle::TreeRegression(b.$method($($args),*))),
+            EngineBuilderHandle::Empty => Err(PyTypeError::new_err(
+                "EngineBuilder must have a problem and codec before processing other inputs",
+            )),
+        }
+    };
+}
 
 #[pyclass]
 pub struct PyEngineBuilder {
-    params: Py<PyDict>,
+    pub gene_type: PyGeneType,
+    pub codec: Py<PyAny>,
+    pub problem: Py<PyAny>,
+    pub subscribers: Vec<PySubscriber>,
+    pub inputs: Vec<PyEngineInput>,
 }
 
 #[pymethods]
 impl PyEngineBuilder {
     #[new]
-    #[pyo3(signature = (**kwds))]
-    pub fn new<'py>(py: Python<'py>, kwds: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
-        let params = kwds.map(|d| d.to_owned()).unwrap_or(PyDict::new(py));
-
-        Ok(Self {
-            params: params.into(),
-        })
+    pub fn new(
+        gene_type: String,
+        codec: Py<PyAny>,
+        problem: Py<PyAny>,
+        subscribers: Vec<PySubscriber>,
+        inputs: Vec<PyEngineInput>,
+    ) -> Self {
+        let gene_type = match gene_type.as_str() {
+            "float" => PyGeneType::Float,
+            "int" => PyGeneType::Int,
+            "bit" => PyGeneType::Bit,
+            "char" => PyGeneType::Char,
+            "graph" => PyGeneType::Graph,
+            "tree" => PyGeneType::Tree,
+            _ => panic!("Invalid gene type: {}", gene_type),
+        };
+        PyEngineBuilder {
+            gene_type,
+            codec,
+            problem,
+            subscribers,
+            inputs,
+        }
     }
 
-    pub fn __repr__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        let repr = format!(
-            "Engine(
-                gene_type={:?},
-                population_size={},
-                offspring_fraction={},
-                alters={},
-                survivor_selector={},
-                offspring_selector={},
-                objective={},
-                front_range={},
-                diversity={},
-                limits={},
-                executor={},
-                max_phenotype_age={},
-                species_threshold={},
-                max_species_age={}
-            )",
-            self.get_gene_type(py)?,
-            self.get_population_size(py)?,
-            self.get_offspring_fraction(py)?,
-            self.get_alters(py)?
-                .iter()
-                .map(|a| a.name())
-                .collect::<Vec<_>>()
-                .join(", "),
-            self.get_survivor_selector(py)?.name(),
-            self.get_offspring_selector(py)?.name(),
-            self.get_objective(py)?.optimize().join(", "),
-            self.get_front_range(py)?
-                .bind_borrowed(py)
-                .try_iter()
-                .iter()
-                .take(2)
-                .map(|v| v.extract::<usize>().unwrap_or(0))
-                .collect::<Vec<_>>()
-                .iter()
-                .map(|v| v.to_string())
-                .collect::<Vec<_>>()
-                .join(", "),
-            self.get_diversity(py)?
-                .map(|d| d.name().to_string())
-                .unwrap_or_else(|| "None".to_string()),
-            self.get_limits(py)?
-                .iter()
-                .map(|l| format!("{:?}", l))
-                .collect::<Vec<_>>()
-                .join(", "),
-            self.get_executor(py)?,
-            self.get_max_phenotype_age(py)?,
-            self.get_species_threshold(py)?,
-            self.get_max_species_age(py)?.to_string()
-        );
+    pub fn build<'py>(&mut self, py: Python<'py>) -> PyResult<PyEngine> {
+        let mut inner = self.create_builder(py)?;
 
-        PyString::new(py, &repr).into_bound_py_any(py)
-    }
+        let mut accum = HashMap::<PyEngineInputType, Vec<PyEngineInput>>::new();
+        let input_groups = self.inputs.iter().fold(&mut accum, |acc, input| {
+            acc.entry(input.input_type())
+                .or_default()
+                .push(input.clone());
+            acc
+        });
 
-    pub fn __dict__<'py>(&self, py: Python<'py>) -> PyResult<Py<PyDict>> {
-        self.create_param_dict(py)
-    }
-
-    pub fn build<'py>(&self, py: Python<'py>) -> PyResult<PyEngine> {
-        let param_dict = self.create_param_dict(py)?;
-        let limits = self.get_limits(py)?;
-        PyEngine::new(py, limits, param_dict)
-    }
-
-    #[pyo3(signature = (codec))]
-    pub fn set_codec<'py>(&self, py: Python<'py>, codec: Py<PyAny>) -> PyResult<()> {
-        self.params
-            .bind(py)
-            .set_item(CODEC, codec)
-            .map_err(|e| e.into())
-    }
-
-    #[pyo3(signature = (size=100))]
-    pub fn set_population_size<'py>(&self, py: Python<'py>, size: usize) -> PyResult<()> {
-        self.params
-            .bind(py)
-            .set_item(POPULATION_SIZE, size)
-            .map_err(|e| e.into())
-    }
-
-    #[pyo3(signature = (fraction=0.8))]
-    pub fn set_offspring_fraction<'py>(&self, py: Python<'py>, fraction: f32) -> PyResult<()> {
-        self.params
-            .bind(py)
-            .set_item(OFFSPRING_FRACTION, fraction)
-            .map_err(|e| e.into())
-    }
-
-    pub fn set_alters<'py>(&self, py: Python<'py>, alters: Vec<PyAlterer>) -> PyResult<()> {
-        self.params
-            .bind(py)
-            .set_item(ALTERS, PyList::new(py, alters)?)
-            .map_err(|e| e.into())
-    }
-
-    pub fn set_survivor_selector<'py>(
-        &self,
-        py: Python<'py>,
-        selector: Py<PySelector>,
-    ) -> PyResult<()> {
-        self.params
-            .bind(py)
-            .set_item(SURVIVOR_SELECTOR, selector)
-            .map_err(|e| e.into())
-    }
-
-    pub fn set_offspring_selector<'py>(
-        &self,
-        py: Python<'py>,
-        selector: Py<PySelector>,
-    ) -> PyResult<()> {
-        self.params
-            .bind(py)
-            .set_item(OFFSPRING_SELECTOR, selector)
-            .map_err(|e| e.into())
-    }
-
-    pub fn set_subscribers<'py>(
-        &self,
-        py: Python<'py>,
-        subscribers: Option<Vec<PySubscriber>>,
-    ) -> PyResult<()> {
-        if let Some(subscribers) = subscribers {
-            let mut current_subscribers = self.get_subscribers(py)?;
-            current_subscribers.extend(subscribers);
-            return self
-                .params
-                .bind(py)
-                .set_item(SUBSCRIBERS, PyList::new(py, current_subscribers)?)
-                .map_err(|e| e.into());
+        for (input_type, inputs) in input_groups.iter() {
+            inner = self.process_inputs(inner, *input_type, inputs)?;
         }
 
-        Ok(())
-    }
+        inner = self.process_subscriber(inner)?;
 
-    pub fn set_diversity<'py>(&self, py: Python<'py>, diversity: Py<PyDiversity>) -> PyResult<()> {
-        self.params
-            .bind(py)
-            .set_item(DIVERSITY, diversity)
-            .map_err(|e| e.into())
-    }
-
-    pub fn set_objective<'py>(&self, py: Python<'py>, objective: Py<PyAny>) -> PyResult<()> {
-        let objective = objective.extract::<PyObjective>(py)?;
-        self.params
-            .bind(py)
-            .set_item(OBJECTIVE, objective)
-            .map_err(|e| e.into())
-    }
-
-    pub fn set_species_threshold<'py>(&self, py: Python<'py>, threshold: f32) -> PyResult<()> {
-        self.params
-            .bind(py)
-            .set_item(SPECIES_THRESHOLD, threshold)
-            .map_err(|e| e.into())
-    }
-
-    pub fn set_max_phenotype_age<'py>(&self, py: Python<'py>, max_age: usize) -> PyResult<()> {
-        self.params
-            .bind(py)
-            .set_item(MAX_PHENOTYPE_AGE, max_age)
-            .map_err(|e| e.into())
-    }
-
-    pub fn set_front_range<'py>(&self, py: Python<'py>, front_range: Py<PyAny>) -> PyResult<()> {
-        let front_range = front_range.extract::<Py<PyTuple>>(py)?;
-
-        if front_range.bind_borrowed(py).len()? != 2 {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                "front_range must be a tuple of twqwdwo values (min, maxssss)",
-            ));
-        }
-
-        self.params
-            .bind(py)
-            .set_item(FRONT_RANGE, front_range)
-            .map_err(|e| e.into())
-    }
-
-    pub fn set_limits<'py>(&self, py: Python<'py>, limits: Py<PyAny>) -> PyResult<()> {
-        self.params
-            .bind(py)
-            .set_item(LIMITS, limits)
-            .map_err(|e| e.into())
-    }
-
-    pub fn set_max_species_age<'py>(&self, py: Python<'py>, max_age: usize) -> PyResult<()> {
-        self.params
-            .bind(py)
-            .set_item(MAX_SPECIES_AGE, max_age)
-            .map_err(|e| e.into())
-    }
-
-    pub fn set_executor<'py>(&self, py: Python<'py>, executor: PyExecutor) -> PyResult<()> {
-        self.params
-            .bind(py)
-            .set_item(EXECUTOR, executor)
-            .map_err(|e| e.into())
-    }
-
-    pub fn set_problem<'py>(&self, py: Python<'py>, problem: Py<PyProblemBuilder>) -> PyResult<()> {
-        self.params
-            .bind(py)
-            .set_item(PROBLEM, problem)
-            .map_err(|e| e.into())
-    }
-
-    pub fn get_problem<'py>(&self, py: Python<'py>) -> PyResult<PyProblemBuilder> {
-        self.params
-            .bind(py)
-            .get_item(PROBLEM)?
-            .map(|v| v.extract::<PyProblemBuilder>())
-            .unwrap_or_else(|| {
-                Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
-                    "Problem not set or invalid type",
-                ))
-            })
-    }
-
-    pub fn get_executor<'py>(&self, py: Python<'py>) -> PyResult<PyExecutor> {
-        self.params
-            .bind(py)
-            .get_item(EXECUTOR)?
-            .map(|v| v.extract::<PyExecutor>())
-            .unwrap_or(Ok(PyExecutor::serial()))
-    }
-
-    fn get_population_size<'py>(&self, py: Python<'py>) -> PyResult<usize> {
-        self.params
-            .bind(py)
-            .get_item(POPULATION_SIZE)?
-            .map(|v| v.extract::<usize>())
-            .unwrap_or(Ok(100))
-    }
-
-    pub fn get_offspring_fraction<'py>(&self, py: Python<'py>) -> PyResult<f32> {
-        self.params
-            .bind(py)
-            .get_item(OFFSPRING_FRACTION)?
-            .map(|v| v.extract::<f32>())
-            .unwrap_or(Ok(0.8))
-    }
-
-    pub fn get_max_phenotype_age<'py>(&self, py: Python<'py>) -> PyResult<usize> {
-        self.params
-            .bind(py)
-            .get_item(MAX_PHENOTYPE_AGE)?
-            .map(|v| v.extract::<usize>())
-            .unwrap_or(Ok(20))
-    }
-
-    pub fn get_species_threshold<'py>(&self, py: Python<'py>) -> PyResult<f32> {
-        self.params
-            .bind(py)
-            .get_item(SPECIES_THRESHOLD)?
-            .map(|v| v.extract::<f32>())
-            .unwrap_or(Ok(0.1))
-    }
-
-    pub fn get_max_species_age<'py>(&self, py: Python<'py>) -> PyResult<usize> {
-        self.params
-            .bind(py)
-            .get_item(MAX_SPECIES_AGE)?
-            .map(|v| v.extract::<usize>())
-            .unwrap_or(Ok(10))
-    }
-
-    pub fn get_alters<'py>(&self, py: Python<'py>) -> PyResult<Vec<PyAlterer>> {
-        Ok(self
-            .params
-            .bind(py)
-            .get_item(ALTERS)?
-            .map(|v| v.extract::<Vec<PyAlterer>>().ok())
-            .flatten()
-            .unwrap_or(vec![
-                PyAlterer::uniform_crossover(py, Some(0.5))?,
-                PyAlterer::uniform_mutator(py, Some(0.1))?,
-            ]))
-    }
-
-    pub fn get_survivor_selector<'py>(&self, py: Python<'py>) -> PyResult<PySelector> {
-        self.params
-            .bind(py)
-            .get_item(SURVIVOR_SELECTOR)?
-            .map(|v| v.extract::<PySelector>())
-            .unwrap_or(Ok(PySelector::tournament_selector(py, Some(2))?))
-    }
-
-    pub fn get_offspring_selector<'py>(&self, py: Python<'py>) -> PyResult<PySelector> {
-        self.params
-            .bind(py)
-            .get_item(OFFSPRING_SELECTOR)?
-            .map(|v| v.extract::<PySelector>())
-            .unwrap_or(Ok(PySelector::roulette_wheel_selector(py)?))
-    }
-
-    pub fn get_objective<'py>(&self, py: Python<'py>) -> PyResult<PyObjective> {
-        self.params
-            .bind(py)
-            .get_item(OBJECTIVE)?
-            .map(|v| v.extract::<PyObjective>())
-            .unwrap_or(Ok(PyObjective::min()?))
-    }
-
-    pub fn get_diversity<'py>(&self, py: Python<'py>) -> PyResult<Option<PyDiversity>> {
-        self.params
-            .bind(py)
-            .get_item(DIVERSITY)?
-            .map(|v| v.extract::<Option<PyDiversity>>())
-            .unwrap_or(Ok(None))
-    }
-
-    pub fn get_subscribers<'py>(&self, py: Python<'py>) -> PyResult<Vec<PySubscriber>> {
-        self.params
-            .bind(py)
-            .get_item(SUBSCRIBERS)?
-            .map(|v| v.extract::<Vec<PySubscriber>>())
-            .unwrap_or(Ok(vec![]))
-    }
-
-    pub fn get_front_range<'py>(&self, py: Python<'py>) -> PyResult<Py<PyTuple>> {
-        let range = self.params.bind(py).get_item(FRONT_RANGE)?;
-        if let Some(range) = range {
-            if let Ok(tuple) = range.extract::<Py<PyTuple>>() {
-                return Ok(tuple);
+        let engine_handle = match inner {
+            EngineBuilderHandle::Int(builder) => EngineHandle::Int(builder.build()),
+            EngineBuilderHandle::Float(builder) => EngineHandle::Float(builder.build()),
+            EngineBuilderHandle::Char(builder) => EngineHandle::Char(builder.build()),
+            EngineBuilderHandle::Bit(builder) => EngineHandle::Bit(builder.build()),
+            EngineBuilderHandle::GraphRegression(builder) => {
+                EngineHandle::GraphRegression(builder.build())
             }
+            EngineBuilderHandle::TreeRegression(builder) => {
+                EngineHandle::TreeRegression(builder.build())
+            }
+            _ => {
+                return Err(PyTypeError::new_err(
+                    "Unsupported builder type for engine creation",
+                ));
+            }
+        };
+
+        Ok(PyEngine::new(engine_handle))
+    }
+
+    pub fn __repr__(&self) -> String {
+        let inputs = self
+            .inputs
+            .iter()
+            .map(|i| i.__repr__())
+            .collect::<Vec<String>>();
+        format!(
+            "EngineBuilder(\ngene_type={:?}, \ncodec={:?}, \nproblem={:?}, \nsubscribers={:?}, \ninputs=[{}])",
+            self.gene_type,
+            self.codec,
+            self.problem,
+            self.subscribers,
+            inputs.join(", ")
+        )
+    }
+}
+
+impl PyEngineBuilder {
+    fn process_subscriber(&mut self, inner: EngineBuilderHandle) -> PyResult<EngineBuilderHandle> {
+        if self.subscribers.is_empty() {
+            return Ok(inner);
         }
 
-        let result = PyTuple::new(py, vec![800, 900])?.unbind();
-        Ok(result)
+        let py_subscriber = PyEventHandler::new(self.subscribers.clone());
+        apply_to_builder!(inner, subscribe(py_subscriber))
     }
 
-    pub fn get_limits<'py>(&self, py: Python<'py>) -> PyResult<Vec<PyLimit>> {
-        self.params
-            .bind(py)
-            .get_item(LIMITS)?
-            .map(|v| v.extract::<Wrap<Vec<PyLimit>>>())
-            .unwrap_or(Ok(Wrap(vec![])))
-            .map(|wrap| wrap.0)
+    fn process_inputs(
+        &self,
+        builder: EngineBuilderHandle,
+        input_type: PyEngineInputType,
+        inputs: &[PyEngineInput],
+    ) -> PyResult<EngineBuilderHandle> {
+        match input_type {
+            PyEngineInputType::SurvivorSelector | PyEngineInputType::OffspringSelector => {
+                self.process_selector(builder, inputs)
+            }
+            PyEngineInputType::Alterer => self.process_alterers(builder, inputs),
+            PyEngineInputType::Objective => self.process_objective(builder, inputs),
+            PyEngineInputType::MaxPhenotypeAge => self.process_max_phenotype_age(builder, inputs),
+            PyEngineInputType::PopulationSize => self.process_population_size(builder, inputs),
+            PyEngineInputType::MaxSpeciesAge => self.process_max_species_age(builder, inputs),
+            PyEngineInputType::SpeciesThreshold => self.process_species_threshold(builder, inputs),
+            PyEngineInputType::OffspringFraction => {
+                self.process_offspring_fraction(builder, inputs)
+            }
+            PyEngineInputType::FrontRange => self.process_front_range(builder, inputs),
+            PyEngineInputType::Diversity => self.process_diversity(builder, inputs),
+            _ => Ok(builder),
+        }
     }
 
-    pub fn get_codec<'py>(&self, py: Python<'py>) -> PyResult<Py<PyAny>> {
-        self.params
-            .bind(py)
-            .get_item(CODEC)?
-            .map(|v| v.extract::<Py<PyAny>>())
-            .unwrap_or_else(|| {
-                Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
-                    "Codec not set or invalid type",
-                ))
-            })
-    }
-
-    pub fn get_gene_type<'py>(&self, py: Python<'py>) -> PyResult<PyGeneType> {
-        let codec_obj = self.get_codec(py)?.into_bound_py_any(py)?;
-
-        if let Ok(_) = codec_obj.extract::<PyIntCodec>() {
-            Ok(PyGeneType::Int)
-        } else if let Ok(_) = codec_obj.extract::<PyFloatCodec>() {
-            Ok(PyGeneType::Float)
-        } else if let Ok(_) = codec_obj.extract::<PyBitCodec>() {
-            Ok(PyGeneType::Bit)
-        } else if let Ok(_) = codec_obj.extract::<PyCharCodec>() {
-            Ok(PyGeneType::Char)
-        } else if let Ok(_) = codec_obj.extract::<PyGraphCodec>() {
-            Ok(PyGeneType::Graph)
+    fn process_single_value<F>(
+        &self,
+        builder: EngineBuilderHandle,
+        inputs: &[PyEngineInput],
+        processor: F,
+    ) -> PyResult<EngineBuilderHandle>
+    where
+        F: Fn(EngineBuilderHandle, &PyEngineInput) -> PyResult<EngineBuilderHandle>,
+    {
+        if inputs.len() > 1 {
+            processor(builder, &inputs[inputs.len() - 1])
+        } else if inputs.len() == 1 {
+            processor(builder, &inputs[0])
         } else {
-            Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
-                "Unsupported gene type",
+            Err(PyTypeError::new_err(
+                "Expected exactly one input for this configuration",
             ))
         }
     }
 
-    fn create_param_dict<'py>(&self, py: Python<'py>) -> PyResult<Py<PyDict>> {
-        let dict = PyDict::new(py);
+    fn process_max_species_age(
+        &self,
+        builder: EngineBuilderHandle,
+        inputs: &[PyEngineInput],
+    ) -> PyResult<EngineBuilderHandle> {
+        self.process_single_value(builder, inputs, |builder, input| {
+            let max_age = input.get_usize("age").unwrap_or(usize::MAX);
+            apply_to_builder!(builder, max_species_age(max_age))
+        })
+    }
 
-        dict.set_item(POPULATION_SIZE, self.get_population_size(py)?)?;
-        dict.set_item(OFFSPRING_FRACTION, self.get_offspring_fraction(py)?)?;
-        dict.set_item(ALTERS, self.get_alters(py)?)?;
-        dict.set_item(SURVIVOR_SELECTOR, self.get_survivor_selector(py)?)?;
-        dict.set_item(OFFSPRING_SELECTOR, self.get_offspring_selector(py)?)?;
-        dict.set_item(OBJECTIVE, self.get_objective(py)?)?;
-        dict.set_item(GENE_TYPE, self.get_gene_type(py)?)?;
-        dict.set_item(CODEC, self.get_codec(py)?)?;
-        dict.set_item(FRONT_RANGE, self.get_front_range(py)?)?;
-        dict.set_item(MAX_PHENOTYPE_AGE, self.get_max_phenotype_age(py)?)?;
-        dict.set_item(SPECIES_THRESHOLD, self.get_species_threshold(py)?)?;
-        dict.set_item(MAX_SPECIES_AGE, self.get_max_species_age(py)?)?;
-        dict.set_item(LIMITS, self.get_limits(py)?)?;
-        dict.set_item(DIVERSITY, self.get_diversity(py)?)?;
-        dict.set_item(SUBSCRIBERS, self.get_subscribers(py)?)?;
-        dict.set_item(EXECUTOR, self.get_executor(py)?)?;
-        dict.set_item(PROBLEM, self.get_problem(py)?)?;
+    fn process_species_threshold(
+        &self,
+        builder: EngineBuilderHandle,
+        inputs: &[PyEngineInput],
+    ) -> PyResult<EngineBuilderHandle> {
+        self.process_single_value(builder, inputs, |builder, input| {
+            let threshold = input.get_f32("threshold").unwrap_or(0.3);
+            apply_to_builder!(builder, species_threshold(threshold))
+        })
+    }
 
-        Ok(dict.into())
+    fn process_offspring_fraction(
+        &self,
+        builder: EngineBuilderHandle,
+        inputs: &[PyEngineInput],
+    ) -> PyResult<EngineBuilderHandle> {
+        self.process_single_value(builder, inputs, |builder, input| {
+            let fraction = input.get_f32("fraction").unwrap_or(0.8);
+            apply_to_builder!(builder, offspring_fraction(fraction))
+        })
+    }
+
+    fn process_population_size(
+        &self,
+        builder: EngineBuilderHandle,
+        inputs: &[PyEngineInput],
+    ) -> PyResult<EngineBuilderHandle> {
+        self.process_single_value(builder, inputs, |builder, input| {
+            let size = input.get_usize("size").unwrap_or(5);
+            apply_to_builder!(builder, population_size(size))
+        })
+    }
+
+    fn process_max_phenotype_age(
+        &self,
+        builder: EngineBuilderHandle,
+        inputs: &[PyEngineInput],
+    ) -> PyResult<EngineBuilderHandle> {
+        self.process_single_value(builder, inputs, |builder, input| {
+            let max_age = input.get_usize("age").unwrap_or(usize::MAX);
+            apply_to_builder!(builder, max_age(max_age))
+        })
+    }
+
+    fn process_selector(
+        &self,
+        builder: EngineBuilderHandle,
+        inputs: &[PyEngineInput],
+    ) -> PyResult<EngineBuilderHandle> {
+        self.process_single_value(builder, inputs, |builder, input| match builder {
+            EngineBuilderHandle::Int(builder) => {
+                let selector: Box<dyn Select<IntChromosome<i32>>> = input.convert();
+                match input.input_type() {
+                    PyEngineInputType::SurvivorSelector => Ok(EngineBuilderHandle::Int(
+                        builder.boxed_survivor_selector(selector),
+                    )),
+                    PyEngineInputType::OffspringSelector => Ok(EngineBuilderHandle::Int(
+                        builder.boxed_offspring_selector(selector),
+                    )),
+                    _ => Err(PyTypeError::new_err(
+                        "process_selector only implemented for Survivor and Offspring selectors",
+                    )),
+                }
+            }
+            EngineBuilderHandle::Float(builder) => {
+                let selector: Box<dyn Select<FloatChromosome>> = input.convert();
+                match input.input_type() {
+                    PyEngineInputType::SurvivorSelector => Ok(EngineBuilderHandle::Float(
+                        builder.boxed_survivor_selector(selector),
+                    )),
+                    PyEngineInputType::OffspringSelector => Ok(EngineBuilderHandle::Float(
+                        builder.boxed_offspring_selector(selector),
+                    )),
+                    _ => Err(PyTypeError::new_err(
+                        "process_selector only implemented for Survivor and Offspring selectors",
+                    )),
+                }
+            }
+            EngineBuilderHandle::Char(builder) => {
+                let selector: Box<dyn Select<CharChromosome>> = input.convert();
+                match input.input_type() {
+                    PyEngineInputType::SurvivorSelector => Ok(EngineBuilderHandle::Char(
+                        builder.boxed_survivor_selector(selector),
+                    )),
+                    PyEngineInputType::OffspringSelector => Ok(EngineBuilderHandle::Char(
+                        builder.boxed_offspring_selector(selector),
+                    )),
+                    _ => Err(PyTypeError::new_err(
+                        "process_selector only implemented for Survivor and Offspring selectors",
+                    )),
+                }
+            }
+            EngineBuilderHandle::Bit(builder) => {
+                let selector: Box<dyn Select<BitChromosome>> = input.convert();
+                match input.input_type() {
+                    PyEngineInputType::SurvivorSelector => Ok(EngineBuilderHandle::Bit(
+                        builder.boxed_survivor_selector(selector),
+                    )),
+                    PyEngineInputType::OffspringSelector => Ok(EngineBuilderHandle::Bit(
+                        builder.boxed_offspring_selector(selector),
+                    )),
+                    _ => Err(PyTypeError::new_err(
+                        "process_selector only implemented for Survivor and Offspring selectors",
+                    )),
+                }
+            }
+            EngineBuilderHandle::GraphRegression(builder) => {
+                let selector: Box<dyn Select<GraphChromosome<Op<f32>>>> = input.convert();
+                match input.input_type() {
+                    PyEngineInputType::SurvivorSelector => {
+                        Ok(EngineBuilderHandle::GraphRegression(
+                            builder.boxed_survivor_selector(selector),
+                        ))
+                    }
+                    PyEngineInputType::OffspringSelector => {
+                        Ok(EngineBuilderHandle::GraphRegression(
+                            builder.boxed_offspring_selector(selector),
+                        ))
+                    }
+                    _ => Err(PyTypeError::new_err(
+                        "process_selector only implemented for Survivor and Offspring selectors",
+                    )),
+                }
+            }
+            EngineBuilderHandle::TreeRegression(builder) => {
+                let selector: Box<dyn Select<TreeChromosome<Op<f32>>>> = input.convert();
+                match input.input_type() {
+                    PyEngineInputType::SurvivorSelector => Ok(EngineBuilderHandle::TreeRegression(
+                        builder.boxed_survivor_selector(selector),
+                    )),
+                    PyEngineInputType::OffspringSelector => {
+                        Ok(EngineBuilderHandle::TreeRegression(
+                            builder.boxed_offspring_selector(selector),
+                        ))
+                    }
+                    _ => Err(PyTypeError::new_err(
+                        "process_selector only implemented for Survivor and Offspring selectors",
+                    )),
+                }
+            }
+            _ => Err(PyTypeError::new_err(
+                "process_alterer only implemented for Int gene type",
+            )),
+        })
+    }
+
+    fn process_alterers(
+        &self,
+        builder: EngineBuilderHandle,
+        inputs: &[PyEngineInput],
+    ) -> PyResult<EngineBuilderHandle> {
+        match builder {
+            EngineBuilderHandle::Int(builder) => {
+                let alters: Vec<Box<dyn Alter<IntChromosome<i32>>>> = inputs.convert();
+                Ok(EngineBuilderHandle::Int(builder.alter(alters)))
+            }
+            EngineBuilderHandle::Float(builder) => {
+                let alters: Vec<Box<dyn Alter<FloatChromosome>>> = inputs.convert();
+                Ok(EngineBuilderHandle::Float(builder.alter(alters)))
+            }
+            EngineBuilderHandle::Char(builder) => {
+                let alters: Vec<Box<dyn Alter<CharChromosome>>> = inputs.convert();
+                Ok(EngineBuilderHandle::Char(builder.alter(alters)))
+            }
+            EngineBuilderHandle::Bit(builder) => {
+                let alters: Vec<Box<dyn Alter<BitChromosome>>> = inputs.convert();
+                Ok(EngineBuilderHandle::Bit(builder.alter(alters)))
+            }
+            EngineBuilderHandle::GraphRegression(builder) => {
+                let alters: Vec<Box<dyn Alter<GraphChromosome<Op<f32>>>>> = inputs.convert();
+                Ok(EngineBuilderHandle::GraphRegression(builder.alter(alters)))
+            }
+            EngineBuilderHandle::TreeRegression(builder) => {
+                let alters: Vec<Box<dyn Alter<TreeChromosome<Op<f32>>>>> = inputs.convert();
+                Ok(EngineBuilderHandle::TreeRegression(builder.alter(alters)))
+            }
+            _ => Err(PyTypeError::new_err(format!(
+                "Process Alterer not imiplemented for {:?} gene type",
+                self.gene_type
+            ))),
+        }
+    }
+
+    fn process_diversity(
+        &self,
+        builder: EngineBuilderHandle,
+        inputs: &[PyEngineInput],
+    ) -> PyResult<EngineBuilderHandle> {
+        self.process_single_value(builder, inputs, |builder, input| {
+            match builder {
+                EngineBuilderHandle::Int(b) => {
+                    let diversity: Option<Box<dyn Diversity<IntChromosome<i32>>>> = input.convert();
+                    Ok(EngineBuilderHandle::Int(b.boxed_diversity(diversity)))
+                }
+                EngineBuilderHandle::Float(b) => {
+                    let diversity: Option<Box<dyn Diversity<FloatChromosome>>> = input.convert();
+                    Ok(EngineBuilderHandle::Float(b.boxed_diversity(diversity)))
+                }
+                EngineBuilderHandle::Char(b) => {
+                    let diversity: Option<Box<dyn Diversity<CharChromosome>>> = input.convert();
+                    Ok(EngineBuilderHandle::Char(b.boxed_diversity(diversity)))
+                }
+                EngineBuilderHandle::Bit(b) => {
+                    let diversity: Option<Box<dyn Diversity<BitChromosome>>> = input.convert();
+                    Ok(EngineBuilderHandle::Bit(b.boxed_diversity(diversity)))
+                }
+                EngineBuilderHandle::GraphRegression(b) => {
+                    let diversity: Option<Box<dyn Diversity<GraphChromosome<Op<f32>>>>> = input.convert();
+                    Ok(EngineBuilderHandle::GraphRegression(b.boxed_diversity(diversity)))
+                }
+                _ => Err(PyTypeError::new_err(
+                    "process_diversity only implemented for Int, Float, Char, Bit, and Graph gene types",
+                )),
+            }
+        })
+    }
+
+    fn process_objective(
+        &self,
+        builder: EngineBuilderHandle,
+        inputs: &[PyEngineInput],
+    ) -> PyResult<EngineBuilderHandle> {
+        self.process_single_value(builder, inputs, |builder, input| {
+            let objectives = input.get_string("objective").map(|objs| {
+                objs.split('|')
+                    .map(|s| match s.trim().to_lowercase().as_str() {
+                        "min" => Optimize::Minimize,
+                        "max" => Optimize::Maximize,
+                        _ => panic!("Objective {} not recognized", s),
+                    })
+                    .collect::<Vec<Optimize>>()
+            });
+
+            let opt = match objectives {
+                Some(objs) => {
+                    if objs.len() == 1 {
+                        Objective::Single(objs[0])
+                    } else if objs.len() > 1 {
+                        Objective::Multi(objs)
+                    } else {
+                        panic!("No objectives provided");
+                    }
+                }
+                None => Objective::Single(Optimize::Maximize),
+            };
+
+            match opt {
+                Objective::Single(opt) => match opt {
+                    Optimize::Minimize => apply_to_builder!(builder, minimizing()),
+                    Optimize::Maximize => apply_to_builder!(builder, maximizing()),
+                },
+                Objective::Multi(opts) => apply_to_builder!(builder, multi_objective(opts)),
+            }
+        })
+    }
+
+    fn process_front_range(
+        &self,
+        builder: EngineBuilderHandle,
+        inputs: &[PyEngineInput],
+    ) -> PyResult<EngineBuilderHandle> {
+        self.process_single_value(builder, inputs, |builder, input| {
+            let min = input.get_usize("min").unwrap_or(800);
+            let max = input.get_usize("max").unwrap_or(1000);
+
+            if min > max {
+                return Err(PyTypeError::new_err(
+                    "Minimum size cannot be greater than maximum size",
+                ));
+            }
+
+            if min == 0 || max == 0 {
+                return Err(PyTypeError::new_err(
+                    "Minimum and maximum size must be greater than zero",
+                ));
+            }
+
+            apply_to_builder!(builder, front_size(min..max))
+        })
+    }
+
+    fn create_builder<'py>(&self, py: Python<'py>) -> PyResult<EngineBuilderHandle> {
+        let problem = self.problem.bind(py).extract::<PyProblemBuilder>()?;
+
+        let codec = self.codec.bind(py);
+
+        let executor = self
+            .inputs
+            .iter()
+            .filter(|i| i.input_type == PyEngineInputType::Executor)
+            .filter_map(|input| input.clone().into())
+            .next()
+            .unwrap_or(Executor::Serial);
+
+        let builder = if problem.name() == "Custom" {
+            let fitness_fn = problem
+                .args(py)?
+                .get_item("fitness_func")?
+                .extract::<Py<PyAny>>()?;
+
+            match self.gene_type {
+                PyGeneType::Float => {
+                    if let Ok(codec) = codec.extract::<PyFloatCodec>() {
+                        let float_problem = PyProblem::new(fitness_fn, codec.codec);
+                        Ok(EngineBuilderHandle::Float(
+                            GeneticEngine::builder()
+                                .problem(float_problem.clone())
+                                .executor(executor.clone())
+                                .evaluator(FreeThreadPyEvaluator::new(executor, float_problem))
+                                .bus_executor(Executor::default()),
+                        ))
+                    } else {
+                        Err(PyTypeError::new_err(
+                            "Expected a PyFloatCodec for gene_type Float",
+                        ))
+                    }
+                }
+                PyGeneType::Int => {
+                    if let Ok(codec) = codec.extract::<PyIntCodec>() {
+                        let int_problem = PyProblem::new(fitness_fn, codec.codec);
+                        Ok(EngineBuilderHandle::Int(
+                            GeneticEngine::builder()
+                                .problem(int_problem.clone())
+                                .executor(executor.clone())
+                                .evaluator(FreeThreadPyEvaluator::new(executor, int_problem))
+                                .bus_executor(Executor::default()),
+                        ))
+                    } else {
+                        Err(PyTypeError::new_err(
+                            "Expected a PyIntCodec for gene_type Int",
+                        ))
+                    }
+                }
+                PyGeneType::Char => {
+                    if let Ok(codec) = codec.extract::<PyCharCodec>() {
+                        let char_problem = PyProblem::new(fitness_fn, codec.codec);
+                        Ok(EngineBuilderHandle::Char(
+                            GeneticEngine::builder()
+                                .problem(char_problem.clone())
+                                .executor(executor.clone())
+                                .evaluator(FreeThreadPyEvaluator::new(executor, char_problem))
+                                .bus_executor(Executor::default()),
+                        ))
+                    } else {
+                        Err(PyTypeError::new_err(
+                            "Expected a PyCharCodec for gene_type Char",
+                        ))
+                    }
+                }
+                PyGeneType::Bit => {
+                    if let Ok(codec) = codec.extract::<PyBitCodec>() {
+                        let bit_problem = PyProblem::new(fitness_fn, codec.codec);
+
+                        Ok(EngineBuilderHandle::Bit(
+                            GeneticEngine::builder()
+                                .problem(bit_problem.clone())
+                                .executor(executor.clone())
+                                .evaluator(FreeThreadPyEvaluator::new(executor, bit_problem))
+                                .bus_executor(Executor::default()),
+                        ))
+                    } else {
+                        Err(PyTypeError::new_err(
+                            "Expected a PyBitCodec for gene_type Bit",
+                        ))
+                    }
+                }
+                PyGeneType::Graph => {
+                    if let Ok(codec) = codec.extract::<PyGraphCodec>() {
+                        let cloned_codec = codec.codec.clone();
+                        let py_codec = PyCodec::new()
+                            .with_encoder(move || cloned_codec.encode())
+                            .with_decoder(move |_, genotype| codec.codec.decode(genotype));
+
+                        let graph_problem = PyProblem::new(fitness_fn, py_codec);
+                        Ok(EngineBuilderHandle::GraphRegression(
+                            GeneticEngine::builder()
+                                .problem(graph_problem.clone())
+                                .executor(executor.clone())
+                                .evaluator(FreeThreadPyEvaluator::new(executor, graph_problem))
+                                .bus_executor(Executor::default()),
+                        ))
+                    } else {
+                        Err(PyTypeError::new_err(
+                            "Expected a PyGraphCodec for gene_type Graph",
+                        ))
+                    }
+                }
+                PyGeneType::Tree => {
+                    if let Ok(codec) = codec.extract::<PyTreeCodec>() {
+                        let cloned_codec = codec.codec.clone();
+                        let py_codec = PyCodec::new()
+                            .with_encoder(move || cloned_codec.encode())
+                            .with_decoder(move |_, genotype| codec.codec.decode(genotype));
+
+                        let tree_problem = PyProblem::new(fitness_fn, py_codec);
+                        Ok(EngineBuilderHandle::TreeRegression(
+                            GeneticEngine::builder()
+                                .problem(tree_problem.clone())
+                                .executor(executor.clone())
+                                .evaluator(FreeThreadPyEvaluator::new(executor, tree_problem))
+                                .bus_executor(Executor::default()),
+                        ))
+                    } else {
+                        Err(PyTypeError::new_err(
+                            "Expected a PyTreeCodec for gene_type Tree",
+                        ))
+                    }
+                }
+                _ => Err(PyTypeError::new_err(format!(
+                    "Unsupported gene_type {:?} for Custom problem",
+                    self.gene_type
+                ))),
+            }
+        } else if problem.name() == "Regression" {
+            let features = problem
+                .args(py)
+                .and_then(|args| args.get_item("features"))
+                .and_then(|f| f.extract::<Vec<Vec<f32>>>())?;
+            let targets = problem
+                .args(py)
+                .and_then(|args| args.get_item("targets"))
+                .and_then(|t| t.extract::<Vec<Vec<f32>>>())?;
+            let loss_str = problem
+                .args(py)
+                .and_then(|args| args.get_item("loss"))
+                .and_then(|l| l.extract::<String>())
+                .map(|s| s.to_uppercase())
+                .unwrap_or("MSE".into());
+            let loss = match loss_str.as_str() {
+                "MSE" => Loss::MSE,
+                "MAE" => Loss::MAE,
+                _ => {
+                    return Err(PyErr::new::<PyTypeError, _>(
+                        "Unsupported loss function for regression",
+                    ));
+                }
+            };
+
+            let data_set = DataSet::new(features, targets);
+
+            match self.gene_type {
+                PyGeneType::Graph => {
+                    if let Ok(codec) = codec.extract::<PyGraphCodec>() {
+                        let regression = Regression::new(data_set, loss);
+
+                        Ok(EngineBuilderHandle::GraphRegression(
+                            GeneticEngine::builder()
+                                .codec(codec.codec.clone())
+                                .fitness_fn(regression)
+                                .executor(executor)
+                                .bus_executor(Executor::default()),
+                        ))
+                    } else {
+                        Err(PyTypeError::new_err(
+                            "Expected a PyGraphCodec for gene_type Graph",
+                        ))
+                    }
+                }
+                PyGeneType::Tree => {
+                    if let Ok(codec) = codec.extract::<PyTreeCodec>() {
+                        let regression = Regression::new(data_set, loss);
+
+                        Ok(EngineBuilderHandle::TreeRegression(
+                            GeneticEngine::builder()
+                                .codec(codec.codec.clone())
+                                .fitness_fn(regression)
+                                .executor(executor)
+                                .bus_executor(Executor::default()),
+                        ))
+                    } else {
+                        Err(PyTypeError::new_err(
+                            "Expected a PyTreeCodec for gene_type Tree",
+                        ))
+                    }
+                }
+                _ => {
+                    return Err(PyErr::new::<PyTypeError, _>(
+                        "Regression problem only supports GraphChromosome",
+                    ));
+                }
+            }
+        } else {
+            return Err(PyErr::new::<PyTypeError, _>(
+                "Unsupported problem type. Only 'DefaultProblem' and 'Regression' are supported",
+            ));
+        };
+
+        builder
     }
 }

@@ -11,10 +11,11 @@ fn main() {
     ];
 
     let tree_codec = TreeCodec::single(3, store).constraint(|root| root.size() < 30);
-    let problem = Regression::new(get_dataset(), Loss::MSE, tree_codec);
+    let problem = Regression::new(get_dataset(), Loss::MSE);
 
     let engine = GeneticEngine::builder()
-        .problem(problem)
+        .codec(tree_codec)
+        .fitness_fn(problem)
         .minimizing()
         .mutator(HoistMutator::new(0.01))
         .crossover(TreeCrossover::new(0.7))
@@ -23,7 +24,7 @@ fn main() {
     engine
         .iter()
         .inspect(|ctx| log_ctx!(ctx))
-        .until_score_below(MIN_SCORE)
+        .until_score(MIN_SCORE)
         .take(1)
         .last()
         .inspect(display);
