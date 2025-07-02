@@ -11,10 +11,8 @@ import random
 import warnings
 import radiate as rd
 
-# Suppress warnings during tests
 warnings.filterwarnings("ignore")
 
-# Try to import numpy, but make it optional
 try:
     import numpy as np
 
@@ -71,7 +69,7 @@ def xor_dataset():
 def simple_regression_dataset():
     """Create a simple regression dataset for testing."""
     inputs = [[0.0], [1.0], [2.0], [3.0], [4.0]]
-    outputs = [[0.0], [2.0], [4.0], [6.0], [8.0]]  # y = 2x
+    outputs = [[0.0], [2.0], [4.0], [6.0], [8.0]] 
     return inputs, outputs
 
 
