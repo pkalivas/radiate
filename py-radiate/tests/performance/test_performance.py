@@ -17,7 +17,7 @@ class TestCodecPerformance:
     @pytest.mark.performance
     def test_codec_encode_decode_speed(self, performance_benchmark):
         """Benchmark codec encode/decode operations."""
-        codec = rd.FloatCodec.vector(length=1000, value_range=(-1.0, 1.0))
+        codec = rd.FloatCodec.vector(length=100000, value_range=(-1.0, 1.0))
         
         def encode_decode_cycle():
             genotype = codec.encode()
@@ -26,9 +26,9 @@ class TestCodecPerformance:
 
         result, execution_time = performance_benchmark.time_function(encode_decode_cycle)
 
-        assert len(result) == 1000
-        assert execution_time < 0.1  
-    
+        assert len(result) == 100000
+        assert execution_time < 0.1
+
     @pytest.mark.performance
     def test_large_matrix_codec_performance(self, performance_benchmark):
         """Benchmark large matrix codec operations."""
@@ -43,7 +43,7 @@ class TestCodecPerformance:
         
         assert len(result) == 100
         assert all(len(row) == 100 for row in result)
-        assert execution_time < 0.5
+        assert execution_time < 0.1
 
 
 

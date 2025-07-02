@@ -129,7 +129,7 @@ def install_test_dependencies():
         "mypy",
         "bandit",
         "psutil",
-        "numpy",  # Optional but recommended for performance
+        "numpy", 
     ]
     
     cmd = ["pip3", "install"] + test_deps
