@@ -46,6 +46,7 @@ jobs:
           pip install -r py-radiate/requirements-dev.txt
 
       - name: Run tests
-        working-directory: py-radiate/tests
+        working-directory: py-radiate
         run: |
-          python run_tests.py --all
+          pytest tests --import-mode=importlib
+          

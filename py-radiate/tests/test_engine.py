@@ -82,7 +82,7 @@ def test_engine_minimizing_graph():
         ],
     )
 
-    result = engine.run([rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000)], log=False)
+    result = engine.run([rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000)])
 
     assert result.score()[0] < 0.001
     assert result.index() < 1000
@@ -106,7 +106,7 @@ def test_engine_minimizing_tree():
         alters=[rd.TreeCrossover(0.5), rd.HoistMutator(0.1)],
     )
 
-    result = engine.run([rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000)], log=False)
+    result = engine.run([rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000)])
 
     assert result.score()[0] < 0.001
     assert result.index() < 1000
