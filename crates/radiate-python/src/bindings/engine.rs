@@ -1,7 +1,9 @@
+use core::panic;
+
 use crate::{EngineHandle, EpochHandle, PyEngineInput, PyGeneration};
 use pyo3::{PyResult, pyclass, pymethods};
 use radiate::{
-    Chromosome, Engine, Epoch, Generation, GeneticEngine, Limit, Objective, Optimize,
+    Chromosome, Engine, EngineIter, Epoch, Generation, GeneticEngine, Limit, Objective, Optimize,
     ParetoGeneration,
 };
 use tracing::info;
@@ -54,14 +56,14 @@ impl PyEngine {
                 let output = run_single_objective_engine(eng, limits, log);
                 EpochHandle::Bit(output)
             }
-            EngineHandle::IntMulti(eng) => {
-                let output = run_multi_objective_engine(eng, limits, log);
-                EpochHandle::IntMulti(output)
-            }
-            EngineHandle::FloatMulti(eng) => {
-                let output = run_multi_objective_engine(eng, limits, log);
-                EpochHandle::FloatMulti(output)
-            }
+            // EngineHandle::IntMulti(eng) => {
+            //     let output = run_multi_objective_engine(eng, limits, log);
+            //     EpochHandle::IntMulti(output)
+            // }
+            // EngineHandle::FloatMulti(eng) => {
+            //     let output = run_multi_objective_engine(eng, limits, log);
+            //     EpochHandle::FloatMulti(output)
+            // }
             EngineHandle::GraphRegression(eng) => {
                 let output = run_single_objective_engine(eng, limits, log);
                 EpochHandle::GraphRegression(output)
@@ -69,6 +71,11 @@ impl PyEngine {
             EngineHandle::TreeRegression(eng) => {
                 let output = run_single_objective_engine(eng, limits, log);
                 EpochHandle::TreeRegression(output)
+            }
+            _ => {
+                return Err(pyo3::exceptions::PyRuntimeError::new_err(
+                    "Engine does not support run()",
+                ));
             }
         };
 
@@ -87,14 +94,19 @@ impl PyEngine {
         })?;
 
         let result = match engine {
-            EngineHandle::Int(eng) => EpochHandle::Int(eng.next()),
-            EngineHandle::Float(eng) => EpochHandle::Float(eng.next()),
-            EngineHandle::Char(eng) => EpochHandle::Char(eng.next()),
-            EngineHandle::Bit(eng) => EpochHandle::Bit(eng.next()),
-            EngineHandle::IntMulti(eng) => EpochHandle::IntMulti(eng.next()),
-            EngineHandle::FloatMulti(eng) => EpochHandle::FloatMulti(eng.next()),
-            EngineHandle::GraphRegression(eng) => EpochHandle::GraphRegression(eng.next()),
-            EngineHandle::TreeRegression(eng) => EpochHandle::TreeRegression(eng.next()),
+            EngineHandle::Int(eng) => EpochHandle::Int(eng.evolve()),
+            EngineHandle::Float(eng) => EpochHandle::Float(eng.evolve()),
+            EngineHandle::Char(eng) => EpochHandle::Char(eng.evolve()),
+            EngineHandle::Bit(eng) => EpochHandle::Bit(eng.evolve()),
+            // EngineHandle::IntMulti(eng) => EpochHandle::IntMulti(eng.evolve()),
+            // EngineHandle::FloatMulti(eng) => EpochHandle::FloatMulti(eng.evolve()),
+            EngineHandle::GraphRegression(eng) => EpochHandle::GraphRegression(eng.evolve()),
+            EngineHandle::TreeRegression(eng) => EpochHandle::TreeRegression(eng.evolve()),
+            _ => {
+                return Err(pyo3::exceptions::PyRuntimeError::new_err(
+                    "Engine does not support next()",
+                ));
+            }
         };
 
         Ok(PyGeneration::new(result))
@@ -102,7 +114,7 @@ impl PyEngine {
 }
 
 fn run_single_objective_engine<C, T>(
-    engine: GeneticEngine<C, T, Generation<C, T>>,
+    engine: impl Engine<Generation<C, T>>,
     limits: Vec<Limit>,
     log: bool,
 ) -> Generation<C, T>
@@ -140,14 +152,13 @@ where
         .expect("No generation found that meets the limits")
 }
 
-fn run_multi_objective_engine<C, T>(
-    engine: GeneticEngine<C, T, ParetoGeneration<C>>,
+fn run_multi_objective_engine<C>(
+    engine: impl Engine<ParetoGeneration<C>>,
     limits: Vec<Limit>,
     log: bool,
 ) -> ParetoGeneration<C>
 where
     C: Chromosome + Clone + 'static,
-    T: Clone + Send + Sync + 'static,
 {
     engine
         .iter()

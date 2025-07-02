@@ -11,7 +11,7 @@ pub use builder::GeneticEngineBuilder;
 pub use engine::GeneticEngine;
 pub use epoch::{Generation, ParetoGeneration};
 pub use events::{EngineEvent, Event, EventBus, EventHandler};
-pub use iter::{EngineIterator, EngineIteratorExt};
+pub use iter::EngineIteratorExt;
 pub use limit::Limit;
 pub use steps::EvaluateStep;
 

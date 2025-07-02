@@ -14,7 +14,7 @@ impl<C, T, E> GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send,
-    E: Epoch<C>,
+    E: Epoch,
 {
     /// Set the fraction of the population that will be replaced by offspring each generation.
     /// Default is 0.8. This is a value from 0...=1 that represents the fraction of

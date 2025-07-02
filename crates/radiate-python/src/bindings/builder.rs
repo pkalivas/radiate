@@ -84,6 +84,8 @@ impl PyEngineBuilder {
 
         inner = self.process_subscriber(inner)?;
 
+        // panic!("EngineBuilder is not yet implemented for PyEngineBuilder");
+
         let engine_handle = match inner {
             EngineBuilderHandle::Int(builder) => EngineHandle::Int(builder.build()),
             EngineBuilderHandle::Float(builder) => EngineHandle::Float(builder.build()),

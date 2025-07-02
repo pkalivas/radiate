@@ -7,31 +7,67 @@ use std::{
     time::Duration,
 };
 
-pub trait Engine {
-    type Chromosome: Chromosome;
-    type Epoch: Epoch<Self::Chromosome>;
-
-    fn next(&mut self) -> Self::Epoch;
+pub trait EngineIter<P: Epoch> {
+    fn iter(self) -> impl Iterator<Item = P>;
 }
 
-pub trait EngineExt<E: Engine> {
-    fn run<F>(&mut self, limit: F) -> E::Epoch
+impl<E, P> EngineIter<P> for E
+where
+    E: Engine<P>,
+    P: Epoch,
+{
+    fn iter(self) -> impl Iterator<Item = P> {
+        EngineIterator {
+            engine: self,
+            phantom: std::marker::PhantomData,
+        }
+    }
+}
+
+pub struct EngineIterator<E, P>
+where
+    E: Engine<P>,
+    P: Epoch,
+{
+    pub(crate) engine: E,
+    pub(crate) phantom: std::marker::PhantomData<P>,
+}
+
+impl<P, E> Iterator for EngineIterator<E, P>
+where
+    P: Epoch,
+    E: Engine<P>,
+{
+    type Item = P;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(self.engine.evolve())
+    }
+}
+
+pub trait Engine<P: Epoch> {
+    fn evolve(&mut self) -> P;
+}
+
+pub trait EngineExt<P: Epoch, E: Engine<P>> {
+    fn run<F>(&mut self, limit: F) -> P
     where
-        F: Fn(&E::Epoch) -> bool,
+        F: Fn(&P) -> bool,
         Self: Sized;
 }
 
-impl<E> EngineExt<E> for E
+impl<P, E> EngineExt<P, E> for E
 where
-    E: Engine,
+    P: Epoch,
+    E: Engine<P>,
 {
-    fn run<F>(&mut self, limit: F) -> E::Epoch
+    fn run<F>(&mut self, limit: F) -> P
     where
-        F: Fn(&E::Epoch) -> bool,
+        F: Fn(&P) -> bool,
         Self: Sized,
     {
         loop {
-            let epoch = self.next();
+            let epoch = self.evolve();
 
             if limit(&epoch) {
                 break epoch;
@@ -40,20 +76,21 @@ where
     }
 }
 
-pub trait Epoch<C: Chromosome> {
+pub trait Epoch {
     type Value;
+    type Chromosome: Chromosome;
 
     fn value(&self) -> &Self::Value;
-    fn ecosystem(&self) -> &Ecosystem<C>;
+    fn ecosystem(&self) -> &Ecosystem<Self::Chromosome>;
     fn index(&self) -> usize;
     fn metrics(&self) -> &MetricSet;
     fn objective(&self) -> &Objective;
 
-    fn population(&self) -> &Population<C> {
+    fn population(&self) -> &Population<Self::Chromosome> {
         &self.ecosystem().population()
     }
 
-    fn species(&self) -> Option<&[Species<C>]> {
+    fn species(&self) -> Option<&[Species<Self::Chromosome>]> {
         self.ecosystem().species().map(|s| s.as_slice())
     }
 

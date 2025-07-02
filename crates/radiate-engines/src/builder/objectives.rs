@@ -13,7 +13,7 @@ impl<C, T, E> GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send,
-    E: Epoch<C>,
+    E: Epoch,
 {
     /// Set the optimization goal of the genetic engine to minimize the fitness function.
     pub fn minimizing(mut self) -> Self {

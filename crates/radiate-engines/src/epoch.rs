@@ -14,6 +14,7 @@ where
     metrics: MetricSet,
     score: Score,
     objective: Objective,
+    front: Option<Front<Phenotype<C>>>,
 }
 
 impl<C: Chromosome, T> Generation<C, T> {
@@ -22,8 +23,9 @@ impl<C: Chromosome, T> Generation<C, T> {
     }
 }
 
-impl<C: Chromosome, T> Epoch<C> for Generation<C, T> {
+impl<C: Chromosome, T> Epoch for Generation<C, T> {
     type Value = T;
+    type Chromosome = C;
 
     fn ecosystem(&self) -> &Ecosystem<C> {
         &self.ecosystem
@@ -61,6 +63,10 @@ impl<C: Chromosome + Clone, T: Clone> From<&Context<C, T>> for Generation<C, T> 
             metrics: context.metrics.clone(),
             score: context.score.clone().unwrap(),
             objective: context.objective.clone(),
+            front: match context.objective {
+                Objective::Multi(_) => Some(context.front.read().unwrap().clone()),
+                _ => None,
+            },
         }
     }
 }
@@ -100,11 +106,12 @@ where
     objective: Objective,
 }
 
-impl<C: Chromosome> Epoch<C> for ParetoGeneration<C>
+impl<C: Chromosome> Epoch for ParetoGeneration<C>
 where
     C: Chromosome,
 {
     type Value = Front<Phenotype<C>>;
+    type Chromosome = C;
 
     fn ecosystem(&self) -> &Ecosystem<C> {
         &self.ecosystem

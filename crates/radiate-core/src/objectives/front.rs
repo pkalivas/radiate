@@ -131,7 +131,7 @@ impl<T> ParetoFront<T> {
 impl<C, E> FromIterator<E> for ParetoFront<Phenotype<C>>
 where
     C: Chromosome + Clone,
-    E: Epoch<C, Value = Front<Phenotype<C>>>,
+    E: Epoch<Value = Front<Phenotype<C>>>,
 {
     fn from_iter<I: IntoIterator<Item = E>>(iter: I) -> Self {
         let mut result = ParetoFront::new();

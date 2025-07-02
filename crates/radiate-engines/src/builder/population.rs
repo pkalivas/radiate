@@ -13,7 +13,7 @@ impl<C, T, E> GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send,
-    E: Epoch<C>,
+    E: Epoch,
 {
     /// Set the population size of the genetic engine. Default is 100.
     pub fn population_size(mut self, population_size: usize) -> Self {

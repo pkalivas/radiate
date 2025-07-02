@@ -36,9 +36,9 @@ type SingleObjBuilder<C, T> = GeneticEngineBuilder<C, T, Generation<C, T>>;
 type MultiObjBuilder<C, T> = GeneticEngineBuilder<C, T, ParetoGeneration<C>>;
 type RegressionBuilder<C, T> = GeneticEngineBuilder<C, T, Generation<C, T>>;
 
-type SingleObjectiveEngine<C> = GeneticEngine<C, ObjectValue, Generation<C, ObjectValue>>;
-type MultiObjectiveEngine<C> = GeneticEngine<C, ObjectValue, ParetoGeneration<C>>;
-type RegressionEngine<C, T> = GeneticEngine<C, T, Generation<C, T>>;
+type SingleObjectiveEngine<C> = GeneticEngine<C, ObjectValue>;
+type MultiObjectiveEngine<C> = GeneticEngine<C, ObjectValue>;
+type RegressionEngine<C, T> = GeneticEngine<C, T>;
 
 pub enum EngineBuilderHandle {
     Empty,

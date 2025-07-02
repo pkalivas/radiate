@@ -14,7 +14,7 @@ impl<C, T, E> GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send,
-    E: Epoch<C>,
+    E: Epoch,
 {
     pub fn boxed_diversity(mut self, diversity: Option<Box<dyn Diversity<C>>>) -> Self {
         self.params.species_params.diversity = diversity.map(|d| d.into());

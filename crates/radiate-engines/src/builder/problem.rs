@@ -6,7 +6,7 @@ impl<C, T, E> GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send,
-    E: Epoch<C>,
+    E: Epoch,
 {
     /// Set the codec that will be used to encode and decode the genotype of the population.
     pub fn codec<D: Codec<C, T> + 'static>(mut self, codec: D) -> Self {

@@ -1,37 +1,58 @@
-use crate::GeneticEngine;
+use crate::{Generation, GeneticEngine};
 use radiate_core::{
-    Chromosome, Engine, Epoch, Objective, Optimize, Score, engine::Context, objectives::Scored,
+    Chromosome, Engine, Epoch, Objective, Optimize, Score,
+    engine::{Context, EngineIter},
+    objectives::Scored,
 };
 use std::{collections::VecDeque, time::Duration};
 
-pub struct EngineIterator<C, T, E>
-where
-    C: Chromosome,
-    T: Clone + Send + Sync + 'static,
-    E: Epoch<C>,
-{
-    pub(crate) engine: GeneticEngine<C, T, E>,
-}
+// impl<E: Engine> EngineExt for E {}
 
-impl<C, T, E> Iterator for EngineIterator<C, T, E>
-where
-    C: Chromosome,
-    T: Clone + Send + Sync + 'static,
-    E: Epoch<C> + for<'a> From<&'a Context<C, T>>,
-{
-    type Item = E;
+// /// Enhanced iterator for engines
+// pub struct EngineIterator<E: Engine> {
+//     engine: E,
+// }
 
-    fn next(&mut self) -> Option<Self::Item> {
-        Some(self.engine.next())
-    }
-}
+// pub struct EngineIterator<E, P>
+// where
+//     E: Engine<P>,
+//     P: Epoch,
+// {
+//     pub(crate) engine: E,
+//     _phantom: std::marker::PhantomData<P>,
+// }
+
+// impl<E, P> EngineIterator<E, P>
+// where
+//     P: Epoch,
+//     E: Engine<P>,
+// {
+//     pub fn new(engine: E) -> Self {
+//         EngineIterator {
+//             engine,
+//             _phantom: std::marker::PhantomData,
+//         }
+//     }
+// }
+
+// impl<P, E> Iterator for EngineIterator<E, P>
+// where
+//     P: Epoch,
+//     E: Engine<P>,
+// {
+//     type Item = P;
+
+//     fn next(&mut self) -> Option<Self::Item> {
+//         Some(self.engine.evolve())
+//     }
+// }
 
 impl<I, C, T, E> EngineIteratorExt<C, T, E> for I
 where
     I: Iterator<Item = E>,
     C: Chromosome,
     T: Clone,
-    E: Epoch<C> + for<'a> From<&'a Context<C, T>>,
+    E: Epoch + for<'a> From<&'a Context<C, T>>,
 {
 }
 
@@ -39,7 +60,7 @@ pub trait EngineIteratorExt<C, T, E>: Iterator<Item = E>
 where
     C: Chromosome,
     T: Clone,
-    E: Epoch<C>,
+    E: Epoch,
 {
     fn until_seconds(self, limit: f64) -> impl Iterator<Item = E>
     where
@@ -100,30 +121,26 @@ where
             window,
             epsilon,
             done: false,
-            _phantom: std::marker::PhantomData,
         }
     }
 }
 
-struct ConverganceIterator<I, C, E>
+struct ConverganceIterator<I, E>
 where
     I: Iterator<Item = E>,
-    C: Chromosome,
-    E: Epoch<C>,
+    E: Epoch,
 {
     iter: I,
     history: VecDeque<f32>,
     window: usize,
     epsilon: f32,
     done: bool,
-    _phantom: std::marker::PhantomData<C>,
 }
 
-impl<I, C, E> Iterator for ConverganceIterator<I, C, E>
+impl<I, E> Iterator for ConverganceIterator<I, E>
 where
     I: Iterator<Item = E>,
-    C: Chromosome,
-    E: Scored + Epoch<C>,
+    E: Scored + Epoch,
 {
     type Item = E;
 

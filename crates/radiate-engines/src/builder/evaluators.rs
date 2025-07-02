@@ -18,7 +18,7 @@ impl<C, T, E> GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send,
-    E: Epoch<C>,
+    E: Epoch,
 {
     pub fn evaluator<V: Evaluator<C, T> + 'static>(mut self, evaluator: V) -> Self {
         self.params.evaluation_params.evaluator = Arc::new(evaluator);

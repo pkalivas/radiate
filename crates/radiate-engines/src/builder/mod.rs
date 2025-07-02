@@ -29,44 +29,57 @@ use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::engine::Context;
 use radiate_core::problem::FitnessFunction;
 use radiate_core::{
-    Diversity, Ecosystem, Epoch, Evaluator, Executor, FitnessEvaluator, Genotype, MetricSet,
+    Diversity, Ecosystem, Engine, Epoch, Evaluator, Executor, FitnessEvaluator, Genotype, MetricSet,
 };
 use radiate_error::RadiateError;
 use std::cmp::Ordering;
 use std::sync::{Arc, Mutex, RwLock};
 
-pub trait EngineBuilder<C, T, I = ()>
+pub trait EngineBuilder<C, T, P, E>
 where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
+    P: Epoch,
+    E: Engine<P>,
 {
-    fn builder2(input: I) -> GeneticEngineBuilder<C, T, Generation<C, T>>;
+    fn builder(self) -> E;
 }
 
-impl<C, T> EngineBuilder<C, T, ()> for GeneticEngine<C, T, Generation<C, T>>
-where
-    C: Chromosome + Clone + PartialEq + 'static,
-    T: Clone + Send + Sync,
-{
-    fn builder2(_: ()) -> GeneticEngineBuilder<C, T, Generation<C, T>> {
-        GeneticEngineBuilder::default()
-    }
-}
+// impl<C, T> EngineBuilder<C, T, Generation<C, T>, GeneticEngine<C, T>>
+//     for GeneticEngineBuilder<C, T, Generation<C, T>>
+// where
+//     C: Chromosome + Clone + PartialEq + 'static,
+//     T: Clone + Send + Sync + 'static,
+// {
+//     fn builder(self) -> GeneticEngine<C, T> {
+//         GeneticEngineBuilder::<C, T, Generation<C, T>>::default().build()
+//     }
+// }
 
-impl<C, T, D, F> EngineBuilder<C, T, (D, F)> for GeneticEngine<C, T, Generation<C, T>>
-where
-    C: Chromosome + Clone + PartialEq + 'static,
-    T: Clone + Send + Sync,
-    D: Codec<C, T> + 'static,
-    F: FitnessFunction<T> + 'static,
-{
-    fn builder2(input: (D, F)) -> GeneticEngineBuilder<C, T, Generation<C, T>> {
-        let (codec, fitness) = input;
-        GeneticEngineBuilder::default()
-            .codec(codec)
-            .fitness_fn(fitness)
-    }
-}
+// impl<C, T> EngineBuilder<C, T, ()> for GeneticEngine<C, T>
+// where
+//     C: Chromosome + Clone + PartialEq + 'static,
+//     T: Clone + Send + Sync,
+// {
+//     fn builder2(_: ()) -> GeneticEngineBuilder<C, T, Generation<C, T>> {
+//         GeneticEngineBuilder::default()
+//     }
+// }
+
+// impl<C, T, D, F> EngineBuilder<C, T, (D, F)> for GeneticEngine<C, T>
+// where
+//     C: Chromosome + Clone + PartialEq + 'static,
+//     T: Clone + Send + Sync,
+//     D: Codec<C, T> + 'static,
+//     F: FitnessFunction<T> + 'static,
+// {
+//     fn builder2(input: (D, F)) -> GeneticEngineBuilder<C, T, Generation<C, T>> {
+//         let (codec, fitness) = input;
+//         GeneticEngineBuilder::default()
+//             .codec(codec)
+//             .fitness_fn(fitness)
+//     }
+// }
 
 #[derive(Clone)]
 pub struct EngineParams<C, T>
@@ -117,7 +130,7 @@ impl<C, T, E> GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send,
-    E: Epoch<C>,
+    E: Epoch,
 {
     /// The `FilterStrategy` is used to determine how a new individual is added to the `Population`
     /// if an individual is deemed to be either invalid or reaches the maximum age.
@@ -151,11 +164,11 @@ impl<C, T, E> GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome + Clone + PartialEq + 'static,
     T: Clone + Send + Sync + 'static,
-    E: Epoch<C>,
+    E: Epoch,
 {
     /// Build the genetic engine with the given parameters. This will create a new
     /// instance of the `GeneticEngine` with the given parameters.
-    pub fn build(mut self) -> GeneticEngine<C, T, E> {
+    pub fn build(mut self) -> GeneticEngine<C, T> {
         if self.params.problem.is_none() {
             if self.params.codec.is_none() {
                 panic!("Codec not set");
@@ -205,7 +218,7 @@ where
                 self.params.handlers.clone(),
             );
 
-            GeneticEngine::<C, T, E>::new(context, pipeline, event_bus)
+            GeneticEngine::<C, T>::new(context, pipeline, event_bus)
         }
     }
 
@@ -342,7 +355,7 @@ impl<C, T, E> Default for GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + 'static,
-    E: Epoch<C>,
+    E: Epoch,
 {
     fn default() -> Self {
         GeneticEngineBuilder {

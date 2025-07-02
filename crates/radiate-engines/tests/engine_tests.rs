@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod engine_tests {
-    use radiate_core::*;
+    use radiate_core::{engine::EngineIter, *};
     use radiate_engines::*;
 
     /// Test problem: Evolve functions that produce diverse output patterns

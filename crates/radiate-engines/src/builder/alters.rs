@@ -6,7 +6,7 @@ impl<C, T, E> GeneticEngineBuilder<C, T, E>
 where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send,
-    E: Epoch<C>,
+    E: Epoch,
 {
     /// Set the alterer of the genetic engine. This is the alterer that will be used to
     /// alter the offspring of the population. The alterer is used to apply mutations
