@@ -1,63 +1,72 @@
-use crate::{ObjectValue, codec::PyCodec};
-use pyo3::{Py, PyAny, PyObject, Python, sync::GILOnceCell};
+use crate::{IntoPyObjectValue, bindings::PyCodec};
+use pyo3::{Borrowed, PyAny, PyObject, Python};
 use radiate::{Chromosome, Codec, Genotype, Problem, Score};
 
-pub struct PyProblem<C: Chromosome> {
-    fitness_fn_cell: GILOnceCell<PyObject>,
-    codec: PyCodec<C>,
+pub struct PyProblem<C: Chromosome, T: IntoPyObjectValue> {
+    fitness_func: PyObject,
+    codec: PyCodec<C, T>,
 }
 
-impl<C: Chromosome> PyProblem<C> {
-    pub fn new(fitness_func: PyObject, codec: PyCodec<C>) -> Self {
-        let cell = Python::with_gil(|py| {
-            let cell = GILOnceCell::new();
-            cell.set(py, fitness_func)
-                .expect("Failed to set fitness function in GILOnceCell");
-            cell
-        });
-
+impl<C: Chromosome, T: IntoPyObjectValue> PyProblem<C, T> {
+    pub fn new(fitness_func: PyObject, codec: PyCodec<C, T>) -> Self {
         PyProblem {
-            fitness_fn_cell: cell,
+            fitness_func,
             codec,
         }
     }
+
+    pub fn fitness_func(&self) -> &PyObject {
+        &self.fitness_func
+    }
+
+    pub fn decode_with_py<'py>(&self, py: Python<'py>, genotype: &Genotype<C>) -> T {
+        self.codec.decode_with_py(py, genotype)
+    }
 }
 
-impl<C: Chromosome> Problem<C, ObjectValue> for PyProblem<C> {
+impl<C: Chromosome, T: IntoPyObjectValue> Problem<C, T> for PyProblem<C, T> {
     fn encode(&self) -> Genotype<C> {
         self.codec.encode()
     }
 
-    fn decode(&self, genotype: &Genotype<C>) -> ObjectValue {
+    fn decode(&self, genotype: &Genotype<C>) -> T {
         self.codec.decode(genotype)
     }
 
     fn eval(&self, individual: &Genotype<C>) -> Score {
         Python::with_gil(|py| {
-            let func = self.fitness_fn_cell.get(py).unwrap();
-            let phenotype = self.codec.decode_with_py(py, individual);
-            call(py, &func, &phenotype.inner)
-        })
-    }
-
-    fn eval_batch(&self, individuals: &[Genotype<C>]) -> Vec<Score> {
-        Python::with_gil(|py| {
-            let func = self.fitness_fn_cell.get(py).unwrap();
-
-            individuals
-                .iter()
-                .map(|ind| self.codec.decode_with_py(py, ind).inner)
-                .map(|phenotype| call(py, &func, &phenotype))
-                .collect::<Vec<Score>>()
+            let phenotype = self.codec.decode_with_py(py, individual).into_py(py);
+            let fitness_func = self.fitness_func.bind_borrowed(py);
+            call_fitness(py, fitness_func, phenotype.inner.bind_borrowed(py))
         })
     }
 }
 
-unsafe impl<C: Chromosome> Send for PyProblem<C> {}
-unsafe impl<C: Chromosome> Sync for PyProblem<C> {}
+impl<C: Chromosome + Clone, T: IntoPyObjectValue + Clone> Clone for PyProblem<C, T> {
+    fn clone(&self) -> Self {
+        Python::with_gil(|py| {
+            let fitness_func = self.fitness_func.clone_ref(py);
+            let codec = self.codec.clone();
+            PyProblem {
+                fitness_func,
+                codec,
+            }
+        })
+    }
+}
 
-pub fn call<'py>(py: Python<'py>, func: &Py<PyAny>, input: &Py<PyAny>) -> Score {
-    let any_value = func.call1(py, (input,)).expect("Python call failed");
+unsafe impl<C: Chromosome, T: IntoPyObjectValue> Send for PyProblem<C, T> {}
+unsafe impl<C: Chromosome, T: IntoPyObjectValue> Sync for PyProblem<C, T> {}
+
+pub(crate) fn call_fitness<'a, 'py>(
+    py: Python<'py>,
+    func: Borrowed<'a, 'py, PyAny>,
+    input: Borrowed<'a, 'py, PyAny>,
+) -> Score {
+    let any_value = func
+        .as_ref()
+        .call1(py, (input,))
+        .expect("Python call failed");
 
     if let Ok(parsed) = any_value.extract::<f32>(py) {
         return Score::from(parsed);

@@ -1,4 +1,6 @@
-use crate::{Chromosome, Gene, Genotype, Metric, Population, indexes, random_provider};
+use crate::{
+    Chromosome, Gene, Genotype, Metric, Population, ToSnakeCase, indexes, labels, random_provider,
+};
 
 /// This is the main trait that is used to define the different types of alterations that can be
 /// performed on a population. The `Alter` trait is used to define the `alter` method that is used
@@ -86,20 +88,54 @@ impl<C: Chromosome> Alter<C> for AlterAction<C> {
             AlterAction::Mutate(name, rate, m) => {
                 let timer = std::time::Instant::now();
                 let AlterResult(count, metrics) = m.mutate(population, generation, *rate);
-                let metric = Metric::new_operations(name, count, timer.elapsed());
+                let metric = Metric::new(name)
+                    .with_labels(labels![
+                        "operator" => "mutation",
+                        "type" => "alter",
+                        "rate" => rate.to_string(),
+                    ])
+                    .upsert(count)
+                    .upsert(timer.elapsed());
 
                 match metrics {
-                    Some(metrics) => metrics.into_iter().chain(std::iter::once(metric)).collect(),
+                    Some(metrics) => metrics
+                        .into_iter()
+                        .map(|m| {
+                            m.with_labels(labels![
+                                "operator" => "mutation",
+                                "type" => "alter",
+                                "rate" => rate.to_string(),
+                            ])
+                        })
+                        .chain(std::iter::once(metric))
+                        .collect(),
                     None => vec![metric],
                 }
             }
             AlterAction::Crossover(name, rate, c) => {
                 let timer = std::time::Instant::now();
                 let AlterResult(count, metrics) = c.crossover(population, generation, *rate);
-                let metric = Metric::new_operations(name, count, timer.elapsed());
+                let metric = Metric::new(name)
+                    .with_labels(labels![
+                        "operator" => "crossover",
+                        "type" => "alter",
+                        "rate" => rate.to_string(),
+                    ])
+                    .upsert(count)
+                    .upsert(timer.elapsed());
 
                 match metrics {
-                    Some(metrics) => metrics.into_iter().chain(std::iter::once(metric)).collect(),
+                    Some(metrics) => metrics
+                        .into_iter()
+                        .map(|m| {
+                            m.with_labels(labels![
+                                "operator" => "crossover",
+                                "type" => "alter",
+                                "rate" => rate.to_string(),
+                            ])
+                        })
+                        .chain(std::iter::once(metric))
+                        .collect(),
                     None => vec![metric],
                 }
             }
@@ -119,8 +155,12 @@ impl<C: Chromosome> Alter<C> for AlterAction<C> {
 /// any of the methods, the default implementation will perform a simple crossover operation on the
 /// entire population. This is the case with the `UniformCrossover` struct.
 pub trait Crossover<C: Chromosome>: Send + Sync {
-    fn name(&self) -> &'static str {
-        std::any::type_name::<Self>().split("::").last().unwrap()
+    fn name(&self) -> String {
+        std::any::type_name::<Self>()
+            .split("::")
+            .last()
+            .map(|s| s.to_snake_case())
+            .unwrap()
     }
 
     fn rate(&self) -> f32 {
@@ -131,7 +171,7 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
     where
         Self: Sized + 'static,
     {
-        AlterAction::Crossover(self.name(), self.rate(), Box::new(self))
+        AlterAction::Crossover(self.name().leak(), self.rate(), Box::new(self))
     }
 
     #[inline]
@@ -212,8 +252,12 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
 }
 
 pub trait Mutate<C: Chromosome>: Send + Sync {
-    fn name(&self) -> &'static str {
-        std::any::type_name::<Self>().split("::").last().unwrap()
+    fn name(&self) -> String {
+        std::any::type_name::<Self>()
+            .split("::")
+            .last()
+            .map(|s| s.to_snake_case())
+            .unwrap()
     }
 
     fn rate(&self) -> f32 {
@@ -224,7 +268,7 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
     where
         Self: Sized + 'static,
     {
-        AlterAction::Mutate(self.name(), self.rate(), Box::new(self))
+        AlterAction::Mutate(self.name().leak(), self.rate(), Box::new(self))
     }
 
     #[inline]

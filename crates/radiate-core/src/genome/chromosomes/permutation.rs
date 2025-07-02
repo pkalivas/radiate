@@ -118,6 +118,16 @@ impl<A: PartialEq + Clone> Valid for PermutationChromosome<A> {
     }
 }
 
+impl<A: PartialEq + Clone> From<Vec<PermutationGene<A>>> for PermutationChromosome<A> {
+    fn from(genes: Vec<PermutationGene<A>>) -> Self {
+        let alleles = genes
+            .first()
+            .map(|g| Arc::clone(&g.alleles))
+            .unwrap_or_default();
+        PermutationChromosome { genes, alleles }
+    }
+}
+
 #[cfg(feature = "serde")]
 impl<A: PartialEq + Clone + Serialize> Serialize for PermutationChromosome<A> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

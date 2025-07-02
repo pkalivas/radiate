@@ -1,12 +1,22 @@
 from typing import Any, Callable, List, Tuple, TypeAlias, Union
-from .selector import SelectorBase, TournamentSelector, RouletteSelector
-from .alterer import AlterBase, UniformCrossover, UniformMutator
-from .diversity import DiversityBase
-from .codec import CodecBase
-from .limit import LimitBase
+
+from radiate.codec.tree import TreeCodec
+
+from .builder import EngineBuilder
 from .generation import Generation
 from .handlers import EventHandler
-from .radiate import PyEngineBuilder, PyObjective, PySubscriber
+from .codec import FloatCodec, IntCodec, CharCodec, BitCodec, GraphCodec, CodecBase, PermutationCodec
+
+from .inputs.input import EngineInput, EngineInputType
+from .inputs.selector import SelectorBase, TournamentSelector, RouletteSelector
+from .inputs.alterer import AlterBase, UniformCrossover, UniformMutator
+from .inputs.distance import DistanceBase
+from .inputs.executor import Executor
+from .inputs.problem import ProblemBase
+from .inputs.limit import LimitBase
+
+from .genome.gene import GeneType
+
 
 Subscriber: TypeAlias = Union[
     Callable[[Any], None], List[Callable[[Any], None]], EventHandler, List[EventHandler]
@@ -23,55 +33,52 @@ class GeneticEngine:
     def __init__(
         self,
         codec: CodecBase,
-        fitness_func: Callable[[Any], Any],
+        fitness_func: Callable[[Any], Any] | ProblemBase,
         offspring_selector: SelectorBase | None = None,
         survivor_selector: SelectorBase | None = None,
         alters: AlterBase | List[AlterBase] | None = None,
-        diversity: DiversityBase | None = None,
+        diversity: DistanceBase | None = None,
         population_size: int = 100,
         offspring_fraction: float = 0.8,
         max_phenotype_age: int = 20,
         max_species_age: int = 20,
         species_threshold: float = 0.5,
         objectives: str | List[str] = "max",
-        num_threads: int = 1,
+        executor: Executor | None = None,
         front_range: Tuple[int, int] | None = (800, 900),
         subscribe: Subscriber | None = None,
     ):
-        self.engine = None
+        self.gene_type = None
+        if isinstance(codec, IntCodec):
+            self.gene_type = GeneType.INT
+        elif isinstance(codec, FloatCodec):
+            self.gene_type = GeneType.FLOAT
+        elif isinstance(codec, CharCodec):
+            self.gene_type = GeneType.CHAR
+        elif isinstance(codec, BitCodec):
+            self.gene_type = GeneType.BIT
+        elif isinstance(codec, GraphCodec):
+            self.gene_type = GeneType.GRAPH
+        elif isinstance(codec, TreeCodec):
+            self.gene_type = GeneType.TREE
+        elif isinstance(codec, PermutationCodec):
+            self.gene_type = GeneType.PERMUTATION
+        else:
+            raise TypeError(f"Codec type {type(codec)} is not supported.")
 
-        survivor_selector = self.__get_params(
-            survivor_selector or TournamentSelector(k=3)
-        )
-        offspring_selector = self.__get_params(offspring_selector or RouletteSelector())
-        alters = self.__get_params(alters or [UniformCrossover(), UniformMutator()])
-        diversity = self.__get_params(diversity, allow_none=True)
-        objectives = self.__get_objectives(objectives)
-        front_range = self.__get_front_range(front_range)
-        handlers = self.__get_event_handler(subscribe)
+        self.builder = EngineBuilder(self.gene_type, codec, fitness_func)
 
-        codec = self.__get_codec(codec)
-        fitness_func = fitness_func
-
-        self.builder = PyEngineBuilder(
-            fitness_func,
-            codec,
-            population_size=population_size,
-            offspring_fraction=offspring_fraction,
-            objective=objectives,
-            front_range=front_range,
-            num_threads=num_threads,
-            max_phenotype_age=max_phenotype_age,
-            max_species_age=max_species_age,
-            species_threshold=species_threshold,
-            alters=alters,
-            offspring_selector=offspring_selector,
-            survivor_selector=survivor_selector,
-            diversity=diversity,
-        )
-
-        if handlers:
-            self.builder.set_subscribers(handlers)
+        self.builder.set_survivor_selector(survivor_selector or TournamentSelector(k=3))
+        self.builder.set_offspring_selector(offspring_selector or RouletteSelector())
+        self.builder.set_alters(alters or [UniformCrossover(), UniformMutator()])
+        self.builder.set_diversity(diversity, species_threshold)
+        self.builder.set_population_size(population_size)
+        self.builder.set_offspring_fraction(offspring_fraction)
+        self.builder.set_max_age(max_phenotype_age)
+        self.builder.set_max_species_age(max_species_age)
+        self.builder.set_objective(objectives, front_range)
+        self.builder.set_executor(executor)
+        self.builder.set_subscribers(subscribe)
 
     def __repr__(self):
         if self.engine is None:
@@ -82,9 +89,18 @@ class GeneticEngine:
         """Return the internal state of the engine builder for debugging."""
         return self.builder.__dict__()
 
-    def run(
-        self, limits: LimitBase | List[LimitBase] | None = None, log: bool = False
-    ) -> Generation:
+    def __iter__(self):
+        """Return an iterator over the engine's generations."""
+        self.engine = self.builder.build()
+        return self
+
+    def __next__(self):
+        """Return the next generation from the engine."""
+        if not hasattr(self, "engine"):
+            self.engine = self.builder.build()
+        return Generation(self.engine.next())
+
+    def run(self, limits: LimitBase | List[LimitBase], log: bool = False) -> Generation:
         """Run the engine with the given limits.
         Args:
             limits: A single Limit or a list of Limits to apply to the engine.
@@ -98,17 +114,35 @@ class GeneticEngine:
         ---------
         >>> engine.run(rd.ScoreLimit(0.0001), log=True)
         """
-        if limits is not None:
-            self.limits(limits)
-        else:
-            limits = self.builder.get_limits()
-            if not limits or len(limits) == 0:
-                raise ValueError(
-                    "At least one limit must be provided to run the engine."
-                )
 
-        self.engine = self.builder.build()
-        return Generation(self.engine.run(log=log))
+        if limits is not None:
+            if isinstance(limits, LimitBase):
+                limits = [limits]
+            elif isinstance(limits, list):
+                if len(limits) == 0:
+                    raise ValueError(
+                        "At least one limit must be provided to run the engine."
+                    )
+            else:
+                raise TypeError(
+                    "Limits must be a LimitBase or a list of LimitBase instances."
+                )
+        else:
+            raise ValueError("At least one limit must be provided to run the engine.")
+
+        engine = self.builder.build()
+
+        limit_inputs = [
+            EngineInput(
+                input_type=EngineInputType.Limit,
+                component=lim.component,
+                allowed_genes=[self.gene_type],
+                **lim.args,
+            ).py_input()
+            for lim in limits
+        ]
+
+        return Generation(engine.run(limit_inputs, log))
 
     def population_size(self, size: int):
         """Set the population size.
@@ -138,7 +172,7 @@ class GeneticEngine:
         """
         if selector is None:
             raise ValueError("Selector must be provided.")
-        self.builder.set_survivor_selector(self.__get_params(selector))
+        self.builder.set_survivor_selector(selector)
 
     def offspring_selector(self, selector: SelectorBase):
         """Set the offspring selector.
@@ -153,7 +187,7 @@ class GeneticEngine:
         """
         if selector is None:
             raise ValueError("Selector must be provided.")
-        self.builder.set_offspring_selector(self.__get_params(selector))
+        self.builder.set_offspring_selector(selector)
 
     def alters(self, alters: AlterBase | List[AlterBase]):
         """Set the alters.
@@ -168,7 +202,7 @@ class GeneticEngine:
         """
         if alters is None:
             raise ValueError("Alters must be provided.")
-        self.builder.set_alters(self.__get_params(alters))
+        self.builder.set_alters(alters)
 
     def limits(self, limits: LimitBase | List[LimitBase]):
         """Set the limits.
@@ -186,7 +220,7 @@ class GeneticEngine:
         lims = [lim.limit for lim in (limits if isinstance(limits, list) else [limits])]
         self.builder.set_limits(lims)
 
-    def diversity(self, diversity: DiversityBase, species_threshold: float = 1.5):
+    def diversity(self, diversity: DistanceBase, species_threshold: float = 1.5):
         """Set the diversity.
         Args:
             diversity (DiversityBase): The diversity strategy to use.
@@ -200,8 +234,9 @@ class GeneticEngine:
         """
         if diversity is None:
             raise ValueError("Diversity must be provided.")
-        self.builder.set_diversity(self.__get_params(diversity, allow_none=True))
-        self.builder.set_species_threshold(species_threshold)
+        if species_threshold <= 0:
+            raise ValueError("Species threshold must be greater than 0.")
+        self.builder.set_diversity(diversity, species_threshold)
 
     def offspring_fraction(self, fraction: float):
         """Set the offspring fraction.
@@ -232,7 +267,7 @@ class GeneticEngine:
         """
         if max_phenotype_age <= 0 or max_species_age <= 0:
             raise ValueError("Maximum age must be greater than 0.")
-        self.builder.set_max_phenotype_age(max_phenotype_age)
+        self.builder.set_max_age(max_phenotype_age)
         self.builder.set_max_species_age(max_species_age)
 
     def minimizing(self):
@@ -242,7 +277,7 @@ class GeneticEngine:
         ---------
         >>> engine.minimizing()
         """
-        self.builder.set_objective(PyObjective.min())
+        self.builder.set_objective(["min"], None)
 
     def maximizing(self):
         """Set the objectives to maximize.
@@ -251,7 +286,7 @@ class GeneticEngine:
         ---------
         >>> engine.maximizing()
         """
-        self.builder.set_objective(PyObjective.max())
+        self.builder.set_objective(["max"], None)
 
     def multi_objective(
         self, objectives: List[str], front_range: Tuple[int, int] | None = None
@@ -271,23 +306,19 @@ class GeneticEngine:
             obj in ["min", "max"] for obj in objectives
         ):
             raise ValueError("Objectives must be a list of 'min' or 'max'.")
+        self.builder.set_objective(objectives, front_range)
 
-        self.builder.set_objective(self.__get_objectives(objectives))
-        self.builder.set_front_range(self.__get_front_range(front_range))
-
-    def num_threads(self, num_threads: int):
-        """Set the number of threads.
+    def executor(self, executor: Executor):
+        """Set the executor.
         Args:
-            num_threads (int): The number of threads to use.
-        Raises:
-            ValueError: If num_threads is less than or equal to 0.
+            executor (Executor): The executor to use.
         Example:
         ---------
-        >>> engine.num_threads(4)
+        >>> engine.executor(Executor.worker_pool())
         """
-        if num_threads <= 0:
-            raise ValueError("Number of threads must be greater than 0.")
-        self.builder.set_num_threads(num_threads)
+        if not isinstance(executor, Executor):
+            raise TypeError("Executor must be an instance of Executor.")
+        self.builder.set_executor(executor)
 
     def subscribe(self, event_handler: Subscriber | None = None):
         """Register an event handler.
@@ -301,100 +332,4 @@ class GeneticEngine:
         >>> engine.subscribe(my_event_handler)
         >>> engine.subscribe([handler1, handler2])
         """
-        if event_handler is None:
-            return
-        handlers = self.__get_event_handler(event_handler)
-        if handlers is None:
-            raise TypeError("Event handler must be a callable or a list of callables.")
-        self.builder.set_subscribers(handlers)
-
-    def __get_front_range(self, front_range: Tuple[int, int] | None) -> Tuple[int, int]:
-        """Get the front range."""
-        if front_range is None:
-            return (800, 900)
-        if not isinstance(front_range, tuple) or len(front_range) != 2:
-            raise ValueError("Front range must be a tuple of (min, max).")
-        if front_range[0] >= front_range[1]:
-            raise ValueError(
-                "Minimum front range must be less than maximum front range."
-            )
-        return front_range
-
-    def __get_objectives(self, objectives: str | List[str]) -> PyObjective:
-        """Get the objectives."""
-        if objectives is None:
-            raise ValueError("Objectives must be provided.")
-        if isinstance(objectives, str):
-            if objectives not in ["min", "max"]:
-                raise ValueError("Objectives must be 'min' or 'max'.")
-            return PyObjective([objectives])
-        if isinstance(objectives, list):
-            for obj in objectives:
-                if obj not in ["min", "max"]:
-                    raise ValueError("Objectives must be 'min' or 'max'.")
-            return PyObjective.multi(objectives)
-        raise TypeError(f"Objectives type {type(objectives)} is not supported.")
-
-    def __get_params(
-        self,
-        value: SelectorBase | DiversityBase | AlterBase | List[AlterBase],
-        allow_none: bool = False,
-    ) -> List[Any] | None:
-        """Get the parameters from the value."""
-        if isinstance(value, SelectorBase):
-            return value.selector
-        if isinstance(value, AlterBase):
-            return [value.alterer]
-        if isinstance(value, DiversityBase):
-            return value.diversity
-        if isinstance(value, list):
-            if all(isinstance(alter, AlterBase) for alter in value):
-                return [alter.alterer for alter in value]
-
-        if allow_none and value is None:
-            return None
-        else:
-            raise TypeError(f"Param type {type(value)} is not supported.")
-
-    def __get_codec(self, codec: CodecBase | Callable[[], List[Any]]) -> Any:
-        """Get the codec."""
-        from .codec import FloatCodec, IntCodec, CharCodec, BitCodec
-
-        if isinstance(codec, FloatCodec):
-            return codec.codec
-        if isinstance(codec, IntCodec):
-            return codec.codec
-        if isinstance(codec, CharCodec):
-            return codec.codec
-        if isinstance(codec, BitCodec):
-            return codec.codec
-
-        else:
-            raise TypeError(
-                f"Codec type {type(codec)} is not supported. "
-                "Use FloatCodec, IntCodec, CharCodec, or BitCodec."
-            )
-
-    def __get_event_handler(
-        self,
-        handler: List[Callable[[Any], None]]
-        | Callable[[Any], None]
-        | List[EventHandler]
-        | EventHandler,
-    ) -> List[PySubscriber]:
-        """Get the event handler."""
-        if isinstance(handler, EventHandler):
-            return [handler.subscriber]
-        if isinstance(handler, list):
-            if all(isinstance(h, EventHandler) for h in handler):
-                return [h.subscriber for h in handler if isinstance(h, EventHandler)]
-        if callable(handler):
-            return [PySubscriber(handler)]
-        if isinstance(handler, list):
-            if all(callable(h) for h in handler):
-                return [PySubscriber(h) for h in handler]
-            else:
-                raise TypeError(
-                    "Event handler must be a callable or a list of callables."
-                )
-        return None
+        self.builder.set_subscribers(event_handler or [])

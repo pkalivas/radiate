@@ -158,6 +158,17 @@ impl<C: Chromosome> Hash for Phenotype<C> {
     }
 }
 
+impl<C: Chromosome> From<Genotype<C>> for Phenotype<C> {
+    fn from(genotype: Genotype<C>) -> Self {
+        Phenotype {
+            genotype: Some(genotype),
+            score: None,
+            generation: 0,
+            id: PhenotypeId::new(),
+        }
+    }
+}
+
 impl<C: Chromosome> From<(Genotype<C>, usize)> for Phenotype<C> {
     fn from((genotype, generation): (Genotype<C>, usize)) -> Self {
         Phenotype {

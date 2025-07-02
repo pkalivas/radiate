@@ -1,11 +1,30 @@
 use std::{
     fmt::Debug,
     sync::{
-        Arc, Condvar, Mutex,
+        Arc, Condvar, Mutex, OnceLock,
         atomic::{AtomicUsize, Ordering},
     },
 };
 use std::{sync::mpsc, thread};
+
+struct FixedThreadPool {
+    inner: Arc<ThreadPool>,
+}
+
+impl FixedThreadPool {
+    /// Returns the global instance of the registry.
+    pub(self) fn instance(num_workers: usize) -> &'static FixedThreadPool {
+        static INSTANCE: OnceLock<FixedThreadPool> = OnceLock::new();
+
+        INSTANCE.get_or_init(|| FixedThreadPool {
+            inner: Arc::new(ThreadPool::new(num_workers)),
+        })
+    }
+}
+
+pub fn get_thread_pool(num_workers: usize) -> Arc<ThreadPool> {
+    Arc::clone(&FixedThreadPool::instance(num_workers).inner)
+}
 
 /// [WorkResult] is a simple wrapper around a `Receiver` that allows the user to get
 /// the result of a job that was executed in the thread pool. It kinda acts like

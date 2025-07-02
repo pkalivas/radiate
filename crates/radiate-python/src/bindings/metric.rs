@@ -1,4 +1,4 @@
-use crate::conversion::Wrap;
+use crate::object::Wrap;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
@@ -23,13 +23,17 @@ impl PyMetricSet {
         py: Python<'py>,
         key: String,
     ) -> PyResult<Option<Bound<'py, PyDict>>> {
+        if !self.inner.contains_key(&key) {
+            return Ok(None);
+        }
+
         self.inner
             .get_from_string(key)
             .map(|metric| Wrap(metric).into_pyobject(py))
             .transpose()
             .map_err(|e| {
                 PyValueError::new_err(format!(
-                    "{e}\n\nHint: Try setting `strict=False` to allow passing data with mixed types."
+                    "{e} Unknown error occurred while converting Metric to Python dict."
                 ))
             })
     }
@@ -95,7 +99,6 @@ fn metric_to_py_dict<'py, 'a>(py: Python<'py>, metric: &Metric) -> PyResult<Boun
     let dict = PyDict::new(py);
 
     dict.set_item("name", metric.name().to_lowercase())?;
-    dict.set_item("type", metric.metric_type().to_lowercase())?;
 
     dict.set_item("value_last", metric.last_value())?;
     dict.set_item("value_mean", metric.value_mean())?;

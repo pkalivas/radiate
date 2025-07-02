@@ -61,6 +61,33 @@ impl Distribution {
         self.last_sequence.clear();
     }
 
+    pub fn log2(&self) -> f32 {
+        (self.last_sequence().len() as f32).log2()
+    }
+
+    pub fn entropy(&self) -> f32 {
+        let bin_width = 0.01; // You can tune this for your resolution
+        let mut counts = std::collections::HashMap::new();
+
+        for &value in &self.last_sequence {
+            let bin = (value / bin_width).floor();
+            *counts.entry(bin as i32).or_insert(0usize) += 1;
+        }
+
+        let total = self.last_sequence.len() as f32;
+        if total == 0.0 {
+            return 0.0;
+        }
+
+        counts
+            .values()
+            .map(|&count| {
+                let p = count as f32 / total;
+                -p * p.log2()
+            })
+            .sum()
+    }
+
     pub fn percentile(&self, p: f32) -> f32 {
         if p < 0.0 || p > 100.0 {
             panic!("Percentile must be between 0 and 100");
@@ -101,3 +128,34 @@ impl From<Vec<f32>> for Distribution {
         result
     }
 }
+
+// pub fn entropy(&self, bin_count: usize) -> f32 {
+//     if self.last_sequence.is_empty() || bin_count == 0 {
+//         return 0.0;
+//     }
+
+//     let min = self.min();
+//     let max = self.max();
+
+//     if (max - min).abs() < std::f32::EPSILON {
+//         return 0.0; // All values are (almost) the same
+//     }
+
+//     let bin_width = (max - min) / bin_count as f32;
+//     let mut bins = vec![0usize; bin_count];
+
+//     for &v in &self.last_sequence {
+//         let bin_index = ((v - min) / bin_width).floor() as usize;
+//         let clamped = bin_index.min(bin_count - 1);
+//         bins[clamped] += 1;
+//     }
+
+//     let total = self.last_sequence.len() as f32;
+//     bins.iter()
+//         .filter(|&&count| count > 0)
+//         .map(|&count| {
+//             let p = count as f32 / total;
+//             -p * p.log2()
+//         })
+//         .sum()
+// }

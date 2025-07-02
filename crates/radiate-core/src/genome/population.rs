@@ -72,15 +72,15 @@ impl<C: Chromosome> Population<C> {
         self.individuals.clear();
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.individuals.is_empty()
+    }
+
     pub fn get_scores(&self) -> Vec<&Score> {
         self.individuals
             .iter()
             .filter_map(|individual| individual.get().score())
             .collect()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.individuals.is_empty()
     }
 
     pub fn get_pair_mut(
@@ -97,6 +97,15 @@ impl<C: Chromosome> Population<C> {
             let (left, right) = self.individuals.split_at_mut(first);
             Some((right[0].get_mut(), left[second].get_mut()))
         }
+    }
+}
+
+impl<C: Chromosome + Clone> From<&Population<C>> for Population<C> {
+    fn from(population: &Population<C>) -> Self {
+        population
+            .iter()
+            .map(|individual| individual.clone())
+            .collect::<Population<C>>()
     }
 }
 

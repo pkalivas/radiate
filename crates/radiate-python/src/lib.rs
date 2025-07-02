@@ -1,23 +1,56 @@
+mod any;
 mod bindings;
-mod codec;
-mod conversion;
 mod evaluator;
 mod events;
-mod gene;
 mod object;
 mod problem;
 mod random;
 
+pub use any::AnyGene;
 pub use bindings::*;
-pub use codec::{PyBitCodec, PyCharCodec, PyFloatCodec, PyIntCodec};
 pub use evaluator::FreeThreadPyEvaluator;
-pub use gene::PyGeneType;
-pub use object::{AnyValue, Object, ObjectSafe, ObjectValue};
+pub use object::{AnyValue, IntoPyObjectValue, Object, ObjectSafe, ObjectValue};
 pub use problem::PyProblem;
-use pyo3::{PyResult, Python};
 pub use random::PyRandomProvider;
 use std::cell::UnsafeCell;
 
+pub mod prelude {
+
+    pub use super::{IntoPyObjectValue, Object, ObjectValue, PyProblem};
+    pub use crate::{
+        PyBitCodec, PyCharCodec, PyFloatCodec, PyGeneType, PyGraphCodec, PyIntCodec,
+        PyProblemBuilder, object::Wrap,
+    };
+    pub use pyo3::prelude::*;
+    pub use pyo3::types::PyAny;
+    pub use pyo3::{
+        Bound, IntoPyObjectExt, Py, PyErr, PyResult, Python, pyclass, pymethods,
+        types::{PyAnyMethods, PyDict, PyDictMethods, PyList, PyString, PyTuple},
+    };
+}
+
+use crate::prelude::*;
+
+use std::sync::Once;
+
+static INIT_LOGGING: Once = Once::new();
+
+pub fn init_logging() {
+    INIT_LOGGING.call_once(|| {
+        use tracing_subscriber::fmt::format::FmtSpan;
+        std::panic::set_hook(Box::new(|info| {
+            tracing::error!("PANIC: {}", info);
+        }));
+
+        tracing_subscriber::fmt()
+            .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
+            .with_target(false)
+            .with_thread_ids(false)
+            .with_level(true)
+            .compact()
+            .init();
+    });
+}
 // Adapted from PYO3 with the only change that
 // we allow mutable access with when the GIL is held
 

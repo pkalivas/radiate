@@ -87,6 +87,10 @@ impl<T> NodeStore<T> {
         }
     }
 
+    pub fn ref_count(&self) -> usize {
+        Arc::strong_count(&self.values)
+    }
+
     pub fn contains_type(&self, node_type: NodeType) -> bool {
         let values = self.values.read().unwrap();
         values.contains_key(&node_type)

@@ -4,8 +4,8 @@ use crate::genome::genotype::Genotype;
 use crate::{Chromosome, IntChromosome, Integer};
 use std::ops::Range;
 
-/// A `Codec` for a `Genotype` of `IntGenes`. The `encode` function creates a `Genotype` with `num_chromosomes` chromosomes
-/// and `num_genes` genes per chromosome. The `decode` function creates a `Vec<Vec<T>>` from the `Genotype` where the inner `Vec`
+/// A [Codec] for a [Genotype] of `IntGenes`. The `encode` function creates a [Genotype] with `num_chromosomes` chromosomes
+/// and `num_genes` genes per chromosome. The `decode` function creates a `Vec<Vec<T>>` from the [Genotype] where the inner `Vec`
 /// contains the alleles of the `IntGenes` in the chromosome. `T` must implement the `Integer` trait, meaning it must be one of
 /// `i8`, `i16`, `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, or `u128`.
 ///
@@ -86,8 +86,19 @@ impl<T: Integer<T>> IntCodec<T, T> {
     }
 }
 
-/// Implement the `Codec` trait for a `Genotype` of `IntGenes`. This will produce a `Genotype` with the given number of chromosomes
-/// and genes. The `decode` function will create a `Vec<Vec<T>>` or a matrix.
+/// Implement the [Codec] trait for a [Genotype] of `IntGenes`. This will produce a [Genotype] with the
+/// given number of chromosomes and genes. The `decode` function will create a `Vec<Vec<T>>` or a matrix.
+///
+/// # Example
+/// ``` rust
+/// use radiate_core::*;
+///
+/// // Create a new IntCodec with 10 chromosomes with 10 genes
+/// // per chromosome - a matrix of i32 values.
+/// let codec = IntCodec::matrix(10, 10, 0..100);
+/// let genotype: Genotype<IntChromosome<i32>> = codec.encode();
+/// let decoded: Vec<Vec<i32>> = codec.decode(&genotype);
+/// ```
 impl<T: Integer<T>> Codec<IntChromosome<T>, Vec<Vec<T>>> for IntCodec<T, Vec<Vec<T>>> {
     fn encode(&self) -> Genotype<IntChromosome<T>> {
         self.encode_common()
@@ -106,8 +117,19 @@ impl<T: Integer<T>> Codec<IntChromosome<T>, Vec<Vec<T>>> for IntCodec<T, Vec<Vec
     }
 }
 
-/// Implement the `Codec` trait for a `Genotype` of `IntGenes`. This will produce a `Genotype` with a single
+/// Implement the [Codec] trait for a [Genotype] of `IntGenes`. This will produce a [Genotype] with a single
 /// chromosome and `num_genes` genes. The `decode` function will create a `Vec<T>` or a vector.
+///
+/// # Example
+/// ``` rust
+/// use radiate_core::*;
+///
+/// // Create a new IntCodec with 10 genes
+/// // per chromosome - a  vector of i32 values.
+/// let codec = IntCodec::vector(10, 0..100);
+/// let genotype: Genotype<IntChromosome<i32>> = codec.encode();
+/// let decoded: Vec<i32> = codec.decode(&genotype);
+/// ```
 impl<T: Integer<T>> Codec<IntChromosome<T>, Vec<T>> for IntCodec<T, Vec<T>> {
     fn encode(&self) -> Genotype<IntChromosome<T>> {
         self.encode_common()
@@ -126,8 +148,21 @@ impl<T: Integer<T>> Codec<IntChromosome<T>, Vec<T>> for IntCodec<T, Vec<T>> {
     }
 }
 
-/// Implement the `Codec` trait for a `Genotype` of `IntGenes`. This will produce a `Genotype` with a single
+/// Implement the [Codec] trait for a [Genotype] of `IntGenes`. This will produce a [Genotype] with a single
 /// chromosome and a single gene. The `decode` function will create a `T` or a single value.
+/// The `encode` function creates a [Genotype] with a single chromosomes
+/// and a single gene per chromosome.
+///
+/// # Example
+/// ``` rust
+/// use radiate_core::*;
+///
+/// // Create a new IntCodec with a single gene
+/// // per chromosome - a single i32 value.
+/// let codec = IntCodec::scalar(0..100);
+/// let genotype: Genotype<IntChromosome<i32>> = codec.encode();
+/// let decoded: i32 = codec.decode(&genotype);
+/// ```
 impl<T: Integer<T>> Codec<IntChromosome<T>, T> for IntCodec<T, T> {
     fn encode(&self) -> Genotype<IntChromosome<T>> {
         self.encode_common()

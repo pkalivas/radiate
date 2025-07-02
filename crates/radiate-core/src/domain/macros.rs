@@ -27,20 +27,17 @@ macro_rules! alters {
     };
 }
 
-// #[macro_export]
-// macro_rules! alterers {
-//     ($($name:ident $( ( $($args:expr),* ) )?),* $(,)?) => {
-//         vec![
-//             $(Box::new($name $( ( $($args),* ) )? .alterer())),*
-//         ]
-//     };
-// }
+#[macro_export]
+macro_rules! filter_alters {
+    ($chromosome_type:ty; $($input:expr),* $(,)?) => {{
+        trait IsCompatibleWithChromosomeType {}
+        impl<T: Alter<$chromosome_type>> IsCompatibleWithChromosomeType for T {}
 
-// .alter(alterers![
-//     ArithmeticMutator(0.01),
-//     MeanCrossover(0.5),
-//     UniformMutator, // uses default arguments, if defined
-// ])
+        let mut vec: Vec<Box<dyn Alter<$chromosome_type>>> = Vec::new();
+
+        vec
+    }};
+}
 
 #[macro_export]
 macro_rules! bench {
@@ -174,26 +171,6 @@ macro_rules! log_ctx {
             $ctx.score().as_f32(),
             $ctx.time()
         );
-    }};
-}
-
-#[macro_export]
-macro_rules! metric {
-    ($name:expr, $val:expr, $time:expr) => {{ Metric::new_operations($name, $val, $time) }};
-    ($name:expr, $val:expr) => {{
-        let mut metric = Metric::new_value($name);
-        metric.add_value($val);
-        metric
-    }};
-    ($name:expr, $dist:expr) => {{
-        let mut metric = Metric::new_distribution($name)
-        metric.add_distribution($dist);
-        metric
-    }};
-    ($name:expr, $time:expr) => {{
-        let mut metric = Metric::new_time($name);
-        metric.add_time($time);
-        metric
     }};
 }
 

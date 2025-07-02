@@ -12,15 +12,16 @@ fn main() {
 
     let engine = GeneticEngine::builder()
         .codec(codec)
-        .executor(Executor::worker_pool(10))
+        .fitness_fn(|geno: Vec<f32>| dtlz_1(&geno))
+        .executor(Executor::FixedSizedWorkerPool(10))
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
         .offspring_selector(TournamentSelector::new(5))
         .survivor_selector(NSGA2Selector::new())
+        .front_size(250..350)
         .alter(alters!(
             SimulatedBinaryCrossover::new(1_f32, 1.0),
             UniformMutator::new(0.1),
         ))
-        .fitness_fn(|geno: Vec<f32>| dtlz_1(&geno))
         .build();
 
     let result = engine
@@ -29,6 +30,8 @@ fn main() {
         .inspect(|ctx| {
             println!("[ {:?} ]", ctx.index());
         })
+        // .last()
+        // .unwrap();
         .collect::<ParetoFront<Phenotype<FloatChromosome>>>();
 
     plot_front(&result);
@@ -44,9 +47,9 @@ fn plot_front(front: &ParetoFront<Phenotype<FloatChromosome>>) {
 
     for (i, pheno) in front.values().iter().enumerate() {
         let score = pheno.score().unwrap();
-        x.push(score.values[0]);
-        y.push(score.values[1]);
-        z.push(score.values[2]);
+        x.push(score[0]);
+        y.push(score[1]);
+        z.push(score[2]);
         color.push(i as f32);
     }
 

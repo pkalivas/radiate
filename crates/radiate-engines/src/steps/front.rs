@@ -1,4 +1,5 @@
-use radiate_core::{Chromosome, Ecosystem, EngineStep, Front, MetricSet, Phenotype, metric_names};
+use crate::steps::EngineStep;
+use radiate_core::{Chromosome, Ecosystem, Front, MetricSet, Phenotype, metric_names};
 use std::sync::{Arc, RwLock};
 
 pub struct FrontStep<C: Chromosome> {
@@ -27,6 +28,10 @@ where
 
         let count = self.front.write().unwrap().add_all(&phenotypes);
 
-        metrics.upsert_operations(metric_names::FRONT, count as f32, timer.elapsed());
+        if count == 0 {
+            return;
+        }
+
+        metrics.upsert(metric_names::FRONT, (count, timer.elapsed()));
     }
 }

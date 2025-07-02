@@ -36,6 +36,42 @@ impl<T> GraphCodec<T> {
                 .collect(),
         }
     }
+
+    pub fn weighted_directed(
+        input_size: usize,
+        output_size: usize,
+        store: impl Into<NodeStore<T>>,
+    ) -> Self
+    where
+        T: Clone + Default,
+    {
+        let new_store = store.into();
+
+        GraphCodec {
+            store: new_store.clone(),
+            template: Graph::weighted_directed(input_size, output_size, &new_store)
+                .into_iter()
+                .collect(),
+        }
+    }
+
+    pub fn weighted_recurrent(
+        input_size: usize,
+        output_size: usize,
+        store: impl Into<NodeStore<T>>,
+    ) -> Self
+    where
+        T: Clone + Default,
+    {
+        let new_store = store.into();
+
+        GraphCodec {
+            store: new_store.clone(),
+            template: Graph::weighted_recurrent(input_size, output_size, &new_store)
+                .into_iter()
+                .collect(),
+        }
+    }
 }
 
 impl<T> Codec<GraphChromosome<T>, Graph<T>> for GraphCodec<T>

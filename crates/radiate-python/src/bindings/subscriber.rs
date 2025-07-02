@@ -1,5 +1,6 @@
 use crate::ObjectValue;
 use pyo3::{Py, PyAny, pyclass, pymethods};
+use std::fmt::Debug;
 
 #[pyclass]
 #[derive(Clone)]
@@ -25,5 +26,13 @@ impl PySubscriber {
 
     pub fn function(&self) -> &Py<PyAny> {
         &self.function.inner
+    }
+}
+
+impl Debug for PySubscriber {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PySubscriber")
+            .field("event_name", &self.event_name)
+            .finish()
     }
 }

@@ -3,6 +3,18 @@ from __future__ import annotations
 from typing import Tuple
 from radiate.radiate import PyGene
 
+class GeneType:
+    FLOAT = 'float'
+    INT = 'int'
+    BIT = 'bit'
+    CHAR = 'char'
+    GRAPH = 'graph'
+    TREE = 'tree'
+    PERMUTATION = 'permutation'
+
+    CORE = {FLOAT, INT, BIT, CHAR, PERMUTATION}
+    ALL = {FLOAT, INT, BIT, CHAR, GRAPH, TREE, PERMUTATION}
+
 
 class Gene:
     def __init__(self, py_gene: PyGene):

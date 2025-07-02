@@ -1,7 +1,15 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Any
 from .codec import CodecBase
-
+from radiate.genome import Genotype
 from radiate.radiate import PyFloatCodec
+
+# try:
+#     import numpy 
+#     HAS_NUMPY = True
+# except ImportError:
+#     HAS_NUMPY = False
+
+HAS_NUMPY = False
 
 
 class FloatCodec(CodecBase):
@@ -14,11 +22,29 @@ class FloatCodec(CodecBase):
             raise TypeError("codec must be an instance of PyFloatCodec.")
         self.codec = codec
 
+    def encode(self) -> Genotype:
+        """
+        Encode the codec into a Genotype.
+        :return: A Genotype instance.
+        """
+        return Genotype(self.codec.encode_py())
+    
+    def decode(self, genotype: Genotype) -> Any:
+        """
+        Decode a Genotype into its float representation.
+        :param genotype: A Genotype instance to decode.
+        :return: The decoded float representation of the Genotype.
+        """
+        if not isinstance(genotype, Genotype):
+            raise TypeError("genotype must be an instance of Genotype.")
+        return self.codec.decode_py(genotype.py_genotype())
+
     @staticmethod
     def matrix(
         shape: Tuple[int, int] | List[int],
         value_range: Optional[Tuple[float, float]] = None,
         bound_range: Optional[Tuple[float, float]] = None,
+        use_numpy: bool = False,
     ) -> "FloatCodec":
         """
         Create a matrix codec with specified rows and columns.
@@ -65,6 +91,7 @@ class FloatCodec(CodecBase):
                 chromosome_lengths=shapes,
                 value_range=value_range,
                 bound_range=bound_range,
+                use_numpy=use_numpy,  
             )
         )
 
@@ -73,6 +100,7 @@ class FloatCodec(CodecBase):
         length: int,
         value_range: Optional[Tuple[float, float]] = None,
         bound_range: Optional[Tuple[float, float]] = None,
+        use_numpy: bool = False,
     ) -> "FloatCodec":
         """
         Create a vector codec with specified length.
@@ -108,6 +136,7 @@ class FloatCodec(CodecBase):
                 length=length,
                 value_range=value_range,
                 bound_range=bound_range,
+                use_numpy=use_numpy,
             )
         )
 

@@ -57,6 +57,18 @@ class Chromosome:
         if len(self) != len(value):
             return False
         return all(a == b for a, b in zip(self.__inner.genes, value.__inner.genes))
+    
+    def __getitem__(self, index: int) -> Gene:
+        """
+        Returns the gene at the specified index.
+        :param index: Index of the gene to retrieve.
+        :return: Gene instance at the specified index.
+        """
+        if not isinstance(index, int):
+            raise TypeError("Index must be an integer")
+        if index < 0 or index >= len(self.__inner.genes):
+            raise IndexError("Index out of range")
+        return Gene(self.__inner.genes[index])
 
     def py_chromosome(self) -> PyChromosome:
         """

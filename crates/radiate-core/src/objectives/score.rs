@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::iter::Sum;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Index, Mul, Sub};
 use std::sync::Arc;
 
 pub trait Scored {
@@ -21,7 +21,7 @@ pub trait Scored {
 #[derive(Clone, PartialEq, Default)]
 #[repr(transparent)]
 pub struct Score {
-    pub values: Arc<[f32]>,
+    values: Arc<[f32]>,
 }
 
 impl Score {
@@ -51,6 +51,10 @@ impl Score {
 
     pub fn as_usize(&self) -> usize {
         self.values[0] as usize
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &f32> + '_ {
+        self.values.iter()
     }
 }
 
@@ -82,6 +86,19 @@ impl Hash for Score {
         }
 
         hash.hash(state);
+    }
+}
+
+impl Index<usize> for Score {
+    type Output = f32;
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.values[index]
+    }
+}
+
+impl Into<Vec<f32>> for Score {
+    fn into(self) -> Vec<f32> {
+        self.values.to_vec()
     }
 }
 
@@ -298,6 +315,20 @@ impl Mul<f32> for Score {
         }
 
         let values = self.values.iter().map(|a| a * other).collect();
+
+        Score { values }
+    }
+}
+
+impl Mul<Score> for f32 {
+    type Output = Score;
+
+    fn mul(self, other: Score) -> Score {
+        if other.values.is_empty() {
+            return Score::from(self);
+        }
+
+        let values = other.values.iter().map(|a| a * self).collect();
 
         Score { values }
     }

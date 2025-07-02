@@ -29,7 +29,14 @@ class EventHandler(abc.ABC):
         :param event_type: Type of the event to handle.
         """
         self.event_type = event_type if event_type != EventType.ALL else None
-        self.subscriber = PySubscriber(self.on_event, self.event_type)
+        self._py_handler = PySubscriber(self.on_event, self.event_type)
+
+    def __call__(self, event: Any) -> None:
+        """
+        Call the event handler.
+        :param event: The event to handle.
+        """
+        self.on_event(event)
 
     @abc.abstractmethod
     def on_event(self, event: Any) -> None:
