@@ -6,6 +6,7 @@ build-backend = "maturin"
 name = "radiate"
 description = "A fast and flexible evolution engine for implementing artificial evolution and genetic programming techniques."
 requires-python = ">=3.9"
+readme = "README.md"
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
