@@ -2,7 +2,7 @@
 name = "py-radiate"
 version = "0.0.3"
 edition = "2024"
-readme = "../README.md"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
