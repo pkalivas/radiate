@@ -3,7 +3,7 @@ use crate::bindings::{EngineBuilderHandle, EngineHandle};
 use crate::events::PyEventHandler;
 use crate::{
     FreeThreadPyEvaluator, InputConverter, PyCodec, PyEngine, PyEngineInput, PyEngineInputType,
-    prelude::*,
+    PyPermutationCodec, prelude::*,
 };
 use crate::{PyGeneType, PySubscriber};
 use core::panic;
@@ -19,6 +19,7 @@ macro_rules! apply_to_builder {
             EngineBuilderHandle::Float(b) => Ok(EngineBuilderHandle::Float(b.$method($($args),*))),
             EngineBuilderHandle::Char(b) => Ok(EngineBuilderHandle::Char(b.$method($($args),*))),
             EngineBuilderHandle::Bit(b) => Ok(EngineBuilderHandle::Bit(b.$method($($args),*))),
+            EngineBuilderHandle::Permutation(b) => Ok(EngineBuilderHandle::Permutation(b.$method($($args),*))),
             EngineBuilderHandle::GraphRegression(b) => Ok(EngineBuilderHandle::GraphRegression(b.$method($($args),*))),
             EngineBuilderHandle::TreeRegression(b) => Ok(EngineBuilderHandle::TreeRegression(b.$method($($args),*))),
             EngineBuilderHandle::Empty => Err(PyTypeError::new_err(
@@ -54,6 +55,7 @@ impl PyEngineBuilder {
             "char" => PyGeneType::Char,
             "graph" => PyGeneType::Graph,
             "tree" => PyGeneType::Tree,
+            "permutation" => PyGeneType::Permutation,
             _ => panic!("Invalid gene type: {}", gene_type),
         };
         PyEngineBuilder {
@@ -87,6 +89,7 @@ impl PyEngineBuilder {
             EngineBuilderHandle::Float(builder) => EngineHandle::Float(builder.build()),
             EngineBuilderHandle::Char(builder) => EngineHandle::Char(builder.build()),
             EngineBuilderHandle::Bit(builder) => EngineHandle::Bit(builder.build()),
+            EngineBuilderHandle::Permutation(builder) => EngineHandle::Permutation(builder.build()),
             EngineBuilderHandle::GraphRegression(builder) => {
                 EngineHandle::GraphRegression(builder.build())
             }
@@ -292,6 +295,20 @@ impl PyEngineBuilder {
                     )),
                 }
             }
+            EngineBuilderHandle::Permutation(builder) => {
+                let selector: Box<dyn Select<PermutationChromosome<usize>>> = input.convert();
+                match input.input_type() {
+                    PyEngineInputType::SurvivorSelector => Ok(EngineBuilderHandle::Permutation(
+                        builder.boxed_survivor_selector(selector),
+                    )),
+                    PyEngineInputType::OffspringSelector => Ok(EngineBuilderHandle::Permutation(
+                        builder.boxed_offspring_selector(selector),
+                    )),
+                    _ => Err(PyTypeError::new_err(
+                        "process_selector only implemented for Survivor and Offspring selectors",
+                    )),
+                }
+            }
             EngineBuilderHandle::GraphRegression(builder) => {
                 let selector: Box<dyn Select<GraphChromosome<Op<f32>>>> = input.convert();
                 match input.input_type() {
@@ -362,6 +379,10 @@ impl PyEngineBuilder {
                 let alters: Vec<Box<dyn Alter<TreeChromosome<Op<f32>>>>> = inputs.convert();
                 Ok(EngineBuilderHandle::TreeRegression(builder.alter(alters)))
             }
+            EngineBuilderHandle::Permutation(builder) => {
+                let alters: Vec<Box<dyn Alter<PermutationChromosome<usize>>>> = inputs.convert();
+                Ok(EngineBuilderHandle::Permutation(builder.alter(alters)))
+            }
             _ => Err(PyTypeError::new_err(format!(
                 "Process Alterer not imiplemented for {:?} gene type",
                 self.gene_type
@@ -395,6 +416,10 @@ impl PyEngineBuilder {
                 EngineBuilderHandle::GraphRegression(b) => {
                     let diversity: Option<Box<dyn Diversity<GraphChromosome<Op<f32>>>>> = input.convert();
                     Ok(EngineBuilderHandle::GraphRegression(b.boxed_diversity(diversity)))
+                }
+                EngineBuilderHandle::Permutation(b) => {
+                    let diversity: Option<Box<dyn Diversity<PermutationChromosome<usize>>>> = input.convert();
+                    Ok(EngineBuilderHandle::Permutation(b.boxed_diversity(diversity)))
                 }
                 _ => Err(PyTypeError::new_err(
                     "process_diversity only implemented for Int, Float, Char, Bit, and Graph gene types",
@@ -591,6 +616,27 @@ impl PyEngineBuilder {
                     } else {
                         Err(PyTypeError::new_err(
                             "Expected a PyTreeCodec for gene_type Tree",
+                        ))
+                    }
+                }
+                PyGeneType::Permutation => {
+                    if let Ok(codec) = codec.extract::<PyPermutationCodec>() {
+                        let cloned_codec = codec.codec.clone();
+                        let py_codec = PyCodec::new()
+                            .with_encoder(move || cloned_codec.encode())
+                            .with_decoder(move |_, genotype| codec.codec.decode(genotype));
+
+                        let custom_problem = PyProblem::new(fitness_fn, py_codec);
+                        Ok(EngineBuilderHandle::Permutation(
+                            GeneticEngine::builder()
+                                .problem(custom_problem.clone())
+                                .executor(executor.clone())
+                                .evaluator(FreeThreadPyEvaluator::new(executor, custom_problem))
+                                .bus_executor(Executor::default()),
+                        ))
+                    } else {
+                        Err(PyTypeError::new_err(
+                            "Expected a PyPermutationCodec for gene_type Permutation",
                         ))
                     }
                 }

@@ -4,7 +4,7 @@ from radiate.genome import Genotype
 from radiate.radiate import PyFloatCodec
 
 try:
-    import numpy as np
+    import numpy 
     HAS_NUMPY = True
 except ImportError:
     HAS_NUMPY = False

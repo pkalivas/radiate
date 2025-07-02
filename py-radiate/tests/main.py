@@ -106,8 +106,8 @@ engine = rd.GeneticEngine(
     ],
 )
 
-# result = engine.run([rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000)], log=True)
-# print(result)
+result = engine.run([rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000)], log=True)
+print(result)
 
 # codec = rd.TreeCodec(
 #     shape=(1, 1),
@@ -368,3 +368,164 @@ def dtlz_1(val):
 #     for chrom in gene.genotype().chromosomes():
 #         for g in chrom.genes():
 #             print(g)
+
+
+# # tools/generate_docs.py
+# import ast
+# from pathlib import Path
+# from typing import Dict, List
+
+# class DocGenerator:
+#     """Generate documentation from examples."""
+    
+#     def __init__(self):
+#         self.examples_dir = Path("../examples")  
+#         self.docs_dir = Path("../testsss/examples")
+    
+#     def extract_example_info(self, filepath: Path) -> Dict[str, str]:
+#         """Extract information from example file."""
+#         try:
+#             with open(filepath, 'r') as f:
+#                 content = f.read()
+            
+#             # Parse the file
+#             tree = ast.parse(content)
+            
+#             # Extract module docstring
+#             docstring = ast.get_docstring(tree) or ""
+            
+#             # Look for main function
+#             main_func = None
+#             for node in ast.walk(tree):
+#                 if isinstance(node, ast.FunctionDef) and node.name == 'main':
+#                     main_func = ast.get_docstring(node) or ""
+#                     break
+            
+#             # Get category from directory structure
+#             category = filepath.parent.name
+            
+#             return {
+#                 'name': filepath.stem.replace('_', ' ').title(),
+#                 'description': docstring,
+#                 'main_description': main_func,
+#                 'filename': filepath.name,
+#                 'category': category,
+#                 'full_path': str(filepath.relative_to(self.examples_dir))
+#             }
+#         except Exception as e:
+#             print(f"Warning: Could not parse {filepath}: {e}")
+#             return {
+#                 'name': filepath.stem.replace('_', ' ').title(),
+#                 'description': f"Example: {filepath.name}",
+#                 'main_description': "",
+#                 'filename': filepath.name,
+#                 'category': filepath.parent.name,
+#                 'full_path': str(filepath.relative_to(self.examples_dir))
+#             }
+    
+#     def generate_example_docs(self):
+#         """Generate documentation for all examples."""
+#         self.docs_dir.mkdir(parents=True, exist_ok=True)
+        
+#         examples = []
+        
+#         # Find all Python files in examples directory
+#         for filepath in self.examples_dir.rglob("*.py"):
+#             if filepath.name != "__init__.py" and "test_" not in filepath.name:
+#                 info = self.extract_example_info(filepath)
+#                 examples.append(info)
+        
+#         # Group by category
+#         categories = {}
+#         for example in examples:
+#             cat = example['category']
+#             if cat not in categories:
+#                 categories[cat] = []
+#             categories[cat].append(example)
+        
+#         # Generate index
+#         with open(self.docs_dir / "index.md", 'w') as f:
+#             f.write("# Radiate Examples\n\n")
+#             f.write("This directory contains examples demonstrating Radiate's capabilities.\n\n")
+            
+#             # Table of contents
+#             f.write("## Table of Contents\n\n")
+#             for category in sorted(categories.keys()):
+#                 f.write(f"- [{category.title()}](#{category.lower()})\n")
+#             f.write("\n")
+            
+#             # Examples by category
+#             for category in sorted(categories.keys()):
+#                 f.write(f"## {category.title()}\n\n")
+                
+#                 for example in sorted(categories[category], key=lambda x: x['name']):
+#                     f.write(f"### {example['name']}\n\n")
+                    
+#                     if example['description']:
+#                         f.write(f"{example['description']}\n\n")
+                    
+#                     f.write(f"**File:** `{example['full_path']}`\n\n")
+                    
+#                     if example['main_description']:
+#                         f.write(f"{example['main_description']}\n\n")
+                    
+#                     f.write("---\n\n")
+        
+#         print(f"Generated documentation for {len(examples)} examples in {len(categories)} categories")
+        
+#         # Also generate individual files for each category
+#         for category, category_examples in categories.items():
+#             category_file = self.docs_dir / f"{category}.md"
+#             with open(category_file, 'w') as f:
+#                 f.write(f"# {category.title()} Examples\n\n")
+                
+#                 for example in sorted(category_examples, key=lambda x: x['name']):
+#                     f.write(f"## {example['name']}\n\n")
+                    
+#                     if example['description']:
+#                         f.write(f"{example['description']}\n\n")
+                    
+#                     f.write(f"**File:** `{example['full_path']}`\n\n")
+                    
+#                     if example['main_description']:
+#                         f.write(f"{example['main_description']}\n\n")
+                    
+#                     # Try to extract code snippets
+#                     try:
+#                         code_snippet = self.extract_code_snippet(example['full_path'])
+#                         if code_snippet:
+#                             f.write("### Code Snippet\n\n")
+#                             f.write("```python\n")
+#                             f.write(code_snippet)
+#                             f.write("\n```\n\n")
+#                     except:
+#                         pass
+                    
+#                     f.write("---\n\n")
+    
+#     def extract_code_snippet(self, filepath: str) -> str:
+#         """Extract a code snippet from the example file."""
+#         full_path = self.examples_dir / filepath
+#         try:
+#             with open(full_path, 'r') as f:
+#                 lines = f.readlines()
+            
+#             # Find the main function or first code block
+#             start_line = 0
+#             for i, line in enumerate(lines):
+#                 if line.strip().startswith('def main(') or line.strip().startswith('if __name__'):
+#                     start_line = i
+#                     break
+            
+#             # Extract up to 20 lines
+#             snippet_lines = lines[start_line:start_line + 20]
+#             return ''.join(snippet_lines).strip()
+#         except:
+#             return ""
+
+# if __name__ == "__main__":
+#     generator = DocGenerator()
+#     generator.generate_example_docs()
+
+
+

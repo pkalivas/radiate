@@ -5,7 +5,7 @@ from radiate.codec.tree import TreeCodec
 from .builder import EngineBuilder
 from .generation import Generation
 from .handlers import EventHandler
-from .codec import FloatCodec, IntCodec, CharCodec, BitCodec, GraphCodec, CodecBase
+from .codec import FloatCodec, IntCodec, CharCodec, BitCodec, GraphCodec, CodecBase, PermutationCodec
 
 from .inputs.input import EngineInput, EngineInputType
 from .inputs.selector import SelectorBase, TournamentSelector, RouletteSelector
@@ -61,6 +61,8 @@ class GeneticEngine:
             self.gene_type = GeneType.GRAPH
         elif isinstance(codec, TreeCodec):
             self.gene_type = GeneType.TREE
+        elif isinstance(codec, PermutationCodec):
+            self.gene_type = GeneType.PERMUTATION
         else:
             raise TypeError(f"Codec type {type(codec)} is not supported.")
 

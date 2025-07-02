@@ -161,11 +161,5 @@ impl Debug for PyEngineInput {
             "PyEngineInput {{ \n\tcomponent: {}, \n\tinput_type: {:?}, \n\tallowed_genes: {:?}, \n\ttemp: {{{}}} \n}}",
             self.component, self.input_type, self.allowed_genes, args
         )
-        // f.debug_struct("PyEngineInput")
-        //     .field("component", &self.component)
-        //     .field("input_type", &self.input_type)
-        //     .field("allowed_genes", &self.allowed_genes)
-        //     .field("temp", &self.temp)
-        //     .finish()
     }
 }

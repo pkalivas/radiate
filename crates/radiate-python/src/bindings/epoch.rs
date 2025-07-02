@@ -15,9 +15,6 @@ use pyo3::{
 use radiate::Generation;
 use radiate::prelude::*;
 
-const SINGLE_OBJECTIVE_GENERATION: &str = "Generation";
-const MULTI_OBJECTIVE_GENERATION: &str = "MultiObjectiveGeneration";
-
 #[pyclass(unsendable)]
 pub struct PyGeneration {
     inner: EpochHandle,
@@ -39,6 +36,7 @@ impl PyGeneration {
             EpochHandle::Bit(epoch) => epoch.index(),
             EpochHandle::GraphRegression(epoch) => epoch.index(),
             EpochHandle::TreeRegression(epoch) => epoch.index(),
+            EpochHandle::Permutation(epoch) => epoch.index(),
         }
     }
 
@@ -50,6 +48,7 @@ impl PyGeneration {
             EpochHandle::Bit(epoch) => Some(epoch.score()),
             EpochHandle::GraphRegression(epoch) => Some(epoch.score()),
             EpochHandle::TreeRegression(epoch) => Some(epoch.score()),
+            EpochHandle::Permutation(epoch) => Some(epoch.score()),
         };
 
         match inner_score {
@@ -67,6 +66,7 @@ impl PyGeneration {
             EpochHandle::Float(epoch) => get_value(py, epoch),
             EpochHandle::Char(epoch) => get_value(py, epoch),
             EpochHandle::Bit(epoch) => get_value(py, epoch),
+            EpochHandle::Permutation(epoch) => get_value(py, epoch),
             EpochHandle::GraphRegression(epoch) => PyGraph {
                 inner: epoch.value().clone(),
                 eval_cache: None,
@@ -85,6 +85,7 @@ impl PyGeneration {
             EpochHandle::Float(epoch) => epoch.metrics(),
             EpochHandle::Char(epoch) => epoch.metrics(),
             EpochHandle::Bit(epoch) => epoch.metrics(),
+            EpochHandle::Permutation(epoch) => epoch.metrics(),
             EpochHandle::GraphRegression(epoch) => epoch.metrics(),
             EpochHandle::TreeRegression(epoch) => epoch.metrics(),
         };
@@ -96,12 +97,13 @@ impl PyGeneration {
             .map(|b| b.into_bound(py))
     }
 
-    pub fn population<'py>(&self, py: Python<'py>) -> PyPopulation {
+    pub fn population(&self) -> PyPopulation {
         match &self.inner {
             EpochHandle::Int(epoch) => PyPopulation::from(epoch.population()),
             EpochHandle::Float(epoch) => PyPopulation::from(epoch.population()),
             EpochHandle::Char(epoch) => PyPopulation::from(epoch.population()),
             EpochHandle::Bit(epoch) => PyPopulation::from(epoch.population()),
+            EpochHandle::Permutation(epoch) => PyPopulation::from(epoch.population()),
             EpochHandle::GraphRegression(epoch) => PyPopulation::from(epoch.population()),
             EpochHandle::TreeRegression(epoch) => PyPopulation::from(epoch.population()),
         }
@@ -112,21 +114,21 @@ impl PyGeneration {
         let value = self.value(py)?;
         let metrics = self.metrics(py)?;
 
-        let (generation_type, index) = match &self.inner {
-            EpochHandle::Int(epoch) => (SINGLE_OBJECTIVE_GENERATION, epoch.index()),
-            EpochHandle::Float(epoch) => (SINGLE_OBJECTIVE_GENERATION, epoch.index()),
-            EpochHandle::Char(epoch) => (SINGLE_OBJECTIVE_GENERATION, epoch.index()),
-            EpochHandle::Bit(epoch) => (SINGLE_OBJECTIVE_GENERATION, epoch.index()),
-            EpochHandle::GraphRegression(epoch) => (SINGLE_OBJECTIVE_GENERATION, epoch.index()),
-            EpochHandle::TreeRegression(epoch) => (SINGLE_OBJECTIVE_GENERATION, epoch.index()),
+        let (objective, index) = match &self.inner {
+            EpochHandle::Int(epoch) => (epoch.objective(), epoch.index()),
+            EpochHandle::Float(epoch) => (epoch.objective(), epoch.index()),
+            EpochHandle::Char(epoch) => (epoch.objective(), epoch.index()),
+            EpochHandle::Bit(epoch) => (epoch.objective(), epoch.index()),
+            EpochHandle::Permutation(epoch) => (epoch.objective(), epoch.index()),
+            EpochHandle::GraphRegression(epoch) => (epoch.objective(), epoch.index()),
+            EpochHandle::TreeRegression(epoch) => (epoch.objective(), epoch.index()),
         };
 
         Ok(format!(
-            "{}(\n\tindex={},\n\tscore={},\n\tvalue={},\n\t metrics={})",
-            generation_type,
+            "(\n\tindex={},\n\tscore={},\n\tvalue={},\n\t metrics={})",
             index,
             score,
-            if generation_type == MULTI_OBJECTIVE_GENERATION {
+            if objective.is_multi() {
                 "ParetoFront".to_string()
             } else {
                 value.to_string()

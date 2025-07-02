@@ -99,7 +99,6 @@ fn metric_to_py_dict<'py, 'a>(py: Python<'py>, metric: &Metric) -> PyResult<Boun
     let dict = PyDict::new(py);
 
     dict.set_item("name", metric.name().to_lowercase())?;
-    // dict.set_item("type", metric.metric_type().to_lowercase())?;
 
     dict.set_item("value_last", metric.last_value())?;
     dict.set_item("value_mean", metric.value_mean())?;

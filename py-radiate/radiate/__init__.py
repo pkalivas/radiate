@@ -11,10 +11,9 @@ from .codec import (
     IntCodec,
     CharCodec,
     BitCodec,
-    CodecBase,
     GraphCodec,
     TreeCodec,
-    AnyCodec,
+    PermutationCodec,
 )
 from .random import RandomProvider as random
 from .generation import Generation
@@ -47,7 +46,7 @@ from .inputs.alterer import (
     MeanCrossover,
     ShuffleCrossover,
     SimulatedBinaryCrossover,
-    PartiallyMatchedCrossover,
+    PartiallyMappedCrossover,
     GaussianMutator,
     ScrambleMutator,
     SwapMutator,
@@ -55,7 +54,7 @@ from .inputs.alterer import (
     OperationMutator,
     GraphCrossover,
     TreeCrossover,
-    HoistMutator
+    HoistMutator,
 )
 
 from .inputs.diversity import HammingDistance, EuclideanDistance, NeatDistance
@@ -64,39 +63,61 @@ from .inputs.limit import SecondsLimit, GenerationsLimit, ScoreLimit
 
 
 __all__ = [
-    "TreeCodec",
-    "AnyCodec",
-    "Op",
-    "Graph",
-    "GraphMutator",
-    "OperationMutator",
-    "GraphCrossover",
-    "NeatDistance",
-    "GraphCodec",
-    "ProblemBase",
-    "Regression",
-    "Executor",
-    "EventHandler",
-    "EventType",
-    "CodecBase",
-    "Generation",
-    "Genotype",
-    "Gene",
-    "Population",
-    "Phenotype",
-    "Chromosome",
-    "OnEpochCompleteHandler",
+    # Version information
+    "__version__",
+    "__version_tuple__",
+    # Random
+    "random",
+    # Codecs
+    "PermutationCodec",
     "FloatCodec",
-    "Tree",
-    "TreeCrossover",
-    "HoistMutator",
     "IntCodec",
     "CharCodec",
     "BitCodec",
-    "GeneticEngine",
+    "GraphCodec",
+    "TreeCodec",
+    # Genome and Population
+    "Gene",
+    "Chromosome",
+    "Genotype",
+    "Population",
+    "Phenotype",
+    # GP
+    "Tree",
+    "Graph",
+    "Op",
+    # Handlers
+    "EventHandler",
+    "EventType",
+    # Alters
+    "BlendCrossover",
+    "TreeCrossover",
+    "GraphCrossover",
+    "IntermediateCrossover",
+    "MultiPointCrossover",
+    "MeanCrossover",
+    "ShuffleCrossover",
+    "SimulatedBinaryCrossover",
+    "PartiallyMappedCrossover",
+    "UniformCrossover",
+    "ArithmeticMutator",
+    "UniformMutator",
+    "GaussianMutator",
+    "ScrambleMutator",
+    "SwapMutator",
+    "HoistMutator",
+    "GraphMutator",
+    "OperationMutator",
+    # Executor
+    "Executor",
+    # Limits
     "SecondsLimit",
     "GenerationsLimit",
     "ScoreLimit",
+    # Problem
+    "CallableProblem",
+    "Regression",
+    # Selectors
     "TournamentSelector",
     "RouletteSelector",
     "RankSelector",
@@ -107,20 +128,12 @@ __all__ = [
     "NSGA2Selector",
     "TournamentNSGA2Selector",
     "SteadyStateSelector",
-    "BlendCrossover",
-    "IntermediateCrossover",
-    "UniformCrossover",
-    "ShuffleCrossover",
-    "ArithmeticMutator",
-    "UniformMutator",
-    "MultiPointCrossover",
-    "MeanCrossover",
-    "SimulatedBinaryCrossover",
-    "PartiallyMatchedCrossover",
-    "GaussianMutator",
-    "ScrambleMutator",
-    "SwapMutator",
-    "random",
+    # Diversity Measures
+    "NeatDistance",
+    "CosineDistance",
     "HammingDistance",
     "EuclideanDistance",
+    # Engine
+    "GeneticEngine",
+    "Generation",
 ]

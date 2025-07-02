@@ -1,9 +1,9 @@
 use pyo3::prelude::*;
 use radiate_python::{
-    PyAnyCodec, PyBitCodec, PyCharCodec, PyChromosome, PyEngine, PyEngineBuilder, PyEngineInput,
+    PyBitCodec, PyCharCodec, PyChromosome, PyEngine, PyEngineBuilder, PyEngineInput,
     PyEngineInputType, PyFloatCodec, PyGene, PyGeneType, PyGeneration, PyGenotype, PyGraph,
-    PyGraphCodec, PyIntCodec, PyPhenotype, PyPopulation, PyProblemBuilder, PyRandomProvider,
-    PySubscriber, PyTree, PyTreeCodec,
+    PyGraphCodec, PyIntCodec, PyPermutationCodec, PyPhenotype, PyPopulation, PyProblemBuilder,
+    PyRandomProvider, PySubscriber, PyTree, PyTreeCodec,
 };
 
 #[pymodule]
@@ -25,8 +25,8 @@ fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyCharCodec>()?;
     m.add_class::<PyBitCodec>()?;
     m.add_class::<PyGraphCodec>()?;
-    m.add_class::<PyAnyCodec>()?;
     m.add_class::<PyTreeCodec>()?;
+    m.add_class::<PyPermutationCodec>()?;
 
     m.add_class::<PySubscriber>()?;
 

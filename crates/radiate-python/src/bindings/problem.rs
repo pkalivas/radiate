@@ -48,6 +48,7 @@ impl PyProblemBuilder {
                 PyGeneType::Int,
                 PyGeneType::Char,
                 PyGeneType::Bit,
+                PyGeneType::Permutation,
             ],
         }
     }

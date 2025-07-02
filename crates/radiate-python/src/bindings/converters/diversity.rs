@@ -1,7 +1,7 @@
 use crate::{InputConverter, PyEngineInput};
 use radiate::{
     BitChromosome, CharChromosome, CosineDistance, Diversity, EuclideanDistance, FloatChromosome,
-    GraphChromosome, HammingDistance, IntChromosome, NeatDistance, Op,
+    GraphChromosome, HammingDistance, IntChromosome, NeatDistance, Op, PermutationChromosome,
 };
 
 const HAMMING_DISTANCE: &str = "HammingDistance";
@@ -46,6 +46,16 @@ impl InputConverter<Option<Box<dyn Diversity<CharChromosome>>>> for PyEngineInpu
         }
     }
 }
+
+impl InputConverter<Option<Box<dyn Diversity<PermutationChromosome<usize>>>>> for PyEngineInput {
+    fn convert(&self) -> Option<Box<dyn Diversity<PermutationChromosome<usize>>>> {
+        match self.component.as_str() {
+            HAMMING_DISTANCE => Some(Box::new(HammingDistance)),
+            _ => None,
+        }
+    }
+}
+
 impl InputConverter<Option<Box<dyn Diversity<GraphChromosome<Op<f32>>>>>> for PyEngineInput {
     fn convert(&self) -> Option<Box<dyn Diversity<GraphChromosome<Op<f32>>>>> {
         match self.component.as_str() {

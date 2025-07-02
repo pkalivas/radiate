@@ -9,6 +9,7 @@ const BLEND_CROSSOVER: &str = "BlendCrossover";
 const SHUFFLE_CROSSOVER: &str = "ShuffleCrossover";
 const SIMULATED_BINARY_CROSSOVER: &str = "SimulatedBinaryCrossover";
 const GRAPH_CROSSOVER: &str = "GraphCrossover";
+const PARTIALLY_MAPPED_CROSSOVER: &str = "PartiallyMappedCrossover";
 
 const UNIFORM_MUTATOR: &str = "UniformMutator";
 const SCRAMBLE_MUTATOR: &str = "ScrambleMutator";
@@ -150,6 +151,22 @@ impl InputConverter<Vec<Box<dyn Alter<TreeChromosome<Op<f32>>>>>> for PyEngineIn
     }
 }
 
+impl InputConverter<Vec<Box<dyn Alter<PermutationChromosome<usize>>>>> for PyEngineInput {
+    fn convert(&self) -> Vec<Box<dyn Alter<PermutationChromosome<usize>>>> {
+        if self.input_type != PyEngineInputType::Alterer {
+            panic!("Input type {:?} not an alterer", self.input_type);
+        }
+
+        match self.component.as_str() {
+            PARTIALLY_MAPPED_CROSSOVER => alters!(convert_partially_mapped_crossover(&self)),
+            SWAP_MUTATOR => alters!(convert_swap_mutator(&self)),
+            SCRAMBLE_MUTATOR => alters!(convert_scramble_mutator(&self)),
+            UNIFORM_MUTATOR => alters!(convert_uniform_mutator(&self)),
+            _ => panic!("Invalid alterer type {}", self.component),
+        }
+    }
+}
+
 fn convert_hoist_mutator(input: &PyEngineInput) -> HoistMutator {
     let rate = input.get_f32("rate").unwrap_or(0.5);
     HoistMutator::new(rate)
@@ -196,8 +213,12 @@ fn convert_blend_crossover(input: &PyEngineInput) -> BlendCrossover {
 
 fn convert_shuffle_crossover(input: &PyEngineInput) -> ShuffleCrossover {
     let rate = input.get_f32("rate").unwrap_or(0.5);
-
     ShuffleCrossover::new(rate)
+}
+
+fn convert_partially_mapped_crossover(input: &PyEngineInput) -> PMXCrossover {
+    let rate = input.get_f32("rate").unwrap_or(0.5);
+    PMXCrossover::new(rate)
 }
 
 fn convert_scramble_mutator(input: &PyEngineInput) -> ScrambleMutator {
@@ -207,7 +228,6 @@ fn convert_scramble_mutator(input: &PyEngineInput) -> ScrambleMutator {
 
 fn convert_swap_mutator(input: &PyEngineInput) -> SwapMutator {
     let rate = input.get_f32("rate").unwrap_or(0.5);
-
     SwapMutator::new(rate)
 }
 

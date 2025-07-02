@@ -12,8 +12,8 @@ mod subscriber;
 
 pub use builder::PyEngineBuilder;
 pub use codec::{
-    PyAnyCodec, PyBitCodec, PyCharCodec, PyCodec, PyFloatCodec, PyGraph, PyGraphCodec, PyIntCodec,
-    PyTree, PyTreeCodec,
+    PyBitCodec, PyCharCodec, PyCodec, PyFloatCodec, PyGraph, PyGraphCodec, PyIntCodec,
+    PyPermutationCodec, PyTree, PyTreeCodec,
 };
 pub use converters::InputConverter;
 pub use engine::PyEngine;
@@ -28,7 +28,8 @@ pub use subscriber::PySubscriber;
 use crate::ObjectValue;
 use radiate::{
     BitChromosome, CharChromosome, FloatChromosome, Generation, GeneticEngine,
-    GeneticEngineBuilder, Graph, GraphChromosome, IntChromosome, Op, Tree, TreeChromosome,
+    GeneticEngineBuilder, Graph, GraphChromosome, IntChromosome, Op, PermutationChromosome, Tree,
+    TreeChromosome,
 };
 
 type SingleObjBuilder<C, T> = GeneticEngineBuilder<C, T>;
@@ -43,6 +44,7 @@ pub enum EngineBuilderHandle {
     Float(SingleObjBuilder<FloatChromosome, ObjectValue>),
     Char(SingleObjBuilder<CharChromosome, ObjectValue>),
     Bit(SingleObjBuilder<BitChromosome, ObjectValue>),
+    Permutation(SingleObjBuilder<PermutationChromosome<usize>, ObjectValue>),
     GraphRegression(RegressionBuilder<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
     TreeRegression(RegressionBuilder<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
 }
@@ -52,6 +54,7 @@ pub enum EngineHandle {
     Float(SingleObjectiveEngine<FloatChromosome>),
     Char(SingleObjectiveEngine<CharChromosome>),
     Bit(SingleObjectiveEngine<BitChromosome>),
+    Permutation(SingleObjectiveEngine<PermutationChromosome<usize>>),
     GraphRegression(RegressionEngine<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
     TreeRegression(RegressionEngine<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
 }
@@ -61,6 +64,7 @@ pub enum EpochHandle {
     Float(Generation<FloatChromosome, ObjectValue>),
     Char(Generation<CharChromosome, ObjectValue>),
     Bit(Generation<BitChromosome, ObjectValue>),
+    Permutation(Generation<PermutationChromosome<usize>, ObjectValue>),
     GraphRegression(Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
     TreeRegression(Generation<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
 }

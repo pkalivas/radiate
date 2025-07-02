@@ -10,9 +10,10 @@ class GeneType:
     CHAR = 'char'
     GRAPH = 'graph'
     TREE = 'tree'
+    PERMUTATION = 'permutation'
 
-    CORE = {FLOAT, INT, BIT, CHAR}
-    ALL = {FLOAT, INT, BIT, CHAR, GRAPH, TREE}
+    CORE = {FLOAT, INT, BIT, CHAR, PERMUTATION}
+    ALL = {FLOAT, INT, BIT, CHAR, GRAPH, TREE, PERMUTATION}
 
 
 class Gene:

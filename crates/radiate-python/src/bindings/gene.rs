@@ -1,8 +1,8 @@
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods, types::PyString};
 use radiate::{
     BitChromosome, BitGene, CharChromosome, CharGene, Chromosome, FloatChromosome, FloatGene, Gene,
-    Genotype, GraphChromosome, GraphNode, IntChromosome, IntGene, Op, Phenotype, Population,
-    TreeChromosome, TreeNode, random_provider,
+    Genotype, GraphChromosome, GraphNode, IntChromosome, IntGene, Op, PermutationChromosome,
+    PermutationGene, Phenotype, Population, TreeChromosome, TreeNode, random_provider,
 };
 
 use crate::{AnyGene, any::AnyChromosome, prelude::Wrap};
@@ -14,6 +14,7 @@ pub const CHAR_GENE_TYPE: &'static str = "CharGene";
 pub const GRAPH_GENE_TYPE: &'static str = "GraphNode";
 pub const TREE_GENE_TYPE: &'static str = "TreeNode";
 pub const ANY_GENE_TYPE: &'static str = "AnyGene";
+pub const PERMUTATION_GENE_TYPE: &'static str = "PermutationGene";
 
 #[pyclass]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
@@ -26,6 +27,7 @@ pub enum PyGeneType {
     Graph,
     Tree,
     Any,
+    Permutation,
 }
 
 #[pymethods]
@@ -40,6 +42,7 @@ impl PyGeneType {
             PyGeneType::Graph => GRAPH_GENE_TYPE.into(),
             PyGeneType::Tree => TREE_GENE_TYPE.into(),
             PyGeneType::Any => ANY_GENE_TYPE.into(),
+            PyGeneType::Permutation => PERMUTATION_GENE_TYPE.into(),
         }
     }
 
@@ -53,6 +56,7 @@ impl PyGeneType {
             PyGeneType::Graph => GRAPH_GENE_TYPE.into(),
             PyGeneType::Tree => TREE_GENE_TYPE.into(),
             PyGeneType::Any => ANY_GENE_TYPE.into(),
+            PyGeneType::Permutation => PERMUTATION_GENE_TYPE.into(),
         }
     }
 
@@ -70,6 +74,7 @@ impl PyGeneType {
             PyGeneType::Graph => 5,
             PyGeneType::Tree => 6,
             PyGeneType::Any => 7,
+            PyGeneType::Permutation => 8,
         }
     }
 
@@ -278,6 +283,7 @@ enum GeneInner {
     GraphNode(GraphNode<Op<f32>>),
     TreeNode(TreeNode<Op<f32>>),
     Any(AnyGene<'static>),
+    Permutation(PermutationGene<usize>),
 }
 
 #[pyclass]
@@ -298,6 +304,7 @@ impl PyGene {
             GeneInner::GraphNode(_) => PyGeneType::Graph,
             GeneInner::TreeNode(_) => PyGeneType::Tree,
             GeneInner::Any(_) => PyGeneType::Any,
+            GeneInner::Permutation(_) => PyGeneType::Empty, // Permutation is not a gene type in this context
         }
     }
 
@@ -310,6 +317,7 @@ impl PyGene {
             GeneInner::GraphNode(gene) => gene.allele().name().into_bound_py_any(py),
             GeneInner::TreeNode(gene) => gene.allele().name().into_bound_py_any(py),
             GeneInner::Any(gene) => Wrap(gene.allele()).into_bound_py_any(py),
+            GeneInner::Permutation(gene) => gene.allele().into_bound_py_any(py),
         }
     }
 
@@ -324,6 +332,7 @@ impl PyGene {
                 GeneInner::GraphNode(gene) => format!("{:?}", gene),
                 GeneInner::TreeNode(gene) => format!("{:?}", gene),
                 GeneInner::Any(gene) => format!("{:?}", gene),
+                GeneInner::Permutation(gene) => format!("{:?}", gene),
             }
         );
 
@@ -427,6 +436,7 @@ impl_into_py_gene!(CharGene, Char);
 impl_into_py_gene!(GraphNode<Op<f32>>, GraphNode);
 impl_into_py_gene!(TreeNode<Op<f32>>, TreeNode);
 impl_into_py_gene!(AnyGene<'static>, Any);
+impl_into_py_gene!(PermutationGene<usize>, Permutation);
 
 macro_rules! impl_into_py_chromosome {
     ($chromosome_type:ty, $gene_type:ty) => {
@@ -462,6 +472,7 @@ impl_into_py_chromosome!(CharChromosome, CharGene);
 impl_into_py_chromosome!(GraphChromosome<Op<f32>>, GraphNode<Op<f32>>);
 impl_into_py_chromosome!(TreeChromosome<Op<f32>>, TreeNode<Op<f32>>);
 impl_into_py_chromosome!(AnyChromosome<'static>, AnyGene<'static>);
+impl_into_py_chromosome!(PermutationChromosome<usize>, PermutationGene<usize>);
 
 macro_rules! impl_into_py_genotype {
     ($chromosome:ty) => {
@@ -508,6 +519,7 @@ impl_into_py_genotype!(CharChromosome);
 impl_into_py_genotype!(GraphChromosome<Op<f32>>);
 impl_into_py_genotype!(TreeChromosome<Op<f32>>);
 impl_into_py_genotype!(AnyChromosome<'static>);
+impl_into_py_genotype!(PermutationChromosome<usize>);
 
 macro_rules! impl_from_py_phenotype {
     ($chromosome:ty) => {
@@ -547,6 +559,7 @@ impl_from_py_phenotype!(CharChromosome);
 impl_from_py_phenotype!(GraphChromosome<Op<f32>>);
 impl_from_py_phenotype!(TreeChromosome<Op<f32>>);
 impl_from_py_phenotype!(AnyChromosome<'static>);
+impl_from_py_phenotype!(PermutationChromosome<usize>);
 
 macro_rules! impl_into_py_population {
     ($chromosome:ty) => {
@@ -606,3 +619,4 @@ impl_into_py_population!(CharChromosome);
 impl_into_py_population!(GraphChromosome<Op<f32>>);
 impl_into_py_population!(TreeChromosome<Op<f32>>);
 impl_into_py_population!(AnyChromosome<'static>);
+impl_into_py_population!(PermutationChromosome<usize>);

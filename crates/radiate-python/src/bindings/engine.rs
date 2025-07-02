@@ -25,8 +25,6 @@ impl PyEngine {
             ));
         }
 
-        println!("Running engine with limits: {:?}", limits);
-
         let limits = limits
             .into_iter()
             .filter_map(|input| input.into())
@@ -52,6 +50,10 @@ impl PyEngine {
             EngineHandle::Bit(eng) => {
                 let output = run_single_objective_engine(eng, limits, log);
                 EpochHandle::Bit(output)
+            }
+            EngineHandle::Permutation(eng) => {
+                let output = run_single_objective_engine(eng, limits, log);
+                EpochHandle::Permutation(output)
             }
             EngineHandle::GraphRegression(eng) => {
                 let output = run_single_objective_engine(eng, limits, log);
@@ -82,6 +84,7 @@ impl PyEngine {
             EngineHandle::Float(eng) => EpochHandle::Float(eng.next()),
             EngineHandle::Char(eng) => EpochHandle::Char(eng.next()),
             EngineHandle::Bit(eng) => EpochHandle::Bit(eng.next()),
+            EngineHandle::Permutation(eng) => EpochHandle::Permutation(eng.next()),
             EngineHandle::GraphRegression(eng) => EpochHandle::GraphRegression(eng.next()),
             EngineHandle::TreeRegression(eng) => EpochHandle::TreeRegression(eng.next()),
         };

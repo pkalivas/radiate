@@ -65,9 +65,9 @@ class SimulatedBinaryCrossover(AlterBase):
         )
 
 
-class PartiallyMatchedCrossover(AlterBase):
+class PartiallyMappedCrossover(AlterBase):
     def __init__(self, rate: float = 0.1):
-        super().__init__(component="PartiallyMatchedCrossover", args={"rate": rate})
+        super().__init__(component="PartiallyMappedCrossover", args={"rate": rate}, allowed_genes=GeneType.PERMUTATION)
 
 
 class MultiPointCrossover(AlterBase):
