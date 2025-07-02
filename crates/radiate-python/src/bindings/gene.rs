@@ -1,4 +1,4 @@
-use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods, types::PyString};
+use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     BitChromosome, BitGene, CharChromosome, CharGene, Chromosome, FloatChromosome, FloatGene, Gene,
     Genotype, GraphChromosome, GraphNode, IntChromosome, IntGene, Op, PermutationChromosome,
@@ -102,24 +102,29 @@ impl PyPopulation {
         PyPopulation { phenotypes }
     }
 
-    pub fn __repr__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        let repr = format!(
+    pub fn __repr__(&self) -> String {
+        format!(
             "Population(phenotypes={:?})",
             self.phenotypes
                 .iter()
-                .map(|p| format!("{:?}", p.__repr__(py)))
+                .map(|p| p.__repr__())
                 .collect::<Vec<_>>()
-        );
-
-        PyString::new(py, &repr).into_bound_py_any(py)
+        )
     }
 
-    pub fn __str__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        self.__repr__(py)
+    pub fn __str__(&self) -> String {
+        self.__repr__()
     }
 
     pub fn __len__(&self) -> usize {
         self.phenotypes.len()
+    }
+
+    pub fn __eq__(&self, other: &Self) -> bool {
+        self.phenotypes
+            .iter()
+            .zip(&other.phenotypes)
+            .all(|(a, b)| a == b)
     }
 
     pub fn gene_type(&self) -> PyGeneType {
@@ -132,7 +137,7 @@ impl PyPopulation {
 }
 
 #[pyclass]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct PyPhenotype {
     #[pyo3(get)]
     genotype: PyGenotype,
@@ -154,19 +159,29 @@ impl PyPhenotype {
         }
     }
 
-    pub fn __repr__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        let repr = format!(
+    pub fn __repr__(&self) -> String {
+        format!(
             "Phenotype(id={}, score={:?}, genotype={:?})",
             self.id,
             self.score,
-            self.genotype.__repr__(py)
-        );
-
-        PyString::new(py, &repr).into_bound_py_any(py)
+            self.genotype.__repr__()
+        )
     }
 
-    pub fn __str__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        self.__repr__(py)
+    pub fn __str__(&self) -> String {
+        self.__repr__()
+    }
+
+    pub fn __len__(&self) -> usize {
+        self.genotype.chromosomes.len()
+    }
+
+    pub fn __eq__(&self, other: &Self) -> bool {
+        self.genotype == other.genotype
+    }
+
+    pub fn __ne__(&self, other: &Self) -> bool {
+        self.genotype != other.genotype
     }
 
     pub fn gene_type(&self) -> PyGeneType {
@@ -179,7 +194,7 @@ impl PyPhenotype {
 }
 
 #[pyclass]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 #[repr(transparent)]
 pub struct PyGenotype {
     #[pyo3(get)]
@@ -193,20 +208,36 @@ impl PyGenotype {
         PyGenotype { chromosomes }
     }
 
-    pub fn __repr__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        let repr = format!(
+    pub fn __repr__(&self) -> String {
+        format!(
             "{:?}",
             self.chromosomes
                 .iter()
-                .map(|c| format!("{:?}", c.__repr__(py).unwrap()))
+                .map(|c| c.__repr__())
                 .collect::<Vec<_>>()
-        );
-
-        PyString::new(py, &repr).into_bound_py_any(py)
+        )
     }
 
-    pub fn __str__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        self.__repr__(py)
+    pub fn __str__(&self) -> String {
+        self.__repr__()
+    }
+
+    pub fn __len__(&self) -> usize {
+        self.chromosomes.len()
+    }
+
+    pub fn __eq__(&self, other: &Self) -> bool {
+        self.chromosomes
+            .iter()
+            .zip(&other.chromosomes)
+            .all(|(a, b)| a == b)
+    }
+
+    pub fn __getitem__<'py>(&self, py: Python<'py>, index: usize) -> PyResult<Bound<'py, PyAny>> {
+        self.chromosomes
+            .get(index)
+            .ok_or_else(|| pyo3::exceptions::PyIndexError::new_err("index out of range"))
+            .and_then(|chromosome| chromosome.clone().into_bound_py_any(py))
     }
 
     pub fn gene_type(&self) -> PyGeneType {
@@ -228,7 +259,7 @@ impl IntoIterator for PyGenotype {
 }
 
 #[pyclass]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 #[repr(transparent)]
 pub struct PyChromosome {
     #[pyo3(get)]
@@ -242,19 +273,15 @@ impl PyChromosome {
         PyChromosome { genes }
     }
 
-    pub fn __repr__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        let repr = format!(
+    pub fn __repr__(&self) -> String {
+        format!(
             "Chromosome(genes={:?})",
-            self.genes
-                .iter()
-                .map(|g| format!("{:?}", g.__repr__(py).unwrap()))
-                .collect::<Vec<_>>()
-        );
-        PyString::new(py, &repr).into_bound_py_any(py)
+            self.genes.iter().map(|g| g.__repr__()).collect::<Vec<_>>()
+        )
     }
 
-    pub fn __str__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        self.__repr__(py)
+    pub fn __str__(&self) -> String {
+        self.__repr__()
     }
 
     pub fn __len__(&self) -> usize {
@@ -263,6 +290,13 @@ impl PyChromosome {
 
     pub fn __eq__(&self, other: &Self) -> bool {
         self.genes.iter().zip(&other.genes).all(|(a, b)| a == b)
+    }
+
+    pub fn __getitem__<'py>(&self, py: Python<'py>, index: usize) -> PyResult<Bound<'py, PyAny>> {
+        self.genes
+            .get(index)
+            .ok_or_else(|| pyo3::exceptions::PyIndexError::new_err("index out of range"))
+            .and_then(|gene| gene.clone().into_bound_py_any(py))
     }
 
     pub fn gene_type(&self) -> PyGeneType {
@@ -304,7 +338,7 @@ impl PyGene {
             GeneInner::GraphNode(_) => PyGeneType::Graph,
             GeneInner::TreeNode(_) => PyGeneType::Tree,
             GeneInner::Any(_) => PyGeneType::Any,
-            GeneInner::Permutation(_) => PyGeneType::Empty, // Permutation is not a gene type in this context
+            GeneInner::Permutation(_) => PyGeneType::Permutation,
         }
     }
 
@@ -321,26 +355,21 @@ impl PyGene {
         }
     }
 
-    pub fn __str__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        let repr = format!(
-            "{}",
-            match &self.inner {
-                GeneInner::Float(gene) => format!("{}", gene),
-                GeneInner::Int(gene) => format!("{}", gene),
-                GeneInner::Bit(gene) => format!("{}", gene),
-                GeneInner::Char(gene) => format!("{:?}", gene),
-                GeneInner::GraphNode(gene) => format!("{:?}", gene),
-                GeneInner::TreeNode(gene) => format!("{:?}", gene),
-                GeneInner::Any(gene) => format!("{:?}", gene),
-                GeneInner::Permutation(gene) => format!("{:?}", gene),
-            }
-        );
-
-        PyString::new(py, &repr).into_bound_py_any(py)
+    pub fn __str__(&self) -> String {
+        match &self.inner {
+            GeneInner::Float(gene) => format!("{}", gene),
+            GeneInner::Int(gene) => format!("{}", gene),
+            GeneInner::Bit(gene) => format!("{}", gene),
+            GeneInner::Char(gene) => format!("{:?}", gene),
+            GeneInner::GraphNode(gene) => format!("{:?}", gene),
+            GeneInner::TreeNode(gene) => format!("{:?}", gene),
+            GeneInner::Any(gene) => format!("{:?}", gene),
+            GeneInner::Permutation(gene) => format!("{:?}", gene),
+        }
     }
 
-    pub fn __repr__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        self.__str__(py)
+    pub fn __repr__(&self) -> String {
+        self.__str__()
     }
 
     pub fn __eq__(&self, other: &Self) -> bool {

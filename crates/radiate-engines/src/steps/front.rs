@@ -1,4 +1,5 @@
-use radiate_core::{Chromosome, Ecosystem, EngineStep, Front, MetricSet, Phenotype, metric_names};
+use crate::steps::EngineStep;
+use radiate_core::{Chromosome, Ecosystem, Front, MetricSet, Phenotype, metric_names};
 use std::sync::{Arc, RwLock};
 
 pub struct FrontStep<C: Chromosome> {

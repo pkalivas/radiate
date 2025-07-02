@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use crate::{PySubscriber, conversion::Wrap};
+use crate::{PySubscriber, object::Wrap};
 use pyo3::intern;
 use pyo3::{Python, types::PyDict};
 use radiate::{EngineEvent, Event, EventHandler};

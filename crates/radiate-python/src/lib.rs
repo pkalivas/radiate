@@ -1,6 +1,5 @@
 mod any;
 mod bindings;
-mod conversion;
 mod evaluator;
 mod events;
 mod object;
@@ -20,7 +19,7 @@ pub mod prelude {
     pub use super::{IntoPyObjectValue, Object, ObjectValue, PyProblem};
     pub use crate::{
         PyBitCodec, PyCharCodec, PyFloatCodec, PyGeneType, PyGraphCodec, PyIntCodec,
-        PyProblemBuilder, conversion::Wrap,
+        PyProblemBuilder, object::Wrap,
     };
     pub use pyo3::prelude::*;
     pub use pyo3::types::PyAny;

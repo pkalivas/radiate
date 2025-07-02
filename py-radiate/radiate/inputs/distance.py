@@ -4,7 +4,7 @@ from .component import ComponentBase
 from ..genome.gene import GeneType
 
 
-class DiversityBase(ComponentBase):
+class DistanceBase(ComponentBase):
     """
     Base class for diversity parameters.
     """
@@ -39,7 +39,7 @@ class DiversityBase(ComponentBase):
         return f"Diversity(component={self.component}, args={self.args}, allowed_genes={self.allowed_genes})"
 
     def __eq__(self, value):
-        if not isinstance(value, DiversityBase):
+        if not isinstance(value, DistanceBase):
             return False
         return (
             self.component == value.component
@@ -48,7 +48,7 @@ class DiversityBase(ComponentBase):
         )
 
 
-class HammingDistance(DiversityBase):
+class HammingDistance(DistanceBase):
     """
     Hamming Distance diversity parameter.
     """
@@ -60,7 +60,7 @@ class HammingDistance(DiversityBase):
         super().__init__(component="HammingDistance")
 
 
-class EuclideanDistance(DiversityBase):
+class EuclideanDistance(DistanceBase):
     """
     Euclidean Distance diversity parameter.
     """
@@ -72,7 +72,7 @@ class EuclideanDistance(DiversityBase):
         super().__init__(component="EuclideanDistance", allowed_genes=GeneType.FLOAT)
 
 
-class NeatDistance(DiversityBase):
+class NeatDistance(DistanceBase):
     """
     Neat Distance diversity parameter.
     """
@@ -96,7 +96,7 @@ class NeatDistance(DiversityBase):
             allowed_genes=GeneType.GRAPH,
         )
 
-class CosineDistance(DiversityBase):
+class CosineDistance(DistanceBase):
     """
     Cosine Distance diversity parameter.
     """

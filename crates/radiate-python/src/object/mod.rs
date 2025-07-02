@@ -1,4 +1,5 @@
 mod any_value;
+mod conversion;
 mod dtype;
 mod field;
 mod object;
@@ -6,6 +7,7 @@ mod object;
 use std::any::Any;
 
 pub use any_value::AnyValue;
+pub use conversion::*;
 pub use dtype::DataType;
 pub use field::Field;
 pub use object::{IntoPyObjectValue, ObjectValue};

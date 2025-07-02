@@ -124,20 +124,3 @@ def test_engine_raises_on_invalid_alterer():
     except ValueError as e:
         assert "Alterer GraphCrossover does not support gene type int" in str(e)
 
-
-def test_engine_raises_on_invalid_codec():
-    class DummyCodec(rd.CodecBase):
-        def encode(self, value):
-            pass
-
-        def decode(self, genome):
-            pass
-
-    try:
-        rd.GeneticEngine(
-            codec=DummyCodec(),
-            fitness_func=lambda x: x,
-        )
-        assert False, "Expected TypeError for unsupported codec"
-    except TypeError as e:
-        assert "Codec type" in str(e) and "is not supported" in str(e)

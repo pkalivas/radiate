@@ -3,11 +3,13 @@ from .codec import CodecBase
 from radiate.genome import Genotype
 from radiate.radiate import PyFloatCodec
 
-try:
-    import numpy 
-    HAS_NUMPY = True
-except ImportError:
-    HAS_NUMPY = False
+# try:
+#     import numpy 
+#     HAS_NUMPY = True
+# except ImportError:
+#     HAS_NUMPY = False
+
+HAS_NUMPY = False
 
 
 class FloatCodec(CodecBase):

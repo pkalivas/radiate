@@ -1,6 +1,6 @@
-use crate::{IntoPyObjectValue, ObjectValue, PyGenotype, conversion::Wrap};
-use pyo3::{IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
-use radiate::{Codec, Eval, Format, NodeType, Op, Tree, TreeCodec};
+use crate::{IntoPyObjectValue, ObjectValue, PyGenotype, object::Wrap};
+use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
+use radiate::{Codec, Eval, Format, NodeType, Op, Tree, TreeChromosome, TreeCodec};
 use std::collections::HashMap;
 
 const LEAF_NODE_TYPE: &str = "leaf";
@@ -17,6 +17,17 @@ pub struct PyTreeCodec {
 impl PyTreeCodec {
     pub fn encode_py(&self) -> PyGenotype {
         PyGenotype::from(self.codec.encode())
+    }
+
+    pub fn decode_py<'py>(
+        &self,
+        py: Python<'py>,
+        genotype: &PyGenotype,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let genotype: radiate::Genotype<TreeChromosome<Op<f32>>> = genotype.clone().into();
+        let obj_value = self.codec.decode(&genotype);
+
+        PyTree { inner: obj_value }.into_bound_py_any(py)
     }
 
     #[new]
@@ -98,7 +109,12 @@ impl PyTree {
         Ok(self.inner.len())
     }
 
+    pub fn __eq__(&self, other: &PyTree) -> PyResult<bool> {
+        Ok(self.inner == other.inner)
+    }
+
     pub fn eval(&mut self, inputs: Vec<Vec<f32>>) -> PyResult<Vec<Vec<f32>>> {
+        println!("Evaluating tree with inputs: {:?}", inputs);
         Ok(inputs
             .into_iter()
             .map(|input| self.inner.eval(&input))

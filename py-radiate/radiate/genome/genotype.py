@@ -56,6 +56,18 @@ class Genotype:
         if not isinstance(value, Genotype):
             return False
         return self.__inner == value.__inner
+    
+    def __getitem__(self, index: int) -> Chromosome:
+        """
+        Returns the chromosome at the specified index.
+        :param index: Index of the chromosome to retrieve.
+        :return: Chromosome instance at the specified index.
+        """
+        if not isinstance(index, int):
+            raise TypeError("Index must be an integer")
+        if index < 0 or index >= len(self.__inner.chromosomes):
+            raise IndexError("Index out of range")
+        return Chromosome(chromosome=self.__inner.chromosomes[index])
 
     def py_genotype(self) -> PyGenotype:
         """
@@ -63,6 +75,13 @@ class Genotype:
         :return: The PyGenotype instance associated with this Genotype.
         """
         return self.__inner
+    
+    def gene_type(self) -> str:
+        """
+        Returns the type of the genes in the genotype.
+        :return: The gene type as a string.
+        """
+        return self.__inner.gene_type().__repr__()
 
     def chromosomes(self) -> List[Chromosome]:
         """

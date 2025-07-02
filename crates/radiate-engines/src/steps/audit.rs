@@ -1,4 +1,5 @@
-use radiate_core::{Chromosome, Ecosystem, EngineStep, Metric, MetricSet, metric, metric_names};
+use crate::steps::EngineStep;
+use radiate_core::{Chromosome, Ecosystem, Metric, MetricSet, metric, metric_names};
 use std::collections::HashSet;
 
 pub struct AuditStep;

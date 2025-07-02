@@ -1,6 +1,6 @@
 from typing import List, Optional, Dict, TypeAlias, Union, Tuple
 from .codec import CodecBase
-from ..gp import Op
+from ..gp import Op, Graph
 from radiate.genome import Genotype
 from radiate.radiate import PyGraphCodec
 
@@ -13,6 +13,48 @@ class GraphCodec(CodecBase):
 
     def encode(self) -> "Genotype":
         return Genotype(self.codec.encode_py())
+    
+    def decode(self, genotype: Genotype) -> "Graph":
+        print(genotype.gene_type())
+        if genotype.gene_type() != "GraphNode":
+            raise ValueError("genotype must be of type 'graph'.")
+        if not isinstance(genotype, Genotype):
+            raise TypeError("genotype must be an instance of Genotype.")
+        return Graph(self.codec.decode_py(genotype.py_genotype()))
+    
+    @staticmethod
+    def weighted_directed(
+        shape: Tuple[int, int],
+        vertex: Optional[NodeValues] = None,
+        edge: Optional[NodeValues] = None,
+        output: Optional[NodeValues] = None,
+        values: Optional[Dict[str, List[Op]] | List[Tuple[str, List[Op]]]] = None,
+    ) -> "GraphCodec":
+        return GraphCodec.__build_common(
+            name="weighted_directed",
+            shape=shape,
+            vertex=vertex,
+            edge=edge,
+            output=output,
+            values=values,
+        )
+
+    @staticmethod
+    def weighted_recurrent(
+        shape: Tuple[int, int],
+        vertex: Optional[NodeValues] = None,
+        edge: Optional[NodeValues] = None,
+        output: Optional[NodeValues] = None,
+        values: Optional[Dict[str, List[Op]] | List[Tuple[str, List[Op]]]] = None,
+    ) -> "GraphCodec":
+        return GraphCodec.__build_common(
+            name="weighted_recurrent",
+            shape=shape,
+            vertex=vertex,
+            edge=edge,
+            output=output,
+            values=values,
+        )
 
     @staticmethod
     def directed(
@@ -23,7 +65,7 @@ class GraphCodec(CodecBase):
         values: Optional[Dict[str, List[Op]] | List[Tuple[str, List[Op]]]] = None,
     ) -> "GraphCodec":
         return GraphCodec.__build_common(
-            recurrent=False,
+            name="directed",
             shape=shape,
             vertex=vertex,
             edge=edge,
@@ -40,7 +82,7 @@ class GraphCodec(CodecBase):
         values: Optional[Dict[str, List[Op]]] = None,
     ) -> "GraphCodec":
         return GraphCodec.__build_common(
-            recurrent=True,
+            name="recurrent",
             shape=shape,
             vertex=vertex,
             edge=edge,
@@ -50,8 +92,8 @@ class GraphCodec(CodecBase):
 
     @staticmethod
     def __build_common(
-        recurrent: bool,
-        shape: Tuple[int, int],
+        name: str = "directed",
+        shape: Tuple[int, int] = (1, 1),
         vertex: Optional[NodeValues] = None,
         edge: Optional[NodeValues] = None,
         output: Optional[NodeValues] = None,
@@ -75,6 +117,14 @@ class GraphCodec(CodecBase):
             if output is not None:
                 ops_map["output"] = [output] if isinstance(output, Op) else output
 
-        if recurrent:
+        if name == "weighted_directed":
+            return GraphCodec(PyGraphCodec("weighted_directed", input_size, output_size, ops_map))
+        elif name == "weighted_recurrent":
+            return GraphCodec(PyGraphCodec("weighted_recurrent", input_size, output_size, ops_map))
+        elif name == "recurrent":
             return GraphCodec(PyGraphCodec("recurrent", input_size, output_size, ops_map))
+        else:
+            if name != "directed":
+                raise ValueError(f"Unknown graph type: {name}")
+            # Default to directed graph
         return GraphCodec(PyGraphCodec("directed", input_size, output_size, ops_map))

@@ -1,6 +1,6 @@
-use crate::{IntoPyObjectValue, ObjectValue, PyGenotype, conversion::Wrap};
-use pyo3::{IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
-use radiate::{Codec, EvalMut, Graph, GraphCodec, GraphEvaluator, NodeType, Op};
+use crate::{IntoPyObjectValue, ObjectValue, PyGenotype, object::Wrap};
+use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
+use radiate::{Codec, EvalMut, Graph, GraphChromosome, GraphCodec, GraphEvaluator, NodeType, Op};
 use std::collections::HashMap;
 
 const INPUT_NODE_TYPE: &str = "input";
@@ -18,6 +18,21 @@ pub struct PyGraphCodec {
 impl PyGraphCodec {
     pub fn encode_py(&self) -> PyGenotype {
         PyGenotype::from(self.codec.encode())
+    }
+
+    pub fn decode_py<'py>(
+        &self,
+        py: Python<'py>,
+        genotype: &PyGenotype,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let genotype: radiate::Genotype<GraphChromosome<Op<f32>>> = genotype.clone().into();
+        let obj_value = self.codec.decode(&genotype);
+
+        PyGraph {
+            inner: obj_value,
+            eval_cache: None,
+        }
+        .into_bound_py_any(py)
     }
 
     #[new]
@@ -56,6 +71,12 @@ impl PyGraphCodec {
 
         let codec = match graph_type {
             Some("recurrent") => GraphCodec::recurrent(input_size, output_size, values),
+            Some("weighted_directed") => {
+                GraphCodec::weighted_directed(input_size, output_size, values)
+            }
+            Some("weighted_recurrent") => {
+                GraphCodec::weighted_recurrent(input_size, output_size, values)
+            }
             _ => GraphCodec::directed(input_size, output_size, values),
         };
 
@@ -107,6 +128,10 @@ impl PyGraph {
 
     pub fn __len__(&self) -> PyResult<usize> {
         Ok(self.inner.len())
+    }
+
+    pub fn __eq__(&self, other: &PyGraph) -> PyResult<bool> {
+        Ok(self.inner == other.inner)
     }
 
     pub fn eval(&mut self, inputs: Vec<Vec<f32>>) -> PyResult<Vec<Vec<f32>>> {

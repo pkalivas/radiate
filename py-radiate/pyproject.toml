@@ -5,7 +5,7 @@ build-backend = "maturin"
 [project]
 name = "radiate"
 description = "A fast and flexible evolution engine for implementing artificial evolution and genetic programming techniques."
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",

@@ -55,13 +55,13 @@ impl PyEngine {
                 let output = run_single_objective_engine(eng, limits, log);
                 EpochHandle::Permutation(output)
             }
-            EngineHandle::GraphRegression(eng) => {
+            EngineHandle::Graph(eng) => {
                 let output = run_single_objective_engine(eng, limits, log);
-                EpochHandle::GraphRegression(output)
+                EpochHandle::Graph(output)
             }
-            EngineHandle::TreeRegression(eng) => {
+            EngineHandle::Tree(eng) => {
                 let output = run_single_objective_engine(eng, limits, log);
-                EpochHandle::TreeRegression(output)
+                EpochHandle::Tree(output)
             }
         };
 
@@ -85,8 +85,8 @@ impl PyEngine {
             EngineHandle::Char(eng) => EpochHandle::Char(eng.next()),
             EngineHandle::Bit(eng) => EpochHandle::Bit(eng.next()),
             EngineHandle::Permutation(eng) => EpochHandle::Permutation(eng.next()),
-            EngineHandle::GraphRegression(eng) => EpochHandle::GraphRegression(eng.next()),
-            EngineHandle::TreeRegression(eng) => EpochHandle::TreeRegression(eng.next()),
+            EngineHandle::Graph(eng) => EpochHandle::Graph(eng.next()),
+            EngineHandle::Tree(eng) => EpochHandle::Tree(eng.next()),
         };
 
         Ok(PyGeneration::new(result))

@@ -1,7 +1,5 @@
-use radiate_core::{
-    Chromosome, Ecosystem, Evaluator, MetricSet, Objective, Problem, engine::EngineStep,
-    metric_names,
-};
+use crate::steps::EngineStep;
+use radiate_core::{Chromosome, Ecosystem, Evaluator, MetricSet, Objective, Problem, metric_names};
 use std::sync::Arc;
 
 pub struct EvaluateStep<C: Chromosome, T> {

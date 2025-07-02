@@ -1,16 +1,24 @@
 from typing import List, Optional, Dict, TypeAlias, Union, Tuple
+
 from .codec import CodecBase
-from ..gp import Op
+from radiate.gp import Op, Tree
 from radiate.genome import Genotype
 from radiate.radiate import PyTreeCodec
 
-NodeValues: TypeAlias = Union[List[Op], Op]
+NodeValues: TypeAlias = Union[List[Op], Op, List[str], str]
 
 
 class TreeCodec(CodecBase):
 
     def encode(self) -> "Genotype":
         return Genotype(self.codec.encode_py())
+    
+    def decode(self, genotype: Genotype) -> "Tree":
+        if not isinstance(genotype, Genotype):
+            raise TypeError("genotype must be an instance of Genotype.")
+        if genotype.gene_type() != "TreeNode":
+            raise ValueError("genotype must be of type 'tree'.")
+        return Tree(self.codec.decode_py(genotype.py_genotype()))
 
     def __init__(
         self,

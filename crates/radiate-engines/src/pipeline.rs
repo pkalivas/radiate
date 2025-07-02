@@ -1,5 +1,5 @@
-use crate::{EngineEvent, EventBus};
-use radiate_core::{Chromosome, EngineStep, engine::Context};
+use crate::{Context, EngineEvent, EventBus, steps::EngineStep};
+use radiate_core::Chromosome;
 
 pub(crate) struct Pipeline<C>
 where

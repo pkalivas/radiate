@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Any
+from typing import List, Any, Tuple
 from .codec import CodecBase
 from radiate.radiate import PyCharCodec
 from radiate.genome import Genotype
@@ -29,7 +29,11 @@ class CharCodec(CodecBase):
         return self.codec.decode_py(genotype.py_genotype())
 
     @staticmethod
-    def matrix(chromosomes: List[int], char_set: str | List[str] = None, use_numpy: bool = False) -> "CharCodec":
+    def matrix(
+        chromosomes: List[int] | Tuple[int, int],
+        char_set: str | List[str] = None,
+        use_numpy: bool = False,
+    ) -> "CharCodec":
         """
         Initialize the char codec with number of chromosomes and value bounds.
         Args:
@@ -44,8 +48,16 @@ class CharCodec(CodecBase):
         CharCodec(...)
         """
 
-        if isinstance(char_set, str):
-            char_set = list(char_set)
+        if isinstance(chromosomes, tuple):
+            if len(chromosomes) != 2:
+                raise ValueError("Chromosomes must be a tuple of (rows, cols).")
+            rows, cols = chromosomes
+            if rows < 1 or cols < 1:
+                raise ValueError("Rows and columns must be at least 1.")
+            chromosomes = [cols for _ in range(rows)]
+        if isinstance(chromosomes, list):
+            if not all(isinstance(x, int) and x > 0 for x in chromosomes):
+                raise ValueError("Chromosomes must be a list of positive integers.")
 
         if char_set is not None:
             for char in char_set:
@@ -57,7 +69,9 @@ class CharCodec(CodecBase):
         return CharCodec(PyCharCodec.matrix(chromosomes, char_set, use_numpy=use_numpy))
 
     @staticmethod
-    def vector(length: int, char_set: str | List[str] = None, use_numpy: bool = False) -> "CharCodec":
+    def vector(
+        length: int, char_set: str | List[str] = None, use_numpy: bool = False
+    ) -> "CharCodec":
         """
         Initialize the char codec with a single chromosome of specified length.
         Args:

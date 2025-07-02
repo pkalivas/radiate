@@ -1,5 +1,5 @@
 try:
-    from ._version import __version__, __version_tuple__
+    from .__version__ import __version__, __version_tuple__
 except ImportError:
     __version__ = "unknown"
     __version_tuple__ = (0, 0, 0)
@@ -55,9 +55,10 @@ from .inputs.alterer import (
     GraphCrossover,
     TreeCrossover,
     HoistMutator,
+    InversionMutator
 )
 
-from .inputs.diversity import HammingDistance, EuclideanDistance, NeatDistance
+from .inputs.distance import HammingDistance, EuclideanDistance, NeatDistance, CosineDistance
 
 from .inputs.limit import SecondsLimit, GenerationsLimit, ScoreLimit
 
@@ -108,6 +109,7 @@ __all__ = [
     "HoistMutator",
     "GraphMutator",
     "OperationMutator",
+    "InversionMutator",
     # Executor
     "Executor",
     # Limits

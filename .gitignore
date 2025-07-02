@@ -13,3 +13,4 @@ radiate/.vs
 *__pycache__
 *.so
 *.pytest_cache
+*.benchmarks

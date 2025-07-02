@@ -17,7 +17,7 @@ pub use codecs::{
 };
 pub use diversity::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
 pub use domain::*;
-pub use engine::{Context, Engine, EngineExt, EngineStep};
+pub use engine::{Engine, EngineExt};
 pub use evaluator::{Evaluator, FitnessEvaluator};
 pub use executor::Executor;
 pub use genome::*;
@@ -34,7 +34,7 @@ pub mod prelude {
     };
     pub use super::diversity::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
     pub use super::domain::random_provider;
-    pub use super::engine::{Engine, EngineExt, EngineStep};
+    pub use super::engine::{Engine, EngineExt};
     pub use super::executor::Executor;
     pub use super::genome::{
         ArithmeticGene, BitChromosome, BitGene, CharChromosome, CharGene, Chromosome,

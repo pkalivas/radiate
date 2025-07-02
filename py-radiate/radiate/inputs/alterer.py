@@ -131,7 +131,7 @@ class OperationMutator(AlterBase):
         super().__init__(
             component="OperationMutator",
             args={"rate": rate, "replace_rate": replace_rate},
-            allowed_genes=GeneType.GRAPH,
+            allowed_genes={GeneType.GRAPH, GeneType.TREE},
         )
 
 
@@ -157,4 +157,11 @@ class HoistMutator(AlterBase):
             component="HoistMutator",
             args={"rate": rate},
             allowed_genes=GeneType.TREE,
+        )
+
+class InversionMutator(AlterBase):
+    def __init__(self, rate: float = 0.1):
+        super().__init__(
+            component="InversionMutator",
+            args={"rate": rate},
         )

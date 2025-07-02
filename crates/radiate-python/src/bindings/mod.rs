@@ -45,8 +45,8 @@ pub enum EngineBuilderHandle {
     Char(SingleObjBuilder<CharChromosome, ObjectValue>),
     Bit(SingleObjBuilder<BitChromosome, ObjectValue>),
     Permutation(SingleObjBuilder<PermutationChromosome<usize>, ObjectValue>),
-    GraphRegression(RegressionBuilder<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
-    TreeRegression(RegressionBuilder<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
+    Graph(RegressionBuilder<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
+    Tree(RegressionBuilder<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
 }
 
 pub enum EngineHandle {
@@ -55,8 +55,8 @@ pub enum EngineHandle {
     Char(SingleObjectiveEngine<CharChromosome>),
     Bit(SingleObjectiveEngine<BitChromosome>),
     Permutation(SingleObjectiveEngine<PermutationChromosome<usize>>),
-    GraphRegression(RegressionEngine<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
-    TreeRegression(RegressionEngine<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
+    Graph(RegressionEngine<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
+    Tree(RegressionEngine<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
 }
 
 pub enum EpochHandle {
@@ -65,6 +65,6 @@ pub enum EpochHandle {
     Char(Generation<CharChromosome, ObjectValue>),
     Bit(Generation<BitChromosome, ObjectValue>),
     Permutation(Generation<PermutationChromosome<usize>, ObjectValue>),
-    GraphRegression(Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
-    TreeRegression(Generation<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
+    Graph(Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
+    Tree(Generation<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
 }

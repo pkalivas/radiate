@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Any
+from typing import List, Any, Tuple
 from .codec import CodecBase
 from radiate.radiate import PyBitCodec
 from radiate.genome import Genotype
@@ -38,11 +38,11 @@ class BitCodec(CodecBase):
         return self.codec.decode_py(genotype.py_genotype())
 
     @staticmethod
-    def matrix(chromosome_lengths: List[int], use_numpy: bool = False) -> "BitCodec":
+    def matrix(shape: List[int] | Tuple[int, int], use_numpy: bool = False) -> "BitCodec":
         """
         Initialize the bit codec with a matrix of chromosomes.
         Args:
-            chromosome_lengths: A list of integers specifying the lengths of each chromosome.
+            shape: A list of integers specifying the shape of the matrix.
         Returns:
             A new BitCodec instance with matrix configuration.
 
@@ -51,10 +51,21 @@ class BitCodec(CodecBase):
         >>> rd.BitCodec.matrix(chromosome_lengths=[5, 5])
         BitCodec(...)
         """
-        return BitCodec(PyBitCodec.matrix(chromosome_lengths=chromosome_lengths, use_numpy=use_numpy))
+        if isinstance(shape, tuple):
+            if len(shape) != 2:
+                raise ValueError("Shape must be a tuple of (rows, cols).")
+            rows, cols = shape
+            if rows < 1 or cols < 1:
+                raise ValueError("Rows and columns must be at least 1.")
+            shape = [cols for _ in range(rows)]
+        elif isinstance(shape, list):
+            if not all(isinstance(x, int) and x > 0 for x in shape):
+                raise ValueError("Shape must be a list of positive integers.")
+
+        return BitCodec(PyBitCodec.matrix(chromosome_lengths=shape, use_numpy=use_numpy))
 
     @staticmethod
-    def vector(length: int, use_numpy: bool = False) -> "BitCodec":
+    def vector(length: int = 8, use_numpy: bool = False) -> "BitCodec":
         """
         Initialize the bit codec with a single chromosome of specified length.
         Args:
@@ -67,4 +78,4 @@ class BitCodec(CodecBase):
         >>> rd.BitCodec.vector(length=5)
         BitCodec(...)
         """
-        return BitCodec(PyBitCodec.vector(length=length, use_numpy=use_numpy))
+        return BitCodec(PyBitCodec.vector(length, use_numpy=use_numpy))

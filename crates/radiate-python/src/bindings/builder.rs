@@ -20,8 +20,8 @@ macro_rules! apply_to_builder {
             EngineBuilderHandle::Char(b) => Ok(EngineBuilderHandle::Char(b.$method($($args),*))),
             EngineBuilderHandle::Bit(b) => Ok(EngineBuilderHandle::Bit(b.$method($($args),*))),
             EngineBuilderHandle::Permutation(b) => Ok(EngineBuilderHandle::Permutation(b.$method($($args),*))),
-            EngineBuilderHandle::GraphRegression(b) => Ok(EngineBuilderHandle::GraphRegression(b.$method($($args),*))),
-            EngineBuilderHandle::TreeRegression(b) => Ok(EngineBuilderHandle::TreeRegression(b.$method($($args),*))),
+            EngineBuilderHandle::Graph(b) => Ok(EngineBuilderHandle::Graph(b.$method($($args),*))),
+            EngineBuilderHandle::Tree(b) => Ok(EngineBuilderHandle::Tree(b.$method($($args),*))),
             EngineBuilderHandle::Empty => Err(PyTypeError::new_err(
                 "EngineBuilder must have a problem and codec before processing other inputs",
             )),
@@ -90,12 +90,8 @@ impl PyEngineBuilder {
             EngineBuilderHandle::Char(builder) => EngineHandle::Char(builder.build()),
             EngineBuilderHandle::Bit(builder) => EngineHandle::Bit(builder.build()),
             EngineBuilderHandle::Permutation(builder) => EngineHandle::Permutation(builder.build()),
-            EngineBuilderHandle::GraphRegression(builder) => {
-                EngineHandle::GraphRegression(builder.build())
-            }
-            EngineBuilderHandle::TreeRegression(builder) => {
-                EngineHandle::TreeRegression(builder.build())
-            }
+            EngineBuilderHandle::Graph(builder) => EngineHandle::Graph(builder.build()),
+            EngineBuilderHandle::Tree(builder) => EngineHandle::Tree(builder.build()),
             _ => {
                 return Err(PyTypeError::new_err(
                     "Unsupported builder type for engine creation",
@@ -309,35 +305,29 @@ impl PyEngineBuilder {
                     )),
                 }
             }
-            EngineBuilderHandle::GraphRegression(builder) => {
+            EngineBuilderHandle::Graph(builder) => {
                 let selector: Box<dyn Select<GraphChromosome<Op<f32>>>> = input.convert();
                 match input.input_type() {
-                    PyEngineInputType::SurvivorSelector => {
-                        Ok(EngineBuilderHandle::GraphRegression(
-                            builder.boxed_survivor_selector(selector),
-                        ))
-                    }
-                    PyEngineInputType::OffspringSelector => {
-                        Ok(EngineBuilderHandle::GraphRegression(
-                            builder.boxed_offspring_selector(selector),
-                        ))
-                    }
+                    PyEngineInputType::SurvivorSelector => Ok(EngineBuilderHandle::Graph(
+                        builder.boxed_survivor_selector(selector),
+                    )),
+                    PyEngineInputType::OffspringSelector => Ok(EngineBuilderHandle::Graph(
+                        builder.boxed_offspring_selector(selector),
+                    )),
                     _ => Err(PyTypeError::new_err(
                         "process_selector only implemented for Survivor and Offspring selectors",
                     )),
                 }
             }
-            EngineBuilderHandle::TreeRegression(builder) => {
+            EngineBuilderHandle::Tree(builder) => {
                 let selector: Box<dyn Select<TreeChromosome<Op<f32>>>> = input.convert();
                 match input.input_type() {
-                    PyEngineInputType::SurvivorSelector => Ok(EngineBuilderHandle::TreeRegression(
+                    PyEngineInputType::SurvivorSelector => Ok(EngineBuilderHandle::Tree(
                         builder.boxed_survivor_selector(selector),
                     )),
-                    PyEngineInputType::OffspringSelector => {
-                        Ok(EngineBuilderHandle::TreeRegression(
-                            builder.boxed_offspring_selector(selector),
-                        ))
-                    }
+                    PyEngineInputType::OffspringSelector => Ok(EngineBuilderHandle::Tree(
+                        builder.boxed_offspring_selector(selector),
+                    )),
                     _ => Err(PyTypeError::new_err(
                         "process_selector only implemented for Survivor and Offspring selectors",
                     )),
@@ -371,13 +361,13 @@ impl PyEngineBuilder {
                 let alters: Vec<Box<dyn Alter<BitChromosome>>> = inputs.convert();
                 Ok(EngineBuilderHandle::Bit(builder.alter(alters)))
             }
-            EngineBuilderHandle::GraphRegression(builder) => {
+            EngineBuilderHandle::Graph(builder) => {
                 let alters: Vec<Box<dyn Alter<GraphChromosome<Op<f32>>>>> = inputs.convert();
-                Ok(EngineBuilderHandle::GraphRegression(builder.alter(alters)))
+                Ok(EngineBuilderHandle::Graph(builder.alter(alters)))
             }
-            EngineBuilderHandle::TreeRegression(builder) => {
+            EngineBuilderHandle::Tree(builder) => {
                 let alters: Vec<Box<dyn Alter<TreeChromosome<Op<f32>>>>> = inputs.convert();
-                Ok(EngineBuilderHandle::TreeRegression(builder.alter(alters)))
+                Ok(EngineBuilderHandle::Tree(builder.alter(alters)))
             }
             EngineBuilderHandle::Permutation(builder) => {
                 let alters: Vec<Box<dyn Alter<PermutationChromosome<usize>>>> = inputs.convert();
@@ -413,9 +403,9 @@ impl PyEngineBuilder {
                     let diversity: Option<Box<dyn Diversity<BitChromosome>>> = input.convert();
                     Ok(EngineBuilderHandle::Bit(b.boxed_diversity(diversity)))
                 }
-                EngineBuilderHandle::GraphRegression(b) => {
+                EngineBuilderHandle::Graph(b) => {
                     let diversity: Option<Box<dyn Diversity<GraphChromosome<Op<f32>>>>> = input.convert();
-                    Ok(EngineBuilderHandle::GraphRegression(b.boxed_diversity(diversity)))
+                    Ok(EngineBuilderHandle::Graph(b.boxed_diversity(diversity)))
                 }
                 EngineBuilderHandle::Permutation(b) => {
                     let diversity: Option<Box<dyn Diversity<PermutationChromosome<usize>>>> = input.convert();
@@ -494,7 +484,6 @@ impl PyEngineBuilder {
 
     fn create_builder<'py>(&self, py: Python<'py>) -> PyResult<EngineBuilderHandle> {
         let problem = self.problem.bind(py).extract::<PyProblemBuilder>()?;
-
         let codec = self.codec.bind(py);
 
         let executor = self
@@ -585,7 +574,7 @@ impl PyEngineBuilder {
                             .with_decoder(move |_, genotype| codec.codec.decode(genotype));
 
                         let graph_problem = PyProblem::new(fitness_fn, py_codec);
-                        Ok(EngineBuilderHandle::GraphRegression(
+                        Ok(EngineBuilderHandle::Graph(
                             GeneticEngine::builder()
                                 .problem(graph_problem.clone())
                                 .executor(executor.clone())
@@ -606,7 +595,7 @@ impl PyEngineBuilder {
                             .with_decoder(move |_, genotype| codec.codec.decode(genotype));
 
                         let tree_problem = PyProblem::new(fitness_fn, py_codec);
-                        Ok(EngineBuilderHandle::TreeRegression(
+                        Ok(EngineBuilderHandle::Tree(
                             GeneticEngine::builder()
                                 .problem(tree_problem.clone())
                                 .executor(executor.clone())
@@ -663,6 +652,7 @@ impl PyEngineBuilder {
             let loss = match loss_str.as_str() {
                 "MSE" => Loss::MSE,
                 "MAE" => Loss::MAE,
+                "CROSS_ENTROPY" => Loss::CrossEntropy,
                 _ => {
                     return Err(PyErr::new::<PyTypeError, _>(
                         "Unsupported loss function for regression",
@@ -677,7 +667,7 @@ impl PyEngineBuilder {
                     if let Ok(codec) = codec.extract::<PyGraphCodec>() {
                         let regression = Regression::new(data_set, loss);
 
-                        Ok(EngineBuilderHandle::GraphRegression(
+                        Ok(EngineBuilderHandle::Graph(
                             GeneticEngine::builder()
                                 .codec(codec.codec.clone())
                                 .fitness_fn(regression)
@@ -694,7 +684,7 @@ impl PyEngineBuilder {
                     if let Ok(codec) = codec.extract::<PyTreeCodec>() {
                         let regression = Regression::new(data_set, loss);
 
-                        Ok(EngineBuilderHandle::TreeRegression(
+                        Ok(EngineBuilderHandle::Tree(
                             GeneticEngine::builder()
                                 .codec(codec.codec.clone())
                                 .fitness_fn(regression)

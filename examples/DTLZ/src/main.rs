@@ -29,7 +29,6 @@ fn main() {
         .take(1000)
         .inspect(|ctx| {
             println!("[ {:?} ]", ctx.index());
-            println!("{:?}", ctx);
         })
         // .last()
         // .unwrap();

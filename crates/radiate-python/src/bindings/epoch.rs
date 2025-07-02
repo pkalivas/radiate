@@ -4,7 +4,7 @@ use crate::ObjectValue;
 use crate::PyPopulation;
 use crate::bindings::codec::PyGraph;
 use crate::bindings::codec::PyTree;
-use crate::conversion::Wrap;
+use crate::object::Wrap;
 use pyo3::IntoPyObject;
 use pyo3::types::PyAnyMethods;
 use pyo3::types::PyDict;
@@ -34,8 +34,8 @@ impl PyGeneration {
             EpochHandle::Float(epoch) => epoch.index(),
             EpochHandle::Char(epoch) => epoch.index(),
             EpochHandle::Bit(epoch) => epoch.index(),
-            EpochHandle::GraphRegression(epoch) => epoch.index(),
-            EpochHandle::TreeRegression(epoch) => epoch.index(),
+            EpochHandle::Graph(epoch) => epoch.index(),
+            EpochHandle::Tree(epoch) => epoch.index(),
             EpochHandle::Permutation(epoch) => epoch.index(),
         }
     }
@@ -46,8 +46,8 @@ impl PyGeneration {
             EpochHandle::Float(epoch) => Some(epoch.score()),
             EpochHandle::Char(epoch) => Some(epoch.score()),
             EpochHandle::Bit(epoch) => Some(epoch.score()),
-            EpochHandle::GraphRegression(epoch) => Some(epoch.score()),
-            EpochHandle::TreeRegression(epoch) => Some(epoch.score()),
+            EpochHandle::Graph(epoch) => Some(epoch.score()),
+            EpochHandle::Tree(epoch) => Some(epoch.score()),
             EpochHandle::Permutation(epoch) => Some(epoch.score()),
         };
 
@@ -67,12 +67,12 @@ impl PyGeneration {
             EpochHandle::Char(epoch) => get_value(py, epoch),
             EpochHandle::Bit(epoch) => get_value(py, epoch),
             EpochHandle::Permutation(epoch) => get_value(py, epoch),
-            EpochHandle::GraphRegression(epoch) => PyGraph {
+            EpochHandle::Graph(epoch) => PyGraph {
                 inner: epoch.value().clone(),
                 eval_cache: None,
             }
             .into_bound_py_any(py),
-            EpochHandle::TreeRegression(epoch) => PyTree {
+            EpochHandle::Tree(epoch) => PyTree {
                 inner: epoch.value().clone(),
             }
             .into_bound_py_any(py),
@@ -86,8 +86,8 @@ impl PyGeneration {
             EpochHandle::Char(epoch) => epoch.metrics(),
             EpochHandle::Bit(epoch) => epoch.metrics(),
             EpochHandle::Permutation(epoch) => epoch.metrics(),
-            EpochHandle::GraphRegression(epoch) => epoch.metrics(),
-            EpochHandle::TreeRegression(epoch) => epoch.metrics(),
+            EpochHandle::Graph(epoch) => epoch.metrics(),
+            EpochHandle::Tree(epoch) => epoch.metrics(),
         };
 
         Wrap(metrics)
@@ -104,8 +104,8 @@ impl PyGeneration {
             EpochHandle::Char(epoch) => PyPopulation::from(epoch.population()),
             EpochHandle::Bit(epoch) => PyPopulation::from(epoch.population()),
             EpochHandle::Permutation(epoch) => PyPopulation::from(epoch.population()),
-            EpochHandle::GraphRegression(epoch) => PyPopulation::from(epoch.population()),
-            EpochHandle::TreeRegression(epoch) => PyPopulation::from(epoch.population()),
+            EpochHandle::Graph(epoch) => PyPopulation::from(epoch.population()),
+            EpochHandle::Tree(epoch) => PyPopulation::from(epoch.population()),
         }
     }
 
@@ -120,8 +120,8 @@ impl PyGeneration {
             EpochHandle::Char(epoch) => (epoch.objective(), epoch.index()),
             EpochHandle::Bit(epoch) => (epoch.objective(), epoch.index()),
             EpochHandle::Permutation(epoch) => (epoch.objective(), epoch.index()),
-            EpochHandle::GraphRegression(epoch) => (epoch.objective(), epoch.index()),
-            EpochHandle::TreeRegression(epoch) => (epoch.objective(), epoch.index()),
+            EpochHandle::Graph(epoch) => (epoch.objective(), epoch.index()),
+            EpochHandle::Tree(epoch) => (epoch.objective(), epoch.index()),
         };
 
         Ok(format!(

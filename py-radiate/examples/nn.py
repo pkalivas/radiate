@@ -20,9 +20,6 @@
 # import radiate as rd
 
 
-
-
-
 # class NeuralNetwork:
 #     """Simple neural network for testing NumPy performance"""
     

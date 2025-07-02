@@ -1,4 +1,4 @@
-use crate::conversion::Wrap;
+use crate::object::Wrap;
 use pyo3::{Bound, FromPyObject, PyAny, PyResult, types::PyAnyMethods};
 use radiate::Op;
 

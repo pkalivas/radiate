@@ -7,7 +7,7 @@ from radiate.radiate import PyEngine, PyEngineBuilder
 from .inputs.input import EngineInput, EngineInputType
 from .inputs.selector import SelectorBase
 from .inputs.alterer import AlterBase
-from .inputs.diversity import DiversityBase
+from .inputs.distance import DistanceBase
 from .inputs.executor import Executor
 from .inputs.problem import CallableProblem
 
@@ -102,7 +102,7 @@ class EngineBuilder:
                 )
             )
 
-    def set_diversity(self, diversity: DiversityBase, species_threshold: float):
+    def set_diversity(self, diversity: DistanceBase, species_threshold: float):
         if diversity is None:
             return
 

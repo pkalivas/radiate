@@ -36,6 +36,16 @@ class Phenotype:
         :return: Length of the phenotype.
         """
         return len(self.__inner.genotype.chromosomes)
+    
+    def __eq__(self, other: Phenotype) -> bool:
+        """
+        Checks if two Phenotype instances are equal.
+        :param other: Another Phenotype instance.
+        :return: True if both phenotypes are equal, False otherwise.
+        """
+        if not isinstance(other, Phenotype):
+            return False
+        return self.__inner == other.py_phenotype()
 
     def py_phenotype(self) -> PyPhenotype:
         """

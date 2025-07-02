@@ -17,6 +17,7 @@ from .alterer import (
     GraphMutator,
     OperationMutator,
     GraphCrossover,
+    InversionMutator
 )
 
 from .selector import (
@@ -32,7 +33,7 @@ from .selector import (
     SteadyStateSelector,
 )
 
-from .diversity import HammingDistance, EuclideanDistance, NeatDistance, CosineDistance
+from .distance import HammingDistance, EuclideanDistance, NeatDistance, CosineDistance
 
 from .limit import SecondsLimit, GenerationsLimit, ScoreLimit
 
@@ -52,6 +53,7 @@ __all__ = [
     "PartiallyMappedCrossover",
     "GaussianMutator",
     "ScrambleMutator",
+    "InversionMutator",
     "SwapMutator",
     "GraphMutator",
     "OperationMutator",

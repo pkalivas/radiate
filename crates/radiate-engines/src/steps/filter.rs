@@ -1,6 +1,6 @@
+use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, EngineStep, Genotype, MetricSet, Phenotype, ReplacementStrategy, Valid,
-    metric_names,
+    Chromosome, Ecosystem, Genotype, MetricSet, Phenotype, ReplacementStrategy, Valid, metric_names,
 };
 use std::sync::Arc;
 

@@ -10,7 +10,7 @@ from .codec import FloatCodec, IntCodec, CharCodec, BitCodec, GraphCodec, CodecB
 from .inputs.input import EngineInput, EngineInputType
 from .inputs.selector import SelectorBase, TournamentSelector, RouletteSelector
 from .inputs.alterer import AlterBase, UniformCrossover, UniformMutator
-from .inputs.diversity import DiversityBase
+from .inputs.distance import DistanceBase
 from .inputs.executor import Executor
 from .inputs.problem import ProblemBase
 from .inputs.limit import LimitBase
@@ -37,7 +37,7 @@ class GeneticEngine:
         offspring_selector: SelectorBase | None = None,
         survivor_selector: SelectorBase | None = None,
         alters: AlterBase | List[AlterBase] | None = None,
-        diversity: DiversityBase | None = None,
+        diversity: DistanceBase | None = None,
         population_size: int = 100,
         offspring_fraction: float = 0.8,
         max_phenotype_age: int = 20,
@@ -220,7 +220,7 @@ class GeneticEngine:
         lims = [lim.limit for lim in (limits if isinstance(limits, list) else [limits])]
         self.builder.set_limits(lims)
 
-    def diversity(self, diversity: DiversityBase, species_threshold: float = 1.5):
+    def diversity(self, diversity: DistanceBase, species_threshold: float = 1.5):
         """Set the diversity.
         Args:
             diversity (DiversityBase): The diversity strategy to use.

@@ -1,9 +1,9 @@
+use crate::Context;
 use crate::builder::GeneticEngineBuilder;
 use crate::iter::EngineIterator;
 use crate::pipeline::Pipeline;
 use crate::{Chromosome, EngineEvent};
 use crate::{EventBus, Generation};
-use radiate_core::engine::Context;
 use radiate_core::{Engine, metric_names};
 
 /// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.

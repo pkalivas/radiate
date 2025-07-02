@@ -15,6 +15,5 @@ __all__ = [
     "GraphCodec",
     "TreeCodec",
     "CodecBase",
-    "TreeCodec",
     "PermutationCodec",
 ]

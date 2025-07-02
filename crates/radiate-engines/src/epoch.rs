@@ -1,11 +1,47 @@
 use crate::Chromosome;
-use radiate_core::engine::Context;
 use radiate_core::objectives::Scored;
 use radiate_core::{
-    Ecosystem, Front, MetricSet, Objective, Phenotype, Population, Score, Species, metric_names,
+    Ecosystem, Front, MetricSet, Objective, Phenotype, Population, Problem, Score, Species,
+    metric_names,
 };
 use std::fmt::Debug;
+use std::sync::{Arc, RwLock};
 use std::time::Duration;
+
+pub struct Context<C, T>
+where
+    C: Chromosome,
+{
+    pub ecosystem: Ecosystem<C>,
+    pub best: T,
+    pub index: usize,
+    pub metrics: MetricSet,
+    pub epoch_metrics: MetricSet,
+    pub score: Option<Score>,
+    pub front: Arc<RwLock<Front<Phenotype<C>>>>,
+    pub objective: Objective,
+    pub problem: Arc<dyn Problem<C, T>>,
+}
+
+impl<C, T> Clone for Context<C, T>
+where
+    C: Chromosome + Clone,
+    T: Clone,
+{
+    fn clone(&self) -> Self {
+        Context {
+            ecosystem: self.ecosystem.clone(),
+            best: self.best.clone(),
+            index: self.index,
+            metrics: self.metrics.clone(),
+            epoch_metrics: self.epoch_metrics.clone(),
+            score: self.score.clone(),
+            front: self.front.clone(),
+            objective: self.objective.clone(),
+            problem: Arc::clone(&self.problem),
+        }
+    }
+}
 
 pub struct Generation<C, T>
 where
@@ -69,31 +105,6 @@ impl<C: Chromosome, T> Generation<C, T> {
         self.time().as_secs_f64()
     }
 }
-
-// impl<C: Chromosome, T> Epoch for Generation<C, T> {
-//     type Value = T;
-//     type Chromosome = C;
-
-//     fn ecosystem(&self) -> &Ecosystem<C> {
-//         &self.ecosystem
-//     }
-
-//     fn value(&self) -> &Self::Value {
-//         &self.value
-//     }
-
-//     fn index(&self) -> usize {
-//         self.index
-//     }
-
-//     fn metrics(&self) -> &MetricSet {
-//         &self.metrics
-//     }
-
-//     fn objective(&self) -> &Objective {
-//         &self.objective
-//     }
-// }
 
 impl<C: Chromosome, T> Scored for Generation<C, T> {
     fn score(&self) -> Option<&Score> {

@@ -19,6 +19,8 @@ members = [
     "examples/graphs/simple-memory-graph",
 
     "examples/trees/regression-tree",
+    "examples/trees/iris-tree",
+
     "examples/image-evo",
 ]
 default-members = [
@@ -42,6 +44,7 @@ exclude = [
 
     "examples/trees/regression-tree",
     "examples/trees/iris-tree",
+    
     "examples/image-evo",
 ]
 

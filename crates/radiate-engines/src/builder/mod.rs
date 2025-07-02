@@ -17,16 +17,15 @@ use crate::genome::population::Population;
 use crate::objectives::Score;
 use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
-use crate::steps::{AuditStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
+use crate::steps::{AuditStep, EngineStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
 use crate::{
-    Alter, Crossover, EncodeReplace, EngineEvent, EngineProblem, EngineStep, EventBus,
-    EventHandler, Front, Mutate, Problem, ReplacementStrategy, RouletteSelector, Select,
-    TournamentSelector, pareto,
+    Alter, Context, Crossover, EncodeReplace, EngineEvent, EngineProblem, EventBus, EventHandler,
+    Front, Mutate, Problem, ReplacementStrategy, RouletteSelector, Select, TournamentSelector,
+    pareto,
 };
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use core::panic;
 use radiate_alters::{UniformCrossover, UniformMutator};
-use radiate_core::engine::Context;
 use radiate_core::{
     Diversity, Ecosystem, Evaluator, Executor, FitnessEvaluator, Genotype, MetricSet,
 };

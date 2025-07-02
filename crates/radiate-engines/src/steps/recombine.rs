@@ -1,6 +1,6 @@
+use crate::steps::EngineStep;
 use radiate_core::{
-    Alter, Chromosome, Ecosystem, MetricSet, Objective, Optimize, Population, Select,
-    engine::EngineStep, labels,
+    Alter, Chromosome, Ecosystem, MetricSet, Objective, Optimize, Population, Select, labels,
 };
 use std::sync::Arc;
 
