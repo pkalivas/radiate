@@ -198,10 +198,9 @@ class TestScalabilityPerformance:
 
         # Performance should scale reasonably (not exponentially)
         for i in range(1, len(execution_times)):
-            # Each increase in length should not increase time by more than 10x
             time_ratio = execution_times[i] / execution_times[i - 1]
             length_ratio = lengths[i] / lengths[i - 1]
-            assert time_ratio < length_ratio * 2  # Allow some overhead
+            assert time_ratio < length_ratio * 2
 
 
 class TestRegressionPerformance:
@@ -215,20 +214,18 @@ class TestRegressionPerformance:
         def fitness_func(x: List[float]) -> float:
             return sum(xi**2 for xi in x)
 
-        engine = rd.GeneticEngine(
-            codec=rd.FloatCodec.vector(length=20, value_range=(-1.0, 1.0)),
-            fitness_func=fitness_func,
-            objectives="min",
-            population_size=200,
-            offspring_selector=rd.TournamentSelector(3),
-            survivor_selector=rd.EliteSelector(),
-            alters=[rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1)],
-        )
+        codec = rd.FloatCodec.vector(20, value_range=(-1.0, 1.0))
+        engine = rd.GeneticEngine(codec, fitness_func)
+
+        engine.minimizing()
+        engine.population_size(200)
+        engine.offspring_selector(rd.TournamentSelector(3))
+        engine.survivor_selector(rd.EliteSelector())
+        engine.alters([rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1)])
 
         result, execution_time = performance_benchmark.time_function(
-            engine.run, [rd.GenerationsLimit(30)]
+            engine.run, [rd.GenerationsLimit(3000)]
         )
 
-        # Performance regression thresholds
-        assert execution_time < 15.0  # Should complete within 15 seconds
-        assert result.score()[0] < 0.1  # Should find good solution
+        assert execution_time < 15.0
+        assert result.score()[0] < 0.1

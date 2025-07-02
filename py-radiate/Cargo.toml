@@ -3,6 +3,13 @@ name = "py-radiate"
 version = "0.0.3"
 edition = "2024"
 readme = "README.md"
+authors = ["pkalivas <peterkalivas@gmail.com>"]
+description = "Python bindings for the Radiate genetic algorithm library."
+repository = "https://github.com/pkalivas/radiate"
+categories = ["science", "simulation", "algorithms"]
+keywords = ["simulation", "genetic", "learning", "artificial", "evolution", "python"]
+license = "MIT"
+homepage = "https://pkalivas.github.io/radiate/"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
