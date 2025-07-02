@@ -34,11 +34,13 @@ jobs:
           working-directory: py-radiate
 
       - name: Install wheel and test dependencies
+        working-directory: py-radiate
         run: |
           pip install radiate --find-links py-radiate/dist --force-reinstall
           pip install pytest
+          pip install -r requirements-dev.txt
 
       - name: Run tests
         working-directory: py-radiate
         run: |
-          pytest tests --import-mode=importlib
+          pytest tests --import-mode=importlib --all
