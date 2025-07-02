@@ -19,8 +19,6 @@ macro_rules! apply_to_builder {
             EngineBuilderHandle::Float(b) => Ok(EngineBuilderHandle::Float(b.$method($($args),*))),
             EngineBuilderHandle::Char(b) => Ok(EngineBuilderHandle::Char(b.$method($($args),*))),
             EngineBuilderHandle::Bit(b) => Ok(EngineBuilderHandle::Bit(b.$method($($args),*))),
-            EngineBuilderHandle::IntMulti(b) => Ok(EngineBuilderHandle::IntMulti(b.$method($($args),*))),
-            EngineBuilderHandle::FloatMulti(b) => Ok(EngineBuilderHandle::FloatMulti(b.$method($($args),*))),
             EngineBuilderHandle::GraphRegression(b) => Ok(EngineBuilderHandle::GraphRegression(b.$method($($args),*))),
             EngineBuilderHandle::TreeRegression(b) => Ok(EngineBuilderHandle::TreeRegression(b.$method($($args),*))),
             EngineBuilderHandle::Empty => Err(PyTypeError::new_err(
@@ -84,15 +82,11 @@ impl PyEngineBuilder {
 
         inner = self.process_subscriber(inner)?;
 
-        // panic!("EngineBuilder is not yet implemented for PyEngineBuilder");
-
         let engine_handle = match inner {
             EngineBuilderHandle::Int(builder) => EngineHandle::Int(builder.build()),
             EngineBuilderHandle::Float(builder) => EngineHandle::Float(builder.build()),
             EngineBuilderHandle::Char(builder) => EngineHandle::Char(builder.build()),
             EngineBuilderHandle::Bit(builder) => EngineHandle::Bit(builder.build()),
-            EngineBuilderHandle::IntMulti(builder) => EngineHandle::IntMulti(builder.build()),
-            EngineBuilderHandle::FloatMulti(builder) => EngineHandle::FloatMulti(builder.build()),
             EngineBuilderHandle::GraphRegression(builder) => {
                 EngineHandle::GraphRegression(builder.build())
             }
@@ -298,34 +292,6 @@ impl PyEngineBuilder {
                     )),
                 }
             }
-            EngineBuilderHandle::IntMulti(builder) => {
-                let selector: Box<dyn Select<IntChromosome<i32>>> = input.convert();
-                match input.input_type() {
-                    PyEngineInputType::SurvivorSelector => Ok(EngineBuilderHandle::IntMulti(
-                        builder.boxed_survivor_selector(selector),
-                    )),
-                    PyEngineInputType::OffspringSelector => Ok(EngineBuilderHandle::IntMulti(
-                        builder.boxed_offspring_selector(selector),
-                    )),
-                    _ => Err(PyTypeError::new_err(
-                        "process_selector only implemented for Survivor and Offspring selectors",
-                    )),
-                }
-            }
-            EngineBuilderHandle::FloatMulti(builder) => {
-                let selector: Box<dyn Select<FloatChromosome>> = input.convert();
-                match input.input_type() {
-                    PyEngineInputType::SurvivorSelector => Ok(EngineBuilderHandle::FloatMulti(
-                        builder.boxed_survivor_selector(selector),
-                    )),
-                    PyEngineInputType::OffspringSelector => Ok(EngineBuilderHandle::FloatMulti(
-                        builder.boxed_offspring_selector(selector),
-                    )),
-                    _ => Err(PyTypeError::new_err(
-                        "process_selector only implemented for Survivor and Offspring selectors",
-                    )),
-                }
-            }
             EngineBuilderHandle::GraphRegression(builder) => {
                 let selector: Box<dyn Select<GraphChromosome<Op<f32>>>> = input.convert();
                 match input.input_type() {
@@ -388,14 +354,6 @@ impl PyEngineBuilder {
                 let alters: Vec<Box<dyn Alter<BitChromosome>>> = inputs.convert();
                 Ok(EngineBuilderHandle::Bit(builder.alter(alters)))
             }
-            EngineBuilderHandle::IntMulti(builder) => {
-                let alters: Vec<Box<dyn Alter<IntChromosome<i32>>>> = inputs.convert();
-                Ok(EngineBuilderHandle::IntMulti(builder.alter(alters)))
-            }
-            EngineBuilderHandle::FloatMulti(builder) => {
-                let alters: Vec<Box<dyn Alter<FloatChromosome>>> = inputs.convert();
-                Ok(EngineBuilderHandle::FloatMulti(builder.alter(alters)))
-            }
             EngineBuilderHandle::GraphRegression(builder) => {
                 let alters: Vec<Box<dyn Alter<GraphChromosome<Op<f32>>>>> = inputs.convert();
                 Ok(EngineBuilderHandle::GraphRegression(builder.alter(alters)))
@@ -433,14 +391,6 @@ impl PyEngineBuilder {
                 EngineBuilderHandle::Bit(b) => {
                     let diversity: Option<Box<dyn Diversity<BitChromosome>>> = input.convert();
                     Ok(EngineBuilderHandle::Bit(b.boxed_diversity(diversity)))
-                }
-                EngineBuilderHandle::IntMulti(b) => {
-                    let diversity: Option<Box<dyn Diversity<IntChromosome<i32>>>> = input.convert();
-                    Ok(EngineBuilderHandle::IntMulti(b.boxed_diversity(diversity)))
-                }
-                EngineBuilderHandle::FloatMulti(b) => {
-                    let diversity: Option<Box<dyn Diversity<FloatChromosome>>> = input.convert();
-                    Ok(EngineBuilderHandle::FloatMulti(b.boxed_diversity(diversity)))
                 }
                 EngineBuilderHandle::GraphRegression(b) => {
                     let diversity: Option<Box<dyn Diversity<GraphChromosome<Op<f32>>>>> = input.convert();
@@ -487,23 +437,7 @@ impl PyEngineBuilder {
                     Optimize::Minimize => apply_to_builder!(builder, minimizing()),
                     Optimize::Maximize => apply_to_builder!(builder, maximizing()),
                 },
-                Objective::Multi(opts) => match builder {
-                    EngineBuilderHandle::Int(inner) => {
-                        Ok(EngineBuilderHandle::IntMulti(inner.multi_objective(opts)))
-                    }
-                    EngineBuilderHandle::Float(inner) => {
-                        Ok(EngineBuilderHandle::FloatMulti(inner.multi_objective(opts)))
-                    }
-                    EngineBuilderHandle::IntMulti(inner) => {
-                        Ok(EngineBuilderHandle::IntMulti(inner.multi_objective(opts)))
-                    }
-                    EngineBuilderHandle::FloatMulti(inner) => {
-                        Ok(EngineBuilderHandle::FloatMulti(inner.multi_objective(opts)))
-                    }
-                    _ => Err(PyTypeError::new_err(
-                        "Multi-objective only implemented for Int and Float gene types",
-                    )),
-                },
+                Objective::Multi(opts) => apply_to_builder!(builder, multi_objective(opts)),
             }
         })
     }
@@ -514,53 +448,22 @@ impl PyEngineBuilder {
         inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
         self.process_single_value(builder, inputs, |builder, input| {
-            let min = input
-                .get_usize("min")
-                .unwrap_or(800);
+            let min = input.get_usize("min").unwrap_or(800);
+            let max = input.get_usize("max").unwrap_or(1000);
 
-            let max = input
-                .get_usize("max")
-                .unwrap_or(1000);
-
-            println!("Processing front range with min: {}, max: {}", min, max);
-
-            match builder {
-                EngineBuilderHandle::Int(b) => {
-                    Ok(EngineBuilderHandle::IntMulti(b.front_size(min..max)))
-                }
-                EngineBuilderHandle::Float(b) => {
-                    Ok(EngineBuilderHandle::FloatMulti(b.front_size(min..max)))
-                }
-                EngineBuilderHandle::Char(_) => {
-                    Err(PyTypeError::new_err(
-                        "process_front_range not implemented for Char gene type",
-                    ))
-                }
-                EngineBuilderHandle::Bit(_) => {
-                    Err(PyTypeError::new_err(
-                        "process_front_range not implemented for Bit gene type",
-                    ))
-                }
-                EngineBuilderHandle::IntMulti(b) => {
-                    Ok(EngineBuilderHandle::IntMulti(b.front_size(min..max)))
-                }
-                EngineBuilderHandle::FloatMulti(b) => {
-                    Ok(EngineBuilderHandle::FloatMulti(b.front_size(min..max)))
-                }
-                EngineBuilderHandle::GraphRegression(_) => {
-                    Err(PyTypeError::new_err(
-                        "process_front_range not implemented for Graph gene type",
-                    ))
-                }
-                EngineBuilderHandle::TreeRegression(_) => {
-                    Err(PyTypeError::new_err(
-                        "process_front_range not implemented for Tree gene type",
-                    ))
-                }
-                _ => Err(PyTypeError::new_err(
-                    "process_front_range only implemented for single and multi objective Int, Float, Char, and Bit gene types",
-                )),
+            if min > max {
+                return Err(PyTypeError::new_err(
+                    "Minimum size cannot be greater than maximum size",
+                ));
             }
+
+            if min == 0 || max == 0 {
+                return Err(PyTypeError::new_err(
+                    "Minimum and maximum size must be greater than zero",
+                ));
+            }
+
+            apply_to_builder!(builder, front_size(min..max))
         })
     }
 

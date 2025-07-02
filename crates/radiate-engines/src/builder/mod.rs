@@ -20,66 +20,19 @@ use crate::pipeline::Pipeline;
 use crate::steps::{AuditStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
 use crate::{
     Alter, Crossover, EncodeReplace, EngineEvent, EngineProblem, EngineStep, EventBus,
-    EventHandler, Front, Generation, Mutate, Problem, ReplacementStrategy, RouletteSelector,
-    Select, TournamentSelector, pareto,
+    EventHandler, Front, Mutate, Problem, ReplacementStrategy, RouletteSelector, Select,
+    TournamentSelector, pareto,
 };
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use core::panic;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::engine::Context;
-use radiate_core::problem::FitnessFunction;
 use radiate_core::{
-    Diversity, Ecosystem, Engine, Epoch, Evaluator, Executor, FitnessEvaluator, Genotype, MetricSet,
+    Diversity, Ecosystem, Evaluator, Executor, FitnessEvaluator, Genotype, MetricSet,
 };
 use radiate_error::RadiateError;
 use std::cmp::Ordering;
 use std::sync::{Arc, Mutex, RwLock};
-
-pub trait EngineBuilder<C, T, P, E>
-where
-    C: Chromosome + Clone + 'static,
-    T: Clone + Send + Sync + 'static,
-    P: Epoch,
-    E: Engine<P>,
-{
-    fn builder(self) -> E;
-}
-
-// impl<C, T> EngineBuilder<C, T, Generation<C, T>, GeneticEngine<C, T>>
-//     for GeneticEngineBuilder<C, T, Generation<C, T>>
-// where
-//     C: Chromosome + Clone + PartialEq + 'static,
-//     T: Clone + Send + Sync + 'static,
-// {
-//     fn builder(self) -> GeneticEngine<C, T> {
-//         GeneticEngineBuilder::<C, T, Generation<C, T>>::default().build()
-//     }
-// }
-
-// impl<C, T> EngineBuilder<C, T, ()> for GeneticEngine<C, T>
-// where
-//     C: Chromosome + Clone + PartialEq + 'static,
-//     T: Clone + Send + Sync,
-// {
-//     fn builder2(_: ()) -> GeneticEngineBuilder<C, T, Generation<C, T>> {
-//         GeneticEngineBuilder::default()
-//     }
-// }
-
-// impl<C, T, D, F> EngineBuilder<C, T, (D, F)> for GeneticEngine<C, T>
-// where
-//     C: Chromosome + Clone + PartialEq + 'static,
-//     T: Clone + Send + Sync,
-//     D: Codec<C, T> + 'static,
-//     F: FitnessFunction<T> + 'static,
-// {
-//     fn builder2(input: (D, F)) -> GeneticEngineBuilder<C, T, Generation<C, T>> {
-//         let (codec, fitness) = input;
-//         GeneticEngineBuilder::default()
-//             .codec(codec)
-//             .fitness_fn(fitness)
-//     }
-// }
 
 #[derive(Clone)]
 pub struct EngineParams<C, T>
@@ -116,21 +69,19 @@ where
 /// - `E`: The type of epoch used in the genetic engine, which must implement the `Epoch` trait.
 ///
 #[derive(Clone)]
-pub struct GeneticEngineBuilder<C, T, E>
+pub struct GeneticEngineBuilder<C, T>
 where
     C: Chromosome + Clone + 'static,
     T: Clone + 'static,
 {
     params: EngineParams<C, T>,
     errors: Vec<RadiateError>,
-    _epoch: std::marker::PhantomData<E>,
 }
 
-impl<C, T, E> GeneticEngineBuilder<C, T, E>
+impl<C, T> GeneticEngineBuilder<C, T>
 where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send,
-    E: Epoch,
 {
     /// The `FilterStrategy` is used to determine how a new individual is added to the `Population`
     /// if an individual is deemed to be either invalid or reaches the maximum age.
@@ -160,11 +111,10 @@ where
 }
 
 /// Static step builder for the genetic engine.
-impl<C, T, E> GeneticEngineBuilder<C, T, E>
+impl<C, T> GeneticEngineBuilder<C, T>
 where
     C: Chromosome + Clone + PartialEq + 'static,
     T: Clone + Send + Sync + 'static,
-    E: Epoch,
 {
     /// Build the genetic engine with the given parameters. This will create a new
     /// instance of the `GeneticEngine` with the given parameters.
@@ -351,11 +301,10 @@ where
     }
 }
 
-impl<C, T, E> Default for GeneticEngineBuilder<C, T, E>
+impl<C, T> Default for GeneticEngineBuilder<C, T>
 where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + 'static,
-    E: Epoch,
 {
     fn default() -> Self {
         GeneticEngineBuilder {
@@ -395,7 +344,6 @@ where
                 handlers: Vec::new(),
             },
             errors: Vec::new(),
-            _epoch: std::marker::PhantomData,
         }
     }
 }

@@ -1,109 +1,34 @@
-use crate::{
-    Chromosome, Ecosystem, Front, MetricSet, Objective, Phenotype, Population, Problem, Score,
-    Species, metric_names,
-};
-use std::{
-    sync::{Arc, RwLock},
-    time::Duration,
-};
+use crate::{Chromosome, Ecosystem, Front, MetricSet, Objective, Phenotype, Problem, Score};
+use std::sync::{Arc, RwLock};
 
-pub trait EngineIter<P: Epoch> {
-    fn iter(self) -> impl Iterator<Item = P>;
+pub trait Engine {
+    type Epoch;
+    fn next(&mut self) -> Self::Epoch;
 }
 
-impl<E, P> EngineIter<P> for E
-where
-    E: Engine<P>,
-    P: Epoch,
-{
-    fn iter(self) -> impl Iterator<Item = P> {
-        EngineIterator {
-            engine: self,
-            phantom: std::marker::PhantomData,
-        }
-    }
-}
-
-pub struct EngineIterator<E, P>
-where
-    E: Engine<P>,
-    P: Epoch,
-{
-    pub(crate) engine: E,
-    pub(crate) phantom: std::marker::PhantomData<P>,
-}
-
-impl<P, E> Iterator for EngineIterator<E, P>
-where
-    P: Epoch,
-    E: Engine<P>,
-{
-    type Item = P;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        Some(self.engine.evolve())
-    }
-}
-
-pub trait Engine<P: Epoch> {
-    fn evolve(&mut self) -> P;
-}
-
-pub trait EngineExt<P: Epoch, E: Engine<P>> {
-    fn run<F>(&mut self, limit: F) -> P
+pub trait EngineExt<E: Engine> {
+    fn run<F>(&mut self, limit: F) -> E::Epoch
     where
-        F: Fn(&P) -> bool,
+        F: Fn(&E::Epoch) -> bool,
         Self: Sized;
 }
 
-impl<P, E> EngineExt<P, E> for E
+impl<E> EngineExt<E> for E
 where
-    P: Epoch,
-    E: Engine<P>,
+    E: Engine,
 {
-    fn run<F>(&mut self, limit: F) -> P
+    fn run<F>(&mut self, limit: F) -> E::Epoch
     where
-        F: Fn(&P) -> bool,
+        F: Fn(&E::Epoch) -> bool,
         Self: Sized,
     {
         loop {
-            let epoch = self.evolve();
+            let epoch = self.next();
 
             if limit(&epoch) {
                 break epoch;
             }
         }
-    }
-}
-
-pub trait Epoch {
-    type Value;
-    type Chromosome: Chromosome;
-
-    fn value(&self) -> &Self::Value;
-    fn ecosystem(&self) -> &Ecosystem<Self::Chromosome>;
-    fn index(&self) -> usize;
-    fn metrics(&self) -> &MetricSet;
-    fn objective(&self) -> &Objective;
-
-    fn population(&self) -> &Population<Self::Chromosome> {
-        &self.ecosystem().population()
-    }
-
-    fn species(&self) -> Option<&[Species<Self::Chromosome>]> {
-        self.ecosystem().species().map(|s| s.as_slice())
-    }
-
-    fn time(&self) -> Duration {
-        self.metrics()
-            .get(metric_names::TIME)
-            .map(|m| m.time_statistic().map(|t| t.sum()))
-            .flatten()
-            .unwrap_or_default()
-    }
-
-    fn seconds(&self) -> f64 {
-        self.time().as_secs_f64()
     }
 }
 

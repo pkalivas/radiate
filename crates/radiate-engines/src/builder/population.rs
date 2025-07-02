@@ -1,5 +1,5 @@
 use crate::GeneticEngineBuilder;
-use radiate_core::{Chromosome, Epoch, Population};
+use radiate_core::{Chromosome, Population};
 use radiate_error::radiate_err;
 
 #[derive(Clone)]
@@ -9,11 +9,10 @@ pub struct PopulationParams<C: Chromosome> {
     pub population: Option<Population<C>>,
 }
 
-impl<C, T, E> GeneticEngineBuilder<C, T, E>
+impl<C, T> GeneticEngineBuilder<C, T>
 where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send,
-    E: Epoch,
 {
     /// Set the population size of the genetic engine. Default is 100.
     pub fn population_size(mut self, population_size: usize) -> Self {

@@ -84,26 +84,26 @@ inputs, answers = get_dataset()
 #         error += (output[0] - target[0]) ** 2
 #     return error / len(answers)
 
-codec = rd.GraphCodec.directed(
-    shape=(1, 1),
-    vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
-    edge=rd.Op.weight(),
-    output=rd.Op.linear(),
-)
+# codec = rd.GraphCodec.directed(
+#     shape=(1, 1),
+#     vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+#     edge=rd.Op.weight(),
+#     output=rd.Op.linear(),
+# )
 
-engine = rd.GeneticEngine(
-    codec=codec,
-    fitness_func=rd.Regression(inputs, answers),
-    objectives="min",
-    alters=[
-        rd.GraphCrossover(0.5, 0.5),
-        rd.OperationMutator(0.07, 0.05),
-        rd.GraphMutator(0.1, 0.1),
-    ],
-)
+# engine = rd.GeneticEngine(
+#     codec=codec,
+#     fitness_func=rd.Regression(inputs, answers),
+#     objectives="min",
+#     alters=[
+#         rd.GraphCrossover(0.5, 0.5),
+#         rd.OperationMutator(0.07, 0.05),
+#         rd.GraphMutator(0.1, 0.1),
+#     ],
+# )
 
-result = engine.run([rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000)], log=True)
-print(result)
+# result = engine.run([rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000)], log=True)
+# print(result)
 
 # codec = rd.TreeCodec(
 #     shape=(1, 1),

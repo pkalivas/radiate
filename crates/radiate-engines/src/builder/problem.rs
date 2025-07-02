@@ -1,12 +1,11 @@
 use crate::GeneticEngineBuilder;
-use radiate_core::{Chromosome, Codec, Epoch, Problem, Score, problem::FitnessFunction};
+use radiate_core::{Chromosome, Codec, Problem, Score, problem::FitnessFunction};
 use std::sync::Arc;
 
-impl<C, T, E> GeneticEngineBuilder<C, T, E>
+impl<C, T> GeneticEngineBuilder<C, T>
 where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send,
-    E: Epoch,
 {
     /// Set the codec that will be used to encode and decode the genotype of the population.
     pub fn codec<D: Codec<C, T> + 'static>(mut self, codec: D) -> Self {

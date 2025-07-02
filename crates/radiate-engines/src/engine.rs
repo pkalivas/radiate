@@ -1,9 +1,10 @@
 use crate::builder::GeneticEngineBuilder;
+use crate::iter::EngineIterator;
 use crate::pipeline::Pipeline;
-use crate::{Chromosome, EngineEvent, ParetoGeneration};
+use crate::{Chromosome, EngineEvent};
 use crate::{EventBus, Generation};
 use radiate_core::engine::Context;
-use radiate_core::{Engine, Epoch, metric_names};
+use radiate_core::{Engine, metric_names};
 
 /// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -64,7 +65,7 @@ where
 
 impl<C, T> GeneticEngine<C, T>
 where
-    C: Chromosome + 'static,
+    C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
     pub(crate) fn new(
@@ -79,21 +80,24 @@ where
         }
     }
 
-    pub fn builder() -> GeneticEngineBuilder<C, T, Generation<C, T>>
-    where
-        C: Clone,
-    {
+    pub fn builder() -> GeneticEngineBuilder<C, T> {
         GeneticEngineBuilder::default()
+    }
+
+    pub fn iter(self) -> impl Iterator<Item = Generation<C, T>> {
+        EngineIterator { engine: self }
     }
 }
 
-impl<C, T> Engine<Generation<C, T>> for GeneticEngine<C, T>
+impl<C, T> Engine for GeneticEngine<C, T>
 where
     C: Chromosome + Clone,
     T: Clone + Send + Sync + 'static,
 {
+    type Epoch = Generation<C, T>;
+
     #[inline]
-    fn evolve(&mut self) -> Generation<C, T> {
+    fn next(&mut self) -> Generation<C, T> {
         if matches!(self.context.index, 0) {
             self.bus.emit(EngineEvent::start());
         }
@@ -136,17 +140,6 @@ where
         Generation::from(&self.context)
     }
 }
-
-// impl<C, T> Engine<ParetoGeneration<C>> for GeneticEngine<C, T>
-// where
-//     C: Chromosome + Clone,
-//     T: Clone + Send + Sync + 'static,
-// {
-//     #[inline]
-//     fn evolve(&mut self) -> ParetoGeneration<C> {
-//         panic!()
-//     }
-// }
 
 impl<C, T> Drop for GeneticEngine<C, T>
 where

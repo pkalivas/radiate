@@ -96,6 +96,17 @@ class NeatDistance(DiversityBase):
             allowed_genes=GeneType.GRAPH,
         )
 
+class CosineDistance(DiversityBase):
+    """
+    Cosine Distance diversity parameter.
+    """
+
+    def __init__(self):
+        """
+        Initialize the Cosine Distance diversity parameter.
+        """
+        super().__init__(component="CosineDistance", allowed_genes=GeneType.FLOAT)
+
 
 # from radiate.radiate import PyDiversity
 

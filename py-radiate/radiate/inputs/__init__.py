@@ -16,7 +16,7 @@ from .alterer import (
     SwapMutator,
     GraphMutator,
     OperationMutator,
-    GraphCrossover
+    GraphCrossover,
 )
 
 from .selector import (
@@ -29,25 +29,18 @@ from .selector import (
     LinearRankSelector,
     NSGA2Selector,
     TournamentNSGA2Selector,
-    SteadyStateSelector
+    SteadyStateSelector,
 )
 
-from .diversity import (
-    HammingDistance,
-    EuclideanDistance,
-    NeatDistance
-)
+from .diversity import HammingDistance, EuclideanDistance, NeatDistance, CosineDistance
 
-from .limit import (
-    SecondsLimit,
-    GenerationsLimit,
-    ScoreLimit
-)
+from .limit import SecondsLimit, GenerationsLimit, ScoreLimit
 
 from .problem import Regression, CallableProblem
 
 __all__ = [
     "BlendCrossover",
+    "CosineDistance",
     "IntermediateCrossover",
     "ArithmeticMutator",
     "UniformCrossover",
@@ -63,7 +56,6 @@ __all__ = [
     "GraphMutator",
     "OperationMutator",
     "GraphCrossover",
-
     "TournamentSelector",
     "RouletteSelector",
     "RankSelector",
@@ -74,17 +66,13 @@ __all__ = [
     "NSGA2Selector",
     "TournamentNSGA2Selector",
     "SteadyStateSelector",
-
     "HammingDistance",
     "EuclideanDistance",
     "NeatDistance",
-
     "Executor",
-
     "SecondsLimit",
     "GenerationsLimit",
     "ScoreLimit",
-
     "Regression",
-    "CallableProblem"
+    "CallableProblem",
 ]

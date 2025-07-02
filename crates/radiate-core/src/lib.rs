@@ -17,11 +17,11 @@ pub use codecs::{
 };
 pub use diversity::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
 pub use domain::*;
-pub use engine::{Context, Engine, EngineExt, EngineIter, EngineStep, Epoch};
+pub use engine::{Context, Engine, EngineExt, EngineStep};
 pub use evaluator::{Evaluator, FitnessEvaluator};
 pub use executor::Executor;
 pub use genome::*;
-pub use objectives::{Front, Objective, Optimize, ParetoFront, Score, pareto};
+pub use objectives::{Front, Objective, Optimize, Score, pareto};
 pub use problem::{CompositeFitnessFn, EngineProblem, FitnessFunction, NoveltySearch, Problem};
 pub use replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
 pub use selector::Select;
@@ -34,13 +34,13 @@ pub mod prelude {
     };
     pub use super::diversity::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
     pub use super::domain::random_provider;
-    pub use super::engine::{Engine, EngineExt, EngineStep, Epoch};
+    pub use super::engine::{Engine, EngineExt, EngineStep};
     pub use super::executor::Executor;
     pub use super::genome::{
         ArithmeticGene, BitChromosome, BitGene, CharChromosome, CharGene, Chromosome,
         FloatChromosome, FloatGene, Gene, IntChromosome, IntGene, Integer, Valid,
     };
-    pub use super::objectives::{Front, Objective, Optimize, ParetoFront, Score, pareto};
+    pub use super::objectives::{Front, Objective, Optimize, Score, pareto};
     pub use super::problem::{EngineProblem, Problem};
     pub use super::replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
     pub use super::selector::Select;

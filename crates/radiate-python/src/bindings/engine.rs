@@ -1,11 +1,6 @@
-use core::panic;
-
 use crate::{EngineHandle, EpochHandle, PyEngineInput, PyGeneration};
 use pyo3::{PyResult, pyclass, pymethods};
-use radiate::{
-    Chromosome, Engine, EngineIter, Epoch, Generation, GeneticEngine, Limit, Objective, Optimize,
-    ParetoGeneration,
-};
+use radiate::{Chromosome, Engine, Generation, GeneticEngine, Limit, Objective, Optimize};
 use tracing::info;
 
 #[pyclass(unsendable)]
@@ -56,14 +51,6 @@ impl PyEngine {
                 let output = run_single_objective_engine(eng, limits, log);
                 EpochHandle::Bit(output)
             }
-            // EngineHandle::IntMulti(eng) => {
-            //     let output = run_multi_objective_engine(eng, limits, log);
-            //     EpochHandle::IntMulti(output)
-            // }
-            // EngineHandle::FloatMulti(eng) => {
-            //     let output = run_multi_objective_engine(eng, limits, log);
-            //     EpochHandle::FloatMulti(output)
-            // }
             EngineHandle::GraphRegression(eng) => {
                 let output = run_single_objective_engine(eng, limits, log);
                 EpochHandle::GraphRegression(output)
@@ -71,11 +58,6 @@ impl PyEngine {
             EngineHandle::TreeRegression(eng) => {
                 let output = run_single_objective_engine(eng, limits, log);
                 EpochHandle::TreeRegression(output)
-            }
-            _ => {
-                return Err(pyo3::exceptions::PyRuntimeError::new_err(
-                    "Engine does not support run()",
-                ));
             }
         };
 
@@ -94,19 +76,12 @@ impl PyEngine {
         })?;
 
         let result = match engine {
-            EngineHandle::Int(eng) => EpochHandle::Int(eng.evolve()),
-            EngineHandle::Float(eng) => EpochHandle::Float(eng.evolve()),
-            EngineHandle::Char(eng) => EpochHandle::Char(eng.evolve()),
-            EngineHandle::Bit(eng) => EpochHandle::Bit(eng.evolve()),
-            // EngineHandle::IntMulti(eng) => EpochHandle::IntMulti(eng.evolve()),
-            // EngineHandle::FloatMulti(eng) => EpochHandle::FloatMulti(eng.evolve()),
-            EngineHandle::GraphRegression(eng) => EpochHandle::GraphRegression(eng.evolve()),
-            EngineHandle::TreeRegression(eng) => EpochHandle::TreeRegression(eng.evolve()),
-            _ => {
-                return Err(pyo3::exceptions::PyRuntimeError::new_err(
-                    "Engine does not support next()",
-                ));
-            }
+            EngineHandle::Int(eng) => EpochHandle::Int(eng.next()),
+            EngineHandle::Float(eng) => EpochHandle::Float(eng.next()),
+            EngineHandle::Char(eng) => EpochHandle::Char(eng.next()),
+            EngineHandle::Bit(eng) => EpochHandle::Bit(eng.next()),
+            EngineHandle::GraphRegression(eng) => EpochHandle::GraphRegression(eng.next()),
+            EngineHandle::TreeRegression(eng) => EpochHandle::TreeRegression(eng.next()),
         };
 
         Ok(PyGeneration::new(result))
@@ -114,7 +89,7 @@ impl PyEngine {
 }
 
 fn run_single_objective_engine<C, T>(
-    engine: impl Engine<Generation<C, T>>,
+    engine: GeneticEngine<C, T>,
     limits: Vec<Limit>,
     log: bool,
 ) -> Generation<C, T>
@@ -126,12 +101,24 @@ where
         .iter()
         .inspect(|epoch| {
             if log {
-                info!(
-                    "Epoch {:<4} | Score: {:>8.4} | Time: {:>5.2?}",
-                    epoch.index(),
-                    epoch.score().as_f32(),
-                    epoch.time()
-                );
+                match epoch.objective() {
+                    Objective::Single(_) => {
+                        info!(
+                            "Epoch {:<4} | Score: {:>8.4} | Time: {:>5.2?}",
+                            epoch.index(),
+                            epoch.score().as_f32(),
+                            epoch.time()
+                        );
+                    }
+                    Objective::Multi(_) => {
+                        info!(
+                            "Epoch {:<4} | Front Size: {:>4} | Time: {:>5.2?}",
+                            epoch.index(),
+                            epoch.front().map_or(0, |front| front.values().len()),
+                            epoch.time()
+                        );
+                    }
+                }
             }
         })
         .skip_while(|epoch| {
@@ -144,38 +131,6 @@ where
                     },
                     Objective::Multi(_) => false,
                 },
-                Limit::Seconds(val) => return epoch.seconds() < *val,
-            })
-        })
-        .take(1)
-        .last()
-        .expect("No generation found that meets the limits")
-}
-
-fn run_multi_objective_engine<C>(
-    engine: impl Engine<ParetoGeneration<C>>,
-    limits: Vec<Limit>,
-    log: bool,
-) -> ParetoGeneration<C>
-where
-    C: Chromosome + Clone + 'static,
-{
-    engine
-        .iter()
-        .inspect(|epoch| {
-            if log {
-                info!(
-                    "Epoch {:<4} | Front Size: {:>4} | Time: {:>5.2?}",
-                    epoch.index(),
-                    epoch.value().values().len(),
-                    epoch.time()
-                );
-            }
-        })
-        .skip_while(|epoch| {
-            limits.iter().all(|limit| match limit {
-                Limit::Generation(lim) => epoch.index() < *lim,
-                Limit::Score(_) => false,
                 Limit::Seconds(val) => return epoch.seconds() < *val,
             })
         })

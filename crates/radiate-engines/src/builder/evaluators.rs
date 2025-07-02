@@ -1,5 +1,5 @@
 use crate::GeneticEngineBuilder;
-use radiate_core::{Chromosome, Epoch, Evaluator, Executor, FitnessEvaluator};
+use radiate_core::{Chromosome, Evaluator, Executor, FitnessEvaluator};
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -14,11 +14,10 @@ where
     pub bus_executor: Arc<Executor>,
 }
 
-impl<C, T, E> GeneticEngineBuilder<C, T, E>
+impl<C, T> GeneticEngineBuilder<C, T>
 where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send,
-    E: Epoch,
 {
     pub fn evaluator<V: Evaluator<C, T> + 'static>(mut self, evaluator: V) -> Self {
         self.params.evaluation_params.evaluator = Arc::new(evaluator);

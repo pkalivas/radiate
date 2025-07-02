@@ -1,75 +1,47 @@
-use crate::{Generation, GeneticEngine};
-use radiate_core::{
-    Chromosome, Engine, Epoch, Objective, Optimize, Score,
-    engine::{Context, EngineIter},
-    objectives::Scored,
-};
+use radiate_core::{Chromosome, Engine, Objective, Optimize, Score};
 use std::{collections::VecDeque, time::Duration};
 
-// impl<E: Engine> EngineExt for E {}
+use crate::Generation;
 
-// /// Enhanced iterator for engines
-// pub struct EngineIterator<E: Engine> {
-//     engine: E,
-// }
-
-// pub struct EngineIterator<E, P>
-// where
-//     E: Engine<P>,
-//     P: Epoch,
-// {
-//     pub(crate) engine: E,
-//     _phantom: std::marker::PhantomData<P>,
-// }
-
-// impl<E, P> EngineIterator<E, P>
-// where
-//     P: Epoch,
-//     E: Engine<P>,
-// {
-//     pub fn new(engine: E) -> Self {
-//         EngineIterator {
-//             engine,
-//             _phantom: std::marker::PhantomData,
-//         }
-//     }
-// }
-
-// impl<P, E> Iterator for EngineIterator<E, P>
-// where
-//     P: Epoch,
-//     E: Engine<P>,
-// {
-//     type Item = P;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         Some(self.engine.evolve())
-//     }
-// }
-
-impl<I, C, T, E> EngineIteratorExt<C, T, E> for I
+pub struct EngineIterator<E>
 where
-    I: Iterator<Item = E>,
+    E: Engine,
+{
+    pub(crate) engine: E,
+}
+
+impl<E> Iterator for EngineIterator<E>
+where
+    E: Engine,
+{
+    type Item = E::Epoch;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(self.engine.next())
+    }
+}
+
+impl<I, C, T> EngineIteratorExt<C, T> for I
+where
+    I: Iterator<Item = Generation<C, T>>,
     C: Chromosome,
     T: Clone,
-    E: Epoch + for<'a> From<&'a Context<C, T>>,
 {
 }
 
-pub trait EngineIteratorExt<C, T, E>: Iterator<Item = E>
+pub trait EngineIteratorExt<C, T>: Iterator<Item = Generation<C, T>>
 where
     C: Chromosome,
     T: Clone,
-    E: Epoch,
 {
-    fn until_seconds(self, limit: f64) -> impl Iterator<Item = E>
+    fn until_seconds(self, limit: f64) -> impl Iterator<Item = Generation<C, T>>
     where
         Self: Sized,
     {
         self.skip_while(move |ctx| ctx.seconds() < limit)
     }
 
-    fn until_duration(self, limit: impl Into<Duration>) -> impl Iterator<Item = E>
+    fn until_duration(self, limit: impl Into<Duration>) -> impl Iterator<Item = Generation<C, T>>
     where
         Self: Sized,
     {
@@ -77,23 +49,22 @@ where
         self.skip_while(move |ctx| ctx.time() < limit)
     }
 
-    fn until_score(self, limit: impl Into<Score>) -> impl Iterator<Item = E>
+    fn until_score(self, limit: impl Into<Score>) -> impl Iterator<Item = Generation<C, T>>
     where
         Self: Sized,
-        E: Scored,
     {
         let lim = limit.into();
         self.skip_while(move |ctx| match ctx.objective() {
             Objective::Single(obj) => match obj {
-                Optimize::Minimize => ctx.score().unwrap() >= &lim,
-                Optimize::Maximize => ctx.score().unwrap() <= &lim,
+                Optimize::Minimize => ctx.score() > &lim,
+                Optimize::Maximize => ctx.score() < &lim,
             },
             Objective::Multi(objs) => {
                 let mut all_pass = true;
-                for (i, score) in ctx.score().unwrap().iter().enumerate() {
+                for (i, score) in ctx.score().iter().enumerate() {
                     let passed = match objs[i] {
-                        Optimize::Minimize => score >= &lim[i],
-                        Optimize::Maximize => score <= &lim[i],
+                        Optimize::Minimize => score > &lim[i],
+                        Optimize::Maximize => score < &lim[i],
                     };
 
                     if !passed {
@@ -107,10 +78,9 @@ where
         })
     }
 
-    fn until_converged(self, window: usize, epsilon: f32) -> impl Iterator<Item = E>
+    fn until_converged(self, window: usize, epsilon: f32) -> impl Iterator<Item = Generation<C, T>>
     where
         Self: Sized,
-        E: Scored,
     {
         assert!(window > 0, "Window size must be greater than 0");
         assert!(epsilon >= 0.0, "Epsilon must be non-negative");
@@ -125,10 +95,10 @@ where
     }
 }
 
-struct ConverganceIterator<I, E>
+struct ConverganceIterator<C, T, I>
 where
-    I: Iterator<Item = E>,
-    E: Epoch,
+    I: Iterator<Item = Generation<C, T>>,
+    C: Chromosome,
 {
     iter: I,
     history: VecDeque<f32>,
@@ -137,12 +107,12 @@ where
     done: bool,
 }
 
-impl<I, E> Iterator for ConverganceIterator<I, E>
+impl<I, C, T> Iterator for ConverganceIterator<C, T, I>
 where
-    I: Iterator<Item = E>,
-    E: Scored + Epoch,
+    I: Iterator<Item = Generation<C, T>>,
+    C: Chromosome,
 {
-    type Item = E;
+    type Item = Generation<C, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.done {
@@ -150,7 +120,7 @@ where
         }
 
         let next_ctx = self.iter.next()?;
-        let score = next_ctx.score().unwrap().as_f32();
+        let score = next_ctx.score().as_f32();
 
         self.history.push_back(score);
         if self.history.len() > self.window {

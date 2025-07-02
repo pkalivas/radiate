@@ -1,5 +1,6 @@
 use super::PyGenotype;
 use crate::EpochHandle;
+use crate::ObjectValue;
 use crate::bindings::codec::PyGraph;
 use crate::bindings::codec::PyTree;
 use crate::conversion::Wrap;
@@ -10,6 +11,7 @@ use pyo3::{
     Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods,
     types::{PyList, PyListMethods},
 };
+use radiate::Generation;
 use radiate::prelude::*;
 
 const SINGLE_OBJECTIVE_GENERATION: &str = "Generation";
@@ -34,8 +36,6 @@ impl PyGeneration {
             EpochHandle::Float(epoch) => epoch.index(),
             EpochHandle::Char(epoch) => epoch.index(),
             EpochHandle::Bit(epoch) => epoch.index(),
-            EpochHandle::IntMulti(epoch) => epoch.index(),
-            EpochHandle::FloatMulti(epoch) => epoch.index(),
             EpochHandle::GraphRegression(epoch) => epoch.index(),
             EpochHandle::TreeRegression(epoch) => epoch.index(),
         }
@@ -47,8 +47,6 @@ impl PyGeneration {
             EpochHandle::Float(epoch) => Some(epoch.score()),
             EpochHandle::Char(epoch) => Some(epoch.score()),
             EpochHandle::Bit(epoch) => Some(epoch.score()),
-            EpochHandle::IntMulti(_) => None,
-            EpochHandle::FloatMulti(_) => None,
             EpochHandle::GraphRegression(epoch) => Some(epoch.score()),
             EpochHandle::TreeRegression(epoch) => Some(epoch.score()),
         };
@@ -64,12 +62,10 @@ impl PyGeneration {
 
     pub fn value<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         match &self.inner {
-            EpochHandle::Int(epoch) => epoch.value().clone().inner.into_bound_py_any(py),
-            EpochHandle::Float(epoch) => epoch.value().clone().inner.into_bound_py_any(py),
-            EpochHandle::Char(epoch) => epoch.value().clone().inner.into_bound_py_any(py),
-            EpochHandle::Bit(epoch) => epoch.value().clone().inner.into_bound_py_any(py),
-            EpochHandle::IntMulti(epoch) => into_pareto_front(py, epoch),
-            EpochHandle::FloatMulti(epoch) => into_pareto_front(py, epoch),
+            EpochHandle::Int(epoch) => get_value(py, epoch),
+            EpochHandle::Float(epoch) => get_value(py, epoch),
+            EpochHandle::Char(epoch) => get_value(py, epoch),
+            EpochHandle::Bit(epoch) => get_value(py, epoch),
             EpochHandle::GraphRegression(epoch) => PyGraph {
                 inner: epoch.value().clone(),
                 eval_cache: None,
@@ -88,8 +84,6 @@ impl PyGeneration {
             EpochHandle::Float(epoch) => epoch.metrics(),
             EpochHandle::Char(epoch) => epoch.metrics(),
             EpochHandle::Bit(epoch) => epoch.metrics(),
-            EpochHandle::IntMulti(epoch) => epoch.metrics(),
-            EpochHandle::FloatMulti(epoch) => epoch.metrics(),
             EpochHandle::GraphRegression(epoch) => epoch.metrics(),
             EpochHandle::TreeRegression(epoch) => epoch.metrics(),
         };
@@ -123,8 +117,6 @@ impl PyGeneration {
             EpochHandle::Float(epoch) => (SINGLE_OBJECTIVE_GENERATION, epoch.index()),
             EpochHandle::Char(epoch) => (SINGLE_OBJECTIVE_GENERATION, epoch.index()),
             EpochHandle::Bit(epoch) => (SINGLE_OBJECTIVE_GENERATION, epoch.index()),
-            EpochHandle::IntMulti(epoch) => (MULTI_OBJECTIVE_GENERATION, epoch.index()),
-            EpochHandle::FloatMulti(epoch) => (MULTI_OBJECTIVE_GENERATION, epoch.index()),
             EpochHandle::GraphRegression(epoch) => (SINGLE_OBJECTIVE_GENERATION, epoch.index()),
             EpochHandle::TreeRegression(epoch) => (SINGLE_OBJECTIVE_GENERATION, epoch.index()),
         };
@@ -144,26 +136,32 @@ impl PyGeneration {
     }
 }
 
-fn into_pareto_front<'py, C>(
+fn get_value<'py, C>(
     py: Python<'py>,
-    generation: &ParetoGeneration<C>,
+    generation: &Generation<C, ObjectValue>,
 ) -> PyResult<Bound<'py, PyAny>>
 where
     C: Chromosome + Clone,
     PyGenotype: From<Genotype<C>>,
 {
+    if generation.objective().is_single() {
+        return generation.value().clone().inner.into_bound_py_any(py);
+    }
+
     let result = PyList::empty(py);
 
-    for member in generation.value().values().iter() {
-        let temp = PyGenotype::from(member.genotype().clone());
+    if let Some(front) = generation.front() {
+        for member in front.values().iter() {
+            let temp = PyGenotype::from(member.genotype().clone());
 
-        let fitness = member.score().unwrap().iter().cloned().collect::<Vec<_>>();
+            let fitness = member.score().unwrap().iter().cloned().collect::<Vec<_>>();
 
-        let member = PyDict::new(py);
-        member.set_item("genotype", temp).unwrap();
-        member.set_item("fitness", fitness).unwrap();
+            let member = PyDict::new(py);
+            member.set_item("genotype", temp).unwrap();
+            member.set_item("fitness", fitness).unwrap();
 
-        result.append(member).unwrap();
+            result.append(member).unwrap();
+        }
     }
 
     Ok(result.into_any())

@@ -1,7 +1,4 @@
-use crate::{
-    Chromosome, Epoch, Phenotype,
-    objectives::{Objective, pareto},
-};
+use crate::objectives::{Objective, pareto};
 use std::{cmp::Ordering, hash::Hash, ops::Range, sync::Arc};
 
 /// A front is a collection of scores that are non-dominated with respect to each other.
@@ -106,43 +103,5 @@ where
             .take(self.range.end)
             .map(|(i, _)| Arc::clone(&self.values[*i]))
             .collect::<Vec<Arc<T>>>();
-    }
-}
-
-#[derive(Clone, Default)]
-pub struct ParetoFront<T> {
-    front: Vec<T>,
-}
-
-impl<T> ParetoFront<T> {
-    pub fn new() -> Self {
-        ParetoFront { front: Vec::new() }
-    }
-
-    pub fn add(&mut self, item: T) {
-        self.front.push(item);
-    }
-
-    pub fn values(&self) -> &[T] {
-        &self.front
-    }
-}
-
-impl<C, E> FromIterator<E> for ParetoFront<Phenotype<C>>
-where
-    C: Chromosome + Clone,
-    E: Epoch<Value = Front<Phenotype<C>>>,
-{
-    fn from_iter<I: IntoIterator<Item = E>>(iter: I) -> Self {
-        let mut result = ParetoFront::new();
-        let final_epoch = iter.into_iter().last();
-        if let Some(epoch) = final_epoch {
-            let front = epoch.value();
-            for value in front.values() {
-                result.add((*(*value)).clone());
-            }
-        }
-
-        result
     }
 }

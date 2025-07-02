@@ -35,7 +35,7 @@ fn main() {
         // .unwrap();
         .collect::<ParetoFront<Phenotype<FloatChromosome>>>();
 
-    // plot_front(&result);
+    plot_front(&result);
 }
 
 fn plot_front(front: &ParetoFront<Phenotype<FloatChromosome>>) {
