@@ -15,7 +15,6 @@ class GraphCodec(CodecBase):
         return Genotype(self.codec.encode_py())
 
     def decode(self, genotype: Genotype) -> "Graph":
-        print(genotype.gene_type())
         if genotype.gene_type() != "GraphNode":
             raise ValueError("genotype must be of type 'graph'.")
         if not isinstance(genotype, Genotype):
