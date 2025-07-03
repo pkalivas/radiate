@@ -5,7 +5,15 @@ from radiate.codec.tree import TreeCodec
 from .builder import EngineBuilder
 from .generation import Generation
 from .handlers import EventHandler
-from .codec import FloatCodec, IntCodec, CharCodec, BitCodec, GraphCodec, CodecBase, PermutationCodec
+from .codec import (
+    FloatCodec,
+    IntCodec,
+    CharCodec,
+    BitCodec,
+    GraphCodec,
+    CodecBase,
+    PermutationCodec,
+)
 
 from .inputs.input import EngineInput, EngineInputType
 from .inputs.selector import SelectorBase, TournamentSelector, RouletteSelector

@@ -34,38 +34,17 @@ impl PyEngine {
             pyo3::exceptions::PyRuntimeError::new_err("Engine has already been run")
         })?;
 
-        let result = match engine {
-            EngineHandle::Int(eng) => {
-                let output = run_single_objective_engine(eng, limits, log);
-                EpochHandle::Int(output)
-            }
-            EngineHandle::Float(eng) => {
-                let output = run_single_objective_engine(eng, limits, log);
-                EpochHandle::Float(output)
-            }
-            EngineHandle::Char(eng) => {
-                let output = run_single_objective_engine(eng, limits, log);
-                EpochHandle::Char(output)
-            }
-            EngineHandle::Bit(eng) => {
-                let output = run_single_objective_engine(eng, limits, log);
-                EpochHandle::Bit(output)
-            }
+        Ok(PyGeneration::new(match engine {
+            EngineHandle::Int(eng) => EpochHandle::Int(run_engine(eng, limits, log)),
+            EngineHandle::Float(eng) => EpochHandle::Float(run_engine(eng, limits, log)),
+            EngineHandle::Char(eng) => EpochHandle::Char(run_engine(eng, limits, log)),
+            EngineHandle::Bit(eng) => EpochHandle::Bit(run_engine(eng, limits, log)),
             EngineHandle::Permutation(eng) => {
-                let output = run_single_objective_engine(eng, limits, log);
-                EpochHandle::Permutation(output)
+                EpochHandle::Permutation(run_engine(eng, limits, log))
             }
-            EngineHandle::Graph(eng) => {
-                let output = run_single_objective_engine(eng, limits, log);
-                EpochHandle::Graph(output)
-            }
-            EngineHandle::Tree(eng) => {
-                let output = run_single_objective_engine(eng, limits, log);
-                EpochHandle::Tree(output)
-            }
-        };
-
-        Ok(PyGeneration::new(result))
+            EngineHandle::Graph(eng) => EpochHandle::Graph(run_engine(eng, limits, log)),
+            EngineHandle::Tree(eng) => EpochHandle::Tree(run_engine(eng, limits, log)),
+        }))
     }
 
     pub fn next(&mut self) -> PyResult<PyGeneration> {
@@ -93,11 +72,7 @@ impl PyEngine {
     }
 }
 
-fn run_single_objective_engine<C, T>(
-    engine: GeneticEngine<C, T>,
-    limits: Vec<Limit>,
-    log: bool,
-) -> Generation<C, T>
+fn run_engine<C, T>(engine: GeneticEngine<C, T>, limits: Vec<Limit>, log: bool) -> Generation<C, T>
 where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,

@@ -13,7 +13,7 @@ class GraphCodec(CodecBase):
 
     def encode(self) -> "Genotype":
         return Genotype(self.codec.encode_py())
-    
+
     def decode(self, genotype: Genotype) -> "Graph":
         print(genotype.gene_type())
         if genotype.gene_type() != "GraphNode":
@@ -21,7 +21,7 @@ class GraphCodec(CodecBase):
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
         return Graph(self.codec.decode_py(genotype.py_genotype()))
-    
+
     @staticmethod
     def weighted_directed(
         shape: Tuple[int, int],
@@ -118,11 +118,17 @@ class GraphCodec(CodecBase):
                 ops_map["output"] = [output] if isinstance(output, Op) else output
 
         if name == "weighted_directed":
-            return GraphCodec(PyGraphCodec("weighted_directed", input_size, output_size, ops_map))
+            return GraphCodec(
+                PyGraphCodec("weighted_directed", input_size, output_size, ops_map)
+            )
         elif name == "weighted_recurrent":
-            return GraphCodec(PyGraphCodec("weighted_recurrent", input_size, output_size, ops_map))
+            return GraphCodec(
+                PyGraphCodec("weighted_recurrent", input_size, output_size, ops_map)
+            )
         elif name == "recurrent":
-            return GraphCodec(PyGraphCodec("recurrent", input_size, output_size, ops_map))
+            return GraphCodec(
+                PyGraphCodec("recurrent", input_size, output_size, ops_map)
+            )
         else:
             if name != "directed":
                 raise ValueError(f"Unknown graph type: {name}")

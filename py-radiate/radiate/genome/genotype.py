@@ -56,7 +56,7 @@ class Genotype:
         if not isinstance(value, Genotype):
             return False
         return self.__inner == value.__inner
-    
+
     def __getitem__(self, index: int) -> Chromosome:
         """
         Returns the chromosome at the specified index.
@@ -75,7 +75,7 @@ class Genotype:
         :return: The PyGenotype instance associated with this Genotype.
         """
         return self.__inner
-    
+
     def gene_type(self) -> str:
         """
         Returns the type of the genes in the genotype.

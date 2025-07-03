@@ -57,7 +57,7 @@ class Chromosome:
         if len(self) != len(value):
             return False
         return all(a == b for a, b in zip(self.__inner.genes, value.__inner.genes))
-    
+
     def __getitem__(self, index: int) -> Gene:
         """
         Returns the gene at the specified index.

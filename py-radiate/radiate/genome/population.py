@@ -36,7 +36,7 @@ class Population:
         :return: Number of individuals in the population.
         """
         return len(self.__inner)
-    
+
     def __iter__(self):
         """
         Returns an iterator over the individuals in the population.

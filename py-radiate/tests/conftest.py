@@ -1,6 +1,4 @@
 """
-Pytest configuration and fixtures for Radiate Python tests.
-
 This module provides common fixtures and utilities used across all test modules.
 """
 
@@ -69,7 +67,7 @@ def xor_dataset():
 def simple_regression_dataset():
     """Create a simple regression dataset for testing."""
     inputs = [[0.0], [1.0], [2.0], [3.0], [4.0]]
-    outputs = [[0.0], [2.0], [4.0], [6.0], [8.0]] 
+    outputs = [[0.0], [2.0], [4.0], [6.0], [8.0]]
     return inputs, outputs
 
 

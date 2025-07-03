@@ -6,7 +6,7 @@ The `GeneticEngine` is the core component. Once built, it manages the entire evo
 
 ## Epochs
 
-Each epoch represents a single generation in the evolutionary process. An epoch contains information related not only the current generation, but also the engine's state at that point in time. This is the primary output of the engine, and it can be used to track progress, visualize results, or make decisions based on the evolutionary process. Because there are two main types of optimization problems the engine can solve (single-objective and multi-objective), the engine produces different types of epochs depending on the objective type.
+Each epoch represents a single generation in the evolutionary process. An epoch contains information related not only the current generation, but also the engine's state at that point in time. This is the primary output of the engine, and it can be used to track progress, visualize results, or make decisions based on the evolutionary process. 
 
 ### Single-Objective Epoch
 
@@ -58,7 +58,7 @@ This is the default epoch for the engine - `Generation`. It contains:
     use radiate::*;
 
     // Create an engine of type:
-    // `GeneticEngine<FloatChromosome, f32, Generation<FloatChromosome, f32>>`
+    // `GeneticEngine<FloatChromosome, f32>`
     //
     // Where the `epoch` is `Generation<FloatChromosome, f32>`
     let mut engine = GeneticEngine::builder()
@@ -98,15 +98,7 @@ This is the default epoch for the engine - `Generation`. It contains:
 
 ### Multi-Objective Epoch
 
-When the engine is configured for multi-objective optimization, the engine produces `MultiObjectiveGeneration` objects. When building the engine, once you specify multi-objective optimization or a front_size, the engine will change types from `Generation` to `MultiObjectiveGeneration`. This epoch contains:
-
-- The generation number
-- `Ecosystem` information (population, species, etc.)
-- Score, which is the fitness of the best individual in the generation
-- Value, which is a pareto front of the indivuals the engine has found so far. 
-    - **This is the main difference from the single-objective epoch**. Instead of a single value, it contains a collection of values representing the Pareto front.
-- Performance metrics (e.g., time taken)
-- The Objective (max or min). The fitness objective being optimized, used for comparison and disicion making during the evolutionary process.
+When the engine is configured for multi-objective optimization, the engine `Generation` will have a `ParetoFront` attached to it. The only difference between the single-objective and multi-objective is the availablity of the `ParetoFront` and the `fitness` value. The `fitness` value will be a list of scores, one for each objective being optimized.
 
 === ":fontawesome-brands-python: Python"
 
@@ -122,7 +114,7 @@ When the engine is configured for multi-objective optimization, the engine produ
     )
 
     # Run the engine for 100 generations
-    result = engine.run(rd.GeneratinsLimit(100))
+    result = engine.run(rd.GenerationsLimit(100))
 
     # Everything in the multi-objective epoch is the same as the single-objective epoch, except for the value:
     # This will be a list of objects as such:
@@ -140,9 +132,9 @@ When the engine is configured for multi-objective optimization, the engine produ
     use radiate::*;
 
     // Create an engine of type:
-    // `GeneticEngine<FloatChromosome, f32, MultiObjectiveGeneration<FloatChromosome>>`
+    // `GeneticEngine<FloatChromosome, f32>`
     //
-    // Where the `epoch` is `MultiObjectiveGeneration<FloatChromosome>`
+    // Where the `epoch` is `Generation<FloatChromosome, f32>`
     let mut engine = GeneticEngine::builder()
         .codec(FloatCodec::scalar(0.0..1.0)) 
         .multi_objective(vec![Objective::Min, Objective::Max]) // Specify multi-objective optimization
@@ -151,16 +143,17 @@ When the engine is configured for multi-objective optimization, the engine produ
         .build();
 
     // Run the engine for 100 generations - the result will be a `MultiObjectiveGeneration<FloatChromosome>`
-    let result = engine.run(|generation: MultiObjectiveGeneration<FloatChromosome>| {
+    let result = engine.run(|generation: Generation<FloatChromosome, 32>| {
         generation.index() >= 100
     });
 
     // -- or using the engine's iterator --
     let result = engine.iter().take(100).last().unwrap();
 
-    // Everything in the multi-objective epoch is the same as the single-objective epoch, except for the value:
+    // Everything in this generation is the same as the single-objective epoch, except that 
+    // the function call to `front()` will return a `ParetoFront` object.:
     // This will be of type `Front<Phenotype<FloatChromosome>>`
-    let front: Front<Phenotype<FloatChromosome>> = result.value();
+    let front: Option<&Front<Phenotype<FloatChromosome>>> = result.front();
 
     // Get the members of the Pareto front:
     let individuals: &[Arc<Phenotype<FloatChromosome>>] = front.values();
@@ -179,9 +172,22 @@ The `GeneticEngine` is an inherently iterable concept, as such we can treat the 
 
 === ":fontawesome-brands-python: Python"
 
-    !!! warning ":construction: Under Construction :construction:"
+    ```python
+    import radiate as rd
 
-        The iteration API in Python is still under construction and is not yet available.
+    # Create an engine
+    engine = rd.GeneticEngine(
+        codec=rd.FloatCodec.scalar(0.0, 1.0), 
+        fitness_funn=my_fitness_fn,  # Some fitness function
+        # ... other parameters ...
+    )
+
+    # use a simple for loop to iterate through 100 generations
+    for epoch in engine:
+        if epoch.index() >= 100:
+            break
+        print(f"Generation {epoch.index()}: Score = {epoch.score()}")
+    ```
 
 === ":fontawesome-brands-rust: Rust"
 
@@ -203,9 +209,7 @@ The `GeneticEngine` is an inherently iterable concept, as such we can treat the 
 
     // 2.) use the iterator's custom methods to run until a score target is reached
     let target_score = 0.01;
-    let result = engine.iter().until_score_equal(target_score).take(1).last().unwrap();
-    let result = engine.iter().until_score_below(target_score).take(1).last().unwrap();
-    let result = engine.iter().until_score_above(target_score).take(1).last().unwrap();
+    let result = engine.iter().until_score(target_score).take(1).last().unwrap();
 
     // 3.) run until a time limit is reached
     let time_limit = Duration::from_secs(60);
@@ -278,7 +282,6 @@ A metric is defined as:
 1. `Value` - Represents a single value metric with a name and a `Statistic`.
 2. `Time` - Represents a time metric with a name and a `TimeStatistic`.
 3. `Distribution` - Represents a distribution metric with a name and a `Distribution`.
-4. `Operations` - Represents a metric that combines a `Statistic` and a `TimeStatistic` where the `Statistic` represents the number of operations performed and the `TimeStatistic` represents the time taken to perform those operations.
 
 ### Statistic 
 
@@ -297,24 +300,71 @@ The default metrics collected by the engine are:
 
 | Name                | Type          | Description                                                                 |
 |---------------------|---------------|-----------------------------------------------------------------------------|
-| `Time`              | TimeStatistic | The time taken for the evolution process.                                   |
-| `Score`             | Statistic     | The scores (fitness) of all the individuals evolved throughout the evolution process. |
-| `Age`               | Statistic     | The age of all the individuals in the `Ecosystem`. |
-| `Replace(Age)`      | Statistic     | The number of individuals replaced based on age. |
-| `Replace(Invalid)`  | Statistic     | The number of individuals replaced based on invalid structure (e.g. Bounds) |
-| `Genome Size`       | Distribution     | The size of each genome over the evolution process. This is usually static and doesn't change. |
-| `Front`             | Distribution | The number of members added to the Pareto front throughout the evolution process. |
-| `Unique(members)`   | Statistic     | The number of unique members in the `Ecosystem`. |
-| `Unique(scores)`    | Statistic     | The number of unique scores in the `Ecosystem`. |
-| `Fitness`           | Statistic     | The number of individuals evaluated each epoch during the evolution process. |
-| `Species(Count)`    | Statistic     | The number of `species` in the 'Ecosystem`. |
-| `Species(Age Removed)` | Statistic | The number of `species` removed based on stagnation. |
-| `Species(Distance)` | Distribution | The distance between `species` in the `Ecosystem`. |
-| `Species(Created)`  | Statistic     | The number of `species` created in the `Ecosystem`. |
-| `Species(Died)` | Statistic | The number of `species` that have died in the `Ecosystem`. |
-| `Species(Age)` | Statistic | The age of all the `species` in the `Ecosystem`. |
+| `time`              | TimeStatistic | The time taken for the evolution process.                                   |
+| `scores`            | Statistic     | The scores (fitness) of all the individuals evolved throughout the evolution process. |
+| `age`               | Statistic     | The age of all the individuals in the `Ecosystem`. |
+| `replace_age`      | Statistic     | The number of individuals replaced based on age. |
+| `replace_invalid`  | Statistic     | The number of individuals replaced based on invalid structure (e.g. Bounds) |
+| `genome_size`      | Distribution   | The size of each genome over the evolution process. This is usually static and doesn't change. |
+| `front`            | Statistic   | The number of members added to the Pareto front throughout the evolution process. |
+| `unique_members`   | Statistic     | The number of unique members in the `Ecosystem`. |
+| `unique_scores`    | Statistic     | The number of unique scores in the `Ecosystem`. |
+| `diversity_ratio`  | Statistic     | The ratio of unique scores to the size of the `Ecosystem`. |
+| `score_volatility` | Statistic     | The volatility of the scores in the `Ecosystem`. This is calculated as the standard deviation of the scores / mean. |
+| `species_count`    | Statistic     | The number of `species` in the 'Ecosystem`. |
+| `species_removed`  | Statistic     | The number of `species` removed based on stagnation. |
+| `species_distance` | Distribution | The distance between `species` in the `Ecosystem`. |
+| `species_created`  | Statistic     | The number of `species` created in the `Ecosystem`. |
+| `species_died`     | Statistic     | The number of `species` that have died in the `Ecosystem`. |
+| `species_age`      | Statistic     | The age of all the `species` in the `Ecosystem`. |
 
-Along with the default metrics, each component will also collect operation metrics (statistics and time statistics) for the operations it performs. For example, each `Alterer` and `Selector` will collect metrics and be iditified by their name. Its also important to note that `species` level metrics will only be collected if the engine is configured to use species-based diversity.
+Along with the default metrics, each component will also collect operation metrics (statistics and time statistics) for the operations it performs. For example, each `Alterer` and `Selector` will collect metrics and be identified by their name. Its also important to note that `species` level metrics will only be collected if the engine is configured to use species-based diversity.
+
+These can be accessed through the `metrics()` method of the epoch, which returns a `MetricSet`. 
+
+=== ":fontawesome-brands-python: Python"
+
+    ```python
+    import radiate as rd
+
+    # Create an engine
+    engine = rd.GeneticEngine(
+        codec=rd.FloatCodec.scalar(0.0, 1.0), 
+        fitness_fn=my_fitness_fn,  # Single objective fitness function
+        # ... other parameters ...
+    )
+
+    # Run the engine for 100 generations
+    result = engine.run(rd.GeneratinsLimit(100))
+
+    # Get the metrics of the engine
+    metrics = result.metrics()  # MetricSet object
+
+    # Access specific metrics
+    time_taken = metrics["time"]['time_sum'] # Total time taken for the evolution process
+    scores = metrics["scores"] # dict of score statistics
+
+    mean_score = scores['value_mean']  # Mean score of all individuals
+    all_last_generation_scores = scores['sequence_last']  # Last generation scores
+    ```
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    // --- set up the engine ---
+
+    let result = engine.run(|ctx| {
+        // get the scroe metric from the generation context
+        let temp = ctx.metrics().get("scores").unwrap();
+        // get the standard deviation of the score distribution
+        let std = temp.value_std_dev();
+        
+        std < 0.01 // Example condition to stop the engine
+    });
+
+    // Access the metrics from the result
+    let metrics: MetricSet = result.metrics();
+    ```
 
 ---
 
@@ -324,5 +374,4 @@ Along with the default metrics, each component will also collect operation metri
 * Enable parallel execution for expensive fitness functions
 * Use efficient selection strategies for large populations
 * Consider species-based diversity for complex landscapes
-* Monitor memory usage with large populations or complex chromosomes
 

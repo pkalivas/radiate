@@ -31,7 +31,7 @@ pub struct PyEngineInput {
     pub component: String,
     pub input_type: PyEngineInputType,
     pub allowed_genes: HashSet<PyGeneType>,
-    pub temp: HashMap<String, AnyValue<'static>>,
+    pub args: HashMap<String, AnyValue<'static>>,
 }
 
 #[pymethods]
@@ -47,7 +47,7 @@ impl PyEngineInput {
             component,
             input_type,
             allowed_genes,
-            temp: args
+            args: args
                 .into_iter()
                 .map(|(k, v)| (k, v.0.into_static()))
                 .collect(),
@@ -72,31 +72,31 @@ impl PyEngineInput {
 
 impl PyEngineInput {
     pub fn get(&self, key: &str) -> Option<&AnyValue<'static>> {
-        self.temp.get(key)
+        self.args.get(key)
     }
 
     pub fn get_string(&self, key: &str) -> Option<String> {
-        self.temp.get(key).and_then(|v| v.to_string())
+        self.args.get(key).and_then(|v| v.to_string())
     }
 
     pub fn get_i32(&self, key: &str) -> Option<i32> {
-        self.temp.get(key).and_then(|v| v.to_i32())
+        self.args.get(key).and_then(|v| v.to_i32())
     }
 
     pub fn get_f32(&self, key: &str) -> Option<f32> {
-        self.temp.get(key).and_then(|v| v.to_f32())
+        self.args.get(key).and_then(|v| v.to_f32())
     }
 
     pub fn get_f64(&self, key: &str) -> Option<f64> {
-        self.temp.get(key).and_then(|v| v.to_f64())
+        self.args.get(key).and_then(|v| v.to_f64())
     }
 
     pub fn get_usize(&self, key: &str) -> Option<usize> {
-        self.temp.get(key).and_then(|v| v.to_usize())
+        self.args.get(key).and_then(|v| v.to_usize())
     }
 
     pub fn get_bool(&self, key: &str) -> Option<bool> {
-        self.temp.get(key).and_then(|v| match v {
+        self.args.get(key).and_then(|v| match v {
             AnyValue::Bool(b) => Some(*b),
             _ => None,
         })
@@ -147,7 +147,7 @@ impl Into<Option<Limit>> for PyEngineInput {
 impl Debug for PyEngineInput {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut args = self
-            .temp
+            .args
             .iter()
             .map(|(k, v)| format!("\t\t{}: {:?}", k, v))
             .collect::<Vec<String>>()

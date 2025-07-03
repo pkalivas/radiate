@@ -78,9 +78,7 @@ class EngineBuilder:
     def set_alters(self, alters: List[AlterBase]):
         for alter in alters:
             if self._gene_type not in alter.allowed_genes:
-                base_error_msg = (
-                    f"Alterer {alter.component} does not support gene type {self._gene_type}."
-                )
+                base_error_msg = f"Alterer {alter.component} does not support gene type {self._gene_type}."
                 if self._gene_type is GeneType.GRAPH:
                     raise ValueError(
                         base_error_msg
@@ -88,8 +86,7 @@ class EngineBuilder:
                     )
                 elif self._gene_type is GeneType.TREE:
                     raise ValueError(
-                        base_error_msg
-                        + " Use TreeCrossover or HoistMutator instead."
+                        base_error_msg + " Use TreeCrossover or HoistMutator instead."
                     )
                 raise ValueError(base_error_msg)
 

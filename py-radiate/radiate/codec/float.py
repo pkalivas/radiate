@@ -4,7 +4,7 @@ from radiate.genome import Genotype
 from radiate.radiate import PyFloatCodec
 
 # try:
-#     import numpy 
+#     import numpy
 #     HAS_NUMPY = True
 # except ImportError:
 #     HAS_NUMPY = False
@@ -28,7 +28,7 @@ class FloatCodec(CodecBase):
         :return: A Genotype instance.
         """
         return Genotype(self.codec.encode_py())
-    
+
     def decode(self, genotype: Genotype) -> Any:
         """
         Decode a Genotype into its float representation.
@@ -91,7 +91,7 @@ class FloatCodec(CodecBase):
                 chromosome_lengths=shapes,
                 value_range=value_range,
                 bound_range=bound_range,
-                use_numpy=use_numpy,  
+                use_numpy=use_numpy,
             )
         )
 
