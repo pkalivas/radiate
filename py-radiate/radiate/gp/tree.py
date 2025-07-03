@@ -23,6 +23,7 @@ class Tree:
                 self.py_tree = py_tree
         else:
             from radiate.codec.tree import TreeCodec
+
             codec = TreeCodec(
                 vertex=vertex,
                 leaf=leaf,

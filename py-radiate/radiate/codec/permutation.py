@@ -3,8 +3,8 @@ from radiate.radiate import PyPermutationCodec
 from radiate.genome import Genotype
 from typing import List, Any
 
-class PermutationCodec(CodecBase):
 
+class PermutationCodec(CodecBase):
     def __init__(self, alleles: List[Any]):
         """
         Initialize the permutation codec with a PyPermutationCodec instance.
@@ -15,7 +15,6 @@ class PermutationCodec(CodecBase):
             raise TypeError("alleles must be a list of elements.")
         self.alleles = alleles
         self.codec = PyPermutationCodec(alleles)
-        
 
     def encode(self) -> Genotype:
         """

@@ -79,17 +79,14 @@ For example, a solution for `n=8` would be:
     N_QUEENS = 32
 
     def fitness_fn(queens):
-        score = 0
-        for i in range(N_QUEENS):
-            for j in range(i + 1, N_QUEENS):
-                if queens[i] == queens[j]:
-                    score += 1
-                if abs(i - j) == abs(queens[i] - queens[j]):
-                    score += 1
-        return score
+        i_indices, j_indices = np.triu_indices(N_QUEENS, k=1)
+        same_row = queens[i_indices] == queens[j_indices]
+        same_diagonal = np.abs(i_indices - j_indices) == np.abs(queens[i_indices] - queens[j_indices])
+        
+        return np.sum(same_row) + np.sum(same_diagonal)
 
     engine = rd.GeneticEngine(
-        codec=rd.IntCodec.vector(N_QUEENS, (0, N_QUEENS)),
+        codec=rd.IntCodec.vector(N_QUEENS, (0, N_QUEENS), use_numpy=True),
         fitness_func=fitness_fn,
         num_threads=1,
         offspring_selector=rd.BoltzmannSelector(4.0),
@@ -376,7 +373,7 @@ $$
 
     // When running an MO problem, we can get the resulting pareto from from the 
     // engine's epoch result. This is stored in the 'value()' field of the result here:
-    let front = result.value();
+    let front = result.front();
     ```
 
 The resulting Pareto front can be visualized using Plotly or matplotlib, as shown below:
@@ -406,7 +403,7 @@ Evolve a `Graph<Op<f32>>` to solve the XOR problem (NeuroEvolution).
 
     engine = rd.GeneticEngine(
         codec=codec,
-        problem=rd.Regression(inputs, answers, loss='mse'),
+        fitness_fn=rd.Regression(inputs, answers, loss='mse'),
         objectives="min",
         alters=[
             rd.GraphCrossover(0.5, 0.5),
@@ -442,10 +439,11 @@ Evolve a `Graph<Op<f32>>` to solve the XOR problem (NeuroEvolution).
         ];
 
         let graph_codec = GraphCodec::directed(2, 1, values);
-        let regression = Regression::new(get_dataset(), Loss::MSE, graph_codec);
+        let regression = Regression::new(get_dataset(), Loss::MSE);
 
         let mut engine = GeneticEngine::builder()
-            .problem(regression)
+            .codec(graph_codec)
+            .fitness_fn(regression)
             .minimizing()
             .alter(alters!(
                 GraphCrossover::new(0.5, 0.5),
@@ -499,9 +497,34 @@ Evolve a `Tree<Op<f32>>` to solve the a regression problem (Genetic Programming)
 
 === ":fontawesome-brands-python: Python"
 
-    !!! warning ":construction: Under Construction :construction:"
+    ```python
+    import radiate as rd
 
-        Python's gp feature is still under development and not yet available.
+    inputs = [[0.0, 0.0], [1.0, 1.0], [1.0, 0.0], [0.0, 1.0]]
+    answers = [[0.0], [0.0], [1.0], [1.0]]
+
+    codec = rd.TreeCodec(
+        shape=(2, 1),
+        vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.add()],
+        root=rd.Op.linear(),
+    )
+
+    engine = rd.GeneticEngine(
+        codec=codec,
+        fitness_func=rd.Regression(inputs, answers),
+        objectives="min",
+        alters=[
+            rd.TreeCrossover(0.7),
+            rd.HoistMutator(0.01),
+        ],
+    )
+
+    result = engine.run([rd.ScoreLimit(0.01), rd.TimeLimit(1.0)], log=True)
+    print(result)
+
+    for input, target in zip(inputs, answers):
+        print(f"Input: {input}, Target: {target}, Output: {result.value().eval([input])}")
+    ```
 
 === ":fontawesome-brands-rust: Rust"
 
@@ -523,10 +546,11 @@ Evolve a `Tree<Op<f32>>` to solve the a regression problem (Genetic Programming)
         ];
 
         let tree_codec = TreeCodec::single(3, store).constraint(|root| root.size() < 30);
-        let problem = Regression::new(get_dataset(), Loss::MSE, tree_codec);
+        let regression = Regression::new(get_dataset(), Loss::MSE);
 
         let mut engine = GeneticEngine::builder()
-            .problem(problem)
+            .codec(tree_codec)
+            .fitness_fn(regression)
             .minimizing()
             .mutator(HoistMutator::new(0.01))
             .crossover(TreeCrossover::new(0.7))

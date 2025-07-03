@@ -1,6 +1,4 @@
-
 class Op:
-
     def __init__(self, name: str, **kwargs):
         self.name = name
         self.args = kwargs
@@ -10,11 +8,9 @@ class Op:
             args_str = ", ".join(f"{k}={v}" for k, v in self.args.items())
             return f"Op({self.name}, {args_str})"
         return f"Op({self.name})"
-    
+
     def __getitem__(self, key):
         return self.args.get(key, None)
-    
-    
 
     @staticmethod
     def var(idx: int = 0) -> "Op":
@@ -23,79 +19,79 @@ class Op:
     @staticmethod
     def const(value: float) -> "Op":
         return Op("const", value=value)
-    
+
     @staticmethod
     def add() -> "Op":
         return Op("add")
-    
+
     @staticmethod
     def sub() -> "Op":
         return Op("sub")
-    
+
     @staticmethod
     def mul() -> "Op":
         return Op("mul")
-    
+
     @staticmethod
     def div() -> "Op":
         return Op("div")
-    
+
     @staticmethod
     def sigmoid() -> "Op":
         return Op("sigmoid")
-    
+
     @staticmethod
     def weight() -> "Op":
         return Op("weight")
-    
+
     @staticmethod
     def relu() -> "Op":
         return Op("relu")
-    
+
     @staticmethod
     def tanh() -> "Op":
         return Op("tanh")
-    
+
     @staticmethod
     def linear() -> "Op":
         return Op("linear")
-    
+
     @staticmethod
     def sum() -> "Op":
         return Op("sum")
-    
+
     @staticmethod
     def prod() -> "Op":
         return Op("prod")
-    
+
     @staticmethod
     def diff() -> "Op":
         return Op("diff")
-    
+
     @staticmethod
     def pow() -> "Op":
         return Op("pow")
-    
+
     @staticmethod
     def log() -> "Op":
         return Op("log")
-    
+
     @staticmethod
     def sin() -> "Op":
         return Op("sin")
-    
+
     @staticmethod
     def cos() -> "Op":
         return Op("cos")
-    
+
     @staticmethod
     def identity() -> "Op":
         return Op("identity")
-    
+
     @staticmethod
     def neg() -> "Op":
         return Op("neg")
-    
+
     @staticmethod
     def sqrt() -> "Op":
         return Op("sqrt")
@@ -103,7 +99,7 @@ class Op:
     @staticmethod
     def abs() -> "Op":
         return Op("abs")
-    
+
     @staticmethod
     def exp() -> "Op":
         return Op("exp")
@@ -135,19 +131,19 @@ class Op:
     @staticmethod
     def elu() -> "Op":
         return Op("elu")
-    
+
     @staticmethod
     def mish() -> "Op":
         return Op("mish")
-    
+
     @staticmethod
     def swish() -> "Op":
         return Op("swish")
-    
+
     @staticmethod
     def softplus() -> "Op":
         return Op("softplus")
-    
+
     @staticmethod
     def softmax() -> "Op":
         return Op("softmax")
@@ -163,7 +159,7 @@ class Op:
             Op.prod(),
             Op.diff(),
             Op.neg(),
-            Op.pow(),  
+            Op.pow(),
             Op.sqrt(),
             Op.abs(),
             Op.exp(),
@@ -175,7 +171,6 @@ class Op:
             Op.floor(),
             Op.max(),
             Op.min(),
-            
             Op.sigmoid(),
             Op.tanh(),
             Op.relu(),
@@ -185,7 +180,6 @@ class Op:
             Op.mish(),
             Op.swish(),
             Op.softmax(),
-
             Op.identity(),
             Op.weight(),
         ]

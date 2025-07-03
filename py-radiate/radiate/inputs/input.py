@@ -23,7 +23,9 @@ gene_type_mapping = {
     "int": PyGeneType.Int,
     "bit": PyGeneType.Bit,
     "char": PyGeneType.Char,
+    'permutation': PyGeneType.Permutation,
     "graph": PyGeneType.Graph,
+    'tree': PyGeneType.Tree,
 }
 
 

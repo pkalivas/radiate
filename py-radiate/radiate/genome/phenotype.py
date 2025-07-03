@@ -10,10 +10,11 @@ class Phenotype:
     """
 
     def __init__(
-        self, phenotype: PyPhenotype | None = None, 
+        self,
+        phenotype: PyPhenotype | None = None,
         genotype: Genotype | None = None,
         score: List[float] | None = None,
-        id: int | None = None
+        id: int | None = None,
     ):
         """
         Initializes a Phenotype instance.
@@ -36,7 +37,7 @@ class Phenotype:
         :return: Length of the phenotype.
         """
         return len(self.__inner.genotype.chromosomes)
-    
+
     def __eq__(self, other: Phenotype) -> bool:
         """
         Checks if two Phenotype instances are equal.
@@ -53,7 +54,7 @@ class Phenotype:
         :return: The PyPhenotype instance associated with this Phenotype.
         """
         return self.__inner
-    
+
     def score(self) -> List[float]:
         """
         Returns the score of the phenotype.

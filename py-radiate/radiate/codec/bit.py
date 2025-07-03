@@ -38,7 +38,9 @@ class BitCodec(CodecBase):
         return self.codec.decode_py(genotype.py_genotype())
 
     @staticmethod
-    def matrix(shape: List[int] | Tuple[int, int], use_numpy: bool = False) -> "BitCodec":
+    def matrix(
+        shape: List[int] | Tuple[int, int], use_numpy: bool = False
+    ) -> "BitCodec":
         """
         Initialize the bit codec with a matrix of chromosomes.
         Args:
@@ -62,7 +64,9 @@ class BitCodec(CodecBase):
             if not all(isinstance(x, int) and x > 0 for x in shape):
                 raise ValueError("Shape must be a list of positive integers.")
 
-        return BitCodec(PyBitCodec.matrix(chromosome_lengths=shape, use_numpy=use_numpy))
+        return BitCodec(
+            PyBitCodec.matrix(chromosome_lengths=shape, use_numpy=use_numpy)
+        )
 
     @staticmethod
     def vector(length: int = 8, use_numpy: bool = False) -> "BitCodec":

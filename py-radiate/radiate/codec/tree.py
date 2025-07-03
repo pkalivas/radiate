@@ -9,10 +9,9 @@ NodeValues: TypeAlias = Union[List[Op], Op, List[str], str]
 
 
 class TreeCodec(CodecBase):
-
     def encode(self) -> "Genotype":
         return Genotype(self.codec.encode_py())
-    
+
     def decode(self, genotype: Genotype) -> "Tree":
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
@@ -38,10 +37,10 @@ class TreeCodec(CodecBase):
             raise ValueError("Minimum depth must be at least 1")
         if max_size < 1:
             raise ValueError("Maximum size must be at least 1")
-        
+
         ops_map: Dict[str, List[Op]] = {}
         if leaf is None and values is None:
-            ops_map = {"leaf": [Op.var(i) for i in range(input_size)]} 
+            ops_map = {"leaf": [Op.var(i) for i in range(input_size)]}
         if values is not None:
             if isinstance(values, list):
                 values = dict(values)
@@ -55,4 +54,3 @@ class TreeCodec(CodecBase):
                 ops_map["leaf"] = [leaf] if isinstance(leaf, Op) else leaf
 
         self.codec = PyTreeCodec(output_size, min_depth, max_size, ops_map)
-

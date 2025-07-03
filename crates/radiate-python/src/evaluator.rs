@@ -30,10 +30,10 @@ impl<C: Chromosome, T: IntoPyObjectValue> FreeThreadPyEvaluator<C, T> {
     }
 }
 
-impl<C: Chromosome, T: IntoPyObjectValue> Evaluator<C, T> for FreeThreadPyEvaluator<C, T>
+impl<C, T> Evaluator<C, T> for FreeThreadPyEvaluator<C, T>
 where
     C: Chromosome + 'static,
-    T: Send + Sync + 'static,
+    T: IntoPyObjectValue + Send + Sync + 'static,
 {
     fn eval(&self, ecosystem: &mut Ecosystem<C>, _: Arc<dyn Problem<C, T>>) -> usize {
         Python::with_gil(|outer| {

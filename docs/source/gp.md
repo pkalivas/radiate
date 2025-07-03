@@ -2,7 +2,7 @@
 
 !!! warning ":construction: Under Construction :construction:"
 
-    As of `6/22/2025`: These docs are a work in progress and may not be complete or fully accurate. Please check back later for updates.
+    As of `7/3/2025`: These docs are a work in progress and may not be complete or fully accurate. Please check back later for updates.
 
 ___
 
@@ -148,9 +148,23 @@ Provided `Ops` include:
 
 === ":fontawesome-brands-python: Python"
 
-    !!! warning ":construction: Under Construction :construction:"
+    Ops in python can't be directly evaluated like in rust. However, they can still be constructed and used in a similar way.
 
-        Python's GP is still under development and will be available in a future release.
+    ```python
+    import radiate as rd
+
+    add = rd.Op.add()  
+    sub = rd.Op.sub()
+    mul = rd.Op.mul()
+    div = rd.Op.div()
+
+    constant = rd.Op.constant(42.0)
+    variable = rd.Op.var(0)
+
+    sigmoid = rd.Op.sigmoid()
+    relu = rd.Op.relu()
+    tanh = rd.Op.tanh()
+    ```
 
 === ":fontawesome-brands-rust: Rust"
 
@@ -185,9 +199,11 @@ This mutator randomly changes or alters the `op` of a node within a `TreeChromos
 
 === ":fontawesome-brands-python: Python"
 
-    !!! warning ":construction: Under Construction :construction:"
+    ```python
+    import radiate as rd
 
-        Python's GP is still under development and will be available in a future release.
+    mutator = rd.OperationMutator(0.07, 0.05),
+    ```
 
 === ":fontawesome-brands-rust: Rust"
 
@@ -225,9 +241,7 @@ Each node type is defined by the `NodeType` enum:
 
 === ":fontawesome-brands-python: Python"
 
-    !!! warning ":construction: Under Construction :construction:"
-
-        Python's GP is still under development and will be available in a future release.
+    Node types aren't defined in python - we use strings or input variables instead.
 
 === ":fontawesome-brands-rust: Rust"
 
@@ -250,9 +264,7 @@ The `NodeStore<T>` manages available values for different node types, providing 
 
 === ":fontawesome-brands-python: Python"
 
-    !!! warning ":construction: Under Construction :construction:"
-
-        Python's GP is still under development and will be available in a future release.
+    There is no node store for python - it isn't nessesary for the api. Instead, the types of nodes are directly given the their codec or structure.
 
 === ":fontawesome-brands-rust: Rust"
 
@@ -349,9 +361,21 @@ A `tree` represents a hierarchical structure where each node has exactly one par
 
 === ":fontawesome-brands-python: Python"
 
-    !!! warning ":construction: Under Construction :construction:"
+    Trees in python aren't quite as expressive as in rust, but they can still be constructed and used in a similar way.
 
-        Python's GP is still under development and will be available in a future release.
+    ```python
+    import radiate as rd
+
+    tree = rd.Tree(
+        min_height=3,       # Default
+        max_size=30,        # Default
+        root=rd.Op.add(),   # The root operation - isn't necessary to specify
+        vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul(), rd.Op.div()],
+        leaf=[rd.Op.var(0), rd.Op.var(1)],
+    )
+
+    result = tree.eval([1, 2]) 
+    ```
 
 === ":fontawesome-brands-rust: Rust"
 
@@ -428,9 +452,22 @@ The `TreeCodec` is simply a `codec` that encodes a `TreeChromosome` and decodes 
 
 === ":fontawesome-brands-python: Python"
 
-    !!! warning ":construction: Under Construction :construction:"
+    ```python
+    import radiate as rd
 
-        Python's GP is still under development and will be available in a future release.
+    # Create a tree codec with a starting (minimum) depth of 3
+    codec = rd.TreeCodec(
+        shape=(2, 1),
+        min_depth=3,
+        max_size=30,
+        root=rd.Op.add(),
+        vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul()],
+        leaf=[rd.Op.var(0), rd.Op.var(1)],
+    )
+
+    genotype = codec.encode()  
+    tree = codec.decode(genotype)
+    ```
 
 === ":fontawesome-brands-rust: Rust"
 
@@ -470,9 +507,11 @@ The `HoistMutator` is a mutation operator that randomly selects a subtree from t
 
 === ":fontawesome-brands-python: Python"
 
-    !!! warning ":construction: Under Construction :construction:"
+    ```python
+    import radiate as rd
 
-        Python's GP is still under development and will be available in a future release.
+    mutator = rd.HoistMutator(rate=0.1)
+    ```
 
 === ":fontawesome-brands-rust: Rust"
 
@@ -494,9 +533,11 @@ The `TreeCrossover` is a crossover operator that randomly selects a subtree from
 
 === ":fontawesome-brands-python: Python"
 
-    !!! warning ":construction: Under Construction :construction:"
+    ```python
+    import radiate as rd
 
-        Python's GP is still under development and will be available in a future release.
+    mutator = rd.TreeCrossover(rate=0.1)
+    ```
 
 === ":fontawesome-brands-rust: Rust"
 
@@ -536,9 +577,21 @@ Manually create a simple graph:
 
 === ":fontawesome-brands-python: Python"
 
-    !!! warning ":construction: Under Construction :construction:"
+    Creating a graph in python doesn't offer as much flexibility as in rust at the current time, but it can still be done. 
 
-        Python's GP is still under development and will be available in a future release.
+    ```python
+    import radiate as rd
+
+    graph = rd.Graph(
+        shape=(2, 1),
+        vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul(), rd.Op.div()],
+        edge=[rd.Op.weight()],
+        output=[rd.Op.linear()],
+    )
+
+    inputs = [[1.0, 2.0]]
+    outputs = graph.eval(inputs)
+    ```
 
 === ":fontawesome-brands-rust: Rust"
 
@@ -577,9 +630,19 @@ Now, the above works just fine, but can become cumbersome quickly. To ease the p
 
 === ":fontawesome-brands-python: Python"
 
-    !!! warning ":construction: Under Construction :construction:"
+    ```python
+    import radiate as rd
 
-        Python's GP is still under development and will be available in a future release.
+    graph = rd.Graph(
+        shape=(2, 1),
+        vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul(), rd.Op.div()],
+        edge=[rd.Op.weight()],
+        output=[rd.Op.linear()],
+    )
+
+    inputs = [[1.0, 2.0]]
+    outputs = graph.eval(inputs)
+    ```
 
 === ":fontawesome-brands-rust: Rust"
 
@@ -628,9 +691,7 @@ The `GraphNode` struct is a fundamental building block for graph-based genetic p
 
 === ":fontawesome-brands-python: Python"
 
-    !!! warning ":construction: Under Construction :construction:"
-
-        Python's GP is still under development and will be available in a future release.
+    There is no `GraphNode` in python. It isn't necessary for the api. 
 
 === ":fontawesome-brands-rust: Rust"
 
@@ -651,9 +712,29 @@ The `GraphCodec` is a codec that encodes a `GraphChromosome` and decodes it back
 
 === ":fontawesome-brands-python: Python"
 
-    !!! warning ":construction: Under Construction :construction:"
+    ```python
+    # Create a directed graph codec 
+    codec = GraphCodec.directed(
+        shape=(2, 1),
+        vertex=[rd.Op.add(), rd.Op.mul()],
+        edge=rd.Op.weight(),
+        output=rd.Op.linear()
+    )
 
-        Python's GP is still under development and will be available in a future release.
+    genotype = codec.encode()
+    graph = codec.decode(genotype)
+
+    # Create a recurrent graph codec
+    codec = GraphCodec.recurrent(
+        shape=(2, 1),
+        vertex=[rd.Op.add(), rd.Op.mul()],
+        edge=rd.Op.weight(),
+        output=rd.Op.linear()
+    )
+
+    genotype = codec.encode()
+    recurrent_graph = codec.decode(genotype)
+    ```
 
 === ":fontawesome-brands-rust: Rust"
 
@@ -695,9 +776,12 @@ This mutator is used to add new nodes and connections to the graph. It can be us
 
 === ":fontawesome-brands-python: Python"
 
-    !!! warning ":construction: Under Construction :construction:"
+    ```python
+    import radiate as rd
 
-        Python's GP is still under development and will be available in a future release.
+    # Create a mutator that adds vertices and edges with a 10% chance for either
+    mutator = rd.GraphMutator(vertex_rate=0.1, edge_rate=0.1, allow_recurrent=True)
+    ```
 
 === ":fontawesome-brands-rust: Rust"
 
@@ -723,9 +807,11 @@ This crossover operator is used to combine two parent graphs by swapping the val
 
 === ":fontawesome-brands-python: Python"
 
-    !!! warning ":construction: Under Construction :construction:"
+    ```python
+    import radiate as rd
 
-        Python's GP is still under development and will be available in a future release.
+    crossover = rd.GraphCrossover(0.1, 0.5)
+    ```
 
 === ":fontawesome-brands-rust: Rust"
 

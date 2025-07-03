@@ -35,7 +35,9 @@ class AlterBase(ComponentBase):
 class BlendCrossover(AlterBase):
     def __init__(self, rate: float = 0.1, alpha: float = 0.5):
         super().__init__(
-            component="BlendCrossover", args={"rate": rate, "alpha": alpha}
+            component="BlendCrossover",
+            args={"rate": rate, "alpha": alpha},
+            allowed_genes=GeneType.FLOAT,
         )
 
 
@@ -43,7 +45,8 @@ class IntermediateCrossover(AlterBase):
     def __init__(self, rate: float = 0.1, alpha: float = 0.5):
         super().__init__(
             component="IntermediateCrossover",
-            args={"rate": str(rate), "alpha": alpha},
+            args={"rate": rate, "alpha": alpha},
+            allowed_genes=GeneType.FLOAT,
         )
 
 
@@ -67,7 +70,11 @@ class SimulatedBinaryCrossover(AlterBase):
 
 class PartiallyMappedCrossover(AlterBase):
     def __init__(self, rate: float = 0.1):
-        super().__init__(component="PartiallyMappedCrossover", args={"rate": rate}, allowed_genes=GeneType.PERMUTATION)
+        super().__init__(
+            component="PartiallyMappedCrossover",
+            args={"rate": rate},
+            allowed_genes=GeneType.PERMUTATION,
+        )
 
 
 class MultiPointCrossover(AlterBase):
@@ -143,6 +150,7 @@ class GraphCrossover(AlterBase):
             allowed_genes=GeneType.GRAPH,
         )
 
+
 class TreeCrossover(AlterBase):
     def __init__(self, rate: float = 0.5):
         super().__init__(
@@ -151,6 +159,7 @@ class TreeCrossover(AlterBase):
             allowed_genes=GeneType.TREE,
         )
 
+
 class HoistMutator(AlterBase):
     def __init__(self, rate: float = 0.1):
         super().__init__(
@@ -158,6 +167,7 @@ class HoistMutator(AlterBase):
             args={"rate": rate},
             allowed_genes=GeneType.TREE,
         )
+
 
 class InversionMutator(AlterBase):
     def __init__(self, rate: float = 0.1):

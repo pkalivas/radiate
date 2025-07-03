@@ -21,7 +21,7 @@ class IntCodec(CodecBase):
         :return: A Genotype instance.
         """
         return Genotype(self.codec.encode_py())
-    
+
     def decode(self, genotype: Genotype) -> Any:
         """
         Decode a Genotype into its integer representation.
@@ -130,7 +130,7 @@ class IntCodec(CodecBase):
                 raise ValueError("Minimum value must be less than maximum value.")
             if value_range[1] < value_range[0]:
                 raise ValueError("Maximum value must be non-negative.")
-        
+
         return IntCodec(
             PyIntCodec.scalar(
                 value_range=value_range,
