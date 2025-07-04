@@ -4,20 +4,14 @@ use radiate_core::{
 };
 use std::sync::Arc;
 
-pub struct FilterStep<C>
-where
-    C: Chromosome,
-{
+pub struct FilterStep<C: Chromosome> {
     pub(crate) replacer: Arc<dyn ReplacementStrategy<C>>,
     pub(crate) encoder: Arc<dyn Fn() -> Genotype<C> + Send + Sync>,
     pub(crate) max_age: usize,
     pub(crate) max_species_age: usize,
 }
 
-impl<C> EngineStep<C> for FilterStep<C>
-where
-    C: Chromosome,
-{
+impl<C: Chromosome> EngineStep<C> for FilterStep<C> {
     #[inline]
     fn execute(
         &mut self,

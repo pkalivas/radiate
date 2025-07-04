@@ -102,7 +102,6 @@ class TestPhenotypeComprehensive:
 
         score = phenotype.score()
         assert isinstance(score, list)
-        # Note: New phenotypes typically have empty scores
 
     @pytest.mark.unit
     def test_phenotype_genotype_method(self):

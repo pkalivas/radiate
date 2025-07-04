@@ -65,7 +65,7 @@ where
 
 impl<C, T> GeneticEngine<C, T>
 where
-    C: Chromosome + Clone + 'static,
+    C: Chromosome + Clone,
     T: Clone + Send + Sync + 'static,
 {
     pub(crate) fn new(

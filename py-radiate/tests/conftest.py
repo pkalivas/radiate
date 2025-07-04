@@ -6,10 +6,7 @@ from typing import List
 
 import pytest
 import random
-import warnings
 import radiate as rd
-
-warnings.filterwarnings("ignore")
 
 try:
     import numpy as np
@@ -115,17 +112,6 @@ def tree_simple():
         root=rd.Op.linear(),
     )
     return codec.decode(codec.encode())
-
-
-@pytest.fixture
-def basic_engine_config():
-    """Basic engine configuration for testing."""
-    return {
-        "population_size": 50,
-        "max_generations": 100,
-        "offspring_selector": rd.TournamentSelector(3),
-        "survivor_selector": rd.EliteSelector(),
-    }
 
 
 class TestDataGenerator:
