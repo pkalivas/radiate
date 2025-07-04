@@ -1,3 +1,4 @@
+use crate::Context;
 use radiate_core::{Chromosome, MetricSet, Score};
 use std::{
     fmt::{Debug, Display},
@@ -7,8 +8,6 @@ use std::{
         atomic::{AtomicUsize, Ordering},
     },
 };
-
-use crate::Context;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[repr(transparent)]

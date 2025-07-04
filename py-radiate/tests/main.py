@@ -1,60 +1,61 @@
 import os
 import sys
-import math
-import matplotlib.pyplot as plt
-from numba import jit, cfunc, vectorize
-import numpy as np
+# import math  # type: ignore
+import numpy as np # type: ignore
+# from numba import jit, cfunc, vectorize # type: ignore
+
+import matplotlib.pyplot as plt # type: ignore
 
 
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, project_root)
 
-import radiate as rd
+import radiate as rd 
 
-print(f"Radiate version: {rd.__version__}"  )
+print(f"Radiate version: {rd.__version__}")
 
 rd.random.set_seed(500)
 
 
-class TestHandler(rd.EventHandler):
-    def __init__(self):
-        super().__init__()
-        self.scores = []
+# class TestHandler(rd.EventHandler):
+#     def __init__(self):
+#         super().__init__()
+#         self.scores = []
 
-    def on_event(self, event):
+#     def on_event(self, event):
         
-        if event["type"] == "epoch_complete":
-            self.scores.append(event["score"])
-            # self.scores.append(event['metrics']['unique_members']['value_last'])
-        elif event["type"] == "stop":
-            plt.plot(self.scores)
-            plt.xlabel("Generation")
-            plt.ylabel("Best Fitness")
-            plt.title("Fitness over Generations")
-            plt.show()
-        elif event["type"] == "engine_improvement":
-            print(f"New best score: {event}")
+#         if event["type"] == "epoch_complete":
+#             self.scores.append(event["score"])
+#             # self.scores.append(event['metrics']['unique_members']['value_last'])
+#         elif event["type"] == "stop":
+#             plt.plot(self.scores)
+#             plt.xlabel("Generation")
+#             plt.ylabel("Best Fitness")
+#             plt.title("Fitness over Generations")
+#             plt.show()
+#         elif event["type"] == "engine_improvement":
+#             print(f"New best score: {event}")
         
 
 
-engine = rd.GeneticEngine(
-    codec=rd.IntCodec.vector(50, (0, 10)),
-    fitness_func=lambda x: sum(x),
-    offspring_selector=rd.BoltzmannSelector(4),
-    objectives="min",
-    # subscribe=TestHandler(),
-    # executor=rd.Executor.WorkerPool(),
-    alters=[
-        rd.MultiPointCrossover(0.75, 2),
-        rd.UniformMutator(0.01)
-    ],
-)
+# engine = rd.GeneticEngine(
+#     codec=rd.IntCodec.vector(50, (0, 10)),
+#     fitness_func=lambda x: sum(x),
+#     offspring_selector=rd.BoltzmannSelector(4),
+#     objectives="min",
+#     # subscribe=TestHandler(),
+#     # executor=rd.Executor.WorkerPool(),
+#     alters=[
+#         rd.MultiPointCrossover(0.75, 2),
+#         rd.UniformMutator(0.01)
+#     ],
+# )
 
-result = engine.run(rd.ScoreLimit(0), log=True)
+# result = engine.run(rd.ScoreLimit(0), log=True)
 
-print(result)
-print(result.metrics()['scores'])
+# print(result)
+# print(result.metrics()['scores'])
 
 # inputs = [[1.0, 1.0], [1.0, 0.0], [0.0, 1.0], [0.0, 0.0]]
 # answers = [[0.0], [1.0], [1.0], [0.0]]
@@ -171,52 +172,53 @@ print(result.metrics()['scores'])
 # #     print(member.score())
 
 
-# N_QUEENS = 32
+    # score = 0
+    # for i in range(N_QUEENS):
+    #     for j in range(i + 1, N_QUEENS):
+    #         if queens[i] == queens[j]:
+    #             score += 1
+    #         if abs(i - j) == abs(queens[i] - queens[j]):
+    #             score += 1
+    # return score
 
-# # @jit(nopython=True, nogil=True)
-# def fitness_fn(queens):
-#     """Calculate the fitness score for the N-Queens problem."""
+
+N_QUEENS = 32
+
+# @jit(nopython=True, nogil=True)
+def fitness_fn(queens):
+    """Calculate the fitness score for the N-Queens problem."""
     
-#     i_indices, j_indices = np.triu_indices(N_QUEENS, k=1)
-#     same_row = queens[i_indices] == queens[j_indices]
-#     same_diagonal = np.abs(i_indices - j_indices) == np.abs(queens[i_indices] - queens[j_indices])
+    i_indices, j_indices = np.triu_indices(N_QUEENS, k=1)
+    same_row = queens[i_indices] == queens[j_indices]
+    same_diagonal = np.abs(i_indices - j_indices) == np.abs(queens[i_indices] - queens[j_indices])
     
-#     # Count conflicts
-#     score = np.sum(same_row) + np.sum(same_diagonal)
-#     return score
-    
-#     # score = 0
-#     # for i in range(N_QUEENS):
-#     #     for j in range(i + 1, N_QUEENS):
-#     #         if queens[i] == queens[j]:
-#     #             score += 1
-#     #         if abs(i - j) == abs(queens[i] - queens[j]):
-#     #             score += 1
-#     # return score
+    # Count conflicts
+    score = np.sum(same_row) + np.sum(same_diagonal)
+    return score
 
-# # codec = rd.IntCodec.vector(N_QUEENS, (0, N_QUEENS), use_numpy=True)
-# # engine = rd.GeneticEngine(
-# #     codec=codec,
-# #     fitness_func=fitness_fn,
-# #     objectives="min",
-# #     offspring_selector=rd.BoltzmannSelector(4.0),
-# #     alters=[
-# #         rd.MultiPointCrossover(0.75, 2),
-# #         rd.UniformMutator(0.05)
-# #     ]
-# # )
-# # result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(1000)], log=True)
-# # print(result)
+codec = rd.IntCodec.vector(N_QUEENS, (0, N_QUEENS), use_numpy=True)
+engine = rd.GeneticEngine(
+    codec=codec,
+    fitness_func=fitness_fn,
+    objectives="min",
+    offspring_selector=rd.BoltzmannSelector(4.0),
+    alters=[
+        rd.MultiPointCrossover(0.75, 2),
+        rd.UniformMutator(0.05)
+    ]
+)
+result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(1000)], log=True)
+print(result)
 
 
-# # board = result.value()
-# # for i in range(N_QUEENS):
-# #     for j in range(N_QUEENS):
-# #         if board[j] == i:
-# #             print("Q ", end="")
-# #         else:
-# #             print(". ", end="")
-# #     print()
+# board = result.value()
+# for i in range(N_QUEENS):
+#     for j in range(N_QUEENS):
+#         if board[j] == i:
+#             print("Q ", end="")
+#         else:
+#             print(". ", end="")
+#     print()
 
 
 # # target = "Hello, Radiate!"

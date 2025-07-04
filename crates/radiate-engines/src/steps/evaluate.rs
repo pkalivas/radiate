@@ -24,7 +24,7 @@ impl<C: Chromosome, T> EvaluateStep<C, T> {
 
 impl<C, T> EngineStep<C> for EvaluateStep<C, T>
 where
-    C: Chromosome + PartialEq + 'static,
+    C: Chromosome + PartialEq,
 {
     #[inline]
     fn execute(&mut self, _: usize, metrics: &mut MetricSet, ecosystem: &mut Ecosystem<C>) {

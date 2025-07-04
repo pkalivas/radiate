@@ -88,7 +88,7 @@ For example, a solution for `n=8` would be:
     engine = rd.GeneticEngine(
         codec=rd.IntCodec.vector(N_QUEENS, (0, N_QUEENS), use_numpy=True),
         fitness_func=fitness_fn,
-        num_threads=1,
+        objectives="min",
         offspring_selector=rd.BoltzmannSelector(4.0),
         alters=[
             rd.MultiPointCrossover(0.75, 2),
@@ -209,6 +209,7 @@ where:
     codec = rd.FloatCodec.vector(2, (-5.12, 5.12))
     engine = rd.GeneticEngine(codec, fitness_fn)
 
+    engine.minimizing()
     engine.alters([
         rd.UniformCrossover(0.5),
         rd.ArithmeticMutator(0.01)

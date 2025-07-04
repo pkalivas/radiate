@@ -6,8 +6,7 @@ pub trait Engine {
 pub trait EngineExt<E: Engine> {
     fn run<F>(&mut self, limit: F) -> E::Epoch
     where
-        F: Fn(&E::Epoch) -> bool,
-        Self: Sized;
+        F: Fn(&E::Epoch) -> bool;
 }
 
 impl<E> EngineExt<E> for E
@@ -17,7 +16,6 @@ where
     fn run<F>(&mut self, limit: F) -> E::Epoch
     where
         F: Fn(&E::Epoch) -> bool,
-        Self: Sized,
     {
         loop {
             let epoch = self.next();

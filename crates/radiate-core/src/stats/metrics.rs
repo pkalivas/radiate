@@ -48,7 +48,6 @@ impl MetricLabel {
     }
 }
 
-// Convenience macro for creating labels
 #[macro_export]
 macro_rules! labels {
     ($($key:expr => $value:expr),* $(,)?) => {
@@ -185,9 +184,7 @@ pub struct MetricInner {
 pub struct Metric {
     name: &'static str,
     inner: MetricInner,
-    dependencies: Option<Vec<&'static str>>,
     labels: Option<HashSet<MetricLabel>>,
-    children: Option<Vec<Metric>>,
 }
 
 impl Metric {
@@ -199,9 +196,7 @@ impl Metric {
                 time_statistic: None,
                 distribution: None,
             },
-            dependencies: None,
             labels: None,
-            children: None,
         }
     }
 
@@ -220,30 +215,6 @@ impl Metric {
 
     pub fn add_label(&mut self, label: MetricLabel) {
         self.labels.get_or_insert_with(HashSet::new).insert(label);
-    }
-
-    pub fn children(&self) -> Option<&Vec<Metric>> {
-        self.children.as_ref()
-    }
-
-    pub fn children_mut(&mut self) -> &mut Vec<Metric> {
-        self.children.get_or_insert_with(Vec::new)
-    }
-
-    pub fn with_children(mut self, children: Vec<Metric>) -> Self {
-        self.children.get_or_insert_with(Vec::new).extend(children);
-        self
-    }
-
-    pub fn upsert_child<'a>(&mut self, name: &'static str, update: impl Into<MetricUpdate<'a>>) {
-        let children = self.children_mut();
-        if let Some(child) = children.iter_mut().find(|m| m.name() == name) {
-            child.apply_update(update);
-        } else {
-            let mut child = Metric::new(name);
-            child.apply_update(update);
-            children.push(child);
-        }
     }
 
     pub fn upsert<'a>(mut self, update: impl Into<MetricUpdate<'a>>) -> Self {
@@ -330,67 +301,50 @@ impl Metric {
     }
 
     pub fn last_value(&self) -> f32 {
-        if let Some(stat) = &self.inner.value_statistic {
-            stat.last_value()
-        } else {
-            0.0
-        }
+        self.inner
+            .value_statistic
+            .as_ref()
+            .map_or(0.0, |stat| stat.last_value())
     }
 
     pub fn last_time(&self) -> Duration {
-        if let Some(stat) = &self.inner.time_statistic {
-            stat.last_time()
-        } else {
-            Duration::ZERO
-        }
+        self.inner
+            .time_statistic
+            .as_ref()
+            .map_or(Duration::ZERO, |stat| stat.last_time())
     }
 
     pub fn value_mean(&self) -> Option<f32> {
-        if let Some(stat) = &self.inner.value_statistic {
-            Some(stat.mean())
-        } else {
-            None
-        }
+        self.inner.value_statistic.as_ref().map(|stat| stat.mean())
     }
 
     pub fn value_variance(&self) -> Option<f32> {
-        if let Some(stat) = &self.inner.value_statistic {
-            Some(stat.variance())
-        } else {
-            None
-        }
+        self.inner
+            .value_statistic
+            .as_ref()
+            .map(|stat| stat.variance())
     }
 
     pub fn value_std_dev(&self) -> Option<f32> {
-        if let Some(stat) = &self.inner.value_statistic {
-            Some(stat.std_dev())
-        } else {
-            None
-        }
+        self.inner
+            .value_statistic
+            .as_ref()
+            .map(|stat| stat.std_dev())
     }
 
     pub fn value_skewness(&self) -> Option<f32> {
-        if let Some(stat) = &self.inner.value_statistic {
-            Some(stat.skewness())
-        } else {
-            None
-        }
+        self.inner
+            .value_statistic
+            .as_ref()
+            .map(|stat| stat.skewness())
     }
 
     pub fn value_min(&self) -> Option<f32> {
-        if let Some(stat) = &self.inner.value_statistic {
-            Some(stat.min())
-        } else {
-            None
-        }
+        self.inner.value_statistic.as_ref().map(|stat| stat.min())
     }
 
     pub fn value_max(&self) -> Option<f32> {
-        if let Some(stat) = &self.inner.value_statistic {
-            Some(stat.max())
-        } else {
-            None
-        }
+        self.inner.value_statistic.as_ref().map(|stat| stat.max())
     }
 
     pub fn time_mean(&self) -> Option<Duration> {
@@ -548,7 +502,6 @@ impl std::fmt::Debug for Metric {
     }
 }
 
-/// Formats a table of metrics, grouping by name and aligning columns for readability.
 pub fn format_metrics_table(metrics: &MetricSet) -> String {
     use std::fmt::Write;
 
@@ -684,5 +637,29 @@ mod tests {
         assert_eq!(metric.value_std_dev().unwrap(), 1.5811388);
         assert_eq!(metric.value_min().unwrap(), 1.0);
         assert_eq!(metric.value_max().unwrap(), 5.0);
+    }
+
+    #[test]
+    fn test_metric_labels() {
+        let mut metric = Metric::new("test");
+        metric.add_label(MetricLabel::new("label1", "value1"));
+        metric.add_label(MetricLabel::new("label2", "value2"));
+        metric.apply_update(1.0);
+        metric.apply_update(2.0);
+        metric.apply_update(3.0);
+        metric.apply_update(4.0);
+        metric.apply_update(5.0);
+
+        assert_eq!(metric.count(), 5);
+        assert_eq!(metric.last_value(), 5.0);
+        assert_eq!(metric.value_mean().unwrap(), 3.0);
+        assert_eq!(metric.value_variance().unwrap(), 2.5);
+        assert_eq!(metric.value_std_dev().unwrap(), 1.5811388);
+        assert_eq!(metric.value_min().unwrap(), 1.0);
+        assert_eq!(metric.value_max().unwrap(), 5.0);
+        assert!(metric.labels().is_some());
+        let labels = metric.labels().unwrap();
+        assert!(labels.contains(&MetricLabel::new("label1", "value1")));
+        assert!(labels.contains(&MetricLabel::new("label2", "value2")));
     }
 }

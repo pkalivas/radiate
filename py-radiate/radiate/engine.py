@@ -212,22 +212,6 @@ class GeneticEngine:
             raise ValueError("Alters must be provided.")
         self.builder.set_alters(alters)
 
-    def limits(self, limits: LimitBase | List[LimitBase]):
-        """Set the limits.
-        Args:
-            limits (LimitBase | List[LimitBase]): The limits to apply to the engine.
-        Raises:
-            ValueError: If limits is None or invalid.
-
-        Example:
-        ---------
-        >>> engine.limits(rd.ScoreLimit(0.0001))
-        """
-        if limits is None:
-            raise ValueError("Limits must be provided.")
-        lims = [lim.limit for lim in (limits if isinstance(limits, list) else [limits])]
-        self.builder.set_limits(lims)
-
     def diversity(self, diversity: DistanceBase, species_threshold: float = 1.5):
         """Set the diversity.
         Args:
