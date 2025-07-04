@@ -65,17 +65,17 @@ pub trait TreeIterator<T> {
 ///
 /// This allows for traversal of a single node and its children in pre-order, post-order, and breadth-first order.
 impl<T> TreeIterator<T> for TreeNode<T> {
-    fn iter_pre_order(&self) -> PreOrderIterator<T> {
+    fn iter_pre_order(&self) -> PreOrderIterator<'_, T> {
         PreOrderIterator { stack: vec![self] }
     }
 
-    fn iter_post_order(&self) -> PostOrderIterator<T> {
+    fn iter_post_order(&self) -> PostOrderIterator<'_, T> {
         PostOrderIterator {
             stack: vec![(self, false)],
         }
     }
 
-    fn iter_breadth_first(&self) -> TreeBreadthFirstIterator<T> {
+    fn iter_breadth_first(&self) -> TreeBreadthFirstIterator<'_, T> {
         TreeBreadthFirstIterator {
             queue: vec![self].into_iter().collect(),
         }
@@ -91,7 +91,7 @@ impl<T> TreeIterator<T> for TreeNode<T> {
 ///
 /// This allows for traversal of the entire tree in pre-order, post-order, and breadth-first order.
 impl<T> TreeIterator<T> for Tree<T> {
-    fn iter_pre_order(&self) -> PreOrderIterator<T> {
+    fn iter_pre_order(&self) -> PreOrderIterator<'_, T> {
         PreOrderIterator {
             stack: self
                 .root()
@@ -99,14 +99,14 @@ impl<T> TreeIterator<T> for Tree<T> {
         }
     }
 
-    fn iter_post_order(&self) -> PostOrderIterator<T> {
+    fn iter_post_order(&self) -> PostOrderIterator<'_, T> {
         PostOrderIterator {
             stack: self
                 .root()
                 .map_or(Vec::new(), |root| vec![(root, false)].into_iter().collect()),
         }
     }
-    fn iter_breadth_first(&self) -> TreeBreadthFirstIterator<T> {
+    fn iter_breadth_first(&self) -> TreeBreadthFirstIterator<'_, T> {
         TreeBreadthFirstIterator {
             queue: self
                 .root()
@@ -123,15 +123,15 @@ impl<T> TreeIterator<T> for Tree<T> {
 }
 
 impl<T> TreeIterator<T> for TreeChromosome<T> {
-    fn iter_pre_order(&self) -> PreOrderIterator<T> {
+    fn iter_pre_order(&self) -> PreOrderIterator<'_, T> {
         self.root().iter_pre_order()
     }
 
-    fn iter_post_order(&self) -> PostOrderIterator<T> {
+    fn iter_post_order(&self) -> PostOrderIterator<'_, T> {
         self.root().iter_post_order()
     }
 
-    fn iter_breadth_first(&self) -> TreeBreadthFirstIterator<T> {
+    fn iter_breadth_first(&self) -> TreeBreadthFirstIterator<'_, T> {
         self.root().iter_breadth_first()
     }
 
