@@ -1,7 +1,11 @@
 <h1 align="center">Radiate</h1>
-<p align="center">
+<!-- <p align="center">
   <img src="/docs/assets/radiate.png" height="101px" alt="Radiate Logo" />
-</p>
+</p> -->
+
+<figure markdown="span">
+  ![Radiate](assets/radiate.png){ width="100" }
+</figure>
 
 <div align="center">
   <img src="https://img.shields.io/github/check-runs/pkalivas/radiate/master" alt="master branch checks" />
