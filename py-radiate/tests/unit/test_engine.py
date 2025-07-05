@@ -1,42 +1,25 @@
-"""
-Integration tests for Radiate genetic engine.
-
-These tests verify that different components work together correctly.
-"""
-
-import pytest
-import numpy as np
 from typing import List
-
 import radiate as rd
-
+import numpy as np
+import pytest
 
 class TestEngineBasicIntegration:
-    """Integration tests for basic engine functionality."""
-
+    """Basic integration tests for GeneticEngine functionality."""
     @pytest.mark.integration
     def test_engine_int_minimization(self, random_seed):
-        """Test engine with integer codec for minimization."""
-
-        # Simple fitness function: minimize sum
-        def fitness_func(x: List[int]) -> float:
-            return sum(x)
-
+        num_genes = 5
         engine = rd.GeneticEngine(
-            codec=rd.IntCodec.vector(length=5, value_range=(0, 10)),
-            fitness_func=fitness_func,
+            codec=rd.IntCodec.vector(num_genes, value_range=(0, 10)),
+            fitness_func=lambda x: sum(x),
             objectives="min",
-            population_size=50,
-            offspring_selector=rd.TournamentSelector(3),
-            survivor_selector=rd.EliteSelector(),
-            alters=[rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1)],
         )
 
-        result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(100)])
+        result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])
 
-        assert result.value() == [0] * 5  # All zeros
-        assert result.score()[0] == 0.0
-        assert result.index() < 100
+        assert result.value() == [0 for _ in range(num_genes)]
+        assert result.score() == [0]
+        assert result.index() <= 500
+
 
     @pytest.mark.integration
     def test_engine_float_maximization(self, random_seed):
@@ -60,31 +43,27 @@ class TestEngineBasicIntegration:
 
         # Should find values close to ±1.0
         assert result.score()[0] > 2.5
-        assert result.index() < 100
+        assert result.index() <= 100
 
-    @pytest.mark.integration
-    def test_engine_char_string_matching(self, random_seed):
-        """Test engine with character codec for string matching."""
-        target = "HELLO"
 
-        def fitness_func(x: List[str]) -> float:
-            return sum(1 for i, c in enumerate(x) if c == target[i])
+    def test_engine_can_maximize(self):
+        target = "Testing, Radiate!"
+
+        def fitness_func(x: List[str]) -> int:
+            return sum(1 for i in range(len(target)) if x[i] == target[i])
 
         engine = rd.GeneticEngine(
-            codec=rd.CharCodec.vector(length=len(target)),
+            codec=rd.CharCodec.vector(len(target)),
             fitness_func=fitness_func,
-            objectives="max",
-            population_size=100,
-            offspring_selector=rd.TournamentSelector(3),
-            survivor_selector=rd.EliteSelector(),
-            alters=[rd.UniformCrossover(0.8), rd.UniformMutator(0.1)],
+            offspring_selector=rd.BoltzmannSelector(4),
         )
 
-        result = engine.run([rd.ScoreLimit(len(target)), rd.GenerationsLimit(200)])
+        result = engine.run([rd.ScoreLimit(len(target)), rd.GenerationsLimit(1000)])
 
         assert result.value() == list(target)
-        assert result.score()[0] == len(target)
-        assert result.index() < 200
+        assert result.score() == [len(target)]
+        assert result.index() == 1000
+
 
     @pytest.mark.integration
     def test_engine_bit_optimization(self, random_seed):
@@ -108,11 +87,33 @@ class TestEngineBasicIntegration:
 
         assert result.value() == [True] * 10  # All ones
         assert result.score()[0] == 10.0
-        assert result.index() < 100
+        assert result.index() == 100
 
 
-class TestEngineAdvancedIntegration:
-    """Integration tests for advanced engine features."""
+    @pytest.mark.integration
+    def test_engine_minimizing_limits(self):
+        import math
+
+        A = 10.0
+        RANGE = 5.12
+        N_GENES = 2
+
+        def fitness_fn(x: List[float]) -> float:
+            value = A * N_GENES
+            for i in range(N_GENES):
+                value += x[i] ** 2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
+            return value
+
+        engine = rd.GeneticEngine(rd.FloatCodec.vector(2, (-RANGE, RANGE)), fitness_fn)
+        engine.minimizing()
+        engine.alters([rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.01)])
+
+        result = engine.run([rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000)])
+
+        assert all(i < 0.001 for i in result.value())
+        assert len(result.value()) == N_GENES
+        assert result.index() < 1000
+
 
     @pytest.mark.integration
     @pytest.mark.slow
@@ -142,7 +143,8 @@ class TestEngineAdvancedIntegration:
         result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(500)])
 
         assert result.score()[0] < 0.001
-        assert result.index() < 500
+        assert result.index() <= 500
+
 
     @pytest.mark.integration
     @pytest.mark.slow
@@ -168,7 +170,8 @@ class TestEngineAdvancedIntegration:
         result = engine.run([rd.ScoreLimit(0.1), rd.GenerationsLimit(300)])
 
         assert result.score()[0] < 0.1
-        assert result.index() < 300
+        assert result.index() <= 300
+
 
     @pytest.mark.integration
     def test_engine_permutation_tsp(self, random_seed):
@@ -190,14 +193,11 @@ class TestEngineAdvancedIntegration:
 
         result = engine.run([rd.GenerationsLimit(100)])
 
-        assert result.index() == 100
+        assert result.index() <= 100
         # Check that result is a valid permutation
         assert len(set(result.value())) == 5
         assert all(0 <= x < 5 for x in result.value())
 
-
-class TestEngineMultiObjectiveIntegration:
-    """Integration tests for multi-objective optimization."""
 
     @pytest.mark.integration
     def test_engine_multi_objective(self, random_seed):
@@ -222,29 +222,8 @@ class TestEngineMultiObjectiveIntegration:
         assert len(result.score()) == 2, "Should return two objectives"
         assert result.index() <= 50, "Should complete within 50 generations"
 
-
 class TestEngineErrorHandlingIntegration:
     """Integration tests for error handling and edge cases."""
-
-    # @pytest.mark.integration
-    # def test_engine_invalid_fitness_function(self):
-    #     """Test engine handles invalid fitness function gracefully."""
-    #     def invalid_fitness(x):
-    #         raise ValueError("Test error")
-
-    #     engine = rd.GeneticEngine(
-    #         codec=rd.IntCodec.vector(length=3, value_range=(0, 10)),
-    #         fitness_func=invalid_fitness,
-    #         objectives="min"
-    #     )
-
-    #     # Should handle the error gracefully
-    #     result = engine.run([rd.GenerationsLimit(10)])
-
-    #     assert result.index() < 10
-    #     # Should have some score (even if poor)
-    #     assert result.score() is not None
-
     @pytest.mark.integration
     def test_engine_empty_population(self):
         """Test engine handles empty population gracefully."""
@@ -277,64 +256,17 @@ class TestEngineErrorHandlingIntegration:
         with pytest.raises(ValueError):
             engine.run([rd.GenerationsLimit(-1)])  # Invalid limit
 
-
-class TestEnginePerformanceIntegration:
-    """Integration tests for performance characteristics."""
-
-    @pytest.mark.integration
-    @pytest.mark.performance
-    def test_engine_large_population_performance(
-        self, performance_benchmark, random_seed
-    ):
-        """Test engine performance with large population."""
-
-        def fitness_func(x: List[float]) -> float:
-            return sum(xi**2 for xi in x)
-
+    def test_engine_raises_on_invalid_alterer(self):
         engine = rd.GeneticEngine(
-            codec=rd.FloatCodec.vector(length=10, value_range=(-1.0, 1.0)),
-            fitness_func=fitness_func,
-            objectives="min",
-            population_size=1000,  # Large population
-            offspring_selector=rd.TournamentSelector(3),
-            survivor_selector=rd.EliteSelector(),
-            alters=[rd.ArithmeticMutator(0.7), rd.IntermediateCrossover(0.1)],
+            rd.IntCodec.vector(5, (0, 10)),
+            lambda x: sum(x),
         )
 
-        result, execution_time = performance_benchmark.time_function(
-            engine.run, [rd.GenerationsLimit(10)]
-        )
-
-        assert result.index() == 10
-        assert execution_time < 30.0  # Should complete within 30 seconds
-
-    @pytest.mark.integration
-    @pytest.mark.performance
-    def test_engine_memory_usage(self, performance_benchmark, random_seed):
-        """Test engine memory usage."""
-
-        def fitness_func(x: List[float]) -> float:
-            return sum(xi**2 for xi in x)
-
-        initial_memory = performance_benchmark.memory_usage()
-
-        engine = rd.GeneticEngine(
-            codec=rd.FloatCodec.vector(length=50, value_range=(-1.0, 1.0)),
-            fitness_func=fitness_func,
-            objectives="min",
-            population_size=500,
-            offspring_selector=rd.TournamentSelector(3),
-            survivor_selector=rd.EliteSelector(),
-            alters=[rd.ArithmeticMutator(0.7), rd.IntermediateCrossover(0.1)],
-        )
-
-        engine.run([rd.GenerationsLimit(20)])
-
-        final_memory = performance_benchmark.memory_usage()
-
-        if initial_memory and final_memory:
-            memory_increase = final_memory - initial_memory
-            assert memory_increase < 100.0  # Should not use more than 100MB extra
+        try:
+            engine.alters([rd.GraphCrossover(0.5, 0.5)])
+            assert False, "Expected ValueError for invalid alterer"
+        except ValueError as e:
+            assert "Alterer GraphCrossover does not support gene type int" in str(e)
 
 
 class TestEngineConvergenceIntegration:

@@ -34,7 +34,7 @@ impl DataSet {
         DataSet { rows: samples }
     }
 
-    pub fn iter(&self) -> std::slice::Iter<Row> {
+    pub fn iter(&self) -> std::slice::Iter<'_, Row> {
         self.rows.iter()
     }
 
