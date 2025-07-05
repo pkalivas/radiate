@@ -26,4 +26,4 @@ inspired by natural selection and genetics. The core is written in Rust and is a
 * Built-in support for parallelism.
 * Extensive selection, crossover, and mutation operators.
 * Opt-in speciation for maintaining diversity.
-* Novelty search support.
+<!-- * Novelty search support. -->

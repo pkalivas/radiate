@@ -56,15 +56,15 @@ where
         let lim = limit.into();
         self.skip_while(move |ctx| match ctx.objective() {
             Objective::Single(obj) => match obj {
-                Optimize::Minimize => ctx.score() >= &lim,
-                Optimize::Maximize => ctx.score() <= &lim,
+                Optimize::Minimize => ctx.score() > &lim,
+                Optimize::Maximize => ctx.score() < &lim,
             },
             Objective::Multi(objs) => {
                 let mut all_pass = true;
                 for (i, score) in ctx.score().iter().enumerate() {
                     let passed = match objs[i] {
-                        Optimize::Minimize => score >= &lim[i],
-                        Optimize::Maximize => score <= &lim[i],
+                        Optimize::Minimize => score > &lim[i],
+                        Optimize::Maximize => score < &lim[i],
                     };
 
                     if !passed {

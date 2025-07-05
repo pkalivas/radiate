@@ -106,8 +106,8 @@ where
                 Limit::Generation(lim) => epoch.index() < *lim,
                 Limit::Score(lim) => match epoch.objective() {
                     Objective::Single(opt) => match opt {
-                        Optimize::Minimize => epoch.score().as_f32() >= *lim,
-                        Optimize::Maximize => epoch.score().as_f32() <= *lim,
+                        Optimize::Minimize => epoch.score().as_f32() > *lim,
+                        Optimize::Maximize => epoch.score().as_f32() < *lim,
                     },
                     Objective::Multi(_) => false,
                 },
