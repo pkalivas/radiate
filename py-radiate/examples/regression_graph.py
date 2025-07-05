@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import radiate as rd
 
 rd.random.set_seed(518) 
@@ -32,5 +31,4 @@ engine = rd.GeneticEngine(
     ],
 )
 
-result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)], log=True)
-print(result)
+print(engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)], log=True))
