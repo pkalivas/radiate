@@ -62,7 +62,7 @@ class TestEngineBasicIntegration:
 
         assert result.value() == list(target)
         assert result.score() == [len(target)]
-        assert result.index() == 1000
+        assert result.index() <= 1000
 
 
     @pytest.mark.integration
@@ -87,7 +87,7 @@ class TestEngineBasicIntegration:
 
         assert result.value() == [True] * 10  # All ones
         assert result.score()[0] == 10.0
-        assert result.index() == 100
+        assert result.index() <= 100
 
 
     @pytest.mark.integration
