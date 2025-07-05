@@ -1,6 +1,6 @@
 <h1 align="center">Radiate</h1>
 <p align="center">
-  <img src="/docs/assets/radiate.png" height="100">
+  <img src="/docs/assets/radiate.png" height="101" alt="Radiate Logo" />
 </p>
 
 <div align="center">
