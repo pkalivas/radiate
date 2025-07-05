@@ -4,7 +4,7 @@
 </p> -->
 
 <figure markdown="span">
-  ![Radiate](assets/radiate.png){ width="100" }
+  <img src="/docs/assets/radiate.png" height="101px" alt="Radiate Logo" />
 </figure>
 
 <div align="center">
