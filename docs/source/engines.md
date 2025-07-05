@@ -117,7 +117,7 @@ When the engine is configured for multi-objective optimization, the engine `Gene
     result = engine.run(rd.GenerationsLimit(100))
 
     # Everything in the multi-objective epoch is the same as the single-objective epoch, except for the value:
-    # This will be a list of objects as such:
+    # This will be a list of objects representing your pareto front as such:
     # [
     #     {'genotype': [Float], 'fitness': [obj1_fit, obj2_fit, ...]},
     #     {'genotype': [Float], 'fitness': [obj1_fit, obj2_fit, ...]},

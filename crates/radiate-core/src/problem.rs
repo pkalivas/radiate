@@ -151,13 +151,6 @@ where
         self
     }
 
-    pub fn get_archive(&self) -> VecDeque<BD::Descriptor>
-    where
-        BD::Descriptor: Clone,
-    {
-        (*self.archive.read().unwrap()).clone()
-    }
-
     fn normalized_novelty_score(
         &self,
         descriptor: &BD::Descriptor,

@@ -73,12 +73,15 @@ For example, a solution for `n=8` would be:
 
 === ":fontawesome-brands-python: Python"
 
+    Use the `use_numpy` flag to get a `numpy.array` back when decoding the chromosome for the fitness function.
+
     ```python
+    import numpy as np
     import radiate as rd
 
     N_QUEENS = 32
 
-    def fitness_fn(queens):
+    def fitness_fn(queens: np.ndarray) -> int:
         i_indices, j_indices = np.triu_indices(N_QUEENS, k=1)
         same_row = queens[i_indices] == queens[j_indices]
         same_diagonal = np.abs(i_indices - j_indices) == np.abs(queens[i_indices] - queens[j_indices])
