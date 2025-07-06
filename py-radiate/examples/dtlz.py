@@ -7,6 +7,7 @@ We define a fitness function based on the DTLZ1 problem and use a genetic algori
 evolve solutions. The results are visualized in a 3D scatter plot.
 """
 
+from typing import List
 import math
 import matplotlib.pyplot as plt  # type: ignore
 import radiate as rd
@@ -18,8 +19,7 @@ objectives = 3
 k = variables - objectives + 1
 
 
-# @jit(nopython=True, nogil=True)
-def dtlz_1(val):
+def dtlz_1(val: List[float]) -> List[float]:
     g = 0.0
     for i in range(variables - k, variables):
         g += (val[i] - 0.5) ** 2 - math.cos(20.0 * math.pi * (val[i] - 0.5))
