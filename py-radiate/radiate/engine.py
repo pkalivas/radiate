@@ -1,7 +1,5 @@
 from typing import Any, Callable, List, Tuple, TypeAlias, Union
 
-from radiate.codec.tree import TreeCodec
-
 from .builder import EngineBuilder
 from .generation import Generation
 from .handlers import EventHandler
@@ -13,6 +11,7 @@ from .codec import (
     GraphCodec,
     CodecBase,
     PermutationCodec,
+    TreeCodec,
 )
 
 from .inputs.input import EngineInput, EngineInputType

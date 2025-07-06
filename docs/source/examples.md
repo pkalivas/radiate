@@ -464,7 +464,7 @@ Evolve a `Graph<Op<f32>>` to solve the XOR problem (NeuroEvolution).
         display(&result);
     }
 
-    fn display(result: &EngineContext<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
+    fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
         let mut reducer = GraphEvaluator::new(&result.best);
         for sample in get_dataset().iter() {
             let output = &reducer.eval_mut(sample.input())[0];
@@ -568,7 +568,7 @@ Evolve a `Tree<Op<f32>>` to solve the a regression problem (Genetic Programming)
         display(&result);
     }
 
-    fn display(result: &EngineContext<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
+    fn display(result: &Generation<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
         let data_set = get_dataset();
         let accuracy = Accuracy::new("reg", &data_set, Loss::MSE);
         let accuracy_result = accuracy.calc(|input| vec![result.best.eval(input)]);
