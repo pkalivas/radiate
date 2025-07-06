@@ -1,10 +1,19 @@
 #!/usr/bin/env python3
+"""
+Regression with Graph Codec
+
+This example demonstrates using the GraphCodec to solve a regression problem.
+We have a simple polynomial function and we want to evolve a graph that approximates it.
+"""
+
 import radiate as rd
 
-rd.random.set_seed(518) 
+rd.random.set_seed(518)
+
 
 def compute(x: float) -> float:
     return 4.0 * x**3 - 3.0 * x**2 + x
+
 
 inputs = []
 answers = []

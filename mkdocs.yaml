@@ -11,7 +11,7 @@ nav:
   - Alterers: source/alterers.md
   - Diversity: source/diversity.md
   - Objectives: source/objectives.md
-  # - Fitness: source/fitness.md
+  - Fitness: source/fitness.md
   - Events: source/events.md
   - Engine: source/engines.md
   - Genetic Programming: source/gp.md
