@@ -1,11 +1,19 @@
 #!/usr/bin/env python3
+"""
+Regression with Tree Codec
+
+This example demonstrates using the TreeCodec to solve a regression problem.
+We have a simple polynomial function and we want to evolve a graph that approximates it.
+"""
 
 import radiate as rd
 
 rd.random.set_seed(500)
 
+
 def compute(x: float) -> float:
     return 4.0 * x**3 - 3.0 * x**2 + x
+
 
 inputs = []
 answers = []

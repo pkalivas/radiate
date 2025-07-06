@@ -1,13 +1,13 @@
 # Fitness Functions
 
 ___
-Fitness functions are the core of any genetic algorithm - they define how well an individual performs and guide the evolution process. Radiate supports several different types of fitness functions, from simple mathematical functions to advanced techniques like novelty search and composite fitness functions.
+Fitness functions are the core of any genetic algorithm - they define how well an individual performs and guide the evolution process. Radiate supports several different types of fitness functions, from your run of the mill functions to advanced techniques like novelty search and composite fitness functions.
 
-The fitness function takes a decoded phenotype (the actual data structure) and returns a `Score` that represents how well that individual performs. The score can be a single value for single-objective optimization or multiple values for multi-objective problems.
+The fitness function takes a decoded phenotype (the actual data structure) and returns a `Score` that represents how well that individual performs. The score can be a single value for single-objective optimization or multiple values for multi-objective problems. The result of your fitness function should reflect the quality of the individual in relation to the problem being solved. 
 
 !!! note "**Fitness functions must return valid scores**"
     
-    All fitness functions must return a `Score` object. Radiate automatically converts common types like `f32`, `i32`, `Vec<f32>`, etc. into `Score` objects. NaN values are not allowed and will cause a panic.
+    All fitness functions must return a `Score` object. Radiate automatically converts common types like `f32`, `i32`, `Vec<f32>`, etc. into `Score` objects. NaN values are not allowed and will cause a panic. The number of values returned by the fitness function must match your objectives. For example, if you have two objectives, your fitness function must return a `Score` with two values.
 
 ## Overview
 
@@ -16,19 +16,12 @@ The fitness function takes a decoded phenotype (the actual data structure) and r
 | [Simple Functions](#simple-fitness-functions) | Basic optimization | Mathematical problems, benchmarks | Low |
 | [Composite Functions](#composite-fitness-functions) | Multi-objective combination | Balancing multiple goals | Medium |
 | [Novelty Search](#novelty-search) | Behavioral diversity | Exploration, avoiding local optima | High |
-| [Problem-Based](#problem-based-fitness) | Encapsulated problems | Complex domains, reusability | Variable |
 
 ___
 
-## Simple Fitness Functions
+## Simple Fitness
 
-Simple fitness functions are the most common type - they take a phenotype and return a single score value. These can be any function that evaluates how well an individual performs.
-
----
-
-### Mathematical Functions
-
-Mathematical functions are commonly used for benchmarking and testing optimization algorithms.
+Simple fitness functions are the most common type - they take a phenotype and return a single score value. These can be any function that evaluates how well an individual performs. Things like mathematical functions, benchmarks, or even custom evaluation logic can be used as simple fitness functions. Your run of the mill mathematical functions like Rastrigin, Sphere, or Ackley functions are great examples of simple fitness functions. They take a vector of floats and return a single float score.
 
 === ":fontawesome-brands-python: Python"
 
@@ -36,21 +29,18 @@ Mathematical functions are commonly used for benchmarking and testing optimizati
     import radiate as rd
     import math
 
-    def rastrigin_function(x: List[float]) -> float:
-        A = 10.0
-        n = len(x)
-        result = A * n
-        
-        for i in range(n):
-            result += x[i]**2 - A * math.cos(2 * math.pi * x[i])
-        
-        return result
+    A = 10.0
+    RANGE = 5.12
+    N_GENES = 2
 
-    engine = rd.GeneticEngine(
-        codec=rd.FloatCodec.vector(10, (-5.12, 5.12)),
-        fitness_func=rastrigin_function,
-        objectives="min"
-    )
+    def fitness_fn(x):
+        value = A * N_GENES
+        for i in range(N_GENES):
+            value += x[i]**2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
+        return value
+
+    codec = rd.FloatCodec.vector(N_GENES, (-5.12, 5.12))
+    engine = rd.GeneticEngine(codec, fitness_fn, objectives="min")
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -59,19 +49,16 @@ Mathematical functions are commonly used for benchmarking and testing optimizati
     use radiate::*;
 
     fn rastrigin_function(genotype: Vec<f32>) -> f32 {
-        const A: f32 = 10.0;
-        let n = genotype.len() as f32;
-        let mut result = A * n;
-        
-        for &x in &genotype {
-            result += x.powi(2) - A * (2.0 * std::f32::consts::PI * x).cos();
+        let mut value = 10.0 * 2 as f32;
+        for i in 0..N_GENES {
+            value += genotype[i].powi(2) - 10.0 * (2.0 * std::f32::consts::PI * genotype[i]).cos();
         }
-        
-        result
+
+        value
     }
 
     let engine = GeneticEngine::builder()
-        .codec(FloatCodec::vector(10, -5.12..5.12))
+        .codec(FloatCodec::vector(2, -5.12..5.12))
         .minimizing()
         .fitness_fn(rastrigin_function)
         .build();
@@ -79,87 +66,11 @@ Mathematical functions are commonly used for benchmarking and testing optimizati
 
 ---
 
-### Combinatorial Problems
-
-For problems like TSP, N-Queens, or Knapsack, the fitness function evaluates constraint satisfaction and optimization.
-
-=== ":fontawesome-brands-python: Python"
-
-    ```python
-    def tsp_fitness(tour: List[int]) -> float:
-        total_distance = 0.0
-        for i in range(len(tour)):
-            j = (i + 1) % len(tour)
-            total_distance += distance_matrix[tour[i]][tour[j]]
-        return total_distance
-
-    engine = rd.GeneticEngine(
-        codec=rd.PermutationCodec(cities),
-        fitness_func=tsp_fitness,
-        objectives="min"
-    )
-    ```
-
-=== ":fontawesome-brands-rust: Rust"
-
-    ```rust
-    fn tsp_fitness(genotype: Vec<usize>) -> f32 {
-        let mut total_distance = 0.0;
-        for i in 0..genotype.len() {
-            let j = (i + 1) % genotype.len();
-            total_distance += distance_matrix[genotype[i]][genotype[j]];
-        }
-        total_distance
-    }
-    ```
-
----
-
-### Machine Learning Problems
-
-For regression, classification, or neural network evolution, fitness functions evaluate prediction accuracy.
-
-=== ":fontawesome-brands-python: Python"
-
-    ```python
-    def regression_fitness(tree: Tree) -> float:
-        total_error = 0.0
-        for input_data, target in training_data:
-            prediction = tree.evaluate(input_data)
-            error = (prediction - target) ** 2
-            total_error += error
-        return total_error / len(training_data)  # MSE
-
-    engine = rd.GeneticEngine(
-        codec=rd.TreeCodec.single(3, operations),
-        fitness_func=regression_fitness,
-        objectives="min"
-    )
-    ```
-
-=== ":fontawesome-brands-rust: Rust"
-
-    ```rust
-    fn regression_fitness(tree: &Tree<Op<f32>>) -> f32 {
-        let mut total_error = 0.0;
-        for (input, target) in &training_data {
-            let prediction = tree.eval(input);
-            let error = (prediction - target).powi(2);
-            total_error += error;
-        }
-        total_error / training_data.len() as f32  // MSE
-    }
-    ```
-
----
-
-## Composite Fitness Functions
+## Composite Fitness
 
 Composite fitness functions allow you to combine multiple objectives into a single weighted fitness score. This is useful when you have multiple goals that need to be balanced.
 
----
-
-### Weighted Combination
+### Weighted
 
 The `CompositeFitnessFn` combines multiple fitness functions with weights to create a single objective.
 
@@ -233,18 +144,17 @@ The `CompositeFitnessFn` combines multiple fitness functions with weights to cre
 - **Flexible objectives**: Can combine any number of fitness functions
 - **Single objective**: Results in a single score for selection
 
----
-
-### Equal Weight Combination
+### Equal Weight
 
 You can also add fitness functions with equal weights using `add_fitness_fn()`.
 
-<!-- ```python
-    composite_fitness = rd.CompositeFitnessFn.new()
-        .add_fitness_fn(accuracy_objective)    # Weight = 1.0
-        .add_fitness_fn(complexity_objective)  # Weight = 1.0
-        .add_fitness_fn(efficiency_objective)  # Weight = 1.0
-    ```
+<!--
+```python
+composite_fitness = rd.CompositeFitnessFn.new()
+    .add_fitness_fn(accuracy_objective)    # Weight = 1.0
+    .add_fitness_fn(complexity_objective)  # Weight = 1.0
+    .add_fitness_fn(efficiency_objective)  # Weight = 1.0
+```
 -->
 
 === ":fontawesome-brands-python: Python"
@@ -267,10 +177,6 @@ You can also add fitness functions with equal weights using `add_fitness_fn()`.
 
 Novelty search is an advanced technique that rewards individuals for being behaviorally different from previously seen solutions, rather than just being "better" in terms of fitness. This helps avoid local optima and promotes exploration of the solution space.
 
----
-
-### How Novelty Search Works
-
 Novelty search works by:
 
 1. **Behavioral Descriptors**: Each individual is described by a behavioral descriptor (e.g., output patterns, feature values)
@@ -278,7 +184,12 @@ Novelty search works by:
 3. **Distance Calculation**: Novelty is measured as the average distance to the k-nearest neighbors in the archive
 4. **Threshold**: Solutions with novelty above a threshold are added to the archive
 
----
+You can implement your own behavioral descriptors by implementing the `Novelty` trait. This allows you to define how individuals are described and how distances between behaviors are calculated. Or you can use the built-in descriptors below:
+
+- **HammingDistance**: For binary or categorical data
+- **EuclideanDistance**: For continuous data
+- **CosineDistance**: For vector data
+- **NeatDistance**: For NEAT-style networks (Graph only)
 
 ### Basic Novelty Search
 
@@ -308,7 +219,8 @@ Novelty search works by:
         fitness_func=novelty_fitness,
         objectives="max"  # Higher novelty is better
     )
-    ``` -->
+    ```
+-->
 
 === ":fontawesome-brands-python: Python"
 
@@ -346,7 +258,8 @@ Novelty search works by:
         BehaviorDescriptor,
         10,  // k: number of nearest neighbors
         0.1  // threshold: novelty threshold for archive addition
-    );
+    )
+    .with_archive_size(1000); // Optional: set archive size - default is 1000
 
     let engine = GeneticEngine::builder()
         .codec(model_codec)
@@ -355,26 +268,24 @@ Novelty search works by:
         .build();
     ```
 
----
-
 ### Fitness-Based Novelty Search
 
 You can use fitness scores directly as behavioral descriptors using `FitnessDescriptor`.
 
 <!-- 
 ```python
-    def base_fitness(model: Model) -> float:
-        return calculate_accuracy(model, test_data)
+def base_fitness(model: Model) -> float:
+    return calculate_accuracy(model, test_data)
 
-    # Use fitness scores as behavioral descriptors
-    fitness_descriptor = rd.FitnessDescriptor(base_fitness)
-    
-    novelty_fitness = rd.NoveltySearch(
-        behavior=fitness_descriptor,
-        k=10,
-        threshold=0.05
-    )
-    ```
+# Use fitness scores as behavioral descriptors
+fitness_descriptor = rd.FitnessDescriptor(base_fitness)
+
+novelty_fitness = rd.NoveltySearch(
+    behavior=fitness_descriptor,
+    k=10,
+    threshold=0.05
+)
+```
 -->
 
 === ":fontawesome-brands-python: Python"
@@ -399,34 +310,32 @@ You can use fitness scores directly as behavioral descriptors using `FitnessDesc
     );
     ```
 
----
-
 ### Combined Novelty and Fitness
 
 You can combine novelty search with traditional fitness to get the benefits of both exploration and exploitation.
 
 <!-- 
-    ```python
-    def traditional_fitness(model: Model) -> float:
-        return calculate_accuracy(model, test_data)
+```python
+def traditional_fitness(model: Model) -> float:
+    return calculate_accuracy(model, test_data)
 
-    novelty_fitness = rd.NoveltySearch(
-        behavior=rd.FitnessDescriptor(traditional_fitness),
-        k=10,
-        threshold=0.05
-    )
+novelty_fitness = rd.NoveltySearch(
+    behavior=rd.FitnessDescriptor(traditional_fitness),
+    k=10,
+    threshold=0.05
+)
 
-    # Combine traditional fitness (70%) with novelty (30%)
-    combined_fitness = rd.CompositeFitnessFn.new()
-        .add_weighted_fn(traditional_fitness, 0.7)
-        .add_weighted_fn(novelty_fitness, 0.3)
+# Combine traditional fitness (70%) with novelty (30%)
+combined_fitness = rd.CompositeFitnessFn.new()
+    .add_weighted_fn(traditional_fitness, 0.7)
+    .add_weighted_fn(novelty_fitness, 0.3)
 
-    engine = rd.GeneticEngine(
-        codec=rd.ModelCodec(),
-        fitness_func=combined_fitness,
-        objectives="max"
-    )
-    ```
+engine = rd.GeneticEngine(
+    codec=rd.ModelCodec(),
+    fitness_func=combined_fitness,
+    objectives="max"
+)
+```
 -->
 
 === ":fontawesome-brands-python: Python"
@@ -467,8 +376,7 @@ You can combine novelty search with traditional fitness to get the benefits of b
 
 1. **Simple Functions**: Use for straightforward optimization problems
 2. **Composite Functions**: Use when you have multiple objectives that can be weighted
-3. **Novelty Search**: Use when you need to explore diverse solutions or avoid local optima
-4. **Problem-Based**: Use for complex domains where you need full control over the problem definition
+3. **Novelty Search**: Use when you need to explore diverse solutions or avoid local optima and don't care much about the fitness score
 
 ### Performance Considerations
 
@@ -489,4 +397,3 @@ You can combine novelty search with traditional fitness to get the benefits of b
 1. **Fitness + Novelty**: Combine traditional fitness with novelty for balanced exploration/exploitation
 2. **Multi-Objective Composite**: Use composite functions to handle multiple conflicting objectives
 3. **Behavioral Descriptors**: Use domain-specific behavioral characteristics for novelty search
-4. **Problem Encapsulation**: Implement the Problem trait for complex, reusable problem definitions

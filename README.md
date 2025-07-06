@@ -1,6 +1,6 @@
 <h1 align="center">Radiate</h1>
 <p align="center">
-  <img src="/docs/assets/radiate.png" height="101px" alt="Radiate Logo" />
+  <img src="/docs/assets/radiate.png" height="100" width="60" alt="Radiate Logo" />
 </p>
 
 <div align="center">
@@ -26,4 +26,4 @@ inspired by natural selection and genetics. The core is written in Rust and is a
 * Built-in support for parallelism.
 * Extensive selection, crossover, and mutation operators.
 * Opt-in speciation for maintaining diversity.
-<!-- * Novelty search support. -->
+* Novelty search support.
