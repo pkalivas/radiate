@@ -1,16 +1,6 @@
 #!/usr/bin/env python3
 """
-PyTorch Neural Network Weight Evolution with Radiate FloatCodec
-
-This example demonstrates how to use Radiate's FloatCodec to evolve weights for a
-fixed PyTorch neural network architecture. The neural network structure remains
-constant while the weights are evolved using genetic algorithms.
-
-Key concepts:
-- FloatCodec encodes/decodes weight matrices as float vectors
-- PyTorch neural network with fixed architecture
-- Genetic algorithm evolves only the weights
-- Fitness function evaluates network performance
+PyTorch Neural Network Weight Evolution with Radiate FloatCode
 """
 
 import radiate as rd
@@ -176,21 +166,25 @@ class NeuralNetworkEvolver:
 
     def create_engine(self) -> rd.GeneticEngine:
         """Create the genetic engine for evolving neural network weights"""
-        return rd.GeneticEngine(
+        engine = rd.GeneticEngine(
             codec=rd.FloatCodec.vector(
                 length=self.network.total_params,
                 value_range=(-2.0, 2.0),
                 bound_range=(-5.0, 5.0),
             ),
             fitness_func=self.create_fitness_function(),
-            objectives="min",
-            offspring_selector=rd.TournamentSelector(k=3),
-            survivor_selector=rd.BoltzmannSelector(temp=2.3),
-            alters=[
+        )
+
+        engine.minimizing()
+        engine.survivor_selector(rd.BoltzmannSelector(temp=2.3))
+        engine.alters(
+            [
                 rd.BlendCrossover(0.7, 0.5),
                 rd.IntermediateCrossover(0.6, 0.5),
-            ],
+            ]
         )
+
+        return engine
 
     def run_evolution(self, max_generations: int = 500, target_error: float = 0.01):
         """Run the neural network weight evolution"""

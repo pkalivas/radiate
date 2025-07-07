@@ -291,9 +291,21 @@ Radiate provides several codec types out of the box that should be able to cover
 
     === ":fontawesome-brands-python: Python"
 
-        !!! warning ":construction: Under Construction :construction:"
+        ```python
+        import radiate as rd
 
-            This codec is currently under construction and not yet available in the Python API.
+        # For a list of unique items
+        codec = rd.PermutationCodec(alleles=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+        # This will produce a Genotype<PermutationChromosome> with 1 PermutationChromosome which
+        # holds 10 unique genes (0-9) in a random order.
+        genotype = codec.encode()
+        # Decode to a list of unique items
+        decoded = codec.decode(genotype)
+        # decoded will be a list of unique items from the original alleles.
+        # e.g. [3, 0, 7, 1, 9, 2, 5, 6, 4, 8]
+        # Note: The order of the decoded items will be the same as the order of the
+        # genes in the PermutationChromosome, which is a random permutation of the original alleles.
+        ```
 
     === ":fontawesome-brands-rust: Rust"
 
@@ -446,227 +458,3 @@ Let's look at a basic example of how to use the `Codec` for evolving a simple fu
         generation.index() >= 1000 || generation.score().as_f32() <= 0.01
     });
     ```
-
-<!-- 
-
-
-
-The below codecs are more specialized and are used for evolving graph and tree structures, which are common in genetic programming tasks.
-
-??? note "GraphCodec"
-
-    The `GraphCodec` is used for evolving graph-based structures, particularly useful in neural network evolution and other graph-based genetic programming tasks. The codec itself can create both directed and recurrent graph structures. While the evolution of the graph can produce recurrent connections, cycles, and other complex structures. The codec simply provides a way to define a 'base' graph structure that can be evolved.
-
-    <b>Key Features</b>
-    - Supports directed and recurrent graph architectures
-    - Handles input/output nodes and internal vertices & edges
-    - Allows custom operations for different node types
-    - Can be used for both feedforward and recurrent neural networks
-
-    <b>Graph Structure</b>
-    The `GraphCodec` creates a graph with:
-
-    - Input nodes: Receive external input
-    - Output nodes: Produce the final output
-    - Vertex nodes: Internal nodes that perform operations
-    - Edges: Connections between nodes
-
-    <b>Use Cases</b>
-
-    - Neural network evolution
-    - Complex function optimization
-    - Recurrent network structures
-    - Any problem that can be represented as a graph
-
-    <b>Usage Examples</b>
-
-    === ":fontawesome-brands-python: Python"
-
-        !!! warning ":construction: Under Construction :construction:"
-
-            This codec is currently under construction and not yet available in the Python API.
-
-    
-        ```python
-        import radiate as rd
-        from radiate.gp import Op, NodeType
-
-        # Create a node store with different operations for different node types
-        store = [
-            (NodeType.Input, [Op.var(0), Op.var(1)]),  # Input nodes
-            (NodeType.Vertex, [Op.add(), Op.mul(), Op.sub()]),  # Internal nodes
-            (NodeType.Output, [Op.identity()])  # Output nodes
-        ]
-
-        # Create a directed graph codec
-        codec = rd.GraphCodec.directed(
-            input_size=2,    # Number of input nodes
-            output_size=1,   # Number of output nodes
-            store=store      # Node store defining available operations
-        )
-
-        # Create a recurrent graph codec
-        recurrent_codec = rd.GraphCodec.recurrent(
-            input_size=2,    # Number of input nodes
-            output_size=1,   # Number of output nodes
-            store=store      # Node store defining available operations
-        )
-        ```
-        
-
-    === ":fontawesome-brands-rust: Rust"
-
-        !!! note "Only available with the `gp` feature enabled."
-
-            More details on the `Graph<T>` can be found later in the documentation.
-
-
-        ```rust
-        use radiate::*;
-
-        // Create a node store with different operations for different node types
-        let store = vec![
-            (NodeType::Input, vec![Op::var(0), Op::var(1)]),            // Input nodes
-            (NodeType::Vertex, vec![Op::add(), Op::mul(), Op::sub()]),  // Internal nodes
-            (NodeType::Edge, vec![Op::identity(), Op::weight()]),       // Edge nodes
-            (NodeType::Output, vec![Op::sigmoid()])                     // Output nodes
-        ];
-
-        // Create a directed graph codec
-        let codec = GraphCodec::directed(2, 1, store.clone());  // 2 inputs, 1 output
-
-        // Create a recurrent graph codec
-        let recurrent_codec = GraphCodec::recurrent(2, 1, store);  // 2 inputs, 1 output
-        ```
-
-??? note "TreeCodec"
-
-    The `TreeCodec` is used for evolving tree-based structures, which are fundamental in genetic programming. It's particularly useful for evolving mathematical expressions, program syntax trees, and decision trees.
-
-    <b>Key Features</b>
-
-    - Supports single and multi-root tree structures
-    - Maintains tree validity during evolution
-    - Allows custom constraints on tree structure
-    - Preserves tree depth and node relationships
-
-    <b>Tree Structure</b>
-    The tree codec creates a tree with:
-
-    - Root nodes: Starting points of the tree
-    - Vertex nodes: Internal nodes that perform operations
-    - Leaf nodes: Terminal nodes with constant values or variables
-
-    <b>Use Cases</b>
-
-    - Mathematical expression evolution
-    - Program synthesis
-    - Decision tree evolution
-    - Symbolic regression
-    - Any problem that can be represented as a tree structure
-
-    <b>Usage Examples</b>
-
-    === ":fontawesome-brands-python: Python"
-
-        !!! warning ":construction: Under Construction :construction:"
-
-            This codec is currently under construction and not yet available in the Python API.
-
-        
-        ```python
-        import radiate as rd
-        from radiate.gp import Op, NodeType
-
-        # Create a node store with different operations for different node types
-        store = [
-            (NodeType.Root, [Op.add(), Op.sub()]),  # Root nodes
-            (NodeType.Vertex, [Op.add(), Op.mul(), Op.sub()]),  # Internal nodes
-            (NodeType.Leaf, [Op.constant(1.0), Op.constant(2.0)])  # Leaf nodes
-        ]
-
-        # Create a single tree codec with depth 3
-        codec = rd.TreeCodec.single(
-            depth=3,     # Maximum tree depth
-            store=store  # Node store defining available operations
-        )
-
-        # Create a multi-root tree codec
-        multi_codec = rd.TreeCodec.multi_root(
-            depth=3,     # Maximum tree depth
-            num_trees=2, # Number of trees to evolve
-            store=store  # Node store defining available operations
-        )
-
-        # Add a custom constraint
-        codec = codec.constraint(lambda node: node.height() <= 3)
-        ```
-    
-
-    === ":fontawesome-brands-rust: Rust"
-
-        !!! note "Only available with the `gp` feature enabled."
-
-        More details on the `Tree<T>` can be found later in the documentation.
-
-        ```rust
-        use radiate::*;
-
-        // Create a node store with different operations for different node types
-        let store = vec![
-            (NodeType::Root, vec![Op::add(), Op::sub()]),                   // Root nodes  
-            (NodeType::Vertex, vec![Op::add(), Op::mul(), Op::sub()]),      // Internal nodes
-            (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)])    // Leaf nodes
-        ];
-
-        // Create a single tree codec that produces trees with a starting depth of 3
-        let codec = TreeCodec::single(3, store);
-
-        // Create a multi-root tree codec that produces 2 trees with a starting depth of 3
-        let multi_codec = TreeCodec::multi_root(3, 2, store);  
-
-        // Add a custom constraint. A tree will be 'invalid' if it's height exceeds 3.
-        let codec = codec.with_constraint(|node| node.height() <= 3);
-        ```
-
-#### Example: Symbolic Regression with TreeCodec
-
-```python
-import radiate as rd
-from radiate.gp import Op, NodeType
-
-# Create a node store for symbolic regression
-store = [
-    (NodeType.Root, [Op.add(), Op.sub(), Op.mul()]),
-    (NodeType.Vertex, [Op.add(), Op.sub(), Op.mul(), Op.div()]),
-    (NodeType.Leaf, [Op.var(0), Op.constant(1.0), Op.constant(2.0)])
-]
-
-# Create a tree codec
-codec = rd.TreeCodec.single(
-    depth=4,     # Allow expressions up to depth 4
-    store=store
-)
-
-# Create the evolution engine
-engine = rd.EvolutionEngine(
-    codec=codec,
-    population_size=100,
-    # ... other parameters ...
-)
-
-# Define a fitness function for symbolic regression
-def fitness_function(individual):
-    tree = individual.genes[0]  # Get the tree
-    error = 0.0
-    for x in range(-10, 11):
-        # Calculate error between tree output and target function (e.g., x^2 + 2x + 1)
-        target = x * x + 2 * x + 1
-        output = tree.eval([x])
-        error += abs(output - target)
-    return -error  # Negative because we want to minimize error
-
-# Run the evolution
-engine.evolve(fitness_function)
-```
--->
