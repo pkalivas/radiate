@@ -1,7 +1,6 @@
+use crate::Generation;
 use radiate_core::{Chromosome, Engine, Objective, Optimize, Score};
 use std::{collections::VecDeque, time::Duration};
-
-use crate::Generation;
 
 pub struct EngineIterator<E>
 where
