@@ -364,6 +364,38 @@ mod test {
     }
 
     #[test]
+    fn test_population_get() {
+        let population = Population::new(vec![
+            Phenotype::from((vec![CharChromosome::from("hello")], 0)),
+            Phenotype::from((vec![CharChromosome::from("world")], 0)),
+        ]);
+
+        assert_eq!(population.get(0).unwrap().genotype().len(), 1);
+        assert_eq!(population.get(1).unwrap().genotype().len(), 1);
+        assert_eq!(population.get(0).unwrap().genotype()[0].len(), 5);
+        assert_eq!(population.get(1).unwrap().genotype()[0].len(), 5);
+    }
+
+    #[test]
+    fn test_population_get_mut() {
+        let mut population = Population::new(vec![
+            Phenotype::from((vec![CharChromosome::from("hello")], 0)),
+            Phenotype::from((vec![CharChromosome::from("world")], 0)),
+        ]);
+
+        if let Some(individual) = population.get_mut(0) {
+            individual.set_score(Some(Score::from(1.0)));
+        }
+
+        if let Some(individual) = population.get_mut(1) {
+            individual.set_score(Some(Score::from(2.0)));
+        }
+
+        assert_eq!(population.get(0).unwrap().score().unwrap().as_f32(), 1.0);
+        assert_eq!(population.get(1).unwrap().score().unwrap().as_f32(), 2.0);
+    }
+
+    #[test]
     #[cfg(feature = "serde")]
     fn test_population_can_serialize() {
         let individuals = vec![

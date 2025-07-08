@@ -27,3 +27,4 @@ inspired by natural selection and genetics. The core is written in Rust and is a
 * Extensive selection, crossover, and mutation operators.
 * Opt-in speciation for maintaining diversity.
 * Novelty search support.
+* First-class metric tracking.

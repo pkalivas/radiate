@@ -123,11 +123,14 @@ def run_maze_evolution(
     engine = rd.GeneticEngine(
         codec=maze_solver.codec,
         fitness_func=maze_solver.calculate_path_length,
-        population_size=50,
         survivor_selector=rd.TournamentSelector(3),
-        offspring_selector=rd.TournamentSelector(3),
+        offspring_selector=rd.BoltzmannSelector(3),
         objectives="min",
         alters=[
+            # PartiallyMappedCrossover and swap mutator are common for TSP-like problems
+            # where we want to maintain the permutation structure. ie., we don't want to
+            # create duplicates or invalid permutations - we want to keep all waypoints.
+            # For a little more color, check out the docs: https://pkalivas.github.io/radiate/source/alterers/
             rd.PartiallyMappedCrossover(),
             rd.SwapMutator(),
         ],
