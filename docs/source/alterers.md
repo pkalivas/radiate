@@ -397,7 +397,7 @@ where the order of elements in a solution is significant.
 	```python
 	import radiate as rd
 
-	crossover = rd.PMXCrossover(rate=0.1)
+	crossover = rd.PartiallyMappedCrossover(rate=0.1)
 	```
 === ":fontawesome-brands-rust: Rust"
 
@@ -463,7 +463,7 @@ to introduce randomness while preserving valid gene configurations.
 - **Example**: Good for problems where you want to maintain diversity while exploring the space
 - **Compatible with**: `FloatGene`
 
-The `SimulatedBinaryCrossover` is a crossover operator designed for `FloatGene`s. It simulates binary crossover by creating offspring that are a linear combination of the parents, controlled by a contiguity factor.
+The `SimulatedBinaryCrossover` is a crossover operator designed for `FloatGene`s. It simulates binary crossover by creating offspring that are a linear combination of the parents, controlled by a contiguity factor. Effectively, it allows for a smooth transition between parent values while maintaining the overall structure of the `genes` by smampling from a uniform distribution between the two parents.
 
 === ":fontawesome-brands-python: Python"
 

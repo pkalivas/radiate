@@ -194,6 +194,17 @@ impl<C: Chromosome> From<(Vec<C>, usize)> for Phenotype<C> {
     }
 }
 
+impl<C: Chromosome> From<(Vec<C>, usize, Score)> for Phenotype<C> {
+    fn from((chromosomes, generation, score): (Vec<C>, usize, Score)) -> Self {
+        Phenotype {
+            genotype: Some(Genotype::new(chromosomes)),
+            score: Some(score),
+            generation,
+            id: PhenotypeId::new(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
