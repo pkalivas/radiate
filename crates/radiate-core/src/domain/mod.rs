@@ -8,5 +8,4 @@ pub mod tracker;
 
 pub use executor::Executor;
 pub use indexes::SubsetMode;
-#[cfg(not(feature = "rayon"))]
 pub use thread_pool::get_thread_pool;

@@ -28,18 +28,6 @@ macro_rules! alters {
 }
 
 #[macro_export]
-macro_rules! filter_alters {
-    ($chromosome_type:ty; $($input:expr),* $(,)?) => {{
-        trait IsCompatibleWithChromosomeType {}
-        impl<T: Alter<$chromosome_type>> IsCompatibleWithChromosomeType for T {}
-
-        let mut vec: Vec<Box<dyn Alter<$chromosome_type>>> = Vec::new();
-
-        vec
-    }};
-}
-
-#[macro_export]
 macro_rules! bench {
     ($name:literal, $operation:expr) => {
         let timer = std::time::Instant::now();
@@ -48,118 +36,6 @@ macro_rules! bench {
         println!("{:?} took {:?}", $name, elapsed);
         result
     };
-}
-
-#[macro_export]
-macro_rules! print_metrics {
-    ($metric_set:expr, [$($filter:expr),* $(,)?]) => {{
-        use std::collections::HashSet;
-        let filter_set: HashSet<&str> = vec![$($filter),*].into_iter().collect();
-
-        println!("=================================================== Metrics Summary ====================================================");
-
-        // Display in order: Operations, Values, Distributions, Times
-        for metric_type in ["Operations", "Value", "Distribution", "Time"] {
-            for (name, metric) in $metric_set.iter() {
-                if !filter_set.contains(name) {
-                    continue;
-                }
-                match (metric_type, metric) {
-                    ("Operations", Metric::Operations(_, _, _)) => println!("{:?}", metric),
-                    ("Value", Metric::Value(_, _)) => println!("{:?}", metric),
-                    ("Distribution", Metric::Distribution(_, _)) => println!("{:?}", metric),
-                    ("Time", Metric::Time(_, _)) => println!("{:?}", metric),
-                    _ => {},
-                }
-            }
-        }
-        println!("========================================================================================================================");
-    }};
-    ($metric_set:expr) => {{
-        use std::time::Duration;
-
-        println!("=================================================== Metrics Summary ====================================================");
-
-        // Operations first
-        for (name, metric) in $metric_set.iter().filter(|(_, m)| matches!(m, Metric::Operations(_, _, _))) {
-            if let Metric::Operations(_, stat, time_stat) = metric {
-                println!(
-                    "{:<20} | Mean: {:>8.3}, Min: {:>8.3}, Max: {:>8.3}, N: {:>3} | Avg Time: {:>9.3?}, Total Time: {:>9.3?}",
-                    name,
-                    stat.mean(),
-                    stat.min(),
-                    stat.max(),
-                    stat.count(),
-                    time_stat.mean(),
-                    time_stat.sum(),
-                );
-            }
-        }
-
-        // Values next
-        for (name, metric) in $metric_set.iter().filter(|(_, m)| matches!(m, Metric::Value(_, _, _))) {
-            if let Metric::Value(_, stat, dist) = metric {
-                println!(
-                    "{:<20} | Mean: {:>8.3}, Min: {:>8.3}, Max: {:>8.3}, N: {:>3} | Dist. Mean: {:>8.3}, Dist. StdDev: {:>8.3}, Dist. Min: {:>8.3}, Dist. Max: {:>8.3}",
-                    name,
-                    stat.mean(),
-                    stat.min(),
-                    stat.max(),
-                    stat.count(),
-                    dist.mean(),
-                    dist.standard_deviation(),
-                    dist.min(),
-                    dist.max(),
-
-                );
-            }
-        }
-
-        // Distributions next
-        for (name, metric) in $metric_set.iter().filter(|(_, m)| matches!(m, Metric::Distribution(_, _))) {
-            if let Metric::Distribution(_, dist) = metric {
-                println!(
-                    "{:<20} | Mean: {:>8.3}, StdDev: {:>8.3}, Min: {:>8.3}, Max: {:>8.3}, N: {:>3}",
-                    name,
-                    dist.mean(),
-                    dist.standard_deviation(),
-                    dist.min(),
-                    dist.max(),
-                    dist.count(),
-                );
-            }
-        }
-
-        // Times last
-        for (name, metric) in $metric_set.iter().filter(|(_, m)| matches!(m, Metric::Time(_, _))) {
-            if let Metric::Time(_, stat) = metric {
-                println!(
-                    "{:<20} | Avg Time: {:>9.3?}, Min Time: {:>9.3?}, Max Time: {:>9.3?}, N: {:>3} | Total Time: {:>9.3?}",
-                    name,
-                    stat.mean(),
-                    stat.min(),
-                    stat.max(),
-                    stat.count(),
-                    stat.sum(),
-                );
-            }
-        }
-
-        println!("========================================================================================================================");
-    }};
-}
-
-#[macro_export]
-macro_rules! metricset_to_string {
-    ($metric_set:expr) => {{
-        use std::collections::HashSet;
-        let mut result = String::new();
-
-        for (name, metric) in $metric_set.iter() {
-            result.push_str(&format!("{:?}\n", metric));
-        }
-        result
-    }};
 }
 
 #[macro_export]

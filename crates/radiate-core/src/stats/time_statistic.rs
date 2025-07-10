@@ -61,31 +61,3 @@ impl From<Duration> for TimeStatistic {
         TimeStatistic::new(value)
     }
 }
-
-// // Add to crates/radiate-core/src/stats/derived.rs
-// pub fn register_builtin_derived(registry: &mut DerivedMetricRegistry) {
-//     // Evaluations per second
-//     registry.register("derived_evals_per_sec", |metrics| {
-//         let eval_count = metrics.get("Fitness")?.count() as f32;
-//         let eval_time = metrics.get("Fitness")?.time_sum()?.as_secs_f32();
-//         if eval_time > 0.0 {
-//             Some(Metric::new_value("derived_evals_per_sec").with_value(eval_count / eval_time))
-//         } else {
-//             None
-//         }
-//     });
-
-//     // Fitness improvement rate
-//     registry.register("derived_fitness_improvement", |metrics| {
-//         let current_fitness = metrics.get("Score")?.last_value();
-//         let prev_fitness = metrics.get("Score")?.value_mean()?;
-//         Some(Metric::new_value("derived_fitness_improvement").with_value(current_fitness - prev_fitness))
-//     });
-
-//     // Diversity change
-//     registry.register("derived_diversity_change", |metrics| {
-//         let current_diversity = metrics.get("Unique(members)")?.last_value();
-//         let prev_diversity = metrics.get("Unique(members)")?.value_mean()?;
-//         Some(Metric::new_value("derived_diversity_change").with_value((current_diversity - prev_diversity).abs()))
-//     });
-// }
