@@ -32,7 +32,7 @@ This is the default epoch for the engine - `Generation`. It contains:
     )
 
     # Run the engine for 100 generations
-    result = engine.run(rd.GeneratinsLimit(100))
+    result = engine.run(rd.GenerationsLimit(100))
 
     # Get the best individual's decoded value 
     value = result.value() # float 

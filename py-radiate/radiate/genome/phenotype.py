@@ -13,8 +13,6 @@ class Phenotype:
         self,
         phenotype: PyPhenotype | None = None,
         genotype: Genotype | None = None,
-        score: List[float] | None = None,
-        id: int | None = None,
     ):
         """
         Initializes a Phenotype instance.
@@ -68,3 +66,10 @@ class Phenotype:
         :return: The genotype of the phenotype.
         """
         return Genotype(genotype=self.__inner.genotype)
+    
+    def id(self) -> int:
+        """
+        Returns the ID of the phenotype.
+        :return: The ID of the phenotype.
+        """
+        return self.__inner.id
