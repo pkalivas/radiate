@@ -1,6 +1,8 @@
 use crate::ProbabilityWheelIterator;
 use radiate_core::{Chromosome, Objective, Optimize, Population, Select, pareto};
 
+const MIN: f32 = 1e-6;
+
 pub struct BoltzmannSelector {
     temperature: f32,
 }
@@ -32,7 +34,7 @@ impl<C: Chromosome + Clone> Select<C> for BoltzmannSelector {
                     .fold((f32::MAX, f32::MIN), |(min, max), &score| {
                         (min.min(score), max.max(score))
                     });
-                let diff = (max - min).abs().max(1e-6);
+                let diff = (max - min).abs().max(MIN);
                 let botzlmann_values = scores
                     .iter()
                     .map(|&score| (self.temperature * ((score - min) / diff)).exp())
@@ -56,7 +58,7 @@ impl<C: Chromosome + Clone> Select<C> for BoltzmannSelector {
                 let (max, min) = weights.iter().fold((f32::MIN, f32::MAX), |(max, min), &w| {
                     (max.max(w), min.min(w))
                 });
-                let diff = (max - min).abs().max(1e-6);
+                let diff = (max - min).abs().max(MIN);
                 let botzmann_values = weights
                     .iter()
                     .map(|&score| (self.temperature * ((score - min) / diff)).exp())

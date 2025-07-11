@@ -127,10 +127,13 @@ def run_maze_evolution(
         offspring_selector=rd.BoltzmannSelector(3),
         objectives="min",
         alters=[
-            # PartiallyMappedCrossover and swap mutator are common for TSP-like problems
+            # PartiallyMappedCrossover and SwapMutator are common for TSP-like problems
             # where we want to maintain the permutation structure. ie., we don't want to
-            # create duplicates or invalid permutations - we want to keep all waypoints.
-            # For a little more color, check out the docs: https://pkalivas.github.io/radiate/source/alterers/
+            # create duplicates or invalid permutations - we want to keep all waypoints and just
+            # change their order around during crossover/mutation. There are a few other operators 
+            # that would also fit this type of problem, such as InversionMutator,
+            # etc. See the For a little more color, check out the docs:
+            # https://pkalivas.github.io/radiate/source/alterers/
             rd.PartiallyMappedCrossover(),
             rd.SwapMutator(),
         ],

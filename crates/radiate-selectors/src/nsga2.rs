@@ -55,6 +55,7 @@ impl<C: Chromosome + Clone> Select<C> for NSGA2Selector {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct TournamentNSGA2Selector;
 
 impl TournamentNSGA2Selector {

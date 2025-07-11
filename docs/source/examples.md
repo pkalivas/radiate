@@ -153,7 +153,7 @@ For example, a solution for `n=8` would be:
             .inspect(|ctx| {
                 println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_usize());
             })
-            .until_score_equal(0)
+            .until_score(0)
             .unwrap();
 
         println!("Result: {:?}", result);
