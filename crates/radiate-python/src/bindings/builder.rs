@@ -699,7 +699,7 @@ impl PyEngineBuilder {
                 }
                 _ => {
                     return Err(PyErr::new::<PyTypeError, _>(
-                        "Regression problem only supports GraphChromosome",
+                        "Regression problem only supports GraphChromosome & TreeChromosome",
                     ));
                 }
             }

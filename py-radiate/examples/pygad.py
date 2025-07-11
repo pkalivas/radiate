@@ -16,6 +16,7 @@ rd.random.set_seed(42)
 function_inputs = [4.0, -2.0, 3.5, 5.0, -11.0, -4.7]
 desired_output = 44.0
 
+
 def genetic_fitness(solution: np.ndarray) -> float:
     output = np.sum(solution * function_inputs)
     return np.abs(output - desired_output)
@@ -33,4 +34,3 @@ print(f"\nBest solution found: {result.value()}")
 print(f"Fitness: {result.score()}")
 print(f"Generations completed: {result.index()}")
 print(f"Function output: {np.sum(result.value() * function_inputs)}")
-

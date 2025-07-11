@@ -52,7 +52,6 @@ use radiate_core::{Engine, metric_names};
 /// # Type Parameters
 /// - `C`: The type of the chromosome used in the genotype, which must implement the [Chromosome] trait.
 /// - `T`: The type of the phenotype produced by the genetic algorithm, which must be `Clone`, `Send`, and `static`.
-/// - `E`: The type of the epoch produced by the genetic algorithm, which must implement the [Epoch] trait.
 pub struct GeneticEngine<C, T>
 where
     C: Chromosome,

@@ -15,7 +15,6 @@ fn main() {
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(1, 1, values))
         .fitness_fn(Regression::new(dataset(), Loss::MSE))
-        // .diversity(NeatDistance::new(0.1, 0.1, 0.5))
         .minimizing()
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
@@ -61,3 +60,5 @@ fn dataset() -> impl Into<DataSet> {
 fn compute(x: f32) -> f32 {
     4.0 * x.powf(3.0) - 3.0 * x.powf(2.0) + x
 }
+
+// .diversity(NeatDistance::new(0.1, 0.1, 0.5))
