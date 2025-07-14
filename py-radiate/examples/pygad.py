@@ -4,7 +4,7 @@ Example of using radiate to solve the PyGAD example problem found on their homep
 
 https://pygad.readthedocs.io/en/latest/
 
-This example should resolve within ~20 generations, or about 10ms
+This example should resolve within ~15-20 generations, or about 10ms
 depending on your random seed & your machine.
 """
 

@@ -10,6 +10,7 @@ nav:
   - Selectors: source/selectors.md
   - Alterers: source/alterers.md
   - Diversity: source/diversity.md
+  - Executor: source/executors.md
   - Objectives: source/objectives.md
   - Fitness: source/fitness.md
   - Events: source/events.md
