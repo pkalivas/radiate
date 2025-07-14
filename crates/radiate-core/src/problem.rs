@@ -17,7 +17,7 @@ where
     S: Into<Score>,
 {
     fn evaluate(&self, individual: T) -> S {
-        (self)(individual)
+        self(individual)
     }
 }
 
@@ -184,7 +184,7 @@ where
     }
 
     fn evaluate_internal(&self, individual: &T) -> f32 {
-        let description = self.behavior.description(&individual);
+        let description = self.behavior.description(individual);
 
         let is_empty = {
             let archive = self.archive.read().unwrap();

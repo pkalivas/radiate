@@ -1,5 +1,5 @@
 use crate::{
-    Chromosome, Gene, Genotype, Metric, Population, ToSnakeCase, indexes, labels, random_provider,
+    indexes, labels, random_provider, Chromosome, Gene, Genotype, Metric, Population, ToSnakeCase,
 };
 
 /// This is the main trait that is used to define the different types of alterations that can be
@@ -276,7 +276,7 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
         let mut result = AlterResult::default();
 
         for phenotype in population.iter_mut() {
-            let mutate_result = self.mutate_genotype(&mut phenotype.genotype_mut(), rate);
+            let mutate_result = self.mutate_genotype(phenotype.genotype_mut(), rate);
 
             if mutate_result.count() > 0 {
                 phenotype.invalidate(generation);
