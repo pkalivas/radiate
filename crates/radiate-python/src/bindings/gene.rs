@@ -1,11 +1,10 @@
+use crate::{AnyGene, any::AnyChromosome, prelude::Wrap};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     BitChromosome, BitGene, CharChromosome, CharGene, Chromosome, FloatChromosome, FloatGene, Gene,
     Genotype, GraphChromosome, GraphNode, IntChromosome, IntGene, Op, PermutationChromosome,
     PermutationGene, Phenotype, Population, TreeChromosome, TreeNode, random_provider,
 };
-
-use crate::{AnyGene, any::AnyChromosome, prelude::Wrap};
 
 pub const FLOAT_GENE_TYPE: &'static str = "FloatGene";
 pub const INT_GENE_TYPE: &'static str = "IntGene";
