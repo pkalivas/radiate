@@ -131,5 +131,5 @@ class GraphCodec(CodecBase):
         else:
             if name != "directed":
                 raise ValueError(f"Unknown graph type: {name}")
-            # Default to directed graph
+        # Default to directed graph
         return GraphCodec(PyGraphCodec("directed", input_size, output_size, ops_map))
