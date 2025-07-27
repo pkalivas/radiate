@@ -17,14 +17,14 @@ function_inputs = [4.0, -2.0, 3.5, 5.0, -11.0, -4.7]
 desired_output = 44.0
 
 
-def genetic_fitness(solution: np.ndarray) -> float:
+def fitness(solution: np.ndarray) -> float:
     output = np.sum(solution * function_inputs)
     return np.abs(output - desired_output)
 
 
 engine = rd.GeneticEngine(
     codec=rd.FloatCodec.vector(len(function_inputs), (-4.0, 4.0), use_numpy=True),
-    fitness_func=genetic_fitness,
+    fitness_func=fitness,
     objectives="min",
 )
 

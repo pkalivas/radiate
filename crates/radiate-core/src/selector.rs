@@ -7,7 +7,6 @@ use crate::objectives::Objective;
 /// selection process is (most of the time) based on the fitness of the individuals in the
 /// population. The selection process can be based on the fitness of the individuals
 /// in the population, or it can be based on the individuals themselves.
-///
 pub trait Select<C: Chromosome>: Send + Sync {
     fn name(&self) -> &'static str {
         std::any::type_name::<Self>()

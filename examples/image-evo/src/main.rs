@@ -37,7 +37,7 @@ fn main() {
 
     let result = engine
         .iter()
-        .inspect(|generation| log_ctx!(generation))
+        .inspect(|generation| log_gen!(generation))
         .take(1000)
         .last()
         .unwrap();
