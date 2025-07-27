@@ -39,7 +39,7 @@ macro_rules! bench {
 }
 
 #[macro_export]
-macro_rules! log_ctx {
+macro_rules! log_gen {
     ($ctx:expr) => {{
         println!(
             "[ Iteration {:<4} ] Score: {:>8.4}, Elapsed: {:.2?}",

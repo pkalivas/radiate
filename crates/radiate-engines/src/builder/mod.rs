@@ -65,8 +65,6 @@ where
 /// # Type Parameters
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 /// - `T`: The type of the best individual in the population.
-/// - `E`: The type of epoch used in the genetic engine, which must implement the `Epoch` trait.
-///
 #[derive(Clone)]
 pub struct GeneticEngineBuilder<C, T>
 where

@@ -23,7 +23,7 @@ fn main() {
 
     engine
         .iter()
-        .inspect(|ctx| log_ctx!(ctx))
+        .inspect(|ctx| log_gen!(ctx))
         .until_score(MIN_SCORE)
         .take(1)
         .last()

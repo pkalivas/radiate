@@ -5,7 +5,7 @@ const MIN_SCORE: f32 = 0.001;
 fn main() {
     random_provider::set_seed(1000);
 
-    let values = vec![
+    let store = vec![
         (NodeType::Input, vec![Op::var(0)]),
         (NodeType::Edge, vec![Op::weight()]),
         (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::linear()]),
@@ -13,7 +13,7 @@ fn main() {
     ];
 
     let engine = GeneticEngine::builder()
-        .codec(GraphCodec::directed(1, 1, values))
+        .codec(GraphCodec::directed(1, 1, store))
         .fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         .alter(alters!(
@@ -25,7 +25,7 @@ fn main() {
 
     engine
         .iter()
-        .inspect(|generation| log_ctx!(generation))
+        .inspect(|generation| log_gen!(generation))
         .until_score(MIN_SCORE)
         .take(1)
         .last()

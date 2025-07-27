@@ -15,7 +15,6 @@ pub use random::PyRandomProvider;
 use std::cell::UnsafeCell;
 
 pub mod prelude {
-
     pub use super::{IntoPyObjectValue, Object, ObjectValue, PyProblem};
     pub use crate::{
         PyBitCodec, PyCharCodec, PyFloatCodec, PyGeneType, PyGraphCodec, PyIntCodec,
@@ -30,7 +29,6 @@ pub mod prelude {
 }
 
 use crate::prelude::*;
-
 use std::sync::Once;
 
 static INIT_LOGGING: Once = Once::new();
