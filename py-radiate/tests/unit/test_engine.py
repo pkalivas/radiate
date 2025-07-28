@@ -194,7 +194,6 @@ class TestEngineBasicIntegration:
         result = engine.run([rd.GenerationsLimit(100)])
 
         assert result.index() <= 100
-        # Check that result is a valid permutation
         assert len(set(result.value())) == 5
         assert all(0 <= x < 5 for x in result.value())
 
@@ -220,7 +219,7 @@ class TestEngineBasicIntegration:
         result = engine.run([rd.GenerationsLimit(50)])
 
         assert len(result.score()) == 2, "Should return two objectives"
-        assert result.index() <= 50, "Should complete within 50 generations"
+        assert result.index() == 50, "Should complete within 50 generations"
 
 class TestEngineErrorHandlingIntegration:
     """Integration tests for error handling and edge cases."""

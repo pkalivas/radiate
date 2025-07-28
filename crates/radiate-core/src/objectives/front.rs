@@ -1,12 +1,11 @@
 use crate::objectives::{Objective, pareto};
 use std::{cmp::Ordering, hash::Hash, ops::Range, sync::Arc};
 
-/// A front is a collection of scores that are non-dominated with respect to each other.
+/// A Front<T> is a collection of `T`'s that are non-dominated with respect to each other.
 /// This is useful for multi-objective optimization problems where the goal is to find
 /// the best solutions that are not dominated by any other solution.
 /// This results in what is called the Pareto front.
 #[derive(Clone)]
-#[allow(dead_code)]
 pub struct Front<T>
 where
     T: AsRef<[f32]>,

@@ -47,7 +47,6 @@ class TestGraphCodec:
             output=rd.Op.linear(),
         )
         genotype = codec.encode()
-        print(genotype.py_genotype().gene_type())
         graph = codec.decode(genotype)
 
         assert graph is not None
