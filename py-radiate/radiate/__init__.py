@@ -22,7 +22,7 @@ from .handlers import EventHandler, EventType
 from .gp import Op, Graph, Tree
 
 from .inputs.executor import Executor
-from .inputs.problem import Regression
+from .inputs.problem import Regression, NoveltySearch
 from .inputs.selector import (
     TournamentSelector,
     RouletteSelector,
@@ -117,8 +117,8 @@ __all__ = [
     "GenerationsLimit",
     "ScoreLimit",
     # Problem
-    "CallableProblem",
     "Regression",
+    "NoveltySearch",
     # Selectors
     "TournamentSelector",
     "RouletteSelector",

@@ -1,5 +1,7 @@
 import abc
 from typing import List, Callable, Any
+from radiate.inputs.input import EngineInput, EngineInputType
+from radiate.inputs.distance import DistanceBase
 from radiate.radiate import PyProblemBuilder
 
 
@@ -19,7 +21,7 @@ class CallableProblem(ProblemBase):
 
         :param problem: A callable defining the custom problem.
         """
-        super().__init__(problem=PyProblemBuilder.custom(problem))
+        super().__init__(PyProblemBuilder.custom(problem))
 
 
 class Regression(ProblemBase):
@@ -37,4 +39,40 @@ class Regression(ProblemBase):
         """
         super().__init__(
             PyProblemBuilder.regression(features=features, targets=targets, loss=loss)
+        )
+
+
+class NoveltySearch(ProblemBase):
+    """A class representing a novelty search problem."""
+
+    def __init__(
+        self,
+        discriptor: DistanceBase,
+        k: int = 15,
+        threshold: float = 0.0,
+    ):
+        """
+        Initializes the NoveltySearch problem instance.
+
+        :param features: A list of feature vectors.
+        :param targets: A list of target vectors.
+        :param k: The number of nearest neighbors to consider for novelty search.
+        :param threshold: The novelty threshold.
+        """
+        if not isinstance(discriptor, DistanceBase):
+            raise TypeError("discriptor must be an instance of DistanceBase.")
+        if k <= 0:
+            raise ValueError("k must be a positive integer.")
+        if threshold < 0:
+            raise ValueError("threshold must be a non-negative float.")
+
+        input = EngineInput(
+            input_type=EngineInputType.Diversity,
+            component=discriptor.component,
+            allowed_genes=discriptor.allowed_genes,
+            **discriptor.args,
+        ).py_input()
+
+        super().__init__(
+            PyProblemBuilder.novelty_search(discriptor=input, k=k, threshold=threshold)
         )

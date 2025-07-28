@@ -1,4 +1,4 @@
-use crate::{EngineHandle, EpochHandle, PyEngineInput, PyGeneration};
+use crate::{EngineHandle, EpochHandle, InputConverter, PyEngineInput, PyGeneration};
 use pyo3::{PyResult, pyclass, pymethods};
 use radiate::{Chromosome, Engine, Generation, GeneticEngine, Limit, Objective, Optimize};
 use tracing::info;
@@ -25,14 +25,17 @@ impl PyEngine {
             ));
         }
 
-        let limits = limits
-            .into_iter()
-            .filter_map(|input| input.into())
-            .collect::<Vec<Limit>>();
-
         let engine = self.engine.take().ok_or_else(|| {
             pyo3::exceptions::PyRuntimeError::new_err("Engine has already been run")
         })?;
+
+        let limits = limits.convert();
+
+        if limits.is_empty() {
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "At least one limit must be specified",
+            ));
+        }
 
         Ok(PyGeneration::new(match engine {
             EngineHandle::Int(eng) => EpochHandle::Int(run_engine(eng, limits, log)),

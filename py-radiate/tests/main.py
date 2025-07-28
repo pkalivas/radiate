@@ -1,63 +1,67 @@
-# import os
-# import sys
-# # import math  # type: ignore
-# import numpy as np # type: ignore
-# # from numba import jit, cfunc, vectorize # type: ignore
+import os
+import sys
+# import math  # type: ignore
+import numpy as np # type: ignore
+# from numba import jit, cfunc, vectorize # type: ignore
 
-# import matplotlib.pyplot as plt # type: ignore
-
-
-
-# project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-# sys.path.insert(0, project_root)
-
-# import radiate as rd 
-
-# print(f"Radiate version: {rd.__version__}")
-
-# rd.random.set_seed(500)
+import matplotlib.pyplot as plt # type: ignore
 
 
-# class TestHandler(rd.EventHandler):
-#     def __init__(self):
-#         super().__init__()
-#         self.scores = []
 
-#     def on_event(self, event):
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, project_root)
+
+import radiate as rd 
+
+print(f"Radiate version: {rd.__version__}")
+
+rd.random.set_seed(500)
+
+
+class TestHandler(rd.EventHandler):
+    def __init__(self):
+        super().__init__()
+        self.scores = []
+
+    def on_event(self, event):
         
-#         if event["type"] == "epoch_complete":
-#             self.scores.append(event["score"])
-#             # self.scores.append(event['metrics']['unique_members']['value_last'])
-#         elif event["type"] == "stop":
-#             plt.plot(self.scores)
-#             plt.xlabel("Generation")
-#             plt.ylabel("Best Fitness")
-#             plt.title("Fitness over Generations")
-#             plt.show()
-#         elif event["type"] == "engine_improvement":
-#             print(f"New best score: {event}")
+        if event["type"] == "epoch_complete":
+            self.scores.append(event["score"])
+            # self.scores.append(event['metrics']['unique_members']['value_last'])
+        elif event["type"] == "stop":
+            plt.plot(self.scores)
+            plt.xlabel("Generation")
+            plt.ylabel("Best Fitness")
+            plt.title("Fitness over Generations")
+            plt.show()
+        elif event["type"] == "engine_improvement":
+            print(f"New best score: {event}")
         
+novelty_search = rd.NoveltySearch(
+    discriptor=rd.HammingDistance(),
+    k=10,
+    threshold=0.03,
+)
 
+engine = rd.GeneticEngine(
+    codec=rd.IntCodec.vector(50, (0, 10)),
+    # fitness_func=lambda x: sum(x),
+    fitness_func=novelty_search,
+    offspring_selector=rd.BoltzmannSelector(4),
+    objectives="min",
+    subscribe=TestHandler(),
+    # executor=rd.Executor.WorkerPool(),
+    alters=[
+        rd.MultiPointCrossover(0.75, 2),
+        rd.UniformMutator(0.01)
+    ],
+)
 
-# engine = rd.GeneticEngine(
-#     codec=rd.IntCodec.vector(50, (0, 10)),
-#     fitness_func=lambda x: sum(x),
-#     offspring_selector=rd.BoltzmannSelector(4),
-#     objectives="min",
-#     # subscribe=TestHandler(),
-#     # executor=rd.Executor.WorkerPool(),
-#     alters=[
-#         rd.MultiPointCrossover(0.75, 2),
-#         rd.UniformMutator(0.01)
-#     ],
-# )
+result = engine.run(rd.ScoreLimit(0), log=True)
 
-# result = engine.run(rd.ScoreLimit(0), log=True)
+print(result)
 
-# print(result)
-
-
-
+print(novelty_search)
 
 ######## Other test stuff ##########
 

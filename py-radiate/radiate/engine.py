@@ -1,8 +1,8 @@
-from typing import Any, Callable, List, Tuple, TypeAlias, Union
+from typing import Any, Callable, List, Tuple
 
+from ._typing import Subscriber
 from .builder import EngineBuilder
 from .generation import Generation
-from .handlers import EventHandler
 from .codec import (
     FloatCodec,
     IntCodec,
@@ -23,11 +23,6 @@ from .inputs.problem import ProblemBase
 from .inputs.limit import LimitBase
 
 from .genome.gene import GeneType
-
-
-Subscriber: TypeAlias = Union[
-    Callable[[Any], None], List[Callable[[Any], None]], EventHandler, List[EventHandler]
-]
 
 
 class GeneticEngine:
@@ -314,7 +309,9 @@ class GeneticEngine:
     def subscribe(self, event_handler: Subscriber | None = None):
         """Register an event handler.
         Args:
-            event_handler (Callable[[Any], None] | List[Callable[[Any], None]]): The event handler(s) to register.
+            event_handler Union[
+                Callable[[Any], None], List[Callable[[Any], None]], EventHandler, List[EventHandler]
+            ] : The event handler(s) to register.
         Raises:
             TypeError: If event_handler is not callable or a list of callables.
 

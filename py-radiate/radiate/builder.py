@@ -1,9 +1,9 @@
 from typing import List, Optional, Tuple, Callable
 from radiate.codec.codec import CodecBase
 from radiate.genome.gene import GeneType
-from radiate.handlers import EventHandler
 from radiate.inputs.problem import ProblemBase
 from radiate.radiate import PyEngine, PyEngineBuilder
+from ._typing import Subscriber
 from .inputs.input import EngineInput, EngineInputType
 from .inputs.selector import SelectorBase
 from .inputs.alterer import AlterBase
@@ -37,7 +37,7 @@ class EngineBuilder:
     def inputs(self) -> List[EngineInput]:
         return self._inputs
 
-    def set_subscribers(self, subscribers: List[EventHandler] | EventHandler | None):
+    def set_subscribers(self, subscribers: Subscriber | None):
         if subscribers is None:
             return
         if isinstance(subscribers, list):
