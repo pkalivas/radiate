@@ -43,7 +43,6 @@ class EngineInputType:
     FrontRange = "FrontRange"
     Limit = "Limit"
     Diversity = "Diversity"
-    Descriptor = "Descriptor"
 
 
 class EngineInput:

@@ -1,4 +1,4 @@
-use crate::{EngineHandle, EpochHandle, InputConverter, PyEngineInput, PyGeneration};
+use crate::{EngineHandle, EpochHandle, InputTransform, PyEngineInput, PyGeneration};
 use pyo3::{PyResult, pyclass, pymethods};
 use radiate::{Chromosome, Engine, EngineIteratorExt, Generation, GeneticEngine, Limit, Objective};
 use tracing::info;
@@ -29,7 +29,7 @@ impl PyEngine {
             pyo3::exceptions::PyRuntimeError::new_err("Engine has already been run")
         })?;
 
-        let limits = limits.convert();
+        let limits = limits.transform();
 
         if limits.is_empty() {
             return Err(pyo3::exceptions::PyValueError::new_err(

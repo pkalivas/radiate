@@ -3,12 +3,15 @@ use radiate_python::{
     PyAnyCodec, PyBitCodec, PyCharCodec, PyChromosome, PyEngine, PyEngineBuilder, PyEngineInput,
     PyEngineInputType, PyFloatCodec, PyGene, PyGeneType, PyGeneration, PyGenotype, PyGraph,
     PyGraphCodec, PyIntCodec, PyPermutationCodec, PyPhenotype, PyPopulation, PyProblemBuilder,
-    PyRandomProvider, PySubscriber, PyTree, PyTreeCodec,
+    PyRandomProvider, PySubscriber, PyTree, PyTreeCodec, py_alter, py_select,
 };
 
 #[pymodule]
 fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
     radiate_python::init_logging();
+
+    m.add_function(wrap_pyfunction!(py_select, m)?)?;
+    m.add_function(wrap_pyfunction!(py_alter, m)?)?;
 
     m.add_class::<PyRandomProvider>()?;
     m.add_class::<PyProblemBuilder>()?;

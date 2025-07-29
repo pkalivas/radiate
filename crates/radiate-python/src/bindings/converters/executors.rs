@@ -1,8 +1,8 @@
-use crate::{InputConverter, PyEngineInput, PyEngineInputType};
+use crate::{InputTransform, PyEngineInput, PyEngineInputType};
 use radiate::Executor;
 
-impl InputConverter<Option<Executor>> for PyEngineInput {
-    fn convert(&self) -> Option<Executor> {
+impl InputTransform<Option<Executor>> for PyEngineInput {
+    fn transform(&self) -> Option<Executor> {
         if self.input_type != PyEngineInputType::Executor {
             return None;
         }

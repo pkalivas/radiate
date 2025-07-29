@@ -1,4 +1,7 @@
 from typing import Any, Dict
+
+from radiate.genome.population import Population
+from radiate.inputs.input import EngineInput, EngineInputType
 from .component import ComponentBase
 from ..genome.gene import GeneType
 
@@ -30,6 +33,29 @@ class AlterBase(ComponentBase):
             and self.args == value.args
             and self.allowed_genes == value.allowed_genes
         )
+
+    def alter(self, population, generation: int = 0):
+        """
+        Alter the population based on the alterer's criteria.
+        :param population: The population to alter.
+        :param generation: The current generation number.
+        :return: The altered population.
+        """
+        from radiate.radiate import py_alter
+
+        alterer_input = EngineInput(
+            component=self.component,
+            input_type=EngineInputType.Alterer,
+            allowed_genes=self.allowed_genes,
+            args=self.args,
+        ).py_input()
+
+        return Population(individuals=py_alter(
+            population.py_population().gene_type(),
+            alterer_input,
+            population.py_population(),
+            generation,
+        ))
 
 
 class BlendCrossover(AlterBase):

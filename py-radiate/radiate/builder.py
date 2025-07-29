@@ -14,7 +14,13 @@ from .inputs.problem import CallableProblem
 
 
 class EngineBuilder:
-    def __init__(self, gene_type: str, codec: CodecBase, problem: ProblemBase, population: Optional[Population]):
+    def __init__(
+        self,
+        gene_type: str,
+        codec: CodecBase,
+        problem: ProblemBase,
+        population: Optional[Population],
+    ):
         self._inputs = []
         self._subscribers = []
         self._gene_type = gene_type

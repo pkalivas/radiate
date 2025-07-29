@@ -57,6 +57,19 @@ result = engine.run(rd.ScoreLimit(0), log=True)
 print(result)
 
 
+
+# print(rd.BoltzmannSelector(4).select(population, "min", 10))
+
+# for pheno in population.phenotypes():
+#     print(pheno.genotype().chromosomes()[0].genes())
+# altered = rd.UniformMutator(0.01).alter(population)
+# print("After mutation:")
+# print()
+
+# for pheno in altered:
+#     print(pheno.genotype().chromosomes()[0].genes())
+
+
 #    let test_inputs = vec![4.0, -2.0, 3.5, 5.0, -11.0, -4.7];
 #         let codec = FloatCodec::vector(6, -100.0..100.0);
 

@@ -1,16 +1,16 @@
 use std::time::Duration;
 
-use crate::{InputConverter, PyEngineInput, PyEngineInputType};
+use crate::{InputTransform, PyEngineInput, PyEngineInputType};
 use radiate::Limit;
 
-impl InputConverter<Vec<Limit>> for Vec<PyEngineInput> {
-    fn convert(&self) -> Vec<Limit> {
-        self.iter().filter_map(|input| input.convert()).collect()
+impl InputTransform<Vec<Limit>> for Vec<PyEngineInput> {
+    fn transform(&self) -> Vec<Limit> {
+        self.iter().filter_map(|input| input.transform()).collect()
     }
 }
 
-impl InputConverter<Option<Limit>> for PyEngineInput {
-    fn convert(&self) -> Option<Limit> {
+impl InputTransform<Option<Limit>> for PyEngineInput {
+    fn transform(&self) -> Option<Limit> {
         if self.input_type != PyEngineInputType::Limit {
             return None;
         }

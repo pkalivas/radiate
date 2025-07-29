@@ -7,6 +7,7 @@ mod fitness;
 mod gene;
 mod inputs;
 mod metric;
+mod operators;
 mod ops;
 mod subscriber;
 
@@ -15,12 +16,13 @@ pub use codec::{
     PyAnyCodec, PyBitCodec, PyCharCodec, PyCodec, PyFloatCodec, PyGraph, PyGraphCodec, PyIntCodec,
     PyPermutationCodec, PyTree, PyTreeCodec,
 };
-pub use converters::InputConverter;
+pub use converters::InputTransform;
 pub use engine::PyEngine;
 pub use epoch::PyGeneration;
 pub use fitness::{PyNoveltySearch, PyProblemBuilder};
 pub use gene::{PyChromosome, PyGene, PyGeneType, PyGenotype, PyPhenotype, PyPopulation};
 pub use inputs::{PyEngineInput, PyEngineInputType};
+pub use operators::*;
 
 pub use metric::PyMetricSet;
 pub use subscriber::PySubscriber;

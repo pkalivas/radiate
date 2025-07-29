@@ -1,4 +1,4 @@
-use crate::{InputConverter, PyEngineInput};
+use crate::{InputTransform, PyEngineInput};
 use radiate::{
     BitChromosome, CharChromosome, CosineDistance, Diversity, EuclideanDistance, FloatChromosome,
     GraphChromosome, HammingDistance, IntChromosome, NeatDistance, Op, PermutationChromosome,
@@ -9,8 +9,8 @@ const EUCLIDEAN_DISTANCE: &str = "EuclideanDistance";
 const COSINE_DISTANCE: &str = "CosineDistance";
 const NEAT_DISTANCE: &str = "NeatDistance";
 
-impl InputConverter<Option<Box<dyn Diversity<IntChromosome<i32>>>>> for PyEngineInput {
-    fn convert(&self) -> Option<Box<dyn Diversity<IntChromosome<i32>>>> {
+impl InputTransform<Option<Box<dyn Diversity<IntChromosome<i32>>>>> for PyEngineInput {
+    fn transform(&self) -> Option<Box<dyn Diversity<IntChromosome<i32>>>> {
         match self.component.as_str() {
             HAMMING_DISTANCE => Some(Box::new(HammingDistance)),
             _ => None,
@@ -18,8 +18,8 @@ impl InputConverter<Option<Box<dyn Diversity<IntChromosome<i32>>>>> for PyEngine
     }
 }
 
-impl InputConverter<Option<Box<dyn Diversity<FloatChromosome>>>> for PyEngineInput {
-    fn convert(&self) -> Option<Box<dyn Diversity<FloatChromosome>>> {
+impl InputTransform<Option<Box<dyn Diversity<FloatChromosome>>>> for PyEngineInput {
+    fn transform(&self) -> Option<Box<dyn Diversity<FloatChromosome>>> {
         match self.component.as_str() {
             EUCLIDEAN_DISTANCE => Some(Box::new(EuclideanDistance)),
             HAMMING_DISTANCE => Some(Box::new(HammingDistance)),
@@ -29,8 +29,8 @@ impl InputConverter<Option<Box<dyn Diversity<FloatChromosome>>>> for PyEngineInp
     }
 }
 
-impl InputConverter<Option<Box<dyn Diversity<BitChromosome>>>> for PyEngineInput {
-    fn convert(&self) -> Option<Box<dyn Diversity<BitChromosome>>> {
+impl InputTransform<Option<Box<dyn Diversity<BitChromosome>>>> for PyEngineInput {
+    fn transform(&self) -> Option<Box<dyn Diversity<BitChromosome>>> {
         match self.component.as_str() {
             HAMMING_DISTANCE => Some(Box::new(HammingDistance)),
             _ => None,
@@ -38,8 +38,8 @@ impl InputConverter<Option<Box<dyn Diversity<BitChromosome>>>> for PyEngineInput
     }
 }
 
-impl InputConverter<Option<Box<dyn Diversity<CharChromosome>>>> for PyEngineInput {
-    fn convert(&self) -> Option<Box<dyn Diversity<CharChromosome>>> {
+impl InputTransform<Option<Box<dyn Diversity<CharChromosome>>>> for PyEngineInput {
+    fn transform(&self) -> Option<Box<dyn Diversity<CharChromosome>>> {
         match self.component.as_str() {
             HAMMING_DISTANCE => Some(Box::new(HammingDistance)),
             _ => None,
@@ -47,8 +47,8 @@ impl InputConverter<Option<Box<dyn Diversity<CharChromosome>>>> for PyEngineInpu
     }
 }
 
-impl InputConverter<Option<Box<dyn Diversity<PermutationChromosome<usize>>>>> for PyEngineInput {
-    fn convert(&self) -> Option<Box<dyn Diversity<PermutationChromosome<usize>>>> {
+impl InputTransform<Option<Box<dyn Diversity<PermutationChromosome<usize>>>>> for PyEngineInput {
+    fn transform(&self) -> Option<Box<dyn Diversity<PermutationChromosome<usize>>>> {
         match self.component.as_str() {
             HAMMING_DISTANCE => Some(Box::new(HammingDistance)),
             _ => None,
@@ -56,8 +56,8 @@ impl InputConverter<Option<Box<dyn Diversity<PermutationChromosome<usize>>>>> fo
     }
 }
 
-impl InputConverter<Option<Box<dyn Diversity<GraphChromosome<Op<f32>>>>>> for PyEngineInput {
-    fn convert(&self) -> Option<Box<dyn Diversity<GraphChromosome<Op<f32>>>>> {
+impl InputTransform<Option<Box<dyn Diversity<GraphChromosome<Op<f32>>>>>> for PyEngineInput {
+    fn transform(&self) -> Option<Box<dyn Diversity<GraphChromosome<Op<f32>>>>> {
         match self.component.as_str() {
             NEAT_DISTANCE => {
                 let excess = self.get_f32("excess").unwrap_or(1.0);

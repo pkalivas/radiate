@@ -2,7 +2,7 @@ use crate::bindings::codec::PyTreeCodec;
 use crate::bindings::{EngineBuilderHandle, EngineHandle};
 use crate::events::PyEventHandler;
 use crate::{
-    FreeThreadPyEvaluator, InputConverter, PyCodec, PyEngine, PyEngineInput, PyEngineInputType,
+    FreeThreadPyEvaluator, InputTransform, PyCodec, PyEngine, PyEngineInput, PyEngineInputType,
     PyNoveltySearch, PyPermutationCodec, PyPopulation, prelude::*,
 };
 use crate::{PyGeneType, PySubscriber};
@@ -249,7 +249,7 @@ impl PyEngineBuilder {
     ) -> PyResult<EngineBuilderHandle> {
         self.process_single_value(builder, inputs, |builder, input| match builder {
             EngineBuilderHandle::Int(builder) => {
-                let selector: Box<dyn Select<IntChromosome<i32>>> = input.convert();
+                let selector: Box<dyn Select<IntChromosome<i32>>> = input.transform();
                 match input.input_type() {
                     PyEngineInputType::SurvivorSelector => Ok(EngineBuilderHandle::Int(
                         builder.boxed_survivor_selector(selector),
@@ -263,7 +263,7 @@ impl PyEngineBuilder {
                 }
             }
             EngineBuilderHandle::Float(builder) => {
-                let selector: Box<dyn Select<FloatChromosome>> = input.convert();
+                let selector: Box<dyn Select<FloatChromosome>> = input.transform();
                 match input.input_type() {
                     PyEngineInputType::SurvivorSelector => Ok(EngineBuilderHandle::Float(
                         builder.boxed_survivor_selector(selector),
@@ -277,7 +277,7 @@ impl PyEngineBuilder {
                 }
             }
             EngineBuilderHandle::Char(builder) => {
-                let selector: Box<dyn Select<CharChromosome>> = input.convert();
+                let selector: Box<dyn Select<CharChromosome>> = input.transform();
                 match input.input_type() {
                     PyEngineInputType::SurvivorSelector => Ok(EngineBuilderHandle::Char(
                         builder.boxed_survivor_selector(selector),
@@ -291,7 +291,7 @@ impl PyEngineBuilder {
                 }
             }
             EngineBuilderHandle::Bit(builder) => {
-                let selector: Box<dyn Select<BitChromosome>> = input.convert();
+                let selector: Box<dyn Select<BitChromosome>> = input.transform();
                 match input.input_type() {
                     PyEngineInputType::SurvivorSelector => Ok(EngineBuilderHandle::Bit(
                         builder.boxed_survivor_selector(selector),
@@ -305,7 +305,7 @@ impl PyEngineBuilder {
                 }
             }
             EngineBuilderHandle::Permutation(builder) => {
-                let selector: Box<dyn Select<PermutationChromosome<usize>>> = input.convert();
+                let selector: Box<dyn Select<PermutationChromosome<usize>>> = input.transform();
                 match input.input_type() {
                     PyEngineInputType::SurvivorSelector => Ok(EngineBuilderHandle::Permutation(
                         builder.boxed_survivor_selector(selector),
@@ -319,7 +319,7 @@ impl PyEngineBuilder {
                 }
             }
             EngineBuilderHandle::Graph(builder) => {
-                let selector: Box<dyn Select<GraphChromosome<Op<f32>>>> = input.convert();
+                let selector: Box<dyn Select<GraphChromosome<Op<f32>>>> = input.transform();
                 match input.input_type() {
                     PyEngineInputType::SurvivorSelector => Ok(EngineBuilderHandle::Graph(
                         builder.boxed_survivor_selector(selector),
@@ -333,7 +333,7 @@ impl PyEngineBuilder {
                 }
             }
             EngineBuilderHandle::Tree(builder) => {
-                let selector: Box<dyn Select<TreeChromosome<Op<f32>>>> = input.convert();
+                let selector: Box<dyn Select<TreeChromosome<Op<f32>>>> = input.transform();
                 match input.input_type() {
                     PyEngineInputType::SurvivorSelector => Ok(EngineBuilderHandle::Tree(
                         builder.boxed_survivor_selector(selector),
@@ -359,31 +359,31 @@ impl PyEngineBuilder {
     ) -> PyResult<EngineBuilderHandle> {
         match builder {
             EngineBuilderHandle::Int(builder) => {
-                let alters: Vec<Box<dyn Alter<IntChromosome<i32>>>> = inputs.convert();
+                let alters: Vec<Box<dyn Alter<IntChromosome<i32>>>> = inputs.transform();
                 Ok(EngineBuilderHandle::Int(builder.alter(alters)))
             }
             EngineBuilderHandle::Float(builder) => {
-                let alters: Vec<Box<dyn Alter<FloatChromosome>>> = inputs.convert();
+                let alters: Vec<Box<dyn Alter<FloatChromosome>>> = inputs.transform();
                 Ok(EngineBuilderHandle::Float(builder.alter(alters)))
             }
             EngineBuilderHandle::Char(builder) => {
-                let alters: Vec<Box<dyn Alter<CharChromosome>>> = inputs.convert();
+                let alters: Vec<Box<dyn Alter<CharChromosome>>> = inputs.transform();
                 Ok(EngineBuilderHandle::Char(builder.alter(alters)))
             }
             EngineBuilderHandle::Bit(builder) => {
-                let alters: Vec<Box<dyn Alter<BitChromosome>>> = inputs.convert();
+                let alters: Vec<Box<dyn Alter<BitChromosome>>> = inputs.transform();
                 Ok(EngineBuilderHandle::Bit(builder.alter(alters)))
             }
             EngineBuilderHandle::Graph(builder) => {
-                let alters: Vec<Box<dyn Alter<GraphChromosome<Op<f32>>>>> = inputs.convert();
+                let alters: Vec<Box<dyn Alter<GraphChromosome<Op<f32>>>>> = inputs.transform();
                 Ok(EngineBuilderHandle::Graph(builder.alter(alters)))
             }
             EngineBuilderHandle::Tree(builder) => {
-                let alters: Vec<Box<dyn Alter<TreeChromosome<Op<f32>>>>> = inputs.convert();
+                let alters: Vec<Box<dyn Alter<TreeChromosome<Op<f32>>>>> = inputs.transform();
                 Ok(EngineBuilderHandle::Tree(builder.alter(alters)))
             }
             EngineBuilderHandle::Permutation(builder) => {
-                let alters: Vec<Box<dyn Alter<PermutationChromosome<usize>>>> = inputs.convert();
+                let alters: Vec<Box<dyn Alter<PermutationChromosome<usize>>>> = inputs.transform();
                 Ok(EngineBuilderHandle::Permutation(builder.alter(alters)))
             }
             _ => Err(PyTypeError::new_err(format!(
@@ -401,27 +401,27 @@ impl PyEngineBuilder {
         self.process_single_value(builder, inputs, |builder, input| {
             match builder {
                 EngineBuilderHandle::Int(b) => {
-                    let diversity: Option<Box<dyn Diversity<IntChromosome<i32>>>> = input.convert();
+                    let diversity: Option<Box<dyn Diversity<IntChromosome<i32>>>> = input.transform();
                     Ok(EngineBuilderHandle::Int(b.boxed_diversity(diversity)))
                 }
                 EngineBuilderHandle::Float(b) => {
-                    let diversity: Option<Box<dyn Diversity<FloatChromosome>>> = input.convert();
+                    let diversity: Option<Box<dyn Diversity<FloatChromosome>>> = input.transform();
                     Ok(EngineBuilderHandle::Float(b.boxed_diversity(diversity)))
                 }
                 EngineBuilderHandle::Char(b) => {
-                    let diversity: Option<Box<dyn Diversity<CharChromosome>>> = input.convert();
+                    let diversity: Option<Box<dyn Diversity<CharChromosome>>> = input.transform();
                     Ok(EngineBuilderHandle::Char(b.boxed_diversity(diversity)))
                 }
                 EngineBuilderHandle::Bit(b) => {
-                    let diversity: Option<Box<dyn Diversity<BitChromosome>>> = input.convert();
+                    let diversity: Option<Box<dyn Diversity<BitChromosome>>> = input.transform();
                     Ok(EngineBuilderHandle::Bit(b.boxed_diversity(diversity)))
                 }
                 EngineBuilderHandle::Graph(b) => {
-                    let diversity: Option<Box<dyn Diversity<GraphChromosome<Op<f32>>>>> = input.convert();
+                    let diversity: Option<Box<dyn Diversity<GraphChromosome<Op<f32>>>>> = input.transform();
                     Ok(EngineBuilderHandle::Graph(b.boxed_diversity(diversity)))
                 }
                 EngineBuilderHandle::Permutation(b) => {
-                    let diversity: Option<Box<dyn Diversity<PermutationChromosome<usize>>>> = input.convert();
+                    let diversity: Option<Box<dyn Diversity<PermutationChromosome<usize>>>> = input.transform();
                     Ok(EngineBuilderHandle::Permutation(b.boxed_diversity(diversity)))
                 }
                 _ => Err(PyTypeError::new_err(
@@ -503,7 +503,7 @@ impl PyEngineBuilder {
             .inputs
             .iter()
             .filter(|i| i.input_type == PyEngineInputType::Executor)
-            .filter_map(|input| input.convert())
+            .filter_map(|input| input.transform())
             .next()
             .unwrap_or(Executor::Serial);
 
