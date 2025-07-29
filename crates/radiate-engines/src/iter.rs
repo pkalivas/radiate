@@ -77,7 +77,7 @@ where
         }
     }
 
-    fn until_limit(
+    fn limit(
         self,
         limit: impl Into<Limit>,
     ) -> LimitIterator<Box<dyn Iterator<Item = Generation<C, T>>>>

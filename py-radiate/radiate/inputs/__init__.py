@@ -35,8 +35,6 @@ from .selector import (
 
 from .distance import HammingDistance, EuclideanDistance, NeatDistance, CosineDistance
 
-from .descriptor import DescriptorBase, FitnessDescriptor
-
 from .limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
 
 from .problem import Regression, CallableProblem
@@ -80,6 +78,4 @@ __all__ = [
     "Regression",
     "CallableProblem",
     "ConvergenceLimit",
-    "DescriptorBase",
-    "FitnessDescriptor",
 ]

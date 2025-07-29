@@ -52,13 +52,32 @@ impl PyNoveltySearch {
         };
 
         if let Ok(vals) = described.extract::<Vec<f32>>() {
-            let novelty = match &self.novelty {
+            Ok(match &self.novelty {
                 NoveltyInner::Euclidean(n) => n.evaluate(&vals),
                 NoveltyInner::Cosine(n) => n.evaluate(&vals),
                 NoveltyInner::Hamming(n) => n.evaluate(&vals),
-            };
-
-            Ok(novelty)
+            })
+        } else if let Ok(vals) = described.extract::<Vec<i32>>() {
+            let vals: Vec<f32> = vals.into_iter().map(|v| v as f32).collect();
+            Ok(match &self.novelty {
+                NoveltyInner::Euclidean(n) => n.evaluate(&vals),
+                NoveltyInner::Cosine(n) => n.evaluate(&vals),
+                NoveltyInner::Hamming(n) => n.evaluate(&vals),
+            })
+        } else if let Ok(vals) = described.extract::<Vec<f64>>() {
+            let vals: Vec<f32> = vals.into_iter().map(|v| v as f32).collect();
+            Ok(match &self.novelty {
+                NoveltyInner::Euclidean(n) => n.evaluate(&vals),
+                NoveltyInner::Cosine(n) => n.evaluate(&vals),
+                NoveltyInner::Hamming(n) => n.evaluate(&vals),
+            })
+        } else if let Ok(vals) = described.extract::<Vec<usize>>() {
+            let vals: Vec<f32> = vals.into_iter().map(|v| v as f32).collect();
+            Ok(match &self.novelty {
+                NoveltyInner::Euclidean(n) => n.evaluate(&vals),
+                NoveltyInner::Cosine(n) => n.evaluate(&vals),
+                NoveltyInner::Hamming(n) => n.evaluate(&vals),
+            })
         } else {
             Err(PyTypeError::new_err(
                 "Descriptor did not return a vector of f32 values",

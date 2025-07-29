@@ -3,12 +3,11 @@ mod codec;
 mod converters;
 mod engine;
 mod epoch;
+mod fitness;
 mod gene;
 mod inputs;
 mod metric;
-mod novelty;
 mod ops;
-mod problem;
 mod subscriber;
 
 pub use builder::PyEngineBuilder;
@@ -19,12 +18,11 @@ pub use codec::{
 pub use converters::InputConverter;
 pub use engine::PyEngine;
 pub use epoch::PyGeneration;
+pub use fitness::{PyNoveltySearch, PyProblemBuilder};
 pub use gene::{PyChromosome, PyGene, PyGeneType, PyGenotype, PyPhenotype, PyPopulation};
 pub use inputs::{PyEngineInput, PyEngineInputType};
-pub use novelty::PyNoveltySearch;
 
 pub use metric::PyMetricSet;
-pub use problem::PyProblemBuilder;
 pub use subscriber::PySubscriber;
 
 use crate::ObjectValue;

@@ -1,4 +1,4 @@
-use crate::{ArithmeticGene, Chromosome, Gene, Genotype, problem::Novelty};
+use crate::{ArithmeticGene, Chromosome, Gene, Genotype, fitness::Novelty};
 
 /// Trait for measuring diversity between two [Genotype]s.
 /// Within radiate this is mostly used for speciation and determining how genetically

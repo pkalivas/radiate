@@ -507,11 +507,11 @@ impl PyEngineBuilder {
             .next()
             .unwrap_or(Executor::Serial);
 
-        let builder = if problem.name() == super::problem::CUSTOM_PROBLEM {
+        let builder = if problem.name() == super::fitness::CUSTOM_PROBLEM {
             self.create_builder_with_custom_problem(py, problem, codec, executor)
-        } else if problem.name() == super::problem::REGRESSION_PROBLEM {
+        } else if problem.name() == super::fitness::REGRESSION_PROBLEM {
             self.create_builder_with_regression_problem(py, problem, codec, executor)
-        } else if problem.name() == super::problem::NOVELTY_SEARCH_PROBLEM {
+        } else if problem.name() == super::fitness::NOVELTY_SEARCH_PROBLEM {
             self.create_builder_with_novelty_search_problem(py, problem, codec, executor)
         } else {
             return Err(PyErr::new::<PyTypeError, _>(
@@ -717,12 +717,6 @@ impl PyEngineBuilder {
         codec: &Bound<'py, PyAny>,
         executor: Executor,
     ) -> PyResult<EngineBuilderHandle> {
-        if !problem.allowed_genes.contains(&self.gene_type) {
-            return Err(PyErr::new::<PyTypeError, _>(
-                "Novelty search problem only supports GraphChromosome & TreeChromosome",
-            ));
-        }
-
         let distance = problem
             .args(py)?
             .get_item("distance")?
@@ -739,6 +733,13 @@ impl PyEngineBuilder {
             .get_item("max_archive_size")?
             .extract::<usize>()
             .unwrap_or(1000);
+
+        if !problem.allowed_genes.contains(&self.gene_type) {
+            return Err(PyErr::new::<PyTypeError, _>(format!(
+                "Novelty Search with distance {:?} does not support gene {:?}",
+                distance, self.gene_type
+            )));
+        }
 
         let fitness = PyNoveltySearch::new(
             descriptor,
@@ -808,6 +809,38 @@ impl PyEngineBuilder {
                         .problem(problem.clone())
                         .executor(executor.clone())
                         .evaluator(FreeThreadPyEvaluator::new(executor, problem))
+                        .bus_executor(Executor::default()),
+                ))
+            }
+            PyGeneType::Graph => {
+                let codec = codec.extract::<PyGraphCodec>()?;
+                let cloned_codec = codec.codec.clone();
+                let py_codec = PyCodec::new()
+                    .with_encoder(move || cloned_codec.encode())
+                    .with_decoder(move |_, genotype| codec.codec.decode(genotype));
+
+                let graph_problem = PyProblem::new(fitness, py_codec);
+                Ok(EngineBuilderHandle::Graph(
+                    GeneticEngine::builder()
+                        .problem(graph_problem.clone())
+                        .executor(executor.clone())
+                        .evaluator(FreeThreadPyEvaluator::new(executor, graph_problem))
+                        .bus_executor(Executor::default()),
+                ))
+            }
+            PyGeneType::Tree => {
+                let codec = codec.extract::<PyTreeCodec>()?;
+                let cloned_codec = codec.codec.clone();
+                let py_codec = PyCodec::new()
+                    .with_encoder(move || cloned_codec.encode())
+                    .with_decoder(move |_, genotype| codec.codec.decode(genotype));
+
+                let tree_problem = PyProblem::new(fitness, py_codec);
+                Ok(EngineBuilderHandle::Tree(
+                    GeneticEngine::builder()
+                        .problem(tree_problem.clone())
+                        .executor(executor.clone())
+                        .evaluator(FreeThreadPyEvaluator::new(executor, tree_problem))
                         .bus_executor(Executor::default()),
                 ))
             }

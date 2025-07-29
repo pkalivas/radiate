@@ -1,9 +1,10 @@
 pub mod alter;
 pub mod codecs;
-pub mod diversity;
+pub mod distance;
 pub mod domain;
 pub mod engine;
 pub mod evaluator;
+pub mod fitness;
 pub mod genome;
 pub mod objectives;
 pub mod problem;
@@ -15,14 +16,15 @@ pub use alter::{Alter, AlterAction, AlterResult, Crossover, Mutate};
 pub use codecs::{
     BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PermutationCodec, SubSetCodec,
 };
-pub use diversity::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
+pub use distance::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
 pub use domain::*;
 pub use engine::{Engine, EngineExt};
 pub use evaluator::{Evaluator, FitnessEvaluator};
 pub use executor::Executor;
+pub use fitness::{CompositeFitnessFn, FitnessFunction, NoveltySearch};
 pub use genome::*;
 pub use objectives::{Front, Objective, Optimize, Score, pareto};
-pub use problem::{CompositeFitnessFn, EngineProblem, FitnessFunction, NoveltySearch, Problem};
+pub use problem::{EngineProblem, Problem};
 pub use replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
 pub use selector::Select;
 pub use stats::*;
@@ -32,10 +34,11 @@ pub mod prelude {
     pub use super::codecs::{
         BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PermutationCodec, SubSetCodec,
     };
-    pub use super::diversity::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
+    pub use super::distance::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
     pub use super::domain::random_provider;
     pub use super::engine::{Engine, EngineExt};
     pub use super::executor::Executor;
+    pub use super::fitness::{CompositeFitnessFn, FitnessFunction, NoveltySearch};
     pub use super::genome::{
         ArithmeticGene, BitChromosome, BitGene, CharChromosome, CharGene, Chromosome,
         FloatChromosome, FloatGene, Gene, IntChromosome, IntGene, Integer, Valid,

@@ -1,5 +1,6 @@
 import abc
 from typing import List, Callable, Any
+from radiate.genome.gene import GeneType
 from radiate.inputs.input import EngineInput, EngineInputType
 from radiate.inputs.distance import DistanceBase
 from radiate.radiate import PyProblemBuilder
@@ -87,7 +88,7 @@ class NoveltySearch(ProblemBase):
         input = EngineInput(
             input_type=EngineInputType.Diversity,
             component=distance.component,
-            allowed_genes=distance.allowed_genes,
+            allowed_genes=distance.allowed_genes if not descriptor else GeneType.ALL,
             **distance.args,
         ).py_input()
 

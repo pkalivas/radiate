@@ -61,8 +61,6 @@ from .inputs.alterer import (
 
 from .inputs.distance import HammingDistance, EuclideanDistance, NeatDistance, CosineDistance
 
-from .inputs.descriptor import FitnessDescriptor
-
 from .inputs.limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
 
 
@@ -140,8 +138,6 @@ __all__ = [
     "CosineDistance",
     "HammingDistance",
     "EuclideanDistance",
-    # Descriptor
-    "FitnessDescriptor",
     # Engine
     "GeneticEngine",
     "Generation",

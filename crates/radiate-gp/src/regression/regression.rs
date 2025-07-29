@@ -1,6 +1,6 @@
 use super::{DataSet, Loss};
 use crate::{Eval, EvalMut, Graph, GraphChromosome, GraphEvaluator, Op, Tree, TreeNode};
-use radiate_core::problem::FitnessFunction;
+use radiate_core::fitness::FitnessFunction;
 
 pub struct Regression {
     data_set: DataSet,
