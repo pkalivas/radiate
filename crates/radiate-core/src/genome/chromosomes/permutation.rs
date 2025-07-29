@@ -20,6 +20,17 @@ impl<A: PartialEq + Clone> PermutationGene<A> {
     pub fn new(index: usize, alleles: Arc<Vec<A>>) -> Self {
         PermutationGene { index, alleles }
     }
+
+    pub fn index(&self) -> usize {
+        self.index
+    }
+
+    pub fn with_index(&self, index: usize) -> Self {
+        PermutationGene {
+            index,
+            alleles: Arc::clone(&self.alleles),
+        }
+    }
 }
 
 impl<A: PartialEq + Clone> Gene for PermutationGene<A> {

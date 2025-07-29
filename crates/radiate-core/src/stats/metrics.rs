@@ -1,5 +1,7 @@
 use super::Statistic;
 use crate::{Distribution, TimeStatistic};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 use std::{
     collections::{BTreeMap, HashSet},
@@ -45,6 +47,41 @@ impl MetricLabel {
             key,
             value: value.into(),
         }
+    }
+}
+
+#[cfg(feature = "serde")]
+impl Serialize for MetricLabel {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+
+        let mut state = serializer.serialize_struct("MetricLabel", 2)?;
+        state.serialize_field("key", &self.key)?;
+        state.serialize_field("value", &self.value)?;
+        state.end()
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for MetricLabel {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct MetricLabelData {
+            key: String,
+            value: String,
+        }
+
+        let data = MetricLabelData::deserialize(deserializer)?;
+        Ok(MetricLabel {
+            key: intern(data.key),
+            value: data.value,
+        })
     }
 }
 
@@ -173,7 +210,51 @@ impl Debug for MetricSet {
     }
 }
 
+#[cfg(feature = "serde")]
+impl Serialize for MetricSet {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let metrics = self
+            .metrics
+            .iter()
+            .map(|(_, metric)| metric.clone())
+            .collect::<Vec<Metric>>();
+        metrics.serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for MetricSet {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct MetricOwned {
+            name: String,
+            inner: MetricInner,
+            labels: Option<HashSet<MetricLabel>>,
+        }
+
+        let metrics = Vec::<MetricOwned>::deserialize(deserializer)?;
+
+        let mut metric_set = MetricSet::new();
+        for metric in metrics {
+            let metric = Metric {
+                name: intern(metric.name),
+                inner: metric.inner,
+                labels: metric.labels,
+            };
+            metric_set.add(metric);
+        }
+        Ok(metric_set)
+    }
+}
+
 #[derive(Clone, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct MetricInner {
     pub(crate) value_statistic: Option<Statistic>,
     pub(crate) time_statistic: Option<TimeStatistic>,
@@ -181,6 +262,7 @@ pub struct MetricInner {
 }
 
 #[derive(Clone, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Metric {
     name: &'static str,
     inner: MetricInner,

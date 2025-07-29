@@ -25,7 +25,6 @@ fn main() {
         .iter()
         .inspect(|ctx| log_gen!(ctx))
         .until_score(MIN_SCORE)
-        .take(1)
         .last()
         .inspect(display);
 }

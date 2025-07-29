@@ -1,6 +1,5 @@
-use std::time::Duration;
-
 use radiate_core::Score;
+use std::time::Duration;
 
 #[derive(Debug, Clone)]
 pub enum Limit {

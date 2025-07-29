@@ -28,7 +28,7 @@ fn main() {
         .iter()
         .take(1000)
         .inspect(|ctx| {
-            println!("[ {:?} ]", ctx.index());
+            println!("[ {:?} {:?} ]", ctx.index(), ctx.seconds());
         })
         // .last()
         // .unwrap();

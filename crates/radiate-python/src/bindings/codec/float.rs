@@ -1,10 +1,10 @@
 use super::PyCodec;
-use crate::{ObjectValue, PyGenotype};
+use crate::{ObjectValue, PyChromosome, PyGene, PyGenotype};
 use pyo3::{
     Bound, IntoPyObjectExt, PyAny, PyResult, pyclass, pymethods,
     types::{PyAnyMethods, PyFloat, PyList, PyListMethods},
 };
-use radiate::{Chromosome, Codec, FloatChromosome, Gene, Genotype};
+use radiate::{Chromosome, Codec, FloatChromosome, FloatGene, Gene, Genotype};
 
 #[pyclass]
 #[derive(Clone)]
@@ -26,6 +26,91 @@ impl PyFloatCodec {
         let genotype: Genotype<FloatChromosome> = genotype.clone().into();
         let obj_value = self.codec.decode_with_py(py, &genotype);
         obj_value.into_bound_py_any(py)
+    }
+
+    #[staticmethod]
+    #[pyo3(signature = (chromosomes, use_numpy=false))]
+    pub fn from_chromosomes(chromosomes: Vec<PyChromosome>, use_numpy: bool) -> Self {
+        PyFloatCodec {
+            codec: PyCodec::new()
+                .with_encoder(move || {
+                    Genotype::from(
+                        chromosomes
+                            .iter()
+                            .map(|chrom| FloatChromosome::from(chrom.clone()))
+                            .collect::<Vec<FloatChromosome>>(),
+                    )
+                })
+                .with_decoder(move |py, geno| {
+                    let values = geno
+                        .iter()
+                        .map(|chrom| chrom.iter().map(|gene| *gene.allele()).collect())
+                        .collect::<Vec<Vec<f32>>>();
+
+                    if use_numpy {
+                        let np = py.import("numpy").unwrap();
+                        let outer = np.getattr("array").unwrap().call1((values,)).unwrap();
+
+                        ObjectValue {
+                            inner: outer.unbind().into_any(),
+                        }
+                    } else {
+                        let outer = PyList::empty(py);
+                        for value in values {
+                            let inner = PyList::empty(py);
+                            for gene in value {
+                                inner.append(PyFloat::new(py, gene as f64)).unwrap();
+                            }
+                            outer.append(inner).unwrap();
+                        }
+
+                        ObjectValue {
+                            inner: outer.unbind().into_any(),
+                        }
+                    }
+                }),
+        }
+    }
+
+    #[staticmethod]
+    #[pyo3(signature = (genes, use_numpy=false))]
+    pub fn from_genes(genes: Vec<PyGene>, use_numpy: bool) -> Self {
+        PyFloatCodec {
+            codec: PyCodec::new()
+                .with_encoder(move || {
+                    FloatChromosome::from(
+                        genes
+                            .iter()
+                            .map(|gene| FloatGene::from(gene.clone()))
+                            .collect::<Vec<FloatGene>>(),
+                    )
+                    .into()
+                })
+                .with_decoder(move |py, geno| {
+                    let values: Vec<f32> = geno
+                        .iter()
+                        .flat_map(|chrom| chrom.iter().map(|gene| *gene.allele()))
+                        .collect();
+
+                    if use_numpy {
+                        let np = py.import("numpy").unwrap();
+                        let outer = np.getattr("array").unwrap().call1((values,)).unwrap();
+
+                        ObjectValue {
+                            inner: outer.unbind().into_any(),
+                        }
+                    } else {
+                        let outer = PyList::empty(py);
+                        for value in values {
+                            outer.append(PyFloat::new(py, value as f64)).unwrap();
+                        }
+
+                        return ObjectValue {
+                            inner: outer.unbind().into_any(),
+                        };
+                    }
+                }),
+        }
     }
 
     #[staticmethod]

@@ -27,7 +27,6 @@ fn main() {
         .iter()
         .inspect(|generation| log_gen!(generation))
         .until_score(MIN_SCORE)
-        .take(1)
         .last()
         .inspect(display);
 }

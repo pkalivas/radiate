@@ -1,7 +1,5 @@
 use radiate_core::*;
 
-/// Test problem: Evolve functions that produce diverse output patterns
-/// We want to find functions that behave differently, not necessarily optimally
 #[derive(Clone)]
 pub struct FunctionDiversityProblem {
     pub codec: FloatCodec<Vec<f32>>,
@@ -14,7 +12,6 @@ impl FunctionDiversityProblem {
     }
 
     pub fn eval_raw(&self, weights: &Vec<f32>) -> f32 {
-        // Create a simple function: f(x) = sum(weights[i] * x^i)
         let fitness: f32 = self
             .test_inputs
             .iter()
@@ -80,7 +77,6 @@ mod fitness_fn_tests {
     use super::*;
     use radiate_engines::*;
 
-    #[ignore = "This test is for novelty search, which is not yet fully implemented"]
     #[test]
     fn test_novelty_search() {
         random_provider::set_seed(42);
@@ -147,11 +143,6 @@ mod fitness_fn_tests {
         let novelty_diversity = calculate_diversity(novelty_generation.population());
         let combined_diversity = calculate_diversity(combined_generation.population());
 
-        println!(
-            "Regular Diversity: {:.4}, Novelty Diversity: {:.4}, Combined Diversity: {:.4}",
-            regular_diversity, novelty_diversity, combined_diversity
-        );
-
         let best_regular = regular_generation.value();
         let best_novelty = novelty_generation
             .population()
@@ -177,19 +168,9 @@ mod fitness_fn_tests {
             })
             .unwrap();
 
-        println!("");
-        println!("Best Regular: {:?}", best_regular);
-        println!("Best Novelty: {:?}", best_novelty);
-        println!("Best Combined: {:?}", best_combined);
-
         let eval_regular = base_problem.eval_raw(best_regular);
         let eval_novelty = base_problem.eval_raw(&best_novelty);
         let eval_combined = base_problem.eval_raw(&best_combined);
-
-        println!("");
-        println!("Regular Evaluation: {:.4}", eval_regular);
-        println!("Novelty Evaluation: {:.4}", eval_novelty);
-        println!("Combined Evaluation: {:.4}", eval_combined);
 
         // 1. Novelty should have higher diversity than regular
         assert!(

@@ -37,7 +37,6 @@ fn main() {
             println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_usize());
         })
         .until_score(0)
-        .take(1)
         .last()
         .unwrap();
 

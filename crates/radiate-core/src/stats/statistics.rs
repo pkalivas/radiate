@@ -1,6 +1,9 @@
 use core::f32;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 #[derive(PartialEq, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Adder {
     compensation: f32,
     simple_sum: f32,
@@ -38,6 +41,7 @@ impl Default for Adder {
 }
 
 #[derive(PartialEq, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Statistic {
     m1: Adder,
     m2: Adder,

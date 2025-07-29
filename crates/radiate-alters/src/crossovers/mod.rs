@@ -1,4 +1,5 @@
 pub mod blend;
+pub mod edge_recombine;
 pub mod intermediate;
 pub mod mean;
 pub mod multipoint;
@@ -8,6 +9,7 @@ pub mod simulated_binary;
 pub mod uniform;
 
 pub use blend::BlendCrossover;
+pub use edge_recombine::EdgeRecombinationCrossover;
 pub use intermediate::IntermediateCrossover;
 pub use mean::MeanCrossover;
 pub use multipoint::MultiPointCrossover;

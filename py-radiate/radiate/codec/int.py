@@ -1,7 +1,11 @@
 from typing import List, Optional, Tuple, Any
+
+from radiate.genome.chromosome import Chromosome
+from radiate.genome.gene import Gene
 from .codec import CodecBase
 from radiate.genome import Genotype
 from radiate.radiate import PyIntCodec
+from radiate.radiate import PyGeneType
 
 
 class IntCodec(CodecBase):
@@ -31,6 +35,54 @@ class IntCodec(CodecBase):
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
         return self.codec.decode_py(genotype.py_genotype())
+
+    @staticmethod
+    def from_genes(
+        genes: List[Gene] | Tuple[Gene, ...], use_numpy: bool = False
+    ) -> "IntCodec":
+        """
+        Create a codec for a single chromosome with specified genes.
+        Args:
+            genes: A list or tuple of Gene instances.
+        Returns:
+            A new FloatCodec instance with the specified genes.
+        """
+        if not isinstance(genes, (list, tuple)):
+            raise TypeError("genes must be a list or tuple of Gene instances.")
+        if not all(g.gene_type() == PyGeneType.Int for g in genes):
+            raise TypeError("All genes must be of type 'int'.")
+
+        return IntCodec(
+            PyIntCodec.from_genes(
+                list(map(lambda g: g.py_gene(), genes)), use_numpy=use_numpy
+            )
+        )
+
+    @staticmethod
+    def from_chromosomes(
+        chromosomes: List[Chromosome] | Tuple[Chromosome, ...],
+    ) -> "IntCodec":
+        """
+        Create a codec for multiple chromosomes.
+        Args:
+            chromosomes: A list or tuple of Chromosome instances.
+        Returns:
+            A new FloatCodec instance with the specified chromosomes.
+        """
+        if not isinstance(chromosomes, (list, tuple)):
+            raise TypeError(
+                "chromosomes must be a list or tuple of Chromosome instances."
+            )
+        if not all(
+            g.gene_type() == PyGeneType.Int for c in chromosomes for g in c.genes()
+        ):
+            raise TypeError("All chromosomes must be of type 'int'.")
+
+        return IntCodec(
+            PyIntCodec.from_chromosomes(
+                list(map(lambda c: c.py_chromosome(), chromosomes))
+            )
+        )
 
     @staticmethod
     def matrix(

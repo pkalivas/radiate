@@ -151,6 +151,9 @@ def run_novelty_search_evolution(generations: int = 200) -> rd.Generation:
     # Create novelty search engine
     engine = rd.GeneticEngine(
         codec=codec,
+        # Here we use a novelty search fitness function
+        # This will not optimize for a single score,
+        # but rather for diverse behaviors 
         fitness_func=rd.NoveltySearch(
             descriptor=behavior_descriptor,
             distance=rd.CosineDistance(),
@@ -160,7 +163,6 @@ def run_novelty_search_evolution(generations: int = 200) -> rd.Generation:
         ),
         survivor_selector=rd.TournamentSelector(3),
         offspring_selector=rd.BoltzmannSelector(4),
-        objectives="max",            # Maximize novelty
         alters=[
             rd.BlendCrossover(),
             rd.GaussianMutator(0.1),

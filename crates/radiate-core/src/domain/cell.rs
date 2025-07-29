@@ -179,4 +179,20 @@ mod tests {
         assert!(cell1 < cell2);
         assert!(cell2 > cell3);
     }
+
+    #[test]
+    fn mutcell_is_unique_and_shared() {
+        let cell = MutCell::new(42);
+        assert!(cell.is_unique());
+
+        let cell2 = cell.clone();
+
+        assert!(cell.is_shared());
+        assert!(cell2.is_shared());
+        assert!(!cell.is_unique());
+        assert!(!cell2.is_unique());
+        assert_eq!(*cell, 42);
+        assert_eq!(*cell2, 42);
+        assert!(cell.get() == cell2.get());
+    }
 }

@@ -24,7 +24,7 @@ pub mod metric_names {
     pub const REPLACE_INVALID: &str = "replace_invalid";
 
     pub const GENOME_SIZE: &str = "genome_size";
-    pub const FRONT: &str = "front";
+    pub const FRONT_ADDITIONS: &str = "front_additions";
 
     pub const UNIQUE_MEMBERS: &str = "unique_members";
     pub const UNIQUE_SCORES: &str = "unique_scores";

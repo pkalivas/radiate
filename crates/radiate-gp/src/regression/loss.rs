@@ -19,14 +19,22 @@ impl Loss {
 
         match self {
             Loss::MSE => {
-                let mut sum = ZERO;
-                for sample in samples.iter() {
-                    let output = eval_func(sample.input());
-                    for (y_true, y_pred) in sample.output().iter().zip(output.iter()) {
-                        let diff = y_true - y_pred;
-                        sum += diff * diff;
-                    }
-                }
+                let sum = samples
+                    .iter()
+                    .map(|sample| {
+                        let output = eval_func(sample.input());
+                        sample
+                            .output()
+                            .iter()
+                            .zip(output.iter())
+                            .map(|(y_true, y_pred)| {
+                                let diff = y_true - y_pred;
+                                diff * diff
+                            })
+                            .sum::<f32>()
+                    })
+                    .sum::<f32>();
+
                 sum / len
             }
             Loss::MAE => {
