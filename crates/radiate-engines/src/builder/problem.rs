@@ -1,5 +1,5 @@
 use crate::GeneticEngineBuilder;
-use radiate_core::{Chromosome, Codec, Problem, Score, problem::FitnessFunction};
+use radiate_core::{Chromosome, Codec, Problem, Score, fitness::FitnessFunction};
 use std::sync::Arc;
 
 impl<C, T> GeneticEngineBuilder<C, T>

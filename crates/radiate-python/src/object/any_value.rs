@@ -93,6 +93,13 @@ impl<'a> AnyValue<'a> {
         }
     }
 
+    pub fn to_vec_f32(&self) -> Option<Vec<f32>> {
+        match self {
+            AnyValue::Vec(v) => Some(v.iter().filter_map(|item| item.to_f32()).collect()),
+            _ => None,
+        }
+    }
+
     pub fn is_null(&self) -> bool {
         matches!(self, Self::Null)
     }

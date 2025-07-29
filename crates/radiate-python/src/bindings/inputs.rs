@@ -1,6 +1,5 @@
 use crate::{AnyValue, PyGeneType, prelude::Wrap};
 use pyo3::{pyclass, pymethods};
-use radiate::{Executor, Limit};
 use std::{
     collections::{HashMap, HashSet},
     fmt::Debug,
@@ -95,52 +94,15 @@ impl PyEngineInput {
         self.args.get(key).and_then(|v| v.to_usize())
     }
 
+    pub fn get_vec_f32(&self, key: &str) -> Option<Vec<f32>> {
+        self.args.get(key).and_then(|v| v.to_vec_f32())
+    }
+
     pub fn get_bool(&self, key: &str) -> Option<bool> {
         self.args.get(key).and_then(|v| match v {
             AnyValue::Bool(b) => Some(*b),
             _ => None,
         })
-    }
-}
-
-impl Into<Option<Executor>> for PyEngineInput {
-    fn into(self) -> Option<Executor> {
-        if self.input_type != PyEngineInputType::Executor {
-            return None;
-        }
-
-        Some(match self.component.as_str() {
-            "Serial" => Executor::Serial,
-            "FixedSizedWorkerPool" => {
-                let num_workers = self.get_usize("num_workers").unwrap_or(1);
-
-                Executor::FixedSizedWorkerPool(num_workers)
-            }
-            "WorkerPool" => Executor::WorkerPool,
-            _ => panic!("Executor type {} not yet implemented", self.component),
-        })
-    }
-}
-
-impl Into<Option<Limit>> for PyEngineInput {
-    fn into(self) -> Option<Limit> {
-        if self.input_type != PyEngineInputType::Limit {
-            return None;
-        }
-
-        if let Some(generation) = self.get_usize("generations") {
-            return Some(Limit::Generation(generation));
-        }
-
-        if let Some(sec) = self.get_f64("seconds") {
-            return Some(Limit::Seconds(sec));
-        }
-
-        if let Some(score) = self.get_f32("score") {
-            return Some(Limit::Score(score));
-        }
-
-        None
     }
 }
 
@@ -158,7 +120,7 @@ impl Debug for PyEngineInput {
         }
         write!(
             f,
-            "PyEngineInput {{ \n\tcomponent: {}, \n\tinput_type: {:?}, \n\tallowed_genes: {:?}, \n\ttemp: {{{}}} \n}}",
+            "PyEngineInput {{ \n\tcomponent: {}, \n\tinput_type: {:?}, \n\tallowed_genes: {:?}, \n\targs: {{{}}} \n}}",
             self.component, self.input_type, self.allowed_genes, args
         )
     }

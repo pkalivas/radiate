@@ -11,7 +11,7 @@ mod engine_tests {
             .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
             .build();
 
-        let result = engine.iter().until_score(0).take(1).last().unwrap();
+        let result = engine.iter().until_score(0).last().unwrap();
 
         let best = result.value();
         assert_eq!(best.iter().sum::<i32>(), 0);

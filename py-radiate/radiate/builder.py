@@ -1,9 +1,10 @@
 from typing import List, Optional, Tuple, Callable
 from radiate.codec.codec import CodecBase
 from radiate.genome.gene import GeneType
-from radiate.handlers import EventHandler
+from radiate.genome.population import Population
 from radiate.inputs.problem import ProblemBase
 from radiate.radiate import PyEngine, PyEngineBuilder
+from ._typing import Subscriber
 from .inputs.input import EngineInput, EngineInputType
 from .inputs.selector import SelectorBase
 from .inputs.alterer import AlterBase
@@ -13,11 +14,18 @@ from .inputs.problem import CallableProblem
 
 
 class EngineBuilder:
-    def __init__(self, gene_type: str, codec: CodecBase, problem: ProblemBase):
+    def __init__(
+        self,
+        gene_type: str,
+        codec: CodecBase,
+        problem: ProblemBase,
+        population: Optional[Population],
+    ):
         self._inputs = []
         self._subscribers = []
         self._gene_type = gene_type
         self._codec = codec
+        self._population = population
 
         if isinstance(problem, Callable):
             self.problem = CallableProblem(problem)
@@ -29,6 +37,7 @@ class EngineBuilder:
             gene_type=self._gene_type,
             codec=self._codec.codec,
             problem=self.problem.problem,
+            population=self._population.py_population() if self._population else None,
             subscribers=[subscriber._py_handler for subscriber in self._subscribers],
             inputs=[self_input.py_input() for self_input in self._inputs],
         )
@@ -37,7 +46,7 @@ class EngineBuilder:
     def inputs(self) -> List[EngineInput]:
         return self._inputs
 
-    def set_subscribers(self, subscribers: List[EventHandler] | EventHandler | None):
+    def set_subscribers(self, subscribers: Subscriber | None):
         if subscribers is None:
             return
         if isinstance(subscribers, list):

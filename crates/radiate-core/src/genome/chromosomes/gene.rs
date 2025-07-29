@@ -55,7 +55,6 @@ pub trait Valid {
 ///   }
 /// }
 /// ```
-///
 pub trait Gene: Clone + Valid {
     type Allele;
 

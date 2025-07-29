@@ -3,26 +3,28 @@ mod codec;
 mod converters;
 mod engine;
 mod epoch;
+mod fitness;
 mod gene;
 mod inputs;
 mod metric;
+mod operators;
 mod ops;
-mod problem;
 mod subscriber;
 
 pub use builder::PyEngineBuilder;
 pub use codec::{
-    PyBitCodec, PyCharCodec, PyCodec, PyFloatCodec, PyGraph, PyGraphCodec, PyIntCodec,
+    PyAnyCodec, PyBitCodec, PyCharCodec, PyCodec, PyFloatCodec, PyGraph, PyGraphCodec, PyIntCodec,
     PyPermutationCodec, PyTree, PyTreeCodec,
 };
-pub use converters::InputConverter;
+pub use converters::InputTransform;
 pub use engine::PyEngine;
 pub use epoch::PyGeneration;
+pub use fitness::{PyNoveltySearch, PyProblemBuilder};
 pub use gene::{PyChromosome, PyGene, PyGeneType, PyGenotype, PyPhenotype, PyPopulation};
 pub use inputs::{PyEngineInput, PyEngineInputType};
+pub use operators::*;
 
 pub use metric::PyMetricSet;
-pub use problem::PyProblemBuilder;
 pub use subscriber::PySubscriber;
 
 use crate::ObjectValue;

@@ -573,7 +573,11 @@ macro_rules! impl_from_py_phenotype {
         {
             fn from(py_phenotype: PyPhenotype) -> Self {
                 let mut result = Phenotype::from((Genotype::from(py_phenotype.genotype), 0));
-                result.set_score(Some(py_phenotype.score.into()));
+
+                if !py_phenotype.score.is_empty() {
+                    result.set_score(Some(py_phenotype.score.into()));
+                }
+
                 result
             }
         }

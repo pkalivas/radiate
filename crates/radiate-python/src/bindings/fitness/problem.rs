@@ -1,8 +1,12 @@
-use crate::{ObjectValue, PyGeneType};
+use crate::{ObjectValue, PyEngineInput, PyGeneType};
 use pyo3::{
     Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods,
     types::{PyDict, PyDictMethods},
 };
+
+pub(crate) const CUSTOM_PROBLEM: &str = "Custom";
+pub(crate) const REGRESSION_PROBLEM: &str = "Regression";
+pub(crate) const NOVELTY_SEARCH_PROBLEM: &str = "Novelty";
 
 #[pyclass]
 #[derive(Clone, Debug)]
@@ -39,7 +43,7 @@ impl PyProblemBuilder {
         args.set_item("fitness_func", fitness_fn).unwrap();
 
         PyProblemBuilder {
-            name: "Custom".into(),
+            name: CUSTOM_PROBLEM.into(),
             args: ObjectValue {
                 inner: args.unbind().into_any(),
             },
@@ -49,6 +53,8 @@ impl PyProblemBuilder {
                 PyGeneType::Char,
                 PyGeneType::Bit,
                 PyGeneType::Permutation,
+                PyGeneType::Graph,
+                PyGeneType::Tree,
             ],
         }
     }
@@ -67,11 +73,46 @@ impl PyProblemBuilder {
         args.set_item("loss", loss).unwrap();
 
         PyProblemBuilder {
-            name: "Regression".into(),
+            name: REGRESSION_PROBLEM.into(),
             args: ObjectValue {
                 inner: args.unbind().into_any(),
             },
-            allowed_genes: vec![PyGeneType::Graph],
+            allowed_genes: vec![PyGeneType::Graph, PyGeneType::Tree],
+        }
+    }
+
+    #[staticmethod]
+    pub fn novelty_search<'py>(
+        py: Python<'py>,
+        distance: PyEngineInput,
+        descriptor: Option<Py<PyAny>>,
+        k: usize,
+        threshold: f32,
+        archive_size: usize,
+    ) -> Self {
+        let allowed_genes = distance
+            .allowed_genes
+            .clone()
+            .into_iter()
+            .collect::<Vec<PyGeneType>>();
+
+        let args = PyDict::new(py);
+
+        if let Some(desc) = descriptor {
+            args.set_item("descriptor", desc).unwrap();
+        }
+
+        args.set_item("distance", distance).unwrap();
+        args.set_item("k", k).unwrap();
+        args.set_item("threshold", threshold).unwrap();
+        args.set_item("max_archive_size", archive_size).unwrap();
+
+        PyProblemBuilder {
+            name: NOVELTY_SEARCH_PROBLEM.into(),
+            args: ObjectValue {
+                inner: args.unbind().into_any(),
+            },
+            allowed_genes,
         }
     }
 }

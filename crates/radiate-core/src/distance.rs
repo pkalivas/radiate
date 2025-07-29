@@ -1,4 +1,4 @@
-use crate::{ArithmeticGene, Chromosome, Gene, Genotype, problem::Novelty};
+use crate::{ArithmeticGene, Chromosome, Gene, Genotype, fitness::Novelty};
 
 /// Trait for measuring diversity between two [Genotype]s.
 /// Within radiate this is mostly used for speciation and determining how genetically
@@ -61,6 +61,7 @@ where
 /// Implementation of the [Diversity] trait that calculates the Euclidean distance
 /// between two [Genotype]s. The Euclidean distance is the square root of the sum of the
 /// squared differences between the corresponding genes' alleles, normalized by the number of genes.
+#[derive(Clone)]
 pub struct EuclideanDistance;
 
 impl<G: ArithmeticGene, C: Chromosome<Gene = G>> Diversity<C> for EuclideanDistance

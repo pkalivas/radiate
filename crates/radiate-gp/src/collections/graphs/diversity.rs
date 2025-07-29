@@ -27,16 +27,22 @@ impl Diversity<GraphChromosome<Op<f32>>> for NeatDistance {
     ) -> f32 {
         one.iter()
             .zip(two.iter())
-            .map(|(a, b)| self.graph_distance(a, b))
+            .map(|(a, b)| {
+                self.graph_distance(
+                    a.iter_topological().collect::<Vec<_>>().as_slice(),
+                    b.iter_topological().collect::<Vec<_>>().as_slice(),
+                )
+            })
             .sum()
     }
 }
 
 impl NeatDistance {
-    fn graph_distance(&self, a: &GraphChromosome<Op<f32>>, b: &GraphChromosome<Op<f32>>) -> f32 {
-        let nodes_a = a.iter_topological().collect::<Vec<&GraphNode<Op<f32>>>>();
-        let nodes_b = b.iter_topological().collect::<Vec<&GraphNode<Op<f32>>>>();
-
+    fn graph_distance(
+        &self,
+        nodes_a: &[&GraphNode<Op<f32>>],
+        nodes_b: &[&GraphNode<Op<f32>>],
+    ) -> f32 {
         let mut idx_a = 0;
         let mut idx_b = 0;
 
