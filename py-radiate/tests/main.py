@@ -1,60 +1,114 @@
-# import os
-# import sys
-# # import math  # type: ignore
+import os
+import sys
+# import math  # type: ignore
 # import numpy as np # type: ignore
-# # from numba import jit, cfunc, vectorize # type: ignore
+# from numba import jit, cfunc, vectorize # type: ignore
 
-# import matplotlib.pyplot as plt # type: ignore
+import matplotlib.pyplot as plt # type: ignore
 
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, project_root)
 
+import radiate as rd
 
-# project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-# sys.path.insert(0, project_root)
+print(f"Radiate version: {rd.__version__}")
 
-# import radiate as rd 
-
-# print(f"Radiate version: {rd.__version__}")
-
-# rd.random.set_seed(500)
+rd.random.set_seed(500)
 
 
-# class TestHandler(rd.EventHandler):
-#     def __init__(self):
-#         super().__init__()
-#         self.scores = []
+class TestHandler(rd.EventHandler):
+    def __init__(self):
+        super().__init__()
+        self.scores = []
 
-#     def on_event(self, event):
+    def on_event(self, event):
         
-#         if event["type"] == "epoch_complete":
-#             self.scores.append(event["score"])
-#             # self.scores.append(event['metrics']['unique_members']['value_last'])
-#         elif event["type"] == "stop":
-#             plt.plot(self.scores)
-#             plt.xlabel("Generation")
-#             plt.ylabel("Best Fitness")
-#             plt.title("Fitness over Generations")
-#             plt.show()
-#         elif event["type"] == "engine_improvement":
-#             print(f"New best score: {event}")
-        
+        if event["type"] == "epoch_complete":
+            self.scores.append(event["score"])
+            # self.scores.append(event['metrics']['unique_members']['value_last'])
+        elif event["type"] == "stop":
+            plt.plot(self.scores)
+            plt.xlabel("Generation")
+            plt.ylabel("Best Fitness")
+            plt.title("Fitness over Generations")
+            plt.show()
+        elif event["type"] == "engine_improvement":
+            print(f"New best score: {event}")
+
+codec = rd.IntCodec.vector(50, (0, 10))
+population = rd.Population([codec.encode() for _ in range(100)])
+
+engine = rd.GeneticEngine(
+    codec=rd.IntCodec.vector(50, (0, 10)),
+    fitness_func=lambda x: sum(x),
+    offspring_selector=rd.BoltzmannSelector(4),
+    objectives="min",
+    # subscribe=TestHandler(),
+    population=population,
+    # executor=rd.Executor.WorkerPool(),
+    alters=[
+        rd.MultiPointCrossover(0.75, 2),
+        rd.UniformMutator(0.01)
+    ],
+)
+
+result = engine.run(rd.ScoreLimit(0), log=True)
+
+print(result)
 
 
+
+# print(rd.BoltzmannSelector(4).select(population, "min", 10))
+
+# for pheno in population.phenotypes():
+#     print(pheno.genotype().chromosomes()[0].genes())
+# altered = rd.UniformMutator(0.01).alter(population)
+# print("After mutation:")
+# print()
+
+# for pheno in altered:
+#     print(pheno.genotype().chromosomes()[0].genes())
+
+
+#    let test_inputs = vec![4.0, -2.0, 3.5, 5.0, -11.0, -4.7];
+#         let codec = FloatCodec::vector(6, -100.0..100.0);
+
+# inputs = [4.0, -2.0, 3.5, 5.0, -11.0, -4.7]
+# codec = rd.FloatCodec.vector(len(inputs), (-100.0, 100.0))
 # engine = rd.GeneticEngine(
-#     codec=rd.IntCodec.vector(50, (0, 10)),
-#     fitness_func=lambda x: sum(x),
+#     codec=codec,
+#     # fitness_func=lambda x: sum(x),
+#     fitness_func=novelty_search,
+#     survivor_selector=rd.TournamentSelector(4),
 #     offspring_selector=rd.BoltzmannSelector(4),
-#     objectives="min",
-#     # subscribe=TestHandler(),
+#     subscribe=TestHandler(),
 #     # executor=rd.Executor.WorkerPool(),
 #     alters=[
-#         rd.MultiPointCrossover(0.75, 2),
-#         rd.UniformMutator(0.01)
+#         rd.UniformCrossover(0.75),
+#         rd.GaussianMutator(0.2)
 #     ],
 # )
 
-# result = engine.run(rd.ScoreLimit(0), log=True)
+# # result = engine.run(rd.ScoreLimit(0), log=True)
+# result = engine.run(rd.GenerationsLimit(150), log=True)
 
 # print(result)
+
+# def calculate_fitness(weights):
+#     fitness = sum(input * weight.allele() for input, weight in zip(inputs, weights.chromosomes()[0].genes()))
+#     return abs(fitness - 44.0)
+
+# best = list(filter(lambda x: x < 0.1, map(lambda x: calculate_fitness(x.genotype()), result.population())))
+
+# genotypes = list(map(lambda x: calculate_fitness(x.genotype()), result.population()))
+
+# print(min(genotypes))
+
+# print(best)
+
+# print(result.population())
+
+
 
 
 
@@ -157,13 +211,13 @@
 # # # #
 # # # print(genetic_fitness(result.value()))
 
-# # # def encoder():
-# # #     return [1, 'hi', 3.0, True, [1, 2, 3], {'a': 1, 'b': 2}]
+# def encoder():
+#     return [1, 'hi', 3.0, True, [1, 2, 3], {'a': 1, 'b': 2}]
 
-# # # any_codec = rd.AnyCodec(encoder)
+# any_codec = rd.AnyCodec(encoder)
 
-# # # print(any_codec.encode())
-# # # print(any_codec.decode(any_codec.encode()))
+# print(any_codec.encode())
+# print(any_codec.decode(any_codec.encode()))
 
 # # # for input, target in zip(inputs, answers): 
 # # #     print(f"Input: {round(input[0], 2)}, Target: {round(target[0], 2)}, Output: {round(result.value().eval([input])[0][0], 2)}")

@@ -1,8 +1,8 @@
-from typing import Any, Callable, List, Tuple, TypeAlias, Union
+from typing import Any, Callable, List, Tuple
 
+from ._typing import Subscriber
 from .builder import EngineBuilder
 from .generation import Generation
-from .handlers import EventHandler
 from .codec import (
     FloatCodec,
     IntCodec,
@@ -23,11 +23,7 @@ from .inputs.problem import ProblemBase
 from .inputs.limit import LimitBase
 
 from .genome.gene import GeneType
-
-
-Subscriber: TypeAlias = Union[
-    Callable[[Any], None], List[Callable[[Any], None]], EventHandler, List[EventHandler]
-]
+from .genome.population import Population
 
 
 class GeneticEngine:
@@ -41,6 +37,7 @@ class GeneticEngine:
         self,
         codec: CodecBase,
         fitness_func: Callable[[Any], Any] | ProblemBase,
+        population: Population | None = None,
         offspring_selector: SelectorBase | None = None,
         survivor_selector: SelectorBase | None = None,
         alters: AlterBase | List[AlterBase] | None = None,
@@ -73,7 +70,7 @@ class GeneticEngine:
         else:
             raise TypeError(f"Codec type {type(codec)} is not supported.")
 
-        self.builder = EngineBuilder(self.gene_type, codec, fitness_func)
+        self.builder = EngineBuilder(self.gene_type, codec, fitness_func, population)
 
         self.builder.set_survivor_selector(survivor_selector or TournamentSelector(k=3))
         self.builder.set_offspring_selector(offspring_selector or RouletteSelector())
@@ -314,7 +311,9 @@ class GeneticEngine:
     def subscribe(self, event_handler: Subscriber | None = None):
         """Register an event handler.
         Args:
-            event_handler (Callable[[Any], None] | List[Callable[[Any], None]]): The event handler(s) to register.
+            event_handler Union[
+                Callable[[Any], None], List[Callable[[Any], None]], EventHandler, List[EventHandler]
+            ] : The event handler(s) to register.
         Raises:
             TypeError: If event_handler is not callable or a list of callables.
 

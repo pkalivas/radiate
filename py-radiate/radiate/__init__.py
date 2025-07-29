@@ -14,6 +14,7 @@ from .codec import (
     GraphCodec,
     TreeCodec,
     PermutationCodec,
+    AnyCodec
 )
 from .random import RandomProvider as random
 from .generation import Generation
@@ -22,7 +23,7 @@ from .handlers import EventHandler, EventType
 from .gp import Op, Graph, Tree
 
 from .inputs.executor import Executor
-from .inputs.problem import Regression
+from .inputs.problem import Regression, NoveltySearch
 from .inputs.selector import (
     TournamentSelector,
     RouletteSelector,
@@ -60,7 +61,7 @@ from .inputs.alterer import (
 
 from .inputs.distance import HammingDistance, EuclideanDistance, NeatDistance, CosineDistance
 
-from .inputs.limit import SecondsLimit, GenerationsLimit, ScoreLimit
+from .inputs.limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
 
 
 __all__ = [
@@ -77,6 +78,7 @@ __all__ = [
     "BitCodec",
     "GraphCodec",
     "TreeCodec",
+    "AnyCodec",
     # Genome and Population
     "Gene",
     "Chromosome",
@@ -116,9 +118,10 @@ __all__ = [
     "SecondsLimit",
     "GenerationsLimit",
     "ScoreLimit",
+    "ConvergenceLimit",
     # Problem
-    "CallableProblem",
     "Regression",
+    "NoveltySearch",
     # Selectors
     "TournamentSelector",
     "RouletteSelector",

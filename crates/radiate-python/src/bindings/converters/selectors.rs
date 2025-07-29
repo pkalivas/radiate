@@ -1,4 +1,4 @@
-use crate::{InputConverter, PyEngineInput, PyEngineInputType};
+use crate::{InputTransform, PyEngineInput, PyEngineInputType};
 use radiate::*;
 
 const TOURNAMENT_SELECTOR: &str = "TournamentSelector";
@@ -12,11 +12,11 @@ const RANDOM_SELECTOR: &str = "RandomSelector";
 const NSGA2_SELECTOR: &str = "NSGA2Selector";
 const TOURNAMENT_NSGA2_SELECTOR: &str = "TournamentNSGA2Selector";
 
-impl<C> InputConverter<Box<dyn Select<C>>> for PyEngineInput
+impl<C> InputTransform<Box<dyn Select<C>>> for PyEngineInput
 where
     C: Chromosome + Clone,
 {
-    fn convert(&self) -> Box<dyn Select<C>> {
+    fn transform(&self) -> Box<dyn Select<C>> {
         if !matches!(
             self.input_type,
             PyEngineInputType::SurvivorSelector | PyEngineInputType::OffspringSelector

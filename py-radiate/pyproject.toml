@@ -24,8 +24,9 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 numpy = ["numpy>=1.20.0"]
+pandas = ["pandas>=2.3.1"]
 all = [
-    "numpy>=2.3.1",
+    "radiate[numpy,pandas]"
 ]
 
 [tool.maturin]

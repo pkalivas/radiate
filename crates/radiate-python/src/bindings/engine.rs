@@ -1,6 +1,6 @@
-use crate::{EngineHandle, EpochHandle, PyEngineInput, PyGeneration};
+use crate::{EngineHandle, EpochHandle, InputTransform, PyEngineInput, PyGeneration};
 use pyo3::{PyResult, pyclass, pymethods};
-use radiate::{Chromosome, Engine, Generation, GeneticEngine, Limit, Objective, Optimize};
+use radiate::{Chromosome, Engine, EngineIteratorExt, Generation, GeneticEngine, Limit, Objective};
 use tracing::info;
 
 #[pyclass(unsendable)]
@@ -25,14 +25,17 @@ impl PyEngine {
             ));
         }
 
-        let limits = limits
-            .into_iter()
-            .filter_map(|input| input.into())
-            .collect::<Vec<Limit>>();
-
         let engine = self.engine.take().ok_or_else(|| {
             pyo3::exceptions::PyRuntimeError::new_err("Engine has already been run")
         })?;
+
+        let limits = limits.transform();
+
+        if limits.is_empty() {
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "At least one limit must be specified",
+            ));
+        }
 
         Ok(PyGeneration::new(match engine {
             EngineHandle::Int(eng) => EpochHandle::Int(run_engine(eng, limits, log)),
@@ -58,7 +61,7 @@ impl PyEngine {
             pyo3::exceptions::PyRuntimeError::new_err("Engine has already been run")
         })?;
 
-        let result = match engine {
+        Ok(PyGeneration::new(match engine {
             EngineHandle::Int(eng) => EpochHandle::Int(eng.next()),
             EngineHandle::Float(eng) => EpochHandle::Float(eng.next()),
             EngineHandle::Char(eng) => EpochHandle::Char(eng.next()),
@@ -66,9 +69,7 @@ impl PyEngine {
             EngineHandle::Permutation(eng) => EpochHandle::Permutation(eng.next()),
             EngineHandle::Graph(eng) => EpochHandle::Graph(eng.next()),
             EngineHandle::Tree(eng) => EpochHandle::Tree(eng.next()),
-        };
-
-        Ok(PyGeneration::new(result))
+        }))
     }
 }
 
@@ -79,7 +80,7 @@ where
 {
     engine
         .iter()
-        .inspect(|epoch| {
+        .inspect(move |epoch| {
             if log {
                 match epoch.objective() {
                     Objective::Single(_) => {
@@ -101,20 +102,7 @@ where
                 }
             }
         })
-        .skip_while(|epoch| {
-            limits.iter().all(|limit| match limit {
-                Limit::Generation(lim) => epoch.index() < *lim,
-                Limit::Score(lim) => match epoch.objective() {
-                    Objective::Single(opt) => match opt {
-                        Optimize::Minimize => epoch.score().as_f32() > *lim,
-                        Optimize::Maximize => epoch.score().as_f32() < *lim,
-                    },
-                    Objective::Multi(_) => false,
-                },
-                Limit::Seconds(val) => return epoch.seconds() < *val,
-            })
-        })
-        .take(1)
+        .limit(limits)
         .last()
         .expect("No generation found that meets the limits")
 }
