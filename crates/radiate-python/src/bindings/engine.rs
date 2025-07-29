@@ -1,6 +1,6 @@
 use crate::{EngineHandle, EpochHandle, InputConverter, PyEngineInput, PyGeneration};
 use pyo3::{PyResult, pyclass, pymethods};
-use radiate::{Chromosome, Engine, Generation, GeneticEngine, Limit, Objective, Optimize};
+use radiate::{Chromosome, Engine, EngineIteratorExt, Generation, GeneticEngine, Limit, Objective};
 use tracing::info;
 
 #[pyclass(unsendable)]
@@ -61,7 +61,7 @@ impl PyEngine {
             pyo3::exceptions::PyRuntimeError::new_err("Engine has already been run")
         })?;
 
-        let result = match engine {
+        Ok(PyGeneration::new(match engine {
             EngineHandle::Int(eng) => EpochHandle::Int(eng.next()),
             EngineHandle::Float(eng) => EpochHandle::Float(eng.next()),
             EngineHandle::Char(eng) => EpochHandle::Char(eng.next()),
@@ -69,9 +69,7 @@ impl PyEngine {
             EngineHandle::Permutation(eng) => EpochHandle::Permutation(eng.next()),
             EngineHandle::Graph(eng) => EpochHandle::Graph(eng.next()),
             EngineHandle::Tree(eng) => EpochHandle::Tree(eng.next()),
-        };
-
-        Ok(PyGeneration::new(result))
+        }))
     }
 }
 
@@ -82,7 +80,7 @@ where
 {
     engine
         .iter()
-        .inspect(|epoch| {
+        .inspect(move |epoch| {
             if log {
                 match epoch.objective() {
                     Objective::Single(_) => {
@@ -104,20 +102,7 @@ where
                 }
             }
         })
-        .skip_while(|epoch| {
-            limits.iter().all(|limit| match limit {
-                Limit::Generation(lim) => epoch.index() < *lim,
-                Limit::Score(lim) => match epoch.objective() {
-                    Objective::Single(opt) => match opt {
-                        Optimize::Minimize => epoch.score().as_f32() > *lim,
-                        Optimize::Maximize => epoch.score().as_f32() < *lim,
-                    },
-                    Objective::Multi(_) => false,
-                },
-                Limit::Seconds(val) => return epoch.seconds() < *val,
-            })
-        })
-        .take(1)
+        .until_limit(limits)
         .last()
         .expect("No generation found that meets the limits")
 }

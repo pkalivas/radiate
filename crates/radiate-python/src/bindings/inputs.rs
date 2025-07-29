@@ -94,6 +94,10 @@ impl PyEngineInput {
         self.args.get(key).and_then(|v| v.to_usize())
     }
 
+    pub fn get_vec_f32(&self, key: &str) -> Option<Vec<f32>> {
+        self.args.get(key).and_then(|v| v.to_vec_f32())
+    }
+
     pub fn get_bool(&self, key: &str) -> Option<bool> {
         self.args.get(key).and_then(|v| match v {
             AnyValue::Bool(b) => Some(*b),

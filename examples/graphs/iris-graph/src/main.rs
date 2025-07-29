@@ -21,12 +21,13 @@ fn main() {
     ];
 
     let codec = GraphCodec::directed(4, 4, store);
-    let regression = Regression::new(train.clone(), Loss::MSE, codec);
+    let regression = Regression::new(train.clone(), Loss::MSE);
 
     let engine = GeneticEngine::builder()
-        .problem(regression)
+        .codec(codec)
         .minimizing()
-        .executor(Executor::WorkerPool(8))
+        .fitness_fn(regression)
+        .executor(Executor::FixedSizedWorkerPool(8))
         .offspring_fraction(0.92)
         .replace_strategy(GraphReplacement)
         .offspring_selector(BoltzmannSelector::new(4.0))
@@ -40,7 +41,7 @@ fn main() {
     engine
         .iter()
         .take_while(|epoch| epoch.score().as_f32() > MIN_SCORE && epoch.seconds() < MAX_SECONDS)
-        .inspect(|ctx| log_ctx!(ctx))
+        .inspect(|ctx| log_gen!(ctx))
         .last()
         .inspect(|ctx| display(&train, &test, ctx));
 }

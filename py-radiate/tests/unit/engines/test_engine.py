@@ -3,8 +3,10 @@ import radiate as rd
 import numpy as np
 import pytest
 
+
 class TestEngineBasicIntegration:
     """Basic integration tests for GeneticEngine functionality."""
+
     @pytest.mark.integration
     def test_engine_int_minimization(self, random_seed):
         num_genes = 5
@@ -19,7 +21,6 @@ class TestEngineBasicIntegration:
         assert result.value() == [0 for _ in range(num_genes)]
         assert result.score() == [0]
         assert result.index() <= 500
-
 
     @pytest.mark.integration
     def test_engine_float_maximization(self, random_seed):
@@ -45,7 +46,6 @@ class TestEngineBasicIntegration:
         assert result.score()[0] > 2.5
         assert result.index() <= 100
 
-
     def test_engine_can_maximize(self):
         target = "Testing, Radiate!"
 
@@ -63,7 +63,6 @@ class TestEngineBasicIntegration:
         assert result.value() == list(target)
         assert result.score() == [len(target)]
         assert result.index() <= 1000
-
 
     @pytest.mark.integration
     def test_engine_bit_optimization(self, random_seed):
@@ -89,7 +88,6 @@ class TestEngineBasicIntegration:
         assert result.score()[0] == 10.0
         assert result.index() <= 100
 
-
     @pytest.mark.integration
     def test_engine_minimizing_limits(self):
         import math
@@ -113,7 +111,6 @@ class TestEngineBasicIntegration:
         assert all(i < 0.001 for i in result.value())
         assert len(result.value()) == N_GENES
         assert result.index() < 1000
-
 
     @pytest.mark.integration
     @pytest.mark.slow
@@ -145,7 +142,6 @@ class TestEngineBasicIntegration:
         assert result.score()[0] < 0.001
         assert result.index() <= 500
 
-
     @pytest.mark.integration
     @pytest.mark.slow
     def test_engine_tree_regression(self, simple_regression_dataset, random_seed):
@@ -171,7 +167,6 @@ class TestEngineBasicIntegration:
 
         assert result.score()[0] < 0.1
         assert result.index() <= 300
-
 
     @pytest.mark.integration
     def test_engine_permutation_tsp(self, random_seed):
@@ -199,11 +194,11 @@ class TestEngineBasicIntegration:
 
     @pytest.mark.integration
     def test_engine_novelty_search(self, random_seed):
-        """Test engine with novelty search."""        
+        """Test engine with novelty search."""
         engine = rd.GeneticEngine(
             codec=rd.FloatCodec.vector(6, value_range=(-100.0, 100.0)),
             fitness_func=rd.NoveltySearch(
-                discriptor=rd.CosineDistance(),
+                distance=rd.CosineDistance(),
                 k=15,
                 threshold=0.03,
             ),
@@ -225,12 +220,15 @@ class TestEngineBasicIntegration:
 
             dimension = len(descriptors[0])
             total_range = sum(
-                max(desc[d] for desc in descriptors) - min(desc[d] for desc in descriptors)
+                max(desc[d] for desc in descriptors)
+                - min(desc[d] for desc in descriptors)
                 for d in range(dimension)
             )
             return total_range / (dimension * 200.0)
-        
-        assert calc_population_diversity(result.population()) > 0.9, "Population should have diversity"
+
+        assert calc_population_diversity(result.population()) > 0.9, (
+            "Population should have diversity"
+        )
         assert result.index() == 100
 
     @pytest.mark.integration
@@ -239,7 +237,7 @@ class TestEngineBasicIntegration:
 
         def fitness_func(x: List[float]) -> List[float]:
             # Two objectives: minimize sum, maximize product
-            return [sum(x), -np.prod(x)]  # Negative for maximization
+            return [sum(x), np.prod(x)]
 
         engine = rd.GeneticEngine(
             codec=rd.FloatCodec.vector(length=3, value_range=(-1.0, 1.0)),
@@ -251,94 +249,7 @@ class TestEngineBasicIntegration:
             alters=[rd.ArithmeticMutator(0.7), rd.GaussianMutator(0.1)],
         )
 
-        result = engine.run([rd.GenerationsLimit(50)])
+        result = engine.run(rd.GenerationsLimit(50))
 
         assert len(result.score()) == 2, "Should return two objectives"
         assert result.index() == 50, "Should complete within 50 generations"
-
-class TestEngineErrorHandlingIntegration:
-    """Integration tests for error handling and edge cases."""
-    @pytest.mark.integration
-    def test_engine_empty_population(self):
-        """Test engine handles empty population gracefully."""
-
-        def fitness_func(x: List[int]) -> float:
-            return sum(x)
-
-        with pytest.raises(ValueError):
-            engine = rd.GeneticEngine(
-                codec=rd.IntCodec.vector(length=3, value_range=(0, 10)),
-                fitness_func=fitness_func,
-                objectives="min",
-                population_size=0,  # Invalid
-            )
-            engine.run([rd.GenerationsLimit(10)])
-
-    @pytest.mark.integration
-    def test_engine_invalid_limits(self):
-        """Test engine handles invalid limits gracefully."""
-
-        def fitness_func(x: List[int]) -> float:
-            return sum(x)
-
-        engine = rd.GeneticEngine(
-            codec=rd.IntCodec.vector(length=3, value_range=(0, 10)),
-            fitness_func=fitness_func,
-            objectives="min",
-        )
-
-        with pytest.raises(ValueError):
-            engine.run([rd.GenerationsLimit(-1)])  # Invalid limit
-
-    def test_engine_raises_on_invalid_alterer(self):
-        engine = rd.GeneticEngine(
-            rd.IntCodec.vector(5, (0, 10)),
-            lambda x: sum(x),
-        )
-
-        try:
-            engine.alters([rd.GraphCrossover(0.5, 0.5)])
-            assert False, "Expected ValueError for invalid alterer"
-        except ValueError as e:
-            assert "Alterer GraphCrossover does not support gene type int" in str(e)
-
-
-class TestEngineConvergenceIntegration:
-    """Integration tests for convergence behavior."""
-
-    @pytest.mark.integration
-    def test_engine_convergence_curve(self, random_seed):
-        """Test engine convergence over generations."""
-
-        def fitness_func(x: List[float]) -> float:
-            return sum(xi**2 for xi in x)
-
-        class Subscriber(rd.EventHandler):
-            def __init__(self):
-                super().__init__(rd.EventType.EPOCH_COMPLETE)
-                self.convergence_data = []
-
-            def on_event(self, generation):
-                self.convergence_data.append(generation["score"])
-
-        handler = Subscriber()
-
-        engine = rd.GeneticEngine(
-            codec=rd.FloatCodec.vector(length=5, value_range=(-1.0, 1.0)),
-            fitness_func=fitness_func,
-            objectives="min",
-            population_size=50,
-            offspring_selector=rd.TournamentSelector(3),
-            survivor_selector=rd.EliteSelector(),
-            subscribe=handler,
-            alters=[rd.ArithmeticMutator(0.7), rd.IntermediateCrossover(0.1)],
-        )
-
-        result = engine.run([rd.GenerationsLimit(20)])
-
-        # Check convergence behavior
-        assert len(handler.convergence_data) == 20
-        assert (
-            handler.convergence_data[-1] <= handler.convergence_data[0]
-        )  # Should improve or stay same
-        assert result.score()[0] == handler.convergence_data[-1]

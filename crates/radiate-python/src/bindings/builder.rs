@@ -1,10 +1,9 @@
 use crate::bindings::codec::PyTreeCodec;
 use crate::bindings::{EngineBuilderHandle, EngineHandle};
 use crate::events::PyEventHandler;
-use crate::problem::PyNoveltyProblem;
 use crate::{
     FreeThreadPyEvaluator, InputConverter, PyCodec, PyEngine, PyEngineInput, PyEngineInputType,
-    PyPermutationCodec, prelude::*,
+    PyNoveltySearch, PyPermutationCodec, PyPopulation, prelude::*,
 };
 use crate::{PyGeneType, PySubscriber};
 use core::panic;
@@ -12,7 +11,6 @@ use pyo3::exceptions::PyTypeError;
 use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
 use radiate::prelude::*;
 use std::collections::HashMap;
-use std::sync::Arc;
 
 macro_rules! apply_to_builder {
     ($builder:expr, $method:ident($($args:expr),*)) => {
@@ -36,6 +34,7 @@ pub struct PyEngineBuilder {
     pub gene_type: PyGeneType,
     pub codec: Py<PyAny>,
     pub problem: Py<PyAny>,
+    pub population: Option<PyPopulation>,
     pub subscribers: Vec<PySubscriber>,
     pub inputs: Vec<PyEngineInput>,
 }
@@ -47,6 +46,7 @@ impl PyEngineBuilder {
         gene_type: String,
         codec: Py<PyAny>,
         problem: Py<PyAny>,
+        population: Option<PyPopulation>,
         subscribers: Vec<PySubscriber>,
         inputs: Vec<PyEngineInput>,
     ) -> Self {
@@ -64,6 +64,7 @@ impl PyEngineBuilder {
             gene_type,
             codec,
             problem,
+            population,
             subscribers,
             inputs,
         }
@@ -85,6 +86,7 @@ impl PyEngineBuilder {
         }
 
         inner = self.process_subscriber(inner)?;
+        inner = self.process_population(inner)?;
 
         let engine_handle = match inner {
             EngineBuilderHandle::Int(builder) => EngineHandle::Int(builder.build()),
@@ -129,6 +131,15 @@ impl PyEngineBuilder {
 
         let py_subscriber = PyEventHandler::new(self.subscribers.clone());
         apply_to_builder!(inner, subscribe(py_subscriber))
+    }
+
+    fn process_population(&self, inner: EngineBuilderHandle) -> PyResult<EngineBuilderHandle> {
+        if self.population.is_none() {
+            return Ok(inner);
+        }
+
+        let py_population = self.population.clone().unwrap();
+        apply_to_builder!(inner, population(py_population))
     }
 
     fn process_inputs(
@@ -530,135 +541,103 @@ impl PyEngineBuilder {
             .get_item("fitness_func")?
             .extract::<Py<PyAny>>()?;
 
-        match self.gene_type {
+        let builder = match self.gene_type {
             PyGeneType::Float => {
-                if let Ok(codec) = codec.extract::<PyFloatCodec>() {
-                    let float_problem = PyProblem::new(fitness_fn, codec.codec);
-                    Ok(EngineBuilderHandle::Float(
-                        GeneticEngine::builder()
-                            .problem(float_problem.clone())
-                            .executor(executor.clone())
-                            .evaluator(FreeThreadPyEvaluator::new(executor, float_problem))
-                            .bus_executor(Executor::default()),
-                    ))
-                } else {
-                    Err(PyTypeError::new_err(
-                        "Expected a PyFloatCodec for gene_type Float",
-                    ))
-                }
+                let codec = codec.extract::<PyFloatCodec>()?;
+                let float_problem = PyProblem::new(fitness_fn, codec.codec);
+
+                EngineBuilderHandle::Float(
+                    GeneticEngine::builder()
+                        .problem(float_problem.clone())
+                        .executor(executor.clone())
+                        .evaluator(FreeThreadPyEvaluator::new(executor, float_problem))
+                        .bus_executor(Executor::default()),
+                )
             }
             PyGeneType::Int => {
-                if let Ok(codec) = codec.extract::<PyIntCodec>() {
-                    let int_problem = PyProblem::new(fitness_fn, codec.codec);
-                    Ok(EngineBuilderHandle::Int(
-                        GeneticEngine::builder()
-                            .problem(int_problem.clone())
-                            .executor(executor.clone())
-                            .evaluator(FreeThreadPyEvaluator::new(executor, int_problem))
-                            .bus_executor(Executor::default()),
-                    ))
-                } else {
-                    Err(PyTypeError::new_err(
-                        "Expected a PyIntCodec for gene_type Int",
-                    ))
-                }
+                let codec = codec.extract::<PyIntCodec>()?;
+                let int_problem = PyProblem::new(fitness_fn, codec.codec);
+                EngineBuilderHandle::Int(
+                    GeneticEngine::builder()
+                        .problem(int_problem.clone())
+                        .executor(executor.clone())
+                        .evaluator(FreeThreadPyEvaluator::new(executor, int_problem))
+                        .bus_executor(Executor::default()),
+                )
             }
             PyGeneType::Char => {
-                if let Ok(codec) = codec.extract::<PyCharCodec>() {
-                    let char_problem = PyProblem::new(fitness_fn, codec.codec);
-                    Ok(EngineBuilderHandle::Char(
-                        GeneticEngine::builder()
-                            .problem(char_problem.clone())
-                            .executor(executor.clone())
-                            .evaluator(FreeThreadPyEvaluator::new(executor, char_problem))
-                            .bus_executor(Executor::default()),
-                    ))
-                } else {
-                    Err(PyTypeError::new_err(
-                        "Expected a PyCharCodec for gene_type Char",
-                    ))
-                }
+                let codec = codec.extract::<PyCharCodec>()?;
+                let char_problem = PyProblem::new(fitness_fn, codec.codec);
+                EngineBuilderHandle::Char(
+                    GeneticEngine::builder()
+                        .problem(char_problem.clone())
+                        .executor(executor.clone())
+                        .evaluator(FreeThreadPyEvaluator::new(executor, char_problem))
+                        .bus_executor(Executor::default()),
+                )
             }
             PyGeneType::Bit => {
-                if let Ok(codec) = codec.extract::<PyBitCodec>() {
-                    let bit_problem = PyProblem::new(fitness_fn, codec.codec);
-
-                    Ok(EngineBuilderHandle::Bit(
-                        GeneticEngine::builder()
-                            .problem(bit_problem.clone())
-                            .executor(executor.clone())
-                            .evaluator(FreeThreadPyEvaluator::new(executor, bit_problem))
-                            .bus_executor(Executor::default()),
-                    ))
-                } else {
-                    Err(PyTypeError::new_err(
-                        "Expected a PyBitCodec for gene_type Bit",
-                    ))
-                }
-            }
-            PyGeneType::Graph => {
-                if let Ok(codec) = codec.extract::<PyGraphCodec>() {
-                    let cloned_codec = codec.codec.clone();
-                    let py_codec = PyCodec::new()
-                        .with_encoder(move || cloned_codec.encode())
-                        .with_decoder(move |_, genotype| codec.codec.decode(genotype));
-
-                    let graph_problem = PyProblem::new(fitness_fn, py_codec);
-                    Ok(EngineBuilderHandle::Graph(
-                        GeneticEngine::builder()
-                            .problem(graph_problem.clone())
-                            .executor(executor.clone())
-                            .evaluator(FreeThreadPyEvaluator::new(executor, graph_problem))
-                            .bus_executor(Executor::default()),
-                    ))
-                } else {
-                    Err(PyTypeError::new_err(
-                        "Expected a PyGraphCodec for gene_type Graph",
-                    ))
-                }
-            }
-            PyGeneType::Tree => {
-                if let Ok(codec) = codec.extract::<PyTreeCodec>() {
-                    let cloned_codec = codec.codec.clone();
-                    let py_codec = PyCodec::new()
-                        .with_encoder(move || cloned_codec.encode())
-                        .with_decoder(move |_, genotype| codec.codec.decode(genotype));
-
-                    let tree_problem = PyProblem::new(fitness_fn, py_codec);
-                    Ok(EngineBuilderHandle::Tree(
-                        GeneticEngine::builder()
-                            .problem(tree_problem.clone())
-                            .executor(executor.clone())
-                            .evaluator(FreeThreadPyEvaluator::new(executor, tree_problem))
-                            .bus_executor(Executor::default()),
-                    ))
-                } else {
-                    Err(PyTypeError::new_err(
-                        "Expected a PyTreeCodec for gene_type Tree",
-                    ))
-                }
+                let codec = codec.extract::<PyBitCodec>()?;
+                let bit_problem = PyProblem::new(fitness_fn, codec.codec);
+                EngineBuilderHandle::Bit(
+                    GeneticEngine::builder()
+                        .problem(bit_problem.clone())
+                        .executor(executor.clone())
+                        .evaluator(FreeThreadPyEvaluator::new(executor, bit_problem))
+                        .bus_executor(Executor::default()),
+                )
             }
             PyGeneType::Permutation => {
-                if let Ok(codec) = codec.extract::<PyPermutationCodec>() {
-                    let custom_problem = PyProblem::new(fitness_fn, codec.codec);
-                    Ok(EngineBuilderHandle::Permutation(
-                        GeneticEngine::builder()
-                            .problem(custom_problem.clone())
-                            .executor(executor.clone())
-                            .evaluator(FreeThreadPyEvaluator::new(executor, custom_problem))
-                            .bus_executor(Executor::default()),
-                    ))
-                } else {
-                    Err(PyTypeError::new_err(
-                        "Expected a PyPermutationCodec for gene_type Permutation",
-                    ))
-                }
+                let codec = codec.extract::<PyPermutationCodec>()?;
+                let custom_problem = PyProblem::new(fitness_fn, codec.codec);
+                EngineBuilderHandle::Permutation(
+                    GeneticEngine::builder()
+                        .problem(custom_problem.clone())
+                        .executor(executor.clone())
+                        .evaluator(FreeThreadPyEvaluator::new(executor, custom_problem))
+                        .bus_executor(Executor::default()),
+                )
             }
-            _ => Err(PyTypeError::new_err(format!(
-                "Unsupported gene_type {:?} for Custom problem",
-                self.gene_type
-            ))),
-        }
+            PyGeneType::Graph => {
+                let codec = codec.extract::<PyGraphCodec>()?;
+                let cloned_codec = codec.codec.clone();
+                let py_codec = PyCodec::new()
+                    .with_encoder(move || cloned_codec.encode())
+                    .with_decoder(move |_, genotype| codec.codec.decode(genotype));
+
+                let graph_problem = PyProblem::new(fitness_fn, py_codec);
+                EngineBuilderHandle::Graph(
+                    GeneticEngine::builder()
+                        .problem(graph_problem.clone())
+                        .executor(executor.clone())
+                        .evaluator(FreeThreadPyEvaluator::new(executor, graph_problem))
+                        .bus_executor(Executor::default()),
+                )
+            }
+            PyGeneType::Tree => {
+                let codec = codec.extract::<PyTreeCodec>()?;
+                let cloned_codec = codec.codec.clone();
+                let py_codec = PyCodec::new()
+                    .with_encoder(move || cloned_codec.encode())
+                    .with_decoder(move |_, genotype| codec.codec.decode(genotype));
+
+                let tree_problem = PyProblem::new(fitness_fn, py_codec);
+                EngineBuilderHandle::Tree(
+                    GeneticEngine::builder()
+                        .problem(tree_problem.clone())
+                        .executor(executor.clone())
+                        .evaluator(FreeThreadPyEvaluator::new(executor, tree_problem))
+                        .bus_executor(Executor::default()),
+                )
+            }
+            _ => {
+                return Err(PyErr::new::<PyTypeError, _>(
+                    "Unsupported gene type for custom problem",
+                ));
+            }
+        };
+
+        Ok(builder)
     }
 
     fn create_builder_with_regression_problem<'py>(
@@ -699,41 +678,31 @@ impl PyEngineBuilder {
         };
 
         let data_set = DataSet::new(features, targets);
+        let regression = Regression::new(data_set, loss);
 
         match self.gene_type {
             PyGeneType::Graph => {
-                if let Ok(codec) = codec.extract::<PyGraphCodec>() {
-                    let regression = Regression::new(data_set, loss);
+                let codec = codec.extract::<PyGraphCodec>()?;
 
-                    Ok(EngineBuilderHandle::Graph(
-                        GeneticEngine::builder()
-                            .codec(codec.codec.clone())
-                            .fitness_fn(regression)
-                            .executor(executor)
-                            .bus_executor(Executor::default()),
-                    ))
-                } else {
-                    Err(PyTypeError::new_err(
-                        "Expected a PyGraphCodec for gene_type Graph",
-                    ))
-                }
+                Ok(EngineBuilderHandle::Graph(
+                    GeneticEngine::builder()
+                        .codec(codec.codec.clone())
+                        .fitness_fn(regression)
+                        .executor(executor)
+                        .bus_executor(Executor::default()),
+                ))
             }
-            PyGeneType::Tree => {
-                if let Ok(codec) = codec.extract::<PyTreeCodec>() {
-                    let regression = Regression::new(data_set, loss);
 
-                    Ok(EngineBuilderHandle::Tree(
-                        GeneticEngine::builder()
-                            .codec(codec.codec.clone())
-                            .fitness_fn(regression)
-                            .executor(executor)
-                            .bus_executor(Executor::default()),
-                    ))
-                } else {
-                    Err(PyTypeError::new_err(
-                        "Expected a PyTreeCodec for gene_type Tree",
-                    ))
-                }
+            PyGeneType::Tree => {
+                let codec = codec.extract::<PyTreeCodec>()?;
+
+                Ok(EngineBuilderHandle::Tree(
+                    GeneticEngine::builder()
+                        .codec(codec.codec.clone())
+                        .fitness_fn(regression)
+                        .executor(executor)
+                        .bus_executor(Executor::default()),
+                ))
             }
             _ => Err(PyErr::new::<PyTypeError, _>(
                 "Regression problem only supports GraphChromosome & TreeChromosome",
@@ -754,10 +723,15 @@ impl PyEngineBuilder {
             ));
         }
 
-        let discriptor = problem
+        let distance = problem
             .args(py)?
-            .get_item("discriptor")?
+            .get_item("distance")?
             .extract::<PyEngineInput>()?;
+        let descriptor = problem
+            .args(py)?
+            .get_item("descriptor")
+            .and_then(|item| item.extract::<Py<PyAny>>())
+            .ok();
         let k = problem.args(py)?.get_item("k")?.extract::<usize>()?;
         let threshold = problem.args(py)?.get_item("threshold")?.extract::<f32>()?;
         let archive_size = problem
@@ -766,305 +740,76 @@ impl PyEngineBuilder {
             .extract::<usize>()
             .unwrap_or(1000);
 
-        println!("Discriptor: {:?}", discriptor);
+        let fitness = PyNoveltySearch::new(
+            descriptor,
+            distance.component().to_string(),
+            k,
+            threshold,
+            archive_size,
+        )
+        .into_py_any(py)?;
 
         match self.gene_type {
             PyGeneType::Float => {
-                if let Ok(float_codec) = codec.extract::<PyFloatCodec>() {
-                    let cloned_codec = float_codec.clone();
-                    let codec = FnCodec::new()
-                        .with_encoder(move || cloned_codec.codec.encode())
-                        .with_decoder(|genotype| {
-                            genotype
-                                .iter()
-                                .flat_map(|chrom| chrom.iter().map(|gene| *gene.allele()))
-                                .collect::<Vec<f32>>()
-                        });
+                let float_codec = codec.extract::<PyFloatCodec>()?;
+                let problem = PyProblem::new(fitness, float_codec.codec);
 
-                    let decoder = Arc::new(
-                        move |py: Python<'_>, genotype: &Genotype<FloatChromosome>| {
-                            float_codec.codec.decode_with_py(py, genotype)
-                        },
-                    );
-
-                    match discriptor.component().as_str() {
-                        "EuclideanDistance" => Ok(EngineBuilderHandle::Float(
-                            GeneticEngine::builder()
-                                .problem(PyNoveltyProblem::new(
-                                    codec,
-                                    decoder,
-                                    NoveltySearch::new(EuclideanDistance, k, threshold)
-                                        .with_max_archive_size(archive_size),
-                                ))
-                                .executor(executor)
-                                .bus_executor(Executor::default()),
-                        )),
-                        "HammingDistance" => Ok(EngineBuilderHandle::Float(
-                            GeneticEngine::builder()
-                                .problem(PyNoveltyProblem::new(
-                                    codec,
-                                    decoder,
-                                    NoveltySearch::new(HammingDistance, k, threshold)
-                                        .with_max_archive_size(archive_size),
-                                ))
-                                .executor(executor)
-                                .bus_executor(Executor::default()),
-                        )),
-                        "CosineDistance" => Ok(EngineBuilderHandle::Float(
-                            GeneticEngine::builder()
-                                .problem(PyNoveltyProblem::new(
-                                    codec,
-                                    decoder,
-                                    NoveltySearch::new(CosineDistance, k, threshold)
-                                        .with_max_archive_size(archive_size),
-                                ))
-                                .executor(executor)
-                                .bus_executor(Executor::default()),
-                        )),
-                        _ => Err(PyTypeError::new_err(
-                            "Unsupported distance discriptor for Float gene type",
-                        )),
-                    }
-                } else {
-                    Err(PyTypeError::new_err(
-                        "Expected a PyFloatCodec for gene_type Float",
-                    ))
-                }
+                Ok(EngineBuilderHandle::Float(
+                    GeneticEngine::builder()
+                        .problem(problem.clone())
+                        .executor(executor.clone())
+                        .evaluator(FreeThreadPyEvaluator::new(executor, problem))
+                        .bus_executor(Executor::default()),
+                ))
             }
             PyGeneType::Int => {
-                if let Ok(int_codec) = codec.extract::<PyIntCodec>() {
-                    let cloned_codec = int_codec.clone();
-                    let codec = FnCodec::new()
-                        .with_encoder(move || cloned_codec.codec.encode())
-                        .with_decoder(|genotype| {
-                            genotype
-                                .iter()
-                                .flat_map(|chrom| chrom.iter().map(|gene| *gene.allele() as f32))
-                                .collect::<Vec<f32>>()
-                        });
+                let int_codec = codec.extract::<PyIntCodec>()?;
+                let problem = PyProblem::new(fitness, int_codec.codec);
 
-                    let decoder = Arc::new(
-                        move |py: Python<'_>, genotype: &Genotype<IntChromosome<i32>>| {
-                            int_codec.codec.decode_with_py(py, genotype)
-                        },
-                    );
-
-                    match discriptor.component().as_str() {
-                        "EuclideanDistance" => Ok(EngineBuilderHandle::Int(
-                            GeneticEngine::builder()
-                                .problem(PyNoveltyProblem::new(
-                                    codec,
-                                    decoder,
-                                    NoveltySearch::new(EuclideanDistance, k, threshold)
-                                        .with_max_archive_size(archive_size),
-                                ))
-                                .executor(executor)
-                                .bus_executor(Executor::default()),
-                        )),
-                        "HammingDistance" => Ok(EngineBuilderHandle::Int(
-                            GeneticEngine::builder()
-                                .problem(PyNoveltyProblem::new(
-                                    codec,
-                                    decoder,
-                                    NoveltySearch::new(HammingDistance, k, threshold)
-                                        .with_max_archive_size(archive_size),
-                                ))
-                                .executor(executor)
-                                .bus_executor(Executor::default()),
-                        )),
-                        "CosineDistance" => Ok(EngineBuilderHandle::Int(
-                            GeneticEngine::builder()
-                                .problem(PyNoveltyProblem::new(
-                                    codec,
-                                    decoder,
-                                    NoveltySearch::new(CosineDistance, k, threshold)
-                                        .with_max_archive_size(archive_size),
-                                ))
-                                .executor(executor)
-                                .bus_executor(Executor::default()),
-                        )),
-                        _ => Err(PyTypeError::new_err(
-                            "Unsupported distance discriptor for Int gene type",
-                        )),
-                    }
-                } else {
-                    Err(PyTypeError::new_err(
-                        "Expected a PyIntCodec for gene_type Int",
-                    ))
-                }
+                Ok(EngineBuilderHandle::Int(
+                    GeneticEngine::builder()
+                        .problem(problem.clone())
+                        .executor(executor.clone())
+                        .evaluator(FreeThreadPyEvaluator::new(executor, problem))
+                        .bus_executor(Executor::default()),
+                ))
             }
+
             PyGeneType::Char => {
-                if let Ok(char_codec) = codec.extract::<PyCharCodec>() {
-                    let cloned_codec = char_codec.clone();
-                    let codec = FnCodec::new()
-                        .with_encoder(move || cloned_codec.codec.encode())
-                        .with_decoder(|genotype| {
-                            genotype
-                                .iter()
-                                .flat_map(|chrom| chrom.iter().map(|gene| *gene.allele() as u8))
-                                .map(|c| c as f32)
-                                .collect::<Vec<f32>>()
-                        });
+                let char_codec = codec.extract::<PyCharCodec>()?;
+                let problem = PyProblem::new(fitness, char_codec.codec);
 
-                    let decoder =
-                        Arc::new(move |py: Python<'_>, genotype: &Genotype<CharChromosome>| {
-                            char_codec.codec.decode_with_py(py, genotype)
-                        });
-
-                    match discriptor.component().as_str() {
-                        "EuclideanDistance" => Ok(EngineBuilderHandle::Char(
-                            GeneticEngine::builder()
-                                .problem(PyNoveltyProblem::new(
-                                    codec,
-                                    decoder,
-                                    NoveltySearch::new(EuclideanDistance, k, threshold)
-                                        .with_max_archive_size(archive_size),
-                                ))
-                                .executor(executor)
-                                .bus_executor(Executor::default()),
-                        )),
-                        "HammingDistance" => Ok(EngineBuilderHandle::Char(
-                            GeneticEngine::builder()
-                                .problem(PyNoveltyProblem::new(
-                                    codec,
-                                    decoder,
-                                    NoveltySearch::new(HammingDistance, k, threshold)
-                                        .with_max_archive_size(archive_size),
-                                ))
-                                .executor(executor)
-                                .bus_executor(Executor::default()),
-                        )),
-                        "CosineDistance" => Ok(EngineBuilderHandle::Char(
-                            GeneticEngine::builder()
-                                .problem(PyNoveltyProblem::new(
-                                    codec,
-                                    decoder,
-                                    NoveltySearch::new(CosineDistance, k, threshold)
-                                        .with_max_archive_size(archive_size),
-                                ))
-                                .executor(executor)
-                                .bus_executor(Executor::default()),
-                        )),
-                        _ => Err(PyTypeError::new_err(
-                            "Unsupported distance discriptor for Char gene type",
-                        )),
-                    }
-                } else {
-                    Err(PyTypeError::new_err(
-                        "Expected a PyCharCodec for gene_type Char",
-                    ))
-                }
+                Ok(EngineBuilderHandle::Char(
+                    GeneticEngine::builder()
+                        .problem(problem.clone())
+                        .executor(executor.clone())
+                        .evaluator(FreeThreadPyEvaluator::new(executor, problem))
+                        .bus_executor(Executor::default()),
+                ))
             }
             PyGeneType::Bit => {
-                if let Ok(bit_codec) = codec.extract::<PyBitCodec>() {
-                    let cloned_codec = bit_codec.clone();
-                    let codec = FnCodec::new()
-                        .with_encoder(move || cloned_codec.codec.encode())
-                        .with_decoder(|genotype| {
-                            genotype
-                                .iter()
-                                .flat_map(|chrom| chrom.iter().map(|gene| *gene.allele()))
-                                .collect::<Vec<bool>>()
-                        });
+                let bit_codec = codec.extract::<PyBitCodec>()?;
+                let problem = PyProblem::new(fitness, bit_codec.codec);
 
-                    let decoder =
-                        Arc::new(move |py: Python<'_>, genotype: &Genotype<BitChromosome>| {
-                            bit_codec.codec.decode_with_py(py, genotype)
-                        });
-
-                    match discriptor.component().as_str() {
-                        "HammingDistance" => Ok(EngineBuilderHandle::Bit(
-                            GeneticEngine::builder()
-                                .problem(PyNoveltyProblem::new(
-                                    codec,
-                                    decoder,
-                                    NoveltySearch::new(HammingDistance, k, threshold)
-                                        .with_max_archive_size(archive_size),
-                                ))
-                                .executor(executor)
-                                .bus_executor(Executor::default()),
-                        )),
-                        _ => Err(PyTypeError::new_err(
-                            "Unsupported distance discriptor for Bit gene type",
-                        )),
-                    }
-                } else {
-                    Err(PyTypeError::new_err(
-                        "Expected a PyBitCodec for gene_type Bit",
-                    ))
-                }
+                Ok(EngineBuilderHandle::Bit(
+                    GeneticEngine::builder()
+                        .problem(problem.clone())
+                        .executor(executor.clone())
+                        .evaluator(FreeThreadPyEvaluator::new(executor, problem))
+                        .bus_executor(Executor::default()),
+                ))
             }
             PyGeneType::Permutation => {
-                if let Ok(perm_codec) = codec.extract::<PyPermutationCodec>() {
-                    let cloned_codec = perm_codec.clone();
-                    let codec = FnCodec::new()
-                        .with_encoder(move || cloned_codec.codec.encode())
-                        .with_decoder(|genotype| {
-                            genotype
-                                .iter()
-                                .flat_map(|chrom| chrom.iter().map(|gene| *gene.allele()))
-                                .collect::<Vec<usize>>()
-                        });
+                let perm_codec = codec.extract::<PyPermutationCodec>()?;
+                let problem = PyProblem::new(fitness, perm_codec.codec);
 
-                    let decoder = Arc::new(
-                        move |py: Python<'_>, genotype: &Genotype<PermutationChromosome<usize>>| {
-                            perm_codec.codec.decode_with_py(py, genotype)
-                        },
-                    );
-
-                    match discriptor.component().as_str() {
-                        "HammingDistance" => Ok(EngineBuilderHandle::Permutation(
-                            GeneticEngine::builder()
-                                .problem(PyNoveltyProblem::new(
-                                    codec,
-                                    decoder,
-                                    NoveltySearch::new(HammingDistance, k, threshold)
-                                        .with_max_archive_size(archive_size),
-                                ))
-                                .executor(executor)
-                                .bus_executor(Executor::default()),
-                        )),
-                        _ => Err(PyTypeError::new_err(
-                            "Unsupported distance discriptor for Permutation gene type",
-                        )),
-                    }
-                } else {
-                    Err(PyTypeError::new_err(
-                        "Expected a PyPermutationCodec for gene_type Permutation",
-                    ))
-                }
-            }
-            PyGeneType::Graph => {
-                if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
-                    match discriptor.component().as_str() {
-                        "NeatDistance" => {
-                            let excess = discriptor.get_f32("excess").unwrap_or(1.0);
-                            let disjoint = discriptor.get_f32("disjoint").unwrap_or(0.0);
-                            let weight = discriptor.get_f32("weight").unwrap_or(0.0);
-                            Ok(EngineBuilderHandle::Graph(
-                                GeneticEngine::builder()
-                                    .codec(graph_codec.codec.clone())
-                                    .fitness_fn(
-                                        NoveltySearch::new(
-                                            NeatDistance::new(excess, disjoint, weight),
-                                            k,
-                                            threshold,
-                                        )
-                                        .with_max_archive_size(archive_size),
-                                    )
-                                    .executor(executor)
-                                    .bus_executor(Executor::default()),
-                            ))
-                        }
-                        _ => Err(PyTypeError::new_err(
-                            "Unsupported distance discriptor for Graph gene type",
-                        )),
-                    }
-                } else {
-                    Err(PyTypeError::new_err(
-                        "Expected a PyGraphCodec for gene_type Graph",
-                    ))
-                }
+                Ok(EngineBuilderHandle::Permutation(
+                    GeneticEngine::builder()
+                        .problem(problem.clone())
+                        .executor(executor.clone())
+                        .evaluator(FreeThreadPyEvaluator::new(executor, problem))
+                        .bus_executor(Executor::default()),
+                ))
             }
             _ => Err(PyTypeError::new_err("Unsupported gene type")),
         }

@@ -1,6 +1,6 @@
 use super::{GraphChromosome, GraphIterator, GraphNode};
-use crate::{Graph, Node, Op};
-use radiate_core::{Diversity, Genotype, problem::Novelty};
+use crate::{Node, Op};
+use radiate_core::{Diversity, Genotype};
 use std::cmp::Ordering;
 
 pub struct NeatDistance {
@@ -34,21 +34,6 @@ impl Diversity<GraphChromosome<Op<f32>>> for NeatDistance {
                 )
             })
             .sum()
-    }
-}
-
-impl Novelty<Graph<Op<f32>>> for NeatDistance {
-    type Descriptor = Vec<GraphNode<Op<f32>>>;
-
-    fn description(&self, phenotype: &Graph<Op<f32>>) -> Self::Descriptor {
-        phenotype.iter_topological().cloned().collect()
-    }
-
-    fn distance(&self, a: &Self::Descriptor, b: &Self::Descriptor) -> f32 {
-        self.graph_distance(
-            a.iter().collect::<Vec<_>>().as_slice(),
-            b.iter().collect::<Vec<_>>().as_slice(),
-        )
     }
 }
 

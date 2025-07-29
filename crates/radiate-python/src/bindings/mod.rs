@@ -6,6 +6,7 @@ mod epoch;
 mod gene;
 mod inputs;
 mod metric;
+mod novelty;
 mod ops;
 mod problem;
 mod subscriber;
@@ -20,6 +21,7 @@ pub use engine::PyEngine;
 pub use epoch::PyGeneration;
 pub use gene::{PyChromosome, PyGene, PyGeneType, PyGenotype, PyPhenotype, PyPopulation};
 pub use inputs::{PyEngineInput, PyEngineInputType};
+pub use novelty::PyNoveltySearch;
 
 pub use metric::PyMetricSet;
 pub use problem::PyProblemBuilder;

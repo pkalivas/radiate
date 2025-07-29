@@ -252,6 +252,7 @@ where
     S: Into<Score>,
 {
     fitness_fn: Arc<F>,
+    distance_fn: Arc<dyn Fn(&[f32], &[f32]) -> f32 + Send + Sync>,
     _score_phantom: std::marker::PhantomData<S>,
     _phantom: std::marker::PhantomData<T>,
 }
@@ -267,8 +268,28 @@ where
     pub fn new(fitness_fn: F) -> Self {
         Self {
             fitness_fn: Arc::new(fitness_fn),
+            distance_fn: Arc::new(|a, b| {
+                if a.len() != b.len() {
+                    return f32::INFINITY;
+                }
+                a.iter()
+                    .zip(b.iter())
+                    .map(|(x, y)| (x - y).powi(2))
+                    .sum::<f32>()
+                    .sqrt()
+            }),
             _score_phantom: std::marker::PhantomData,
             _phantom: std::marker::PhantomData,
+        }
+    }
+
+    pub fn with_distance_fn(
+        self,
+        distance_fn: impl Fn(&[f32], &[f32]) -> f32 + Send + Sync + 'static,
+    ) -> Self {
+        Self {
+            distance_fn: Arc::new(distance_fn),
+            ..self
         }
     }
 }
@@ -287,14 +308,6 @@ where
     }
 
     fn distance(&self, a: &Self::Descriptor, b: &Self::Descriptor) -> f32 {
-        if a.len() != b.len() {
-            return f32::INFINITY;
-        }
-
-        a.iter()
-            .zip(b.iter())
-            .map(|(x, y)| (x - y).powi(2))
-            .sum::<f32>()
-            .sqrt()
+        (self.distance_fn)(a, b)
     }
 }

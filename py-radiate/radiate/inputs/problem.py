@@ -4,6 +4,8 @@ from radiate.inputs.input import EngineInput, EngineInputType
 from radiate.inputs.distance import DistanceBase
 from radiate.radiate import PyProblemBuilder
 
+from radiate.dependencies import pandas as pd
+
 
 class ProblemBase(abc.ABC):
     """A class representing a problem to be solved using evolutionary algorithms."""
@@ -28,7 +30,10 @@ class Regression(ProblemBase):
     """A class representing a regression problem."""
 
     def __init__(
-        self, features: List[List[float]], targets: List[List[float]], loss: str = "mse"
+        self,
+        features: List[List[float]] | pd.DataFrame,
+        targets: List[List[float]] | pd.DataFrame,
+        loss: str = "mse",
     ):
         """
         Initializes the Regression problem instance.
@@ -37,6 +42,15 @@ class Regression(ProblemBase):
         :param data: A list of tuples where each tuple contains input features and the corresponding target value.
         :param kwargs: Additional keyword arguments for problem configuration.
         """
+        if not isinstance(features, (List, pd.DataFrame)):
+            raise TypeError("features must be a list of lists or a pandas DataFrame.")
+        if not isinstance(targets, (List, pd.DataFrame)):
+            raise TypeError("targets must be a list of lists or a pandas DataFrame.")
+
+        if isinstance(features, pd.DataFrame):
+            features = features.values.tolist()
+        if isinstance(targets, pd.DataFrame):
+            targets = targets.values.tolist()
         super().__init__(
             PyProblemBuilder.regression(features=features, targets=targets, loss=loss)
         )
@@ -47,7 +61,8 @@ class NoveltySearch(ProblemBase):
 
     def __init__(
         self,
-        discriptor: DistanceBase,
+        distance: DistanceBase,
+        descriptor: Callable | None = None,
         k: int = 15,
         threshold: float = 0.03,
         archive_size: int = 1000,
@@ -60,8 +75,8 @@ class NoveltySearch(ProblemBase):
         :param k: The number of nearest neighbors to consider for novelty search.
         :param threshold: The novelty threshold.
         """
-        if not isinstance(discriptor, DistanceBase):
-            raise TypeError("discriptor must be an instance of DistanceBase.")
+        if not isinstance(distance, DistanceBase):
+            raise TypeError("distance must be an instance of DistanceBase.")
         if k <= 0:
             raise ValueError("k must be a positive integer.")
         if threshold < 0:
@@ -71,11 +86,17 @@ class NoveltySearch(ProblemBase):
 
         input = EngineInput(
             input_type=EngineInputType.Diversity,
-            component=discriptor.component,
-            allowed_genes=discriptor.allowed_genes,
-            **discriptor.args,
+            component=distance.component,
+            allowed_genes=distance.allowed_genes,
+            **distance.args,
         ).py_input()
 
         super().__init__(
-            PyProblemBuilder.novelty_search(discriptor=input, k=k, threshold=threshold, archive_size=archive_size)
+            PyProblemBuilder.novelty_search(
+                distance=input,
+                descriptor=descriptor,
+                k=k,
+                threshold=threshold,
+                archive_size=archive_size,
+            )
         )

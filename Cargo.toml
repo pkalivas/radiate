@@ -14,6 +14,7 @@ members = [
     "examples/rastrigin",
     "examples/rosenbrock",
 
+    "examples/graphs/iris-graph",
     "examples/graphs/regression-graph",
     "examples/graphs/xor-graph",
     "examples/graphs/simple-memory-graph",

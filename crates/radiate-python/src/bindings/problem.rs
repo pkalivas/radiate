@@ -84,12 +84,13 @@ impl PyProblemBuilder {
     #[staticmethod]
     pub fn novelty_search<'py>(
         py: Python<'py>,
-        discriptor: PyEngineInput,
+        distance: PyEngineInput,
+        descriptor: Option<Py<PyAny>>,
         k: usize,
         threshold: f32,
         archive_size: usize,
     ) -> Self {
-        let allowed_genes = discriptor
+        let allowed_genes = distance
             .allowed_genes
             .clone()
             .into_iter()
@@ -97,7 +98,11 @@ impl PyProblemBuilder {
 
         let args = PyDict::new(py);
 
-        args.set_item("discriptor", discriptor).unwrap();
+        if let Some(desc) = descriptor {
+            args.set_item("descriptor", desc).unwrap();
+        }
+
+        args.set_item("distance", distance).unwrap();
         args.set_item("k", k).unwrap();
         args.set_item("threshold", threshold).unwrap();
         args.set_item("max_archive_size", archive_size).unwrap();

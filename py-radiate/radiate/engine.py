@@ -23,6 +23,7 @@ from .inputs.problem import ProblemBase
 from .inputs.limit import LimitBase
 
 from .genome.gene import GeneType
+from .genome.population import Population
 
 
 class GeneticEngine:
@@ -36,6 +37,7 @@ class GeneticEngine:
         self,
         codec: CodecBase,
         fitness_func: Callable[[Any], Any] | ProblemBase,
+        population: Population | None = None,
         offspring_selector: SelectorBase | None = None,
         survivor_selector: SelectorBase | None = None,
         alters: AlterBase | List[AlterBase] | None = None,
@@ -68,7 +70,7 @@ class GeneticEngine:
         else:
             raise TypeError(f"Codec type {type(codec)} is not supported.")
 
-        self.builder = EngineBuilder(self.gene_type, codec, fitness_func)
+        self.builder = EngineBuilder(self.gene_type, codec, fitness_func, population)
 
         self.builder.set_survivor_selector(survivor_selector or TournamentSelector(k=3))
         self.builder.set_offspring_selector(offspring_selector or RouletteSelector())
