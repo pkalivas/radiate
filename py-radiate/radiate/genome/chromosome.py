@@ -69,6 +69,14 @@ class Chromosome:
         if index < 0 or index >= len(self.__inner.genes):
             raise IndexError("Index out of range")
         return Gene(self.__inner.genes[index])
+    
+    def __iter__(self):
+        """
+        Returns an iterator over the genes in the chromosome.
+        :return: An iterator over the genes in the chromosome.
+        """
+        for gene in self.__inner.genes:
+            yield Gene(gene)
 
     def py_chromosome(self) -> PyChromosome:
         """

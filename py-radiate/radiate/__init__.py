@@ -14,6 +14,7 @@ from .codec import (
     GraphCodec,
     TreeCodec,
     PermutationCodec,
+    AnyCodec
 )
 from .random import RandomProvider as random
 from .generation import Generation
@@ -77,6 +78,7 @@ __all__ = [
     "BitCodec",
     "GraphCodec",
     "TreeCodec",
+    "AnyCodec",
     # Genome and Population
     "Gene",
     "Chromosome",

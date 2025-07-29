@@ -49,7 +49,8 @@ class NoveltySearch(ProblemBase):
         self,
         discriptor: DistanceBase,
         k: int = 15,
-        threshold: float = 0.0,
+        threshold: float = 0.03,
+        archive_size: int = 1000,
     ):
         """
         Initializes the NoveltySearch problem instance.
@@ -65,6 +66,8 @@ class NoveltySearch(ProblemBase):
             raise ValueError("k must be a positive integer.")
         if threshold < 0:
             raise ValueError("threshold must be a non-negative float.")
+        if archive_size <= 0:
+            raise ValueError("archive_size must be a positive integer.")
 
         input = EngineInput(
             input_type=EngineInputType.Diversity,
@@ -74,5 +77,5 @@ class NoveltySearch(ProblemBase):
         ).py_input()
 
         super().__init__(
-            PyProblemBuilder.novelty_search(discriptor=input, k=k, threshold=threshold)
+            PyProblemBuilder.novelty_search(discriptor=input, k=k, threshold=threshold, archive_size=archive_size)
         )

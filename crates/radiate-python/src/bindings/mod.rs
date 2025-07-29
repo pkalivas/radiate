@@ -12,7 +12,7 @@ mod subscriber;
 
 pub use builder::PyEngineBuilder;
 pub use codec::{
-    PyBitCodec, PyCharCodec, PyCodec, PyFloatCodec, PyGraph, PyGraphCodec, PyIntCodec,
+    PyAnyCodec, PyBitCodec, PyCharCodec, PyCodec, PyFloatCodec, PyGraph, PyGraphCodec, PyIntCodec,
     PyPermutationCodec, PyTree, PyTreeCodec,
 };
 pub use converters::InputConverter;

@@ -37,16 +37,10 @@ class TestHandler(rd.EventHandler):
         elif event["type"] == "engine_improvement":
             print(f"New best score: {event}")
         
-novelty_search = rd.NoveltySearch(
-    discriptor=rd.HammingDistance(),
-    k=10,
-    threshold=0.03,
-)
 
 engine = rd.GeneticEngine(
     codec=rd.IntCodec.vector(50, (0, 10)),
-    # fitness_func=lambda x: sum(x),
-    fitness_func=novelty_search,
+    fitness_func=lambda x: sum(x),
     offspring_selector=rd.BoltzmannSelector(4),
     objectives="min",
     subscribe=TestHandler(),
@@ -61,7 +55,49 @@ result = engine.run(rd.ScoreLimit(0), log=True)
 
 print(result)
 
-print(novelty_search)
+
+#    let test_inputs = vec![4.0, -2.0, 3.5, 5.0, -11.0, -4.7];
+#         let codec = FloatCodec::vector(6, -100.0..100.0);
+
+# inputs = [4.0, -2.0, 3.5, 5.0, -11.0, -4.7]
+# codec = rd.FloatCodec.vector(len(inputs), (-100.0, 100.0))
+# engine = rd.GeneticEngine(
+#     codec=codec,
+#     # fitness_func=lambda x: sum(x),
+#     fitness_func=novelty_search,
+#     survivor_selector=rd.TournamentSelector(4),
+#     offspring_selector=rd.BoltzmannSelector(4),
+#     subscribe=TestHandler(),
+#     # executor=rd.Executor.WorkerPool(),
+#     alters=[
+#         rd.UniformCrossover(0.75),
+#         rd.GaussianMutator(0.2)
+#     ],
+# )
+
+# # result = engine.run(rd.ScoreLimit(0), log=True)
+# result = engine.run(rd.GenerationsLimit(150), log=True)
+
+# print(result)
+
+# def calculate_fitness(weights):
+#     fitness = sum(input * weight.allele() for input, weight in zip(inputs, weights.chromosomes()[0].genes()))
+#     return abs(fitness - 44.0)
+
+# best = list(filter(lambda x: x < 0.1, map(lambda x: calculate_fitness(x.genotype()), result.population())))
+
+# genotypes = list(map(lambda x: calculate_fitness(x.genotype()), result.population()))
+
+# print(min(genotypes))
+
+# print(best)
+
+# print(result.population())
+
+
+
+
+
 
 ######## Other test stuff ##########
 
@@ -161,13 +197,13 @@ print(novelty_search)
 # # # #
 # # # print(genetic_fitness(result.value()))
 
-# # # def encoder():
-# # #     return [1, 'hi', 3.0, True, [1, 2, 3], {'a': 1, 'b': 2}]
+# def encoder():
+#     return [1, 'hi', 3.0, True, [1, 2, 3], {'a': 1, 'b': 2}]
 
-# # # any_codec = rd.AnyCodec(encoder)
+# any_codec = rd.AnyCodec(encoder)
 
-# # # print(any_codec.encode())
-# # # print(any_codec.decode(any_codec.encode()))
+# print(any_codec.encode())
+# print(any_codec.decode(any_codec.encode()))
 
 # # # for input, target in zip(inputs, answers): 
 # # #     print(f"Input: {round(input[0], 2)}, Target: {round(target[0], 2)}, Output: {round(result.value().eval([input])[0][0], 2)}")

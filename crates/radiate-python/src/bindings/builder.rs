@@ -1,6 +1,7 @@
 use crate::bindings::codec::PyTreeCodec;
 use crate::bindings::{EngineBuilderHandle, EngineHandle};
 use crate::events::PyEventHandler;
+use crate::problem::PyNoveltyProblem;
 use crate::{
     FreeThreadPyEvaluator, InputConverter, PyCodec, PyEngine, PyEngineInput, PyEngineInputType,
     PyPermutationCodec, prelude::*,
@@ -10,9 +11,8 @@ use core::panic;
 use pyo3::exceptions::PyTypeError;
 use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
 use radiate::prelude::*;
-use radiate::problem::Novelty;
 use std::collections::HashMap;
-use std::f32::consts::E;
+use std::sync::Arc;
 
 macro_rules! apply_to_builder {
     ($builder:expr, $method:ident($($args:expr),*)) => {
@@ -768,115 +768,305 @@ impl PyEngineBuilder {
 
         println!("Discriptor: {:?}", discriptor);
 
-        todo!()
+        match self.gene_type {
+            PyGeneType::Float => {
+                if let Ok(float_codec) = codec.extract::<PyFloatCodec>() {
+                    let cloned_codec = float_codec.clone();
+                    let codec = FnCodec::new()
+                        .with_encoder(move || cloned_codec.codec.encode())
+                        .with_decoder(|genotype| {
+                            genotype
+                                .iter()
+                                .flat_map(|chrom| chrom.iter().map(|gene| *gene.allele()))
+                                .collect::<Vec<f32>>()
+                        });
 
-        // match self.gene_type {
-        //     PyGeneType::Float => {
-        //         if let Ok(codec) = codec.extract::<PyFloatCodec>() {
-        //             let py_codec = PyCodec::new()
-        //                 .with_encoder(move || codec.codec.encode())
-        //                 .with_decoder(move |_, genotype| codec.codec.decode(genotype));
-        //             match discriptor.component().as_str() {
-        //                 "EuclideanDistance" => Ok(EngineBuilderHandle::Float(
-        //                     GeneticEngine::builder()
-        //                         .codec(py_codec)
-        //                         .fitness_fn(
-        //                             NoveltySearch::new(EuclideanDistance, k, threshold)
-        //                                 .with_max_archive_size(archive_size),
-        //                         )
-        //                         .executor(executor)
-        //                         .bus_executor(Executor::default()),
-        //                 )),
-        //                 "HammingDistance" => Ok(EngineBuilderHandle::Float(
-        //                     GeneticEngine::builder()
-        //                         .codec(py_codec)
-        //                         .fitness_fn(
-        //                             NoveltySearch::new(HammingDistance, k, threshold)
-        //                                 .with_max_archive_size(archive_size),
-        //                         )
-        //                         .executor(executor)
-        //                         .bus_executor(Executor::default()),
-        //                 )),
-        //                 "CosineDistance" => Ok(EngineBuilderHandle::Float(
-        //                     GeneticEngine::builder()
-        //                         .codec(py_codec)
-        //                         .fitness_fn(
-        //                             NoveltySearch::new(CosineDistance, k, threshold)
-        //                                 .with_max_archive_size(archive_size),
-        //                         )
-        //                         .executor(executor)
-        //                         .bus_executor(Executor::default()),
-        //                 )),
-        //                 _ => Err(PyTypeError::new_err(
-        //                     "Unsupported distance discriptor for Float gene type",
-        //                 )),
-        //             }
-        //         } else {
-        //             Err(PyTypeError::new_err(
-        //                 "Expected a PyFloatCodec for gene_type Float",
-        //             ))
-        //         }
-        //     }
-        //     _ => Err(PyTypeError::new_err("Unsupported gene type")),
-        // }
+                    let decoder = Arc::new(
+                        move |py: Python<'_>, genotype: &Genotype<FloatChromosome>| {
+                            float_codec.codec.decode_with_py(py, genotype)
+                        },
+                    );
 
-        // match discriptor.component().as_str() {
-        //     "HammingDistance" => {
-        //         if let Ok(codec) = codec.extract::<PyBitCodec>() {
-        //             let py_codec = PyCodec::new()
-        //                 .with_encoder(move || codec.codec.encode())
-        //                 .with_decoder(move |_, genotype| codec.codec.decode(genotype));
-        //             let discriptor = HammingDistance;
-        //             let novelty_search = NoveltySearch::new(discriptor, k, threshold)
-        //                 .with_max_archive_size(archive_size);
+                    match discriptor.component().as_str() {
+                        "EuclideanDistance" => Ok(EngineBuilderHandle::Float(
+                            GeneticEngine::builder()
+                                .problem(PyNoveltyProblem::new(
+                                    codec,
+                                    decoder,
+                                    NoveltySearch::new(EuclideanDistance, k, threshold)
+                                        .with_max_archive_size(archive_size),
+                                ))
+                                .executor(executor)
+                                .bus_executor(Executor::default()),
+                        )),
+                        "HammingDistance" => Ok(EngineBuilderHandle::Float(
+                            GeneticEngine::builder()
+                                .problem(PyNoveltyProblem::new(
+                                    codec,
+                                    decoder,
+                                    NoveltySearch::new(HammingDistance, k, threshold)
+                                        .with_max_archive_size(archive_size),
+                                ))
+                                .executor(executor)
+                                .bus_executor(Executor::default()),
+                        )),
+                        "CosineDistance" => Ok(EngineBuilderHandle::Float(
+                            GeneticEngine::builder()
+                                .problem(PyNoveltyProblem::new(
+                                    codec,
+                                    decoder,
+                                    NoveltySearch::new(CosineDistance, k, threshold)
+                                        .with_max_archive_size(archive_size),
+                                ))
+                                .executor(executor)
+                                .bus_executor(Executor::default()),
+                        )),
+                        _ => Err(PyTypeError::new_err(
+                            "Unsupported distance discriptor for Float gene type",
+                        )),
+                    }
+                } else {
+                    Err(PyTypeError::new_err(
+                        "Expected a PyFloatCodec for gene_type Float",
+                    ))
+                }
+            }
+            PyGeneType::Int => {
+                if let Ok(int_codec) = codec.extract::<PyIntCodec>() {
+                    let cloned_codec = int_codec.clone();
+                    let codec = FnCodec::new()
+                        .with_encoder(move || cloned_codec.codec.encode())
+                        .with_decoder(|genotype| {
+                            genotype
+                                .iter()
+                                .flat_map(|chrom| chrom.iter().map(|gene| *gene.allele() as f32))
+                                .collect::<Vec<f32>>()
+                        });
 
-        //             Ok(EngineBuilderHandle::Bit(
-        //                 GeneticEngine::builder()
-        //                     .codec(py_codec)
-        //                     .fitness_fn(novelty_search)
-        //                     .executor(executor)
-        //                     .bus_executor(Executor::default()),
-        //             ))
-        //         } else {
-        //             Err(PyTypeError::new_err(
-        //                 "Expected a PyBitCodec for gene_type Bit",
-        //             ))
-        //         }
-        //     }
-        // }
+                    let decoder = Arc::new(
+                        move |py: Python<'_>, genotype: &Genotype<IntChromosome<i32>>| {
+                            int_codec.codec.decode_with_py(py, genotype)
+                        },
+                    );
 
-        // todo!()
+                    match discriptor.component().as_str() {
+                        "EuclideanDistance" => Ok(EngineBuilderHandle::Int(
+                            GeneticEngine::builder()
+                                .problem(PyNoveltyProblem::new(
+                                    codec,
+                                    decoder,
+                                    NoveltySearch::new(EuclideanDistance, k, threshold)
+                                        .with_max_archive_size(archive_size),
+                                ))
+                                .executor(executor)
+                                .bus_executor(Executor::default()),
+                        )),
+                        "HammingDistance" => Ok(EngineBuilderHandle::Int(
+                            GeneticEngine::builder()
+                                .problem(PyNoveltyProblem::new(
+                                    codec,
+                                    decoder,
+                                    NoveltySearch::new(HammingDistance, k, threshold)
+                                        .with_max_archive_size(archive_size),
+                                ))
+                                .executor(executor)
+                                .bus_executor(Executor::default()),
+                        )),
+                        "CosineDistance" => Ok(EngineBuilderHandle::Int(
+                            GeneticEngine::builder()
+                                .problem(PyNoveltyProblem::new(
+                                    codec,
+                                    decoder,
+                                    NoveltySearch::new(CosineDistance, k, threshold)
+                                        .with_max_archive_size(archive_size),
+                                ))
+                                .executor(executor)
+                                .bus_executor(Executor::default()),
+                        )),
+                        _ => Err(PyTypeError::new_err(
+                            "Unsupported distance discriptor for Int gene type",
+                        )),
+                    }
+                } else {
+                    Err(PyTypeError::new_err(
+                        "Expected a PyIntCodec for gene_type Int",
+                    ))
+                }
+            }
+            PyGeneType::Char => {
+                if let Ok(char_codec) = codec.extract::<PyCharCodec>() {
+                    let cloned_codec = char_codec.clone();
+                    let codec = FnCodec::new()
+                        .with_encoder(move || cloned_codec.codec.encode())
+                        .with_decoder(|genotype| {
+                            genotype
+                                .iter()
+                                .flat_map(|chrom| chrom.iter().map(|gene| *gene.allele() as u8))
+                                .map(|c| c as f32)
+                                .collect::<Vec<f32>>()
+                        });
+
+                    let decoder =
+                        Arc::new(move |py: Python<'_>, genotype: &Genotype<CharChromosome>| {
+                            char_codec.codec.decode_with_py(py, genotype)
+                        });
+
+                    match discriptor.component().as_str() {
+                        "EuclideanDistance" => Ok(EngineBuilderHandle::Char(
+                            GeneticEngine::builder()
+                                .problem(PyNoveltyProblem::new(
+                                    codec,
+                                    decoder,
+                                    NoveltySearch::new(EuclideanDistance, k, threshold)
+                                        .with_max_archive_size(archive_size),
+                                ))
+                                .executor(executor)
+                                .bus_executor(Executor::default()),
+                        )),
+                        "HammingDistance" => Ok(EngineBuilderHandle::Char(
+                            GeneticEngine::builder()
+                                .problem(PyNoveltyProblem::new(
+                                    codec,
+                                    decoder,
+                                    NoveltySearch::new(HammingDistance, k, threshold)
+                                        .with_max_archive_size(archive_size),
+                                ))
+                                .executor(executor)
+                                .bus_executor(Executor::default()),
+                        )),
+                        "CosineDistance" => Ok(EngineBuilderHandle::Char(
+                            GeneticEngine::builder()
+                                .problem(PyNoveltyProblem::new(
+                                    codec,
+                                    decoder,
+                                    NoveltySearch::new(CosineDistance, k, threshold)
+                                        .with_max_archive_size(archive_size),
+                                ))
+                                .executor(executor)
+                                .bus_executor(Executor::default()),
+                        )),
+                        _ => Err(PyTypeError::new_err(
+                            "Unsupported distance discriptor for Char gene type",
+                        )),
+                    }
+                } else {
+                    Err(PyTypeError::new_err(
+                        "Expected a PyCharCodec for gene_type Char",
+                    ))
+                }
+            }
+            PyGeneType::Bit => {
+                if let Ok(bit_codec) = codec.extract::<PyBitCodec>() {
+                    let cloned_codec = bit_codec.clone();
+                    let codec = FnCodec::new()
+                        .with_encoder(move || cloned_codec.codec.encode())
+                        .with_decoder(|genotype| {
+                            genotype
+                                .iter()
+                                .flat_map(|chrom| chrom.iter().map(|gene| *gene.allele()))
+                                .collect::<Vec<bool>>()
+                        });
+
+                    let decoder =
+                        Arc::new(move |py: Python<'_>, genotype: &Genotype<BitChromosome>| {
+                            bit_codec.codec.decode_with_py(py, genotype)
+                        });
+
+                    match discriptor.component().as_str() {
+                        "HammingDistance" => Ok(EngineBuilderHandle::Bit(
+                            GeneticEngine::builder()
+                                .problem(PyNoveltyProblem::new(
+                                    codec,
+                                    decoder,
+                                    NoveltySearch::new(HammingDistance, k, threshold)
+                                        .with_max_archive_size(archive_size),
+                                ))
+                                .executor(executor)
+                                .bus_executor(Executor::default()),
+                        )),
+                        _ => Err(PyTypeError::new_err(
+                            "Unsupported distance discriptor for Bit gene type",
+                        )),
+                    }
+                } else {
+                    Err(PyTypeError::new_err(
+                        "Expected a PyBitCodec for gene_type Bit",
+                    ))
+                }
+            }
+            PyGeneType::Permutation => {
+                if let Ok(perm_codec) = codec.extract::<PyPermutationCodec>() {
+                    let cloned_codec = perm_codec.clone();
+                    let codec = FnCodec::new()
+                        .with_encoder(move || cloned_codec.codec.encode())
+                        .with_decoder(|genotype| {
+                            genotype
+                                .iter()
+                                .flat_map(|chrom| chrom.iter().map(|gene| *gene.allele()))
+                                .collect::<Vec<usize>>()
+                        });
+
+                    let decoder = Arc::new(
+                        move |py: Python<'_>, genotype: &Genotype<PermutationChromosome<usize>>| {
+                            perm_codec.codec.decode_with_py(py, genotype)
+                        },
+                    );
+
+                    match discriptor.component().as_str() {
+                        "HammingDistance" => Ok(EngineBuilderHandle::Permutation(
+                            GeneticEngine::builder()
+                                .problem(PyNoveltyProblem::new(
+                                    codec,
+                                    decoder,
+                                    NoveltySearch::new(HammingDistance, k, threshold)
+                                        .with_max_archive_size(archive_size),
+                                ))
+                                .executor(executor)
+                                .bus_executor(Executor::default()),
+                        )),
+                        _ => Err(PyTypeError::new_err(
+                            "Unsupported distance discriptor for Permutation gene type",
+                        )),
+                    }
+                } else {
+                    Err(PyTypeError::new_err(
+                        "Expected a PyPermutationCodec for gene_type Permutation",
+                    ))
+                }
+            }
+            PyGeneType::Graph => {
+                if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
+                    match discriptor.component().as_str() {
+                        "NeatDistance" => {
+                            let excess = discriptor.get_f32("excess").unwrap_or(1.0);
+                            let disjoint = discriptor.get_f32("disjoint").unwrap_or(0.0);
+                            let weight = discriptor.get_f32("weight").unwrap_or(0.0);
+                            Ok(EngineBuilderHandle::Graph(
+                                GeneticEngine::builder()
+                                    .codec(graph_codec.codec.clone())
+                                    .fitness_fn(
+                                        NoveltySearch::new(
+                                            NeatDistance::new(excess, disjoint, weight),
+                                            k,
+                                            threshold,
+                                        )
+                                        .with_max_archive_size(archive_size),
+                                    )
+                                    .executor(executor)
+                                    .bus_executor(Executor::default()),
+                            ))
+                        }
+                        _ => Err(PyTypeError::new_err(
+                            "Unsupported distance discriptor for Graph gene type",
+                        )),
+                    }
+                } else {
+                    Err(PyTypeError::new_err(
+                        "Expected a PyGraphCodec for gene_type Graph",
+                    ))
+                }
+            }
+            _ => Err(PyTypeError::new_err("Unsupported gene type")),
+        }
     }
-
-    // fn get_novelty_search<T, BD>(
-    //     discriptor: &PyEngineInput,
-    //     k: usize,
-    //     threshold: f32,
-    //     archive_size: usize,
-    // ) -> Result<NoveltySearch<T, BD>, PyErr>
-    // where
-    //     BD: Novelty<T>,
-    // {
-    //     if discriptor.component().as_str() == "CosineDistance" {
-    //         return Ok(NoveltySearch::new(CosineDistance, k, threshold)
-    //             .with_max_archive_size(archive_size));
-    //     } else if discriptor.component().as_str() == "HammingDistance" {
-    //         return Ok(NoveltySearch::new(HammingDistance, k, threshold)
-    //             .with_max_archive_size(archive_size));
-    //     } else if discriptor.component().as_str() == "EuclideanDistance" {
-    //         return Ok(NoveltySearch::new(EuclideanDistance, k, threshold)
-    //             .with_max_archive_size(archive_size));
-    //     }
-    //     // match discriptor.component().as_str() {
-    //     //     "EuclideanDistance" => Ok(NoveltySearch::new(EuclideanDistance, k, threshold)
-    //     //         .with_max_archive_size(archive_size)),
-    //     //     "HammingDistance" => Ok(NoveltySearch::new(HammingDistance, k, threshold)
-    //     //         .with_max_archive_size(archive_size)),
-    //     //     "CosineDistance" => Ok(NoveltySearch::new(CosineDistance, k, threshold)
-    //     //         .with_max_archive_size(archive_size)),
-    //     //     _ => Err(PyTypeError::new_err(
-    //     //         "Unsupported distance discriptor for Float gene type",
-    //     //     )),
-    //     // }
-    // }
 }

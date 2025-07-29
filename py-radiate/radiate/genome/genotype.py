@@ -69,6 +69,14 @@ class Genotype:
             raise IndexError("Index out of range")
         return Chromosome(chromosome=self.__inner.chromosomes[index])
 
+    def __iter__(self):
+        """
+        Returns an iterator over the chromosomes in the genotype.
+        :return: An iterator over the chromosomes in the genotype.
+        """
+        for chromosome in self.__inner.chromosomes:
+            yield Chromosome(chromosome=chromosome)
+
     def py_genotype(self) -> PyGenotype:
         """
         Returns the underlying PyGenotype instance.

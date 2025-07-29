@@ -80,7 +80,7 @@ mod fitness_fn_tests {
     use super::*;
     use radiate_engines::*;
 
-    #[ignore = "This test is for novelty search, which is not yet fully implemented"]
+    // #[ignore = "This test is for novelty search, which is not yet fully implemented"]
     #[test]
     fn test_novelty_search() {
         random_provider::set_seed(42);

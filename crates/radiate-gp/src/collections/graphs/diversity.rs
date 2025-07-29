@@ -1,5 +1,5 @@
 use super::{GraphChromosome, GraphIterator, GraphNode};
-use crate::{Node, Op};
+use crate::{Graph, Node, Op};
 use radiate_core::{Diversity, Genotype, problem::Novelty};
 use std::cmp::Ordering;
 
@@ -27,28 +27,37 @@ impl Diversity<GraphChromosome<Op<f32>>> for NeatDistance {
     ) -> f32 {
         one.iter()
             .zip(two.iter())
-            .map(|(a, b)| self.graph_distance(a, b))
+            .map(|(a, b)| {
+                self.graph_distance(
+                    a.iter_topological().collect::<Vec<_>>().as_slice(),
+                    b.iter_topological().collect::<Vec<_>>().as_slice(),
+                )
+            })
             .sum()
     }
 }
 
-impl Novelty<GraphChromosome<Op<f32>>> for NeatDistance {
-    type Descriptor = GraphChromosome<Op<f32>>;
+impl Novelty<Graph<Op<f32>>> for NeatDistance {
+    type Descriptor = Vec<GraphNode<Op<f32>>>;
 
-    fn description(&self, phenotype: &GraphChromosome<Op<f32>>) -> Self::Descriptor {
-        phenotype.clone()
+    fn description(&self, phenotype: &Graph<Op<f32>>) -> Self::Descriptor {
+        phenotype.iter_topological().cloned().collect()
     }
 
     fn distance(&self, a: &Self::Descriptor, b: &Self::Descriptor) -> f32 {
-        self.graph_distance(a, b)
+        self.graph_distance(
+            a.iter().collect::<Vec<_>>().as_slice(),
+            b.iter().collect::<Vec<_>>().as_slice(),
+        )
     }
 }
 
 impl NeatDistance {
-    fn graph_distance(&self, a: &GraphChromosome<Op<f32>>, b: &GraphChromosome<Op<f32>>) -> f32 {
-        let nodes_a = a.iter_topological().collect::<Vec<&GraphNode<Op<f32>>>>();
-        let nodes_b = b.iter_topological().collect::<Vec<&GraphNode<Op<f32>>>>();
-
+    fn graph_distance(
+        &self,
+        nodes_a: &[&GraphNode<Op<f32>>],
+        nodes_b: &[&GraphNode<Op<f32>>],
+    ) -> f32 {
         let mut idx_a = 0;
         let mut idx_b = 0;
 

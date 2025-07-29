@@ -1,6 +1,52 @@
-use crate::{IntoPyObjectValue, bindings::PyCodec};
+use std::sync::Arc;
+
+use crate::{IntoPyObjectValue, ObjectValue, bindings::PyCodec};
 use pyo3::{Borrowed, PyAny, PyObject, Python};
-use radiate::{Chromosome, Codec, Genotype, Problem, Score};
+use radiate::{
+    Chromosome, Codec, FitnessFunction, FnCodec, Genotype, NoveltySearch, Problem, Score,
+    problem::Novelty,
+};
+
+pub struct PyNoveltyProblem<C: Chromosome, T, BD: Novelty<T>> {
+    pub codec: FnCodec<C, T>,
+    pub decoder: Arc<dyn Fn(Python<'_>, &Genotype<C>) -> ObjectValue>,
+    pub search: NoveltySearch<T, BD>,
+}
+
+impl<C: Chromosome, T, BD: Novelty<T>> PyNoveltyProblem<C, T, BD> {
+    pub fn new(
+        codec: FnCodec<C, T>,
+        decoder: Arc<dyn Fn(Python<'_>, &Genotype<C>) -> ObjectValue>,
+        search: NoveltySearch<T, BD>,
+    ) -> Self {
+        PyNoveltyProblem {
+            codec,
+            decoder,
+            search,
+        }
+    }
+}
+
+impl<C: Chromosome, T, BD: Novelty<T>> Problem<C, ObjectValue> for PyNoveltyProblem<C, T, BD>
+where
+    T: Send + Sync + 'static,
+{
+    fn encode(&self) -> Genotype<C> {
+        self.codec.encode()
+    }
+
+    fn decode(&self, genotype: &Genotype<C>) -> ObjectValue {
+        Python::with_gil(|py| (self.decoder)(py, genotype))
+    }
+
+    fn eval(&self, individual: &Genotype<C>) -> Score {
+        let phenotype = self.codec.decode(individual);
+        Score::from(self.search.evaluate(phenotype))
+    }
+}
+
+unsafe impl<C: Chromosome, T, BD: Novelty<T>> Send for PyNoveltyProblem<C, T, BD> {}
+unsafe impl<C: Chromosome, T, BD: Novelty<T>> Sync for PyNoveltyProblem<C, T, BD> {}
 
 pub struct PyProblem<C: Chromosome, T: IntoPyObjectValue> {
     fitness_func: PyObject,
