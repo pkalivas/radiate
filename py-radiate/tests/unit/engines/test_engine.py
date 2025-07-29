@@ -214,3 +214,19 @@ class TestEngineBasicIntegration:
 
         assert len(result.score()) == 2, "Should return two objectives"
         assert result.index() == 50, "Should complete within 50 generations"
+
+    @pytest.mark.integration
+    def test_engine_multi_objective_front(self, simple_multi_objective_engine, random_seed):
+        """Test multi-objective engine with Pareto front."""
+        simple_multi_objective_engine
+        result = simple_multi_objective_engine.run(rd.GenerationsLimit(100))
+
+        fitness_values = list(set(map(lambda x: tuple(x['fitness']), result.value())))
+
+        # Check if the Pareto front is non-dominated
+        for i, f1 in enumerate(fitness_values):
+            for j, f2 in enumerate(fitness_values):
+                if i != j:
+                    assert not (f1[0] <= f2[0] and f1[1] <= f2[1]), (
+                        "Pareto front should be non-dominated"
+                    )

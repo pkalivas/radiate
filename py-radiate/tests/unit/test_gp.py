@@ -58,11 +58,13 @@ class TestGP:
     def test_gp_tree_eval_with_invalid_input(self):
         """Test GP Tree evaluation with invalid input."""
         # Create a simple tree
-        tree = rd.Tree(
+        codec = rd.TreeCodec(
             vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul(), rd.Op.div()],
             leaf=[rd.Op.var(0), rd.Op.var(1)],
             max_size=30,
         )
+
+        tree = codec.decode(codec.encode())
 
         # Test with invalid input type
         with pytest.raises(
@@ -82,12 +84,14 @@ class TestGP:
     def test_gp_graph_creation(self):
         """Test GP Graph creation."""
         # Create a simple graph
-        graph = rd.Graph(
+        codec = rd.GraphCodec.directed(
             shape=(2, 1),
             vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul(), rd.Op.div()],
             edge=[rd.Op.weight()],
             output=[rd.Op.linear()],
         )
+
+        graph = codec.decode(codec.encode())
 
         assert graph is not None
         assert hasattr(graph, "eval")
@@ -96,12 +100,14 @@ class TestGP:
     def test_gp_graph_eval(self):
         """Test GP Graph evaluation."""
         # Create a simple graph
-        graph = rd.Graph(
+        codec = rd.GraphCodec.directed(
             shape=(3, 1),
             vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul(), rd.Op.div()],
             edge=[rd.Op.weight()],
             output=[rd.Op.linear()],
         )
+
+        graph = codec.decode(codec.encode())
 
         # Test evaluation
         result = graph.eval([1.0, 2.0, 3.0])

@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use super::PyGenotype;
 use crate::EpochHandle;
 use crate::ObjectValue;
@@ -106,6 +108,18 @@ impl PyGeneration {
             EpochHandle::Permutation(epoch) => PyPopulation::from(epoch.population()),
             EpochHandle::Graph(epoch) => PyPopulation::from(epoch.population()),
             EpochHandle::Tree(epoch) => PyPopulation::from(epoch.population()),
+        }
+    }
+
+    pub fn duration(&self) -> Duration {
+        match &self.inner {
+            EpochHandle::Int(epoch) => epoch.time(),
+            EpochHandle::Float(epoch) => epoch.time(),
+            EpochHandle::Char(epoch) => epoch.time(),
+            EpochHandle::Bit(epoch) => epoch.time(),
+            EpochHandle::Permutation(epoch) => epoch.time(),
+            EpochHandle::Graph(epoch) => epoch.time(),
+            EpochHandle::Tree(epoch) => epoch.time(),
         }
     }
 

@@ -23,10 +23,8 @@ class TestHandler(rd.EventHandler):
         self.scores = []
 
     def on_event(self, event):
-        
         if event["type"] == "epoch_complete":
             self.scores.append(event["score"])
-            # self.scores.append(event['metrics']['unique_members']['value_last'])
         elif event["type"] == "stop":
             plt.plot(self.scores)
             plt.xlabel("Generation")
@@ -55,18 +53,19 @@ engine = rd.GeneticEngine(
 
 result = engine.run(rd.ScoreLimit(0), log=True)
 
-print(result)
 
-temp = rd.FloatCodec.from_genes([rd.Gene.float(value_range=(-10.0, 10.0)), rd.Gene.float(value_range=(-1.0, 1.0))])
+# print(result)
 
-print(temp.encode())
-print(temp.decode(temp.encode()))
+# temp = rd.FloatCodec.from_genes([rd.Gene.float(value_range=(-10.0, 10.0)), rd.Gene.float(value_range=(-1.0, 1.0))])
 
-temp = rd.FloatCodec.from_chromosomes((rd.Chromosome.float(length=5, value_range=(-10.0, 10.0)),
-                                        rd.Chromosome.float(length=3, value_range=(-1.0, 1.0))))
+# print(temp.encode())
+# print(temp.decode(temp.encode()))
 
-print(temp.encode())
-print(temp.decode(temp.encode()))
+# temp = rd.FloatCodec.from_chromosomes((rd.Chromosome.float(length=5, value_range=(-10.0, 10.0)),
+#                                         rd.Chromosome.float(length=3, value_range=(-1.0, 1.0))))
+
+# print(temp.encode())
+# print(temp.decode(temp.encode()))
 
 # codec = rd.IntCodec.vector(50, (0, 10))
 # population = rd.Population([rd.Phenotype(genotype=codec.encode(), score=np.random.uniform(0, 1)) for _ in range(100)])

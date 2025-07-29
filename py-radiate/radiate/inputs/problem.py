@@ -1,14 +1,9 @@
 import abc
-from typing import  List, Callable, Any
+from typing import List, Callable, Any
 from radiate.genome.gene import GeneType
 from radiate.inputs.input import EngineInput, EngineInputType
 from radiate.inputs.distance import DistanceBase
 from radiate.radiate import PyProblemBuilder
-
-# if TYPE_CHECKING:
-#     import pandas as pd
-
-# from radiate.dependencies import pandas
 
 
 class ProblemBase(abc.ABC):
@@ -51,10 +46,6 @@ class Regression(ProblemBase):
         if not isinstance(targets, List):
             raise TypeError("targets must be a list of lists or a pandas DataFrame.")
 
-        # if isinstance(features, pd.DataFrame):
-        #     features = features.values.tolist()
-        # if isinstance(targets, pd.DataFrame):
-        #     targets = targets.values.tolist()
         super().__init__(
             PyProblemBuilder.regression(features=features, targets=targets, loss=loss)
         )

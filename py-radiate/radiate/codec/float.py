@@ -46,8 +46,6 @@ class FloatCodec(CodecBase):
         """
         if not isinstance(genes, (list, tuple)):
             raise TypeError("genes must be a list or tuple of Gene instances.")
-        if not all(g.gene_type() == PyGeneType.Float for g in genes):
-            raise TypeError("All genes must be of type 'float'.")
 
         return FloatCodec(
             PyFloatCodec.from_genes(

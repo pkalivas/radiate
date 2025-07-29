@@ -195,4 +195,25 @@ mod tests {
         assert_eq!(*cell2, 42);
         assert!(cell.get() == cell2.get());
     }
+
+    #[test]
+    fn mut_cell_drop() {
+        let cell = MutCell::new(42);
+        {
+            let _cell2 = cell.clone();
+            assert!(cell.is_shared());
+        } // _cell2 goes out of scope, ref count should decrease
+
+        assert!(cell.is_unique());
+        drop(cell); // Should not panic
+    }
+
+    #[test]
+    fn mut_cell_deref() {
+        let mut cell = MutCell::new(42);
+        assert_eq!(*cell, 42);
+        let mut_ref = cell.get_mut();
+        *mut_ref = 100;
+        assert_eq!(*cell, 100);
+    }
 }

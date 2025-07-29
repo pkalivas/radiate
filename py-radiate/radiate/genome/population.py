@@ -48,6 +48,14 @@ class Population:
         for phenotype in self.__inner.phenotypes:
             yield Phenotype(phenotype=phenotype)
 
+    def __getitem__(self, index: int) -> Phenotype:
+        """
+        Returns the Phenotype at the specified index.
+        :param index: The index of the Phenotype to retrieve.
+        :return: The Phenotype at the specified index.
+        """
+        return Phenotype(phenotype=self.__inner.phenotypes[index])
+
     def py_population(self) -> PyPopulation:
         """
         Returns the underlying PyPopulation instance.
