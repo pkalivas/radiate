@@ -341,6 +341,14 @@ impl From<(usize, Range<f32>, Range<f32>)> for FloatChromosome {
     }
 }
 
+impl FromIterator<FloatGene> for FloatChromosome {
+    fn from_iter<I: IntoIterator<Item = FloatGene>>(iter: I) -> Self {
+        FloatChromosome {
+            genes: iter.into_iter().collect(),
+        }
+    }
+}
+
 impl Debug for FloatChromosome {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self.genes)

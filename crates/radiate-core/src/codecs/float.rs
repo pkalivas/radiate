@@ -191,3 +191,52 @@ impl Codec<FloatChromosome, f32> for FloatCodec<f32> {
             .unwrap_or_default()
     }
 }
+
+impl Codec<FloatChromosome, Vec<Vec<f32>>> for Vec<FloatChromosome> {
+    fn encode(&self) -> Genotype<FloatChromosome> {
+        Genotype::from(
+            self.iter()
+                .map(|chromosome| {
+                    chromosome
+                        .iter()
+                        .map(|gene| gene.new_instance())
+                        .collect::<FloatChromosome>()
+                })
+                .collect::<Vec<FloatChromosome>>(),
+        )
+    }
+
+    fn decode(&self, genotype: &Genotype<FloatChromosome>) -> Vec<Vec<f32>> {
+        genotype
+            .iter()
+            .map(|chromosome| {
+                chromosome
+                    .iter()
+                    .map(|gene| *gene.allele())
+                    .collect::<Vec<f32>>()
+            })
+            .collect::<Vec<Vec<f32>>>()
+    }
+}
+
+impl Codec<FloatChromosome, Vec<f32>> for FloatChromosome {
+    fn encode(&self) -> Genotype<FloatChromosome> {
+        Genotype::from(
+            self.iter()
+                .map(|gene| gene.new_instance())
+                .collect::<FloatChromosome>(),
+        )
+    }
+
+    fn decode(&self, genotype: &Genotype<FloatChromosome>) -> Vec<f32> {
+        genotype
+            .iter()
+            .flat_map(|chromosome| {
+                chromosome
+                    .iter()
+                    .map(|gene| *gene.allele())
+                    .collect::<Vec<f32>>()
+            })
+            .collect::<Vec<f32>>()
+    }
+}

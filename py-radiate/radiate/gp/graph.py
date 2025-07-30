@@ -1,4 +1,4 @@
-from typing import List, TypeAlias, Union
+from typing import List, Sequence, TypeAlias, Union
 from radiate.gp.op import Op
 from radiate.radiate import PyGraph
 
@@ -27,15 +27,20 @@ class Graph:
         return self.py_graph == other.py_graph
 
     def eval(
-        self, inputs: List[float] | List[List[float]]
+        self, inputs: Union[Sequence[float], Sequence[Sequence[float]]]
     ) -> List[float] | List[List[float]]:
-        if isinstance(inputs, list) and all(
-            isinstance(i, (float, int)) for i in inputs
-        ):
-            inputs = [inputs]
-        elif not isinstance(inputs, list) or not all(
-            isinstance(i, list) for i in inputs
-        ):
+        """
+        Evaluate the graph with the given inputs.
+        :param inputs: A list of floats or a list of lists of floats.
+        :return: A list of floats or a list of lists of floats, depending on the input.
+        """
+        if isinstance(inputs, list):
+            if all(isinstance(i, float) for i in inputs):
+                inputs = [inputs]
+            if not all(isinstance(i, (float, list)) for i in inputs):
+                raise ValueError("Inputs must be a list of floats or a list of lists.")
+
+        if not isinstance(inputs, list) or not all(isinstance(i, list) for i in inputs):
             raise ValueError(
                 "Inputs must be a list of floats or a list of list of floats"
             )

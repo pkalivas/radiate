@@ -100,6 +100,10 @@ impl<A: PartialEq + Clone> PermutationChromosome<A> {
     pub fn new(genes: Vec<PermutationGene<A>>, alleles: Arc<Vec<A>>) -> Self {
         PermutationChromosome { genes, alleles }
     }
+
+    pub fn alleles(&self) -> &Arc<Vec<A>> {
+        &self.alleles
+    }
 }
 
 impl<A: PartialEq + Clone> Chromosome for PermutationChromosome<A> {

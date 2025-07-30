@@ -314,6 +314,14 @@ impl<T: Integer<T>> From<Vec<T>> for IntChromosome<T> {
     }
 }
 
+impl<T: Integer<T>> FromIterator<IntGene<T>> for IntChromosome<T> {
+    fn from_iter<I: IntoIterator<Item = IntGene<T>>>(iter: I) -> Self {
+        IntChromosome {
+            genes: iter.into_iter().collect(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
