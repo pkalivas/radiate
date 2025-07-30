@@ -32,6 +32,6 @@ where
             return;
         }
 
-        metrics.upsert(metric_names::FRONT, (count, timer.elapsed()));
+        metrics.upsert(metric_names::FRONT_ADDITIONS, (count, timer.elapsed()));
     }
 }

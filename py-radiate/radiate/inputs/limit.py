@@ -79,6 +79,7 @@ class GenerationsLimit(LimitBase):
             raise TypeError("Generations limit must be an integer.")
         super().__init__(component="generations", args={"generations": generations})
 
+
 class ConvergenceLimit(LimitBase):
     """
     Limit the convergence of the engine.
@@ -98,4 +99,6 @@ class ConvergenceLimit(LimitBase):
             raise ValueError("Epsilon must be a non-negative float.")
         if not isinstance(epsilon, (int, float)):
             raise TypeError("Epsilon must be a float or an integer.")
-        super().__init__(component="convergence", args={"window": window, "epsilon": epsilon})
+        super().__init__(
+            component="convergence", args={"window": window, "epsilon": epsilon}
+        )

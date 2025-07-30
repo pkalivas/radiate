@@ -4,10 +4,10 @@ mod converters;
 mod engine;
 mod epoch;
 mod fitness;
+mod functions;
 mod gene;
 mod inputs;
 mod metric;
-mod operators;
 mod ops;
 mod subscriber;
 
@@ -20,9 +20,9 @@ pub use converters::InputTransform;
 pub use engine::PyEngine;
 pub use epoch::PyGeneration;
 pub use fitness::{PyNoveltySearch, PyProblemBuilder};
+pub use functions::*;
 pub use gene::{PyChromosome, PyGene, PyGeneType, PyGenotype, PyPhenotype, PyPopulation};
 pub use inputs::{PyEngineInput, PyEngineInputType};
-pub use operators::*;
 
 pub use metric::PyMetricSet;
 pub use subscriber::PySubscriber;

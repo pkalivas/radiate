@@ -102,6 +102,55 @@ impl Codec<CharChromosome, Vec<char>> for CharCodec<Vec<char>> {
     }
 }
 
+impl Codec<CharChromosome, Vec<Vec<char>>> for Vec<CharChromosome> {
+    fn encode(&self) -> Genotype<CharChromosome> {
+        Genotype::from(
+            self.iter()
+                .map(|chromosome| {
+                    chromosome
+                        .iter()
+                        .map(|gene| gene.new_instance())
+                        .collect::<CharChromosome>()
+                })
+                .collect::<Vec<CharChromosome>>(),
+        )
+    }
+
+    fn decode(&self, genotype: &Genotype<CharChromosome>) -> Vec<Vec<char>> {
+        genotype
+            .iter()
+            .map(|chromosome| {
+                chromosome
+                    .iter()
+                    .map(|gene| *gene.allele())
+                    .collect::<Vec<char>>()
+            })
+            .collect::<Vec<Vec<char>>>()
+    }
+}
+
+impl Codec<CharChromosome, Vec<char>> for CharChromosome {
+    fn encode(&self) -> Genotype<CharChromosome> {
+        Genotype::from(
+            self.iter()
+                .map(|gene| gene.new_instance())
+                .collect::<CharChromosome>(),
+        )
+    }
+
+    fn decode(&self, genotype: &Genotype<CharChromosome>) -> Vec<char> {
+        genotype
+            .iter()
+            .flat_map(|chromosome| {
+                chromosome
+                    .iter()
+                    .map(|gene| *gene.allele())
+                    .collect::<Vec<char>>()
+            })
+            .collect::<Vec<char>>()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

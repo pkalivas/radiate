@@ -5,8 +5,6 @@ from radiate.inputs.input import EngineInput, EngineInputType
 from radiate.inputs.distance import DistanceBase
 from radiate.radiate import PyProblemBuilder
 
-from radiate.dependencies import pandas as pd
-
 
 class ProblemBase(abc.ABC):
     """A class representing a problem to be solved using evolutionary algorithms."""
@@ -32,8 +30,8 @@ class Regression(ProblemBase):
 
     def __init__(
         self,
-        features: List[List[float]] | pd.DataFrame,
-        targets: List[List[float]] | pd.DataFrame,
+        features: List[List[float]],
+        targets: List[List[float]],
         loss: str = "mse",
     ):
         """
@@ -43,15 +41,11 @@ class Regression(ProblemBase):
         :param data: A list of tuples where each tuple contains input features and the corresponding target value.
         :param kwargs: Additional keyword arguments for problem configuration.
         """
-        if not isinstance(features, (List, pd.DataFrame)):
+        if not isinstance(features, List):
             raise TypeError("features must be a list of lists or a pandas DataFrame.")
-        if not isinstance(targets, (List, pd.DataFrame)):
+        if not isinstance(targets, List):
             raise TypeError("targets must be a list of lists or a pandas DataFrame.")
 
-        if isinstance(features, pd.DataFrame):
-            features = features.values.tolist()
-        if isinstance(targets, pd.DataFrame):
-            targets = targets.values.tolist()
         super().__init__(
             PyProblemBuilder.regression(features=features, targets=targets, loss=loss)
         )

@@ -48,3 +48,10 @@ class Generation:
         :return: The population of the generation.
         """
         return Population(self.inner.population())
+
+    def duration(self):
+        """
+        Get the duration of the generation.
+        :return: The duration of the generation.
+        """
+        return self.inner.duration()

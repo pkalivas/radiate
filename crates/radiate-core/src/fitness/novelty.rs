@@ -22,7 +22,7 @@ where
     pub k: usize,
     pub threshold: f32,
     pub max_archive_size: usize,
-    __phantom: std::marker::PhantomData<T>,
+    _phantom: std::marker::PhantomData<T>,
 }
 
 impl<T, BD> NoveltySearch<T, BD>
@@ -36,7 +36,7 @@ where
             k,
             threshold,
             max_archive_size: 1000,
-            __phantom: std::marker::PhantomData,
+            _phantom: std::marker::PhantomData,
         }
     }
 
@@ -149,8 +149,9 @@ where
     T: Send + Sync + 'static,
     S: Into<Score> + Send + Sync,
 {
-    /// Create a new fitness descriptor that uses the output of a fitness function as the behavioral descriptor.
-    /// This allows you to use fitness scores directly as behavioral descriptors for novelty search or diversity measurement.
+    /// Create a new fitness descriptor that uses the output of a fitness function
+    /// as the behavioral descriptor. This allows you to use fitness scores
+    /// directly as behavioral descriptors for novelty search or diversity measurement.
     pub fn new(fitness_fn: F) -> Self {
         Self {
             fitness_fn: Arc::new(fitness_fn),

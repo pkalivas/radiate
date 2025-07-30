@@ -1,10 +1,10 @@
 use super::PyCodec;
-use crate::{ObjectValue, PyGenotype};
+use crate::{ObjectValue, PyChromosome, PyGene, PyGenotype};
 use pyo3::{
     Bound, IntoPyObjectExt, PyAny, PyResult, pyclass, pymethods,
     types::{PyAnyMethods, PyInt, PyList, PyListMethods},
 };
-use radiate::{Chromosome, Codec, Gene, Genotype, IntChromosome};
+use radiate::{Chromosome, Codec, Gene, Genotype, IntChromosome, IntGene};
 
 #[pyclass]
 #[derive(Clone)]
@@ -26,6 +26,91 @@ impl PyIntCodec {
         let genotype: Genotype<IntChromosome<i32>> = genotype.clone().into();
         let obj_value = self.codec.decode_with_py(py, &genotype);
         obj_value.into_bound_py_any(py)
+    }
+
+    #[staticmethod]
+    #[pyo3(signature = (chromosomes, use_numpy=false))]
+    pub fn from_chromosomes(chromosomes: Vec<PyChromosome>, use_numpy: bool) -> Self {
+        PyIntCodec {
+            codec: PyCodec::new()
+                .with_encoder(move || {
+                    Genotype::from(
+                        chromosomes
+                            .iter()
+                            .map(|chrom| IntChromosome::from(chrom.clone()))
+                            .collect::<Vec<IntChromosome<i32>>>(),
+                    )
+                })
+                .with_decoder(move |py, geno| {
+                    let values = geno
+                        .iter()
+                        .map(|chrom| chrom.iter().map(|gene| *gene.allele()).collect())
+                        .collect::<Vec<Vec<i32>>>();
+
+                    if use_numpy {
+                        let np = py.import("numpy").unwrap();
+                        let outer = np.getattr("array").unwrap().call1((values,)).unwrap();
+
+                        ObjectValue {
+                            inner: outer.unbind().into_any(),
+                        }
+                    } else {
+                        let outer = PyList::empty(py);
+                        for value in values {
+                            let inner = PyList::empty(py);
+                            for gene in value {
+                                inner.append(PyInt::new(py, gene)).unwrap();
+                            }
+                            outer.append(inner).unwrap();
+                        }
+
+                        ObjectValue {
+                            inner: outer.unbind().into_any(),
+                        }
+                    }
+                }),
+        }
+    }
+
+    #[staticmethod]
+    #[pyo3(signature = (genes, use_numpy=false))]
+    pub fn from_genes(genes: Vec<PyGene>, use_numpy: bool) -> Self {
+        PyIntCodec {
+            codec: PyCodec::new()
+                .with_encoder(move || {
+                    IntChromosome::from(
+                        genes
+                            .iter()
+                            .map(|gene| IntGene::from(gene.clone()))
+                            .collect::<Vec<IntGene<i32>>>(),
+                    )
+                    .into()
+                })
+                .with_decoder(move |py, geno| {
+                    let values: Vec<i32> = geno
+                        .iter()
+                        .flat_map(|chrom| chrom.iter().map(|gene| *gene.allele()))
+                        .collect();
+
+                    if use_numpy {
+                        let np = py.import("numpy").unwrap();
+                        let outer = np.getattr("array").unwrap().call1((values,)).unwrap();
+
+                        ObjectValue {
+                            inner: outer.unbind().into_any(),
+                        }
+                    } else {
+                        let outer = PyList::empty(py);
+                        for value in values {
+                            outer.append(PyInt::new(py, value)).unwrap();
+                        }
+
+                        return ObjectValue {
+                            inner: outer.unbind().into_any(),
+                        };
+                    }
+                }),
+        }
     }
 
     #[staticmethod]

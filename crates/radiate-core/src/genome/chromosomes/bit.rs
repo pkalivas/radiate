@@ -135,6 +135,14 @@ impl From<Vec<bool>> for BitChromosome {
     }
 }
 
+impl FromIterator<BitGene> for BitChromosome {
+    fn from_iter<I: IntoIterator<Item = BitGene>>(iter: I) -> Self {
+        BitChromosome {
+            genes: iter.into_iter().collect(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

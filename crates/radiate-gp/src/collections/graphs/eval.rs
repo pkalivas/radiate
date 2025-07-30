@@ -7,13 +7,17 @@ use std::ops::Range;
 ///
 /// On the first iteration it caches the order of nodes in the [Graph] and then uses that order to
 /// evaluate the nodes in the correct order. This is a massive performance improvement.
-pub struct GraphEvaluator<'a, T, V> {
-    nodes: &'a [GraphNode<T>],
+#[derive(Clone, Debug, PartialEq)]
+pub struct GraphEvalCache<V> {
     eval_order: Vec<usize>,
     outputs: Vec<V>,
     inputs: Vec<V>,
     output_outs: Vec<V>,
     input_ranges: Vec<Range<usize>>,
+}
+pub struct GraphEvaluator<'a, T, V> {
+    nodes: &'a [GraphNode<T>],
+    inner: GraphEvalCache<V>,
 }
 
 impl<'a, T, V> GraphEvaluator<'a, T, V>
@@ -51,16 +55,18 @@ where
 
         GraphEvaluator {
             nodes,
-            inputs: vec![V::default(); total_inputs],
-            output_outs: vec![V::default(); output_size],
-            eval_order: nodes.iter_topological().map(|node| node.index()).collect(),
-            outputs: vec![V::default(); nodes.len()],
-            input_ranges,
+            inner: GraphEvalCache {
+                inputs: vec![V::default(); total_inputs],
+                output_outs: vec![V::default(); output_size],
+                eval_order: nodes.iter_topological().map(|node| node.index()).collect(),
+                outputs: vec![V::default(); nodes.len()],
+                input_ranges,
+            },
         }
     }
 
-    pub fn cache(self) -> (Vec<V>, Vec<V>) {
-        (self.inputs, self.outputs)
+    pub fn take_cache(self) -> GraphEvalCache<V> {
+        self.inner
     }
 }
 
@@ -81,30 +87,32 @@ where
     /// * A `Vec` of `T` which is the output of the [Graph].
     #[inline]
     fn eval_mut(&mut self, input: &[V]) -> Vec<V> {
-        self.output_outs.truncate(0);
+        self.inner.output_outs.truncate(0);
 
-        for index in self.eval_order.iter() {
+        for index in self.inner.eval_order.iter() {
             let node = &self.nodes[*index];
             let incoming = node.incoming();
             if incoming.is_empty() {
-                self.outputs[node.index()] = node.eval(input);
+                self.inner.outputs[node.index()] = node.eval(input);
             } else {
-                let input_range = &self.input_ranges[node.index()];
-                let input_slice = &mut self.inputs[input_range.clone()];
+                let input_range = &self.inner.input_ranges[node.index()];
+                let input_slice = &mut self.inner.inputs[input_range.clone()];
 
                 for (dst, incoming) in input_slice.iter_mut().zip(incoming) {
-                    *dst = self.outputs[*incoming].clone();
+                    *dst = self.inner.outputs[*incoming].clone();
                 }
 
-                self.outputs[node.index()] = node.eval(input_slice);
+                self.inner.outputs[node.index()] = node.eval(input_slice);
             }
 
             if node.node_type() == NodeType::Output {
-                self.output_outs.push(self.outputs[node.index()].clone());
+                self.inner
+                    .output_outs
+                    .push(self.inner.outputs[node.index()].clone());
             }
         }
 
-        self.output_outs.clone()
+        self.inner.output_outs.clone()
     }
 }
 
@@ -148,48 +156,19 @@ where
     }
 }
 
-impl<'a, G, T, V> From<(&'a G, (Vec<V>, Vec<V>))> for GraphEvaluator<'a, T, V>
+impl<'a, G, T, V> From<(&'a G, GraphEvalCache<V>)> for GraphEvaluator<'a, T, V>
 where
     G: AsRef<[GraphNode<T>]>,
     T: Eval<[V], V>,
     V: Default + Clone,
 {
-    fn from((graph, cache): (&'a G, (Vec<V>, Vec<V>))) -> Self {
-        let nodes = graph.as_ref();
-
-        let mut input_ranges = Vec::with_capacity(nodes.len());
-        let mut total_inputs = 0;
-
-        for node in nodes {
-            let input_len = node.incoming().len();
-            input_ranges.push(total_inputs..total_inputs + input_len);
-            total_inputs += input_len;
+    fn from((graph, cache): (&'a G, GraphEvalCache<V>)) -> Self {
+        if cache.eval_order.is_empty() || graph.as_ref().len() != cache.eval_order.len() {
+            return GraphEvaluator::new(graph);
         }
-
-        let output_size = nodes
-            .iter()
-            .filter(|node| node.node_type() == NodeType::Output)
-            .count();
-
-        let inputs = if total_inputs == cache.0.len() {
-            cache.0
-        } else {
-            vec![V::default(); total_inputs]
-        };
-
-        let outputs = if nodes.len() == cache.1.len() {
-            cache.1
-        } else {
-            vec![V::default(); output_size]
-        };
-
         GraphEvaluator {
-            nodes,
-            inputs,
-            output_outs: vec![V::default(); output_size],
-            eval_order: nodes.iter_topological().map(|node| node.index()).collect(),
-            outputs,
-            input_ranges,
+            nodes: graph.as_ref(),
+            inner: cache,
         }
     }
 }

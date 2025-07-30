@@ -181,3 +181,52 @@ impl<T: Integer<T>> Codec<IntChromosome<T>, T> for IntCodec<T, T> {
             .unwrap_or_default()
     }
 }
+
+impl<T: Integer<T>> Codec<IntChromosome<T>, Vec<Vec<T>>> for Vec<IntChromosome<T>> {
+    fn encode(&self) -> Genotype<IntChromosome<T>> {
+        Genotype::from(
+            self.iter()
+                .map(|chromosome| {
+                    chromosome
+                        .iter()
+                        .map(|gene| gene.new_instance())
+                        .collect::<IntChromosome<T>>()
+                })
+                .collect::<Vec<IntChromosome<T>>>(),
+        )
+    }
+
+    fn decode(&self, genotype: &Genotype<IntChromosome<T>>) -> Vec<Vec<T>> {
+        genotype
+            .iter()
+            .map(|chromosome| {
+                chromosome
+                    .iter()
+                    .map(|gene| *gene.allele())
+                    .collect::<Vec<T>>()
+            })
+            .collect::<Vec<Vec<T>>>()
+    }
+}
+
+impl<T: Integer<T>> Codec<IntChromosome<T>, Vec<T>> for IntChromosome<T> {
+    fn encode(&self) -> Genotype<IntChromosome<T>> {
+        Genotype::from(
+            self.iter()
+                .map(|gene| gene.new_instance())
+                .collect::<IntChromosome<T>>(),
+        )
+    }
+
+    fn decode(&self, genotype: &Genotype<IntChromosome<T>>) -> Vec<T> {
+        genotype
+            .iter()
+            .flat_map(|chromosome| {
+                chromosome
+                    .iter()
+                    .map(|gene| *gene.allele())
+                    .collect::<Vec<T>>()
+            })
+            .collect::<Vec<T>>()
+    }
+}

@@ -114,7 +114,6 @@ impl PyTree {
     }
 
     pub fn eval(&mut self, inputs: Vec<Vec<f32>>) -> PyResult<Vec<Vec<f32>>> {
-        println!("Evaluating tree with inputs: {:?}", inputs);
         Ok(inputs
             .into_iter()
             .map(|input| self.inner.eval(&input))

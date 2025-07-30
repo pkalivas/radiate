@@ -28,6 +28,7 @@ class GraphCodec(CodecBase):
         edge: Optional[NodeValues] = None,
         output: Optional[NodeValues] = None,
         values: Optional[Dict[str, List[Op]] | List[Tuple[str, List[Op]]]] = None,
+        max_nodes: Optional[int] = None,
     ) -> "GraphCodec":
         return GraphCodec.__build_common(
             name="weighted_directed",
@@ -36,6 +37,7 @@ class GraphCodec(CodecBase):
             edge=edge,
             output=output,
             values=values,
+            max_nodes=max_nodes,
         )
 
     @staticmethod
@@ -45,6 +47,7 @@ class GraphCodec(CodecBase):
         edge: Optional[NodeValues] = None,
         output: Optional[NodeValues] = None,
         values: Optional[Dict[str, List[Op]] | List[Tuple[str, List[Op]]]] = None,
+        max_nodes: Optional[int] = None,
     ) -> "GraphCodec":
         return GraphCodec.__build_common(
             name="weighted_recurrent",
@@ -53,6 +56,7 @@ class GraphCodec(CodecBase):
             edge=edge,
             output=output,
             values=values,
+            max_nodes=max_nodes,
         )
 
     @staticmethod
@@ -62,6 +66,7 @@ class GraphCodec(CodecBase):
         edge: Optional[NodeValues] = None,
         output: Optional[NodeValues] = None,
         values: Optional[Dict[str, List[Op]] | List[Tuple[str, List[Op]]]] = None,
+        max_nodes: Optional[int] = None,
     ) -> "GraphCodec":
         return GraphCodec.__build_common(
             name="directed",
@@ -70,6 +75,7 @@ class GraphCodec(CodecBase):
             edge=edge,
             output=output,
             values=values,
+            max_nodes=max_nodes,
         )
 
     @staticmethod
@@ -79,6 +85,7 @@ class GraphCodec(CodecBase):
         edge: Optional[NodeValues] = None,
         output: Optional[NodeValues] = None,
         values: Optional[Dict[str, List[Op]]] = None,
+        max_nodes: Optional[int] = None,
     ) -> "GraphCodec":
         return GraphCodec.__build_common(
             name="recurrent",
@@ -87,6 +94,7 @@ class GraphCodec(CodecBase):
             edge=edge,
             output=output,
             values=values,
+            max_nodes=max_nodes,
         )
 
     @staticmethod
@@ -97,6 +105,7 @@ class GraphCodec(CodecBase):
         edge: Optional[NodeValues] = None,
         output: Optional[NodeValues] = None,
         values: Optional[Dict[str, List[Op]]] = None,
+        max_nodes: Optional[int] = None,
     ) -> "GraphCodec":
         input_size, output_size = shape
 
@@ -118,18 +127,36 @@ class GraphCodec(CodecBase):
 
         if name == "weighted_directed":
             return GraphCodec(
-                PyGraphCodec("weighted_directed", input_size, output_size, ops_map)
+                PyGraphCodec(
+                    "weighted_directed",
+                    input_size,
+                    output_size,
+                    ops_map,
+                    max_nodes,
+                )
             )
         elif name == "weighted_recurrent":
             return GraphCodec(
-                PyGraphCodec("weighted_recurrent", input_size, output_size, ops_map)
+                PyGraphCodec(
+                    "weighted_recurrent",
+                    input_size,
+                    output_size,
+                    ops_map,
+                    max_nodes,
+                )
             )
         elif name == "recurrent":
             return GraphCodec(
-                PyGraphCodec("recurrent", input_size, output_size, ops_map)
+                PyGraphCodec(
+                    "recurrent", input_size, output_size, ops_map, max_nodes
+                )
             )
         else:
             if name != "directed":
                 raise ValueError(f"Unknown graph type: {name}")
         # Default to directed graph
-        return GraphCodec(PyGraphCodec("directed", input_size, output_size, ops_map))
+        return GraphCodec(
+            PyGraphCodec(
+                "directed", input_size, output_size, ops_map, max_nodes
+            )
+        )

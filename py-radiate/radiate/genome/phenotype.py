@@ -13,6 +13,7 @@ class Phenotype:
         self,
         phenotype: PyPhenotype | None = None,
         genotype: Genotype | None = None,
+        score: List[float] | float | None = None,
     ):
         """
         Initializes a Phenotype instance.
@@ -22,7 +23,10 @@ class Phenotype:
         if isinstance(phenotype, PyPhenotype):
             self.__inner = phenotype
         elif isinstance(genotype, Genotype):
-            self.__inner = PyPhenotype(genotype.py_genotype())
+            if score is not None:
+                score = score if isinstance(score, list) else [score]
+
+            self.__inner = PyPhenotype(genotype.py_genotype(), score=score)
         else:
             raise TypeError("genotype must be an instance of Genotype or PyPhenotype")
 
@@ -66,7 +70,7 @@ class Phenotype:
         :return: The genotype of the phenotype.
         """
         return Genotype(genotype=self.__inner.genotype)
-    
+
     def id(self) -> int:
         """
         Returns the ID of the phenotype.

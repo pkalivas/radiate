@@ -2,8 +2,6 @@
 This module provides common fixtures and utilities used across all test modules.
 """
 
-from typing import List
-
 import pytest
 import random
 import radiate as rd
@@ -26,30 +24,6 @@ def random_seed():
         np.random.seed(seed)
     rd.random.set_seed(seed)
     return seed
-
-
-@pytest.fixture
-def small_int_population():
-    """Create a small population of integer chromosomes for testing."""
-    return [
-        rd.Chromosome.int(length=5, value_range=(0, 10)),
-        rd.Chromosome.int(length=5, value_range=(0, 10)),
-        rd.Chromosome.int(length=5, value_range=(0, 10)),
-        rd.Chromosome.int(length=5, value_range=(0, 10)),
-        rd.Chromosome.int(length=5, value_range=(0, 10)),
-    ]
-
-
-@pytest.fixture
-def small_float_population():
-    """Create a small population of float chromosomes for testing."""
-    return [
-        rd.Chromosome.float(length=3, value_range=(-1.0, 1.0)),
-        rd.Chromosome.float(length=3, value_range=(-1.0, 1.0)),
-        rd.Chromosome.float(length=3, value_range=(-1.0, 1.0)),
-        rd.Chromosome.float(length=3, value_range=(-1.0, 1.0)),
-        rd.Chromosome.float(length=3, value_range=(-1.0, 1.0)),
-    ]
 
 
 @pytest.fixture
@@ -113,41 +87,38 @@ def tree_simple():
     )
     return codec.decode(codec.encode())
 
-
-class TestDataGenerator:
-    """Utility class for generating test data."""
-
-    @staticmethod
-    def random_ints(length: int, min_val: int = 0, max_val: int = 100) -> List[int]:
-        """Generate random integer list."""
-        return [random.randint(min_val, max_val) for _ in range(length)]
-
-    @staticmethod
-    def random_floats(
-        length: int, min_val: float = -1.0, max_val: float = 1.0
-    ) -> List[float]:
-        """Generate random float list."""
-        return [random.uniform(min_val, max_val) for _ in range(length)]
-
-    @staticmethod
-    def random_strings(length: int, min_len: int = 3, max_len: int = 8) -> List[str]:
-        """Generate random string list."""
-        chars = "abcdefghijklmnopqrstuvwxyz"
-        return [
-            "".join(random.choices(chars, k=random.randint(min_len, max_len)))
-            for _ in range(length)
+@pytest.fixture
+def simple_float_engine():
+    """Create a simple float codec engine for testing."""
+    codec = rd.FloatCodec.vector(length=10, value_range=(-1.0, 1.0))
+    return rd.GeneticEngine(
+        codec=codec,
+        fitness_func=lambda x: sum(xi**2 for xi in x),
+        objectives="min",
+        population_size=100,
+        alters=[
+            rd.UniformCrossover(0.5),
+            rd.ArithmeticMutator(0.1),
         ]
-
-    @staticmethod
-    def random_bits(length: int) -> List[bool]:
-        """Generate random boolean list."""
-        return [random.choice([True, False]) for _ in range(length)]
-
+    )
 
 @pytest.fixture
-def data_generator():
-    """Provide test data generator."""
-    return TestDataGenerator()
+def simple_multi_objective_engine():
+    """Create a simple multi-objective float codec engine for testing."""
+    codec = rd.FloatCodec.vector(length=10, value_range=(-1.0, 1.0))
+
+    return rd.GeneticEngine(
+        codec=codec,
+        fitness_func=lambda x: [sum(xi**2 for xi in x), sum((xi - 0.5)**2 for xi in x)],
+        objectives=["min", "min"],
+        population_size=100,
+        offspring_selector=rd.TournamentSelector(3),
+        survivor_selector=rd.NSGA2Selector(),
+        alters=[
+            rd.UniformCrossover(0.5),
+            rd.ArithmeticMutator(0.1),
+        ]
+    )
 
 
 class PerformanceBenchmark:

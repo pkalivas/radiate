@@ -1,6 +1,9 @@
 use crate::Statistic;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Distribution {
     pub statistic: Statistic,
     pub last_sequence: Vec<f32>,

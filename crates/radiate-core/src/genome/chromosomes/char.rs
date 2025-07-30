@@ -254,6 +254,14 @@ impl<T: Into<String>> From<(usize, Option<T>)> for CharChromosome {
     }
 }
 
+impl FromIterator<CharGene> for CharChromosome {
+    fn from_iter<I: IntoIterator<Item = CharGene>>(iter: I) -> Self {
+        CharChromosome {
+            genes: iter.into_iter().collect(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

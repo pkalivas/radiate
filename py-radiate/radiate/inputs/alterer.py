@@ -201,3 +201,19 @@ class InversionMutator(AlterBase):
             component="InversionMutator",
             args={"rate": rate},
         )
+
+class EdgeRecombinationCrossover(AlterBase):
+    def __init__(self, rate: float = 0.5):
+        super().__init__(
+            component="EdgeRecombinationCrossover",
+            args={"rate": rate},
+            allowed_genes=GeneType.PERMUTATION,
+        )
+
+class PolynomialMutator(AlterBase):
+    def __init__(self, rate: float = 0.5, eta: float = 20.0):
+        super().__init__(
+            component="PolynomialMutator",
+            args={"rate": rate, "eta": eta},
+            allowed_genes=GeneType.FLOAT,
+        )

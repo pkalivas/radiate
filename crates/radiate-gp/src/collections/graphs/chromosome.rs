@@ -66,6 +66,7 @@ use std::fmt::Debug;
 pub struct GraphChromosome<T> {
     nodes: Vec<GraphNode<T>>,
     store: Option<NodeStore<T>>,
+    max_nodes: Option<usize>,
 }
 
 impl<T> GraphChromosome<T> {
@@ -73,7 +74,13 @@ impl<T> GraphChromosome<T> {
         GraphChromosome {
             nodes,
             store: Some(factory),
+            max_nodes: None,
         }
+    }
+
+    pub fn with_max_nodes(mut self, max_nodes: usize) -> Self {
+        self.max_nodes = Some(max_nodes + self.nodes.len());
+        self
     }
 
     pub fn set_nodes(&mut self, nodes: Vec<GraphNode<T>>) {
@@ -82,6 +89,10 @@ impl<T> GraphChromosome<T> {
 
     pub fn store(&self) -> Option<&NodeStore<T>> {
         self.store.as_ref()
+    }
+
+    pub fn max_nodes(&self) -> Option<usize> {
+        self.max_nodes
     }
 }
 
@@ -106,6 +117,7 @@ where
                     })
                     .collect(),
                 store: Some(store),
+                max_nodes: self.max_nodes,
             };
         }
 
@@ -154,7 +166,11 @@ impl<T: PartialEq> PartialEq for GraphChromosome<T> {
 
 impl<T> From<Vec<GraphNode<T>>> for GraphChromosome<T> {
     fn from(nodes: Vec<GraphNode<T>>) -> Self {
-        GraphChromosome { nodes, store: None }
+        GraphChromosome {
+            nodes,
+            store: None,
+            max_nodes: None,
+        }
     }
 }
 
@@ -163,6 +179,7 @@ impl<T> FromIterator<GraphNode<T>> for GraphChromosome<T> {
         GraphChromosome {
             nodes: iter.into_iter().collect(),
             store: None,
+            max_nodes: None,
         }
     }
 }

@@ -116,7 +116,7 @@ class StochasticSamplingSelector(SelectorBase):
         """
         Initialize the stochastic sampling selector.
         """
-        super().__init__(component="StochasticSamplingSelector")
+        super().__init__(component="StochasticUniversalSamplingSelector")
 
 
 class LinearRankSelector(SelectorBase):

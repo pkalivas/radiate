@@ -72,6 +72,11 @@ impl<T> GraphCodec<T> {
                 .collect(),
         }
     }
+
+    pub fn with_max_nodes(mut self, max_nodes: usize) -> Self {
+        self.template = self.template.with_max_nodes(max_nodes);
+        self
+    }
 }
 
 impl<T> Codec<GraphChromosome<T>, Graph<T>> for GraphCodec<T>

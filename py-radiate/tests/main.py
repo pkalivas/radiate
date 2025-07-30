@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt # type: ignore
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, project_root)
 
+import numpy as np
 import radiate as rd
 
 print(f"Radiate version: {rd.__version__}")
@@ -22,10 +23,8 @@ class TestHandler(rd.EventHandler):
         self.scores = []
 
     def on_event(self, event):
-        
         if event["type"] == "epoch_complete":
             self.scores.append(event["score"])
-            # self.scores.append(event['metrics']['unique_members']['value_last'])
         elif event["type"] == "stop":
             plt.plot(self.scores)
             plt.xlabel("Generation")
@@ -36,14 +35,15 @@ class TestHandler(rd.EventHandler):
             print(f"New best score: {event}")
 
 codec = rd.IntCodec.vector(50, (0, 10))
-population = rd.Population([codec.encode() for _ in range(100)])
+population = rd.Population(codec.encode() for _ in range(100))
+
 
 engine = rd.GeneticEngine(
     codec=rd.IntCodec.vector(50, (0, 10)),
     fitness_func=lambda x: sum(x),
     offspring_selector=rd.BoltzmannSelector(4),
     objectives="min",
-    # subscribe=TestHandler(),
+    subscribe=TestHandler(),
     population=population,
     # executor=rd.Executor.WorkerPool(),
     alters=[
@@ -54,11 +54,40 @@ engine = rd.GeneticEngine(
 
 result = engine.run(rd.ScoreLimit(0), log=True)
 
-print(result)
 
 
 
-# print(rd.BoltzmannSelector(4).select(population, "min", 10))
+# print(result)
+
+# temp = rd.FloatCodec.from_genes([rd.Gene.float(value_range=(-10.0, 10.0)), rd.Gene.float(value_range=(-1.0, 1.0))])
+
+# print(temp.encode())
+# print(temp.decode(temp.encode()))
+
+# temp = rd.FloatCodec.from_chromosomes((rd.Chromosome.float(length=5, value_range=(-10.0, 10.0)),
+#                                         rd.Chromosome.float(length=3, value_range=(-1.0, 1.0))))
+
+# print(temp.encode())
+# print(temp.decode(temp.encode()))
+
+# codec = rd.IntCodec.vector(50, (0, 10))
+# population = rd.Population([rd.Phenotype(genotype=codec.encode(), score=np.random.uniform(0, 1)) for _ in range(100)])
+
+# # plot the scores before and after selection
+# print("Before selection:")
+# scores = [phenotype.score()[0] for phenotype in population.phenotypes()]
+
+# plt.hist(scores, bins=20, alpha=0.5, label='Before Selection')
+
+# selected = rd.BoltzmannSelector(4).select(population, "min", 100)
+
+# print("After selection:")
+
+# scores = [phenotype.score()[0] for phenotype in selected]
+
+# plt.hist(scores, bins=20, alpha=0.5, label='After Selection')
+# plt.legend()
+# plt.show()
 
 # for pheno in population.phenotypes():
 #     print(pheno.genotype().chromosomes()[0].genes())
@@ -242,43 +271,43 @@ print(result)
 #     # return score
 
 
-# # N_QUEENS = 32
+# N_QUEENS = 32
 
-# # # @jit(nopython=True, nogil=True)
-# # def fitness_fn(queens: np.ndarray) -> int:
-# #     """Calculate the fitness score for the N-Queens problem."""
+# # @jit(nopython=True, nogil=True)
+# def fitness_fn(queens: np.ndarray) -> int:
+#     """Calculate the fitness score for the N-Queens problem."""
     
-# #     i_indices, j_indices = np.triu_indices(N_QUEENS, k=1)
-# #     same_row = queens[i_indices] == queens[j_indices]
-# #     same_diagonal = np.abs(i_indices - j_indices) == np.abs(queens[i_indices] - queens[j_indices])
+#     i_indices, j_indices = np.triu_indices(N_QUEENS, k=1)
+#     same_row = queens[i_indices] == queens[j_indices]
+#     same_diagonal = np.abs(i_indices - j_indices) == np.abs(queens[i_indices] - queens[j_indices])
     
-# #     # Count conflicts
-# #     score = np.sum(same_row) + np.sum(same_diagonal)
-# #     return score
+#     # Count conflicts
+#     score = np.sum(same_row) + np.sum(same_diagonal)
+#     return score
 
-# # codec = rd.IntCodec.vector(N_QUEENS, (0, N_QUEENS), use_numpy=True)
-# # engine = rd.GeneticEngine(
-# #     codec=codec,
-# #     fitness_func=fitness_fn,
-# #     objectives="min",
-# #     offspring_selector=rd.BoltzmannSelector(4.0),
-# #     alters=[
-# #         rd.MultiPointCrossover(0.75, 2),
-# #         rd.UniformMutator(0.05)
-# #     ]
-# # )
-# # result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(1000)], log=True)
-# # print(result)
+# codec = rd.IntCodec.vector(N_QUEENS, (0, N_QUEENS), use_numpy=True)
+# engine = rd.GeneticEngine(
+#     codec=codec,
+#     fitness_func=fitness_fn,
+#     objectives="min",
+#     offspring_selector=rd.BoltzmannSelector(4.0),
+#     alters=[
+#         rd.MultiPointCrossover(0.75, 2),
+#         rd.UniformMutator(0.05)
+#     ]
+# )
+# result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(1000)], log=True)
+# print(result)
 
 
-# # board = result.value()
-# # for i in range(N_QUEENS):
-# #     for j in range(N_QUEENS):
-# #         if board[j] == i:
-# #             print("Q ", end="")
-# #         else:
-# #             print(". ", end="")
-# #     print()
+# board = result.value()
+# for i in range(N_QUEENS):
+#     for j in range(N_QUEENS):
+#         if board[j] == i:
+#             print("Q ", end="")
+#         else:
+#             print(". ", end="")
+#     print()
 
 
 # # # target = "Hello, Radiate!"

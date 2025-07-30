@@ -17,7 +17,9 @@ from .alterer import (
     GraphMutator,
     OperationMutator,
     GraphCrossover,
-    InversionMutator
+    InversionMutator,
+    PolynomialMutator,
+    EdgeRecombinationCrossover
 )
 
 from .selector import (
@@ -51,6 +53,8 @@ __all__ = [
     "ShuffleCrossover",
     "SimulatedBinaryCrossover",
     "PartiallyMappedCrossover",
+    "EdgeRecombinationCrossover",
+    "PolynomialMutator",
     "GaussianMutator",
     "ScrambleMutator",
     "InversionMutator",

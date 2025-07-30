@@ -5,10 +5,8 @@ const N_QUEENS: usize = 32;
 fn main() {
     random_provider::set_seed(500);
 
-    let codec = IntCodec::vector(N_QUEENS, 0..N_QUEENS as i8);
-
     let engine = GeneticEngine::builder()
-        .codec(codec)
+        .codec(IntChromosome::from((N_QUEENS, 0..N_QUEENS as i8)))
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4.0))
         .crossover(MultiPointCrossover::new(0.75, 2))
@@ -37,7 +35,6 @@ fn main() {
             println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_usize());
         })
         .until_score(0)
-        .take(1)
         .last()
         .unwrap();
 

@@ -191,3 +191,84 @@ impl Codec<FloatChromosome, f32> for FloatCodec<f32> {
             .unwrap_or_default()
     }
 }
+
+/// Implement the [Codec] trait for a Vec for [FloatChromosome].
+/// This is effectively the same as creating a [FloatCodec] matrix
+///
+/// # Example
+/// ``` rust
+/// use radiate_core::*;
+///
+/// let codec = vec![
+///     FloatChromosome::from((3, 0.0..1.0)),
+///     FloatChromosome::from((4, 0.0..1.0)),
+/// ];
+///
+/// let genotype: Genotype<FloatChromosome> = codec.encode();
+/// let decoded: Vec<Vec<f32>> = codec.decode(&genotype);
+///
+/// assert_eq!(decoded.len(), 2);
+/// assert_eq!(decoded[0].len(), 3);
+/// assert_eq!(decoded[1].len(), 4);
+/// ```
+impl Codec<FloatChromosome, Vec<Vec<f32>>> for Vec<FloatChromosome> {
+    fn encode(&self) -> Genotype<FloatChromosome> {
+        Genotype::from(
+            self.iter()
+                .map(|chromosome| {
+                    chromosome
+                        .iter()
+                        .map(|gene| gene.new_instance())
+                        .collect::<FloatChromosome>()
+                })
+                .collect::<Vec<FloatChromosome>>(),
+        )
+    }
+
+    fn decode(&self, genotype: &Genotype<FloatChromosome>) -> Vec<Vec<f32>> {
+        genotype
+            .iter()
+            .map(|chromosome| {
+                chromosome
+                    .iter()
+                    .map(|gene| *gene.allele())
+                    .collect::<Vec<f32>>()
+            })
+            .collect::<Vec<Vec<f32>>>()
+    }
+}
+
+/// Implement the [Codec] trait for a single [FloatChromosome].
+/// This is effectively the same as creating a [FloatCodec] vector
+///
+//// # Example
+/// ``` rust
+/// use radiate_core::*;
+///
+/// let codec = FloatChromosome::from((3, 0.0..1.0));
+/// let genotype: Genotype<FloatChromosome> = codec.encode();
+/// let decoded: Vec<f32> = codec.decode(&genotype);
+///
+/// assert_eq!(decoded.len(), 3);
+/// ```
+impl Codec<FloatChromosome, Vec<f32>> for FloatChromosome {
+    fn encode(&self) -> Genotype<FloatChromosome> {
+        Genotype::from(
+            self.iter()
+                .map(|gene| gene.new_instance())
+                .collect::<FloatChromosome>(),
+        )
+    }
+
+    fn decode(&self, genotype: &Genotype<FloatChromosome>) -> Vec<f32> {
+        genotype
+            .iter()
+            .flat_map(|chromosome| {
+                chromosome
+                    .iter()
+                    .map(|gene| *gene.allele())
+                    .collect::<Vec<f32>>()
+            })
+            .collect::<Vec<f32>>()
+    }
+}

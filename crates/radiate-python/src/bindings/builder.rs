@@ -736,7 +736,7 @@ impl PyEngineBuilder {
 
         if !problem.allowed_genes.contains(&self.gene_type) {
             return Err(PyErr::new::<PyTypeError, _>(format!(
-                "Novelty Search with distance {:?} does not support gene {:?}",
+                "Novelty Search with distance {:?} does not support gene {:?} - try setting a Descriptor",
                 distance, self.gene_type
             )));
         }

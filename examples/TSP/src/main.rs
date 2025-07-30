@@ -105,7 +105,7 @@ fn plot_tsp_solution(
     tour: &[usize],
     points: &[(f32, f32)],
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let file_path = std::env::current_dir()?.join("radiate-examples/TSP/tsp_solution.png");
+    let file_path = std::env::current_dir()?.join("examples/TSP/tsp_solution.png");
     let root = BitMapBackend::new(&file_path, (800, 600)).into_drawing_area();
     root.fill(&WHITE)?;
 

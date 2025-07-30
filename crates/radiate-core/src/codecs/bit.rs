@@ -129,6 +129,55 @@ impl Codec<BitChromosome, bool> for BitCodec<bool> {
     }
 }
 
+impl Codec<BitChromosome, Vec<Vec<bool>>> for Vec<BitChromosome> {
+    fn encode(&self) -> Genotype<BitChromosome> {
+        Genotype::from(
+            self.iter()
+                .map(|chromosome| {
+                    chromosome
+                        .iter()
+                        .map(|gene| gene.new_instance())
+                        .collect::<BitChromosome>()
+                })
+                .collect::<Vec<BitChromosome>>(),
+        )
+    }
+
+    fn decode(&self, genotype: &Genotype<BitChromosome>) -> Vec<Vec<bool>> {
+        genotype
+            .iter()
+            .map(|chromosome| {
+                chromosome
+                    .iter()
+                    .map(|gene| *gene.allele())
+                    .collect::<Vec<bool>>()
+            })
+            .collect::<Vec<Vec<bool>>>()
+    }
+}
+
+impl Codec<BitChromosome, Vec<bool>> for BitChromosome {
+    fn encode(&self) -> Genotype<BitChromosome> {
+        Genotype::from(
+            self.iter()
+                .map(|gene| gene.new_instance())
+                .collect::<BitChromosome>(),
+        )
+    }
+
+    fn decode(&self, genotype: &Genotype<BitChromosome>) -> Vec<bool> {
+        genotype
+            .iter()
+            .flat_map(|chromosome| {
+                chromosome
+                    .iter()
+                    .map(|gene| *gene.allele())
+                    .collect::<Vec<bool>>()
+            })
+            .collect::<Vec<bool>>()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

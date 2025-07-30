@@ -37,7 +37,11 @@ where
     where
         Self: Sized,
     {
-        self.skip_while(move |ctx| ctx.seconds() < limit)
+        SecondsIterator {
+            iter: self,
+            limit: Duration::from_secs_f64(limit),
+            done: false,
+        }
     }
 
     fn until_duration(self, limit: impl Into<Duration>) -> impl Iterator<Item = Generation<C, T>>
@@ -45,7 +49,11 @@ where
         Self: Sized,
     {
         let limit = limit.into();
-        self.skip_while(move |ctx| ctx.time() < limit)
+        SecondsIterator {
+            iter: self,
+            limit,
+            done: false,
+        }
     }
 
     fn until_score(self, limit: impl Into<Score>) -> impl Iterator<Item = Generation<C, T>>

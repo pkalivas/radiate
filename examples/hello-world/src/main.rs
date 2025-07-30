@@ -22,7 +22,6 @@ fn main() {
         .iter()
         .until_score(target.len())
         .inspect(|generation| println!("{:?}", generation))
-        .take(1)
         .last()
         .unwrap();
 }

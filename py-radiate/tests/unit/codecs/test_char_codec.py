@@ -23,8 +23,6 @@ class TestCharCodec:
         codec = CharCodec.matrix(chromosomes=[3, 3], char_set="abc")
         genotype = codec.encode()
 
-        print(len(genotype), genotype)
-
         assert len(genotype) == 2
         assert all(len(row) == 3 for row in genotype)
         assert all(isinstance(gene.allele(), str) for row in genotype for gene in row)

@@ -102,13 +102,13 @@ impl PyPopulation {
     }
 
     pub fn __repr__(&self) -> String {
-        format!(
-            "Population(phenotypes={:?})",
-            self.phenotypes
-                .iter()
-                .map(|p| p.__repr__())
-                .collect::<Vec<_>>()
-        )
+        let mut result = String::new();
+        result.push_str("Population(\n");
+        for phenotype in &self.phenotypes {
+            result.push_str(&format!("  {:?},\n", phenotype));
+        }
+        result.push_str(")");
+        result
     }
 
     pub fn __str__(&self) -> String {
