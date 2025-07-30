@@ -30,8 +30,6 @@ fn main() {
         .inspect(|ctx| {
             println!("[ {:?} {:?} ]", ctx.index(), ctx.seconds());
         })
-        // .last()
-        // .unwrap();
         .collect::<ParetoFront<Phenotype<FloatChromosome>>>();
 
     plot_front(&result);

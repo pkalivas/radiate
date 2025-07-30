@@ -1,5 +1,5 @@
 use radiate_core::{AlterResult, Chromosome, Crossover, PermutationChromosome, random_provider};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 // Example: Parents [1,2,3,4,5] and [1,3,5,2,4]
 // Edge table: 1->[2,3], 2->[1,4], 3->[2,5], 4->[5,2], 5->[4,3]
@@ -55,7 +55,7 @@ impl EdgeRecombinationCrossover {
     fn select_next(
         &self,
         edge_table: &HashMap<usize, Vec<usize>>,
-        used: &[usize],
+        used: &HashSet<usize>,
     ) -> Option<usize> {
         let mut candidates = Vec::new();
         let mut min_edges = usize::MAX;
@@ -94,12 +94,8 @@ where
         &self,
         chrom_one: &mut PermutationChromosome<T>,
         chrom_two: &mut PermutationChromosome<T>,
-        rate: f32,
+        _: f32,
     ) -> AlterResult {
-        if random_provider::random::<f32>() >= rate {
-            return 0.into();
-        }
-
         // Convert chromosomes to permutation representation
         let parent1: Vec<usize> = chrom_one.iter().map(|g| g.index()).collect();
         let parent2: Vec<usize> = chrom_two.iter().map(|g| g.index()).collect();
@@ -108,23 +104,23 @@ where
 
         // Build offspring
         let mut offspring = Vec::new();
-        let mut used = Vec::new();
+        let mut used = HashSet::new();
 
         // Start with a random element
         let start = parent1[random_provider::range(0..parent1.len())];
         offspring.push(start);
-        used.push(start);
+        used.insert(start);
 
         while offspring.len() < parent1.len() {
             if let Some(next) = self.select_next(&edge_table, &used) {
                 offspring.push(next);
-                used.push(next);
+                used.insert(next);
             } else {
                 // If no valid next element, pick any unused element
                 for i in 0..parent1.len() {
                     if !used.contains(&i) {
                         offspring.push(i);
-                        used.push(i);
+                        used.insert(i);
                         break;
                     }
                 }

@@ -10,6 +10,7 @@ const SHUFFLE_CROSSOVER: &str = "ShuffleCrossover";
 const SIMULATED_BINARY_CROSSOVER: &str = "SimulatedBinaryCrossover";
 const GRAPH_CROSSOVER: &str = "GraphCrossover";
 const PARTIALLY_MAPPED_CROSSOVER: &str = "PartiallyMappedCrossover";
+const EDGE_RECOMBINE_CROSSOVER: &str = "EdgeRecombinationCrossover";
 
 const UNIFORM_MUTATOR: &str = "UniformMutator";
 const SCRAMBLE_MUTATOR: &str = "ScrambleMutator";
@@ -21,6 +22,7 @@ const OPERATION_MUTATOR: &str = "OperationMutator";
 const TREE_CROSSOVER: &str = "TreeCrossover";
 const HOIST_MUTATOR: &str = "HoistMutator";
 const INVERSION_MUTATOR: &str = "InversionMutator";
+const POLYNOMIAL_MUTATOR: &str = "PolynomialMutator";
 
 impl<C> InputTransform<Vec<Box<dyn Alter<C>>>> for &[PyEngineInput]
 where
@@ -83,6 +85,7 @@ impl InputTransform<Vec<Box<dyn Alter<FloatChromosome>>>> for PyEngineInput {
             SCRAMBLE_MUTATOR => alters!(convert_scramble_mutator(&self)),
             UNIFORM_MUTATOR => alters!(convert_uniform_mutator(&self)),
             INVERSION_MUTATOR => alters!(convert_inversion_mutator(&self)),
+            POLYNOMIAL_MUTATOR => alters!(convert_polynomial_mutator(&self)),
             _ => panic!("Invalid alterer type {}", self.component),
         }
     }
@@ -168,6 +171,7 @@ impl InputTransform<Vec<Box<dyn Alter<PermutationChromosome<usize>>>>> for PyEng
             SCRAMBLE_MUTATOR => alters!(convert_scramble_mutator(&self)),
             UNIFORM_MUTATOR => alters!(convert_uniform_mutator(&self)),
             INVERSION_MUTATOR => alters!(convert_inversion_mutator(&self)),
+            EDGE_RECOMBINE_CROSSOVER => alters!(convert_edge_recombine_crossover(&self)),
             _ => panic!("Invalid alterer type {}", self.component),
         }
     }
@@ -279,4 +283,15 @@ fn convert_operation_mutator(input: &PyEngineInput) -> OperationMutator {
     let replace_rate = input.get_f32("replace_rate").unwrap_or(0.5);
 
     OperationMutator::new(rate, replace_rate)
+}
+
+fn convert_edge_recombine_crossover(input: &PyEngineInput) -> EdgeRecombinationCrossover {
+    let rate = input.get_f32("rate").unwrap_or(0.5);
+    EdgeRecombinationCrossover::new(rate)
+}
+
+fn convert_polynomial_mutator(input: &PyEngineInput) -> PolynomialMutator {
+    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let eta = input.get_f32("eta").unwrap_or(20.0);
+    PolynomialMutator::new(rate, eta)
 }

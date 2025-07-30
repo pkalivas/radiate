@@ -1,5 +1,5 @@
 use crate::{
-    indexes, labels, random_provider, Chromosome, Gene, Genotype, Metric, Population, ToSnakeCase,
+    Chromosome, Gene, Genotype, Metric, Population, ToSnakeCase, indexes, labels, random_provider,
 };
 
 /// This is the main trait that is used to define the different types of alterations that can be
@@ -86,6 +86,7 @@ impl<C: Chromosome> Alter<C> for AlterAction<C> {
     fn alter(&self, population: &mut Population<C>, generation: usize) -> Vec<Metric> {
         match &self {
             AlterAction::Mutate(name, rate, m) => {
+                m.update(generation);
                 let timer = std::time::Instant::now();
                 let AlterResult(count, metrics) = m.mutate(population, generation, *rate);
                 let metric = Metric::new(name)
@@ -259,6 +260,8 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
             .map(|s| s.to_snake_case())
             .unwrap()
     }
+
+    fn update(&self, _: usize) {}
 
     fn rate(&self) -> f32 {
         1.0
