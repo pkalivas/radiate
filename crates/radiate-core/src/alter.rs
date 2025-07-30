@@ -87,6 +87,7 @@ impl<C: Chromosome> Alter<C> for AlterAction<C> {
         match &self {
             AlterAction::Mutate(name, rate, m) => {
                 m.update(generation);
+
                 let timer = std::time::Instant::now();
                 let AlterResult(count, metrics) = m.mutate(population, generation, *rate);
                 let metric = Metric::new(name)
@@ -114,6 +115,8 @@ impl<C: Chromosome> Alter<C> for AlterAction<C> {
                 }
             }
             AlterAction::Crossover(name, rate, c) => {
+                c.update(generation);
+
                 let timer = std::time::Instant::now();
                 let AlterResult(count, metrics) = c.crossover(population, generation, *rate);
                 let metric = Metric::new(name)
@@ -163,6 +166,8 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
             .map(|s| s.to_snake_case())
             .unwrap()
     }
+
+    fn update(&self, _: usize) {}
 
     fn rate(&self) -> f32 {
         1.0

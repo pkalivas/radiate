@@ -24,6 +24,12 @@ import matplotlib.pyplot as plt # type: ignore
 from typing import List, Tuple
 import math
 
+# rd.random.set_seed(5522)  # For reproducibility
+# np.random.seed(1220)  # For reproducibility
+
+
+rd.random.set_seed(552211)  # For reproducibility
+np.random.seed(1234)  # For reproducibility
 
 class RobotBehavior:
     """Represents a robot's movement behavior in 2D space."""

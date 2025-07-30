@@ -27,8 +27,8 @@ class TestPopulation:
     def test_population_creation_with_invalid_type(self):
         """Test Population creation with invalid type (line 31)."""
         with pytest.raises(
-            TypeError,
-            match="individuals must be a list of Phenotype instances or a PyPopulation instance",
+            ValueError,
+            match="All individuals must be instances of Phenotype",
         ):
             Population("invalid")
 

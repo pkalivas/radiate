@@ -22,7 +22,7 @@ where
     pub k: usize,
     pub threshold: f32,
     pub max_archive_size: usize,
-    __phantom: std::marker::PhantomData<T>,
+    _phantom: std::marker::PhantomData<T>,
 }
 
 impl<T, BD> NoveltySearch<T, BD>
@@ -36,7 +36,7 @@ where
             k,
             threshold,
             max_archive_size: 1000,
-            __phantom: std::marker::PhantomData,
+            _phantom: std::marker::PhantomData,
         }
     }
 

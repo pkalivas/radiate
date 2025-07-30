@@ -35,14 +35,15 @@ class TestHandler(rd.EventHandler):
             print(f"New best score: {event}")
 
 codec = rd.IntCodec.vector(50, (0, 10))
-population = rd.Population([codec.encode() for _ in range(100)])
+population = rd.Population(codec.encode() for _ in range(100))
+
 
 engine = rd.GeneticEngine(
     codec=rd.IntCodec.vector(50, (0, 10)),
     fitness_func=lambda x: sum(x),
     offspring_selector=rd.BoltzmannSelector(4),
     objectives="min",
-    # subscribe=TestHandler(),
+    subscribe=TestHandler(),
     population=population,
     # executor=rd.Executor.WorkerPool(),
     alters=[
@@ -52,6 +53,8 @@ engine = rd.GeneticEngine(
 )
 
 result = engine.run(rd.ScoreLimit(0), log=True)
+
+
 
 
 # print(result)
