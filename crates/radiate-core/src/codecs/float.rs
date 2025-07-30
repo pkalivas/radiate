@@ -192,6 +192,25 @@ impl Codec<FloatChromosome, f32> for FloatCodec<f32> {
     }
 }
 
+/// Implement the [Codec] trait for a Vec for [FloatChromosome].
+/// This is effectively the same as creating a [FloatCodec] matrix
+///
+/// # Example
+/// ``` rust
+/// use radiate_core::*;
+///
+/// let codec = vec![
+///     FloatChromosome::from((3, 0.0..1.0)),
+///     FloatChromosome::from((4, 0.0..1.0)),
+/// ];
+///
+/// let genotype: Genotype<FloatChromosome> = codec.encode();
+/// let decoded: Vec<Vec<f32>> = codec.decode(&genotype);
+///
+/// assert_eq!(decoded.len(), 2);
+/// assert_eq!(decoded[0].len(), 3);
+/// assert_eq!(decoded[1].len(), 4);
+/// ```
 impl Codec<FloatChromosome, Vec<Vec<f32>>> for Vec<FloatChromosome> {
     fn encode(&self) -> Genotype<FloatChromosome> {
         Genotype::from(
@@ -219,6 +238,19 @@ impl Codec<FloatChromosome, Vec<Vec<f32>>> for Vec<FloatChromosome> {
     }
 }
 
+/// Implement the [Codec] trait for a single [FloatChromosome].
+/// This is effectively the same as creating a [FloatCodec] vector
+///
+//// # Example
+/// ``` rust
+/// use radiate_core::*;
+///
+/// let codec = FloatChromosome::from((3, 0.0..1.0));
+/// let genotype: Genotype<FloatChromosome> = codec.encode();
+/// let decoded: Vec<f32> = codec.decode(&genotype);
+///
+/// assert_eq!(decoded.len(), 3);
+/// ```
 impl Codec<FloatChromosome, Vec<f32>> for FloatChromosome {
     fn encode(&self) -> Genotype<FloatChromosome> {
         Genotype::from(

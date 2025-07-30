@@ -26,6 +26,13 @@ class Graph:
             return False
         return self.py_graph == other.py_graph
 
+    def reset(self):
+        """
+        Reset the graph's internal state, clearing any cached evaluations.
+        If you have a recurrent graph, this will reset it to its initial state.
+        """
+        self.py_graph.reset()
+
     def eval(
         self, inputs: Union[Sequence[float], Sequence[Sequence[float]]]
     ) -> List[float] | List[List[float]]:

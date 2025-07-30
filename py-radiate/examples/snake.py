@@ -8,16 +8,12 @@ the best solution behaves differently after evolution.
 
 import radiate as rd
 import numpy as np
-import matplotlib.pyplot as plt # type: ignore
-from matplotlib.animation import FuncAnimation # type: ignore
+import matplotlib.pyplot as plt  # type: ignore
+from matplotlib.animation import FuncAnimation  # type: ignore
 from typing import List, Tuple
-import random
 
-# Set consistent random seeds
 rd.random.set_seed(42)
 np.random.seed(42)
-random.seed(42)
-
 
 class SnakeGame:
     """Classic Snake game with detailed logging."""
@@ -48,8 +44,8 @@ class SnakeGame:
         attempts = 0
         while attempts < 100:
             food = (
-                random.randint(0, self.width - 1),
-                random.randint(0, self.height - 1),
+                rd.random.randint(0, self.width),
+                rd.random.randint(0, self.height),
             )
             if food not in self.snake:
                 return food
@@ -221,9 +217,16 @@ class SnakeEvolver:
         self.input_size = 13
         self.output_size = 4
 
-        self.codec = rd.GraphCodec.directed(
+        self.codec = rd.GraphCodec.weighted_directed(
             shape=(self.input_size, self.output_size),
-            vertex=rd.Op.all_ops(),
+            vertex=[
+                rd.Op.sub(),
+                rd.Op.mul(),
+                rd.Op.linear(),
+                rd.Op.sigmoid(),
+                rd.Op.relu(),
+                rd.Op.tanh(),
+            ],
             edge=rd.Op.weight(),
             output=rd.Op.sigmoid(),
         )
@@ -233,8 +236,8 @@ class SnakeEvolver:
         total_fitness = 0.0
         num_games = 3
 
-        for game_num in range(num_games):
-            random.seed(42 + game_num)
+        for _ in range(num_games):
+            graph.reset()  # Reset graph state for each game
 
             game = SnakeGame(debug=False)
             ai = SnakeAI(graph, debug=False)
@@ -250,7 +253,6 @@ class SnakeEvolver:
 
     def test_individual(self, weights: List[float], debug: bool = False) -> dict:
         """Test an individual with detailed logging."""
-        random.seed(42)
 
         game = SnakeGame(debug=debug)
         ai = SnakeAI(weights, debug=debug)
@@ -286,11 +288,10 @@ class SnakeEvolver:
             codec=self.codec,
             fitness_func=self.fitness_function,
             offspring_selector=rd.BoltzmannSelector(4),
-            objectives="max",
             alters=[
                 rd.GraphCrossover(0.5, 0.5),
                 rd.OperationMutator(0.04, 0.05),
-                rd.GraphMutator(0.08, 0.04),
+                rd.GraphMutator(0.08, 0.04, True),
             ],
         )
 
@@ -298,7 +299,7 @@ class SnakeEvolver:
         """Run the evolution process."""
         engine = self.create_engine()
         return engine.run(
-            [rd.GenerationsLimit(generations), rd.SecondsLimit(60)], log=True
+            [rd.GenerationsLimit(generations), rd.SecondsLimit(60 * 5)], log=True
         )
 
     def visualize_best_snake(self, graph: rd.Graph, title: str = "Best Snake AI"):
@@ -350,7 +351,7 @@ def main():
     evolver = SnakeEvolver()
 
     # Run evolution
-    result = evolver.run_evolution(generations=500, population_size=50)
+    result = evolver.run_evolution(generations=250, population_size=50)
 
     print(result)
 

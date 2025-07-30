@@ -17,7 +17,7 @@ pub use chromosome::GraphChromosome;
 pub use codec::GraphCodec;
 pub use crossover::GraphCrossover;
 pub use diversity::NeatDistance;
-pub use eval::GraphEvaluator;
+pub use eval::{GraphEvalCache, GraphEvaluator};
 pub use graph::Graph;
 pub use iter::GraphIterator;
 pub use mutation::GraphMutator;
