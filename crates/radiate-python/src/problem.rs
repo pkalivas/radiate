@@ -42,7 +42,7 @@ impl<C: Chromosome, T: IntoPyObjectValue> Problem<C, T> for PyProblem<C, T> {
     }
 }
 
-impl<C: Chromosome + Clone, T: IntoPyObjectValue + Clone> Clone for PyProblem<C, T> {
+impl<C: Chromosome + Clone, T: Clone> Clone for PyProblem<C, T> {
     fn clone(&self) -> Self {
         Python::with_gil(|py| {
             let fitness_func = self.fitness_func.clone_ref(py);
@@ -55,8 +55,8 @@ impl<C: Chromosome + Clone, T: IntoPyObjectValue + Clone> Clone for PyProblem<C,
     }
 }
 
-unsafe impl<C: Chromosome, T: IntoPyObjectValue> Send for PyProblem<C, T> {}
-unsafe impl<C: Chromosome, T: IntoPyObjectValue> Sync for PyProblem<C, T> {}
+unsafe impl<C: Chromosome, T> Send for PyProblem<C, T> {}
+unsafe impl<C: Chromosome, T> Sync for PyProblem<C, T> {}
 
 pub(crate) fn call_fitness<'a, 'py>(
     py: Python<'py>,

@@ -11,7 +11,7 @@ mod inputs;
 mod metric;
 mod subscriber;
 
-pub use builder::PyEngineBuilder;
+pub use builder::*;
 pub use codec::{
     PyAnyCodec, PyBitCodec, PyCharCodec, PyCodec, PyFloatCodec, PyGraphCodec, PyIntCodec,
     PyPermutationCodec, PyTreeCodec,
@@ -19,7 +19,7 @@ pub use codec::{
 pub use converters::InputTransform;
 pub use engine::PyEngine;
 pub use epoch::PyGeneration;
-pub use fitness::{PyFitnessFn, PyFitnessInner, PyNoveltySearch, PyNoveltySearchFitnessBuilder};
+pub use fitness::{PyFitnessFn, PyFitnessInner, PyNoveltySearch};
 pub use functions::*;
 pub use gene::{PyChromosome, PyGene, PyGeneType, PyGenotype, PyPhenotype, PyPopulation};
 pub use gp::{PyGraph, PyGraphNode, PyTree, PyTreeNode};

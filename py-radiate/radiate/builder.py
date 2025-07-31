@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple, Callable
 from radiate.codec.codec import CodecBase
 from radiate.genome.population import Population
-from radiate.inputs.problem import ProblemBase
+from radiate.fitness import FitnessBase
 from radiate.radiate import PyEngine, PyEngineBuilder
 from ._typing import Subscriber
 from .inputs.input import EngineInput, EngineInputType
@@ -9,7 +9,7 @@ from .inputs.selector import SelectorBase
 from .inputs.alterer import AlterBase
 from .inputs.distance import DistanceBase
 from .inputs.executor import Executor
-from .inputs.problem import CallableProblem
+from .fitness import CallableFitness
 
 
 class EngineBuilder:
@@ -17,7 +17,7 @@ class EngineBuilder:
         self,
         gene_type: str,
         codec: CodecBase,
-        problem: ProblemBase,
+        problem: FitnessBase,
         population: Optional[Population],
     ):
         self._inputs = []
@@ -27,7 +27,7 @@ class EngineBuilder:
         self._population = population
 
         if isinstance(problem, Callable):
-            self.problem = CallableProblem(problem)
+            self.problem = CallableFitness(problem)
         else:
             self.problem = problem
 

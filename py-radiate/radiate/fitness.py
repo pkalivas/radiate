@@ -1,26 +1,22 @@
 import abc
 from typing import List, Callable, Any
-from radiate.genome.gene import GeneType
 from radiate.inputs.descriptor import CustomDescriptor, DescriptorBase
-from radiate.inputs.input import EngineInput, EngineInputType
 from radiate.inputs.distance import (
     DistanceBase,
     EuclideanDistance,
-    GraphArchitectureDistance,
-    GraphTopologyDistance,
     HammingDistance,
 )
 from radiate.radiate import PyFitnessFn
 
 
-class ProblemBase(abc.ABC):
+class FitnessBase(abc.ABC):
     """A class representing a problem to be solved using evolutionary algorithms."""
 
     def __init__(self, problem: PyFitnessFn):
         self.problem = problem
 
 
-class CallableProblem(ProblemBase):
+class CallableFitness(FitnessBase):
     """A class representing a custom problem defined by the user."""
 
     def __init__(self, problem: Callable[[Any], Any]):
@@ -32,7 +28,7 @@ class CallableProblem(ProblemBase):
         super().__init__(PyFitnessFn.custom(problem))
 
 
-class Regression(ProblemBase):
+class Regression(FitnessBase):
     """A class representing a regression problem."""
 
     def __init__(
@@ -58,7 +54,7 @@ class Regression(ProblemBase):
         )
 
 
-class NoveltySearch(ProblemBase):
+class NoveltySearch(FitnessBase):
     """A class representing a novelty search problem."""
 
     def __init__(
@@ -101,30 +97,6 @@ class NoveltySearch(ProblemBase):
         if archive_size <= 0:
             raise ValueError("archive_size must be a positive integer.")
 
-        # builder = PyNoveltySearchFitnessBuilder(
-        #     descriptor=descriptor.descriptor
-        #     if isinstance(descriptor, CustomDescriptor)
-        #     else descriptor,
-        #     distance=EngineInput(
-        #         input_type=EngineInputType.Diversity,
-        #         component=distance.component,
-        #         allowed_genes=distance.allowed_genes
-        #         if not descriptor
-        #         else GeneType.ALL,
-        #         **distance.args,
-        #     ).py_input(),
-        #     k=k,
-        #     threshold=threshold,
-        #     archive_size=archive_size,
-        # )
-
-        input = EngineInput(
-            input_type=EngineInputType.Diversity,
-            component=distance.component,
-            allowed_genes=distance.allowed_genes if not descriptor else GeneType.ALL,
-            **distance.args,
-        ).py_input()
-
         super().__init__(
             PyFitnessFn.novelty_search(
                 distance_fn=distance.component,
@@ -132,6 +104,5 @@ class NoveltySearch(ProblemBase):
                 k=k,
                 threshold=threshold,
                 archive_size=archive_size,
-        
             )
         )

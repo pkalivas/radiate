@@ -23,7 +23,7 @@ from .handlers import EventHandler, EventType
 from .gp import Op
 
 from .inputs.executor import Executor
-from .inputs.problem import Regression, NoveltySearch
+from .fitness import Regression, NoveltySearch
 from .inputs.selector import (
     TournamentSelector,
     RouletteSelector,

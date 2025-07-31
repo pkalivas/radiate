@@ -1,11 +1,11 @@
+use crate::PySubscriber;
 use crate::bindings::codec::PyTreeCodec;
 use crate::bindings::{EngineBuilderHandle, EngineHandle};
 use crate::events::PyEventHandler;
 use crate::{
     FreeThreadPyEvaluator, InputTransform, PyCodec, PyEngine, PyEngineInput, PyEngineInputType,
-    PyFitnessFn, PyFitnessInner, PyNoveltySearch, PyPermutationCodec, PyPopulation, prelude::*,
+    PyFitnessFn, PyFitnessInner, PyPermutationCodec, PyPopulation, prelude::*,
 };
-use crate::{PyGeneType, PySubscriber};
 use core::panic;
 use pyo3::exceptions::PyTypeError;
 use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
@@ -31,7 +31,6 @@ macro_rules! apply_to_builder {
 
 #[pyclass]
 pub struct PyEngineBuilder {
-    pub gene_type: PyGeneType,
     pub codec: Py<PyAny>,
     pub problem: Py<PyAny>,
     pub population: Option<PyPopulation>,
@@ -43,25 +42,13 @@ pub struct PyEngineBuilder {
 impl PyEngineBuilder {
     #[new]
     pub fn new(
-        gene_type: String,
         codec: Py<PyAny>,
         problem: Py<PyAny>,
         population: Option<PyPopulation>,
         subscribers: Vec<PySubscriber>,
         inputs: Vec<PyEngineInput>,
     ) -> Self {
-        let gene_type = match gene_type.as_str() {
-            "float" => PyGeneType::Float,
-            "int" => PyGeneType::Int,
-            "bit" => PyGeneType::Bit,
-            "char" => PyGeneType::Char,
-            "graph" => PyGeneType::Graph,
-            "tree" => PyGeneType::Tree,
-            "permutation" => PyGeneType::Permutation,
-            _ => panic!("Invalid gene type: {}", gene_type),
-        };
         PyEngineBuilder {
-            gene_type,
             codec,
             problem,
             population,
@@ -113,8 +100,7 @@ impl PyEngineBuilder {
             .map(|i| i.__repr__())
             .collect::<Vec<String>>();
         format!(
-            "EngineBuilder(\ngene_type={:?}, \ncodec={:?}, \nproblem={:?}, \nsubscribers={:?}, \ninputs=[{}])",
-            self.gene_type,
+            "EngineBuilder(\ncodec={:?}, \nproblem={:?}, \nsubscribers={:?}, \ninputs=[{}])",
             self.codec,
             self.problem,
             self.subscribers,
@@ -387,8 +373,7 @@ impl PyEngineBuilder {
                 Ok(EngineBuilderHandle::Permutation(builder.alter(alters)))
             }
             _ => Err(PyTypeError::new_err(format!(
-                "Process Alterer not imiplemented for {:?} gene type",
-                self.gene_type
+                "Process Alterer not implemented",
             ))),
         }
     }
@@ -509,265 +494,156 @@ impl PyEngineBuilder {
 
         let builder = match problem.inner {
             PyFitnessInner::Custom(fitness_fn) => {
-                self.create_builder_with_custom_problem(fitness_fn, codec, executor)
+                Self::new_builder_custom(fitness_fn, codec, executor)
             }
             PyFitnessInner::Regression(regression) => {
-                self.create_builder_with_regression_problem(regression, codec, executor)
+                Self::new_builder_regression(regression, codec, executor)
             }
             PyFitnessInner::NoveltySearch(novelty_search) => {
-                self.create_builder_with_novelty_search_problem(novelty_search, codec, executor)
+                Self::new_builder_novelty(novelty_search, codec, executor)
             }
         };
 
         builder
     }
 
-    fn create_builder_with_custom_problem<'py>(
-        &self,
+    fn new_builder_custom<'py>(
         fitness_fn: ObjectValue,
         codec: &Bound<'py, PyAny>,
         executor: Executor,
     ) -> PyResult<EngineBuilderHandle> {
         let fitness_fn = fitness_fn.inner;
-        let builder = match self.gene_type {
-            PyGeneType::Float => {
-                let codec = codec.extract::<PyFloatCodec>()?;
-                let float_problem = PyProblem::new(fitness_fn, codec.codec);
 
-                EngineBuilderHandle::Float(
-                    GeneticEngine::builder()
-                        .problem(float_problem.clone())
-                        .executor(executor.clone())
-                        .evaluator(FreeThreadPyEvaluator::new(executor, float_problem))
-                        .bus_executor(Executor::default()),
-                )
-            }
-            PyGeneType::Int => {
-                let codec = codec.extract::<PyIntCodec>()?;
-                let int_problem = PyProblem::new(fitness_fn, codec.codec);
-                EngineBuilderHandle::Int(
-                    GeneticEngine::builder()
-                        .problem(int_problem.clone())
-                        .executor(executor.clone())
-                        .evaluator(FreeThreadPyEvaluator::new(executor, int_problem))
-                        .bus_executor(Executor::default()),
-                )
-            }
-            PyGeneType::Char => {
-                let codec = codec.extract::<PyCharCodec>()?;
-                let char_problem = PyProblem::new(fitness_fn, codec.codec);
-                EngineBuilderHandle::Char(
-                    GeneticEngine::builder()
-                        .problem(char_problem.clone())
-                        .executor(executor.clone())
-                        .evaluator(FreeThreadPyEvaluator::new(executor, char_problem))
-                        .bus_executor(Executor::default()),
-                )
-            }
-            PyGeneType::Bit => {
-                let codec = codec.extract::<PyBitCodec>()?;
-                let bit_problem = PyProblem::new(fitness_fn, codec.codec);
-                EngineBuilderHandle::Bit(
-                    GeneticEngine::builder()
-                        .problem(bit_problem.clone())
-                        .executor(executor.clone())
-                        .evaluator(FreeThreadPyEvaluator::new(executor, bit_problem))
-                        .bus_executor(Executor::default()),
-                )
-            }
-            PyGeneType::Permutation => {
-                let codec = codec.extract::<PyPermutationCodec>()?;
-                let custom_problem = PyProblem::new(fitness_fn, codec.codec);
-                EngineBuilderHandle::Permutation(
-                    GeneticEngine::builder()
-                        .problem(custom_problem.clone())
-                        .executor(executor.clone())
-                        .evaluator(FreeThreadPyEvaluator::new(executor, custom_problem))
-                        .bus_executor(Executor::default()),
-                )
-            }
-            PyGeneType::Graph => {
-                let codec = codec.extract::<PyGraphCodec>()?;
-                let cloned_codec = codec.codec.clone();
-                let py_codec = PyCodec::new()
-                    .with_encoder(move || cloned_codec.encode())
-                    .with_decoder(move |_, genotype| codec.codec.decode(genotype));
+        let builder = if let Ok(float_codec) = codec.extract::<PyFloatCodec>() {
+            EngineBuilderHandle::Float(Self::new_builder(fitness_fn, float_codec.codec, executor))
+        } else if let Ok(int_codec) = codec.extract::<PyIntCodec>() {
+            EngineBuilderHandle::Int(Self::new_builder(fitness_fn, int_codec.codec, executor))
+        } else if let Ok(char_codec) = codec.extract::<PyCharCodec>() {
+            EngineBuilderHandle::Char(Self::new_builder(fitness_fn, char_codec.codec, executor))
+        } else if let Ok(bit_codec) = codec.extract::<PyBitCodec>() {
+            EngineBuilderHandle::Bit(Self::new_builder(fitness_fn, bit_codec.codec, executor))
+        } else if let Ok(perm_codec) = codec.extract::<PyPermutationCodec>() {
+            EngineBuilderHandle::Permutation(Self::new_builder(
+                fitness_fn,
+                perm_codec.codec,
+                executor,
+            ))
+        } else if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
+            let cloned_codec = graph_codec.codec.clone();
+            let py_codec = PyCodec::new()
+                .with_encoder(move || cloned_codec.encode())
+                .with_decoder(move |_, genotype| graph_codec.codec.decode(genotype));
 
-                let graph_problem = PyProblem::new(fitness_fn, py_codec);
-                EngineBuilderHandle::Graph(
-                    GeneticEngine::builder()
-                        .problem(graph_problem.clone())
-                        .executor(executor.clone())
-                        .evaluator(FreeThreadPyEvaluator::new(executor, graph_problem))
-                        .bus_executor(Executor::default())
-                        .replace_strategy(GraphReplacement),
-                )
-            }
-            PyGeneType::Tree => {
-                let codec = codec.extract::<PyTreeCodec>()?;
-                let cloned_codec = codec.codec.clone();
-                let py_codec = PyCodec::new()
-                    .with_encoder(move || cloned_codec.encode())
-                    .with_decoder(move |_, genotype| codec.codec.decode(genotype));
+            EngineBuilderHandle::Graph(
+                Self::new_builder(fitness_fn, py_codec, executor)
+                    .replace_strategy(GraphReplacement),
+            )
+        } else if let Ok(tree_codec) = codec.extract::<PyTreeCodec>() {
+            let cloned_codec = tree_codec.codec.clone();
+            let py_codec = PyCodec::new()
+                .with_encoder(move || cloned_codec.encode())
+                .with_decoder(move |_, genotype| tree_codec.codec.decode(genotype));
 
-                let tree_problem = PyProblem::new(fitness_fn, py_codec);
-                EngineBuilderHandle::Tree(
-                    GeneticEngine::builder()
-                        .problem(tree_problem.clone())
-                        .executor(executor.clone())
-                        .evaluator(FreeThreadPyEvaluator::new(executor, tree_problem))
-                        .bus_executor(Executor::default()),
-                )
-            }
-            _ => {
-                return Err(PyErr::new::<PyTypeError, _>(
-                    "Unsupported gene type for custom problem",
-                ));
-            }
+            EngineBuilderHandle::Tree(Self::new_builder(fitness_fn, py_codec, executor))
+        } else {
+            return Err(PyErr::new::<PyTypeError, _>(
+                "Unsupported codec type for custom problem",
+            ));
         };
 
         Ok(builder)
     }
 
-    fn create_builder_with_regression_problem<'py>(
-        &self,
+    fn new_builder_regression<'py>(
         regression: Regression,
         codec: &Bound<'py, PyAny>,
         executor: Executor,
     ) -> PyResult<EngineBuilderHandle> {
-        match self.gene_type {
-            PyGeneType::Graph => {
-                let codec = codec.extract::<PyGraphCodec>()?;
+        let builder = if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
+            EngineBuilderHandle::Graph(
+                GeneticEngine::builder()
+                    .codec(graph_codec.codec)
+                    .fitness_fn(regression)
+                    .executor(executor)
+                    .bus_executor(Executor::default())
+                    .replace_strategy(GraphReplacement),
+            )
+        } else if let Ok(tree_codec) = codec.extract::<PyTreeCodec>() {
+            EngineBuilderHandle::Tree(
+                GeneticEngine::builder()
+                    .codec(tree_codec.codec)
+                    .fitness_fn(regression)
+                    .executor(executor)
+                    .bus_executor(Executor::default()),
+            )
+        } else {
+            return Err(PyErr::new::<PyTypeError, _>(
+                "Unsupported codec type for regression problem",
+            ));
+        };
 
-                Ok(EngineBuilderHandle::Graph(
-                    GeneticEngine::builder()
-                        .codec(codec.codec.clone())
-                        .fitness_fn(regression)
-                        .executor(executor)
-                        .bus_executor(Executor::default())
-                        .replace_strategy(GraphReplacement),
-                ))
-            }
-
-            PyGeneType::Tree => {
-                let codec = codec.extract::<PyTreeCodec>()?;
-
-                Ok(EngineBuilderHandle::Tree(
-                    GeneticEngine::builder()
-                        .codec(codec.codec.clone())
-                        .fitness_fn(regression)
-                        .executor(executor)
-                        .bus_executor(Executor::default()),
-                ))
-            }
-            _ => Err(PyErr::new::<PyTypeError, _>(
-                "Regression problem only supports GraphChromosome & TreeChromosome",
-            )),
-        }
+        Ok(builder)
     }
 
-    fn create_builder_with_novelty_search_problem<'py>(
-        &self,
+    fn new_builder_novelty<'py>(
         fitness: ObjectValue,
         codec: &Bound<'py, PyAny>,
         executor: Executor,
     ) -> PyResult<EngineBuilderHandle> {
-        match self.gene_type {
-            PyGeneType::Float => {
-                let float_codec = codec.extract::<PyFloatCodec>()?;
-                let problem = PyProblem::new(fitness.inner, float_codec.codec);
+        let fitness = fitness.inner;
+        let builder = if let Ok(float_codec) = codec.extract::<PyFloatCodec>() {
+            EngineBuilderHandle::Float(Self::new_builder(fitness, float_codec.codec, executor))
+        } else if let Ok(int_codec) = codec.extract::<PyIntCodec>() {
+            EngineBuilderHandle::Int(Self::new_builder(fitness, int_codec.codec, executor))
+        } else if let Ok(char_codec) = codec.extract::<PyCharCodec>() {
+            EngineBuilderHandle::Char(Self::new_builder(fitness, char_codec.codec, executor))
+        } else if let Ok(bit_codec) = codec.extract::<PyBitCodec>() {
+            EngineBuilderHandle::Bit(Self::new_builder(fitness, bit_codec.codec, executor))
+        } else if let Ok(permutation_codec) = codec.extract::<PyPermutationCodec>() {
+            EngineBuilderHandle::Permutation(Self::new_builder(
+                fitness,
+                permutation_codec.codec,
+                executor,
+            ))
+        } else if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
+            let cloned_codec = graph_codec.codec.clone();
+            let py_codec = PyCodec::new()
+                .with_encoder(move || cloned_codec.encode())
+                .with_decoder(move |_, genotype| graph_codec.codec.decode(genotype));
 
-                Ok(EngineBuilderHandle::Float(
-                    GeneticEngine::builder()
-                        .problem(problem.clone())
-                        .executor(executor.clone())
-                        .evaluator(FreeThreadPyEvaluator::new(executor, problem))
-                        .bus_executor(Executor::default()),
-                ))
-            }
-            PyGeneType::Int => {
-                let int_codec = codec.extract::<PyIntCodec>()?;
-                let problem = PyProblem::new(fitness.inner, int_codec.codec);
+            EngineBuilderHandle::Graph(
+                Self::new_builder(fitness, py_codec, executor).replace_strategy(GraphReplacement),
+            )
+        } else if let Ok(tree_codec) = codec.extract::<PyTreeCodec>() {
+            let cloned_codec = tree_codec.codec.clone();
+            let py_codec = PyCodec::new()
+                .with_encoder(move || cloned_codec.encode())
+                .with_decoder(move |_, genotype| tree_codec.codec.decode(genotype));
 
-                Ok(EngineBuilderHandle::Int(
-                    GeneticEngine::builder()
-                        .problem(problem.clone())
-                        .executor(executor.clone())
-                        .evaluator(FreeThreadPyEvaluator::new(executor, problem))
-                        .bus_executor(Executor::default()),
-                ))
-            }
+            EngineBuilderHandle::Tree(Self::new_builder(fitness, py_codec, executor))
+        } else {
+            return Err(PyErr::new::<PyTypeError, _>(
+                "Unsupported codec type for novelty search problem",
+            ));
+        };
 
-            PyGeneType::Char => {
-                let char_codec = codec.extract::<PyCharCodec>()?;
-                let problem = PyProblem::new(fitness.inner, char_codec.codec);
+        Ok(builder)
+    }
 
-                Ok(EngineBuilderHandle::Char(
-                    GeneticEngine::builder()
-                        .problem(problem.clone())
-                        .executor(executor.clone())
-                        .evaluator(FreeThreadPyEvaluator::new(executor, problem))
-                        .bus_executor(Executor::default()),
-                ))
-            }
-            PyGeneType::Bit => {
-                let bit_codec = codec.extract::<PyBitCodec>()?;
-                let problem = PyProblem::new(fitness.inner, bit_codec.codec);
-
-                Ok(EngineBuilderHandle::Bit(
-                    GeneticEngine::builder()
-                        .problem(problem.clone())
-                        .executor(executor.clone())
-                        .evaluator(FreeThreadPyEvaluator::new(executor, problem))
-                        .bus_executor(Executor::default()),
-                ))
-            }
-            PyGeneType::Permutation => {
-                let perm_codec = codec.extract::<PyPermutationCodec>()?;
-                let problem = PyProblem::new(fitness.inner, perm_codec.codec);
-
-                Ok(EngineBuilderHandle::Permutation(
-                    GeneticEngine::builder()
-                        .problem(problem.clone())
-                        .executor(executor.clone())
-                        .evaluator(FreeThreadPyEvaluator::new(executor, problem))
-                        .bus_executor(Executor::default()),
-                ))
-            }
-            PyGeneType::Graph => {
-                let codec = codec.extract::<PyGraphCodec>()?;
-                let cloned_codec = codec.codec.clone();
-                let py_codec = PyCodec::new()
-                    .with_encoder(move || cloned_codec.encode())
-                    .with_decoder(move |_, genotype| codec.codec.decode(genotype));
-
-                let graph_problem = PyProblem::new(fitness.inner, py_codec);
-                Ok(EngineBuilderHandle::Graph(
-                    GeneticEngine::builder()
-                        .problem(graph_problem.clone())
-                        .executor(executor.clone())
-                        .evaluator(FreeThreadPyEvaluator::new(executor, graph_problem))
-                        .bus_executor(Executor::default())
-                        .replace_strategy(GraphReplacement),
-                ))
-            }
-            PyGeneType::Tree => {
-                let codec = codec.extract::<PyTreeCodec>()?;
-                let cloned_codec = codec.codec.clone();
-                let py_codec = PyCodec::new()
-                    .with_encoder(move || cloned_codec.encode())
-                    .with_decoder(move |_, genotype| codec.codec.decode(genotype));
-
-                let tree_problem = PyProblem::new(fitness.inner, py_codec);
-                Ok(EngineBuilderHandle::Tree(
-                    GeneticEngine::builder()
-                        .problem(tree_problem.clone())
-                        .executor(executor.clone())
-                        .evaluator(FreeThreadPyEvaluator::new(executor, tree_problem))
-                        .bus_executor(Executor::default()),
-                ))
-            }
-            _ => Err(PyTypeError::new_err("Unsupported gene type")),
-        }
+    fn new_builder<C, T>(
+        fitness_fn: Py<PyAny>,
+        codec: PyCodec<C, T>,
+        executor: Executor,
+    ) -> GeneticEngineBuilder<C, T>
+    where
+        C: Chromosome + PartialEq + Clone + 'static,
+        T: Send + Sync + Clone + IntoPyObjectValue + 'static,
+    {
+        let problem = PyProblem::new(fitness_fn, codec);
+        GeneticEngine::builder()
+            .problem(problem.clone())
+            .executor(executor.clone())
+            .evaluator(FreeThreadPyEvaluator::new(executor, problem))
+            .bus_executor(Executor::default())
     }
 }

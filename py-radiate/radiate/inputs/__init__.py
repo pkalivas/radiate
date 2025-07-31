@@ -48,8 +48,6 @@ from .limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
 
 from .descriptor import PhenotypeDescriptor, CustomDescriptor
 
-from .problem import Regression, CallableProblem
-
 __all__ = [
     "BlendCrossover",
     "CosineDistance",
@@ -91,7 +89,6 @@ __all__ = [
     "GenerationsLimit",
     "ScoreLimit",
     "Regression",
-    "CallableProblem",
     "ConvergenceLimit",
     "PhenotypeDescriptor",
     "CustomDescriptor",
