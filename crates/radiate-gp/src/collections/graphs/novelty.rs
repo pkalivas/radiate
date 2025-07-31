@@ -326,8 +326,7 @@ where
             let one_desc = self.extract_topology_metrics(one_chrom);
             let two_desc = self.extract_topology_metrics(two_chrom);
 
-            total_distance +=
-                <GraphTopologyNovelty as Novelty<Graph<T>>>::distance(self, &one_desc, &two_desc);
+            total_distance += Self::distance(self, &one_desc, &two_desc);
         }
 
         total_distance
@@ -335,14 +334,21 @@ where
 }
 
 impl<T> Novelty<Graph<T>> for GraphTopologyNovelty {
-    type Descriptor = GraphTopologyDescriptor;
+    fn description(&self, graph: &Graph<T>) -> Vec<f32> {
+        let metrics = self.extract_topology_metrics(graph);
 
-    fn description(&self, graph: &Graph<T>) -> Self::Descriptor {
-        self.extract_topology_metrics(graph)
-    }
-
-    fn distance(&self, a: &Self::Descriptor, b: &Self::Descriptor) -> f32 {
-        self.distance(a, b)
+        vec![
+            metrics.node_count,
+            metrics.edge_count,
+            metrics.avg_degree,
+            metrics.density,
+            metrics.clustering_coefficient,
+            metrics.avg_path_length,
+            metrics.connected_components,
+            metrics.max_degree,
+            metrics.diameter,
+            metrics.avg_betweenness,
+        ]
     }
 }
 
@@ -744,9 +750,35 @@ where
             let one_desc = self.extract_architecture_metrics(one_chrom);
             let two_desc = self.extract_architecture_metrics(two_chrom);
 
-            total_distance += <GraphArchitectureNovelty as Novelty<Graph<T>>>::distance(
-                self, &one_desc, &two_desc,
-            );
+            let one = vec![
+                one_desc.layer_count,
+                one_desc.input_output_ratio,
+                one_desc.hidden_density,
+                one_desc.skip_connections,
+                one_desc.fan_out_ratio,
+                one_desc.fan_in_ratio,
+                one_desc.activation_types,
+                one_desc.modularity,
+                one_desc.centrality_std,
+                one_desc.avg_path_length,
+            ];
+
+            let two_desc = vec![
+                two_desc.layer_count,
+                two_desc.input_output_ratio,
+                two_desc.hidden_density,
+                two_desc.skip_connections,
+                two_desc.fan_out_ratio,
+                two_desc.fan_in_ratio,
+                two_desc.activation_types,
+                two_desc.modularity,
+                two_desc.centrality_std,
+                two_desc.avg_path_length,
+            ];
+
+            for (a_val, b_val) in one.iter().zip(two_desc.iter()) {
+                total_distance += (a_val - b_val).abs();
+            }
         }
 
         total_distance
@@ -757,46 +789,32 @@ impl<T> Novelty<Graph<T>> for GraphArchitectureNovelty
 where
     T: std::hash::Hash,
 {
-    type Descriptor = GraphArchitectureDescriptor;
+    fn description(&self, graph: &Graph<T>) -> Vec<f32> {
+        let desc = self.extract_architecture_metrics(graph);
 
-    fn description(&self, graph: &Graph<T>) -> Self::Descriptor {
-        self.extract_architecture_metrics(graph)
+        vec![
+            desc.layer_count,
+            desc.input_output_ratio,
+            desc.hidden_density,
+            desc.skip_connections,
+            desc.fan_out_ratio,
+            desc.fan_in_ratio,
+            desc.activation_types,
+            desc.modularity,
+            desc.centrality_std,
+            desc.avg_path_length,
+        ]
     }
 
-    fn distance(&self, a: &Self::Descriptor, b: &Self::Descriptor) -> f32 {
-        let mut total_distance = 0.0;
+    // fn distance(&self, a: &Self::Descriptor, b: &Self::Descriptor) -> f32 {
+    //     let mut total_distance = 0.0;
 
-        let a_norm = [
-            a.layer_count,
-            a.input_output_ratio,
-            a.hidden_density,
-            a.skip_connections,
-            a.fan_out_ratio,
-            a.fan_in_ratio,
-            a.activation_types,
-            a.modularity,
-            a.centrality_std,
-            a.avg_path_length,
-        ];
-        let b_norm = [
-            b.layer_count,
-            b.input_output_ratio,
-            b.hidden_density,
-            b.skip_connections,
-            b.fan_out_ratio,
-            b.fan_in_ratio,
-            b.activation_types,
-            b.modularity,
-            b.centrality_std,
-            b.avg_path_length,
-        ];
+    //     for (a_val, b_val) in a.iter().zip(b.iter()) {
+    //         total_distance += (a_val - b_val).abs();
+    //     }
 
-        for (a_val, b_val) in a_norm.iter().zip(b_norm.iter()) {
-            total_distance += (a_val - b_val).abs();
-        }
-
-        total_distance
-    }
+    //     total_distance
+    // }
 }
 
 #[cfg(test)]
@@ -931,7 +949,7 @@ mod tests {
         let novelty = GraphTopologyNovelty;
         let graph = create_star_graph();
 
-        let descriptor = novelty.description(&graph);
+        let descriptor = novelty.extract_topology_metrics(&graph);
 
         // Basic sanity checks
         assert!(descriptor.node_count > 0.0);
@@ -955,9 +973,9 @@ mod tests {
         let ring = create_ring_graph();
         let mesh = create_mesh_graph();
 
-        let star_desc = novelty.description(&star);
-        let ring_desc = novelty.description(&ring);
-        let mesh_desc = novelty.description(&mesh);
+        let star_desc = novelty.extract_topology_metrics(&star);
+        let ring_desc = novelty.extract_topology_metrics(&ring);
+        let mesh_desc = novelty.extract_topology_metrics(&mesh);
 
         // Different structures should have different descriptors
         assert_ne!(star_desc.node_count, ring_desc.node_count);
@@ -977,7 +995,7 @@ mod tests {
         let novelty = GraphTopologyNovelty;
         let empty_graph = Graph::<Op<f32>>::default();
 
-        let descriptor = novelty.description(&empty_graph);
+        let descriptor = novelty.extract_topology_metrics(&empty_graph);
 
         assert_eq!(descriptor.node_count, 0.0);
         assert_eq!(descriptor.edge_count, 0.0);
@@ -996,7 +1014,7 @@ mod tests {
         let mut graph = Graph::new(vec![]);
         graph.insert(NodeType::Vertex, Op::add());
 
-        let descriptor = novelty.description(&graph);
+        let descriptor = novelty.extract_topology_metrics(&graph);
 
         assert_eq!(descriptor.node_count, 1.0);
         assert_eq!(descriptor.edge_count, 0.0);
@@ -1006,24 +1024,13 @@ mod tests {
         assert_eq!(descriptor.max_degree, 0.0);
     }
 
-    #[test]
-    fn test_topology_novelty_self_distance() {
-        let novelty = GraphTopologyNovelty;
-        let graph = create_star_graph();
-        let descriptor = novelty.description(&graph);
-
-        // Distance to self should be 0
-        let self_distance = novelty.distance(&descriptor, &descriptor);
-        assert_eq!(self_distance, 0.0);
-    }
-
     // Architecture Novelty Tests
     #[test]
     fn test_architecture_novelty_basic() {
         let novelty = GraphArchitectureNovelty;
         let graph = create_deep_network();
 
-        let descriptor = novelty.description(&graph);
+        let descriptor = novelty.extract_architecture_metrics(&graph);
 
         // Basic sanity checks
         assert!(descriptor.layer_count >= 0.0);
@@ -1047,8 +1054,8 @@ mod tests {
         let normal_network = create_deep_network();
         let skip_network = create_skip_connection_network();
 
-        let normal_desc = novelty.description(&normal_network);
-        let skip_desc = novelty.description(&skip_network);
+        let normal_desc = novelty.extract_architecture_metrics(&normal_network);
+        let skip_desc = novelty.extract_architecture_metrics(&skip_network);
 
         // Skip connection network should have more skip connections
         assert!(skip_desc.skip_connections > normal_desc.skip_connections);
@@ -1076,7 +1083,7 @@ mod tests {
         diverse_graph.attach(relu_node, linear_node);
         diverse_graph.attach(linear_node, output);
 
-        let descriptor = novelty.description(&diverse_graph);
+        let descriptor = novelty.extract_architecture_metrics(&diverse_graph);
 
         // Should detect multiple activation types
         assert!(descriptor.activation_types >= 3.0);
@@ -1087,7 +1094,7 @@ mod tests {
         let novelty = GraphArchitectureNovelty;
         let empty_graph = Graph::<Op<f32>>::default();
 
-        let descriptor = novelty.description(&empty_graph);
+        let descriptor = novelty.extract_architecture_metrics(&empty_graph);
 
         assert_eq!(descriptor.layer_count, 0.0);
         assert_eq!(descriptor.input_output_ratio, 1.0); // Default when no outputs
@@ -1108,7 +1115,7 @@ mod tests {
         graph.insert(NodeType::Input, Op::var(0));
         graph.insert(NodeType::Input, Op::var(1));
 
-        let descriptor = novelty.description(&graph);
+        let descriptor = novelty.extract_architecture_metrics(&graph);
 
         assert_eq!(descriptor.layer_count, 0.0);
         assert_eq!(descriptor.input_output_ratio, 1.0); // 2 inputs, 0 outputs
@@ -1123,7 +1130,7 @@ mod tests {
         graph.insert(NodeType::Output, Op::linear());
         graph.insert(NodeType::Output, Op::sigmoid());
 
-        let descriptor = novelty.description(&graph);
+        let descriptor = novelty.extract_architecture_metrics(&graph);
 
         assert_eq!(descriptor.layer_count, 0.0);
         assert_eq!(descriptor.input_output_ratio, 0.0); // 0 inputs, 2 outputs
@@ -1135,7 +1142,7 @@ mod tests {
     fn test_architecture_novelty_self_distance() {
         let novelty = GraphArchitectureNovelty;
         let graph = create_deep_network();
-        let descriptor = novelty.description(&graph);
+        let descriptor = novelty.extract_architecture_metrics(&graph);
 
         // Distance to self should be 0
         let self_distance = novelty.distance(&descriptor, &descriptor);
@@ -1149,8 +1156,8 @@ mod tests {
         let deep = create_deep_network();
         let skip = create_skip_connection_network();
 
-        let deep_desc = novelty.description(&deep);
-        let skip_desc = novelty.description(&skip);
+        let deep_desc = novelty.extract_architecture_metrics(&deep);
+        let skip_desc = novelty.extract_architecture_metrics(&skip);
 
         // Different architectures should have different descriptors
         assert_ne!(deep_desc.layer_count, skip_desc.layer_count);
@@ -1202,7 +1209,7 @@ mod tests {
         modular_graph.attach(node3, output1); // Community 1 -> Output 1
         modular_graph.attach(node6, output2); // Community 2 -> Output 2
 
-        let descriptor = novelty.description(&modular_graph);
+        let descriptor = novelty.extract_architecture_metrics(&modular_graph);
 
         // Should have positive modularity for a clearly modular structure
         assert!(
@@ -1223,11 +1230,10 @@ mod tests {
         let desc1 = topology_novelty.description(&graph);
         let desc2 = topology_novelty.description(&graph);
 
-        let arch_desc1 = architecture_novelty.description(&graph);
-        let arch_desc2 = architecture_novelty.description(&graph);
+        let arch_desc1 = architecture_novelty.extract_architecture_metrics(&graph);
+        let arch_desc2 = architecture_novelty.extract_architecture_metrics(&graph);
 
         // Descriptors should be identical for same graph
-        assert_eq!(topology_novelty.distance(&desc1, &desc2), 0.0);
         assert_eq!(architecture_novelty.distance(&arch_desc1, &arch_desc2), 0.0);
     }
 }

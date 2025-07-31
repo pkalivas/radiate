@@ -29,6 +29,7 @@ class TestEngineNoveltySearch:
         engine = rd.GeneticEngine(
             codec=rd.FloatCodec.vector(6, value_range=(-100.0, 100.0)),
             fitness_func=rd.NoveltySearch(
+                descriptor=rd.PhenotypeDescriptor(),
                 distance=rd.CosineDistance(),
                 k=15,
                 threshold=0.03,
@@ -51,6 +52,7 @@ class TestEngineNoveltySearch:
         engine = rd.GeneticEngine(
             codec=rd.IntCodec.vector(6, value_range=(-100, 100)),
             fitness_func=rd.NoveltySearch(
+                descriptor=rd.PhenotypeDescriptor(),
                 distance=rd.HammingDistance(),
                 k=15,
                 threshold=0.03,

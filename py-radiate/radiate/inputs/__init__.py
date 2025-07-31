@@ -46,6 +46,8 @@ from .distance import (
 
 from .limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
 
+from .descriptor import PhenotypeDescriptor, CustomDescriptor
+
 from .problem import Regression, CallableProblem
 
 __all__ = [
@@ -91,4 +93,6 @@ __all__ = [
     "Regression",
     "CallableProblem",
     "ConvergenceLimit",
+    "PhenotypeDescriptor",
+    "CustomDescriptor",
 ]

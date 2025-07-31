@@ -1,9 +1,16 @@
 import abc
 from typing import List, Callable, Any
 from radiate.genome.gene import GeneType
+from radiate.inputs.descriptor import CustomDescriptor, DescriptorBase
 from radiate.inputs.input import EngineInput, EngineInputType
-from radiate.inputs.distance import DistanceBase, GraphArchitectureDistance, GraphTopologyDistance
-from radiate.radiate import PyProblemBuilder
+from radiate.inputs.distance import (
+    DistanceBase,
+    EuclideanDistance,
+    GraphArchitectureDistance,
+    GraphTopologyDistance,
+    HammingDistance,
+)
+from radiate.radiate import PyProblemBuilder, PyNoveltySearchFitnessBuilder
 
 
 class ProblemBase(abc.ABC):
@@ -56,8 +63,8 @@ class NoveltySearch(ProblemBase):
 
     def __init__(
         self,
-        distance: DistanceBase,
-        descriptor: Callable | None = None,
+        distance: DistanceBase | None,
+        descriptor: Callable[[Any], float | List[float]] | DescriptorBase,
         k: int = 15,
         threshold: float = 0.03,
         archive_size: int = 1000,
@@ -70,6 +77,21 @@ class NoveltySearch(ProblemBase):
         :param k: The number of nearest neighbors to consider for novelty search.
         :param threshold: The novelty threshold.
         """
+        if not isinstance(descriptor, (Callable, DescriptorBase)):
+            raise TypeError(
+                "descriptor must be a callable or an instance of DescriptorBase."
+            )
+
+        if isinstance(descriptor, Callable):
+            descriptor = CustomDescriptor(descriptor)
+            if distance is None:
+                distance = EuclideanDistance()
+
+        # Default distance if not provided - HammingDistance is the
+        # only distance that works with all gene types.
+        if distance is None:
+            distance = HammingDistance()
+
         if not isinstance(distance, DistanceBase):
             raise TypeError("distance must be an instance of DistanceBase.")
         if k <= 0:
@@ -78,6 +100,23 @@ class NoveltySearch(ProblemBase):
             raise ValueError("threshold must be a non-negative float.")
         if archive_size <= 0:
             raise ValueError("archive_size must be a positive integer.")
+
+        builder = PyNoveltySearchFitnessBuilder(
+            descriptor=descriptor.descriptor
+            if isinstance(descriptor, CustomDescriptor)
+            else descriptor,
+            distance=EngineInput(
+                input_type=EngineInputType.Diversity,
+                component=distance.component,
+                allowed_genes=distance.allowed_genes
+                if not descriptor
+                else GeneType.ALL,
+                **distance.args,
+            ).py_input(),
+            k=k,
+            threshold=threshold,
+            archive_size=archive_size,
+        )
 
         input = EngineInput(
             input_type=EngineInputType.Diversity,
@@ -93,6 +132,8 @@ class NoveltySearch(ProblemBase):
                 k=k,
                 threshold=threshold,
                 archive_size=archive_size,
-                is_native=isinstance(distance, (GraphTopologyDistance, GraphArchitectureDistance)),
+                is_native=isinstance(
+                    distance, (GraphTopologyDistance, GraphArchitectureDistance)
+                ),
             )
         )

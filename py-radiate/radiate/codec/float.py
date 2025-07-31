@@ -176,7 +176,7 @@ class FloatCodec(CodecBase):
                 length=length,
                 value_range=value_range,
                 bound_range=bound_range,
-                use_numpy=use_numpy,
+                use_numpy=use_numpy
             )
         )
 

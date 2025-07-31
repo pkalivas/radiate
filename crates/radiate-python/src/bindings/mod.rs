@@ -19,7 +19,7 @@ pub use codec::{
 pub use converters::InputTransform;
 pub use engine::PyEngine;
 pub use epoch::PyGeneration;
-pub use fitness::{PyNoveltySearch, PyProblemBuilder};
+pub use fitness::{PyFitnessFn, PyFitnessInner, PyNoveltySearch, PyNoveltySearchFitnessBuilder};
 pub use functions::*;
 pub use gene::{PyChromosome, PyGene, PyGeneType, PyGenotype, PyPhenotype, PyPopulation};
 pub use gp::{PyGraph, PyGraphNode, PyTree, PyTreeNode};

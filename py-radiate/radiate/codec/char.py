@@ -33,9 +33,7 @@ class CharCodec(CodecBase):
         return self.codec.decode_py(genotype.py_genotype())
 
     @staticmethod
-    def from_genes(
-        genes: List[Gene] | Tuple[Gene, ...], use_numpy: bool = False
-    ) -> "CharCodec":
+    def from_genes(genes: List[Gene] | Tuple[Gene, ...]) -> "CharCodec":
         """
         Create a codec for a single chromosome with specified genes.
         Args:
@@ -49,9 +47,7 @@ class CharCodec(CodecBase):
             raise TypeError("All genes must be of type 'char'.")
 
         return CharCodec(
-            PyCharCodec.from_genes(
-                list(map(lambda g: g.py_gene(), genes)), use_numpy=use_numpy
-            )
+            PyCharCodec.from_genes(list(map(lambda g: g.py_gene(), genes)))
         )
 
     @staticmethod
@@ -84,7 +80,6 @@ class CharCodec(CodecBase):
     def matrix(
         chromosomes: List[int] | Tuple[int, int],
         char_set: str | List[str] = None,
-        use_numpy: bool = False,
     ) -> "CharCodec":
         """
         Initialize the char codec with number of chromosomes and value bounds.
@@ -118,12 +113,10 @@ class CharCodec(CodecBase):
                         "Character set must be a string or list of single-character strings."
                     )
 
-        return CharCodec(PyCharCodec.matrix(chromosomes, char_set, use_numpy=use_numpy))
+        return CharCodec(PyCharCodec.matrix(chromosomes, char_set))
 
     @staticmethod
-    def vector(
-        length: int, char_set: str | List[str] = None, use_numpy: bool = False
-    ) -> "CharCodec":
+    def vector(length: int, char_set: str | List[str] = None) -> "CharCodec":
         """
         Initialize the char codec with a single chromosome of specified length.
         Args:
@@ -137,4 +130,4 @@ class CharCodec(CodecBase):
         >>> rd.CharCodec.vector(length=5, char_set="01")
         CharCodec(...)
         """
-        return CharCodec(PyCharCodec.vector(length, char_set, use_numpy=use_numpy))
+        return CharCodec(PyCharCodec.vector(length, char_set))

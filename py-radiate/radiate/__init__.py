@@ -70,6 +70,8 @@ from .inputs.distance import (
 
 from .inputs.limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
 
+from .inputs.descriptor import PhenotypeDescriptor
+
 from radiate.radiate import (
     PyGraph as Graph,
     PyGraphNode as GraphNode,
@@ -159,4 +161,6 @@ __all__ = [
     # Engine
     "GeneticEngine",
     "Generation",
+    # Descriptors
+    "PhenotypeDescriptor",
 ]

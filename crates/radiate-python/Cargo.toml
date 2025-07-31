@@ -7,6 +7,7 @@ authors = { workspace = true }
 [dependencies]
 pyo3 = { workspace = true, features = ["multiple-pymethods"] }
 serde = { workspace = true, features = ["derive"] }
+numpy = { workspace = true }
 serde_json = { workspace = true }
 radiate = { workspace = true, features = ["gp", "rayon", "serde"] }
 

@@ -34,30 +34,28 @@ where
     }
 }
 
-impl<T> Novelty<Vec<T>> for HammingDistance
-where
-    T: PartialEq + Send + Sync + Clone,
-{
-    type Descriptor = Vec<T>;
+// impl<T> Novelty<Vec<T>> for HammingDistance
+// where
+//     T: PartialEq + Send + Sync + Clone,
+// {
+//     fn description(&self, phenotype: &Vec<T>) -> Vec<f32> {
+//         phenotype.clone().into_iter().map(|x| x as f32).collect()
+//     }
 
-    fn description(&self, phenotype: &Vec<T>) -> Self::Descriptor {
-        phenotype.clone()
-    }
+//     // fn distance(&self, a: &Self::Descriptor, b: &Self::Descriptor) -> f32 {
+//     //     let mut distance = 0.0;
+//     //     let mut total_genes = 0.0;
 
-    fn distance(&self, a: &Self::Descriptor, b: &Self::Descriptor) -> f32 {
-        let mut distance = 0.0;
-        let mut total_genes = 0.0;
+//     //     for (gene_one, gene_two) in a.iter().zip(b.iter()) {
+//     //         total_genes += 1.0;
+//     //         if gene_one != gene_two {
+//     //             distance += 1.0;
+//     //         }
+//     //     }
 
-        for (gene_one, gene_two) in a.iter().zip(b.iter()) {
-            total_genes += 1.0;
-            if gene_one != gene_two {
-                distance += 1.0;
-            }
-        }
-
-        distance / total_genes
-    }
-}
+//     //     distance / total_genes
+//     // }
+// }
 
 /// Implementation of the [Diversity] trait that calculates the Euclidean distance
 /// between two [Genotype]s. The Euclidean distance is the square root of the sum of the
@@ -94,25 +92,25 @@ where
     }
 }
 
-impl Novelty<Vec<f32>> for EuclideanDistance {
-    type Descriptor = Vec<f32>;
+// impl Novelty<Vec<f32>> for EuclideanDistance {
+//     type Descriptor = Vec<f32>;
 
-    fn description(&self, phenotype: &Vec<f32>) -> Self::Descriptor {
-        phenotype.clone()
-    }
+//     fn description(&self, phenotype: &Vec<f32>) -> Self::Descriptor {
+//         phenotype.clone()
+//     }
 
-    fn distance(&self, a: &Self::Descriptor, b: &Self::Descriptor) -> f32 {
-        if a.len() != b.len() {
-            return f32::INFINITY;
-        }
+//     // fn distance(&self, a: &Self::Descriptor, b: &Self::Descriptor) -> f32 {
+//     //     if a.len() != b.len() {
+//     //         return f32::INFINITY;
+//     //     }
 
-        a.iter()
-            .zip(b.iter())
-            .map(|(x, y)| (x - y).powi(2))
-            .sum::<f32>()
-            .sqrt()
-    }
-}
+//     //     a.iter()
+//     //         .zip(b.iter())
+//     //         .map(|(x, y)| (x - y).powi(2))
+//     //         .sum::<f32>()
+//     //         .sqrt()
+//     // }
+// }
 
 #[derive(Clone)]
 pub struct CosineDistance;
@@ -149,26 +147,26 @@ where
     }
 }
 
-impl Novelty<Vec<f32>> for CosineDistance {
-    type Descriptor = Vec<f32>;
+// impl Novelty<Vec<f32>> for CosineDistance {
+//     type Descriptor = Vec<f32>;
 
-    fn description(&self, phenotype: &Vec<f32>) -> Self::Descriptor {
-        phenotype.clone()
-    }
+//     fn description(&self, phenotype: &Vec<f32>) -> Self::Descriptor {
+//         phenotype.clone()
+//     }
 
-    fn distance(&self, a: &Self::Descriptor, b: &Self::Descriptor) -> f32 {
-        if a.len() != b.len() {
-            return f32::INFINITY;
-        }
+//     fn distance(&self, a: &Self::Descriptor, b: &Self::Descriptor) -> f32 {
+//         if a.len() != b.len() {
+//             return f32::INFINITY;
+//         }
 
-        let dot_product = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum::<f32>();
-        let norm_a = a.iter().map(|x| x * x).sum::<f32>().sqrt();
-        let norm_b = b.iter().map(|x| x * x).sum::<f32>().sqrt();
+//         let dot_product = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum::<f32>();
+//         let norm_a = a.iter().map(|x| x * x).sum::<f32>().sqrt();
+//         let norm_b = b.iter().map(|x| x * x).sum::<f32>().sqrt();
 
-        if norm_a == 0.0 || norm_b == 0.0 {
-            return 1.0;
-        }
+//         if norm_a == 0.0 || norm_b == 0.0 {
+//             return 1.0;
+//         }
 
-        1.0 - (dot_product / (norm_a * norm_b + 1e-8))
-    }
-}
+//         1.0 - (dot_product / (norm_a * norm_b + 1e-8))
+//     }
+// }

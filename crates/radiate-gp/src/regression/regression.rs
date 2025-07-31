@@ -2,6 +2,7 @@ use super::{DataSet, Loss};
 use crate::{Eval, EvalMut, Graph, GraphChromosome, GraphEvaluator, Op, Tree, TreeNode};
 use radiate_core::fitness::FitnessFunction;
 
+#[derive(Clone)]
 pub struct Regression {
     data_set: DataSet,
     loss: Loss,

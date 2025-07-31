@@ -1,10 +1,7 @@
 use super::PyCodec;
 use crate::{ObjectValue, PyGenotype};
-use pyo3::{
-    Bound, IntoPyObjectExt, PyAny, PyResult, pyclass, pymethods,
-    types::{PyAnyMethods, PyList, PyListMethods},
-};
-use radiate::{BitChromosome, Chromosome, Codec, Gene, Genotype};
+use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, pyclass, pymethods};
+use radiate::{BitChromosome, Codec, Genotype};
 
 #[pyclass]
 #[derive(Clone)]
@@ -23,16 +20,15 @@ impl PyBitCodec {
         py: pyo3::Python<'py>,
         genotype: &PyGenotype,
     ) -> PyResult<Bound<'py, PyAny>> {
-        let genotype: Genotype<BitChromosome> = genotype.clone().into();
-        let obj_value = self.codec.decode_with_py(py, &genotype);
-        obj_value.into_bound_py_any(py)
+        self.codec
+            .decode_with_py(py, &genotype.clone().into())
+            .into_bound_py_any(py)
     }
 
     #[staticmethod]
     #[pyo3(signature = (chromosome_lengths=None, use_numpy=false))]
     pub fn matrix(chromosome_lengths: Option<Vec<usize>>, use_numpy: bool) -> Self {
         let lengths = chromosome_lengths.unwrap_or(vec![1]);
-        let decoder_lengths = lengths.iter().map(|len| *len).collect::<Vec<usize>>();
 
         PyBitCodec {
             codec: PyCodec::new()
@@ -43,42 +39,11 @@ impl PyBitCodec {
                         .collect::<Vec<BitChromosome>>()
                         .into()
                 })
-                .with_decoder(move |py, geno| {
-                    if use_numpy {
-                        let np = py.import("numpy").unwrap();
-                        let values = geno
-                            .iter()
-                            .flat_map(|chrom| chrom.iter().map(|gene| *gene.allele()))
-                            .collect::<Vec<bool>>();
-                        let outer = np.getattr("array").unwrap().call1((values,)).unwrap();
-
-                        if decoder_lengths.len() > 1 {
-                            let reshaped = outer
-                                .call_method1("reshape", (decoder_lengths.clone(),))
-                                .unwrap();
-
-                            ObjectValue {
-                                inner: reshaped.unbind().into_any(),
-                            }
-                        } else {
-                            ObjectValue {
-                                inner: outer.unbind().into_any(),
-                            }
-                        }
-                    } else {
-                        let outer = PyList::empty(py);
-                        for chromo in geno.iter() {
-                            let inner = PyList::empty(py);
-                            for gene in chromo.iter() {
-                                inner.append(*gene.allele()).unwrap();
-                            }
-                            outer.append(inner).unwrap();
-                        }
-
-                        return ObjectValue {
-                            inner: outer.unbind().into_any(),
-                        };
-                    }
+                .with_decoder(move |py, geno| ObjectValue {
+                    inner: super::decode_genotype_to_array(py, geno, use_numpy)
+                        .unwrap()
+                        .unbind()
+                        .into_any(),
                 }),
         }
     }
@@ -91,31 +56,11 @@ impl PyBitCodec {
         PyBitCodec {
             codec: PyCodec::new()
                 .with_encoder(move || Genotype::from(vec![BitChromosome::new(length)]))
-                .with_decoder(move |py, geno| {
-                    if use_numpy {
-                        let values = geno
-                            .iter()
-                            .flat_map(|chrom| chrom.iter().map(|gene| *gene.allele()))
-                            .collect::<Vec<bool>>();
-
-                        let np = py.import("numpy").unwrap();
-                        let outer = np.getattr("array").unwrap().call1((values,)).unwrap();
-
-                        return ObjectValue {
-                            inner: outer.unbind().into_any(),
-                        };
-                    } else {
-                        let outer = PyList::empty(py);
-                        for chrom in geno.iter() {
-                            for gene in chrom.iter() {
-                                outer.append(*gene.allele()).unwrap();
-                            }
-                        }
-
-                        return ObjectValue {
-                            inner: outer.unbind().into_any(),
-                        };
-                    }
+                .with_decoder(move |py, geno| ObjectValue {
+                    inner: super::decode_genotype_to_array(py, geno, use_numpy)
+                        .unwrap()
+                        .unbind()
+                        .into_any(),
                 }),
         }
     }

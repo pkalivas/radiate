@@ -1,9 +1,6 @@
 use super::PyCodec;
 use crate::{ObjectValue, PyChromosome, PyGene, PyGenotype};
-use pyo3::{
-    Bound, IntoPyObjectExt, PyAny, PyResult, pyclass, pymethods,
-    types::{PyAnyMethods, PyInt, PyList, PyListMethods},
-};
+use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, pyclass, pymethods, types::PyInt};
 use radiate::{Chromosome, Codec, Gene, Genotype, IntChromosome, IntGene};
 
 #[pyclass]
@@ -23,9 +20,9 @@ impl PyIntCodec {
         py: pyo3::Python<'py>,
         genotype: &PyGenotype,
     ) -> PyResult<Bound<'py, PyAny>> {
-        let genotype: Genotype<IntChromosome<i32>> = genotype.clone().into();
-        let obj_value = self.codec.decode_with_py(py, &genotype);
-        obj_value.into_bound_py_any(py)
+        self.codec
+            .decode_with_py(py, &genotype.clone().into())
+            .into_bound_py_any(py)
     }
 
     #[staticmethod]
@@ -41,33 +38,11 @@ impl PyIntCodec {
                             .collect::<Vec<IntChromosome<i32>>>(),
                     )
                 })
-                .with_decoder(move |py, geno| {
-                    let values = geno
-                        .iter()
-                        .map(|chrom| chrom.iter().map(|gene| *gene.allele()).collect())
-                        .collect::<Vec<Vec<i32>>>();
-
-                    if use_numpy {
-                        let np = py.import("numpy").unwrap();
-                        let outer = np.getattr("array").unwrap().call1((values,)).unwrap();
-
-                        ObjectValue {
-                            inner: outer.unbind().into_any(),
-                        }
-                    } else {
-                        let outer = PyList::empty(py);
-                        for value in values {
-                            let inner = PyList::empty(py);
-                            for gene in value {
-                                inner.append(PyInt::new(py, gene)).unwrap();
-                            }
-                            outer.append(inner).unwrap();
-                        }
-
-                        ObjectValue {
-                            inner: outer.unbind().into_any(),
-                        }
-                    }
+                .with_decoder(move |py, geno| ObjectValue {
+                    inner: super::decode_genotype_to_array(py, geno, use_numpy)
+                        .unwrap()
+                        .unbind()
+                        .into_any(),
                 }),
         }
     }
@@ -86,29 +61,11 @@ impl PyIntCodec {
                     )
                     .into()
                 })
-                .with_decoder(move |py, geno| {
-                    let values: Vec<i32> = geno
-                        .iter()
-                        .flat_map(|chrom| chrom.iter().map(|gene| *gene.allele()))
-                        .collect();
-
-                    if use_numpy {
-                        let np = py.import("numpy").unwrap();
-                        let outer = np.getattr("array").unwrap().call1((values,)).unwrap();
-
-                        ObjectValue {
-                            inner: outer.unbind().into_any(),
-                        }
-                    } else {
-                        let outer = PyList::empty(py);
-                        for value in values {
-                            outer.append(PyInt::new(py, value)).unwrap();
-                        }
-
-                        return ObjectValue {
-                            inner: outer.unbind().into_any(),
-                        };
-                    }
+                .with_decoder(move |py, geno| ObjectValue {
+                    inner: super::decode_genotype_to_array(py, geno, use_numpy)
+                        .unwrap()
+                        .unbind()
+                        .into_any(),
                 }),
         }
     }
@@ -122,7 +79,6 @@ impl PyIntCodec {
         use_numpy: bool,
     ) -> Self {
         let lengths = chromosome_lengths.unwrap_or(vec![1]);
-        let decoder_lengths = lengths.iter().map(|len| *len).collect::<Vec<usize>>();
         let val_range = value_range.map(|rng| rng.0..rng.1).unwrap_or(0..1);
         let bound_range = bound_range
             .map(|rng| rng.0..rng.1)
@@ -139,42 +95,11 @@ impl PyIntCodec {
                         .collect::<Vec<IntChromosome<i32>>>()
                         .into()
                 })
-                .with_decoder(move |py, geno| {
-                    if use_numpy {
-                        let np = py.import("numpy").unwrap();
-                        let values = geno
-                            .iter()
-                            .flat_map(|chrom| chrom.iter().map(|gene| *gene.allele()))
-                            .collect::<Vec<i32>>();
-                        let outer = np.getattr("array").unwrap().call1((values,)).unwrap();
-
-                        if decoder_lengths.len() > 1 {
-                            let reshaped = outer
-                                .call_method1("reshape", (decoder_lengths.clone(),))
-                                .unwrap();
-
-                            ObjectValue {
-                                inner: reshaped.unbind().into_any(),
-                            }
-                        } else {
-                            ObjectValue {
-                                inner: outer.unbind().into_any(),
-                            }
-                        }
-                    } else {
-                        let outer = PyList::empty(py);
-                        for chromo in geno.iter() {
-                            let inner = PyList::empty(py);
-                            for gene in chromo.iter() {
-                                inner.append(*gene.allele()).unwrap();
-                            }
-                            outer.append(inner).unwrap();
-                        }
-
-                        return ObjectValue {
-                            inner: outer.unbind().into_any(),
-                        };
-                    }
+                .with_decoder(move |py, geno| ObjectValue {
+                    inner: super::decode_genotype_to_array(py, geno, use_numpy)
+                        .unwrap()
+                        .unbind()
+                        .into_any(),
                 }),
         }
     }
@@ -202,31 +127,11 @@ impl PyIntCodec {
                     ))]
                     .into()
                 })
-                .with_decoder(move |py, geno| {
-                    if use_numpy {
-                        let values: Vec<i32> = geno
-                            .iter()
-                            .flat_map(|chrom| chrom.iter().map(|gene| *gene.allele()))
-                            .collect();
-
-                        let np = py.import("numpy").unwrap();
-                        let outer = np.getattr("array").unwrap().call1((values,)).unwrap();
-
-                        return ObjectValue {
-                            inner: outer.unbind().into_any(),
-                        };
-                    } else {
-                        let outer = PyList::empty(py);
-                        for chrom in geno.iter() {
-                            for gene in chrom.iter() {
-                                outer.append(*gene.allele()).unwrap();
-                            }
-                        }
-
-                        return ObjectValue {
-                            inner: outer.unbind().into_any(),
-                        };
-                    }
+                .with_decoder(move |py, geno| ObjectValue {
+                    inner: super::decode_genotype_to_array(py, geno, use_numpy)
+                        .unwrap()
+                        .unbind()
+                        .into_any(),
                 }),
         }
     }
