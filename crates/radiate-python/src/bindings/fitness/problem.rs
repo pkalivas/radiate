@@ -1,6 +1,9 @@
 use std::clone;
 
-use crate::{ObjectValue, PyEngineInput, PyGeneType, bindings::fitness::novelty::PyDescriptor};
+use crate::{
+    ObjectValue, PyEngineInput, PyGeneType, PyNoveltySearch,
+    bindings::fitness::novelty::PyDescriptor,
+};
 use pyo3::{
     Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods,
     types::{PyDict, PyDictMethods},
@@ -41,7 +44,7 @@ impl PyNoveltySearchFitnessBuilder {
 pub enum PyFitnessInner {
     Custom(ObjectValue),
     Regression(Regression),
-    NoveltySearch(PyNoveltySearchFitnessBuilder),
+    NoveltySearch(ObjectValue),
 }
 
 #[pyclass]
@@ -73,23 +76,19 @@ impl PyFitnessFn {
     }
 
     #[staticmethod]
-    pub fn novelty_search(
+    pub fn novelty_search<'py>(
+        py: Python<'py>,
         descriptor: Py<PyAny>,
         distance_fn: String,
         k: usize,
         threshold: f32,
         archive_size: usize,
     ) -> Self {
-        let search =
-            NoveltySearch::new(PyDescriptor, k, threshold).with_max_archive_size(archive_size);
+        let search = PyNoveltySearch::new(descriptor, k, threshold, archive_size, distance_fn);
         PyFitnessFn {
-            inner: PyFitnessInner::NoveltySearch(PyNoveltySearchFitnessBuilder::new(
-                descriptor,
-                distance_fn,
-                k,
-                threshold,
-                archive_size,
-            )),
+            inner: PyFitnessInner::NoveltySearch(ObjectValue {
+                inner: search.into_py_any(py).unwrap(),
+            }),
         }
     }
 }

@@ -17,8 +17,7 @@ use std::cell::UnsafeCell;
 pub mod prelude {
     pub use super::{IntoPyObjectValue, Object, ObjectValue, PyProblem};
     pub use crate::{
-        PyBitCodec, PyCharCodec, PyFloatCodec, PyGeneType, PyGraphCodec, PyIntCodec,
-        PyProblemBuilder, object::Wrap,
+        PyBitCodec, PyCharCodec, PyFloatCodec, PyGeneType, PyGraphCodec, PyIntCodec, object::Wrap,
     };
     pub use pyo3::prelude::*;
     pub use pyo3::types::PyAny;

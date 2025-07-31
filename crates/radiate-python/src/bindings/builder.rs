@@ -509,49 +509,25 @@ impl PyEngineBuilder {
 
         let builder = match problem.inner {
             PyFitnessInner::Custom(fitness_fn) => {
-                self.create_builder_with_custom_problem(py, fitness_fn, codec, executor)
+                self.create_builder_with_custom_problem(fitness_fn, codec, executor)
             }
             PyFitnessInner::Regression(regression) => {
-                self.create_builder_with_regression_problem(py, regression, codec, executor)
+                self.create_builder_with_regression_problem(regression, codec, executor)
             }
             PyFitnessInner::NoveltySearch(novelty_search) => {
-                self.create_builder_with_novelty_search_problem(py, novelty_search, codec, executor)
+                self.create_builder_with_novelty_search_problem(novelty_search, codec, executor)
             }
         };
-
-        // let builder = if problem.name() == super::fitness::CUSTOM_PROBLEM {
-        //     self.create_builder_with_custom_problem(py, problem, codec, executor)
-        // } else if problem.name() == super::fitness::REGRESSION_PROBLEM {
-        //     self.create_builder_with_regression_problem(py, problem, codec, executor)
-        // } else if problem.name() == super::fitness::NOVELTY_SEARCH_PROBLEM {
-        //     self.create_builder_with_novelty_search_problem(py, problem, codec, executor)
-        // } else {
-        //     return Err(PyErr::new::<PyTypeError, _>(
-        //         "Unsupported problem type. Only 'DefaultProblem' and 'Regression' are supported",
-        //     ));
-        // };
 
         builder
     }
 
     fn create_builder_with_custom_problem<'py>(
         &self,
-        py: Python<'py>,
         fitness_fn: ObjectValue,
         codec: &Bound<'py, PyAny>,
         executor: Executor,
     ) -> PyResult<EngineBuilderHandle> {
-        // if !problem.allowed_genes.contains(&self.gene_type) {
-        //     return Err(PyErr::new::<PyTypeError, _>(format!(
-        //         "Custom problem doesn't support gene type: {:?}",
-        //         self.gene_type
-        //     )));
-        // }
-
-        // let fitness_fn = problem
-        //     .args(py)?
-        //     .get_item("fitness_func")?
-        //     .extract::<Py<PyAny>>()?;
         let fitness_fn = fitness_fn.inner;
         let builder = match self.gene_type {
             PyGeneType::Float => {
@@ -655,43 +631,10 @@ impl PyEngineBuilder {
 
     fn create_builder_with_regression_problem<'py>(
         &self,
-        py: Python<'py>,
         regression: Regression,
         codec: &Bound<'py, PyAny>,
         executor: Executor,
     ) -> PyResult<EngineBuilderHandle> {
-        // if !problem.allowed_genes.contains(&self.gene_type) {
-        //     return Err(PyErr::new::<PyTypeError, _>(
-        //         "Regression problem only supports GraphChromosome & TreeChromosome",
-        //     ));
-        // }
-
-        // let features = problem
-        //     .args(py)?
-        //     .get_item("features")?
-        //     .extract::<Vec<Vec<f32>>>()?;
-        // let targets = problem
-        //     .args(py)?
-        //     .get_item("targets")?
-        //     .extract::<Vec<Vec<f32>>>()?;
-        // let loss_str = problem
-        //     .args(py)?
-        //     .get_item("loss")?
-        //     .extract::<String>()?
-        //     .to_uppercase();
-        // let loss = match loss_str.as_str() {
-        //     "MSE" => Loss::MSE,
-        //     "MAE" => Loss::MAE,
-        //     "CROSS_ENTROPY" => Loss::CrossEntropy,
-        //     _ => {
-        //         return Err(PyErr::new::<PyTypeError, _>(
-        //             "Unsupported loss function for regression",
-        //         ));
-        //     }
-        // };
-
-        // let regression = Regression::new((features, targets), loss);
-
         match self.gene_type {
             PyGeneType::Graph => {
                 let codec = codec.extract::<PyGraphCodec>()?;
@@ -725,176 +668,106 @@ impl PyEngineBuilder {
 
     fn create_builder_with_novelty_search_problem<'py>(
         &self,
-        py: Python<'py>,
-        novelty_search: PyNoveltySearch,
+        fitness: ObjectValue,
         codec: &Bound<'py, PyAny>,
         executor: Executor,
     ) -> PyResult<EngineBuilderHandle> {
-        // let distance = problem
-        //     .args(py)?
-        //     .get_item("distance")?
-        //     .extract::<PyEngineInput>()?;
-        // let descriptor = problem
-        //     .args(py)?
-        //     .get_item("descriptor")
-        //     .and_then(|item| item.extract::<Py<PyAny>>())
-        //     .ok();
-        // let k = problem.args(py)?.get_item("k")?.extract::<usize>()?;
-        // let threshold = problem.args(py)?.get_item("threshold")?.extract::<f32>()?;
-        // let archive_size = problem
-        //     .args(py)?
-        //     .get_item("max_archive_size")?
-        //     .extract::<usize>()
-        //     .unwrap_or(1000);
+        match self.gene_type {
+            PyGeneType::Float => {
+                let float_codec = codec.extract::<PyFloatCodec>()?;
+                let problem = PyProblem::new(fitness.inner, float_codec.codec);
 
-        // if !problem.allowed_genes.contains(&self.gene_type) {
-        //     return Err(PyErr::new::<PyTypeError, _>(format!(
-        //         "Novelty Search with distance {:?} does not support gene {:?} - try setting a Descriptor",
-        //         distance, self.gene_type
-        //     )));
-        // }
+                Ok(EngineBuilderHandle::Float(
+                    GeneticEngine::builder()
+                        .problem(problem.clone())
+                        .executor(executor.clone())
+                        .evaluator(FreeThreadPyEvaluator::new(executor, problem))
+                        .bus_executor(Executor::default()),
+                ))
+            }
+            PyGeneType::Int => {
+                let int_codec = codec.extract::<PyIntCodec>()?;
+                let problem = PyProblem::new(fitness.inner, int_codec.codec);
 
-        panic!("Novelty Search problem not implemented yet");
+                Ok(EngineBuilderHandle::Int(
+                    GeneticEngine::builder()
+                        .problem(problem.clone())
+                        .executor(executor.clone())
+                        .evaluator(FreeThreadPyEvaluator::new(executor, problem))
+                        .bus_executor(Executor::default()),
+                ))
+            }
 
-        // let fitness = PyNoveltySearch::new(
-        //     descriptor,
-        //     distance.component().to_string(),
-        //     k,
-        //     threshold,
-        //     archive_size,
-        // )
-        // .into_py_any(py)?;
+            PyGeneType::Char => {
+                let char_codec = codec.extract::<PyCharCodec>()?;
+                let problem = PyProblem::new(fitness.inner, char_codec.codec);
 
-        // match self.gene_type {
-        //     PyGeneType::Float => {
-        //         let float_codec = codec.extract::<PyFloatCodec>()?;
-        //         let problem = PyProblem::new(fitness, float_codec.codec);
+                Ok(EngineBuilderHandle::Char(
+                    GeneticEngine::builder()
+                        .problem(problem.clone())
+                        .executor(executor.clone())
+                        .evaluator(FreeThreadPyEvaluator::new(executor, problem))
+                        .bus_executor(Executor::default()),
+                ))
+            }
+            PyGeneType::Bit => {
+                let bit_codec = codec.extract::<PyBitCodec>()?;
+                let problem = PyProblem::new(fitness.inner, bit_codec.codec);
 
-        //         Ok(EngineBuilderHandle::Float(
-        //             GeneticEngine::builder()
-        //                 .problem(problem.clone())
-        //                 .executor(executor.clone())
-        //                 .evaluator(FreeThreadPyEvaluator::new(executor, problem))
-        //                 .bus_executor(Executor::default()),
-        //         ))
-        //     }
-        //     PyGeneType::Int => {
-        //         let int_codec = codec.extract::<PyIntCodec>()?;
-        //         let problem = PyProblem::new(fitness, int_codec.codec);
+                Ok(EngineBuilderHandle::Bit(
+                    GeneticEngine::builder()
+                        .problem(problem.clone())
+                        .executor(executor.clone())
+                        .evaluator(FreeThreadPyEvaluator::new(executor, problem))
+                        .bus_executor(Executor::default()),
+                ))
+            }
+            PyGeneType::Permutation => {
+                let perm_codec = codec.extract::<PyPermutationCodec>()?;
+                let problem = PyProblem::new(fitness.inner, perm_codec.codec);
 
-        //         Ok(EngineBuilderHandle::Int(
-        //             GeneticEngine::builder()
-        //                 .problem(problem.clone())
-        //                 .executor(executor.clone())
-        //                 .evaluator(FreeThreadPyEvaluator::new(executor, problem))
-        //                 .bus_executor(Executor::default()),
-        //         ))
-        //     }
+                Ok(EngineBuilderHandle::Permutation(
+                    GeneticEngine::builder()
+                        .problem(problem.clone())
+                        .executor(executor.clone())
+                        .evaluator(FreeThreadPyEvaluator::new(executor, problem))
+                        .bus_executor(Executor::default()),
+                ))
+            }
+            PyGeneType::Graph => {
+                let codec = codec.extract::<PyGraphCodec>()?;
+                let cloned_codec = codec.codec.clone();
+                let py_codec = PyCodec::new()
+                    .with_encoder(move || cloned_codec.encode())
+                    .with_decoder(move |_, genotype| codec.codec.decode(genotype));
 
-        //     PyGeneType::Char => {
-        //         let char_codec = codec.extract::<PyCharCodec>()?;
-        //         let problem = PyProblem::new(fitness, char_codec.codec);
+                let graph_problem = PyProblem::new(fitness.inner, py_codec);
+                Ok(EngineBuilderHandle::Graph(
+                    GeneticEngine::builder()
+                        .problem(graph_problem.clone())
+                        .executor(executor.clone())
+                        .evaluator(FreeThreadPyEvaluator::new(executor, graph_problem))
+                        .bus_executor(Executor::default())
+                        .replace_strategy(GraphReplacement),
+                ))
+            }
+            PyGeneType::Tree => {
+                let codec = codec.extract::<PyTreeCodec>()?;
+                let cloned_codec = codec.codec.clone();
+                let py_codec = PyCodec::new()
+                    .with_encoder(move || cloned_codec.encode())
+                    .with_decoder(move |_, genotype| codec.codec.decode(genotype));
 
-        //         Ok(EngineBuilderHandle::Char(
-        //             GeneticEngine::builder()
-        //                 .problem(problem.clone())
-        //                 .executor(executor.clone())
-        //                 .evaluator(FreeThreadPyEvaluator::new(executor, problem))
-        //                 .bus_executor(Executor::default()),
-        //         ))
-        //     }
-        //     PyGeneType::Bit => {
-        //         let bit_codec = codec.extract::<PyBitCodec>()?;
-        //         let problem = PyProblem::new(fitness, bit_codec.codec);
-
-        //         Ok(EngineBuilderHandle::Bit(
-        //             GeneticEngine::builder()
-        //                 .problem(problem.clone())
-        //                 .executor(executor.clone())
-        //                 .evaluator(FreeThreadPyEvaluator::new(executor, problem))
-        //                 .bus_executor(Executor::default()),
-        //         ))
-        //     }
-        //     PyGeneType::Permutation => {
-        //         let perm_codec = codec.extract::<PyPermutationCodec>()?;
-        //         let problem = PyProblem::new(fitness, perm_codec.codec);
-
-        //         Ok(EngineBuilderHandle::Permutation(
-        //             GeneticEngine::builder()
-        //                 .problem(problem.clone())
-        //                 .executor(executor.clone())
-        //                 .evaluator(FreeThreadPyEvaluator::new(executor, problem))
-        //                 .bus_executor(Executor::default()),
-        //         ))
-        //     }
-        //     PyGeneType::Graph => {
-        //         let codec = codec.extract::<PyGraphCodec>()?;
-        //         let cloned_codec = codec.codec.clone();
-
-        //         if problem.is_native {
-        //             match distance.component().as_str() {
-        //                 "GraphTopologyDistance" => Ok(EngineBuilderHandle::Graph(
-        //                     GeneticEngine::builder()
-        //                         .codec(cloned_codec)
-        //                         .fitness_fn(
-        //                             NoveltySearch::new(GraphTopologyNovelty, k, threshold)
-        //                                 .with_max_archive_size(archive_size),
-        //                         )
-        //                         .executor(executor.clone())
-        //                         .bus_executor(Executor::default())
-        //                         .replace_strategy(GraphReplacement),
-        //                 )),
-        //                 "GraphArchitectureDistance" => Ok(EngineBuilderHandle::Graph(
-        //                     GeneticEngine::builder()
-        //                         .codec(cloned_codec)
-        //                         .fitness_fn(
-        //                             NoveltySearch::new(GraphArchitectureNovelty, k, threshold)
-        //                                 .with_max_archive_size(archive_size),
-        //                         )
-        //                         .executor(executor.clone())
-        //                         .bus_executor(Executor::default())
-        //                         .replace_strategy(GraphReplacement),
-        //                 )),
-        //                 _ => {
-        //                     return Err(PyErr::new::<PyTypeError, _>(format!(
-        //                         "Unsupported distance component for Graph gene type: {}",
-        //                         distance.component()
-        //                     )));
-        //                 }
-        //             }
-        //         } else {
-        //             let py_codec = PyCodec::new()
-        //                 .with_encoder(move || cloned_codec.encode())
-        //                 .with_decoder(move |_, genotype| codec.codec.decode(genotype));
-
-        //             let graph_problem = PyProblem::new(fitness, py_codec);
-        //             Ok(EngineBuilderHandle::Graph(
-        //                 GeneticEngine::builder()
-        //                     .problem(graph_problem.clone())
-        //                     .executor(executor.clone())
-        //                     .evaluator(FreeThreadPyEvaluator::new(executor, graph_problem))
-        //                     .bus_executor(Executor::default())
-        //                     .replace_strategy(GraphReplacement),
-        //             ))
-        //         }
-        //     }
-        //     PyGeneType::Tree => {
-        //         let codec = codec.extract::<PyTreeCodec>()?;
-        //         let cloned_codec = codec.codec.clone();
-        //         let py_codec = PyCodec::new()
-        //             .with_encoder(move || cloned_codec.encode())
-        //             .with_decoder(move |_, genotype| codec.codec.decode(genotype));
-
-        //         let tree_problem = PyProblem::new(fitness, py_codec);
-        //         Ok(EngineBuilderHandle::Tree(
-        //             GeneticEngine::builder()
-        //                 .problem(tree_problem.clone())
-        //                 .executor(executor.clone())
-        //                 .evaluator(FreeThreadPyEvaluator::new(executor, tree_problem))
-        //                 .bus_executor(Executor::default()),
-        //         ))
-        //     }
-        //     _ => Err(PyTypeError::new_err("Unsupported gene type")),
-        // }
+                let tree_problem = PyProblem::new(fitness.inner, py_codec);
+                Ok(EngineBuilderHandle::Tree(
+                    GeneticEngine::builder()
+                        .problem(tree_problem.clone())
+                        .executor(executor.clone())
+                        .evaluator(FreeThreadPyEvaluator::new(executor, tree_problem))
+                        .bus_executor(Executor::default()),
+                ))
+            }
+            _ => Err(PyTypeError::new_err("Unsupported gene type")),
+        }
     }
 }

@@ -10,13 +10,13 @@ from radiate.inputs.distance import (
     GraphTopologyDistance,
     HammingDistance,
 )
-from radiate.radiate import PyProblemBuilder, PyNoveltySearchFitnessBuilder
+from radiate.radiate import PyFitnessFn
 
 
 class ProblemBase(abc.ABC):
     """A class representing a problem to be solved using evolutionary algorithms."""
 
-    def __init__(self, problem: PyProblemBuilder):
+    def __init__(self, problem: PyFitnessFn):
         self.problem = problem
 
 
@@ -29,7 +29,7 @@ class CallableProblem(ProblemBase):
 
         :param problem: A callable defining the custom problem.
         """
-        super().__init__(PyProblemBuilder.custom(problem))
+        super().__init__(PyFitnessFn.custom(problem))
 
 
 class Regression(ProblemBase):
@@ -54,7 +54,7 @@ class Regression(ProblemBase):
             raise TypeError("targets must be a list of lists or a pandas DataFrame.")
 
         super().__init__(
-            PyProblemBuilder.regression(features=features, targets=targets, loss=loss)
+            PyFitnessFn.regression(features=features, targets=targets, loss=loss)
         )
 
 
@@ -101,22 +101,22 @@ class NoveltySearch(ProblemBase):
         if archive_size <= 0:
             raise ValueError("archive_size must be a positive integer.")
 
-        builder = PyNoveltySearchFitnessBuilder(
-            descriptor=descriptor.descriptor
-            if isinstance(descriptor, CustomDescriptor)
-            else descriptor,
-            distance=EngineInput(
-                input_type=EngineInputType.Diversity,
-                component=distance.component,
-                allowed_genes=distance.allowed_genes
-                if not descriptor
-                else GeneType.ALL,
-                **distance.args,
-            ).py_input(),
-            k=k,
-            threshold=threshold,
-            archive_size=archive_size,
-        )
+        # builder = PyNoveltySearchFitnessBuilder(
+        #     descriptor=descriptor.descriptor
+        #     if isinstance(descriptor, CustomDescriptor)
+        #     else descriptor,
+        #     distance=EngineInput(
+        #         input_type=EngineInputType.Diversity,
+        #         component=distance.component,
+        #         allowed_genes=distance.allowed_genes
+        #         if not descriptor
+        #         else GeneType.ALL,
+        #         **distance.args,
+        #     ).py_input(),
+        #     k=k,
+        #     threshold=threshold,
+        #     archive_size=archive_size,
+        # )
 
         input = EngineInput(
             input_type=EngineInputType.Diversity,
@@ -126,14 +126,12 @@ class NoveltySearch(ProblemBase):
         ).py_input()
 
         super().__init__(
-            PyProblemBuilder.novelty_search(
-                distance=input,
-                descriptor=descriptor,
+            PyFitnessFn.novelty_search(
+                distance_fn=distance.component,
+                descriptor=descriptor.descriptor,
                 k=k,
                 threshold=threshold,
                 archive_size=archive_size,
-                is_native=isinstance(
-                    distance, (GraphTopologyDistance, GraphArchitectureDistance)
-                ),
+        
             )
         )
