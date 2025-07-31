@@ -1,6 +1,5 @@
 from typing import List, Optional, Tuple, Callable
 from radiate.codec.codec import CodecBase
-from radiate.genome.gene import GeneType
 from radiate.genome.population import Population
 from radiate.inputs.problem import ProblemBase
 from radiate.radiate import PyEngine, PyEngineBuilder
@@ -33,6 +32,8 @@ class EngineBuilder:
             self.problem = problem
 
     def build(self) -> PyEngine:
+        """Build the PyEngine instance."""
+
         builder = PyEngineBuilder(
             gene_type=self._gene_type,
             codec=self._codec.codec,
@@ -84,21 +85,11 @@ class EngineBuilder:
             )
         )
 
-    def set_alters(self, alters: List[AlterBase]):
-        for alter in alters:
-            if self._gene_type not in alter.allowed_genes:
-                base_error_msg = f"Alterer {alter.component} does not support gene type {self._gene_type}."
-                if self._gene_type is GeneType.GRAPH:
-                    raise ValueError(
-                        base_error_msg
-                        + " Use GraphCrossover, GraphMutator, or OperationMutator instead."
-                    )
-                elif self._gene_type is GeneType.TREE:
-                    raise ValueError(
-                        base_error_msg + " Use TreeCrossover or HoistMutator instead."
-                    )
-                raise ValueError(base_error_msg)
+    def set_alters(self, alters: List[AlterBase] | None):
+        if alters is None:
+            return
 
+        for alter in alters:
             self._inputs.append(
                 EngineInput(
                     input_type=EngineInputType.Alterer,

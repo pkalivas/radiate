@@ -2,7 +2,7 @@ import abc
 from typing import List, Callable, Any
 from radiate.genome.gene import GeneType
 from radiate.inputs.input import EngineInput, EngineInputType
-from radiate.inputs.distance import DistanceBase
+from radiate.inputs.distance import DistanceBase, GraphArchitectureDistance, GraphTopologyDistance
 from radiate.radiate import PyProblemBuilder
 
 
@@ -93,5 +93,6 @@ class NoveltySearch(ProblemBase):
                 k=k,
                 threshold=threshold,
                 archive_size=archive_size,
+                is_native=isinstance(distance, (GraphTopologyDistance, GraphArchitectureDistance)),
             )
         )

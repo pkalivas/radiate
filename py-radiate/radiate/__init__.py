@@ -14,13 +14,13 @@ from .codec import (
     GraphCodec,
     TreeCodec,
     PermutationCodec,
-    AnyCodec
+    AnyCodec,
 )
 from .random import RandomProvider as random
 from .generation import Generation
 from .genome import Gene, Chromosome, Genotype, Population, Phenotype
 from .handlers import EventHandler, EventType
-from .gp import Op, Graph, Tree
+from .gp import Op
 
 from .inputs.executor import Executor
 from .inputs.problem import Regression, NoveltySearch
@@ -56,12 +56,26 @@ from .inputs.alterer import (
     GraphCrossover,
     TreeCrossover,
     HoistMutator,
-    InversionMutator
+    InversionMutator,
 )
 
-from .inputs.distance import HammingDistance, EuclideanDistance, NeatDistance, CosineDistance
+from .inputs.distance import (
+    HammingDistance,
+    EuclideanDistance,
+    NeatDistance,
+    CosineDistance,
+    GraphTopologyDistance,
+    GraphArchitectureDistance,
+)
 
 from .inputs.limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
+
+from radiate.radiate import (
+    PyGraph as Graph,
+    PyGraphNode as GraphNode,
+    PyTree as Tree,
+    PyTreeNode as TreeNode,
+)
 
 
 __all__ = [
@@ -87,7 +101,9 @@ __all__ = [
     "Phenotype",
     # GP
     "Tree",
+    "TreeNode",
     "Graph",
+    "GraphNode",
     "Op",
     # Handlers
     "EventHandler",
@@ -138,6 +154,8 @@ __all__ = [
     "CosineDistance",
     "HammingDistance",
     "EuclideanDistance",
+    "GraphTopologyDistance",
+    "GraphArchitectureDistance",
     # Engine
     "GeneticEngine",
     "Generation",

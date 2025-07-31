@@ -3,6 +3,35 @@ use pyo3::{
 };
 use radiate::{CosineDistance, EuclideanDistance, FitnessFunction, HammingDistance, NoveltySearch};
 
+// #[derive(Clone)]
+// pub enum PyNoveltySearchInner {
+//     Custom(Box<PyNoveltySearchInner>, ObjectValue),
+//     Cosine(NoveltySearch<Vec<f32>, CosineDistance>),
+//     Euclidean(NoveltySearch<Vec<f32>, EuclideanDistance>),
+//     Hamming(NoveltySearch<Vec<f32>, HammingDistance>),
+//     GraphTopology(NoveltySearch<Graph<Op<f32>>, GraphTopologyNovelty>),
+//     GraphArchitecture(NoveltySearch<Graph<Op<f32>>, GraphArchitectureNovelty>),
+// }
+
+// #[pyclass]
+// #[derive(Clone)]
+// pub struct PyNoveltySearchFitness {
+//     inner: PyNoveltySearchInner,
+// }
+
+// #[pymethods]
+// impl PyNoveltySearchFitness {
+//     #[staticmethod]
+//     pub fn custom(descriptor: Py<PyAny>, inner: PyNoveltySearchFitness) -> Self {
+//         PyNoveltySearchFitness {
+//             inner: PyNoveltySearchInner::Custom(
+//                 Box::new(inner.inner),
+//                 ObjectValue { inner: descriptor },
+//             ),
+//         }
+//     }
+// }
+
 pub enum NoveltyInner {
     Euclidean(NoveltySearch<Vec<f32>, EuclideanDistance>),
     Cosine(NoveltySearch<Vec<f32>, CosineDistance>),
@@ -36,11 +65,10 @@ impl PyNoveltySearch {
                     NoveltySearch::new(CosineDistance, k, threshold)
                         .with_max_archive_size(archive_size),
                 ),
-                "HammingDistance" => NoveltyInner::Hamming(
+                _ => NoveltyInner::Hamming(
                     NoveltySearch::new(HammingDistance, k, threshold)
                         .with_max_archive_size(archive_size),
                 ),
-                _ => panic!("Invalid distance metric: {}", distance),
             },
         }
     }

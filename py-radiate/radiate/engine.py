@@ -16,7 +16,7 @@ from .codec import (
 
 from .inputs.input import EngineInput, EngineInputType
 from .inputs.selector import SelectorBase, TournamentSelector, RouletteSelector
-from .inputs.alterer import AlterBase, UniformCrossover, UniformMutator
+from .inputs.alterer import AlterBase
 from .inputs.distance import DistanceBase
 from .inputs.executor import Executor
 from .inputs.problem import ProblemBase
@@ -70,11 +70,14 @@ class GeneticEngine:
         else:
             raise TypeError(f"Codec type {type(codec)} is not supported.")
 
+        if fitness_func is None:
+            raise ValueError("Fitness function must be provided.")
+
         self.builder = EngineBuilder(self.gene_type, codec, fitness_func, population)
 
         self.builder.set_survivor_selector(survivor_selector or TournamentSelector(k=3))
         self.builder.set_offspring_selector(offspring_selector or RouletteSelector())
-        self.builder.set_alters(alters or [UniformCrossover(), UniformMutator()])
+        self.builder.set_alters(alters)
         self.builder.set_diversity(diversity, species_threshold)
         self.builder.set_population_size(population_size)
         self.builder.set_offspring_fraction(offspring_fraction)

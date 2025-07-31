@@ -8,8 +8,9 @@ pub mod trees;
 pub use factory::*;
 pub use format::*;
 pub use graphs::{
-    Direction, Graph, GraphAggregate, GraphChromosome, GraphCodec, GraphCrossover, GraphEvaluator,
-    GraphIterator, GraphMutator, GraphNode, GraphNodeId, GraphReplacement, NeatDistance,
+    Direction, Graph, GraphAggregate, GraphArchitectureNovelty, GraphChromosome, GraphCodec,
+    GraphCrossover, GraphEvaluator, GraphIterator, GraphMutator, GraphNode, GraphNodeId,
+    GraphReplacement, GraphTopologyNovelty, NeatDistance,
 };
 pub use node::{Node, NodeType};
 pub use store::{NodeStore, NodeValue};

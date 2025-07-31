@@ -15,6 +15,7 @@ from typing import List, Tuple
 rd.random.set_seed(42)
 np.random.seed(42)
 
+
 class SnakeGame:
     """Classic Snake game with detailed logging."""
 
@@ -146,8 +147,6 @@ class SnakeGame:
             or new_head in self.snake
         ):
             self.game_over = True
-            if self.debug:
-                print(f"Game over: collision at {new_head}")
             return False
 
         # Add new head
@@ -200,9 +199,8 @@ class SnakeGame:
 class SnakeAI:
     """Neural network AI for Snake game."""
 
-    def __init__(self, graph: rd.Graph, debug: bool = False):
+    def __init__(self, graph: rd.Graph):
         self.graph = graph
-        self.debug = debug
 
     def predict(self, state: List[float]) -> int:
         """Predict the best action given current state."""
@@ -217,22 +215,8 @@ class SnakeEvolver:
         self.input_size = 13
         self.output_size = 4
 
-        self.codec = rd.GraphCodec.weighted_directed(
-            shape=(self.input_size, self.output_size),
-            vertex=[
-                rd.Op.sub(),
-                rd.Op.mul(),
-                rd.Op.linear(),
-                rd.Op.sigmoid(),
-                rd.Op.relu(),
-                rd.Op.tanh(),
-            ],
-            edge=rd.Op.weight(),
-            output=rd.Op.sigmoid(),
-        )
-
     def fitness_function(self, graph: rd.Graph) -> float:
-        """Fitness function for Snake AI."""
+        """Enhanced fitness function for Snake AI."""
         total_fitness = 0.0
         num_games = 3
 
@@ -240,22 +224,93 @@ class SnakeEvolver:
             graph.reset()  # Reset graph state for each game
 
             game = SnakeGame(debug=False)
-            ai = SnakeAI(graph, debug=False)
+            ai = SnakeAI(graph)
+
+            # Track additional metrics
+            max_score_in_game = 0
+            consecutive_moves_towards_food = 0
+            total_distance_to_food = 0
+            moves_count = 0
 
             while not game.game_over:
                 state = game.get_state()
                 action = ai.predict(state)
+
+                # Track distance to food before move
+                head_x, head_y = game.snake[0]
+                old_distance = abs(game.food[0] - head_x) + abs(game.food[1] - head_y)
+
                 game.step(action)
 
-            total_fitness += game.get_fitness()
+                # Track distance to food after move
+                new_head_x, new_head_y = game.snake[0]
+                new_distance = abs(game.food[0] - new_head_x) + abs(
+                    game.food[1] - new_head_y
+                )
 
+                # Reward for moving towards food
+                if new_distance < old_distance:
+                    consecutive_moves_towards_food += 1
+                else:
+                    consecutive_moves_towards_food = 0
+
+                total_distance_to_food += new_distance
+                moves_count += 1
+                max_score_in_game = max(max_score_in_game, game.score)
+
+            # Enhanced fitness calculation
+            score_fitness = max_score_in_game * 200.0  # Increased weight for score
+
+            # Survival bonus with diminishing returns
+            survival_bonus = min(game.steps * 0.5, 100.0)  # Cap survival bonus
+
+            # Efficiency bonus - reward for high score-to-steps ratio
+            efficiency_bonus = 0.0
+            if game.steps > 0:
+                efficiency_ratio = max_score_in_game / game.steps
+                efficiency_bonus = efficiency_ratio * 100.0
+
+            # Food-seeking behavior bonus
+            food_seeking_bonus = consecutive_moves_towards_food * 2.0
+
+            # Average distance to food penalty
+            avg_distance_penalty = 0.0
+            if moves_count > 0:
+                avg_distance = total_distance_to_food / moves_count
+                avg_distance_penalty = max(0, avg_distance - 5.0) * 5.0
+
+            # Exploration bonus - reward for visiting different areas
+            unique_positions = len(set(game.snake))
+            exploration_bonus = unique_positions * 0.5
+
+            # Early death penalty
+            early_death_penalty = 0.0
+            if game.steps < 50 and max_score_in_game == 0:
+                early_death_penalty = 50.0
+
+            # Calculate total fitness for this game
+            game_fitness = (
+                score_fitness
+                + survival_bonus
+                + efficiency_bonus
+                + food_seeking_bonus
+                + exploration_bonus
+                - avg_distance_penalty
+                - early_death_penalty
+            )
+
+            # Ensure minimum fitness
+            game_fitness = game_fitness
+            total_fitness += game_fitness
+
+        # Return average fitness across all games
         return total_fitness / num_games
 
-    def test_individual(self, weights: List[float], debug: bool = False) -> dict:
+    def test_individual(self, graph: rd.Graph, debug: bool = False) -> dict:
         """Test an individual with detailed logging."""
 
         game = SnakeGame(debug=debug)
-        ai = SnakeAI(weights, debug=debug)
+        ai = SnakeAI(graph)
 
         game_history = []
         while not game.game_over:
@@ -282,24 +337,38 @@ class SnakeEvolver:
             "history": game_history,
         }
 
-    def create_engine(self) -> rd.GeneticEngine:
-        """Create genetic engine for Snake AI evolution."""
-        return rd.GeneticEngine(
-            codec=self.codec,
-            fitness_func=self.fitness_function,
-            offspring_selector=rd.BoltzmannSelector(4),
-            alters=[
+    def run_evolution(self, generations: int):
+        """Run the evolution process."""
+        codec = rd.GraphCodec.weighted_directed(
+            shape=(self.input_size, self.output_size),
+            vertex=[
+                rd.Op.sub(),
+                rd.Op.mul(),
+                rd.Op.linear(),
+                rd.Op.sigmoid(),
+                rd.Op.relu(),
+                rd.Op.tanh(),
+            ],
+            edge=rd.Op.weight(),
+            output=rd.Op.sigmoid(),
+        )
+
+        engine = rd.GeneticEngine(
+            codec,
+            self.fitness_function,
+        )
+
+        engine.offspring_selector(rd.BoltzmannSelector(4))
+        engine.alters(
+            [
                 rd.GraphCrossover(0.5, 0.5),
                 rd.OperationMutator(0.04, 0.05),
                 rd.GraphMutator(0.08, 0.04, True),
             ],
         )
 
-    def run_evolution(self, generations: int = 100, population_size: int = 50):
-        """Run the evolution process."""
-        engine = self.create_engine()
         return engine.run(
-            [rd.GenerationsLimit(generations), rd.SecondsLimit(60 * 5)], log=True
+            [rd.GenerationsLimit(generations), rd.SecondsLimit(60 * 2)], log=True
         )
 
     def visualize_best_snake(self, graph: rd.Graph, title: str = "Best Snake AI"):
@@ -339,7 +408,7 @@ class SnakeEvolver:
             return (ax,)
 
         anim = FuncAnimation(
-            fig, animate, frames=len(test_result["history"]), interval=100, repeat=False
+            fig, animate, frames=len(test_result["history"]), interval=75, repeat=False
         )
         plt.show()
 
@@ -351,7 +420,7 @@ def main():
     evolver = SnakeEvolver()
 
     # Run evolution
-    result = evolver.run_evolution(generations=250, population_size=50)
+    result = evolver.run_evolution(generations=250)
 
     print(result)
 

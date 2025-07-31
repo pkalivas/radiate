@@ -28,8 +28,8 @@ import math
 # np.random.seed(1220)  # For reproducibility
 
 
-rd.random.set_seed(552211)  # For reproducibility
-np.random.seed(1234)  # For reproducibility
+# rd.random.set_seed(552211)  # For reproducibility
+# np.random.seed(1234)  # For reproducibility
 
 class RobotBehavior:
     """Represents a robot's movement behavior in 2D space."""
@@ -164,7 +164,7 @@ def run_novelty_search_evolution(generations: int = 200) -> rd.Generation:
             descriptor=behavior_descriptor,
             distance=rd.CosineDistance(),
             k=15,                    # Number of nearest neighbors
-            threshold=0.5,           # Novelty threshold
+            threshold=0.6,           # Novelty threshold
             archive_size=1000,       # Maximum archive size
         ),
         survivor_selector=rd.TournamentSelector(3),

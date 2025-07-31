@@ -139,7 +139,10 @@ impl InputTransform<Vec<Box<dyn Alter<GraphChromosome<Op<f32>>>>>> for PyEngineI
             GRAPH_CROSSOVER => alters!(convert_graph_crossover(&self)),
             GRAPH_MUTATOR => alters!(convert_graph_mutator(&self)),
             OPERATION_MUTATOR => alters!(convert_operation_mutator(&self)),
-            _ => panic!("Invalid alterer type {}", self.component),
+            _ => panic!(
+                "Invalid alterer type {} for GraphChromosome",
+                self.component
+            ),
         }
     }
 }

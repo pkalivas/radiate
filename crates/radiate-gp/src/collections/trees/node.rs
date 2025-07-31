@@ -163,6 +163,10 @@ impl<T> TreeNode<T> {
         self.children.as_mut()
     }
 
+    pub fn take_children(&mut self) -> Option<Vec<TreeNode<T>>> {
+        self.children.take()
+    }
+
     pub fn size(&self) -> usize {
         if let Some(children) = self.children.as_ref() {
             children.iter().fold(1, |acc, child| acc + child.size())

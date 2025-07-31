@@ -8,8 +8,6 @@ authors = { workspace = true }
 pyo3 = { workspace = true, features = ["multiple-pymethods"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
 radiate = { workspace = true, features = ["gp", "rayon", "serde"] }
 
 [features]

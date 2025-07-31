@@ -12,28 +12,30 @@ import radiate as rd
 
 N_QUEENS = 32
 
+
 def fitness_fn(queens: np.ndarray) -> int:
     """Calculate the fitness score for the N-Queens problem."""
-    
-    i_indices, j_indices = np.triu_indices(N_QUEENS, k=1)
-    same_row = queens[i_indices] == queens[j_indices]
-    same_diagonal = np.abs(i_indices - j_indices) == np.abs(queens[i_indices] - queens[j_indices])
-    
-    # Count conflicts
-    score = np.sum(same_row) + np.sum(same_diagonal)
-    return score
 
-codec = rd.IntCodec.vector(N_QUEENS, (0, N_QUEENS), use_numpy=True)
+    i_indices, j_indices = np.triu_indices(N_QUEENS, k=1)
+
+    same_row = queens[i_indices] == queens[j_indices]
+
+    same_diagonal = np.abs(i_indices - j_indices) == np.abs(
+        queens[i_indices] - queens[j_indices]
+    )
+
+    return np.sum(same_row) + np.sum(same_diagonal)
+
+
 engine = rd.GeneticEngine(
-    codec=codec,
-    fitness_func=fitness_fn,
-    objectives="min",
-    offspring_selector=rd.BoltzmannSelector(4.0),
-    alters=[
-        rd.MultiPointCrossover(0.75, 2),
-        rd.UniformMutator(0.05)
-    ]
+    rd.IntCodec.vector(N_QUEENS, (0, N_QUEENS), use_numpy=True),
+    fitness_fn,
 )
+
+engine.minimizing()
+engine.offspring_selector(rd.BoltzmannSelector(4.0))
+engine.alters([rd.MultiPointCrossover(0.75, 2), rd.UniformMutator(0.05)])
+
 result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(1000)], log=True)
 print(result)
 

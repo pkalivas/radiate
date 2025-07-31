@@ -11,6 +11,7 @@ pub trait Diversity<C: Chromosome>: Send + Sync {
 /// A concrete implementation of the [Diversity] trait that calculates the Hamming distance
 /// between two [Genotype]s. The Hamming distance is the number of positions at which the
 /// corresponding genes are different normalized by the total number of genes.
+#[derive(Clone)]
 pub struct HammingDistance;
 
 impl<G: Gene, C: Chromosome<Gene = G>> Diversity<C> for HammingDistance
@@ -113,6 +114,7 @@ impl Novelty<Vec<f32>> for EuclideanDistance {
     }
 }
 
+#[derive(Clone)]
 pub struct CosineDistance;
 
 impl<G: ArithmeticGene, C: Chromosome<Gene = G>> Diversity<C> for CosineDistance

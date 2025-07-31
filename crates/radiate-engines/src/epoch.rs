@@ -152,40 +152,18 @@ where
     }
 }
 
-#[derive(Clone, Default)]
-pub struct ParetoFront<T> {
-    front: Vec<T>,
-}
-
-impl<T> ParetoFront<T> {
-    pub fn new() -> Self {
-        ParetoFront { front: Vec::new() }
-    }
-
-    pub fn add(&mut self, item: T) {
-        self.front.push(item);
-    }
-
-    pub fn values(&self) -> &[T] {
-        &self.front
-    }
-}
-
-impl<C, T> FromIterator<Generation<C, T>> for ParetoFront<Phenotype<C>>
+impl<C, T> FromIterator<Generation<C, T>> for Front<Phenotype<C>>
 where
     C: Chromosome + Clone,
 {
     fn from_iter<I: IntoIterator<Item = Generation<C, T>>>(iter: I) -> Self {
-        let mut result = ParetoFront::new();
         let final_epoch = iter.into_iter().last();
         if let Some(epoch) = final_epoch {
             if let Some(front) = epoch.front() {
-                for value in front.values() {
-                    result.add((*(*value)).clone());
-                }
+                return front.clone();
             }
         }
 
-        result
+        Front::default()
     }
 }

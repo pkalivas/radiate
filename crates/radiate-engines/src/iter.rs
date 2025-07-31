@@ -1,6 +1,7 @@
-use crate::{Generation, Limit};
+use crate::{Generation, Limit, init_logging};
 use radiate_core::{Chromosome, Engine, Objective, Optimize, Score};
 use std::{collections::VecDeque, time::Duration};
+use tracing::info;
 
 pub struct EngineIterator<E>
 where
@@ -85,10 +86,7 @@ where
         }
     }
 
-    fn limit(
-        self,
-        limit: impl Into<Limit>,
-    ) -> LimitIterator<Box<dyn Iterator<Item = Generation<C, T>>>>
+    fn limit(self, limit: impl Into<Limit>) -> Box<dyn Iterator<Item = Generation<C, T>>>
     where
         Self: Sized + 'static,
         C: 'static,
@@ -97,30 +95,28 @@ where
         let limit = limit.into();
 
         match limit {
-            Limit::Generation(lim) => LimitIterator {
-                iter: Box::new(GenerationIterator {
-                    iter: self,
-                    max_index: lim,
-                    done: false,
-                }),
-            },
-            Limit::Seconds(sec) => LimitIterator {
-                iter: Box::new(SecondsIterator {
-                    iter: self,
-                    limit: sec,
-                    done: false,
-                }),
-            },
-            Limit::Score(score) => LimitIterator {
-                iter: Box::new(ScoreIterator {
-                    iter: self,
-                    limit: score,
-                    done: false,
-                }),
-            },
-            Limit::Convergence(window, epsilon) => LimitIterator {
-                iter: Box::new(self.until_converged(window, epsilon)),
-            },
+            Limit::Generation(lim) => Box::new(GenerationIterator {
+                iter: self,
+                max_index: lim,
+                done: false,
+            }),
+            Limit::Seconds(sec) => Box::new(SecondsIterator {
+                iter: self,
+                limit: sec,
+                done: false,
+            }),
+            Limit::Score(score) => Box::new(ScoreIterator {
+                iter: self,
+                limit: score,
+                done: false,
+            }),
+            Limit::Convergence(window, epsilon) => Box::new(ConvergenceIterator {
+                iter: self,
+                window,
+                epsilon,
+                done: false,
+                history: VecDeque::new(),
+            }),
             Limit::Combined(limits) => {
                 let mut iter: Box<dyn Iterator<Item = Generation<C, T>>> = Box::new(self);
                 for limit in limits {
@@ -147,11 +143,58 @@ where
                     };
                 }
 
-                LimitIterator {
-                    iter: Box::new(iter),
-                }
+                iter
             }
         }
+    }
+
+    fn logging(self) -> impl Iterator<Item = Generation<C, T>>
+    where
+        Self: Sized,
+    {
+        init_logging();
+        LoggingIterator { iter: self }
+    }
+}
+
+struct LoggingIterator<I, C, T>
+where
+    I: Iterator<Item = Generation<C, T>>,
+    C: Chromosome,
+{
+    iter: I,
+}
+
+impl<I, C, T> Iterator for LoggingIterator<I, C, T>
+where
+    I: Iterator<Item = Generation<C, T>>,
+    C: Chromosome,
+{
+    type Item = Generation<C, T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next = self.iter.next()?;
+
+        match next.objective() {
+            Objective::Single(_) => {
+                info!(
+                    "Epoch {:<4} | Score: {:>8.4} | Time: {:>5.2?}",
+                    next.index(),
+                    next.score().as_f32(),
+                    next.time()
+                );
+            }
+            Objective::Multi(_) => {
+                info!(
+                    "Epoch {:<4} | Scores: {:?} | Time: {:>5.2?}",
+                    next.index(),
+                    next.score(),
+                    next.time()
+                );
+            }
+        }
+
+        Some(next)
     }
 }
 
@@ -313,21 +356,5 @@ where
         }
 
         Some(next_ctx)
-    }
-}
-
-pub struct LimitIterator<I> {
-    iter: I,
-}
-
-impl<I, C, T> Iterator for LimitIterator<I>
-where
-    I: Iterator<Item = Generation<C, T>>,
-    C: Chromosome,
-{
-    type Item = <I as Iterator>::Item;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
     }
 }

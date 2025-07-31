@@ -26,12 +26,10 @@ class TestSelectorOperators:
             codec = rd.FloatCodec.vector(length=5, value_range=(0.0, 1.0))
 
             pop_size = 100
-            population = rd.Population(
-                [
-                    rd.Phenotype(genotype=codec.encode(), score=float(i + 1))
-                    for i in range(pop_size)
-                ]
-            )
+            population = rd.Population([
+                rd.Phenotype(genotype=codec.encode(), score=float(i + 1))
+                for i in range(pop_size)
+            ])
 
             num_trials = 10_000
             selection_counts = np.zeros(pop_size)

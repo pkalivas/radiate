@@ -26,16 +26,14 @@ fn main() {
 
     let result = engine
         .iter()
+        .logging()
         .take(1000)
-        .inspect(|ctx| {
-            println!("[ {:?} {:?} ]", ctx.index(), ctx.seconds());
-        })
-        .collect::<ParetoFront<Phenotype<FloatChromosome>>>();
+        .collect::<Front<Phenotype<FloatChromosome>>>();
 
     plot_front(&result);
 }
 
-fn plot_front(front: &ParetoFront<Phenotype<FloatChromosome>>) {
+fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {
     let mut x = vec![];
     let mut y = vec![];
     let mut z = vec![];

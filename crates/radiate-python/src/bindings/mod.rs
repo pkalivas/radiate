@@ -6,15 +6,15 @@ mod epoch;
 mod fitness;
 mod functions;
 mod gene;
+mod gp;
 mod inputs;
 mod metric;
-mod ops;
 mod subscriber;
 
 pub use builder::PyEngineBuilder;
 pub use codec::{
-    PyAnyCodec, PyBitCodec, PyCharCodec, PyCodec, PyFloatCodec, PyGraph, PyGraphCodec, PyIntCodec,
-    PyPermutationCodec, PyTree, PyTreeCodec,
+    PyAnyCodec, PyBitCodec, PyCharCodec, PyCodec, PyFloatCodec, PyGraphCodec, PyIntCodec,
+    PyPermutationCodec, PyTreeCodec,
 };
 pub use converters::InputTransform;
 pub use engine::PyEngine;
@@ -22,6 +22,7 @@ pub use epoch::PyGeneration;
 pub use fitness::{PyNoveltySearch, PyProblemBuilder};
 pub use functions::*;
 pub use gene::{PyChromosome, PyGene, PyGeneType, PyGenotype, PyPhenotype, PyPopulation};
+pub use gp::{PyGraph, PyGraphNode, PyTree, PyTreeNode};
 pub use inputs::{PyEngineInput, PyEngineInputType};
 
 pub use metric::PyMetricSet;

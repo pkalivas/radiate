@@ -13,11 +13,11 @@ use std::{fmt::Debug, sync::Arc};
 #[derive(Debug, Clone, PartialEq)]
 pub struct PermutationGene<A: PartialEq + Clone> {
     index: usize,
-    alleles: Arc<Vec<A>>,
+    alleles: Arc<[A]>,
 }
 
 impl<A: PartialEq + Clone> PermutationGene<A> {
-    pub fn new(index: usize, alleles: Arc<Vec<A>>) -> Self {
+    pub fn new(index: usize, alleles: Arc<[A]>) -> Self {
         PermutationGene { index, alleles }
     }
 
@@ -82,10 +82,9 @@ impl<'de, A: PartialEq + Clone> Deserialize<'de> for PermutationGene<A> {
     {
         let index =
             usize::try_from(u64::deserialize(deserializer)?).map_err(serde::de::Error::custom)?;
-        let dummy_alleles = Arc::new(vec![]);
         Ok(PermutationGene {
             index,
-            alleles: Arc::clone(&dummy_alleles),
+            alleles: vec![].into_boxed_slice().into(),
         })
     }
 }
@@ -93,15 +92,15 @@ impl<'de, A: PartialEq + Clone> Deserialize<'de> for PermutationGene<A> {
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct PermutationChromosome<A: PartialEq + Clone> {
     pub genes: Vec<PermutationGene<A>>,
-    alleles: Arc<Vec<A>>,
+    alleles: Arc<[A]>,
 }
 
 impl<A: PartialEq + Clone> PermutationChromosome<A> {
-    pub fn new(genes: Vec<PermutationGene<A>>, alleles: Arc<Vec<A>>) -> Self {
+    pub fn new(genes: Vec<PermutationGene<A>>, alleles: Arc<[A]>) -> Self {
         PermutationChromosome { genes, alleles }
     }
 
-    pub fn alleles(&self) -> &Arc<Vec<A>> {
+    pub fn alleles(&self) -> &Arc<[A]> {
         &self.alleles
     }
 }
@@ -171,7 +170,7 @@ impl<'de, A: PartialEq + Clone + Deserialize<'de>> Deserialize<'de> for Permutat
         }
 
         let data = PermutationChromosomeData::<A>::deserialize(deserializer)?;
-        let alleles = Arc::new(data.alleles);
+        let alleles = data.alleles.into_boxed_slice().into();
         let genes = data
             .indices
             .into_iter()

@@ -10,7 +10,7 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub struct PyPermutationCodec {
     pub codec: PyCodec<PermutationChromosome<usize>, ObjectValue>,
-    pub alleles: Arc<Vec<usize>>,
+    pub alleles: Arc<[usize]>,
 }
 
 #[pymethods]
@@ -32,7 +32,10 @@ impl PyPermutationCodec {
     #[new]
     #[pyo3(signature = (alleles))]
     pub fn new(alleles: Vec<Py<PyAny>>) -> Self {
-        let indexed_alleles = Arc::new((0..alleles.len()).into_iter().collect::<Vec<usize>>());
+        let indexed_alleles: Arc<[usize]> = (0..alleles.len())
+            .into_iter()
+            .collect::<Vec<usize>>()
+            .into();
         let arc_alleles = Arc::new(alleles);
         let allele_count = arc_alleles.len();
 

@@ -51,7 +51,7 @@ where
         archive: &VecDeque<BD::Descriptor>,
     ) -> f32 {
         if archive.is_empty() {
-            return 1.0;
+            return 0.5;
         }
 
         let mut min_distance = f32::INFINITY;
@@ -66,6 +66,14 @@ where
             .collect::<Vec<f32>>();
 
         if max_distance == min_distance {
+            if min_distance == 0.0 {
+                return 0.0;
+            }
+
+            if min_distance > 0.0 {
+                return 0.5;
+            }
+
             return 0.0;
         }
 
@@ -88,7 +96,7 @@ where
         if is_empty {
             let mut writer = self.archive.write().unwrap();
             writer.push_back(description);
-            return 1.0;
+            return 0.5;
         }
 
         let (novelty, should_add) = {

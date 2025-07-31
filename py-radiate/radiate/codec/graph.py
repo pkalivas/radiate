@@ -1,8 +1,8 @@
 from typing import List, Optional, Dict, TypeAlias, Union, Tuple
 from .codec import CodecBase
-from ..gp import Op, Graph
+from ..gp import Op
 from radiate.genome import Genotype
-from radiate.radiate import PyGraphCodec
+from radiate.radiate import PyGraphCodec, PyGraph as Graph
 
 NodeValues: TypeAlias = Union[List[Op], Op]
 
@@ -19,7 +19,7 @@ class GraphCodec(CodecBase):
             raise ValueError("genotype must be of type 'graph'.")
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
-        return Graph(self.codec.decode_py(genotype.py_genotype()))
+        return self.codec.decode_py(genotype.py_genotype())
 
     @staticmethod
     def weighted_directed(

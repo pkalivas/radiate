@@ -19,7 +19,7 @@ from .alterer import (
     GraphCrossover,
     InversionMutator,
     PolynomialMutator,
-    EdgeRecombinationCrossover
+    EdgeRecombinationCrossover,
 )
 
 from .selector import (
@@ -35,7 +35,14 @@ from .selector import (
     SteadyStateSelector,
 )
 
-from .distance import HammingDistance, EuclideanDistance, NeatDistance, CosineDistance
+from .distance import (
+    HammingDistance,
+    EuclideanDistance,
+    NeatDistance,
+    CosineDistance,
+    GraphTopologyDistance,
+    GraphArchitectureDistance,
+)
 
 from .limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
 
@@ -74,6 +81,8 @@ __all__ = [
     "SteadyStateSelector",
     "HammingDistance",
     "EuclideanDistance",
+    "GraphTopologyDistance",
+    "GraphArchitectureDistance",
     "NeatDistance",
     "Executor",
     "SecondsLimit",

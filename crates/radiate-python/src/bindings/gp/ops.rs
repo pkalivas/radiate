@@ -1,6 +1,12 @@
 use crate::object::Wrap;
-use pyo3::{Bound, FromPyObject, PyAny, PyResult, types::PyAnyMethods};
+use pyo3::{Bound, FromPyObject, PyAny, PyResult, pyclass, types::PyAnyMethods};
 use radiate::Op;
+
+#[pyclass]
+#[derive(Clone)]
+pub struct PyOp {
+    pub inner: Op<f32>,
+}
 
 impl<'py> FromPyObject<'py> for Wrap<Vec<Op<f32>>> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {

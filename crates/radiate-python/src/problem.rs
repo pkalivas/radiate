@@ -2,12 +2,12 @@ use crate::{IntoPyObjectValue, bindings::PyCodec};
 use pyo3::{Borrowed, PyAny, PyObject, Python};
 use radiate::{Chromosome, Codec, Genotype, Problem, Score};
 
-pub struct PyProblem<C: Chromosome, T: IntoPyObjectValue> {
+pub struct PyProblem<C: Chromosome, T> {
     fitness_func: PyObject,
     codec: PyCodec<C, T>,
 }
 
-impl<C: Chromosome, T: IntoPyObjectValue> PyProblem<C, T> {
+impl<C: Chromosome, T> PyProblem<C, T> {
     pub fn new(fitness_func: PyObject, codec: PyCodec<C, T>) -> Self {
         PyProblem {
             fitness_func,

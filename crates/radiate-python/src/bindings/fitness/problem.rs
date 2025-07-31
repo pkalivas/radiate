@@ -14,6 +14,7 @@ pub struct PyProblemBuilder {
     pub name: String,
     pub args: ObjectValue,
     pub allowed_genes: Vec<PyGeneType>,
+    pub is_native: bool,
 }
 
 #[pymethods]
@@ -47,6 +48,7 @@ impl PyProblemBuilder {
             args: ObjectValue {
                 inner: args.unbind().into_any(),
             },
+            is_native: false,
             allowed_genes: vec![
                 PyGeneType::Float,
                 PyGeneType::Int,
@@ -77,6 +79,7 @@ impl PyProblemBuilder {
             args: ObjectValue {
                 inner: args.unbind().into_any(),
             },
+            is_native: true,
             allowed_genes: vec![PyGeneType::Graph, PyGeneType::Tree],
         }
     }
@@ -89,6 +92,7 @@ impl PyProblemBuilder {
         k: usize,
         threshold: f32,
         archive_size: usize,
+        is_native: bool,
     ) -> Self {
         let allowed_genes = distance
             .allowed_genes
@@ -112,6 +116,7 @@ impl PyProblemBuilder {
             args: ObjectValue {
                 inner: args.unbind().into_any(),
             },
+            is_native,
             allowed_genes,
         }
     }

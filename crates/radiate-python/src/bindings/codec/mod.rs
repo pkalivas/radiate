@@ -13,10 +13,10 @@ pub use any::PyAnyCodec;
 pub use bit::PyBitCodec;
 pub use char::PyCharCodec;
 pub use float::PyFloatCodec;
-pub use graph::{PyGraph, PyGraphCodec};
+pub use graph::PyGraphCodec;
 pub use int::PyIntCodec;
 pub use permutation::PyPermutationCodec;
-pub use tree::{PyTree, PyTreeCodec};
+pub use tree::PyTreeCodec;
 
 use pyo3::Python;
 use radiate::{Chromosome, Codec, Genotype};

@@ -35,8 +35,10 @@ class SelectorBase(ComponentBase):
             and self.args == value.args
             and self.allowed_genes == value.allowed_genes
         )
-    
-    def select(self, population: Population, objective: List[str] | str, count: int) -> Population:
+
+    def select(
+        self, population: Population, objective: List[str] | str, count: int
+    ) -> Population:
         """
         Select individuals from the population based on the selector's criteria.
         :param population: The population to select from.
@@ -46,27 +48,32 @@ class SelectorBase(ComponentBase):
         """
         from radiate.radiate import py_select
 
+        gene_type = population.py_population().gene_type()
+
         selector_input = EngineInput(
             component=self.component,
             input_type=EngineInputType.SurvivorSelector,
-            allowed_genes=self.allowed_genes,
             args=self.args,
         ).py_input()
 
         objective_input = EngineInput(
             component="Objective",
             input_type=EngineInputType.Objective,
-            allowed_genes=self.allowed_genes,
-            args={"objective": '|'.join(objective)} if isinstance(objective, list) else {"objective": objective},
+            allowed_genes={gene_type},
+            args={"objective": "|".join(objective)}
+            if isinstance(objective, list)
+            else {"objective": objective},
         ).py_input()
 
-        return Population(individuals=py_select(
-            gene_type=population.py_population().gene_type(),
-            selector=selector_input,
-            objective=objective_input,
-            population=population.py_population(),
-            count=count,
-        ))
+        return Population(
+            individuals=py_select(
+                gene_type=gene_type,
+                selector=selector_input,
+                objective=objective_input,
+                population=population.py_population(),
+                count=count,
+            )
+        )
 
 
 class TournamentSelector(SelectorBase):

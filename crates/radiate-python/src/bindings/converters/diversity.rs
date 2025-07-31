@@ -1,13 +1,16 @@
 use crate::{InputTransform, PyEngineInput};
 use radiate::{
     BitChromosome, CharChromosome, CosineDistance, Diversity, EuclideanDistance, FloatChromosome,
-    GraphChromosome, HammingDistance, IntChromosome, NeatDistance, Op, PermutationChromosome,
+    GraphArchitectureNovelty, GraphChromosome, GraphTopologyNovelty, HammingDistance,
+    IntChromosome, NeatDistance, Op, PermutationChromosome,
 };
 
 const HAMMING_DISTANCE: &str = "HammingDistance";
 const EUCLIDEAN_DISTANCE: &str = "EuclideanDistance";
 const COSINE_DISTANCE: &str = "CosineDistance";
 const NEAT_DISTANCE: &str = "NeatDistance";
+const GRAPH_TOPOLOGY_DISTANCE: &str = "GraphTopologyDistance";
+const GRAPH_ARCHITECTURE_DISTANCE: &str = "GraphArchitectureDistance";
 
 impl InputTransform<Option<Box<dyn Diversity<IntChromosome<i32>>>>> for PyEngineInput {
     fn transform(&self) -> Option<Box<dyn Diversity<IntChromosome<i32>>>> {
@@ -66,6 +69,8 @@ impl InputTransform<Option<Box<dyn Diversity<GraphChromosome<Op<f32>>>>>> for Py
                 Some(Box::new(NeatDistance::new(excess, disjoint, weight_diff)))
             }
             HAMMING_DISTANCE => Some(Box::new(HammingDistance)),
+            GRAPH_TOPOLOGY_DISTANCE => Some(Box::new(GraphTopologyNovelty)),
+            GRAPH_ARCHITECTURE_DISTANCE => Some(Box::new(GraphArchitectureNovelty)),
             _ => None,
         }
     }

@@ -611,7 +611,8 @@ impl PyEngineBuilder {
                         .problem(graph_problem.clone())
                         .executor(executor.clone())
                         .evaluator(FreeThreadPyEvaluator::new(executor, graph_problem))
-                        .bus_executor(Executor::default()),
+                        .bus_executor(Executor::default())
+                        .replace_strategy(GraphReplacement),
                 )
             }
             PyGeneType::Tree => {
@@ -677,8 +678,7 @@ impl PyEngineBuilder {
             }
         };
 
-        let data_set = DataSet::new(features, targets);
-        let regression = Regression::new(data_set, loss);
+        let regression = Regression::new((features, targets), loss);
 
         match self.gene_type {
             PyGeneType::Graph => {
@@ -689,7 +689,8 @@ impl PyEngineBuilder {
                         .codec(codec.codec.clone())
                         .fitness_fn(regression)
                         .executor(executor)
-                        .bus_executor(Executor::default()),
+                        .bus_executor(Executor::default())
+                        .replace_strategy(GraphReplacement),
                 ))
             }
 
@@ -815,18 +816,53 @@ impl PyEngineBuilder {
             PyGeneType::Graph => {
                 let codec = codec.extract::<PyGraphCodec>()?;
                 let cloned_codec = codec.codec.clone();
-                let py_codec = PyCodec::new()
-                    .with_encoder(move || cloned_codec.encode())
-                    .with_decoder(move |_, genotype| codec.codec.decode(genotype));
 
-                let graph_problem = PyProblem::new(fitness, py_codec);
-                Ok(EngineBuilderHandle::Graph(
-                    GeneticEngine::builder()
-                        .problem(graph_problem.clone())
-                        .executor(executor.clone())
-                        .evaluator(FreeThreadPyEvaluator::new(executor, graph_problem))
-                        .bus_executor(Executor::default()),
-                ))
+                if problem.is_native {
+                    match distance.component().as_str() {
+                        "GraphTopologyDistance" => Ok(EngineBuilderHandle::Graph(
+                            GeneticEngine::builder()
+                                .codec(cloned_codec)
+                                .fitness_fn(
+                                    NoveltySearch::new(GraphTopologyNovelty, k, threshold)
+                                        .with_max_archive_size(archive_size),
+                                )
+                                .executor(executor.clone())
+                                .bus_executor(Executor::default())
+                                .replace_strategy(GraphReplacement),
+                        )),
+                        "GraphArchitectureDistance" => Ok(EngineBuilderHandle::Graph(
+                            GeneticEngine::builder()
+                                .codec(cloned_codec)
+                                .fitness_fn(
+                                    NoveltySearch::new(GraphArchitectureNovelty, k, threshold)
+                                        .with_max_archive_size(archive_size),
+                                )
+                                .executor(executor.clone())
+                                .bus_executor(Executor::default())
+                                .replace_strategy(GraphReplacement),
+                        )),
+                        _ => {
+                            return Err(PyErr::new::<PyTypeError, _>(format!(
+                                "Unsupported distance component for Graph gene type: {}",
+                                distance.component()
+                            )));
+                        }
+                    }
+                } else {
+                    let py_codec = PyCodec::new()
+                        .with_encoder(move || cloned_codec.encode())
+                        .with_decoder(move |_, genotype| codec.codec.decode(genotype));
+
+                    let graph_problem = PyProblem::new(fitness, py_codec);
+                    Ok(EngineBuilderHandle::Graph(
+                        GeneticEngine::builder()
+                            .problem(graph_problem.clone())
+                            .executor(executor.clone())
+                            .evaluator(FreeThreadPyEvaluator::new(executor, graph_problem))
+                            .bus_executor(Executor::default())
+                            .replace_strategy(GraphReplacement),
+                    ))
+                }
             }
             PyGeneType::Tree => {
                 let codec = codec.extract::<PyTreeCodec>()?;

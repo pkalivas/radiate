@@ -97,14 +97,6 @@ where
         self.params.handlers.push(Arc::new(Mutex::new(handler)));
         self
     }
-
-    pub fn with_values<F>(mut self, f: F) -> Self
-    where
-        F: FnOnce(&mut EngineParams<C, T>),
-    {
-        f(&mut self.params);
-        self
-    }
 }
 
 /// Static step builder for the genetic engine.

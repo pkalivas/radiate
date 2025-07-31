@@ -15,6 +15,7 @@ pub struct GraphEvalCache<V> {
     output_outs: Vec<V>,
     input_ranges: Vec<Range<usize>>,
 }
+
 pub struct GraphEvaluator<'a, T, V> {
     nodes: &'a [GraphNode<T>],
     inner: GraphEvalCache<V>,
