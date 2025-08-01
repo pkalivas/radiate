@@ -1,3 +1,4 @@
+pub mod dot;
 pub mod factory;
 pub mod format;
 pub mod graphs;
@@ -5,6 +6,7 @@ pub mod node;
 pub mod store;
 pub mod trees;
 
+pub use dot::ToDot;
 pub use factory::*;
 pub use format::*;
 pub use graphs::{

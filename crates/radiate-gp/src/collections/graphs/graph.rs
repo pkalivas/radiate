@@ -5,7 +5,7 @@ use crate::{Node, NodeType};
 use radiate_core::Valid;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::collections::{HashSet, VecDeque};
+use std::collections::HashSet;
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
 
@@ -258,39 +258,17 @@ impl<T> Graph<T> {
     ///
     /// # Arguments
     /// - index: The index of the node to get the cycles for.
-    #[inline]
-    pub fn get_cycles(&self, index: usize) -> Vec<usize> {
-        let mut path = Vec::new();
-        let mut seen = HashSet::new();
-        let mut current = self
-            .get(index)
-            .map(|node| node.outgoing().iter().cloned().collect::<VecDeque<usize>>())
-            .unwrap_or_default();
+    // #[inline]
+    pub fn get_cycles(&self, from: usize) -> HashSet<usize> {
+        let mut visited = HashSet::new();
+        let mut stack = Vec::new();
+        let mut cycles = HashSet::new();
 
-        while !current.is_empty() {
-            let current_index = current.pop_front().unwrap();
-            if let Some(current_node) = self.get(current_index) {
-                if seen.contains(&current_index) {
-                    continue;
-                }
-
-                if current_index == index {
-                    path.push(current_index);
-                    return path;
-                }
-
-                seen.insert(current_index);
-
-                if !current_node.outgoing().is_empty() {
-                    path.push(current_index);
-                    for outgoing in current_node.outgoing().iter() {
-                        current.push_back(*outgoing);
-                    }
-                }
-            }
+        if !visited.contains(&from) {
+            self.dfs_visit(from, &mut visited, &mut stack, &mut cycles);
         }
 
-        Vec::new()
+        cycles
     }
 
     /// Given a list of node indices, this function will set the 'direction' field of the nodes
@@ -310,20 +288,45 @@ impl<T> Graph<T> {
         }
 
         for idx in indecies {
-            let node_cycles = self.get_cycles(idx);
+            let cycles = self.get_cycles(idx);
 
-            if node_cycles.is_empty() {
+            if cycles.is_empty() {
                 if let Some(node) = self.get_mut(idx) {
                     node.set_direction(Direction::Forward);
                 }
             } else {
-                for cycle_idx in node_cycles {
-                    if let Some(node) = self.get_mut(cycle_idx) {
+                for cycle in cycles {
+                    if let Some(node) = self.get_mut(cycle) {
                         node.set_direction(Direction::Backward);
                     }
                 }
             }
         }
+    }
+
+    fn dfs_visit(
+        &self,
+        node: usize,
+        visited: &mut HashSet<usize>,
+        stack: &mut Vec<usize>,
+        cycles: &mut HashSet<usize>,
+    ) {
+        visited.insert(node);
+        stack.push(node);
+
+        for &neighbor in self.get(node).unwrap().outgoing() {
+            if !visited.contains(&neighbor) {
+                self.dfs_visit(neighbor, visited, stack, cycles);
+            } else if stack.contains(&neighbor) {
+                if let Some(cycle_start) = stack.iter().position(|&x| x == neighbor) {
+                    for cycle_node in &stack[cycle_start..] {
+                        cycles.insert(*cycle_node);
+                    }
+                }
+            }
+        }
+
+        stack.pop();
     }
 
     #[inline]

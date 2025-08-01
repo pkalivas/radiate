@@ -11,6 +11,7 @@ mod mutation;
 mod node;
 mod replacement;
 mod transaction;
+mod writer;
 
 pub use aggregate::GraphAggregate;
 pub use chromosome::GraphChromosome;

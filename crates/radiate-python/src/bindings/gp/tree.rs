@@ -1,6 +1,6 @@
 use crate::{IntoPyAnyObject, PyAnyObject};
 use pyo3::{IntoPyObjectExt, PyResult, Python, pyclass, pymethods};
-use radiate::{Eval, Format, Node, Op, Tree, TreeNode};
+use radiate::{Eval, Format, Node, Op, ToDot, Tree, TreeNode};
 
 impl IntoPyAnyObject for Vec<Tree<Op<f32>>> {
     fn into_py<'py>(self, py: Python<'py>) -> PyAnyObject {
@@ -72,6 +72,14 @@ impl PyTree {
 
     pub fn to_json(&self) -> String {
         serde_json::to_string(&self.inner).unwrap()
+    }
+
+    pub fn to_dot(&self) -> String {
+        self.inner
+            .iter()
+            .map(|tree| tree.to_dot())
+            .collect::<Vec<String>>()
+            .join("\n")
     }
 }
 

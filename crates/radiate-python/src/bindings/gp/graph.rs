@@ -1,7 +1,7 @@
 use crate::{IntoPyAnyObject, PyAnyObject};
 use pyo3::{IntoPyObjectExt, PyResult, Python, pyclass, pymethods};
 use radiate::{
-    EvalMut, Graph, GraphEvaluator, GraphIterator, GraphNode, Node, NodeType, Op,
+    EvalMut, Graph, GraphEvaluator, GraphIterator, GraphNode, Node, NodeType, Op, ToDot,
     graphs::GraphEvalCache,
 };
 use std::collections::BTreeSet;
@@ -94,6 +94,10 @@ impl PyGraph {
 
     pub fn to_json(&self) -> String {
         serde_json::to_string(&self.inner).unwrap()
+    }
+
+    pub fn to_dot(&self) -> String {
+        self.inner.to_dot()
     }
 }
 

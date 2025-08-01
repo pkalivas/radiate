@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use radiate::*;
 
 const MIN_SCORE: f32 = 0.001;
@@ -40,6 +42,12 @@ fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
 
     println!("{:?}", result);
     println!("{:?}", accuracy_result);
+
+    let file = std::fs::File::create("graph.dot").unwrap();
+    let mut writer = std::io::BufWriter::new(file);
+    writer
+        .write_all(result.value().to_dot().as_bytes())
+        .unwrap();
 }
 
 fn dataset() -> impl Into<DataSet> {
