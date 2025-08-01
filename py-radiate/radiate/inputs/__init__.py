@@ -40,8 +40,6 @@ from .distance import (
     EuclideanDistance,
     NeatDistance,
     CosineDistance,
-    GraphTopologyDistance,
-    GraphArchitectureDistance,
 )
 
 from .limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
@@ -81,8 +79,6 @@ __all__ = [
     "SteadyStateSelector",
     "HammingDistance",
     "EuclideanDistance",
-    "GraphTopologyDistance",
-    "GraphArchitectureDistance",
     "NeatDistance",
     "Executor",
     "SecondsLimit",

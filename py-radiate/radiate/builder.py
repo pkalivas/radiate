@@ -18,13 +18,10 @@ class EngineBuilder:
         gene_type: str,
         codec: CodecBase,
         problem: FitnessBase,
-        population: Optional[Population],
     ):
         self._inputs = []
-        self._subscribers = []
         self._gene_type = gene_type
         self._codec = codec
-        self._population = population
 
         if isinstance(problem, Callable):
             self.problem = CallableFitness(problem)
@@ -35,11 +32,8 @@ class EngineBuilder:
         """Build the PyEngine instance."""
 
         builder = PyEngineBuilder(
-            gene_type=self._gene_type,
             codec=self._codec.codec,
             problem=self.problem.problem,
-            population=self._population.py_population() if self._population else None,
-            subscribers=[subscriber._py_handler for subscriber in self._subscribers],
             inputs=[self_input.py_input() for self_input in self._inputs],
         )
         return builder.build()
@@ -47,13 +41,31 @@ class EngineBuilder:
     def inputs(self) -> List[EngineInput]:
         return self._inputs
 
-    def set_subscribers(self, subscribers: Subscriber | None):
-        if subscribers is None:
+    def set_subscribers(self, subscriber: Subscriber | None):
+        if subscriber is None:
             return
-        if isinstance(subscribers, list):
-            self._subscribers.extend(subscribers)
-        else:
-            self._subscribers.append(subscribers)
+
+        self._inputs.append(
+            EngineInput(
+                input_type=EngineInputType.Subscriber,
+                component="subscriber",
+                subscriber=subscriber._py_handler,
+            )
+        )
+
+    def set_population(self, population: Population):
+        if population is None:
+            return
+
+        if not isinstance(population, Population):
+            raise TypeError("population must be an instance of Population")
+        self._inputs.append(
+            EngineInput(
+                input_type=EngineInputType.Population,
+                component="population",
+                population=population.py_population(),
+            )
+        )
 
     def set_survivor_selector(self, selector: SelectorBase):
         if self._gene_type not in selector.allowed_genes:

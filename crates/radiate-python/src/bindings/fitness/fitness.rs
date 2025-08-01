@@ -1,12 +1,12 @@
-use crate::{ObjectValue, PyNoveltySearch};
+use crate::{PyAnyObject, PyNoveltySearch};
 use pyo3::{IntoPyObjectExt, Py, PyAny, Python, pyclass, pymethods};
 use radiate::{Loss, Regression};
 
 #[derive(Clone)]
 pub enum PyFitnessInner {
-    Custom(ObjectValue),
+    Custom(PyAnyObject),
     Regression(Regression),
-    NoveltySearch(ObjectValue),
+    NoveltySearch(PyAnyObject),
 }
 
 #[pyclass]
@@ -20,7 +20,7 @@ impl PyFitnessFn {
     #[staticmethod]
     pub fn custom(fitness_fn: Py<PyAny>) -> Self {
         PyFitnessFn {
-            inner: PyFitnessInner::Custom(ObjectValue { inner: fitness_fn }),
+            inner: PyFitnessInner::Custom(PyAnyObject { inner: fitness_fn }),
         }
     }
 
@@ -48,7 +48,7 @@ impl PyFitnessFn {
     ) -> Self {
         let search = PyNoveltySearch::new(descriptor, k, threshold, archive_size, distance_fn);
         PyFitnessFn {
-            inner: PyFitnessInner::NoveltySearch(ObjectValue {
+            inner: PyFitnessInner::NoveltySearch(PyAnyObject {
                 inner: search.into_py_any(py).unwrap(),
             }),
         }

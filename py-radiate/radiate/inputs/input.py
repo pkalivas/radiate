@@ -16,6 +16,8 @@ input_type_mapping = {
     "FrontRange": PyEngineInputType.FrontRange,
     "Limit": PyEngineInputType.Limit,
     "Diversity": PyEngineInputType.Diversity,
+    "Population": PyEngineInputType.Population,
+    "Subscriber": PyEngineInputType.Subscriber,
 }
 
 gene_type_mapping = {
@@ -43,6 +45,8 @@ class EngineInputType:
     FrontRange = "FrontRange"
     Limit = "Limit"
     Diversity = "Diversity"
+    Population = "Population"
+    Subscriber = "Subscriber"
 
 
 class EngineInput:

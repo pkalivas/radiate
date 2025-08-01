@@ -14,7 +14,6 @@ from .codec import (
     GraphCodec,
     TreeCodec,
     PermutationCodec,
-    AnyCodec,
 )
 from .random import RandomProvider as random
 from .generation import Generation
@@ -64,8 +63,6 @@ from .inputs.distance import (
     EuclideanDistance,
     NeatDistance,
     CosineDistance,
-    GraphTopologyDistance,
-    GraphArchitectureDistance,
 )
 
 from .inputs.limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
@@ -94,7 +91,6 @@ __all__ = [
     "BitCodec",
     "GraphCodec",
     "TreeCodec",
-    "AnyCodec",
     # Genome and Population
     "Gene",
     "Chromosome",
@@ -156,8 +152,6 @@ __all__ = [
     "CosineDistance",
     "HammingDistance",
     "EuclideanDistance",
-    "GraphTopologyDistance",
-    "GraphArchitectureDistance",
     # Engine
     "GeneticEngine",
     "Generation",

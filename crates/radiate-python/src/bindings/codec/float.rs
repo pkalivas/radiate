@@ -1,12 +1,12 @@
 use super::PyCodec;
-use crate::{ObjectValue, PyChromosome, PyGene, PyGenotype};
+use crate::{PyAnyObject, PyChromosome, PyGene, PyGenotype};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, pyclass, pymethods, types::PyFloat};
 use radiate::{Chromosome, Codec, FloatChromosome, FloatGene, Gene, Genotype};
 
 #[pyclass]
 #[derive(Clone)]
 pub struct PyFloatCodec {
-    pub codec: PyCodec<FloatChromosome, ObjectValue>,
+    pub codec: PyCodec<FloatChromosome, PyAnyObject>,
 }
 
 #[pymethods]
@@ -38,7 +38,7 @@ impl PyFloatCodec {
                             .collect::<Vec<FloatChromosome>>(),
                     )
                 })
-                .with_decoder(move |py, geno| ObjectValue {
+                .with_decoder(move |py, geno| PyAnyObject {
                     inner: super::decode_genotype_to_array(py, geno, use_numpy)
                         .unwrap()
                         .unbind()
@@ -61,7 +61,7 @@ impl PyFloatCodec {
                     )
                     .into()
                 })
-                .with_decoder(move |py, geno| ObjectValue {
+                .with_decoder(move |py, geno| PyAnyObject {
                     inner: super::decode_genotype_to_array(py, geno, use_numpy)
                         .unwrap()
                         .unbind()
@@ -95,7 +95,7 @@ impl PyFloatCodec {
                         .collect::<Vec<FloatChromosome>>()
                         .into()
                 })
-                .with_decoder(move |py, geno| ObjectValue {
+                .with_decoder(move |py, geno| PyAnyObject {
                     inner: super::decode_genotype_to_array(py, geno, use_numpy)
                         .unwrap()
                         .unbind()
@@ -126,7 +126,7 @@ impl PyFloatCodec {
                         bound_range.clone(),
                     ))])
                 })
-                .with_decoder(move |py, geno| ObjectValue {
+                .with_decoder(move |py, geno| PyAnyObject {
                     inner: super::decode_genotype_to_array(py, geno, use_numpy)
                         .unwrap()
                         .unbind()
@@ -160,7 +160,7 @@ impl PyFloatCodec {
                         .map_or(0.0, |gene| *gene.allele());
                     let outer = PyFloat::new(py, val as f64);
 
-                    ObjectValue {
+                    PyAnyObject {
                         inner: outer.unbind().into_any(),
                     }
                 }),

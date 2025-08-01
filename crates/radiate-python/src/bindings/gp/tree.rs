@@ -1,10 +1,10 @@
-use crate::{IntoPyObjectValue, ObjectValue};
+use crate::{IntoPyAnyObject, PyAnyObject};
 use pyo3::{IntoPyObjectExt, PyResult, Python, pyclass, pymethods};
 use radiate::{Eval, Format, Node, Op, Tree, TreeNode};
 
-impl IntoPyObjectValue for Vec<Tree<Op<f32>>> {
-    fn into_py<'py>(self, py: Python<'py>) -> ObjectValue {
-        ObjectValue {
+impl IntoPyAnyObject for Vec<Tree<Op<f32>>> {
+    fn into_py<'py>(self, py: Python<'py>) -> PyAnyObject {
+        PyAnyObject {
             inner: PyTree { inner: self }.into_py_any(py).unwrap(),
         }
     }

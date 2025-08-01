@@ -1,4 +1,4 @@
-use crate::{IntoPyObjectValue, bindings::PyCodec};
+use crate::{IntoPyAnyObject, bindings::PyCodec};
 use pyo3::{Borrowed, PyAny, PyObject, Python};
 use radiate::{Chromosome, Codec, Genotype, Problem, Score};
 
@@ -24,7 +24,7 @@ impl<C: Chromosome, T> PyProblem<C, T> {
     }
 }
 
-impl<C: Chromosome, T: IntoPyObjectValue> Problem<C, T> for PyProblem<C, T> {
+impl<C: Chromosome, T: IntoPyAnyObject> Problem<C, T> for PyProblem<C, T> {
     fn encode(&self) -> Genotype<C> {
         self.codec.encode()
     }

@@ -1,5 +1,5 @@
 use super::PyCodec;
-use crate::{ObjectValue, PyChromosome, PyGene, PyGenotype};
+use crate::{PyAnyObject, PyChromosome, PyGene, PyGenotype};
 use pyo3::{
     Bound, IntoPyObjectExt, PyAny, PyResult, pyclass, pymethods,
     types::{PyList, PyListMethods},
@@ -9,7 +9,7 @@ use radiate::{CharChromosome, CharGene, Chromosome, Codec, Gene, Genotype};
 #[pyclass]
 #[derive(Clone)]
 pub struct PyCharCodec {
-    pub codec: PyCodec<CharChromosome, ObjectValue>,
+    pub codec: PyCodec<CharChromosome, PyAnyObject>,
 }
 
 #[pymethods]
@@ -56,7 +56,7 @@ impl PyCharCodec {
                         outer.append(inner).unwrap();
                     }
 
-                    ObjectValue {
+                    PyAnyObject {
                         inner: outer.unbind().into_any(),
                     }
                 }),
@@ -88,7 +88,7 @@ impl PyCharCodec {
                         outer.append(value).unwrap();
                     }
 
-                    return ObjectValue {
+                    return PyAnyObject {
                         inner: outer.unbind().into_any(),
                     };
                 }),
@@ -119,7 +119,7 @@ impl PyCharCodec {
                         outer.append(inner).unwrap();
                     }
 
-                    return ObjectValue {
+                    return PyAnyObject {
                         inner: outer.unbind().into_any(),
                     };
                 }),
@@ -142,7 +142,7 @@ impl PyCharCodec {
                         }
                     }
 
-                    return ObjectValue {
+                    return PyAnyObject {
                         inner: outer.unbind().into_any(),
                     };
                 }),

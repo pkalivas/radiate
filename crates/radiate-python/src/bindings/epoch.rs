@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use super::PyGenotype;
 use crate::EpochHandle;
-use crate::ObjectValue;
+use crate::PyAnyObject;
 use crate::PyPopulation;
 use crate::bindings::gp::{PyGraph, PyTree};
 use crate::object::Wrap;
@@ -152,7 +152,7 @@ impl PyGeneration {
 
 fn get_value<'py, C>(
     py: Python<'py>,
-    generation: &Generation<C, ObjectValue>,
+    generation: &Generation<C, PyAnyObject>,
 ) -> PyResult<Bound<'py, PyAny>>
 where
     C: Chromosome + Clone,

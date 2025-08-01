@@ -1,7 +1,10 @@
 use pyo3::{
     Py, PyAny, PyResult, Python, exceptions::PyTypeError, pyclass, pymethods, types::PyAnyMethods,
 };
-use radiate::{FitnessFunction, NoveltySearch, fitness::Novelty};
+use radiate::{
+    CosineDistance, EuclideanDistance, FitnessFunction, HammingDistance, NoveltySearch,
+    fitness::Novelty,
+};
 
 pub struct PyDescriptor;
 
@@ -27,20 +30,21 @@ impl PyNoveltySearch {
         archive_size: usize,
         distance: String,
     ) -> Self {
-        let mut search =
-            NoveltySearch::new(PyDescriptor, k, threshold).with_max_archive_size(archive_size);
-
-        if distance == "EuclideanDistance" {
-            search = search.euclidean_distance();
-        } else if distance == "CosineDistance" {
-            search = search.cosine_distance();
-        } else {
-            search = search.hamming_distance();
-        }
-
         PyNoveltySearch {
             descriptor,
-            inner: search,
+            inner: if distance == "EuclideanDistance" {
+                NoveltySearch::new(EuclideanDistance, k, threshold)
+                    .with_max_archive_size(archive_size)
+                    .euclidean_distance()
+            } else if distance == "CosineDistance" {
+                NoveltySearch::new(CosineDistance, k, threshold)
+                    .with_max_archive_size(archive_size)
+                    .cosine_distance()
+            } else {
+                NoveltySearch::new(HammingDistance, k, threshold)
+                    .with_max_archive_size(archive_size)
+                    .hamming_distance()
+            },
         }
     }
 

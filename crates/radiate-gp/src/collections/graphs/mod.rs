@@ -9,7 +9,6 @@ mod graph;
 mod iter;
 mod mutation;
 mod node;
-mod novelty;
 mod replacement;
 mod transaction;
 
@@ -23,6 +22,5 @@ pub use graph::Graph;
 pub use iter::GraphIterator;
 pub use mutation::GraphMutator;
 pub use node::{Direction, GraphNode, GraphNodeId};
-pub use novelty::{GraphArchitectureNovelty, GraphTopologyNovelty};
 pub use replacement::GraphReplacement;
 pub use transaction::GraphTransaction;

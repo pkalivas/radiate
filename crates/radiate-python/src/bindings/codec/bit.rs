@@ -1,12 +1,12 @@
 use super::PyCodec;
-use crate::{ObjectValue, PyGenotype};
+use crate::{PyAnyObject, PyGenotype};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, pyclass, pymethods};
 use radiate::{BitChromosome, Codec, Genotype};
 
 #[pyclass]
 #[derive(Clone)]
 pub struct PyBitCodec {
-    pub codec: PyCodec<BitChromosome, ObjectValue>,
+    pub codec: PyCodec<BitChromosome, PyAnyObject>,
 }
 
 #[pymethods]
@@ -39,7 +39,7 @@ impl PyBitCodec {
                         .collect::<Vec<BitChromosome>>()
                         .into()
                 })
-                .with_decoder(move |py, geno| ObjectValue {
+                .with_decoder(move |py, geno| PyAnyObject {
                     inner: super::decode_genotype_to_array(py, geno, use_numpy)
                         .unwrap()
                         .unbind()
@@ -56,7 +56,7 @@ impl PyBitCodec {
         PyBitCodec {
             codec: PyCodec::new()
                 .with_encoder(move || Genotype::from(vec![BitChromosome::new(length)]))
-                .with_decoder(move |py, geno| ObjectValue {
+                .with_decoder(move |py, geno| PyAnyObject {
                     inner: super::decode_genotype_to_array(py, geno, use_numpy)
                         .unwrap()
                         .unbind()

@@ -1,4 +1,3 @@
-mod any;
 mod bit;
 mod char;
 mod float;
@@ -9,7 +8,6 @@ mod tree;
 
 use std::sync::Arc;
 
-pub use any::PyAnyCodec;
 pub use bit::PyBitCodec;
 pub use char::PyCharCodec;
 pub use float::PyFloatCodec;

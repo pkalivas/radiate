@@ -1,24 +1,105 @@
+use pyo3::types::{PyFloat, PyInt};
 use pyo3::{Borrowed, IntoPyObject, PyAny, PyObject, Python, types::PyAnyMethods};
+use pyo3::{FromPyObject, PyResult};
 use std::fmt::{Display, Formatter};
 use std::hash::{Hash, Hasher};
 
-pub trait IntoPyObjectValue {
-    fn into_py<'py>(self, py: Python<'py>) -> ObjectValue;
+pub trait IntoPyAnyObject {
+    fn into_py<'py>(self, py: Python<'py>) -> PyAnyObject;
 }
 
-impl IntoPyObjectValue for ObjectValue {
-    fn into_py<'py>(self, _: Python<'py>) -> ObjectValue {
+impl IntoPyAnyObject for PyAnyObject {
+    fn into_py<'py>(self, _: Python<'py>) -> PyAnyObject {
         self
     }
 }
 
 #[derive(Debug)]
 #[repr(transparent)]
-pub struct ObjectValue {
+pub struct PyAnyObject {
     pub inner: PyObject,
 }
 
-impl Clone for ObjectValue {
+impl PyAnyObject {
+    pub fn extract<'py, T: FromPyObject<'py>>(&self, py: Python<'py>) -> PyResult<T> {
+        self.clone().inner.bind_borrowed(py).extract()
+    }
+
+    pub fn get_f32(&self) -> Option<f32> {
+        Python::with_gil(|py| {
+            let bound = self.inner.bind_borrowed(py);
+            if bound.is_instance_of::<PyFloat>() {
+                bound.extract::<f64>().ok().map(|v| v as f32)
+            } else if bound.is_instance_of::<PyInt>() {
+                bound.extract::<i64>().ok().map(|v| v as f32)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn get_f64(&self) -> Option<f64> {
+        Python::with_gil(|py| {
+            let bound = self.inner.bind_borrowed(py);
+            if bound.is_instance_of::<PyFloat>() {
+                bound.extract::<f64>().ok()
+            } else if bound.is_instance_of::<PyInt>() {
+                bound.extract::<i64>().ok().map(|v| v as f64)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn get_i32(&self) -> Option<i32> {
+        Python::with_gil(|py| {
+            let bound = self.inner.bind_borrowed(py);
+            if bound.is_instance_of::<PyInt>() {
+                bound.extract::<i64>().ok().map(|v| v as i32)
+            } else if bound.is_instance_of::<PyFloat>() {
+                bound.extract::<f64>().ok().map(|v| v as i32)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn get_usize(&self) -> Option<usize> {
+        Python::with_gil(|py| {
+            let bound = self.inner.bind_borrowed(py);
+            if bound.is_instance_of::<PyInt>() {
+                bound.extract::<i64>().ok().map(|v| v as usize)
+            } else if bound.is_instance_of::<PyFloat>() {
+                bound.extract::<f64>().ok().map(|v| v as usize)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn get_string(&self) -> Option<String> {
+        Python::with_gil(|py| {
+            let bound = self.inner.bind_borrowed(py);
+            bound.extract::<String>().ok()
+        })
+    }
+
+    pub fn get_bool(&self) -> Option<bool> {
+        Python::with_gil(|py| {
+            let bound = self.inner.bind_borrowed(py);
+            bound.extract::<bool>().ok()
+        })
+    }
+
+    pub fn get_vec_f32(&self) -> Option<Vec<f32>> {
+        Python::with_gil(|py| {
+            let bound = self.inner.bind_borrowed(py);
+            bound.extract::<Vec<f32>>().ok()
+        })
+    }
+}
+
+impl Clone for PyAnyObject {
     fn clone(&self) -> Self {
         Python::with_gil(|py| Self {
             inner: self.inner.clone_ref(py),
@@ -26,26 +107,26 @@ impl Clone for ObjectValue {
     }
 }
 
-impl Hash for ObjectValue {
+impl Hash for PyAnyObject {
     fn hash<H: Hasher>(&self, state: &mut H) {
         let h = Python::with_gil(|py| self.inner.bind(py).hash().expect("should be hashable"));
         state.write_isize(h)
     }
 }
 
-impl Display for ObjectValue {
+impl Display for PyAnyObject {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.inner)
     }
 }
 
-impl From<PyObject> for ObjectValue {
+impl From<PyObject> for PyAnyObject {
     fn from(p: PyObject) -> Self {
         Self { inner: p }
     }
 }
 
-impl<'a, 'py> IntoPyObject<'py> for &'a ObjectValue {
+impl<'a, 'py> IntoPyObject<'py> for &'a PyAnyObject {
     type Target = PyAny;
     type Output = Borrowed<'a, 'py, Self::Target>;
     type Error = std::convert::Infallible;
@@ -55,11 +136,11 @@ impl<'a, 'py> IntoPyObject<'py> for &'a ObjectValue {
     }
 }
 
-impl Default for ObjectValue {
+impl Default for PyAnyObject {
     fn default() -> Self {
-        Python::with_gil(|py| ObjectValue { inner: py.None() })
+        Python::with_gil(|py| PyAnyObject { inner: py.None() })
     }
 }
 
-unsafe impl Send for ObjectValue {}
-unsafe impl Sync for ObjectValue {}
+unsafe impl Send for PyAnyObject {}
+unsafe impl Sync for PyAnyObject {}

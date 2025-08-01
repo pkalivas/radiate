@@ -101,8 +101,13 @@ class TestEngineBasicIntegration:
             for i in range(N_GENES):
                 value += x[i] ** 2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
             return value
+        
+        codec = rd.FloatCodec.vector(N_GENES, value_range=(-RANGE, RANGE))
+        population = rd.Population(
+            [rd.Phenotype(genotype=codec.encode()) for _ in range(100)]
+        )
 
-        engine = rd.GeneticEngine(rd.FloatCodec.vector(2, (-RANGE, RANGE)), fitness_fn)
+        engine = rd.GeneticEngine(rd.FloatCodec.vector(2, (-RANGE, RANGE)), fitness_fn, population=population)
         engine.minimizing()
         engine.alters([rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.01)])
 

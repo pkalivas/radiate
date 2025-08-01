@@ -1,12 +1,12 @@
 use super::PyCodec;
-use crate::{ObjectValue, PyChromosome, PyGene, PyGenotype};
+use crate::{PyAnyObject, PyChromosome, PyGene, PyGenotype};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, pyclass, pymethods, types::PyInt};
 use radiate::{Chromosome, Codec, Gene, Genotype, IntChromosome, IntGene};
 
 #[pyclass]
 #[derive(Clone)]
 pub struct PyIntCodec {
-    pub codec: PyCodec<IntChromosome<i32>, ObjectValue>,
+    pub codec: PyCodec<IntChromosome<i32>, PyAnyObject>,
 }
 
 #[pymethods]
@@ -38,7 +38,7 @@ impl PyIntCodec {
                             .collect::<Vec<IntChromosome<i32>>>(),
                     )
                 })
-                .with_decoder(move |py, geno| ObjectValue {
+                .with_decoder(move |py, geno| PyAnyObject {
                     inner: super::decode_genotype_to_array(py, geno, use_numpy)
                         .unwrap()
                         .unbind()
@@ -61,7 +61,7 @@ impl PyIntCodec {
                     )
                     .into()
                 })
-                .with_decoder(move |py, geno| ObjectValue {
+                .with_decoder(move |py, geno| PyAnyObject {
                     inner: super::decode_genotype_to_array(py, geno, use_numpy)
                         .unwrap()
                         .unbind()
@@ -95,7 +95,7 @@ impl PyIntCodec {
                         .collect::<Vec<IntChromosome<i32>>>()
                         .into()
                 })
-                .with_decoder(move |py, geno| ObjectValue {
+                .with_decoder(move |py, geno| PyAnyObject {
                     inner: super::decode_genotype_to_array(py, geno, use_numpy)
                         .unwrap()
                         .unbind()
@@ -127,7 +127,7 @@ impl PyIntCodec {
                     ))]
                     .into()
                 })
-                .with_decoder(move |py, geno| ObjectValue {
+                .with_decoder(move |py, geno| PyAnyObject {
                     inner: super::decode_genotype_to_array(py, geno, use_numpy)
                         .unwrap()
                         .unbind()
@@ -162,7 +162,7 @@ impl PyIntCodec {
                         .map_or(0, |gene| *gene.allele());
                     let outer = PyInt::new(py, val as i64);
 
-                    ObjectValue {
+                    PyAnyObject {
                         inner: outer.unbind().into_any(),
                     }
                 }),

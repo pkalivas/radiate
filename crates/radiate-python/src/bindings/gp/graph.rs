@@ -1,4 +1,4 @@
-use crate::{IntoPyObjectValue, ObjectValue};
+use crate::{IntoPyAnyObject, PyAnyObject};
 use pyo3::{IntoPyObjectExt, PyResult, Python, pyclass, pymethods};
 use radiate::{
     EvalMut, Graph, GraphEvaluator, GraphIterator, GraphNode, Node, NodeType, Op,
@@ -11,9 +11,9 @@ const OUTPUT_NODE_TYPE: &str = "output";
 const VERTEX_NODE_TYPE: &str = "vertex";
 const EDGE_NODE_TYPE: &str = "edge";
 
-impl IntoPyObjectValue for Graph<Op<f32>> {
-    fn into_py<'py>(self, py: Python<'py>) -> ObjectValue {
-        ObjectValue {
+impl IntoPyAnyObject for Graph<Op<f32>> {
+    fn into_py<'py>(self, py: Python<'py>) -> PyAnyObject {
+        PyAnyObject {
             inner: PyGraph {
                 inner: self,
                 eval_cache: None,
@@ -25,7 +25,6 @@ impl IntoPyObjectValue for Graph<Op<f32>> {
 }
 
 #[pyclass]
-#[derive(Clone)]
 pub struct PyGraph {
     pub inner: Graph<Op<f32>>,
     pub eval_cache: Option<GraphEvalCache<f32>>,
@@ -99,7 +98,6 @@ impl PyGraph {
 }
 
 #[pyclass]
-#[derive(Clone)]
 pub struct PyGraphNode {
     pub inner: GraphNode<Op<f32>>,
 }

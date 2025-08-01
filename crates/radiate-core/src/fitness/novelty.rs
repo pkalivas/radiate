@@ -5,7 +5,7 @@ use std::{
 };
 
 pub trait Novelty<T> {
-    fn description(&self, phenotype: &T) -> Vec<f32>;
+    fn description(&self, member: &T) -> Vec<f32>;
 }
 
 #[derive(Clone)]

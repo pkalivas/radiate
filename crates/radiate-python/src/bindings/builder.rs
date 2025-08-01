@@ -33,26 +33,16 @@ macro_rules! apply_to_builder {
 pub struct PyEngineBuilder {
     pub codec: Py<PyAny>,
     pub problem: Py<PyAny>,
-    pub population: Option<PyPopulation>,
-    pub subscribers: Vec<PySubscriber>,
     pub inputs: Vec<PyEngineInput>,
 }
 
 #[pymethods]
 impl PyEngineBuilder {
     #[new]
-    pub fn new(
-        codec: Py<PyAny>,
-        problem: Py<PyAny>,
-        population: Option<PyPopulation>,
-        subscribers: Vec<PySubscriber>,
-        inputs: Vec<PyEngineInput>,
-    ) -> Self {
+    pub fn new(codec: Py<PyAny>, problem: Py<PyAny>, inputs: Vec<PyEngineInput>) -> Self {
         PyEngineBuilder {
             codec,
             problem,
-            population,
-            subscribers,
             inputs,
         }
     }
@@ -69,13 +59,10 @@ impl PyEngineBuilder {
         });
 
         for (input_type, inputs) in input_groups.iter() {
-            inner = self.process_inputs(inner, *input_type, inputs)?;
+            inner = Self::process_inputs(inner, *input_type, inputs)?;
         }
 
-        inner = self.process_subscriber(inner)?;
-        inner = self.process_population(inner)?;
-
-        let engine_handle = match inner {
+        Ok(PyEngine::new(match inner {
             EngineBuilderHandle::Int(builder) => EngineHandle::Int(builder.build()),
             EngineBuilderHandle::Float(builder) => EngineHandle::Float(builder.build()),
             EngineBuilderHandle::Char(builder) => EngineHandle::Char(builder.build()),
@@ -88,73 +75,63 @@ impl PyEngineBuilder {
                     "Unsupported builder type for engine creation",
                 ));
             }
-        };
-
-        Ok(PyEngine::new(engine_handle))
-    }
-
-    pub fn __repr__(&self) -> String {
-        let inputs = self
-            .inputs
-            .iter()
-            .map(|i| i.__repr__())
-            .collect::<Vec<String>>();
-        format!(
-            "EngineBuilder(\ncodec={:?}, \nproblem={:?}, \nsubscribers={:?}, \ninputs=[{}])",
-            self.codec,
-            self.problem,
-            self.subscribers,
-            inputs.join(", ")
-        )
+        }))
     }
 }
 
 impl PyEngineBuilder {
-    fn process_subscriber(&mut self, inner: EngineBuilderHandle) -> PyResult<EngineBuilderHandle> {
-        if self.subscribers.is_empty() {
-            return Ok(inner);
+    fn create_builder<'py>(&self, py: Python<'py>) -> PyResult<EngineBuilderHandle> {
+        let problem = self.problem.bind(py).extract::<PyFitnessFn>()?;
+        let codec = self.codec.bind(py);
+
+        let executor = self
+            .inputs
+            .iter()
+            .filter(|i| i.input_type == PyEngineInputType::Executor)
+            .filter_map(|input| input.transform())
+            .next()
+            .unwrap_or(Executor::Serial);
+
+        match problem.inner {
+            PyFitnessInner::Custom(fitness_fn) => {
+                Self::new_builder_custom(fitness_fn, codec, executor)
+            }
+            PyFitnessInner::Regression(regression) => {
+                Self::new_builder_regression(regression, codec, executor)
+            }
+            PyFitnessInner::NoveltySearch(novelty_search) => {
+                Self::new_builder_novelty(novelty_search, codec, executor)
+            }
         }
-
-        let py_subscriber = PyEventHandler::new(self.subscribers.clone());
-        apply_to_builder!(inner, subscribe(py_subscriber))
-    }
-
-    fn process_population(&self, inner: EngineBuilderHandle) -> PyResult<EngineBuilderHandle> {
-        if self.population.is_none() {
-            return Ok(inner);
-        }
-
-        let py_population = self.population.clone().unwrap();
-        apply_to_builder!(inner, population(py_population))
     }
 
     fn process_inputs(
-        &self,
         builder: EngineBuilderHandle,
         input_type: PyEngineInputType,
         inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
         match input_type {
             PyEngineInputType::SurvivorSelector | PyEngineInputType::OffspringSelector => {
-                self.process_selector(builder, inputs)
+                Self::process_selector(builder, inputs)
             }
-            PyEngineInputType::Alterer => self.process_alterers(builder, inputs),
-            PyEngineInputType::Objective => self.process_objective(builder, inputs),
-            PyEngineInputType::MaxPhenotypeAge => self.process_max_phenotype_age(builder, inputs),
-            PyEngineInputType::PopulationSize => self.process_population_size(builder, inputs),
-            PyEngineInputType::MaxSpeciesAge => self.process_max_species_age(builder, inputs),
-            PyEngineInputType::SpeciesThreshold => self.process_species_threshold(builder, inputs),
+            PyEngineInputType::Alterer => Self::process_alterers(builder, inputs),
+            PyEngineInputType::Objective => Self::process_objective(builder, inputs),
+            PyEngineInputType::MaxPhenotypeAge => Self::process_max_phenotype_age(builder, inputs),
+            PyEngineInputType::PopulationSize => Self::process_population_size(builder, inputs),
+            PyEngineInputType::MaxSpeciesAge => Self::process_max_species_age(builder, inputs),
+            PyEngineInputType::SpeciesThreshold => Self::process_species_threshold(builder, inputs),
             PyEngineInputType::OffspringFraction => {
-                self.process_offspring_fraction(builder, inputs)
+                Self::process_offspring_fraction(builder, inputs)
             }
-            PyEngineInputType::FrontRange => self.process_front_range(builder, inputs),
-            PyEngineInputType::Diversity => self.process_diversity(builder, inputs),
+            PyEngineInputType::FrontRange => Self::process_front_range(builder, inputs),
+            PyEngineInputType::Diversity => Self::process_diversity(builder, inputs),
+            PyEngineInputType::Population => Self::process_population(builder, inputs),
+            PyEngineInputType::Subscriber => Self::process_subscribers(builder, inputs),
             _ => Ok(builder),
         }
     }
 
     fn process_single_value<F>(
-        &self,
         builder: EngineBuilderHandle,
         inputs: &[PyEngineInput],
         processor: F,
@@ -173,67 +150,92 @@ impl PyEngineBuilder {
         }
     }
 
-    fn process_max_species_age(
-        &self,
+    fn process_population(
         builder: EngineBuilderHandle,
         inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
-        self.process_single_value(builder, inputs, |builder, input| {
+        Self::process_single_value(builder, inputs, |builder, input| {
+            let population = input.extract::<PyPopulation>("population")?;
+            apply_to_builder!(builder, population(population))
+        })
+    }
+
+    fn process_subscribers(
+        builder: EngineBuilderHandle,
+        inputs: &[PyEngineInput],
+    ) -> PyResult<EngineBuilderHandle> {
+        let mut subscribers = Vec::new();
+        for input in inputs {
+            if let Ok(subscriber) = input.extract::<PySubscriber>("subscriber") {
+                subscribers.push(subscriber);
+            } else {
+                return Err(PyTypeError::new_err("Expected subscriber input"));
+            }
+        }
+
+        if subscribers.is_empty() {
+            return Ok(builder);
+        }
+
+        let py_subscriber = PyEventHandler::new(subscribers.clone());
+        apply_to_builder!(builder, subscribe(py_subscriber))
+    }
+
+    fn process_max_species_age(
+        builder: EngineBuilderHandle,
+        inputs: &[PyEngineInput],
+    ) -> PyResult<EngineBuilderHandle> {
+        Self::process_single_value(builder, inputs, |builder, input| {
             let max_age = input.get_usize("age").unwrap_or(usize::MAX);
             apply_to_builder!(builder, max_species_age(max_age))
         })
     }
 
     fn process_species_threshold(
-        &self,
         builder: EngineBuilderHandle,
         inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
-        self.process_single_value(builder, inputs, |builder, input| {
+        Self::process_single_value(builder, inputs, |builder, input| {
             let threshold = input.get_f32("threshold").unwrap_or(0.3);
             apply_to_builder!(builder, species_threshold(threshold))
         })
     }
 
     fn process_offspring_fraction(
-        &self,
         builder: EngineBuilderHandle,
         inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
-        self.process_single_value(builder, inputs, |builder, input| {
+        Self::process_single_value(builder, inputs, |builder, input| {
             let fraction = input.get_f32("fraction").unwrap_or(0.8);
             apply_to_builder!(builder, offspring_fraction(fraction))
         })
     }
 
     fn process_population_size(
-        &self,
         builder: EngineBuilderHandle,
         inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
-        self.process_single_value(builder, inputs, |builder, input| {
+        Self::process_single_value(builder, inputs, |builder, input| {
             let size = input.get_usize("size").unwrap_or(5);
             apply_to_builder!(builder, population_size(size))
         })
     }
 
     fn process_max_phenotype_age(
-        &self,
         builder: EngineBuilderHandle,
         inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
-        self.process_single_value(builder, inputs, |builder, input| {
+        Self::process_single_value(builder, inputs, |builder, input| {
             let max_age = input.get_usize("age").unwrap_or(usize::MAX);
             apply_to_builder!(builder, max_age(max_age))
         })
     }
 
     fn process_selector(
-        &self,
         builder: EngineBuilderHandle,
         inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
-        self.process_single_value(builder, inputs, |builder, input| match builder {
+        Self::process_single_value(builder, inputs, |builder, input| match builder {
             EngineBuilderHandle::Int(builder) => {
                 let selector: Box<dyn Select<IntChromosome<i32>>> = input.transform();
                 match input.input_type() {
@@ -339,7 +341,6 @@ impl PyEngineBuilder {
     }
 
     fn process_alterers(
-        &self,
         builder: EngineBuilderHandle,
         inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
@@ -379,49 +380,49 @@ impl PyEngineBuilder {
     }
 
     fn process_diversity(
-        &self,
         builder: EngineBuilderHandle,
         inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
-        self.process_single_value(builder, inputs, |builder, input| {
-            match builder {
-                EngineBuilderHandle::Int(b) => {
-                    let diversity: Option<Box<dyn Diversity<IntChromosome<i32>>>> = input.transform();
-                    Ok(EngineBuilderHandle::Int(b.boxed_diversity(diversity)))
-                }
-                EngineBuilderHandle::Float(b) => {
-                    let diversity: Option<Box<dyn Diversity<FloatChromosome>>> = input.transform();
-                    Ok(EngineBuilderHandle::Float(b.boxed_diversity(diversity)))
-                }
-                EngineBuilderHandle::Char(b) => {
-                    let diversity: Option<Box<dyn Diversity<CharChromosome>>> = input.transform();
-                    Ok(EngineBuilderHandle::Char(b.boxed_diversity(diversity)))
-                }
-                EngineBuilderHandle::Bit(b) => {
-                    let diversity: Option<Box<dyn Diversity<BitChromosome>>> = input.transform();
-                    Ok(EngineBuilderHandle::Bit(b.boxed_diversity(diversity)))
-                }
-                EngineBuilderHandle::Graph(b) => {
-                    let diversity: Option<Box<dyn Diversity<GraphChromosome<Op<f32>>>>> = input.transform();
-                    Ok(EngineBuilderHandle::Graph(b.boxed_diversity(diversity)))
-                }
-                EngineBuilderHandle::Permutation(b) => {
-                    let diversity: Option<Box<dyn Diversity<PermutationChromosome<usize>>>> = input.transform();
-                    Ok(EngineBuilderHandle::Permutation(b.boxed_diversity(diversity)))
-                }
-                _ => Err(PyTypeError::new_err(
-                    "process_diversity only implemented for Int, Float, Char, Bit, and Graph gene types",
-                )),
+        Self::process_single_value(builder, inputs, |builder, input| match builder {
+            EngineBuilderHandle::Int(b) => {
+                let diversity: Option<Box<dyn Diversity<IntChromosome<i32>>>> = input.transform();
+                Ok(EngineBuilderHandle::Int(b.boxed_diversity(diversity)))
             }
+            EngineBuilderHandle::Float(b) => {
+                let diversity: Option<Box<dyn Diversity<FloatChromosome>>> = input.transform();
+                Ok(EngineBuilderHandle::Float(b.boxed_diversity(diversity)))
+            }
+            EngineBuilderHandle::Char(b) => {
+                let diversity: Option<Box<dyn Diversity<CharChromosome>>> = input.transform();
+                Ok(EngineBuilderHandle::Char(b.boxed_diversity(diversity)))
+            }
+            EngineBuilderHandle::Bit(b) => {
+                let diversity: Option<Box<dyn Diversity<BitChromosome>>> = input.transform();
+                Ok(EngineBuilderHandle::Bit(b.boxed_diversity(diversity)))
+            }
+            EngineBuilderHandle::Graph(b) => {
+                let diversity: Option<Box<dyn Diversity<GraphChromosome<Op<f32>>>>> =
+                    input.transform();
+                Ok(EngineBuilderHandle::Graph(b.boxed_diversity(diversity)))
+            }
+            EngineBuilderHandle::Permutation(b) => {
+                let diversity: Option<Box<dyn Diversity<PermutationChromosome<usize>>>> =
+                    input.transform();
+                Ok(EngineBuilderHandle::Permutation(
+                    b.boxed_diversity(diversity),
+                ))
+            }
+            _ => Err(PyTypeError::new_err(
+                "process_diversity only implemented for Int, Float, Char, Bit, and Graph gene types",
+            )),
         })
     }
 
     fn process_objective(
-        &self,
         builder: EngineBuilderHandle,
         inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
-        self.process_single_value(builder, inputs, |builder, input| {
+        Self::process_single_value(builder, inputs, |builder, input| {
             let objectives = input.get_string("objective").map(|objs| {
                 objs.split('|')
                     .map(|s| match s.trim().to_lowercase().as_str() {
@@ -456,11 +457,10 @@ impl PyEngineBuilder {
     }
 
     fn process_front_range(
-        &self,
         builder: EngineBuilderHandle,
         inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
-        self.process_single_value(builder, inputs, |builder, input| {
+        Self::process_single_value(builder, inputs, |builder, input| {
             let min = input.get_usize("min").unwrap_or(800);
             let max = input.get_usize("max").unwrap_or(1000);
 
@@ -480,35 +480,8 @@ impl PyEngineBuilder {
         })
     }
 
-    fn create_builder<'py>(&self, py: Python<'py>) -> PyResult<EngineBuilderHandle> {
-        let problem = self.problem.bind(py).extract::<PyFitnessFn>()?;
-        let codec = self.codec.bind(py);
-
-        let executor = self
-            .inputs
-            .iter()
-            .filter(|i| i.input_type == PyEngineInputType::Executor)
-            .filter_map(|input| input.transform())
-            .next()
-            .unwrap_or(Executor::Serial);
-
-        let builder = match problem.inner {
-            PyFitnessInner::Custom(fitness_fn) => {
-                Self::new_builder_custom(fitness_fn, codec, executor)
-            }
-            PyFitnessInner::Regression(regression) => {
-                Self::new_builder_regression(regression, codec, executor)
-            }
-            PyFitnessInner::NoveltySearch(novelty_search) => {
-                Self::new_builder_novelty(novelty_search, codec, executor)
-            }
-        };
-
-        builder
-    }
-
     fn new_builder_custom<'py>(
-        fitness_fn: ObjectValue,
+        fitness_fn: PyAnyObject,
         codec: &Bound<'py, PyAny>,
         executor: Executor,
     ) -> PyResult<EngineBuilderHandle> {
@@ -586,7 +559,7 @@ impl PyEngineBuilder {
     }
 
     fn new_builder_novelty<'py>(
-        fitness: ObjectValue,
+        fitness: PyAnyObject,
         codec: &Bound<'py, PyAny>,
         executor: Executor,
     ) -> PyResult<EngineBuilderHandle> {
@@ -637,7 +610,7 @@ impl PyEngineBuilder {
     ) -> GeneticEngineBuilder<C, T>
     where
         C: Chromosome + PartialEq + Clone + 'static,
-        T: Send + Sync + Clone + IntoPyObjectValue + 'static,
+        T: Send + Sync + Clone + IntoPyAnyObject + 'static,
     {
         let problem = PyProblem::new(fitness_fn, codec);
         GeneticEngine::builder()

@@ -1,4 +1,4 @@
-use crate::{ArithmeticGene, Chromosome, Gene, Genotype};
+use crate::{ArithmeticGene, Chromosome, Gene, Genotype, fitness::Novelty};
 
 /// Trait for measuring diversity between two [Genotype]s.
 /// Within radiate this is mostly used for speciation and determining how genetically
@@ -31,6 +31,12 @@ where
         }
 
         distance / total_genes
+    }
+}
+
+impl Novelty<Vec<f32>> for HammingDistance {
+    fn description(&self, phenotype: &Vec<f32>) -> Vec<f32> {
+        phenotype.clone()
     }
 }
 
@@ -69,6 +75,12 @@ where
     }
 }
 
+impl Novelty<Vec<f32>> for EuclideanDistance {
+    fn description(&self, phenotype: &Vec<f32>) -> Vec<f32> {
+        phenotype.clone()
+    }
+}
+
 #[derive(Clone)]
 pub struct CosineDistance;
 
@@ -101,5 +113,11 @@ where
         }
 
         1.0 - (dot_product / (norm_one.sqrt() * norm_two.sqrt()))
+    }
+}
+
+impl Novelty<Vec<f32>> for CosineDistance {
+    fn description(&self, phenotype: &Vec<f32>) -> Vec<f32> {
+        phenotype.clone()
     }
 }

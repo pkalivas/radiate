@@ -73,8 +73,9 @@ class GeneticEngine:
         if fitness_func is None:
             raise ValueError("Fitness function must be provided.")
 
-        self.builder = EngineBuilder(self.gene_type, codec, fitness_func, population)
+        self.builder = EngineBuilder(self.gene_type, codec, fitness_func)
 
+        self.builder.set_population(population)
         self.builder.set_survivor_selector(survivor_selector or TournamentSelector(k=3))
         self.builder.set_offspring_selector(offspring_selector or RouletteSelector())
         self.builder.set_alters(alters)
