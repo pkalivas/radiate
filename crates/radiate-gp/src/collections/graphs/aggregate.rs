@@ -41,15 +41,6 @@ enum ConnectTypes {
     /// * The `GraphNode`'s in the second collection must have an arity of either `Any` or `Exact(n)`
     ///   where `n` is the size of the first collection.
     AllToAll,
-    /// Connects each `GraphNode` in the first collection to the corresponding `GraphNode` in the second collection
-    /// then connects each `GraphNode` in the second collection to the corresponding `GraphNode` in the first collection.
-    /// This creates a self-referential relationship between the two collections - IE: a cycle.
-    ///
-    /// # Rules
-    /// * The first collection must have the same number of `GraphNode`s as the second collection.
-    /// * the `GraphNode`'s in the first collection must have an arity of either `Any` or `Exact(2)`.
-    /// * the `GraphNode`'s in the second collection must have an arity of either `Any` or `Exact(1)`.
-    OneToSelf,
 }
 
 /// Represents a relationship between two [GraphNode<T>]'s where the `source_id` is the [GraphNode<T>]'s
@@ -104,6 +95,10 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         graph
     }
 
+    pub fn cycle<G: AsRef<[GraphNode<T>]>>(self, one: &'a G) -> Self {
+        self.one_to_one(one, one)
+    }
+
     pub fn one_to_one<G: AsRef<[GraphNode<T>]>>(mut self, one: &'a G, two: &'a G) -> Self {
         self.connect(ConnectTypes::OneToOne, one, two);
         self
@@ -121,11 +116,6 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
 
     pub fn all_to_all<G: AsRef<[GraphNode<T>]>>(mut self, one: &'a G, two: &'a G) -> Self {
         self.connect(ConnectTypes::AllToAll, one, two);
-        self
-    }
-
-    pub fn one_to_self<G: AsRef<[GraphNode<T>]>>(mut self, one: &'a G, two: &'a G) -> Self {
-        self.connect(ConnectTypes::OneToSelf, one, two);
         self
     }
 
@@ -185,7 +175,6 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
             ConnectTypes::OneToMany => self.one_to_many_connect(one, two),
             ConnectTypes::ManyToOne => self.many_to_one_connect(one, two),
             ConnectTypes::AllToAll => self.all_to_all_connect(one, two),
-            ConnectTypes::OneToSelf => self.one_to_self_connect(one, two),
         }
     }
 
@@ -252,26 +241,6 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
                     target_id: target.id(),
                 });
             }
-        }
-    }
-
-    fn one_to_self_connect<G: AsRef<[GraphNode<T>]>>(&mut self, one: &'a G, two: &'a G) {
-        let one_outputs = Self::get_outputs(one);
-        let two_inputs = Self::get_inputs(two);
-
-        if one_outputs.len() != two_inputs.len() {
-            panic!("Self - oneGroup outputs must be the same length as twoGroup inputs.");
-        }
-
-        for (one, two) in one_outputs.into_iter().zip(two_inputs.into_iter()) {
-            self.relationships.push(Relationship {
-                source_id: one.id(),
-                target_id: two.id(),
-            });
-            self.relationships.push(Relationship {
-                source_id: two.id(),
-                target_id: one.id(),
-            });
         }
     }
 
@@ -539,31 +508,3 @@ mod tests {
         assert!(graph.is_valid());
     }
 }
-
-// let mut graph = Graph::<T>::default();
-
-// let res = graph.try_modify(|mut trans| {
-//     let mut node_id_index_map = BTreeMap::new();
-
-//     for (index, node_id) in self.node_order.values().enumerate() {
-//         let node = self.nodes.get(node_id).unwrap();
-
-//         trans.add_node((index, node.node_type(), node.value().clone(), node.arity()));
-//         node_id_index_map.insert(node_id, index);
-//     }
-
-//     for rel in self.relationships.iter() {
-//         let source_idx = node_id_index_map.get(&rel.source_id).unwrap();
-//         let target_idx = node_id_index_map.get(&rel.target_id).unwrap();
-
-//         trans.attach(*source_idx, *target_idx);
-//     }
-
-//     trans.set_cycles();
-//     trans.commit()
-// });
-
-// match res {
-//     TransactionResult::Valid(_) => graph,
-//     _ => panic!("Graph is not valid"),
-// }

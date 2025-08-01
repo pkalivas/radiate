@@ -96,12 +96,11 @@ impl<T: Clone + Default> Graph<T> {
 
         let input = builder.input(input_size);
         let aggregate = builder.vertecies(input_size);
-        let cycle_nodes = builder.vertecies(input_size);
         let output = builder.output(output_size);
 
         GraphAggregate::new()
             .one_to_one(&input, &aggregate)
-            .one_to_self(&aggregate, &cycle_nodes)
+            .cycle(&aggregate)
             .all_to_all(&aggregate, &output)
             .build()
     }
@@ -153,13 +152,12 @@ impl<T: Clone + Default> Graph<T> {
 
         let input = builder.input(input_size);
         let aggregate = builder.vertecies(input_size);
-        let link = builder.vertecies(input_size);
         let output = builder.output(output_size);
-        let weights = builder.edge(input_size * input_size);
+        let weights = builder.edge(input_size * output_size);
 
         GraphAggregate::new()
             .one_to_one(&input, &aggregate)
-            .one_to_self(&aggregate, &link)
+            .cycle(&aggregate)
             .one_to_many(&aggregate, &weights)
             .many_to_one(&weights, &output)
             .build()
@@ -334,34 +332,66 @@ mod tests {
 //     self
 // }
 
-// pub fn lstm(mut self, input_size: usize, output_size: usize, output: Op<f32>) -> GraphBuilder<f32> {
-//     self.with_values(NodeType::Input, (0..input_size).map(Op::var).collect());
-//     self.with_values(NodeType::Output, vec![output]);
+// pub fn lstm(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Graph<T> {
+//     let builder = NodeBuilder::new(store);
 
-//     let input = self.input(input_size);
-//     let output = self.output(output_size);
+//     let input = builder.input(input_size);
+//     let output = builder.output(output_size);
 
-//     let cell_state = self.aggregates(1);
-//     let hidden_state = self.aggregates(1);
+//     let forget_gate = builder.vertecies(1);
+//     let input_gate = builder.vertecies(1);
+//     let candidate = builder.vertecies(1);
 
-//     let forget_gate = self.aggregates(1);
-//     let input_gate = self.aggregates(1);
-//     let output_gate = self.aggregates(1);
-//     let candidate = self.aggregates(1);
+//     let output_gate = builder.vertecies(1);
 
-//     let input_to_forget_weights = self.edge(input_size);
-//     let input_to_input_weights = self.edge(input_size);
-//     let input_to_output_weights = self.edge(input_size);
-//     let input_to_candidate_weights = self.edge(input_size);
+//     let cell = builder.vertecies(1);
+//     let hidden = builder.vertecies(1);
 
-//     let hidden_to_forget_weights = self.edge(1);
-//     let hidden_to_input_weights = self.edge(1);
-//     let hidden_to_output_weights = self.edge(1);
-//     let hidden_to_candidate_weights = self.edge(1);
+//     GraphAggregate::new()
+//         .many_to_one(&input, &forget_gate)
+//         .many_to_one(&input, &input_gate)
+//         .many_to_one(&input, &candidate)
+//         .many_to_one(&input, &output_gate)
+//         .one_to_one(&hidden, &forget_gate)
+//         .one_to_one(&hidden, &input_gate)
+//         .one_to_one(&hidden, &candidate)
+//         .one_to_one(&hidden, &output_gate)
+//         .one_to_one(&forget_gate, &cell)
+//         .one_to_one(&input_gate, &candidate)
+//         .one_to_one(&candidate, &cell)
+//         .one_to_one(&cell, &hidden)
+//         .one_to_one(&output_gate, &hidden)
+//         .one_to_many(&hidden, &output)
+//         .build()
+// }
 
-//     let final_weights = self.edge(output_size);
+// pub fn lstm(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Graph<T> {
+//     let builder = NodeBuilder::new(store);
 
-//     let graph = GraphAggregate::new()
+//     let input = builder.input(input_size);
+//     let output = builder.output(output_size);
+
+//     let cell_state = builder.vertecies(1);
+//     let hidden_state = builder.vertecies(1);
+
+//     let forget_gate = builder.vertecies(1);
+//     let input_gate = builder.vertecies(1);
+//     let output_gate = builder.vertecies(1);
+//     let candidate = builder.vertecies(1);
+
+//     let input_to_forget_weights = builder.edge(input_size);
+//     let input_to_input_weights = builder.edge(input_size);
+//     let input_to_output_weights = builder.edge(input_size);
+//     let input_to_candidate_weights = builder.edge(input_size);
+
+//     let hidden_to_forget_weights = builder.edge(1);
+//     let hidden_to_input_weights = builder.edge(1);
+//     let hidden_to_output_weights = builder.edge(1);
+//     let hidden_to_candidate_weights = builder.edge(1);
+
+//     let final_weights = builder.edge(output_size);
+
+//     GraphAggregate::new()
 //         .one_to_one(&input, &input_to_forget_weights)
 //         .one_to_one(&input, &input_to_input_weights)
 //         .one_to_one(&input, &input_to_output_weights)
@@ -385,8 +415,87 @@ mod tests {
 //         .one_to_one(&output_gate, &hidden_state)
 //         .one_to_many(&hidden_state, &final_weights)
 //         .one_to_one(&final_weights, &output)
-//         .build();
+//         .build()
+// }
 
-//     self.node_cache = Some(graph.into_iter().collect());
-//     self
+// pub fn gru(input_size: usize, output_size: usize, values: impl Into<NodeStore<T>>) -> Graph<T> {
+//     let builder = NodeBuilder::new(values);
+
+//     let input = builder.input(input_size);
+//     let output = builder.output(output_size);
+
+//     let hidden = builder.vertecies(1);
+
+//     let update = builder.vertecies(1);
+//     let reset = builder.vertecies(1);
+//     let candidate = builder.vertecies(1);
+
+//     let blend = builder.vertecies(1);
+//     let gate_flip = builder.vertecies(1);
+
+//     GraphAggregate::new()
+//         .many_to_one(&input, &reset)
+//         .many_to_one(&input, &update)
+//         .many_to_one(&input, &candidate)
+//         .one_to_one(&hidden, &reset)
+//         .one_to_one(&hidden, &update)
+//         .one_to_one(&hidden, &candidate)
+//         .one_to_one(&update, &blend)
+//         .one_to_one(&candidate, &blend)
+//         .one_to_one(&reset, &hidden)
+//         .one_to_one(&update, &gate_flip)
+//         .one_to_one(&hidden, &gate_flip)
+//         .one_to_one(&gate_flip, &hidden)
+//         .one_to_one(&blend, &hidden)
+//         .one_to_many(&hidden, &output)
+//         .build()
+// }
+
+// / Creates a 2D mesh graph with bidirectional connections between neighboring nodes.
+// /
+// / # Arguments
+// / * `width` - The number of nodes in the horizontal dimension.
+// / * `height` - The number of nodes in the vertical dimension.
+// / * `values` - The values to initialize the nodes with.
+// /
+// / # Returns
+// / A new 2D mesh graph.
+// pub fn mesh(
+//     input_size: usize,
+//     output_size: usize,
+//     width: usize,
+//     height: usize,
+//     values: impl Into<NodeStore<T>>,
+// ) -> Graph<T> {
+//     let builder = NodeBuilder::new(values);
+
+//     let inputs = builder.input(input_size);
+//     let outputs = builder.output(output_size);
+//     let nodes = (0..width * height)
+//         .map(|_| builder.vertecies(1))
+//         .collect::<Vec<Vec<GraphNode<T>>>>();
+
+//     let mut aggregate = GraphAggregate::new();
+
+//     for y in 0..height {
+//         for x in 0..width {
+//             let index = y * width + x;
+//             let current = &nodes[index];
+
+//             if x + 1 < width {
+//                 let right = &nodes[y * width + (x + 1)];
+//                 aggregate = aggregate.one_to_one(current, right);
+//             }
+
+//             if y + 1 < height {
+//                 let down = &nodes[(y + 1) * width + x];
+//                 aggregate = aggregate.one_to_one(current, down);
+//             }
+//         }
+//     }
+
+//     aggregate
+//         .many_to_one(&inputs, &nodes[0])
+//         .one_to_many(&nodes[nodes.len() - 1], &outputs)
+//         .build()
 // }

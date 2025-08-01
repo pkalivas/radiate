@@ -1,5 +1,7 @@
 use super::{Graph, GraphNode, iter::GraphIterator};
 use crate::{Eval, EvalMut, NodeType, node::Node};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::ops::Range;
 
 /// [GraphEvaluator] is a struct that is used to evaluate a [Graph] of [GraphNode]'s. It uses the [GraphIterator]
@@ -8,6 +10,7 @@ use std::ops::Range;
 /// On the first iteration it caches the order of nodes in the [Graph] and then uses that order to
 /// evaluate the nodes in the correct order. This is a massive performance improvement.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct GraphEvalCache<V> {
     eval_order: Vec<usize>,
     outputs: Vec<V>,

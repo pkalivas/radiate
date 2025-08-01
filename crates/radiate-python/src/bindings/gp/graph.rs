@@ -1,15 +1,7 @@
 use crate::{IntoPyAnyObject, PyAnyObject};
 use pyo3::{IntoPyObjectExt, PyResult, Python, pyclass, pymethods};
-use radiate::{
-    EvalMut, Graph, GraphEvaluator, GraphIterator, GraphNode, Node, NodeType, Op, ToDot,
-    graphs::GraphEvalCache,
-};
-use std::collections::BTreeSet;
-
-const INPUT_NODE_TYPE: &str = "input";
-const OUTPUT_NODE_TYPE: &str = "output";
-const VERTEX_NODE_TYPE: &str = "vertex";
-const EDGE_NODE_TYPE: &str = "edge";
+use radiate::{EvalMut, Graph, GraphEvaluator, Op, ToDot, graphs::GraphEvalCache};
+use serde::{Deserialize, Serialize};
 
 impl IntoPyAnyObject for Graph<Op<f32>> {
     fn into_py<'py>(self, py: Python<'py>) -> PyAnyObject {
@@ -25,6 +17,7 @@ impl IntoPyAnyObject for Graph<Op<f32>> {
 }
 
 #[pyclass]
+#[derive(Serialize, Deserialize)]
 pub struct PyGraph {
     pub inner: Graph<Op<f32>>,
     pub eval_cache: Option<GraphEvalCache<f32>>,
@@ -32,6 +25,42 @@ pub struct PyGraph {
 
 #[pymethods]
 impl PyGraph {
+    #[staticmethod]
+    pub fn from_json(json: &str) -> PyResult<Self> {
+        serde_json::from_str::<PyGraph>(json)
+            .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Invalid JSON: {}", e)))
+    }
+
+    pub fn to_json(&self) -> String {
+        serde_json::to_string(&self).unwrap()
+    }
+
+    pub fn to_dot(&self) -> String {
+        self.inner.to_dot()
+    }
+
+    pub fn reset(&mut self) {
+        self.eval_cache = None;
+    }
+
+    pub fn eval(&mut self, inputs: Vec<Vec<f32>>) -> PyResult<Vec<Vec<f32>>> {
+        let mut evaluator = if self.eval_cache.is_some() {
+            let cache = self.eval_cache.take().unwrap();
+            GraphEvaluator::from((&self.inner, cache))
+        } else {
+            GraphEvaluator::new(&self.inner)
+        };
+
+        let outputs = inputs
+            .into_iter()
+            .map(|input| evaluator.eval_mut(&input))
+            .collect::<Vec<Vec<f32>>>();
+
+        self.eval_cache = Some(evaluator.take_cache());
+
+        Ok(outputs)
+    }
+
     pub fn __repr__(&self) -> String {
         let mut result = String::new();
         result.push_str("Graph(\n");
@@ -59,98 +88,5 @@ impl PyGraph {
 
     pub fn __eq__(&self, other: &PyGraph) -> bool {
         self.inner == other.inner
-    }
-
-    pub fn nodes(&self) -> Vec<PyGraphNode> {
-        self.inner
-            .iter_topological()
-            .map(|node| PyGraphNode {
-                inner: node.clone(),
-            })
-            .collect()
-    }
-
-    pub fn reset(&mut self) {
-        self.eval_cache = None;
-    }
-
-    pub fn eval(&mut self, inputs: Vec<Vec<f32>>) -> PyResult<Vec<Vec<f32>>> {
-        let mut evaluator = if self.eval_cache.is_some() {
-            let cache = self.eval_cache.take().unwrap();
-            GraphEvaluator::from((&self.inner, cache))
-        } else {
-            GraphEvaluator::new(&self.inner)
-        };
-
-        let outputs = inputs
-            .into_iter()
-            .map(|input| evaluator.eval_mut(&input))
-            .collect::<Vec<Vec<f32>>>();
-
-        self.eval_cache = Some(evaluator.take_cache());
-
-        Ok(outputs)
-    }
-
-    pub fn to_json(&self) -> String {
-        serde_json::to_string(&self.inner).unwrap()
-    }
-
-    pub fn to_dot(&self) -> String {
-        self.inner.to_dot()
-    }
-}
-
-#[pyclass]
-pub struct PyGraphNode {
-    pub inner: GraphNode<Op<f32>>,
-}
-
-#[pymethods]
-impl PyGraphNode {
-    pub fn __repr__(&self) -> String {
-        format!("{:?}", self.inner)
-    }
-
-    pub fn __str__(&self) -> String {
-        self.__repr__()
-    }
-
-    pub fn id(&self) -> u64 {
-        *(*self.inner.id())
-    }
-
-    pub fn index(&self) -> usize {
-        self.inner.index()
-    }
-
-    pub fn arity(&self) -> usize {
-        *self.inner.arity()
-    }
-
-    pub fn is_recurrent(&self) -> bool {
-        self.inner.is_recurrent()
-    }
-
-    pub fn incoming(&self) -> &BTreeSet<usize> {
-        self.inner.incoming()
-    }
-
-    pub fn outgoing(&self) -> &BTreeSet<usize> {
-        self.inner.outgoing()
-    }
-
-    pub fn node_type(&self) -> &str {
-        match self.inner.node_type() {
-            NodeType::Input => INPUT_NODE_TYPE,
-            NodeType::Output => OUTPUT_NODE_TYPE,
-            NodeType::Vertex => VERTEX_NODE_TYPE,
-            NodeType::Edge => EDGE_NODE_TYPE,
-            _ => "unknown",
-        }
-    }
-
-    pub fn value(&self) -> String {
-        self.inner.value().to_string()
     }
 }

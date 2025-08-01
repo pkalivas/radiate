@@ -22,7 +22,7 @@ pub use epoch::PyGeneration;
 pub use fitness::{PyFitnessFn, PyFitnessInner, PyNoveltySearch};
 pub use functions::*;
 pub use gene::{PyChromosome, PyGene, PyGeneType, PyGenotype, PyPhenotype, PyPopulation};
-pub use gp::{PyGraph, PyGraphNode, PyTree, PyTreeNode};
+pub use gp::{PyGraph, PyTree};
 pub use inputs::{PyEngineInput, PyEngineInputType};
 
 pub use metric::PyMetricSet;

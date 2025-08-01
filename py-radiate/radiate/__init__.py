@@ -71,9 +71,7 @@ from .inputs.descriptor import PhenotypeDescriptor
 
 from radiate.radiate import (
     PyGraph as Graph,
-    PyGraphNode as GraphNode,
     PyTree as Tree,
-    PyTreeNode as TreeNode,
 )
 
 
@@ -99,9 +97,7 @@ __all__ = [
     "Phenotype",
     # GP
     "Tree",
-    "TreeNode",
     "Graph",
-    "GraphNode",
     "Op",
     # Handlers
     "EventHandler",
