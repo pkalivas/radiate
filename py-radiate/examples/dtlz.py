@@ -7,9 +7,7 @@ We define a fitness function based on the DTLZ1 problem and use a genetic algori
 evolve solutions. The results are visualized in a 3D scatter plot.
 """
 
-# from typing import List
-# import math
-import matplotlib.pyplot as plt  # type: ignore
+import matplotlib.pyplot as plt
 import radiate as rd
 import numpy as np
 
