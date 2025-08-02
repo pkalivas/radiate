@@ -1,11 +1,11 @@
-class DTypeClass(type):
-    """Metaclass for Dtype classes."""
+class DataTypeClass(type):
+    """Metaclass for DataType classes."""
 
     def __repr__(cls) -> str:
         return cls.__name__
 
     def __eq__(cls, other) -> bool:
-        if isinstance(other, DTypeClass):
+        if isinstance(other, DataTypeClass):
             return cls is other
         return False
 
@@ -13,7 +13,7 @@ class DTypeClass(type):
         return hash(cls.__name__)
 
 
-class DType(metaclass=DTypeClass):
+class DataType(metaclass=DataTypeClass):
     """Base class for all fitness function data types."""
 
     def __repr__(self) -> str:
@@ -27,7 +27,7 @@ class DType(metaclass=DTypeClass):
 
     @classmethod
     def base_type(cls):
-        """Return this Dtype's fundamental/root type class."""
+        """Return this DataType's fundamental/root type class."""
         return cls
 
     @classmethod
@@ -56,7 +56,7 @@ class DType(metaclass=DTypeClass):
         return issubclass(cls, MatrixType)
 
 
-class NumericType(DType):
+class NumericType(DataType):
     """Base class for numeric data types."""
 
 
@@ -68,11 +68,11 @@ class FloatType(NumericType):
     """Base class for float data types."""
 
 
-class ArrayType(DType):
+class ArrayType(DataType):
     """Base class for array data types."""
 
 
-class MatrixType(DType):
+class MatrixType(DataType):
     """Base class for matrix data types."""
 
 
@@ -93,19 +93,11 @@ class Float64(FloatType):
     """64-bit floating point type."""
 
 
-class Bool(DType):
+class Bool(DataType):
     """Boolean type."""
 
 
 # Array types (1D)
-class Int8Array(ArrayType, IntegerType):
-    """8-bit signed integer array type."""
-
-
-class Int16Array(ArrayType, IntegerType):
-    """16-bit signed integer array type."""
-
-
 class Int32Array(ArrayType, IntegerType):
     """32-bit signed integer array type."""
 
@@ -127,6 +119,10 @@ class BoolArray(ArrayType):
 
 
 # Matrix types (2D)
+class BoolMatrix(MatrixType):
+    """Boolean matrix type."""
+
+
 class Int32Matrix(MatrixType, IntegerType):
     """32-bit signed integer matrix type."""
 

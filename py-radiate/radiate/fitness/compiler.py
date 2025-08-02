@@ -2,7 +2,7 @@ import functools
 import inspect
 from typing import Any, Callable, Optional, Tuple, Union
 
-from radiate.datatype import DType
+from radiate.datatypes.classes import DataType
 from radiate.dependancies import (
     _NUMBA_AVAILABLE,
     _NUMPY_AVAILABLE,
@@ -14,7 +14,7 @@ from radiate.dependancies import (
 def fitness(
     func: Callable = None,
     *,
-    signature: Union[Tuple[DType, DType] | DType | None] = None,
+    signature: Union[Tuple[DataType, DataType] | DataType | None] = None,
 ):
     """
     Decorator to automatically optimize fitness functions.
@@ -43,7 +43,7 @@ class CompiledFitness:
     def __init__(
         self,
         func: Callable,
-        signature: Union[Tuple[DType, DType] | DType | None] = None,
+        signature: Union[Tuple[DataType, DataType] | DataType | None] = None,
     ):
         self.original_func = func
         self.compiler = FitnessCompiler(func, signature)
@@ -71,7 +71,7 @@ class FitnessCompiler:
     def __init__(
         self,
         func: Callable,
-        signature: Union[Tuple[DType, DType] | DType | None] = None,
+        signature: Union[Tuple[DataType, DataType] | DataType | None] = None,
     ):
         self.original_func = func
         self.signature = signature
@@ -132,7 +132,7 @@ class FitnessCompiler:
         return numba.jit()(self.original_func)
 
     def _convert_dtype_to_numba(self, dtype_sig):
-        """Convert Dtype signature to numba types."""
+        """Convert DataType signature to numba types."""
         if not _NUMBA_AVAILABLE:
             return None
 
@@ -147,7 +147,7 @@ class FitnessCompiler:
 
     def _get_type_mappings(self):
         """Get type mappings for numba conversion."""
-        from radiate.datatype import (
+        from radiate.datatypes.classes import (
             Bool,
             BoolArray,
             Float32,

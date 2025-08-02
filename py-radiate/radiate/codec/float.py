@@ -1,6 +1,7 @@
 from typing import List, Optional, Tuple, Any
 
 from .codec import CodecBase
+
 from radiate.genome import Genotype, Gene, Chromosome
 from radiate.radiate import PyFloatCodec
 from radiate.radiate import PyGeneType
@@ -176,7 +177,7 @@ class FloatCodec(CodecBase):
                 length=length,
                 value_range=value_range,
                 bound_range=bound_range,
-                use_numpy=use_numpy
+                use_numpy=use_numpy,
             )
         )
 

@@ -4,8 +4,8 @@ except ImportError:
     __version__ = "unknown"
     __version_tuple__ = (0, 0, 0)
 
-from .datatype import (
-    DType,
+from .datatypes.classes import (
+    DataTypeClass,
     NumericType,
     IntegerType,
     FloatType,
@@ -16,8 +16,6 @@ from .datatype import (
     Float32,
     Float64,
     Bool,
-    Int8Array,
-    Int16Array,
     Int32Array,
     Int64Array,
     Float32Array,
@@ -185,7 +183,7 @@ __all__ = [
     # Fitness
     "fitness",
     # Data types
-    "DType",
+    "DataTypeClass",
     "NumericType",
     "IntegerType",
     "FloatType",
@@ -196,8 +194,6 @@ __all__ = [
     "Float32",
     "Float64",
     "Bool",
-    "Int8Array",
-    "Int16Array",
     "Int32Array",
     "Int64Array",
     "Float32Array",
