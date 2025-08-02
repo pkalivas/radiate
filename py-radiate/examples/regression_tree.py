@@ -8,7 +8,7 @@ We have a simple polynomial function and we want to evolve a graph that approxim
 
 import radiate as rd
 
-rd.random.set_seed(500)
+rd.random.seed(500)
 
 
 def compute(x: float) -> float:

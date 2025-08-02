@@ -24,9 +24,15 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 numpy = ["numpy>=1.20.0"]
+numba = ["numba>=0.61.2"]
+
 all = [
-    "radiate[numpy]"
+    "radiate[numpy,numba]",
 ]
+
+[project.test-dependencies]
+numpy = ["numpy>=1.20.0"]
+numba = ["numba>=0.61.2"]
 
 [tool.maturin]
 features = ["pyo3/extension-module"]

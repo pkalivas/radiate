@@ -24,16 +24,16 @@ class EngineBuilder:
         self._codec = codec
 
         if isinstance(problem, Callable):
-            self.problem = CallableFitness(problem)
+            self.fitness = CallableFitness(problem)
         else:
-            self.problem = problem
+            self.fitness = problem
 
     def build(self) -> PyEngine:
         """Build the PyEngine instance."""
 
         builder = PyEngineBuilder(
             codec=self._codec.codec,
-            problem=self.problem.problem,
+            problem=self.fitness.problem,
             inputs=[self_input.py_input() for self_input in self._inputs],
         )
         return builder.build()

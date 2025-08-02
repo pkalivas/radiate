@@ -17,4 +17,7 @@ psutil>=5.9.0
 
 # Scientific computing (optional but recommended)
 numpy>=1.20.0
-matplotlib>=3.4.0
+numba>=0.61.2
+jax>=0.4.0
+jaxlib>=0.4.0
+

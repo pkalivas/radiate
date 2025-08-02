@@ -4,6 +4,30 @@ except ImportError:
     __version__ = "unknown"
     __version_tuple__ = (0, 0, 0)
 
+from .datatype import (
+    DType,
+    NumericType,
+    IntegerType,
+    FloatType,
+    ArrayType,
+    MatrixType,
+    Int32,
+    Int64,
+    Float32,
+    Float64,
+    Bool,
+    Int8Array,
+    Int16Array,
+    Int32Array,
+    Int64Array,
+    Float32Array,
+    Float64Array,
+    BoolArray,
+    Int32Matrix,
+    Int64Matrix,
+    Float32Matrix,
+    Float64Matrix,
+)
 
 from .engine import GeneticEngine
 from .codec import (
@@ -22,7 +46,7 @@ from .handlers import EventHandler, EventType
 from .gp import Op
 
 from .inputs.executor import Executor
-from .fitness import Regression, NoveltySearch
+from .fitness import Regression, NoveltySearch, fitness
 from .inputs.selector import (
     TournamentSelector,
     RouletteSelector,
@@ -69,6 +93,8 @@ from .inputs.limit import SecondsLimit, GenerationsLimit, ScoreLimit, Convergenc
 
 from .inputs.descriptor import PhenotypeDescriptor
 
+from .dependancies import _NUMBA_AVAILABLE, _NUMPY_AVAILABLE
+
 from radiate.radiate import (
     PyGraph as Graph,
     PyTree as Tree,
@@ -79,6 +105,9 @@ __all__ = [
     # Version information
     "__version__",
     "__version_tuple__",
+    # Dependencies
+    "_NUMBA_AVAILABLE",
+    "_NUMPY_AVAILABLE",
     # Random
     "random",
     # Codecs
@@ -153,4 +182,29 @@ __all__ = [
     "Generation",
     # Descriptors
     "PhenotypeDescriptor",
+    # Fitness
+    "fitness",
+    # Data types
+    "DType",
+    "NumericType",
+    "IntegerType",
+    "FloatType",
+    "ArrayType",
+    "MatrixType",
+    "Int32",
+    "Int64",
+    "Float32",
+    "Float64",
+    "Bool",
+    "Int8Array",
+    "Int16Array",
+    "Int32Array",
+    "Int64Array",
+    "Float32Array",
+    "Float64Array",
+    "BoolArray",
+    "Int32Matrix",
+    "Int64Matrix",
+    "Float32Matrix",
+    "Float64Matrix",
 ]

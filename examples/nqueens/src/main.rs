@@ -29,14 +29,7 @@ fn main() {
         })
         .build();
 
-    let result = engine
-        .iter()
-        .inspect(|ctx| {
-            println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_usize());
-        })
-        .until_score(0)
-        .last()
-        .unwrap();
+    let result = engine.iter().logging().until_score(0).last().unwrap();
 
     println!("Best Score: {:?}", result);
 

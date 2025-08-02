@@ -2,6 +2,7 @@
 This module provides common fixtures and utilities used across all test modules.
 """
 
+import os
 import pytest
 import random
 import radiate as rd
@@ -14,6 +15,15 @@ except ImportError:
     HAS_NUMPY = False
     np = None
 
+# Enable test-only imports
+os.environ["RADIATE_TESTING"] = "1"
+
+@pytest.fixture(autouse=True)
+def enable_test_imports():
+    """Automatically enable test-only imports for all tests."""
+    os.environ["RADIATE_TESTING"] = "1"
+    yield
+
 
 @pytest.fixture(scope="session")
 def random_seed():
@@ -22,7 +32,7 @@ def random_seed():
     random.seed(seed)
     if HAS_NUMPY:
         np.random.seed(seed)
-    rd.random.set_seed(seed)
+    rd.random.seed(seed)
     return seed
 
 
@@ -161,3 +171,4 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "slow: mark test as slow running")
     config.addinivalue_line("markers", "regression: mark test as a regression test")
     config.addinivalue_line("markers", "smoke: mark test as a smoke test")
+    config.addinivalue_line("markers", "skipif: mark test to skip if condition is true")

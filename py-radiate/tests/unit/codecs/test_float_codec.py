@@ -1,12 +1,6 @@
 import pytest
 import numpy as np
 
-try:
-    HAS_NUMPY = True
-except ImportError:
-    HAS_NUMPY = False
-    np = None
-
 import radiate as rd
 from radiate import (
     FloatCodec,

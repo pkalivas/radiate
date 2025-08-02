@@ -11,7 +11,7 @@ import radiate as rd
 # import networkx as nx  # type: ignore
 
 
-rd.random.set_seed(518)
+rd.random.seed(518)
 
 
 def compute(x: float) -> float:
