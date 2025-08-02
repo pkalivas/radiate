@@ -108,30 +108,3 @@ class CosineDistance(DistanceBase):
         """
         super().__init__(component="CosineDistance", allowed_genes=GeneType.FLOAT)
 
-
-class GraphTopologyDistance(DistanceBase):
-    """
-    Graph Topology Distance diversity parameter.
-    """
-
-    def __init__(self):
-        """
-        Initialize the Graph Topology Distance diversity parameter.
-        """
-        super().__init__(
-            component="GraphTopologyDistance", allowed_genes=GeneType.GRAPH
-        )
-
-
-class GraphArchitectureDistance(DistanceBase):
-    """
-    Graph Architecture Distance diversity parameter.
-    """
-
-    def __init__(self):
-        """
-        Initialize the Graph Architecture Distance diversity parameter.
-        """
-        super().__init__(
-            component="GraphArchitectureDistance", allowed_genes=GeneType.GRAPH
-        )

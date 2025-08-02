@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple, Callable
 from radiate.codec.codec import CodecBase
 from radiate.genome.population import Population
-from radiate.inputs.problem import ProblemBase
+from radiate.fitness import FitnessBase
 from radiate.radiate import PyEngine, PyEngineBuilder
 from ._typing import Subscriber
 from .inputs.input import EngineInput, EngineInputType
@@ -9,7 +9,7 @@ from .inputs.selector import SelectorBase
 from .inputs.alterer import AlterBase
 from .inputs.distance import DistanceBase
 from .inputs.executor import Executor
-from .inputs.problem import CallableProblem
+from .fitness import CallableFitness
 
 
 class EngineBuilder:
@@ -17,29 +17,23 @@ class EngineBuilder:
         self,
         gene_type: str,
         codec: CodecBase,
-        problem: ProblemBase,
-        population: Optional[Population],
+        problem: FitnessBase,
     ):
         self._inputs = []
-        self._subscribers = []
         self._gene_type = gene_type
         self._codec = codec
-        self._population = population
 
         if isinstance(problem, Callable):
-            self.problem = CallableProblem(problem)
+            self.fitness = CallableFitness(problem)
         else:
-            self.problem = problem
+            self.fitness = problem
 
     def build(self) -> PyEngine:
         """Build the PyEngine instance."""
 
         builder = PyEngineBuilder(
-            gene_type=self._gene_type,
             codec=self._codec.codec,
-            problem=self.problem.problem,
-            population=self._population.py_population() if self._population else None,
-            subscribers=[subscriber._py_handler for subscriber in self._subscribers],
+            problem=self.fitness.problem,
             inputs=[self_input.py_input() for self_input in self._inputs],
         )
         return builder.build()
@@ -47,13 +41,31 @@ class EngineBuilder:
     def inputs(self) -> List[EngineInput]:
         return self._inputs
 
-    def set_subscribers(self, subscribers: Subscriber | None):
-        if subscribers is None:
+    def set_subscribers(self, subscriber: Subscriber | None):
+        if subscriber is None:
             return
-        if isinstance(subscribers, list):
-            self._subscribers.extend(subscribers)
-        else:
-            self._subscribers.append(subscribers)
+
+        self._inputs.append(
+            EngineInput(
+                input_type=EngineInputType.Subscriber,
+                component="subscriber",
+                subscriber=subscriber._py_handler,
+            )
+        )
+
+    def set_population(self, population: Population):
+        if population is None:
+            return
+
+        if not isinstance(population, Population):
+            raise TypeError("population must be an instance of Population")
+        self._inputs.append(
+            EngineInput(
+                input_type=EngineInputType.Population,
+                component="population",
+                population=population.py_population(),
+            )
+        )
 
     def set_survivor_selector(self, selector: SelectorBase):
         if self._gene_type not in selector.allowed_genes:

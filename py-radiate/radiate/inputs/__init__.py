@@ -40,13 +40,11 @@ from .distance import (
     EuclideanDistance,
     NeatDistance,
     CosineDistance,
-    GraphTopologyDistance,
-    GraphArchitectureDistance,
 )
 
 from .limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
 
-from .problem import Regression, CallableProblem
+from .descriptor import PhenotypeDescriptor, CustomDescriptor
 
 __all__ = [
     "BlendCrossover",
@@ -81,14 +79,13 @@ __all__ = [
     "SteadyStateSelector",
     "HammingDistance",
     "EuclideanDistance",
-    "GraphTopologyDistance",
-    "GraphArchitectureDistance",
     "NeatDistance",
     "Executor",
     "SecondsLimit",
     "GenerationsLimit",
     "ScoreLimit",
     "Regression",
-    "CallableProblem",
     "ConvergenceLimit",
+    "PhenotypeDescriptor",
+    "CustomDescriptor",
 ]

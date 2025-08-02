@@ -148,6 +148,30 @@ where
         }
     }
 
+    fn until_stagnant(
+        self,
+        patience: usize,
+        min_improvement: f32,
+    ) -> impl Iterator<Item = Generation<C, T>>
+    where
+        Self: Sized,
+    {
+        assert!(patience > 0, "Patience must be greater than 0");
+        assert!(
+            min_improvement >= 0.0,
+            "Min improvement must be non-negative"
+        );
+
+        StagnationIterator {
+            iter: self,
+            best_score: None,
+            patience,
+            min_improvement,
+            stagnant_count: 0,
+            done: false,
+        }
+    }
+
     fn logging(self) -> impl Iterator<Item = Generation<C, T>>
     where
         Self: Sized,
@@ -356,5 +380,50 @@ where
         }
 
         Some(next_ctx)
+    }
+}
+
+struct StagnationIterator<I> {
+    iter: I,
+    best_score: Option<f32>,
+    patience: usize,
+    min_improvement: f32,
+    stagnant_count: usize,
+    done: bool,
+}
+
+impl<I, C, T> Iterator for StagnationIterator<I>
+where
+    I: Iterator<Item = Generation<C, T>>,
+    C: Chromosome,
+{
+    type Item = Generation<C, T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.done {
+            return None;
+        }
+
+        let generation = self.iter.next()?;
+        let current_score = generation.score().as_f32();
+
+        match self.best_score {
+            Some(best) => {
+                if current_score - best > self.min_improvement {
+                    self.best_score = Some(current_score);
+                    self.stagnant_count = 0;
+                } else {
+                    self.stagnant_count += 1;
+                    if self.stagnant_count >= self.patience {
+                        self.done = true;
+                    }
+                }
+            }
+            None => {
+                self.best_score = Some(current_score);
+            }
+        }
+
+        Some(generation)
     }
 }

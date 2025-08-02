@@ -4,6 +4,28 @@ except ImportError:
     __version__ = "unknown"
     __version_tuple__ = (0, 0, 0)
 
+from .datatypes.classes import (
+    DataTypeClass,
+    NumericType,
+    IntegerType,
+    FloatType,
+    ArrayType,
+    MatrixType,
+    Int32,
+    Int64,
+    Float32,
+    Float64,
+    Bool,
+    Int32Array,
+    Int64Array,
+    Float32Array,
+    Float64Array,
+    BoolArray,
+    Int32Matrix,
+    Int64Matrix,
+    Float32Matrix,
+    Float64Matrix,
+)
 
 from .engine import GeneticEngine
 from .codec import (
@@ -14,7 +36,6 @@ from .codec import (
     GraphCodec,
     TreeCodec,
     PermutationCodec,
-    AnyCodec,
 )
 from .random import RandomProvider as random
 from .generation import Generation
@@ -23,7 +44,7 @@ from .handlers import EventHandler, EventType
 from .gp import Op
 
 from .inputs.executor import Executor
-from .inputs.problem import Regression, NoveltySearch
+from .fitness import Regression, NoveltySearch, fitness
 from .inputs.selector import (
     TournamentSelector,
     RouletteSelector,
@@ -64,17 +85,17 @@ from .inputs.distance import (
     EuclideanDistance,
     NeatDistance,
     CosineDistance,
-    GraphTopologyDistance,
-    GraphArchitectureDistance,
 )
 
 from .inputs.limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
 
+from .inputs.descriptor import PhenotypeDescriptor
+
+from .dependancies import _NUMBA_AVAILABLE, _NUMPY_AVAILABLE
+
 from radiate.radiate import (
     PyGraph as Graph,
-    PyGraphNode as GraphNode,
     PyTree as Tree,
-    PyTreeNode as TreeNode,
 )
 
 
@@ -82,6 +103,9 @@ __all__ = [
     # Version information
     "__version__",
     "__version_tuple__",
+    # Dependencies
+    "_NUMBA_AVAILABLE",
+    "_NUMPY_AVAILABLE",
     # Random
     "random",
     # Codecs
@@ -92,7 +116,6 @@ __all__ = [
     "BitCodec",
     "GraphCodec",
     "TreeCodec",
-    "AnyCodec",
     # Genome and Population
     "Gene",
     "Chromosome",
@@ -101,9 +124,7 @@ __all__ = [
     "Phenotype",
     # GP
     "Tree",
-    "TreeNode",
     "Graph",
-    "GraphNode",
     "Op",
     # Handlers
     "EventHandler",
@@ -154,9 +175,32 @@ __all__ = [
     "CosineDistance",
     "HammingDistance",
     "EuclideanDistance",
-    "GraphTopologyDistance",
-    "GraphArchitectureDistance",
     # Engine
     "GeneticEngine",
     "Generation",
+    # Descriptors
+    "PhenotypeDescriptor",
+    # Fitness
+    "fitness",
+    # Data types
+    "DataTypeClass",
+    "NumericType",
+    "IntegerType",
+    "FloatType",
+    "ArrayType",
+    "MatrixType",
+    "Int32",
+    "Int64",
+    "Float32",
+    "Float64",
+    "Bool",
+    "Int32Array",
+    "Int64Array",
+    "Float32Array",
+    "Float64Array",
+    "BoolArray",
+    "Int32Matrix",
+    "Int64Matrix",
+    "Float32Matrix",
+    "Float64Matrix",
 ]

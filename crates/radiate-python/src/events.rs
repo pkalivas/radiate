@@ -21,10 +21,7 @@ impl PyEventHandler {
         PyEventHandler { handlers }
     }
 
-    fn get_valid_handlers(
-        &self,
-        event: &EngineEvent<impl IntoPyObjectValue>,
-    ) -> Vec<&PySubscriber> {
+    fn get_valid_handlers(&self, event: &EngineEvent<impl IntoPyAnyObject>) -> Vec<&PySubscriber> {
         self.handlers
             .iter()
             .filter(|handler| {
@@ -56,7 +53,7 @@ impl PyEventHandler {
 
     fn event_to_py_dict<T>(&self, py: Python, event: &Event<EngineEvent<T>>) -> Py<PyDict>
     where
-        T: IntoPyObjectValue + Clone,
+        T: IntoPyAnyObject + Clone,
     {
         let dict = PyDict::new(py);
         dict.set_item(intern!(py, "id"), *event.id()).unwrap();
@@ -120,7 +117,7 @@ impl PyEventHandler {
 
 impl<T> EventHandler<EngineEvent<T>> for PyEventHandler
 where
-    T: IntoPyObjectValue + Clone,
+    T: IntoPyAnyObject + Clone,
 {
     fn handle(&mut self, event: Event<EngineEvent<T>>) {
         let subscribers = self.get_valid_handlers(event.data());

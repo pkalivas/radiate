@@ -147,16 +147,12 @@ class GraphCodec(CodecBase):
             )
         elif name == "recurrent":
             return GraphCodec(
-                PyGraphCodec(
-                    "recurrent", input_size, output_size, ops_map, max_nodes
-                )
+                PyGraphCodec("recurrent", input_size, output_size, ops_map, max_nodes)
             )
         else:
             if name != "directed":
                 raise ValueError(f"Unknown graph type: {name}")
         # Default to directed graph
         return GraphCodec(
-            PyGraphCodec(
-                "directed", input_size, output_size, ops_map, max_nodes
-            )
+            PyGraphCodec("directed", input_size, output_size, ops_map, max_nodes)
         )

@@ -1,5 +1,5 @@
-use crate::{AnyValue, PyGeneType, prelude::Wrap};
-use pyo3::{pyclass, pymethods};
+use crate::{PyAnyObject, PyGeneType};
+use pyo3::{FromPyObject, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use std::{
     collections::{HashMap, HashSet},
     fmt::Debug,
@@ -22,6 +22,8 @@ pub enum PyEngineInputType {
     Executor,
     Evaluator,
     SpeciesThreshold,
+    Population,
+    Subscriber,
 }
 
 #[pyclass]
@@ -30,7 +32,7 @@ pub struct PyEngineInput {
     pub component: String,
     pub input_type: PyEngineInputType,
     pub allowed_genes: HashSet<PyGeneType>,
-    pub args: HashMap<String, AnyValue<'static>>,
+    pub args: HashMap<String, PyAnyObject>,
 }
 
 #[pymethods]
@@ -40,7 +42,7 @@ impl PyEngineInput {
         component: String,
         input_type: PyEngineInputType,
         allowed_genes: HashSet<PyGeneType>,
-        args: HashMap<String, Wrap<AnyValue<'_>>>,
+        args: HashMap<String, Py<PyAny>>,
     ) -> Self {
         PyEngineInput {
             component,
@@ -48,7 +50,7 @@ impl PyEngineInput {
             allowed_genes,
             args: args
                 .into_iter()
-                .map(|(k, v)| (k, v.0.into_static()))
+                .map(|(k, v)| (k, PyAnyObject { inner: v.into() }))
                 .collect(),
         }
     }
@@ -70,39 +72,42 @@ impl PyEngineInput {
 }
 
 impl PyEngineInput {
-    pub fn get(&self, key: &str) -> Option<&AnyValue<'static>> {
-        self.args.get(key)
+    pub fn extract<T: for<'py> FromPyObject<'py>>(&self, key: &str) -> PyResult<T> {
+        Python::with_gil(|py| match self.args.get(key) {
+            Some(v) => v.extract(py),
+            None => Err(pyo3::exceptions::PyKeyError::new_err(format!(
+                "Key '{}' not found in PyEngineInput args",
+                key
+            ))),
+        })
     }
 
     pub fn get_string(&self, key: &str) -> Option<String> {
-        self.args.get(key).and_then(|v| v.to_string())
+        self.args.get(key).and_then(|v| v.get_string())
     }
 
     pub fn get_i32(&self, key: &str) -> Option<i32> {
-        self.args.get(key).and_then(|v| v.to_i32())
+        self.args.get(key).and_then(|v| v.get_i32())
     }
 
     pub fn get_f32(&self, key: &str) -> Option<f32> {
-        self.args.get(key).and_then(|v| v.to_f32())
+        self.args.get(key).and_then(|v| v.get_f32())
     }
 
     pub fn get_f64(&self, key: &str) -> Option<f64> {
-        self.args.get(key).and_then(|v| v.to_f64())
+        self.args.get(key).and_then(|v| v.get_f64())
     }
 
     pub fn get_usize(&self, key: &str) -> Option<usize> {
-        self.args.get(key).and_then(|v| v.to_usize())
+        self.args.get(key).and_then(|v| v.get_usize())
     }
 
     pub fn get_vec_f32(&self, key: &str) -> Option<Vec<f32>> {
-        self.args.get(key).and_then(|v| v.to_vec_f32())
+        self.args.get(key).and_then(|v| v.get_vec_f32())
     }
 
     pub fn get_bool(&self, key: &str) -> Option<bool> {
-        self.args.get(key).and_then(|v| match v {
-            AnyValue::Bool(b) => Some(*b),
-            _ => None,
-        })
+        self.args.get(key).and_then(|v| v.get_bool())
     }
 }
 

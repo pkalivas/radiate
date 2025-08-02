@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt  # type: ignore
 from matplotlib.animation import FuncAnimation  # type: ignore
 from typing import List, Tuple
 
-rd.random.set_seed(42)
+rd.random.seed(42)
 np.random.seed(42)
 
 
@@ -215,7 +215,7 @@ class SnakeEvolver:
         self.input_size = 13
         self.output_size = 4
 
-    def fitness_function(self, graph: rd.Graph) -> float:
+    def fitness_function( graph: rd.Graph) -> float:
         """Enhanced fitness function for Snake AI."""
         total_fitness = 0.0
         num_games = 3

@@ -1,6 +1,7 @@
 from typing import List, Optional, Tuple, Any
 
 from .codec import CodecBase
+
 from radiate.genome import Genotype, Gene, Chromosome
 from radiate.radiate import PyFloatCodec
 from radiate.radiate import PyGeneType

@@ -19,7 +19,7 @@ from .inputs.selector import SelectorBase, TournamentSelector, RouletteSelector
 from .inputs.alterer import AlterBase
 from .inputs.distance import DistanceBase
 from .inputs.executor import Executor
-from .inputs.problem import ProblemBase
+from .fitness import FitnessBase
 from .inputs.limit import LimitBase
 
 from .genome.gene import GeneType
@@ -36,7 +36,7 @@ class GeneticEngine:
     def __init__(
         self,
         codec: CodecBase,
-        fitness_func: Callable[[Any], Any] | ProblemBase,
+        fitness_func: Callable[[Any], Any] | FitnessBase,
         population: Population | None = None,
         offspring_selector: SelectorBase | None = None,
         survivor_selector: SelectorBase | None = None,
@@ -73,8 +73,9 @@ class GeneticEngine:
         if fitness_func is None:
             raise ValueError("Fitness function must be provided.")
 
-        self.builder = EngineBuilder(self.gene_type, codec, fitness_func, population)
+        self.builder = EngineBuilder(self.gene_type, codec, fitness_func)
 
+        self.builder.set_population(population)
         self.builder.set_survivor_selector(survivor_selector or TournamentSelector(k=3))
         self.builder.set_offspring_selector(offspring_selector or RouletteSelector())
         self.builder.set_alters(alters)

@@ -1,12 +1,6 @@
 import pytest
 import numpy as np
 
-try:
-    HAS_NUMPY = True
-except ImportError:
-    HAS_NUMPY = False
-    np = None
-
 import radiate as rd
 from radiate import (
     FloatCodec,
@@ -39,12 +33,12 @@ class TestFloatCodec:
     @pytest.mark.unit
     def test_float_codec_decode(self):
         """Test decoding float genotypes."""
-        codec = FloatCodec.vector(length=3, value_range=(0.0, 1.0))
+        codec = FloatCodec.vector(length=3, value_range=(0.0, 1.0), use_numpy=True)
         genotype = codec.encode()
         decoded = codec.decode(genotype)
 
         assert len(decoded) == 3
-        assert all(isinstance(x, float) for x in decoded)
+        assert all(isinstance(x, np.float32) for x in decoded)
         assert all(0.0 <= x <= 1.0 for x in decoded)
 
     @pytest.mark.unit

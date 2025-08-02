@@ -1,15 +1,13 @@
 use super::PyCodec;
-use crate::{ObjectValue, PyGenotype};
+use crate::{PyAnyObject, PyGenotype};
 use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, pyclass, pymethods, types::PyList};
-use radiate::{
-    Chromosome, Codec, Gene, Genotype, PermutationChromosome, PermutationGene, random_provider,
-};
+use radiate::{Chromosome, Codec, Gene, PermutationChromosome, PermutationGene, random_provider};
 use std::sync::Arc;
 
 #[pyclass]
 #[derive(Clone)]
 pub struct PyPermutationCodec {
-    pub codec: PyCodec<PermutationChromosome<usize>, ObjectValue>,
+    pub codec: PyCodec<PermutationChromosome<usize>, PyAnyObject>,
     pub alleles: Arc<[usize]>,
 }
 
@@ -24,9 +22,9 @@ impl PyPermutationCodec {
         py: pyo3::Python<'py>,
         genotype: &PyGenotype,
     ) -> PyResult<Bound<'py, PyAny>> {
-        let genotype: Genotype<PermutationChromosome<usize>> = genotype.clone().into();
-        let obj_value = self.codec.decode_with_py(py, &genotype);
-        obj_value.into_bound_py_any(py)
+        self.codec
+            .decode_with_py(py, &genotype.clone().into())
+            .into_bound_py_any(py)
     }
 
     #[new]
@@ -66,7 +64,7 @@ impl PyPermutationCodec {
                         .map(|py_any| py_any.into_bound(py))
                         .collect::<Vec<Bound<PyAny>>>();
 
-                    ObjectValue {
+                    PyAnyObject {
                         inner: PyList::new(py, values).unwrap().unbind().into_any(),
                     }
                 }),

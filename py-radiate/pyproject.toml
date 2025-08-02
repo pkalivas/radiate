@@ -14,6 +14,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Development Status :: 4 - Beta",
@@ -24,9 +25,15 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 numpy = ["numpy>=1.20.0"]
+numba = ["numba>=0.61.2"]
+
 all = [
-    "radiate[numpy]"
+    "radiate[numpy,numba]",
 ]
+
+[project.test-dependencies]
+numpy = ["numpy>=1.20.0"]
+numba = ["numba>=0.61.2"]
 
 [tool.maturin]
 features = ["pyo3/extension-module"]

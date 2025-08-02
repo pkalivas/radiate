@@ -1,5 +1,5 @@
 use crate::{
-    IntoPyObjectValue,
+    IntoPyAnyObject,
     problem::{PyProblem, call_fitness},
 };
 use pyo3::{IntoPyObjectExt, Py, PyAny, Python};
@@ -33,7 +33,7 @@ impl<C: Chromosome, T> FreeThreadPyEvaluator<C, T> {
 impl<C, T> Evaluator<C, T> for FreeThreadPyEvaluator<C, T>
 where
     C: Chromosome + 'static,
-    T: IntoPyObjectValue + Send + Sync + 'static,
+    T: IntoPyAnyObject + Send + Sync + 'static,
 {
     fn eval(&self, ecosystem: &mut Ecosystem<C>, _: Arc<dyn Problem<C, T>>) -> usize {
         Python::with_gil(|outer| {
