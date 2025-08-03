@@ -1,28 +1,29 @@
 from __future__ import annotations
-from typing import List, Any, Tuple
+
+from typing import List, Tuple
 
 from radiate.genome.chromosome import Chromosome
-from radiate.genome.gene import Gene
-from .codec import CodecBase
+from radiate.genome.gene import Gene, GeneType
+from .base import CodecBase
+
 from radiate.radiate import PyCharCodec
-from radiate.radiate import PyGeneType
 from radiate.genome import Genotype
 
 
-class CharCodec(CodecBase):
+class CharCodec[T](CodecBase[str, T]):
     def __init__(self, codec: PyCharCodec):
         if not isinstance(codec, PyCharCodec):
             raise TypeError("codec must be an instance of PyCharCodec.")
         self.codec = codec
 
-    def encode(self) -> Genotype:
+    def encode(self) -> Genotype[str]:
         """
         Encode the codec into a Genotype.
         :return: A Genotype instance.
         """
-        return Genotype(self.codec.encode_py())
+        return Genotype.from_python(self.codec.encode_py())
 
-    def decode(self, genotype: Genotype) -> Any:
+    def decode(self, genotype: Genotype[str]) -> T:
         """
         Decode a Genotype into its character representation.
         :param genotype: A Genotype instance to decode.
@@ -30,10 +31,10 @@ class CharCodec(CodecBase):
         """
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
-        return self.codec.decode_py(genotype.py_genotype())
+        return self.codec.decode_py(genotype=genotype.to_python())
 
     @staticmethod
-    def from_genes(genes: List[Gene] | Tuple[Gene, ...]) -> "CharCodec":
+    def from_genes(genes: List[Gene[str]] | Tuple[Gene[str], ...]) -> CharCodec[str]:
         """
         Create a codec for a single chromosome with specified genes.
         Args:
@@ -43,17 +44,17 @@ class CharCodec(CodecBase):
         """
         if not isinstance(genes, (list, tuple)):
             raise TypeError("genes must be a list or tuple of Gene instances.")
-        if not all(g.gene_type() == PyGeneType.Char for g in genes):
+        if not all(g.gene_type() == GeneType.CHAR for g in genes):
             raise TypeError("All genes must be of type 'char'.")
 
         return CharCodec(
-            PyCharCodec.from_genes(list(map(lambda g: g.py_gene(), genes)))
+            PyCharCodec.from_genes(list(map(lambda g: g.to_python(), genes)))
         )
 
     @staticmethod
     def from_chromosomes(
-        chromosomes: List[Chromosome] | Tuple[Chromosome, ...],
-    ) -> "CharCodec":
+        chromosomes: List[Chromosome[str]] | Tuple[Chromosome[str], ...],
+    ) -> CharCodec[List[str]] | CharCodec[str]:
         """
         Create a codec for multiple chromosomes.
         Args:
@@ -66,7 +67,7 @@ class CharCodec(CodecBase):
                 "chromosomes must be a list or tuple of Chromosome instances."
             )
         if not all(
-            g.gene_type() == PyGeneType.Char for c in chromosomes for g in c.genes()
+            g.gene_type() == GeneType.CHAR for c in chromosomes for g in c.genes()
         ):
             raise TypeError("All chromosomes must be of type 'char'.")
 
@@ -80,7 +81,7 @@ class CharCodec(CodecBase):
     def matrix(
         chromosomes: List[int] | Tuple[int, int],
         char_set: str | List[str] = None,
-    ) -> "CharCodec":
+    ) -> CharCodec[List[List[str]]]:
         """
         Initialize the char codec with number of chromosomes and value bounds.
         Args:
@@ -116,7 +117,7 @@ class CharCodec(CodecBase):
         return CharCodec(PyCharCodec.matrix(chromosomes, char_set))
 
     @staticmethod
-    def vector(length: int, char_set: str | List[str] = None) -> "CharCodec":
+    def vector(length: int, char_set: str | List[str] = None) -> CharCodec[List[str]]:
         """
         Initialize the char codec with a single chromosome of specified length.
         Args:

@@ -22,11 +22,13 @@ from .inputs.executor import Executor
 from .fitness import FitnessBase
 from .inputs.limit import LimitBase
 
-from .genome.gene import GeneType
+from .genome.gene import (
+    GeneType,
+)
 from .genome.population import Population
 
 
-class GeneticEngine:
+class GeneticEngine[G, T]:
     """
     Genetic Engine for optimization problems.
     This class serves as the main interface for running genetic algorithms, allowing
@@ -35,9 +37,9 @@ class GeneticEngine:
 
     def __init__(
         self,
-        codec: CodecBase,
-        fitness_func: Callable[[Any], Any] | FitnessBase,
-        population: Population | None = None,
+        codec: CodecBase[G, T],
+        fitness_func: Callable[[T], Any] | FitnessBase[T],
+        population: Population[G] | None = None,
         offspring_selector: SelectorBase | None = None,
         survivor_selector: SelectorBase | None = None,
         alters: AlterBase | List[AlterBase] | None = None,

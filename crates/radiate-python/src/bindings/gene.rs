@@ -1,9 +1,14 @@
-use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
+use std::sync::Arc;
+
+use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     BitChromosome, BitGene, CharChromosome, CharGene, Chromosome, FloatChromosome, FloatGene, Gene,
-    Genotype, GraphChromosome, GraphNode, IntChromosome, IntGene, Op, PermutationChromosome,
-    PermutationGene, Phenotype, Population, TreeChromosome, TreeNode, random_provider,
+    Genotype, GraphChromosome, GraphNode, IntChromosome, IntGene, NodeType, Op,
+    PermutationChromosome, PermutationGene, Phenotype, Population, TreeChromosome, TreeNode,
+    random_provider,
 };
+
+use crate::Wrap;
 
 pub const FLOAT_GENE_TYPE: &'static str = "FloatGene";
 pub const INT_GENE_TYPE: &'static str = "IntGene";
@@ -21,8 +26,8 @@ pub enum PyGeneType {
     Float,
     Bit,
     Char,
-    Graph,
-    Tree,
+    GraphNode,
+    TreeNode,
     Permutation,
 }
 
@@ -35,8 +40,8 @@ impl PyGeneType {
             PyGeneType::Float => FLOAT_GENE_TYPE.into(),
             PyGeneType::Bit => BIT_GENE_TYPE.into(),
             PyGeneType::Char => CHAR_GENE_TYPE.into(),
-            PyGeneType::Graph => GRAPH_GENE_TYPE.into(),
-            PyGeneType::Tree => TREE_GENE_TYPE.into(),
+            PyGeneType::GraphNode => GRAPH_GENE_TYPE.into(),
+            PyGeneType::TreeNode => TREE_GENE_TYPE.into(),
             PyGeneType::Permutation => PERMUTATION_GENE_TYPE.into(),
         }
     }
@@ -48,8 +53,8 @@ impl PyGeneType {
             PyGeneType::Float => FLOAT_GENE_TYPE.into(),
             PyGeneType::Bit => BIT_GENE_TYPE.into(),
             PyGeneType::Char => CHAR_GENE_TYPE.into(),
-            PyGeneType::Graph => GRAPH_GENE_TYPE.into(),
-            PyGeneType::Tree => TREE_GENE_TYPE.into(),
+            PyGeneType::GraphNode => GRAPH_GENE_TYPE.into(),
+            PyGeneType::TreeNode => TREE_GENE_TYPE.into(),
             PyGeneType::Permutation => PERMUTATION_GENE_TYPE.into(),
         }
     }
@@ -65,8 +70,8 @@ impl PyGeneType {
             PyGeneType::Float => 2,
             PyGeneType::Bit => 3,
             PyGeneType::Char => 4,
-            PyGeneType::Graph => 5,
-            PyGeneType::Tree => 6,
+            PyGeneType::GraphNode => 5,
+            PyGeneType::TreeNode => 6,
             PyGeneType::Permutation => 7,
         }
     }
@@ -118,6 +123,13 @@ impl PyPopulation {
             .iter()
             .zip(&other.phenotypes)
             .all(|(a, b)| a == b)
+    }
+
+    pub fn __getitem__<'py>(&self, py: Python<'py>, index: usize) -> PyResult<Bound<'py, PyAny>> {
+        self.phenotypes
+            .get(index)
+            .ok_or_else(|| pyo3::exceptions::PyIndexError::new_err("index out of range"))
+            .and_then(|phenotype| phenotype.clone().into_bound_py_any(py))
     }
 
     pub fn gene_type(&self) -> PyGeneType {
@@ -268,7 +280,7 @@ impl PyChromosome {
 
     pub fn __repr__(&self) -> String {
         format!(
-            "Chromosome(genes={:?})",
+            "{:?}",
             self.genes.iter().map(|g| g.__repr__()).collect::<Vec<_>>()
         )
     }
@@ -310,6 +322,7 @@ enum GeneInner {
     GraphNode(GraphNode<Op<f32>>),
     TreeNode(TreeNode<Op<f32>>),
     Permutation(PermutationGene<usize>),
+    Empty(PyGeneType),
 }
 
 #[pyclass]
@@ -327,9 +340,10 @@ impl PyGene {
             GeneInner::Int(_) => PyGeneType::Int,
             GeneInner::Bit(_) => PyGeneType::Bit,
             GeneInner::Char(_) => PyGeneType::Char,
-            GeneInner::GraphNode(_) => PyGeneType::Graph,
-            GeneInner::TreeNode(_) => PyGeneType::Tree,
+            GeneInner::GraphNode(_) => PyGeneType::GraphNode,
+            GeneInner::TreeNode(_) => PyGeneType::TreeNode,
             GeneInner::Permutation(_) => PyGeneType::Permutation,
+            GeneInner::Empty(gene_type) => gene_type.clone(),
         }
     }
 
@@ -342,6 +356,7 @@ impl PyGene {
             GeneInner::GraphNode(gene) => gene.allele().name().into_bound_py_any(py),
             GeneInner::TreeNode(gene) => gene.allele().name().into_bound_py_any(py),
             GeneInner::Permutation(gene) => gene.allele().into_bound_py_any(py),
+            GeneInner::Empty(_) => py.None().into_bound_py_any(py),
         }
     }
 
@@ -354,6 +369,7 @@ impl PyGene {
             GeneInner::GraphNode(gene) => format!("{:?}", gene),
             GeneInner::TreeNode(gene) => format!("{:?}", gene),
             GeneInner::Permutation(gene) => format!("{:?}", gene),
+            GeneInner::Empty(gene_type) => format!("Empty({})", gene_type.name()),
         }
     }
 
@@ -422,6 +438,50 @@ impl PyGene {
                     None => CharGene::default(),
                 },
             }),
+        }
+    }
+
+    #[staticmethod]
+    pub fn permutation(allele: Option<Vec<usize>>, index: usize) -> PyGene {
+        let allele = allele.map(|a| a.into_iter().collect::<Arc<[usize]>>());
+        if let Some(allele) = allele {
+            PyGene {
+                inner: GeneInner::Permutation(PermutationGene::new(index, allele)),
+            }
+        } else {
+            PyGene {
+                inner: GeneInner::Empty(PyGeneType::Permutation),
+            }
+        }
+    }
+
+    #[staticmethod]
+    pub fn empty(gene_type: PyGeneType) -> PyGene {
+        PyGene {
+            inner: GeneInner::Empty(gene_type),
+        }
+    }
+
+    #[staticmethod]
+    pub fn graph_gene<'py>(
+        py: Python<'py>,
+        index: usize,
+        allele: Py<PyAny>,
+        node_type: String,
+    ) -> PyGene {
+        if let Ok(op) = allele.extract::<Wrap<Op<f32>>>(py) {
+            let node_type = match node_type.as_str() {
+                "input" => NodeType::Input,
+                "output" => NodeType::Output,
+                "vertex" => NodeType::Vertex,
+                "edge" => NodeType::Edge,
+                _ => panic!("Unknown node type: {}", node_type),
+            };
+            PyGene {
+                inner: GeneInner::GraphNode(GraphNode::new(index, node_type, op.0)),
+            }
+        } else {
+            panic!("Invalid allele type for GraphNode gene");
         }
     }
 }

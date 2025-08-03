@@ -1,11 +1,15 @@
 from __future__ import annotations
-from typing import List, Any, Tuple
-from .codec import CodecBase
+
+from typing import List, Tuple
+
+
+from .base import CodecBase
+
 from radiate.radiate import PyBitCodec
 from radiate.genome import Genotype
 
 
-class BitCodec(CodecBase):
+class BitCodec[T](CodecBase[bool, T]):
     """
     BitCodec is a class that represents a codec for bit-based chromosomes.
     It is used to encode and decode chromosomes into bit strings.
@@ -20,14 +24,14 @@ class BitCodec(CodecBase):
             raise TypeError("codec must be an instance of PyBitCodec.")
         self.codec = codec
 
-    def encode(self) -> Genotype:
+    def encode(self) -> Genotype[bool]:
         """
         Encode the codec into a Genotype.
         :return: A Genotype instance.
         """
-        return Genotype(self.codec.encode_py())
+        return Genotype.from_python(self.codec.encode_py())
 
-    def decode(self, genotype: Genotype) -> Any:
+    def decode(self, genotype: Genotype[bool]) -> T:
         """
         Decode a Genotype into its bit representation.
         :param genotype: A Genotype instance to decode.
@@ -35,12 +39,12 @@ class BitCodec(CodecBase):
         """
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
-        return self.codec.decode_py(genotype.py_genotype())
+        return self.codec.decode_py(genotype.to_python())
 
     @staticmethod
     def matrix(
         shape: List[int] | Tuple[int, int], use_numpy: bool = False
-    ) -> "BitCodec":
+    ) -> BitCodec[List[List[bool]]]:
         """
         Initialize the bit codec with a matrix of chromosomes.
         Args:
@@ -69,7 +73,7 @@ class BitCodec(CodecBase):
         )
 
     @staticmethod
-    def vector(length: int = 8, use_numpy: bool = False) -> "BitCodec":
+    def vector(length: int = 8, use_numpy: bool = False) -> BitCodec[List[bool]]:
         """
         Initialize the bit codec with a single chromosome of specified length.
         Args:

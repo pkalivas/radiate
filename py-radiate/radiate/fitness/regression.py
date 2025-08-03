@@ -4,7 +4,7 @@ from typing import List
 from radiate.radiate import PyFitnessFn
 
 
-class Regression(FitnessBase):
+class Regression[T](FitnessBase[T]):
     """Fitness function for regression problems."""
 
     def __init__(

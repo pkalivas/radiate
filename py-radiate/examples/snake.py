@@ -215,7 +215,7 @@ class SnakeEvolver:
         self.input_size = 13
         self.output_size = 4
 
-    def fitness_function( graph: rd.Graph) -> float:
+    def fitness_function(graph: rd.Graph) -> float:
         """Enhanced fitness function for Snake AI."""
         total_fitness = 0.0
         num_games = 3
@@ -355,7 +355,7 @@ class SnakeEvolver:
 
         engine = rd.GeneticEngine(
             codec,
-            self.fitness_function,
+            SnakeEvolver.fitness_function,
         )
 
         engine.offspring_selector(rd.BoltzmannSelector(4))

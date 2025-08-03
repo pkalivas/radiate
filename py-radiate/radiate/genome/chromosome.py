@@ -1,19 +1,19 @@
 from __future__ import annotations
 
 from typing import Tuple, List
+from radiate.genome.wrapper import PythonWrapper
 from radiate.radiate import PyChromosome
-from .gene import Gene
+from .gene import BitGene, CharGene, FloatGene, Gene, IntGene
 
 
-class Chromosome:
+class Chromosome[T](PythonWrapper[PyChromosome]):
     """
     Represents a chromosome in a genome.
     """
 
     def __init__(
         self,
-        chromosome: PyChromosome | None = None,
-        genes: List[Gene] | Gene | None = None,
+        genes: List[Gene[T]] | Gene[T] | None = None,
     ):
         """
         Initializes a Chromosome instance.
@@ -21,83 +21,54 @@ class Chromosome:
         :param gene_type: The type of the genes in the chromosome.
         :param length: The length of the chromosome.
         """
-        if chromosome is not None:
-            if isinstance(chromosome, PyChromosome):
-                self.__inner = chromosome
-            else:
-                raise TypeError("chromosome must be an instance of PyChromosome")
-        elif genes is not None:
-            if isinstance(genes, Gene):
-                self.__inner = PyChromosome([genes.py_gene()])
-            if isinstance(genes, list):
-                if all(isinstance(gene, Gene) for gene in genes):
-                    self.__inner = PyChromosome([gene.py_gene() for gene in genes])
-                else:
-                    raise ValueError("All genes must be instances of Gene")
-            else:
-                raise TypeError(
-                    "genes must be a Gene instance or a list of Gene instances"
-                )
+        super().__init__()
+
+        if genes is None:
+            return
+
+        if isinstance(genes, Gene):
+            self._pyobj = PyChromosome([genes.to_python()])
+        if isinstance(genes, list):
+            self._pyobj = PyChromosome([gene.to_python() for gene in genes])
         else:
-            raise ValueError("Either chromosome or genes must be provided")
+            raise TypeError("genes must be a Gene instance or a list of Gene instances")
 
     def __repr__(self):
-        return f"Chromosome(genes={self.__inner.genes})"
+        return self._pyobj.__repr__()
 
     def __len__(self):
         """
         Returns the length of the chromosome.
         :return: Length of the chromosome.
         """
-        return len(self.__inner.genes)
+        return self._pyobj.__len__()
 
-    def __eq__(self, value):
-        if not isinstance(value, Chromosome):
-            return False
-        if len(self) != len(value):
-            return False
-        return all(a == b for a, b in zip(self.__inner.genes, value.__inner.genes))
-
-    def __getitem__(self, index: int) -> Gene:
+    def __getitem__(self, index: int) -> Gene[T]:
         """
         Returns the gene at the specified index.
         :param index: Index of the gene to retrieve.
         :return: Gene instance at the specified index.
         """
-        if not isinstance(index, int):
-            raise TypeError("Index must be an integer")
-        if index < 0 or index >= len(self.__inner.genes):
-            raise IndexError("Index out of range")
-        return Gene(self.__inner.genes[index])
-    
+        return Gene.from_python(self._pyobj[index])
+
     def __iter__(self):
         """
         Returns an iterator over the genes in the chromosome.
         :return: An iterator over the genes in the chromosome.
         """
-        for gene in self.__inner.genes:
-            yield Gene(gene)
+        for gene in self._pyobj.genes:
+            yield Gene.from_python(gene)
 
-    def py_chromosome(self) -> PyChromosome:
-        """
-        Returns the underlying PyChromosome instance.
-        :return: The PyChromosome instance associated with this Chromosome.
-        """
-        return self.__inner
-
-    def genes(self) -> List[Gene]:
-        """
-        Returns the genes of the chromosome.
-        :return: A list of Gene instances.
-        """
-        return [Gene(gene) for gene in self.__inner.genes]
+    def gene_type(self) -> str:
+        return self._pyobj.gene_type()
 
     @staticmethod
     def float(
         length: int,
+        *,
         value_range: Tuple[float, float] | None = None,
         bound_range: Tuple[float, float] | None = None,
-    ) -> "Chromosome":
+    ) -> Chromosome[float]:
         """
         Create a float chromosome with specified length and optional parameters.
         :param length: Length of the chromosome.
@@ -112,7 +83,7 @@ class Chromosome:
         Chromosome(genes=[0.0, 2.5, 5.0, 7.5, 10.0])
         """
         genes = [
-            Gene.float(value_range=value_range, bound_range=bound_range)
+            FloatGene(value_range=value_range, bound_range=bound_range)
             for _ in range(length)
         ]
         return Chromosome(genes=genes)
@@ -120,9 +91,10 @@ class Chromosome:
     @staticmethod
     def int(
         length: int,
+        *,
         value_range: Tuple[int, int] | None = None,
         bound_range: Tuple[int, int] | None = None,
-    ) -> "Chromosome":
+    ) -> Chromosome[int]:
         """
         Create an integer chromosome with specified length and optional parameters.
         :param length: Length of the chromosome.
@@ -137,13 +109,13 @@ class Chromosome:
         Chromosome(genes=[0, 5, 10])
         """
         genes = [
-            Gene.int(value_range=value_range, bound_range=bound_range)
+            IntGene(value_range=value_range, bound_range=bound_range)
             for _ in range(length)
         ]
         return Chromosome(genes=genes)
 
     @staticmethod
-    def bit(length: int) -> "Chromosome":
+    def bit(length: int) -> Chromosome[bool]:
         """
         Create a bit chromosome with specified length and optional allele.
         :param length: Length of the chromosome.
@@ -155,11 +127,11 @@ class Chromosome:
         >>> rd.Chromosome.bit(length=4)
         Chromosome(genes=[True, False, True, False])
         """
-        genes = [Gene.bit() for _ in range(length)]
+        genes = [BitGene() for _ in range(length)]
         return Chromosome(genes=genes)
 
     @staticmethod
-    def char(length: int, char_set: set[str] | None = None) -> "Chromosome":
+    def char(length: int, char_set: set[str] | None = None) -> Chromosome[str]:
         """
         Create a character chromosome with specified length and optional character set.
         :param length: Length of the chromosome.
@@ -171,5 +143,5 @@ class Chromosome:
         >>> rd.Chromosome.char(length=5, char_set={'a', 'b', 'c'})
         Chromosome(genes=[a, b, c, a, b])
         """
-        genes = [Gene.char(char_set=char_set) for _ in range(length)]
+        genes = [CharGene(char_set=char_set) for _ in range(length)]
         return Chromosome(genes=genes)

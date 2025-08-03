@@ -47,7 +47,7 @@ class Generation:
         Get the population of the generation.
         :return: The population of the generation.
         """
-        return Population(self.inner.population())
+        return Population.from_python(self.inner.population())
 
     def duration(self):
         """

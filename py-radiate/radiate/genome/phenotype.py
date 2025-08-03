@@ -1,18 +1,20 @@
 from __future__ import annotations
 from typing import List
-from radiate.radiate import PyPhenotype
+
+from radiate.genome.wrapper import PythonWrapper
 from .genotype import Genotype
+from radiate.radiate import PyPhenotype
 
 
-class Phenotype:
+class Phenotype[T](PythonWrapper[PyPhenotype]):
     """
     Represents a phenotype in a genome.
     """
 
     def __init__(
         self,
-        phenotype: PyPhenotype | None = None,
-        genotype: Genotype | None = None,
+        genotype: Genotype[T] | None = None,
+        *,
         score: List[float] | float | None = None,
     ):
         """
@@ -20,60 +22,43 @@ class Phenotype:
 
         :param genotype: A Genotype instance.
         """
-        if isinstance(phenotype, PyPhenotype):
-            self.__inner = phenotype
-        elif isinstance(genotype, Genotype):
-            if score is not None:
-                score = score if isinstance(score, list) else [score]
+        super().__init__()
 
-            self.__inner = PyPhenotype(genotype.py_genotype(), score=score)
+        if isinstance(genotype, Genotype):
+            if isinstance(score, float):
+                score = [score]
+
+            self._pyobj = PyPhenotype(genotype=genotype.to_python(), score=score)
         else:
-            raise TypeError("genotype must be an instance of Genotype or PyPhenotype")
+            raise TypeError(f"Cannot create Phenotype with instance of {genotype}")
 
     def __repr__(self):
-        return f"Phenotype(genotype={self.__inner})"
+        return self._pyobj.__repr__()
 
     def __len__(self):
         """
         Returns the length of the phenotype.
         :return: Length of the phenotype.
         """
-        return len(self.__inner.genotype.chromosomes)
+        return len(self._pyobj.genotype)
 
-    def __eq__(self, other: Phenotype) -> bool:
+    def gene_type(self) -> str:
         """
-        Checks if two Phenotype instances are equal.
-        :param other: Another Phenotype instance.
-        :return: True if both phenotypes are equal, False otherwise.
+        Returns the type of the genes in the phenotype.
+        :return: The gene type as a string.
         """
-        if not isinstance(other, Phenotype):
-            return False
-        return self.__inner == other.py_phenotype()
-
-    def py_phenotype(self) -> PyPhenotype:
-        """
-        Returns the underlying PyPhenotype instance.
-        :return: The PyPhenotype instance associated with this Phenotype.
-        """
-        return self.__inner
+        return self._pyobj.genotype.gene_type()
 
     def score(self) -> List[float]:
         """
         Returns the score of the phenotype.
         :return: The score of the phenotype.
         """
-        return self.__inner.score
+        return self._pyobj.score
 
-    def genotype(self) -> Genotype:
+    def genotype(self) -> Genotype[T]:
         """
         Returns the genotype of the phenotype.
         :return: The genotype of the phenotype.
         """
-        return Genotype(genotype=self.__inner.genotype)
-
-    def id(self) -> int:
-        """
-        Returns the ID of the phenotype.
-        :return: The ID of the phenotype.
-        """
-        return self.__inner.id
+        return Genotype.from_python(self._pyobj.genotype)

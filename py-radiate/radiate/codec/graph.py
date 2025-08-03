@@ -1,25 +1,28 @@
-from typing import List, Optional, Dict, TypeAlias, Union, Tuple
-from .codec import CodecBase
-from ..gp import Op
-from radiate.genome import Genotype
-from radiate.radiate import PyGraphCodec, PyGraph as Graph
+from __future__ import annotations
 
-NodeValues: TypeAlias = Union[List[Op], Op]
+from typing import List, Optional, Dict, Tuple
+
+from radiate._typing import NodeValues
+
+from .base import CodecBase
+from ..gp import Op, Graph
+from radiate.genome import Genotype, GeneType
+from radiate.radiate import PyGraphCodec
 
 
-class GraphCodec(CodecBase):
+class GraphCodec(CodecBase[Op, Graph]):
     def __init__(self, codec: PyGraphCodec):
         self.codec = codec
 
-    def encode(self) -> "Genotype":
-        return Genotype(self.codec.encode_py())
+    def encode(self) -> Genotype[Op]:
+        return Genotype.from_python(self.codec.encode_py())
 
-    def decode(self, genotype: Genotype) -> "Graph":
-        if genotype.gene_type() != "GraphNode":
-            raise ValueError("genotype must be of type 'graph'.")
+    def decode(self, genotype: Genotype) -> Graph:
+        if genotype.gene_type() != GeneType.GRAPH:
+            raise ValueError(f"genotype must be of type {genotype.gene_type()}.")
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
-        return self.codec.decode_py(genotype.py_genotype())
+        return Graph(self.codec.decode_py(genotype.to_python()))
 
     @staticmethod
     def weighted_directed(
@@ -29,7 +32,7 @@ class GraphCodec(CodecBase):
         output: Optional[NodeValues] = None,
         values: Optional[Dict[str, List[Op]] | List[Tuple[str, List[Op]]]] = None,
         max_nodes: Optional[int] = None,
-    ) -> "GraphCodec":
+    ) -> GraphCodec[Op, Graph]:
         return GraphCodec.__build_common(
             name="weighted_directed",
             shape=shape,
@@ -48,7 +51,7 @@ class GraphCodec(CodecBase):
         output: Optional[NodeValues] = None,
         values: Optional[Dict[str, List[Op]] | List[Tuple[str, List[Op]]]] = None,
         max_nodes: Optional[int] = None,
-    ) -> "GraphCodec":
+    ) -> GraphCodec[Op, Graph]:
         return GraphCodec.__build_common(
             name="weighted_recurrent",
             shape=shape,
@@ -67,7 +70,7 @@ class GraphCodec(CodecBase):
         output: Optional[NodeValues] = None,
         values: Optional[Dict[str, List[Op]] | List[Tuple[str, List[Op]]]] = None,
         max_nodes: Optional[int] = None,
-    ) -> "GraphCodec":
+    ) -> GraphCodec[Op, Graph]:
         return GraphCodec.__build_common(
             name="directed",
             shape=shape,
@@ -86,7 +89,7 @@ class GraphCodec(CodecBase):
         output: Optional[NodeValues] = None,
         values: Optional[Dict[str, List[Op]]] = None,
         max_nodes: Optional[int] = None,
-    ) -> "GraphCodec":
+    ) -> GraphCodec[Op, Graph]:
         return GraphCodec.__build_common(
             name="recurrent",
             shape=shape,
@@ -106,7 +109,7 @@ class GraphCodec(CodecBase):
         output: Optional[NodeValues] = None,
         values: Optional[Dict[str, List[Op]]] = None,
         max_nodes: Optional[int] = None,
-    ) -> "GraphCodec":
+    ) -> GraphCodec[Op, Graph]:
         input_size, output_size = shape
 
         if input_size < 1 or output_size < 1:

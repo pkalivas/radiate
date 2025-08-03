@@ -5,14 +5,11 @@ build-backend = "maturin"
 [project]
 name = "radiate"
 description = "A fast and flexible evolution engine for implementing artificial evolution and genetic programming techniques."
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "License :: OSI Approved :: MIT License",
@@ -25,10 +22,9 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 numpy = ["numpy>=1.20.0"]
-numba = ["numba>=0.61.2"]
 
 all = [
-    "radiate[numpy,numba]",
+    "radiate[numpy]",
 ]
 
 [project.test-dependencies]

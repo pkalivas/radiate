@@ -90,13 +90,13 @@ pub fn py_select(
 
             Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
         }
-        PyGeneType::Graph => {
+        PyGeneType::GraphNode => {
             let selector: Box<dyn Select<GraphChromosome<Op<f32>>>> = selector.transform();
             let population: Population<GraphChromosome<Op<f32>>> = population.into();
 
             Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
         }
-        PyGeneType::Tree => {
+        PyGeneType::TreeNode => {
             let selector: Box<dyn Select<TreeChromosome<Op<f32>>>> = selector.transform();
             let population: Population<TreeChromosome<Op<f32>>> = population.into();
 

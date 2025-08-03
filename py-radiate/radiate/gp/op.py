@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 class Op:
     def __init__(self, name: str, **kwargs):
         self.name = name
@@ -13,143 +16,143 @@ class Op:
         return self.args.get(key, None)
 
     @staticmethod
-    def var(idx: int = 0) -> "Op":
+    def var(idx: int = 0) -> Op:
         return Op("var", index=idx)
 
     @staticmethod
-    def const(value: float) -> "Op":
+    def const(value: float) -> Op:
         return Op("const", value=value)
 
     @staticmethod
-    def add() -> "Op":
+    def add() -> Op:
         return Op("add")
 
     @staticmethod
-    def sub() -> "Op":
+    def sub() -> Op:
         return Op("sub")
 
     @staticmethod
-    def mul() -> "Op":
+    def mul() -> Op:
         return Op("mul")
 
     @staticmethod
-    def div() -> "Op":
+    def div() -> Op:
         return Op("div")
 
     @staticmethod
-    def sigmoid() -> "Op":
+    def sigmoid() -> Op:
         return Op("sigmoid")
 
     @staticmethod
-    def weight() -> "Op":
+    def weight() -> Op:
         return Op("weight")
 
     @staticmethod
-    def relu() -> "Op":
+    def relu() -> Op:
         return Op("relu")
 
     @staticmethod
-    def tanh() -> "Op":
+    def tanh() -> Op:
         return Op("tanh")
 
     @staticmethod
-    def linear() -> "Op":
+    def linear() -> Op:
         return Op("linear")
 
     @staticmethod
-    def sum() -> "Op":
+    def sum() -> Op:
         return Op("sum")
 
     @staticmethod
-    def prod() -> "Op":
+    def prod() -> Op:
         return Op("prod")
 
     @staticmethod
-    def diff() -> "Op":
+    def diff() -> Op:
         return Op("diff")
 
     @staticmethod
-    def pow() -> "Op":
+    def pow() -> Op:
         return Op("pow")
 
     @staticmethod
-    def log() -> "Op":
+    def log() -> Op:
         return Op("log")
 
     @staticmethod
-    def sin() -> "Op":
+    def sin() -> Op:
         return Op("sin")
 
     @staticmethod
-    def cos() -> "Op":
+    def cos() -> Op:
         return Op("cos")
 
     @staticmethod
-    def identity() -> "Op":
+    def identity() -> Op:
         return Op("identity")
 
     @staticmethod
-    def neg() -> "Op":
+    def neg() -> Op:
         return Op("neg")
 
     @staticmethod
-    def sqrt() -> "Op":
+    def sqrt() -> Op:
         return Op("sqrt")
 
     @staticmethod
-    def abs() -> "Op":
+    def abs() -> Op:
         return Op("abs")
 
     @staticmethod
-    def exp() -> "Op":
+    def exp() -> Op:
         return Op("exp")
 
     @staticmethod
-    def tan() -> "Op":
+    def tan() -> Op:
         return Op("tan")
 
     @staticmethod
-    def ceil() -> "Op":
+    def ceil() -> Op:
         return Op("ceil")
 
     @staticmethod
-    def floor() -> "Op":
+    def floor() -> Op:
         return Op("floor")
 
     @staticmethod
-    def max() -> "Op":
+    def max() -> Op:
         return Op("max")
 
     @staticmethod
-    def min() -> "Op":
+    def min() -> Op:
         return Op("min")
 
     @staticmethod
-    def leaky_relu() -> "Op":
+    def leaky_relu() -> Op:
         return Op("leaky_relu")
 
     @staticmethod
-    def elu() -> "Op":
+    def elu() -> Op:
         return Op("elu")
 
     @staticmethod
-    def mish() -> "Op":
+    def mish() -> Op:
         return Op("mish")
 
     @staticmethod
-    def swish() -> "Op":
+    def swish() -> Op:
         return Op("swish")
 
     @staticmethod
-    def softplus() -> "Op":
+    def softplus() -> Op:
         return Op("softplus")
 
     @staticmethod
-    def softmax() -> "Op":
+    def softmax() -> Op:
         return Op("softmax")
 
     @staticmethod
-    def all_ops() -> list["Op"]:
+    def all_ops() -> list[Op]:
         return [
             Op.add(),
             Op.sub(),

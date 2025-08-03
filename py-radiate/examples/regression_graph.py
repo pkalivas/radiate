@@ -45,9 +45,3 @@ engine = rd.GeneticEngine(
 
 result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)], log=True)
 print(result)
-
-serialized = result.value().to_json()
-print(serialized)
-
-deserialized = rd.Graph.from_json(serialized)
-print(deserialized)
