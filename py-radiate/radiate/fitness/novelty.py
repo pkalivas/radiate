@@ -1,19 +1,19 @@
 from .base import FitnessBase
 
-from typing import Any, Callable, List
+from typing import Callable, List
 
 from radiate.inputs.descriptor import CustomDescriptor, DescriptorBase
 from radiate.inputs.distance import DistanceBase, EuclideanDistance, HammingDistance
 from radiate.radiate import PyFitnessFn
 
 
-class NoveltySearch(FitnessBase):
+class NoveltySearch[T](FitnessBase[T]):
     """Fitness function for novelty search algorithms."""
 
     def __init__(
         self,
         distance: DistanceBase | None,
-        descriptor: Callable[[Any], float | List[float]] | DescriptorBase,
+        descriptor: Callable[[T], float | List[float]] | DescriptorBase,
         k: int = 15,
         threshold: float = 0.03,
         archive_size: int = 1000,

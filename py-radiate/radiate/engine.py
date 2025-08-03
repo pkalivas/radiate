@@ -38,7 +38,7 @@ class GeneticEngine[G, T]:
     def __init__(
         self,
         codec: CodecBase[G, T],
-        fitness_func: Callable[[T], Any] | FitnessBase,
+        fitness_func: Callable[[T], Any] | FitnessBase[T],
         population: Population[G] | None = None,
         offspring_selector: SelectorBase | None = None,
         survivor_selector: SelectorBase | None = None,
