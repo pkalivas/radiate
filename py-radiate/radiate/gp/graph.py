@@ -20,7 +20,7 @@ class Graph:
             return False
         return self.inner == other.inner
 
-    def eval(self, inputs: List[List[float]]) -> List[List[float]]:
+    def eval(self, inputs: List[List[float]] | List[float]) -> List[List[float]]:
         return self.inner.eval(inputs)
 
     def reset(self):
@@ -34,6 +34,4 @@ class Graph:
 
     @staticmethod
     def from_json(json_str: str) -> Graph:
-        new_graph = PyGraph.from_json(json_str)
-        return Graph(new_graph)
-
+        return Graph(PyGraph.from_json(json_str))

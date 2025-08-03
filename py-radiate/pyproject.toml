@@ -22,10 +22,9 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 numpy = ["numpy>=1.20.0"]
-numba = ["numba>=0.61.2"]
 
 all = [
-    "radiate[numpy,numba]",
+    "radiate[numpy]",
 ]
 
 [project.test-dependencies]

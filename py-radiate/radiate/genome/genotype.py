@@ -23,22 +23,17 @@ class Genotype[T](PythonWrapper[PyGenotype]):
         """
         super().__init__()
 
-        if chromosomes is not None:
-            if isinstance(chromosomes, Chromosome):
-                chromosomes = PyGenotype([chromosomes])
-            if isinstance(chromosomes, list):
-                if all(isinstance(chromo, Chromosome) for chromo in chromosomes):
-                    self._pyobj = PyGenotype(
-                        [chromo.to_python() for chromo in chromosomes]
-                    )
-                else:
-                    raise ValueError("All chromosomes must be instances of Chromosome")
+        if isinstance(chromosomes, Chromosome):
+            chromosomes = PyGenotype([chromosomes])
+        if isinstance(chromosomes, list):
+            if all(isinstance(chromo, Chromosome) for chromo in chromosomes):
+                self._pyobj = PyGenotype([chromo.to_python() for chromo in chromosomes])
             else:
-                raise TypeError(
-                    "chromosomes must be a Chromosome instance or a list of Chromosome instances"
-                )
+                raise ValueError("All chromosomes must be instances of Chromosome")
         else:
-            raise ValueError("Either genotype or chromosomes must be provided")
+            raise TypeError(
+                "chromosomes must be a Chromosome instance or a list of Chromosome instances"
+            )
 
     def __repr__(self):
         return self._pyobj.__repr__()

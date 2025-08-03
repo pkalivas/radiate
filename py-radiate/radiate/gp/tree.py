@@ -3,6 +3,7 @@ from typing import List
 
 from radiate.radiate import PyTree
 
+
 class Tree:
     def __init__(self, pytree: PyTree):
         if not isinstance(pytree, PyTree):
@@ -11,29 +12,27 @@ class Tree:
 
     def __repr__(self):
         return self.inner.__repr__()
-    
+
     def __str__(self):
         return self.inner.__str__()
-    
+
     def __eq__(self, other):
         if not isinstance(other, Tree):
             return False
         return self.inner == other
-    
+
     def __len__(self):
         return len(self.inner)
-    
-    def to_dot(self) -> str:
-        return self.inner.to_dot()
-    
-    def to_json(self) -> str:
-        return self.inner.to_json()
-    
-    @staticmethod
-    def from_json(json_str: str) -> Tree:
-        pytree = PyTree.from_json(json_str)
-        return Tree(pytree)
 
     def eval(self, inputs: List[List[float]]) -> List[List[float]]:
         return self.inner.eval(inputs)
-    
+
+    def to_dot(self) -> str:
+        return self.inner.to_dot()
+
+    def to_json(self) -> str:
+        return self.inner.to_json()
+
+    @staticmethod
+    def from_json(json_str: str) -> Tree:
+        return Tree(PyTree.from_json(json_str))

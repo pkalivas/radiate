@@ -9,17 +9,13 @@ class PythonWrapper[T](ABC):
     Provides common functionality for conversion between Python and Rust objects.
     """
     
-    # The name of the inner attribute that holds the Rust object
     __inner_attr__: ClassVar[str] = "_pyobj"
-    
-    # The type of the Rust object this wrapper wraps
     __rust_type__: ClassVar[type] = None
     
     def __init__(self):
         """
         Initialize the wrapper. Subclasses should override this method.
         """
-        # Initialize the inner attribute if it doesn't exist
         if not hasattr(self, self.__inner_attr__):
             setattr(self, self.__inner_attr__, None)
     

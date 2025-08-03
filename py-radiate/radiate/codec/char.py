@@ -3,11 +3,10 @@ from __future__ import annotations
 from typing import List, Tuple
 
 from radiate.genome.chromosome import Chromosome
-from radiate.genome.gene import Gene
+from radiate.genome.gene import Gene, GeneType
 from .base import CodecBase
 
 from radiate.radiate import PyCharCodec
-from radiate.radiate import PyGeneType
 from radiate.genome import Genotype
 
 
@@ -45,11 +44,11 @@ class CharCodec[T](CodecBase[str, T]):
         """
         if not isinstance(genes, (list, tuple)):
             raise TypeError("genes must be a list or tuple of Gene instances.")
-        if not all(g.gene_type() == PyGeneType.Char for g in genes):
+        if not all(g.gene_type() == GeneType.CHAR for g in genes):
             raise TypeError("All genes must be of type 'char'.")
 
         return CharCodec(
-            PyCharCodec.from_genes(list(map(lambda g: g.py_gene(), genes)))
+            PyCharCodec.from_genes(list(map(lambda g: g.to_python(), genes)))
         )
 
     @staticmethod
@@ -68,7 +67,7 @@ class CharCodec[T](CodecBase[str, T]):
                 "chromosomes must be a list or tuple of Chromosome instances."
             )
         if not all(
-            g.gene_type() == PyGeneType.Char for c in chromosomes for g in c.genes()
+            g.gene_type() == GeneType.CHAR for c in chromosomes for g in c.genes()
         ):
             raise TypeError("All chromosomes must be of type 'char'.")
 

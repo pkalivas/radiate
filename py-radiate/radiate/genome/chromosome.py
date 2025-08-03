@@ -145,4 +145,3 @@ class Chromosome[T](PythonWrapper[PyChromosome]):
         """
         genes = [CharGene(char_set=char_set) for _ in range(length)]
         return Chromosome(genes=genes)
-    

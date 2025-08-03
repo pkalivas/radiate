@@ -10,13 +10,15 @@ depending on your random seed & your machine.
 
 import numpy as np
 import radiate as rd
+from numba import float32, jit
 
 rd.random.seed(42)
 
 function_inputs = np.array([4.0, -2.0, 3.5, 5.0, -11.0, -4.7])
 desired_output = 44.0
 
-@rd.fitness(signature=rd.Float32Array)
+@jit(float32(float32[:]), nopython=True)
+# @rd.fitness(signature=rd.Float32Array)
 def fitness(solution: np.ndarray) -> float:
     output = np.sum(solution * function_inputs)
     return np.abs(output - desired_output)

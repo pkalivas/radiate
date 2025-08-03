@@ -50,11 +50,8 @@ def _lazy_import(module_name: str) -> tuple[ModuleType, bool]:
 
 
 if TYPE_CHECKING:
-    import numba
     import numpy as np
 
-    _NUMBA_AVAILABLE = True
     _NUMPY_AVAILABLE = True
 else:
-    numba, _NUMBA_AVAILABLE = _lazy_import("numba")
     np, _NUMPY_AVAILABLE = _lazy_import("numpy")

@@ -10,9 +10,6 @@ from .chromosome import Chromosome
 from .genotype import Genotype
 from .phenotype import Phenotype
 from .population import Population
-from .wrapper import (
-    PythonWrapper,
-)
 
 from radiate.radiate import PyGeneType as gt
 
@@ -49,6 +46,4 @@ __all__ = [
     "BitGene",
     "CharGene",
     "GENE_TYPE_MAPPING",
-    # Wrapper system exports
-    "PythonWrapper",
 ]

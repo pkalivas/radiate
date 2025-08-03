@@ -4,33 +4,6 @@ except ImportError:
     __version__ = "unknown"
     __version_tuple__ = (0, 0, 0)
 
-from .datatypes.classes import (
-    DataType,
-    NumericType,
-    IntegerType,
-    FloatType,
-    ArrayType,
-    MatrixType,
-    Int32,
-    Int64,
-    Float32,
-    Float64,
-    Bool,
-    Char,
-    Int32Array,
-    Int64Array,
-    Float32Array,
-    Float64Array,
-    BoolArray,
-    CharArray,
-    Int32Matrix,
-    Int64Matrix,
-    Float32Matrix,
-    Float64Matrix,
-    BoolMatrix,
-    CharMatrix,
-)
-
 from .engine import GeneticEngine
 from .codec import (
     FloatCodec,
@@ -43,12 +16,21 @@ from .codec import (
 )
 from .random import RandomProvider as random
 from .generation import Generation
-from .genome import  Chromosome, Genotype, Population, Phenotype, FloatGene, IntGene, BitGene, CharGene
+from .genome import (
+    Chromosome,
+    Genotype,
+    Population,
+    Phenotype,
+    FloatGene,
+    IntGene,
+    BitGene,
+    CharGene,
+)
 from .handlers import EventHandler, EventType
 from .gp import Op, Graph, Tree
 
 from .inputs.executor import Executor
-from .fitness import Regression, NoveltySearch, fitness
+from .fitness import Regression, NoveltySearch
 from .inputs.selector import (
     TournamentSelector,
     RouletteSelector,
@@ -95,14 +77,13 @@ from .inputs.limit import SecondsLimit, GenerationsLimit, ScoreLimit, Convergenc
 
 from .inputs.descriptor import PhenotypeDescriptor
 
-from .dependancies import _NUMBA_AVAILABLE, _NUMPY_AVAILABLE
+from .dependancies import _NUMPY_AVAILABLE
 
 __all__ = [
     # Version information
     "__version__",
     "__version_tuple__",
     # Dependencies
-    "_NUMBA_AVAILABLE",
     "_NUMPY_AVAILABLE",
     # Random
     "random",
@@ -181,31 +162,4 @@ __all__ = [
     "Generation",
     # Descriptors
     "PhenotypeDescriptor",
-    # Fitness
-    "fitness",
-    # Data types
-    "DataType",
-    "NumericType",
-    "IntegerType",
-    "FloatType",
-    "ArrayType",
-    "MatrixType",
-    "Int32",
-    "Int64",
-    "Float32",
-    "Float64",
-    "Bool",
-    "Char",
-    "Int32Array",
-    "Int64Array",
-    "Float32Array",
-    "Float64Array",
-    "BoolArray",
-    "CharArray",
-    "Int32Matrix",
-    "Int64Matrix",
-    "Float32Matrix",
-    "Float64Matrix",
-    "BoolMatrix",
-    "CharMatrix",
 ]
