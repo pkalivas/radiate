@@ -4,15 +4,16 @@ from radiate.radiate import PyPhenotype
 from .genotype import Genotype
 
 
-class Phenotype:
+class Phenotype[T]:
     """
     Represents a phenotype in a genome.
     """
 
     def __init__(
         self,
+        genotype: Genotype[T] | None = None,
+        *,
         phenotype: PyPhenotype | None = None,
-        genotype: Genotype | None = None,
         score: List[float] | float | None = None,
     ):
         """
@@ -40,7 +41,7 @@ class Phenotype:
         """
         return len(self.__inner.genotype.chromosomes)
 
-    def __eq__(self, other: Phenotype) -> bool:
+    def __eq__(self, other: Phenotype[T]) -> bool:
         """
         Checks if two Phenotype instances are equal.
         :param other: Another Phenotype instance.
@@ -64,7 +65,7 @@ class Phenotype:
         """
         return self.__inner.score
 
-    def genotype(self) -> Genotype:
+    def genotype(self) -> Genotype[T]:
         """
         Returns the genotype of the phenotype.
         :return: The genotype of the phenotype.

@@ -1,19 +1,21 @@
 from __future__ import annotations
 
 from typing import List
+from radiate.genome.gene import GeneType
 from radiate.radiate import PyGenotype
 from .chromosome import Chromosome
 
 
-class Genotype:
+class Genotype[T]:
     """
     Represents a genotype in a genome.
     """
 
     def __init__(
         self,
+        chromosomes: List[Chromosome[T]] | Chromosome[T] | None = None,
+        *,
         genotype: PyGenotype | None = None,
-        chromosomes: List[Chromosome] | Chromosome | None = None,
     ):
         """
         Initializes a Genotype instance.
@@ -57,7 +59,7 @@ class Genotype:
             return False
         return self.__inner == value.__inner
 
-    def __getitem__(self, index: int) -> Chromosome:
+    def __getitem__(self, index: int) -> Chromosome[T]:
         """
         Returns the chromosome at the specified index.
         :param index: Index of the chromosome to retrieve.
@@ -84,14 +86,14 @@ class Genotype:
         """
         return self.__inner
 
-    def gene_type(self) -> str:
+    def gene_type(self) -> GeneType:
         """
         Returns the type of the genes in the genotype.
         :return: The gene type as a string.
         """
-        return self.__inner.gene_type().__repr__()
+        return GeneType.from_str(self.__inner.gene_type())
 
-    def chromosomes(self) -> List[Chromosome]:
+    def chromosomes(self) -> List[Chromosome[T]]:
         """
         Returns the chromosomes of the genotype.
         :return: A list of Chromosome instances.

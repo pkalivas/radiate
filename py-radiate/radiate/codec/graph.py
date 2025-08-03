@@ -1,7 +1,7 @@
 from typing import List, Optional, Dict, TypeAlias, Union, Tuple
-from .codec import CodecBase
+from .base import CodecBase
 from ..gp import Op
-from radiate.genome import Genotype
+from radiate.genome import Genotype, GeneType
 from radiate.radiate import PyGraphCodec, PyGraph as Graph
 
 NodeValues: TypeAlias = Union[List[Op], Op]
@@ -11,12 +11,12 @@ class GraphCodec(CodecBase):
     def __init__(self, codec: PyGraphCodec):
         self.codec = codec
 
-    def encode(self) -> "Genotype":
-        return Genotype(self.codec.encode_py())
+    def encode(self) -> Genotype:
+        return Genotype(genotype=self.codec.encode_py())
 
-    def decode(self, genotype: Genotype) -> "Graph":
-        if genotype.gene_type() != "GraphNode":
-            raise ValueError("genotype must be of type 'graph'.")
+    def decode(self, genotype: Genotype) -> Graph:
+        if genotype.gene_type() != GeneType.GRAPH:
+            raise ValueError(f"genotype must be of type {genotype.gene_type()}.")
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
         return self.codec.decode_py(genotype.py_genotype())

@@ -17,11 +17,11 @@ class DescriptorBase(ComponentBase):
         super().__init__(component=component, args=args)
         if isinstance(allowed_genes, str):
             allowed_genes = {allowed_genes}
-        self.allowed_genes = allowed_genes if allowed_genes else GeneType.CORE
+        self.allowed_genes = allowed_genes if allowed_genes else GeneType.all()
 
     def __repr__(self):
         return f"{self.__class__.__name__}(component={self.component}, input_type={self.input_type}, allowed_genes={self.allowed_genes})"
-    
+
 
 class CustomDescriptor(DescriptorBase):
     """

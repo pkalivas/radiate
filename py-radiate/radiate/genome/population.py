@@ -1,17 +1,21 @@
 from __future__ import annotations
 
 from typing import Iterable, List
+from radiate.genome.gene import GeneType
 from radiate.genome.genotype import Genotype
 from radiate.radiate import PyPopulation
 from .phenotype import Phenotype
 
 
-class Population:
+class Population[T]:
     """
     Represents a population in a genetic algorithm.
     """
 
-    def __init__(self, individuals: Iterable[Phenotype | Genotype] | PyPopulation):
+    def __init__(
+        self,
+        individuals: Iterable[Phenotype[T] | Genotype[T]] | PyPopulation,
+    ):
         """
         Initializes a Population instance.
 
@@ -48,13 +52,20 @@ class Population:
         for phenotype in self.__inner.phenotypes:
             yield Phenotype(phenotype=phenotype)
 
-    def __getitem__(self, index: int) -> Phenotype:
+    def __getitem__(self, index: int) -> Phenotype[T]:
         """
         Returns the Phenotype at the specified index.
         :param index: The index of the Phenotype to retrieve.
         :return: The Phenotype at the specified index.
         """
         return Phenotype(phenotype=self.__inner.phenotypes[index])
+    
+    def gene_type(self) -> GeneType:
+        """
+        Returns the type of the genes in the population.
+        :return: The gene type as a string.
+        """
+        return GeneType.from_str(self.__inner.gene_type())
 
     def py_population(self) -> PyPopulation:
         """
@@ -63,7 +74,7 @@ class Population:
         """
         return self.__inner
 
-    def phenotypes(self) -> List[Phenotype]:
+    def phenotypes(self) -> List[Phenotype[T]]:
         """
         Returns the phenotypes in the population.
         :return: A list of Phenotype instances.

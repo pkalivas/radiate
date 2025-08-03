@@ -1,5 +1,5 @@
 from typing import List, Optional, Tuple, Callable
-from radiate.codec.codec import CodecBase
+from radiate.codec.base import CodecBase
 from radiate.genome.population import Population
 from radiate.fitness import FitnessBase
 from radiate.radiate import PyEngine, PyEngineBuilder
@@ -10,12 +10,13 @@ from .inputs.alterer import AlterBase
 from .inputs.distance import DistanceBase
 from .inputs.executor import Executor
 from .fitness import CallableFitness
+from .genome.gene import GeneType
 
 
 class EngineBuilder:
     def __init__(
         self,
-        gene_type: str,
+        gene_type: GeneType,
         codec: CodecBase,
         problem: FitnessBase,
     ):

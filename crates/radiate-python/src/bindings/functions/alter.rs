@@ -75,7 +75,7 @@ pub fn py_alter(
 
             Ok(PyPopulation::from(&population))
         }
-        PyGeneType::Graph => {
+        PyGeneType::GraphNode => {
             let alterer: Vec<Box<dyn Alter<GraphChromosome<Op<f32>>>>> = alterer.transform();
             let mut population: Population<GraphChromosome<Op<f32>>> = population.into();
 
@@ -85,7 +85,7 @@ pub fn py_alter(
 
             Ok(PyPopulation::from(&population))
         }
-        PyGeneType::Tree => {
+        PyGeneType::TreeNode => {
             let alterer: Vec<Box<dyn Alter<TreeChromosome<Op<f32>>>>> = alterer.transform();
             let mut population: Population<TreeChromosome<Op<f32>>> = population.into();
 

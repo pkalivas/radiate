@@ -96,8 +96,8 @@ class TestPhenotypes:
     def test_phenotype_score_method(self):
         """Test Phenotype score method."""
         chromosome = rd.Chromosome.int(length=3, value_range=(0, 10))
-        genotype = rd.Genotype(chromosomes=[chromosome])
-        phenotype = rd.Phenotype(genotype=genotype)
+        genotype = rd.Genotype([chromosome])
+        phenotype = rd.Phenotype(genotype)
 
         score = phenotype.score()
         assert isinstance(score, list)
@@ -107,7 +107,7 @@ class TestPhenotypes:
         """Test Phenotype genotype method."""
         chromosome = rd.Chromosome.int(length=3, value_range=(0, 10))
         genotype = rd.Genotype(chromosomes=[chromosome])
-        phenotype = rd.Phenotype(genotype=genotype)
+        phenotype = rd.Phenotype(genotype)
 
         # Test genotype method
         retrieved_genotype = phenotype.genotype()

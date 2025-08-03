@@ -5,7 +5,7 @@ except ImportError:
     __version_tuple__ = (0, 0, 0)
 
 from .datatypes.classes import (
-    DataTypeClass,
+    DataType,
     NumericType,
     IntegerType,
     FloatType,
@@ -16,15 +16,19 @@ from .datatypes.classes import (
     Float32,
     Float64,
     Bool,
+    Char,
     Int32Array,
     Int64Array,
     Float32Array,
     Float64Array,
     BoolArray,
+    CharArray,
     Int32Matrix,
     Int64Matrix,
     Float32Matrix,
     Float64Matrix,
+    BoolMatrix,
+    CharMatrix,
 )
 
 from .engine import GeneticEngine
@@ -39,7 +43,7 @@ from .codec import (
 )
 from .random import RandomProvider as random
 from .generation import Generation
-from .genome import Gene, Chromosome, Genotype, Population, Phenotype
+from .genome import  Chromosome, Genotype, Population, Phenotype, Gene
 from .handlers import EventHandler, EventType
 from .gp import Op
 
@@ -183,7 +187,7 @@ __all__ = [
     # Fitness
     "fitness",
     # Data types
-    "DataTypeClass",
+    "DataType",
     "NumericType",
     "IntegerType",
     "FloatType",
@@ -194,13 +198,17 @@ __all__ = [
     "Float32",
     "Float64",
     "Bool",
+    "Char",
     "Int32Array",
     "Int64Array",
     "Float32Array",
     "Float64Array",
     "BoolArray",
+    "CharArray",
     "Int32Matrix",
     "Int64Matrix",
     "Float32Matrix",
     "Float64Matrix",
+    "BoolMatrix",
+    "CharMatrix",
 ]

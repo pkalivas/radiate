@@ -1,4 +1,4 @@
-from .codec import CodecBase
+from .base import CodecBase
 from radiate.radiate import PyPermutationCodec
 from radiate.genome import Genotype
 from typing import List, Any
@@ -16,14 +16,14 @@ class PermutationCodec(CodecBase):
         self.alleles = alleles
         self.codec = PyPermutationCodec(alleles)
 
-    def encode(self) -> Genotype:
+    def encode(self) -> Genotype[Any]:
         """
         Encode the codec into a Genotype.
         :return: A Genotype instance.
         """
-        return Genotype(self.codec.encode_py())
+        return Genotype(genotype=self.codec.encode_py())
 
-    def decode(self, genotype: Genotype) -> Any:
+    def decode(self, genotype: Genotype[Any]) -> Any:
         """
         Decode a Genotype into its permutation representation.
         :param genotype: A Genotype instance to decode.
@@ -31,4 +31,4 @@ class PermutationCodec(CodecBase):
         """
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
-        return self.codec.decode_py(genotype.py_genotype())
+        return self.codec.decode_py(genotype=genotype.py_genotype())

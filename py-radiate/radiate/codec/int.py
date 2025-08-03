@@ -2,7 +2,7 @@ from typing import List, Optional, Tuple, Any
 
 from radiate.genome.chromosome import Chromosome
 from radiate.genome.gene import Gene
-from .codec import CodecBase
+from .base import CodecBase
 from radiate.genome import Genotype
 from radiate.radiate import PyIntCodec
 from radiate.radiate import PyGeneType
@@ -19,14 +19,14 @@ class IntCodec(CodecBase):
             raise TypeError("codec must be an instance of PyIntCodec.")
         self.codec = codec
 
-    def encode(self) -> Genotype:
+    def encode(self) -> Genotype[int]:
         """
         Encode the codec into a Genotype.
         :return: A Genotype instance.
         """
-        return Genotype(self.codec.encode_py())
+        return Genotype(genotype=self.codec.encode_py())
 
-    def decode(self, genotype: Genotype) -> Any:
+    def decode(self, genotype: Genotype[int]) -> Any:
         """
         Decode a Genotype into its integer representation.
         :param genotype: A Genotype instance to decode.
@@ -34,7 +34,7 @@ class IntCodec(CodecBase):
         """
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
-        return self.codec.decode_py(genotype.py_genotype())
+        return self.codec.decode_py(genotype=genotype.py_genotype())
 
     @staticmethod
     def from_genes(

@@ -31,6 +31,16 @@ class DataType(metaclass=DataTypeClass):
         return cls
 
     @classmethod
+    def is_scalar(cls) -> bool:
+        """Check whether the data type is a scalar type."""
+        return not issubclass(cls, ArrayType) and not issubclass(cls, MatrixType)
+
+    @classmethod
+    def is_nested(cls) -> bool:
+        """Check whether the data type is a wrapper type."""
+        return issubclass(cls, ArrayType) or issubclass(cls, MatrixType)
+
+    @classmethod
     def is_numeric(cls) -> bool:
         """Check whether the data type is a numeric type."""
         return issubclass(cls, NumericType)
@@ -46,6 +56,16 @@ class DataType(metaclass=DataTypeClass):
         return issubclass(cls, FloatType)
 
     @classmethod
+    def is_char(cls) -> bool:
+        """Check whether the data type is a character type."""
+        return issubclass(cls, Char)
+
+    @classmethod
+    def is_bool(cls) -> bool:
+        """Check whether the data type is a boolean type."""
+        return issubclass(cls, Bool)
+
+    @classmethod
     def is_array(cls) -> bool:
         """Check whether the data type is an array type."""
         return issubclass(cls, ArrayType)
@@ -56,7 +76,12 @@ class DataType(metaclass=DataTypeClass):
         return issubclass(cls, MatrixType)
 
 
-class NumericType(DataType):
+# Generic base types
+class ScalarType(DataType):
+    """Base class for scalar data types."""
+
+
+class NumericType(ScalarType):
     """Base class for numeric data types."""
 
 
@@ -97,6 +122,10 @@ class Bool(DataType):
     """Boolean type."""
 
 
+class Char(DataType):
+    """Character type."""
+
+
 # Array types (1D)
 class Int32Array(ArrayType, IntegerType):
     """32-bit signed integer array type."""
@@ -118,11 +147,11 @@ class BoolArray(ArrayType):
     """Boolean array type."""
 
 
+class CharArray(ArrayType):
+    """Character array type."""
+
+
 # Matrix types (2D)
-class BoolMatrix(MatrixType):
-    """Boolean matrix type."""
-
-
 class Int32Matrix(MatrixType, IntegerType):
     """32-bit signed integer matrix type."""
 
@@ -137,3 +166,13 @@ class Float32Matrix(MatrixType, FloatType):
 
 class Float64Matrix(MatrixType, FloatType):
     """64-bit floating point matrix type."""
+
+
+class BoolMatrix(MatrixType):
+    """Boolean matrix type."""
+
+
+class CharMatrix(MatrixType):
+    """Character matrix type."""
+
+

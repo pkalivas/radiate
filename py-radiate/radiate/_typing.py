@@ -1,8 +1,7 @@
-from typing import Any, Callable, List, TypeAlias, Union
+from typing import Any, Callable, List, Union
 
 from .handlers import EventHandler
 
-Subscriber: TypeAlias = Union[
+type Subscriber = Union[
     Callable[[Any], None], List[Callable[[Any], None]], EventHandler, List[EventHandler]
 ]
-

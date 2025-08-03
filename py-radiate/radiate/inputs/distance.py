@@ -20,9 +20,7 @@ class DistanceBase(ComponentBase):
         :param diversity: An instance of PyDiversity.
         """
         super().__init__(component=component, args=args)
-        if isinstance(allowed_genes, str):
-            allowed_genes = {allowed_genes}
-        self.allowed_genes = allowed_genes if allowed_genes else GeneType.ALL
+        self.allowed_genes = allowed_genes if allowed_genes else GeneType.all()
 
     def __str__(self):
         """

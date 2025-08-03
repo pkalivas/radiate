@@ -21,8 +21,8 @@ pub enum PyGeneType {
     Float,
     Bit,
     Char,
-    Graph,
-    Tree,
+    GraphNode,
+    TreeNode,
     Permutation,
 }
 
@@ -35,8 +35,8 @@ impl PyGeneType {
             PyGeneType::Float => FLOAT_GENE_TYPE.into(),
             PyGeneType::Bit => BIT_GENE_TYPE.into(),
             PyGeneType::Char => CHAR_GENE_TYPE.into(),
-            PyGeneType::Graph => GRAPH_GENE_TYPE.into(),
-            PyGeneType::Tree => TREE_GENE_TYPE.into(),
+            PyGeneType::GraphNode => GRAPH_GENE_TYPE.into(),
+            PyGeneType::TreeNode => TREE_GENE_TYPE.into(),
             PyGeneType::Permutation => PERMUTATION_GENE_TYPE.into(),
         }
     }
@@ -48,8 +48,8 @@ impl PyGeneType {
             PyGeneType::Float => FLOAT_GENE_TYPE.into(),
             PyGeneType::Bit => BIT_GENE_TYPE.into(),
             PyGeneType::Char => CHAR_GENE_TYPE.into(),
-            PyGeneType::Graph => GRAPH_GENE_TYPE.into(),
-            PyGeneType::Tree => TREE_GENE_TYPE.into(),
+            PyGeneType::GraphNode => GRAPH_GENE_TYPE.into(),
+            PyGeneType::TreeNode => TREE_GENE_TYPE.into(),
             PyGeneType::Permutation => PERMUTATION_GENE_TYPE.into(),
         }
     }
@@ -65,8 +65,8 @@ impl PyGeneType {
             PyGeneType::Float => 2,
             PyGeneType::Bit => 3,
             PyGeneType::Char => 4,
-            PyGeneType::Graph => 5,
-            PyGeneType::Tree => 6,
+            PyGeneType::GraphNode => 5,
+            PyGeneType::TreeNode => 6,
             PyGeneType::Permutation => 7,
         }
     }
@@ -327,8 +327,8 @@ impl PyGene {
             GeneInner::Int(_) => PyGeneType::Int,
             GeneInner::Bit(_) => PyGeneType::Bit,
             GeneInner::Char(_) => PyGeneType::Char,
-            GeneInner::GraphNode(_) => PyGeneType::Graph,
-            GeneInner::TreeNode(_) => PyGeneType::Tree,
+            GeneInner::GraphNode(_) => PyGeneType::GraphNode,
+            GeneInner::TreeNode(_) => PyGeneType::TreeNode,
             GeneInner::Permutation(_) => PyGeneType::Permutation,
         }
     }

@@ -5,15 +5,16 @@ from radiate.radiate import PyChromosome
 from .gene import Gene
 
 
-class Chromosome:
+class Chromosome[T]:
     """
     Represents a chromosome in a genome.
     """
 
     def __init__(
         self,
+        genes: List[Gene[T]] | Gene[T] | None = None,
+        *,
         chromosome: PyChromosome | None = None,
-        genes: List[Gene] | Gene | None = None,
     ):
         """
         Initializes a Chromosome instance.
@@ -58,7 +59,7 @@ class Chromosome:
             return False
         return all(a == b for a, b in zip(self.__inner.genes, value.__inner.genes))
 
-    def __getitem__(self, index: int) -> Gene:
+    def __getitem__(self, index: int) -> Gene[T]:
         """
         Returns the gene at the specified index.
         :param index: Index of the gene to retrieve.
@@ -69,7 +70,7 @@ class Chromosome:
         if index < 0 or index >= len(self.__inner.genes):
             raise IndexError("Index out of range")
         return Gene(self.__inner.genes[index])
-    
+
     def __iter__(self):
         """
         Returns an iterator over the genes in the chromosome.
@@ -85,7 +86,7 @@ class Chromosome:
         """
         return self.__inner
 
-    def genes(self) -> List[Gene]:
+    def genes(self) -> List[Gene[T]]:
         """
         Returns the genes of the chromosome.
         :return: A list of Gene instances.
@@ -95,9 +96,10 @@ class Chromosome:
     @staticmethod
     def float(
         length: int,
+        *,
         value_range: Tuple[float, float] | None = None,
         bound_range: Tuple[float, float] | None = None,
-    ) -> "Chromosome":
+    ) -> Chromosome[float]:
         """
         Create a float chromosome with specified length and optional parameters.
         :param length: Length of the chromosome.
@@ -120,9 +122,10 @@ class Chromosome:
     @staticmethod
     def int(
         length: int,
+        *,
         value_range: Tuple[int, int] | None = None,
         bound_range: Tuple[int, int] | None = None,
-    ) -> "Chromosome":
+    ) -> Chromosome[int]:
         """
         Create an integer chromosome with specified length and optional parameters.
         :param length: Length of the chromosome.
@@ -143,7 +146,7 @@ class Chromosome:
         return Chromosome(genes=genes)
 
     @staticmethod
-    def bit(length: int) -> "Chromosome":
+    def bit(length: int) -> Chromosome[bool]:
         """
         Create a bit chromosome with specified length and optional allele.
         :param length: Length of the chromosome.
@@ -159,7 +162,7 @@ class Chromosome:
         return Chromosome(genes=genes)
 
     @staticmethod
-    def char(length: int, char_set: set[str] | None = None) -> "Chromosome":
+    def char(length: int, char_set: set[str] | None = None) -> Chromosome[str]:
         """
         Create a character chromosome with specified length and optional character set.
         :param length: Length of the chromosome.

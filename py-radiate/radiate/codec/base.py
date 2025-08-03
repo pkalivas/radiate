@@ -1,21 +1,23 @@
-import abc
+from abc import ABC, abstractmethod
 
-from typing import Any
+# from typing import Any
 from radiate.genome import Genotype
 
 
-class CodecBase(abc.ABC):
-    def encode(self) -> Genotype:
+class CodecBase[T, D](ABC):
+    @abstractmethod
+    def encode(self) -> Genotype[T]:
         """
         Encodes the codec into a Genotype.
         :return: A Genotype instance.
         """
-        raise NotImplementedError("Subclasses must implement this method.")
+        pass
 
-    def decode(self, genotype: Genotype) -> Any:
+    @abstractmethod
+    def decode(self, genotype: Genotype) -> D:
         """
         Decodes a Genotype into its representation.
         :param genotype: A Genotype instance to decode.
         :return: The decoded representation of the Genotype.
         """
-        raise NotImplementedError("Subclasses must implement this method.")
+        pass
