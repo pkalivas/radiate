@@ -1,6 +1,6 @@
-use crate::{IntoPyObjectValue, ObjectValue, PyGenotype, object::Wrap};
+use crate::{PyGenotype, bindings::gp::PyTree, object::Wrap};
 use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
-use radiate::{Codec, Eval, Format, NodeType, Op, Tree, TreeChromosome, TreeCodec};
+use radiate::{Codec, NodeType, Op, Tree, TreeChromosome, TreeCodec};
 use std::collections::HashMap;
 
 const LEAF_NODE_TYPE: &str = "leaf";
@@ -66,61 +66,5 @@ impl PyTreeCodec {
             codec: TreeCodec::multi_root(min_depth, output_size, values)
                 .constraint(move |node| node.size() <= max_size),
         }
-    }
-}
-
-impl IntoPyObjectValue for Vec<Tree<Op<f32>>> {
-    fn into_py<'py>(self, py: Python<'py>) -> ObjectValue {
-        ObjectValue {
-            inner: PyTree { inner: self }.into_py_any(py).unwrap(),
-        }
-    }
-}
-
-#[pyclass]
-#[derive(Clone)]
-pub struct PyTree {
-    pub inner: Vec<Tree<Op<f32>>>,
-}
-
-#[pymethods]
-impl PyTree {
-    pub fn __repr__(&self) -> PyResult<String> {
-        let mut result = String::new();
-        result.push_str("Tree(\n");
-        for tree in self.inner.iter() {
-            result.push_str(tree.format().as_str());
-        }
-        result.push(')');
-        Ok(result)
-    }
-
-    pub fn __str__(&self) -> PyResult<String> {
-        let mut result = String::new();
-        result.push_str("Tree(\n");
-        for node in self.inner.iter() {
-            result.push_str(&format!("{:?}\n", node));
-        }
-        result.push(')');
-        Ok(result)
-    }
-
-    pub fn __len__(&self) -> PyResult<usize> {
-        Ok(self.inner.len())
-    }
-
-    pub fn __eq__(&self, other: &PyTree) -> PyResult<bool> {
-        Ok(self.inner == other.inner)
-    }
-
-    pub fn eval(&mut self, inputs: Vec<Vec<f32>>) -> PyResult<Vec<Vec<f32>>> {
-        Ok(inputs
-            .into_iter()
-            .map(|input| self.inner.eval(&input))
-            .collect::<Vec<Vec<f32>>>())
-    }
-
-    pub fn to_json(&self) -> String {
-        serde_json::to_string(&self.inner).unwrap()
     }
 }

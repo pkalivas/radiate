@@ -24,7 +24,7 @@ class TestGP:
         tree = codec.decode(codec.encode())
 
         assert tree is not None
-        assert hasattr(tree, "eval")
+        assert tree.eval([[1.0, 2.0, 3.0]]) is not None
 
     @pytest.mark.unit
     def test_gp_tree_eval_with_single_input(self):
@@ -37,7 +37,7 @@ class TestGP:
 
         tree = codec.decode(codec.encode())
 
-        result = tree.eval([1.0, 2.0, 3.0])
+        result = tree.eval([[1.0, 2.0]])
         assert isinstance(result, list)
         assert len(result) > 0
 
@@ -66,24 +66,19 @@ class TestGP:
 
         tree = codec.decode(codec.encode())
 
-        # Test with invalid input type
         with pytest.raises(
-            ValueError,
-            match="Inputs must be a list of floats or a list of list of floats",
+            TypeError,
         ):
             tree.eval("invalid")
 
-        # Test with mixed types
         with pytest.raises(
-            ValueError,
-            match="Inputs must be a list of floats or a list of list of floats",
+            TypeError,
         ):
-            tree.eval([1.0, "invalid", 3.0])
+            tree.eval([[1.0, "invalid", 3.0]])
 
     @pytest.mark.unit
     def test_gp_graph_creation(self):
         """Test GP Graph creation."""
-        # Create a simple graph
         codec = rd.GraphCodec.directed(
             shape=(2, 1),
             vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul(), rd.Op.div()],
@@ -94,7 +89,7 @@ class TestGP:
         graph = codec.decode(codec.encode())
 
         assert graph is not None
-        assert hasattr(graph, "eval")
+        assert graph.eval([[1.0, 2.0]]) is not None
 
     @pytest.mark.unit
     def test_gp_graph_eval(self):
@@ -110,7 +105,7 @@ class TestGP:
         graph = codec.decode(codec.encode())
 
         # Test evaluation
-        result = graph.eval([1.0, 2.0, 3.0])
+        result = graph.eval([[1.0, 2.0, 3.0]])
         assert isinstance(result, list)
         assert len(result) > 0
 

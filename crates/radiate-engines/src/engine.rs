@@ -117,11 +117,6 @@ where
         if let Some(best) = best {
             if let (Some(score), Some(current)) = (best.score(), &self.context.score) {
                 if self.context.objective.is_better(score, current) {
-                    let score_improvement = current.as_f32() - score.as_f32();
-                    self.context
-                        .metrics
-                        .upsert(metric_names::SCORE_IMPROVEMENT_RATE, score_improvement);
-
                     self.context.score = Some(score.clone());
                     self.context.best = self.context.problem.decode(best.genotype());
                     self.bus.emit(EngineEvent::improvement(&self.context));

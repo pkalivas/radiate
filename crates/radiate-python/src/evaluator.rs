@@ -1,5 +1,5 @@
 use crate::{
-    IntoPyObjectValue,
+    IntoPyAnyObject,
     problem::{PyProblem, call_fitness},
 };
 use pyo3::{IntoPyObjectExt, Py, PyAny, Python};
@@ -19,12 +19,12 @@ struct PyBatch {
 /// The [PyEvaluator] is an [Evaluator<C, T>] implementation that allows for free-threaded evaluation.
 /// We avoid Python's GIL by using the `allow_threads` method, bypassing the
 /// GIL for the duration of the evaluation.
-pub struct FreeThreadPyEvaluator<C: Chromosome, T: IntoPyObjectValue> {
+pub struct FreeThreadPyEvaluator<C: Chromosome, T> {
     executor: Executor,
     problem: PyProblem<C, T>,
 }
 
-impl<C: Chromosome, T: IntoPyObjectValue> FreeThreadPyEvaluator<C, T> {
+impl<C: Chromosome, T> FreeThreadPyEvaluator<C, T> {
     pub fn new(executor: Executor, problem: PyProblem<C, T>) -> Self {
         FreeThreadPyEvaluator { executor, problem }
     }
@@ -33,7 +33,7 @@ impl<C: Chromosome, T: IntoPyObjectValue> FreeThreadPyEvaluator<C, T> {
 impl<C, T> Evaluator<C, T> for FreeThreadPyEvaluator<C, T>
 where
     C: Chromosome + 'static,
-    T: IntoPyObjectValue + Send + Sync + 'static,
+    T: IntoPyAnyObject + Send + Sync + 'static,
 {
     fn eval(&self, ecosystem: &mut Ecosystem<C>, _: Arc<dyn Problem<C, T>>) -> usize {
         Python::with_gil(|outer| {

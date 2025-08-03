@@ -1,6 +1,13 @@
-from typing import Optional
-from radiate.radiate import PyEngineInput, PyEngineInputType, PyGeneType
-from ..genome.gene import GeneType
+from __future__ import annotations
+
+from typing import List, Optional, Set
+
+from radiate.radiate import PyEngineInput, PyEngineInputType
+
+from ..genome import (
+    GENE_TYPE_MAPPING,
+    GeneType,
+)
 
 input_type_mapping = {
     "Alterer": PyEngineInputType.Alterer,
@@ -16,16 +23,8 @@ input_type_mapping = {
     "FrontRange": PyEngineInputType.FrontRange,
     "Limit": PyEngineInputType.Limit,
     "Diversity": PyEngineInputType.Diversity,
-}
-
-gene_type_mapping = {
-    "float": PyGeneType.Float,
-    "int": PyGeneType.Int,
-    "bit": PyGeneType.Bit,
-    "char": PyGeneType.Char,
-    'permutation': PyGeneType.Permutation,
-    "graph": PyGeneType.Graph,
-    'tree': PyGeneType.Tree,
+    "Population": PyEngineInputType.Population,
+    "Subscriber": PyEngineInputType.Subscriber,
 }
 
 
@@ -43,6 +42,8 @@ class EngineInputType:
     FrontRange = "FrontRange"
     Limit = "Limit"
     Diversity = "Diversity"
+    Population = "Population"
+    Subscriber = "Subscriber"
 
 
 class EngineInput:
@@ -50,20 +51,23 @@ class EngineInput:
         self,
         input_type: EngineInputType,
         component: str,
-        allowed_genes: Optional[set[str]] = None,
+        allowed_genes: Optional[Set[GeneType] | List[GeneType] | GeneType] = None,
         **kwargs,
     ):
         if input_type not in input_type_mapping:
             raise ValueError(f"Invalid input type: {input_type}")
+
         if not allowed_genes:
-            allowed_genes = GeneType.ALL
+            allowed_genes = GeneType.all()
+        elif isinstance(allowed_genes, GeneType):
+            allowed_genes = {allowed_genes}
 
         self._py_input = PyEngineInput(
             input_type=input_type_mapping[input_type],
             component=component,
-            allowed_genes={
-                gene_type_mapping[gt] for gt in allowed_genes if gt in gene_type_mapping
-            },
+            allowed_genes=set(
+                [GENE_TYPE_MAPPING["rs"][gene_type] for gene_type in allowed_genes]
+            ),
             args={k: v for k, v in kwargs.items()},
         )
 

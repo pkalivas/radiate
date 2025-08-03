@@ -1,9 +1,6 @@
-use crate::{IntoPyObjectValue, ObjectValue, PyGenotype, object::Wrap};
+use crate::{PyGenotype, bindings::gp::PyGraph, object::Wrap};
 use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
-use radiate::{
-    Codec, EvalMut, Graph, GraphChromosome, GraphCodec, GraphEvaluator, NodeType, Op,
-    graphs::GraphEvalCache,
-};
+use radiate::{Codec, Genotype, GraphChromosome, GraphCodec, NodeType, Op};
 use std::collections::HashMap;
 
 const INPUT_NODE_TYPE: &str = "input";
@@ -28,7 +25,7 @@ impl PyGraphCodec {
         py: Python<'py>,
         genotype: &PyGenotype,
     ) -> PyResult<Bound<'py, PyAny>> {
-        let genotype: radiate::Genotype<GraphChromosome<Op<f32>>> = genotype.clone().into();
+        let genotype: Genotype<GraphChromosome<Op<f32>>> = genotype.clone().into();
         let obj_value = self.codec.decode(&genotype);
 
         PyGraph {
@@ -90,82 +87,5 @@ impl PyGraphCodec {
                 None => codec,
             },
         }
-    }
-}
-
-impl IntoPyObjectValue for Graph<Op<f32>> {
-    fn into_py<'py>(self, py: Python<'py>) -> ObjectValue {
-        ObjectValue {
-            inner: PyGraph {
-                inner: self,
-                eval_cache: None,
-            }
-            .into_py_any(py)
-            .unwrap(),
-        }
-    }
-}
-
-#[pyclass]
-#[derive(Clone)]
-pub struct PyGraph {
-    pub inner: Graph<Op<f32>>,
-    pub eval_cache: Option<GraphEvalCache<f32>>,
-}
-
-#[pymethods]
-impl PyGraph {
-    pub fn __repr__(&self) -> PyResult<String> {
-        let mut result = String::new();
-        result.push_str("Graph(\n");
-        for (i, node) in self.inner.iter().enumerate() {
-            result.push_str(&format!("  Node {}: {:?}\n", i, node));
-        }
-        result.push(')');
-        Ok(result)
-    }
-
-    pub fn __str__(&self) -> PyResult<String> {
-        let mut result = String::new();
-        result.push_str("Graph(\n");
-        for node in self.inner.iter() {
-            result.push_str(&format!("{:?}\n", node));
-        }
-        result.push(')');
-        Ok(result)
-    }
-
-    pub fn __len__(&self) -> PyResult<usize> {
-        Ok(self.inner.len())
-    }
-
-    pub fn __eq__(&self, other: &PyGraph) -> PyResult<bool> {
-        Ok(self.inner == other.inner)
-    }
-
-    pub fn reset(&mut self) {
-        self.eval_cache = None;
-    }
-
-    pub fn eval(&mut self, inputs: Vec<Vec<f32>>) -> PyResult<Vec<Vec<f32>>> {
-        let mut evaluator = if self.eval_cache.is_some() {
-            let cache = self.eval_cache.take().unwrap();
-            GraphEvaluator::from((&self.inner, cache))
-        } else {
-            GraphEvaluator::new(&self.inner)
-        };
-
-        let outputs = inputs
-            .into_iter()
-            .map(|input| evaluator.eval_mut(&input))
-            .collect::<Vec<Vec<f32>>>();
-
-        self.eval_cache = Some(evaluator.take_cache());
-
-        Ok(outputs)
-    }
-
-    pub fn to_json(&self) -> String {
-        serde_json::to_string(&self.inner).unwrap()
     }
 }

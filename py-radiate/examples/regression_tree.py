@@ -8,7 +8,7 @@ We have a simple polynomial function and we want to evolve a graph that approxim
 
 import radiate as rd
 
-rd.random.set_seed(500)
+rd.random.seed(500)
 
 
 def compute(x: float) -> float:
@@ -38,7 +38,6 @@ engine = rd.GeneticEngine(
     ],
 )
 
-if __name__ == "__main__":
-    result = engine.run([rd.ScoreLimit(0.01), rd.GenerationsLimit(1000)], log=True)
-    print(result)
-    print(result.value().__repr__())
+
+result = engine.run([rd.ScoreLimit(0.01), rd.GenerationsLimit(1000)], log=True)
+print(result)

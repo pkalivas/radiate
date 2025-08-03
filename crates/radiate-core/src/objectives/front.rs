@@ -1,4 +1,7 @@
-use crate::objectives::{Objective, pareto};
+use crate::{
+    Optimize,
+    objectives::{Objective, pareto},
+};
 use std::{cmp::Ordering, hash::Hash, ops::Range, sync::Arc};
 
 /// A Front<T> is a collection of `T`'s that are non-dominated with respect to each other.
@@ -102,5 +105,16 @@ where
             .take(self.range.end)
             .map(|(i, _)| Arc::clone(&self.values[*i]))
             .collect::<Vec<Arc<T>>>();
+    }
+}
+
+impl<T> Default for Front<T>
+where
+    T: AsRef<[f32]>,
+{
+    fn default() -> Self {
+        Front::new(0..0, Objective::Single(Optimize::Minimize), |_, _| {
+            std::cmp::Ordering::Equal
+        })
     }
 }

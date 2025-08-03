@@ -130,6 +130,9 @@ def install_test_dependencies():
         "bandit",
         "psutil",
         "numpy", 
+        "numba",
+        "jax",
+        "jaxlib",
     ]
     
     cmd = ["pip3", "install"] + test_deps

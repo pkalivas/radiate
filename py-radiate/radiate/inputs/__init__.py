@@ -19,7 +19,7 @@ from .alterer import (
     GraphCrossover,
     InversionMutator,
     PolynomialMutator,
-    EdgeRecombinationCrossover
+    EdgeRecombinationCrossover,
 )
 
 from .selector import (
@@ -35,11 +35,16 @@ from .selector import (
     SteadyStateSelector,
 )
 
-from .distance import HammingDistance, EuclideanDistance, NeatDistance, CosineDistance
+from .distance import (
+    HammingDistance,
+    EuclideanDistance,
+    NeatDistance,
+    CosineDistance,
+)
 
 from .limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
 
-from .problem import Regression, CallableProblem
+from .descriptor import PhenotypeDescriptor, CustomDescriptor
 
 __all__ = [
     "BlendCrossover",
@@ -80,6 +85,7 @@ __all__ = [
     "GenerationsLimit",
     "ScoreLimit",
     "Regression",
-    "CallableProblem",
     "ConvergenceLimit",
+    "PhenotypeDescriptor",
+    "CustomDescriptor",
 ]

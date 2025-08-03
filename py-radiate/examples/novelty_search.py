@@ -28,8 +28,8 @@ import math
 # np.random.seed(1220)  # For reproducibility
 
 
-rd.random.set_seed(552211)  # For reproducibility
-np.random.seed(1234)  # For reproducibility
+# rd.random.set_seed(552211)  # For reproducibility
+# np.random.seed(1234)  # For reproducibility
 
 class RobotBehavior:
     """Represents a robot's movement behavior in 2D space."""
@@ -164,11 +164,12 @@ def run_novelty_search_evolution(generations: int = 200) -> rd.Generation:
             descriptor=behavior_descriptor,
             distance=rd.CosineDistance(),
             k=15,                    # Number of nearest neighbors
-            threshold=0.5,           # Novelty threshold
+            threshold=0.6,           # Novelty threshold
             archive_size=1000,       # Maximum archive size
         ),
         survivor_selector=rd.TournamentSelector(3),
         offspring_selector=rd.BoltzmannSelector(4),
+        executor=rd.Executor.WorkerPool(),
         alters=[
             rd.BlendCrossover(),
             rd.GaussianMutator(0.1),
@@ -194,8 +195,9 @@ def analyze_diverse_behaviors(result: rd.Generation, num_behaviors: int = 6):
     
     for i in range(min(num_behaviors, len(sorted_population))):
         individual = sorted_population[i]
-        behavior = RobotBehavior([g.allele() for g in individual.genotype().chromosomes()[0].genes()])
-        
+        genes = [g.allele() for c in individual.genotype() for g in c]
+        behavior = RobotBehavior(genes)
+
         plt.subplot(2, 3, i+1)
         x_coords = [p[0] for p in behavior.trajectory]
         y_coords = [p[1] for p in behavior.trajectory]
@@ -215,7 +217,9 @@ def analyze_diverse_behaviors(result: rd.Generation, num_behaviors: int = 6):
     print(f"\n=== Top {num_behaviors} Diverse Behaviors ===")
     for i in range(min(num_behaviors, len(sorted_population))):
         individual = sorted_population[i]
-        behavior = RobotBehavior([g.allele() for g in individual.genotype().chromosomes()[0].genes()])
+        genes = [g.allele() for c in individual.genotype() for g in c]
+
+        behavior = RobotBehavior(genes)
         descriptor = behavior.get_behavior_descriptor()
 
         print(f"\nBehavior {i+1} (Novelty: {individual.score()[0]:.3f}):")
@@ -242,7 +246,9 @@ if __name__ == "__main__":
     top_individuals = sorted(population, key=lambda x: x.score(), reverse=True)[:3]
     
     for i, individual in enumerate(top_individuals):
-        behavior = RobotBehavior([g.allele() for g in individual.genotype().chromosomes()[0].genes()])
+        genes = [g.allele() for c in individual.genotype() for g in c]
+
+        behavior = RobotBehavior(genes)
         behavior.visualize_behavior(
             title=f"Top Behavior {i+1} (Novelty: {individual.score()[0]:.3f})"
         )

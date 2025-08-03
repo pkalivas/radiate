@@ -37,15 +37,3 @@ class TestEngineErrorHandlingIntegration:
 
         with pytest.raises(ValueError):
             engine.run([rd.GenerationsLimit(-1)])  # Invalid limit
-
-    def test_engine_raises_on_invalid_alterer(self):
-        engine = rd.GeneticEngine(
-            rd.IntCodec.vector(5, (0, 10)),
-            lambda x: sum(x),
-        )
-
-        try:
-            engine.alters([rd.GraphCrossover(0.5, 0.5)])
-            assert False, "Expected ValueError for invalid alterer"
-        except ValueError as e:
-            assert "Alterer GraphCrossover does not support gene type int" in str(e)

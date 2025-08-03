@@ -7,8 +7,11 @@ We have a simple polynomial function and we want to evolve a graph that approxim
 """
 
 import radiate as rd
+# import matplotlib.pyplot as plt  # type: ignore
+# import networkx as nx  # type: ignore
 
-rd.random.set_seed(518)
+
+rd.random.seed(518)
 
 
 def compute(x: float) -> float:
@@ -40,4 +43,5 @@ engine = rd.GeneticEngine(
     ],
 )
 
-print(engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)], log=True))
+result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)], log=True)
+print(result)

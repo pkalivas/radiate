@@ -10,7 +10,7 @@ import numpy as np
 from typing import List
 # import matplotlib.pyplot as plt # type: ignore
 
-rd.random.set_seed(42)
+rd.random.seed(42)
 torch.manual_seed(42)
 np.random.seed(42)
 

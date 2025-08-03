@@ -4,7 +4,7 @@ import radiate as rd
 import requests  # type: ignore
 from io import StringIO
 
-rd.random.set_seed(500)
+rd.random.seed(500)
 
 url = "https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data"
 response = requests.get(url, verify=False)

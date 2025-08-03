@@ -1,8 +1,8 @@
 use pyo3::prelude::*;
 use radiate_python::{
-    PyAnyCodec, PyBitCodec, PyCharCodec, PyChromosome, PyEngine, PyEngineBuilder, PyEngineInput,
-    PyEngineInputType, PyFloatCodec, PyGene, PyGeneType, PyGeneration, PyGenotype, PyGraph,
-    PyGraphCodec, PyIntCodec, PyPermutationCodec, PyPhenotype, PyPopulation, PyProblemBuilder,
+    PyBitCodec, PyCharCodec, PyChromosome, PyEngine, PyEngineBuilder, PyEngineInput,
+    PyEngineInputType, PyFitnessFn, PyFloatCodec, PyGene, PyGeneType, PyGeneration, PyGenotype,
+    PyGraph, PyGraphCodec, PyIntCodec, PyPermutationCodec, PyPhenotype, PyPopulation,
     PyRandomProvider, PySubscriber, PyTree, PyTreeCodec, py_alter, py_select,
 };
 
@@ -14,7 +14,7 @@ fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(py_alter, m)?)?;
 
     m.add_class::<PyRandomProvider>()?;
-    m.add_class::<PyProblemBuilder>()?;
+    m.add_class::<PyFitnessFn>()?;
 
     m.add_class::<PyGeneType>()?;
     m.add_class::<PyGene>()?;
@@ -30,7 +30,6 @@ fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyGraphCodec>()?;
     m.add_class::<PyTreeCodec>()?;
     m.add_class::<PyPermutationCodec>()?;
-    m.add_class::<PyAnyCodec>()?;
 
     m.add_class::<PySubscriber>()?;
 

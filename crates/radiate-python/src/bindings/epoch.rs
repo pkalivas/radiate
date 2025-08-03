@@ -2,11 +2,11 @@ use std::time::Duration;
 
 use super::PyGenotype;
 use crate::EpochHandle;
-use crate::ObjectValue;
+use crate::PyAnyObject;
 use crate::PyPopulation;
-use crate::bindings::codec::PyGraph;
-use crate::bindings::codec::PyTree;
+use crate::bindings::gp::{PyGraph, PyTree};
 use crate::object::Wrap;
+use numpy::PyArray1;
 use pyo3::IntoPyObject;
 use pyo3::types::PyAnyMethods;
 use pyo3::types::PyDict;
@@ -42,7 +42,7 @@ impl PyGeneration {
         }
     }
 
-    pub fn score<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+    pub fn score<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<f32>> {
         let inner_score = match &self.inner {
             EpochHandle::Int(epoch) => Some(epoch.score()),
             EpochHandle::Float(epoch) => Some(epoch.score()),
@@ -53,13 +53,11 @@ impl PyGeneration {
             EpochHandle::Permutation(epoch) => Some(epoch.score()),
         };
 
-        match inner_score {
-            Some(score) => Ok(PyList::new(py, score.iter().cloned().collect::<Vec<_>>())
-                .unwrap()
-                .into_any()),
+        let score = inner_score
+            .map(|s| s.iter().cloned().collect::<Vec<f32>>())
+            .unwrap_or_default();
 
-            None => Ok(py.None().into_bound(py)),
-        }
+        PyArray1::from_vec(py, score)
     }
 
     pub fn value<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
@@ -124,7 +122,7 @@ impl PyGeneration {
     }
 
     pub fn __repr__(&self, py: Python) -> PyResult<String> {
-        let score = self.score(py)?;
+        let score = self.score(py);
         let value = self.value(py)?;
         let metrics = self.metrics(py)?;
 
@@ -154,7 +152,7 @@ impl PyGeneration {
 
 fn get_value<'py, C>(
     py: Python<'py>,
-    generation: &Generation<C, ObjectValue>,
+    generation: &Generation<C, PyAnyObject>,
 ) -> PyResult<Bound<'py, PyAny>>
 where
     C: Chromosome + Clone,

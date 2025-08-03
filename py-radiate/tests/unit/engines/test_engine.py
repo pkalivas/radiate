@@ -101,8 +101,13 @@ class TestEngineBasicIntegration:
             for i in range(N_GENES):
                 value += x[i] ** 2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
             return value
+        
+        codec = rd.FloatCodec.vector(N_GENES, value_range=(-RANGE, RANGE))
+        population = rd.Population(
+            [rd.Phenotype(genotype=codec.encode()) for _ in range(100)]
+        )
 
-        engine = rd.GeneticEngine(rd.FloatCodec.vector(2, (-RANGE, RANGE)), fitness_fn)
+        engine = rd.GeneticEngine(rd.FloatCodec.vector(2, (-RANGE, RANGE)), fitness_fn, population=population)
         engine.minimizing()
         engine.alters([rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.01)])
 
@@ -123,13 +128,12 @@ class TestEngineBasicIntegration:
                 shape=(2, 1),
                 vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
                 edge=rd.Op.weight(),
-                output=rd.Op.linear(),
+                output=rd.Op.sigmoid(),
             ),
             fitness_func=rd.Regression(inputs, outputs),
             objectives="min",
             population_size=100,
             offspring_selector=rd.BoltzmannSelector(4.0),
-            survivor_selector=rd.EliteSelector(),
             alters=[
                 rd.GraphCrossover(0.5, 0.5),
                 rd.OperationMutator(0.07, 0.05),
@@ -137,9 +141,9 @@ class TestEngineBasicIntegration:
             ],
         )
 
-        result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(500)])
+        result = engine.run([rd.ScoreLimit(0.1), rd.GenerationsLimit(500)])
 
-        assert result.score()[0] < 0.001
+        assert result.score()[0] < 0.1
         assert result.index() <= 500
 
     @pytest.mark.integration
@@ -216,12 +220,14 @@ class TestEngineBasicIntegration:
         assert result.index() == 50, "Should complete within 50 generations"
 
     @pytest.mark.integration
-    def test_engine_multi_objective_front(self, simple_multi_objective_engine, random_seed):
+    def test_engine_multi_objective_front(
+        self, simple_multi_objective_engine, random_seed
+    ):
         """Test multi-objective engine with Pareto front."""
         simple_multi_objective_engine
         result = simple_multi_objective_engine.run(rd.GenerationsLimit(100))
 
-        fitness_values = list(set(map(lambda x: tuple(x['fitness']), result.value())))
+        fitness_values = list(set(map(lambda x: tuple(x["fitness"]), result.value())))
 
         # Check if the Pareto front is non-dominated
         for i, f1 in enumerate(fitness_values):

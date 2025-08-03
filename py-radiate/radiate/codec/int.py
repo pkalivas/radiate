@@ -1,32 +1,33 @@
-from typing import List, Optional, Tuple, Any
+from __future__ import annotations
+
+from typing import List, Optional, Tuple
 
 from radiate.genome.chromosome import Chromosome
-from radiate.genome.gene import Gene
-from .codec import CodecBase
+from radiate.genome.gene import Gene, GeneType
+
+from .base import CodecBase
 from radiate.genome import Genotype
 from radiate.radiate import PyIntCodec
-from radiate.radiate import PyGeneType
 
 
-class IntCodec(CodecBase):
+class IntCodec[D](CodecBase[int, D]):
     def __init__(self, codec: PyIntCodec):
         """
         Initialize the int codec with a PyIntCodec instance.
         :param codec: An instance of PyIntCodec.
         """
-        super().__init__()
         if not isinstance(codec, PyIntCodec):
             raise TypeError("codec must be an instance of PyIntCodec.")
         self.codec = codec
 
-    def encode(self) -> Genotype:
+    def encode(self) -> Genotype[int]:
         """
         Encode the codec into a Genotype.
         :return: A Genotype instance.
         """
-        return Genotype(self.codec.encode_py())
+        return Genotype.from_python(self.codec.encode_py())
 
-    def decode(self, genotype: Genotype) -> Any:
+    def decode(self, genotype: Genotype[int]) -> D:
         """
         Decode a Genotype into its integer representation.
         :param genotype: A Genotype instance to decode.
@@ -34,12 +35,12 @@ class IntCodec(CodecBase):
         """
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
-        return self.codec.decode_py(genotype.py_genotype())
+        return self.codec.decode_py(genotype=genotype.to_python())
 
     @staticmethod
     def from_genes(
-        genes: List[Gene] | Tuple[Gene, ...], use_numpy: bool = False
-    ) -> "IntCodec":
+        genes: List[Gene[int]] | Tuple[Gene[int], ...], use_numpy: bool = False
+    ) -> IntCodec[List[int]]:
         """
         Create a codec for a single chromosome with specified genes.
         Args:
@@ -49,7 +50,7 @@ class IntCodec(CodecBase):
         """
         if not isinstance(genes, (list, tuple)):
             raise TypeError("genes must be a list or tuple of Gene instances.")
-        if not all(g.gene_type() == PyGeneType.Int for g in genes):
+        if not all(g.gene_type() == GeneType.INT for g in genes):
             raise TypeError("All genes must be of type 'int'.")
 
         return IntCodec(
@@ -60,8 +61,8 @@ class IntCodec(CodecBase):
 
     @staticmethod
     def from_chromosomes(
-        chromosomes: List[Chromosome] | Tuple[Chromosome, ...],
-    ) -> "IntCodec":
+        chromosomes: List[Chromosome[int]] | Tuple[Chromosome[int], ...],
+    ) -> IntCodec[List[List[int]]]:
         """
         Create a codec for multiple chromosomes.
         Args:
@@ -74,7 +75,7 @@ class IntCodec(CodecBase):
                 "chromosomes must be a list or tuple of Chromosome instances."
             )
         if not all(
-            g.gene_type() == PyGeneType.Int for c in chromosomes for g in c.genes()
+            g.gene_type() == GeneType.INT for c in chromosomes for g in c.genes()
         ):
             raise TypeError("All chromosomes must be of type 'int'.")
 
@@ -90,7 +91,7 @@ class IntCodec(CodecBase):
         value_range: Optional[Tuple[int, int]] = None,
         bound_range: Optional[Tuple[int, int]] = None,
         use_numpy: bool = False,
-    ) -> "IntCodec":
+    ) -> IntCodec[List[List[int]]]:
         """
         Initialize the int codec with number of chromosomes and value bounds.
         :param chromosomes: Number of chromosomes with the number of genes in each chromosome.
@@ -131,7 +132,7 @@ class IntCodec(CodecBase):
         value_range: Optional[Tuple[int, int]] = None,
         bound_range: Optional[Tuple[int, int]] = None,
         use_numpy: bool = False,
-    ) -> "IntCodec":
+    ) -> IntCodec[List[int]]:
         """
         Create a vector codec with specified length.
         :param length: Length of the vector.
@@ -168,7 +169,7 @@ class IntCodec(CodecBase):
     def scalar(
         value_range: Optional[Tuple[int, int]] = None,
         bound_range: Optional[Tuple[int, int]] = None,
-    ) -> "IntCodec":
+    ) -> IntCodec[int]:
         """
         Create a scalar codec with specified value and bound ranges.
         :param value_range: Minimum and maximum value for the gene.

@@ -1,71 +1,68 @@
 from __future__ import annotations
 
 from typing import Iterable, List
-from radiate.genome.genotype import Genotype
+from radiate.genome.gene import GeneType
 from radiate.radiate import PyPopulation
 from .phenotype import Phenotype
+from .wrapper import PythonWrapper
 
 
-class Population:
+class Population[T](PythonWrapper[PyPopulation]):
     """
     Represents a population in a genetic algorithm.
     """
 
-    def __init__(self, individuals: Iterable[Phenotype | Genotype] | PyPopulation):
+    def __init__(self, individuals: Iterable[Phenotype[T]]):
         """
         Initializes a Population instance.
 
         :param individuals: A list of Phenotype instances.
         """
-        if isinstance(individuals, PyPopulation):
-            self.__inner = individuals
-        elif isinstance(individuals, Iterable):
-            if all(isinstance(ind, Genotype) for ind in individuals):
-                individuals = [Phenotype(genotype=ind) for ind in individuals]
-            if not all(isinstance(ind, Phenotype) for ind in individuals):
-                raise ValueError("All individuals must be instances of Phenotype")
-            self.__inner = PyPopulation([ind.py_phenotype() for ind in individuals])
-        else:
-            raise TypeError(
-                "individuals must be a list of Phenotype instances or a PyPopulation instance"
+        super().__init__()
+
+        if isinstance(individuals, Iterable):
+            self._pyobj = PyPopulation(
+                [phenotype.to_python() for phenotype in individuals]
             )
+        elif isinstance(individuals, List):
+            if all(isinstance(ind, Phenotype) for ind in individuals):
+                self._pyobj = PyPopulation(
+                    [phenotype.to_python() for phenotype in individuals]
+                )
+            else:
+                raise ValueError(
+                    "All individuals must be instances of Phenotype or Genotype"
+                )
 
     def __repr__(self):
-        return self.__inner.__repr__()
+        return self._pyobj.__repr__()
 
     def __len__(self):
         """
         Returns the number of individuals in the population.
         :return: Number of individuals in the population.
         """
-        return len(self.__inner)
+        return len(self._pyobj)
 
     def __iter__(self):
         """
         Returns an iterator over the individuals in the population.
         :return: An iterator over the individuals in the population.
         """
-        for phenotype in self.__inner.phenotypes:
-            yield Phenotype(phenotype=phenotype)
+        for phenotype in self._pyobj.phenotypes:
+            yield Phenotype.from_python(phenotype)
 
-    def __getitem__(self, index: int) -> Phenotype:
+    def __getitem__(self, index: int) -> Phenotype[T]:
         """
         Returns the Phenotype at the specified index.
         :param index: The index of the Phenotype to retrieve.
         :return: The Phenotype at the specified index.
         """
-        return Phenotype(phenotype=self.__inner.phenotypes[index])
+        return Phenotype.from_python(self._pyobj[index])
 
-    def py_population(self) -> PyPopulation:
+    def gene_type(self) -> GeneType:
         """
-        Returns the underlying PyPopulation instance.
-        :return: The PyPopulation instance associated with this Population.
+        Returns the type of the genes in the population.
+        :return: The gene type as a string.
         """
-        return self.__inner
-
-    def phenotypes(self) -> List[Phenotype]:
-        """
-        Returns the phenotypes in the population.
-        :return: A list of Phenotype instances.
-        """
-        return [Phenotype(phenotype=phenotype) for phenotype in self.__inner.phenotypes]
+        return GeneType.from_str(self._pyobj.gene_type())

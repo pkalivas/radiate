@@ -4,7 +4,6 @@ except ImportError:
     __version__ = "unknown"
     __version_tuple__ = (0, 0, 0)
 
-
 from .engine import GeneticEngine
 from .codec import (
     FloatCodec,
@@ -14,16 +13,24 @@ from .codec import (
     GraphCodec,
     TreeCodec,
     PermutationCodec,
-    AnyCodec
 )
 from .random import RandomProvider as random
 from .generation import Generation
-from .genome import Gene, Chromosome, Genotype, Population, Phenotype
+from .genome import (
+    Chromosome,
+    Genotype,
+    Population,
+    Phenotype,
+    FloatGene,
+    IntGene,
+    BitGene,
+    CharGene,
+)
 from .handlers import EventHandler, EventType
 from .gp import Op, Graph, Tree
 
 from .inputs.executor import Executor
-from .inputs.problem import Regression, NoveltySearch
+from .fitness import Regression, NoveltySearch
 from .inputs.selector import (
     TournamentSelector,
     RouletteSelector,
@@ -56,18 +63,28 @@ from .inputs.alterer import (
     GraphCrossover,
     TreeCrossover,
     HoistMutator,
-    InversionMutator
+    InversionMutator,
 )
 
-from .inputs.distance import HammingDistance, EuclideanDistance, NeatDistance, CosineDistance
+from .inputs.distance import (
+    HammingDistance,
+    EuclideanDistance,
+    NeatDistance,
+    CosineDistance,
+)
 
 from .inputs.limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
 
+from .inputs.descriptor import PhenotypeDescriptor
+
+from .dependancies import _NUMPY_AVAILABLE
 
 __all__ = [
     # Version information
     "__version__",
     "__version_tuple__",
+    # Dependencies
+    "_NUMPY_AVAILABLE",
     # Random
     "random",
     # Codecs
@@ -78,9 +95,11 @@ __all__ = [
     "BitCodec",
     "GraphCodec",
     "TreeCodec",
-    "AnyCodec",
     # Genome and Population
-    "Gene",
+    "FloatGene",
+    "IntGene",
+    "BitGene",
+    "CharGene",
     "Chromosome",
     "Genotype",
     "Population",
@@ -141,4 +160,6 @@ __all__ = [
     # Engine
     "GeneticEngine",
     "Generation",
+    # Descriptors
+    "PhenotypeDescriptor",
 ]

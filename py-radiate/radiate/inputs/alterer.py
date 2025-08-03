@@ -18,9 +18,7 @@ class AlterBase(ComponentBase):
         :param alterer: An instance of the PyAlterer class.
         """
         super().__init__(component=component, args=args)
-        if isinstance(allowed_genes, str):
-            allowed_genes = {allowed_genes}
-        self.allowed_genes = allowed_genes if allowed_genes else GeneType.CORE
+        self.allowed_genes = allowed_genes if allowed_genes else GeneType.core()
 
     def __repr__(self):
         return f"{self.__class__.__name__}(alterer={self.component}, args={self.args}, allowed_genes={self.allowed_genes})"
@@ -63,7 +61,7 @@ class BlendCrossover(AlterBase):
         super().__init__(
             component="BlendCrossover",
             args={"rate": rate, "alpha": alpha},
-            allowed_genes=GeneType.FLOAT,
+            allowed_genes=GeneType.FLOAT    
         )
 
 

@@ -1,7 +1,6 @@
 use crate::{EngineHandle, EpochHandle, InputTransform, PyEngineInput, PyGeneration};
 use pyo3::{PyResult, pyclass, pymethods};
-use radiate::{Chromosome, Engine, EngineIteratorExt, Generation, GeneticEngine, Limit, Objective};
-use tracing::info;
+use radiate::{Chromosome, Engine, EngineIteratorExt, Generation, GeneticEngine, Limit};
 
 #[pyclass(unsendable)]
 pub struct PyEngine {
@@ -78,31 +77,10 @@ where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
-    engine
-        .iter()
-        .inspect(move |epoch| {
-            if log {
-                match epoch.objective() {
-                    Objective::Single(_) => {
-                        info!(
-                            "Epoch {:<4} | Score: {:>8.4} | Time: {:>5.2?}",
-                            epoch.index(),
-                            epoch.score().as_f32(),
-                            epoch.time()
-                        );
-                    }
-                    Objective::Multi(_) => {
-                        info!(
-                            "Epoch {:<4} | Front Size: {:>4} | Time: {:>5.2?}",
-                            epoch.index(),
-                            epoch.front().map_or(0, |front| front.values().len()),
-                            epoch.time()
-                        );
-                    }
-                }
-            }
-        })
-        .limit(limits)
-        .last()
-        .expect("No generation found that meets the limits")
+    match log {
+        true => engine.iter().logging().limit(limits),
+        false => engine.iter().limit(limits),
+    }
+    .last()
+    .expect("No generation found that meets the limits")
 }

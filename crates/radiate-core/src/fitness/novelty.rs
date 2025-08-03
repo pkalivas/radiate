@@ -4,38 +4,42 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-pub trait Novelty<T>: Send + Sync {
-    type Descriptor: Send + Sync;
-
-    fn description(&self, phenotype: &T) -> Self::Descriptor;
-
-    fn distance(&self, a: &Self::Descriptor, b: &Self::Descriptor) -> f32;
+pub trait Novelty<T> {
+    fn description(&self, member: &T) -> Vec<f32>;
 }
 
 #[derive(Clone)]
-pub struct NoveltySearch<T, BD>
-where
-    BD: Novelty<T> + Send + Sync,
-{
-    pub behavior: Arc<BD>,
-    pub archive: Arc<RwLock<VecDeque<BD::Descriptor>>>,
+pub struct NoveltySearch<T> {
+    pub behavior: Arc<dyn Novelty<T> + Send + Sync>,
+    pub archive: Arc<RwLock<VecDeque<Vec<f32>>>>,
     pub k: usize,
     pub threshold: f32,
     pub max_archive_size: usize,
+    pub distance_fn: Arc<dyn Fn(&[f32], &[f32]) -> f32 + Send + Sync>,
     _phantom: std::marker::PhantomData<T>,
 }
 
-impl<T, BD> NoveltySearch<T, BD>
-where
-    BD: Novelty<T> + Send + Sync,
-{
-    pub fn new(behavior: BD, k: usize, threshold: f32) -> Self {
+impl<T> NoveltySearch<T> {
+    pub fn new<N>(behavior: N, k: usize, threshold: f32) -> Self
+    where
+        N: Novelty<T> + Send + Sync + 'static,
+    {
         NoveltySearch {
             behavior: Arc::new(behavior),
             archive: Arc::new(RwLock::new(VecDeque::new())),
             k,
             threshold,
             max_archive_size: 1000,
+            distance_fn: Arc::new(|a, b| {
+                if a.len() != b.len() {
+                    return f32::INFINITY;
+                }
+                a.iter()
+                    .zip(b.iter())
+                    .map(|(x, y)| (x - y).powi(2))
+                    .sum::<f32>()
+                    .sqrt()
+            }),
             _phantom: std::marker::PhantomData,
         }
     }
@@ -45,20 +49,50 @@ where
         self
     }
 
-    fn normalized_novelty_score(
-        &self,
-        descriptor: &BD::Descriptor,
-        archive: &VecDeque<BD::Descriptor>,
-    ) -> f32 {
+    pub fn cosine_distance(mut self) -> Self {
+        self.distance_fn = Arc::new(|a, b| {
+            let dot_product = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum::<f32>();
+            let norm_a = a.iter().map(|x| x * x).sum::<f32>().sqrt();
+            let norm_b = b.iter().map(|x| x * x).sum::<f32>().sqrt();
+            1.0 - (dot_product / (norm_a * norm_b))
+        });
+        self
+    }
+
+    pub fn euclidean_distance(mut self) -> Self {
+        self.distance_fn = Arc::new(|a, b| {
+            if a.len() != b.len() {
+                return f32::INFINITY;
+            }
+            a.iter()
+                .zip(b.iter())
+                .map(|(x, y)| (x - y).powi(2))
+                .sum::<f32>()
+                .sqrt()
+        });
+        self
+    }
+
+    pub fn hamming_distance(mut self) -> Self {
+        self.distance_fn = Arc::new(|a, b| {
+            if a.len() != b.len() {
+                return f32::INFINITY;
+            }
+            a.iter().zip(b.iter()).filter(|(x, y)| x != y).count() as f32
+        });
+        self
+    }
+
+    fn normalized_novelty_score(&self, descriptor: &Vec<f32>, archive: &VecDeque<Vec<f32>>) -> f32 {
         if archive.is_empty() {
-            return 1.0;
+            return 0.5;
         }
 
         let mut min_distance = f32::INFINITY;
         let mut max_distance = f32::NEG_INFINITY;
         let mut distances = archive
             .iter()
-            .map(|archived| self.behavior.distance(descriptor, archived))
+            .map(|archived| (self.distance_fn)(&descriptor, archived))
             .inspect(|&d| {
                 max_distance = max_distance.max(d);
                 min_distance = min_distance.min(d);
@@ -66,6 +100,14 @@ where
             .collect::<Vec<f32>>();
 
         if max_distance == min_distance {
+            if min_distance == 0.0 {
+                return 0.0;
+            }
+
+            if min_distance > 0.0 {
+                return 0.5;
+            }
+
             return 0.0;
         }
 
@@ -88,7 +130,7 @@ where
         if is_empty {
             let mut writer = self.archive.write().unwrap();
             writer.push_back(description);
-            return 1.0;
+            return 0.5;
         }
 
         let (novelty, should_add) = {
@@ -112,9 +154,8 @@ where
     }
 }
 
-impl<T, BD> FitnessFunction<T, f32> for NoveltySearch<T, BD>
+impl<T> FitnessFunction<T, f32> for NoveltySearch<T>
 where
-    BD: Novelty<T> + Send + Sync,
     T: Send + Sync,
 {
     fn evaluate(&self, individual: T) -> f32 {
@@ -122,9 +163,8 @@ where
     }
 }
 
-impl<T, BD> FitnessFunction<&T, f32> for NoveltySearch<T, BD>
+impl<T> FitnessFunction<&T, f32> for NoveltySearch<T>
 where
-    BD: Novelty<T> + Send + Sync,
     T: Send + Sync,
 {
     fn evaluate(&self, individual: &T) -> f32 {
@@ -138,7 +178,6 @@ where
     S: Into<Score>,
 {
     fitness_fn: Arc<F>,
-    distance_fn: Arc<dyn Fn(&[f32], &[f32]) -> f32 + Send + Sync>,
     _score_phantom: std::marker::PhantomData<S>,
     _phantom: std::marker::PhantomData<T>,
 }
@@ -155,28 +194,8 @@ where
     pub fn new(fitness_fn: F) -> Self {
         Self {
             fitness_fn: Arc::new(fitness_fn),
-            distance_fn: Arc::new(|a, b| {
-                if a.len() != b.len() {
-                    return f32::INFINITY;
-                }
-                a.iter()
-                    .zip(b.iter())
-                    .map(|(x, y)| (x - y).powi(2))
-                    .sum::<f32>()
-                    .sqrt()
-            }),
             _score_phantom: std::marker::PhantomData,
             _phantom: std::marker::PhantomData,
-        }
-    }
-
-    pub fn with_distance_fn(
-        self,
-        distance_fn: impl Fn(&[f32], &[f32]) -> f32 + Send + Sync + 'static,
-    ) -> Self {
-        Self {
-            distance_fn: Arc::new(distance_fn),
-            ..self
         }
     }
 }
@@ -187,14 +206,8 @@ where
     T: Send + Sync + 'static,
     S: Into<Score> + Send + Sync,
 {
-    type Descriptor = Vec<f32>;
-
-    fn description(&self, phenotype: &T) -> Self::Descriptor {
+    fn description(&self, phenotype: &T) -> Vec<f32> {
         let score = self.fitness_fn.evaluate(phenotype);
         score.into().into()
-    }
-
-    fn distance(&self, a: &Self::Descriptor, b: &Self::Descriptor) -> f32 {
-        (self.distance_fn)(a, b)
     }
 }

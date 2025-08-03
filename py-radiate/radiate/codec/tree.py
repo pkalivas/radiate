@@ -1,23 +1,27 @@
-from typing import List, Optional, Dict, TypeAlias, Union, Tuple
+from __future__ import annotations
 
-from .codec import CodecBase
+from typing import List, Optional, Dict, Tuple
+
+from radiate._typing import NodeValues
+from radiate.genome.gene import GeneType
+
+from .base import CodecBase
 from radiate.gp import Op, Tree
+
 from radiate.genome import Genotype
 from radiate.radiate import PyTreeCodec
 
-NodeValues: TypeAlias = Union[List[Op], Op, List[str], str]
 
+class TreeCodec(CodecBase[Op, Tree]):
+    def encode(self) -> Genotype[Op]:
+        return Genotype.from_python(self.codec.encode_py())
 
-class TreeCodec(CodecBase):
-    def encode(self) -> "Genotype":
-        return Genotype(self.codec.encode_py())
-
-    def decode(self, genotype: Genotype) -> "Tree":
+    def decode(self, genotype: Genotype) -> Tree:
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
-        if genotype.gene_type() != "TreeNode":
-            raise ValueError("genotype must be of type 'tree'.")
-        return Tree(self.codec.decode_py(genotype.py_genotype()))
+        if genotype.gene_type() != GeneType.TREE:
+            raise ValueError(f"genotype must be of type {genotype.gene_type()}.")
+        return Tree(self.codec.decode_py(genotype=genotype.to_python()))
 
     def __init__(
         self,
@@ -28,7 +32,7 @@ class TreeCodec(CodecBase):
         leaf: Optional[NodeValues] = None,
         root: Optional[NodeValues] = None,
         values: Optional[Dict[str, List[Op]] | List[Tuple[str, List[Op]]]] = None,
-    ) -> "TreeCodec":
+    ) -> TreeCodec[Op, Tree]:
         input_size, output_size = shape
 
         if input_size < 1 or output_size < 1:

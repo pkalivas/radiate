@@ -1,4 +1,4 @@
-use crate::ObjectValue;
+use crate::PyAnyObject;
 use pyo3::{Py, PyAny, pyclass, pymethods};
 use std::fmt::Debug;
 
@@ -6,7 +6,7 @@ use std::fmt::Debug;
 #[derive(Clone)]
 pub struct PySubscriber {
     event_name: Option<String>,
-    function: ObjectValue,
+    function: PyAnyObject,
 }
 
 #[pymethods]
@@ -16,7 +16,7 @@ impl PySubscriber {
     pub fn new(function: Py<PyAny>, event_name: Option<String>) -> Self {
         Self {
             event_name,
-            function: ObjectValue { inner: function },
+            function: PyAnyObject { inner: function },
         }
     }
 

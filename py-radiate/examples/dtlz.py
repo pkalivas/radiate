@@ -7,35 +7,40 @@ We define a fitness function based on the DTLZ1 problem and use a genetic algori
 evolve solutions. The results are visualized in a 3D scatter plot.
 """
 
-from typing import List
-import math
-import matplotlib.pyplot as plt  # type: ignore
+import matplotlib.pyplot as plt
 import radiate as rd
+import numpy as np
+from numba import jit, float32
 
-rd.random.set_seed(500)
+rd.random.seed(500)
 
 variables = 4
 objectives = 3
 k = variables - objectives + 1
 
 
-def dtlz_1(val: List[float]) -> List[float]:
-    g = 0.0
-    for i in range(variables - k, variables):
-        g += (val[i] - 0.5) ** 2 - math.cos(20.0 * math.pi * (val[i] - 0.5))
-    g = 100.0 * (k + g)
-    f = [0.0] * objectives
+@jit(float32[:](float32[:]), nopython=True)
+def dtlz_1(val: np.ndarray) -> np.ndarray:
+    g_vals = val[variables - k :] - 0.5
+    g = 100.0 * (k + np.sum(g_vals**2 - np.cos(20.0 * np.pi * g_vals)))
+
+    base = 0.5 * (1.0 + g)
+
+    f = np.full(objectives, base, dtype=np.float32)
+
     for i in range(objectives):
-        f[i] = 0.5 * (1.0 + g)
-        for j in range(objectives - 1 - i):
-            f[i] *= val[j]
-        if i != 0:
+        prod_end = objectives - 1 - i
+        if prod_end > 0:
+            f[i] *= np.prod(val[:prod_end])
+
+        if i > 0:
             f[i] *= 1.0 - val[objectives - 1 - i]
+
     return f
 
 
 engine = rd.GeneticEngine(
-    codec=rd.FloatCodec.vector(variables, (0.0, 1.0), (-2.0, 2.0)),
+    codec=rd.FloatCodec.vector(variables, (0.0, 1.0), (-2.0, 2.0), use_numpy=True),
     fitness_func=dtlz_1,
     offspring_selector=rd.TournamentSelector(k=8),
     survivor_selector=rd.NSGA2Selector(),
@@ -63,3 +68,18 @@ ax.set_xlim([0, 0.5])
 ax.set_ylim([0, 0.5])
 ax.set_zlim([0, 0.5])
 plt.show()
+
+
+# def dtlz_1_old(val: List[float]) -> List[float]:
+#     g = 0.0
+#     for i in range(variables - k, variables):
+#         g += (val[i] - 0.5) ** 2 - math.cos(20.0 * math.pi * (val[i] - 0.5))
+#     g = 100.0 * (k + g)
+#     f = [0.0] * objectives
+#     for i in range(objectives):
+#         f[i] = 0.5 * (1.0 + g)
+#         for j in range(objectives - 1 - i):
+#             f[i] *= val[j]
+#         if i != 0:
+#             f[i] *= 1.0 - val[objectives - 1 - i]
+#     return f

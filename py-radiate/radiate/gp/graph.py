@@ -1,54 +1,37 @@
-from typing import List, Sequence, TypeAlias, Union
-from radiate.gp.op import Op
+from __future__ import annotations
+from typing import List
 from radiate.radiate import PyGraph
-
-NodeValues: TypeAlias = Union[List[Op], Op, List[str], str]
 
 
 class Graph:
-    def __init__(
-        self,
-        py_graph: PyGraph = None,
-    ):
-        if py_graph is not None:
-            if not isinstance(py_graph, PyGraph):
-                raise TypeError("py_graph must be an instance of PyGraph.")
-        self.py_graph = py_graph
+    def __init__(self, pygraph: PyGraph):
+        if not isinstance(pygraph, PyGraph):
+            raise TypeError("pygraph must be an instance of PyGraph")
+        self.inner = pygraph
 
     def __repr__(self):
-        return self.py_graph.__repr__()
+        return self.inner.__repr__()
 
-    def __len__(self):
-        return len(self.py_graph)
+    def __str__(self):
+        return self.inner.__str__()
 
     def __eq__(self, other):
         if not isinstance(other, Graph):
             return False
-        return self.py_graph == other.py_graph
+        return self.inner == other.inner
+
+    def eval(self, inputs: List[List[float]] | List[float]) -> List[List[float]]:
+        return self.inner.eval(inputs)
 
     def reset(self):
-        """
-        Reset the graph's internal state, clearing any cached evaluations.
-        If you have a recurrent graph, this will reset it to its initial state.
-        """
-        self.py_graph.reset()
+        self.inner.reset()
 
-    def eval(
-        self, inputs: Union[Sequence[float], Sequence[Sequence[float]]]
-    ) -> List[float] | List[List[float]]:
-        """
-        Evaluate the graph with the given inputs.
-        :param inputs: A list of floats or a list of lists of floats.
-        :return: A list of floats or a list of lists of floats, depending on the input.
-        """
-        if isinstance(inputs, list):
-            if all(isinstance(i, float) for i in inputs):
-                inputs = [inputs]
-            if not all(isinstance(i, (float, list)) for i in inputs):
-                raise ValueError("Inputs must be a list of floats or a list of lists.")
+    def to_dot(self) -> str:
+        return self.inner.to_dot()
 
-        if not isinstance(inputs, list) or not all(isinstance(i, list) for i in inputs):
-            raise ValueError(
-                "Inputs must be a list of floats or a list of list of floats"
-            )
-        return self.py_graph.eval(inputs)
+    def to_json(self) -> str:
+        return self.inner.to_json()
+
+    @staticmethod
+    def from_json(json_str: str) -> Graph:
+        return Graph(PyGraph.from_json(json_str))
