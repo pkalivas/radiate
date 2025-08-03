@@ -11,8 +11,8 @@ from radiate.dependancies import (
 )
 
 
-def fitness(
-    func: Callable = None,
+def fitness[T](
+    func: Callable[[T], Any] = None,
     *,
     signature: Union[Tuple[DataType, DataType] | DataType | None] = None,
 ):

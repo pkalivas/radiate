@@ -85,7 +85,6 @@ class TestChromosomes:
 
         assert len(chromosome) == 5
         for gene in chromosome:
-            print(gene)
             assert isinstance(gene.allele(), float)
             assert gene.allele() >= -10.0 and gene.allele() <= 10.0
 

@@ -65,7 +65,7 @@ class Gene[T](ABC):
         instance = cls.__new__(cls)
         instance.__inner = py_gene
         return instance
-    
+
     @staticmethod
     def from_python(py_gene: PyGene) -> Gene[T]:
         """
@@ -88,7 +88,7 @@ class Gene[T](ABC):
                 return PermutationGene._from_py_gene(py_gene)
             case _:
                 raise ValueError(f"Unsupported gene type: {py_gene.gene_type()}")
-            
+
     def to_python(self) -> PyGene:
         """
         Converts the Gene instance to a PyGene instance.
@@ -219,6 +219,7 @@ class CharGene(Gene[str]):
             PyGene.char(allele=allele, char_set=list(char_set) if char_set else None)
         )
 
+
 class PermutationGene[T](Gene[T]):
     def __init__(self, allele: Optional[T] = None, index: int = 0) -> None:
         """
@@ -233,6 +234,7 @@ class PermutationGene[T](Gene[T]):
         """
         super().__init__(PyGene.permutation(allele=allele, index=index))
 
+
 class GraphNodeGene(Gene[Op]):
     def __init__(self, index: int, allele: Op, node_type: str) -> None:
         """
@@ -243,77 +245,3 @@ class GraphNodeGene(Gene[Op]):
         :return: A new Gene instance configured as a graph node gene.
         """
         super().__init__(PyGene.graph_gene(index, allele, node_type))
-
-    # @staticmethod
-    # def float(
-    #     allele: Optional[float] = None,
-    #     *,
-    #     value_range: Optional[Tuple[float, float]] = None,
-    #     bound_range: Optional[Tuple[float, float]] = None,
-    # ) -> Gene[float]:
-    #     """
-    #     Create a float gene with optional allele, value range, and bound range.
-    #     :param allele: Initial value of the gene.
-    #     :param value_range: Minimum and maximum value for the gene.
-    #     :param bound_range: Minimum and maximum bound for the gene.
-    #     :return: A new Gene instance configured as a float gene.
-
-    #     Example
-    #     --------
-    #     >>> rd.Gene.float(allele=5.0, value_range=(-10.0, 10.0), bound_range=(-20.0, 20.0))
-    #     Gene(5.0)
-    #     """
-    #     return Gene(PyGene.float(allele=allele, range=value_range, bounds=bound_range))
-
-    # @staticmethod
-    # def int(
-    #     allele: int | None = None,
-    #     *,
-    #     value_range: Tuple[int, int] | None = None,
-    #     bound_range: Tuple[int, int] | None = None,
-    # ) -> Gene[int]:
-    #     """
-    #     Create an integer gene with optional allele, value range, and bound range.
-    #     :param allele: Initial value of the gene.
-    #     :param value_range: Minimum and maximum value for the gene.
-    #     :param bound_range: Minimum and maximum bound for the gene.
-    #     :return: A new Gene instance configured as an integer gene.
-
-    #     Example
-    #     --------
-    #     >>> rd.Gene.int(allele=5, value_range=(0, 10), bound_range=(-5, 15))
-    #     Gene(5)
-    #     """
-    #     return Gene(PyGene.int(allele=allele, range=value_range, bounds=bound_range))
-
-    # @staticmethod
-    # def bit(allele: bool | None = None) -> Gene[bool]:
-    #     """
-    #     Create a bit gene with an optional allele.
-    #     :param allele: Initial value of the gene.
-    #     :return: A new Gene instance configured as a bit gene.
-
-    #     Example
-    #     --------
-    #     >>> rd.Gene.bit(allele=True)
-    #     Gene(True)
-    #     """
-    #     return Gene(PyGene.bit(allele=allele))
-
-    # @staticmethod
-    # def char(allele: str | None = None, char_set: set[str] | None = None) -> Gene[str]:
-    #     """
-    #     Create a character gene with optional allele, value range, and bound range.
-    #     :param allele: Initial value of the gene.
-    #     :param value_range: Minimum and maximum value for the gene.
-    #     :param bound_range: Minimum and maximum bound for the gene.
-    #     :return: A new Gene instance configured as a character gene.
-
-    #     Example
-    #     --------
-    #     >>> rd.Gene.char(allele='a', char_set={'a', 'b', 'c'})
-    #     Gene(a)
-    #     """
-    #     return Gene(
-    #         PyGene.char(allele=allele, char_set=list(char_set) if char_set else None)
-    #     )

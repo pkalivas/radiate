@@ -14,7 +14,7 @@ rd.random.seed(500)
 
 N_QUEENS = 32
 
-@rd.fitness(signature=rd.Int32Array)
+@rd.fitness()
 def fitness_fn(queens: np.ndarray) -> int:
     """Calculate the fitness score for the N-Queens problem."""
 
