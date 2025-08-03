@@ -11,9 +11,7 @@ print("=== Example 1: Using convenience decorators ===")
 
 codec = rd.FloatCodec(
     [
-        rd.FloatGene(value_range=(-10.0, 10.0)),
-        rd.FloatGene(value_range=(-5.0, 5.0)),
-        rd.FloatGene(value_range=(0.0, 1.0)),
+        0.0, 1.0, 2.0, 3.0, 4.0, 5.0
     ]
 )
 

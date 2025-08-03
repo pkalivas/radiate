@@ -1,3 +1,4 @@
+
 class DataTypeClass(type):
     """Metaclass for DataType classes."""
 
@@ -174,7 +175,3 @@ class BoolMatrix(MatrixType):
 
 class CharMatrix(MatrixType):
     """Character matrix type."""
-
-
-class NpArray(DataType):
-    """numpy data type wrapper."""

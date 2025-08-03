@@ -22,6 +22,7 @@ class Chromosome[T](PythonWrapper[PyChromosome]):
         :param length: The length of the chromosome.
         """
         super().__init__()
+
         if genes is None:
             return
 
@@ -60,7 +61,7 @@ class Chromosome[T](PythonWrapper[PyChromosome]):
 
     def gene_type(self) -> str:
         return self._pyobj.gene_type()
-    
+
     @staticmethod
     def float(
         length: int,
@@ -144,3 +145,4 @@ class Chromosome[T](PythonWrapper[PyChromosome]):
         """
         genes = [CharGene(char_set=char_set) for _ in range(length)]
         return Chromosome(genes=genes)
+    

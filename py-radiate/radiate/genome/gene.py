@@ -82,6 +82,10 @@ class Gene[T](ABC):
                 return BitGene._from_py_gene(py_gene)
             case GeneType.CHAR:
                 return CharGene._from_py_gene(py_gene)
+            case GeneType.GRAPH:
+                return GraphNodeGene._from_py_gene(py_gene)
+            case GeneType.PERMUTATION:
+                return PermutationGene._from_py_gene(py_gene)
             case _:
                 raise ValueError(f"Unsupported gene type: {py_gene.gene_type()}")
             

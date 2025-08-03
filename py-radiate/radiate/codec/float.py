@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
-from radiate.genome.gene import GeneType
+from radiate._typing import FloatEncoding
+from radiate.genome.gene import FloatGene, GeneType
 
 from .base import CodecBase
 
@@ -10,31 +11,14 @@ from radiate.genome import Genotype, Gene, Chromosome
 
 from radiate.radiate import PyFloatCodec
 
-type CodecInput = Union[
-    PyFloatCodec,
-    Gene[float],
-    List[Gene[float]],
-    Chromosome[float],
-    List[Chromosome[float]],
-]
-
 
 class FloatCodec[T](CodecBase[float, T]):
-    def __init__(self, encoding: CodecInput):
+    def __init__(self, encoding: FloatEncoding | PyFloatCodec):
         """
         Initialize the float codec with a PyFloatCodec instance.
         :param codec: An instance of PyFloatCodec.
         """
-        if isinstance(encoding, Gene):
-            encoding = [encoding]
-        if isinstance(encoding, list) and all(isinstance(g, Gene) for g in encoding):
-            encoding = PyFloatCodec.from_genes([g.to_python() for g in encoding])
-        elif isinstance(encoding, list) and all(isinstance(c, Chromosome) for c in encoding):
-            encoding = PyFloatCodec.from_chromosomes([c.to_python() for c in encoding])
-        elif not isinstance(encoding, PyFloatCodec):
-            raise TypeError("encoding must be a PyFloatCodec instance or a list of Gene/Chromosome instances.")
-
-        self.codec = encoding
+        self.codec = self._create_encoding(encoding)
 
     def encode(self) -> Genotype[float]:
         """
@@ -52,8 +36,8 @@ class FloatCodec[T](CodecBase[float, T]):
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
         return self.codec.decode_py(genotype=genotype.to_python())
-    
-    def _create_encoding(self, encoding: CodecInput) -> PyFloatCodec:
+
+    def _create_encoding(self, encoding: FloatEncoding) -> PyFloatCodec:
         """
         Create a PyFloatCodec from the provided encoding.
         :param encoding: The input encoding to create the codec from.
@@ -61,19 +45,19 @@ class FloatCodec[T](CodecBase[float, T]):
         """
         if isinstance(encoding, PyFloatCodec):
             return encoding
-        elif isinstance(encoding, Gene):
-            return PyFloatCodec.from_genes([encoding])
+        elif isinstance(encoding, FloatGene):
+            return PyFloatCodec.from_genes([encoding.to_python()])
         elif isinstance(encoding, Chromosome):
-            return PyFloatCodec.from_chromosomes([encoding])
+            return PyFloatCodec.from_chromosomes([encoding.to_python()])
         elif isinstance(encoding, list):
-            if all(isinstance(g, Gene) for g in encoding):
-                return PyFloatCodec.from_genes([g for g in encoding])
+            if all(isinstance(g, FloatGene) for g in encoding):
+                return PyFloatCodec.from_genes([g.to_python() for g in encoding])
             elif all(isinstance(c, Chromosome) for c in encoding):
-                return PyFloatCodec.from_chromosomes([c for c in encoding])
+                return PyFloatCodec.from_chromosomes([c.to_python() for c in encoding])
             else:
                 raise TypeError("Invalid list type for FloatCodec encoding.")
         else:
-            raise TypeError("Invalid encoding type for FloatCodec.")
+            raise TypeError(f"Invalid encoding type for FloatCodec - {type(encoding)}.")
 
     @staticmethod
     def from_genes(
@@ -88,7 +72,7 @@ class FloatCodec[T](CodecBase[float, T]):
         """
         if not isinstance(genes, (list, tuple)):
             raise TypeError("genes must be a list or tuple of Gene instances.")
-        
+
         return FloatCodec(
             PyFloatCodec.from_genes(
                 list(map(lambda g: g.to_python(), genes)), use_numpy=use_numpy
@@ -110,9 +94,7 @@ class FloatCodec[T](CodecBase[float, T]):
             raise TypeError(
                 "chromosomes must be a list or tuple of Chromosome instances."
             )
-        if not all(
-            g.gene_type() == GeneType.FLOAT for c in chromosomes for g in c
-        ):
+        if not all(g.gene_type() == GeneType.FLOAT for c in chromosomes for g in c):
             raise TypeError("All chromosomes must be of type 'float'.")
 
         return FloatCodec(
