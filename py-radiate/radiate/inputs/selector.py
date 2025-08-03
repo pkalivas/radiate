@@ -69,12 +69,12 @@ class SelectorBase(ComponentBase):
             else {"objective": objective},
         ).py_input()
 
-        return Population(
-            individuals=py_select(
+        return Population.from_python(
+            py_select(
                 gene_type=GENE_TYPE_MAPPING["rs"][gene_type],
                 selector=selector_input,
                 objective=objective_input,
-                population=population.py_population(),
+                population=population.to_python(),
                 count=count,
             )
         )

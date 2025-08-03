@@ -64,7 +64,7 @@ class EngineBuilder:
             EngineInput(
                 input_type=EngineInputType.Population,
                 component="population",
-                population=population.py_population(),
+                population=population.to_python(),
             )
         )
 

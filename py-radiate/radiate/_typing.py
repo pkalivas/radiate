@@ -1,7 +1,11 @@
 from typing import Any, Callable, List, Union
 
+from radiate.gp.op import Op
+
 from .handlers import EventHandler
 
 type Subscriber = Union[
     Callable[[Any], None], List[Callable[[Any], None]], EventHandler, List[EventHandler]
 ]
+
+type NodeValues = Union[List[Op], Op, List[str], str]

@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import List
 from radiate.genome.gene import GeneType
+from radiate.genome.wrapper import PythonWrapper
 from radiate.radiate import PyGenotype
 from .chromosome import Chromosome
 
 
-class Genotype[T]:
+class Genotype[T](PythonWrapper[PyGenotype]):
     """
     Represents a genotype in a genome.
     """
@@ -14,26 +15,21 @@ class Genotype[T]:
     def __init__(
         self,
         chromosomes: List[Chromosome[T]] | Chromosome[T] | None = None,
-        *,
-        genotype: PyGenotype | None = None,
     ):
         """
         Initializes a Genotype instance.
 
         :param chromosomes: A list of Chromosome instances.
         """
-        if genotype is not None:
-            if isinstance(genotype, PyGenotype):
-                self.__inner = genotype
-            else:
-                raise TypeError("genotype must be an instance of PyGenotype")
-        elif chromosomes is not None:
+        super().__init__()
+
+        if chromosomes is not None:
             if isinstance(chromosomes, Chromosome):
-                chromosomes = [chromosomes]
+                chromosomes = PyGenotype([chromosomes])
             if isinstance(chromosomes, list):
                 if all(isinstance(chromo, Chromosome) for chromo in chromosomes):
-                    self.__inner = PyGenotype(
-                        [chromo.py_chromosome() for chromo in chromosomes]
+                    self._pyobj = PyGenotype(
+                        [chromo.to_python() for chromo in chromosomes]
                     )
                 else:
                     raise ValueError("All chromosomes must be instances of Chromosome")
@@ -45,19 +41,14 @@ class Genotype[T]:
             raise ValueError("Either genotype or chromosomes must be provided")
 
     def __repr__(self):
-        return f"Genotype({self.__inner.chromosomes})"
+        return self._pyobj.__repr__()
 
     def __len__(self):
         """
         Returns the length of the genotype.
         :return: Length of the genotype.
         """
-        return len(self.__inner.chromosomes)
-
-    def __eq__(self, value):
-        if not isinstance(value, Genotype):
-            return False
-        return self.__inner == value.__inner
+        return len(self._pyobj)
 
     def __getitem__(self, index: int) -> Chromosome[T]:
         """
@@ -67,37 +58,21 @@ class Genotype[T]:
         """
         if not isinstance(index, int):
             raise TypeError("Index must be an integer")
-        if index < 0 or index >= len(self.__inner.chromosomes):
+        if index < 0 or index >= len(self._pyobj):
             raise IndexError("Index out of range")
-        return Chromosome(chromosome=self.__inner.chromosomes[index])
+        return self._pyobj[index]
 
     def __iter__(self):
         """
         Returns an iterator over the chromosomes in the genotype.
         :return: An iterator over the chromosomes in the genotype.
         """
-        for chromosome in self.__inner.chromosomes:
-            yield Chromosome(chromosome=chromosome)
-
-    def py_genotype(self) -> PyGenotype:
-        """
-        Returns the underlying PyGenotype instance.
-        :return: The PyGenotype instance associated with this Genotype.
-        """
-        return self.__inner
+        for chromosome in self._pyobj.chromosomes:
+            yield Chromosome.from_python(chromosome)
 
     def gene_type(self) -> GeneType:
         """
         Returns the type of the genes in the genotype.
         :return: The gene type as a string.
         """
-        return GeneType.from_str(self.__inner.gene_type())
-
-    def chromosomes(self) -> List[Chromosome[T]]:
-        """
-        Returns the chromosomes of the genotype.
-        :return: A list of Chromosome instances.
-        """
-        return [
-            Chromosome(chromosome=chromosome) for chromosome in self.__inner.chromosomes
-        ]
+        return GeneType.from_str(self._pyobj.gene_type())

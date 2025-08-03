@@ -22,7 +22,7 @@ class CharCodec[T](CodecBase[str, T]):
         Encode the codec into a Genotype.
         :return: A Genotype instance.
         """
-        return Genotype(genotype=self.codec.encode_py())
+        return Genotype.from_python(self.codec.encode_py())
 
     def decode(self, genotype: Genotype[str]) -> T:
         """
@@ -32,7 +32,7 @@ class CharCodec[T](CodecBase[str, T]):
         """
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
-        return self.codec.decode_py(genotype=genotype.py_genotype())
+        return self.codec.decode_py(genotype=genotype.to_python())
 
     @staticmethod
     def from_genes(genes: List[Gene[str]] | Tuple[Gene[str], ...]) -> CharCodec[str]:

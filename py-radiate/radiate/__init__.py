@@ -43,9 +43,9 @@ from .codec import (
 )
 from .random import RandomProvider as random
 from .generation import Generation
-from .genome import  Chromosome, Genotype, Population, Phenotype, Gene
+from .genome import  Chromosome, Genotype, Population, Phenotype, FloatGene, IntGene, BitGene, CharGene
 from .handlers import EventHandler, EventType
-from .gp import Op
+from .gp import Op, Graph, Tree
 
 from .inputs.executor import Executor
 from .fitness import Regression, NoveltySearch, fitness
@@ -97,12 +97,6 @@ from .inputs.descriptor import PhenotypeDescriptor
 
 from .dependancies import _NUMBA_AVAILABLE, _NUMPY_AVAILABLE
 
-from radiate.radiate import (
-    PyGraph as Graph,
-    PyTree as Tree,
-)
-
-
 __all__ = [
     # Version information
     "__version__",
@@ -121,7 +115,10 @@ __all__ = [
     "GraphCodec",
     "TreeCodec",
     # Genome and Population
-    "Gene",
+    "FloatGene",
+    "IntGene",
+    "BitGene",
+    "CharGene",
     "Chromosome",
     "Genotype",
     "Population",

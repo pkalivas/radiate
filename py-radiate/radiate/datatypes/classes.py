@@ -176,3 +176,5 @@ class CharMatrix(MatrixType):
     """Character matrix type."""
 
 
+class NpArray(DataType):
+    """numpy data type wrapper."""

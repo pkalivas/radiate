@@ -90,3 +90,12 @@ impl PyGraph {
         self.inner == other.inner
     }
 }
+
+impl From<Graph<Op<f32>>> for PyGraph {
+    fn from(graph: Graph<Op<f32>>) -> Self {
+        PyGraph {
+            inner: graph,
+            eval_cache: None,
+        }
+    }
+}

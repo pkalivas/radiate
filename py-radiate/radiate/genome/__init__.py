@@ -1,8 +1,18 @@
-from .gene import Gene, GeneType
+from .gene import (
+    Gene,
+    GeneType,
+    FloatGene,
+    IntGene,
+    BitGene,
+    CharGene,
+)
 from .chromosome import Chromosome
 from .genotype import Genotype
 from .phenotype import Phenotype
 from .population import Population
+from .wrapper import (
+    PythonWrapper,
+)
 
 from radiate.radiate import PyGeneType as gt
 
@@ -34,5 +44,11 @@ __all__ = [
     "Gene",
     "Phenotype",
     "Population",
+    "FloatGene",
+    "IntGene",
+    "BitGene",
+    "CharGene",
     "GENE_TYPE_MAPPING",
+    # Wrapper system exports
+    "PythonWrapper",
 ]
