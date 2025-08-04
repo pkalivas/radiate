@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import List
 
+from radiate.genome.gene import GeneType
 from radiate.genome.wrapper import PythonWrapper
 from .genotype import Genotype
 from radiate.radiate import PyPhenotype
@@ -42,12 +43,12 @@ class Phenotype[T](PythonWrapper[PyPhenotype]):
         """
         return len(self._pyobj.genotype)
 
-    def gene_type(self) -> str:
+    def gene_type(self) -> GeneType:
         """
         Returns the type of the genes in the phenotype.
         :return: The gene type as a string.
         """
-        return self._pyobj.genotype.gene_type()
+        return GeneType.from_str(self._pyobj.genotype.gene_type())
 
     def score(self) -> List[float]:
         """

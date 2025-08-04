@@ -14,9 +14,9 @@ class GeneType(Enum):
     INT = "IntGene"
     BIT = "BitGene"
     CHAR = "CharGene"
+    PERMUTATION = "PermutationGene"
     GRAPH = "GraphNode"
     TREE = "TreeNode"
-    PERMUTATION = "PermutationGene"
 
     @staticmethod
     def all() -> Set[GeneType]:
@@ -25,9 +25,9 @@ class GeneType(Enum):
             GeneType.INT,
             GeneType.BIT,
             GeneType.CHAR,
+            GeneType.PERMUTATION,
             GeneType.GRAPH,
             GeneType.TREE,
-            GeneType.PERMUTATION,
         }
 
     @staticmethod
@@ -82,10 +82,10 @@ class Gene[T](ABC):
                 return BitGene._from_py_gene(py_gene)
             case GeneType.CHAR:
                 return CharGene._from_py_gene(py_gene)
-            case GeneType.GRAPH:
-                return GraphNodeGene._from_py_gene(py_gene)
             case GeneType.PERMUTATION:
                 return PermutationGene._from_py_gene(py_gene)
+            case GeneType.GRAPH:
+                return GraphNodeGene._from_py_gene(py_gene)
             case _:
                 raise ValueError(f"Unsupported gene type: {py_gene.gene_type()}")
 
@@ -109,13 +109,6 @@ class Gene[T](ABC):
         :return: Hash of the Gene instance.
         """
         return hash(self.__inner)
-
-    def py_gene(self) -> PyGene:
-        """
-        Get the underlying PyGene instance.
-        :return: The PyGene instance associated with this Gene.
-        """
-        return self.__inner
 
     def gene_type(self) -> GeneType:
         """
@@ -146,6 +139,7 @@ class FloatGene(Gene[float]):
         :param value_range: Minimum and maximum value for the gene.
         :param bound_range: Minimum and maximum bound for the gene.
         :return: A new Gene instance configured as a float gene.
+
         Example
         --------
         >>> rd.Gene.float(allele=5.0, value_range=(-10.0, 10.0), bound_range=(-20.0, 20.0))
@@ -170,10 +164,11 @@ class IntGene(Gene[int]):
         :param value_range: Minimum and maximum value for the gene.
         :param bound_range: Minimum and maximum bound for the gene.
         :return: A new Gene instance configured as an integer gene.
+
         Example
         --------
-        >>> rd.Gene.int(allele=5, value_range=(0, 10), bound_range=(-5, 15))
-        Gene(5)
+        >>> rd.IntGene(allele=5, value_range=(0, 10), bound_range=(-5, 15))
+        IntGene<5>
         """
         super().__init__(
             PyGene.int(allele=allele, range=value_range, bounds=bound_range)
@@ -185,14 +180,11 @@ class BitGene(Gene[bool]):
         """
         Create a float gene with optional allele, value range, and bound range.
         :param allele: Initial value of the gene.
-        :param value_range: Minimum and maximum value for the gene.
-        :param bound_range: Minimum and maximum bound for the gene.
-        :return: A new Gene instance configured as a float gene.
 
         Example
         --------
-        >>> rd.float(allele=5.0, value_range=(-10.0, 10.0), bound_range=(-20.0, 20.0))
-        Gene(5.0)
+        >>> rd.BitGene(allele=True)
+        BitGene<1>
         """
         super().__init__(PyGene.bit(allele=allele))
 
@@ -206,14 +198,13 @@ class CharGene(Gene[str]):
         """
         Create a character gene with optional allele, value range, and bound range.
         :param allele: Initial value of the gene.
-        :param value_range: Minimum and maximum value for the gene.
-        :param bound_range: Minimum and maximum bound for the gene.
+        :param char_set: Set of allowed characters for the gene.
         :return: A new Gene instance configured as a character gene.
 
         Example
         --------
-        >>> rd.Gene.char(allele='a', char_set={'a', 'b', 'c'})
-        Gene(a)
+        >>> rd.CharGene(allele='a', char_set={'a', 'b', 'c'})
+        CharGene<a>
         """
         super().__init__(
             PyGene.char(allele=allele, char_set=list(char_set) if char_set else None)
@@ -229,8 +220,7 @@ class PermutationGene[T](Gene[T]):
 
         Example
         --------
-        >>> rd.Gene.permutation(allele=[1, 2, 3])
-        Gene([1, 2, 3])
+        >>> rd.PermutationGene(allele=[1, 2, 3])
         """
         super().__init__(PyGene.permutation(allele=allele, index=index))
 

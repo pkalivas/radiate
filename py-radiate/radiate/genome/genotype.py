@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from collections.abc import Iterable
 from radiate.genome.gene import GeneType
 from radiate.genome.wrapper import PythonWrapper
 from radiate.radiate import PyGenotype
@@ -14,7 +14,7 @@ class Genotype[T](PythonWrapper[PyGenotype]):
 
     def __init__(
         self,
-        chromosomes: List[Chromosome[T]] | Chromosome[T] | None = None,
+        chromosomes: Iterable[Chromosome[T]] | Chromosome[T] | None = None,
     ):
         """
         Initializes a Genotype instance.
@@ -24,16 +24,12 @@ class Genotype[T](PythonWrapper[PyGenotype]):
         super().__init__()
 
         if isinstance(chromosomes, Chromosome):
-            chromosomes = PyGenotype([chromosomes])
-        if isinstance(chromosomes, list):
+            self._pyobj = PyGenotype([chromosomes.to_python()])
+        elif isinstance(chromosomes, Iterable):
             if all(isinstance(chromo, Chromosome) for chromo in chromosomes):
-                self._pyobj = PyGenotype([chromo.to_python() for chromo in chromosomes])
+                self._pyobj = PyGenotype(list(map(lambda c: c.to_python(), chromosomes)))
             else:
                 raise ValueError("All chromosomes must be instances of Chromosome")
-        else:
-            raise TypeError(
-                "chromosomes must be a Chromosome instance or a list of Chromosome instances"
-            )
 
     def __repr__(self):
         return self._pyobj.__repr__()
