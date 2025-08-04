@@ -68,10 +68,10 @@ impl<T: Clone + Default> Graph<T> {
     ///
     /// let graph = Graph::recurrent(3, 3, values);
     ///
-    /// assert_eq!(graph.len(), 12);
+    /// assert_eq!(graph.len(), 9);
     /// ```
     ///
-    /// The graph will have 12 nodes, 3 input nodes, 3 hidden nodes with recurrent connections to themselves,
+    /// The graph will have 9 nodes, 3 input nodes, 3 hidden nodes with recurrent connections to themselves,
     /// and 3 output nodes. Such as:
     /// ``` text
     /// [0, 1, 2] -> [3, 4, 5]
@@ -248,7 +248,7 @@ mod tests {
     fn test_graph_builder_recurrent() {
         let graph = Graph::recurrent(3, 3, Op::sigmoid());
 
-        assert_eq!(graph.len(), 12);
+        assert_eq!(graph.len(), 9);
 
         for node in graph.iter() {
             if node.node_type() == NodeType::Input {
