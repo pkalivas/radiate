@@ -118,7 +118,6 @@ class TestEngineBasicIntegration:
         assert result.index() < 1000
 
     @pytest.mark.integration
-    @pytest.mark.slow
     def test_engine_graph_xor(self, xor_dataset, random_seed):
         """Test engine with graph codec for XOR problem."""
         inputs, outputs = xor_dataset
@@ -147,7 +146,6 @@ class TestEngineBasicIntegration:
         assert result.index() <= 500
 
     @pytest.mark.integration
-    @pytest.mark.slow
     def test_engine_tree_regression(self, simple_regression_dataset, random_seed):
         """Test engine with tree codec for regression."""
         inputs, outputs = simple_regression_dataset
