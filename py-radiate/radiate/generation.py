@@ -1,3 +1,6 @@
+
+from typing import List, Optional
+from radiate.genome.species import Species
 from .genome import Population
 from radiate.radiate import PyGeneration
 
@@ -48,6 +51,16 @@ class Generation:
         :return: The population of the generation.
         """
         return Population.from_python(self.inner.population())
+    
+    def species(self) -> Optional[List[Species]]:
+        """
+        Get the species of the generation.
+        :return: The species of the generation.
+        """
+        species = self.inner.species()
+        if species is None:
+            return None
+        return [Species.from_python(s) for s in species]
 
     def duration(self):
         """

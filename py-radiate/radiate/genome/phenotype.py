@@ -18,11 +18,6 @@ class Phenotype[T](PythonWrapper[PyPhenotype]):
         *,
         score: List[float] | float | None = None,
     ):
-        """
-        Initializes a Phenotype instance.
-
-        :param genotype: A Genotype instance.
-        """
         super().__init__()
 
         if isinstance(genotype, Genotype):

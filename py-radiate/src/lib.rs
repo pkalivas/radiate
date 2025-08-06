@@ -3,7 +3,7 @@ use radiate_python::{
     PyBitCodec, PyCharCodec, PyChromosome, PyEngine, PyEngineBuilder, PyEngineInput,
     PyEngineInputType, PyFitnessFn, PyFloatCodec, PyGene, PyGeneType, PyGeneration, PyGenotype,
     PyGraph, PyGraphCodec, PyIntCodec, PyPermutationCodec, PyPhenotype, PyPopulation,
-    PyRandomProvider, PySubscriber, PyTree, PyTreeCodec, py_alter, py_select,
+    PyRandomProvider, PySpecies, PySubscriber, PyTree, PyTreeCodec, py_alter, py_select,
 };
 
 #[pymodule]
@@ -22,6 +22,7 @@ fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyChromosome>()?;
     m.add_class::<PyGenotype>()?;
     m.add_class::<PyPopulation>()?;
+    m.add_class::<PySpecies>()?;
 
     m.add_class::<PyFloatCodec>()?;
     m.add_class::<PyIntCodec>()?;

@@ -13,11 +13,6 @@ class Population[T](PythonWrapper[PyPopulation]):
     """
 
     def __init__(self, individuals: Iterable[Phenotype[T]]):
-        """
-        Initializes a Population instance.
-
-        :param individuals: A list of Phenotype instances.
-        """
         super().__init__()
 
         if isinstance(individuals, Iterable):

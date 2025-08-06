@@ -10,6 +10,7 @@ from .chromosome import Chromosome
 from .genotype import Genotype
 from .phenotype import Phenotype
 from .population import Population
+from .species import Species
 
 from radiate.radiate import PyGeneType as gt
 
@@ -41,6 +42,7 @@ __all__ = [
     "Gene",
     "Phenotype",
     "Population",
+    "Species",
     "FloatGene",
     "IntGene",
     "BitGene",

@@ -16,11 +16,6 @@ class Genotype[T](PythonWrapper[PyGenotype]):
         self,
         chromosomes: Iterable[Chromosome[T]] | Chromosome[T] | None = None,
     ):
-        """
-        Initializes a Genotype instance.
-
-        :param chromosomes: A list of Chromosome instances.
-        """
         super().__init__()
 
         if isinstance(chromosomes, Chromosome):

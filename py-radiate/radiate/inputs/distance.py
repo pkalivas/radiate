@@ -91,7 +91,7 @@ class NeatDistance(DistanceBase):
                 "disjoint": disjoint,
                 "weight_diff": weight_diff,
             },
-            allowed_genes=GeneType.GRAPH,
+            allowed_genes={GeneType.GRAPH},
         )
 
 

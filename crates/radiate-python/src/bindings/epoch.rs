@@ -4,6 +4,7 @@ use super::PyGenotype;
 use crate::EpochHandle;
 use crate::PyAnyObject;
 use crate::PyPopulation;
+use crate::PySpecies;
 use crate::bindings::gp::{PyGraph, PyTree};
 use crate::object::Wrap;
 use numpy::PyArray1;
@@ -95,6 +96,32 @@ impl PyGeneration {
             .unwrap()
             .into_py_any(py)
             .map(|b| b.into_bound(py))
+    }
+
+    pub fn species(&self) -> Option<Vec<PySpecies>> {
+        match &self.inner {
+            EpochHandle::Int(epoch) => epoch
+                .species()
+                .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
+            EpochHandle::Float(epoch) => epoch
+                .species()
+                .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
+            EpochHandle::Char(epoch) => epoch
+                .species()
+                .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
+            EpochHandle::Bit(epoch) => epoch
+                .species()
+                .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
+            EpochHandle::Permutation(epoch) => epoch
+                .species()
+                .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
+            EpochHandle::Graph(epoch) => epoch
+                .species()
+                .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
+            EpochHandle::Tree(epoch) => epoch
+                .species()
+                .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
+        }
     }
 
     pub fn population(&self) -> PyPopulation {

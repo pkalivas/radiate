@@ -15,12 +15,6 @@ class Chromosome[T](PythonWrapper[PyChromosome]):
         self,
         genes: Iterable[Gene[T]] | Gene[T] | None = None,
     ):
-        """
-        Initializes a Chromosome instance.
-
-        :param gene_type: The type of the genes in the chromosome.
-        :param length: The length of the chromosome.
-        """
         super().__init__()
 
         if genes is None:

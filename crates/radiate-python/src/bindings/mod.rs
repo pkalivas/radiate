@@ -21,7 +21,9 @@ pub use engine::PyEngine;
 pub use epoch::PyGeneration;
 pub use fitness::{PyFitnessFn, PyFitnessInner, PyNoveltySearch};
 pub use functions::*;
-pub use gene::{PyChromosome, PyGene, PyGeneType, PyGenotype, PyPhenotype, PyPopulation};
+pub use gene::{
+    PyChromosome, PyGene, PyGeneType, PyGenotype, PyPhenotype, PyPopulation, PySpecies,
+};
 pub use gp::{PyGraph, PyTree};
 pub use inputs::{PyEngineInput, PyEngineInputType};
 
