@@ -18,7 +18,6 @@ function_inputs = np.array([4.0, -2.0, 3.5, 5.0, -11.0, -4.7])
 desired_output = 44.0
 
 @jit(float32(float32[:]), nopython=True)
-# @rd.fitness(signature=rd.Float32Array)
 def fitness(solution: np.ndarray) -> float:
     output = np.sum(solution * function_inputs)
     return np.abs(output - desired_output)

@@ -4,6 +4,7 @@ use crate::{Objective, Score, objectives::Scored, tracker::Tracker};
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Debug, Formatter},
+    ops::Deref,
     sync::atomic::{AtomicU64, Ordering},
 };
 
@@ -16,6 +17,14 @@ impl SpeciesId {
     pub fn new() -> Self {
         static SPECIES_ID: AtomicU64 = AtomicU64::new(0);
         SpeciesId(SPECIES_ID.fetch_add(1, Ordering::SeqCst))
+    }
+}
+
+impl Deref for SpeciesId {
+    type Target = u64;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -56,6 +65,10 @@ impl<C: Chromosome> Species<C> {
         self.population.push(individual);
     }
 
+    pub fn population(&self) -> &Population<C> {
+        &self.population
+    }
+
     pub fn stagnation(&self) -> usize {
         self.tracker.stagnation()
     }
@@ -74,6 +87,10 @@ impl<C: Chromosome> Species<C> {
 
     pub fn age(&self, current: usize) -> usize {
         current - self.generation
+    }
+
+    pub fn generation(&self) -> usize {
+        self.generation
     }
 
     pub fn update_score(&mut self, score: Score, objective: &Objective)

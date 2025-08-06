@@ -16,10 +16,10 @@ class TestEngineLimits:
     @pytest.mark.unit
     def test_time_limit(self, simple_float_engine):
         """Test time limit functionality."""
-        limit = rd.SecondsLimit(5)
+        limit = rd.SecondsLimit(3)
         result = simple_float_engine.run(limit)
 
-        assert abs(result.duration().total_seconds() - 5) < 0.01
+        assert abs(result.duration().total_seconds() - 3) < 0.01
 
     @pytest.mark.unit
     def test_score_limit(self, simple_float_engine):

@@ -7,6 +7,7 @@ These tests focus on covering the missing lines identified in the coverage repor
 import pytest
 import radiate as rd
 from radiate.genome import Population, Phenotype, Genotype
+from radiate.genome.gene import GeneType
 
 
 class TestPopulation:
@@ -27,8 +28,8 @@ class TestPopulation:
     def test_population_iteration(self):
         """Test Population iteration."""
         chromosome = rd.Chromosome.int(length=3, value_range=(0, 10))
-        genotype = rd.Genotype(chromosomes=[chromosome])
-        phenotype = rd.Phenotype(genotype=genotype)
+        genotype = rd.Genotype(chromosome)
+        phenotype = rd.Phenotype(genotype)
 
         population = Population([phenotype])
         individuals = list(population)
@@ -50,6 +51,44 @@ class TestPopulation:
         assert len(phenotypes) == 1
         assert isinstance(phenotypes[0], Phenotype)
         assert phenotypes[0] == phenotype
+
+    @pytest.mark.unit
+    def test_population_all_items_have_correct_gene_type(self):
+        """Test that all items in the population have the correct gene type."""
+        num_genes = 3
+        num_chromosomes = 5
+        num_phenotypes = 10
+
+        phenotypes = [
+            rd.Phenotype(
+                rd.Genotype(
+                    [
+                        rd.Chromosome.int(num_genes, value_range=(0, 10))
+                        for _ in range(num_chromosomes)
+                    ]
+                )
+            )
+            for _ in range(num_phenotypes)
+        ]
+
+        population = Population(phenotypes)
+
+        assert len(population) == num_phenotypes
+        assert isinstance(population, Population)
+        assert population.gene_type() == GeneType.INT
+
+        for individual in population:
+            assert individual.gene_type() == GeneType.INT
+            assert isinstance(individual, Phenotype)
+            assert isinstance(individual.genotype(), Genotype)
+            assert individual.genotype().gene_type() == GeneType.INT
+
+            for chromosome in individual.genotype():
+                assert isinstance(chromosome, rd.Chromosome)
+                assert chromosome.gene_type() == GeneType.INT
+                for gene in chromosome:
+                    assert isinstance(gene, rd.IntGene)
+                    assert gene.allele() >= 0 and gene.allele() <= 10
 
 
 class TestPhenotypes:

@@ -68,18 +68,3 @@ ax.set_xlim([0, 0.5])
 ax.set_ylim([0, 0.5])
 ax.set_zlim([0, 0.5])
 plt.show()
-
-
-# def dtlz_1_old(val: List[float]) -> List[float]:
-#     g = 0.0
-#     for i in range(variables - k, variables):
-#         g += (val[i] - 0.5) ** 2 - math.cos(20.0 * math.pi * (val[i] - 0.5))
-#     g = 100.0 * (k + g)
-#     f = [0.0] * objectives
-#     for i in range(objectives):
-#         f[i] = 0.5 * (1.0 + g)
-#         for j in range(objectives - 1 - i):
-#             f[i] *= val[j]
-#         if i != 0:
-#             f[i] *= 1.0 - val[objectives - 1 - i]
-#     return f

@@ -11,9 +11,10 @@ import numpy as np
 import radiate as rd
 from numba import jit, int32
 
-rd.random.seed(500) 
+rd.random.seed(500)
 
 N_QUEENS = 32
+
 
 @jit(int32(int32[:]), nopython=True)
 def fitness_fn(queens: np.ndarray) -> int:

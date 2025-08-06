@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import Tuple, List
+from typing import Iterable, Tuple
 from radiate.genome.wrapper import PythonWrapper
 from radiate.radiate import PyChromosome
-from .gene import BitGene, CharGene, FloatGene, Gene, IntGene
+from .gene import BitGene, CharGene, FloatGene, Gene, GeneType, IntGene
 
 
 class Chromosome[T](PythonWrapper[PyChromosome]):
@@ -13,14 +13,8 @@ class Chromosome[T](PythonWrapper[PyChromosome]):
 
     def __init__(
         self,
-        genes: List[Gene[T]] | Gene[T] | None = None,
+        genes: Iterable[Gene[T]] | Gene[T] | None = None,
     ):
-        """
-        Initializes a Chromosome instance.
-
-        :param gene_type: The type of the genes in the chromosome.
-        :param length: The length of the chromosome.
-        """
         super().__init__()
 
         if genes is None:
@@ -28,8 +22,8 @@ class Chromosome[T](PythonWrapper[PyChromosome]):
 
         if isinstance(genes, Gene):
             self._pyobj = PyChromosome([genes.to_python()])
-        if isinstance(genes, list):
-            self._pyobj = PyChromosome([gene.to_python() for gene in genes])
+        if isinstance(genes, Iterable):
+            self._pyobj = PyChromosome(list(map(lambda g: g.to_python(), genes)))
         else:
             raise TypeError("genes must be a Gene instance or a list of Gene instances")
 
@@ -59,8 +53,8 @@ class Chromosome[T](PythonWrapper[PyChromosome]):
         for gene in self._pyobj.genes:
             yield Gene.from_python(gene)
 
-    def gene_type(self) -> str:
-        return self._pyobj.gene_type()
+    def gene_type(self) -> GeneType:
+        return GeneType.from_str(self._pyobj.gene_type())
 
     @staticmethod
     def float(

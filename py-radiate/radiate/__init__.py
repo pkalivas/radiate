@@ -20,6 +20,7 @@ from .genome import (
     Chromosome,
     Genotype,
     Population,
+    Species,
     Phenotype,
     FloatGene,
     IntGene,
@@ -102,8 +103,9 @@ __all__ = [
     "CharGene",
     "Chromosome",
     "Genotype",
-    "Population",
     "Phenotype",
+    "Population",
+    "Species",
     # GP
     "Tree",
     "Graph",

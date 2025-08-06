@@ -101,13 +101,15 @@ class TestEngineBasicIntegration:
             for i in range(N_GENES):
                 value += x[i] ** 2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
             return value
-        
+
         codec = rd.FloatCodec.vector(N_GENES, value_range=(-RANGE, RANGE))
         population = rd.Population(
             [rd.Phenotype(genotype=codec.encode()) for _ in range(100)]
         )
 
-        engine = rd.GeneticEngine(rd.FloatCodec.vector(2, (-RANGE, RANGE)), fitness_fn, population=population)
+        engine = rd.GeneticEngine(
+            rd.FloatCodec.vector(2, (-RANGE, RANGE)), fitness_fn, population=population
+        )
         engine.minimizing()
         engine.alters([rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.01)])
 
@@ -118,7 +120,6 @@ class TestEngineBasicIntegration:
         assert result.index() < 1000
 
     @pytest.mark.integration
-    @pytest.mark.slow
     def test_engine_graph_xor(self, xor_dataset, random_seed):
         """Test engine with graph codec for XOR problem."""
         inputs, outputs = xor_dataset
@@ -147,7 +148,6 @@ class TestEngineBasicIntegration:
         assert result.index() <= 500
 
     @pytest.mark.integration
-    @pytest.mark.slow
     def test_engine_tree_regression(self, simple_regression_dataset, random_seed):
         """Test engine with tree codec for regression."""
         inputs, outputs = simple_regression_dataset
@@ -171,6 +171,37 @@ class TestEngineBasicIntegration:
 
         assert result.score()[0] < 0.1
         assert result.index() <= 300
+
+    @pytest.mark.integration
+    def test_engine_graph_regression_with_speciation(
+        self, simple_regression_dataset, random_seed
+    ):
+        """Test engine with graph codec and speciation for regression."""
+        inputs, outputs = simple_regression_dataset
+
+        engine = rd.GeneticEngine(
+            codec=rd.GraphCodec.directed(
+                shape=(1, 1),
+                vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
+                edge=rd.Op.weight(),
+                output=rd.Op.linear(),
+            ),
+            fitness_func=rd.Regression(inputs, outputs),
+            objectives="min",
+            population_size=100,
+            alters=[
+                rd.GraphCrossover(0.5, 0.5),
+                rd.OperationMutator(0.07, 0.05),
+                rd.GraphMutator(0.1, 0.1),
+            ],
+            species_threshold=0.01,
+            diversity=rd.NeatDistance(excess=0.1, disjoint=0.1, weight_diff=0.5),
+        )
+
+        result = engine.run([rd.ScoreLimit(0.1), rd.GenerationsLimit(500)])
+
+        assert len(result.species()) == 2
+        assert result.index() <= 500
 
     @pytest.mark.integration
     def test_engine_permutation_tsp(self, random_seed):

@@ -45,7 +45,7 @@ Certain `Genes` have additional functionality that allows them to be manipulated
 
         # Create a float gene that can evolve between -1.0 and 1.0 but 
         # must stay within -10.0 to 10.0 during evolution
-        gene = rd.Gene.float(
+        gene = rd.FloatGene(
             allele=0.5,                   # Current value
             value_range=(-1.0, 1.0),      # Initial range
             bound_range=(-10.0, 10.0)     # Evolution bounds
@@ -83,7 +83,7 @@ Certain `Genes` have additional functionality that allows them to be manipulated
         import radiate as rd
 
         # Create an integer gene that can evolve between -100 and 100
-        gene = rd.Gene.int(
+        gene = rd.IntGene(
             allele=42,                     # Current value
             value_range=(-10, 10),        # Initial range
             bound_range=(-100, 100)       # Evolution bounds
@@ -119,7 +119,7 @@ Certain `Genes` have additional functionality that allows them to be manipulated
 
         # Create an bit gene with an allele of True - if the allele isn't specified, it will 
         # be randomly initialized to True or False
-        gene = rd.Gene.bool(allele=True)
+        gene = rd.BitGene(allele=True)
         ```
 
     === ":fontawesome-brands-rust: Rust"
@@ -144,10 +144,10 @@ Certain `Genes` have additional functionality that allows them to be manipulated
         import radiate as rd
 
         # Create a character gene with an allele of 'A'
-        gene = rd.Gene.char(allele='A')
+        gene = rd.CharGene(allele='A')
 
         # Create a character gene with a randomly generated allele from the set 'abc'
-        gene = rd.Gene.char(char_set='abc')  
+        gene = rd.CharGene(char_set='abc')  
         ```
 
     === ":fontawesome-brands-rust: Rust"
