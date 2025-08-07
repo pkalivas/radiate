@@ -22,9 +22,7 @@ from .inputs.executor import Executor
 from .fitness import FitnessBase
 from .inputs.limit import LimitBase
 
-from .genome.gene import (
-    GeneType,
-)
+from .genome.gene import GeneType
 from .genome.population import Population
 
 
