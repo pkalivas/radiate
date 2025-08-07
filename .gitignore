@@ -14,4 +14,4 @@ radiate/.vs
 *.so
 *.pytest_cache
 *.benchmarks
-*.coverage
+.coverage
