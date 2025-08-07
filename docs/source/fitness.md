@@ -23,6 +23,11 @@ ___
 
 Simple fitness functions are the most common type - they take a phenotype and return a single score value. These can be any function that evaluates how well an individual performs. Things like mathematical functions, benchmarks, or even custom evaluation logic can be used as simple fitness functions. Your run of the mill mathematical functions like Rastrigin, Sphere, or Ackley functions are great examples of simple fitness functions. They take a vector of floats and return a single float score.
 
+!!! note ":fontawesome-brands-python: Python `numba`"
+
+    For python, In come cases (primarily if you are decoding to a `np.array`) it is possible to compile your fitness function down to native C using [numba](https://numba.pydata.org). 
+    In most cases with, this will result in your engine running as fast or almost as fast as rust. Check the examples page for an example using this method.
+
 === ":fontawesome-brands-python: Python"
 
     ```python
@@ -193,39 +198,45 @@ You can implement your own behavioral descriptors by implementing the `Novelty` 
 
 ### Basic Novelty Search
 
-<!-- 
+=== ":fontawesome-brands-python: Python"
+
     ```python
     import radiate as rd
 
-    # Define a behavioral descriptor
-    class BehaviorDescriptor:
-        def description(self, individual: Model) -> List[float]:
-            # Return behavioral characteristics (e.g., outputs on test cases)
-            return individual.get_behavior_vector()
-        
-        def distance(self, a: List[float], b: List[float]) -> float:
-            # Calculate Euclidean distance between behaviors
-            return sum((x - y) ** 2 for x, y in zip(a, b)) ** 0.5
+    class MyModelBehaviorDescriptor:
+        def __init__(self, individual: List[float]):
+            self.individual = individual
 
+        def get_behavior_vector(self) -> List[float]:
+            # some code that describes the behavior of a vector
+            ... 
+
+    # Define a behavioral descriptor
+    def description(self, individual: List[float]) -> List[float]:
+        # Return behavioral characteristics 
+        descriptor = MyModelBehaviorDesciptor(individual)
+        return descriptor.get_behvior_vecotr()
+        
     # Create novelty search fitness function
     novelty_fitness = rd.NoveltySearch(
-        behavior=BehaviorDescriptor(),
+        behavior=descriptor,
+        # can use any of the distance inputs. The engine will use this to 
+        # determine how 'novel' an individual is compared to the other's in the 
+        # archinve or population, ultimently resulting in the individuals fitness score.
+        distance=rd.CosineDistance() 
         k=10,           # Number of nearest neighbors to consider
         threshold=0.1   # Novelty threshold for archive addition
+        archive_size=1000 # defautls to 1000
     )
 
     engine = rd.GeneticEngine(
         codec=rd.ModelCodec(),
         fitness_func=novelty_fitness,
-        objectives="max"  # Higher novelty is better
+        # we always want to maximize novelty - however this is the default 
+        # so its not necessary to define
+        objective='max' 
     )
     ```
--->
-
-=== ":fontawesome-brands-python: Python"
-
-    !!! warning ":construction: Under Construction :construction:"
-        This function is currently under construction and not yet available in the Python API.
 
 === ":fontawesome-brands-rust: Rust"
 
