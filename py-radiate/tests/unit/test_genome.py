@@ -1,9 +1,3 @@
-"""
-Tests for Radiate genome components.
-
-These tests focus on covering the missing lines identified in the coverage report.
-"""
-
 import pytest
 import radiate as rd
 from radiate.genome import Population, Phenotype, Genotype
@@ -59,9 +53,9 @@ class TestPopulation:
         num_chromosomes = 5
         num_phenotypes = 10
 
-        phenotypes = [
-            rd.Phenotype(
-                rd.Genotype(
+        population = Population(
+            Phenotype(
+                Genotype(
                     [
                         rd.Chromosome.int(num_genes, value_range=(0, 10))
                         for _ in range(num_chromosomes)
@@ -69,9 +63,7 @@ class TestPopulation:
                 )
             )
             for _ in range(num_phenotypes)
-        ]
-
-        population = Population(phenotypes)
+        )
 
         assert len(population) == num_phenotypes
         assert isinstance(population, Population)

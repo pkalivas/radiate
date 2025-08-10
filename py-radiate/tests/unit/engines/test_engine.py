@@ -75,9 +75,6 @@ class TestEngineBasicIntegration:
         engine = rd.GeneticEngine(
             codec=rd.BitCodec.vector(length=10),
             fitness_func=fitness_func,
-            objectives="max",
-            population_size=50,
-            offspring_selector=rd.TournamentSelector(3),
             survivor_selector=rd.EliteSelector(),
             alters=[rd.UniformCrossover(0.7), rd.UniformMutator(0.1)],
         )
@@ -103,13 +100,9 @@ class TestEngineBasicIntegration:
             return value
 
         codec = rd.FloatCodec.vector(N_GENES, value_range=(-RANGE, RANGE))
-        population = rd.Population(
-            [rd.Phenotype(genotype=codec.encode()) for _ in range(100)]
-        )
+        population = rd.Population(rd.Phenotype(codec.encode()) for _ in range(100))
 
-        engine = rd.GeneticEngine(
-            rd.FloatCodec.vector(2, (-RANGE, RANGE)), fitness_fn, population=population
-        )
+        engine = rd.GeneticEngine(codec, fitness_fn, population=population)
         engine.minimizing()
         engine.alters([rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.01)])
 
@@ -179,28 +172,30 @@ class TestEngineBasicIntegration:
         """Test engine with graph codec and speciation for regression."""
         inputs, outputs = simple_regression_dataset
 
+        codec = rd.GraphCodec.directed(
+            shape=(1, 1),
+            vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
+            edge=rd.Op.weight(),
+            output=rd.Op.linear(),
+        )
+
         engine = rd.GeneticEngine(
-            codec=rd.GraphCodec.directed(
-                shape=(1, 1),
-                vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
-                edge=rd.Op.weight(),
-                output=rd.Op.linear(),
-            ),
+            codec=codec,
             fitness_func=rd.Regression(inputs, outputs),
             objectives="min",
             population_size=100,
+            species_threshold=0.1,
+            diversity=rd.NeatDistance(excess=0.1, disjoint=0.1, weight_diff=0.5),
             alters=[
                 rd.GraphCrossover(0.5, 0.5),
                 rd.OperationMutator(0.07, 0.05),
                 rd.GraphMutator(0.1, 0.1),
             ],
-            species_threshold=0.01,
-            diversity=rd.NeatDistance(excess=0.1, disjoint=0.1, weight_diff=0.5),
         )
 
         result = engine.run([rd.ScoreLimit(0.1), rd.GenerationsLimit(500)])
 
-        assert len(result.species()) == 2
+        assert len(result.species()) == 3
         assert result.index() <= 500
 
     @pytest.mark.integration

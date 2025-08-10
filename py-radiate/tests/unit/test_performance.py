@@ -1,10 +1,3 @@
-"""
-Performance tests for Radiate.
-
-These tests benchmark different aspects of the library to ensure performance
-doesn't regress and to identify bottlenecks.
-"""
-
 from typing import List
 
 import pytest

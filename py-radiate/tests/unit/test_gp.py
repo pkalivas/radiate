@@ -1,9 +1,3 @@
-"""
-Comprehensive unit tests for Radiate GP components.
-
-These tests focus on covering the missing lines identified in the coverage report.
-"""
-
 import pytest
 import radiate as rd
 
