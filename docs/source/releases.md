@@ -2,6 +2,13 @@
 
 ---
 
+## v1.2.15 - py 0.0.6
+
+- 2025-08-10
+- [Release](https://github.com/pkalivas/radiate/releases/tag/v1.2.15)
+
+Adding Novelty Search to python and refactoring engine building across the rust/python bridge. Improving python's speed. Adding type checking to python and upgrading python package to >= python 3.12 to support new python generics. Improving docs to reference new functionality.
+
 ## v1.2.14 - py 0.0.4
 
 -  2025-07-05
