@@ -215,7 +215,7 @@ You can implement your own behavioral descriptors by implementing the `Novelty` 
     def description(self, individual: List[float]) -> List[float]:
         # Return behavioral characteristics 
         descriptor = MyModelBehaviorDesciptor(individual)
-        return descriptor.get_behvior_vecotr()
+        return descriptor.get_behavior_vector()
         
     # Create novelty search fitness function
     novelty_fitness = rd.NoveltySearch(
