@@ -63,7 +63,7 @@ mod engine_tests {
             // fed into the batch we have two options:
             //   1.) Increase the offspring fraction as shown below (to 1.0) - this will cause the algorithm to completely
             //       negate the 'survivor_selector' and instead, will feed 100% of the population into the alters thus making
-            //       them every single phenotype open to crossover/mutation.
+            //       every single phenotype open to crossover/mutation (invalidation - needing a new score).
             //          .offspring_fraction(1.0)
             //   2.) Increase the mutation/crossover rate so more individuals are invalidated during recombination.
             .batch_fitness_fn(|genotypes: &[Vec<i32>]| {
