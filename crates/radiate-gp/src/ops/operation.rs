@@ -18,7 +18,7 @@ pub enum Op<T> {
     ///
     /// # Arguments
     ///    - `String` = a name or identifier
-    ///    - `usize` = perhaps an index to retrieve from some external context
+    ///    - `usize` = an index to retrieve from some external context
     Var(&'static str, usize),
     /// 3) A compile-time constant: e.g., 1, 2, 3, etc.
     ///

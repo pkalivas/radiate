@@ -1,4 +1,4 @@
-use crate::{FitnessFunction, Score};
+use crate::{BatchFitnessFunction, FitnessFunction, Score};
 use std::{
     collections::VecDeque,
     sync::{Arc, RwLock},
@@ -172,6 +172,31 @@ where
     }
 }
 
+impl<T> BatchFitnessFunction<T, f32> for NoveltySearch<T>
+where
+    T: Send + Sync,
+{
+    fn evaluate(&self, individuals: &[T]) -> Vec<f32> {
+        individuals
+            .into_iter()
+            .map(|ind| self.evaluate_internal(ind))
+            .collect()
+    }
+}
+
+impl<T> BatchFitnessFunction<&T, f32> for NoveltySearch<T>
+where
+    T: Send + Sync,
+{
+    fn evaluate(&self, individuals: &[&T]) -> Vec<f32> {
+        individuals
+            .into_iter()
+            .map(|ind| self.evaluate_internal(ind))
+            .collect()
+    }
+}
+
+/// TODO: Is the below needed? Might be able to just get rid of this. Seems like too much.
 pub struct FitnessDescriptor<F, T, S>
 where
     F: for<'a> FitnessFunction<&'a T, S>,

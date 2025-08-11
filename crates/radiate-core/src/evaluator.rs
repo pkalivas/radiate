@@ -95,12 +95,11 @@ where
         }
 
         let cloned_problem = Arc::clone(&problem);
-        let results = self.executor.execute(move || {
+        let (scores, genotypes) = self.executor.execute(move || {
             let scores = cloned_problem.eval_batch(&genotypes);
             (scores, genotypes)
         });
 
-        let (scores, genotypes) = results;
         let count = scores.len();
         let score_genotype_iter = scores.into_iter().zip(genotypes.into_iter());
         for (i, (score, genotype)) in score_genotype_iter.enumerate() {

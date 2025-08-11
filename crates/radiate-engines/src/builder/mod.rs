@@ -48,9 +48,6 @@ where
     pub problem_params: ProblemParams<C, T>,
 
     pub alterers: Vec<Arc<dyn Alter<C>>>,
-    // pub codec: Option<Arc<dyn Codec<C, T>>>,
-    // pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
-    // pub problem: Option<Arc<dyn Problem<C, T>>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     pub handlers: Vec<Arc<Mutex<dyn EventHandler<EngineEvent<T>>>>>,
 }
