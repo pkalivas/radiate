@@ -49,4 +49,22 @@ mod engine_tests {
 
         assert_eq!(result.value(), &vec![1, 2, 3, 4, 5]);
     }
+
+    #[test]
+    fn engine_can_eval_batch() {
+        let mut engine = GeneticEngine::builder()
+            .codec(IntCodec::vector(5, 0..100))
+            .minimizing()
+            .batch_fitness_fn(|genotypes: &[Vec<i32>]| {
+                genotypes
+                    .iter()
+                    .map(|geno| geno.iter().sum::<i32>())
+                    .collect::<Vec<_>>()
+            })
+            .build();
+
+        let result = engine.run(|ctx| ctx.score().as_i32() == 0);
+
+        assert_eq!(result.value().iter().sum::<i32>(), 0);
+    }
 }
