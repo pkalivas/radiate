@@ -562,7 +562,13 @@ With these rules in mind, we can begin to build and evolve graphs. The graph typ
 
 <figure markdown="span">
     ![op-grpah](../assets/graph_gp.png){ width="300" }
-</figure>
+</figure> 
+
+<!--
+ <figure markdown="span">
+    ![op-graph](../assets/graph_graphvis.svg){ width="300" }
+</figure> 
+-->
 
 Radiate provides a few basic graph architectures, but it is also possible to construct your own graph through either the built in graph functions or by using the architect. In most cases building a graph requires a vec of tuples (or a `NodeStore`) where the first element is the `NodeType` and the second element is a vec of values that the `GraphNode` can take. The `NodeType` is either `Input`, `Output`, `Vertex`, or `Edge`. The value of the `GraphNode` is picked at random from the vec of it's `NodeType`.
 

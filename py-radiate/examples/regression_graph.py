@@ -7,8 +7,6 @@ We have a simple polynomial function and we want to evolve a graph that approxim
 """
 
 import radiate as rd
-# import matplotlib.pyplot as plt  # type: ignore
-# import networkx as nx  # type: ignore
 
 
 rd.random.seed(518)

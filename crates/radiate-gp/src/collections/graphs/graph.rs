@@ -254,23 +254,6 @@ impl<T> Graph<T> {
         mutation(GraphTransaction::new(self))
     }
 
-    /// Get the cycles in the graph that include the node at the specified index.
-    ///
-    /// # Arguments
-    /// - index: The index of the node to get the cycles for.
-    // #[inline]
-    pub fn get_cycles(&self, from: usize) -> HashSet<usize> {
-        let mut visited = HashSet::new();
-        let mut stack = Vec::new();
-        let mut cycles = HashSet::new();
-
-        if !visited.contains(&from) {
-            self.dfs_visit(from, &mut visited, &mut stack, &mut cycles);
-        }
-
-        cycles
-    }
-
     /// Given a list of node indices, this function will set the 'direction' field of the nodes
     /// at those indices to [Direction::Backward] if they are part of a cycle. If they are not part
     /// of a cycle, the 'direction' field will be set to [Direction::Forward].
@@ -302,6 +285,23 @@ impl<T> Graph<T> {
                 }
             }
         }
+    }
+
+    /// Get the cycles in the graph that include the node at the specified index.
+    ///
+    /// # Arguments
+    /// - index: The index of the node to get the cycles for.
+    // #[inline]
+    pub fn get_cycles(&self, from: usize) -> HashSet<usize> {
+        let mut visited = HashSet::new();
+        let mut stack = Vec::new();
+        let mut cycles = HashSet::new();
+
+        if !visited.contains(&from) {
+            self.dfs_visit(from, &mut visited, &mut stack, &mut cycles);
+        }
+
+        cycles
     }
 
     fn dfs_visit(
