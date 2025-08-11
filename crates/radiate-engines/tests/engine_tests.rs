@@ -77,7 +77,7 @@ mod engine_tests {
                 genotypes
                     .iter()
                     .map(|geno| geno.iter().sum::<i32>())
-                    .collect::<Vec<_>>()
+                    .collect()
             })
             .build();
 
