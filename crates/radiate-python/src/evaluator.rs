@@ -55,6 +55,7 @@ where
             if batch_size == 0 {
                 return 0;
             }
+
             let mut batches = Vec::new();
             for i in (0..jobs.len()).step_by(batch_size) {
                 let end = std::cmp::min(i + batch_size, jobs.len());
