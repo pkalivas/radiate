@@ -93,6 +93,7 @@ where
             }
         }
 
+        // integer ceiling division to determine batch size - number of individuals per batch
         let num_workers = self.executor.num_workers();
         let batch_size = (pairs.len() + num_workers - 1) / num_workers;
 
@@ -108,6 +109,7 @@ where
             let mut batch_indices = Vec::with_capacity(take);
             let mut batch_genotypes = Vec::with_capacity(take);
 
+            // drain from the end of pairs vector to avoid O(n^2) complexity
             for (idx, geno) in pairs.drain(pairs.len() - take..) {
                 batch_indices.push(idx);
                 batch_genotypes.push(geno);
@@ -134,6 +136,7 @@ where
 
         let mut count = 0;
 
+        // replace the genotypes and add their associated scores
         for (indices, scores, genotypes) in results {
             count += indices.len();
             let score_genotype_iter = scores.into_iter().zip(genotypes.into_iter());
