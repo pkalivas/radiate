@@ -1,4 +1,4 @@
-use crate::{Chromosome, Ecosystem, Executor, Problem};
+use crate::{Chromosome, Ecosystem, Executor, Genotype, Problem};
 use std::sync::Arc;
 
 pub trait Evaluator<C: Chromosome, T>: Send + Sync {
@@ -62,6 +62,11 @@ impl Default for FitnessEvaluator {
     }
 }
 
+struct Batch<C: Chromosome> {
+    indices: Vec<usize>,
+    genotypes: Vec<Genotype<C>>,
+}
+
 pub struct BatchFitnessEvaluator {
     executor: Arc<Executor>,
 }
@@ -79,33 +84,65 @@ where
 {
     #[inline]
     fn eval(&self, ecosystem: &mut Ecosystem<C>, problem: Arc<dyn Problem<C, T>>) -> usize {
-        let mut genotypes = Vec::new();
-        let mut indices = Vec::new();
+        let mut pairs = Vec::new();
         let len = ecosystem.population.len();
         for idx in 0..len {
             if ecosystem.population[idx].score().is_none() {
                 let geno = ecosystem.population[idx].take_genotype();
-                genotypes.push(geno);
-                indices.push(idx);
+                pairs.push((idx, geno));
             }
         }
 
-        if genotypes.is_empty() {
+        let num_workers = self.executor.num_workers();
+        let batch_size = (pairs.len() + num_workers - 1) / num_workers;
+
+        if pairs.is_empty() || batch_size == 0 {
             return 0;
         }
 
-        let cloned_problem = Arc::clone(&problem);
-        let (scores, genotypes) = self.executor.execute(move || {
-            let scores = cloned_problem.eval_batch(&genotypes);
-            (scores, genotypes)
-        });
+        let mut batches = Vec::new();
+        for _ in (0..pairs.len()).step_by(batch_size) {
+            let batch_values = pairs
+                .drain(0..std::cmp::min(batch_size, pairs.len()))
+                .map(|(idx, geno)| (idx, geno))
+                .collect::<Vec<_>>();
 
-        let count = scores.len();
-        let score_genotype_iter = scores.into_iter().zip(genotypes.into_iter());
-        for (i, (score, genotype)) in score_genotype_iter.enumerate() {
-            let idx = indices[i];
-            ecosystem.population[idx].set_score(Some(score));
-            ecosystem.population[idx].set_genotype(genotype);
+            let mut batch_indicies = Vec::with_capacity(batch_values.len());
+            let mut batch_genotypes = Vec::with_capacity(batch_values.len());
+            for (idx, geno) in batch_values.into_iter() {
+                batch_indicies.push(idx);
+                batch_genotypes.push(geno);
+            }
+
+            batches.push(Batch {
+                indices: batch_indicies,
+                genotypes: batch_genotypes,
+            });
+        }
+
+        let results = self.executor.execute_batch(
+            batches
+                .into_iter()
+                .map(|batch| {
+                    let problem = Arc::clone(&problem);
+                    move || {
+                        let scores = problem.eval_batch(&batch.genotypes);
+                        (batch.indices, scores, batch.genotypes)
+                    }
+                })
+                .collect::<Vec<_>>(),
+        );
+
+        let mut count = 0;
+
+        for (indices, scores, genotypes) in results {
+            count += indices.len();
+            let score_genotype_iter = scores.into_iter().zip(genotypes.into_iter());
+            for (i, (score, genotype)) in score_genotype_iter.enumerate() {
+                let idx = indices[i];
+                ecosystem.population[idx].set_score(Some(score));
+                ecosystem.population[idx].set_genotype(genotype);
+            }
         }
 
         count
