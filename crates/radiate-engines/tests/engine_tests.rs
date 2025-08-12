@@ -71,10 +71,10 @@ mod engine_tests {
                 // At a very very very base level, we expect the batch to have at least two phenotypes
                 // Realistically, with an engine configured like this one is, we'd expect anywhere from 50-70ish
                 // individuals per batch here.
-                // assert!(
-                //     phenotypes.len() > 1,
-                //     "Batch should have more than one phenotype"
-                // );
+                assert!(
+                    phenotypes.len() > 1,
+                    "Batch should have more than one phenotype"
+                );
                 phenotypes
                     .iter()
                     .map(|geno| geno.iter().sum::<i32>())

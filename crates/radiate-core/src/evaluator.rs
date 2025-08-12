@@ -100,22 +100,21 @@ where
             return 0;
         }
 
-        let mut batches = Vec::new();
-        for _ in (0..pairs.len()).step_by(batch_size) {
-            let batch_values = pairs
-                .drain(0..std::cmp::min(batch_size, pairs.len()))
-                .map(|(idx, geno)| (idx, geno))
-                .collect::<Vec<_>>();
+        let mut batches = Vec::with_capacity(num_workers);
 
-            let mut batch_indicies = Vec::with_capacity(batch_values.len());
-            let mut batch_genotypes = Vec::with_capacity(batch_values.len());
-            for (idx, geno) in batch_values.into_iter() {
-                batch_indicies.push(idx);
+        while !pairs.is_empty() {
+            let take = pairs.len().min(batch_size);
+
+            let mut batch_indices = Vec::with_capacity(take);
+            let mut batch_genotypes = Vec::with_capacity(take);
+
+            for (idx, geno) in pairs.drain(pairs.len() - take..) {
+                batch_indices.push(idx);
                 batch_genotypes.push(geno);
             }
 
             batches.push(Batch {
-                indices: batch_indicies,
+                indices: batch_indices,
                 genotypes: batch_genotypes,
             });
         }
