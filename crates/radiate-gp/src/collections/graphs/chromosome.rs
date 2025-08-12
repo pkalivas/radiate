@@ -19,8 +19,8 @@ use std::fmt::Debug;
 ///
 /// # Structure
 /// The chromosome consists of:
-/// * A vector of `GraphNode<T>` instances representing the graph structure
-/// * An optional `NodeStore<T>` for managing node creation and validation. This makes
+/// * A vector of [GraphNode<T>] instances representing the graph structure
+/// * An optional [NodeStore<T>] for managing node creation and validation. This makes
 /// the creation of new nodes easier and more uniform across the genetic algorithm.
 ///
 /// # Features
