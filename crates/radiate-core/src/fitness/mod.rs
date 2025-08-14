@@ -2,7 +2,7 @@ mod composite;
 mod novelty;
 
 pub use composite::CompositeFitnessFn;
-pub use novelty::{FitnessDescriptor, Novelty, NoveltySearch};
+pub use novelty::{Novelty, NoveltySearch};
 
 use crate::Score;
 
@@ -23,6 +23,8 @@ where
     fn evaluate(&self, individuals: &[T]) -> Vec<S>;
 }
 
+/// Blanket implement FitnessFunction for any function that takes a single argument.
+/// This covers the base case for any function supplied to an engine that takes a decoded phenotype.
 impl<T, S, F> FitnessFunction<T, S> for F
 where
     F: Fn(T) -> S + Send + Sync,
@@ -33,6 +35,8 @@ where
     }
 }
 
+/// Blanket implement BatchFitnessFunction for any function that takes a slice of arguments.
+/// This covers the base case for any function supplied to an engine that takes a batch of decoded phenotypes.
 impl<T, S, F> BatchFitnessFunction<T, S> for F
 where
     F: for<'a> Fn(&'a [T]) -> Vec<S> + Send + Sync,

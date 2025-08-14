@@ -20,8 +20,6 @@ pub(crate) const HAMMING_DISTANCE: &str = "HammingDistance";
 pub(crate) const EUCLIDEAN_DISTANCE: &str = "EuclideanDistance";
 pub(crate) const COSINE_DISTANCE: &str = "CosineDistance";
 pub(crate) const NEAT_DISTANCE: &str = "NeatDistance";
-// pub(crate) const GRAPH_TOPOLOGY_DISTANCE: &str = "GraphTopologyDistance";
-// pub(crate) const GRAPH_ARCHITECTURE_DISTANCE: &str = "GraphArchitectureDistance";
 
 // Crossovers
 pub(crate) const MULTI_POINT_CROSSOVER: &str = "MultiPointCrossover";

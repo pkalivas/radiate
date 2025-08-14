@@ -330,7 +330,7 @@ where
                     max_species_age: 25,
                 },
                 evaluation_params: EvaluationParams {
-                    evaluator: Arc::new(FitnessEvaluator::new(Arc::new(Executor::default()))),
+                    evaluator: Arc::new(FitnessEvaluator::default()),
                     fitness_executor: Arc::new(Executor::default()),
                     species_executor: Arc::new(Executor::default()),
                     bus_executor: Arc::new(Executor::default()),

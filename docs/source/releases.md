@@ -9,6 +9,14 @@
 
 Adding Novelty Search to python and refactoring engine building across the rust/python bridge. Improving python's speed. Adding type checking to python and upgrading python package to >= python 3.12 to support new python generics. Improving docs to reference new functionality.
 
+New alters:
+
+  * EdgeRecombinationCrossover for PermutationGenes 
+  * PolynomialMutator for chromosomes with FloatGenes
+
+Added code path in alters for dynamic mutation/crossover rates. This is in early dev, but an be seen in PolynomialMutator.
+
+
 ## v1.2.14 - py 0.0.4
 
 -  2025-07-05

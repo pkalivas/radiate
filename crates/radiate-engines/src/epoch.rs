@@ -157,13 +157,10 @@ where
     C: Chromosome + Clone,
 {
     fn from_iter<I: IntoIterator<Item = Generation<C, T>>>(iter: I) -> Self {
-        let final_epoch = iter.into_iter().last();
-        if let Some(epoch) = final_epoch {
-            if let Some(front) = epoch.front() {
-                return front.clone();
-            }
-        }
-
-        Front::default()
+        iter.into_iter()
+            .last()
+            .map(|generation| generation.front().map(|front| front.clone()))
+            .flatten()
+            .unwrap_or_default()
     }
 }

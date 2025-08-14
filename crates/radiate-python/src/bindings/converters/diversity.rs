@@ -61,8 +61,6 @@ impl InputTransform<Option<Box<dyn Diversity<GraphChromosome<Op<f32>>>>>> for Py
                 Some(Box::new(NeatDistance::new(excess, disjoint, weight_diff)))
             }
             crate::names::HAMMING_DISTANCE => Some(Box::new(HammingDistance)),
-            // crate::names::GRAPH_TOPOLOGY_DISTANCE => Some(Box::new(GraphTopologyNovelty)),
-            // crate::names::GRAPH_ARCHITECTURE_DISTANCE => Some(Box::new(GraphArchitectureNovelty)),
             _ => None,
         }
     }

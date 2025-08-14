@@ -76,9 +76,6 @@ Radiate implements species management to maintain population diversity through s
 
 ### Species Threshold
 
-**All `diversity` output is normalized to a range of `0.0` to `1.0`, where `0.0` means no diversity and `1.0` means maximum diversity.
-This means any threshold outside of these bounds will not work correctly**
-
 The species threshold determines how similar individuals need to be to be considered part of the same `species`. A lower threshold will result in more species being formed, while a higher threshold will group more individuals into fewer species. This is crucial for controlling the balance between exploration and exploitation in the population. All of this is controlled by the `species_threshold` parameter in the engine:
 
 === ":fontawesome-brands-python: Python"

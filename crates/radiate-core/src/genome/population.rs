@@ -7,7 +7,9 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut, Range};
 
-/// A [Population] is a collection of [Phenotype] instances. This struct is the core collection of individuals
+/// A [Population] is a collection of [Phenotype] instances.
+///
+/// This struct is the core collection of individuals
 /// being evolved by the `GeneticEngine`. It can be thought of as a Vec of `Phenotype`s and
 /// is essentially a light wrapper around such a Vec. The [Population] struct, however, has some
 /// additional functionality that allows for sorting and iteration over the individuals in the population.
@@ -17,6 +19,17 @@ use std::ops::{Index, IndexMut, Range};
 /// should be thought of as an 'immutable' data structure. If you need to add or remove individuals from the population,
 /// you should create a new [Population] instance with the new individuals. To further facilitate this way of
 /// thinking, the [Population] struct and everything it contains implements the `Clone` trait.
+///
+/// # Note
+///
+/// A raw call to `clone` of the population will *NOT* clone the individuals themselves, but rather the
+/// references to them. This means that if you mutate an individual in one population, the change
+/// will be reflected in the other population as well. To deep clone a population, you must clone
+/// each individual within it. The simplest way to do this is by:
+///
+/// ```ignore
+/// let deep_cloned_population = Population::from(&original_population);
+/// ```
 ///
 /// # Type Parameters
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
@@ -172,10 +185,7 @@ impl<C: Chromosome + Clone> IntoIterator for Population<C> {
 impl<C: Chromosome> FromIterator<Phenotype<C>> for Population<C> {
     fn from_iter<I: IntoIterator<Item = Phenotype<C>>>(iter: I) -> Self {
         Population {
-            individuals: iter
-                .into_iter()
-                .map(Member::from)
-                .collect::<Vec<Member<C>>>(),
+            individuals: iter.into_iter().map(Member::from).collect(),
         }
     }
 }

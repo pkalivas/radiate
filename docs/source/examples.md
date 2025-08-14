@@ -316,7 +316,7 @@ $$
 
 
     engine = rd.GeneticEngine(
-        codec=rd.FloatCodec.vector(variables, (0.0, 1.0), (-100.0, 100.0)),
+        codec=rd.FloatCodec.vector(variables, (0.0, 1.0), (-100.0, 100.0), use_numpy=True),
         fitness_func=dtlz_1,
         offspring_selector=rd.TournamentSelector(k=5),
         survivor_selector=rd.NSGA2Selector(),

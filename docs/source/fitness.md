@@ -7,14 +7,15 @@ The fitness function takes a decoded phenotype (the actual data structure) and r
 
 !!! note "**Fitness functions must return valid scores**"
     
-    All fitness functions must return a `Score` object. Radiate automatically converts common types like `f32`, `i32`, `Vec<f32>`, etc. into `Score` objects. NaN values are not allowed and will cause a panic. The number of values returned by the fitness function must match your objectives. For example, if you have two objectives, your fitness function must return a `Score` with two values.
+    All fitness functions must return a `Score` object. Radiate automatically converts common types like `f32`, `f64`, `i32`, `ì64`, `Vec<f32>`, etc. into `Score` objects. NaN values are not allowed and will cause a panic. The number of values returned by the fitness function must match your objectives. For example, if you have two objectives, your fitness function must return a `Score` with two values.
 
 ## Overview
 
 | Fitness Function Type | Purpose | Use Case | Complexity |
 |----------------------|---------|----------|------------|
-| [Simple Functions](#simple-fitness-functions) | Basic optimization | Mathematical problems, benchmarks | Low |
-| [Composite Functions](#composite-fitness-functions) | Multi-objective combination | Balancing multiple goals | Medium |
+| [Simple Functions](#simple-fitness) | Basic optimization | Problems, benchmarks, cutstom logic | Low |
+| [Batch Fitness](#batch-fitness) | Batch optimization | Problems, benchmarks, custom logic | Low |
+| [Composite Functions](#composite-fitness) | Fitness combination | Balancing multiple goals | Medium |
 | [Novelty Search](#novelty-search) | Behavioral diversity | Exploration, avoiding local optima | High |
 
 ___
@@ -26,7 +27,7 @@ Simple fitness functions are the most common type - they take a phenotype and re
 !!! note ":fontawesome-brands-python: Python `numba`"
 
     For python, In come cases (primarily if you are decoding to a `np.array`) it is possible to compile your fitness function down to native C using [numba](https://numba.pydata.org). 
-    In most cases with, this will result in your engine running as fast or almost as fast as rust. Check the examples page for an example using this method.
+    In most cases with this, this will result in your engine running as fast or almost as fast as rust. Check the examples page for an example using this method.
 
 === ":fontawesome-brands-python: Python"
 
@@ -38,7 +39,7 @@ Simple fitness functions are the most common type - they take a phenotype and re
     RANGE = 5.12
     N_GENES = 2
 
-    def fitness_fn(x):
+    def fitness_fn(x: List[float]) -> float:
         value = A * N_GENES
         for i in range(N_GENES):
             value += x[i]**2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
@@ -71,13 +72,62 @@ Simple fitness functions are the most common type - they take a phenotype and re
 
 ---
 
+## Batch Fitness
+
+The batch fitness function groups members of the `Population` which need to be evaluated into buckets to be evaluated together. 
+If you need access to parts or the whole of a `Population` in order to compute fitness, this is your best bet. Depending on the 
+implementation of your actual fitness logic, this can also be a speed up to your `Engine`. The logic behind the grouping depends on the `Executor` being used. Meaning, if your `Executor` is using 4 workers (threads) the individuals which need to be evaluated will be split into 4 batches. On the flip side, if your `Executor` is using a single thread (Serial), your fitness function will recieve a single batch containing all individuals which need evaluation.
+
+Its important to note that other types of fitness functions like `NoveltySearch` & `CompositeFitnessFn` both support batch processing too by simply placing those objects within the call to `.batch_fitness_fn` - just like `.fitness_fn`.
+
+=== ":fontawesome-brands-python: Python"
+
+    !!! warning ":construction: Under Construction :construction:"
+        The batch fitness function is currently under construction and not yet available in the Python API.
+
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    // This engine will recieve a single batch containing all individuals which need evaluation
+    let engine = GeneticEngine::builder()
+        .codec(IntChromosome::from((5, 0..100)))
+        // Replace the original 'fitness_fn' call with 'batch_fitness_fn' to enable batch fitness
+        .batch_fitness_fn(|phenotypes: &[Vec<i32>]| {
+            phenotypes
+                .iter()
+                .map(|geno| geno.iter().sum::<i32>())
+                .collect()
+        })
+        .build();
+
+    // When using an parallel executor, the batches will be grouped together to evaluate on separate threads
+    let engine = GeneticEngine::builder()
+        .codec(IntChromosome::from((5, 0..100)))
+        // 'batch_fitness_fn' will receive 7 batches of individuals during each generation's evaluation
+        .executor(Executor::FixedSizedWorkerPool(7))
+        .batch_fitness_fn(|phenotypes: &[Vec<i32>]| {
+            phenotypes
+                .iter()
+                .map(|geno| geno.iter().sum::<i32>())
+                .collect()
+        })
+        .build();
+    ```
+
+---
+
 ## Composite Fitness
 
-Composite fitness functions allow you to combine multiple objectives into a single weighted fitness score. This is useful when you have multiple goals that need to be balanced.
+Composite fitness functions allow you to combine multiple objectives into a single weighted fitness score. This is useful when you have multiple goals that need to be balanced. There are two main options when using a `CompositeFitnessFn`:
 
-### Weighted
-
-The `CompositeFitnessFn` combines multiple fitness functions with weights to create a single objective.
+1. Weighted 
+    * Combine multiple fitness functions with weights to create a single weighted average objective.
+  
+2. Equal
+    * Combine multiple fitness functions with equal weights (1.0) to produce a single objective.
 
 <!-- 
     ```python
@@ -117,64 +167,45 @@ The `CompositeFitnessFn` combines multiple fitness functions with weights to cre
     ```rust
     use radiate::*;
 
-    fn accuracy_objective(model: &MyModel) -> f32 {
-        calculate_accuracy(model, &test_data)
+    fn accuracy_objective(model: &MyDecodedModel) -> f32 {
+        // ... calculate accuracy ...
     }
 
-    fn complexity_objective(model: &MyModel) -> f32 {
-        model.complexity()  // Lower is better
+    fn complexity_objective(model: &MyDecodedModel) -> f32 {
+        // ... calculate complexity ...
     }
 
-    fn efficiency_objective(model: &MyModel) -> f32 {
-        model.inference_time()  // Lower is better
+    fn efficiency_objective(model: &MyDecodedModel) -> f32 {
+        // ... calculate efficiency ...
     }
 
-    // Create composite fitness function
+    // Create weighted composite fitness function - this version computes a
+    // weighted average of each function given to it
     let composite_fitness = CompositeFitnessFn::new()
         .add_weighted_fn(accuracy_objective, 0.6)      // 60% weight on accuracy
         .add_weighted_fn(complexity_objective, 0.25)   // 25% weight on complexity
         .add_weighted_fn(efficiency_objective, 0.15);  // 15% weight on efficiency
 
+    // Create an equal weight composite fitness function with equal weights.
+    // Meaning these are all essentially just added together to create a single objective.
+    let composite_fitness = CompositeFitnessFn::new()
+        .add_fitness_fn(accuracy_objective)
+        .add_fitness_fn(complexity_objective)
+        .add_fitness_fn(efficiency_objective);
+
+    // Add it to the engine like any other fitness function
     let engine = GeneticEngine::builder()
-        .codec(model_codec)
-        .maximizing()
+        .codec(my_model_codec)
         .fitness_fn(composite_fitness)
         .build();
     ```
 
 **Key Features:**
 
-- **Weighted combination**: Each objective has a weight that determines its importance
-- **Normalized scoring**: Scores are weighted and averaged
+- **Weighted combination**: If using weighted, each objective has a weight that determines its importance
+- **Normalized scoring**: If using weighted, scores are weighted and averaged
 - **Flexible objectives**: Can combine any number of fitness functions
 - **Single objective**: Results in a single score for selection
-
-### Equal Weight
-
-You can also add fitness functions with equal weights using `add_fitness_fn()`.
-
-<!--
-```python
-composite_fitness = rd.CompositeFitnessFn.new()
-    .add_fitness_fn(accuracy_objective)    # Weight = 1.0
-    .add_fitness_fn(complexity_objective)  # Weight = 1.0
-    .add_fitness_fn(efficiency_objective)  # Weight = 1.0
-```
--->
-
-=== ":fontawesome-brands-python: Python"
-
-    !!! warning ":construction: Under Construction :construction:"
-        The composite fitness function is currently under construction and not yet available in the Python API.
-
-=== ":fontawesome-brands-rust: Rust"
-
-    ```rust
-    let composite_fitness = CompositeFitnessFn::new()
-        .add_fitness_fn(accuracy_objective)    // Weight = 1.0
-        .add_fitness_fn(complexity_objective)  // Weight = 1.0
-        .add_fitness_fn(efficiency_objective); // Weight = 1.0
-    ```
 
 ---
 
@@ -193,14 +224,7 @@ Novelty search works by:
 3. **Distance Calculation**: Novelty is measured as the average distance to the k-nearest neighbors in the archive
 4. **Threshold**: Solutions with novelty above a threshold are added to the archive
 
-You can implement your own behavioral descriptors by implementing the `Novelty` trait. This allows you to define how individuals are described and how distances between behaviors are calculated. Or you can use the built-in descriptors below:
-
-- **HammingDistance**: For binary or categorical data
-- **EuclideanDistance**: For continuous data
-- **CosineDistance**: For vector data
-- **NeatDistance**: For NEAT-style networks (Graph only)
-
-### Basic Novelty Search
+You can implement your own behavioral descriptors by implementing the `Novelty` trait. 
 
 === ":fontawesome-brands-python: Python"
 
@@ -223,7 +247,7 @@ You can implement your own behavioral descriptors by implementing the `Novelty` 
         
     # Create novelty search fitness function
     novelty_fitness = rd.NoveltySearch(
-        behavior=descriptor,
+        behavior=description,
         # can use any of the distance inputs. The engine will use this to 
         # determine how 'novel' an individual is compared to the other's in the 
         # archinve or population, ultimently resulting in the individuals fitness score.
@@ -234,7 +258,9 @@ You can implement your own behavioral descriptors by implementing the `Novelty` 
     )
 
     engine = rd.GeneticEngine(
-        codec=rd.ModelCodec(),
+        # whatever codec you specify - the decoded value of your codec will be fed 
+        # into the `behavior` function of your NoveltySearch fitness_func
+        codec=rd.FloatCodec.vector(10, (0, 10)), 
         fitness_func=novelty_fitness,
         # we always want to maximize novelty - however this is the default 
         # so its not necessary to define
@@ -248,143 +274,45 @@ You can implement your own behavioral descriptors by implementing the `Novelty` 
     use radiate::*;
 
     // Define a behavioral descriptor
-    struct BehaviorDescriptor;
+    struct MyModelBehaviorDescriptor;
 
-    impl Novelty<Model> for BehaviorDescriptor {
-        type Descriptor = Vec<f32>;
+    // ... rest of impl ...
 
-        fn description(&self, individual: &Model) -> Self::Descriptor {
+    impl Novelty<MyModel> for MyModelBehaviorDescriptor {
+        fn description(&self, individual: &MyModel) -> Self::Descriptor {
             // Return behavioral characteristics (e.g., outputs on test cases)
             individual.get_behavior_vector()
-        }
-
-        fn distance(&self, a: &Self::Descriptor, b: &Self::Descriptor) -> f32 {
-            // Calculate Euclidean distance between behaviors
-            a.iter()
-                .zip(b.iter())
-                .map(|(x, y)| (x - y).powi(2))
-                .sum::<f32>()
-                .sqrt()
         }
     }
 
     // Create novelty search fitness function
     let novelty_fitness = NoveltySearch::new(
-        BehaviorDescriptor,
+        MyModelBehaviorDescriptor,
         10,  // k: number of nearest neighbors
         0.1  // threshold: novelty threshold for archive addition
     )
-    .with_archive_size(1000); // Optional: set archive size - default is 1000
+    .with_archive_size(1000) // Optional: set archive size - default is 1000
+    .cosine_distance(); // Optional set the distance parameter used
+    // .euclidean_distance() // euclidean_distance is the default
+    // .hamming_distance()
+
+    // Novelty is also implemented for any F where F: Fn(&T) -> Vec<f32>. Meaning, you can 
+    // just as easily feed a function to NoveltySearch as long as it takes a borrowed T (&T) 
+    // and returns a Vec<f32>
+    let function_novelty_fitness = NoveltySearch::new(
+        |individual: &MyModel| // ... return a Vec<f32> that describes MyModel ...
+        10,  
+        0.1  
+    )
 
     let engine = GeneticEngine::builder()
-        .codec(model_codec)
+        // The decoded genotype from your codec (my_model_codec in this case) will be fed
+        // into the `description` function from the Novelty trait impl 
+        .codec(my_model_codec)
         .maximizing()
         .fitness_fn(novelty_fitness)
         .build();
     ```
-<!-- 
-### Fitness-Based Novelty Search
-
-You can use fitness scores directly as behavioral descriptors using `FitnessDescriptor`. 
--->
-
-<!-- 
-```python
-def base_fitness(model: Model) -> float:
-    return calculate_accuracy(model, test_data)
-
-# Use fitness scores as behavioral descriptors
-fitness_descriptor = rd.FitnessDescriptor(base_fitness)
-
-novelty_fitness = rd.NoveltySearch(
-    behavior=fitness_descriptor,
-    k=10,
-    threshold=0.05
-)
-```
--->
-<!-- 
-=== ":fontawesome-brands-python: Python"
-
-    !!! warning ":construction: Under Construction :construction:"
-        This function is currently under construction and not yet available in the Python API.
-
-=== ":fontawesome-brands-rust: Rust"
-
-    ```rust
-    fn base_fitness(model: &Model) -> f32 {
-        calculate_accuracy(model, &test_data)
-    }
-
-    // Use fitness scores as behavioral descriptors
-    let fitness_descriptor = FitnessDescriptor::new(base_fitness);
-    
-    let novelty_fitness = NoveltySearch::new(
-        fitness_descriptor,
-        10,   // k
-        0.05  // threshold
-    );
-    ```
--->
-<!-- 
-### Combined Novelty and Fitness
-
-You can combine novelty search with traditional fitness to get the benefits of both exploration and exploitation.
- -->
-<!-- 
-```python
-def traditional_fitness(model: Model) -> float:
-    return calculate_accuracy(model, test_data)
-
-novelty_fitness = rd.NoveltySearch(
-    behavior=rd.FitnessDescriptor(traditional_fitness),
-    k=10,
-    threshold=0.05
-)
-
-# Combine traditional fitness (70%) with novelty (30%)
-combined_fitness = rd.CompositeFitnessFn.new()
-    .add_weighted_fn(traditional_fitness, 0.7)
-    .add_weighted_fn(novelty_fitness, 0.3)
-
-engine = rd.GeneticEngine(
-    codec=rd.ModelCodec(),
-    fitness_func=combined_fitness,
-    objectives="max"
-)
-```
--->
-<!-- 
-=== ":fontawesome-brands-python: Python"
-
-    !!! warning ":construction: Under Construction :construction:"
-        This function is currently under construction and not yet available in the Python API.
-
-=== ":fontawesome-brands-rust: Rust"
-
-    ```rust
-    fn traditional_fitness(model: &Model) -> f32 {
-        calculate_accuracy(model, &test_data)
-    }
-
-    let novelty_fitness = NoveltySearch::new(
-        FitnessDescriptor::new(traditional_fitness),
-        10,   // k
-        0.05  // threshold
-    );
-
-    // Combine traditional fitness (70%) with novelty (30%)
-    let combined_fitness = CompositeFitnessFn::new()
-        .add_weighted_fn(traditional_fitness, 0.7)
-        .add_weighted_fn(novelty_fitness, 0.3);
-
-    let engine = GeneticEngine::builder()
-        .codec(model_codec)
-        .maximizing()
-        .fitness_fn(combined_fitness)
-        .build();
-    ``` 
--->
 
 ---
 
@@ -415,3 +343,4 @@ engine = rd.GeneticEngine(
 1. **Fitness + Novelty**: Combine traditional fitness with novelty for balanced exploration/exploitation
 2. **Multi-Objective Composite**: Use composite functions to handle multiple conflicting objectives
 3. **Behavioral Descriptors**: Use domain-specific behavioral characteristics for novelty search
+

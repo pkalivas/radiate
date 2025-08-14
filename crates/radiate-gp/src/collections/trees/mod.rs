@@ -7,7 +7,6 @@ mod iter;
 mod mutator;
 mod node;
 mod tree;
-mod writer;
 
 pub use chromosome::TreeChromosome;
 pub use codec::TreeCodec;

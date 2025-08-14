@@ -1,18 +1,7 @@
 use pyo3::{
     Py, PyAny, PyResult, Python, exceptions::PyTypeError, pyclass, pymethods, types::PyAnyMethods,
 };
-use radiate::{
-    CosineDistance, EuclideanDistance, FitnessFunction, HammingDistance, NoveltySearch,
-    fitness::Novelty,
-};
-
-pub struct PyDescriptor;
-
-impl Novelty<Vec<f32>> for PyDescriptor {
-    fn description(&self, desc: &Vec<f32>) -> Vec<f32> {
-        desc.clone()
-    }
-}
+use radiate::{CosineDistance, EuclideanDistance, FitnessFunction, HammingDistance, NoveltySearch};
 
 #[pyclass]
 pub struct PyNoveltySearch {

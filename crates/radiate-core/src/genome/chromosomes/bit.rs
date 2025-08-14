@@ -115,9 +115,10 @@ impl Chromosome for BitChromosome {
     }
 }
 
+/// Every `BitGene` is valid, so the `BitChromosome` is also valid.
 impl Valid for BitChromosome {
     fn is_valid(&self) -> bool {
-        self.genes.iter().all(|gene| gene.is_valid())
+        true
     }
 }
 
