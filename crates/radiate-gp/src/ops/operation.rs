@@ -12,7 +12,7 @@ pub enum Op<T> {
     /// # Arguments
     ///    - A `&'static str` name (e.g., "Add", "Sigmoid")
     ///    - Arity (how many inputs it takes)
-    ///    - Arc<dyn Fn(&[T]) -> T> for the actual function logic
+    ///    - Arc<dyn Fn(&`\[`T`\]`) -> T> for the actual function logic
     Fn(&'static str, Arity, Arc<dyn Fn(&[T]) -> T>),
     /// 2) A variable-like operation:
     ///

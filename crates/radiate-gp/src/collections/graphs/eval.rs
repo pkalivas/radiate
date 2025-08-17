@@ -132,7 +132,7 @@ where
     T: Eval<[V], V>,
     V: Clone + Default,
 {
-    /// Evaluates the [Graph] with the given input 'Vec<Vec<T>>'. Returns the output of the [Graph] as 'Vec<Vec<T>>'.
+    /// Evaluates the [Graph] with the given input `Vec<Vec<T>>`. Returns the output of the [Graph] as `Vec<Vec<T>>`.
     /// This is intended to be used when evaluating a batch of inputs.
     ///
     /// # Arguments

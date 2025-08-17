@@ -117,7 +117,7 @@ use std::ops::{Index, IndexMut};
 ///
 /// # Genetic Programming
 /// The [Graph] struct is particularly useful in genetic programming as it can represent:
-/// * Neural networks (using Op<f32> or Op<bool> for values)
+/// * Neural networks (using `Op<f32>` or `Op<bool>` for values)
 /// * Decision graphs
 /// * Program flow graphs
 /// * Other interconnected structures
@@ -128,7 +128,7 @@ use std::ops::{Index, IndexMut};
 /// When the "serde" feature is enabled, the struct implements `Serialize` and `Deserialize` traits.
 ///
 /// # Performance Considerations
-/// * All nodes (vertices, edges, inputs, outputs) are represented as [GraphNode<T>] instances
+/// * All nodes (vertices, edges, inputs, outputs) are represented as [GraphNode] instances
 /// * Node lookups are O(1) due to vector indexing
 /// * Connection operations (attach/detach) are O(log n) due to BTreeSet usage for incoming/outgoing connections
 /// * Graph traversal is O(V + E) where V is the number of nodes and E is the total number of connections

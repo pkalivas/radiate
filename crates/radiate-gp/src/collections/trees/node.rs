@@ -68,7 +68,7 @@ use std::fmt::Debug;
 /// # Validity
 /// A node is considered valid based on its arity:
 /// * Nodes with [Arity::Zero] must have no children
-/// * Nodes with [Arity::Exact()] must have exactly n children
+/// * Nodes with [variant@Arity::Exact] must have exactly n children
 /// * Nodes with [Arity::Any] can have any number of children
 ///
 /// # Implementation Details

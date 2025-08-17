@@ -91,10 +91,10 @@ Its important to note that other types of fitness functions like `NoveltySearch`
     ```rust
     use radiate::*;
 
-    // This engine will recieve a single batch containing all individuals which need evaluation
     let engine = GeneticEngine::builder()
         .codec(IntChromosome::from((5, 0..100)))
-        // Replace the original 'fitness_fn' call with 'batch_fitness_fn' to enable batch fitness
+        // Replace the original 'fitness_fn' call with 'batch_fitness_fn' to enable batch fitness.
+        // This fitness function will receive a single batch containing all individuals which need evaluation
         .batch_fitness_fn(|phenotypes: &[Vec<i32>]| {
             phenotypes
                 .iter()

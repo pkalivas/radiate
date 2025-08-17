@@ -67,6 +67,10 @@ where
     C: Chromosome + Clone,
     T: Clone + Send + Sync + 'static,
 {
+    /// Creates a new genetic engine with the specified components.
+    ///
+    /// This constructor is primarily used internally by the builder pattern.
+    /// Users should typically create engines using `GeneticEngine::builder()`.
     pub(crate) fn new(
         context: Context<C, T>,
         pipeline: Pipeline<C>,
@@ -79,15 +83,62 @@ where
         }
     }
 
+    /// Creates a new builder for configuring and constructing a genetic engine.
+    ///
+    /// The builder pattern provides a fluent interface for configuring all aspects
+    /// of the genetic algorithm, including population settings, selection strategies,
+    /// evolutionary operators, and fitness functions.
     pub fn builder() -> GeneticEngineBuilder<C, T> {
         GeneticEngineBuilder::default()
     }
 
+    /// Converts the engine into an iterator that yields generations.
+    ///
+    /// This method allows you to iterate over the evolutionary process manually,
+    /// giving you fine-grained control over when and how generations are processed.
+    /// The iterator yields `Generation` objects containing the current state and
+    /// statistics for each generation.
+    ///
+    /// # Use Cases
+    ///
+    /// Manual iteration is useful when you need to:
+    /// - Implement custom termination logic
+    /// - Monitor progress between generations
+    /// - Apply external control or adaptation
+    /// - Integrate with custom monitoring systems
+    /// - Implement interactive evolutionary algorithms
+    ///
+    /// # Note
+    ///
+    /// The iterator consumes the engine, so you can only iterate once. If you need
+    /// to run the engine multiple times, create a new instance using the builder.
     pub fn iter(self) -> impl Iterator<Item = Generation<C, T>> {
         EngineIterator { engine: self }
     }
 }
 
+/// Implementation of the [Engine] trait for [GeneticEngine].
+///
+/// This implementation provides the core evolutionary logic, advancing the
+/// population through one complete generation cycle. Each call to `next()`
+/// represents one generation of evolution, including fitness evaluation,
+/// selection, reproduction, and population replacement.
+///
+/// # Evolutionary Cycle
+///
+/// Each generation follows this sequence:
+/// 1. **Event Emission**: Start of epoch events
+/// 2. **Pipeline Execution**: Run evolutionary operators
+/// 3. **Metrics Collection**: Record timing and performance data
+/// 4. **Best Individual Update**: Track improvements and best solutions
+/// 5. **Event Completion**: End of epoch events
+/// 6. **Generation Advancement**: Increment generation counter
+///
+/// # Performance Optimizations
+///
+/// - **Efficient Metrics**: Metrics are updated incrementally to minimize overhead
+/// - **Event Batching**: Events are emitted efficiently without blocking execution
+/// - **Pipeline Optimization**: Evolutionary operators are executed in optimized sequences
 impl<C, T> Engine for GeneticEngine<C, T>
 where
     C: Chromosome + Clone,
@@ -135,6 +186,20 @@ where
     }
 }
 
+/// Custom drop implementation for proper cleanup and event emission.
+///
+/// When the engine is dropped, it emits a stop event to notify any listeners
+/// that the evolutionary process has ended. This allows external systems to
+/// perform cleanup operations or finalize results.
+///
+/// # Event Emission
+///
+/// The stop event includes the final context state, allowing listeners to:
+/// - Record final metrics and statistics
+/// - Save final population state
+/// - Perform cleanup operations
+/// - Generate final reports
+/// - Integrate with external systems
 impl<C, T> Drop for GeneticEngine<C, T>
 where
     C: Chromosome,

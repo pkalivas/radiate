@@ -51,7 +51,7 @@ where
 
     /// Set the batch fitness function of the genetic engine. This function will be used to
     /// evaluate the fitness of a batch of individuals in the population. This function should
-    /// take a slice of type &[T] and return a Vec<Score>. The Score is used to
+    /// take a slice of type `&[T]` and return a `Vec<Score>`. The Score is used to
     /// evaluate or rank the fitness of the individuals.
     ///
     /// This method is optional and can be set after calling the `build` method.

@@ -4,7 +4,7 @@ use crate::{
 };
 use std::{cmp::Ordering, hash::Hash, ops::Range, sync::Arc};
 
-/// A Front<T> is a collection of `T`'s that are non-dominated with respect to each other.
+/// A `Front<T>` is a collection of `T`'s that are non-dominated with respect to each other.
 /// This is useful for multi-objective optimization problems where the goal is to find
 /// the best solutions that are not dominated by any other solution.
 /// This results in what is called the Pareto front.

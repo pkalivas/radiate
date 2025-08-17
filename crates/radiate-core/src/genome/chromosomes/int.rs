@@ -258,7 +258,7 @@ pub struct IntChromosome<I: Integer<I>> {
 }
 
 impl<I: Integer<I>> IntChromosome<I> {
-    /// Given a vec of [IntGene<T>]'s, create a new [IntChromosome<T>].
+    /// Given a vec of [IntGene]'s, create a new [IntChromosome].
     pub fn new(genes: Vec<IntGene<I>>) -> Self {
         IntChromosome { genes }
     }

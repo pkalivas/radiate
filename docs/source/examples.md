@@ -472,12 +472,13 @@ Evolve a `Graph<Op<f32>>` to solve the XOR problem (NeuroEvolution).
             ))
             .build();
 
-        let result = engine.run(|ctx| {
-            println!("[ {:?} ]: {:?}", ctx.index, ctx.score().as_f32(),);
-            ctx.index == MAX_INDEX || ctx.score().as_f32() < MIN_SCORE
-        });
-
-        display(&result);
+        // Using the engine iterator
+        engine
+            .iter()
+            .logging()
+            .until_score(MIN_SCORE)
+            .last()
+            .inspect(display);
     }
 
     fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {

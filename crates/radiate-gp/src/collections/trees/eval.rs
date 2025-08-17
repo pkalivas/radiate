@@ -31,7 +31,7 @@ where
     }
 }
 
-/// Implements the [Eval] trait for [Tree<T>] where `T` is `Eval<[V], V>`. All this really does is
+/// Implements the [Eval] trait for [`Tree<T>`] where `T` is `Eval<[V], V>`. All this really does is
 /// call the `eval` method on the root node of the [Tree]. The real work is
 /// done in the [TreeNode] implementation below.
 impl<T, V> Eval<[V], V> for Tree<T>
