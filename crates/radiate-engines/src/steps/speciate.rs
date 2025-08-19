@@ -141,7 +141,7 @@ where
                         for (species_idx, species) in specs.iter().enumerate() {
                             let dist = self
                                 .diversity
-                                .measure(genotype, &species.mascot().genotype());
+                                .measure(genotype, species.mascot().genotype());
 
                             distances.push(dist);
 

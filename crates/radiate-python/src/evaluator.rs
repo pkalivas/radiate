@@ -14,9 +14,9 @@ struct PyBatch {
     fitness_fn: Py<PyAny>,
 }
 
-/// Based off of the pyo3 docuntation: https://pyo3.rs/v0.24.2/parallelism
+/// Based off of the [pyo3 documentation](https://pyo3.rs/v0.24.2/parallelism)
 ///
-/// The [PyEvaluator] is an [Evaluator<C, T>] implementation that allows for free-threaded evaluation.
+/// The `PyEvaluator` is an [Evaluator<C, T>] implementation that allows for free-threaded evaluation.
 /// We avoid Python's GIL by using the `allow_threads` method, bypassing the
 /// GIL for the duration of the evaluation.
 pub struct FreeThreadPyEvaluator<C: Chromosome, T> {
@@ -55,6 +55,7 @@ where
             if batch_size == 0 {
                 return 0;
             }
+
             let mut batches = Vec::new();
             for i in (0..jobs.len()).step_by(batch_size) {
                 let end = std::cmp::min(i + batch_size, jobs.len());

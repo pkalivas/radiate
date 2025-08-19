@@ -55,9 +55,9 @@ use super::TreeChromosome;
 /// ```
 ///
 pub trait TreeIterator<T> {
-    fn iter_pre_order(&self) -> PreOrderIterator<T>;
-    fn iter_post_order(&self) -> PostOrderIterator<T>;
-    fn iter_breadth_first(&self) -> TreeBreadthFirstIterator<T>;
+    fn iter_pre_order(&self) -> PreOrderIterator<'_, T>;
+    fn iter_post_order(&self) -> PostOrderIterator<'_, T>;
+    fn iter_breadth_first(&self) -> TreeBreadthFirstIterator<'_, T>;
     fn apply<F: Fn(&mut TreeNode<T>)>(&mut self, visit_fn: F);
 }
 

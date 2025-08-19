@@ -1,7 +1,7 @@
 use crate::collections::GraphNode;
 use std::collections::VecDeque;
 
-/// [GraphIterator] is a trait that provides an iterator over any &[[GraphNode<T>]]. The iterator is used to
+/// [GraphIterator] is a trait that provides an iterator over any &[[`GraphNode<T>`]]. The iterator is used to
 /// traverse the said nodes in a pseudo-topological order.
 pub trait GraphIterator<'a, T> {
     fn iter_topological(&'a self) -> GraphTopologicalIterator<'a, T>;
@@ -13,7 +13,7 @@ impl<'a, G: AsRef<[GraphNode<T>]>, T> GraphIterator<'a, T> for G {
     }
 }
 
-/// [GraphIterator] is an iterator that traverses a &[[GraphNode<T>]] in sudo-topological order. I say
+/// [GraphIterator] is an iterator that traverses a &[[`GraphNode<T>`]] in sudo-topological order. I say
 /// "sudo-topological" because it is not a true topological order, but rather a topological order
 /// that allows for recurrent connections.
 pub struct GraphTopologicalIterator<'a, T> {

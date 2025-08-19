@@ -458,3 +458,30 @@ Let's look at a basic example of how to use the `Codec` for evolving a simple fu
         generation.index() >= 1000 || generation.score().as_f32() <= 0.01
     });
     ```
+
+    Some chromosomes are able to be used directly as codecs aswell. This means that you could create 
+    engines using methods as seen below. For the duration of the user guide however, we'll use the above method.
+
+    ```rust
+    // This is the same as using a FloatCodec::vector(2, -1.0..1.0).with_bounds(-10.0..10.0);
+    let mut engine = GeneticEngine::builder()
+        .codec(FloatChromosome::from((2, -1.0..1.0, -10..10)))
+        .fitness_fn(fitness_fn)
+        // ... other parameters ...
+        .build()
+
+    // To create a matrix codec using a Chromosome just use a Vec
+    let mut engine = GeneticEngine::builder()
+        .codec(vec![
+            FloatChromosome::from((2, -1.0..1.0, -10..10)),
+            FloatChromosome::from(vec![
+                FloatGene::from(-3.0..3.0),
+                FloatGene::from((-5.0..5.0, -10.0..10.0))
+            ])
+        ])
+        .fitness_fn(|phenotype: Vec<Vec<f32>>| {
+            // ... your fitness calc ...
+        })
+        // ... other parameters ...
+        .build()
+    ```

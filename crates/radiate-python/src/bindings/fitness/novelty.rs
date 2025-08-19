@@ -1,18 +1,7 @@
 use pyo3::{
     Py, PyAny, PyResult, Python, exceptions::PyTypeError, pyclass, pymethods, types::PyAnyMethods,
 };
-use radiate::{
-    CosineDistance, EuclideanDistance, FitnessFunction, HammingDistance, NoveltySearch,
-    fitness::Novelty,
-};
-
-pub struct PyDescriptor;
-
-impl Novelty<Vec<f32>> for PyDescriptor {
-    fn description(&self, desc: &Vec<f32>) -> Vec<f32> {
-        desc.clone()
-    }
-}
+use radiate::{CosineDistance, EuclideanDistance, FitnessFunction, HammingDistance, NoveltySearch};
 
 #[pyclass]
 pub struct PyNoveltySearch {
@@ -32,11 +21,11 @@ impl PyNoveltySearch {
     ) -> Self {
         PyNoveltySearch {
             descriptor,
-            inner: if distance == "EuclideanDistance" {
+            inner: if distance == crate::names::EUCLIDEAN_DISTANCE {
                 NoveltySearch::new(EuclideanDistance, k, threshold)
                     .with_max_archive_size(archive_size)
                     .euclidean_distance()
-            } else if distance == "CosineDistance" {
+            } else if distance == crate::names::COSINE_DISTANCE {
                 NoveltySearch::new(CosineDistance, k, threshold)
                     .with_max_archive_size(archive_size)
                     .cosine_distance()

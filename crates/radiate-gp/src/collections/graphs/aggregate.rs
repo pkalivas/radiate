@@ -43,20 +43,20 @@ enum ConnectTypes {
     AllToAll,
 }
 
-/// Represents a relationship between two [GraphNode<T>]'s where the `source_id` is the [GraphNode<T>]'s
-/// id that is incoming, or giving its value to the `target_id` [GraphNode<T>].
+/// Represents a relationship between two [GraphNode]'s where the `source_id` is the [GraphNode]'s
+/// id that is incoming, or giving its value to the `target_id` [GraphNode].
 struct Relationship<'a> {
     source_id: &'a GraphNodeId,
     target_id: &'a GraphNodeId,
 }
 
-/// The [GraphAggregate] struct is a builder for [Graph<T>] that allows you to build a [Graph<T>]
-/// in an declarative way. It allows you to build a [Graph<T>] by connecting [GraphNode]'s together in
+/// The [GraphAggregate] struct is a builder for [Graph] that allows you to build a [Graph]
+/// in an declarative way. It allows you to build a [Graph] by connecting [GraphNode]'s together in
 /// a multitude of ways.
 ///
 /// We do this by maintaining a map of nodes with an aggregate of thir relationships or how they are
 /// connected to each other. Because of the nature of this aggregate, verifying the correctness of a
-/// [Graph<T>] can truly only be done after building the final [Graph<T>].
+/// [Graph] can truly only be done after building the final [Graph].
 #[derive(Default)]
 pub struct GraphAggregate<'a, T: Clone> {
     nodes: BTreeMap<&'a GraphNodeId, &'a GraphNode<T>>,

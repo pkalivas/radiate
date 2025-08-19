@@ -8,19 +8,16 @@ use std::fmt::Debug;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
-pub struct Context<C, T>
-where
-    C: Chromosome,
-{
-    pub ecosystem: Ecosystem<C>,
-    pub best: T,
-    pub index: usize,
-    pub metrics: MetricSet,
-    pub epoch_metrics: MetricSet,
-    pub score: Option<Score>,
-    pub front: Arc<RwLock<Front<Phenotype<C>>>>,
-    pub objective: Objective,
-    pub problem: Arc<dyn Problem<C, T>>,
+pub struct Context<C: Chromosome, T> {
+    pub(crate) ecosystem: Ecosystem<C>,
+    pub(crate) best: T,
+    pub(crate) index: usize,
+    pub(crate) metrics: MetricSet,
+    pub(crate) epoch_metrics: MetricSet,
+    pub(crate) score: Option<Score>,
+    pub(crate) front: Arc<RwLock<Front<Phenotype<C>>>>,
+    pub(crate) objective: Objective,
+    pub(crate) problem: Arc<dyn Problem<C, T>>,
 }
 
 impl<C, T> Clone for Context<C, T>
@@ -129,10 +126,7 @@ impl<C: Chromosome + Clone, T: Clone> From<&Context<C, T>> for Generation<C, T> 
     }
 }
 
-impl<C, T: Debug> Debug for Generation<C, T>
-where
-    C: Chromosome,
-{
+impl<C: Chromosome, T: Debug> Debug for Generation<C, T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Generation {{\n")?;
         write!(f, "  value: {:?},\n", self.value)?;
@@ -157,13 +151,10 @@ where
     C: Chromosome + Clone,
 {
     fn from_iter<I: IntoIterator<Item = Generation<C, T>>>(iter: I) -> Self {
-        let final_epoch = iter.into_iter().last();
-        if let Some(epoch) = final_epoch {
-            if let Some(front) = epoch.front() {
-                return front.clone();
-            }
-        }
-
-        Front::default()
+        iter.into_iter()
+            .last()
+            .map(|generation| generation.front().map(|front| front.clone()))
+            .flatten()
+            .unwrap_or_default()
     }
 }

@@ -12,13 +12,13 @@ pub enum Op<T> {
     /// # Arguments
     ///    - A `&'static str` name (e.g., "Add", "Sigmoid")
     ///    - Arity (how many inputs it takes)
-    ///    - Arc<dyn Fn(&[T]) -> T> for the actual function logic
+    ///    - Arc<dyn Fn(&`\[`T`\]`) -> T> for the actual function logic
     Fn(&'static str, Arity, Arc<dyn Fn(&[T]) -> T>),
     /// 2) A variable-like operation:
     ///
     /// # Arguments
     ///    - `String` = a name or identifier
-    ///    - `usize` = perhaps an index to retrieve from some external context
+    ///    - `usize` = an index to retrieve from some external context
     Var(&'static str, usize),
     /// 3) A compile-time constant: e.g., 1, 2, 3, etc.
     ///

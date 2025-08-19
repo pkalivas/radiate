@@ -9,12 +9,11 @@ mod species;
 use crate::builder::evaluators::EvaluationParams;
 use crate::builder::objectives::OptimizeParams;
 use crate::builder::population::PopulationParams;
+use crate::builder::problem::ProblemParams;
 use crate::builder::selectors::SelectionParams;
 use crate::builder::species::SpeciesParams;
-use crate::codecs::Codec;
 use crate::genome::phenotype::Phenotype;
 use crate::genome::population::Population;
-use crate::objectives::Score;
 use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
 use crate::steps::{AuditStep, EngineStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
@@ -26,6 +25,8 @@ use crate::{
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use core::panic;
 use radiate_alters::{UniformCrossover, UniformMutator};
+use radiate_core::evaluator::BatchFitnessEvaluator;
+use radiate_core::problem::BatchEngineProblem;
 use radiate_core::{
     Diversity, Ecosystem, Evaluator, Executor, FitnessEvaluator, Genotype, MetricSet,
 };
@@ -44,11 +45,9 @@ where
     pub species_params: SpeciesParams<C>,
     pub selection_params: SelectionParams<C>,
     pub optimization_params: OptimizeParams<C>,
+    pub problem_params: ProblemParams<C, T>,
 
     pub alterers: Vec<Arc<dyn Alter<C>>>,
-    pub codec: Option<Arc<dyn Codec<C, T>>>,
-    pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
-    pub problem: Option<Arc<dyn Problem<C, T>>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     pub handlers: Vec<Arc<Mutex<dyn EventHandler<EngineEvent<T>>>>>,
 }
@@ -108,21 +107,9 @@ where
     /// Build the genetic engine with the given parameters. This will create a new
     /// instance of the `GeneticEngine` with the given parameters.
     pub fn build(mut self) -> GeneticEngine<C, T> {
-        if self.params.problem.is_none() {
-            if self.params.codec.is_none() {
-                panic!("Codec not set");
-            }
-
-            if self.params.fitness_fn.is_none() {
-                panic!("Fitness function not set");
-            }
-
-            let problem = EngineProblem {
-                codec: self.params.codec.clone().unwrap(),
-                fitness_fn: self.params.fitness_fn.clone().unwrap(),
-            };
-
-            self.problem(problem).build()
+        if self.params.problem_params.problem.is_none() {
+            self.build_problem();
+            self.build()
         } else {
             self.build_population();
             self.build_alterer();
@@ -228,11 +215,45 @@ where
         Some(Box::new(species_step))
     }
 
+    /// Build the problem of the genetic engine. This will create a new problem
+    /// using the codec and fitness function if the problem is not set. If the
+    /// problem is already set, this function will do nothing. Else, if the fitness function is
+    /// a batch fitness function, it will create a new `BatchFitnessProblem` and swap the evaluator
+    /// to use a `BatchFitnessEvaluator`.
+    fn build_problem(&mut self) {
+        if self.params.problem_params.problem.is_some() {
+            return;
+        }
+
+        if self.params.problem_params.codec.is_none() {
+            panic!("Codec not set");
+        }
+
+        if let Some(batch_fn) = &self.params.problem_params.batch_fitness_fn {
+            self.params.problem_params.problem = Some(Arc::new(BatchEngineProblem {
+                codec: self.params.problem_params.codec.clone().unwrap(),
+                batch_fitness_fn: batch_fn.clone(),
+            }));
+
+            // Replace the evaluator with BatchFitnessEvaluator
+            self.params.evaluation_params.evaluator = Arc::new(BatchFitnessEvaluator::new(
+                self.params.evaluation_params.fitness_executor.clone(),
+            ));
+        } else if let Some(fitness_fn) = &self.params.problem_params.fitness_fn {
+            self.params.problem_params.problem = Some(Arc::new(EngineProblem {
+                codec: self.params.problem_params.codec.clone().unwrap(),
+                fitness_fn: fitness_fn.clone(),
+            }));
+        } else {
+            panic!("Fitness function not set");
+        }
+    }
+
     /// Build the population of the genetic engine. This will create a new population
     /// using the codec if the population is not set.
     fn build_population(&mut self) {
         self.params.population_params.population = match &self.params.population_params.population {
-            None => Some(match self.params.problem.as_ref() {
+            None => Some(match self.params.problem_params.problem.as_ref() {
                 Some(problem) => {
                     Population::from((self.params.population_params.population_size, || {
                         Phenotype::from((problem.encode(), 0))
@@ -309,7 +330,7 @@ where
                     max_species_age: 25,
                 },
                 evaluation_params: EvaluationParams {
-                    evaluator: Arc::new(FitnessEvaluator::new(Arc::new(Executor::default()))),
+                    evaluator: Arc::new(FitnessEvaluator::default()),
                     fitness_executor: Arc::new(Executor::default()),
                     species_executor: Arc::new(Executor::default()),
                     bus_executor: Arc::new(Executor::default()),
@@ -324,12 +345,15 @@ where
                     front_range: 800..900,
                     front: None,
                 },
+                problem_params: ProblemParams {
+                    codec: None,
+                    problem: None,
+                    fitness_fn: None,
+                    batch_fitness_fn: None,
+                },
 
                 replacement_strategy: Arc::new(EncodeReplace),
                 alterers: Vec::new(),
-                codec: None,
-                fitness_fn: None,
-                problem: None,
                 handlers: Vec::new(),
             },
             errors: Vec::new(),
@@ -431,7 +455,7 @@ where
     fn from(params: &EngineParams<C, T>) -> Self {
         Self {
             population: params.population_params.population.clone().unwrap(),
-            problem: params.problem.clone().unwrap(),
+            problem: params.problem_params.problem.clone().unwrap(),
             survivor_selector: params.selection_params.survivor_selector.clone(),
             offspring_selector: params.selection_params.offspring_selector.clone(),
             replacement_strategy: params.replacement_strategy.clone(),

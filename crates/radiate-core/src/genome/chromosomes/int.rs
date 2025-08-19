@@ -258,7 +258,7 @@ pub struct IntChromosome<I: Integer<I>> {
 }
 
 impl<I: Integer<I>> IntChromosome<I> {
-    /// Given a vec of [IntGene<T>]'s, create a new [IntChromosome<T>].
+    /// Given a vec of [IntGene]'s, create a new [IntChromosome].
     pub fn new(genes: Vec<IntGene<I>>) -> Self {
         IntChromosome { genes }
     }
@@ -279,6 +279,12 @@ impl<I: Integer<I>> Chromosome for IntChromosome<I> {
 impl<T: Integer<T>> Valid for IntChromosome<T> {
     fn is_valid(&self) -> bool {
         self.genes.iter().all(|gene| gene.is_valid())
+    }
+}
+
+impl<T: Integer<T>> From<IntGene<T>> for IntChromosome<T> {
+    fn from(gene: IntGene<T>) -> Self {
+        IntChromosome { genes: vec![gene] }
     }
 }
 

@@ -268,14 +268,14 @@ impl Display for FloatGene {
 /// assert_eq!(chromosome_allels, vec![0.0, 1.0, 2.0]);
 ///
 /// let ranged_chromo = FloatChromosome::from((3, 0.0..10.0));
-/// let ranged_chromo_allels = ranged_chromo
+/// let ranged_chromo_alleles = ranged_chromo
 ///    .iter()
 ///    .map(|gene| *gene.allele())
 ///    .collect::<Vec<f32>>();
 ///
 /// assert!(ranged_chromo.is_valid());
-/// assert_eq!(ranged_chromo_allels.len(), 3);
-/// for allele in ranged_chromo_allels {
+/// assert_eq!(ranged_chromo_alleles.len(), 3);
+/// for allele in ranged_chromo_alleles {
 ///    assert!(allele >= 0.0 && allele <= 10.0);
 /// }
 ///```
@@ -306,6 +306,12 @@ impl Chromosome for FloatChromosome {
 impl Valid for FloatChromosome {
     fn is_valid(&self) -> bool {
         self.genes.iter().all(|gene| gene.is_valid())
+    }
+}
+
+impl From<FloatGene> for FloatChromosome {
+    fn from(gene: FloatGene) -> Self {
+        FloatChromosome { genes: vec![gene] }
     }
 }
 

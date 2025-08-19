@@ -6,6 +6,8 @@ use std::iter::Sum;
 use std::ops::{Add, Div, Index, Mul, Sub};
 use std::sync::Arc;
 
+/// A trait for types that can be scored.
+/// We can use this for a common interface for all scored types.
 pub trait Scored {
     fn score(&self) -> Option<&Score>;
 }

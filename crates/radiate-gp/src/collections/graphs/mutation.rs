@@ -7,7 +7,7 @@ use radiate_core::{Chromosome, labels};
 
 const INVALID_MUTATION: &str = "GraphMutator(Ivld)";
 
-/// A graph mutator that can be used to alter the graph structure within a [GraphChromosome<T>].
+/// A graph mutator that can be used to alter the graph structure within a [`GraphChromosome<T>`].
 /// By adding new vertices and edges to the graph, it can be used to explore the search space of a graph.
 ///
 /// # Arguments
