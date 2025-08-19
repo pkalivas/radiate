@@ -282,6 +282,12 @@ impl<T: Integer<T>> Valid for IntChromosome<T> {
     }
 }
 
+impl<T: Integer<T>> From<IntGene<T>> for IntChromosome<T> {
+    fn from(gene: IntGene<T>) -> Self {
+        IntChromosome { genes: vec![gene] }
+    }
+}
+
 impl<T: Integer<T>> From<Vec<IntGene<T>>> for IntChromosome<T> {
     fn from(genes: Vec<IntGene<T>>) -> Self {
         IntChromosome { genes }

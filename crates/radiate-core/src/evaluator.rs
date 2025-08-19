@@ -143,7 +143,7 @@ where
 ///
 /// The default executor is [Executor::Serial], which processes evaluations
 /// sequentially. For better performance with large populations, consider using
-/// [Executor::ThreadPool(n)] with an appropriate number of worker threads
+/// [variant@Executor::ThreadPool(n)] with an appropriate number of worker threads
 /// or [Executor::WorkerPool] (rayon feature required).
 impl Default for FitnessEvaluator {
     fn default() -> Self {

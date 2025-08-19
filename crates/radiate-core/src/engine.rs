@@ -101,8 +101,7 @@ pub trait Engine {
     /// # Performance
     ///
     /// This method is called repeatedly during execution, so it should be
-    /// optimized for performance. Consider using efficient data structures
-    /// and algorithms, especially for large populations or complex fitness functions.
+    /// optimized for performance.
     fn next(&mut self) -> Self::Epoch;
 }
 

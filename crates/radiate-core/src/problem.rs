@@ -302,8 +302,8 @@ mod tests {
     impl Codec<FloatChromosome, MockPhenotype> for MockCodec {
         fn encode(&self) -> Genotype<FloatChromosome> {
             Genotype::new(vec![
-                FloatChromosome::from(vec![FloatGene::from(1.0)]),
-                FloatChromosome::from(vec![FloatGene::from(2.0)]),
+                FloatChromosome::from(FloatGene::from(1.0)),
+                FloatChromosome::from(FloatGene::from(2.0)),
             ])
         }
 

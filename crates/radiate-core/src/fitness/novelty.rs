@@ -13,7 +13,7 @@ where
     F: Fn(&T) -> Vec<f32>,
 {
     fn description(&self, member: &T) -> Vec<f32> {
-        (self)(member)
+        self(member)
     }
 }
 

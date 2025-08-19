@@ -122,6 +122,12 @@ impl Valid for BitChromosome {
     }
 }
 
+impl From<BitGene> for BitChromosome {
+    fn from(gene: BitGene) -> Self {
+        BitChromosome { genes: vec![gene] }
+    }
+}
+
 impl From<Vec<BitGene>> for BitChromosome {
     fn from(genes: Vec<BitGene>) -> Self {
         BitChromosome { genes }

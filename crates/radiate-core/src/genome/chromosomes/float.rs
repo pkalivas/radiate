@@ -309,6 +309,12 @@ impl Valid for FloatChromosome {
     }
 }
 
+impl From<FloatGene> for FloatChromosome {
+    fn from(gene: FloatGene) -> Self {
+        FloatChromosome { genes: vec![gene] }
+    }
+}
+
 impl From<Vec<FloatGene>> for FloatChromosome {
     fn from(genes: Vec<FloatGene>) -> Self {
         FloatChromosome { genes }

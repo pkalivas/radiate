@@ -1,5 +1,4 @@
-use std::sync::Arc;
-
+use crate::Wrap;
 use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     BitChromosome, BitGene, CharChromosome, CharGene, Chromosome, FloatChromosome, FloatGene, Gene,
@@ -7,8 +6,7 @@ use radiate::{
     PermutationChromosome, PermutationGene, Phenotype, Population, Species, TreeChromosome,
     TreeNode, random_provider,
 };
-
-use crate::Wrap;
+use std::sync::Arc;
 
 pub const FLOAT_GENE_TYPE: &'static str = "FloatGene";
 pub const INT_GENE_TYPE: &'static str = "IntGene";

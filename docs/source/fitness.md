@@ -45,7 +45,7 @@ Simple fitness functions are the most common type - they take a phenotype and re
             value += x[i]**2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
         return value
 
-    codec = rd.FloatCodec.vector(N_GENES, (-5.12, 5.12))
+    codec = rd.FloatCodec.vector(N_GENES, (-RANGE, RANGE))
     engine = rd.GeneticEngine(codec, fitness_fn, objectives="min")
     ```
 

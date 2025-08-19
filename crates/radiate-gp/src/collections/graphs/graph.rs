@@ -291,7 +291,7 @@ impl<T> Graph<T> {
     ///
     /// # Arguments
     /// - index: The index of the node to get the cycles for.
-    // #[inline]
+    #[inline]
     pub fn get_cycles(&self, from: usize) -> HashSet<usize> {
         let mut visited = HashSet::new();
         let mut stack = Vec::new();
@@ -304,6 +304,7 @@ impl<T> Graph<T> {
         cycles
     }
 
+    #[inline]
     fn dfs_visit(
         &self,
         node: usize,
