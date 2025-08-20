@@ -50,7 +50,7 @@ exclude = [
 ]
 
 [workspace.package]
-version = "1.2.15"
+version = "1.2.16"
 edition = "2024"
 authors = ["pkalivas <peterkalivas@gmail.com>"]
 description = "A Rust library for genetic algorithms and artificial evolution."
@@ -65,17 +65,17 @@ homepage = "https://pkalivas.github.io/radiate/"
 rand = "0.9.2"
 pyo3 = "0.25.1"
 numpy ="0.25.0"
-rayon = "1.10.0"
+rayon = "1.11.0"
 serde = { version = "1.0.219", features = ["derive"] }
-serde_json = { version = "1.0.142" }
+serde_json = { version = "1.0.143" }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
-radiate = { version = "1.2.15", path = "crates/radiate", default-features = false }
-radiate-core = { version = "1.2.15", path = "crates/radiate-core", default-features = false }
-radiate-alters = { version = "1.2.15", path = "crates/radiate-alters", default-features = false }
-radiate-selectors = { version = "1.2.15", path = "crates/radiate-selectors", default-features = false }
-radiate-engines = { version = "1.2.15", path = "crates/radiate-engines", default-features = false }
-radiate-gp = { version = "1.2.15", path = "crates/radiate-gp", default-features = false }
-radiate-error = { version = "1.2.15", path = "crates/radiate-error", default-features = false }
-radiate-python = { version = "1.2.15", path = "crates/radiate-python", default-features = false }
+radiate = { version = "1.2.16", path = "crates/radiate", default-features = false }
+radiate-core = { version = "1.2.16", path = "crates/radiate-core", default-features = false }
+radiate-alters = { version = "1.2.16", path = "crates/radiate-alters", default-features = false }
+radiate-selectors = { version = "1.2.16", path = "crates/radiate-selectors", default-features = false }
+radiate-engines = { version = "1.2.16", path = "crates/radiate-engines", default-features = false }
+radiate-gp = { version = "1.2.16", path = "crates/radiate-gp", default-features = false }
+radiate-error = { version = "1.2.16", path = "crates/radiate-error", default-features = false }
+radiate-python = { version = "1.2.16", path = "crates/radiate-python", default-features = false }
 
