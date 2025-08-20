@@ -250,7 +250,6 @@ class TestEngineBasicIntegration:
         self, simple_multi_objective_engine, random_seed
     ):
         """Test multi-objective engine with Pareto front."""
-        simple_multi_objective_engine
         result = simple_multi_objective_engine.run(rd.GenerationsLimit(100))
 
         fitness_values = list(set(map(lambda x: tuple(x["fitness"]), result.value())))

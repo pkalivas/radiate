@@ -117,7 +117,7 @@ use std::ops::{Index, IndexMut};
 ///
 /// # Genetic Programming
 /// The [Graph] struct is particularly useful in genetic programming as it can represent:
-/// * Neural networks (using Op<f32> or Op<bool> for values)
+/// * Neural networks (using `Op<f32>` or `Op<bool>` for values)
 /// * Decision graphs
 /// * Program flow graphs
 /// * Other interconnected structures
@@ -128,7 +128,7 @@ use std::ops::{Index, IndexMut};
 /// When the "serde" feature is enabled, the struct implements `Serialize` and `Deserialize` traits.
 ///
 /// # Performance Considerations
-/// * All nodes (vertices, edges, inputs, outputs) are represented as [GraphNode<T>] instances
+/// * All nodes (vertices, edges, inputs, outputs) are represented as [GraphNode] instances
 /// * Node lookups are O(1) due to vector indexing
 /// * Connection operations (attach/detach) are O(log n) due to BTreeSet usage for incoming/outgoing connections
 /// * Graph traversal is O(V + E) where V is the number of nodes and E is the total number of connections
@@ -254,23 +254,6 @@ impl<T> Graph<T> {
         mutation(GraphTransaction::new(self))
     }
 
-    /// Get the cycles in the graph that include the node at the specified index.
-    ///
-    /// # Arguments
-    /// - index: The index of the node to get the cycles for.
-    // #[inline]
-    pub fn get_cycles(&self, from: usize) -> HashSet<usize> {
-        let mut visited = HashSet::new();
-        let mut stack = Vec::new();
-        let mut cycles = HashSet::new();
-
-        if !visited.contains(&from) {
-            self.dfs_visit(from, &mut visited, &mut stack, &mut cycles);
-        }
-
-        cycles
-    }
-
     /// Given a list of node indices, this function will set the 'direction' field of the nodes
     /// at those indices to [Direction::Backward] if they are part of a cycle. If they are not part
     /// of a cycle, the 'direction' field will be set to [Direction::Forward].
@@ -304,6 +287,24 @@ impl<T> Graph<T> {
         }
     }
 
+    /// Get the cycles in the graph that include the node at the specified index.
+    ///
+    /// # Arguments
+    /// - index: The index of the node to get the cycles for.
+    #[inline]
+    pub fn get_cycles(&self, from: usize) -> HashSet<usize> {
+        let mut visited = HashSet::new();
+        let mut stack = Vec::new();
+        let mut cycles = HashSet::new();
+
+        if !visited.contains(&from) {
+            self.dfs_visit(from, &mut visited, &mut stack, &mut cycles);
+        }
+
+        cycles
+    }
+
+    #[inline]
     fn dfs_visit(
         &self,
         node: usize,

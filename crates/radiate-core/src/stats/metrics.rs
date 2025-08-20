@@ -177,14 +177,6 @@ impl MetricSet {
         self.metrics.get(name)
     }
 
-    pub fn get_mut(&mut self, name: &'static str) -> Option<&mut Metric> {
-        self.metrics.get_mut(name)
-    }
-
-    pub fn names(&self) -> Vec<&'static str> {
-        self.metrics.keys().copied().collect()
-    }
-
     pub fn iter(&self) -> impl Iterator<Item = (&'static str, &Metric)> {
         self.metrics.iter().map(|(name, metric)| (*name, metric))
     }
@@ -378,6 +370,9 @@ impl Metric {
         }
     }
 
+    ///
+    /// --- Common statistic getters ---
+    ///
     pub fn name(&self) -> &'static str {
         self.name
     }
@@ -387,76 +382,6 @@ impl Metric {
             .value_statistic
             .as_ref()
             .map_or(0.0, |stat| stat.last_value())
-    }
-
-    pub fn last_time(&self) -> Duration {
-        self.inner
-            .time_statistic
-            .as_ref()
-            .map_or(Duration::ZERO, |stat| stat.last_time())
-    }
-
-    pub fn value_mean(&self) -> Option<f32> {
-        self.inner.value_statistic.as_ref().map(|stat| stat.mean())
-    }
-
-    pub fn value_variance(&self) -> Option<f32> {
-        self.inner
-            .value_statistic
-            .as_ref()
-            .map(|stat| stat.variance())
-    }
-
-    pub fn value_std_dev(&self) -> Option<f32> {
-        self.inner
-            .value_statistic
-            .as_ref()
-            .map(|stat| stat.std_dev())
-    }
-
-    pub fn value_skewness(&self) -> Option<f32> {
-        self.inner
-            .value_statistic
-            .as_ref()
-            .map(|stat| stat.skewness())
-    }
-
-    pub fn value_min(&self) -> Option<f32> {
-        self.inner.value_statistic.as_ref().map(|stat| stat.min())
-    }
-
-    pub fn value_max(&self) -> Option<f32> {
-        self.inner.value_statistic.as_ref().map(|stat| stat.max())
-    }
-
-    pub fn time_mean(&self) -> Option<Duration> {
-        self.inner.time_statistic.as_ref().map(|stat| stat.mean())
-    }
-
-    pub fn time_variance(&self) -> Option<Duration> {
-        self.inner
-            .time_statistic
-            .as_ref()
-            .map(|stat| stat.variance())
-    }
-
-    pub fn time_std_dev(&self) -> Option<Duration> {
-        self.inner
-            .time_statistic
-            .as_ref()
-            .map(|stat| stat.standard_deviation())
-    }
-
-    pub fn time_min(&self) -> Option<Duration> {
-        self.inner.time_statistic.as_ref().map(|stat| stat.min())
-    }
-
-    pub fn time_max(&self) -> Option<Duration> {
-        self.inner.time_statistic.as_ref().map(|stat| stat.max())
-    }
-
-    pub fn time_sum(&self) -> Option<Duration> {
-        self.inner.time_statistic.as_ref().map(|stat| stat.sum())
     }
 
     pub fn distribution(&self) -> Option<&Distribution> {
@@ -471,50 +396,106 @@ impl Metric {
         self.inner.time_statistic.as_ref()
     }
 
-    pub fn last_sequence(&self) -> Option<&Vec<f32>> {
-        self.inner
-            .distribution
-            .as_ref()
-            .map(|dist| dist.last_sequence())
-    }
-
-    pub fn distribution_mean(&self) -> Option<f32> {
-        self.inner.distribution.as_ref().map(|dist| dist.mean())
-    }
-
-    pub fn distribution_variance(&self) -> Option<f32> {
-        self.inner.distribution.as_ref().map(|dist| dist.variance())
-    }
-
-    pub fn distribution_std_dev(&self) -> Option<f32> {
-        self.inner
-            .distribution
-            .as_ref()
-            .map(|dist| dist.standard_deviation())
-    }
-
-    pub fn distribution_skewness(&self) -> Option<f32> {
-        self.inner.distribution.as_ref().map(|dist| dist.skewness())
-    }
-
-    pub fn distribution_kurtosis(&self) -> Option<f32> {
-        self.inner.distribution.as_ref().map(|dist| dist.kurtosis())
-    }
-
-    pub fn distribution_min(&self) -> Option<f32> {
-        self.inner.distribution.as_ref().map(|dist| dist.min())
-    }
-
-    pub fn distribution_max(&self) -> Option<f32> {
-        self.inner.distribution.as_ref().map(|dist| dist.max())
+    pub fn last_time(&self) -> Duration {
+        self.time_statistic()
+            .map_or(Duration::ZERO, |stat| stat.last_time())
     }
 
     pub fn count(&self) -> i32 {
-        self.inner
-            .value_statistic
-            .as_ref()
-            .map(|stat| stat.count())
-            .unwrap_or(0)
+        self.statistic().map(|stat| stat.count()).unwrap_or(0)
+    }
+
+    ///
+    /// --- Get the value statistics ---
+    ///
+    pub fn value_mean(&self) -> Option<f32> {
+        self.statistic().map(|stat| stat.mean())
+    }
+
+    pub fn value_variance(&self) -> Option<f32> {
+        self.statistic().map(|stat| stat.variance())
+    }
+
+    pub fn value_std_dev(&self) -> Option<f32> {
+        self.statistic().map(|stat| stat.std_dev())
+    }
+
+    pub fn value_skewness(&self) -> Option<f32> {
+        self.statistic().map(|stat| stat.skewness())
+    }
+
+    pub fn value_min(&self) -> Option<f32> {
+        self.statistic().map(|stat| stat.min())
+    }
+
+    pub fn value_max(&self) -> Option<f32> {
+        self.statistic().map(|stat| stat.max())
+    }
+
+    ///
+    /// ---Get the time statistics ---
+    ///
+    pub fn time_mean(&self) -> Option<Duration> {
+        self.time_statistic().map(|stat| stat.mean())
+    }
+
+    pub fn time_variance(&self) -> Option<Duration> {
+        self.time_statistic().map(|stat| stat.variance())
+    }
+
+    pub fn time_std_dev(&self) -> Option<Duration> {
+        self.time_statistic().map(|stat| stat.standard_deviation())
+    }
+
+    pub fn time_min(&self) -> Option<Duration> {
+        self.time_statistic().map(|stat| stat.min())
+    }
+
+    pub fn time_max(&self) -> Option<Duration> {
+        self.time_statistic().map(|stat| stat.max())
+    }
+
+    pub fn time_sum(&self) -> Option<Duration> {
+        self.time_statistic().map(|stat| stat.sum())
+    }
+
+    ///
+    /// --- Get the distribution statistics ---
+    ///
+    pub fn last_sequence(&self) -> Option<&Vec<f32>> {
+        self.distribution().map(|dist| dist.last_sequence())
+    }
+
+    pub fn distribution_mean(&self) -> Option<f32> {
+        self.distribution().map(|dist| dist.mean())
+    }
+
+    pub fn distribution_variance(&self) -> Option<f32> {
+        self.distribution().map(|dist| dist.variance())
+    }
+
+    pub fn distribution_std_dev(&self) -> Option<f32> {
+        self.distribution().map(|dist| dist.standard_deviation())
+    }
+
+    pub fn distribution_skewness(&self) -> Option<f32> {
+        self.distribution().map(|dist| dist.skewness())
+    }
+
+    pub fn distribution_kurtosis(&self) -> Option<f32> {
+        self.distribution().map(|dist| dist.kurtosis())
+    }
+
+    pub fn distribution_min(&self) -> Option<f32> {
+        self.distribution().map(|dist| dist.min())
+    }
+
+    pub fn distribution_max(&self) -> Option<f32> {
+        self.distribution().map(|dist| dist.max())
+    }
+
+    pub fn distribution_entropy(&self) -> Option<f32> {
+        self.distribution().map(|dist| dist.entropy())
     }
 }
 
@@ -584,10 +565,10 @@ impl std::fmt::Debug for Metric {
     }
 }
 
-pub fn format_metrics_table(metrics: &MetricSet) -> String {
+fn format_metrics_table(metrics: &MetricSet) -> String {
     use std::fmt::Write;
 
-    let mut grouped: std::collections::BTreeMap<&str, &Metric> = std::collections::BTreeMap::new();
+    let mut grouped = BTreeMap::new();
     for metric in metrics.iter().map(|(_, m)| m) {
         grouped.insert(metric.name(), metric);
     }

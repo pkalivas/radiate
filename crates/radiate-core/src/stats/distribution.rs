@@ -1,6 +1,7 @@
 use crate::Statistic;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -60,6 +61,7 @@ impl Distribution {
     }
 
     pub fn clear(&mut self) {
+        // Lets think about the below line - how do we want to handle
         // self.statistic.clear();
         self.last_sequence.clear();
     }
@@ -69,8 +71,8 @@ impl Distribution {
     }
 
     pub fn entropy(&self) -> f32 {
-        let bin_width = 0.01; // You can tune this for your resolution
-        let mut counts = std::collections::HashMap::new();
+        let bin_width = 0.01;
+        let mut counts = HashMap::new();
 
         for &value in &self.last_sequence {
             let bin = (value / bin_width).floor();
@@ -131,34 +133,3 @@ impl From<Vec<f32>> for Distribution {
         result
     }
 }
-
-// pub fn entropy(&self, bin_count: usize) -> f32 {
-//     if self.last_sequence.is_empty() || bin_count == 0 {
-//         return 0.0;
-//     }
-
-//     let min = self.min();
-//     let max = self.max();
-
-//     if (max - min).abs() < std::f32::EPSILON {
-//         return 0.0; // All values are (almost) the same
-//     }
-
-//     let bin_width = (max - min) / bin_count as f32;
-//     let mut bins = vec![0usize; bin_count];
-
-//     for &v in &self.last_sequence {
-//         let bin_index = ((v - min) / bin_width).floor() as usize;
-//         let clamped = bin_index.min(bin_count - 1);
-//         bins[clamped] += 1;
-//     }
-
-//     let total = self.last_sequence.len() as f32;
-//     bins.iter()
-//         .filter(|&&count| count > 0)
-//         .map(|&count| {
-//             let p = count as f32 / total;
-//             -p * p.log2()
-//         })
-//         .sum()
-// }

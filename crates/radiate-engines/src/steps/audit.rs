@@ -8,7 +8,7 @@ impl AuditStep {
     fn calc_metrics<C: Chromosome>(
         generation: usize,
         metrics: &mut MetricSet,
-        ecosystem: &mut Ecosystem<C>,
+        ecosystem: &Ecosystem<C>,
     ) {
         let mut age_metric = Metric::new(metric_names::AGE);
         let mut score_metric = Metric::new(metric_names::SCORES);
@@ -55,7 +55,7 @@ impl AuditStep {
     fn calc_species_metrics<C: Chromosome>(
         generation: usize,
         metrics: &mut MetricSet,
-        ecosystem: &mut Ecosystem<C>,
+        ecosystem: &Ecosystem<C>,
     ) {
         if let Some(species) = ecosystem.species() {
             let mut species_ages = Metric::new(metric_names::SPECIES_AGE);
@@ -83,7 +83,7 @@ impl AuditStep {
     fn calc_derived_metrics<C: Chromosome>(
         _: usize,
         metrics: &mut MetricSet,
-        ecosystem: &mut Ecosystem<C>,
+        ecosystem: &Ecosystem<C>,
     ) {
         let derived_scores = metrics.get(metric_names::SCORES).map(|score| {
             let score_coeff = match (score.value_std_dev(), score.value_mean()) {

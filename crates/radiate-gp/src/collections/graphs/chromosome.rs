@@ -10,7 +10,7 @@ use std::fmt::Debug;
 /// the vector of nodes. For instance, to create a graph from the [GraphChromosome], just take
 /// the vector of nodes and give them to a new graph instance - boom, you have a graph.
 ///
-/// [GraphChromosome<T>] is a specialized chromosome type that maintains a collection of graph nodes
+/// [GraphChromosome] is a specialized chromosome type that maintains a collection of graph nodes
 /// and their connections. It's designed for genetic programming applications where the solution
 /// space can be represented as a directed graph.
 ///
@@ -19,8 +19,8 @@ use std::fmt::Debug;
 ///
 /// # Structure
 /// The chromosome consists of:
-/// * A vector of `GraphNode<T>` instances representing the graph structure
-/// * An optional `NodeStore<T>` for managing node creation and validation. This makes
+/// * A vector of [`GraphNode<T>`] instances representing the graph structure
+/// * An optional [`NodeStore<T>`] for managing node creation and validation. This makes
 /// the creation of new nodes easier and more uniform across the genetic algorithm.
 ///
 /// # Features

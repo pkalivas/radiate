@@ -3,7 +3,7 @@ use crate::{Objective, Score, random_provider};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Ecosystem<C: Chromosome> {
     pub population: Population<C>,

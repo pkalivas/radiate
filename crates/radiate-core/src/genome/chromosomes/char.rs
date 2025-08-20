@@ -213,6 +213,12 @@ impl Valid for CharChromosome {
     }
 }
 
+impl From<CharGene> for CharChromosome {
+    fn from(gene: CharGene) -> Self {
+        CharChromosome { genes: vec![gene] }
+    }
+}
+
 impl From<Vec<CharGene>> for CharChromosome {
     fn from(genes: Vec<CharGene>) -> Self {
         CharChromosome { genes }

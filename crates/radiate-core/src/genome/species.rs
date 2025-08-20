@@ -58,10 +58,7 @@ impl<C: Chromosome> Species<C> {
         self.id
     }
 
-    pub fn push(&mut self, individual: Phenotype<C>)
-    where
-        C: Clone,
-    {
+    pub fn push(&mut self, individual: Phenotype<C>) {
         self.population.push(individual);
     }
 

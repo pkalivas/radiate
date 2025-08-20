@@ -1,4 +1,4 @@
-use crate::{FitnessFunction, Score};
+use crate::{BatchFitnessFunction, FitnessFunction};
 use std::{
     collections::VecDeque,
     sync::{Arc, RwLock},
@@ -6,6 +6,15 @@ use std::{
 
 pub trait Novelty<T> {
     fn description(&self, member: &T) -> Vec<f32>;
+}
+
+impl<T, F> Novelty<T> for F
+where
+    F: Fn(&T) -> Vec<f32>,
+{
+    fn description(&self, member: &T) -> Vec<f32> {
+        self(member)
+    }
 }
 
 #[derive(Clone)]
@@ -16,7 +25,6 @@ pub struct NoveltySearch<T> {
     pub threshold: f32,
     pub max_archive_size: usize,
     pub distance_fn: Arc<dyn Fn(&[f32], &[f32]) -> f32 + Send + Sync>,
-    _phantom: std::marker::PhantomData<T>,
 }
 
 impl<T> NoveltySearch<T> {
@@ -40,7 +48,6 @@ impl<T> NoveltySearch<T> {
                     .sum::<f32>()
                     .sqrt()
             }),
-            _phantom: std::marker::PhantomData,
         }
     }
 
@@ -172,42 +179,26 @@ where
     }
 }
 
-pub struct FitnessDescriptor<F, T, S>
+impl<T> BatchFitnessFunction<T, f32> for NoveltySearch<T>
 where
-    F: for<'a> FitnessFunction<&'a T, S>,
-    S: Into<Score>,
+    T: Send + Sync,
 {
-    fitness_fn: Arc<F>,
-    _score_phantom: std::marker::PhantomData<S>,
-    _phantom: std::marker::PhantomData<T>,
-}
-
-impl<F, T, S> FitnessDescriptor<F, T, S>
-where
-    F: for<'a> FitnessFunction<&'a T, S> + 'static,
-    T: Send + Sync + 'static,
-    S: Into<Score> + Send + Sync,
-{
-    /// Create a new fitness descriptor that uses the output of a fitness function
-    /// as the behavioral descriptor. This allows you to use fitness scores
-    /// directly as behavioral descriptors for novelty search or diversity measurement.
-    pub fn new(fitness_fn: F) -> Self {
-        Self {
-            fitness_fn: Arc::new(fitness_fn),
-            _score_phantom: std::marker::PhantomData,
-            _phantom: std::marker::PhantomData,
-        }
+    fn evaluate(&self, individuals: &[T]) -> Vec<f32> {
+        individuals
+            .into_iter()
+            .map(|ind| self.evaluate_internal(ind))
+            .collect()
     }
 }
 
-impl<F, T, S> Novelty<T> for FitnessDescriptor<F, T, S>
+impl<T> BatchFitnessFunction<&T, f32> for NoveltySearch<T>
 where
-    F: for<'a> FitnessFunction<&'a T, S> + 'static,
-    T: Send + Sync + 'static,
-    S: Into<Score> + Send + Sync,
+    T: Send + Sync,
 {
-    fn description(&self, phenotype: &T) -> Vec<f32> {
-        let score = self.fitness_fn.evaluate(phenotype);
-        score.into().into()
+    fn evaluate(&self, individuals: &[&T]) -> Vec<f32> {
+        individuals
+            .into_iter()
+            .map(|ind| self.evaluate_internal(ind))
+            .collect()
     }
 }

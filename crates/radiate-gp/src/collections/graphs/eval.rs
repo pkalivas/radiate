@@ -4,11 +4,13 @@ use crate::{Eval, EvalMut, NodeType, node::Node};
 use serde::{Deserialize, Serialize};
 use std::ops::Range;
 
-/// [GraphEvaluator] is a struct that is used to evaluate a [Graph] of [GraphNode]'s. It uses the [GraphIterator]
-/// to traverse the [Graph] in a sudo-topological order and evaluate the nodes in the correct order.
+/// A cache for storing intermediate results during graph evaluation.
 ///
-/// On the first iteration it caches the order of nodes in the [Graph] and then uses that order to
-/// evaluate the nodes in the correct order. This is a massive performance improvement.
+/// This cache is used to store the inputs and outputs of each node in the graph
+/// during evaluation, allowing for more efficient re-evaluation of nodes when
+/// their inputs change. If we want to save a graph's evaluation between different evals,
+/// we need to keep track of the inputs and outputs from previous runs incase of recurrent
+/// structures. This cache is the answer to that.
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct GraphEvalCache<V> {
@@ -19,6 +21,11 @@ pub struct GraphEvalCache<V> {
     input_ranges: Vec<Range<usize>>,
 }
 
+/// [GraphEvaluator] is a struct that is used to evaluate a [Graph] of [GraphNode]'s. It uses the [GraphIterator]
+/// to traverse the [Graph] in a sudo-topological order and evaluate the nodes in the correct order.
+///
+/// On the first iteration it caches the order of nodes in the [Graph] and then uses that order to
+/// evaluate the nodes in the correct order. This is a massive performance improvement.
 pub struct GraphEvaluator<'a, T, V> {
     nodes: &'a [GraphNode<T>],
     inner: GraphEvalCache<V>,
@@ -125,7 +132,7 @@ where
     T: Eval<[V], V>,
     V: Clone + Default,
 {
-    /// Evaluates the [Graph] with the given input 'Vec<Vec<T>>'. Returns the output of the [Graph] as 'Vec<Vec<T>>'.
+    /// Evaluates the [Graph] with the given input `Vec<Vec<T>>`. Returns the output of the [Graph] as `Vec<Vec<T>>`.
     /// This is intended to be used when evaluating a batch of inputs.
     ///
     /// # Arguments
@@ -170,6 +177,7 @@ where
         if cache.eval_order.is_empty() || graph.as_ref().len() != cache.eval_order.len() {
             return GraphEvaluator::new(graph);
         }
+
         GraphEvaluator {
             nodes: graph.as_ref(),
             inner: cache,

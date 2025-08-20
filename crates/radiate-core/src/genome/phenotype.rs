@@ -8,7 +8,8 @@ use std::ops::Deref;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 /// A unique identifier for a `Phenotype`. This is used to identify the `Phenotype` in the population.
-/// It is a simple wrapper around a `u64` value.
+/// It is a simple wrapper around a `u64` value. Using this, we can uniquely identify each `Phenotype`
+/// and can track them by a sort of 'version'. Every time a Phenotype is created or invalidated, its ID is updated.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[repr(transparent)]
