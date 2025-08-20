@@ -2,6 +2,15 @@
 
 ---
 
+## v1.2.16
+
+- 2025-08-19
+- [Release](https://github.com/pkalivas/radiate/releases/tag/v1.2.16)
+
+In response to github issue [#22](https://github.com/pkalivas/radiate/issues/22).
+
+Adding support for batch fitness functions and batch engine problems through a new trait (BatchFitnessFn). Some small cleanup on other fitness functions and some chromosome operators.
+
 ## v1.2.15 - py 0.0.6
 
 - 2025-08-10
