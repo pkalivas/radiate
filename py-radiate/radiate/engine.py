@@ -1,4 +1,4 @@
-from typing import Any, Callable, List, Tuple
+from typing import Any, Callable
 
 from ._typing import Subscriber
 from .builder import EngineBuilder
@@ -40,16 +40,16 @@ class GeneticEngine[G, T]:
         population: Population[G] | None = None,
         offspring_selector: SelectorBase | None = None,
         survivor_selector: SelectorBase | None = None,
-        alters: AlterBase | List[AlterBase] | None = None,
+        alters: AlterBase | list[AlterBase] | None = None,
         diversity: DistanceBase | None = None,
         population_size: int = 100,
         offspring_fraction: float = 0.8,
         max_phenotype_age: int = 20,
         max_species_age: int = 20,
         species_threshold: float = 0.5,
-        objectives: str | List[str] = "max",
+        objectives: str | list[str] = "max",
         executor: Executor | None = None,
-        front_range: Tuple[int, int] | None = (800, 900),
+        front_range: tuple[int, int] | None = (800, 900),
         subscribe: Subscriber | None = None,
     ):
         self.gene_type = None
@@ -108,7 +108,7 @@ class GeneticEngine[G, T]:
             self.engine = self.builder.build()
         return Generation(self.engine.next())
 
-    def run(self, limits: LimitBase | List[LimitBase], log: bool = False) -> Generation:
+    def run(self, limits: LimitBase | list[LimitBase], log: bool = False) -> Generation:
         """Run the engine with the given limits.
         Args:
             limits: A single Limit or a list of Limits to apply to the engine.
@@ -197,10 +197,10 @@ class GeneticEngine[G, T]:
             raise ValueError("Selector must be provided.")
         self.builder.set_offspring_selector(selector)
 
-    def alters(self, alters: AlterBase | List[AlterBase]):
+    def alters(self, alters: AlterBase | list[AlterBase]):
         """Set the alters.
         Args:
-            alters (AlterBase | List[AlterBase]): The alterers to use in the engine.
+            alters (AlterBase | list[AlterBase]): The alterers to use in the engine.
         Raises:
             ValueError: If alters is None or invalid.
 
@@ -281,12 +281,12 @@ class GeneticEngine[G, T]:
         self.builder.set_objective(["max"], None)
 
     def multi_objective(
-        self, objectives: List[str], front_range: Tuple[int, int] | None = None
+        self, objectives: list[str], front_range: tuple[int, int] | None = None
     ):
         """Set the objectives for a multiobjective problem.
         Args:
-            objectives (List[str]): A list of objectives, each being 'min' or 'max'.
-            front_range (Tuple[int, int] | None): The range for the Pareto front.
+            objectives (list[str]): A list of objectives, each being 'min' or 'max'.
+            front_range (tuple[int, int] | None): The range for the Pareto front.
         Raises:
             ValueError: If objectives is not a list of 'min' or 'max', or if front_range is invalid.
 
@@ -315,9 +315,9 @@ class GeneticEngine[G, T]:
     def subscribe(self, event_handler: Subscriber | None = None):
         """Register an event handler.
         Args:
-            event_handler Union[
-                Callable[[Any], None], List[Callable[[Any], None]], EventHandler, List[EventHandler]
-            ] : The event handler(s) to register.
+            event_handler: Union[
+                Callable[[Any], None], list[Callable[[Any], None]], EventHandler, list[EventHandler]
+            ] | None: The event handler(s) to register.
         Raises:
             TypeError: If event_handler is not callable or a list of callables.
 

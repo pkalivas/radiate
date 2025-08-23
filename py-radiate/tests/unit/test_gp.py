@@ -8,7 +8,6 @@ class TestGP:
     @pytest.mark.unit
     def test_gp_tree_creation(self):
         """Test GP Tree creation."""
-        # Create a simple tree
         codec = rd.TreeCodec(
             vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul(), rd.Op.div()],
             leaf=[rd.Op.var(0), rd.Op.var(1)],
