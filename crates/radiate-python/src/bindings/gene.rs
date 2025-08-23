@@ -1,8 +1,8 @@
 use crate::Wrap;
 use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
-    BitChromosome, BitGene, CharChromosome, CharGene, Chromosome, FloatChromosome, FloatGene, Gene,
-    Genotype, GraphChromosome, GraphNode, IntChromosome, IntGene, NodeType, Op,
+    BitChromosome, BitGene, CharChromosome, CharGene, Chromosome, Ecosystem, FloatChromosome,
+    FloatGene, Gene, Genotype, GraphChromosome, GraphNode, IntChromosome, IntGene, NodeType, Op,
     PermutationChromosome, PermutationGene, Phenotype, Population, Species, TreeChromosome,
     TreeNode, random_provider,
 };
@@ -83,7 +83,27 @@ impl PyGeneType {
     }
 }
 
-// TODO: This isn't the best way to implement this. Fix with enum later.
+#[pyclass]
+#[derive(Clone, Debug)]
+pub struct PyEcosystem {
+    #[pyo3(get)]
+    population: PyPopulation,
+    #[pyo3(get)]
+    species: Vec<PySpecies>,
+}
+
+#[pymethods]
+impl PyEcosystem {
+    #[new]
+    #[pyo3(signature = (population, species=None))]
+    pub fn new(population: PyPopulation, species: Option<Vec<PySpecies>>) -> Self {
+        PyEcosystem {
+            population,
+            species: species.unwrap_or_default(),
+        }
+    }
+}
+
 #[pyclass]
 #[derive(Clone, Debug)]
 pub struct PySpecies {
@@ -817,3 +837,59 @@ impl_into_py_species!(CharChromosome);
 impl_into_py_species!(GraphChromosome<Op<f32>>);
 impl_into_py_species!(TreeChromosome<Op<f32>>);
 impl_into_py_species!(PermutationChromosome<usize>);
+
+macro_rules! impl_into_py_ecosystem {
+    ($chromosome:ty) => {
+        impl From<Ecosystem<$chromosome>> for PyEcosystem
+        where
+            $chromosome: Chromosome + Clone,
+        {
+            fn from(ecosystem: Ecosystem<$chromosome>) -> Self {
+                PyEcosystem {
+                    population: PyPopulation::from(ecosystem.population()),
+                    species: ecosystem
+                        .species()
+                        .map(|s| s.iter().cloned().map(PySpecies::from).collect())
+                        .unwrap_or_default(),
+                }
+            }
+        }
+
+        impl From<PyEcosystem> for Ecosystem<$chromosome>
+        where
+            $chromosome: Chromosome + Clone,
+        {
+            fn from(py_ecosystem: PyEcosystem) -> Self {
+                let population = Population::from(py_ecosystem.population);
+                let species = if !py_ecosystem.species.is_empty() {
+                    Some(
+                        py_ecosystem
+                            .species
+                            .into_iter()
+                            .map(|s| Species::<$chromosome>::from(s))
+                            .collect::<Vec<Species<$chromosome>>>(),
+                    )
+                } else {
+                    None
+                };
+
+                let mut ecosystem = Ecosystem::new(population);
+                if let Some(species_list) = species {
+                    for spec in species_list {
+                        ecosystem.push_species(spec);
+                    }
+                }
+
+                ecosystem
+            }
+        }
+    };
+}
+
+impl_into_py_ecosystem!(FloatChromosome);
+impl_into_py_ecosystem!(IntChromosome<i32>);
+impl_into_py_ecosystem!(BitChromosome);
+impl_into_py_ecosystem!(CharChromosome);
+impl_into_py_ecosystem!(GraphChromosome<Op<f32>>);
+impl_into_py_ecosystem!(TreeChromosome<Op<f32>>);
+impl_into_py_ecosystem!(PermutationChromosome<usize>);

@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from abc import ABC
-
-from typing import Optional, Tuple, Set
 from enum import Enum
 
 from radiate.gp.op import Op
@@ -19,7 +17,7 @@ class GeneType(Enum):
     TREE = "TreeNode"
 
     @staticmethod
-    def all() -> Set[GeneType]:
+    def all() -> set[GeneType]:
         return {
             GeneType.FLOAT,
             GeneType.INT,
@@ -31,7 +29,7 @@ class GeneType(Enum):
         }
 
     @staticmethod
-    def core() -> Set[GeneType]:
+    def core() -> set[GeneType]:
         return {
             GeneType.FLOAT,
             GeneType.INT,
@@ -128,10 +126,10 @@ class Gene[T](ABC):
 class FloatGene(Gene[float]):
     def __init__(
         self,
-        allele: Optional[float] = None,
+        allele: float | None = None,
         *,
-        value_range: Optional[Tuple[float, float]] = None,
-        bound_range: Optional[Tuple[float, float]] = None,
+        value_range: tuple[float, float] | None = None,
+        bound_range: tuple[float, float] | None = None,
     ) -> None:
         """
         Create a float gene with optional allele, value range, and bound range.
@@ -153,10 +151,10 @@ class FloatGene(Gene[float]):
 class IntGene(Gene[int]):
     def __init__(
         self,
-        allele: Optional[int] = None,
+        allele: int | None = None,
         *,
-        value_range: Optional[Tuple[int, int]] = None,
-        bound_range: Optional[Tuple[int, int]] = None,
+        value_range: tuple[int, int] | None = None,
+        bound_range: tuple[int, int] | None = None,
     ) -> None:
         """
         Create an integer gene with optional allele, value range, and bound range.
@@ -176,9 +174,9 @@ class IntGene(Gene[int]):
 
 
 class BitGene(Gene[bool]):
-    def __init__(self, allele: Optional[bool] = None) -> None:
+    def __init__(self, allele: bool | None = None) -> None:
         """
-        Create a float gene with optional allele, value range, and bound range.
+        Create a boolean gene with an optional allele.
         :param allele: Initial value of the gene.
 
         Example
@@ -192,11 +190,11 @@ class BitGene(Gene[bool]):
 class CharGene(Gene[str]):
     def __init__(
         self,
-        allele: Optional[str] = None,
-        char_set: Optional[Set[str]] = None,
+        allele: str | None = None,
+        char_set: set[str] | None = None,
     ) -> None:
         """
-        Create a character gene with optional allele, value range, and bound range.
+        Create a character gene with optional allele and character set.
         :param allele: Initial value of the gene.
         :param char_set: Set of allowed characters for the gene.
         :return: A new Gene instance configured as a character gene.
@@ -212,7 +210,7 @@ class CharGene(Gene[str]):
 
 
 class PermutationGene[T](Gene[T]):
-    def __init__(self, allele: Optional[T] = None, index: int = 0) -> None:
+    def __init__(self, allele: T | None = None, index: int = 0) -> None:
         """
         Create a permutation gene with optional allele.
         :param allele: Initial value of the gene.

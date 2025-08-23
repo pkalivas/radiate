@@ -3,6 +3,7 @@ use std::time::Duration;
 use super::PyGenotype;
 use crate::EpochHandle;
 use crate::PyAnyObject;
+use crate::PyEcosystem;
 use crate::PyPopulation;
 use crate::PySpecies;
 use crate::bindings::gp::{PyGraph, PyTree};
@@ -96,6 +97,18 @@ impl PyGeneration {
             .unwrap()
             .into_py_any(py)
             .map(|b| b.into_bound(py))
+    }
+
+    pub fn ecosystem(&self) -> PyEcosystem {
+        match &self.inner {
+            EpochHandle::Int(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
+            EpochHandle::Float(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
+            EpochHandle::Char(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
+            EpochHandle::Bit(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
+            EpochHandle::Permutation(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
+            EpochHandle::Graph(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
+            EpochHandle::Tree(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
+        }
     }
 
     pub fn species(&self) -> Option<Vec<PySpecies>> {

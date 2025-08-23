@@ -1,5 +1,3 @@
-use std::io::Write;
-
 use radiate::*;
 
 const MAX_INDEX: usize = 500;
@@ -52,10 +50,6 @@ fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     }
 
     println!("{:?}", result);
-
-    let mut file = std::fs::File::create("graph.dot").unwrap();
-    file.write_all(result.value().to_dot().as_bytes()).unwrap();
-    println!("Graph written to graph.dot");
 }
 
 fn dataset() -> DataSet {

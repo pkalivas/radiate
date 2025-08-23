@@ -21,6 +21,7 @@ from .genome import (
     Genotype,
     Population,
     Species,
+    Ecosystem,
     Phenotype,
     FloatGene,
     IntGene,
@@ -106,6 +107,7 @@ __all__ = [
     "Phenotype",
     "Population",
     "Species",
+    "Ecosystem",
     # GP
     "Tree",
     "Graph",

@@ -37,11 +37,6 @@ fn display(result: &Generation<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
     println!("{:?}", result);
     println!("Best Tree: {}", result.value().format());
     println!("{:?}", accuracy_result);
-
-    let dot = result.value().to_dot();
-
-    let mut file = std::fs::File::create("tree.dot").expect("Failed to create file");
-    std::io::Write::write_all(&mut file, dot.as_bytes()).expect("Failed to write to file");
 }
 
 fn get_dataset() -> DataSet {

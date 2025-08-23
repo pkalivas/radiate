@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, Callable
+from typing import Callable
 from radiate.codec.base import CodecBase
 from radiate.genome.population import Population
 from radiate.fitness import FitnessBase
@@ -39,7 +39,7 @@ class EngineBuilder:
         )
         return builder.build()
 
-    def inputs(self) -> List[EngineInput]:
+    def inputs(self) -> list[EngineInput]:
         return self._inputs
 
     def set_subscribers(self, subscriber: Subscriber | None):
@@ -98,7 +98,7 @@ class EngineBuilder:
             )
         )
 
-    def set_alters(self, alters: List[AlterBase] | None):
+    def set_alters(self, alters: list[AlterBase] | None):
         if alters is None:
             return
 
@@ -175,7 +175,7 @@ class EngineBuilder:
             )
         )
 
-    def set_max_species_age(self, age: Optional[int] = None):
+    def set_max_species_age(self, age: int | None = None):
         if age is not None and age <= 0:
             raise ValueError("Max species age must be greater than 0.")
 
@@ -189,7 +189,7 @@ class EngineBuilder:
             )
 
     def set_objective(
-        self, objective: List[str] | str, front_range: Optional[Tuple[int, int]] = None
+        self, objective: list[str] | str, front_range: tuple[int, int] | None = None
     ):
         if isinstance(objective, str):
             objective = [objective]

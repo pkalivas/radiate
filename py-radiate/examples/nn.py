@@ -7,7 +7,6 @@ import radiate as rd
 import torch  # type: ignore
 import torch.nn.functional as F  # type: ignore
 import numpy as np
-from typing import List
 # import matplotlib.pyplot as plt # type: ignore
 
 rd.random.seed(42)
@@ -56,7 +55,7 @@ class PyTorchNeuralNetwork:
         print(f"  Total parameters: {self.total_params}")
         print()
 
-    def set_weights(self, weight_vector: List[float]) -> None:
+    def set_weights(self, weight_vector: list[float]) -> None:
         """
         Set the network weights from a flat vector.
 
@@ -147,7 +146,7 @@ class NeuralNetworkEvolver:
     def create_fitness_function(self):
         """Create fitness function that evaluates neural network performance"""
 
-        def fitness_function(weight_vector: List[float]) -> float:
+        def fitness_function(weight_vector: list[float]) -> float:
             """
             Evaluate the fitness of a weight vector.
 
@@ -209,7 +208,7 @@ class NeuralNetworkEvolver:
 
         return result
 
-    def evaluate_best_network(self, best_weights: List[float]):
+    def evaluate_best_network(self, best_weights: list[float]):
         """Evaluate and display the best evolved network"""
 
         print("\n" + "=" * 50)

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List, Optional, Set
-
 from radiate.radiate import PyEngineInput, PyEngineInputType
 
 from ..genome import (
@@ -51,7 +49,7 @@ class EngineInput:
         self,
         input_type: EngineInputType,
         component: str,
-        allowed_genes: Optional[Set[GeneType] | List[GeneType] | GeneType] = None,
+        allowed_genes: set[GeneType] | list[GeneType] | GeneType | None = None,
         **kwargs,
     ):
         if input_type not in input_type_mapping:

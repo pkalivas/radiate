@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-from typing import List, Optional, Tuple
+from .base import CodecBase
 
 from radiate._typing import FloatEncoding
 from radiate.genome.gene import FloatGene, GeneType
-
-from .base import CodecBase
-
 from radiate.genome import Genotype, Gene, Chromosome
 
 from radiate.radiate import PyFloatCodec
@@ -61,8 +58,8 @@ class FloatCodec[T](CodecBase[float, T]):
 
     @staticmethod
     def from_genes(
-        genes: List[Gene[float]] | Tuple[Gene[float], ...], use_numpy: bool = False
-    ) -> FloatCodec[List[float]]:
+        genes: list[Gene[float]] | tuple[Gene[float], ...], use_numpy: bool = False
+    ) -> FloatCodec[list[float]]:
         """
         Create a codec for a single chromosome with specified genes.
         Args:
@@ -81,8 +78,8 @@ class FloatCodec[T](CodecBase[float, T]):
 
     @staticmethod
     def from_chromosomes(
-        chromosomes: List[Chromosome[float]] | Tuple[Chromosome[float], ...],
-    ) -> FloatCodec[List[List[float]]]:
+        chromosomes: list[Chromosome[float]] | tuple[Chromosome[float], ...],
+    ) -> FloatCodec[list[list[float]]]:
         """
         Create a codec for multiple chromosomes.
         Args:
@@ -105,11 +102,11 @@ class FloatCodec[T](CodecBase[float, T]):
 
     @staticmethod
     def matrix(
-        shape: Tuple[int, int] | List[int],
-        value_range: Optional[Tuple[float, float]] = None,
-        bound_range: Optional[Tuple[float, float]] = None,
+        shape: tuple[int, int] | list[int],
+        value_range: tuple[float, float] | None = None,
+        bound_range: tuple[float, float] | None = None,
         use_numpy: bool = False,
-    ) -> FloatCodec[List[List[float]]]:
+    ) -> FloatCodec[list[list[float]]]:
         """
         Create a matrix codec with specified rows and columns.
         Args:
@@ -162,10 +159,10 @@ class FloatCodec[T](CodecBase[float, T]):
     @staticmethod
     def vector(
         length: int,
-        value_range: Optional[Tuple[float, float]] = None,
-        bound_range: Optional[Tuple[float, float]] = None,
+        value_range: tuple[float, float] | None = None,
+        bound_range: tuple[float, float] | None = None,
         use_numpy: bool = False,
-    ) -> FloatCodec[List[float]]:
+    ) -> FloatCodec[list[float]]:
         """
         Create a vector codec with specified length.
         Args:
@@ -206,8 +203,8 @@ class FloatCodec[T](CodecBase[float, T]):
 
     @staticmethod
     def scalar(
-        value_range: Optional[Tuple[float, float]] = None,
-        bound_range: Optional[Tuple[float, float]] = None,
+        value_range: tuple[float, float] | None = None,
+        bound_range: tuple[float, float] | None = None,
     ) -> FloatCodec[float]:
         """
         Create a scalar codec.

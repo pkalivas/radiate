@@ -1,4 +1,3 @@
-from typing import List
 
 import pytest
 import gc
@@ -50,7 +49,7 @@ class TestEnginePerformance:
     def test_engine_small_problem_performance(self, performance_benchmark):
         """Benchmark engine performance on small problems."""
 
-        def fitness_func(x: List[float]) -> float:
+        def fitness_func(x: list[float]) -> float:
             return sum(xi**2 for xi in x)
 
         engine = rd.GeneticEngine(
@@ -75,7 +74,7 @@ class TestEnginePerformance:
     def test_engine_large_population_performance(self, performance_benchmark):
         """Benchmark engine performance with large population."""
 
-        def fitness_func(x: List[float]) -> float:
+        def fitness_func(x: list[float]) -> float:
             return sum(xi**2 for xi in x)
 
         engine = rd.GeneticEngine(
@@ -104,7 +103,7 @@ class TestMemoryPerformance:
     def test_memory_usage_small_problem(self, performance_benchmark):
         """Test memory usage for small problems."""
 
-        def fitness_func(x: List[float]) -> float:
+        def fitness_func(x: list[float]) -> float:
             return sum(xi**2 for xi in x)
 
         initial_memory = performance_benchmark.memory_usage()
@@ -131,7 +130,7 @@ class TestMemoryPerformance:
     def test_memory_cleanup(self, performance_benchmark):
         """Test that memory is properly cleaned up after engine runs."""
 
-        def fitness_func(x: List[float]) -> float:
+        def fitness_func(x: list[float]) -> float:
             return sum(xi**2 for xi in x)
 
         initial_memory = performance_benchmark.memory_usage()
@@ -170,7 +169,7 @@ class TestScalabilityPerformance:
         lengths = [10, 50, 100, 500]
         execution_times = []
 
-        def fitness_func(x: List[float]) -> float:
+        def fitness_func(x: list[float]) -> float:
             return sum(xi**2 for xi in x)
 
         for length in lengths:
@@ -204,7 +203,7 @@ class TestRegressionPerformance:
     def test_basic_optimization_performance_regression(self, performance_benchmark):
         """Test that basic optimization performance hasn't regressed."""
 
-        def fitness_func(x: List[float]) -> float:
+        def fitness_func(x: list[float]) -> float:
             return sum(xi**2 for xi in x)
 
         codec = rd.FloatCodec.vector(20, value_range=(-1.0, 1.0))

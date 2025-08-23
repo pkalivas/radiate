@@ -10,7 +10,6 @@ import radiate as rd
 import numpy as np
 import matplotlib.pyplot as plt  # type: ignore
 from matplotlib.animation import FuncAnimation  # type: ignore
-from typing import List, Tuple
 
 rd.random.seed(42)
 np.random.seed(42)
@@ -40,7 +39,7 @@ class SnakeGame:
         if self.debug:
             print(f"Game reset: snake={self.snake}, food={self.food}")
 
-    def generate_food(self) -> Tuple[int, int]:
+    def generate_food(self) -> tuple[int, int]:
         """Generate food at random position."""
         attempts = 0
         while attempts < 100:
@@ -59,7 +58,7 @@ class SnakeGame:
                     return (x, y)
         return (0, 0)
 
-    def get_state(self) -> List[float]:
+    def get_state(self) -> list[float]:
         """Get current game state as neural network input."""
         head_x, head_y = self.snake[0]
 
@@ -202,7 +201,7 @@ class SnakeAI:
     def __init__(self, graph: rd.Graph):
         self.graph = graph
 
-    def predict(self, state: List[float]) -> int:
+    def predict(self, state: list[float]) -> int:
         """Predict the best action given current state."""
         output = self.graph.eval([state])
         return np.argmax(output[0])

@@ -1,4 +1,3 @@
-from typing import List
 import radiate as rd
 import numpy as np
 import pytest
@@ -27,7 +26,7 @@ class TestEngineBasicIntegration:
         """Test engine with float codec for maximization."""
 
         # Simple fitness function: maximize sum of squares
-        def fitness_func(x: List[float]) -> float:
+        def fitness_func(x: list[float]) -> float:
             return sum(xi**2 for xi in x)
 
         engine = rd.GeneticEngine(
@@ -49,7 +48,7 @@ class TestEngineBasicIntegration:
     def test_engine_can_maximize(self):
         target = "Testing, Radiate!"
 
-        def fitness_func(x: List[str]) -> int:
+        def fitness_func(x: list[str]) -> int:
             return sum(1 for i in range(len(target)) if x[i] == target[i])
 
         engine = rd.GeneticEngine(
@@ -69,7 +68,7 @@ class TestEngineBasicIntegration:
         """Test engine with bit codec for binary optimization."""
 
         # Maximize number of 1s
-        def fitness_func(x: List[bool]) -> float:
+        def fitness_func(x: list[bool]) -> float:
             return sum(1 for bit in x if bit)
 
         engine = rd.GeneticEngine(
@@ -93,7 +92,7 @@ class TestEngineBasicIntegration:
         RANGE = 5.12
         N_GENES = 2
 
-        def fitness_fn(x: List[float]) -> float:
+        def fitness_fn(x: list[float]) -> float:
             value = A * N_GENES
             for i in range(N_GENES):
                 value += x[i] ** 2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
@@ -203,7 +202,7 @@ class TestEngineBasicIntegration:
         """Test engine with permutation codec for TSP-like problem."""
 
         # Simple TSP-like fitness: minimize sum of adjacent differences
-        def fitness_func(x: List[int]) -> float:
+        def fitness_func(x: list[int]) -> float:
             return sum(abs(x[i] - x[i - 1]) for i in range(1, len(x)))
 
         engine = rd.GeneticEngine(
@@ -226,7 +225,7 @@ class TestEngineBasicIntegration:
     def test_engine_multi_objective(self, random_seed):
         """Test engine with multi-objective optimization."""
 
-        def fitness_func(x: List[float]) -> List[float]:
+        def fitness_func(x: list[float]) -> list[float]:
             # Two objectives: minimize sum, maximize product
             return [sum(x), np.prod(x)]
 

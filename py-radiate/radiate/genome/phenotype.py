@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import List
 
 from radiate.genome.gene import GeneType
 from radiate.genome.wrapper import PythonWrapper
@@ -16,7 +15,7 @@ class Phenotype[T](PythonWrapper[PyPhenotype]):
         self,
         genotype: Genotype[T] | None = None,
         *,
-        score: List[float] | float | None = None,
+        score: list[float] | float | None = None,
     ):
         super().__init__()
 
@@ -45,7 +44,7 @@ class Phenotype[T](PythonWrapper[PyPhenotype]):
         """
         return GeneType.from_str(self._pyobj.genotype.gene_type())
 
-    def score(self) -> List[float]:
+    def score(self) -> list[float]:
         """
         Returns the score of the phenotype.
         :return: The score of the phenotype.

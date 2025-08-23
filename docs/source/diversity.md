@@ -217,11 +217,10 @@ Lets add on to our example - evolving a simple function: finding the best values
 === ":fontawesome-brands-python: Python"
 
     ```python
-    from typing import List
     import radiate as rd
 
     # Define a fitness function that uses the decoded values
-    def fitness_function(individual: List[float]) -> float:    
+    def fitness_function(individual: list[float]) -> float:    
         # Calculate how well these parameters fit your data
         a = individual[0]
         b = individual[1]

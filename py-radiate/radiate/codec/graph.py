@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List, Optional, Dict, Tuple
-
 from radiate._typing import NodeValues
 
 from .base import CodecBase
@@ -26,12 +24,12 @@ class GraphCodec(CodecBase[Op, Graph]):
 
     @staticmethod
     def weighted_directed(
-        shape: Tuple[int, int],
-        vertex: Optional[NodeValues] = None,
-        edge: Optional[NodeValues] = None,
-        output: Optional[NodeValues] = None,
-        values: Optional[Dict[str, List[Op]] | List[Tuple[str, List[Op]]]] = None,
-        max_nodes: Optional[int] = None,
+        shape: tuple[int, int],
+        vertex: NodeValues | None = None,
+        edge: NodeValues | None = None,
+        output: NodeValues | None = None,
+        values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
+        max_nodes: int | None = None,
     ) -> GraphCodec[Op, Graph]:
         return GraphCodec.__build_common(
             name="weighted_directed",
@@ -45,12 +43,12 @@ class GraphCodec(CodecBase[Op, Graph]):
 
     @staticmethod
     def weighted_recurrent(
-        shape: Tuple[int, int],
-        vertex: Optional[NodeValues] = None,
-        edge: Optional[NodeValues] = None,
-        output: Optional[NodeValues] = None,
-        values: Optional[Dict[str, List[Op]] | List[Tuple[str, List[Op]]]] = None,
-        max_nodes: Optional[int] = None,
+        shape: tuple[int, int],
+        vertex: NodeValues | None = None,
+        edge: NodeValues | None = None,
+        output: NodeValues | None = None,
+        values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
+        max_nodes: int | None = None,
     ) -> GraphCodec[Op, Graph]:
         return GraphCodec.__build_common(
             name="weighted_recurrent",
@@ -64,12 +62,12 @@ class GraphCodec(CodecBase[Op, Graph]):
 
     @staticmethod
     def directed(
-        shape: Tuple[int, int],
-        vertex: Optional[NodeValues] = None,
-        edge: Optional[NodeValues] = None,
-        output: Optional[NodeValues] = None,
-        values: Optional[Dict[str, List[Op]] | List[Tuple[str, List[Op]]]] = None,
-        max_nodes: Optional[int] = None,
+        shape: tuple[int, int],
+        vertex: NodeValues | None = None,
+        edge: NodeValues | None = None,
+        output: NodeValues | None = None,
+        values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
+        max_nodes: int | None = None,
     ) -> GraphCodec[Op, Graph]:
         return GraphCodec.__build_common(
             name="directed",
@@ -83,12 +81,12 @@ class GraphCodec(CodecBase[Op, Graph]):
 
     @staticmethod
     def recurrent(
-        shape: Tuple[int, int],
-        vertex: Optional[NodeValues] = None,
-        edge: Optional[NodeValues] = None,
-        output: Optional[NodeValues] = None,
-        values: Optional[Dict[str, List[Op]]] = None,
-        max_nodes: Optional[int] = None,
+        shape: tuple[int, int],
+        vertex: NodeValues | None = None,
+        edge: NodeValues | None = None,
+        output: NodeValues | None = None,
+        values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
+        max_nodes: int | None = None,
     ) -> GraphCodec[Op, Graph]:
         return GraphCodec.__build_common(
             name="recurrent",
@@ -103,12 +101,12 @@ class GraphCodec(CodecBase[Op, Graph]):
     @staticmethod
     def __build_common(
         name: str = "directed",
-        shape: Tuple[int, int] = (1, 1),
-        vertex: Optional[NodeValues] = None,
-        edge: Optional[NodeValues] = None,
-        output: Optional[NodeValues] = None,
-        values: Optional[Dict[str, List[Op]]] = None,
-        max_nodes: Optional[int] = None,
+        shape: tuple[int, int] = (1, 1),
+        vertex: NodeValues | None = None,
+        edge: NodeValues | None = None,
+        output: NodeValues | None = None,
+        values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
+        max_nodes: int | None = None,
     ) -> GraphCodec[Op, Graph]:
         input_size, output_size = shape
 

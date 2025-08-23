@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from typing import List
-
 from .base import CodecBase
 
 from radiate.radiate import PyPermutationCodec
 from radiate.genome import Genotype
 
 
-class PermutationCodec[T](CodecBase[T, List[T]]):
-    def __init__(self, alleles: List[T]):
+class PermutationCodec[T](CodecBase[T, list[T]]):
+    def __init__(self, alleles: list[T]):
         """
         Initialize the permutation codec with a PyPermutationCodec instance.
         :param codec: An instance of PyPermutationCodec.
@@ -26,7 +24,7 @@ class PermutationCodec[T](CodecBase[T, List[T]]):
         """
         return Genotype.from_python(self.codec.encode_py())
 
-    def decode(self, genotype: Genotype[T]) -> List[T]:
+    def decode(self, genotype: Genotype[T]) -> list[T]:
         """
         Decode a Genotype into its permutation representation.
         :param genotype: A Genotype instance to decode.

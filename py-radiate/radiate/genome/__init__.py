@@ -11,6 +11,7 @@ from .genotype import Genotype
 from .phenotype import Phenotype
 from .population import Population
 from .species import Species
+from .ecosystem import Ecosystem
 
 from radiate.radiate import PyGeneType as gt
 
@@ -43,6 +44,7 @@ __all__ = [
     "Phenotype",
     "Population",
     "Species",
+    "Ecosystem",
     "FloatGene",
     "IntGene",
     "BitGene",

@@ -50,8 +50,8 @@ where
     {
         let nodes = graph.as_ref();
 
-        let mut input_ranges = Vec::with_capacity(nodes.len());
         let mut total_inputs = 0;
+        let mut input_ranges = Vec::with_capacity(nodes.len());
 
         for node in nodes {
             let input_len = node.incoming().len();

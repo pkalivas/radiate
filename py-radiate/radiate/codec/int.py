@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List, Optional, Tuple
-
 from radiate.genome.chromosome import Chromosome
 from radiate.genome.gene import Gene, GeneType
 
@@ -39,8 +37,8 @@ class IntCodec[D](CodecBase[int, D]):
 
     @staticmethod
     def from_genes(
-        genes: List[Gene[int]] | Tuple[Gene[int], ...], use_numpy: bool = False
-    ) -> IntCodec[List[int]]:
+        genes: list[Gene[int]] | tuple[Gene[int], ...], use_numpy: bool = False
+    ) -> IntCodec[list[int]]:
         """
         Create a codec for a single chromosome with specified genes.
         Args:
@@ -61,8 +59,8 @@ class IntCodec[D](CodecBase[int, D]):
 
     @staticmethod
     def from_chromosomes(
-        chromosomes: List[Chromosome[int]] | Tuple[Chromosome[int], ...],
-    ) -> IntCodec[List[List[int]]]:
+        chromosomes: list[Chromosome[int]] | tuple[Chromosome[int], ...],
+    ) -> IntCodec[list[list[int]]]:
         """
         Create a codec for multiple chromosomes.
         Args:
@@ -87,11 +85,11 @@ class IntCodec[D](CodecBase[int, D]):
 
     @staticmethod
     def matrix(
-        shape: Tuple[int, int] | List[int],
-        value_range: Optional[Tuple[int, int]] = None,
-        bound_range: Optional[Tuple[int, int]] = None,
+        shape: tuple[int, int] | list[int],
+        value_range: tuple[int, int] | None = None,
+        bound_range: tuple[int, int] | None = None,
         use_numpy: bool = False,
-    ) -> IntCodec[List[List[int]]]:
+    ) -> IntCodec[list[list[int]]]:
         """
         Initialize the int codec with number of chromosomes and value bounds.
         :param chromosomes: Number of chromosomes with the number of genes in each chromosome.
@@ -129,10 +127,10 @@ class IntCodec[D](CodecBase[int, D]):
     @staticmethod
     def vector(
         length: int,
-        value_range: Optional[Tuple[int, int]] = None,
-        bound_range: Optional[Tuple[int, int]] = None,
+        value_range: tuple[int, int] | None = None,
+        bound_range: tuple[int, int] | None = None,
         use_numpy: bool = False,
-    ) -> IntCodec[List[int]]:
+    ) -> IntCodec[list[int]]:
         """
         Create a vector codec with specified length.
         :param length: Length of the vector.
@@ -167,8 +165,8 @@ class IntCodec[D](CodecBase[int, D]):
 
     @staticmethod
     def scalar(
-        value_range: Optional[Tuple[int, int]] = None,
-        bound_range: Optional[Tuple[int, int]] = None,
+        value_range: tuple[int, int] | None = None,
+        bound_range: tuple[int, int] | None = None,
     ) -> IntCodec[int]:
         """
         Create a scalar codec with specified value and bound ranges.

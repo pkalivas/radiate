@@ -79,12 +79,11 @@ This simple maximizing problem demonstrates how to use Radiate to solve a string
     === ":fontawesome-brands-python: Python"
 
         ```python
-        from typing import List
         import radiate as rd 
         
         target = "Hello, Radiate!"
 
-        def fitness_func(x: List[str]) -> int:
+        def fitness_func(x: list[str]) -> int:
             return sum(1 for i in range(len(target)) if x[i] == target[i])
 
         engine = rd.GeneticEngine(

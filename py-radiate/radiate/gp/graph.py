@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import List
 from radiate.radiate import PyGraph
 
 
@@ -20,7 +19,7 @@ class Graph:
             return False
         return self.inner == other.inner
 
-    def eval(self, inputs: List[List[float]] | List[float]) -> List[List[float]]:
+    def eval(self, inputs: list[list[float]] | list[float]) -> list[list[float]]:
         return self.inner.eval(inputs)
 
     def reset(self):
