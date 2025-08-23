@@ -102,6 +102,24 @@ impl PyEcosystem {
             species: species.unwrap_or_default(),
         }
     }
+
+    pub fn __repr__(&self) -> String {
+        let mut result = String::new();
+        result.push_str("Ecosystem(\n");
+        result.push_str(&format!("  Population: {:?}\n", self.population));
+
+        if self.species.is_empty() {
+            result.push_str("  Species: []\n");
+        } else {
+            result.push_str("  Species: [\n");
+            for species in &self.species {
+                result.push_str(&format!("    {:?},\n", species));
+            }
+            result.push_str("  ]\n");
+        }
+        result.push_str(")\n");
+        result
+    }
 }
 
 #[pyclass]

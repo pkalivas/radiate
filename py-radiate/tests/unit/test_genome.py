@@ -151,7 +151,7 @@ class TestChromosomes:
         chromosome1 = rd.Chromosome.int(length=3, value_range=(0, 10))
         chromosome2 = rd.Chromosome.int(length=4, value_range=(0, 5))
 
-        genotype = rd.Genotype(chromosomes=[chromosome1, chromosome2])
+        genotype = rd.Genotype([chromosome1, chromosome2])
 
         assert len(genotype) == 2
         assert genotype[0] == chromosome1
