@@ -8,7 +8,6 @@ Alterers are genetic operators that modify the genetic material of individuals i
 
 These operators modify the `population` and are essential for the genetic algorithm to explore the search space effectively. As such, the choice of `alterer` can have a significant impact on the performance of the genetic algorithm, so it is important to choose an `alterer` that is well-suited to the problem being solved.
 
----
 
 ## Mutators
 
@@ -203,6 +202,36 @@ The `ScrambleMutator` randomly reorders a segment of `genes` within a `chromosom
 	let mutator = InvertMutator::new(0.1);
 	```
 
+### Polynomial
+
+> Inputs
+>
+> 	* `rate`: f32 - Mutation rate (0.0 to 1.0)
+> 	* `eta`: f32 - Exponent for polynomial mutation
+
+- **Purpose**: Applies a polynomial mutation to the genes
+- **Best for**: Continuous optimization problems
+- **Example**: Multi-objective optimization, bounded domains where classic Gaussian mutation may overshoot
+- **Compatible with**: `FloatGene`
+
+The `PolynomialMutator` applies a polynomial mutation to the genes of a chromosome. This provides a bounded and unbiased mutation to genes where you care about the distribution of the mutation. Unlike Gaussian mutation, Polynomial can give more control over the tail behavior.
+
+The `eta` parameter controls the shape of the mutation distribution. A higher `eta` value results in a more exploratory mutation, while a lower value makes the mutation more exploitative. For example, a low `eta` (1.0-5.0) leads to bigger mutations, while a high value (20.0-100.0) leads to smaller, more fine grained mutations.
+
+=== ":fontawesome-brands-python: Python"
+
+	```python
+	import radiate as rd
+
+	mutator = rd.PolynomialMutator(rate=0.1, eta=20.0)
+	```
+=== ":fontawesome-brands-rust: Rust"
+
+	```rust
+	use radiate::*;
+
+	let mutator = PolynomialMutator::new(0.1, 20.0);
+	```
 
 ---
 
@@ -405,6 +434,45 @@ where the order of elements in a solution is significant.
 	use radiate::*;
 
 	let crossover = PMXCrossover::new(0.1);
+	```
+
+### Edge Recombination
+
+> Inputs
+>
+>  * `rate`: f32 - Crossover rate (0.0 to 1.0)
+
+- **Purpose**: Combines edges from both parents
+- **Best for**: Permutation problems (TSP, scheduling)
+- **Example**: Useful for problems where the relationship between genes is important
+- **Compatible with**: `PermutationGene<A>`
+
+The `EdgeRecombinationCrossover` is a specialized crossover operator for permutation problems. It focuses on preserving the connectivity between genes by combining edges from both parents.
+
+1. **Edge List Creation**:
+	* For each parent, create a list of edges representing the connections between genes.
+2. **Edge Selection**:
+	* Randomly select edges from both parents to create a new offspring.
+	* This selection process ensures that the offspring inherits important connections from both parents.
+3. **Child Construction**:
+	* The selected edges are used to construct the offspring's gene sequence.
+	* This process helps maintain the overall structure and relationships present in the parent solutions.
+  
+**Example**: If Parent 1 has edges (A-B, B-C) and Parent 2 has edges (B-C, C-D), the offspring might inherit edges (A-B, C-D).
+
+=== ":fontawesome-brands-python: Python"
+
+	```python
+	import radiate as rd
+
+	crossover = rd.EdgeRecombinationCrossover(rate=0.1)
+	```
+=== ":fontawesome-brands-rust: Rust"
+
+	```rust
+	use radiate::*;
+
+	let crossover = EdgeRecombinationCrossover::new(0.1);
 	```
 
 ---
