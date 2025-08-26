@@ -1,4 +1,3 @@
-
 import pytest
 import gc
 
@@ -195,6 +194,7 @@ class TestScalabilityPerformance:
             assert time_ratio < length_ratio * 2
 
 
+# TODO: do we even need this test? It seems redundant
 class TestRegressionPerformance:
     """Performance regression tests."""
 

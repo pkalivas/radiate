@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any
 
 from radiate.genome.population import Population
 from radiate.inputs.input import EngineInput, EngineInputType
@@ -11,7 +11,7 @@ class SelectorBase(ComponentBase):
     def __init__(
         self,
         component: str,
-        args: Dict[str, Any] = {},
+        args: dict[str, Any] = {},
         allowed_genes: set[GeneType] | GeneType = {},
     ):
         super().__init__(component=component, args=args)
@@ -41,7 +41,7 @@ class SelectorBase(ComponentBase):
         )
 
     def select(
-        self, population: Population, objective: List[str] | str, count: int
+        self, population: Population, objective: list[str] | str, count: int
     ) -> Population:
         """
         Select individuals from the population based on the selector's criteria.

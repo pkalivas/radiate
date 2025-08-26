@@ -29,6 +29,10 @@ class EngineBuilder:
         else:
             self.fitness = problem
 
+    def __repr__(self):
+        input_strs = ", \n".join(repr(inp) for inp in self._inputs)
+        return f"EngineBuilder(gene_type={self._gene_type}, inputs=[{input_strs}])"
+
     def build(self) -> PyEngine:
         """Build the PyEngine instance."""
 
@@ -225,7 +229,3 @@ class EngineBuilder:
                 **executor.args,
             )
         )
-
-    def __repr__(self):
-        input_strs = ", \n".join(repr(inp) for inp in self._inputs)
-        return f"EngineBuilder(gene_type={self._gene_type}, inputs=[{input_strs}])"

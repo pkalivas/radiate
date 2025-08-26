@@ -336,7 +336,7 @@ class SnakeEvolver:
             "history": game_history,
         }
 
-    def run_evolution(self, generations: int):
+    def run_evolution(self, generations: int) -> rd.Generation:
         """Run the evolution process."""
         codec = rd.GraphCodec.weighted_directed(
             shape=(self.input_size, self.output_size),
@@ -419,11 +419,11 @@ def main():
     evolver = SnakeEvolver()
 
     # Run evolution
-    result = evolver.run_evolution(generations=250)
+    generation = evolver.run_evolution(generations=250)
 
-    print(result)
+    print(generation)
 
-    best_graph = result.value()
+    best_graph = generation.value()
     evolver.visualize_best_snake(best_graph, "Best Evolved Snake AI")
 
 

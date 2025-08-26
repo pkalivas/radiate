@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 
 from radiate.genome.population import Population
 from radiate.inputs.input import EngineInput, EngineInputType
@@ -10,8 +10,8 @@ class AlterBase(ComponentBase):
     def __init__(
         self,
         component: str,
-        args: Dict[str, Any] = {},
-        allowed_genes: set[GeneType] | GeneType = {},
+        args: dict[str, Any] = {},
+        allowed_genes: set[GeneType] | GeneType = set(),
     ):
         """
         Initialize the base alterer class.
