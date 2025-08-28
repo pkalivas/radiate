@@ -26,7 +26,7 @@ class MutateTemp(rd.Mutator):
     def mutate(self, chromosome: rd.Chromosome) -> rd.Chromosome:
         for i in range(len(chromosome)):
             if rd.random.randfloat() < self.mutation_rate:
-                chromosome[i] = chromosome.view(i).new_instance()
+                chromosome[i] = chromosome[i].new_instance()
         return chromosome
 
 
@@ -40,7 +40,7 @@ class CrossoverTemp(rd.Crossover):
     ) -> tuple[rd.Chromosome, rd.Chromosome]:
         for i in range(len(parent1)):
             if rd.random.randfloat() < self.crossover_rate:
-                parent1[i], parent2[i] = parent2.view(i), parent1.view(i)
+                parent1[i], parent2[i] = parent2[i], parent1[i]
         return parent1, parent2
 
 

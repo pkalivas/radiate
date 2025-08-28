@@ -26,3 +26,12 @@ class RandomProvider:
         :return: Random float.
         """
         return PyRandomProvider.random_float(min, max)
+
+    def sample(data: list, count: int) -> list:
+        """
+        Randomly sample elements from a list.
+        :param data: List of elements to sample from.
+        :param count: Number of elements to sample.
+        :return: List of sampled elements.
+        """
+        return PyRandomProvider.sample(data, count)

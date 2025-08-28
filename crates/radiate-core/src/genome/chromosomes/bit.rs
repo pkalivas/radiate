@@ -150,6 +150,15 @@ impl FromIterator<BitGene> for BitChromosome {
     }
 }
 
+impl IntoIterator for BitChromosome {
+    type Item = BitGene;
+    type IntoIter = std::vec::IntoIter<BitGene>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.genes.into_iter()
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

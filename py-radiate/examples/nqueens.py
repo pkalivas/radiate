@@ -16,6 +16,25 @@ rd.random.seed(500)
 N_QUEENS = 32
 
 
+# class TestMultipointCrossover(rd.Crossover):
+#     def __init__(self, rate: float, num_points: int) -> None:
+#         super().__init__(rate)
+#         self.num_points = num_points
+
+#     def crossover(
+#         self, parent1: rd.Chromosome, parent2: rd.Chromosome
+#     ) -> tuple[rd.Chromosome, rd.Chromosome]:
+
+#         points = sorted(rd.random.sample(range(len(parent1)), self.num_points))
+#         for i in range(len(points) - 1):
+#             if i % 2 == 0:
+#                 parent1[points[i]:points[i + 1]], parent2[points[i]:points[i + 1]] = (
+#                     parent2[points[i]:points[i + 1]],
+#                     parent1[points[i]:points[i + 1]],
+#                 )
+#         return parent1, parent2
+
+
 @jit(int32(int32[:]), nopython=True)
 def fitness_fn(queens: np.ndarray) -> int:
     """Calculate the fitness score for the N-Queens problem."""

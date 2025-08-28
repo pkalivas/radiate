@@ -12,7 +12,7 @@ codec = rd.FloatCodec([
     rd.FloatGene(init_range=(-10.0, 10.0))
 ])
 
-print(codec.encode())
+print(codec.encode()[0][1:])
 
 
 engine = rd.GeneticEngine(

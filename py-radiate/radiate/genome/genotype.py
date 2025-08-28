@@ -42,10 +42,6 @@ class Genotype[T](PyObject[PyGenotype]):
         :param index: Index of the chromosome to retrieve.
         :return: Chromosome instance at the specified index.
         """
-        if not isinstance(index, int):
-            raise TypeError("Index must be an integer")
-        if index < 0 or index >= len(self._pyobj):
-            raise IndexError("Index out of range")
         return Chromosome.from_python(self._pyobj[index])
 
     def __iter__(self):

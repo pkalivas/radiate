@@ -135,7 +135,7 @@ class Gene[T](ABC):
         Set the allele of the gene.
         :param allele: The new allele value, which can be a float, int, bool, str, or None.
         """
-        return Gene.from_python(self.__inner.with_allele(allele))
+        return Gene.from_python(self.__inner.new_instance(allele))
 
 
 class FloatGene(Gene[float]):

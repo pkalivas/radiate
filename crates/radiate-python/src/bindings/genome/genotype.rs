@@ -1,4 +1,4 @@
-use crate::{PyChromosome, PyGene, PyGeneType};
+use crate::{PyChromosome, PyGeneType};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     BitChromosome, CharChromosome, Chromosome, FloatChromosome, Genotype, GraphChromosome,
@@ -7,7 +7,6 @@ use radiate::{
 
 #[pyclass]
 #[derive(Clone, Debug, PartialEq)]
-#[repr(transparent)]
 pub struct PyGenotype {
     #[pyo3(get)]
     pub(crate) chromosomes: Vec<PyChromosome>,
@@ -83,16 +82,8 @@ macro_rules! impl_into_py_genotype {
             fn from(genotype: Genotype<$chromosome>) -> Self {
                 PyGenotype {
                     chromosomes: genotype
-                        .iter()
-                        .map(|chromosome| {
-                            PyChromosome::new(
-                                chromosome
-                                    .genes()
-                                    .iter()
-                                    .map(|gene| PyGene::from(gene.clone()))
-                                    .collect(),
-                            )
-                        })
+                        .into_iter()
+                        .map(|chromosome| PyChromosome::from(chromosome))
                         .collect(),
                 }
             }

@@ -12,15 +12,16 @@ enum GeneInner {
     Int(IntGene<i32>),
     Bit(BitGene),
     Char(CharGene),
+    Permutation(PermutationGene<usize>),
+
     GraphNode(GraphNode<Op<f32>>),
     TreeNode(TreeNode<Op<f32>>),
-    Permutation(PermutationGene<usize>),
+
     View(Arc<RwLock<Vec<PyGene>>>, usize),
 }
 
 #[pyclass]
 #[derive(Clone, Debug)]
-#[repr(transparent)]
 pub struct PyGene {
     inner: GeneInner,
 }
@@ -96,7 +97,12 @@ impl PyGene {
         }
     }
 
-    pub fn with_allele<'py>(&self, py: Python<'py>, allele: Option<Py<PyAny>>) -> PyResult<PyGene> {
+    #[pyo3(signature = (allele=None))]
+    pub fn new_instance<'py>(
+        &self,
+        py: Python<'py>,
+        allele: Option<Py<PyAny>>,
+    ) -> PyResult<PyGene> {
         if allele.is_none() {
             return Ok(PyGene {
                 inner: match &self.inner {
@@ -107,7 +113,7 @@ impl PyGene {
                     GeneInner::Permutation(gene) => GeneInner::Permutation(gene.new_instance()),
                     GeneInner::View(genes, idx) => {
                         let reader = genes.read().unwrap();
-                        return reader[*idx].with_allele(py, allele);
+                        return reader[*idx].new_instance(py, allele);
                     }
                     _ => {
                         return Err(pyo3::exceptions::PyTypeError::new_err(
@@ -132,7 +138,7 @@ impl PyGene {
                     }
                     GeneInner::View(genes, idx) => {
                         let reader = genes.read().unwrap();
-                        return reader[*idx].with_allele(py, Some(allele));
+                        return reader[*idx].new_instance(py, Some(allele));
                     }
                     _ => {
                         return Err(pyo3::exceptions::PyTypeError::new_err(
@@ -261,20 +267,19 @@ macro_rules! impl_into_py_gene {
 
         impl From<PyGene> for $gene_type {
             fn from(py_gene: PyGene) -> Self {
-                match py_gene.inner {
-                    GeneInner::View(genes, idx) => {
-                        let reader = genes.read().unwrap();
-                        let gene = &reader[idx];
-
-                        match &gene.inner {
-                            GeneInner::$gene_variant(inner_gene) => inner_gene.clone(),
-                            _ => panic!(
-                                "Expected {}, got {:?}",
-                                stringify!($gene_type),
-                                gene.gene_type()
-                            ),
-                        }
+                if matches!(py_gene.inner, GeneInner::View(_, _)) {
+                    let flat = py_gene.flatten();
+                    if let GeneInner::$gene_variant(inner_gene) = flat.inner {
+                        return inner_gene;
+                    } else {
+                        panic!(
+                            "Expected {}, got {:?}",
+                            stringify!($gene_type),
+                            flat.gene_type()
+                        );
                     }
+                }
+                match py_gene.inner {
                     GeneInner::$gene_variant(gene) => gene,
                     _ => panic!("Cannot convert PyGene to {}", stringify!($gene_type)),
                 }

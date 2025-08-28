@@ -355,6 +355,15 @@ impl FromIterator<FloatGene> for FloatChromosome {
     }
 }
 
+impl IntoIterator for FloatChromosome {
+    type Item = FloatGene;
+    type IntoIter = std::vec::IntoIter<FloatGene>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.genes.into_iter()
+    }
+}
+
 impl Debug for FloatChromosome {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self.genes)

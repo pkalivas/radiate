@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 from abc import ABC, abstractmethod
 
 from radiate.genome.chromosome import Chromosome
@@ -66,9 +66,7 @@ class Mutator(AlterBase, ABC):
             component="CustomMutator",
             args={
                 "rate": rate,
-                "mutate": lambda chrom: self.mutate(
-                    Chromosome.from_python(chrom)
-                ).to_python(),
+                "mutate": lambda chrom: self.mutate(cast(Chromosome, chrom)),
             },
         )
 
@@ -88,13 +86,8 @@ class Crossover(AlterBase, ABC):
             component="CustomCrossover",
             args={
                 "rate": rate,
-                "crossover": lambda p1, p2: tuple(
-                    map(
-                        lambda c: c.to_python(),
-                        self.crossover(
-                            Chromosome.from_python(p1), Chromosome.from_python(p2)
-                        ),
-                    )
+                "crossover": lambda p1, p2: self.crossover(
+                    cast(Chromosome, p1), cast(Chromosome, p2)
                 ),
             },
         )

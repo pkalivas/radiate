@@ -184,6 +184,15 @@ impl<T> FromIterator<GraphNode<T>> for GraphChromosome<T> {
     }
 }
 
+impl<T> IntoIterator for GraphChromosome<T> {
+    type Item = GraphNode<T>;
+    type IntoIter = std::vec::IntoIter<GraphNode<T>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.nodes.into_iter()
+    }
+}
+
 impl<T: Debug> Debug for GraphChromosome<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Graph {{\n")?;
