@@ -63,6 +63,9 @@ class Chromosome[T](PyObject[PyChromosome]):
         for gene in self._pyobj.genes:
             yield Gene.from_python(gene)
 
+    def view(self, index: int) -> Gene[T]:
+        return Gene.from_python(self._pyobj.view(index))
+
     def gene_type(self) -> GeneType:
         return GeneType.from_str(self._pyobj.gene_type())
 

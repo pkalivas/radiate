@@ -66,16 +66,48 @@ class Mutator(AlterBase, ABC):
             component="CustomMutator",
             args={
                 "rate": rate,
-                "mutate": lambda chrom: self.mutate(Chromosome.from_python(chrom)).to_python(),
+                "mutate": lambda chrom: self.mutate(
+                    Chromosome.from_python(chrom)
+                ).to_python(),
             },
         )
 
     @abstractmethod
-    def mutate(self, chromosome: Any):
+    def mutate(self, chromosome: Chromosome) -> Chromosome:
         """
         Abstract method to mutate a chromosome.
         :param chromosome: The chromosome to mutate.
         :return: The mutated chromosome.
+        """
+        pass
+
+
+class Crossover(AlterBase, ABC):
+    def __init__(self, rate: float = 1.0):
+        super().__init__(
+            component="CustomCrossover",
+            args={
+                "rate": rate,
+                "crossover": lambda p1, p2: tuple(
+                    map(
+                        lambda c: c.to_python(),
+                        self.crossover(
+                            Chromosome.from_python(p1), Chromosome.from_python(p2)
+                        ),
+                    )
+                ),
+            },
+        )
+
+    @abstractmethod
+    def crossover(
+        self, parent1: Chromosome, parent2: Chromosome
+    ) -> tuple[Chromosome, Chromosome]:
+        """
+        Abstract method to perform crossover between two parents.
+        :param parent1: The first parent.
+        :param parent2: The second parent.
+        :return: The offspring produced by the crossover.
         """
         pass
 

@@ -69,7 +69,8 @@ from .inputs.alterer import (
     InversionMutator,
     PolynomialMutator,
     EdgeRecombinationCrossover,
-    Mutator
+    Mutator,
+    Crossover
 )
 
 from .inputs.distance import (
@@ -131,6 +132,7 @@ __all__ = [
     "SimulatedBinaryCrossover",
     "PartiallyMappedCrossover",
     "UniformCrossover",
+    "Crossover",
     "ArithmeticMutator",
     "UniformMutator",
     "GaussianMutator",

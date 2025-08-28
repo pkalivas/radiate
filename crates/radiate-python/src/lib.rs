@@ -1,4 +1,5 @@
 mod bindings;
+mod crossover;
 mod evaluator;
 mod events;
 mod mutator;
@@ -8,6 +9,7 @@ mod problem;
 mod random;
 
 pub use bindings::*;
+pub use crossover::PyCrossover;
 pub use evaluator::FreeThreadPyEvaluator;
 pub use mutator::PyMutator;
 pub use object::*;

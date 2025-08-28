@@ -2,7 +2,7 @@ use crate::{PyChromosome, PyGene, PyGeneType};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     BitChromosome, CharChromosome, Chromosome, FloatChromosome, Genotype, GraphChromosome,
-    IntChromosome, Op, PermutationChromosome, TreeChromosome, cell::MutCell,
+    IntChromosome, Op, PermutationChromosome, TreeChromosome,
 };
 
 #[pyclass]

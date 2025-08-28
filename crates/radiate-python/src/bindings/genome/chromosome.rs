@@ -1,5 +1,3 @@
-use std::sync::{Arc, RwLock};
-
 use crate::{PyGene, PyGeneType};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
@@ -7,14 +5,40 @@ use radiate::{
     GraphChromosome, GraphNode, IntChromosome, IntGene, Op, PermutationChromosome, PermutationGene,
     TreeChromosome, TreeNode,
 };
+use std::sync::{Arc, RwLock};
 
-pub struct PyGeneView {
+#[derive(Clone, Debug)]
+pub struct GeneSequence {
     genes: Arc<RwLock<Vec<PyGene>>>,
 }
 
-impl PartialEq for PyGeneView {
+impl GeneSequence {
+    pub fn new(genes: Vec<PyGene>) -> Self {
+        GeneSequence {
+            genes: Arc::new(RwLock::new(genes)),
+        }
+    }
+
+    pub fn read(&self) -> std::sync::RwLockReadGuard<'_, Vec<PyGene>> {
+        self.genes.read().unwrap()
+    }
+
+    pub fn write(&self) -> std::sync::RwLockWriteGuard<'_, Vec<PyGene>> {
+        self.genes.write().unwrap()
+    }
+
+    pub fn len(&self) -> usize {
+        self.genes.read().unwrap().len()
+    }
+
+    pub fn drain(&self) -> Vec<PyGene> {
+        self.genes.write().unwrap().drain(..).collect()
+    }
+}
+
+impl PartialEq for GeneSequence {
     fn eq(&self, other: &Self) -> bool {
-        (*self.genes.read().unwrap()) == (*other.genes.read().unwrap())
+        *self.genes.read().unwrap() == *other.genes.read().unwrap()
     }
 }
 
@@ -22,20 +46,26 @@ impl PartialEq for PyGeneView {
 #[derive(Clone, Debug, PartialEq)]
 #[repr(transparent)]
 pub struct PyChromosome {
-    pub(crate) genes: Vec<PyGene>,
+    pub(crate) genes: GeneSequence,
 }
 
 #[pymethods]
 impl PyChromosome {
     #[new]
     pub fn new(genes: Vec<PyGene>) -> Self {
-        PyChromosome { genes }
+        PyChromosome {
+            genes: GeneSequence::new(genes),
+        }
     }
 
     pub fn __repr__(&self) -> String {
         format!(
             "{:?}",
-            self.genes.iter().map(|g| g.__repr__()).collect::<Vec<_>>()
+            self.genes
+                .read()
+                .iter()
+                .map(|g| g.__repr__())
+                .collect::<Vec<_>>()
         )
     }
 
@@ -48,12 +78,16 @@ impl PyChromosome {
     }
 
     pub fn __eq__(&self, other: &Self) -> bool {
-        self.genes.iter().zip(&other.genes).all(|(a, b)| a == b)
+        self.genes
+            .read()
+            .iter()
+            .zip(&*other.genes.read())
+            .all(|(a, b)| a == b)
     }
 
     pub fn __getitem__<'py>(&self, py: Python<'py>, index: usize) -> PyResult<Bound<'py, PyAny>> {
-        let gene = self
-            .genes
+        let reader = self.genes.read();
+        let gene = reader
             .get(index)
             .ok_or_else(|| pyo3::exceptions::PyIndexError::new_err("index out of range"))?;
 
@@ -75,15 +109,26 @@ impl PyChromosome {
             )));
         }
 
-        self.genes[index] = value;
+        if value.is_view() {
+            self.genes.write()[index] = value.flatten();
+        } else {
+            self.genes.write()[index] = value;
+        }
+
         Ok(())
     }
 
+    pub fn view(&self, index: usize) -> PyResult<PyGene> {
+        let cloned_genes = Arc::clone(&self.genes.genes);
+        Ok(PyGene::from((cloned_genes, index)))
+    }
+
     pub fn gene_type(&self) -> PyGeneType {
-        if self.genes.is_empty() {
+        let reader = self.genes.read();
+        if reader.is_empty() {
             PyGeneType::Empty
         } else {
-            self.genes[0].gene_type()
+            reader[0].gene_type()
         }
     }
 }
@@ -93,22 +138,34 @@ macro_rules! impl_into_py_chromosome {
         impl From<$chromosome_type> for PyChromosome {
             fn from(chromosome: $chromosome_type) -> Self {
                 PyChromosome {
-                    genes: chromosome
-                        .genes()
-                        .iter()
-                        .map(|gene| PyGene::from(gene.clone()))
-                        .collect(),
+                    genes: GeneSequence::new(
+                        chromosome
+                            .genes()
+                            .iter()
+                            .map(|gene| PyGene::from(gene.clone()))
+                            .collect(),
+                    ),
                 }
             }
         }
 
         impl From<PyChromosome> for $chromosome_type {
             fn from(py_chromosome: PyChromosome) -> Self {
-                let genes = py_chromosome
-                    .genes
-                    .into_iter()
-                    .map(|gene| <$gene_type>::from(gene))
-                    .collect::<Vec<_>>();
+                let genes = if py_chromosome.genes.read().iter().any(|gene| gene.is_view()) {
+                    py_chromosome
+                        .genes
+                        .read()
+                        .iter()
+                        .map(|gene| <$gene_type>::from(gene.clone()))
+                        .collect::<Vec<_>>()
+                } else {
+                    py_chromosome
+                        .genes
+                        .drain()
+                        .into_iter()
+                        .map(|gene| <$gene_type>::from(gene))
+                        .collect::<Vec<_>>()
+                };
                 <$chromosome_type>::from(genes)
             }
         }
