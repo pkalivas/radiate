@@ -3,7 +3,6 @@ from __future__ import annotations
 from abc import ABC
 from enum import Enum
 
-from radiate.gp.op import Op
 from radiate.radiate import PyGene
 
 
@@ -41,10 +40,23 @@ class GeneType(Enum):
     @staticmethod
     def from_str(gene_type: str) -> GeneType:
         type_lower = str(gene_type).lower()
-        for gene in GeneType:
-            if gene.value.lower() == type_lower:
-                return gene
-        raise ValueError(f"Invalid gene type: {gene_type}")
+        match type_lower:
+            case "floatgene":
+                return GeneType.FLOAT
+            case "intgene":
+                return GeneType.INT
+            case "bitgene":
+                return GeneType.BIT
+            case "chargene":
+                return GeneType.CHAR
+            case "permutationgene":
+                return GeneType.PERMUTATION
+            case "graphnode":
+                return GeneType.GRAPH
+            case "treenode":
+                return GeneType.TREE
+            case _:
+                raise ValueError(f"Invalid gene type: {gene_type}")
 
 
 class Gene[T](ABC):
@@ -80,10 +92,6 @@ class Gene[T](ABC):
                 return BitGene._from_py_gene(py_gene)
             case GeneType.CHAR:
                 return CharGene._from_py_gene(py_gene)
-            case GeneType.PERMUTATION:
-                return PermutationGene._from_py_gene(py_gene)
-            case GeneType.GRAPH:
-                return GraphNodeGene._from_py_gene(py_gene)
             case _:
                 raise ValueError(f"Unsupported gene type: {py_gene.gene_type()}")
 
@@ -121,6 +129,13 @@ class Gene[T](ABC):
         :return: The allele of the gene, which can be a float, int, bool, str, or None.
         """
         return self.__inner.allele()
+    
+    def new_instance(self, allele: T | None = None) -> Gene[T]:
+        """
+        Set the allele of the gene.
+        :param allele: The new allele value, which can be a float, int, bool, str, or None.
+        """
+        return Gene.from_python(self.__inner.with_allele(allele))
 
 
 class FloatGene(Gene[float]):
@@ -128,8 +143,8 @@ class FloatGene(Gene[float]):
         self,
         allele: float | None = None,
         *,
-        value_range: tuple[float, float] | None = None,
-        bound_range: tuple[float, float] | None = None,
+        init_range: tuple[float, float] | None = None,
+        bounds: tuple[float, float] | None = None,
     ) -> None:
         """
         Create a float gene with optional allele, value range, and bound range.
@@ -144,7 +159,7 @@ class FloatGene(Gene[float]):
         Gene(5.0)
         """
         super().__init__(
-            PyGene.float(allele=allele, range=value_range, bounds=bound_range)
+            PyGene.float(allele=allele, range=init_range, bounds=bounds)
         )
 
 
@@ -153,8 +168,8 @@ class IntGene(Gene[int]):
         self,
         allele: int | None = None,
         *,
-        value_range: tuple[int, int] | None = None,
-        bound_range: tuple[int, int] | None = None,
+        init_range: tuple[int, int] | None = None,
+        bounds: tuple[int, int] | None = None,
     ) -> None:
         """
         Create an integer gene with optional allele, value range, and bound range.
@@ -169,7 +184,7 @@ class IntGene(Gene[int]):
         IntGene<5>
         """
         super().__init__(
-            PyGene.int(allele=allele, range=value_range, bounds=bound_range)
+            PyGene.int(allele=allele, range=init_range, bounds=bounds)
         )
 
 
@@ -208,28 +223,36 @@ class CharGene(Gene[str]):
             PyGene.char(allele=allele, char_set=list(char_set) if char_set else None)
         )
 
+'''
+Some helper functions for creating gene instances.
 
-class PermutationGene[T](Gene[T]):
-    def __init__(self, allele: T | None = None, index: int = 0) -> None:
-        """
-        Create a permutation gene with optional allele.
-        :param allele: Initial value of the gene.
-        :return: A new Gene instance configured as a permutation gene.
+This makes it possible to create genes like:
+>>> rd.gene.float(0.5)
+FloatGene<0.5>
+'''
+def float(
+    allele: float | None = None,
+    *,
+    init_range: tuple[float, float] | None = None,
+    bounds: tuple[float, float] | None = None,
+):
+    return FloatGene(allele=allele, init_range=init_range, bounds=bounds)
 
-        Example
-        --------
-        >>> rd.PermutationGene(allele=[1, 2, 3])
-        """
-        super().__init__(PyGene.permutation(allele=allele, index=index))
+def int(
+    allele: int | None = None,
+    *,
+    init_range: tuple[int, int] | None = None,
+    bounds: tuple[int, int] | None = None,
+):
+    return IntGene(allele=allele, init_range=init_range, bounds=bounds)
 
+def bit(
+    allele: bool | None = None,
+):
+    return BitGene(allele=allele)
 
-class GraphNodeGene(Gene[Op]):
-    def __init__(self, index: int, allele: Op, node_type: str) -> None:
-        """
-        Create a graph node gene with specified index, allele, and node type.
-        :param index: Index of the graph node.
-        :param allele: Allele of the graph node.
-        :param node_type: Type of the graph node.
-        :return: A new Gene instance configured as a graph node gene.
-        """
-        super().__init__(PyGene.graph_gene(index, allele, node_type))
+def char(
+    allele: str | None = None,
+    char_set: set[str] | None = None,
+):
+    return CharGene(allele=allele, char_set=char_set)

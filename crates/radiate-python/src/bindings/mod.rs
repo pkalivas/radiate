@@ -5,7 +5,7 @@ mod engine;
 mod epoch;
 mod fitness;
 mod functions;
-mod gene;
+mod genome;
 mod gp;
 mod inputs;
 mod metric;
@@ -21,9 +21,7 @@ pub use engine::PyEngine;
 pub use epoch::PyGeneration;
 pub use fitness::{PyFitnessFn, PyFitnessInner, PyNoveltySearch};
 pub use functions::*;
-pub use gene::{
-    PyChromosome, PyEcosystem, PyGene, PyGeneType, PyGenotype, PyPhenotype, PyPopulation, PySpecies,
-};
+pub use genome::*;
 pub use gp::{PyGraph, PyTree};
 pub use inputs::{PyEngineInput, PyEngineInputType};
 

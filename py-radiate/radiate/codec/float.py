@@ -103,8 +103,8 @@ class FloatCodec[T](CodecBase[float, T]):
     @staticmethod
     def matrix(
         shape: tuple[int, int] | list[int],
-        value_range: tuple[float, float] | None = None,
-        bound_range: tuple[float, float] | None = None,
+        init_range: tuple[float, float] | None = None,
+        bounds: tuple[float, float] | None = None,
         use_numpy: bool = False,
     ) -> FloatCodec[list[list[float]]]:
         """
@@ -136,22 +136,22 @@ class FloatCodec[T](CodecBase[float, T]):
         elif isinstance(shape, list):
             shapes = shape
 
-        if value_range is not None:
-            if len(value_range) != 2:
+        if init_range is not None:
+            if len(init_range) != 2:
                 raise ValueError("Value range must be a tuple of (min, max).")
-            if value_range[0] >= value_range[1]:
+            if init_range[0] >= init_range[1]:
                 raise ValueError("Minimum value must be less than maximum value.")
-        if bound_range is not None:
-            if len(bound_range) != 2:
+        if bounds is not None:
+            if len(bounds) != 2:
                 raise ValueError("Bound range must be a tuple of (min, max).")
-            if bound_range[0] >= bound_range[1]:
+            if bounds[0] >= bounds[1]:
                 raise ValueError("Minimum bound must be less than maximum bound.")
 
         return FloatCodec(
             PyFloatCodec.matrix(
                 chromosome_lengths=shapes,
-                value_range=value_range,
-                bound_range=bound_range,
+                value_range=init_range,
+                bound_range=bounds,
                 use_numpy=use_numpy,
             )
         )
@@ -159,8 +159,8 @@ class FloatCodec[T](CodecBase[float, T]):
     @staticmethod
     def vector(
         length: int,
-        value_range: tuple[float, float] | None = None,
-        bound_range: tuple[float, float] | None = None,
+        init_range: tuple[float, float] | None = None,
+        bounds: tuple[float, float] | None = None,
         use_numpy: bool = False,
     ) -> FloatCodec[list[float]]:
         """
@@ -181,30 +181,30 @@ class FloatCodec[T](CodecBase[float, T]):
         if length <= 0:
             raise ValueError("Length must be a positive integer.")
 
-        if value_range is not None:
-            if len(value_range) != 2:
+        if init_range is not None:
+            if len(init_range) != 2:
                 raise ValueError("Value range must be a tuple of (min, max).")
-            if value_range[0] >= value_range[1]:
+            if init_range[0] >= init_range[1]:
                 raise ValueError("Minimum value must be less than maximum value.")
-        if bound_range is not None:
-            if len(bound_range) != 2:
+        if bounds is not None:
+            if len(bounds) != 2:
                 raise ValueError("Bound range must be a tuple of (min, max).")
-            if bound_range[0] >= bound_range[1]:
+            if bounds[0] >= bounds[1]:
                 raise ValueError("Minimum bound must be less than maximum bound.")
 
         return FloatCodec(
             PyFloatCodec.vector(
                 length=length,
-                value_range=value_range,
-                bound_range=bound_range,
+                value_range=init_range,
+                bound_range=bounds,
                 use_numpy=use_numpy,
             )
         )
 
     @staticmethod
     def scalar(
-        value_range: tuple[float, float] | None = None,
-        bound_range: tuple[float, float] | None = None,
+        init_range: tuple[float, float] | None = None,
+        bounds: tuple[float, float] | None = None,
     ) -> FloatCodec[float]:
         """
         Create a scalar codec.
@@ -221,20 +221,20 @@ class FloatCodec[T](CodecBase[float, T]):
         >>> rd.FloatCodec.scalar(value_range=(0.0, 1.0), bound_range=(-1.0, 2.0))
         FloatCodec(...)
         """
-        if value_range is not None:
-            if len(value_range) != 2:
+        if init_range is not None:
+            if len(init_range) != 2:
                 raise ValueError("Value range must be a tuple of (min, max).")
-            if value_range[0] >= value_range[1]:
+            if init_range[0] >= init_range[1]:
                 raise ValueError("Minimum value must be less than maximum value.")
-        if bound_range is not None:
-            if len(bound_range) != 2:
+        if bounds is not None:
+            if len(bounds) != 2:
                 raise ValueError("Bound range must be a tuple of (min, max).")
-            if bound_range[0] >= bound_range[1]:
+            if bounds[0] >= bounds[1]:
                 raise ValueError("Minimum bound must be less than maximum bound.")
 
         return FloatCodec(
             PyFloatCodec.scalar(
-                value_range=value_range,
-                bound_range=bound_range,
+                value_range=init_range,
+                bound_range=bounds,
             )
         )

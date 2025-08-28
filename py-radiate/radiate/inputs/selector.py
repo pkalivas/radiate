@@ -58,7 +58,7 @@ class SelectorBase(ComponentBase):
             component=self.component,
             input_type=EngineInputType.SurvivorSelector,
             args=self.args,
-        ).py_input()
+        ).to_python()
 
         objective_input = EngineInput(
             component="Objective",
@@ -67,7 +67,7 @@ class SelectorBase(ComponentBase):
             args={"objective": "|".join(objective)}
             if isinstance(objective, list)
             else {"objective": objective},
-        ).py_input()
+        ).to_python()
 
         return Population.from_python(
             py_select(

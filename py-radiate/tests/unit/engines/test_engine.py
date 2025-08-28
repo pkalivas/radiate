@@ -10,7 +10,7 @@ class TestEngineBasicIntegration:
     def test_engine_int_minimization(self, random_seed):
         num_genes = 5
         engine = rd.GeneticEngine(
-            codec=rd.IntCodec.vector(num_genes, value_range=(0, 10)),
+            codec=rd.IntCodec.vector(num_genes, init_range=(0, 10)),
             fitness_func=lambda x: sum(x),
             objectives="min",
         )
@@ -30,7 +30,7 @@ class TestEngineBasicIntegration:
             return sum(xi**2 for xi in x)
 
         engine = rd.GeneticEngine(
-            codec=rd.FloatCodec.vector(length=3, value_range=(-1.0, 1.0)),
+            codec=rd.FloatCodec.vector(length=3, init_range=(-1.0, 1.0)),
             fitness_func=fitness_func,
             objectives="max",
             population_size=50,
@@ -98,7 +98,7 @@ class TestEngineBasicIntegration:
                 value += x[i] ** 2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
             return value
 
-        codec = rd.FloatCodec.vector(N_GENES, value_range=(-RANGE, RANGE))
+        codec = rd.FloatCodec.vector(N_GENES, init_range=(-RANGE, RANGE))
         population = rd.Population(rd.Phenotype(codec.encode()) for _ in range(100))
 
         engine = rd.GeneticEngine(codec, fitness_fn, population=population)
@@ -230,7 +230,7 @@ class TestEngineBasicIntegration:
             return [sum(x), np.prod(x)]
 
         engine = rd.GeneticEngine(
-            codec=rd.FloatCodec.vector(length=3, value_range=(-1.0, 1.0)),
+            codec=rd.FloatCodec.vector(length=3, init_range=(-1.0, 1.0)),
             fitness_func=fitness_func,
             objectives=["min", "max"],
             population_size=100,

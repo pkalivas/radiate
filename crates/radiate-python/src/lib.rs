@@ -1,6 +1,7 @@
 mod bindings;
 mod evaluator;
 mod events;
+mod mutator;
 mod names;
 mod object;
 mod problem;
@@ -8,6 +9,7 @@ mod random;
 
 pub use bindings::*;
 pub use evaluator::FreeThreadPyEvaluator;
+pub use mutator::PyMutator;
 pub use object::*;
 pub use problem::PyProblem;
 pub use random::PyRandomProvider;

@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from radiate.genome.gene import GeneType
-from radiate.genome.wrapper import PythonWrapper
+from radiate.wrapper import PyObject
 from radiate.radiate import PyGenotype
 from .chromosome import Chromosome
 
 
-class Genotype[T](PythonWrapper[PyGenotype]):
+class Genotype[T](PyObject[PyGenotype]):
     """
     Represents a genotype in a genome.
     """
@@ -46,7 +46,7 @@ class Genotype[T](PythonWrapper[PyGenotype]):
             raise TypeError("Index must be an integer")
         if index < 0 or index >= len(self._pyobj):
             raise IndexError("Index out of range")
-        return self._pyobj[index]
+        return Chromosome.from_python(self._pyobj[index])
 
     def __iter__(self):
         """

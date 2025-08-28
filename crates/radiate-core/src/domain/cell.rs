@@ -1,5 +1,6 @@
 use std::{
     cell::UnsafeCell,
+    fmt::{Debug, Formatter},
     ops::Deref,
     sync::atomic::{AtomicUsize, Ordering},
 };
@@ -126,6 +127,12 @@ impl<T: PartialOrd> PartialOrd for MutCell<T> {
 impl<T> From<T> for MutCell<T> {
     fn from(value: T) -> Self {
         Self::new(value)
+    }
+}
+
+impl<T: Debug> Debug for MutCell<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.get())
     }
 }
 

@@ -1,4 +1,5 @@
-use crate::{InputTransform, PyEngineInput, PyEngineInputType};
+use crate::{InputTransform, PyChromosome, PyEngineInput, PyEngineInputType, PyMutator};
+use pyo3::{Py, PyAny};
 use radiate::*;
 
 impl<C> InputTransform<Vec<Box<dyn Alter<C>>>> for &[PyEngineInput]
@@ -38,6 +39,7 @@ impl InputTransform<Vec<Box<dyn Alter<IntChromosome<i32>>>>> for PyEngineInput {
             crate::names::SCRAMBLE_MUTATOR => alters!(convert_scramble_mutator(&self)),
             crate::names::UNIFORM_MUTATOR => alters!(convert_uniform_mutator(&self)),
             crate::names::INVERSION_MUTATOR => alters!(convert_inversion_mutator(&self)),
+            crate::names::CUSTOM_MUTATOR => alters!(convert_custom_mutator(&self)),
             _ => panic!("Invalid alterer type {}", self.component),
         }
     }
@@ -65,6 +67,7 @@ impl InputTransform<Vec<Box<dyn Alter<FloatChromosome>>>> for PyEngineInput {
             crate::names::UNIFORM_MUTATOR => alters!(convert_uniform_mutator(&self)),
             crate::names::INVERSION_MUTATOR => alters!(convert_inversion_mutator(&self)),
             crate::names::POLYNOMIAL_MUTATOR => alters!(convert_polynomial_mutator(&self)),
+            crate::names::CUSTOM_MUTATOR => alters!(convert_custom_mutator(&self)),
             _ => panic!("Invalid alterer type {}", self.component),
         }
     }
@@ -84,6 +87,7 @@ impl InputTransform<Vec<Box<dyn Alter<CharChromosome>>>> for PyEngineInput {
             crate::names::SCRAMBLE_MUTATOR => alters!(convert_scramble_mutator(&self)),
             crate::names::UNIFORM_MUTATOR => alters!(convert_uniform_mutator(&self)),
             crate::names::INVERSION_MUTATOR => alters!(convert_inversion_mutator(&self)),
+            crate::names::CUSTOM_MUTATOR => alters!(convert_custom_mutator(&self)),
             _ => panic!("Invalid alterer type {}", self.component),
         }
     }
@@ -103,6 +107,7 @@ impl InputTransform<Vec<Box<dyn Alter<BitChromosome>>>> for PyEngineInput {
             crate::names::SCRAMBLE_MUTATOR => alters!(convert_scramble_mutator(&self)),
             crate::names::UNIFORM_MUTATOR => alters!(convert_uniform_mutator(&self)),
             crate::names::INVERSION_MUTATOR => alters!(convert_inversion_mutator(&self)),
+            crate::names::CUSTOM_MUTATOR => alters!(convert_custom_mutator(&self)),
             _ => panic!("Invalid alterer type {}", self.component),
         }
     }
@@ -155,12 +160,28 @@ impl InputTransform<Vec<Box<dyn Alter<PermutationChromosome<usize>>>>> for PyEng
             crate::names::SCRAMBLE_MUTATOR => alters!(convert_scramble_mutator(&self)),
             crate::names::UNIFORM_MUTATOR => alters!(convert_uniform_mutator(&self)),
             crate::names::INVERSION_MUTATOR => alters!(convert_inversion_mutator(&self)),
+            crate::names::CUSTOM_MUTATOR => alters!(convert_custom_mutator(&self)),
             crate::names::EDGE_RECOMBINE_CROSSOVER => {
                 alters!(convert_edge_recombine_crossover(&self))
             }
             _ => panic!("Invalid alterer type {}", self.component),
         }
     }
+}
+
+fn convert_custom_mutator<C>(input: &PyEngineInput) -> PyMutator<C>
+where
+    C: Chromosome + Clone,
+    PyChromosome: From<C>,
+{
+    let rate = input.get_f32("rate").unwrap_or(1.0);
+    let mutate_func = input
+        .extract::<Py<PyAny>>("mutate")
+        .expect("Mutate function must be provided");
+    let name = input
+        .get_string("name")
+        .unwrap_or_else(|| "CustomMutator".to_string());
+    PyMutator::new(rate, name, mutate_func)
 }
 
 fn convert_inversion_mutator(input: &PyEngineInput) -> InversionMutator {

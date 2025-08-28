@@ -95,7 +95,7 @@ class GeneticEngine[G, T]:
 
     def __dict__(self):
         """Return the internal state of the engine builder for debugging."""
-        return self.builder.__dict__()
+        return self.builder.__dict__
 
     def __iter__(self):
         """Return an iterator over the engine's generations."""
@@ -146,7 +146,7 @@ class GeneticEngine[G, T]:
                 component=lim.component,
                 allowed_genes=[self.gene_type],
                 **lim.args,
-            ).py_input()
+            ).to_python()
             for lim in limits
         ]
 
@@ -326,4 +326,4 @@ class GeneticEngine[G, T]:
         >>> engine.subscribe(my_event_handler)
         >>> engine.subscribe([handler1, handler2])
         """
-        self.builder.set_subscribers(event_handler or [])
+        self.builder.set_subscribers(event_handler)

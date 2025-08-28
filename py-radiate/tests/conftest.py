@@ -100,7 +100,7 @@ def tree_simple():
 @pytest.fixture
 def simple_float_engine():
     """Create a simple float codec engine for testing."""
-    codec = rd.FloatCodec.vector(length=10, value_range=(-1.0, 1.0))
+    codec = rd.FloatCodec.vector(length=10, init_range=(-1.0, 1.0))
     return rd.GeneticEngine(
         codec=codec,
         fitness_func=lambda x: sum(xi**2 for xi in x),
@@ -115,7 +115,7 @@ def simple_float_engine():
 @pytest.fixture
 def simple_multi_objective_engine():
     """Create a simple multi-objective float codec engine for testing."""
-    codec = rd.FloatCodec.vector(length=10, value_range=(-1.0, 1.0))
+    codec = rd.FloatCodec.vector(length=10, init_range=(-1.0, 1.0))
 
     return rd.GeneticEngine(
         codec=codec,

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from radiate._typing import IntEncoding
 from radiate.genome.chromosome import Chromosome
-from radiate.genome.gene import Gene, GeneType
+from radiate.genome.gene import Gene, GeneType, IntGene
 
 from .base import CodecBase
 from radiate.genome import Genotype
@@ -9,14 +10,12 @@ from radiate.radiate import PyIntCodec
 
 
 class IntCodec[D](CodecBase[int, D]):
-    def __init__(self, codec: PyIntCodec):
+    def __init__(self, codec: IntEncoding | PyIntCodec):
         """
         Initialize the int codec with a PyIntCodec instance.
         :param codec: An instance of PyIntCodec.
         """
-        if not isinstance(codec, PyIntCodec):
-            raise TypeError("codec must be an instance of PyIntCodec.")
-        self.codec = codec
+        self.codec = self._create_encoding(codec)
 
     def encode(self) -> Genotype[int]:
         """
@@ -34,6 +33,28 @@ class IntCodec[D](CodecBase[int, D]):
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
         return self.codec.decode_py(genotype=genotype.to_python())
+
+    def _create_encoding(self, encoding: IntEncoding) -> PyIntCodec:
+        """
+        Create a PyFloatCodec from the provided encoding.
+        :param encoding: The input encoding to create the codec from.
+        :return: A PyFloatCodec instance.
+        """
+        if isinstance(encoding, PyIntCodec):
+            return encoding
+        elif isinstance(encoding, IntGene):
+            return PyIntCodec.from_genes([encoding.to_python()])
+        elif isinstance(encoding, Chromosome):
+            return PyIntCodec.from_chromosomes([encoding.to_python()])
+        elif isinstance(encoding, list):
+            if all(isinstance(g, IntGene) for g in encoding):
+                return PyIntCodec.from_genes([g.to_python() for g in encoding])
+            elif all(isinstance(c, Chromosome) for c in encoding):
+                return PyIntCodec.from_chromosomes([c.to_python() for c in encoding])
+            else:
+                raise TypeError("Invalid list type for IntCodec encoding.")
+        else:
+            raise TypeError(f"Invalid encoding type for IntCodec - {type(encoding)}.")
 
     @staticmethod
     def from_genes(
@@ -86,8 +107,8 @@ class IntCodec[D](CodecBase[int, D]):
     @staticmethod
     def matrix(
         shape: tuple[int, int] | list[int],
-        value_range: tuple[int, int] | None = None,
-        bound_range: tuple[int, int] | None = None,
+        init_range: tuple[int, int] | None = None,
+        bounds: tuple[int, int] | None = None,
         use_numpy: bool = False,
     ) -> IntCodec[list[list[int]]]:
         """
@@ -104,22 +125,22 @@ class IntCodec[D](CodecBase[int, D]):
             shapes = [cols for _ in range(rows)]
         elif isinstance(shape, list):
             shapes = shape
-        if value_range is not None:
-            if len(value_range) != 2:
+        if init_range is not None:
+            if len(init_range) != 2:
                 raise ValueError("Value range must be a tuple of (min, max).")
-            if value_range[0] >= value_range[1]:
+            if init_range[0] >= init_range[1]:
                 raise ValueError("Minimum value must be less than maximum value.")
-        if bound_range is not None:
-            if len(bound_range) != 2:
+        if bounds is not None:
+            if len(bounds) != 2:
                 raise ValueError("Bound range must be a tuple of (min, max).")
-            if bound_range[0] >= bound_range[1]:
+            if bounds[0] >= bounds[1]:
                 raise ValueError("Minimum bound must be less than maximum bound.")
 
         return IntCodec(
             PyIntCodec.matrix(
                 chromosome_lengths=shapes,
-                value_range=value_range,
-                bound_range=bound_range,
+                value_range=init_range,
+                bound_range=bounds,
                 use_numpy=use_numpy,
             )
         )
@@ -127,8 +148,8 @@ class IntCodec[D](CodecBase[int, D]):
     @staticmethod
     def vector(
         length: int,
-        value_range: tuple[int, int] | None = None,
-        bound_range: tuple[int, int] | None = None,
+        init_range: tuple[int, int] | None = None,
+        bounds: tuple[int, int] | None = None,
         use_numpy: bool = False,
     ) -> IntCodec[list[int]]:
         """
@@ -140,33 +161,33 @@ class IntCodec[D](CodecBase[int, D]):
         """
         if length <= 0:
             raise ValueError("Length must be a positive integer.")
-        if value_range is not None:
-            if len(value_range) != 2:
+        if init_range is not None:
+            if len(init_range) != 2:
                 raise ValueError("Value range must be a tuple of (min, max).")
-            if value_range[0] >= value_range[1]:
+            if init_range[0] >= init_range[1]:
                 raise ValueError("Minimum value must be less than maximum value.")
-            if value_range[1] < value_range[0]:
+            if init_range[1] < init_range[0]:
                 raise ValueError("Maximum value must be non-negative.")
-        if bound_range is not None:
-            if len(bound_range) != 2:
+        if bounds is not None:
+            if len(bounds) != 2:
                 raise ValueError("Bound range must be a tuple of (min, max).")
-            if bound_range[0] >= bound_range[1]:
+            if bounds[0] >= bounds[1]:
                 raise ValueError("Minimum bound must be less than maximum bound.")
-            if bound_range[1] < value_range[0]:
+            if bounds[1] < init_range[0]:
                 raise ValueError("Maximum bound must be non-negative.")
         return IntCodec(
             PyIntCodec.vector(
                 length=length,
-                value_range=value_range,
-                bound_range=bound_range,
+                value_range=init_range,
+                bound_range=bounds,
                 use_numpy=use_numpy,
             )
         )
 
     @staticmethod
     def scalar(
-        value_range: tuple[int, int] | None = None,
-        bound_range: tuple[int, int] | None = None,
+        init_range: tuple[int, int] | None = None,
+        bounds: tuple[int, int] | None = None,
     ) -> IntCodec[int]:
         """
         Create a scalar codec with specified value and bound ranges.
@@ -174,17 +195,25 @@ class IntCodec[D](CodecBase[int, D]):
         :param bound_range: Minimum and maximum bound for the gene.
         :return: A new IntCodec instance with scalar configuration.
         """
-        if value_range is not None:
-            if len(value_range) != 2:
+        if init_range is not None:
+            if len(init_range) != 2:
                 raise ValueError("Value range must be a tuple of (min, max).")
-            if value_range[0] >= value_range[1]:
+            if init_range[0] >= init_range[1]:
                 raise ValueError("Minimum value must be less than maximum value.")
-            if value_range[1] < value_range[0]:
+            if init_range[1] < init_range[0]:
                 raise ValueError("Maximum value must be non-negative.")
+
+        if bounds is not None:
+            if len(bounds) != 2:
+                raise ValueError("Bound range must be a tuple of (min, max).")
+            if bounds[0] >= bounds[1]:
+                raise ValueError("Minimum bound must be less than maximum bound.")
+            if bounds[1] < init_range[0]:
+                raise ValueError("Maximum bound must be non-negative.")
 
         return IntCodec(
             PyIntCodec.scalar(
-                value_range=value_range,
-                bound_range=bound_range,
+                value_range=init_range,
+                bound_range=bounds,
             )
         )

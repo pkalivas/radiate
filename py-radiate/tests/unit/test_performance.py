@@ -10,7 +10,7 @@ class TestCodecPerformance:
     @pytest.mark.performance
     def test_codec_encode_decode_speed(self, performance_benchmark):
         """Benchmark codec encode/decode operations."""
-        codec = rd.FloatCodec.vector(length=100000, value_range=(-1.0, 1.0))
+        codec = rd.FloatCodec.vector(length=100000, init_range=(-1.0, 1.0))
 
         def encode_decode_cycle():
             genotype = codec.encode()
@@ -27,7 +27,7 @@ class TestCodecPerformance:
     @pytest.mark.performance
     def test_large_matrix_codec_performance(self, performance_benchmark):
         """Benchmark large matrix codec operations."""
-        codec = rd.IntCodec.matrix((100, 100), value_range=(0, 1000))
+        codec = rd.IntCodec.matrix((100, 100), init_range=(0, 1000))
 
         def matrix_operations():
             genotype = codec.encode()
@@ -52,7 +52,7 @@ class TestEnginePerformance:
             return sum(xi**2 for xi in x)
 
         engine = rd.GeneticEngine(
-            codec=rd.FloatCodec.vector(length=10, value_range=(-1.0, 1.0)),
+            codec=rd.FloatCodec.vector(length=10, init_range=(-1.0, 1.0)),
             fitness_func=fitness_func,
             objectives="min",
             population_size=100,
@@ -77,7 +77,7 @@ class TestEnginePerformance:
             return sum(xi**2 for xi in x)
 
         engine = rd.GeneticEngine(
-            codec=rd.FloatCodec.vector(length=20, value_range=(-1.0, 1.0)),
+            codec=rd.FloatCodec.vector(length=20, init_range=(-1.0, 1.0)),
             fitness_func=fitness_func,
             objectives="min",
             population_size=1000,
@@ -108,7 +108,7 @@ class TestMemoryPerformance:
         initial_memory = performance_benchmark.memory_usage()
 
         engine = rd.GeneticEngine(
-            codec=rd.FloatCodec.vector(length=10, value_range=(-1.0, 1.0)),
+            codec=rd.FloatCodec.vector(length=10, init_range=(-1.0, 1.0)),
             fitness_func=fitness_func,
             objectives="min",
             population_size=100,
@@ -137,7 +137,7 @@ class TestMemoryPerformance:
         # Run multiple engines
         for _ in range(5):
             engine = rd.GeneticEngine(
-                codec=rd.FloatCodec.vector(length=50, value_range=(-1.0, 1.0)),
+                codec=rd.FloatCodec.vector(length=50, init_range=(-1.0, 1.0)),
                 fitness_func=fitness_func,
                 objectives="min",
                 population_size=200,
@@ -173,7 +173,7 @@ class TestScalabilityPerformance:
 
         for length in lengths:
             engine = rd.GeneticEngine(
-                codec=rd.FloatCodec.vector(length=length, value_range=(-1.0, 1.0)),
+                codec=rd.FloatCodec.vector(length=length, init_range=(-1.0, 1.0)),
                 fitness_func=fitness_func,
                 objectives="min",
                 population_size=100,
@@ -206,7 +206,7 @@ class TestRegressionPerformance:
         def fitness_func(x: list[float]) -> float:
             return sum(xi**2 for xi in x)
 
-        codec = rd.FloatCodec.vector(20, value_range=(-1.0, 1.0))
+        codec = rd.FloatCodec.vector(20, init_range=(-1.0, 1.0))
         engine = rd.GeneticEngine(codec, fitness_func)
 
         engine.minimizing()

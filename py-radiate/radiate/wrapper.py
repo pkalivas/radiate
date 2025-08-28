@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, ClassVar
 from abc import ABC
 
-class PythonWrapper[T](ABC):
+class PyObject[T](ABC):
     """
     Abstract base class for Python wrapper objects that wrap Rust objects.
     Provides common functionality for conversion between Python and Rust objects.
@@ -20,7 +20,7 @@ class PythonWrapper[T](ABC):
             setattr(self, self.__inner_attr__, None)
     
     @classmethod
-    def from_python(cls, py_obj: Any) -> 'PythonWrapper[T]':
+    def from_python(cls, py_obj: Any) -> 'PyObject[T]':
         """
         Create an instance of the class from a Python/Rust object.
         
@@ -40,7 +40,7 @@ class PythonWrapper[T](ABC):
         setattr(instance, cls.__inner_attr__, py_obj)
         return instance
     
-    def to_python(self) -> Any:
+    def to_python(self) -> T:
         """
         Convert the wrapper back to the Python/Rust object.
         

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from radiate.genome.gene import GeneType
-from radiate.genome.wrapper import PythonWrapper
+from radiate.wrapper import PyObject
 from .genotype import Genotype
 from radiate.radiate import PyPhenotype
 
 
-class Phenotype[T](PythonWrapper[PyPhenotype]):
+class Phenotype[T](PyObject[PyPhenotype]):
     """
     Represents a phenotype in a genome.
     """

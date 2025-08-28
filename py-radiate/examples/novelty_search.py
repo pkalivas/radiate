@@ -175,7 +175,7 @@ def run_novelty_search_evolution(generations: int = 200) -> rd.Generation:
         behavior = RobotBehavior(genome)
         return behavior.get_behavior_descriptor()
 
-    codec = rd.FloatCodec.vector(6, value_range=(-5.0, 5.0))
+    codec = rd.FloatCodec.vector(6, init_range=(-5.0, 5.0))
 
     # Create novelty search engine
     engine = rd.GeneticEngine(

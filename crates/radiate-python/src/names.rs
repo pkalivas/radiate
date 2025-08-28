@@ -45,3 +45,4 @@ pub(crate) const TREE_CROSSOVER: &str = "TreeCrossover";
 pub(crate) const HOIST_MUTATOR: &str = "HoistMutator";
 pub(crate) const INVERSION_MUTATOR: &str = "InversionMutator";
 pub(crate) const POLYNOMIAL_MUTATOR: &str = "PolynomialMutator";
+pub(crate) const CUSTOM_MUTATOR: &str = "CustomMutator";

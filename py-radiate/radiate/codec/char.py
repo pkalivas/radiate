@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from radiate._typing import CharEncoding
 from radiate.genome.chromosome import Chromosome
-from radiate.genome.gene import Gene, GeneType
+from radiate.genome.gene import CharGene, Gene, GeneType
 from .base import CodecBase
 
 from radiate.radiate import PyCharCodec
@@ -9,10 +10,8 @@ from radiate.genome import Genotype
 
 
 class CharCodec[T](CodecBase[str, T]):
-    def __init__(self, codec: PyCharCodec):
-        if not isinstance(codec, PyCharCodec):
-            raise TypeError("codec must be an instance of PyCharCodec.")
-        self.codec = codec
+    def __init__(self, codec: CharEncoding | PyCharCodec):
+        self.codec = self._create_encoding(codec)
 
     def encode(self) -> Genotype[str]:
         """
@@ -30,6 +29,28 @@ class CharCodec[T](CodecBase[str, T]):
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
         return self.codec.decode_py(genotype=genotype.to_python())
+    
+    def _create_encoding(self, encoding: CharEncoding) -> PyCharCodec:
+        """
+        Create a PyFloatCodec from the provided encoding.
+        :param encoding: The input encoding to create the codec from.
+        :return: A PyFloatCodec instance.
+        """
+        if isinstance(encoding, PyCharCodec):
+            return encoding
+        elif isinstance(encoding, CharGene):
+            return PyCharCodec.from_genes([encoding.to_python()])
+        elif isinstance(encoding, Chromosome):
+            return PyCharCodec.from_chromosomes([encoding.to_python()])
+        elif isinstance(encoding, list):
+            if all(isinstance(g, CharGene) for g in encoding):
+                return PyCharCodec.from_genes([g.to_python() for g in encoding])
+            elif all(isinstance(c, Chromosome) for c in encoding):
+                return PyCharCodec.from_chromosomes([c.to_python() for c in encoding])
+            else:
+                raise TypeError("Invalid list type for IntCodec encoding.")
+        else:
+            raise TypeError(f"Invalid encoding type for IntCodec - {type(encoding)}.")
 
     @staticmethod
     def from_genes(genes: list[Gene[str]] | tuple[Gene[str], ...]) -> CharCodec[str]:

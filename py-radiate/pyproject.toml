@@ -20,11 +20,8 @@ classifiers = [
 ]
 dynamic = ["version"]
 
-[project.optional-dependencies]
-numpy = ["numpy>=1.20.0"]
-
 all = [
-    "radiate[numpy]",
+    "radiate",
 ]
 
 [project.test-dependencies]

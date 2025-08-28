@@ -4,10 +4,10 @@ from typing import Iterable
 from radiate.genome.gene import GeneType
 from radiate.radiate import PyPopulation
 from .phenotype import Phenotype
-from .wrapper import PythonWrapper
+from ..wrapper import PyObject
 
 
-class Population[T](PythonWrapper[PyPopulation]):
+class Population[T](PyObject[PyPopulation]):
     """
     Represents a population in a genetic algorithm.
     """

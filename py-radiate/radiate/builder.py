@@ -1,7 +1,9 @@
 from typing import Callable
+from pyparsing import Any
 from radiate.codec.base import CodecBase
 from radiate.genome.population import Population
 from radiate.fitness import FitnessBase
+from radiate.handlers import CallableEventHandler, EventHandler
 from radiate.radiate import PyEngine, PyEngineBuilder
 from ._typing import Subscriber
 from .inputs.input import EngineInput, EngineInputType
@@ -39,7 +41,7 @@ class EngineBuilder:
         builder = PyEngineBuilder(
             codec=self._codec.codec,
             problem=self.fitness.problem,
-            inputs=[self_input.py_input() for self_input in self._inputs],
+            inputs=[self_input.to_python() for self_input in self._inputs],
         )
         return builder.build()
 
@@ -50,13 +52,33 @@ class EngineBuilder:
         if subscriber is None:
             return
 
-        self._inputs.append(
-            EngineInput(
-                input_type=EngineInputType.Subscriber,
-                component="subscriber",
-                subscriber=subscriber._py_handler,
-            )
-        )
+        def add_subscriber(sub: EventHandler | Callable[[Any], None]):
+            if isinstance(sub, EventHandler):
+                self._inputs.append(
+                    EngineInput(
+                        input_type=EngineInputType.Subscriber,
+                        component="subscriber",
+                        subscriber=sub._py_handler,
+                    )
+                )
+            elif isinstance(sub, Callable):
+                self._inputs.append(
+                    EngineInput(
+                        input_type=EngineInputType.Subscriber,
+                        component="subscriber",
+                        subscriber=CallableEventHandler(sub)._py_handler,
+                    )
+                )
+            else:
+                raise TypeError(
+                    "Subscriber list must contain only Callables or EventHandlers."
+                )
+
+        if isinstance(subscriber, list):
+            for sub in subscriber:
+                add_subscriber(sub)
+        else:
+            add_subscriber(subscriber)
 
     def set_population(self, population: Population):
         if population is None:

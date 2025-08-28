@@ -19,6 +19,7 @@ from .alterer import (
     GraphCrossover,
     InversionMutator,
     PolynomialMutator,
+    Mutator,
     EdgeRecombinationCrossover,
 )
 
@@ -59,6 +60,7 @@ __all__ = [
     "SimulatedBinaryCrossover",
     "PartiallyMappedCrossover",
     "EdgeRecombinationCrossover",
+    "Mutator",
     "PolynomialMutator",
     "GaussianMutator",
     "ScrambleMutator",

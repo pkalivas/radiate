@@ -17,6 +17,7 @@ from .codec import (
 from .random import RandomProvider as random
 from .generation import Generation
 from .genome import (
+    gene,
     Chromosome,
     Genotype,
     Population,
@@ -66,6 +67,9 @@ from .inputs.alterer import (
     TreeCrossover,
     HoistMutator,
     InversionMutator,
+    PolynomialMutator,
+    EdgeRecombinationCrossover,
+    Mutator
 )
 
 from .inputs.distance import (
@@ -98,6 +102,7 @@ __all__ = [
     "GraphCodec",
     "TreeCodec",
     # Genome and Population
+    "gene",
     "FloatGene",
     "IntGene",
     "BitGene",
@@ -135,6 +140,9 @@ __all__ = [
     "GraphMutator",
     "OperationMutator",
     "InversionMutator",
+    "PolynomialMutator",
+    "EdgeRecombinationCrossover",
+    "Mutator",
     # Executor
     "Executor",
     # Limits

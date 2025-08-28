@@ -1,5 +1,7 @@
 from typing import Any
+from abc import ABC, abstractmethod
 
+from radiate.genome.chromosome import Chromosome
 from radiate.genome.population import Population
 from radiate.inputs.input import EngineInput, EngineInputType
 from .component import ComponentBase
@@ -46,14 +48,36 @@ class AlterBase(ComponentBase):
             input_type=EngineInputType.Alterer,
             allowed_genes=self.allowed_genes,
             args=self.args,
-        ).py_input()
+        ).to_python()
 
-        return Population(individuals=py_alter(
-            population.py_population().gene_type(),
-            alterer_input,
-            population.py_population(),
-            generation,
-        ))
+        return Population(
+            individuals=py_alter(
+                population.py_population().gene_type(),
+                alterer_input,
+                population.py_population(),
+                generation,
+            )
+        )
+
+
+class Mutator(AlterBase, ABC):
+    def __init__(self, rate: float = 1.0):
+        super().__init__(
+            component="CustomMutator",
+            args={
+                "rate": rate,
+                "mutate": lambda chrom: self.mutate(Chromosome.from_python(chrom)).to_python(),
+            },
+        )
+
+    @abstractmethod
+    def mutate(self, chromosome: Any):
+        """
+        Abstract method to mutate a chromosome.
+        :param chromosome: The chromosome to mutate.
+        :return: The mutated chromosome.
+        """
+        pass
 
 
 class BlendCrossover(AlterBase):
@@ -61,7 +85,7 @@ class BlendCrossover(AlterBase):
         super().__init__(
             component="BlendCrossover",
             args={"rate": rate, "alpha": alpha},
-            allowed_genes=GeneType.FLOAT    
+            allowed_genes=GeneType.FLOAT,
         )
 
 
@@ -200,6 +224,7 @@ class InversionMutator(AlterBase):
             args={"rate": rate},
         )
 
+
 class EdgeRecombinationCrossover(AlterBase):
     def __init__(self, rate: float = 0.5):
         super().__init__(
@@ -207,6 +232,7 @@ class EdgeRecombinationCrossover(AlterBase):
             args={"rate": rate},
             allowed_genes=GeneType.PERMUTATION,
         )
+
 
 class PolynomialMutator(AlterBase):
     def __init__(self, rate: float = 0.5, eta: float = 20.0):

@@ -14,7 +14,7 @@ class TestEngineErrorHandlingIntegration:
 
         with pytest.raises(ValueError):
             engine = rd.GeneticEngine(
-                codec=rd.IntCodec.vector(length=3, value_range=(0, 10)),
+                codec=rd.IntCodec.vector(length=3, init_range=(0, 10)),
                 fitness_func=fitness_func,
                 objectives="min",
                 population_size=0,  # Invalid
@@ -29,7 +29,7 @@ class TestEngineErrorHandlingIntegration:
             return sum(x)
 
         engine = rd.GeneticEngine(
-            codec=rd.IntCodec.vector(length=3, value_range=(0, 10)),
+            codec=rd.IntCodec.vector(length=3, init_range=(0, 10)),
             fitness_func=fitness_func,
             objectives="min",
         )

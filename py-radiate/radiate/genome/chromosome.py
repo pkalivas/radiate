@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from typing import Iterable, Tuple
-from radiate.genome.wrapper import PythonWrapper
+from radiate.wrapper import PyObject
 from radiate.radiate import PyChromosome
 from .gene import BitGene, CharGene, FloatGene, Gene, GeneType, IntGene
 
 
-class Chromosome[T](PythonWrapper[PyChromosome]):
+class Chromosome[T](PyObject[PyChromosome]):
     """
     Represents a chromosome in a genome.
     """
@@ -44,6 +44,16 @@ class Chromosome[T](PythonWrapper[PyChromosome]):
         :return: Gene instance at the specified index.
         """
         return Gene.from_python(self._pyobj[index])
+    
+    def __setitem__(self, index: int, gene: Gene[T]):
+        """
+        Sets the gene at the specified index.
+        :param index: Index of the gene to set.
+        :param gene: Gene instance to set at the specified index.
+        """
+        if not isinstance(gene, Gene):
+            raise TypeError("gene must be an instance of Gene.")
+        self._pyobj[index] = gene.to_python()
 
     def __iter__(self):
         """
@@ -60,8 +70,8 @@ class Chromosome[T](PythonWrapper[PyChromosome]):
     def float(
         length: int,
         *,
-        value_range: Tuple[float, float] | None = None,
-        bound_range: Tuple[float, float] | None = None,
+        init_range: Tuple[float, float] | None = None,
+        bounds: Tuple[float, float] | None = None,
     ) -> Chromosome[float]:
         """
         Create a float chromosome with specified length and optional parameters.
@@ -77,7 +87,7 @@ class Chromosome[T](PythonWrapper[PyChromosome]):
         Chromosome(genes=[0.0, 2.5, 5.0, 7.5, 10.0])
         """
         genes = [
-            FloatGene(value_range=value_range, bound_range=bound_range)
+            FloatGene(init_range=init_range, bounds=bounds)
             for _ in range(length)
         ]
         return Chromosome(genes=genes)
@@ -86,8 +96,8 @@ class Chromosome[T](PythonWrapper[PyChromosome]):
     def int(
         length: int,
         *,
-        value_range: Tuple[int, int] | None = None,
-        bound_range: Tuple[int, int] | None = None,
+        init_range: Tuple[int, int] | None = None,
+        bounds: Tuple[int, int] | None = None,
     ) -> Chromosome[int]:
         """
         Create an integer chromosome with specified length and optional parameters.
@@ -103,7 +113,7 @@ class Chromosome[T](PythonWrapper[PyChromosome]):
         Chromosome(genes=[0, 5, 10])
         """
         genes = [
-            IntGene(value_range=value_range, bound_range=bound_range)
+            IntGene(init_range=init_range, bounds=bounds)
             for _ in range(length)
         ]
         return Chromosome(genes=genes)

@@ -168,8 +168,8 @@ class NeuralNetworkEvolver:
         engine = rd.GeneticEngine(
             codec=rd.FloatCodec.vector(
                 length=self.network.total_params,
-                value_range=(-2.0, 2.0),
-                bound_range=(-5.0, 5.0),
+                init_range=(-2.0, 2.0),
+                bounds=(-5.0, 5.0),
             ),
             fitness_func=self.create_fitness_function(),
         )
