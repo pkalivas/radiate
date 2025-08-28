@@ -43,6 +43,8 @@ class Chromosome[T](PyObject[PyChromosome]):
         :param index: Index of the gene to retrieve.
         :return: Gene instance at the specified index.
         """
+        if isinstance(index, slice):
+            print(index)
         return Gene.from_python(self._pyobj[index])
     
     def __setitem__(self, index: int, gene: Gene[T]):

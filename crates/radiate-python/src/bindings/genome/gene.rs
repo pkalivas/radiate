@@ -106,8 +106,8 @@ impl PyGene {
                     GeneInner::Char(gene) => GeneInner::Char(gene.new_instance()),
                     GeneInner::Permutation(gene) => GeneInner::Permutation(gene.new_instance()),
                     GeneInner::View(genes, idx) => {
-                        let writer = genes.write().unwrap();
-                        return writer[*idx].with_allele(py, allele);
+                        let reader = genes.read().unwrap();
+                        return reader[*idx].with_allele(py, allele);
                     }
                     _ => {
                         return Err(pyo3::exceptions::PyTypeError::new_err(
@@ -131,8 +131,8 @@ impl PyGene {
                         GeneInner::Permutation(gene.with_allele(&allele.extract(py)?))
                     }
                     GeneInner::View(genes, idx) => {
-                        let writer = genes.write().unwrap();
-                        return writer[*idx].with_allele(py, Some(allele));
+                        let reader = genes.read().unwrap();
+                        return reader[*idx].with_allele(py, Some(allele));
                     }
                     _ => {
                         return Err(pyo3::exceptions::PyTypeError::new_err(
