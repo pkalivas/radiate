@@ -1,13 +1,12 @@
-use crate::{PyChromosome, PyGene, PyGeneType, PyGenotype, PyPhenotype};
+use crate::{AnyChromosome, PyGeneType, PyGenotype, PyPhenotype};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     BitChromosome, CharChromosome, Chromosome, FloatChromosome, GraphChromosome, IntChromosome, Op,
-    PermutationChromosome, Phenotype, Population, TreeChromosome, cell::MutCell,
+    PermutationChromosome, Phenotype, Population, TreeChromosome,
 };
 
 #[pyclass]
 #[derive(Clone, Debug)]
-#[repr(transparent)]
 pub struct PyPopulation {
     #[pyo3(get)]
     pub(crate) phenotypes: Vec<PyPhenotype>,
@@ -72,21 +71,7 @@ macro_rules! impl_into_py_population {
                     phenotypes: population
                         .iter()
                         .map(|phenotype| PyPhenotype {
-                            genotype: PyGenotype {
-                                chromosomes: phenotype
-                                    .genotype()
-                                    .iter()
-                                    .map(|chromosome| {
-                                        PyChromosome::new(
-                                            chromosome
-                                                .genes()
-                                                .iter()
-                                                .map(|gene| PyGene::from(gene.clone()))
-                                                .collect(),
-                                        )
-                                    })
-                                    .collect(),
-                            },
+                            genotype: PyGenotype::from(phenotype.genotype().clone()),
                             score: phenotype
                                 .score()
                                 .map(|score| score.as_ref().to_vec())
@@ -121,3 +106,4 @@ impl_into_py_population!(CharChromosome);
 impl_into_py_population!(GraphChromosome<Op<f32>>);
 impl_into_py_population!(TreeChromosome<Op<f32>>);
 impl_into_py_population!(PermutationChromosome<usize>);
+impl_into_py_population!(AnyChromosome<'static>);

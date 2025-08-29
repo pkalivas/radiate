@@ -20,14 +20,27 @@ desired_output = 44.0
 
 class MutateTemp(rd.Mutator):
     def __init__(self, mutation_rate: float) -> None:
-        super().__init__()
-        self.mutation_rate = mutation_rate
+        super().__init__(mutation_rate)
 
     def mutate(self, chromosome: rd.Chromosome) -> rd.Chromosome:
         for i in range(len(chromosome)):
-            if rd.random.randfloat() < self.mutation_rate:
+            if rd.random.float() < self.rate:
                 chromosome[i] = chromosome[i].new_instance()
         return chromosome
+
+
+class CrossoverTemp(rd.Crossover):
+    def __init__(self, crossover_rate: float) -> None:
+        super().__init__(rate=crossover_rate)
+
+    def crossover(
+        self, parent1: rd.Chromosome, parent2: rd.Chromosome
+    ) -> tuple[rd.Chromosome, rd.Chromosome]:
+        for i in range(len(parent1)):
+            if rd.random.float() < self.rate:
+                parent1[i], parent2[i] = parent2[i], parent1[i]
+        return parent1, parent2
+
 
 @jit(float32(float32[:]), nopython=True)
 def fitness(solution: np.ndarray) -> float:
@@ -40,7 +53,7 @@ engine = rd.GeneticEngine(
     fitness_func=fitness,
     objectives="min",
     alters=[
-        rd.UniformCrossover(0.5),
+        CrossoverTemp(0.5),
         MutateTemp(0.1),
     ],
 )

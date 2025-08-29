@@ -44,8 +44,8 @@ class SnakeGame:
         attempts = 0
         while attempts < 100:
             food = (
-                rd.random.randint(0, self.width),
-                rd.random.randint(0, self.height),
+                rd.random.int(0, self.width),
+                rd.random.int(0, self.height),
             )
             if food not in self.snake:
                 return food

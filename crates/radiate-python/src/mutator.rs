@@ -33,6 +33,10 @@ where
         self.name.clone()
     }
 
+    fn rate(&self) -> f32 {
+        self.rate
+    }
+
     fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> AlterResult {
         let mut count = 0;
 

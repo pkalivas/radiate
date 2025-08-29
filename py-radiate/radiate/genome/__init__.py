@@ -1,10 +1,7 @@
 from .gene import (
     Gene,
+    AnyGene,
     GeneType,
-    FloatGene,
-    IntGene,
-    BitGene,
-    CharGene,
 )
 from .chromosome import Chromosome
 from .genotype import Genotype
@@ -24,6 +21,7 @@ GENE_TYPE_MAPPING = {
         gt.GraphNode: GeneType.GRAPH,
         gt.TreeNode: GeneType.TREE,
         gt.Permutation: GeneType.PERMUTATION,
+        gt.AnyGene: GeneType.ANY,
     },
     "rs": {
         GeneType.FLOAT: gt.Float,
@@ -33,6 +31,7 @@ GENE_TYPE_MAPPING = {
         GeneType.GRAPH: gt.GraphNode,
         GeneType.TREE: gt.TreeNode,
         GeneType.PERMUTATION: gt.Permutation,
+        GeneType.ANY: gt.AnyGene,
     },
 }
 
@@ -44,10 +43,7 @@ __all__ = [
     "Phenotype",
     "Population",
     "Species",
+    "AnyGene",
     "Ecosystem",
-    "FloatGene",
-    "IntGene",
-    "BitGene",
-    "CharGene",
     "GENE_TYPE_MAPPING",
 ]

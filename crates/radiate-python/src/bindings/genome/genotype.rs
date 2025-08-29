@@ -1,13 +1,12 @@
-use crate::{PyChromosome, PyGene, PyGeneType};
+use crate::{AnyChromosome, PyChromosome, PyGeneType};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     BitChromosome, CharChromosome, Chromosome, FloatChromosome, Genotype, GraphChromosome,
-    IntChromosome, Op, PermutationChromosome, TreeChromosome, cell::MutCell,
+    IntChromosome, Op, PermutationChromosome, TreeChromosome,
 };
 
 #[pyclass]
 #[derive(Clone, Debug, PartialEq)]
-#[repr(transparent)]
 pub struct PyGenotype {
     #[pyo3(get)]
     pub(crate) chromosomes: Vec<PyChromosome>,
@@ -52,6 +51,10 @@ impl PyGenotype {
             .and_then(|chromosome| chromosome.clone().into_bound_py_any(py))
     }
 
+    pub fn len(&self) -> usize {
+        self.chromosomes.len()
+    }
+
     pub fn gene_type(&self) -> PyGeneType {
         if self.chromosomes.is_empty() {
             PyGeneType::Empty
@@ -79,16 +82,8 @@ macro_rules! impl_into_py_genotype {
             fn from(genotype: Genotype<$chromosome>) -> Self {
                 PyGenotype {
                     chromosomes: genotype
-                        .iter()
-                        .map(|chromosome| {
-                            PyChromosome::new(
-                                chromosome
-                                    .genes()
-                                    .iter()
-                                    .map(|gene| PyGene::from(gene.clone()))
-                                    .collect(),
-                            )
-                        })
+                        .into_iter()
+                        .map(|chromosome| PyChromosome::from(chromosome))
                         .collect(),
                 }
             }
@@ -117,3 +112,4 @@ impl_into_py_genotype!(CharChromosome);
 impl_into_py_genotype!(GraphChromosome<Op<f32>>);
 impl_into_py_genotype!(TreeChromosome<Op<f32>>);
 impl_into_py_genotype!(PermutationChromosome<usize>);
+impl_into_py_genotype!(AnyChromosome<'static>);

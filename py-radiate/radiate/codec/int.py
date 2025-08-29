@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from radiate._typing import IntEncoding
 from radiate.genome.chromosome import Chromosome
-from radiate.genome.gene import Gene, GeneType, IntGene
+from radiate.genome.gene import Gene, GeneType
 
 from .base import CodecBase
 from radiate.genome import Genotype
@@ -42,12 +42,12 @@ class IntCodec[D](CodecBase[int, D]):
         """
         if isinstance(encoding, PyIntCodec):
             return encoding
-        elif isinstance(encoding, IntGene):
+        elif isinstance(encoding, Gene):
             return PyIntCodec.from_genes([encoding.to_python()])
         elif isinstance(encoding, Chromosome):
             return PyIntCodec.from_chromosomes([encoding.to_python()])
         elif isinstance(encoding, list):
-            if all(isinstance(g, IntGene) for g in encoding):
+            if all(isinstance(g, Gene) for g in encoding):
                 return PyIntCodec.from_genes([g.to_python() for g in encoding])
             elif all(isinstance(c, Chromosome) for c in encoding):
                 return PyIntCodec.from_chromosomes([c.to_python() for c in encoding])

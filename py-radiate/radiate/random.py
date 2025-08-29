@@ -9,7 +9,7 @@ class RandomProvider:
         """
         PyRandomProvider.set_seed(seed)
 
-    def randint(min: int, max: int) -> int:
+    def int(min: int, max: int) -> int:
         """
         Generate a random integer in the range [min, max).
         :param min: Minimum value (inclusive).
@@ -18,7 +18,7 @@ class RandomProvider:
         """
         return PyRandomProvider.random_int(min, max)
 
-    def randfloat(min: float = 0.0, max: float = 1.0) -> float:
+    def float(min: float = 0.0, max: float = 1.0) -> float:
         """
         Generate a random float in the range [min, max).
         :param min: Minimum value (inclusive).
@@ -26,3 +26,12 @@ class RandomProvider:
         :return: Random float.
         """
         return PyRandomProvider.random_float(min, max)
+
+    def sample(data: list, count: int) -> list:
+        """
+        Randomly sample elements from a list.
+        :param data: List of elements to sample from.
+        :param count: Number of elements to sample.
+        :return: List of sampled elements.
+        """
+        return PyRandomProvider.sample(data, count)

@@ -1,26 +1,29 @@
+use crate::{AnyGene, PyGeneType, Wrap, py_object_to_any_value};
 use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     BitGene, CharGene, FloatGene, Gene, GraphNode, IntGene, Op, PermutationGene, TreeNode,
     random_provider,
 };
+use std::sync::{Arc, RwLock};
 
-use crate::PyGeneType;
-
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 enum GeneInner {
     Float(FloatGene),
     Int(IntGene<i32>),
     Bit(BitGene),
     Char(CharGene),
+    Permutation(PermutationGene<usize>),
+
     GraphNode(GraphNode<Op<f32>>),
     TreeNode(TreeNode<Op<f32>>),
-    Permutation(PermutationGene<usize>),
-    Empty(PyGeneType),
+
+    AnyGene(AnyGene<'static>),
+
+    View(Arc<RwLock<Vec<PyGene>>>, usize),
 }
 
 #[pyclass]
-#[derive(Clone, Debug, PartialEq)]
-#[repr(transparent)]
+#[derive(Clone, Debug)]
 pub struct PyGene {
     inner: GeneInner,
 }
@@ -35,8 +38,12 @@ impl PyGene {
             GeneInner::Char(gene) => format!("{:?}", gene),
             GeneInner::GraphNode(gene) => format!("{:?}", gene),
             GeneInner::TreeNode(gene) => format!("{:?}", gene),
+            GeneInner::AnyGene(gene) => format!("{:?}", gene),
             GeneInner::Permutation(gene) => format!("{:?}", gene),
-            GeneInner::Empty(gene_type) => format!("Empty({})", gene_type.name()),
+            GeneInner::View(genes, idx) => {
+                let reader = genes.read().unwrap();
+                reader[*idx].__str__()
+            }
         }
     }
 
@@ -45,7 +52,20 @@ impl PyGene {
     }
 
     pub fn __eq__(&self, other: &Self) -> bool {
-        self.inner == other.inner
+        self == other
+    }
+
+    pub fn is_view(&self) -> bool {
+        matches!(self.inner, GeneInner::View(_, _))
+    }
+
+    pub fn flatten(&self) -> PyGene {
+        if let GeneInner::View(genes, idx) = &self.inner {
+            let reader = genes.read().unwrap();
+            reader[*idx].flatten()
+        } else {
+            self.clone()
+        }
     }
 
     pub fn gene_type(&self) -> PyGeneType {
@@ -57,7 +77,11 @@ impl PyGene {
             GeneInner::GraphNode(_) => PyGeneType::GraphNode,
             GeneInner::TreeNode(_) => PyGeneType::TreeNode,
             GeneInner::Permutation(_) => PyGeneType::Permutation,
-            GeneInner::Empty(gene_type) => gene_type.clone(),
+            GeneInner::AnyGene(_) => PyGeneType::AnyGene,
+            GeneInner::View(genes, idx) => {
+                let reader = genes.read().unwrap();
+                reader[*idx].gene_type()
+            }
         }
     }
 
@@ -70,11 +94,20 @@ impl PyGene {
             GeneInner::GraphNode(gene) => gene.allele().name().into_bound_py_any(py),
             GeneInner::TreeNode(gene) => gene.allele().name().into_bound_py_any(py),
             GeneInner::Permutation(gene) => gene.allele().into_bound_py_any(py),
-            GeneInner::Empty(_) => py.None().into_bound_py_any(py),
+            GeneInner::AnyGene(gene) => Wrap(gene.allele()).into_bound_py_any(py),
+            GeneInner::View(genes, idx) => {
+                let reader = genes.read().unwrap();
+                reader[*idx].allele(py)
+            }
         }
     }
 
-    pub fn with_allele<'py>(&self, py: Python<'py>, allele: Option<Py<PyAny>>) -> PyResult<PyGene> {
+    #[pyo3(signature = (allele=None))]
+    pub fn new_instance<'py>(
+        &self,
+        py: Python<'py>,
+        allele: Option<Py<PyAny>>,
+    ) -> PyResult<PyGene> {
         if allele.is_none() {
             return Ok(PyGene {
                 inner: match &self.inner {
@@ -83,6 +116,11 @@ impl PyGene {
                     GeneInner::Bit(gene) => GeneInner::Bit(gene.new_instance()),
                     GeneInner::Char(gene) => GeneInner::Char(gene.new_instance()),
                     GeneInner::Permutation(gene) => GeneInner::Permutation(gene.new_instance()),
+                    GeneInner::AnyGene(gene) => GeneInner::AnyGene(gene.new_instance()),
+                    GeneInner::View(genes, idx) => {
+                        let reader = genes.read().unwrap();
+                        return reader[*idx].new_instance(py, allele);
+                    }
                     _ => {
                         return Err(pyo3::exceptions::PyTypeError::new_err(
                             "Cannot set allele on this gene type",
@@ -104,6 +142,16 @@ impl PyGene {
                     GeneInner::Permutation(gene) => {
                         GeneInner::Permutation(gene.with_allele(&allele.extract(py)?))
                     }
+                    GeneInner::AnyGene(gene) => GeneInner::AnyGene(
+                        gene.with_allele(
+                            &py_object_to_any_value(&allele.into_bound_py_any(py).unwrap(), true)?
+                                .into_static(),
+                        ),
+                    ),
+                    GeneInner::View(genes, idx) => {
+                        let reader = genes.read().unwrap();
+                        return reader[*idx].new_instance(py, Some(allele));
+                    }
                     _ => {
                         return Err(pyo3::exceptions::PyTypeError::new_err(
                             "Cannot set allele on this gene type",
@@ -116,6 +164,27 @@ impl PyGene {
                 "Allele must be of the correct type",
             ))
         }
+    }
+
+    pub fn apply<'py>(&mut self, py: Python<'py>, f: Py<PyAny>) -> PyResult<()> {
+        if let GeneInner::View(genes, idx) = &self.inner {
+            let mut writer = genes.write().unwrap();
+            return writer[*idx].apply(py, f);
+        }
+
+        let allele = self.allele(py)?;
+        let new_allele = f.call1(py, (allele,))?;
+        let new_gene = self.new_instance(py, Some(new_allele))?;
+
+        self.inner = new_gene.inner;
+
+        Ok(())
+    }
+
+    pub fn map<'py>(&self, py: Python<'py>, f: Py<PyAny>) -> PyResult<PyGene> {
+        let allele = self.allele(py)?;
+        let new_allele = f.call1(py, (allele,))?;
+        self.new_instance(py, Some(new_allele))
     }
 
     #[staticmethod]
@@ -177,11 +246,44 @@ impl PyGene {
             }),
         }
     }
+}
 
-    #[staticmethod]
-    pub fn empty(gene_type: PyGeneType) -> PyGene {
+impl PartialEq for PyGene {
+    fn eq(&self, other: &Self) -> bool {
+        if let (GeneInner::Float(a), GeneInner::Float(b)) = (&self.inner, &other.inner) {
+            a == b
+        } else if let (GeneInner::Int(a), GeneInner::Int(b)) = (&self.inner, &other.inner) {
+            a == b
+        } else if let (GeneInner::Bit(a), GeneInner::Bit(b)) = (&self.inner, &other.inner) {
+            a == b
+        } else if let (GeneInner::Char(a), GeneInner::Char(b)) = (&self.inner, &other.inner) {
+            a == b
+        } else if let (GeneInner::GraphNode(a), GeneInner::GraphNode(b)) =
+            (&self.inner, &other.inner)
+        {
+            a == b
+        } else if let (GeneInner::TreeNode(a), GeneInner::TreeNode(b)) = (&self.inner, &other.inner)
+        {
+            a == b
+        } else if let (GeneInner::Permutation(a), GeneInner::Permutation(b)) =
+            (&self.inner, &other.inner)
+        {
+            a == b
+        } else if let (GeneInner::View(a, ai), GeneInner::View(b, bi)) = (&self.inner, &other.inner)
+        {
+            let reader_one = a.read().unwrap();
+            let reader_two = b.read().unwrap();
+            Arc::ptr_eq(a, b) && ai == bi && *reader_one == *reader_two
+        } else {
+            false
+        }
+    }
+}
+
+impl From<(Arc<RwLock<Vec<PyGene>>>, usize)> for PyGene {
+    fn from((genes, index): (Arc<RwLock<Vec<PyGene>>>, usize)) -> Self {
         PyGene {
-            inner: GeneInner::Empty(gene_type),
+            inner: GeneInner::View(genes, index),
         }
     }
 }
@@ -198,6 +300,18 @@ macro_rules! impl_into_py_gene {
 
         impl From<PyGene> for $gene_type {
             fn from(py_gene: PyGene) -> Self {
+                if matches!(py_gene.inner, GeneInner::View(_, _)) {
+                    let flat = py_gene.flatten();
+                    if let GeneInner::$gene_variant(inner_gene) = flat.inner {
+                        return inner_gene;
+                    } else {
+                        panic!(
+                            "Expected {}, got {:?}",
+                            stringify!($gene_type),
+                            flat.gene_type()
+                        );
+                    }
+                }
                 match py_gene.inner {
                     GeneInner::$gene_variant(gene) => gene,
                     _ => panic!("Cannot convert PyGene to {}", stringify!($gene_type)),
@@ -214,3 +328,4 @@ impl_into_py_gene!(CharGene, Char);
 impl_into_py_gene!(GraphNode<Op<f32>>, GraphNode);
 impl_into_py_gene!(TreeNode<Op<f32>>, TreeNode);
 impl_into_py_gene!(PermutationGene<usize>, Permutation);
+impl_into_py_gene!(AnyGene<'static>, AnyGene);

@@ -70,6 +70,7 @@ serde = { version = "1.0.219", features = ["derive"] }
 serde_json = { version = "1.0.143" }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+num-traits = "0.2.19"
 radiate = { version = "1.2.16", path = "crates/radiate", default-features = false }
 radiate-core = { version = "1.2.16", path = "crates/radiate-core", default-features = false }
 radiate-alters = { version = "1.2.16", path = "crates/radiate-alters", default-features = false }
