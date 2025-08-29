@@ -47,10 +47,9 @@ class Chromosome[T](PyObject[PyChromosome]):
         :param index: Index of the gene to retrieve.
         :return: Gene instance at the specified index.
         """
-        item = self._pyobj[index]
         if isinstance(index, slice):
-            return Chromosome.from_python(item)
-        return Gene.from_python(item)
+            return Chromosome.from_python(self._pyobj.view(index))
+        return Gene.from_python(self._pyobj[index])
 
     def __setitem__(self, index: int | slice, gene: Gene[T] | Chromosome[T] | T):
         """
@@ -67,15 +66,36 @@ class Chromosome[T](PyObject[PyChromosome]):
 
     def __iter__(self):
         """
-        Returns an iterator over the genes in the chromosome.
+        Creates an iterator over a View of the chromosome. This means that
+        each gene returned by the iterator is a view into the original chromosome and
+        is not a copy, so changes to the gene will affect the original chromosome.
+
         :return: An iterator over the genes in the chromosome.
         """
         for i in range(len(self)):
-            yield Gene.from_python(self._pyobj[i])
+            yield Gene.from_python(self._pyobj.view(i))
 
-    def gene_type(self) -> 'GeneType':
+    def gene_type(self) -> "GeneType":
         from . import GeneType
+
         return GeneType.from_str(self._pyobj.gene_type())
+
+    def is_view(self) -> bool:
+        return self._pyobj.is_view()
+
+    def view(self, index: int | slice | None = None) -> Gene[T] | Chromosome[T]:
+        if index is None:
+            return Chromosome.from_python(self._pyobj.view())
+        if isinstance(index, slice):
+            return Chromosome.from_python(self._pyobj.view(index))
+        return Gene.from_python(self._pyobj.view(index))
+
+    def copy(self, index: int | slice | None = None) -> Gene[T] | Chromosome[T]:
+        if index is None:
+            return Chromosome.from_python(self._pyobj.copy())
+        if isinstance(index, slice):
+            return Chromosome.from_python(self._pyobj.copy(index))
+        return Gene.from_python(self._pyobj.copy(index))
 
 
 def int(

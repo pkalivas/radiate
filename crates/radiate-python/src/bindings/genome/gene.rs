@@ -55,6 +55,14 @@ impl PyGene {
         self == other
     }
 
+    pub fn copy(&self) -> PyGene {
+        if self.is_view() {
+            self.flatten()
+        } else {
+            self.clone()
+        }
+    }
+
     pub fn is_view(&self) -> bool {
         matches!(self.inner, GeneInner::View(_, _))
     }

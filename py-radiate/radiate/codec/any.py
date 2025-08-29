@@ -1,11 +1,13 @@
 from typing import Callable
 
 from radiate.genome.genotype import Genotype
-from . import CodecBase
+from radiate.genome.gene import AnyGene
 from radiate.radiate import PyAnyCodec
 
+from . import CodecBase
 
-class AnyCodec[T](CodecBase[T, list[T]]):
+
+class AnyCodec[T: AnyGene](CodecBase[T, list[T]]):
     def __init__(self, len: int, genes_factory: Callable[[], T]):
         """
         Initialize the AnyCodec with encoder and decoder functions.
@@ -44,11 +46,10 @@ class AnyCodec[T](CodecBase[T, list[T]]):
         """
         return Genotype.from_python(self.codec.encode_py())
 
-    def decode(self, genotype: Genotype) -> T:
+    def decode(self, genotype: Genotype) -> list[T]:
         """
         Decodes a PyAnyCodec into its representation.
         :param genotype: A PyAnyCodec instance to decode.
         :return: The decoded representation of the PyAnyCodec.
         """
-        genotype = genotype.to_python()
-        return self.codec.decode_py(genotype)
+        return self.codec.decode_py(genotype.to_python())

@@ -11,6 +11,7 @@ class PyObject[T](ABC):
     """
 
     __slots__ = ["_pyobj"]
+    _pyobj: T | None
 
     def __init__(self):
         self._pyobj = None
@@ -21,7 +22,7 @@ class PyObject[T](ABC):
         instance._pyobj = py_obj
         return instance
 
-    def to_python(self) -> T:
+    def to_python(self) -> T | None:
         return self._pyobj
 
     def __repr__(self) -> str:

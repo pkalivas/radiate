@@ -33,6 +33,20 @@ class Gene[T](PyObject[PyGene]):
         :param allele: The new allele value, which can be a float, int, bool, str, or None.
         """
         return Gene.from_python(self._pyobj.new_instance(allele))
+    
+    def is_view(self) -> bool:
+        """
+        Check if the gene is a view.
+        :return: True if the gene is a view, False otherwise.
+        """
+        return self._pyobj.is_view()
+
+    def copy(self) -> Gene[T]:
+        """
+        Create a copy of the gene.
+        :return: A new gene instance with the same allele.
+        """
+        return Gene.from_python(self._pyobj.copy())
 
     def apply(self, f: Callable[[T], T]) -> None:
         """
@@ -51,16 +65,9 @@ class Gene[T](PyObject[PyGene]):
 
 
 class AnyGene(Gene):
-    def __init__(self):
-        pass
-
     @classmethod
     def __from_gene__(klass, gene_dict: dict):
         inst = klass.__new__(klass)
-        unknown = set(gene_dict.keys()) - set(inst.__dict__.keys())
-        if unknown:
-            raise ValueError(f"Unknown field(s) {sorted(unknown)} for {klass.__name__}")
-
         inst.__dict__.update(gene_dict)
         return inst
 

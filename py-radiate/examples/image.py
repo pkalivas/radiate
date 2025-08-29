@@ -173,7 +173,7 @@ class ImageMutator(rd.Mutator):
                         )
                     return {**g, "points": pts}
 
-                candidate[i].apply(jitter)
+                candidate.view(i).apply(jitter)
         return candidate
 
 
@@ -232,7 +232,7 @@ class PolygonMeanCrossover(rd.Crossover):
                 a = dict(left[i].allele())
                 b = dict(right[i].allele())
 
-                left[i].apply(lambda _g, pa=a, pb=b: mean_dict(pa, pb))
+                left.view(i).apply(lambda _g, pa=a, pb=b: mean_dict(pa, pb))
                 # right[i].apply(lambda _g, pa=b, pb=a: mean_dict(pa, pb))
         return left, right
 

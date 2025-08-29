@@ -25,10 +25,7 @@ class Genotype[T](PyObject[PyGenotype]):
         if isinstance(chromosomes, Chromosome):
             self._pyobj = PyGenotype([chromosomes.to_python()])
         elif isinstance(chromosomes, Iterable):
-            if all(isinstance(chromo, Chromosome) for chromo in chromosomes):
-                self._pyobj = PyGenotype(list(map(lambda c: c.to_python(), chromosomes)))
-            else:
-                raise ValueError("All chromosomes must be instances of Chromosome")
+            self._pyobj = PyGenotype(list(map(lambda c: c.to_python(), chromosomes)))
 
     def __repr__(self):
         return self._pyobj.__repr__()
@@ -56,10 +53,11 @@ class Genotype[T](PyObject[PyGenotype]):
         for chromosome in self._pyobj.chromosomes:
             yield Chromosome.from_python(chromosome)
 
-    def gene_type(self) -> 'GeneType':
+    def gene_type(self) -> "GeneType":
         """
         Returns the type of the genes in the genotype.
         :return: The gene type as a string.
         """
         from . import GeneType
+
         return GeneType.from_str(self._pyobj.gene_type())

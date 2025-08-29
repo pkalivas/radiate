@@ -24,7 +24,7 @@ class ObjectMutator(rd.Mutator):
     def mutate(self, chromosome: rd.Chromosome) -> rd.Chromosome:
         for i in range(len(chromosome)):
             if rd.random.float() < self.rate:
-                chromosome[i].apply(lambda g: {**g, "number": rd.random.float()})
+                chromosome.view(i).apply(lambda g: {**g, "number": rd.random.float()})
         return chromosome
 
 
