@@ -2,7 +2,6 @@ use super::Field;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub enum DataType {
-    /// Null type
     #[default]
     Null,
     Boolean,
