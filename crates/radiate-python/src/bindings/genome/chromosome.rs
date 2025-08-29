@@ -1,50 +1,37 @@
-use crate::{AnyChromosome, AnyGene, PyGene, PyGeneType};
+use crate::{AnyChromosome, AnyGene, PyGene, PyGeneType, RwSequence};
 use pyo3::{
-    Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods,
+    Bound, IntoPyObjectExt, Py, PyAny, PyRef, PyResult, Python, pyclass, pymethods,
     types::{PyAnyMethods, PySlice, PySliceMethods},
 };
-use radiate::{
-    BitChromosome, BitGene, CharChromosome, CharGene, FloatChromosome, FloatGene, GraphChromosome,
-    GraphNode, IntChromosome, IntGene, Op, PermutationChromosome, PermutationGene, TreeChromosome,
-    TreeNode,
-};
-use std::sync::{Arc, RwLock};
+use radiate::prelude::*;
 
-#[derive(Clone, Debug)]
-pub struct GeneSequence {
-    genes: Arc<RwLock<Vec<PyGene>>>,
+#[pyclass]
+pub struct PyGeneIterator {
+    current: usize,
+    genes: RwSequence<PyGene>,
 }
 
-impl GeneSequence {
-    pub fn new(genes: Vec<PyGene>) -> Self {
-        GeneSequence {
-            genes: Arc::new(RwLock::new(genes)),
+#[pymethods]
+impl PyGeneIterator {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        slf
+    }
+
+    fn __next__(&mut self) -> Option<PyGene> {
+        if self.current < self.genes.len() {
+            let gene = PyGene::from((self.genes.clone(), self.current));
+            self.current += 1;
+            Some(gene)
+        } else {
+            None
         }
-    }
-
-    pub fn read(&self) -> std::sync::RwLockReadGuard<'_, Vec<PyGene>> {
-        self.genes.read().unwrap()
-    }
-
-    pub fn write(&self) -> std::sync::RwLockWriteGuard<'_, Vec<PyGene>> {
-        self.genes.write().unwrap()
-    }
-
-    pub fn len(&self) -> usize {
-        self.genes.read().unwrap().len()
-    }
-}
-
-impl PartialEq for GeneSequence {
-    fn eq(&self, other: &Self) -> bool {
-        *self.genes.read().unwrap() == *other.genes.read().unwrap()
     }
 }
 
 #[pyclass]
 #[derive(Clone, Debug, PartialEq)]
 pub struct PyChromosome {
-    pub(crate) genes: GeneSequence,
+    pub(crate) genes: RwSequence<PyGene>,
 }
 
 #[pymethods]
@@ -52,7 +39,7 @@ impl PyChromosome {
     #[new]
     pub fn new(genes: Vec<PyGene>) -> Self {
         PyChromosome {
-            genes: GeneSequence::new(genes),
+            genes: RwSequence::new(genes),
         }
     }
 
@@ -81,6 +68,13 @@ impl PyChromosome {
             .iter()
             .zip(&*other.genes.read())
             .all(|(a, b)| a == b)
+    }
+
+    pub fn __iter__(&self) -> PyGeneIterator {
+        PyGeneIterator {
+            current: 0,
+            genes: self.genes.clone(),
+        }
     }
 
     pub fn __getitem__<'py>(
@@ -114,7 +108,7 @@ impl PyChromosome {
         match index {
             Some(idx) => self.get_item(py, idx.into_bound(py), false),
             None => PyChromosome {
-                genes: GeneSequence::new(self.genes.read().clone()),
+                genes: RwSequence::new(self.genes.read().clone()),
             }
             .into_bound_py_any(py),
         }
@@ -135,36 +129,8 @@ impl PyChromosome {
         }
     }
 
-    pub fn allele<'py>(&self, py: Python<'py>, index: usize) -> PyResult<Bound<'py, PyAny>> {
-        let reader = self.genes.read();
-        if index >= reader.len() {
-            return Err(pyo3::exceptions::PyIndexError::new_err(
-                "index out of range",
-            ));
-        }
-
-        reader[index].allele(py)
-    }
-
-    pub fn set_allele<'py>(
-        &mut self,
-        py: Python<'py>,
-        index: usize,
-        value: Option<Py<PyAny>>,
-    ) -> PyResult<()> {
-        let mut writer = self.genes.write();
-        if index >= writer.len() {
-            return Err(pyo3::exceptions::PyIndexError::new_err(
-                "index out of range",
-            ));
-        }
-
-        writer[index] = writer[index].new_instance(py, value)?;
-        Ok(())
-    }
-
     pub fn is_view(&self) -> bool {
-        let ref_count = Arc::strong_count(&self.genes.genes) + Arc::weak_count(&self.genes.genes);
+        let ref_count = self.genes.strong_count() + self.genes.weak_count();
         self.genes.read().iter().any(|gene| gene.is_view()) || ref_count > 1
     }
 
@@ -196,8 +162,7 @@ impl PyChromosome {
             }
 
             if view {
-                return PyGene::from((Arc::clone(&self.genes.genes), idx as usize))
-                    .into_bound_py_any(py);
+                return PyGene::from((self.genes.clone(), idx as usize)).into_bound_py_any(py);
             } else {
                 return self.genes.read()[idx as usize]
                     .clone()
@@ -219,14 +184,14 @@ impl PyChromosome {
             let mut result = Vec::with_capacity(((stop.saturating_sub(start)) + step - 1) / step);
             for i in (start..stop).step_by(step) {
                 result.push(if view {
-                    PyGene::from((Arc::clone(&self.genes.genes), i))
+                    PyGene::from((self.genes.clone(), i))
                 } else {
                     self.genes.read()[i].clone()
                 });
             }
 
             return PyChromosome {
-                genes: GeneSequence::new(result),
+                genes: RwSequence::new(result),
             }
             .into_bound_py_any(py);
         }
@@ -291,7 +256,7 @@ impl PyChromosome {
             }
             let vals = value.genes.read();
             let mut w = self.genes.write();
-            let mut vi = 0usize;
+            let mut vi = 0;
             for i in (start..stop).step_by(step) {
                 let mut v = vals[vi].clone();
                 if v.is_view() {
@@ -312,7 +277,7 @@ macro_rules! impl_into_py_chromosome {
         impl From<$chromosome_type> for PyChromosome {
             fn from(chromosome: $chromosome_type) -> Self {
                 PyChromosome {
-                    genes: GeneSequence::new(
+                    genes: RwSequence::new(
                         chromosome
                             .into_iter()
                             .map(|gene| PyGene::from(gene))
@@ -324,19 +289,31 @@ macro_rules! impl_into_py_chromosome {
 
         impl From<PyChromosome> for $chromosome_type {
             fn from(py_chromosome: PyChromosome) -> Self {
-                let genes = py_chromosome
-                    .genes
-                    .read()
-                    .iter()
-                    .map(|gene| {
-                        if gene.is_view() {
-                            <$gene_type>::from(gene.flatten())
-                        } else {
-                            <$gene_type>::from(gene.clone())
-                        }
-                    })
-                    .collect::<Vec<_>>();
-                <$chromosome_type>::from(genes)
+                if py_chromosome.is_view() {
+                    <$chromosome_type>::from(
+                        py_chromosome
+                            .genes
+                            .read()
+                            .iter()
+                            .cloned()
+                            .map(|gene| {
+                                if gene.is_view() {
+                                    <$gene_type>::from(gene.flatten())
+                                } else {
+                                    <$gene_type>::from(gene)
+                                }
+                            })
+                            .collect::<Vec<$gene_type>>(),
+                    )
+                } else {
+                    let genes = py_chromosome
+                        .genes
+                        .take()
+                        .into_iter()
+                        .map(|gene| <$gene_type>::from(gene))
+                        .collect::<Vec<_>>();
+                    <$chromosome_type>::from(genes)
+                }
             }
         }
     };

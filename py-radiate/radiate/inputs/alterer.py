@@ -7,6 +7,8 @@ from radiate.inputs.input import EngineInput, EngineInputType
 from .component import ComponentBase
 from ..genome import GeneType
 
+from radiate.radiate import PyChromosome
+
 
 class AlterBase(ComponentBase):
     def __init__(
@@ -66,10 +68,19 @@ class Mutator(AlterBase, ABC):
             component="CustomMutator",
             args={
                 "rate": rate,
-                "mutate": lambda chrom: self.mutate(cast(Chromosome, chrom)),
+                "mutate": lambda chrom: self.__mutate_internal(chrom),
             },
         )
         self.rate = rate
+
+    def __mutate_internal(self, chromosome: PyChromosome) -> PyChromosome:
+        result = self.mutate(cast(Chromosome, chromosome))
+        if isinstance(result, PyChromosome):
+            return result
+        elif isinstance(result, Chromosome):
+            return result.to_python()
+        else:
+            raise TypeError("Mutator.mutate must return a Chromosome or PyChromosome")
 
     @abstractmethod
     def mutate(self, chromosome: Chromosome) -> Chromosome:
@@ -78,7 +89,7 @@ class Mutator(AlterBase, ABC):
         :param chromosome: The chromosome to mutate.
         :return: The mutated chromosome.
         """
-        pass
+        raise NotImplementedError
 
 
 class Crossover(AlterBase, ABC):

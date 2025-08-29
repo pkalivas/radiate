@@ -6,9 +6,28 @@ use radiate_python::{
     PyRandomProvider, PySpecies, PySubscriber, PyTree, PyTreeCodec, py_alter, py_select,
 };
 
+#[pyclass(subclass)]
+struct RustBase {
+    value: i32,
+}
+
+#[pymethods]
+impl RustBase {
+    #[new]
+    fn new(value: i32) -> Self {
+        RustBase { value }
+    }
+
+    fn greet(&self) -> String {
+        format!("Hello from RustBase! Value: {}", self.value)
+    }
+}
+
 #[pymodule]
 fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
     radiate_python::init_logging();
+
+    m.add_class::<RustBase>()?;
 
     m.add_function(wrap_pyfunction!(py_select, m)?)?;
     m.add_function(wrap_pyfunction!(py_alter, m)?)?;

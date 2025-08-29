@@ -1,10 +1,9 @@
-use crate::{AnyGene, PyGeneType, Wrap, py_object_to_any_value};
+use crate::{AnyGene, PyGeneType, RwSequence, Wrap, py_object_to_any_value};
 use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     BitGene, CharGene, FloatGene, Gene, GraphNode, IntGene, Op, PermutationGene, TreeNode,
     random_provider,
 };
-use std::sync::{Arc, RwLock};
 
 #[derive(Clone, Debug)]
 enum GeneInner {
@@ -19,7 +18,7 @@ enum GeneInner {
 
     AnyGene(AnyGene<'static>),
 
-    View(Arc<RwLock<Vec<PyGene>>>, usize),
+    View(RwSequence<PyGene>, usize),
 }
 
 #[pyclass]
@@ -41,7 +40,7 @@ impl PyGene {
             GeneInner::AnyGene(gene) => format!("{:?}", gene),
             GeneInner::Permutation(gene) => format!("{:?}", gene),
             GeneInner::View(genes, idx) => {
-                let reader = genes.read().unwrap();
+                let reader = genes.read();
                 reader[*idx].__str__()
             }
         }
@@ -69,7 +68,7 @@ impl PyGene {
 
     pub fn flatten(&self) -> PyGene {
         if let GeneInner::View(genes, idx) = &self.inner {
-            let reader = genes.read().unwrap();
+            let reader = genes.read();
             reader[*idx].flatten()
         } else {
             self.clone()
@@ -87,7 +86,7 @@ impl PyGene {
             GeneInner::Permutation(_) => PyGeneType::Permutation,
             GeneInner::AnyGene(_) => PyGeneType::AnyGene,
             GeneInner::View(genes, idx) => {
-                let reader = genes.read().unwrap();
+                let reader = genes.read();
                 reader[*idx].gene_type()
             }
         }
@@ -104,7 +103,7 @@ impl PyGene {
             GeneInner::Permutation(gene) => gene.allele().into_bound_py_any(py),
             GeneInner::AnyGene(gene) => Wrap(gene.allele()).into_bound_py_any(py),
             GeneInner::View(genes, idx) => {
-                let reader = genes.read().unwrap();
+                let reader = genes.read();
                 reader[*idx].allele(py)
             }
         }
@@ -126,7 +125,7 @@ impl PyGene {
                     GeneInner::Permutation(gene) => GeneInner::Permutation(gene.new_instance()),
                     GeneInner::AnyGene(gene) => GeneInner::AnyGene(gene.new_instance()),
                     GeneInner::View(genes, idx) => {
-                        let reader = genes.read().unwrap();
+                        let reader = genes.read();
                         return reader[*idx].new_instance(py, allele);
                     }
                     _ => {
@@ -157,7 +156,7 @@ impl PyGene {
                         ),
                     ),
                     GeneInner::View(genes, idx) => {
-                        let reader = genes.read().unwrap();
+                        let reader = genes.read();
                         return reader[*idx].new_instance(py, Some(allele));
                     }
                     _ => {
@@ -176,7 +175,7 @@ impl PyGene {
 
     pub fn apply<'py>(&mut self, py: Python<'py>, f: Py<PyAny>) -> PyResult<()> {
         if let GeneInner::View(genes, idx) = &self.inner {
-            let mut writer = genes.write().unwrap();
+            let mut writer = genes.write();
             return writer[*idx].apply(py, f);
         }
 
@@ -279,17 +278,15 @@ impl PartialEq for PyGene {
             a == b
         } else if let (GeneInner::View(a, ai), GeneInner::View(b, bi)) = (&self.inner, &other.inner)
         {
-            let reader_one = a.read().unwrap();
-            let reader_two = b.read().unwrap();
-            Arc::ptr_eq(a, b) && ai == bi && *reader_one == *reader_two
+            a == b && ai == bi
         } else {
             false
         }
     }
 }
 
-impl From<(Arc<RwLock<Vec<PyGene>>>, usize)> for PyGene {
-    fn from((genes, index): (Arc<RwLock<Vec<PyGene>>>, usize)) -> Self {
+impl From<(RwSequence<PyGene>, usize)> for PyGene {
+    fn from((genes, index): (RwSequence<PyGene>, usize)) -> Self {
         PyGene {
             inner: GeneInner::View(genes, index),
         }

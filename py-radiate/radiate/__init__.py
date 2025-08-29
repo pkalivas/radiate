@@ -84,9 +84,17 @@ from .inputs.limit import SecondsLimit, GenerationsLimit, ScoreLimit, Convergenc
 
 from .dependancies import _NUMPY_AVAILABLE
 
+from radiate.radiate import RustBase
+
+class PyRustBase(RustBase):
+    def __init__(self, t: int):
+        self.t = t
+
+
 __all__ = [
+    "PyRustBase",
     # Version information
-    "__version__",
+    "__version__",  
     "__version_tuple__",
     # Dependencies
     "_NUMPY_AVAILABLE",

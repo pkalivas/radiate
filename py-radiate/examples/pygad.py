@@ -39,6 +39,9 @@ print(f"Function output: {np.sum(result.value() * function_inputs)}")
 
 print(result)
 
+# temp = rd.PyRustBase(222)
+# print(temp.greet())
+
 
 # class MutateTemp(rd.Mutator):
 #     def __init__(self, mutation_rate: float) -> None:

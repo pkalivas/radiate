@@ -11,7 +11,7 @@ import radiate as rd
 NUM_GENES = 175
 POLYGON_SIZE = 5
 SEED = 18
-STEPS = 1
+STEPS = 1000
 
 rd.random.seed(SEED)
 

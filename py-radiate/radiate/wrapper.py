@@ -14,7 +14,7 @@ class PyObject[T](ABC):
     _pyobj: T | None
 
     def __init__(self):
-        self._pyobj = None
+        pass
 
     @classmethod
     def from_python(cls, py_obj: T):

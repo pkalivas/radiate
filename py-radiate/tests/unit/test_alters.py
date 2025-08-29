@@ -27,18 +27,17 @@ class TestCustomMutators:
 
         class TestMutator(rd.Mutator):
             def mutate(self, chromosome: rd.Chromosome) -> rd.Chromosome:
-                for i in range(len(chromosome)):
-                    gene = chromosome.view(i)
-                    chromosome[i] = gene.new_instance(gene.allele() * 2)
+                for gene in chromosome:
+                    gene.apply(lambda allele: allele * 2)
                 return chromosome
 
-        mutator = TestMutator()
-        original_chromosome = rd.Chromosome(
-            [rd.gene.float(1.0), rd.gene.float(2.0), rd.gene.float(3.0)]
-        )
+        original_chromosome = rd.Chromosome(rd.gene.float(float(i)) for i in range(5))
+        original_copy = original_chromosome.copy()
 
+        mutator = TestMutator()
         mutated_chromosome = mutator.mutate(original_chromosome)
 
         assert mutated_chromosome == original_chromosome
         for i in range(len(original_chromosome)):
             assert mutated_chromosome[i].allele() == original_chromosome[i].allele()
+            assert mutated_chromosome[i].allele() == original_copy[i].allele() * 2

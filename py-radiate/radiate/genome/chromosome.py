@@ -51,18 +51,20 @@ class Chromosome[T](PyObject[PyChromosome]):
             return Chromosome.from_python(self._pyobj.view(index))
         return Gene.from_python(self._pyobj[index])
 
-    def __setitem__(self, index: int | slice, gene: Gene[T] | Chromosome[T] | T):
+    def __setitem__(self, index: int | slice, value: Gene[T] | Chromosome[T] | T):
         """
         Sets the gene at the specified index.
         :param index: Index of the gene to set.
         :param gene: Gene instance to set at the specified index.
         """
-        if isinstance(gene, Chromosome) or isinstance(gene, Gene):
-            self._pyobj[index] = gene.to_python()
-        elif isinstance(gene, PyChromosome) or isinstance(gene, PyGene):
-            self._pyobj[index] = gene
+        if isinstance(value, Chromosome) or isinstance(value, Gene):
+            self._pyobj[index] = value.to_python()
+        elif isinstance(value, PyChromosome) or isinstance(value, PyGene):
+            self._pyobj[index] = value
         else:
-            self._pyobj.set_allele(index, gene)
+            raise TypeError(
+                "Chromosome.__setitem__ value must be a Gene instance or a Chromosome instance"
+            )
 
     def __iter__(self):
         """
@@ -72,8 +74,8 @@ class Chromosome[T](PyObject[PyChromosome]):
 
         :return: An iterator over the genes in the chromosome.
         """
-        for i in range(len(self)):
-            yield Gene.from_python(self._pyobj.view(i))
+        for i in self._pyobj:
+            yield Gene.from_python(i)
 
     def gene_type(self) -> "GeneType":
         from . import GeneType
