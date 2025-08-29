@@ -149,7 +149,7 @@ class GeneticEngine[G, T]:
                 component=lim.component,
                 allowed_genes=[self.gene_type],
                 **lim.args,
-            ).to_python()
+            ).backend()
             for lim in limits
         ]
 

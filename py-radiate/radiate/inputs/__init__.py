@@ -22,6 +22,7 @@ from .alterer import (
     Mutator,
     Crossover,
     EdgeRecombinationCrossover,
+    JitterMutator,
 )
 
 from .selector import (
@@ -67,6 +68,7 @@ __all__ = [
     "GaussianMutator",
     "ScrambleMutator",
     "InversionMutator",
+    "JitterMutator",
     "SwapMutator",
     "GraphMutator",
     "OperationMutator",

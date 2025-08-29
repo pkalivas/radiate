@@ -13,14 +13,14 @@ class GraphCodec(CodecBase[Op, Graph]):
         self.codec = codec
 
     def encode(self) -> Genotype[Op]:
-        return Genotype.from_python(self.codec.encode_py())
+        return Genotype.from_rust(self.codec.encode_py())
 
     def decode(self, genotype: Genotype) -> Graph:
         if genotype.gene_type() != GeneType.GRAPH:
             raise ValueError(f"genotype must be of type {genotype.gene_type()}.")
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
-        return Graph(self.codec.decode_py(genotype.to_python()))
+        return Graph(self.codec.decode_py(genotype.backend()))
 
     @staticmethod
     def weighted_directed(

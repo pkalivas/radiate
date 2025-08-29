@@ -11,12 +11,12 @@ from radiate.radiate import PyTreeCodec
 
 class TreeCodec(CodecBase[Op, Tree]):
     def encode(self) -> Genotype[Op]:
-        return Genotype.from_python(self.codec.encode_py())
+        return Genotype.from_rust(self.codec.encode_py())
 
     def decode(self, genotype: Genotype) -> Tree:
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
-        return Tree(self.codec.decode_py(genotype=genotype.to_python()))
+        return Tree(self.codec.decode_py(genotype=genotype.backend()))
 
     def __init__(
         self,

@@ -96,9 +96,9 @@ impl Gene for FloatGene {
 }
 
 impl ArithmeticGene for FloatGene {
-    fn min(&self) -> &Self::Allele {
-        &self.value_range.start
-    }
+    // fn min(&self) -> &Self::Allele {
+    //     &self.value_range.start
+    // }
 
     fn max(&self) -> &Self::Allele {
         &self.value_range.end
@@ -381,20 +381,20 @@ mod tests {
         let gene_two = FloatGene::from((-1.0..1.0, -100.0..100.0));
         let gene_three = FloatGene::new(10.0, (MIN * 10.0)..(MAX * 10.0), -1000.0..1000.0);
 
-        assert_eq!(*gene_one.min(), 0_f32);
+        // assert_eq!(*gene_one.min(), 0_f32);
         assert_eq!(*gene_one.max(), 1_f32);
         assert_eq!(gene_one.start_bound(), Bound::Included(&0_f32));
         assert_eq!(gene_one.end_bound(), Bound::Excluded(&1_f32));
         assert!(gene_one.is_valid());
 
-        assert_eq!(*gene_two.min(), -1.0);
+        // assert_eq!(*gene_two.min(), -1.0);
         assert_eq!(*gene_two.max(), 1.0);
         assert_eq!(gene_two.start_bound(), Bound::Included(&-100.0));
         assert_eq!(gene_two.end_bound(), Bound::Excluded(&100.0));
         assert!(gene_two.is_valid());
 
         assert_eq!(*gene_three.allele(), 10.0);
-        assert_eq!(*gene_three.min(), MIN);
+        // assert_eq!(*gene_three.min(), MIN);
         assert_eq!(*gene_three.max(), MAX);
         assert_eq!(gene_three.start_bound(), Bound::Included(&-1000.0));
         assert_eq!(gene_three.end_bound(), Bound::Excluded(&1000.0));

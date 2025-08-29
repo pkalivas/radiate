@@ -22,7 +22,7 @@ class IntCodec[D](CodecBase[int, D]):
         Encode the codec into a Genotype.
         :return: A Genotype instance.
         """
-        return Genotype.from_python(self.codec.encode_py())
+        return Genotype.from_rust(self.codec.encode_py())
 
     def decode(self, genotype: Genotype[int]) -> D:
         """
@@ -32,7 +32,7 @@ class IntCodec[D](CodecBase[int, D]):
         """
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
-        return self.codec.decode_py(genotype=genotype.to_python())
+        return self.codec.decode_py(genotype=genotype.backend())
 
     def _create_encoding(self, encoding: IntEncoding) -> PyIntCodec:
         """
@@ -43,14 +43,14 @@ class IntCodec[D](CodecBase[int, D]):
         if isinstance(encoding, PyIntCodec):
             return encoding
         elif isinstance(encoding, Gene):
-            return PyIntCodec.from_genes([encoding.to_python()])
+            return PyIntCodec.from_genes([encoding.backend()])
         elif isinstance(encoding, Chromosome):
-            return PyIntCodec.from_chromosomes([encoding.to_python()])
+            return PyIntCodec.from_chromosomes([encoding.backend()])
         elif isinstance(encoding, list):
             if all(isinstance(g, Gene) for g in encoding):
-                return PyIntCodec.from_genes([g.to_python() for g in encoding])
+                return PyIntCodec.from_genes([g.backend() for g in encoding])
             elif all(isinstance(c, Chromosome) for c in encoding):
-                return PyIntCodec.from_chromosomes([c.to_python() for c in encoding])
+                return PyIntCodec.from_chromosomes([c.backend() for c in encoding])
             else:
                 raise TypeError("Invalid list type for IntCodec encoding.")
         else:

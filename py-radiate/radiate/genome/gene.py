@@ -10,9 +10,6 @@ from radiate.wrapper import PyObject
 
 
 class Gene[T](PyObject[PyGene]):
-    def __init__(self) -> None:
-        super().__init__()
-
     def gene_type(self) -> GeneType:
         """
         Get the type of the gene.
@@ -32,8 +29,8 @@ class Gene[T](PyObject[PyGene]):
         Set the allele of the gene.
         :param allele: The new allele value, which can be a float, int, bool, str, or None.
         """
-        return Gene.from_python(self._pyobj.new_instance(allele))
-    
+        return Gene.from_rust(self._pyobj.new_instance(allele))
+
     def is_view(self) -> bool:
         """
         Check if the gene is a view.
@@ -46,7 +43,7 @@ class Gene[T](PyObject[PyGene]):
         Create a copy of the gene.
         :return: A new gene instance with the same allele.
         """
-        return Gene.from_python(self._pyobj.copy())
+        return Gene.from_rust(self._pyobj.copy())
 
     def apply(self, f: Callable[[T], T]) -> None:
         """
@@ -61,7 +58,7 @@ class Gene[T](PyObject[PyGene]):
         :param f: The function to apply to the allele.
         :return: A new gene with the mapped allele.
         """
-        return Gene.from_python(self._pyobj.map(f))
+        return Gene.from_rust(self._pyobj.map(f))
 
 
 class AnyGene(Gene):
@@ -88,7 +85,7 @@ def float(
     bounds: tuple[float, float] | None = None,
 ):
     float_gene = PyGene.float(allele=allele, range=init_range, bounds=bounds)
-    return Gene.from_python(float_gene)
+    return Gene.from_rust(float_gene)
 
 
 def int(
@@ -98,14 +95,14 @@ def int(
     bounds: tuple[int, int] | None = None,
 ):
     int_gene = PyGene.int(allele=allele, range=init_range, bounds=bounds)
-    return Gene.from_python(int_gene)
+    return Gene.from_rust(int_gene)
 
 
 def bit(
     allele: bool | None = None,
 ):
     bit_gene = PyGene.bit(allele=allele)
-    return Gene.from_python(bit_gene)
+    return Gene.from_rust(bit_gene)
 
 
 def char(
@@ -115,4 +112,4 @@ def char(
     char_gene = PyGene.char(
         allele=allele, char_set=list(char_set) if char_set else None
     )
-    return Gene.from_python(char_gene)
+    return Gene.from_rust(char_gene)

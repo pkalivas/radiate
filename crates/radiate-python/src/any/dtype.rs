@@ -21,11 +21,8 @@ pub enum DataType {
     Char,
     StringView,
     String,
-    VecView,
     Vec,
-    StructView(Vec<Field>),
     Struct(Vec<Field>),
-    Object,
     Unknown,
 }
 
@@ -33,7 +30,7 @@ impl DataType {
     pub fn is_nested(&self) -> bool {
         use DataType as D;
 
-        matches!(self, D::Vec | D::VecView | D::Struct(_) | D::StructView(_))
+        matches!(self, D::Vec | D::Struct(_))
     }
 
     pub fn is_numeric(&self) -> bool {
@@ -76,7 +73,6 @@ impl DataType {
                 | D::Char
                 | D::StringView
                 | D::String
-                | D::VecView
                 | D::Vec
         )
     }

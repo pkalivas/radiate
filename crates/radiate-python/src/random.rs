@@ -22,18 +22,8 @@ impl PyRandomProvider {
     }
 
     #[staticmethod]
-    pub fn sample(data: Vec<Py<PyAny>>, count: usize) -> Vec<Py<PyAny>> {
-        let indices = random_provider::indexes(0..data.len());
-        data.into_iter()
-            .enumerate()
-            .filter_map(|(i, item)| {
-                if indices.contains(&i) {
-                    Some(item)
-                } else {
-                    None
-                }
-            })
-            .take(count)
-            .collect()
+    pub fn sample(mut data: Vec<Py<PyAny>>, count: usize) -> Vec<Py<PyAny>> {
+        random_provider::shuffle(&mut data);
+        data.into_iter().take(count).collect()
     }
 }

@@ -23,9 +23,9 @@ class Genotype[T](PyObject[PyGenotype]):
         super().__init__()
 
         if isinstance(chromosomes, Chromosome):
-            self._pyobj = PyGenotype([chromosomes.to_python()])
+            self._pyobj = PyGenotype([chromosomes.backend()])
         elif isinstance(chromosomes, Iterable):
-            self._pyobj = PyGenotype(list(map(lambda c: c.to_python(), chromosomes)))
+            self._pyobj = PyGenotype(list(map(lambda c: c.backend(), chromosomes)))
 
     def __repr__(self):
         return self._pyobj.__repr__()
@@ -43,7 +43,7 @@ class Genotype[T](PyObject[PyGenotype]):
         :param index: Index of the chromosome to retrieve.
         :return: Chromosome instance at the specified index.
         """
-        return Chromosome.from_python(self._pyobj[index])
+        return Chromosome.from_rust(self._pyobj[index])
 
     def __iter__(self):
         """
@@ -51,7 +51,7 @@ class Genotype[T](PyObject[PyGenotype]):
         :return: An iterator over the chromosomes in the genotype.
         """
         for chromosome in self._pyobj.chromosomes:
-            yield Chromosome.from_python(chromosome)
+            yield Chromosome.from_rust(chromosome)
 
     def gene_type(self) -> "GeneType":
         """

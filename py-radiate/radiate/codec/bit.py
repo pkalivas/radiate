@@ -27,7 +27,7 @@ class BitCodec[T](CodecBase[bool, T]):
         Encode the codec into a Genotype.
         :return: A Genotype instance.
         """
-        return Genotype.from_python(self.codec.encode_py())
+        return Genotype.from_rust(self.codec.encode_py())
 
     def decode(self, genotype: Genotype[bool]) -> T:
         """
@@ -37,7 +37,7 @@ class BitCodec[T](CodecBase[bool, T]):
         """
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
-        return self.codec.decode_py(genotype.to_python())
+        return self.codec.decode_py(genotype.backend())
 
     @staticmethod
     def matrix(

@@ -3,7 +3,9 @@ use crate::{
     any::py_object_to_any_value, prelude::Wrap,
 };
 use pyo3::{
-    IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods,
+    IntoPyObjectExt, Py, PyAny, PyResult, Python,
+    exceptions::PyValueError,
+    pyclass, pymethods,
     types::{PyList, PyListMethods},
 };
 use radiate::{Chromosome, Codec, Gene, Genotype};
@@ -27,30 +29,28 @@ impl PyAnyCodec {
                     .into_static()
             })
         });
+
         let codec = PyCodec::new()
             .with_encoder(move || {
                 Python::with_gil(|py| {
                     let bound = encoder.as_ref().into_bound_py_any(py).unwrap();
                     let any_val = py_object_to_any_value(&bound, true)
-                        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+                        .map_err(|e| PyValueError::new_err(e.to_string()))
                         .unwrap();
 
                     match any_val {
-                        AnyValue::Vec(vec) => {
-                            let chromos = vec
-                                .into_iter()
+                        AnyValue::Vec(vec) => Genotype::from(
+                            vec.into_iter()
                                 .map(|v| {
                                     let v_static = v.into_static();
                                     let allele_factory = allele_factory.clone();
                                     AnyGene::new(v_static).with_factory(move || allele_factory())
                                 })
-                                .collect::<AnyChromosome<'static>>();
-
-                            Genotype::from(chromos)
+                                .collect::<AnyChromosome<'static>>(),
+                        ),
+                        _ => {
+                            Genotype::from(AnyChromosome::from(AnyGene::new(any_val.into_static())))
                         }
-                        _ => Genotype::from(AnyChromosome::from(vec![AnyGene::new(
-                            any_val.into_static(),
-                        )])),
                     }
                 })
             })

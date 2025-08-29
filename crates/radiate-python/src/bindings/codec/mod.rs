@@ -110,7 +110,9 @@ where
         if is_square && use_numpy {
             return match lengths.len() {
                 1 => Ok(PyArray1::from_vec(py, values).into_any()),
-                _ => Ok(PyArray::from_iter(py, values).reshape(lengths)?.into_any()),
+                _ => Ok(PyArray::from_iter(py, values)
+                    .reshape([lengths.len(), lengths[0]])?
+                    .into_any()),
             };
         }
 
@@ -127,7 +129,9 @@ where
 
         return match lengths.len() {
             1 => Ok(PyArray1::from_vec(py, values).into_any()),
-            _ => Ok(PyArray::from_iter(py, values).reshape(lengths)?.into_any()),
+            _ => Ok(PyArray::from_iter(py, values)
+                .reshape([lengths.len(), lengths[0]])?
+                .into_any()),
         };
     }
 

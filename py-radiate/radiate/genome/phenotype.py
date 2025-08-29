@@ -27,7 +27,7 @@ class Phenotype[T](PyObject[PyPhenotype]):
             if isinstance(score, float):
                 score = [score]
 
-            self._pyobj = PyPhenotype(genotype=genotype.to_python(), score=score)
+            self._pyobj = PyPhenotype(genotype=genotype.backend(), score=score)
         else:
             raise TypeError(f"Cannot create Phenotype with instance of {genotype}")
 
@@ -61,4 +61,4 @@ class Phenotype[T](PyObject[PyPhenotype]):
         Returns the genotype of the phenotype.
         :return: The genotype of the phenotype.
         """
-        return Genotype.from_python(self._pyobj.genotype)
+        return Genotype.from_rust(self._pyobj.genotype)

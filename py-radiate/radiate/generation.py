@@ -49,7 +49,7 @@ class Generation:
         Get the population of the generation.
         :return: The population of the generation.
         """
-        return Population.from_python(self.inner.population())
+        return Population.from_rust(self.inner.population())
 
     def species(self) -> list[Species] | None:
         """
@@ -59,14 +59,14 @@ class Generation:
         species = self.inner.species()
         if species is None:
             return None
-        return [Species.from_python(s) for s in species]
+        return [Species.from_rust(s) for s in species]
 
     def ecosystem(self) -> Ecosystem:
         """
         Get the ecosystem of the generation.
         :return: The ecosystem of the generation.
         """
-        return Ecosystem.from_python(self.inner.ecosystem())
+        return Ecosystem.from_rust(self.inner.ecosystem())
 
     def duration(self):
         """

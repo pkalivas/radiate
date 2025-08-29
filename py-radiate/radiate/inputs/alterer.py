@@ -50,13 +50,13 @@ class AlterBase(ComponentBase):
             input_type=EngineInputType.Alterer,
             allowed_genes=self.allowed_genes,
             args=self.args,
-        ).to_python()
+        ).backend()
 
         return Population(
             individuals=py_alter(
-                population.py_population().gene_type(),
+                population.backend().gene_type(),
                 alterer_input,
-                population.py_population(),
+                population.backend(),
                 generation,
             )
         )
@@ -78,7 +78,7 @@ class Mutator(AlterBase, ABC):
         if isinstance(result, PyChromosome):
             return result
         elif isinstance(result, Chromosome):
-            return result.to_python()
+            return result.backend()
         else:
             raise TypeError("Mutator.mutate must return a Chromosome or PyChromosome")
 
@@ -98,16 +98,29 @@ class Crossover(AlterBase, ABC):
             component="CustomCrossover",
             args={
                 "rate": rate,
-                "crossover": lambda p1, p2: self.crossover(
-                    cast(Chromosome, p1), cast(Chromosome, p2)
-                ),
+                "crossover": lambda p1, p2: self.__crossover_internal(p1, p2),
             },
         )
         self.rate = rate
 
+    def __crossover_internal(
+        self, parent_one: PyChromosome, parent_two: PyChromosome
+    ) -> tuple[PyChromosome, PyChromosome]:
+        result = self.crossover(
+            cast(Chromosome, parent_one), cast(Chromosome, parent_two)
+        )
+        if isinstance(result, tuple) and len(result) == 2:
+            one, two = result
+            if isinstance(one, PyChromosome) and isinstance(two, PyChromosome):
+                return one, two
+            elif isinstance(one, Chromosome) and isinstance(two, Chromosome):
+                return one.backend(), two.backend()
+        else:
+            raise TypeError("Crossover must return a tuple of Chromosomes")
+
     @abstractmethod
     def crossover(
-        self, parent1: Chromosome, parent2: Chromosome
+        self, parent_one: Chromosome, parent_two: Chromosome
     ) -> tuple[Chromosome, Chromosome]:
         """
         Abstract method to perform crossover between two parents.
@@ -115,7 +128,7 @@ class Crossover(AlterBase, ABC):
         :param parent2: The second parent.
         :return: The offspring produced by the crossover.
         """
-        pass
+        raise NotImplementedError
 
 
 class BlendCrossover(AlterBase):
@@ -290,5 +303,14 @@ class PolynomialMutator(AlterBase):
         super().__init__(
             component="PolynomialMutator",
             args={"rate": rate, "eta": eta},
+            allowed_genes=GeneType.FLOAT,
+        )
+
+
+class JitterMutator(AlterBase):
+    def __init__(self, rate: float = 0.1, magnitude: float = 0.1):
+        super().__init__(
+            component="JitterMutator",
+            args={"rate": rate, "magnitude": magnitude},
             allowed_genes=GeneType.FLOAT,
         )

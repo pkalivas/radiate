@@ -114,9 +114,9 @@ impl<T: Integer<T>> Valid for IntGene<T> {
 /// operations. The `ArithmeticGene` trait is a superset of the [`Gene`] trait, and adds functionality
 /// for numeric operations such as addition, subtraction, multiplication, division and mean.
 impl<T: Integer<T>> ArithmeticGene for IntGene<T> {
-    fn min(&self) -> &T {
-        &self.value_range.start
-    }
+    // fn min(&self) -> &T {
+    //     &self.value_range.start
+    // }
 
     fn max(&self) -> &T {
         &self.value_range.end
@@ -388,9 +388,9 @@ mod tests {
         let gene_one = IntGene::from((0..10, 0..10));
         let gene_two = IntGene::from((0..10, -100..100));
 
-        assert_eq!(*gene_one.min(), 0);
+        // assert_eq!(*gene_one.min(), 0);
         assert_eq!(*gene_one.max(), 10);
-        assert_eq!(*gene_two.min(), 0);
+        // assert_eq!(*gene_two.min(), 0);
         assert_eq!(*gene_two.max(), 10);
         assert_eq!(gene_one.start_bound(), Bound::Included(&0));
         assert_eq!(gene_one.end_bound(), Bound::Excluded(&10));

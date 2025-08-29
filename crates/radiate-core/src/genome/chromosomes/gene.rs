@@ -75,7 +75,7 @@ pub trait ArithmeticGene:
     Gene + Add<Output = Self> + Sub<Output = Self> + Mul<Output = Self> + Div<Output = Self>
 {
     /// Get the min value of the gene as a number.
-    fn min(&self) -> &Self::Allele;
+    // fn min(&self) -> &Self::Allele;
 
     /// Get the max value of the gene as a number.
     fn max(&self) -> &Self::Allele;

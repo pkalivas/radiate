@@ -74,6 +74,7 @@ impl InputTransform<Vec<Box<dyn Alter<FloatChromosome>>>> for PyEngineInput {
             crate::names::INVERSION_MUTATOR => alters!(convert_inversion_mutator(&self)),
             crate::names::POLYNOMIAL_MUTATOR => alters!(convert_polynomial_mutator(&self)),
             crate::names::CUSTOM_MUTATOR => alters!(convert_custom_mutator(&self)),
+            crate::names::JITTER_MUTATOR => alters!(convert_jitter_mutator(&self)),
             _ => panic!("Invalid alterer type {}", self.component),
         }
     }
@@ -227,6 +228,12 @@ where
         .get_string("name")
         .unwrap_or_else(|| "CustomCrossover".to_string());
     PyCrossover::new(rate, name, crossover_func)
+}
+
+fn convert_jitter_mutator(input: &PyEngineInput) -> JitterMutator {
+    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let magnitude = input.get_f32("magnitude").unwrap_or(0.5);
+    JitterMutator::new(rate, magnitude)
 }
 
 fn convert_inversion_mutator(input: &PyEngineInput) -> InversionMutator {

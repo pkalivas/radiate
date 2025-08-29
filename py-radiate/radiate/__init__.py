@@ -69,6 +69,7 @@ from .inputs.alterer import (
     InversionMutator,
     PolynomialMutator,
     EdgeRecombinationCrossover,
+    JitterMutator,
     Mutator,
     Crossover,
 )
@@ -83,12 +84,6 @@ from .inputs.distance import (
 from .inputs.limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
 
 from .dependancies import _NUMPY_AVAILABLE
-
-from radiate.radiate import RustBase
-
-class PyRustBase(RustBase):
-    def __init__(self, t: int):
-        self.t = t
 
 
 __all__ = [
@@ -151,6 +146,7 @@ __all__ = [
     "PolynomialMutator",
     "EdgeRecombinationCrossover",
     "Mutator",
+    "JitterMutator",
     # Executor
     "Executor",
     # Limits

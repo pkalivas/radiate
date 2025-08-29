@@ -25,9 +25,9 @@ class Chromosome[T](PyObject[PyChromosome]):
             return
 
         if isinstance(genes, Gene):
-            self._pyobj = PyChromosome([genes.to_python()])
+            self._pyobj = PyChromosome([genes.backend()])
         if isinstance(genes, Iterable):
-            self._pyobj = PyChromosome(list(map(lambda g: g.to_python(), genes)))
+            self._pyobj = PyChromosome(list(map(lambda g: g.backend(), genes)))
         else:
             raise TypeError("genes must be a Gene instance or a list of Gene instances")
 
@@ -48,8 +48,8 @@ class Chromosome[T](PyObject[PyChromosome]):
         :return: Gene instance at the specified index.
         """
         if isinstance(index, slice):
-            return Chromosome.from_python(self._pyobj.view(index))
-        return Gene.from_python(self._pyobj[index])
+            return Chromosome.from_rust(self._pyobj.view(index))
+        return Gene.from_rust(self._pyobj[index])
 
     def __setitem__(self, index: int | slice, value: Gene[T] | Chromosome[T] | T):
         """
@@ -58,7 +58,7 @@ class Chromosome[T](PyObject[PyChromosome]):
         :param gene: Gene instance to set at the specified index.
         """
         if isinstance(value, Chromosome) or isinstance(value, Gene):
-            self._pyobj[index] = value.to_python()
+            self._pyobj[index] = value.backend()
         elif isinstance(value, PyChromosome) or isinstance(value, PyGene):
             self._pyobj[index] = value
         else:
@@ -75,7 +75,7 @@ class Chromosome[T](PyObject[PyChromosome]):
         :return: An iterator over the genes in the chromosome.
         """
         for i in self._pyobj:
-            yield Gene.from_python(i)
+            yield Gene.from_rust(i)
 
     def gene_type(self) -> "GeneType":
         from . import GeneType
@@ -87,17 +87,17 @@ class Chromosome[T](PyObject[PyChromosome]):
 
     def view(self, index: int | slice | None = None) -> Gene[T] | Chromosome[T]:
         if index is None:
-            return Chromosome.from_python(self._pyobj.view())
+            return Chromosome.from_rust(self._pyobj.view())
         if isinstance(index, slice):
-            return Chromosome.from_python(self._pyobj.view(index))
-        return Gene.from_python(self._pyobj.view(index))
+            return Chromosome.from_rust(self._pyobj.view(index))
+        return Gene.from_rust(self._pyobj.view(index))
 
     def copy(self, index: int | slice | None = None) -> Gene[T] | Chromosome[T]:
         if index is None:
-            return Chromosome.from_python(self._pyobj.copy())
+            return Chromosome.from_rust(self._pyobj.copy())
         if isinstance(index, slice):
-            return Chromosome.from_python(self._pyobj.copy(index))
-        return Gene.from_python(self._pyobj.copy(index))
+            return Chromosome.from_rust(self._pyobj.copy(index))
+        return Gene.from_rust(self._pyobj.copy(index))
 
 
 def int(

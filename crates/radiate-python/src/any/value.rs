@@ -3,7 +3,7 @@ use crate::Wrap;
 use pyo3::{
     Bound, FromPyObject, IntoPyObject, PyAny, PyErr, PyResult, Python, exceptions::PyValueError,
 };
-use std::fmt::Debug;
+use std::{fmt::Debug, ops::Add};
 
 #[derive(Clone, Default, Debug)]
 pub enum AnyValue<'a> {
@@ -176,6 +176,42 @@ impl<'a> PartialEq for AnyValue<'a> {
                     .all(|((v1, f1), (v2, f2))| f1.name() == f2.name() && v1 == v2)
             }
             _ => false,
+        }
+    }
+}
+
+impl Add for AnyValue<'_> {
+    type Output = Self;
+    fn add(self, other: Self) -> Self {
+        match (self, other) {
+            (AnyValue::Bool(a), AnyValue::Bool(b)) => AnyValue::Bool(a && b),
+            (AnyValue::Int8(a), AnyValue::Int8(b)) => AnyValue::Int8(a + b),
+            (AnyValue::Int16(a), AnyValue::Int16(b)) => AnyValue::Int16(a + b),
+            (AnyValue::Int32(a), AnyValue::Int32(b)) => AnyValue::Int32(a + b),
+            (AnyValue::Int64(a), AnyValue::Int64(b)) => AnyValue::Int64(a + b),
+            (AnyValue::Int128(a), AnyValue::Int128(b)) => AnyValue::Int128(a + b),
+            (AnyValue::UInt8(a), AnyValue::UInt8(b)) => AnyValue::UInt8(a + b),
+            (AnyValue::UInt16(a), AnyValue::UInt16(b)) => AnyValue::UInt16(a + b),
+            (AnyValue::UInt32(a), AnyValue::UInt32(b)) => AnyValue::UInt32(a + b),
+            (AnyValue::UInt64(a), AnyValue::UInt64(b)) => AnyValue::UInt64(a + b),
+            (AnyValue::Float32(a), AnyValue::Float32(b)) => AnyValue::Float32(a + b),
+            (AnyValue::Float64(a), AnyValue::Float64(b)) => AnyValue::Float64(a + b),
+            (AnyValue::Vec(a), AnyValue::Vec(b)) => AnyValue::Vec(Box::new(
+                a.iter()
+                    .zip(b.iter())
+                    .map(|(x, y)| x.clone() + y.clone())
+                    .collect(),
+            )),
+            (AnyValue::Struct(a), AnyValue::Struct(b)) => AnyValue::Struct(
+                a.iter()
+                    .zip(b.iter())
+                    .map(|((v1, f1), (v2, f2))| {
+                        assert_eq!(f1.name(), f2.name());
+                        (v1.clone() + v2.clone(), f1.clone())
+                    })
+                    .collect(),
+            ),
+            _ => panic!("Incompatible types"),
         }
     }
 }

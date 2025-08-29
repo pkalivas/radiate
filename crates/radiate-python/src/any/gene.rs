@@ -1,7 +1,7 @@
 use std::{fmt::Debug, sync::Arc};
 
 use crate::AnyValue;
-use radiate::{Chromosome, Gene, Valid};
+use radiate::{ArithmeticGene, Chromosome, Gene, Valid};
 
 #[derive(Clone)]
 pub struct AnyGene<'a> {
@@ -60,6 +60,76 @@ impl<'a> Gene for AnyGene<'a> {
     }
 }
 
+impl<'a> ArithmeticGene for AnyGene<'a> {
+    fn min(&self) -> &Self::Allele {
+        &self.allele
+    }
+
+    fn max(&self) -> &Self::Allele {
+        &self.allele
+    }
+
+    fn mean(&self, other: &Self) -> Self {
+        match (self.allele(), other.allele()) {
+            (AnyValue::Bool(a), AnyValue::Bool(b)) => AnyGene::new(AnyValue::Bool(*a && *b)),
+            (AnyValue::UInt8(a), AnyValue::UInt8(b)) => {
+                AnyGene::new(AnyValue::UInt8((*a + *b) / 2))
+            }
+            (AnyValue::UInt16(a), AnyValue::UInt16(b)) => {
+                AnyGene::new(AnyValue::UInt16((*a + *b) / 2))
+            }
+            (AnyValue::UInt32(a), AnyValue::UInt32(b)) => {
+                AnyGene::new(AnyValue::UInt32((*a + *b) / 2))
+            }
+            (AnyValue::UInt64(a), AnyValue::UInt64(b)) => {
+                AnyGene::new(AnyValue::UInt64((*a + *b) / 2))
+            }
+            (AnyValue::Int8(a), AnyValue::Int8(b)) => AnyGene::new(AnyValue::Int8((*a + *b) / 2)),
+            (AnyValue::Int16(a), AnyValue::Int16(b)) => {
+                AnyGene::new(AnyValue::Int16((*a + *b) / 2))
+            }
+            (AnyValue::Int32(a), AnyValue::Int32(b)) => {
+                AnyGene::new(AnyValue::Int32((*a + *b) / 2))
+            }
+            (AnyValue::Int64(a), AnyValue::Int64(b)) => {
+                AnyGene::new(AnyValue::Int64((*a + *b) / 2))
+            }
+            (AnyValue::Int128(a), AnyValue::Int128(b)) => {
+                AnyGene::new(AnyValue::Int128((*a + *b) / 2))
+            }
+            (AnyValue::Float32(a), AnyValue::Float32(b)) => {
+                AnyGene::new(AnyValue::Float32((*a + *b) / 2.0))
+            }
+            (AnyValue::Float64(a), AnyValue::Float64(b)) => {
+                AnyGene::new(AnyValue::Float64((*a + *b) / 2.0))
+            }
+            (AnyValue::Binary(a), AnyValue::Binary(b)) => {
+                let m = core::cmp::min(a.len(), b.len());
+                let mut out = Vec::with_capacity(m);
+                for i in 0..m {
+                    let avg = ((a[i] as u16 + b[i] as u16) / 2) as u8;
+                    out.push(avg);
+                }
+                AnyGene::new(AnyValue::Binary(out))
+            }
+            // Char
+            // (AnyValue::Vec(a), AnyValue::Vec(b)) if a.len() == b.len() => {
+            //     let v = a
+            //         .iter()
+            //         .zip(b.iter())
+            //         .map(|(x, y)| x.mean(y))
+            //         .collect::<Vec<_>>();
+            //     AnyGene::new(AnyValue::Vec(Box::new(v)))
+            // }
+            _ => self.clone(),
+        }
+    }
+
+    fn from_f32(&self, value: f32) -> Self {
+        AnyGene::new(AnyValue::Float32(value))
+    }
+}
+
 impl PartialEq for AnyGene<'_> {
     fn eq(&self, other: &Self) -> bool {
         self.allele == other.allele
@@ -100,6 +170,12 @@ impl<'a> Chromosome for AnyChromosome<'a> {
 
     fn genes_mut(&mut self) -> &mut [Self::Gene] {
         &mut self.genes
+    }
+}
+
+impl<'a> From<AnyGene<'a>> for AnyChromosome<'a> {
+    fn from(gene: AnyGene<'a>) -> Self {
+        AnyChromosome::new(vec![gene])
     }
 }
 

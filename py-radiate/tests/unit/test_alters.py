@@ -31,7 +31,7 @@ class TestCustomMutators:
                     gene.apply(lambda allele: allele * 2)
                 return chromosome
 
-        original_chromosome = rd.Chromosome(rd.gene.float(float(i)) for i in range(5))
+        original_chromosome = rd.Chromosome(rd.gene.float(i) for i in range(5))
         original_copy = original_chromosome.copy()
 
         mutator = TestMutator()

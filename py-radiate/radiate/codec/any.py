@@ -44,7 +44,7 @@ class AnyCodec[T: AnyGene](CodecBase[T, list[T]]):
         Encodes the codec into a PyAnyCodec.
         :return: A PyAnyCodec instance.
         """
-        return Genotype.from_python(self.codec.encode_py())
+        return Genotype.from_rust(self.codec.encode_py())
 
     def decode(self, genotype: Genotype) -> list[T]:
         """
@@ -52,4 +52,4 @@ class AnyCodec[T: AnyGene](CodecBase[T, list[T]]):
         :param genotype: A PyAnyCodec instance to decode.
         :return: The decoded representation of the PyAnyCodec.
         """
-        return self.codec.decode_py(genotype.to_python())
+        return self.codec.decode_py(genotype.backend())
