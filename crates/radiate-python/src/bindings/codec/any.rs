@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{
     AnyChromosome, AnyGene, AnyValue, PyAnyObject, PyCodec, PyGenotype,
     any::py_object_to_any_value, prelude::Wrap,
@@ -9,6 +7,8 @@ use pyo3::{
     types::{PyList, PyListMethods},
 };
 use radiate::{Chromosome, Codec, Gene, Genotype};
+use std::sync::Arc;
+
 #[pyclass]
 #[derive(Clone)]
 pub struct PyAnyCodec {
@@ -55,7 +55,6 @@ impl PyAnyCodec {
                 })
             })
             .with_decoder(move |py, genotype| {
-                // helper to call creator(value) -> PyAnyObject
                 let call_creator = |py: Python<'_>, allele: &AnyGene| -> PyResult<PyAnyObject> {
                     let obj = creator.call1(py, (Wrap(allele.allele()).into_py_any(py)?,))?;
                     Ok(PyAnyObject {
@@ -63,12 +62,10 @@ impl PyAnyCodec {
                     })
                 };
 
-                // 1 gene
                 if genotype.len() == 1 && genotype[0].len() == 1 {
                     return call_creator(py, &genotype[0].get(0)).unwrap();
                 }
 
-                // 1 chromosome
                 if genotype.len() == 1 {
                     let py_list = PyList::empty(py);
                     for gene in genotype[0].iter() {
@@ -81,7 +78,6 @@ impl PyAnyCodec {
                     };
                 }
 
-                // matrix
                 let outer = PyList::empty(py);
                 for chromo in genotype.iter() {
                     let inner = PyList::empty(py);

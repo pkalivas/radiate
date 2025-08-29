@@ -1,10 +1,8 @@
+use super::{DataType, Field};
+use crate::Wrap;
 use pyo3::{
     Bound, FromPyObject, IntoPyObject, PyAny, PyErr, PyResult, Python, exceptions::PyValueError,
 };
-
-use crate::Wrap;
-
-use super::{DataType, Field};
 use std::fmt::Debug;
 
 #[derive(Clone, Default, Debug)]

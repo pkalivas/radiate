@@ -18,7 +18,7 @@ class RandomProvider:
         """
         return PyRandomProvider.random_int(min, max)
 
-    def randfloat(min: float = 0.0, max: float = 1.0) -> float:
+    def float(min: float = 0.0, max: float = 1.0) -> float:
         """
         Generate a random float in the range [min, max).
         :param min: Minimum value (inclusive).

@@ -1,5 +1,6 @@
 from .gene import (
     Gene,
+    AnyGene,
     GeneType,
 )
 from .chromosome import Chromosome
@@ -42,6 +43,7 @@ __all__ = [
     "Phenotype",
     "Population",
     "Species",
+    "AnyGene",
     "Ecosystem",
     "GENE_TYPE_MAPPING",
 ]

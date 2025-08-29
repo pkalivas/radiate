@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, overload
 from enum import Enum
 
 from radiate.radiate import PyGene
@@ -105,13 +105,30 @@ class Gene[T](PyObject[PyGene]):
         return Gene.from_python(self._pyobj.map(f))
 
 
-"""
-Some helper functions for creating gene instances.
+class AnyGene(Gene):
+    def __init__(self):
+        pass
 
-This makes it possible to create genes like:
->>> rd.gene.float(0.5)
-FloatGene<0.5>
-"""
+    @classmethod
+    def __from_gene__(klass, gene_dict: dict, *, strict: bool = False):
+        inst = klass.__new__(klass)
+        if strict:
+            unknown = set(gene_dict.keys()) - set(inst.__dict__.keys())
+            if unknown:
+                raise ValueError(
+                    f"Unknown field(s) {sorted(unknown)} for {klass.__name__}"
+                )
+        inst.__dict__.update(gene_dict)
+        return inst
+
+    def __to_gene__(self):
+        return self.__dict__ | {
+            "__class__": f"{self.__class__.__module__}.{self.__class__.__qualname__}"
+        }
+
+    @overload
+    def allele(self) -> AnyGene:
+        return self
 
 
 def float(

@@ -42,7 +42,6 @@ pub fn init_logging() {
 
 // Adapted from PYO3 with the only change that
 // we allow mutable access with when the GIL is held
-
 pub struct GILOnceCell<T>(UnsafeCell<Option<T>>);
 
 // T: Send is needed for Sync because the thread which drops the GILOnceCell can be different
@@ -51,7 +50,6 @@ unsafe impl<T: Send + Sync> Sync for GILOnceCell<T> {}
 unsafe impl<T: Send> Send for GILOnceCell<T> {}
 
 impl<T> GILOnceCell<T> {
-    /// Create a `GILOnceCell` which does not yet contain a value.
     pub const fn new() -> Self {
         Self(UnsafeCell::new(None))
     }

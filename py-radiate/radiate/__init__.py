@@ -14,7 +14,6 @@ from .codec import (
     TreeCodec,
     PermutationCodec,
     AnyCodec,
-    any_gene,
 )
 from .random import RandomProvider as random
 from .generation import Generation
@@ -28,6 +27,7 @@ from .genome import (
     Ecosystem,
     Phenotype,
     Gene,
+    AnyGene,
 )
 from .handlers import EventHandler, EventType
 from .gp import Op, Graph, Tree
@@ -103,11 +103,11 @@ __all__ = [
     "GraphCodec",
     "TreeCodec",
     "AnyCodec",
-    "any_gene",
     # Genome and Population
     "gene",
     "chromosome",
     "Gene",
+    "AnyGene",
     "Chromosome",
     "Genotype",
     "Phenotype",

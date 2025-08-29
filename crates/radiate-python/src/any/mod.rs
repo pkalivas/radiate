@@ -22,6 +22,7 @@ use std::{
 };
 
 type InitFn = for<'py> fn(&Bound<'py, PyAny>, bool) -> PyResult<AnyValue<'py>>;
+
 pub(crate) static LUT: crate::GILOnceCell<HashMap<TypeObjectKey, InitFn>> =
     crate::GILOnceCell::new();
 

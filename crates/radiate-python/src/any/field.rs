@@ -1,13 +1,5 @@
 use std::fmt::Display;
 
-/// Represents Arrow's metadata of a "column".
-///
-/// A [`Field`] is the closest representation of the traditional "column": a logical type
-/// ([`DataType`]) with a name and nullability.
-/// A Field has optional [`Metadata`] that can be used to annotate the field with custom metadata.
-///
-/// Almost all IO in this crate uses [`Field`] to represent logical information about the data
-/// to be serialized.
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
 pub struct Field {
     pub name: String,

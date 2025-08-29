@@ -26,6 +26,8 @@ class PyObject[T](ABC):
 
     def __repr__(self) -> str:
         """Default representation using the inner object."""
+        if "_pyobj" not in self.__dict__:
+            return f"{self.__class__.__name__}"
         return f"{self.__class__.__name__}({self._pyobj})"
 
     def __eq__(self, other: Any) -> bool:
