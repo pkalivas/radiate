@@ -9,8 +9,8 @@ class AnyCodec[T](CodecBase[T, list[T]]):
     def __init__(self, len: int, genes_factory: Callable[[], T]):
         """
         Initialize the AnyCodec with encoder and decoder functions.
-        :param encoder: A callable that encodes a value.
-        :param decoder: A callable that decodes a value.
+        :param len: The number of genes in the codec.
+        :param genes_factory: A callable that produces new gene instances.
         """
         values = [genes_factory() for _ in range(len)]
 

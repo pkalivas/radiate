@@ -9,7 +9,7 @@ class RandomProvider:
         """
         PyRandomProvider.set_seed(seed)
 
-    def randint(min: int, max: int) -> int:
+    def int(min: int, max: int) -> int:
         """
         Generate a random integer in the range [min, max).
         :param min: Minimum value (inclusive).
