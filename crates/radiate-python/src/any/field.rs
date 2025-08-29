@@ -6,7 +6,6 @@ pub struct Field {
 }
 
 impl Field {
-    /// Creates a new [`Field`].
     pub fn new(name: String) -> Self {
         Field { name }
     }

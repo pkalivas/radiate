@@ -1,5 +1,4 @@
-from typing import Callable
-from pyparsing import Any
+from typing import Callable, Any
 from radiate.codec.base import CodecBase
 from radiate.genome.population import Population
 from radiate.fitness import FitnessBase
