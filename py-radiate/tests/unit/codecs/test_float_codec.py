@@ -4,7 +4,6 @@ import numpy as np
 import radiate as rd
 from radiate import (
     FloatCodec,
-    FloatGene
 )
 
 
@@ -140,7 +139,7 @@ class TestFloatCodec:
     @pytest.mark.unit
     def test_codec_from_genes(self):
         """Test codec creation from genes."""
-        genes = [rd.gene.float(0.5), FloatGene(0.8)]
+        genes = [rd.gene.float(0.5), rd.gene.float(0.8)]
         codec = FloatCodec(genes)
         assert isinstance(codec, FloatCodec)
         assert codec.decode(codec.encode()) == [genes[0].allele(), genes[1].allele()]

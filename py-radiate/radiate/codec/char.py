@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from radiate._typing import CharEncoding
 from radiate.genome.chromosome import Chromosome
-from radiate.genome.gene import CharGene, Gene, GeneType
+from radiate.genome.gene import  Gene, GeneType
 from .base import CodecBase
 
 from radiate.radiate import PyCharCodec
@@ -38,12 +38,12 @@ class CharCodec[T](CodecBase[str, T]):
         """
         if isinstance(encoding, PyCharCodec):
             return encoding
-        elif isinstance(encoding, CharGene):
+        elif isinstance(encoding, Gene):
             return PyCharCodec.from_genes([encoding.to_python()])
         elif isinstance(encoding, Chromosome):
             return PyCharCodec.from_chromosomes([encoding.to_python()])
         elif isinstance(encoding, list):
-            if all(isinstance(g, CharGene) for g in encoding):
+            if all(isinstance(g, Gene) for g in encoding):
                 return PyCharCodec.from_genes([g.to_python() for g in encoding])
             elif all(isinstance(c, Chromosome) for c in encoding):
                 return PyCharCodec.from_chromosomes([c.to_python() for c in encoding])

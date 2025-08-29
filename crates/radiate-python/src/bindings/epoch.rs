@@ -38,6 +38,7 @@ impl PyGeneration {
             EpochHandle::Float(epoch) => epoch.index(),
             EpochHandle::Char(epoch) => epoch.index(),
             EpochHandle::Bit(epoch) => epoch.index(),
+            EpochHandle::Any(epoch) => epoch.index(),
             EpochHandle::Graph(epoch) => epoch.index(),
             EpochHandle::Tree(epoch) => epoch.index(),
             EpochHandle::Permutation(epoch) => epoch.index(),
@@ -50,6 +51,7 @@ impl PyGeneration {
             EpochHandle::Float(epoch) => Some(epoch.score()),
             EpochHandle::Char(epoch) => Some(epoch.score()),
             EpochHandle::Bit(epoch) => Some(epoch.score()),
+            EpochHandle::Any(epoch) => Some(epoch.score()),
             EpochHandle::Graph(epoch) => Some(epoch.score()),
             EpochHandle::Tree(epoch) => Some(epoch.score()),
             EpochHandle::Permutation(epoch) => Some(epoch.score()),
@@ -68,6 +70,7 @@ impl PyGeneration {
             EpochHandle::Float(epoch) => get_value(py, epoch),
             EpochHandle::Char(epoch) => get_value(py, epoch),
             EpochHandle::Bit(epoch) => get_value(py, epoch),
+            EpochHandle::Any(epoch) => get_value(py, epoch),
             EpochHandle::Permutation(epoch) => get_value(py, epoch),
             EpochHandle::Graph(epoch) => PyGraph {
                 inner: epoch.value().clone(),
@@ -87,6 +90,7 @@ impl PyGeneration {
             EpochHandle::Float(epoch) => epoch.metrics(),
             EpochHandle::Char(epoch) => epoch.metrics(),
             EpochHandle::Bit(epoch) => epoch.metrics(),
+            EpochHandle::Any(epoch) => epoch.metrics(),
             EpochHandle::Permutation(epoch) => epoch.metrics(),
             EpochHandle::Graph(epoch) => epoch.metrics(),
             EpochHandle::Tree(epoch) => epoch.metrics(),
@@ -105,6 +109,7 @@ impl PyGeneration {
             EpochHandle::Float(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
             EpochHandle::Char(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
             EpochHandle::Bit(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
+            EpochHandle::Any(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
             EpochHandle::Permutation(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
             EpochHandle::Graph(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
             EpochHandle::Tree(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
@@ -125,6 +130,9 @@ impl PyGeneration {
             EpochHandle::Bit(epoch) => epoch
                 .species()
                 .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
+            EpochHandle::Any(epoch) => epoch
+                .species()
+                .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
             EpochHandle::Permutation(epoch) => epoch
                 .species()
                 .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
@@ -143,6 +151,7 @@ impl PyGeneration {
             EpochHandle::Float(epoch) => PyPopulation::from(epoch.population()),
             EpochHandle::Char(epoch) => PyPopulation::from(epoch.population()),
             EpochHandle::Bit(epoch) => PyPopulation::from(epoch.population()),
+            EpochHandle::Any(epoch) => PyPopulation::from(epoch.population()),
             EpochHandle::Permutation(epoch) => PyPopulation::from(epoch.population()),
             EpochHandle::Graph(epoch) => PyPopulation::from(epoch.population()),
             EpochHandle::Tree(epoch) => PyPopulation::from(epoch.population()),
@@ -155,6 +164,7 @@ impl PyGeneration {
             EpochHandle::Float(epoch) => epoch.time(),
             EpochHandle::Char(epoch) => epoch.time(),
             EpochHandle::Bit(epoch) => epoch.time(),
+            EpochHandle::Any(epoch) => epoch.time(),
             EpochHandle::Permutation(epoch) => epoch.time(),
             EpochHandle::Graph(epoch) => epoch.time(),
             EpochHandle::Tree(epoch) => epoch.time(),
@@ -171,6 +181,7 @@ impl PyGeneration {
             EpochHandle::Float(epoch) => (epoch.objective(), epoch.index()),
             EpochHandle::Char(epoch) => (epoch.objective(), epoch.index()),
             EpochHandle::Bit(epoch) => (epoch.objective(), epoch.index()),
+            EpochHandle::Any(epoch) => (epoch.objective(), epoch.index()),
             EpochHandle::Permutation(epoch) => (epoch.objective(), epoch.index()),
             EpochHandle::Graph(epoch) => (epoch.objective(), epoch.index()),
             EpochHandle::Tree(epoch) => (epoch.objective(), epoch.index()),

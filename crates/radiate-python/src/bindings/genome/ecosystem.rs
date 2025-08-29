@@ -4,7 +4,7 @@ use radiate::{
     IntChromosome, Op, PermutationChromosome, Population, Species, TreeChromosome,
 };
 
-use crate::{PyPopulation, PySpecies};
+use crate::{AnyChromosome, PyPopulation, PySpecies};
 
 #[pyclass]
 #[derive(Clone, Debug)]
@@ -100,3 +100,4 @@ impl_into_py_ecosystem!(CharChromosome);
 impl_into_py_ecosystem!(GraphChromosome<Op<f32>>);
 impl_into_py_ecosystem!(TreeChromosome<Op<f32>>);
 impl_into_py_ecosystem!(PermutationChromosome<usize>);
+impl_into_py_ecosystem!(AnyChromosome<'static>);

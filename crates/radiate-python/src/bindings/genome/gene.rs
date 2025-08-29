@@ -1,4 +1,4 @@
-use crate::PyGeneType;
+use crate::{AnyGene, PyGeneType, Wrap, py_object_to_any_value};
 use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     BitGene, CharGene, FloatGene, Gene, GraphNode, IntGene, Op, PermutationGene, TreeNode,
@@ -16,6 +16,8 @@ enum GeneInner {
 
     GraphNode(GraphNode<Op<f32>>),
     TreeNode(TreeNode<Op<f32>>),
+
+    AnyGene(AnyGene<'static>),
 
     View(Arc<RwLock<Vec<PyGene>>>, usize),
 }
@@ -36,6 +38,7 @@ impl PyGene {
             GeneInner::Char(gene) => format!("{:?}", gene),
             GeneInner::GraphNode(gene) => format!("{:?}", gene),
             GeneInner::TreeNode(gene) => format!("{:?}", gene),
+            GeneInner::AnyGene(gene) => format!("{:?}", gene),
             GeneInner::Permutation(gene) => format!("{:?}", gene),
             GeneInner::View(genes, idx) => {
                 let reader = genes.read().unwrap();
@@ -74,6 +77,7 @@ impl PyGene {
             GeneInner::GraphNode(_) => PyGeneType::GraphNode,
             GeneInner::TreeNode(_) => PyGeneType::TreeNode,
             GeneInner::Permutation(_) => PyGeneType::Permutation,
+            GeneInner::AnyGene(_) => PyGeneType::AnyGene,
             GeneInner::View(genes, idx) => {
                 let reader = genes.read().unwrap();
                 reader[*idx].gene_type()
@@ -90,6 +94,7 @@ impl PyGene {
             GeneInner::GraphNode(gene) => gene.allele().name().into_bound_py_any(py),
             GeneInner::TreeNode(gene) => gene.allele().name().into_bound_py_any(py),
             GeneInner::Permutation(gene) => gene.allele().into_bound_py_any(py),
+            GeneInner::AnyGene(gene) => Wrap(gene.allele()).into_bound_py_any(py),
             GeneInner::View(genes, idx) => {
                 let reader = genes.read().unwrap();
                 reader[*idx].allele(py)
@@ -111,6 +116,7 @@ impl PyGene {
                     GeneInner::Bit(gene) => GeneInner::Bit(gene.new_instance()),
                     GeneInner::Char(gene) => GeneInner::Char(gene.new_instance()),
                     GeneInner::Permutation(gene) => GeneInner::Permutation(gene.new_instance()),
+                    GeneInner::AnyGene(gene) => GeneInner::AnyGene(gene.new_instance()),
                     GeneInner::View(genes, idx) => {
                         let reader = genes.read().unwrap();
                         return reader[*idx].new_instance(py, allele);
@@ -136,6 +142,12 @@ impl PyGene {
                     GeneInner::Permutation(gene) => {
                         GeneInner::Permutation(gene.with_allele(&allele.extract(py)?))
                     }
+                    GeneInner::AnyGene(gene) => GeneInner::AnyGene(
+                        gene.with_allele(
+                            &py_object_to_any_value(&allele.into_bound_py_any(py).unwrap(), true)?
+                                .into_static(),
+                        ),
+                    ),
                     GeneInner::View(genes, idx) => {
                         let reader = genes.read().unwrap();
                         return reader[*idx].new_instance(py, Some(allele));
@@ -152,6 +164,27 @@ impl PyGene {
                 "Allele must be of the correct type",
             ))
         }
+    }
+
+    pub fn apply<'py>(&mut self, py: Python<'py>, f: Py<PyAny>) -> PyResult<()> {
+        if let GeneInner::View(genes, idx) = &self.inner {
+            let mut writer = genes.write().unwrap();
+            return writer[*idx].apply(py, f);
+        }
+
+        let allele = self.allele(py)?;
+        let new_allele = f.call1(py, (allele,))?;
+        let new_gene = self.new_instance(py, Some(new_allele))?;
+
+        self.inner = new_gene.inner;
+
+        Ok(())
+    }
+
+    pub fn map<'py>(&self, py: Python<'py>, f: Py<PyAny>) -> PyResult<PyGene> {
+        let allele = self.allele(py)?;
+        let new_allele = f.call1(py, (allele,))?;
+        self.new_instance(py, Some(new_allele))
     }
 
     #[staticmethod]
@@ -295,3 +328,4 @@ impl_into_py_gene!(CharGene, Char);
 impl_into_py_gene!(GraphNode<Op<f32>>, GraphNode);
 impl_into_py_gene!(TreeNode<Op<f32>>, TreeNode);
 impl_into_py_gene!(PermutationGene<usize>, Permutation);
+impl_into_py_gene!(AnyGene<'static>, AnyGene);

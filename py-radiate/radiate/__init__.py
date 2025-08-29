@@ -13,21 +13,21 @@ from .codec import (
     GraphCodec,
     TreeCodec,
     PermutationCodec,
+    AnyCodec,
+    any_gene,
 )
 from .random import RandomProvider as random
 from .generation import Generation
 from .genome import (
     gene,
+    chromosome,
     Chromosome,
     Genotype,
     Population,
     Species,
     Ecosystem,
     Phenotype,
-    FloatGene,
-    IntGene,
-    BitGene,
-    CharGene,
+    Gene,
 )
 from .handlers import EventHandler, EventType
 from .gp import Op, Graph, Tree
@@ -70,7 +70,7 @@ from .inputs.alterer import (
     PolynomialMutator,
     EdgeRecombinationCrossover,
     Mutator,
-    Crossover
+    Crossover,
 )
 
 from .inputs.distance import (
@@ -102,12 +102,12 @@ __all__ = [
     "BitCodec",
     "GraphCodec",
     "TreeCodec",
+    "AnyCodec",
+    "any_gene",
     # Genome and Population
     "gene",
-    "FloatGene",
-    "IntGene",
-    "BitGene",
-    "CharGene",
+    "chromosome",
+    "Gene",
     "Chromosome",
     "Genotype",
     "Phenotype",

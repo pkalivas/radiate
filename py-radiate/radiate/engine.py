@@ -12,6 +12,7 @@ from .codec import (
     CodecBase,
     PermutationCodec,
     TreeCodec,
+    AnyCodec,
 )
 
 from .inputs.input import EngineInput, EngineInputType
@@ -67,6 +68,8 @@ class GeneticEngine[G, T]:
             self.gene_type = GeneType.TREE
         elif isinstance(codec, PermutationCodec):
             self.gene_type = GeneType.PERMUTATION
+        elif isinstance(codec, AnyCodec):
+            self.gene_type = GeneType.ANY
         else:
             raise TypeError(f"Codec type {type(codec)} is not supported.")
 

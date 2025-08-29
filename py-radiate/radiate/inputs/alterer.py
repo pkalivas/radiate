@@ -69,6 +69,7 @@ class Mutator(AlterBase, ABC):
                 "mutate": lambda chrom: self.mutate(cast(Chromosome, chrom)),
             },
         )
+        self.rate = rate
 
     @abstractmethod
     def mutate(self, chromosome: Chromosome) -> Chromosome:
@@ -91,6 +92,7 @@ class Crossover(AlterBase, ABC):
                 ),
             },
         )
+        self.rate = rate
 
     @abstractmethod
     def crossover(
