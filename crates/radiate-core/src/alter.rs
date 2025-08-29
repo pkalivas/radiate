@@ -2,6 +2,19 @@ use crate::{
     Chromosome, Gene, Genotype, Metric, Population, ToSnakeCase, indexes, labels, random_provider,
 };
 
+#[macro_export]
+macro_rules! alters {
+    ($($struct_instance:expr),* $(,)?) => {
+        {
+            let mut vec: Vec<Box<dyn Alter<_>>> = Vec::new();
+            $(
+                vec.push(Box::new($struct_instance.alterer()));
+            )*
+            vec
+        }
+    };
+}
+
 /// This is the main trait that is used to define the different types of alterations that can be
 /// performed on a population. The `Alter` trait is used to define the `alter` method that is used
 /// to perform the alteration on the population. The `alter` method takes a mutable reference to

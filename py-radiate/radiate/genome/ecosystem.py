@@ -14,7 +14,7 @@ class Ecosystem[T](PyObject[PyEcosystem]):
             self._pyobj = inner
         else:
             raise TypeError(f"Expected PyEcosystem, got {type(inner)}")
-        
+
     def __repr__(self):
         return self._pyobj.__repr__()
 

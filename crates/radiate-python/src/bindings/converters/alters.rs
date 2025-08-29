@@ -40,6 +40,7 @@ impl InputTransform<Vec<Box<dyn Alter<IntChromosome<i32>>>>> for PyEngineInput {
             crate::names::ARITHMETIC_MUTATOR => alters!(convert_arithmetic_mutator(&self)),
             crate::names::SWAP_MUTATOR => alters!(convert_swap_mutator(&self)),
             crate::names::SCRAMBLE_MUTATOR => alters!(convert_scramble_mutator(&self)),
+            crate::names::GAUSSIAN_MUTATOR => alters!(convert_gaussian_mutator(&self)),
             crate::names::UNIFORM_MUTATOR => alters!(convert_uniform_mutator(&self)),
             crate::names::INVERSION_MUTATOR => alters!(convert_inversion_mutator(&self)),
             crate::names::CUSTOM_MUTATOR => alters!(convert_custom_mutator(&self)),

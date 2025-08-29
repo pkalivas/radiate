@@ -11,7 +11,7 @@ from .inputs.alterer import AlterBase
 from .inputs.distance import DistanceBase
 from .inputs.executor import Executor
 from .fitness import CallableFitness
-from .genome.gene import GeneType
+from .genome import GeneType
 
 
 class EngineBuilder:

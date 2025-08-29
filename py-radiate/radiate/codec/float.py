@@ -3,7 +3,6 @@ from __future__ import annotations
 from .base import CodecBase
 
 from radiate._typing import FloatEncoding
-from radiate.genome.gene import GeneType
 from radiate.genome import Genotype, Gene, Chromosome
 
 from radiate.radiate import PyFloatCodec
@@ -87,6 +86,8 @@ class FloatCodec[T](CodecBase[float, T]):
         Returns:
             A new FloatCodec instance with the specified chromosomes.
         """
+        from radiate.genome import GeneType
+
         if not isinstance(chromosomes, (list, tuple)):
             raise TypeError(
                 "chromosomes must be a list or tuple of Chromosome instances."

@@ -18,7 +18,7 @@ pub use evaluator::FreeThreadPyEvaluator;
 pub use mutator::PyMutator;
 pub use object::*;
 pub use problem::PyProblem;
-use pyo3::{PyResult, Python};
+pub use pyo3::{PyResult, Python, exceptions::PyRuntimeError};
 pub use random::PyRandomProvider;
 
 pub mod prelude {

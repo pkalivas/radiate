@@ -1,67 +1,12 @@
 from __future__ import annotations
 
-from typing import Callable, overload
-from enum import Enum
+from typing import Callable, overload, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from . import GeneType
 
 from radiate.radiate import PyGene
 from radiate.wrapper import PyObject
-
-
-class GeneType(Enum):
-    FLOAT = "FloatGene"
-    INT = "IntGene"
-    BIT = "BitGene"
-    CHAR = "CharGene"
-    PERMUTATION = "PermutationGene"
-    GRAPH = "GraphNode"
-    TREE = "TreeNode"
-    ANY = "AnyGene"
-
-    @staticmethod
-    def all() -> set[GeneType]:
-        return {
-            GeneType.FLOAT,
-            GeneType.INT,
-            GeneType.BIT,
-            GeneType.CHAR,
-            GeneType.PERMUTATION,
-            GeneType.GRAPH,
-            GeneType.TREE,
-            GeneType.ANY,
-        }
-
-    @staticmethod
-    def core() -> set[GeneType]:
-        return {
-            GeneType.FLOAT,
-            GeneType.INT,
-            GeneType.BIT,
-            GeneType.CHAR,
-            GeneType.PERMUTATION,
-        }
-
-    @staticmethod
-    def from_str(gene_type: str) -> GeneType:
-        type_lower = str(gene_type).lower()
-        match type_lower:
-            case "floatgene":
-                return GeneType.FLOAT
-            case "intgene":
-                return GeneType.INT
-            case "bitgene":
-                return GeneType.BIT
-            case "chargene":
-                return GeneType.CHAR
-            case "permutationgene":
-                return GeneType.PERMUTATION
-            case "graphnode":
-                return GeneType.GRAPH
-            case "treenode":
-                return GeneType.TREE
-            case "anygene":
-                return GeneType.ANY
-            case _:
-                raise ValueError(f"Invalid gene type: {gene_type}")
 
 
 class Gene[T](PyObject[PyGene]):
@@ -110,14 +55,12 @@ class AnyGene(Gene):
         pass
 
     @classmethod
-    def __from_gene__(klass, gene_dict: dict, *, strict: bool = False):
+    def __from_gene__(klass, gene_dict: dict):
         inst = klass.__new__(klass)
-        if strict:
-            unknown = set(gene_dict.keys()) - set(inst.__dict__.keys())
-            if unknown:
-                raise ValueError(
-                    f"Unknown field(s) {sorted(unknown)} for {klass.__name__}"
-                )
+        unknown = set(gene_dict.keys()) - set(inst.__dict__.keys())
+        if unknown:
+            raise ValueError(f"Unknown field(s) {sorted(unknown)} for {klass.__name__}")
+
         inst.__dict__.update(gene_dict)
         return inst
 

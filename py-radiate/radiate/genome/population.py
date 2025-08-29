@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from typing import Iterable
-from radiate.genome.gene import GeneType
 from radiate.radiate import PyPopulation
 from .phenotype import Phenotype
 from ..wrapper import PyObject
+
+if TYPE_CHECKING:
+    from radiate.genome.gene import GeneType
 
 
 class Population[T](PyObject[PyPopulation]):
@@ -54,9 +58,10 @@ class Population[T](PyObject[PyPopulation]):
             raise TypeError("Value must be an instance of Phenotype")
         self._pyobj[index] = value.to_python()
 
-    def gene_type(self) -> GeneType:
+    def gene_type(self) -> 'GeneType':
         """
         Returns the type of the genes in the population.
         :return: The gene type as a string.
         """
+        from . import GeneType
         return GeneType.from_str(self._pyobj.gene_type())

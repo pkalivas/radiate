@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from radiate._typing import NodeValues
-from radiate.genome.gene import GeneType
 
 from .base import CodecBase
 from radiate.gp import Op, Tree
@@ -17,8 +16,6 @@ class TreeCodec(CodecBase[Op, Tree]):
     def decode(self, genotype: Genotype) -> Tree:
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
-        if genotype.gene_type() != GeneType.TREE:
-            raise ValueError(f"genotype must be of type {genotype.gene_type()}.")
         return Tree(self.codec.decode_py(genotype=genotype.to_python()))
 
     def __init__(

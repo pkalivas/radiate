@@ -1,4 +1,4 @@
-from radiate.genome.gene import GeneType
+from radiate.genome import GeneType
 from .component import ComponentBase
 from typing import Callable, Dict, Any, List
 
@@ -31,12 +31,3 @@ class CustomDescriptor(DescriptorBase):
     def __init__(self, descriptor: Callable[[Any], float | List[float]]):
         super().__init__(component="CustomDescriptor")
         self.descriptor = descriptor
-
-
-class PhenotypeDescriptor(DescriptorBase):
-    """
-    Descriptor for phenotype data.
-    """
-
-    def __init__(self):
-        super().__init__(component="PhenotypeDescriptor")

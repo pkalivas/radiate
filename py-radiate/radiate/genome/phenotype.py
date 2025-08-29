@@ -1,9 +1,13 @@
 from __future__ import annotations
 
-from radiate.genome.gene import GeneType
+from typing import TYPE_CHECKING
+
 from radiate.wrapper import PyObject
 from .genotype import Genotype
 from radiate.radiate import PyPhenotype
+
+if TYPE_CHECKING:
+    from radiate.genome import GeneType
 
 
 class Phenotype[T](PyObject[PyPhenotype]):
@@ -37,11 +41,12 @@ class Phenotype[T](PyObject[PyPhenotype]):
         """
         return len(self._pyobj.genotype)
 
-    def gene_type(self) -> GeneType:
+    def gene_type(self) -> 'GeneType':
         """
         Returns the type of the genes in the phenotype.
         :return: The gene type as a string.
         """
+        from . import GeneType
         return GeneType.from_str(self._pyobj.genotype.gene_type())
 
     def score(self) -> list[float]:

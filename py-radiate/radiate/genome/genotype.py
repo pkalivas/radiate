@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from collections.abc import Iterable
-from radiate.genome.gene import GeneType
 from radiate.wrapper import PyObject
 from radiate.radiate import PyGenotype
 from .chromosome import Chromosome
+
+if TYPE_CHECKING:
+    from radiate.genome import GeneType
 
 
 class Genotype[T](PyObject[PyGenotype]):
@@ -52,9 +56,10 @@ class Genotype[T](PyObject[PyGenotype]):
         for chromosome in self._pyobj.chromosomes:
             yield Chromosome.from_python(chromosome)
 
-    def gene_type(self) -> GeneType:
+    def gene_type(self) -> 'GeneType':
         """
         Returns the type of the genes in the genotype.
         :return: The gene type as a string.
         """
+        from . import GeneType
         return GeneType.from_str(self._pyobj.gene_type())

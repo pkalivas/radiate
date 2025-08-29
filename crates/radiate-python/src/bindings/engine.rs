@@ -1,5 +1,5 @@
 use crate::{EngineHandle, EpochHandle, InputTransform, PyEngineInput, PyGeneration};
-use pyo3::{PyResult, pyclass, pymethods};
+use pyo3::{PyResult, exceptions::PyRuntimeError, pyclass, pymethods};
 use radiate::{Chromosome, Engine, EngineIteratorExt, Generation, GeneticEngine, Limit};
 
 #[pyclass(unsendable)]
@@ -52,14 +52,13 @@ impl PyEngine {
 
     pub fn next(&mut self) -> PyResult<PyGeneration> {
         if self.engine.is_none() {
-            return Err(pyo3::exceptions::PyRuntimeError::new_err(
-                "Engine has already been run",
-            ));
+            return Err(PyRuntimeError::new_err("Engine has already been run"));
         }
 
-        let engine = self.engine.as_mut().ok_or_else(|| {
-            pyo3::exceptions::PyRuntimeError::new_err("Engine has already been run")
-        })?;
+        let engine = self
+            .engine
+            .as_mut()
+            .ok_or_else(|| PyRuntimeError::new_err("Engine has already been run"))?;
 
         Ok(PyGeneration::new(match engine {
             EngineHandle::Int(eng) => EpochHandle::Int(eng.next()),

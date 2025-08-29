@@ -5,7 +5,7 @@ from radiate.genome.chromosome import Chromosome
 from radiate.genome.population import Population
 from radiate.inputs.input import EngineInput, EngineInputType
 from .component import ComponentBase
-from ..genome.gene import GeneType
+from ..genome import GeneType
 
 
 class AlterBase(ComponentBase):
@@ -127,7 +127,11 @@ class IntermediateCrossover(AlterBase):
 
 class MeanCrossover(AlterBase):
     def __init__(self, rate: float = 0.5):
-        super().__init__(component="MeanCrossover", args={"rate": rate})
+        super().__init__(
+            component="MeanCrossover",
+            args={"rate": rate},
+            allowed_genes={GeneType.FLOAT, GeneType.INT},
+        )
 
 
 class ShuffleCrossover(AlterBase):
@@ -140,6 +144,7 @@ class SimulatedBinaryCrossover(AlterBase):
         super().__init__(
             component="SimulatedBinaryCrossover",
             args={"rate": rate, "contiguity": contiguity},
+            allowed_genes=GeneType.FLOAT,
         )
 
 
@@ -172,12 +177,20 @@ class UniformMutator(AlterBase):
 
 class ArithmeticMutator(AlterBase):
     def __init__(self, rate: float = 0.1):
-        super().__init__(component="ArithmeticMutator", args={"rate": rate})
+        super().__init__(
+            component="ArithmeticMutator",
+            args={"rate": rate},
+            allowed_genes={GeneType.FLOAT, GeneType.INT},
+        )
 
 
 class GaussianMutator(AlterBase):
     def __init__(self, rate: float = 0.1):
-        super().__init__(component="GaussianMutator", args={"rate": rate})
+        super().__init__(
+            component="GaussianMutator",
+            args={"rate": rate},
+            allowed_genes={GeneType.FLOAT, GeneType.INT},
+        )
 
 
 class ScrambleMutator(AlterBase):

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-from typing import Iterable, Iterator
+from typing import Iterable, TYPE_CHECKING
 from radiate.wrapper import PyObject
 from radiate.radiate import PyChromosome, PyGene
-from .gene import Gene, GeneType
+from .gene import Gene
 from radiate.genome import gene
+
+if TYPE_CHECKING:
+    from radiate.genome import GeneType
 
 
 class Chromosome[T](PyObject[PyChromosome]):
@@ -18,28 +21,25 @@ class Chromosome[T](PyObject[PyChromosome]):
     ):
         super().__init__()
 
-        # Default to an empty chromosome when no genes are provided
-        self._pyobj = PyChromosome([])
-
         if genes is None:
             return
 
         if isinstance(genes, Gene):
             self._pyobj = PyChromosome([genes.to_python()])
-        elif isinstance(genes, Iterable):
+        if isinstance(genes, Iterable):
             self._pyobj = PyChromosome(list(map(lambda g: g.to_python(), genes)))
         else:
-            raise TypeError("genes must be a Gene instance or an iterable of Gene instances")
+            raise TypeError("genes must be a Gene instance or a list of Gene instances")
 
     def __repr__(self):
-        return repr(self._pyobj)
+        return self._pyobj.__repr__()
 
     def __len__(self):
         """
         Returns the length of the chromosome.
         :return: Length of the chromosome.
         """
-        return len(self._pyobj)
+        return self._pyobj.__len__()
 
     def __getitem__(self, index: int | slice) -> Gene[T] | Chromosome[T]:
         """
@@ -63,16 +63,9 @@ class Chromosome[T](PyObject[PyChromosome]):
         elif isinstance(gene, PyChromosome) or isinstance(gene, PyGene):
             self._pyobj[index] = gene
         else:
-            # Setting a raw allele; handle negative indices explicitly and
-            # disallow slice assignment with raw values.
-            if isinstance(index, slice):
-                raise TypeError("slice assignment requires a Chromosome with matching length")
-            idx = index
-            if idx < 0:
-                idx += len(self)
-            self._pyobj.set_allele(idx, gene)
+            self._pyobj.set_allele(index, gene)
 
-    def __iter__(self) -> Iterator[Gene[T]]:
+    def __iter__(self):
         """
         Returns an iterator over the genes in the chromosome.
         :return: An iterator over the genes in the chromosome.
@@ -80,15 +73,9 @@ class Chromosome[T](PyObject[PyChromosome]):
         for i in range(len(self)):
             yield Gene.from_python(self._pyobj[i])
 
-    def gene_type(self) -> GeneType:
-        return GeneType.from_str(self._pyobj.gene_type().name())
-
-    def alleles(self) -> list[T]:
-        """
-        Collect the allele values for all genes in the chromosome.
-        :return: A list of allele values of type T.
-        """
-        return [g.allele() for g in self]
+    def gene_type(self) -> 'GeneType':
+        from . import GeneType
+        return GeneType.from_str(self._pyobj.gene_type())
 
 
 def int(
@@ -100,13 +87,14 @@ def int(
     """
     Create an integer chromosome with specified length and optional parameters.
     :param length: Length of the chromosome.
-    :param init_range: Minimum and maximum initial value for each gene.
-    :param bounds: Minimum and maximum bound for each gene.
+    :param allele: Initial value of the gene.
+    :param value_range: Minimum and maximum value for the gene.
+    :param bound_range: Minimum and maximum bound for the gene.
     :return: A new Chromosome instance configured as an integer chromosome.
 
     Example
     --------
-    >>> rd.chromosome.int(length=3, init_range=(0, 10), bounds=(-5, 15))
+    >>> rd.Chromosome.int(length=3, value_range=(0, 10), bound_range=(-5, 15))
     Chromosome(genes=[0, 5, 10])
     """
     genes = [gene.int(init_range=init_range, bounds=bounds) for _ in range(length)]
@@ -117,30 +105,31 @@ def bit(length: int) -> Chromosome[bool]:
     """
     Create a bit chromosome with specified length and optional allele.
     :param length: Length of the chromosome.
+    :param allele: Initial value of the gene.
     :return: A new Chromosome instance configured as a bit chromosome.
 
     Example
     --------
-    >>> rd.chromosome.bit(length=4)
+    >>> rd.Chromosome.bit(length=4)
     Chromosome(genes=[True, False, True, False])
     """
     genes = [gene.bit() for _ in range(length)]
     return Chromosome(genes=genes)
 
 
-def char(length: int, char_set: Iterable[str] | str | None = None) -> Chromosome[str]:
+def char(length: int, char_set: set[str] | None = None) -> Chromosome[str]:
     """
     Create a character chromosome with specified length and optional character set.
     :param length: Length of the chromosome.
-    :param char_set: Iterable or string of characters to choose from.
+    :param char_set: Set of characters to choose from.
     :return: A new Chromosome instance configured as a character chromosome.
 
     Example
     --------
-    >>> rd.chromosome.char(length=5, char_set={'a', 'b', 'c'})
+    >>> rd.Chromosome.char(length=5, char_set={'a', 'b', 'c'})
     Chromosome(genes=[a, b, c, a, b])
     """
-    genes = [gene.char(char_set=set(char_set) if char_set is not None else None) for _ in range(length)]
+    genes = [gene.char(char_set=char_set) for _ in range(length)]
     return Chromosome(genes=genes)
 
 
@@ -153,13 +142,14 @@ def float(
     """
     Create a float chromosome with specified length and optional parameters.
     :param length: Length of the chromosome.
-    :param init_range: Minimum and maximum initial value for each gene.
-    :param bounds: Minimum and maximum bound for each gene.
+    :param allele: Initial value of the gene.
+    :param value_range: Minimum and maximum value for the gene.
+    :param bound_range: Minimum and maximum bound for the gene.
     :return: A new Chromosome instance configured as a float chromosome.
 
     Example
     --------
-    >>> rd.chromosome.float(length=5, init_range=(0.0, 10.0), bounds=(-5.0, 15.0))
+    >>> rd.Chromosome.float(length=5, value_range=(0.0, 10.0), bound_range=(-5.0, 15.0))
     Chromosome(genes=[0.0, 2.5, 5.0, 7.5, 10.0])
     """
     genes = [gene.float(init_range=init_range, bounds=bounds) for _ in range(length)]

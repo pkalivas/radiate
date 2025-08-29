@@ -82,8 +82,6 @@ from .inputs.distance import (
 
 from .inputs.limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
 
-from .inputs.descriptor import PhenotypeDescriptor
-
 from .dependancies import _NUMPY_AVAILABLE
 
 __all__ = [
@@ -174,6 +172,4 @@ __all__ = [
     # Engine
     "GeneticEngine",
     "Generation",
-    # Descriptors
-    "PhenotypeDescriptor",
 ]

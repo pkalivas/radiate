@@ -46,7 +46,7 @@ from .distance import (
 
 from .limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
 
-from .descriptor import PhenotypeDescriptor, CustomDescriptor
+from .descriptor import CustomDescriptor
 
 __all__ = [
     "BlendCrossover",
@@ -90,6 +90,5 @@ __all__ = [
     "ScoreLimit",
     "Regression",
     "ConvergenceLimit",
-    "PhenotypeDescriptor",
     "CustomDescriptor",
 ]

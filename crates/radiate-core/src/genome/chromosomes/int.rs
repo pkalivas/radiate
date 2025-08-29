@@ -7,6 +7,22 @@ use crate::random_provider;
 use serde::{Deserialize, Serialize};
 use std::ops::{Add, Bound, Div, Mul, Range, RangeBounds, Sub};
 
+#[macro_export]
+macro_rules! impl_integer {
+    ($($t:ty),*) => {
+        $(
+            impl Integer<$t> for $t {
+                const MIN: $t = <$t>::MIN;
+                const MAX: $t = <$t>::MAX;
+
+                fn from_i32(value: i32) -> $t {
+                    value as $t
+                }
+            }
+        )*
+    };
+}
+
 /// A [`Gene`] that represents an integer value. This gene just wraps an integer value and provides
 /// functionality for it to be used in a genetic algorithm. In this [`Gene`] implementation, the
 /// `allele` is the integer value itself, the min and max values are the minimum and maximum values
