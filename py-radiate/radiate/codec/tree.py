@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List, Optional, Dict, Tuple
-
 from radiate._typing import NodeValues
 from radiate.genome.gene import GeneType
 
@@ -25,13 +23,13 @@ class TreeCodec(CodecBase[Op, Tree]):
 
     def __init__(
         self,
-        shape: Tuple[int, int] = (1, 1),
+        shape: tuple[int, int] = (1, 1),
         min_depth: int = 3,
         max_size: int = 30,
-        vertex: Optional[NodeValues] = None,
-        leaf: Optional[NodeValues] = None,
-        root: Optional[NodeValues] = None,
-        values: Optional[Dict[str, List[Op]] | List[Tuple[str, List[Op]]]] = None,
+        vertex: NodeValues | None = None,
+        leaf: NodeValues | None = None,
+        root: NodeValues | None = None,
+        values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
     ) -> TreeCodec[Op, Tree]:
         input_size, output_size = shape
 
@@ -42,7 +40,7 @@ class TreeCodec(CodecBase[Op, Tree]):
         if max_size < 1:
             raise ValueError("Maximum size must be at least 1")
 
-        ops_map: Dict[str, List[Op]] = {}
+        ops_map: dict[str, list[Op]] = {}
         if leaf is None and values is None:
             ops_map = {"leaf": [Op.var(i) for i in range(input_size)]}
         if values is not None:

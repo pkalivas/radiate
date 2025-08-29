@@ -11,7 +11,6 @@ and we need to find the shortest path through a set of waypoints.
 
 import radiate as rd
 import matplotlib.pyplot as plt  # type: ignore
-from typing import List, Tuple
 import math
 
 
@@ -35,13 +34,13 @@ class MazeSolver:
     """Maze solving problem using permutation codec."""
 
     def __init__(
-        self, waypoints: List[MazeWaypoint], start_point: Tuple[float, float] = (0, 0)
+        self, waypoints: list[MazeWaypoint], start_point: tuple[float, float] = (0, 0)
     ):
         self.waypoints = waypoints
         self.start_x, self.start_y = start_point
         self.codec = rd.PermutationCodec(self.waypoints)
 
-    def calculate_path_length(self, permutation: List[MazeWaypoint]) -> float:
+    def calculate_path_length(self, permutation: list[MazeWaypoint]) -> float:
         """Calculate the total path length for a given permutation."""
         if not permutation:
             return float("inf")
@@ -63,7 +62,7 @@ class MazeSolver:
 
         return total_distance
 
-    def visualize_path(self, permutation: List[int], title: str = "Maze Path"):
+    def visualize_path(self, permutation: list[int], title: str = "Maze Path"):
         """Visualize the path through the maze."""
         if hasattr(permutation, "tolist"):
             permutation = permutation.tolist()

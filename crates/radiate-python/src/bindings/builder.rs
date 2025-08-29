@@ -1,7 +1,7 @@
-use crate::PySubscriber;
 use crate::bindings::codec::PyTreeCodec;
 use crate::bindings::{EngineBuilderHandle, EngineHandle};
 use crate::events::PyEventHandler;
+use crate::{AnyChromosome, PySubscriber};
 use crate::{
     FreeThreadPyEvaluator, InputTransform, PyCodec, PyEngine, PyEngineInput, PyEngineInputType,
     PyFitnessFn, PyFitnessInner, PyPermutationCodec, PyPopulation, prelude::*,
@@ -22,6 +22,7 @@ macro_rules! apply_to_builder {
             EngineBuilderHandle::Permutation(b) => Ok(EngineBuilderHandle::Permutation(b.$method($($args),*))),
             EngineBuilderHandle::Graph(b) => Ok(EngineBuilderHandle::Graph(b.$method($($args),*))),
             EngineBuilderHandle::Tree(b) => Ok(EngineBuilderHandle::Tree(b.$method($($args),*))),
+            EngineBuilderHandle::Any(b) => Ok(EngineBuilderHandle::Any(b.$method($($args),*))),
             EngineBuilderHandle::Empty => Err(PyTypeError::new_err(
                 "EngineBuilder must have a problem and codec before processing other inputs",
             )),
@@ -67,6 +68,7 @@ impl PyEngineBuilder {
             EngineBuilderHandle::Float(builder) => EngineHandle::Float(builder.build()),
             EngineBuilderHandle::Char(builder) => EngineHandle::Char(builder.build()),
             EngineBuilderHandle::Bit(builder) => EngineHandle::Bit(builder.build()),
+            EngineBuilderHandle::Any(builder) => EngineHandle::Any(builder.build()),
             EngineBuilderHandle::Permutation(builder) => EngineHandle::Permutation(builder.build()),
             EngineBuilderHandle::Graph(builder) => EngineHandle::Graph(builder.build()),
             EngineBuilderHandle::Tree(builder) => EngineHandle::Tree(builder.build()),
@@ -306,6 +308,20 @@ impl PyEngineBuilder {
                     )),
                 }
             }
+            EngineBuilderHandle::Any(builder) => {
+                let selector: Box<dyn Select<AnyChromosome<'static>>> = input.transform();
+                match input.input_type() {
+                    PyEngineInputType::SurvivorSelector => Ok(EngineBuilderHandle::Any(
+                        builder.boxed_survivor_selector(selector),
+                    )),
+                    PyEngineInputType::OffspringSelector => Ok(EngineBuilderHandle::Any(
+                        builder.boxed_offspring_selector(selector),
+                    )),
+                    _ => Err(PyTypeError::new_err(
+                        "process_selector only implemented for Survivor and Offspring selectors",
+                    )),
+                }
+            }
             EngineBuilderHandle::Graph(builder) => {
                 let selector: Box<dyn Select<GraphChromosome<Op<f32>>>> = input.transform();
                 match input.input_type() {
@@ -360,6 +376,10 @@ impl PyEngineBuilder {
             EngineBuilderHandle::Bit(builder) => {
                 let alters: Vec<Box<dyn Alter<BitChromosome>>> = inputs.transform();
                 Ok(EngineBuilderHandle::Bit(builder.alter(alters)))
+            }
+            EngineBuilderHandle::Any(builder) => {
+                let alters: Vec<Box<dyn Alter<AnyChromosome<'static>>>> = inputs.transform();
+                Ok(EngineBuilderHandle::Any(builder.alter(alters)))
             }
             EngineBuilderHandle::Graph(builder) => {
                 let alters: Vec<Box<dyn Alter<GraphChromosome<Op<f32>>>>> = inputs.transform();
@@ -495,6 +515,8 @@ impl PyEngineBuilder {
             EngineBuilderHandle::Char(Self::new_builder(fitness_fn, char_codec.codec, executor))
         } else if let Ok(bit_codec) = codec.extract::<PyBitCodec>() {
             EngineBuilderHandle::Bit(Self::new_builder(fitness_fn, bit_codec.codec, executor))
+        } else if let Ok(any_codec) = codec.extract::<PyAnyCodec>() {
+            EngineBuilderHandle::Any(Self::new_builder(fitness_fn, any_codec.codec, executor))
         } else if let Ok(perm_codec) = codec.extract::<PyPermutationCodec>() {
             EngineBuilderHandle::Permutation(Self::new_builder(
                 fitness_fn,
@@ -572,6 +594,8 @@ impl PyEngineBuilder {
             EngineBuilderHandle::Char(Self::new_builder(fitness, char_codec.codec, executor))
         } else if let Ok(bit_codec) = codec.extract::<PyBitCodec>() {
             EngineBuilderHandle::Bit(Self::new_builder(fitness, bit_codec.codec, executor))
+        } else if let Ok(any_codec) = codec.extract::<PyAnyCodec>() {
+            EngineBuilderHandle::Any(Self::new_builder(fitness, any_codec.codec, executor))
         } else if let Ok(permutation_codec) = codec.extract::<PyPermutationCodec>() {
             EngineBuilderHandle::Permutation(Self::new_builder(
                 fitness,

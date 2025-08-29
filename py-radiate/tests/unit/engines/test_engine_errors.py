@@ -1,4 +1,3 @@
-from typing import List
 import radiate as rd
 import pytest
 
@@ -10,12 +9,12 @@ class TestEngineErrorHandlingIntegration:
     def test_engine_empty_population(self):
         """Test engine handles empty population gracefully."""
 
-        def fitness_func(x: List[int]) -> float:
+        def fitness_func(x: list[int]) -> float:
             return sum(x)
 
         with pytest.raises(ValueError):
             engine = rd.GeneticEngine(
-                codec=rd.IntCodec.vector(length=3, value_range=(0, 10)),
+                codec=rd.IntCodec.vector(length=3, init_range=(0, 10)),
                 fitness_func=fitness_func,
                 objectives="min",
                 population_size=0,  # Invalid
@@ -26,11 +25,11 @@ class TestEngineErrorHandlingIntegration:
     def test_engine_invalid_limits(self):
         """Test engine handles invalid limits gracefully."""
 
-        def fitness_func(x: List[int]) -> float:
+        def fitness_func(x: list[int]) -> float:
             return sum(x)
 
         engine = rd.GeneticEngine(
-            codec=rd.IntCodec.vector(length=3, value_range=(0, 10)),
+            codec=rd.IntCodec.vector(length=3, init_range=(0, 10)),
             fitness_func=fitness_func,
             objectives="min",
         )

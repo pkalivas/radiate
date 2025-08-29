@@ -39,8 +39,6 @@ fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {
     let mut z = vec![];
     let mut color = vec![];
 
-    println!("Front size: {:?}", front.values().len());
-
     for (i, pheno) in front.values().iter().enumerate() {
         let score = pheno.score().unwrap();
         x.push(score[0]);

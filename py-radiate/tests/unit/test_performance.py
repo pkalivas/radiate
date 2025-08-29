@@ -1,5 +1,3 @@
-from typing import List
-
 import pytest
 import gc
 
@@ -12,7 +10,7 @@ class TestCodecPerformance:
     @pytest.mark.performance
     def test_codec_encode_decode_speed(self, performance_benchmark):
         """Benchmark codec encode/decode operations."""
-        codec = rd.FloatCodec.vector(length=100000, value_range=(-1.0, 1.0))
+        codec = rd.FloatCodec.vector(length=100000, init_range=(-1.0, 1.0))
 
         def encode_decode_cycle():
             genotype = codec.encode()
@@ -29,7 +27,7 @@ class TestCodecPerformance:
     @pytest.mark.performance
     def test_large_matrix_codec_performance(self, performance_benchmark):
         """Benchmark large matrix codec operations."""
-        codec = rd.IntCodec.matrix((100, 100), value_range=(0, 1000))
+        codec = rd.IntCodec.matrix((100, 100), init_range=(0, 1000))
 
         def matrix_operations():
             genotype = codec.encode()
@@ -50,11 +48,11 @@ class TestEnginePerformance:
     def test_engine_small_problem_performance(self, performance_benchmark):
         """Benchmark engine performance on small problems."""
 
-        def fitness_func(x: List[float]) -> float:
+        def fitness_func(x: list[float]) -> float:
             return sum(xi**2 for xi in x)
 
         engine = rd.GeneticEngine(
-            codec=rd.FloatCodec.vector(length=10, value_range=(-1.0, 1.0)),
+            codec=rd.FloatCodec.vector(length=10, init_range=(-1.0, 1.0)),
             fitness_func=fitness_func,
             objectives="min",
             population_size=100,
@@ -75,11 +73,11 @@ class TestEnginePerformance:
     def test_engine_large_population_performance(self, performance_benchmark):
         """Benchmark engine performance with large population."""
 
-        def fitness_func(x: List[float]) -> float:
+        def fitness_func(x: list[float]) -> float:
             return sum(xi**2 for xi in x)
 
         engine = rd.GeneticEngine(
-            codec=rd.FloatCodec.vector(length=20, value_range=(-1.0, 1.0)),
+            codec=rd.FloatCodec.vector(length=20, init_range=(-1.0, 1.0)),
             fitness_func=fitness_func,
             objectives="min",
             population_size=1000,
@@ -104,13 +102,13 @@ class TestMemoryPerformance:
     def test_memory_usage_small_problem(self, performance_benchmark):
         """Test memory usage for small problems."""
 
-        def fitness_func(x: List[float]) -> float:
+        def fitness_func(x: list[float]) -> float:
             return sum(xi**2 for xi in x)
 
         initial_memory = performance_benchmark.memory_usage()
 
         engine = rd.GeneticEngine(
-            codec=rd.FloatCodec.vector(length=10, value_range=(-1.0, 1.0)),
+            codec=rd.FloatCodec.vector(length=10, init_range=(-1.0, 1.0)),
             fitness_func=fitness_func,
             objectives="min",
             population_size=100,
@@ -131,7 +129,7 @@ class TestMemoryPerformance:
     def test_memory_cleanup(self, performance_benchmark):
         """Test that memory is properly cleaned up after engine runs."""
 
-        def fitness_func(x: List[float]) -> float:
+        def fitness_func(x: list[float]) -> float:
             return sum(xi**2 for xi in x)
 
         initial_memory = performance_benchmark.memory_usage()
@@ -139,7 +137,7 @@ class TestMemoryPerformance:
         # Run multiple engines
         for _ in range(5):
             engine = rd.GeneticEngine(
-                codec=rd.FloatCodec.vector(length=50, value_range=(-1.0, 1.0)),
+                codec=rd.FloatCodec.vector(length=50, init_range=(-1.0, 1.0)),
                 fitness_func=fitness_func,
                 objectives="min",
                 population_size=200,
@@ -170,12 +168,12 @@ class TestScalabilityPerformance:
         lengths = [10, 50, 100, 500]
         execution_times = []
 
-        def fitness_func(x: List[float]) -> float:
+        def fitness_func(x: list[float]) -> float:
             return sum(xi**2 for xi in x)
 
         for length in lengths:
             engine = rd.GeneticEngine(
-                codec=rd.FloatCodec.vector(length=length, value_range=(-1.0, 1.0)),
+                codec=rd.FloatCodec.vector(length=length, init_range=(-1.0, 1.0)),
                 fitness_func=fitness_func,
                 objectives="min",
                 population_size=100,
@@ -196,6 +194,7 @@ class TestScalabilityPerformance:
             assert time_ratio < length_ratio * 2
 
 
+# TODO: do we even need this test? It seems redundant
 class TestRegressionPerformance:
     """Performance regression tests."""
 
@@ -204,10 +203,10 @@ class TestRegressionPerformance:
     def test_basic_optimization_performance_regression(self, performance_benchmark):
         """Test that basic optimization performance hasn't regressed."""
 
-        def fitness_func(x: List[float]) -> float:
+        def fitness_func(x: list[float]) -> float:
             return sum(xi**2 for xi in x)
 
-        codec = rd.FloatCodec.vector(20, value_range=(-1.0, 1.0))
+        codec = rd.FloatCodec.vector(20, init_range=(-1.0, 1.0))
         engine = rd.GeneticEngine(codec, fitness_func)
 
         engine.minimizing()

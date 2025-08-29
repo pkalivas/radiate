@@ -293,13 +293,11 @@ impl<T> Graph<T> {
     /// - index: The index of the node to get the cycles for.
     #[inline]
     pub fn get_cycles(&self, from: usize) -> HashSet<usize> {
-        let mut visited = HashSet::new();
         let mut stack = Vec::new();
+        let mut visited = HashSet::new();
         let mut cycles = HashSet::new();
 
-        if !visited.contains(&from) {
-            self.dfs_visit(from, &mut visited, &mut stack, &mut cycles);
-        }
+        self.dfs_visit(from, &mut stack, &mut visited, &mut cycles);
 
         cycles
     }
@@ -308,8 +306,8 @@ impl<T> Graph<T> {
     fn dfs_visit(
         &self,
         node: usize,
-        visited: &mut HashSet<usize>,
         stack: &mut Vec<usize>,
+        visited: &mut HashSet<usize>,
         cycles: &mut HashSet<usize>,
     ) {
         visited.insert(node);
@@ -317,7 +315,7 @@ impl<T> Graph<T> {
 
         for &neighbor in self.get(node).unwrap().outgoing() {
             if !visited.contains(&neighbor) {
-                self.dfs_visit(neighbor, visited, stack, cycles);
+                self.dfs_visit(neighbor, stack, visited, cycles);
             } else if stack.contains(&neighbor) {
                 if let Some(cycle_start) = stack.iter().position(|&x| x == neighbor) {
                     for cycle_node in &stack[cycle_start..] {

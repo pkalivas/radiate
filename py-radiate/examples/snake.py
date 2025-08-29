@@ -10,7 +10,6 @@ import radiate as rd
 import numpy as np
 import matplotlib.pyplot as plt  # type: ignore
 from matplotlib.animation import FuncAnimation  # type: ignore
-from typing import List, Tuple
 
 rd.random.seed(42)
 np.random.seed(42)
@@ -40,13 +39,13 @@ class SnakeGame:
         if self.debug:
             print(f"Game reset: snake={self.snake}, food={self.food}")
 
-    def generate_food(self) -> Tuple[int, int]:
+    def generate_food(self) -> tuple[int, int]:
         """Generate food at random position."""
         attempts = 0
         while attempts < 100:
             food = (
-                rd.random.randint(0, self.width),
-                rd.random.randint(0, self.height),
+                rd.random.int(0, self.width),
+                rd.random.int(0, self.height),
             )
             if food not in self.snake:
                 return food
@@ -59,7 +58,7 @@ class SnakeGame:
                     return (x, y)
         return (0, 0)
 
-    def get_state(self) -> List[float]:
+    def get_state(self) -> list[float]:
         """Get current game state as neural network input."""
         head_x, head_y = self.snake[0]
 
@@ -202,7 +201,7 @@ class SnakeAI:
     def __init__(self, graph: rd.Graph):
         self.graph = graph
 
-    def predict(self, state: List[float]) -> int:
+    def predict(self, state: list[float]) -> int:
         """Predict the best action given current state."""
         output = self.graph.eval([state])
         return np.argmax(output[0])
@@ -337,7 +336,7 @@ class SnakeEvolver:
             "history": game_history,
         }
 
-    def run_evolution(self, generations: int):
+    def run_evolution(self, generations: int) -> rd.Generation:
         """Run the evolution process."""
         codec = rd.GraphCodec.weighted_directed(
             shape=(self.input_size, self.output_size),
@@ -420,11 +419,11 @@ def main():
     evolver = SnakeEvolver()
 
     # Run evolution
-    result = evolver.run_evolution(generations=250)
+    generation = evolver.run_evolution(generations=250)
 
-    print(result)
+    print(generation)
 
-    best_graph = result.value()
+    best_graph = generation.value()
     evolver.visualize_best_snake(best_graph, "Best Evolved Snake AI")
 
 

@@ -9,10 +9,7 @@ impl<T> AsRef<T> for Wrap<T> {
     }
 }
 
-impl<T> Clone for Wrap<T>
-where
-    T: Clone,
-{
+impl<T: Clone> Clone for Wrap<T> {
     fn clone(&self) -> Self {
         Wrap(self.0.clone())
     }

@@ -21,7 +21,6 @@ that traditional fitness-based evolution might miss.
 import radiate as rd
 import numpy as np
 import matplotlib.pyplot as plt  # type: ignore
-from typing import List, Tuple
 import math
 
 # rd.random.set_seed(5522)  # For reproducibility
@@ -35,7 +34,7 @@ import math
 class RobotBehavior:
     """Represents a robot's movement behavior in 2D space."""
 
-    def __init__(self, movement_pattern: List[float]):
+    def __init__(self, movement_pattern: list[float]):
         """
         Initialize robot behavior.
 
@@ -46,7 +45,7 @@ class RobotBehavior:
         self.movement_pattern = movement_pattern
         self.trajectory = self._simulate_movement()
 
-    def _simulate_movement(self, steps: int = 100) -> List[Tuple[float, float]]:
+    def _simulate_movement(self, steps: int = 100) -> list[tuple[float, float]]:
         """Simulate the robot's movement and return trajectory."""
         x, y = 0.0, 0.0
         trajectory = [(x, y)]
@@ -80,7 +79,7 @@ class RobotBehavior:
 
         return trajectory
 
-    def get_behavior_descriptor(self) -> List[float]:
+    def get_behavior_descriptor(self) -> list[float]:
         """
         Extract behavior descriptor for novelty search.
         This describes the "shape" of the behavior.
@@ -172,11 +171,11 @@ class RobotBehavior:
 def run_novelty_search_evolution(generations: int = 200) -> rd.Generation:
     """Run novelty search to evolve diverse robot behaviors."""
 
-    def behavior_descriptor(genome: List[float]) -> List[float]:
+    def behavior_descriptor(genome: list[float]) -> list[float]:
         behavior = RobotBehavior(genome)
         return behavior.get_behavior_descriptor()
 
-    codec = rd.FloatCodec.vector(6, value_range=(-5.0, 5.0))
+    codec = rd.FloatCodec.vector(6, init_range=(-5.0, 5.0))
 
     # Create novelty search engine
     engine = rd.GeneticEngine(

@@ -142,6 +142,15 @@ impl<A: PartialEq + Clone> From<Vec<PermutationGene<A>>> for PermutationChromoso
     }
 }
 
+impl<A: PartialEq + Clone> IntoIterator for PermutationChromosome<A> {
+    type Item = PermutationGene<A>;
+    type IntoIter = std::vec::IntoIter<PermutationGene<A>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.genes.into_iter()
+    }
+}
+
 #[cfg(feature = "serde")]
 impl<A: PartialEq + Clone + Serialize> Serialize for PermutationChromosome<A> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

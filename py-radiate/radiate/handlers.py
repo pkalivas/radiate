@@ -1,13 +1,10 @@
 import abc
-from typing import Any
+from enum import Enum
+from typing import Any, Callable
 from radiate.radiate import PySubscriber
 
 
-class EventType:
-    """
-    Enum-like class for event types.
-    """
-
+class EventType(Enum):
     ALL = "all"
     START = "on_start"
     STOP = "on_stop"
@@ -29,7 +26,9 @@ class EventHandler(abc.ABC):
         :param event_type: Type of the event to handle.
         """
         self.event_type = event_type if event_type != EventType.ALL else None
-        self._py_handler = PySubscriber(self.on_event, self.event_type)
+        self._py_handler = PySubscriber(
+            self.on_event, self.event_type.value if self.event_type else "all"
+        )
 
     def __call__(self, event: Any) -> None:
         """
@@ -44,3 +43,14 @@ class EventHandler(abc.ABC):
         Handle the event.
         """
         pass
+
+
+class CallableEventHandler(EventHandler):
+    def __init__(
+        self, func: Callable[[Any], None], event_type: EventType = EventType.ALL
+    ):
+        super().__init__(event_type)
+        self.func = func
+
+    def on_event(self, event: Any) -> None:
+        self.func(event)

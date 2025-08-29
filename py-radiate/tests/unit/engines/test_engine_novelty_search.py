@@ -26,7 +26,7 @@ class TestEngineNoveltySearch:
     def test_engine_is_novel(self, random_seed):
         """Test engine with novelty search."""
         engine = rd.GeneticEngine(
-            codec=rd.FloatCodec.vector(6, value_range=(-100.0, 100.0)),
+            codec=rd.FloatCodec.vector(6, init_range=(-100.0, 100.0)),
             fitness_func=rd.NoveltySearch(
                 descriptor=lambda x: x,
                 distance=rd.CosineDistance(),
@@ -49,7 +49,7 @@ class TestEngineNoveltySearch:
     def test_int_engine_novelty_creates(self, random_seed):
         """Test engine with novelty search."""
         engine = rd.GeneticEngine(
-            codec=rd.IntCodec.vector(6, value_range=(-100, 100)),
+            codec=rd.IntCodec.vector(6, init_range=(-100, 100)),
             fitness_func=rd.NoveltySearch(
                 descriptor=lambda x: x,
                 distance=rd.HammingDistance(),

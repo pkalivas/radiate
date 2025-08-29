@@ -145,8 +145,8 @@ where
 /// let last_generation = engine
 ///     .iter()
 ///     .logging() // Enable logging
-///     .until_seconds(20)
-///     .last(); // Get the last generation after 20 seconds
+///     .until_seconds(5)
+///     .last(); // Get the last generation after 5 seconds
 /// ```
 ///
 /// ## Advanced Termination

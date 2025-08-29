@@ -1,7 +1,9 @@
-from typing import List, Optional, Tuple, Callable
+from typing import Callable
+from pyparsing import Any
 from radiate.codec.base import CodecBase
 from radiate.genome.population import Population
 from radiate.fitness import FitnessBase
+from radiate.handlers import CallableEventHandler, EventHandler
 from radiate.radiate import PyEngine, PyEngineBuilder
 from ._typing import Subscriber
 from .inputs.input import EngineInput, EngineInputType
@@ -29,30 +31,54 @@ class EngineBuilder:
         else:
             self.fitness = problem
 
+    def __repr__(self):
+        input_strs = ", \n".join(repr(inp) for inp in self._inputs)
+        return f"EngineBuilder(gene_type={self._gene_type}, inputs=[{input_strs}])"
+
     def build(self) -> PyEngine:
         """Build the PyEngine instance."""
 
         builder = PyEngineBuilder(
             codec=self._codec.codec,
             problem=self.fitness.problem,
-            inputs=[self_input.py_input() for self_input in self._inputs],
+            inputs=[self_input.to_python() for self_input in self._inputs],
         )
         return builder.build()
 
-    def inputs(self) -> List[EngineInput]:
+    def inputs(self) -> list[EngineInput]:
         return self._inputs
 
     def set_subscribers(self, subscriber: Subscriber | None):
         if subscriber is None:
             return
 
-        self._inputs.append(
-            EngineInput(
-                input_type=EngineInputType.Subscriber,
-                component="subscriber",
-                subscriber=subscriber._py_handler,
-            )
-        )
+        def add_subscriber(sub: EventHandler | Callable[[Any], None]):
+            if isinstance(sub, EventHandler):
+                self._inputs.append(
+                    EngineInput(
+                        input_type=EngineInputType.Subscriber,
+                        component="subscriber",
+                        subscriber=sub._py_handler,
+                    )
+                )
+            elif isinstance(sub, Callable):
+                self._inputs.append(
+                    EngineInput(
+                        input_type=EngineInputType.Subscriber,
+                        component="subscriber",
+                        subscriber=CallableEventHandler(sub)._py_handler,
+                    )
+                )
+            else:
+                raise TypeError(
+                    "Subscriber list must contain only Callables or EventHandlers."
+                )
+
+        if isinstance(subscriber, list):
+            for sub in subscriber:
+                add_subscriber(sub)
+        else:
+            add_subscriber(subscriber)
 
     def set_population(self, population: Population):
         if population is None:
@@ -98,7 +124,7 @@ class EngineBuilder:
             )
         )
 
-    def set_alters(self, alters: List[AlterBase] | None):
+    def set_alters(self, alters: list[AlterBase] | None):
         if alters is None:
             return
 
@@ -175,7 +201,7 @@ class EngineBuilder:
             )
         )
 
-    def set_max_species_age(self, age: Optional[int] = None):
+    def set_max_species_age(self, age: int | None = None):
         if age is not None and age <= 0:
             raise ValueError("Max species age must be greater than 0.")
 
@@ -189,7 +215,7 @@ class EngineBuilder:
             )
 
     def set_objective(
-        self, objective: List[str] | str, front_range: Optional[Tuple[int, int]] = None
+        self, objective: list[str] | str, front_range: tuple[int, int] | None = None
     ):
         if isinstance(objective, str):
             objective = [objective]
@@ -225,7 +251,3 @@ class EngineBuilder:
                 **executor.args,
             )
         )
-
-    def __repr__(self):
-        input_strs = ", \n".join(repr(inp) for inp in self._inputs)
-        return f"EngineBuilder(gene_type={self._gene_type}, inputs=[{input_strs}])"

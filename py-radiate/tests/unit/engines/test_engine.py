@@ -1,4 +1,3 @@
-from typing import List
 import radiate as rd
 import numpy as np
 import pytest
@@ -11,7 +10,7 @@ class TestEngineBasicIntegration:
     def test_engine_int_minimization(self, random_seed):
         num_genes = 5
         engine = rd.GeneticEngine(
-            codec=rd.IntCodec.vector(num_genes, value_range=(0, 10)),
+            codec=rd.IntCodec.vector(num_genes, init_range=(0, 10)),
             fitness_func=lambda x: sum(x),
             objectives="min",
         )
@@ -27,11 +26,11 @@ class TestEngineBasicIntegration:
         """Test engine with float codec for maximization."""
 
         # Simple fitness function: maximize sum of squares
-        def fitness_func(x: List[float]) -> float:
+        def fitness_func(x: list[float]) -> float:
             return sum(xi**2 for xi in x)
 
         engine = rd.GeneticEngine(
-            codec=rd.FloatCodec.vector(length=3, value_range=(-1.0, 1.0)),
+            codec=rd.FloatCodec.vector(length=3, init_range=(-1.0, 1.0)),
             fitness_func=fitness_func,
             objectives="max",
             population_size=50,
@@ -49,7 +48,7 @@ class TestEngineBasicIntegration:
     def test_engine_can_maximize(self):
         target = "Testing, Radiate!"
 
-        def fitness_func(x: List[str]) -> int:
+        def fitness_func(x: list[str]) -> int:
             return sum(1 for i in range(len(target)) if x[i] == target[i])
 
         engine = rd.GeneticEngine(
@@ -69,7 +68,7 @@ class TestEngineBasicIntegration:
         """Test engine with bit codec for binary optimization."""
 
         # Maximize number of 1s
-        def fitness_func(x: List[bool]) -> float:
+        def fitness_func(x: list[bool]) -> float:
             return sum(1 for bit in x if bit)
 
         engine = rd.GeneticEngine(
@@ -93,13 +92,13 @@ class TestEngineBasicIntegration:
         RANGE = 5.12
         N_GENES = 2
 
-        def fitness_fn(x: List[float]) -> float:
+        def fitness_fn(x: list[float]) -> float:
             value = A * N_GENES
             for i in range(N_GENES):
                 value += x[i] ** 2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
             return value
 
-        codec = rd.FloatCodec.vector(N_GENES, value_range=(-RANGE, RANGE))
+        codec = rd.FloatCodec.vector(N_GENES, init_range=(-RANGE, RANGE))
         population = rd.Population(rd.Phenotype(codec.encode()) for _ in range(100))
 
         engine = rd.GeneticEngine(codec, fitness_fn, population=population)
@@ -203,7 +202,7 @@ class TestEngineBasicIntegration:
         """Test engine with permutation codec for TSP-like problem."""
 
         # Simple TSP-like fitness: minimize sum of adjacent differences
-        def fitness_func(x: List[int]) -> float:
+        def fitness_func(x: list[int]) -> float:
             return sum(abs(x[i] - x[i - 1]) for i in range(1, len(x)))
 
         engine = rd.GeneticEngine(
@@ -226,12 +225,12 @@ class TestEngineBasicIntegration:
     def test_engine_multi_objective(self, random_seed):
         """Test engine with multi-objective optimization."""
 
-        def fitness_func(x: List[float]) -> List[float]:
+        def fitness_func(x: list[float]) -> list[float]:
             # Two objectives: minimize sum, maximize product
             return [sum(x), np.prod(x)]
 
         engine = rd.GeneticEngine(
-            codec=rd.FloatCodec.vector(length=3, value_range=(-1.0, 1.0)),
+            codec=rd.FloatCodec.vector(length=3, init_range=(-1.0, 1.0)),
             fitness_func=fitness_func,
             objectives=["min", "max"],
             population_size=100,

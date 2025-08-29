@@ -41,6 +41,7 @@ impl PyEngine {
             EngineHandle::Float(eng) => EpochHandle::Float(run_engine(eng, limits, log)),
             EngineHandle::Char(eng) => EpochHandle::Char(run_engine(eng, limits, log)),
             EngineHandle::Bit(eng) => EpochHandle::Bit(run_engine(eng, limits, log)),
+            EngineHandle::Any(eng) => EpochHandle::Any(run_engine(eng, limits, log)),
             EngineHandle::Permutation(eng) => {
                 EpochHandle::Permutation(run_engine(eng, limits, log))
             }
@@ -65,6 +66,7 @@ impl PyEngine {
             EngineHandle::Float(eng) => EpochHandle::Float(eng.next()),
             EngineHandle::Char(eng) => EpochHandle::Char(eng.next()),
             EngineHandle::Bit(eng) => EpochHandle::Bit(eng.next()),
+            EngineHandle::Any(eng) => EpochHandle::Any(eng.next()),
             EngineHandle::Permutation(eng) => EpochHandle::Permutation(eng.next()),
             EngineHandle::Graph(eng) => EpochHandle::Graph(eng.next()),
             EngineHandle::Tree(eng) => EpochHandle::Tree(eng.next()),

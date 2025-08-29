@@ -1,16 +1,14 @@
 from .gene import (
     Gene,
+    AnyGene,
     GeneType,
-    FloatGene,
-    IntGene,
-    BitGene,
-    CharGene,
 )
 from .chromosome import Chromosome
 from .genotype import Genotype
 from .phenotype import Phenotype
 from .population import Population
 from .species import Species
+from .ecosystem import Ecosystem
 
 from radiate.radiate import PyGeneType as gt
 
@@ -23,6 +21,7 @@ GENE_TYPE_MAPPING = {
         gt.GraphNode: GeneType.GRAPH,
         gt.TreeNode: GeneType.TREE,
         gt.Permutation: GeneType.PERMUTATION,
+        gt.AnyGene: GeneType.ANY,
     },
     "rs": {
         GeneType.FLOAT: gt.Float,
@@ -32,6 +31,7 @@ GENE_TYPE_MAPPING = {
         GeneType.GRAPH: gt.GraphNode,
         GeneType.TREE: gt.TreeNode,
         GeneType.PERMUTATION: gt.Permutation,
+        GeneType.ANY: gt.AnyGene,
     },
 }
 
@@ -43,9 +43,7 @@ __all__ = [
     "Phenotype",
     "Population",
     "Species",
-    "FloatGene",
-    "IntGene",
-    "BitGene",
-    "CharGene",
+    "AnyGene",
+    "Ecosystem",
     "GENE_TYPE_MAPPING",
 ]

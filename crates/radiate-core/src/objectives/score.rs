@@ -28,10 +28,8 @@ pub struct Score {
 
 impl Score {
     pub fn from_vec(values: Vec<f32>) -> Self {
-        for value in &values {
-            if value.is_nan() {
-                panic!("Score value cannot be NaN")
-            }
+        if values.iter().any(|&v| v.is_nan()) {
+            panic!("Score value cannot be NaN");
         }
 
         Score {

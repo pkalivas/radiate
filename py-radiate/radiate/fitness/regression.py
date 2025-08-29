@@ -1,6 +1,5 @@
 from .base import FitnessBase
 
-from typing import List
 from radiate.radiate import PyFitnessFn
 
 
@@ -9,14 +8,14 @@ class Regression[T](FitnessBase[T]):
 
     def __init__(
         self,
-        features: List[List[float]],
-        targets: List[List[float]],
+        features: list[list[float]],
+        targets: list[list[float]],
         loss: str = "mse",
     ):
         """Initialize regression fitness with features, targets, and loss function."""
-        if not isinstance(features, List):
+        if not isinstance(features, list):
             raise TypeError("features must be a list of lists or a pandas DataFrame.")
-        if not isinstance(targets, List):
+        if not isinstance(targets, list):
             raise TypeError("targets must be a list of lists or a pandas DataFrame.")
 
         super().__init__(

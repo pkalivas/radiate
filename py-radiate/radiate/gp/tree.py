@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import List
 
 from radiate.radiate import PyTree
 
@@ -24,7 +23,7 @@ class Tree:
     def __len__(self):
         return len(self.inner)
 
-    def eval(self, inputs: List[List[float]]) -> List[List[float]]:
+    def eval(self, inputs: list[list[float]]) -> list[list[float]]:
         return self.inner.eval(inputs)
 
     def to_dot(self) -> str:

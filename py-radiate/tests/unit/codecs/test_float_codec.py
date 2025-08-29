@@ -13,7 +13,7 @@ class TestFloatCodec:
     @pytest.mark.unit
     def test_float_codec_vector_creation(self):
         """Test creating a float codec for vectors."""
-        codec = FloatCodec.vector(length=4, value_range=(-1.0, 1.0))
+        codec = FloatCodec.vector(length=4, init_range=(-1.0, 1.0))
         genotype = codec.encode()
 
         assert len(genotype) == 1
@@ -23,7 +23,7 @@ class TestFloatCodec:
     @pytest.mark.unit
     def test_float_codec_matrix_creation(self):
         """Test creating a float codec for matrices."""
-        codec = FloatCodec.matrix((2, 3), value_range=(-10.0, 10.0))
+        codec = FloatCodec.matrix((2, 3), init_range=(-10.0, 10.0))
         genotype = codec.encode()
 
         assert len(genotype) == 2
@@ -33,7 +33,7 @@ class TestFloatCodec:
     @pytest.mark.unit
     def test_float_codec_decode(self):
         """Test decoding float genotypes."""
-        codec = FloatCodec.vector(length=3, value_range=(0.0, 1.0), use_numpy=True)
+        codec = FloatCodec.vector(length=3, init_range=(0.0, 1.0), use_numpy=True)
         genotype = codec.encode()
         decoded = codec.decode(genotype)
 
@@ -44,7 +44,7 @@ class TestFloatCodec:
     @pytest.mark.unit
     def test_float_codec_with_numpy(self):
         """Test float codec with numpy arrays."""
-        codec = FloatCodec.vector(length=3, value_range=(-1.0, 1.0), use_numpy=True)
+        codec = FloatCodec.vector(length=3, init_range=(-1.0, 1.0), use_numpy=True)
         genotype = codec.encode()
         decoded = codec.decode(genotype)
 
@@ -66,7 +66,7 @@ class TestFloatCodec:
         with pytest.raises(
             ValueError, match="Value range must be a tuple of \\(min, max\\)"
         ):
-            rd.FloatCodec.matrix(shape=(2, 3), value_range=(1.0,))
+            rd.FloatCodec.matrix(shape=(2, 3), init_range=(1.0,))
 
     @pytest.mark.unit
     def test_float_codec_matrix_invalid_value_range_order(self):
@@ -74,7 +74,7 @@ class TestFloatCodec:
         with pytest.raises(
             ValueError, match="Minimum value must be less than maximum value"
         ):
-            rd.FloatCodec.matrix(shape=(2, 3), value_range=(10.0, 5.0))
+            rd.FloatCodec.matrix(shape=(2, 3), init_range=(10.0, 5.0))
 
     @pytest.mark.unit
     def test_float_codec_matrix_invalid_bound_range(self):
@@ -82,7 +82,7 @@ class TestFloatCodec:
         with pytest.raises(
             ValueError, match="Bound range must be a tuple of \\(min, max\\)"
         ):
-            rd.FloatCodec.matrix(shape=(2, 3), bound_range=(1.0,))
+            rd.FloatCodec.matrix(shape=(2, 3), bounds=(1.0,))
 
     @pytest.mark.unit
     def test_float_codec_matrix_invalid_bound_range_order(self):
@@ -90,7 +90,7 @@ class TestFloatCodec:
         with pytest.raises(
             ValueError, match="Minimum bound must be less than maximum bound"
         ):
-            rd.FloatCodec.matrix(shape=(2, 3), bound_range=(10.0, 5.0))
+            rd.FloatCodec.matrix(shape=(2, 3), bounds=(10.0, 5.0))
 
     @pytest.mark.unit
     def test_float_codec_vector_invalid_length(self):
@@ -104,7 +104,7 @@ class TestFloatCodec:
         with pytest.raises(
             ValueError, match="Value range must be a tuple of \\(min, max\\)"
         ):
-            rd.FloatCodec.vector(length=5, value_range=(1.0,))
+            rd.FloatCodec.vector(length=5, init_range=(1.0,))
 
     @pytest.mark.unit
     def test_float_codec_vector_invalid_bound_range(self):
@@ -112,7 +112,7 @@ class TestFloatCodec:
         with pytest.raises(
             ValueError, match="Bound range must be a tuple of \\(min, max\\)"
         ):
-            rd.FloatCodec.vector(length=5, bound_range=(1.0,))
+            rd.FloatCodec.vector(length=5, bounds=(1.0,))
 
     @pytest.mark.unit
     def test_float_codec_scalar_invalid_value_range(self):
@@ -120,7 +120,7 @@ class TestFloatCodec:
         with pytest.raises(
             ValueError, match="Value range must be a tuple of \\(min, max\\)"
         ):
-            rd.FloatCodec.scalar(value_range=(1.0,))
+            rd.FloatCodec.scalar(init_range=(1.0,))
 
     @pytest.mark.unit
     def test_float_codec_scalar_invalid_bound_range(self):
@@ -128,10 +128,18 @@ class TestFloatCodec:
         with pytest.raises(
             ValueError, match="Bound range must be a tuple of \\(min, max\\)"
         ):
-            rd.FloatCodec.scalar(bound_range=(1.0,))
+            rd.FloatCodec.scalar(bounds=(1.0,))
 
     @pytest.mark.unit
     def test_negative_length_codec(self):
         """Test codecs handle negative length gracefully."""
         with pytest.raises(ValueError):
-            FloatCodec.vector(length=-1, value_range=(-1.0, 1.0))
+            FloatCodec.vector(length=-1, init_range=(-1.0, 1.0))
+
+    @pytest.mark.unit
+    def test_codec_from_genes(self):
+        """Test codec creation from genes."""
+        genes = [rd.gene.float(0.5), rd.gene.float(0.8)]
+        codec = FloatCodec(genes)
+        assert isinstance(codec, FloatCodec)
+        assert codec.decode(codec.encode()) == [genes[0].allele(), genes[1].allele()]

@@ -20,8 +20,8 @@ fn main() {
 
     engine
         .iter()
+        .logging()
         .until_score(target.len())
-        .inspect(|generation| println!("{:?}", generation))
         .last()
         .unwrap();
 }

@@ -268,6 +268,15 @@ impl FromIterator<CharGene> for CharChromosome {
     }
 }
 
+impl IntoIterator for CharChromosome {
+    type Item = CharGene;
+    type IntoIter = std::vec::IntoIter<CharGene>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.genes.into_iter()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -77,16 +77,12 @@ impl<C: Chromosome> Phenotype<C> {
         self.genotype = Some(genotype);
     }
 
-    pub fn generation(&self) -> usize {
-        self.generation
-    }
-
-    pub fn set_generation(&mut self, generation: usize) {
-        self.generation = generation;
-    }
-
     pub fn set_score(&mut self, score: Option<Score>) {
         self.score = score;
+    }
+
+    pub fn generation(&self) -> usize {
+        self.generation
     }
 
     pub fn score(&self) -> Option<&Score> {

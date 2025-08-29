@@ -1,34 +1,16 @@
 from __future__ import annotations
-
-from typing import List, Optional, Set
+from enum import Enum
 
 from radiate.radiate import PyEngineInput, PyEngineInputType
+from radiate.wrapper import PyObject
 
 from ..genome import (
     GENE_TYPE_MAPPING,
     GeneType,
 )
 
-input_type_mapping = {
-    "Alterer": PyEngineInputType.Alterer,
-    "SurvivorSelector": PyEngineInputType.SurvivorSelector,
-    "OffspringSelector": PyEngineInputType.OffspringSelector,
-    "SpeciesThreshold": PyEngineInputType.SpeciesThreshold,
-    "PopulationSize": PyEngineInputType.PopulationSize,
-    "OffspringFraction": PyEngineInputType.OffspringFraction,
-    "MaxPhenotypeAge": PyEngineInputType.MaxPhenotypeAge,
-    "MaxSpeciesAge": PyEngineInputType.MaxSpeciesAge,
-    "Objective": PyEngineInputType.Objective,
-    "Executor": PyEngineInputType.Executor,
-    "FrontRange": PyEngineInputType.FrontRange,
-    "Limit": PyEngineInputType.Limit,
-    "Diversity": PyEngineInputType.Diversity,
-    "Population": PyEngineInputType.Population,
-    "Subscriber": PyEngineInputType.Subscriber,
-}
 
-
-class EngineInputType:
+class EngineInputType(Enum):
     Alterer = "Alterer"
     SurvivorSelector = "SurvivorSelector"
     OffspringSelector = "OffspringSelector"
@@ -46,14 +28,34 @@ class EngineInputType:
     Subscriber = "Subscriber"
 
 
-class EngineInput:
+input_type_mapping = {
+    EngineInputType.Alterer: PyEngineInputType.Alterer,
+    EngineInputType.SurvivorSelector: PyEngineInputType.SurvivorSelector,
+    EngineInputType.OffspringSelector: PyEngineInputType.OffspringSelector,
+    EngineInputType.SpeciesThreshold: PyEngineInputType.SpeciesThreshold,
+    EngineInputType.PopulationSize: PyEngineInputType.PopulationSize,
+    EngineInputType.OffspringFraction: PyEngineInputType.OffspringFraction,
+    EngineInputType.MaxPhenotypeAge: PyEngineInputType.MaxPhenotypeAge,
+    EngineInputType.MaxSpeciesAge: PyEngineInputType.MaxSpeciesAge,
+    EngineInputType.Objective: PyEngineInputType.Objective,
+    EngineInputType.Executor: PyEngineInputType.Executor,
+    EngineInputType.FrontRange: PyEngineInputType.FrontRange,
+    EngineInputType.Limit: PyEngineInputType.Limit,
+    EngineInputType.Diversity: PyEngineInputType.Diversity,
+    EngineInputType.Population: PyEngineInputType.Population,
+    EngineInputType.Subscriber: PyEngineInputType.Subscriber,
+}
+
+
+class EngineInput(PyObject[PyEngineInput]):
     def __init__(
         self,
         input_type: EngineInputType,
         component: str,
-        allowed_genes: Optional[Set[GeneType] | List[GeneType] | GeneType] = None,
+        allowed_genes: set[GeneType] | list[GeneType] | GeneType | None = None,
         **kwargs,
     ):
+        super().__init__()
         if input_type not in input_type_mapping:
             raise ValueError(f"Invalid input type: {input_type}")
 
@@ -62,7 +64,7 @@ class EngineInput:
         elif isinstance(allowed_genes, GeneType):
             allowed_genes = {allowed_genes}
 
-        self._py_input = PyEngineInput(
+        self._pyobj = PyEngineInput(
             input_type=input_type_mapping[input_type],
             component=component,
             allowed_genes=set(
@@ -70,9 +72,3 @@ class EngineInput:
             ),
             args={k: v for k, v in kwargs.items()},
         )
-
-    def py_input(self) -> PyEngineInput:
-        return self._py_input
-
-    def __repr__(self):
-        return self._py_input.__repr__()

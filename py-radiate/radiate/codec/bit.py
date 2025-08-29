@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List, Tuple
-
 
 from .base import CodecBase
 
@@ -43,8 +41,8 @@ class BitCodec[T](CodecBase[bool, T]):
 
     @staticmethod
     def matrix(
-        shape: List[int] | Tuple[int, int], use_numpy: bool = False
-    ) -> BitCodec[List[List[bool]]]:
+        shape: list[int] | tuple[int, int], use_numpy: bool = False
+    ) -> BitCodec[list[list[bool]]]:
         """
         Initialize the bit codec with a matrix of chromosomes.
         Args:
@@ -73,7 +71,7 @@ class BitCodec[T](CodecBase[bool, T]):
         )
 
     @staticmethod
-    def vector(length: int = 8, use_numpy: bool = False) -> BitCodec[List[bool]]:
+    def vector(length: int = 8, use_numpy: bool = False) -> BitCodec[list[bool]]:
         """
         Initialize the bit codec with a single chromosome of specified length.
         Args:

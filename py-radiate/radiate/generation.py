@@ -1,5 +1,4 @@
-
-from typing import List, Optional
+from radiate.genome.ecosystem import Ecosystem
 from radiate.genome.species import Species
 from .genome import Population
 from radiate.radiate import PyGeneration
@@ -51,8 +50,8 @@ class Generation:
         :return: The population of the generation.
         """
         return Population.from_python(self.inner.population())
-    
-    def species(self) -> Optional[List[Species]]:
+
+    def species(self) -> list[Species] | None:
         """
         Get the species of the generation.
         :return: The species of the generation.
@@ -61,6 +60,13 @@ class Generation:
         if species is None:
             return None
         return [Species.from_python(s) for s in species]
+
+    def ecosystem(self) -> Ecosystem:
+        """
+        Get the ecosystem of the generation.
+        :return: The ecosystem of the generation.
+        """
+        return Ecosystem.from_python(self.inner.ecosystem())
 
     def duration(self):
         """

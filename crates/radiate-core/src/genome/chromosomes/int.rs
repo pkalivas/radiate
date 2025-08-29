@@ -328,6 +328,15 @@ impl<T: Integer<T>> FromIterator<IntGene<T>> for IntChromosome<T> {
     }
 }
 
+impl<T: Integer<T>> IntoIterator for IntChromosome<T> {
+    type Item = IntGene<T>;
+    type IntoIter = std::vec::IntoIter<IntGene<T>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.genes.into_iter()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

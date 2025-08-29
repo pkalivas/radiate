@@ -17,7 +17,7 @@ class TestSelectorOperators:
         ]
 
         for selector, opt in selectors:
-            codec = rd.FloatCodec.vector(length=5, value_range=(0.0, 1.0))
+            codec = rd.FloatCodec.vector(length=5, init_range=(0.0, 1.0))
 
             pop_size = 100
             population = rd.Population(
@@ -46,13 +46,10 @@ class TestSelectorOperators:
     @pytest.mark.unit
     def test_selector_empirical_bias(self, random_seed):
         """Test that selectors bias toward higher-scoring individuals as expected."""
-        codec = rd.FloatCodec.vector(length=5, value_range=(0.0, 1.0))
+        codec = rd.FloatCodec.vector(length=5, init_range=(0.0, 1.0))
         pop_size = 100
         population = rd.Population(
-            [
-                rd.Phenotype(genotype=codec.encode(), score=float(i + 1))
-                for i in range(pop_size)
-            ]
+            rd.Phenotype(codec.encode(), score=float(i + 1)) for i in range(pop_size)
         )
 
         num_trials = 5000
