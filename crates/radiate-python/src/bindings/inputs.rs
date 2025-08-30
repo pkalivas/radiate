@@ -73,7 +73,7 @@ impl PyEngineInput {
 
 impl PyEngineInput {
     pub fn extract<T: for<'py> FromPyObject<'py>>(&self, key: &str) -> PyResult<T> {
-        Python::with_gil(|py| match self.args.get(key) {
+        Python::attach(|py| match self.args.get(key) {
             Some(v) => v.extract(py),
             None => Err(PyKeyError::new_err(format!(
                 "Key '{}' not found in PyEngineInput args",

@@ -40,7 +40,7 @@ impl PyFloatCodec {
                                         .genes
                                         .read()
                                         .iter()
-                                        .map(|gene| FloatGene::from(gene.clone()).new_instance())
+                                        .map(|gene| FloatGene::from(gene.clone()))
                                         .collect::<Vec<FloatGene>>(),
                                 )
                             })
@@ -69,7 +69,7 @@ impl PyFloatCodec {
                     FloatChromosome::from(
                         genes
                             .iter()
-                            .map(|gene| FloatGene::from(gene.new_instance()))
+                            .map(|gene| FloatGene::from(gene.clone()))
                             .collect::<Vec<FloatGene>>(),
                     )
                     .into()

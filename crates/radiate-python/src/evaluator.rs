@@ -56,8 +56,8 @@ where
             batches.push((batch_indices, batch_genotypes));
         }
 
-        let results = Python::with_gil(|py| {
-            py.allow_threads(|| {
+        let results = Python::attach(|py| {
+            py.detach(|| {
                 self.executor.execute_batch(
                     batches
                         .into_iter()

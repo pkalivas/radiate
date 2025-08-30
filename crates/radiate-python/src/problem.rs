@@ -1,5 +1,5 @@
 use crate::{IntoPyAnyObject, PyAnyObject, bindings::PyCodec};
-use pyo3::{PyObject, Python};
+use pyo3::{Py, PyAny, Python};
 use radiate::{Chromosome, Codec, Genotype, Problem, Score};
 
 pub struct PyProblem<C: Chromosome, T> {
@@ -8,7 +8,7 @@ pub struct PyProblem<C: Chromosome, T> {
 }
 
 impl<C: Chromosome, T> PyProblem<C, T> {
-    pub fn new(fitness_func: PyObject, codec: PyCodec<C, T>) -> Self {
+    pub fn new(fitness_func: Py<PyAny>, codec: PyCodec<C, T>) -> Self {
         PyProblem {
             fitness_func: PyAnyObject {
                 inner: fitness_func,
@@ -28,14 +28,14 @@ impl<C: Chromosome, T: IntoPyAnyObject> Problem<C, T> for PyProblem<C, T> {
     }
 
     fn eval(&self, individual: &Genotype<C>) -> Score {
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let phenotype = self.codec.decode_with_py(py, individual).into_py(py);
             call_fitness(py, self.fitness_func.clone(), phenotype)
         })
     }
 
     fn eval_batch(&self, individuals: &[Genotype<C>]) -> Vec<Score> {
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             individuals
                 .iter()
                 .map(|ind| {

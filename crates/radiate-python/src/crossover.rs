@@ -63,7 +63,7 @@ impl<C: Chromosome> PyCrossover<C> {
             let py_chrom_two = &mut geno_two.chromosomes[chromosome_index];
 
             let mut count = 0;
-            Python::with_gil(|py| {
+            Python::attach(|py| {
                 let result = self
                     .chromosome_crossover
                     .as_ref()

@@ -41,7 +41,7 @@ where
         let mut count = 0;
 
         if random_provider::random::<f32>() < rate {
-            Python::with_gil(|py| {
+            Python::attach(|py| {
                 let py_chromosome = PyChromosome::from(chromosome.clone());
                 let result = self
                     .chromosome_mutator

@@ -297,7 +297,7 @@ impl PyGene {
         factory: Py<PyAny>,
     ) -> PyGene {
         let fact = move || {
-            Python::with_gil(|py| {
+            Python::attach(|py| {
                 let obj = factory.call0(py).unwrap();
                 let gene = obj.extract::<Wrap<AnyValue<'_>>>(py).unwrap();
                 gene.0.into_static()

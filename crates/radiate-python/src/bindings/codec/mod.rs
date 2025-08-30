@@ -73,7 +73,7 @@ impl<C: Chromosome, T> Codec<C, T> for PyCodec<C, T> {
     }
 
     fn decode(&self, genotype: &Genotype<C>) -> T {
-        Python::with_gil(|py| match &self.decoder {
+        Python::attach(|py| match &self.decoder {
             Some(decoder) => decoder(py, genotype),
             None => panic!("Decoder function is not set"),
         })
